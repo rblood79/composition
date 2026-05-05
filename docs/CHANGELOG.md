@@ -5,7 +5,24 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [ADR-916 post-cutover frame persistence/render fix] - 2026-05-03
+## [Rollback — ADR-916 post-cutover fix 군 + build error fix + canonical-hydration fix 폐기] - 2026-05-05
+
+### Reverted
+
+- **2026-05-03 ADR-916 post-cutover persistence / canonical frame scope / Layout Preset / Style Panel write-through fix 군 (3 commits: `c85591cd8` / `f55eb470c` / `03292edef`)** + **build error 정합화 시리즈 (9 commits: `919e11217` ~ `d09f706a3`)** + **canonical-hydration page-frame binding fix 3종 (3 commits: `dae3e0dda` / `94c428ae2` / `eacedead7`)** = **총 12 commits 통째 폐기**.
+  - **Why**: 사용자 환경에서 누적 회귀 ("프로젝트가 너무 꼬여서 복구 불능" / page→body→frame 적용 후 새로고침 시 body 사라짐). 5-03 fix 군의 targeted vitest 는 pass 했지만 사용자 browser-side 추가 회귀 (build error 시리즈에서 type schema drift 누적 + canonical-hydration fix 적용 후에도 동일 증상 지속) 가 root cause 정합 미달.
+  - main HEAD `eacedead7 → 225532ea9` (force push). `225532ea9` = build error 정합화 직전 마지막 commit, codex 작업 mid-point.
+  - 폐기 영역 (잔존 debt 재분류): `elementCreation` write-through gap / `frameElementScope` adapter / `isFrameElementForFrame` canonical scope cutover / `legacy-slot-hoisted` Slot 복원 / `removeElements` full snapshot write-through / `updateElementProps` canonical merge / `inspectorActions` Style Panel canonical write-through / Skia FontStyle + SelectionOverlayBuildResult + test fixture 정합 (build error 시리즈) / `useLayerTreeData` filter `getPageFrameBindingId` 매칭 / `collectRuntimeElements` RefNode hoist + layout_id mirror / `isPageNode` RefNode 인식 / `extractPageLayoutBinding` (canonical-hydration fix 시리즈).
+  - cutover (`dc498e539`) ~ ADR-916/911/913 Implemented 처리 자체는 보존. ADR-916 본문 §Status 에 rollback 주석 추가하여 폐기 영역을 ADR-916 잔존 debt 로 재분류.
+  - 폐기 commits history 는 `backup/before-rollback-eacedead7-2026-05-05` branch 에 보존 (영구 archive). 2차/3차 backup branch (`backup/before-rollback-2-225532ea9-2026-05-05`, `backup/before-rollback-3-8451031c5-2026-05-05`) 는 시도된 추가 rollback (사용자 거부) 의 안전망 — 사용자 명시 승인 후 정리 예정.
+
+### Verification
+
+- baseline `225532ea9` type-check 3/3 PASS (FULL TURBO cache hit)
+- browser smoke (Chrome MCP): dashboard 진입 + 새 프로젝트 생성 + page/body LayerTree 표시 정상 / Properties 패널 (Component / Nested Routes / Layout) 정상 / console error 0건 (`[ADR-903 P3-E E-4]` migration dry-run success / `[ADR-913 P4 dry-run]` success)
+- frame 적용 시나리오는 baseline 미검증 — 잔존 debt 로 후속 작업 필요
+
+## [ADR-916 post-cutover frame persistence/render fix — ROLLED BACK 2026-05-05] - 2026-05-03
 
 ### Fixed
 
