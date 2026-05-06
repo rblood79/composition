@@ -6,6 +6,7 @@ import type { ElementProps } from "../../../../../types/integrations/supabase.ty
 import { useStore } from "../../../../stores";
 import { resolveCanonicalRefTree } from "../../../../utils/canonicalRefResolution";
 import { useCanonicalElements } from "../../../../stores/canonical/canonicalElementsView";
+import { resolvePageWithFrame } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
 import { getPageFrameBindingId } from "../../../../../adapters/canonical/frameMirror";
 import { getElementLayoutId } from "../../../../../adapters/canonical/legacyElementFields";
 import {
@@ -25,22 +26,6 @@ export function useLayerTreeData(elements: Element[]) {
   // ADR-916 direct cutover — canonical store 의 active document 에서 derived
   // Element[] 를 source 로 사용. 초기 hydration 전에는 caller elements[] fallback.
   const canonicalElements = useCanonicalElements();
-  const sourceElements = useMemo(() => {
-    const baseElements = canonicalElements ?? elements;
-    if (!currentPageId) return baseElements;
-    const currentPage = pages.find((page) => page.id === currentPageId);
-    const boundFrameId = currentPage ? getPageFrameBindingId(currentPage) : "";
-    return baseElements.filter((element) => {
-      const elementLayoutId = getElementLayoutId(element);
-      const isCurrentPageOwnedElement =
-        element.page_id === currentPageId && elementLayoutId === null;
-      const isBoundFrameElement =
-        boundFrameId.length > 0 && elementLayoutId === boundFrameId;
-
-      return isCurrentPageOwnedElement || isBoundFrameElement;
-    });
-  }, [elements, canonicalElements, currentPageId, pages]);
-
   const resolutionElementsMap = useMemo(() => {
     if (!canonicalElements) return allElementsMap;
     const map = new Map(
@@ -51,6 +36,51 @@ export function useLayerTreeData(elements: Element[]) {
     }
     return map;
   }, [allElementsMap, canonicalElements]);
+
+  const sourceElements = useMemo(() => {
+    const baseElements = mergeCanonicalLayerSource(canonicalElements, elements);
+    if (!currentPageId) return baseElements;
+    const currentPage = pages.find((page) => page.id === currentPageId);
+    const boundFrameId = currentPage ? getPageFrameBindingId(currentPage) : "";
+    const legacyLayerSource = baseElements.filter((element) => {
+      const elementLayoutId = getElementLayoutId(element);
+      const isCurrentPageOwnedElement =
+        element.page_id === currentPageId && elementLayoutId === null;
+      const isBoundFrameElement =
+        boundFrameId.length > 0 && elementLayoutId === boundFrameId;
+
+      return isCurrentPageOwnedElement || isBoundFrameElement;
+    });
+
+    if (!currentPage || boundFrameId.length === 0) {
+      return legacyLayerSource;
+    }
+
+    const pageOwnedElements = baseElements
+      .filter(
+        (element) =>
+          element.page_id === currentPageId &&
+          getElementLayoutId(element) === null,
+      )
+      .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+    const resolvedPage = resolvePageWithFrame({
+      page: currentPage,
+      pageElements: pageOwnedElements,
+      elementsMap: resolutionElementsMap,
+    });
+
+    if (!resolvedPage.hasFrameBinding || !resolvedPage.bodyElement) {
+      return legacyLayerSource;
+    }
+
+    return [resolvedPage.bodyElement, ...resolvedPage.pageElements];
+  }, [
+    elements,
+    canonicalElements,
+    currentPageId,
+    pages,
+    resolutionElementsMap,
+  ]);
 
   const projectedElements = useMemo(() => {
     if (sourceElements.length === 0) return sourceElements;
@@ -147,6 +177,24 @@ export function useLayerTreeData(elements: Element[]) {
   );
 
   return { tree, treeNodes, nodeMap, focusNodeMap, disabledKeys, syncToStore };
+}
+
+function mergeCanonicalLayerSource(
+  canonicalElements: Element[] | null,
+  layerElements: Element[],
+): Element[] {
+  if (!canonicalElements) return layerElements;
+  const elementsById = new Map(
+    canonicalElements.map((element) => [element.id, element]),
+  );
+
+  for (const element of layerElements) {
+    if (!elementsById.has(element.id)) {
+      elementsById.set(element.id, element);
+    }
+  }
+
+  return Array.from(elementsById.values());
 }
 
 function convertToLayerTreeNodes(

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import type { Key } from "react-stately";
 import { TreeBase, VirtualizedTree } from "../TreeBase";
 import type { TreeItemState } from "../TreeBase/types";
@@ -49,6 +49,16 @@ export function LayerTree({
   });
 
   const resolvedExpandedKeys = expandedKeys ?? internalExpandedKeys;
+  const effectiveExpandedKeys = useMemo(() => {
+    if (!selectedElementId) return resolvedExpandedKeys;
+    const next = new Set<Key>(resolvedExpandedKeys);
+    let parentId = nodeMap.get(selectedElementId)?.parentId ?? null;
+    while (parentId) {
+      next.add(parentId);
+      parentId = nodeMap.get(parentId)?.parentId ?? null;
+    }
+    return next;
+  }, [nodeMap, resolvedExpandedKeys, selectedElementId]);
 
   const handleExpandedChange = useCallback(
     (keys: Set<Key>) => {
@@ -111,7 +121,9 @@ export function LayerTree({
   // 드래그 가능 여부
   const canDrag = useCallback((node: LayerTreeNode) => {
     return (
-      !node.virtualChildType && !node.isSyntheticRefChild && node.type !== "body"
+      !node.virtualChildType &&
+      !node.isSyntheticRefChild &&
+      node.type !== "body"
     );
   }, []);
 
@@ -138,7 +150,7 @@ export function LayerTree({
     selectedKeys: selectedElementId
       ? new Set([selectedElementId])
       : new Set<Key>(),
-    expandedKeys: resolvedExpandedKeys,
+    expandedKeys: effectiveExpandedKeys,
     disabledKeys,
     focusedKey,
     onSelectionChange: handleSelectionChange,

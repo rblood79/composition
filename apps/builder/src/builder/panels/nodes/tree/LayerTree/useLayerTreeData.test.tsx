@@ -5,6 +5,7 @@ import type { Element } from "../../../../../types/core/store.types";
 import { useStore } from "../../../../stores";
 import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { getEditingSemanticsRole } from "../../../../utils/editingSemantics";
+import { toPageFrameElementId } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
 import { useLayerTreeData } from "./useLayerTreeData";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
@@ -295,6 +296,148 @@ describe("useLayerTreeData", () => {
     expect(result.current.treeNodes.map((node) => node.id)).toEqual([
       "page-body",
     ]);
+  });
+
+  it("projects frame-bound page children under the resolved content slot", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const pageCard = makeElement("page-card", {
+      type: "Card",
+      parent_id: "page-body",
+      page_id: "page-1",
+      order_num: 1,
+    });
+    const frameBody = makeElement("frame-body", {
+      type: "body",
+      page_id: null,
+      layout_id: "frame-1",
+      order_num: 0,
+    } as never);
+    const frameSlot = makeElement("slot-content", {
+      type: "Slot",
+      parent_id: "frame-body",
+      page_id: null,
+      layout_id: "frame-1",
+      order_num: 0,
+      props: { name: "content" },
+    } as never);
+    const elements = [pageBody, pageCard, frameBody, frameSlot];
+    const slotId = toPageFrameElementId("page-1", "slot-content");
+
+    useStore.setState({
+      currentPageId: "page-1",
+      pages: [
+        {
+          id: "page-1",
+          title: "Page 1",
+          project_id: "project-1",
+          slug: "/page-1",
+          layout_id: "frame-1",
+        },
+      ],
+      elements,
+      elementsMap: new Map(elements.map((element) => [element.id, element])),
+    } as never);
+
+    const { result } = renderHook(() => useLayerTreeData(elements));
+
+    expect(result.current.treeNodes.map((node) => node.id)).toEqual([
+      "page-body",
+    ]);
+    expect(result.current.nodeMap.get("page-body")?.children?.[0]?.id).toBe(
+      slotId,
+    );
+    expect(
+      result.current.nodeMap.get(slotId)?.children?.map((node) => node.id),
+    ).toEqual(["page-card"]);
+    expect(result.current.nodeMap.get("page-card")?.parentId).toBe(slotId);
+  });
+
+  it("keeps live page snapshot children when canonical frame binding is active", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "ref",
+          ref: "layout-frame-1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            layoutId: "frame-1",
+          },
+        },
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body",
+              type: "body",
+              props: { style: { display: "flex" } },
+              children: [
+                {
+                  id: "slot-content",
+                  type: "frame",
+                  metadata: {
+                    type: "legacy-slot-hoisted",
+                    slotName: "content",
+                  },
+                  props: { name: "content" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never;
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const pageCard = makeElement("page-card", {
+      type: "Card",
+      parent_id: "page-body",
+      page_id: "page-1",
+      order_num: 1,
+    });
+    const slotId = toPageFrameElementId("page-1", "slot-content");
+    const layerElements = [pageBody, pageCard];
+
+    useStore.setState({
+      currentPageId: "page-1",
+      pages: [
+        {
+          id: "page-1",
+          title: "Page 1",
+          project_id: "project-1",
+          slug: "/page-1",
+          layout_id: "frame-1",
+        },
+      ],
+      elements: layerElements,
+      elementsMap: new Map(
+        layerElements.map((element) => [element.id, element]),
+      ),
+      pageElementsSnapshot: { "page-1": layerElements },
+    } as never);
+    act(() => {
+      const canonical = useCanonicalDocumentStore.getState();
+      canonical.setDocument("project-1", doc);
+      canonical.setCurrentProject("project-1");
+    });
+
+    const { result } = renderHook(() => useLayerTreeData(layerElements));
+
+    expect(
+      result.current.nodeMap.get(slotId)?.children?.map((node) => node.id),
+    ).toEqual(["page-card"]);
   });
 
   it("filters canonical layer source to the selected page", () => {
