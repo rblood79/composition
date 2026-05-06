@@ -1,8 +1,9 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Component as ComponentIcon } from "lucide-react";
 import type { Element } from "../../../types/core/store.types";
 import { PropertySection } from "../../components";
 import { useStore } from "../../stores";
+import { useCanonicalElements } from "../../stores/canonical/canonicalElementsView";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { resolveReference } from "../../../utils/component/referenceResolution";
 import {
@@ -47,8 +48,19 @@ function isFrameBodyElement(element: Element): boolean {
 
 export const ComponentSemanticsSection = memo(
   function ComponentSemanticsSection({ elementId }: { elementId: string }) {
-    const element = useStore((state) => state.elementsMap.get(elementId));
+    const legacyElement = useStore((state) => state.elementsMap.get(elementId));
     const elementsMap = useStore((state) => state.elementsMap);
+    const canonicalElements = useCanonicalElements();
+    const element = useMemo(
+      () =>
+        canonicalElements?.find((candidate) => candidate.id === elementId) ??
+        legacyElement,
+      [canonicalElements, elementId, legacyElement],
+    );
+    const lookupElements = useMemo(
+      () => canonicalElements ?? Array.from(elementsMap.values()),
+      [canonicalElements, elementsMap],
+    );
     const selectElementWithPageTransition = useStore(
       (state) => state.selectElementWithPageTransition,
     );
@@ -63,12 +75,12 @@ export const ComponentSemanticsSection = memo(
     const role = getEditingSemanticsRole(element);
     const label = getEditingSemanticsLabel(role);
     const originId = getEditingSemanticsOriginId(element);
-    const originElement = resolveOriginElement(originId, elementsMap.values());
+    const originElement = resolveOriginElement(originId, lookupElements);
     const isDetachableInstance = canDetachInstance(element);
     const overrideItems = getEditingSemanticsOverrideItems(element);
     const instanceIds =
       role === "origin"
-        ? getEditingSemanticsImpactInstanceIds(element, elementsMap.values())
+        ? getEditingSemanticsImpactInstanceIds(element, lookupElements)
         : [];
     const roleLabel = label ?? "Standard";
     const roleClass = role ?? "standard";

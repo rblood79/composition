@@ -154,7 +154,7 @@ describe("useSelectedElementData", () => {
     });
   });
 
-  it("overlays local canonical ref override props onto origin-shaped selected data", () => {
+  it("uses canonical ref override props as the source for origin-shaped selected data", () => {
     const doc: CompositionDocument = {
       schemaVersion: "1.0",
       children: [
@@ -172,7 +172,10 @@ describe("useSelectedElementData", () => {
           id: "instance",
           type: "ref",
           ref: "origin",
-          props: {},
+          props: {
+            label: "Instance amount",
+            style: { minWidth: 240 },
+          },
         } as CanonicalNode,
       ],
     };
@@ -188,8 +191,8 @@ describe("useSelectedElementData", () => {
       elementsMap: new Map(),
       selectedElementId: "instance",
       selectedElementProps: {
-        label: "Instance amount",
-        style: { minWidth: 240 },
+        label: "Stale amount",
+        style: { minWidth: 999 },
         type: "ref",
       },
     } as never);
@@ -204,6 +207,66 @@ describe("useSelectedElementData", () => {
         minValue: 0,
       },
       style: { width: "100%", minWidth: 240 },
+    });
+  });
+
+  it("does not let stale selected props reapply a reset canonical ref override", () => {
+    const initialDoc: CompositionDocument = {
+      schemaVersion: "1.0",
+      children: [
+        {
+          id: "origin",
+          type: "NumberField",
+          reusable: true,
+          props: { label: "Origin amount", minValue: 0 },
+        },
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          props: { label: "Instance amount" },
+        } as CanonicalNode,
+      ],
+    };
+    const resetDoc: CompositionDocument = {
+      ...initialDoc,
+      children: [
+        initialDoc.children[0],
+        {
+          ...initialDoc.children[1],
+          props: {},
+        } as CanonicalNode,
+      ],
+    };
+
+    act(() => {
+      const state = useCanonicalDocumentStore.getState();
+      state.setDocument("proj-a", initialDoc);
+      state.setCurrentProject("proj-a");
+    });
+
+    useStore.setState({
+      elements: [],
+      elementsMap: new Map(),
+      selectedElementId: "instance",
+      selectedElementProps: { label: "Instance amount", type: "ref" },
+    } as never);
+
+    const { result } = renderHook(() => useSelectedElementData());
+
+    expect(result.current?.properties.label).toBe("Instance amount");
+
+    act(() => {
+      useCanonicalDocumentStore.getState().setDocument("proj-a", resetDoc);
+    });
+
+    expect(result.current).toMatchObject({
+      id: "instance",
+      type: "NumberField",
+      properties: {
+        label: "Origin amount",
+        minValue: 0,
+      },
     });
   });
 });

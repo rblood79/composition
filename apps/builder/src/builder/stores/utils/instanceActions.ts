@@ -881,6 +881,10 @@ export function resetInstanceOverrideField(
 
   if (!nextElement) return null;
 
+  if (state.selectedElementId === instanceId) {
+    state._cancelHydrateSelectedProps();
+  }
+
   if (state.currentPageId) {
     historyManager.addEntry({
       type: "update",
@@ -909,7 +913,9 @@ export function resetInstanceOverrideField(
     };
   });
   get()._rebuildIndexes();
-  persistElementsAfterInstanceMutation([nextElement]);
+  syncInstanceElementsToCanonical([nextElement]);
+  const persistedElement = get().elementsMap.get(instanceId) ?? nextElement;
+  persistElementsAfterInstanceMutation([persistedElement]);
 
   return { previousState };
 }

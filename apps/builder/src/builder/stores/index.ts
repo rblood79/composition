@@ -16,8 +16,13 @@ import {
   resolveCanonicalRefElement,
 } from "../utils/canonicalRefResolution";
 import { useCanonicalSelectedElement } from "./canonical/canonicalElementsView";
+import { getActiveCanonicalElementSnapshot } from "./canonical/canonicalElementSnapshot";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
+import {
+  getComponentOverridesMirror,
+  isComponentInstanceMirrorElement,
+} from "../../adapters/canonical/componentSemanticsMirror";
 
 // ✅ ThemeState removed - now using unified theme store (themeStore.unified.ts)
 
@@ -109,17 +114,17 @@ function hasCanonicalRefMirror(element: Element | undefined): boolean {
   return typeof ref === "string" && ref.length > 0;
 }
 
-function getRefMirrorSelectedOverrideProps(
-  selectedElementProps: Record<string, unknown>,
+function getSelectedRefOverridePropsFromSource(
+  element: Element | undefined,
 ): Record<string, unknown> {
-  const {
-    computedStyle: _computedStyle,
-    events: _events,
-    type: _type,
-    ...overrideProps
-  } = selectedElementProps;
-
-  return overrideProps;
+  if (!element) return {};
+  if (isComponentInstanceMirrorElement(element)) {
+    return getComponentOverridesMirror(element) ?? {};
+  }
+  if (isCanonicalRefElement(element) || hasCanonicalRefMirror(element)) {
+    return (element.props ?? {}) as Record<string, unknown>;
+  }
+  return {};
 }
 
 // ============================================
@@ -184,13 +189,18 @@ export const useSelectedElementData = (): SelectedElement | null => {
     const shouldUseResolvedRefProps =
       isCanonicalRefElement(element) || hasCanonicalRefMirror(element);
 
+    const currentRefOverrideProps = shouldUseResolvedRefProps
+      ? getSelectedRefOverridePropsFromSource(
+          getActiveCanonicalElementSnapshot(selectedElementId) ??
+            useStore.getState().elementsMap.get(selectedElementId),
+        )
+      : null;
+
     const props = shouldUseResolvedRefProps
       ? {
           ...mergePropsWithStyleDeep(
             (resolvedElement.props ?? {}) as Record<string, unknown>,
-            getRefMirrorSelectedOverrideProps(
-              selectedElementProps as Record<string, unknown>,
-            ),
+            currentRefOverrideProps ?? {},
           ),
           ...(selectedElementProps.computedStyle !== undefined && {
             computedStyle: selectedElementProps.computedStyle,

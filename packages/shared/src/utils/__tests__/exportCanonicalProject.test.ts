@@ -636,6 +636,7 @@ describe("project export canonical CompositionDocument payload", () => {
         id: "button-instance/button-label",
         parent_id: "button-instance",
         page_id: "page-home",
+        props: { children: "Custom" },
       }),
     );
   });
@@ -738,6 +739,82 @@ describe("project export canonical CompositionDocument payload", () => {
           id: "card-instance/card-content/card-description",
           parent_id: "card-instance/card-content",
           page_id: "page-home",
+        }),
+      ]),
+    );
+  });
+
+  it("applies mode C descendant children replacements without leaving origin children in runtime elements", () => {
+    const documentWithSlotReplacement: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home" },
+          children: [
+            {
+              id: "card-origin",
+              type: "Card",
+              reusable: true,
+              props: {},
+              children: [
+                {
+                  id: "card-content",
+                  type: "CardContent",
+                  props: {},
+                  children: [
+                    {
+                      id: "card-description",
+                      type: "Description",
+                      props: { children: "Origin description" },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              id: "card-instance",
+              type: "ref",
+              ref: "card-origin",
+              props: {},
+              descendants: {
+                "card-content": {
+                  children: [
+                    {
+                      id: "custom-body",
+                      type: "Text",
+                      props: { children: "Custom body" },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithSlotReplacement,
+      projectId,
+      "page-home",
+    );
+
+    expect(
+      renderModel.elements.some(
+        (element) =>
+          element.id === "card-instance/card-content/card-description",
+      ),
+    ).toBe(false);
+    expect(renderModel.elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "card-instance/card-content/custom-body",
+          parent_id: "card-instance/card-content",
+          page_id: "page-home",
+          props: { children: "Custom body" },
         }),
       ]),
     );

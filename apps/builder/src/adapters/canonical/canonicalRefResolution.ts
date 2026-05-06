@@ -154,7 +154,7 @@ function propsFromDescendantPatch(
   patch: Record<string, unknown>,
 ): Record<string, unknown> {
   const {
-    children: _children,
+    children,
     descendants: _descendants,
     id: _id,
     metadata: _metadata,
@@ -164,7 +164,11 @@ function propsFromDescendantPatch(
     type: _type,
     ...props
   } = patch;
-  return isRecord(patch.props) ? patch.props : props;
+  if (isRecord(patch.props)) return patch.props;
+  if (children !== undefined && !Array.isArray(children)) {
+    props.children = children;
+  }
+  return props;
 }
 
 function getOverrideNodeSegment(node: OverrideNode, index: number): string {
@@ -203,6 +207,70 @@ function getOverrideNodeSlot(node: OverrideNode): false | string[] | undefined {
   return slot === false || Array.isArray(slot) ? slot : undefined;
 }
 
+function applyDescendantPatchToElement(
+  element: Element,
+  patch: Record<string, unknown> | null,
+): Element {
+  if (!patch) return element;
+  const patchProps = propsFromDescendantPatch(patch);
+  const patchedType =
+    typeof patch.type === "string" && patch.type.length > 0
+      ? patch.type
+      : element.type;
+
+  return {
+    ...element,
+    type: patchedType,
+    props: mergePropsWithStyleDeep(getElementProps(element), patchProps),
+  } as Element;
+}
+
+function replaceResultElement(
+  element: Element,
+  resultElementsMap: Map<string, Element>,
+  resultElements: Element[],
+): Element {
+  resultElementsMap.set(element.id, element);
+  const index = resultElements.findIndex(
+    (candidate) => candidate.id === element.id,
+  );
+  if (index >= 0) {
+    resultElements[index] = element;
+  } else {
+    resultElements.push(element);
+  }
+  return element;
+}
+
+function removeSyntheticDescendantElements(
+  syntheticParentId: string,
+  resultElementsMap: Map<string, Element>,
+  resultChildrenMap: Map<string, Element[]>,
+  resultElements: Element[],
+): void {
+  const idPrefix = `${syntheticParentId}/`;
+  for (let index = resultElements.length - 1; index >= 0; index -= 1) {
+    const element = resultElements[index];
+    if (!element?.id.startsWith(idPrefix)) continue;
+    resultElements.splice(index, 1);
+    resultElementsMap.delete(element.id);
+    resultChildrenMap.delete(element.id);
+  }
+
+  for (const [parentId, children] of resultChildrenMap.entries()) {
+    if (parentId.startsWith(idPrefix)) {
+      resultChildrenMap.delete(parentId);
+      continue;
+    }
+    const nextChildren = children.filter(
+      (child) => !child.id.startsWith(idPrefix),
+    );
+    if (nextChildren.length !== children.length) {
+      resultChildrenMap.set(parentId, nextChildren);
+    }
+  }
+}
+
 function materializeOverrideChildren(
   refElement: Element,
   overrideChildren: unknown[],
@@ -226,6 +294,12 @@ function materializeOverrideChildren(
       syntheticChildren.push(existingSyntheticChild);
       const nestedChildren = child.children;
       if (Array.isArray(nestedChildren)) {
+        removeSyntheticDescendantElements(
+          syntheticId,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+        );
         const nextPath = pathPrefix ? `${pathPrefix}/${segment}` : segment;
         materializeOverrideChildren(
           refElement,
@@ -341,8 +415,23 @@ function materializeSyntheticDescendants(
     const existingSyntheticChild = resultElementsMap.get(syntheticId);
 
     if (existingSyntheticChild) {
-      syntheticChildren.push(existingSyntheticChild);
+      const patchedExistingChild = applyDescendantPatchToElement(
+        existingSyntheticChild,
+        patch,
+      );
+      replaceResultElement(
+        patchedExistingChild,
+        resultElementsMap,
+        resultElements,
+      );
+      syntheticChildren.push(patchedExistingChild);
       if (patch && Array.isArray(patch.children)) {
+        removeSyntheticDescendantElements(
+          syntheticId,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+        );
         materializeOverrideChildren(
           refElement,
           patch.children,
@@ -386,6 +475,12 @@ function materializeSyntheticDescendants(
     syntheticChildren.push(syntheticChild);
 
     if (patch && Array.isArray(patch.children)) {
+      removeSyntheticDescendantElements(
+        syntheticId,
+        resultElementsMap,
+        resultChildrenMap,
+        resultElements,
+      );
       materializeOverrideChildren(
         refElement,
         patch.children,

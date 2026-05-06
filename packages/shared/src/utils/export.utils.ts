@@ -369,6 +369,81 @@ function getRuntimeStableSegment(node: CanonicalNode): string {
   return readCanonicalMetadataCustomId(node.metadata) ?? node.name ?? node.id;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergePropsWithStyleDeep(
+  baseProps: Record<string, unknown>,
+  overrides: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = { ...baseProps, ...overrides };
+  if (baseProps.style || overrides.style) {
+    merged.style = {
+      ...((baseProps.style as Record<string, unknown> | undefined) ?? {}),
+      ...((overrides.style as Record<string, unknown> | undefined) ?? {}),
+    };
+  }
+  return merged;
+}
+
+function getDescendantPatchProps(
+  override: Record<string, unknown>,
+): Record<string, unknown> {
+  const {
+    children,
+    descendants: _descendants,
+    id: _id,
+    metadata: _metadata,
+    name: _name,
+    ref: _ref,
+    reusable: _reusable,
+    slot: _slot,
+    type: _type,
+    ...props
+  } = override;
+
+  if (isRecord(override.props)) return override.props;
+  if (children !== undefined && !Array.isArray(children)) {
+    props.children = children;
+  }
+  return props;
+}
+
+function getDescendantOverride(
+  descendants: Record<string, unknown> | undefined,
+  path: string | undefined,
+): Record<string, unknown> | null {
+  if (!descendants || !path) return null;
+  const override = descendants[path];
+  return isRecord(override) ? override : null;
+}
+
+function applyDescendantOverride(
+  node: CanonicalNode,
+  override: Record<string, unknown> | null,
+): CanonicalNode {
+  if (!override) return node;
+
+  const type = override.type;
+  if (typeof type === "string" && type.length > 0) {
+    return isCanonicalNode(override) ? override : node;
+  }
+
+  const children = override.children;
+  const props = mergePropsWithStyleDeep(
+    node.props ?? {},
+    getDescendantPatchProps(override),
+  );
+  return {
+    ...node,
+    props,
+    ...(Array.isArray(children)
+      ? { children: children.filter(isCanonicalNode) }
+      : {}),
+  };
+}
+
 function collectRuntimeElements(
   document: CompositionDocument,
   nodes: CanonicalNode[],
@@ -376,12 +451,34 @@ function collectRuntimeElements(
   parentId: string | null,
   elements: Element[],
   pageLayoutBinding: string | null,
-  options: { idPathPrefix?: string; projectFrameElementIds?: boolean } = {},
+  options: {
+    descendantPathPrefix?: string;
+    descendants?: Record<string, unknown>;
+    idPathPrefix?: string;
+    projectFrameElementIds?: boolean;
+  } = {},
 ): void {
   nodes.forEach((sourceNode, index) => {
-    const node = resolveRenderableNode(document, sourceNode);
+    const descendantPath =
+      options.descendants && options.idPathPrefix
+        ? options.descendantPathPrefix
+          ? `${options.descendantPathPrefix}/${getRuntimeStableSegment(sourceNode)}`
+          : getRuntimeStableSegment(sourceNode)
+        : undefined;
+    const descendantOverride = getDescendantOverride(
+      options.descendants,
+      descendantPath,
+    );
+    const sourceNodeWithDescendantOverride = applyDescendantOverride(
+      sourceNode,
+      descendantOverride,
+    );
+    const node = resolveRenderableNode(
+      document,
+      sourceNodeWithDescendantOverride,
+    );
     const nodeSegment = options.idPathPrefix
-      ? getRuntimeStableSegment(node)
+      ? getRuntimeStableSegment(sourceNode)
       : node.id;
     const localElementId = options.idPathPrefix
       ? `${options.idPathPrefix}/${nodeSegment}`
@@ -412,6 +509,11 @@ function collectRuntimeElements(
     }
     const sourceRefNode = sourceNode as CanonicalNodeWithRef;
     const ref = sourceRefNode[CANONICAL_REF_FIELD];
+    const refDescendants =
+      sourceNode.type === "ref" &&
+      isRecord(sourceRefNode[CANONICAL_REF_CHILD_PATCHES_FIELD])
+        ? sourceRefNode[CANONICAL_REF_CHILD_PATCHES_FIELD]
+        : options.descendants;
     if (sourceNode.type === "ref" && typeof ref === "string") {
       element[COMPONENT_ROLE_RUNTIME_FIELD] = "instance";
       element[COMPONENT_MASTER_RUNTIME_FIELD] = ref;
@@ -444,6 +546,20 @@ function collectRuntimeElements(
       sourceNode.type === "ref" || options.idPathPrefix
         ? localElementId
         : undefined;
+    const childDescendantPathPrefix =
+      sourceNode.type === "ref" ? undefined : descendantPath;
+    const childOptions = {
+      ...options,
+      ...(refDescendants ? { descendants: refDescendants } : {}),
+      ...(childDescendantPathPrefix
+        ? { descendantPathPrefix: childDescendantPathPrefix }
+        : {}),
+      ...(childIdPathPrefix ? { idPathPrefix: childIdPathPrefix } : {}),
+    };
+    if (!childDescendantPathPrefix) {
+      delete childOptions.descendantPathPrefix;
+    }
+
     collectRuntimeElements(
       document,
       node.children ?? [],
@@ -451,10 +567,7 @@ function collectRuntimeElements(
       elementId,
       elements,
       pageLayoutBinding,
-      {
-        ...options,
-        ...(childIdPathPrefix ? { idPathPrefix: childIdPathPrefix } : {}),
-      },
+      childOptions,
     );
   });
 }

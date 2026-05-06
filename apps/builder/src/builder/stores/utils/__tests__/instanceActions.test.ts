@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  RefNode,
+} from "@composition/shared";
 import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
@@ -441,6 +445,135 @@ describe("instance store actions", () => {
       descendants: {
         "slot/label": { text: "Custom label", tone: "accent" },
       },
+    });
+  });
+
+  it("syncs reset canonical ref descendants into the active canonical document", () => {
+    const page = {
+      id: "page-1",
+      title: "Home",
+      project_id: "project-1",
+      slug: "/",
+      order_num: 0,
+    } as Page;
+    const body = makeElement("body", {
+      type: "body",
+      parent_id: null,
+      order_num: 0,
+    });
+    const master = makeElement("master", {
+      type: "Card",
+      parent_id: body.id,
+      reusable: true,
+      props: { title: "Origin title" },
+      order_num: 0,
+    });
+    const heading = makeElement("heading", {
+      type: "Heading",
+      parent_id: master.id,
+      customId: "heading",
+      props: { children: "Origin title" },
+      order_num: 0,
+    });
+    const ref = makeElement("ref", {
+      type: "ref",
+      ref: master.id,
+      parent_id: body.id,
+      props: { title: "Instance title" },
+      descendants: {
+        heading: { children: "Instance title", tone: "accent" },
+      },
+      order_num: 1,
+    } as never);
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body",
+              type: "body",
+              props: {},
+              metadata: { type: "legacy-element-props" },
+              children: [
+                {
+                  id: "master",
+                  type: "Card",
+                  reusable: true,
+                  props: { title: "Origin title" },
+                  metadata: { type: "legacy-element-props" },
+                  children: [
+                    {
+                      id: "heading",
+                      type: "Heading",
+                      props: { children: "Origin title" },
+                      metadata: {
+                        type: "legacy-element-props",
+                        customId: "heading",
+                      },
+                    },
+                  ],
+                },
+                {
+                  id: "ref",
+                  type: "ref",
+                  ref: "master",
+                  props: { title: "Instance title" },
+                  descendants: {
+                    heading: { children: "Instance title", tone: "accent" },
+                  },
+                  metadata: { type: "legacy-element-props" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } satisfies CompositionDocument;
+
+    useStore.setState({
+      currentPageId: "page-1",
+      pages: [page],
+      elements: [body, master, heading, ref],
+      elementsMap: new Map([
+        [body.id, body],
+        [master.id, master],
+        [heading.id, heading],
+        [ref.id, ref],
+      ]),
+      selectedElementId: ref.id,
+      selectedElementProps: ref.props,
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", doc);
+    registerCanonicalMutationStoreActions({
+      mergeElements: useStore.getState().mergeElements,
+      setElements: useStore.getState().setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    useStore
+      .getState()
+      .resetInstanceOverrideField(ref.id, "children", "heading");
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const refNode = findCanonicalNodeById(nextDoc?.children ?? [], ref.id) as
+      | RefNode
+      | undefined;
+
+    expect(refNode?.descendants).toEqual({
+      heading: { tone: "accent" },
     });
   });
 

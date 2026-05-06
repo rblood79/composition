@@ -59,4 +59,39 @@ describe("computeReorderUpdates", () => {
       { id: "frame-body", order_num: 0 },
     ]);
   });
+
+  it("does not use mutable label text as a tie-breaker when repairing duplicate collection order", () => {
+    const listbox = makeElement("listbox", {
+      type: "ListBox",
+      order_num: 0,
+    });
+    const firstItem = makeElement("item-b", {
+      type: "ListBoxItem",
+      parent_id: "listbox",
+      order_num: 0,
+      props: { children: "Beta" },
+    });
+    const secondItem = makeElement("item-a", {
+      type: "ListBoxItem",
+      parent_id: "listbox",
+      order_num: 0,
+      props: { children: "Alpha" },
+    });
+
+    const beforeTextChange = computeReorderUpdates(
+      [listbox, firstItem, secondItem],
+      "page-1",
+    );
+    const afterTextChange = computeReorderUpdates(
+      [
+        listbox,
+        { ...firstItem, props: { children: "Aardvark" } },
+        { ...secondItem, props: { children: "Zulu" } },
+      ],
+      "page-1",
+    );
+
+    expect(beforeTextChange).toEqual([{ id: "item-a", order_num: 1 }]);
+    expect(afterTextChange).toEqual(beforeTextChange);
+  });
 });

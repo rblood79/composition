@@ -1,7 +1,4 @@
-import {
-  Element,
-  ComponentElementProps,
-} from "../../../types/core/store.types";
+import { Element } from "../../../types/core/store.types";
 import { supabase } from "../../../env/supabase.client";
 import { getDB } from "../../../lib/db";
 import {
@@ -10,49 +7,22 @@ import {
 } from "../../../adapters/canonical/frameMirror";
 
 /**
- * Helper function to safely get a string property from element props
- */
-function getPropValue(
-  props: ComponentElementProps | Record<string, unknown>,
-  key: string,
-): string {
-  const value = (props as Record<string, unknown>)[key];
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  if (value != null && typeof value === "object" && "toString" in value) {
-    return String(value);
-  }
-  return "";
-}
-
-/**
- * Helper function to get text content for sorting (children, title, or label)
- */
-function getTextContent(
-  props: ComponentElementProps | Record<string, unknown>,
-): string {
-  return (
-    getPropValue(props, "children") ||
-    getPropValue(props, "title") ||
-    getPropValue(props, "label")
-  );
-}
-
-/**
  * order_num 재정렬 업데이트 계산 (순수 함수 — side effect 없음)
  *
  * 페이지의 모든 요소를 부모별로 그룹화하여 올바른 order_num을 계산합니다.
  * 변경이 필요한 요소들만 { id, order_num } 배열로 반환합니다.
  *
- * 특별 정렬 로직:
- * - Tabs: Tab-Panel 쌍을 tabId 기반으로 정렬
- * - Collection 컴포넌트: 아이템을 order_num, 텍스트 순으로 정렬
- * - TableHeader: ColumnGroup을 order_num, label 순으로 정렬
+ * order_num 동률은 현재 elements 배열 순서를 tie-breaker로 사용합니다.
+ * props.children/title/label 같은 편집 가능한 값은 구조 순서 복구에 사용하지 않습니다.
  */
 export function computeReorderUpdates(
   elements: Element[],
   pageId: string,
 ): Array<{ id: string; order_num: number }> {
+  const sourceIndexById = new Map(
+    elements.map((element, index) => [element.id, index] as const),
+  );
+
   // 페이지별, 부모별로 그룹화
   const groups = elements
     .filter((el) => {
@@ -71,6 +41,18 @@ export function computeReorderUpdates(
     );
 
   const updates: Array<{ id: string; order_num: number }> = [];
+
+  const compareByOrderThenSource = (a: Element, b: Element): number => {
+    const orderDiff = (a.order_num ?? 0) - (b.order_num ?? 0);
+    if (orderDiff !== 0) return orderDiff;
+
+    const sourceDiff =
+      (sourceIndexById.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+      (sourceIndexById.get(b.id) ?? Number.MAX_SAFE_INTEGER);
+    if (sourceDiff !== 0) return sourceDiff;
+
+    return a.id.localeCompare(b.id);
+  };
 
   // 각 그룹별로 order_num 재정렬
   Object.entries(groups).forEach(([parentKey, children]) => {
@@ -95,23 +77,9 @@ export function computeReorderUpdates(
 
     if (isTabsChildren) {
       // ADR-066: Tab element 소멸. TabList/TabPanels만 order_num 정렬.
-      sorted = [...children].sort(
-        (a, b) => (a.order_num || 0) - (b.order_num || 0),
-      );
+      sorted = [...children].sort(compareByOrderThenSource);
     } else if (isTableHeaderChildren) {
-      sorted = [...children].sort((a, b) => {
-        const orderDiff = (a.order_num || 0) - (b.order_num || 0);
-        if (orderDiff === 0) {
-          const labelA = getPropValue(a.props, "label");
-          const labelB = getPropValue(b.props, "label");
-          const comparison = labelA.localeCompare(labelB);
-          if (comparison === 0) {
-            return a.id.localeCompare(b.id);
-          }
-          return comparison;
-        }
-        return orderDiff;
-      });
+      sorted = [...children].sort(compareByOrderThenSource);
     } else if (
       isListBoxChildren ||
       isGridListChildren ||
@@ -121,28 +89,9 @@ export function computeReorderUpdates(
       isTreeChildren ||
       isToggleButtonChildren
     ) {
-      sorted = [...children].sort((a, b) => {
-        const orderDiff = (a.order_num || 0) - (b.order_num || 0);
-        if (orderDiff === 0) {
-          const textA = getTextContent(a.props);
-          const textB = getTextContent(b.props);
-          const comparison = textA.localeCompare(textB);
-          if (comparison === 0) {
-            return a.id.localeCompare(b.id);
-          }
-          return comparison;
-        }
-        return orderDiff;
-      });
+      sorted = [...children].sort(compareByOrderThenSource);
     } else {
-      // 일반적인 정렬
-      sorted = [...children].sort((a, b) => {
-        const orderDiff = (a.order_num || 0) - (b.order_num || 0);
-        if (orderDiff === 0) {
-          return a.id.localeCompare(b.id);
-        }
-        return orderDiff;
-      });
+      sorted = [...children].sort(compareByOrderThenSource);
     }
 
     sorted.forEach((child, index) => {

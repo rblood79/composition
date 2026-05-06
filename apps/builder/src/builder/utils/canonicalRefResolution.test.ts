@@ -230,6 +230,53 @@ describe("canonicalRefResolution", () => {
     ]);
   });
 
+  it("applies descendant patches to pre-materialized synthetic children after refresh", () => {
+    const origin = makeElement("origin", {
+      type: "TextField",
+      reusable: true,
+      props: { label: "Name" },
+    });
+    const label = makeElement("label", {
+      type: "Label",
+      customId: "label",
+      parent_id: "origin",
+      props: { text: "Name" },
+    });
+    const ref = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+      descendants: {
+        label: { text: "Email" },
+      },
+    } as never);
+    const preMaterializedLabel = makeElement("instance/label", {
+      type: "Label",
+      parent_id: "instance",
+      props: { text: "Name" },
+    });
+
+    const tree = resolveCanonicalRefTree({
+      elements: [origin, label, ref, preMaterializedLabel],
+      elementsMap: new Map([
+        ["origin", origin],
+        ["label", label],
+        ["instance", ref],
+        ["instance/label", preMaterializedLabel],
+      ]),
+    });
+
+    expect(tree.elementsMap.get("instance/label")).toMatchObject({
+      id: "instance/label",
+      props: { text: "Email" },
+    });
+    expect(tree.childrenMap.get("instance")).toEqual([
+      expect.objectContaining({
+        id: "instance/label",
+        props: { text: "Email" },
+      }),
+    ]);
+  });
+
   it("materializes mode C children replacement under a synthetic slot host", () => {
     const origin = makeElement("card", {
       type: "Card",
@@ -288,6 +335,85 @@ describe("canonicalRefResolution", () => {
       }),
     ]);
     expect(tree.elementsMap.has("instance/content/placeholder")).toBe(false);
+  });
+
+  it("prunes pre-materialized origin children when mode C replacement is applied after refresh", () => {
+    const origin = makeElement("card", {
+      type: "Card",
+      reusable: true,
+    });
+    const content = makeElement("content", {
+      type: "CardContent",
+      customId: "content",
+      parent_id: "card",
+      slot: [],
+    });
+    const placeholder = makeElement("placeholder", {
+      type: "Text",
+      customId: "placeholder",
+      parent_id: "content",
+      props: { text: "Default body" },
+    });
+    const ref = makeElement("instance", {
+      type: "ref",
+      ref: "card",
+      descendants: {
+        content: {
+          children: [
+            {
+              id: "custom-body",
+              type: "Text",
+              props: { text: "Custom body" },
+            },
+          ],
+        },
+      },
+    } as never);
+    const preMaterializedContent = makeElement("instance/content", {
+      type: "CardContent",
+      parent_id: "instance",
+      slot: [],
+    });
+    const preMaterializedPlaceholder = makeElement(
+      "instance/content/placeholder",
+      {
+        type: "Text",
+        parent_id: "instance/content",
+        props: { text: "Default body" },
+      },
+    );
+
+    const tree = resolveCanonicalRefTree({
+      elements: [
+        origin,
+        content,
+        placeholder,
+        ref,
+        preMaterializedContent,
+        preMaterializedPlaceholder,
+      ],
+      elementsMap: new Map([
+        ["card", origin],
+        ["content", content],
+        ["placeholder", placeholder],
+        ["instance", ref],
+        ["instance/content", preMaterializedContent],
+        ["instance/content/placeholder", preMaterializedPlaceholder],
+      ]),
+    });
+
+    expect(tree.elementsMap.has("instance/content/placeholder")).toBe(false);
+    expect(
+      tree.elements.some(
+        (element) => element.id === "instance/content/placeholder",
+      ),
+    ).toBe(false);
+    expect(tree.childrenMap.get("instance/content")).toEqual([
+      expect.objectContaining({
+        id: "instance/content/custom-body",
+        props: { text: "Custom body" },
+      }),
+    ]);
   });
 
   it("resolves ref children inserted through a mode C slot replacement", () => {

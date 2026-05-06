@@ -807,6 +807,157 @@ describe("element mutations keep canonical document primary", () => {
     expect(saveService.savePropertyChange).not.toHaveBeenCalled();
   });
 
+  it("updateSelectedPropertiesWithChildren stores component instance propagation as ref descendant patches", async () => {
+    const origin = makeElement("card-origin", "Card", {
+      reusable: true,
+      props: {
+        title: "Origin title",
+        description: "Origin description",
+      },
+    });
+    const header = makeElement("card-header", "CardHeader", {
+      parent_id: "card-origin",
+      order_num: 0,
+      props: {},
+    });
+    const heading = makeElement("card-heading", "Heading", {
+      parent_id: "card-header",
+      order_num: 0,
+      props: { children: "Origin title" },
+    });
+    const content = makeElement("card-content", "CardContent", {
+      parent_id: "card-origin",
+      order_num: 1,
+      props: {},
+    });
+    const description = makeElement("card-description", "Description", {
+      parent_id: "card-content",
+      order_num: 0,
+      props: { children: "Origin description" },
+    });
+    const instance = withComponentInstanceMirror(
+      makeElement("card-instance", "Card", {
+        props: {},
+      } as Partial<Element> & Record<string, unknown>),
+      "card-origin",
+    );
+    const state = makeState([
+      origin,
+      header,
+      heading,
+      content,
+      description,
+      instance,
+    ]);
+    state.selectedElementId = "card-instance";
+    state.selectedElementIds = ["card-instance"];
+    state.selectedElementIdsSet = new Set(["card-instance"]);
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "card-origin",
+          type: "Card",
+          reusable: true,
+          props: origin.props as Record<string, unknown>,
+          children: [
+            {
+              id: "card-header",
+              type: "CardHeader",
+              props: {},
+              children: [
+                {
+                  id: "card-heading",
+                  type: "Heading",
+                  props: { children: "Origin title" },
+                },
+              ],
+            },
+            {
+              id: "card-content",
+              type: "CardContent",
+              props: {},
+              children: [
+                {
+                  id: "card-description",
+                  type: "Description",
+                  props: { children: "Origin description" },
+                },
+              ],
+            },
+          ],
+        } satisfies CanonicalNode,
+        {
+          id: "card-instance",
+          type: "ref",
+          ref: "card-origin",
+          props: {},
+        } satisfies RefNode,
+      ],
+    });
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedPropertiesWithChildren(
+      { title: "Instance title" },
+      [
+        {
+          elementId: "card-instance/card-header/card-heading",
+          props: { children: "Instance title" },
+        },
+      ],
+    );
+
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const instanceNode = doc?.children.find(
+      (node) => node.id === "card-instance",
+    ) as RefNode | undefined;
+    expect(instanceNode).toMatchObject({
+      id: "card-instance",
+      type: "ref",
+      ref: "card-origin",
+      props: { title: "Instance title" },
+      descendants: {
+        "card-header/card-heading": { children: "Instance title" },
+      },
+    });
+    const originNode = doc?.children.find(
+      (node) => node.id === "card-origin",
+    ) as CanonicalNode | undefined;
+    expect(originNode?.children?.[0]?.children?.[0]?.props).toMatchObject({
+      children: "Origin title",
+    });
+    expect(state.elementsMap.get("card-instance")).toMatchObject({
+      overrides: { title: "Instance title" },
+      descendants: {
+        "card-header/card-heading": { children: "Instance title" },
+      },
+    });
+    expect(state.selectedElementProps).toMatchObject({
+      title: "Instance title",
+      description: "Origin description",
+    });
+    await vi.waitFor(() => {
+      expect(mocks.db.documents.put).toHaveBeenCalledWith(
+        "project-1",
+        expect.objectContaining({
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              id: "card-instance",
+              props: { title: "Instance title" },
+            }),
+          ]),
+        }),
+      );
+    });
+  });
+
   it("style panel layout edits merge frame body and slot style into active canonical document", () => {
     const body = makeElement("frame-body", "body", {
       layout_id: "frame-1",

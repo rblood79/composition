@@ -86,11 +86,13 @@ import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSe
 import {
   isCanonicalRefElement,
   resolveCanonicalRefElement,
+  resolveCanonicalRefTree,
 } from "../../utils/canonicalRefResolution";
 import {
   getActiveCanonicalElementSnapshot,
   getActiveCanonicalElementsSnapshot,
 } from "../../stores/canonical/canonicalElementSnapshot";
+import { isComponentInstanceMirrorElement } from "../../../adapters/canonical/componentSemanticsMirror";
 
 /**
  * PropertyEditorWrapper - Editor 컴포넌트를 분리하여 불필요한 리렌더링 방지
@@ -189,8 +191,9 @@ const PropertyEditorWrapper = memo(
         }
         if (!element) return;
 
+        const lookupElementList = Array.from(lookupElements);
         const effectiveElement = isCanonicalRefElement(element)
-          ? resolveCanonicalRefElement(element, lookupElements)
+          ? resolveCanonicalRefElement(element, lookupElementList)
           : element;
         const baselineProps = (effectiveElement.props ?? {}) as Record<
           string,
@@ -209,18 +212,39 @@ const PropertyEditorWrapper = memo(
 
         if (changedCount === 0) return;
 
+        const isComponentInstanceSelection =
+          isCanonicalRefElement(element) ||
+          isComponentInstanceMirrorElement(element);
+        const propagationSource = isComponentInstanceSelection
+          ? (() => {
+              const lookupElementsMap = new Map(
+                lookupElementList.map((candidate) => [candidate.id, candidate]),
+              );
+              return resolveCanonicalRefTree({
+                elements: lookupElementList,
+                elementsMap: lookupElementsMap,
+              });
+            })()
+          : null;
+        const propagationElement =
+          propagationSource?.elementsMap.get(element.id) ?? effectiveElement;
+        const propagationChildrenMap =
+          propagationSource?.childrenMap ?? state.childrenMap;
+        const propagationElementsMap =
+          propagationSource?.elementsMap ?? state.elementsMap;
+
         // ADR-048: propagation 규칙 중 변경된 prop과 매칭되는 것이 있으면 자식도 업데이트
-        const rules = getPropagationRules(effectiveElement.type);
+        const rules = getPropagationRules(propagationElement.type);
         if (rules && rules.some((r) => r.parentProp in changedProps)) {
           const childUpdates = buildPropagationUpdates(
-            effectiveElement,
+            propagationElement,
             changedProps,
             rules,
-            state.childrenMap as Map<
+            propagationChildrenMap as Map<
               string,
               { id: string; type: string; props: Record<string, unknown> }[]
             >,
-            state.elementsMap as Map<
+            propagationElementsMap as Map<
               string,
               { id: string; type: string; props: Record<string, unknown> }
             >,

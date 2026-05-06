@@ -28,7 +28,9 @@ import { saveService } from "../../services/save";
 import { getDB } from "../../lib/db";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
 import {
+  COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_OVERRIDES_MIRROR_FIELD,
+  getComponentDescendantsMirror,
   getComponentOverridesMirror,
   isComponentInstanceMirrorElement,
 } from "../../adapters/canonical/componentSemanticsMirror";
@@ -52,6 +54,7 @@ import {
   collectDirtyElementSubtree,
   LAYOUT_AFFECTING_PROP_KEYS,
 } from "./utils/layoutInvalidation";
+import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 
 // CSS shorthand → longhand 분배 매핑 (inspectorActions 공용).
 // React inline style shorthand+longhand 공존 시 rerender 경고 + Taffy
@@ -89,6 +92,10 @@ function sanitizeInspectorProps(
     );
   }
   return nextProps;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function syncInspectorElementToCanonical(element: Element): void {
@@ -147,6 +154,52 @@ function buildInspectorUpdatedElement(
   };
 }
 
+function isInspectorInstanceElement(element: Element): boolean {
+  return (
+    isComponentInstanceMirrorElement(element) || isCanonicalRefElement(element)
+  );
+}
+
+function getSyntheticDescendantPath(
+  rootElementId: string,
+  childElementId: string,
+): string | null {
+  const prefix = `${rootElementId}/`;
+  if (!childElementId.startsWith(prefix)) return null;
+  const path = childElementId.slice(prefix.length);
+  return path.length > 0 ? path : null;
+}
+
+function buildInstanceDescendantPatches(
+  element: Element,
+  childUpdates: BatchPropsUpdate[],
+): Record<string, Record<string, unknown>> | null {
+  if (!isInspectorInstanceElement(element)) return null;
+
+  const current = getComponentDescendantsMirror(element) ?? {};
+  const next: Record<string, Record<string, unknown>> = { ...current };
+  let hasMappedChildPatch = false;
+
+  for (const update of childUpdates) {
+    const descendantPath = getSyntheticDescendantPath(
+      element.id,
+      update.elementId,
+    );
+    if (!descendantPath) continue;
+
+    const previousPatch = isRecord(next[descendantPath])
+      ? next[descendantPath]
+      : {};
+    next[descendantPath] = mergePropsWithStyleDeep(
+      previousPatch,
+      update.props as Record<string, unknown>,
+    );
+    hasMappedChildPatch = true;
+  }
+
+  return hasMappedChildPatch ? next : null;
+}
+
 function getSelectedPropsForState(
   updatedElement: Element,
   lookupElements: Iterable<Element>,
@@ -178,6 +231,14 @@ function buildInspectorPersistencePayload(
   }
   if (additionalUpdates?.fills !== undefined) {
     payload.fills = additionalUpdates.fills;
+  }
+  const mirrorDescendantPatches = (
+    additionalUpdates as
+      | Record<typeof COMPONENT_DESCENDANTS_MIRROR_FIELD, unknown>
+      | undefined
+  )?.[COMPONENT_DESCENDANTS_MIRROR_FIELD];
+  if (mirrorDescendantPatches !== undefined) {
+    payload[COMPONENT_DESCENDANTS_MIRROR_FIELD] = mirrorDescendantPatches;
   }
 
   return payload;
@@ -737,6 +798,23 @@ export const createInspectorActionsSlice: StateCreator<
 
       // Race condition 방지: 선택된 요소의 hydration 취소
       get()._cancelHydrateSelectedProps();
+
+      if (isInspectorInstanceElement(element)) {
+        const descendantPatches = buildInstanceDescendantPatches(
+          element,
+          childUpdates,
+        );
+        updateAndSave(
+          element.id,
+          sanitizeInspectorProps(properties),
+          descendantPatches
+            ? ({
+                [COMPONENT_DESCENDANTS_MIRROR_FIELD]: descendantPatches,
+              } as Partial<Element>)
+            : undefined,
+        );
+        return;
+      }
 
       // 부모 + 자식을 단일 batch로 구성
       const batch: BatchPropsUpdate[] = [

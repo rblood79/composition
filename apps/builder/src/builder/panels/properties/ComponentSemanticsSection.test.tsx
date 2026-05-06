@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { CompositionDocument } from "@composition/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   COMPONENT_MASTER_ID_MIRROR_FIELD,
@@ -18,6 +20,7 @@ import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { Element } from "../../../types/core/store.types";
 import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
@@ -33,6 +36,11 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
 
 describe("ComponentSemanticsSection", () => {
   beforeEach(() => {
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     historyManager.setCurrentPage("page-1");
     useStore.setState({
       elementsMap: new Map(),
@@ -481,6 +489,84 @@ describe("ComponentSemanticsSection", () => {
     expect(
       screen.getByRole("button", {
         name: "Reset slot/label.tone override",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("updates override fields when canonical descendants change", async () => {
+    const legacyInstance = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+      descendants: {
+        heading: { label: "Custom title", tone: "accent" },
+      },
+    } as never);
+    const initialDoc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin",
+          type: "Card",
+          reusable: true,
+          props: {},
+          metadata: { type: "legacy-element-props" },
+        },
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          props: {},
+          descendants: {
+            heading: { label: "Custom title", tone: "accent" },
+          },
+          metadata: { type: "legacy-element-props" },
+        },
+      ],
+    } satisfies CompositionDocument;
+    const nextDoc = {
+      ...initialDoc,
+      children: [
+        initialDoc.children[0],
+        {
+          ...initialDoc.children[1],
+          descendants: {
+            heading: { tone: "accent" },
+          },
+        },
+      ],
+    } satisfies CompositionDocument;
+
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: "instance",
+      elements: [legacyInstance],
+      elementsMap: new Map([["instance", legacyInstance]]),
+    });
+    useStore.getState()._rebuildIndexes();
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", initialDoc);
+
+    render(<ComponentSemanticsSection elementId="instance" />);
+    expect(
+      screen.getByRole("button", {
+        name: "Reset heading.label override",
+      }),
+    ).toBeTruthy();
+
+    act(() => {
+      useCanonicalDocumentStore.getState().setDocument("project-1", nextDoc);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("button", {
+          name: "Reset heading.label override",
+        }),
+      ).toBeNull();
+    });
+    expect(
+      screen.getByRole("button", {
+        name: "Reset heading.tone override",
       }),
     ).toBeTruthy();
   });
