@@ -43,6 +43,14 @@ type CanonicalScopeMetadata = {
   slotName?: unknown;
 };
 
+type CanonicalComponentMirrorFields = {
+  descendants?: unknown;
+  metadata?: CanonicalNode["metadata"];
+  ref?: string;
+  reusable?: true;
+  slot?: false | string[];
+};
+
 const ROOT_SCOPE: ElementScopeContext = {
   pageId: null,
   layoutId: null,
@@ -74,6 +82,38 @@ function extractExtensionFields(node: CanonicalNode): {
   return out;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function extractCanonicalComponentMirrorFields(
+  node: CanonicalNode,
+): CanonicalComponentMirrorFields {
+  const out: CanonicalComponentMirrorFields = {};
+  const ref = (node as CanonicalNode & { ref?: unknown }).ref;
+  if (typeof ref === "string" && ref.length > 0) {
+    out.ref = ref;
+  }
+
+  const descendants = (node as CanonicalNode & { descendants?: unknown })
+    .descendants;
+  if (isRecord(descendants)) {
+    out.descendants = descendants;
+  }
+
+  if (node.reusable === true) {
+    out.reusable = true;
+  }
+  if (node.slot === false || Array.isArray(node.slot)) {
+    out.slot = node.slot;
+  }
+  if (node.metadata) {
+    out.metadata = node.metadata;
+  }
+
+  return out;
+}
+
 // ─────────────────────────────────────────────
 // Conversion helpers
 // ─────────────────────────────────────────────
@@ -95,7 +135,11 @@ export function canonicalNodeToElement(
   const extFields = extractExtensionFields(node);
   const metadata = node.metadata as CanonicalScopeMetadata | undefined;
   const isLegacySlotHoisted = metadata?.type === "legacy-slot-hoisted";
-  if (!node.props && !isLegacySlotHoisted) return null;
+  const isPagePlaceholder =
+    metadata?.type === "page" || metadata?.type === "legacy-page";
+  const mirrorFields = extractCanonicalComponentMirrorFields(node);
+  const isRenderableRef = mirrorFields.ref !== undefined && !isPagePlaceholder;
+  if (!node.props && !isLegacySlotHoisted && !isRenderableRef) return null;
   const props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {
     props.name ??= metadata.slotName;
@@ -114,6 +158,7 @@ export function canonicalNodeToElement(
       fills: undefined,
       componentName: node.name,
       ...extFields,
+      ...mirrorFields,
     },
     frameMirrorId,
   );

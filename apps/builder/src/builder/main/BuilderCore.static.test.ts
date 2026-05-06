@@ -51,4 +51,19 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       "setElementsCanonicalPrimary(Array.from(state.elementsMap.values()))",
     );
   });
+
+  it("does not re-project canonical document during initial page hydrate", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCore.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("pageShellBridgeSuspendedRef");
+    expect(source).toMatch(
+      /if \(pageShellBridgeSuspendedRef\.current\) return;/,
+    );
+    expect(source).toMatch(
+      /pageShellBridgeSuspendedRef\.current = true;[\s\S]+const result = await initializeProject\(projectId\)\.finally\(\(\) => \{[\s\S]+pageShellBridgeSuspendedRef\.current = false;/,
+    );
+  });
 });

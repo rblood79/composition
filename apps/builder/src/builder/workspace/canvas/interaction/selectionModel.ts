@@ -18,8 +18,10 @@ import {
   pickTopmostHitElementId,
   type BodySelectionResult,
   type CanvasPoint,
+  type FrameBodySelectionArea,
 } from "../selection/selectionHitTest";
 import { getViewportController } from "../viewport/ViewportController";
+import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 
 interface ResolveSelectedElementsForPageInput {
   currentPageId: string | null;
@@ -28,6 +30,7 @@ interface ResolveSelectedElementsForPageInput {
 }
 
 interface ComputeSelectionBoundsOptions {
+  frameAreas?: FrameBodySelectionArea[];
   getBounds?: (elementId: string) => BoundingBox | null | undefined;
   getContainer?: (elementId: string) => Container | undefined;
   getCurrentZoom?: () => number | undefined;
@@ -86,14 +89,19 @@ export function resolveSelectedElementsForPage({
   elementsMap,
   selectedElementIds,
 }: ResolveSelectedElementsForPageInput): Element[] {
-  if (!currentPageId || selectedElementIds.length === 0) {
+  if (selectedElementIds.length === 0) {
     return [];
   }
 
   const resolved: Element[] = [];
   for (const id of selectedElementIds) {
     const element = elementsMap.get(id);
-    if (element && element.page_id === currentPageId) {
+    if (!element) continue;
+    if (currentPageId !== null && element.page_id === currentPageId) {
+      resolved.push(element);
+      continue;
+    }
+    if (element.page_id == null && getFrameElementMirrorId(element)) {
       resolved.push(element);
     }
   }
@@ -102,6 +110,7 @@ export function resolveSelectedElementsForPage({
 }
 
 export function computeSelectionBounds({
+  frameAreas = [],
   getBounds,
   getContainer,
   getCurrentZoom,
@@ -121,14 +130,19 @@ export function computeSelectionBounds({
 
   for (const element of selectedElements) {
     if (element.type.toLowerCase() === "body") {
+      const frameId =
+        element.page_id == null ? getFrameElementMirrorId(element) : null;
+      const frameArea = frameId
+        ? frameAreas.find((area) => area.frameId === frameId)
+        : undefined;
       const position = element.page_id
         ? pagePositions?.[element.page_id]
         : undefined;
       boxes.push({
-        x: position?.x ?? 0,
-        y: position?.y ?? 0,
-        width: pageWidth,
-        height: pageHeight,
+        x: frameArea?.x ?? position?.x ?? 0,
+        y: frameArea?.y ?? position?.y ?? 0,
+        width: frameArea?.width ?? pageWidth,
+        height: frameArea?.height ?? pageHeight,
       });
       continue;
     }

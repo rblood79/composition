@@ -567,6 +567,7 @@ function ensurePageNode(
       type: "legacy-page",
       pageId,
       slug: page?.slug ?? null,
+      order_num: page?.order_num ?? 0,
     },
     children: [],
   };
@@ -611,6 +612,7 @@ function buildPageShell(
     type: "legacy-page",
     pageId: page.id,
     slug: page.slug ?? null,
+    order_num: page.order_num ?? 0,
   };
 
   if (frameId) {
@@ -632,12 +634,17 @@ function buildPageShell(
   } as typeof metadata & { layoutId?: unknown };
   delete frameMetadata.layoutId;
 
+  const children =
+    existingPage?.type === "ref"
+      ? getDescendantChildrenArrays(existingPage as RefNode).flat()
+      : (existingPage?.children ?? []);
+
   return {
     id: existingPage?.id ?? page.id,
     type: "frame",
     name: page.title,
     metadata: frameMetadata,
-    children: [],
+    ...(children.length > 0 ? { children } : {}),
   } satisfies FrameNode;
 }
 

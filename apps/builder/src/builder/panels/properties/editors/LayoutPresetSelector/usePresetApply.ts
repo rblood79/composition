@@ -12,6 +12,13 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useStore } from "../../../../stores";
+import {
+  canonicalDocumentToElements,
+  useCanonicalElements,
+  useCanonicalFrameElementScopes,
+} from "../../../../stores/canonical/canonicalElementsView";
+import { getActiveCanonicalDocument } from "../../../../stores/canonical/canonicalElementsBridge";
+import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { LAYOUT_PRESETS } from "./presetDefinitions";
 import { normalizeFramePresetContainerStyle } from "./presetStyle";
 import type {
@@ -21,10 +28,169 @@ import type {
 } from "./types";
 import type { Element } from "../../../../../types/builder/unified.types";
 import { isLegacyFrameElementForFrame } from "../../../../../adapters/canonical/frameElementLoader";
+import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 import { withFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../../../../adapters/canonical/slotMirror";
+import { setElementsCanonicalPrimary } from "../../../../../adapters/canonical/canonicalMutations";
+import { getDB } from "../../../../../lib/db";
 
 export { normalizeFramePresetContainerStyle } from "./presetStyle";
+
+type SlotMirrorReadable = Element & {
+  slot_name?: string | null;
+};
+
+function getElementSlotName(element: Element): string | null {
+  const slotName = (element as SlotMirrorReadable).slot_name;
+  return typeof slotName === "string" && slotName.length > 0 ? slotName : null;
+}
+
+function readSlotElementName(element: Element): string {
+  const propsName = (element.props as { name?: unknown } | undefined)?.name;
+  if (typeof propsName === "string" && propsName.length > 0) {
+    return propsName;
+  }
+  return getElementSlotName(element) ?? "unnamed";
+}
+
+function readAssignedSlotName(element: Element): string | null {
+  return getElementSlotName(element) ?? getSlotMirrorName(element.props);
+}
+
+function buildElementMap(
+  elementsMap: ReadonlyMap<string, Element>,
+  canonicalElements: Element[] | null,
+): Map<string, Element> {
+  const combined = new Map<string, Element>(elementsMap);
+  for (const element of canonicalElements ?? []) {
+    combined.set(element.id, element);
+  }
+  return combined;
+}
+
+function hasSlotChildren(
+  slotElement: Element,
+  slotName: string,
+  childrenMap: ReadonlyMap<string, Element[]>,
+  combinedElements: ReadonlyMap<string, Element>,
+): boolean {
+  if ((childrenMap.get(slotElement.id) ?? []).length > 0) return true;
+
+  for (const element of combinedElements.values()) {
+    if (element.id === slotElement.id) continue;
+    if (element.parent_id === slotElement.id) return true;
+    if (element.type !== "Slot" && readAssignedSlotName(element) === slotName) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function collectExistingFrameSlots({
+  layoutId,
+  elementsMap,
+  childrenMap,
+  canonicalElements,
+  frameScope,
+}: {
+  layoutId: string;
+  elementsMap: ReadonlyMap<string, Element>;
+  childrenMap: ReadonlyMap<string, Element[]>;
+  canonicalElements: Element[] | null;
+  frameScope: CanonicalFrameElementScope | null;
+}): ExistingSlotInfo[] {
+  const slotsById = new Map<string, Element>();
+
+  elementsMap.forEach((element) => {
+    if (
+      element.type === "Slot" &&
+      isLegacyFrameElementForFrame(element, layoutId)
+    ) {
+      slotsById.set(element.id, element);
+    }
+  });
+
+  if (canonicalElements && frameScope) {
+    for (const element of canonicalElements) {
+      if (element.type === "Slot" && frameScope.elementIds.has(element.id)) {
+        slotsById.set(element.id, element);
+      }
+    }
+  }
+
+  const combinedElements = buildElementMap(elementsMap, canonicalElements);
+
+  return Array.from(slotsById.values()).map((element) => {
+    const slotName = readSlotElementName(element);
+    return {
+      slotName,
+      elementId: element.id,
+      hasChildren: hasSlotChildren(
+        element,
+        slotName,
+        childrenMap,
+        combinedElements,
+      ),
+    };
+  });
+}
+
+export function filterElementsForPresetSlotReplace(
+  elements: Element[],
+  slotIds: ReadonlySet<string>,
+): Element[] {
+  if (slotIds.size === 0) return elements;
+  return elements.filter((element) => !slotIds.has(element.id));
+}
+
+async function persistActiveCanonicalDocument(
+  db: Awaited<ReturnType<typeof getDB>>,
+): Promise<void> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return;
+
+  await db.documents.put(projectId, doc);
+}
+
+async function removeCanonicalPresetSlots(slotIds: string[]): Promise<void> {
+  if (slotIds.length === 0) return;
+
+  const doc = getActiveCanonicalDocument();
+  if (!doc) return;
+
+  const slotIdSet = new Set(slotIds);
+  const sourceElements = canonicalDocumentToElements(doc);
+  const filteredElements = filterElementsForPresetSlotReplace(
+    sourceElements,
+    slotIdSet,
+  );
+
+  if (filteredElements.length === sourceElements.length) return;
+
+  setElementsCanonicalPrimary(filteredElements);
+
+  try {
+    const db = await getDB();
+    try {
+      await db.elements.deleteMany(slotIds);
+    } catch (error) {
+      console.warn(
+        "⚠️ [IndexedDB] preset slot legacy row 삭제 중 오류 (메모리는 정상):",
+        error,
+      );
+    }
+    await persistActiveCanonicalDocument(db);
+  } catch (error) {
+    console.warn(
+      "⚠️ [IndexedDB] preset slot 교체 반영 중 오류 (메모리는 정상):",
+      error,
+    );
+  }
+}
 
 interface UsePresetApplyOptions {
   /** Layout ID */
@@ -52,6 +218,8 @@ export function usePresetApply({
   bodyElementId,
 }: UsePresetApplyOptions): UsePresetApplyReturn {
   const [isApplying, setIsApplying] = useState(false);
+  const canonicalElements = useCanonicalElements();
+  const frameElementScopes = useCanonicalFrameElementScopes();
 
   // Store actions
   // ADR-040: elementsMap O(1) 조회 (전체 elements 배열 구독 제거)
@@ -70,38 +238,31 @@ export function usePresetApply({
   // 항상 false → existingSlots 0개 → currentPresetKey null → 우측 LayoutPresetSelector
   // 의 "적용됨" 표시 stale.
   //
-  // 직접 layout binding 매칭은 hoist 영향 받지 않음. slot 은
-  // P4 까지 legacy element 로 elementsMap 에 존재. 좌측
-  // FramesTab.frameElements 도 같은 직접 매칭 패턴 사용 — 정상 작동 확인됨.
+  // Direct cutover 이후 FramesTab 은 canonical frame scope 를 우선 읽는다.
+  // 따라서 preset 교체도 legacy mirror 와 canonical scope 를 함께 보지 않으면
+  // 기존 Slot 을 못 보고 새 Slot 을 누적한다.
   const existingSlots = useMemo((): ExistingSlotInfo[] => {
-    const slots: ExistingSlotInfo[] = [];
-    elementsMap.forEach((el) => {
-      if (el.type === "Slot" && isLegacyFrameElementForFrame(el, layoutId)) {
-        const slotChildren = childrenMap.get(el.id) ?? [];
-        const slotName =
-          ((el.props as { name?: string })?.name as string) || "unnamed";
-        const hasChildren =
-          slotChildren.length > 0 ||
-          // legacy slot binding 매칭도 확인
-          (() => {
-            let found = false;
-            elementsMap.forEach((other) => {
-              if (getSlotMirrorName(other.props) === slotName) {
-                found = true;
-              }
-            });
-            return found;
-          })();
-        slots.push({ slotName, elementId: el.id, hasChildren });
-      }
+    return collectExistingFrameSlots({
+      layoutId,
+      elementsMap,
+      childrenMap,
+      canonicalElements,
+      frameScope: frameElementScopes?.get(layoutId) ?? null,
     });
-    return slots;
-  }, [elementsMap, childrenMap, layoutId]);
+  }, [
+    elementsMap,
+    childrenMap,
+    canonicalElements,
+    frameElementScopes,
+    layoutId,
+  ]);
 
   // ⭐ 현재 적용된 프리셋 감지 (body element의 appliedPreset prop에서 읽기)
   const currentPresetKey = useMemo((): string | null => {
     // ADR-040: elementsMap O(1) 조회
-    const body = elementsMap.get(bodyElementId);
+    const body =
+      elementsMap.get(bodyElementId) ??
+      canonicalElements?.find((element) => element.id === bodyElementId);
     if (!body) return null;
 
     const appliedPreset = (body.props as { appliedPreset?: string })
@@ -123,7 +284,7 @@ export function usePresetApply({
     }
 
     return null;
-  }, [elementsMap, bodyElementId, existingSlots]);
+  }, [elementsMap, canonicalElements, bodyElementId, existingSlots]);
 
   // 프리셋 적용 함수
   const applyPreset = useCallback(
@@ -154,7 +315,14 @@ export function usePresetApply({
           // 병렬 removeElement 는 각 삭제가 오래된 currentState 를 기준으로
           // set 할 수 있어, 마지막 commit 이 앞선 삭제를 메모리에 되살린다.
           // replace 는 동일 부모의 slot 집합을 한 번에 제거해야 한다.
-          await removeElements(existingSlots.map((slot) => slot.elementId));
+          const existingSlotIds = existingSlots.map((slot) => slot.elementId);
+          const latestElementsMap = useStore.getState().elementsMap;
+          const legacySlotIds = existingSlotIds.filter((slotId) =>
+            latestElementsMap.has(slotId),
+          );
+
+          await removeElements(legacySlotIds);
+          await removeCanonicalPresetSlots(existingSlotIds);
 
           console.log(
             `[Preset] Removed ${existingSlots.length} existing slots`,
@@ -233,8 +401,8 @@ export function usePresetApply({
         // Step 5: Slot 일괄 생성 (단일 History 엔트리)
         // ============================================
         if (slotElements.length > 0) {
-          // 첫 번째 Slot을 "parent"로, 나머지를 "children"으로 처리
-          // addComplexElement가 단일 History 엔트리 생성
+          // addComplexElement 의 childElements 인자는 history grouping 용이다.
+          // 각 Slot 의 parent_id 는 위에서 bodyElementId 로 고정한다.
           const [firstSlot, ...restSlots] = slotElements;
           await addComplexElement(firstSlot, restSlots);
 

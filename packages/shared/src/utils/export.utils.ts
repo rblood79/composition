@@ -39,7 +39,11 @@ type CanonicalMetadata = {
   [key: string]: unknown;
 };
 
-type CanonicalNodeWithRef = CanonicalNode & { ref?: string };
+type CanonicalNodeWithRef = CanonicalNode & {
+  descendants?: Record<string, unknown>;
+  ref?: string;
+};
+type ElementWithLegacyFrameBinding = Element & { layout_id?: string | null };
 
 export interface ProjectExportData {
   version: string;
@@ -163,8 +167,35 @@ function isPageNode(node: CanonicalNode): boolean {
   const metadata = node.metadata as CanonicalMetadata | undefined;
   return (
     metadata?.type === "page" ||
+    metadata?.type === "legacy-page" ||
     (node.type === "frame" && node.reusable !== true)
   );
+}
+
+function extractPageLayoutBinding(node: CanonicalNode): string | null {
+  const metadata = node.metadata as CanonicalMetadata | undefined;
+  if (typeof metadata?.layoutId === "string" && metadata.layoutId.length > 0) {
+    return metadata.layoutId;
+  }
+  const ref = (node as CanonicalNodeWithRef).ref;
+  if (typeof ref === "string" && ref.length > 0) {
+    return ref.startsWith("layout-") ? ref.slice("layout-".length) : ref;
+  }
+  return null;
+}
+
+function readPageOrder(node: CanonicalNode, fallback: number): number {
+  const metadata = node.metadata as CanonicalMetadata | undefined;
+  return typeof metadata?.order_num === "number"
+    ? metadata.order_num
+    : fallback;
+}
+
+function readPageSlug(node: CanonicalNode, fallbackIndex: number): string {
+  const metadata = node.metadata as CanonicalMetadata | undefined;
+  return typeof metadata?.slug === "string" && metadata.slug.length > 0
+    ? metadata.slug
+    : makeSlug(fallbackIndex, node);
 }
 
 function makeSlug(index: number, node: CanonicalNode): string {
@@ -203,25 +234,122 @@ function resolveRenderableNode(
   };
 }
 
+function resolvePageRenderableChildren(
+  document: CompositionDocument,
+  pageNode: CanonicalNode,
+): CanonicalNode[] {
+  if (pageNode.type === "ref") {
+    const ref = (pageNode as CanonicalNodeWithRef).ref;
+    if (typeof ref === "string" && ref.length > 0) {
+      const target = findNodeById(document.children, ref);
+      if (target?.children) return target.children;
+    }
+  }
+  return pageNode.children ?? [];
+}
+
+function isCanonicalNode(value: unknown): value is CanonicalNode {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { id?: unknown; type?: unknown };
+  return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
+function readDescendantChildren(override: unknown): CanonicalNode[] {
+  if (!override || typeof override !== "object") return [];
+
+  if (isCanonicalNode(override)) return [override];
+
+  const children = (override as { children?: unknown }).children;
+  if (!Array.isArray(children)) return [];
+  return children.filter(isCanonicalNode);
+}
+
+function getRefDescendantChildren(pageNode: CanonicalNode): CanonicalNode[] {
+  if (pageNode.type !== "ref") return [];
+
+  const descendants = (pageNode as CanonicalNodeWithRef).descendants ?? {};
+  const children: CanonicalNode[] = [];
+  for (const override of Object.values(descendants)) {
+    children.push(...readDescendantChildren(override));
+  }
+  return children;
+}
+
+function isBodyNode(node: CanonicalNode): boolean {
+  return node.type.toLowerCase() === "body";
+}
+
+function isLegacySlotHoistedNode(node: CanonicalNode): boolean {
+  const metadata = node.metadata as CanonicalMetadata | undefined;
+  return metadata?.type === "legacy-slot-hoisted";
+}
+
+function getRuntimeElementType(node: CanonicalNode): string {
+  if (isLegacySlotHoistedNode(node)) return "Slot";
+  return isBodyNode(node) ? "body" : node.type;
+}
+
+function getRuntimeElementProps(node: CanonicalNode): Record<string, unknown> {
+  const metadata = node.metadata as CanonicalMetadata | undefined;
+  const props = { ...(node.props ?? {}) };
+  if (
+    metadata?.type === "legacy-slot-hoisted" &&
+    typeof metadata.slotName === "string"
+  ) {
+    props.name ??= metadata.slotName;
+  }
+  return props;
+}
+
+function makeDefaultPageBodyNode(pageId: string): CanonicalNode {
+  return {
+    id: `${pageId}-body`,
+    type: "Body",
+    props: {
+      className: "react-aria-Body",
+      style: {
+        display: "block",
+        fontFamily: `"Pretendard", "Inter Variable", monospace, system-ui, sans-serif`,
+        overflow: "auto",
+      },
+    },
+    children: [],
+  };
+}
+
 function collectRuntimeElements(
   document: CompositionDocument,
   nodes: CanonicalNode[],
   pageId: string,
   parentId: string | null,
   elements: Element[],
+  pageLayoutBinding: string | null,
 ): void {
   nodes.forEach((sourceNode, index) => {
     const node = resolveRenderableNode(document, sourceNode);
     if (node.reusable && parentId === null) return;
 
-    elements.push({
+    const element: Element = {
       id: node.id,
-      type: node.type,
-      props: node.props ?? {},
+      type: getRuntimeElementType(node),
+      props: getRuntimeElementProps(node),
       parent_id: parentId,
       page_id: pageId,
       order_num: index,
-    });
+    };
+    if (
+      isLegacySlotHoistedNode(node) &&
+      typeof (node.metadata as CanonicalMetadata | undefined)?.slotName ===
+        "string"
+    ) {
+      (element as Element & { slot_name?: string }).slot_name = (
+        node.metadata as CanonicalMetadata
+      ).slotName as string;
+    }
+    if (pageLayoutBinding !== null) {
+      (element as ElementWithLegacyFrameBinding).layout_id = pageLayoutBinding;
+    }
+    elements.push(element);
 
     collectRuntimeElements(
       document,
@@ -229,8 +357,100 @@ function collectRuntimeElements(
       pageId,
       node.id,
       elements,
+      pageLayoutBinding,
     );
   });
+}
+
+function collectPageOwnedRuntimeElements(
+  document: CompositionDocument,
+  pageNode: CanonicalNode,
+  pageId: string,
+  elements: Element[],
+): void {
+  const descendantChildren = getRefDescendantChildren(pageNode);
+  const pageOwnedChildren =
+    descendantChildren.length > 0
+      ? descendantChildren
+      : (pageNode.children ?? []);
+
+  if (pageOwnedChildren.some(isBodyNode)) {
+    collectRuntimeElements(
+      document,
+      pageOwnedChildren,
+      pageId,
+      null,
+      elements,
+      null,
+    );
+    return;
+  }
+
+  const pageBody = makeDefaultPageBodyNode(pageId);
+  collectRuntimeElements(document, [pageBody], pageId, null, elements, null);
+
+  if (pageOwnedChildren.length === 0) return;
+
+  collectRuntimeElements(
+    document,
+    pageOwnedChildren,
+    pageId,
+    pageBody.id,
+    elements,
+    null,
+  );
+}
+
+function collectPageFrameProjectionRuntimeElements(
+  document: CompositionDocument,
+  pageNode: CanonicalNode,
+  pageId: string,
+  pageLayoutBinding: string,
+  elements: Element[],
+): void {
+  const ref = (pageNode as CanonicalNodeWithRef).ref;
+  if (typeof ref !== "string" || ref.length === 0) return;
+
+  const target = findNodeById(document.children, ref);
+  if (!target?.children) return;
+
+  collectRuntimeElements(
+    document,
+    target.children,
+    pageId,
+    null,
+    elements,
+    pageLayoutBinding,
+  );
+}
+
+function collectPageRuntimeElements(
+  document: CompositionDocument,
+  pageNode: CanonicalNode,
+  elements: Element[],
+): void {
+  const pageLayoutBinding = extractPageLayoutBinding(pageNode);
+  if (pageLayoutBinding !== null && pageNode.type === "ref") {
+    collectPageOwnedRuntimeElements(document, pageNode, pageNode.id, elements);
+    collectPageFrameProjectionRuntimeElements(
+      document,
+      pageNode,
+      pageNode.id,
+      pageLayoutBinding,
+      elements,
+    );
+    return;
+  }
+
+  const renderableChildren = resolvePageRenderableChildren(document, pageNode);
+  collectRuntimeElements(
+    document,
+    renderableChildren,
+    pageNode.id,
+    null,
+    elements,
+    pageLayoutBinding,
+  );
 }
 
 export function deriveProjectRenderModelFromDocument(
@@ -251,24 +471,35 @@ export function deriveProjectRenderModelFromDocument(
           } satisfies CanonicalNode,
         ];
 
-  const pages: Page[] = pageNodes.map((node, index) => ({
-    id: node.id,
-    title: node.name ?? (index === 0 ? "Home" : `Page ${index + 1}`),
-    slug: makeSlug(index, node),
-    project_id: projectId,
-    parent_id: null,
-    order_num: index,
-  }));
+  const orderedPageNodes = pageNodes
+    .map((node, originalIndex) => ({
+      node,
+      originalIndex,
+      orderNum: readPageOrder(node, originalIndex),
+    }))
+    .sort(
+      (a, b) => a.orderNum - b.orderNum || a.originalIndex - b.originalIndex,
+    );
+
+  const pages: Page[] = orderedPageNodes.map(({ node, orderNum }, index) => {
+    const layoutBinding = extractPageLayoutBinding(node);
+    const page = {
+      id: node.id,
+      title: node.name ?? (index === 0 ? "Home" : `Page ${index + 1}`),
+      slug: readPageSlug(node, index),
+      project_id: projectId,
+      parent_id: null,
+      order_num: orderNum,
+    } as Page;
+    if (layoutBinding !== null) {
+      (page as Page & { layout_id?: string | null }).layout_id = layoutBinding;
+    }
+    return page;
+  });
 
   const elements: Element[] = [];
-  pageNodes.forEach((pageNode) => {
-    collectRuntimeElements(
-      document,
-      pageNode.children ?? [],
-      pageNode.id,
-      null,
-      elements,
-    );
+  orderedPageNodes.forEach(({ node }) => {
+    collectPageRuntimeElements(document, node, elements);
   });
 
   return {

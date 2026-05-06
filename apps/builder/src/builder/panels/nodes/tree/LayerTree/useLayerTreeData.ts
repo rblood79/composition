@@ -6,6 +6,8 @@ import type { ElementProps } from "../../../../../types/integrations/supabase.ty
 import { useStore } from "../../../../stores";
 import { resolveCanonicalRefTree } from "../../../../utils/canonicalRefResolution";
 import { useCanonicalElements } from "../../../../stores/canonical/canonicalElementsView";
+import { getPageFrameBindingId } from "../../../../../adapters/canonical/frameMirror";
+import { getElementLayoutId } from "../../../../../adapters/canonical/legacyElementFields";
 import {
   childrenAs,
   type ButtonItem,
@@ -18,25 +20,45 @@ import type { LayerTreeNode, VirtualChildType } from "./types";
 export function useLayerTreeData(elements: Element[]) {
   const allElementsMap = useStore((state) => state.elementsMap);
   const currentPageId = useStore((state) => state.currentPageId);
+  const pages = useStore((state) => state.pages);
 
   // ADR-916 direct cutover — canonical store 의 active document 에서 derived
   // Element[] 를 source 로 사용. 초기 hydration 전에는 caller elements[] fallback.
   const canonicalElements = useCanonicalElements();
   const sourceElements = useMemo(() => {
-    if (!canonicalElements) return elements;
-    if (!currentPageId) return canonicalElements;
-    return canonicalElements.filter(
-      (element) => element.page_id === currentPageId,
+    const baseElements = canonicalElements ?? elements;
+    if (!currentPageId) return baseElements;
+    const currentPage = pages.find((page) => page.id === currentPageId);
+    const boundFrameId = currentPage ? getPageFrameBindingId(currentPage) : "";
+    return baseElements.filter((element) => {
+      const elementLayoutId = getElementLayoutId(element);
+      const isCurrentPageOwnedElement =
+        element.page_id === currentPageId && elementLayoutId === null;
+      const isBoundFrameElement =
+        boundFrameId.length > 0 && elementLayoutId === boundFrameId;
+
+      return isCurrentPageOwnedElement || isBoundFrameElement;
+    });
+  }, [elements, canonicalElements, currentPageId, pages]);
+
+  const resolutionElementsMap = useMemo(() => {
+    if (!canonicalElements) return allElementsMap;
+    const map = new Map(
+      canonicalElements.map((element) => [element.id, element]),
     );
-  }, [elements, canonicalElements, currentPageId]);
+    for (const [id, element] of allElementsMap) {
+      if (!map.has(id)) map.set(id, element);
+    }
+    return map;
+  }, [allElementsMap, canonicalElements]);
 
   const projectedElements = useMemo(() => {
     if (sourceElements.length === 0) return sourceElements;
     return resolveCanonicalRefTree({
       elements: sourceElements,
-      elementsMap: allElementsMap,
+      elementsMap: resolutionElementsMap,
     }).elements;
-  }, [allElementsMap, sourceElements]);
+  }, [resolutionElementsMap, sourceElements]);
 
   const elementTree = useMemo(
     () => buildTreeFromElements(projectedElements),

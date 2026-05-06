@@ -28,9 +28,18 @@ import {
   scheduleNextFrame,
 } from "../../utils/scheduleTask";
 import { longTaskMonitor } from "../../../utils/longTaskMonitor";
+import type { Element } from "../../../types/core/store.types";
 
 interface PagesSectionProps {
   projectId: string | undefined;
+}
+
+function findPageBodyElement(elements: readonly Element[] | undefined) {
+  return (
+    elements?.find((element) => element.type === "body") ??
+    elements?.find((element) => element.order_num === 0) ??
+    null
+  );
 }
 
 export const PagesSection = memo(function PagesSection({
@@ -70,20 +79,57 @@ export const PagesSection = memo(function PagesSection({
       if (options?.pan !== false) {
         panToPage(page.id);
       }
-      if (currentPageId !== page.id) {
-        // 현재 snapshot에서 body 조회 (로드 대기 없이 즉시 activation)
-        const pageBodyElement =
-          (useStore.getState().pageElementsSnapshot[page.id] ?? []).find(
-            (element) => element.order_num === 0,
-          ) ?? null;
+
+      // 현재 snapshot에서 body 조회 (로드 대기 없이 즉시 activation)
+      const selectLoadedPageBody = () => {
+        const pageBodyElement = findPageBodyElement(
+          useStore.getState().pageElementsSnapshot[page.id],
+        );
         startTransition(() => {
           activatePage(page.id, pageBodyElement?.id ?? null);
         });
+        if (pageBodyElement) {
+          requestAutoSelectAfterUpdate(pageBodyElement.id);
+        }
+        return pageBodyElement;
+      };
+
+      const pageBodyElement = selectLoadedPageBody();
+
+      if (currentPageId !== page.id || !pageBodyElement) {
         // 백그라운드: 미로드 페이지면 lazy load (activation 후 snapshot 보강)
-        loadPageIfNeeded(page.id);
+        void loadPageIfNeeded(page.id).then(() => {
+          if (pageBodyElement) return;
+
+          const hydratedBodyElement = findPageBodyElement(
+            useStore.getState().pageElementsSnapshot[page.id],
+          );
+          if (!hydratedBodyElement) return;
+
+          startTransition(() => {
+            activatePage(page.id, hydratedBodyElement.id);
+          });
+          requestAutoSelectAfterUpdate(hydratedBodyElement.id);
+        });
       }
     },
-    [activatePage, currentPageId, loadPageIfNeeded],
+    [
+      activatePage,
+      currentPageId,
+      loadPageIfNeeded,
+      requestAutoSelectAfterUpdate,
+    ],
+  );
+
+  const handleSinglePageKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!singlePage) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+
+      event.preventDefault();
+      handlePageSelect(singlePage);
+    },
+    [handlePageSelect, singlePage],
   );
 
   // 페이지 삭제 핸들러
@@ -223,7 +269,14 @@ export const PagesSection = memo(function PagesSection({
         {isFallbackTransitioning ? (
           <div aria-hidden="true" style={{ minHeight: 120 }} />
         ) : singlePage ? (
-          <div className="elementItem active">
+          <div
+            className="elementItem active"
+            role="button"
+            tabIndex={0}
+            aria-label={`Select page ${singlePage.title || "Untitled"}`}
+            onClick={() => handlePageSelect(singlePage)}
+            onKeyDown={handleSinglePageKeyDown}
+          >
             <div className="elementItemIndent" style={{ width: "0px" }} />
             <div className="elementItemIcon">
               <Home

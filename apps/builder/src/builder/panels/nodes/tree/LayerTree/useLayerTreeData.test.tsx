@@ -104,6 +104,199 @@ describe("useLayerTreeData", () => {
     expect(result.current.disabledKeys.has("instance/input")).toBe(false);
   });
 
+  it("projects canonical-store ref instances with origin children", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin",
+          type: "NumberField",
+          name: "NumberField",
+          reusable: true,
+          props: { label: "Amount" },
+          children: [
+            {
+              id: "label",
+              type: "Label",
+              name: "label",
+              props: { text: "Amount" },
+            },
+            {
+              id: "input",
+              type: "Input",
+              name: "input",
+              props: { value: "0" },
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "instance",
+                  type: "ref",
+                  ref: "origin",
+                  props: {},
+                  descendants: {
+                    label: { props: { text: "Price" } },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    useStore.setState({
+      currentPageId: "page-1",
+      elements: [],
+      elementsMap: new Map(),
+      pageElementsSnapshot: {},
+    } as never);
+    act(() => {
+      const canonical = useCanonicalDocumentStore.getState();
+      canonical.setDocument("project-1", doc);
+      canonical.setCurrentProject("project-1");
+    });
+
+    const { result } = renderHook(() => useLayerTreeData([]));
+    const instanceNode = result.current.nodeMap.get("instance");
+
+    expect(instanceNode).toMatchObject({
+      id: "instance",
+      name: "NumberField",
+      type: "NumberField",
+      hasChildren: true,
+    });
+    expect(getEditingSemanticsRole(instanceNode?.element)).toBe("instance");
+    expect(instanceNode?.children).toEqual([
+      expect.objectContaining({
+        id: "instance/label",
+        name: "Label",
+        isSyntheticRefChild: true,
+      }),
+      expect.objectContaining({
+        id: "instance/input",
+        name: "Input",
+        isSyntheticRefChild: true,
+      }),
+    ]);
+    expect(
+      result.current.nodeMap.get("instance/label")?.element.props,
+    ).toMatchObject({
+      text: "Price",
+    });
+  });
+
+  it("includes frame body when current page binds a reusable frame", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "ref",
+          ref: "layout-frame-1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            layoutId: "frame-1",
+          },
+        },
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body",
+              type: "Body",
+              props: { style: { display: "flex" } },
+              children: [],
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    useStore.setState({
+      currentPageId: "page-1",
+      pages: [
+        {
+          id: "page-1",
+          title: "Page 1",
+          project_id: "project-1",
+          layout_id: "frame-1",
+        },
+      ],
+      elements: [],
+      elementsMap: new Map(),
+      pageElementsSnapshot: {},
+    } as never);
+    act(() => {
+      const canonical = useCanonicalDocumentStore.getState();
+      canonical.setDocument("project-1", doc);
+      canonical.setCurrentProject("project-1");
+    });
+
+    const { result } = renderHook(() => useLayerTreeData([]));
+
+    expect(result.current.treeNodes.map((node) => node.id)).toContain(
+      "frame-body",
+    );
+  });
+
+  it("excludes page-scoped frame projection elements when current page has no frame", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const projectedFrameBody = makeElement("frame-body", {
+      type: "body",
+      page_id: "page-1",
+      layout_id: "frame-1",
+      order_num: 0,
+    } as never);
+    const projectedSlot = makeElement("slot-content", {
+      type: "Slot",
+      parent_id: "frame-body",
+      page_id: "page-1",
+      layout_id: "frame-1",
+      order_num: 1,
+    } as never);
+    const elements = [projectedFrameBody, pageBody, projectedSlot];
+
+    useStore.setState({
+      currentPageId: "page-1",
+      pages: [
+        {
+          id: "page-1",
+          title: "Page 1",
+          project_id: "project-1",
+          slug: "/page-1",
+          layout_id: null,
+        },
+      ],
+      elements,
+      elementsMap: new Map(elements.map((element) => [element.id, element])),
+    } as never);
+
+    const { result } = renderHook(() => useLayerTreeData(elements));
+
+    expect(result.current.treeNodes.map((node) => node.id)).toEqual([
+      "page-body",
+    ]);
+  });
+
   it("filters canonical layer source to the selected page", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",

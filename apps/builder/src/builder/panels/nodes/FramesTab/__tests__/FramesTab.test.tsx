@@ -51,6 +51,8 @@ const mockEditModeState = {
 };
 
 const mockBuildTreeFromElements = vi.hoisted(() => vi.fn(() => []));
+const mockCollapseAll = vi.hoisted(() => vi.fn());
+const mockExpandKey = vi.hoisted(() => vi.fn());
 const mockGetAllElements = vi.fn(async () => [] as Element[]);
 const mockGetDescendants = vi.fn(async () => [] as Element[]);
 
@@ -150,8 +152,8 @@ vi.mock("@/builder/hooks", () => ({
   useTreeExpandState: () => ({
     expandedKeys: new Set<string>(),
     toggleKey: vi.fn(),
-    collapseAll: vi.fn(),
-    expandKey: vi.fn(),
+    collapseAll: mockCollapseAll,
+    expandKey: mockExpandKey,
   }),
 }));
 
@@ -192,6 +194,8 @@ function resetMockState() {
   mockStoreState.elementsMap = new Map<string, Element>();
   mockStoreState.pages = [];
   vi.clearAllMocks();
+  mockCollapseAll.mockClear();
+  mockExpandKey.mockClear();
   mockGetAllElements.mockResolvedValue([] as Element[]);
   mockGetDescendants.mockResolvedValue([] as Element[]);
   mockActiveCanonicalDocument.mockImplementation(() => ({
@@ -335,6 +339,54 @@ describe("FramesTab (ADR-911 P2-a PR-B baseline)", () => {
       expect(screen.getByText("body")).toBeTruthy();
       expect(screen.queryByText("Select a frame to view elements")).toBeNull();
     });
+
+    it("선택 frame 의 canonical body 를 자동 선택한다", async () => {
+      mockLayoutsState.selectedReusableFrameId = "new-frame";
+      mockActiveCanonicalDocument.mockReturnValue({
+        children: [
+          {
+            id: "layout-new-frame",
+            type: "frame",
+            reusable: true,
+            name: "New Frame",
+            metadata: { type: "legacy-layout", layoutId: "new-frame" },
+            children: [
+              {
+                id: "body-new-frame",
+                type: "body",
+                props: { style: { display: "flex" } },
+              },
+            ],
+          },
+        ],
+      });
+      mockBuildTreeFromElements.mockImplementation(
+        (elements: Element[]): ElementTreeItem[] =>
+          elements.map((element) => ({
+            id: element.id,
+            type: element.type,
+            parent_id: element.parent_id,
+            order_num: element.order_num,
+            props: element.props as Record<string, unknown>,
+            deleted: element.deleted,
+            children: [],
+          })),
+      );
+      const props = makeProps();
+
+      render(<FramesTab {...props} />);
+
+      await waitFor(() => {
+        expect(props.setSelectedElement).toHaveBeenCalledWith(
+          "body-new-frame",
+          expect.objectContaining({ style: { display: "flex" } }),
+        );
+      });
+      expect(props.requestAutoSelectAfterUpdate).toHaveBeenCalledWith(
+        "body-new-frame",
+      );
+      expect(mockExpandKey).toHaveBeenCalledWith("body-new-frame");
+    });
   });
 
   describe("frame creation", () => {
@@ -380,6 +432,57 @@ describe("FramesTab (ADR-911 P2-a PR-B baseline)", () => {
       await Promise.resolve();
 
       expect(selectReusableFrameMock).toHaveBeenCalledWith("frame-abc");
+    });
+
+    it("이미 선택된 frame 을 다시 클릭해도 body 를 다시 선택한다", async () => {
+      mockLayoutsState.selectedReusableFrameId = "frame-abc";
+      mockActiveCanonicalDocument.mockReturnValue({
+        children: [
+          {
+            id: "layout-frame-abc",
+            type: "frame",
+            reusable: true,
+            name: "Header",
+            metadata: { type: "legacy-layout", layoutId: "frame-abc" },
+            children: [
+              {
+                id: "body-frame-abc",
+                type: "body",
+                props: { style: { display: "grid" } },
+              },
+            ],
+          },
+        ],
+      });
+      mockBuildTreeFromElements.mockImplementation(
+        (elements: Element[]): ElementTreeItem[] =>
+          elements.map((element) => ({
+            id: element.id,
+            type: element.type,
+            parent_id: element.parent_id,
+            order_num: element.order_num,
+            props: element.props as Record<string, unknown>,
+            deleted: element.deleted,
+            children: [],
+          })),
+      );
+      const props = makeProps();
+      render(<FramesTab {...props} />);
+      await waitFor(() =>
+        expect(props.setSelectedElement).toHaveBeenCalledWith(
+          "body-frame-abc",
+          expect.any(Object),
+        ),
+      );
+      vi.mocked(props.setSelectedElement).mockClear();
+
+      fireEvent.click(screen.getByText("Header"));
+      await Promise.resolve();
+
+      expect(props.setSelectedElement).toHaveBeenCalledWith(
+        "body-frame-abc",
+        expect.objectContaining({ style: { display: "grid" } }),
+      );
     });
   });
 

@@ -84,6 +84,53 @@ describe("ADR-911 P3-θ resolvePageWithFrame", () => {
     expect(result.pageElements.map((el) => el.id)).toEqual(["btn"]);
   });
 
+  it("frame mirror 미바인딩 page 는 page-scoped frame projection 을 body 후보에서 제외한다", () => {
+    const projectedFrameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      frameId: "frame-1",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const projectedSlot = makeEl({
+      id: "slot-content",
+      type: "Slot",
+      frameId: "frame-1",
+      page_id: "page-1",
+      parent_id: "frame-body",
+      order_num: 1,
+    });
+    const pageCard = makeEl({
+      id: "page-card",
+      type: "Card",
+      page_id: "page-1",
+      parent_id: "page-body",
+      order_num: 2,
+    });
+    const elementsMap = buildElementsMap([
+      projectedFrameBody,
+      pageBody,
+      projectedSlot,
+      pageCard,
+    ]);
+
+    const result = resolvePageWithFrame({
+      page: makePage({ id: "page-1" }),
+      pageElements: [projectedFrameBody, pageBody, projectedSlot, pageCard],
+      elementsMap,
+    });
+
+    expect(result.hasFrameBinding).toBe(false);
+    expect(result.bodyElement?.id).toBe("page-body");
+    expect(result.pageElements.map((el) => el.id)).toEqual(["page-card"]);
+  });
+
   it("frame mirror 바인딩 but frame body 미존재 → page only fallback", () => {
     const pageBody = makeEl({
       id: "page-body",
@@ -225,6 +272,70 @@ describe("ADR-911 P3-θ resolvePageWithFrame", () => {
         (el) => el.id === scoped("text-header"),
       );
       expect(textInHeader?.parent_id).toBe(scoped("slot-header"));
+    });
+
+    it("refresh hydrate 로 page body 와 page-scoped frame body/slot 을 함께 복원한다", () => {
+      const hydratedPageBody = makeEl({
+        id: "page-body",
+        type: "body",
+        page_id: "page-1",
+        order_num: 0,
+      });
+      const hydratedFrameBody = makeEl({
+        id: "frame-body",
+        type: "body",
+        frameId: FRAME_ID,
+        page_id: "page-1",
+        order_num: 0,
+      });
+      const hydratedSlotContent = makeEl({
+        id: "slot-content",
+        type: "Slot",
+        frameId: FRAME_ID,
+        page_id: "page-1",
+        parent_id: "frame-body",
+        order_num: 1,
+        props: { name: "content" },
+      });
+      const hydratedText = makeEl({
+        id: "text-content",
+        type: "Text",
+        frameId: FRAME_ID,
+        page_id: "page-1",
+        parent_id: "slot-content",
+        order_num: 0,
+      });
+      const elementsMap = buildElementsMap([
+        hydratedPageBody,
+        hydratedFrameBody,
+        hydratedSlotContent,
+        hydratedText,
+      ]);
+
+      const result = resolvePageWithFrame({
+        page: makeFramePage(FRAME_ID, { id: "page-1" }),
+        pageElements: [
+          hydratedPageBody,
+          hydratedFrameBody,
+          hydratedSlotContent,
+          hydratedText,
+        ],
+        elementsMap,
+      });
+
+      const scoped = (id: string) => toPageFrameElementId("page-1", id);
+      expect(result.hasFrameBinding).toBe(true);
+      expect(result.bodyElement?.id).toBe("page-body");
+      expect(new Set(result.pageElements.map((el) => el.id))).toEqual(
+        new Set([scoped("slot-content"), scoped("text-content")]),
+      );
+
+      const slotContent = result.pageElements.find(
+        (el) => el.id === scoped("slot-content"),
+      );
+      expect(slotContent?.parent_id).toBe("page-body");
+      expect(slotContent?.props?._slotChrome).toBe("hidden");
+      expect(slotContent?.props?._slotMarkerChrome).toBe("visible");
     });
   });
 

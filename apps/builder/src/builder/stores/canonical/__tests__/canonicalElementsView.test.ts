@@ -218,6 +218,53 @@ describe("canonicalDocumentToElements", () => {
     expect(element.events).toEqual(extension.events);
     expect(element.dataBinding).toEqual(extension.dataBinding);
   });
+
+  it("preserves canonical component origin and instance mirror fields", () => {
+    const elements = canonicalDocumentToElements(
+      makeDoc([
+        {
+          id: "origin",
+          type: "NumberField",
+          name: "Amount Field",
+          reusable: true,
+          props: { label: "Amount" },
+          children: [
+            {
+              id: "label",
+              type: "Label",
+              props: { text: "Amount" },
+            },
+          ],
+        },
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          descendants: {
+            label: { props: { text: "Price" } },
+          },
+        },
+      ] as CanonicalNode[]),
+    );
+
+    expect(elements).toEqual([
+      expect.objectContaining({
+        id: "origin",
+        reusable: true,
+      }),
+      expect.objectContaining({
+        id: "label",
+      }),
+      expect.objectContaining({
+        id: "instance",
+        type: "ref",
+        ref: "origin",
+        descendants: {
+          label: { props: { text: "Price" } },
+        },
+      }),
+    ]);
+  });
 });
 
 describe("canonicalDocumentToElements — spec consumer parity", () => {

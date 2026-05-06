@@ -58,11 +58,30 @@ export function usePageTreeData(pages: Page[]) {
   return { tree, treeNodes, nodeMap, syncToStore };
 }
 
-function buildPageTree(pages: Page[]): {
+function normalizeSlug(slug: string | null | undefined): string {
+  if (!slug) return "";
+  return slug.startsWith("/") ? slug : `/${slug}`;
+}
+
+function findHomePageId(pages: Page[]): string | null {
+  const explicitHome = pages.find(
+    (page) =>
+      (page.parent_id ?? null) === null && normalizeSlug(page.slug) === "/",
+  );
+  if (explicitHome) return explicitHome.id;
+
+  const rootPages = pages
+    .filter((page) => (page.parent_id ?? null) === null)
+    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  return rootPages[0]?.id ?? null;
+}
+
+export function buildPageTree(pages: Page[]): {
   treeNodes: PageTreeNode[];
   nodeMap: Map<string, PageTreeNode>;
 } {
   const childrenByParent = new Map<string | null, Page[]>();
+  const homePageId = findHomePageId(pages);
 
   for (const page of pages) {
     const parentId = page.parent_id ?? null;
@@ -75,7 +94,11 @@ function buildPageTree(pages: Page[]): {
   }
 
   for (const siblings of childrenByParent.values()) {
-    siblings.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+    siblings.sort((a, b) => {
+      const homeDiff =
+        (a.id === homePageId ? 0 : 1) - (b.id === homePageId ? 0 : 1);
+      return homeDiff || (a.order_num ?? 0) - (b.order_num ?? 0);
+    });
   }
 
   const nodeMap = new Map<string, PageTreeNode>();
@@ -88,7 +111,7 @@ function buildPageTree(pages: Page[]): {
 
     return siblings.map((page) => {
       const children = buildChildren(page.id, depth + 1);
-      const isRoot = page.parent_id === null && (page.order_num ?? 0) === 0;
+      const isRoot = page.id === homePageId;
 
       const node: PageTreeNode = {
         id: page.id,

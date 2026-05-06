@@ -154,7 +154,11 @@ describe("buildSlotMarkerTargets", () => {
         ["page-slot-filled", { x: 0, y: 300, width: 100, height: 40 }],
         ["slot-hidden", { x: 0, y: 360, width: 100, height: 40 }],
         ["page-slot-hidden-visible", { x: 0, y: 420, width: 100, height: 40 }],
-        ["plain", { x: 0, y: 480, width: 100, height: 40 }],
+        [
+          "page-slot-hidden-visible-filled",
+          { x: 0, y: 480, width: 100, height: 40 },
+        ],
+        ["plain", { x: 0, y: 540, width: 100, height: 40 }],
       ]),
       new Map([
         [
@@ -246,6 +250,24 @@ describe("buildSlotMarkerTargets", () => {
             type: "Slot",
           }),
         ],
+        [
+          "page-slot-hidden-visible-filled",
+          makeElement("page-slot-hidden-visible-filled", {
+            props: {
+              _slotChrome: "hidden",
+              _slotMarkerChrome: "visible",
+              name: "content",
+            },
+            type: "Slot",
+          }),
+        ],
+        [
+          "page-slot-hidden-visible-child",
+          makeElement("page-slot-hidden-visible-child", {
+            parent_id: "page-slot-hidden-visible-filled",
+            type: "Text",
+          }),
+        ],
         ["plain", makeElement("plain")],
       ]),
       new Map([
@@ -254,6 +276,15 @@ describe("buildSlotMarkerTargets", () => {
           [
             makeElement("page-content", {
               parent_id: "page-body",
+              type: "Text",
+            }),
+          ],
+        ],
+        [
+          "page-slot-hidden-visible-filled",
+          [
+            makeElement("page-slot-hidden-visible-child", {
+              parent_id: "page-slot-hidden-visible-filled",
               type: "Text",
             }),
           ],
@@ -294,6 +325,11 @@ describe("buildSlotMarkerTargets", () => {
       },
       {
         bounds: { x: 0, y: 420, width: 100, height: 40 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+      {
+        bounds: { x: 0, y: 480, width: 100, height: 40 },
         showHatch: true,
         slotMarkerRole: "origin",
       },

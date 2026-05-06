@@ -52,6 +52,15 @@ describe("usePageManager.initializeProject canonical-only hydrate", () => {
     expect(initFnSource).not.toMatch(/\blayout_id\b/);
   });
 
+  it("hydrate 된 page runtime mirror 필드를 storePages 에서 보존한다", async () => {
+    const source = await readUsePageManagerSource();
+    const initFnSource = extractInitializeProject(source);
+
+    expect(initFnSource).toMatch(
+      /const storePages = renderModel\.pages\.map\(\(page\) => \(\{\s*\.\.\.page,\s*parent_id: page\.parent_id \?\? null,\s*\}\)\);/,
+    );
+  });
+
   it("새 페이지 생성은 IndexedDB pages/elements projection 을 쓰지 않는다", async () => {
     const source = await readUsePageManagerSource();
 

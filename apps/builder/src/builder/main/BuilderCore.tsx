@@ -101,6 +101,7 @@ export const BuilderCore: React.FC = () => {
   const toggleWorkflowOverlay = useStore(
     (state) => state.toggleWorkflowOverlay,
   );
+  const pageShellBridgeSuspendedRef = useRef(false);
 
   // ADR-916 Phase 5 G6-2 third slice — canonicalMutations DI registration.
   // wrapper API (canonicalMutations.ts) 의 ESM circular import chain 차단을
@@ -141,6 +142,7 @@ export const BuilderCore: React.FC = () => {
     return useStore.subscribe((state) => {
       if (state.pages === pagesRef) return;
       pagesRef = state.pages;
+      if (pageShellBridgeSuspendedRef.current) return;
       setElementsCanonicalPrimary(Array.from(state.elementsMap.values()));
     });
   }, [projectId]);
@@ -365,7 +367,10 @@ export const BuilderCore: React.FC = () => {
       isInitializing.current = true;
 
       setIsLoading(true);
-      const result = await initializeProject(projectId);
+      pageShellBridgeSuspendedRef.current = true;
+      const result = await initializeProject(projectId).finally(() => {
+        pageShellBridgeSuspendedRef.current = false;
+      });
 
       if (!result.success) {
         setError(result.error?.message || "프로젝트 초기화 실패");

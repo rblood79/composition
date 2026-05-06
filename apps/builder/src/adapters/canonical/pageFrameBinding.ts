@@ -5,10 +5,12 @@ import type {
   RefNode,
 } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
+import { getDefaultProps } from "@/types/builder/unified.types";
 import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import { enqueuePagePersistence } from "../../builder/utils/pagePersistenceQueue";
 import { mergeElementsCanonicalPrimary } from "./canonicalMutations";
+import { exportLegacyDocument } from "./exportLegacyDocument";
 import { loadFrameElements } from "./frameElementLoader";
 import { LEGACY_LAYOUT_ID_FIELD } from "./legacyElementFields";
 import {
@@ -21,6 +23,7 @@ export { getPageFrameBindingId } from "./frameMirror";
 
 interface ElementsStateForPageBinding {
   pages: Page[];
+  elementsMap?: ReadonlyMap<string, Element>;
 }
 
 export interface ApplyPageFrameBindingInput {
@@ -28,6 +31,7 @@ export interface ApplyPageFrameBindingInput {
   frameId: string | null;
   getElementsState: () => ElementsStateForPageBinding;
   setPages: (pages: Page[]) => void;
+  setElements?: (elements: Element[]) => void;
 }
 
 function isPageNode(node: CanonicalNode, pageId: string): boolean {
@@ -100,6 +104,7 @@ function buildPageMetadata(
     type: "legacy-page",
     pageId: updatedPage.id,
     slug: updatedPage.slug ?? null,
+    order_num: updatedPage.order_num ?? 0,
   };
 
   if (frameId) {
@@ -141,11 +146,71 @@ function getChildrenFromDescendants(refNode: RefNode): CanonicalNode[] {
   return children;
 }
 
+function isBodyElementNode(node: CanonicalNode): boolean {
+  return node.type.toLowerCase() === "body";
+}
+
+function isBodyElement(element: Element): boolean {
+  return element.type.toLowerCase() === "body";
+}
+
+function findPageOwnedBodyElement(
+  elementsMap: ReadonlyMap<string, Element> | undefined,
+  pageId: string,
+): Element | null {
+  if (!elementsMap) return null;
+  for (const element of elementsMap.values()) {
+    if (
+      element.page_id === pageId &&
+      element.layout_id == null &&
+      !element.deleted &&
+      isBodyElement(element)
+    ) {
+      return element;
+    }
+  }
+  return null;
+}
+
+function makeBodyNodeFromElement(element: Element): CanonicalNode {
+  return {
+    id: element.id,
+    type: "body",
+    props: element.props ?? {},
+    children: [],
+  };
+}
+
+function makeDefaultPageBodyNode(pageId: string): CanonicalNode {
+  return {
+    id: `${pageId}-body`,
+    type: "body",
+    props: getDefaultProps("body") as Record<string, unknown>,
+    children: [],
+  };
+}
+
+function ensurePageBodyChild(
+  children: CanonicalNode[],
+  updatedPage: Page,
+  elementsMap?: ReadonlyMap<string, Element>,
+): CanonicalNode[] {
+  if (children.some(isBodyElementNode)) return children;
+
+  const bodyElement = findPageOwnedBodyElement(elementsMap, updatedPage.id);
+  const bodyNode = bodyElement
+    ? makeBodyNodeFromElement(bodyElement)
+    : makeDefaultPageBodyNode(updatedPage.id);
+
+  return [bodyNode, ...children];
+}
+
 function buildPageNode(
   updatedPage: Page,
   frameId: string | null,
   frameRefId: string | null,
   existingNode?: CanonicalNode,
+  elementsMap?: ReadonlyMap<string, Element>,
 ): CanonicalNode {
   if (frameId) {
     const descendants =
@@ -173,19 +238,25 @@ function buildPageNode(
     existingNode?.type === "ref"
       ? getChildrenFromDescendants(existingNode as RefNode)
       : (existingNode?.children ?? []);
+  const childrenWithBody = ensurePageBodyChild(
+    children,
+    updatedPage,
+    elementsMap,
+  );
 
   const nextNode: FrameNode = {
     id: updatedPage.id,
     type: "frame",
     name: updatedPage.title,
     metadata: buildPageMetadata(updatedPage, null, existingNode),
-    ...(children.length > 0 ? { children } : {}),
+    children: childrenWithBody,
   };
   return nextNode;
 }
 
 function setCanonicalDocumentFromPageBinding(
   updatedPage: Page,
+  elementsMap?: ReadonlyMap<string, Element>,
 ): CompositionDocument {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId =
@@ -205,6 +276,7 @@ function setCanonicalDocumentFromPageBinding(
     frameId,
     frameId ? resolvePageFrameRefId(currentDoc, frameId) : null,
     existingPageNode,
+    elementsMap,
   );
   const nextChildren = [...currentDoc.children];
   if (pageIndex >= 0) {
@@ -255,6 +327,7 @@ export async function applyPageFrameBindingCanonicalPrimary({
   frameId,
   getElementsState,
   setPages,
+  setElements,
 }: ApplyPageFrameBindingInput): Promise<void> {
   if (frameId) {
     const db = await getDB();
@@ -272,7 +345,11 @@ export async function applyPageFrameBindingCanonicalPrimary({
     throw new Error(`Page not found: ${pageId}`);
   }
 
-  setCanonicalDocumentFromPageBinding(updatedPage);
+  const doc = setCanonicalDocumentFromPageBinding(
+    updatedPage,
+    state.elementsMap,
+  );
+  setElements?.(exportLegacyDocument(doc) as Element[]);
   setPages(updatedPages);
   await persistPageFrameBindingMirror(pageId, frameId, updatedPage);
 }

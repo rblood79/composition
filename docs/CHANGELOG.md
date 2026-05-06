@@ -5,6 +5,47 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [LayerTree canonical projection fixes] - 2026-05-06
+
+### Fixed
+
+- Page 에 reusable frame 을 적용했을 때 Node 패널 Layers 에 frame body 가 표시되지 않던 회귀를 수정했다.
+  - `useLayerTreeData` 의 canonical source 필터가 current page 의 `page_id` 뿐 아니라 page-frame binding 의 `layout_id` mirror 도 포함한다.
+  - Browser refresh hydration 시 `deriveProjectRenderModelFromDocument` 가 legacy page RefNode 를 page 로 인식하고, page-owned body(`layout_id: null`) 와 frame body/slot(`layout_id: <frame>`) projection 을 함께 복원한다.
+  - Browser refresh hydration 시 canonical `legacy-slot-hoisted` frame node 를 runtime `Slot` element 로 복원해, page-frame Slot 의 Skia hatch marker 가 새로고침 후에도 표시되도록 했다.
+  - Frames 탭 Layout Preset 변경 시 기존 frame Slot 감지가 legacy mirror 에만 의존해 canonical Slot 위에 새 Slot 이 누적되던 회귀를 수정했다.
+  - Frames 탭에서 frame 선택 시 canonical body 를 즉시 자동 선택하고, Skia empty-click body selection 이 canonical frame body 를 hit-test 하도록 수정했다.
+  - Pages 탭에서 현재 page 를 다시 선택하거나 단일 page 행을 선택해도 page body 가 즉시 자동 선택되도록 수정했다.
+  - Page 추가/refresh 후 canonical page order 가 child index 로 재계산되어 Pages 탭 순서와 Home 삭제불가 판정이 뒤집히던 회귀를 수정했다.
+  - Browser refresh 초기 hydrate 의 `storePages` 가 page-frame binding mirror 를 보존하고, canonical document 로드 직후 `setPages()` 가 page-shell bridge 를 통해 active `CompositionDocument` 를 다시 projection 하지 않도록 막았다.
+  - Page-frame projection Slot 은 content 가 있어도 `_slotMarkerChrome: visible` 계약을 우선해 Skia slot hatch marker 를 유지한다.
+  - No Frame 해제 시 page RefNode 에 page-owned body 가 없으면 기본 body 를 복원하고, page-shell rebuild 가 기존 unbound page body children 을 보존한다.
+  - Frame 선택 변경 직후 active `CompositionDocument` 에서 legacy mirror 를 즉시 export 해 live Canvas/LayerTree 가 refresh 전에도 동일한 body tree 를 보도록 했다.
+  - Browser refresh hydrate 로 `page_id=<page>` + `layout_id=<frame>` 형태가 된 frame Slot 도 `resolvePageWithFrame` 에서 frame source 로 재인식해 page-frame Slot marker projection 을 복원한다.
+  - No Frame 상태에서는 `page_id=<page>` 이더라도 `layout_id=<frame>` 이 남아 있는 frame projection element 를 page body/content 후보와 LayerTree source 에서 제외한다.
+  - 회귀 테스트를 추가해 frame-bound page 에서 `frame-body` 가 LayerTree source 에 포함되는 계약을 고정했다.
+- Component instance 가 Node 패널 Layers 에 `ref` 로 표시되고 origin children 이 materialize 되지 않던 회귀를 수정했다.
+  - `canonicalElementsView` 가 canonical `ref` / `descendants` / `reusable` / `slot` mirror fields 를 derived Element 에 보존한다.
+  - `useLayerTreeData` 는 page-scoped 표시 대상과 ref 해석용 전체 canonical element map 을 분리해, 현재 page 밖 reusable origin 의 children 도 instance 아래 synthetic children 으로 투영한다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — 1 file / 7 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx` — 1 file / 5 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts` — 1 file / 15 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/utils/canonicalRefResolution.test.ts` — 1 file / 6 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/main/BuilderCore.static.test.ts` — 2 files / 11 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia/skiaOverlayHelpers.test.ts` — 1 file / 6 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts` — 2 files / 16 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/workspace/canvas/skia/skiaOverlayHelpers.test.ts` — 2 files / 20 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/builder/workspace/canvas/skia/skiaOverlayHelpers.test.ts` — 4 files / 31 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/main/BuilderCore.static.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts` — 4 files / 36 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.static.test.ts` — 1 file / 4 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/workspace/canvas/interaction/selectionModel.test.ts src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.static.test.ts` — frame body auto-selection / Skia body selection PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/PagesSection.test.tsx src/builder/panels/nodes/tree/PageTree/PageTreeItemContent.test.tsx` — page tab body auto-selection PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts && pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — page order / Home root PASS
+- `pnpm run codex:preflight` — PASS
+
 ## [Rollback — ADR-916 post-cutover fix 군 + build error fix + canonical-hydration fix 폐기] - 2026-05-05
 
 ### Reverted

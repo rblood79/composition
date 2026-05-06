@@ -179,6 +179,7 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
+    const setElements = vi.fn();
     mocks.db.pages.getById.mockResolvedValue(null);
     const existingPageRef: RefNode = {
       id: "page-2",
@@ -215,11 +216,20 @@ describe("pageFrameBinding canonical primary helper", () => {
       frameId: null,
       getElementsState: () => state,
       setPages,
+      setElements,
     });
 
     expect(mocks.loadFrameElements).not.toHaveBeenCalled();
     expect(setPages).toHaveBeenCalledWith([
       expect.objectContaining({ id: "page-2", layout_id: null }),
+    ]);
+    expect(setElements).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: "page-2-body",
+        page_id: "page-2",
+        layout_id: null,
+        type: "body",
+      }),
     ]);
     expect(mocks.db.pages.insert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -234,7 +244,145 @@ describe("pageFrameBinding canonical primary helper", () => {
         id: "page-2",
         type: "frame",
         metadata: expect.not.objectContaining({ layoutId: "frame-1" }),
-        children: [expect.objectContaining({ id: "child-1" })],
+        children: expect.arrayContaining([
+          expect.objectContaining({ id: "page-2-body", type: "body" }),
+          expect.objectContaining({ id: "child-1" }),
+        ]),
+      }),
+    );
+  });
+
+  it("clears frame binding to a page frame with a body when the ref has no descendants", async () => {
+    const page = makePage("page-3", "frame-1");
+    const state = {
+      pages: [page],
+      elementsMap: new Map<string, Element>([
+        ["frame-body", makeElement("frame-body")],
+      ]),
+    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+    const setPages = vi.fn();
+    mocks.db.pages.getById.mockResolvedValue(page);
+    const existingPageRef: RefNode = {
+      id: "page-3",
+      type: "ref",
+      ref: "layout-frame-1",
+      metadata: {
+        type: "legacy-page",
+        pageId: "page-3",
+        slug: "/page-3",
+        layoutId: "frame-1",
+      },
+    };
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
+
+    await applyPageFrameBindingCanonicalPrimary({
+      pageId: page.id,
+      frameId: null,
+      getElementsState: () => state,
+      setPages,
+    });
+
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    expect(doc?.children.find((node) => node.id === "page-3")).toEqual(
+      expect.objectContaining({
+        id: "page-3",
+        type: "frame",
+        children: [
+          expect.objectContaining({
+            id: "page-3-body",
+            type: "body",
+            props: expect.objectContaining({
+              className: "react-aria-Body",
+            }),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it("clears frame binding from a refreshed frame-bound model without dropping the page body", async () => {
+    const page = makePage("page-4", "frame-1");
+    const hydratedPageBody: Element = {
+      id: "page-4-body",
+      type: "body",
+      props: {
+        className: "react-aria-Body",
+        style: { width: "100%", height: "100%" },
+      },
+      parent_id: null,
+      page_id: "page-4",
+      layout_id: null,
+      order_num: 0,
+    } as Element;
+    const state = {
+      pages: [page],
+      elementsMap: new Map<string, Element>([
+        [hydratedPageBody.id, hydratedPageBody],
+        ["frame-body", makeElement("frame-body")],
+      ]),
+    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+    const setPages = vi.fn();
+    const setElements = vi.fn();
+    mocks.db.pages.getById.mockResolvedValue(page);
+    const existingPageRef: RefNode = {
+      id: "page-4",
+      type: "ref",
+      ref: "layout-frame-1",
+      metadata: {
+        type: "legacy-page",
+        pageId: "page-4",
+        slug: "/page-4",
+        layoutId: "frame-1",
+      },
+    };
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
+
+    await applyPageFrameBindingCanonicalPrimary({
+      pageId: page.id,
+      frameId: null,
+      getElementsState: () => state,
+      setPages,
+      setElements,
+    });
+
+    expect(setElements).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: "page-4-body",
+        page_id: "page-4",
+        layout_id: null,
+        props: expect.objectContaining({
+          style: { width: "100%", height: "100%" },
+        }),
+      }),
+    ]);
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    expect(doc?.children.find((node) => node.id === "page-4")).toEqual(
+      expect.objectContaining({
+        id: "page-4",
+        type: "frame",
+        children: [
+          expect.objectContaining({
+            id: "page-4-body",
+            type: "body",
+            props: expect.objectContaining({
+              style: { width: "100%", height: "100%" },
+            }),
+          }),
+        ],
       }),
     );
   });

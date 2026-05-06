@@ -127,7 +127,9 @@ export function buildSlotMarkerTargets(
   for (const [id, bounds] of treeBoundsMap) {
     const element = elementsMap.get(id);
     if (!hasEditingSlotMarker(element)) continue;
-    const showHatch = !hasVisibleSlotContent(id, elementsMap, childrenMap);
+    const showHatch =
+      shouldForceVisibleSlotMarkerHatch(element) ||
+      !hasVisibleSlotContent(id, elementsMap, childrenMap);
 
     const slotMarkerRole = getEditingSlotMarkerRole(element, elementsMap);
     if (!slotMarkerRole) continue;
@@ -136,6 +138,15 @@ export function buildSlotMarkerTargets(
   }
 
   return targets;
+}
+
+function shouldForceVisibleSlotMarkerHatch(
+  element: Element | undefined,
+): boolean {
+  const props = element?.props as Record<string, unknown> | undefined;
+  return (
+    props?._slotChrome === "hidden" && props?._slotMarkerChrome === "visible"
+  );
 }
 
 function hasVisibleSlotContent(

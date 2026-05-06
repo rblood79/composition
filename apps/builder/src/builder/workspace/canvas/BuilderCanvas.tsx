@@ -763,6 +763,7 @@ export function BuilderCanvas({
     });
 
     return computeSelectionBounds({
+      frameAreas,
       getBounds: getElementBoundsSimple,
       pageHeight,
       pagePositions,
@@ -771,7 +772,7 @@ export function BuilderCanvas({
       selectedElements,
       zoom,
     });
-  }, [pageWidth, pageHeight, zoom, panOffset, pagePositions]);
+  }, [frameAreas, pageWidth, pageHeight, zoom, panOffset, pagePositions]);
 
   // selectionBounds를 프레임마다 갱신하지 않고, pointerdown 시점에 계산
   // (RAF 지연 없이 즉시)

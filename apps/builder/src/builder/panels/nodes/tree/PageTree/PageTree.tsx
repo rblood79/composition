@@ -28,16 +28,19 @@ export function PageTree({
 }: PageTreeProps) {
   const { tree, treeNodes, nodeMap, syncToStore } = usePageTreeData(pages);
   const [internalExpandedKeys, setInternalExpandedKeys] = useState<Set<Key>>(
-    new Set()
+    new Set(),
   );
   const selectedKeys = useMemo(
     () => (selectedPageId ? new Set<Key>([selectedPageId]) : new Set<Key>()),
-    [selectedPageId]
+    [selectedPageId],
   );
 
   // 포커스 관리용 nodeMap 생성
   const focusNodeMap = useMemo(() => {
-    const map = new Map<string, { parentId: string | null; children?: unknown[] }>();
+    const map = new Map<
+      string,
+      { parentId: string | null; children?: unknown[] }
+    >();
     for (const node of nodeMap.values()) {
       map.set(node.id, { parentId: node.parentId, children: node.children });
     }
@@ -58,7 +61,7 @@ export function PageTree({
       }
       onExpandedChange?.(keys);
     },
-    [expandedKeys, onExpandedChange]
+    [expandedKeys, onExpandedChange],
   );
 
   const handleSelectionChange = useCallback(
@@ -72,7 +75,7 @@ export function PageTree({
         onPageSelect(node.page);
       }
     },
-    [nodeMap, onPageSelect, selectedPageId]
+    [nodeMap, onPageSelect, selectedPageId],
   );
 
   // DnD 유효성 검사 (클로저로 tree 캡처)
@@ -82,7 +85,7 @@ export function PageTree({
         getItem: (key) => tree.getItem(key),
       }).valid;
     },
-    [tree]
+    [tree],
   );
 
   // DnD 이동 처리 (클로저로 tree, syncToStore 캡처)
@@ -108,7 +111,7 @@ export function PageTree({
       // DnD 후 포커스 유지
       handleAfterMove(payload.keys);
     },
-    [tree, treeNodes, syncToStore, handleAfterMove]
+    [tree, treeNodes, syncToStore, handleAfterMove],
   );
 
   // 드래그 가능 여부 (Home 페이지는 드래그 불가)
@@ -124,9 +127,10 @@ export function PageTree({
         state={state}
         onDelete={onPageDelete}
         onSettings={onPageSettings}
+        onReselect={onPageSelect}
       />
     ),
-    [onPageDelete, onPageSettings]
+    [onPageDelete, onPageSelect, onPageSettings],
   );
 
   return (

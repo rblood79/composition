@@ -325,7 +325,7 @@ export function useCentralCanvasPointerHandlers({
           const bodySelection = resolveBodySelection({
             canvasPoint: canvasPos,
             currentPageId: state.currentPageId,
-            elementsMap: state.elementsMap,
+            elementsMap: hitElementsMap,
             frameAreas,
             pageHeight,
             pageIndexElementsByPage: state.pageIndex.elementsByPage,

@@ -415,12 +415,8 @@ export const usePageManager = ({
           updated_at: page.updated_at || new Date().toISOString(),
         }));
         const storePages = renderModel.pages.map((page) => ({
-          id: page.id,
-          title: page.title,
-          slug: page.slug,
-          project_id: page.project_id,
+          ...page,
           parent_id: page.parent_id ?? null,
-          order_num: page.order_num,
         }));
 
         setElements(renderModel.elements as Element[]);

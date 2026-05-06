@@ -71,6 +71,14 @@ function hasCanonicalFrameElements(
   );
 }
 
+function findFrameBodyElement(elements: Element[]): Element | null {
+  return (
+    elements.find((element) => element.type === "body") ??
+    elements.find((element) => element.order_num === 0) ??
+    null
+  );
+}
+
 interface FramesTabProps {
   selectedElementId: string | null;
   setSelectedElement: (elementId: string | null, props?: ElementProps) => void;
@@ -288,6 +296,52 @@ export function FramesTab({
   const prevFrameIdRef = React.useRef<string | null>(null);
   const bodyAutoSelectedRef = React.useRef<boolean>(false);
 
+  const selectFrameBody = useCallback(
+    (frameId: string): boolean => {
+      const frameScope = frameElementScopes?.get(frameId) ?? null;
+      const canonicalFrameElements = collectCanonicalFrameElements(
+        canonicalElements,
+        frameScope,
+      );
+      const elementsForFrame =
+        canonicalFrameElements.length > 0
+          ? canonicalFrameElements
+          : frameScope
+            ? collectHydratedFrameElements(elementsMap, frameScope)
+            : [];
+      const bodyElement = findFrameBodyElement(elementsForFrame);
+      if (!bodyElement) return false;
+
+      expandKey(bodyElement.id);
+      setSelectedElement(bodyElement.id, bodyElement.props as ElementProps);
+      requestAutoSelectAfterUpdate(bodyElement.id);
+      const schedule =
+        typeof requestAnimationFrame === "function"
+          ? requestAnimationFrame
+          : (callback: FrameRequestCallback) => {
+              callback(0);
+              return 0;
+            };
+      schedule(() =>
+        sendElementSelectedMessage(
+          bodyElement.id,
+          bodyElement.props as ElementProps,
+        ),
+      );
+      bodyAutoSelectedRef.current = true;
+      return true;
+    },
+    [
+      canonicalElements,
+      elementsMap,
+      expandKey,
+      frameElementScopes,
+      requestAutoSelectAfterUpdate,
+      sendElementSelectedMessage,
+      setSelectedElement,
+    ],
+  );
+
   useEffect(() => {
     const frameChanged = currentFrame?.id !== prevFrameIdRef.current;
 
@@ -302,25 +356,10 @@ export function FramesTab({
       frameElements.length > 0 &&
       !bodyAutoSelectedRef.current
     ) {
-      const bodyElement =
-        frameElements.find((el) => el.order_num === 0) ||
-        frameElements.find((el) => el.type === "body");
-      if (bodyElement) {
-        expandKey(bodyElement.id);
-        setSelectedElement(bodyElement.id, bodyElement.props as ElementProps);
-        requestAutoSelectAfterUpdate(bodyElement.id);
-        bodyAutoSelectedRef.current = true;
-      }
+      selectFrameBody(currentFrame.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    currentFrame?.id,
-    frameElements,
-    expandKey,
-    collapseFrameTree,
-    setSelectedElement,
-    requestAutoSelectAfterUpdate,
-  ]);
+  }, [currentFrame?.id, frameElements, collapseFrameTree, selectFrameBody]);
 
   // Frame 선택 핸들러 — id 기반 (ADR-911 P2-a PR-B)
   const handleSelectFrame = useCallback(
@@ -329,6 +368,7 @@ export function FramesTab({
       frameSelectRequestRef.current = requestId;
       selectReusableFrame(frameId);
       setEditModeLayoutId(frameId);
+      selectFrameBody(frameId);
 
       const frameScope = frameElementScopes?.get(frameId) ?? null;
       if (
@@ -363,7 +403,13 @@ export function FramesTab({
         loadingFrameIdsRef.current.delete(frameId);
       }
     },
-    [setEditModeLayoutId, elementsMap, canonicalElements, frameElementScopes],
+    [
+      setEditModeLayoutId,
+      selectFrameBody,
+      elementsMap,
+      canonicalElements,
+      frameElementScopes,
+    ],
   );
 
   // Frame 삭제 핸들러 — frameActions.deleteReusableFrame 위임

@@ -21,7 +21,10 @@
 
 import type { Element, Page } from "../../../../types/core/store.types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
-import { getNullablePageFrameBindingId } from "../../../../adapters/canonical/frameMirror";
+import {
+  getFrameElementMirrorId,
+  getNullablePageFrameBindingId,
+} from "../../../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../../../adapters/canonical/slotMirror";
 
 export interface ResolvePageWithFrameInput {
@@ -53,6 +56,18 @@ export function toPageFrameElementId(
 
 function isBodyType(type: string): boolean {
   return type.toLowerCase() === "body";
+}
+
+function isHydratedPageFrameElement(
+  el: Element,
+  pageId: string,
+  layoutId: string,
+): boolean {
+  return (
+    !el.deleted &&
+    el.page_id === pageId &&
+    getFrameElementMirrorId(el) === layoutId
+  );
 }
 
 function readSlotName(el: Element): string {
@@ -210,15 +225,23 @@ export function resolvePageWithFrame(
     nonBody: Element[];
   } => {
     let body: Element | null = null;
+    let boundFrameBody: Element | null = null;
     const nonBody: Element[] = [];
     for (const el of pageElements) {
+      const frameElementId = getFrameElementMirrorId(el);
+      if (frameElementId !== null) {
+        if (layoutId && frameElementId === layoutId && isBodyType(el.type)) {
+          boundFrameBody ??= el;
+        }
+        continue;
+      }
       if (isBodyType(el.type)) {
         if (!body) body = el;
         continue;
       }
       nonBody.push(el);
     }
-    return { body, nonBody };
+    return { body: body ?? boundFrameBody, nonBody };
   };
 
   if (!layoutId) {
@@ -228,7 +251,12 @@ export function resolvePageWithFrame(
 
   const frameElements: Element[] = [];
   for (const el of elementsMap.values()) {
-    if (!isLegacyFrameElementForFrame(el, layoutId)) continue;
+    if (
+      !isLegacyFrameElementForFrame(el, layoutId) &&
+      !isHydratedPageFrameElement(el, page.id, layoutId)
+    ) {
+      continue;
+    }
     frameElements.push(el);
   }
 
@@ -261,6 +289,9 @@ export function resolvePageWithFrame(
   const frameBodyId = frameBody.id;
   const frameElementIds = new Set(frameElements.map((el) => el.id));
   const resolvedPageBody = mergePageBodyWithFrameLayout(pageBody, frameBody);
+  const pageContentElements = pageNonBody.filter(
+    (el) => !frameElementIds.has(el.id),
+  );
 
   const projectFrameElementId = (id: string): string =>
     toPageFrameElementId(page.id, id);
@@ -281,7 +312,7 @@ export function resolvePageWithFrame(
 
   const pageRootBySlot = new Map<string, Element[]>();
   const pageNonRoot: Element[] = [];
-  for (const el of pageNonBody) {
+  for (const el of pageContentElements) {
     const isRoot = !el.parent_id || el.parent_id === pageBodyId;
     if (!isRoot) {
       pageNonRoot.push(el);

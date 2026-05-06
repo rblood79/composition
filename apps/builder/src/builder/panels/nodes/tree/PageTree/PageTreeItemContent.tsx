@@ -18,6 +18,7 @@ interface PageTreeItemContentProps {
   state: TreeItemState;
   onDelete: (page: Page) => Promise<void>;
   onSettings?: (page: Page) => void;
+  onReselect?: (page: Page) => void;
 }
 
 /**
@@ -30,6 +31,7 @@ export function PageTreeItemContent({
   state,
   onDelete,
   onSettings,
+  onReselect,
 }: PageTreeItemContentProps) {
   const { depth, hasChildren, isRoot, page, name } = node;
   const { isSelected, isExpanded, isFocusVisible } = state;
@@ -39,6 +41,12 @@ export function PageTreeItemContent({
       className={`elementItem ${isSelected ? "active" : ""} ${
         isFocusVisible ? "focused" : ""
       }`}
+      onClick={(event) => {
+        if (!isSelected) return;
+        const target = event.target;
+        if (target instanceof Element && target.closest("button")) return;
+        onReselect?.(page);
+      }}
     >
       <div
         className="elementItemIndent"

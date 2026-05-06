@@ -153,6 +153,7 @@ export const convertPageLayout: ConvertPageLayoutFn = (
       type: "legacy-page",
       pageId: page.id,
       slug: page.slug ?? null,
+      order_num: page.order_num ?? 0,
       layoutId: layout.id,
     },
     descendants,
