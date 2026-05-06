@@ -5,6 +5,7 @@ import {
   deriveProjectRenderModelFromDocument,
   parseProjectData,
   serializeProjectData,
+  toPageFrameElementId,
 } from "../export.utils";
 
 const projectId = "00000000-0000-0000-0000-000000000916";
@@ -220,22 +221,115 @@ describe("project export canonical CompositionDocument payload", () => {
       className: "react-aria-Body",
     });
 
+    const frameBodyId = toPageFrameElementId("page-home", "frame-body");
+    const slotContentId = toPageFrameElementId("page-home", "slot-content");
     expect(
-      renderModel.elements.find((el) => el.id === "frame-body"),
+      renderModel.elements.find((el) => el.id === frameBodyId),
     ).toMatchObject({
-      id: "frame-body",
+      id: frameBodyId,
       type: "body",
       page_id: "page-home",
       parent_id: null,
       layout_id: "frame-1",
     });
     expect(
-      renderModel.elements.find((el) => el.id === "slot-content"),
+      renderModel.elements.find((el) => el.id === slotContentId),
     ).toMatchObject({
-      id: "slot-content",
-      parent_id: "frame-body",
+      id: slotContentId,
+      parent_id: frameBodyId,
       page_id: "page-home",
       layout_id: "frame-1",
+    });
+  });
+
+  it("hydrates the same frame on multiple pages with page-scoped projection ids", () => {
+    const documentWithSharedBinding: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-one",
+          type: "ref",
+          ref: "layout-frame-1",
+          name: "Page One",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-one",
+            layoutId: "frame-1",
+            order_num: 0,
+          },
+        },
+        {
+          id: "page-two",
+          type: "ref",
+          ref: "layout-frame-1",
+          name: "Page Two",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-two",
+            layoutId: "frame-1",
+            order_num: 1,
+          },
+        },
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body",
+              type: "Body",
+              props: { style: { display: "flex" } },
+              children: [
+                {
+                  id: "slot-content",
+                  type: "Slot",
+                  props: { name: "content" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithSharedBinding,
+      projectId,
+      "page-one",
+    );
+
+    const pageOneBodyId = toPageFrameElementId("page-one", "frame-body");
+    const pageTwoBodyId = toPageFrameElementId("page-two", "frame-body");
+    const pageOneSlotId = toPageFrameElementId("page-one", "slot-content");
+    const pageTwoSlotId = toPageFrameElementId("page-two", "slot-content");
+
+    expect(new Set(renderModel.elements.map((el) => el.id)).size).toBe(
+      renderModel.elements.length,
+    );
+    expect(
+      renderModel.elements.find((el) => el.id === pageOneBodyId),
+    ).toMatchObject({
+      page_id: "page-one",
+      layout_id: "frame-1",
+    });
+    expect(
+      renderModel.elements.find((el) => el.id === pageTwoBodyId),
+    ).toMatchObject({
+      page_id: "page-two",
+      layout_id: "frame-1",
+    });
+    expect(
+      renderModel.elements.find((el) => el.id === pageOneSlotId),
+    ).toMatchObject({
+      page_id: "page-one",
+      parent_id: pageOneBodyId,
+    });
+    expect(
+      renderModel.elements.find((el) => el.id === pageTwoSlotId),
+    ).toMatchObject({
+      page_id: "page-two",
+      parent_id: pageTwoBodyId,
     });
   });
 
@@ -319,20 +413,22 @@ describe("project export canonical CompositionDocument payload", () => {
     expect(
       renderModel.elements.find((el) => el.id === "page-card"),
     ).not.toHaveProperty("layout_id");
+    const frameBodyId = toPageFrameElementId("page-home", "frame-body");
+    const slotContentId = toPageFrameElementId("page-home", "slot-content");
     expect(
-      renderModel.elements.find((el) => el.id === "frame-body"),
+      renderModel.elements.find((el) => el.id === frameBodyId),
     ).toMatchObject({
-      id: "frame-body",
+      id: frameBodyId,
       page_id: "page-home",
       parent_id: null,
       layout_id: "frame-1",
     });
     expect(
-      renderModel.elements.find((el) => el.id === "slot-content"),
+      renderModel.elements.find((el) => el.id === slotContentId),
     ).toMatchObject({
-      id: "slot-content",
+      id: slotContentId,
       page_id: "page-home",
-      parent_id: "frame-body",
+      parent_id: frameBodyId,
       layout_id: "frame-1",
     });
   });
@@ -396,12 +492,14 @@ describe("project export canonical CompositionDocument payload", () => {
       "page-home",
     );
 
-    expect(renderModel.elements.find((el) => el.id === "slot-frame")).toEqual(
+    const frameBodyId = toPageFrameElementId("page-home", "frame-body");
+    const slotFrameId = toPageFrameElementId("page-home", "slot-frame");
+    expect(renderModel.elements.find((el) => el.id === slotFrameId)).toEqual(
       expect.objectContaining({
-        id: "slot-frame",
+        id: slotFrameId,
         type: "Slot",
         page_id: "page-home",
-        parent_id: "frame-body",
+        parent_id: frameBodyId,
         layout_id: "frame-1",
         props: expect.objectContaining({ name: "content" }),
         slot_name: "content",

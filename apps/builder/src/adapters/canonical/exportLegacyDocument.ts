@@ -32,11 +32,16 @@ type LegacyExportContext = {
 };
 
 type LegacyScopeMetadata = {
+  legacyProps?: unknown;
   type?: unknown;
   pageId?: unknown;
   layoutId?: unknown;
   slotName?: unknown;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
 
 /**
  * canonical document → legacy `Element[]` payload 역변환.
@@ -153,6 +158,13 @@ function extractElement(
   const metadata = node.metadata as LegacyScopeMetadata | undefined;
   const isLegacySlotHoisted = metadata?.type === "legacy-slot-hoisted";
   if (!node.props && !isLegacySlotHoisted) return null;
+  const legacyProps = isRecord(metadata?.legacyProps)
+    ? metadata.legacyProps
+    : null;
+  const customId =
+    typeof legacyProps?.customId === "string"
+      ? legacyProps.customId
+      : undefined;
   const props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {
     props.name ??= metadata.slotName;
@@ -160,6 +172,7 @@ function extractElement(
 
   const element: ElementWithLegacyMirror = {
     id: node.id,
+    ...(customId ? { customId } : {}),
     type: isLegacySlotHoisted ? "Slot" : node.type,
     props,
     parent_id: parentId,

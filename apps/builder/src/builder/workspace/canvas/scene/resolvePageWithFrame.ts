@@ -20,6 +20,7 @@
  */
 
 import type { Element, Page } from "../../../../types/core/store.types";
+import { toPageFrameElementId } from "@composition/shared";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import {
   getFrameElementMirrorId,
@@ -45,13 +46,10 @@ export interface ResolvePageWithFrameOutput {
   hasFrameBinding: boolean;
 }
 
-const PAGE_FRAME_ELEMENT_ID_SEPARATOR = "::page-frame::";
+export { toPageFrameElementId };
 
-export function toPageFrameElementId(
-  pageId: string,
-  frameElementId: string,
-): string {
-  return `${pageId}${PAGE_FRAME_ELEMENT_ID_SEPARATOR}${frameElementId}`;
+function isProjectedPageFrameElementId(pageId: string, elementId: string) {
+  return elementId.startsWith(toPageFrameElementId(pageId, ""));
 }
 
 function isBodyType(type: string): boolean {
@@ -294,7 +292,9 @@ export function resolvePageWithFrame(
   );
 
   const projectFrameElementId = (id: string): string =>
-    toPageFrameElementId(page.id, id);
+    isProjectedPageFrameElementId(page.id, id)
+      ? id
+      : toPageFrameElementId(page.id, id);
 
   const projectFrameParentId = (parentId: string | null | undefined) => {
     if (!parentId || parentId === frameBodyId) return pageBodyId;

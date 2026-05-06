@@ -610,6 +610,86 @@ describe("element mutations keep canonical document primary", () => {
     });
   });
 
+  it("updateSelectedCustomId keeps origin and instance IDs independent through canonical sync", () => {
+    const origin = makeElement("origin", "Button", {
+      customId: "origin-id",
+      reusable: true,
+      props: { label: "Origin" },
+    });
+    const instance = makeElement("instance", "Button", {
+      componentRole: "instance",
+      customId: "instance-id",
+      masterId: "origin",
+      props: {},
+    } as Partial<Element> & Record<string, unknown>);
+    const state = makeState([origin, instance]);
+    state.selectedElementId = "instance";
+    state.selectedElementIds = ["instance"];
+    state.selectedElementIdsSet = new Set(["instance"]);
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin",
+          type: "Button",
+          reusable: true,
+          props: origin.props as Record<string, unknown>,
+          metadata: {
+            type: "legacy-element-props",
+            legacyProps: {
+              id: "origin",
+              customId: "origin-id",
+              type: "Button",
+            },
+          },
+        },
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          props: {},
+          metadata: {
+            type: "legacy-element-props",
+            legacyProps: {
+              id: "instance",
+              customId: "instance-id",
+              type: "Button",
+              componentRole: "instance",
+              masterId: "origin",
+            },
+          },
+        } satisfies RefNode,
+      ],
+    });
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedCustomId("instance-new");
+
+    expect(state.elementsMap.get("origin")?.customId).toBe("origin-id");
+    expect(state.elementsMap.get("instance")?.customId).toBe("instance-new");
+    const instanceNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")
+      ?.children.find((node) => node.id === "instance") as RefNode | undefined;
+    expect(instanceNode).toMatchObject({
+      id: "instance",
+      type: "ref",
+      ref: "origin",
+      metadata: expect.objectContaining({
+        legacyProps: expect.objectContaining({
+          customId: "instance-new",
+        }),
+      }),
+    });
+  });
+
   it("updateSelectedProperties stores origin-shaped ref mirror edits as instance overrides", async () => {
     const origin = makeElement("origin", "Button", {
       reusable: true,

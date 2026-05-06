@@ -681,6 +681,47 @@ describe("ADR-911 P3-θ resolvePageWithFrame", () => {
     expect(page2Fill?.parent_id).toBe(page2SlotId);
   });
 
+  it("refresh hydrate 된 page-scoped frame projection 을 다시 projection 하지 않는다", () => {
+    const FRAME_ID = "frame-hydrated";
+    const projectedBodyId = toPageFrameElementId("page-1", "frame-body");
+    const projectedSlotId = toPageFrameElementId("page-1", "slot-content");
+    const pageBody = makeEl({
+      id: "page-1-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const projectedFrameBody = makeEl({
+      id: projectedBodyId,
+      type: "body",
+      frameId: FRAME_ID,
+      page_id: "page-1",
+    });
+    const projectedSlot = makeEl({
+      id: projectedSlotId,
+      type: "Slot",
+      frameId: FRAME_ID,
+      page_id: "page-1",
+      parent_id: projectedBodyId,
+      props: { name: "content" },
+    });
+    const elementsMap = buildElementsMap([
+      pageBody,
+      projectedFrameBody,
+      projectedSlot,
+    ]);
+
+    const result = resolvePageWithFrame({
+      page: makeFramePage(FRAME_ID, { id: "page-1" }),
+      pageElements: [pageBody, projectedFrameBody, projectedSlot],
+      elementsMap,
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.bodyElement?.id).toBe("page-1-body");
+    expect(result.pageElements.map((el) => el.id)).toEqual([projectedSlotId]);
+    expect(result.pageElements[0]?.parent_id).toBe("page-1-body");
+  });
+
   it("frame Slot 0건 (빈 frame body) → page element 가 page-body 자식 유지 (orphan 방지 회귀 fixture)", () => {
     const FRAME_ID = "frame-empty";
     const frameBody = makeEl({

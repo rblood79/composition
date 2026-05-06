@@ -38,6 +38,7 @@ type ElementScopeContext = {
 };
 
 type CanonicalScopeMetadata = {
+  legacyProps?: unknown;
   type?: unknown;
   pageId?: unknown;
   layoutId?: unknown;
@@ -141,6 +142,13 @@ export function canonicalNodeToElement(
   const mirrorFields = extractCanonicalComponentMirrorFields(node);
   const isRenderableRef = mirrorFields.ref !== undefined && !isPagePlaceholder;
   if (!node.props && !isLegacySlotHoisted && !isRenderableRef) return null;
+  const legacyProps = isRecord(metadata?.legacyProps)
+    ? metadata.legacyProps
+    : null;
+  const customId =
+    typeof legacyProps?.customId === "string"
+      ? legacyProps.customId
+      : undefined;
   const props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {
     props.name ??= metadata.slotName;
@@ -150,6 +158,7 @@ export function canonicalNodeToElement(
   return withFrameElementMirrorId(
     {
       id: node.id,
+      ...(customId ? { customId } : {}),
       type: isLegacySlotHoisted ? "Slot" : node.type,
       props,
       parent_id: parentId,

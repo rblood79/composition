@@ -577,6 +577,7 @@ export const createUpdateElementAction =
     // 🔧 CRITICAL: elementsMap 재구축 (재선택 시 이전 값 반환 방지)
     // Immer produce() 외부에서 호출 (Map은 Immer가 직접 지원하지 않음)
     get()._rebuildIndexes();
+    syncUpdatedElementToCanonical(updatedElement);
 
     // 2. IndexedDB에 저장 (로컬 우선 저장) — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
     if (typeof indexedDB === "undefined") return;
@@ -584,6 +585,7 @@ export const createUpdateElementAction =
       try {
         const db = await getDB();
         await db.elements.update(elementId, sanitizedUpdates);
+        await persistActiveCanonicalDocument(db);
       } catch (error) {
         console.warn(
           "⚠️ [IndexedDB] 요소 저장 중 오류 (메모리는 정상):",

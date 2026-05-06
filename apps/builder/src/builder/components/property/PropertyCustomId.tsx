@@ -2,6 +2,7 @@ import React, { useState, useEffect, memo } from "react";
 import { Hash } from "lucide-react";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useStore } from "../../stores";
+import { getActiveCanonicalElementsSnapshot } from "../../stores/canonical/canonicalElementSnapshot";
 import { validateCustomId } from "../../utils/idValidation";
 
 interface PropertyCustomIdProps {
@@ -10,7 +11,7 @@ interface PropertyCustomIdProps {
   elementId: string; // Current element ID (to exclude from uniqueness check)
   placeholder?: string;
   className?: string;
-  onChange?: (newCustomId: string) => void; // Not used internally (for API compatibility)
+  onChange?: (newCustomId: string) => void;
 }
 
 export const PropertyCustomId = memo(function PropertyCustomId({
@@ -19,6 +20,7 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   elementId,
   placeholder = "button_1",
   className,
+  onChange,
 }: PropertyCustomIdProps) {
   // Local state for input value (debounced save)
   const [inputValue, setInputValue] = useState<string>(value || "");
@@ -27,8 +29,27 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   // ⭐ 최적화: validation 시에만 elementsMap 가져오기 (구독 방지)
   // getState()로 현재 시점의 값만 가져옴
 
-  // Use Builder store to update customId directly
-  const updateCustomId = useStore((state) => state.updateSelectedCustomId);
+  const getValidationElements = () => {
+    const state = useStore.getState();
+    const elementsById = new Map(state.elementsMap);
+    const canonicalElements = getActiveCanonicalElementsSnapshot();
+    for (const element of canonicalElements ?? []) {
+      if (!elementsById.has(element.id)) {
+        elementsById.set(element.id, element);
+      }
+    }
+    return Array.from(elementsById.values());
+  };
+
+  const commitCustomId = (newCustomId: string) => {
+    if (onChange) {
+      onChange(newCustomId);
+      return;
+    }
+    void useStore.getState().updateElement(elementId, {
+      customId: newCustomId,
+    });
+  };
 
   // Sync local state with prop value when it changes externally
   useEffect(() => {
@@ -52,9 +73,11 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   const handleBlur = () => {
     // Validate before saving
     // ⭐ 최적화: validation 시에만 elementsMap 가져오기 (구독 방지)
-    const elementsMap = useStore.getState().elementsMap;
-    const elementsArray = Array.from(elementsMap.values());
-    const validation = validateCustomId(inputValue, elementId, elementsArray);
+    const validation = validateCustomId(
+      inputValue,
+      elementId,
+      getValidationElements(),
+    );
 
     if (!validation.isValid) {
       setError(validation.error);
@@ -68,7 +91,7 @@ export const PropertyCustomId = memo(function PropertyCustomId({
       // IMPORTANT: Only update Inspector state, NOT calling onChange
       // onChange would bypass Inspector state and directly update Builder store
       // which prevents useSyncWithBuilder from detecting changes
-      updateCustomId(inputValue);
+      commitCustomId(inputValue);
       setError(undefined);
     }
   };
@@ -80,11 +103,10 @@ export const PropertyCustomId = memo(function PropertyCustomId({
 
       // Validate before saving
       // ⭐ 최적화: validation 시에만 elementsMap 가져오기 (구독 방지)
-      const elementsMap = useStore.getState().elementsMap;
       const validation = validateCustomId(
         inputValue,
         elementId,
-        Array.from(elementsMap.values()),
+        getValidationElements(),
       );
 
       if (!validation.isValid) {
@@ -98,7 +120,7 @@ export const PropertyCustomId = memo(function PropertyCustomId({
         // IMPORTANT: Only update Inspector state, NOT calling onChange
         // onChange would bypass Inspector state and directly update Builder store
         // which prevents useSyncWithBuilder from detecting changes
-        updateCustomId(inputValue);
+        commitCustomId(inputValue);
         setError(undefined);
       }
 

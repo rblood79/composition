@@ -43,6 +43,7 @@ export function buildLegacyElementMetadata(element: Element): {
     legacyProps: {
       ...element.props,
       id: element.id,
+      customId: element.customId,
       parent_id: element.parent_id,
       page_id: element.page_id,
       layout_id: legacy.layout_id,

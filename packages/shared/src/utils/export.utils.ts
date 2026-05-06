@@ -33,6 +33,14 @@ import type { FontRegistryV2 } from "../types/font.types";
 
 const CURRENT_VERSION = "1.0.0";
 const DANGEROUS_KEYS = ["__proto__", "constructor", "prototype"];
+export const PAGE_FRAME_ELEMENT_ID_SEPARATOR = "::page-frame::";
+
+export function toPageFrameElementId(
+  pageId: string,
+  frameElementId: string,
+): string {
+  return `${pageId}${PAGE_FRAME_ELEMENT_ID_SEPARATOR}${frameElementId}`;
+}
 
 type CanonicalMetadata = {
   type: string;
@@ -333,15 +341,23 @@ function collectRuntimeElements(
   parentId: string | null,
   elements: Element[],
   pageLayoutBinding: string | null,
+  options: { projectFrameElementIds?: boolean } = {},
 ): void {
   nodes.forEach((sourceNode, index) => {
     const node = resolveRenderableNode(document, sourceNode);
+    const elementId = options.projectFrameElementIds
+      ? toPageFrameElementId(pageId, node.id)
+      : node.id;
+    const elementParentId =
+      options.projectFrameElementIds && parentId
+        ? toPageFrameElementId(pageId, parentId)
+        : parentId;
 
     const element: ElementWithCanonicalRuntimeFields = {
-      id: node.id,
+      id: elementId,
       type: getRuntimeElementType(node),
       props: getRuntimeElementProps(node),
-      parent_id: parentId,
+      parent_id: elementParentId,
       page_id: pageId,
       order_num: index,
     };
@@ -381,6 +397,7 @@ function collectRuntimeElements(
       node.id,
       elements,
       pageLayoutBinding,
+      options,
     );
   });
 }
@@ -444,6 +461,7 @@ function collectPageFrameProjectionRuntimeElements(
     null,
     elements,
     pageLayoutBinding,
+    { projectFrameElementIds: true },
   );
 }
 
