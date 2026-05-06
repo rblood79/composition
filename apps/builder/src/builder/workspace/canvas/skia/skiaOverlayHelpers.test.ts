@@ -330,7 +330,7 @@ describe("buildSlotMarkerTargets", () => {
       },
       {
         bounds: { x: 0, y: 480, width: 100, height: 40 },
-        showHatch: true,
+        showHatch: false,
         slotMarkerRole: "origin",
       },
     ]);
