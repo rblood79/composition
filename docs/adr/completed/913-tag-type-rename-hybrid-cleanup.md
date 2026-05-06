@@ -4,14 +4,16 @@
 
 Implemented — 2026-05-02. `Element.tag → Element.type` direct cutover 와 hybrid mirror field quarantine 을 완료했다. DB migration/backup/feature flag/read-through helper 없이 현행 runtime 은 `type` 단일 기준이며, legacy mirror field 는 canonical adapter/export boundary 로 격리한다.
 
+> 2026-05-03 post-cutover follow-up 은 2026-05-05 rollback 으로 폐기됐다. 2026-05-06 current main follow-up 패치는 `layout_id` / `slot_name` / component marker type schema 를 되살리지 않고 adapter boundary / canonical write-through 기준으로 frame/component 회귀를 다시 닫았다.
+
 ### 진행 로그
 
-- **2026-05-03 — post-cutover legacy mirror quarantine follow-up**:
-  - ADR-916 frame persistence/render fix 는 `layout_id` / `slot_name` schema 를 되살리지 않고 canonical frame scope + adapter fallback 으로 처리했다. runtime frame membership 은 `CanonicalFrameElementScope` 를 사용하고, legacy mirror predicate 는 `isLegacyFrameElementForFrame` fallback 으로만 남는다.
-  - `legacy-slot-hoisted` placeholder 는 canonical authoring view 에서 `Slot` 으로 복원하지만, legacy `slot_name` payload 는 export/import adapter boundary 에서만 생성된다. 따라서 Phase 5 frame/slot type schema cleanup 과 raw fixture key 0건 기준은 유지된다.
-  - Layout Preset 변경 시 Slot 누적 fix 도 `layout_id` / `slot_name` schema 재도입 없이 `removeElements` full snapshot write-through 와 `updateElementProps` canonical merge 로 처리했다.
-  - Style Panel Layout section 의 frame body / Slot style 적용 fix 도 legacy frame/slot schema 재도입 없이 `inspectorActions` 의 canonical merge/write-through 로 처리했다.
-  - 검증: targeted builder vitest 11 files / 83 tests PASS + Layout Preset canonical mutation targeted vitest 8 files / 60 tests PASS + Style Panel canonical mutation targeted vitest 4 files / 49 tests PASS + `pnpm run codex:preflight` PASS.
+- **2026-05-06 — rollback follow-up legacy mirror quarantine confirmation**:
+  - page-frame body/Slot projection, shared frame multi-page refresh, component origin/instance materialization/override/customId follow-up 패치가 `layout_id` / `slot_name` / `componentRole` / `masterId` / legacy `overrides` type schema 를 되살리지 않는 것을 확인했다.
+  - runtime frame/component compatibility 는 canonical adapter mirror/export boundary 와 active `CompositionDocument` write-through 기준으로 유지한다.
+  - 검증: frame/component canonical regression sweep + FramesTab targeted vitest 4 files / 39 tests PASS + `pnpm run codex:preflight` PASS.
+- **2026-05-03 — post-cutover legacy mirror quarantine follow-up (ROLLED BACK 2026-05-05)**:
+  - ADR-916 frame persistence/render fix 를 `layout_id` / `slot_name` schema 재도입 없이 처리했던 작업. targeted vitest 는 PASS 했지만 상위 patch 군이 사용자 환경 누적 회귀로 폐기되어 완료 근거에서 제외한다.
 - **2026-04-26**: Proposed (세션 35 마감)
 - **2026-04-27 (세션 36)**: Phase 0-α 진입 — `unified.types.ts` 7 legacy fields `@deprecated` 마킹 (commit `d716da4e`)
 - **2026-04-27 (세션 37)**: **Phase 1 + Phase 2 main land** (PR #250, commit `cad82b02`)

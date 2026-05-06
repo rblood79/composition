@@ -5,10 +5,11 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [LayerTree canonical projection fixes] - 2026-05-06
+## [Rollback follow-up canonical projection fixes] - 2026-05-06
 
 ### Fixed
 
+- 2026-05-05 rollback 후 `225532ea9` baseline 에 잔존 debt 로 재분류된 frame/component canonical projection 회귀를 current main 기준 새 패치군으로 다시 닫았다. 이 섹션은 2026-05-03 에 폐기된 post-cutover fix 의 단순 재적용이 아니라, rollback 이후 재진입한 사용자 검증 기반 패치 내역이다.
 - Page 에 reusable frame 을 적용했을 때 Node 패널 Layers 에 frame body 가 표시되지 않던 회귀를 수정했다.
   - `useLayerTreeData` 의 canonical source 필터가 current page 의 `page_id` 뿐 아니라 page-frame binding 의 `layout_id` mirror 도 포함한다.
   - Browser refresh hydration 시 `deriveProjectRenderModelFromDocument` 가 legacy page RefNode 를 page 로 인식하고, page-owned body(`layout_id: null`) 와 frame body/slot(`layout_id: <frame>`) projection 을 함께 복원한다.

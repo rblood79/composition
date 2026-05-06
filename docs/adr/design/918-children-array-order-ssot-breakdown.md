@@ -56,6 +56,7 @@ ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어�
 | component origin round-trip | `reusable: true`를 `componentRole: "master"` mirror로 export하고, page-owned origin을 root reusable catalog로 끌어올리지 않는다.                                                                  | origin/instance/slot 전체 child order cutover는 Phase 5에서 별도 gate로 닫아야 한다.                                |
 | LayerTree/frame projection  | canonical source와 page-frame projection merge가 보강되어 frame-bound page body/slot/live page child가 더 잘 보인다.                                                                              | `useLayerTreeData`와 `buildTreeFromElements`는 여전히 `order_num` sort를 사용하므로 G3 미완이다.                    |
 | selection/hit-test          | page-frame hidden slot child 선택과 overlapping frame body 선택이 보강됐다.                                                                                                                       | depth/area 우선 heuristic이 최종 `z-index` + `children[]` effective order와 충돌하지 않는지 G3에서 재검증해야 한다. |
+| Nodes panel frame tree UI   | Frames 탭의 Frames/Layers child rendering 이 Pages 탭과 같은 `TreeBase` / `VirtualizedTree`, `section` / `section-content`, `frame-tree` 단일 class 기준으로 정리됐다.                            | UI tree primitive parity baseline. structural ordering source 전환은 Phase 3/6에서 별도 검증해야 한다.              |
 | drag/drop/write path        | 선행 패치 없음. `batchUpdateElementOrders`/`moveElementToContainer`는 legacy `order_num` write 중심이다.                                                                                          | Phase 4에서 target parent `children[]` splice write path로 전환해야 한다.                                           |
 
 ### 중요 정리
@@ -297,6 +298,7 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 | `apps/builder/src/builder/utils/treeUtils.ts`                              | generic Element tree가 `order_num` sort 사용                                                                        | Phase 3 cutover target                                                   |
 | `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`  | depth/area 기반 hit target 보강                                                                                     | Phase 3 effective order 재검증 target                                    |
 | `apps/builder/src/builder/stores/elements.ts` / `elementReorder.ts`        | order write/reparent가 legacy `order_num` 중심                                                                      | Phase 4 cutover target                                                   |
+| `apps/builder/src/builder/panels/nodes/FramesTab/*` / `NodesPanel.css`     | Frames tab tree primitive/section/class parity 완료                                                                 | Phase 3 UI baseline. ordering source cutover 자체는 별도 target          |
 
 ## Verification Plan
 
@@ -336,6 +338,8 @@ pnpm run codex:typecheck
 - [ ] G1 canonical order helper + unit test 통과.
 - [ ] local main partial 선행 패치를 Phase 1/3/5 baseline으로 분류하고, 완료 gate와 미완
       gate를 분리.
+- [x] order 착수 전 frame/component projection 및 Nodes panel Frames tree parity 선행 안정화
+      상태를 문서에 반영.
 - [ ] G2 page/root order cutover 완료.
 - [ ] G3 LayerTree/layout/Skia/Preview/Publish read path cutover 완료.
 - [ ] G4 drag/drop write path cutover 완료.

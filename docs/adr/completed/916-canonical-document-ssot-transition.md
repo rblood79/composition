@@ -6,7 +6,9 @@ Implemented — 2026-05-02. `CompositionDocument` canonical schema 를 저장/�
 
 > **2026-05-05 Rollback note** — 2026-05-03 에 land 했던 post-cutover persistence / canonical frame scope / Layout Preset / Style Panel write-through fix 군 (총 12 commits, `919e11217..eacedead7`) 은 사용자 환경 회귀 누적 ("프로젝트가 너무 꼬여서 복구 불능", page→body→frame 적용 후 새로고침 시 body 사라짐) 으로 통째 폐기되었다. 폐기 baseline = `225532ea9` (build error fix 직전, codex 작업 mid-point). cutover (`dc498e539`) ~ ADR Implemented 처리 자체는 보존. 폐기 commits 의 history 는 `backup/before-rollback-eacedead7-2026-05-05` branch 에 보존.
 >
-> 결과: `225532ea9` 시점의 canonical write-through gap (element 생성 후 refresh 시 초기화 / FramesTab body 중복 / Layout Preset Slot 누적 / Style Panel Layout section write-through gap / `legacy-slot-hoisted` Slot 복원) 은 **본 ADR 의 잔존 debt 로 다시 분류된다**. 후속 ADR 또는 본 ADR 의 추가 phase 로 재진입 필요.
+> 결과: `225532ea9` 시점의 canonical write-through gap (element 생성 후 refresh 시 초기화 / FramesTab body 중복 / Layout Preset Slot 누적 / Style Panel Layout section write-through gap / `legacy-slot-hoisted` Slot 복원) 은 **본 ADR 의 잔존 debt 로 다시 분류**했다.
+>
+> **2026-05-06 Follow-up closure** — rollback 이후 current main 기준 새 패치군으로 잔존 debt 를 다시 닫았다. 포함 범위: page-frame refresh 후 body/Slot/Skia hatch marker 복원, No Frame 해제 body size 보존, Layout Preset Slot replace, frame/page tab body auto-selection, shared frame multi-page refresh projection, synthetic page-frame projection `order_num` DB write 제외, component origin refresh persistence, instance materialization/properties override/customId 독립성, Nodes panel Pages/Frames `TreeBase`/`section` parity. 이 follow-up 은 2026-05-03 폐기 commits 의 단순 재적용이 아니라 current main 에서 재현/확인된 경로를 새로 닫은 패치군이다.
 
 ### 진행 로그
 

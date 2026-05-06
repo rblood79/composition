@@ -2,7 +2,7 @@
 
 > 본 문서는 [ADR-913](../completed/913-tag-type-rename-hybrid-cleanup.md) **Phase 5 (HIGH risk, ~2d 예상)** 의 sub-phase 분해 + 영향 영역 + 검증 명령. ADR-903 P3-E + ADR-911/913 Phase 1~4 패턴을 답습하되, 2026-04-30 이후 실행 순서는 [ADR-916](../completed/916-canonical-document-ssot-transition.md) 선행으로 재정렬한다.
 >
-> **2026-05-03 post-cutover fix**: ADR-916 frame persistence/render 후속 fix 는 `layout_id` / `slot_name` schema 를 복구하지 않는다. frame membership 은 `CanonicalFrameElementScope` 로, legacy mirror predicate 는 adapter fallback 으로, `legacy-slot-hoisted` Slot mirror 는 export/import boundary 로만 유지한다. 따라서 Phase 5 type schema cleanup 과 raw fixture key 0건 기준은 유지된다.
+> **2026-05-05 rollback / 2026-05-06 follow-up**: 2026-05-03 post-cutover fix 군은 폐기됐다. 2026-05-06 current main follow-up 패치는 `layout_id` / `slot_name` / component marker type schema 를 복구하지 않고, frame/component compatibility 를 canonical adapter mirror/export boundary 와 active `CompositionDocument` write-through 기준으로 다시 닫았다. 따라서 Phase 5 type schema cleanup 과 raw fixture key 0건 기준은 유지된다.
 
 ## 1. 목표 + Gate G5
 

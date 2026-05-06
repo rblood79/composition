@@ -4,6 +4,8 @@
 
 Proposed — 2026-05-06
 
+> **2026-05-06 pre-entry note**: ADR-918 order 작업 착수 전 선행 안정화 패치가 완료됐다. page-frame refresh/body/slot projection, component origin/instance materialization/override, synthetic page-frame projection `order_num` DB 오류, Nodes panel Pages/Frames tree parity 는 current main 에서 닫힌 상태로 보고, ADR-918 은 남은 structural order SSOT 전환(`children[]` index primary, `order_num` mirror quarantine)에 집중한다.
+
 ## Context
 
 ADR-916 이후 `CompositionDocument`가 canonical document SSOT가 되었지만, sibling
@@ -188,6 +190,9 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 - 현재 selection hit-test 보강은 depth/area 우선 정책을 포함한다. ADR-918의 최종 G3는
   render와 hit-test가 동일한 effective child order(`z-index` + `children[]` index
   tie-breaker)를 공유하는지 다시 검증해야 한다.
+- Nodes panel Frames tree parity 는 선행 안정화로 닫혔다. 단 이 작업은 `TreeBase`/DOM/CSS
+  parity이며, LayerTree/PageTree/Frame tree 의 canonical structural ordering cutover 를
+  대체하지 않는다.
 
 ## Gates
 

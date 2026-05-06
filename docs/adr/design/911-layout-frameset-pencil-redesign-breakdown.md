@@ -6,7 +6,7 @@
 
 > **2026-05-02 current override**: 아래 Phase 1~4의 migration/dual-mode/shim 계획은 역사적 설계 기록이다. 현재 구현 기준은 canonical frame surface (`canonicalFrameStore`) + active `CompositionDocument` 가 in-memory SSOT이고, current DB `layouts` row 는 persistence mirror 로만 남는다. `apps/builder/src/builder/stores/layouts.ts` / `stores/utils/layoutActions.ts` 는 삭제 완료. Phase 5 는 `apps/builder/src/adapters/pencil/**` + shared mapper + ADR-916 import payload adapter 통합으로 완료.
 >
-> **2026-05-03 post-cutover fix**: FramesTab / Skia frame body / Slot 표시 회귀는 canonical frame scope 로 닫았다. frame authoring/render input 은 active `CompositionDocument` 에서 산출한 `elementIds` / `bodyElementId` 를 사용하고, `layout_id` 기반 판정은 legacy DB fallback 전용 adapter 로 격리한다.
+> **2026-05-05 rollback / 2026-05-06 follow-up**: 2026-05-03 post-cutover frame scope fix 군은 사용자 환경 회귀 누적으로 폐기됐다. 2026-05-06 current main follow-up 패치에서 page-frame refresh body/Slot projection, shared frame multi-page projection, Layout Preset Slot replace, frame/page body auto-selection, Nodes panel Frames tree parity 를 다시 닫았다. 현행 frame authoring/render input 은 active `CompositionDocument` / canonical frame projection 기준이며, `layout_id` mirror 는 adapter fallback/export boundary 로 격리한다.
 
 ---
 
