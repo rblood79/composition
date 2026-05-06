@@ -80,6 +80,27 @@ describe("FrameList (ADR-911 P2 PR-D)", () => {
       const items = container.querySelectorAll(".elementItem");
       expect(items[0].className).toContain("active");
       expect(items[1].className).not.toContain("active");
+
+      const wrappers = screen.getAllByRole("row");
+      expect(wrappers[0].className).toContain("react-aria-TreeItem");
+      expect(wrappers[0].getAttribute("aria-selected")).toBe("true");
+      expect(wrappers[1].getAttribute("aria-selected")).toBe("false");
+    });
+
+    it("Pages와 같은 section 구조로 frame 목록을 렌더한다", () => {
+      const { container } = render(
+        <FrameList
+          {...makeProps({
+            frames: [{ id: "f-1", name: "Frame" }],
+          })}
+        />,
+      );
+
+      expect(container.firstElementChild?.className).toBe("section");
+      expect(container.querySelector(".section-content")).toBeTruthy();
+      expect(container.querySelector(".frame-tree")).toBeTruthy();
+      expect(container.querySelector(".sidebar_layouts")).toBeNull();
+      expect(container.querySelector(".frame-list-tree")).toBeNull();
     });
   });
 

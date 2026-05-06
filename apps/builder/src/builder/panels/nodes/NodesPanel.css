@@ -1,11 +1,5 @@
 /* Content */
 
-.sidebar_pages,
-.sidebar_elements {
-  width: 100%;
-  position: relative;
-}
-
 /* Elements */
 .elements {
   padding: 0;
@@ -250,7 +244,8 @@
       all: unset;
 
       .react-aria-Tree,
-      .page-tree {
+      .page-tree,
+      .frame-tree {
         all: unset;
 
         .react-aria-TreeItem {
@@ -312,25 +307,6 @@
 
 .nodes-panel-tab.active .nodes-panel-tab-label {
   color: var(--fg);
-}
-
-/* PagesTab */
-.pages-tab {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-/* LayoutsTab */
-.layouts-tab {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.sidebar_layouts {
-  width: 100%;
-  position: relative;
 }
 
 /* Slot Element 특별 표시 */

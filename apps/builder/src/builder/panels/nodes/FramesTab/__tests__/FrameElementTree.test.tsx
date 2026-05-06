@@ -15,7 +15,7 @@
  *  6. element click → onElementClick(element) 호출 + frameId 매핑
  *  7. element 'body' type → Settings 버튼 (Delete 없음)
  *  8. element non-body delete → onElementDelete(element)
- *  9. ChevronRight icon click → toggleKey(id)
+ *  9. ChevronRight button click → toggleKey(id)
  * 10. Collapse All → onCollapseAll
  */
 
@@ -25,6 +25,20 @@ import { render, fireEvent, screen, cleanup } from "@testing-library/react";
 
 import { FrameElementTree } from "../FrameElementTree";
 import type { ElementTreeItem } from "@/types/builder/stately.types";
+
+if (typeof globalThis.CSS === "undefined") {
+  Object.defineProperty(globalThis, "CSS", {
+    value: {},
+    configurable: true,
+  });
+}
+
+if (typeof globalThis.CSS.escape !== "function") {
+  Object.defineProperty(globalThis.CSS, "escape", {
+    value: (value: string) => String(value),
+    configurable: true,
+  });
+}
 
 function makeItem(
   id: string,
@@ -149,6 +163,27 @@ describe("FrameElementTree (ADR-911 P2 PR-D2)", () => {
       const items = container.querySelectorAll(".elementItem");
       expect(items[0].className).toContain("active");
       expect(items[1].className).not.toContain("active");
+
+      const wrappers = screen.getAllByRole("row");
+      expect(wrappers[0].className).toContain("react-aria-TreeItem");
+      expect(wrappers[0].getAttribute("aria-selected")).toBe("true");
+      expect(wrappers[1].getAttribute("aria-selected")).toBe("false");
+    });
+
+    it("Pages Layers와 같은 section 구조로 frame element tree를 렌더한다", () => {
+      const { container } = render(
+        <FrameElementTree
+          {...makeProps({
+            tree: [makeItem("el-1", "Button")],
+          })}
+        />,
+      );
+
+      expect(container.firstElementChild?.className).toBe("section");
+      expect(container.querySelector(".section-content")).toBeTruthy();
+      expect(container.querySelector(".frame-tree")).toBeTruthy();
+      expect(container.querySelector(".sidebar_elements")).toBeNull();
+      expect(container.querySelector(".frame-layer-tree")).toBeNull();
     });
   });
 
@@ -206,21 +241,19 @@ describe("FrameElementTree (ADR-911 P2 PR-D2)", () => {
       expect(screen.queryByRole("button", { name: /^Delete/ })).toBeNull();
     });
 
-    it("ChevronRight 아이콘 click (자식 있는 노드) → toggleKey(id) + stopPropagation", () => {
+    it("ChevronRight 버튼 click (자식 있는 노드) → toggleKey(id) + stopPropagation", () => {
       const toggleKey = vi.fn();
       const onElementClick = vi.fn();
       const parent = makeItem("parent", "Container", {
         children: [makeItem("child", "Button")],
       });
-      const { container } = render(
+      render(
         <FrameElementTree
           {...makeProps({ tree: [parent], toggleKey, onElementClick })}
         />,
       );
 
-      // elementItemIcon 영역 클릭 (자식 있을 때 ChevronRight 가 렌더됨)
-      const iconWrapper = container.querySelector(".elementItemIcon");
-      fireEvent.click(iconWrapper!);
+      fireEvent.click(screen.getByRole("button", { name: /Expand Container/ }));
 
       expect(toggleKey).toHaveBeenCalledWith("parent");
       expect(onElementClick).not.toHaveBeenCalled();

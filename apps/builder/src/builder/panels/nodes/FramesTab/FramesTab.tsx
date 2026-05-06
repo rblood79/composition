@@ -488,12 +488,7 @@ export function FramesTab({
   );
 
   return (
-    <div
-      className="layouts-tab"
-      role="tabpanel"
-      id="tabpanel-frames"
-      aria-label="Frames"
-    >
+    <>
       {/* Frames List — ADR-911 P2 PR-D 추출 */}
       <FrameList
         frames={reusableFrames}
@@ -519,7 +514,7 @@ export function FramesTab({
         }}
         onElementDelete={handleDeleteElement}
       />
-    </div>
+    </>
   );
 }
 

@@ -51,9 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Frame body 가 legacy `elementsMap` 에 없는 canonical-only 상태여도 active canonical snapshot fallback 으로 frame id 를 해석해 `Frame Preset` 섹션이 표시되도록 복원했다.
 - Frames 탭 진입 시 선택된 frame 이 없거나 stale 인 경우 첫 번째 frame 을 자동 선택하고 해당 frame body 까지 즉시 선택하도록 변경했다.
 - Pages 탭 진입 시 `currentPageId` 가 비어 있거나 stale 인 경우 기본 Home/첫 번째 page 를 자동 선택하고 해당 page body 까지 즉시 선택하도록 변경했다.
+- Frames 탭의 Frames/Layers row wrapper 가 Pages/Layers 와 같은 tree item selected state class 를 사용하도록 맞춰 hover/active 시각 상태를 일관화했다.
+- Frames 탭의 불필요한 `layouts-tab` wrapper 와 `sidebar_layouts` / `sidebar_elements` 전용 구조를 제거하고, Pages 탭과 동일한 `section` / `section-content` 구조로 통일했다.
+- Frames 탭의 Frames/Layers child 렌더링을 Pages 탭과 같은 `TreeBase` / `VirtualizedTree` 기반으로 전환하고 `frame-tree` 단일 class 를 사용해 수동 list/recursive row 구현과 frame-list/frame-layer 전용 class 분기를 제거했다.
 
 ### Verification
 
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab/__tests__/FrameElementTree.test.tsx src/builder/panels/nodes/FramesTab/__tests__/FrameList.test.tsx src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts` — Frames tab TreeBase/section parity PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/PagesSection.test.tsx src/builder/panels/nodes/tree/PageTree/PageTreeItemContent.test.tsx` — Pages tab parity baseline PASS
 - `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — 1 file / 7 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx` — 1 file / 5 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts` — 1 file / 15 tests PASS

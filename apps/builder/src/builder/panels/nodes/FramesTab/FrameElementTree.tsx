@@ -1,8 +1,8 @@
 /**
  * FrameElementTree — frame 의 element 트리 렌더 + Layers 헤더 + Collapse All 버튼.
  *
- * ADR-911 Phase 2 PR-D2: FramesTab.tsx 의 `sidebar_elements` 영역 (Layers 헤더 +
- * tree 렌더 + placeholder) 추출.
+ * ADR-911 Phase 2 PR-D2: FramesTab.tsx 의 Layers section (Layers 헤더 + tree 렌더
+ * + placeholder) 추출.
  *
  * 본 컴포넌트는 프레젠테이션 전용 — element 선택 / 삭제 핸들러 구현은 부모 책임.
  * tree 데이터, expand 상태, 핸들러 모두 props 로 주입받아 결정적 UI 만 렌더.
@@ -10,13 +10,25 @@
  * functional 동등 — 추출 전후 동작 차이 없음 (FramesTab 8/8 회귀 0).
  */
 
-import React from "react";
+import React, { useCallback, useMemo } from "react";
+import type { Key } from "react-stately";
+import { Button } from "react-aria-components";
 import { Minimize, ChevronRight, Box, Trash, Settings2 } from "lucide-react";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import type { ElementProps } from "../../../../types/integrations/supabase.types";
 import type { Element } from "../../../../types/core/store.types";
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import { PanelHeader } from "../../../components";
+import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
+import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
+
+interface FrameElementTreeNode extends BaseTreeNode {
+  type: string;
+  orderNum: number;
+  item: ElementTreeItem;
+  children?: FrameElementTreeNode[];
+}
 
 export interface FrameElementTreeProps {
   /** 렌더할 element 트리 */
@@ -47,136 +59,90 @@ export function FrameElementTree({
   onElementClick,
   onElementDelete,
 }: FrameElementTreeProps) {
-  const renderTree = (
-    items: ElementTreeItem[],
-    currentDepth: number,
-  ): React.ReactNode => {
-    if (items.length === 0) return null;
+  const treeNodes = useMemo(() => toFrameElementTreeNodes(tree), [tree]);
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, FrameElementTreeNode>();
+    const stack = [...treeNodes];
+    while (stack.length > 0) {
+      const node = stack.shift();
+      if (!node) continue;
+      map.set(node.id, node);
+      if (node.children) stack.unshift(...node.children);
+    }
+    return map;
+  }, [treeNodes]);
+  const selectedKeys = useMemo(
+    () =>
+      selectedElementId ? new Set<Key>([selectedElementId]) : new Set<Key>(),
+    [selectedElementId],
+  );
+  const resolvedExpandedKeys = useMemo(
+    () => new Set<Key>([...expandedKeys]),
+    [expandedKeys],
+  );
 
-    return (
-      <>
-        {items.map((item) => {
-          const hasChildNodes = item.children && item.children.length > 0;
-          const isExpanded = expandedKeys.has(item.id);
+  const toElement = useCallback(
+    (node: FrameElementTreeNode): Element =>
+      withFrameElementMirrorId(
+        {
+          id: node.item.id,
+          type: node.item.type,
+          parent_id: node.item.parent_id || null,
+          order_num: node.item.order_num,
+          props: node.item.props as ElementProps,
+          deleted: node.item.deleted,
+          page_id: null,
+          created_at: "",
+          updated_at: "",
+        },
+        frameId ?? null,
+      ),
+    [frameId],
+  );
 
-          const element: Element = withFrameElementMirrorId(
-            {
-              id: item.id,
-              type: item.type,
-              parent_id: item.parent_id || null,
-              order_num: item.order_num,
-              props: item.props as ElementProps,
-              deleted: item.deleted,
-              page_id: null,
-              created_at: "",
-              updated_at: "",
-            },
-            frameId ?? null,
-          );
+  const handleSelectionChange = useCallback(
+    (keys: Set<Key>) => {
+      const key = [...keys][0];
+      if (!key) return;
+      const node = nodeMap.get(String(key));
+      if (!node) return;
+      onElementClick(toElement(node));
+    },
+    [nodeMap, onElementClick, toElement],
+  );
 
-          return (
-            <div
-              key={item.id}
-              data-depth={currentDepth}
-              data-has-children={hasChildNodes}
-              onClick={(e) => {
-                e.stopPropagation();
-                onElementClick(element);
-              }}
-              className="element"
-            >
-              <div
-                className={`elementItem ${
-                  selectedElementId === item.id ? "active" : ""
-                }`}
-              >
-                <div
-                  className="elementItemIndent"
-                  style={{
-                    width: currentDepth > 0 ? `${currentDepth * 8}px` : "0px",
-                  }}
-                ></div>
-                <div
-                  className="elementItemIcon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (hasChildNodes) {
-                      toggleKey(item.id);
-                    }
-                  }}
-                >
-                  {hasChildNodes ? (
-                    <ChevronRight
-                      color={iconProps.color}
-                      strokeWidth={iconProps.strokeWidth}
-                      size={iconProps.size}
-                      style={{
-                        transform: isExpanded
-                          ? "rotate(90deg)"
-                          : "rotate(0deg)",
-                      }}
-                    />
-                  ) : (
-                    <Box
-                      color={iconProps.color}
-                      strokeWidth={iconProps.strokeWidth}
-                      size={iconProps.size}
-                      style={{ padding: "2px" }}
-                    />
-                  )}
-                </div>
-                <div className="elementItemLabel">
-                  {item.type === "Slot" && item.props
-                    ? `Slot: ${
-                        (item.props as Record<string, unknown>).name ||
-                        "unnamed"
-                      }`
-                    : item.type}
-                </div>
-                <div className="elementItemActions">
-                  {item.type === "body" && (
-                    <button className="iconButton" aria-label="Settings">
-                      <Settings2
-                        color={iconProps.color}
-                        strokeWidth={iconProps.strokeWidth}
-                        size={iconProps.size}
-                      />
-                    </button>
-                  )}
-                  {item.type !== "body" && (
-                    <button
-                      className="iconButton"
-                      aria-label={`Delete ${item.type}`}
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        await onElementDelete(element);
-                      }}
-                    >
-                      <Trash
-                        color={iconProps.color}
-                        strokeWidth={iconProps.strokeWidth}
-                        size={iconProps.size}
-                      />
-                    </button>
-                  )}
-                </div>
-              </div>
-              {isExpanded &&
-                hasChildNodes &&
-                item.children &&
-                renderTree(item.children, currentDepth + 1)}
-            </div>
-          );
-        })}
-      </>
-    );
-  };
+  const handleExpandedChange = useCallback(
+    (keys: Set<Key>) => {
+      const next = new Set([...keys].map(String));
+      const previous = new Set([...expandedKeys].map(String));
+      for (const key of next) {
+        if (!previous.has(key)) toggleKey(key);
+      }
+      for (const key of previous) {
+        if (!next.has(key)) toggleKey(key);
+      }
+    },
+    [expandedKeys, toggleKey],
+  );
+
+  const renderContent = useCallback(
+    (node: FrameElementTreeNode, state: TreeItemState) => (
+      <FrameElementTreeItemContent
+        node={node}
+        state={state}
+        element={toElement(node)}
+        onDelete={onElementDelete}
+        onReselect={onElementClick}
+      />
+    ),
+    [onElementClick, onElementDelete, toElement],
+  );
 
   return (
-    <div className="sidebar_elements">
-      <div className="panel-header">
-        <h3 className="panel-title">Layers</h3>
-        <div className="header-actions">
+    <div className="section">
+      <PanelHeader
+        title="Layers"
+        actions={
           <button
             className="iconButton"
             aria-label="Collapse All"
@@ -188,15 +154,156 @@ export function FrameElementTree({
               size={iconProps.size}
             />
           </button>
-        </div>
-      </div>
-      <div className="elements">
+        }
+      />
+      <div className="section-content elements">
         {!frameId ? (
           <p className="no_element">Select a frame to view elements</p>
         ) : tree.length === 0 ? (
           <p className="no_element">No elements in this frame</p>
+        ) : treeNodes.length >= 12 ? (
+          <VirtualizedTree<FrameElementTreeNode>
+            aria-label="Layers"
+            items={treeNodes}
+            getKey={(node) => node.id}
+            getTextValue={getFrameElementDisplayName}
+            renderContent={renderContent}
+            selectedKeys={selectedKeys}
+            expandedKeys={resolvedExpandedKeys}
+            onSelectionChange={handleSelectionChange}
+            onExpandedChange={handleExpandedChange}
+            itemHeight={32}
+            overscan={8}
+            className="frame-tree frame-tree--virtualized"
+          />
         ) : (
-          renderTree(tree, 0)
+          <TreeBase<FrameElementTreeNode>
+            aria-label="Layers"
+            items={treeNodes}
+            getKey={(node) => node.id}
+            getTextValue={getFrameElementDisplayName}
+            renderContent={renderContent}
+            selectedKeys={selectedKeys}
+            expandedKeys={resolvedExpandedKeys}
+            onSelectionChange={handleSelectionChange}
+            onExpandedChange={handleExpandedChange}
+            className="frame-tree"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function toFrameElementTreeNodes(
+  items: ElementTreeItem[],
+  depth = 0,
+): FrameElementTreeNode[] {
+  return items.map((item) => {
+    const children = toFrameElementTreeNodes(item.children ?? [], depth + 1);
+    return {
+      id: item.id,
+      parentId: item.parent_id ?? null,
+      depth,
+      hasChildren: children.length > 0,
+      children,
+      type: item.type,
+      orderNum: item.order_num ?? 0,
+      item,
+    };
+  });
+}
+
+function getFrameElementDisplayName(node: FrameElementTreeNode): string {
+  if (node.type === "Slot" && node.item.props) {
+    return `Slot: ${
+      (node.item.props as Record<string, unknown>).name || "unnamed"
+    }`;
+  }
+  return node.type;
+}
+
+interface FrameElementTreeItemContentProps {
+  node: FrameElementTreeNode;
+  state: TreeItemState;
+  element: Element;
+  onDelete: (element: Element) => Promise<void> | void;
+  onReselect: (element: Element) => void;
+}
+
+function FrameElementTreeItemContent({
+  node,
+  state,
+  element,
+  onDelete,
+  onReselect,
+}: FrameElementTreeItemContentProps) {
+  const { isSelected, isExpanded, isFocusVisible } = state;
+
+  return (
+    <div
+      className={`elementItem ${isSelected ? "active" : ""} ${
+        isFocusVisible ? "focused" : ""
+      }`}
+      onClick={(event) => {
+        if (!isSelected) return;
+        const target = event.target;
+        if (target instanceof globalThis.Element && target.closest("button")) {
+          return;
+        }
+        onReselect(element);
+      }}
+    >
+      <div
+        className="elementItemIndent"
+        style={{ width: node.depth > 0 ? `${node.depth * 8}px` : "0px" }}
+      />
+      <div className="elementItemIcon">
+        {node.hasChildren ? (
+          <Button
+            slot="chevron"
+            className="layer-expand-button"
+            aria-label={`${isExpanded ? "Collapse" : "Expand"} ${getFrameElementDisplayName(node)}`}
+          >
+            <ChevronRight
+              color={iconProps.color}
+              strokeWidth={iconProps.strokeWidth}
+              size={iconProps.size}
+              data-chevron="true"
+            />
+          </Button>
+        ) : (
+          <Box
+            color={iconProps.color}
+            strokeWidth={iconProps.strokeWidth}
+            size={iconProps.size}
+            style={{ padding: "2px" }}
+          />
+        )}
+      </div>
+      <div className="elementItemLabel">{getFrameElementDisplayName(node)}</div>
+      <div className="elementItemActions">
+        {node.type === "body" && (
+          <Button className="iconButton" aria-label="Settings">
+            <Settings2
+              color={iconProps.color}
+              strokeWidth={iconProps.strokeWidth}
+              size={iconProps.size}
+            />
+          </Button>
+        )}
+        {node.type !== "body" && (
+          <Button
+            className="iconButton"
+            aria-label={`Delete ${node.type}`}
+            onPress={() => onDelete(element)}
+          >
+            <Trash
+              color={iconProps.color}
+              strokeWidth={iconProps.strokeWidth}
+              size={iconProps.size}
+            />
+          </Button>
         )}
       </div>
     </div>

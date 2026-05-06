@@ -41,4 +41,40 @@ describe("FramesTab frame selection race guard", () => {
     expect(source).not.toContain("selectCanonicalDocument");
     expect(source).not.toContain("useLayoutsStore");
   });
+
+  it("does not add an extra layouts-tab wrapper around Frames sections", async () => {
+    const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
+
+    expect(source).not.toContain('className="layouts-tab"');
+    expect(source).toContain("<>");
+    expect(source).toContain("<FrameList");
+    expect(source).toContain("<FrameElementTree");
+  });
+
+  it("renders Frames/Layers children through shared TreeBase primitives", async () => {
+    const frameListSource = await readFile(
+      resolve(__dirname, "FrameList.tsx"),
+      "utf-8",
+    );
+    const frameElementTreeSource = await readFile(
+      resolve(__dirname, "FrameElementTree.tsx"),
+      "utf-8",
+    );
+
+    expect(frameListSource).toContain('from "../tree/TreeBase"');
+    expect(frameListSource).toContain("<TreeBase<FrameListNode>");
+    expect(frameElementTreeSource).toContain('from "../tree/TreeBase"');
+    expect(frameElementTreeSource).toContain("<TreeBase<FrameElementTreeNode>");
+    expect(frameElementTreeSource).toContain(
+      "<VirtualizedTree<FrameElementTreeNode>",
+    );
+    expect(frameListSource).toContain('className="frame-tree"');
+    expect(frameElementTreeSource).toContain('className="frame-tree"');
+    expect(frameElementTreeSource).toContain(
+      'className="frame-tree frame-tree--virtualized"',
+    );
+    expect(frameListSource).not.toContain("frame-list-tree");
+    expect(frameElementTreeSource).not.toContain("frame-layer-tree");
+    expect(frameElementTreeSource).not.toContain("renderTree(");
+  });
 });
