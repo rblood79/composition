@@ -34,6 +34,14 @@ import type { FontRegistryV2 } from "../types/font.types";
 const CURRENT_VERSION = "1.0.0";
 const DANGEROUS_KEYS = ["__proto__", "constructor", "prototype"];
 export const PAGE_FRAME_ELEMENT_ID_SEPARATOR = "::page-frame::";
+const CANONICAL_REF_FIELD = "ref" as const;
+const CANONICAL_REF_CHILD_PATCHES_FIELD = "descendants" as const;
+const COMPONENT_ROLE_RUNTIME_FIELD = "componentRole" as const;
+const COMPONENT_MASTER_RUNTIME_FIELD = "masterId" as const;
+const COMPONENT_OVERRIDES_RUNTIME_FIELD = "overrides" as const;
+const FRAME_LAYOUT_RUNTIME_FIELD = "layout_id" as const;
+const SLOT_NAME_RUNTIME_FIELD = "slot_name" as const;
+const LEGACY_PROPS_METADATA_FIELD = "legacyProps" as const;
 
 export function toPageFrameElementId(
   pageId: string,
@@ -44,23 +52,45 @@ export function toPageFrameElementId(
 
 type CanonicalMetadata = {
   type: string;
+  customId?: unknown;
+  [LEGACY_PROPS_METADATA_FIELD]?: unknown;
   [key: string]: unknown;
 };
 
 type CanonicalNodeWithRef = CanonicalNode & {
-  descendants?: Record<string, unknown>;
-  ref?: string;
+  [CANONICAL_REF_CHILD_PATCHES_FIELD]?: Record<string, unknown>;
+  [CANONICAL_REF_FIELD]?: string;
 };
 type ElementWithCanonicalRuntimeFields = Element & {
-  componentRole?: "master" | "instance";
-  descendants?: Record<string, unknown>;
-  layout_id?: string | null;
-  masterId?: string;
-  overrides?: Record<string, unknown>;
+  [CANONICAL_REF_CHILD_PATCHES_FIELD]?: Record<string, unknown>;
+  [COMPONENT_ROLE_RUNTIME_FIELD]?: "master" | "instance";
+  [COMPONENT_MASTER_RUNTIME_FIELD]?: string;
+  [COMPONENT_OVERRIDES_RUNTIME_FIELD]?: Record<string, unknown>;
+  [FRAME_LAYOUT_RUNTIME_FIELD]?: string | null;
   ref?: string;
   reusable?: boolean;
-  slot_name?: string;
+  [SLOT_NAME_RUNTIME_FIELD]?: string;
 };
+
+function readCanonicalMetadataCustomId(
+  metadata: CanonicalNode["metadata"] | undefined,
+): string | undefined {
+  if (!metadata || Array.isArray(metadata)) return undefined;
+
+  const customId = metadata.customId;
+  if (typeof customId === "string" && customId.length > 0) {
+    return customId;
+  }
+
+  const legacyProps = metadata[LEGACY_PROPS_METADATA_FIELD];
+  if (!legacyProps || typeof legacyProps !== "object") return undefined;
+  if (Array.isArray(legacyProps)) return undefined;
+
+  const legacyCustomId = (legacyProps as Record<string, unknown>).customId;
+  return typeof legacyCustomId === "string" && legacyCustomId.length > 0
+    ? legacyCustomId
+    : undefined;
+}
 
 export interface ProjectExportData {
   version: string;
@@ -194,7 +224,7 @@ function extractPageLayoutBinding(node: CanonicalNode): string | null {
   if (typeof metadata?.layoutId === "string" && metadata.layoutId.length > 0) {
     return metadata.layoutId;
   }
-  const ref = (node as CanonicalNodeWithRef).ref;
+  const ref = (node as CanonicalNodeWithRef)[CANONICAL_REF_FIELD];
   if (typeof ref === "string" && ref.length > 0) {
     return ref.startsWith("layout-") ? ref.slice("layout-".length) : ref;
   }
@@ -256,7 +286,7 @@ function resolvePageRenderableChildren(
   pageNode: CanonicalNode,
 ): CanonicalNode[] {
   if (pageNode.type === "ref") {
-    const ref = (pageNode as CanonicalNodeWithRef).ref;
+    const ref = (pageNode as CanonicalNodeWithRef)[CANONICAL_REF_FIELD];
     if (typeof ref === "string" && ref.length > 0) {
       const target = findNodeById(document.children, ref);
       if (target?.children) return target.children;
@@ -284,7 +314,8 @@ function readDescendantChildren(override: unknown): CanonicalNode[] {
 function getRefDescendantChildren(pageNode: CanonicalNode): CanonicalNode[] {
   if (pageNode.type !== "ref") return [];
 
-  const descendants = (pageNode as CanonicalNodeWithRef).descendants ?? {};
+  const descendants =
+    (pageNode as CanonicalNodeWithRef)[CANONICAL_REF_CHILD_PATCHES_FIELD] ?? {};
   const children: CanonicalNode[] = [];
   for (const override of Object.values(descendants)) {
     children.push(...readDescendantChildren(override));
@@ -364,17 +395,29 @@ function collectRuntimeElements(
     if (node.name !== undefined) {
       element.componentName = node.name;
     }
-    const ref = (sourceNode as CanonicalNodeWithRef).ref;
+    const customId =
+      sourceNode.type === "ref"
+        ? readCanonicalMetadataCustomId(sourceNode.metadata)
+        : (readCanonicalMetadataCustomId(sourceNode.metadata) ??
+          readCanonicalMetadataCustomId(node.metadata));
+    if (customId !== undefined) {
+      element.customId = customId;
+    }
+    const sourceRefNode = sourceNode as CanonicalNodeWithRef;
+    const ref = sourceRefNode[CANONICAL_REF_FIELD];
     if (sourceNode.type === "ref" && typeof ref === "string") {
-      element.componentRole = "instance";
-      element.masterId = ref;
+      element[COMPONENT_ROLE_RUNTIME_FIELD] = "instance";
+      element[COMPONENT_MASTER_RUNTIME_FIELD] = ref;
       element.ref = ref;
-      element.overrides = { ...(sourceNode.props ?? {}) };
-      if ((sourceNode as CanonicalNodeWithRef).descendants) {
-        element.descendants = (sourceNode as CanonicalNodeWithRef).descendants;
+      element[COMPONENT_OVERRIDES_RUNTIME_FIELD] = {
+        ...(sourceNode.props ?? {}),
+      };
+      if (sourceRefNode[CANONICAL_REF_CHILD_PATCHES_FIELD]) {
+        element[CANONICAL_REF_CHILD_PATCHES_FIELD] =
+          sourceRefNode[CANONICAL_REF_CHILD_PATCHES_FIELD];
       }
     } else if (node.reusable === true || sourceNode.reusable === true) {
-      element.componentRole = "master";
+      element[COMPONENT_ROLE_RUNTIME_FIELD] = "master";
       element.reusable = true;
     }
     if (
@@ -382,11 +425,11 @@ function collectRuntimeElements(
       typeof (node.metadata as CanonicalMetadata | undefined)?.slotName ===
         "string"
     ) {
-      element.slot_name = (node.metadata as CanonicalMetadata)
+      element[SLOT_NAME_RUNTIME_FIELD] = (node.metadata as CanonicalMetadata)
         .slotName as string;
     }
     if (pageLayoutBinding !== null) {
-      element.layout_id = pageLayoutBinding;
+      element[FRAME_LAYOUT_RUNTIME_FIELD] = pageLayoutBinding;
     }
     elements.push(element);
 
@@ -448,7 +491,7 @@ function collectPageFrameProjectionRuntimeElements(
   pageLayoutBinding: string,
   elements: Element[],
 ): void {
-  const ref = (pageNode as CanonicalNodeWithRef).ref;
+  const ref = (pageNode as CanonicalNodeWithRef)[CANONICAL_REF_FIELD];
   if (typeof ref !== "string" || ref.length === 0) return;
 
   const target = findNodeById(document.children, ref);
@@ -533,7 +576,11 @@ export function deriveProjectRenderModelFromDocument(
       order_num: orderNum,
     } as Page;
     if (layoutBinding !== null) {
-      (page as Page & { layout_id?: string | null }).layout_id = layoutBinding;
+      (
+        page as Page & {
+          [FRAME_LAYOUT_RUNTIME_FIELD]?: string | null;
+        }
+      )[FRAME_LAYOUT_RUNTIME_FIELD] = layoutBinding;
     }
     return page;
   });

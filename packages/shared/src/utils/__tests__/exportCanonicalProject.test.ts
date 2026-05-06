@@ -8,6 +8,9 @@ import {
   toPageFrameElementId,
 } from "../export.utils";
 
+const COMPONENT_ROLE_MIRROR_FIELD = "componentRole" as const;
+const COMPONENT_MASTER_MIRROR_FIELD = "masterId" as const;
+
 const projectId = "00000000-0000-0000-0000-000000000916";
 
 const document: CompositionDocument = {
@@ -522,6 +525,11 @@ describe("project export canonical CompositionDocument payload", () => {
               type: "Button",
               name: "primary-action",
               reusable: true,
+              metadata: {
+                type: "legacy-element-props",
+                customId: "primary-action-id",
+                legacyProps: { customId: "legacy-primary-action-id" },
+              },
               props: { children: "Click" },
             },
           ],
@@ -542,7 +550,8 @@ describe("project export canonical CompositionDocument payload", () => {
         page_id: "page-home",
         parent_id: null,
         componentName: "primary-action",
-        componentRole: "master",
+        customId: "primary-action-id",
+        [COMPONENT_ROLE_MIRROR_FIELD]: "master",
         reusable: true,
       }),
     ]);
@@ -557,6 +566,10 @@ describe("project export canonical CompositionDocument payload", () => {
           type: "Button",
           name: "Primary action",
           reusable: true,
+          metadata: {
+            type: "legacy-element-props",
+            customId: "primary-action-origin-id",
+          },
           props: { variant: "accent" },
           children: [
             {
@@ -576,6 +589,10 @@ describe("project export canonical CompositionDocument payload", () => {
               id: "button-instance",
               type: "ref",
               ref: "button-origin",
+              metadata: {
+                type: "legacy-element-props",
+                legacyProps: { customId: "secondary-action-instance-id" },
+              },
               props: { variant: "secondary" },
               descendants: {
                 "button-label": { children: "Custom" },
@@ -600,8 +617,9 @@ describe("project export canonical CompositionDocument payload", () => {
         type: "Button",
         page_id: "page-home",
         parent_id: null,
-        componentRole: "instance",
-        masterId: "button-origin",
+        customId: "secondary-action-instance-id",
+        [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
+        [COMPONENT_MASTER_MIRROR_FIELD]: "button-origin",
         ref: "button-origin",
         overrides: { variant: "secondary" },
         descendants: {
@@ -616,6 +634,56 @@ describe("project export canonical CompositionDocument payload", () => {
         page_id: "page-home",
       }),
     );
+  });
+
+  it("does not inherit an origin customId when a ref instance has no customId metadata", () => {
+    const documentWithMissingInstanceCustomId: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "button-origin",
+          type: "Button",
+          name: "Primary action",
+          reusable: true,
+          metadata: {
+            type: "legacy-element-props",
+            customId: "primary-action-origin-id",
+          },
+          props: { variant: "accent" },
+        },
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home" },
+          children: [
+            {
+              id: "button-instance",
+              type: "ref",
+              ref: "button-origin",
+              props: { variant: "secondary" },
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithMissingInstanceCustomId,
+      projectId,
+      "page-home",
+    );
+
+    const instanceElement = renderModel.elements.find(
+      (el) => el.id === "button-instance",
+    );
+    expect(instanceElement).toMatchObject({
+      id: "button-instance",
+      type: "Button",
+      [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
+      [COMPONENT_MASTER_MIRROR_FIELD]: "button-origin",
+    });
+    expect(instanceElement).not.toHaveProperty("customId");
   });
 
   it("rejects legacy-only project payload without CompositionDocument", () => {

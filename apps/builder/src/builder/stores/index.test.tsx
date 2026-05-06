@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import type { Element } from "../../types/core/store.types";
+import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import { useSelectedElementData, useStore } from "./index";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 
@@ -75,13 +76,14 @@ describe("useSelectedElementData", () => {
       reusable: true,
       props: { label: "Origin", size: "md", style: { width: 120 } },
     });
-    const instance = makeElement("instance", {
-      type: "Button",
-      componentRole: "instance",
-      masterId: "origin",
-      props: {},
-      overrides: { label: "Instance" },
-    } as never);
+    const instance = withComponentInstanceMirror(
+      makeElement("instance", {
+        type: "Button",
+        props: {},
+      } as never),
+      "origin",
+      { overrideProps: { label: "Instance" } },
+    );
 
     useStore.setState({
       elements: [origin, instance],

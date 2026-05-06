@@ -56,7 +56,7 @@ describe("useFillActions", () => {
     });
   });
 
-  it("legacy backgroundColor-only 요소도 synthetic fill 을 기준으로 편집할 수 있다", () => {
+  it("legacy backgroundColor-only 요소도 synthetic fill 로 canonicalize 해서 편집할 수 있다", () => {
     const { result: values } = renderHook(() => useFillValues());
     const { result: actions } = renderHook(() => useFillActions());
 
@@ -77,6 +77,6 @@ describe("useFillActions", () => {
     expect(
       (element?.props?.style as { backgroundColor?: string } | undefined)
         ?.backgroundColor,
-    ).toBe("#445566");
+    ).toBeUndefined();
   });
 });

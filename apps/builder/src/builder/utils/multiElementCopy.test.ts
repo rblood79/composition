@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Element } from "../../types/core/store.types";
+import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import {
   copyMultipleElements,
   deserializeCopiedElements,
@@ -23,6 +24,7 @@ describe("multiElementCopy", () => {
   it("pastes a copied reusable origin as a canonical ref instance", () => {
     const origin = makeElement("origin", {
       reusable: true,
+      customId: "button_1",
       componentName: "Primary Button",
       parent_id: "body",
       props: {
@@ -43,27 +45,35 @@ describe("multiElementCopy", () => {
       ]),
     );
 
-    const pasted = pasteMultipleElements(copied, "page-1", { x: 10, y: 10 });
+    const pasted = pasteMultipleElements(copied, "page-1", { x: 10, y: 10 }, [
+      origin,
+      child,
+    ]);
 
     expect(pasted).toHaveLength(1);
-    expect(pasted[0]).toMatchObject({
-      type: "ref",
-      ref: "origin",
-      componentRole: "instance",
-      masterId: "origin",
-      parent_id: "body",
-      page_id: "page-1",
-      componentName: "Primary Button",
-      props: { style: { left: "30px", top: "40px" } },
-    });
+    expect(pasted[0]).toMatchObject(
+      withComponentInstanceMirror(
+        {
+          type: "ref",
+          ref: "origin",
+          parent_id: "body",
+          page_id: "page-1",
+          componentName: "Primary Button",
+          props: { style: { left: "30px", top: "40px" } },
+        },
+        "origin",
+      ),
+    );
     expect(pasted[0].id).not.toBe("origin");
+    expect(pasted[0].customId).toBe("button_2");
     expect(pasted.find((element) => element.type === "Text")).toBeUndefined();
   });
 
   it("keeps standard element paste as a subtree copy", () => {
-    const box = makeElement("box", { type: "Box" });
+    const box = makeElement("box", { type: "Box", customId: "box_1" });
     const label = makeElement("label", {
       type: "Text",
+      customId: "text_1",
       parent_id: "box",
       props: { text: "Copied" },
     });
@@ -75,21 +85,27 @@ describe("multiElementCopy", () => {
       ]),
     );
 
-    const pasted = pasteMultipleElements(copied, "page-1");
+    const pasted = pasteMultipleElements(copied, "page-1", { x: 10, y: 10 }, [
+      box,
+      label,
+    ]);
 
     expect(pasted).toHaveLength(2);
-    expect(pasted[0]).toMatchObject({ type: "Box" });
+    expect(pasted[0]).toMatchObject({ type: "Box", customId: "box_2" });
     expect(pasted[1]).toMatchObject({
       type: "Text",
+      customId: "text_2",
       parent_id: pasted[0].id,
       props: { text: "Copied" },
     });
+    expect(new Set(pasted.map((element) => element.customId)).size).toBe(2);
   });
 
   it("round-trips 50 canonical refs through copy, clipboard serialization, paste, and duplicate offset", () => {
     const refs = Array.from({ length: 50 }, (_, index) =>
       makeElement(`instance-${index}`, {
         type: "ref",
+        customId: `button_${index + 1}`,
         ref: "origin",
         props: {
           label: `Instance ${index}`,
@@ -105,10 +121,15 @@ describe("multiElementCopy", () => {
     const deserialized = deserializeCopiedElements(serialized);
 
     expect(deserialized).not.toBeNull();
-    const pasted = pasteMultipleElements(deserialized!, "page-2", {
-      x: 10,
-      y: 10,
-    });
+    const pasted = pasteMultipleElements(
+      deserialized!,
+      "page-2",
+      {
+        x: 10,
+        y: 10,
+      },
+      refs,
+    );
 
     expect(pasted).toHaveLength(50);
     for (let index = 0; index < 50; index += 1) {
@@ -125,6 +146,7 @@ describe("multiElementCopy", () => {
         },
       });
       expect(pasted[index].id).not.toBe(`instance-${index}`);
+      expect(pasted[index].customId).toBe(`button_${index + 51}`);
     }
   });
 });

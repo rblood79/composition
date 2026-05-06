@@ -14,6 +14,8 @@ import {
   resetCanonicalMutationStoreActions,
   setElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
+import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
+import { buildLegacyElementMetadata } from "@/adapters/canonical/legacyMetadata";
 import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
 import {
@@ -118,24 +120,7 @@ function makeCanonicalElementNode(element: Element): CanonicalNode {
     id: element.id,
     type: element.type,
     props: element.props as Record<string, unknown>,
-    metadata: {
-      type: "legacy-element-props",
-      legacyProps: {
-        ...element.props,
-        id: element.id,
-        parent_id: element.parent_id,
-        page_id: element.page_id,
-        layout_id: element.layout_id,
-        order_num: element.order_num,
-        type: element.type,
-        slot_name: element.slot_name,
-        componentRole: element.componentRole,
-        masterId: element.masterId,
-        overrides: element.overrides,
-        descendants: element.descendants,
-        componentName: element.componentName,
-      },
-    },
+    metadata: buildLegacyElementMetadata(element),
   } as CanonicalNode;
 }
 
@@ -579,11 +564,12 @@ describe("element mutations keep canonical document primary", () => {
       reusable: true,
       props: { label: "Origin", size: "md" },
     });
-    const instance = makeElement("instance", "Button", {
-      componentRole: "instance",
-      masterId: "origin",
-      props: {},
-    } as Partial<Element> & Record<string, unknown>);
+    const instance = withComponentInstanceMirror(
+      makeElement("instance", "Button", {
+        props: {},
+      } as Partial<Element> & Record<string, unknown>),
+      "origin",
+    );
     const state = makeState([origin, instance]);
     state.selectedElementId = "instance";
     state.selectedElementIds = ["instance"];
@@ -599,11 +585,11 @@ describe("element mutations keep canonical document primary", () => {
     inspectorActions.updateSelectedProperties({ label: "Instance" });
 
     expect(state.elementsMap.get("instance")?.props).toEqual({});
-    expect(state.elementsMap.get("instance")).toMatchObject({
-      componentRole: "instance",
-      masterId: "origin",
-      overrides: { label: "Instance" },
-    });
+    expect(state.elementsMap.get("instance")).toMatchObject(
+      withComponentInstanceMirror({}, "origin", {
+        overrideProps: { label: "Instance" },
+      }),
+    );
     expect(state.selectedElementProps).toMatchObject({
       label: "Instance",
       size: "md",
@@ -616,12 +602,13 @@ describe("element mutations keep canonical document primary", () => {
       reusable: true,
       props: { label: "Origin" },
     });
-    const instance = makeElement("instance", "Button", {
-      componentRole: "instance",
-      customId: "instance-id",
-      masterId: "origin",
-      props: {},
-    } as Partial<Element> & Record<string, unknown>);
+    const instance = withComponentInstanceMirror(
+      makeElement("instance", "Button", {
+        customId: "instance-id",
+        props: {},
+      } as Partial<Element> & Record<string, unknown>),
+      "origin",
+    );
     const state = makeState([origin, instance]);
     state.selectedElementId = "instance";
     state.selectedElementIds = ["instance"];
@@ -650,16 +637,15 @@ describe("element mutations keep canonical document primary", () => {
           type: "ref",
           ref: "origin",
           props: {},
-          metadata: {
-            type: "legacy-element-props",
-            legacyProps: {
-              id: "instance",
-              customId: "instance-id",
-              type: "Button",
-              componentRole: "instance",
-              masterId: "origin",
-            },
-          },
+          metadata: buildLegacyElementMetadata(
+            withComponentInstanceMirror(
+              makeElement("instance", "Button", {
+                customId: "instance-id",
+                props: {},
+              }),
+              "origin",
+            ),
+          ),
         } satisfies RefNode,
       ],
     });

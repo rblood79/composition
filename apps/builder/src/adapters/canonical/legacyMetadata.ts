@@ -1,5 +1,8 @@
 import type { Element } from "../../types/core/store.types";
-import { asElementWithLegacyMirror } from "./legacyElementFields";
+import {
+  asElementWithLegacyMirror,
+  type LegacyComponentRole,
+} from "./legacyElementFields";
 
 /**
  * canonical CanonicalNode.metadata 의 type discriminator.
@@ -7,6 +10,76 @@ import { asElementWithLegacyMirror } from "./legacyElementFields";
  */
 export const LEGACY_ELEMENT_PROPS_METADATA_TYPE =
   "legacy-element-props" as const;
+
+const QUARANTINED_ELEMENT_PROPS_FIELD = "legacyProps" as const;
+
+type QuarantinedElementMetadata = {
+  customId?: unknown;
+  sourceParentId?: unknown;
+  sourceSlotName?: unknown;
+  sourceComponentRole?: unknown;
+  sourceMasterId?: unknown;
+  sourceElementType?: unknown;
+  sourceOrderNum?: unknown;
+  [QUARANTINED_ELEMENT_PROPS_FIELD]?: Record<string, unknown>;
+};
+
+export type LegacyElementPositionMetadata = {
+  parentId?: unknown;
+  slotName?: unknown;
+  role?: unknown;
+  masterRef?: unknown;
+  elementType?: unknown;
+  orderNum?: unknown;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function asQuarantinedMetadata(
+  metadata: unknown,
+): QuarantinedElementMetadata | null {
+  return isRecord(metadata) ? (metadata as QuarantinedElementMetadata) : null;
+}
+
+function readQuarantinedPayload(
+  metadata: unknown,
+): Record<string, unknown> | null {
+  const payload =
+    asQuarantinedMetadata(metadata)?.[QUARANTINED_ELEMENT_PROPS_FIELD];
+  return isRecord(payload) ? payload : null;
+}
+
+export function readLegacyMetadataCustomId(
+  metadata: unknown,
+): string | undefined {
+  const quarantined = asQuarantinedMetadata(metadata);
+  if (typeof quarantined?.customId === "string" && quarantined.customId) {
+    return quarantined.customId;
+  }
+
+  const payload = readQuarantinedPayload(metadata);
+  const customId = payload?.customId;
+  return typeof customId === "string" && customId ? customId : undefined;
+}
+
+export function readLegacyElementPositionMetadata(
+  metadata: unknown,
+): LegacyElementPositionMetadata | null {
+  const quarantined = asQuarantinedMetadata(metadata);
+  if (!quarantined) return null;
+
+  const payload = readQuarantinedPayload(metadata);
+  return {
+    parentId: quarantined.sourceParentId ?? payload?.parent_id,
+    slotName: quarantined.sourceSlotName ?? payload?.slot_name,
+    role: quarantined.sourceComponentRole ?? payload?.componentRole,
+    masterRef: quarantined.sourceMasterId ?? payload?.masterId,
+    elementType: quarantined.sourceElementType ?? payload?.type,
+    orderNum: quarantined.sourceOrderNum ?? payload?.order_num,
+  };
+}
 
 /**
  * legacyToCanonical 의 adapter quarantine payload 표준 빌더.
@@ -35,11 +108,25 @@ export const LEGACY_ELEMENT_PROPS_METADATA_TYPE =
 export function buildLegacyElementMetadata(element: Element): {
   type: typeof LEGACY_ELEMENT_PROPS_METADATA_TYPE;
   legacyProps: Record<string, unknown>;
+  customId?: string;
+  sourceParentId?: string | null;
+  sourceSlotName?: string | null;
+  sourceComponentRole?: LegacyComponentRole;
+  sourceMasterId?: string;
+  sourceElementType?: string;
+  sourceOrderNum?: number;
 } {
   const legacy = asElementWithLegacyMirror(element);
 
   return {
     type: LEGACY_ELEMENT_PROPS_METADATA_TYPE,
+    customId: element.customId,
+    sourceParentId: element.parent_id,
+    sourceSlotName: legacy.slot_name,
+    sourceComponentRole: legacy.componentRole,
+    sourceMasterId: legacy.masterId,
+    sourceElementType: element.type,
+    sourceOrderNum: element.order_num,
     legacyProps: {
       ...element.props,
       id: element.id,

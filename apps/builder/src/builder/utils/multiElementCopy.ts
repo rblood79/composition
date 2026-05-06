@@ -17,6 +17,7 @@ import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../adapters/canonical/frameMirror";
+import { generateCustomId, getCustomIdBase } from "./idGeneration";
 
 /**
  * Copied elements data structure
@@ -73,6 +74,44 @@ function createRefOverrideProps(
       left: `${left + offset.x}px`,
       top: `${top + offset.y}px`,
     },
+  };
+}
+
+function getRefMasterType(
+  element: Element,
+  existingElements: Element[],
+): string | null {
+  if (element.type !== "ref") return null;
+  const ref = (element as Element & { ref?: unknown }).ref;
+  if (typeof ref !== "string") return null;
+  return (
+    existingElements.find((candidate) => candidate.id === ref)?.type ?? null
+  );
+}
+
+function getCustomIdGenerationBase(
+  element: Element,
+  existingElements: Element[],
+  fallbackType: string = element.type,
+): string {
+  return (
+    getCustomIdBase(element.customId) ??
+    getRefMasterType(element, existingElements) ??
+    fallbackType
+  );
+}
+
+function withFreshCustomId(
+  element: Element,
+  allocatedElements: Element[],
+  baseType?: string,
+): Element {
+  return {
+    ...element,
+    customId: generateCustomId(
+      baseType ?? getCustomIdGenerationBase(element, allocatedElements),
+      allocatedElements,
+    ),
   };
 }
 
@@ -160,6 +199,7 @@ export function pasteMultipleElements(
   copiedData: CopiedElementsData,
   currentPageId: string,
   offset: { x: number; y: number } = { x: 10, y: 10 },
+  existingElements: Element[] = [],
 ): Element[] {
   if (copiedData.elements.length === 0) {
     return [];
@@ -167,23 +207,28 @@ export function pasteMultipleElements(
 
   const reusableOrigin = getReusableOriginRoot(copiedData);
   if (reusableOrigin) {
+    const instanceElement = withFreshCustomId(
+      {
+        id: ElementUtils.generateId(),
+        type: "ref",
+        ref: reusableOrigin.id,
+        [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
+        [COMPONENT_MASTER_ID_MIRROR_FIELD]: reusableOrigin.id,
+        parent_id: reusableOrigin.parent_id ?? null,
+        page_id: currentPageId,
+        order_num: reusableOrigin.order_num,
+        props: createRefOverrideProps(reusableOrigin, offset),
+        componentName: reusableOrigin.componentName,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as Element,
+      existingElements,
+      getCustomIdGenerationBase(reusableOrigin, existingElements),
+    );
     return [
       normalizeExternalFillIngress(
         withFrameElementMirrorId(
-          {
-            id: ElementUtils.generateId(),
-            type: "ref",
-            ref: reusableOrigin.id,
-            [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
-            [COMPONENT_MASTER_ID_MIRROR_FIELD]: reusableOrigin.id,
-            parent_id: reusableOrigin.parent_id ?? null,
-            page_id: currentPageId,
-            order_num: reusableOrigin.order_num,
-            props: createRefOverrideProps(reusableOrigin, offset),
-            componentName: reusableOrigin.componentName,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as Element,
+          instanceElement,
           getFrameElementMirrorId(reusableOrigin),
         ),
       ),
@@ -197,6 +242,7 @@ export function pasteMultipleElements(
   });
 
   // Create new elements with updated IDs and relationships
+  const allocatedElements = [...existingElements];
   const newElements: Element[] = copiedData.elements.map((element) => {
     const newId = idMap.get(element.id)!;
 
@@ -236,16 +282,24 @@ export function pasteMultipleElements(
       };
     }
 
-    return normalizeExternalFillIngress({
-      ...element,
-      id: newId,
-      parent_id: newParentId,
-      page_id: currentPageId,
-      props: updatedProps,
-      // Reset timestamps
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+    const newElement = normalizeExternalFillIngress(
+      withFreshCustomId(
+        {
+          ...element,
+          id: newId,
+          parent_id: newParentId,
+          page_id: currentPageId,
+          props: updatedProps,
+          // Reset timestamps
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        allocatedElements,
+        getCustomIdGenerationBase(element, allocatedElements),
+      ),
+    );
+    allocatedElements.push(newElement);
+    return newElement;
   });
 
   return newElements;

@@ -15,6 +15,7 @@ import type { Element } from "../../../types/core/store.types";
 const mockStoreState = vi.hoisted(() => ({
   pages: [] as Page[],
   currentPageId: null as string | null,
+  selectedElementId: null as string | null,
   pageElementsSnapshot: {} as Record<string, Element[]>,
   activatePage: vi.fn(),
   removePageLocal: vi.fn(),
@@ -141,6 +142,7 @@ function makeElement(
 function resetMockState() {
   mockStoreState.pages = [];
   mockStoreState.currentPageId = null;
+  mockStoreState.selectedElementId = null;
   mockStoreState.pageElementsSnapshot = {};
   vi.clearAllMocks();
   mockLoadPageIfNeeded.mockResolvedValue(undefined);
@@ -165,6 +167,7 @@ describe("PagesSection page selection", () => {
     };
 
     render(<PagesSection projectId="project-1" />);
+    vi.clearAllMocks();
 
     fireEvent.click(screen.getByRole("button", { name: "Home" }));
 
@@ -196,6 +199,25 @@ describe("PagesSection page selection", () => {
     expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
   });
 
+  it("Pages 탭 진입 시 currentPageId가 이미 있으면 store activation으로 선택 보정을 위임한다", async () => {
+    const home = makePage("page-1", "Home", 0);
+    const body = makeElement("body-1", home.id);
+    mockStoreState.pages = [home];
+    mockStoreState.currentPageId = home.id;
+    mockStoreState.selectedElementId = home.id;
+    mockStoreState.pageElementsSnapshot = {
+      [home.id]: [body],
+    };
+
+    render(<PagesSection projectId="project-1" />);
+
+    await waitFor(() => {
+      expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id);
+    });
+    expect(mockLoadPageIfNeeded).toHaveBeenCalledWith(home.id);
+    expect(mockRequestAutoSelectAfterUpdate).not.toHaveBeenCalled();
+  });
+
   it("단일 page 행을 선택해도 page body를 선택한다", () => {
     const home = makePage("page-1", "Home", 0);
     mockStoreState.pages = [home];
@@ -205,6 +227,7 @@ describe("PagesSection page selection", () => {
     };
 
     render(<PagesSection projectId="project-1" />);
+    vi.clearAllMocks();
 
     fireEvent.click(screen.getByRole("button", { name: "Select page Home" }));
 
@@ -212,7 +235,7 @@ describe("PagesSection page selection", () => {
     expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
   });
 
-  it("page body가 아직 snapshot에 없으면 lazy load 후 body를 선택한다", async () => {
+  it("page body가 아직 snapshot에 없으면 탭 진입 시 page 로드를 요청한다", async () => {
     const home = makePage("page-1", "Home", 0);
     mockStoreState.pages = [home];
     mockStoreState.currentPageId = home.id;
@@ -227,15 +250,10 @@ describe("PagesSection page selection", () => {
 
     render(<PagesSection projectId="project-1" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Select page Home" }));
-
-    expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id, null);
     await waitFor(() => {
-      expect(mockStoreState.activatePage).toHaveBeenCalledWith(
-        home.id,
-        "body-1",
-      );
+      expect(mockStoreState.activatePage).toHaveBeenCalledWith(home.id);
     });
-    expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
+    expect(mockLoadPageIfNeeded).toHaveBeenCalledWith(home.id);
+    expect(mockRequestAutoSelectAfterUpdate).not.toHaveBeenCalled();
   });
 });

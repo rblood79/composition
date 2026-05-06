@@ -1,11 +1,12 @@
-import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, render, renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../../../types/core/store.types";
 import { useStore } from "../../../../stores";
 import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { getEditingSemanticsRole } from "../../../../utils/editingSemantics";
 import { toPageFrameElementId } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
+import { LayerTree } from "./LayerTree";
 import { useLayerTreeData } from "./useLayerTreeData";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
@@ -103,6 +104,109 @@ describe("useLayerTreeData", () => {
     ]);
     expect(result.current.disabledKeys.has("instance/label")).toBe(false);
     expect(result.current.disabledKeys.has("instance/input")).toBe(false);
+  });
+
+  it("dedupes ref projection children when persisted legacy mirrors already exist", () => {
+    const body = makeElement("body", {
+      type: "body",
+      parent_id: null,
+      order_num: 0,
+    });
+    const origin = makeElement("origin", {
+      type: "NumberField",
+      reusable: true,
+      parent_id: "body",
+      order_num: 0,
+      props: { label: "Amount" },
+    } as never);
+    const label = makeElement("label", {
+      type: "Label",
+      customId: "label",
+      parent_id: "origin",
+      order_num: 0,
+      props: { text: "Amount" },
+    });
+    const ref = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+      parent_id: "body",
+      order_num: 1,
+    } as never);
+    const persistedMirror = makeElement("instance/label", {
+      type: "Label",
+      parent_id: "instance",
+      order_num: 0,
+      props: { text: "Persisted amount" },
+    });
+    const elements = [body, origin, label, ref, persistedMirror];
+
+    useStore.setState({
+      elements,
+      elementsMap: new Map(elements.map((element) => [element.id, element])),
+    } as never);
+
+    const { result } = renderHook(() => useLayerTreeData(elements));
+    const instanceChildren = result.current.nodeMap.get("instance")?.children;
+
+    expect(instanceChildren?.map((node) => node.id)).toEqual([
+      "instance/label",
+    ]);
+    expect(result.current.nodeMap.get("instance/label")?.element.props).toEqual(
+      {
+        text: "Persisted amount",
+      },
+    );
+  });
+
+  it("renders a tree with persisted ref mirrors without corrupting React Aria collection", () => {
+    const body = makeElement("body", {
+      type: "body",
+      parent_id: null,
+      order_num: 0,
+    });
+    const origin = makeElement("origin", {
+      type: "NumberField",
+      reusable: true,
+      parent_id: "body",
+      order_num: 0,
+      props: { label: "Amount" },
+    } as never);
+    const label = makeElement("label", {
+      type: "Label",
+      customId: "label",
+      parent_id: "origin",
+      order_num: 0,
+      props: { text: "Amount" },
+    });
+    const ref = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+      parent_id: "body",
+      order_num: 1,
+    } as never);
+    const persistedMirror = makeElement("instance/label", {
+      type: "Label",
+      parent_id: "instance",
+      order_num: 0,
+      props: { text: "Persisted amount" },
+    });
+    const elements = [body, origin, label, ref, persistedMirror];
+
+    useStore.setState({
+      elements,
+      elementsMap: new Map(elements.map((element) => [element.id, element])),
+    } as never);
+
+    expect(() =>
+      render(
+        <LayerTree
+          elements={elements}
+          selectedElementId={null}
+          onItemClick={vi.fn()}
+          onItemDelete={vi.fn().mockResolvedValue(undefined)}
+        />,
+      ),
+    ).not.toThrow();
   });
 
   it("projects canonical-store ref instances with origin children", () => {

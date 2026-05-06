@@ -270,6 +270,48 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
 
       expect(historyModule.historyManager.addEntry).toHaveBeenCalled();
     });
+
+    it("추가 element 의 customId 가 기존 element 와 중복되면 fresh customId 로 교체된다", async () => {
+      const existing = makeElement("button-existing", "Button", {
+        customId: "button_1",
+      });
+      const duplicate = makeElement("button-copy", "Button", {
+        customId: "button_1",
+      });
+      const { state, setMock, getMock } = setupStateMocks({
+        elementsMap: new Map([[existing.id, existing]]),
+      });
+      state.elements = [existing];
+
+      await createAddElementAction(setMock, getMock)(duplicate);
+
+      expect(
+        state.elements.find((element) => element.id === "button-copy"),
+      ).toMatchObject({
+        customId: "button_2",
+      });
+    });
+
+    it("ref instance 추가 시 customId 가 없으면 master type 기준 fresh customId 를 부여한다", async () => {
+      const origin = makeElement("origin", "Button", {
+        customId: "button_1",
+      });
+      const instance = makeElement("instance", "ref", {
+        ref: "origin",
+      } as never);
+      const { state, setMock, getMock } = setupStateMocks({
+        elementsMap: new Map([[origin.id, origin]]),
+      });
+      state.elements = [origin];
+
+      await createAddElementAction(setMock, getMock)(instance);
+
+      expect(
+        state.elements.find((element) => element.id === "instance"),
+      ).toMatchObject({
+        customId: "button_2",
+      });
+    });
   });
 
   describe("createAddComplexElementAction — 히스토리 조건", () => {
@@ -343,6 +385,39 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
       await createAddComplexElementAction(setMock, getMock)(parent, children);
 
       expect(historyModule.historyManager.addEntry).not.toHaveBeenCalled();
+    });
+
+    it("복합 element 추가 시 부모와 자식 customId 를 batch 내부에서도 중복 없이 부여한다", async () => {
+      const existing = makeElement("tabs-existing", "Tabs", {
+        customId: "tabs_1",
+      });
+      const parent = makeElement("tabs-copy", "Tabs", {
+        customId: "tabs_1",
+      });
+      const children = [
+        makeElement("tab-copy-1", "Tab", { customId: "tab_1" }),
+        makeElement("tab-copy-2", "Tab", { customId: "tab_1" }),
+      ];
+      const { state, setMock, getMock } = setupStateMocks();
+      state.elements = [existing];
+
+      await createAddComplexElementAction(setMock, getMock)(parent, children);
+
+      expect(
+        state.elements.find((element) => element.id === "tabs-copy"),
+      ).toMatchObject({
+        customId: "tabs_2",
+      });
+      expect(
+        state.elements.find((element) => element.id === "tab-copy-1"),
+      ).toMatchObject({
+        customId: "tab_1",
+      });
+      expect(
+        state.elements.find((element) => element.id === "tab-copy-2"),
+      ).toMatchObject({
+        customId: "tab_2",
+      });
     });
   });
 

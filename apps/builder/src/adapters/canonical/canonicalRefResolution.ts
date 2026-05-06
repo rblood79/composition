@@ -220,6 +220,27 @@ function materializeOverrideChildren(
 
     const segment = getOverrideNodeSegment(child, index);
     const syntheticId = `${syntheticParentId}/${segment}`;
+    const existingSyntheticChild = resultElementsMap.get(syntheticId);
+
+    if (existingSyntheticChild) {
+      syntheticChildren.push(existingSyntheticChild);
+      const nestedChildren = child.children;
+      if (Array.isArray(nestedChildren)) {
+        const nextPath = pathPrefix ? `${pathPrefix}/${segment}` : segment;
+        materializeOverrideChildren(
+          refElement,
+          nestedChildren,
+          syntheticId,
+          sourceChildrenMap,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+          nextPath,
+        );
+      }
+      return;
+    }
+
     const type = typeof child.type === "string" ? child.type : "frame";
     const name = typeof child.name === "string" ? child.name : undefined;
     const ref = typeof child.ref === "string" ? child.ref : undefined;
@@ -300,7 +321,12 @@ function materializeSyntheticDescendants(
   resultChildrenMap: Map<string, Element[]>,
   resultElements: Element[],
   pathPrefix = "",
+  visitedSourceIds: Set<string> = new Set(),
 ): void {
+  if (visitedSourceIds.has(sourceParent.id)) return;
+
+  const nextVisitedSourceIds = new Set(visitedSourceIds);
+  nextVisitedSourceIds.add(sourceParent.id);
   const sourceChildren = sourceChildrenMap.get(sourceParent.id) ?? [];
   const syntheticChildren: Element[] = [];
 
@@ -312,6 +338,37 @@ function materializeSyntheticDescendants(
     const patchProps = patch ? propsFromDescendantPatch(patch) : {};
     const patchedType =
       patch && typeof patch.type === "string" ? patch.type : sourceChild.type;
+    const existingSyntheticChild = resultElementsMap.get(syntheticId);
+
+    if (existingSyntheticChild) {
+      syntheticChildren.push(existingSyntheticChild);
+      if (patch && Array.isArray(patch.children)) {
+        materializeOverrideChildren(
+          refElement,
+          patch.children,
+          syntheticId,
+          sourceChildrenMap,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+          path,
+        );
+      } else {
+        materializeSyntheticDescendants(
+          refElement,
+          sourceChild,
+          syntheticId,
+          sourceChildrenMap,
+          resultElementsMap,
+          resultChildrenMap,
+          resultElements,
+          path,
+          nextVisitedSourceIds,
+        );
+      }
+      return;
+    }
+
     const syntheticChild = {
       ...sourceChild,
       id: syntheticId,
@@ -349,6 +406,7 @@ function materializeSyntheticDescendants(
         resultChildrenMap,
         resultElements,
         path,
+        nextVisitedSourceIds,
       );
     }
   });

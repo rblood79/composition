@@ -44,7 +44,10 @@ import type {
 import { elementsApi } from "./legacyElementsApiService";
 import { exportLegacyDocument } from "./exportLegacyDocument";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
-import { buildLegacyElementMetadata } from "./legacyMetadata";
+import {
+  buildLegacyElementMetadata,
+  readLegacyElementPositionMetadata,
+} from "./legacyMetadata";
 import { getCanonicalSlotDeclaration } from "./slotDeclaration";
 import { isLegacySlotTag, tagToType } from "./tagRename";
 import { getPageFrameBindingId } from "./frameMirror";
@@ -1007,7 +1010,6 @@ function upsertElementIntoDocument(
 type LegacyNodeMetadata = {
   type?: unknown;
   slotName?: unknown;
-  legacyProps?: Record<string, unknown>;
 };
 
 function shouldPreserveExistingCanonicalPosition(
@@ -1032,16 +1034,16 @@ function shouldPreserveExistingCanonicalPosition(
     );
   }
 
-  const previous = metadata?.legacyProps;
+  const previous = readLegacyElementPositionMetadata(metadata);
   if (!previous) return false;
 
   return (
-    sameLegacyValue(previous.parent_id, element.parent_id) &&
-    sameLegacyValue(previous.slot_name, legacy.slot_name) &&
-    sameLegacyValue(previous.componentRole, legacy.componentRole) &&
-    sameLegacyValue(previous.masterId, legacy.masterId) &&
-    sameLegacyValue(previous.type, element.type) &&
-    sameLegacyValue(previous.order_num, element.order_num)
+    sameLegacyValue(previous.parentId, element.parent_id) &&
+    sameLegacyValue(previous.slotName, legacy.slot_name) &&
+    sameLegacyValue(previous.role, legacy.componentRole) &&
+    sameLegacyValue(previous.masterRef, legacy.masterId) &&
+    sameLegacyValue(previous.elementType, element.type) &&
+    sameLegacyValue(previous.orderNum, element.order_num)
   );
 }
 

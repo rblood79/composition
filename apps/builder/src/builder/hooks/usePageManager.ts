@@ -337,7 +337,7 @@ export const usePageManager = ({
 
         if (layoutId) {
           cancelPendingActivation();
-          useStore.getState().setCurrentPageId(newPage.id);
+          useStore.getState().activatePage(newPage.id, bodyElement.id);
           setSelectedPageId(newPage.id);
         } else {
           schedulePageActivation(newPage.id, bodyElement.id);
@@ -439,19 +439,17 @@ export const usePageManager = ({
         if (apiPages.length > 0) {
           const homePage = apiPages.find((p) => p.order_num === 0);
           const pageToSelect = homePage || apiPages[0];
-
-          const { setCurrentPageId, setSelectedElement } = useStore.getState();
-          setCurrentPageId(pageToSelect.id);
-          setSelectedPageId(pageToSelect.id);
-
           const bodyElement = renderModel.elements.find(
             (el) => el.page_id === pageToSelect.id && el.order_num === 0,
           );
+
+          useStore.getState().activatePage(pageToSelect.id, bodyElement?.id);
+          setSelectedPageId(pageToSelect.id);
+
           if (bodyElement) {
             if (requestAutoSelectAfterUpdate) {
               requestAutoSelectAfterUpdate(bodyElement.id);
             }
-            setSelectedElement(bodyElement.id);
           }
         }
 

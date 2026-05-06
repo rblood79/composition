@@ -1,0 +1,189 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Element } from "../../../types/core/store.types";
+import { useStore } from "../index";
+
+const mockGetByPage = vi.hoisted(() => vi.fn());
+const mockInsertMany = vi.hoisted(() => vi.fn());
+const mockSupabaseFrom = vi.hoisted(() =>
+  vi.fn(() => ({
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        order: vi.fn(async () => ({ data: [], error: null })),
+      })),
+    })),
+  })),
+);
+
+vi.mock("../../../lib/db", () => ({
+  getDB: vi.fn(async () => ({
+    elements: {
+      getByPage: mockGetByPage,
+      insertMany: mockInsertMany,
+    },
+  })),
+}));
+
+vi.mock("../../../env/supabase.client", () => ({
+  supabase: {
+    from: mockSupabaseFrom,
+  },
+}));
+
+function makeElement(
+  id: string,
+  pageId: string,
+  overrides: Partial<Element> = {},
+): Element {
+  return {
+    id,
+    type: "body",
+    page_id: pageId,
+    parent_id: null,
+    order_num: 0,
+    props: {},
+    deleted: false,
+    ...overrides,
+  } as Element;
+}
+
+function resetStoreState() {
+  useStore.getState().setElements([]);
+  useStore.setState({
+    pages: [],
+    currentPageId: null,
+    selectedElementId: null,
+    selectedElementIds: [],
+    selectedElementIdsSet: new Set<string>(),
+    selectedElementProps: {},
+    editingContextId: null,
+    selectedTab: null,
+    multiSelectMode: false,
+    loadedPages: new Set<string>(),
+    loadingPages: new Set<string>(),
+    lazyLoadingEnabled: true,
+  });
+  vi.clearAllMocks();
+}
+
+describe("page activation selection invariant", () => {
+  beforeEach(resetStoreState);
+
+  it("setCurrentPageId는 stale page 선택을 page body 선택으로 보정한다", () => {
+    const body = makeElement("body-1", "page-1");
+    const button = makeElement("button-1", "page-1", {
+      type: "Button",
+      parent_id: body.id,
+      order_num: 1,
+    });
+    useStore.getState().setElements([button, body]);
+    useStore.setState({
+      selectedElementId: "page-1",
+      selectedElementIds: ["page-1"],
+      selectedElementIdsSet: new Set(["page-1"]),
+      multiSelectMode: true,
+      editingContextId: button.id,
+      selectedTab: { parentId: button.id, tabIndex: 0 },
+    });
+
+    useStore.getState().setCurrentPageId("page-1");
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-1");
+    expect(state.selectedElementId).toBe(body.id);
+    expect(state.selectedElementIds).toEqual([body.id]);
+    expect(state.selectedElementIdsSet.has(body.id)).toBe(true);
+    expect(state.multiSelectMode).toBe(false);
+    expect(state.editingContextId).toBeNull();
+    expect(state.selectedTab).toBeNull();
+  });
+
+  it("activatePage는 명시된 elementId가 있으면 body fallback보다 우선한다", () => {
+    const body = makeElement("body-1", "page-1");
+    const button = makeElement("button-1", "page-1", {
+      type: "Button",
+      parent_id: body.id,
+      order_num: 1,
+    });
+    useStore.getState().setElements([body, button]);
+
+    useStore.getState().activatePage("page-1", button.id);
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-1");
+    expect(state.selectedElementId).toBe(button.id);
+    expect(state.selectedElementIds).toEqual([button.id]);
+  });
+
+  it("activatePage는 selectedElementId가 이미 body여도 stale multi selection을 정리한다", () => {
+    const body = makeElement("body-1", "page-1");
+    const button = makeElement("button-1", "page-1", {
+      type: "Button",
+      parent_id: body.id,
+      order_num: 1,
+    });
+    useStore.getState().setElements([body, button]);
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: body.id,
+      selectedElementIds: [body.id, button.id],
+      selectedElementIdsSet: new Set([body.id, button.id]),
+      multiSelectMode: true,
+    });
+
+    useStore.getState().activatePage("page-1");
+
+    const state = useStore.getState();
+    expect(state.selectedElementId).toBe(body.id);
+    expect(state.selectedElementIds).toEqual([body.id]);
+    expect(state.selectedElementIdsSet.size).toBe(1);
+    expect(state.multiSelectMode).toBe(false);
+  });
+
+  it("loadPageElements는 로드된 page의 body를 같은 commit에서 선택한다", () => {
+    const body = makeElement("body-1", "page-1");
+    const button = makeElement("button-1", "page-1", {
+      type: "Button",
+      parent_id: body.id,
+      order_num: 1,
+    });
+    useStore.setState({
+      selectedElementId: "page-1",
+      selectedElementIds: ["page-1"],
+      selectedElementIdsSet: new Set(["page-1"]),
+    });
+
+    useStore.getState().loadPageElements([button, body], "page-1");
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-1");
+    expect(state.selectedElementId).toBe(body.id);
+    expect(
+      state.pageElementsSnapshot["page-1"]?.map((element) => element.id),
+    ).toEqual([body.id, button.id]);
+  });
+
+  it("lazyLoadPageElements는 현재 page 로드 완료 후 stale 선택을 body로 보정한다", async () => {
+    const body = makeElement("body-1", "page-1");
+    const button = makeElement("button-1", "page-1", {
+      type: "Button",
+      parent_id: body.id,
+      order_num: 1,
+    });
+    mockGetByPage.mockResolvedValueOnce([button, body]);
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: "page-1",
+      selectedElementIds: ["page-1"],
+      selectedElementIdsSet: new Set(["page-1"]),
+    });
+
+    await useStore.getState().lazyLoadPageElements("page-1");
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-1");
+    expect(state.selectedElementId).toBe(body.id);
+    expect(state.selectedElementIds).toEqual([body.id]);
+    expect(state.loadedPages.has("page-1")).toBe(true);
+  });
+});

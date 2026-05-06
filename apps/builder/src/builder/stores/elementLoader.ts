@@ -90,7 +90,9 @@ interface ElementsStateMinimal {
   elementsMap: Map<string, Element>;
   pageElementsSnapshot: Record<string, Element[]>;
   currentPageId: string | null;
+  selectedElementId: string | null;
   _rebuildIndexes: () => void;
+  activatePage: (pageId: string, elementId?: string | null) => void;
 }
 
 type SetState = Parameters<
@@ -294,6 +296,17 @@ export function createElementLoaderSlice(
 
         // 인덱스 재구축
         get()._rebuildIndexes();
+
+        const latestState = get();
+        const selectedElement = latestState.selectedElementId
+          ? latestState.elementsMap.get(latestState.selectedElementId)
+          : null;
+        if (
+          latestState.currentPageId === pageId &&
+          selectedElement?.page_id !== pageId
+        ) {
+          latestState.activatePage(pageId);
+        }
       } else {
         // 요소 없어도 로딩 상태 업데이트
         set((s) => ({

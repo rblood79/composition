@@ -58,7 +58,9 @@ function isDescendant(
   tree: TreeDataLike,
 ): boolean {
   let current = tree.getItem(descendantId);
-  while (current) {
+  const visited = new Set<string>();
+  while (current && !visited.has(current.value.id)) {
+    visited.add(current.value.id);
     if (current.value.parentId === ancestorId) return true;
     current = current.value.parentId
       ? tree.getItem(current.value.parentId)

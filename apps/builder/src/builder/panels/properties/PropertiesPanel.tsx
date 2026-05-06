@@ -484,10 +484,16 @@ const MultiSelectContent = memo(function MultiSelectContent({
       if (!clipboardText) return;
       const copiedData = deserializeCopiedElements(clipboardText);
       if (!copiedData) return;
-      const newElements = pasteMultipleElements(copiedData, currentPageId, {
-        x: 10,
-        y: 10,
-      });
+      const elementsMap = getElementsMap();
+      const newElements = pasteMultipleElements(
+        copiedData,
+        currentPageId,
+        {
+          x: 10,
+          y: 10,
+        },
+        Array.from(elementsMap.values()),
+      );
       if (newElements.length === 0) return;
       await Promise.all(newElements.map((element) => addElement(element)));
       trackMultiPaste(newElements);
@@ -855,10 +861,16 @@ function PropertiesPanelContent() {
 
       // Paste with offset
       console.log("[Paste] Creating new elements with offset...");
-      const newElements = pasteMultipleElements(copiedData, currentPageId, {
-        x: 10,
-        y: 10,
-      });
+      const elementsMap = getElementsMap();
+      const newElements = pasteMultipleElements(
+        copiedData,
+        currentPageId,
+        {
+          x: 10,
+          y: 10,
+        },
+        Array.from(elementsMap.values()),
+      );
       console.log("[Paste] New elements created:", newElements.length);
 
       if (newElements.length === 0) {
@@ -909,10 +921,15 @@ function PropertiesPanelContent() {
       const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
 
       // Paste with 10px offset (standard offset for duplicate)
-      const newElements = pasteMultipleElements(copiedData, currentPageId, {
-        x: 10,
-        y: 10,
-      });
+      const newElements = pasteMultipleElements(
+        copiedData,
+        currentPageId,
+        {
+          x: 10,
+          y: 10,
+        },
+        Array.from(elementsMap.values()),
+      );
 
       if (newElements.length === 0) {
         console.warn("[Duplicate] No elements to duplicate");

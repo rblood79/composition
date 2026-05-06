@@ -25,6 +25,7 @@ import type {
 } from "@composition/shared";
 import type { Element } from "@/types/builder/unified.types";
 import type { ElementWithLegacyMirror } from "./legacyElementFields";
+import { readLegacyMetadataCustomId } from "./legacyMetadata";
 
 type LegacyExportContext = {
   pageId: string | null;
@@ -32,16 +33,12 @@ type LegacyExportContext = {
 };
 
 type LegacyScopeMetadata = {
-  legacyProps?: unknown;
+  customId?: unknown;
   type?: unknown;
   pageId?: unknown;
   layoutId?: unknown;
   slotName?: unknown;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
 
 /**
  * canonical document → legacy `Element[]` payload 역변환.
@@ -158,13 +155,7 @@ function extractElement(
   const metadata = node.metadata as LegacyScopeMetadata | undefined;
   const isLegacySlotHoisted = metadata?.type === "legacy-slot-hoisted";
   if (!node.props && !isLegacySlotHoisted) return null;
-  const legacyProps = isRecord(metadata?.legacyProps)
-    ? metadata.legacyProps
-    : null;
-  const customId =
-    typeof legacyProps?.customId === "string"
-      ? legacyProps.customId
-      : undefined;
+  const customId = readLegacyMetadataCustomId(metadata);
   const props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {
     props.name ??= metadata.slotName;

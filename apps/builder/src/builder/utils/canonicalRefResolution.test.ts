@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Element } from "../../types/core/store.types";
+import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import {
   isCanonicalRefElement,
   resolveCanonicalRefMaster,
@@ -89,12 +90,13 @@ describe("canonicalRefResolution", () => {
       reusable: true,
       props: { text: "Origin text" },
     });
-    const ref = makeElement("instance", {
-      type: "ref",
-      componentRole: "instance",
-      masterId: "origin",
-      props: { style: { left: "12px" } },
-    } as never);
+    const ref = withComponentInstanceMirror(
+      makeElement("instance", {
+        type: "ref",
+        props: { style: { left: "12px" } },
+      } as never),
+      "origin",
+    );
 
     const tree = resolveCanonicalRefTree({
       elements: [origin, ref],
@@ -183,6 +185,49 @@ describe("canonicalRefResolution", () => {
     expect(tree.elementsMap.get("instance/label")).toMatchObject({
       props: { text: "Email" },
     });
+  });
+
+  it("does not duplicate synthetic descendants that already exist as legacy mirrors", () => {
+    const origin = makeElement("origin", {
+      type: "TextField",
+      reusable: true,
+      props: { label: "Name" },
+    });
+    const label = makeElement("label", {
+      type: "Label",
+      customId: "label",
+      parent_id: "origin",
+      props: { text: "Name" },
+    });
+    const ref = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+    } as never);
+    const legacyMirror = makeElement("instance/label", {
+      type: "Label",
+      parent_id: "instance",
+      props: { text: "Persisted mirror" },
+    });
+
+    const tree = resolveCanonicalRefTree({
+      elements: [origin, label, ref, legacyMirror],
+      elementsMap: new Map([
+        ["origin", origin],
+        ["label", label],
+        ["instance", ref],
+        ["instance/label", legacyMirror],
+      ]),
+    });
+
+    expect(
+      tree.elements.filter((element) => element.id === "instance/label"),
+    ).toHaveLength(1);
+    expect(tree.childrenMap.get("instance")).toEqual([
+      expect.objectContaining({
+        id: "instance/label",
+        props: { text: "Persisted mirror" },
+      }),
+    ]);
   });
 
   it("materializes mode C children replacement under a synthetic slot host", () => {

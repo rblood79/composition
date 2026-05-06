@@ -51,6 +51,10 @@ Codex에서 자동 실행된다고 가정하지 않습니다. 필요한 자동�
 
 - TypeScript + React 19 함수 컴포넌트, 2칸 들여쓰기, named export를
   기본으로 합니다.
+- 버그 수정은 임시 방어·표시 보정·캐시 리셋으로 덮지 않고 근본 원인과
+  SSOT 경로를 우선 해결합니다. 생성 → store → canonical document → DB 저장
+  → refresh hydration → UI 소비 경로를 추적하고, 재발 조건은 테스트로
+  고정합니다.
 - Builder 상태는 기존 Zustand 모듈과 factory/helper 패턴을 재사용합니다.
   로컬 ESLint 규칙이 금지하는 그룹 selector와 `useShallow` 패턴을 피합니다.
 - `apps/builder/src/preview` iframe runtime은 Builder와 격리하고, 동기화는 검증된

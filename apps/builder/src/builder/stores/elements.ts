@@ -191,6 +191,7 @@ export interface ElementsState {
     nextSelection?: { pageId: string | null; elementId: string | null },
   ) => void;
   activatePage: (pageId: string, elementId?: string | null) => void;
+  /** Page activation alias. Keeps page body selection in sync. */
   setCurrentPageId: (pageId: string) => void;
   // ADR-069 Phase 1: 페이지 전환 + 선택을 단일 set()으로 병합
   // clearSelection + setCurrentPageId + setSelectedElement 3회 notify → 1회
@@ -345,6 +346,86 @@ export interface ElementsState {
     fromIndex: number,
     toIndex: number,
   ) => Promise<void>;
+}
+
+type PageActivationPatch = Pick<
+  ElementsState,
+  | "currentPageId"
+  | "selectedElementId"
+  | "selectedElementIds"
+  | "selectedElementIdsSet"
+  | "multiSelectMode"
+  | "selectedElementProps"
+  | "editingContextId"
+  | "selectedTab"
+>;
+
+function findPageActivationBodyElement(
+  elements: readonly Element[] | undefined,
+): Element | null {
+  return (
+    elements?.find((element) => element.type.toLowerCase() === "body") ??
+    elements?.find((element) => element.order_num === 0) ??
+    null
+  );
+}
+
+function resolvePageActivationTarget(
+  state: ElementsState,
+  pageId: string,
+  elementId: string | null,
+): Element | null {
+  return (
+    (elementId ? state.elementsMap.get(elementId) : undefined) ??
+    findPageActivationBodyElement(state.pageElementsSnapshot[pageId])
+  );
+}
+
+function createPageActivationPatch(
+  state: ElementsState,
+  pageId: string,
+  elementId: string | null,
+): PageActivationPatch {
+  const targetElement = resolvePageActivationTarget(state, pageId, elementId);
+  const nextSelectedElementId = targetElement?.id ?? null;
+
+  return {
+    currentPageId: pageId,
+    selectedElementId: nextSelectedElementId,
+    selectedElementIds: nextSelectedElementId ? [nextSelectedElementId] : [],
+    selectedElementIdsSet: nextSelectedElementId
+      ? new Set([nextSelectedElementId])
+      : new Set<string>(),
+    multiSelectMode: false,
+    selectedElementProps: targetElement
+      ? createCompleteProps(targetElement)
+      : {},
+    editingContextId: null,
+    selectedTab: null,
+  };
+}
+
+function hasAppliedPageActivationPatch(
+  state: ElementsState,
+  pageId: string,
+  selectedElementId: string | null,
+): boolean {
+  const hasExpectedSelectionSet = selectedElementId
+    ? state.selectedElementIds.length === 1 &&
+      state.selectedElementIds[0] === selectedElementId &&
+      state.selectedElementIdsSet.size === 1 &&
+      state.selectedElementIdsSet.has(selectedElementId)
+    : state.selectedElementIds.length === 0 &&
+      state.selectedElementIdsSet.size === 0;
+
+  return (
+    state.currentPageId === pageId &&
+    state.selectedElementId === selectedElementId &&
+    hasExpectedSelectionSet &&
+    state.multiSelectMode === false &&
+    state.editingContextId === null &&
+    state.selectedTab === null
+  );
 }
 
 export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
@@ -791,12 +872,20 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       // 페이지 변경 시 히스토리 초기화
       historyManager.setCurrentPage(pageId);
       const nextIndexes = buildIndexes(migratedElements);
-      set((state) => ({
-        elements: migratedElements,
-        currentPageId: pageId,
-        ...nextIndexes,
-        layoutVersion: state.layoutVersion + 1,
-      }));
+      set((state) => {
+        const nextState = {
+          ...state,
+          elements: migratedElements,
+          ...nextIndexes,
+        };
+
+        return {
+          elements: migratedElements,
+          ...nextIndexes,
+          ...createPageActivationPatch(nextState, pageId, null),
+          layoutVersion: state.layoutVersion + 1,
+        };
+      });
 
       // 정규화/마이그레이션으로 변경된 요소가 있으면 DB에도 저장 (백그라운드)
       const changedElementIds = new Set<string>([
@@ -1197,43 +1286,22 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // ADR-040 Phase 2: Atomic Page Activation — 중복 activation 방어 + 단일 commit
     activatePage: (pageId, elementId = null) => {
       const state = get();
+      const targetElement = resolvePageActivationTarget(
+        state,
+        pageId,
+        elementId,
+      );
+      const nextSelectedElementId = targetElement?.id ?? null;
       // 동일 페이지 + 동일 요소 선택이면 중복 commit 방지
-      if (
-        state.currentPageId === pageId &&
-        elementId != null &&
-        state.selectedElementId === elementId
-      ) {
+      if (hasAppliedPageActivationPatch(state, pageId, nextSelectedElementId)) {
         return;
       }
 
       const startTime = performance.now();
       historyManager.setCurrentPage(pageId);
-      set((prevState) => {
-        const targetElement =
-          (elementId ? prevState.elementsMap.get(elementId) : undefined) ??
-          (prevState.pageElementsSnapshot[pageId] ?? []).find(
-            (element) => element.order_num === 0,
-          ) ??
-          null;
-        const nextSelectedElementId = targetElement?.id ?? null;
-
-        return {
-          currentPageId: pageId,
-          selectedElementId: nextSelectedElementId,
-          selectedElementIds: nextSelectedElementId
-            ? [nextSelectedElementId]
-            : [],
-          selectedElementIdsSet: nextSelectedElementId
-            ? new Set([nextSelectedElementId])
-            : new Set<string>(),
-          multiSelectMode: false,
-          selectedElementProps: targetElement
-            ? createCompleteProps(targetElement)
-            : {},
-          editingContextId: null,
-          selectedTab: null,
-        };
-      });
+      set((prevState) =>
+        createPageActivationPatch(prevState, pageId, elementId),
+      );
 
       const duration = performance.now() - startTime;
       if (duration >= 8) {
@@ -1245,16 +1313,22 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       }
     },
 
-    // 🚀 Phase 1: Immer → 함수형 업데이트 (Low Risk)
-    // ADR-074 Phase 5: input.page-transition 라벨로 계측. observe 는
-    // function body 만 측정하므로 historyManager.notify deferral 과 합쳐
-    // critical path 만 추적.
+    // Page activation alias. Use activatePage semantics so currentPageId and
+    // selected page body cannot drift when older call sites switch pages.
     setCurrentPageId: (pageId) => {
       observe(PERF_LABEL.INPUT_PAGE_TRANSITION, () => {
+        const state = get();
+        const targetElement = resolvePageActivationTarget(state, pageId, null);
+        const nextSelectedElementId = targetElement?.id ?? null;
+        if (
+          hasAppliedPageActivationPatch(state, pageId, nextSelectedElementId)
+        ) {
+          return;
+        }
+
         const startTime = performance.now();
         historyManager.setCurrentPage(pageId);
-        // 페이지 전환 시 editingContext 리셋
-        set({ currentPageId: pageId, editingContextId: null });
+        set((prevState) => createPageActivationPatch(prevState, pageId, null));
         const duration = performance.now() - startTime;
         if (duration >= 8) {
           console.log("[perf] store.set-current-page", {

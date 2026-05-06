@@ -191,7 +191,7 @@ export function useGlobalKeyboardShortcuts() {
    * Canvas Paste - 클립보드에서 요소 붙여넣기
    */
   const handleCanvasPaste = useCallback(async () => {
-    const { currentPageId, addElement } = useStore.getState();
+    const { currentPageId, addElement, elements } = useStore.getState();
 
     if (!currentPageId) {
       console.log("[Keyboard] Paste: No page selected");
@@ -210,7 +210,12 @@ export function useGlobalKeyboardShortcuts() {
       return;
     }
 
-    const newElements = pasteMultipleElements(copiedData, currentPageId);
+    const newElements = pasteMultipleElements(
+      copiedData,
+      currentPageId,
+      { x: 10, y: 10 },
+      elements,
+    );
 
     for (const element of newElements) {
       await addElement(element);

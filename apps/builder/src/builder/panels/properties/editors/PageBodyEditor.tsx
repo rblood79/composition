@@ -34,9 +34,13 @@ export const PageBodyEditor = memo(
       return element?.customId || "";
     }, [elementId]);
 
-    // ⭐ Phase 6 Fix: pageId는 요소의 page_id가 아닌 현재 편집 중인 페이지 ID 사용
-    // Page 모드에서 Layout body가 선택되어도 현재 페이지의 Layout을 선택할 수 있어야 함
+    // Page body가 선택된 경우에는 element.page_id가 적용 대상의 정본이다.
+    // Frame/projection body처럼 page_id가 없는 경우에만 현재 편집 page로 fallback한다.
     const currentPageId = useStore((state) => state.currentPageId);
+    const selectedElementPageId = useStore(
+      (state) => state.elementsMap.get(elementId)?.page_id ?? null,
+    );
+    const targetPageId = selectedElementPageId ?? currentPageId;
 
     // ⭐ 최적화: 각 필드별 onChange 함수를 개별 메모이제이션
     const handleClassNameChange = useCallback(
@@ -49,10 +53,10 @@ export const PageBodyEditor = memo(
     return (
       <>
         {/* ⭐ Page 전용: Layout 선택 */}
-        {currentPageId && <PageLayoutSelector pageId={currentPageId} />}
+        {targetPageId && <PageLayoutSelector pageId={targetPageId} />}
 
         {/* ⭐ Nested Routes & Slug System: Parent Page 선택 */}
-        {currentPageId && <PageParentSelector pageId={currentPageId} />}
+        {targetPageId && <PageParentSelector pageId={targetPageId} />}
 
         {/* Layout Section */}
         <PropertySection title="Layout">

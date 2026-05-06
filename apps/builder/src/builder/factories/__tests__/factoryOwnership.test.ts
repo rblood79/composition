@@ -16,8 +16,25 @@
  * 실행: pnpm vitest run apps/builder/src/builder/factories/__tests__/factoryOwnership.test.ts
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { Element } from "../../../types/core/store.types";
+import {
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "@/adapters/canonical/canonicalMutations";
+
+vi.mock("../utils/dbPersistence", () => ({
+  saveElementsToDb: vi.fn(async () => undefined),
+  saveElementsInBackground: vi.fn(),
+}));
+
+vi.mock("../../../lib/db", () => ({
+  getDB: vi.fn(async () => ({
+    elements: {
+      insertMany: vi.fn(async () => undefined),
+    },
+  })),
+}));
 
 // P3-D-1 대상 factory 임포트
 import {
@@ -104,6 +121,23 @@ function assertNoOwnerFields(
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("P3-D-1: factory ownership 제거", () => {
+  beforeEach(() => {
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements: vi.fn(),
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => null,
+    });
+  });
+
+  afterEach(() => {
+    resetCanonicalMutationStoreActions();
+  });
+
   // ── DisplayComponents ──────────────────────────────────────────────────────
 
   describe("createAvatarDefinition", () => {

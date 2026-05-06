@@ -17,6 +17,8 @@ import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
+import { COMPONENT_MASTER_ID_MIRROR_FIELD } from "@/adapters/canonical/componentSemanticsMirror";
+import { generateCustomId, getCustomIdBase } from "../../utils/idGeneration";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
@@ -51,6 +53,58 @@ function isReusableContextFrame(frame: FrameNode | undefined): boolean {
 function mergeCreatedElementsIntoCanonicalDocument(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
   mergeElementsCanonicalPrimary(elements);
+}
+
+function getRefMasterType(
+  element: Element,
+  elementsMap: Map<string, Element>,
+): string | null {
+  if (element.type !== "ref") return null;
+  const ref = (element as Element & { ref?: unknown }).ref;
+  const masterId =
+    typeof ref === "string"
+      ? ref
+      : (element as Element & { [COMPONENT_MASTER_ID_MIRROR_FIELD]?: unknown })[
+          COMPONENT_MASTER_ID_MIRROR_FIELD
+        ];
+  if (typeof masterId !== "string") return null;
+  return elementsMap.get(masterId)?.type ?? null;
+}
+
+function getCustomIdGenerationBase(
+  element: Element,
+  elementsMap: Map<string, Element>,
+): string {
+  return (
+    getCustomIdBase(element.customId) ??
+    getRefMasterType(element, elementsMap) ??
+    element.type
+  );
+}
+
+function hasDuplicateCustomId(customId: string, elements: Element[]): boolean {
+  return elements.some((element) => element.customId === customId);
+}
+
+function withFreshCustomId(
+  element: Element,
+  allocatedElements: Element[],
+  elementsMap: Map<string, Element>,
+): Element {
+  if (
+    element.customId &&
+    !hasDuplicateCustomId(element.customId, allocatedElements)
+  ) {
+    return element;
+  }
+
+  return {
+    ...element,
+    customId: generateCustomId(
+      getCustomIdGenerationBase(element, elementsMap),
+      allocatedElements,
+    ),
+  };
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
@@ -89,22 +143,34 @@ export const createAddElementAction =
     // ADR-006 P3-1: 구조 변경 → layoutVersion 무조건 증가
     let elementToAdd = normalizedElement;
     set((prevState) => {
+      const customIdNormalizedElement = withFreshCustomId(
+        normalizedElement,
+        prevState.elements,
+        prevState.elementsMap,
+      );
       // ADR-040 Phase 3: childrenMap O(1) 조회 (elements.filter 배열 순회 제거)
       const siblings =
-        prevState.childrenMap.get(normalizedElement.parent_id || "root") ?? [];
+        prevState.childrenMap.get(
+          customIdNormalizedElement.parent_id || "root",
+        ) ?? [];
       const hasConflict = siblings.some(
-        (sibling) => sibling.order_num === normalizedElement.order_num,
+        (sibling) => sibling.order_num === customIdNormalizedElement.order_num,
       );
       if (
         hasConflict ||
-        normalizedElement.order_num === undefined ||
-        normalizedElement.order_num === null
+        customIdNormalizedElement.order_num === undefined ||
+        customIdNormalizedElement.order_num === null
       ) {
         const maxOrder =
           siblings.length > 0
             ? Math.max(...siblings.map((el) => el.order_num || 0))
             : -1;
-        elementToAdd = { ...normalizedElement, order_num: maxOrder + 1 };
+        elementToAdd = {
+          ...customIdNormalizedElement,
+          order_num: maxOrder + 1,
+        };
+      } else {
+        elementToAdd = customIdNormalizedElement;
       }
       return {
         elements: [...prevState.elements, elementToAdd],
@@ -208,34 +274,59 @@ export const createAddComplexElementAction =
 
     // 🔧 부모 요소의 order_num 중복 방지: set() 내부에서 atomic하게 할당
     let parentToAdd = normalizedParent;
+    let childrenToAdd = normalizedChildren;
 
     // 2. 메모리 상태 업데이트 (불변 - 새로운 배열 참조 생성)
     // ADR-006 P3-1: 구조 변경 → layoutVersion 무조건 증가
     set((prevState) => {
+      const allocatedElements = [...prevState.elements];
+      const customIdNormalizedParent = withFreshCustomId(
+        normalizedParent,
+        allocatedElements,
+        prevState.elementsMap,
+      );
+      allocatedElements.push(customIdNormalizedParent);
+      childrenToAdd = normalizedChildren.map((child) => {
+        const nextChild = withFreshCustomId(
+          child,
+          allocatedElements,
+          prevState.elementsMap,
+        );
+        allocatedElements.push(nextChild);
+        return nextChild;
+      });
+
       // ADR-040 Phase 3: childrenMap O(1) 조회 (elements.filter 배열 순회 제거)
       const siblings =
-        prevState.childrenMap.get(normalizedParent.parent_id || "root") ?? [];
+        prevState.childrenMap.get(
+          customIdNormalizedParent.parent_id || "root",
+        ) ?? [];
       const hasConflict = siblings.some(
-        (sibling) => sibling.order_num === normalizedParent.order_num,
+        (sibling) => sibling.order_num === customIdNormalizedParent.order_num,
       );
       if (
         hasConflict ||
-        normalizedParent.order_num === undefined ||
-        normalizedParent.order_num === null
+        customIdNormalizedParent.order_num === undefined ||
+        customIdNormalizedParent.order_num === null
       ) {
         const maxOrder =
           siblings.length > 0
             ? Math.max(...siblings.map((el) => el.order_num || 0))
             : -1;
-        parentToAdd = { ...normalizedParent, order_num: maxOrder + 1 };
+        parentToAdd = {
+          ...customIdNormalizedParent,
+          order_num: maxOrder + 1,
+        };
+      } else {
+        parentToAdd = customIdNormalizedParent;
       }
       return {
-        elements: [...prevState.elements, parentToAdd, ...normalizedChildren],
+        elements: [...prevState.elements, parentToAdd, ...childrenToAdd],
         layoutVersion: prevState.layoutVersion + 1,
       };
     });
 
-    const allElements = [parentToAdd, ...normalizedChildren];
+    const allElements = [parentToAdd, ...childrenToAdd];
 
     // ADR-903 P3-D-2: canonical parent context 기반 히스토리 조건
     const doc = getActiveCanonicalDocument();

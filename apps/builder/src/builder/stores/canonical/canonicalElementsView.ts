@@ -25,6 +25,7 @@ import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
+import { readLegacyMetadataCustomId } from "../../../adapters/canonical/legacyMetadata";
 import {
   canonicalDocumentToFrameElementScopes,
   type CanonicalFrameElementScopeMap,
@@ -38,15 +39,17 @@ type ElementScopeContext = {
 };
 
 type CanonicalScopeMetadata = {
-  legacyProps?: unknown;
+  customId?: unknown;
   type?: unknown;
   pageId?: unknown;
   layoutId?: unknown;
   slotName?: unknown;
 };
 
+const CANONICAL_REF_CHILD_PATCHES_FIELD = "descendants" as const;
+
 type CanonicalComponentMirrorFields = {
-  descendants?: unknown;
+  [CANONICAL_REF_CHILD_PATCHES_FIELD]?: unknown;
   metadata?: CanonicalNode["metadata"];
   ref?: string;
   reusable?: true;
@@ -97,10 +100,13 @@ function extractCanonicalComponentMirrorFields(
     out.ref = ref;
   }
 
-  const descendants = (node as CanonicalNode & { descendants?: unknown })
-    .descendants;
+  const descendants = (
+    node as CanonicalNode & {
+      [CANONICAL_REF_CHILD_PATCHES_FIELD]?: unknown;
+    }
+  )[CANONICAL_REF_CHILD_PATCHES_FIELD];
   if (isRecord(descendants)) {
-    out.descendants = descendants;
+    out[CANONICAL_REF_CHILD_PATCHES_FIELD] = descendants;
   }
 
   if (node.reusable === true) {
@@ -142,13 +148,7 @@ export function canonicalNodeToElement(
   const mirrorFields = extractCanonicalComponentMirrorFields(node);
   const isRenderableRef = mirrorFields.ref !== undefined && !isPagePlaceholder;
   if (!node.props && !isLegacySlotHoisted && !isRenderableRef) return null;
-  const legacyProps = isRecord(metadata?.legacyProps)
-    ? metadata.legacyProps
-    : null;
-  const customId =
-    typeof legacyProps?.customId === "string"
-      ? legacyProps.customId
-      : undefined;
+  const customId = readLegacyMetadataCustomId(metadata);
   const props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {
     props.name ??= metadata.slotName;

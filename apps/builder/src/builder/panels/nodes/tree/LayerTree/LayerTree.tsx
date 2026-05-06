@@ -52,8 +52,10 @@ export function LayerTree({
   const effectiveExpandedKeys = useMemo(() => {
     if (!selectedElementId) return resolvedExpandedKeys;
     const next = new Set<Key>(resolvedExpandedKeys);
+    const visited = new Set<string>();
     let parentId = nodeMap.get(selectedElementId)?.parentId ?? null;
-    while (parentId) {
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
       next.add(parentId);
       parentId = nodeMap.get(parentId)?.parentId ?? null;
     }

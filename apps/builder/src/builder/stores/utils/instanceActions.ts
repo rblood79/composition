@@ -47,6 +47,7 @@ import {
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { generateCustomId } from "../../utils/idGeneration";
 
 type CanonicalElementFields = {
   children?: unknown;
@@ -640,6 +641,7 @@ export function createInstance(
   const instanceElement: Element = {
     id: uuidv4(),
     type: master.type,
+    customId: generateCustomId(master.type, state.elements),
     props: {},
     parent_id: parentId,
     page_id: pageId,
@@ -656,6 +658,7 @@ export function createInstance(
     layoutVersion: prevState.layoutVersion + 1,
   }));
   get()._rebuildIndexes();
+  syncInstanceElementsToCanonical([instanceElement]);
   persistElementsAfterInstanceMutation([instanceElement]);
 
   return instanceElement;

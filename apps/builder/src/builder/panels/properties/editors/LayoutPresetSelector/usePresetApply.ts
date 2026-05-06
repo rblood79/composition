@@ -36,13 +36,9 @@ import { getDB } from "../../../../../lib/db";
 
 export { normalizeFramePresetContainerStyle } from "./presetStyle";
 
-type SlotMirrorReadable = Element & {
-  slot_name?: string | null;
-};
-
 function getElementSlotName(element: Element): string | null {
-  const slotName = (element as SlotMirrorReadable).slot_name;
-  return typeof slotName === "string" && slotName.length > 0 ? slotName : null;
+  const slotName = getSlotMirrorName(element);
+  return slotName && slotName.length > 0 ? slotName : null;
 }
 
 function readSlotElementName(element: Element): string {

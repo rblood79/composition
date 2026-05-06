@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
+import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
@@ -34,6 +34,18 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
   } as Element;
 }
 
+function findCanonicalNodeById(
+  nodes: CanonicalNode[],
+  id: string,
+): CanonicalNode | undefined {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const found = findCanonicalNodeById(node.children ?? [], id);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 describe("instance store actions", () => {
   const addEntrySpy = vi.spyOn(historyManager, "addEntry");
 
@@ -58,6 +70,190 @@ describe("instance store actions", () => {
       selectedElementIdsSet: new Set<string>(),
       multiSelectMode: false,
     } as never);
+  });
+
+  it("creates a legacy instance with a fresh customId instead of reusing origin customId", () => {
+    const body = makeElement("body", {
+      type: "body",
+      customId: "body_1",
+      parent_id: null,
+      order_num: 0,
+    });
+    const origin = withComponentOriginMirror(
+      makeElement("origin", {
+        customId: "button_1",
+        parent_id: body.id,
+        order_num: 1,
+      }),
+    );
+
+    useStore.setState({
+      elements: [body, origin],
+      elementsMap: new Map([
+        [body.id, body],
+        [origin.id, origin],
+      ]),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+
+    const instance = useStore
+      .getState()
+      .createInstance(origin.id, body.id, "page-1");
+
+    expect(instance).toEqual(
+      expect.objectContaining({
+        customId: "button_2",
+        [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
+        [COMPONENT_MASTER_ID_MIRROR_FIELD]: origin.id,
+      }),
+    );
+    expect(instance?.customId).not.toBe(origin.customId);
+    expect(
+      useStore.getState().elementsMap.get(instance?.id ?? "")?.customId,
+    ).toBe("button_2");
+  });
+
+  it("creates an instance customId after existing ref instance IDs with the same base", () => {
+    const body = makeElement("body", {
+      type: "body",
+      customId: "body_1",
+      parent_id: null,
+      order_num: 0,
+    });
+    const origin = withComponentOriginMirror(
+      makeElement("origin", {
+        customId: "button_1",
+        parent_id: body.id,
+        order_num: 1,
+      }),
+    );
+    const existingInstance = makeElement("existing-instance", {
+      type: "ref",
+      customId: "button_2",
+      parent_id: body.id,
+      order_num: 2,
+    });
+
+    useStore.setState({
+      elements: [body, origin, existingInstance],
+      elementsMap: new Map([
+        [body.id, body],
+        [origin.id, origin],
+        [existingInstance.id, existingInstance],
+      ]),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+
+    const instance = useStore
+      .getState()
+      .createInstance(origin.id, body.id, "page-1");
+
+    expect(instance?.customId).toBe("button_3");
+  });
+
+  it("syncs a created instance customId into the active canonical document for refresh", () => {
+    const page = {
+      id: "page-1",
+      title: "Home",
+      project_id: "project-1",
+      slug: "/",
+      order_num: 0,
+    } as Page;
+    const body = makeElement("body", {
+      type: "body",
+      customId: "body_1",
+      parent_id: null,
+      order_num: 0,
+    });
+    const origin = withComponentOriginMirror(
+      makeElement("origin", {
+        customId: "button_1",
+        parent_id: body.id,
+        order_num: 1,
+      }),
+    );
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body",
+              type: "body",
+              props: {},
+              metadata: {
+                type: "legacy-element-props",
+                customId: "body_1",
+              },
+              children: [
+                {
+                  id: "origin",
+                  type: "Button",
+                  reusable: true,
+                  props: {},
+                  metadata: {
+                    type: "legacy-element-props",
+                    customId: "button_1",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } satisfies CompositionDocument;
+
+    useStore.setState({
+      currentPageId: "page-1",
+      pages: [page],
+      elements: [body, origin],
+      elementsMap: new Map([
+        [body.id, body],
+        [origin.id, origin],
+      ]),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", doc);
+    registerCanonicalMutationStoreActions({
+      mergeElements: useStore.getState().mergeElements,
+      setElements: useStore.getState().setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    const instance = useStore
+      .getState()
+      .createInstance(origin.id, body.id, "page-1");
+
+    expect(instance?.customId).toBe("button_2");
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const instanceNode = findCanonicalNodeById(
+      nextDoc?.children ?? [],
+      instance?.id ?? "",
+    );
+    expect(instanceNode).toMatchObject({
+      id: instance?.id,
+      type: "ref",
+      ref: origin.id,
+      metadata: expect.objectContaining({
+        customId: "button_2",
+        legacyProps: expect.objectContaining({
+          customId: "button_2",
+          componentRole: "instance",
+          masterId: origin.id,
+        }),
+      }),
+    });
   });
 
   it("detaches a legacy instance into a standalone element", () => {
@@ -653,17 +849,17 @@ describe("instance store actions", () => {
         reusable: true,
         metadata: expect.objectContaining({
           legacyProps: expect.objectContaining({
-            componentRole: "master",
             page_id: "page-1",
           }),
         }),
       }),
     ]);
-    expect(useStore.getState().elementsMap.get("button")).toMatchObject({
-      componentName: "primary-action",
-      componentRole: "master",
-      reusable: true,
-    });
+    expect(useStore.getState().elementsMap.get("button")).toMatchObject(
+      withComponentOriginMirror({
+        componentName: "primary-action",
+        reusable: true,
+      }),
+    );
   });
 
   it("removes component origin silently when no instances exist", async () => {

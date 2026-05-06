@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from "react";
+import React, { useState, useEffect, memo, useId } from "react";
 import { Hash } from "lucide-react";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useStore } from "../../stores";
@@ -25,6 +25,8 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   // Local state for input value (debounced save)
   const [inputValue, setInputValue] = useState<string>(value || "");
   const [error, setError] = useState<string | undefined>(undefined);
+  const reactId = useId();
+  const errorId = `${reactId}-customid-error`;
 
   // ⭐ 최적화: validation 시에만 elementsMap 가져오기 (구독 방지)
   // getState()로 현재 시점의 값만 가져옴
@@ -136,26 +138,30 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   };
 
   return (
-    <>
-      <PropertyFieldset legend={label} icon={Hash} className={className}>
-        <input
-          className="react-aria-Input"
-          type="text"
-          value={inputValue}
-          onChange={(e) => handleChange(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          aria-invalid={error ? "true" : "false"}
-          aria-describedby={error ? "customid-error" : undefined}
-        />
-      </PropertyFieldset>
-      {error && (
-        <div id="customid-error" className="react-aria-FieldError" role="alert">
-          {error}
-        </div>
-      )}
-    </>
+    <PropertyFieldset
+      legend={label}
+      icon={Hash}
+      className={className}
+      afterControl={
+        error ? (
+          <div id={errorId} className="react-aria-FieldError" role="alert">
+            {error}
+          </div>
+        ) : undefined
+      }
+    >
+      <input
+        className="react-aria-Input"
+        type="text"
+        value={inputValue}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        aria-invalid={error ? "true" : "false"}
+        aria-describedby={error ? errorId : undefined}
+      />
+    </PropertyFieldset>
   );
 });

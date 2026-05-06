@@ -84,10 +84,12 @@ export function useLayerTreeData(elements: Element[]) {
 
   const projectedElements = useMemo(() => {
     if (sourceElements.length === 0) return sourceElements;
-    return resolveCanonicalRefTree({
+    const resolvedElements = resolveCanonicalRefTree({
       elements: sourceElements,
       elementsMap: resolutionElementsMap,
     }).elements;
+
+    return dedupeLayerElementsById(resolvedElements);
   }, [resolutionElementsMap, sourceElements]);
 
   const elementTree = useMemo(
@@ -195,6 +197,20 @@ function mergeCanonicalLayerSource(
   }
 
   return Array.from(elementsById.values());
+}
+
+function dedupeLayerElementsById(elements: Element[]): Element[] {
+  if (elements.length < 2) return elements;
+
+  const seenIds = new Set<string>();
+  const deduped: Element[] = [];
+  for (const element of elements) {
+    if (seenIds.has(element.id)) continue;
+    seenIds.add(element.id);
+    deduped.push(element);
+  }
+
+  return deduped.length === elements.length ? elements : deduped;
 }
 
 function convertToLayerTreeNodes(

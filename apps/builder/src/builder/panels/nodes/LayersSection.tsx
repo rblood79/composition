@@ -90,9 +90,11 @@ export const LayersSection = memo(function LayersSection({
     if (!selectedElement) return new Set<Key>();
 
     const parents = new Set<Key>();
+    const visited = new Set<string>();
     let currentParentId = selectedElement.parent_id;
 
-    while (currentParentId) {
+    while (currentParentId && !visited.has(currentParentId)) {
+      visited.add(currentParentId);
       parents.add(currentParentId);
       const parentElement = currentPageElementsMap.get(currentParentId);
       currentParentId = parentElement?.parent_id ?? null;
