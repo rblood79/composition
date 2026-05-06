@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Nodes 패널 탭 라벨을 `Pages` / `Frames` 로 통일하고, frame body Properties 패널은 format 구조 용어와 맞춰 `Frame Preset` 만 노출하도록 정리했다. Legacy Layout UI 잔여 항목인 `URL Prefix` 와 body `Layout` 섹션, component origin/instance 전환용 `Component` 섹션은 frame body authoring surface 에서 숨겼다.
+- Frame body 가 legacy `elementsMap` 에 없는 canonical-only 상태여도 active canonical snapshot fallback 으로 frame id 를 해석해 `Frame Preset` 섹션이 표시되도록 복원했다.
+- Frames 탭 진입 시 선택된 frame 이 없거나 stale 인 경우 첫 번째 frame 을 자동 선택하고 해당 frame body 까지 즉시 선택하도록 변경했다.
+- Pages 탭 진입 시 `currentPageId` 가 비어 있거나 stale 인 경우 기본 Home/첫 번째 page 를 자동 선택하고 해당 page body 까지 즉시 선택하도록 변경했다.
 
 ### Verification
 

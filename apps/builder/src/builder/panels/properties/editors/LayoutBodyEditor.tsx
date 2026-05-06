@@ -14,6 +14,7 @@ import { memo, useMemo } from "react";
 import { PropertySection } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { useStore } from "../../../stores";
+import { getActiveCanonicalElementSnapshot } from "../../../stores/canonical/canonicalElementSnapshot";
 import { LayoutPresetSelector } from "./LayoutPresetSelector";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 
@@ -21,8 +22,12 @@ export const LayoutBodyEditor = memo(
   function LayoutBodyEditor({ elementId }: PropertyEditorProps) {
     // ⭐ 최적화: layoutId를 현재 시점에만 가져오기 (Zustand 구독 방지)
     const layoutId = useMemo(() => {
-      const element = useStore.getState().elementsMap.get(elementId);
-      return element ? getFrameElementMirrorId(element) : null;
+      const storeElement = useStore.getState().elementsMap.get(elementId);
+      const canonicalElement = getActiveCanonicalElementSnapshot(elementId);
+      return (
+        (storeElement ? getFrameElementMirrorId(storeElement) : null) ??
+        (canonicalElement ? getFrameElementMirrorId(canonicalElement) : null)
+      );
     }, [elementId]);
 
     return (

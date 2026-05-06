@@ -10,6 +10,7 @@ describe("LayoutBodyEditor visible naming", () => {
     );
 
     expect(source).toContain('<PropertySection title="Frame Preset">');
+    expect(source).toContain("getActiveCanonicalElementSnapshot");
     expect(source).not.toContain('<PropertySection title="Layout Preset">');
     expect(source).not.toContain("LayoutSlugEditor");
     expect(source).not.toContain('<PropertySection title="Layout">');

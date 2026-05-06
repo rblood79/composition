@@ -138,6 +138,7 @@ export function FramesTab({
   const loadedFrameIdsRef = React.useRef<Set<string>>(new Set());
   const loadingFrameIdsRef = React.useRef<Set<string>>(new Set());
   const frameSelectRequestRef = React.useRef(0);
+  const autoSelectedFrameIdRef = React.useRef<string | null>(null);
 
   // selectedReusableFrameId 변경 시 DB에서 요소 로드 (fallback)
   useEffect(() => {
@@ -411,6 +412,27 @@ export function FramesTab({
       frameElementScopes,
     ],
   );
+
+  useEffect(() => {
+    const firstFrameId = reusableFrames[0]?.id ?? null;
+    if (!firstFrameId) {
+      autoSelectedFrameIdRef.current = null;
+      return;
+    }
+
+    const hasValidSelection = Boolean(
+      selectedReusableFrameId &&
+      reusableFrames.some((frame) => frame.id === selectedReusableFrameId),
+    );
+    if (hasValidSelection) {
+      autoSelectedFrameIdRef.current = null;
+      return;
+    }
+
+    if (autoSelectedFrameIdRef.current === firstFrameId) return;
+    autoSelectedFrameIdRef.current = firstFrameId;
+    void handleSelectFrame(firstFrameId);
+  }, [handleSelectFrame, reusableFrames, selectedReusableFrameId]);
 
   // Frame 삭제 핸들러 — frameActions.deleteReusableFrame 위임
   const handleDeleteFrame = useCallback(

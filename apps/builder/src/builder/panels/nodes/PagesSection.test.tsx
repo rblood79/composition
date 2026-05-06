@@ -174,6 +174,28 @@ describe("PagesSection page selection", () => {
     expect(mockLoadPageIfNeeded).not.toHaveBeenCalled();
   });
 
+  it("Pages 탭 진입 시 currentPageId가 비어 있으면 Home page body를 자동 선택한다", async () => {
+    const home = makePage("page-1", "Home", 0);
+    const about = makePage("page-2", "About", 1);
+    mockStoreState.pages = [home, about];
+    mockStoreState.currentPageId = null;
+    mockStoreState.pageElementsSnapshot = {
+      [home.id]: [makeElement("body-1", home.id)],
+      [about.id]: [makeElement("body-2", about.id)],
+    };
+
+    render(<PagesSection projectId="project-1" />);
+
+    await waitFor(() => {
+      expect(mockStoreState.activatePage).toHaveBeenCalledWith(
+        home.id,
+        "body-1",
+      );
+    });
+    expect(mockPanToPage).toHaveBeenCalledWith(home.id);
+    expect(mockRequestAutoSelectAfterUpdate).toHaveBeenCalledWith("body-1");
+  });
+
   it("단일 page 행을 선택해도 page body를 선택한다", () => {
     const home = makePage("page-1", "Home", 0);
     mockStoreState.pages = [home];

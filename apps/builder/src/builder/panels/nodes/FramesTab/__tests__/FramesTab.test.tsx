@@ -247,6 +247,58 @@ describe("FramesTab (ADR-911 P2-a PR-B baseline)", () => {
       expect(screen.getByText("Footer Frame")).toBeTruthy();
     });
 
+    it("Frames 탭 진입 시 선택 frame 이 없으면 첫 번째 frame body 를 자동 선택한다", async () => {
+      mockLayoutsState.selectedReusableFrameId = null;
+      mockActiveCanonicalDocument.mockReturnValue({
+        children: [
+          {
+            id: "layout-f-1",
+            type: "frame",
+            reusable: true,
+            name: "Header Frame",
+            metadata: { type: "legacy-layout", layoutId: "f-1" },
+            children: [
+              {
+                id: "body-f-1",
+                type: "body",
+                props: { style: { display: "flex" } },
+              },
+            ],
+          },
+          {
+            id: "layout-f-2",
+            type: "frame",
+            reusable: true,
+            name: "Footer Frame",
+            metadata: { type: "legacy-layout", layoutId: "f-2" },
+            children: [
+              {
+                id: "body-f-2",
+                type: "body",
+                props: {},
+              },
+            ],
+          },
+        ],
+      });
+      const props = makeProps();
+
+      render(<FramesTab {...props} />);
+
+      await waitFor(() => {
+        expect(selectReusableFrameMock).toHaveBeenCalledWith("f-1");
+      });
+      expect(mockEditModeState.setCurrentLayoutId).toHaveBeenCalledWith("f-1");
+      expect(props.setSelectedElement).toHaveBeenCalledWith(
+        "body-f-1",
+        expect.objectContaining({ style: { display: "flex" } }),
+      );
+      expect(props.requestAutoSelectAfterUpdate).toHaveBeenCalledWith(
+        "body-f-1",
+      );
+      expect(mockExpandKey).toHaveBeenCalledWith("body-f-1");
+    });
+
     it("새로고침 후 store에 없는 등록 frame들의 body/slot을 보강 로드한다", async () => {
       mockLayoutsState.layouts = [
         { id: "f-1", name: "Header Frame", project_id: "test-project" },
@@ -492,6 +544,11 @@ describe("FramesTab (ADR-911 P2-a PR-B baseline)", () => {
         { id: "frame-xyz", name: "Doomed", project_id: "test-project" },
       ];
       render(<FramesTab {...makeProps()} />);
+
+      await waitFor(() => {
+        expect(selectReusableFrameMock).toHaveBeenCalledWith("frame-xyz");
+      });
+      selectReusableFrameMock.mockClear();
 
       const deleteButton = screen.getByRole("button", {
         name: "Delete Doomed",

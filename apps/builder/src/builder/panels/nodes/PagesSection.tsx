@@ -9,6 +9,8 @@ import React, {
   startTransition,
   useCallback,
   useDeferredValue,
+  useEffect,
+  useRef,
   useState,
 } from "react";
 import type { Key } from "react-stately";
@@ -61,6 +63,7 @@ export const PagesSection = memo(function PagesSection({
   const [expandedKeys, setExpandedKeys] = useState<Set<Key>>(new Set());
   const [isFallbackTransitioning, setIsFallbackTransitioning] = useState(false);
   const singlePage = pages.length === 1 ? (pages[0] ?? null) : null;
+  const autoSelectedPageIdRef = useRef<string | null>(null);
 
   // 페이지 추가 핸들러
   const handleAddPage = useCallback(async () => {
@@ -120,6 +123,27 @@ export const PagesSection = memo(function PagesSection({
       requestAutoSelectAfterUpdate,
     ],
   );
+
+  useEffect(() => {
+    const firstPage = pages[0] ?? null;
+    // Project model always has Home; this only covers transient hydration/test states.
+    if (!firstPage) {
+      autoSelectedPageIdRef.current = null;
+      return;
+    }
+
+    const hasValidSelection = Boolean(
+      currentPageId && pages.some((page) => page.id === currentPageId),
+    );
+    if (hasValidSelection) {
+      autoSelectedPageIdRef.current = null;
+      return;
+    }
+
+    if (autoSelectedPageIdRef.current === firstPage.id) return;
+    autoSelectedPageIdRef.current = firstPage.id;
+    handlePageSelect(firstPage);
+  }, [currentPageId, handlePageSelect, pages]);
 
   const handleSinglePageKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
