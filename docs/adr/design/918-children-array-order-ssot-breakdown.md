@@ -2,27 +2,29 @@
 
 ## Scope
 
-이 문서는 Builder/Skia/Preview가 사용하는 structural node order를 Pencil-compatible
-parent `children[]` 배열 index로 수렴시키는 실행 계획이다. 최근 page order hotfix를
-page 전용 보정으로 끝내지 않고, frame/group/body/component origin/ref instance/slot
-descendants까지 같은 ordering contract로 확장한다.
+이 문서는 Builder/Skia/Preview/Publish가 사용하는 structural node order를
+Pencil-compatible parent `children[]` 배열 index로 수렴시키는 실행 계획이다. 최근 page
+order hotfix를 page 전용 보정으로 끝내지 않고, frame/group/body/component
+origin/ref instance/slot descendants까지 같은 ordering contract로 확장한다.
 
 ## Scope Matrix
 
 | Surface                               | 포함 여부   | 최종 order source                                    | 비고                                                            |
 | ------------------------------------- | ----------- | ---------------------------------------------------- | --------------------------------------------------------------- |
-| root page/frame/slide order           | In          | `CompositionDocument.children` index                 | PageTree, export render model, Home identity 분리               |
+| root page/frame/slide order           | In          | page-like presentation root index                    | reusable catalog root는 page order에서 제외                     |
 | page body/frame body children         | In          | parent `children[]` index                            | body는 order 0 fallback이 아니라 explicit child identity로 판정 |
 | frame/group/layout container children | In          | parent `children[]` index                            | LayerTree, layout, Skia render input 공유                       |
 | reusable component origin children    | In          | origin/master node `children[]` index                | origin/instance mismatch 방지                                   |
 | component ref instance descendants    | In          | `RefNode.descendants[descendantPath].children` index | normal descendants override와 slot fill 분리                    |
 | slot fill insertion order             | In          | `descendants[slotPath].children` append/move order   | 같은 `ref` 중복 삽입 허용                                       |
 | drag/drop reorder                     | In          | target parent `children[]` splice index              | same-container/cross-container 모두 포함                        |
+| Preview iframe render order           | In          | ordered legacy projection from `children[]`          | iframe `childrenMap`/fallback render order 포함                 |
+| Publish page/render order             | In          | ordered legacy projection from `children[]`          | PageNav/ElementRenderer 포함                                    |
 | legacy `Element.order_num`            | Boundary    | `children[]` index에서 파생                          | import/export/DB/API/test fixture compatibility only            |
 | `childrenMap`                         | Projection  | canonical child order에서 파생                       | O(1) lookup shape는 유지 가능                                   |
 | Table row/column data order           | Conditional | 기존 data model                                      | structural node child로 materialize되는 경우만 포함             |
 | collection `items` order              | Conditional | existing collection data SSOT                        | 별도 ADR 후보. structural child order와 혼합 금지               |
-| CSS `z-index` / paint stacking        | Out         | explicit style property                              | tree order와 별도 속성                                          |
+| CSS `z-index` / paint stacking        | Out         | explicit style property                              | effective order는 z-index + child index tie-breaker             |
 
 ## Current Baseline
 
@@ -35,6 +37,8 @@ descendants까지 같은 ordering contract로 확장한다.
 - `childrenMap`: shared renderers, Builder layout engine, Skia renderer input, AI/editor tools가
   parent lookup 구조로 사용한다.
 - LayerTree/PageTree: 현재 일부 경로는 `order_num` sort 또는 `orderNum` UI field를 사용한다.
+- Preview/Publish: iframe Preview와 Publish runtime이 legacy `order_num` sort로 page/render
+  tree를 만든다.
 - drag/drop: legacy parent/order update와 canvas insertion index 계산이 결합되어 있다.
 - slot/component: `descendants[slotPath].children` order와 legacy element projection order가
   동시에 영향을 준다.
@@ -76,6 +80,8 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
    - `insertCanonicalChild(document, parentId, child, index)`
    - `moveCanonicalChild(document, childId, targetParentId, index)`
    - `removeCanonicalChild(document, childId)`
+   - `appendDescendantChild(document, refPath, descendantPath, child)`
+   - `moveDescendantChild(document, refPath, descendantPath, childId, index)`
    - `deriveLegacyOrderNum(parentChildren, childId)`
 2. helper는 top-level `CompositionDocument.children`, nested `FrameNode.children`,
    `RefNode.descendants[slotPath].children`를 같은 ordering primitive로 다룬다.
@@ -83,6 +89,9 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
    구분하는지 test한다.
 4. `order_num` mirror 생성은 helper 밖 runtime에서 직접 계산하지 않도록 adapter boundary
    helper로 격리한다.
+5. `packages/shared/src/types/composition-document-actions.types.ts`와
+   `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts`에 move/reorder와
+   descendants children insert/move contract를 명시한다.
 
 ### 금지
 
@@ -94,7 +103,9 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 
 ### 작업
 
-1. `CompositionDocument.children` 순서가 PageTree/root slide list의 source가 되도록 전환한다.
+1. `CompositionDocument.children` 안에서 page-like presentation root를 reusable catalog root와
+   분리하고, page-like root의 배열 index가 PageTree/root slide list의 source가 되도록
+   전환한다.
 2. Home/non-deletable page 판정은 slug `/`, root identity, explicit home marker 중 하나로
    고정하고 order position과 분리한다.
 3. page 생성은 root `children[]` 뒤에 append하고, legacy export 시에만 index를 `order_num`으로
@@ -108,23 +119,32 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 - Home은 첫 번째 visual row가 아니어도 삭제 불가 identity가 유지된다.
 - refresh 후 PageTree/LayerTree/Skia render order가 동일하다.
 
-## Phase 3: LayerTree / Layout / Skia Read Path Cutover
+## Phase 3: LayerTree / Layout / Skia / Preview / Publish Read Path Cutover
 
 ### 작업
 
 1. `childrenMap`은 canonical child order에서 파생되는 projection으로만 유지한다.
 2. LayerTree tree item order는 parent `children[]` index를 그대로 사용한다.
-3. Skia render input은 child order를 forward render order로 전달하고, hit-test는 reverse order를
-   사용한다.
-4. layout engine의 child order fallback이 `order_num`이 아니라 projection order를 사용하도록
+3. Skia render input은 child order를 forward render order로 전달한다. 명시적 `z-index`가
+   있으면 `z-index` 오름차순 + child index tie-breaker를 effective order로 만들고, hit-test는
+   같은 effective order를 역순으로 사용한다.
+4. Preview iframe의 `childrenMap`, fallback render, `layoutResolver`가 canonical-derived
+   projection order를 사용하도록 전환한다.
+5. Publish `PageNav`와 `ElementRenderer`가 canonical-derived projection order를 사용하도록
+   전환한다.
+6. layout engine의 child order fallback이 `order_num`이 아니라 projection order를 사용하도록
    정리한다.
-5. synthetic merge/collection child projection이 structural child order를 변경하지 않는지 확인한다.
+7. synthetic merge/collection child projection이 structural child order를 변경하지 않는지 확인한다.
 
 ### 검증
 
 - 겹친 sibling에서 뒤쪽 child가 hit-test 우선권을 가진다.
-- LayerTree reorder 후 Skia paint order와 hit-test order가 일치한다.
+- `z-index`가 없는 LayerTree reorder 후 Skia paint order와 hit-test order가 child index 기준으로
+  일치한다.
+- `z-index`가 있는 sibling은 render/hit-test 모두 `z-index` + child index tie-breaker를 동일하게
+  적용한다.
 - full-tree layout이 child index order를 보존한다.
+- Preview와 Publish에서 같은 document order가 표시된다.
 
 ## Phase 4: Drag/Drop Reorder Write Path Cutover
 
@@ -195,18 +215,21 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 
 ## File Impact Map
 
-| 영역                  | 예상 파일/모듈                                                              | 변경 방향                                                    |
-| --------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| canonical type/helper | `packages/shared/src/types/*`, `apps/builder/src/adapters/canonical/*`      | child order helper와 legacy mirror boundary 정리             |
-| export/import         | `packages/shared/src/utils/export.utils.ts`, canonical/pencil adapters      | `children[]` index에서 `order_num` 파생                      |
-| page tree             | `apps/builder/src/builder/panels/nodes/tree/PageTree/*`, `PagesSection.tsx` | PageTree order source를 root children index로 전환           |
-| layer tree            | `apps/builder/src/builder/panels/nodes/tree/LayerTree/*`                    | canonical child order projection                             |
-| stores/indexer        | `apps/builder/src/builder/stores/**`, `elementIndexer.ts`                   | `childrenMap`을 ordered projection으로 유지                  |
-| canvas/Skia           | `apps/builder/src/builder/workspace/canvas/**`                              | render/hit-test/layout order source 통일                     |
-| drag/drop             | `useDragBridge.ts`, `useCanvasDragDropHelpers.ts`, reorder helpers          | parent/index splice write path                               |
-| component/slot        | `FramesTab`, `LayoutPresetSelector`, slot/layout adapters                   | descendants slot child append/move contract                  |
-| shared renderers      | `packages/shared/src/renderers/**`                                          | `childrenMap` order 소비만 허용, local `order_num` sort 제거 |
-| collection data       | `migrateCollectionItems.ts`, Table/List data models                         | structural vs data order bucket 분리                         |
+| 영역                  | 예상 파일/모듈                                                                                                                           | 변경 방향                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| canonical type/helper | `packages/shared/src/types/*`, `apps/builder/src/adapters/canonical/*`                                                                   | child order helper와 legacy mirror boundary 정리             |
+| canonical actions     | `packages/shared/src/types/composition-document-actions.types.ts`, `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts` | move/reorder 및 descendants children write contract 추가     |
+| export/import         | `packages/shared/src/utils/export.utils.ts`, canonical/pencil adapters                                                                   | `children[]` index에서 `order_num` 파생                      |
+| page tree             | `apps/builder/src/builder/panels/nodes/tree/PageTree/*`, `PagesSection.tsx`                                                              | PageTree order source를 root children index로 전환           |
+| layer tree            | `apps/builder/src/builder/panels/nodes/tree/LayerTree/*`                                                                                 | canonical child order projection                             |
+| stores/indexer        | `apps/builder/src/builder/stores/**`, `elementIndexer.ts`                                                                                | `childrenMap`을 ordered projection으로 유지                  |
+| canvas/Skia           | `apps/builder/src/builder/workspace/canvas/**`                                                                                           | render/hit-test/layout order source 통일                     |
+| preview runtime       | `apps/builder/src/preview/App.tsx`, `apps/builder/src/preview/utils/layoutResolver.ts`                                                   | iframe render tree order source 통일                         |
+| publish runtime       | `apps/publish/src/components/PageNav.tsx`, `apps/publish/src/renderer/ElementRenderer.tsx`                                               | published page/render order source 통일                      |
+| drag/drop             | `useDragBridge.ts`, `useCanvasDragDropHelpers.ts`, reorder helpers                                                                       | parent/index splice write path                               |
+| component/slot        | `FramesTab`, `LayoutPresetSelector`, slot/layout adapters                                                                                | descendants slot child append/move contract                  |
+| shared renderers      | `packages/shared/src/renderers/**`                                                                                                       | `childrenMap` order 소비만 허용, local `order_num` sort 제거 |
+| collection data       | `migrateCollectionItems.ts`, Table/List data models                                                                                      | structural vs data order bucket 분리                         |
 
 ## Verification Plan
 
@@ -229,17 +252,19 @@ pnpm run codex:typecheck
 1. Page 3개 추가 → 추가 순서 유지 → Home만 삭제 불가 → refresh 후 동일.
 2. page body에 frame 적용 → refresh → LayerTree body/slot 표시 및 Skia hatch marker 유지.
 3. LayerTree에서 sibling reorder → Skia render/hit-test 순서 일치 → refresh 후 유지.
-4. frame/group 내부 child reorder → layout order와 LayerTree order 일치.
-5. component origin 생성 → instance 삽입 → refresh → origin/instance child 표시 유지.
-6. slot fill에 같은 component 2회 삽입 → 두 child가 append order로 유지.
-7. drag/drop same-container/cross-container reorder → undo 1회로 원복.
+4. 같은 sibling에 `z-index`를 적용 → Skia render/hit-test effective order 일치.
+5. Preview iframe과 Publish runtime에서 같은 page/render order 유지.
+6. frame/group 내부 child reorder → layout order와 LayerTree order 일치.
+7. component origin 생성 → instance 삽입 → refresh → origin/instance child 표시 유지.
+8. slot fill에 같은 component 2회 삽입 → 두 child가 append order로 유지.
+9. drag/drop same-container/cross-container reorder → undo 1회로 원복.
 
 ### Completion Checklist
 
 - [ ] G0 inventory와 allowlist 작성.
 - [ ] G1 canonical order helper + unit test 통과.
 - [ ] G2 page/root order cutover 완료.
-- [ ] G3 LayerTree/layout/Skia read path cutover 완료.
+- [ ] G3 LayerTree/layout/Skia/Preview/Publish read path cutover 완료.
 - [ ] G4 drag/drop write path cutover 완료.
 - [ ] G5 component origin/instance/slot descendants cutover 완료.
 - [ ] G6 non-adapter runtime `order_num` ordering decision 제거 또는 allowlist 격리.

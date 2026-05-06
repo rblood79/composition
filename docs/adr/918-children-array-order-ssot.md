@@ -26,18 +26,21 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 
 범위에 포함되는 ordering surface:
 
-1. `CompositionDocument.children`: root page/frame/slide 순서.
+1. `CompositionDocument.children`: page-like presentation root의 page/frame/slide
+   순서. reusable catalog root는 page order에서 제외한다.
 2. `FrameNode.children`: frame, group, layout container, body 하위 structural child 순서.
 3. reusable component origin/master의 `children`: origin layer/render/layout 순서.
 4. `RefNode.descendants[slotPath].children`: component instance slot fill 순서.
 5. LayerTree/PageTree/Frame tree projection, Skia render order, hit-test priority,
    drag/drop insertion index.
-6. legacy Element projection의 `parent_id` sibling order와 `childrenMap` ordering.
+6. Preview iframe과 Publish runtime의 page tree/render tree ordering.
+7. legacy Element projection의 `parent_id` sibling order와 `childrenMap` ordering.
 
 범위에서 제외하거나 별도 판단할 ordering surface:
 
 - CSS `z-index`, explicit stacking context, paint-only layering: structural tree order와
-  별도 속성으로 유지한다.
+  별도 속성으로 유지한다. 단 render/hit-test의 effective stacking order는
+  `z-index`를 1차 key로, `children[]` index를 stable tie-breaker로 사용한다.
 - collection data item order(`items`, Table row/column data, API collection records):
   canonical structural node로 materialize된 child가 아닌 한 이 ADR의 primary SSOT로
   편입하지 않는다. 단, 구조 child로 projection되는 ListBox/GridList/Select template
@@ -49,10 +52,12 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 1. canonical structural order의 최종 SSOT는 parent `children[]` 배열 index여야 한다.
 2. `order_num`은 import/export/legacy DB/API compatibility boundary에서 파생되는 mirror
    값으로만 남겨야 하며, runtime ordering decision의 primary key가 되면 안 된다.
-3. render와 hit-test는 동일한 array order 계약을 공유해야 한다. Pencil renderer는
+3. render와 hit-test는 동일한 effective order 계약을 공유해야 한다. 기본 structural
+   order는 `children[]` index이고, 명시적 `z-index`가 있으면 `z-index` 오름차순 +
+   `children[]` index tie-breaker를 effective render order로 사용한다. Pencil renderer는
    viewport `children`을 앞에서 뒤로 렌더하고
    (`docs/pencil-extracted/engine/15_skia-renderer.txt:194`), selection은
-   `children.length - 1`부터 역순 탐색한다
+   effective child order의 뒤에서부터 역순 탐색한다
    (`docs/pencil-extracted/engine/13_selection-manager.txt:355`).
 4. drag/drop reorder는 target parent와 insertion index를 `children[]` splice로 표현해야
    한다. Pencil drag model도 original index, `findInsertionIndexInLayout`,
@@ -166,7 +171,7 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 | G0: inventory baseline       | Phase 0 종료 | `order_num`, `childrenMap`, sibling sort, drag insertion index call site를 adapter/legacy/structural/collection/test bucket으로 분류 | 구현 착수 금지                        |
 | G1: canonical helpers        | Phase 1 종료 | parent `children[]` read/insert/move/remove helper와 derived `order_num` mirror helper가 생기고 unit test가 통과                     | page hotfix 유지, helper 재설계       |
 | G2: page/root cutover        | Phase 2 종료 | PageTree/root page order와 Home delete policy가 `children[]` order + identity 기준으로 동작, metadata `order_num` primary sort 제거  | page path만 rollback                  |
-| G3: render/layer cutover     | Phase 3 종료 | LayerTree, Skia render input, hit-test ordering이 같은 canonical child order를 사용                                                  | affected projection slice rollback    |
+| G3: render/runtime cutover   | Phase 3 종료 | LayerTree, Skia render/hit-test, Preview iframe, Publish runtime이 같은 structural/effective child order 계약을 사용                 | affected projection slice rollback    |
 | G4: drag/drop cutover        | Phase 4 종료 | same-container/cross-container reorder가 target parent `children[]` splice와 insertion index로 저장되고 undo는 1 user action         | drag transient update 비활성 fallback |
 | G5: component/slot cutover   | Phase 5 종료 | origin/instance/slot descendants order가 `children[]` append/move 계약을 보존하고 duplicate ref slot fill이 유지됨                   | slot write path rollback              |
 | G6: legacy mirror quarantine | Phase 6 종료 | non-adapter runtime에서 `order_num` primary ordering decision이 allowlist 0 또는 명시 예외만 남음                                    | `order_num` mirror 격리 범위 재조정   |
