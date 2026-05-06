@@ -172,11 +172,16 @@ function extractElement(
   }
 
   if (node.name !== undefined) element.componentName = node.name;
-  if (node.reusable === true) element.componentRole = "master";
+  if (node.reusable === true) {
+    element.componentRole = "master";
+    (element as ElementWithLegacyMirror & { reusable?: boolean }).reusable =
+      true;
+  }
   if (node.type === "ref") {
     const refNode = node as RefNode;
     element.componentRole = "instance";
     element.masterId = refNode.ref;
+    (element as ElementWithLegacyMirror & { ref?: string }).ref = refNode.ref;
     element.overrides = { ...node.props };
     if (refNode.descendants) {
       element.descendants =

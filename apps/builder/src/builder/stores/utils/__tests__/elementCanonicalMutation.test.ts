@@ -15,7 +15,10 @@ import {
 } from "../../../../adapters/canonical/canonicalMutations";
 import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
-import { createUpdateElementPropsAction } from "../elementUpdate";
+import {
+  createBatchUpdateElementPropsAction,
+  createUpdateElementPropsAction,
+} from "../elementUpdate";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -216,6 +219,10 @@ function makeFrameDocument(
 describe("element mutations keep canonical document primary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.db.elements.update.mockImplementation(async () => {});
+    mocks.db.elements.deleteMany.mockImplementation(async () => {});
+    mocks.db.elements.insertMany.mockImplementation(async () => {});
+    mocks.db.documents.put.mockImplementation(async () => {});
     resetCanonicalMutationStoreActions();
     useCanonicalDocumentStore.setState({
       documents: new Map(),
@@ -291,6 +298,97 @@ describe("element mutations keep canonical document primary", () => {
     expect(state.elements.map((element) => element.id)).toEqual(["frame-body"]);
   });
 
+  it("removeElements deletes page-owned origins from the active canonical document", async () => {
+    const page = makePage("page-1");
+    const body = makeElement("page-body", "body", {
+      page_id: page.id,
+      props: { className: "react-aria-Body" },
+    });
+    const origin = makeElement("origin", "Button", {
+      parent_id: body.id,
+      page_id: page.id,
+      reusable: true,
+      props: { label: "Origin" },
+    });
+    const label = makeElement("origin-label", "Label", {
+      parent_id: origin.id,
+      page_id: page.id,
+      props: { text: "Origin" },
+    });
+    const instance = makeElement("instance", "ref", {
+      parent_id: body.id,
+      page_id: page.id,
+      ref: "origin",
+      props: { label: "Instance" },
+    } as Partial<Element> & Record<string, unknown>);
+    const state = makeState([body, origin, label, instance]);
+    state.pages = [page];
+    state.currentPageId = page.id;
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: page.id,
+          type: "frame",
+          metadata: {
+            type: "legacy-page",
+            pageId: page.id,
+          },
+          children: [
+            {
+              id: body.id,
+              type: "body",
+              props: body.props as Record<string, unknown>,
+              children: [
+                {
+                  id: origin.id,
+                  type: "Button",
+                  reusable: true,
+                  props: origin.props as Record<string, unknown>,
+                  children: [
+                    {
+                      id: label.id,
+                      type: "Label",
+                      props: label.props as Record<string, unknown>,
+                    },
+                  ],
+                },
+                {
+                  id: instance.id,
+                  type: "ref",
+                  ref: "origin",
+                  props: instance.props as Record<string, unknown>,
+                } satisfies RefNode,
+              ],
+            },
+          ],
+        } satisfies FrameNode,
+      ],
+    });
+
+    await createRemoveElementsAction(
+      createSetMock(state),
+      () => state as never,
+    )(["origin"]);
+
+    const pageNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")?.children[0] as FrameNode;
+    const pageBody = pageNode.children?.find((node) => node.id === body.id);
+    expect(pageBody?.children?.map((node) => node.id)).not.toContain("origin");
+    expect(pageBody?.children?.map((node) => node.id)).toContain("instance");
+    const detachedInstance = pageBody?.children?.find(
+      (node) => node.id === "instance",
+    );
+    expect(detachedInstance).toMatchObject({
+      id: "instance",
+      type: "Button",
+      props: expect.objectContaining({ label: "Instance" }),
+    });
+    expect(state.elementsMap.has("origin")).toBe(false);
+  });
+
   it("updateElementProps merges body preset props into active canonical document", async () => {
     const body = makeElement("frame-body", "body", {
       layout_id: "frame-1",
@@ -328,6 +426,73 @@ describe("element mutations keep canonical document primary", () => {
     expect(state.elementsMap.get("frame-body")?.props).toEqual({
       style: { display: "grid", gridTemplateRows: "auto 1fr" },
       appliedPreset: "vertical-2",
+    });
+  });
+
+  it("batchUpdateElementProps persists canonical origin and propagated child updates when a legacy mirror row is missing", async () => {
+    const origin = makeElement("origin", "Button", {
+      reusable: true,
+      props: { size: "md" },
+    });
+    const label = makeElement("label", "Label", {
+      parent_id: "origin",
+      props: { size: "md" },
+    });
+    const state = makeState([origin, label]);
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin",
+          type: "Button",
+          reusable: true,
+          props: origin.props as Record<string, unknown>,
+          children: [
+            {
+              id: "label",
+              type: "Label",
+              props: label.props as Record<string, unknown>,
+            },
+          ],
+        } satisfies CanonicalNode,
+      ],
+    });
+    mocks.db.elements.update.mockImplementation(async (id: string) => {
+      if (id === "label") {
+        throw new Error("Element not found: label");
+      }
+    });
+
+    await createBatchUpdateElementPropsAction(
+      createSetMock(state),
+      () => state as never,
+    )([
+      { elementId: "origin", props: { size: "lg" } },
+      { elementId: "label", props: { size: "lg" } },
+    ]);
+
+    const originNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")?.children[0] as FrameNode;
+    expect(originNode.props).toMatchObject({ size: "lg" });
+    expect(originNode.children?.[0]?.props).toMatchObject({ size: "lg" });
+    expect(state.elementsMap.get("origin")?.props).toMatchObject({
+      size: "lg",
+    });
+    expect(state.elementsMap.get("label")?.props).toMatchObject({ size: "lg" });
+    await vi.waitFor(() => {
+      expect(mocks.db.documents.put).toHaveBeenCalledWith(
+        "project-1",
+        expect.objectContaining({
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              id: "origin",
+            }),
+          ]),
+        }),
+      );
     });
   });
 

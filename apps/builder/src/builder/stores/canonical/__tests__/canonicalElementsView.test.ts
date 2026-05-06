@@ -381,6 +381,39 @@ describe("useCanonicalSelectedElement", () => {
     });
   });
 
+  it("resolves selected canonical ref nodes to origin-shaped instance elements", () => {
+    seedDoc([
+      {
+        id: "origin",
+        type: "NumberField",
+        reusable: true,
+        props: { label: "Amount", minValue: 0, style: { width: "100%" } },
+      },
+      {
+        id: "instance",
+        type: "ref",
+        ref: "origin",
+        props: { maxValue: 10 },
+      } as CanonicalNode,
+    ]);
+
+    const { result } = renderHook(() =>
+      useCanonicalSelectedElement("instance"),
+    );
+
+    expect(result.current).toMatchObject({
+      id: "instance",
+      type: "NumberField",
+      ref: "origin",
+      props: {
+        label: "Amount",
+        minValue: 0,
+        maxValue: 10,
+        style: { width: "100%" },
+      },
+    });
+  });
+
   it("returns null when selected node has no props", () => {
     seedDoc([{ id: "page-1", type: "frame" }]);
 

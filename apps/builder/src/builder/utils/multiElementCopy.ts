@@ -6,7 +6,11 @@
  */
 
 import type { Element } from "../../types/core/store.types";
-import { isComponentOriginMirrorElement as isMasterElement } from "../../adapters/canonical/componentSemanticsMirror";
+import {
+  COMPONENT_MASTER_ID_MIRROR_FIELD,
+  COMPONENT_ROLE_MIRROR_FIELD,
+  isComponentOriginMirrorElement as isMasterElement,
+} from "../../adapters/canonical/componentSemanticsMirror";
 import { normalizeExternalFillIngress } from "../panels/styles/utils/fillExternalIngress";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import {
@@ -170,6 +174,8 @@ export function pasteMultipleElements(
             id: ElementUtils.generateId(),
             type: "ref",
             ref: reusableOrigin.id,
+            [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
+            [COMPONENT_MASTER_ID_MIRROR_FIELD]: reusableOrigin.id,
             parent_id: reusableOrigin.parent_id ?? null,
             page_id: currentPageId,
             order_num: reusableOrigin.order_num,

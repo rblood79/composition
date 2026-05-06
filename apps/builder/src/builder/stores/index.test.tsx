@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import type { Element } from "../../types/core/store.types";
 import { useSelectedElementData, useStore } from "./index";
+import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
   return {
@@ -24,6 +26,11 @@ describe("useSelectedElementData", () => {
       selectedElementId: null,
       selectedElementProps: {},
     } as never);
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
   });
 
   it("presents canonical ref instances as their origin component in properties panel data", () => {
@@ -46,6 +53,52 @@ describe("useSelectedElementData", () => {
       ]),
       selectedElementId: "instance",
       selectedElementProps: {},
+    } as never);
+
+    const { result } = renderHook(() => useSelectedElementData());
+
+    expect(result.current).toMatchObject({
+      id: "instance",
+      type: "NumberField",
+      properties: {
+        label: "Amount",
+        minValue: 0,
+        maxValue: 10,
+      },
+      style: { width: "100%" },
+    });
+  });
+
+  it("keeps canonical-store ref instances origin-shaped when raw selected props are hydrated", () => {
+    const doc: CompositionDocument = {
+      schemaVersion: "1.0",
+      children: [
+        {
+          id: "origin",
+          type: "NumberField",
+          reusable: true,
+          props: { label: "Amount", minValue: 0, style: { width: "100%" } },
+        },
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          props: { maxValue: 10 },
+        } as CanonicalNode,
+      ],
+    };
+
+    act(() => {
+      const state = useCanonicalDocumentStore.getState();
+      state.setDocument("proj-a", doc);
+      state.setCurrentProject("proj-a");
+    });
+
+    useStore.setState({
+      elements: [],
+      elementsMap: new Map(),
+      selectedElementId: "instance",
+      selectedElementProps: { maxValue: 10, type: "ref" },
     } as never);
 
     const { result } = renderHook(() => useSelectedElementData());

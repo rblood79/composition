@@ -43,7 +43,16 @@ type CanonicalNodeWithRef = CanonicalNode & {
   descendants?: Record<string, unknown>;
   ref?: string;
 };
-type ElementWithLegacyFrameBinding = Element & { layout_id?: string | null };
+type ElementWithCanonicalRuntimeFields = Element & {
+  componentRole?: "master" | "instance";
+  descendants?: Record<string, unknown>;
+  layout_id?: string | null;
+  masterId?: string;
+  overrides?: Record<string, unknown>;
+  ref?: string;
+  reusable?: boolean;
+  slot_name?: string;
+};
 
 export interface ProjectExportData {
   version: string;
@@ -327,9 +336,8 @@ function collectRuntimeElements(
 ): void {
   nodes.forEach((sourceNode, index) => {
     const node = resolveRenderableNode(document, sourceNode);
-    if (node.reusable && parentId === null) return;
 
-    const element: Element = {
+    const element: ElementWithCanonicalRuntimeFields = {
       id: node.id,
       type: getRuntimeElementType(node),
       props: getRuntimeElementProps(node),
@@ -337,17 +345,32 @@ function collectRuntimeElements(
       page_id: pageId,
       order_num: index,
     };
+    if (node.name !== undefined) {
+      element.componentName = node.name;
+    }
+    const ref = (sourceNode as CanonicalNodeWithRef).ref;
+    if (sourceNode.type === "ref" && typeof ref === "string") {
+      element.componentRole = "instance";
+      element.masterId = ref;
+      element.ref = ref;
+      element.overrides = { ...(sourceNode.props ?? {}) };
+      if ((sourceNode as CanonicalNodeWithRef).descendants) {
+        element.descendants = (sourceNode as CanonicalNodeWithRef).descendants;
+      }
+    } else if (node.reusable === true || sourceNode.reusable === true) {
+      element.componentRole = "master";
+      element.reusable = true;
+    }
     if (
       isLegacySlotHoistedNode(node) &&
       typeof (node.metadata as CanonicalMetadata | undefined)?.slotName ===
         "string"
     ) {
-      (element as Element & { slot_name?: string }).slot_name = (
-        node.metadata as CanonicalMetadata
-      ).slotName as string;
+      element.slot_name = (node.metadata as CanonicalMetadata)
+        .slotName as string;
     }
     if (pageLayoutBinding !== null) {
-      (element as ElementWithLegacyFrameBinding).layout_id = pageLayoutBinding;
+      element.layout_id = pageLayoutBinding;
     }
     elements.push(element);
 

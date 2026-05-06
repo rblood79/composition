@@ -80,6 +80,25 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 - collection item ordering은 structural node ordering과 섞지 않고 별도 분류/후속 ADR
   후보로 남긴다.
 
+**2026-05-06 local main 반영 상태**:
+
+- ADR 작성 이후 local main에는 partial 선행 패치가 들어왔다. canonical upsert는 기존
+  node를 같은 `children[]` 위치에서 replace하고, 신규 child만 append하는 방향으로 보강됐다
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:291`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:307`).
+- export boundary는 canonical child 순회 index를 legacy `order_num`으로 파생하는 경로를
+  이미 사용한다
+  (`apps/builder/src/adapters/canonical/exportLegacyDocument.ts:55`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:161`).
+- component origin persistence/round-trip은 `reusable: true`를 legacy
+  `componentRole: "master"` mirror로 내보내고, page-owned origin을 root reusable catalog로
+  끌어올리지 않도록 보강됐다
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:501`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:874`).
+- 단, 이 선행 패치는 full cutover가 아니다. `buildTreeFromElements`, LayerTree projection,
+  drag/drop order write, Preview/Publish render path에는 여전히 `order_num` primary
+  sort/write가 남아 있으므로 ADR-918의 Phase/Gate는 유지한다.
+
 ## Alternatives Considered
 
 ### 대안 A: `children[]` index를 canonical ordering SSOT로 전환
@@ -163,18 +182,24 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
   분류가 필요하다. structural child는 ADR-918 범위, data item order는 별도 범위로 둔다.
 - drag 중 transient reorder를 canonical document에 반영하는 시점과 undo history commit
   시점을 분리하지 않으면 history noise가 생길 수 있다.
+- 현재 `shouldPreserveExistingCanonicalPosition` 계열 선행 패치는 metadata/order가 동일한
+  기존 node의 위치 보존에는 충분하지만, 명시적 reorder를 표현하는 API는 아니다. explicit
+  reorder/cross-container move는 별도 `children[]` splice/move helper로 닫아야 한다.
+- 현재 selection hit-test 보강은 depth/area 우선 정책을 포함한다. ADR-918의 최종 G3는
+  render와 hit-test가 동일한 effective child order(`z-index` + `children[]` index
+  tie-breaker)를 공유하는지 다시 검증해야 한다.
 
 ## Gates
 
-| Gate                         | 시점         | 통과 조건                                                                                                                            | 실패 시 대안                          |
-| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
-| G0: inventory baseline       | Phase 0 종료 | `order_num`, `childrenMap`, sibling sort, drag insertion index call site를 adapter/legacy/structural/collection/test bucket으로 분류 | 구현 착수 금지                        |
-| G1: canonical helpers        | Phase 1 종료 | parent `children[]` read/insert/move/remove helper와 derived `order_num` mirror helper가 생기고 unit test가 통과                     | page hotfix 유지, helper 재설계       |
-| G2: page/root cutover        | Phase 2 종료 | PageTree/root page order와 Home delete policy가 `children[]` order + identity 기준으로 동작, metadata `order_num` primary sort 제거  | page path만 rollback                  |
-| G3: render/runtime cutover   | Phase 3 종료 | LayerTree, Skia render/hit-test, Preview iframe, Publish runtime이 같은 structural/effective child order 계약을 사용                 | affected projection slice rollback    |
-| G4: drag/drop cutover        | Phase 4 종료 | same-container/cross-container reorder가 target parent `children[]` splice와 insertion index로 저장되고 undo는 1 user action         | drag transient update 비활성 fallback |
-| G5: component/slot cutover   | Phase 5 종료 | origin/instance/slot descendants order가 `children[]` append/move 계약을 보존하고 duplicate ref slot fill이 유지됨                   | slot write path rollback              |
-| G6: legacy mirror quarantine | Phase 6 종료 | non-adapter runtime에서 `order_num` primary ordering decision이 allowlist 0 또는 명시 예외만 남음                                    | `order_num` mirror 격리 범위 재조정   |
+| Gate                         | 시점         | 통과 조건                                                                                                                                                                                                  | 실패 시 대안                          |
+| ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| G0: inventory baseline       | Phase 0 종료 | `order_num`, `childrenMap`, sibling sort, drag insertion index call site를 adapter/legacy/structural/collection/test bucket으로 분류                                                                       | 구현 착수 금지                        |
+| G1: canonical helpers        | Phase 1 종료 | parent `children[]` read/insert/move/remove helper와 derived `order_num` mirror helper가 생기고 unit test가 통과                                                                                           | page hotfix 유지, helper 재설계       |
+| G2: page/root cutover        | Phase 2 종료 | PageTree/root page order와 Home delete policy가 `children[]` order + identity 기준으로 동작, metadata `order_num` primary sort 제거                                                                        | page path만 rollback                  |
+| G3: render/runtime cutover   | Phase 3 종료 | LayerTree, Skia render/hit-test, Preview iframe, Publish runtime이 같은 structural/effective child order 계약을 사용. depth/area 등 local hit-test heuristic은 최종 effective order와 충돌하지 않음을 증명 | affected projection slice rollback    |
+| G4: drag/drop cutover        | Phase 4 종료 | same-container/cross-container reorder가 target parent `children[]` splice와 insertion index로 저장되고 undo는 1 user action                                                                               | drag transient update 비활성 fallback |
+| G5: component/slot cutover   | Phase 5 종료 | origin/instance/slot descendants order가 `children[]` append/move 계약을 보존하고 duplicate ref slot fill이 유지됨                                                                                         | slot write path rollback              |
+| G6: legacy mirror quarantine | Phase 6 종료 | non-adapter runtime에서 `order_num` primary ordering decision이 allowlist 0 또는 명시 예외만 남음                                                                                                          | `order_num` mirror 격리 범위 재조정   |
 
 ## Consequences
 

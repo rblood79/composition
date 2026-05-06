@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Component instance 가 Node 패널 Layers 에 `ref` 로 표시되고 origin children 이 materialize 되지 않던 회귀를 수정했다.
   - `canonicalElementsView` 가 canonical `ref` / `descendants` / `reusable` / `slot` mirror fields 를 derived Element 에 보존한다.
   - `useLayerTreeData` 는 page-scoped 표시 대상과 ref 해석용 전체 canonical element map 을 분리해, 현재 page 밖 reusable origin 의 children 도 instance 아래 synthetic children 으로 투영한다.
+  - Origin 복제/붙여넣기로 생성된 canonical `type:"ref"` instance 가 `ref` mirror 를 잃지 않도록 canonical mutation/export 경계를 보강하고, LayerTree/Skia/Preview ref resolver 가 exported `masterId` mirror 도 fallback 으로 해석하도록 했다.
+  - Properties 패널 선택 데이터도 canonical `ref` instance 를 origin-shaped element 로 해석해 instance 선택 시 `ref` 속성 에디터가 아니라 origin 컴포넌트 속성 에디터가 열리도록 했다.
+  - Origin 속성 변경 시 부모→자식 propagation batch 경로가 active `CompositionDocument` 를 갱신하지 않아 값이 즉시 되돌아가고 legacy element mirror 저장에서 `Element not found` 경고가 발생하던 문제를 수정했다.
+  - Origin 삭제 시 full canonical replace shell 이 기존 page body children 을 그대로 보존해 삭제한 origin 이 canonical document 에 남던 문제를 수정했다.
+- Element 를 `Create component` 로 Origin 전환한 뒤 브라우저 새로고침 시 Standard 로 회귀하던 회귀를 수정했다.
+  - instance lifecycle action 이 Origin 전환 후 active `CompositionDocument` 에 canonical merge 를 즉시 수행하고, IndexedDB `documents` store 에도 현재 canonical document 를 저장한다.
+  - canonical mutation/export 경계가 `reusable: true` origin 을 legacy `componentRole: "master"` mirror 로 round-trip 하며, page 소속 origin 을 root reusable 로 끌어올리지 않고 page children 위치에 유지한다.
+  - Browser refresh hydrate 의 `deriveProjectRenderModelFromDocument` 가 page-owned reusable origin 과 canonical ref instance mirror 를 runtime element 로 복원하도록 수정했다.
 
 ### Verification
 
@@ -40,10 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/workspace/canvas/skia/skiaOverlayHelpers.test.ts` — 2 files / 20 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/builder/workspace/canvas/skia/skiaOverlayHelpers.test.ts` — 4 files / 31 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/main/BuilderCore.static.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts` — 4 files / 36 tests PASS
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/canonicalMutations.test.ts src/builder/utils/canonicalRefResolution.test.ts src/builder/utils/multiElementCopy.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts src/builder/workspace/canvas/skia/skiaWorkflowSelection.test.ts` — component instance materialization PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/index.test.tsx src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts src/builder/utils/canonicalRefResolution.test.ts src/builder/utils/multiElementCopy.test.ts` — component instance properties panel data PASS
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/canonicalMutations.test.ts src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts src/builder/stores/utils/__tests__/elementUpdateOriginImpact.test.ts` — component origin property update/delete canonical persistence PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.static.test.ts` — 1 file / 4 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/workspace/canvas/interaction/selectionModel.test.ts src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.static.test.ts` — frame body auto-selection / Skia body selection PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/PagesSection.test.tsx src/builder/panels/nodes/tree/PageTree/PageTreeItemContent.test.tsx` — page tab body auto-selection PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts && pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — page order / Home root PASS
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/canonicalMutations.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts` — component origin refresh persistence PASS
+- `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — component origin/instance refresh hydrate PASS
 - `pnpm run codex:preflight` — PASS
 
 ## [Rollback — ADR-916 post-cutover fix 군 + build error fix + canonical-hydration fix 폐기] - 2026-05-05

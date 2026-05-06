@@ -28,6 +28,10 @@ import { requestEditingSemanticsImpactConfirmation } from "../../utils/editingSe
 import { getDB } from "../../../lib/db";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import {
+  areCanonicalMutationStoreActionsRegistered,
+  mergeElementsCanonicalPrimary,
+} from "../../../adapters/canonical/canonicalMutations";
+import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_MASTER_ID_MIRROR_FIELD,
   COMPONENT_OVERRIDES_MIRROR_FIELD,
@@ -42,6 +46,7 @@ import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
+import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
 type CanonicalElementFields = {
   children?: unknown;
@@ -185,6 +190,12 @@ function persistElementsAfterInstanceMutation(elements: Element[]): void {
       await db.elements.insertMany(
         elements.map((element) => sanitizeElement(element)),
       );
+      const canonical = useCanonicalDocumentStore.getState();
+      const projectId = canonical.currentProjectId;
+      const doc = projectId ? canonical.documents.get(projectId) : null;
+      if (projectId && doc) {
+        await db.documents.put(projectId, doc);
+      }
     } catch (error) {
       console.warn(
         "⚠️ [IndexedDB] instance mutation 저장 중 오류 (메모리는 정상):",
@@ -192,6 +203,11 @@ function persistElementsAfterInstanceMutation(elements: Element[]): void {
       );
     }
   })();
+}
+
+function syncInstanceElementsToCanonical(elements: Element[]): void {
+  if (!areCanonicalMutationStoreActionsRegistered()) return;
+  mergeElementsCanonicalPrimary(elements);
 }
 
 function createMaterializedElementFromOverride(
@@ -579,7 +595,11 @@ function applyElementSnapshotBatch(
     };
   });
   get()._rebuildIndexes();
-  persistElementsAfterInstanceMutation(nextElements);
+  syncInstanceElementsToCanonical(nextElements);
+  const persistedElements = nextElements.map(
+    (element) => get().elementsMap.get(element.id) ?? element,
+  );
+  persistElementsAfterInstanceMutation(persistedElements);
 }
 
 /**

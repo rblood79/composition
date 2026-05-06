@@ -43,6 +43,31 @@ origin/ref instance/slot descendants까지 같은 ordering contract로 확장한
 - slot/component: `descendants[slotPath].children` order와 legacy element projection order가
   동시에 영향을 준다.
 
+## Local Main Delta After Initial Plan
+
+ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어왔다. 아래 항목은 Phase
+완료가 아니라, 기존 계획의 baseline을 갱신하는 partial implementation이다.
+
+| 영역                        | 현재 반영                                                                                                                                                                                         | 남은 판단                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| canonical upsert            | `upsertChild`가 기존 child를 같은 배열 index에서 replace하고 신규 child만 append한다. `replaceNodeById`는 nested `children`과 `RefNode.descendants[*].children`까지 위치 보존 replace를 수행한다. | 공개 helper/API로 승격하고, explicit insert/move/remove는 아직 별도 구현해야 한다.                                  |
+| legacy export mirror        | `exportLegacyDocument`가 root/nested/descendant `children` 순회 index를 legacy `order_num`으로 파생한다.                                                                                          | DB/API/import/test fixture bucket과 함께 Phase 6 allowlist에 고정해야 한다.                                         |
+| component origin round-trip | `reusable: true`를 `componentRole: "master"` mirror로 export하고, page-owned origin을 root reusable catalog로 끌어올리지 않는다.                                                                  | origin/instance/slot 전체 child order cutover는 Phase 5에서 별도 gate로 닫아야 한다.                                |
+| LayerTree/frame projection  | canonical source와 page-frame projection merge가 보강되어 frame-bound page body/slot/live page child가 더 잘 보인다.                                                                              | `useLayerTreeData`와 `buildTreeFromElements`는 여전히 `order_num` sort를 사용하므로 G3 미완이다.                    |
+| selection/hit-test          | page-frame hidden slot child 선택과 overlapping frame body 선택이 보강됐다.                                                                                                                       | depth/area 우선 heuristic이 최종 `z-index` + `children[]` effective order와 충돌하지 않는지 G3에서 재검증해야 한다. |
+| drag/drop/write path        | 선행 패치 없음. `batchUpdateElementOrders`/`moveElementToContainer`는 legacy `order_num` write 중심이다.                                                                                          | Phase 4에서 target parent `children[]` splice write path로 전환해야 한다.                                           |
+
+### 중요 정리
+
+- 선행 패치는 ADR-918의 Decision을 바꾸지 않는다. 오히려 대안 A의 일부 전제가 이미
+  코드에 들어간 상태다.
+- `shouldPreserveExistingCanonicalPosition`은 "같은 legacy ownership/order 입력으로 props만
+  바뀌는 update"의 위치 보존 guard다. reorder API가 아니므로 Phase 1/4의
+  `moveCanonicalChild`/descendant move helper 요구는 유지한다.
+- 현재 `order_num` sort가 남은 runtime path는 Phase 0 inventory에서 `delete-after-cutover`
+  또는 temporary `structural-runtime` bucket으로 명시하고, Phase 6에서 0 또는 allowlist로
+  닫는다.
+
 ## Phase 0: Inventory + Bucket Classification
 
 ### 작업
@@ -56,7 +81,12 @@ origin/ref instance/slot descendants까지 같은 ordering contract로 확장한
    - `fixture-test`: legacy fixture 또는 test helper.
    - `delete-after-cutover`: Phase 6에서 제거할 임시 fallback.
 3. current tactical page hotfix가 어떤 bucket에 속하는지 명시한다.
-4. Phase 6 grep gate allowlist를 먼저 작성한다.
+4. 2026-05-06 local main 선행 패치를 별도 `partial-implemented` column으로 표시한다.
+   특히 `canonicalMutations.ts`, `exportLegacyDocument.ts`, `useLayerTreeData.ts`,
+   `selectionHitTest.ts`, `hierarchicalSelection.ts`,
+   `apps/builder/src/builder/stores/elements.ts`, `treeUtils.ts`,
+   Preview/Publish order sort call site를 같은 표에서 비교한다.
+5. Phase 6 grep gate allowlist를 먼저 작성한다.
 
 ### 확인 명령
 
@@ -70,12 +100,16 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 - bucket별 file/function inventory.
 - Phase별 migration target 목록.
 - Phase 6 allowlist 초안.
+- local main 선행 패치 목록과 각 항목의 Phase 귀속표.
 
 ## Phase 1: Canonical Order Helper 도입
 
 ### 작업
 
 1. canonical document mutation/read helper를 만든다.
+   - local main의 `upsertChild`, `replaceNodeById`, `removeNodeById` 선행 구현을
+     내부 helper 후보로 평가하되, 파일-local 함수에 머무르지 않게 public/internal
+     API 경계를 정한다.
    - `getCanonicalChildren(document, parentId)`
    - `insertCanonicalChild(document, parentId, child, index)`
    - `moveCanonicalChild(document, childId, targetParentId, index)`
@@ -89,7 +123,10 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
    구분하는지 test한다.
 4. `order_num` mirror 생성은 helper 밖 runtime에서 직접 계산하지 않도록 adapter boundary
    helper로 격리한다.
-5. `packages/shared/src/types/composition-document-actions.types.ts`와
+5. 기존 위치 보존 guard(`shouldPreserveExistingCanonicalPosition`)는 props/update
+   replace 용도로만 유지한다. 이 guard를 reorder로 오해하지 않도록 explicit move helper의
+   테스트를 별도로 둔다.
+6. `packages/shared/src/types/composition-document-actions.types.ts`와
    `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts`에 move/reorder와
    descendants children insert/move contract를 명시한다.
 
@@ -135,6 +172,12 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 6. layout engine의 child order fallback이 `order_num`이 아니라 projection order를 사용하도록
    정리한다.
 7. synthetic merge/collection child projection이 structural child order를 변경하지 않는지 확인한다.
+8. local main의 frame-bound LayerTree projection 보강은 유지하되, `useLayerTreeData`의
+   page-owned element sort와 `buildTreeFromElements`의 generic sort를 canonical-derived
+   projection order로 전환한다.
+9. `pickTopmostHitElementId`의 depth/area heuristic은 page-frame hidden slot selection
+   보강으로 남길 수 있는지, 아니면 effective order pipeline 안의 tie-breaker로 흡수해야
+   하는지 결정한다.
 
 ### 검증
 
@@ -145,6 +188,8 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
   적용한다.
 - full-tree layout이 child index order를 보존한다.
 - Preview와 Publish에서 같은 document order가 표시된다.
+- page-frame hidden slot child 선택은 유지하면서, sibling stacking priority는 render order와
+  같은 effective order를 사용한다.
 
 ## Phase 4: Drag/Drop Reorder Write Path Cutover
 
@@ -156,6 +201,9 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 3. cross-container/layout drop은 target parent와 child index를 deferred state로 들고 있다가
    exit/drop 시 `moveCanonicalChild`로 적용한다.
 4. legacy `parent_id`/`order_num` write는 adapter projection 또는 derived mirror로만 발생한다.
+5. `batchUpdateElementOrders`, `moveElementToContainer`, `reorderElements`는 final canonical
+   write API의 caller 또는 legacy mirror update로 격리한다. 현재 구현처럼 `order_num`을
+   primary write target으로 두지 않는다.
 
 ### 검증
 
@@ -174,6 +222,8 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
    처리한다.
 4. 같은 `ref` component를 같은 slot에 여러 번 삽입해도 각 child id를 독립 instance로 보존한다.
 5. origin edit, instance override, detach가 child order를 서로 오염시키지 않는지 확인한다.
+6. local main의 `reusable: true` origin persistence/round-trip 선행 패치를 Phase 5 baseline으로
+   인정하고, page-owned origin이 root reusable catalog로 이동하지 않는 회귀 테스트를 유지한다.
 
 ### 검증
 
@@ -181,6 +231,8 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 - instance LayerTree가 ref 하나만 보이는 상태로 퇴행하지 않고 resolved/override child를 표시한다.
 - slot에 같은 recommended component를 두 번 삽입하면 두 child가 같은 순서로 보존된다.
 - detach 후 resolved children order가 유지된다.
+- Create component 후 refresh해도 origin이 `reusable: true`/`componentRole: "master"`로
+  유지되고 원래 parent `children[]` 위치를 잃지 않는다.
 
 ## Phase 6: Legacy Mirror Quarantine + Grep Gate
 
@@ -231,6 +283,18 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 | shared renderers      | `packages/shared/src/renderers/**`                                                                                                       | `childrenMap` order 소비만 허용, local `order_num` sort 제거 |
 | collection data       | `migrateCollectionItems.ts`, Table/List data models                                                                                      | structural vs data order bucket 분리                         |
 
+### Local Main Partial Files
+
+| 파일                                                                       | 현재 역할                                                            | ADR-918 처리                                                             |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `apps/builder/src/adapters/canonical/canonicalMutations.ts`                | 위치 보존 upsert/replace/remove, reusable origin placement 일부 구현 | Phase 1 helper 후보 + Phase 5 baseline. explicit move helper는 추가 필요 |
+| `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`              | `children[]` index에서 legacy `order_num` export                     | Phase 1/6 adapter boundary allowlist                                     |
+| `apps/builder/src/builder/stores/utils/instanceActions.ts`                 | component origin 전환 후 canonical document sync/persist             | Phase 5 baseline. instance creation order write는 Phase 4/6에서 재분류   |
+| `apps/builder/src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts` | canonical/page-frame source merge와 frame-bound projection 보강      | Phase 3 partial. `order_num` sort 제거 필요                              |
+| `apps/builder/src/builder/utils/treeUtils.ts`                              | generic Element tree가 `order_num` sort 사용                         | Phase 3 cutover target                                                   |
+| `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`  | depth/area 기반 hit target 보강                                      | Phase 3 effective order 재검증 target                                    |
+| `apps/builder/src/builder/stores/elements.ts` / `elementReorder.ts`        | order write/reparent가 legacy `order_num` 중심                       | Phase 4 cutover target                                                   |
+
 ## Verification Plan
 
 ### Unit / Static
@@ -239,7 +303,11 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 pnpm -F @composition/builder exec vitest run \
   src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts \
   src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx \
-  src/adapters/canonical/__tests__/canonicalMutations.test.ts
+  src/adapters/canonical/__tests__/canonicalMutations.test.ts \
+  src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts \
+  src/builder/stores/utils/__tests__/instanceActions.test.ts \
+  src/builder/utils/hierarchicalSelection.test.ts \
+  src/builder/workspace/canvas/selection/selectionHitTest.test.ts
 
 pnpm -F @composition/shared exec vitest run \
   src/utils/__tests__/exportCanonicalProject.test.ts
@@ -263,6 +331,8 @@ pnpm run codex:typecheck
 
 - [ ] G0 inventory와 allowlist 작성.
 - [ ] G1 canonical order helper + unit test 통과.
+- [ ] local main partial 선행 패치를 Phase 1/3/5 baseline으로 분류하고, 완료 gate와 미완
+      gate를 분리.
 - [ ] G2 page/root order cutover 완료.
 - [ ] G3 LayerTree/layout/Skia/Preview/Publish read path cutover 완료.
 - [ ] G4 drag/drop write path cutover 완료.

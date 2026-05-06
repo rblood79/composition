@@ -83,6 +83,36 @@ describe("canonicalRefResolution", () => {
     });
   });
 
+  it("resolves exported canonical ref mirrors that only carry masterId", () => {
+    const origin = makeElement("origin", {
+      type: "Text",
+      reusable: true,
+      props: { text: "Origin text" },
+    });
+    const ref = makeElement("instance", {
+      type: "ref",
+      componentRole: "instance",
+      masterId: "origin",
+      props: { style: { left: "12px" } },
+    } as never);
+
+    const tree = resolveCanonicalRefTree({
+      elements: [origin, ref],
+      elementsMap: new Map([
+        ["origin", origin],
+        ["instance", ref],
+      ]),
+    });
+
+    expect(isCanonicalRefElement(ref)).toBe(true);
+    expect(tree.elementsMap.get("instance")).toMatchObject({
+      id: "instance",
+      type: "Text",
+      ref: "origin",
+      props: { text: "Origin text", style: { left: "12px" } },
+    });
+  });
+
   it("resolves a canonical ref master by metadata componentName alias", () => {
     const origin = makeElement("origin", {
       type: "Button",

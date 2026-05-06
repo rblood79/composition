@@ -29,6 +29,7 @@ import {
   canonicalDocumentToFrameElementScopes,
   type CanonicalFrameElementScopeMap,
 } from "../../../adapters/canonical/frameElementScope";
+import { resolveCanonicalRefElement } from "../../utils/canonicalRefResolution";
 import { useActiveCanonicalDocument } from "./canonicalElementsBridge";
 
 type ElementScopeContext = {
@@ -284,32 +285,6 @@ export function useCanonicalFrameElementScopes(): CanonicalFrameElementScopeMap 
 }
 
 /**
- * canonical document 트리에서 `node.id === elementId` 인 노드를 DFS 검색.
- *
- * @returns 매칭 노드 또는 `null` (없음)
- */
-function findNodeByCanonicalId(
-  doc: CompositionDocument,
-  elementId: string,
-): CanonicalNode | null {
-  function visit(node: CanonicalNode): CanonicalNode | null {
-    if (node.id === elementId) return node;
-    if (node.children) {
-      for (const c of node.children) {
-        const found = visit(c);
-        if (found) return found;
-      }
-    }
-    return null;
-  }
-  for (const c of doc.children) {
-    const found = visit(c);
-    if (found) return found;
-  }
-  return null;
-}
-
-/**
  * 활성 canonical document 에서 selected element 를 `Element` 형태로 파생.
  *
  * **ADR-916 Phase 2 G3 Step 2 (Selection/properties)** read backbone — selected
@@ -335,8 +310,11 @@ export function useCanonicalSelectedElement(
   const doc = useActiveCanonicalDocument();
   return useMemo(() => {
     if (!selectedElementId || !doc) return null;
-    const node = findNodeByCanonicalId(doc, selectedElementId);
-    if (!node) return null;
-    return canonicalNodeToElement(node, null, 0);
+    const elements = canonicalDocumentToElements(doc);
+    const element = elements.find(
+      (candidate) => candidate.id === selectedElementId,
+    );
+    if (!element) return null;
+    return resolveCanonicalRefElement(element, elements);
   }, [selectedElementId, doc]);
 }

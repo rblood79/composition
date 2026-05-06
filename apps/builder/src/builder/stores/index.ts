@@ -103,6 +103,11 @@ export const useSelectedElementProps = () =>
 export const useCurrentPageId = () => useStore((state) => state.currentPageId);
 export const usePages = () => useStore((state) => state.pages);
 
+function hasCanonicalRefMirror(element: Element | undefined): boolean {
+  const ref = (element as (Element & { ref?: unknown }) | undefined)?.ref;
+  return typeof ref === "string" && ref.length > 0;
+}
+
 // ============================================
 // 🚀 Single Source of Truth: Selected Element
 // ============================================
@@ -145,9 +150,8 @@ export const useSelectedElementData = (): SelectedElement | null => {
     let resolvedElement: Element | undefined;
 
     if (useCanonical && canonicalSelectedElement) {
-      // canonical mode — store sync 가 ref resolution 을 미리 처리하지 않으므로
-      // 변환된 Element 그대로 사용. ref instance 분기는 Sub-Phase B 후속 cutover
-      // 시점에 재검토.
+      // canonical mode — canonical selected view already resolves ref instances
+      // into origin-shaped display elements while preserving the selected id.
       element = canonicalSelectedElement;
       resolvedElement = element;
     } else {
@@ -163,20 +167,23 @@ export const useSelectedElementData = (): SelectedElement | null => {
     if (!element || !resolvedElement) return null;
 
     // selectedElementProps가 비어있으면 element에서 직접 추출
-    const props =
-      isCanonicalRefElement(element) && resolvedElement !== element
-        ? {
-            ...resolvedElement.props,
-            ...(selectedElementProps.computedStyle !== undefined && {
-              computedStyle: selectedElementProps.computedStyle,
-            }),
-            ...(selectedElementProps.events !== undefined && {
-              events: selectedElementProps.events,
-            }),
-          }
-        : selectedElementProps && Object.keys(selectedElementProps).length > 0
-          ? selectedElementProps
-          : element.props;
+    const shouldUseResolvedRefProps =
+      (isCanonicalRefElement(element) && resolvedElement !== element) ||
+      (!isCanonicalRefElement(element) && hasCanonicalRefMirror(element));
+
+    const props = shouldUseResolvedRefProps
+      ? {
+          ...resolvedElement.props,
+          ...(selectedElementProps.computedStyle !== undefined && {
+            computedStyle: selectedElementProps.computedStyle,
+          }),
+          ...(selectedElementProps.events !== undefined && {
+            events: selectedElementProps.events,
+          }),
+        }
+      : selectedElementProps && Object.keys(selectedElementProps).length > 0
+        ? selectedElementProps
+        : element.props;
 
     const { style, computedStyle, events, ...otherProps } = props as Record<
       string,

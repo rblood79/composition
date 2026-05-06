@@ -409,6 +409,117 @@ describe("project export canonical CompositionDocument payload", () => {
     );
   });
 
+  it("preserves page-owned reusable origins when hydrating runtime elements", () => {
+    const documentWithOrigin: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home" },
+          children: [
+            {
+              id: "button-origin",
+              type: "Button",
+              name: "primary-action",
+              reusable: true,
+              props: { children: "Click" },
+            },
+          ],
+        },
+      ],
+    };
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithOrigin,
+      projectId,
+      "page-home",
+    );
+
+    expect(renderModel.elements).toEqual([
+      expect.objectContaining({
+        id: "button-origin",
+        type: "Button",
+        page_id: "page-home",
+        parent_id: null,
+        componentName: "primary-action",
+        componentRole: "master",
+        reusable: true,
+      }),
+    ]);
+  });
+
+  it("preserves canonical ref instance mirrors when hydrating runtime elements", () => {
+    const documentWithInstance: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "button-origin",
+          type: "Button",
+          name: "Primary action",
+          reusable: true,
+          props: { variant: "accent" },
+          children: [
+            {
+              id: "button-label",
+              type: "Text",
+              props: { children: "Default" },
+            },
+          ],
+        },
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home" },
+          children: [
+            {
+              id: "button-instance",
+              type: "ref",
+              ref: "button-origin",
+              props: { variant: "secondary" },
+              descendants: {
+                "button-label": { children: "Custom" },
+              },
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithInstance,
+      projectId,
+      "page-home",
+    );
+
+    expect(
+      renderModel.elements.find((el) => el.id === "button-instance"),
+    ).toEqual(
+      expect.objectContaining({
+        id: "button-instance",
+        type: "Button",
+        page_id: "page-home",
+        parent_id: null,
+        componentRole: "instance",
+        masterId: "button-origin",
+        ref: "button-origin",
+        overrides: { variant: "secondary" },
+        descendants: {
+          "button-label": { children: "Custom" },
+        },
+      }),
+    );
+    expect(renderModel.elements.find((el) => el.id === "button-label")).toEqual(
+      expect.objectContaining({
+        id: "button-label",
+        parent_id: "button-instance",
+        page_id: "page-home",
+      }),
+    );
+  });
+
   it("rejects legacy-only project payload without CompositionDocument", () => {
     const legacyOnly = {
       version: "1.0.0",

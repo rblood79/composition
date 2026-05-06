@@ -50,6 +50,10 @@ import { isLegacySlotTag, tagToType } from "./tagRename";
 import { getPageFrameBindingId } from "./frameMirror";
 import { asElementWithLegacyMirror } from "./legacyElementFields";
 
+type CanonicalRefElementFields = {
+  ref?: unknown;
+};
+
 // ─────────────────────────────────────────────
 // Callback registration (DI pattern)
 // ─────────────────────────────────────────────
@@ -493,12 +497,25 @@ function remapLegacyDescendants(
   return remapped;
 }
 
+function getCanonicalRefTarget(element: Element): string | null {
+  if (element.type !== "ref") return null;
+  const ref = (element as Element & CanonicalRefElementFields).ref;
+  return typeof ref === "string" && ref.length > 0 ? ref : null;
+}
+
 function legacyElementToCanonicalNode(
   element: Element,
   doc: CompositionDocument,
   previousNode: CanonicalNode | null,
 ): CanonicalNode {
   const legacy = asElementWithLegacyMirror(element);
+  const isReusableOrigin =
+    legacy.componentRole === "master" ||
+    (element as Element & { reusable?: boolean }).reusable === true;
+  const refTarget =
+    legacy.componentRole === "instance" && legacy.masterId
+      ? legacy.masterId
+      : getCanonicalRefTarget(element);
 
   if (isLegacySlotTag(element.type)) {
     const slotName =
@@ -535,6 +552,19 @@ function legacyElementToCanonicalNode(
     };
   }
 
+  const metadataElement = isReusableOrigin
+    ? ({
+        ...element,
+        componentRole: "master",
+      } as Element)
+    : refTarget
+      ? ({
+          ...element,
+          componentRole: "instance",
+          masterId: refTarget,
+          overrides: legacy.overrides ?? element.props,
+        } as Element)
+      : element;
   const baseNode: CanonicalNode = {
     id: previousNode?.id ?? element.id,
     type: tagToType(element.type),
@@ -542,24 +572,24 @@ function legacyElementToCanonicalNode(
     props: element.props as Record<string, unknown>,
     ...(previousNode?.children ? { children: previousNode.children } : {}),
     ...getCanonicalSlotDeclaration(element),
-    metadata: buildLegacyElementMetadata(element),
+    metadata: buildLegacyElementMetadata(metadataElement),
     ...buildCompositionExtensionField(element),
   };
 
-  if (legacy.componentRole === "master") {
+  if (isReusableOrigin) {
     return {
       ...baseNode,
       reusable: true,
     };
   }
 
-  if (legacy.componentRole === "instance" && legacy.masterId) {
-    const masterNode = findNodeById(doc.children, legacy.masterId);
+  if (refTarget) {
+    const masterNode = findNodeById(doc.children, refTarget);
     const descendants = remapLegacyDescendants(element, doc);
     const refNode: RefNode = {
       ...baseNode,
       type: "ref",
-      ref: masterNode?.id ?? legacy.masterId,
+      ref: masterNode?.id ?? refTarget,
       ...(legacy.overrides ? { props: legacy.overrides } : {}),
       ...(descendants ? { descendants } : {}),
     };
@@ -862,7 +892,12 @@ function upsertElementIntoDocument(
     previousNode,
   );
 
-  if (legacy.componentRole === "master") {
+  if (
+    legacy.componentRole === "master" &&
+    !element.parent_id &&
+    !element.page_id &&
+    !element.layout_id
+  ) {
     return {
       ...docWithoutExisting,
       children: upsertChild(docWithoutExisting.children, node),
@@ -966,6 +1001,40 @@ function upsertElementsIntoDocument(
   );
 }
 
+function clearChildrenForIncomingElementIds(
+  nodes: CompositionDocument["children"],
+  incomingElementIds: Set<string>,
+): CompositionDocument["children"] {
+  return nodes.map((node) => {
+    if (incomingElementIds.has(node.id)) {
+      return { ...node, children: [] };
+    }
+
+    if (!node.children || node.children.length === 0) return node;
+
+    const children = clearChildrenForIncomingElementIds(
+      node.children,
+      incomingElementIds,
+    );
+    return children === node.children ? node : { ...node, children };
+  });
+}
+
+function prepareFullReplaceShell(
+  doc: CompositionDocument,
+  elements: Element[],
+): CompositionDocument {
+  if (elements.length === 0) return doc;
+  const incomingElementIds = new Set(elements.map((element) => element.id));
+  return {
+    ...doc,
+    children: clearChildrenForIncomingElementIds(
+      doc.children,
+      incomingElementIds,
+    ),
+  };
+}
+
 // ─────────────────────────────────────────────
 // Canonical primary reverse path (§8.7)
 // ─────────────────────────────────────────────
@@ -1011,8 +1080,9 @@ function applyCanonicalPrimarySet(elements: Element[]): void {
   const projectId = actions.getCurrentProjectId();
   const currentDoc = getCurrentDocument(projectId);
   const shellDoc = buildDocumentShellFromSnapshot(currentDoc, snapshot);
+  const replaceShellDoc = prepareFullReplaceShell(shellDoc, elements);
   const doc = upsertElementsIntoDocument(
-    shellDoc,
+    replaceShellDoc,
     sortElementsForUpsert(elements),
     snapshot,
   );

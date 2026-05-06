@@ -28,10 +28,17 @@ function getRefOverrideProps(element: Element): Record<string, unknown> {
 }
 
 export function isCanonicalRefElement(element: Element | undefined): boolean {
-  return (
-    element?.type === "ref" &&
-    typeof asCanonicalRefFields(element).ref === "string"
-  );
+  return getCanonicalRefTarget(element) !== null;
+}
+
+function getCanonicalRefTarget(element: Element | undefined): string | null {
+  if (!element || element.type !== "ref") return null;
+
+  const ref = asCanonicalRefFields(element).ref;
+  if (typeof ref === "string" && ref.length > 0) return ref;
+
+  const masterId = (element as Element & LegacyElementMirrorFields).masterId;
+  return typeof masterId === "string" && masterId.length > 0 ? masterId : null;
 }
 
 export function resolveCanonicalRefMaster(
@@ -47,7 +54,7 @@ export function resolveCanonicalRefElement(
 ): Element {
   if (!isCanonicalRefElement(element)) return element;
 
-  const ref = asCanonicalRefFields(element).ref as string;
+  const ref = getCanonicalRefTarget(element)!;
   const master = resolveCanonicalRefMaster(ref, elements);
   if (!master) return element;
 
@@ -239,8 +246,12 @@ function materializeOverrideChildren(
     resultElementsMap.set(syntheticId, resolvedChild);
     syntheticChildren.push(resolvedChild);
 
-    if (isCanonicalRefElement(syntheticChild) && ref) {
-      const master = resolveCanonicalRefMaster(ref, resultElementsMap.values());
+    const syntheticRef = getCanonicalRefTarget(syntheticChild);
+    if (syntheticRef) {
+      const master = resolveCanonicalRefMaster(
+        syntheticRef,
+        resultElementsMap.values(),
+      );
       if (master) {
         materializeSyntheticDescendants(
           syntheticChild,
@@ -369,7 +380,8 @@ export function resolveCanonicalRefTree(input: {
       if (index >= 0) elements[index] = resolvedRoot;
     }
 
-    const ref = asCanonicalRefFields(element).ref as string;
+    const ref = getCanonicalRefTarget(element);
+    if (!ref) continue;
     const master = resolveCanonicalRefMaster(ref, input.elementsMap.values());
     if (!master) continue;
 

@@ -83,6 +83,10 @@ import {
 import { supabase } from "../../../env/supabase.client";
 import type { Element } from "../../../types/core/store.types";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
+import {
+  isCanonicalRefElement,
+  resolveCanonicalRefElement,
+} from "../../utils/canonicalRefResolution";
 
 /**
  * PropertyEditorWrapper - Editor 컴포넌트를 분리하여 불필요한 리렌더링 방지
@@ -170,12 +174,19 @@ const PropertyEditorWrapper = memo(
         const element = state.elementsMap.get(state.selectedElementId ?? "");
         if (!element) return;
 
+        const effectiveElement = isCanonicalRefElement(element)
+          ? resolveCanonicalRefElement(element, state.elementsMap.values())
+          : element;
+        const baselineProps = (effectiveElement.props ?? {}) as Record<
+          string,
+          unknown
+        >;
         const changedProps: Record<string, unknown> = {};
         let changedCount = 0;
         for (const [key, value] of Object.entries(updatedProps)) {
           if (key === "style" || key === "computedStyle" || key === "events")
             continue;
-          if ((element.props as Record<string, unknown>)[key] !== value) {
+          if (baselineProps[key] !== value) {
             changedProps[key] = value;
             changedCount++;
           }
@@ -184,10 +195,10 @@ const PropertyEditorWrapper = memo(
         if (changedCount === 0) return;
 
         // ADR-048: propagation 규칙 중 변경된 prop과 매칭되는 것이 있으면 자식도 업데이트
-        const rules = getPropagationRules(element.type);
+        const rules = getPropagationRules(effectiveElement.type);
         if (rules && rules.some((r) => r.parentProp in changedProps)) {
           const childUpdates = buildPropagationUpdates(
-            element,
+            effectiveElement,
             changedProps,
             rules,
             state.childrenMap as Map<

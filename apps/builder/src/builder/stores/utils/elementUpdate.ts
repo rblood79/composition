@@ -100,8 +100,12 @@ const INHERITED_LAYOUT_PROPS_UPDATE = new Set([
 ]);
 
 function syncUpdatedElementToCanonical(element: Element): void {
+  syncUpdatedElementsToCanonical([element]);
+}
+
+function syncUpdatedElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
-  mergeElementsCanonicalPrimary([element]);
+  mergeElementsCanonicalPrimary(elements);
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
@@ -111,6 +115,45 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
   const doc = canonical.documents.get(projectId);
   if (!doc) return;
   await db.documents.put(projectId, doc);
+}
+
+function hasActiveCanonicalProject(): boolean {
+  return Boolean(useCanonicalDocumentStore.getState().currentProjectId);
+}
+
+function isElementNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.startsWith("Element not found:")
+  );
+}
+
+async function persistLegacyElementPropsMirrors(
+  db: BuilderDb,
+  elements: Element[],
+): Promise<void> {
+  const results = await Promise.allSettled(
+    elements.map((element) =>
+      db.elements.update(element.id, {
+        props: element.props,
+      }),
+    ),
+  );
+  const failures = results
+    .filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    )
+    .map((result) => result.reason);
+
+  if (failures.length === 0) return;
+
+  const canonicalActive = hasActiveCanonicalProject();
+  const blockingFailures = canonicalActive
+    ? failures.filter((reason) => !isElementNotFoundError(reason))
+    : failures;
+
+  if (blockingFailures.length > 0) {
+    throw blockingFailures[0];
+  }
 }
 
 function isLayoutAffectingUpdate(
@@ -406,7 +449,7 @@ export const createUpdateElementPropsAction =
     void (async () => {
       try {
         const db = await getDB();
-        await db.elements.update(elementId, { props: updatedElement.props });
+        await persistLegacyElementPropsMirrors(db, [updatedElement]);
         await persistActiveCanonicalDocument(db);
       } catch (error) {
         console.warn(
@@ -681,6 +724,11 @@ export const createBatchUpdateElementPropsAction =
       });
     }
 
+    const updatedElementsForPersistence = Array.from(
+      updatedElementMap.values(),
+    );
+    syncUpdatedElementsToCanonical(updatedElementsForPersistence);
+
     // 2. 단일 히스토리 엔트리 추가 (batch 타입)
     const currentPageId = get().currentPageId;
     if (currentPageId && prevStates.length > 0) {
@@ -703,15 +751,11 @@ export const createBatchUpdateElementPropsAction =
     void (async () => {
       try {
         const db = await getDB();
-        await Promise.all(
-          validUpdates.map(({ elementId }) => {
-            const mergedElement = nextElementsMap.get(elementId);
-            if (!mergedElement) return Promise.resolve();
-            return db.elements.update(elementId, {
-              props: mergedElement.props,
-            });
-          }),
+        await persistLegacyElementPropsMirrors(
+          db,
+          updatedElementsForPersistence,
         );
+        await persistActiveCanonicalDocument(db);
       } catch (error) {
         console.warn(
           "⚠️ [IndexedDB] 배치 저장 중 오류 (메모리는 정상):",

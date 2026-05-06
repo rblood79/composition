@@ -49,6 +49,8 @@ describe("multiElementCopy", () => {
     expect(pasted[0]).toMatchObject({
       type: "ref",
       ref: "origin",
+      componentRole: "instance",
+      masterId: "origin",
       parent_id: "body",
       page_id: "page-1",
       componentName: "Primary Button",

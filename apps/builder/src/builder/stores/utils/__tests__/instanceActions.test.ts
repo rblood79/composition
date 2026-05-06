@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CompositionDocument } from "@composition/shared";
+import {
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "@/adapters/canonical/canonicalMutations";
 import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_MASTER_ID_MIRROR_FIELD,
@@ -7,7 +12,8 @@ import {
   withComponentInstanceMirror,
   withComponentOriginMirror,
 } from "@/adapters/canonical/componentSemanticsMirror";
-import type { Element } from "../../../../types/core/store.types";
+import type { Element, Page } from "../../../../types/core/store.types";
+import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import {
   resolveEditingSemanticsImpactConfirmation,
   subscribeEditingSemanticsImpactConfirmation,
@@ -32,10 +38,17 @@ describe("instance store actions", () => {
   const addEntrySpy = vi.spyOn(historyManager, "addEntry");
 
   beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     addEntrySpy.mockClear();
     historyManager.setCurrentPage("page-1");
     useStore.setState({
       currentPageId: "page-1",
+      pages: [],
       elements: [],
       elementsMap: new Map(),
       childrenMap: new Map(),
@@ -566,6 +579,91 @@ describe("instance store actions", () => {
     expect(
       useStore.getState().elementsMap.get("button")?.reusable,
     ).toBeUndefined();
+  });
+
+  it("syncs a created component origin into the active canonical document for refresh", async () => {
+    const button = makeElement("button", {
+      customId: "primary-action",
+      page_id: "page-1",
+      props: { children: "Click" },
+    });
+    const page = {
+      id: "page-1",
+      title: "Home",
+      project_id: "project-1",
+      slug: "/",
+      order_num: 0,
+    } as Page;
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "button",
+              type: "Button",
+              props: { children: "Click" },
+              metadata: {
+                type: "legacy-element-props",
+                legacyProps: {
+                  id: "button",
+                  page_id: "page-1",
+                  type: "Button",
+                  order_num: 0,
+                },
+              },
+            },
+          ],
+        },
+      ],
+    } satisfies CompositionDocument;
+
+    useStore.setState({
+      currentPageId: "page-1",
+      elements: [button],
+      elementsMap: new Map([["button", button]]),
+      pages: [page],
+    } as never);
+    useStore.getState()._rebuildIndexes();
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", doc);
+    registerCanonicalMutationStoreActions({
+      mergeElements: useStore.getState().mergeElements,
+      setElements: useStore.getState().setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    await useStore.getState().toggleComponentOrigin("button");
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    expect(pageNode?.children).toEqual([
+      expect.objectContaining({
+        id: "button",
+        reusable: true,
+        metadata: expect.objectContaining({
+          legacyProps: expect.objectContaining({
+            componentRole: "master",
+            page_id: "page-1",
+          }),
+        }),
+      }),
+    ]);
+    expect(useStore.getState().elementsMap.get("button")).toMatchObject({
+      componentName: "primary-action",
+      componentRole: "master",
+      reusable: true,
+    });
   });
 
   it("removes component origin silently when no instances exist", async () => {

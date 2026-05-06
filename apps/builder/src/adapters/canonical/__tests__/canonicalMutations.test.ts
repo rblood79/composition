@@ -439,6 +439,74 @@ describe("canonical mutation wrappers", () => {
     );
   });
 
+  it("setElementsCanonicalPrimary clears omitted page-owned origin children during full replace", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1") as Page;
+    const body = makeElement("page-body", "body", {
+      page_id: "page-1",
+      props: { className: "react-aria-Body" },
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+          },
+          children: [
+            {
+              id: "page-body",
+              type: "body",
+              props: body.props as Record<string, unknown>,
+              children: [
+                {
+                  id: "origin",
+                  type: "Button",
+                  reusable: true,
+                  props: { label: "Origin" },
+                  children: [
+                    {
+                      id: "origin-label",
+                      type: "Label",
+                      props: { text: "Origin" },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [body],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    setElementsCanonicalPrimary([body]);
+
+    const pageNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")?.children[0];
+    const pageBody = pageNode?.children?.find(
+      (node) => node.id === "page-body",
+    );
+    expect(pageBody?.children ?? []).toEqual([]);
+    expect(setElements).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "page-body", page_id: "page-1" }),
+    ]);
+  });
+
   it("mergeElementsCanonicalPrimary appends repeated slot fills in order", () => {
     const setElements = vi.fn();
     const page = {
@@ -648,14 +716,12 @@ describe("canonical mutation wrappers", () => {
 
     mergeElementsCanonicalPrimary([
       makeElement("master", "Button", {
-        page_id: "page-1",
         componentRole: "master",
         componentName: "Master Button",
         order_num: 0,
       }),
       makeElement("master-label", "Text", {
         parent_id: "master",
-        page_id: "page-1",
         order_num: 1,
       }),
       makeElement("instance", "Button", {
@@ -699,6 +765,173 @@ describe("canonical mutation wrappers", () => {
         }),
       ]),
     );
+  });
+
+  it("mergeElementsCanonicalPrimary preserves canonical ref fields from pasted component instances", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1");
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "origin",
+              type: "Button",
+              reusable: true,
+              name: "Primary Button",
+              props: { children: "Origin" },
+              children: [
+                {
+                  id: "origin-label",
+                  type: "Text",
+                  props: { children: "Label" },
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    mergeElementsCanonicalPrimary([
+      makeElement("instance", "ref", {
+        page_id: "page-1",
+        ref: "origin",
+        props: { style: { left: "24px" } },
+        order_num: 1,
+      } as never),
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    expect(pageNode?.children).toEqual([
+      expect.objectContaining({
+        id: "origin",
+        reusable: true,
+      }),
+      expect.objectContaining({
+        id: "instance",
+        type: "ref",
+        ref: "origin",
+        props: { style: { left: "24px" } },
+      }),
+    ]);
+    expect(setElements).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          componentRole: "instance",
+          masterId: "origin",
+          overrides: { style: { left: "24px" } },
+        }),
+      ]),
+    );
+  });
+
+  it("mergeElementsCanonicalPrimary preserves reusable page origins across export round-trip", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1");
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    mergeElementsCanonicalPrimary([
+      makeElement("origin", "Button", {
+        page_id: "page-1",
+        componentName: "primary-action",
+        reusable: true,
+        order_num: 0,
+      } as never),
+    ]);
+
+    const firstDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const firstPageNode = firstDoc?.children.find(
+      (node) => node.id === "page-1",
+    );
+    expect(firstPageNode?.children).toEqual([
+      expect.objectContaining({
+        id: "origin",
+        reusable: true,
+        metadata: expect.objectContaining({
+          legacyProps: expect.objectContaining({
+            componentRole: "master",
+            page_id: "page-1",
+          }),
+        }),
+      }),
+    ]);
+
+    const exportedElements = setElements.mock.calls.at(-1)?.[0] as
+      | Element[]
+      | undefined;
+    const exportedOrigin = exportedElements?.find(
+      (element) => element.id === "origin",
+    );
+    expect(exportedOrigin).toMatchObject({
+      id: "origin",
+      page_id: "page-1",
+      parent_id: null,
+      componentRole: "master",
+      reusable: true,
+    });
+
+    mergeElementsCanonicalPrimary([exportedOrigin as Element]);
+
+    const roundTripDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const roundTripPageNode = roundTripDoc?.children.find(
+      (node) => node.id === "page-1",
+    );
+    expect(
+      roundTripDoc?.children.filter((node) => node.id === "origin"),
+    ).toHaveLength(0);
+    expect(roundTripPageNode?.children).toEqual([
+      expect.objectContaining({
+        id: "origin",
+        reusable: true,
+      }),
+    ]);
   });
 
   it("merge path does not rebuild via legacyToCanonical", async () => {
