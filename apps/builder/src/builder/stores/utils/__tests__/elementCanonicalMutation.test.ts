@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CompositionDocument, FrameNode } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  FrameNode,
+  RefNode,
+} from "@composition/shared";
 import type { Element, Page } from "../../../../types/builder/unified.types";
 import type { Layout } from "../../../../types/builder/layout.types";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
+  setElementsCanonicalPrimary,
 } from "../../../../adapters/canonical/canonicalMutations";
 import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
@@ -81,6 +87,52 @@ function makeLayout(id: string): Layout {
     name: id,
     project_id: "project-1",
   };
+}
+
+function makePage(id: string, layoutId?: string): Page {
+  return {
+    id,
+    project_id: "project-1",
+    title: id,
+    slug: `/${id}`,
+    parent_id: null,
+    order_num: 0,
+    ...(layoutId
+      ? {
+          metadata: {
+            frameBinding: {
+              frameId: layoutId,
+            },
+          },
+        }
+      : {}),
+  } as Page;
+}
+
+function makeCanonicalElementNode(element: Element): CanonicalNode {
+  return {
+    id: element.id,
+    type: element.type,
+    props: element.props as Record<string, unknown>,
+    metadata: {
+      type: "legacy-element-props",
+      legacyProps: {
+        ...element.props,
+        id: element.id,
+        parent_id: element.parent_id,
+        page_id: element.page_id,
+        layout_id: element.layout_id,
+        order_num: element.order_num,
+        type: element.type,
+        slot_name: element.slot_name,
+        componentRole: element.componentRole,
+        masterId: element.masterId,
+        overrides: element.overrides,
+        descendants: element.descendants,
+        componentName: element.componentName,
+      },
+    },
+  } as CanonicalNode;
 }
 
 function makeState(elements: Element[]): MockState {
@@ -378,5 +430,266 @@ describe("element mutations keep canonical document primary", () => {
       paddingBottom: 8,
       paddingLeft: 8,
     });
+  });
+
+  it("updateElementProps preserves frame slot sibling order", async () => {
+    const body = makeElement("frame-body", "body", {
+      layout_id: "frame-1",
+      props: { style: { display: "flex" } },
+    });
+    const header = makeElement("slot-header", "Slot", {
+      parent_id: "frame-body",
+      layout_id: "frame-1",
+      order_num: 0,
+      props: { name: "header" },
+      slot_name: "header",
+    });
+    const content = makeElement("slot-content", "Slot", {
+      parent_id: "frame-body",
+      layout_id: "frame-1",
+      order_num: 1,
+      props: { name: "content", style: { padding: 4 } },
+      slot_name: "content",
+    });
+    const footer = makeElement("slot-footer", "Slot", {
+      parent_id: "frame-body",
+      layout_id: "frame-1",
+      order_num: 2,
+      props: { name: "footer" },
+      slot_name: "footer",
+    });
+    const state = makeState([body, header, content, footer]);
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    setElementsCanonicalPrimary(state.elements);
+
+    await createUpdateElementPropsAction(
+      createSetMock(state),
+      () => state as never,
+    )("slot-content", {
+      style: { padding: 8 },
+    });
+
+    const frame = useCanonicalDocumentStore.getState().getDocument("project-1")
+      ?.children[0] as FrameNode;
+    const frameBody = frame.children?.find((node) => node.id === "frame-body");
+    expect(frameBody?.children?.map((node) => node.id)).toEqual([
+      "slot-header",
+      "slot-content",
+      "slot-footer",
+    ]);
+    expect(
+      state.childrenMap.get("frame-body")?.map((element) => element.id),
+    ).toEqual(["slot-header", "slot-content", "slot-footer"]);
+    expect(state.elementsMap.get("slot-content")?.order_num).toBe(1);
+  });
+
+  it("updateElementProps preserves plain page body child order", async () => {
+    const page = makePage("page-1");
+    const body = makeElement("page-body", "body", {
+      page_id: page.id,
+      props: { style: { display: "flex" } },
+    });
+    const first = makeElement("page-card-a", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 0,
+      props: { label: "A" },
+    });
+    const second = makeElement("page-card-b", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 1,
+      props: { label: "B" },
+    });
+    const state = makeState([body, first, second]);
+    state.pages = [page];
+    state.currentPageId = page.id;
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    setElementsCanonicalPrimary(state.elements);
+
+    await createUpdateElementPropsAction(
+      createSetMock(state),
+      () => state as never,
+    )("page-card-a", {
+      label: "A edited",
+    });
+
+    const pageNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")?.children[0] as FrameNode;
+    const pageBody = pageNode.children?.find((node) => node.id === "page-body");
+    expect(pageBody?.children?.map((node) => node.id)).toEqual([
+      "page-card-a",
+      "page-card-b",
+    ]);
+    expect(
+      state.childrenMap.get("page-body")?.map((element) => element.id),
+    ).toEqual(["page-card-a", "page-card-b"]);
+    expect(state.elementsMap.get("page-card-a")?.order_num).toBe(0);
+  });
+
+  it("updateElementProps preserves plain page body child order when canonical ownership metadata is stale", async () => {
+    const page = makePage("page-1");
+    const body = makeElement("page-body", "body", {
+      page_id: page.id,
+      props: { style: { display: "flex" } },
+    });
+    const first = makeElement("page-card-a", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 0,
+      props: { label: "A" },
+    });
+    const second = makeElement("page-card-b", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 1,
+      props: { label: "B" },
+    });
+    const firstCanonical = makeCanonicalElementNode({
+      ...first,
+      page_id: null,
+    });
+    const secondCanonical = makeCanonicalElementNode({
+      ...second,
+      page_id: null,
+    });
+    const state = makeState([body, first, second]);
+    state.pages = [page];
+    state.currentPageId = page.id;
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: page.id,
+          type: "frame",
+          name: page.title,
+          metadata: {
+            type: "legacy-page",
+            pageId: page.id,
+          },
+          children: [
+            {
+              ...makeCanonicalElementNode(body),
+              children: [firstCanonical, secondCanonical],
+            },
+          ],
+        } satisfies FrameNode,
+      ],
+    });
+
+    await createUpdateElementPropsAction(
+      createSetMock(state),
+      () => state as never,
+    )("page-card-a", {
+      label: "A edited",
+    });
+
+    const pageNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")?.children[0] as FrameNode;
+    const pageBody = pageNode.children?.find((node) => node.id === "page-body");
+    expect(pageBody?.children?.map((node) => node.id)).toEqual([
+      "page-card-a",
+      "page-card-b",
+    ]);
+    expect(
+      state.childrenMap.get("page-body")?.map((element) => element.id),
+    ).toEqual(["page-card-a", "page-card-b"]);
+  });
+
+  it("updateElementProps preserves frame-bound page slot child order", async () => {
+    const page = makePage("page-1", "frame-1");
+    const first = makeElement("page-card-a", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 0,
+      props: { label: "A" },
+      slot_name: "content",
+    });
+    const second = makeElement("page-card-b", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 1,
+      props: { label: "B" },
+      slot_name: "content",
+    });
+    const state = makeState([first, second]);
+    state.pages = [page];
+    state.currentPageId = page.id;
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body",
+              type: "body",
+              props: {},
+              children: [
+                {
+                  id: "slot-content",
+                  type: "frame",
+                  placeholder: true,
+                  props: { name: "content" },
+                  metadata: {
+                    type: "legacy-slot-hoisted",
+                    slotName: "content",
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        } satisfies FrameNode,
+        {
+          id: page.id,
+          type: "ref",
+          ref: "layout-frame-1",
+          name: page.title,
+          metadata: {
+            type: "legacy-page",
+            pageId: page.id,
+            layoutId: "frame-1",
+          },
+          descendants: {
+            "frame-body/slot-content": {
+              children: [
+                makeCanonicalElementNode(first),
+                makeCanonicalElementNode(second),
+              ],
+            },
+          },
+        } satisfies RefNode,
+      ],
+    });
+
+    await createUpdateElementPropsAction(
+      createSetMock(state),
+      () => state as never,
+    )("page-card-a", {
+      label: "A edited",
+    });
+
+    const pageRef = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")
+      ?.children.find((node) => node.id === page.id) as RefNode | undefined;
+    const children =
+      pageRef?.descendants?.["frame-body/slot-content"]?.children;
+    expect(children?.map((node) => node.id)).toEqual([
+      "page-card-a",
+      "page-card-b",
+    ]);
   });
 });

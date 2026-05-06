@@ -292,10 +292,91 @@ function upsertChild(
   children: CanonicalNode[] | undefined,
   child: CanonicalNode,
 ): CanonicalNode[] {
-  const withoutExisting = (children ?? []).filter(
-    (node) => node.id !== child.id,
+  const currentChildren = children ?? [];
+  const existingIndex = currentChildren.findIndex(
+    (node) => node.id === child.id,
   );
-  return sortCanonicalChildren([...withoutExisting, child]);
+  if (existingIndex !== -1) {
+    const nextChildren = [...currentChildren];
+    nextChildren[existingIndex] = child;
+    return sortCanonicalChildren(nextChildren);
+  }
+  return sortCanonicalChildren([...currentChildren, child]);
+}
+
+function replaceNodeById(
+  nodes: CanonicalNode[],
+  elementId: string,
+  replacement: CanonicalNode,
+): { nodes: CanonicalNode[]; replaced: boolean } {
+  let replaced = false;
+  const nextNodes = nodes.map((node) => {
+    if (nodeMatchesId(node, elementId)) {
+      replaced = true;
+      return replacement;
+    }
+
+    let nextNode = node;
+    const childResult = replaceNodeById(
+      node.children ?? [],
+      elementId,
+      replacement,
+    );
+    if (childResult.replaced) {
+      replaced = true;
+      nextNode = { ...nextNode, children: childResult.nodes };
+    }
+
+    if (nextNode.type === "ref") {
+      const descendantResult = replaceNodeInDescendants(
+        nextNode as RefNode,
+        elementId,
+        replacement,
+      );
+      if (descendantResult.replaced) {
+        replaced = true;
+        nextNode = descendantResult.node;
+      }
+    }
+
+    return nextNode;
+  });
+
+  return { nodes: nextNodes, replaced };
+}
+
+function replaceNodeInDescendants(
+  refNode: RefNode,
+  elementId: string,
+  replacement: CanonicalNode,
+): { node: RefNode; replaced: boolean } {
+  const descendants = refNode.descendants ?? {};
+  let replaced = false;
+  const nextDescendants: RefNode["descendants"] = {};
+
+  for (const [path, override] of Object.entries(descendants)) {
+    if (
+      override &&
+      typeof override === "object" &&
+      "children" in override &&
+      Array.isArray(override.children)
+    ) {
+      const result = replaceNodeById(override.children, elementId, replacement);
+      if (result.replaced) {
+        replaced = true;
+        nextDescendants[path] = {
+          ...override,
+          children: result.nodes,
+        };
+        continue;
+      }
+    }
+    nextDescendants[path] = override;
+  }
+
+  return replaced
+    ? { node: { ...refNode, descendants: nextDescendants }, replaced }
+    : { node: refNode, replaced: false };
 }
 
 function appendChildToNode(
@@ -697,11 +778,14 @@ function attachChildToPage(
       ...(pageNode as RefNode),
       descendants,
     };
-    const withoutPage = doc.children.filter((node) => node.id !== pageNode.id);
-    return {
-      ...doc,
-      children: sortCanonicalChildren([...withoutPage, updatedPageNode]),
-    };
+    const replaced = replaceNodeById(
+      doc.children,
+      pageNode.id,
+      updatedPageNode,
+    );
+    return replaced.replaced
+      ? { ...doc, children: replaced.nodes }
+      : { ...doc, children: upsertChild(doc.children, updatedPageNode) };
   }
 
   const result = appendChildToNode(doc.children, pageNode.id, child);
@@ -756,6 +840,17 @@ function upsertElementIntoDocument(
 ): CompositionDocument {
   const legacy = asElementWithLegacyMirror(element);
   const previousNode = findNodeById(doc.children, element.id);
+  if (
+    previousNode &&
+    shouldPreserveExistingCanonicalPosition(previousNode, element)
+  ) {
+    const node = legacyElementToCanonicalNode(element, doc, previousNode);
+    const replaced = replaceNodeById(doc.children, element.id, node);
+    if (replaced.replaced) {
+      return { ...doc, children: replaced.nodes };
+    }
+  }
+
   const removed = removeNodeById(doc.children, element.id);
   const docWithoutExisting: CompositionDocument = {
     ...doc,
@@ -812,6 +907,51 @@ function upsertElementIntoDocument(
     ...docWithoutExisting,
     children: upsertChild(docWithoutExisting.children, node),
   };
+}
+
+type LegacyNodeMetadata = {
+  type?: unknown;
+  slotName?: unknown;
+  legacyProps?: Record<string, unknown>;
+};
+
+function shouldPreserveExistingCanonicalPosition(
+  previousNode: CanonicalNode,
+  element: Element,
+): boolean {
+  const metadata = previousNode.metadata as LegacyNodeMetadata | undefined;
+  const legacy = asElementWithLegacyMirror(element);
+
+  if (
+    metadata?.type === "legacy-slot-hoisted" &&
+    isLegacySlotTag(element.type)
+  ) {
+    const slotName =
+      (element.props.name as string | undefined) ??
+      legacy.slot_name ??
+      "content";
+    return (
+      legacy.layout_id !== null &&
+      legacy.layout_id !== undefined &&
+      metadata.slotName === slotName
+    );
+  }
+
+  const previous = metadata?.legacyProps;
+  if (!previous) return false;
+
+  return (
+    sameLegacyValue(previous.parent_id, element.parent_id) &&
+    sameLegacyValue(previous.slot_name, legacy.slot_name) &&
+    sameLegacyValue(previous.componentRole, legacy.componentRole) &&
+    sameLegacyValue(previous.masterId, legacy.masterId) &&
+    sameLegacyValue(previous.type, element.type) &&
+    sameLegacyValue(previous.order_num, element.order_num)
+  );
+}
+
+function sameLegacyValue(left: unknown, right: unknown): boolean {
+  return (left ?? null) === (right ?? null);
 }
 
 function upsertElementsIntoDocument(
