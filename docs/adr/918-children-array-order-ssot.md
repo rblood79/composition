@@ -84,8 +84,8 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 
 - ADR 작성 이후 local main에는 partial 선행 패치가 들어왔다. canonical upsert는 기존
   node를 같은 `children[]` 위치에서 replace하고, 신규 child만 append하는 방향으로 보강됐다
-  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:291`,
-  `apps/builder/src/adapters/canonical/canonicalMutations.ts:307`).
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:295`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:311`).
 - export boundary는 canonical child 순회 index를 legacy `order_num`으로 파생하는 경로를
   이미 사용한다
   (`apps/builder/src/adapters/canonical/exportLegacyDocument.ts:55`,
@@ -93,8 +93,8 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 - component origin persistence/round-trip은 `reusable: true`를 legacy
   `componentRole: "master"` mirror로 내보내고, page-owned origin을 root reusable catalog로
   끌어올리지 않도록 보강됐다
-  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:501`,
-  `apps/builder/src/adapters/canonical/canonicalMutations.ts:874`).
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:511`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:895`).
 - 단, 이 선행 패치는 full cutover가 아니다. `buildTreeFromElements`, LayerTree projection,
   drag/drop order write, Preview/Publish render path에는 여전히 `order_num` primary
   sort/write가 남아 있으므로 ADR-918의 Phase/Gate는 유지한다.

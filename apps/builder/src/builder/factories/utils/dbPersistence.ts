@@ -1,7 +1,7 @@
 import { Element } from "../../../types/core/store.types";
 import { elementsApi } from "../../../adapters/canonical/legacyElementsApiService";
 // ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
-import { createElementCanonicalPrimary } from "../../../adapters/canonical/canonicalMutations";
+import { createElementCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { HierarchyManager } from "../../utils/HierarchyManager";
 import { updateElementId } from "./elementCreation";
 import { supabase } from "../../../env/supabase.client";

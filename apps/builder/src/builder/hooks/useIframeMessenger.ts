@@ -47,7 +47,7 @@ import { MessageService } from "../../utils/messaging";
 import {
   mergeElementsCanonicalPrimary,
   createMultipleElementsCanonicalPrimary,
-} from "../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,

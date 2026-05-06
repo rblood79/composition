@@ -19,7 +19,7 @@ import { requestEditingSemanticsImpactConfirmation } from "../../utils/editingSe
 import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
-} from "../../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;

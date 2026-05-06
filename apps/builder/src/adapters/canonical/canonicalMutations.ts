@@ -498,9 +498,59 @@ function remapLegacyDescendants(
 }
 
 function getCanonicalRefTarget(element: Element): string | null {
-  if (element.type !== "ref") return null;
   const ref = (element as Element & CanonicalRefElementFields).ref;
   return typeof ref === "string" && ref.length > 0 ? ref : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function canonicalPropValueEquals(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function diffStylePropsAgainstMaster(
+  masterStyle: unknown,
+  instanceStyle: unknown,
+): Record<string, unknown> | undefined {
+  if (!isRecord(instanceStyle)) return undefined;
+  const masterStyleRecord = isRecord(masterStyle) ? masterStyle : {};
+  const styleOverrides: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(instanceStyle)) {
+    if (!canonicalPropValueEquals(masterStyleRecord[key], value)) {
+      styleOverrides[key] = value;
+    }
+  }
+
+  return Object.keys(styleOverrides).length > 0 ? styleOverrides : undefined;
+}
+
+function diffRefPropsAgainstMaster(
+  masterNode: CanonicalNode | null,
+  refProps: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!masterNode?.props) return refProps;
+
+  const props: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(refProps)) {
+    if (key === "style") {
+      const styleOverride = diffStylePropsAgainstMaster(
+        masterNode.props.style,
+        value,
+      );
+      if (styleOverride) props.style = styleOverride;
+      continue;
+    }
+
+    if (!canonicalPropValueEquals(masterNode.props[key], value)) {
+      props[key] = value;
+    }
+  }
+
+  return props;
 }
 
 function legacyElementToCanonicalNode(
@@ -586,11 +636,21 @@ function legacyElementToCanonicalNode(
   if (refTarget) {
     const masterNode = findNodeById(doc.children, refTarget);
     const descendants = remapLegacyDescendants(element, doc);
+    const refProps = legacy.overrides
+      ? legacy.overrides
+      : diffRefPropsAgainstMaster(
+          masterNode,
+          element.props as Record<string, unknown>,
+        );
     const refNode: RefNode = {
       ...baseNode,
       type: "ref",
       ref: masterNode?.id ?? refTarget,
-      ...(legacy.overrides ? { props: legacy.overrides } : {}),
+      props: refProps,
+      metadata: buildLegacyElementMetadata({
+        ...metadataElement,
+        overrides: refProps,
+      } as Element),
       ...(descendants ? { descendants } : {}),
     };
     return refNode;

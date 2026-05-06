@@ -847,6 +847,85 @@ describe("canonical mutation wrappers", () => {
     );
   });
 
+  it("mergeElementsCanonicalPrimary stores origin-shaped ref mirrors as RefNode overrides", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1");
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "origin",
+              type: "Button",
+              reusable: true,
+              props: {
+                children: "Origin",
+                size: "md",
+                style: { color: "red", minWidth: 120 },
+              },
+            },
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    mergeElementsCanonicalPrimary([
+      makeElement("instance", "Button", {
+        page_id: "page-1",
+        ref: "origin",
+        props: {
+          children: "Instance",
+          size: "md",
+          style: { color: "red", minWidth: 240 },
+        },
+        order_num: 1,
+      } as never),
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    expect(pageNode?.children).toEqual([
+      expect.objectContaining({
+        id: "origin",
+        reusable: true,
+      }),
+      expect.objectContaining({
+        id: "instance",
+        type: "ref",
+        ref: "origin",
+        props: {
+          children: "Instance",
+          style: { minWidth: 240 },
+        },
+        metadata: expect.objectContaining({
+          legacyProps: expect.objectContaining({
+            overrides: {
+              children: "Instance",
+              style: { minWidth: 240 },
+            },
+          }),
+        }),
+      }),
+    ]);
+  });
+
   it("mergeElementsCanonicalPrimary preserves reusable page origins across export round-trip", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");

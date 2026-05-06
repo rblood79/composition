@@ -24,7 +24,7 @@ import { unregisterSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import {
   areCanonicalMutationStoreActionsRegistered,
   setElementsCanonicalPrimary,
-} from "../../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];

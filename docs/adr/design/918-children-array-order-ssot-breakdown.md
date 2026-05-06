@@ -52,6 +52,7 @@ ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어�
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | canonical upsert            | `upsertChild`가 기존 child를 같은 배열 index에서 replace하고 신규 child만 append한다. `replaceNodeById`는 nested `children`과 `RefNode.descendants[*].children`까지 위치 보존 replace를 수행한다. | 공개 helper/API로 승격하고, explicit insert/move/remove는 아직 별도 구현해야 한다.                                  |
 | legacy export mirror        | `exportLegacyDocument`가 root/nested/descendant `children` 순회 index를 legacy `order_num`으로 파생한다.                                                                                          | DB/API/import/test fixture bucket과 함께 Phase 6 allowlist에 고정해야 한다.                                         |
+| shared export runtime model | `deriveProjectRenderModelFromDocument`의 runtime element projection은 child index를 `order_num`으로 파생한다.                                                                                     | page order는 아직 metadata/readPageOrder sort가 남아 있으므로 Phase 2/3/6에서 별도 분류해야 한다.                   |
 | component origin round-trip | `reusable: true`를 `componentRole: "master"` mirror로 export하고, page-owned origin을 root reusable catalog로 끌어올리지 않는다.                                                                  | origin/instance/slot 전체 child order cutover는 Phase 5에서 별도 gate로 닫아야 한다.                                |
 | LayerTree/frame projection  | canonical source와 page-frame projection merge가 보강되어 frame-bound page body/slot/live page child가 더 잘 보인다.                                                                              | `useLayerTreeData`와 `buildTreeFromElements`는 여전히 `order_num` sort를 사용하므로 G3 미완이다.                    |
 | selection/hit-test          | page-frame hidden slot child 선택과 overlapping frame body 선택이 보강됐다.                                                                                                                       | depth/area 우선 heuristic이 최종 `z-index` + `children[]` effective order와 충돌하지 않는지 G3에서 재검증해야 한다. |
@@ -84,6 +85,7 @@ ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어�
 4. 2026-05-06 local main 선행 패치를 별도 `partial-implemented` column으로 표시한다.
    특히 `canonicalMutations.ts`, `exportLegacyDocument.ts`, `useLayerTreeData.ts`,
    `selectionHitTest.ts`, `hierarchicalSelection.ts`,
+   `packages/shared/src/utils/export.utils.ts`,
    `apps/builder/src/builder/stores/elements.ts`, `treeUtils.ts`,
    Preview/Publish order sort call site를 같은 표에서 비교한다.
 5. Phase 6 grep gate allowlist를 먼저 작성한다.
@@ -285,15 +287,16 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 
 ### Local Main Partial Files
 
-| 파일                                                                       | 현재 역할                                                            | ADR-918 처리                                                             |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `apps/builder/src/adapters/canonical/canonicalMutations.ts`                | 위치 보존 upsert/replace/remove, reusable origin placement 일부 구현 | Phase 1 helper 후보 + Phase 5 baseline. explicit move helper는 추가 필요 |
-| `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`              | `children[]` index에서 legacy `order_num` export                     | Phase 1/6 adapter boundary allowlist                                     |
-| `apps/builder/src/builder/stores/utils/instanceActions.ts`                 | component origin 전환 후 canonical document sync/persist             | Phase 5 baseline. instance creation order write는 Phase 4/6에서 재분류   |
-| `apps/builder/src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts` | canonical/page-frame source merge와 frame-bound projection 보강      | Phase 3 partial. `order_num` sort 제거 필요                              |
-| `apps/builder/src/builder/utils/treeUtils.ts`                              | generic Element tree가 `order_num` sort 사용                         | Phase 3 cutover target                                                   |
-| `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`  | depth/area 기반 hit target 보강                                      | Phase 3 effective order 재검증 target                                    |
-| `apps/builder/src/builder/stores/elements.ts` / `elementReorder.ts`        | order write/reparent가 legacy `order_num` 중심                       | Phase 4 cutover target                                                   |
+| 파일                                                                       | 현재 역할                                                                                                           | ADR-918 처리                                                             |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `apps/builder/src/adapters/canonical/canonicalMutations.ts`                | 위치 보존 upsert/replace/remove, reusable origin placement 일부 구현                                                | Phase 1 helper 후보 + Phase 5 baseline. explicit move helper는 추가 필요 |
+| `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`              | `children[]` index에서 legacy `order_num` export                                                                    | Phase 1/6 adapter boundary allowlist                                     |
+| `packages/shared/src/utils/export.utils.ts`                                | runtime element projection 은 `children[]` index로 `order_num` 파생, page order 는 metadata/readPageOrder sort 사용 | Phase 1/2/3/6 교차 target. element projection 과 page order 를 분리 분류 |
+| `apps/builder/src/builder/stores/utils/instanceActions.ts`                 | component origin 전환 후 canonical document sync/persist                                                            | Phase 5 baseline. instance creation order write는 Phase 4/6에서 재분류   |
+| `apps/builder/src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts` | canonical/page-frame source merge와 frame-bound projection 보강                                                     | Phase 3 partial. `order_num` sort 제거 필요                              |
+| `apps/builder/src/builder/utils/treeUtils.ts`                              | generic Element tree가 `order_num` sort 사용                                                                        | Phase 3 cutover target                                                   |
+| `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`  | depth/area 기반 hit target 보강                                                                                     | Phase 3 effective order 재검증 target                                    |
+| `apps/builder/src/builder/stores/elements.ts` / `elementReorder.ts`        | order write/reparent가 legacy `order_num` 중심                                                                      | Phase 4 cutover target                                                   |
 
 ## Verification Plan
 
@@ -338,5 +341,5 @@ pnpm run codex:typecheck
 - [ ] G4 drag/drop write path cutover 완료.
 - [ ] G5 component origin/instance/slot descendants cutover 완료.
 - [ ] G6 non-adapter runtime `order_num` ordering decision 제거 또는 allowlist 격리.
-- [ ] browser flow 7개 통과.
+- [ ] browser flow 9개 통과.
 - [ ] `docs/CHANGELOG.md`에 사용자-가시 ordering model 변경 기록.

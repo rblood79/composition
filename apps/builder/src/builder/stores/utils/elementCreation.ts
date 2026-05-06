@@ -16,7 +16,7 @@ import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
-} from "../../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];

@@ -30,7 +30,7 @@ import { sanitizeElement } from "../../../adapters/canonical/legacyElementSaniti
 import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
-} from "../../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_MASTER_ID_MIRROR_FIELD,

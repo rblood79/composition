@@ -31,7 +31,7 @@ import { isLegacyFrameElementForFrame } from "../../../../../adapters/canonical/
 import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 import { withFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../../../../adapters/canonical/slotMirror";
-import { setElementsCanonicalPrimary } from "../../../../../adapters/canonical/canonicalMutations";
+import { setElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { getDB } from "../../../../../lib/db";
 
 export { normalizeFramePresetContainerStyle } from "./presetStyle";

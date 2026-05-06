@@ -8,7 +8,7 @@ import { sanitizeElement } from "../../../adapters/canonical/legacyElementSaniti
 import { applyFactoryPropagation } from "../../utils/propagationEngine";
 import { resolveOwnerPageId } from "../../../adapters/canonical/legacyMetadata";
 // ADR-916 Phase 3 G4 — mutation reverse pilot caller (D18=A 정합)
-import { mergeElementsCanonicalPrimary } from "../../../adapters/canonical/canonicalMutations";
+import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 
 /**

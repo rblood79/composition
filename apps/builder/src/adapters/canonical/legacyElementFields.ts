@@ -67,11 +67,7 @@ export function getInstanceMasterReference(
   }
 
   const canonical = element as Element & CanonicalRefLike;
-  if (
-    element.type === "ref" &&
-    typeof canonical.ref === "string" &&
-    canonical.ref
-  ) {
+  if (typeof canonical.ref === "string" && canonical.ref) {
     return canonical.ref;
   }
 

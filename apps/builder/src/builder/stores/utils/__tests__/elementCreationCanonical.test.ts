@@ -30,7 +30,7 @@ import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStor
 import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
-} from "../../../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

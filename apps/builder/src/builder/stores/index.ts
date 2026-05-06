@@ -17,6 +17,7 @@ import {
 } from "../utils/canonicalRefResolution";
 import { useCanonicalSelectedElement } from "./canonical/canonicalElementsView";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
+import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 
 // ✅ ThemeState removed - now using unified theme store (themeStore.unified.ts)
 
@@ -108,6 +109,19 @@ function hasCanonicalRefMirror(element: Element | undefined): boolean {
   return typeof ref === "string" && ref.length > 0;
 }
 
+function getRefMirrorSelectedOverrideProps(
+  selectedElementProps: Record<string, unknown>,
+): Record<string, unknown> {
+  const {
+    computedStyle: _computedStyle,
+    events: _events,
+    type: _type,
+    ...overrideProps
+  } = selectedElementProps;
+
+  return overrideProps;
+}
+
 // ============================================
 // 🚀 Single Source of Truth: Selected Element
 // ============================================
@@ -168,12 +182,16 @@ export const useSelectedElementData = (): SelectedElement | null => {
 
     // selectedElementProps가 비어있으면 element에서 직접 추출
     const shouldUseResolvedRefProps =
-      (isCanonicalRefElement(element) && resolvedElement !== element) ||
-      (!isCanonicalRefElement(element) && hasCanonicalRefMirror(element));
+      isCanonicalRefElement(element) || hasCanonicalRefMirror(element);
 
     const props = shouldUseResolvedRefProps
       ? {
-          ...resolvedElement.props,
+          ...mergePropsWithStyleDeep(
+            (resolvedElement.props ?? {}) as Record<string, unknown>,
+            getRefMirrorSelectedOverrideProps(
+              selectedElementProps as Record<string, unknown>,
+            ),
+          ),
           ...(selectedElementProps.computedStyle !== undefined && {
             computedStyle: selectedElementProps.computedStyle,
           }),

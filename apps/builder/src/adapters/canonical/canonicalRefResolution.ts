@@ -24,6 +24,9 @@ function getElementProps(element: Element): Record<string, unknown> {
 }
 
 function getRefOverrideProps(element: Element): Record<string, unknown> {
+  const legacyOverrides = (element as Element & LegacyElementMirrorFields)
+    .overrides;
+  if (isRecord(legacyOverrides)) return legacyOverrides;
   return element.props ?? {};
 }
 
@@ -31,9 +34,10 @@ export function isCanonicalRefElement(element: Element | undefined): boolean {
   return getCanonicalRefTarget(element) !== null;
 }
 
-function getCanonicalRefTarget(element: Element | undefined): string | null {
-  if (!element || element.type !== "ref") return null;
-
+export function getCanonicalRefTarget(
+  element: Element | undefined,
+): string | null {
+  if (!element) return null;
   const ref = asCanonicalRefFields(element).ref;
   if (typeof ref === "string" && ref.length > 0) return ref;
 

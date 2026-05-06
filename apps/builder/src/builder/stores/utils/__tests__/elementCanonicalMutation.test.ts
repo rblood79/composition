@@ -7,12 +7,13 @@ import type {
 } from "@composition/shared";
 import type { Element, Page } from "../../../../types/builder/unified.types";
 import type { Layout } from "../../../../types/builder/layout.types";
+import { saveService } from "../../../../services/save";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
   setElementsCanonicalPrimary,
-} from "../../../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
 import {
@@ -223,6 +224,7 @@ describe("element mutations keep canonical document primary", () => {
     mocks.db.elements.deleteMany.mockImplementation(async () => {});
     mocks.db.elements.insertMany.mockImplementation(async () => {});
     mocks.db.documents.put.mockImplementation(async () => {});
+    vi.mocked(saveService.savePropertyChange).mockResolvedValue(undefined);
     resetCanonicalMutationStoreActions();
     useCanonicalDocumentStore.setState({
       documents: new Map(),
@@ -494,6 +496,249 @@ describe("element mutations keep canonical document primary", () => {
         }),
       );
     });
+  });
+
+  it("updateSelectedProperties stores canonical ref root overrides when the legacy mirror row is missing", async () => {
+    const origin = makeElement("origin", "Button", {
+      reusable: true,
+      props: { label: "Origin", size: "md" },
+    });
+    const instance = makeElement("instance", "ref", {
+      ref: "origin",
+      props: {},
+    } as Partial<Element> & Record<string, unknown>);
+    const state = makeState([origin, instance]);
+    state.selectedElementId = "instance";
+    state.selectedElementIds = ["instance"];
+    state.selectedElementIdsSet = new Set(["instance"]);
+    state.selectedElementProps = {};
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin",
+          type: "Button",
+          reusable: true,
+          props: origin.props as Record<string, unknown>,
+        } satisfies CanonicalNode,
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          props: {},
+        } satisfies RefNode,
+      ],
+    });
+    mocks.db.elements.update.mockImplementation(async (id: string) => {
+      if (id === "instance") {
+        throw new Error("Element not found: instance");
+      }
+    });
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedProperties({ label: "Instance" });
+
+    const instanceNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")
+      ?.children.find((node) => node.id === "instance") as RefNode | undefined;
+    expect(instanceNode).toMatchObject({
+      id: "instance",
+      type: "ref",
+      ref: "origin",
+      props: { label: "Instance" },
+    });
+    expect(state.elementsMap.get("instance")?.props).toMatchObject({
+      label: "Instance",
+    });
+    await vi.waitFor(() => {
+      expect(mocks.db.documents.put).toHaveBeenCalledWith(
+        "project-1",
+        expect.objectContaining({
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              id: "instance",
+              props: { label: "Instance" },
+            }),
+          ]),
+        }),
+      );
+    });
+    expect(saveService.savePropertyChange).not.toHaveBeenCalled();
+  });
+
+  it("updateSelectedProperties writes legacy instance edits to overrides instead of raw props", () => {
+    const origin = makeElement("origin", "Button", {
+      reusable: true,
+      props: { label: "Origin", size: "md" },
+    });
+    const instance = makeElement("instance", "Button", {
+      componentRole: "instance",
+      masterId: "origin",
+      props: {},
+    } as Partial<Element> & Record<string, unknown>);
+    const state = makeState([origin, instance]);
+    state.selectedElementId = "instance";
+    state.selectedElementIds = ["instance"];
+    state.selectedElementIdsSet = new Set(["instance"]);
+    state.selectedElementProps = {};
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedProperties({ label: "Instance" });
+
+    expect(state.elementsMap.get("instance")?.props).toEqual({});
+    expect(state.elementsMap.get("instance")).toMatchObject({
+      componentRole: "instance",
+      masterId: "origin",
+      overrides: { label: "Instance" },
+    });
+    expect(state.selectedElementProps).toMatchObject({
+      label: "Instance",
+      size: "md",
+    });
+  });
+
+  it("updateSelectedProperties stores origin-shaped ref mirror edits as instance overrides", async () => {
+    const origin = makeElement("origin", "Button", {
+      reusable: true,
+      props: { label: "Origin", size: "md" },
+    });
+    const instance = makeElement("instance", "Button", {
+      ref: "origin",
+      props: { label: "Origin", size: "md" },
+    } as Partial<Element> & Record<string, unknown>);
+    const state = makeState([origin, instance]);
+    state.selectedElementId = "instance";
+    state.selectedElementIds = ["instance"];
+    state.selectedElementIdsSet = new Set(["instance"]);
+    state.selectedElementProps = instance.props as Record<string, unknown>;
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin",
+          type: "Button",
+          reusable: true,
+          props: origin.props as Record<string, unknown>,
+        } satisfies CanonicalNode,
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          props: {},
+        } satisfies RefNode,
+      ],
+    });
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedProperties({ label: "Instance" });
+
+    const instanceNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")
+      ?.children.find((node) => node.id === "instance") as RefNode | undefined;
+    expect(instanceNode).toMatchObject({
+      id: "instance",
+      type: "ref",
+      ref: "origin",
+      props: { label: "Instance" },
+    });
+    expect(instanceNode?.props).not.toHaveProperty("size");
+    await vi.waitFor(() => {
+      expect(mocks.db.documents.put).toHaveBeenCalledWith(
+        "project-1",
+        expect.objectContaining({
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              id: "instance",
+              props: { label: "Instance" },
+            }),
+          ]),
+        }),
+      );
+    });
+    expect(saveService.savePropertyChange).not.toHaveBeenCalled();
+  });
+
+  it("updateSelectedProperties stores canonical ref overrides when only the canonical document is hydrated", async () => {
+    const state = makeState([]);
+    state.selectedElementId = "instance";
+    state.selectedElementIds = ["instance"];
+    state.selectedElementIdsSet = new Set(["instance"]);
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin",
+          type: "Button",
+          reusable: true,
+          props: { label: "Origin", size: "md" },
+        } satisfies CanonicalNode,
+        {
+          id: "instance",
+          type: "ref",
+          ref: "origin",
+          props: {},
+        } satisfies RefNode,
+      ],
+    });
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedProperties({ label: "Instance" });
+
+    const instanceNode = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")
+      ?.children.find((node) => node.id === "instance") as RefNode | undefined;
+    expect(instanceNode).toMatchObject({
+      id: "instance",
+      type: "ref",
+      ref: "origin",
+      props: { label: "Instance" },
+    });
+    expect(state.elementsMap.get("instance")?.props).toMatchObject({
+      label: "Instance",
+    });
+    await vi.waitFor(() => {
+      expect(mocks.db.documents.put).toHaveBeenCalledWith(
+        "project-1",
+        expect.objectContaining({
+          children: expect.arrayContaining([
+            expect.objectContaining({
+              id: "instance",
+              props: { label: "Instance" },
+            }),
+          ]),
+        }),
+      );
+    });
+    expect(saveService.savePropertyChange).not.toHaveBeenCalled();
   });
 
   it("style panel layout edits merge frame body and slot style into active canonical document", () => {

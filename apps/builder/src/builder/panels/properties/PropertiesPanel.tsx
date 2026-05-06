@@ -87,6 +87,10 @@ import {
   isCanonicalRefElement,
   resolveCanonicalRefElement,
 } from "../../utils/canonicalRefResolution";
+import {
+  getActiveCanonicalElementSnapshot,
+  getActiveCanonicalElementsSnapshot,
+} from "../../stores/canonical/canonicalElementSnapshot";
 
 /**
  * PropertyEditorWrapper - Editor 컴포넌트를 분리하여 불필요한 리렌더링 방지
@@ -108,7 +112,9 @@ const PropertyEditorWrapper = memo(
     // - Layout 모드: LayoutBodyEditor
     const editMode = useEditModeStore((state) => state.mode);
     const elementContext = useMemo((): EditorContext => {
-      const element = useStore.getState().elementsMap.get(selectedElement.id);
+      const element =
+        useStore.getState().elementsMap.get(selectedElement.id) ??
+        getActiveCanonicalElementSnapshot(selectedElement.id);
       return {
         layoutId: element ? getFrameElementMirrorId(element) : null,
         pageId: element?.page_id || null,
@@ -171,11 +177,20 @@ const PropertyEditorWrapper = memo(
     const handleUpdate = useCallback(
       (updatedProps: Record<string, unknown>) => {
         const state = useStore.getState();
-        const element = state.elementsMap.get(state.selectedElementId ?? "");
+        let element = state.elementsMap.get(state.selectedElementId ?? "");
+        let lookupElements: Iterable<Element> = state.elementsMap.values();
+        if (!element && state.selectedElementId) {
+          const canonicalElements = getActiveCanonicalElementsSnapshot();
+          element =
+            canonicalElements?.find(
+              (candidate) => candidate.id === state.selectedElementId,
+            ) ?? undefined;
+          lookupElements = canonicalElements ?? lookupElements;
+        }
         if (!element) return;
 
         const effectiveElement = isCanonicalRefElement(element)
-          ? resolveCanonicalRefElement(element, state.elementsMap.values())
+          ? resolveCanonicalRefElement(element, lookupElements)
           : element;
         const baselineProps = (effectiveElement.props ?? {}) as Record<
           string,

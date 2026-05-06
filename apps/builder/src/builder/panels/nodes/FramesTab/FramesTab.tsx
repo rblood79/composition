@@ -34,7 +34,7 @@ import {
   useCanonicalFrameElementScopes,
 } from "../../../stores/canonical/canonicalElementsView";
 // ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
-import { mergeElementsCanonicalPrimary } from "../../../../adapters/canonical/canonicalMutations";
+import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import {
   collectHydratedFrameElements,
   hasHydratedFrameElements,

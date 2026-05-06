@@ -28,11 +28,24 @@ import { saveService } from "../../services/save";
 import { getDB } from "../../lib/db";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
 import {
+  COMPONENT_OVERRIDES_MIRROR_FIELD,
+  getComponentOverridesMirror,
+  isComponentInstanceMirrorElement,
+} from "../../adapters/canonical/componentSemanticsMirror";
+import {
+  isCanonicalRefElement,
+  resolveCanonicalRefElement,
+} from "../utils/canonicalRefResolution";
+import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
-} from "../../adapters/canonical/canonicalMutations";
+} from "@/adapters/canonical/canonicalMutations";
 import { historyManager } from "./history";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
+import {
+  getActiveCanonicalElementSnapshot,
+  getActiveCanonicalElementsSnapshot,
+} from "./canonical/canonicalElementSnapshot";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import type { BatchPropsUpdate } from "./utils/elementUpdate";
 import {
@@ -83,6 +96,93 @@ function syncInspectorElementToCanonical(element: Element): void {
   mergeElementsCanonicalPrimary([element]);
 }
 
+function getResolvedInspectorElement(
+  element: Element,
+  elements: Iterable<Element>,
+): Element {
+  return isCanonicalRefElement(element)
+    ? resolveCanonicalRefElement(element, elements)
+    : element;
+}
+
+function getInspectorLookupElements(
+  elementsMap: Map<string, Element>,
+): Iterable<Element> {
+  const canonicalElements = getActiveCanonicalElementsSnapshot();
+  if (!canonicalElements) return elementsMap.values();
+
+  const merged = new Map(
+    canonicalElements.map((element) => [element.id, element]),
+  );
+  for (const [id, element] of elementsMap) {
+    if (!merged.has(id)) merged.set(id, element);
+  }
+  return merged.values();
+}
+
+function getInspectorWritableProps(element: Element): Record<string, unknown> {
+  if (isComponentInstanceMirrorElement(element)) {
+    return getComponentOverridesMirror(element) ?? {};
+  }
+  return (element.props ?? {}) as Record<string, unknown>;
+}
+
+function buildInspectorUpdatedElement(
+  element: Element,
+  props: Record<string, unknown>,
+  additionalUpdates?: Partial<Element>,
+): Element {
+  if (isComponentInstanceMirrorElement(element)) {
+    return {
+      ...element,
+      ...additionalUpdates,
+      [COMPONENT_OVERRIDES_MIRROR_FIELD]: props,
+    } as Element;
+  }
+
+  return {
+    ...element,
+    props,
+    ...additionalUpdates,
+  };
+}
+
+function getSelectedPropsForState(
+  updatedElement: Element,
+  lookupElements: Iterable<Element>,
+  fallbackProps: Record<string, unknown>,
+): Record<string, unknown> {
+  const resolved = getResolvedInspectorElement(updatedElement, lookupElements);
+  return (resolved.props ?? fallbackProps) as Record<string, unknown>;
+}
+
+function buildInspectorPersistencePayload(
+  element: Element,
+  props: Record<string, unknown>,
+  additionalUpdates?: Partial<Element>,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = isComponentInstanceMirrorElement(
+    element,
+  )
+    ? {
+        props: element.props ?? {},
+        [COMPONENT_OVERRIDES_MIRROR_FIELD]: props,
+      }
+    : { props };
+
+  if (additionalUpdates?.customId !== undefined) {
+    payload.custom_id = additionalUpdates.customId;
+  }
+  if (additionalUpdates?.dataBinding !== undefined) {
+    payload.data_binding = additionalUpdates.dataBinding;
+  }
+  if (additionalUpdates?.fills !== undefined) {
+    payload.fills = additionalUpdates.fills;
+  }
+
+  return payload;
+}
+
 async function persistActiveCanonicalDocument(): Promise<void> {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
@@ -91,6 +191,29 @@ async function persistActiveCanonicalDocument(): Promise<void> {
   if (!doc) return;
   const db = await getDB();
   await db.documents.put(projectId, doc);
+}
+
+function hasActiveCanonicalProject(): boolean {
+  return Boolean(useCanonicalDocumentStore.getState().currentProjectId);
+}
+
+function isElementNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.startsWith("Element not found:")
+  );
+}
+
+async function persistInspectorLegacyMirror(
+  elementId: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const db = await getDB();
+  try {
+    await db.elements.update(elementId, payload as Partial<Element>);
+  } catch (error) {
+    if (hasActiveCanonicalProject() && isElementNotFoundError(error)) return;
+    throw error;
+  }
 }
 
 // ============================================
@@ -175,7 +298,10 @@ export const createInspectorActionsSlice: StateCreator<
   const getSelectedElement = (): Element | null => {
     const { selectedElementId, elementsMap } = get();
     if (!selectedElementId) return null;
-    return elementsMap.get(selectedElementId) || null;
+    return (
+      elementsMap.get(selectedElementId) ||
+      getActiveCanonicalElementSnapshot(selectedElementId)
+    );
   };
 
   /**
@@ -194,10 +320,9 @@ export const createInspectorActionsSlice: StateCreator<
     prevElementOverride?: Element,
   ) => {
     const { elementsMap, elements, selectedElementId, currentPageId } = get();
-    const {
-      elements: normalizedElements,
-      updatedElements: normalizedTagElements,
-    } = normalizeElementTags(elements);
+    const normalizedState = normalizeElementTags(elements);
+    let normalizedElements = normalizedState.elements;
+    const normalizedTagElements = normalizedState.updatedElements;
 
     let baseElementsMap = elementsMap;
     if (normalizedTagElements.length > 0) {
@@ -208,7 +333,21 @@ export const createInspectorActionsSlice: StateCreator<
       baseElementsMap = normalizedMap;
     }
 
-    const element = baseElementsMap.get(elementId);
+    let element = baseElementsMap.get(elementId);
+    if (!element) {
+      const canonicalElements = getActiveCanonicalElementsSnapshot();
+      if (canonicalElements) {
+        const normalizedCanonical = normalizeElementTags(canonicalElements);
+        normalizedElements = normalizedCanonical.elements;
+        baseElementsMap = new Map(
+          normalizedElements.map((canonicalElement) => [
+            canonicalElement.id,
+            canonicalElement,
+          ]),
+        );
+        element = baseElementsMap.get(elementId);
+      }
+    }
     if (!element) return;
 
     // 선택된 요소의 props를 직접 업데이트하므로,
@@ -220,30 +359,36 @@ export const createInspectorActionsSlice: StateCreator<
     // 🚀 히스토리 저장을 위한 이전 상태 캡처
     // prevElementOverride가 있으면 프리뷰 전 원본 사용 (정확한 undo/redo)
     const historyBase = prevElementOverride || element;
-    const prevProps = structuredClone(historyBase.props);
+    const prevProps = structuredClone(getInspectorWritableProps(historyBase));
     const prevElement = structuredClone(historyBase);
 
     const newProps = {
-      ...element.props,
+      ...getInspectorWritableProps(element),
       ...propsUpdate,
     };
 
-    const updatedElement: Element = {
-      ...element,
-      props: newProps,
-      ...additionalUpdates,
-    };
+    const updatedElement = buildInspectorUpdatedElement(
+      element,
+      newProps,
+      additionalUpdates,
+    );
 
     // 🚀 히스토리 엔트리 추가 (props 변경 시)
     if (currentPageId && Object.keys(propsUpdate).length > 0) {
+      const historyData = isComponentInstanceMirrorElement(element)
+        ? {
+            prevElement,
+            element: structuredClone(updatedElement),
+          }
+        : {
+            prevProps,
+            props: structuredClone(newProps),
+            prevElement,
+          };
       historyManager.addEntry({
         type: "update",
         elementId: elementId,
-        data: {
-          prevProps,
-          props: structuredClone(newProps),
-          prevElement,
-        },
+        data: historyData,
       });
     }
 
@@ -276,7 +421,11 @@ export const createInspectorActionsSlice: StateCreator<
       // selectedElementProps 동시 업데이트
       if (selectedElementId === elementId) {
         (stateUpdate as Record<string, unknown>).selectedElementProps =
-          newProps;
+          getSelectedPropsForState(
+            updatedElement,
+            newElementsMap.values(),
+            newProps,
+          );
       }
 
       // 레이아웃 영향 prop 변경 시 layoutVersion 증가 + dirtyElementIds 갱신
@@ -300,31 +449,29 @@ export const createInspectorActionsSlice: StateCreator<
     // DB 저장 (비동기, idle callback)
     const runDbSync = async () => {
       try {
-        const payload: Record<string, unknown> = { props: newProps };
-
-        if (additionalUpdates?.customId !== undefined) {
-          payload.custom_id = additionalUpdates.customId;
-        }
-        if (additionalUpdates?.dataBinding !== undefined) {
-          payload.data_binding = additionalUpdates.dataBinding;
-        }
-        if (additionalUpdates?.fills !== undefined) {
-          payload.fills = additionalUpdates.fills;
-        }
-
-        await saveService.savePropertyChange(
-          {
-            table: "elements",
-            id: elementId,
-            data: payload,
-          },
-          {
-            source: "inspector",
-            allowPreviewSaves: true,
-            validateSerialization: true,
-          },
+        const payload = buildInspectorPersistencePayload(
+          element,
+          newProps,
+          additionalUpdates,
         );
-        await persistActiveCanonicalDocument();
+
+        if (hasActiveCanonicalProject()) {
+          await persistActiveCanonicalDocument();
+          await persistInspectorLegacyMirror(elementId, payload);
+        } else {
+          await saveService.savePropertyChange(
+            {
+              table: "elements",
+              id: elementId,
+              data: payload,
+            },
+            {
+              source: "inspector",
+              allowPreviewSaves: true,
+              validateSerialization: true,
+            },
+          );
+        }
       } catch (error) {
         console.error("❌ Inspector action DB save failed:", error);
       }
@@ -354,8 +501,12 @@ export const createInspectorActionsSlice: StateCreator<
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : element;
+      const resolvedBaseElement = getResolvedInspectorElement(
+        baseElement,
+        getInspectorLookupElements(get().elementsMap),
+      );
       const currentStyle = {
-        ...((baseElement.props?.style as Record<string, string>) || {}),
+        ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
       };
 
       const NUMERIC_STYLE_PROPS = new Set([
@@ -415,8 +566,12 @@ export const createInspectorActionsSlice: StateCreator<
         prePreviewElement = structuredClone(element);
       }
 
+      const resolvedElement = getResolvedInspectorElement(
+        element,
+        getInspectorLookupElements(elementsMap),
+      );
       const currentStyle = {
-        ...((element.props?.style as Record<string, string>) || {}),
+        ...((resolvedElement.props?.style as Record<string, string>) || {}),
       };
 
       if (value === "" || value === null || value === undefined) {
@@ -451,8 +606,11 @@ export const createInspectorActionsSlice: StateCreator<
 
       distributeShorthand(currentStyle as Record<string, unknown>, property);
 
-      const newProps = { ...element.props, style: currentStyle };
-      const updatedElement: Element = { ...element, props: newProps };
+      const newProps = {
+        ...getInspectorWritableProps(element),
+        style: currentStyle,
+      };
+      const updatedElement = buildInspectorUpdatedElement(element, newProps);
 
       // elementsMap만 업데이트 (캔버스 렌더링용)
       // ⚠️ selectedElementProps는 업데이트하지 않음!
@@ -504,8 +662,12 @@ export const createInspectorActionsSlice: StateCreator<
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : element;
+      const resolvedBaseElement = getResolvedInspectorElement(
+        baseElement,
+        getInspectorLookupElements(get().elementsMap),
+      );
       const currentStyle = {
-        ...((baseElement.props?.style as Record<string, string>) || {}),
+        ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
       };
 
       Object.entries(styles).forEach(([property, value]) => {
@@ -681,9 +843,13 @@ export const createInspectorActionsSlice: StateCreator<
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
           : element;
+      const resolvedBaseElement = getResolvedInspectorElement(
+        baseElement,
+        getInspectorLookupElements(get().elementsMap),
+      );
 
       const currentStyle = sanitizeFillDerivedStylePatch(
-        (baseElement.props?.style as Record<string, string>) || {},
+        (resolvedBaseElement.props?.style as Record<string, string>) || {},
         true,
       );
 
@@ -709,13 +875,22 @@ export const createInspectorActionsSlice: StateCreator<
         prePreviewElement = structuredClone(element);
       }
 
+      const resolvedElement = getResolvedInspectorElement(
+        element,
+        getInspectorLookupElements(elementsMap),
+      );
       const currentStyle = sanitizeFillDerivedStylePatch(
-        (element.props?.style as Record<string, string>) || {},
+        (resolvedElement.props?.style as Record<string, string>) || {},
         true,
       );
 
-      const newProps = { ...element.props, style: currentStyle };
-      const updatedElement: Element = { ...element, props: newProps, fills };
+      const newProps = {
+        ...getInspectorWritableProps(element),
+        style: currentStyle,
+      };
+      const updatedElement = buildInspectorUpdatedElement(element, newProps, {
+        fills,
+      });
 
       // elementsMap만 업데이트 (캔버스 렌더링용)
       // selectedElementProps는 업데이트하지 않음 (Jotai atom value 유지)
