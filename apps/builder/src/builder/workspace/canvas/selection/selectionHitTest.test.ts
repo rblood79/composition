@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { Element } from "../../../../types/core/store.types";
-import { findBodySelectionAtCanvasPoint } from "./selectionHitTest";
+import {
+  findBodySelectionAtCanvasPoint,
+  pickTopmostHitElementId,
+} from "./selectionHitTest";
 
 function makeBody(
   overrides: Partial<Element> & { frameId?: string | null },
@@ -134,5 +137,39 @@ describe("findBodySelectionAtCanvasPoint", () => {
     });
 
     expect(result).toEqual({ bodyElementId: null, pageId: null });
+  });
+});
+
+describe("pickTopmostHitElementId", () => {
+  it("prefers a deeper page-slot child over its slot marker hit candidate", () => {
+    const elementsMap = new Map<string, Element>([
+      ["page-body", makeBody({ id: "page-body", page_id: "page-1" })],
+      [
+        "page::slot-content",
+        {
+          id: "page::slot-content",
+          type: "Slot",
+          page_id: "page-1",
+          parent_id: "page-body",
+          order_num: 0,
+          props: { _slotChrome: "hidden" },
+        } as Element,
+      ],
+      [
+        "page-card",
+        {
+          id: "page-card",
+          type: "Card",
+          page_id: "page-1",
+          parent_id: "page::slot-content",
+          order_num: 0,
+          props: {},
+        } as Element,
+      ],
+    ]);
+
+    expect(
+      pickTopmostHitElementId(["page::slot-content", "page-card"], elementsMap),
+    ).toBe("page-card");
   });
 });

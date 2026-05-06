@@ -11,6 +11,7 @@ interface MinimalElement {
   id: string;
   type: string;
   parent_id?: string | null;
+  props?: Record<string, unknown> | null;
 }
 
 /**
@@ -35,10 +36,7 @@ export function resolveClickTarget(
 
     if (editingContextId === null) {
       // 루트 레벨: parent가 body인 요소를 찾는다
-      const parentId = element.parent_id;
-      if (!parentId) return null;
-      const parentElement = elementsMap.get(parentId);
-      if (parentElement?.type === 'body') return current;
+      if (isRootSelectableElement(element, elementsMap)) return current;
     } else {
       // 특정 컨테이너 내부: parent_id가 editingContextId인 요소를 찾는다
       if (element.parent_id === editingContextId) return current;
@@ -48,6 +46,33 @@ export function resolveClickTarget(
   }
 
   return null;
+}
+
+function isRootSelectableElement(
+  element: MinimalElement,
+  elementsMap: Map<string, MinimalElement>,
+): boolean {
+  let parentId = element.parent_id;
+  const visited = new Set<string>();
+
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parentElement = elementsMap.get(parentId);
+    if (!parentElement) return false;
+    if (isBodyElement(parentElement)) return true;
+    if (!isTransparentSelectionContainer(parentElement)) return false;
+    parentId = parentElement.parent_id ?? null;
+  }
+
+  return false;
+}
+
+function isBodyElement(element: MinimalElement): boolean {
+  return element.type.toLowerCase() === "body";
+}
+
+function isTransparentSelectionContainer(element: MinimalElement): boolean {
+  return element.props?._slotChrome === "hidden";
 }
 
 /**
@@ -98,7 +123,7 @@ export function resolveEditingContextForTreeSelection(
   if (!parentId) return null;
 
   const parentElement = elementsMap.get(parentId);
-  if (parentElement?.type === 'body') return null;
+  if (parentElement?.type === "body") return null;
 
   return parentId;
 }

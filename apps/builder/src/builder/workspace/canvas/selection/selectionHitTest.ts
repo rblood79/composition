@@ -74,6 +74,7 @@ export function pickTopmostHitElementId(
   elementsMap: Map<string, Element>,
 ): string | null {
   let hitElementId: string | null = null;
+  let bestDepth = -1;
   let bestArea = Infinity;
 
   for (const candidateId of hitCandidates) {
@@ -84,13 +85,34 @@ export function pickTopmostHitElementId(
 
     const bounds = getElementBoundsSimple(candidateId);
     const area = bounds ? bounds.width * bounds.height : Infinity;
-    if (area < bestArea) {
+    const depth = getElementDepth(candidateId, elementsMap);
+    if (depth > bestDepth || (depth === bestDepth && area < bestArea)) {
+      bestDepth = depth;
       bestArea = area;
       hitElementId = candidateId;
     }
   }
 
   return hitElementId;
+}
+
+function getElementDepth(
+  elementId: string,
+  elementsMap: Map<string, Element>,
+): number {
+  let depth = 0;
+  let current = elementsMap.get(elementId);
+  const visited = new Set<string>();
+
+  while (current?.parent_id && !visited.has(current.parent_id)) {
+    visited.add(current.parent_id);
+    const parent = elementsMap.get(current.parent_id);
+    if (!parent) break;
+    depth += 1;
+    current = parent;
+  }
+
+  return depth;
 }
 
 export function findBodySelectionAtCanvasPoint({
