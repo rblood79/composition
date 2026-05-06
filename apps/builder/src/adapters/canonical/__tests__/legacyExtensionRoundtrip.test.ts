@@ -1,5 +1,5 @@
 /**
- * @fileoverview Legacy events/dataBinding round-trip — ADR-916 Phase 5 G7
+ * @fileoverview Legacy events/dataBinding round-trip — ADR-116 Phase 5 G7
  *   본격 cutover (2026-05-01)
  *
  * **검증 영역**:

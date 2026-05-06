@@ -76,7 +76,7 @@ export function buildPixiPageRendererInput({
 interface BuildFrameRendererInputOptions {
   dirtyElementIds: Set<string>;
   elementById: Map<string, Element>;
-  /** ADR-911 P3-α framePositions[frameId] (또는 frameAreas fallback) */
+  /** ADR-111 P3-α framePositions[frameId] (또는 frameAreas fallback) */
   frameHeight: number;
   /** canonical reusable frame scope id */
   frameId: string;
@@ -92,7 +92,7 @@ interface BuildFrameRendererInputOptions {
 }
 
 /**
- * ADR-911 P3-δ fix #3 (D4=A, 2026-04-28) — frame body 의 PixiPageRendererInput
+ * ADR-111 P3-δ fix #3 (D4=A, 2026-04-28) — frame body 의 PixiPageRendererInput
  * shape 빌드. page-centric 함수와 분리 (rendererInput.ts 의 page 함수와 frame
  * 함수 분리 명확).
  *
@@ -192,7 +192,7 @@ export interface SkiaRendererInput {
   pages: Page[];
   sceneSnapshot: SceneStructureSnapshot;
 
-  // ADR-911 P3-δ: reusable frame canvas authoring 시각 path
+  // ADR-111 P3-δ: reusable frame canvas authoring 시각 path
   /** P3-α store: frame id (legacy layoutId) → 캔버스 영역 좌표/크기 */
   framePositions: Record<
     string,

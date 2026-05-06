@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 3 G4 sub-phase 3-C — exportLegacyDocument 단일 SSOT
+ * @fileoverview ADR-116 Phase 3 G4 sub-phase 3-C — exportLegacyDocument 단일 SSOT
  * grep gate codify (D18=A 검증).
  *
  * design §8.6 의 grep 명령을 vitest 로 codify. legacy `elements[]` direct write
@@ -31,7 +31,7 @@ const EXCLUDE_PATTERNS: readonly RegExp[] = [
   /\/apps\/builder\/src\/adapters\//,
   /\/apps\/builder\/src\/lib\/db\/migration[^/]*\.ts$/,
   /\/apps\/builder\/src\/builder\/utils\/exportLegacyDocument\.ts$/,
-  // ADR-912 dev-only evidence fixture intentionally preserves raw marker fields
+  // ADR-112 dev-only evidence fixture intentionally preserves raw marker fields
   // (`reusable`, `ref`, `slot`) that are not legacy mirror persistence writes.
   /\/apps\/builder\/src\/builder\/dev\/editingSemanticsFixture\.ts$/,
 ];
@@ -137,7 +137,7 @@ function scanViolations(): Violation[] {
 // Tests
 // ─────────────────────────────────────────────
 
-describe("ADR-916 Phase 3 G4 — exportLegacyDocument SSOT grep gate (D18=A)", () => {
+describe("ADR-116 Phase 3 G4 — exportLegacyDocument SSOT grep gate (D18=A)", () => {
   it("baseline regression detection: 위반 site 수 ≤ baseline", () => {
     const violations = scanViolations();
     if (violations.length > BASELINE_VIOLATION_COUNT) {
@@ -145,7 +145,7 @@ describe("ADR-916 Phase 3 G4 — exportLegacyDocument SSOT grep gate (D18=A)", (
         .map((v) => `  ${v.file}:${v.line} → ${v.text}`)
         .join("\n");
       throw new Error(
-        `ADR-916 G4 grep gate regression: ${violations.length} 위반 (baseline ${BASELINE_VIOLATION_COUNT})\n${summary}`,
+        `ADR-116 G4 grep gate regression: ${violations.length} 위반 (baseline ${BASELINE_VIOLATION_COUNT})\n${summary}`,
       );
     }
     expect(violations.length).toBeLessThanOrEqual(BASELINE_VIOLATION_COUNT);

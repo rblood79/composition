@@ -1,5 +1,5 @@
 /**
- * @fileoverview canonicalDocumentStore unit tests — ADR-916 Phase 1 (G2)
+ * @fileoverview canonicalDocumentStore unit tests — ADR-116 Phase 1 (G2)
  *
  * R1 대응 evidence: Phase 1 = "API + unit test" scope 충족.
  * 본 파일은 7 action × 핵심 happy path + edge case 를 검증.

@@ -233,7 +233,7 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 항상 **Plan 먼저 → Execute → Verify (`/cross-check` + `type-check`)** 순서를 지킨다.
 불확실한 부분은 질문을 먼저 하고, 가정하지 않는다.
 
-**framing 의문은 raise 의무 (CRITICAL)**: ADR base/응용 분류, 의존 방향, SSOT 경계, baseline framing 자동 승계 같은 본질 framing 에 의문이 들면 사용자 마찰을 만들어도 무조건 raise 한다. push-back 회피 (sycophancy default) 시 본질 손실 (예: ADR-911/912 24+ commits 우회) 이 마찰 비용보다 압도적으로 크다. 절차 컴플라이언스 (Risk 표 / Gate 매핑 / type-check PASS) 통과해도 framing 위반은 잡히지 않는다.
+**framing 의문은 raise 의무 (CRITICAL)**: ADR base/응용 분류, 의존 방향, SSOT 경계, baseline framing 자동 승계 같은 본질 framing 에 의문이 들면 사용자 마찰을 만들어도 무조건 raise 한다. push-back 회피 (sycophancy default) 시 본질 손실 (예: ADR-111/112 24+ commits 우회) 이 마찰 비용보다 압도적으로 크다. 절차 컴플라이언스 (Risk 표 / Gate 매핑 / type-check PASS) 통과해도 framing 위반은 잡히지 않는다.
 
 **본질 사고 작업은 extended thinking 명시 진입 (CRITICAL)**: ADR fork / 분리 / 의존 방향 결정 / SSOT 경계 판정 / 대안 base/응용 분류 같은 framing 사고 작업은 표면 답변 (plan→execute→done 사이클) 회피하고 깊은 사고 모드로 진입한다. tool 호출로 outsource 금지 — codex review / cross-check skill 은 본문 정합 layer 일 뿐 framing layer 아님. token 효율 학습 압력 우회는 vendor 자체 가이드 정렬 방향.
 ```

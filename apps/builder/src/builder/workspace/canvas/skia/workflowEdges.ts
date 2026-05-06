@@ -200,7 +200,7 @@ export function computeWorkflowEdges(
 
     // 2) 이벤트 기반 navigation 엣지
     // props.events 가 UI canonical primary, element.events 는 legacy fallback —
-    // ADR-916 Phase 5 G7 Extension Boundary 정합 (read-through helper 단일화).
+    // ADR-116 Phase 5 G7 Extension Boundary 정합 (read-through helper 단일화).
     const events = getElementEvents(element) as WorkflowEventInput[];
     if (events.length === 0) continue;
 
@@ -260,7 +260,7 @@ export interface LayoutGroup {
 }
 
 /**
- * ADR-911 P3-β: reusable frame 캔버스 영역 그룹.
+ * ADR-111 P3-β: reusable frame 캔버스 영역 그룹.
  *
  * `LayoutGroup` (page sharing metadata) 와 의미적으로 분리.
  * frame body 가 캔버스에 그려질 viewport 영역 정보 (P3-δ Skia render 통합 입력).
@@ -403,7 +403,7 @@ export function computeLayoutGroups(
 }
 
 // ============================================
-// Frame Area Computation (ADR-911 P3-β)
+// Frame Area Computation (ADR-111 P3-β)
 // ============================================
 
 /**

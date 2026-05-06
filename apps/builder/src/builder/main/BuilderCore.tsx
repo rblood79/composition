@@ -17,13 +17,13 @@ import { BuilderViewport } from "./BuilderViewport";
 import { Workspace } from "../workspace";
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
 import { startCanonicalDocumentSync } from "../stores/canonical/canonicalDocumentSync";
-// ADR-916 Phase 2 G3 Step 4 — BuilderCore layout refresh dual-mode
+// ADR-116 Phase 2 G3 Step 4 — BuilderCore layout refresh dual-mode
 import {
   subscribeCanonicalStore,
   getActiveCanonicalDocument,
 } from "../stores/canonical/canonicalElementsBridge";
 import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
-// ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
+// ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import {
   setElementsCanonicalPrimary,
   registerCanonicalMutationStoreActions,
@@ -103,7 +103,7 @@ export const BuilderCore: React.FC = () => {
   );
   const pageShellBridgeSuspendedRef = useRef(false);
 
-  // ADR-916 Phase 5 G6-2 third slice — canonicalMutations DI registration.
+  // ADR-116 Phase 5 G6-2 third slice — canonicalMutations DI registration.
   // wrapper API (canonicalMutations.ts) 의 ESM circular import chain 차단을
   // 위해 callback registration pattern 사용. mount + projectId 변경 시 등록.
   //
@@ -126,14 +126,14 @@ export const BuilderCore: React.FC = () => {
     });
   }, [projectId]);
 
-  // ADR-916 direct cutover — canonical document write-through sync.
+  // ADR-116 direct cutover — canonical document write-through sync.
   useEffect(() => {
     if (!projectId) return;
     const stop = startCanonicalDocumentSync(projectId);
     return stop;
   }, [projectId]);
 
-  // ADR-916 direct cutover — page shell mutations also update the canonical doc.
+  // ADR-116 direct cutover — page shell mutations also update the canonical doc.
   // `appendPageShell`, `setPages`, `removePageLocal` are still legacy page-store
   // surfaces; this bridge keeps CompositionDocument as the persisted SSOT.
   useEffect(() => {
@@ -147,7 +147,7 @@ export const BuilderCore: React.FC = () => {
     });
   }, [projectId]);
 
-  // ADR-916 direct cutover — active CompositionDocument 를 DB primary store 로 저장.
+  // ADR-116 direct cutover — active CompositionDocument 를 DB primary store 로 저장.
   useEffect(() => {
     if (!projectId) return;
 
@@ -163,7 +163,7 @@ export const BuilderCore: React.FC = () => {
           await db.documents.put(projectId, doc);
         }
       } catch (error) {
-        console.warn("[ADR-916] canonical document persist failed:", error);
+        console.warn("[ADR-116] canonical document persist failed:", error);
       }
     };
 
@@ -400,10 +400,10 @@ export const BuilderCore: React.FC = () => {
       // ADR-021 Phase C: localStorage에서 ThemeConfig 복원
       useThemeConfigStore.getState().initThemeConfig(projectId);
 
-      // ADR-910 Phase 2 ts-3.1: canonical themes write-through (env flag opt-in)
+      // ADR-110 Phase 2 ts-3.1: canonical themes write-through (env flag opt-in)
       // env flag 미설정 시 호출 안 함 — Phase 1 (read-only snapshot) 동작 유지.
-      // ADR-916 projection 제거: active canonical document 만 사용한다.
-      if (import.meta.env.VITE_ADR910_P2_THEMES_WRITE_THROUGH === "true") {
+      // ADR-116 projection 제거: active canonical document 만 사용한다.
+      if (import.meta.env.VITE_ADR110_P2_THEMES_WRITE_THROUGH === "true") {
         try {
           const doc = getActiveCanonicalDocument();
           if (doc) {
@@ -413,12 +413,12 @@ export const BuilderCore: React.FC = () => {
             );
             if (applied && import.meta.env.DEV) {
               console.log(
-                "[ADR-910 P2 ts-3.1] applied canonical themes from document",
+                "[ADR-110 P2 ts-3.1] applied canonical themes from document",
               );
             }
           }
         } catch (err) {
-          console.warn("[ADR-910 P2 ts-3.1] applyCanonicalThemes failed:", err);
+          console.warn("[ADR-110 P2 ts-3.1] applyCanonicalThemes failed:", err);
         }
       }
 
@@ -563,14 +563,14 @@ export const BuilderCore: React.FC = () => {
     // iframe이 준비되지 않았으면 구독하지 않음 (WebGL-only 모드 포함)
     if (iframeReadyState !== "ready") return;
 
-    // ADR-916 Phase 2 G3 Step 4 — sourceElements 평가 + filter + publish 로직을
+    // ADR-116 Phase 2 G3 Step 4 — sourceElements 평가 + filter + publish 로직을
     // 단일 helper 로 추출. legacy/canonical 양쪽 mode 가 동일 logic 으로 publish.
     const publishElements = (sourceElements: Element[]): void => {
       const editMode = useEditModeStore.getState().mode;
       const selectedReusableFrameId = getSelectedReusableFrameId();
 
       // editMode에 따라 필터링
-      // ADR-916 projection 제거: publish path 에서 projection rebuild 없이
+      // ADR-116 projection 제거: publish path 에서 projection rebuild 없이
       // active canonical document 를 재사용한다.
       let filteredElements = sourceElements;
       if (editMode === "layout" && selectedReusableFrameId) {
@@ -1181,7 +1181,7 @@ export const BuilderCore: React.FC = () => {
       {/* 🚀 Phase 7: 커맨드 팔레트 (Cmd+K) */}
       <CommandPalette />
 
-      {/* ADR-912 Phase E: origin 편집 영향 미리보기 */}
+      {/* ADR-112 Phase E: origin 편집 영향 미리보기 */}
       <EditingSemanticsImpactDialogHost />
 
       {/* Modal 패널 컨테이너 */}

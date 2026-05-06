@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 3 G4 — 3-A-impl 실 동작 검증.
+ * @fileoverview ADR-116 Phase 3 G4 — 3-A-impl 실 동작 검증.
  *
  * 3-A-stub 단계에서 시그니처만 검증하던 6 test 를 실 동작 검증으로 확장.
  * 3 영역: exportLegacyDocument round-trip / diffLegacyRoundtrip 3 카테고리 분류

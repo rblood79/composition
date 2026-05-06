@@ -1,5 +1,5 @@
 /**
- * @fileoverview Canonical Elements Bridge — ADR-916 Phase 2 G3 Sub-Phase A
+ * @fileoverview Canonical Elements Bridge — ADR-116 Phase 2 G3 Sub-Phase A
  *
  * Phase 2 hot path cutover 의 backbone. legacy `elementsMap` 와
  * `useCanonicalDocumentStore` 사이의 단일 read 진입점을 제공.

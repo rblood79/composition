@@ -72,7 +72,7 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       const path = await import("node:path");
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
       const source = await fs.readFile(filePath, "utf-8");
-      // ADR-916 Phase 2 G3 Step 3 — elements 변수가 dual-mode (legacy store +
+      // ADR-116 Phase 2 G3 Step 3 — elements 변수가 dual-mode (legacy store +
       // canonical derived) 로 확장됨. legacy store subscribe 는 legacyElements
       // 로 이름 변경, elements 자체는 useMemo 로 dual-mode 분기.
       expect(source).toMatch(

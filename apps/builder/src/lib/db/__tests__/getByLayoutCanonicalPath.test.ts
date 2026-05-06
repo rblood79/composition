@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-describe("ADR-916 direct cutover: legacy element layout index removed", () => {
+describe("ADR-116 direct cutover: legacy element layout index removed", () => {
   it("IndexedDB adapter no longer exposes getByLayout or creates layout_id index", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");

@@ -31,7 +31,7 @@ function setElements(elements: Element[]): void {
   useStore.getState()._rebuildIndexes();
 }
 
-describe("ADR-912 editing semantics regression sweep", () => {
+describe("ADR-112 editing semantics regression sweep", () => {
   beforeEach(() => {
     historyManager.setCurrentPage("page-1");
     setElements([]);

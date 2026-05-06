@@ -1,5 +1,5 @@
 /**
- * ADR-911 P3-θ — Page + Frame Slot Fill Resolution (D7=B / D8=A / D9=A 채택)
+ * ADR-111 P3-θ — Page + Frame Slot Fill Resolution (D7=B / D8=A / D9=A 채택)
  *
  * page frame binding 이 set 된 경우, 해당 frame 의 element 들을 page rendering
  * pipeline 에 합성한다.

@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 5 G7 Extension Boundary — legacy `Element.events`
+ * @fileoverview ADR-116 Phase 5 G7 Extension Boundary — legacy `Element.events`
  * / `Element.dataBinding` read-through helper.
  *
  * canonical primary 저장 위치 = `CompositionNode.extension['x-composition']`
@@ -15,8 +15,8 @@
  * 단일화하여, Phase 5 G7 closure 시점에 helper 내부 logic 만 reverse 하면 모든
  * caller 가 자동 canonical primary 로 전환되도록 한다.
  *
- * @see docs/adr/916-canonical-document-ssot-transition.md §G7 Extension Boundary
- * @see docs/adr/design/916-canonical-document-ssot-transition-breakdown.md §10.2 G6-1
+ * @see docs/adr/116-canonical-document-ssot-transition.md §G7 Extension Boundary
+ * @see docs/adr/design/116-canonical-document-ssot-transition-breakdown.md §10.2 G6-1
  */
 
 import type { DataBinding } from "@composition/shared";
@@ -41,7 +41,7 @@ interface LegacyElementWithExtension {
  * legacy `Element.events` 영역 — read-through priority.
  *
  * 1. `props.events` — UI canonical primary 저장 (workflow editor 가 inline 수정).
- * 2. `element.events` — legacy fallback (ADR-913 P5 schema 영역, ADR-916 G7 cleanup target).
+ * 2. `element.events` — legacy fallback (ADR-113 P5 schema 영역, ADR-116 G7 cleanup target).
  * 3. `[]` — 미지정 default.
  *
  * Phase 5 G7 closure 시 helper 내부 reverse — `node.extension['x-composition'].events`

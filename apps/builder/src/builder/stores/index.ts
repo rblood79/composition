@@ -145,7 +145,7 @@ export const useSelectedElementData = (): SelectedElement | null => {
   // elementsMap 전체 구독 대신 이미 계산된 props 사용
   const selectedElementProps = useStore((state) => state.selectedElementProps);
 
-  // ADR-916 Phase 2 G3 Step 2 — canonical mode 시 selected element 를 canonical
+  // ADR-116 Phase 2 G3 Step 2 — canonical mode 시 selected element 를 canonical
   // store 에서 파생. flag 미활성 또는 canonical 에 노드 없을 때 `null` 반환 →
   // legacy elementsMap fallback. flag 와 무관하게 항상 hook 호출 (Rules of Hooks).
   const canonicalSelectedElement =

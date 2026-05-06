@@ -1,5 +1,5 @@
 /**
- * @fileoverview canonicalElementsBridge unit tests — ADR-916 Phase 2 G3 Sub-Phase A
+ * @fileoverview canonicalElementsBridge unit tests — ADR-116 Phase 2 G3 Sub-Phase A
  *
  * 검증 영역:
  * 1. Read API — getCanonicalNode / getActiveCanonicalDocument

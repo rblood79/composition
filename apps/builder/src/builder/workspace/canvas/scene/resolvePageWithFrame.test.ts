@@ -56,7 +56,7 @@ const makeFramePage = (
 const buildElementsMap = (els: Element[]): Map<string, Element> =>
   new Map(els.map((el) => [el.id, el]));
 
-describe("ADR-911 P3-θ resolvePageWithFrame", () => {
+describe("ADR-111 P3-θ resolvePageWithFrame", () => {
   it("frame mirror 미바인딩 page → 기존 동작 (body + nonBody, hasFrameBinding=false)", () => {
     const pageBody = makeEl({
       id: "page-body",

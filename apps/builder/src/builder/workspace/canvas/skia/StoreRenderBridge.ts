@@ -422,7 +422,7 @@ export class StoreRenderBridge {
       element,
       elementsMap.values(),
     );
-    // ADR-916 G5-B P5-D: component master reference 는 mirror adapter 를
+    // ADR-116 G5-B P5-D: component master reference 는 mirror adapter 를
     // 경유한다 (canonical RefNode ref 자동 호환).
     if (isInstanceElement(element)) {
       const masterRef = getInstanceMasterRef(element);

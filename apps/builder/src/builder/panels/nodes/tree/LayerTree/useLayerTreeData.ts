@@ -23,7 +23,7 @@ export function useLayerTreeData(elements: Element[]) {
   const currentPageId = useStore((state) => state.currentPageId);
   const pages = useStore((state) => state.pages);
 
-  // ADR-916 direct cutover — canonical store 의 active document 에서 derived
+  // ADR-116 direct cutover — canonical store 의 active document 에서 derived
   // Element[] 를 source 로 사용. 초기 hydration 전에는 caller elements[] fallback.
   const canonicalElements = useCanonicalElements();
   const resolutionElementsMap = useMemo(() => {

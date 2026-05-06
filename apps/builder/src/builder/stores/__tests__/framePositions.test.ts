@@ -13,7 +13,7 @@ vi.mock("../../../env/supabase.client", () => ({
 
 import { useStore } from "../index";
 
-describe("ADR-911 P3-α framePositions store", () => {
+describe("ADR-111 P3-α framePositions store", () => {
   beforeEach(() => {
     useStore.setState({
       framePositions: {},

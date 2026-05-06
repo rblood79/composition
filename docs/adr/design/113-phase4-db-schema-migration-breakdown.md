@@ -1,10 +1,10 @@
-# ADR-913 Phase 4 Implementation Breakdown — Direct Cutover `tag → type`
+# ADR-113 Phase 4 Implementation Breakdown — Direct Cutover `tag → type`
 
 > **2026-05-02 direct cutover 정정**: 기존 사용자/데이터 보존 의무가 없는 개발 단계이므로 본 문서의 DB migration / backup / env flag / rollback 계획은 superseded 됐다. `runTagTypeMigration`, `normalizeLegacyElement`, dry-run entry 는 제거됐고, 현행 format 은 `Element.type` 단일 기준이다.
 
 ## 1. 목표 + Gate G5-E
 
-ADR-913 line 135 G5-E:
+ADR-113 line 135 G5-E:
 
 | 조건 | 정의                                     |
 | ---- | ---------------------------------------- |
@@ -128,8 +128,8 @@ export async function runTagTypeMigration(
   - `metaRecord` 미존재 또는 `schemaVersion ∈ {legacy, composition-1.0}` → `runTagTypeMigration(db, projectId, { dryRun: true })`
   - composition-1.1 이미 진입 시 함수 내부에서 skipped 반환 (entry 호출은 발생하지만 단순 skip)
 - dev console.log 으로 결과 로깅:
-  - skipped: `[ADR-913 P4 dry-run] skipped: ${reason}`
-  - 일반: `[ADR-913 P4 dry-run] status=${status}, transformedCount=N/M, errors=K`
+  - skipped: `[ADR-113 P4 dry-run] skipped: ${reason}`
+  - 일반: `[ADR-113 P4 dry-run] status=${status}, transformedCount=N/M, errors=K`
   - transformedCount > 0 시: `${N} elements need tag→type migration`
 - try/catch — measurement 실패는 `console.warn` 로 graceful degrade (BC 보장)
 - write-through 미진입 — Step 4-4 까지 read-only
@@ -163,7 +163,7 @@ if (!dryRun) {
       schemaVersion: "legacy",
       lastError: String(err),
     });
-    console.warn("[ADR-913 P4] migration failed, falling back to legacy:", err);
+    console.warn("[ADR-113 P4] migration failed, falling back to legacy:", err);
     return { status: "failure", error: err };
   }
 }
@@ -173,7 +173,7 @@ if (!dryRun) {
 
 **환경 변수 control**:
 
-- `VITE_ADR913_P4_WRITE_THROUGH=true` 일 때만 write-through 진입 (rollback 경로 보장)
+- `VITE_ADR113_P4_WRITE_THROUGH=true` 일 때만 write-through 진입 (rollback 경로 보장)
 - prod build 진입 전 dev 환경 충분 검증 (1주+ monitoring 권장)
 
 ### Step 4-5 — `normalizeLegacyElement` helper 제거 (cutover)
@@ -194,7 +194,7 @@ if (!dryRun) {
 **산출물**:
 
 - `apps/builder/src/lib/db/__tests__/migration-tag-type.test.ts` 신규 — 50+ fixture round-trip + edge case
-- ADR-913 본문 Phase 4 진행 로그 entry
+- ADR-113 본문 Phase 4 진행 로그 entry
 - CHANGELOG entry
 
 ## 4. localStorage backup 3중 안전망 (R3 매핑)
@@ -215,7 +215,7 @@ ADR-903 P3-E 의 패턴 재사용:
 
 ## 5. 회귀 위험 측정
 
-ADR-913 line 121 R3 (DB schema 전환 시 데이터 손실) → **HIGH** mitigation:
+ADR-113 line 121 R3 (DB schema 전환 시 데이터 손실) → **HIGH** mitigation:
 
 | 위험                            | 측정                                                  | 수용 임계              |
 | ------------------------------- | ----------------------------------------------------- | ---------------------- |
@@ -247,7 +247,7 @@ pnpm type-check  # 3/3 PASS
 
 1. dev 서버 시작 (`pnpm dev`)
 2. 기존 프로젝트 (DB_VERSION 8, schemaVersion: composition-1.0) 로드
-3. console 에서 `[ADR-913 P4 dry-run]` 로그 확인 — `tag → type` 변환 N 건
+3. console 에서 `[ADR-113 P4 dry-run]` 로그 확인 — `tag → type` 변환 N 건
 4. (Step 4-4 진입 후) `_meta.schemaVersion` 변경 확인
 5. 새로고침 → dev console 에 `legacyToCanonicalRoundTrip` 정상 동작
 6. legacy fallback 시 `_meta.schemaVersion: legacy` 표시 + console.warn
@@ -267,27 +267,27 @@ pnpm vitest run apps/builder/src/lib/db
 
 ## 7. 진입 prerequisite
 
-- ADR-913 Phase 1 + 2 + 3 land (✅ 본 세션 종결)
+- ADR-113 Phase 1 + 2 + 3 land (✅ 본 세션 종결)
 - ADR-903 P3-E E-6 패턴 재사용 (✅ Implemented 2026-04-26)
-- ADR-916 G2 canonical store/API + canonical→legacy export adapter API 확정
+- ADR-116 G2 canonical store/API + canonical→legacy export adapter API 확정
 - dev 환경 수동 검증 1주+ 가능 (사용자 동의)
 
 ## 8. 진입 비권장 시점
 
-- ADR-916 Phase 0/1 이전 — canonical primary/shadow write 방향이 확정되지 않아 Step 4-4 write-through 의미가 바뀔 수 있음
-- ADR-910 Phase 2 write-through 진입 시기와 겹침 — schema 동시 변경 위험
+- ADR-116 Phase 0/1 이전 — canonical primary/shadow write 방향이 확정되지 않아 Step 4-4 write-through 의미가 바뀔 수 있음
+- ADR-110 Phase 2 write-through 진입 시기와 겹침 — schema 동시 변경 위험
 - prod 빌드 임박 시점 — write-through 활성화 후 1주+ 안정성 마진 필요
 
 ## 9. 종결 후 후속
 
 - Phase 5 (Hybrid 6 cleanup, HIGH 2d, 313+ ref) 진입 prerequisite 충족
-- ADR-913 Status `In Progress → Implemented` 승격 시점 = Phase 5 까지 완결
+- ADR-113 Status `In Progress → Implemented` 승격 시점 = Phase 5 까지 완결
 - `Element.tag` 타입 영구 제거 → SSOT 단일화 완료
 
 ## 관련 문서
 
-- ADR-913: `docs/adr/completed/913-tag-type-rename-hybrid-cleanup.md`
+- ADR-113: `docs/adr/completed/113-tag-type-rename-hybrid-cleanup.md`
 - ADR-903 P3-E breakdown: `docs/adr/design/903-phase3e-persistence-breakdown.md` (620 LOC, 본 Phase 4 의 baseline 패턴)
-- ADR-913 inventory: `docs/adr/design/913-tag-type-rename-inventory.md`
-- ADR-916: `docs/adr/completed/916-canonical-document-ssot-transition.md`
+- ADR-113 inventory: `docs/adr/design/113-tag-type-rename-inventory.md`
+- ADR-116: `docs/adr/completed/116-canonical-document-ssot-transition.md`
 - ADR-903: `docs/adr/completed/903-ref-descendants-slot-composition-format-migration-plan.md`

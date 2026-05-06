@@ -99,4 +99,4 @@ LayoutsTab cleanup 이후 잔여 deprecated 심볼은 모두 active caller 보�
 - P3-A 회귀 위험: `docs/adr/design/903-phase3a-regression-risk.md`
 - LayoutsTab cleanup PR: #219 (`chore/adr-903-cleanup-layoutstab`)
 - 옵션 C resolve 0 진단: `docs/adr/design/903-option-c-resolve-zero-diagnosis.md` (Team 1 산출)
-- ADR-910 Phase 1 themes adapter: `feat/adr-910-phase1-themes-adapter` (Team 4 산출)
+- ADR-110 Phase 1 themes adapter: `feat/adr-110-phase1-themes-adapter` (Team 4 산출)

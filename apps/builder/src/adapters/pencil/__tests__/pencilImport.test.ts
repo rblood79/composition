@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PencilDocument } from "@composition/shared";
 import { importPencilDocument } from "../pencilImport";
 
-describe("ADR-911 Pencil import adapter", () => {
+describe("ADR-111 Pencil import adapter", () => {
   it("maps Pencil primitives into canonical component nodes without legacy mirrors", () => {
     const doc = importPencilDocument({
       version: "2.10",

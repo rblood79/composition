@@ -90,28 +90,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/NodesPanelTabs.static.test.ts src/builder/panels/properties/editors/LayoutBodyEditor.static.test.ts` — visible naming contract PASS
 - `pnpm run codex:preflight` — PASS
 
-## [Rollback — ADR-916 post-cutover fix 군 + build error fix + canonical-hydration fix 폐기] - 2026-05-05
+## [Rollback — ADR-116 post-cutover fix 군 + build error fix + canonical-hydration fix 폐기] - 2026-05-05
 
 ### Reverted
 
-- **2026-05-03 ADR-916 post-cutover persistence / canonical frame scope / Layout Preset / Style Panel write-through fix 군 (3 commits: `c85591cd8` / `f55eb470c` / `03292edef`)** + **build error 정합화 시리즈 (9 commits: `919e11217` ~ `d09f706a3`)** + **canonical-hydration page-frame binding fix 3종 (3 commits: `dae3e0dda` / `94c428ae2` / `eacedead7`)** = **총 12 commits 통째 폐기**.
+- **2026-05-03 ADR-116 post-cutover persistence / canonical frame scope / Layout Preset / Style Panel write-through fix 군 (3 commits: `c85591cd8` / `f55eb470c` / `03292edef`)** + **build error 정합화 시리즈 (9 commits: `919e11217` ~ `d09f706a3`)** + **canonical-hydration page-frame binding fix 3종 (3 commits: `dae3e0dda` / `94c428ae2` / `eacedead7`)** = **총 12 commits 통째 폐기**.
   - **Why**: 사용자 환경에서 누적 회귀 ("프로젝트가 너무 꼬여서 복구 불능" / page→body→frame 적용 후 새로고침 시 body 사라짐). 5-03 fix 군의 targeted vitest 는 pass 했지만 사용자 browser-side 추가 회귀 (build error 시리즈에서 type schema drift 누적 + canonical-hydration fix 적용 후에도 동일 증상 지속) 가 root cause 정합 미달.
   - main HEAD `eacedead7 → 225532ea9` (force push). `225532ea9` = build error 정합화 직전 마지막 commit, codex 작업 mid-point.
   - 폐기 영역 (잔존 debt 재분류): `elementCreation` write-through gap / `frameElementScope` adapter / `isFrameElementForFrame` canonical scope cutover / `legacy-slot-hoisted` Slot 복원 / `removeElements` full snapshot write-through / `updateElementProps` canonical merge / `inspectorActions` Style Panel canonical write-through / Skia FontStyle + SelectionOverlayBuildResult + test fixture 정합 (build error 시리즈) / `useLayerTreeData` filter `getPageFrameBindingId` 매칭 / `collectRuntimeElements` RefNode hoist + layout_id mirror / `isPageNode` RefNode 인식 / `extractPageLayoutBinding` (canonical-hydration fix 시리즈).
-  - cutover (`dc498e539`) ~ ADR-916/911/913 Implemented 처리 자체는 보존. ADR-916 본문 §Status 에 rollback 주석 추가하여 폐기 영역을 ADR-916 잔존 debt 로 재분류.
+  - cutover (`dc498e539`) ~ ADR-116/111/113 Implemented 처리 자체는 보존. ADR-116 본문 §Status 에 rollback 주석 추가하여 폐기 영역을 ADR-116 잔존 debt 로 재분류.
   - 폐기 commits history 는 `backup/before-rollback-eacedead7-2026-05-05` branch 에 보존 (영구 archive). 2차/3차 backup branch (`backup/before-rollback-2-225532ea9-2026-05-05`, `backup/before-rollback-3-8451031c5-2026-05-05`) 는 시도된 추가 rollback (사용자 거부) 의 안전망 — 사용자 명시 승인 후 정리 예정.
 
 ### Verification
 
 - baseline `225532ea9` type-check 3/3 PASS (FULL TURBO cache hit)
-- browser smoke (Chrome MCP): dashboard 진입 + 새 프로젝트 생성 + page/body LayerTree 표시 정상 / Properties 패널 (Component / Nested Routes / Layout) 정상 / console error 0건 (`[ADR-903 P3-E E-4]` migration dry-run success / `[ADR-913 P4 dry-run]` success)
+- browser smoke (Chrome MCP): dashboard 진입 + 새 프로젝트 생성 + page/body LayerTree 표시 정상 / Properties 패널 (Component / Nested Routes / Layout) 정상 / console error 0건 (`[ADR-903 P3-E E-4]` migration dry-run success / `[ADR-113 P4 dry-run]` success)
 - frame 적용 시나리오는 baseline 미검증 — 잔존 debt 로 후속 작업 필요
 
-## [ADR-916 post-cutover frame persistence/render fix — ROLLED BACK 2026-05-05] - 2026-05-03
+## [ADR-116 post-cutover frame persistence/render fix — ROLLED BACK 2026-05-05] - 2026-05-03
 
 ### Fixed
 
-- ADR-916 direct cutover 이후 Builder 에서 element 추가 후 브라우저 새로고침 시 변경사항이 사라지던 회귀를 수정했다.
+- ADR-116 direct cutover 이후 Builder 에서 element 추가 후 브라우저 새로고침 시 변경사항이 사라지던 회귀를 수정했다.
   - `elementCreation` 단일/복합 element 생성 경로가 active `CompositionDocument` 를 canonical primary store 에 upsert 한 뒤 `db.documents.put(projectId, doc)` 로 저장한다.
   - 기존 `pages`/`elements` hydrate fallback 이 제거된 direct cutover 기준에 맞춰, 신규 편집의 primary persistence 를 `documents` store 로 고정했다.
 - Frames 탭과 Skia frame render 경로에서 page/body 가 frame 수만큼 중복 표시되거나 Slot 이 보이지 않던 회귀를 수정했다.
@@ -136,15 +136,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browser smoke: frame body `display/flexDirection/gap` 와 Slot `padding` 스타일 변경 후 store/canonical `CompositionDocument` style 이 동일하게 갱신되고 relevant console/page errors 0건
 - `pnpm run codex:preflight` — PASS
 
-## [ADR-916/911/913 direct cutover — flags, backup, runtime migrations 제거 + ADR-911 Implemented] - 2026-05-02
+## [ADR-116/111/113 direct cutover — flags, backup, runtime migrations 제거 + ADR-111 Implemented] - 2026-05-02
 
 ### Architecture
 
 - Canonical primary 전환을 feature flag 없이 기본 경로로 고정했다.
-  - 제거: `VITE_ADR916_DOCUMENT_SYNC`, `VITE_ADR916_CANONICAL_PRIMARY`, `VITE_FRAMES_TAB_CANONICAL`
-  - 제거: legacy backup/rollback API, ADR-903/913 runtime migration helpers, ADR-911 `migrationP911` dev trigger
+  - 제거: `VITE_ADR116_DOCUMENT_SYNC`, `VITE_ADR116_CANONICAL_PRIMARY`, `VITE_FRAMES_TAB_CANONICAL`
+  - 제거: legacy backup/rollback API, ADR-903/113 runtime migration helpers, ADR-111 `migrationP111` dev trigger
   - 변경: canonical document sync 는 Builder 진입 시 항상 시작, in-memory mutation wrapper 는 항상 canonical store 우선
-- ADR-911 명칭 충돌을 정리했다.
+- ADR-111 명칭 충돌을 정리했다.
   - `PanelSlot.tsx` / `BottomPanelSlot.tsx` → `PanelArea.tsx` / `BottomPanelArea.tsx`
   - CSS class 도 `panel-area` / `bottom-panel-area` 로 변경
   - FramesTab/PageLayoutSelector read path 는 canonical reusable FrameNode projection 으로 고정
@@ -161,7 +161,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Slot ownership mirror read/write 를 `slotMirror` adapter 로 분리해 Properties panel, layout preset apply, preview slot resolution, page/frame resolver 의 direct `slot_name` helper import 를 제거했다.
   - Component semantics mirror read/write 를 `componentSemanticsMirror` adapter 로 분리해 `ComponentSlotFillSection`, editing semantics fixture, store bridge, instance lifecycle action 의 direct component marker helper import 를 제거했다.
   - Shared export schema/element utilities 의 내부 legacy helper naming 을 mirror terminology 로 정리했다. 이후 residual projection cleanup 에서 shared export schema/element utilities 의 `layout_id`/`slot_name` helper surface 도 제거했다.
-  - ADR-916 projection 제거를 시작했다. Preview 는 Builder 가 보낸 `UPDATE_CANONICAL_DOCUMENT` 를 저장하고 `App.tsx` 에서 해당 `CompositionDocument` 를 직접 resolve 하며, 더 이상 Preview 렌더 경로에서 `legacyToCanonical()` 을 호출하지 않는다.
+  - ADR-116 projection 제거를 시작했다. Preview 는 Builder 가 보낸 `UPDATE_CANONICAL_DOCUMENT` 를 저장하고 `App.tsx` 에서 해당 `CompositionDocument` 를 직접 resolve 하며, 더 이상 Preview 렌더 경로에서 `legacyToCanonical()` 을 호출하지 않는다.
   - Canvas drag/drop helper, BuilderCanvas layout/frame memo, FramesTab, PageLayoutSelector, ComponentsPanel 의 visible/hot read path 는 `selectCanonicalDocument()` projection rebuild 대신 active canonical document / canonical frame surface 를 사용한다.
   - BuilderCore refresh/theme/publish, `usePageManager` project hydrate, `elementCreation` history/reorder path 의 caller-level `selectCanonicalDocument()` projection rebuild 를 제거했다. 해당 경로는 active canonical document, project layout snapshot, frame mirror adapter 를 사용한다.
   - `canonicalDocumentSync` 는 legacy snapshot subscribe/projection sync 를 중단하고 project lifecycle marker 로 축소했다. `usePageManager.initializeProject` 는 초기 hydrate 를 `setElementsCanonicalPrimary()` 로 통과시켜 canonical store 를 직접 seed 한다.
@@ -170,26 +170,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `exportLegacyDocument()` 는 `RefNode.descendants[].children` 까지 순회해 page frame slot fill element 가 legacy mirror 에서 누락되지 않도록 보강했다.
   - Compatibility extraction deep cleanup 을 진행했다. resolver/storeBridge/Preview/canonicalElementsView/instanceActions/canonicalRefResolution/editingSemantics/canonicalMutations/exportLegacyDocument 는 더 이상 `metadata.legacyProps` 를 props source 로 읽지 않고 `CanonicalNode.props` / `ResolvedNode.props` 만 사용한다.
   - `extractLegacyPropsFromResolved` 를 제거하고 `extractCanonicalPropsFromResolved` 로 전환했으며, `g5LegacyFieldGrepGate` 가 runtime compatibility extraction 재도입을 차단한다.
-  - `exportSsotGrepGate` 는 ADR-912 dev-only editing semantics fixture 의 raw visual marker write 만 명시 allowlist 로 분리했다. runtime/persistence write gate baseline 은 0을 유지한다.
+  - `exportSsotGrepGate` 는 ADR-112 dev-only editing semantics fixture 의 raw visual marker write 만 명시 allowlist 로 분리했다. runtime/persistence write gate baseline 은 0을 유지한다.
   - `elements.ts` 의 deprecated `selectCanonicalDocument()` projection selector 를 삭제했다. production source 의 `selectCanonicalDocument()` 호출/정의는 0건이며, `legacyToCanonical()` 은 adapter import/export boundary 와 adapter 테스트 경계에만 남긴다.
-  - ADR-916 G6-3 parity 첫 slice 로 canonical primary native mutation 의 slot append/clear, ref/descendants mirror export 를 보강했다. Deep cleanup 이후 export mirror 는 canonical `props` / `reusable` / `ref` / `descendants` 기반으로 생성하고, resolver 는 RefNode 를 master type 으로 명시 resolve 한다.
-  - ADR-916 G6-3 Ref navigation parity 를 보강했다. `Go to component` 는 canonical reference alias helper 로 origin 을 찾고, origin impact 계산은 canonical `name` 과 metadata `customId`/`componentName` alias 를 포함한다.
-  - ADR-916 G6-3 Frame connection parity 를 보강했다. PageLayoutSelector/FramesTab 은 reusable FrameNode 선택값을 `frameMirror` helper 로 정규화하고, page-frame binding 은 native canonical FrameNode id 를 실제 RefNode.ref 로 사용해 `layout-${id}` broken ref 재생성을 막는다.
-  - ADR-916 G6-3 Slot/Ref/Descendants/Frame parity completion sweep 으로 native slot descendants mutation, ref mirror export, resolver master-type parity, origin/instance navigation, frame binding id parity 를 하나의 static contract gate 로 고정했다.
-  - ADR-916 G6-4 imports parity 첫 slice 로 resolver 가 loaded import document context 를 받아 `<importKey>:<nodeId>` ref 를 resolve 하도록 열었다. import map/source/imported document version 은 resolver cache key 에 반영해 stale cache hit 를 막는다.
-  - ADR-916 G6-4 import prefetch/cache registry 를 추가했다. 외부 source fetch 는 DI 가능한 `ImportDocumentFetcher` 로 분리하고, shared import registry 가 loaded document / inflight request / failed status 를 관리하며 `storeBridge.selectResolvedTree` 의 기본 import context 로 연결된다.
-  - ADR-916 G6-4 Preview runtime import prefetch 를 연결했다. Preview 는 수신한 `CompositionDocument.imports` 를 shared import registry 로 prefetch 하고, canonical dev resolve/render resolve 에 동일 registry context 를 전달한다.
-  - ADR-916 G6-4 import source URL policy 를 추가했다. default import fetcher 는 relative/root/absolute source 를 같은 origin URL로 정규화하고, cross-origin 또는 unsafe protocol source 를 차단한다.
-  - ADR-916 G6-4 import namespace guard 를 추가했다. `importKey` 는 명시 namespace 패턴과 reserved object key 차단을 통과해야 하며, invalid namespace ref 는 imported resolver 를 호출하지 않는다.
-  - ADR-916 G6-4 import payload adapter 를 추가했다. default fetcher 는 same-origin JSON 응답을 canonical `CompositionDocument` 또는 Pencil-style node tree 로 판별하고, Pencil-style top-level nodes 를 reusable canonical masters 로 정규화한다.
-  - ADR-916 G6-4 import registry stale pruning 을 추가했다. document import map 변경/삭제 시 loaded/pending/failed entry 를 현재 import map 기준으로 retain 하고, pruned in-flight fetch 는 늦게 resolve 되어도 registry 에 재저장하지 않는다.
-  - ADR-916 G6-4 imports parity completion sweep 으로 resolver loaded-import consumption, imports cache fingerprint, prefetch/cache registry, Preview prefetch/resolve context, same-origin URL policy, namespace guard, payload adapter, stale pruning 을 하나의 static contract gate 로 고정했다.
-- ADR-911 G5 Pencil import/export parity 를 완료했다.
+  - ADR-116 G6-3 parity 첫 slice 로 canonical primary native mutation 의 slot append/clear, ref/descendants mirror export 를 보강했다. Deep cleanup 이후 export mirror 는 canonical `props` / `reusable` / `ref` / `descendants` 기반으로 생성하고, resolver 는 RefNode 를 master type 으로 명시 resolve 한다.
+  - ADR-116 G6-3 Ref navigation parity 를 보강했다. `Go to component` 는 canonical reference alias helper 로 origin 을 찾고, origin impact 계산은 canonical `name` 과 metadata `customId`/`componentName` alias 를 포함한다.
+  - ADR-116 G6-3 Frame connection parity 를 보강했다. PageLayoutSelector/FramesTab 은 reusable FrameNode 선택값을 `frameMirror` helper 로 정규화하고, page-frame binding 은 native canonical FrameNode id 를 실제 RefNode.ref 로 사용해 `layout-${id}` broken ref 재생성을 막는다.
+  - ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion sweep 으로 native slot descendants mutation, ref mirror export, resolver master-type parity, origin/instance navigation, frame binding id parity 를 하나의 static contract gate 로 고정했다.
+  - ADR-116 G6-4 imports parity 첫 slice 로 resolver 가 loaded import document context 를 받아 `<importKey>:<nodeId>` ref 를 resolve 하도록 열었다. import map/source/imported document version 은 resolver cache key 에 반영해 stale cache hit 를 막는다.
+  - ADR-116 G6-4 import prefetch/cache registry 를 추가했다. 외부 source fetch 는 DI 가능한 `ImportDocumentFetcher` 로 분리하고, shared import registry 가 loaded document / inflight request / failed status 를 관리하며 `storeBridge.selectResolvedTree` 의 기본 import context 로 연결된다.
+  - ADR-116 G6-4 Preview runtime import prefetch 를 연결했다. Preview 는 수신한 `CompositionDocument.imports` 를 shared import registry 로 prefetch 하고, canonical dev resolve/render resolve 에 동일 registry context 를 전달한다.
+  - ADR-116 G6-4 import source URL policy 를 추가했다. default import fetcher 는 relative/root/absolute source 를 같은 origin URL로 정규화하고, cross-origin 또는 unsafe protocol source 를 차단한다.
+  - ADR-116 G6-4 import namespace guard 를 추가했다. `importKey` 는 명시 namespace 패턴과 reserved object key 차단을 통과해야 하며, invalid namespace ref 는 imported resolver 를 호출하지 않는다.
+  - ADR-116 G6-4 import payload adapter 를 추가했다. default fetcher 는 same-origin JSON 응답을 canonical `CompositionDocument` 또는 Pencil-style node tree 로 판별하고, Pencil-style top-level nodes 를 reusable canonical masters 로 정규화한다.
+  - ADR-116 G6-4 import registry stale pruning 을 추가했다. document import map 변경/삭제 시 loaded/pending/failed entry 를 현재 import map 기준으로 retain 하고, pruned in-flight fetch 는 늦게 resolve 되어도 registry 에 재저장하지 않는다.
+  - ADR-116 G6-4 imports parity completion sweep 으로 resolver loaded-import consumption, imports cache fingerprint, prefetch/cache registry, Preview prefetch/resolve context, same-origin URL policy, namespace guard, payload adapter, stale pruning 을 하나의 static contract gate 로 고정했다.
+- ADR-111 G5 Pencil import/export parity 를 완료했다.
   - `apps/builder/src/adapters/pencil/` 에 document-level import/export adapter, schema map, type re-export, 5개 `.pen` fixture, import/roundtrip tests 를 추가했다.
   - `packages/shared/src/types/pencil-adapter.types.ts` 의 Phase 5+ stub 함수는 `pencilDocumentToCompositionDocument()` / `compositionDocumentToPencilDocument()` / node-level mapper 실제 구현으로 승격했다.
-  - ADR-916 import payload adapter 는 같은 shared mapper 를 사용해 fetched `.pen` payload 를 canonical import document 로 normalize 한다. file-open adapter 는 원본 `reusable` 값을 보존하고, import registry 경로만 `forceTopLevelReusable` 로 external top-level node 를 reusable master 로 승격한다.
-  - 5개 fixture (`minimal`, `slots`, `ref`, `descendants`, `imports`) roundtrip schema-equivalent 검증을 통과해 ADR-911 을 `Implemented` 로 승격했다.
-- ADR-916/913 legacy field quarantine helper boundary 를 정리했다.
+  - ADR-116 import payload adapter 는 같은 shared mapper 를 사용해 fetched `.pen` payload 를 canonical import document 로 normalize 한다. file-open adapter 는 원본 `reusable` 값을 보존하고, import registry 경로만 `forceTopLevelReusable` 로 external top-level node 를 reusable master 로 승격한다.
+  - 5개 fixture (`minimal`, `slots`, `ref`, `descendants`, `imports`) roundtrip schema-equivalent 검증을 통과해 ADR-111 을 `Implemented` 로 승격했다.
+- ADR-116/113 legacy field quarantine helper boundary 를 정리했다.
   - `isMasterElement` / `isInstanceElement` / `getInstanceMasterRef` read-through helper 를 `unified.types.ts` 에서 제거하고, component marker read 는 `componentSemanticsMirror` adapter 경계로 고정했다.
   - `Element` / shared `Element` type schema 에서 `componentRole` / `masterId` / legacy `overrides` mirror field 선언을 제거하고, adapter-owned `ElementWithLegacyMirror` / component mirror fixture helper 로 legacy payload 생성을 격리했다.
   - non-adapter component semantics test fixture 는 `withComponentOriginMirror()` / `withComponentInstanceMirror()` 를 사용하도록 전환했고, `g5LegacyFieldGrepGate` 가 shared type schema 재도입과 non-adapter raw `componentRole` / `masterId` fixture 재도입을 차단한다.
@@ -197,7 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - frame/slot targeted fixture cluster 는 `withFrameElementMirrorId()` / `withSlotMirrorName()` helper 로 전환했고, `g5LegacyFieldGrepGate` 가 frame/slot type schema 재도입과 targeted raw fixture key 재도입을 차단한다.
   - `MasterChangeEvent` / `DetachResult.previousState` 의 legacy-style field 명칭을 `originId` / `overrideProps` / `descendantPatches` 로 교체했다.
   - canonical resolver fingerprint parameter 의 일반 변수명 `overrides` 를 `descendantOverrides` 로 바꿔 legacy field grep noise 를 제거했다.
-- ADR-916 final SSOT closure 를 완료했다.
+- ADR-116 final SSOT closure 를 완료했다.
   - IndexedDB `DB_VERSION` 을 10으로 올리고 `documents` object store 를 추가했다.
   - `DatabaseAdapter.documents.{put,get,delete,getAll}` 와 `CanonicalDocumentRecord` 를 추가해 `CompositionDocument` 를 project primary persistence 로 저장한다.
   - Builder hydrate 는 `db.documents.get(projectId)` 를 canonical seed 로 사용하고 DB `pages`/`elements`/`layouts` fallback 으로 document 를 재구성하지 않는다.
@@ -208,18 +208,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - shared `CanonicalLegacyAdapter*` type stub 과 shared `element.utils.ts` 의 `layout_id`/`slot_name` utility 를 삭제해 shared public surface 의 legacy projection helper 를 제거했다.
   - legacy `descendants` mirror field 를 Element/shared type schema 에서 제거했다. canonical `RefNode.descendants` 는 합법 canonical schema 로 유지한다.
   - broader non-adapter raw fixture key bucket (`layout_id:` / `slot_name:` / `componentRole:` / `masterId:`) 을 0건으로 닫았다.
-- ADR-913 Phase 4 를 DB migration 없이 direct cutover 로 닫았다.
+- ADR-113 Phase 4 를 DB migration 없이 direct cutover 로 닫았다.
   - `normalizeLegacyElement` read-through helper 제거
   - `runTagTypeMigration` 및 관련 dry-run entry/test 제거
   - `descendants` runtime access gate 를 추가해 non-adapter 접근을 canonical resolver/store/type validation allowlist 로 제한
-- ADR-916/911/913 format 누락 sweep 을 추가로 닫았다.
+- ADR-116/111/113 format 누락 sweep 을 추가로 닫았다.
   - `PagesApiService.Page.layout_id` optional legacy schema 를 제거하고, `workflowEdges.computeLayoutGroups` 는 page `layout_id` fallback 없이 active `CompositionDocument` 의 reusable frame binding 만 사용한다.
   - `g5LegacyFieldGrepGate` 가 optional legacy field declaration (`layout_id?:` 등) 도 strict gate 로 잡도록 보강했다.
   - Slot factory 의 미정의 `layoutId` 참조와 stale Layout/Slot 주석을 reusable frame context 기준으로 정리했다.
 
 ### Documentation
 
-- 완료 ADR 본문 911/913/916 을 `docs/adr/completed/` archive 로 이동하고, ADR README / design breakdown / adjacent completed ADR 링크를 새 위치로 갱신했다.
+- 완료 ADR 본문 111/113/116 을 `docs/adr/completed/` archive 로 이동하고, ADR README / design breakdown / adjacent completed ADR 링크를 새 위치로 갱신했다.
 
 ### Verification
 
@@ -240,7 +240,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/layoutActions.test.ts src/builder/stores/utils/__tests__/selectReusableFrameContext.test.ts src/builder/main/BuilderCore.static.test.ts src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts` — 4 files / 19 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/builder/panels/properties/editors/PageLayoutSelector.static.test.ts` — 2 files / 3 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/layoutActions.test.ts` — 1 file / 9 tests PASS
-- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/adr913DescendantsGrepGate.test.ts` — 1 file / 1 test PASS
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/adr113DescendantsGrepGate.test.ts` — 1 file / 1 test PASS
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/frameElementLoader.test.ts src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/main/BuilderCore.static.test.ts src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/hooks/__tests__/usePageManager.canonical.test.ts` — 6 files / 29 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/frameElementLoader.test.ts src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts src/builder/workspace/canvas/selection/selectionHitTest.test.ts src/builder/workspace/canvas/hooks/useElementHoverInteraction.test.ts src/builder/panels/properties/editors/ElementSlotSelector.test.tsx src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.static.test.ts` — 7 files / 36 tests PASS
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/frameMirror.test.ts src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/panels/properties/editors/ElementSlotSelector.test.tsx src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts` — 5 files / 28 tests PASS
@@ -274,12 +274,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm run codex:preflight` — PASS
 - `pnpm run codex:typecheck` — PASS
 
-## [ADR-916 Phase 3 G4 wrapper 진정 reverse logic land ✅ — drift #1 본질 해소 (§8.7)] - 2026-05-02
+## [ADR-116 Phase 3 G4 wrapper 진정 reverse logic land ✅ — drift #1 본질 해소 (§8.7)] - 2026-05-02
 
 ### Architecture
 
 - **§8.7 wrapper 진정 reverse logic land ✅ — drift #1 본질 해소** (commit `989e7afc2`):
-  - 위치: `apps/builder/src/adapters/canonical/canonicalMutations.ts` + `apps/builder/src/builder/stores/canonical/canonicalDocumentSync.ts` + `apps/builder/src/builder/main/BuilderCore.tsx` + `docs/adr/design/916-canonical-document-ssot-transition-breakdown.md`
+  - 위치: `apps/builder/src/adapters/canonical/canonicalMutations.ts` + `apps/builder/src/builder/stores/canonical/canonicalDocumentSync.ts` + `apps/builder/src/builder/main/BuilderCore.tsx` + `docs/adr/design/116-canonical-document-ssot-transition-breakdown.md`
   - **Why**: §8.6 grep gate baseline 0 도달 = **형식적 PASS** (caller 16 site wrapper 통해 호출 ✅, wrapper 내부 legacy mutation primary ❌) → drift #1 = HC #1 ("최종 SSOT 고정 = `CompositionDocument`") reverse 미도달 본질. 사용자 framing 정정 ("drift #1 선행 해소 의무") + monitoring 1-2주 framing 정정 (시간 텀 본질 아님, fixture coverage 가 본질) 후 wrapper 진정 reverse 본격 진입.
   - **land 4 영역**:
     - (1) **design §8.7 신규 보강** — sub-step β (monitoring trigger 선택) / γ (wrapper internal reverse) / δ (canonicalDocumentSync swap) 정의 + monitoring 1-2주 framing 정정 + wrapper 5 ↔ canonical store action 매핑표 + 4 의문 (mergeElements 신규/기존 분기 / setElements 전체 교체 시 pages/layouts 보존 / DB persist 와 in-memory 순서 / 무한 루프 방지) 정밀화 lock-in
@@ -287,10 +287,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - (3) **`canonicalDocumentSync.ts` 방향 swap** — flag enable 시 sync 자체 disable (`currentProjectId` 만 set + listener 등록 skip + cleanup 시 reset). canonical primary path 에서는 wrapper 가 직접 양쪽 처리 → 무한 루프 방지
     - (4) **`BuilderCore.tsx` register 호출 확장** — 3 callback 추가 (`getCurrentLegacySnapshot` / `getCurrentProjectId`) + deps `[projectId]` (route 이탈 시 자동 재등록)
   - **검증**: type-check 3/3 PASS + vitest canonical 광역 274/274 PASS (회귀 0) + setup fail 영역 10/10 PASS (DI pattern 정상) + g5 + exportSsot grep gate 5/5 PASS (baseline 0 유지, wrapper 가 `apps/builder/src/adapters/**` exclude 영역 안 배치)
-  - **rollback 경로**: `VITE_ADR916_CANONICAL_PRIMARY=false` (default) — 기존 legacy primary path 그대로. 사용자 dev 환경 명시 enable 후 destructive=0 evidence 수집 (선택, fixture coverage 보강용)
+  - **rollback 경로**: `VITE_ADR116_CANONICAL_PRIMARY=false` (default) — 기존 legacy primary path 그대로. 사용자 dev 환경 명시 enable 후 destructive=0 evidence 수집 (선택, fixture coverage 보강용)
   - **Drift 상태 갱신**: drift #1 logic land ✅ (flag enable 시 canonical primary 활성) / drift #3 자동 충족 path 진입 (reverse path 가 `exportLegacyDocument` SSOT 사용). drift #2 (R4 mitigation framing) = 사용자 결정 영역 변동 없음
 
-## [ADR-916 Phase 5 G6-2 closure ✅ — canonicalMutations DI pattern (ESM circular import 차단) + 본문 진행 로그 sync] - 2026-05-02
+## [ADR-116 Phase 5 G6-2 closure ✅ — canonicalMutations DI pattern (ESM circular import 차단) + 본문 진행 로그 sync] - 2026-05-02
 
 ### Architecture
 
@@ -311,7 +311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **framing drift 검증 결과** (직전 세션 분석):
   - drift #4 (G6-2 third slice unbounded → HC #8 영구 보류 위험) 해소 ✅ (본 closure)
   - drift #1 (G3 / G4 형식적 PASS, HC #1 진정 미도달) 잔존 — G4 wrapper 내부 진정 reverse 별 세션 영역 (HIGH ~3-5d)
-  - drift #2 (R4 mitigation 약화 — ADR-911/913 회피 정책 충돌) 잔존 — 사용자 framing 결정 영역
+  - drift #2 (R4 mitigation 약화 — ADR-111/113 회피 정책 충돌) 잔존 — 사용자 framing 결정 영역
   - drift #3 (R7 component props `metadata.legacyProps` 부분 잔존) 잔존 — G4 reverse 시 자동 충족
 
 ### Verification
@@ -322,7 +322,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/exportSsotGrepGate.test.ts` — **1 file / 2 tests PASS** (G4 grep gate baseline 0 유지, D18=A 단일 SSOT 격리 보존)
 - `pnpm -F @composition/builder exec tsc --noEmit --pretty false` — **exit 0 PASS**
 
-## [ADR-916 Phase 5 G7 Extension Boundary preflight] - 2026-05-01
+## [ADR-116 Phase 5 G7 Extension Boundary preflight] - 2026-05-01
 
 ### Architecture
 
@@ -342,15 +342,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec tsc --noEmit --pretty false` PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts` — 42 tests PASS
 
-## [Canonical Document SSOT 전환 — ADR-916 Phase 0 G1 land + Accepted 승격] - 2026-05-01
+## [Canonical Document SSOT 전환 — ADR-116 Phase 0 G1 land + Accepted 승격] - 2026-05-01
 
 ### Architecture
 
-- **ADR-916 Status `Proposed → Accepted` 승격** (Phase 0 G1 Schema Boundary Freeze land 동시):
-  - 위치: `docs/adr/completed/916-canonical-document-ssot-transition.md` + `docs/adr/design/916-canonical-document-ssot-transition-breakdown.md`
-  - **Why**: ADR-903/910/911/912/913/914 라인업 누적 + tier3 entry "다음 Tier 1 = ADR-916 진입" 권고 — `CompositionDocument` canonical schema 를 저장/편집/렌더/history/preview/publish 의 장기 SSOT 로 승격. 본 phase 는 schema boundary 만 고정 (logic 변경 0).
+- **ADR-116 Status `Proposed → Accepted` 승격** (Phase 0 G1 Schema Boundary Freeze land 동시):
+  - 위치: `docs/adr/completed/116-canonical-document-ssot-transition.md` + `docs/adr/design/116-canonical-document-ssot-transition-breakdown.md`
+  - **Why**: ADR-903/110/111/112/113/114 라인업 누적 + tier3 entry "다음 Tier 1 = ADR-116 진입" 권고 — `CompositionDocument` canonical schema 를 저장/편집/렌더/history/preview/publish 의 장기 SSOT 로 승격. 본 phase 는 schema boundary 만 고정 (logic 변경 0).
   - ADR fork checkpoint 4 질문 lock-in (§Decision):
-    1. base/응용 분류 — ADR-916 = canonical SSOT 추상 base / ADR-911/913/914 = 응용 specialization
+    1. base/응용 분류 — ADR-116 = canonical SSOT 추상 base / ADR-111/113/114 = 응용 specialization
     2. schema 직교성 — canonical core ⊥ Composition extension (`x-composition`) ⊥ legacy adapter ⊥ Pencil primitive
     3. ADR-903 baseline reverse 검증 — read-through projection ↔ primary SSOT reverse 가 valid 한 사유 명시 (transition bridge / 후속 ADR 누적 / closure ADR 부재)
     4. codex 1차 review 진입 시점 명시
@@ -360,10 +360,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`CompositionExtension` / `CompositionExtendedNode` / `SerializedEventHandler` / `SerializedAction` / `SerializedDataBinding` 타입 추가** (G1 §3 namespace):
   - 위치: `packages/shared/src/types/composition-document.types.ts`
   - **Why**: canonical core 의 Pencil 구조 정합 유지. `events`/`actions`/`dataBinding`/`editor` 는 canonical core 가 아닌 `x-composition` namespaced extension 으로 분리. function callback / React runtime object serialize 금지.
-- **legacy 9 필드에 ADR-916 G5/G7 cleanup target marker 부착**:
+- **legacy 9 필드에 ADR-116 G5/G7 cleanup target marker 부착**:
   - 위치: `apps/builder/src/types/builder/unified.types.ts`
   - 대상: `Element.events` / `Element.dataBinding` (G7 Extension Boundary), `Element.layout_id` / `Element.slot_name` / `Element.componentRole` / `Element.masterId` / `Element.overrides` / `Element.descendants` / `Element.componentName` (G5 Legacy Field Quarantine)
-  - **Why**: 기존 `@deprecated ADR-913 Phase 5` 마커 위에 ADR-916 G5/G7 gate 동기화. Phase 4/Phase 5 시점에 `apps/builder/src/adapters/canonical/**` 디렉터리 외 read/write 0건이 cutover 기준.
+  - **Why**: 기존 `@deprecated ADR-113 Phase 5` 마커 위에 ADR-116 G5/G7 gate 동기화. Phase 4/Phase 5 시점에 `apps/builder/src/adapters/canonical/**` 디렉터리 외 read/write 0건이 cutover 기준.
 - **design §5 Phase 0 baseline grep 4건 기록** (main HEAD `119f0206c`):
   - `legacyToCanonical(` 호출 site **44** (Phase 2 G3 제거 대상)
   - `metadata.legacyProps|legacyProps` 참조 **92** (Phase 1 이후 신규 write 0건 + Phase 4 adapter 외 0건 목표)
@@ -373,10 +373,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - **`docs/adr/README.md` 갱신**:
-  - ADR-916 을 미구현 → 부분 완료 섹션으로 이동 (Status `Accepted` + Phase 0 G1 land 반영)
+  - ADR-116 을 미구현 → 부분 완료 섹션으로 이동 (Status `Accepted` + Phase 0 G1 land 반영)
   - 카운트: 부분 완료 7→**8** / 미구현 7→**6** / 합계 120 유지
-  - "최종 업데이트" 헤더에 2026-05-01 ADR-916 Phase 0 G1 land 요약 prepend
-- **ADR-916 본문 §"진행 로그"** — Phase 0 G1 land 5 항목 (framing lock-in / 타입 land / legacy marker / design §5 / type-check) 기록.
+  - "최종 업데이트" 헤더에 2026-05-01 ADR-116 Phase 0 G1 land 요약 prepend
+- **ADR-116 본문 §"진행 로그"** — Phase 0 G1 land 5 항목 (framing lock-in / 타입 land / legacy marker / design §5 / type-check) 기록.
 
 ### Verification
 
@@ -386,9 +386,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Phase 1 G2 (Canonical Store/API)** — `CanonicalDocumentActions` mutation API + `CanonicalLegacyAdapter` 역방향 export adapter API 설계 (design §6)
 - **Codex 1차 review** — framing #3 reverse 정당화 + G1 산출물 동시 round-trip
-- ADR-911 G3/G4/G5 잔여 + ADR-913 P4-Step 4-4 / P5-A~5-E 는 ADR-916 G2 land 후 재평가
+- ADR-111 G3/G4/G5 잔여 + ADR-113 P4-Step 4-4 / P5-A~5-E 는 ADR-116 G2 land 후 재평가
 
-## [ADR-912 Editing Semantics UI gate closure] - 2026-04-30
+## [ADR-112 Editing Semantics UI gate closure] - 2026-04-30
 
 ### Bug Fixes
 
@@ -424,18 +424,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Frame body selection fallback 이 hover 와 같은 topmost frame area 기준으로 동작하도록 보정
   - `position:absolute` manual-position child drag 는 reorder/drop 대신 `style.left/top` 을 갱신하고, auto-layout child 는 기존 layout-aware reorder/drop commit 을 유지
   - Frame body / Slot 선택 후 Transform·Layout 편집이 Properties/Style 패널을 통해 적용되는 것을 확인해 Node tree/Properties sync 기준을 닫음
-- **ADR-911 P3-ζ browser regression closure**:
+- **ADR-111 P3-ζ browser regression closure**:
   - 사용자 인증 브라우저에서 Frames 탭 기본 렌더, 새로고침 유지, Pages↔Frames 전환, body/Slot hover+selection, Transform/Layout 편집, Frame 적용 Page, 동일 Frame 다중 Page, Tabs 복합 컴포넌트, drag 위치 소유권 기준을 모두 확인
-  - P3-δ (c), G3-θ (d), G3-ε, G3-ζ 를 frame authoring 편의 확장 범위에서 닫고, ADR-911 전체 잔여를 G3 cascade / G4 legacy adapter / G5 pencil 호환 검증으로 재정리
-- **ADR-911 G3 cascade slice #1 — Frame 복제 직후 body/Slot 누락 회귀 수정**:
+  - P3-δ (c), G3-θ (d), G3-ε, G3-ζ 를 frame authoring 편의 확장 범위에서 닫고, ADR-111 전체 잔여를 G3 cascade / G4 legacy adapter / G5 pencil 호환 검증으로 재정리
+- **ADR-111 G3 cascade slice #1 — Frame 복제 직후 body/Slot 누락 회귀 수정**:
   - `createDuplicateLayoutAction` 이 cloned layout element subtree 를 IndexedDB 에 저장한 뒤 live Zustand `elementsMap` 에 merge 하지 않아 새로고침 전 Frames authoring surface 에 복제된 body/Slot 이 빠질 수 있던 경로를 보강
   - clone payload 는 새 `layout_id`, 새 id, remapped `parent_id`, `page_id:null` 을 유지하고, DB write-through 와 같은 턴에 `mergeElements(newElements)` 로 store 를 동기화
   - `layoutActions.test.ts` 에 Slot + child 포함 frame clone fixture 를 추가해 DB insert payload 와 live store merge 를 함께 검증
-- **ADR-911 G3 cascade slice #2 — Frame 삭제 후 Page orphan ref 방지**:
+- **ADR-111 G3 cascade slice #2 — Frame 삭제 후 Page orphan ref 방지**:
   - `deleteLayout` 에서 canonical frame projection 이 없으면 element cascade 는 skip 하되, 삭제되는 layout 을 참조하는 Page `layout_id` 는 projection guard 밖에서 항상 `null` 로 해제
   - stale layout row 삭제나 projection race 상황에서도 Apply Frame 값이 존재하지 않는 Frame 을 계속 가리키는 orphan reference 로 남지 않도록 보강
   - `layoutActions.test.ts` 에 frame projection 없음 + page ref cleanup fixture 를 추가해 `removeElements` skip 과 `db.pages.update` / live `setPages` 실행을 함께 검증
-- **ADR-911 G3 cascade slice #3 — 적용된 Frame 삭제 후 Skia stale render 회귀 수정**:
+- **ADR-111 G3 cascade slice #3 — 적용된 Frame 삭제 후 Skia stale render 회귀 수정**:
   - Frame 삭제 액션이 `stores/elements.ts` 의 standalone compatibility store 를 갱신하고, Skia/PageLayoutSelector 는 `stores/index.ts` 통합 store 를 구독해 live 화면이 삭제 전 Frame 합성을 유지하던 경로를 보정
   - `layoutActions` 와 `layouts.getLayoutSlots` 가 `rootStoreAccess.getLiveElementsState()` 를 통해 런타임 통합 Builder store 를 우선 사용하고, 테스트/비브라우저 환경에서만 기존 elements store 로 fallback
   - `setPages` 가 page list shape / order / `layout_id` 변경 시에만 `layoutVersion` 을 증분하도록 제한해 Frame apply/unapply/delete 경로의 layout publisher 와 renderer cache invalidation 을 같은 턴에 트리거
@@ -464,24 +464,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/adr/900-unified-skia-rendering-engine.md` → `docs/adr/completed/900-unified-skia-rendering-engine.md`
   - ADR-012 는 ADR-009 기반 Taffy/PixiJS hardening 계획을 ADR-900 이후 legacy residual 로 Superseded 처리하고, P3-1 dirty tracking 잔여 debt 는 historical reference 로 보존
   - ADR-900 은 Accepted baseline 으로 completed archive 에 등록하고, README 카운트 갱신: 완료 104→106, 부분 완료 8→7, 합계 119→120
-- **ADR-914 standalone plan 을 Superseded archive 로 이동**:
-  - `docs/adr/914-imports-resolver-designkit-integration.md` → `docs/adr/completed/914-imports-resolver-designkit-integration.md`
-  - ADR-915 로 DesignKit integration scope 는 이미 무효화됐고, 남은 P5-D/P5-E `imports` fetch/cache/resolver scope 는 ADR-916 canonical document SSOT transition 과 ADR-911 G5 Pencil import/export parity 로 흡수
-  - ADR-911 잔여 G3/G4/G5 와 ADR-913 Phase 4/5 진입 순서를 ADR-916 G2/G5/G6 이후로 재정렬
+- **ADR-114 standalone plan 을 Superseded archive 로 이동**:
+  - `docs/adr/114-imports-resolver-designkit-integration.md` → `docs/adr/completed/114-imports-resolver-designkit-integration.md`
+  - ADR-115 로 DesignKit integration scope 는 이미 무효화됐고, 남은 P5-D/P5-E `imports` fetch/cache/resolver scope 는 ADR-116 canonical document SSOT transition 과 ADR-111 G5 Pencil import/export parity 로 흡수
+  - ADR-111 잔여 G3/G4/G5 와 ADR-113 Phase 4/5 진입 순서를 ADR-116 G2/G5/G6 이후로 재정렬
   - ADR README 카운트 갱신: 완료 103→104, 미구현 8→7, 합계 119 유지
-- **ADR-912 를 Implemented 로 승격하고 ADR-911 재개 조건을 갱신**:
-  - ADR-912 G4-B/G4-C/G4-E/G4-H 잔여 gate 를 닫고 design breakdown 의 남은 gate 목록을 0건으로 정리
-  - ADR-911 은 Implemented 가 아니라 `Ready to Resume` 상태로 전환. 이후 P3-ε/P3-ζ 는 ADR-912 기능 위의 frame authoring 편의 확장으로만 재개 가능
-  - ADR README 에서 ADR-912 row 를 완료 테이블로 이동하고 미구현 count 를 7→6 으로 갱신
-- **ADR-912 본문을 completed archive 로 이동**:
-  - `docs/adr/912-editing-semantics-ui-5elements.md` → `docs/adr/completed/912-editing-semantics-ui-5elements.md`
-  - ADR README / ADR-911 / ADR-916 / 관련 design breakdown 의 현재 링크를 completed 경로로 갱신
+- **ADR-112 를 Implemented 로 승격하고 ADR-111 재개 조건을 갱신**:
+  - ADR-112 G4-B/G4-C/G4-E/G4-H 잔여 gate 를 닫고 design breakdown 의 남은 gate 목록을 0건으로 정리
+  - ADR-111 은 Implemented 가 아니라 `Ready to Resume` 상태로 전환. 이후 P3-ε/P3-ζ 는 ADR-112 기능 위의 frame authoring 편의 확장으로만 재개 가능
+  - ADR README 에서 ADR-112 row 를 완료 테이블로 이동하고 미구현 count 를 7→6 으로 갱신
+- **ADR-112 본문을 completed archive 로 이동**:
+  - `docs/adr/112-editing-semantics-ui-5elements.md` → `docs/adr/completed/112-editing-semantics-ui-5elements.md`
+  - ADR README / ADR-111 / ADR-116 / 관련 design breakdown 의 현재 링크를 completed 경로로 갱신
 
 ### Verification
 
 - `pnpm -F @composition/builder exec vitest run src/builder/components/overlay/EditingSemanticsImpactDialog.test.tsx src/builder/panels/properties/ComponentSemanticsSection.test.tsx src/builder/panels/nodes/tree/LayerTree/LayerTreeItemContent.test.tsx src/builder/workspace/canvas/skia/skiaWorkflowSelection.test.ts src/builder/utils/editingSemantics.test.ts src/builder/utils/multiElementCopy.test.ts src/builder/stores/utils/__tests__/editingSemanticsRegressionSweep.test.ts src/builder/config/keyboardShortcuts.test.ts`
 
-## [ADR-912 Page-frame shared Frame projection collision fix] - 2026-04-30
+## [ADR-112 Page-frame shared Frame projection collision fix] - 2026-04-30
 
 ### Bug Fixes
 
@@ -503,7 +503,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/builder/utils/editingSemantics.test.ts src/builder/workspace/canvas/skia/skiaOverlayHelpers.test.ts src/builder/workspace/canvas/skia/skiaWorkflowSelection.test.ts src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/workspace/canvas/skia/skiaOverlayBuilder.static.test.ts src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts`
 - `pnpm -F @composition/builder exec vitest run src/builder/main/BuilderCore.static.test.ts src/builder/utils/frameElementLoader.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/workspace/canvas/BuilderCanvas.frameMode.static.test.ts`
 
-## [ADR-912 Skia render materialization follow-up — layout publish full rebuild] - 2026-04-29
+## [ADR-112 Skia render materialization follow-up — layout publish full rebuild] - 2026-04-29
 
 ### Bug Fixes
 
@@ -511,7 +511,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Page mode 는 page roots 만 렌더하고, persisted `selectedReusableFrameId`/`frameAreas` 가 남아 있어도 separate frame authoring roots 를 렌더하지 않음
   - Frames mode 는 selected reusable frame root 만 렌더하고, visible page snapshots/page elements 를 Skia root collection 에서 제외
   - Page mode 의 frame Slot 은 layout anchor 로만 남기고 Skia placeholder chrome 을 숨겨 raw Slot dashed box 가 page 화면에 노출되지 않도록 보정
-  - Frames mode frame authoring surface 를 현재 Page 의 좌표와 `pageWidth/pageHeight` 로 정규화. 기존 ADR-911 P3-δ 의 “page 오른쪽 별도 authoring area” stale `framePositions` 는 layout publish/render root 좌표 source 로 쓰지 않음
+  - Frames mode frame authoring surface 를 현재 Page 의 좌표와 `pageWidth/pageHeight` 로 정규화. 기존 ADR-111 P3-δ 의 “page 오른쪽 별도 authoring area” stale `framePositions` 는 layout publish/render root 좌표 source 로 쓰지 않음
 - **Layout preset replace 시 Slot 이 live 화면에서 중첩되고 새로고침 후 정상화되던 회귀 수정**:
   - `replace` 가 기존 Slot 여러 개를 `Promise.all(removeElement(...))` 로 병렬 삭제하면서 각 삭제가 오래된 `currentState` 로 set 하고 마지막 commit 이 앞선 삭제를 메모리에 되살리던 문제를 차단
   - 기존 Slot 삭제를 `removeElements([...slotIds])` 단일 배치 액션으로 원자화해 IndexedDB 와 live Zustand state 의 삭제 결과를 일치
@@ -541,7 +541,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - frame 선택을 DB descendant load 완료 전 즉시 반영하고, 늦게 끝난 이전 async load 가 최신 선택 frame 을 되돌리거나 stale subtree 를 병합하지 않도록 request token guard 추가
 - **Properties Component section 의 component name 누락 수정**:
   - Component section 에 `Name` row 를 추가해 reusable frame origin 선택 시 `ArticleFrame` 같은 component name 과 `Origin` role label 이 동시에 보이도록 보강
-  - ADR-912 G4-F dev fixture(`?editingSemanticsFixture=slot`) 를 추가해 같은 Properties surface 에 `Component`/`Name`/`Origin` 과 `Slot` recommendation list 가 동시에 보이는 browser screenshot evidence 를 고정
+  - ADR-112 G4-F dev fixture(`?editingSemanticsFixture=slot`) 를 추가해 같은 Properties surface 에 `Component`/`Name`/`Origin` 과 `Slot` recommendation list 가 동시에 보이는 browser screenshot evidence 를 고정
 - **Pages/Frames component 추가 후 selection 만 잡히고 화면에 보이지 않던 Skia 회귀 후속 수정**:
   - `StoreRenderBridge` 의 layout publish 재동기화가 canonical projection/synthetic id 때문에 incremental sync 로 빠질 수 있던 경로를 차단
   - layout publish, 초기 sync, async image materialization 은 full rebuild 를 강제해 첫 store sync 시 layout 이 없어서 `buildSpecNodeData` 가 null 을 반환한 component 도 layoutMap 발행 후 즉시 materialize
@@ -565,12 +565,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 
-- **ADR-912 Slot section 을 내부 container slot host 까지 확장**:
+- **ADR-112 Slot section 을 내부 container slot host 까지 확장**:
   - Pencil `.pen` schema 의 `Frame.slot` 의미에 맞춰 `CardContent` 같은 구조 container shell 을 instance `descendants[idPath].children` 교체 target 으로 지정 가능
   - Properties ##Slot section## 은 `frame` 뿐 아니라 `CardContent`/`CardHeader`/`CardFooter`/`Group`/`Section` 등 frame-compatible host 에서도 enable/disable 과 recommended component add/remove 를 제공
   - Slot recommendation list 에서 추천 component origin 을 default content 로 삽입할 수 있어 CardFooter slot 에 등록한 Text origin 을 origin component 화면에 바로 표시 가능
   - Component instance 선택 시 ##Slot Fill## section 을 노출해 추천 component origin 을 `descendants[slotPath].children` ref 로 채우고 instance 화면에 표시
-- **ADR-912 slot marker 를 Pencil hatch+border 패턴에 맞춰 보강**:
+- **ADR-112 slot marker 를 Pencil hatch+border 패턴에 맞춰 보강**:
   - visible slot host bounds 에 editor-only diagonal hatch overlay 와 border stroke 를 상시 표시
   - slot marker 색상은 component context 를 따라 origin slot 은 Pencil origin `#D480FF`, instance slot 은 Pencil instance `#9580FF` 로 표시하고, legacy Slot authoring chrome 은 origin `#D480FF` 로 fallback
   - 선택 요소 하단 size label 배경도 origin/instance semantic color 를 따라가도록 맞춤
@@ -604,12 +604,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia/skiaWorkflowSelection.test.ts`
 - `pnpm -F @composition/builder exec vitest run src/builder/utils/frameElementLoader.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/panels/properties/editors/PageLayoutSelector.static.test.ts`
 - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/scene/layoutCache.static.test.ts src/builder/workspace/canvas/layout/engines/fullTreeLayout.static.test.ts src/builder/workspace/canvas/hooks/useLayoutPublisher.static.test.ts src/builder/utils/frameElementLoader.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/panels/properties/editors/PageLayoutSelector.static.test.ts src/builder/workspace/canvas/skia/skiaWorkflowSelection.test.ts`
-- Playwright screenshot evidence: `docs/adr/evidence/912-g4f-component-slot.png`
+- Playwright screenshot evidence: `docs/adr/evidence/112-g4f-component-slot.png`
 - `pnpm -F @composition/builder type-check`
 - `git diff --check`
 - `npm run codex:preflight`
 
-## [ADR-912 Editing Semantics UI 구현 wave #1 — instance/ref 회귀 수정] - 2026-04-28
+## [ADR-112 Editing Semantics UI 구현 wave #1 — instance/ref 회귀 수정] - 2026-04-28
 
 ### Bug Fixes
 
@@ -628,7 +628,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
-- **ADR-912 Phase A/C/H 기반 구현 land**:
+- **ADR-112 Phase A/C/H 기반 구현 land**:
   - canonical field persistence 보강: `ref`, `reusable`, `descendants`, `metadata`, `componentName` 등 sanitizer 보존
   - Preview runtime 과 Skia/LayerTree/Properties selection path 가 동일 canonical ref projection 을 공유
   - selection/hover editor chrome semantic marker 적용: origin = Pencil origin `#D480FF` solid, instance = Pencil instance `#9580FF` dotted. hover outline, selection corner handle stroke color, 하단 size label 배경도 semantic role 과 일치
@@ -642,16 +642,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Render sync recovery: `useIframeMessenger` 가 initial `PREVIEW_READY` 이후 `state.elements` 변경을 다시 구독해 add/update/delete 시 `UPDATE_ELEMENTS` 를 rAF batch 로 재전송. 실제 Builder Skia canvas 는 `rendererInput` 변경 시 content surface + command stream cache 를 함께 무효화하고, `useLayoutPublisher` 는 `layoutVersion` 없이 page/frame input 구조만 바뀌는 `_rebuildIndexes()` commit 도 layoutMap 재발행 trigger 로 처리. Pages 모드 component 추가와 Slot/page-frame 변경이 새로고침 전까지 보이지 않거나 selection 만 잡히던 stale runtime/render 회귀 수정
   - Component/Slot coexistence render contract 추가: reusable frame 선택 시 `Component`/`Origin` 과 `Slot` recommendation count/list 동시 노출 검증
   - Canvas context menu target resolver 추가: spatial hit-test + topmost hit 판정 후 detachable instance 에만 menu 표시
-- **ADR-912 / ADR-911 의존 방향 hardening**:
-  - ADR-912 는 ADR-911 의 영향을 받지 않는 Component/Slot base ADR 로 고정
-  - ADR-911 의 Slot section / Gate G6 소유권 표현은 ADR-912 로 supersede. ADR-911 은 완료된 ADR-912 기능의 frame-bundled preset 편의 확장만 담당
-  - 다음 구현 우선순위도 ADR-912 Slot section base 완료 → ADR-911 편의 확장 재개 순서로 고정
+- **ADR-112 / ADR-111 의존 방향 hardening**:
+  - ADR-112 는 ADR-111 의 영향을 받지 않는 Component/Slot base ADR 로 고정
+  - ADR-111 의 Slot section / Gate G6 소유권 표현은 ADR-112 로 supersede. ADR-111 은 완료된 ADR-112 기능의 frame-bundled preset 편의 확장만 담당
+  - 다음 구현 우선순위도 ADR-112 Slot section base 완료 → ADR-111 편의 확장 재개 순서로 고정
 
 ### Documentation
 
-- ADR-912 본문 Status 를 `Accepted → In Progress` 로 갱신하고 implementation wave #1 진행 로그 추가
-- ADR-912 design breakdown 을 skeleton 에서 구현 추적 문서로 전환, 사용자 보고별 fix 매핑과 남은 Gate(G4-B~G4-H) 정리 및 Component/Slot section + detach context menu wiring 로그 추가
-- ADR README 최신 상태와 ADR-912 row 를 implementation wave #1 기준으로 갱신
+- ADR-112 본문 Status 를 `Accepted → In Progress` 로 갱신하고 implementation wave #1 진행 로그 추가
+- ADR-112 design breakdown 을 skeleton 에서 구현 추적 문서로 전환, 사용자 보고별 fix 매핑과 남은 Gate(G4-B~G4-H) 정리 및 Component/Slot section + detach context menu wiring 로그 추가
+- ADR README 최신 상태와 ADR-112 row 를 implementation wave #1 기준으로 갱신
 
 ### Verification
 
@@ -679,38 +679,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Monitor bottom panel 은 `Ctrl+Alt+M` 단축키와 Command Palette 의 `모니터 패널 토글` 명령으로 활성화
   - 기존 MonitorPanel Gateway 구조와 bottom panel 등록은 유지 — 필요 시 성능/메모리 진단 가능
 
-## [ADR-912/911 의존 방향 정정 — ADR-912 Accepted + ADR-911 Frozen] - 2026-04-28
+## [ADR-112/111 의존 방향 정정 — ADR-112 Accepted + ADR-111 Frozen] - 2026-04-28
 
 ### Architecture
 
-- **ADR-912/911 의존 방향 정정** (revision 3 framing 재정의):
-  - **정정 사유**: baseline (ADR-903 Phase 4) framing 이 ADR-912 (reusable component 추상) 를 ADR-911 (Layout/frameset preset) 의 후속으로 박아 의존 방향이 거꾸로. codex review 3차 M-1 + 사용자 framing 재정의 (2026-04-28 세션 49 후속) 로 발견 → 정정
-  - **올바른 의존 방향**: ADR-912 = reusable component + slot 추상의 **base** (Origin/Instance/Override + Component section + Slot section + detach + Origin 토글) / ADR-911 = 완료된 ADR-912 기능의 **frame-bundled preset 편의 확장**
-  - **Why**: ADR-912 base 없이 ADR-911 Phase 3 가 진행되며 frame preset 이 추상 없이 응용만 land — Phase 3 후속 (P3-ε / P3-ζ — FramesTab Slot composition) 에서 ADR-912 Component/Slot section 정합화 시 baseline 어긋남 risk 누적
-- **ADR-912 Accepted (revision 3)**:
-  - 위치: `docs/adr/912-editing-semantics-ui-5elements.md` Status `Proposed → Accepted`
+- **ADR-112/111 의존 방향 정정** (revision 3 framing 재정의):
+  - **정정 사유**: baseline (ADR-903 Phase 4) framing 이 ADR-112 (reusable component 추상) 를 ADR-111 (Layout/frameset preset) 의 후속으로 박아 의존 방향이 거꾸로. codex review 3차 M-1 + 사용자 framing 재정의 (2026-04-28 세션 49 후속) 로 발견 → 정정
+  - **올바른 의존 방향**: ADR-112 = reusable component + slot 추상의 **base** (Origin/Instance/Override + Component section + Slot section + detach + Origin 토글) / ADR-111 = 완료된 ADR-112 기능의 **frame-bundled preset 편의 확장**
+  - **Why**: ADR-112 base 없이 ADR-111 Phase 3 가 진행되며 frame preset 이 추상 없이 응용만 land — Phase 3 후속 (P3-ε / P3-ζ — FramesTab Slot composition) 에서 ADR-112 Component/Slot section 정합화 시 baseline 어긋남 risk 누적
+- **ADR-112 Accepted (revision 3)**:
+  - 위치: `docs/adr/112-editing-semantics-ui-5elements.md` Status `Proposed → Accepted`
   - codex review 3차 통과 (M-1 의존 방향 정정 / L-1 LOW 추적성 권고). 1차 7건 (HIGH 3 / MED 3 / LOW 1) + 2차 2건 (MED-1 phase 명칭 / MED-2 TOCTOU guard) + 3차 의존 방향 정정 모두 반영
-  - 본문 + design §7 framing 정정 — "선결 ADR-911" 제거 / "ADR-911 = preset 응용" 명시 / 차단 해제 조건 = "사용자 review + Status Proposed→Accepted" (ADR-911 P3 land 와 무관)
-  - 다음: ADR-912 Component/Slot base 우선 구현
-- **ADR-911 Frozen (Phase 3 후속 동결)**:
-  - 위치: `docs/adr/completed/911-layout-frameset-pencil-redesign.md` Status `In Progress → Frozen`
+  - 본문 + design §7 framing 정정 — "선결 ADR-111" 제거 / "ADR-111 = preset 응용" 명시 / 차단 해제 조건 = "사용자 review + Status Proposed→Accepted" (ADR-111 P3 land 와 무관)
+  - 다음: ADR-112 Component/Slot base 우선 구현
+- **ADR-111 Frozen (Phase 3 후속 동결)**:
+  - 위치: `docs/adr/completed/111-layout-frameset-pencil-redesign.md` Status `In Progress → Frozen`
   - 보존 범위: Phase 0~2 (Implemented) + Phase 3 P3-α/β/γ/δ + δ fix #1~#4 + B1 filter + θ scope + θ regression fix #1 모두 land 보존 — 사용자 가시 동작 (frame default + page slot fill GREEN) 유지
-  - 정지 영역: P3-ε (FramesTab inline frame editing) / P3-ζ (Chrome MCP 회귀 검증) / G3-θ (d) Chrome MCP screenshot — 모두 ADR-912 Component/Slot base 완료 후 재개
-  - 재개 조건: ADR-912 Component/Slot base 완료 시 P3-ε / P3-ζ 가 frame authoring 편의 확장으로 재설계 진입
+  - 정지 영역: P3-ε (FramesTab inline frame editing) / P3-ζ (Chrome MCP 회귀 검증) / G3-θ (d) Chrome MCP screenshot — 모두 ADR-112 Component/Slot base 완료 후 재개
+  - 재개 조건: ADR-112 Component/Slot base 완료 시 P3-ε / P3-ζ 가 frame authoring 편의 확장으로 재설계 진입
 
 ### Documentation
 
 - **README.md ADR 상태 갱신**:
-  - ADR-911 entry: `In Progress → Frozen` + 의존 방향 정정 + 보존/정지 범위 명시
-  - ADR-912 entry: `Proposed → Accepted` + revision 3 framing + Phase A1 다음 단계 명시
+  - ADR-111 entry: `In Progress → Frozen` + 의존 방향 정정 + 보존/정지 범위 명시
+  - ADR-112 entry: `Proposed → Accepted` + revision 3 framing + Phase A1 다음 단계 명시
   - 미구현 카테고리 카운트 변동 없음 (둘 다 미구현 → Frozen + Accepted 도 미구현 카테고리 유지)
   - 위치: `docs/adr/README.md` line 213-214 + 최종 업데이트 헤더
 
-## [ADR-911 P3-θ regression fix — body 채택 정책 전환] - 2026-04-28
+## [ADR-111 P3-θ regression fix — body 채택 정책 전환] - 2026-04-28
 
 ### Bug Fixes
 
-- **ADR-911 P3-θ regression fix #1** — Frame 적용 시 page 영역 투명/내용 사라짐 회귀 fix:
+- **ADR-111 P3-θ regression fix #1** — Frame 적용 시 page 영역 투명/내용 사라짐 회귀 fix:
   - **회귀**: 초기 P3-θ resolver 가 `bodyElement = frameBody` 로 root 채택 → frame body width/height (P3-δ fix #4 default 320×200) 가 page (390×844) 보다 훨씬 작음 + page-body 의 시각 속성 (background/padding) 손실 + slot_name 미매칭 page root element 가 fallback Slot 매칭 실패 시 orphan → 미렌더 → "투명/내용 사라짐"
   - **Fix**: `bodyElement = pageBody` 유지 (frame body 자체는 결과 제외) + frame body **의 자식들** (Slot×N) 의 `parent_id` 를 page-body 로 reparent + frame Slot 의 자식 (Text 등) 은 그대로 (parent_id=Slot.id 유지) + slot_name 미매칭 page element 는 page-body 자식 그대로 유지 (orphan 방지) + frame body 또는 page body 미존재 시 `hasFrameBinding=false` fallback
   - **정책 정합**: design breakdown §4.10 "frame body subtree 를 page body 자식으로 가상 merge" 의 정확한 의도 — frame body **자체** 가 아닌 **자식들** 을 reparent. page width/height/시각 속성 보존
@@ -722,28 +722,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **P3-θ 후속 — 새로고침시 layout_id 초기화** (사용자 보고): page.layout_id IndexedDB persistence 흐름 분석 미완. body 정책 fix 반영 후 사용자 dev 재검증 필요
 
-## [ADR-911 Phase 3 frame canvas authoring + frame instance composition Land] - 2026-04-28
+## [ADR-111 Phase 3 frame canvas authoring + frame instance composition Land] - 2026-04-28
 
 ### Features
 
-- **ADR-911 P3-θ Slot Fill Resolution** — page 가 frame 에 바인딩될 때 frame slot 구조 inline 노출 + page slot fill resolution. 사용자 시나리오 (Frame vertical-3 preset + Page Apply Frame): 상단 frame default header + 가운데 page slot:content fill + 하단 frame default footer (Gate G3-θ a/b/c/e 충족, d 사용자 dev 검증 후 종결):
+- **ADR-111 P3-θ Slot Fill Resolution** — page 가 frame 에 바인딩될 때 frame slot 구조 inline 노출 + page slot fill resolution. 사용자 시나리오 (Frame vertical-3 preset + Page Apply Frame): 상단 frame default header + 가운데 page slot:content fill + 하단 frame default footer (Gate G3-θ a/b/c/e 충족, d 사용자 dev 검증 후 종결):
   - **결정 분기 land**: D7=B (별도 resolver) / D8=A (legacy `slot_name` 매칭) / D9=A (무조건 적용) — 모두 design breakdown §4.10 권고대로 사용자 승인
   - **신규 resolver** `resolvePageWithFrame(input)` — body 우선순위 (frame body > page body), Slot 매칭 (`props.name` ↔ page element `props.slot_name` 또는 `element.slot_name`), hidden default child (매칭 Slot 의 기본 자식 hide), parent_id 재매핑, page non-root 보존, deleted 제외
   - **Override 분리** (G3-θ c): page slot fill 이 매칭된 Slot 의 default 자식만 hide. 매칭 안 된 Slot 의 default 자식 (frame default header/footer Text) 은 노출 유지 → frame default 와 page slot fill 이 독립적으로 합성됨
   - **buildPageDataMap 통합**: `apps/builder/src/builder/workspace/canvas/scene/buildSceneIndex.ts` 의 page-only 분기를 resolver 호출로 전환 — `pageIndex.page_id` 의미 보존
-  - **Why**: ADR-903 / ADR-911 의 핵심 기능 (pencil component composition) 의 legacy rendering pipeline 영역 미구현. canonical adapter 단계 Ref 처리는 있지만 `getPageElements` + `buildPageChildrenMap` 가 page_id 인덱스만 사용 → frame element (page_id=null) 자동 제외 → page 영역 inline 노출 안 됨 (Chrome MCP evidence 2026-04-28 세션 48 확증)
+  - **Why**: ADR-903 / ADR-111 의 핵심 기능 (pencil component composition) 의 legacy rendering pipeline 영역 미구현. canonical adapter 단계 Ref 처리는 있지만 `getPageElements` + `buildPageChildrenMap` 가 page_id 인덱스만 사용 → frame element (page_id=null) 자동 제외 → page 영역 inline 노출 안 됨 (Chrome MCP evidence 2026-04-28 세션 48 확증)
   - 위치: `apps/builder/src/builder/workspace/canvas/scene/resolvePageWithFrame.ts` (신규) + `buildSceneIndex.ts`
 
 ### Bug Fixes
 
-- **ADR-911 P3-δ fix #3+#4 + B1 filter** (frame canvas authoring 마감, 세션 48):
+- **ADR-111 P3-δ fix #3+#4 + B1 filter** (frame canvas authoring 마감, 세션 48):
   - **fix #3 slot 자식 시각화** (D4=A `buildFrameRendererInput` 신규 + D5=A `publishLayoutMap` key fallback chain `page_id ?? layout_id ?? id` + D6=A 단일 dimensionKey 통합). **Why**: page-centric `buildPageRendererInput` 가 page_id 인덱스만 사용 → frame 자식 미시각화. 회귀 fix: body element 가 자기 자신의 child 가 되어 `RangeError: Maximum call stack size exceeded` → `buildFrameRendererInput` 의 pageElements 에서 body 제외 (page 경로 nonBodyElements 와 동일 정책)
   - **fix #4 frame 영역 size**: `height: pageHeight` (viewport 크기) → frame body 보다 큰 빈 영역 생성 → `bodyElement.props.style.width/height` 명시 px 우선 + 없으면 component-sized default 320×200 + `page_id===null` canonical reusable 우선. **Why**: 사용자 보고 "Frame 추가시 세로 영역이 body 보다 더 크게 생성"
   - **B1 filter 도입**: `computeFrameAreas(doc, framePositions, selectedReusableFrameId)` 시그니처 확장 → `selectedReusableFrameId === null` 시 빈 배열. design breakdown §4.7 옵션 B2 (모든 reusable) → B1 (selected only) 전환. **Why**: 사용자 보고 "Frames 가 canvas에 별도로 생성되고 그내부에 slot들이 생성" — pencil app component editing navigation context 정합
 
 ### Architecture
 
-- **ADR-911 Phase 3 frame canvas authoring 본격 land** (세션 47~49):
+- **ADR-111 Phase 3 frame canvas authoring 본격 land** (세션 47~49):
   - **P3-α** `framePositions` store + `framePositionsVersion` 카운터 도입 (Gate G3-α PASS)
   - **P3-β** `computeFrameAreas` + `FrameAreaGroup` 도입 (Gate G3-β PASS)
   - **P3-γ** frame editing indicator (B 채택) + integration test (Gate G3-γ PASS)
@@ -751,107 +751,107 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **P3-θ** Slot Fill Resolution — 본 entry 의 §Features 항목
   - **잔여**: P3-ε hit-test/drag/selection (1.5d MED) + P3-ζ Chrome MCP 회귀 검증 (0.5d LOW). G3-δ (c) + G3-θ (d) 사용자 dev 검증 후 종결 가능
 
-## [ADR-911 Phase 3 frame canvas authoring fundamental 결함 발견 + design breakdown land] - 2026-04-28
+## [ADR-111 Phase 3 frame canvas authoring fundamental 결함 발견 + design breakdown land] - 2026-04-28
 
 ### Documentation
 
-- **ADR-911 Phase 3 신규 sub-phase 발견** — frame canvas authoring 시각 path 미구현 결함 본문 진행 로그 + design breakdown land:
+- **ADR-111 Phase 3 신규 sub-phase 발견** — frame canvas authoring 시각 path 미구현 결함 본문 진행 로그 + design breakdown land:
   - **사용자 회귀 보고**: FramesTab → 새 Frame 추가 → Layout preset 적용 시 Skia 캔버스에 영역 구분 slot 들이 시각화되지 않음
   - **Chrome MCP 측정 evidence**: `pagePositions: {234dc7c9: {x:0, y:0}}` (page 1개만, frame 좌표 0건) + `editingContextId: null` + `childrenMap.root` 에 frame body 들이 root 자식이지만 viewport 외부
-  - **Cutover 의 의미**: ADR-911 cutover commit `7b6f4eb9` = `featureFlags` default true flip 만 (4 file / 38/-8 라인, 실 logic 0건). frame canvas authoring 시각 path 는 dual-mode 시절부터 미구현 — **ADR-911 fundamental 미완성** 노출
+  - **Cutover 의 의미**: ADR-111 cutover commit `7b6f4eb9` = `featureFlags` default true flip 만 (4 file / 38/-8 라인, 실 logic 0건). frame canvas authoring 시각 path 는 dual-mode 시절부터 미구현 — **ADR-111 fundamental 미완성** 노출
   - **Gate G2 (시각 회귀 0) 위반 확정** — Phase 2 closure 5단계 체크리스트 보류. monitoring 6일 대기 framing 무의미 (사용자 결정: monitoring 종결 의미 없음)
-  - **본 세션 land**: design breakdown 신규 sub-phase 만 — `docs/adr/design/911-phase3-frame-canvas-authoring-breakdown.md`. P3-α (`framePositions` map) → P3-β (`computeLayoutGroups` 확장) → P3-γ (`editingContextId` 갱신) → P3-δ (Skia render path 통합) → P3-ε (hit-test/drag/selection) → P3-ζ (Chrome MCP 회귀 검증). 본격 fix 는 별도 세션 (1주+ HIGH)
-  - **ADR-912 prerequisite 관계 명시**: 본 P3 가 base render → ADR-912 시각 마커는 위에 land
-  - 위치: `docs/adr/completed/911-layout-frameset-pencil-redesign.md` (진행 로그 entry) + `docs/adr/design/911-phase3-frame-canvas-authoring-breakdown.md` (신규)
+  - **본 세션 land**: design breakdown 신규 sub-phase 만 — `docs/adr/design/111-phase3-frame-canvas-authoring-breakdown.md`. P3-α (`framePositions` map) → P3-β (`computeLayoutGroups` 확장) → P3-γ (`editingContextId` 갱신) → P3-δ (Skia render path 통합) → P3-ε (hit-test/drag/selection) → P3-ζ (Chrome MCP 회귀 검증). 본격 fix 는 별도 세션 (1주+ HIGH)
+  - **ADR-112 prerequisite 관계 명시**: 본 P3 가 base render → ADR-112 시각 마커는 위에 land
+  - 위치: `docs/adr/completed/111-layout-frameset-pencil-redesign.md` (진행 로그 entry) + `docs/adr/design/111-phase3-frame-canvas-authoring-breakdown.md` (신규)
 
 ### Known Issues
 
-- **Frame body 시각화 미구현** — FramesTab 에서 Frame 추가 + Layout preset 적용 시 Skia 캔버스에 영역 구분 slot 들이 표시되지 않음. LayerTree + Inspector 는 정상 표시 (본 세션 ADR-903 P3-E follow-up fix 로 정상화). Skia 캔버스 시각화는 ADR-911 Phase 3 (frame canvas authoring) 본격 land 후 해소 예정 (~1주+ HIGH)
+- **Frame body 시각화 미구현** — FramesTab 에서 Frame 추가 + Layout preset 적용 시 Skia 캔버스에 영역 구분 slot 들이 표시되지 않음. LayerTree + Inspector 는 정상 표시 (본 세션 ADR-903 P3-E follow-up fix 로 정상화). Skia 캔버스 시각화는 ADR-111 Phase 3 (frame canvas authoring) 본격 land 후 해소 예정 (~1주+ HIGH)
 
 ## [ADR-903 P3-E follow-up — `getByLayout` 7 caller canonical 마이그레이션 (slot 미렌더 회귀 fix)] - 2026-04-28
 
 ### Bug Fixes
 
 - **Layout/Frame 자식 element store 로드 path 회귀 fix** (ADR-903 P3-E follow-up):
-  - 사용자 dev 환경에서 layout preset 선택 시 영역 구분 slot 들이 Skia 화면에 보이지 않음 (Layer 1 결함 — store/LayerTree 부분만 본 fix 로 해소. Skia 캔버스 base render 는 ADR-911 P3 별도 영역 — `[ADR-911 P3]` entry 참조)
+  - 사용자 dev 환경에서 layout preset 선택 시 영역 구분 slot 들이 Skia 화면에 보이지 않음 (Layer 1 결함 — store/LayerTree 부분만 본 fix 로 해소. Skia 캔버스 base render 는 ADR-111 P3 별도 영역 — `[ADR-111 P3]` entry 참조)
   - **Why**: ADR-903 P3-E E-6 의 `getByLayout` canonical strict 가 composition-1.0 schemaVersion 1건이라도 있으면 빈 배열 반환하여 caller migration 압박했으나, 7 live caller (`BuilderCore.tsx:283` / `FramesTab.tsx:146,240` / `dashboard/index.tsx:381` / `utils/projectSync.ts:219` / `usePageManager.ts:207` / `PageLayoutSelector.tsx:109`) 가 마이그레이션되지 않은 채 ADR-903 Implemented 종결 → Frame 선택 / Layout preset 적용 / 페이지 로드 path 에서 element 미로드 → LayerTree 미표시 + Inspector LayoutPresetSelector 미표시
   - **Fix**: `adapter.ts` 신규 API `getDescendants(parentId)` 추가 (BFS `parent_id` index 재귀 + 순환 참조 방지 seen Set + composition-pre-1.0 legacy `layout_id` index fallback) + `types.ts` 인터페이스 시그니처 추가 + 7 caller 일괄 `getByLayout(layoutId)` → `getDescendants(layoutId)` 교체. composition-pre-1.0 / 1.0 / 1.1 schema 모두 동일 결과 보장
   - 검증: type-check 3/3 PASS (FULL TURBO) + Builder dev runtime store evidence (elements_total 1 → 4 로 Frame body+2 Slots 정상 로드 + LayerTree 표시 + Inspector LayoutPresetSelector "수직 2단/3단 적용됨" 표시 확증)
-  - **ADR framing 정정**: 본 회귀가 ADR-911 monitoring 차단으로 인식됐으나 실제는 ADR-903 P3-E caller migration 잔존 작업 — ADR-911 frame.children 정규화와 schema 직교. ADR-913 Step 4-4 의 "ADR-911 monitoring 후" marker 도 schema 직교성 재검토 가능
+  - **ADR framing 정정**: 본 회귀가 ADR-111 monitoring 차단으로 인식됐으나 실제는 ADR-903 P3-E caller migration 잔존 작업 — ADR-111 frame.children 정규화와 schema 직교. ADR-113 Step 4-4 의 "ADR-111 monitoring 후" marker 도 schema 직교성 재검토 가능
   - 위치: `apps/builder/src/lib/db/indexedDB/adapter.ts` + `apps/builder/src/lib/db/types.ts` + 5 caller 파일 (commits `1f732be3` + `f299d373`)
 
-## [ADR-910 Implemented — Canonical `themes`/`variables` 필드 Land Plan 전체 종결] - 2026-04-27
+## [ADR-110 Implemented — Canonical `themes`/`variables` 필드 Land Plan 전체 종결] - 2026-04-27
 
 ### Architecture
 
-- **ADR-910 Phase 2 Write-through Activation 전원 통과 + Status `Accepted → Implemented`** — Phase 1 G-A (read-only snapshot adapter) 위에 write-through + resolver + round-trip + 시각 회귀 0 검증 통합:
-  - **ts-3.1** themes write-through adapter — `applyCanonicalThemes(doc, setters): boolean` 신설 + `ThemeConfigSetters` DI interface (test 친화 + R4 stale 방지) + BuilderCore initialize 종료 entry (env flag `VITE_ADR910_P2_THEMES_WRITE_THROUGH` 게이트, rollback 경로). 6 신규 tests (TC-A1~A6, round-trip + 멱등 + BC + R4 잘못된 구조 무동작)
+- **ADR-110 Phase 2 Write-through Activation 전원 통과 + Status `Accepted → Implemented`** — Phase 1 G-A (read-only snapshot adapter) 위에 write-through + resolver + round-trip + 시각 회귀 0 검증 통합:
+  - **ts-3.1** themes write-through adapter — `applyCanonicalThemes(doc, setters): boolean` 신설 + `ThemeConfigSetters` DI interface (test 친화 + R4 stale 방지) + BuilderCore initialize 종료 entry (env flag `VITE_ADR110_P2_THEMES_WRITE_THROUGH` 게이트, rollback 경로). 6 신규 tests (TC-A1~A6, round-trip + 멱등 + BC + R4 잘못된 구조 무동작)
   - 위치: `apps/builder/src/adapters/canonical/themesAdapter.ts` + `BuilderCore.tsx` + `themes.test.ts`
   - **ts-3.2** variables resolver — `resolveCanonicalVariable(ref, doc): string | number | boolean | undefined` 신설. TokenRef pattern `{category.name}` parsing (tokenResolver.ts 와 동일 정규식, hyphen name 허용). 9 신규 tests (TC-R1~R9 — 기본 lookup / number+boolean / BC / invalid / hyphen name / **Gate G-B (b) light+dark contract** — `resolveToken(ref, theme)` ↔ `resolveCanonicalVariable(ref, doc)` 동일 값)
   - 위치: `apps/builder/src/adapters/canonical/variablesAdapter.ts` + `variables.test.ts`
   - **ts-3.3** round-trip 통합 — themes + variables 동시 round-trip 검증 (legacyToCanonical → apply + resolve → re-snapshot 1차==2차 동일). 4 신규 tests (TC-RT1~RT4 — 동시 / 멱등 / 한쪽만 주입 BC / Gate G-B 통합 pipeline)
   - 위치: `apps/builder/src/adapters/canonical/__tests__/integration.test.ts`
   - **ts-3.4** Chrome MCP dev runtime 시각 회귀 검증 — Builder Skia canvas 2562×1768 (HiDPI 2x, WebGL2) + DOM 정상 (Header/workspace/panel) + CSS 토큰 정상 (`--bg`, `--fg`, `--accent`, `--tint`, `--border`) + error overlay 0 + 페이지 reload 후 동일. **env flag 미설정 → Phase 1 read-only 동작 유지 BC** + flag 활성화 시 `selectCanonicalDocument` 가 themes 미주입 → `applyCanonicalThemes` false 반환 → 무동작 → **시각 회귀 0**. Gate G-B (c) 충족
-  - **ts-3.5** feature flag rollback 경로 — `VITE_ADR910_P2_THEMES_WRITE_THROUGH` (ts-3.1 land 시 동시 적용)
+  - **ts-3.5** feature flag rollback 경로 — `VITE_ADR110_P2_THEMES_WRITE_THROUGH` (ts-3.1 land 시 동시 적용)
   - **Why**: ADR-903 §3.10 phase 미명시 gap 해소. `themes`(ADR-021 Tint/dark mode) + `variables`(ADR-022 TokenRef) 가 canonical document 정합 SSOT 구조로 land — D3 시각 domain 의 read/write/resolve 3축 양방향 변환 보장
   - **Closure 5단계** 모두 완료: Status Implemented + 본 ADR 본문 진행 로그 + README 완료 102→103/미구현 8→7 + 본문 `docs/adr/910-* → docs/adr/completed/910-*` archive + reference link path 정합화 (903 본문 line 118/119 `../910-` → `910-`, design breakdown ts-3.4 ✅ + G-B (c) ✅)
 - 검증: type-check 3/3 PASS (FULL TURBO) + canonical adapter vitest 111/111 (themes 18 + variables 23 + integration 47 + 기타 23) + db 142/142 PASS
 
 ### Infrastructure
 
-- 본 ADR-910 동일 세션 land 흐름이 ADR-913 Phase 4 Step 4-1~4-3 (DB_VERSION 9 + tag→type dry-run + entry 연결) 와 영향 영역 비교집합 0 으로 병행 가능함을 입증 — ADR-910 design breakdown 의 회피 사항 ("ts-3.2 와 Step 4-2 동시 진행 금지") 는 실 영향 영역 충돌 시점에만 적용으로 정정
+- 본 ADR-110 동일 세션 land 흐름이 ADR-113 Phase 4 Step 4-1~4-3 (DB_VERSION 9 + tag→type dry-run + entry 연결) 와 영향 영역 비교집합 0 으로 병행 가능함을 입증 — ADR-110 design breakdown 의 회피 사항 ("ts-3.2 와 Step 4-2 동시 진행 금지") 는 실 영향 영역 충돌 시점에만 적용으로 정정
 
-## [ADR-913 Phase 4 Step 4-1+4-2+4-3 — DB_VERSION 8→9 schema bump + runTagTypeMigration dry-run + usePageManager entry] - 2026-04-27
+## [ADR-113 Phase 4 Step 4-1+4-2+4-3 — DB_VERSION 8→9 schema bump + runTagTypeMigration dry-run + usePageManager entry] - 2026-04-27
 
 ### Architecture
 
-- **ADR-913 Phase 4 READ-ONLY 3 단계 main land** — DB schema 변환 prep. dryRun=true 고정으로 DB 무변경:
-  - **Step 4-1** IndexedDB DB_VERSION 8 → 9 schema bump (no schema change — `tag` index 미존재). `MetaRecord.schemaVersion` enum 에 `"composition-1.1"` 추가 (composition-1.0 = tag 기반 / composition-1.1 = type 기반). `metaStore.test.ts` test 1 갱신. **비파괴**: 기존 프로젝트 (composition-1.0) read-through 유지 — schemaVersion 단계 추적 (legacy → composition-1.0 ADR-903 P3-E → composition-1.1 ADR-913 P4)
+- **ADR-113 Phase 4 READ-ONLY 3 단계 main land** — DB schema 변환 prep. dryRun=true 고정으로 DB 무변경:
+  - **Step 4-1** IndexedDB DB_VERSION 8 → 9 schema bump (no schema change — `tag` index 미존재). `MetaRecord.schemaVersion` enum 에 `"composition-1.1"` 추가 (composition-1.0 = tag 기반 / composition-1.1 = type 기반). `metaStore.test.ts` test 1 갱신. **비파괴**: 기존 프로젝트 (composition-1.0) read-through 유지 — schemaVersion 단계 추적 (legacy → composition-1.0 ADR-903 P3-E → composition-1.1 ADR-113 P4)
   - 위치: `apps/builder/src/lib/db/indexedDB/adapter.ts` + `types.ts` + `__tests__/metaStore.test.ts`
   - **Step 4-2** 신규 파일 `apps/builder/src/lib/db/migrationTagType.ts` 분리 (ADR-903 P3-E `runLegacyToCanonicalMigration` 과 독립 schema 차원 — 책임 분리). `transformElementTagToType(el)` pure transformer (tag-only → rename / type-only → no-op / 둘 다 → type 우선 + tag 제거 / 둘 다 missing → orphan error) + `runTagTypeMigration(adapter, projectId, { dryRun=true })` (composition-1.1 already-migrated → skipped, `createMigrationBackup` 호출 fallback 안전망, `elements.getAll()` read-only → transformations 결과 반환, `dryRun=false` → throw 안내). 16 신규 tests (TC-T1~T5 transformer + TC-M1~M11 integration, **50 fixture round-trip 포함**)
   - 위치: `apps/builder/src/lib/db/migrationTagType.ts` + `__tests__/migrationTagType.test.ts`
   - **Step 4-3** `usePageManager.initializeProject` 의 P3-E migration 호출 직후에 `runTagTypeMigration(db, projectId, { dryRun: true })` 추가. 진입 조건: `metaRecord` 미존재 또는 `schemaVersion ∈ {legacy, composition-1.0}`. dev console 로그 — skipped/일반/transformedCount > 0 시 `${N} elements need tag→type migration`. try/catch graceful degrade (BC)
   - 위치: `apps/builder/src/builder/hooks/usePageManager.ts`
-  - **Why**: Step 4-4 (write-through, env flag `VITE_ADR913_P4_WRITE_THROUGH`) 진입 전 측정 인프라 사전 land — 당시에는 monitoring 완료 뒤 활성화로 계획했으나, 2026-04-30 이후 ADR-916 G2 canonical store/export adapter 이후 재평가로 변경
+  - **Why**: Step 4-4 (write-through, env flag `VITE_ADR113_P4_WRITE_THROUGH`) 진입 전 측정 인프라 사전 land — 당시에는 monitoring 완료 뒤 활성화로 계획했으나, 2026-04-30 이후 ADR-116 G2 canonical store/export adapter 이후 재평가로 변경
 - 검증: type-check 3/3 PASS + db 영역 vitest 142/142 PASS (기존 126 + 신규 16) + usePageManager.canonical 회귀 0
-- **잔여 Phase 4 단계**: Step 4-4 (write-through, ADR-916 G2 이후 재평가) / Step 4-5 (`normalizeLegacyElement` helper 제거, write-through 1주+ 안정 + composition-1.1 또는 canonical-primary 기준 충족 후) / Step 4-6 (Phase 4 종결)
+- **잔여 Phase 4 단계**: Step 4-4 (write-through, ADR-116 G2 이후 재평가) / Step 4-5 (`normalizeLegacyElement` helper 제거, write-through 1주+ 안정 + composition-1.1 또는 canonical-primary 기준 충족 후) / Step 4-6 (Phase 4 종결)
 
 ### Documentation
 
-- ADR-913 Status `Proposed → In Progress` 갱신 (README + 본 ADR 본문 진행 로그)
-- ADR-910 design breakdown — Phase 2 sub-step 표 5단계 (ts-3.1~3.5) ✅/미진입 + commit 해시 + 검증 결과
-- ADR-913 design breakdown — §"Sub-step 진행 상태" 표 신설 (4-1~4-6) + 본문 4-1/4-2/4-3 ✅ marker + Land 시 design 변경점 명시 (실 entry 위치 = `usePageManager.ts`, 실 산출 파일 = `migrationTagType.ts`)
+- ADR-113 Status `Proposed → In Progress` 갱신 (README + 본 ADR 본문 진행 로그)
+- ADR-110 design breakdown — Phase 2 sub-step 표 5단계 (ts-3.1~3.5) ✅/미진입 + commit 해시 + 검증 결과
+- ADR-113 design breakdown — §"Sub-step 진행 상태" 표 신설 (4-1~4-6) + 본문 4-1/4-2/4-3 ✅ marker + Land 시 design 변경점 명시 (실 entry 위치 = `usePageManager.ts`, 실 산출 파일 = `migrationTagType.ts`)
 
-## [ADR-913 Phase 3 manual review 종결 — `tag → type` rename 회귀 0 확증] - 2026-04-27
+## [ADR-113 Phase 3 manual review 종결 — `tag → type` rename 회귀 0 확증] - 2026-04-27
 
 ### Architecture
 
-- **ADR-913 Phase 3 종결** — Phase 1+2 mechanical rename 도구 효율 검증, 회귀 위험 0:
+- **ADR-113 Phase 3 종결** — Phase 1+2 mechanical rename 도구 효율 검증, 회귀 위험 0:
   - `.tag` 잔존 13건 = 의도된 변수명/CSS class/Tag spec preset 12건 + IDB adapter `tag?: string` 검사 1건 (Phase 4 영역, 의도된 legacy)
   - `tag: literal` 잔존 7건 = 전부 JSDoc BC 메모 (Card 5종 + Radio/CheckboxItems), 실 코드 0건
   - `.type ===` discriminator 459건 narrowing 정상
   - `isCanonicalNode` runtime guard hot path 적용 부족 (LOW, Phase 4 진입 시 점진 적용 권장)
   - **Why**: agent 추정 146 manual ref → 실제 의심 잔존 0. mechanical rename 도구 (`apps/builder/src/adapters/canonical/tagRename.ts`) 가 매우 효과적
   - 위치: `packages/specs/src/components/Body.spec.ts:9` JSDoc `element.tag` → `element.type` 정정 (1줄)
-- **ADR-913 Status `In Progress` 유지** — Phase 4 (DB schema DB_VERSION 8→9, HIGH 1.5d) + Phase 5 (Hybrid 6 cleanup, HIGH 2d, 313+ ref) 잔여
+- **ADR-113 Status `In Progress` 유지** — Phase 4 (DB schema DB_VERSION 8→9, HIGH 1.5d) + Phase 5 (Hybrid 6 cleanup, HIGH 2d, 313+ ref) 잔여
 
-## [ADR-910 Phase 1 G-A — Canonical `themes`/`variables` Read-only Snapshot Adapter] - 2026-04-27
+## [ADR-110 Phase 1 G-A — Canonical `themes`/`variables` Read-only Snapshot Adapter] - 2026-04-27
 
 ### Architecture
 
-- **ADR-910 Phase 1 G-A 완전 PASS** — canonical document `themes` + `variables` 필드를 ADR-021 / ADR-022 시스템의 read-only snapshot adapter 로 land (대안 B 채택):
+- **ADR-110 Phase 1 G-A 완전 PASS** — canonical document `themes` + `variables` 필드를 ADR-021 / ADR-022 시스템의 read-only snapshot adapter 로 land (대안 B 채택):
   - `packages/shared/src/types/composition-document.types.ts` — `ThemeSnapshot` (R2 `customTokens` 확장 슬롯) + `VariablesSnapshot` + `VariablesSnapshotEntry` (R3 `source: "spec-token" | "user-defined"` 구분자) 타입 SSOT 정착. `CompositionDocument.themes?: ThemeSnapshot` + `variables?: VariablesSnapshot` 으로 stub `Record<string, string[]>` 전환
   - `apps/builder/src/adapters/canonical/variablesAdapter.ts` 신규 — `snapshotVariablesFromTokens(resolvedTokens)` + `readCanonicalVariables(doc)` + `ResolvedTokenMap` DI 계약
   - `apps/builder/src/adapters/canonical/themesAdapter.ts` — `ThemeSnapshot` re-export + raw cast 제거
   - `apps/builder/src/adapters/canonical/index.ts` — `legacyToCanonical()` 호출 시 `themesSnapshot` + `variablesSnapshot` 자동 주입 통합
   - `apps/builder/src/adapters/canonical/__tests__/variables.test.ts` 신규 (14 tests)
-  - `docs/adr/design/910-canonical-themes-variables-land-plan-breakdown.md` 신규 (구현 상세 분리)
+  - `docs/adr/design/110-canonical-themes-variables-land-plan-breakdown.md` 신규 (구현 상세 분리)
   - **Why**: canonical document 가 ADR-021 themeConfigStore + ADR-022 tokenResolver 현재 상태를 read-only 로 투영. Phase 2 write-through 진입 prerequisite 충족. ADR-021/022 런타임 무수정 (R3/R4 비파괴)
   - 검증: type-check 3/3 PASS + canonical adapter vitest 92/92 PASS (themes 12 + variables 14 + integration 43 + 기타 23)
 
-- **ADR-910 Status `Proposed → Accepted` 승격** — Phase 2 (write-through, ADR-903 G2 이후) 진입 대기. Phase 2 land 시 G-B Gate 검증 (themes write-through round-trip + variables resolver 통합 + Preview/Skia 시각 회귀 0) 후 ADR-910 전체 Implemented
+- **ADR-110 Status `Proposed → Accepted` 승격** — Phase 2 (write-through, ADR-903 G2 이후) 진입 대기. Phase 2 land 시 G-B Gate 검증 (themes write-through round-trip + variables resolver 통합 + Preview/Skia 시각 회귀 0) 후 ADR-110 전체 Implemented
 
-## [ADR-911 P2 회귀 수정 #2 — canonical legacyProps id 누락으로 자식 있는 컴포넌트 미렌더] - 2026-04-27
+## [ADR-111 P2 회귀 수정 #2 — canonical legacyProps id 누락으로 자식 있는 컴포넌트 미렌더] - 2026-04-27
 
 ### Bug Fixes
 
@@ -864,26 +864,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `apps/builder/src/adapters/canonical/slotAndLayoutAdapter.ts:257` (`convertElementToCanonical` slot adapter)
     - `apps/builder/src/adapters/canonical/slotAndLayoutAdapter.ts:313` (`convertElementWithSlotHoisting`)
   - 검증: `pnpm type-check` 3/3 exit 0
-  - **ADR-911 monitoring 카운터 reset 권장 (2번째)** — 본 fix land 시점부터 새 1주 (~2026-05-04+ 추가 연장). PR #271 fix 후 1차 reset, 본 fix 후 2차 reset
+  - **ADR-111 monitoring 카운터 reset 권장 (2번째)** — 본 fix land 시점부터 새 1주 (~2026-05-04+ 추가 연장). PR #271 fix 후 1차 reset, 본 fix 후 2차 reset
 
-## [ADR-911 P2 회귀 수정 — 복합 컴포넌트 등록 시 page_id 미주입으로 화면 누락] - 2026-04-27
+## [ADR-111 P2 회귀 수정 — 복합 컴포넌트 등록 시 page_id 미주입으로 화면 누락] - 2026-04-27
 
 ### Bug Fixes
 
 - **복합 컴포넌트 (ListBox / TagGroup / RadioGroup / CheckboxGroup 등 COMPLEX_COMPONENT_TAGS) 등록 시 화면 미렌더 회귀**:
   - 사용자 보고 (세션 42): ListBox 컴포넌트 등록 후 화면에 element 가 나타나지 않음 + dev console `[ADR-903] sanitizeElement: page_id/layout_id 없음 — canonical parent 의존 element?` 경고
-  - **Why**: `createElementsFromDefinition` (`apps/builder/src/builder/factories/utils/elementCreation.ts`) 가 parent + children Element 객체 생성 시 `page_id` / `layout_id` 명시 주입 안 함. ADR-911 P2 cutover (canonical mode default true) 후 `pageElementsSnapshot` / `selectCanonicalDocument` 의 page-indexed 분기에서 page_id 없는 element 가 frame.children 에 attach 안 되어 화면 누락. 단순 컴포넌트 경로 (`useElementCreator.ts:198`) 는 정상 (page_id 명시 주입) — 두 경로 비대칭이 ADR-911 cutover 로 노출됨
+  - **Why**: `createElementsFromDefinition` (`apps/builder/src/builder/factories/utils/elementCreation.ts`) 가 parent + children Element 객체 생성 시 `page_id` / `layout_id` 명시 주입 안 함. ADR-111 P2 cutover (canonical mode default true) 후 `pageElementsSnapshot` / `selectCanonicalDocument` 의 page-indexed 분기에서 page_id 없는 element 가 frame.children 에 attach 안 되어 화면 누락. 단순 컴포넌트 경로 (`useElementCreator.ts:198`) 는 정상 (page_id 명시 주입) — 두 경로 비대칭이 ADR-111 cutover 로 노출됨
   - 수정: `createElementsFromDefinition` 시그니처에 `ElementCreationContext` (pageId / layoutId) 추가 + parent + children 모두에 `page_id: layoutId ? null : pageId` / `layout_id: layoutId` 명시 주입. `ComponentFactory.createComponent` 가 호출 시 이미 보유 중인 pageId/layoutId 전달
   - 위치: `apps/builder/src/builder/factories/utils/elementCreation.ts` (createElementsFromDefinition + ElementCreationContext 인터페이스 신설) / `apps/builder/src/builder/factories/ComponentFactory.ts:238-245` (호출 시 context 전달)
   - 검증: `pnpm type-check` 3/3 exit 0
-  - **ADR-911 monitoring 1주 (~2026-05-04) 진행 중 발견된 사용자-가시 회귀** — 본 fix land 후 monitoring 카운터 reset 권장 (회귀 fix 시점부터 1주 재측정 + 추가 회귀 watch)
+  - **ADR-111 monitoring 1주 (~2026-05-04) 진행 중 발견된 사용자-가시 회귀** — 본 fix land 후 monitoring 카운터 reset 권장 (회귀 fix 시점부터 1주 재측정 + 추가 회귀 watch)
 
-## [ADR-913 mechanical rename false-positive sweep — Tag literal 복원 + lucide generated 자동화] - 2026-04-27
+## [ADR-113 mechanical rename false-positive sweep — Tag literal 복원 + lucide generated 자동화] - 2026-04-27
 
 ### Bug Fixes
 
 - **TagGroup remove 버튼 / `tag-list-wrapper` / `tag-show-all-btn` 스타일링 깨짐 회복**:
-  - ADR-913 P1+P2 mechanical rename (`\btag\b → type`, commit `99e4e7c9`) 가 React `className` literal 까지 false-positive 치환 → CSS `.tag-remove-btn` / `.tag-list-wrapper` / `.tag-show-all-btn` 클래스가 매칭 실패하여 Tag 삭제 버튼 마진 + show-all-btn 스타일이 적용되지 않음
+  - ADR-113 P1+P2 mechanical rename (`\btag\b → type`, commit `99e4e7c9`) 가 React `className` literal 까지 false-positive 치환 → CSS `.tag-remove-btn` / `.tag-list-wrapper` / `.tag-show-all-btn` 클래스가 매칭 실패하여 Tag 삭제 버튼 마진 + show-all-btn 스타일이 적용되지 않음
   - **Why**: ast-grep + node.js batch regex 가 `\btag\b` 단어 경계 만 검사 → React 의 `className="tag-…"` 리터럴 안의 `tag` 도 변환됨. CSS 파일은 commit scope 외라 `.tag-*` 그대로 → 클래스명 분리
   - 수정: `packages/shared/src/components/TagGroup.tsx` 6 occurrence (`type-remove-btn` 3 / `type-list-wrapper` 1 / `type-show-all-btn` 2) → `tag-*` 복원
 - **`getTagRemoveAdjustedPaddingRight` / TagGroup remove padding 계산 dead 회복**:
@@ -891,13 +891,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: caller 4곳이 lowercase 변환된 `type` 변수를 함수에 전달, lowercase tag config map (`chip`/`togglebutton`/`tab` 등) 과 일관. literal 도 `"tag"` 가 정답
   - 수정: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` 4 occurrence + 주석 `.type-remove-btn` → `.tag-remove-btn`
 - **SelectionFilter "태그로" 필터 옵션 미작동**:
-  - ADR-913 mechanical rename 이 UI enum literal `filterType: "all" | "type" | "tag" | "property"` 의 `"tag"` 값 5 occurrence (type union / switch case / dropdown option value / 2 condition) 를 `"type"` 로 변환 → 두 옵션이 동일 값으로 충돌, `selectedTag` 상태가 dispatch 되지 않음
+  - ADR-113 mechanical rename 이 UI enum literal `filterType: "all" | "type" | "tag" | "property"` 의 `"tag"` 값 5 occurrence (type union / switch case / dropdown option value / 2 condition) 를 `"type"` 로 변환 → 두 옵션이 동일 값으로 충돌, `selectedTag` 상태가 dispatch 되지 않음
   - 수정: `apps/builder/src/builder/components/selection/SelectionFilter.tsx` 5 occurrence 의 두 번째 `"type"` → `"tag"` 복원
 
 ### Infrastructure
 
 - **`pnpm install` 차단 fix + lucide generated 자동 재생성**:
-  - `packages/specs/src/icons/lucideIconData.generated.ts` 가 ADR-913 mechanical rename 의 false-positive 로 lucide `'tag'` 아이콘 키 → `'type'` 로 변환 → `'type'` 키 중복 (line 1505 + 1595) → TS1117 "An object literal cannot have multiple properties with the same name" 으로 `prepare:specs` (DTS 빌드) + `pnpm install` 전체 차단
+  - `packages/specs/src/icons/lucideIconData.generated.ts` 가 ADR-113 mechanical rename 의 false-positive 로 lucide `'tag'` 아이콘 키 → `'type'` 로 변환 → `'type'` 키 중복 (line 1505 + 1595) → TS1117 "An object literal cannot have multiple properties with the same name" 으로 `prepare:specs` (DTS 빌드) + `pnpm install` 전체 차단
   - **Why**: generated 파일이 source tree 에 commit 되어 mechanical rename scope 에 포함됨. lucide `tag.js` 와 `type-outline.js` / `type.js` 가 공존하여 collision 발생
   - 수정: `node packages/specs/scripts/extract-lucide-icons.mjs` 재실행으로 ground truth 복원 + `package.json` 의 `prepare:specs` 에 추출 스크립트 추가 → 향후 install 시 자동 재생성으로 generated 파일 손상 자체 차단
   - 위치: `packages/specs/src/icons/lucideIconData.generated.ts` / `package.json:34`
@@ -918,11 +918,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **검증**: Gate G1 (publish 회귀 0) — `pnpm type-check` 3/3 exit 0 / Gate G2 (3경로 theme 대칭) — className 자동 주입 + BodySpec TokenRef resolve / Gate G4 (D4 cleanup 안전성) — `setBackgroundColor` / `SkiaRenderer.backgroundColor` field grep 0건
   - ADR-902 후속 body SSOT 스토리라인 완결 (Skia/Preview/Publish 3경로 1 Spec 파생)
 
-## [DesignKit 시스템 제거 — Theme/Variable 시스템 중복 해소 — ADR-915] - 2026-04-27
+## [DesignKit 시스템 제거 — Theme/Variable 시스템 중복 해소 — ADR-115] - 2026-04-27
 
 ### Breaking Changes
 
-- **DesignKit 패널 / `.kit.json` import-export 기능 제거** (ADR-915 Implemented):
+- **DesignKit 패널 / `.kit.json` import-export 기능 제거** (ADR-115 Implemented):
   - `Ctrl+Shift+K` 단축키 비활성화 + 좌측 사이드바 "디자인 킷" 항목 제거
   - DesignKit 5-Layer 아키텍처 (panel UI / Zustand store / 6-step kitLoader 파이프라인 / Zod 검증 / built-in basic kit) 전체 제거
   - 사용자가 외부에서 받은 `.kit.json` 파일은 더 이상 composition 으로 import 불가 (사용자 로컬 디스크 보존, 데이터 손실 0)
@@ -933,23 +933,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
-- **ADR-020 Superseded by ADR-915** — Design Kit 패널 분석 및 개선 계획 (Proposed) → 제거 결정. 본문은 `docs/adr/completed/020-design-kit-improvement.md` 로 archive
-- **ADR-915 신규 발의 (Proposed → Implemented 동일 PR 내 land)** — DesignKit 시스템 제거. 대안 A (즉시 전수 제거) 채택 — B (Deprecate-then-remove, 유지보수 MED) / C (UI hide, 유지보수 HIGH dead code) / D (theme 흡수, 유지보수 + 마이그레이션 HIGH) 대비 위험 모든 축 LOW. ADR-020 §2.1 자가 분석을 흡수 가치 부재 근거로 직접 인용
+- **ADR-020 Superseded by ADR-115** — Design Kit 패널 분석 및 개선 계획 (Proposed) → 제거 결정. 본문은 `docs/adr/completed/020-design-kit-improvement.md` 로 archive
+- **ADR-115 신규 발의 (Proposed → Implemented 동일 PR 내 land)** — DesignKit 시스템 제거. 대안 A (즉시 전수 제거) 채택 — B (Deprecate-then-remove, 유지보수 MED) / C (UI hide, 유지보수 HIGH dead code) / D (theme 흡수, 유지보수 + 마이그레이션 HIGH) 대비 위험 모든 축 LOW. ADR-020 §2.1 자가 분석을 흡수 가치 부재 근거로 직접 인용
 - **진행 중 ADR reference 일괄 정리**:
-  - ADR-911 line 249 — "ADR-903 P5-D/E (`imports` resolver) 와 자연스럽게 통합 — DesignKit 통합은 ADR-915 로 제거됨 (P5-F section 무효화)"
-  - ADR-912 G4-A — 시각 마커 3종 (LayerTree + Canvas + DesignKit) → **2종 (LayerTree + Canvas)** 로 축소
+  - ADR-111 line 249 — "ADR-903 P5-D/E (`imports` resolver) 와 자연스럽게 통합 — DesignKit 통합은 ADR-115 로 제거됨 (P5-F section 무효화)"
+  - ADR-112 G4-A — 시각 마커 3종 (LayerTree + Canvas + DesignKit) → **2종 (LayerTree + Canvas)** 로 축소
   - ADR-016 line 43 — 다이어그램에서 `DesignKitPanel` 박스 제거
-  - ADR-011 line 1079 — `appliedKitIds` 표 항목 strikethrough + ADR-915 footnote (이미 ADR-054 Superseded)
-  - ADR-914 — 당시 **보류** (Proposed 단계 + imports 본체 미진입). 이후 2026-04-30 ADR-916 으로 잔여 imports scope 흡수 + Superseded 처리
-- **CompositionDocument types 정리** — `metadata.importedFrom: "designkit:<kit-id>"` 주석 제거 (`packages/shared/src/types/composition-document.types.ts`). `imports` resolver 는 이후 ADR-916 으로 흡수
+  - ADR-011 line 1079 — `appliedKitIds` 표 항목 strikethrough + ADR-115 footnote (이미 ADR-054 Superseded)
+  - ADR-114 — 당시 **보류** (Proposed 단계 + imports 본체 미진입). 이후 2026-04-30 ADR-116 으로 잔여 imports scope 흡수 + Superseded 처리
+- **CompositionDocument types 정리** — `metadata.importedFrom: "designkit:<kit-id>"` 주석 제거 (`packages/shared/src/types/composition-document.types.ts`). `imports` resolver 는 이후 ADR-116 으로 흡수
 
 ### Gates 검증
 
-- **G1 정적 검증**: `pnpm type-check` 3/3 PASS / `pnpm build` specs 의 사전 존재 이슈 (`lucideIconData.generated.ts` TS1117) 는 main HEAD 동일 — 본 ADR-915 작업 무관
-- **G2 잔존 reference 0**: `apps/` + `packages/` grep `designKit\|DesignKit\|KitElement\|KitToken\|KitVariable\|kitLoader\|kitExporter\|kitValidator` 0건. `docs/` 잔존은 의도된 ADR-915 cross-reference + CHANGELOG historical entries 만
+- **G1 정적 검증**: `pnpm type-check` 3/3 PASS / `pnpm build` specs 의 사전 존재 이슈 (`lucideIconData.generated.ts` TS1117) 는 main HEAD 동일 — 본 ADR-115 작업 무관
+- **G2 잔존 reference 0**: `apps/` + `packages/` grep `designKit\|DesignKit\|KitElement\|KitToken\|KitVariable\|kitLoader\|kitExporter\|kitValidator` 0건. `docs/` 잔존은 의도된 ADR-115 cross-reference + CHANGELOG historical entries 만
 - **G3 dev verify**: PR 머지 후 사용자 dev 검증 권장 (사이드바 + Ctrl+Shift+K + 다른 패널 정상 마운트 + 콘솔 error 0)
 
-## [ADR-911 fix — usePresetApply.existingSlots slot 직접 매칭 (preset stale 해소) — 세션 38] - 2026-04-27
+## [ADR-111 fix — usePresetApply.existingSlots slot 직접 매칭 (preset stale 해소) — 세션 38] - 2026-04-27
 
 ### Bug Fixes
 
@@ -970,7 +970,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts`
   - 검증: type-check 0 / FramesTab+frameActions 41/41 회귀 0. dev 환경에서 Frame 교차 시 우측 "적용됨" 표시가 frame 의 실제 preset 으로 정상 갱신 (사용자 검증 권장)
 
-## [ADR-911 Phase 2 fix — handleAddFrame 중복 Frame N 번호 회피 — 세션 38] - 2026-04-27
+## [ADR-111 Phase 2 fix — handleAddFrame 중복 Frame N 번호 회피 — 세션 38] - 2026-04-27
 
 ### Bug Fixes
 
@@ -985,20 +985,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **frameActions.test.ts 회귀 안전망 강화**: 기존 7 → 15 시나리오. PR-A wrapper 동작 + `getNextFrameName` 알고리즘 양쪽 잠금
 
-## [ADR-911 Phase 2 followup — NodesPanelTabs UI 라벨 "Layout" → "Frames" — 세션 38] - 2026-04-27
+## [ADR-111 Phase 2 followup — NodesPanelTabs UI 라벨 "Layout" → "Frames" — 세션 38] - 2026-04-27
 
 ### Documentation
 
 - **NodesPanel 탭 UI 라벨 정합**:
   - `NodesPanelTabs.tsx` — `id: "layouts"` 의 `label: "Layout"` → `"Frames"` (1줄)
-  - **Why**: 컴포넌트명 `FramesTab` 과 UI 라벨 "Layout" 의 불일치로 사용자 dev 검증 시 혼란 — ADR-911 Phase 2 cutover 와 함께 라벨 정합. 탭 id `"layouts"` / `EditMode "layout"` / `aria-controls "tabpanel-layouts"` 등 데이터 호환성 식별자는 그대로 유지 (후속 PR 에서 점진 정리 가능)
+  - **Why**: 컴포넌트명 `FramesTab` 과 UI 라벨 "Layout" 의 불일치로 사용자 dev 검증 시 혼란 — ADR-111 Phase 2 cutover 와 함께 라벨 정합. 탭 id `"layouts"` / `EditMode "layout"` / `aria-controls "tabpanel-layouts"` 등 데이터 호환성 식별자는 그대로 유지 (후속 PR 에서 점진 정리 가능)
   - 검증: type-check 0 / FramesTab 33/33 회귀 0 (라벨은 vitest 검증 대상 아님 — UI 가시 변경만)
 
-## [ADR-911 Phase 2 PR-E4 — cutover (canonical mode default true) — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-E4 — cutover (canonical mode default true) — 세션 37 후반] - 2026-04-27
 
 ### Breaking Changes
 
-- **FramesTab + PageLayoutSelector 의 frame 목록 read path 가 canonical projection 으로 default 전환** (ADR-911 Phase 2 cutover):
+- **FramesTab + PageLayoutSelector 의 frame 목록 read path 가 canonical projection 으로 default 전환** (ADR-111 Phase 2 cutover):
   - `apps/builder/src/utils/featureFlags.ts::isFramesTabCanonical()` default `false → true`
   - 영향: 빌더 `Frames` 탭 / `PageLayoutSelector` 가 `selectCanonicalDocument` projection 의 reusable FrameNode 를 read source 로 사용. 기존 `useLayoutsStore.layouts[]` direct read 는 환경변수 override 시에만 활성화
   - **rollback 경로**: `VITE_FRAMES_TAB_CANONICAL=false` 환경변수 설정 → emergency 시 legacy path 복구
@@ -1007,35 +1007,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
-- **ADR-911 Phase 2 PR-E4 — cutover 단일 변경**:
+- **ADR-111 Phase 2 PR-E4 — cutover 단일 변경**:
   - `featureFlags.ts` 의 `isFramesTabCanonical()` 1줄 변경 (default `false → true`) + `getFeatureFlags()` 동시 갱신
   - vitest 영향 0 — `FramesTab.test.tsx` / `PageLayoutSelector` 등 모두 `mockIsFramesTabCanonical` 명시 mock 으로 분기 검증
-  - 검증: type-check 0 / 156/156 vitest PASS (FramesTab 33 + frameActions 7 + migrationP911 45 + canonical adapters 71)
-  - **monitoring 단계**: 1주 사용자 issue report 0건 확인 후 ADR-911 Phase 2 Status: `In Progress` → `Phase 2 Implemented` 승격. 잔여 Phase 3-5 (P3 cascade 재작성 / P4 DB schema migration / P5 hybrid 6 cleanup) 는 본 ADR 의 후속 phase 로 분리 진행
+  - 검증: type-check 0 / 156/156 vitest PASS (FramesTab 33 + frameActions 7 + migrationP111 45 + canonical adapters 71)
+  - **monitoring 단계**: 1주 사용자 issue report 0건 확인 후 ADR-111 Phase 2 Status: `In Progress` → `Phase 2 Implemented` 승격. 잔여 Phase 3-5 (P3 cascade 재작성 / P4 DB schema migration / P5 hybrid 6 cleanup) 는 본 ADR 의 후속 phase 로 분리 진행
 
-## [ADR-911 Phase 2 PR-E3 — dev-only canonical migration trigger — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-E3 — dev-only canonical migration trigger — 세션 37 후반] - 2026-04-27
 
 ### Features
 
-- **ADR-911 P1-c — dev-only canonical migration trigger UI 추가**:
+- **ADR-111 P1-c — dev-only canonical migration trigger UI 추가**:
   - `FramesTab.tsx` 에 "Dev: Migrate to Canonical" 버튼 + `handleDevMigrate` handler
-  - 동작: `dryRunMigrationP911(adapter, projectId, canonicalDoc)` 결과 콘솔 group 으로 출력 (status / hoisted ids / skipped / errors). errors 0 + hoisted > 0 시 `applyMigrationP911(canonicalDoc, result)` 로 in-memory apply 실행 + 결과 reusable frame 개수 로그
+  - 동작: `dryRunMigrationP111(adapter, projectId, canonicalDoc)` 결과 콘솔 group 으로 출력 (status / hoisted ids / skipped / errors). errors 0 + hoisted > 0 시 `applyMigrationP111(canonicalDoc, result)` 로 in-memory apply 실행 + 결과 reusable frame 개수 로그
   - production 단락: `process.env.NODE_ENV === "development"` 체크. production build 영향 0 (tree-shake 가능)
   - **persistence 미구현**: canonical document store write API 가 없음 (P3-D 종속) — 본 trigger 는 Chrome MCP P1-c roundtrip dev 검증 용도만. 콘솔에 `"persistence 미구현 — canonical store write API 도입 (P3-D) 후 commit 가능"` 안내 출력
-  - **Why**: ADR-911 Phase 1 의 migration helper (`hoistLayoutAsReusableFrame` / `dryRun` / `apply`) 가 실 dev 데이터에 대해 정상 동작하는지 검증할 진입점 부재. P2-e (Chrome MCP P1-c roundtrip) 의 진입점 옵션 A (FramesTab dev menu) 채택. P3 진입 시 옵션 B (initializeProject 자동 trigger) 으로 교체 예정
+  - **Why**: ADR-111 Phase 1 의 migration helper (`hoistLayoutAsReusableFrame` / `dryRun` / `apply`) 가 실 dev 데이터에 대해 정상 동작하는지 검증할 진입점 부재. P2-e (Chrome MCP P1-c roundtrip) 의 진입점 옵션 A (FramesTab dev menu) 채택. P3 진입 시 옵션 B (initializeProject 자동 trigger) 으로 교체 예정
 
 ### Documentation
 
-- **ADR-911 PR-E2 skip 결정 + sub-PR 재배치**:
+- **ADR-111 PR-E2 skip 결정 + sub-PR 재배치**:
   - `usePresetApply.ts` read 는 이미 `selectCanonicalDocument` 사용 (dual-mode 친화적). write (`type="Slot"` element + `addComplexElement`) 는 P3-D 의 canonical document write API 도입 후 별도 ADR 로 처리
   - **Why**: Phase 2 cutover (read path dual-mode) 에 PR-E2 write 전환은 필수 아님. 사용자 시각 차이는 read level 에서만 dual-mode 분기로 충족. 무리한 write 전환은 P3-D 의존성으로 인해 incomplete 상태 land 위험
   - sub-PR 표 갱신: E2 status `🔄 P3-D 종속 — 별도 ADR 로 처리`
 
-## [ADR-911 Phase 2 PR-E1 — PageLayoutSelector dual-mode read 전환 — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-E1 — PageLayoutSelector dual-mode read 전환 — 세션 37 후반] - 2026-04-27
 
 ### Architecture
 
-- **ADR-911 Phase 2 PR-E1 — PageLayoutSelector dual-mode read 전환** (functional 동등):
+- **ADR-111 Phase 2 PR-E1 — PageLayoutSelector dual-mode read 전환** (functional 동등):
   - `apps/builder/src/builder/panels/properties/editors/PageLayoutSelector.tsx`
     - `isFramesTabCanonical()` flag 기반 dual-mode read path 도입 (PR-C FramesTab 패턴 동일)
       - **legacy path** (default false): `useLayouts()` 결과 그대로 사용
@@ -1052,11 +1052,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `apps/builder/src/adapters/canonical/slotAndLayoutAdapter.ts::convertLayoutToReusableFrame` 의 `metadata` 에 `description: layout.description ?? null` 보존 추가
   - **Why**: legacy `Layout.description` 은 PageLayoutSelector 의 "Using <name> frame" + description 표시에 사용. canonical projection 시 description 미보존 → flag 활성화 시 description UI 사라짐 회귀. metadata 에 보존하여 양 mode 시각 동일 유지
 
-## [ADR-911 Phase 2 PR-D2 — FrameElementTree 컴포넌트 분리 — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-D2 — FrameElementTree 컴포넌트 분리 — 세션 37 후반] - 2026-04-27
 
 ### Architecture
 
-- **ADR-911 Phase 2 PR-D2 — FrameElementTree 프레젠테이션 컴포넌트 추출** (functional 동등):
+- **ADR-111 Phase 2 PR-D2 — FrameElementTree 프레젠테이션 컴포넌트 추출** (functional 동등):
   - `apps/builder/src/builder/panels/nodes/FramesTab/FrameElementTree.tsx` 신규 (~205 lines)
     - props: `tree` / `frameId` / `selectedElementId` / `expandedKeys` / `toggleKey` / `onCollapseAll` / `onElementClick` / `onElementDelete`
     - 책임: Layers 헤더 + Collapse All 버튼 + element 트리 렌더 + placeholder (frameId null / 빈 tree)
@@ -1075,11 +1075,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - interactions 5: element click → onElementClick(element) + frameId가 element.layout_id 로 매핑 / non-body Delete → onElementDelete + stopPropagation / body type → Settings 버튼 (Delete 없음) / ChevronRight icon click → toggleKey + stopPropagation / Collapse All → onCollapseAll
   - **Why**: 컴포넌트 분리 시점에 결정적 UI 계약을 잠금. P3 cascade 재작성 시 element tree 동작이 보존되는지 즉시 감지
 
-## [ADR-911 Phase 2 PR-D — FrameList 컴포넌트 분리 — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-D — FrameList 컴포넌트 분리 — 세션 37 후반] - 2026-04-27
 
 ### Architecture
 
-- **ADR-911 Phase 2 PR-D — FrameList 프레젠테이션 컴포넌트 추출** (functional 동등):
+- **ADR-111 Phase 2 PR-D — FrameList 프레젠테이션 컴포넌트 추출** (functional 동등):
   - `apps/builder/src/builder/panels/nodes/FramesTab/FrameList.tsx` 신규 (108 lines)
     - props: `frames` / `selectedFrameId` / `onSelect` / `onDelete` / `onAdd`
     - 책임: frame 목록 + Add 버튼 + Delete 버튼 (Box icon + name + active 표시) + stopPropagation
@@ -1095,11 +1095,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 시나리오: 빈 frames → "No frames available" / 2개 렌더 → 이름 표시 / `selectedFrameId` 매칭 → active 클래스 / Add 클릭 → onAdd / Frame 클릭 → onSelect(id) / Delete 클릭 → onDelete(id) + onSelect 미호출 (stopPropagation)
   - **Why**: 컴포넌트 분리 시점에 결정적 UI 계약을 잠금. PR-E 에서 다른 consumer (PageLayoutSelector 등) 가 같은 props 인터페이스로 재사용 시 회귀 즉시 감지
 
-## [ADR-911 Phase 2 PR-C — FramesTab read path canonical 전환 (TDD RED→GREEN) — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-C — FramesTab read path canonical 전환 (TDD RED→GREEN) — 세션 37 후반] - 2026-04-27
 
 ### Architecture
 
-- **ADR-911 Phase 2 PR-C — FramesTab dual-mode read path** (TDD RED → GREEN):
+- **ADR-111 Phase 2 PR-C — FramesTab dual-mode read path** (TDD RED → GREEN):
   - `FramesTab.tsx` 에 `reusableFrames` useMemo 도입 — `isFramesTabCanonical()` flag 분기로 read path dual-mode
     - **legacy path** (flag false, default): `layouts.map(l => ({ id, name }))`
     - **canonical path** (flag true): `selectCanonicalDocument(state, pages, layouts).children.filter(reusable: true).map(...)` — `metadata.layoutId` (legacyToCanonical 보존) 으로 id 정규화하여 legacy CRUD (createLayout/deleteLayout) 와 id 정합 유지
@@ -1118,11 +1118,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     3. canonical FrameNode 클릭 → `metadata.layoutId` (legacy id) 로 `selectReusableFrame` 위임 — write 정합성 보장
   - **Why**: PR-Followup-A 의 5 baseline 위에 canonical mode 동작을 RED-first 로 추가하여 GREEN 구현이 정확히 의도대로 동작함을 잠금
 
-## [ADR-911 Phase 2 PR-Followup-A — FramesTab 컴포넌트 vitest baseline 잠금 — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-Followup-A — FramesTab 컴포넌트 vitest baseline 잠금 — 세션 37 후반] - 2026-04-27
 
 ### Infrastructure
 
-- **ADR-911 Phase 2 PR-Followup-A — FramesTab 컴포넌트 회귀 테스트 신규**:
+- **ADR-111 Phase 2 PR-Followup-A — FramesTab 컴포넌트 회귀 테스트 신규**:
   - `apps/builder/src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx` 신규 (5 시나리오):
     1. 빈 frames 상태 → "No frames available" + Layers "Select a frame to view elements"
     2. frames 2개 렌더 → 각 frame name 표시
@@ -1133,11 +1133,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - mock 격리: `react-router-dom` / `useLayoutsStore` / `useStore` / `useEditModeStore` / `useTreeExpandState` / `getDB` / `MessageService` / `featureFlags` / `frameActions` 9 모듈 vi.mock — Zustand selector 패턴 (`useLayoutsStore((state) => state.layouts)`) 도 selector 호출 분기로 구현
   - 검증: 5/5 PASS / 84ms / type-check 0 / frameActions vitest 7/7 회귀 0
 
-## [ADR-911 Phase 2 PR-B — FramesTab consumer → frameActions 위임 — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-B — FramesTab consumer → frameActions 위임 — 세션 37 후반] - 2026-04-27
 
 ### Architecture
 
-- **ADR-911 Phase 2 PR-B — FramesTab.tsx 가 frameActions wrapper 위임으로 전환** (functional 동등):
+- **ADR-111 Phase 2 PR-B — FramesTab.tsx 가 frameActions wrapper 위임으로 전환** (functional 동등):
   - `handleAddFrame` → `createReusableFrame({ name, projectId })` 호출
   - `handleDeleteFrame` → `deleteReusableFrame(frameId)` 호출
   - `handleSelectFrame` → `selectReusableFrame(frameId)` 호출 (legacy `setCurrentLayout` 직접 destructure 제거)
@@ -1150,15 +1150,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- **ADR-911 진행 로그 + sub-PR 분할 표 갱신**:
-  - `docs/adr/completed/911-layout-frameset-pencil-redesign.md` 진행 로그에 PR-B entry 추가 (handler 시그니처 변경 명시)
-  - `docs/adr/design/911-layout-frameset-pencil-redesign-breakdown.md` PR-B 상태 `후속 세션` → `✅ 2026-04-27 (PR pending)`
+- **ADR-111 진행 로그 + sub-PR 분할 표 갱신**:
+  - `docs/adr/completed/111-layout-frameset-pencil-redesign.md` 진행 로그에 PR-B entry 추가 (handler 시그니처 변경 명시)
+  - `docs/adr/design/111-layout-frameset-pencil-redesign-breakdown.md` PR-B 상태 `후속 세션` → `✅ 2026-04-27 (PR pending)`
 
-## [ADR-911 Phase 2 PR-A — frameActions canonical wrapper + FRAMES_TAB_CANONICAL flag — 세션 37 후반] - 2026-04-27
+## [ADR-111 Phase 2 PR-A — frameActions canonical wrapper + FRAMES_TAB_CANONICAL flag — 세션 37 후반] - 2026-04-27
 
 ### Architecture
 
-- **ADR-911 Phase 2 진입 — PR-A: canonical-shaped frame CRUD wrapper layer**:
+- **ADR-111 Phase 2 진입 — PR-A: canonical-shaped frame CRUD wrapper layer**:
   - `apps/builder/src/builder/stores/utils/frameActions.ts` 신규 — `createReusableFrame` / `deleteReusableFrame` / `updateReusableFrameName` / `selectReusableFrame` 4 함수
   - 내부 구현: legacy `useLayoutsStore.getState()` 호출 wrapping. `selectCanonicalDocument` adapter 가 자동으로 reusable FrameNode 로 reverse-projection (P3 이후 직접 canonical document mutation 으로 전환)
   - **Why**: Phase 2 design breakdown 12h 추정 작업의 selectCanonicalDocument 매 render 호출 비용 + zustand selector cache 함정 (memory: `feedback-zustand-selector-cache.md`) 회피용 5-PR 보수 분할 첫 단계. PR-A 는 baseline-safe (FramesTab 미수정) → 후속 PR-B 부터 점진 transition
@@ -1170,20 +1170,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **FramesTab canonical-native 모드 feature flag 도입** (`isFramesTabCanonical()`):
   - `VITE_FRAMES_TAB_CANONICAL` 환경변수 기반, default `false`
   - `FeatureFlags` interface 에 `framesTabCanonical: boolean` 필드 추가
-  - **Why**: ADR-911 P2 dual-mode 운영 토대. 후속 PR-C/D 진입 시 read path 분기 제어. 1주 dual-mode 운영 후 issue 0 확인 시 `true` 로 전환
+  - **Why**: ADR-111 P2 dual-mode 운영 토대. 후속 PR-C/D 진입 시 read path 분기 제어. 1주 dual-mode 운영 후 issue 0 확인 시 `true` 로 전환
   - 위치: `apps/builder/src/utils/featureFlags.ts:57-59` (interface) / `:154-167` (`isFramesTabCanonical` 함수) / `:191-194` (getFeatureFlags 통합)
 
 ### Documentation
 
-- **ADR-911 진행 로그 + design breakdown sub-PR 분할 명시**:
-  - `docs/adr/completed/911-layout-frameset-pencil-redesign.md` Status: `Proposed` → `In Progress`. 진행 로그 3 entry 추가 (세션 35 Proposed / 세션 36 Phase 1 함수 / 세션 37 Phase 2 PR-A)
-  - `docs/adr/design/911-layout-frameset-pencil-redesign-breakdown.md` P2 Step 분해 표를 5-PR 분할 (A: 본 PR / B: FramesTab consumer / C: read path / D: UI 분리 / E: PageLayoutSelector + dev migration / G: cutover) 로 보강
+- **ADR-111 진행 로그 + design breakdown sub-PR 분할 명시**:
+  - `docs/adr/completed/111-layout-frameset-pencil-redesign.md` Status: `Proposed` → `In Progress`. 진행 로그 3 entry 추가 (세션 35 Proposed / 세션 36 Phase 1 함수 / 세션 37 Phase 2 PR-A)
+  - `docs/adr/design/111-layout-frameset-pencil-redesign-breakdown.md` P2 Step 분해 표를 5-PR 분할 (A: 본 PR / B: FramesTab consumer / C: read path / D: UI 분리 / E: PageLayoutSelector + dev migration / G: cutover) 로 보강
 
-## [ADR-913 P1+P2 mechanical rename — Element.tag → Element.type — 세션 37 마감] - 2026-04-27
+## [ADR-113 P1+P2 mechanical rename — Element.tag → Element.type — 세션 37 마감] - 2026-04-27
 
 ### Architecture
 
-- **ADR-913 Phase 1+2 main land** (PR #250, commit `cad82b02`):
+- **ADR-113 Phase 1+2 main land** (PR #250, commit `cad82b02`):
   - Element.tag → Element.type — pencil format 정합 단계
   - **Phase 1 (Type 정의)**: 8 file 직접 rename — Element / PreviewElement / KitElement / MasterComponentSummary / ElementTreeItem / RuntimeElement / BuilderContext.elements[] / NestedSelectorChild
   - **Phase 2 (Mechanical rename)**: ~140 file
@@ -1192,13 +1192,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - node.js batch (`\btag\b` → `type`) source 106 file + test 22 file
     - destructure / shorthand object property 광범위 정리
   - **Read-through compat**: IDB adapter 4 read method 에 `normalizeLegacyElement(el)` helper 추가 — legacy `tag` field 보유 row 자동 정규화. P4 (DB_VERSION 9) 까지 backward compat
-  - **Why**: ADR-913 design `Phase 1 (0.5d) + Phase 2 (1d) = 1.5d` 추정 작업을 단일 세션 내 완결. mechanical rename 의 ROI ≫ 점진적 진행 (consumer 558 ref 모두 동시 변환 필요)
+  - **Why**: ADR-113 design `Phase 1 (0.5d) + Phase 2 (1d) = 1.5d` 추정 작업을 단일 세션 내 완결. mechanical rename 의 ROI ≫ 점진적 진행 (consumer 558 ref 모두 동시 변환 필요)
   - 변경 규모: 243 files / +2302 / -2034
   - 위치: `apps/builder/src/types/builder/unified.types.ts` + `packages/shared/src/types/element.types.ts` + `apps/builder/src/lib/db/indexedDB/adapter.ts` (read-through helper)
 
 ### Bug Fixes
 
-- **ADR-913 P1+P2 적용 후 dev runtime error fix** (사용자 dev 검증으로 발견):
+- **ADR-113 P1+P2 적용 후 dev runtime error fix** (사용자 dev 검증으로 발견):
   - 증상: `buildSceneIndex.ts:21 Uncaught TypeError: Cannot read properties of undefined (reading 'toLowerCase')`
   - **Why**: IDB 의 element row 가 v0.9 legacy schema (`tag` field 만 보유). code 는 모두 `el.type` 만 사용 → `undefined.toLowerCase()` 발생
   - 수정: IDB adapter 의 `getByPage` / `getByLayout` / `getChildren` / `getAll` 4 read method 에 `normalizeLegacyElement(el)` 적용. `el.type ?? el.tag` 자동 fallback
@@ -1206,51 +1206,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- **ADR-913 P1+P2 design 정합화 + main land 진행 로그**:
-  - PR #250 검증 결과: type-check 0 errors / specs 322/322 PASS / shared 72/72 PASS / builder 4 failed (baseline 동일 — ADR-913 회귀 0건 확정 via worktree 격리 비교)
+- **ADR-113 P1+P2 design 정합화 + main land 진행 로그**:
+  - PR #250 검증 결과: type-check 0 errors / specs 322/322 PASS / shared 72/72 PASS / builder 4 failed (baseline 동일 — ADR-113 회귀 0건 확정 via worktree 격리 비교)
   - 잔여 `tag` 보존 4 file: `LegacyProjectDataV09.elements.tag` (v0.9 export schema) / `supabase.types.ts elements.Row.tag` (DB column, P4 까지) / `i18n/types.ts` (i18n key 무관) / `AddElementAction.config.tag` (event action discriminator nested path)
 
 ### Infrastructure
 
 - **stale local branch 13 정리** (사용자 명시 승인):
-  - 머지된 11개: `adr-903-p3d-componentspanel-layout-filter` / `adr-911-terminology-pencil-standard` / `claude/refactor-directory-structure-...` / `feat/adr-910-phase1-themes-adapter` / `feat/adr100-css3-extensions` / `feature/adr-059-phase-4-1` / `fix-canonical-doc-infinite-loop` / `refactor/react-stately-integration` / `worktree-agent-*` 7개
+  - 머지된 11개: `adr-903-p3d-componentspanel-layout-filter` / `adr-111-terminology-pencil-standard` / `claude/refactor-directory-structure-...` / `feat/adr-110-phase1-themes-adapter` / `feat/adr100-css3-extensions` / `feature/adr-059-phase-4-1` / `fix-canonical-doc-infinite-loop` / `refactor/react-stately-integration` / `worktree-agent-*` 7개
   - 미머지 2개 (강제): `claude/reverent-lewin` (xstudio 옛이름 docs) / `history` (옛 history feature) / `worktree-agent-a1fe9e930098c061e` (ADR-903 P3-E plan, 변경사항 main 흡수 완료)
   - 결과: local branch 14 → 1 (`main` only)
 
-## [ADR-911 Phase 1 함수 layer 진입 + Terminology 보정 + ADR-913 inventory + P1-c dangling cleanup fix — 세션 36 마감] - 2026-04-27
+## [ADR-111 Phase 1 함수 layer 진입 + Terminology 보정 + ADR-113 inventory + P1-c dangling cleanup fix — 세션 36 마감] - 2026-04-27
 
 ### Bug Fixes
 
 - **ADR-903 P3-E migration dangling reference graceful cleanup** (P1-c roundtrip 검증으로 발견):
   - 증상: dev 환경 console `[ADR-903 P3-E E-4] migration dry-run: status=failure, transformations=2, errors=1` 무한 반복 — composition-1.0 승격 영구 차단
-  - **Why**: dev DB 의 element 가 dangling `layout_id` (layouts store 에 매칭 row 없음) 보유. legacy cascade bug (layout 삭제 시 element layout_id null 처리 누락) 잔여. ADR-911 G3 cascade 재작성 (Phase 3) 의 R3 risk 가 정확히 이 시나리오 — ADR-911 land 까지는 graceful degrade 가 안전
+  - **Why**: dev DB 의 element 가 dangling `layout_id` (layouts store 에 매칭 row 없음) 보유. legacy cascade bug (layout 삭제 시 element layout_id null 처리 누락) 잔여. ADR-111 G3 cascade 재작성 (Phase 3) 의 R3 risk 가 정확히 이 시나리오 — ADR-111 land 까지는 graceful degrade 가 안전
   - **Root cause**: `runLegacyToCanonicalMigration` 의 `canonicalParentId === null` 분기가 dangling/orphan 둘 다 errors push → status=failure → write-through skip → 매 reload 무한 재시도
   - 수정: dangling reference (page_id 또는 layout_id 있지만 canonical 매칭 실패) 는 errors 가 아닌 `orphanCleanups` 배열로 분리 + `console.warn` 으로 보고. 진짜 orphan (page_id=null + layout_id=null) 만 errors 유지. status=success 진입 시 write-through 가 dangling element 의 parent_id=null + layout_id=null 강등 (transformation 매핑 그대로 통과)
   - 새 console.warn: `[ADR-903 P3-E E-6] dangling reference cleanup for project <id>: N elements`
   - 위치: `apps/builder/src/lib/db/migration.ts` (+34/-6 LOC) + `__tests__/migration.test.ts` (Fixture interface 에 `expectDanglingCleanup` 마커 추가, 10 missing-frame fixture 가 graceful cleanup 으로 통과)
   - 검증: vitest 60/60 PASS (migration.test.ts) + 126/126 PASS (전체 db tests, 7 files) + pnpm type-check 3/3 PASS + Chrome MCP P1-c 실 검증 (status=failure → status=success 전환 확인)
-- **ADR-913 Phase 0-α — `unified.types.ts` Element legacy fields `@deprecated` 마킹**:
+- **ADR-113 Phase 0-α — `unified.types.ts` Element legacy fields `@deprecated` 마킹**:
   - 7 fields: layout_id / slot_name / componentRole / masterId / overrides / descendants / componentName
-  - 각 필드에 cleanup target ADR (ADR-911 G3 또는 ADR-913 Phase 5) + 대체 canonical schema (FrameNode / RefNode / DescendantOverride 3-mode) + migration 계획 명시
+  - 각 필드에 cleanup target ADR (ADR-111 G3 또는 ADR-113 Phase 5) + 대체 canonical schema (FrameNode / RefNode / DescendantOverride 3-mode) + migration 계획 명시
   - 위치: `apps/builder/src/types/builder/unified.types.ts` (+38/-2 LOC). runtime 영향 0 (JSDoc 만)
-  - 후속 (Phase 0-β skip): `packages/shared/src/types/element.types.ts` 는 이미 ADR-903 reference deprecated 보유 — ADR-913 reference 보강은 cleanup 시점에 자연 처리
+  - 후속 (Phase 0-β skip): `packages/shared/src/types/element.types.ts` 는 이미 ADR-903 reference deprecated 보유 — ADR-113 reference 보강은 cleanup 시점에 자연 처리
 
 ### Architecture
 
-- **ADR-911 Phase 1 (G1) Layout migration tool 함수 layer 완결** (4 commits, 4 신규 함수):
+- **ADR-111 Phase 1 (G1) Layout migration tool 함수 layer 완결** (4 commits, 4 신규 함수):
   - `convertTemplateToCanonicalFrame(template)` — legacy `LayoutTemplate` (`tag="Slot"` 기반) → canonical reusable `FrameNode` (pencil schema). `slot: ["header","content","footer"]`, `reusable: true`, `placeholder` (slot.required 시 true). 28 layoutTemplates 전수 변환 검증
   - `flattenTemplateElements(elements)` — `tag="Slot"` 자식 제거 + 나머지 구조 보존 (headless layout 만)
   - `buildDescendantsFromSlots(slots)` — RefNode `descendants` 초기화 헬퍼 (각 slot name → `{ children: [] }`)
   - `hoistLayoutAsReusableFrame(layout)` — legacy `Layout` entity → canonical reusable FrameNode. 출처 추적 위해 `metadata.type="legacy-layout-hoist"` + `projectId/description/slug/orderNum/notFoundPageId/inheritNotFound` 보존
-  - `dryRunMigrationP911(adapter, projectId, doc)` — read-only adapter 조회 + canonical doc 매칭 + hoist 후보 계산 (idempotent skip)
-  - `applyMigrationP911(doc, result)` — pure function, errors 거부 + 중복 id 방어 + immutable doc patch (persistence 분리)
+  - `dryRunMigrationP111(adapter, projectId, doc)` — read-only adapter 조회 + canonical doc 매칭 + hoist 후보 계산 (idempotent skip)
+  - `applyMigrationP111(doc, result)` — pure function, errors 거부 + 중복 id 방어 + immutable doc patch (persistence 분리)
   - vitest 45/45 PASS, pnpm type-check 3/3 PASS
-  - 위치: `apps/builder/src/lib/db/migrationP911.ts` (185줄) + `__tests__/migrationP911.test.ts` (516줄)
-  - **Why**: ADR-911 Gate G1 (a) 28 Slot 전수 자동 변환 검증 토대. 후속 P1-c (roundtrip 시각 비교, Chrome MCP) + P2 (FramesTab 재설계) 의 토대 함수 제공
+  - 위치: `apps/builder/src/lib/db/migrationP111.ts` (185줄) + `__tests__/migrationP111.test.ts` (516줄)
+  - **Why**: ADR-111 Gate G1 (a) 28 Slot 전수 자동 변환 검증 토대. 후속 P1-c (roundtrip 시각 비교, Chrome MCP) + P2 (FramesTab 재설계) 의 토대 함수 제공
 
 ### Documentation
 
-- **ADR-911 Terminology 섹션 추가 + 보정** (PR #249 + commit f4047af1):
+- **ADR-111 Terminology 섹션 추가 + 보정** (PR #249 + commit f4047af1):
   - **PR #249**: pencil 공식 명칭 단일 표준 정책 명문화. Hard Constraint #5 추가 + Decision §Terminology 신규 섹션 (pencil 공식 점유 8 단어 + composition vs pencil 매핑 7건 + 충돌 해소 4건 + 유지 4건)
   - **commit f4047af1 보정**: 직전 추정 "rename ~30 파일" 은 inventory 결과 과대 평가로 판정. 실측 결과:
     - **rename 2 파일** — `PanelSlot.tsx → PanelArea.tsx` / `BottomPanelSlot.tsx → BottomPanelArea.tsx` (Builder UI panel slot 의미 격리)
@@ -1258,19 +1258,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - **유지 (pencil 무관)** — `MaskedFrame` / `useFrameCallback` (RAF) / `iframe` (HTML) / Taffy WASM `canvas/layout/` / CSS `styles/layout/` / Builder UI `builder/layout/` / Inspector `useLayout*` / DataTablePreset / cssComponentPresets
   - Gate G4 (d) 통과 조건 보정: `skiaFrameHelpers/workflowFrame*` rename → `PanelSlot/BottomPanelSlot` rename 으로 변경
   - **Why**: 사용자 결정 (2026-04-27): "pencil 의 기능 명칭 그대로 사용해도 된다 — 강제로 맞추거나 alias 만들 필요 없다." composition `Frame` 단어가 4가지 의미로 분산된 우려 → inventory 후 실 충돌 영역 = Builder UI panel slot 만 (2 파일)
-- **ADR-911 design breakdown 작성** (843줄, Team B architect agent):
-  - `docs/adr/design/911-layout-frameset-pencil-redesign-breakdown.md` 신규
+- **ADR-111 design breakdown 작성** (843줄, Team B architect agent):
+  - `docs/adr/design/111-layout-frameset-pencil-redesign-breakdown.md` 신규
   - 5 Phase 분해: P1 (G1 migration tool 8h) / P2 (G2 FramesTab 재설계 12h) / P3 (G3 cascade 재작성 8h) / P4 (G4 legacy 0 + PanelSlot rename 8h) / P5 (G5 pencil 호환 6h, adapters/pencil/ 신규)
   - 각 Phase 별 파일 변경 목록 + 마이그레이션 도구 + 검증 시나리오 + 코드 예시
   - Skia rename 철회 보정 반영 (P4-c 섹션 — 의미 일치 유지로 변경)
-- **ADR-913 inventory 분석 보고서** (627줄, Team C Explore agent):
-  - `docs/adr/design/913-tag-type-rename-inventory.md` 신규
-  - **실 count 46% 낮음**: 556 source refs (apps/builder/src + packages/) vs ADR-913 baseline 1031
+- **ADR-113 inventory 분석 보고서** (627줄, Team C Explore agent):
+  - `docs/adr/design/113-tag-type-rename-inventory.md` 신규
+  - **실 count 46% 낮음**: 556 source refs (apps/builder/src + packages/) vs ADR-113 baseline 1031
   - **77% 자동 rename 가능**: 306 discriminator (if/switch) + 380 simple property access. AST-Grep ~90% 성공률
   - **23% (146 refs) 수동 검토**: generic constraint 7 cases / mapped type 0 / DataBinding.type / FieldDefinition.type 와의 scope 분리 검증
   - 6 카테고리 분류: types 11 / canvas 25 / panels 44 / stores 17 / utilities 28 / 기타 18
   - DB schema 영역 분석 (DB_VERSION 8→9 read-through/write-through/backup 3-phase)
-  - hybrid 6 필드 cleanup 매핑: layout_id (ADR-911 분담) / masterId+componentRole (canonical type:"ref") / slot_name+overrides (descendants 흡수)
+  - hybrid 6 필드 cleanup 매핑: layout_id (ADR-111 분담) / masterId+componentRole (canonical type:"ref") / slot_name+overrides (descendants 흡수)
   - 5 Phase 분해 제안 + 작업 시간 (총 6 days) + risk grade (Phase 4 HIGH = DB migration)
 
 ## [ADR-903 P3-E E-6 후속 sweep 회귀 fix — ElementSlotSelector + usePresetApply infinite loop — 세션 36] - 2026-04-27
@@ -1296,8 +1296,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **ADR-903 본문 archive to completed/**:
   - `docs/adr/903-ref-descendants-slot-composition-format-migration-plan.md` → `docs/adr/completed/903-ref-descendants-slot-composition-format-migration-plan.md` (`git mv`)
-  - 본문 내부 link 5건 path 갱신 — `[ADR-063](063-...)` → `[ADR-063](./063-...)`, `[ADR-910](910-...)` → `[ADR-910](../910-...)`, `[breakdown](design/903-...)` → `[breakdown](../design/903-...)`
-  - `docs/adr/910-canonical-themes-variables-land-plan.md:145` ADR-903 reference path 갱신
+  - 본문 내부 link 5건 path 갱신 — `[ADR-063](063-...)` → `[ADR-063](./063-...)`, `[ADR-110](910-...)` → `[ADR-110](../910-...)`, `[breakdown](design/903-...)` → `[breakdown](../design/903-...)`
+  - `docs/adr/110-canonical-themes-variables-land-plan.md:145` ADR-903 reference path 갱신
   - `docs/adr/design/` 폴더 8 파일 (`903-canonical-examples.md` / `903-phase4-editing-semantics-breakdown.md` / `903-phase3-decisions.md` / `903-phase3d-runtime-breakdown.md` / `903-p3d4-phase-c-residual.md` / `903-phase5-persistence-imports-breakdown.md` / `903-phase3e-persistence-breakdown.md` / `903-p3d4-phase-d-verification.md`) 의 ADR-903 reference path 일괄 갱신 (sed)
   - `docs/adr/design/903-phase3-frameset-breakdown.md` 본문 — Status 표기 `Accepted → 2026-04-25` → `Implemented → 2026-04-26, completed/ 이관`
   - `docs/adr/design/903-phase3-residual-cleanup-plan.md` / `903-additional-fields-land-status.md` code path 표기 갱신
@@ -1306,39 +1306,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: ADR-903 라인의 마지막 정합 작업. 다른 9xx Implemented ADR 와 폴더 위치 일관성 + ADR-903 라인 종료 처리 명시적 마감 (Status Implemented + 본문 completed/ 위치 + 진행 로그 마지막 entry).
   - 영향: 코드 변경 0 (docs only). reference path 정합화로 link 깨짐 0건
 
-## [ADR-903 라인 종료 ADR 라인업 완성 — ADR-912/913/914 Proposed — 세션 35 추가] - 2026-04-26
+## [ADR-903 라인 종료 ADR 라인업 완성 — ADR-112/113/114 Proposed — 세션 35 추가] - 2026-04-26
 
-> ADR-903 라인의 잔여 3 영역에 대한 신규 ADR 일괄 등록. 이로써 ADR-903 라인의 모든 잔여 작업이 ADR 단위로 추적 가능 — 사용자가 우선순위 결정 후 점진 진행 가능. ADR-911 (Layout/frameset, 세션 35 본 entry) 와 합쳐 4 ADR 라인업 완성.
+> ADR-903 라인의 잔여 3 영역에 대한 신규 ADR 일괄 등록. 이로써 ADR-903 라인의 모든 잔여 작업이 ADR 단위로 추적 가능 — 사용자가 우선순위 결정 후 점진 진행 가능. ADR-111 (Layout/frameset, 세션 35 본 entry) 와 합쳐 4 ADR 라인업 완성.
 
 ### Architecture
 
-- **ADR-912 — Editing Semantics UI 5요소 (Proposed)**:
+- **ADR-112 — Editing Semantics UI 5요소 (Proposed)**:
   - ADR-903 G4 잔여 흡수. ① reusable/ref/override 시각 마커 3종 (LayerTree/Canvas/DesignKit) + ② 양방향 탐색 액션 + ③ `detachInstance` UI + 경고 다이얼로그 + ④ `resetDescendantsOverride` + 필드별 "원본으로 복원" 버튼 + ⑤ "N개 인스턴스 영향" 미리보기
   - 대안 A (5 요소 일괄 land) 채택 — B (5 ADR 분리, 유지보수 HIGH) / C (부분 land, 위험 절반 잔존) 기각
-  - Gate G4-A~G4-F. ADR-911 의 신 FramesTab 위에 통합 (선행 ADR 후 진입)
-  - 위치: `docs/adr/912-editing-semantics-ui-5elements.md` (Risk-First 본문 ~190 LOC). design 문서 `903-phase4-editing-semantics-breakdown.md` (637 LOC) 그대로 활용 (신규 design 작성 불필요)
+  - Gate G4-A~G4-F. ADR-111 의 신 FramesTab 위에 통합 (선행 ADR 후 진입)
+  - 위치: `docs/adr/112-editing-semantics-ui-5elements.md` (Risk-First 본문 ~190 LOC). design 문서 `903-phase4-editing-semantics-breakdown.md` (637 LOC) 그대로 활용 (신규 design 작성 불필요)
 
-- **ADR-913 — `Element.tag → Element.type` rename + hybrid 6 필드 cleanup (Proposed)**:
+- **ADR-113 — `Element.tag → Element.type` rename + hybrid 6 필드 cleanup (Proposed)**:
   - ADR-903 G5 (b)~(f) 잔여 흡수. `tag → type` 1031 ref / 154 파일 일괄 rename + hybrid 6 필드 (layout_id 258 / masterId 55 / componentRole 41 / descendants 39 / slot_name 25 / overrides 23, 합 1472 ref / 184 파일) cleanup + DB schema 전환 (DB_VERSION 8→9)
   - 대안 A (단일 ADR + 단일 Phase 일괄) 채택 — B (2 ADR 분리, 중간 상태 복잡) / C (점진 rename, 유지보수 HIGH) 기각
   - 안전망 3중: ast-grep 자동 도구 + tsc --noEmit gate + roundtrip 검증
-  - Gate G5-B~G5-F. ADR-911 와 독립 진행 가능 (영역 분리)
-  - 위치: `docs/adr/completed/913-tag-type-rename-hybrid-cleanup.md` (Risk-First 본문 ~210 LOC). design 문서 `903-phase5-persistence-imports-breakdown.md` §P5-C 그대로 활용
+  - Gate G5-B~G5-F. ADR-111 와 독립 진행 가능 (영역 분리)
+  - 위치: `docs/adr/completed/113-tag-type-rename-hybrid-cleanup.md` (Risk-First 본문 ~210 LOC). design 문서 `903-phase5-persistence-imports-breakdown.md` §P5-C 그대로 활용
 
-- **ADR-914 — `imports` resolver + DesignKit 통합 (Proposed 당시, 2026-04-30 Superseded)**:
+- **ADR-114 — `imports` resolver + DesignKit 통합 (Proposed 당시, 2026-04-30 Superseded)**:
   - ADR-903 P5-D/E/F 잔여 흡수. P5-D imports fetch + parse / P5-E ResolverCache 동기 캐시 히트 + async prefetch / P5-F DesignKit 통합 결정 (Option α 무수정 + 별도 vs Option β 통합)
   - 대안 A (단일 ADR + 3 Phase) 채택 — B (3 ADR 분리, 의존 그래프 부담) / C (imports 만 우선, 성능 MED + 사용자 혼동) 기각
   - DesignKit 복사-적용 파이프라인 무수정 — ADR-903 R7 (DesignKit 별도 track) 명시적 수용
-  - Gate P5-D/E/F + G-Integration (ADR-911 와 통합)
-  - 위치: `docs/adr/completed/914-imports-resolver-designkit-integration.md` (Risk-First 본문 ~180 LOC). design 문서 §P5-D/E/F 는 historical reference 로 보존
+  - Gate P5-D/E/F + G-Integration (ADR-111 와 통합)
+  - 위치: `docs/adr/completed/114-imports-resolver-designkit-integration.md` (Risk-First 본문 ~180 LOC). design 문서 §P5-D/E/F 는 historical reference 로 보존
 
 - **ADR-903 라인 라인업 완성**:
-  - ADR-911: Layout/frameset 완전 재설계 (pencil 호환) — G3 (b)/(c)/(d) 흡수
-  - ADR-912: Editing Semantics UI 5요소 — G4 흡수
-  - ADR-913: `tag → type` rename + hybrid cleanup — G5 (b)~(f) 흡수
-  - ADR-914: `imports` resolver + DesignKit 통합 — P5-D/E/F 흡수
-  - 4 ADR 모두 Proposed. 의존 그래프: ADR-911 (선행, P1) → ADR-912 (P2, ADR-911 후 진입) / ADR-913 (P2, ADR-911 와 독립) / ADR-914 (P3, ADR-911 후 진입)
-  - 사용자 결정에 따라 ADR-911 부터 점진 진행 → 4 ADR 모두 land 시 ADR-903 라인 완전 종료
+  - ADR-111: Layout/frameset 완전 재설계 (pencil 호환) — G3 (b)/(c)/(d) 흡수
+  - ADR-112: Editing Semantics UI 5요소 — G4 흡수
+  - ADR-113: `tag → type` rename + hybrid cleanup — G5 (b)~(f) 흡수
+  - ADR-114: `imports` resolver + DesignKit 통합 — P5-D/E/F 흡수
+  - 4 ADR 모두 Proposed. 의존 그래프: ADR-111 (선행, P1) → ADR-112 (P2, ADR-111 후 진입) / ADR-113 (P2, ADR-111 와 독립) / ADR-114 (P3, ADR-111 후 진입)
+  - 사용자 결정에 따라 ADR-111 부터 점진 진행 → 4 ADR 모두 land 시 ADR-903 라인 완전 종료
 
 ## [ADR-903 Implemented 승격 — canonical document core 4가지 완결, 잔여 신규 ADR 분리 — 세션 35] - 2026-04-26
 
@@ -1728,7 +1728,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Chrome MCP 옵션 C 검증 인프라 확립** (세션 27):
   - `?canonical=1` query string 이 Preview iframe URL 에 정상 전파됨을 Chrome MCP 로 검증 완료
   - **Why**: iframe 내부 `window.location.search` 접근은 DOM inspector 없이 확인 불가 — Chrome MCP의 iframe DOM 검사 패턴 (auto-memory `feedback-chrome-mcp-patterns.md`) 이 유일한 검증 경로
-  - **Team 1-4 dispatch 진행 중** (세션 27 종료 시점): Team 1 = 옵션 C resolve 0 root cause / Team 2 = P3-D Runtime sub-breakdown / Team 3 = P3-C 잔여 cleanup plan / Team 4 = ADR-910 Phase 1 구현
+  - **Team 1-4 dispatch 진행 중** (세션 27 종료 시점): Team 1 = 옵션 C resolve 0 root cause / Team 2 = P3-D Runtime sub-breakdown / Team 3 = P3-C 잔여 cleanup plan / Team 4 = ADR-110 Phase 1 구현
 
 ---
 
@@ -1758,10 +1758,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: Team 1 가설 (page filter miss) 은 root cause 가 아니었으나 metadata 덮어쓰기는 향후 회귀 위험 → 보존 + TC2-b 신규 회귀 테스트
   - 위치: `apps/builder/src/resolvers/canonical/index.ts:128-160` + `__tests__/integration.test.ts` TC2-b (PR `fix/adr-903-resolver-metadata-preserve`)
 
-- **ADR-910 Phase 1 themes adapter (read-only snapshot)** (ADR-910 Phase 1):
+- **ADR-110 Phase 1 themes adapter (read-only snapshot)** (ADR-110 Phase 1):
   - canonical document.themes 의 ADR-021 themeConfigStore 통합. Alternative B (read-only snapshot). `snapshotThemesFromConfig()` + `readCanonicalThemes()` + 12 신규 테스트
   - **Why**: ADR-903 P0 stub 상태였던 themes 필드를 실 동작 가능하게. variables 는 Phase 2 (별도)
-  - 위치: `apps/builder/src/adapters/canonical/themesAdapter.ts` + `__tests__/themes.test.ts` (PR `feat/adr-910-phase1-themes-adapter`)
+  - 위치: `apps/builder/src/adapters/canonical/themesAdapter.ts` + `__tests__/themes.test.ts` (PR `feat/adr-110-phase1-themes-adapter`)
 
 - **ADR-903 P3-D Runtime sub-breakdown 작성**:
   - 6 sub-phase 분해 (~20h, CRITICAL 위험), 26 영향 파일, ~207 ref. Sub-Gate G3-D 정의 + 5 HIGH 회귀 포인트 + 6+ 안전망
@@ -1773,9 +1773,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: LayoutsTab cleanup 외 잔여 deprecate 가능 항목의 제거 시점 명확화
   - 위치: `docs/adr/design/903-phase3-residual-cleanup-plan.md`
 
-- **ADR-910 신규 발의 — themes/variables canonical land plan**:
+- **ADR-110 신규 발의 — themes/variables canonical land plan**:
   - **Why**: ADR-903 본문에 land phase 미명시 항목 (themes/variables) 의 별도 plan
-  - 위치: `docs/adr/910-canonical-themes-variables-land-plan.md`
+  - 위치: `docs/adr/110-canonical-themes-variables-land-plan.md`
 
 ### Infrastructure
 
@@ -1785,7 +1785,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/preview/App.tsx:157` P2 dev 로그 보강 (debug branch 머지 후 별도 revert PR 필요)
 
 - **6-agent 병렬 dispatch 패턴 검증**:
-  - Team 1 (debugger) / Team 2 (Explore P3-D) / Team 3 (Explore cleanup) / Team 4 (implementer ADR-910) / Team 5 (documenter) 동시 진행
+  - Team 1 (debugger) / Team 2 (Explore P3-D) / Team 3 (Explore cleanup) / Team 4 (implementer ADR-110) / Team 5 (documenter) 동시 진행
   - 결과: 4 PR push (cleanup #219 머지 + fix/feat/docs 3 PR 대기) + 1 critical fix (별도 PR)
   - **Why**: 독립 작업 병렬화로 turn 활용도 극대화. Explore agent 의 write 권한 부재는 documenter 가 출력 본문 직접 작성으로 대응
 

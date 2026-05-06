@@ -27,7 +27,7 @@ import { useStore } from "../../../stores";
 import { Element } from "../../../../types/core/store.types";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { TableElementProps } from "../../../../types/builder/unified.types";
-// ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
+// ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { useCallback, memo, useMemo } from "react";
 import { generateCustomId } from "../../../utils/idGeneration";

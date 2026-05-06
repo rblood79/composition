@@ -174,7 +174,7 @@ describe("editingSemantics", () => {
     ).toEqual(["i1", "i2", "i3"]);
   });
 
-  it("counts 1000 impacted instances within the ADR-912 100ms budget", () => {
+  it("counts 1000 impacted instances within the ADR-112 100ms budget", () => {
     const elements = Array.from({ length: 1000 }, (_, index) => ({
       id: `instance-${index}`,
       type: "ref",

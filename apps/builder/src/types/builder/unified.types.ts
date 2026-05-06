@@ -69,7 +69,7 @@ export interface Element {
   updated_at?: string;
   deleted?: boolean; // 삭제 여부 (UI 필터링용) ⭐
   /**
-   * @deprecated ADR-916 G7 Extension Boundary cleanup target.
+   * @deprecated ADR-116 G7 Extension Boundary cleanup target.
    * canonical `x-composition.dataBinding` (`CompositionExtension.dataBinding`)
    * 으로 이동. legacy export adapter 가 필요할 때 본 필드를 복원.
    * Phase 5 G7 cutover 시점에 adapter 디렉터리 외 read/write 0건 목표.
@@ -77,7 +77,7 @@ export interface Element {
   // Inspector 데이터 바인딩 (선택적)
   dataBinding?: DataBinding;
   /**
-   * @deprecated ADR-916 G7 Extension Boundary cleanup target.
+   * @deprecated ADR-116 G7 Extension Boundary cleanup target.
    * canonical `x-composition.events` (`CompositionExtension.events`) 로 이동.
    * legacy export adapter 가 필요할 때 본 필드를 복원.
    * function callback 직렬화 금지 — `SerializedEventHandler` descriptor 사용.
@@ -93,7 +93,7 @@ export interface Element {
 
   // --- G.1: Component-Instance System ---
   /**
-   * @deprecated ADR-913 Phase 5 + ADR-916 G5 cleanup target.
+   * @deprecated ADR-113 Phase 5 + ADR-116 G5 cleanup target.
    * canonical `CanonicalNode.name` (모든 노드 공통) 으로 흡수. reusable 전용 prop
    * 이 아니라 모든 노드에 사용 가능한 sentence-case 이름.
    */

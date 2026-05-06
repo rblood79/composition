@@ -2,7 +2,7 @@
  * Page Layout Selector
  *
  * ADR-903 P3-C: page 의 layout 연결 → page 노드의 reusable frame ref 선택 UI.
- * ADR-911 direct cutover: canonical reusable FrameNode read path.
+ * ADR-111 direct cutover: canonical reusable FrameNode read path.
  *
  * - active canonical document 의 reusable FrameNode 기반 layout surface 사용
  */
@@ -28,7 +28,7 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
   const page = useStore((state) => state.pages.find((p) => p.id === pageId));
   const layouts = useCanonicalReusableFrameLayouts();
 
-  // ADR-916 projection 제거: FramesTab 과 동일하게 active canonical document 를 사용.
+  // ADR-116 projection 제거: FramesTab 과 동일하게 active canonical document 를 사용.
   const reusableFrames = useMemo<
     ReadonlyArray<{ id: string; name: string; description?: string }>
   >(() => {

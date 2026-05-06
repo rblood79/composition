@@ -78,7 +78,7 @@ export interface SyncMetadata {
   sync_status: "local-only" | "synced" | "conflict" | "pending";
 }
 
-// === Canonical Document Storage (ADR-916 direct cutover) ===
+// === Canonical Document Storage (ADR-116 direct cutover) ===
 
 export interface CanonicalDocumentRecord {
   project_id: string;
@@ -189,7 +189,7 @@ export interface DatabaseAdapter {
     getAll(): Promise<Layout[]>;
   };
 
-  // Canonical document primary storage (ADR-916)
+  // Canonical document primary storage (ADR-116)
   documents: {
     put(
       projectId: string,

@@ -33,7 +33,7 @@ import {
   useCanonicalElements,
   useCanonicalFrameElementScopes,
 } from "../../../stores/canonical/canonicalElementsView";
-// ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
+// ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import {
   collectHydratedFrameElements,
@@ -113,7 +113,7 @@ export function FramesTab({
   const canonicalElements = useCanonicalElements();
   const frameElementScopes = useCanonicalFrameElementScopes();
 
-  // ADR-916 projection 제거: active canonical document 의 reusable FrameNode 를
+  // ADR-116 projection 제거: active canonical document 의 reusable FrameNode 를
   // 단일 read path 로 사용한다.
   const reusableFrames = useMemo<
     ReadonlyArray<{ id: string; name: string }>
@@ -261,7 +261,7 @@ export function FramesTab({
     loadMissingFrameElements();
   }, [reusableFrames, elementsMap, canonicalElements, frameElementScopes]);
 
-  // ADR-916: Frames tree read path 는 active canonical document 를 우선 사용한다.
+  // ADR-116: Frames tree read path 는 active canonical document 를 우선 사용한다.
   // canonical hydration race 동안에만 legacy store mirror 로 fallback 한다.
   const frameElements = useMemo(() => {
     if (!currentFrame) return [];
@@ -362,7 +362,7 @@ export function FramesTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFrame?.id, frameElements, collapseFrameTree, selectFrameBody]);
 
-  // Frame 선택 핸들러 — id 기반 (ADR-911 P2-a PR-B)
+  // Frame 선택 핸들러 — id 기반 (ADR-111 P2-a PR-B)
   const handleSelectFrame = useCallback(
     async (frameId: string) => {
       const requestId = frameSelectRequestRef.current + 1;
@@ -489,7 +489,7 @@ export function FramesTab({
 
   return (
     <>
-      {/* Frames List — ADR-911 P2 PR-D 추출 */}
+      {/* Frames List — ADR-111 P2 PR-D 추출 */}
       <FrameList
         frames={reusableFrames}
         selectedFrameId={currentFrame?.id ?? null}
@@ -498,7 +498,7 @@ export function FramesTab({
         onAdd={handleAddFrame}
       />
 
-      {/* Frame Element Tree — ADR-911 P2 PR-D2 추출 */}
+      {/* Frame Element Tree — ADR-111 P2 PR-D2 추출 */}
       <FrameElementTree
         tree={frameElementTree}
         frameId={currentFrame?.id ?? null}

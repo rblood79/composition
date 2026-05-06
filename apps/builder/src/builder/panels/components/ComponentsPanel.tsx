@@ -58,7 +58,7 @@ function ComponentsPanelContent() {
       const state = useStore.getState();
       const elements = state.elements;
       const getPageElements = state.getPageElements;
-      // ADR-916 projection 제거: element creation path 는 active canonical document 만 사용.
+      // ADR-116 projection 제거: element creation path 는 active canonical document 만 사용.
       const doc = getActiveCanonicalDocument();
       if (!doc) {
         console.error("[ComponentsPanel] canonical document is not ready");

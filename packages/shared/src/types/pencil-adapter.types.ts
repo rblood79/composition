@@ -1,11 +1,11 @@
 /**
- * @fileoverview Pencil Import/Export Adapter Contracts — ADR-903 P0 + ADR-911 G5
+ * @fileoverview Pencil Import/Export Adapter Contracts — ADR-903 P0 + ADR-111 G5
  *
  * composition canonical은 pencil primitive 편집 도구가 아니다. 목적:
  *   (a) 필드명/구조 정합 (type, reusable, ref, descendants, slot)
  *   (b) adapter 경유 import/export 가능성
  *
- * ADR-911 G5 에서 stub 계약을 순수 매핑 함수로 승격했다. Builder UX/API 계층은
+ * ADR-111 G5 에서 stub 계약을 순수 매핑 함수로 승격했다. Builder UX/API 계층은
  * `apps/builder/src/adapters/pencil/**` 에서 document-level wrapper 로 노출한다.
  */
 
@@ -89,7 +89,7 @@ export interface PencilImportOptions {
 export interface PencilDocumentImportOptions {
   source?: string;
   /**
-   * ADR-916 import registry 는 외부 `.pen` 의 top-level node 를 reusable master 로
+   * ADR-116 import registry 는 외부 `.pen` 의 top-level node 를 reusable master 로
    * 소비한다. 일반 file open/roundtrip adapter 는 원본 `reusable` 값을 보존한다.
    */
   forceTopLevelReusable?: boolean;
@@ -139,7 +139,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function assertRecord(value: unknown, source: string): Record<string, unknown> {
   if (isRecord(value)) return value;
   throw new Error(
-    `[ADR-911] Invalid Pencil payload from ${source}: expected object`,
+    `[ADR-111] Invalid Pencil payload from ${source}: expected object`,
   );
 }
 
@@ -175,23 +175,23 @@ function assertPencilNode(value: unknown, source: string): PencilNode {
   const node = assertRecord(value, source);
   if (typeof node.id !== "string" || node.id.length === 0) {
     throw new Error(
-      `[ADR-911] Invalid Pencil import node from ${source}: expected non-empty id`,
+      `[ADR-111] Invalid Pencil import node from ${source}: expected non-empty id`,
     );
   }
   if (node.id.includes("/")) {
     throw new Error(
-      `[ADR-911] Invalid Pencil import node ${node.id}: slash is not allowed in canonical ids`,
+      `[ADR-111] Invalid Pencil import node ${node.id}: slash is not allowed in canonical ids`,
     );
   }
   if (!isPencilNodeType(node.type)) {
     throw new Error(
-      `[ADR-911] Invalid Pencil import node ${node.id}: expected supported type`,
+      `[ADR-111] Invalid Pencil import node ${node.id}: expected supported type`,
     );
   }
   if ("children" in node && node.children !== undefined) {
     if (!Array.isArray(node.children)) {
       throw new Error(
-        `[ADR-911] Invalid Pencil import node ${node.id}: children must be an array`,
+        `[ADR-111] Invalid Pencil import node ${node.id}: children must be an array`,
       );
     }
   }
@@ -383,7 +383,7 @@ function normalizeImports(
   for (const [key, importSource] of Object.entries(imports)) {
     if (typeof importSource !== "string" || importSource.length === 0) {
       throw new Error(
-        `[ADR-911] Invalid Pencil imports entry ${key}: expected non-empty source`,
+        `[ADR-111] Invalid Pencil imports entry ${key}: expected non-empty source`,
       );
     }
     result[key] = importSource;
@@ -443,7 +443,7 @@ export function pencilPrimitiveToComponent(
   if (canonicalType === "ref") {
     if (typeof record.ref !== "string" || record.ref.length === 0) {
       throw new Error(
-        `[ADR-911] Invalid Pencil import ref ${node.id}: expected ref`,
+        `[ADR-111] Invalid Pencil import ref ${node.id}: expected ref`,
       );
     }
 
@@ -468,7 +468,7 @@ export function pencilDocumentToCompositionDocument(
   const payload = assertRecord(document, source);
   if (!Array.isArray(payload.children)) {
     throw new Error(
-      `[ADR-911] Invalid Pencil document from ${source}: expected children array`,
+      `[ADR-111] Invalid Pencil document from ${source}: expected children array`,
     );
   }
 

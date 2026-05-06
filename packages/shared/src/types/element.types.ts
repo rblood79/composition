@@ -91,7 +91,7 @@ export interface Element {
   id: string;
   customId?: string;
   /**
-   * ADR-913 P1+P2 (2026-04-27): canonical `type` 필드로 rename 완료. 값 공간은
+   * ADR-113 P1+P2 (2026-04-27): canonical `type` 필드로 rename 완료. 값 공간은
    * pencil 정합 ComponentTag literal union 으로 수렴 (composition-document.types.ts
    * 참조). DB 컬럼 rename 은 Phase 4 (DB_VERSION 8→9).
    */

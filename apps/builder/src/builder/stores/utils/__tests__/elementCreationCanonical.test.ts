@@ -490,7 +490,7 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
     });
   });
 
-  describe("ADR-916 direct cutover — canonical primary persistence", () => {
+  describe("ADR-116 direct cutover — canonical primary persistence", () => {
     function registerCanonicalActionsForState(
       state: ReturnType<typeof setupStateMocks>["state"],
     ) {

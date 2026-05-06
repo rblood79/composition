@@ -1,4 +1,4 @@
-# ADR-918 Breakdown: children 배열 순서 기반 ordering SSOT 전환
+# ADR-118 Breakdown: children 배열 순서 기반 ordering SSOT 전환
 
 ## Scope
 
@@ -54,14 +54,17 @@ ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어�
 | legacy export mirror        | `exportLegacyDocument`가 root/nested/descendant `children` 순회 index를 legacy `order_num`으로 파생한다.                                                                                          | DB/API/import/test fixture bucket과 함께 Phase 6 allowlist에 고정해야 한다.                                         |
 | shared export runtime model | `deriveProjectRenderModelFromDocument`의 runtime element projection은 child index를 `order_num`으로 파생한다.                                                                                     | page order는 아직 metadata/readPageOrder sort가 남아 있으므로 Phase 2/3/6에서 별도 분류해야 한다.                   |
 | component origin round-trip | `reusable: true`를 `componentRole: "master"` mirror로 export하고, page-owned origin을 root reusable catalog로 끌어올리지 않는다.                                                                  | origin/instance/slot 전체 child order cutover는 Phase 5에서 별도 gate로 닫아야 한다.                                |
+| component ref resolution    | canonical `ref`/legacy `masterId` instance를 origin-shaped runtime element로 resolve하고, descendants mode B/C synthetic child를 materialize한다.                                                   | resolver는 아직 `childrenMap`을 `order_num`으로 정렬하고 synthetic `order_num` bridge를 만들므로 Phase 3/5 미완이다. |
+| copy/paste ref instance     | reusable origin copy/paste는 origin subtree deep-copy 대신 canonical `ref` instance를 생성한다.                                                                                                     | paste 위치/order는 legacy `parent_id`/`order_num` mirror에 남아 있으므로 Phase 4/6에서 재분류해야 한다.              |
 | LayerTree/frame projection  | canonical source와 page-frame projection merge가 보강되어 frame-bound page body/slot/live page child가 더 잘 보인다.                                                                              | `useLayerTreeData`와 `buildTreeFromElements`는 여전히 `order_num` sort를 사용하므로 G3 미완이다.                    |
 | selection/hit-test          | page-frame hidden slot child 선택과 overlapping frame body 선택이 보강됐다.                                                                                                                       | depth/area 우선 heuristic이 최종 `z-index` + `children[]` effective order와 충돌하지 않는지 G3에서 재검증해야 한다. |
 | Nodes panel frame tree UI   | Frames 탭의 Frames/Layers child rendering 이 Pages 탭과 같은 `TreeBase` / `VirtualizedTree`, `section` / `section-content`, `frame-tree` 단일 class 기준으로 정리됐다.                            | UI tree primitive parity baseline. structural ordering source 전환은 Phase 3/6에서 별도 검증해야 한다.              |
-| drag/drop/write path        | 선행 패치 없음. `batchUpdateElementOrders`/`moveElementToContainer`는 legacy `order_num` write 중심이다.                                                                                          | Phase 4에서 target parent `children[]` splice write path로 전환해야 한다.                                           |
+| drag/drop/write path        | drag/drop 자체의 canonical child move 선행 패치는 없다. `batchUpdateElementOrders`/`moveElementToContainer`/`reorderElements`는 legacy `order_num` write 중심이다.                                  | Phase 4에서 target parent `children[]` splice write path로 전환해야 한다.                                           |
+| group/ungroup/history write | group/ungroup, undo/redo history reorder, loader hydration 경로가 `parent_id`/`order_num`을 직접 읽고 쓴다.                                                                                       | Phase 4 inventory와 Phase 6 allowlist에서 drag/drop write path와 함께 격리해야 한다.                                |
 
 ### 중요 정리
 
-- 선행 패치는 ADR-918의 Decision을 바꾸지 않는다. 오히려 대안 A의 일부 전제가 이미
+- 선행 패치는 ADR-118의 Decision을 바꾸지 않는다. 오히려 대안 A의 일부 전제가 이미
   코드에 들어간 상태다.
 - `shouldPreserveExistingCanonicalPosition`은 "같은 legacy ownership/order 입력으로 props만
   바뀌는 update"의 위치 보존 guard다. reorder API가 아니므로 Phase 1/4의
@@ -207,6 +210,10 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 5. `batchUpdateElementOrders`, `moveElementToContainer`, `reorderElements`는 final canonical
    write API의 caller 또는 legacy mirror update로 격리한다. 현재 구현처럼 `order_num`을
    primary write target으로 두지 않는다.
+6. `PropertiesPanel` group/ungroup, history undo/redo reorder, loader hydration,
+   copy/paste placement처럼 direct `parent_id`/`order_num` read/write가 있는 경로를
+   Phase 4 inventory에 포함하고, final canonical write API 또는 Phase 6 allowlist로
+   명시 분류한다.
 
 ### 검증
 
@@ -277,27 +284,35 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 | export/import         | `packages/shared/src/utils/export.utils.ts`, canonical/pencil adapters                                                                   | `children[]` index에서 `order_num` 파생                      |
 | page tree             | `apps/builder/src/builder/panels/nodes/tree/PageTree/*`, `PagesSection.tsx`                                                              | PageTree order source를 root children index로 전환           |
 | layer tree            | `apps/builder/src/builder/panels/nodes/tree/LayerTree/*`                                                                                 | canonical child order projection                             |
-| stores/indexer        | `apps/builder/src/builder/stores/**`, `elementIndexer.ts`                                                                                | `childrenMap`을 ordered projection으로 유지                  |
+| stores/indexer        | `apps/builder/src/builder/stores/elements.ts`, `apps/builder/src/builder/stores/index.ts`                                                | `childrenMap`을 ordered projection으로 유지                  |
 | canvas/Skia           | `apps/builder/src/builder/workspace/canvas/**`                                                                                           | render/hit-test/layout order source 통일                     |
 | preview runtime       | `apps/builder/src/preview/App.tsx`, `apps/builder/src/preview/utils/layoutResolver.ts`                                                   | iframe render tree order source 통일                         |
 | publish runtime       | `apps/publish/src/components/PageNav.tsx`, `apps/publish/src/renderer/ElementRenderer.tsx`                                               | published page/render order source 통일                      |
-| drag/drop             | `useDragBridge.ts`, `useCanvasDragDropHelpers.ts`, reorder helpers                                                                       | parent/index splice write path                               |
-| component/slot        | `FramesTab`, `LayoutPresetSelector`, slot/layout adapters                                                                                | descendants slot child append/move contract                  |
+| drag/drop/write       | `useDragBridge.ts`, `useCanvasDragDropHelpers.ts`, `PropertiesPanel.tsx`, `historyActions.ts`, `elementLoader.ts`, reorder helpers       | parent/index splice write path + legacy write quarantine     |
+| component/slot        | `canonicalRefResolution.ts`, `canonicalElementsView.ts`, `multiElementCopy.ts`, `instanceActions.ts`, slot/layout adapters               | descendants slot child append/move contract                  |
 | shared renderers      | `packages/shared/src/renderers/**`                                                                                                       | `childrenMap` order 소비만 허용, local `order_num` sort 제거 |
 | collection data       | `migrateCollectionItems.ts`, Table/List data models                                                                                      | structural vs data order bucket 분리                         |
 
 ### Local Main Partial Files
 
-| 파일                                                                       | 현재 역할                                                                                                           | ADR-918 처리                                                             |
+| 파일                                                                       | 현재 역할                                                                                                           | ADR-118 처리                                                             |
 | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `apps/builder/src/adapters/canonical/canonicalMutations.ts`                | 위치 보존 upsert/replace/remove, reusable origin placement 일부 구현                                                | Phase 1 helper 후보 + Phase 5 baseline. explicit move helper는 추가 필요 |
+| `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`            | canonical `ref`/legacy `masterId` resolve, descendants synthetic child materialization                              | Phase 3/5 partial. `order_num` 기반 childrenMap bridge는 제거 필요        |
+| `apps/builder/src/builder/utils/canonicalRefResolution.ts`                 | builder-facing re-export facade                                                                                     | Phase 3/5 test/import boundary                                           |
 | `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`              | `children[]` index에서 legacy `order_num` export                                                                    | Phase 1/6 adapter boundary allowlist                                     |
 | `packages/shared/src/utils/export.utils.ts`                                | runtime element projection 은 `children[]` index로 `order_num` 파생, page order 는 metadata/readPageOrder sort 사용 | Phase 1/2/3/6 교차 target. element projection 과 page order 를 분리 분류 |
+| `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts`       | canonical tree DFS 로 legacy `Element[]`와 selected ref view를 파생                                                 | Phase 3/5 partial. selected/ref view와 render order parity 검증 필요      |
+| `apps/builder/src/builder/stores/index.ts`                                 | selected element data가 canonical/ref-resolved view를 fallback으로 사용                                             | Phase 3 inspector/properties read baseline                               |
 | `apps/builder/src/builder/stores/utils/instanceActions.ts`                 | component origin 전환 후 canonical document sync/persist                                                            | Phase 5 baseline. instance creation order write는 Phase 4/6에서 재분류   |
+| `apps/builder/src/builder/utils/multiElementCopy.ts`                       | reusable origin paste를 canonical `ref` instance 생성으로 전환                                                     | Phase 5 UX baseline. paste placement/order는 Phase 4/6에서 재분류        |
 | `apps/builder/src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts` | canonical/page-frame source merge와 frame-bound projection 보강                                                     | Phase 3 partial. `order_num` sort 제거 필요                              |
 | `apps/builder/src/builder/utils/treeUtils.ts`                              | generic Element tree가 `order_num` sort 사용                                                                        | Phase 3 cutover target                                                   |
 | `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`  | depth/area 기반 hit target 보강                                                                                     | Phase 3 effective order 재검증 target                                    |
-| `apps/builder/src/builder/stores/elements.ts` / `elementReorder.ts`        | order write/reparent가 legacy `order_num` 중심                                                                      | Phase 4 cutover target                                                   |
+| `apps/builder/src/builder/stores/elements.ts` / `stores/utils/elementReorder.ts` | order write/reparent가 legacy `order_num` 중심                                                                      | Phase 4 cutover target                                                   |
+| `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`           | group/ungroup 이 `parent_id`/`order_num`을 store와 Supabase에 직접 write                                            | Phase 4 cutover target                                                   |
+| `apps/builder/src/builder/stores/history/historyActions.ts`                | undo/redo/go-to-history 이후 `reorderElements`로 legacy order 재정렬                                                | Phase 4/6 quarantine target                                              |
+| `apps/builder/src/builder/stores/elementLoader.ts`                         | IndexedDB/Supabase hydrate와 page snapshot이 `order_num` 정렬을 사용                                               | Phase 6 legacy boundary allowlist 후보                                   |
 | `apps/builder/src/builder/panels/nodes/FramesTab/*` / `NodesPanel.css`     | Frames tab tree primitive/section/class parity 완료                                                                 | Phase 3 UI baseline. ordering source cutover 자체는 별도 target          |
 
 ## Verification Plan
@@ -309,8 +324,12 @@ pnpm -F @composition/builder exec vitest run \
   src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts \
   src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx \
   src/adapters/canonical/__tests__/canonicalMutations.test.ts \
+  src/builder/utils/canonicalRefResolution.test.ts \
+  src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts \
   src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts \
   src/builder/stores/utils/__tests__/instanceActions.test.ts \
+  src/builder/stores/index.test.tsx \
+  src/builder/utils/multiElementCopy.test.ts \
   src/builder/utils/hierarchicalSelection.test.ts \
   src/builder/workspace/canvas/selection/selectionHitTest.test.ts
 
@@ -328,7 +347,8 @@ pnpm run codex:typecheck
 4. 같은 sibling에 `z-index`를 적용 → Skia render/hit-test effective order 일치.
 5. Preview iframe과 Publish runtime에서 같은 page/render order 유지.
 6. frame/group 내부 child reorder → layout order와 LayerTree order 일치.
-7. component origin 생성 → instance 삽입 → refresh → origin/instance child 표시 유지.
+7. component origin 생성 → copy/paste ref instance 삽입 → selected Properties/ref descendants 표시
+   유지 → refresh 후 origin/instance child 표시 유지.
 8. slot fill에 같은 component 2회 삽입 → 두 child가 append order로 유지.
 9. drag/drop same-container/cross-container reorder → undo 1회로 원복.
 
@@ -336,8 +356,8 @@ pnpm run codex:typecheck
 
 - [ ] G0 inventory와 allowlist 작성.
 - [ ] G1 canonical order helper + unit test 통과.
-- [ ] local main partial 선행 패치를 Phase 1/3/5 baseline으로 분류하고, 완료 gate와 미완
-      gate를 분리.
+- [ ] local main partial 선행 패치를 Phase 1/2/3/4/5/6 baseline으로 분류하고, 완료
+      gate와 미완 gate를 분리.
 - [x] order 착수 전 frame/component projection 및 Nodes panel Frames tree parity 선행 안정화
       상태를 문서에 반영.
 - [ ] G2 page/root order cutover 완료.

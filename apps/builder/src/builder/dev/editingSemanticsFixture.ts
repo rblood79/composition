@@ -12,13 +12,13 @@ type SemanticFixtureElement = Element & {
 };
 
 const FIXTURE_PARAM = "editingSemanticsFixture";
-const PAGE_ID = "adr-912-editing-semantics-page";
-const BODY_ID = "adr-912-editing-semantics-body";
-const ORIGIN_ID = "adr-912-origin";
-const INSTANCE_ID = "adr-912-instance";
-const SLOT_FRAME_ID = "adr-912-slot-frame";
-const SLOT_INSTANCE_ID = "adr-912-slot-instance";
-const SLOT_RECOMMENDATION_ID = "adr-912-slot-recommendation";
+const PAGE_ID = "adr-112-editing-semantics-page";
+const BODY_ID = "adr-112-editing-semantics-body";
+const ORIGIN_ID = "adr-112-origin";
+const INSTANCE_ID = "adr-112-instance";
+const SLOT_FRAME_ID = "adr-112-slot-frame";
+const SLOT_INSTANCE_ID = "adr-112-slot-instance";
+const SLOT_RECOMMENDATION_ID = "adr-112-slot-recommendation";
 
 export function shouldApplyEditingSemanticsFixture(): boolean {
   if (typeof window === "undefined") return false;
@@ -38,9 +38,9 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
   const now = new Date().toISOString();
   const page: Page = {
     id: PAGE_ID,
-    title: "ADR-912 Editing Semantics",
-    project_id: "adr-912-fixture",
-    slug: "adr-912-editing-semantics",
+    title: "ADR-112 Editing Semantics",
+    project_id: "adr-112-fixture",
+    slug: "adr-112-editing-semantics",
     order_num: 0,
     created_at: now,
     updated_at: now,
@@ -109,7 +109,7 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
 
   const instanceB: SemanticFixtureElement = {
     ...instanceA,
-    id: "adr-912-instance-b",
+    id: "adr-112-instance-b",
     order_num: 3,
     props: {
       ...instanceA.props,
@@ -194,7 +194,7 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
 
   if (import.meta.env.DEV) {
     console.info(
-      "[ADR-912] editing semantics fixture loaded. Use ?editingSemanticsFixture=origin, =instance, =slot, or =slot-instance.",
+      "[ADR-112] editing semantics fixture loaded. Use ?editingSemanticsFixture=origin, =instance, =slot, or =slot-instance.",
     );
   }
 }

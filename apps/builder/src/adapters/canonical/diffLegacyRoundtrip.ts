@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 3 G4 — 3-A-impl: diffLegacyRoundtrip
+ * @fileoverview ADR-116 Phase 3 G4 — 3-A-impl: diffLegacyRoundtrip
  *
  * shadow write 결과 차이 요약 (3 카테고리 분류). Phase 3-A monitoring 1-2주
  * destructive=0 시그널 검증의 source.

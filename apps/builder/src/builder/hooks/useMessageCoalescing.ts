@@ -234,7 +234,7 @@ import { useRef, useCallback, useEffect } from "react";
  * const enqueue = useMessageCoalescing((type, payload) => {
  *   switch (type) {
  *     case 'UPDATE_ELEMENTS':
- *       setElementsCanonicalPrimary(payload as Element[]); // ADR-916 G4
+ *       setElementsCanonicalPrimary(payload as Element[]); // ADR-116 G4
  *       break;
  *     case 'ELEMENT_SELECTED':
  *       setSelectedElement(payload);

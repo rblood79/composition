@@ -5,7 +5,7 @@ import { type Page as ApiPage } from "../../services/api/PagesApiService";
 import { type Page, getDefaultProps } from "../../types/builder/unified.types";
 import { getDB } from "../../lib/db";
 import { useStore } from "../stores";
-// ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
+// ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import type { ElementProps } from "../../types/integrations/supabase.types";

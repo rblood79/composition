@@ -1,4 +1,4 @@
-# ADR-910: Canonical Document `themes` / `variables` 필드 Land Plan
+# ADR-110: Canonical Document `themes` / `variables` 필드 Land Plan
 
 ## Status
 
@@ -87,7 +87,7 @@ ADR-903 P0 에서 canonical document root 에 4개 메타 필드 타입이 정�
 - **대안 B**: HIGH 0. 기존 시스템 무수정, P5-A 진입 전 schema 계약 확정 가능. 후속 Phase에서 write-through 전환 시 기술 부채 1회 감수.
 - **대안 C**: HIGH 0. B보다 세밀한 Phase 제어 가능하나 `variables` Phase 3 scope가 크고 ADR-022 TokenRef 전체 영향 범위를 별도 측정해야 함.
 
-**루프 판정**: 대안 A는 HIGH 2개로 탈락. 대안 B (themes/variables 동시 read-only adapter)를 1차 권고하고, Phase 2 이후 write-through 전환 시점을 ADR 갱신 또는 별도 ADR-910-b로 결정한다. 대안 C는 variables의 Phase 3 scope가 ADR-903 P5-A 타임라인에 맞지 않을 경우 선택 가능한 대안으로 유지.
+**루프 판정**: 대안 A는 HIGH 2개로 탈락. 대안 B (themes/variables 동시 read-only adapter)를 1차 권고하고, Phase 2 이후 write-through 전환 시점을 ADR 갱신 또는 별도 ADR-110-b로 결정한다. 대안 C는 variables의 Phase 3 scope가 ADR-903 P5-A 타임라인에 맞지 않을 경우 선택 가능한 대안으로 유지.
 
 ## Decision
 
@@ -103,9 +103,9 @@ ADR-903 P0 에서 canonical document root 에 4개 메타 필드 타입이 정�
 ### 기각 사유
 
 - **대안 A 기각**: 기술 HIGH (`themeConfigStore.ts:*` + `tokenResolver.ts` + `cssValueParser.ts` 동시 재작성 3+ 파일) + 마이그레이션 HIGH (기존 프로젝트 50+ fixture 역주입 필요) — 2개 HIGH가 ADR-903 P5-A 진입 전 완료 요건과 충돌.
-- **대안 C 보류**: `variables` Phase 3 (TokenRef resolver 통합) scope가 광범위하고 ADR-022 체계 전체에 영향. scope 측정 없이 단일 ADR에서 가이드라인 제시는 과도. 필요 시 ADR-910-b로 분리.
+- **대안 C 보류**: `variables` Phase 3 (TokenRef resolver 통합) scope가 광범위하고 ADR-022 체계 전체에 영향. scope 측정 없이 단일 ADR에서 가이드라인 제시는 과도. 필요 시 ADR-110-b로 분리.
 
-> 구현 상세: [910-canonical-themes-variables-land-plan-breakdown.md](design/910-canonical-themes-variables-land-plan-breakdown.md)
+> 구현 상세: [110-canonical-themes-variables-land-plan-breakdown.md](design/110-canonical-themes-variables-land-plan-breakdown.md)
 
 ## Risks
 
@@ -138,7 +138,7 @@ ADR-903 P0 에서 canonical document root 에 4개 메타 필드 타입이 정�
 
 - Phase 1에서 `themes`/`variables`는 read-only snapshot이므로 canonical document가 완전한 "선언 SSOT"가 되는 시점이 Phase 2 이후로 미뤄진다.
 - `buildThemesSnapshot`/`buildVariablesSnapshot` serializer가 추가 직렬화 경로를 만들어 ADR-021/022 상태와 canonical document 상태 간 일시적 이중화가 발생한다.
-- 후속 Phase (write-through, user-defined variables, per-element theme override) 는 본 ADR이 아닌 ADR-910-b 또는 ADR-903 Addendum으로 결정해야 한다.
+- 후속 Phase (write-through, user-defined variables, per-element theme override) 는 본 ADR이 아닌 ADR-110-b 또는 ADR-903 Addendum으로 결정해야 한다.
 
 ## 진행 로그
 
@@ -154,7 +154,7 @@ ADR-903 P0 에서 canonical document root 에 4개 메타 필드 타입이 정�
 - ✅ `packages/shared/src/types/composition-document.types.ts` — `ThemeSnapshot` + `VariablesSnapshot` + `VariablesSnapshotEntry` 타입 SSOT 정착, `CompositionDocument.themes?: ThemeSnapshot` + `variables?: VariablesSnapshot` 으로 전환 (raw cast 제거)
 - ✅ `apps/builder/src/adapters/canonical/variablesAdapter.ts` — `snapshotVariablesFromTokens()` + `readCanonicalVariables()` + `ResolvedTokenMap` DI 계약 (R3 `source: "spec-token" | "user-defined"` 구분자)
 - ✅ `apps/builder/src/adapters/canonical/__tests__/variables.test.ts` — adapter 단위 테스트 14 PASS
-- ✅ `docs/adr/design/910-canonical-themes-variables-land-plan-breakdown.md` — 구현 상세 분리 land
+- ✅ `docs/adr/design/110-canonical-themes-variables-land-plan-breakdown.md` — 구현 상세 분리 land
 - ✅ Phase 1 G-A 통과 조건 (a)~(d) 완전 충족 — type-check 3/3 PASS + canonical adapter vitest 92/92 PASS
 
 ### 진행 로그
@@ -183,7 +183,7 @@ Phase 2 land 시 Gate G-B (a)/(b)/(c) 검증:
   - `themesAdapter.ts::applyCanonicalThemes(doc, setters): boolean` 신설 + `ThemeConfigSetters` DI interface
   - `canonical/index.ts` re-export
   - `themes.test.ts` 신규 6 tests (TC-A1~A6) — 적용 / BC / 잘못된 구조 무동작 (R4) / round-trip / 멱등 / `legacyToCanonical` 통합
-  - `BuilderCore.tsx` initialize 종료 시점 entry — `VITE_ADR910_P2_THEMES_WRITE_THROUGH=true` 게이트
+  - `BuilderCore.tsx` initialize 종료 시점 entry — `VITE_ADR110_P2_THEMES_WRITE_THROUGH=true` 게이트
 - ✅ **ts-3.2 — variables resolver + Gate G-B (b)** (commit `0e63a807`)
   - `variablesAdapter.ts::resolveCanonicalVariable(ref, doc): string | number | boolean | undefined`
   - TokenRef pattern `{category.name}` parsing (`tokenResolver.ts` 와 동일 정규식, hyphen name 허용)
@@ -196,9 +196,9 @@ Phase 2 land 시 Gate G-B (a)/(b)/(c) 검증:
     - TC-RT3: 한쪽만 주입 (themes / variables / 둘 다 미주입) BC 보장
     - TC-RT4: Gate G-B 통합 — `resolveToken` ↔ `resolveCanonicalVariable` round-trip pipeline 전체
 - ✅ **ts-3.5 — feature flag (rollback 경로)** (ts-3.1 land 시 동시 적용)
-  - `BuilderCore.tsx` 의 entry 가 `VITE_ADR910_P2_THEMES_WRITE_THROUGH` 환경 변수로 게이트
+  - `BuilderCore.tsx` 의 entry 가 `VITE_ADR110_P2_THEMES_WRITE_THROUGH` 환경 변수로 게이트
   - flag 미설정 시 무동작 (Phase 1 read-only 동작 유지, BC)
-  - 현재 `selectCanonicalDocument` 가 themes 미주입 (caller 가 `getThemeConfig` 미전달) → entry 활성화 시에도 무동작. ADR-913 Phase 4 Step 4-2 이후 DB 직접 로드 시 doc.themes 채워지면 의미 가짐
+  - 현재 `selectCanonicalDocument` 가 themes 미주입 (caller 가 `getThemeConfig` 미전달) → entry 활성화 시에도 무동작. ADR-113 Phase 4 Step 4-2 이후 DB 직접 로드 시 doc.themes 채워지면 의미 가짐
 
 ### Phase 2 진행 로그
 
@@ -208,7 +208,7 @@ Phase 2 land 시 Gate G-B (a)/(b)/(c) 검증:
   - **Skia canvas 정상**: 2562×1768 (HiDPI 2x), WebGL2 컨텍스트 활성화, visible
   - **DOM 정상**: Header/workspace/panel 모두 렌더, error overlay 0건
   - **CSS 토큰 정상**: `--bg=#fff`, `--fg=oklch(20.5% 0 0)`, `--accent=oklch(from ... 55% c h)`, `--tint=oklch(0.5 0.22049 266.315)`, `--border=oklch(87% 0 0)` — Phase 1 read-only adapter 의 default 값 그대로 유지
-  - **env flag 미설정 시 BC 보장 확증**: `VITE_ADR910_P2_THEMES_WRITE_THROUGH=false` (default) → BuilderCore entry 미진입 → Phase 1 동작 그대로. 페이지 reload 후 동일 결과 → **시각 회귀 0**
+  - **env flag 미설정 시 BC 보장 확증**: `VITE_ADR110_P2_THEMES_WRITE_THROUGH=false` (default) → BuilderCore entry 미진입 → Phase 1 동작 그대로. 페이지 reload 후 동일 결과 → **시각 회귀 0**
   - **env flag 활성화 시 무동작 확증**: `selectCanonicalDocument` 가 `getThemeConfig` 미전달 → `doc.themes = undefined` → `applyCanonicalThemes` `false` 반환 → 무동작 → **시각 회귀 0**
   - **round-trip contract**: TC-A4 (themes round-trip), TC-R7/R8 (Gate G-B light+dark resolveToken 동등), TC-RT1~RT4 (themes+variables 통합 round-trip + 멱등 + BC) 모두 PASS
 - **Gate G-B (c) 충족** — 본 ADR 의 모든 Phase 2 sub-step (ts-3.1~3.5) 종결. **ADR Status `Accepted → Implemented` 승격 가능 시점**.

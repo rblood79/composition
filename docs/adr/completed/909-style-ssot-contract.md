@@ -88,7 +88,7 @@ composition 의 `element.props.style` 은 Zustand store 에 저장되는 CSS-lik
 **기각된 대안의 기각 사유**:
 
 - **A 기각**: 재발 방지 gate 없이 sweep 만 하면 신규 drift 자동 검출 불가. L3-L4 근본원인 미해소.
-- **C 기각**: branded type 은 근본적이지만 현재 codebase 의 `any`/unknown 사용 빈도상 전면 type migration 리스크 과도. B 완료 후 debt audit → 별도 ADR (예: ADR-910+) 로 검토.
+- **C 기각**: branded type 은 근본적이지만 현재 codebase 의 `any`/unknown 사용 빈도상 전면 type migration 리스크 과도. B 완료 후 debt audit → 별도 ADR (예: ADR-110+) 로 검토.
 - **D 기각**: 정책 반전 시 React rerender + Taffy conflict 원래 문제 재발. 해결책이 아닌 롤백.
 
 > 구현 상세: [909-style-ssot-contract-breakdown.md](../design/909-style-ssot-contract-breakdown.md)

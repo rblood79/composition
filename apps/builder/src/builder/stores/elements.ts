@@ -74,7 +74,7 @@ import {
   getPageElements as getPageElementsFromIndex,
 } from "./utils/elementIndexer";
 import { getNullablePageFrameBindingId } from "@/adapters/canonical/frameMirror";
-// ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
+// ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { updateElementCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 
 function pageLayoutId(page: Page): string | null {
@@ -129,7 +129,7 @@ export interface ElementsState {
   pagePositions: Record<string, { x: number; y: number }>;
   pagePositionsVersion: number;
 
-  // ADR-911 P3-α: reusable frame 별 캔버스 영역 (frame canvas authoring 시각 path)
+  // ADR-111 P3-α: reusable frame 별 캔버스 영역 (frame canvas authoring 시각 path)
   // pagePositions 와 분리: page 는 global pageWidth/Height 공유, frame 은 width/height 개별
   framePositions: Record<
     string,
@@ -241,7 +241,7 @@ export interface ElementsState {
   ) => void;
   updatePagePosition: (pageId: string, x: number, y: number) => void;
 
-  // ADR-911 P3-α: reusable frame 캔버스 영역 setter
+  // ADR-111 P3-α: reusable frame 캔버스 영역 setter
   /** frame id 의 좌표/크기 partial 갱신. 기존 entry 보존 후 patch merge. 신규 frame 은 미주입 필드를 0 으로 초기화. */
   updateFramePosition: (
     frameId: string,
@@ -469,7 +469,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     ),
   });
 
-  // ADR-916 G5-B P5-C: legacy role literal
+  // ADR-116 G5-B P5-C: legacy role literal
   // 검사 → isMasterElement / isInstanceElement 호출로 단일화. 두 type guard
   // 자체는 read-through fallback marker 보존 (legacy 의미 유지).
   const indexComponentElement = (
@@ -480,7 +480,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       componentIndex.masterComponents.set(element.id, element);
     }
 
-    // ADR-916 G5-B P5-D: legacy origin direct property access →
+    // ADR-116 G5-B P5-D: legacy origin direct property access →
     // getInstanceMasterRef helper 호출 단일화 (canonical RefNode 의 ref 도
     // 자동 호환). isInstanceElement 가 strict legacy 이므로 본 분기에서는
     // legacy origin 만 도달, helper 의 canonical 분기는 dead in this branch
@@ -657,7 +657,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     pagePositions: {},
     pagePositionsVersion: 0,
 
-    // ADR-911 P3-α: reusable frame 캔버스 영역 초기값
+    // ADR-111 P3-α: reusable frame 캔버스 영역 초기값
     framePositions: {},
     framePositionsVersion: 0,
 
@@ -1619,7 +1619,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       }));
     },
 
-    // ADR-911 P3-α: reusable frame 좌표/크기 갱신 (drag/resize 통합)
+    // ADR-111 P3-α: reusable frame 좌표/크기 갱신 (drag/resize 통합)
     updateFramePosition: (frameId, patch) => {
       set((state) => {
         const prev = state.framePositions[frameId] ?? {
@@ -1641,7 +1641,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       });
     },
 
-    // ADR-911 P3-α: reusable frame 삭제 시 좌표 entry 정리
+    // ADR-111 P3-α: reusable frame 삭제 시 좌표 entry 정리
     removeFramePosition: (frameId) => {
       set((state) => {
         if (!(frameId in state.framePositions)) return state;

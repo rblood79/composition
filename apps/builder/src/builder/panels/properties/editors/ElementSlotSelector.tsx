@@ -30,7 +30,7 @@ export const ElementSlotSelector = memo(function ElementSlotSelector({
   const pages = useStore((state) => state.pages);
 
   // Element의 Page → Layout → Slots 찾기
-  // ADR-912 follow-up: preset apply 직후 생성된 legacy Slot element 는
+  // ADR-112 follow-up: preset apply 직후 생성된 legacy Slot element 는
   // legacy layout binding 을 즉시 보유한다. canonical projection 을 기다리면 Slot selector 가
   // 새로고침 전까지 비어 보일 수 있으므로 usePresetApply 와 같은 직접 매칭을 사용한다.
   const slots = useMemo((): SlotInfo[] => {

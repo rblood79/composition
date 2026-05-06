@@ -1,5 +1,5 @@
 /**
- * @fileoverview extractCanonicalPropsFromResolved — ADR-916 direct cutover.
+ * @fileoverview extractCanonicalPropsFromResolved — ADR-116 direct cutover.
  */
 
 import { describe, it, expect } from "vitest";

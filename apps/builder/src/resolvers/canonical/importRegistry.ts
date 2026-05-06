@@ -68,7 +68,7 @@ function assertCompositionDocument(
     !Array.isArray(value.children)
   ) {
     throw new Error(
-      `[ADR-916] Invalid import document from ${source}: expected CompositionDocument`,
+      `[ADR-116] Invalid import document from ${source}: expected CompositionDocument`,
     );
   }
 
@@ -91,7 +91,7 @@ export function resolveCompositionImportSource(
 ): string {
   const trimmedSource = source.trim();
   if (!trimmedSource) {
-    throw new Error("[ADR-916] Import source must be a non-empty URL/path");
+    throw new Error("[ADR-116] Import source must be a non-empty URL/path");
   }
 
   let base: URL;
@@ -101,19 +101,19 @@ export function resolveCompositionImportSource(
     resolved = new URL(trimmedSource, base);
   } catch (error: unknown) {
     throw new Error(
-      `[ADR-916] Invalid import source ${source}: ${toError(error).message}`,
+      `[ADR-116] Invalid import source ${source}: ${toError(error).message}`,
     );
   }
 
   if (resolved.protocol !== "http:" && resolved.protocol !== "https:") {
     throw new Error(
-      `[ADR-916] Unsupported import source protocol ${resolved.protocol}`,
+      `[ADR-116] Unsupported import source protocol ${resolved.protocol}`,
     );
   }
 
   if (base.origin !== resolved.origin) {
     throw new Error(
-      `[ADR-916] Import source must be same-origin: ${resolved.href}`,
+      `[ADR-116] Import source must be same-origin: ${resolved.href}`,
     );
   }
 
@@ -127,7 +127,7 @@ export async function fetchCompositionDocumentFromSource(
 ): Promise<CompositionDocument> {
   if (typeof fetch !== "function") {
     throw new Error(
-      `[ADR-916] Cannot fetch import document ${source}: fetch is unavailable`,
+      `[ADR-116] Cannot fetch import document ${source}: fetch is unavailable`,
     );
   }
 
@@ -135,7 +135,7 @@ export async function fetchCompositionDocumentFromSource(
   const response = await fetch(resolvedSource);
   if (!response.ok) {
     throw new Error(
-      `[ADR-916] Failed to fetch import document ${resolvedSource}: ${response.status} ${response.statusText}`,
+      `[ADR-116] Failed to fetch import document ${resolvedSource}: ${response.status} ${response.statusText}`,
     );
   }
 

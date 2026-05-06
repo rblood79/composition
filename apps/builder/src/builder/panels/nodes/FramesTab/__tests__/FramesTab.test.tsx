@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * ADR-911 Phase 2 PR-B baseline 잠금 테스트.
+ * ADR-111 Phase 2 PR-B baseline 잠금 테스트.
  *
  * 본 테스트는 PR-B 시점의 FramesTab 동작을 회귀 안전망으로 잠근다. 후속 PR-C
  * (read path canonical 전환) 진입 시 동작 차이를 즉시 감지하기 위함이다.
@@ -218,7 +218,7 @@ function resetMockState() {
 }
 
 // ─── tests ──────────────────────────────────────────────────────────────────
-describe("FramesTab (ADR-911 P2-a PR-B baseline)", () => {
+describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
   beforeEach(() => {
     resetMockState();
   });

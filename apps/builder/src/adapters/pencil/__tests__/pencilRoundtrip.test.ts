@@ -24,7 +24,7 @@ async function readPencilFixture(filename: string): Promise<PencilDocument> {
   return JSON.parse(source) as PencilDocument;
 }
 
-describe("ADR-911 Pencil roundtrip adapter", () => {
+describe("ADR-111 Pencil roundtrip adapter", () => {
   it.each(SAMPLE_FILES)(
     "roundtrips %s through CompositionDocument without schema drift",
     async (filename) => {

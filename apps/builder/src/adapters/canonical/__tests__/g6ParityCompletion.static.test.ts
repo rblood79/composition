@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-describe("ADR-916 G6-3 Slot/Ref/Descendants/Frame parity completion contract", () => {
+describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", () => {
   it("keeps native mutation, export, resolver, navigation, and frame binding wiring", async () => {
     const [
       mutationsSource,

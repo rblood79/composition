@@ -233,4 +233,4 @@ export abstract class BaseApiService {
   }
 }
 
-// Note: ElementsApiService 의 진정한 정의는 `apps/builder/src/adapters/canonical/legacyElementsApiService.ts` 에 있다 (ADR-916 G5 second work, 2026-05-01 격리). 본 file 에 있던 stale duplicate 클래스 + elementsApi 싱글톤 export 는 dead code 였으며, 모든 caller 가 `services/api/index.ts` 경유로 adapter 영역의 정의를 사용한다.
+// Note: ElementsApiService 의 진정한 정의는 `apps/builder/src/adapters/canonical/legacyElementsApiService.ts` 에 있다 (ADR-116 G5 second work, 2026-05-01 격리). 본 file 에 있던 stale duplicate 클래스 + elementsApi 싱글톤 export 는 dead code 였으며, 모든 caller 가 `services/api/index.ts` 경유로 adapter 영역의 정의를 사용한다.

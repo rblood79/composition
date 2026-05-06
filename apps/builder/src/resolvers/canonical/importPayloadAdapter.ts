@@ -52,6 +52,6 @@ export function normalizeCompositionImportPayload(
   }
 
   throw new Error(
-    `[ADR-916] Invalid import payload from ${source}: expected CompositionDocument or Pencil-style node tree`,
+    `[ADR-116] Invalid import payload from ${source}: expected CompositionDocument or Pencil-style node tree`,
   );
 }

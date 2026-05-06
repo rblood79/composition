@@ -7,7 +7,7 @@ import { getDB } from "../../../lib/db";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import { applyFactoryPropagation } from "../../utils/propagationEngine";
 import { resolveOwnerPageId } from "../../../adapters/canonical/legacyMetadata";
-// ADR-916 Phase 3 G4 — mutation reverse pilot caller (D18=A 정합)
+// ADR-116 Phase 3 G4 — mutation reverse pilot caller (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 
@@ -15,7 +15,7 @@ import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirro
  * 컴포넌트 정의로부터 실제 Element 데이터 생성 시 필요한 컨텍스트.
  *
  * page_id/layout binding 미주입 element 는 canonical mode 의 page-indexed 분기에서
- * 누락되어 화면 렌더 실패 (ADR-911). caller 가 ownership 정보를 명시 전달.
+ * 누락되어 화면 렌더 실패 (ADR-111). caller 가 ownership 정보를 명시 전달.
  */
 export interface ElementCreationContext {
   pageId: string | null;
@@ -106,7 +106,7 @@ export function addElementsToStore(
   const currentElements = store.elements;
   const newElements = [...currentElements, parent, ...children];
 
-  // 1. 메모리 스토어 업데이트 (UI 즉시 반영) — ADR-916 G4 wrapper 경유
+  // 1. 메모리 스토어 업데이트 (UI 즉시 반영) — ADR-116 G4 wrapper 경유
   mergeElementsCanonicalPrimary([parent, ...children]);
 
   // 2. 히스토리 기록

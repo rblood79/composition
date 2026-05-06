@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-910 Phase 1 — variables read-only snapshot adapter tests.
+ * @fileoverview ADR-110 Phase 1 — variables read-only snapshot adapter tests.
  *
  * Gate G-A 검증:
  * - `snapshotVariablesFromTokens()` pure function
@@ -7,7 +7,7 @@
  * - `readCanonicalVariables()` read accessor
  * - `legacyToCanonical()` + `getVariables` 연동
  * - stale snapshot 방지 (R4) 단위 테스트
- * - source 구분자 (spec-token vs user-defined) 검증 (ADR-910 R3)
+ * - source 구분자 (spec-token vs user-defined) 검증 (ADR-110 R3)
  */
 
 import { describe, expect, it } from "vitest";
@@ -29,7 +29,7 @@ const deps = { convertComponentRole, convertPageLayout };
 // ─────────────────────────────────────────────
 // TC-V1: snapshotVariablesFromTokens — 기본 변환
 // ─────────────────────────────────────────────
-describe("snapshotVariablesFromTokens (ADR-910 Phase 1)", () => {
+describe("snapshotVariablesFromTokens (ADR-110 Phase 1)", () => {
   it("TC-V1: string 값은 type=color, source=spec-token 으로 직렬화된다", () => {
     const tokens: ResolvedTokenMap = {
       "color.accent": "#0070f3",
@@ -108,7 +108,7 @@ describe("snapshotVariablesFromTokens (ADR-910 Phase 1)", () => {
 // ─────────────────────────────────────────────
 // TC-V6: snapshotUserDefinedVariables — 사용자 정의 변수
 // ─────────────────────────────────────────────
-describe("snapshotUserDefinedVariables (ADR-910 Phase 1)", () => {
+describe("snapshotUserDefinedVariables (ADR-110 Phase 1)", () => {
   it("TC-V6: 사용자 정의 변수는 source=user-defined 로 마킹된다", () => {
     const userVars = {
       primary: { type: "color" as const, value: "#ff0000" },
@@ -137,7 +137,7 @@ describe("snapshotUserDefinedVariables (ADR-910 Phase 1)", () => {
 // ─────────────────────────────────────────────
 // TC-V8: readCanonicalVariables — read accessor
 // ─────────────────────────────────────────────
-describe("readCanonicalVariables (ADR-910 Phase 1)", () => {
+describe("readCanonicalVariables (ADR-110 Phase 1)", () => {
   it("TC-V8: variables 필드 있는 doc → snapshot 반환", () => {
     const tokens: ResolvedTokenMap = {
       "color.accent": "#0070f3",
@@ -170,7 +170,7 @@ describe("readCanonicalVariables (ADR-910 Phase 1)", () => {
 // ─────────────────────────────────────────────
 // TC-V10: legacyToCanonical + getVariables 연동
 // ─────────────────────────────────────────────
-describe("legacyToCanonical + getVariables (ADR-910 Phase 1)", () => {
+describe("legacyToCanonical + getVariables (ADR-110 Phase 1)", () => {
   it("TC-V10: getVariables 전달 시 doc.variables 에 snapshot 주입된다", () => {
     const tokens: ResolvedTokenMap = {
       "color.accent": "#0070f3",
@@ -263,7 +263,7 @@ describe("legacyToCanonical + getVariables (ADR-910 Phase 1)", () => {
 // ─────────────────────────────────────────────
 // Phase 2 ts-3.2 — resolveCanonicalVariable (resolver)
 // ─────────────────────────────────────────────
-describe("resolveCanonicalVariable (ADR-910 Phase 2 ts-3.2)", () => {
+describe("resolveCanonicalVariable (ADR-110 Phase 2 ts-3.2)", () => {
   function buildDocWithVariables(
     tokens: ResolvedTokenMap,
   ): CompositionDocument {

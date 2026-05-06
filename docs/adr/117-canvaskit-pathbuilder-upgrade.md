@@ -1,4 +1,4 @@
-# ADR-917: CanvasKit PathBuilder 전환 및 0.41.1 업그레이드
+# ADR-117: CanvasKit PathBuilder 전환 및 0.41.1 업그레이드
 
 ## Status
 
@@ -128,7 +128,7 @@ CanvasKit upstream changelog는 `0.41.0`에서 `Path` 객체를 immutable로 바
   임시 패치를 만들 가능성이 높다.
 - **대안 D 기각**: dependency update를 renderer architecture rewrite로 확대한다.
 
-> 구현 상세: [917-canvaskit-pathbuilder-upgrade-breakdown.md](design/917-canvaskit-pathbuilder-upgrade-breakdown.md)
+> 구현 상세: [117-canvaskit-pathbuilder-upgrade-breakdown.md](design/117-canvaskit-pathbuilder-upgrade-breakdown.md)
 
 ## Residual Risks
 

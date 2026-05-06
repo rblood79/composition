@@ -1,5 +1,5 @@
 /**
- * ADR-911 P3-γ — selectReusableFrame 의 frame editing indicator 갱신 통합 테스트
+ * ADR-111 P3-γ — selectReusableFrame 의 frame editing indicator 갱신 통합 테스트
  *
  * 본 테스트는 `selectReusableFrame(frameId)` 호출이 canonical frame selection store 의
  * `selectedReusableFrameId` 필드를 정확히 갱신하는지 (mock 없이) 검증한다.
@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { useCanonicalFrameSelectionStore } from "@/builder/stores/canonical/canonicalFrameStore";
 import { selectReusableFrame } from "../frameActions";
 
-describe("ADR-911 P3-γ selectReusableFrame → selectedReusableFrameId 갱신", () => {
+describe("ADR-111 P3-γ selectReusableFrame → selectedReusableFrameId 갱신", () => {
   beforeEach(() => {
     useCanonicalFrameSelectionStore.setState({
       selectedReusableFrameId: null,

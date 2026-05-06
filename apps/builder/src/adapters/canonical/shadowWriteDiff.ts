@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 3 G4 — 3-A-impl: shadow write evaluator.
+ * @fileoverview ADR-116 Phase 3 G4 — 3-A-impl: shadow write evaluator.
  *
  * canonical write 시 legacy export + diff 평가 + console warn 의 utility 계층.
  * 본 단계 (monitoring 시작 전) 는 pure 함수 + flag + helper 만 제공. attach
@@ -117,7 +117,7 @@ export function logShadowWriteResult(
   }
 
   const { projectId, source } = context;
-  const tag = `[ADR-916 shadow-write${source ? `:${source}` : ""}${
+  const tag = `[ADR-116 shadow-write${source ? `:${source}` : ""}${
     projectId ? ` ${projectId}` : ""
   }]`;
 

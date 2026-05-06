@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 5 G7 Extension Boundary — packages/shared 영역
+ * @fileoverview ADR-116 Phase 5 G7 Extension Boundary — packages/shared 영역
  * legacy `Element.events` / `Element.dataBinding` read-through helper.
  *
  * canonical primary 저장 위치 = `CompositionNode.extension['x-composition']`
@@ -22,8 +22,8 @@
  * canonical primary 저장 진입과 함께 통일 결정 사항. 본 helper 는 priority
  * option 으로 양쪽 caller 를 동일 API 로 수용.
  *
- * @see docs/adr/916-canonical-document-ssot-transition.md §G7 Extension Boundary
- * @see docs/adr/design/916-canonical-document-ssot-transition-breakdown.md §10.2 G6-1
+ * @see docs/adr/116-canonical-document-ssot-transition.md §G7 Extension Boundary
+ * @see docs/adr/design/116-canonical-document-ssot-transition-breakdown.md §10.2 G6-1
  */
 
 import type { DataBinding } from "../types/element.types";

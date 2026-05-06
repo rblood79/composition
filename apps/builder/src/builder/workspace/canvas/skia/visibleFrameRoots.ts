@@ -1,5 +1,5 @@
 /**
- * ADR-911 P3-δ — reusable frame canvas authoring viewport root collection.
+ * ADR-111 P3-δ — reusable frame canvas authoring viewport root collection.
  *
  * Sibling to `visiblePageRoots.ts`. P3-α (`framePositions`) + P3-β
  * (`computeFrameAreas`) + P3-γ (`selectedReusableFrameId`) 결정에 따라 신설.
@@ -11,7 +11,7 @@
  *   bodyPagePositions (body element id → {x,y}) — `visiblePageRoots` 출력과
  *   동일 shape 라 caller (skiaFramePipeline) 가 단일 맵으로 병합 가능 (D3=A)
  *
- * frame body 식별 (ADR-916 cleanup): canonical reusable FrameNode 에서 파생한
+ * frame body 식별 (ADR-116 cleanup): canonical reusable FrameNode 에서 파생한
  * `frameElementScopes[frameId].bodyElementId` 를 직접 사용한다. legacy
  * `layout_id` mirror predicate 는 이 Skia root collection 경로에서 사용하지
  * 않는다.

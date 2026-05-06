@@ -8,7 +8,7 @@
  * 원리: getCachedPageLayout은 순수 함수 — store 데이터만 필요.
  * publishLayoutMap으로 모듈 레벨 변수에 발행하면 Command Stream이 읽음.
  *
- * ADR-911 P3-δ fix #3 (2026-04-28): framePages 입력 추가 — page-centric
+ * ADR-111 P3-δ fix #3 (2026-04-28): framePages 입력 추가 — page-centric
  * 가정 cracking 의 첫 단계. frame body 도 page 와 동일 layout 발행 logic 처리
  * → publishLayoutMap key fallback chain (D5=A: page id → layout binding → id)
  * 으로 구분. dimensionKey 단일 통합 (D6=A).
@@ -42,7 +42,7 @@ interface PageLayoutInput {
  * 단일 useEffect 로 페이지 수에 무관하게 hooks 규칙 준수.
  *
  * @param pages    visible page input
- * @param framePages reusable frame body input (ADR-911 P3-δ fix #3)
+ * @param framePages reusable frame body input (ADR-111 P3-δ fix #3)
  */
 export function useLayoutPublisher(
   pages: PageLayoutInput[],

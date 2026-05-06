@@ -148,7 +148,7 @@ export function useCanvasDragDropHelpers({
       const excludedIds = getDescendantIds(draggedId);
       excludedIds.add(draggedId);
 
-      // ADR-916 projection 제거: drag mousemove hot path 에서 legacy snapshot 을
+      // ADR-116 projection 제거: drag mousemove hot path 에서 legacy snapshot 을
       // CompositionDocument 로 재구성하지 않는다.
       const doc = getActiveCanonicalDocument();
       if (!doc) return null;
@@ -259,7 +259,7 @@ export function useCanvasDragDropHelpers({
         return [];
       }
 
-      // ADR-916 projection 제거: drop path 도 active canonical document 만 사용.
+      // ADR-116 projection 제거: drop path 도 active canonical document 만 사용.
       const doc = getActiveCanonicalDocument();
       if (!doc) return [];
 

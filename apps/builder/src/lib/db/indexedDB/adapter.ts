@@ -31,7 +31,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 10; // ADR-916 direct cutover: CompositionDocument is primary storage.
+const DB_VERSION = 10; // ADR-116 direct cutover: CompositionDocument is primary storage.
 
 export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
@@ -60,11 +60,11 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         const db = (event.target as IDBOpenDBRequest).result;
         const oldVersion = event.oldVersion;
 
-        // ADR-916 direct cutover: 개발 단계에서는 기존 row 보존 migration 을
+        // ADR-116 direct cutover: 개발 단계에서는 기존 row 보존 migration 을
         // 지원하지 않는다. DB schema bump 는 canonical document primary marker.
         if (oldVersion < 10 && oldVersion > 0) {
           console.log(
-            `[IndexedDB] ADR-916 direct cutover: oldVersion=${oldVersion} → 10`,
+            `[IndexedDB] ADR-116 direct cutover: oldVersion=${oldVersion} → 10`,
           );
         }
 
@@ -74,7 +74,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: projects");
         }
 
-        // Canonical documents store (ADR-916 primary storage)
+        // Canonical documents store (ADR-116 primary storage)
         if (!db.objectStoreNames.contains("documents")) {
           db.createObjectStore("documents", { keyPath: "project_id" });
           console.log("[IndexedDB] Created store: documents");
@@ -1165,7 +1165,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
   };
 
-  // === Canonical Documents (ADR-916 primary storage) ===
+  // === Canonical Documents (ADR-116 primary storage) ===
 
   documents = {
     put: async (

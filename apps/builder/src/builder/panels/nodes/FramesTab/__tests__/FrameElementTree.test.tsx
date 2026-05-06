@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * ADR-911 Phase 2 PR-D2 — FrameElementTree 컴포넌트 단위 테스트.
+ * ADR-111 Phase 2 PR-D2 — FrameElementTree 컴포넌트 단위 테스트.
  *
  * 본 테스트는 FrameElementTree 가 프레젠테이션 전용임을 검증한다 — element
  * 선택 / 삭제 핸들러 구현은 외부 책임이고, FrameElementTree 는 props 만으로
@@ -73,7 +73,7 @@ function makeProps(
   };
 }
 
-describe("FrameElementTree (ADR-911 P2 PR-D2)", () => {
+describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

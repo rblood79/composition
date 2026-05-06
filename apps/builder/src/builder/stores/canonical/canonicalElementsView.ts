@@ -1,12 +1,12 @@
 /**
- * @fileoverview Canonical → Legacy Element[] derived view — ADR-916 Phase 2 G3 Step 1b
+ * @fileoverview Canonical → Legacy Element[] derived view — ADR-116 Phase 2 G3 Step 1b
  *
  * canonical store 의 active document 를 `Element[]` 로 평탄화. 5 hot path
  * cutover 의 read backbone — 기존 파이프라인 (buildTreeFromElements /
  * convertToLayerTreeNodes / Inspector / Preview sync) 을 변경하지 않고
  * canonical → derived view 로 사용 가능.
  *
- * ADR-916 direct cutover 이후 `CanonicalNode.props` 와 canonical node id/type 이
+ * ADR-116 direct cutover 이후 `CanonicalNode.props` 와 canonical node id/type 이
  * derived view 의 source of truth 이다.
  *
  * Direct cutover 이후 canonical store 가 hydrated 일 때 의미가 있다. 초기
@@ -59,7 +59,7 @@ const ROOT_SCOPE: ElementScopeContext = {
 };
 
 /**
- * ADR-916 Phase 5 G7 본격 cutover (2026-05-01) — `x-composition` extension 에서
+ * ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — `x-composition` extension 에서
  * events / dataBinding 추출하여 Element 에 spread 가능한 partial 객체 반환.
  * 양쪽 미정의 시 빈 객체 반환.
  */
@@ -132,7 +132,7 @@ export function canonicalNodeToElement(
   orderNum: number,
   scope: ElementScopeContext = ROOT_SCOPE,
 ): Element | null {
-  // ADR-916 Phase 5 G7 본격 cutover — `x-composition` extension 에서
+  // ADR-116 Phase 5 G7 본격 cutover — `x-composition` extension 에서
   // events/dataBinding 복원.
   const extFields = extractExtensionFields(node);
   const metadata = node.metadata as CanonicalScopeMetadata | undefined;
@@ -296,7 +296,7 @@ export function useCanonicalFrameElementScopes(): CanonicalFrameElementScopeMap 
 /**
  * 활성 canonical document 에서 selected element 를 `Element` 형태로 파생.
  *
- * **ADR-916 Phase 2 G3 Step 2 (Selection/properties)** read backbone — selected
+ * **ADR-116 Phase 2 G3 Step 2 (Selection/properties)** read backbone — selected
  * element 의 panel 데이터를 canonical store 에서 직접 파생.
  *
  * **lookup 정책**: selectedElementId 는 canonical node id 와 동일하다.

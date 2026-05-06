@@ -241,7 +241,7 @@ export function createEmptyComponentIndex(): ComponentIndex {
 /**
  * 전체 요소에서 Component Index 구축
  *
- * ADR-916 G5-B P5-C: legacy `componentRole === "master" | "instance"` literal
+ * ADR-116 G5-B P5-C: legacy `componentRole === "master" | "instance"` literal
  * 검사 → isMasterElement / isInstanceElement type guard 호출로 단일화. 두 guard
  * 자체는 read-through fallback marker 보존.
  */
@@ -252,7 +252,7 @@ export function rebuildComponentIndex(elements: Element[]): ComponentIndex {
     if (isMasterElement(el)) {
       index.masterComponents.set(el.id, el);
     }
-    // ADR-916 G5-B P5-D: component master reference 는 mirror adapter 를
+    // ADR-116 G5-B P5-D: component master reference 는 mirror adapter 를
     // 경유한다 (canonical RefNode 의 ref 자동 호환).
     if (isInstanceElement(el)) {
       const masterRef = getInstanceMasterRef(el);

@@ -1,10 +1,10 @@
-# ADR-913 Inventory Analysis: Element.tag → Element.type Rename + Hybrid 6 Field Cleanup
+# ADR-113 Inventory Analysis: Element.tag → Element.type Rename + Hybrid 6 Field Cleanup
 
 ## Executive Summary
 
 - **Analysis Date**: 2026-04-27
 - **Codebase Scope**: apps/builder/src + packages/*
-- **ADR-913 Baseline (2026-04-22)**: 1031 ref / 154 files (tag) + 1472 ref / 184 files (hybrid 6)
+- **ADR-113 Baseline (2026-04-22)**: 1031 ref / 154 files (tag) + 1472 ref / 184 files (hybrid 6)
 - **Current Actual Count**: 576 refs (source) + 20 refs (tests) = 596 total tag refs
 - **Key Finding**: Actual source-code refs (556) significantly lower than ADR baseline (1031). Difference ≈475 refs (46% gap) requires investigation.
 
@@ -326,7 +326,7 @@ if (!db.objectStoreNames.contains("elements")) {
 
 1. **Increment DB_VERSION** (8 → 9):
    ```typescript
-   const DB_VERSION = 9;  // ADR-913: tag → type rename + hybrid cleanup
+   const DB_VERSION = 9;  // ADR-113: tag → type rename + hybrid cleanup
    ```
 
 2. **Migration Logic** in `onupgradeneeded`:
@@ -375,7 +375,7 @@ if (!db.objectStoreNames.contains("elements")) {
 
 | Field | Refs | Files | Status | Dependency |
 |-------|------|-------|--------|------------|
-| **layout_id** | 117 | 38 | Partial cleanup (ADR-911 G3c) | Layout/Slot system |
+| **layout_id** | 117 | 38 | Partial cleanup (ADR-111 G3c) | Layout/Slot system |
 | **masterId** | 32 | 11 | Component-instance system | ADR-903 P1 (ref:id) |
 | **componentRole** | 25 | 10 | Component-instance system | ADR-903 P1 (reusable:true) |
 | **descendants** | 19 | 8 | Canonical structure (override path) | ADR-903 P3 (descendants[slot]) |
@@ -393,7 +393,7 @@ if (!db.objectStoreNames.contains("elements")) {
 | `overrides: { propKey: value }` | RefNode root props | Phase 1: P1-D |
 | `descendants: { childId: {...} }` | `descendants[slot/child-id].overrides` | Phase 3: P3-F |
 | `slot_name: "page-name"` | Page metadata (not element field) | Phase 3: P3-C |
-| `layout_id` | `schema.frameset.ref` (pending ADR-911 decision) | Phase 4: G5-E or ADR-911 |
+| `layout_id` | `schema.frameset.ref` (pending ADR-111 decision) | Phase 4: G5-E or ADR-111 |
 
 ### 6.3 Risk Assessment: descendants Field
 
@@ -452,7 +452,7 @@ if (!db.objectStoreNames.contains("elements")) {
 - Remove legacy fields from Element interface:
   - `masterId`, `componentRole`, `overrides` (96 refs → canonical ref system)
   - `slot_name`, `overrides` (48 refs → canonical descendants[slotPath].children)
-  - `layout_id` cleanup (coordinate with ADR-911)
+  - `layout_id` cleanup (coordinate with ADR-111)
 - Adapter shim cleanup (if any legacy layout code remains)
 - Type-guard enforcement: `isCanonicalNode(obj): obj is Element`
 - **Gate**: G5-C, G5-F (hybrid 0, legacy layout 0)
@@ -465,7 +465,7 @@ if (!db.objectStoreNames.contains("elements")) {
 | 2. AST-Grep rename | 1.0 | ❌ (sequential) | Phase 1 |
 | 3. Manual review | 1.0 | ✅ (parallel to 2b) | Phase 2 completion |
 | 4. DB migration | 1.5 | ❌ (sequential) | Phase 3 |
-| 5. Hybrid cleanup | 2.0 | ❌ (sequential) | Phase 4 + ADR-911 alignment |
+| 5. Hybrid cleanup | 2.0 | ❌ (sequential) | Phase 4 + ADR-111 alignment |
 | **Total** | **6.0** | Peak: 2 parallel | Linear critical path |
 
 ### 7.3 Risk Grades
@@ -547,7 +547,7 @@ grep -n "oldVersion < 9" apps/builder/src/lib/db/indexedDB/adapter.ts
 - **Implication**: AST-Grep 90% success rate achievable; manual review phase is focused & low-risk
 
 ### Finding 3: Hybrid 6 Fields Require Detailed Canonical Mapping
-- `layout_id` (117 refs, 38 files) — dependency on ADR-911 Layout/Slot cleanup
+- `layout_id` (117 refs, 38 files) — dependency on ADR-111 Layout/Slot cleanup
 - `masterId` + `componentRole` (57 refs) — clear canonical mapping to RefNode type
 - `descendants` + `slot_name` + `overrides` (50 refs) — canonical mapping exists but runtime type mismatch (UUID vs slot path) requires audit
 - **Implication**: Phase 5 should NOT be gated solely on Phase 4; can parallelize descendants validation work

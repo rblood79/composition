@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SHORTCUT_DEFINITIONS } from "./keyboardShortcuts";
 
-describe("keyboardShortcuts ADR-912 editing semantics", () => {
+describe("keyboardShortcuts ADR-112 editing semantics", () => {
   it("registers Pencil-compatible component shortcuts", () => {
     expect(SHORTCUT_DEFINITIONS.toggleComponentOrigin).toMatchObject({
       key: "k",

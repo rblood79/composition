@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-910 Phase 1+2 — Themes Snapshot/Apply Adapter
+ * @fileoverview ADR-110 Phase 1+2 — Themes Snapshot/Apply Adapter
  *
  * ADR-021 themeConfigStore ↔ canonical document `themes` 필드 양방향 변환.
  *
@@ -11,14 +11,14 @@
  *
  * **Read-only 원칙 (Phase 1)**:
  * - `snapshotThemesFromConfig()` 는 call-time 직렬화 — subscribe 기반 아님
- *   (ADR-910 R4 대응: stale snapshot 방지)
+ *   (ADR-110 R4 대응: stale snapshot 방지)
  *
  * **Write-through 계약 (Phase 2)**:
  * - `applyCanonicalThemes()` 는 DI 패턴 — `ThemeConfigSetters` 주입 받아 호출
  * - themeConfigStore 직접 의존 없음 (테스트 친화 + R4 stale 방지)
  * - round-trip 보장: load → apply → re-snapshot 결과 동일
  *
- * **ThemeSnapshot 설계 (ADR-910 R2)**:
+ * **ThemeSnapshot 설계 (ADR-110 R2)**:
  * - `@composition/shared` 의 `ThemeSnapshot` 타입을 단일 소스로 사용
  * - per-element theme override 는 후속 ADR 에서 결정
  */
@@ -52,7 +52,7 @@ export interface ThemeConfigInput {
 /**
  * themeConfigStore 현재 상태 → `ThemeSnapshot` 직렬화.
  *
- * call-time 직렬화 (subscribe 기반 아님) — stale snapshot 방지 (ADR-910 R4).
+ * call-time 직렬화 (subscribe 기반 아님) — stale snapshot 방지 (ADR-110 R4).
  * `legacyToCanonical()` 호출 시 전달된 `getThemeConfig()` 콜백에서 호출됨.
  *
  * @param themeConfig - themeConfigStore 현재 상태 (ThemeConfigInput 최소 계약)
@@ -83,7 +83,7 @@ export function readCanonicalThemes(
 ): ThemeSnapshot | undefined {
   if (!doc.themes) return undefined;
 
-  // ADR-910 Phase 1: CompositionDocument.themes 타입이 ThemeSnapshot 으로 전환됨
+  // ADR-110 Phase 1: CompositionDocument.themes 타입이 ThemeSnapshot 으로 전환됨
   // 필드 존재 여부만 확인 (타입 캐스팅 불필요)
   const t = doc.themes;
   if (

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Canonical Document Actions / Adapter API — ADR-916 Phase 1 (G2)
+ * @fileoverview Canonical Document Actions / Adapter API — ADR-116 Phase 1 (G2)
  *
  * Phase 1 = Canonical Document Store/API surface + skeleton + unit test (R1 명시 scope).
  *
@@ -9,7 +9,7 @@
  *    surface. legacy `Element` 입력을 받지 않으며 history entry 가 canonical
  *    patch 단위로 기록되도록 시그니처를 잡는다 (design breakdown §6 원칙 1, 3).
  *
- * **저장 backing 결정 (ADR-916 Phase 1 D2=β)**:
+ * **저장 backing 결정 (ADR-116 Phase 1 D2=β)**:
  * - 본 actions surface 는 별도 Zustand slice
  *   (`apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts`)
  *   가 구현. 기존 elementsMap wrapper 가 아니라 분리 store 로 G3 hot path

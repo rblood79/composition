@@ -1,5 +1,5 @@
 /**
- * @fileoverview canonicalDocumentSync unit tests — ADR-916 direct cutover
+ * @fileoverview canonicalDocumentSync unit tests — ADR-116 direct cutover
  *
  * direct cutover 이후 이 모듈은 legacy snapshot projection sync 를 수행하지 않고
  * canonical store 의 active project lifecycle 만 관리한다.

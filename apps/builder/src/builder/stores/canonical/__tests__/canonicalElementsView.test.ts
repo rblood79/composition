@@ -1,5 +1,5 @@
 /**
- * @fileoverview canonicalElementsView unit tests — ADR-916 direct cutover.
+ * @fileoverview canonicalElementsView unit tests — ADR-116 direct cutover.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

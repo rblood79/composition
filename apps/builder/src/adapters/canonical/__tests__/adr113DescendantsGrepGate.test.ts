@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-913 Phase 5-E — legacy Element.descendants quarantine gate.
+ * @fileoverview ADR-113 Phase 5-E — legacy Element.descendants quarantine gate.
  *
  * `descendants` is a canonical field on RefNode, so a raw grep cannot be zero.
  * This gate keeps the remaining non-adapter runtime access limited to canonical
@@ -108,7 +108,7 @@ function scanDescendantsReferences(): DescendantsReference[] {
   return refs;
 }
 
-describe("ADR-913 Phase 5-E descendants quarantine gate", () => {
+describe("ADR-113 Phase 5-E descendants quarantine gate", () => {
   it("keeps non-adapter descendants runtime access canonical-only", () => {
     const refs = scanDescendantsReferences();
     const violations = refs.filter(
@@ -120,7 +120,7 @@ describe("ADR-913 Phase 5-E descendants quarantine gate", () => {
         .map((ref) => `  ${ref.file}:${ref.line} -> ${ref.text}`)
         .join("\n");
       throw new Error(
-        `ADR-913 descendants quarantine regression: ${violations.length} forbidden references\n${summary}`,
+        `ADR-113 descendants quarantine regression: ${violations.length} forbidden references\n${summary}`,
       );
     }
 

@@ -233,7 +233,7 @@ export class ComponentFactory {
     // 1. 컴포넌트 정의 생성
     const definition = definitionCreator(context);
 
-    // 2. Element 데이터 생성 (ADR-911: page/frame ownership 명시 주입)
+    // 2. Element 데이터 생성 (ADR-111: page/frame ownership 명시 주입)
     const { parent, children } = createElementsFromDefinition(definition, {
       pageId: pageId || null,
       layoutId,

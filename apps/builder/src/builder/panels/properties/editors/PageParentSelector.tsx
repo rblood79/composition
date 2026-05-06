@@ -1,7 +1,7 @@
 /**
  * Page Parent Selector
  *
- * ADR-911/916: reusable frame 목록은 canonical document surface 에서 읽는다.
+ * ADR-111/116: reusable frame 목록은 canonical document surface 에서 읽는다.
  */
 
 import { memo, useMemo, useCallback, useState } from "react";

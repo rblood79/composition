@@ -1,10 +1,10 @@
 # ADR-020: Design Kit 패널 분석 및 개선 계획
 
-> **Superseded by [ADR-915](915-remove-designkit-system.md)** (2026-04-27) — DesignKit 시스템 전수 제거 결정. 본 ADR 의 §2.1 (CRITICAL 기능 가치 부재) + §2.2 (HIGH composition 컴포넌트 시스템 미활용) 자가 분석이 ADR-915 의 제거 결정 근거로 인용되었다. 본문 historical reference 보존.
+> **Superseded by [ADR-115](115-remove-designkit-system.md)** (2026-04-27) — DesignKit 시스템 전수 제거 결정. 본 ADR 의 §2.1 (CRITICAL 기능 가치 부재) + §2.2 (HIGH composition 컴포넌트 시스템 미활용) 자가 분석이 ADR-115 의 제거 결정 근거로 인용되었다. 본문 historical reference 보존.
 
 ## Status
 
-Superseded by ADR-915 — 2026-04-27
+Superseded by ADR-115 — 2026-04-27
 
 ## Context
 

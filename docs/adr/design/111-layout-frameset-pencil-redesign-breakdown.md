@@ -1,10 +1,10 @@
-# ADR-911 Layout/Slot Frameset 완전 재설계 — 구현 상세
+# ADR-111 Layout/Slot Frameset 완전 재설계 — 구현 상세
 
-> **상위 ADR**: [ADR-911](../completed/911-layout-frameset-pencil-redesign.md) (Status: Implemented — 2026-05-02)
-> **의존 ADR**: ADR-903 (Implemented 2026-04-26) + ADR-916 (Implemented 2026-05-02). `useLayoutsStore` / `layoutActions` 본체는 2026-05-02 legacy layout store removal 로 삭제됐고, ADR-911 G5 Pencil import/export parity 도 완료됨.
+> **상위 ADR**: [ADR-111](../completed/111-layout-frameset-pencil-redesign.md) (Status: Implemented — 2026-05-02)
+> **의존 ADR**: ADR-903 (Implemented 2026-04-26) + ADR-116 (Implemented 2026-05-02). `useLayoutsStore` / `layoutActions` 본체는 2026-05-02 legacy layout store removal 로 삭제됐고, ADR-111 G5 Pencil import/export parity 도 완료됨.
 > **총 예상 규모**: historical plan. 2026-05-02 이후 feature flag / migration / backup / adapter shim 유지 전제는 direct cutover 로 superseded.
 
-> **2026-05-02 current override**: 아래 Phase 1~4의 migration/dual-mode/shim 계획은 역사적 설계 기록이다. 현재 구현 기준은 canonical frame surface (`canonicalFrameStore`) + active `CompositionDocument` 가 in-memory SSOT이고, current DB `layouts` row 는 persistence mirror 로만 남는다. `apps/builder/src/builder/stores/layouts.ts` / `stores/utils/layoutActions.ts` 는 삭제 완료. Phase 5 는 `apps/builder/src/adapters/pencil/**` + shared mapper + ADR-916 import payload adapter 통합으로 완료.
+> **2026-05-02 current override**: 아래 Phase 1~4의 migration/dual-mode/shim 계획은 역사적 설계 기록이다. 현재 구현 기준은 canonical frame surface (`canonicalFrameStore`) + active `CompositionDocument` 가 in-memory SSOT이고, current DB `layouts` row 는 persistence mirror 로만 남는다. `apps/builder/src/builder/stores/layouts.ts` / `stores/utils/layoutActions.ts` 는 삭제 완료. Phase 5 는 `apps/builder/src/adapters/pencil/**` + shared mapper + ADR-116 import payload adapter 통합으로 완료.
 >
 > **2026-05-05 rollback / 2026-05-06 follow-up**: 2026-05-03 post-cutover frame scope fix 군은 사용자 환경 회귀 누적으로 폐기됐다. 2026-05-06 current main follow-up 패치에서 page-frame refresh body/Slot projection, shared frame multi-page projection, Layout Preset Slot replace, frame/page body auto-selection, Nodes panel Frames tree parity 를 다시 닫았다. 현행 frame authoring/render input 은 active `CompositionDocument` / canonical frame projection 기준이며, `layout_id` mirror 는 adapter fallback/export boundary 로 격리한다.
 
@@ -21,16 +21,16 @@ P3 (G3): layoutActions cascade 재작성 (canonical-native)
    ↓
 P4 (G4): legacy 0 + PanelSlot→PanelArea rename + 명칭 충돌 해소
    ↓
-P5 (G5): pencil .pen import/export adapter + ADR-916 imports adapter boundary 통합
+P5 (G5): pencil .pen import/export adapter + ADR-116 imports adapter boundary 통합
 ```
 
 | Phase  | 의존                       | 병렬 가능 | 예상 시간 | 위험 |
 | ------ | -------------------------- | --------- | --------- | ---- |
 | **P1** | ADR-903 E-6 IndexedDB 완료 | —         | ~8h       | HIGH |
 | **P2** | P1 G1 통과                 | —         | ~12h      | MED  |
-| **P3** | ADR-916 G2 + P2 G2 통과    | —         | ~8h       | HIGH |
-| **P4** | ADR-916 G5 + P3 G3 통과    | —         | ~8h       | LOW  |
-| **P5** | ADR-916 G6 + P4 G4 통과    | —         | ~6h       | MED  |
+| **P3** | ADR-116 G2 + P2 G2 통과    | —         | ~8h       | HIGH |
+| **P4** | ADR-116 G5 + P3 G3 통과    | —         | ~8h       | LOW  |
+| **P5** | ADR-116 G6 + P4 G4 통과    | —         | ~6h       | MED  |
 
 ---
 
@@ -55,10 +55,10 @@ P5 (G5): pencil .pen import/export adapter + ADR-916 imports adapter boundary �
 | `slot_name: "sidebar"` prop              | `descendants["sidebar"]` key path (slash 구분자 없으면 최상위 slot key)                     |
 | `LayoutPreset` (slot 구조 preset)        | `reusable: true` FrameNode + template library entry (presetDefinitions.ts → canonical 변환) |
 
-**구현 위치**: `apps/builder/src/lib/db/migrationP911.ts` (신규)
+**구현 위치**: `apps/builder/src/lib/db/migrationP111.ts` (신규)
 
 ```ts
-// apps/builder/src/lib/db/migrationP911.ts
+// apps/builder/src/lib/db/migrationP111.ts
 
 import type { FrameNode, RefNode } from "@composition/shared";
 import type { LayoutTemplate } from "../../builder/templates/layoutTemplates";
@@ -124,7 +124,7 @@ function buildDescendantsFromSlots(
 
 ### P1-b: 사용자 IndexedDB layout-bound elements 변환
 
-**대상**: `apps/builder/src/lib/db/migrationP911.ts` (이어서)
+**대상**: `apps/builder/src/lib/db/migrationP111.ts` (이어서)
 
 ADR-903 P3-E E-6 이후 IndexedDB elements 의 `parent_id` 는 이미 canonical frame node id 로 변환됨. 그러나 legacy `Layout` rows 가 IndexedDB `layouts` store 에 잔존하고, `layouts` store 의 rows 가 canonical document tree 와 동기화되지 않은 경우 자동 변환.
 
@@ -148,7 +148,7 @@ localStorage.setItem(backupKey, JSON.stringify({ layouts, elements }));
 // backup 보존 기간: 30일 (이후 자동 삭제)
 ```
 
-**dry-run 모드**: `migrationP911.dryRun(projectId)` 호출 시 실제 write 없이 변환 결과만 반환. 개발 환경에서 콘솔 출력으로 검토 후 production migration.
+**dry-run 모드**: `migrationP111.dryRun(projectId)` 호출 시 실제 write 없이 변환 결과만 반환. 개발 환경에서 콘솔 출력으로 검토 후 production migration.
 
 ### P1-c: roundtrip 시각 비교 절차 (G1-c)
 
@@ -158,14 +158,14 @@ localStorage.setItem(backupKey, JSON.stringify({ layouts, elements }));
 
 ```
 (1) 변환 전 Builder 스크린샷 캡처 (Chrome MCP parallel-verify skill)
-(2) migrationP911.dryRun() 로 변환 결과 메모리에 적용 (DB write 없음)
+(2) migrationP111.dryRun() 로 변환 결과 메모리에 적용 (DB write 없음)
 (3) 변환 후 Builder 스크린샷 캡처 (동일 페이지 / 동일 줌 레벨)
 (4) screenshot diff: pixelmatch 사용, threshold 0.01 (1% 허용)
 (5) diff > 0 → 변환 알고리즘 수정, diff = 0 → G1-c 통과
 (6) CSS (Preview) 양축도 동일 절차
 ```
 
-**자동화 스크립트**: `apps/builder/src/lib/db/__tests__/migration911.visual.test.ts` (신규)
+**자동화 스크립트**: `apps/builder/src/lib/db/__tests__/migration111.visual.test.ts` (신규)
 
 ```ts
 // 시각 비교 테스트 (parallel-verify skill 경유)
@@ -173,7 +173,7 @@ it("layoutTemplate singleColumn: visual diff 0 after canonical conversion", asyn
   const before = await captureBuilderScreenshot({
     templateId: "single-column",
   });
-  await migrationP911.dryRun("test-project");
+  await migrationP111.dryRun("test-project");
   const after = await captureBuilderScreenshot({ templateId: "single-column" });
   const diff = pixelmatch(before, after, null, WIDTH, HEIGHT, {
     threshold: 0.01,
@@ -194,10 +194,10 @@ it("layoutTemplate singleColumn: visual diff 0 after canonical conversion", asyn
 
 | 파일                                                            | 변경 유형 | 내용                                                                           |
 | --------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------ |
-| `apps/builder/src/lib/db/migrationP911.ts`                      | **신규**  | 변환 도구 (dryRun + apply)                                                     |
-| `apps/builder/src/lib/db/__tests__/migration911.visual.test.ts` | **신규**  | roundtrip 시각 비교 테스트                                                     |
+| `apps/builder/src/lib/db/migrationP111.ts`                      | **신규**  | 변환 도구 (dryRun + apply)                                                     |
+| `apps/builder/src/lib/db/__tests__/migration111.visual.test.ts` | **신규**  | roundtrip 시각 비교 테스트                                                     |
 | `apps/builder/src/builder/templates/layoutTemplates.ts`         | **수정**  | `LayoutTemplate` 에 `canonicalFrame?: FrameNode` 병기 (P4 완료 후 legacy 제거) |
-| `apps/builder/src/lib/db/indexedDB/adapter.ts`                  | **수정**  | `migrationP911` 진입 호출 추가 (schemaVersion 체크)                            |
+| `apps/builder/src/lib/db/indexedDB/adapter.ts`                  | **수정**  | `migrationP111` 진입 호출 추가 (schemaVersion 체크)                            |
 
 ---
 
@@ -251,14 +251,14 @@ P2 scope 직접 전환: 5개 파일. P3 scope (G3 cascade 재작성 시 전환):
 
 #### Phase 1 함수 layer 재사용 가능 항목
 
-`apps/builder/src/lib/db/migrationP911.ts` (185 lines, 45 tests PASS):
+`apps/builder/src/lib/db/migrationP111.ts` (185 lines, 45 tests PASS):
 
 | 함수                              | 서명                                                                                    | P2 활용                                    |
 | --------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------ |
 | `convertTemplateToCanonicalFrame` | `(template: LayoutTemplate) => FrameNode`                                               | LayoutPresetSelector → frame template 변환 |
 | `hoistLayoutAsReusableFrame`      | `(layout: Layout) => FrameNode`                                                         | dev 환경 manual trigger migration          |
-| `dryRunMigrationP911`             | `(adapter, projectId, canonicalDoc) => Promise<MigrationP911Result>`                    | dev 검증 trigger UI                        |
-| `applyMigrationP911`              | `(currentDoc: CompositionDocument, result: MigrationP911Result) => CompositionDocument` | apply 시 canonical doc 갱신                |
+| `dryRunMigrationP111`             | `(adapter, projectId, canonicalDoc) => Promise<MigrationP111Result>`                    | dev 검증 trigger UI                        |
+| `applyMigrationP111`              | `(currentDoc: CompositionDocument, result: MigrationP111Result) => CompositionDocument` | apply 시 canonical doc 갱신                |
 
 **`selectCanonicalDocument`** (`apps/builder/src/builder/stores/elements.ts:1892`): canonical document selector — P2 재작성 시 직접 사용.
 
@@ -405,7 +405,7 @@ P3-E E-6 write-through 자동화는 P3 작업이지만, P2 구현 중 **dev 환�
 
 | 옵션     | 위치                               | 트리거                | P3 write-through 와의 관계                             |
 | -------- | ---------------------------------- | --------------------- | ------------------------------------------------------ |
-| A (권장) | `FramesTab` 개발자 메뉴 (dev-only) | 버튼 클릭             | 동일 `dryRunMigrationP911` + `applyMigrationP911` 호출 |
+| A (권장) | `FramesTab` 개발자 메뉴 (dev-only) | 버튼 클릭             | 동일 `dryRunMigrationP111` + `applyMigrationP111` 호출 |
 | B        | `initializeProject` 내 조건부 분기 | 프로젝트 로드 시 자동 | P3 write-through entry 의 선행 버전 (P3 진입 시 제거)  |
 
 옵션 A 선택: P2 scope 를 최소화하고, P3 진입 시 정식 write-through 진입점(옵션 B)으로 교체.
@@ -417,7 +417,7 @@ P3-E E-6 write-through 자동화는 P3 작업이지만, P2 구현 중 **dev 환�
 const handleDevMigrate = useCallback(async () => {
   if (!projectId || process.env.NODE_ENV !== "development") return;
   const db = await getDB();
-  const adapter: MigrationP911Adapter = {
+  const adapter: MigrationP111Adapter = {
     layouts: { getByProject: (id) => db.layouts.getByProject(id) },
   };
   const canonicalDoc = selectCanonicalDocument(
@@ -425,18 +425,18 @@ const handleDevMigrate = useCallback(async () => {
     useStore.getState().pages,
     useLayoutsStore.getState().layouts,
   );
-  const result = await dryRunMigrationP911(adapter, projectId, canonicalDoc);
+  const result = await dryRunMigrationP111(adapter, projectId, canonicalDoc);
   if (result.errors.length === 0 && result.hoisted.length > 0) {
-    const newDoc = applyMigrationP911(canonicalDoc, result);
+    const newDoc = applyMigrationP111(canonicalDoc, result);
     // canonical document 갱신 (useStore.getState().setCanonicalDocument 또는 동급)
-    console.info(`[P911 dev] hoisted ${result.hoisted.length} frames`, newDoc);
+    console.info(`[P111 dev] hoisted ${result.hoisted.length} frames`, newDoc);
   } else {
-    console.warn("[P911 dev] dry-run result:", result);
+    console.warn("[P111 dev] dry-run result:", result);
   }
 }, [projectId]);
 ```
 
-**Chrome MCP 검증 (P1-c roundtrip)**: `dryRunMigrationP911` 결과 콘솔에서 `hoisted.length === layouts.length` 확인 후 `FramesTab` UI 에 frame 목록이 정상 표시되는지 검증.
+**Chrome MCP 검증 (P1-c roundtrip)**: `dryRunMigrationP111` 결과 콘솔에서 `hoisted.length === layouts.length` 확인 후 `FramesTab` UI 에 frame 목록이 정상 표시되는지 검증.
 
 ---
 
@@ -683,7 +683,7 @@ grep -rn "useLayoutsStore" apps/builder/src/ --include='*.ts' --include='*.tsx'
 
 ```ts
 // apps/builder/src/builder/stores/layouts.ts
-// @deprecated — ADR-911 Phase 4 adapter shim. P5-C 에서 완전 제거 예정.
+// @deprecated — ADR-111 Phase 4 adapter shim. P5-C 에서 완전 제거 예정.
 // 잔존 이유: 외부 call site 제로 확인 전 compat re-export 유지.
 
 export { useSelectedReusableFrameId } from "./layoutState";
@@ -717,7 +717,7 @@ grep -rn "PanelSlot\|BottomPanelSlot" apps/builder/src/ --include='*.ts' --inclu
 
 ### P4-c: Skia rendering / workflow `Frame` — 유지 (의미 일치)
 
-**보정 (2026-04-27 inventory 결과)**: 이전 ADR-911 본문에 포함되었던 `skiaFrameHelpers` / `workflowFrame*` rename 항목은 **철회**. 코드베이스 실측 결과 Skia/workflow 의 `Frame` 단어는 canonical FrameNode 의 시각 표현 또는 page-level FrameNode reference 로 pencil `frame` 의미와 정합.
+**보정 (2026-04-27 inventory 결과)**: 이전 ADR-111 본문에 포함되었던 `skiaFrameHelpers` / `workflowFrame*` rename 항목은 **철회**. 코드베이스 실측 결과 Skia/workflow 의 `Frame` 단어는 canonical FrameNode 의 시각 표현 또는 page-level FrameNode reference 로 pencil `frame` 의미와 정합.
 
 **유지 대상 (rename 불필요)**:
 
@@ -733,7 +733,7 @@ grep -rn "PanelSlot\|BottomPanelSlot" apps/builder/src/ --include='*.ts' --inclu
 | `workspace/canvas/skia/skiaOverlayBuilder.ts::FrameCacheState`                            | render frame cache                                 | 의미 일치                        |
 | `workspace/canvas/utils/gpuProfilerCore.ts::FrameStats`                                   | RAF profiling                                      | pencil 무관                      |
 
-**참고**: ADR-911 Terminology 섹션의 "충돌 없음 — pencil 무관 또는 의미 일치" 표 참조. Decision §Terminology 명문화 (commit f4047af1).
+**참고**: ADR-111 Terminology 섹션의 "충돌 없음 — pencil 무관 또는 의미 일치" 표 참조. Decision §Terminology 명문화 (commit f4047af1).
 
 ### P4-d: repo-wide grep 0 검증
 
@@ -763,7 +763,7 @@ grep -rn "PanelSlot\|BottomPanelSlot" apps/builder/src/ \
 # → 0 (PanelArea / BottomPanelArea 로 전환 완료)
 
 # 참고: skiaFrameHelpers / skiaFramePlan / workflowFrame* 는 canonical FrameNode
-# 의 시각 표현으로 의미 일치 — rename 대상 아님 (ADR-911 Terminology 보정)
+# 의 시각 표현으로 의미 일치 — rename 대상 아님 (ADR-111 Terminology 보정)
 ```
 
 ### P4 변경 파일 목록
@@ -777,17 +777,17 @@ grep -rn "PanelSlot\|BottomPanelSlot" apps/builder/src/ \
 | `builder/layout/index.ts`             | **수정**      | export path 업데이트                                |
 | 전체 PanelSlot consumer (~10-15 파일) | **수정**      | import `PanelArea` / `BottomPanelArea`              |
 
-**Skia/workflow `Frame` 영역은 변경 없음** — `skiaFrameHelpers` / `skiaFramePlan` / `skiaFramePipeline` / `workflowRenderer.PageFrame` / `workflowHitTest` / `workflowMinimap` 등은 canonical FrameNode 의 시각 표현으로 의미 일치 → 유지 (ADR-911 Terminology 보정 commit `f4047af1`).
+**Skia/workflow `Frame` 영역은 변경 없음** — `skiaFrameHelpers` / `skiaFramePlan` / `skiaFramePipeline` / `workflowRenderer.PageFrame` / `workflowHitTest` / `workflowMinimap` 등은 canonical FrameNode 의 시각 표현으로 의미 일치 → 유지 (ADR-111 Terminology 보정 commit `f4047af1`).
 
 ---
 
 ## Phase 5 (G5): pencil 호환 검증 — 6h
 
-> **Status (2026-05-02)**: Implemented. `apps/builder/src/adapters/pencil/` 에 document-level adapter 와 fixture 5종 roundtrip test 를 추가했고, `packages/shared/src/types/pencil-adapter.types.ts` 의 Phase 5+ stub 을 실제 mapper 로 승격했다. ADR-916 `normalizeCompositionImportPayload()` 는 같은 mapper 를 사용해 fetched `.pen` payload 를 canonical import document 로 normalize 한다.
+> **Status (2026-05-02)**: Implemented. `apps/builder/src/adapters/pencil/` 에 document-level adapter 와 fixture 5종 roundtrip test 를 추가했고, `packages/shared/src/types/pencil-adapter.types.ts` 의 Phase 5+ stub 을 실제 mapper 로 승격했다. ADR-116 `normalizeCompositionImportPayload()` 는 같은 mapper 를 사용해 fetched `.pen` payload 를 canonical import document 로 normalize 한다.
 
 ### 목적
 
-샘플 `.pen` 파일 5종 import → composition canonical document 변환 → roundtrip export → schema-equivalent 검증. ADR-914 는 Superseded 되었으므로 imports resolver/cache 통합은 ADR-916 의 canonical import/export adapter boundary 를 기준으로 명세한다.
+샘플 `.pen` 파일 5종 import → composition canonical document 변환 → roundtrip export → schema-equivalent 검증. ADR-114 는 Superseded 되었으므로 imports resolver/cache 통합은 ADR-116 의 canonical import/export adapter boundary 를 기준으로 명세한다.
 
 ### P5-a: pencil .pen import adapter
 
@@ -832,7 +832,7 @@ export function importPencilDocument(
 ): CompositionDocument;
 ```
 
-실제 node-level mapping 은 shared `pencilPrimitiveToComponent()` / `componentToPencilTree()` 가 소유한다. Builder adapter 는 file-open/roundtrip semantics 에서는 원본 `reusable` 값을 보존하고, ADR-916 import registry 경로에서는 `forceTopLevelReusable` 옵션으로 external `.pen` top-level node 를 reusable master 로 승격한다.
+실제 node-level mapping 은 shared `pencilPrimitiveToComponent()` / `componentToPencilTree()` 가 소유한다. Builder adapter 는 file-open/roundtrip semantics 에서는 원본 `reusable` 값을 보존하고, ADR-116 import registry 경로에서는 `forceTopLevelReusable` 옵션으로 external `.pen` top-level node 를 reusable master 로 승격한다.
 
 ### P5-b: 샘플 .pen 파일 5종 roundtrip 테스트
 
@@ -869,9 +869,9 @@ it.each(SAMPLE_FILES)("roundtrip: %s", async (filename) => {
 });
 ```
 
-### P5-c: ADR-916 imports resolver 통합 인터페이스 명세
+### P5-c: ADR-116 imports resolver 통합 인터페이스 명세
 
-ADR-916 은 `.pen` 파일의 `imports` field 를 canonical core hook 으로 유지하고, import/export adapter boundary 에서 외부 reusable frame 을 로컬 canonical document 에 합성한다. 본 P5 에서 ADR-916 이 흡수한 imports resolver/cache scope 가 의존할 인터페이스를 정의한다.
+ADR-116 은 `.pen` 파일의 `imports` field 를 canonical core hook 으로 유지하고, import/export adapter boundary 에서 외부 reusable frame 을 로컬 canonical document 에 합성한다. 본 P5 에서 ADR-116 이 흡수한 imports resolver/cache scope 가 의존할 인터페이스를 정의한다.
 
 **실제 통합 인터페이스**:
 
@@ -894,14 +894,14 @@ export function compositionDocumentToPencilDocument(
 ): PencilDocument;
 ```
 
-**ADR-916 연계 방식**: standalone `importResolver.register("pencil", ...)` registry 는 두지 않는다. ADR-916 default import fetcher 가 same-origin JSON 을 받아 `normalizeCompositionImportPayload()` 로 canonical/Pencil payload 를 판별하고, Pencil-style payload 는 shared mapper 경유로 canonical `CompositionDocument` 로 normalize 한다. ADR-914 standalone scope 는 Superseded 이다.
+**ADR-116 연계 방식**: standalone `importResolver.register("pencil", ...)` registry 는 두지 않는다. ADR-116 default import fetcher 가 same-origin JSON 을 받아 `normalizeCompositionImportPayload()` 로 canonical/Pencil payload 를 판별하고, Pencil-style payload 는 shared mapper 경유로 canonical `CompositionDocument` 로 normalize 한다. ADR-114 standalone scope 는 Superseded 이다.
 
 **G5 통과 조건**:
 
 | 조건                                     | 측정 방법                                                                                                     |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | (a) 샘플 5종 roundtrip schema-equivalent | `pnpm -F @composition/builder exec vitest run src/adapters/pencil/__tests__/pencilRoundtrip.test.ts` 5/5 PASS |
-| (b) ADR-916 통합 인터페이스 타입 정합    | `pnpm run codex:typecheck` PASS                                                                               |
+| (b) ADR-116 통합 인터페이스 타입 정합    | `pnpm run codex:typecheck` PASS                                                                               |
 
 ### P5 변경 파일 목록
 
@@ -913,7 +913,7 @@ export function compositionDocumentToPencilDocument(
 | `adapters/pencil/types.ts`                          | **신규**  | PencilDocument / PencilNode 타입                                     |
 | `adapters/pencil/__tests__/pencilImport.test.ts`    | **신규**  | import unit test                                                     |
 | `adapters/pencil/__tests__/pencilRoundtrip.test.ts` | **신규**  | 5종 roundtrip 검증                                                   |
-| `packages/shared/src/types/pencil-adapter.types.ts` | **수정**  | shared Pencil node/document mapper + ADR-916 import payload boundary |
+| `packages/shared/src/types/pencil-adapter.types.ts` | **수정**  | shared Pencil node/document mapper + ADR-116 import payload boundary |
 | `adapters/pencil/fixtures/`                         | **신규**  | 샘플 .pen 파일 5종 (mocked schema)                                   |
 
 ---
@@ -925,7 +925,7 @@ export function compositionDocumentToPencilDocument(
 | **D1** | pencil schema 호환 버전         | 현재 pencil 최신 schema (2.x) 기준            | 사용자 결정: "pencil 공식 명칭 그대로 사용"      |
 | **D2** | composition 확장 필드 namespace | `metadata.composition*` prefix                | ADR-903 §3.10 패턴 준용, pencil 미지원 필드 격리 |
 | **D3** | dual-mode 운영 기간             | 폐기 — 2026-05-02 direct cutover              | 개발 단계라 기존 사용자/데이터 보존 불필요       |
-| **D4** | adapter shim 최종 제거 시점     | 완료 — legacy layout store 본체 삭제          | ADR-916 final SSOT 와 동시 closure               |
+| **D4** | adapter shim 최종 제거 시점     | 완료 — legacy layout store 본체 삭제          | ADR-116 final SSOT 와 동시 closure               |
 | **D5** | PanelArea CSS class 전환        | `panel-slot` → `panel-area` (CSS도 동시 변경) | 의미 충돌 완전 격리                              |
 
 ---
@@ -934,18 +934,18 @@ export function compositionDocumentToPencilDocument(
 
 | ADR                                   | 관계                                                         | 선행 조건 |
 | ------------------------------------- | ------------------------------------------------------------ | --------- |
-| ADR-912 (Editing Semantics UI)        | 본 ADR FramesTab 위 reusable/ref/override UX 기준 제공       | 완료됨    |
-| ADR-913 (tag→type rename)             | ADR-916 G5 field quarantine 에서 함께 정렬                   | 완료됨    |
-| ADR-914 (imports + DesignKit)         | Superseded. `imports` fetch/cache scope 는 ADR-916 으로 흡수 | —         |
-| ADR-916 (canonical document SSOT)     | 잔여 P3/P4/P5 의 선행 store/API + adapter boundary           | 완료됨    |
-| ADR-910 (themes/variables)            | 독립 진행 가능                                               | —         |
-| ADR-903 P5-C (adapter shim 완전 해체) | 본 ADR P4 G4 + ADR-916 G5 adapter quarantine 와 동시 정렬    | P4 G4     |
+| ADR-112 (Editing Semantics UI)        | 본 ADR FramesTab 위 reusable/ref/override UX 기준 제공       | 완료됨    |
+| ADR-113 (tag→type rename)             | ADR-116 G5 field quarantine 에서 함께 정렬                   | 완료됨    |
+| ADR-114 (imports + DesignKit)         | Superseded. `imports` fetch/cache scope 는 ADR-116 으로 흡수 | —         |
+| ADR-116 (canonical document SSOT)     | 잔여 P3/P4/P5 의 선행 store/API + adapter boundary           | 완료됨    |
+| ADR-110 (themes/variables)            | 독립 진행 가능                                               | —         |
+| ADR-903 P5-C (adapter shim 완전 해체) | 본 ADR P4 G4 + ADR-116 G5 adapter quarantine 와 동시 정렬    | P4 G4     |
 
 ---
 
 ## 8. 참조
 
-- [ADR-911 본문](../completed/911-layout-frameset-pencil-redesign.md)
+- [ADR-111 본문](../completed/111-layout-frameset-pencil-redesign.md)
 - [ADR-903 Phase 3 frameset breakdown](903-phase3-frameset-breakdown.md)
 - [ADR-903 residual grep audit](903-residual-grep-audit-2026-04-26.md)
 - [ADR-903 phase 5 persistence imports breakdown](903-phase5-persistence-imports-breakdown.md)

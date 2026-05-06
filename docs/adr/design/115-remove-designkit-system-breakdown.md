@@ -1,6 +1,6 @@
-# ADR-915 구현 상세 — DesignKit 시스템 제거
+# ADR-115 구현 상세 — DesignKit 시스템 제거
 
-> 본 문서는 [ADR-915](../completed/915-remove-designkit-system.md) 의 구현 상세. 본문에는 결정/위험/Gates 만, 본 문서에는 Phase / 파일 변경표 / 체크리스트 / 검증 절차.
+> 본 문서는 [ADR-115](../completed/115-remove-designkit-system.md) 의 구현 상세. 본문에는 결정/위험/Gates 만, 본 문서에는 Phase / 파일 변경표 / 체크리스트 / 검증 절차.
 
 ## 영향 범위 inventory (제거 직전 측정)
 
@@ -28,13 +28,13 @@
 
 | 위치                                                               |     라인      | 처리                                                                                                            |
 | ------------------------------------------------------------------ | :-----------: | --------------------------------------------------------------------------------------------------------------- |
-| `docs/adr/020-design-kit-improvement.md`                           |    (전체)     | Status: Proposed → **Superseded by ADR-915** + `completed/` 이동                                                |
-| `docs/adr/completed/911-layout-frameset-pencil-redesign.md`        |      249      | "ADR-903 P5-D/E/F (`imports` resolver + DesignKit 통합) 와 자연스럽게 통합" → DesignKit 부분 제거               |
-| `docs/adr/completed/912-editing-semantics-ui-5elements.md`         | 18 / 34 / 112 | G4-A 시각 마커 항목에서 "DesignKit" 제거 (LayerTree + Canvas 만 유지)                                           |
+| `docs/adr/020-design-kit-improvement.md`                           |    (전체)     | Status: Proposed → **Superseded by ADR-115** + `completed/` 이동                                                |
+| `docs/adr/completed/111-layout-frameset-pencil-redesign.md`        |      249      | "ADR-903 P5-D/E/F (`imports` resolver + DesignKit 통합) 와 자연스럽게 통합" → DesignKit 부분 제거               |
+| `docs/adr/completed/112-editing-semantics-ui-5elements.md`         | 18 / 34 / 112 | G4-A 시각 마커 항목에서 "DesignKit" 제거 (LayerTree + Canvas 만 유지)                                           |
 | `docs/adr/016-photoshop-ui-ux.md`                                  |      43       | 다이어그램 박스에서 `DesignKitPanel` 제거                                                                       |
 | `docs/adr/011-ai-assistant-design.md`                              |     1079      | `appliedKitIds` 표 항목 정리 (이미 ADR-054 Superseded — 가벼운 footnote)                                        |
-| `docs/adr/completed/914-imports-resolver-designkit-integration.md` |    (전체)     | **Superseded** — DesignKit scope 는 본 ADR-915 로 무효화, imports fetch/cache/resolver 잔여는 ADR-916 으로 흡수 |
-| `docs/adr/README.md`                                               |   (현황 표)   | ADR-020 → 완료 섹션 (Superseded) / ADR-915 → 신규 추가                                                          |
+| `docs/adr/completed/114-imports-resolver-designkit-integration.md` |    (전체)     | **Superseded** — DesignKit scope 는 본 ADR-115 로 무효화, imports fetch/cache/resolver 잔여는 ADR-116 으로 흡수 |
+| `docs/adr/README.md`                                               |   (현황 표)   | ADR-020 → 완료 섹션 (Superseded) / ADR-115 → 신규 추가                                                          |
 
 ### 4. 영속화 / DB
 
@@ -46,7 +46,7 @@
 
 ## Phase 0: ADR 발의 (본 작업 진행 전 land 필수)
 
-- 본 ADR-915 + design breakdown 작성
+- 본 ADR-115 + design breakdown 작성
 - README.md 현황 표 갱신
 - Status: Proposed
 - 단일 PR 안에서 Phase 1+2+3 함께 진행 (의존성 0, 분할 이득 없음)
@@ -57,10 +57,10 @@
 
 ```bash
 # 1) 본문 상단 Status 변경
-# Proposed → Superseded by ADR-915
+# Proposed → Superseded by ADR-115
 
 # 2) Superseded 행 추가 (본문 최상단)
-# > Superseded by [ADR-915](915-remove-designkit-system.md) — DesignKit 시스템 전수 제거 결정
+# > Superseded by [ADR-115](115-remove-designkit-system.md) — DesignKit 시스템 전수 제거 결정
 
 # 3) completed/ 이동
 git mv docs/adr/020-design-kit-improvement.md docs/adr/completed/020-design-kit-improvement.md
@@ -70,17 +70,17 @@ git mv docs/adr/020-design-kit-improvement.md docs/adr/completed/020-design-kit-
 
 | 파일                                                            | 변경                                                                                                                                  |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs/adr/completed/911-layout-frameset-pencil-redesign.md:249` | "ADR-903 P5-D/E/F (`imports` resolver + DesignKit 통합)" → "ADR-903 P5-D/E (`imports` resolver) — DesignKit 통합은 ADR-915 로 제거됨" |
-| `docs/adr/completed/912-editing-semantics-ui-5elements.md:18`   | "DesignKit role 마커 (재사용 원본 시각화) **0건**" → 항목 제거                                                                        |
-| `docs/adr/completed/912-editing-semantics-ui-5elements.md:34`   | "① reusable / ref / override 시각 마커 3종 (LayerTree + Canvas + DesignKit)" → "...3종 (LayerTree + Canvas)"                          |
-| `docs/adr/completed/912-editing-semantics-ui-5elements.md:112`  | G4-A 표에서 "DesignKit" 제거                                                                                                          |
+| `docs/adr/completed/111-layout-frameset-pencil-redesign.md:249` | "ADR-903 P5-D/E/F (`imports` resolver + DesignKit 통합)" → "ADR-903 P5-D/E (`imports` resolver) — DesignKit 통합은 ADR-115 로 제거됨" |
+| `docs/adr/completed/112-editing-semantics-ui-5elements.md:18`   | "DesignKit role 마커 (재사용 원본 시각화) **0건**" → 항목 제거                                                                        |
+| `docs/adr/completed/112-editing-semantics-ui-5elements.md:34`   | "① reusable / ref / override 시각 마커 3종 (LayerTree + Canvas + DesignKit)" → "...3종 (LayerTree + Canvas)"                          |
+| `docs/adr/completed/112-editing-semantics-ui-5elements.md:112`  | G4-A 표에서 "DesignKit" 제거                                                                                                          |
 | `docs/adr/016-photoshop-ui-ux.md:43`                            | 다이어그램에서 `DesignKitPanel` 박스 제거 (좌측 패널 구성 갱신)                                                                       |
-| `docs/adr/011-ai-assistant-design.md:1079`                      | 표 항목 footnote: "_[ADR-054 Superseded + ADR-915 제거됨]_"                                                                           |
+| `docs/adr/011-ai-assistant-design.md:1079`                      | 표 항목 footnote: "_[ADR-054 Superseded + ADR-115 제거됨]_"                                                                           |
 
-### 1-3. ADR-914 처리
+### 1-3. ADR-114 처리
 
-- **2026-04-30 후속 정리 완료** — ADR-914 standalone plan 을 Superseded 처리하고 `completed/` 로 이동
-- DesignKit P5-F section 은 본 ADR-915 로 무효화, P5-D/P5-E imports resolver/cache 는 ADR-916 canonical document SSOT transition 으로 흡수
+- **2026-04-30 후속 정리 완료** — ADR-114 standalone plan 을 Superseded 처리하고 `completed/` 로 이동
+- DesignKit P5-F section 은 본 ADR-115 로 무효화, P5-D/P5-E imports resolver/cache 는 ADR-116 canonical document SSOT transition 으로 흡수
 
 ### 1-4. README.md 갱신
 
@@ -89,7 +89,7 @@ git mv docs/adr/020-design-kit-improvement.md docs/adr/completed/020-design-kit-
 
 # 변경 2: 완료 섹션에 ADR-020 Superseded 행 추가
 
-# 변경 3: 미구현 (Proposed) 섹션에 ADR-915 행 추가
+# 변경 3: 미구현 (Proposed) 섹션에 ADR-115 행 추가
 
 # 변경 4: 합계 카운트 동기화 (미구현 +0, 완료 +1, Superseded +1)
 ```
@@ -149,8 +149,8 @@ grep -rn -E "designKit|DesignKit|KitElement|KitToken|KitVariable|kitLoader|kitEx
 # docs 잔존 reference (정리되지 않은 것)
 grep -rn -E "DesignKit|designKit|\.kit\.json|kitLoader" docs/ --include="*.md" 2>/dev/null \
   | grep -v "020-design-kit" \
-  | grep -v "915-remove-designkit" \
-  | grep -v "design/915-" \
+  | grep -v "115-remove-designkit" \
+  | grep -v "design/115-" \
   | grep -v "CHANGELOG"
 ```
 
@@ -174,7 +174,7 @@ pnpm dev
 
 ### Breaking Changes
 
-- **DesignKit 패널 제거** (ADR-915 Implemented):
+- **DesignKit 패널 제거** (ADR-115 Implemented):
   - `Ctrl+Shift+K` 단축키 비활성화
   - `.kit.json` import / export 기능 제거
   - **Why**: theme 시스템 + variable 시스템 + Compositional Architecture 와 의미 중복 — DesignKit 의 5 변수 / 12 토큰 / 2 컴포넌트 (Card / Badge) 는 모두 theme 시스템에서 더 풍부하게 표현됨
@@ -183,8 +183,8 @@ pnpm dev
 
 ### Architecture
 
-- **ADR-020 Superseded by ADR-915**: DesignKit 패널 분석/개선 계획 → 제거 결정
-- **ADR-911 / ADR-912 / ADR-016 / ADR-011 reference 정리**: DesignKit 언급 제거
+- **ADR-020 Superseded by ADR-115**: DesignKit 패널 분석/개선 계획 → 제거 결정
+- **ADR-111 / ADR-112 / ADR-016 / ADR-011 reference 정리**: DesignKit 언급 제거
 ```
 
 ## Gate 점검 (자가 검증)
@@ -192,15 +192,15 @@ pnpm dev
 | Gate                 | 통과 조건                                                     | 검증 방법                       |
 | -------------------- | ------------------------------------------------------------- | ------------------------------- |
 | G1: 정적 검증        | type-check + build error 0                                    | `pnpm type-check && pnpm build` |
-| G2: 잔존 reference 0 | code 0건, docs 0건 (CHANGELOG / ADR-020 / ADR-915 제외)       | grep 명령 (3-2 절)              |
+| G2: 잔존 reference 0 | code 0건, docs 0건 (CHANGELOG / ADR-020 / ADR-115 제외)       | grep 명령 (3-2 절)              |
 | G3: 동적 검증        | 사이드바에서 DesignKit 사라짐 + 다른 패널 정상 + 콘솔 error 0 | `pnpm dev` + 수동 확인          |
 | G4: CHANGELOG entry  | Breaking Changes + Architecture 섹션 포함                     | git diff `docs/CHANGELOG.md`    |
 
 ## 실행 순서 (단일 PR)
 
-1. (현재 단계) ADR-915 + design breakdown 파일 생성
+1. (현재 단계) ADR-115 + design breakdown 파일 생성
 2. README.md 갱신 + ADR-020 Superseded 처리 + ADR-020 → completed/ 이동
-3. ADR-911 / 912 / 016 / 011 reference 정리
+3. ADR-111 / 112 / 016 / 011 reference 정리
 4. 코드 5 경로 삭제 + panelConfigs / types.ts 갱신
 5. composition-document.types.ts 주석 정리 (선택)
 6. type-check + build

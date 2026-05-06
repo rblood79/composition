@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-910 Phase 1 — themes read-only snapshot adapter tests.
+ * @fileoverview ADR-110 Phase 1 — themes read-only snapshot adapter tests.
  *
  * Gate G-A 검증:
  * - `snapshotThemesFromConfig()` pure function
@@ -28,7 +28,7 @@ const deps = { convertComponentRole, convertPageLayout };
 // ─────────────────────────────────────────────
 // TC-T1: snapshotThemesFromConfig — 기본 변환
 // ─────────────────────────────────────────────
-describe("snapshotThemesFromConfig (ADR-910 Phase 1)", () => {
+describe("snapshotThemesFromConfig (ADR-110 Phase 1)", () => {
   it("TC-T1: tint/darkMode/neutral/radiusScale 필드를 그대로 복사한다", () => {
     const config: ThemeConfigInput = {
       tint: "blue",
@@ -90,7 +90,7 @@ describe("snapshotThemesFromConfig (ADR-910 Phase 1)", () => {
 // ─────────────────────────────────────────────
 // TC-T5: readCanonicalThemes — round-trip
 // ─────────────────────────────────────────────
-describe("readCanonicalThemes (ADR-910 Phase 1)", () => {
+describe("readCanonicalThemes (ADR-110 Phase 1)", () => {
   it("TC-T5: snapshot round-trip — snapshotThemesFromConfig → doc → readCanonicalThemes", () => {
     const config: ThemeConfigInput = {
       tint: "indigo",
@@ -100,7 +100,7 @@ describe("readCanonicalThemes (ADR-910 Phase 1)", () => {
     };
     const snapshot = snapshotThemesFromConfig(config);
 
-    // ADR-910 Phase 1: CompositionDocument.themes 타입이 ThemeSnapshot 으로 전환됨
+    // ADR-110 Phase 1: CompositionDocument.themes 타입이 ThemeSnapshot 으로 전환됨
     // 직접 할당 가능 (cast 불필요)
     const doc: CompositionDocument = {
       version: "composition-1.0",
@@ -139,7 +139,7 @@ describe("readCanonicalThemes (ADR-910 Phase 1)", () => {
 // ─────────────────────────────────────────────
 // TC-T6: legacyToCanonical + getThemeConfig 연동
 // ─────────────────────────────────────────────
-describe("legacyToCanonical + getThemeConfig (ADR-910 Phase 1)", () => {
+describe("legacyToCanonical + getThemeConfig (ADR-110 Phase 1)", () => {
   it("TC-T6: getThemeConfig 전달 시 doc.themes 에 snapshot 주입된다", () => {
     const config: ThemeConfigInput = {
       tint: "cyan",
@@ -240,7 +240,7 @@ describe("legacyToCanonical + getThemeConfig (ADR-910 Phase 1)", () => {
 // ─────────────────────────────────────────────
 // Phase 2 ts-3.1 — applyCanonicalThemes (write-through)
 // ─────────────────────────────────────────────
-describe("applyCanonicalThemes (ADR-910 Phase 2 ts-3.1)", () => {
+describe("applyCanonicalThemes (ADR-110 Phase 2 ts-3.1)", () => {
   function createMockSetters(): ThemeConfigSetters & {
     calls: Record<keyof ThemeConfigSetters, string[]>;
   } {

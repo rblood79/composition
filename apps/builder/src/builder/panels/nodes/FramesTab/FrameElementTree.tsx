@@ -1,7 +1,7 @@
 /**
  * FrameElementTree — frame 의 element 트리 렌더 + Layers 헤더 + Collapse All 버튼.
  *
- * ADR-911 Phase 2 PR-D2: FramesTab.tsx 의 Layers section (Layers 헤더 + tree 렌더
+ * ADR-111 Phase 2 PR-D2: FramesTab.tsx 의 Layers section (Layers 헤더 + tree 렌더
  * + placeholder) 추출.
  *
  * 본 컴포넌트는 프레젠테이션 전용 — element 선택 / 삭제 핸들러 구현은 부모 책임.

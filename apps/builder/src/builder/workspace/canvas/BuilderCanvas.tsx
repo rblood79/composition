@@ -269,7 +269,7 @@ export function BuilderCanvas({
   const renderVersion = useCanvasLifecycleStore((state) => state.renderVersion);
 
   // Page mode 는 아직 pageIndex store 계약을 유지하고, frame mode 의 Skia 입력은
-  // ADR-916 canonical document 에서 직접 파생한다.
+  // ADR-116 canonical document 에서 직접 파생한다.
   const storeElementsMap = useStore((state) => state.elementsMap);
   const canonicalElementsMap = useMemo(() => {
     if (!canonicalElements) return null;
@@ -303,7 +303,7 @@ export function BuilderCanvas({
     (state) => state.initializePagePositions,
   );
 
-  // ADR-911 P3-δ: reusable frame canvas authoring 시각 path
+  // ADR-111 P3-δ: reusable frame canvas authoring 시각 path
   const framePositions = useStore((state) => state.framePositions);
   const framePositionsVersion = useStore(
     (state) => state.framePositionsVersion,
@@ -433,7 +433,7 @@ export function BuilderCanvas({
     return computeLayoutGroups(pages, layouts, activeCanonicalDocument);
   }, [activeCanonicalDocument, pages, layouts]);
 
-  // ADR-911 P3-δ (B): canonical reusable frame 별 캔버스 영역 그룹.
+  // ADR-111 P3-δ (B): canonical reusable frame 별 캔버스 영역 그룹.
   const frameAreas = useMemo(() => {
     if (!isFrameEditMode) return [];
     const anchorPageId = currentPageId ?? pages[0]?.id ?? null;
@@ -473,7 +473,7 @@ export function BuilderCanvas({
     selectedReusableFrameId,
   ]);
 
-  // ADR-911 P3-δ fix #3 (D4=A, 2026-04-28): frame body 의 layout publish input.
+  // ADR-111 P3-δ fix #3 (D4=A, 2026-04-28): frame body 의 layout publish input.
   // page-centric `layoutPublisherInputs` 와 분리 — `buildFrameRendererInput`
   // 신규 함수 사용 (P3-α/β/γ/δ 의 domain 분리 일관 패턴).
   // frame authoring 은 현재 page 와 같은 작업면을 전환해서 쓰므로, stale

@@ -401,7 +401,7 @@ describe("canonical import registry", () => {
     );
   });
 
-  it("keeps the ADR-916 G6-4 import runtime completion contract wired", async () => {
+  it("keeps the ADR-116 G6-4 import runtime completion contract wired", async () => {
     const [registrySource, resolverSource, previewSource] = await Promise.all([
       readFile(resolve(__dirname, "../importRegistry.ts"), "utf-8"),
       readFile(resolve(__dirname, "../index.ts"), "utf-8"),

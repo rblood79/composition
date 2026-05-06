@@ -1,7 +1,7 @@
 /**
  * FrameList — reusable frame 목록 컴포넌트.
  *
- * ADR-911 Phase 2 PR-D: FramesTab.tsx 의 Frames section (frame 목록 + Add 버튼) 추출.
+ * ADR-111 Phase 2 PR-D: FramesTab.tsx 의 Frames section (frame 목록 + Add 버튼) 추출.
  *
  * 본 컴포넌트는 프레젠테이션 전용 — 데이터 source (legacy/canonical) 결정과
  * frame CRUD 로직은 부모 (FramesTab) 책임. props 로 데이터/핸들러 주입받아

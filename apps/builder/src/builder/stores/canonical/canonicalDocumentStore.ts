@@ -1,5 +1,5 @@
 /**
- * @fileoverview Canonical Document Store (Zustand) — ADR-916 Phase 1 (G2)
+ * @fileoverview Canonical Document Store (Zustand) — ADR-116 Phase 1 (G2)
  *
  * `CanonicalDocumentActions` (packages/shared) 의 Zustand 구현체.
  *
@@ -599,7 +599,7 @@ export function selectActiveCanonicalDocument(): CompositionDocument | null {
 }
 
 // ─────────────────────────────────────────────
-// Dev-only window 노출 — ADR-916 Phase 2 G3 Step 1b 검증용
+// Dev-only window 노출 — ADR-116 Phase 2 G3 Step 1b 검증용
 // ─────────────────────────────────────────────
 //
 // dev console 에서 canonical store hydration 검증 가능:

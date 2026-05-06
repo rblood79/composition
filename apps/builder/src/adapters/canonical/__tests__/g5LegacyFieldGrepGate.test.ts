@@ -1,12 +1,12 @@
 /**
- * @fileoverview ADR-916 Phase 4 G5 — §9.3 strict logic-access grep gate codify.
+ * @fileoverview ADR-116 Phase 4 G5 — §9.3 strict logic-access grep gate codify.
  *
  * design §9.3 (5 필드 raw grep) 의 raw count 는 comment / dev log noise 를
  * 포함한다. 본 test 는 §9.3.1 strict logic-access 측정을 codify — bucket
  * 분류 후 진정 logic-access (runtime read/write) 잔존만 헤아린다.
  *
  * **G5 logic-access PASS marker (2026-05-01)**: BASELINE_VIOLATION_COUNT = 0.
- * 진정 logic cleanup 잔존은 ADR-911 P3 / ADR-913 P5 base cleanup work 의존 —
+ * 진정 logic cleanup 잔존은 ADR-111 P3 / ADR-113 P5 base cleanup work 의존 —
  * 별 ADR phase, 본 grep gate 외.
  *
  * 신규 caller 가 strict logic-access 잔존 추가 시 본 test 가 즉시 fail —
@@ -238,7 +238,7 @@ function scanFilesForPattern(
  * **G5 logic-access PASS marker (2026-05-01)**: 0.
  *
  * 신규 logic-access 추가 시 본 baseline 위반 → test fail. 진정 cleanup 진척
- * (ADR-911 P3 / ADR-913 P5 base work) 시 marker 갱신 불필요 — 본 test 는 유지.
+ * (ADR-111 P3 / ADR-113 P5 base work) 시 marker 갱신 불필요 — 본 test 는 유지.
  */
 const BASELINE_STRICT_LOGIC_ACCESS = 0;
 
@@ -246,7 +246,7 @@ const BASELINE_STRICT_LOGIC_ACCESS = 0;
 // Tests
 // ─────────────────────────────────────────────
 
-describe("ADR-916 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS marker)", () => {
+describe("ADR-116 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS marker)", () => {
   it("strict logic-access 잔존 ≤ baseline (PASS marker = 0)", () => {
     const violations = scanClassified();
     const strict = violations.filter((v) => v.bucket === "strict-logic-access");
@@ -255,7 +255,7 @@ describe("ADR-916 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS mar
         .map((v) => `  ${v.file}:${v.line} → ${v.text}`)
         .join("\n");
       throw new Error(
-        `ADR-916 G5 strict logic-access regression: ${strict.length} 위반 (baseline ${BASELINE_STRICT_LOGIC_ACCESS})\n${summary}`,
+        `ADR-116 G5 strict logic-access regression: ${strict.length} 위반 (baseline ${BASELINE_STRICT_LOGIC_ACCESS})\n${summary}`,
       );
     }
     expect(strict.length).toBeLessThanOrEqual(BASELINE_STRICT_LOGIC_ACCESS);
@@ -321,7 +321,7 @@ describe("ADR-916 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS mar
     const violations = scanNonAdapterTestsForComponentMirrorLiterals();
     if (violations.length > 0) {
       throw new Error(
-        `ADR-916 G5 component mirror fixture regression:\n${violations.join(
+        `ADR-116 G5 component mirror fixture regression:\n${violations.join(
           "\n",
         )}`,
       );
@@ -336,7 +336,7 @@ describe("ADR-916 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS mar
     );
     if (violations.length > 0) {
       throw new Error(
-        `ADR-916 G5 frame/slot type schema regression:\n${violations.join(
+        `ADR-116 G5 frame/slot type schema regression:\n${violations.join(
           "\n",
         )}`,
       );
@@ -351,7 +351,7 @@ describe("ADR-916 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS mar
     );
     if (violations.length > 0) {
       throw new Error(
-        `ADR-916 G5 descendants type schema regression:\n${violations.join(
+        `ADR-116 G5 descendants type schema regression:\n${violations.join(
           "\n",
         )}`,
       );
@@ -366,7 +366,7 @@ describe("ADR-916 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS mar
     );
     if (violations.length > 0) {
       throw new Error(
-        `ADR-916 G5 frame/slot fixture regression:\n${violations.join("\n")}`,
+        `ADR-116 G5 frame/slot fixture regression:\n${violations.join("\n")}`,
       );
     }
     expect(violations).toEqual([]);
@@ -379,7 +379,7 @@ describe("ADR-916 Phase 4 G5 — §9.3.1 strict logic-access grep gate (PASS mar
     );
     if (violations.length > 0) {
       throw new Error(
-        `ADR-916 compatibility extraction regression:\n${violations.join(
+        `ADR-116 compatibility extraction regression:\n${violations.join(
           "\n",
         )}`,
       );

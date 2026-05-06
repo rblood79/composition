@@ -11,7 +11,7 @@ export function assertCompositionImportKey(importKey: string): void {
   if (isValidCompositionImportKey(importKey)) return;
 
   throw new Error(
-    `[ADR-916] Invalid import key "${importKey}": expected /^[A-Za-z][A-Za-z0-9_-]*$/ and no reserved object keys`,
+    `[ADR-116] Invalid import key "${importKey}": expected /^[A-Za-z][A-Za-z0-9_-]*$/ and no reserved object keys`,
   );
 }
 

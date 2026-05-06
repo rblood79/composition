@@ -64,7 +64,7 @@ export function mergePropsWithStyleDeep(
  * legacy resolveInstanceProps와 동일한 mergePropsWithStyleDeep semantics 사용
  * — 시각 결과 대칭 보장.
  *
- * **props 계약**: ADR-916 direct cutover 이후 master/ref props source는
+ * **props 계약**: ADR-116 direct cutover 이후 master/ref props source는
  * `CanonicalNode.props` 하나다. `metadata.legacyProps` 는 adapter/export 경계의
  * quarantine payload이며 resolver 입력으로 사용하지 않는다.
  */
@@ -124,12 +124,12 @@ export function resolveCanonicalDescendantOverride(
 /**
  * Instance 요소의 props를 master와 병합하여 최종 props 반환
  *
- * @deprecated ADR-916 G5-B P5-B — read-through fallback only.
+ * @deprecated ADR-116 G5-B P5-B — read-through fallback only.
  * legacy `componentRole === "instance"` + instance overrides (Record) 경로
  * 전용 helper. 신규 canonical 경로는 `resolveInstanceWithSharedCache`
  * (`resolvers/canonical/storeBridge.ts`) 또는 `resolveCanonicalRefElement`
- * (`builder/utils/canonicalRefResolution.ts`) 사용. legacy 분기 자체는 ADR-911
- * P3 cleanup 영역이며, 본 함수 caller migration 도 ADR-911 P3 cleanup 과 동시 진행.
+ * (`builder/utils/canonicalRefResolution.ts`) 사용. legacy 분기 자체는 ADR-111
+ * P3 cleanup 영역이며, 본 함수 caller migration 도 ADR-111 P3 cleanup 과 동시 진행.
  *
  * @param instance componentRole === 'instance' 요소
  * @param master instance.masterId로 조회한 master 요소
@@ -159,7 +159,7 @@ export function resolveInstanceProps(
  *
  * master가 없으면 원본 instance를 그대로 반환.
  *
- * @deprecated ADR-916 G5-B P5-B — read-through fallback only.
+ * @deprecated ADR-116 G5-B P5-B — read-through fallback only.
  * legacy `resolveInstanceProps` 의 thin wrapper. 신규 canonical 경로는
  * `resolveInstanceWithSharedCache` 또는 `resolveCanonicalRefElement` 사용.
  */
@@ -184,7 +184,7 @@ export function resolveInstanceElement(
  * Instance의 descendants 맵에서 childId에 해당하는 오버라이드를 child element에 적용.
  * 오버라이드가 없으면 원본 반환.
  *
- * @deprecated ADR-916 G5-B P5-B — read-through fallback only.
+ * @deprecated ADR-116 G5-B P5-B — read-through fallback only.
  * legacy `instance.descendants[childId]` (flat Record<childId, props>) 경로 전용.
  * 신규 canonical 경로는 `resolveCanonicalDescendantOverride`
  * (canonical RefNode.descendants[path] DescendantOverride 3-mode) 사용.

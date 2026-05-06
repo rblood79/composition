@@ -815,9 +815,9 @@ describe("getLegacyPageLayoutId (ADR-903 P3-D-5 step 5d)", () => {
 });
 
 // ─────────────────────────────────────────────
-// ADR-910 Phase 2 ts-3.3 — Round-trip 통합 (themes + variables 양쪽)
+// ADR-110 Phase 2 ts-3.3 — Round-trip 통합 (themes + variables 양쪽)
 // ─────────────────────────────────────────────
-describe("ADR-910 Phase 2 ts-3.3 — Round-trip 통합", () => {
+describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
   /**
    * full pipeline:
    *   1. legacyToCanonical(input, { getThemeConfig, getVariables }) → doc

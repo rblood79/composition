@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * ADR-911 Phase 2 PR-D — FrameList 컴포넌트 단위 테스트.
+ * ADR-111 Phase 2 PR-D — FrameList 컴포넌트 단위 테스트.
  *
  * 본 테스트는 FrameList 가 프레젠테이션 전용임을 검증한다 — 데이터 source 와
  * 핸들러 구현은 외부 책임이고, FrameList 는 props 만으로 결정적 UI 를 렌더한다.
@@ -34,7 +34,7 @@ function makeProps(
   };
 }
 
-describe("FrameList (ADR-911 P2 PR-D)", () => {
+describe("FrameList (ADR-111 P2 PR-D)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

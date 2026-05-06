@@ -37,7 +37,7 @@ export function NodesPanelTabs({
       ),
     },
     {
-      // ADR-911 P2 followup: UI 라벨만 "Frames" — 탭 id "layouts" / EditMode "layout"
+      // ADR-111 P2 followup: UI 라벨만 "Frames" — 탭 id "layouts" / EditMode "layout"
       // 은 데이터 호환성 유지를 위해 그대로. 후속 PR 에서 정합화 가능.
       id: "layouts",
       label: "Frames",

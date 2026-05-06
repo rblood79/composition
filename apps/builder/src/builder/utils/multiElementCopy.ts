@@ -33,7 +33,7 @@ export interface CopiedElementsData {
 }
 
 function isReusableOrigin(element: Element): boolean {
-  // ADR-916 G5-B P5-C: legacy `componentRole === "master"` 검사 → isMasterElement
+  // ADR-116 G5-B P5-C: legacy `componentRole === "master"` 검사 → isMasterElement
   // 호출로 단일화 (isMasterElement 자체는 read-through fallback marker 보존).
   // canonical 진입 시 element.reusable === true 도 별도 인식.
   return element.reusable === true || isMasterElement(element);

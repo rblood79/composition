@@ -81,7 +81,7 @@ export const renderTable = (
 
   // PropertyDataBinding 형식 감지 (source: 'dataTable' 또는 'api', name: 'xxx')
   const dataBinding = getElementDataBinding(element);
-  // standard DataBinding 검출 — element.dataBinding direct (props ignore, ADR-916 G7)
+  // standard DataBinding 검출 — element.dataBinding direct (props ignore, ADR-116 G7)
   const dataBindingLegacy = getElementDataBinding(element, "legacy-only");
   const isPropertyBinding =
     dataBinding &&

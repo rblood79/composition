@@ -17,5 +17,5 @@ export * from "./composition-vocabulary";
 // ADR-903 P0 Stream 2 — Pencil Adapter + Canonical Resolver Cache
 export * from "./pencil-adapter.types";
 export * from "./canonical-resolver.types";
-// ADR-916 Phase 1 — Canonical Document Actions / Adapter API
+// ADR-116 Phase 1 — Canonical Document Actions / Adapter API
 export * from "./composition-document-actions.types";

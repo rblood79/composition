@@ -42,7 +42,7 @@ import { buildIdPathContext, segId } from "./idPath";
 import { getCanonicalSlotDeclaration } from "./slotDeclaration";
 
 /**
- * ADR-916 Phase 5 G7 본격 cutover (2026-05-01) — element.events / dataBinding
+ * ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — element.events / dataBinding
  * 를 `x-composition` extension 으로 분리. index.ts 의 `buildCompositionExtensionField`
  * 와 동일 contract — 본 모듈은 별도 분기를 가지므로 helper 중복 정의.
  */
@@ -228,7 +228,7 @@ export function convertLayoutToReusableFrame(
       type: "legacy-layout",
       layoutId: layout.id,
       slug: layout.slug ?? null,
-      // ADR-911 P2 PR-E1: PageLayoutSelector canonical mode 에서 description 표시 보존
+      // ADR-111 P2 PR-E1: PageLayoutSelector canonical mode 에서 description 표시 보존
       description: layout.description ?? null,
     },
     children: rootElements.map((el) =>

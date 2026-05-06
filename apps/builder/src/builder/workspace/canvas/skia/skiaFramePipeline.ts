@@ -231,7 +231,7 @@ function buildViaCommandStream(
     process.env.NODE_ENV === "development" ? performance.now() : 0;
 
   const layoutVersion = getSharedLayoutVersion();
-  // ADR-911 P3-δ (D2=B): page + frame root 병합. 두 collection 결과를 단일 맵으로
+  // ADR-111 P3-δ (D2=B): page + frame root 병합. 두 collection 결과를 단일 맵으로
   // 통합 (D3=A) 하여 buildRenderCommandStream 시그니처 미변경.
   const pageResult = collectVisiblePageRoots(rendererInput);
   const frameResult = collectVisibleFrameRoots(rendererInput);

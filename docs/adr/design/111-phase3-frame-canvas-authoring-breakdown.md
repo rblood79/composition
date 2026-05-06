@@ -1,8 +1,8 @@
-# ADR-911 Phase 3 — Frame Canvas Authoring 시각 path Breakdown
+# ADR-111 Phase 3 — Frame Canvas Authoring 시각 path Breakdown
 
-> **상태**: Closed (2026-04-30) — P3-α/β/γ/δ + δ fix #1~#4 + θ + P3-ε/P3-ζ closure 완료. ADR-911 본문 G3/G4/G5 잔여는 별도 진행
-> **연결 ADR**: [911](../completed/911-layout-frameset-pencil-redesign.md) Phase 3 sub-phase
-> **prerequisite**: 본 sub-phase 가 [ADR-912](../completed/912-editing-semantics-ui-5elements.md) 의 Canvas 시각 마커 land 의 prerequisite
+> **상태**: Closed (2026-04-30) — P3-α/β/γ/δ + δ fix #1~#4 + θ + P3-ε/P3-ζ closure 완료. ADR-111 본문 G3/G4/G5 잔여는 별도 진행
+> **연결 ADR**: [111](../completed/111-layout-frameset-pencil-redesign.md) Phase 3 sub-phase
+> **prerequisite**: 본 sub-phase 가 [ADR-112](../completed/112-editing-semantics-ui-5elements.md) 의 Canvas 시각 마커 land 의 prerequisite
 >
 > **2026-05-05 rollback / 2026-05-06 follow-up**: 2026-05-03 post-cutover fix 군은 폐기됐다. 2026-05-06 current main follow-up 패치에서 FramesTab/Skia body/Slot refresh projection, shared frame multi-page projection, Slot marker 유지, body auto-selection 을 다시 닫았다. 이 문서의 historical `layout_id` 기반 D1/A 구현 기록은 superseded 되었고, 현행 frame render root 는 active `CompositionDocument` 기반 projection / adapter mirror boundary 를 사용한다.
 
@@ -39,9 +39,9 @@ childrenMap.root = [
 
 ### Cutover 의 의미
 
-- ADR-911 cutover commit `7b6f4eb9` (Phase 2 PR-E4) = **`featureFlags` default true flip 만** (4 file / 38/-8 라인, 실 logic 0건)
+- ADR-111 cutover commit `7b6f4eb9` (Phase 2 PR-E4) = **`featureFlags` default true flip 만** (4 file / 38/-8 라인, 실 logic 0건)
 - 즉 frame canvas authoring 시각 path 는 **dual-mode (legacy/canonical 모두) 시절부터 미구현**
-- cutover 가 회귀를 만든 게 아니라 **ADR-911 design 자체의 fundamental 미완성** 노출
+- cutover 가 회귀를 만든 게 아니라 **ADR-111 design 자체의 fundamental 미완성** 노출
 - Gate G2 (시각 회귀 0) 충족 불가 → Phase 2 closure 보류
 
 ## 2. Sub-phase 분해
@@ -77,7 +77,7 @@ childrenMap.root = [
 - 위험: 기술(L) / 성능(L) / 유지보수(L) / 마이그레이션(L)
 - 장점: 최소 변경. 단순 데이터 정합 fix
 - 단점: 사용자가 FramesTab 에서 Frame 추가/편집 시 시각 feedback 0 — UX 손실
-- ADR-911 의 핵심 가치 (frame authoring) 자체 포기
+- ADR-111 의 핵심 가치 (frame authoring) 자체 포기
 
 ### Risk Threshold Check
 
@@ -85,7 +85,7 @@ childrenMap.root = [
 | ---- | :---: | ---------------------------- |
 | A    |   0   | 채택 권장 (1주+ 비용 수용)   |
 | B    |   0   | 채택 가능, 사용자 인지 단점  |
-| C    |   0   | 채택 가능, ADR-911 가치 손실 |
+| C    |   0   | 채택 가능, ADR-111 가치 손실 |
 
 대안 A 채택 권장 — pencil app 호환 design 정합 + 사용자 인지 완성. 단, 본격 land 는 별도 세션 (1주+ HIGH).
 
@@ -334,9 +334,9 @@ P3-δ fix #3+#4+B1 land 후 사용자 시나리오 검증:
 
 ### Root cause
 
-ADR-903 / ADR-911 의 canonical Ref/descendants resolution **legacy elements 영역 미구현**. canonical adapter 단계에서 Ref 처리는 있지만, **legacy rendering pipeline (`getPageElements` + `buildPageChildrenMap`) 은 page_id 인덱스만 사용** → frame slot subtree 가상 merge 단계 부재.
+ADR-903 / ADR-111 의 canonical Ref/descendants resolution **legacy elements 영역 미구현**. canonical adapter 단계에서 Ref 처리는 있지만, **legacy rendering pipeline (`getPageElements` + `buildPageChildrenMap`) 은 page_id 인덱스만 사용** → frame slot subtree 가상 merge 단계 부재.
 
-이는 ADR-911 의 핵심 기능 (pencil component composition) — Phase 3 frame canvas authoring (frame 자체 편집) 의 **상보 작업**:
+이는 ADR-111 의 핵심 기능 (pencil component composition) — Phase 3 frame canvas authoring (frame 자체 편집) 의 **상보 작업**:
 
 - P3-α/β/γ/δ + fix #1~#4 = **frame 자체 편집** (separate canvas area)
 - **P3-θ (본 sub-phase)** = **frame instance composition** (page 가 frame slot 채우기 + inline 렌더)
@@ -368,7 +368,7 @@ ADR-903 / ADR-911 의 canonical Ref/descendants resolution **legacy elements 영
 | **A. legacy `slot_name` 매칭**                 | 기존 element schema 그대로 활용 | canonical Ref/descendants 와 별도 path          | ✓ (P3-θ) |
 | B. canonical `descendants[slotPath]` 직접 적용 | 장기 정합                       | legacy element 변환 부담 + Ref 인스턴스 ID 부재 |          |
 
-**A 권고** — P3-θ 는 legacy slot_name 매칭으로 즉시 도입. canonical descendants 전환은 ADR-913 Phase 5-A (`slot_name` cleanup) 와 동기화하여 마이그레이션.
+**A 권고** — P3-θ 는 legacy slot_name 매칭으로 즉시 도입. canonical descendants 전환은 ADR-113 Phase 5-A (`slot_name` cleanup) 와 동기화하여 마이그레이션.
 
 #### D9. 회귀 영향 — 기존 layout-bound page 동작
 
@@ -474,19 +474,19 @@ P3-ε 의 drag gate 는 다음처럼 해석한다:
 - 복합 컴포넌트 회귀: frame 적용/미적용 Page 의 Tabs 렌더와 새로고침 후 상태 확인
 - Drag semantics: overview Frame canvas 임의 이동 없음, auto-layout child 는 reorder/drop 의미 유지, manual-position child 는 local geometry 변경 기준 확인
 
-결론: G3-δ (c), G3-θ (d), G3-ε, G3-ζ 는 본 Phase 3 frame canvas authoring sub-phase 범위에서 closure. ADR-911 전체 잔여는 본문 Gate G3/G4/G5 로 이관한다.
+결론: G3-δ (c), G3-θ (d), G3-ε, G3-ζ 는 본 Phase 3 frame canvas authoring sub-phase 범위에서 closure. ADR-111 전체 잔여는 본문 Gate G3/G4/G5 로 이관한다.
 
 ## 5. 비고
 
 - 본 sub-phase 진입 시 **1주+ HIGH 작업**. design 단계가 prerequisite — 단순 fix 불가
-- ADR-912 (Editing Semantics UI 5요소) 의 Canvas 시각 마커는 **본 P3 base render 위에 land**. 본 결함이 ADR-912 의 prerequisite
-- ADR-911 monitoring 6일 대기 framing 무의미 — Gate G2 가 사용자 회귀 보고로 미충족 확정. monitoring 종결이 시각 회귀를 해소하지 않음
-- 본 sub-phase 가 ADR-911 Phase 3 의 신규 영역. 기존 Phase 3 (cascade 재작성) 와 별개로 진행 가능 — 두 영역 schema 직교
+- ADR-112 (Editing Semantics UI 5요소) 의 Canvas 시각 마커는 **본 P3 base render 위에 land**. 본 결함이 ADR-112 의 prerequisite
+- ADR-111 monitoring 6일 대기 framing 무의미 — Gate G2 가 사용자 회귀 보고로 미충족 확정. monitoring 종결이 시각 회귀를 해소하지 않음
+- 본 sub-phase 가 ADR-111 Phase 3 의 신규 영역. 기존 Phase 3 (cascade 재작성) 와 별개로 진행 가능 — 두 영역 schema 직교
 
 ## 6. 참조
 
-- [ADR-911 본문](../completed/911-layout-frameset-pencil-redesign.md) (진행 로그 2026-04-28 entry)
-- [ADR-911 design breakdown 본체](911-layout-frameset-pencil-redesign-breakdown.md)
-- [ADR-911 Closure 체크리스트](911-closure-checklist.md) — 본 P3 land 후 종결 체크
-- [ADR-912](../completed/912-editing-semantics-ui-5elements.md) — 시각 마커 (본 P3 prerequisite)
+- [ADR-111 본문](../completed/111-layout-frameset-pencil-redesign.md) (진행 로그 2026-04-28 entry)
+- [ADR-111 design breakdown 본체](111-layout-frameset-pencil-redesign-breakdown.md)
+- [ADR-111 Closure 체크리스트](111-closure-checklist.md) — 본 P3 land 후 종결 체크
+- [ADR-112](../completed/112-editing-semantics-ui-5elements.md) — 시각 마커 (본 P3 prerequisite)
 - 세션 46 fix commits — `1f732be3` / `f299d373` (LayerTree/Inspector 정상화, Skia 캔버스는 본 P3 작업 후)

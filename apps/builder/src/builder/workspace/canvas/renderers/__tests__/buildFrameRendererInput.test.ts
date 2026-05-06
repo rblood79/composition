@@ -70,7 +70,7 @@ function makeFrameScope(
   };
 }
 
-describe("ADR-911 P3-δ fix #3 — buildFrameRendererInput", () => {
+describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
   it("frame body element 부재 시 null 반환", () => {
     const elementById = new Map<string, Element>();
     const result = buildFrameRendererInput({

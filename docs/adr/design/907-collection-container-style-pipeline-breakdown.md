@@ -270,7 +270,7 @@ Phase 0 실측이 ADR 전제를 정정할 수 있는 정보 3건을 제공함에
 
 ### Phase 4 — 순차 적용 (follow-up ADR 템플릿)
 
-본 ADR 은 **프레임워크 확정 + pilot(GridList)** 만 land. 11 주대상 중 Phase 3 pilot(GridList) + Phase 5 별도(Table) + ListBox 기준 선례(재검증만)를 제외한 **8 컴포넌트** (`Breadcrumbs, ComboBox, Menu, Select, Tabs, TagGroup, Toolbar, Tree`) 적용은 **follow-up ADR (ADR-908..ADR-915)** 로 분기하며 Phase 0 실측 기반 **2 프로파일** 로 나뉜다:
+본 ADR 은 **프레임워크 확정 + pilot(GridList)** 만 land. 11 주대상 중 Phase 3 pilot(GridList) + Phase 5 별도(Table) + ListBox 기준 선례(재검증만)를 제외한 **8 컴포넌트** (`Breadcrumbs, ComboBox, Menu, Select, Tabs, TagGroup, Toolbar, Tree`) 적용은 **follow-up ADR (ADR-908..ADR-115)** 로 분기하며 Phase 0 실측 기반 **2 프로파일** 로 나뉜다:
 
 - **Profile X — Layer D 적용 4건**: `Menu, ComboBox, Select, Toolbar` — spec `render.shapes()` 가 `size.paddingX/Y` / `size.gap` 하드코딩 중 → `resolve{Component}SpacingMetric()` 신설 필요. 건당 약 1.5일.
 - **Profile Y — Layer D 무적용 4건**: `Tree, Tabs, Breadcrumbs, TagGroup` — spec shapes N/A (빈 배열 또는 텍스트 측정 전용) → Layer D resolver 신설 무의미. Layer A/B/C 만 적용. 건당 약 0.5~1일.

@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 3 G4 — 3-A-impl: exportLegacyDocument
+ * @fileoverview ADR-116 Phase 3 G4 — 3-A-impl: exportLegacyDocument
  *
  * canonical primary storage 전환 후 legacy compat payload 생성 SSOT (D18=A 단일
  * 진입점).
@@ -13,7 +13,7 @@
  * - DFS 순회 시 `props` 가진 노드만 element 로 emit.
  * - structural 컨테이너(page node / layout shell 등)는 props 없으면 자동 skip.
  *
- * **ADR-916 Phase 5 G7 본격 cutover** (2026-05-01): events / dataBinding 은
+ * **ADR-116 Phase 5 G7 본격 cutover** (2026-05-01): events / dataBinding 은
  * `x-composition` extension namespace 에서 reverse 추출.
  */
 
@@ -202,7 +202,7 @@ function extractElement(
     }
   }
 
-  // ADR-916 Phase 5 G7 본격 cutover (2026-05-01) — events/dataBinding 은
+  // ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — events/dataBinding 은
   // `x-composition` extension namespace 에서 reverse 복원.
   const ext = (
     node as CanonicalNode & { "x-composition"?: CompositionExtension }

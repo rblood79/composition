@@ -206,7 +206,7 @@ let _cacheRootSignature = "";
  * 캐시 기반 커맨드 스트림 획득.
  *
  * registryVersion + pagePositionsVersion + framePositionsVersion + sharedLayoutVersion 4중 키.
- * ADR-911 P3-δ: framePositionsVersion 추가 — frame 좌표 변경 시 invalidate (D3=A 단일 맵
+ * ADR-111 P3-δ: framePositionsVersion 추가 — frame 좌표 변경 시 invalidate (D3=A 단일 맵
  * 통합 후에도 frame 영역 카운터는 별도 추적, page-only 변경과 frame-only 변경을 구분 캐시).
  */
 export function getCachedCommandStream(

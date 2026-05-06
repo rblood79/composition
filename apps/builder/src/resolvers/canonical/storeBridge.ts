@@ -57,7 +57,7 @@ import { extractCanonicalPropsFromResolved } from "./extractCanonicalProps";
  *   Skia 양쪽이 동일 인스턴스를 공유한다는 ADR-903 P0 Gate G2 (a) 계약 충족
  * - caller 가 격리된 cache (테스트 등) 가 필요하면 4번째 인자로 명시 주입
  *
- * ADR-916 direct cutover 이후 이 진입점은 store snapshot 에서
+ * ADR-116 direct cutover 이후 이 진입점은 store snapshot 에서
  * `legacyToCanonical()` projection 을 재실행하지 않는다. cache 효과는
  * `resolveCanonicalDocument` 단계에서 ref subtree hit 으로 발휘된다.
  */
@@ -168,7 +168,7 @@ export function getCanonicalParentId(
 // 3) ResolvedNode → canonical props 추출
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ADR-916 direct cutover — `extractCanonicalPropsFromResolved` 는 store 무관
+// ADR-116 direct cutover — `extractCanonicalPropsFromResolved` 는 store 무관
 // helper 로 분리됨 (storeBridge import chain 의 vitest mock 함정 우회).
 // 본 re-export 는 production caller (CanonicalNodeRenderer 등) 의 import path 보존.
 export { extractCanonicalPropsFromResolved } from "./extractCanonicalProps";

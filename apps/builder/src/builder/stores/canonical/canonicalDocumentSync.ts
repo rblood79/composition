@@ -1,5 +1,5 @@
 /**
- * @fileoverview Canonical document project lifecycle sync — ADR-916 direct cutover
+ * @fileoverview Canonical document project lifecycle sync — ADR-116 direct cutover
  *
  * direct cutover 이후 canonical document 의 actual hydration/write-through 는
  * canonical primary wrappers (`setElementsCanonicalPrimary`,

@@ -11,20 +11,20 @@ export const LEGACY_ELEMENT_PROPS_METADATA_TYPE =
 /**
  * legacyToCanonical 의 adapter quarantine payload 표준 빌더.
  *
- * ADR-916 direct cutover 이후 runtime resolver/preview/store 는 이 payload 를
+ * ADR-116 direct cutover 이후 runtime resolver/preview/store 는 이 payload 를
  * props source 로 읽지 않는다. 남은 용도는 adapter boundary 감사와 legacy
  * export 테스트 fixture 검증이다.
  *
  * **보존 필수 fields**:
  * - core top-level: `id` / `parent_id` / `page_id` / `layout_id` / `order_num` /
- *   `fills` / `type` (ADR-916 Phase 2 G3 Step 1b — hot path inverse 변환에서
+ *   `fills` / `type` (ADR-116 Phase 2 G3 Step 1b — hot path inverse 변환에서
  *   element.type 복원에 필요. ref 노드의 경우 canonical type 이 "ref" 로
  *   변환되므로 원본 element.type 보존 없이 LayerTree 분기 불가).
  * - mirror compatibility: `slot_name` / `componentRole` / `masterId` /
- *   `overrides` / `descendants` / `componentName` (ADR-916 G6-3 parity — legacy
+ *   `overrides` / `descendants` / `componentName` (ADR-116 G6-3 parity — legacy
  *   mirror payload 를 export boundary 에서만 복원).
  *
- * **ADR-916 Phase 5 G7 본격 cutover** (2026-05-01): `element.events` /
+ * **ADR-116 Phase 5 G7 본격 cutover** (2026-05-01): `element.events` /
  * `element.dataBinding` 은 본 metadata 에 더 이상 spread 되지 않는다. 대신
  * `x-composition` extension namespace 로 분리 (`buildCompositionExtensionField`,
  * `index.ts` / `slotAndLayoutAdapter.ts` 양쪽). transition first slice 의 dual-storage

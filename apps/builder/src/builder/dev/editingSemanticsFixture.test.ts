@@ -24,7 +24,7 @@ describe("editingSemanticsFixture", () => {
     window.history.pushState(
       {},
       "",
-      "/builder/adr-912-fixture?editingSemanticsFixture=slot",
+      "/builder/adr-112-fixture?editingSemanticsFixture=slot",
     );
 
     const store = makeStoreStub();
@@ -34,16 +34,16 @@ describe("editingSemanticsFixture", () => {
       Element & { slot?: false | string[] }
     >;
     const slotFrame = elements.find(
-      (element) => element.id === "adr-912-slot-frame",
+      (element) => element.id === "adr-112-slot-frame",
     );
     const recommendation = elements.find(
-      (element) => element.id === "adr-912-slot-recommendation",
+      (element) => element.id === "adr-112-slot-recommendation",
     );
 
     expect(slotFrame).toMatchObject({
       componentName: "ArticleFrame",
       reusable: true,
-      slot: ["adr-912-slot-recommendation"],
+      slot: ["adr-112-slot-recommendation"],
       type: "frame",
     });
     expect(recommendation).toMatchObject({
@@ -52,8 +52,8 @@ describe("editingSemanticsFixture", () => {
       type: "NumberField",
     });
     expect(store.selectElementWithPageTransition).toHaveBeenCalledWith(
-      "adr-912-slot-frame",
-      "adr-912-editing-semantics-page",
+      "adr-112-slot-frame",
+      "adr-112-editing-semantics-page",
     );
   });
 
@@ -61,7 +61,7 @@ describe("editingSemanticsFixture", () => {
     window.history.pushState(
       {},
       "",
-      "/builder/adr-912-fixture?editingSemanticsFixture=slot-instance",
+      "/builder/adr-112-fixture?editingSemanticsFixture=slot-instance",
     );
 
     const store = makeStoreStub();
@@ -71,16 +71,16 @@ describe("editingSemanticsFixture", () => {
       Element & { ref?: string }
     >;
     const slotInstance = elements.find(
-      (element) => element.id === "adr-912-slot-instance",
+      (element) => element.id === "adr-112-slot-instance",
     );
 
     expect(slotInstance).toMatchObject({
-      ref: "adr-912-slot-frame",
+      ref: "adr-112-slot-frame",
       type: "ref",
     });
     expect(store.selectElementWithPageTransition).toHaveBeenCalledWith(
-      "adr-912-slot-instance",
-      "adr-912-editing-semantics-page",
+      "adr-112-slot-instance",
+      "adr-112-editing-semantics-page",
     );
   });
 });

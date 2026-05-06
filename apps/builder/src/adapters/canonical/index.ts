@@ -53,11 +53,11 @@ import {
   type ThemeConfigInput,
 } from "./themesAdapter";
 
-// ADR-910 Phase 2 ts-3.1: applyCanonicalThemes re-export (BuilderCore entry 용)
+// ADR-110 Phase 2 ts-3.1: applyCanonicalThemes re-export (BuilderCore entry 용)
 export { applyCanonicalThemes } from "./themesAdapter";
 export type { ThemeConfigSetters } from "./themesAdapter";
 
-// ADR-910 Phase 2 ts-3.2: resolveCanonicalVariable re-export (consumer 용)
+// ADR-110 Phase 2 ts-3.2: resolveCanonicalVariable re-export (consumer 용)
 export { resolveCanonicalVariable } from "./variablesAdapter";
 import {
   snapshotVariablesFromTokens,
@@ -108,14 +108,14 @@ export interface LegacyAdapterDeps {
   convertComponentRole: ConvertComponentRoleFn;
   convertPageLayout: ConvertPageLayoutFn;
   /**
-   * ADR-910 Phase 1 — themes read-only snapshot 주입 (선택).
+   * ADR-110 Phase 1 — themes read-only snapshot 주입 (선택).
    *
    * 전달 시: `doc.themes = snapshotThemesFromConfig(getThemeConfig())` 주입.
    * 미전달 시: `doc.themes = undefined` (BC — 기존 동작 유지).
    */
   getThemeConfig?: () => ThemeConfigInput;
   /**
-   * ADR-910 Phase 1 — variables read-only snapshot 주입 (선택).
+   * ADR-110 Phase 1 — variables read-only snapshot 주입 (선택).
    *
    * 전달 시: `doc.variables = snapshotVariablesFromTokens(getVariables())` 주입.
    * 미전달 시: `doc.variables = undefined` (BC — 기존 동작 유지).
@@ -195,10 +195,10 @@ export function legacyToCanonical(
         : {}),
       children: canonicalChildren,
       ...getCanonicalSlotDeclaration(element),
-      // legacy Element.props + top-level fields 를 metadata 로 보존 (ADR-911).
+      // legacy Element.props + top-level fields 를 metadata 로 보존 (ADR-111).
       // adapter/export quarantine 전용 payload이며 runtime props source 가 아니다.
       metadata: buildLegacyElementMetadata(element),
-      // ADR-916 Phase 5 G7 본격 cutover (2026-05-01): events/dataBinding 을
+      // ADR-116 Phase 5 G7 본격 cutover (2026-05-01): events/dataBinding 을
       // `x-composition` namespaced extension 으로 분리. extension 이 단일 SSOT.
       // exportLegacyDocument 와 canonicalNodeToElement 는 extension 에서 복원.
       ...buildCompositionExtensionField(element),
@@ -265,13 +265,13 @@ export function legacyToCanonical(
     return convertLayoutToReusableFrame(layout, layoutElements);
   });
 
-  // ADR-910 Phase 1: themes read-only snapshot 주입 (opt-in)
+  // ADR-110 Phase 1: themes read-only snapshot 주입 (opt-in)
   // call-time 직렬화 — subscribe 기반 아님 (R4 대응: stale snapshot 방지)
   const themesSnapshot = getThemeConfig
     ? snapshotThemesFromConfig(getThemeConfig())
     : undefined;
 
-  // ADR-910 Phase 1: variables read-only snapshot 주입 (opt-in)
+  // ADR-110 Phase 1: variables read-only snapshot 주입 (opt-in)
   // call-time 직렬화 — subscribe 기반 아님 (R4 대응: stale snapshot 방지)
   const variablesSnapshot = getVariables
     ? snapshotVariablesFromTokens(getVariables())
@@ -288,7 +288,7 @@ export function legacyToCanonical(
 }
 
 /**
- * ADR-916 Phase 5 G7 본격 cutover (2026-05-01) — element.events / element.dataBinding
+ * ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — element.events / element.dataBinding
  * 가 정의된 경우 `x-composition` extension field 를 spread 가능한 partial 객체로
  * 반환. 양쪽 미정의 시 빈 객체 반환 (extension key 자체 노출 회피).
  *

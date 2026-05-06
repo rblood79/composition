@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-916 Phase 3 G4 — Canonical mutation wrapper (mutation reverse 진정 진입점).
+ * @fileoverview ADR-116 Phase 3 G4 — Canonical mutation wrapper (mutation reverse 진정 진입점).
  *
  * caller 가 legacy `setElements` / `mergeElements` 직접 호출 대신 본 wrapper 를
  * 경유. design §8.6 grep gate 의 단일 SSOT 격리 (D18=A) 정합.

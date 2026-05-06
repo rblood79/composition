@@ -1,5 +1,5 @@
 /**
- * @fileoverview ADR-910 Phase 1+2 — Variables Snapshot/Resolve Adapter
+ * @fileoverview ADR-110 Phase 1+2 — Variables Snapshot/Resolve Adapter
  *
  * ADR-022 TokenRef/CSS 변수 체계 ↔ canonical document `variables` 필드 양방향 변환.
  *
@@ -14,14 +14,14 @@
  * - canonical document → tokenResolver 쓰기 금지
  * - 런타임 변수 resolve 는 여전히 `tokenResolver.ts` 가 SSOT
  * - `snapshotVariablesFromTokens()` 는 call-time 직렬화 — subscribe 기반 아님
- *   (ADR-910 R4 대응: stale snapshot 방지)
+ *   (ADR-110 R4 대응: stale snapshot 방지)
  *
  * **Resolver contract (Phase 2)**:
  * - `resolveCanonicalVariable("{category.name}", doc)` → `doc.variables[key].value`
  * - theme 정보는 doc 에 내장 (snapshot 시점 결정) — caller 가 별도 주입 불필요
  * - doc.variables 미존재 시 undefined 반환 (BC)
  *
- * **VariablesSnapshot 설계 (ADR-910 R3)**:
+ * **VariablesSnapshot 설계 (ADR-110 R3)**:
  * - `source: "spec-token" | "user-defined"` 구분자로 출처 명시
  * - user-defined variable authoring UI 는 후속 Phase 로 이관
  */
@@ -60,7 +60,7 @@ export type ResolvedTokenMap = Record<string, string | number | boolean>;
 /**
  * Spec TokenRef resolve 결과 → `VariablesSnapshot` 직렬화.
  *
- * call-time 직렬화 (subscribe 기반 아님) — stale snapshot 방지 (ADR-910 R4).
+ * call-time 직렬화 (subscribe 기반 아님) — stale snapshot 방지 (ADR-110 R4).
  * `legacyToCanonical()` 호출 시 전달된 `getVariables()` 콜백에서 호출됨.
  *
  * @param resolvedTokens - tokenResolver.ts 의 resolve 결과 평탄화 map
@@ -88,7 +88,7 @@ export function snapshotVariablesFromTokens(
     snapshot[key] = {
       type,
       value,
-      source: "spec-token", // ADR-910 R3: Spec TokenRef 출처 명시
+      source: "spec-token", // ADR-110 R3: Spec TokenRef 출처 명시
     };
   }
 
@@ -119,7 +119,7 @@ export function snapshotUserDefinedVariables(
     snapshot[key] = {
       type: def.type,
       value: def.value,
-      source: "user-defined", // ADR-910 R3: 사용자 정의 변수 출처 명시
+      source: "user-defined", // ADR-110 R3: 사용자 정의 변수 출처 명시
     };
   }
 

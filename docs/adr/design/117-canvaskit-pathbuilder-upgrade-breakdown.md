@@ -1,4 +1,4 @@
-# ADR-917 Breakdown: CanvasKit PathBuilder 전환 및 0.41.1 업그레이드
+# ADR-117 Breakdown: CanvasKit PathBuilder 전환 및 0.41.1 업그레이드
 
 ## Scope
 
@@ -167,7 +167,7 @@ pnpm run codex:format
 
 필수 benchmark scenario:
 
-- `path-heavy-917`
+- `path-heavy-117`
   - rounded clip frame
   - partial border + dash + radius node
   - inset/outset border node
@@ -208,6 +208,6 @@ pnpm run codex:format
 - [ ] G2: 직접 mutable `Path` 생성이 helper 경계로 수렴.
 - [ ] G3: `canvaskit-wasm@0.41.1` lockfile 반영 및 wasm load 성공.
 - [ ] G4: path-heavy smoke scene 시각 검증 통과.
-- [ ] `path-heavy-917` benchmark scenario 추가.
+- [ ] `path-heavy-117` benchmark scenario 추가.
 - [ ] G5: frame time p95 baseline +10% 이내.
 - [ ] `docs/CHANGELOG.md`에 CanvasKit runtime update 기록.

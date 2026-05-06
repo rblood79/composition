@@ -1076,7 +1076,7 @@ ${context.designVariables.map((v) => `- $--${v.name} (${v.type}): ${v.defaultVal
 | `masterComponents` | `MasterComponentSummary[]` | elements store → componentIndex |
 | `designVariables` | `DesignVariable[]` | themeStore → designVariables |
 | `activeTheme` | `DesignTheme \| null` | themeStore → activeTheme |
-| ~~`appliedKitIds`~~ | ~~`string[]`~~ | ~~designKitStore → appliedKitIds~~ — _[ADR-054 Superseded + ADR-915 (DesignKit 제거) 로 무효화]_ |
+| ~~`appliedKitIds`~~ | ~~`string[]`~~ | ~~designKitStore → appliedKitIds~~ — _[ADR-054 Superseded + ADR-115 (DesignKit 제거) 로 무효화]_ |
 
 ### 6.6 스타일 변환 레이어
 

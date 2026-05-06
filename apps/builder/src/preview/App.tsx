@@ -136,7 +136,7 @@ function CanvasContent() {
   }, [navigate]);
 
   // ────────────────────────────────────────────────────────────────────────────
-  // ADR-916 projection 제거: Builder 가 보낸 canonical document 를 직접 resolve.
+  // ADR-116 projection 제거: Builder 가 보낸 canonical document 를 직접 resolve.
   //
   // Preview runtime 은 렌더 중 legacy snapshot 을 다시 canonical projection 하지
   // 않는다. dev 에서는 수신된 document resolve 결과만 로깅한다.
@@ -154,7 +154,7 @@ function CanvasContent() {
           bumpImportRegistryVersion((version) => version + 1);
         }
         if (result.failed.length > 0) {
-          console.warn("[ADR-916] preview canonical import prefetch failed", {
+          console.warn("[ADR-116] preview canonical import prefetch failed", {
             failed: result.failed.map((failure) => ({
               importKey: failure.importKey,
               source: failure.source,
@@ -165,7 +165,7 @@ function CanvasContent() {
       })
       .catch((err: unknown) => {
         if (isCancelled) return;
-        console.warn("[ADR-916] preview canonical import prefetch failed", err);
+        console.warn("[ADR-116] preview canonical import prefetch failed", err);
       });
 
     return () => {
@@ -191,7 +191,7 @@ function CanvasContent() {
         (c) => c.reusable,
       ).length;
 
-      console.log("[ADR-916] preview canonical resolve", {
+      console.log("[ADR-116] preview canonical resolve", {
         input: {
           elements: elements.length,
           currentPageId,
@@ -208,7 +208,7 @@ function CanvasContent() {
         },
       });
     } catch (err) {
-      console.warn("[ADR-916] preview canonical resolve failed", err);
+      console.warn("[ADR-116] preview canonical resolve failed", err);
     }
   }, [canonicalDocument, elements.length, currentPageId, currentLayoutId]);
 
@@ -852,7 +852,7 @@ function CanvasContent() {
   // ⭐ 실제 <body> 태그를 사용하므로 body element를 div로 렌더링하지 않고 자식만 렌더링
   const renderElementsTree = useCallback(() => {
     // ──────────────────────────────────────────────────────────────────────────
-    // ADR-916: canonical renderer 경로 (?canonical=1)
+    // ADR-116: canonical renderer 경로 (?canonical=1)
     //
     // USE_CANONICAL_RENDER === true 시:
     //  1. Builder 가 보낸 CompositionDocument 를 직접 사용
@@ -885,7 +885,7 @@ function CanvasContent() {
         if (pageNodes.length === 0) {
           // canonical 결과 없음 → legacy fallback (안전망)
           console.warn(
-            "[ADR-916] preview canonical 노드 없음 — legacy fallback",
+            "[ADR-116] preview canonical 노드 없음 — legacy fallback",
             { currentPageId, resolvedCount: resolved.length },
           );
         } else {
@@ -904,7 +904,7 @@ function CanvasContent() {
       } catch (err) {
         // canonical 경로 실패 → legacy fallback (안전망)
         console.warn(
-          "[ADR-916] preview canonical render 실패 — legacy fallback",
+          "[ADR-116] preview canonical render 실패 — legacy fallback",
           err,
         );
       }

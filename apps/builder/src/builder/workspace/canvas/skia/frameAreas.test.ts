@@ -20,7 +20,7 @@ const makeDoc = (children: CanonicalNode[]): CompositionDocument => ({
   children,
 });
 
-describe("ADR-911 P3-β computeFrameAreas", () => {
+describe("ADR-111 P3-β computeFrameAreas", () => {
   it("doc null/undefined → 빈 배열", () => {
     expect(computeFrameAreas(null, {}, "any-frame")).toEqual([]);
     expect(computeFrameAreas(undefined, {}, "any-frame")).toEqual([]);

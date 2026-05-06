@@ -43,7 +43,7 @@ import type { ElementProps } from "../../types/integrations/supabase.types";
 import { Element } from "../../types/core/store.types";
 // ElementUtils는 현재 사용되지 않음
 import { MessageService } from "../../utils/messaging";
-// ADR-916 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
+// ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import {
   mergeElementsCanonicalPrimary,
   createMultipleElementsCanonicalPrimary,
@@ -56,7 +56,7 @@ import {
 import { canvasDeltaMessenger } from "../utils/canvasDeltaMessenger";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode optimization
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
-// ADR-916 Phase 2 G3 Step 3 — canonical document → derived Element[] source
+// ADR-116 Phase 2 G3 Step 3 — canonical document → derived Element[] source
 import {
   useCanonicalElements,
   canonicalDocumentToElements,
@@ -139,7 +139,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   const previewGeneratedElementsFlushIdRef = useRef<number | null>(null);
 
   const legacyElements = useStore((state) => state.elements);
-  // ADR-916 direct cutover — active canonical document 의 derived Element[] 를
+  // ADR-116 direct cutover — active canonical document 의 derived Element[] 를
   // publish source 로 사용. 초기 hydration 전에는 legacy elements fallback.
   const canonicalElements = useCanonicalElements();
   const activeCanonicalDocument = useActiveCanonicalDocument();

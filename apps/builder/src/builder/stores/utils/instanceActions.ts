@@ -633,10 +633,10 @@ export function createInstance(
     0,
   );
 
-  // ADR-916 G5-B P5-B: legacy override write site cleanup — empty Record 를
+  // ADR-116 G5-B P5-B: legacy override write site cleanup — empty Record 를
   // undefined 로 변경, 신규 legacy instance 는 IndexedDB 에 해당 field 자체를
   // 저장하지 않음 (read site 는 isRecord 검사 후 fallback 으로 안전).
-  // legacy role 분기 자체는 ADR-911 P3 cleanup 영역.
+  // legacy role 분기 자체는 ADR-111 P3 cleanup 영역.
   const instanceElement: Element = {
     id: uuidv4(),
     type: master.type,

@@ -399,7 +399,7 @@ export const renderDataField = (
   const { elementsMap } = context;
 
   // dataBinding이 있고 source가 "parent"인 경우 부모 데이터에서 값 추출
-  // ADR-916 G7: element.dataBinding direct (props ignore) — legacy-only priority
+  // ADR-116 G7: element.dataBinding direct (props ignore) — legacy-only priority
   let value = element.props.value;
   const dataBindingLegacy = getElementDataBinding(element, "legacy-only");
 

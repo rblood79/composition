@@ -1,6 +1,6 @@
-# ADR-916 구현 상세 — Canonical Document SSOT 전환
+# ADR-116 구현 상세 — Canonical Document SSOT 전환
 
-본 문서는 [ADR-916](../completed/916-canonical-document-ssot-transition.md)의 phase plan, inventory, gate 측정 방법을 정의한다. 핵심은 `CompositionDocument`를 최종 SSOT로 승격하고, legacy `elements[]`를 runtime 중심이 아니라 adapter 경계로 격리하는 것이다.
+본 문서는 [ADR-116](../completed/116-canonical-document-ssot-transition.md)의 phase plan, inventory, gate 측정 방법을 정의한다. 핵심은 `CompositionDocument`를 최종 SSOT로 승격하고, legacy `elements[]`를 runtime 중심이 아니라 adapter 경계로 격리하는 것이다.
 
 > **2026-05-02 direct cutover 정정**: 개발 단계라 기존 사용자/데이터 보존 의무가 없으므로 feature flag, backup, rollback marker, runtime DB migration 은 더 이상 목표가 아니다. 아래 historical sub-phase 중 flag/backup/migration 전제는 direct cutover 로 superseded 된다.
 >
@@ -28,8 +28,8 @@
 | `ref`                  | canonical core          | instance 참조                           | `RefNode.ref`                                |
 | `descendants`          | canonical core          | instance override/slot fill             | `RefNode.descendants`                        |
 | `slot`                 | canonical core          | slot contract/recommendation            | `CanonicalNode.slot`                         |
-| `themes`               | canonical core          | ADR-910 document-level theme            | `CompositionDocument.themes`                 |
-| `variables`            | canonical core          | ADR-910 variable snapshot/resolver      | `CompositionDocument.variables`              |
+| `themes`               | canonical core          | ADR-110 document-level theme            | `CompositionDocument.themes`                 |
+| `variables`            | canonical core          | ADR-110 variable snapshot/resolver      | `CompositionDocument.variables`              |
 | `imports`              | canonical core hook     | external document/reference hook        | `CompositionDocument.imports`                |
 | `events`               | Composition extension   | Pencil core에 없는 app behavior         | legacy `Element.events`                      |
 | `actions`              | Composition extension   | workflow behavior, function 아님        | Events Panel action model                    |
@@ -114,7 +114,7 @@ interface CompositionExtendedNode extends CanonicalNode {
 1. function callback은 serialize하지 않는다.
 2. React Aria `onPress`, `onSelectionChange`, hover-triggered behavior는 serialized event name으로만 저장한다.
 3. hover visual state는 event가 아니라 Spec/renderer state이다. hover로 동작을 실행할 때만 extension event가 된다.
-4. ADR-916은 event storage 위치를 `x-composition`으로 정하는 ADR이다. editor capability registry, event label/category metadata, implemented-event filtering은 제거 대상이 아니라 serializer/adapter의 입력 catalog로 유지한다.
+4. ADR-116은 event storage 위치를 `x-composition`으로 정하는 ADR이다. editor capability registry, event label/category metadata, implemented-event filtering은 제거 대상이 아니라 serializer/adapter의 입력 catalog로 유지한다.
 
 ### Current dual-storage inventory
 
@@ -134,16 +134,16 @@ interface CompositionExtendedNode extends CanonicalNode {
 | Phase 1 | canonical document store/API | document mutation API + canonical -> legacy export adapter API 설계                                          | G2    |
 | Phase 2 | hot path read cutover        | drag/selection/render/LayerTree/Preview sync에서 full projection 제거, canonical snapshot 구독               | G3    |
 | Phase 3 | persistence write-through    | canonical document 저장 우선, legacy shadow write 또는 export adapter로 축소                                 | G4    |
-| Phase 4 | legacy field quarantine      | ADR-913 Phase 5 + ADR-911 layout cleanup과 연결, adapter 디렉터리 외 legacy read/write 0건                   | G5    |
+| Phase 4 | legacy field quarantine      | ADR-113 Phase 5 + ADR-111 layout cleanup과 연결, adapter 디렉터리 외 legacy read/write 0건                   | G5    |
 | Phase 5 | parity/extension closure     | Skia/Preview/Publish/History parity, `imports` resolver/cache policy, event/dataBinding extension serializer | G6/G7 |
 
 ## 5. Phase 0 — Boundary Freeze
 
 산출물:
 
-- `composition-document.types.ts`에 core/extension boundary 주석 보강 ✅ (G1 §2.1 + §3 + @fileoverview ADR-916 G1 boundary 표)
+- `composition-document.types.ts`에 core/extension boundary 주석 보강 ✅ (G1 §2.1 + §3 + @fileoverview ADR-116 G1 boundary 표)
 - `CanonicalNode.props?: Record<string, unknown>` shared type 추가 ✅
-- `unified.types.ts` legacy field에 ADR-916 adapter-only marker 추가 ✅ (5필드 — `layout_id` / `slot_name` / `componentRole` / `masterId` / `overrides` / `descendants` / `componentName`)
+- `unified.types.ts` legacy field에 ADR-116 adapter-only marker 추가 ✅ (5필드 — `layout_id` / `slot_name` / `componentRole` / `masterId` / `overrides` / `descendants` / `componentName`)
 - `metadata.legacyProps` transition-only marker 추가 ✅ (`CanonicalNode.metadata` 주석)
 - `events`/`dataBinding`의 canonical core 진입 금지 및 dual-storage inventory 문서화 ✅ (`CompositionExtension` + `CompositionExtendedNode` + `Element.events`/`Element.dataBinding` @deprecated marker)
 - baseline command 결과를 본 문서에 기록 ✅ (아래 baseline 표)
@@ -157,7 +157,7 @@ rg -n "\\b(layout_id|slot_name|componentRole|masterId|overrides)\\b" apps packag
 rg -n "\\bprops\\.events\\b|\\bevents\\b|\\bdataBinding\\b|\\bdata_binding\\b" apps packages
 ```
 
-### Baseline (2026-05-01, ADR-916 Phase 0 G1 land 직전 main HEAD `119f0206c`)
+### Baseline (2026-05-01, ADR-116 Phase 0 G1 land 직전 main HEAD `119f0206c`)
 
 | Grep                                                                                 | 결과 |                                                                       의미                                                                        |
 | ------------------------------------------------------------------------------------ | ---: | :-----------------------------------------------------------------------------------------------------------------------------------------------: |
@@ -185,7 +185,7 @@ rg -n "\\bprops\\.events\\b|\\bevents\\b|\\bdataBinding\\b|\\bdata_binding\\b" a
 - D2=β (별도 Zustand slice — `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts`) — elementsMap wrapper 가 아니라 분리 store, Phase 2 hot path cutover 시 elementsMap 의존 제거 자연스럽게 가능
 - D3=i (역방향 adapter spec only) — `CanonicalLegacyAdapter` interface 만 type lock-in, 구현은 Phase 3
 
-### 6-A. land 산출물 (2026-05-01, ADR-916 Phase 1 G2)
+### 6-A. land 산출물 (2026-05-01, ADR-116 Phase 1 G2)
 
 | 산출물                                                                                                               | 위치                                                                                 |              |
 | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | :----------: |
@@ -489,7 +489,7 @@ Phase 3 G4 진입 시점 fork checkpoint 4 질문 통과 — 본 sub-section 1-l
 
 1. **base / 응용 분류**: Phase 3 G4 = Phase 2 G3 (read backbone) 의 write 응용. 단 Phase 3 안에서 4 sub-phase 의 base/응용 = **3-A shadow write 가 base** (검증 backbone, 무손실 확인 해야만 후속 진입 가능), 3-B/C/D 가 응용 (3-B = primary 전환 / 3-C = export 격리 / 3-D = migration marker). 3-A 미통과 시 3-B/C/D 진입 차단.
 2. **schema 직교성**: read (G3 dual-mode) ↔ write (G4 storage 전환) 직교. 단 3-B 의 DB schema 변경 (D17=B 채택 시) 은 G3 read path 회귀 가능 → **3-B 진입 시 G3 5 path read 회귀 검증 의무** 추가.
-3. **baseline framing reverse 검증**: ADR-903 read-through projection ↔ ADR-916 primary SSOT reverse 는 ADR §Decision 의 fork checkpoint (Phase 0 G1 시점) 에 lock-in 됨. Phase 3 G4 에서 동일 framing 적용 valid — 추가 reverse 발생 없음.
+3. **baseline framing reverse 검증**: ADR-903 read-through projection ↔ ADR-116 primary SSOT reverse 는 ADR §Decision 의 fork checkpoint (Phase 0 G1 시점) 에 lock-in 됨. Phase 3 G4 에서 동일 framing 적용 valid — 추가 reverse 발생 없음.
 4. **codex 3차 미루지 말 것**: 본 design §8 결정 분기 D16~D19 lock-in 직후 codex review 1차 진입. 본문 정합 (Risk/Gate 매핑) 은 codex round 위임, framing reverse 의 valid 성은 본 시점 design 본문 명문화.
 
 ### 8.1 저장 전략 (4 sub-phase)
@@ -635,15 +635,15 @@ rg -n "elementsApi\.(create|update|insert|delete)|setElements\(|mergeElements\("
 
 ## 9. Phase 4 — Legacy Field Quarantine
 
-ADR-913 Phase 5와 ADR-911 잔여 layout cleanup을 본 ADR의 final gate로 묶는다. ADR-914의 독립 imports resolver/cache 계획은 2026-04-30 superseded 처리됐으므로, `imports` 자체는 canonical core hook으로 유지하되 fetch/cache/resolver 실행 경계는 본 ADR의 adapter/import/export 단계에서 다시 확정한다.
+ADR-113 Phase 5와 ADR-111 잔여 layout cleanup을 본 ADR의 final gate로 묶는다. ADR-114의 독립 imports resolver/cache 계획은 2026-04-30 superseded 처리됐으므로, `imports` 자체는 canonical core hook으로 유지하되 fetch/cache/resolver 실행 경계는 본 ADR의 adapter/import/export 단계에서 다시 확정한다.
 
 ### 9.0 Fork Checkpoint (4 질문 lock-in, 2026-05-01)
 
 Phase 4 G5 진입 시점 fork checkpoint 4 질문 통과 — 본 sub-section 1-line lock-in. adr-writing.md 정책 의무.
 
-1. **base / 응용 분류**: ADR-911 P3 잔여 (`layout_id` cleanup) + ADR-913 Phase 5 (`slot_name`/`overrides`/`componentRole`/`masterId`/legacy `descendants` cleanup) = **base cleanup work** (실 mutation work, runtime read/write 0 도달이 목적). ADR-916 G5 = **응용 closure aggregator** (base ADR 의 cleanup work 진행도 marker + grep gate 0 도달 시 closure 신호). §11 명시 "ADR-911/913 cleanup 을 ADR-916 G5 에 연결" 정합.
-2. **schema 직교성**: G5 6 필드 (structural cleanup) ⊥ G7 `events`/`dataBinding` (extension boundary, §10 Phase 5 영역) ⊥ `componentName` (ADR-913 P5 별도, §9 표 outside). 9 필드 통합은 직교성 위반이므로 본 phase 는 **6 필드만**. ADR Phase 0 G1 시점 9 필드 marker 는 cleanup target 표식일 뿐, G5 phase scope 는 아니다.
-3. **baseline framing reverse 검증**: ADR-911 Status `In Progress (잔여는 ADR-916 이후 재개)` + ADR-913 Status `In Progress (잔여 Phase 4/5 는 ADR-916 이후 재개)` framing 은 **stale**. 본 §11 명시 "ADR-911/913 cleanup 을 ADR-916 G5 에 연결" 가 valid 한 framing — 두 ADR 의 cleanup work 를 ADR-916 G5 work scope **안에서** 진행, ADR-911/913 의 cleanup phase 는 ADR-916 G5 closure 시점에 동시 closure (Implemented). "ADR-916 이후 재개" 는 별도 재개 가정인데 cleanup work 가 ADR-916 G5 본질이라 별도 재개가 아닌 본 phase 가 그 재개 자체. 이 reverse 가 R4 (cleanup 기준 흩어짐) 대응의 본질.
+1. **base / 응용 분류**: ADR-111 P3 잔여 (`layout_id` cleanup) + ADR-113 Phase 5 (`slot_name`/`overrides`/`componentRole`/`masterId`/legacy `descendants` cleanup) = **base cleanup work** (실 mutation work, runtime read/write 0 도달이 목적). ADR-116 G5 = **응용 closure aggregator** (base ADR 의 cleanup work 진행도 marker + grep gate 0 도달 시 closure 신호). §11 명시 "ADR-111/113 cleanup 을 ADR-116 G5 에 연결" 정합.
+2. **schema 직교성**: G5 6 필드 (structural cleanup) ⊥ G7 `events`/`dataBinding` (extension boundary, §10 Phase 5 영역) ⊥ `componentName` (ADR-113 P5 별도, §9 표 outside). 9 필드 통합은 직교성 위반이므로 본 phase 는 **6 필드만**. ADR Phase 0 G1 시점 9 필드 marker 는 cleanup target 표식일 뿐, G5 phase scope 는 아니다.
+3. **baseline framing reverse 검증**: ADR-111 Status `In Progress (잔여는 ADR-116 이후 재개)` + ADR-113 Status `In Progress (잔여 Phase 4/5 는 ADR-116 이후 재개)` framing 은 **stale**. 본 §11 명시 "ADR-111/113 cleanup 을 ADR-116 G5 에 연결" 가 valid 한 framing — 두 ADR 의 cleanup work 를 ADR-116 G5 work scope **안에서** 진행, ADR-111/113 의 cleanup phase 는 ADR-116 G5 closure 시점에 동시 closure (Implemented). "ADR-116 이후 재개" 는 별도 재개 가정인데 cleanup work 가 ADR-116 G5 본질이라 별도 재개가 아닌 본 phase 가 그 재개 자체. 이 reverse 가 R4 (cleanup 기준 흩어짐) 대응의 본질.
 4. **codex 3차 미루지 말 것**: 본 §9 보강 (sub-phase 분리 + baseline + caller 영역) lock-in 직후 codex review 1차 진입. 본문 정합 (Risk/Gate 매핑) 은 codex round 위임, framing reverse 의 valid 성은 본 시점 design 본문 명문화.
 
 ### 9.1 sub-phase 분리 (G5-A / G5-B)
@@ -652,10 +652,10 @@ Phase 4 G5 진입 시점 fork checkpoint 4 질문 통과 — 본 sub-section 1-l
 
 | sub-phase                            | 필드                                                                            | base ADR            | baseline matches         | 종결 기준                                                                                                                                                                                              |
 | ------------------------------------ | ------------------------------------------------------------------------------- | ------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **G5-A** (ADR-911 layout_id closure) | `layout_id`                                                                     | ADR-911 Phase 3/4   | **165**                  | `page.layout_id` reference 가 reusable frame + page ref/descendants 구조로 마이그레이션. adapter 외부 runtime read/write 0건. ADR-911 P3 잔여 cleanup work 흡수.                                       |
-| **G5-B** (ADR-913 P5 5필드 closure)  | `slot_name` / `overrides` / `componentRole` / `masterId` / legacy `descendants` | ADR-913 Phase 5-A~E | **195** (23+25+41+50+56) | 5 필드 모두 adapter 외부 runtime read/write 0건. canonical `DescendantOverride` union + `RefNode.ref` + `reusable`/`type:"ref"` + `RefNode.descendants` patch mode 통합. ADR-913 P5 cleanup work 흡수. |
+| **G5-A** (ADR-111 layout_id closure) | `layout_id`                                                                     | ADR-111 Phase 3/4   | **165**                  | `page.layout_id` reference 가 reusable frame + page ref/descendants 구조로 마이그레이션. adapter 외부 runtime read/write 0건. ADR-111 P3 잔여 cleanup work 흡수.                                       |
+| **G5-B** (ADR-113 P5 5필드 closure)  | `slot_name` / `overrides` / `componentRole` / `masterId` / legacy `descendants` | ADR-113 Phase 5-A~E | **195** (23+25+41+50+56) | 5 필드 모두 adapter 외부 runtime read/write 0건. canonical `DescendantOverride` union + `RefNode.ref` + `reusable`/`type:"ref"` + `RefNode.descendants` patch mode 통합. ADR-113 P5 cleanup work 흡수. |
 
-**진입 순서**: G5-A → G5-B (base/응용 분류 결과). layout_id 가 더 광역 + ADR-911 frame canvas authoring 본질과 결합 → G5-A 가 base. G5-B 는 ADR-913 P5-A~E sub-phase 별 5 sub-step (`slot_name` → `componentRole` → `masterId` → `overrides` → `descendants`) 로 추가 분해 가능.
+**진입 순서**: G5-A → G5-B (base/응용 분류 결과). layout_id 가 더 광역 + ADR-111 frame canvas authoring 본질과 결합 → G5-A 가 base. G5-B 는 ADR-113 P5-A~E sub-phase 별 5 sub-step (`slot_name` → `componentRole` → `masterId` → `overrides` → `descendants`) 로 추가 분해 가능.
 
 ### 9.2 6 필드별 baseline + caller 영역 분류 (2026-05-01 측정, main HEAD `e5719bdf6` 기준)
 
@@ -674,8 +674,8 @@ design §9 grep 패턴 (runtime field access/write 만, adapter/test/migration e
 **hot path 식별** (sub-phase 작업 우선순위 결정 도구):
 
 - **`elementSanitizer.ts`** = 6 필드 모두 (slot_name 6 / componentRole 4 / masterId 4 / overrides 8 / descendants 8 / layout_id 7 = **37**). single point of cleanup — sanitizer 가 canonical 변환 진입점이면 6 필드 동시 closure 가능.
-- **`instanceActions.ts`** = ADR-913 P5 핵심 (componentRole 9 / masterId 8 / overrides 9 / descendants 12 = **38**). instance ref/override 처리 핵심.
-- **`ElementsApiService.ts`** = DB-facing (componentRole 11 / masterId 11 = **22**). DB schema 면 — ADR-913 Phase 4 DB schema migration (별 phase, design §913-phase4 breakdown) 와 결합 검토.
+- **`instanceActions.ts`** = ADR-113 P5 핵심 (componentRole 9 / masterId 8 / overrides 9 / descendants 12 = **38**). instance ref/override 처리 핵심.
+- **`ElementsApiService.ts`** = DB-facing (componentRole 11 / masterId 11 = **22**). DB schema 면 — ADR-113 Phase 4 DB schema migration (별 phase, design §913-phase4 breakdown) 와 결합 검토.
 - **`canonicalRefResolution.ts`** + **`editingSemantics.ts`** = ref resolution 영역 (모든 필드 등장).
 - **`PageParentSelector.tsx`** + **`usePageManager.ts`** = layout_id 광역 (각 13). G5-A page→frame ref 마이그레이션 핵심.
 
@@ -725,20 +725,20 @@ rg -n "\.(layout_id|slot_name|componentRole|masterId|overrides)\b|\b(layout_id|s
 
 | bucket                                  | 사례                                                                                                                       | 처리 사유                                                                                                                                   |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Comment / JSDoc / @see / marker         | `resolvePageWithFrame.ts` JSDoc 6 / ADR-916 G5-B P5-D marker 등 24개                                                       | runtime 영향 0, design intent / migration marker 보존 가치                                                                                  |
-| Console.log / dev log                   | `lib/db/indexedDB/adapter.ts:131` IndexedDB index 추가 log                                                                 | dev log emit only, ADR-913 P4 DB schema migration 영역                                                                                      |
-| TS interface schema 정의                | `component.types.ts:35` `MasterChangeEvent.masterId` / `:48` `DetachResult.previousState.masterId\|overrides\|descendants` | ADR-913 P5 영역 별 bucket — instance 시스템 event/undo schema, `Element.masterId` legacy field 와 다른 schema, ADR-913 P5 closure 시점 정리 |
+| Comment / JSDoc / @see / marker         | `resolvePageWithFrame.ts` JSDoc 6 / ADR-116 G5-B P5-D marker 등 24개                                                       | runtime 영향 0, design intent / migration marker 보존 가치                                                                                  |
+| Console.log / dev log                   | `lib/db/indexedDB/adapter.ts:131` IndexedDB index 추가 log                                                                 | dev log emit only, ADR-113 P4 DB schema migration 영역                                                                                      |
+| TS interface schema 정의                | `component.types.ts:35` `MasterChangeEvent.masterId` / `:48` `DetachResult.previousState.masterId\|overrides\|descendants` | ADR-113 P5 영역 별 bucket — instance 시스템 event/undo schema, `Element.masterId` legacy field 와 다른 schema, ADR-113 P5 closure 시점 정리 |
 | Canonical resolver legitimate parameter | `cache.ts:75` `computeDescendantsFingerprint(overrides: Record<...>)`                                                      | §9.3 footnote 명시 일반 변수명, canonical 영역 함수 시그니처                                                                                |
 
-**진정 PASS 의의**: strict logic-access = 0 도달 시 §9.3 gate PASS marker. 진정 logic cleanup 잔존 (instanceActions / ComponentSlotFillSection / editingSemantics 의 legacy `componentRole === "instance"` 분기 / `el.masterId` direct access body / `Element.descendants` 영역) 은 **ADR-911 P3 / ADR-913 P5 base cleanup work 의존** — 별 ADR phase, ADR-916 G5 scope 외.
+**진정 PASS 의의**: strict logic-access = 0 도달 시 §9.3 gate PASS marker. 진정 logic cleanup 잔존 (instanceActions / ComponentSlotFillSection / editingSemantics 의 legacy `componentRole === "instance"` 분기 / `el.masterId` direct access body / `Element.descendants` 영역) 은 **ADR-111 P3 / ADR-113 P5 base cleanup work 의존** — 별 ADR phase, ADR-116 G5 scope 외.
 
-### 9.4 prerequisite + ADR-911/913 closure 동시 마감
+### 9.4 prerequisite + ADR-111/113 closure 동시 마감
 
-G5-A 종결 시 ADR-911 P3 잔여 (`layout_id` cleanup) closure marker → ADR-911 도 closure 가능 (Phase 3 frame canvas authoring + page→frame ref 마이그레이션 모두 land 후).
+G5-A 종결 시 ADR-111 P3 잔여 (`layout_id` cleanup) closure marker → ADR-111 도 closure 가능 (Phase 3 frame canvas authoring + page→frame ref 마이그레이션 모두 land 후).
 
-G5-B 종결 시 ADR-913 P5-A~E 5 필드 closure marker → ADR-913 P5 도 closure 가능. ADR-913 Phase 4 (DB schema migration, `913-phase4-db-schema-migration-breakdown.md` 별 design) 는 ADR-913 P5 와 직교 — 별도 진행. ADR-913 closure 는 P4 + P5 모두 land 시점.
+G5-B 종결 시 ADR-113 P5-A~E 5 필드 closure marker → ADR-113 P5 도 closure 가능. ADR-113 Phase 4 (DB schema migration, `113-phase4-db-schema-migration-breakdown.md` 별 design) 는 ADR-113 P5 와 직교 — 별도 진행. ADR-113 closure 는 P4 + P5 모두 land 시점.
 
-ADR-916 G5 closure 시점 = G5-A + G5-B 모두 grep gate 0 도달. **Phase 5 G6 (Runtime Parity) + G7 (Extension Boundary) 진입 prerequisite**.
+ADR-116 G5 closure 시점 = G5-A + G5-B 모두 grep gate 0 도달. **Phase 5 G6 (Runtime Parity) + G7 (Extension Boundary) 진입 prerequisite**.
 
 2026-05-01 runtime helper quarantine 추가 진행 후 raw exact gate 는 64까지 감소했고, follow-up 정리 후 45까지 추가 감소했다. 이 값은 아직 PASS가 아니다. 잔여 bucket 은 (1) DB/index/schema/comment, (2) canonical core `RefNode.descendants`, (3) legacy type guard/read-through fallback 으로 분리된다. Phase 5 진입 전 다음 중 하나가 필요하다: raw 0 도달, 또는 §9.3 gate 를 "legacy runtime read/write" 기준으로 재정의하고 canonical core/DB schema/comment bucket 을 명시 제외하는 follow-up land.
 
@@ -749,7 +749,7 @@ R5: "legacy field quarantine 이 과도하게 빨리 진행되어 기존 프로�
 **대응 절차**:
 
 1. 각 sub-phase 진입 시 adapter (`apps/builder/src/adapters/canonical/legacyMetadata.ts` + `legacyToCanonical.ts`) 의 read-through 보존 — runtime read/write 만 0 도달, adapter read 는 유지.
-2. migration marker 유지 — `metadata.legacyProps` 가 `id` / `parent_id` / `page_id` / `layout_id` / `order_num` / `fills` / `type` 7 fields 보존 (ADR-916 G1 §3 결정).
+2. migration marker 유지 — `metadata.legacyProps` 가 `id` / `parent_id` / `page_id` / `layout_id` / `order_num` / `fills` / `type` 7 fields 보존 (ADR-116 G1 §3 결정).
 3. destructive migration 없이 shadow 검증 → fixture 100건 + 사용자 dev 환경 1-2주 monitoring (G4 monitoring 패턴 재사용).
 4. **single point of cleanup 우선** — `elementSanitizer.ts` 같은 6 필드 모두 등장 site 부터 cleanup 진입 시 cascade 영향 가시성 ↑.
 5. caller chain 추적 — top files 의 hot path 변경이 하류 caller (panels / hooks / workspace) 에 영향 줄 때마다 type-check + vitest 회귀 0 검증.
@@ -778,11 +778,11 @@ R5: "legacy field quarantine 이 과도하게 빨리 진행되어 기존 프로�
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------: |
 | Comment / JSDoc / @see / migration marker  | resolvePageWithFrame 6 + composition-document.types 2 + StoreRenderBridge 2 + rendererInput 2 + layout.types 2 + urlGenerator/elementUtils/storeBridge/lib-db-types/useResolvedElement/visibleFrameRoots/frameActions/elementIndexer/ComponentsPanel/indexedDB-adapter:801 각 1 |       24 |
 | Console.log / dev log                      | `apps/builder/src/lib/db/indexedDB/adapter.ts:131` IndexedDB index 추가 log                                                                                                                                                                                                     |        1 |
-| TS interface schema 정의 (ADR-913 P5 영역) | `apps/builder/src/types/builder/component.types.ts:35` `MasterChangeEvent.masterId` + `:48-50` `DetachResult.previousState.{masterId,overrides,descendants}`                                                                                                                    |        2 |
+| TS interface schema 정의 (ADR-113 P5 영역) | `apps/builder/src/types/builder/component.types.ts:35` `MasterChangeEvent.masterId` + `:48-50` `DetachResult.previousState.{masterId,overrides,descendants}`                                                                                                                    |        2 |
 | Canonical resolver legitimate parameter    | `apps/builder/src/resolvers/canonical/cache.ts:75` `computeDescendantsFingerprint(overrides: Record<...>)`                                                                                                                                                                      |        1 |
 | **strict logic-access 잔존**               | (없음)                                                                                                                                                                                                                                                                          | **0 ✅** |
 
-**Phase 5 G6/G7 정식 gate 진입 prerequisite 충족**: §9.3 strict logic-access PASS marker 도달. 진정 logic cleanup 잔존 (instanceActions / ComponentSlotFillSection / editingSemantics 의 legacy `componentRole === "instance"` 분기 / `el.masterId` direct access body / `Element.descendants` 영역) 은 ADR-911 P3 / ADR-913 P5 base cleanup work 의존 — 별 ADR phase, ADR-916 G5 scope 외.
+**Phase 5 G6/G7 정식 gate 진입 prerequisite 충족**: §9.3 strict logic-access PASS marker 도달. 진정 logic cleanup 잔존 (instanceActions / ComponentSlotFillSection / editingSemantics 의 legacy `componentRole === "instance"` 분기 / `el.masterId` direct access body / `Element.descendants` 영역) 은 ADR-111 P3 / ADR-113 P5 base cleanup work 의존 — 별 ADR phase, ADR-116 G5 scope 외.
 
 **DB snake_case 측정 (design §9.3 두번째 grep)**:
 
@@ -790,13 +790,13 @@ R5: "legacy field quarantine 이 과도하게 빨리 진행되어 기존 프로�
 | ----------------------------------- | --------: | --------: | -------------: | --------: |
 | ElementsApiService 격리 후 baseline |        29 |         1 |          **0** |     **0** |
 
-`component_role` / `master_id` 0 도달 ✅ (ADR-913 P5-C/D base cleanup DB-facing 진척 marker). `layout_id` 29 잔존 = lib/db/migration.ts (12, exclude) + indexedDB/adapter.ts (12, ADR-913 P4 DB schema migration 영역) + project.schema.ts (2) + lib/db/types.ts (2) + PagesApiService.ts (1). `slot_name` 1 잔존 = project.schema.ts:64 (Zod schema definition).
+`component_role` / `master_id` 0 도달 ✅ (ADR-113 P5-C/D base cleanup DB-facing 진척 marker). `layout_id` 29 잔존 = lib/db/migration.ts (12, exclude) + indexedDB/adapter.ts (12, ADR-113 P4 DB schema migration 영역) + project.schema.ts (2) + lib/db/types.ts (2) + PagesApiService.ts (1). `slot_name` 1 잔존 = project.schema.ts:64 (Zod schema definition).
 
 **본 세션 진입 가능 영역 측정**:
 
 - ✅ **mechanical adapter 격리** (single point cleanup 패턴) = **이미 land** (sanitizer + ElementsApiService). 다른 후보 file 발굴 결과:
   - `lib/db/indexedDB/adapter.ts` (12 matches) — IndexedDB schema column index, console.log + 주석. logic access 0 (grep pattern 매치 안 함). **격리 불필요** — 본 file 의 12 matches 는 design §9.3 첫번째 grep 결과에 포함되지 않음 (실제 baseline 158 layout_id 영역 외).
-  - `lib/db/types.ts` (2 matches) + `project.schema.ts` (2-3 matches) = legacy schema definition. ADR-913 Phase 4 DB schema migration 영역.
+  - `lib/db/types.ts` (2 matches) + `project.schema.ts` (2-3 matches) = legacy schema definition. ADR-113 Phase 4 DB schema migration 영역.
   - `PagesApiService.ts` (1 match) = page CRUD service. 본격 cleanup 영역.
 - ✅ **BaseApiService dead duplicate** (LOW hygiene) = stale ElementsApiService 클래스 + elementsApi 싱글톤 export 제거. 모든 caller 가 adapter 영역 (`legacyElementsApiService.ts`) 경유. baseline 영향 0 (dead code 였으므로) but file hygiene 개선.
 
@@ -806,31 +806,31 @@ R5: "legacy field quarantine 이 과도하게 빨리 진행되어 기존 프로�
 
 | sub-step                 | 정독 결과 caller pattern                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 진입 risk                                                                                                                                                                                                                                                                           |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P5-A `slot_name`**     | resolvePageWithFrame slot resolution / element.utils slotMap / PropertiesPanel UI / preview slot fill 의 read site `props.slot_name ?? element.slot_name` fallback                                                                                                                                                                                                                                                                                                                                                                                                                     | **HIGH** — ADR-911 P3 미완성 frame.slot[] 인프라 결합 (design §6 비권장 시점). prerequisite 검증 필요                                                                                                                                                                               |
-| **P5-B `overrides`**     | instanceActions 9 site (instance 생명주기 reset/merge/update) + instanceResolver merge + storeBridge legacyProps export + editingSemantics overrides keys. **2026-05-01 partial land**: type field marker 강화 + write site initial cleanup (`{}` → `undefined`) + legacy public API JSDoc deprecation + read-through fallback strategy 명문화. baseline 17 → 16 (-1). 본격 cleanup (instance 시스템 logic 변경) 은 ADR-911 P3 영역 결합으로 미진입.                                                                                                                                   | **MED-HIGH** — instance 시스템 logic 본질 변경, ~1-2d. **본격 cleanup 진정성 한계**: legacy `componentRole === "instance"` 분기 자체가 ADR-911 P3 cleanup target — overrides 만 단독 cleanup 어려움. P5-C `componentRole` cleanup 또는 ADR-911 P3 cleanup 시점에 동시 진정 cleanup. |
-| **P5-C `componentRole`** | instanceActions hot path / editingSemantics / multiElementCopy / canonicalRefResolution. **2026-05-01 partial land**: caller 5 site (multiElementCopy 1 + elements 4 + elementIndexer 2) literal 비교 → `isMasterElement` / `isInstanceElement` type guard 호출로 단일화 + JSDoc strict legacy + read-through fallback marker. baseline 26 → 19 (-7). 잔존 19 = instanceActions 9 (ADR-911 영역) + editingSemantics 5 (ADR-911 영역) + 기타 5 (read-through fallback / dual-mode fixture / 주석 / strip).                                                                              | **MED** — ADR-911 `componentRoleAdapter` 활용 가능, ~2d. **본격 cleanup 진정성 한계**: instanceActions / editingSemantics 의 legacy 분기는 ADR-911 P3 cleanup 영역. type guard 자체 logic reverse (canonical 전환) 도 ADR-911 P3 cleanup 시점에 진행.                               |
-| **P5-D `masterId`**      | instanceActions / elements store / elementIndexer / useResolvedElement / StoreRenderBridge. **2026-05-01 partial land**: `getInstanceMasterRef(el)` helper 신규 도입 (legacy `masterId` + canonical `ref` dual-mode read-through fallback) + 4 file caller migration (elements 7 access + elementIndexer 4 + StoreRenderBridge 2 + useResolvedElement 2 = 15 access → 0 direct, helper 호출). baseline 35 → 24 (-11). 잔존 24 = instanceActions 9 (ADR-911 영역) + editingSemantics 2 + signature parameter / type 정의 / 주석 / fixture / strip dict / read-through fallback body 등. | **MED-HIGH** — RefNode.ref 전환 ~2-3d. **본격 cleanup 진정성 한계**: instanceActions / editingSemantics 분기 + helper 내부 legacy `el.masterId` body 는 ADR-911 P3 cleanup 영역. helper logic reverse (legacy 분기 제거) 도 ADR-911 P3 cleanup 시점에 진행.                         |
+| **P5-A `slot_name`**     | resolvePageWithFrame slot resolution / element.utils slotMap / PropertiesPanel UI / preview slot fill 의 read site `props.slot_name ?? element.slot_name` fallback                                                                                                                                                                                                                                                                                                                                                                                                                     | **HIGH** — ADR-111 P3 미완성 frame.slot[] 인프라 결합 (design §6 비권장 시점). prerequisite 검증 필요                                                                                                                                                                               |
+| **P5-B `overrides`**     | instanceActions 9 site (instance 생명주기 reset/merge/update) + instanceResolver merge + storeBridge legacyProps export + editingSemantics overrides keys. **2026-05-01 partial land**: type field marker 강화 + write site initial cleanup (`{}` → `undefined`) + legacy public API JSDoc deprecation + read-through fallback strategy 명문화. baseline 17 → 16 (-1). 본격 cleanup (instance 시스템 logic 변경) 은 ADR-111 P3 영역 결합으로 미진입.                                                                                                                                   | **MED-HIGH** — instance 시스템 logic 본질 변경, ~1-2d. **본격 cleanup 진정성 한계**: legacy `componentRole === "instance"` 분기 자체가 ADR-111 P3 cleanup target — overrides 만 단독 cleanup 어려움. P5-C `componentRole` cleanup 또는 ADR-111 P3 cleanup 시점에 동시 진정 cleanup. |
+| **P5-C `componentRole`** | instanceActions hot path / editingSemantics / multiElementCopy / canonicalRefResolution. **2026-05-01 partial land**: caller 5 site (multiElementCopy 1 + elements 4 + elementIndexer 2) literal 비교 → `isMasterElement` / `isInstanceElement` type guard 호출로 단일화 + JSDoc strict legacy + read-through fallback marker. baseline 26 → 19 (-7). 잔존 19 = instanceActions 9 (ADR-111 영역) + editingSemantics 5 (ADR-111 영역) + 기타 5 (read-through fallback / dual-mode fixture / 주석 / strip).                                                                              | **MED** — ADR-111 `componentRoleAdapter` 활용 가능, ~2d. **본격 cleanup 진정성 한계**: instanceActions / editingSemantics 의 legacy 분기는 ADR-111 P3 cleanup 영역. type guard 자체 logic reverse (canonical 전환) 도 ADR-111 P3 cleanup 시점에 진행.                               |
+| **P5-D `masterId`**      | instanceActions / elements store / elementIndexer / useResolvedElement / StoreRenderBridge. **2026-05-01 partial land**: `getInstanceMasterRef(el)` helper 신규 도입 (legacy `masterId` + canonical `ref` dual-mode read-through fallback) + 4 file caller migration (elements 7 access + elementIndexer 4 + StoreRenderBridge 2 + useResolvedElement 2 = 15 access → 0 direct, helper 호출). baseline 35 → 24 (-11). 잔존 24 = instanceActions 9 (ADR-111 영역) + editingSemantics 2 + signature parameter / type 정의 / 주석 / fixture / strip dict / read-through fallback body 등. | **MED-HIGH** — RefNode.ref 전환 ~2-3d. **본격 cleanup 진정성 한계**: instanceActions / editingSemantics 분기 + helper 내부 legacy `el.masterId` body 는 ADR-111 P3 cleanup 영역. helper logic reverse (legacy 분기 제거) 도 ADR-111 P3 cleanup 시점에 진행.                         |
 | **P5-E `descendants`**   | instanceActions / ComponentSlotFillSection / canonicalRefResolution / resolvers/canonical/index / packages/shared types                                                                                                                                                                                                                                                                                                                                                                                                                                                                | **HIGH** — ref 수 100+ + 23 file. 내부 분할 권장 ~2-3d                                                                                                                                                                                                                              |
-| **G5-A `layout_id`**     | panels/properties/editors / hooks (usePageManager) / preview / workspace/canvas / utils — `page.layout_id → page.bodyElement (frame ref)` 마이그레이션                                                                                                                                                                                                                                                                                                                                                                                                                                 | **HIGH** — ADR-911 P3 frame canvas authoring 본질 결합, ~1주+                                                                                                                                                                                                                       |
+| **G5-A `layout_id`**     | panels/properties/editors / hooks (usePageManager) / preview / workspace/canvas / utils — `page.layout_id → page.bodyElement (frame ref)` 마이그레이션                                                                                                                                                                                                                                                                                                                                                                                                                                 | **HIGH** — ADR-111 P3 frame canvas authoring 본질 결합, ~1주+                                                                                                                                                                                                                       |
 
 **진입 순서 권장** (안전성 + design 정합):
 
-1. **P5-B → P5-C → P5-D** — instance 시스템 cleanup 묶음 (LOW-MED), ADR-911 영역과 직교
+1. **P5-B → P5-C → P5-D** — instance 시스템 cleanup 묶음 (LOW-MED), ADR-111 영역과 직교
 2. **P5-E** — descendants schema 정합성 점검 (HIGH 분할)
-3. **P5-A** — ADR-911 P3 closure (또는 G5-A) 후 진입
-4. **G5-A** — ADR-911 P3 잔여 frame canvas authoring 본질 결합 진행 (별 ADR-911 본격 phase)
+3. **P5-A** — ADR-111 P3 closure (또는 G5-A) 후 진입
+4. **G5-A** — ADR-111 P3 잔여 frame canvas authoring 본질 결합 진행 (별 ADR-111 본격 phase)
 
-design §4 권장 진입 순서 (P5-A → P5-B → ...) 는 ref 수 기준만이었음. 본 §9.7 reorder 는 **ADR-911 P3 결합 위험** 회피 우선. P5-A 는 ADR-911 P3 frame.slot[] 인프라 완전 land 또는 G5-A 진행 후 진입.
+design §4 권장 진입 순서 (P5-A → P5-B → ...) 는 ref 수 기준만이었음. 본 §9.7 reorder 는 **ADR-111 P3 결합 위험** 회피 우선. P5-A 는 ADR-111 P3 frame.slot[] 인프라 완전 land 또는 G5-A 진행 후 진입.
 
 ### 9.7.1 §9.3 strict logic-access PASS marker land (2026-05-01)
 
 **§9.6 footnote 옵션 (2) follow-up 진입** — §9.3 grep gate 의 raw 28 잔존을 strict 분류 (§9.3.1 bucket 4종) 후 logic-access 측정 = **0 도달 ✅**.
 
-진정 logic cleanup 잔존은 ADR-911 P3 / ADR-913 P5 base cleanup work 의존 — §9.7 reorder 의 P5-A/B/C/D/E + G5-A 본격 cleanup 은 별 ADR phase 으로 진행. 본 marker land 의 의의:
+진정 logic cleanup 잔존은 ADR-111 P3 / ADR-113 P5 base cleanup work 의존 — §9.7 reorder 의 P5-A/B/C/D/E + G5-A 본격 cleanup 은 별 ADR phase 으로 진행. 본 marker land 의 의의:
 
 - **Phase 5 G6 (Runtime Parity) + G7 (Extension Boundary) 정식 gate 진입 prerequisite 충족** — §9.3 strict measurement = 0
 - **regression detection codify** — `apps/builder/src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts` 가 strict 측정 + bucket 분류 자동 검증, 신규 logic access 추가 시 자동 fail
-- **§9.7 reorder 본격 cleanup 진입 시점 신호 분리** — 진정 logic cleanup 진척 = ADR-911 P3 / ADR-913 P5 phase 본격 진입 시 marker
+- **§9.7 reorder 본격 cleanup 진입 시점 신호 분리** — 진정 logic cleanup 진척 = ADR-111 P3 / ADR-113 P5 phase 본격 진입 시 marker
 
 ## 10. Phase 5 — Runtime Parity + Extension Closure
 
@@ -863,11 +863,11 @@ design §4 권장 진입 순서 (P5-A → P5-B → ...) 는 ref 수 기준만이
 
 ### 10.2 G6 (Runtime Parity) sub-phase 분해 + 우선순위 정렬 (2026-05-01 land)
 
-**§9.3 strict logic-access PASS marker 도달 후 본격 G6 entry prerequisite work**. §10 검증 matrix 10 영역을 ADR-911/913 결합도 + 진척 가능성 기준으로 분류하여 sub-phase 분해.
+**§9.3 strict logic-access PASS marker 도달 후 본격 G6 entry prerequisite work**. §10 검증 matrix 10 영역을 ADR-111/113 결합도 + 진척 가능성 기준으로 분류하여 sub-phase 분해.
 
-#### 10.2.1 영역별 ADR-911/913 결합도 + 진입 가능성
+#### 10.2.1 영역별 ADR-111/113 결합도 + 진입 가능성
 
-| 영역            | ADR-911 결합 | ADR-913 결합 | 진입 risk    | sub-phase | 우선순위 |
+| 영역            | ADR-111 결합 | ADR-113 결합 | 진입 risk    | sub-phase | 우선순위 |
 | --------------- | ------------ | ------------ | ------------ | --------- | -------- |
 | **Props**       | LOW          | LOW          | **LOW**      | G6-1      | **1**    |
 | **Extension**   | LOW          | LOW          | **LOW**      | G6-1      | **1**    |
@@ -883,9 +883,9 @@ design §4 권장 진입 순서 (P5-A → P5-B → ...) 는 ref 수 기준만이
 #### 10.2.2 sub-phase 그룹
 
 - **G6-1 — Extension Boundary + Props Parity** (`LOW`, ~1d): Phase 5 G7 preflight 후속. `updateNodeExtension` API 가 합법 surface 임을 회귀 vitest codify + Props canonical primary 렌더 (Button/TextField/Section 의 `metadata.legacyProps` 없이도 Skia + DOM 렌더 정합).
-- **G6-2 — History + Preview/Publish Parity** (`LOW-MED`, ~2-3d): canonical store mutation 의 history granularity (undo/redo) + Preview/Publish 의 canonical resolved tree 렌더 정합. ADR-911/913 결합 회피 가능 영역 — Props/Extension 회귀 codify 가 prerequisite.
-- **G6-3 — Slot/Ref/Descendants/Frame Parity** (`HIGH`, ~1주+): ADR-911 P3 frame canvas authoring + ADR-913 P5 instance schema 본격 결합. **ADR-911 P3 / ADR-913 P5 base cleanup work land 후 진입**. ADR-916 G5 §9.7 reorder 의 P5-A/B/C/D/E + G5-A 본격 진척과 동시 진행 가능.
-- **G6-4 — Imports Parity** (`MED-HIGH`, ~3-5d): ADR-915 DesignKit scope superseded 후 잔여 fetch/cache/resolver. ResolverCache invalidation + external `.pen` reference fetch + import namespace 정합. ADR-911/913 직접 결합 적음 — G6-3 후 또는 별 진행 가능.
+- **G6-2 — History + Preview/Publish Parity** (`LOW-MED`, ~2-3d): canonical store mutation 의 history granularity (undo/redo) + Preview/Publish 의 canonical resolved tree 렌더 정합. ADR-111/113 결합 회피 가능 영역 — Props/Extension 회귀 codify 가 prerequisite.
+- **G6-3 — Slot/Ref/Descendants/Frame Parity** (`HIGH`, ~1주+): ADR-111 P3 frame canvas authoring + ADR-113 P5 instance schema 본격 결합. **ADR-111 P3 / ADR-113 P5 base cleanup work land 후 진입**. ADR-116 G5 §9.7 reorder 의 P5-A/B/C/D/E + G5-A 본격 진척과 동시 진행 가능.
+- **G6-4 — Imports Parity** (`MED-HIGH`, ~3-5d): ADR-115 DesignKit scope superseded 후 잔여 fetch/cache/resolver. ResolverCache invalidation + external `.pen` reference fetch + import namespace 정합. ADR-111/113 직접 결합 적음 — G6-3 후 또는 별 진행 가능.
 
 #### 10.2.3 본 세션 진입 = G6-1 first work (Extension Boundary closure 회귀 codify)
 
@@ -895,7 +895,7 @@ design §4 권장 진입 순서 (P5-A → P5-B → ...) 는 ref 수 기준만이
 - **events/dataBinding/actions key 의 props 저장 차단 검증** — `updateNodeProps` 가 forbidden key skip 동작은 store test 에 검증됨. 추가로 caller 영역 grep gate (`updateNodeProps({ events: ..., })` / `updateNodeProps({ dataBinding: ..., })` 류) 가 0건임을 codify.
 - **Props canonical primary 렌더 회귀 (G6-1 second work)** — 별 PR slice. Button/TextField/Section spec consumer 가 `metadata.legacyProps` 없이도 Skia + DOM 정합 렌더. fixture + visual evidence 필요 ~1d MED.
 
-본 세션 진입 = **G6-1 first work first slice** = boundary closure caller grep gate vitest codify. ADR-911/913 결합 0, schema marker only, 1 PR LOW scope.
+본 세션 진입 = **G6-1 first work first slice** = boundary closure caller grep gate vitest codify. ADR-111/113 결합 0, schema marker only, 1 PR LOW scope.
 
 #### 10.2.4 G6-1 first work first slice land (2026-05-01) — `legacyExtensionFields.ts` helper + caller 2 site migration
 
@@ -1096,7 +1096,7 @@ design §4 권장 진입 순서 (P5-A → P5-B → ...) 는 ref 수 기준만이
 
 **다음 sub-phase 권장**:
 
-- **G6-2 — History + Preview/Publish Parity** (LOW-MED, ~2-3d): canonical store mutation 의 history granularity (undo/redo) + Preview/Publish 의 canonical resolved tree 렌더 정합. ADR-911/913 결합 회피 가능, G6-1 회귀 codify 가 prerequisite (✅ 충족).
+- **G6-2 — History + Preview/Publish Parity** (LOW-MED, ~2-3d): canonical store mutation 의 history granularity (undo/redo) + Preview/Publish 의 canonical resolved tree 렌더 정합. ADR-111/113 결합 회피 가능, G6-1 회귀 codify 가 prerequisite (✅ 충족).
 - **write boundary cleanup** (별 sub-phase, G7 closure 진정 work): `inspectorActions:285-286` payload write / createElement AI tool / undo-redo 복원 — `updateNodeExtension` API caller migration 진척 marker. G6-2 와 병렬 가능 영역.
 
 **framing 의문 명시 — fallback 경로 활성화 시점**:
@@ -1153,7 +1153,7 @@ design §10.2.2 추정 = ~2-3d MED. 실 baseline 측정 결과:
 **다음 sub-phase 권장**:
 
 - **G6-2 second slice** (LOW, ~0.5d): canonicalDocumentSync.test.ts setup fail debug + history parity 회귀 codify (legacy history.undo() → canonical store sync 자동 cover evidence vitest)
-- **G6-3 (Slot/Ref/Descendants/Frame Parity)** — ADR-911 P3 / ADR-913 P5 base cleanup 의존, prerequisite 미충족 시 진입 회피
+- **G6-3 (Slot/Ref/Descendants/Frame Parity)** — ADR-111 P3 / ADR-113 P5 base cleanup 의존, prerequisite 미충족 시 진입 회피
 - **write boundary cleanup** (별 sub-phase, G7 closure 진정 work): `updateNodeExtension` API caller migration
 
 #### 10.2.10 G7 transition first slice land (2026-05-01) — events/dataBinding round-trip 보존 (`buildLegacyElementMetadata` + `exportLegacyDocument`)
@@ -1264,12 +1264,12 @@ design §10.2.4 footnote 의 "write boundary cleanup" 정의 (`inspectorActions:
 
 - ✅ transition first slice — events/dataBinding round-trip 보존 (`metadata.legacyProps` dual-storage, §10.2.10)
 - ✅ **본격 cutover — `x-composition` extension only 전환** (본 work, §10.2.11)
-- ⏭️ closure verification — write boundary cleanup baseline 재측정 (G7 closure 시점, ADR-916 parity Gate 충족)
+- ⏭️ closure verification — write boundary cleanup baseline 재측정 (G7 closure 시점, ADR-116 parity Gate 충족)
 
 **다음 sub-phase 권장**:
 
 - **G7 closure verification** (LOW, ~0.5d): G7 본격 cutover 후 모든 hot path consumer (Preview / CanonicalNodeRenderer / inspector 등) 가 `x-composition` extension 우선 read 검증 + write 경로 (canonicalDocumentSync.test.ts setup fail 영역 진정 fix 후 events/dataBinding cover 검증)
-- **Phase 4 G5 P5-B `overrides`** (MED-HIGH, ~1-2d, design §9.7 reorder 권장): instance 시스템 cleanup, ADR-911 P3 영역 결합 위험 고려
+- **Phase 4 G5 P5-B `overrides`** (MED-HIGH, ~1-2d, design §9.7 reorder 권장): instance 시스템 cleanup, ADR-111 P3 영역 결합 위험 고려
 
 #### 10.2.12 G7 closure marker land (2026-05-01) — canonical document 직렬화 형태 contract + write boundary 분류
 
@@ -1323,7 +1323,7 @@ design §10.2.4 footnote 의 "write boundary cleanup" 정의 — `inspectorActio
 
 **다음 sub-phase 권장**:
 
-- **Phase 4 G5 P5-B `overrides`** (MED-HIGH, ~1-2d, design §9.7 reorder 권장): instance 시스템 cleanup, ADR-911 P3 영역 결합 위험 고려. 본 phase 진정 진척과 직교.
+- **Phase 4 G5 P5-B `overrides`** (MED-HIGH, ~1-2d, design §9.7 reorder 권장): instance 시스템 cleanup, ADR-111 P3 영역 결합 위험 고려. 본 phase 진정 진척과 직교.
 - **Phase 3 G4 진입** (HIGH, ~3-5d, write 경로 cutover): canonical primary write 활성화. 본 phase 의 baseline 측정 결과 11+ caller migration 영역 codify (Inspector mapping / history undo-redo / Events Panel / AI tool / factory). G7 closure marker grep gate 가 Phase 3 G4 land 시점에 자동 회귀 보장.
 
 #### 10.2.13 G6-2 second slice land (2026-05-02) — history parity 자동 cover (canonicalDocumentSync 회로) + setup fail framing 재조정
@@ -1394,7 +1394,7 @@ design §10.2.9 명시 G6-2 second slice = `setup fail debug + history parity �
 **다음 sub-phase 권장**:
 
 - **G6-2 third slice** (MED unbounded debug, 별 work): `canonicalDocumentSync.test.ts` setup fail root cause 진단 + fix (lazy init Proxy / test caller migration / circular import chain 추적 중 1 선택). prerequisite 영역 명시 — G6-2 closure 시점에 별 sub-phase 진입 결정.
-- **Phase 4 G5 P5-B `overrides`** (MED-HIGH ~1-2d, design §9.7 reorder, 본격 cleanup ADR-911 P3 영역 결합으로 partial 진척만 가능, §10.2.12 명시).
+- **Phase 4 G5 P5-B `overrides`** (MED-HIGH ~1-2d, design §9.7 reorder, 본격 cleanup ADR-111 P3 영역 결합으로 partial 진척만 가능, §10.2.12 명시).
 - **Phase 3 G4 진입** (HIGH ~3-5d, write 경로 cutover, §10.2.12 명시 11+ caller migration 영역 codified).
 
 #### 10.2.14 G6-2 third slice debug attempt + framing 재정의 (2026-05-02) — 진정 unbounded scope 확정
@@ -1461,7 +1461,7 @@ elements.ts 의 import chain 후보 (transitive `stores/index.ts` 진입 가능�
 
 **다음 sub-phase 권장 (재확인)**:
 
-- **Phase 4 G5 P5-B `overrides`** (MED-HIGH ~1-2d, partial only, ADR-911 P3 회피 영역만, §10.2.12 명시). G6-2 closure 와 직교.
+- **Phase 4 G5 P5-B `overrides`** (MED-HIGH ~1-2d, partial only, ADR-111 P3 회피 영역만, §10.2.12 명시). G6-2 closure 와 직교.
 - **Phase 3 G4 진입** (HIGH ~3-5d, write 경로 cutover, 11+ caller migration codified, §10.2.12 명시).
 - **G6-2 third slice 진정 fix** (별 unbounded debug sub-phase): vitest mock infrastructure + transitive circular import chain 정밀 추적 + production 회귀 0 검증. G6-2 closure 시점 결정.
 
@@ -1493,8 +1493,8 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
   - `createElementCanonicalPrimary` / `updateElementCanonicalPrimary` / `createMultipleElementsCanonicalPrimary` 3종은 `elementsApi` 의존 (변경 0)
 - `BuilderCore.tsx`:
   - mount useEffect 에서 `registerCanonicalMutationStoreActions({ mergeElements: useStore.getState().mergeElements, setElements: useStore.getState().setElements })` 1회 호출
-  - ADR-916 Phase 2 G3 sync useEffect 직전 위치, deps `[]`
-- ADR 본문 (`docs/adr/completed/916-canonical-document-ssot-transition.md`): Status line + 진행 로그 entry (검증 evidence 포함)
+  - ADR-116 Phase 2 G3 sync useEffect 직전 위치, deps `[]`
+- ADR 본문 (`docs/adr/completed/116-canonical-document-ssot-transition.md`): Status line + 진행 로그 entry (검증 evidence 포함)
 
 **외부 영향**:
 
@@ -1521,8 +1521,8 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 
 **다음 진입점 (직전 framing drift 분석 정합)**:
 
-- **Phase 3 G4 wrapper 내부 진정 reverse** (HIGH ~3-5d, drift #1 본질 해소): canonical store mutation 우선 + legacy mirror 자동. ADR-916 본질 목표 (canonical primary write) 달성. caller 16 site 무수정 (DI pattern 으로 wrapper 외부 시그니처 보존).
-- **Phase 4 G5 P5-B `overrides`** (MED-HIGH ~1-2d, ADR-911 P3 회피 영역만, drift #2 영역 결합 위험).
+- **Phase 3 G4 wrapper 내부 진정 reverse** (HIGH ~3-5d, drift #1 본질 해소): canonical store mutation 우선 + legacy mirror 자동. ADR-116 본질 목표 (canonical primary write) 달성. caller 16 site 무수정 (DI pattern 으로 wrapper 외부 시그니처 보존).
+- **Phase 4 G5 P5-B `overrides`** (MED-HIGH ~1-2d, ADR-111 P3 회피 영역만, drift #2 영역 결합 위험).
 
 ### §10.2.16 — Projection removal slices 15~19 (2026-05-02)
 
@@ -1539,7 +1539,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 - Store selector boundary: `elements.ts` 의 deprecated `selectCanonicalDocument()` selector 를 삭제했다. legacy store snapshot → canonical projection entrypoint 는 production source 에 남기지 않는다.
 - Export boundary: `exportLegacyDocument()` 는 `RefNode.descendants[].children` 까지 DFS 순회해 page frame slot fill legacy mirror 누락을 방지한다. G6-3 first slice 로 `slot_name` / `componentRole` / `masterId` / legacy `overrides` / legacy `descendants` / `componentName` mirror payload 도 export boundary 에서 top-level 로 복원한다.
 - Resolver boundary: `resolveCanonicalDocument()` 는 RefNode resolve 결과의 top-level `type` 을 master type 으로 명시 고정한다. ref identity 는 `id` / `_resolvedFrom` 으로 보존하고 렌더 타입은 master 기준으로 열린다.
-- Gate boundary: `exportSsotGrepGate` 는 ADR-912 dev-only editing semantics fixture 의 raw visual marker write 만 명시 allowlist 로 분리한다. runtime/persistence write gate baseline 0은 유지.
+- Gate boundary: `exportSsotGrepGate` 는 ADR-112 dev-only editing semantics fixture 의 raw visual marker write 만 명시 allowlist 로 분리한다. runtime/persistence write gate baseline 0은 유지.
 
 **최신 grep 상태**:
 
@@ -1562,7 +1562,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 
 ### 10.2.17 G6-3 Slot/Ref/Descendants parity first slice (2026-05-02)
 
-**framing**: G6-3 전체는 ADR-911 P3 frame canvas authoring + ADR-913 P5 instance schema cleanup 과 결합된 HIGH scope 다. 본 slice 는 projection 제거 직후 새 native mutation/export path 에서 회귀 위험이 높은 Slot/Ref/Descendants compatibility evidence 만 먼저 닫는다.
+**framing**: G6-3 전체는 ADR-111 P3 frame canvas authoring + ADR-113 P5 instance schema cleanup 과 결합된 HIGH scope 다. 본 slice 는 projection 제거 직후 새 native mutation/export path 에서 회귀 위험이 높은 Slot/Ref/Descendants compatibility evidence 만 먼저 닫는다.
 
 **land 내용**:
 
@@ -1701,7 +1701,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
   - primitive mapping: `rectangle`/geometry/`frame`/`group` -> `frame`, `text` -> `Text`, `icon_font` -> `Icon`, `note`/`prompt`/`context` -> `Text`.
   - 원본 primitive type 은 `metadata.type` / `metadata.pencilType` 에 보존하고, canonical field 외 나머지 primitive payload 는 `props` 에 둔다.
 - `fetchCompositionDocumentFromSource()` 는 URL policy 통과 후 JSON 을 normalize 하고, registry 는 normalize 된 canonical document 만 loaded import document 로 보관한다.
-- shared `CompositionDocument.imports` 주석에서 P0 stub 문구를 제거하고 ADR-916 G6-4 runtime boundary 로 갱신했다.
+- shared `CompositionDocument.imports` 주석에서 P0 stub 문구를 제거하고 ADR-116 G6-4 runtime boundary 로 갱신했다.
 
 **검증**:
 
@@ -1740,8 +1740,8 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 
 **land 내용**:
 
-- `importRegistry.test.ts` 에 `keeps the ADR-916 G6-4 import runtime completion contract wired` 정적 테스트를 추가했다.
-- G6-4 completion 은 `imports` fetch/cache/resolver runtime parity 를 닫는 기준이다. DesignKit copy/import UX 는 ADR-915 로 무효화됐고, Pencil schema-equivalent export/import product flow 는 ADR-911 G5 로 분리한다.
+- `importRegistry.test.ts` 에 `keeps the ADR-116 G6-4 import runtime completion contract wired` 정적 테스트를 추가했다.
+- G6-4 completion 은 `imports` fetch/cache/resolver runtime parity 를 닫는 기준이다. DesignKit copy/import UX 는 ADR-115 로 무효화됐고, Pencil schema-equivalent export/import product flow 는 ADR-111 G5 로 분리한다.
 - README / ADR body / CHANGELOG 의 잔존 범위에서 G6-4 parity 확장 문구를 제거했다.
 
 **검증**:
@@ -1750,7 +1750,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 
 ### 10.2.28 G6-3 Slot/Ref/Descendants/Frame parity completion sweep (2026-05-02)
 
-**framing**: G6-3 는 ADR-911/913 legacy field quarantine 자체가 아니라, canonical primary runtime 에서 slot/ref/descendants/frame parity 가 유지되는지를 닫는 gate 다. 본 sweep 은 추가 runtime behavior 를 만들지 않고, 이미 land 된 G6-3 three slices 를 completion contract 로 묶는다. `layout_id` / `slot_name` / `componentRole` / `masterId` / `overrides` / legacy `descendants` field quarantine 은 별도 잔여 cleanup 으로 유지한다.
+**framing**: G6-3 는 ADR-111/113 legacy field quarantine 자체가 아니라, canonical primary runtime 에서 slot/ref/descendants/frame parity 가 유지되는지를 닫는 gate 다. 본 sweep 은 추가 runtime behavior 를 만들지 않고, 이미 land 된 G6-3 three slices 를 completion contract 로 묶는다. `layout_id` / `slot_name` / `componentRole` / `masterId` / `overrides` / legacy `descendants` field quarantine 은 별도 잔여 cleanup 으로 유지한다.
 
 **completion 기준**:
 
@@ -1766,14 +1766,14 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 **land 내용**:
 
 - `g6ParityCompletion.static.test.ts` 를 추가했다.
-- ADR body / README / CHANGELOG 의 잔존 범위에서 G6-3 parity 확장 문구를 제거하고, 잔여를 ADR-911/913 legacy field quarantine 으로 좁혔다.
-- 본 completion 은 G6-3 runtime parity closure 이며, ADR-911/913 의 field quarantine closure 를 대체하지 않는다.
+- ADR body / README / CHANGELOG 의 잔존 범위에서 G6-3 parity 확장 문구를 제거하고, 잔여를 ADR-111/113 legacy field quarantine 으로 좁혔다.
+- 본 completion 은 G6-3 runtime parity closure 이며, ADR-111/113 의 field quarantine closure 를 대체하지 않는다.
 
 **검증**:
 
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/g6ParityCompletion.static.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/adapters/canonical/__tests__/frameMirror.test.ts src/builder/panels/properties/ComponentSemanticsSection.test.tsx src/builder/utils/editingSemantics.test.ts src/resolvers/canonical/__tests__/resolver.test.ts src/builder/panels/properties/editors/PageLayoutSelector.static.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts` — 9 files / 74 tests PASS.
 
-### 10.2.29 ADR-911/916 legacy layout store removal (2026-05-02)
+### 10.2.29 ADR-111/116 legacy layout store removal (2026-05-02)
 
 **framing**: projection 제거의 root cause 는 visible/caller path 전환만으로는 닫히지 않는다. `useLayoutsStore` / `layoutActions` 가 남아 있으면 frame CRUD/selection 의 SSOT 가 다시 legacy layouts store 로 돌아갈 수 있으므로, direct cutover 전제에 맞춰 dead store 본체를 제거한다.
 
@@ -1794,7 +1794,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalFrameStore.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/stores/utils/__tests__/frameActions.test.ts src/builder/stores/utils/__tests__/selectReusableFrameContext.test.ts src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/main/BuilderCore.static.test.ts src/builder/panels/properties/editors/PageLayoutSelector.static.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/workspace/canvas/hooks/useCanvasDragDropHelpers.static.test.ts` — 11 files / 51 tests PASS.
 - `pnpm run codex:preflight` — PASS.
 
-### 10.2.30 ADR-913/916 legacy field quarantine helper boundary cleanup (2026-05-02)
+### 10.2.30 ADR-113/116 legacy field quarantine helper boundary cleanup (2026-05-02)
 
 **framing**: strict runtime field access 0만으로는 충분하지 않다. read-through helper 가 `unified.types.ts` 같은 shared type surface 에 남아 있으면 legacy component marker read 가 다시 non-adapter 경계로 새어 나갈 수 있으므로, helper 자체도 adapter boundary 로 이동한다.
 
@@ -1816,7 +1816,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts src/resolvers/canonical/__tests__/cache.test.ts src/resolvers/canonical/__tests__/storeBridge.test.ts src/builder/utils/multiElementCopy.test.ts src/builder/stores/utils/__tests__/elementUpdateOriginImpact.test.ts src/builder/workspace/canvas/sprites/useResolvedElement.test.ts src/builder/workspace/canvas/skia/StoreRenderBridge.test.ts` — 5 files / 58 tests PASS.
 - `pnpm run codex:typecheck` — PASS.
 
-### 10.2.31 ADR-913/916 component mirror type schema / fixture cleanup (2026-05-02)
+### 10.2.31 ADR-113/116 component mirror type schema / fixture cleanup (2026-05-02)
 
 **framing**: strict runtime access 0 이후에도 `Element` / shared `Element` type schema 에 `componentRole` / `masterId` / legacy `overrides` 선언이 남으면 새 fixture 와 caller 가 legacy payload 를 정상 schema 로 오인한다. schema 표면은 canonical field 만 유지하고, legacy component mirror payload 는 adapter boundary 타입으로만 표현한다.
 
@@ -1838,7 +1838,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 - `pnpm -F @composition/builder exec vitest run src/builder/utils/editingSemantics.test.ts src/builder/stores/utils/__tests__/elementUpdateOriginImpact.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts src/builder/panels/properties/ComponentSemanticsSection.test.tsx src/builder/panels/nodes/tree/LayerTree/LayerTreeItemContent.test.tsx src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts` — 7 files / 65 tests PASS.
 - `pnpm run codex:typecheck` — PASS.
 
-### 10.2.32 ADR-913/916 frame/slot type schema / targeted fixture cleanup (2026-05-02)
+### 10.2.32 ADR-113/116 frame/slot type schema / targeted fixture cleanup (2026-05-02)
 
 **framing**: strict runtime access 0 이후에도 `layout_id` / `slot_name` 이 Element/Page/Preview type schema 에 남아 있으면 frame/slot mirror payload 가 정상 domain field 처럼 재확산된다. schema 표면은 canonical fields 만 유지하고, legacy frame/slot mirror payload 는 `frameMirror` / `slotMirror` adapter helper 가 소유한다.
 
@@ -1862,7 +1862,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 
 ### 10.2.33 Final SSOT closure: documents primary storage + export/import canonical-first + raw fixture bucket 0 (2026-05-02)
 
-**framing**: ADR-916 의 근본 목적은 projection 제거 자체가 아니라 `CompositionDocument` canonical schema 를 최종 SSOT 로 만드는 것이다. 따라서 최종 closure 는 (1) DB primary store, (2) export/import schema, (3) legacy mirror field quarantine, (4) docs/status sync 를 함께 닫을 때만 성립한다.
+**framing**: ADR-116 의 근본 목적은 projection 제거 자체가 아니라 `CompositionDocument` canonical schema 를 최종 SSOT 로 만드는 것이다. 따라서 최종 closure 는 (1) DB primary store, (2) export/import schema, (3) legacy mirror field quarantine, (4) docs/status sync 를 함께 닫을 때만 성립한다.
 
 **land 내용**:
 
@@ -1881,7 +1881,7 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 
 **검증**:
 
-- `pnpm -F @composition/builder exec vitest run src/lib/db/__tests__/metaStore.test.ts src/builder/main/BuilderCore.static.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/adapters/canonical/__tests__/adr913DescendantsGrepGate.test.ts src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts` — 5 files / 29 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/lib/db/__tests__/metaStore.test.ts src/builder/main/BuilderCore.static.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/adapters/canonical/__tests__/adr113DescendantsGrepGate.test.ts src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts` — 5 files / 29 tests PASS.
 - `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — 1 file / 3 tests PASS.
 - `pnpm -F @composition/builder exec vitest run src/resolvers/canonical/__tests__/integration.test.ts src/resolvers/canonical/__tests__/storeBridge.test.ts src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/workspace/canvas/selection/selectionHitTest.test.ts src/builder/workspace/canvas/skia/skiaWorkflowSelection.test.ts src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/panels/properties/editors/ElementSlotSelector.test.tsx src/builder/hooks/useElementCreator.test.ts src/builder/stores/__tests__/pagesLayoutInvalidation.test.ts src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts src/builder/stores/utils/__tests__/frameActions.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/workspace/canvas/skia/visiblePageRoots.test.ts src/builder/panels/properties/editors/PageLayoutSelector.static.test.ts` — 14 files / 130 tests PASS.
 - `pnpm run codex:typecheck` — PASS.
@@ -1911,18 +1911,18 @@ elements.ts → canonicalMutations.ts → builder/stores/index.ts → elements.t
 
 ## 11. ADR 의존 관계 정리
 
-| ADR     | ADR-916에서의 역할                        | 조정 필요                                                                                                                                       |
+| ADR     | ADR-116에서의 역할                        | 조정 필요                                                                                                                                       |
 | ------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| ADR-903 | canonical format foundation               | completed 유지, final SSOT cutover는 ADR-916이 담당                                                                                             |
-| ADR-910 | `themes`/`variables` canonical field land | 그대로 유지                                                                                                                                     |
-| ADR-911 | `layout_id`/frame authoring cleanup       | ADR-916 G5의 layout field quarantine에 연결                                                                                                     |
-| ADR-912 | editing semantics base                    | ADR-916 parity matrix의 reusable/ref UX 기준으로 사용                                                                                           |
-| ADR-913 | `tag -> type` + hybrid cleanup            | ADR-916 G5의 field quarantine에 연결                                                                                                            |
-| ADR-914 | imports resolver historical scope         | Superseded. DesignKit scope 는 ADR-915 로 무효화, P5-D/P5-E fetch/cache/resolver 는 ADR-916 import/export adapter + runtime parity gate 로 흡수 |
+| ADR-903 | canonical format foundation               | completed 유지, final SSOT cutover는 ADR-116이 담당                                                                                             |
+| ADR-110 | `themes`/`variables` canonical field land | 그대로 유지                                                                                                                                     |
+| ADR-111 | `layout_id`/frame authoring cleanup       | ADR-116 G5의 layout field quarantine에 연결                                                                                                     |
+| ADR-112 | editing semantics base                    | ADR-116 parity matrix의 reusable/ref UX 기준으로 사용                                                                                           |
+| ADR-113 | `tag -> type` + hybrid cleanup            | ADR-116 G5의 field quarantine에 연결                                                                                                            |
+| ADR-114 | imports resolver historical scope         | Superseded. DesignKit scope 는 ADR-115 로 무효화, P5-D/P5-E fetch/cache/resolver 는 ADR-116 import/export adapter + runtime parity gate 로 흡수 |
 
 ## 12. 완료 판정
 
-ADR-916은 아래 조건을 모두 충족해 `Implemented`로 이동했다.
+ADR-116은 아래 조건을 모두 충족해 `Implemented`로 이동했다.
 
 | 조건                       | 기준                                                         | 상태 |
 | -------------------------- | ------------------------------------------------------------ | ---- |
@@ -1931,4 +1931,4 @@ ADR-916은 아래 조건을 모두 충족해 `Implemented`로 이동했다.
 | hot path projection 0      | drag/selection/render/preview sync에 full projection 없음    | PASS |
 | extension boundary closure | events/dataBinding/actions가 `x-composition` 아래에만 직렬화 | PASS |
 | parity pass                | Skia/Preview/Publish/History/Slot/Ref 시나리오 회귀 0        | PASS |
-| docs sync                  | ADR-911/913/914 README row와 본 ADR gate 상태 일치           | PASS |
+| docs sync                  | ADR-111/113/114 README row와 본 ADR gate 상태 일치           | PASS |

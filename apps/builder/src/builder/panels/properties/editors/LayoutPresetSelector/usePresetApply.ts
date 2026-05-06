@@ -231,7 +231,7 @@ export function usePresetApply({
 
   // 현재 Layout의 기존 Slot 목록.
   //
-  // ADR-911 P2 fix: 이전 구현은 `belongsToLegacyLayout(el, layoutId, canonicalDoc)`
+  // ADR-111 P2 fix: 이전 구현은 `belongsToLegacyLayout(el, layoutId, canonicalDoc)`
   // 로 canonical document 기반 매칭. 그러나 `convertLayoutToReusableFrame` 가
   // slot element 를 `convertElementWithSlotHoisting` 으로 hoist 하여 canonical
   // frame.children 에 slot 이 사라짐 → `isCanonicalDescendantOf(slot, frame)`

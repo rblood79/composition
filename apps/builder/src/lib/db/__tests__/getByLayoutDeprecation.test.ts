@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 
-describe("ADR-916 direct cutover: getByLayout legacy DB path removed", () => {
+describe("ADR-116 direct cutover: getByLayout legacy DB path removed", () => {
   it("IndexedDB adapter 에 getByLayout 과 layout_id index 생성이 없다", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");

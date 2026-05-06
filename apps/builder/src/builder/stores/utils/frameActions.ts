@@ -1,14 +1,14 @@
 /**
  * Frame Actions — canonical-shaped wrapper API for reusable frame CRUD.
  *
- * ADR-911 P2-a (PR-A): canonical-native FramesTab 재설계의 첫 단계.
+ * ADR-111 P2-a (PR-A): canonical-native FramesTab 재설계의 첫 단계.
  *
  * 본 모듈은 canonical FrameNode (`type: "frame"` + `reusable: true`) 의미를
  * 가진 reusable frame CRUD API를 제공한다. DB `layouts` row 는 persistence mirror
  * 로만 유지하고, in-memory SSOT 는 active canonical document 이다.
  *
- * @see docs/adr/911-layout-frameset-pencil-redesign.md
- * @see docs/adr/design/911-layout-frameset-pencil-redesign-breakdown.md
+ * @see docs/adr/111-layout-frameset-pencil-redesign.md
+ * @see docs/adr/design/111-layout-frameset-pencil-redesign-breakdown.md
  */
 
 import type {

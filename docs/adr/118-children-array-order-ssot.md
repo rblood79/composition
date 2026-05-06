@@ -1,14 +1,14 @@
-# ADR-918: children 배열 순서 기반 ordering SSOT 전환
+# ADR-118: children 배열 순서 기반 ordering SSOT 전환
 
 ## Status
 
 Proposed — 2026-05-06
 
-> **2026-05-06 pre-entry note**: ADR-918 order 작업 착수 전 선행 안정화 패치가 완료됐다. page-frame refresh/body/slot projection, component origin/instance materialization/override, synthetic page-frame projection `order_num` DB 오류, Nodes panel Pages/Frames tree parity 는 current main 에서 닫힌 상태로 보고, ADR-918 은 남은 structural order SSOT 전환(`children[]` index primary, `order_num` mirror quarantine)에 집중한다.
+> **2026-05-06 pre-entry note**: ADR-118 order 작업 착수 전 선행 안정화 패치가 완료됐다. page-frame refresh/body/slot projection, component origin/instance materialization/override, synthetic page-frame projection `order_num` DB 오류, Nodes panel Pages/Frames tree parity 는 current main 에서 닫힌 상태로 보고, ADR-118 은 남은 structural order SSOT 전환(`children[]` index primary, `order_num` mirror quarantine)에 집중한다.
 
 ## Context
 
-ADR-916 이후 `CompositionDocument`가 canonical document SSOT가 되었지만, sibling
+ADR-116 이후 `CompositionDocument`가 canonical document SSOT가 되었지만, sibling
 order는 여전히 여러 runtime 경로에서 legacy `order_num` metadata에 의존한다. 최근
 page 추가 순서와 Home 삭제 불가 판정은 `order_num` 보정으로 hotfix 되었지만, 이
 접근은 page에만 국한된 임시 조치다.
@@ -90,16 +90,28 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
   `apps/builder/src/adapters/canonical/canonicalMutations.ts:311`).
 - export boundary는 canonical child 순회 index를 legacy `order_num`으로 파생하는 경로를
   이미 사용한다
-  (`apps/builder/src/adapters/canonical/exportLegacyDocument.ts:55`,
-  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:161`).
-- component origin persistence/round-trip은 `reusable: true`를 legacy
-  `componentRole: "master"` mirror로 내보내고, page-owned origin을 root reusable catalog로
-  끌어올리지 않도록 보강됐다
-  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:511`,
-  `apps/builder/src/adapters/canonical/canonicalMutations.ts:895`).
+  (`apps/builder/src/adapters/canonical/exportLegacyDocument.ts:60`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:81`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:94`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:179`).
+- component origin/ref persistence/round-trip은 `reusable: true` origin과
+  `ref`/`masterId` instance를 canonical node로 변환하고, legacy export 시
+  `componentRole: "master"` / `"instance"` mirror와 `descendants`를 보존한다
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:556`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:565`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:636`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:188`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:193`).
+- ref instance runtime view는 origin-shaped element와 synthetic descendants를 일부
+  materialize한다. 다만 resolver/view boundary는 아직 legacy `order_num` 기반
+  `childrenMap`/synthetic order bridge를 사용한다
+  (`apps/builder/src/adapters/canonical/canonicalRefResolution.ts:137`,
+  `apps/builder/src/adapters/canonical/canonicalRefResolution.ts:237`,
+  `apps/builder/src/adapters/canonical/canonicalRefResolution.ts:322`,
+  `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts:184`).
 - 단, 이 선행 패치는 full cutover가 아니다. `buildTreeFromElements`, LayerTree projection,
-  drag/drop order write, Preview/Publish render path에는 여전히 `order_num` primary
-  sort/write가 남아 있으므로 ADR-918의 Phase/Gate는 유지한다.
+  drag/drop/group/ungroup/history order write, Preview/Publish render path에는 여전히
+  `order_num` primary sort/write가 남아 있으므로 ADR-118의 Phase/Gate는 유지한다.
 
 ## Alternatives Considered
 
@@ -174,20 +186,23 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 - **대안 C 기각**: surface별 reconciliation은 이번 회귀의 원인인 projection drift를
   제도화한다.
 
-> 구현 상세: [918-children-array-order-ssot-breakdown.md](design/918-children-array-order-ssot-breakdown.md)
+> 구현 상세: [118-children-array-order-ssot-breakdown.md](design/118-children-array-order-ssot-breakdown.md)
 
 ## Residual Risks
 
 - legacy DB/API/export payload는 아직 `order_num` 필드를 기대하는 경로가 있다. 이 ADR은
   삭제가 아니라 derived mirror 격리부터 수행한다.
 - collection item ordering과 structural node ordering이 섞인 기존 컴포넌트는 Phase 0에서
-  분류가 필요하다. structural child는 ADR-918 범위, data item order는 별도 범위로 둔다.
+  분류가 필요하다. structural child는 ADR-118 범위, data item order는 별도 범위로 둔다.
 - drag 중 transient reorder를 canonical document에 반영하는 시점과 undo history commit
   시점을 분리하지 않으면 history noise가 생길 수 있다.
+- group/ungroup, history undo/redo, loader hydrate, copy/paste placement가 legacy
+  `parent_id`/`order_num` direct read/write를 계속 사용하므로 Phase 4 inventory와 Phase 6
+  allowlist에서 drag/drop과 같은 write-path debt로 분류해야 한다.
 - 현재 `shouldPreserveExistingCanonicalPosition` 계열 선행 패치는 metadata/order가 동일한
   기존 node의 위치 보존에는 충분하지만, 명시적 reorder를 표현하는 API는 아니다. explicit
   reorder/cross-container move는 별도 `children[]` splice/move helper로 닫아야 한다.
-- 현재 selection hit-test 보강은 depth/area 우선 정책을 포함한다. ADR-918의 최종 G3는
+- 현재 selection hit-test 보강은 depth/area 우선 정책을 포함한다. ADR-118의 최종 G3는
   render와 hit-test가 동일한 effective child order(`z-index` + `children[]` index
   tie-breaker)를 공유하는지 다시 검증해야 한다.
 - Nodes panel Frames tree parity 는 선행 안정화로 닫혔다. 단 이 작업은 `TreeBase`/DOM/CSS

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
-describe("ADR-916 direct cutover: IndexedDB canonical document storage", () => {
-  it("DB_VERSION 이 10 으로 갱신된다 (ADR-916 direct cutover)", async () => {
+describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
+  it("DB_VERSION 이 10 으로 갱신된다 (ADR-116 direct cutover)", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
