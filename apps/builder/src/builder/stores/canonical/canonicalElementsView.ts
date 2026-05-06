@@ -19,6 +19,7 @@ import type {
   CanonicalNode,
   CompositionDocument,
   CompositionExtension,
+  RefNode,
 } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
 import {
@@ -91,6 +92,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function isCanonicalNode(value: unknown): value is CanonicalNode {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { id?: unknown; type?: unknown };
+  return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
+function readDescendantChildren(override: unknown): CanonicalNode[] {
+  if (!override || typeof override !== "object") return [];
+  if (isCanonicalNode(override)) return [override];
+
+  const children = (override as { children?: unknown }).children;
+  if (!Array.isArray(children)) return [];
+  return children.filter(isCanonicalNode);
+}
+
+function getRefDescendantChildren(node: CanonicalNode): CanonicalNode[][] {
+  if (node.type !== "ref" || !isPagePlaceholderNode(node)) return [];
+  const descendants = (node as RefNode).descendants ?? {};
+  return Object.values(descendants)
+    .map(readDescendantChildren)
+    .filter((children) => children.length > 0);
+}
+
+function isPagePlaceholderNode(node: CanonicalNode): boolean {
+  const metadata = node.metadata as CanonicalScopeMetadata | undefined;
+  return metadata?.type === "page" || metadata?.type === "legacy-page";
+}
+
 function extractCanonicalComponentMirrorFields(
   node: CanonicalNode,
 ): CanonicalComponentMirrorFields {
@@ -143,8 +172,7 @@ export function canonicalNodeToElement(
   const extFields = extractExtensionFields(node);
   const metadata = node.metadata as CanonicalScopeMetadata | undefined;
   const isLegacySlotHoisted = metadata?.type === "legacy-slot-hoisted";
-  const isPagePlaceholder =
-    metadata?.type === "page" || metadata?.type === "legacy-page";
+  const isPagePlaceholder = isPagePlaceholderNode(node);
   const mirrorFields = extractCanonicalComponentMirrorFields(node);
   const isRenderableRef = mirrorFields.ref !== undefined && !isPagePlaceholder;
   if (!node.props && !isLegacySlotHoisted && !isRenderableRef) return null;
@@ -206,6 +234,11 @@ export function canonicalDocumentToElements(
         visit(child, nextParentId, idx, nextScope);
       });
     }
+    getRefDescendantChildren(node).forEach((children) => {
+      children.forEach((child, idx) => {
+        visit(child, nextParentId, idx, nextScope);
+      });
+    });
   }
 
   doc.children.forEach((child, idx) => {
@@ -226,7 +259,7 @@ function getNodeScope(
     return scope;
   }
 
-  if (metadataType === "page" || metadataType === "legacy-page") {
+  if (isPagePlaceholderNode(node)) {
     return {
       pageId: typeof metadata?.pageId === "string" ? metadata.pageId : node.id,
       layoutId: null,

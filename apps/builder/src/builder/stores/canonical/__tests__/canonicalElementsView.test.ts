@@ -153,6 +153,104 @@ describe("canonicalDocumentToElements", () => {
     ]);
   });
 
+  it("hydrates Card origin structure from page ref descendants after refresh", () => {
+    const doc = makeDoc([
+      {
+        id: "layout-frame-1",
+        type: "frame",
+        reusable: true,
+        metadata: { type: "legacy-layout", layoutId: "frame-1" },
+        children: [],
+      },
+      {
+        id: "page-1",
+        type: "ref",
+        ref: "layout-frame-1",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        descendants: {
+          content: {
+            children: [
+              {
+                id: "page-1-body",
+                type: "body",
+                props: { className: "react-aria-Body" },
+                children: [
+                  {
+                    id: "card-origin",
+                    type: "Card",
+                    reusable: true,
+                    props: {
+                      title: "Card Title",
+                      description: "Card description text goes here.",
+                    },
+                    children: [
+                      {
+                        id: "card-preview",
+                        type: "CardPreview",
+                        props: {},
+                      },
+                      {
+                        id: "card-header",
+                        type: "CardHeader",
+                        props: {},
+                      },
+                      {
+                        id: "card-content",
+                        type: "CardContent",
+                        props: {},
+                      },
+                      {
+                        id: "card-footer",
+                        type: "CardFooter",
+                        props: {},
+                      },
+                    ],
+                  },
+                  {
+                    id: "card-instance",
+                    type: "ref",
+                    ref: "card-origin",
+                    props: {},
+                  } as CanonicalNode,
+                ],
+              },
+            ],
+          },
+        },
+      } as CanonicalNode,
+    ]);
+
+    const elements = canonicalDocumentToElements(doc);
+    const cardOrigin = elements.find((element) => element.id === "card-origin");
+    const cardStructuralChildren = elements
+      .filter((element) => element.parent_id === "card-origin")
+      .map((element) => element.type);
+
+    expect(cardOrigin).toMatchObject({
+      id: "card-origin",
+      page_id: "page-1",
+      parent_id: "page-1-body",
+      reusable: true,
+    });
+    expect(cardStructuralChildren).toEqual([
+      "CardPreview",
+      "CardHeader",
+      "CardContent",
+      "CardFooter",
+    ]);
+    expect(elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "card-instance",
+          type: "ref",
+          ref: "card-origin",
+          parent_id: "page-1-body",
+          page_id: "page-1",
+        }),
+      ]),
+    );
+  });
+
   it("preserves reusable frame scope for each frame body", () => {
     const doc = makeDoc([
       {
@@ -264,6 +362,70 @@ describe("canonicalDocumentToElements", () => {
         },
       }),
     ]);
+  });
+
+  it("keeps component ref descendant children as override payloads instead of duplicated elements", () => {
+    const elements = canonicalDocumentToElements(
+      makeDoc([
+        {
+          id: "card-origin",
+          type: "Card",
+          reusable: true,
+          props: {},
+          children: [
+            {
+              id: "card-header",
+              type: "CardHeader",
+              props: {},
+              children: [
+                {
+                  id: "card-heading",
+                  type: "Heading",
+                  props: { children: "Origin" },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "card-instance",
+          type: "ref",
+          ref: "card-origin",
+          props: {},
+          descendants: {
+            "card-header": {
+              children: [
+                {
+                  id: "card-heading",
+                  type: "Heading",
+                  props: { children: "Instance" },
+                },
+              ],
+            },
+          },
+        } as CanonicalNode,
+      ] as CanonicalNode[]),
+    );
+
+    expect(
+      elements.filter((element) => element.id === "card-heading"),
+    ).toHaveLength(1);
+    expect(
+      elements.find((element) => element.id === "card-instance"),
+    ).toMatchObject({
+      type: "ref",
+      ref: "card-origin",
+      descendants: {
+        "card-header": {
+          children: [
+            expect.objectContaining({
+              id: "card-heading",
+              type: "Heading",
+            }),
+          ],
+        },
+      },
+    });
   });
 });
 

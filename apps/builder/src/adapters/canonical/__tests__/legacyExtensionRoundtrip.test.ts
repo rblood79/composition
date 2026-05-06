@@ -340,6 +340,106 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
     expect(el.events).toBeUndefined();
     expect(el.props.events).toEqual([{ id: "stale-evt", kind: "onPress" }]);
   });
+
+  it("component ref descendants.children 은 override payload 로만 보존하고 element 로 중복 export 하지 않는다", () => {
+    const doc = makeCanonicalDoc([
+      {
+        id: "card-origin",
+        type: "Card",
+        reusable: true,
+        props: {},
+        children: [
+          {
+            id: "card-header",
+            type: "CardHeader",
+            props: {},
+            children: [
+              {
+                id: "card-heading",
+                type: "Heading",
+                props: { children: "Origin" },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "card-instance",
+        type: "ref",
+        ref: "card-origin",
+        props: {},
+        descendants: {
+          "card-header": {
+            children: [
+              {
+                id: "card-heading",
+                type: "Heading",
+                props: { children: "Instance" },
+              },
+            ],
+          },
+        },
+      } as CanonicalNode,
+    ]);
+
+    const elements = exportLegacyDocument(doc);
+
+    expect(
+      elements.filter((element) => element.id === "card-heading"),
+    ).toHaveLength(1);
+    expect(
+      elements.find((element) => element.id === "card-instance"),
+    ).toMatchObject({
+      componentRole: "instance",
+      masterId: "card-origin",
+      descendants: {
+        "card-header": {
+          children: [
+            expect.objectContaining({
+              id: "card-heading",
+              type: "Heading",
+            }),
+          ],
+        },
+      },
+    });
+  });
+
+  it("page ref descendants.children 은 page content 로 export 한다", () => {
+    const doc = makeCanonicalDoc([
+      {
+        id: "page-1",
+        type: "ref",
+        ref: "layout-frame-1",
+        metadata: { type: "legacy-page", pageId: "page-1" },
+        descendants: {
+          content: {
+            children: [
+              {
+                id: "page-card",
+                type: "Card",
+                props: {},
+              },
+            ],
+          },
+        },
+      } as CanonicalNode,
+      {
+        id: "layout-frame-1",
+        type: "frame",
+        reusable: true,
+        metadata: { type: "legacy-layout", layoutId: "frame-1" },
+        children: [],
+      },
+    ]);
+
+    expect(exportLegacyDocument(doc)).toEqual([
+      expect.objectContaining({
+        id: "page-card",
+        page_id: "page-1",
+      }),
+    ]);
+  });
 });
 
 // ─────────────────────────────────────────────

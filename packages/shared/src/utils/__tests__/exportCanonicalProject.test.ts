@@ -627,13 +627,187 @@ describe("project export canonical CompositionDocument payload", () => {
         },
       }),
     );
-    expect(renderModel.elements.find((el) => el.id === "button-label")).toEqual(
+    expect(
+      renderModel.elements.find(
+        (el) => el.id === "button-instance/button-label",
+      ),
+    ).toEqual(
       expect.objectContaining({
-        id: "button-label",
+        id: "button-instance/button-label",
         parent_id: "button-instance",
         page_id: "page-home",
       }),
     );
+  });
+
+  it("uses instance-local ids for hydrated Card ref children so origin children are not duplicated", () => {
+    const documentWithPageOwnedCardOrigin: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home" },
+          children: [
+            {
+              id: "card-origin",
+              type: "Card",
+              reusable: true,
+              props: {},
+              children: [
+                {
+                  id: "card-preview",
+                  type: "CardPreview",
+                  props: {},
+                  children: [
+                    {
+                      id: "card-image",
+                      type: "Image",
+                      props: {},
+                    },
+                  ],
+                },
+                {
+                  id: "card-header",
+                  type: "CardHeader",
+                  props: {},
+                  children: [
+                    {
+                      id: "card-heading",
+                      type: "Heading",
+                      props: { children: "Origin" },
+                    },
+                  ],
+                },
+                {
+                  id: "card-content",
+                  type: "CardContent",
+                  props: {},
+                  children: [
+                    {
+                      id: "card-description",
+                      type: "Description",
+                      props: { children: "Origin description" },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              id: "card-instance",
+              type: "ref",
+              ref: "card-origin",
+              props: {},
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithPageOwnedCardOrigin,
+      projectId,
+      "page-home",
+    );
+
+    expect(
+      renderModel.elements.filter((element) => element.id === "card-image"),
+    ).toHaveLength(1);
+    expect(
+      renderModel.elements.filter((element) => element.id === "card-heading"),
+    ).toHaveLength(1);
+    expect(
+      renderModel.elements.filter(
+        (element) => element.id === "card-description",
+      ),
+    ).toHaveLength(1);
+    expect(renderModel.elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "card-instance/card-preview/card-image",
+          parent_id: "card-instance/card-preview",
+          page_id: "page-home",
+        }),
+        expect.objectContaining({
+          id: "card-instance/card-header/card-heading",
+          parent_id: "card-instance/card-header",
+          page_id: "page-home",
+        }),
+        expect.objectContaining({
+          id: "card-instance/card-content/card-description",
+          parent_id: "card-instance/card-content",
+          page_id: "page-home",
+        }),
+      ]),
+    );
+  });
+
+  it("uses customId stable segments for hydrated ref children to match Builder resolver ids", () => {
+    const documentWithCustomIdChildren: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home" },
+          children: [
+            {
+              id: "search-origin",
+              type: "SearchField",
+              reusable: true,
+              props: {},
+              children: [
+                {
+                  id: "label-node",
+                  type: "Label",
+                  metadata: {
+                    type: "legacy-element-props",
+                    customId: "label",
+                  },
+                  props: { children: "Search" },
+                },
+                {
+                  id: "wrapper-node",
+                  type: "ComboBoxWrapper",
+                  metadata: {
+                    type: "legacy-element-props",
+                    customId: "comboboxwrapper",
+                  },
+                  props: {},
+                },
+              ],
+            },
+            {
+              id: "search-instance",
+              type: "ref",
+              ref: "search-origin",
+              props: {},
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithCustomIdChildren,
+      projectId,
+      "page-home",
+    );
+
+    expect(
+      renderModel.elements
+        .filter((element) => element.parent_id === "search-instance")
+        .map((element) => element.id),
+    ).toEqual(["search-instance/label", "search-instance/comboboxwrapper"]);
+    expect(
+      renderModel.elements.some(
+        (element) =>
+          element.id === "search-instance/label-node" ||
+          element.id === "search-instance/wrapper-node",
+      ),
+    ).toBe(false);
   });
 
   it("does not inherit an origin customId when a ref instance has no customId metadata", () => {

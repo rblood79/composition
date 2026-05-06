@@ -79,7 +79,7 @@ function walkAndCollect(
     walkAndCollect(child, out, nextParentId, index, scopedContext);
   });
 
-  if (node.type === "ref") {
+  if (shouldCollectRefDescendants(node)) {
     const descendants = (node as RefNode).descendants ?? {};
     for (const override of Object.values(descendants)) {
       if (
@@ -96,6 +96,15 @@ function walkAndCollect(
   }
 }
 
+function shouldCollectRefDescendants(node: CanonicalNode): boolean {
+  return node.type === "ref" && isPageMetadataNode(node);
+}
+
+function isPageMetadataNode(node: CanonicalNode): boolean {
+  const metadata = node.metadata as LegacyScopeMetadata | undefined;
+  return metadata?.type === "page" || metadata?.type === "legacy-page";
+}
+
 function getNodeScope(
   node: CanonicalNode,
   context: LegacyExportContext,
@@ -107,7 +116,7 @@ function getNodeScope(
     return context;
   }
 
-  if (metadataType === "page" || metadataType === "legacy-page") {
+  if (isPageMetadataNode(node)) {
     return {
       pageId: typeof metadata?.pageId === "string" ? metadata.pageId : node.id,
       layoutId: null,

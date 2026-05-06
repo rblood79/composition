@@ -365,6 +365,10 @@ function makeDefaultPageBodyNode(pageId: string): CanonicalNode {
   };
 }
 
+function getRuntimeStableSegment(node: CanonicalNode): string {
+  return readCanonicalMetadataCustomId(node.metadata) ?? node.name ?? node.id;
+}
+
 function collectRuntimeElements(
   document: CompositionDocument,
   nodes: CanonicalNode[],
@@ -372,17 +376,20 @@ function collectRuntimeElements(
   parentId: string | null,
   elements: Element[],
   pageLayoutBinding: string | null,
-  options: { projectFrameElementIds?: boolean } = {},
+  options: { idPathPrefix?: string; projectFrameElementIds?: boolean } = {},
 ): void {
   nodes.forEach((sourceNode, index) => {
     const node = resolveRenderableNode(document, sourceNode);
-    const elementId = options.projectFrameElementIds
-      ? toPageFrameElementId(pageId, node.id)
+    const nodeSegment = options.idPathPrefix
+      ? getRuntimeStableSegment(node)
       : node.id;
-    const elementParentId =
-      options.projectFrameElementIds && parentId
-        ? toPageFrameElementId(pageId, parentId)
-        : parentId;
+    const localElementId = options.idPathPrefix
+      ? `${options.idPathPrefix}/${nodeSegment}`
+      : nodeSegment;
+    const elementId = options.projectFrameElementIds
+      ? toPageFrameElementId(pageId, localElementId)
+      : localElementId;
+    const elementParentId = parentId;
 
     const element: ElementWithCanonicalRuntimeFields = {
       id: elementId,
@@ -433,14 +440,21 @@ function collectRuntimeElements(
     }
     elements.push(element);
 
+    const childIdPathPrefix =
+      sourceNode.type === "ref" || options.idPathPrefix
+        ? localElementId
+        : undefined;
     collectRuntimeElements(
       document,
       node.children ?? [],
       pageId,
-      node.id,
+      elementId,
       elements,
       pageLayoutBinding,
-      options,
+      {
+        ...options,
+        ...(childIdPathPrefix ? { idPathPrefix: childIdPathPrefix } : {}),
+      },
     );
   });
 }
