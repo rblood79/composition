@@ -36,6 +36,14 @@ export function getFrameElementMirrorId(element: unknown): string | null {
   return getLegacyLayoutId(element);
 }
 
+export function isPageFrameProjectionElement(element: unknown): boolean {
+  if (!element || typeof element !== "object") return false;
+  const pageId = (element as { page_id?: unknown }).page_id;
+  return (
+    typeof pageId === "string" && getFrameElementMirrorId(element) !== null
+  );
+}
+
 export function hasFrameElementMirrorId(value: unknown): boolean {
   return hasLegacyLayoutId(value);
 }

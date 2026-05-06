@@ -14,6 +14,7 @@ import {
   getEditingSemanticsRole,
   type EditingSemanticsOverrideItem,
 } from "../../utils/editingSemantics";
+import { getFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 
 function resolveOriginElement(
   originId: string | null,
@@ -34,6 +35,13 @@ function getComponentDisplayName(
     originElement?.customId ??
     originElement?.type ??
     element.type
+  );
+}
+
+function isFrameBodyElement(element: Element): boolean {
+  return (
+    element.type.toLowerCase() === "body" &&
+    getFrameElementMirrorId(element) !== null
   );
 }
 
@@ -66,6 +74,7 @@ export const ComponentSemanticsSection = memo(
     const roleClass = role ?? "standard";
 
     if (!element) return null;
+    if (isFrameBodyElement(element)) return null;
     const componentName = getComponentDisplayName(element, originElement);
 
     const handleGoToOrigin = () => {

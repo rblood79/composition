@@ -1,7 +1,7 @@
 /**
  * NodesPanelTabs
  *
- * Pages/Layouts 탭 전환 UI 컴포넌트.
+ * Pages/Frames 탭 전환 UI 컴포넌트.
  * React Aria TabList 패턴을 따름.
  */
 
@@ -27,7 +27,7 @@ export function NodesPanelTabs({
   }[] = [
     {
       id: "pages",
-      label: "Page",
+      label: "Pages",
       icon: (
         <FileText
           color={iconProps.color}

@@ -14,6 +14,7 @@ import {
   withComponentInstanceMirror,
   withComponentOriginMirror,
 } from "@/adapters/canonical/componentSemanticsMirror";
+import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { Element } from "../../../types/core/store.types";
 import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
@@ -111,6 +112,26 @@ describe("ComponentSemanticsSection", () => {
   it("renders nothing for missing element", () => {
     const { container } = render(
       <ComponentSemanticsSection elementId="missing" />,
+    );
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("renders nothing for frame body elements", () => {
+    const frameBody = withFrameElementMirrorId(
+      makeElement("frame-body", {
+        type: "body",
+        page_id: null,
+      }),
+      "frame-1",
+    );
+
+    useStore.setState({
+      elementsMap: new Map([["frame-body", frameBody]]),
+    });
+
+    const { container } = render(
+      <ComponentSemanticsSection elementId="frame-body" />,
     );
 
     expect(container.firstChild).toBeNull();

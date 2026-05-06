@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Browser refresh hydrate 로 `page_id=<page>` + `layout_id=<frame>` 형태가 된 frame Slot 도 `resolvePageWithFrame` 에서 frame source 로 재인식해 page-frame Slot marker projection 을 복원한다.
   - No Frame 상태에서는 `page_id=<page>` 이더라도 `layout_id=<frame>` 이 남아 있는 frame projection element 를 page body/content 후보와 LayerTree source 에서 제외한다.
   - 여러 page 가 동일 reusable frame 을 지정한 뒤 Browser refresh 시 마지막 page 에만 frame projection 이 렌더링되던 회귀를 수정했다. Refresh hydrate 가 page-frame projection element id 를 page별 synthetic id 로 생성하고, live resolver 는 이미 page-scoped 인 projection id 를 다시 projection 하지 않는다.
+  - Browser refresh 후 page-frame projection element 가 duplicate `order_num` auto-fix 대상에 포함되어 synthetic id 를 IndexedDB/Supabase `elements` row 로 업데이트하려던 `order_num 재정렬 DB 실패` 콘솔 오류를 수정했다.
   - 회귀 테스트를 추가해 frame-bound page 에서 `frame-body` 가 LayerTree source 에 포함되는 계약을 고정했다.
 - Component instance 가 Node 패널 Layers 에 `ref` 로 표시되고 origin children 이 materialize 되지 않던 회귀를 수정했다.
   - `canonicalElementsView` 가 canonical `ref` / `descendants` / `reusable` / `slot` mirror fields 를 derived Element 에 보존한다.
@@ -43,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - instance lifecycle action 이 Origin 전환 후 active `CompositionDocument` 에 canonical merge 를 즉시 수행하고, IndexedDB `documents` store 에도 현재 canonical document 를 저장한다.
   - canonical mutation/export 경계가 `reusable: true` origin 을 legacy `componentRole: "master"` mirror 로 round-trip 하며, page 소속 origin 을 root reusable 로 끌어올리지 않고 page children 위치에 유지한다.
   - Browser refresh hydrate 의 `deriveProjectRenderModelFromDocument` 가 page-owned reusable origin 과 canonical ref instance mirror 를 runtime element 로 복원하도록 수정했다.
+
+### Changed
+
+- Nodes 패널 탭 라벨을 `Pages` / `Frames` 로 통일하고, frame body Properties 패널은 format 구조 용어와 맞춰 `Frame Preset` 만 노출하도록 정리했다. Legacy Layout UI 잔여 항목인 `URL Prefix` 와 body `Layout` 섹션, component origin/instance 전환용 `Component` 섹션은 frame body authoring surface 에서 숨겼다.
 
 ### Verification
 
@@ -72,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/canonicalMutations.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts` — component origin refresh persistence PASS
 - `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — component origin/instance refresh hydrate PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts src/builder/workspace/canvas/skia/skiaWorkflowSelection.test.ts && pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — shared frame multi-page refresh projection PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementReorder.test.ts src/builder/hooks/useValidation.test.tsx src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts` — page-frame projection order_num auto-fix exclusion PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/NodesPanelTabs.static.test.ts src/builder/panels/properties/editors/LayoutBodyEditor.static.test.ts` — visible naming contract PASS
 - `pnpm run codex:preflight` — PASS
 
 ## [Rollback — ADR-916 post-cutover fix 군 + build error fix + canonical-hydration fix 폐기] - 2026-05-05

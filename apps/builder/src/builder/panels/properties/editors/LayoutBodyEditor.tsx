@@ -1,84 +1,41 @@
 /**
  * LayoutBodyEditor - Layout body 요소 전용 에디터
  *
- * Layout body의 핵심 기능: 프리셋을 통한 Slot 생성
+ * Frame body의 핵심 기능: 프리셋을 통한 Slot 생성
  * - LayoutPresetSelector를 통해 레이아웃 프리셋 적용
  * - Slot 자동 생성 및 containerStyle 적용
- * - className, aria 속성 편집
  *
  * ⭐ Phase 6: BodyEditor에서 분리됨
  * - Page body: PageBodyEditor (Layout 선택)
  * - Layout body: LayoutBodyEditor (프리셋 + Slot 생성)
  */
 
-import { memo, useCallback, useMemo } from "react";
-import { Layout } from "lucide-react";
-import {
-  PropertyCustomId,
-  PropertyInput,
-  PropertySection,
-} from "../../../components";
+import { memo, useMemo } from "react";
+import { PropertySection } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { useStore } from "../../../stores";
 import { LayoutPresetSelector } from "./LayoutPresetSelector";
-import { LayoutSlugEditor } from "./LayoutSlugEditor";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 
 export const LayoutBodyEditor = memo(
-  function LayoutBodyEditor({
-    elementId,
-    currentProps,
-    onUpdate,
-  }: PropertyEditorProps) {
-    // ⭐ 최적화: customId와 layoutId를 현재 시점에만 가져오기 (Zustand 구독 방지)
-    const { customId, layoutId } = useMemo(() => {
+  function LayoutBodyEditor({ elementId }: PropertyEditorProps) {
+    // ⭐ 최적화: layoutId를 현재 시점에만 가져오기 (Zustand 구독 방지)
+    const layoutId = useMemo(() => {
       const element = useStore.getState().elementsMap.get(elementId);
-      return {
-        customId: element?.customId || "",
-        layoutId: element ? getFrameElementMirrorId(element) : null,
-      };
+      return element ? getFrameElementMirrorId(element) : null;
     }, [elementId]);
-
-    // ⭐ 최적화: 각 필드별 onChange 함수를 개별 메모이제이션
-    const handleClassNameChange = useCallback(
-      (value: string) => {
-        onUpdate({ className: value || undefined });
-      },
-      [onUpdate],
-    );
 
     return (
       <>
-        {/* ⭐ Layout 전용: 프리셋 선택기 (Slot 자동 생성) */}
+        {/* ⭐ Frame 전용: 프리셋 선택기 (Slot 자동 생성) */}
         {layoutId && (
-          <PropertySection title="Layout Preset">
+          <PropertySection title="Frame Preset">
             <LayoutPresetSelector
               layoutId={layoutId}
               bodyElementId={elementId}
             />
           </PropertySection>
         )}
-
-        {/* ⭐ Nested Routes & Slug System: Layout slug 편집 */}
-        {layoutId && <LayoutSlugEditor layoutId={layoutId} />}
-
-        {/* Layout Section */}
-        <PropertySection title="Layout">
-          <PropertyCustomId
-            label="ID"
-            value={customId}
-            elementId={elementId}
-            placeholder="layout-body"
-          />
-
-          <PropertyInput
-            label="Class Name"
-            value={String(currentProps.className || "")}
-            onChange={handleClassNameChange}
-            placeholder="layout-container"
-            icon={Layout}
-          />
-        </PropertySection>
       </>
     );
   },

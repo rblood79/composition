@@ -2,7 +2,10 @@ import { useCallback, useRef } from "react";
 import { Element } from "../../types/core/store.types";
 import { reorderElements } from "../stores/utils/elementReorder";
 import { useStore } from "../stores";
-import { getFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
+import {
+  getFrameElementMirrorId,
+  isPageFrameProjectionElement,
+} from "../../adapters/canonical/frameMirror";
 
 export interface UseValidationReturn {
   validateOrderNumbers: (elements: Element[]) => void;
@@ -15,9 +18,13 @@ export const useValidation = (): UseValidationReturn => {
   const validateOrderNumbers = useCallback((elements: Element[]) => {
     if (process.env.NODE_ENV !== "development") return;
 
+    const persistentElements = elements.filter(
+      (element) => !isPageFrameProjectionElement(element),
+    );
+
     // 페이지별/레이아웃별, 부모별로 그룹화
     // ⭐ Layout/Slot System: legacy layout binding도 그룹핑 키에 포함
-    const groups = elements.reduce(
+    const groups = persistentElements.reduce(
       (acc, element) => {
         const contextId =
           element.page_id || getFrameElementMirrorId(element) || "unknown";
@@ -37,7 +44,7 @@ export const useValidation = (): UseValidationReturn => {
       // Tabs 하위 요소는 tabId 기반 매칭이므로 order_num 중복이 정상일 수 있음
       const parentId = children[0]?.parent_id;
       const parentElement = parentId
-        ? elements.find((el) => el.id === parentId)
+        ? persistentElements.find((el) => el.id === parentId)
         : null;
       const isTabsChildren = parentElement?.type === "Tabs";
 

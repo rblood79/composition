@@ -4,6 +4,10 @@ import {
 } from "../../../types/core/store.types";
 import { supabase } from "../../../env/supabase.client";
 import { getDB } from "../../../lib/db";
+import {
+  getFrameElementMirrorId,
+  isPageFrameProjectionElement,
+} from "../../../adapters/canonical/frameMirror";
 
 /**
  * Helper function to safely get a string property from element props
@@ -51,7 +55,11 @@ export function computeReorderUpdates(
 ): Array<{ id: string; order_num: number }> {
   // 페이지별, 부모별로 그룹화
   const groups = elements
-    .filter((el) => el.page_id === pageId)
+    .filter((el) => {
+      if (isPageFrameProjectionElement(el)) return false;
+      if (el.page_id === pageId) return true;
+      return el.page_id == null && getFrameElementMirrorId(el) === pageId;
+    })
     .reduce(
       (acc, element) => {
         const key = element.parent_id || "root";
