@@ -6,10 +6,12 @@ export function resolveCanvasDetachContextTarget(
   hitCandidates: string[],
   hitElementsMap: Map<string, Element>,
   canonicalElementsMap: Map<string, Element>,
+  hitChildrenMap?: Map<string, Element[]> | null,
 ): string | null {
   const hitElementId = resolveTopmostHitElementId(
     hitCandidates,
     hitElementsMap,
+    hitChildrenMap,
   );
   if (!hitElementId) return null;
 

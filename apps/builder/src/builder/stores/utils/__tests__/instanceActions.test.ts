@@ -761,6 +761,51 @@ describe("instance store actions", () => {
     });
   });
 
+  it("materializes origin children by canonical source order, not stale order_num", () => {
+    const master = makeElement("master", {
+      type: "Card",
+      reusable: true,
+      props: { title: "Master" },
+    });
+    const first = makeElement("first", {
+      type: "Heading",
+      parent_id: master.id,
+      order_num: 9,
+      props: { label: "First in source" },
+    });
+    const second = makeElement("second", {
+      type: "Text",
+      parent_id: master.id,
+      order_num: 0,
+      props: { label: "Second in source" },
+    });
+    const ref = makeElement("ref", {
+      type: "ref",
+      ref: master.id,
+      props: {},
+    });
+
+    useStore.setState({
+      elements: [master, first, second, ref],
+      elementsMap: new Map([
+        [master.id, master],
+        [first.id, first],
+        [second.id, second],
+        [ref.id, ref],
+      ]),
+    } as never);
+    useStore.getState()._rebuildIndexes();
+
+    useStore.getState().detachInstance(ref.id);
+
+    expect(
+      useStore
+        .getState()
+        .elements.filter((element) => element.parent_id === ref.id)
+        .map((element) => element.props.label),
+    ).toEqual(["First in source", "Second in source"]);
+  });
+
   it("materializes canonical descendants mode B as subtree replacement", () => {
     const master = makeElement("master", { reusable: true });
     const child = makeElement("label", {

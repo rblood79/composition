@@ -131,12 +131,69 @@ export interface CanonicalDocumentActions {
   insertNode(parentPath: string, node: CanonicalNode, index?: number): void;
 
   /**
+   * 활성 document 의 parentPath 직계 `children[]` 를 반환.
+   *
+   * ADR-118 Phase 1: runtime ordering read 는 legacy `order_num` 이 아니라
+   * parent `children[]` index 를 primary source 로 삼는다. `parentPath` 가
+   * `null` 또는 `"root"` 이면 document root `children[]` 를 반환한다.
+   */
+  getNodeChildren(parentPath: string | null): readonly CanonicalNode[] | null;
+
+  /**
+   * 활성 document 안의 nodePath 노드를 targetParentPath 의 `children[]` index 로 이동.
+   *
+   * ADR-118 Phase 1: same-parent reorder 와 cross-parent move 를 canonical
+   * `children[]` splice 로 표현하는 public mutation surface. `index` 는
+   * source node 제거 이후 target children 배열 기준 index 다.
+   */
+  moveNode(
+    nodePath: string,
+    targetParentPath: string | null,
+    index: number,
+  ): void;
+
+  /**
    * 활성 document 의 nodePath (Phase 1 = nodeId) 노드를 제거.
    *
    * - root 노드 (top-level `children[]` 의 직접 항목) 도 제거 가능.
    * - 노드 미발견 시 no-op + dev warn.
    */
   removeNode(nodePath: string): void;
+
+  /**
+   * 활성 document 의 refPath (RefNode) `descendants[descendantPath].children`
+   * 끝에 child 를 append.
+   *
+   * ADR-118 Phase 1: slot fill append order 는 same `ref` 값으로 replace 하지
+   * 않고 child id 별 독립 entry 로 보존한다.
+   */
+  appendDescendantChild(
+    refPath: string,
+    descendantPath: string,
+    child: CanonicalNode,
+  ): void;
+
+  /**
+   * 활성 document 의 refPath (RefNode) `descendants[descendantPath].children`
+   * 내부 child 를 index 로 재정렬.
+   */
+  moveDescendantChild(
+    refPath: string,
+    descendantPath: string,
+    childPath: string,
+    index: number,
+  ): void;
+
+  /**
+   * adapter/export boundary 에서만 쓰는 legacy order mirror helper.
+   *
+   * parent `children[]` index 에서 파생한 order_num 을 반환하고, child 가
+   * 없으면 `null` 을 반환한다.
+   */
+  getDerivedOrderNum(
+    parentPath: string | null,
+    childPath: string,
+  ): number | null;
 
   /**
    * 활성 document 의 refPath (RefNode) 의 `descendants[descendantPath]` 를

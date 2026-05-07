@@ -50,9 +50,7 @@ export const ListBoxItemEditor = memo(function ListBoxItemEditor({
 
   // Field 자식 요소들을 찾기
   const fieldChildren = useMemo(() => {
-    return rawChildren
-      .filter((child) => child.type === "Field")
-      .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    return rawChildren.filter((child) => child.type === "Field");
   }, [rawChildren]);
 
   const hasFieldChildren = fieldChildren.length > 0;

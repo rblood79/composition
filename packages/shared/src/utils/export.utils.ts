@@ -232,13 +232,6 @@ function extractPageLayoutBinding(node: CanonicalNode): string | null {
   return null;
 }
 
-function readPageOrder(node: CanonicalNode, fallback: number): number {
-  const metadata = node.metadata as CanonicalMetadata | undefined;
-  return typeof metadata?.order_num === "number"
-    ? metadata.order_num
-    : fallback;
-}
-
 function readPageParentId(node: CanonicalNode): string | null {
   const metadata = node.metadata as CanonicalMetadata | undefined;
   return typeof metadata?.parent_id === "string" &&
@@ -691,15 +684,10 @@ export function deriveProjectRenderModelFromDocument(
           } satisfies CanonicalNode,
         ];
 
-  const orderedPageNodes = pageNodes
-    .map((node, originalIndex) => ({
-      node,
-      originalIndex,
-      orderNum: readPageOrder(node, originalIndex),
-    }))
-    .sort(
-      (a, b) => a.orderNum - b.orderNum || a.originalIndex - b.originalIndex,
-    );
+  const orderedPageNodes = pageNodes.map((node, pageIndex) => ({
+    node,
+    orderNum: pageIndex,
+  }));
 
   const pages: Page[] = orderedPageNodes.map(({ node, orderNum }, index) => {
     const layoutBinding = extractPageLayoutBinding(node);

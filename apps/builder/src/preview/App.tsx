@@ -499,9 +499,6 @@ function CanvasContent() {
       }
       bucket.push(el);
     }
-    for (const bucket of map.values()) {
-      bucket.sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
-    }
     return map;
   }, [resolvedElements]);
 
@@ -554,9 +551,9 @@ function CanvasContent() {
       // 렌더러가 없으면 기본 HTML 렌더링
 
       // 자식 요소 찾기
-      const children = resolvedElements
-        .filter((child) => child.parent_id === adaptedElement.id)
-        .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+      const children = resolvedElements.filter(
+        (child) => child.parent_id === adaptedElement.id,
+      );
 
       // Props 정리
       // ADR-058 Phase 1: spec registry에 등록된 태그는 React Aria className과
@@ -728,22 +725,18 @@ function CanvasContent() {
         if (pageBody) {
           // ⭐ FIX: Page body의 자식들 중 slot_name이 일치하는 것만 배치
           // slot_name이 없는 요소는 'content' 슬롯에 배치
-          slotContent = pageElements
-            .filter((pe) => {
-              if (pe.parent_id !== pageBody.id) return false;
-              const peSlotName = getSlotMirrorName(pe.props) || "content";
-              return peSlotName === slotName;
-            })
-            .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+          slotContent = pageElements.filter((pe) => {
+            if (pe.parent_id !== pageBody.id) return false;
+            const peSlotName = getSlotMirrorName(pe.props) || "content";
+            return peSlotName === slotName;
+          });
         } else {
           // body가 없으면 기존 로직 (slot_name으로 찾기, body 제외)
-          slotContent = pageElements
-            .filter((pe) => {
-              if (pe.type === "body") return false; // body는 제외
-              const peSlotName = getSlotMirrorName(pe.props) || "content";
-              return peSlotName === slotName && !pe.parent_id;
-            })
-            .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+          slotContent = pageElements.filter((pe) => {
+            if (pe.type === "body") return false; // body는 제외
+            const peSlotName = getSlotMirrorName(pe.props) || "content";
+            return peSlotName === slotName && !pe.parent_id;
+          });
         }
 
         // Slot 자체를 div로 렌더링하고 내부에 Page elements 배치
@@ -768,9 +761,9 @@ function CanvasContent() {
       // 여기에 도달하면 body가 아닌 일반 요소임
 
       // 일반 Layout element: 자식 재귀 렌더링
-      const children = layoutElements
-        .filter((child) => child.parent_id === adaptedElement.id)
-        .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+      const children = layoutElements.filter(
+        (child) => child.parent_id === adaptedElement.id,
+      );
 
       // rendererMap에서 렌더러가 있으면 사용
       const renderer = rendererMap[adaptedElement.type];
@@ -811,9 +804,9 @@ function CanvasContent() {
       allPageElements: PreviewElement[],
     ): React.ReactNode => {
       const adaptedElement = adaptElementFillStyle(el);
-      const children = allPageElements
-        .filter((child) => child.parent_id === adaptedElement.id)
-        .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+      const children = allPageElements.filter(
+        (child) => child.parent_id === adaptedElement.id,
+      );
 
       // rendererMap에서 렌더러가 있으면 사용
       const renderer = rendererMap[adaptedElement.type];
@@ -928,9 +921,9 @@ function CanvasContent() {
       if (layoutBody) {
         // ⭐ body를 div로 렌더링하지 않고 자식들만 직접 렌더링
         // body의 속성은 useEffect에서 실제 <body> 태그에 적용됨
-        const bodyChildren = layoutElements
-          .filter((el) => el.parent_id === layoutBody.id)
-          .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+        const bodyChildren = layoutElements.filter(
+          (el) => el.parent_id === layoutBody.id,
+        );
 
         return (
           <>
@@ -952,9 +945,9 @@ function CanvasContent() {
       );
 
       if (layoutBody) {
-        const bodyChildren = layoutElements
-          .filter((el) => el.parent_id === layoutBody.id)
-          .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+        const bodyChildren = layoutElements.filter(
+          (el) => el.parent_id === layoutBody.id,
+        );
 
         return <>{bodyChildren.map((el) => renderElement(el, el.id))}</>;
       }
@@ -968,17 +961,15 @@ function CanvasContent() {
     if (bodyElement) {
       // ⭐ body를 div로 렌더링하지 않고 자식들만 직접 렌더링
       // body의 속성은 useEffect에서 실제 <body> 태그에 적용됨
-      const bodyChildren = resolvedElements
-        .filter((el) => el.parent_id === bodyElement.id)
-        .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+      const bodyChildren = resolvedElements.filter(
+        (el) => el.parent_id === bodyElement.id,
+      );
 
       return <>{bodyChildren.map((el) => renderElement(el, el.id))}</>;
     }
 
     // body가 없으면 루트 요소들 렌더링
-    const rootElements = resolvedElements
-      .filter((el) => !el.parent_id)
-      .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    const rootElements = resolvedElements.filter((el) => !el.parent_id);
 
     return rootElements.map((el) => renderElement(el, el.id));
   }, [

@@ -620,10 +620,12 @@ export function BuilderCanvas({
       });
       const state = useStore.getState();
       const hitElementsMap = getInteractiveElementsMap();
+      const hitChildrenMap = getInteractiveChildrenMap();
       const elementId = resolveCanvasDetachContextTarget(
         hitTestPoint(canvasPoint.x, canvasPoint.y),
         hitElementsMap,
         state.elementsMap,
+        hitChildrenMap,
       );
 
       if (!elementId) {
@@ -649,6 +651,7 @@ export function BuilderCanvas({
       });
     },
     [
+      getInteractiveChildrenMap,
       getInteractiveElementsMap,
       screenToCanvasPoint,
       selectElementWithPageTransition,
@@ -851,6 +854,7 @@ export function BuilderCanvas({
     handleElementClickRef,
     handleElementDoubleClickRef,
     frameAreas,
+    getHitChildrenMap: getInteractiveChildrenMap,
     getHitElementsMap: getInteractiveElementsMap,
     isEditingRef,
     lastClickTargetRef,

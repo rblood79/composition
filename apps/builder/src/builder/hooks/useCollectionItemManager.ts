@@ -76,12 +76,10 @@ export function useCollectionItemManager(
     useStore((state) => state.childrenMap.get(elementId)) ?? EMPTY_CHILDREN;
 
   /**
-   * 자식 Item 필터링 및 정렬 (useMemo로 최적화)
+   * 자식 Item 필터링 (childrenMap source order 보존)
    */
   const children = useMemo(() => {
-    return rawChildren
-      .filter((child) => child.type === childTag)
-      .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    return rawChildren.filter((child) => child.type === childTag);
   }, [rawChildren, childTag]);
 
   /**

@@ -6,7 +6,9 @@ import type { Element, Page } from "@/types/builder/unified.types";
 import type { Layout } from "@/types/builder/layout.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import {
+  applyElementOrderCanonicalPrimary,
   mergeElementsCanonicalPrimary,
+  moveElementCanonicalPrimary,
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
   setElementsCanonicalPrimary,
@@ -338,6 +340,236 @@ describe("canonical mutation wrappers", () => {
       "child-b",
       "child-d",
     ]);
+  });
+
+  it("moveElementCanonicalPrimary reorders siblings by canonical children splice before legacy mirror export", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1");
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const childA = makeElement("child-a", "Button", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const childB = makeElement("child-b", "Heading", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 1,
+    });
+    const childC = makeElement("child-c", "Text", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 2,
+    });
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            makeCanonicalElementNode(body, [
+              makeCanonicalElementNode(childA),
+              makeCanonicalElementNode(childB),
+              makeCanonicalElementNode(childC),
+            ]),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [body, childA, childB, childC],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    const mirror = moveElementCanonicalPrimary(childC.id, body.id, 0);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    const bodyNode = pageNode?.children?.find((node) => node.id === body.id);
+    expect(bodyNode?.children?.map((node) => node.id)).toEqual([
+      childC.id,
+      childA.id,
+      childB.id,
+    ]);
+    expect(mirror.map((element) => [element.id, element.order_num])).toEqual([
+      [body.id, 0],
+      [childC.id, 0],
+      [childA.id, 1],
+      [childB.id, 2],
+    ]);
+    expect(setElements).toHaveBeenCalledWith(mirror);
+  });
+
+  it("applyElementOrderCanonicalPrimary applies structural batch intent without legacy sibling bridge", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1");
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const childA = makeElement("child-a", "Button", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const childB = makeElement("child-b", "Heading", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 1,
+    });
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            makeCanonicalElementNode(body, [
+              makeCanonicalElementNode(childA),
+              makeCanonicalElementNode(childB),
+            ]),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [body, childA, childB],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    const mirror = applyElementOrderCanonicalPrimary([
+      { ...childB, order_num: 0 },
+      { ...childA, order_num: 1 },
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    const bodyNode = pageNode?.children?.find((node) => node.id === body.id);
+    expect(bodyNode?.children?.map((node) => node.id)).toEqual([
+      childB.id,
+      childA.id,
+    ]);
+    expect(mirror.map((element) => [element.id, element.order_num])).toEqual([
+      [body.id, 0],
+      [childB.id, 0],
+      [childA.id, 1],
+    ]);
+  });
+
+  it("moveElementCanonicalPrimary reparents across page bodies and derives legacy page scope from canonical position", () => {
+    const setElements = vi.fn();
+    const page1 = makePage("page-1");
+    const page2 = makePage("page-2");
+    const page1Body = makeElement("page-1-body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const page2Body = makeElement("page-2-body", "body", {
+      page_id: "page-2",
+      order_num: 0,
+    });
+    const source = makeElement("source", "Card", {
+      parent_id: page1Body.id,
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const sourceChild = makeElement("source-child", "Heading", {
+      parent_id: source.id,
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const target = makeElement("target", "Button", {
+      parent_id: page2Body.id,
+      page_id: "page-2",
+      order_num: 0,
+    });
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            makeCanonicalElementNode(page1Body, [
+              makeCanonicalElementNode(source, [
+                makeCanonicalElementNode(sourceChild),
+              ]),
+            ]),
+          ],
+        },
+        {
+          id: "page-2",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-2" },
+          children: [
+            makeCanonicalElementNode(page2Body, [
+              makeCanonicalElementNode(target),
+            ]),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [page1Body, source, sourceChild, page2Body, target],
+        pages: [page1, page2],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    const mirror = moveElementCanonicalPrimary(source.id, page2Body.id, 1);
+
+    const sourceMirror = mirror.find((element) => element.id === source.id);
+    const sourceChildMirror = mirror.find(
+      (element) => element.id === sourceChild.id,
+    );
+    expect(sourceMirror).toMatchObject({
+      parent_id: page2Body.id,
+      page_id: "page-2",
+      order_num: 1,
+    });
+    expect(sourceChildMirror).toMatchObject({
+      parent_id: source.id,
+      page_id: "page-2",
+      order_num: 0,
+    });
+    expect(
+      mirror
+        .filter((element) => element.parent_id === page2Body.id)
+        .map((element) => element.id),
+    ).toEqual([target.id, source.id]);
   });
 
   it("mergeElementsCanonicalPrimary does not reorder siblings for props-only batches", () => {

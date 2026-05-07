@@ -58,9 +58,7 @@ export const TreeItemEditor = memo(function TreeItemEditor({
 
   // TreeItem의 자식 TreeItem들을 찾기
   const childTreeItems = useMemo(() => {
-    return rawChildren
-      .filter((child) => child.type === "TreeItem")
-      .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    return rawChildren.filter((child) => child.type === "TreeItem");
   }, [rawChildren]);
 
   // 새 하위 TreeItem 추가 함수

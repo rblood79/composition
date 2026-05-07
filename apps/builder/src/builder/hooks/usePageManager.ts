@@ -18,6 +18,15 @@ import { scheduleNextFrame } from "../utils/scheduleTask";
 
 const PAGE_STACK_GAP = 80;
 
+function normalizePageSlug(slug: string | null | undefined): string {
+  if (!slug) return "";
+  return slug.startsWith("/") ? slug : `/${slug}`;
+}
+
+function selectInitialPage(pages: ApiPage[]): ApiPage | undefined {
+  return pages.find((page) => normalizePageSlug(page.slug) === "/") ?? pages[0];
+}
+
 /**
  * API 응답 타입 (에러를 throw하지 않고 return)
  */
@@ -435,10 +444,13 @@ export const usePageManager = ({
 
         setLazyLoadingEnabled(false);
 
-        // 4. order_num이 0인 페이지(Home)를 우선 선택, 없으면 첫 번째 페이지 선택
+        // 4. Home identity는 slug이고, 순서는 canonical children[] 입력 순서를 따른다.
         if (apiPages.length > 0) {
-          const homePage = apiPages.find((p) => p.order_num === 0);
-          const pageToSelect = homePage || apiPages[0];
+          const pageToSelect = selectInitialPage(apiPages);
+          if (!pageToSelect) {
+            initializingRef.current = null;
+            return { success: true, data: apiPages };
+          }
           const bodyElement = renderModel.elements.find(
             (el) => el.page_id === pageToSelect.id && el.order_num === 0,
           );

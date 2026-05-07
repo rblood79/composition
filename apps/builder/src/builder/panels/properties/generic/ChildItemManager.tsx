@@ -25,10 +25,7 @@ export const ChildItemManager = memo(function ChildItemManager({
   const currentPageId = useStore((state) => state.currentPageId);
 
   const filteredChildren = useMemo(
-    () =>
-      rawChildren
-        .filter((child) => child.type === childTag)
-        .sort((a, b) => (a.order_num || 0) - (b.order_num || 0)),
+    () => rawChildren.filter((child) => child.type === childTag),
     [rawChildren, childTag],
   );
 

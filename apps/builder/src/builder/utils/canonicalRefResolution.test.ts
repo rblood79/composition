@@ -187,6 +187,43 @@ describe("canonicalRefResolution", () => {
     });
   });
 
+  it("materializes ref descendants in source order instead of legacy order_num", () => {
+    const origin = makeElement("origin", {
+      type: "TextField",
+      reusable: true,
+    });
+    const input = makeElement("input", {
+      type: "Input",
+      customId: "input",
+      parent_id: "origin",
+      order_num: 10,
+    });
+    const label = makeElement("label", {
+      type: "Label",
+      customId: "label",
+      parent_id: "origin",
+      order_num: 0,
+    });
+    const ref = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+    } as never);
+
+    const tree = resolveCanonicalRefTree({
+      elements: [origin, input, label, ref],
+      elementsMap: new Map([
+        ["origin", origin],
+        ["input", input],
+        ["label", label],
+        ["instance", ref],
+      ]),
+    });
+
+    expect(
+      tree.childrenMap.get("instance")?.map((element) => element.id),
+    ).toEqual(["instance/input", "instance/label"]);
+  });
+
   it("does not duplicate synthetic descendants that already exist as legacy mirrors", () => {
     const origin = makeElement("origin", {
       type: "TextField",

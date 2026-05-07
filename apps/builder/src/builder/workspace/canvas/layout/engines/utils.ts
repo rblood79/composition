@@ -13,7 +13,6 @@
 
 import type { Margin, BoxModel, VerticalAlign } from "./types";
 import type { Element } from "../../../../../types/core/store.types";
-import { sortElementsByOrderThenSource } from "../../../../utils/elementOrdering";
 import {
   fontFamily as specFontFamily,
   BreadcrumbsSpec,
@@ -951,11 +950,10 @@ export function calculateContentWidth(
     const fontWeight = specStyle?.fontWeight ?? 400;
     const ffamily = specStyle?.fontFamily ?? specFontFamily.sans;
 
-    // 자식 Breadcrumb 요소에서 레이블 추출 (order_num 순 정렬 필수)
+    // 자식 Breadcrumb 요소에서 레이블 추출 (caller-provided source order)
     const crumbs: string[] = [];
     if (childElements && childElements.length > 0) {
-      const sorted = sortElementsByOrderThenSource(childElements);
-      for (const child of sorted) {
+      for (const child of childElements) {
         const childProps = child.props as Record<string, unknown> | undefined;
         const label = String(
           childProps?.children ?? childProps?.label ?? childProps?.title ?? "",

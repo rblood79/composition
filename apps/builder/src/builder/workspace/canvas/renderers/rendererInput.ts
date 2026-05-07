@@ -7,7 +7,6 @@ import type {
   CanonicalFrameElementScope,
   CanonicalFrameElementScopeMap,
 } from "../../../../adapters/canonical/frameElementScope";
-import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 
 export interface PixiPageRendererInput {
   bodyElement: Element | null;
@@ -227,11 +226,11 @@ interface CreateSkiaRendererInputOptions {
 }
 
 function buildRendererChildrenMap(
-  elementsMap: Map<string, Element>,
+  elements: Iterable<Element>,
 ): Map<string, Element[]> {
   const childrenMap = new Map<string, Element[]>();
 
-  for (const element of elementsMap.values()) {
+  for (const element of elements) {
     if (element.deleted) continue;
     const parentId = element.parent_id ?? null;
     if (!parentId) continue;
@@ -243,10 +242,6 @@ function buildRendererChildrenMap(
     }
   }
 
-  for (const list of childrenMap.values()) {
-    list.splice(0, list.length, ...sortElementsByOrderThenSource(list));
-  }
-
   return childrenMap;
 }
 
@@ -256,19 +251,40 @@ function buildPageResolvedRenderTree(input: CreateSkiaRendererInputOptions): {
   elementsMap: Map<string, Element>;
 } {
   const elementsMap = new Map(input.elementsMap);
+  const orderedElements: Element[] = [];
+  const orderedIndexById = new Map<string, number>();
+
+  const addElement = (element: Element): void => {
+    elementsMap.set(element.id, element);
+    const existingIndex = orderedIndexById.get(element.id);
+    if (existingIndex !== undefined) {
+      orderedElements[existingIndex] = element;
+      return;
+    }
+    orderedIndexById.set(element.id, orderedElements.length);
+    orderedElements.push(element);
+  };
 
   for (const pageSnapshot of input.sceneSnapshot.pageSnapshots.values()) {
     if (pageSnapshot.bodyElement) {
-      elementsMap.set(pageSnapshot.bodyElement.id, pageSnapshot.bodyElement);
+      addElement(pageSnapshot.bodyElement);
     }
     for (const element of pageSnapshot.pageElements) {
-      elementsMap.set(element.id, element);
+      addElement(element);
     }
   }
 
+  for (const element of input.elements) {
+    addElement(elementsMap.get(element.id) ?? element);
+  }
+
+  for (const element of input.elementsMap.values()) {
+    addElement(elementsMap.get(element.id) ?? element);
+  }
+
   return {
-    childrenMap: buildRendererChildrenMap(elementsMap),
-    elements: Array.from(elementsMap.values()),
+    childrenMap: buildRendererChildrenMap(orderedElements),
+    elements: orderedElements,
     elementsMap,
   };
 }

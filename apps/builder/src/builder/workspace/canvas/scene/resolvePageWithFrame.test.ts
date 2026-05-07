@@ -84,6 +84,50 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     expect(result.pageElements.map((el) => el.id)).toEqual(["btn"]);
   });
 
+  it("frame binding projection preserves source order instead of legacy order_num", () => {
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const frameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      frameId: "frame-1",
+      page_id: null,
+      order_num: 0,
+    });
+    const first = makeEl({
+      id: "first",
+      type: "Box",
+      frameId: "frame-1",
+      page_id: null,
+      parent_id: frameBody.id,
+      order_num: 10,
+    });
+    const second = makeEl({
+      id: "second",
+      type: "Box",
+      frameId: "frame-1",
+      page_id: null,
+      parent_id: frameBody.id,
+      order_num: 0,
+    });
+
+    const result = resolvePageWithFrame({
+      page: makeFramePage("frame-1", { id: "page-1" }),
+      pageElements: [pageBody],
+      elementsMap: buildElementsMap([pageBody, frameBody, first, second]),
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.pageElements.map((el) => el.id)).toEqual([
+      toPageFrameElementId("page-1", first.id),
+      toPageFrameElementId("page-1", second.id),
+    ]);
+  });
+
   it("frame mirror 미바인딩 page 는 page-scoped frame projection 을 body 후보에서 제외한다", () => {
     const projectedFrameBody = makeEl({
       id: "frame-body",

@@ -5,26 +5,24 @@ import {
   getFrameElementMirrorId,
   isPageFrameProjectionElement,
 } from "../../../adapters/canonical/frameMirror";
-import {
-  compareElementsByOrderThenSource,
-  createElementSourceIndex,
-} from "../../utils/elementOrdering";
 
 /**
- * order_num 재정렬 업데이트 계산 (순수 함수 — side effect 없음)
+ * legacy order_num mirror 재번호화 업데이트 계산 (순수 함수 — side effect 없음)
  *
- * 페이지의 모든 요소를 부모별로 그룹화하여 올바른 order_num을 계산합니다.
+ * 페이지의 모든 요소를 부모별 source/projection order 로 그룹화하여 mirror
+ * `order_num`을 계산합니다.
  * 변경이 필요한 요소들만 { id, order_num } 배열로 반환합니다.
  *
- * order_num 동률은 현재 elements 배열 순서를 tie-breaker로 사용합니다.
+ * ADR-118: 이 함수는 더 이상 `order_num`을 structural ordering primary key 로
+ * 사용하지 않습니다. 현재 `elements` source order 가 canonical `children[]`
+ * projection order 이며, `order_num`은 DB/API compatibility mirror 로만
+ * 재번호화합니다.
  * props.children/title/label 같은 편집 가능한 값은 구조 순서 복구에 사용하지 않습니다.
  */
 export function computeReorderUpdates(
   elements: Element[],
   pageId: string,
 ): Array<{ id: string; order_num: number }> {
-  const sourceIndexById = createElementSourceIndex(elements);
-
   // 페이지별, 부모별로 그룹화
   const groups = elements
     .filter((el) => {
@@ -44,50 +42,9 @@ export function computeReorderUpdates(
 
   const updates: Array<{ id: string; order_num: number }> = [];
 
-  const compareByOrderThenSource = (a: Element, b: Element): number =>
-    compareElementsByOrderThenSource(a, b, sourceIndexById);
-
   // 각 그룹별로 order_num 재정렬
-  Object.entries(groups).forEach(([parentKey, children]) => {
-    let sorted: Element[];
-
-    // 부모 요소 확인
-    const parentElement = elements.find(
-      (el) => el.id === (parentKey === "root" ? null : parentKey),
-    );
-    const parentTag = parentElement?.type;
-
-    // 특별 정렬이 필요한 컴포넌트들 확인
-    const isTabsChildren = parentTag === "Tabs";
-    const isListBoxChildren = parentTag === "ListBox";
-    const isGridListChildren = parentTag === "GridList";
-    const isMenuChildren = parentTag === "Menu";
-    const isComboBoxChildren = parentTag === "ComboBox";
-    const isSelectChildren = parentTag === "Select";
-    const isTreeChildren = parentTag === "Tree";
-    const isToggleButtonChildren = parentTag === "ToggleButtonGroup";
-    const isTableHeaderChildren = parentTag === "TableHeader";
-
-    if (isTabsChildren) {
-      // ADR-066: Tab element 소멸. TabList/TabPanels만 order_num 정렬.
-      sorted = [...children].sort(compareByOrderThenSource);
-    } else if (isTableHeaderChildren) {
-      sorted = [...children].sort(compareByOrderThenSource);
-    } else if (
-      isListBoxChildren ||
-      isGridListChildren ||
-      isMenuChildren ||
-      isComboBoxChildren ||
-      isSelectChildren ||
-      isTreeChildren ||
-      isToggleButtonChildren
-    ) {
-      sorted = [...children].sort(compareByOrderThenSource);
-    } else {
-      sorted = [...children].sort(compareByOrderThenSource);
-    }
-
-    sorted.forEach((child, index) => {
+  Object.values(groups).forEach((children) => {
+    children.forEach((child, index) => {
       // order_num은 0부터 시작 (0-based indexing)
       const newOrderNum = index;
       if (child.order_num !== newOrderNum) {

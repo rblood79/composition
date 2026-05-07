@@ -51,9 +51,7 @@ export const RowEditor = memo(function RowEditor({
   };
 
   // 현재 행의 셀들 찾기
-  const rowCells = rawChildren
-    .filter((el) => el.type === "Cell")
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+  const rowCells = rawChildren.filter((el) => el.type === "Cell");
 
   return (
     <div className="component-props">

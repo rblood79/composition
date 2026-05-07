@@ -571,12 +571,9 @@ export const renderCheckboxGroup = (
   const checkboxParentId = checkboxItemsChild
     ? checkboxItemsChild.id
     : element.id;
-  const checkboxChildren = elements
-    .filter(
-      (child) =>
-        child.parent_id === checkboxParentId && child.type === "Checkbox",
-    )
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+  const checkboxChildren = (
+    context.childrenMap.get(checkboxParentId) ?? []
+  ).filter((child) => child.type === "Checkbox");
 
   // isSelected: true인 체크박스들의 ID를 value 배열로 생성
   const selectedValues = getSelectedChildIds(checkboxChildren);
@@ -756,11 +753,9 @@ export const renderRadioGroup = (
 
   // RadioItems가 있으면 그 하위에서 Radio 검색, 없으면(레거시) 직접 자식에서 검색
   const radioParentId = radioItemsChild ? radioItemsChild.id : element.id;
-  const radioChildren = elements
-    .filter(
-      (child) => child.parent_id === radioParentId && child.type === "Radio",
-    )
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+  const radioChildren = (context.childrenMap.get(radioParentId) ?? []).filter(
+    (child) => child.type === "Radio",
+  );
 
   // 그룹 라벨: Label 자식 Element의 텍스트 사용 (renderElement 호출 제거 — 이중 렌더링 방지)
   const groupLabel =

@@ -26,7 +26,6 @@ import type { SizeSpec } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
-import { sortElementsByOrderThenSource } from "../../../../utils/elementOrdering";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────
 
@@ -827,14 +826,14 @@ export function applyImplicitStyles(
   //   - display/alignItems: Breadcrumb.spec containerStyles 가 inline-flex/center 담당
   //   - width/height: enrichWithIntrinsicSize → calculateContentWidth/Height 의 "breadcrumb"
   //     분기에서 label 실측 기반 intrinsic 산출 (utils.ts)
-  //   본 분기는 parent `height/minHeight/gap:0` + 자식 order_num 순 정렬만 담당.
+  //   본 분기는 parent `height/minHeight/gap:0` 적용만 담당한다.
   if (containerTag === "breadcrumbs") {
     const rspSize = normalizeBreadcrumbRspSizeKey(
       String(containerProps?.size ?? "M"),
     );
     const breadcrumbsHeight = BreadcrumbsSpec.sizes[rspSize]?.height ?? 24;
 
-    filteredChildren = sortElementsByOrderThenSource(children);
+    filteredChildren = children;
 
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,

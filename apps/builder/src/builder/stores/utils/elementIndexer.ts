@@ -20,7 +20,6 @@ import {
   isComponentInstanceMirrorElement as isInstanceElement,
   isComponentOriginMirrorElement as isMasterElement,
 } from "../../../adapters/canonical/componentSemanticsMirror";
-import { sortElementsByOrderThenSource } from "../../utils/elementOrdering";
 
 /**
  * 페이지별 요소 인덱스
@@ -151,7 +150,7 @@ export function unindexElement(
  * @param index 페이지 인덱스
  * @param pageId 페이지 ID
  * @param elementsMap id → Element 맵
- * @returns 페이지의 모든 요소 (order_num 정렬)
+ * @returns 페이지의 모든 요소. ADR-118 이후 순서는 index insertion/canonical source order를 보존한다.
  */
 export function getPageElements(
   index: PageElementIndex,
@@ -164,7 +163,7 @@ export function getPageElements(
     return [];
   }
 
-  // Element 배열 생성 및 정렬
+  // Element 배열 생성. Set insertion order는 rebuildPageIndex 입력 순서를 보존한다.
   const elements: Element[] = [];
   for (const id of elementIds) {
     const element = elementsMap.get(id);
@@ -173,7 +172,7 @@ export function getPageElements(
     }
   }
 
-  return sortElementsByOrderThenSource(elements);
+  return elements;
 }
 
 /**
@@ -202,7 +201,7 @@ export function getRootElements(
     }
   }
 
-  return sortElementsByOrderThenSource(roots);
+  return roots;
 }
 
 /**

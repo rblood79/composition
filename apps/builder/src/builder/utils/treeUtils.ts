@@ -80,17 +80,10 @@ export function buildTreeFromElements(
         if (parentElement && parentElement.type === "Tabs") {
           children = sortTabsChildren(children);
         }
-        // Table 특수 정렬은 보류 (기존 로직 유지)
+        // Table structural buckets are a component-specific DOM/data contract.
         else if (parentElement && parentElement.type === "Table") {
           children = sortElementsByOrderThenSource(children);
         }
-        // 일반 정렬: order_num 기준
-        else {
-          children = sortElementsByOrderThenSource(children);
-        }
-      } else {
-        // 루트 레벨은 order_num 기준 정렬
-        children = sortElementsByOrderThenSource(children);
       }
 
       // hierarchical 구조 생성
@@ -124,10 +117,10 @@ export function buildTreeFromElements(
  * Tabs 하위 요소들을 구조에 맞게 정렬 (ADR-066)
  *
  * 구조: Tabs > [TabList, TabPanels] — Tab element 소멸, items SSOT.
- * order_num 기준 정렬.
+ * ADR-118: child order는 caller가 전달한 canonical source order를 보존한다.
  */
 function sortTabsChildren(items: Element[]): Element[] {
-  return sortElementsByOrderThenSource(items);
+  return items;
 }
 
 /**
@@ -271,7 +264,8 @@ export function sortTableChildren<T extends Element>(items: T[]): T[] {
 }
 
 /**
- * 일반적인 order_num 기반 정렬
+ * Legacy compatibility helper. Structural runtime read path는 canonical source
+ * order를 보존해야 하므로 새 caller에서 사용하지 않는다.
  */
 export function sortByOrderNum<T extends Element>(items: T[]): T[] {
   return sortElementsByOrderThenSource(items);
@@ -293,9 +287,7 @@ export function sortChildrenByParentTag<T extends Element>(
   parentId: string,
 ): T[] {
   if (!parentTag) {
-    return getCachedSortResult(items as Element[], parentId, () =>
-      sortByOrderNum(children),
-    ) as T[];
+    return children;
   }
 
   switch (parentTag) {
@@ -310,9 +302,7 @@ export function sortChildrenByParentTag<T extends Element>(
       ) as T[];
 
     default:
-      return getCachedSortResult(items as Element[], parentId, () =>
-        sortByOrderNum(children),
-      ) as T[];
+      return children;
   }
 }
 

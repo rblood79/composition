@@ -13,4 +13,15 @@ describe("useDragBridge persistence contract", () => {
     expect(source).toContain("persistActiveCanonicalDocument(db)");
     expect(source).not.toContain("db.elements.update(id");
   });
+
+  it("uses canonical-primary move as the drop commit path", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useDragBridge.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("moveElementCanonicalPrimary(");
+    expect(source).not.toContain("state.moveElementToContainer(");
+    expect(source).not.toContain("state.batchUpdateElementOrders(");
+  });
 });

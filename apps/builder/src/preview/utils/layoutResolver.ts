@@ -137,13 +137,6 @@ function groupElementsBySlot(
     }
   });
 
-  // 각 Slot의 elements를 order_num으로 정렬
-  slotContents.forEach((content) => {
-    content.pageElements.sort(
-      (a, b) => (a.order_num || 0) - (b.order_num || 0),
-    );
-  });
-
   return slotContents;
 }
 
@@ -194,11 +187,9 @@ function buildResolvedTree(
   // Root elements (parent_id가 null)
   const roots = layoutElements.filter((el) => !el.parent_id);
 
-  return roots
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
-    .map((el) =>
-      buildResolvedElement(el, layoutElements, slotContents, allPageElements),
-    );
+  return roots.map((el) =>
+    buildResolvedElement(el, layoutElements, slotContents, allPageElements),
+  );
 }
 
 /**
@@ -241,7 +232,6 @@ function buildResolvedElement(
   // 일반 Element: 자식 재귀 처리
   const children = allLayoutElements
     .filter((el) => el.parent_id === element.id)
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
     .map((child) =>
       buildResolvedElement(
         child,
@@ -278,7 +268,6 @@ function buildPageElement(
 ): ResolvedElement {
   const children = allPageElements
     .filter((el) => el.parent_id === element.id)
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
     .map((child) => buildPageElement(child, allPageElements));
 
   return {
@@ -297,7 +286,6 @@ function buildElementTree(
 ): ResolvedElement[] {
   return elements
     .filter((el) => el.parent_id === parentId)
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
     .map((el) => ({
       element: el,
       children: buildElementTree(elements, el.id),

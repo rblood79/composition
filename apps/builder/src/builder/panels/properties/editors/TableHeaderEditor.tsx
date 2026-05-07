@@ -67,9 +67,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
   };
 
   // 현재 테이블 헤더의 컬럼들 찾기
-  const columns = rawChildren
-    .filter((el) => el.type === "Column")
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+  const columns = rawChildren.filter((el) => el.type === "Column");
 
   // 컬럼 추가 함수
   const addColumn = async () => {

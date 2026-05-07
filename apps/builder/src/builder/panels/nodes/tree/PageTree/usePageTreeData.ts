@@ -110,7 +110,69 @@ export function applyPageTreeUpdates(
     };
   });
 
-  return changed ? nextPages : pages;
+  const updateRankById = new Map(
+    updates.map((update, index) => [update.id, index] as const),
+  );
+
+  return changed
+    ? orderPagesForCanonicalTree(nextPages, updateRankById)
+    : pages;
+}
+
+function orderPagesForCanonicalTree(
+  pages: Page[],
+  updateRankById?: Map<string, number>,
+): Page[] {
+  const sourceIndexById = new Map(
+    pages.map((page, index) => [page.id, index] as const),
+  );
+  const childrenByParent = new Map<string | null, Page[]>();
+
+  for (const page of pages) {
+    const parentId = page.parent_id ?? null;
+    const siblings = childrenByParent.get(parentId);
+    if (siblings) {
+      siblings.push(page);
+    } else {
+      childrenByParent.set(parentId, [page]);
+    }
+  }
+
+  for (const siblings of childrenByParent.values()) {
+    siblings.sort((a, b) => {
+      const aUpdateRank = updateRankById?.get(a.id);
+      const bUpdateRank = updateRankById?.get(b.id);
+      if (aUpdateRank !== undefined && bUpdateRank !== undefined) {
+        return aUpdateRank - bUpdateRank;
+      }
+      return (
+        (sourceIndexById.get(a.id) ?? 0) - (sourceIndexById.get(b.id) ?? 0)
+      );
+    });
+  }
+
+  const orderedPages: Page[] = [];
+  const visited = new Set<string>();
+
+  const visitChildren = (parentId: string | null) => {
+    for (const page of childrenByParent.get(parentId) ?? []) {
+      if (visited.has(page.id)) continue;
+      visited.add(page.id);
+      orderedPages.push(page);
+      visitChildren(page.id);
+    }
+  };
+
+  visitChildren(null);
+
+  for (const page of pages) {
+    if (visited.has(page.id)) continue;
+    visited.add(page.id);
+    orderedPages.push(page);
+    visitChildren(page.id);
+  }
+
+  return orderedPages;
 }
 
 function syncActiveCanonicalPageTreeMetadata(pages: Page[]): string | null {
@@ -135,6 +197,9 @@ export function syncCanonicalPageTreeMetadata(
   pages: Page[],
 ): CompositionDocument {
   const pagesById = new Map(pages.map((page) => [page.id, page]));
+  const canonicalPageRankById = new Map(
+    orderPagesForCanonicalTree(pages).map((page, index) => [page.id, index]),
+  );
   let changed = false;
 
   const children = document.children.map((node) => {
@@ -172,7 +237,59 @@ export function syncCanonicalPageTreeMetadata(
     };
   });
 
-  return changed ? { ...document, children } : document;
+  const orderedChildrenResult = reorderCanonicalPageSlots(
+    children,
+    canonicalPageRankById,
+  );
+  if (orderedChildrenResult.changed) {
+    changed = true;
+  }
+
+  return changed
+    ? { ...document, children: orderedChildrenResult.children }
+    : document;
+}
+
+function reorderCanonicalPageSlots(
+  children: CompositionDocument["children"],
+  canonicalPageRankById: ReadonlyMap<string, number>,
+): { children: CompositionDocument["children"]; changed: boolean } {
+  const pageSlots = children.flatMap((node, index) => {
+    const metadata = readPageNodeMetadata(node);
+    const pageId = getCanonicalPageId(node, metadata);
+    const rank = pageId ? canonicalPageRankById.get(pageId) : undefined;
+    return pageId && rank !== undefined ? [{ node, index, pageId, rank }] : [];
+  });
+
+  if (pageSlots.length <= 1) {
+    return { children, changed: false };
+  }
+
+  const orderedPageSlots = [...pageSlots].sort((a, b) => {
+    const rankDiff = a.rank - b.rank;
+    return rankDiff !== 0 ? rankDiff : a.index - b.index;
+  });
+  let pageSlotIndex = 0;
+  let changed = false;
+
+  const nextChildren = children.map((node) => {
+    const metadata = readPageNodeMetadata(node);
+    const pageId = getCanonicalPageId(node, metadata);
+    if (!pageId || !canonicalPageRankById.has(pageId)) {
+      return node;
+    }
+
+    const nextNode = orderedPageSlots[pageSlotIndex]?.node ?? node;
+    pageSlotIndex += 1;
+    if (nextNode !== node) {
+      changed = true;
+    }
+    return nextNode;
+  });
+
+  return changed
+    ? { children: nextChildren, changed: true }
+    : { children, changed: false };
 }
 
 function readPageNodeMetadata(
@@ -228,9 +345,7 @@ function findHomePageId(pages: Page[]): string | null {
   );
   if (explicitHome) return explicitHome.id;
 
-  const rootPages = pages
-    .filter((page) => (page.parent_id ?? null) === null)
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  const rootPages = pages.filter((page) => (page.parent_id ?? null) === null);
   return rootPages[0]?.id ?? null;
 }
 
@@ -249,14 +364,6 @@ export function buildPageTree(pages: Page[]): {
     } else {
       childrenByParent.set(parentId, [page]);
     }
-  }
-
-  for (const siblings of childrenByParent.values()) {
-    siblings.sort((a, b) => {
-      const homeDiff =
-        (a.id === homePageId ? 0 : 1) - (b.id === homePageId ? 0 : 1);
-      return homeDiff || (a.order_num ?? 0) - (b.order_num ?? 0);
-    });
   }
 
   const nodeMap = new Map<string, PageTreeNode>();

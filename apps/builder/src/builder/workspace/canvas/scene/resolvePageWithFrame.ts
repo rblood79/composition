@@ -27,12 +27,11 @@ import {
   getNullablePageFrameBindingId,
 } from "../../../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../../../adapters/canonical/slotMirror";
-import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 
 export interface ResolvePageWithFrameInput {
   /** 현재 page (frame binding 이 set 되어 있으면 frame 합성) */
   page: Page;
-  /** page_id===page.id 인 element 들 (이미 order_num 정렬) */
+  /** page_id===page.id 인 element 들 (canonical/source order) */
   pageElements: Element[];
   /** 전체 elementsMap (frame elements 검색용) */
   elementsMap: Map<string, Element>;
@@ -374,8 +373,6 @@ export function resolvePageWithFrame(
   }
 
   result.push(...pageNonRoot);
-
-  result.splice(0, result.length, ...sortElementsByOrderThenSource(result));
 
   return {
     bodyElement: resolvedPageBody,

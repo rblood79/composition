@@ -87,15 +87,16 @@ export function findAncestors(
 }
 
 /**
- * 요소 트리 구축 (order_num 기준 정렬)
+ * 요소 트리 구축.
+ *
+ * ADR-118: caller 가 넘긴 elements source order 를 보존한다. legacy
+ * `order_num` 은 export/import boundary mirror 로만 사용한다.
  */
 export function buildElementTree(
   elements: Element[],
   parentId: string | null = null,
 ): Element[] {
-  return elements
-    .filter((el) => el.parent_id === parentId && !el.deleted)
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+  return elements.filter((el) => el.parent_id === parentId && !el.deleted);
 }
 
 // ============================================

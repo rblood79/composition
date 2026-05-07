@@ -17,11 +17,11 @@ import {
 } from "../../utils/editingSemantics";
 import { requestEditingSemanticsImpactConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import {
+  applyElementOrderCanonicalPrimary,
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { sortElementsByOrderThenSource } from "../../utils/elementOrdering";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 
@@ -100,12 +100,43 @@ const INHERITED_LAYOUT_PROPS_UPDATE = new Set([
   "writingMode",
 ]);
 
-function syncUpdatedElementToCanonical(element: Element): void {
+function syncUpdatedElementToCanonical(
+  element: Element,
+  updates?: Partial<Element>,
+): void {
+  if (updates && isStructuralOrderMirrorPatch(updates)) {
+    syncUpdatedElementsToCanonical(
+      [element],
+      [{ elementId: element.id, updates }],
+    );
+    return;
+  }
   syncUpdatedElementsToCanonical([element]);
 }
 
-function syncUpdatedElementsToCanonical(elements: Element[]): void {
+function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {
+  const keys = Object.keys(updates);
+  return (
+    keys.length > 0 &&
+    keys.every(
+      (key) => key === "parent_id" || key === "order_num" || key === "page_id",
+    )
+  );
+}
+
+function isStructuralOrderMirrorUpdate(update: BatchElementUpdate): boolean {
+  return isStructuralOrderMirrorPatch(update.updates);
+}
+
+function syncUpdatedElementsToCanonical(
+  elements: Element[],
+  updates?: BatchElementUpdate[],
+): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
+  if (updates && updates.every(isStructuralOrderMirrorUpdate)) {
+    applyElementOrderCanonicalPrimary(elements);
+    return;
+  }
   mergeElementsCanonicalPrimary(elements);
 }
 
@@ -605,7 +636,7 @@ export const createUpdateElementAction =
     // 🔧 CRITICAL: elementsMap 재구축 (재선택 시 이전 값 반환 방지)
     // Immer produce() 외부에서 호출 (Map은 Immer가 직접 지원하지 않음)
     get()._rebuildIndexes();
-    syncUpdatedElementToCanonical(updatedElement);
+    syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);
 
     // 2. IndexedDB에 저장 (로컬 우선 저장) — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
     if (typeof indexedDB === "undefined") return;
@@ -889,11 +920,8 @@ export const createBatchUpdateElementsAction =
     // pageElementsSnapshot 재구축 — 레이어 트리가 이 스냅샷에 의존
     const pageElementsSnapshot: Record<string, Element[]> = {};
     for (const [pageId, elementIds] of pageIndex.elementsByPage.entries()) {
-      const pageElements = sortElementsByOrderThenSource(
-        Array.from(elementIds)
-          .map((id) => elementsMap.get(id))
-          .filter((element): element is Element => Boolean(element)),
-        updatedElements,
+      const pageElements = updatedElements.filter((element) =>
+        elementIds.has(element.id),
       );
       pageElementsSnapshot[pageId] = pageElements;
     }
@@ -955,7 +983,7 @@ export const createBatchUpdateElementsAction =
     const updatedElementsForPersistence = validUpdates
       .map((update) => updatedElementMap.get(update.elementId))
       .filter((element): element is Element => Boolean(element));
-    syncUpdatedElementsToCanonical(updatedElementsForPersistence);
+    syncUpdatedElementsToCanonical(updatedElementsForPersistence, validUpdates);
 
     // 2. 히스토리 엔트리 추가
     const currentPageId = get().currentPageId;

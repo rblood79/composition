@@ -6,7 +6,7 @@
  *
  * ADR-049 Deferred Commit 아키텍처를 그대로 유지:
  * - 드래그 중: setDragVisualOffset + resolveDropTarget + computeSiblingOffsets
- * - 드롭 시: 단일 store commit (moveElementToContainer / batchUpdateElementOrders)
+ * - 드롭 시: canonical children[] move + legacy mirror commit
  *
  * PixiJS 의존 부분 (SelectionBox setVisible/resetPosition)은 제거.
  * Skia 렌더링이 selection box를 이미 처리하므로 시각적 영향 없음.
@@ -39,6 +39,7 @@ import { getDB } from "../../../../lib/db";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
 import type { BoundingBox } from "../selection/types";
+import { moveElementCanonicalPrimary } from "../../../../adapters/canonical/canonicalMutations";
 
 type DragSnapshotEntry = {
   id: string;
@@ -386,22 +387,18 @@ export function useDragBridge({
         });
       }
 
-      // 단일 store commit
+      // 단일 canonical-primary commit
       if (finalTarget && !finalTarget.isAdjacentInsertion) {
-        if (finalTarget.isReparent) {
-          state.moveElementToContainer(
+        const updates = computeReorderFromDropTarget(finalTarget, elementId, {
+          elementsMap: state.elementsMap,
+          childrenMap: state.childrenMap,
+        });
+        if (updates.length > 0) {
+          moveElementCanonicalPrimary(
             elementId,
             finalTarget.containerId,
             finalTarget.insertionIndex,
           );
-        } else {
-          const updates = computeReorderFromDropTarget(finalTarget, elementId, {
-            elementsMap: state.elementsMap,
-            childrenMap: state.childrenMap,
-          });
-          if (updates.length > 0) {
-            state.batchUpdateElementOrders(updates);
-          }
         }
       }
 

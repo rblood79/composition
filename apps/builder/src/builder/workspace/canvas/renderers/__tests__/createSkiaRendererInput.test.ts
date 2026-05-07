@@ -164,4 +164,76 @@ describe("createSkiaRendererInput", () => {
       "page-2-fill",
     ]);
   });
+
+  it("builds childrenMap from page snapshot source order instead of legacy order_num", () => {
+    const body = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const first = makeEl({
+      id: "first",
+      type: "Box",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 0,
+    });
+    const second = makeEl({
+      id: "second",
+      type: "Box",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 1,
+    });
+    const sceneSnapshot = makeSceneSnapshot(
+      new Map([
+        [
+          "page-1",
+          {
+            bodyElement: body,
+            contentVersion: 1,
+            frame: {
+              elementCount: 2,
+              height: 800,
+              id: "page-1",
+              title: "page-1",
+              width: 400,
+              x: 0,
+              y: 0,
+            },
+            isVisible: true,
+            pageElements: [second, first],
+            pageId: "page-1",
+            positionVersion: 1,
+          },
+        ],
+      ]),
+    );
+
+    const input = createSkiaRendererInput({
+      childrenMap: new Map([[body.id, [first, second]]]),
+      dirtyElementIds: new Set(),
+      editMode: "page",
+      elements: [body, first, second],
+      elementsMap: new Map([
+        [body.id, body],
+        [first.id, first],
+        [second.id, second],
+      ]),
+      frameAreas: [],
+      framePositions: {},
+      framePositionsVersion: 1,
+      frameElementScopes: new Map(),
+      pageIndex: { elementsByPage: new Map(), rootsByPage: new Map() },
+      pagePositions: {},
+      pagePositionsVersion: 1,
+      pages: [makePage("page-1")],
+      sceneSnapshot,
+    });
+
+    expect(input.childrenMap.get(body.id)?.map((el) => el.id)).toEqual([
+      second.id,
+      first.id,
+    ]);
+  });
 });

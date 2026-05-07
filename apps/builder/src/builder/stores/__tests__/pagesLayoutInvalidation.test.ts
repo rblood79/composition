@@ -53,4 +53,26 @@ describe("setPages layout invalidation", () => {
     expect(useStore.getState().pages[0].title).toBe("After");
     expect(useStore.getState().layoutVersion).toBe(7);
   });
+
+  it("initializePagePositions 는 order_num 대신 입력된 canonical page 순서를 따른다", () => {
+    useStore
+      .getState()
+      .initializePagePositions(
+        [
+          makePage("page-three", { order_num: 2 }),
+          makePage("page-home", { order_num: 0 }),
+          makePage("page-two", { order_num: 1 }),
+        ],
+        100,
+        200,
+        10,
+        "horizontal",
+      );
+
+    expect(useStore.getState().pagePositions).toMatchObject({
+      "page-three": { x: 0, y: 0 },
+      "page-home": { x: 110, y: 0 },
+      "page-two": { x: 220, y: 0 },
+    });
+  });
 });

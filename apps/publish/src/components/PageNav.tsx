@@ -39,8 +39,6 @@ function buildPageTree(pages: Page[]): PageTreeNode[] {
   // 재귀적으로 트리 구축
   function buildNodes(parentId: string | null, level: number): PageTreeNode[] {
     const children = childrenMap.get(parentId) || [];
-    // order_num으로 정렬
-    children.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
 
     return children.map((page) => ({
       page,

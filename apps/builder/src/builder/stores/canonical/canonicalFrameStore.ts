@@ -148,8 +148,7 @@ export function canonicalDocumentToReusableFrameLayouts(
         slug: getStringMetadata(frame.metadata, "slug"),
         order_num: getNumberMetadata(frame.metadata, "order_num") ?? index,
       };
-    })
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+    });
 }
 
 export function getCanonicalReusableFrameLayouts(): Layout[] {

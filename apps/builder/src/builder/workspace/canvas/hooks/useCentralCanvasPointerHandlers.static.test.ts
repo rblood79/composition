@@ -10,6 +10,7 @@ describe("useCentralCanvasPointerHandlers frame body fallback", () => {
     );
 
     expect(source).toContain("const hitElementsMap = getHitElementsMap?.()");
+    expect(source).toContain("const hitChildrenMap = getHitChildrenMap?.()");
     expect(source).toContain("elementsMap: hitElementsMap,");
     expect(source).not.toContain("elementsMap: state.elementsMap,");
   });

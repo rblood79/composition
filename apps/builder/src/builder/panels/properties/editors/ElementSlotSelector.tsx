@@ -50,19 +50,17 @@ export const ElementSlotSelector = memo(function ElementSlotSelector({
       }
     });
 
-    return slotElements
-      .sort((left, right) => (left.order_num ?? 0) - (right.order_num ?? 0))
-      .map((el) => {
-        const slotName = (el.props as { name?: string })?.name;
-        return {
-          // 이름 없는 Slot은 elementId를 접미사로 사용하여 고유성 보장
-          name: slotName || `slot_${el.id.slice(0, 8)}`,
-          displayName: slotName || "unnamed",
-          required: (el.props as { required?: boolean })?.required || false,
-          description: (el.props as { description?: string })?.description,
-          elementId: el.id,
-        };
-      });
+    return slotElements.map((el) => {
+      const slotName = (el.props as { name?: string })?.name;
+      return {
+        // 이름 없는 Slot은 elementId를 접미사로 사용하여 고유성 보장
+        name: slotName || `slot_${el.id.slice(0, 8)}`,
+        displayName: slotName || "unnamed",
+        required: (el.props as { required?: boolean })?.required || false,
+        description: (el.props as { description?: string })?.description,
+        elementId: el.id,
+      };
+    });
   }, [element, elementsMap, pages]);
 
   // ⭐ React Hook 규칙: useMemo는 조기 리턴 전에 호출해야 함

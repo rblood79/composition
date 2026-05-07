@@ -170,7 +170,7 @@ export class HierarchyManager {
   }
 
   /**
-   * 특정 부모의 정렬된 자식 요소들 반환 (캐시 활용)
+   * 특정 부모의 자식 요소들 반환 (source/canonical projection order 보존)
    */
   static getOrderedChildren(
     parentId: string | null,
@@ -182,9 +182,7 @@ export class HierarchyManager {
       return this.childrenCache.get(cacheKey)!;
     }
 
-    const children = elements
-      .filter((el) => el.parent_id === parentId)
-      .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    const children = elements.filter((el) => el.parent_id === parentId);
 
     // 캐시에 저장
     this.childrenCache.set(cacheKey, children);
@@ -595,12 +593,9 @@ export class HierarchyManager {
   }
 
   /**
-   * 노드들을 order_num으로 정렬 (최적화됨)
+   * 노드 source order 보존. 재귀만 수행해 child cache shape 를 유지한다.
    */
   private static sortNodesByOrder(nodes: ElementNode[]): void {
-    nodes.sort(
-      (a, b) => (a.element.order_num || 0) - (b.element.order_num || 0),
-    );
     nodes.forEach((node) => this.sortNodesByOrder(node.children));
   }
 

@@ -17,7 +17,6 @@ import {
   mergePropsWithStyleDeep,
   resolveInstanceProps,
 } from "../../../utils/component/instanceResolver";
-import { sortElementsByOrderThenSource } from "../../utils/elementOrdering";
 import { historyManager } from "../history";
 import { createCompleteProps } from "./elementHelpers";
 import { buildIdPathContext } from "../../../adapters/canonical/idPath";
@@ -128,7 +127,7 @@ function resolveRefMaster(
 }
 
 function getSortedChildren(state: ElementsState, parentId: string): Element[] {
-  return sortElementsByOrderThenSource(state.childrenMap.get(parentId) ?? []);
+  return state.childrenMap.get(parentId) ?? [];
 }
 
 function getComponentNameForElement(element: Element): string {
@@ -626,12 +625,9 @@ export function createInstance(
     return null;
   }
 
-  // 다음 order_num 계산
+  // legacy order_num mirror 계산. Structural insert order 는 canonical
+  // children[]/childrenMap append position 이 primary source 다.
   const siblings = state.childrenMap.get(parentId) || [];
-  const maxOrder = siblings.reduce(
-    (max, el) => Math.max(max, el.order_num ?? 0),
-    0,
-  );
 
   // ADR-116 G5-B P5-B: legacy override write site cleanup — empty Record 를
   // undefined 로 변경, 신규 legacy instance 는 IndexedDB 에 해당 field 자체를
@@ -644,7 +640,7 @@ export function createInstance(
     props: {},
     parent_id: parentId,
     page_id: pageId,
-    order_num: maxOrder + 1,
+    order_num: siblings.length,
     [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
     [COMPONENT_MASTER_ID_MIRROR_FIELD]: masterRefId,
     [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,

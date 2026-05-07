@@ -88,23 +88,21 @@ export const TableEditor = memo(
 
     // 실제 Column Element들 가져오기
     const actualColumns = tableHeaderElement
-      ? (childrenMap.get(tableHeaderElement.id) ?? [])
-          .filter((el) => el.type === "Column")
-          .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
+      ? (childrenMap.get(tableHeaderElement.id) ?? []).filter(
+          (el) => el.type === "Column",
+        )
       : [];
 
     // Column Group Element들 가져오기
     const actualColumnGroups = tableHeaderElement
-      ? (childrenMap.get(tableHeaderElement.id) ?? [])
-          .filter((el) => el.type === "ColumnGroup")
-          .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
+      ? (childrenMap.get(tableHeaderElement.id) ?? []).filter(
+          (el) => el.type === "ColumnGroup",
+        )
       : [];
 
     // 현재 테이블의 행들 찾기 (TableBody > Row)
     const rows = tableBody
-      ? (childrenMap.get(tableBody.id) ?? [])
-          .filter((el) => el.type === "Row")
-          .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
+      ? (childrenMap.get(tableBody.id) ?? []).filter((el) => el.type === "Row")
       : [];
 
     const addRow = async () => {
@@ -756,9 +754,9 @@ export const TableEditor = memo(
           {rows.length > 0 && (
             <div className="tabs-list">
               {rows.map((row, index) => {
-                const rowCells = (childrenMap.get(row.id) ?? [])
-                  .filter((el) => el.type === "Cell")
-                  .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+                const rowCells = (childrenMap.get(row.id) ?? []).filter(
+                  (el) => el.type === "Cell",
+                );
 
                 return (
                   <div key={row.id} className="tab-list-item">

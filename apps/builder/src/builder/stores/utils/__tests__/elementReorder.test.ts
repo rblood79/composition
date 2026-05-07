@@ -94,4 +94,24 @@ describe("computeReorderUpdates", () => {
     expect(beforeTextChange).toEqual([{ id: "item-a", order_num: 1 }]);
     expect(afterTextChange).toEqual(beforeTextChange);
   });
+
+  it("does not use stale order_num to reorder canonical source order", () => {
+    const parent = makeElement("parent", {
+      type: "frame",
+      order_num: 0,
+    });
+    const first = makeElement("first", {
+      parent_id: "parent",
+      order_num: 9,
+    });
+    const second = makeElement("second", {
+      parent_id: "parent",
+      order_num: 0,
+    });
+
+    expect(computeReorderUpdates([parent, first, second], "page-1")).toEqual([
+      { id: "first", order_num: 0 },
+      { id: "second", order_num: 1 },
+    ]);
+  });
 });

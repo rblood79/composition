@@ -5,6 +5,67 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-118 structural order cutover] - 2026-05-07
+
+### Fixed
+
+- Page/root order runtime 이 legacy page metadata `order_num`을 primary sort key로 다시 쓰던
+  경로를 canonical `CompositionDocument.children` page-like root order 기준으로 전환했다.
+  - Browser refresh hydrate 의 render model, Pages tree 표시 순서, page canvas position 초기화가
+    같은 canonical page order를 공유한다.
+  - Home/non-deletable page 판정과 초기 선택은 order 위치가 아니라 slug `/` identity를
+    사용한다.
+  - Pages tree drag/drop 은 active canonical document 의 page slot 순서까지 갱신해 refresh 후
+    원래 순서로 회귀하지 않도록 했다.
+- LayerTree generic builder, Builder page snapshot/index read, Preview iframe generic child
+  rendering, Publish PageNav/ElementRenderer 가 legacy `order_num` 재정렬 대신 canonical
+  source order를 보존하도록 전환했다.
+- Skia renderer input, canonical ref descendant materialization, canvas hit-test/context-menu
+  target resolution, drop target/insertion read path, layout/page-frame child projection 이
+  legacy `order_num` 재정렬 대신 canonical source order와 `z-index` + child index effective
+  order를 공유하도록 전환했다.
+  - 겹친 sibling selection 은 descendant 우선, `z-index` 우선, 같은 `z-index`에서는
+    childrenMap source index 우선으로 판정하고, depth/area는 마지막 fallback 으로만 사용한다.
+  - frame binding projection, layout cache, Breadcrumb/ToggleButtonGroup context 도 caller 가
+    전달한 child order를 보존한다.
+- Skia canvas drag/drop final commit 이 legacy store reorder를 primary write로 사용하던 경로를
+  canonical `children[]` splice write로 전환했다.
+  - `moveElementCanonicalPrimary`가 active canonical document의 target parent `children[]`를
+    먼저 갱신하고, Builder store/DB persist용 `parent_id`/`order_num`은 exported legacy mirror에서
+    파생한다.
+  - `useDragBridge` pointerup/drop 경로는 더 이상 `state.moveElementToContainer()`와
+    `state.batchUpdateElementOrders()`를 직접 호출하지 않는다.
+- Structural-only `updateElement`/`batchUpdateElements` payload 는
+  `applyElementOrderCanonicalPrimary`로 active canonical document의 parent `children[]`를 먼저
+  splice하고, `order_num`은 legacy mirror row로만 재파생한다.
+- PageTree DnD reorder 는 `order_num` sort 대신 drag update rank/source order로 canonical
+  page slot을 materialize한다.
+- component origin/ref instance materialization, property editor structural child list, shared
+  form renderer path에서 stale `order_num` primary sort를 제거했다. Table/collection data order는
+  별도 data bucket으로 유지한다.
+
+### Documentation
+
+- ADR-118 본문, breakdown, README, inventory를 현재 구현 상태에 맞춰 동기화했다.
+  - G0-G6를 완료로 표기하고 ADR 본문을 `docs/adr/completed/`로 이동했다.
+  - Phase 6 grep gate 잔여 hit를 adapter/import/export, IndexedDB load boundary,
+    Table/collection data, legacy helper, compatibility bridge bucket으로 allowlist 했다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts src/utils/__tests__/compositionDocumentOrder.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts src/builder/panels/nodes/tree/PageTree/usePageTreeDnd.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/__tests__/pagesLayoutInvalidation.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/utils/treeUtils.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/preview/previewFrameMirror.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/selection/selectionHitTest.test.ts src/builder/workspace/canvas/renderers/__tests__/createSkiaRendererInput.test.ts src/builder/utils/canonicalRefResolution.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.static.test.ts src/builder/workspace/canvas/scene/layoutCache.static.test.ts src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/canonicalMutations.test.ts src/builder/workspace/canvas/hooks/useDragBridge.static.test.ts src/builder/workspace/canvas/hooks/useDragBridge.test.ts src/builder/stores/__tests__/elementMove.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts src/builder/panels/nodes/tree/PageTree/usePageTreeDnd.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementReorder.test.ts src/adapters/canonical/__tests__/canonicalMutations.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/stores/utils/__tests__/elementUpdate.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts`
+- Browser smoke: `http://127.0.0.1:5173/builder/adr118-browser-smoke` seeded local IndexedDB canonical document, refresh source order/mirror order/body child order/canvas render 확인. Screenshot: `/tmp/adr118-builder-smoke.png`.
+- `pnpm -F @composition/publish type-check`
+- `pnpm run codex:typecheck`
+- `pnpm run codex:preflight`
+
 ## [Canvas selection parity — Pencil-style group entry/direct select] - 2026-05-07
 
 ### Fixed

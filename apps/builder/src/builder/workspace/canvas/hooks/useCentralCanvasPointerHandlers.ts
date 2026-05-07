@@ -39,6 +39,7 @@ interface UseCentralCanvasPointerHandlersOptions {
   >;
   handleElementDoubleClickRef: MutableRefObject<(elementId: string) => void>;
   frameAreas?: FrameBodySelectionArea[];
+  getHitChildrenMap?: () => Map<string, Element[]>;
   getHitElementsMap?: () => Map<string, Element>;
   isEditingRef: MutableRefObject<boolean>;
   lastClickTargetRef: MutableRefObject<string | null>;
@@ -95,6 +96,7 @@ export function useCentralCanvasPointerHandlers({
   handleElementClickRef,
   handleElementDoubleClickRef,
   frameAreas = [],
+  getHitChildrenMap,
   getHitElementsMap,
   isEditingRef,
   lastClickTargetRef,
@@ -198,6 +200,7 @@ export function useCentralCanvasPointerHandlers({
 
       const state = useStore.getState();
       const hitElementsMap = getHitElementsMap?.() ?? state.elementsMap;
+      const hitChildrenMap = getHitChildrenMap?.() ?? state.childrenMap;
       const selectedIds = state.selectedElementIds;
       const isSingleSelection = selectedIds.length === 1;
       const now = Date.now();
@@ -217,6 +220,7 @@ export function useCentralCanvasPointerHandlers({
       const hitElementId = resolveTopmostHitElementId(
         hitTestPoint(canvasPos.x, canvasPos.y),
         hitElementsMap,
+        hitChildrenMap,
       );
 
       // body가 선택된 상태에서는 inSelectionBounds를 무시한다.
@@ -493,6 +497,7 @@ export function useCentralCanvasPointerHandlers({
     handleElementClickRef,
     handleElementDoubleClickRef,
     frameAreas,
+    getHitChildrenMap,
     getHitElementsMap,
     isEditingRef,
     lastClickTargetRef,

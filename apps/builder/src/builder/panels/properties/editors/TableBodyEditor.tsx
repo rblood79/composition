@@ -51,9 +51,7 @@ export const TableBodyEditor = memo(function TableBodyEditor({
   };
 
   // 현재 테이블 바디의 행들 찾기
-  const rows = rawChildren
-    .filter((el) => el.type === "Row")
-    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+  const rows = rawChildren.filter((el) => el.type === "Row");
 
   // 총 셀 개수 계산
   const totalCells = rows.reduce((total, row) => {

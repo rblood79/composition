@@ -557,6 +557,114 @@ describe("canonicalDocumentStore — removeNode", () => {
 });
 
 // ─────────────────────────────────────────────
+// ADR-118 order helpers
+// ─────────────────────────────────────────────
+
+describe("canonicalDocumentStore — ADR-118 children[] order helpers", () => {
+  beforeEach(resetStore);
+
+  function setupOrderDoc(): void {
+    const doc = makeDoc({
+      children: [
+        makeNode("parent-a", "Frame", {
+          children: [makeNode("a"), makeNode("b"), makeNode("c")],
+        }),
+        makeNode("parent-b", "Frame", {
+          children: [makeNode("d")],
+        }),
+      ],
+    });
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument("p", doc);
+    store.setCurrentProject("p");
+  }
+
+  it("reads children and derives legacy order mirror from children[] index", () => {
+    setupOrderDoc();
+    const store = useCanonicalDocumentStore.getState();
+
+    expect(store.getNodeChildren("parent-a")?.map((node) => node.id)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+    expect(store.getDerivedOrderNum("parent-a", "c")).toBe(2);
+  });
+
+  it("moves a node across parents with canonical children[] splice", () => {
+    setupOrderDoc();
+    const store = useCanonicalDocumentStore.getState();
+
+    store.moveNode("b", "parent-b", 1);
+
+    expect(selectCanonicalNode("parent-a")?.children?.map((c) => c.id)).toEqual(
+      ["a", "c"],
+    );
+    expect(selectCanonicalNode("parent-b")?.children?.map((c) => c.id)).toEqual(
+      ["d", "b"],
+    );
+  });
+
+  it("appends same-ref descendant slot fills when child ids are unique", () => {
+    const doc = makeDoc({
+      children: [makeRefNode("instance", "master")],
+    });
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument("p", doc);
+    store.setCurrentProject("p");
+
+    store.appendDescendantChild("instance", "content", {
+      id: "fill-1",
+      type: "ref",
+      ref: "card-master",
+    } as RefNode);
+    store.appendDescendantChild("instance", "content", {
+      id: "fill-2",
+      type: "ref",
+      ref: "card-master",
+    } as RefNode);
+
+    const instance = selectCanonicalNode("instance") as RefNode | null;
+    const children = (
+      instance?.descendants?.content as
+        | { children: CanonicalNode[] }
+        | undefined
+    )?.children;
+    expect(children?.map((node) => [node.id, (node as RefNode).ref])).toEqual([
+      ["fill-1", "card-master"],
+      ["fill-2", "card-master"],
+    ]);
+  });
+
+  it("moves descendant slot children by descendant children[] index", () => {
+    const doc = makeDoc({
+      children: [
+        makeRefNode("instance", "master", {
+          descendants: {
+            content: {
+              children: [makeNode("slot-a"), makeNode("slot-b")],
+            },
+          },
+        }),
+      ],
+    });
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument("p", doc);
+    store.setCurrentProject("p");
+
+    store.moveDescendantChild("instance", "content", "slot-b", 0);
+
+    const instance = selectCanonicalNode("instance") as RefNode | null;
+    const children = (
+      instance?.descendants?.content as
+        | { children: CanonicalNode[] }
+        | undefined
+    )?.children;
+    expect(children?.map((node) => node.id)).toEqual(["slot-b", "slot-a"]);
+  });
+});
+
+// ─────────────────────────────────────────────
 // updateDescendant
 // ─────────────────────────────────────────────
 

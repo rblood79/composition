@@ -34,6 +34,7 @@ import type { Element } from "@/types/builder/unified.types";
 import type { Page, Layout } from "@/types/builder/unified.types";
 import type {
   CanonicalNode,
+  CanonicalParentId,
   CompositionDocument,
   CompositionExtension,
   FrameNode,
@@ -41,6 +42,7 @@ import type {
   SerializedDataBinding,
   SerializedEventHandler,
 } from "@composition/shared";
+import { moveCanonicalChild } from "@composition/shared";
 import { elementsApi } from "./legacyElementsApiService";
 import { exportLegacyDocument } from "./exportLegacyDocument";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
@@ -1470,6 +1472,108 @@ export function mergeElementsCanonicalPrimary(elements: Element[]): void {
  */
 export function setElementsCanonicalPrimary(elements: Element[]): void {
   applyCanonicalPrimarySet(elements);
+}
+
+/**
+ * canonical `children[]` splice 기반 element move.
+ *
+ * Drag/drop Phase 4 entry point:
+ * - canonical document 를 먼저 이동한다.
+ * - legacy `Element[]` 는 `exportLegacyDocument()` mirror 로만 갱신한다.
+ * - legacy `order_num` batch 는 persistence compatibility payload 로만 남긴다.
+ */
+export function moveElementCanonicalPrimary(
+  elementId: string,
+  targetParentId: CanonicalParentId,
+  insertionIndex: number,
+): Element[] {
+  const actions = getActions();
+  const projectId = actions.getCurrentProjectId();
+  const currentDoc = getCurrentDocument(projectId);
+  const result = moveCanonicalChild(
+    currentDoc,
+    elementId,
+    targetParentId,
+    insertionIndex,
+  );
+
+  if (!result.changed) {
+    return [];
+  }
+
+  if (projectId) {
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(projectId, result.document);
+  }
+
+  const legacyMirror = exportLegacyDocument(result.document);
+  actions.setElements(legacyMirror);
+  return legacyMirror;
+}
+
+/**
+ * legacy tree DnD/update batch 에서 계산된 parent/index intent 를 canonical
+ * `children[]` splice 로 직접 반영한다.
+ *
+ * `batchUpdateElements([{ parent_id, order_num }])` 같은 기존 UI surface 는
+ * transient payload 로 legacy field 를 여전히 전달하지만, runtime order write 는
+ * 이 함수에서 canonical move helper 를 먼저 통과한다. legacy `order_num` 은
+ * export mirror 결과로만 재파생된다.
+ */
+export function applyElementOrderCanonicalPrimary(
+  elements: Element[],
+): Element[] {
+  if (elements.length === 0) return [];
+
+  const actions = getActions();
+  const projectId = actions.getCurrentProjectId();
+  const currentDoc = getCurrentDocument(projectId);
+  const sourceIndexById = createElementSourceIndex(elements);
+  const orderedMoves = [...elements].sort((left, right) => {
+    const leftParent = left.parent_id ?? "";
+    const rightParent = right.parent_id ?? "";
+    const parentDiff = leftParent.localeCompare(rightParent);
+    if (parentDiff !== 0) return parentDiff;
+
+    const orderDiff = (left.order_num ?? 0) - (right.order_num ?? 0);
+    if (orderDiff !== 0) return orderDiff;
+
+    return (
+      (sourceIndexById.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+      (sourceIndexById.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+    );
+  });
+
+  let doc = currentDoc;
+  let changed = false;
+
+  for (const element of orderedMoves) {
+    const index =
+      typeof element.order_num === "number" &&
+      Number.isFinite(element.order_num)
+        ? element.order_num
+        : Number.MAX_SAFE_INTEGER;
+    const result = moveCanonicalChild(
+      doc,
+      element.id,
+      element.parent_id ?? null,
+      index,
+    );
+    if (!result.changed) continue;
+    doc = result.document;
+    changed = true;
+  }
+
+  if (!changed) return [];
+
+  if (projectId) {
+    useCanonicalDocumentStore.getState().setDocument(projectId, doc);
+  }
+
+  const legacyMirror = exportLegacyDocument(doc);
+  actions.setElements(legacyMirror);
+  return legacyMirror;
 }
 
 // ─────────────────────────────────────────────

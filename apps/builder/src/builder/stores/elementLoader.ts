@@ -283,7 +283,7 @@ export function createElementLoaderSlice(
             elementsMap: newElementsMap,
             pageElementsSnapshot: {
               ...s.pageElementsSnapshot,
-              [pageId]: sortElementsByOrderThenSource(nextPageSnapshot),
+              [pageId]: nextPageSnapshot,
             },
             // 로딩 상태도 동일 commit에 포함
             loadedPages: new Set([...s.loadedPages, pageId]),

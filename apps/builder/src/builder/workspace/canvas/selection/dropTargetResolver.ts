@@ -22,7 +22,6 @@ import { parseGapValue, parsePadding4Way } from "@composition/specs";
 import type { ElementBounds } from "../elementRegistry";
 import { getSceneBounds } from "../skia/renderCommands";
 import { getSpecForTag } from "../sprites/tagSpecMap";
-import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 
 // ============================================
 // Types
@@ -216,10 +215,8 @@ function acceptsDraggedElement(
 }
 
 /**
- * order_num 오름차순으로 자식 요소를 정렬한다.
- * order_num 동률은 childrenMap의 기존 형제 순서를 유지한다.
- * childrenMap에서 반환된 배열은 stale일 수 있으므로
- * elementsMap에서 최신 값을 읽어 order_num 기준 정렬.
+ * childrenMap의 canonical/source order를 보존하면서 최신 Element 값을 조회한다.
+ * childrenMap에서 반환된 배열은 stale일 수 있으므로 elementsMap만 refresh source로 사용한다.
  */
 function getSortedChildren(
   parentId: string,
@@ -233,7 +230,7 @@ function getSortedChildren(
     .map((c) => store.elementsMap.get(c.id))
     .filter((c): c is Element => c !== undefined);
 
-  return sortElementsByOrderThenSource(fresh, rawChildren);
+  return fresh;
 }
 
 function getBoundedSiblingEntries(
@@ -395,7 +392,7 @@ export function resolveDropTarget(
   // 4. 컨테이너의 방향 감지
   const isHorizontal = detectIsHorizontal(parent);
 
-  // 5. 드래그 대상을 제외한 형제 요소 (order_num 오름차순)
+  // 5. 드래그 대상을 제외한 형제 요소 (canonical/source order)
   const sortedChildren = getSortedChildren(parentId, store);
   const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
 
@@ -574,7 +571,7 @@ export function computeSiblingOffsets(
   const container = store.elementsMap.get(containerId);
   const spacing = getContainerAxisSpacing(container, isHorizontal);
 
-  // 전체 자식 (드래그 요소 포함, order_num 오름차순)
+  // 전체 자식 (드래그 요소 포함, canonical/source order)
   const sortedChildren = getSortedChildren(containerId, store);
   const origIdx = sortedChildren.findIndex((c) => c.id === draggedElementId);
   if (origIdx < 0) return offsets;
@@ -932,7 +929,7 @@ export function computeReorderFromDropTarget(
 ): Array<{ id: string; order_num: number }> {
   const { containerId, insertionIndex } = dropTarget;
 
-  // 드래그 대상을 제외한 형제 (order_num 오름차순)
+  // 드래그 대상을 제외한 형제 (canonical/source order)
   const sortedChildren = getSortedChildren(containerId, store);
   const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
 

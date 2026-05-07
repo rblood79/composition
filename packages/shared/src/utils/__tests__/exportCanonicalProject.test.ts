@@ -98,7 +98,7 @@ describe("project export canonical CompositionDocument payload", () => {
     ]);
   });
 
-  it("derives page order from legacy page metadata instead of child index", () => {
+  it("derives page order from document children and mirrors legacy order numbers", () => {
     const documentWithReorderedPages: CompositionDocument = {
       version: "composition-1.0",
       children: [
@@ -149,20 +149,20 @@ describe("project export canonical CompositionDocument payload", () => {
     );
 
     expect(renderModel.pages.map((page) => page.id)).toEqual([
+      "page-three",
       "page-home",
       "page-two",
-      "page-three",
     ]);
     expect(renderModel.pages.map((page) => page.order_num)).toEqual([0, 1, 2]);
     expect(renderModel.pages.map((page) => page.slug)).toEqual([
+      "/page-3",
       "/",
       "/page-2",
-      "/page-3",
     ]);
     expect(renderModel.pages.map((page) => page.parent_id)).toEqual([
-      null,
-      null,
       "page-two",
+      null,
+      null,
     ]);
   });
 

@@ -624,11 +624,11 @@ describe("resolveDropTarget cross-page body targets", () => {
     ]);
   });
 
-  it("uses childrenMap source order as the tie-breaker when siblings have duplicate order_num", () => {
+  it("uses childrenMap source order even when legacy order_num differs", () => {
     const body = makeElement("body", { type: "body" });
-    const first = makeElement("first", { parent_id: body.id, order_num: 0 });
+    const first = makeElement("first", { parent_id: body.id, order_num: 2 });
     const middle = makeElement("middle", { parent_id: body.id, order_num: 0 });
-    const source = makeElement("source", { parent_id: body.id, order_num: 0 });
+    const source = makeElement("source", { parent_id: body.id, order_num: 1 });
     const store = {
       childrenMap: new Map([[body.id, [first, middle, source]]]),
       elementsMap: new Map([

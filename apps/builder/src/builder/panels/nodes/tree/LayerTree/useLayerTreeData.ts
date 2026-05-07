@@ -9,7 +9,6 @@ import { useCanonicalElements } from "../../../../stores/canonical/canonicalElem
 import { resolvePageWithFrame } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
 import { getPageFrameBindingId } from "../../../../../adapters/canonical/frameMirror";
 import { getElementLayoutId } from "../../../../../adapters/canonical/legacyElementFields";
-import { sortElementsByOrderThenSource } from "../../../../utils/elementOrdering";
 import {
   childrenAs,
   type ButtonItem,
@@ -57,13 +56,10 @@ export function useLayerTreeData(elements: Element[]) {
       return legacyLayerSource;
     }
 
-    const pageOwnedElements = sortElementsByOrderThenSource(
-      baseElements.filter(
-        (element) =>
-          element.page_id === currentPageId &&
-          getElementLayoutId(element) === null,
-      ),
-      baseElements,
+    const pageOwnedElements = baseElements.filter(
+      (element) =>
+        element.page_id === currentPageId &&
+        getElementLayoutId(element) === null,
     );
     const resolvedPage = resolvePageWithFrame({
       page: currentPage,

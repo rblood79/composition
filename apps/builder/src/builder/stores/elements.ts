@@ -23,7 +23,6 @@ import {
   findElementById,
   computeCanvasElementStyle,
 } from "./utils/elementHelpers";
-import { sortElementsByOrderThenSource } from "../utils/elementOrdering";
 import {
   createUndoAction,
   createRedoAction,
@@ -77,8 +76,8 @@ import {
 import { getNullablePageFrameBindingId } from "@/adapters/canonical/frameMirror";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import {
+  applyElementOrderCanonicalPrimary,
   areCanonicalMutationStoreActionsRegistered,
-  mergeElementsCanonicalPrimary,
   updateElementCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 
@@ -497,12 +496,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     const pageElementsSnapshot: Record<string, Element[]> = {};
 
     for (const [pageId, elementIds] of pageIndex.elementsByPage.entries()) {
-      const pageElements = sortElementsByOrderThenSource(
-        Array.from(elementIds)
-          .map((id) => elementsMap.get(id))
-          .filter((element): element is Element => Boolean(element)),
-        elements,
-      );
+      const pageElements = Array.from(elementIds)
+        .map((id) => elementsMap.get(id))
+        .filter((element): element is Element => Boolean(element));
       pageElementsSnapshot[pageId] = pageElements;
     }
 
@@ -1473,7 +1469,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           (el) => el.id === elementId,
         );
         if (updatedElement) {
-          mergeElementsCanonicalPrimary([updatedElement]);
+          applyElementOrderCanonicalPrimary([updatedElement]);
         }
       }
     },
@@ -1492,17 +1488,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         layoutVersion: state.layoutVersion + 1,
       }));
       get()._rebuildIndexes();
-      if (areCanonicalMutationStoreActionsRegistered()) {
-        const updatedElementMap = new Map(
-          updatedElements.map((updated) => [updated.id, updated]),
-        );
-        const changedElements = updates
-          .map((update) => updatedElementMap.get(update.id))
-          .filter((updated): updated is Element => Boolean(updated));
-        if (changedElements.length > 0) {
-          mergeElementsCanonicalPrimary(changedElements);
-        }
-      }
+      // ADR-118: 이 액션은 legacy mirror repair 전용이다. Canonical structural
+      // reorder 는 drag/drop 또는 batch structural update 경로에서
+      // `applyElementOrderCanonicalPrimary` 로 먼저 반영한다.
     },
 
     // cross-container 이동: parent_id 변경 + 양쪽 컨테이너 order_num 재정렬
@@ -1536,18 +1524,14 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       >();
 
       // 구 부모: 드래그 요소 제거 후 나머지 재정렬
-      const remainingOld = sortElementsByOrderThenSource(
-        oldSiblings.filter((c) => c.id !== elementId),
-        oldSiblings,
-      );
+      const remainingOld = oldSiblings.filter((c) => c.id !== elementId);
       remainingOld.forEach((c, i) => updateMap.set(c.id, { order_num: i }));
 
       // 신 부모: 삽입 위치에 요소 추가 후 재정렬
-      const sortedNew = sortElementsByOrderThenSource(newSiblings);
       const newOrder = [
-        ...sortedNew.slice(0, insertionIndex),
+        ...newSiblings.slice(0, insertionIndex),
         element,
-        ...sortedNew.slice(insertionIndex),
+        ...newSiblings.slice(insertionIndex),
       ];
       newOrder.forEach((c, i) => {
         if (c.id === elementId) {
@@ -1596,7 +1580,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           .map((id) => updatedElementMap.get(id))
           .filter((updated): updated is Element => Boolean(updated));
         if (changedElements.length > 0) {
-          mergeElementsCanonicalPrimary(changedElements);
+          applyElementOrderCanonicalPrimary(changedElements);
         }
       }
     },
@@ -1732,7 +1716,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       });
     },
 
-    // 🆕 Multi-page: 페이지 위치 초기화 (order_num 정렬 → 수평 스택)
+    // 🆕 Multi-page: 페이지 위치 초기화 (canonical 입력 순서 → 수평 스택)
     initializePagePositions: (
       pages: Page[],
       pageWidth: number,
@@ -1740,22 +1724,20 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       gap: number,
       direction: PageLayoutDirection = "horizontal",
     ) => {
-      const sorted = [...pages].sort(
-        (a, b) => (a.order_num ?? 0) - (b.order_num ?? 0),
-      );
+      const ordered = pages;
       const positions: Record<string, { x: number; y: number }> = {};
 
       if (direction === "vertical") {
         let currentY = 0;
-        for (const page of sorted) {
+        for (const page of ordered) {
           positions[page.id] = { x: 0, y: currentY };
           currentY += pageHeight + gap;
         }
       } else if (direction === "zigzag") {
-        for (let i = 0; i < sorted.length; i++) {
+        for (let i = 0; i < ordered.length; i++) {
           const col = i % 2;
           const row = Math.floor(i / 2);
-          positions[sorted[i].id] = {
+          positions[ordered[i].id] = {
             x: col * (pageWidth + gap),
             y: row * (pageHeight + gap),
           };
@@ -1763,7 +1745,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       } else {
         // horizontal (기본)
         let currentX = 0;
-        for (const page of sorted) {
+        for (const page of ordered) {
           positions[page.id] = { x: currentX, y: 0 };
           currentX += pageWidth + gap;
         }

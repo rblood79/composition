@@ -61,16 +61,17 @@ export const ElementRenderer = memo(function ElementRenderer({
     [element],
   );
 
-  // 자식 요소들 찾기
+  // 자식 요소들 찾기. render model 입력 순서가 canonical child order이다.
   const children = useMemo(() => {
-    return elements
-      .filter((el) => el.parent_id === adaptedElement.id && !el.deleted)
-      .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    return elements.filter(
+      (el) => el.parent_id === adaptedElement.id && !el.deleted,
+    );
   }, [elements, adaptedElement.id]);
 
   // 이벤트 핸들러 생성
   const eventHandlers = useMemo(() => {
-    const events = (adaptedElement as Element & { events?: ElementEvent[] }).events;
+    const events = (adaptedElement as Element & { events?: ElementEvent[] })
+      .events;
     if (!events || events.length === 0) return {};
 
     const handlers: Record<string, (e: React.SyntheticEvent) => void> = {};

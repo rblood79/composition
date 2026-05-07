@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { Element } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import type { BoundingBox } from "../selection";
@@ -9,7 +9,7 @@ import {
 import { useStore } from "../../../stores";
 import { sameLegacyOwnership } from "@/adapters/canonical";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
+import { parseZIndex } from "../layout/engines/cssStackingContext";
 
 interface UseCanvasDragDropHelpersParams {
   depthMap: Map<string, number>;
@@ -22,6 +22,18 @@ interface UseCanvasDragDropHelpersParams {
   zoom: number;
 }
 
+function readElementZIndex(element: Element): number {
+  const style = element.props?.style as Record<string, unknown> | undefined;
+  const zIndex = style?.zIndex;
+  return (
+    parseZIndex(
+      typeof zIndex === "number" || typeof zIndex === "string"
+        ? zIndex
+        : undefined,
+    ) ?? 0
+  );
+}
+
 export function useCanvasDragDropHelpers({
   depthMap,
   elementById,
@@ -32,6 +44,16 @@ export function useCanvasDragDropHelpers({
   panOffset,
   zoom,
 }: UseCanvasDragDropHelpersParams) {
+  const sourceIndexById = useMemo(() => {
+    const indexes = new Map<string, number>();
+    elements.forEach((element, index) => {
+      if (!indexes.has(element.id)) {
+        indexes.set(element.id, index);
+      }
+    });
+    return indexes;
+  }, [elements]);
+
   const findElementsInLassoArea = useCallback(
     (start: { x: number; y: number }, end: { x: number; y: number }) => {
       const startGlobal = viewportToScreenPoint(start, zoom, panOffset);
@@ -190,7 +212,15 @@ export function useCanvasDragDropHelpers({
         if (a.depth !== b.depth) {
           return b.depth - a.depth;
         }
-        return (b.element.order_num || 0) - (a.element.order_num || 0);
+        const zIndexDiff =
+          readElementZIndex(b.element) - readElementZIndex(a.element);
+        if (zIndexDiff !== 0) {
+          return zIndexDiff;
+        }
+        return (
+          (sourceIndexById.get(b.element.id) ?? -1) -
+          (sourceIndexById.get(a.element.id) ?? -1)
+        );
       });
 
       const target = candidates[0];
@@ -245,7 +275,14 @@ export function useCanvasDragDropHelpers({
         targetId: target.element.id,
       };
     },
-    [depthMap, elementById, elements, getDescendantIds, getElementBounds],
+    [
+      depthMap,
+      elementById,
+      elements,
+      getDescendantIds,
+      getElementBounds,
+      sourceIndexById,
+    ],
   );
 
   const buildReorderUpdates = useCallback(
@@ -283,16 +320,13 @@ export function useCanvasDragDropHelpers({
       }
 
       const getSiblings = (parentId: string | null, includeMoved = false) =>
-        sortElementsByOrderThenSource(
-          elements.filter((element) => {
-            if (element.deleted) return false;
-            if (!sameLegacyOwnership(element, movedElement, doc)) return false;
-            if ((element.parent_id ?? null) !== parentId) return false;
-            if (!includeMoved && element.id === movedId) return false;
-            return true;
-          }),
-          elements,
-        );
+        elements.filter((element) => {
+          if (element.deleted) return false;
+          if (!sameLegacyOwnership(element, movedElement, doc)) return false;
+          if ((element.parent_id ?? null) !== parentId) return false;
+          if (!includeMoved && element.id === movedId) return false;
+          return true;
+        });
 
       const targetSiblings = getSiblings(newParentId);
       const siblingIds = targetSiblings.map((element) => element.id);
@@ -357,10 +391,9 @@ export function useCanvasDragDropHelpers({
     ): number => {
       const childrenMap = useStore.getState().childrenMap;
       const rawSiblings = childrenMap.get(parentId) ?? [];
-      const siblings = sortElementsByOrderThenSource(
-        rawSiblings.filter((el) => el.id !== draggedId && !el.deleted),
-        rawSiblings,
-      );
+      const siblings = rawSiblings
+        .map((el) => elementById.get(el.id) ?? el)
+        .filter((el) => el.id !== draggedId && !el.deleted);
 
       const pos = isHorizontal ? point.x : point.y;
 
@@ -374,7 +407,7 @@ export function useCanvasDragDropHelpers({
       }
       return siblings.length;
     },
-    [getElementBounds],
+    [elementById, getElementBounds],
   );
 
   return {

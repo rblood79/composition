@@ -27,7 +27,7 @@ export interface RenderContext {
   elements: PreviewElement[];
   /** id 기반 O(1) 조회용 인덱스 (provider가 elements와 함께 빌드) */
   elementsMap: Map<string, PreviewElement>;
-  /** parent_id 기반 자식 조회 인덱스 — order_num 정렬됨 */
+  /** parent_id 기반 자식 조회 인덱스 — canonical source order 보존 */
   childrenMap: Map<string, PreviewElement[]>;
   updateElementProps: (id: string, props: Record<string, unknown>) => void;
   /** 여러 element props를 한 번에 업데이트 (단일 commit) */

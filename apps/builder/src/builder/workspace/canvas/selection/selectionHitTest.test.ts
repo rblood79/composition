@@ -172,4 +172,70 @@ describe("pickTopmostHitElementId", () => {
       pickTopmostHitElementId(["page::slot-content", "page-card"], elementsMap),
     ).toBe("page-card");
   });
+
+  it("uses canonical child order for overlapping siblings instead of legacy order_num", () => {
+    const body = makeBody({ id: "page-body", page_id: "page-1" });
+    const first = {
+      id: "first",
+      type: "Box",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 10,
+      props: {},
+    } as Element;
+    const second = {
+      id: "second",
+      type: "Box",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 0,
+      props: {},
+    } as Element;
+    const elementsMap = new Map<string, Element>([
+      [body.id, body],
+      [first.id, first],
+      [second.id, second],
+    ]);
+
+    expect(
+      pickTopmostHitElementId(
+        [first.id, second.id],
+        elementsMap,
+        new Map([[body.id, [first, second]]]),
+      ),
+    ).toBe(second.id);
+  });
+
+  it("uses z-index before canonical child order for overlapping siblings", () => {
+    const body = makeBody({ id: "page-body", page_id: "page-1" });
+    const later = {
+      id: "later",
+      type: "Box",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 1,
+      props: { style: { zIndex: 1 } },
+    } as Element;
+    const elevated = {
+      id: "elevated",
+      type: "Box",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 0,
+      props: { style: { zIndex: 5 } },
+    } as Element;
+    const elementsMap = new Map<string, Element>([
+      [body.id, body],
+      [elevated.id, elevated],
+      [later.id, later],
+    ]);
+
+    expect(
+      pickTopmostHitElementId(
+        [later.id, elevated.id],
+        elementsMap,
+        new Map([[body.id, [elevated, later]]]),
+      ),
+    ).toBe(elevated.id);
+  });
 });

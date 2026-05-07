@@ -25,7 +25,7 @@ function makePage(
 }
 
 describe("buildPageTree", () => {
-  it("renders pages in ascending order_num while keeping Home first", () => {
+  it("preserves incoming canonical page order without Home/order_num re-sort", () => {
     const { treeNodes } = buildPageTree([
       makePage("page-three", "Page 3", "/page-3", 2),
       makePage("page-home", "Home", "/", 0),
@@ -33,9 +33,9 @@ describe("buildPageTree", () => {
     ]);
 
     expect(treeNodes.map((node) => node.id)).toEqual([
+      "page-three",
       "page-home",
       "page-two",
-      "page-three",
     ]);
   });
 
@@ -67,6 +67,25 @@ describe("buildPageTree", () => {
     expect(nodeMap.get("page-two")?.parentId).toBe("page-one");
     expect(nodeMap.get("page-one")?.children.map((node) => node.id)).toEqual([
       "page-two",
+    ]);
+  });
+
+  it("reorders updated pages into canonical preorder after drag/drop", () => {
+    const pages = [
+      makePage("page-home", "Home", "/", 0),
+      makePage("page-one", "Page 1", "/page-1", 1),
+      makePage("page-two", "Page 2", "/page-2", 2),
+    ];
+
+    const updatedPages = applyPageTreeUpdates(pages, [
+      { id: "page-two", parentId: null, orderNum: 1 },
+      { id: "page-one", orderNum: 2 },
+    ]);
+
+    expect(updatedPages.map((page) => page.id)).toEqual([
+      "page-home",
+      "page-two",
+      "page-one",
     ]);
   });
 
@@ -124,5 +143,112 @@ describe("buildPageTree", () => {
       parent_id: "page-one",
       slug: "/page-2",
     });
+  });
+
+  it("syncs Pages tree source reorder into canonical document children while preserving reusable roots", () => {
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "layout-card",
+          type: "frame",
+          reusable: true,
+          children: [],
+        },
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home", slug: "/" },
+          children: [],
+        },
+        {
+          id: "page-one",
+          type: "frame",
+          name: "Page 1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-one",
+            slug: "/page-1",
+          },
+          children: [],
+        },
+        {
+          id: "page-two",
+          type: "frame",
+          name: "Page 2",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-two",
+            slug: "/page-2",
+          },
+          children: [],
+        },
+      ],
+    };
+
+    const updatedDocument = syncCanonicalPageTreeMetadata(document, [
+      makePage("page-two", "Page 2", "/page-2", 0),
+      makePage("page-one", "Page 1", "/page-1", 1),
+      makePage("page-home", "Home", "/", 2),
+    ]);
+
+    expect(updatedDocument.children.map((node) => node.id)).toEqual([
+      "layout-card",
+      "page-two",
+      "page-one",
+      "page-home",
+    ]);
+    expect(
+      updatedDocument.children
+        .filter((node) => node.id.startsWith("page-"))
+        .map((node) => (node.metadata as { order_num?: unknown }).order_num),
+    ).toEqual([0, 1, 2]);
+  });
+
+  it("ignores stale page order_num when no drag update rank is provided", () => {
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-home", slug: "/" },
+          children: [],
+        },
+        {
+          id: "page-one",
+          type: "frame",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-one",
+            slug: "/page-1",
+          },
+          children: [],
+        },
+        {
+          id: "page-two",
+          type: "frame",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-two",
+            slug: "/page-2",
+          },
+          children: [],
+        },
+      ],
+    };
+
+    const updatedDocument = syncCanonicalPageTreeMetadata(document, [
+      makePage("page-home", "Home", "/", 2),
+      makePage("page-one", "Page 1", "/page-1", 1),
+      makePage("page-two", "Page 2", "/page-2", 0),
+    ]);
+
+    expect(updatedDocument.children.map((node) => node.id)).toEqual([
+      "page-home",
+      "page-one",
+      "page-two",
+    ]);
   });
 });

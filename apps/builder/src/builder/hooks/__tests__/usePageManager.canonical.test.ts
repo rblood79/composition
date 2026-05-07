@@ -96,4 +96,15 @@ describe("usePageManager.initializeProject canonical-only hydrate", () => {
     expect(setPagesIndex).toBeGreaterThanOrEqual(0);
     expect(setElementsIndex).toBeLessThan(setPagesIndex);
   });
+
+  it("hydrate 초기 선택은 page order_num 0이 아니라 slug Home identity 를 사용한다", async () => {
+    const source = await readUsePageManagerSource();
+    const initFnSource = extractInitializeProject(source);
+
+    expect(source).toContain("function selectInitialPage");
+    expect(initFnSource).toContain("selectInitialPage(apiPages)");
+    expect(initFnSource).not.toContain(
+      "apiPages.find((p) => p.order_num === 0)",
+    );
+  });
 });

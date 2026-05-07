@@ -27,6 +27,15 @@ import type {
   DescendantOverride,
   RefNode,
 } from "@composition/shared";
+import {
+  appendDescendantChild as appendDescendantChildToDocument,
+  deriveLegacyOrderNum,
+  getCanonicalChildren,
+  insertCanonicalChild,
+  moveCanonicalChild,
+  moveDescendantChild as moveDescendantChildInDocument,
+  removeCanonicalChild,
+} from "@composition/shared";
 
 // ─────────────────────────────────────────────
 // Store state
@@ -447,35 +456,86 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
           return state;
         }
 
-        const nextDoc = cloneDocument(doc);
-
-        // Phase 1 단순화: parentPath = parent nodeId.
-        const parentFound = findNodeById(nextDoc, parentPath);
-        if (!parentFound) {
+        if (!getCanonicalChildren(doc, parentPath)) {
           devWarn("insertNode: parent not found", { parentPath });
           return state;
         }
 
-        const parent = parentFound.node;
-        const cloneToInsert = cloneNode(node);
-        const nextChildren: CanonicalNode[] = parent.children
-          ? [...parent.children]
-          : [];
-
-        const insertIdx =
-          typeof index === "number"
-            ? Math.max(0, Math.min(index, nextChildren.length))
-            : nextChildren.length;
-        nextChildren.splice(insertIdx, 0, cloneToInsert);
-
-        const updatedParent: CanonicalNode = {
-          ...parent,
-          children: nextChildren,
-        };
-        parentFound.childrenArray[parentFound.index] = updatedParent;
+        const result = insertCanonicalChild(
+          doc,
+          parentPath,
+          cloneNode(node),
+          index,
+        );
+        if (!result.changed) {
+          devWarn("insertNode: child already exists", {
+            parentPath,
+            nodeId: node.id,
+          });
+          return state;
+        }
 
         const nextMap = new Map(state.documents);
-        nextMap.set(projectId, nextDoc);
+        nextMap.set(projectId, result.document);
+        return {
+          documents: nextMap,
+          documentVersion: state.documentVersion + 1,
+        };
+      });
+    },
+
+    getNodeChildren: (parentPath) => {
+      const state = get();
+      const projectId = state.currentProjectId;
+      if (!projectId) return null;
+      const doc = state.documents.get(projectId);
+      if (!doc) return null;
+      return getCanonicalChildren(doc, parentPath);
+    },
+
+    moveNode: (nodePath, targetParentPath, index) => {
+      set((state) => {
+        const projectId = state.currentProjectId;
+        if (!projectId) {
+          devWarn("moveNode called without active project", {
+            nodePath,
+            targetParentPath,
+          });
+          return state;
+        }
+        const doc = state.documents.get(projectId);
+        if (!doc) {
+          devWarn("moveNode: active project has no document", {
+            projectId,
+            nodePath,
+          });
+          return state;
+        }
+        if (!getCanonicalChildren(doc, targetParentPath)) {
+          devWarn("moveNode: target parent not found", {
+            nodePath,
+            targetParentPath,
+          });
+          return state;
+        }
+
+        const result = moveCanonicalChild(
+          doc,
+          nodePath,
+          targetParentPath,
+          index,
+        );
+        if (!result.changed) {
+          devWarn("moveNode: node not found or invalid move", {
+            nodePath,
+            targetParentPath,
+            index,
+          });
+          return state;
+        }
+
+        const nextMap = new Map(state.documents);
+        nextMap.set(projectId, result.document);
         return {
           documents: nextMap,
           documentVersion: state.documentVersion + 1,
@@ -499,22 +559,121 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
           return state;
         }
 
-        const nextDoc = cloneDocument(doc);
-        const found = findNodeById(nextDoc, nodePath);
-        if (!found) {
+        const result = removeCanonicalChild(doc, nodePath);
+        if (!result.removed) {
           devWarn("removeNode: node not found", { nodePath });
           return state;
         }
 
-        found.childrenArray.splice(found.index, 1);
-
         const nextMap = new Map(state.documents);
-        nextMap.set(projectId, nextDoc);
+        nextMap.set(projectId, result.document);
         return {
           documents: nextMap,
           documentVersion: state.documentVersion + 1,
         };
       });
+    },
+
+    appendDescendantChild: (refPath, descendantPath, child) => {
+      set((state) => {
+        const projectId = state.currentProjectId;
+        if (!projectId) {
+          devWarn("appendDescendantChild called without active project", {
+            refPath,
+            descendantPath,
+          });
+          return state;
+        }
+        const doc = state.documents.get(projectId);
+        if (!doc) {
+          devWarn("appendDescendantChild: active project has no document", {
+            projectId,
+            refPath,
+          });
+          return state;
+        }
+
+        const result = appendDescendantChildToDocument(
+          doc,
+          refPath,
+          descendantPath,
+          cloneNode(child),
+        );
+        if (!result.changed) {
+          devWarn(
+            "appendDescendantChild: ref not found, duplicate child, or non-children descendant",
+            {
+              refPath,
+              descendantPath,
+              childId: child.id,
+            },
+          );
+          return state;
+        }
+
+        const nextMap = new Map(state.documents);
+        nextMap.set(projectId, result.document);
+        return {
+          documents: nextMap,
+          documentVersion: state.documentVersion + 1,
+        };
+      });
+    },
+
+    moveDescendantChild: (refPath, descendantPath, childPath, index) => {
+      set((state) => {
+        const projectId = state.currentProjectId;
+        if (!projectId) {
+          devWarn("moveDescendantChild called without active project", {
+            refPath,
+            descendantPath,
+            childPath,
+          });
+          return state;
+        }
+        const doc = state.documents.get(projectId);
+        if (!doc) {
+          devWarn("moveDescendantChild: active project has no document", {
+            projectId,
+            refPath,
+          });
+          return state;
+        }
+
+        const result = moveDescendantChildInDocument(
+          doc,
+          refPath,
+          descendantPath,
+          childPath,
+          index,
+        );
+        if (!result.changed) {
+          devWarn("moveDescendantChild: child not found or unchanged", {
+            refPath,
+            descendantPath,
+            childPath,
+            index,
+          });
+          return state;
+        }
+
+        const nextMap = new Map(state.documents);
+        nextMap.set(projectId, result.document);
+        return {
+          documents: nextMap,
+          documentVersion: state.documentVersion + 1,
+        };
+      });
+    },
+
+    getDerivedOrderNum: (parentPath, childPath) => {
+      const state = get();
+      const projectId = state.currentProjectId;
+      if (!projectId) return null;
+      const doc = state.documents.get(projectId);
+      if (!doc) return null;
+      const children = getCanonicalChildren(doc, parentPath);
+      return children ? deriveLegacyOrderNum(children, childPath) : null;
     },
 
     updateDescendant: (refPath, descendantPath, value) => {

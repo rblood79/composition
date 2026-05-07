@@ -195,8 +195,9 @@ export function resolveSelectionHit(
 export function resolveTopmostHitElementId(
   hitCandidates: string[],
   elementsMap: Map<string, Element>,
+  childrenMap?: Map<string, Element[]> | null,
 ): string | null {
-  return pickTopmostHitElementId(hitCandidates, elementsMap);
+  return pickTopmostHitElementId(hitCandidates, elementsMap, childrenMap);
 }
 
 export function resolveBodySelection(

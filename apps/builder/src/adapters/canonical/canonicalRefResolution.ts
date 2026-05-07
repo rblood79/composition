@@ -2,7 +2,6 @@ import type { Element } from "../../types/core/store.types";
 import { mergePropsWithStyleDeep } from "./instanceResolver";
 import { resolveReference } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
-import { sortElementsByOrderThenSource } from "../../builder/utils/elementOrdering";
 
 type CanonicalRefFields = {
   descendants?: unknown;
@@ -132,14 +131,6 @@ function buildChildrenMapFromElements(
     } else {
       childrenMap.set(element.parent_id, [element]);
     }
-  }
-
-  for (const children of childrenMap.values()) {
-    children.splice(
-      0,
-      children.length,
-      ...sortElementsByOrderThenSource(children),
-    );
   }
 
   return childrenMap;
