@@ -1070,6 +1070,281 @@ function upsertElementsIntoDocument(
   );
 }
 
+const ROOT_CHILDREN_PATH = JSON.stringify(["root"]);
+
+function nodeChildrenPath(parentPath: string, nodeId: string): string {
+  return JSON.stringify([parentPath, "children", nodeId]);
+}
+
+function refDescendantChildrenPath(
+  parentPath: string,
+  nodeId: string,
+  descendantPath: string,
+): string {
+  return JSON.stringify([parentPath, "descendants", nodeId, descendantPath]);
+}
+
+type ChildrenArrayIndex = {
+  nodesByPath: Map<string, CanonicalNode[]>;
+  parentPathByNodeId: Map<string, string>;
+};
+
+type DescendantChildrenOverride = {
+  children: CanonicalNode[];
+};
+
+function hasDescendantChildrenOverride(
+  override: unknown,
+): override is DescendantChildrenOverride {
+  return (
+    Boolean(override) &&
+    typeof override === "object" &&
+    "children" in override &&
+    Array.isArray((override as { children?: unknown }).children)
+  );
+}
+
+function collectChildrenArrayIndex(
+  nodes: CanonicalNode[],
+  path: string = ROOT_CHILDREN_PATH,
+  index: ChildrenArrayIndex = {
+    nodesByPath: new Map(),
+    parentPathByNodeId: new Map(),
+  },
+): ChildrenArrayIndex {
+  index.nodesByPath.set(path, nodes);
+
+  for (const node of nodes) {
+    index.parentPathByNodeId.set(node.id, path);
+
+    if (node.children && node.children.length > 0) {
+      collectChildrenArrayIndex(
+        node.children,
+        nodeChildrenPath(path, node.id),
+        index,
+      );
+    }
+
+    if (node.type !== "ref") continue;
+
+    const descendants = (node as RefNode).descendants ?? {};
+    for (const [descendantPath, override] of Object.entries(descendants)) {
+      if (!hasDescendantChildrenOverride(override)) continue;
+      collectChildrenArrayIndex(
+        override.children,
+        refDescendantChildrenPath(path, node.id, descendantPath),
+        index,
+      );
+    }
+  }
+
+  return index;
+}
+
+function isLegacyExportableCanonicalNode(node: CanonicalNode): boolean {
+  const metadata = node.metadata as { type?: unknown } | undefined;
+  return Boolean(node.props) || metadata?.type === "legacy-slot-hoisted";
+}
+
+function buildCanonicalSiblingOrderByPath(
+  doc: CompositionDocument,
+  elements: Element[],
+  previousDoc?: CompositionDocument,
+): Map<string, Map<string, number>> {
+  if (elements.length < 2) return new Map();
+
+  const childrenIndex = collectChildrenArrayIndex(doc.children);
+  const groupedByParentPath = new Map<string, Element[]>();
+  for (const element of elements) {
+    const parentPath = childrenIndex.parentPathByNodeId.get(element.id);
+    if (!parentPath) continue;
+    const siblings = groupedByParentPath.get(parentPath) ?? [];
+    siblings.push(element);
+    groupedByParentPath.set(parentPath, siblings);
+  }
+
+  const sourceIndexById = createElementSourceIndex(elements);
+  const orderByPath = new Map<string, Map<string, number>>();
+
+  for (const [parentPath, siblings] of groupedByParentPath) {
+    if (siblings.length < 2) continue;
+
+    if (
+      previousDoc &&
+      !siblings.some((sibling) =>
+        hasCanonicalPositionChange(previousDoc, sibling),
+      )
+    ) {
+      continue;
+    }
+
+    const currentChildren = childrenIndex.nodesByPath.get(parentPath) ?? [];
+    const reorderableChildren = currentChildren.filter(
+      isLegacyExportableCanonicalNode,
+    );
+    if (reorderableChildren.length !== currentChildren.length) continue;
+
+    const incomingIds = new Set(siblings.map((sibling) => sibling.id));
+    if (
+      reorderableChildren.length !== incomingIds.size ||
+      reorderableChildren.some((child) => !incomingIds.has(child.id))
+    ) {
+      continue;
+    }
+
+    const orderedSiblingIds = [...siblings]
+      .sort((left, right) =>
+        compareElementsByOrderThenSource(left, right, sourceIndexById),
+      )
+      .map((sibling) => sibling.id);
+    const siblingOrderById = new Map<string, number>();
+    orderedSiblingIds.forEach((id, index) => siblingOrderById.set(id, index));
+    orderByPath.set(parentPath, siblingOrderById);
+  }
+
+  return orderByPath;
+}
+
+function hasCanonicalPositionChange(
+  previousDoc: CompositionDocument,
+  element: Element,
+): boolean {
+  const previousNode = findNodeById(previousDoc.children, element.id);
+  return previousNode
+    ? !shouldPreserveExistingCanonicalPosition(previousNode, element)
+    : true;
+}
+
+function hasSameNodeOrder(
+  left: CanonicalNode[],
+  right: CanonicalNode[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((node, index) => node.id === right[index]?.id)
+  );
+}
+
+function reorderCurrentChildren(
+  nodes: CanonicalNode[],
+  orderById: ReadonlyMap<string, number> | undefined,
+): { nodes: CanonicalNode[]; changed: boolean } {
+  if (!orderById) return { nodes, changed: false };
+  const ordered = [...nodes].sort(
+    (left, right) =>
+      (orderById.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+      (orderById.get(right.id) ?? Number.MAX_SAFE_INTEGER),
+  );
+
+  return hasSameNodeOrder(nodes, ordered)
+    ? { nodes, changed: false }
+    : { nodes: ordered, changed: true };
+}
+
+function applyCanonicalSiblingOrderToChildren(
+  nodes: CanonicalNode[],
+  path: string,
+  orderByPath: ReadonlyMap<string, ReadonlyMap<string, number>>,
+): { nodes: CanonicalNode[]; changed: boolean } {
+  const reordered = reorderCurrentChildren(nodes, orderByPath.get(path));
+  let currentNodes = reordered.nodes;
+  let changed = reordered.changed;
+
+  const nextNodes = currentNodes.map((node) => {
+    let nextNode = node;
+
+    if (node.children && node.children.length > 0) {
+      const childResult = applyCanonicalSiblingOrderToChildren(
+        node.children,
+        nodeChildrenPath(path, node.id),
+        orderByPath,
+      );
+      if (childResult.changed) {
+        nextNode = { ...nextNode, children: childResult.nodes };
+      }
+    }
+
+    if (nextNode.type === "ref") {
+      const refResult = applyCanonicalSiblingOrderToRefDescendants(
+        nextNode as RefNode,
+        path,
+        orderByPath,
+      );
+      if (refResult.changed) {
+        nextNode = refResult.node;
+      }
+    }
+
+    if (nextNode !== node) changed = true;
+    return nextNode;
+  });
+
+  currentNodes = nextNodes;
+  return { nodes: currentNodes, changed };
+}
+
+function applyCanonicalSiblingOrderToRefDescendants(
+  refNode: RefNode,
+  parentPath: string,
+  orderByPath: ReadonlyMap<string, ReadonlyMap<string, number>>,
+): { node: RefNode; changed: boolean } {
+  const descendants = refNode.descendants ?? {};
+  let changed = false;
+  const nextDescendants: RefNode["descendants"] = {};
+
+  for (const [descendantPath, override] of Object.entries(descendants)) {
+    if (!hasDescendantChildrenOverride(override)) {
+      nextDescendants[descendantPath] = override;
+      continue;
+    }
+
+    const childPath = refDescendantChildrenPath(
+      parentPath,
+      refNode.id,
+      descendantPath,
+    );
+    const childResult = applyCanonicalSiblingOrderToChildren(
+      override.children,
+      childPath,
+      orderByPath,
+    );
+    if (childResult.changed) {
+      changed = true;
+      nextDescendants[descendantPath] = {
+        ...override,
+        children: childResult.nodes,
+      };
+      continue;
+    }
+
+    nextDescendants[descendantPath] = override;
+  }
+
+  return changed
+    ? { node: { ...refNode, descendants: nextDescendants }, changed: true }
+    : { node: refNode, changed: false };
+}
+
+function applyCanonicalSiblingOrder(
+  doc: CompositionDocument,
+  elements: Element[],
+  previousDoc?: CompositionDocument,
+): CompositionDocument {
+  const orderByPath = buildCanonicalSiblingOrderByPath(
+    doc,
+    elements,
+    previousDoc,
+  );
+  if (orderByPath.size === 0) return doc;
+
+  const result = applyCanonicalSiblingOrderToChildren(
+    doc.children,
+    ROOT_CHILDREN_PATH,
+    orderByPath,
+  );
+  return result.changed ? { ...doc, children: result.nodes } : doc;
+}
+
 function clearChildrenForIncomingElementIds(
   nodes: CompositionDocument["children"],
   incomingElementIds: Set<string>,
@@ -1120,10 +1395,16 @@ function applyCanonicalPrimaryMerge(elements: Element[]): void {
   const snapshot = actions.getCurrentLegacySnapshot();
   const projectId = actions.getCurrentProjectId();
   const currentDoc = getCurrentDocument(projectId);
-  const doc = upsertElementsIntoDocument(
+  const sortedElements = sortElementsForUpsert(elements);
+  const upsertedDoc = upsertElementsIntoDocument(
     currentDoc,
-    sortElementsForUpsert(elements),
+    sortedElements,
     snapshot,
+  );
+  const doc = applyCanonicalSiblingOrder(
+    upsertedDoc,
+    sortedElements,
+    currentDoc,
   );
 
   if (projectId) {
@@ -1150,11 +1431,13 @@ function applyCanonicalPrimarySet(elements: Element[]): void {
   const currentDoc = getCurrentDocument(projectId);
   const shellDoc = buildDocumentShellFromSnapshot(currentDoc, snapshot);
   const replaceShellDoc = prepareFullReplaceShell(shellDoc, elements);
-  const doc = upsertElementsIntoDocument(
+  const sortedElements = sortElementsForUpsert(elements);
+  const upsertedDoc = upsertElementsIntoDocument(
     replaceShellDoc,
-    sortElementsForUpsert(elements),
+    sortedElements,
     snapshot,
   );
+  const doc = applyCanonicalSiblingOrder(upsertedDoc, sortedElements);
   if (projectId) {
     useCanonicalDocumentStore.getState().setDocument(projectId, doc);
   }

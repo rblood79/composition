@@ -31,6 +31,10 @@ export function isValidDrop(
     return { valid: false, reason: "virtual-child" };
   }
 
+  if (draggedNode.isSyntheticRefChild || targetNode.isSyntheticRefChild) {
+    return { valid: false, reason: "synthetic-ref-child" };
+  }
+
   if (draggedNode.type === "body") {
     return { valid: false, reason: "body-immutable" };
   }
