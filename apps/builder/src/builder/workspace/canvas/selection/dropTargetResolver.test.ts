@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../../types/builder/unified.types";
 import type { ElementBounds } from "../elementRegistry";
 import {
+  computeDropPlaceholderBounds,
   computeInsertionLinePosition,
+  computeReorderFromDropTarget,
   computeSiblingOffsets,
   resolveDropTarget,
 } from "./dropTargetResolver";
@@ -506,5 +508,68 @@ describe("resolveDropTarget cross-page body targets", () => {
     expect(
       result ? computeInsertionLinePosition(result, source.id, store) : null,
     ).toBe(232);
+  });
+
+  it("keeps same-parent insertion while the cursor is inside the opened placeholder slot", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      props: {
+        style: {
+          gap: 16,
+        },
+      },
+    });
+    const first = makeElement("first-card", {
+      parent_id: pageBody.id,
+      order_num: 0,
+    });
+    const middle = makeElement("middle-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+      order_num: 1,
+    });
+    const source = makeElement("source-card", {
+      parent_id: pageBody.id,
+      order_num: 2,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(first.id, { x: 40, y: 0, width: 160, height: 100 });
+    mockBounds.set(middle.id, { x: 40, y: 116, width: 120, height: 40 });
+    mockBounds.set(source.id, { x: 40, y: 172, width: 160, height: 100 });
+
+    const store = {
+      childrenMap: new Map([[pageBody.id, [first, middle, source]]]),
+      elementsMap: new Map([
+        [pageBody.id, pageBody],
+        [first.id, first],
+        [middle.id, middle],
+        [source.id, source],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 80, y: 180 },
+      source.id,
+      store,
+      () => [pageBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: pageBody.id,
+      insertionIndex: 1,
+      isAdjacentInsertion: false,
+      isReparent: false,
+    });
+    expect(
+      result ? computeDropPlaceholderBounds(result, source.id, store) : null,
+    ).toEqual({ x: 40, y: 116, width: 160, height: 100 });
+    expect(
+      result ? computeReorderFromDropTarget(result, source.id, store) : null,
+    ).toEqual([
+      { id: source.id, order_num: 1 },
+      { id: middle.id, order_num: 2 },
+    ]);
   });
 });

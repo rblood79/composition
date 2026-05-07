@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { Element } from "../../../../types/core/store.types";
 import type { BoundingBox } from "../selection/types";
-import { resolveFrameBodyHoverTarget } from "./useElementHoverInteraction";
+import {
+  clearElementHoverState,
+  resolveFrameBodyHoverTarget,
+  type ElementHoverState,
+} from "./useElementHoverInteraction";
 
 type BodyFixtureOptions = Partial<Element> & {
   frameId?: string | null;
@@ -108,5 +112,32 @@ describe("resolveFrameBodyHoverTarget", () => {
     });
 
     expect(result).toBeNull();
+  });
+});
+
+describe("clearElementHoverState", () => {
+  it("clears stale hover state during drag/drop feedback", () => {
+    const state: ElementHoverState = {
+      hoveredElementId: "card",
+      hoveredLeafIds: ["heading", "button"],
+      isGroupHover: true,
+    };
+
+    expect(clearElementHoverState(state)).toBe(true);
+    expect(state).toEqual({
+      hoveredElementId: null,
+      hoveredLeafIds: [],
+      isGroupHover: false,
+    });
+  });
+
+  it("does not request an overlay invalidation when already clear", () => {
+    const state: ElementHoverState = {
+      hoveredElementId: null,
+      hoveredLeafIds: [],
+      isGroupHover: false,
+    };
+
+    expect(clearElementHoverState(state)).toBe(false);
   });
 });

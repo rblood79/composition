@@ -21,6 +21,7 @@ import {
   computeReorderFromDropTarget,
   computeSiblingOffsets,
   computeInsertionLinePosition,
+  computeDropPlaceholderBounds,
   type DropTarget,
   type DropIndicatorSnapshot,
 } from "../selection/dropTargetResolver";
@@ -274,6 +275,14 @@ export function useDragBridge({
                   childrenMap: dragState.childrenMap,
                 },
               ),
+              placeholderBounds: computeDropPlaceholderBounds(
+                prevTarget,
+                draggedId,
+                {
+                  elementsMap: dragState.elementsMap,
+                  childrenMap: dragState.childrenMap,
+                },
+              ),
             };
             return;
           }
@@ -327,6 +336,10 @@ export function useDragBridge({
               childrenMap: dragState.childrenMap,
             },
           ),
+          placeholderBounds: computeDropPlaceholderBounds(resolved, draggedId, {
+            elementsMap: dragState.elementsMap,
+            childrenMap: dragState.childrenMap,
+          }),
         };
       } else {
         dropIndicatorSnapshotRef.current = null;

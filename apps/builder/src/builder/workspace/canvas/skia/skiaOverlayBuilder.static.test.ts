@@ -18,6 +18,21 @@ describe("skiaOverlayBuilder slot placeholder chrome contract", () => {
   });
 });
 
+describe("skiaOverlayBuilder drag hover suppression contract", () => {
+  it("does not render element hover highlights while drop indicator is active", async () => {
+    const source = await readFile(
+      resolve(__dirname, "skiaOverlayBuilder.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("if (!dropIndicatorState) {");
+    const hoverBlock = source.match(
+      /if \(!dropIndicatorState\) \{[\s\S]*?const hoverTargets = buildHoverHighlightTargets[\s\S]*?renderOverflowContent\([\s\S]*?\);\s*\}\s*\}/,
+    );
+    expect(hoverBlock).not.toBeNull();
+  });
+});
+
 describe("skiaOverlayBuilder frame title contract", () => {
   it("renders frame titles from frameAreas without registering page title hit bounds", async () => {
     const source = await readFile(

@@ -20,6 +20,7 @@ import { useStore } from "../../../stores";
 import { useViewportSyncStore } from "../stores";
 import type { BoundingBox } from "../selection/types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
+import { getDragVisualOffset } from "../skia/nodeRendererTree";
 
 // ============================================
 // Types
@@ -129,6 +130,21 @@ export function resolveFrameBodyHoverTarget({
   return null;
 }
 
+export function clearElementHoverState(state: ElementHoverState): boolean {
+  if (
+    state.hoveredElementId === null &&
+    state.hoveredLeafIds.length === 0 &&
+    state.isGroupHover === false
+  ) {
+    return false;
+  }
+
+  state.hoveredElementId = null;
+  state.hoveredLeafIds = [];
+  state.isGroupHover = false;
+  return true;
+}
+
 // ============================================
 // Hook
 // ============================================
@@ -163,6 +179,16 @@ export function useElementHoverInteraction({
         const mouseX = lastMouseRef.current.x;
         const mouseY = lastMouseRef.current.y;
 
+        // Drag/drop 중에는 일반 element hover와 drop target feedback이 중복되면 안 된다.
+        // 렌더링은 transient drag/sibling offset을 쓰지만 hover bounds는 raw scene
+        // bounds 기반이므로, drag 활성 중에는 hover 상태를 명시적으로 비운다.
+        if (getDragVisualOffset()) {
+          if (clearElementHoverState(hoverStateRef.current)) {
+            overlayVersionRef.current++;
+          }
+          return;
+        }
+
         // 캔버스 밖이면 호버 해제
         if (
           mouseX < rect.left ||
@@ -170,10 +196,7 @@ export function useElementHoverInteraction({
           mouseY < rect.top ||
           mouseY > rect.bottom
         ) {
-          if (hoverStateRef.current.hoveredElementId !== null) {
-            hoverStateRef.current.hoveredElementId = null;
-            hoverStateRef.current.hoveredLeafIds = [];
-            hoverStateRef.current.isGroupHover = false;
+          if (clearElementHoverState(hoverStateRef.current)) {
             overlayVersionRef.current++;
           }
           return;

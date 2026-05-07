@@ -442,34 +442,39 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       }
 
       // ── Hover Highlights ──
-      const {
-        hoveredElementId: hoveredCtxId,
-        hoveredLeafIds,
-        isGroupHover,
-      } = elementHoverState;
-      const hoverTargets = buildHoverHighlightTargets(
-        treeBoundsMap,
-        hoveredCtxId,
-        hoveredLeafIds,
-        isGroupHover,
-        elementsMap,
-      );
-      for (const target of hoverTargets) {
-        renderHoverHighlight(
-          ck,
-          canvas,
-          target.bounds,
-          cameraZoom,
-          target.dashed,
-          target.semanticRole ?? target.slotMarkerRole,
+      // Drag/drop feedback가 활성일 때는 일반 hover overlay를 숨긴다.
+      // sibling visual offset으로 실제 위치가 transient하게 바뀌기 때문에,
+      // raw bounds 기반 hover와 drop target 표시가 중복 렌더될 수 있다.
+      if (!dropIndicatorState) {
+        const {
+          hoveredElementId: hoveredCtxId,
+          hoveredLeafIds,
+          isGroupHover,
+        } = elementHoverState;
+        const hoverTargets = buildHoverHighlightTargets(
+          treeBoundsMap,
+          hoveredCtxId,
+          hoveredLeafIds,
+          isGroupHover,
+          elementsMap,
         );
-      }
+        for (const target of hoverTargets) {
+          renderHoverHighlight(
+            ck,
+            canvas,
+            target.bounds,
+            cameraZoom,
+            target.dashed,
+            target.semanticRole ?? target.slotMarkerRole,
+          );
+        }
 
-      // ── Overflow Content (Figma-style) ──
-      if (hoveredCtxId && overflowInfoMap) {
-        const overflowInfo = overflowInfoMap.get(hoveredCtxId);
-        if (overflowInfo) {
-          renderOverflowContent(ck, canvas, overflowInfo, cameraZoom);
+        // ── Overflow Content (Figma-style) ──
+        if (hoveredCtxId && overflowInfoMap) {
+          const overflowInfo = overflowInfoMap.get(hoveredCtxId);
+          if (overflowInfo) {
+            renderOverflowContent(ck, canvas, overflowInfo, cameraZoom);
+          }
         }
       }
 

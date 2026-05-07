@@ -30,6 +30,8 @@ export interface DropIndicatorState {
   dragSize?: number;
   /** scene 좌표계의 실제 삽입 라인 위치. 있으면 child/container 추정보다 우선한다. */
   insertionLinePosition?: number;
+  /** 드롭 시 드래그 요소가 차지할 scene 좌표계 placeholder box. */
+  placeholderBounds?: BoundingBox;
 }
 
 /**
@@ -52,35 +54,37 @@ export function renderDropIndicator(
   const G = state.isReparent ? REPARENT_G : DROP_G;
   const B = state.isReparent ? REPARENT_B : DROP_B;
 
-  // C-1: 컨테이너 반투명 배경 오버레이
-  const bgPaint = new ck.Paint();
-  bgPaint.setColor(ck.Color4f(R, G, B, 0.06));
-  bgPaint.setAntiAlias(true);
-  bgPaint.setStyle(ck.PaintStyle.Fill);
-  canvas.drawRect4f(
-    targetBounds.x,
-    targetBounds.y,
-    targetBounds.x + targetBounds.width,
-    targetBounds.y + targetBounds.height,
-    bgPaint,
-  );
-  bgPaint.delete();
-
-  // C-2: 타겟 컨테이너 아웃라인 (2/zoom, alpha 0.8)
-  const outlinePaint = new ck.Paint();
-  outlinePaint.setColor(ck.Color4f(R, G, B, 0.8));
-  outlinePaint.setAntiAlias(true);
-  outlinePaint.setStyle(ck.PaintStyle.Stroke);
   const sw = 2 / zoom;
-  outlinePaint.setStrokeWidth(sw);
-  canvas.drawRect4f(
-    targetBounds.x - sw / 2,
-    targetBounds.y - sw / 2,
-    targetBounds.x + targetBounds.width + sw / 2,
-    targetBounds.y + targetBounds.height + sw / 2,
-    outlinePaint,
-  );
-  outlinePaint.delete();
+  if (state.isReparent) {
+    // C-1: 컨테이너 반투명 배경 오버레이
+    const bgPaint = new ck.Paint();
+    bgPaint.setColor(ck.Color4f(R, G, B, 0.06));
+    bgPaint.setAntiAlias(true);
+    bgPaint.setStyle(ck.PaintStyle.Fill);
+    canvas.drawRect4f(
+      targetBounds.x,
+      targetBounds.y,
+      targetBounds.x + targetBounds.width,
+      targetBounds.y + targetBounds.height,
+      bgPaint,
+    );
+    bgPaint.delete();
+
+    // C-2: 타겟 컨테이너 아웃라인 (2/zoom, alpha 0.8)
+    const outlinePaint = new ck.Paint();
+    outlinePaint.setColor(ck.Color4f(R, G, B, 0.8));
+    outlinePaint.setAntiAlias(true);
+    outlinePaint.setStyle(ck.PaintStyle.Stroke);
+    outlinePaint.setStrokeWidth(sw);
+    canvas.drawRect4f(
+      targetBounds.x - sw / 2,
+      targetBounds.y - sw / 2,
+      targetBounds.x + targetBounds.width + sw / 2,
+      targetBounds.y + targetBounds.height + sw / 2,
+      outlinePaint,
+    );
+    outlinePaint.delete();
+  }
 
   // C-3: 삽입 라인 (solid, round cap, 양끝 원)
   if (insertIndex >= 0) {
@@ -106,6 +110,36 @@ export function renderDropIndicator(
 
     if (linePos === undefined) {
       return;
+    }
+
+    if (state.placeholderBounds) {
+      const placeholder = state.placeholderBounds;
+      const placeholderFill = new ck.Paint();
+      placeholderFill.setColor(ck.Color4f(R, G, B, 0.08));
+      placeholderFill.setAntiAlias(true);
+      placeholderFill.setStyle(ck.PaintStyle.Fill);
+      canvas.drawRect4f(
+        placeholder.x,
+        placeholder.y,
+        placeholder.x + placeholder.width,
+        placeholder.y + placeholder.height,
+        placeholderFill,
+      );
+      placeholderFill.delete();
+
+      const placeholderStroke = new ck.Paint();
+      placeholderStroke.setColor(ck.Color4f(R, G, B, 0.55));
+      placeholderStroke.setAntiAlias(true);
+      placeholderStroke.setStyle(ck.PaintStyle.Stroke);
+      placeholderStroke.setStrokeWidth(1.5 / zoom);
+      canvas.drawRect4f(
+        placeholder.x,
+        placeholder.y,
+        placeholder.x + placeholder.width,
+        placeholder.y + placeholder.height,
+        placeholderStroke,
+      );
+      placeholderStroke.delete();
     }
 
     const linePaint = new ck.Paint();

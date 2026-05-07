@@ -61,6 +61,8 @@ export interface DropIndicatorSnapshot {
   dragSize?: number;
   /** scene 좌표계의 실제 삽입 라인 위치. 렌더러 추정 대신 resolver 계약으로 전달한다. */
   insertionLinePosition?: number;
+  /** 드롭 시 드래그 요소가 차지할 scene 좌표계 placeholder box. */
+  placeholderBounds?: ElementBounds;
 }
 
 /** resolveDropTarget에 필요한 store 슬라이스 */
@@ -230,6 +232,24 @@ function getSortedChildren(
     .filter((c): c is Element => c !== undefined);
 
   return fresh.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+}
+
+function getBoundedSiblingEntries(
+  siblings: Element[],
+): Array<{ element: Element; bounds: ElementBounds }> {
+  return siblings
+    .map((element) => {
+      const bounds = getSceneBounds(element.id);
+      return bounds ? { element, bounds } : null;
+    })
+    .filter(
+      (
+        entry,
+      ): entry is {
+        element: Element;
+        bounds: ElementBounds;
+      } => entry !== null,
+    );
 }
 
 // ============================================
@@ -407,13 +427,27 @@ export function resolveDropTarget(
   }
   if (!containerBounds) return null;
 
-  // 7. insertion index 결정 (gap 기반 midpoint 비교)
+  // 7. insertion index 결정.
+  // raw bounds midpoint만 쓰면 sibling이 시각적으로 열린 slot 안에서도
+  // 원래 자리(no-op)로 판정될 수 있으므로, same-parent는 드래그 요소가
+  // 실제 차지할 placeholder center에 가장 가까운 index로 보정한다.
   const pos = isHorizontal ? scenePoint.x : scenePoint.y;
-  const insertionIndex = findInsertionIndex(
+  const rawInsertionIndex = findInsertionIndex(
     pos,
     siblingBounds,
     siblings.length,
     isHorizontal,
+  );
+  const insertionIndex = findSameParentInsertionIndex(
+    pos,
+    rawInsertionIndex,
+    isHorizontal,
+    containerBounds,
+    sortedChildren,
+    getBoundedSiblingEntries(siblings),
+    draggedElementId,
+    getSceneBounds(draggedElementId),
+    getContainerAxisSpacing(parent, isHorizontal),
   );
 
   // 8. 현재 드래그 요소의 현재 index를 구해 인접 삽입 여부 판단
@@ -546,10 +580,7 @@ export function computeSiblingOffsets(
   const dragSpan = dragSize + spacing.gap;
 
   // id → 원래 인덱스 맵 (O(1) lookup, findIndex N² 제거)
-  const origIndexMap = new Map<string, number>();
-  for (let j = 0; j < sortedChildren.length; j++) {
-    origIndexMap.set(sortedChildren[j].id, j);
-  }
+  const origIndexMap = buildOriginalIndexMap(sortedChildren);
 
   const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
 
@@ -557,12 +588,13 @@ export function computeSiblingOffsets(
     const sibling = siblings[i];
     const oi = origIndexMap.get(sibling.id)!;
 
-    // vacate: 원래 드래그 위치 이후 형제 → dragged size + gap 만큼 close
-    const closeGap = oi > origIdx ? -dragSpan : 0;
-    // insertion: 삽입 위치 이후 형제 → dragged size + gap 만큼 make space
-    const makeSpace = i >= insertionIndex ? dragSpan : 0;
-
-    const total = closeGap + makeSpace;
+    const total = computeSameParentSiblingOffsetValue(
+      oi,
+      i,
+      origIdx,
+      insertionIndex,
+      dragSpan,
+    );
     if (total !== 0) {
       offsets.set(sibling.id, {
         dx: isHorizontal ? total : 0,
@@ -580,16 +612,6 @@ function getAxisStart(bounds: ElementBounds, isHorizontal: boolean): number {
 
 function getAxisEnd(bounds: ElementBounds, isHorizontal: boolean): number {
   return isHorizontal ? bounds.x + bounds.width : bounds.y + bounds.height;
-}
-
-function getAxisOffset(
-  offsets: Map<string, { dx: number; dy: number }>,
-  elementId: string,
-  isHorizontal: boolean,
-): number {
-  const offset = offsets.get(elementId);
-  if (!offset) return 0;
-  return isHorizontal ? offset.dx : offset.dy;
 }
 
 function getContainerAxisSpacing(
@@ -623,6 +645,135 @@ function getContainerAxisSpacing(
       };
 }
 
+function getAxisSize(bounds: ElementBounds, isHorizontal: boolean): number {
+  return isHorizontal ? bounds.width : bounds.height;
+}
+
+function getCrossStart(bounds: ElementBounds, isHorizontal: boolean): number {
+  return isHorizontal ? bounds.y : bounds.x;
+}
+
+function getCrossSize(bounds: ElementBounds, isHorizontal: boolean): number {
+  return isHorizontal ? bounds.height : bounds.width;
+}
+
+function computeSameParentSiblingOffsetValue(
+  originalIndex: number,
+  siblingIndex: number,
+  originalDraggedIndex: number,
+  insertionIndex: number,
+  dragSpan: number,
+): number {
+  const closeGap = originalIndex > originalDraggedIndex ? -dragSpan : 0;
+  const makeSpace = siblingIndex >= insertionIndex ? dragSpan : 0;
+  return closeGap + makeSpace;
+}
+
+function buildOriginalIndexMap(children: Element[]): Map<string, number> {
+  const indexes = new Map<string, number>();
+  for (let i = 0; i < children.length; i++) {
+    indexes.set(children[i].id, i);
+  }
+  return indexes;
+}
+
+function computeSameParentInsertionLineFromEntries(
+  insertionIndex: number,
+  isHorizontal: boolean,
+  containerBounds: ElementBounds,
+  siblingEntries: Array<{ element: Element; bounds: ElementBounds }>,
+  originalIndexMap: Map<string, number>,
+  originalDraggedIndex: number,
+  dragSpan: number,
+  spacing: { paddingStart: number; gap: number },
+): number {
+  if (siblingEntries.length === 0) {
+    return getAxisStart(containerBounds, isHorizontal) + spacing.paddingStart;
+  }
+
+  const getOffset = (
+    entry: { element: Element; bounds: ElementBounds },
+    siblingIndex: number,
+  ) =>
+    computeSameParentSiblingOffsetValue(
+      originalIndexMap.get(entry.element.id) ?? siblingIndex,
+      siblingIndex,
+      originalDraggedIndex,
+      insertionIndex,
+      dragSpan,
+    );
+
+  if (insertionIndex <= 0) {
+    const first = siblingEntries[0];
+    return (
+      getAxisStart(first.bounds, isHorizontal) + getOffset(first, 0) - dragSpan
+    );
+  }
+
+  if (insertionIndex >= siblingEntries.length) {
+    const lastIndex = siblingEntries.length - 1;
+    const last = siblingEntries[lastIndex];
+    return (
+      getAxisEnd(last.bounds, isHorizontal) +
+      getOffset(last, lastIndex) +
+      spacing.gap
+    );
+  }
+
+  const previousIndex = insertionIndex - 1;
+  const previous = siblingEntries[previousIndex];
+  return (
+    getAxisEnd(previous.bounds, isHorizontal) +
+    getOffset(previous, previousIndex) +
+    spacing.gap
+  );
+}
+
+function findSameParentInsertionIndex(
+  pos: number,
+  fallbackIndex: number,
+  isHorizontal: boolean,
+  containerBounds: ElementBounds,
+  sortedChildren: Element[],
+  siblingEntries: Array<{ element: Element; bounds: ElementBounds }>,
+  draggedElementId: string,
+  dragBounds: ElementBounds | undefined,
+  spacing: { paddingStart: number; gap: number },
+): number {
+  if (!dragBounds || siblingEntries.length === 0) return fallbackIndex;
+
+  const originalDraggedIndex = sortedChildren.findIndex(
+    (child) => child.id === draggedElementId,
+  );
+  if (originalDraggedIndex < 0) return fallbackIndex;
+
+  const dragSize = getAxisSize(dragBounds, isHorizontal);
+  const dragSpan = dragSize + spacing.gap;
+  const originalIndexMap = buildOriginalIndexMap(sortedChildren);
+  let bestIndex = fallbackIndex;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (let index = 0; index <= siblingEntries.length; index++) {
+    const linePosition = computeSameParentInsertionLineFromEntries(
+      index,
+      isHorizontal,
+      containerBounds,
+      siblingEntries,
+      originalIndexMap,
+      originalDraggedIndex,
+      dragSpan,
+      spacing,
+    );
+    const distance = Math.abs(pos - (linePosition + dragSize / 2));
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  }
+
+  return bestIndex;
+}
+
 /**
  * Drop indicator line 의 scene 좌표를 계산한다.
  *
@@ -640,19 +791,7 @@ export function computeInsertionLinePosition(
   const spacing = getContainerAxisSpacing(container, isHorizontal);
   const sortedChildren = getSortedChildren(containerId, store);
   const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
-  const siblingEntries = siblings
-    .map((element) => {
-      const bounds = getSceneBounds(element.id);
-      return bounds ? { element, bounds } : null;
-    })
-    .filter(
-      (
-        entry,
-      ): entry is {
-        element: Element;
-        bounds: ElementBounds;
-      } => entry !== null,
-    );
+  const siblingEntries = getBoundedSiblingEntries(siblings);
 
   if (siblingEntries.length === 0) {
     return (
@@ -707,32 +846,64 @@ export function computeInsertionLinePosition(
       : dragBounds.height
     : 0;
   const dragSpan = dragSize + spacing.gap;
-  const offsets = computeSiblingOffsets(dropTarget, draggedElementId, store);
+  const originalIndexMap = buildOriginalIndexMap(sortedChildren);
 
-  if (insertionIndex <= 0) {
-    const first = siblingEntries[0];
-    return (
-      getAxisStart(first.bounds, isHorizontal) +
-      getAxisOffset(offsets, first.element.id, isHorizontal) -
-      dragSpan
-    );
-  }
-
-  if (insertionIndex >= siblingEntries.length) {
-    const last = siblingEntries[siblingEntries.length - 1];
-    return (
-      getAxisEnd(last.bounds, isHorizontal) +
-      getAxisOffset(offsets, last.element.id, isHorizontal) +
-      spacing.gap
-    );
-  }
-
-  const previous = siblingEntries[insertionIndex - 1];
-  return (
-    getAxisEnd(previous.bounds, isHorizontal) +
-    getAxisOffset(offsets, previous.element.id, isHorizontal) +
-    spacing.gap
+  return computeSameParentInsertionLineFromEntries(
+    insertionIndex,
+    isHorizontal,
+    dropTarget.containerBounds,
+    siblingEntries,
+    originalIndexMap,
+    originalIndex,
+    dragSpan,
+    spacing,
   );
+}
+
+export function computeDropPlaceholderBounds(
+  dropTarget: DropTarget,
+  draggedElementId: string,
+  store: DropTargetStoreSlice,
+): ElementBounds | undefined {
+  const draggedBounds = getSceneBounds(draggedElementId);
+  if (!draggedBounds) return undefined;
+
+  const linePosition = computeInsertionLinePosition(
+    dropTarget,
+    draggedElementId,
+    store,
+  );
+  if (linePosition === undefined) return undefined;
+
+  const { containerId, insertionIndex, isHorizontal } = dropTarget;
+  const sortedChildren = getSortedChildren(containerId, store);
+  const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
+  const siblingEntries = getBoundedSiblingEntries(siblings);
+  const neighbor =
+    siblingEntries[Math.min(insertionIndex, siblingEntries.length - 1)] ??
+    siblingEntries[insertionIndex - 1];
+  const crossStart = !dropTarget.isReparent
+    ? getCrossStart(draggedBounds, isHorizontal)
+    : neighbor
+      ? getCrossStart(neighbor.bounds, isHorizontal)
+      : getCrossStart(dropTarget.containerBounds, isHorizontal);
+  const crossSize = getCrossSize(draggedBounds, isHorizontal);
+
+  if (isHorizontal) {
+    return {
+      x: linePosition,
+      y: crossStart,
+      width: draggedBounds.width,
+      height: crossSize,
+    };
+  }
+
+  return {
+    x: crossStart,
+    y: linePosition,
+    width: crossSize,
+    height: draggedBounds.height,
+  };
 }
 
 // ============================================
