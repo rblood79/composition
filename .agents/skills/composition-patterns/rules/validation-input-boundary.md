@@ -22,22 +22,22 @@ tags: [validation, security, boundary]
 
 ```typescript
 // ❌ PostMessage 무검증
-window.addEventListener('message', (event) => {
-  const { type, data } = event.data;  // 검증 없이 사용
+window.addEventListener("message", (event) => {
+  const { type, data } = event.data; // 검증 없이 사용
   handleMessage(type, data);
 });
 
 // ❌ API 응답 무검증
-const { data } = await supabase.from('elements').select('*');
-setElements(data);  // null/undefined 가능성
+const { data } = await supabase.from("elements").select("*");
+setElements(data); // null/undefined 가능성
 
 // ❌ URL 파라미터 무검증
 const pageId = useParams().pageId;
-loadPage(pageId);  // 유효하지 않은 ID 가능
+loadPage(pageId); // 유효하지 않은 ID 가능
 
 // ❌ 사용자 입력 무검증
 const handleInput = (value: string) => {
-  element.props.width = parseInt(value);  // NaN 가능성
+  element.props.width = parseInt(value); // NaN 가능성
 };
 ```
 
@@ -81,7 +81,7 @@ window.addEventListener('message', (event) => {
 // ✅ API 응답 검증
 const elementSchema = z.object({
   id: z.string().uuid(),
-  tag: z.string(),
+  type: z.string(),
   parent_id: z.string().uuid().nullable(),
   props: z.record(z.unknown()),
 });
@@ -135,8 +135,8 @@ const rawInput = receiveFromExternal();
 const validated = schema.parse(rawInput);
 
 // 2. 도메인 레이어: 비즈니스 규칙 검증
-if (!canHaveChildren(parentElement.tag)) {
-  throw new DomainError('Leaf elements cannot have children');
+if (!canHaveChildren(parentElement.type)) {
+  throw new DomainError("Leaf elements cannot have children");
 }
 
 // 3. 저장 레이어: 무결성 검증

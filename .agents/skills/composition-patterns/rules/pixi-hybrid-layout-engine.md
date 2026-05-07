@@ -10,14 +10,14 @@ tags: [pixi, layout, canvas, hybrid-engine]
 
 ### 엔진 선택 규칙
 
-| display 값 | 엔진 | 설명 |
-|------------|------|------|
-| `block` (기본값) | DropflowBlockEngine | 수직 쌓임, width 100%, margin collapse |
-| `inline-block` | DropflowBlockEngine | 가로 배치, 줄바꿈, vertical-align |
-| `inline` | DropflowBlockEngine | 인라인 포매팅 |
-| `flow-root` | DropflowBlockEngine | BFC 생성 (margin collapse 차단) |
-| `flex`, `inline-flex` | TaffyFlexEngine (Taffy WASM) | Flexbox 레이아웃 |
-| `grid`, `inline-grid` | TaffyGridEngine (Taffy WASM) | 2D 그리드 레이아웃 |
+| display 값            | 엔진                         | 설명                                   |
+| --------------------- | ---------------------------- | -------------------------------------- |
+| `block` (기본값)      | DropflowBlockEngine          | 수직 쌓임, width 100%, margin collapse |
+| `inline-block`        | DropflowBlockEngine          | 가로 배치, 줄바꿈, vertical-align      |
+| `inline`              | DropflowBlockEngine          | 인라인 포매팅                          |
+| `flow-root`           | DropflowBlockEngine          | BFC 생성 (margin collapse 차단)        |
+| `flex`, `inline-flex` | TaffyFlexEngine (Taffy WASM) | Flexbox 레이아웃                       |
+| `grid`, `inline-grid` | TaffyGridEngine (Taffy WASM) | 2D 그리드 레이아웃                     |
 
 ### WASM 활성화 요구사항
 
@@ -32,8 +32,8 @@ Taffy 엔진은 Rust WASM이 로드되어야 활성화됩니다:
 export function selectEngine(display: string | undefined): LayoutEngine {
   const wasmReady = isRustWasmReady();
   switch (display) {
-    case 'flex':
-    case 'inline-flex':
+    case "flex":
+    case "inline-flex":
       return wasmReady ? taffyFlexEngine : dropflowBlockEngine;
     // ...
   }
@@ -55,11 +55,11 @@ export function selectEngine(display: string | undefined): LayoutEngine {
 
 `width: fit-content`는 두 가지 경로에서 처리됩니다:
 
-| 경로 | 처리 방식 |
-|------|-----------|
-| DropflowBlockEngine | `FIT_CONTENT = -2` sentinel → `contentWidth` 사용 |
+| 경로                         | 처리 방식                                                           |
+| ---------------------------- | ------------------------------------------------------------------- |
+| DropflowBlockEngine          | `FIT_CONTENT = -2` sentinel → `contentWidth` 사용                   |
 | TaffyFlexEngine (Taffy WASM) | Taffy가 `width:auto` + Yoga wrapper에서 `flexGrow:0 + flexShrink:0` |
-| TaffyGridEngine (Taffy WASM) | Taffy가 `width:auto` 처리 |
+| TaffyGridEngine (Taffy WASM) | Taffy가 `width:auto` 처리                                           |
 
 ```typescript
 // ✅ parseSize가 'fit-content' → FIT_CONTENT(-2) 반환
@@ -86,7 +86,7 @@ if (width === undefined && !isFitContentWidth) {
 if (width === undefined && !isFitContentWidth) {
   layout.flexGrow = 0;
   layout.flexShrink = 0;
-  layout.alignSelf = 'flex-start'; // 부모 align-items 덮어씀!
+  layout.alignSelf = "flex-start"; // 부모 align-items 덮어씀!
 }
 ```
 
@@ -101,7 +101,7 @@ if (width === undefined && !isFitContentWidth) {
 // block 경로에서도 부모가 flex/grid이면 flex item 속성 적용
 const record = taffyStyleToRecord(taffyStyle);
 if (FLEX_GRID_DISPLAYS.has(parentDisplay)) {
-  applyFlexItemProperties(record, style);  // utils.ts 공유 함수
+  applyFlexItemProperties(record, style); // utils.ts 공유 함수
 }
 
 // ❌ block 자식이라고 flex item 속성 무시 → flex:1이 적용 안 됨
@@ -109,6 +109,7 @@ if (FLEX_GRID_DISPLAYS.has(parentDisplay)) {
 ```
 
 **`applyFlexItemProperties()` (utils.ts)**: flex shorthand 파싱 공유 함수.
+
 - TaffyFlexEngine, fullTreeLayout block 경로, grid 경로에서 모두 사용
 - taffyConfig 우선: shorthand가 이미 설정된 값을 덮어쓰지 않음
 - 개별 속성(flexGrow 등)은 shorthand/taffyConfig 모두를 덮어씀 (CSS cascade)
@@ -137,12 +138,12 @@ if (!enrichedStyle.height && (!elementStyle.height || elementStyle.height === 'a
 
 `applyFlexItemProperties()` (utils.ts) 공유 함수에서 CSS `flex` shorthand를 `flexGrow`, `flexShrink`, `flexBasis`로 분해합니다. TaffyFlexEngine과 fullTreeLayout 양쪽에서 사용됩니다.
 
-| flex 값 | flexGrow | flexShrink | flexBasis |
-|---------|----------|------------|-----------|
-| `flex: 1` (number) | 1 | 1 | 0% |
-| `flex: "auto"` | 1 | 1 | auto |
-| `flex: "none"` | 0 | 0 | auto |
-| `flex: "2 0 100px"` | 2 | 0 | 100px |
+| flex 값             | flexGrow | flexShrink | flexBasis |
+| ------------------- | -------- | ---------- | --------- |
+| `flex: 1` (number)  | 1        | 1          | 0%        |
+| `flex: "auto"`      | 1        | 1          | auto      |
+| `flex: "none"`      | 0        | 0          | auto      |
+| `flex: "2 0 100px"` | 2        | 0          | 100px     |
 
 **우선순위**: 개별 속성(`flexGrow`, `flexShrink`, `flexBasis`)이 명시되어 있으면 shorthand보다 우선.
 
@@ -228,9 +229,12 @@ style: { fontSize: 14 }  // → flexGrow:0 (Taffy 기본값)
 // ✅ availableWidth = 부모 크기 - padding - border
 const parentPadding = parsePadding(parentStyle);
 const parentBorder = parseBorder(parentStyle);
-const availableWidth = pageWidth
-  - parentPadding.left - parentPadding.right
-  - parentBorder.left - parentBorder.right;
+const availableWidth =
+  pageWidth -
+  parentPadding.left -
+  parentPadding.right -
+  parentBorder.left -
+  parentBorder.right;
 ```
 
 ### 자식 offset: padding만 적용 (border 제외)
@@ -252,12 +256,14 @@ left: layout.x + parentPadding.left + parentBorder.left,
 
 ```typescript
 // ✅ isParentExplicitFlex일 때 부모 flex 속성을 wrapper에 전달
-const parentFlexProps = isParentExplicitFlex ? {
-  flexDirection: parentStyle?.flexDirection ?? 'row',
-  justifyContent: parentStyle?.justifyContent,
-  alignItems: parentStyle?.alignItems,
-  gap: parentStyle?.gap,
-} : {};
+const parentFlexProps = isParentExplicitFlex
+  ? {
+      flexDirection: parentStyle?.flexDirection ?? "row",
+      justifyContent: parentStyle?.justifyContent,
+      alignItems: parentStyle?.alignItems,
+      gap: parentStyle?.gap,
+    }
+  : {};
 
 // ❌ 항상 flexDirection: column, alignItems: flex-start 강제
 // → 부모의 justify-content: center, align-items: center가 무시됨
@@ -269,11 +275,11 @@ const parentFlexProps = isParentExplicitFlex ? {
 
 ```typescript
 // ✅ resolveLayoutSize로 퍼센트 값 해석
-resolveLayoutSize(containerLayout.width, parentWidth)
+resolveLayoutSize(containerLayout.width, parentWidth);
 // '100%' + parentWidth=800 → 800
 
 // ❌ typeof 체크로 0 폴백
-typeof containerLayout.width === 'number' ? containerLayout.width : 0
+typeof containerLayout.width === "number" ? containerLayout.width : 0;
 // '100%' → 0 (문자열이므로)
 ```
 
@@ -284,7 +290,10 @@ typeof containerLayout.width === 'number' ? containerLayout.width : 0
 ```typescript
 // ✅ contentHeight = 텍스트 높이만
 // MIN_BUTTON_HEIGHT는 border-box → content-box 변환 후 비교
-const minContentHeight = Math.max(0, MIN_BUTTON_HEIGHT - paddingY * 2 - borderWidth * 2);
+const minContentHeight = Math.max(
+  0,
+  MIN_BUTTON_HEIGHT - paddingY * 2 - borderWidth * 2,
+);
 return Math.max(textHeight, minContentHeight);
 
 // ❌ padding 포함 → DropflowBlockEngine에서 이중 계산
@@ -297,11 +306,12 @@ return Math.max(paddingY * 2 + textHeight, MIN_BUTTON_HEIGHT);
 
 ```typescript
 // ✅ parseBoxModel 내부 — 폼 요소는 명시적 크기를 border-box로 해석
-const treatAsBorderBox = boxSizing === 'border-box' ||
+const treatAsBorderBox =
+  boxSizing === "border-box" ||
   (isFormElement && (width !== undefined || height !== undefined));
 
 if (treatAsBorderBox && width !== undefined) {
-  width = Math.max(0, width - paddingH - borderH);  // content-box로 변환
+  width = Math.max(0, width - paddingH - borderH); // content-box로 변환
 }
 ```
 
@@ -312,28 +322,29 @@ if (treatAsBorderBox && width !== undefined) {
 ```typescript
 // ✅ parseBoxModel 내부 — Card/Box/Section 명시적 크기를 border-box로 해석
 const isTreatedAsBorderBox =
-  boxSizing === 'border-box' ||
+  boxSizing === "border-box" ||
   (isFormElement && (width !== undefined || height !== undefined)) ||
-  ((tag === 'card' || tag === 'box' || tag === 'section') && boxSizing !== 'content-box');
+  ((type === "card" || type === "box" || type === "section") &&
+    boxSizing !== "content-box");
 
 if (isTreatedAsBorderBox && width !== undefined) {
-  width = Math.max(0, width - paddingH - borderH);  // content-box로 변환
+  width = Math.max(0, width - paddingH - borderH); // content-box로 변환
 }
 
 // ✅ enrichWithIntrinsicSize — Card 주입 높이에 padding+border 포함
 // calculateContentHeight가 content-box 기준 값을 반환하므로
 // border-box 변환은 호출 측에서 합산
 const contentH = calculateContentHeight(element, availableWidth);
-const intrinsicH = contentH + paddingY * 2 + borderWidth * 2;  // border-box 높이
+const intrinsicH = contentH + paddingY * 2 + borderWidth * 2; // border-box 높이
 ```
 
 **CONTAINER_TAGS 중 border-box 대상**:
 
-| 태그 | 이유 |
-|------|------|
-| `card` | 사용자 정의 높이가 항상 border-box 기준 |
-| `box` | card와 동일 구조 |
-| `section` | 페이지 섹션 컨테이너, border-box 기준 |
+| 태그      | 이유                                    |
+| --------- | --------------------------------------- |
+| `card`    | 사용자 정의 높이가 항상 border-box 기준 |
+| `box`     | card와 동일 구조                        |
+| `section` | 페이지 섹션 컨테이너, border-box 기준   |
 
 ```typescript
 // ❌ Card에 content-box 기준 높이 주입 → 실제 크기보다 padding+border만큼 커짐
@@ -350,9 +361,13 @@ Card는 CONTAINER_TAGS에 등록된 복합 컨테이너로, `title`/`description
 // ✅ Card: childElements 기반 높이 계산 우선
 // LayoutContext.getChildElements로 실제 자식 Element 목록 조회
 const children = context.getChildElements?.(element.id) ?? [];
-if (tag === 'card' && children.length > 0) {
+if (type === "card" && children.length > 0) {
   // 각 자식(Heading, Description 등)의 높이를 합산하여 Card 전체 높이 결정
-  const childrenTotalHeight = sumChildHeights(children, availableWidth, context);
+  const childrenTotalHeight = sumChildHeights(
+    children,
+    availableWidth,
+    context,
+  );
   return Math.max(childrenTotalHeight, minHeight);
 }
 
@@ -361,6 +376,7 @@ return calculateTextHeight(element, availableWidth);
 ```
 
 **핵심 규칙**:
+
 - Card의 `enrichWithIntrinsicSize`는 `context.getChildElements`로 자식 목록을 받아 높이를 계산
 - Heading/Description은 TEXT_TAGS에 포함되어 각자 TextSprite 경로로 크기가 결정됨
 - Card 자체의 spec shapes는 배경/테두리/그림자만 담당 (텍스트 미포함)
@@ -377,7 +393,7 @@ Editor(Properties Panel)가 업데이트하는 부모 props와 TextSprite가 읽
 
 // ✅ Tabs: _tabLabels 주입 (기존 패턴)
 // Tabs element의 _tabLabels prop을 각 Tab 자식에 전달
-if (containerTag === 'Tabs') {
+if (containerType === "Tabs") {
   effectiveChildEl = {
     ...childEl,
     props: { ...childEl.props, _tabLabels: tabsElement.props._tabLabels },
@@ -387,9 +403,9 @@ if (containerTag === 'Tabs') {
 // ✅ Card: heading/description → Heading/Description 자식에 주입 (2026-02-21 추가)
 // CardEditor가 Card.props를 변경해도 자식 element는 그대로이므로
 // renderring 시점에 부모 props를 자식에 반영
-if (containerTag === 'Card') {
+if (containerType === "Card") {
   const cardProps = containerElement.props;
-  if (childEl.tag === 'Heading') {
+  if (childEl.type === "Heading") {
     const headingText = cardProps?.heading ?? cardProps?.title;
     if (headingText != null) {
       effectiveChildEl = {
@@ -397,7 +413,7 @@ if (containerTag === 'Card') {
         props: { ...childEl.props, children: String(headingText) },
       };
     }
-  } else if (childEl.tag === 'Description') {
+  } else if (childEl.type === "Description") {
     const descText = cardProps?.description;
     if (descText != null) {
       effectiveChildEl = {
@@ -414,16 +430,17 @@ if (containerTag === 'Card') {
 
 **컨테이너별 주입 규칙 요약**:
 
-| 컨테이너 | 부모 props 키 | 대상 자식 tag | 주입 대상 prop | 비고 |
-|----------|--------------|--------------|---------------|------|
-| `Tabs`   | `_tabLabels` | `Tab`        | `_tabLabels`  | 동적 탭 레이블 배열 |
-| `Card`   | `heading` 또는 `title` | `Heading`    | `children` | `heading` 우선, 없으면 `title` |
-| `Card`   | `description`           | `Description`| `children` | null/undefined면 자식 초기값 유지 |
+| 컨테이너 | 부모 props 키          | 대상 자식 type | 주입 대상 prop | 비고                              |
+| -------- | ---------------------- | -------------- | -------------- | --------------------------------- |
+| `Tabs`   | `_tabLabels`           | `Tab`          | `_tabLabels`   | 동적 탭 레이블 배열               |
+| `Card`   | `heading` 또는 `title` | `Heading`      | `children`     | `heading` 우선, 없으면 `title`    |
+| `Card`   | `description`          | `Description`  | `children`     | null/undefined면 자식 초기값 유지 |
 
 **새 컨테이너에 이 패턴을 적용할 때 체크리스트**:
+
 1. Editor가 업데이트하는 부모 element props 키 확인
 2. TextSprite가 읽는 자식 Element의 prop 확인 (대부분 `children`)
-3. `createContainerChildRenderer` 내 `containerTag === 'XXX'` 분기 추가
+3. `createContainerChildRenderer` 내 `containerType === 'XXX'` 분기 추가
 4. `effectiveChildEl`을 spread 방식으로 생성 (원본 immutability 유지)
 5. 부모 props 값이 `null`/`undefined`이면 주입하지 않아 자식 초기값 유지
 
@@ -461,13 +478,13 @@ Select/ComboBox의 CONTAINER_TAGS 자식(SelectTrigger, ComboBoxWrapper) 내부 
 
 ```typescript
 // ✅ SelectTrigger 내부 자식 implicit styles (레이아웃 계산 전)
-if (containerTag === 'selecttrigger') {
+if (containerType === 'selecttrigger') {
   filteredContainerChildren = filteredContainerChildren.map(child => {
     const cs = (child.props?.style || {}) as Record<string, unknown>;
-    if (child.tag === 'SelectValue') {
+    if (child.type === 'SelectValue') {
       return { ...child, props: { ...child.props, style: { ...cs, flex: cs.flex ?? 1 } } };
     }
-    if (child.tag === 'SelectIcon') {
+    if (child.type === 'SelectIcon') {
       return { ...child, props: { ...child.props, style: { ...cs, width: cs.width ?? 18, height: cs.height ?? 18, flexShrink: cs.flexShrink ?? 0 } } };
     }
     return child;
@@ -476,9 +493,9 @@ if (containerTag === 'selecttrigger') {
 
 // ✅ 렌더링 시 implicit styles + 투명 배경 (spec shapes가 시각 렌더링 담당)
 const implicitStyle =
-  (tag === 'SelectIcon' || tag === 'ComboBoxTrigger')
+  (type === 'SelectIcon' || type === 'ComboBoxTrigger')
     ? { width: 18, height: 18, flexShrink: 0 }
-    : (tag === 'SelectValue' || tag === 'ComboBoxInput')
+    : (type === 'SelectValue' || type === 'ComboBoxInput')
       ? { flex: 1 }
       : {};
 style: { ...implicitStyle, ...existingStyle, backgroundColor: 'transparent' }
@@ -486,11 +503,11 @@ style: { ...implicitStyle, ...existingStyle, backgroundColor: 'transparent' }
 
 **적용 대상**:
 
-| 컨테이너 | 자식 태그 | implicit styles |
-|----------|----------|----------------|
-| SelectTrigger | SelectValue | `flex: 1` |
-| SelectTrigger | SelectIcon | `width: 18, height: 18, flexShrink: 0` |
-| ComboBoxWrapper | ComboBoxInput | `flex: 1` |
+| 컨테이너        | 자식 태그       | implicit styles                        |
+| --------------- | --------------- | -------------------------------------- |
+| SelectTrigger   | SelectValue     | `flex: 1`                              |
+| SelectTrigger   | SelectIcon      | `width: 18, height: 18, flexShrink: 0` |
+| ComboBoxWrapper | ComboBoxInput   | `flex: 1`                              |
 | ComboBoxWrapper | ComboBoxTrigger | `width: 18, height: 18, flexShrink: 0` |
 
 ### CONTAINER_TAGS + inline-block 컴포넌트 Selection 크기
@@ -503,17 +520,19 @@ CONTAINER_TAGS(Card, Panel, ToggleButtonGroup, Tabs 등)는 `renderWithCustomEng
 // ✅ ToggleButtonGroup: 명시적 width 설정 여부에 따라 분기
 // - 명시적 width (100%, 200px 등): DropflowBlockEngine이 계산한 layout.width 사용
 // - 기본값 (fit-content/미지정): Yoga가 자식 크기에 맞춰 자동 계산
-const hasExplicitWidth = isToggleButtonGroup && childStyle?.width !== undefined
-  && childStyle.width !== 'fit-content';
+const hasExplicitWidth =
+  isToggleButtonGroup &&
+  childStyle?.width !== undefined &&
+  childStyle.width !== "fit-content";
 const toggleGroupWidthOverride = isToggleButtonGroup
   ? hasExplicitWidth
     ? { width: layout.width }
-    : { width: 'auto', flexGrow: 0, flexShrink: 0 }
+    : { width: "auto", flexGrow: 0, flexShrink: 0 }
   : { width: layout.width };
 
 // ❌ 무조건 'auto' 오버라이드 → width: 100% 등 명시적 설정이 무시됨
 const toggleGroupWidthOverride = isToggleButtonGroup
-  ? { width: 'auto', flexGrow: 0, flexShrink: 0 }
+  ? { width: "auto", flexGrow: 0, flexShrink: 0 }
   : { width: layout.width };
 ```
 
@@ -532,7 +551,8 @@ CanvasKit paragraph API는 내부 레이아웃 방식이 달라 동일한 텍스
 // engines/utils.ts — calculateContentWidth
 
 // ✅ INLINE_FORM 경로 (line 718-719): 이미 보정 적용됨
-const textWidth = Math.ceil(calculateTextWidth(labelText, fontSize, fontFamily)) + 2;
+const textWidth =
+  Math.ceil(calculateTextWidth(labelText, fontSize, fontFamily)) + 2;
 
 // ✅ 일반 텍스트 경로 (line 759-760): 동일하게 보정 적용 (2026-02-22 추가)
 // TagGroup label, Button 등 단일 텍스트 측정 경로
@@ -546,15 +566,16 @@ const textWidth = calculateTextWidth(text, fontSize, fontFamily);
 **두 경로는 반드시 동일한 보정 패턴을 사용해야 합니다.**
 새 텍스트 폭 계산 경로를 추가할 때 이 보정을 빠뜨리면 Canvas 2D에서는 정상인데 CanvasKit에서만 줄바꿈이 발생하는 버그가 생깁니다.
 
-| 경로 | 위치 | 보정 적용 여부 |
-|------|------|--------------|
-| INLINE_FORM 경로 | utils.ts line 718-719 | 적용 (기존) |
+| 경로             | 위치                  | 보정 적용 여부         |
+| ---------------- | --------------------- | ---------------------- |
+| INLINE_FORM 경로 | utils.ts line 718-719 | 적용 (기존)            |
 | 일반 텍스트 경로 | utils.ts line 759-760 | 적용 (2026-02-22 추가) |
 
 ### 스타일 패널 display 기본값 (styleAtoms)
 
 `styleAtoms.ts`의 layout atoms는 `getLayoutDefault()` 4단계 우선순위를 따릅니다:
-1. inline style → 2. computed style → 3. `DEFAULT_CSS_VALUES[tag]` → 4. global default
+
+1. inline style → 2. computed style → 3. `DEFAULT_CSS_VALUES[type]` → 4. global default
 
 ```typescript
 // ✅ DEFAULT_CSS_VALUES에 컴포넌트별 CSS 기본값 등록
@@ -573,7 +594,7 @@ ToggleButtonGroup: { width: 'fit-content', display: 'flex', flexDirection: 'row'
 // ✅ factory 정의에 CSS 기본값 style 포함
 // GroupComponents.ts
 {
-  tag: "ToggleButtonGroup",
+  type: "ToggleButtonGroup",
   props: {
     style: { display: "flex", flexDirection: "row", alignItems: "center", width: "fit-content" },
     // ...
@@ -583,7 +604,7 @@ ToggleButtonGroup: { width: 'fit-content', display: 'flex', flexDirection: 'row'
 // ❌ factory 정의에 style 누락 → 생성 시 기본값 미적용
 // → 리셋 버튼 클릭 후에만 기본값이 적용되는 버그 발생
 {
-  tag: "ToggleButtonGroup",
+  type: "ToggleButtonGroup",
   props: {
     variant: "default",
     // style이 없음!
@@ -602,9 +623,9 @@ Checkbox, Radio, Switch, Toggle은 DropflowBlockEngine에서 `inline-block`으�
 // engines/utils.ts
 const INLINE_FORM_HEIGHTS: Record<string, Record<string, number>> = {
   checkbox: { sm: 20, md: 24, lg: 28 },
-  radio:    { sm: 20, md: 24, lg: 28 },
-  switch:   { sm: 20, md: 24, lg: 28 },
-  toggle:   { sm: 20, md: 24, lg: 28 },
+  radio: { sm: 20, md: 24, lg: 28 },
+  switch: { sm: 20, md: 24, lg: 28 },
+  toggle: { sm: 20, md: 24, lg: 28 },
 };
 ```
 
@@ -618,10 +639,10 @@ const INLINE_FORM_HEIGHTS: Record<string, Record<string, number>> = {
 ```typescript
 // ✅ 현행 값 (Switch.spec.ts trackWidth 기준)
 const INLINE_FORM_INDICATOR_WIDTHS: Record<string, Record<string, number>> = {
-  checkbox: { sm: 16, md: 20, lg: 24 },  // Checkbox.spec.ts indicatorSize 기준
-  radio:    { sm: 16, md: 20, lg: 24 },  // Radio.spec.ts indicatorSize 기준
-  switch:   { sm: 36, md: 44, lg: 52 },  // Switch.spec.ts trackWidth 기준
-  toggle:   { sm: 36, md: 44, lg: 52 },  // Toggle.spec.ts trackWidth 기준
+  checkbox: { sm: 16, md: 20, lg: 24 }, // Checkbox.spec.ts indicatorSize 기준
+  radio: { sm: 16, md: 20, lg: 24 }, // Radio.spec.ts indicatorSize 기준
+  switch: { sm: 36, md: 44, lg: 52 }, // Switch.spec.ts trackWidth 기준
+  toggle: { sm: 36, md: 44, lg: 52 }, // Toggle.spec.ts trackWidth 기준
 };
 
 // ❌ 수정 전 잘못된 값 (Switch trackWidth보다 10px 작았음)
@@ -632,6 +653,7 @@ const INLINE_FORM_INDICATOR_WIDTHS = {
 ```
 
 **버그 발생 메커니즘**:
+
 1. `INLINE_FORM_INDICATOR_WIDTHS`가 spec보다 10px 작음 → 레이아웃 엔진이 계산한 컴포넌트 전체 너비가 10px 작음
 2. `specShapeConverter`가 실제 렌더링 시 spec 기준 `trackWidth`(36/44/52)로 인디케이터를 배치 → `shape.x = trackWidth`
 3. 텍스트 shape의 `maxWidth`가 `containerWidth - shape.x`로 자동 축소됨
@@ -645,14 +667,16 @@ const INLINE_FORM_INDICATOR_WIDTHS = {
 ```typescript
 // ✅ 현행 값 (컴포넌트 spec sizes 기준)
 const INLINE_FORM_GAPS: Record<string, Record<string, number>> = {
-  checkbox: { sm: 6, md: 8,  lg: 10 },  // Checkbox.spec.ts gap 기준
-  radio:    { sm: 6, md: 8,  lg: 10 },  // Radio.spec.ts gap 기준
-  switch:   { sm: 8, md: 10, lg: 12 },  // Switch.spec.ts gap 기준
-  toggle:   { sm: 8, md: 10, lg: 12 },  // Toggle.spec.ts gap 기준
+  checkbox: { sm: 6, md: 8, lg: 10 }, // Checkbox.spec.ts gap 기준
+  radio: { sm: 6, md: 8, lg: 10 }, // Radio.spec.ts gap 기준
+  switch: { sm: 8, md: 10, lg: 12 }, // Switch.spec.ts gap 기준
+  toggle: { sm: 8, md: 10, lg: 12 }, // Toggle.spec.ts gap 기준
 };
 
 // ✅ 실제 사용: INLINE_FORM_GAPS 우선, 없으면 크기 기반 폴백
-const gap = INLINE_FORM_GAPS[tag]?.[sizeName] ?? (sizeName === 'sm' ? 6 : sizeName === 'lg' ? 10 : 8);
+const gap =
+  INLINE_FORM_GAPS[type]?.[sizeName] ??
+  (sizeName === "sm" ? 6 : sizeName === "lg" ? 10 : 8);
 ```
 
 Switch/Toggle은 Checkbox/Radio보다 gap이 2px 더 큽니다.
@@ -664,7 +688,7 @@ gap을 잘못 설정하면 row 방향 전체 너비 계산(`indicatorWidth + gap
 
 ```typescript
 // ✅ column 방향: INLINE_FORM_GAPS로 switch/toggle 전용 gap 적용
-const columnGap = INLINE_FORM_GAPS[tag]?.[sizeName] ?? defaultGap;
+const columnGap = INLINE_FORM_GAPS[type]?.[sizeName] ?? defaultGap;
 // height = indicatorHeight + columnGap + textLineHeight
 
 // ❌ 모든 폼 요소에 동일한 고정 gap 사용
@@ -675,10 +699,10 @@ const columnGap = 8; // switch(10/12)와 다를 수 있음
 
 `element.props.style.flexDirection`이 `'column'`이면 크기 계산이 변경됩니다:
 
-| 방향 | width | height |
-|------|-------|--------|
-| row (기본) | indicator + gap + textWidth | `INLINE_FORM_HEIGHTS[tag][size]` |
-| column | max(indicator, textWidth) | indicator + gap + textLineHeight |
+| 방향       | width                       | height                            |
+| ---------- | --------------------------- | --------------------------------- |
+| row (기본) | indicator + gap + textWidth | `INLINE_FORM_HEIGHTS[type][size]` |
+| column     | max(indicator, textWidth)   | indicator + gap + textLineHeight  |
 
 이 분기는 `engines/utils.ts`의 `enrichWithIntrinsicSize()`에 통합되어 있으며, DropflowBlockEngine + TaffyFlexEngine **양쪽**에서 공유됩니다.
 
@@ -691,9 +715,9 @@ Spec 기반 Skia 렌더링에서도 동일한 결과를 얻으려면 `_groupPosi
 // ✅ ElementSprite.tsx: toggleGroupPosition을 _groupPosition으로 주입
 const specProps = toggleGroupPosition
   ? { ...(props || {}), _groupPosition: toggleGroupPosition }
-  : (props || {});
+  : props || {};
 
-const shapes = spec.render.shapes(specProps, variantSpec, sizeSpec, 'default');
+const shapes = spec.render.shapes(specProps, variantSpec, sizeSpec, "default");
 
 // ✅ ToggleButton.spec.ts shapes(): per-corner border-radius
 // horizontal: first → [r,0,0,r], last → [0,r,r,0], middle → [0,0,0,0]
@@ -702,7 +726,7 @@ const gp = props._groupPosition;
 let borderRadius = baseBorderRadius;
 if (gp && !gp.isOnly) {
   const r = baseBorderRadius;
-  if (gp.orientation === 'horizontal') {
+  if (gp.orientation === "horizontal") {
     if (gp.isFirst) borderRadius = [r, 0, 0, r];
     else if (gp.isLast) borderRadius = [0, r, r, 0];
     else borderRadius = [0, 0, 0, 0];
@@ -776,7 +800,7 @@ const borderRadius = size.borderRadius; // [r,0,0,r] 대신 항상 r
 Properties Panel에서 Card의 `heading`/`description`을 변경해도 WebGL Canvas에 반영되지 않던 버그 수정.
 
 - **근본 원인**: CardEditor는 `Card.props.heading/description`을 업데이트하지만, WebGL TextSprite는 자식 Heading/Description Element의 `props.children`을 읽음. Card.props → 자식 element props 동기화가 없었음.
-- **수정 1 — `BuilderCanvas.tsx`**: `createContainerChildRenderer`에 `containerTag === 'Card'` 분기 추가. `cardProps.heading ?? cardProps.title`을 Heading 자식의 `props.children`에, `cardProps.description`을 Description 자식의 `props.children`에 주입.
+- **수정 1 — `BuilderCanvas.tsx`**: `createContainerChildRenderer`에 `containerType === 'Card'` 분기 추가. `cardProps.heading ?? cardProps.title`을 Heading 자식의 `props.children`에, `cardProps.description`을 Description 자식의 `props.children`에 주입.
 - **수정 2 — `LayoutRenderers.tsx`**: CSS Preview Card 렌더러에 `heading`, `subheading`, `footer` props 전달 추가. WebGL Canvas와 CSS Preview가 동일한 텍스트를 표시하도록 동기화.
 - **패턴**: Tabs `_tabLabels`와 동일한 Container Props 주입 방식 (CONTAINER_PROPS_INJECTION)
 
@@ -826,19 +850,20 @@ Slider는 Simple → Complex Component로 전환된 후에도 `ElementSprite.tsx
 // ElementSprite.tsx — Slider specHeight 보정 로직
 // SLIDER_DIMENSIONS 기준 치수
 const SLIDER_DIMENSIONS = {
-  sm: { trackHeight: 4,  thumbSize: 14 },
-  md: { trackHeight: 6,  thumbSize: 18 },
-  lg: { trackHeight: 8,  thumbSize: 22 },
+  sm: { trackHeight: 4, thumbSize: 14 },
+  md: { trackHeight: 6, thumbSize: 18 },
+  lg: { trackHeight: 8, thumbSize: 22 },
 };
 
 // Slider specHeight = label(lineHeight) + gap + thumbSize
 // (thumbSize가 track보다 크므로 thumbSize를 기준으로 계산)
-const sliderDims = SLIDER_DIMENSIONS[size ?? 'md'];
+const sliderDims = SLIDER_DIMENSIONS[size ?? "md"];
 const labelHeight = resolvedFontSize * 1.2; // lineHeight 근사값
 const specHeight = labelHeight + gap + sliderDims.thumbSize;
 ```
 
 **보정이 여전히 필요한 이유**:
+
 - Slider는 Complex Component로 전환되어 자식 Element(Label, SliderOutput, SliderTrack > SliderThumb)를 가집니다.
 - 그러나 자식들은 **투명(transparent) 배경**으로 렌더링되며, 시각적 렌더링(track 막대, thumb 원)은 **부모 Slider의 spec shapes**가 담당합니다.
 - 레이아웃 엔진은 자식 Element의 크기로 전체 높이를 결정하지만, 자식들이 투명이므로 자동 크기 계산이 올바르지 않을 수 있습니다.
@@ -856,6 +881,7 @@ Slider (부모)
 ```
 
 **SliderOutput 위치 주의**:
+
 - SliderOutput은 우측 정렬 텍스트로, `x: containerWidth` 대신 `x: 0` + `maxWidth: containerWidth` + `align: 'right'`를 사용합니다.
 - `x: containerWidth`로 설정하면 `paddingLeft`가 컨테이너 밖에 위치하여 화면 밖으로 나가는 문제가 발생합니다.
 
@@ -865,16 +891,17 @@ Select, ComboBox, Slider처럼 Label 자식 Element를 포함하는 Complex Comp
 
 ```typescript
 // ElementSprite.tsx — _hasLabelChild 체크
-const COMPLEX_WITH_LABEL_CHILD = new Set(['Select', 'ComboBox', 'Slider']);
+const COMPLEX_WITH_LABEL_CHILD = new Set(["Select", "ComboBox", "Slider"]);
 
 // shapes 처리 시 label/output 텍스트 shapes 스킵
-if (COMPLEX_WITH_LABEL_CHILD.has(tag) && element._hasLabelChild) {
+if (COMPLEX_WITH_LABEL_CHILD.has(type) && element._hasLabelChild) {
   // label, output 텍스트 shape 제외 — 자식 Element(TextSprite)가 담당
-  filteredShapes = shapes.filter(s => s.id !== 'label' && s.id !== 'output');
+  filteredShapes = shapes.filter((s) => s.id !== "label" && s.id !== "output");
 }
 ```
 
 **이 체크가 필요한 이유**:
+
 - Complex Component 전환 전에는 spec shapes에서 label 텍스트를 직접 렌더링했습니다.
 - 전환 후 Label/SliderOutput 자식이 TextSprite 경로로 렌더링하므로, spec shapes에서 label/output 텍스트를 함께 렌더링하면 이중 표시가 발생합니다.
 - `_hasLabelChild` 플래그로 자식 Label이 있는 경우만 스킵하여 구버전 데이터 하위 호환성을 유지합니다.

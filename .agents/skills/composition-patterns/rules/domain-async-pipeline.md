@@ -46,35 +46,36 @@ const updateElement = (id, props) => {
 
 ```typescript
 // ✅ 올바른 파이프라인 순서
-export const createAddElementAction = (set, get) => async (element: Element) => {
-  const state = get();
+export const createAddElementAction =
+  (set, get) => async (element: Element) => {
+    const state = get();
 
-  // 1. Memory Update (즉시) - UI 즉시 반응
-  set({ elements: [...state.elements, element] });
+    // 1. Memory Update (즉시) - UI 즉시 반응
+    set({ elements: [...state.elements, element] });
 
-  // 2. Index Rebuild (즉시) - O(1) 검색 보장
-  get()._rebuildIndexes();
+    // 2. Index Rebuild (즉시) - O(1) 검색 보장
+    get()._rebuildIndexes();
 
-  // 3. History Record (즉시) - Undo 즉시 가능
-  historyManager.addEntry({
-    type: 'add',
-    elementId: element.id,
-    data: { element: structuredClone(element) },
-  });
+    // 3. History Record (즉시) - Undo 즉시 가능
+    historyManager.addEntry({
+      type: "add",
+      elementId: element.id,
+      data: { element: structuredClone(element) },
+    });
 
-  // 4. IndexedDB Persist (백그라운드) - 비블로킹
-  setTimeout(async () => {
-    const db = await getDB();
-    await db.elements.insert(sanitizeElement(element));
-  }, 0);
-
-  // 5. Preview Sync (백그라운드) - WebGL 모드가 아닐 때만
-  if (!isWebGLCanvas()) {
-    setTimeout(() => {
-      deltaMessenger.sendElementAdded(element);
+    // 4. IndexedDB Persist (백그라운드) - 비블로킹
+    setTimeout(async () => {
+      const db = await getDB();
+      await db.elements.insert(sanitizeElement(element));
     }, 0);
-  }
-};
+
+    // 5. Preview Sync (백그라운드) - WebGL 모드가 아닐 때만
+    if (!isWebGLCanvas()) {
+      setTimeout(() => {
+        deltaMessenger.sendElementAdded(element);
+      }, 0);
+    }
+  };
 
 // ✅ 배치 작업도 동일 패턴
 export const batchUpdateElements = (updates: Update[]) => {
@@ -96,7 +97,7 @@ export const batchUpdateElements = (updates: Update[]) => {
 ```typescript
 // ✅ structuredClone으로 히스토리용 복사 (참조 분리)
 historyManager.addEntry({
-  data: { element: structuredClone(element) }  // 깊은 복사
+  data: { element: structuredClone(element) }, // 깊은 복사
 });
 
 // ✅ sanitizeElement로 DB 저장 전 정리
@@ -119,15 +120,20 @@ await removeElements(deletableIds);
 //   5. postMessage (1회)
 
 // ❌ 순차 삭제 — N번 파이프라인 실행
-for (const id of ids) { await removeElement(id); }
+for (const id of ids) {
+  await removeElement(id);
+}
 ```
 
-## order_num 재정렬 파이프라인
+## Order / legacy mirror 정규화 파이프라인
 
-`reorderElements()`는 `computeReorderUpdates()` 순수 함수 + `batchUpdateElementOrders()` 단일 set() 패턴입니다.
+canonical cutover 이후 runtime order는 parent `children[]` index가 SSOT입니다.
+`reorderElements()`는 legacy `order_num` mirror 정규화가 필요할 때만
+`computeReorderUpdates()` 순수 함수 + `batchUpdateElementOrders()` 단일 set()
+패턴으로 사용합니다.
 
 ```typescript
-// ✅ 비동기 콜백에서 항상 get()으로 최신 상태 참조
+// ✅ legacy mirror 정규화가 필요하면 비동기 콜백에서 항상 get()으로 최신 상태 참조
 queueMicrotask(() => {
   const { elements, batchUpdateElementOrders } = get();
   reorderElements(elements, pageId, batchUpdateElementOrders);
@@ -138,6 +144,8 @@ const { elements } = get();
 setTimeout(() => {
   reorderElements(elements, pageId, ...); // stale!
 }, 100);
+
+// ❌ props update에서 stale order_num을 canonical children[] reorder intent로 해석
 ```
 
 ## layoutVersion 계약 (ADR-012 P4)
@@ -146,15 +154,30 @@ setTimeout(() => {
 
 ```typescript
 // ✅ Store 내부: set() 내에서 layoutVersion 증가
-set((state) => ({ elements: newElements, layoutVersion: state.layoutVersion + 1 }));
+set((state) => ({
+  elements: newElements,
+  layoutVersion: state.layoutVersion + 1,
+}));
 
 // ✅ Store 외부(텍스트 측정기 교체, 폰트 로딩 등): invalidateLayout() 호출
 useStore.getState().invalidateLayout();
 
 // ✅ inspectorActions: LAYOUT_AFFECTING_PROPS 체크 후 조건부 증가
-const LAYOUT_AFFECTING_PROPS = new Set(['style', 'size', 'label', 'children', 'text', 'placeholder', 'orientation', 'items']);
-const hasLayoutChange = Object.keys(propsUpdate).some(key => LAYOUT_AFFECTING_PROPS.has(key));
-if (hasLayoutChange) set((state) => ({ layoutVersion: state.layoutVersion + 1 }));
+const LAYOUT_AFFECTING_PROPS = new Set([
+  "style",
+  "size",
+  "label",
+  "children",
+  "text",
+  "placeholder",
+  "orientation",
+  "items",
+]);
+const hasLayoutChange = Object.keys(propsUpdate).some((key) =>
+  LAYOUT_AFFECTING_PROPS.has(key),
+);
+if (hasLayoutChange)
+  set((state) => ({ layoutVersion: state.layoutVersion + 1 }));
 
 // ❌ layoutVersion 미증가 → fullTreeLayoutMap 재계산 스킵 → 크기 고정
 set({ elements: newElements }); // layoutVersion 변경 없음!
@@ -165,6 +188,7 @@ set({ elements: newElements }); // layoutVersion 변경 없음!
 - `apps/builder/src/builder/stores/utils/elementCreation.ts` - 추가 파이프라인
 - `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 업데이트 파이프라인
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 파이프라인 (단일/배치)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - order_num 재정렬 (순수 함수 + batch)
+- `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical `children[]` move/reorder
+- `apps/builder/src/builder/stores/utils/elementReorder.ts` - legacy order_num mirror 정규화 (순수 함수 + batch)
 - `apps/builder/src/builder/stores/inspectorActions.ts` - 프로퍼티 업데이트 + layoutVersion 증가
 - `apps/builder/src/builder/utils/canvasDeltaMessenger.ts` - Delta 동기화

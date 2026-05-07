@@ -14,7 +14,7 @@ tags: [supabase, security, rls]
 CREATE TABLE elements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES projects(id),
-  tag TEXT NOT NULL,
+  type TEXT NOT NULL,
   props JSONB DEFAULT '{}'
 );
 
@@ -23,9 +23,7 @@ CREATE TABLE elements (
 
 ```tsx
 // ❌ 클라이언트에서 모든 데이터 접근 가능
-const { data } = await supabase
-  .from('elements')
-  .select('*');  // 다른 사용자 데이터도 조회됨
+const { data } = await supabase.from("elements").select("*"); // 다른 사용자 데이터도 조회됨
 ```
 
 ## Correct
@@ -36,7 +34,7 @@ CREATE TABLE elements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID REFERENCES projects(id),
   user_id UUID REFERENCES auth.users(id),
-  tag TEXT NOT NULL,
+  type TEXT NOT NULL,
   props JSONB DEFAULT '{}'
 );
 
@@ -63,7 +61,5 @@ CREATE POLICY "Users can delete own elements"
 
 ```tsx
 // ✅ 자동으로 현재 사용자 데이터만 조회됨
-const { data } = await supabase
-  .from('elements')
-  .select('*');  // RLS가 자동 필터링
+const { data } = await supabase.from("elements").select("*"); // RLS가 자동 필터링
 ```

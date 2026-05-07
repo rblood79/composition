@@ -18,24 +18,24 @@ Element 트리의 parent-child 관계를 변경할 때(래퍼 추가/제거, 중
 ### Step 1: 소비자 식별 (grep 필수)
 
 ```bash
-# 변경되는 태그의 parent_id 참조 검색
-grep -rn "parent_id.*{ParentTag}\|tag === '{ChildTag}'" --include="*.tsx" --include="*.ts" apps/ packages/
+# 변경되는 type의 parent_id 참조 검색
+rg "parent_id.*{ParentType}|type === '{ChildType}'" apps/ packages/ -g "*.tsx" -g "*.ts"
 
 # 예: Tabs 구조 변경 시
-grep -rn "parent_id.*elementId.*Tab\|tag === 'Tab'\|tag === 'Panel'" --include="*.tsx" --include="*.ts" apps/ packages/
+rg "parent_id.*elementId.*Tab|type === 'Tab'|type === 'Panel'" apps/ packages/ -g "*.tsx" -g "*.ts"
 ```
 
 ### Step 2: 7개 서브시스템 체크리스트
 
-| # | 서브시스템 | 확인 파일 | 확인 사항 |
-|---|-----------|----------|----------|
-| 1 | **Factory** | `factories/definitions/*.ts` | 구조 정의 변경 |
-| 2 | **Layer Tree** | `treeUtils.ts`, `useLayerTreeData.ts` | 정렬/필터 로직, 표시명 |
-| 3 | **Preview Renderer** | `renderers/*.tsx`, `renderers/index.ts` | 자식 조회, 렌더러 등록 |
-| 4 | **Preview HTML** | `preview/App.tsx` | `resolveHtmlTag` 매핑 |
-| 5 | **Type System** | `unified.types.ts` | `defaultPropsMap` 등록 |
-| 6 | **Property Editor** | `editors/*Editor.tsx` | 자식 카운트, 추가/삭제 로직 |
-| 7 | **Canvas** | `BuilderCanvas.tsx`, `layout/engines/utils.ts` | 컨테이너 자식 렌더링, 높이 계산 |
+| #   | 서브시스템           | 확인 파일                                      | 확인 사항                       |
+| --- | -------------------- | ---------------------------------------------- | ------------------------------- |
+| 1   | **Factory**          | `factories/definitions/*.ts`                   | 구조 정의 변경                  |
+| 2   | **Layer Tree**       | `treeUtils.ts`, `useLayerTreeData.ts`          | 정렬/필터 로직, 표시명          |
+| 3   | **Preview Renderer** | `renderers/*.tsx`, `renderers/index.ts`        | 자식 조회, 렌더러 등록          |
+| 4   | **Preview HTML**     | `preview/App.tsx`                              | `resolveHtmlTag` 매핑           |
+| 5   | **Type System**      | `unified.types.ts`                             | `defaultPropsMap` 등록          |
+| 6   | **Property Editor**  | `editors/*Editor.tsx`                          | 자식 카운트, 추가/삭제 로직     |
+| 7   | **Canvas**           | `BuilderCanvas.tsx`, `layout/engines/utils.ts` | 컨테이너 자식 렌더링, 높이 계산 |
 
 ### Step 3: 호환 레이어 설계 (Dual Lookup)
 
@@ -43,19 +43,21 @@ grep -rn "parent_id.*elementId.*Tab\|tag === 'Tab'\|tag === 'Panel'" --include="
 
 ```typescript
 // ✅ Dual Lookup: 기존 flat 구조와 새 nested 구조 모두 지원
-function findChildrenByTag(
+function findChildrenByType(
   parentId: string,
-  childTag: string,
-  wrapperTag: string,
-  getChildren: (id: string) => Element[]
+  childType: string,
+  wrapperType: string,
+  getChildren: (id: string) => Element[],
 ): Element[] {
-  const directChildren = getChildren(parentId).filter(c => c.tag === childTag);
+  const directChildren = getChildren(parentId).filter(
+    (c) => c.type === childType,
+  );
   if (directChildren.length > 0) return directChildren;
 
   // 래퍼 내부 검색
-  const wrapper = getChildren(parentId).find(c => c.tag === wrapperTag);
+  const wrapper = getChildren(parentId).find((c) => c.type === wrapperType);
   if (wrapper) {
-    return getChildren(wrapper.id).filter(c => c.tag === childTag);
+    return getChildren(wrapper.id).filter((c) => c.type === childType);
   }
   return [];
 }
@@ -64,6 +66,7 @@ function findChildrenByTag(
 ### Step 4: E2E 검증
 
 구현 완료 후 반드시 실행:
+
 1. **새 컴포넌트 생성** → 구조가 올바른지 Layer Tree에서 확인
 2. **Canvas(WebGL)** → 모든 자식이 렌더링되는지 확인
 3. **Preview(iframe)** → React Aria가 올바르게 작동하는지 확인
@@ -75,9 +78,9 @@ function findChildrenByTag(
 // ❌ Factory만 수정하고 소비자를 확인하지 않음
 // LayoutComponents.ts만 변경
 children: [
-  { tag: "TabList", children: [{ tag: "Tab" }, { tag: "Tab" }] },
-  { tag: "TabPanels", children: [{ tag: "Panel" }, { tag: "Panel" }] },
-]
+  { type: "TabList", children: [{ type: "Tab" }, { type: "Tab" }] },
+  { type: "TabPanels", children: [{ type: "Panel" }, { type: "Panel" }] },
+];
 // → 9개 소비자가 깨짐
 
 // ❌ 작업량을 "Factory 파일 1개 = 소" 로 판단
@@ -88,7 +91,7 @@ children: [
 
 ```typescript
 // ✅ 구조 변경 전 소비자 전수 조사
-// 1. grep으로 parent_id + tag 패턴 검색
+// 1. rg로 parent_id + type 패턴 검색
 // 2. 7개 서브시스템 체크리스트 순회
 // 3. 각 소비자에 Dual Lookup 적용
 // 4. E2E 검증 (Layer Tree → Canvas → Preview → Editor)

@@ -127,13 +127,26 @@ Tabs는 CONTAINER_TAGS에 등록된 복합 컨테이너입니다. tab bar 영역
 `BuilderCanvas.tsx`의 CONTAINER_TAGS Set에 `'Tabs'`를 추가해야 `childElements`와 `renderChildElement` props를 수신합니다:
 
 ```typescript
-const CONTAINER_TAGS = useMemo(() => new Set([
-  'Card', 'Box', 'Panel', 'Form', 'Group', 'Dialog', 'Modal',
-  'Disclosure', 'DisclosureGroup', 'Accordion',
-  'ToggleButtonGroup',
-  'TagGroup', 'TagList',
-  'Tabs',  // <- childElements/renderChildElement props 수신
-]), []);
+const CONTAINER_TAGS = useMemo(
+  () =>
+    new Set([
+      "Card",
+      "Box",
+      "Panel",
+      "Form",
+      "Group",
+      "Dialog",
+      "Modal",
+      "Disclosure",
+      "DisclosureGroup",
+      "Accordion",
+      "ToggleButtonGroup",
+      "TagGroup",
+      "TagList",
+      "Tabs", // <- childElements/renderChildElement props 수신
+    ]),
+  [],
+);
 ```
 
 ### Panel 필터링 및 탭 클릭 처리
@@ -141,8 +154,8 @@ const CONTAINER_TAGS = useMemo(() => new Set([
 ```typescript
 // PixiTabs 내부: 첫 번째 Panel 자식만 렌더링
 const activePanelChildren = childElements
-  .filter(c => c.tag === 'Panel')
-  .slice(0, 1);  // 현재는 첫 번째 Panel만 표시 (activeTab 연동 시 확장)
+  .filter((c) => c.type === "Panel")
+  .slice(0, 1); // 현재는 첫 번째 Panel만 표시 (activeTab 연동 시 확장)
 
 // 탭 클릭: 개별 탭 영역이 아닌 전체 Tabs 컨테이너 히트 영역에서 처리
 // → tab bar 내 탭 구분은 X 좌표 기반으로 계산
@@ -157,7 +170,7 @@ const handleTabBarPointerDown = (e: FederatedPointerEvent) => {
 ### 핵심 규칙 요약
 
 - Tabs는 CONTAINER_TAGS에 등록 → `childElements`/`renderChildElement` props 수신
-- Panel 필터링: `childElements.filter(c => c.tag === 'Panel').slice(0, 1)`
+- Panel 필터링: `childElements.filter(c => c.type === 'Panel').slice(0, 1)`
 - 탭 클릭 히트 영역: 전체 Tabs 영역 단일 히트 (개별 탭 영역 별도 등록 불필요)
 - `drawContainerHitRect`는 조건부 return 전에 선언 필수 (React Hooks 규칙)
 
@@ -178,7 +191,9 @@ Card는 CONTAINER_TAGS에 등록된 복합 컨테이너입니다. 배경/테두�
     onPointerDown={handleContainerPointerDown}
   />
   {/* spec shapes로 배경·테두리·그림자 렌더링 (BoxSprite 경유) */}
-  <pixiContainer layout={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
+  <pixiContainer
+    layout={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
+  >
     <BoxSprite
       computedW={computedW}
       computedH={computedH}
@@ -194,10 +209,20 @@ Card는 CONTAINER_TAGS에 등록된 복합 컨테이너입니다. 배경/테두�
 
 ```typescript
 // BuilderCanvas.tsx — CONTAINER_TAGS에 Card 포함
-const CONTAINER_TAGS = useMemo(() => new Set([
-  'Card', 'Box', 'Panel', 'Form', 'Group', 'Dialog', 'Modal',
-  // ... 기타 컨테이너
-]), []);
+const CONTAINER_TAGS = useMemo(
+  () =>
+    new Set([
+      "Card",
+      "Box",
+      "Panel",
+      "Form",
+      "Group",
+      "Dialog",
+      "Modal",
+      // ... 기타 컨테이너
+    ]),
+  [],
+);
 
 // Card의 childElements 예시
 // Card
@@ -211,11 +236,15 @@ Card의 높이는 자식 Element(Heading, Description 등)의 실제 높이 합�
 
 ```typescript
 // engines/utils.ts — calculateContentHeight
-if (tag === 'card' && context?.getChildElements) {
+if (type === "card" && context?.getChildElements) {
   const children = context.getChildElements(element.id);
   if (children.length > 0) {
     // 자식 각각의 높이 합산 (padding/gap 포함)
-    const childrenTotalHeight = sumChildHeights(children, availableWidth, context);
+    const childrenTotalHeight = sumChildHeights(
+      children,
+      availableWidth,
+      context,
+    );
     return Math.max(childrenTotalHeight, 0);
   }
 }
@@ -228,11 +257,11 @@ return calculateTextHeight(element, availableWidth);
 
 **높이 계산 우선순위**:
 
-| 조건 | 높이 결정 방식 |
-|------|--------------|
-| 명시적 `height` 지정 | 사용자 지정값 (border-box 기준) |
+| 조건                 | 높이 결정 방식                              |
+| -------------------- | ------------------------------------------- |
+| 명시적 `height` 지정 | 사용자 지정값 (border-box 기준)             |
 | `childElements` 존재 | 자식 Element 높이 합산 (padding + gap 포함) |
-| 자식 없음 | `MIN_CARD_HEIGHT` 기본값 |
+| 자식 없음            | `MIN_CARD_HEIGHT` 기본값                    |
 
 ### 핵심 규칙 요약
 
@@ -248,21 +277,21 @@ Select와 ComboBox는 CONTAINER_TAGS에 등록된 Form 복합 컨테이너입니
 
 ### 레이아웃 구조
 
-| 태그 | 배치 방식 | 기본 크기 |
-|------|----------|----------|
-| `Select` | flex column, gap: 8 | Label + SelectTrigger 세로 배치 |
-| `SelectTrigger` | flex row, h: 34, px: 14 | SelectValue + SelectIcon 가로 배치 |
-| `ComboBox` | flex column, gap: 8 | Label + ComboBoxWrapper 세로 배치 |
+| 태그              | 배치 방식               | 기본 크기                                 |
+| ----------------- | ----------------------- | ----------------------------------------- |
+| `Select`          | flex column, gap: 8     | Label + SelectTrigger 세로 배치           |
+| `SelectTrigger`   | flex row, h: 34, px: 14 | SelectValue + SelectIcon 가로 배치        |
+| `ComboBox`        | flex column, gap: 8     | Label + ComboBoxWrapper 세로 배치         |
 | `ComboBoxWrapper` | flex row, h: 30, px: 14 | ComboBoxInput + ComboBoxTrigger 가로 배치 |
 
 ### 자식 히트 영역 크기
 
-| 태그 | 크기 | 역할 |
-|------|------|------|
-| `SelectValue` | flex: 1 (나머지 공간) | placeholder 텍스트 영역 |
-| `SelectIcon` | 18×18 | chevron 아이콘 영역 |
-| `ComboBoxInput` | flex: 1 (나머지 공간) | input 영역 |
-| `ComboBoxTrigger` | 18×18 | dropdown 버튼 영역 |
+| 태그              | 크기                  | 역할                    |
+| ----------------- | --------------------- | ----------------------- |
+| `SelectValue`     | flex: 1 (나머지 공간) | placeholder 텍스트 영역 |
+| `SelectIcon`      | 18×18                 | chevron 아이콘 영역     |
+| `ComboBoxInput`   | flex: 1 (나머지 공간) | input 영역              |
+| `ComboBoxTrigger` | 18×18                 | dropdown 버튼 영역      |
 
 ### PixiSelect 구조
 
@@ -304,15 +333,30 @@ Select와 ComboBox는 CONTAINER_TAGS에 등록된 Form 복합 컨테이너입니
 `BuilderCanvas.tsx`의 CONTAINER_TAGS Set에 4개 태그를 추가해야 `childElements`와 `renderChildElement` props를 수신합니다:
 
 ```typescript
-const CONTAINER_TAGS = useMemo(() => new Set([
-  'Card', 'Box', 'Panel', 'Form', 'Group', 'Dialog', 'Modal',
-  'Disclosure', 'DisclosureGroup', 'Accordion',
-  'ToggleButtonGroup',
-  'TagGroup', 'TagList',
-  'Tabs',
-  'Select', 'SelectTrigger',        // <- 2026-02-22 추가
-  'ComboBox', 'ComboBoxWrapper',    // <- 2026-02-22 추가
-]), []);
+const CONTAINER_TAGS = useMemo(
+  () =>
+    new Set([
+      "Card",
+      "Box",
+      "Panel",
+      "Form",
+      "Group",
+      "Dialog",
+      "Modal",
+      "Disclosure",
+      "DisclosureGroup",
+      "Accordion",
+      "ToggleButtonGroup",
+      "TagGroup",
+      "TagList",
+      "Tabs",
+      "Select",
+      "SelectTrigger", // <- 2026-02-22 추가
+      "ComboBox",
+      "ComboBoxWrapper", // <- 2026-02-22 추가
+    ]),
+  [],
+);
 ```
 
 ### 자식 구조 예시
@@ -358,7 +402,7 @@ VITE_DEBUG_HIT_AREAS=true
 - [ ] `computedW`, `computedH`가 Yoga 계산 크기(padding 포함)를 사용하는가?
 - [ ] 디버그 모드에서 히트 영역이 컨테이너 전체를 커버하는지 확인했는가?
 - [ ] (Tabs 한정) `CONTAINER_TAGS`에 `'Tabs'`가 등록되어 있는가?
-- [ ] (Tabs 한정) Panel 자식 필터링이 `tag === 'Panel'` 조건을 사용하는가?
+- [ ] (Tabs 한정) Panel 자식 필터링이 `type === 'Panel'` 조건을 사용하는가?
 - [ ] (Card 한정) spec shapes에 텍스트 도형이 포함되지 않았는가? (중복 렌더링 방지)
 - [ ] (Card 한정) `calculateContentHeight`가 `childElements` 높이 합산을 우선 사용하는가?
 - [ ] (Select/ComboBox 한정) `Select`, `SelectTrigger`, `ComboBox`, `ComboBoxWrapper` 4개 모두 CONTAINER_TAGS에 등록되어 있는가?

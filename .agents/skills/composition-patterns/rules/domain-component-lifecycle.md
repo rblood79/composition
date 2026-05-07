@@ -15,6 +15,11 @@ tags: [domain, component, lifecycle]
 삭제: Cascade Check → History → Store → Index → DB → Preview
 ```
 
+canonical cutover 이후에는 Store 단계에서 canonical document write가 먼저
+일어나고, legacy `Element[]`는 `exportLegacyDocument()` mirror로 재파생됩니다.
+순서는 canonical parent `children[]` index가 SSOT이며 `order_num`은 legacy
+compat mirror입니다.
+
 ## 1. 생성 (Create)
 
 ### ChildDefinition 재귀 타입
@@ -23,14 +28,17 @@ tags: [domain, component, lifecycle]
 
 ```typescript
 // apps/builder/src/builder/factories/types/index.ts
-export type ChildDefinition = Omit<Element, "id" | "created_at" | "updated_at" | "parent_id"> & {
-  children?: ChildDefinition[];  // ← 재귀: 자식도 같은 타입
+export type ChildDefinition = Omit<
+  Element,
+  "id" | "created_at" | "updated_at" | "parent_id"
+> & {
+  children?: ChildDefinition[]; // ← 재귀: 자식도 같은 타입
 };
 
 export interface ComponentDefinition {
-  tag: string;
+  type: string;
   parent: Omit<Element, "id" | "created_at" | "updated_at">;
-  children: ChildDefinition[];   // ← 1레벨 자식 배열
+  children: ChildDefinition[]; // ← 1레벨 자식 배열
 }
 ```
 
@@ -60,7 +68,7 @@ export function createElementsFromDefinition(
       const child: Element = {
         ...elementDef,
         id: generateId(),
-        customId: generateCustomId(elementDef.tag, allElementsSoFar),
+        customId: generateCustomId(elementDef.type, allElementsSoFar),
         parent_id: parentId,       // ← 재귀 호출 시 부모 ID가 바뀜
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -80,6 +88,7 @@ export function createElementsFromDefinition(
 ```
 
 **핵심 포인트**:
+
 - `processChildren()`은 `ChildDefinition[]`의 `children` 필드를 분리(destructure)한 후, 남은 필드로 Element를 생성
 - 재귀 호출 시 `parentId`를 현재 생성된 child의 ID로 전달하여 올바른 부모-자식 관계 형성
 - 최종 반환값은 **평탄화된** 배열 (`allChildren`)로, 모든 레벨의 자식이 포함됨
@@ -96,12 +105,17 @@ TagGroup (column) → Label("Tag Group") + TagList (row wrap) → Tag x2
 // apps/builder/src/builder/factories/definitions/GroupComponents.ts
 export function createTagGroupDefinition(context): ComponentDefinition {
   return {
-    tag: "TagGroup",
+    type: "TagGroup",
     parent: {
-      tag: "TagGroup",
+      type: "TagGroup",
       props: {
         label: "Tag Group",
-        style: { display: "flex", flexDirection: "column", gap: 2, width: "fit-content" },
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          width: "fit-content",
+        },
       },
       parent_id: parentId,
       order_num: orderNum,
@@ -109,23 +123,34 @@ export function createTagGroupDefinition(context): ComponentDefinition {
     children: [
       // Level 2-A: Label (리프 노드 - children 없음)
       {
-        tag: "Label",
-        props: { children: "Tag Group", style: { fontSize: 12, fontWeight: 500 } },
+        type: "Label",
+        props: {
+          children: "Tag Group",
+          style: { fontSize: 12, fontWeight: 500 },
+        },
         order_num: 1,
       },
       // Level 2-B: TagList (중간 컨테이너 - children으로 Tag 포함)
       {
-        tag: "TagList",
-        props: { style: { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 4 } },
+        type: "TagList",
+        props: {
+          style: {
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 4,
+          },
+        },
         order_num: 2,
-        children: [    // ← 재귀 중첩: Level 3
+        children: [
+          // ← 재귀 중첩: Level 3
           {
-            tag: "Tag",
+            type: "Tag",
             props: { children: "Tag 1" },
             order_num: 1,
           },
           {
-            tag: "Tag",
+            type: "Tag",
             props: { children: "Tag 2" },
             order_num: 2,
           },
@@ -137,6 +162,7 @@ export function createTagGroupDefinition(context): ComponentDefinition {
 ```
 
 `createElementsFromDefinition()`이 이 Definition을 처리하면:
+
 1. **TagGroup** (parent) 생성
 2. `processChildren(children, tagGroup.id)` 호출
    - **Label** 생성 (`parent_id: tagGroup.id`)
@@ -150,14 +176,18 @@ export function createTagGroupDefinition(context): ComponentDefinition {
 
 ```typescript
 // ✅ 복합 컴포넌트 생성 (Tabs, Table, TagGroup 등)
-const createComponent = async (tag: string, parentId: string, pageId: string) => {
+const createComponent = async (
+  type: string,
+  parentId: string,
+  pageId: string,
+) => {
   // 1. Factory에서 Definition 생성
   const result = await ComponentFactory.createComplexComponent(
-    tag,
+    type,
     parentElement,
     pageId,
     elements,
-    layoutId
+    layoutId,
   );
 
   // 2. Element 객체 생성 (ID, customId, timestamps)
@@ -169,7 +199,7 @@ const createComponent = async (tag: string, parentId: string, pageId: string) =>
 
   // 4. History 기록
   historyManager.addEntry({
-    type: 'add',
+    type: "add",
     elementId: parent.id,
     data: { element: parent, children },
   });
@@ -184,15 +214,15 @@ const createComponent = async (tag: string, parentId: string, pageId: string) =>
 };
 
 // ✅ 단순 요소 생성
-const createElement = (tag: string, parentId: string) => {
+const createElement = (type: string, parentId: string) => {
   const element: Element = {
     id: ElementUtils.generateId(),
-    customId: generateCustomId(tag, elements),
-    tag,
+    customId: generateCustomId(type, elements),
+    type,
     parent_id: parentId,
     page_id: currentPageId,
     order_num: calculateNextOrderNum(parentId, elements),
-    props: getDefaultProps(tag),
+    props: getDefaultProps(type),
     created_at: new Date().toISOString(),
   };
 
@@ -212,11 +242,16 @@ const updateElementProps = (elementId: string, props: Partial<Props>) => {
   if (!hasShallowPatchChanges(element.props, props)) return;
 
   // History → Store → Index → DB → Preview
-  historyManager.addDiffEntry('update', element, { ...element, props: { ...element.props, ...props } });
+  historyManager.addDiffEntry("update", element, {
+    ...element,
+    props: { ...element.props, ...props },
+  });
 
-  set({ elements: elements.map(el =>
-    el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el
-  )});
+  set({
+    elements: elements.map((el) =>
+      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
+    ),
+  });
   get()._rebuildIndexes();
 
   persistElementUpdate(elementId, props);
@@ -224,11 +259,15 @@ const updateElementProps = (elementId: string, props: Partial<Props>) => {
 };
 
 // ✅ 부모 변경 (이동)
-const moveElement = (elementId: string, newParentId: string, newOrder: number) => {
+const moveElement = (
+  elementId: string,
+  newParentId: string,
+  newOrder: number,
+) => {
   const element = getElementById(elementsMap, elementId);
 
   historyManager.addEntry({
-    type: 'move',
+    type: "move",
     elementId,
     data: {
       prevParentId: element.parent_id,
@@ -259,24 +298,27 @@ await removeElement(elementId);
 await removeElements([id1, id2, id3]);
 
 // ❌ 순차 삭제 — 각 호출마다 set() → 렌더 발생 → 요소가 하나씩 사라짐
-for (const id of ids) { await removeElement(id); }
+for (const id of ids) {
+  await removeElement(id);
+}
 ```
 
 ### 배치 삭제 아키텍처 (removeElements)
 
 ```typescript
 // elementRemoval.ts — 배치 삭제 흐름
-export const createRemoveElementsAction = (set, get) => async (elementIds: string[]) => {
-  // 1. 각 요소에 대해 연관 요소 수집 (자식, Table/Tab 연관)
-  for (const id of elementIds) {
-    const result = collectElementsToRemove(id, elements, elementsMap);
-    // 결과를 allElementsMap에 병합 (중복 자동 제거)
-  }
+export const createRemoveElementsAction =
+  (set, get) => async (elementIds: string[]) => {
+    // 1. 각 요소에 대해 연관 요소 수집 (자식, Table/Tab 연관)
+    for (const id of elementIds) {
+      const result = collectElementsToRemove(id, elements, elementsMap);
+      // 결과를 allElementsMap에 병합 (중복 자동 제거)
+    }
 
-  // 2. executeRemoval — 단일 실행
-  await executeRemoval(set, get, rootElements, allUniqueElements);
-  // → DB 1회 + History 1건 + Skia 정리 + 단일 set() + postMessage
-};
+    // 2. executeRemoval — 단일 실행
+    await executeRemoval(set, get, rootElements, allUniqueElements);
+    // → DB 1회 + History 1건 + Skia 정리 + 단일 set() + postMessage
+  };
 ```
 
 ### collectElementsToRemove 헬퍼
@@ -303,7 +345,7 @@ async function executeRemoval(set, get, rootElements, allUniqueElements) {
 
   // 2. History 기록 (첫 루트를 대표, 나머지는 childElements)
   historyManager.addEntry({
-    type: 'remove',
+    type: "remove",
     elementId: rootElements[0].id,
     data: { element: rootElements[0], childElements: rest },
   });
@@ -313,13 +355,17 @@ async function executeRemoval(set, get, rootElements, allUniqueElements) {
 
   // 4. 원자적 상태 업데이트 — 단일 set()
   set({
-    elements, elementsMap, childrenMap,
-    pageIndex, componentIndex, variableUsageIndex,
+    elements,
+    elementsMap,
+    childrenMap,
+    pageIndex,
+    componentIndex,
+    variableUsageIndex,
     // + 선택 상태 정리 + editingContext 리셋
   });
 
   // 5. postMessage (Preview 동기화)
-  // 6. order_num 재정렬 (batchUpdateElementOrders 사용, 컬렉션 아이템 제외)
+  // 6. legacy order_num mirror 정규화 (필요 시, 컬렉션 아이템 제외)
   setTimeout(() => {
     const { elements, batchUpdateElementOrders } = get();
     reorderElements(elements, currentPageId, batchUpdateElementOrders);
@@ -327,14 +373,16 @@ async function executeRemoval(set, get, rootElements, allUniqueElements) {
 }
 ```
 
-## order_num 재정렬
+## Order / Reorder 경계
 
-삭제/Undo/Redo 후 `reorderElements()`로 order_num을 재정렬합니다.
+runtime order는 canonical `children[]` index가 SSOT입니다. 삭제/Undo/Redo 후
+legacy mirror 정규화가 필요하면 `reorderElements()`를 사용하되, 이 값으로
+canonical sibling 위치를 새로 추론하지 않습니다.
 
 ```typescript
-import { reorderElements } from '@/builder/stores/utils/elementReorder';
+import { reorderElements } from "@/builder/stores/utils/elementReorder";
 
-// ✅ batchUpdateElementOrders 사용 (단일 set() + _rebuildIndexes())
+// ✅ legacy mirror 정규화: batchUpdateElementOrders 사용 (단일 set() + _rebuildIndexes())
 // 비동기 콜백 안에서 get()으로 최신 상태 참조 (stale closure 방지)
 setTimeout(() => {
   const { elements, batchUpdateElementOrders } = get();
@@ -343,6 +391,7 @@ setTimeout(() => {
 
 // ❌ 구 패턴: updateElementOrder N회 호출 (N×set())
 // ❌ 구 패턴: setTimeout 밖에서 elements 캡처 (stale closure)
+// ❌ props update 중 order_num 차이를 이유로 canonical node remove+append
 ```
 
 ## 참조 파일
@@ -353,5 +402,7 @@ setTimeout(() => {
 - `apps/builder/src/builder/factories/definitions/GroupComponents.ts` - TagGroup 3-level 정의
 - `apps/builder/src/builder/stores/utils/elementCreation.ts` - Store 액션
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 액션 (collectElementsToRemove, executeRemoval, removeElement, removeElements)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - order_num 재정렬 (computeReorderUpdates + reorderElements)
+- `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical primary merge/set/move
+- `apps/builder/src/adapters/canonical/exportLegacyDocument.ts` - legacy Element[] mirror export
+- `apps/builder/src/builder/stores/utils/elementReorder.ts` - legacy order_num mirror 정규화
 - `apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts` - 키보드 Delete → removeElements 배치 호출

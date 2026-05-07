@@ -13,7 +13,7 @@ ComponentSpec의 `render.shapes`는 **플랫폼 독립적 도형**을 반환합�
 // ❌ 렌더러별 직접 구현
 // React
 const Button = () => (
-  <div style={{ borderRadius: 8, background: 'blue' }}>Click</div>
+  <div style={{ borderRadius: 8, background: "blue" }}>Click</div>
 );
 
 // PIXI - 별도 로직
@@ -29,49 +29,53 @@ const draw = (g: Graphics) => {
 // ✅ Shape 기반 정의 + props.style 오버라이드 패턴
 const ButtonSpec: ComponentSpec<ButtonProps> = {
   render: {
-    shapes: (props, variant, size, state = 'default') => {
+    shapes: (props, variant, size, state = "default") => {
       // props.style 우선, 없으면 state/variant 기본값
-      const bgColor = props.style?.backgroundColor
-                    ?? (state === 'hover' ? variant.backgroundHover
-                    : state === 'pressed' ? variant.backgroundPressed
-                    : variant.background);
+      const bgColor =
+        props.style?.backgroundColor ??
+        (state === "hover"
+          ? variant.backgroundHover
+          : state === "pressed"
+            ? variant.backgroundPressed
+            : variant.background);
       const textColor = props.style?.color ?? variant.text;
       const borderRadius = props.style?.borderRadius ?? size.borderRadius;
       const borderWidth = props.style?.borderWidth ?? 1;
-      const paddingX = props.style?.paddingLeft ?? props.style?.padding ?? size.paddingX;
+      const paddingX =
+        props.style?.paddingLeft ?? props.style?.padding ?? size.paddingX;
       const fontSize = props.style?.fontSize ?? size.fontSize;
 
       return [
         // 배경 (height: 'auto' 필수 -- Yoga 레이아웃 높이 사용)
         {
-          id: 'bg',
-          type: 'roundRect',
+          id: "bg",
+          type: "roundRect",
           x: 0,
           y: 0,
-          width: 'auto',
-          height: 'auto',   // <- 고정 높이 금지
+          width: "auto",
+          height: "auto", // <- 고정 높이 금지
           radius: borderRadius,
           fill: bgColor,
         },
         // 테두리
         {
-          type: 'border',
-          target: 'bg',
+          type: "border",
+          target: "bg",
           borderWidth,
           color: props.style?.borderColor ?? variant.border,
         },
         // 텍스트
         {
-          type: 'text',
-          x: paddingX,       // <- padding 오버라이드 반영
+          type: "text",
+          x: paddingX, // <- padding 오버라이드 반영
           y: 0,
           text: props.children,
           fill: textColor,
           fontSize,
           fontWeight: props.style?.fontWeight ?? 500,
           fontFamily: props.style?.fontFamily ?? fontFamily.sans,
-          align: props.style?.textAlign ?? 'center',
-          baseline: 'middle',
+          align: props.style?.textAlign ?? "center",
+          baseline: "middle",
         },
       ];
     },
@@ -84,17 +88,17 @@ const ButtonSpec: ComponentSpec<ButtonProps> = {
 
 ## Shape 타입
 
-| 타입 | 용도 |
-|------|------|
-| `rect` | 사각형 |
-| `roundRect` | 둥근 모서리 사각형 |
-| `circle` | 원 |
-| `text` | 텍스트 |
-| `line` | 선분 (체크마크, 구분선 등) |
-| `shadow` | 그림자 (배경 뒤) |
-| `border` | 테두리 (배경 위) |
-| `container` | 자식 요소 그룹 |
-| `gradient` | 그라데이션 배경 (linear/radial) |
+| 타입        | 용도                            |
+| ----------- | ------------------------------- |
+| `rect`      | 사각형                          |
+| `roundRect` | 둥근 모서리 사각형              |
+| `circle`    | 원                              |
+| `text`      | 텍스트                          |
+| `line`      | 선분 (체크마크, 구분선 등)      |
+| `shadow`    | 그림자 (배경 뒤)                |
+| `border`    | 테두리 (배경 위)                |
+| `container` | 자식 요소 그룹                  |
+| `gradient`  | 그라데이션 배경 (linear/radial) |
 
 ## 주의사항
 
@@ -110,11 +114,11 @@ const ButtonSpec: ComponentSpec<ButtonProps> = {
 
 ```typescript
 // ❌ 배경 roundRect에 props.style?.width 사용 금지
-const width = (props.style?.width as number) || 'auto';
+const width = (props.style?.width as number) || "auto";
 // → 사용자가 width: 200px 설정 시 width = 200 → bgBox 추출 실패
 
 // ✅ 배경 roundRect는 항상 'auto' 사용
-const width = 'auto' as const;
+const width = "auto" as const;
 // → specShapesToSkia가 containerWidth로 대체하여 bgBox 정상 추출
 ```
 
@@ -125,6 +129,7 @@ const width = 'auto' as const;
 Card spec은 **시각적 컨테이너 요소(배경, 테두리, 그림자)만 렌더링**합니다. `title`/`description`/`heading` 같은 텍스트 콘텐츠는 spec shapes에 포함되지 않으며, **Heading/Description 자식 Element**로 분리하여 TextSprite 경로로 별도 렌더링됩니다.
 
 **텍스트를 spec shapes에 넣지 않는 이유**:
+
 - Card의 텍스트(제목, 설명)는 독립적인 레이아웃 노드로 취급되어야 합니다. spec shapes의 고정 좌표 기반 텍스트 배치로는 동적 줄바꿈, 폰트 크기 상속, 선택/편집 이벤트를 처리할 수 없습니다.
 - Heading/Description이 독립 element이면 각자 TEXT_TAGS 경로 → TextSprite를 거쳐 Skia로 렌더링되어 크기 측정과 레이아웃 반영이 가능합니다.
 - Properties Panel에서 변경된 `Card.props.heading/description` 값은 `createContainerChildRenderer`가 렌더링 시점에 자식 element에 주입하므로 별도 저장소 없이 동기화됩니다.
@@ -183,15 +188,16 @@ const CardSpec: ComponentSpec<CardProps> = {
 
 **Card Spec 구조 요약 (shapes 내부)**:
 
-| shape | 타입 | 역할 |
-|-------|------|------|
-| (선택) shadow | `shadow` | 박스 그림자 |
-| bg | `roundRect` | 카드 배경 (`width: 'auto'`, `height: 'auto'` 필수) |
-| (선택) border | `border` | 카드 테두리 |
+| shape         | 타입        | 역할                                               |
+| ------------- | ----------- | -------------------------------------------------- |
+| (선택) shadow | `shadow`    | 박스 그림자                                        |
+| bg            | `roundRect` | 카드 배경 (`width: 'auto'`, `height: 'auto'` 필수) |
+| (선택) border | `border`    | 카드 테두리                                        |
 
 텍스트 관련 shape은 없음. 텍스트는 자식 Element(Heading, Description)가 담당.
 
 **Description과 TEXT_TAGS**:
+
 - `Description` 태그는 `TEXT_TAGS`에 포함되어 `TextSprite` 경로로 렌더링됩니다.
 - `Heading` 태그도 동일하게 `TEXT_TAGS` → `TextSprite` 경로를 사용합니다.
 - Card의 `childElements`에 포함된 Heading/Description은 CONTAINER_TAGS 경로에서 `renderChildElement`로 렌더링됩니다.
@@ -212,15 +218,16 @@ const TEXT_TAGS = new Set(['text', 'heading', 'description', 'label', 'paragraph
 
 **Card Spec 렌더링 책임 분리 요약**:
 
-| 역할 | 담당 |
-|------|------|
-| 배경, 테두리, 그림자 | Card spec shapes (specShapesToSkia) |
-| 제목 텍스트 | Heading 자식 Element (TextSprite) |
-| 설명 텍스트 | Description 자식 Element (TextSprite) |
-| 레이아웃 크기 결정 | DropflowBlockEngine + childElements 높이 합산 |
-| Props 동기화 | createContainerChildRenderer의 Container Props 주입 |
+| 역할                 | 담당                                                |
+| -------------------- | --------------------------------------------------- |
+| 배경, 테두리, 그림자 | Card spec shapes (specShapesToSkia)                 |
+| 제목 텍스트          | Heading 자식 Element (TextSprite)                   |
+| 설명 텍스트          | Description 자식 Element (TextSprite)               |
+| 레이아웃 크기 결정   | DropflowBlockEngine + childElements 높이 합산       |
+| Props 동기화         | createContainerChildRenderer의 Container Props 주입 |
 
 **CSS Preview와의 동기화**:
+
 - CSS Preview(`LayoutRenderers.tsx`)의 Card 렌더러는 `heading`, `subheading`, `footer` props를 명시적으로 전달해야 합니다.
 - WebGL Canvas(Container Props 주입)와 CSS Preview(explicit props)가 동일한 데이터 소스(부모 element props)를 사용해야 텍스트가 일치합니다.
 
@@ -247,10 +254,10 @@ CONTAINER_TAGS에 속하는 컴포넌트의 spec shapes에서 **자식 Element�
 
 **중복 렌더링이 발생하는 패턴**:
 
-| 컴포넌트 | 자식 Element (올바른 담당) | spec shapes에 추가하면 안 되는 shape |
-|----------|--------------------------|--------------------------------------|
-| `Card` | `Heading`, `Description` | `type: 'text', text: props.title` |
-| `TagGroup` | `Label` | `type: 'text', text: props.label` |
+| 컴포넌트   | 자식 Element (올바른 담당) | spec shapes에 추가하면 안 되는 shape |
+| ---------- | -------------------------- | ------------------------------------ |
+| `Card`     | `Heading`, `Description`   | `type: 'text', text: props.title`    |
+| `TagGroup` | `Label`                    | `type: 'text', text: props.label`    |
 
 ```typescript
 // ❌ CONTAINER_TAGS 컴포넌트의 spec shapes에 자식 텍스트 중복 정의 — 항상 금지
@@ -292,13 +299,14 @@ const offsetY = (size.fontSize as unknown as number) + gap;
 // '{typography.text-sm}' + 10 = '{typography.text-sm}10' → NaN 좌표 → track/thumb 미렌더링
 
 // ✅ GOOD: resolveToken()으로 숫자 변환 후 사용
-import { resolveToken } from '../renderers/utils/tokenResolver';
+import { resolveToken } from "../renderers/utils/tokenResolver";
 const rawFontSize = size.fontSize;
-const resolved = typeof rawFontSize === 'number'
-  ? rawFontSize
-  : resolveToken(rawFontSize as TokenRef);
-const numericFontSize = typeof resolved === 'number' ? resolved : 14;
-const offsetY = numericFontSize + gap;  // 14 + 10 = 24 (정상)
+const resolved =
+  typeof rawFontSize === "number"
+    ? rawFontSize
+    : resolveToken(rawFontSize as TokenRef);
+const numericFontSize = typeof resolved === "number" ? resolved : 14;
+const offsetY = numericFontSize + gap; // 14 + 10 = 24 (정상)
 ```
 
 **근본 원인**: `size.fontSize`는 `number | TokenRef` 유니온 타입이므로 `as unknown as number`로 캐스팅하면 TokenRef 문자열이 그대로 사용되어 문자열 연결이 발생합니다. `resolveToken()`은 TokenRef를 실제 숫자로 변환합니다.
@@ -308,9 +316,10 @@ const offsetY = numericFontSize + gap;  // 14 + 10 = 24 (정상)
 ```typescript
 // ✅ size 키 기반 fallback — resolveToken 없이도 안전
 const rawFontSize = size.fontSize;
-const numericFontSize = typeof rawFontSize === 'number'
-  ? rawFontSize
-  : ({ sm: 12, md: 14, lg: 16 }[sizeName] ?? 14);
+const numericFontSize =
+  typeof rawFontSize === "number"
+    ? rawFontSize
+    : ({ sm: 12, md: 14, lg: 16 }[sizeName] ?? 14);
 ```
 
 **SliderOutput 우측 정렬 패턴**:
@@ -343,24 +352,27 @@ Select, ComboBox, Slider처럼 Label 자식 Element를 가지는 Complex Compone
 // 자식 Label/SliderOutput이 TextSprite로 렌더링하므로
 // spec shapes의 텍스트 shape을 중복 렌더링하지 않도록 스킵
 const hasLabelChild = element._hasLabelChild;
-const shapesToRender = (tag === 'Slider' || tag === 'Select' || tag === 'ComboBox') && hasLabelChild
-  ? shapes.filter(s => s.id !== 'label' && s.id !== 'output')
-  : shapes;
+const shapesToRender =
+  (type === "Slider" || type === "Select" || type === "ComboBox") &&
+  hasLabelChild
+    ? shapes.filter((s) => s.id !== "label" && s.id !== "output")
+    : shapes;
 ```
 
 **이 패턴이 필요한 이유**:
+
 - Complex Component 전환 전 Slider는 spec shapes에서 label 텍스트를 직접 렌더링했습니다.
 - 전환 후 자식 Label/SliderOutput이 TextSprite 경로로 렌더링하므로, spec shapes에서 동시에 렌더링하면 이중 표시 버그가 발생합니다.
 - `_hasLabelChild` 플래그는 실제로 자식 Label Element가 있는 경우에만 `true`이므로, 구버전 데이터(자식 없음)와 하위 호환됩니다.
 
 **Slider Spec 구조 요약 (shapes 내부)**:
 
-| shape | 타입 | 역할 |
-|-------|------|------|
-| (선택) label | `text` | label 텍스트 — `_hasLabelChild` 시 스킵 |
-| (선택) output | `text` | 현재 값 텍스트 — `_hasLabelChild` 시 스킵, `x:0`+`maxWidth`+`align:'right'` |
-| track | `roundRect` | 슬라이더 트랙 막대 |
-| thumb | `circle` (또는 `roundRect`) | 슬라이더 thumb 핸들 |
+| shape         | 타입                        | 역할                                                                        |
+| ------------- | --------------------------- | --------------------------------------------------------------------------- |
+| (선택) label  | `text`                      | label 텍스트 — `_hasLabelChild` 시 스킵                                     |
+| (선택) output | `text`                      | 현재 값 텍스트 — `_hasLabelChild` 시 스킵, `x:0`+`maxWidth`+`align:'right'` |
+| track         | `roundRect`                 | 슬라이더 트랙 막대                                                          |
+| thumb         | `circle` (또는 `roundRect`) | 슬라이더 thumb 핸들                                                         |
 
 ### Select/ComboBox 구조적 자식 렌더링 (2026-02-22 추가)
 
@@ -375,21 +387,30 @@ Select/ComboBox는 CONTAINER_TAGS로 등록되어 자식 요소(Label, SelectTri
 
 ```typescript
 // ✅ 구조적 자식: 투명 배경 + 텍스트 비우기 + implicit styles
-if (tag === 'SelectTrigger' || tag === 'SelectValue'
-  || tag === 'SelectIcon' || tag === 'ComboBoxWrapper'
-  || tag === 'ComboBoxInput' || tag === 'ComboBoxTrigger') {
+if (
+  type === "SelectTrigger" ||
+  type === "SelectValue" ||
+  type === "SelectIcon" ||
+  type === "ComboBoxWrapper" ||
+  type === "ComboBoxInput" ||
+  type === "ComboBoxTrigger"
+) {
   const implicitStyle =
-    (tag === 'SelectIcon' || tag === 'ComboBoxTrigger')
+    type === "SelectIcon" || type === "ComboBoxTrigger"
       ? { width: 18, height: 18, flexShrink: 0 }
-      : (tag === 'SelectValue' || tag === 'ComboBoxInput')
+      : type === "SelectValue" || type === "ComboBoxInput"
         ? { flex: 1 }
         : {};
   effectiveChildEl = {
     ...effectiveChildEl,
     props: {
       ...existingProps,
-      children: '',  // spec shapes가 텍스트 렌더링 담당
-      style: { ...implicitStyle, ...existingStyle, backgroundColor: 'transparent' },
+      children: "", // spec shapes가 텍스트 렌더링 담당
+      style: {
+        ...implicitStyle,
+        ...existingStyle,
+        backgroundColor: "transparent",
+      },
     },
   };
 }
@@ -429,7 +450,8 @@ Button 등 SELF_PADDING_TAGS 컴포넌트에 고정 width를 설정하고 긴 �
 ```typescript
 // ElementSprite.tsx — spec shapes 경로
 let specHeight = finalHeight;
-const hasExplicitHeight = style?.height !== undefined && style?.height !== 'auto';
+const hasExplicitHeight =
+  style?.height !== undefined && style?.height !== "auto";
 if (!hasExplicitHeight && finalWidth > 0) {
   const textMinHeight = measureSpecTextMinHeight(shapes, finalWidth, sizeSpec);
   if (textMinHeight !== undefined && textMinHeight > specHeight) {
@@ -437,10 +459,11 @@ if (!hasExplicitHeight && finalWidth > 0) {
     cardCalculatedHeight = textMinHeight; // → contentMinHeight
   }
 }
-const specNode = specShapesToSkia(shapes, 'light', finalWidth, specHeight);
+const specNode = specShapesToSkia(shapes, "light", finalWidth, specHeight);
 ```
 
 **핵심 규칙**:
+
 - `measureSpecTextMinHeight`: TokenRef fontSize를 `resolveToken`으로 해석, `measureWrappedTextHeight`로 줄바꿈 높이 측정
 - 한 줄이면 `undefined` 반환 → 기존 동작 유지
 - 다중 줄이면 `paddingY * 2 + wrappedHeight` 반환
@@ -464,18 +487,19 @@ if (treatAsBorderBox) {
 }
 
 // 요소 자체 width 우선 사용 (부모 availableWidth 대신)
-const elementAvailableWidth = (originalBorderBoxWidth !== undefined && originalBorderBoxWidth !== FIT_CONTENT)
-  ? originalBorderBoxWidth
-  : availableWidth;
+const elementAvailableWidth =
+  originalBorderBoxWidth !== undefined && originalBorderBoxWidth !== FIT_CONTENT
+    ? originalBorderBoxWidth
+    : availableWidth;
 const contentHeight = calculateContentHeight(element, elementAvailableWidth);
 ```
 
 **두 경로 비교**:
 
-| 경로 | 부모 조건 | 높이 반영 | 파일 |
-|------|----------|----------|------|
-| Flex 경로 | `display:flex` 명시적 | `enrichWithIntrinsicSize` → TaffyFlexEngine | `engines/utils.ts` + `TaffyFlexEngine.ts` |
-| BlockEngine 경로 | display 미지정 | `parseBoxModel` → `calculateContentHeight` | `engines/utils.ts` |
+| 경로             | 부모 조건             | 높이 반영                                   | 파일                                      |
+| ---------------- | --------------------- | ------------------------------------------- | ----------------------------------------- |
+| Flex 경로        | `display:flex` 명시적 | `enrichWithIntrinsicSize` → TaffyFlexEngine | `engines/utils.ts` + `TaffyFlexEngine.ts` |
+| BlockEngine 경로 | display 미지정        | `parseBoxModel` → `calculateContentHeight`  | `engines/utils.ts`                        |
 
 ### Button padding:0 높이 축소 (v1.15.2, 2026-02-15)
 
@@ -488,13 +512,19 @@ Yoga 시절 `styleToLayout.ts`에서 Button `layout.height`를 명시적으로 �
 `MIN_BUTTON_HEIGHT = 24`의 content-box 변환에서 `sizeConfig.paddingY`(기본값)만 사용하여 인라인 padding=0 미반영.
 
 **해결**: 인라인 padding 설정 시 `MIN_BUTTON_HEIGHT` 미적용:
+
 ```typescript
 // engines/utils.ts — calculateContentHeight
-const hasInlinePadding = style?.padding !== undefined ||
-  style?.paddingTop !== undefined || style?.paddingBottom !== undefined;
+const hasInlinePadding =
+  style?.padding !== undefined ||
+  style?.paddingTop !== undefined ||
+  style?.paddingBottom !== undefined;
 const minContentHeight = hasInlinePadding
-  ? 0  // 사용자가 padding 제어 → 최소 높이 제거
-  : Math.max(0, MIN_BUTTON_HEIGHT - sizeConfig.paddingY * 2 - sizeConfig.borderWidth * 2);
+  ? 0 // 사용자가 padding 제어 → 최소 높이 제거
+  : Math.max(
+      0,
+      MIN_BUTTON_HEIGHT - sizeConfig.paddingY * 2 - sizeConfig.borderWidth * 2,
+    );
 ```
 
 **원인 3 — `toNum` 함수 '0' 버그**:
@@ -519,10 +549,10 @@ let maxWidth = shape.maxWidth ?? containerWidth;
 
 // shape.x > 0이고 maxWidth 미지정 시 자동 축소
 if (shape.x > 0 && shape.maxWidth == null) {
-  if (shape.align === 'center') {
-    maxWidth = containerWidth - shape.x * 2;  // 양쪽 대칭 여백
+  if (shape.align === "center") {
+    maxWidth = containerWidth - shape.x * 2; // 양쪽 대칭 여백
   } else {
-    maxWidth = containerWidth - shape.x;       // 왼쪽 여백만 제외
+    maxWidth = containerWidth - shape.x; // 왼쪽 여백만 제외
   }
   if (maxWidth < 1) maxWidth = containerWidth; // 안전 클램프
 }
@@ -594,6 +624,7 @@ Tab bar 구성 도형:
 ```
 
 **`_tabLabels` prop 동적 주입**:
+
 - `effectiveElementWithTabs` 헬퍼가 Tabs 요소에 `_tabLabels: string[]` prop을 주입
 - `shapes()` 함수는 `props._tabLabels ?? ['Tab 1', 'Tab 2', 'Tab 3']` 패턴으로 동적 레이블 처리
 
@@ -603,18 +634,21 @@ Tabs spec 내부에서 `props.style?.fontSize`가 TokenRef(`{ token: 'fontSize.s
 ```typescript
 // ✅ TokenRef 방어 처리 + height 기반 fallback
 const rawFontSize = props.style?.fontSize ?? size.fontSize;
-const fontSize = typeof rawFontSize === 'number'
-  ? rawFontSize
-  : height <= 25 ? 12   // sm
-  : height <= 30 ? 14   // md
-  : 16;                 // lg (height >= 35)
+const fontSize =
+  typeof rawFontSize === "number"
+    ? rawFontSize
+    : height <= 25
+      ? 12 // sm
+      : height <= 30
+        ? 14 // md
+        : 16; // lg (height >= 35)
 ```
 
 **콘텐츠 기반 탭 너비 계산**:
 
 ```typescript
 // ✅ 레이블 길이에 비례한 탭 너비 (최소 48px)
-const charWidth = fontSize * 0.55;  // Pretendard 평균 자폭 추정
+const charWidth = fontSize * 0.55; // Pretendard 평균 자폭 추정
 const paddingX = size.paddingX ?? 12;
 const tabWidth = Math.max(48, charWidth * label.length + paddingX * 2);
 ```
@@ -622,16 +656,17 @@ const tabWidth = Math.max(48, charWidth * label.length + paddingX * 2);
 **size 기준 height**:
 
 | size | height | fontSize fallback |
-|------|--------|-------------------|
-| `sm` | 25 | 12 |
-| `md` | 30 | 14 |
-| `lg` | 35 | 16 |
+| ---- | ------ | ----------------- |
+| `sm` | 25     | 12                |
+| `md` | 30     | 14                |
+| `lg` | 35     | 16                |
 
 ### TagGroup Spec Shapes 렌더링
 
 TagGroup spec은 **시각적 컨테이너 요소만 렌더링**합니다. `label` prop에 해당하는 텍스트 콘텐츠는 spec shapes에 포함되지 않으며, **Label 자식 Element**가 TEXT_TAGS 경로 → TextSprite를 통해 별도 렌더링합니다.
 
 **텍스트를 spec shapes에 넣지 않는 이유**:
+
 - TagGroup은 CONTAINER_TAGS로 등록되어 Label, TagList 등 자식 Element를 Yoga 레이아웃 엔진이 직접 배치합니다.
 - spec shapes의 고정 좌표 기반 텍스트와 자식 Label Element 렌더링이 동시에 존재하면 두 텍스트가 겹쳐 두 줄처럼 보이는 버그가 발생합니다 (2026-02-22 수정).
 - Label Element는 TEXT_TAGS 경로로 독립 크기 측정과 레이아웃 반영이 가능하므로 spec shapes 중복이 불필요합니다.
@@ -674,8 +709,8 @@ const TagGroupSpec: ComponentSpec<TagGroupProps> = {
 
 **TagGroup Spec 구조 요약 (shapes 내부)**:
 
-| shape | 타입 | 역할 |
-|-------|------|------|
+| shape     | 타입        | 역할                                                   |
+| --------- | ----------- | ------------------------------------------------------ |
 | (선택) bg | `roundRect` | 컨테이너 배경 (`width: 'auto'`, `height: 'auto'` 필수) |
 
 텍스트 관련 shape은 없음. 텍스트는 자식 Element(Label)가 담당.
@@ -692,11 +727,11 @@ const TagGroupSpec: ComponentSpec<TagGroupProps> = {
 
 **TagGroup Spec 렌더링 책임 분리 요약**:
 
-| 역할 | 담당 |
-|------|------|
-| 배경, 테두리 | TagGroup spec shapes (specShapesToSkia) |
-| label 텍스트 | Label 자식 Element (TextSprite) |
-| Tag 칩 배치 | TagList 자식 Element (CONTAINER_TAGS, row wrap) |
+| 역할               | 담당                                                    |
+| ------------------ | ------------------------------------------------------- |
+| 배경, 테두리       | TagGroup spec shapes (specShapesToSkia)                 |
+| label 텍스트       | Label 자식 Element (TextSprite)                         |
+| Tag 칩 배치        | TagList 자식 Element (CONTAINER_TAGS, row wrap)         |
 | 레이아웃 크기 결정 | isYogaSizedContainer — Yoga가 Label + TagList 높이 합산 |
 
 ## TagGroup/TagList: TAG_SPEC_MAP 제거 -> CONTAINER_TAGS 전환 (2026-02-13)
@@ -706,6 +741,7 @@ TagGroup과 TagList는 기존에 TAG_SPEC_MAP에 등록되어 spec shapes로 렌
 ### 변경 이유
 
 TagGroup/TagList는 웹 CSS의 flex container 구조와 동일하게 동작해야 합니다:
+
 - **TagGroup**: `flexDirection: column` -- Label과 TagList를 세로로 배치
 - **TagList**: `flexDirection: row, flexWrap: wrap` -- Tag 칩들을 가로로 배치하되 줄바꿈 허용
 
@@ -717,13 +753,26 @@ spec shapes는 고정된 시각 도형을 반환하므로 자식 요소의 동�
 // apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx
 
 // CONTAINER_TAGS에 추가 (자식을 내부에서 렌더링하는 컨테이너 태그)
-const CONTAINER_TAGS = useMemo(() => new Set([
-  'Card', 'Box', 'Panel', 'Form', 'Group', 'Dialog', 'Modal',
-  'Disclosure', 'DisclosureGroup', 'Accordion',
-  'ToggleButtonGroup',
-  'TagGroup', 'TagList',  // <- 웹 CSS 구조 동일: TagGroup (column) -> Label + TagList (row wrap) -> Tags
-  'Tabs',                 // <- tab bar는 spec shapes, Panel 자식은 CONTAINER_TAGS 경로
-]), []);
+const CONTAINER_TAGS = useMemo(
+  () =>
+    new Set([
+      "Card",
+      "Box",
+      "Panel",
+      "Form",
+      "Group",
+      "Dialog",
+      "Modal",
+      "Disclosure",
+      "DisclosureGroup",
+      "Accordion",
+      "ToggleButtonGroup",
+      "TagGroup",
+      "TagList", // <- 웹 CSS 구조 동일: TagGroup (column) -> Label + TagList (row wrap) -> Tags
+      "Tabs", // <- tab bar는 spec shapes, Panel 자식은 CONTAINER_TAGS 경로
+    ]),
+  [],
+);
 
 // TAG_SPEC_MAP에서는 TagGroup, TagList 항목이 제거됨
 // (ElementSprite.tsx의 TAG_SPEC_MAP에 해당 태그 없음)
@@ -735,33 +784,37 @@ ToggleButtonGroup, TagGroup, TagList는 `isYogaSizedContainer`로 분류되어, 
 
 ### 대상 태그
 
-| 태그 | 레이아웃 | 설명 |
-|------|---------|------|
-| `ToggleButtonGroup` | row | 자식 ToggleButton 너비 합산 |
-| `TagGroup` | column | Label + TagList 높이 합산 |
-| `TagList` | row wrap | Tag 칩들의 가로 배치 + 줄바꿈 |
+| 태그                | 레이아웃 | 설명                          |
+| ------------------- | -------- | ----------------------------- |
+| `ToggleButtonGroup` | row      | 자식 ToggleButton 너비 합산   |
+| `TagGroup`          | column   | Label + TagList 높이 합산     |
+| `TagList`           | row wrap | Tag 칩들의 가로 배치 + 줄바꿈 |
 
 ### 동작 방식
 
 ```typescript
 // apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx
 
-const isToggleButtonGroup = child.tag === 'ToggleButtonGroup';
-const isFlexContainerTag = child.tag === 'TagGroup' || child.tag === 'TagList';
+const isToggleButtonGroup = child.type === "ToggleButtonGroup";
+const isFlexContainerTag =
+  child.type === "TagGroup" || child.type === "TagList";
 const isYogaSizedContainer = isToggleButtonGroup || isFlexContainerTag;
 
 // Yoga 크기 결정 컨테이너: 명시적 width 설정 여부에 따라 분기
-const hasExplicitWidth = isYogaSizedContainer && childStyle?.width !== undefined
-  && childStyle.width !== 'fit-content';
+const hasExplicitWidth =
+  isYogaSizedContainer &&
+  childStyle?.width !== undefined &&
+  childStyle.width !== "fit-content";
 
 const containerWidthOverride = isYogaSizedContainer
   ? hasExplicitWidth
-    ? { width: layout.width }                                        // 명시적 width -> BlockEngine 계산값
-    : { width: 'auto', flexGrow: 0, flexShrink: 0 }                 // 기본 -> Yoga 자동 계산
+    ? { width: layout.width } // 명시적 width -> BlockEngine 계산값
+    : { width: "auto", flexGrow: 0, flexShrink: 0 } // 기본 -> Yoga 자동 계산
   : { width: layout.width };
 ```
 
 **핵심 규칙**:
+
 - `width: 'auto'` + `flexGrow: 0` + `flexShrink: 0` = Yoga가 자식 요소의 intrinsic 크기를 기반으로 컨테이너 크기를 결정
 - `flexGrow: 0`은 남은 공간을 차지하지 않도록 방지
 - `flexShrink: 0`은 부모 공간이 부족해도 자식 크기를 축소하지 않도록 방지

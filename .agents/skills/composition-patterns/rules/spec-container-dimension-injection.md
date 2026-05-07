@@ -23,7 +23,7 @@ if (bodyElement) {
 
 // ❌ notifyLayoutChange() 강제 호출 — 해킹, 무한 루프 위험
 useLayoutEffect(() => {
-  if (element.tag === "Tag") notifyLayoutChange();
+  if (element.type === "Tag") notifyLayoutChange();
 }, [computedW]);
 
 // ❌ registryVersion 강제 증가 — 전체 Skia 재렌더링 유발

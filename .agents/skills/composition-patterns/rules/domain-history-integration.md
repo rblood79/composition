@@ -15,12 +15,12 @@ tags: [domain, history, undo-redo]
 
 interface HistoryEntry {
   id: string;
-  type: 'add' | 'update' | 'remove' | 'move' | 'batch';
+  type: "add" | "update" | "remove" | "move" | "batch";
   elementId: string;
   data: {
-    element?: Element;      // add/remove용
-    prevElement?: Element;  // update용 (이전 상태)
-    diff?: SerializableElementDiff;  // diff 기반 (메모리 80% 절약)
+    element?: Element; // add/remove용
+    prevElement?: Element; // update용 (이전 상태)
+    diff?: SerializableElementDiff; // diff 기반 (메모리 80% 절약)
   };
   timestamp: number;
 }
@@ -47,7 +47,7 @@ historyManager.addEntry({ ... });  // 이미 변경된 후 기록
 ## Correct
 
 ```typescript
-import { historyManager } from '@/builder/stores/history';
+import { historyManager } from "@/builder/stores/history";
 
 // ✅ 히스토리 기록 → 상태 변경 순서
 const updateElementProps = (elementId: string, props: Props) => {
@@ -56,16 +56,16 @@ const updateElementProps = (elementId: string, props: Props) => {
 
   // 1. 변경 전 히스토리 기록 (diff 기반)
   historyManager.addDiffEntry(
-    'update',
-    structuredClone(element),  // 이전 상태
-    { ...element, props: { ...element.props, ...props } }  // 새 상태
+    "update",
+    structuredClone(element), // 이전 상태
+    { ...element, props: { ...element.props, ...props } }, // 새 상태
   );
 
   // 2. 상태 변경
   set({
-    elements: state.elements.map(el =>
-      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el
-    )
+    elements: state.elements.map((el) =>
+      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
+    ),
   });
 
   // 3. 인덱스 재구성
@@ -75,7 +75,7 @@ const updateElementProps = (elementId: string, props: Props) => {
 // ✅ 요소 추가 시
 const addElement = (element: Element) => {
   historyManager.addEntry({
-    type: 'add',
+    type: "add",
     elementId: element.id,
     data: { element: structuredClone(element) },
   });
@@ -86,7 +86,9 @@ const addElement = (element: Element) => {
 
 // ✅ 배치 작업 시
 const batchUpdate = (updates: ElementUpdate[]) => {
-  const prevElements = updates.map(u => structuredClone(getElementById(elementsMap, u.id)));
+  const prevElements = updates.map((u) =>
+    structuredClone(getElementById(elementsMap, u.id)),
+  );
 
   historyManager.addBatchDiffEntry(prevElements, newElements);
 
@@ -155,8 +157,8 @@ case 'batch':
 ```typescript
 // ❌ 구 패턴 — 부모와 자식을 별도 호출로 업데이트
 // 히스토리 엔트리 2개 생성 → Undo 2회 필요
-onUpdate({ label: value });              // 히스토리 엔트리 1
-syncChildProp('Label', 'children', value); // 히스토리 엔트리 2
+onUpdate({ label: value }); // 히스토리 엔트리 1
+syncChildProp("Label", "children", value); // 히스토리 엔트리 2
 ```
 
 ### Correct
@@ -166,13 +168,18 @@ syncChildProp('Label', 'children', value); // 히스토리 엔트리 2
 // 단일 batch 히스토리 엔트리 → Undo 1회로 전체 원복
 const { buildChildUpdates } = useSyncChildProp(elementId);
 
-const handleLabelChange = useCallback((value: string) => {
-  const updatedProps = { ...currentProps, label: value };
-  const childUpdates = buildChildUpdates([
-    { childTag: 'Label', propKey: 'children', value },
-  ]);
-  useStore.getState().updateSelectedPropertiesWithChildren(updatedProps, childUpdates);
-}, [currentProps, buildChildUpdates]);
+const handleLabelChange = useCallback(
+  (value: string) => {
+    const updatedProps = { ...currentProps, label: value };
+    const childUpdates = buildChildUpdates([
+      { childTag: "Label", propKey: "children", value },
+    ]);
+    useStore
+      .getState()
+      .updateSelectedPropertiesWithChildren(updatedProps, childUpdates);
+  },
+  [currentProps, buildChildUpdates],
+);
 ```
 
 ## Undo/Redo 구현
@@ -184,19 +191,19 @@ export const createUndoAction = (set, get) => async () => {
   if (!entry) return;
 
   switch (entry.type) {
-    case 'add':
+    case "add":
       // 추가된 요소 제거
       removeElementFromState(entry.elementId);
       break;
-    case 'update':
+    case "update":
       // 이전 상태로 복원
       restoreElementState(entry.data.prevElement);
       break;
-    case 'remove':
+    case "remove":
       // 제거된 요소 복원
       addElementToState(entry.data.element);
       break;
-    case 'batch':
+    case "batch":
       // batch에 포함된 모든 Element를 이전 상태로 복원
       restoreBatchElements(entry.data.prevElements);
       break;
@@ -217,7 +224,7 @@ historyManager.addEntry({
   elementId: rootElements[0].id,
   data: {
     element: rootElements[0],
-    childElements: allElements.filter(el => el.id !== rootElements[0].id),
+    childElements: allElements.filter((el) => el.id !== rootElements[0].id),
   },
 });
 // → Undo 1회로 모든 요소 동시 복원
@@ -226,9 +233,12 @@ historyManager.addEntry({
 // → Undo N회 필요 (하나씩 복원)
 ```
 
-## Undo/Redo 후 order_num 재정렬
+## Undo/Redo 후 order mirror 정규화
 
-Undo/Redo 완료 후 `reorderElements()`를 호출하여 order_num 충돌을 해결합니다.
+Undo/Redo 완료 후 legacy mirror 충돌이 있으면 `reorderElements()`를 호출하여
+`order_num`을 정규화합니다. 단, canonical runtime order는 parent `children[]`
+index가 SSOT이며, props update나 hydration에서 stale `order_num`을 sibling
+reorder intent로 해석하지 않습니다.
 **CRITICAL**: `setTimeout` 안에서 `get()`으로 최신 상태를 참조해야 합니다 (stale closure 방지).
 
 ```typescript
@@ -245,15 +255,18 @@ const { elements } = get();
 setTimeout(() => {
   reorderElements(elements, pageId, ...); // 100ms 후 stale!
 }, 100);
+
+// ❌ Undo/Redo 외 props update에서 order_num diff만으로 canonical remove+append
 ```
 
 ## 참조 파일
 
 - `apps/builder/src/builder/stores/history.ts` - HistoryManager
 - `apps/builder/src/builder/stores/history/historyActions.ts` - Undo/Redo 액션 (batchUpdateElementOrders 사용)
+- `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical `children[]` order write
 - `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 히스토리 통합 예시
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 히스토리 (단일/배치)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - order_num 재정렬 (computeReorderUpdates + reorderElements)
+- `apps/builder/src/builder/stores/utils/elementReorder.ts` - legacy order_num mirror 정규화
 - `apps/builder/src/builder/stores/inspectorActions.ts` - `updateSelectedPropertiesWithChildren`
 - `apps/builder/src/builder/hooks/useSyncChildProp.ts` - 직계 자식 prop 동기화 훅
 - `apps/builder/src/builder/hooks/useSyncGrandchildProp.ts` - 손자 prop 동기화 훅

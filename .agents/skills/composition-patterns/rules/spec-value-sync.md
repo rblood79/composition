@@ -47,8 +47,8 @@ md: { paddingLeft: 24, paddingRight: 24, borderWidth: 1 }  // 일치
 | CSS base `border: 1px solid`          | `BUTTON_SIZE_CONFIG[size].borderWidth` (=1)                    | `Button.css base: border`                                  |
 | `ButtonSpec.variants[v].border`       | `PixiButton specDefaultBorderWidth` (=1)                       | `Button.css border-color`                                  |
 | `ButtonSpec.sizes[size].borderRadius` | `UI_COMPONENT_DEFAULT_BORDER_RADIUS[size]` (ElementSprite.tsx) | `Button.css [data-size] border-radius`                     |
-| `spec.sizes[size].height`             | `INLINE_FORM_HEIGHTS[tag][size]` (engines/utils.ts)            | N/A (Skia에서 Yoga finalHeight 사용, spec height는 참조용) |
-| `spec indicator size`                 | `INLINE_FORM_INDICATOR_WIDTHS[tag][size]` (engines/utils.ts)   | N/A                                                        |
+| `spec.sizes[size].height`             | `INLINE_FORM_HEIGHTS[type][size]` (engines/utils.ts)           | N/A (Skia에서 Yoga finalHeight 사용, spec height는 참조용) |
+| `spec indicator size`                 | `INLINE_FORM_INDICATOR_WIDTHS[type][size]` (engines/utils.ts)  | N/A                                                        |
 
 ## Button/ToggleButton 사이즈 레퍼런스 테이블
 

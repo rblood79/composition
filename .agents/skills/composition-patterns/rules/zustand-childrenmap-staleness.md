@@ -14,14 +14,14 @@ Tab title을 Property Editor에서 변경하면 Preview에는 반영되나 WebGL
 
 ### Store 갱신 비대칭
 
-| 액션 | `elementsMap` | `childrenMap` |
-|------|:---:|:---:|
-| `createUpdateElementPropsAction` (props 변경) | ✅ 갱신 | ❌ 기존 유지 |
-| `createUpdateElementAction` (구조 변경) | ✅ 갱신 | ✅ `_rebuildIndexes()` |
-| `createBatchUpdateElementPropsAction` | ✅ 갱신 | ❌ 기존 유지 |
-| `createBatchUpdateElementsAction` | ✅ 갱신 | ✅ `_rebuildIndexes()` |
-| `updateElementOrder` (order_num 변경) | ✅ 갱신 | ✅ `_rebuildIndexes()` |
-| `batchUpdateElementOrders` (배치 order_num) | ✅ 갱신 | ✅ `_rebuildIndexes()` |
+| 액션                                                      | `elementsMap` |     `childrenMap`      |
+| --------------------------------------------------------- | :-----------: | :--------------------: |
+| `createUpdateElementPropsAction` (props 변경)             |    ✅ 갱신    |      ❌ 기존 유지      |
+| `createUpdateElementAction` (구조 변경)                   |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
+| `createBatchUpdateElementPropsAction`                     |    ✅ 갱신    |      ❌ 기존 유지      |
+| `createBatchUpdateElementsAction`                         |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
+| `updateElementOrder` (legacy order_num mirror 변경)       |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
+| `batchUpdateElementOrders` (legacy order_num mirror 배치) |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
 
 **`childrenMap`은 parent-child 구조가 변할 때만 갱신됩니다.** props만 변경하면 `childrenMap` 내부의 Element 객체는 **이전 props를 가진 stale 참조**입니다.
 
@@ -47,46 +47,51 @@ selector가 매번 새 배열/객체를 반환하면 **무한 루프** 발생.
 ```typescript
 // ❌ WRONG: 매번 새 배열 → useSyncExternalStore 무한 루프
 const labels = useStore((state) => {
-  return state.childrenMap.get(id)?.map(c => c.props.title); // 매번 새 배열
+  return state.childrenMap.get(id)?.map((c) => c.props.title); // 매번 새 배열
 });
 
 // ❌ WRONG: Zustand v5에서 equalityFn 무시됨
 const labels = useStore(
-  (state) => state.childrenMap.get(id)?.map(c => c.props.title),
-  shallow // ← 무시됨!
+  (state) => state.childrenMap.get(id)?.map((c) => c.props.title),
+  shallow, // ← 무시됨!
 );
 
 // ✅ CORRECT: useRef + shallow로 selector 내부 캐싱
-import { shallow } from 'zustand/shallow';
+import { shallow } from "zustand/shallow";
 
 const cachedRef = useRef<string[] | null>(null);
 const labels = useStore(
-  useCallback((state) => {
-    const next = state.childrenMap.get(id)
-      ?.map(c => {
-        const fresh = state.elementsMap.get(c.id) ?? c;
-        return String((fresh.props as Record<string, unknown>)?.title || '');
-      }) ?? null;
+  useCallback(
+    (state) => {
+      const next =
+        state.childrenMap.get(id)?.map((c) => {
+          const fresh = state.elementsMap.get(c.id) ?? c;
+          return String((fresh.props as Record<string, unknown>)?.title || "");
+        }) ?? null;
 
-    // 내용이 동일하면 이전 참조 반환 → useSyncExternalStore 안정성 보장
-    if (shallow(cachedRef.current, next)) {
-      return cachedRef.current;
-    }
-    cachedRef.current = next;
-    return next;
-  }, [id])
+      // 내용이 동일하면 이전 참조 반환 → useSyncExternalStore 안정성 보장
+      if (shallow(cachedRef.current, next)) {
+        return cachedRef.current;
+      }
+      cachedRef.current = next;
+      return next;
+    },
+    [id],
+  ),
 );
 ```
 
 ### 규칙 3: 적용 대상 판별
 
 이 패턴이 필요한 경우:
+
 - **부모/조부모 컴포넌트가 자식/손자의 props를 읽어야 하는 경우**
   - 예: Tabs → Tab children의 title (synthetic `_tabLabels`)
   - 예: Breadcrumbs → Breadcrumb children의 label (synthetic `_crumbs`)
   - 예: ToggleButtonGroup → 자식 ToggleButton의 selected 상태
 
 이 패턴이 **불필요**한 경우:
+
 - 자기 자신의 props만 읽는 경우 (`element` prop이 이미 최신)
 - 구조적 관계만 필요한 경우 (childrenMap의 길이, 존재 여부)
 

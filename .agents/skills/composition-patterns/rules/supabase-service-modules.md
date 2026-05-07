@@ -12,13 +12,13 @@ tags: [supabase, service, architecture]
 ```tsx
 // ❌ 여러 곳에서 중복된 Supabase 호출
 // ComponentA.tsx
-const { data } = await supabase.from('elements').select('*');
+const { data } = await supabase.from("elements").select("*");
 
 // ComponentB.tsx
-const { data } = await supabase.from('elements').select('*');
+const { data } = await supabase.from("elements").select("*");
 
 // ComponentC.tsx
-const { data } = await supabase.from('elements').select('id, name, props');
+const { data } = await supabase.from("elements").select("id, name, props");
 ```
 
 ## Correct
@@ -26,58 +26,58 @@ const { data } = await supabase.from('elements').select('id, name, props');
 ```tsx
 // ✅ 서비스 모듈 정의
 // services/api/elementsService.ts
-import { supabase } from '@/env/supabase.client';
-import type { Element, CreateElementInput, UpdateElementInput } from '@/types';
+import { supabase } from "@/env/supabase.client";
+import type { Element, CreateElementInput, UpdateElementInput } from "@/types";
 
 export const elementsService = {
   async getAll(): Promise<Element[]> {
     const { data, error } = await supabase
-      .from('elements')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("elements")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    if (error) throw new DatabaseError('Failed to fetch elements', error);
+    if (error) throw new DatabaseError("Failed to fetch elements", error);
     return data;
   },
 
   async getById(id: string): Promise<Element> {
     const { data, error } = await supabase
-      .from('elements')
-      .select('*')
-      .eq('id', id)
+      .from("elements")
+      .select("*")
+      .eq("id", id)
       .single();
 
-    if (error) throw new DatabaseError('Element not found', error);
+    if (error) throw new DatabaseError("Element not found", error);
     return data;
   },
 
   async create(input: CreateElementInput): Promise<Element> {
     const { data, error } = await supabase
-      .from('elements')
+      .from("elements")
       .insert(input)
       .select()
       .single();
 
-    if (error) throw new DatabaseError('Failed to create element', error);
+    if (error) throw new DatabaseError("Failed to create element", error);
     return data;
   },
 
   async update(id: string, input: UpdateElementInput): Promise<Element> {
     const { data, error } = await supabase
-      .from('elements')
+      .from("elements")
       .update(input)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
-    if (error) throw new DatabaseError('Failed to update element', error);
+    if (error) throw new DatabaseError("Failed to update element", error);
     return data;
-  }
+  },
 };
 
 // ✅ 사용
-import { elementsService } from '@/services/api/elementsService';
+import { elementsService } from "@/services/api/elementsService";
 
 const elements = await elementsService.getAll();
-const element = await elementsService.create({ tag: 'Button', props: {} });
+const element = await elementsService.create({ type: "Button", props: {} });
 ```

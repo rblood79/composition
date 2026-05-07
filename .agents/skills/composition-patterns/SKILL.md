@@ -21,19 +21,26 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
 
 ## Macro Rules
 
-| 영역                 | 먼저 볼 파일                                        | 핵심 확인                                           |
-| -------------------- | --------------------------------------------------- | --------------------------------------------------- |
-| State/Zustand        | [state-management](../../rules/state-management.md) | Memory → Index → History → DB → Preview → Rebalance |
-| Canvas/WebGL/Preview | [canvas-rendering](../../rules/canvas-rendering.md) | Spec/CSS/Canvas/Preview consumer 동시 확인          |
-| Layout               | [layout-engine](../../rules/layout-engine.md)       | `layoutVersion`, full rebuild, cache invalidation   |
-| CSS/Token            | [css-tokens](../../rules/css-tokens.md)             | token 우선, hard-coded drift 방지                   |
-| Spec SSOT            | [ssot-hierarchy](../../rules/ssot-hierarchy.md)     | D1 RAC, D2 RSP/custom, D3 Spec 시각 SSOT            |
-| ADR/Docs             | [adr-writing](../../rules/adr-writing.md)           | Risk-First 구조, README/status sync                 |
+| 영역                   | 먼저 볼 파일                                                     | 핵심 확인                                                      |
+| ---------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| State/Zustand          | [state-management](../../rules/state-management.md)              | Memory → Index → History → DB → Preview → Rebalance            |
+| Canonical Format/Order | [canonical format/order](rules/domain-canonical-format-order.md) | `children[]` order SSOT, ref/origin format, legacy mirror 경계 |
+| Canvas/WebGL/Preview   | [canvas-rendering](../../rules/canvas-rendering.md)              | Spec/CSS/Canvas/Preview consumer 동시 확인                     |
+| Layout                 | [layout-engine](../../rules/layout-engine.md)                    | `layoutVersion`, full rebuild, cache invalidation              |
+| CSS/Token              | [css-tokens](../../rules/css-tokens.md)                          | token 우선, hard-coded drift 방지                              |
+| Spec SSOT              | [ssot-hierarchy](../../rules/ssot-hierarchy.md)                  | D1 RAC, D2 RSP/custom, D3 Spec 시각 SSOT                       |
+| ADR/Docs               | [adr-writing](../../rules/adr-writing.md)                        | Risk-First 구조, README/status sync                            |
 
 ## 핵심 불변식
 
 - Element tree 변경은 direct consumer뿐 아니라 selection, history, preview sync,
   layout, persistence consumer를 함께 감사합니다.
+- canonical `CompositionDocument.children[]`가 runtime order SSOT입니다.
+  `order_num`은 legacy mirror/compat payload로 취급하고 props update가 sibling
+  order를 바꾸지 않는지 확인합니다.
+- Origin/instance 판단은 `reusable: true`, `type:"ref"`, `ref`,
+  `descendants` canonical shape를 우선하고 legacy `componentRole/masterId`는
+  adapter mirror로 봅니다.
 - Zustand update는 index와 derived map stale 여부를 먼저 확인합니다.
 - 렌더링 변경은 `packages/specs`, `packages/shared` CSS/renderer, Builder Canvas
   경로를 한 경로만 고치고 끝내지 않습니다.
@@ -46,7 +53,8 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
 
 ## 상세 Rule Map
 
-- Domain: [element hierarchy](rules/domain-element-hierarchy.md),
+- Domain: [canonical format/order](rules/domain-canonical-format-order.md),
+  [element hierarchy](rules/domain-element-hierarchy.md),
   [O(1) lookup](rules/domain-o1-lookup.md),
   [history](rules/domain-history-integration.md),
   [async pipeline](rules/domain-async-pipeline.md),
