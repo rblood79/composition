@@ -48,19 +48,20 @@ origin/ref instance/slot descendants까지 같은 ordering contract로 확장한
 ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어왔다. 아래 항목은 Phase
 완료가 아니라, 기존 계획의 baseline을 갱신하는 partial implementation이다.
 
-| 영역                        | 현재 반영                                                                                                                                                                                         | 남은 판단                                                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| canonical upsert            | `upsertChild`가 기존 child를 같은 배열 index에서 replace하고 신규 child만 append한다. `replaceNodeById`는 nested `children`과 `RefNode.descendants[*].children`까지 위치 보존 replace를 수행한다. | 공개 helper/API로 승격하고, explicit insert/move/remove는 아직 별도 구현해야 한다.                                  |
-| legacy export mirror        | `exportLegacyDocument`가 root/nested/descendant `children` 순회 index를 legacy `order_num`으로 파생한다.                                                                                          | DB/API/import/test fixture bucket과 함께 Phase 6 allowlist에 고정해야 한다.                                         |
-| shared export runtime model | `deriveProjectRenderModelFromDocument`의 runtime element projection은 child index를 `order_num`으로 파생한다.                                                                                     | page order는 아직 metadata/readPageOrder sort가 남아 있으므로 Phase 2/3/6에서 별도 분류해야 한다.                   |
-| component origin round-trip | `reusable: true`를 `componentRole: "master"` mirror로 export하고, page-owned origin을 root reusable catalog로 끌어올리지 않는다.                                                                  | origin/instance/slot 전체 child order cutover는 Phase 5에서 별도 gate로 닫아야 한다.                                |
-| component ref resolution    | canonical `ref`/legacy `masterId` instance를 origin-shaped runtime element로 resolve하고, descendants mode B/C synthetic child를 materialize한다.                                                   | resolver는 아직 `childrenMap`을 `order_num`으로 정렬하고 synthetic `order_num` bridge를 만들므로 Phase 3/5 미완이다. |
-| copy/paste ref instance     | reusable origin copy/paste는 origin subtree deep-copy 대신 canonical `ref` instance를 생성한다.                                                                                                     | paste 위치/order는 legacy `parent_id`/`order_num` mirror에 남아 있으므로 Phase 4/6에서 재분류해야 한다.              |
-| LayerTree/frame projection  | canonical source와 page-frame projection merge가 보강되어 frame-bound page body/slot/live page child가 더 잘 보인다.                                                                              | `useLayerTreeData`와 `buildTreeFromElements`는 여전히 `order_num` sort를 사용하므로 G3 미완이다.                    |
-| selection/hit-test          | page-frame hidden slot child 선택과 overlapping frame body 선택이 보강됐다.                                                                                                                       | depth/area 우선 heuristic이 최종 `z-index` + `children[]` effective order와 충돌하지 않는지 G3에서 재검증해야 한다. |
-| Nodes panel frame tree UI   | Frames 탭의 Frames/Layers child rendering 이 Pages 탭과 같은 `TreeBase` / `VirtualizedTree`, `section` / `section-content`, `frame-tree` 단일 class 기준으로 정리됐다.                            | UI tree primitive parity baseline. structural ordering source 전환은 Phase 3/6에서 별도 검증해야 한다.              |
-| drag/drop/write path        | drag/drop 자체의 canonical child move 선행 패치는 없다. `batchUpdateElementOrders`/`moveElementToContainer`/`reorderElements`는 legacy `order_num` write 중심이다.                                  | Phase 4에서 target parent `children[]` splice write path로 전환해야 한다.                                           |
-| group/ungroup/history write | group/ungroup, undo/redo history reorder, loader hydration 경로가 `parent_id`/`order_num`을 직접 읽고 쓴다.                                                                                       | Phase 4 inventory와 Phase 6 allowlist에서 drag/drop write path와 함께 격리해야 한다.                                |
+| 영역                        | 현재 반영                                                                                                                                                                                                                               | 남은 판단                                                                                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| canonical upsert            | `upsertChild`가 기존 child를 같은 배열 index에서 replace하고 신규 child만 append한다. `replaceNodeById`는 nested `children`과 `RefNode.descendants[*].children`까지 위치 보존 replace를 수행한다.                                       | 공개 helper/API로 승격하고, explicit insert/move/remove는 아직 별도 구현해야 한다.                                                                          |
+| canonical sibling bridge    | 2026-05-07 patch에서 `mergeElementsCanonicalPrimary` 후 같은 parent의 전체 sibling batch를 canonical `children[]`/`RefNode.descendants[*].children` 순서로 재고정한다. props-only batch는 previous canonical position guard로 제외한다. | Phase 1 helper 후보/흡수 대상. Phase 4 direct canonical splice write 전까지 compatibility bridge로만 유지한다.                                              |
+| legacy export mirror        | `exportLegacyDocument`가 root/nested/descendant `children` 순회 index를 legacy `order_num`으로 파생한다.                                                                                                                                | DB/API/import/test fixture bucket과 함께 Phase 6 allowlist에 고정해야 한다.                                                                                 |
+| shared export runtime model | `deriveProjectRenderModelFromDocument`의 runtime element projection은 child index를 `order_num`으로 파생한다.                                                                                                                           | page order는 아직 metadata/readPageOrder sort가 남아 있으므로 Phase 2/3/6에서 별도 분류해야 한다.                                                           |
+| component origin round-trip | `reusable: true`를 `componentRole: "master"` mirror로 export하고, page-owned origin을 root reusable catalog로 끌어올리지 않는다.                                                                                                        | origin/instance/slot 전체 child order cutover는 Phase 5에서 별도 gate로 닫아야 한다.                                                                        |
+| component ref resolution    | canonical `ref`/legacy `masterId` instance를 origin-shaped runtime element로 resolve하고, descendants mode B/C synthetic child를 materialize한다.                                                                                       | resolver는 아직 `childrenMap`을 `order_num`으로 정렬하고 synthetic `order_num` bridge를 만들므로 Phase 3/5 미완이다.                                        |
+| copy/paste ref instance     | reusable origin copy/paste는 origin subtree deep-copy 대신 canonical `ref` instance를 생성한다.                                                                                                                                         | paste 위치/order는 legacy `parent_id`/`order_num` mirror에 남아 있으므로 Phase 4/6에서 재분류해야 한다.                                                     |
+| LayerTree/frame projection  | canonical source와 page-frame projection merge가 보강되어 frame-bound page body/slot/live page child가 더 잘 보인다. LayerTree DnD는 projected synthetic ref child를 drag source/drop target에서 차단한다.                              | `useLayerTreeData`와 `buildTreeFromElements`는 여전히 `order_num` sort를 사용하므로 G3 미완이다. descendant child move UX는 Phase 5 helper 이후 재검토한다. |
+| selection/hit-test          | page-frame hidden slot child 선택과 overlapping frame body 선택이 보강됐다.                                                                                                                                                             | depth/area 우선 heuristic이 최종 `z-index` + `children[]` effective order와 충돌하지 않는지 G3에서 재검증해야 한다.                                         |
+| Nodes panel frame tree UI   | Frames 탭의 Frames/Layers child rendering 이 Pages 탭과 같은 `TreeBase` / `VirtualizedTree`, `section` / `section-content`, `frame-tree` 단일 class 기준으로 정리됐다.                                                                  | UI tree primitive parity baseline. structural ordering source 전환은 Phase 3/6에서 별도 검증해야 한다.                                                      |
+| drag/drop/write path        | direct canonical child move 선행 패치는 아직 없다. 현재 drag/drop은 `batchUpdateElementOrders`/`moveElementToContainer`/`reorderElements`의 legacy `order_num` write 뒤 canonical sibling bridge로 export drift를 막는다.               | Phase 4에서 target parent `children[]` splice write path로 전환하고 bridge 의존을 제거해야 한다.                                                            |
+| group/ungroup/history write | group/ungroup, undo/redo history reorder, loader hydration 경로가 `parent_id`/`order_num`을 직접 읽고 쓴다.                                                                                                                             | Phase 4 inventory와 Phase 6 allowlist에서 drag/drop write path와 함께 격리해야 한다.                                                                        |
 
 ### 중요 정리
 
@@ -69,6 +70,13 @@ ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어�
 - `shouldPreserveExistingCanonicalPosition`은 "같은 legacy ownership/order 입력으로 props만
   바뀌는 update"의 위치 보존 guard다. reorder API가 아니므로 Phase 1/4의
   `moveCanonicalChild`/descendant move helper 요구는 유지한다.
+- `applyCanonicalSiblingOrder` 계열은 현재 drag/drop 회귀를 막는 transitional bridge다.
+  incoming batch가 같은 parent의 exportable sibling 전체를 덮고 실제 position change가 있을
+  때만 canonical child order를 재고정한다. Phase 1에서는 helper 후보로 평가하고, Phase 4
+  이후 direct canonical splice write가 들어오면 Phase 6 제거/축소 대상으로 재분류한다.
+- synthetic ref child DnD 차단은 projected child를 persistence target으로 쓰는 오류를
+  막는다. instance descendants/slot child reorder UX는 `moveDescendantChild` helper와
+  stable descendant path contract가 준비된 뒤 허용 여부를 결정한다.
 - 현재 `order_num` sort가 남은 runtime path는 Phase 0 inventory에서 `delete-after-cutover`
   또는 temporary `structural-runtime` bucket으로 명시하고, Phase 6에서 0 또는 allowlist로
   닫는다.
@@ -86,12 +94,12 @@ ADR 작성 이후 local main에는 order 관련 선행 패치가 일부 들어�
    - `fixture-test`: legacy fixture 또는 test helper.
    - `delete-after-cutover`: Phase 6에서 제거할 임시 fallback.
 3. current tactical page hotfix가 어떤 bucket에 속하는지 명시한다.
-4. 2026-05-06 local main 선행 패치를 별도 `partial-implemented` column으로 표시한다.
+4. 2026-05-06/07 local main 선행 패치를 별도 `partial-implemented` column으로 표시한다.
    특히 `canonicalMutations.ts`, `exportLegacyDocument.ts`, `useLayerTreeData.ts`,
    `selectionHitTest.ts`, `hierarchicalSelection.ts`,
    `packages/shared/src/utils/export.utils.ts`,
    `apps/builder/src/builder/stores/elements.ts`, `treeUtils.ts`,
-   Preview/Publish order sort call site를 같은 표에서 비교한다.
+   `LayerTree/validation.ts`, Preview/Publish order sort call site를 같은 표에서 비교한다.
 5. Phase 6 grep gate allowlist를 먼저 작성한다.
 
 ### 확인 명령
@@ -116,6 +124,15 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
    - local main의 `upsertChild`, `replaceNodeById`, `removeNodeById` 선행 구현을
      내부 helper 후보로 평가하되, 파일-local 함수에 머무르지 않게 public/internal
      API 경계를 정한다.
+   - 기존 `CanonicalDocumentActions.insertNode`, `removeNode`, `updateDescendant`는
+     이미 canonical store public mutation surface다. ADR-118 helper는 이를 대체할지,
+     확장할지, 내부 구현으로 감쌀지 먼저 결정하고 중복 public API를 만들지 않는다.
+   - 기존 actions가 직접 표현하지 못하는 gap은 same-parent/cross-parent move, sibling
+     reorder, descendant children insert/move, derived `order_num` mirror 계산이다.
+   - local main의 `collectChildrenArrayIndex`, `applyCanonicalSiblingOrder`,
+     `applyCanonicalSiblingOrderToRefDescendants`는 transitional bridge로 분류하고,
+     explicit helper로 흡수할 수 있는 traversal/path logic과 Phase 6에서 제거할
+     legacy-batch reconciliation logic을 분리한다.
    - `getCanonicalChildren(document, parentId)`
    - `insertCanonicalChild(document, parentId, child, index)`
    - `moveCanonicalChild(document, childId, targetParentId, index)`
@@ -133,8 +150,12 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
    replace 용도로만 유지한다. 이 guard를 reorder로 오해하지 않도록 explicit move helper의
    테스트를 별도로 둔다.
 6. `packages/shared/src/types/composition-document-actions.types.ts`와
-   `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts`에 move/reorder와
-   descendants children insert/move contract를 명시한다.
+   `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts`에 기존
+   `insertNode`/`removeNode`/`updateDescendant`와 새 move/reorder/descendant children
+   helper의 관계를 명시한다.
+7. canonical sibling bridge가 담당하던 "legacy order batch → canonical child order repair"는
+   Phase 4 전까지 compatibility layer로만 유지하고, 새 public/internal helper의 primary
+   contract로 채택하지 않는다.
 
 ### 금지
 
@@ -210,6 +231,10 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 5. `batchUpdateElementOrders`, `moveElementToContainer`, `reorderElements`는 final canonical
    write API의 caller 또는 legacy mirror update로 격리한다. 현재 구현처럼 `order_num`을
    primary write target으로 두지 않는다.
+   - 2026-05-07 canonical sibling bridge는 이 격리가 끝날 때까지 refresh/export drift를 막는
+     guard로만 유지한다.
+   - G4 완료 시 drag/drop write path는 bridge가 없어도 canonical `children[]` splice 결과를
+     직접 보존해야 한다.
 6. `PropertiesPanel` group/ungroup, history undo/redo reorder, loader hydration,
    copy/paste placement처럼 direct `parent_id`/`order_num` read/write가 있는 경로를
    Phase 4 inventory에 포함하고, final canonical write API 또는 Phase 6 allowlist로
@@ -234,6 +259,9 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
 5. origin edit, instance override, detach가 child order를 서로 오염시키지 않는지 확인한다.
 6. local main의 `reusable: true` origin persistence/round-trip 선행 패치를 Phase 5 baseline으로
    인정하고, page-owned origin이 root reusable catalog로 이동하지 않는 회귀 테스트를 유지한다.
+7. LayerTree가 synthetic ref child DnD를 차단한 현재 상태를 baseline으로 둔다. ref
+   descendant/slot child 자체 reorder를 허용하려면 `moveDescendantChild`가 persisted
+   descendant override에 쓰는 경로를 먼저 통과시킨다.
 
 ### 검증
 
@@ -261,6 +289,11 @@ rg -n "metadata.*order_num|order_num.*metadata" apps packages
    - layout child order.
    - drag/drop canonical write.
    - component/slot descendants order.
+4. transitional bridge bucket:
+   - `applyCanonicalSiblingOrder` 계열은 Phase 4 완료 전까지만 legacy write compatibility
+     bridge로 허용한다.
+   - Phase 6 완료 시점에는 제거하거나 adapter-boundary helper로 축소해야 하며,
+     structural runtime write path가 이 bridge 없이는 순서를 보존하지 못하면 gate 실패다.
 
 ### Grep Gate
 
@@ -277,43 +310,44 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 
 ## File Impact Map
 
-| 영역                  | 예상 파일/모듈                                                                                                                           | 변경 방향                                                    |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| canonical type/helper | `packages/shared/src/types/*`, `apps/builder/src/adapters/canonical/*`                                                                   | child order helper와 legacy mirror boundary 정리             |
-| canonical actions     | `packages/shared/src/types/composition-document-actions.types.ts`, `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts` | move/reorder 및 descendants children write contract 추가     |
-| export/import         | `packages/shared/src/utils/export.utils.ts`, canonical/pencil adapters                                                                   | `children[]` index에서 `order_num` 파생                      |
-| page tree             | `apps/builder/src/builder/panels/nodes/tree/PageTree/*`, `PagesSection.tsx`                                                              | PageTree order source를 root children index로 전환           |
-| layer tree            | `apps/builder/src/builder/panels/nodes/tree/LayerTree/*`                                                                                 | canonical child order projection                             |
-| stores/indexer        | `apps/builder/src/builder/stores/elements.ts`, `apps/builder/src/builder/stores/index.ts`                                                | `childrenMap`을 ordered projection으로 유지                  |
-| canvas/Skia           | `apps/builder/src/builder/workspace/canvas/**`                                                                                           | render/hit-test/layout order source 통일                     |
-| preview runtime       | `apps/builder/src/preview/App.tsx`, `apps/builder/src/preview/utils/layoutResolver.ts`                                                   | iframe render tree order source 통일                         |
-| publish runtime       | `apps/publish/src/components/PageNav.tsx`, `apps/publish/src/renderer/ElementRenderer.tsx`                                               | published page/render order source 통일                      |
-| drag/drop/write       | `useDragBridge.ts`, `useCanvasDragDropHelpers.ts`, `PropertiesPanel.tsx`, `historyActions.ts`, `elementLoader.ts`, reorder helpers       | parent/index splice write path + legacy write quarantine     |
-| component/slot        | `canonicalRefResolution.ts`, `canonicalElementsView.ts`, `multiElementCopy.ts`, `instanceActions.ts`, slot/layout adapters               | descendants slot child append/move contract                  |
-| shared renderers      | `packages/shared/src/renderers/**`                                                                                                       | `childrenMap` order 소비만 허용, local `order_num` sort 제거 |
-| collection data       | `migrateCollectionItems.ts`, Table/List data models                                                                                      | structural vs data order bucket 분리                         |
+| 영역                  | 예상 파일/모듈                                                                                                                           | 변경 방향                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| canonical type/helper | `packages/shared/src/types/*`, `apps/builder/src/adapters/canonical/*`                                                                   | child order helper와 legacy mirror boundary 정리                                                                       |
+| canonical actions     | `packages/shared/src/types/composition-document-actions.types.ts`, `apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts` | 기존 `insertNode`/`removeNode`/`updateDescendant`와 신규 move/reorder 및 descendants children write contract 관계 정리 |
+| export/import         | `packages/shared/src/utils/export.utils.ts`, canonical/pencil adapters                                                                   | `children[]` index에서 `order_num` 파생                                                                                |
+| page tree             | `apps/builder/src/builder/panels/nodes/tree/PageTree/*`, `PagesSection.tsx`                                                              | PageTree order source를 root children index로 전환                                                                     |
+| layer tree            | `apps/builder/src/builder/panels/nodes/tree/LayerTree/*`                                                                                 | canonical child order projection                                                                                       |
+| stores/indexer        | `apps/builder/src/builder/stores/elements.ts`, `apps/builder/src/builder/stores/index.ts`                                                | `childrenMap`을 ordered projection으로 유지                                                                            |
+| canvas/Skia           | `apps/builder/src/builder/workspace/canvas/**`                                                                                           | render/hit-test/layout order source 통일                                                                               |
+| preview runtime       | `apps/builder/src/preview/App.tsx`, `apps/builder/src/preview/utils/layoutResolver.ts`                                                   | iframe render tree order source 통일                                                                                   |
+| publish runtime       | `apps/publish/src/components/PageNav.tsx`, `apps/publish/src/renderer/ElementRenderer.tsx`                                               | published page/render order source 통일                                                                                |
+| drag/drop/write       | `useDragBridge.ts`, `useCanvasDragDropHelpers.ts`, `PropertiesPanel.tsx`, `historyActions.ts`, `elementLoader.ts`, reorder helpers       | parent/index splice write path + legacy write quarantine                                                               |
+| component/slot        | `canonicalRefResolution.ts`, `canonicalElementsView.ts`, `multiElementCopy.ts`, `instanceActions.ts`, slot/layout adapters               | descendants slot child append/move contract                                                                            |
+| shared renderers      | `packages/shared/src/renderers/**`                                                                                                       | `childrenMap` order 소비만 허용, local `order_num` sort 제거                                                           |
+| collection data       | `migrateCollectionItems.ts`, Table/List data models                                                                                      | structural vs data order bucket 분리                                                                                   |
 
 ### Local Main Partial Files
 
-| 파일                                                                       | 현재 역할                                                                                                           | ADR-118 처리                                                             |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `apps/builder/src/adapters/canonical/canonicalMutations.ts`                | 위치 보존 upsert/replace/remove, reusable origin placement 일부 구현                                                | Phase 1 helper 후보 + Phase 5 baseline. explicit move helper는 추가 필요 |
-| `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`            | canonical `ref`/legacy `masterId` resolve, descendants synthetic child materialization                              | Phase 3/5 partial. `order_num` 기반 childrenMap bridge는 제거 필요        |
-| `apps/builder/src/builder/utils/canonicalRefResolution.ts`                 | builder-facing re-export facade                                                                                     | Phase 3/5 test/import boundary                                           |
-| `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`              | `children[]` index에서 legacy `order_num` export                                                                    | Phase 1/6 adapter boundary allowlist                                     |
-| `packages/shared/src/utils/export.utils.ts`                                | runtime element projection 은 `children[]` index로 `order_num` 파생, page order 는 metadata/readPageOrder sort 사용 | Phase 1/2/3/6 교차 target. element projection 과 page order 를 분리 분류 |
-| `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts`       | canonical tree DFS 로 legacy `Element[]`와 selected ref view를 파생                                                 | Phase 3/5 partial. selected/ref view와 render order parity 검증 필요      |
-| `apps/builder/src/builder/stores/index.ts`                                 | selected element data가 canonical/ref-resolved view를 fallback으로 사용                                             | Phase 3 inspector/properties read baseline                               |
-| `apps/builder/src/builder/stores/utils/instanceActions.ts`                 | component origin 전환 후 canonical document sync/persist                                                            | Phase 5 baseline. instance creation order write는 Phase 4/6에서 재분류   |
-| `apps/builder/src/builder/utils/multiElementCopy.ts`                       | reusable origin paste를 canonical `ref` instance 생성으로 전환                                                     | Phase 5 UX baseline. paste placement/order는 Phase 4/6에서 재분류        |
-| `apps/builder/src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts` | canonical/page-frame source merge와 frame-bound projection 보강                                                     | Phase 3 partial. `order_num` sort 제거 필요                              |
-| `apps/builder/src/builder/utils/treeUtils.ts`                              | generic Element tree가 `order_num` sort 사용                                                                        | Phase 3 cutover target                                                   |
-| `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`  | depth/area 기반 hit target 보강                                                                                     | Phase 3 effective order 재검증 target                                    |
-| `apps/builder/src/builder/stores/elements.ts` / `stores/utils/elementReorder.ts` | order write/reparent가 legacy `order_num` 중심                                                                      | Phase 4 cutover target                                                   |
-| `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`           | group/ungroup 이 `parent_id`/`order_num`을 store와 Supabase에 직접 write                                            | Phase 4 cutover target                                                   |
-| `apps/builder/src/builder/stores/history/historyActions.ts`                | undo/redo/go-to-history 이후 `reorderElements`로 legacy order 재정렬                                                | Phase 4/6 quarantine target                                              |
-| `apps/builder/src/builder/stores/elementLoader.ts`                         | IndexedDB/Supabase hydrate와 page snapshot이 `order_num` 정렬을 사용                                               | Phase 6 legacy boundary allowlist 후보                                   |
-| `apps/builder/src/builder/panels/nodes/FramesTab/*` / `NodesPanel.css`     | Frames tab tree primitive/section/class parity 완료                                                                 | Phase 3 UI baseline. ordering source cutover 자체는 별도 target          |
+| 파일                                                                             | 현재 역할                                                                                                                                                                                    | ADR-118 처리                                                                                                        |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `apps/builder/src/adapters/canonical/canonicalMutations.ts`                      | 위치 보존 upsert/replace/remove, reusable origin placement 일부 구현. 2026-05-07 sibling-order bridge가 legacy order batch 후 canonical `children[]`/descendant children order를 재고정한다. | Phase 1 helper 후보 + Phase 4 bridge absorption/removal target + Phase 5 baseline. explicit move helper는 추가 필요 |
+| `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`                  | canonical `ref`/legacy `masterId` resolve, descendants synthetic child materialization                                                                                                       | Phase 3/5 partial. `order_num` 기반 childrenMap bridge는 제거 필요                                                  |
+| `apps/builder/src/builder/utils/canonicalRefResolution.ts`                       | builder-facing re-export facade                                                                                                                                                              | Phase 3/5 test/import boundary                                                                                      |
+| `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`                    | `children[]` index에서 legacy `order_num` export                                                                                                                                             | Phase 1/6 adapter boundary allowlist                                                                                |
+| `packages/shared/src/utils/export.utils.ts`                                      | runtime element projection 은 `children[]` index로 `order_num` 파생, page order 는 metadata/readPageOrder sort 사용                                                                          | Phase 1/2/3/6 교차 target. element projection 과 page order 를 분리 분류                                            |
+| `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts`             | canonical tree DFS 로 legacy `Element[]`와 selected ref view를 파생                                                                                                                          | Phase 3/5 partial. selected/ref view와 render order parity 검증 필요                                                |
+| `apps/builder/src/builder/stores/index.ts`                                       | selected element data가 canonical/ref-resolved view를 fallback으로 사용                                                                                                                      | Phase 3 inspector/properties read baseline                                                                          |
+| `apps/builder/src/builder/stores/utils/instanceActions.ts`                       | component origin 전환 후 canonical document sync/persist                                                                                                                                     | Phase 5 baseline. instance creation order write는 Phase 4/6에서 재분류                                              |
+| `apps/builder/src/builder/utils/multiElementCopy.ts`                             | reusable origin paste를 canonical `ref` instance 생성으로 전환                                                                                                                               | Phase 5 UX baseline. paste placement/order는 Phase 4/6에서 재분류                                                   |
+| `apps/builder/src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts`       | canonical/page-frame source merge와 frame-bound projection 보강                                                                                                                              | Phase 3 partial. `order_num` sort 제거 필요                                                                         |
+| `apps/builder/src/builder/panels/nodes/tree/LayerTree/validation.ts`             | synthetic ref child를 drag source/drop target에서 차단해 projected instance child가 persistence target으로 쓰이지 않게 한다                                                                  | Phase 5 baseline. descendant/slot child reorder UX는 `moveDescendantChild` 이후 재검토                              |
+| `apps/builder/src/builder/utils/treeUtils.ts`                                    | generic Element tree가 `order_num` sort 사용                                                                                                                                                 | Phase 3 cutover target                                                                                              |
+| `apps/builder/src/builder/workspace/canvas/selection/selectionHitTest.ts`        | depth/area 기반 hit target 보강                                                                                                                                                              | Phase 3 effective order 재검증 target                                                                               |
+| `apps/builder/src/builder/stores/elements.ts` / `stores/utils/elementReorder.ts` | order write/reparent가 legacy `order_num` 중심                                                                                                                                               | Phase 4 cutover target                                                                                              |
+| `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`                 | group/ungroup 이 `parent_id`/`order_num`을 store와 Supabase에 직접 write                                                                                                                     | Phase 4 cutover target                                                                                              |
+| `apps/builder/src/builder/stores/history/historyActions.ts`                      | undo/redo/go-to-history 이후 `reorderElements`로 legacy order 재정렬                                                                                                                         | Phase 4/6 quarantine target                                                                                         |
+| `apps/builder/src/builder/stores/elementLoader.ts`                               | IndexedDB/Supabase hydrate와 page snapshot이 `order_num` 정렬을 사용                                                                                                                         | Phase 6 legacy boundary allowlist 후보                                                                              |
+| `apps/builder/src/builder/panels/nodes/FramesTab/*` / `NodesPanel.css`           | Frames tab tree primitive/section/class parity 완료                                                                                                                                          | Phase 3 UI baseline. ordering source cutover 자체는 별도 target                                                     |
 
 ## Verification Plan
 
@@ -323,6 +357,7 @@ rg -n "\\.sort\\([^\\n]*(order_num|orderNum)" apps/builder/src packages/shared/s
 pnpm -F @composition/builder exec vitest run \
   src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts \
   src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx \
+  src/builder/panels/nodes/tree/LayerTree/validation.test.ts \
   src/adapters/canonical/__tests__/canonicalMutations.test.ts \
   src/builder/utils/canonicalRefResolution.test.ts \
   src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts \
@@ -356,6 +391,8 @@ pnpm run codex:typecheck
 
 - [ ] G0 inventory와 allowlist 작성.
 - [ ] G1 canonical order helper + unit test 통과.
+- [ ] 2026-05-07 canonical sibling bridge를 Phase 1 helper 후보와 Phase 4/6
+      제거/흡수 대상으로 분류.
 - [ ] local main partial 선행 패치를 Phase 1/2/3/4/5/6 baseline으로 분류하고, 완료
       gate와 미완 gate를 분리.
 - [x] order 착수 전 frame/component projection 및 Nodes panel Frames tree parity 선행 안정화

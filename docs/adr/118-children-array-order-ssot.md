@@ -6,6 +6,13 @@ Proposed — 2026-05-06
 
 > **2026-05-06 pre-entry note**: ADR-118 order 작업 착수 전 선행 안정화 패치가 완료됐다. page-frame refresh/body/slot projection, component origin/instance materialization/override, synthetic page-frame projection `order_num` DB 오류, Nodes panel Pages/Frames tree parity 는 current main 에서 닫힌 상태로 보고, ADR-118 은 남은 structural order SSOT 전환(`children[]` index primary, `order_num` mirror quarantine)에 집중한다.
 
+> **2026-05-07 bridge note**: drag/drop 후 canonical merge/export 가 sibling 순서를
+> 다시 뒤섞던 회귀를 막기 위해 transitional bridge가 추가됐다. 이 bridge는 legacy
+> `order_num` batch를 받은 뒤 같은 canonical parent의 전체 sibling batch를
+> `children[]`/`RefNode.descendants[*].children` 순서로 재고정한다. 단, 이는 ADR-118의
+> 최종 `children[]` splice write API가 아니며 Phase 1/4에서 canonical order helper로
+> 흡수하거나 Phase 6에서 제거해야 하는 partial implementation이다.
+
 ## Context
 
 ADR-116 이후 `CompositionDocument`가 canonical document SSOT가 되었지만, sibling
@@ -82,33 +89,49 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 - collection item ordering은 structural node ordering과 섞지 않고 별도 분류/후속 ADR
   후보로 남긴다.
 
-**2026-05-06 local main 반영 상태**:
+**2026-05-06/07 local main 반영 상태**:
 
 - ADR 작성 이후 local main에는 partial 선행 패치가 들어왔다. canonical upsert는 기존
   node를 같은 `children[]` 위치에서 replace하고, 신규 child만 append하는 방향으로 보강됐다
-  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:295`,
-  `apps/builder/src/adapters/canonical/canonicalMutations.ts:311`).
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:303`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:311`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:316`).
 - export boundary는 canonical child 순회 index를 legacy `order_num`으로 파생하는 경로를
   이미 사용한다
-  (`apps/builder/src/adapters/canonical/exportLegacyDocument.ts:60`,
-  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:81`,
-  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:94`,
+  (`apps/builder/src/adapters/canonical/exportLegacyDocument.ts:57`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:78`,
+  `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:91`,
   `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:179`).
 - component origin/ref persistence/round-trip은 `reusable: true` origin과
   `ref`/`masterId` instance를 canonical node로 변환하고, legacy export 시
   `componentRole: "master"` / `"instance"` mirror와 `descendants`를 보존한다
-  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:556`,
-  `apps/builder/src/adapters/canonical/canonicalMutations.ts:565`,
-  `apps/builder/src/adapters/canonical/canonicalMutations.ts:636`,
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:570`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:637`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:644`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:653`,
   `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:188`,
   `apps/builder/src/adapters/canonical/exportLegacyDocument.ts:193`).
 - ref instance runtime view는 origin-shaped element와 synthetic descendants를 일부
   materialize한다. 다만 resolver/view boundary는 아직 legacy `order_num` 기반
   `childrenMap`/synthetic order bridge를 사용한다
   (`apps/builder/src/adapters/canonical/canonicalRefResolution.ts:137`,
-  `apps/builder/src/adapters/canonical/canonicalRefResolution.ts:237`,
-  `apps/builder/src/adapters/canonical/canonicalRefResolution.ts:322`,
-  `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts:184`).
+  `apps/builder/src/adapters/canonical/canonicalRefResolution.ts:330`,
+  `apps/builder/src/adapters/canonical/canonicalRefResolution.ts:337`,
+  `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts:193`,
+  `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts:237`).
+- 2026-05-07 drag/drop stabilization patch는 canonical merge/export 단계에 sibling-order
+  bridge를 추가했다. `buildCanonicalSiblingOrderByPath`는 incoming element batch를 실제
+  canonical parent path별로 묶고, incoming set이 해당 parent의 exportable sibling 전체를
+  덮으며 실제 canonical position change가 있을 때만 `order_num`/source order 기준으로
+  canonical `children[]` order를 재적용한다
+  (`apps/builder/src/adapters/canonical/canonicalMutations.ts:1149`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:1208`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:1328`,
+  `apps/builder/src/adapters/canonical/canonicalMutations.ts:1393`).
+- 같은 patch에서 props-only batch가 reorder로 오인되지 않도록 previous canonical
+  position guard를 추가했고, LayerTree DnD가 projected instance child를 persisted target처럼
+  이동하지 못하도록 synthetic ref child drag/drop을 차단했다
+  (`apps/builder/src/builder/panels/nodes/tree/LayerTree/validation.ts:35`).
 - 단, 이 선행 패치는 full cutover가 아니다. `buildTreeFromElements`, LayerTree projection,
   drag/drop/group/ungroup/history order write, Preview/Publish render path에는 여전히
   `order_num` primary sort/write가 남아 있으므로 ADR-118의 Phase/Gate는 유지한다.
@@ -202,6 +225,13 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 - 현재 `shouldPreserveExistingCanonicalPosition` 계열 선행 패치는 metadata/order가 동일한
   기존 node의 위치 보존에는 충분하지만, 명시적 reorder를 표현하는 API는 아니다. explicit
   reorder/cross-container move는 별도 `children[]` splice/move helper로 닫아야 한다.
+- 현재 `applyCanonicalSiblingOrder` 계열 bridge는 legacy `order_num` write path에서 발생한
+  순서 붕괴를 막는 compatibility layer다. ADR-118 Phase 1/4에서는 이 로직을
+  `moveCanonicalChild`/`moveDescendantChild` 계열 helper로 흡수하거나, caller가 더 이상
+  legacy order batch에 의존하지 않게 되면 Phase 6 제거 대상으로 분류해야 한다.
+- synthetic ref child DnD 차단은 projected descendant를 persisted structural node처럼 쓰는
+  오류를 막기 위한 보수적 조치다. instance descendant/slot child 자체를 이동하는 UX를
+  허용하려면 Phase 5의 `moveDescendantChild` contract가 먼저 필요하다.
 - 현재 selection hit-test 보강은 depth/area 우선 정책을 포함한다. ADR-118의 최종 G3는
   render와 hit-test가 동일한 effective child order(`z-index` + `children[]` index
   tie-breaker)를 공유하는지 다시 검증해야 한다.
@@ -211,15 +241,15 @@ UI association 문서는 `children`이 Layers tree, canvas render order, slide o
 
 ## Gates
 
-| Gate                         | 시점         | 통과 조건                                                                                                                                                                                                  | 실패 시 대안                          |
-| ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| G0: inventory baseline       | Phase 0 종료 | `order_num`, `childrenMap`, sibling sort, drag insertion index call site를 adapter/legacy/structural/collection/test bucket으로 분류                                                                       | 구현 착수 금지                        |
-| G1: canonical helpers        | Phase 1 종료 | parent `children[]` read/insert/move/remove helper와 derived `order_num` mirror helper가 생기고 unit test가 통과                                                                                           | page hotfix 유지, helper 재설계       |
-| G2: page/root cutover        | Phase 2 종료 | PageTree/root page order와 Home delete policy가 `children[]` order + identity 기준으로 동작, metadata `order_num` primary sort 제거                                                                        | page path만 rollback                  |
-| G3: render/runtime cutover   | Phase 3 종료 | LayerTree, Skia render/hit-test, Preview iframe, Publish runtime이 같은 structural/effective child order 계약을 사용. depth/area 등 local hit-test heuristic은 최종 effective order와 충돌하지 않음을 증명 | affected projection slice rollback    |
-| G4: drag/drop cutover        | Phase 4 종료 | same-container/cross-container reorder가 target parent `children[]` splice와 insertion index로 저장되고 undo는 1 user action                                                                               | drag transient update 비활성 fallback |
-| G5: component/slot cutover   | Phase 5 종료 | origin/instance/slot descendants order가 `children[]` append/move 계약을 보존하고 duplicate ref slot fill이 유지됨                                                                                         | slot write path rollback              |
-| G6: legacy mirror quarantine | Phase 6 종료 | non-adapter runtime에서 `order_num` primary ordering decision이 allowlist 0 또는 명시 예외만 남음                                                                                                          | `order_num` mirror 격리 범위 재조정   |
+| Gate                         | 시점         | 통과 조건                                                                                                                                                                                                  | 실패 시 대안                           |
+| ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| G0: inventory baseline       | Phase 0 종료 | `order_num`, `childrenMap`, sibling sort, drag insertion index call site를 adapter/legacy/structural/collection/test bucket으로 분류                                                                       | 구현 착수 금지                         |
+| G1: canonical helpers        | Phase 1 종료 | parent `children[]` read/insert/move/remove helper와 derived `order_num` mirror helper가 생기고 unit test가 통과. `applyCanonicalSiblingOrder` bridge는 helper 후보/흡수/제거 대상으로 분류됨              | page hotfix/bridge 유지, helper 재설계 |
+| G2: page/root cutover        | Phase 2 종료 | PageTree/root page order와 Home delete policy가 `children[]` order + identity 기준으로 동작, metadata `order_num` primary sort 제거                                                                        | page path만 rollback                   |
+| G3: render/runtime cutover   | Phase 3 종료 | LayerTree, Skia render/hit-test, Preview iframe, Publish runtime이 같은 structural/effective child order 계약을 사용. depth/area 등 local hit-test heuristic은 최종 effective order와 충돌하지 않음을 증명 | affected projection slice rollback     |
+| G4: drag/drop cutover        | Phase 4 종료 | same-container/cross-container reorder가 target parent `children[]` splice와 insertion index로 저장되고 undo는 1 user action. legacy `batchUpdateElementOrders` → canonical sibling-order bridge 의존 제거 | drag transient update 비활성 fallback  |
+| G5: component/slot cutover   | Phase 5 종료 | origin/instance/slot descendants order가 `children[]` append/move 계약을 보존하고 duplicate ref slot fill이 유지됨                                                                                         | slot write path rollback               |
+| G6: legacy mirror quarantine | Phase 6 종료 | non-adapter runtime에서 `order_num` primary ordering decision이 allowlist 0 또는 명시 예외만 남음                                                                                                          | `order_num` mirror 격리 범위 재조정    |
 
 ## Consequences
 
