@@ -9,6 +9,7 @@ import {
   publishSyntheticElementsMap,
 } from "../layout/engines/fullTreeLayout";
 import { parseBorder, parsePadding } from "../layout/engines/utils";
+import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 
 interface BuildPageChildrenMapInput {
   bodyElement: Element | null;
@@ -236,7 +237,7 @@ export function buildPageChildrenMap({
   }
 
   for (const list of map.values()) {
-    list.sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    list.splice(0, list.length, ...sortElementsByOrderThenSource(list));
   }
 
   return map;

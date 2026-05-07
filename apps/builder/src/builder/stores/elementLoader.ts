@@ -21,6 +21,7 @@ import { getDB } from "../../lib/db";
 import { supabase } from "../../env/supabase.client";
 import { pageCache, type LRUCacheStats } from "../utils/LRUPageCache";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
+import { sortElementsByOrderThenSource } from "../utils/elementOrdering";
 
 // ============================================
 // Types
@@ -130,7 +131,7 @@ export function createElementLoaderSlice(
 
       if (elements && elements.length > 0) {
         // order_num으로 정렬 (getByPage는 정렬하지 않음)
-        return elements.sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+        return sortElementsByOrderThenSource(elements);
       }
 
       return null;
@@ -282,9 +283,7 @@ export function createElementLoaderSlice(
             elementsMap: newElementsMap,
             pageElementsSnapshot: {
               ...s.pageElementsSnapshot,
-              [pageId]: nextPageSnapshot.sort(
-                (left, right) => (left.order_num ?? 0) - (right.order_num ?? 0),
-              ),
+              [pageId]: sortElementsByOrderThenSource(nextPageSnapshot),
             },
             // 로딩 상태도 동일 commit에 포함
             loadedPages: new Set([...s.loadedPages, pageId]),

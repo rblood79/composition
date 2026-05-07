@@ -618,6 +618,43 @@ describe("resolveDropTarget cross-page body targets", () => {
     expect(
       result ? computeReorderFromDropTarget(result, source.id, store) : null,
     ).toEqual([
+      { id: first.id, order_num: 0 },
+      { id: source.id, order_num: 1 },
+      { id: middle.id, order_num: 2 },
+    ]);
+  });
+
+  it("uses childrenMap source order as the tie-breaker when siblings have duplicate order_num", () => {
+    const body = makeElement("body", { type: "body" });
+    const first = makeElement("first", { parent_id: body.id, order_num: 0 });
+    const middle = makeElement("middle", { parent_id: body.id, order_num: 0 });
+    const source = makeElement("source", { parent_id: body.id, order_num: 0 });
+    const store = {
+      childrenMap: new Map([[body.id, [first, middle, source]]]),
+      elementsMap: new Map([
+        [body.id, body],
+        [first.id, first],
+        [middle.id, middle],
+        [source.id, source],
+      ]),
+    };
+
+    const updates = computeReorderFromDropTarget(
+      {
+        containerId: body.id,
+        insertionIndex: 1,
+        isAdjacentInsertion: false,
+        isHorizontal: false,
+        containerBounds: { x: 0, y: 0, width: 300, height: 300 },
+        siblingBounds: [],
+        isReparent: false,
+      },
+      source.id,
+      store,
+    );
+
+    expect(updates).toEqual([
+      { id: first.id, order_num: 0 },
       { id: source.id, order_num: 1 },
       { id: middle.id, order_num: 2 },
     ]);

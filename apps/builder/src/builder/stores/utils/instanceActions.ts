@@ -17,6 +17,7 @@ import {
   mergePropsWithStyleDeep,
   resolveInstanceProps,
 } from "../../../utils/component/instanceResolver";
+import { sortElementsByOrderThenSource } from "../../utils/elementOrdering";
 import { historyManager } from "../history";
 import { createCompleteProps } from "./elementHelpers";
 import { buildIdPathContext } from "../../../adapters/canonical/idPath";
@@ -127,9 +128,7 @@ function resolveRefMaster(
 }
 
 function getSortedChildren(state: ElementsState, parentId: string): Element[] {
-  return [...(state.childrenMap.get(parentId) ?? [])].sort(
-    (left, right) => (left.order_num ?? 0) - (right.order_num ?? 0),
-  );
+  return sortElementsByOrderThenSource(state.childrenMap.get(parentId) ?? []);
 }
 
 function getComponentNameForElement(element: Element): string {

@@ -23,6 +23,7 @@ import {
   findElementById,
   computeCanvasElementStyle,
 } from "./utils/elementHelpers";
+import { sortElementsByOrderThenSource } from "../utils/elementOrdering";
 import {
   createUndoAction,
   createRedoAction,
@@ -496,10 +497,12 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     const pageElementsSnapshot: Record<string, Element[]> = {};
 
     for (const [pageId, elementIds] of pageIndex.elementsByPage.entries()) {
-      const pageElements = Array.from(elementIds)
-        .map((id) => elementsMap.get(id))
-        .filter((element): element is Element => Boolean(element))
-        .sort((left, right) => (left.order_num ?? 0) - (right.order_num ?? 0));
+      const pageElements = sortElementsByOrderThenSource(
+        Array.from(elementIds)
+          .map((id) => elementsMap.get(id))
+          .filter((element): element is Element => Boolean(element)),
+        elements,
+      );
       pageElementsSnapshot[pageId] = pageElements;
     }
 
@@ -1533,15 +1536,14 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       >();
 
       // 구 부모: 드래그 요소 제거 후 나머지 재정렬
-      const remainingOld = oldSiblings
-        .filter((c) => c.id !== elementId)
-        .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+      const remainingOld = sortElementsByOrderThenSource(
+        oldSiblings.filter((c) => c.id !== elementId),
+        oldSiblings,
+      );
       remainingOld.forEach((c, i) => updateMap.set(c.id, { order_num: i }));
 
       // 신 부모: 삽입 위치에 요소 추가 후 재정렬
-      const sortedNew = [...newSiblings].sort(
-        (a, b) => (a.order_num ?? 0) - (b.order_num ?? 0),
-      );
+      const sortedNew = sortElementsByOrderThenSource(newSiblings);
       const newOrder = [
         ...sortedNew.slice(0, insertionIndex),
         element,

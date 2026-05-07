@@ -52,6 +52,7 @@ import {
   snapshotThemesFromConfig,
   type ThemeConfigInput,
 } from "./themesAdapter";
+import { sortElementsByOrderThenSource } from "../../builder/utils/elementOrdering";
 
 // ADR-110 Phase 2 ts-3.1: applyCanonicalThemes re-export (BuilderCore entry 용)
 export { applyCanonicalThemes } from "./themesAdapter";
@@ -151,7 +152,11 @@ export function legacyToCanonical(
 
     // 자식 노드 (재귀)
     const childElements = childrenByParent.get(element.id) ?? [];
-    childElements.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+    childElements.splice(
+      0,
+      childElements.length,
+      ...sortElementsByOrderThenSource(childElements),
+    );
     const canonicalChildren = childElements.map(buildNode);
 
     // Slot type 특수 처리: container의 slot 메타로 변환되어야 하지만,
@@ -231,8 +236,10 @@ export function legacyToCanonical(
       pageNodes.push(pageRef);
     } else {
       // layout_id 없는 page: pageElements를 그대로 root children으로 묶음
-      const pageRootElements = pageElements.filter((e) => e.parent_id == null);
-      pageRootElements.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+      const pageRootElements = sortElementsByOrderThenSource(
+        pageElements.filter((e) => e.parent_id == null),
+        pageElements,
+      );
       pageNodes.push({
         id: page.id,
         type: "frame",

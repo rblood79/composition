@@ -19,6 +19,7 @@ import {
   isWebGLCanvas,
   isCanvasCompareMode,
 } from "../../../utils/featureFlags";
+import { sortElementsByOrderThenSource } from "../../utils/elementOrdering";
 // 🚀 Skia 레지스트리 동기화 — React useEffect cleanup 지연 문제 해결
 import { unregisterSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import {
@@ -301,10 +302,12 @@ async function executeRemoval(
   // pageElementsSnapshot 재구축 — 레이어 트리가 이 스냅샷에 의존
   const newPageElementsSnapshot: Record<string, Element[]> = {};
   for (const [pageId, elementIds] of newPageIndex.elementsByPage.entries()) {
-    const pageElements = Array.from(elementIds)
-      .map((id) => newElementsMap.get(id))
-      .filter((element): element is Element => Boolean(element))
-      .sort((left, right) => (left.order_num ?? 0) - (right.order_num ?? 0));
+    const pageElements = sortElementsByOrderThenSource(
+      Array.from(elementIds)
+        .map((id) => newElementsMap.get(id))
+        .filter((element): element is Element => Boolean(element)),
+      updatedElements,
+    );
     newPageElementsSnapshot[pageId] = pageElements;
   }
 

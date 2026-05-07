@@ -5,6 +5,10 @@ import {
   getFrameElementMirrorId,
   isPageFrameProjectionElement,
 } from "../../../adapters/canonical/frameMirror";
+import {
+  compareElementsByOrderThenSource,
+  createElementSourceIndex,
+} from "../../utils/elementOrdering";
 
 /**
  * order_num 재정렬 업데이트 계산 (순수 함수 — side effect 없음)
@@ -19,9 +23,7 @@ export function computeReorderUpdates(
   elements: Element[],
   pageId: string,
 ): Array<{ id: string; order_num: number }> {
-  const sourceIndexById = new Map(
-    elements.map((element, index) => [element.id, index] as const),
-  );
+  const sourceIndexById = createElementSourceIndex(elements);
 
   // 페이지별, 부모별로 그룹화
   const groups = elements
@@ -42,17 +44,8 @@ export function computeReorderUpdates(
 
   const updates: Array<{ id: string; order_num: number }> = [];
 
-  const compareByOrderThenSource = (a: Element, b: Element): number => {
-    const orderDiff = (a.order_num ?? 0) - (b.order_num ?? 0);
-    if (orderDiff !== 0) return orderDiff;
-
-    const sourceDiff =
-      (sourceIndexById.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
-      (sourceIndexById.get(b.id) ?? Number.MAX_SAFE_INTEGER);
-    if (sourceDiff !== 0) return sourceDiff;
-
-    return a.id.localeCompare(b.id);
-  };
+  const compareByOrderThenSource = (a: Element, b: Element): number =>
+    compareElementsByOrderThenSource(a, b, sourceIndexById);
 
   // 각 그룹별로 order_num 재정렬
   Object.entries(groups).forEach(([parentKey, children]) => {

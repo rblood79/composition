@@ -29,6 +29,7 @@ import {
   withAccentOverride,
   type TintPreset,
 } from "../../../../utils/theme/tintToSkiaColors";
+import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 import {
   getParentTagsForChild,
   getPropagationRules,
@@ -404,7 +405,11 @@ function resolveBreadcrumbItemContext(
         }
         return result;
       })();
-  siblings.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  siblings.splice(
+    0,
+    siblings.length,
+    ...sortElementsByOrderThenSource(siblings),
+  );
   const idx = siblings.findIndex((s) => s.id === element.id);
   if (idx === -1) return null;
 
@@ -447,9 +452,7 @@ function resolveToggleGroupContext(
     return { position: null, indicatorMode };
   }
 
-  const sorted = [...siblings].sort(
-    (a, b) => (a.order_num ?? 0) - (b.order_num ?? 0),
-  );
+  const sorted = sortElementsByOrderThenSource(siblings);
   const index = sorted.findIndex((s) => s.id === element.id);
   if (index === -1) return { position: null, indicatorMode };
 

@@ -7,6 +7,7 @@ import type {
   CanonicalFrameElementScope,
   CanonicalFrameElementScopeMap,
 } from "../../../../adapters/canonical/frameElementScope";
+import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 
 export interface PixiPageRendererInput {
   bodyElement: Element | null;
@@ -243,7 +244,7 @@ function buildRendererChildrenMap(
   }
 
   for (const list of childrenMap.values()) {
-    list.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+    list.splice(0, list.length, ...sortElementsByOrderThenSource(list));
   }
 
   return childrenMap;

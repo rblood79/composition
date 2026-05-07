@@ -26,6 +26,7 @@ import type { SizeSpec } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
+import { sortElementsByOrderThenSource } from "../../../../utils/elementOrdering";
 
 // ─── 헬퍼 ────────────────────────────────────────────────────────────
 
@@ -113,7 +114,10 @@ function specSizeFontSize(type: string, sizeName: string): number | undefined {
 }
 
 /** `spec.sizes[size].lineHeight` TokenRef → px number resolve. 실패 시 undefined. */
-function specSizeLineHeight(type: string, sizeName: string): number | undefined {
+function specSizeLineHeight(
+  type: string,
+  sizeName: string,
+): number | undefined {
   const lh = specSizeField(type, sizeName, "lineHeight");
   if (lh == null) return undefined;
   if (typeof lh === "number") return lh;
@@ -432,9 +436,7 @@ function resolveActiveContainerVariants(
   );
 }
 
-function hasResolvedSideLabelVariant(
-  styles: Record<string, string>,
-): boolean {
+function hasResolvedSideLabelVariant(styles: Record<string, string>): boolean {
   return styles.display === "grid" || styles["flex-direction"] === "row";
 }
 
@@ -577,8 +579,7 @@ export function applyImplicitStyles(
       ...(sideMode
         ? {
             flexDirection: tagGroupVariant.styles["flex-direction"] ?? "row",
-            alignItems:
-              tagGroupVariant.styles["align-items"] ?? "flex-start",
+            alignItems: tagGroupVariant.styles["align-items"] ?? "flex-start",
           }
         : {
             flexDirection: specFallback.flexDirection ?? tgDefaultDir,
@@ -833,9 +834,7 @@ export function applyImplicitStyles(
     );
     const breadcrumbsHeight = BreadcrumbsSpec.sizes[rspSize]?.height ?? 24;
 
-    filteredChildren = [...children].sort(
-      (a, b) => (a.order_num ?? 0) - (b.order_num ?? 0),
-    );
+    filteredChildren = sortElementsByOrderThenSource(children);
 
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
@@ -1001,7 +1000,8 @@ export function applyImplicitStyles(
       "SearchFieldWrapper",
     ]);
     filteredChildren = children.filter(
-      (c) => (c.type === "Label" ? hasLabel : false) || WRAPPER_TAGS.has(c.type),
+      (c) =>
+        (c.type === "Label" ? hasLabel : false) || WRAPPER_TAGS.has(c.type),
     );
 
     // Wrapper에 padding + gap 주입
@@ -1317,16 +1317,13 @@ export function applyImplicitStyles(
         getSideLabelParentStyle(specFallback, rawParentStyle),
       );
     } else {
-      effectiveParent = withParentStyle(
-        containerEl,
-        {
-          ...specFallback,
-          display: specFallback.display ?? "flex",
-          flexDirection: specFallback.flexDirection ?? "column",
-          gap: specFallback.gap ?? 4,
-          ...rawParentStyle,
-        },
-      );
+      effectiveParent = withParentStyle(containerEl, {
+        ...specFallback,
+        display: specFallback.display ?? "flex",
+        flexDirection: specFallback.flexDirection ?? "column",
+        gap: specFallback.gap ?? 4,
+        ...rawParentStyle,
+      });
     }
   }
 

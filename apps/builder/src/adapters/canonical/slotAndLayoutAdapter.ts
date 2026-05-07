@@ -40,6 +40,7 @@ import { tagToType, isLegacySlotTag } from "./tagRename";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
 import { buildIdPathContext, segId } from "./idPath";
 import { getCanonicalSlotDeclaration } from "./slotDeclaration";
+import { sortElementsByOrderThenSource } from "../../builder/utils/elementOrdering";
 
 /**
  * ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — element.events / dataBinding
@@ -133,9 +134,7 @@ export const convertPageLayout: ConvertPageLayoutFn = (
   // 이 없는 경우 — known broken case, P3 frameset UI 에서 보장 예정).
   const descendants: Record<string, { children: CanonicalNode[] }> = {};
   for (const [slotName, els] of bySlotName) {
-    const sorted = [...els].sort(
-      (a, b) => (a.order_num ?? 0) - (b.order_num ?? 0),
-    );
+    const sorted = sortElementsByOrderThenSource(els, pageElements);
     const slotPath = slotPathMap.get(slotName) ?? slotName;
     descendants[slotPath] = {
       children: sorted.map((el) =>
@@ -216,9 +215,10 @@ export function convertLayoutToReusableFrame(
   layoutElements: Element[],
 ): CanonicalNode {
   const idPathCtx = buildIdPathContext(layoutElements);
-  const rootElements = layoutElements
-    .filter((e) => e.parent_id == null)
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  const rootElements = sortElementsByOrderThenSource(
+    layoutElements.filter((e) => e.parent_id == null),
+    layoutElements,
+  );
 
   return {
     id: `layout-${layout.id}`,
@@ -259,9 +259,10 @@ function convertElementToCanonical(
   allElements: Element[],
   idSegmentMap: Map<string, string>,
 ): CanonicalNode {
-  const childElements = allElements
-    .filter((e) => e.parent_id === element.id)
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  const childElements = sortElementsByOrderThenSource(
+    allElements.filter((e) => e.parent_id === element.id),
+    allElements,
+  );
 
   if (isLegacySlotTag(element.type)) {
     // page subtree 안의 Slot은 비정상. metadata만 기록하고 frame으로 변환
@@ -336,9 +337,10 @@ function convertElementWithSlotHoisting(
     } as CanonicalNode;
   }
 
-  const childElements = allElements
-    .filter((e) => e.parent_id === element.id)
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  const childElements = sortElementsByOrderThenSource(
+    allElements.filter((e) => e.parent_id === element.id),
+    allElements,
+  );
 
   return {
     id: idSegmentMap.get(element.id) ?? element.id,

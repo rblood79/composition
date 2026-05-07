@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - React Aria `TreeBase` 경로는 `renderDragPreview` 공식 API 를 사용한다.
   - 대형 tree 용 `VirtualizedTree` native DnD 경로는 동일 class 의 `setDragImage()` preview 를 사용한다.
 - Skia canvas drag 중 실제 element 렌더링 alpha 를 `0.5` 에서 `0.9` 로 조정해 이동 중인 요소가 과도하게 흐려지지 않도록 했다.
+- Layer tree 와 Skia canvas drag-drop 후 sibling 순서가 섞이던 회귀를 수정했다.
+  - `order_num` 동률 시 기존 source index 를 tie-breaker 로 사용하는 공통 정렬 계약을 추가하고, LayerTree source, store index, Skia render children map, canonical 변환/merge 경로에 같은 계약을 적용했다.
+  - Skia same-parent reorder commit 이 변경된 sibling 만 canonical merge 하던 동작을 고쳐, 최종 sibling 순서 전체를 같은 커밋에 반영하도록 했다.
 
 ### Changed
 
@@ -47,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts src/builder/panels/nodes/tree/PageTree/usePageTreeDnd.test.ts src/dashboard/__tests__/createInitialProjectDocument.test.ts` — Pages tree DnD canonical persistence metadata PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx` — Layer tree DnD structural canonical persistence PASS
 - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/LayerTree/LayerTreeItemContent.test.tsx` — Layer tree row/drag slot contract PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/selection/dropTargetResolver.test.ts src/builder/stores/__tests__/elementMove.test.ts` — drag-drop sibling order tie-breaker/reparent commit PASS
 - `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — canonical page `parent_id` hydrate PASS
 - `pnpm run codex:typecheck` — PASS
 - `pnpm run codex:preflight` — PASS

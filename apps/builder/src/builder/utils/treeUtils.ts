@@ -8,6 +8,7 @@ import type { Element } from "../../types/core/store.types";
 import type { ElementTreeItem } from "../../types/builder/stately.types";
 import type { ElementProps } from "../../types/integrations/supabase.types";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
+import { sortElementsByOrderThenSource } from "./elementOrdering";
 
 /**
  * flat Element 배열을 hierarchical ElementTreeItem 구조로 변환
@@ -81,21 +82,15 @@ export function buildTreeFromElements(
         }
         // Table 특수 정렬은 보류 (기존 로직 유지)
         else if (parentElement && parentElement.type === "Table") {
-          children = [...children].sort(
-            (a, b) => (a.order_num || 0) - (b.order_num || 0),
-          );
+          children = sortElementsByOrderThenSource(children);
         }
         // 일반 정렬: order_num 기준
         else {
-          children = [...children].sort(
-            (a, b) => (a.order_num || 0) - (b.order_num || 0),
-          );
+          children = sortElementsByOrderThenSource(children);
         }
       } else {
         // 루트 레벨은 order_num 기준 정렬
-        children = [...children].sort(
-          (a, b) => (a.order_num || 0) - (b.order_num || 0),
-        );
+        children = sortElementsByOrderThenSource(children);
       }
 
       // hierarchical 구조 생성
@@ -132,7 +127,7 @@ export function buildTreeFromElements(
  * order_num 기준 정렬.
  */
 function sortTabsChildren(items: Element[]): Element[] {
-  return [...items].sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+  return sortElementsByOrderThenSource(items);
 }
 
 /**
@@ -265,25 +260,21 @@ export function sortTableChildren<T extends Element>(items: T[]): T[] {
   const rows = items.filter((item) => item.type === "Row");
   const cells = items.filter((item) => item.type === "Cell");
 
-  const byOrderNum = (a: T, b: T) => (a.order_num || 0) - (b.order_num || 0);
-
   return [
-    ...tableHeaders.sort(byOrderNum),
-    ...tableBodies.sort(byOrderNum),
-    ...columnGroups.sort(byOrderNum),
-    ...columns.sort(byOrderNum),
-    ...rows.sort(byOrderNum),
-    ...cells.sort(byOrderNum),
+    ...sortElementsByOrderThenSource(tableHeaders, items),
+    ...sortElementsByOrderThenSource(tableBodies, items),
+    ...sortElementsByOrderThenSource(columnGroups, items),
+    ...sortElementsByOrderThenSource(columns, items),
+    ...sortElementsByOrderThenSource(rows, items),
+    ...sortElementsByOrderThenSource(cells, items),
   ];
 }
 
 /**
  * 일반적인 order_num 기반 정렬
  */
-export function sortByOrderNum<T extends { order_num?: number }>(
-  items: T[],
-): T[] {
-  return [...items].sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+export function sortByOrderNum<T extends Element>(items: T[]): T[] {
+  return sortElementsByOrderThenSource(items);
 }
 
 /**

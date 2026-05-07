@@ -21,6 +21,7 @@ import {
   mergeElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { sortElementsByOrderThenSource } from "../../utils/elementOrdering";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 
@@ -888,10 +889,12 @@ export const createBatchUpdateElementsAction =
     // pageElementsSnapshot 재구축 — 레이어 트리가 이 스냅샷에 의존
     const pageElementsSnapshot: Record<string, Element[]> = {};
     for (const [pageId, elementIds] of pageIndex.elementsByPage.entries()) {
-      const pageElements = Array.from(elementIds)
-        .map((id) => elementsMap.get(id))
-        .filter((element): element is Element => Boolean(element))
-        .sort((left, right) => (left.order_num ?? 0) - (right.order_num ?? 0));
+      const pageElements = sortElementsByOrderThenSource(
+        Array.from(elementIds)
+          .map((id) => elementsMap.get(id))
+          .filter((element): element is Element => Boolean(element)),
+        updatedElements,
+      );
       pageElementsSnapshot[pageId] = pageElements;
     }
 

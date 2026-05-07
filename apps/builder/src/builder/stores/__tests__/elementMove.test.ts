@@ -117,4 +117,40 @@ describe("moveElementToContainer", () => {
     expect(page2Ids.has(sourceCard.id)).toBe(true);
     expect(page2Ids.has(sourceHeading.id)).toBe(true);
   });
+
+  it("target siblings의 order_num이 중복되어도 기존 형제 순서를 기준으로 삽입한다", () => {
+    const page1Body = makeElement("page-1-body", "page-1", {
+      type: "body",
+    });
+    const page2Body = makeElement("page-2-body", "page-2", {
+      type: "body",
+    });
+    const source = makeElement("source", "page-1", {
+      parent_id: page1Body.id,
+      order_num: 0,
+    });
+    const targetFirst = makeElement("target-first", "page-2", {
+      parent_id: page2Body.id,
+      order_num: 0,
+    });
+    const targetSecond = makeElement("target-second", "page-2", {
+      parent_id: page2Body.id,
+      order_num: 0,
+    });
+
+    useStore
+      .getState()
+      .setElements([page1Body, source, page2Body, targetFirst, targetSecond]);
+
+    useStore.getState().moveElementToContainer(source.id, page2Body.id, 1);
+
+    const state = useStore.getState();
+    expect(state.elementsMap.get(targetFirst.id)?.order_num).toBe(0);
+    expect(state.elementsMap.get(source.id)).toMatchObject({
+      page_id: page2Body.page_id,
+      parent_id: page2Body.id,
+      order_num: 1,
+    });
+    expect(state.elementsMap.get(targetSecond.id)?.order_num).toBe(2);
+  });
 });

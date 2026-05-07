@@ -20,6 +20,7 @@ import {
   isComponentInstanceMirrorElement as isInstanceElement,
   isComponentOriginMirrorElement as isMasterElement,
 } from "../../../adapters/canonical/componentSemanticsMirror";
+import { sortElementsByOrderThenSource } from "../../utils/elementOrdering";
 
 /**
  * 페이지별 요소 인덱스
@@ -172,10 +173,7 @@ export function getPageElements(
     }
   }
 
-  // order_num 기준 정렬
-  elements.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
-
-  return elements;
+  return sortElementsByOrderThenSource(elements);
 }
 
 /**
@@ -204,7 +202,7 @@ export function getRootElements(
     }
   }
 
-  return roots.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  return sortElementsByOrderThenSource(roots);
 }
 
 /**

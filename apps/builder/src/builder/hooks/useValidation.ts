@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { Element } from "../../types/core/store.types";
 import { reorderElements } from "../stores/utils/elementReorder";
 import { useStore } from "../stores";
+import { sortElementsByOrderThenSource } from "../utils/elementOrdering";
 import {
   getFrameElementMirrorId,
   isPageFrameProjectionElement,
@@ -54,9 +55,7 @@ export const useValidation = (): UseValidationReturn => {
       }
 
       // order_num으로 정렬
-      const sorted = children.sort(
-        (a, b) => (a.order_num || 0) - (b.order_num || 0),
-      );
+      const sorted = sortElementsByOrderThenSource(children);
 
       // ✅ 중복이나 순서 역전만 확인 (0부터 시작할 필요는 없음)
       for (let i = 0; i < sorted.length - 1; i++) {

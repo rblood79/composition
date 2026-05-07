@@ -13,6 +13,7 @@
 
 import type { Margin, BoxModel, VerticalAlign } from "./types";
 import type { Element } from "../../../../../types/core/store.types";
+import { sortElementsByOrderThenSource } from "../../../../utils/elementOrdering";
 import {
   fontFamily as specFontFamily,
   BreadcrumbsSpec,
@@ -953,9 +954,7 @@ export function calculateContentWidth(
     // 자식 Breadcrumb 요소에서 레이블 추출 (order_num 순 정렬 필수)
     const crumbs: string[] = [];
     if (childElements && childElements.length > 0) {
-      const sorted = [...childElements].sort(
-        (a, b) => (a.order_num ?? 0) - (b.order_num ?? 0),
-      );
+      const sorted = sortElementsByOrderThenSource(childElements);
       for (const child of sorted) {
         const childProps = child.props as Record<string, unknown> | undefined;
         const label = String(

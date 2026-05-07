@@ -52,6 +52,10 @@ import { getCanonicalSlotDeclaration } from "./slotDeclaration";
 import { isLegacySlotTag, tagToType } from "./tagRename";
 import { getPageFrameBindingId } from "./frameMirror";
 import { asElementWithLegacyMirror } from "./legacyElementFields";
+import {
+  compareElementsByOrderThenSource,
+  createElementSourceIndex,
+} from "../../builder/utils/elementOrdering";
 
 type CanonicalRefElementFields = {
   ref?: unknown;
@@ -148,6 +152,7 @@ function getCurrentDocument(projectId: string | null): CompositionDocument {
 
 function sortElementsForUpsert(elements: Element[]): Element[] {
   const byId = new Map(elements.map((element) => [element.id, element]));
+  const sourceIndexById = createElementSourceIndex(elements);
   const depthCache = new Map<string, number>();
 
   const getDepth = (element: Element): number => {
@@ -172,7 +177,7 @@ function sortElementsForUpsert(elements: Element[]): Element[] {
     if (ownerDiff !== 0) return ownerDiff;
     const depthDiff = getDepth(a) - getDepth(b);
     if (depthDiff !== 0) return depthDiff;
-    return (a.order_num ?? 0) - (b.order_num ?? 0);
+    return compareElementsByOrderThenSource(a, b, sourceIndexById);
   });
 }
 

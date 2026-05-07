@@ -22,6 +22,7 @@ import { parseGapValue, parsePadding4Way } from "@composition/specs";
 import type { ElementBounds } from "../elementRegistry";
 import { getSceneBounds } from "../skia/renderCommands";
 import { getSpecForTag } from "../sprites/tagSpecMap";
+import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 
 // ============================================
 // Types
@@ -216,6 +217,7 @@ function acceptsDraggedElement(
 
 /**
  * order_num 오름차순으로 자식 요소를 정렬한다.
+ * order_num 동률은 childrenMap의 기존 형제 순서를 유지한다.
  * childrenMap에서 반환된 배열은 stale일 수 있으므로
  * elementsMap에서 최신 값을 읽어 order_num 기준 정렬.
  */
@@ -231,7 +233,7 @@ function getSortedChildren(
     .map((c) => store.elementsMap.get(c.id))
     .filter((c): c is Element => c !== undefined);
 
-  return fresh.sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+  return sortElementsByOrderThenSource(fresh, rawChildren);
 }
 
 function getBoundedSiblingEntries(
@@ -920,8 +922,8 @@ export function computeDropPlaceholderBounds(
  * 드래그 요소를 insertionIndex 위치에 삽입한 후
  * 전체 형제 배열의 order_num을 0-based로 재계산.
  *
- * @returns batchUpdateElementOrders에 전달할 updates 배열
- *          변경이 없으면 빈 배열 반환
+ * @returns batchUpdateElementOrders에 전달할 최종 형제 순서 전체.
+ *          canonical children 순서도 같은 커밋에서 재작성되도록 unchanged sibling도 포함한다.
  */
 export function computeReorderFromDropTarget(
   dropTarget: DropTarget,
@@ -941,15 +943,13 @@ export function computeReorderFromDropTarget(
     ...siblings.slice(insertionIndex),
   ];
 
-  // 0-based order_num 재계산
+  // 0-based order_num 재계산. 변경 여부와 무관하게 최종 형제 순서 전체를 반환한다.
   const updates: Array<{ id: string; order_num: number }> = [];
   for (let i = 0; i < newOrder.length; i++) {
     const child = newOrder[i];
     const existing = store.elementsMap.get(child.id);
     if (!existing) continue;
-    if (existing.order_num !== i) {
-      updates.push({ id: child.id, order_num: i });
-    }
+    updates.push({ id: child.id, order_num: i });
   }
 
   return updates;

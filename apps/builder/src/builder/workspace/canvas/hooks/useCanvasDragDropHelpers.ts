@@ -9,6 +9,7 @@ import {
 import { useStore } from "../../../stores";
 import { sameLegacyOwnership } from "@/adapters/canonical";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import { sortElementsByOrderThenSource } from "../../../utils/elementOrdering";
 
 interface UseCanvasDragDropHelpersParams {
   depthMap: Map<string, number>;
@@ -282,15 +283,16 @@ export function useCanvasDragDropHelpers({
       }
 
       const getSiblings = (parentId: string | null, includeMoved = false) =>
-        elements
-          .filter((element) => {
+        sortElementsByOrderThenSource(
+          elements.filter((element) => {
             if (element.deleted) return false;
             if (!sameLegacyOwnership(element, movedElement, doc)) return false;
             if ((element.parent_id ?? null) !== parentId) return false;
             if (!includeMoved && element.id === movedId) return false;
             return true;
-          })
-          .sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+          }),
+          elements,
+        );
 
       const targetSiblings = getSiblings(newParentId);
       const siblingIds = targetSiblings.map((element) => element.id);
@@ -354,9 +356,11 @@ export function useCanvasDragDropHelpers({
       isHorizontal: boolean,
     ): number => {
       const childrenMap = useStore.getState().childrenMap;
-      const siblings = (childrenMap.get(parentId) ?? [])
-        .filter((el) => el.id !== draggedId && !el.deleted)
-        .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+      const rawSiblings = childrenMap.get(parentId) ?? [];
+      const siblings = sortElementsByOrderThenSource(
+        rawSiblings.filter((el) => el.id !== draggedId && !el.deleted),
+        rawSiblings,
+      );
 
       const pos = isHorizontal ? point.x : point.y;
 
