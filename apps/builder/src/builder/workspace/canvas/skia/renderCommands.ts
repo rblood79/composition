@@ -48,6 +48,7 @@ const CMD_DRAW = 1 as const;
 const CMD_CHILDREN_BEGIN = 2 as const;
 const CMD_CHILDREN_END = 3 as const;
 const CMD_ELEMENT_END = 4 as const;
+const DRAG_ELEMENT_ALPHA = 0.9;
 
 interface ElementBeginCmd {
   type: typeof CMD_ELEMENT_BEGIN;
@@ -828,7 +829,7 @@ export function executeRenderCommands(
         // A-8: 드래그 중인 요소 반투명 처리
         if (hasDragOffset) {
           const alphaPaint = new ck.Paint();
-          alphaPaint.setAlphaf(0.5);
+          alphaPaint.setAlphaf(DRAG_ELEMENT_ALPHA);
           canvas.saveLayer(alphaPaint);
           alphaPaint.delete();
           dragAlphaStack.push(true);

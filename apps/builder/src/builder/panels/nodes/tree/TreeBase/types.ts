@@ -1,4 +1,5 @@
 import type { Key } from "react-stately";
+import type { DragAndDropOptions } from "react-aria-components";
 
 // ============================================
 // 공통 타입
@@ -50,12 +51,14 @@ export interface TreeBaseDndConfig<TNode extends BaseTreeNode> {
   isValidDrop: (
     draggedKey: Key,
     targetKey: Key,
-    position: DropPosition
+    position: DropPosition,
   ) => boolean;
   /** 이동 완료 콜백 */
   onMove: (payload: MovePayload<TNode>) => void;
   /** Drag MIME 타입 */
   dragType?: string;
+  /** Cursor 아래에 표시되는 drag preview renderer */
+  renderDragPreview?: DragAndDropOptions<TNode>["renderDragPreview"];
 }
 
 /**

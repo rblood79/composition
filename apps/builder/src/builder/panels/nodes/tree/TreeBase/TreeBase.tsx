@@ -1,4 +1,10 @@
-import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import { Tree, DropIndicator, useDragAndDrop } from "react-aria-components";
 import type { Key } from "react-stately";
 import type { TreeBaseProps, BaseTreeNode, DropPosition } from "./types";
@@ -42,7 +48,7 @@ export function TreeBase<TNode extends BaseTreeNode>({
     if (focusedKey && treeRef.current) {
       // data-key 속성으로 TreeItem 찾기
       const targetElement = treeRef.current.querySelector(
-        `[data-key="${focusedKey}"]`
+        `[data-key="${focusedKey}"]`,
       ) as HTMLElement;
       if (targetElement) {
         // 스크롤 및 포커스
@@ -73,7 +79,7 @@ export function TreeBase<TNode extends BaseTreeNode>({
       if (keys === "all") return;
       onSelectionChange?.(keys);
     },
-    [onSelectionChange]
+    [onSelectionChange],
   );
 
   // Expanded 핸들러 ("all" 무시)
@@ -84,7 +90,7 @@ export function TreeBase<TNode extends BaseTreeNode>({
       if (!expandedKeys) setInternalExpanded(next);
       onExpandedChange?.(next);
     },
-    [expandedKeys, onExpandedChange]
+    [expandedKeys, onExpandedChange],
   );
 
   // DnD 설정
@@ -106,9 +112,8 @@ export function TreeBase<TNode extends BaseTreeNode>({
         ];
       });
     },
-    acceptedDragTypes: dnd
-      ? [dnd.dragType ?? "application/x-tree-item"]
-      : [],
+    acceptedDragTypes: dnd ? [dnd.dragType ?? "application/x-tree-item"] : [],
+    renderDragPreview: dnd?.renderDragPreview,
     onMove(e) {
       if (!dnd) return;
 
@@ -118,11 +123,7 @@ export function TreeBase<TNode extends BaseTreeNode>({
       // 유효성 검사
       for (const key of keys) {
         if (
-          !dnd.isValidDrop(
-            key,
-            target.key,
-            target.dropPosition as DropPosition
-          )
+          !dnd.isValidDrop(key, target.key, target.dropPosition as DropPosition)
         ) {
           return;
         }
@@ -161,7 +162,7 @@ export function TreeBase<TNode extends BaseTreeNode>({
             !dnd.isValidDrop(
               key,
               target.key,
-              target.dropPosition as DropPosition
+              target.dropPosition as DropPosition,
             )
           ) {
             isInvalid = true;

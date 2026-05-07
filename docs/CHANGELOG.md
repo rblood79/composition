@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `batchUpdateElements()` 구조 변경 경로가 active canonical document 에 변경 element 를 merge 하고, IndexedDB `documents` store 에도 canonical snapshot 을 저장한다.
   - canonical active 상태에서 legacy mirror row 가 없는 element 업데이트 실패가 canonical document persistence 를 막지 않도록 legacy mirror 저장 실패 처리를 분리했다.
 - Layer tree virtualization 전환 기준을 12개에서 300개로 높여 일반 문서에서는 React Aria `TreeBase` 경로를 유지하고, 대형 문서에서만 `VirtualizedTree` 최적화를 사용하도록 조정했다.
+- Layer tree drag preview/ghost 를 반투명 카드 형태로 조정했다.
+  - React Aria `TreeBase` 경로는 `renderDragPreview` 공식 API 를 사용한다.
+  - 대형 tree 용 `VirtualizedTree` native DnD 경로는 동일 class 의 `setDragImage()` preview 를 사용한다.
+- Skia canvas drag 중 실제 element 렌더링 alpha 를 `0.5` 에서 `0.9` 로 조정해 이동 중인 요소가 과도하게 흐려지지 않도록 했다.
 
 ### Changed
 

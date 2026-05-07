@@ -1,13 +1,19 @@
 import React, { useCallback, useMemo, useState } from "react";
 import type { Key } from "react-stately";
 import { TreeBase, VirtualizedTree } from "../TreeBase";
-import type { TreeItemState } from "../TreeBase/types";
+import type { TreeBaseDndConfig, TreeItemState } from "../TreeBase/types";
 import type { LayerTreeNode, LayerTreeProps } from "./types";
 import { useLayerTreeData } from "./useLayerTreeData";
 import { calculateMoveUpdates } from "./useLayerTreeDnd";
 import { isValidDrop } from "./validation";
 import { LayerTreeItemContent } from "./LayerTreeItemContent";
 import { useFocusManagement } from "../hooks";
+
+function readDragPreviewText(item: unknown): string | null {
+  if (!item || typeof item !== "object") return null;
+  const text = (item as Record<string, unknown>)["text/plain"];
+  return typeof text === "string" && text.length > 0 ? text : null;
+}
 
 /**
  * LayerTree - TreeBase 기반 구현
@@ -129,6 +135,16 @@ export function LayerTree({
     );
   }, []);
 
+  const renderDragPreview = useCallback<
+    NonNullable<TreeBaseDndConfig<LayerTreeNode>["renderDragPreview"]>
+  >((items) => {
+    const label =
+      items.length > 1
+        ? `${items.length} layers`
+        : (readDragPreviewText(items[0]) ?? "Layer");
+    return <div className="tree-drag-preview">{label}</div>;
+  }, []);
+
   // 렌더링
   const renderContent = useCallback(
     (node: LayerTreeNode, state: TreeItemState) => (
@@ -162,6 +178,7 @@ export function LayerTree({
       isValidDrop: handleIsValidDrop,
       onMove: handleMove,
       dragType: "application/x-layer-tree-item",
+      renderDragPreview,
     },
   };
 

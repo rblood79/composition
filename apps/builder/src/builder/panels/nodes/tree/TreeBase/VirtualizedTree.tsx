@@ -17,6 +17,18 @@ interface FlattenedNode<TNode extends BaseTreeNode> {
   hasChildren: boolean;
 }
 
+function createNativeDragPreview(label: string): HTMLElement {
+  const preview = document.createElement("div");
+  preview.className = "tree-drag-preview";
+  preview.textContent = label;
+  preview.style.position = "fixed";
+  preview.style.top = "-1000px";
+  preview.style.left = "-1000px";
+  preview.style.pointerEvents = "none";
+  document.body.appendChild(preview);
+  return preview;
+}
+
 interface VirtualizedTreeProps<TNode extends BaseTreeNode> {
   // 필수
   items: TNode[];
@@ -175,8 +187,11 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
       setDraggingKey(key);
       event.dataTransfer.setData("application/x-tree-item", String(key));
       event.dataTransfer.effectAllowed = "move";
+      const preview = createNativeDragPreview(getTextValue(node));
+      event.dataTransfer.setDragImage(preview, 12, 12);
+      requestAnimationFrame(() => preview.remove());
     },
-    [dnd],
+    [dnd, getTextValue],
   );
 
   const handleDragOver = useCallback(
