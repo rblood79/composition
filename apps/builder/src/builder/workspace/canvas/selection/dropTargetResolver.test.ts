@@ -389,6 +389,56 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
   });
 
+  it("keeps current group reorder ahead of ancestor body reparent while the pointer is inside the group", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const group = makeElement("group", {
+      type: "Frame",
+      parent_id: pageBody.id,
+      order_num: 0,
+    });
+    const source = makeElement("source-card", {
+      parent_id: group.id,
+      order_num: 0,
+    });
+    const sibling = makeElement("sibling-card", {
+      parent_id: group.id,
+      order_num: 1,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(group.id, { x: 40, y: 40, width: 360, height: 360 });
+    mockBounds.set(source.id, { x: 64, y: 64, width: 160, height: 120 });
+    mockBounds.set(sibling.id, { x: 64, y: 220, width: 160, height: 120 });
+
+    const result = resolveDropTarget(
+      { x: 80, y: 80 },
+      source.id,
+      {
+        childrenMap: new Map([
+          [pageBody.id, [group]],
+          [group.id, [source, sibling]],
+        ]),
+        elementsMap: new Map([
+          [pageBody.id, pageBody],
+          [group.id, group],
+          [source.id, source],
+          [sibling.id, sibling],
+        ]),
+      },
+      () => [source.id, group.id, pageBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: group.id,
+      insertionIndex: 0,
+      isAdjacentInsertion: true,
+      isReparent: false,
+    });
+  });
+
   it("includes column gap when same-parent reorder closes the old slot", () => {
     const pageBody = makeElement("page-body", {
       type: "body",

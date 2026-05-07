@@ -492,10 +492,14 @@ export function resolveDropTarget(
         scenePoint.y > containerBounds.y + containerBounds.height);
 
     if (crossResult) {
+      const crossTargetInsideParent = isDescendantOf(
+        crossResult.containerId,
+        parentId,
+        store.elementsMap,
+      );
       if (
         cursorOutsideParent ||
-        !sameParentResult ||
-        sameParentResult.isAdjacentInsertion
+        (crossTargetInsideParent && sameParentResult.isAdjacentInsertion)
       ) {
         return crossResult;
       }
