@@ -358,6 +358,57 @@ describe("ComponentSemanticsSection", () => {
     expect(useStore.getState().currentPageId).toBe("page-a");
   });
 
+  it("origin action navigates to a canonical-only instance on another page", () => {
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin-page",
+          type: "frame",
+          props: {},
+          children: [
+            {
+              id: "origin",
+              type: "Button",
+              reusable: true,
+              props: { label: "Origin" },
+            },
+          ],
+        },
+        {
+          id: "instance-page",
+          type: "frame",
+          props: {},
+          children: [
+            {
+              id: "instance",
+              type: "ref",
+              ref: "origin",
+              props: { label: "Instance override" },
+            },
+          ],
+        },
+      ],
+    } satisfies CompositionDocument;
+
+    useStore.setState({
+      currentPageId: "origin-page",
+      elements: [],
+      elementsMap: new Map(),
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", doc);
+
+    render(<ComponentSemanticsSection elementId="origin" />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Select instances (1)" }),
+    );
+
+    expect(useStore.getState().currentPageId).toBe("instance-page");
+    expect(useStore.getState().selectedElementId).toBe("instance");
+    expect(useStore.getState().selectedElementIds).toEqual(["instance"]);
+  });
+
   it("legacy instance detach action asks before detaching", async () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     const origin = withComponentOriginMirror(

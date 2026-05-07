@@ -60,7 +60,10 @@ import {
 } from "../utils/scheduleTask";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import { normalizeExternalFillIngress } from "../panels/styles/utils/fillExternalIngress";
-import { getActiveCanonicalElementsSnapshot } from "./canonical/canonicalElementSnapshot";
+import {
+  getActiveCanonicalElementSnapshot,
+  getActiveCanonicalElementsSnapshot,
+} from "./canonical/canonicalElementSnapshot";
 import {
   type PageElementIndex,
   type ComponentIndex,
@@ -379,13 +382,42 @@ function findPageActivationBodyElement(
   );
 }
 
+function resolvePageActivationElementById(
+  state: ElementsState,
+  elementId: string,
+): Element | null {
+  return (
+    state.elementsMap.get(elementId) ??
+    findElementById(state.elements, elementId) ??
+    getActiveCanonicalElementSnapshot(elementId)
+  );
+}
+
+function resolveCurrentPageSelectionTarget(
+  state: ElementsState,
+  pageId: string,
+): Element | null {
+  const selectedElementId = state.selectedElementId;
+  if (!selectedElementId || selectedElementId === pageId) return null;
+
+  const selectedElement = resolvePageActivationElementById(
+    state,
+    selectedElementId,
+  );
+  if (selectedElement?.page_id !== pageId) return null;
+
+  return selectedElement;
+}
+
 function resolvePageActivationTarget(
   state: ElementsState,
   pageId: string,
   elementId: string | null,
 ): Element | null {
   return (
-    (elementId ? state.elementsMap.get(elementId) : undefined) ??
+    (elementId
+      ? resolvePageActivationElementById(state, elementId)
+      : resolveCurrentPageSelectionTarget(state, pageId)) ??
     findPageActivationBodyElement(state.pageElementsSnapshot[pageId])
   );
 }
@@ -432,16 +464,26 @@ function createPageActivationPatch(
   };
 }
 
+function isPageActivationBodyElement(element: Element | null): boolean {
+  return element?.type.toLowerCase() === "body";
+}
+
 function hasAppliedPageActivationPatch(
   state: ElementsState,
   pageId: string,
-  selectedElementId: string | null,
+  targetElement: Element | null,
 ): boolean {
+  const selectedElementId = targetElement?.id ?? null;
+  const shouldPreserveSelectionSet =
+    targetElement !== null && !isPageActivationBodyElement(targetElement);
   const hasExpectedSelectionSet = selectedElementId
-    ? state.selectedElementIds.length === 1 &&
-      state.selectedElementIds[0] === selectedElementId &&
-      state.selectedElementIdsSet.size === 1 &&
-      state.selectedElementIdsSet.has(selectedElementId)
+    ? shouldPreserveSelectionSet
+      ? state.selectedElementIds[0] === selectedElementId &&
+        state.selectedElementIdsSet.has(selectedElementId)
+      : state.selectedElementIds.length === 1 &&
+        state.selectedElementIds[0] === selectedElementId &&
+        state.selectedElementIdsSet.size === 1 &&
+        state.selectedElementIdsSet.has(selectedElementId)
     : state.selectedElementIds.length === 0 &&
       state.selectedElementIdsSet.size === 0;
 
@@ -449,7 +491,7 @@ function hasAppliedPageActivationPatch(
     state.currentPageId === pageId &&
     state.selectedElementId === selectedElementId &&
     hasExpectedSelectionSet &&
-    state.multiSelectMode === false &&
+    (shouldPreserveSelectionSet || state.multiSelectMode === false) &&
     state.editingContextId === null &&
     state.selectedTab === null
   );
@@ -1298,9 +1340,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         pageId,
         elementId,
       );
-      const nextSelectedElementId = targetElement?.id ?? null;
       // 동일 페이지 + 동일 요소 선택이면 중복 commit 방지
-      if (hasAppliedPageActivationPatch(state, pageId, nextSelectedElementId)) {
+      if (hasAppliedPageActivationPatch(state, pageId, targetElement)) {
         return;
       }
 
@@ -1326,10 +1367,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       observe(PERF_LABEL.INPUT_PAGE_TRANSITION, () => {
         const state = get();
         const targetElement = resolvePageActivationTarget(state, pageId, null);
-        const nextSelectedElementId = targetElement?.id ?? null;
-        if (
-          hasAppliedPageActivationPatch(state, pageId, nextSelectedElementId)
-        ) {
+        if (hasAppliedPageActivationPatch(state, pageId, targetElement)) {
           return;
         }
 

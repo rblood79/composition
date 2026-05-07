@@ -121,7 +121,9 @@ export const ComponentSemanticsSection = memo(
 
     const handleSelectInstances = () => {
       if (instanceIds.length === 0) return;
-      const firstInstance = elementsMap.get(instanceIds[0]);
+      const firstInstance =
+        elementsMap.get(instanceIds[0]) ??
+        lookupElements.find((candidate) => candidate.id === instanceIds[0]);
       if (firstInstance) {
         selectElementWithPageTransition(
           firstInstance.id,

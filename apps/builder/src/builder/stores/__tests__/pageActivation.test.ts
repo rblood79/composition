@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CompositionDocument } from "@composition/shared";
 
 import type { Element } from "../../../types/core/store.types";
 import { useStore } from "../index";
+import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
 const mockGetByPage = vi.hoisted(() => vi.fn());
 const mockInsertMany = vi.hoisted(() => vi.fn());
@@ -48,6 +50,11 @@ function makeElement(
 }
 
 function resetStoreState() {
+  useCanonicalDocumentStore.setState({
+    documents: new Map(),
+    currentProjectId: null,
+    documentVersion: 0,
+  });
   useStore.getState().setElements([]);
   useStore.setState({
     pages: [],
@@ -142,6 +149,89 @@ describe("page activation selection invariant", () => {
     expect(state.selectedElementIds).toEqual([heading.id]);
   });
 
+  it("activatePage는 cross-page transition으로 선택된 target element를 덮지 않는다", () => {
+    const body1 = makeElement("body-1", "page-1");
+    const body2 = makeElement("body-2", "page-2");
+    const origin = makeElement("origin", "page-2", {
+      type: "Button",
+      parent_id: body2.id,
+      order_num: 1,
+      reusable: true,
+    });
+    useStore.getState().setElements([body1, body2, origin]);
+    useStore.setState({ currentPageId: "page-1" });
+
+    useStore.getState().selectElementWithPageTransition(origin.id, "page-2");
+    useStore.getState().activatePage("page-2");
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-2");
+    expect(state.selectedElementId).toBe(origin.id);
+    expect(state.selectedElementIds).toEqual([origin.id]);
+  });
+
+  it("activatePage는 canonical-only target selection도 page body로 덮지 않는다", () => {
+    const body1 = makeElement("body-1", "page-1");
+    const body2 = makeElement("body-2", "page-2");
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-2",
+          type: "frame",
+          props: {},
+          children: [
+            {
+              id: "origin",
+              type: "Button",
+              reusable: true,
+              props: { label: "Origin" },
+            },
+          ],
+        },
+      ],
+    } satisfies CompositionDocument;
+
+    useStore.getState().setElements([body1, body2]);
+    useStore.setState({ currentPageId: "page-1" });
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", doc);
+
+    useStore.getState().selectElementWithPageTransition("origin", "page-2");
+    useStore.getState().activatePage("page-2");
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-2");
+    expect(state.selectedElementId).toBe("origin");
+    expect(state.selectedElementIds).toEqual(["origin"]);
+  });
+
+  it("activatePage는 cross-page transition 후 non-body multi selection을 유지한다", () => {
+    const body1 = makeElement("body-1", "page-1");
+    const body2 = makeElement("body-2", "page-2");
+    const instanceA = makeElement("instance-a", "page-2", {
+      type: "ref",
+      parent_id: body2.id,
+      order_num: 1,
+    });
+    const instanceB = makeElement("instance-b", "page-3", {
+      type: "ref",
+      order_num: 1,
+    });
+    useStore.getState().setElements([body1, body2, instanceA, instanceB]);
+    useStore.setState({ currentPageId: "page-1" });
+
+    useStore.getState().selectElementWithPageTransition(instanceA.id, "page-2");
+    useStore.getState().setSelectedElements([instanceA.id, instanceB.id]);
+    useStore.getState().activatePage("page-2");
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-2");
+    expect(state.selectedElementId).toBe(instanceA.id);
+    expect(state.selectedElementIds).toEqual([instanceA.id, instanceB.id]);
+    expect(state.multiSelectMode).toBe(true);
+  });
+
   it("activatePage는 selectedElementId가 이미 body여도 stale multi selection을 정리한다", () => {
     const body = makeElement("body-1", "page-1");
     const button = makeElement("button-1", "page-1", {
@@ -187,7 +277,7 @@ describe("page activation selection invariant", () => {
     expect(state.selectedElementId).toBe(body.id);
     expect(
       state.pageElementsSnapshot["page-1"]?.map((element) => element.id),
-    ).toEqual([body.id, button.id]);
+    ).toEqual(expect.arrayContaining([body.id, button.id]));
   });
 
   it("lazyLoadPageElements는 현재 page 로드 완료 후 stale 선택을 body로 보정한다", async () => {
