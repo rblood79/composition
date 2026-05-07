@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-07 — **ADR-118 Implemented / children[] structural order SSOT 전환 완료**. ADR-118은 page 추가 순서 hotfix를 page 전용 보정으로 끝내지 않고, Pencil-compatible parent `children[]` index를 page/frame/group/component origin/ref instance/slot descendants 전체 structural order의 SSOT로 승격했다. Phase 0 inventory와 allowlist를 확정하고, Phase 1 canonical order helper/store action surface, Phase 2 Page/root order cutover, Phase 3 LayerTree/Skia/Preview/Publish read path cutover, Phase 4 canonical-primary drag/drop/write path, Phase 5 component/ref materialization source-order 보존, Phase 6 non-adapter runtime `order_num` primary sort quarantine을 닫았다. Skia drag/drop final commit과 structural-only batch update는 canonical `children[]` splice를 먼저 수행하고 legacy `parent_id`/`order_num` row는 export mirror로 파생한다. PageTree DnD는 update rank/source order로 canonical page slot을 materialize하고, Browser smoke는 seeded local IndexedDB canonical document에서 refresh 후 page source order, derived page mirror order, Body child order, Skia canvas render를 확인했다. ADR 본문은 `docs/adr/completed/118-children-array-order-ssot.md`로 이동했다.
+> **최종 업데이트**: 2026-05-08 — **ADR-119 Proposed / Page/Layout order mirror cleanup 설계 등록**. ADR-119는 ADR-116 `documents` primary와 ADR-118 `children[]` order SSOT 이후 남은 `pages.order_num`, `layouts.order_num`, page/layout `metadata.order_num` mirror를 제거하는 설계다. 리뷰 보강으로 Phase 0에 page 생성 body `Element.order_num` residual 확인, dashboard/bootstrap seed 경로, nested PageTree sibling projection 계약을 blocker로 추가했다. 구현은 canonical root `children[]` source order를 page/layout order primary로 사용하고, Supabase physical column drop은 별도 migration 승인 전까지 compatibility boundary로만 남긴다.
+>
+> **2026-05-07 — ADR-118 Implemented / children[] structural order SSOT 전환 완료**. ADR-118은 page 추가 순서 hotfix를 page 전용 보정으로 끝내지 않고, Pencil-compatible parent `children[]` index를 page/frame/group/component origin/ref instance/slot descendants 전체 structural order의 SSOT로 승격했다. Phase 0 inventory와 allowlist를 확정하고, Phase 1 canonical order helper/store action surface, Phase 2 Page/root order cutover, Phase 3 LayerTree/Skia/Preview/Publish read path cutover, Phase 4 canonical-primary drag/drop/write path, Phase 5 component/ref materialization source-order 보존, Phase 6 non-adapter runtime `order_num` primary sort quarantine을 닫았다. Skia drag/drop final commit과 structural-only batch update는 canonical `children[]` splice를 먼저 수행하고 legacy `parent_id`/`order_num` row는 export mirror로 파생한다. PageTree DnD는 update rank/source order로 canonical page slot을 materialize하고, Browser smoke는 seeded local IndexedDB canonical document에서 refresh 후 page source order, derived page mirror order, Body child order, Skia canvas render를 확인했다. ADR 본문은 `docs/adr/completed/118-children-array-order-ssot.md`로 이동했다.
 >
 > **2026-05-05 — ADR-116 post-cutover fix 군 폐기 (12 commits rollback)**. 사용자 환경에서 누적 회귀 ("프로젝트가 너무 꼬여서 복구 불능" / page→body→frame 적용 후 새로고침 시 body 사라짐) 로 2026-05-03 에 land 했던 post-cutover persistence / canonical frame scope / Layout Preset / Style Panel write-through fix 군 + 그 위에 쌓인 build error 정합화 시리즈 + canonical-hydration page-frame binding fix 3종을 통째 폐기했다. main HEAD `eacedead7 → 225532ea9` (force push, 12 commits 폐기). cutover (`dc498e539` ~ ADR-116/111/113 Implemented 처리) 자체는 보존하며, ADR-116 본문 §Status 에 rollback 주석 추가하여 폐기 영역 (element 생성 후 refresh persistence + FramesTab/Skia body 중복 + `legacy-slot-hoisted` Slot 복원 + Layout Preset Slot 누적 + Style Panel Layout section write-through gap) 을 잔존 debt 로 재분류했다. 폐기 commits history 는 `backup/before-rollback-eacedead7-2026-05-05` branch 에 보존. ADR-116/111/113 Status `Implemented` 표시 자체는 유지. baseline `225532ea9` 에서 dashboard 진입 + 새 프로젝트 생성 + page/body 표시 정상 검증 (browser smoke). frame 적용 시나리오는 baseline 검증 미수행 (잔존 debt).
 >
@@ -78,8 +80,8 @@
 | -------------------------------------- | ------- |
 | 완료 (Accepted/Implemented/Superseded) | 108     |
 | 부분 완료                              | 7       |
-| 미구현/진행 (Proposed/In Progress)     | 7       |
-| **합계**                               | **122** |
+| 미구현/진행 (Proposed/In Progress)     | 8       |
+| **합계**                               | **123** |
 
 ---
 
@@ -232,6 +234,7 @@
 | [038](038-figma-import.md)                  | Figma 디자인 임포트 시스템                      | Proposed | 4 Phase — API 프록시 + 노드 변환 엔진 + 컴포넌트 매핑 + 이미지 파이프라인                                        |  **P3**  |
 | [054](054-local-llm-architecture.md)        | 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)     | Proposed | 4 Phase — Provider 추상화 + Ollama 연동 + node-llama-cpp Electron 내장 + Qwen3 7B. ADR-011 Supersede             |  **P2**  |
 | [117](117-canvaskit-pathbuilder-upgrade.md) | CanvasKit PathBuilder 전환 및 0.41.1 업그레이드 | Proposed | 5 Phase — API spike + PathBuilder compatibility wrapper + Skia path migration + package bump + visual/perf smoke |  **P2**  |
+| [119](119-page-layout-order-mirror-cleanup.md) | Page/Layout order mirror 제거 및 canonical source-order 통합 | Proposed | 6 Phase — page/layout order read/write cutover + metadata cleanup + IndexedDB/API compatibility cleanup |  **P2**  |
 
 ## Spec SSOT 해체 ADR 체인 — **ADR-036 Fully Implemented 달성 (2026-04-22 세션 18)**
 
