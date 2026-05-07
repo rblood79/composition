@@ -60,6 +60,7 @@ import type { BatchPropsUpdate } from "../../stores/utils/elementUpdate";
 import {
   copyMultipleElements,
   pasteMultipleElements,
+  resolvePasteTargetParentId,
   serializeCopiedElements,
   deserializeCopiedElements,
 } from "../../utils/multiElementCopy";
@@ -517,6 +518,13 @@ const MultiSelectContent = memo(function MultiSelectContent({
           y: 10,
         },
         Array.from(elementsMap.values()),
+        {
+          targetParentId: resolvePasteTargetParentId({
+            currentPageId,
+            selectedElementId: useStore.getState().selectedElementId,
+            elements: elementsMap.values(),
+          }),
+        },
       );
       if (newElements.length === 0) return;
       await Promise.all(newElements.map((element) => addElement(element)));
@@ -777,6 +785,10 @@ function PropertiesPanelContent() {
     () => useStore.getState().selectedElementIds || [],
     [],
   );
+  const getSelectedElementId = useCallback(
+    () => useStore.getState().selectedElementId,
+    [],
+  );
   const getMultiSelectMode = useCallback(
     () => useStore.getState().multiSelectMode || false,
     [],
@@ -894,6 +906,13 @@ function PropertiesPanelContent() {
           y: 10,
         },
         Array.from(elementsMap.values()),
+        {
+          targetParentId: resolvePasteTargetParentId({
+            currentPageId,
+            selectedElementId: getSelectedElementId(),
+            elements: elementsMap.values(),
+          }),
+        },
       );
       console.log("[Paste] New elements created:", newElements.length);
 
@@ -922,7 +941,7 @@ function PropertiesPanelContent() {
       console.error("❌ [Paste] Failed to paste elements:", error);
       // TODO: Show error toast
     }
-  }, [getCurrentPageId, addElement]);
+  }, [getCurrentPageId, getSelectedElementId, addElement]);
 
   // ⭐ Phase 6: Duplicate handler (Cmd+D)
   const handleDuplicate = useCallback(async () => {

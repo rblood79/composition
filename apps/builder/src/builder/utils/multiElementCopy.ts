@@ -33,6 +33,56 @@ export interface CopiedElementsData {
   timestamp: number;
 }
 
+export interface PasteMultipleElementsOptions {
+  targetParentId?: string | null;
+}
+
+export interface ResolvePasteTargetParentInput {
+  currentPageId: string | null;
+  selectedElementId?: string | null;
+  elements: Iterable<Element>;
+}
+
+function hasExplicitTargetParent(
+  options: PasteMultipleElementsOptions,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(options, "targetParentId");
+}
+
+function isBodyElement(element: Element): boolean {
+  return element.type.toLowerCase() === "body";
+}
+
+export function resolvePasteTargetParentId({
+  currentPageId,
+  selectedElementId,
+  elements,
+}: ResolvePasteTargetParentInput): string | null {
+  const elementList = Array.from(elements);
+  const selectedElement = selectedElementId
+    ? elementList.find((element) => element.id === selectedElementId)
+    : undefined;
+
+  if (
+    selectedElement &&
+    !selectedElement.deleted &&
+    (!currentPageId || selectedElement.page_id === currentPageId)
+  ) {
+    return selectedElement.id;
+  }
+
+  if (!currentPageId) return null;
+
+  return (
+    elementList.find(
+      (element) =>
+        !element.deleted &&
+        element.page_id === currentPageId &&
+        isBodyElement(element),
+    )?.id ?? null
+  );
+}
+
 function isReusableOrigin(element: Element): boolean {
   // ADR-116 G5-B P5-C: legacy `componentRole === "master"` 검사 → isMasterElement
   // 호출로 단일화 (isMasterElement 자체는 read-through fallback marker 보존).
@@ -200,10 +250,14 @@ export function pasteMultipleElements(
   currentPageId: string,
   offset: { x: number; y: number } = { x: 10, y: 10 },
   existingElements: Element[] = [],
+  options: PasteMultipleElementsOptions = {},
 ): Element[] {
   if (copiedData.elements.length === 0) {
     return [];
   }
+
+  const shouldUseTargetParent = hasExplicitTargetParent(options);
+  const targetParentId = options.targetParentId ?? null;
 
   const reusableOrigin = getReusableOriginRoot(copiedData);
   if (reusableOrigin) {
@@ -214,7 +268,9 @@ export function pasteMultipleElements(
         ref: reusableOrigin.id,
         [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
         [COMPONENT_MASTER_ID_MIRROR_FIELD]: reusableOrigin.id,
-        parent_id: reusableOrigin.parent_id ?? null,
+        parent_id: shouldUseTargetParent
+          ? targetParentId
+          : (reusableOrigin.parent_id ?? null),
         page_id: currentPageId,
         order_num: reusableOrigin.order_num,
         props: createRefOverrideProps(reusableOrigin, offset),
@@ -253,10 +309,21 @@ export function pasteMultipleElements(
       if (idMap.has(element.parent_id)) {
         // Parent was also copied → use new parent ID
         newParentId = idMap.get(element.parent_id)!;
+      } else if (
+        shouldUseTargetParent &&
+        copiedData.rootIds.includes(element.id)
+      ) {
+        // Cross-target paste → selected page/container becomes the new parent.
+        newParentId = targetParentId;
       } else {
         // Parent was NOT copied → use original parent (external parent)
         newParentId = element.parent_id;
       }
+    } else if (
+      shouldUseTargetParent &&
+      copiedData.rootIds.includes(element.id)
+    ) {
+      newParentId = targetParentId;
     }
 
     // Apply offset to position/style if element is a root element

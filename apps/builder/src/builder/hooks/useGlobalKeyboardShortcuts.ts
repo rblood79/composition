@@ -36,6 +36,7 @@ import {
 import {
   copyMultipleElements,
   pasteMultipleElements,
+  resolvePasteTargetParentId,
   serializeCopiedElements,
   deserializeCopiedElements,
 } from "../utils/multiElementCopy";
@@ -191,7 +192,8 @@ export function useGlobalKeyboardShortcuts() {
    * Canvas Paste - 클립보드에서 요소 붙여넣기
    */
   const handleCanvasPaste = useCallback(async () => {
-    const { currentPageId, addElement, elements } = useStore.getState();
+    const { currentPageId, addElement, elements, selectedElementId } =
+      useStore.getState();
 
     if (!currentPageId) {
       console.log("[Keyboard] Paste: No page selected");
@@ -215,6 +217,13 @@ export function useGlobalKeyboardShortcuts() {
       currentPageId,
       { x: 10, y: 10 },
       elements,
+      {
+        targetParentId: resolvePasteTargetParentId({
+          currentPageId,
+          selectedElementId,
+          elements,
+        }),
+      },
     );
 
     for (const element of newElements) {

@@ -75,6 +75,7 @@ import { scheduleNextFrame } from "../utils/scheduleTask";
 // ADR-056 Phase 3: Base Typography 초기 동기화
 import { useThemeConfigStore } from "../../stores/themeConfigStore";
 import { normalizeExternalFillIngressBatch } from "../panels/styles/utils/fillExternalIngress";
+import { includeCanonicalRefDependencies } from "../utils/canonicalRefDependencies";
 
 export type IframeReadyState =
   | "not_initialized"
@@ -231,7 +232,12 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     const scopedElements =
       currentEditMode === "layout" || !currentPageId
         ? elementsToSend
-        : elementsToSend.filter((element) => element.page_id === currentPageId);
+        : includeCanonicalRefDependencies(
+            elementsToSend.filter(
+              (element) => element.page_id === currentPageId,
+            ),
+            elementsToSend,
+          );
 
     // Layout 편집 모드: pageId=null, layoutId=selectedReusableFrameId
     // Page 모드: pageId=currentPageId, layoutId=page legacy layout binding

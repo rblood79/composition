@@ -5,6 +5,7 @@ import {
   copyMultipleElements,
   deserializeCopiedElements,
   pasteMultipleElements,
+  resolvePasteTargetParentId,
   serializeCopiedElements,
 } from "./multiElementCopy";
 
@@ -99,6 +100,130 @@ describe("multiElementCopy", () => {
       props: { text: "Copied" },
     });
     expect(new Set(pasted.map((element) => element.customId)).size).toBe(2);
+  });
+
+  it("reparents a copied reusable origin instance into the target page body", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const page2Body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+    });
+    const origin = makeElement("origin", {
+      reusable: true,
+      customId: "button_1",
+      parent_id: page1Body.id,
+      page_id: "page-1",
+      props: { label: "Origin" },
+    });
+    const copied = copyMultipleElements(
+      ["origin"],
+      new Map([
+        [page1Body.id, page1Body],
+        [page2Body.id, page2Body],
+        [origin.id, origin],
+      ]),
+    );
+
+    const pasted = pasteMultipleElements(
+      copied,
+      "page-2",
+      { x: 10, y: 10 },
+      [page1Body, page2Body, origin],
+      { targetParentId: page2Body.id },
+    );
+
+    expect(pasted).toHaveLength(1);
+    expect(pasted[0]).toMatchObject({
+      type: "ref",
+      ref: "origin",
+      parent_id: page2Body.id,
+      page_id: "page-2",
+      customId: "button_2",
+    });
+  });
+
+  it("reparents standard root copies into the target page body while preserving copied descendants", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const page2Body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+    });
+    const box = makeElement("box", {
+      type: "Box",
+      customId: "box_1",
+      parent_id: page1Body.id,
+      page_id: "page-1",
+    });
+    const label = makeElement("label", {
+      type: "Text",
+      customId: "text_1",
+      parent_id: box.id,
+      page_id: "page-1",
+    });
+    const copied = copyMultipleElements(
+      ["box"],
+      new Map([
+        [page1Body.id, page1Body],
+        [page2Body.id, page2Body],
+        [box.id, box],
+        [label.id, label],
+      ]),
+    );
+
+    const pasted = pasteMultipleElements(
+      copied,
+      "page-2",
+      { x: 10, y: 10 },
+      [page1Body, page2Body, box, label],
+      { targetParentId: page2Body.id },
+    );
+
+    expect(pasted).toHaveLength(2);
+    expect(pasted[0]).toMatchObject({
+      type: "Box",
+      parent_id: page2Body.id,
+      page_id: "page-2",
+      customId: "box_2",
+    });
+    expect(pasted[1]).toMatchObject({
+      type: "Text",
+      parent_id: pasted[0].id,
+      page_id: "page-2",
+      customId: "text_2",
+    });
+  });
+
+  it("resolves the paste target from the selected page body or selected container", () => {
+    const body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+    });
+    const frame = makeElement("frame", {
+      type: "Frame",
+      parent_id: body.id,
+      page_id: "page-2",
+    });
+
+    expect(
+      resolvePasteTargetParentId({
+        currentPageId: "page-2",
+        selectedElementId: "page-2",
+        elements: [body, frame],
+      }),
+    ).toBe(body.id);
+    expect(
+      resolvePasteTargetParentId({
+        currentPageId: "page-2",
+        selectedElementId: frame.id,
+        elements: [body, frame],
+      }),
+    ).toBe(frame.id);
   });
 
   it("round-trips 50 canonical refs through copy, clipboard serialization, paste, and duplicate offset", () => {
