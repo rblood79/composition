@@ -13,4 +13,20 @@ describe("useCentralCanvasPointerHandlers frame body fallback", () => {
     expect(source).toContain("elementsMap: hitElementsMap,");
     expect(source).not.toContain("elementsMap: state.elementsMap,");
   });
+
+  it("keeps the concrete hit element as the double-click target inside selection bounds", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useCentralCanvasPointerHandlers.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain(
+      "const doubleClickTargetId = resolveDoubleClickTargetId(",
+    );
+    expect(source).toContain("hitElementId,");
+    expect(source).toContain(
+      "handleElementDoubleClickRef.current(doubleClickTargetId);",
+    );
+    expect(source).toContain("commitPointerClick(doubleClickTargetId, now);");
+  });
 });

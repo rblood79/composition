@@ -2,7 +2,10 @@ import { useCallback } from "react";
 import { useStore } from "../../../stores";
 import { useEditModeStore } from "../../../stores/editMode";
 import { selectReusableFrame } from "../../../stores/utils/frameActions";
-import { resolveClickTarget } from "../../../utils/hierarchicalSelection";
+import {
+  resolveClickTarget,
+  resolveContextEntryTarget,
+} from "../../../utils/hierarchicalSelection";
 import type { Element } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
@@ -26,7 +29,7 @@ interface UseCanvasElementSelectionHandlersOptions {
   ) => void;
   setCurrentPageId: (pageId: string) => void;
   setSelectedElement: (
-    elementId: string,
+    elementId: string | null,
     props?: Record<string, unknown>,
   ) => void;
   setSelectedElements: (elementIds: string[]) => void;
@@ -87,7 +90,7 @@ function selectResolvedTarget(
   modifiers: SelectionModifiers | undefined,
   targetPageId: string | null,
   setSelectedElement: (
-    elementId: string,
+    elementId: string | null,
     props?: Record<string, unknown>,
   ) => void,
   setSelectedElements: (elementIds: string[]) => void,
@@ -152,7 +155,7 @@ function selectResolvedTarget(
 function handleUnresolvedTarget(
   elementId: string,
   clickedElement: Element | undefined,
-  setSelectedElement: (elementId: string) => void,
+  setSelectedElement: (elementId: string | null) => void,
   selectElementWithPageTransition: (
     elementId: string,
     targetPageId: string | null,
@@ -300,14 +303,41 @@ export function useCanvasElementSelectionHandlers({
 
       const children = interactiveChildrenMap.get(resolvedTarget);
       if (children && children.length > 0) {
-        state.enterEditingContext(resolvedTarget);
+        const entryTarget = resolveContextEntryTarget(
+          elementId,
+          resolvedTarget,
+          interactiveElementsMap,
+        );
+        state.setEditingContext(resolvedTarget);
+        if (entryTarget) {
+          selectResolvedTarget(
+            entryTarget,
+            undefined,
+            null,
+            setSelectedElement,
+            setSelectedElements,
+            clearSelection,
+            selectElementWithPageTransition,
+            interactiveElementsMap,
+          );
+        } else {
+          setSelectedElement(null);
+        }
         return;
       }
 
       const layoutPosition = getElementBoundsSimple(resolvedTarget);
       startEdit(resolvedTarget, layoutPosition ?? undefined);
     },
-    [getInteractiveChildrenMap, getInteractiveElementsMap, startEdit],
+    [
+      clearSelection,
+      getInteractiveChildrenMap,
+      getInteractiveElementsMap,
+      selectElementWithPageTransition,
+      setSelectedElement,
+      setSelectedElements,
+      startEdit,
+    ],
   );
 
   return {

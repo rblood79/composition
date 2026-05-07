@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveClickTarget } from "./hierarchicalSelection";
+import {
+  resolveClickTarget,
+  resolveContextEntryTarget,
+} from "./hierarchicalSelection";
 
 describe("resolveClickTarget", () => {
   it("supports projected instance descendants inside an instance editing context", () => {
@@ -18,6 +21,9 @@ describe("resolveClickTarget", () => {
     expect(resolveClickTarget("instance/label", "instance", elementsMap)).toBe(
       "instance/label",
     );
+    expect(
+      resolveContextEntryTarget("instance/label", "instance", elementsMap),
+    ).toBe("instance/label");
   });
 
   it("selects page-frame slot children through hidden slot chrome at the root level", () => {
@@ -64,5 +70,28 @@ describe("resolveClickTarget", () => {
     expect(resolveClickTarget("slot-card", null, elementsMap)).toBe(
       "slot-content",
     );
+  });
+
+  it("resolves the selectable child under the cursor when entering a group", () => {
+    const elementsMap = new Map([
+      ["body", { id: "body", type: "body", parent_id: null }],
+      ["card", { id: "card", type: "Card", parent_id: "body" }],
+      ["heading", { id: "heading", type: "Heading", parent_id: "card" }],
+    ]);
+
+    expect(resolveClickTarget("heading", null, elementsMap)).toBe("card");
+    expect(resolveContextEntryTarget("heading", "card", elementsMap)).toBe(
+      "heading",
+    );
+  });
+
+  it("does not select the context itself as an entry target", () => {
+    const elementsMap = new Map([
+      ["body", { id: "body", type: "body", parent_id: null }],
+      ["card", { id: "card", type: "Card", parent_id: "body" }],
+      ["heading", { id: "heading", type: "Heading", parent_id: "card" }],
+    ]);
+
+    expect(resolveContextEntryTarget("card", "card", elementsMap)).toBeNull();
   });
 });

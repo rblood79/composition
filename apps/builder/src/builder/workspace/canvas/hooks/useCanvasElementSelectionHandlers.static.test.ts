@@ -19,4 +19,16 @@ describe("useCanvasElementSelectionHandlers frame selection contract", () => {
       "syncReusableFrameSelectionForElement(clickedElement);",
     );
   });
+
+  it("selects the hit child immediately after entering a container context", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useCanvasElementSelectionHandlers.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("resolveContextEntryTarget(");
+    expect(source).toContain("state.setEditingContext(resolvedTarget);");
+    expect(source).toContain("selectResolvedTarget(");
+    expect(source).toContain("setSelectedElement(null);");
+  });
 });

@@ -11,6 +11,7 @@ import {
   isPointerDoubleClick,
   resetPointerClick,
   resolveBodySelection,
+  resolveDoubleClickTargetId,
   resolveSelectionHit,
   resolveTopmostHitElementId,
 } from "../interaction";
@@ -280,26 +281,30 @@ export function useCentralCanvasPointerHandlers({
       if (inSelectionBounds) {
         if (selectedIds.length > 0 && selectionBounds) {
           const targetId = selectedIds[0] ?? null;
+          const doubleClickTargetId = resolveDoubleClickTargetId(
+            hitElementId,
+            targetId,
+          );
           if (
             isPointerDoubleClick(
               {
                 lastClickTargetId: lastClickTargetRef.current,
                 lastClickTime: lastClickTimeRef.current,
               },
-              targetId,
+              doubleClickTargetId,
               now,
             )
           ) {
             const resetState = resetPointerClick();
             lastClickTargetRef.current = resetState.lastClickTargetId;
             lastClickTimeRef.current = resetState.lastClickTime;
-            if (targetId) {
-              handleElementDoubleClickRef.current(targetId);
+            if (doubleClickTargetId) {
+              handleElementDoubleClickRef.current(doubleClickTargetId);
             }
             return;
           }
 
-          const session = commitPointerClick(targetId, now);
+          const session = commitPointerClick(doubleClickTargetId, now);
           lastClickTargetRef.current = session.lastClickTargetId;
           lastClickTimeRef.current = session.lastClickTime;
 

@@ -38,3 +38,10 @@ export function resetPointerClick(): PointerSessionSnapshot {
     lastClickTime: 0,
   };
 }
+
+export function resolveDoubleClickTargetId(
+  hitElementId: string | null,
+  selectedTargetId: string | null,
+): string | null {
+  return hitElementId ?? selectedTargetId;
+}

@@ -48,6 +48,19 @@ export function resolveClickTarget(
   return null;
 }
 
+export function resolveContextEntryTarget(
+  clickedElementId: string,
+  contextElementId: string,
+  elementsMap: Map<string, MinimalElement>,
+): string | null {
+  const target = resolveClickTarget(
+    clickedElementId,
+    contextElementId,
+    elementsMap,
+  );
+  return target && target !== contextElementId ? target : null;
+}
+
 function isRootSelectableElement(
   element: MinimalElement,
   elementsMap: Map<string, MinimalElement>,

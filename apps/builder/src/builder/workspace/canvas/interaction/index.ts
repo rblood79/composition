@@ -10,5 +10,6 @@ export {
   commitPointerClick,
   isPointerDoubleClick,
   resetPointerClick,
+  resolveDoubleClickTargetId,
   type PointerSessionSnapshot,
 } from "./pointerSession";
