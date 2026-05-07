@@ -76,10 +76,12 @@ describe("FrameSlotSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Enable slot" }));
 
     await waitFor(() => {
-      expect(useStore.getState().elementsMap.get("card-content")).toMatchObject({
-        metadata: { slot: [] },
-        slot: [],
-      });
+      expect(useStore.getState().elementsMap.get("card-content")).toMatchObject(
+        {
+          metadata: { slot: [] },
+          slot: [],
+        },
+      );
     });
   });
 
@@ -311,8 +313,8 @@ describe("FrameSlotSection", () => {
       const children = useStore.getState().childrenMap.get("footer") ?? [];
       expect(children).toHaveLength(2);
       expect(children).toEqual([
-        expect.objectContaining({ type: "ref", ref: "origin" }),
-        expect.objectContaining({ type: "ref", ref: "origin" }),
+        expect.objectContaining({ type: "ref", ref: "origin", order_num: 0 }),
+        expect.objectContaining({ type: "ref", ref: "origin", order_num: 1 }),
       ]);
       expect(children[0].id).not.toBe(children[1].id);
     });

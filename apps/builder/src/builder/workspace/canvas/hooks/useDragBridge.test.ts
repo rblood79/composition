@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Element } from "../../../../types/core/store.types";
 import {
+  collectDragSnapshotEntries,
   isManualPositionDragTarget,
   resolveManualPositionDragProps,
 } from "./useDragBridge";
@@ -83,5 +84,60 @@ describe("manual position drag semantics", () => {
         top: "46px",
       },
     });
+  });
+});
+
+describe("drag snapshot collection", () => {
+  it("captures old siblings and dragged subtree page/parent state", () => {
+    const body = makeElement({ id: "body", type: "body", parent_id: null });
+    const dragged = makeElement({
+      id: "card",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 0,
+    });
+    const sibling = makeElement({
+      id: "button",
+      page_id: "page-1",
+      parent_id: body.id,
+      order_num: 1,
+    });
+    const child = makeElement({
+      id: "heading",
+      page_id: "page-1",
+      parent_id: dragged.id,
+      order_num: 0,
+    });
+
+    const elements = [body, dragged, sibling, child];
+    const snapshot = collectDragSnapshotEntries(
+      new Map(elements.map((element) => [element.id, element])),
+      new Map([
+        [body.id, [dragged, sibling]],
+        [dragged.id, [child]],
+      ]),
+      dragged.id,
+    );
+
+    expect(snapshot).toEqual([
+      {
+        id: dragged.id,
+        order_num: 0,
+        page_id: "page-1",
+        parent_id: body.id,
+      },
+      {
+        id: sibling.id,
+        order_num: 1,
+        page_id: "page-1",
+        parent_id: body.id,
+      },
+      {
+        id: child.id,
+        order_num: 0,
+        page_id: "page-1",
+        parent_id: dragged.id,
+      },
+    ]);
   });
 });

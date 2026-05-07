@@ -1,0 +1,263 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Element } from "../../../../types/builder/unified.types";
+import type { ElementBounds } from "../elementRegistry";
+import {
+  computeInsertionLinePosition,
+  resolveDropTarget,
+} from "./dropTargetResolver";
+
+const mockBounds = vi.hoisted(() => new Map<string, ElementBounds>());
+
+vi.mock("../skia/renderCommands", () => ({
+  getSceneBounds: (id: string) => mockBounds.get(id),
+}));
+
+function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+  return {
+    id,
+    type: "Box",
+    page_id: "page-1",
+    parent_id: null,
+    order_num: 0,
+    props: {},
+    deleted: false,
+    ...overrides,
+  } as Element;
+}
+
+describe("resolveDropTarget cross-page body targets", () => {
+  beforeEach(() => {
+    mockBounds.clear();
+  });
+
+  it("treats another page body as a valid drop container", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const page2Body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+    });
+    const source = makeElement("source-card", {
+      parent_id: page1Body.id,
+      order_num: 0,
+    });
+
+    mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 160, height: 120 });
+    mockBounds.set(page2Body.id, { x: 900, y: 0, width: 800, height: 600 });
+
+    const result = resolveDropTarget(
+      { x: 940, y: 80 },
+      source.id,
+      {
+        childrenMap: new Map([[page1Body.id, [source]]]),
+        elementsMap: new Map([
+          [page1Body.id, page1Body],
+          [page2Body.id, page2Body],
+          [source.id, source],
+        ]),
+      },
+      () => [page2Body.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: page2Body.id,
+      insertionIndex: 0,
+      isAdjacentInsertion: false,
+      isReparent: true,
+      originalParentId: page1Body.id,
+    });
+  });
+
+  it("places end insertion line at the last child edge, not halfway down the page", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const page2Body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: page1Body.id,
+      order_num: 0,
+    });
+    const cardInstance = {
+      ...makeElement("card-instance", {
+        type: "ref",
+        page_id: "page-2",
+        parent_id: page2Body.id,
+        order_num: 0,
+      }),
+      ref: "card-origin",
+    } as Element;
+
+    mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 120, height: 40 });
+    mockBounds.set(page2Body.id, { x: 900, y: 0, width: 800, height: 1000 });
+    mockBounds.set(cardInstance.id, { x: 924, y: 24, width: 360, height: 305 });
+
+    const store = {
+      childrenMap: new Map([
+        [page1Body.id, [source]],
+        [page2Body.id, [cardInstance]],
+      ]),
+      elementsMap: new Map([
+        [page1Body.id, page1Body],
+        [page2Body.id, page2Body],
+        [source.id, source],
+        [cardInstance.id, cardInstance],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 950, y: 360 },
+      source.id,
+      store,
+      () => [cardInstance.id, page2Body.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: page2Body.id,
+      insertionIndex: 1,
+      isReparent: true,
+    });
+    expect(
+      result ? computeInsertionLinePosition(result, source.id, store) : null,
+    ).toBe(329);
+  });
+
+  it("rejects ordinary instance descendants but keeps explicit slot hosts droppable", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const page2Body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: page1Body.id,
+      order_num: 0,
+    });
+    const instance = {
+      ...makeElement("card-instance", {
+        type: "ref",
+        page_id: "page-2",
+        parent_id: page2Body.id,
+        order_num: 0,
+      }),
+      ref: "card-origin",
+    } as Element;
+    const ordinaryDescendant = makeElement("card-instance/content", {
+      type: "CardContent",
+      page_id: "page-2",
+      parent_id: instance.id,
+      order_num: 0,
+    });
+    const slotDescendant = makeElement("card-instance/slot", {
+      type: "CardContent",
+      page_id: "page-2",
+      parent_id: instance.id,
+      order_num: 1,
+      slot: [],
+    });
+
+    mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 120, height: 40 });
+    mockBounds.set(page2Body.id, { x: 900, y: 0, width: 800, height: 1000 });
+    mockBounds.set(instance.id, { x: 920, y: 20, width: 360, height: 360 });
+    mockBounds.set(ordinaryDescendant.id, {
+      x: 936,
+      y: 80,
+      width: 328,
+      height: 120,
+    });
+    mockBounds.set(slotDescendant.id, {
+      x: 936,
+      y: 220,
+      width: 328,
+      height: 120,
+    });
+
+    const store = {
+      childrenMap: new Map([
+        [page1Body.id, [source]],
+        [page2Body.id, [instance]],
+        [instance.id, [ordinaryDescendant, slotDescendant]],
+      ]),
+      elementsMap: new Map([
+        [page1Body.id, page1Body],
+        [page2Body.id, page2Body],
+        [source.id, source],
+        [instance.id, instance],
+        [ordinaryDescendant.id, ordinaryDescendant],
+        [slotDescendant.id, slotDescendant],
+      ]),
+    };
+
+    const ordinaryResult = resolveDropTarget(
+      { x: 950, y: 120 },
+      source.id,
+      store,
+      () => [ordinaryDescendant.id, instance.id, page2Body.id],
+    );
+    expect(ordinaryResult).toMatchObject({
+      containerId: page2Body.id,
+      isReparent: true,
+    });
+
+    const slotResult = resolveDropTarget(
+      { x: 950, y: 260 },
+      source.id,
+      store,
+      () => [slotDescendant.id, instance.id, page2Body.id],
+    );
+    expect(slotResult).toMatchObject({
+      containerId: slotDescendant.id,
+      isReparent: true,
+    });
+  });
+
+  it("keeps same-parent body hits on the reorder path", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const source = makeElement("source-card", {
+      parent_id: pageBody.id,
+      order_num: 0,
+    });
+    const sibling = makeElement("sibling-card", {
+      parent_id: pageBody.id,
+      order_num: 1,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 160, height: 120 });
+    mockBounds.set(sibling.id, { x: 40, y: 200, width: 160, height: 120 });
+
+    const result = resolveDropTarget(
+      { x: 80, y: 260 },
+      source.id,
+      {
+        childrenMap: new Map([[pageBody.id, [source, sibling]]]),
+        elementsMap: new Map([
+          [pageBody.id, pageBody],
+          [source.id, source],
+          [sibling.id, sibling],
+        ]),
+      },
+      () => [pageBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: pageBody.id,
+      isReparent: false,
+    });
+  });
+});

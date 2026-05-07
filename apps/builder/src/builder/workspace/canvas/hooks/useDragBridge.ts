@@ -14,11 +14,13 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { useStore } from "../../../stores";
+import type { Element } from "../../../../types/core/store.types";
 import { useDragInteraction } from "../selection/useDragInteraction";
 import {
   resolveDropTarget,
   computeReorderFromDropTarget,
   computeSiblingOffsets,
+  computeInsertionLinePosition,
   type DropTarget,
   type DropIndicatorSnapshot,
 } from "../selection/dropTargetResolver";
@@ -31,10 +33,18 @@ import {
   clearAllAnimations,
 } from "../skia/dragAnimator";
 import { historyManager } from "../../../stores/history";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
 import type { BoundingBox } from "../selection/types";
+
+type DragSnapshotEntry = {
+  id: string;
+  order_num: number;
+  page_id?: string | null;
+  parent_id?: string | null;
+};
 
 type SceneBoundsResolver = (
   elementId: string,
@@ -86,6 +96,64 @@ function parsePx(value: unknown): number | null {
 function formatPx(value: number): string {
   const rounded = Math.round(value * 1000) / 1000;
   return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}px`;
+}
+
+function toDragSnapshotEntry(element: Element): DragSnapshotEntry {
+  return {
+    id: element.id,
+    order_num: element.order_num ?? 0,
+    page_id: element.page_id,
+    parent_id: element.parent_id,
+  };
+}
+
+export function collectDragSnapshotEntries(
+  elementsMap: Map<string, Element>,
+  childrenMap: Map<string, Element[]>,
+  draggedId: string,
+): DragSnapshotEntry[] {
+  const dragged = elementsMap.get(draggedId);
+  if (!dragged) return [];
+
+  const entries = new Map<string, DragSnapshotEntry>();
+  const addElement = (element: Element | undefined): void => {
+    if (!element) return;
+    entries.set(element.id, toDragSnapshotEntry(element));
+  };
+
+  for (const element of elementsMap.values()) {
+    if (element.parent_id === dragged.parent_id) {
+      addElement(element);
+    }
+  }
+
+  const stack = [draggedId];
+  while (stack.length > 0) {
+    const currentId = stack.pop();
+    if (!currentId) continue;
+
+    addElement(elementsMap.get(currentId));
+
+    const children = childrenMap.get(currentId) ?? [];
+    for (const child of children) {
+      const childId = child.id;
+      if (entries.has(childId)) continue;
+      stack.push(childId);
+    }
+  }
+
+  return Array.from(entries.values());
+}
+
+async function persistActiveCanonicalDocument(
+  db: Awaited<ReturnType<typeof getDB>>,
+): Promise<void> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return;
+  await db.documents.put(projectId, doc);
 }
 
 export function isManualPositionDragTarget(
@@ -140,11 +208,7 @@ export function useDragBridge({
   dropIndicatorSnapshotRef,
   enabled = true,
 }: UseDragBridgeOptions): void {
-  const dragStartSnapshotRef = useRef<Array<{
-    id: string;
-    order_num: number;
-    parent_id?: string | null;
-  }> | null>(null);
+  const dragStartSnapshotRef = useRef<DragSnapshotEntry[] | null>(null);
 
   const lastResolvedDropTargetRef = useRef<DropTarget | null>(null);
 
@@ -172,16 +236,11 @@ export function useDragBridge({
 
       // 드래그 시작 시 원래 order_num 스냅샷 캡처
       if (!dragStartSnapshotRef.current) {
-        if (dragged) {
-          const allChildren = [...dragState.elementsMap.values()]
-            .filter((e) => e.parent_id === dragged.parent_id)
-            .map((e) => ({
-              id: e.id,
-              order_num: e.order_num ?? 0,
-              parent_id: e.parent_id,
-            }));
-          dragStartSnapshotRef.current = allChildren;
-        }
+        dragStartSnapshotRef.current = collectDragSnapshotEntries(
+          dragState.elementsMap,
+          dragState.childrenMap,
+          draggedId,
+        );
       }
 
       // 드래그 요소 시각적 오프셋 (store 변경 없음)
@@ -207,6 +266,14 @@ export function useDragBridge({
               dragSize: prevTarget.isHorizontal
                 ? draggedBounds.width
                 : draggedBounds.height,
+              insertionLinePosition: computeInsertionLinePosition(
+                prevTarget,
+                draggedId,
+                {
+                  elementsMap: dragState.elementsMap,
+                  childrenMap: dragState.childrenMap,
+                },
+              ),
             };
             return;
           }
@@ -252,6 +319,14 @@ export function useDragBridge({
           isHorizontal: resolved.isHorizontal,
           isReparent: resolved.isReparent,
           dragSize,
+          insertionLinePosition: computeInsertionLinePosition(
+            resolved,
+            draggedId,
+            {
+              elementsMap: dragState.elementsMap,
+              childrenMap: dragState.childrenMap,
+            },
+          ),
         };
       } else {
         dropIndicatorSnapshotRef.current = null;
@@ -285,6 +360,19 @@ export function useDragBridge({
         return;
       }
 
+      const prevSnapshotMap = new Map(
+        (startSnapshot ?? []).map((snapshot) => [snapshot.id, snapshot]),
+      );
+      if (startSnapshot && finalTarget?.isReparent) {
+        const targetSiblings = state.childrenMap.get(finalTarget.containerId);
+        targetSiblings?.forEach((sibling) => {
+          const element = state.elementsMap.get(sibling.id);
+          if (element && !prevSnapshotMap.has(element.id)) {
+            prevSnapshotMap.set(element.id, toDragSnapshotEntry(element));
+          }
+        });
+      }
+
       // 단일 store commit
       if (finalTarget && !finalTarget.isAdjacentInsertion) {
         if (finalTarget.isReparent) {
@@ -307,27 +395,32 @@ export function useDragBridge({
       // History + DB Persist
       if (startSnapshot) {
         const state = useStore.getState();
-        const affectedIds = new Set(startSnapshot.map((s) => s.id));
+        const affectedIds = new Set(prevSnapshotMap.keys());
         if (finalTarget?.isReparent) {
           const newSiblings = state.childrenMap.get(finalTarget.containerId);
           newSiblings?.forEach((c) => affectedIds.add(c.id));
           affectedIds.add(elementId);
         }
 
-        const prevElements = startSnapshot
-          .filter((s) => affectedIds.has(s.id))
-          .map((s) => {
-            const el = state.elementsMap.get(s.id);
-            return el
-              ? {
-                  ...el,
-                  order_num: s.order_num,
-                  parent_id: s.parent_id ?? el.parent_id,
-                }
-              : undefined;
+        const affectedIdList = Array.from(affectedIds);
+        const prevElements = affectedIdList
+          .map((id) => {
+            const snapshot = prevSnapshotMap.get(id);
+            const el = state.elementsMap.get(id);
+            if (!snapshot || !el) return undefined;
+            return {
+              ...el,
+              order_num: snapshot.order_num,
+              page_id:
+                snapshot.page_id === undefined ? el.page_id : snapshot.page_id,
+              parent_id:
+                snapshot.parent_id === undefined
+                  ? el.parent_id
+                  : snapshot.parent_id,
+            };
           })
           .filter((el): el is NonNullable<typeof el> => el !== undefined);
-        const nextElements = [...affectedIds]
+        const nextElements = affectedIdList
           .map((id) => state.elementsMap.get(id))
           .filter((el): el is NonNullable<typeof el> => el !== undefined);
 
@@ -336,7 +429,12 @@ export function useDragBridge({
             finalTarget?.isReparent ||
             prevElements.some((p) => {
               const next = state.elementsMap.get(p.id);
-              return next && next.order_num !== p.order_num;
+              return (
+                next &&
+                (next.order_num !== p.order_num ||
+                  next.parent_id !== p.parent_id ||
+                  next.page_id !== p.page_id)
+              );
             });
           if (hasChange) {
             historyManager.addBatchDiffEntry(prevElements, nextElements);
@@ -349,27 +447,36 @@ export function useDragBridge({
             try {
               const db = await getDB();
               const currentState = useStore.getState();
-              const persistIds = [...affectedIds];
-              const snapMap = new Map(startSnapshot.map((s) => [s.id, s]));
-              await Promise.all(
-                persistIds.map((id) => {
-                  const el = currentState.elementsMap.get(id);
-                  const snap = snapMap.get(id);
-                  if (!el) return Promise.resolve();
-                  const orderChanged = !snap || el.order_num !== snap.order_num;
-                  const parentChanged =
-                    finalTarget?.isReparent &&
-                    id === elementId &&
-                    el.parent_id !== snap?.parent_id;
-                  if (orderChanged || parentChanged) {
-                    return db.elements.update(id, {
-                      order_num: el.order_num ?? 0,
-                      ...(parentChanged ? { parent_id: el.parent_id } : {}),
-                    });
-                  }
-                  return Promise.resolve();
-                }),
-              );
+              const persistIds = affectedIdList;
+              const updates = persistIds.flatMap((id) => {
+                const el = currentState.elementsMap.get(id);
+                const snap = prevSnapshotMap.get(id);
+                if (!el) return [];
+                const orderChanged = !snap || el.order_num !== snap.order_num;
+                const parentChanged =
+                  finalTarget?.isReparent && el.parent_id !== snap?.parent_id;
+                const pageChanged =
+                  finalTarget?.isReparent && el.page_id !== snap?.page_id;
+                if (orderChanged || parentChanged || pageChanged) {
+                  return [
+                    {
+                      id,
+                      data: {
+                        order_num: el.order_num ?? 0,
+                        ...(parentChanged
+                          ? { parent_id: el.parent_id ?? null }
+                          : {}),
+                        ...(pageChanged ? { page_id: el.page_id ?? null } : {}),
+                      },
+                    },
+                  ];
+                }
+                return [];
+              });
+              if (updates.length > 0) {
+                await db.elements.updateMany(updates);
+              }
+              await persistActiveCanonicalDocument(db);
             } catch (error) {
               console.error("[DragBridge] reorder/reparent DB persist:", error);
             }

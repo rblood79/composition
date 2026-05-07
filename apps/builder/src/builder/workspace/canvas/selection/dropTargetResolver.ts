@@ -17,8 +17,10 @@
  */
 
 import type { Element } from "../../../../types/builder/unified.types";
+import { isLegacyInstanceElement } from "../../../../adapters/canonical/legacyElementFields";
 import type { ElementBounds } from "../elementRegistry";
 import { getSceneBounds } from "../skia/renderCommands";
+import { getSpecForTag } from "../sprites/tagSpecMap";
 
 // ============================================
 // Types
@@ -56,6 +58,8 @@ export interface DropIndicatorSnapshot {
   isReparent?: boolean;
   /** 드래그 요소의 주축 크기 — 삽입 라인이 animated gap 중앙에 위치하도록 보정 */
   dragSize?: number;
+  /** scene 좌표계의 실제 삽입 라인 위치. 렌더러 추정 대신 resolver 계약으로 전달한다. */
+  insertionLinePosition?: number;
 }
 
 /** resolveDropTarget에 필요한 store 슬라이스 */
@@ -90,19 +94,119 @@ function findInsertionIndex(
   return fallback;
 }
 
+const STRUCTURAL_CONTAINER_TYPES = new Set([
+  "body",
+  "box",
+  "card",
+  "cardcontent",
+  "cardfooter",
+  "cardheader",
+  "cardpreview",
+  "container",
+  "frame",
+  "group",
+  "section",
+]);
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
 /**
  * 컨테이너의 주요 flex 방향을 결정한다.
- * store props의 style.flexDirection 또는 display를 기준으로 판단.
+ * inline style 우선, 없으면 Spec.containerStyles 를 fallback 으로 사용한다.
  */
 function detectIsHorizontal(element: Element): boolean {
-  const style = element.props?.style as Record<string, unknown> | undefined;
-  if (!style) return false;
-
-  const flexDir = style.flexDirection;
+  const style = asRecord(element.props?.style);
+  const spec = getSpecForTag(element.type);
+  const specStyles = asRecord(spec?.containerStyles);
+  const flexDir = style?.flexDirection ?? specStyles?.flexDirection;
   if (flexDir === "row" || flexDir === "row-reverse") return true;
 
+  const display = style?.display ?? specStyles?.display;
   // grid는 기본적으로 row 방향
-  if (style.display === "grid") return true;
+  if (display === "grid") return true;
+
+  return false;
+}
+
+function isBodyElement(element: Element): boolean {
+  return element.type?.toLowerCase() === "body";
+}
+
+function hasCanonicalRef(element: Element): boolean {
+  return typeof (element as Element & { ref?: unknown }).ref === "string";
+}
+
+function isComponentInstanceElement(element: Element): boolean {
+  return isLegacyInstanceElement(element) || hasCanonicalRef(element);
+}
+
+function isExplicitSlotHost(element: Element): boolean {
+  return Array.isArray(element.slot);
+}
+
+function hasLayoutContainerStyle(element: Element): boolean {
+  const style = asRecord(element.props?.style);
+  const display = style?.display;
+  const flexDirection = style?.flexDirection;
+  if (
+    display === "flex" ||
+    display === "inline-flex" ||
+    display === "grid" ||
+    flexDirection === "row" ||
+    flexDirection === "row-reverse" ||
+    flexDirection === "column" ||
+    flexDirection === "column-reverse"
+  ) {
+    return true;
+  }
+
+  const spec = getSpecForTag(element.type);
+  const specStyles = asRecord(spec?.containerStyles);
+  const specDisplay = specStyles?.display;
+  const specFlexDirection = specStyles?.flexDirection;
+  return (
+    specDisplay === "flex" ||
+    specDisplay === "inline-flex" ||
+    specDisplay === "grid" ||
+    specFlexDirection === "row" ||
+    specFlexDirection === "row-reverse" ||
+    specFlexDirection === "column" ||
+    specFlexDirection === "column-reverse"
+  );
+}
+
+function isInsideGuardedInstance(
+  element: Element,
+  store: DropTargetStoreSlice,
+): boolean {
+  let currentId = element.id;
+  while (currentId) {
+    const current = store.elementsMap.get(currentId);
+    if (!current) return false;
+    if (isComponentInstanceElement(current)) return true;
+    currentId = current.parent_id ?? "";
+  }
+  return false;
+}
+
+function acceptsDraggedElement(
+  candidate: Element,
+  store: DropTargetStoreSlice,
+): boolean {
+  if (isBodyElement(candidate)) return true;
+  if (isExplicitSlotHost(candidate)) return true;
+  if (isInsideGuardedInstance(candidate, store)) return false;
+
+  const type = candidate.type.toLowerCase();
+  const hasKnownChildren = store.childrenMap.has(candidate.id);
+  const structuralContainer = STRUCTURAL_CONTAINER_TYPES.has(type);
+
+  if (structuralContainer) return true;
+  if (hasKnownChildren && hasLayoutContainerStyle(candidate)) return true;
 
   return false;
 }
@@ -170,21 +274,11 @@ function resolveCrossContainerDrop(
 
     const hitEl = store.elementsMap.get(hitId);
     if (!hitEl) continue;
-    if (!hitEl.parent_id) continue; // root/body 제외
-    if (hitEl.type?.toLowerCase() === "body") continue;
     if (hitId === dragged.parent_id) continue; // 현재 부모는 same-parent 로직이 처리
+    const isBody = isBodyElement(hitEl);
+    if (!isBody && !hitEl.parent_id) continue; // body 외 root 제외
 
-    // 컨테이너 여부 확인: childrenMap에 해당 ID가 존재하거나 display가 컨테이너 성격
-    const hasChildren = store.childrenMap.has(hitId);
-    const style = hitEl.props?.style as Record<string, unknown> | undefined;
-    const display = style?.display;
-    const isContainer =
-      hasChildren ||
-      display === "flex" ||
-      display === "grid" ||
-      display === "block";
-
-    if (!isContainer) continue;
+    if (!acceptsDraggedElement(hitEl, store)) continue;
 
     // depth 계산 (부모 체인 길이)
     let depth = 0;
@@ -474,6 +568,118 @@ export function computeSiblingOffsets(
   }
 
   return offsets;
+}
+
+function getAxisStart(bounds: ElementBounds, isHorizontal: boolean): number {
+  return isHorizontal ? bounds.x : bounds.y;
+}
+
+function getAxisEnd(bounds: ElementBounds, isHorizontal: boolean): number {
+  return isHorizontal ? bounds.x + bounds.width : bounds.y + bounds.height;
+}
+
+function getAxisOffset(
+  offsets: Map<string, { dx: number; dy: number }>,
+  elementId: string,
+  isHorizontal: boolean,
+): number {
+  const offset = offsets.get(elementId);
+  if (!offset) return 0;
+  return isHorizontal ? offset.dx : offset.dy;
+}
+
+/**
+ * Drop indicator line 의 scene 좌표를 계산한다.
+ *
+ * Cross-container 는 아직 target siblings 를 움직이지 않으므로 실제 child 경계에
+ * 라인을 둔다. Same-container reorder 는 형제 visual offset 으로 열린 gap 의
+ * 중앙을 계산한다.
+ */
+export function computeInsertionLinePosition(
+  dropTarget: DropTarget,
+  draggedElementId: string,
+  store: DropTargetStoreSlice,
+): number | undefined {
+  const { containerId, insertionIndex, isHorizontal } = dropTarget;
+  const sortedChildren = getSortedChildren(containerId, store);
+  const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
+  const siblingEntries = siblings
+    .map((element) => {
+      const bounds = getSceneBounds(element.id);
+      return bounds ? { element, bounds } : null;
+    })
+    .filter(
+      (
+        entry,
+      ): entry is {
+        element: Element;
+        bounds: ElementBounds;
+      } => entry !== null,
+    );
+
+  if (siblingEntries.length === 0) {
+    const targetSize = isHorizontal
+      ? dropTarget.containerBounds.width
+      : dropTarget.containerBounds.height;
+    return (
+      getAxisStart(dropTarget.containerBounds, isHorizontal) + targetSize / 2
+    );
+  }
+
+  const originalIndex = sortedChildren.findIndex(
+    (child) => child.id === draggedElementId,
+  );
+  const isReparent = dropTarget.isReparent || originalIndex < 0;
+
+  if (isReparent) {
+    if (insertionIndex <= 0) {
+      return getAxisStart(siblingEntries[0].bounds, isHorizontal);
+    }
+    if (insertionIndex >= siblingEntries.length) {
+      return getAxisEnd(
+        siblingEntries[siblingEntries.length - 1].bounds,
+        isHorizontal,
+      );
+    }
+    return (
+      (getAxisEnd(siblingEntries[insertionIndex - 1].bounds, isHorizontal) +
+        getAxisStart(siblingEntries[insertionIndex].bounds, isHorizontal)) /
+      2
+    );
+  }
+
+  const dragBounds = getSceneBounds(draggedElementId);
+  const dragSize = dragBounds
+    ? isHorizontal
+      ? dragBounds.width
+      : dragBounds.height
+    : 0;
+  const offsets = computeSiblingOffsets(dropTarget, draggedElementId, store);
+
+  if (insertionIndex <= 0) {
+    const first = siblingEntries[0];
+    return (
+      getAxisStart(first.bounds, isHorizontal) +
+      getAxisOffset(offsets, first.element.id, isHorizontal) -
+      dragSize / 2
+    );
+  }
+
+  if (insertionIndex >= siblingEntries.length) {
+    const last = siblingEntries[siblingEntries.length - 1];
+    return (
+      getAxisEnd(last.bounds, isHorizontal) +
+      getAxisOffset(offsets, last.element.id, isHorizontal) +
+      dragSize / 2
+    );
+  }
+
+  const next = siblingEntries[insertionIndex];
+  return (
+    getAxisStart(next.bounds, isHorizontal) +
+    getAxisOffset(offsets, next.element.id, isHorizontal) -
+    dragSize / 2
+  );
 }
 
 // ============================================

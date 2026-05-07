@@ -75,7 +75,11 @@ import {
 } from "./utils/elementIndexer";
 import { getNullablePageFrameBindingId } from "@/adapters/canonical/frameMirror";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
-import { updateElementCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
+import {
+  areCanonicalMutationStoreActionsRegistered,
+  mergeElementsCanonicalPrimary,
+  updateElementCanonicalPrimary,
+} from "@/adapters/canonical/canonicalMutations";
 
 function pageLayoutId(page: Page): string | null {
   return getNullablePageFrameBindingId(page);
@@ -379,6 +383,24 @@ function resolvePageActivationTarget(
     (elementId ? state.elementsMap.get(elementId) : undefined) ??
     findPageActivationBodyElement(state.pageElementsSnapshot[pageId])
   );
+}
+
+function collectElementSubtreeIds(
+  rootId: string,
+  childrenMap: Map<string, Element[]>,
+): Set<string> {
+  const subtreeIds = new Set<string>();
+  const stack = [rootId];
+  while (stack.length > 0) {
+    const currentId = stack.pop()!;
+    if (subtreeIds.has(currentId)) continue;
+    subtreeIds.add(currentId);
+    const children = childrenMap.get(currentId) ?? [];
+    for (const child of children) {
+      stack.push(child.id);
+    }
+  }
+  return subtreeIds;
 }
 
 function createPageActivationPatch(
@@ -1429,6 +1451,14 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         layoutVersion: state.layoutVersion + 1,
       }));
       get()._rebuildIndexes();
+      if (areCanonicalMutationStoreActionsRegistered()) {
+        const updatedElement = updatedElements.find(
+          (el) => el.id === elementId,
+        );
+        if (updatedElement) {
+          mergeElementsCanonicalPrimary([updatedElement]);
+        }
+      }
     },
 
     // 배치 order_num 업데이트 (단일 set() + _rebuildIndexes())
@@ -1445,6 +1475,17 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         layoutVersion: state.layoutVersion + 1,
       }));
       get()._rebuildIndexes();
+      if (areCanonicalMutationStoreActionsRegistered()) {
+        const updatedElementMap = new Map(
+          updatedElements.map((updated) => [updated.id, updated]),
+        );
+        const changedElements = updates
+          .map((update) => updatedElementMap.get(update.id))
+          .filter((updated): updated is Element => Boolean(updated));
+        if (changedElements.length > 0) {
+          mergeElementsCanonicalPrimary(changedElements);
+        }
+      }
     },
 
     // cross-container 이동: parent_id 변경 + 양쪽 컨테이너 order_num 재정렬
@@ -1455,6 +1496,13 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
       const oldParentId = element.parent_id;
       if (oldParentId === newParentId) return; // same parent → batchUpdateElementOrders 사용
+      const newParent = prevState.elementsMap.get(newParentId);
+      if (!newParent) return;
+      const targetPageId = newParent.page_id ?? element.page_id ?? null;
+      const subtreeIds = collectElementSubtreeIds(
+        elementId,
+        prevState.childrenMap,
+      );
 
       // childrenMap props는 stale → elementsMap에서 최신 조회
       const oldSiblings = (prevState.childrenMap.get(oldParentId) ?? [])
@@ -1467,7 +1515,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       // 변경 맵 구성: id → { parent_id?, order_num }
       const updateMap = new Map<
         string,
-        { parent_id?: string; order_num: number }
+        { page_id?: string | null; parent_id?: string; order_num?: number }
       >();
 
       // 구 부모: 드래그 요소 제거 후 나머지 재정렬
@@ -1487,11 +1535,25 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       ];
       newOrder.forEach((c, i) => {
         if (c.id === elementId) {
-          updateMap.set(c.id, { parent_id: newParentId, order_num: i });
+          updateMap.set(c.id, {
+            page_id: targetPageId,
+            parent_id: newParentId,
+            order_num: i,
+          });
         } else {
           updateMap.set(c.id, { order_num: i });
         }
       });
+
+      for (const subtreeId of subtreeIds) {
+        if (subtreeId === elementId) continue;
+        const current = prevState.elementsMap.get(subtreeId);
+        if (!current || current.page_id === targetPageId) continue;
+        updateMap.set(subtreeId, {
+          ...(updateMap.get(subtreeId) ?? {}),
+          page_id: targetPageId,
+        });
+      }
 
       // 단일 set()으로 전체 적용 (prevState와 동일 스냅샷 사용)
       const updatedElements = prevState.elements.map((el) => {
@@ -1499,8 +1561,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         if (!upd) return el;
         return {
           ...el,
-          order_num: upd.order_num,
+          ...(upd.order_num !== undefined ? { order_num: upd.order_num } : {}),
           ...(upd.parent_id ? { parent_id: upd.parent_id } : {}),
+          ...(upd.page_id !== undefined ? { page_id: upd.page_id } : {}),
         };
       });
 
@@ -1509,6 +1572,17 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         layoutVersion: state.layoutVersion + 1,
       }));
       get()._rebuildIndexes();
+      if (areCanonicalMutationStoreActionsRegistered()) {
+        const updatedElementMap = new Map(
+          updatedElements.map((updated) => [updated.id, updated]),
+        );
+        const changedElements = Array.from(updateMap.keys())
+          .map((id) => updatedElementMap.get(id))
+          .filter((updated): updated is Element => Boolean(updated));
+        if (changedElements.length > 0) {
+          mergeElementsCanonicalPrimary(changedElements);
+        }
+      }
     },
 
     // 🚀 Phase 1: Immer → 함수형 업데이트 (High Risk)

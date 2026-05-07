@@ -61,7 +61,6 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     (state) => state.elementsMap.get(elementId) as SlotElement | undefined,
   );
   const elementsMap = useStore((state) => state.elementsMap);
-  const childrenMap = useStore((state) => state.childrenMap);
   const addElement = useStore((state) => state.addElement);
   const updateElement = useStore((state) => state.updateElement);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
@@ -152,12 +151,15 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   };
 
   const handleInsertDefault = (id: string) => {
-    if (!element) return;
+    const latestState = useStore.getState();
+    const latestElement = latestState.elementsMap.get(element.id) ?? element;
+    if (!latestElement) return;
     const candidate =
-      elementsMap.get(id) ?? resolveReference(id, elementsMap.values());
+      latestState.elementsMap.get(id) ??
+      resolveReference(id, latestState.elementsMap.values());
     if (!candidate) return;
 
-    const children = childrenMap.get(element.id) ?? [];
+    const children = latestState.childrenMap.get(latestElement.id) ?? [];
 
     void addElement(
       withFrameElementMirrorId(
@@ -166,12 +168,12 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           type: "ref",
           ref: candidate.id,
           componentName: getElementLabel(candidate),
-          parent_id: element.id,
-          page_id: element.page_id ?? null,
+          parent_id: latestElement.id,
+          page_id: latestElement.page_id ?? null,
           order_num: children.length,
           props: {},
         } as Element,
-        getFrameElementMirrorId(element),
+        getFrameElementMirrorId(latestElement),
       ),
     );
   };

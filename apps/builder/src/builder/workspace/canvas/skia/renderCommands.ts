@@ -109,6 +109,19 @@ export interface RenderCommandStream {
   boundsMap: Map<string, BoundingBox>;
 }
 
+interface DeferredDragRootVisit {
+  elementId: string;
+  parentAbsX: number;
+  parentAbsY: number;
+  parentElementId: string | null;
+}
+
+interface VisitOptions {
+  deferredDragRoot?: { current: DeferredDragRootVisit | null };
+  dragRootId?: string | null;
+  renderAsTopLayer?: boolean;
+}
+
 /** 최신 boundsMap 캐시 (씬 좌표 — TextEditOverlay 위치 계산용) */
 let _lastBoundsMap: Map<string, BoundingBox> = new Map();
 
@@ -270,6 +283,12 @@ export function buildRenderCommandStream(
 ): RenderCommandStream {
   const commands: RenderCommand[] = [];
   const boundsMap = new Map<string, BoundingBox>();
+  const dragRootId = getDragVisualOffset()?.elementId ?? null;
+  const deferredDragRoot = { current: null as DeferredDragRootVisit | null };
+  const visitOptions: VisitOptions = {
+    deferredDragRoot,
+    dragRootId,
+  };
 
   for (const bodyId of rootElementIds) {
     const pagePos = pagePositions[bodyId];
@@ -286,6 +305,25 @@ export function buildRenderCommandStream(
       layoutMap,
       offsetX,
       offsetY,
+      null,
+      visitOptions,
+    );
+  }
+
+  if (deferredDragRoot.current) {
+    const deferred = deferredDragRoot.current;
+    visitElement(
+      deferred.elementId,
+      deferred.parentAbsX,
+      deferred.parentAbsY,
+      commands,
+      boundsMap,
+      childrenMap,
+      layoutMap,
+      0,
+      0,
+      deferred.parentElementId,
+      { renderAsTopLayer: true },
     );
   }
 
@@ -348,9 +386,20 @@ function visitElement(
   cmdOffsetX: number = 0,
   cmdOffsetY: number = 0,
   parentElementId: string | null = null,
+  options: VisitOptions = {},
 ): void {
   const skiaData = getSkiaNode(elementId);
   if (!skiaData) return;
+
+  if (options.dragRootId === elementId && options.deferredDragRoot) {
+    options.deferredDragRoot.current = {
+      elementId,
+      parentAbsX,
+      parentAbsY,
+      parentElementId,
+    };
+    return;
+  }
 
   // layoutMap에서 부모 기준 상대 좌표 + 크기 조회
   const layout = layoutMap.get(elementId);
@@ -377,8 +426,10 @@ function visitElement(
 
   // position: sticky/fixed — 렌더 좌표 보정
   // layoutMap의 y/x는 정적 레이아웃 기준이므로 스크롤 후 post-layout 보정 필요
-  let renderRelX = relX + cmdOffsetX;
-  let renderRelY = relY + cmdOffsetY;
+  const topLayerOffsetX = options.renderAsTopLayer ? parentAbsX : cmdOffsetX;
+  const topLayerOffsetY = options.renderAsTopLayer ? parentAbsY : cmdOffsetY;
+  let renderRelX = relX + topLayerOffsetX;
+  let renderRelY = relY + topLayerOffsetY;
 
   // 부모 layout: sticky containerBottom/Right 계산용
   const parentLayout = parentElementId
@@ -421,7 +472,7 @@ function visitElement(
         containerTop: 0,
         containerBottom,
         elementHeight: height,
-      }) + cmdOffsetY;
+      }) + topLayerOffsetY;
     renderRelX =
       resolveStickyX({
         elementX: relX,
@@ -430,7 +481,7 @@ function visitElement(
         containerLeft: 0,
         containerRight,
         elementWidth: width,
-      }) + cmdOffsetX;
+      }) + topLayerOffsetX;
   }
 
   // ELEMENT_BEGIN
@@ -489,6 +540,7 @@ function visitElement(
     // boundsMap에 scroll offset 반영: 자식의 절대 좌표에서 부모의 스크롤량 차감
     const scrollX = skiaData.scrollOffset?.scrollLeft ?? 0;
     const scrollY = skiaData.scrollOffset?.scrollTop ?? 0;
+    const childVisitOptions = options.renderAsTopLayer ? {} : options;
 
     for (const child of sortedChildren) {
       visitElement(
@@ -502,6 +554,7 @@ function visitElement(
         0,
         0,
         elementId,
+        childVisitOptions,
       );
     }
 
@@ -711,11 +764,21 @@ export function executeRenderCommands(
           continue;
         }
 
+        // Pencil deferred-drop: 드래그 대상/형제 오프셋은 culling에도 반영한다.
+        const dragOff = getDragVisualOffset();
+        const hasDragOffset =
+          dragOff !== null && cmd.elementId === dragOff.elementId;
+        const sibOff = !hasDragOffset
+          ? getSiblingOffset(cmd.elementId)
+          : undefined;
+        const dox = hasDragOffset ? dragOff.dx : (sibOff?.dx ?? 0);
+        const doy = hasDragOffset ? dragOff.dy : (sibOff?.dy ?? 0);
+
         // AABB 컬링 (width/height=0 가상 컨테이너는 스킵)
         if (cmd.width > 0 || cmd.height > 0) {
           const parent = translateStack[stackTop];
-          const nodeLeft = parent.x + cmd.x;
-          const nodeTop = parent.y + cmd.y;
+          const nodeLeft = parent.x + cmd.x + dox;
+          const nodeTop = parent.y + cmd.y + doy;
           const nodeRight = nodeLeft + cmd.width;
           const nodeBottom = nodeTop + cmd.height;
           if (
@@ -738,16 +801,6 @@ export function executeRenderCommands(
         } else {
           elementIdStack[eidTop] = cmd.elementId || elementIdStack[eidTop - 1];
         }
-
-        // Pencil deferred-drop: 드래그 대상 요소에 시각적 오프셋 적용
-        const dragOff = getDragVisualOffset();
-        const hasDragOffset =
-          dragOff !== null && cmd.elementId === dragOff.elementId;
-        const sibOff = !hasDragOffset
-          ? getSiblingOffset(cmd.elementId)
-          : undefined;
-        const dox = hasDragOffset ? dragOff.dx : (sibOff?.dx ?? 0);
-        const doy = hasDragOffset ? dragOff.dy : (sibOff?.dy ?? 0);
 
         // translate 스택 갱신
         const parentPos = translateStack[stackTop];
