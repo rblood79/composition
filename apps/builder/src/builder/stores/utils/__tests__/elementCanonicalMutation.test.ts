@@ -562,6 +562,107 @@ describe("element mutations keep canonical document primary", () => {
     expect(mocks.db.documents.put).toHaveBeenCalledWith("project-1", doc);
   });
 
+  it("updateSelectedProperties preserves sibling order when canonical metadata order is stale", () => {
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const buttonOne = makeElement("button-one", "Button", {
+      parent_id: "body",
+      page_id: "page-1",
+      order_num: 0,
+      props: { label: "A" },
+    });
+    const buttonTwo = makeElement("button-two", "Button", {
+      parent_id: "body",
+      page_id: "page-1",
+      order_num: 1,
+      props: { label: "B" },
+    });
+    const buttonThree = makeElement("button-three", "Button", {
+      parent_id: "body",
+      page_id: "page-1",
+      order_num: 2,
+      props: { label: "C" },
+    });
+    const buttonFour = makeElement("button-four", "Button", {
+      parent_id: "body",
+      page_id: "page-1",
+      order_num: 3,
+      props: { label: "D" },
+    });
+    const state = makeState([
+      body,
+      buttonOne,
+      buttonTwo,
+      buttonThree,
+      buttonFour,
+    ]);
+    state.currentPageId = "page-1";
+    state.pages = [makePage("page-1")];
+    state.selectedElementId = "button-two";
+    state.selectedElementIds = ["button-two"];
+    state.selectedElementIdsSet = new Set(["button-two"]);
+    state.selectedElementProps = buttonTwo.props as Record<string, unknown>;
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          name: "Page 1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            slug: "/page-1",
+            order_num: 0,
+            parent_id: null,
+          },
+          children: [
+            {
+              ...makeCanonicalElementNode(body),
+              children: [
+                makeCanonicalElementNode(buttonOne),
+                makeCanonicalElementNode({ ...buttonTwo, order_num: 0 }),
+                makeCanonicalElementNode(buttonThree),
+                makeCanonicalElementNode(buttonFour),
+              ],
+            },
+          ],
+        } satisfies FrameNode,
+      ],
+    });
+
+    const inspectorActions = createInspectorActionsSlice(
+      createSetMock(state) as never,
+      () => state as never,
+      {} as never,
+    );
+
+    inspectorActions.updateSelectedProperties({ label: "B updated" });
+
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const page = doc?.children.find((node) => node.id === "page-1") as
+      | FrameNode
+      | undefined;
+    const bodyNode = page?.children?.find((node) => node.id === "body") as
+      | FrameNode
+      | undefined;
+
+    expect(bodyNode?.children?.map((node) => node.id)).toEqual([
+      "button-one",
+      "button-two",
+      "button-three",
+      "button-four",
+    ]);
+    expect(bodyNode?.children?.[1]?.props).toMatchObject({
+      label: "B updated",
+    });
+    expect(state.elementsMap.get("button-two")?.order_num).toBe(1);
+  });
+
   it("updateSelectedProperties stores canonical ref root overrides when the legacy mirror row is missing", async () => {
     const origin = makeElement("origin", "Button", {
       reusable: true,

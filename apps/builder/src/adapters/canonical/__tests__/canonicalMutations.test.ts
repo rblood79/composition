@@ -636,6 +636,86 @@ describe("canonical mutation wrappers", () => {
     ]);
   });
 
+  it("mergeElementsCanonicalPrimary preserves canonical order when props-only updates carry refreshed mirror order", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1");
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const childA = makeElement("child-a", "Button", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 0,
+      props: { label: "A" },
+    });
+    const childB = makeElement("child-b", "Button", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 1,
+      props: { label: "B" },
+    });
+    const childC = makeElement("child-c", "Button", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 2,
+      props: { label: "C" },
+    });
+    const childD = makeElement("child-d", "Button", {
+      parent_id: body.id,
+      page_id: "page-1",
+      order_num: 3,
+      props: { label: "D" },
+    });
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            makeCanonicalElementNode(body, [
+              makeCanonicalElementNode(childA),
+              makeCanonicalElementNode({ ...childB, order_num: 0 }),
+              makeCanonicalElementNode(childC),
+              makeCanonicalElementNode(childD),
+            ]),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      mergeElements: vi.fn(),
+      setElements,
+      getCurrentLegacySnapshot: () => ({
+        elements: [body, childA, childB, childC, childD],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    mergeElementsCanonicalPrimary([
+      { ...childB, props: { label: "B updated" } },
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    const bodyNode = pageNode?.children?.find((node) => node.id === body.id);
+    expect(bodyNode?.children?.map((node) => node.id)).toEqual([
+      "child-a",
+      "child-b",
+      "child-c",
+      "child-d",
+    ]);
+    expect(bodyNode?.children?.[1]?.props).toEqual({ label: "B updated" });
+  });
+
   it("mergeElementsCanonicalPrimary can nest children inside page ref descendants", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");

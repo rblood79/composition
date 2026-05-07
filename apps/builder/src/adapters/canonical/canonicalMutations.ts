@@ -1025,6 +1025,14 @@ function shouldPreserveExistingCanonicalPosition(
   previousNode: CanonicalNode,
   element: Element,
 ): boolean {
+  return legacyPositionMatches(previousNode, element, false);
+}
+
+function legacyPositionMatches(
+  previousNode: CanonicalNode,
+  element: Element,
+  compareOrderNum: boolean,
+): boolean {
   const metadata = previousNode.metadata as LegacyNodeMetadata | undefined;
   const legacy = asElementWithLegacyMirror(element);
 
@@ -1052,7 +1060,7 @@ function shouldPreserveExistingCanonicalPosition(
     sameLegacyValue(previous.role, legacy.componentRole) &&
     sameLegacyValue(previous.masterRef, legacy.masterId) &&
     sameLegacyValue(previous.elementType, element.type) &&
-    sameLegacyValue(previous.orderNum, element.order_num)
+    (!compareOrderNum || sameLegacyValue(previous.orderNum, element.order_num))
   );
 }
 
@@ -1213,7 +1221,7 @@ function hasCanonicalPositionChange(
 ): boolean {
   const previousNode = findNodeById(previousDoc.children, element.id);
   return previousNode
-    ? !shouldPreserveExistingCanonicalPosition(previousNode, element)
+    ? !legacyPositionMatches(previousNode, element, true)
     : true;
 }
 
