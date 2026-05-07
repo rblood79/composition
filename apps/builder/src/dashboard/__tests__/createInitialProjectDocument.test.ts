@@ -20,6 +20,8 @@ describe("createInitialProjectDocument", () => {
             type: "legacy-page",
             pageId: "page-home",
             slug: "/",
+            order_num: 0,
+            parent_id: null,
           },
           children: [
             {

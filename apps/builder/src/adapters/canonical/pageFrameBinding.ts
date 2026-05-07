@@ -105,6 +105,7 @@ function buildPageMetadata(
     pageId: updatedPage.id,
     slug: updatedPage.slug ?? null,
     order_num: updatedPage.order_num ?? 0,
+    parent_id: updatedPage.parent_id ?? null,
   };
 
   if (frameId) {

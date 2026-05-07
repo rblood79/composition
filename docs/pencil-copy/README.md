@@ -65,7 +65,8 @@ Beyond slots, the Pencil behavior worth matching first is:
 
 1. File format as source of truth: node tree + refs + descendants + variables.
 2. Direct canvas editing with selection handles, zoom-aware overlays, transient
-   drag updates, and deferred undo/history commit.
+   drag updates, double-click group entry, `Cmd/Ctrl + click` direct nested
+   selection, `Shift + click` multi-selection, and deferred undo/history commit.
 3. Component instance semantics: master refs, instance overrides, and guarded
    descendant editing.
 4. Dense workbench chrome: left tabs for Layers/Slides/Components/Libraries,

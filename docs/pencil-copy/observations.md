@@ -138,6 +138,19 @@ editor with:
 - Preferences for pixel grid, frame names, scroll-wheel zoom, zoom inversion,
   and sidebar behavior.
 
+## Composition Selection Parity Notes
+
+Composition now records the corresponding canvas selection behavior as:
+
+- Double-click enters a group/container context and immediately selects the hit
+  child element when one exists under the pointer.
+- `Cmd/Ctrl + click` is used for direct nested element selection through the
+  current group boundary.
+- `Shift + click` is used for add/remove multi-selection, keeping `Cmd/Ctrl`
+  available for direct nested selection.
+- Cross-page direct selection updates page, editing context, and selected
+  element in the same selection commit.
+
 ## Limitation
 
 GUI automation was not completed because the local Computer Use bridge was not

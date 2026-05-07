@@ -85,4 +85,30 @@ describe("PageTreeItemContent", () => {
 
     expect(onReselect).not.toHaveBeenCalled();
   });
+
+  it("drag slot button does not override React Aria pointer events", () => {
+    const page = makePage();
+    const node = {
+      ...makeNode(page),
+      isRoot: false,
+      isDraggable: true,
+    };
+
+    render(
+      <PageTreeItemContent
+        node={node}
+        state={{
+          isSelected: false,
+          isExpanded: false,
+          isDisabled: false,
+          isFocusVisible: false,
+        }}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Drag Home" }).style.pointerEvents,
+    ).not.toBe("auto");
+  });
 });

@@ -111,6 +111,7 @@ describe("project export canonical CompositionDocument payload", () => {
             pageId: "page-three",
             slug: "/page-3",
             order_num: 2,
+            parent_id: "page-two",
           },
           children: [],
         },
@@ -157,6 +158,11 @@ describe("project export canonical CompositionDocument payload", () => {
       "/",
       "/page-2",
       "/page-3",
+    ]);
+    expect(renderModel.pages.map((page) => page.parent_id)).toEqual([
+      null,
+      null,
+      "page-two",
     ]);
   });
 

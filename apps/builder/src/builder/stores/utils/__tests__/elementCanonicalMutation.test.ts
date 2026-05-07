@@ -19,6 +19,7 @@ import { buildLegacyElementMetadata } from "@/adapters/canonical/legacyMetadata"
 import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
 import {
+  createBatchUpdateElementsAction,
   createBatchUpdateElementPropsAction,
   createUpdateElementPropsAction,
 } from "../elementUpdate";
@@ -43,6 +44,7 @@ vi.mock("../../../../lib/db", () => ({
 vi.mock("../../history", () => ({
   historyManager: {
     addEntry: vi.fn(),
+    addBatchDiffEntry: vi.fn(),
   },
 }));
 
@@ -481,6 +483,83 @@ describe("element mutations keep canonical document primary", () => {
         }),
       );
     });
+  });
+
+  it("batchUpdateElements persists structural order changes into canonical document", async () => {
+    const body = makeElement("body", "body", {
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const buttonOne = makeElement("button-one", "Button", {
+      parent_id: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const buttonTwo = makeElement("button-two", "Button", {
+      parent_id: "body",
+      page_id: "page-1",
+      order_num: 1,
+    });
+    const state = makeState([body, buttonOne, buttonTwo]);
+    state.pages = [makePage("page-1")];
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          name: "Page 1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            slug: "/page-1",
+            order_num: 0,
+            parent_id: null,
+          },
+          children: [
+            {
+              ...makeCanonicalElementNode(body),
+              children: [
+                makeCanonicalElementNode(buttonOne),
+                makeCanonicalElementNode(buttonTwo),
+              ],
+            },
+          ],
+        } satisfies FrameNode,
+      ],
+    });
+
+    await createBatchUpdateElementsAction(
+      createSetMock(state),
+      () => state as never,
+    )([
+      { elementId: "button-two", updates: { order_num: 0 } },
+      { elementId: "button-one", updates: { order_num: 1 } },
+    ]);
+
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const page = doc?.children.find((node) => node.id === "page-1") as
+      | FrameNode
+      | undefined;
+    const bodyNode = page?.children?.find((node) => node.id === "body") as
+      | FrameNode
+      | undefined;
+
+    expect(bodyNode?.children?.map((node) => node.id)).toEqual([
+      "button-two",
+      "button-one",
+    ]);
+    expect(state.elementsMap.get("button-two")?.order_num).toBe(0);
+    expect(state.elementsMap.get("button-one")?.order_num).toBe(1);
+    expect(mocks.db.elements.update).toHaveBeenCalledWith("button-two", {
+      order_num: 0,
+    });
+    expect(mocks.db.elements.update).toHaveBeenCalledWith("button-one", {
+      order_num: 1,
+    });
+    expect(mocks.db.documents.put).toHaveBeenCalledWith("project-1", doc);
   });
 
   it("updateSelectedProperties stores canonical ref root overrides when the legacy mirror row is missing", async () => {

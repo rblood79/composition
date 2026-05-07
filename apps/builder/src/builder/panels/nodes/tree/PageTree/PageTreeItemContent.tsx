@@ -92,7 +92,6 @@ export function PageTreeItemContent({
           }`}
           aria-label={`Drag ${name}`}
           aria-hidden={isRoot}
-          style={{ pointerEvents: isRoot ? "none" : "auto" }}
           isDisabled={isRoot}
         >
           <GripVertical

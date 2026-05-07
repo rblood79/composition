@@ -186,10 +186,6 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
           }`}
           aria-label={`Drag ${name}`}
           aria-hidden={type === "body" || isSyntheticRefChild}
-          style={{
-            pointerEvents:
-              type === "body" || isSyntheticRefChild ? "none" : "auto",
-          }}
           isDisabled={type === "body" || isSyntheticRefChild}
         >
           <GripVertical

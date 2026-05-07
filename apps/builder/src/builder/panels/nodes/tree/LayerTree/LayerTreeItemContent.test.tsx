@@ -110,6 +110,21 @@ describe("LayerTreeItemContent editing semantics marker", () => {
     expect(screen.queryByLabelText("Instance")).toBeNull();
   });
 
+  it("does not override React Aria drag slot pointer events", () => {
+    render(
+      <LayerTreeItemContent
+        node={makeNode()}
+        state={makeState()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Drag Origin Button" }).style
+        .pointerEvents,
+    ).not.toBe("auto");
+  });
+
   it("legacy instance node exposes detach through row context menu", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const origin = withComponentOriginMirror({

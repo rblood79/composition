@@ -156,6 +156,33 @@ async function persistLegacyElementPropsMirrors(
   }
 }
 
+async function persistLegacyElementUpdateMirrors(
+  db: BuilderDb,
+  updates: BatchElementUpdate[],
+): Promise<void> {
+  const results = await Promise.allSettled(
+    updates.map(({ elementId, updates: elementUpdates }) =>
+      db.elements.update(elementId, elementUpdates),
+    ),
+  );
+  const failures = results
+    .filter(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    )
+    .map((result) => result.reason);
+
+  if (failures.length === 0) return;
+
+  const canonicalActive = hasActiveCanonicalProject();
+  const blockingFailures = canonicalActive
+    ? failures.filter((reason) => !isElementNotFoundError(reason))
+    : failures;
+
+  if (blockingFailures.length > 0) {
+    throw blockingFailures[0];
+  }
+}
+
 function isLayoutAffectingUpdate(
   changedStyle: Record<string, unknown>,
 ): boolean {
@@ -919,6 +946,14 @@ export const createBatchUpdateElementsAction =
       }),
     }));
 
+    const updatedElementMap = new Map(
+      updatedElements.map((element) => [element.id, element]),
+    );
+    const updatedElementsForPersistence = validUpdates
+      .map((update) => updatedElementMap.get(update.elementId))
+      .filter((element): element is Element => Boolean(element));
+    syncUpdatedElementsToCanonical(updatedElementsForPersistence);
+
     // 2. 히스토리 엔트리 추가
     const currentPageId = get().currentPageId;
     if (currentPageId && prevStates.length > 0) {
@@ -964,11 +999,8 @@ export const createBatchUpdateElementsAction =
     // 4. IndexedDB 병렬 저장
     try {
       const db = await getDB();
-      await Promise.all(
-        validUpdates.map(({ elementId, updates: elementUpdates }) =>
-          db.elements.update(elementId, elementUpdates),
-        ),
-      );
+      await persistLegacyElementUpdateMirrors(db, validUpdates);
+      await persistActiveCanonicalDocument(db);
     } catch (error) {
       console.warn("⚠️ [IndexedDB] 배치 저장 중 오류 (메모리는 정상):", error);
       // 🚀 Phase 7: Toast + Undo 버튼

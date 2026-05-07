@@ -40,6 +40,21 @@ Observed editor labels and behavior signatures show these major tabs:
 | Rename        | Layer tree rename is inline.                                                                                                     | Preserve keyboard flow for rename/commit/abort.                                                                                             |
 | Visibility    | Layer rows expose enabled/visibility toggles.                                                                                    | Use lightweight row actions that do not resize the layer row.                                                                               |
 
+### Composition Canvas Selection Alignment
+
+The current Composition canvas follows these Pencil-style selection contracts:
+
+- Double-click on a group/container enters that editing context. If the pointer
+  is over a concrete child element, the child is selected immediately in the new
+  context.
+- `Cmd/Ctrl + click` bypasses the current group boundary and selects the
+  concrete nested element under the pointer.
+- `Shift + click` is reserved for add/remove multi-selection so that `Cmd/Ctrl`
+  remains available for direct nested selection.
+- Page transition, editing context, and selected element are committed together
+  for cross-page direct selection, keeping canvas, layer tree, and inspector
+  state aligned.
+
 ## Component UX Patterns
 
 Pencil treats components as reusable scenegraph nodes.

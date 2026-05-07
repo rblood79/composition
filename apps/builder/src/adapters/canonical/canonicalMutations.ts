@@ -742,6 +742,7 @@ function ensurePageNode(
       pageId,
       slug: page?.slug ?? null,
       order_num: page?.order_num ?? 0,
+      parent_id: page?.parent_id ?? null,
     },
     children: [],
   };
@@ -787,6 +788,7 @@ function buildPageShell(
     pageId: page.id,
     slug: page.slug ?? null,
     order_num: page.order_num ?? 0,
+    parent_id: page.parent_id ?? null,
   };
 
   if (frameId) {

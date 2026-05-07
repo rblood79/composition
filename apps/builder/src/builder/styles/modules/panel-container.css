@@ -14,7 +14,8 @@
     /* - React remount 비용 제거 */
     /* - 상태 보존 (스크롤, 입력값) */
     /* - 부드러운 애니메이션 */
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -109,7 +110,8 @@
 
     /* ✅ 성능 최적화: transform으로 위치 이동 (GPU 가속) */
     /* 사라질 때도 애니메이션이 보이도록 transition 설정 */
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);

@@ -5,6 +5,48 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Canvas selection parity — Pencil-style group entry/direct select] - 2026-05-07
+
+### Fixed
+
+- Canvas hierarchical selection 이 Pencil-style group entry 동작과 어긋나던 회귀를 수정했다.
+  - 그룹/컨테이너 위에서 더블클릭할 때 `editingContextId` 만 진입하고 선택이 비워지던 동작을 고쳐, 마우스 아래 실제 child element 가 있으면 context 진입과 동시에 해당 child 를 선택한다.
+  - selection bounds 내부에서 두 번째 클릭을 처리할 때 selected group id 가 아니라 실제 hit element id 를 double-click target 으로 유지해, 내부 element 를 더블클릭해도 parent group 으로 다시 승격되지 않도록 했다.
+  - `Cmd/Ctrl + click` 이 multi-select 로 소모되어 group 내부 element 를 직접 선택하지 못하던 동작을 수정했다. 현재 click 이 hierarchical boundary 에 의해 parent 로 승격될 경우에만 concrete hit element 를 direct selection target 으로 사용한다.
+  - 다른 page 에 있는 group 내부 element 를 direct select 할 때도 page transition, `editingContextId`, selection 을 같은 commit 에 반영하도록 `selectElementWithPageTransition` 옵션을 확장했다.
+  - Why: Pencil-style canvas editing 에서는 group 내부로 들어가는 double-click 과 modifier direct-select 가 Layers/Inspector selection 을 즉시 동기화해야 한다.
+- Nodes 패널 tree 의 drag handle 이 React Aria `slot="drag"` 포인터 계약을 덮어써 Layers/Pages drag-drop 이동이 시작되지 않던 회귀를 수정했다.
+  - Layer tree 와 Page tree drag slot button 의 inline `pointerEvents: auto` override 를 제거해, React Aria TreeItem row 에 연결된 DnD handler 가 정상적으로 pointer event 를 받도록 했다.
+- Pages tree drag-drop 이 Skia/store 에만 임시 반영되고 tree/source persistence 에 저장되지 않아 새로고침 후 원래 위치로 회귀하던 문제를 수정했다.
+  - PageTree DnD 업데이트를 `setPages()` 에서 끝내지 않고 active canonical document metadata 와 IndexedDB `pages`/`documents` store 에 함께 저장한다.
+  - canonical page metadata 생성/갱신 경계가 `order_num` 과 `parent_id` 를 함께 보존하고, refresh hydration 의 render model 파생 경로가 `parent_id` 를 복원한다.
+- Layer tree drag-drop 이 legacy store 에만 반영되고 canonical-derived LayerTree source 에 반영되지 않아 tree 위치가 그대로 보이고 새로고침 후 회귀하던 문제를 수정했다.
+  - `batchUpdateElements()` 구조 변경 경로가 active canonical document 에 변경 element 를 merge 하고, IndexedDB `documents` store 에도 canonical snapshot 을 저장한다.
+  - canonical active 상태에서 legacy mirror row 가 없는 element 업데이트 실패가 canonical document persistence 를 막지 않도록 legacy mirror 저장 실패 처리를 분리했다.
+- Layer tree virtualization 전환 기준을 12개에서 300개로 높여 일반 문서에서는 React Aria `TreeBase` 경로를 유지하고, 대형 문서에서만 `VirtualizedTree` 최적화를 사용하도록 조정했다.
+
+### Changed
+
+- Canvas multi-select modifier 를 `Cmd/Ctrl + click` 에서 `Shift + click` 으로 변경했다.
+  - `Cmd/Ctrl + click` 은 group 내부 실제 element direct-select 에 사용한다.
+  - `Shift + click` 은 기존 add/remove multi-selection 토글 역할을 담당한다.
+  - 직접 boundary target 을 `Shift + click` 하는 top-level multi-select 동작은 유지하고, group boundary 를 우회해야 하는 direct-select 경로와 충돌하지 않게 분리했다.
+
+### Documentation
+
+- `docs/pencil-copy` 의 UI/UX 및 Composition mapping 문서에 double-click group entry, `Cmd/Ctrl + click` direct child selection, `Shift + click` multi-select 계약을 추가했다.
+
+### Verification
+
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useCanvasElementSelectionHandlers.static.test.ts src/builder/utils/hierarchicalSelection.test.ts src/builder/stores/__tests__/pageActivation.test.ts` — canvas selection modifier/context contract PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/LayerTree/LayerTreeItemContent.test.tsx src/builder/panels/nodes/tree/PageTree/PageTreeItemContent.test.tsx` — Nodes tree drag slot pointer contract PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts src/builder/panels/nodes/tree/PageTree/usePageTreeDnd.test.ts src/dashboard/__tests__/createInitialProjectDocument.test.ts` — Pages tree DnD canonical persistence metadata PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx` — Layer tree DnD structural canonical persistence PASS
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/LayerTree/LayerTreeItemContent.test.tsx` — Layer tree row/drag slot contract PASS
+- `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts` — canonical page `parent_id` hydrate PASS
+- `pnpm run codex:typecheck` — PASS
+- `pnpm run codex:preflight` — PASS
+
 ## [Rollback follow-up canonical projection fixes] - 2026-05-06
 
 ### Fixed

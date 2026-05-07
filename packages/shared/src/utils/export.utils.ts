@@ -53,6 +53,7 @@ export function toPageFrameElementId(
 type CanonicalMetadata = {
   type: string;
   customId?: unknown;
+  parent_id?: unknown;
   [LEGACY_PROPS_METADATA_FIELD]?: unknown;
   [key: string]: unknown;
 };
@@ -236,6 +237,14 @@ function readPageOrder(node: CanonicalNode, fallback: number): number {
   return typeof metadata?.order_num === "number"
     ? metadata.order_num
     : fallback;
+}
+
+function readPageParentId(node: CanonicalNode): string | null {
+  const metadata = node.metadata as CanonicalMetadata | undefined;
+  return typeof metadata?.parent_id === "string" &&
+    metadata.parent_id.length > 0
+    ? metadata.parent_id
+    : null;
 }
 
 function readPageSlug(node: CanonicalNode, fallbackIndex: number): string {
@@ -699,7 +708,7 @@ export function deriveProjectRenderModelFromDocument(
       title: node.name ?? (index === 0 ? "Home" : `Page ${index + 1}`),
       slug: readPageSlug(node, index),
       project_id: projectId,
-      parent_id: null,
+      parent_id: readPageParentId(node),
       order_num: orderNum,
     } as Page;
     if (layoutBinding !== null) {

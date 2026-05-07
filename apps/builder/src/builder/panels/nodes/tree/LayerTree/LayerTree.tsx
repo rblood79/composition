@@ -165,7 +165,7 @@ export function LayerTree({
     },
   };
 
-  if (treeNodes.length >= 12) {
+  if (treeNodes.length >= 300) {
     return (
       <VirtualizedTree<LayerTreeNode>
         {...sharedTreeProps}
