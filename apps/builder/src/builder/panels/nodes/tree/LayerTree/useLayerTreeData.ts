@@ -149,31 +149,28 @@ export function useLayerTreeData(elements: Element[]) {
     [nodeMap],
   );
 
-  const batchUpdateElements = useStore((state) => state.batchUpdateElements);
+  const moveElementToContainer = useStore(
+    (state) => state.moveElementToContainer,
+  );
   const syncToStore = useCallback(
     (
       updates: Array<{
         id: string;
-        parentId?: string | null;
-        orderNum?: number;
+        parentId: string | null;
+        insertionIndex: number;
       }>,
     ) => {
       if (updates.length === 0) return;
-      batchUpdateElements(
-        updates.map((update) => ({
-          elementId: update.id,
-          updates: {
-            ...(update.parentId !== undefined && {
-              parent_id: update.parentId,
-            }),
-            ...(update.orderNum !== undefined && {
-              order_num: update.orderNum,
-            }),
-          },
-        })),
-      );
+      for (const update of updates) {
+        if (update.parentId === null) continue;
+        moveElementToContainer(
+          update.id,
+          update.parentId,
+          update.insertionIndex,
+        );
+      }
     },
-    [batchUpdateElements],
+    [moveElementToContainer],
   );
 
   return { tree, treeNodes, nodeMap, focusNodeMap, disabledKeys, syncToStore };
@@ -240,7 +237,6 @@ function convertToLayerTreeNodes(
       name: getDisplayName(item),
       type: item.type,
       parentId: item.parent_id ?? null,
-      orderNum: item.order_num ?? 0,
       depth,
       hasChildren: children.length > 0,
       isLeaf: children.length === 0,
@@ -290,7 +286,6 @@ function getVirtualChildren(
     name: label,
     type: item.type,
     parentId: item.id,
-    orderNum: index,
     depth,
     hasChildren: false,
     isLeaf: true,

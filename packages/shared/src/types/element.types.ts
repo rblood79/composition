@@ -99,7 +99,6 @@ export interface Element {
   props: Record<string, unknown>;
   fills?: unknown[];
   parent_id?: string | null;
-  order_num?: number;
   page_id?: string | null;
   created_at?: string;
   updated_at?: string;

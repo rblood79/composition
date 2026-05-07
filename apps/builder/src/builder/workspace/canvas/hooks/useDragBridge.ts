@@ -6,7 +6,7 @@
  *
  * ADR-049 Deferred Commit 아키텍처를 그대로 유지:
  * - 드래그 중: setDragVisualOffset + resolveDropTarget + computeSiblingOffsets
- * - 드롭 시: canonical children[] move + legacy mirror commit
+ * - 드롭 시: canonical children[] move
  *
  * PixiJS 의존 부분 (SelectionBox setVisible/resetPosition)은 제거.
  * Skia 렌더링이 selection box를 이미 처리하므로 시각적 영향 없음.
@@ -43,7 +43,6 @@ import { moveElementCanonicalPrimary } from "../../../../adapters/canonical/cano
 
 type DragSnapshotEntry = {
   id: string;
-  order_num: number;
   page_id?: string | null;
   parent_id?: string | null;
 };
@@ -103,7 +102,6 @@ function formatPx(value: number): string {
 function toDragSnapshotEntry(element: Element): DragSnapshotEntry {
   return {
     id: element.id,
-    order_num: element.order_num ?? 0,
     page_id: element.page_id,
     parent_id: element.parent_id,
   };
@@ -236,7 +234,7 @@ export function useDragBridge({
         return;
       }
 
-      // 드래그 시작 시 원래 order_num 스냅샷 캡처
+      // 드래그 시작 시 원래 parent/page 스냅샷 캡처
       if (!dragStartSnapshotRef.current) {
         dragStartSnapshotRef.current = collectDragSnapshotEntries(
           dragState.elementsMap,
@@ -420,7 +418,6 @@ export function useDragBridge({
             if (!snapshot || !el) return undefined;
             return {
               ...el,
-              order_num: snapshot.order_num,
               page_id:
                 snapshot.page_id === undefined ? el.page_id : snapshot.page_id,
               parent_id:
@@ -436,18 +433,24 @@ export function useDragBridge({
 
         if (prevElements.length > 0 && nextElements.length > 0) {
           const hasChange =
-            finalTarget?.isReparent ||
+            Boolean(finalTarget && !finalTarget.isAdjacentInsertion) ||
             prevElements.some((p) => {
               const next = state.elementsMap.get(p.id);
               return (
                 next &&
-                (next.order_num !== p.order_num ||
-                  next.parent_id !== p.parent_id ||
-                  next.page_id !== p.page_id)
+                (next.parent_id !== p.parent_id || next.page_id !== p.page_id)
               );
             });
           if (hasChange) {
-            historyManager.addBatchDiffEntry(prevElements, nextElements);
+            historyManager.addEntry({
+              type: "batch",
+              elementId: "drag-reorder",
+              elementIds: affectedIdList,
+              data: {
+                prevElements,
+                elements: nextElements,
+              },
+            });
           }
         }
 
@@ -462,17 +465,15 @@ export function useDragBridge({
                 const el = currentState.elementsMap.get(id);
                 const snap = prevSnapshotMap.get(id);
                 if (!el) return [];
-                const orderChanged = !snap || el.order_num !== snap.order_num;
                 const parentChanged =
                   finalTarget?.isReparent && el.parent_id !== snap?.parent_id;
                 const pageChanged =
                   finalTarget?.isReparent && el.page_id !== snap?.page_id;
-                if (orderChanged || parentChanged || pageChanged) {
+                if (parentChanged || pageChanged) {
                   return [
                     {
                       id,
                       data: {
-                        order_num: el.order_num ?? 0,
                         ...(parentChanged
                           ? { parent_id: el.parent_id ?? null }
                           : {}),

@@ -8,7 +8,7 @@ import type { Element } from "../../types/core/store.types";
 import type { ElementTreeItem } from "../../types/builder/stately.types";
 import type { ElementProps } from "../../types/integrations/supabase.types";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
-import { sortElementsByOrderThenSource } from "./elementOrdering";
+import { sortElementsBySource } from "./elementOrdering";
 
 /**
  * flat Element 배열을 hierarchical ElementTreeItem 구조로 변환
@@ -20,9 +20,9 @@ import { sortElementsByOrderThenSource } from "./elementOrdering";
  * @example
  * ```tsx
  * const elements = [
- *   { id: '1', type: 'body', parent_id: null, order_num: 0 },
- *   { id: '2', type: 'div', parent_id: '1', order_num: 1 },
- *   { id: '3', type: 'span', parent_id: '2', order_num: 2 },
+ *   { id: '1', type: 'body', parent_id: null },
+ *   { id: '2', type: 'div', parent_id: '1' },
+ *   { id: '3', type: 'span', parent_id: '2' },
  * ];
  *
  * const tree = buildTreeFromElements(elements);
@@ -82,7 +82,7 @@ export function buildTreeFromElements(
         }
         // Table structural buckets are a component-specific DOM/data contract.
         else if (parentElement && parentElement.type === "Table") {
-          children = sortElementsByOrderThenSource(children);
+          children = sortElementsBySource(children);
         }
       }
 
@@ -92,7 +92,6 @@ export function buildTreeFromElements(
           id: el.id,
           type: el.type,
           parent_id: el.parent_id,
-          order_num: el.order_num,
           props: el.props as Record<string, unknown>,
           deleted: el.deleted,
           dataBinding: getElementDataBinding(el, "legacy-only") as
@@ -138,7 +137,6 @@ export function flattenTreeToElements(tree: ElementTreeItem[]): Element[] {
         id: item.id,
         type: item.type,
         parent_id: item.parent_id || null,
-        order_num: item.order_num,
         props: item.props as ElementProps,
         deleted: item.deleted,
         dataBinding: getElementDataBinding(item, "legacy-only"),
@@ -254,21 +252,21 @@ export function sortTableChildren<T extends Element>(items: T[]): T[] {
   const cells = items.filter((item) => item.type === "Cell");
 
   return [
-    ...sortElementsByOrderThenSource(tableHeaders, items),
-    ...sortElementsByOrderThenSource(tableBodies, items),
-    ...sortElementsByOrderThenSource(columnGroups, items),
-    ...sortElementsByOrderThenSource(columns, items),
-    ...sortElementsByOrderThenSource(rows, items),
-    ...sortElementsByOrderThenSource(cells, items),
+    ...sortElementsBySource(tableHeaders, items),
+    ...sortElementsBySource(tableBodies, items),
+    ...sortElementsBySource(columnGroups, items),
+    ...sortElementsBySource(columns, items),
+    ...sortElementsBySource(rows, items),
+    ...sortElementsBySource(cells, items),
   ];
 }
 
 /**
- * Legacy compatibility helper. Structural runtime read path는 canonical source
- * order를 보존해야 하므로 새 caller에서 사용하지 않는다.
+ * Source-order helper. Structural runtime read path는 canonical source order를
+ * 보존해야 한다.
  */
-export function sortByOrderNum<T extends Element>(items: T[]): T[] {
-  return sortElementsByOrderThenSource(items);
+export function sortBySourceOrder<T extends Element>(items: T[]): T[] {
+  return sortElementsBySource(items);
 }
 
 /**

@@ -579,7 +579,7 @@ describe("canonicalDocumentStore — ADR-118 children[] order helpers", () => {
     store.setCurrentProject("p");
   }
 
-  it("reads children and derives legacy order mirror from children[] index", () => {
+  it("reads children from canonical children[] order", () => {
     setupOrderDoc();
     const store = useCanonicalDocumentStore.getState();
 
@@ -588,7 +588,6 @@ describe("canonicalDocumentStore — ADR-118 children[] order helpers", () => {
       "b",
       "c",
     ]);
-    expect(store.getDerivedOrderNum("parent-a", "c")).toBe(2);
   });
 
   it("moves a node across parents with canonical children[] splice", () => {

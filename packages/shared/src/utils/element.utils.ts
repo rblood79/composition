@@ -89,8 +89,8 @@ export function findAncestors(
 /**
  * 요소 트리 구축.
  *
- * ADR-118: caller 가 넘긴 elements source order 를 보존한다. legacy
- * `order_num` 은 export/import boundary mirror 로만 사용한다.
+ * ADR-118: caller 가 넘긴 elements source order 를 보존한다. Element sibling
+ * order 의 SSOT 는 canonical parent `children[]` 배열 index 다.
  */
 export function buildElementTree(
   elements: Element[],

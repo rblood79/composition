@@ -118,9 +118,7 @@ function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {
   const keys = Object.keys(updates);
   return (
     keys.length > 0 &&
-    keys.every(
-      (key) => key === "parent_id" || key === "order_num" || key === "page_id",
-    )
+    keys.every((key) => key === "parent_id" || key === "page_id")
   );
 }
 
@@ -930,12 +928,9 @@ export const createBatchUpdateElementsAction =
     const dirtyIds = new Set(state.dirtyElementIds);
     let hasAnyLayoutChange = false;
 
-    // 구조 변경(parent_id/order_num) 시 layoutVersion 증가 필수
+    // 구조 변경(parent_id) 시 layoutVersion 증가 필수
     for (const { updates: elementUpdates } of validUpdates) {
-      if (
-        elementUpdates.parent_id !== undefined ||
-        elementUpdates.order_num !== undefined
-      ) {
+      if (elementUpdates.parent_id !== undefined) {
         hasAnyLayoutChange = true;
         break;
       }
@@ -1003,11 +998,9 @@ export const createBatchUpdateElementsAction =
         },
       });
     } else if (currentPageId && prevStates.length === 0) {
-      // 구조 변경만 있는 경우 (parent_id/order_num): diff 기반 히스토리
+      // 구조 변경만 있는 경우 (parent_id): diff 기반 히스토리
       const hasStructuralChange = validUpdates.some(
-        (u) =>
-          u.updates.parent_id !== undefined ||
-          u.updates.order_num !== undefined,
+        (u) => u.updates.parent_id !== undefined,
       );
       if (hasStructuralChange) {
         const affectedIds = validUpdates.map((u) => u.elementId);

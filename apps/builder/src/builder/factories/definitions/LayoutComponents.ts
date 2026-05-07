@@ -1,6 +1,5 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
 import { ElementUtils } from "../../../utils/element/elementUtils";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 
 /**
@@ -11,7 +10,6 @@ export function createTabsDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ADR-066: items SSOT — Tab element 소멸, TabPanel만 유지 (itemId 페어링)
   const item1Id = ElementUtils.generateId();
@@ -37,32 +35,27 @@ export function createTabsDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
         type: "TabList",
         props: {} as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "TabPanels",
         props: {} as ComponentElementProps,
-        order_num: 2,
         children: [
           {
             type: "TabPanel",
             props: {
               itemId: item1Id,
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "TabPanel",
             props: {
               itemId: item2Id,
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },
@@ -82,7 +75,6 @@ export function createCardDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -106,7 +98,6 @@ export function createCardDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -120,7 +111,6 @@ export function createCardDefinition(
             borderRadius: "8px 8px 0 0",
           },
         } as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "Image",
@@ -133,7 +123,6 @@ export function createCardDefinition(
                 objectFit: "cover",
               },
             } as ComponentElementProps,
-            order_num: 1,
           },
         ],
       },
@@ -143,7 +132,6 @@ export function createCardDefinition(
         //   기존 저장 프로젝트에 inline style 이 있는 경우 그대로 유지 (사용자 편집 간주).
         type: "CardHeader",
         props: {} as ComponentElementProps,
-        order_num: 2,
         children: [
           {
             type: "Heading",
@@ -160,7 +148,6 @@ export function createCardDefinition(
                 flex: 1,
               },
             } as ComponentElementProps,
-            order_num: 1,
           },
         ],
       },
@@ -169,7 +156,6 @@ export function createCardDefinition(
         //   → CardContentSpec.containerStyles + sizes.md.gap 으로 이관. factory inline 제거.
         type: "CardContent",
         props: {} as ComponentElementProps,
-        order_num: 3,
         children: [
           {
             type: "Description",
@@ -184,7 +170,6 @@ export function createCardDefinition(
                 color: "#49454f",
               },
             } as ComponentElementProps,
-            order_num: 1,
           },
         ],
       },
@@ -199,7 +184,6 @@ export function createCardDefinition(
             borderTopWidth: "1px",
           },
         } as ComponentElementProps,
-        order_num: 4,
       },
     ],
   };
@@ -213,7 +197,6 @@ export function createTreeDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -227,7 +210,6 @@ export function createTreeDefinition(
         selectionBehavior: "replace",
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -236,7 +218,6 @@ export function createTreeDefinition(
           title: "Node 1",
           hasChildren: true,
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "TreeItem",
@@ -244,7 +225,6 @@ export function createTreeDefinition(
           title: "Node 2",
           hasChildren: false,
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };

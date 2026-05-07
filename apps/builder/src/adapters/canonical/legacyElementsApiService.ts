@@ -13,8 +13,7 @@ export class ElementsApiService extends BaseApiService {
       return await this.supabase
         .from("elements")
         .select("*")
-        .eq("page_id", pageId)
-        .order("order_num", { ascending: true });
+        .eq("page_id", pageId);
     });
 
     // Supabase snake_case를 camelCase로 변환

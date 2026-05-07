@@ -20,8 +20,7 @@ Tab title을 Property Editor에서 변경하면 Preview에는 반영되나 WebGL
 | `createUpdateElementAction` (구조 변경)                   |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
 | `createBatchUpdateElementPropsAction`                     |    ✅ 갱신    |      ❌ 기존 유지      |
 | `createBatchUpdateElementsAction`                         |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
-| `updateElementOrder` (legacy order_num mirror 변경)       |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
-| `batchUpdateElementOrders` (legacy order_num mirror 배치) |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
+| `moveElementCanonicalPrimary` (canonical children[] 이동) |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
 
 **`childrenMap`은 parent-child 구조가 변할 때만 갱신됩니다.** props만 변경하면 `childrenMap` 내부의 Element 객체는 **이전 props를 가진 stale 참조**입니다.
 

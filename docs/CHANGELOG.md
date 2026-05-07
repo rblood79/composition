@@ -5,6 +5,26 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Element order_num removal cleanup] - 2026-05-08
+
+### Changed
+
+- Element sibling order에서 legacy `order_num` mirror를 제거하고 canonical
+  `CompositionDocument.children[]` index를 유일한 order SSOT로 정리했다.
+- `elements` IndexedDB store의 `order_num` index를 제거하는 DB v11 upgrade path를 추가했다.
+- Element/Preview/Runtime 타입, canonical export/projection, history, drag/drop, layer tree,
+  factory/editor child 생성 경로에서 Element `order_num` payload를 제거했다.
+- `.agents` composition rules를 업데이트해 `reorderElements`, `batchUpdateElementOrders`,
+  `updateElementOrder`, `getDerivedOrderNum` 재도입을 금지하고 page/layout `order_num`만
+  예외로 명시했다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/utils/__tests__/compositionDocumentOrder.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/lib/db/__tests__/metaStore.test.ts src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts src/builder/stores/__tests__/pageRemovalSemantics.test.ts src/builder/panels/properties/ComponentSemanticsSection.test.tsx src/builder/utils/treeUtils.test.ts src/builder/workspace/canvas/selection/selectionHitTest.test.ts src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts src/builder/workspace/canvas/hooks/useDragBridge.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/builder/panels/nodes/tree/LayerTree/validation.test.ts src/builder/panels/nodes/tree/LayerTree/LayerTreeItemContent.test.tsx`
+- `pnpm run codex:typecheck`
+
 ## [ADR-118 structural order cutover] - 2026-05-07
 
 ### Fixed

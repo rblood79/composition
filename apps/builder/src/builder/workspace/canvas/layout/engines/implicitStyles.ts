@@ -968,7 +968,6 @@ export function applyImplicitStyles(
         },
       },
       parent_id: containerEl.id,
-      order_num: i + 1,
       page_id: containerEl.page_id,
     })) as Element[];
 
@@ -1880,7 +1879,6 @@ export function applyImplicitStyles(
           },
           parent_id: containerEl.id,
           page_id: containerEl.page_id,
-          order_num: 1,
         } as Element;
         filteredChildren = [syntheticLabel];
       }

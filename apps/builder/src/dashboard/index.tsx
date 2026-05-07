@@ -295,7 +295,6 @@ function Dashboard() {
         props: getDefaultProps("body") as ElementProps,
         parent_id: null,
         page_id: homePageId,
-        order_num: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

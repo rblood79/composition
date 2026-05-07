@@ -39,7 +39,7 @@ function isContentsElement(element: Element | undefined): boolean {
 export function createPageElementsSignature(elements: Element[]): string {
   return elements
     .map((element) => {
-      return `${element.id}:${element.parent_id ?? "root"}:${element.order_num ?? 0}`;
+      return `${element.id}:${element.parent_id ?? "root"}`;
     })
     .join("|");
 }
@@ -177,7 +177,6 @@ function createElementLayoutSignature(element: Element): string {
     element.id,
     element.type,
     element.parent_id ?? "root",
-    element.order_num ?? 0,
     styleSignature,
     propSignature,
   ].join("|");

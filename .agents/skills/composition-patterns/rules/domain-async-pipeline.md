@@ -125,27 +125,28 @@ for (const id of ids) {
 }
 ```
 
-## Order / legacy mirror 정규화 파이프라인
+## Order / canonical move 파이프라인
 
 canonical cutover 이후 runtime order는 parent `children[]` index가 SSOT입니다.
-`reorderElements()`는 legacy `order_num` mirror 정규화가 필요할 때만
-`computeReorderUpdates()` 순수 함수 + `batchUpdateElementOrders()` 단일 set()
-패턴으로 사용합니다.
+`Element.order_num`과 legacy reorder APIs는 제거됐습니다. 비동기 콜백에서는
+최신 state를 읽어 canonical move intent만 적용합니다.
 
 ```typescript
-// ✅ legacy mirror 정규화가 필요하면 비동기 콜백에서 항상 get()으로 최신 상태 참조
+// ✅ 비동기 콜백에서 항상 get()으로 최신 state 참조
 queueMicrotask(() => {
-  const { elements, batchUpdateElementOrders } = get();
-  reorderElements(elements, pageId, batchUpdateElementOrders);
+  const { currentPageId } = get();
+  if (currentPageId) {
+    moveElementCanonicalPrimary(elementId, parentId, insertionIndex);
+  }
 });
 
 // ❌ 외부에서 캡처한 stale 상태 사용 — 비동기 실행 시 이미 변경됨
 const { elements } = get();
 setTimeout(() => {
-  reorderElements(elements, pageId, ...); // stale!
+  // captured elements로 canonical order를 재계산하지 않는다
 }, 100);
 
-// ❌ props update에서 stale order_num을 canonical children[] reorder intent로 해석
+// ❌ props update에서 stale Element source order를 canonical children[] reorder intent로 해석
 ```
 
 ## layoutVersion 계약 (ADR-012 P4)
@@ -189,6 +190,5 @@ set({ elements: newElements }); // layoutVersion 변경 없음!
 - `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 업데이트 파이프라인
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 파이프라인 (단일/배치)
 - `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical `children[]` move/reorder
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - legacy order_num mirror 정규화 (순수 함수 + batch)
 - `apps/builder/src/builder/stores/inspectorActions.ts` - 프로퍼티 업데이트 + layoutVersion 증가
 - `apps/builder/src/builder/utils/canvasDeltaMessenger.ts` - Delta 동기화

@@ -1,5 +1,4 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 import type { StoredTagItem } from "@composition/specs";
 
@@ -12,7 +11,6 @@ export function createGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   return {
     type: "Group",
@@ -26,7 +24,6 @@ export function createGroupDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -40,7 +37,6 @@ export function createToggleButtonGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -56,7 +52,6 @@ export function createToggleButtonGroupDefinition(
         value: [],
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -66,7 +61,6 @@ export function createToggleButtonGroupDefinition(
           isSelected: false,
           isDisabled: false,
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "ToggleButton",
@@ -75,7 +69,6 @@ export function createToggleButtonGroupDefinition(
           isSelected: false,
           isDisabled: false,
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -94,7 +87,6 @@ export function createSwitcherDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -115,7 +107,6 @@ export function createSwitcherDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -130,7 +121,6 @@ export function createSwitcherDefinition(
             textAlign: "center",
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "ToggleButton",
@@ -144,7 +134,6 @@ export function createSwitcherDefinition(
             textAlign: "center",
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -158,7 +147,6 @@ export function createCheckboxGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -179,7 +167,6 @@ export function createCheckboxGroupDefinition(
         isRequired: false,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -192,12 +179,10 @@ export function createCheckboxGroupDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 0,
       },
       {
         type: "CheckboxItems",
         props: {} as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "Checkbox",
@@ -206,7 +191,6 @@ export function createCheckboxGroupDefinition(
               isSelected: false,
               isDisabled: false,
             } as ComponentElementProps,
-            order_num: 1,
             children: [
               {
                 type: "Label",
@@ -218,7 +202,6 @@ export function createCheckboxGroupDefinition(
                     fontWeight: 600,
                   },
                 } as ComponentElementProps,
-                order_num: 1,
               },
             ],
           },
@@ -229,7 +212,6 @@ export function createCheckboxGroupDefinition(
               isSelected: false,
               isDisabled: false,
             } as ComponentElementProps,
-            order_num: 2,
             children: [
               {
                 type: "Label",
@@ -241,7 +223,6 @@ export function createCheckboxGroupDefinition(
                     fontWeight: 600,
                   },
                 } as ComponentElementProps,
-                order_num: 1,
               },
             ],
           },
@@ -259,7 +240,6 @@ export function createRadioGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -278,7 +258,6 @@ export function createRadioGroupDefinition(
         isRequired: false,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -291,12 +270,10 @@ export function createRadioGroupDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 0,
       },
       {
         type: "RadioItems",
         props: {} as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "Radio",
@@ -305,7 +282,6 @@ export function createRadioGroupDefinition(
               value: "option1",
               isDisabled: false,
             } as ComponentElementProps,
-            order_num: 1,
             children: [
               {
                 type: "Label",
@@ -316,7 +292,6 @@ export function createRadioGroupDefinition(
                     height: "fit-content",
                   },
                 } as ComponentElementProps,
-                order_num: 1,
               },
             ],
           },
@@ -327,7 +302,6 @@ export function createRadioGroupDefinition(
               value: "option2",
               isDisabled: false,
             } as ComponentElementProps,
-            order_num: 2,
             children: [
               {
                 type: "Label",
@@ -338,7 +312,6 @@ export function createRadioGroupDefinition(
                     height: "fit-content",
                   },
                 } as ComponentElementProps,
-                order_num: 1,
               },
             ],
           },
@@ -365,7 +338,6 @@ export function createTagGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -394,7 +366,6 @@ export function createTagGroupDefinition(
         items,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -405,12 +376,10 @@ export function createTagGroupDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "TagList",
         props: {} as ComponentElementProps,
-        order_num: 2,
         // ADR-097 Addendum 1: Tag element 자식 생성 중단.
         //   TagList 는 중간 컨테이너로 유지되지만 Tag 시각은 TagListSpec shapes 가
         //   부모 TagGroup.items propagation 경유 chip self-render.
@@ -428,7 +397,6 @@ export function createBreadcrumbsDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -442,7 +410,6 @@ export function createBreadcrumbsDefinition(
         isDisabled: false,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -451,7 +418,6 @@ export function createBreadcrumbsDefinition(
           children: "Home",
           href: "/",
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Breadcrumb",
@@ -459,7 +425,6 @@ export function createBreadcrumbsDefinition(
           children: "Category",
           href: "/category",
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "Breadcrumb",
@@ -467,7 +432,6 @@ export function createBreadcrumbsDefinition(
           children: "Page",
           href: "/category/page",
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -485,7 +449,6 @@ export function createCheckboxDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   return {
     type: "Checkbox",
@@ -504,7 +467,6 @@ export function createCheckboxDefinition(
         style: {},
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -512,7 +474,6 @@ export function createCheckboxDefinition(
         props: {
           children: "Checkbox",
         } as ComponentElementProps,
-        order_num: 1,
       },
     ],
   };
@@ -530,7 +491,6 @@ export function createRadioDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   return {
     type: "Radio",
@@ -544,7 +504,6 @@ export function createRadioDefinition(
         style: {},
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -552,7 +511,6 @@ export function createRadioDefinition(
         props: {
           children: "Radio",
         } as ComponentElementProps,
-        order_num: 1,
       },
     ],
   };
@@ -570,7 +528,6 @@ export function createSwitchDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   return {
     type: "Switch",
@@ -585,7 +542,6 @@ export function createSwitchDefinition(
         style: {},
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -593,7 +549,6 @@ export function createSwitchDefinition(
         props: {
           children: "Switch",
         } as ComponentElementProps,
-        order_num: 1,
       },
     ],
   };

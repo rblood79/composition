@@ -40,7 +40,6 @@ export interface DeltaElementUpdatedMessage {
   propsChanges: Record<string, unknown>;
   fills?: unknown[];
   parentId?: string | null;
-  orderNum?: number;
 }
 
 export interface DeltaElementRemovedMessage {
@@ -56,7 +55,6 @@ export interface DeltaBatchUpdateMessage {
     propsChanges?: Record<string, unknown>;
     fills?: unknown[];
     parentId?: string | null;
-    orderNum?: number;
   }>;
 }
 
@@ -150,7 +148,6 @@ export class CanvasDeltaMessenger {
     options?: {
       fills?: unknown[];
       parentId?: string | null;
-      orderNum?: number;
     },
   ): boolean {
     if (!this.isReady()) return false;
@@ -161,7 +158,6 @@ export class CanvasDeltaMessenger {
       propsChanges: this.sanitizeProps(propsChanges),
       ...(options?.fills !== undefined && { fills: options.fills }),
       ...(options?.parentId !== undefined && { parentId: options.parentId }),
-      ...(options?.orderNum !== undefined && { orderNum: options.orderNum }),
     };
 
     return this.send(message);
@@ -191,7 +187,6 @@ export class CanvasDeltaMessenger {
       propsChanges?: Record<string, unknown>;
       fills?: unknown[];
       parentId?: string | null;
-      orderNum?: number;
     }>,
   ): boolean {
     if (!this.isReady()) return false;
@@ -261,7 +256,6 @@ export class CanvasDeltaMessenger {
           props: this.sanitizeProps(element.props as Record<string, unknown>),
           parent_id: element.parent_id,
           page_id: element.page_id,
-          order_num: element.order_num,
           customId: element.customId,
           events: getElementEvents(element),
           dataBinding: getElementDataBinding(element),

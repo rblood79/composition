@@ -82,7 +82,6 @@ export function resolveCanonicalRefElement(
     parent_id: element.parent_id ?? null,
     page_id: element.page_id ?? master.page_id ?? null,
     layout_id: element.layout_id ?? null,
-    order_num: element.order_num,
     props: mergePropsWithStyleDeep(
       getElementProps(master),
       getRefOverrideProps(element),
@@ -325,7 +324,6 @@ function materializeOverrideChildren(
       parent_id: syntheticParentId,
       page_id: refElement.page_id ?? null,
       layout_id: refElement.layout_id ?? null,
-      order_num: index,
       props: getOverrideNodeProps(child),
       ...(name ? { componentName: name } : {}),
       ...(ref ? { ref } : {}),
@@ -461,7 +459,6 @@ function materializeSyntheticDescendants(
       parent_id: syntheticParentId,
       page_id: refElement.page_id ?? sourceChild.page_id ?? null,
       layout_id: refElement.layout_id ?? sourceChild.layout_id ?? null,
-      order_num: sourceChild.order_num ?? index,
       props: mergePropsWithStyleDeep(getElementProps(sourceChild), patchProps),
       reusable: undefined,
     } as Element;

@@ -123,7 +123,6 @@ export function useCollectionItemManager(
           className: "",
         },
         parent_id: elementId,
-        order_num: currentIndex + 1,
       };
 
       // ElementUtils.createChildElementWithParentCheck was removed

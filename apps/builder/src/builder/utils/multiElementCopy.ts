@@ -272,7 +272,6 @@ export function pasteMultipleElements(
           ? targetParentId
           : (reusableOrigin.parent_id ?? null),
         page_id: currentPageId,
-        order_num: reusableOrigin.order_num,
         props: createRefOverrideProps(reusableOrigin, offset),
         componentName: reusableOrigin.componentName,
         created_at: new Date().toISOString(),
@@ -441,25 +440,4 @@ export function deserializeCopiedElements(
     // This is expected when clipboard contains regular text
     return null;
   }
-}
-
-/**
- * Calculate next available order_num for pasted elements
- *
- * @param parentId - Parent element ID
- * @param elements - All elements in the page
- * @returns Next order_num
- */
-export function getNextOrderNum(
-  parentId: string | null,
-  elements: Element[],
-): number {
-  const siblings = elements.filter((el) => el.parent_id === parentId);
-
-  if (siblings.length === 0) {
-    return 0;
-  }
-
-  const maxOrder = Math.max(...siblings.map((el) => el.order_num || 0));
-  return maxOrder + 1;
 }

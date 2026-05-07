@@ -108,10 +108,6 @@ vi.mock("../../../../lib/db", () => {
   return { getDB: vi.fn(async () => mockDb) };
 });
 
-vi.mock("../elementReorder", () => ({
-  reorderElements: vi.fn(),
-}));
-
 vi.mock("../../../panels/styles/utils/fillExternalIngress", () => ({
   normalizeExternalFillIngress: vi.fn((el: Element) => el),
 }));
@@ -152,7 +148,6 @@ function setupStateMocks(opts: MockStateOpts = {}) {
     currentPageId: opts.currentPageId ?? null,
     pages: opts.pages ?? [],
     layoutVersion: 0,
-    batchUpdateElementOrders: vi.fn(),
     _rebuildIndexes: vi.fn(),
   };
 
@@ -421,80 +416,7 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
     });
   });
 
-  describe("order_num 재정렬 — reusable frame 기반", () => {
-    // [RED] current: frame mirror 없으면 reorder 미호출. GREEN: reusable frame parent 면 호출
-    it("reusable frame 자식 추가 시 해당 frame 의 siblings 대상으로 재정렬된다", async () => {
-      const frame = makeReusableFrame("frame-reusable-3");
-      const doc = makeDoc([frame]);
-      const element = makeElement("el-frame-child", "Button", {
-        parent_id: "frame-reusable-3",
-      });
-
-      const { setMock, getMock } = setupStateMocks({
-        currentPageId: null,
-        doc,
-      });
-
-      const elementReorderModule = await import("../elementReorder");
-
-      await createAddElementAction(setMock, getMock)(element);
-      // queueMicrotask flush
-      await new Promise((r) => queueMicrotask(() => r(null)));
-
-      expect(elementReorderModule.reorderElements).toHaveBeenCalledWith(
-        expect.any(Array),
-        "frame-reusable-3",
-        expect.any(Function),
-      );
-    });
-
-    // [Regression] page reorder 경로 보존 — currentPageId + element.page_id 일치 시 reorder 동작
-    it("page element 추가 시 기존 currentPageId 기반 재정렬 경로가 동작한다", async () => {
-      const pageFrame = makePageRefFrame("frame-page-reorder", "page-reorder");
-      const doc = makeDoc([pageFrame]);
-      const pageId = "page-reorder";
-      const element = makeElement("el-page", "Button", {
-        page_id: pageId, // legacy ownership 유지 (currentPageId 매칭 경로)
-        parent_id: "frame-page-reorder",
-      });
-
-      const { setMock, getMock } = setupStateMocks({
-        currentPageId: pageId,
-        doc,
-      });
-
-      const elementReorderModule = await import("../elementReorder");
-
-      await createAddElementAction(setMock, getMock)(element);
-      await new Promise((r) => queueMicrotask(() => r(null)));
-
-      expect(elementReorderModule.reorderElements).toHaveBeenCalledWith(
-        expect.any(Array),
-        pageId,
-        expect.any(Function),
-      );
-    });
-
-    // [Regression] orphan + currentPageId 없음 + frame mirror 없음 — reorder 미호출
-    it("orphan element 추가 시 재정렬 호출되지 않는다", async () => {
-      const doc = makeDoc([]);
-      const element = makeElement("el-orphan-reorder", "Button", {
-        parent_id: "missing-frame-id",
-      });
-
-      const { setMock, getMock } = setupStateMocks({
-        currentPageId: null,
-        doc,
-      });
-
-      const elementReorderModule = await import("../elementReorder");
-
-      await createAddElementAction(setMock, getMock)(element);
-      await new Promise((r) => queueMicrotask(() => r(null)));
-
-      expect(elementReorderModule.reorderElements).not.toHaveBeenCalled();
-    });
-
+  describe("canonical source order — reusable frame 기반", () => {
     // [Static] dead code 제거 — GREEN 후 elementsMap.forEach + direct frame mirror compare
     // 패턴이 elementCreation.ts 에서 제거됐는지 grep 검증
     it("frame mirror 기반 elementsMap.forEach 순회 코드가 제거된다 (dead code 없음)", async () => {

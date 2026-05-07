@@ -127,7 +127,7 @@ export const createRuntimeStore = () =>
     },
 
     /**
-     * 요소 부분 업데이트 (Delta - props, parentId, orderNum)
+     * 요소 부분 업데이트 (Delta - props, parentId)
      */
     updateElement: (elementId: string, updates: Partial<RuntimeElement>) => {
       set((state) => ({

@@ -44,7 +44,6 @@ export interface PreviewElement {
   text?: string;
   parent_id?: string | null;
   page_id?: string | null;
-  order_num?: number;
   dataBinding?: DataBinding;
   deleted?: boolean;
 }

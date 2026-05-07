@@ -108,7 +108,6 @@ export const SliderHybridAfterSections = memo(
                     },
                     parent_id: sliderTrack.id,
                     page_id: parentEl?.page_id ?? null,
-                    order_num: thumbCount,
                     deleted: false,
                   },
                   parentEl ? getFrameElementMirrorId(parentEl) : null,

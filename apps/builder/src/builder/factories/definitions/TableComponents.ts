@@ -3,7 +3,6 @@ import {
   ComponentElementProps,
 } from "../../../types/core/store.types";
 import { ElementUtils } from "../../../utils/element/elementUtils";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentCreationContext, ComponentCreationResult } from "../types";
 import {
   createDefaultTableProps,
@@ -29,8 +28,6 @@ export async function createTable(
     parentId = ElementUtils.findBodyElement(elements, pageId);
   }
 
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
   const defaultProps = createDefaultTableProps();
 
   // 부모 요소 생성
@@ -40,7 +37,6 @@ export async function createTable(
     type: "Table",
     props: defaultProps as ComponentElementProps,
     parent_id: parentId,
-    order_num: orderNum,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -52,7 +48,6 @@ export async function createTable(
     type: "TableHeader",
     props: createDefaultTableHeaderProps() as ComponentElementProps,
     parent_id: parent.id,
-    order_num: 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -64,7 +59,6 @@ export async function createTable(
     type: "TableBody",
     props: createDefaultTableBodyProps() as ComponentElementProps,
     parent_id: parent.id,
-    order_num: 2,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -92,15 +86,6 @@ export async function createColumnGroup(
 ): Promise<ComponentCreationResult> {
   const { parentElement, elements } = context;
 
-  // 기존 Column Group들의 order_num 중 최대값 찾기
-  const existingColumnGroups = elements.filter(
-    (el) => el.parent_id === parentElement?.id && el.type === "ColumnGroup",
-  );
-  const maxOrderNum =
-    existingColumnGroups.length > 0
-      ? Math.max(...existingColumnGroups.map((group) => group.order_num || 0))
-      : -1;
-
   // ⭐ Layout/Slot System
 
   const parent: Element = {
@@ -109,7 +94,6 @@ export async function createColumnGroup(
     type: "ColumnGroup",
     props: createDefaultColumnGroupProps(),
     parent_id: parentElement?.id || null,
-    order_num: maxOrderNum + 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

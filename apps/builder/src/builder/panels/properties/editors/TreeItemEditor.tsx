@@ -82,7 +82,6 @@ export const TreeItemEditor = memo(function TreeItemEditor({
           isDisabled: false,
         },
         parent_id: elementId,
-        order_num: newTreeItemIndex,
       };
 
       const db = await getDB();

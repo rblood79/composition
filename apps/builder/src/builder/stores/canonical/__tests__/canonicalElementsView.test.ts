@@ -45,14 +45,14 @@ describe("canonicalDocumentToElements", () => {
         type: "Button",
         componentName: "Primary CTA",
         parent_id: null,
-        order_num: 0,
         page_id: null,
         props: { variant: "primary", children: "Click me", size: "md" },
       }),
     ]);
+    expect(elements[0]).not.toHaveProperty("order_num");
   });
 
-  it("walks nested children and derives parent/order from tree context", () => {
+  it("walks nested children and preserves tree source order without order_num", () => {
     const doc = makeDoc([
       {
         id: "section-1",
@@ -82,12 +82,11 @@ describe("canonicalDocumentToElements", () => {
     ]);
     expect(elements[1]).toMatchObject({
       parent_id: "section-1",
-      order_num: 0,
     });
     expect(elements[2]).toMatchObject({
       parent_id: "section-1",
-      order_num: 1,
     });
+    expect(elements.every((element) => !("order_num" in element))).toBe(true);
   });
 
   it("skips structural nodes without props while preserving child parent context", () => {

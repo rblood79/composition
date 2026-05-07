@@ -31,7 +31,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 10; // ADR-116 direct cutover: CompositionDocument is primary storage.
+const DB_VERSION = 11; // Element order uses canonical CompositionDocument.children[] only.
 
 export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
@@ -67,6 +67,11 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             `[IndexedDB] ADR-116 direct cutover: oldVersion=${oldVersion} → 10`,
           );
         }
+        if (oldVersion < 11 && oldVersion > 0) {
+          console.log(
+            `[IndexedDB] Element order cleanup: oldVersion=${oldVersion} → 11`,
+          );
+        }
 
         // Projects store
         if (!db.objectStoreNames.contains("projects")) {
@@ -97,10 +102,16 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           elementsStore.createIndex("parent_id", "parent_id", {
             unique: false,
           });
-          elementsStore.createIndex("order_num", "order_num", {
-            unique: false,
-          });
           console.log("[IndexedDB] Created store: elements");
+        } else {
+          const transaction = (event.target as IDBOpenDBRequest).transaction;
+          if (transaction) {
+            const elementsStore = transaction.objectStore("elements");
+            if (elementsStore.indexNames.contains("order_num")) {
+              elementsStore.deleteIndex("order_num");
+              console.log("[IndexedDB] Removed index: elements.order_num");
+            }
+          }
         }
 
         // Design tokens store

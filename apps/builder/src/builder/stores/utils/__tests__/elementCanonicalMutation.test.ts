@@ -13,13 +13,13 @@ import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
   setElementsCanonicalPrimary,
+  moveElementCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import { buildLegacyElementMetadata } from "@/adapters/canonical/legacyMetadata";
 import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createRemoveElementsAction } from "../elementRemoval";
 import {
-  createBatchUpdateElementsAction,
   createBatchUpdateElementPropsAction,
   createUpdateElementPropsAction,
 } from "../elementUpdate";
@@ -67,7 +67,6 @@ type MockState = {
   editingContextId: string | null;
   dirtyElementIds: Set<string>;
   layoutVersion: number;
-  batchUpdateElementOrders: ReturnType<typeof vi.fn>;
   _cancelHydrateSelectedProps: ReturnType<typeof vi.fn>;
   updateElement: ReturnType<typeof vi.fn>;
   batchUpdateElementProps: ReturnType<typeof vi.fn>;
@@ -146,7 +145,6 @@ function makeState(elements: Element[]): MockState {
     editingContextId: null,
     dirtyElementIds: new Set(),
     layoutVersion: 0,
-    batchUpdateElementOrders: vi.fn(),
     _cancelHydrateSelectedProps: vi.fn(),
     updateElement: vi.fn(),
     batchUpdateElementProps: vi.fn(),
@@ -531,13 +529,7 @@ describe("element mutations keep canonical document primary", () => {
       ],
     });
 
-    await createBatchUpdateElementsAction(
-      createSetMock(state),
-      () => state as never,
-    )([
-      { elementId: "button-two", updates: { order_num: 0 } },
-      { elementId: "button-one", updates: { order_num: 1 } },
-    ]);
+    moveElementCanonicalPrimary("button-two", "body", 0);
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const page = doc?.children.find((node) => node.id === "page-1") as
@@ -551,15 +543,9 @@ describe("element mutations keep canonical document primary", () => {
       "button-two",
       "button-one",
     ]);
-    expect(state.elementsMap.get("button-two")?.order_num).toBe(0);
-    expect(state.elementsMap.get("button-one")?.order_num).toBe(1);
-    expect(mocks.db.elements.update).toHaveBeenCalledWith("button-two", {
-      order_num: 0,
-    });
-    expect(mocks.db.elements.update).toHaveBeenCalledWith("button-one", {
-      order_num: 1,
-    });
-    expect(mocks.db.documents.put).toHaveBeenCalledWith("project-1", doc);
+    expect(state.childrenMap.get("body")?.map((element) => element.id)).toEqual(
+      ["button-two", "button-one"],
+    );
   });
 
   it("updateSelectedProperties preserves sibling order when canonical metadata order is stale", () => {
@@ -660,7 +646,9 @@ describe("element mutations keep canonical document primary", () => {
     expect(bodyNode?.children?.[1]?.props).toMatchObject({
       label: "B updated",
     });
-    expect(state.elementsMap.get("button-two")?.order_num).toBe(1);
+    expect(state.childrenMap.get("body")?.map((element) => element.id)).toEqual(
+      ["button-one", "button-two", "button-three", "button-four"],
+    );
   });
 
   it("updateSelectedProperties stores canonical ref root overrides when the legacy mirror row is missing", async () => {
@@ -1288,7 +1276,6 @@ describe("element mutations keep canonical document primary", () => {
     expect(
       state.childrenMap.get("frame-body")?.map((element) => element.id),
     ).toEqual(["slot-header", "slot-content", "slot-footer"]);
-    expect(state.elementsMap.get("slot-content")?.order_num).toBe(1);
   });
 
   it("updateElementProps preserves plain page body child order", async () => {
@@ -1334,7 +1321,6 @@ describe("element mutations keep canonical document primary", () => {
     expect(
       state.childrenMap.get("page-body")?.map((element) => element.id),
     ).toEqual(["page-card-a", "page-card-b"]);
-    expect(state.elementsMap.get("page-card-a")?.order_num).toBe(0);
   });
 
   it("updateElementProps preserves plain page body child order when canonical ownership metadata is stale", async () => {

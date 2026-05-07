@@ -54,8 +54,8 @@ export function exportLegacyDocument(doc: CompositionDocument): Element[] {
   const elements: Element[] = [];
   const rootContext: LegacyExportContext = { pageId: null, layoutId: null };
 
-  doc.children.forEach((root, index) => {
-    walkAndCollect(root, elements, null, index, rootContext);
+  doc.children.forEach((root) => {
+    walkAndCollect(root, elements, null, rootContext);
   });
 
   return elements;
@@ -65,18 +65,17 @@ function walkAndCollect(
   node: CanonicalNode,
   out: Element[],
   parentId: string | null,
-  orderNum: number,
   context: LegacyExportContext,
 ): void {
   const scopedContext = getNodeScope(node, context);
-  const legacy = extractElement(node, parentId, orderNum, scopedContext);
+  const legacy = extractElement(node, parentId, scopedContext);
   if (legacy) {
     out.push(legacy);
   }
   const nextParentId = legacy?.id ?? parentId;
 
-  node.children?.forEach((child, index) => {
-    walkAndCollect(child, out, nextParentId, index, scopedContext);
+  node.children?.forEach((child) => {
+    walkAndCollect(child, out, nextParentId, scopedContext);
   });
 
   if (shouldCollectRefDescendants(node)) {
@@ -88,8 +87,8 @@ function walkAndCollect(
         "children" in override &&
         Array.isArray(override.children)
       ) {
-        override.children.forEach((child, index) => {
-          walkAndCollect(child, out, nextParentId, index, scopedContext);
+        override.children.forEach((child) => {
+          walkAndCollect(child, out, nextParentId, scopedContext);
         });
       }
     }
@@ -158,7 +157,6 @@ function getNodeScope(
 function extractElement(
   node: CanonicalNode,
   parentId: string | null,
-  orderNum: number,
   context: LegacyExportContext,
 ): Element | null {
   const metadata = node.metadata as LegacyScopeMetadata | undefined;
@@ -176,7 +174,6 @@ function extractElement(
     type: isLegacySlotHoisted ? "Slot" : node.type,
     props,
     parent_id: parentId,
-    order_num: orderNum,
     page_id: context.pageId,
     layout_id: context.layoutId,
   };

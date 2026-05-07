@@ -5,7 +5,6 @@ import {
   ComponentElementProps,
   getDefaultProps as getCentralDefaultProps,
 } from "../../types/builder/unified.types";
-import { HierarchyManager } from "../utils/HierarchyManager";
 import { ComponentFactory } from "../factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "../factories/constants";
 import { useErrorHandler, type ErrorInfo } from "./useErrorHandler";
@@ -28,7 +27,6 @@ export interface UseElementCreatorReturn {
   getPerformanceStats: () => {
     cacheSize: number;
     childrenCacheSize: number;
-    orderNumCacheSize: number;
     hitRate: number;
   };
   clearCache: () => void;
@@ -95,15 +93,8 @@ export const useElementCreator = (): UseElementCreatorReturn => {
     getErrorStats,
   } = useErrorHandler();
 
-  // HierarchyManager 설정 최적화
   useEffect(() => {
     if (!isConfiguredRef.current) {
-      HierarchyManager.updateConfig({
-        maxCacheSize: 500,
-        enableIncrementalUpdate: true,
-        enableBatchProcessing: true,
-        batchSize: 50,
-      });
       isConfiguredRef.current = true;
     }
   }, []); // 빈 의존성 배열로 한 번만 실행
@@ -167,12 +158,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 layoutId, // ⭐ Layout/Slot System: layoutId 전달
                 doc,
               );
-              // 증분 업데이트로 캐시 최적화
-              const updatedElements = [...elements, ...result.allElements];
-              HierarchyManager.incrementalUpdate(
-                updatedElements,
-                result.parent.id,
-              );
+              void result;
             } else {
               // 단순 컴포넌트 생성 (캐시 활용)
               // selectedElementId 는 page-level selection id 일 수 있으므로
@@ -213,11 +199,6 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 }
               }
 
-              const orderNum = HierarchyManager.calculateNextOrderNum(
-                parentId,
-                elements,
-              );
-
               const newElement: Element = withFrameElementMirrorId(
                 {
                   id: crypto.randomUUID(), // UUID 생성
@@ -227,7 +208,6 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                   // Layout 모드면 legacy layout binding 사용, 아니면 page_id 사용
                   page_id: layoutId ? null : currentPageId,
                   parent_id: parentId,
-                  order_num: orderNum,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 },
@@ -236,13 +216,6 @@ export const useElementCreator = (): UseElementCreatorReturn => {
 
               // addElement 호출 (내부에서 DB 저장 처리)
               addElement(newElement);
-
-              // 증분 업데이트로 캐시 최적화
-              const updatedElements = [...elements, newElement];
-              HierarchyManager.incrementalUpdate(
-                updatedElements,
-                newElement.id,
-              );
             }
           };
 
@@ -274,11 +247,15 @@ export const useElementCreator = (): UseElementCreatorReturn => {
   );
 
   const getPerformanceStats = useCallback(() => {
-    return HierarchyManager.getPerformanceStats();
+    return {
+      cacheSize: 0,
+      childrenCacheSize: 0,
+      hitRate: 0,
+    };
   }, []);
 
   const clearCache = useCallback(() => {
-    HierarchyManager.clearCache();
+    return;
   }, []);
 
   const updateCacheConfig = useCallback(
@@ -290,7 +267,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
         batchSize: number;
       }>,
     ) => {
-      HierarchyManager.updateConfig(config);
+      void config;
     },
     [],
   );

@@ -61,7 +61,7 @@ export interface UseDeltaMessengerReturn {
     nextElement: Element,
     prevProps: Record<string, unknown>,
     nextProps: Record<string, unknown>,
-    options?: { parentId?: string | null; orderNum?: number },
+    options?: { parentId?: string | null },
   ) => boolean;
 
   /**
@@ -83,7 +83,6 @@ export interface UseDeltaMessengerReturn {
       prevProps?: Record<string, unknown>;
       nextProps?: Record<string, unknown>;
       parentId?: string | null;
-      orderNum?: number;
     }>,
   ) => boolean;
 
@@ -204,7 +203,7 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
       nextElement: Element,
       prevProps: Record<string, unknown>,
       nextProps: Record<string, unknown>,
-      options?: { parentId?: string | null; orderNum?: number },
+      options?: { parentId?: string | null },
     ): boolean => {
       if (!isReadyRef.current) {
         console.warn("🚀 [Delta] Not ready, skipping element update");
@@ -221,8 +220,7 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
       if (
         Object.keys(propsChanges).length === 0 &&
         !fillsChanged &&
-        !options?.parentId &&
-        !options?.orderNum
+        !options?.parentId
       ) {
         return false;
       }
@@ -284,7 +282,6 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
         prevProps?: Record<string, unknown>;
         nextProps?: Record<string, unknown>;
         parentId?: string | null;
-        orderNum?: number;
       }>,
     ): boolean => {
       if (!isReadyRef.current) {
@@ -309,7 +306,6 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
           propsChanges,
           fills: fillsChanged ? u.nextElement?.fills : undefined,
           parentId: u.parentId,
-          orderNum: u.orderNum,
         };
       });
 
@@ -364,10 +360,6 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
                 parentId:
                   prevEl.parent_id !== nextEl.parent_id
                     ? nextEl.parent_id
-                    : undefined,
-                orderNum:
-                  prevEl.order_num !== nextEl.order_num
-                    ? nextEl.order_num
                     : undefined,
               },
             );

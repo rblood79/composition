@@ -55,7 +55,7 @@ import { isLegacySlotTag, tagToType } from "./tagRename";
 import { getPageFrameBindingId } from "./frameMirror";
 import { asElementWithLegacyMirror } from "./legacyElementFields";
 import {
-  compareElementsByOrderThenSource,
+  compareElementsBySource,
   createElementSourceIndex,
 } from "../../builder/utils/elementOrdering";
 
@@ -179,7 +179,7 @@ function sortElementsForUpsert(elements: Element[]): Element[] {
     if (ownerDiff !== 0) return ownerDiff;
     const depthDiff = getDepth(a) - getDepth(b);
     if (depthDiff !== 0) return depthDiff;
-    return compareElementsByOrderThenSource(a, b, sourceIndexById);
+    return compareElementsBySource(a, b, sourceIndexById);
   });
 }
 
@@ -1025,13 +1025,12 @@ function shouldPreserveExistingCanonicalPosition(
   previousNode: CanonicalNode,
   element: Element,
 ): boolean {
-  return legacyPositionMatches(previousNode, element, false);
+  return legacyPositionMatches(previousNode, element);
 }
 
 function legacyPositionMatches(
   previousNode: CanonicalNode,
   element: Element,
-  compareOrderNum: boolean,
 ): boolean {
   const metadata = previousNode.metadata as LegacyNodeMetadata | undefined;
   const legacy = asElementWithLegacyMirror(element);
@@ -1059,8 +1058,7 @@ function legacyPositionMatches(
     sameLegacyValue(previous.slotName, legacy.slot_name) &&
     sameLegacyValue(previous.role, legacy.componentRole) &&
     sameLegacyValue(previous.masterRef, legacy.masterId) &&
-    sameLegacyValue(previous.elementType, element.type) &&
-    (!compareOrderNum || sameLegacyValue(previous.orderNum, element.order_num))
+    sameLegacyValue(previous.elementType, element.type)
   );
 }
 
@@ -1204,7 +1202,7 @@ function buildCanonicalSiblingOrderByPath(
 
     const orderedSiblingIds = [...siblings]
       .sort((left, right) =>
-        compareElementsByOrderThenSource(left, right, sourceIndexById),
+        compareElementsBySource(left, right, sourceIndexById),
       )
       .map((sibling) => sibling.id);
     const siblingOrderById = new Map<string, number>();
@@ -1220,9 +1218,7 @@ function hasCanonicalPositionChange(
   element: Element,
 ): boolean {
   const previousNode = findNodeById(previousDoc.children, element.id);
-  return previousNode
-    ? !legacyPositionMatches(previousNode, element, true)
-    : true;
+  return previousNode ? !legacyPositionMatches(previousNode, element) : true;
 }
 
 function hasSameNodeOrder(
@@ -1488,7 +1484,7 @@ export function setElementsCanonicalPrimary(elements: Element[]): void {
  * Drag/drop Phase 4 entry point:
  * - canonical document 를 먼저 이동한다.
  * - legacy `Element[]` 는 `exportLegacyDocument()` mirror 로만 갱신한다.
- * - legacy `order_num` batch 는 persistence compatibility payload 로만 남긴다.
+ * - legacy element `order_num` batch 는 제거됐고 canonical children[] index 만 갱신한다.
  */
 export function moveElementCanonicalPrimary(
   elementId: string,
@@ -1521,13 +1517,9 @@ export function moveElementCanonicalPrimary(
 }
 
 /**
- * legacy tree DnD/update batch 에서 계산된 parent/index intent 를 canonical
- * `children[]` splice 로 직접 반영한다.
- *
- * `batchUpdateElements([{ parent_id, order_num }])` 같은 기존 UI surface 는
- * transient payload 로 legacy field 를 여전히 전달하지만, runtime order write 는
- * 이 함수에서 canonical move helper 를 먼저 통과한다. legacy `order_num` 은
- * export mirror 결과로만 재파생된다.
+ * tree DnD/update batch 에서 계산된 parent/source-order intent 를 canonical
+ * `children[]` splice 로 직접 반영한다. 입력 배열은 같은 parent 내 최종 sibling
+ * source order 여야 한다.
  */
 export function applyElementOrderCanonicalPrimary(
   elements: Element[],
@@ -1538,30 +1530,32 @@ export function applyElementOrderCanonicalPrimary(
   const projectId = actions.getCurrentProjectId();
   const currentDoc = getCurrentDocument(projectId);
   const sourceIndexById = createElementSourceIndex(elements);
-  const orderedMoves = [...elements].sort((left, right) => {
-    const leftParent = left.parent_id ?? "";
-    const rightParent = right.parent_id ?? "";
-    const parentDiff = leftParent.localeCompare(rightParent);
-    if (parentDiff !== 0) return parentDiff;
+  const orderedMoves = [...elements]
+    .sort((left, right) => {
+      const leftParent = left.parent_id ?? "";
+      const rightParent = right.parent_id ?? "";
+      const parentDiff = leftParent.localeCompare(rightParent);
+      if (parentDiff !== 0) return parentDiff;
 
-    const orderDiff = (left.order_num ?? 0) - (right.order_num ?? 0);
-    if (orderDiff !== 0) return orderDiff;
-
-    return (
-      (sourceIndexById.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
-      (sourceIndexById.get(right.id) ?? Number.MAX_SAFE_INTEGER)
-    );
-  });
+      return (
+        (sourceIndexById.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+        (sourceIndexById.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+      );
+    })
+    .map((element, index, sorted) => {
+      const parentId = element.parent_id ?? null;
+      const siblingIndex =
+        sorted
+          .slice(0, index + 1)
+          .filter((candidate) => (candidate.parent_id ?? null) === parentId)
+          .length - 1;
+      return { element, index: siblingIndex };
+    });
 
   let doc = currentDoc;
   let changed = false;
 
-  for (const element of orderedMoves) {
-    const index =
-      typeof element.order_num === "number" &&
-      Number.isFinite(element.order_num)
-        ? element.order_num
-        : Number.MAX_SAFE_INTEGER;
+  for (const { element, index } of orderedMoves) {
     const result = moveCanonicalChild(
       doc,
       element.id,

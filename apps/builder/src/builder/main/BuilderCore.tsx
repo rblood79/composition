@@ -542,7 +542,7 @@ export const BuilderCore: React.FC = () => {
   }, [iframeReadyState]);
 
   // Phase 4.2 최적화: setTimeout 제거, useEffect batching 활용
-  // order_num 검증 (dev 모드 전용) - 페이지 변경 시에만 실행
+  // legacy validation hook 유지 (dev 모드 전용) - 페이지 변경 시에만 실행
   useEffect(() => {
     if (!currentPageId) return;
     // 🚀 최적화: getState()로 elements 읽기 (구독 제거)

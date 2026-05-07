@@ -40,7 +40,7 @@ import { tagToType, isLegacySlotTag } from "./tagRename";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
 import { buildIdPathContext, segId } from "./idPath";
 import { getCanonicalSlotDeclaration } from "./slotDeclaration";
-import { sortElementsByOrderThenSource } from "../../builder/utils/elementOrdering";
+import { sortElementsBySource } from "../../builder/utils/elementOrdering";
 
 /**
  * ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — element.events / dataBinding
@@ -134,7 +134,7 @@ export const convertPageLayout: ConvertPageLayoutFn = (
   // 이 없는 경우 — known broken case, P3 frameset UI 에서 보장 예정).
   const descendants: Record<string, { children: CanonicalNode[] }> = {};
   for (const [slotName, els] of bySlotName) {
-    const sorted = sortElementsByOrderThenSource(els, pageElements);
+    const sorted = sortElementsBySource(els, pageElements);
     const slotPath = slotPathMap.get(slotName) ?? slotName;
     descendants[slotPath] = {
       children: sorted.map((el) =>
@@ -215,7 +215,7 @@ export function convertLayoutToReusableFrame(
   layoutElements: Element[],
 ): CanonicalNode {
   const idPathCtx = buildIdPathContext(layoutElements);
-  const rootElements = sortElementsByOrderThenSource(
+  const rootElements = sortElementsBySource(
     layoutElements.filter((e) => e.parent_id == null),
     layoutElements,
   );
@@ -259,7 +259,7 @@ function convertElementToCanonical(
   allElements: Element[],
   idSegmentMap: Map<string, string>,
 ): CanonicalNode {
-  const childElements = sortElementsByOrderThenSource(
+  const childElements = sortElementsBySource(
     allElements.filter((e) => e.parent_id === element.id),
     allElements,
   );
@@ -337,7 +337,7 @@ function convertElementWithSlotHoisting(
     } as CanonicalNode;
   }
 
-  const childElements = sortElementsByOrderThenSource(
+  const childElements = sortElementsBySource(
     allElements.filter((e) => e.parent_id === element.id),
     allElements,
   );

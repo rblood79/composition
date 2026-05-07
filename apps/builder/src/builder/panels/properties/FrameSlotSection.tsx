@@ -170,7 +170,6 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           componentName: getElementLabel(candidate),
           parent_id: latestElement.id,
           page_id: latestElement.page_id ?? null,
-          order_num: children.length,
           props: {},
         } as Element,
         getFrameElementMirrorId(latestElement),

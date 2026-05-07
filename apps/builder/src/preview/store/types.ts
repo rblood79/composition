@@ -20,7 +20,6 @@ export interface RuntimeElement {
   };
   parent_id: string | null;
   page_id: string | null;
-  order_num: number;
   customId?: string;
   dataBinding?: Record<string, unknown>;
 }

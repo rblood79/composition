@@ -1,5 +1,4 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 import type { StoredMenuItem } from "@composition/specs";
 
@@ -14,7 +13,6 @@ export function createMenuDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -41,7 +39,6 @@ export function createMenuDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -61,8 +58,6 @@ export function createNavDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "Nav",
@@ -75,7 +70,6 @@ export function createNavDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -85,7 +79,6 @@ export function createNavDefinition(
           href: "/",
           variant: "primary",
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Link",
@@ -94,7 +87,6 @@ export function createNavDefinition(
           href: "/about",
           variant: "primary",
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "Link",
@@ -103,7 +95,6 @@ export function createNavDefinition(
           href: "/contact",
           variant: "primary",
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -125,8 +116,6 @@ export function createPaginationDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "Pagination",
@@ -143,7 +132,6 @@ export function createPaginationDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -154,7 +142,6 @@ export function createPaginationDefinition(
           fillStyle: "outline",
           size: "sm",
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Button",
@@ -163,7 +150,6 @@ export function createPaginationDefinition(
           variant: "accent",
           size: "sm",
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "Button",
@@ -173,7 +159,6 @@ export function createPaginationDefinition(
           fillStyle: "outline",
           size: "sm",
         } as ComponentElementProps,
-        order_num: 3,
       },
       {
         type: "Button",
@@ -183,7 +168,6 @@ export function createPaginationDefinition(
           fillStyle: "outline",
           size: "sm",
         } as ComponentElementProps,
-        order_num: 4,
       },
       {
         type: "Button",
@@ -193,7 +177,6 @@ export function createPaginationDefinition(
           fillStyle: "outline",
           size: "sm",
         } as ComponentElementProps,
-        order_num: 5,
       },
     ],
   };
@@ -212,7 +195,6 @@ export function createDisclosureDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -226,7 +208,6 @@ export function createDisclosureDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -235,14 +216,12 @@ export function createDisclosureDefinition(
           children: "Section Title",
           headingLevel: 3,
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "DisclosureContent",
         props: {
           children: "Section content goes here.",
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -267,7 +246,6 @@ export function createDisclosureGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -281,7 +259,6 @@ export function createDisclosureGroupDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -291,7 +268,6 @@ export function createDisclosureGroupDefinition(
             display: "block",
           },
         } as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "DisclosureHeader",
@@ -299,14 +275,12 @@ export function createDisclosureGroupDefinition(
               children: "Section 1",
               headingLevel: 3,
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "DisclosureContent",
             props: {
               children: "Content 1",
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },
@@ -317,7 +291,6 @@ export function createDisclosureGroupDefinition(
             display: "block",
           },
         } as ComponentElementProps,
-        order_num: 2,
         children: [
           {
             type: "DisclosureHeader",
@@ -325,14 +298,12 @@ export function createDisclosureGroupDefinition(
               children: "Section 2",
               headingLevel: 3,
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "DisclosureContent",
             props: {
               children: "Content 2",
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },

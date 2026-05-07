@@ -215,7 +215,6 @@ function createMaterializedElementFromOverride(
   id: string,
   parentId: string | null,
   pageId: string | null | undefined,
-  orderNum: number,
 ): Element {
   return stripCanonicalRuntimeFields({
     ...fallback,
@@ -223,7 +222,6 @@ function createMaterializedElementFromOverride(
     type: typeof override.type === "string" ? override.type : fallback.type,
     parent_id: parentId,
     page_id: pageId ?? null,
-    order_num: orderNum,
     props: propsFromCanonicalOverride(override),
     reusable: undefined,
     [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
@@ -283,7 +281,6 @@ function buildCanonicalDetachSnapshot(
   const materializeCanonicalNode = (
     source: Record<string, unknown>,
     parentId: string,
-    orderNum: number,
   ): Element => {
     const preferredId = typeof source.id === "string" ? source.id : undefined;
     const materializedId = nextId(preferredId);
@@ -296,17 +293,15 @@ function buildCanonicalDetachSnapshot(
         props: {},
         parent_id: parentId,
         page_id: pageId,
-        order_num: orderNum,
       } as Element,
       materializedId,
       parentId,
       pageId,
-      orderNum,
     );
     createdChildren.push(element);
 
-    getCanonicalChildren(source).forEach((child, index) => {
-      materializeCanonicalNode(child, element.id, index);
+    getCanonicalChildren(source).forEach((child) => {
+      materializeCanonicalNode(child, element.id);
     });
 
     return element;
@@ -316,7 +311,6 @@ function buildCanonicalDetachSnapshot(
     source: Element,
     parentId: string,
     relativePath: string,
-    orderNum: number,
     activeLegacyDescendantMap:
       | Record<string, unknown>
       | undefined = legacyDescendantMap,
@@ -368,14 +362,12 @@ function buildCanonicalDetachSnapshot(
             id,
             parentId,
             pageId,
-            orderNum,
           )
         : {
             ...materializationSource,
             id,
             parent_id: parentId,
             page_id: pageId,
-            order_num: orderNum,
             props: mergedProps,
             reusable: undefined,
             [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
@@ -393,9 +385,9 @@ function buildCanonicalDetachSnapshot(
         ? ((override!.children as unknown[]) ?? [])
         : getSortedChildren(state, materializationSource.id);
 
-    childSources.forEach((childSource, index) => {
+    childSources.forEach((childSource) => {
       if (hasChildrenReplacement && isRecord(childSource)) {
-        materializeCanonicalNode(childSource, element.id, index);
+        materializeCanonicalNode(childSource, element.id);
         return;
       }
 
@@ -405,13 +397,7 @@ function buildCanonicalDetachSnapshot(
       const childPath = nestedMaster
         ? childSegment
         : `${relativePath}/${childSegment}`;
-      materializeChild(
-        childElement,
-        element.id,
-        childPath,
-        index,
-        childDescendants,
-      );
+      materializeChild(childElement, element.id, childPath, childDescendants);
     });
 
     return element;
@@ -429,7 +415,6 @@ function buildCanonicalDetachSnapshot(
       type: master.type,
       parent_id: refElement.parent_id ?? null,
       page_id: refElement.page_id ?? master.page_id ?? null,
-      order_num: refElement.order_num,
       props: rootProps,
       reusable: undefined,
       [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
@@ -442,12 +427,11 @@ function buildCanonicalDetachSnapshot(
   );
   const previousState = { ...refElement };
 
-  getSortedChildren(state, master.id).forEach((child, index) => {
+  getSortedChildren(state, master.id).forEach((child) => {
     materializeChild(
       child,
       detachedRoot.id,
       child.customId ?? child.componentName ?? child.id,
-      index,
     );
   });
 
@@ -625,10 +609,6 @@ export function createInstance(
     return null;
   }
 
-  // legacy order_num mirror 계산. Structural insert order 는 canonical
-  // children[]/childrenMap append position 이 primary source 다.
-  const siblings = state.childrenMap.get(parentId) || [];
-
   // ADR-116 G5-B P5-B: legacy override write site cleanup — empty Record 를
   // undefined 로 변경, 신규 legacy instance 는 IndexedDB 에 해당 field 자체를
   // 저장하지 않음 (read site 는 isRecord 검사 후 fallback 으로 안전).
@@ -640,7 +620,6 @@ export function createInstance(
     props: {},
     parent_id: parentId,
     page_id: pageId,
-    order_num: siblings.length,
     [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
     [COMPONENT_MASTER_ID_MIRROR_FIELD]: masterRefId,
     [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,

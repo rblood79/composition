@@ -41,7 +41,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
     title: "ADR-112 Editing Semantics",
     project_id: "adr-112-fixture",
     slug: "adr-112-editing-semantics",
-    order_num: 0,
     created_at: now,
     updated_at: now,
   };
@@ -51,7 +50,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
     type: "body",
     page_id: PAGE_ID,
     parent_id: null,
-    order_num: 0,
     props: {
       style: {
         alignItems: "flex-start",
@@ -74,7 +72,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
     reusable: true,
     page_id: PAGE_ID,
     parent_id: BODY_ID,
-    order_num: 1,
     props: {
       children: "Origin marker",
       style: {
@@ -94,7 +91,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
     [COMPONENT_MASTER_ID_MIRROR_FIELD]: ORIGIN_ID,
     page_id: PAGE_ID,
     parent_id: BODY_ID,
-    order_num: 2,
     props: {
       children: "Instance marker",
       style: {
@@ -110,7 +106,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
   const instanceB: SemanticFixtureElement = {
     ...instanceA,
     id: "adr-112-instance-b",
-    order_num: 3,
     props: {
       ...instanceA.props,
       children: "Instance marker B",
@@ -124,7 +119,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
     reusable: true,
     page_id: PAGE_ID,
     parent_id: BODY_ID,
-    order_num: 4,
     props: {
       label: "Recommended number",
       style: {
@@ -143,7 +137,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
     reusable: true,
     page_id: PAGE_ID,
     parent_id: BODY_ID,
-    order_num: 5,
     slot: [SLOT_RECOMMENDATION_ID],
     metadata: {
       slot: [SLOT_RECOMMENDATION_ID],
@@ -167,7 +160,6 @@ export function applyEditingSemanticsFixture(store: ElementsState): void {
     ref: SLOT_FRAME_ID,
     page_id: PAGE_ID,
     parent_id: BODY_ID,
-    order_num: 6,
     props: {
       style: {
         height: "160px",

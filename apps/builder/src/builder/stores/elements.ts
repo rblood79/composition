@@ -17,7 +17,6 @@ import {
 } from "../../adapters/canonical/componentSemanticsMirror";
 import type { PageLayoutDirection } from "./canvasSettings";
 import { historyManager } from "./history";
-import { reorderElements } from "./utils/elementReorder";
 import {
   createCompleteProps,
   findElementById,
@@ -80,8 +79,8 @@ import {
 import { getNullablePageFrameBindingId } from "@/adapters/canonical/frameMirror";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import {
-  applyElementOrderCanonicalPrimary,
   areCanonicalMutationStoreActionsRegistered,
+  moveElementCanonicalPrimary,
   updateElementCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 
@@ -226,10 +225,6 @@ export interface ElementsState {
     parentElement: Element,
     childElements: Element[],
   ) => Promise<void>;
-  updateElementOrder: (elementId: string, orderNum: number) => void;
-  batchUpdateElementOrders: (
-    updates: Array<{ id: string; order_num: number }>,
-  ) => void;
   moveElementToContainer: (
     elementId: string,
     newParentId: string,
@@ -377,7 +372,7 @@ function findPageActivationBodyElement(
 ): Element | null {
   return (
     elements?.find((element) => element.type.toLowerCase() === "body") ??
-    elements?.find((element) => element.order_num === 0) ??
+    elements?.[0] ??
     null
   );
 }
@@ -965,14 +960,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             );
           });
       }
-
-      // 페이지 로드 직후 즉시 order_num 재정렬 (검증보다 먼저 실행)
-      // ⚡ setTimeout(50) → queueMicrotask: 초기 로드와 reorder 사이의 타이밍 갭 제거
-      // 50ms 지연은 불필요한 재렌더링과 Skia 캐시 무효화를 유발함
-      queueMicrotask(() => {
-        const { elements: latestElements, batchUpdateElementOrders } = get();
-        reorderElements(latestElements, pageId, batchUpdateElementOrders);
-      });
     },
 
     // Factory 함수로 생성된 addElement 사용
@@ -1473,95 +1460,52 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // Factory 함수로 생성된 addComplexElement 사용
     addComplexElement,
 
-    // 🚀 Phase 1: Immer → 함수형 업데이트 (High Risk)
-    updateElementOrder: (elementId, orderNum) => {
-      const { elements } = get();
-      const updatedElements = elements.map((el) =>
-        el.id === elementId ? { ...el, order_num: orderNum } : el,
-      );
-      set((state) => ({
-        elements: updatedElements,
-        layoutVersion: state.layoutVersion + 1,
-      }));
-      get()._rebuildIndexes();
-      if (areCanonicalMutationStoreActionsRegistered()) {
-        const updatedElement = updatedElements.find(
-          (el) => el.id === elementId,
-        );
-        if (updatedElement) {
-          applyElementOrderCanonicalPrimary([updatedElement]);
-        }
-      }
-    },
-
-    // 배치 order_num 업데이트 (단일 set() + _rebuildIndexes())
-    batchUpdateElementOrders: (updates) => {
-      if (updates.length === 0) return;
-      const { elements } = get();
-      const updateMap = new Map(updates.map((u) => [u.id, u.order_num]));
-      const updatedElements = elements.map((el) => {
-        const newOrder = updateMap.get(el.id);
-        return newOrder !== undefined ? { ...el, order_num: newOrder } : el;
-      });
-      set((state) => ({
-        elements: updatedElements,
-        layoutVersion: state.layoutVersion + 1,
-      }));
-      get()._rebuildIndexes();
-      // ADR-118: 이 액션은 legacy mirror repair 전용이다. Canonical structural
-      // reorder 는 drag/drop 또는 batch structural update 경로에서
-      // `applyElementOrderCanonicalPrimary` 로 먼저 반영한다.
-    },
-
-    // cross-container 이동: parent_id 변경 + 양쪽 컨테이너 order_num 재정렬
+    // cross-container 이동: parent_id 변경 + canonical children[] reorder
     moveElementToContainer: (elementId, newParentId, insertionIndex) => {
       const prevState = get();
       const element = prevState.elementsMap.get(elementId);
       if (!element || !element.parent_id) return;
 
       const oldParentId = element.parent_id;
-      if (oldParentId === newParentId) return; // same parent → batchUpdateElementOrders 사용
+      if (oldParentId === newParentId) return;
       const newParent = prevState.elementsMap.get(newParentId);
       if (!newParent) return;
+
+      if (areCanonicalMutationStoreActionsRegistered()) {
+        const mirror = moveElementCanonicalPrimary(
+          elementId,
+          newParentId,
+          insertionIndex,
+        );
+        if (mirror.length > 0) return;
+      }
+
       const targetPageId = newParent.page_id ?? element.page_id ?? null;
       const subtreeIds = collectElementSubtreeIds(
         elementId,
         prevState.childrenMap,
       );
 
-      // childrenMap props는 stale → elementsMap에서 최신 조회
-      const oldSiblings = (prevState.childrenMap.get(oldParentId) ?? [])
-        .map((c) => prevState.elementsMap.get(c.id))
-        .filter((c): c is Element => c !== undefined);
       const newSiblings = (prevState.childrenMap.get(newParentId) ?? [])
         .map((c) => prevState.elementsMap.get(c.id))
         .filter((c): c is Element => c !== undefined);
 
-      // 변경 맵 구성: id → { parent_id?, order_num }
       const updateMap = new Map<
         string,
-        { page_id?: string | null; parent_id?: string; order_num?: number }
+        { page_id?: string | null; parent_id?: string }
       >();
 
-      // 구 부모: 드래그 요소 제거 후 나머지 재정렬
-      const remainingOld = oldSiblings.filter((c) => c.id !== elementId);
-      remainingOld.forEach((c, i) => updateMap.set(c.id, { order_num: i }));
-
-      // 신 부모: 삽입 위치에 요소 추가 후 재정렬
       const newOrder = [
         ...newSiblings.slice(0, insertionIndex),
         element,
         ...newSiblings.slice(insertionIndex),
       ];
-      newOrder.forEach((c, i) => {
+      newOrder.forEach((c) => {
         if (c.id === elementId) {
           updateMap.set(c.id, {
             page_id: targetPageId,
             parent_id: newParentId,
-            order_num: i,
           });
-        } else {
-          updateMap.set(c.id, { order_num: i });
         }
       });
 
@@ -1581,28 +1525,33 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         if (!upd) return el;
         return {
           ...el,
-          ...(upd.order_num !== undefined ? { order_num: upd.order_num } : {}),
           ...(upd.parent_id ? { parent_id: upd.parent_id } : {}),
           ...(upd.page_id !== undefined ? { page_id: upd.page_id } : {}),
         };
       });
 
+      const newOrderIds = new Set(newOrder.map((child) => child.id));
+      let insertedNewOrder = false;
+      const reorderedElements: Element[] = [];
+      for (const current of updatedElements) {
+        if (newOrderIds.has(current.id)) {
+          if (!insertedNewOrder) {
+            newOrder.forEach((child) => {
+              const updated = updatedElements.find((el) => el.id === child.id);
+              if (updated) reorderedElements.push(updated);
+            });
+            insertedNewOrder = true;
+          }
+          continue;
+        }
+        reorderedElements.push(current);
+      }
+
       set((state) => ({
-        elements: updatedElements,
+        elements: reorderedElements,
         layoutVersion: state.layoutVersion + 1,
       }));
       get()._rebuildIndexes();
-      if (areCanonicalMutationStoreActionsRegistered()) {
-        const updatedElementMap = new Map(
-          updatedElements.map((updated) => [updated.id, updated]),
-        );
-        const changedElements = Array.from(updateMap.keys())
-          .map((id) => updatedElementMap.get(id))
-          .filter((updated): updated is Element => Boolean(updated));
-        if (changedElements.length > 0) {
-          applyElementOrderCanonicalPrimary(changedElements);
-        }
-      }
     },
 
     // 🚀 Phase 1: Immer → 함수형 업데이트 (High Risk)

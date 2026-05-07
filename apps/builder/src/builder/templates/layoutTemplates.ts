@@ -622,7 +622,6 @@ export function createElementsFromTemplate(
     props: Record<string, unknown>;
     style?: React.CSSProperties;
     parent_id: string | null;
-    order_num: number;
   } & Record<typeof FRAME_ELEMENT_MIRROR_ID_FIELD, string>
 > {
   type LegacyTemplateElement = {
@@ -631,7 +630,6 @@ export function createElementsFromTemplate(
     props: Record<string, unknown>;
     style?: React.CSSProperties;
     parent_id: string | null;
-    order_num: number;
   } & Record<typeof FRAME_ELEMENT_MIRROR_ID_FIELD, string>;
 
   const elements: LegacyTemplateElement[] = [];
@@ -639,7 +637,6 @@ export function createElementsFromTemplate(
   function processElement(
     templateEl: LayoutTemplateElement,
     parentId: string | null,
-    orderNum: number,
   ): string {
     const id = generateId();
     elements.push(
@@ -650,23 +647,22 @@ export function createElementsFromTemplate(
           props: templateEl.props,
           style: templateEl.style,
           parent_id: parentId,
-          order_num: orderNum,
         },
         layoutId,
       ) as LegacyTemplateElement,
     );
 
     if (templateEl.children) {
-      templateEl.children.forEach((child, index) => {
-        processElement(child, id, index);
+      templateEl.children.forEach((child) => {
+        processElement(child, id);
       });
     }
 
     return id;
   }
 
-  template.elements.forEach((el, index) => {
-    processElement(el, null, index);
+  template.elements.forEach((el) => {
+    processElement(el, null);
   });
 
   return elements;

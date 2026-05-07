@@ -29,7 +29,6 @@ import type {
 } from "@composition/shared";
 import {
   appendDescendantChild as appendDescendantChildToDocument,
-  deriveLegacyOrderNum,
   getCanonicalChildren,
   insertCanonicalChild,
   moveCanonicalChild,
@@ -664,16 +663,6 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
           documentVersion: state.documentVersion + 1,
         };
       });
-    },
-
-    getDerivedOrderNum: (parentPath, childPath) => {
-      const state = get();
-      const projectId = state.currentProjectId;
-      if (!projectId) return null;
-      const doc = state.documents.get(projectId);
-      if (!doc) return null;
-      const children = getCanonicalChildren(doc, parentPath);
-      return children ? deriveLegacyOrderNum(children, childPath) : null;
     },
 
     updateDescendant: (refPath, descendantPath, value) => {

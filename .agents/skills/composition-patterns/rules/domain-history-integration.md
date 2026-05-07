@@ -233,40 +233,36 @@ historyManager.addEntry({
 // → Undo N회 필요 (하나씩 복원)
 ```
 
-## Undo/Redo 후 order mirror 정규화
+## Undo/Redo 후 order 복원
 
-Undo/Redo 완료 후 legacy mirror 충돌이 있으면 `reorderElements()`를 호출하여
-`order_num`을 정규화합니다. 단, canonical runtime order는 parent `children[]`
-index가 SSOT이며, props update나 hydration에서 stale `order_num`을 sibling
-reorder intent로 해석하지 않습니다.
-**CRITICAL**: `setTimeout` 안에서 `get()`으로 최신 상태를 참조해야 합니다 (stale closure 방지).
+Undo/Redo에서 sibling order를 복원해야 하면 history entry에 canonical/source
+snapshot을 저장하고 parent `children[]` splice로 복원합니다. `Element.order_num`,
+`reorderElements()`, `batchUpdateElementOrders()`는 제거됐으므로 재도입하지
+않습니다. props update나 hydration에서 Element metadata를 sibling reorder intent로
+해석하지 않습니다.
 
 ```typescript
-// ✅ setTimeout 안에서 get()으로 최신 상태 참조
-if (currentPageId) {
-  setTimeout(() => {
-    const { elements: latestElements, batchUpdateElementOrders } = get();
-    reorderElements(latestElements, currentPageId, batchUpdateElementOrders);
-  }, 100);
-}
+// ✅ snapshot 기반 batch history
+historyManager.addEntry({
+  type: "batch",
+  elementId: "drag-reorder",
+  elementIds,
+  data: { prevElements, elements: nextElements },
+});
 
-// ❌ setTimeout 밖에서 캡처한 elements 사용 (stale closure)
-const { elements } = get();
-setTimeout(() => {
-  reorderElements(elements, pageId, ...); // 100ms 후 stale!
-}, 100);
-
-// ❌ Undo/Redo 외 props update에서 order_num diff만으로 canonical remove+append
+// ❌ removed legacy APIs
+// updateElementOrder(...)
+// batchUpdateElementOrders(...)
+// reorderElements(...)
 ```
 
 ## 참조 파일
 
 - `apps/builder/src/builder/stores/history.ts` - HistoryManager
-- `apps/builder/src/builder/stores/history/historyActions.ts` - Undo/Redo 액션 (batchUpdateElementOrders 사용)
+- `apps/builder/src/builder/stores/history/historyActions.ts` - Undo/Redo 액션
 - `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical `children[]` order write
 - `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 히스토리 통합 예시
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 히스토리 (단일/배치)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - legacy order_num mirror 정규화
 - `apps/builder/src/builder/stores/inspectorActions.ts` - `updateSelectedPropertiesWithChildren`
 - `apps/builder/src/builder/hooks/useSyncChildProp.ts` - 직계 자식 prop 동기화 훅
 - `apps/builder/src/builder/hooks/useSyncGrandchildProp.ts` - 손자 prop 동기화 훅

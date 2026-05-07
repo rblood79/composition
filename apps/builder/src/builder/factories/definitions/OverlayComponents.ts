@@ -1,5 +1,4 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 
 /**
@@ -16,7 +15,6 @@ export function createDialogDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -37,7 +35,6 @@ export function createDialogDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -51,7 +48,6 @@ export function createDialogDefinition(
             fontWeight: "600",
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Description",
@@ -63,7 +59,6 @@ export function createDialogDefinition(
             lineHeight: "1.5",
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "DialogFooter",
@@ -74,7 +69,6 @@ export function createDialogDefinition(
             gap: "8px",
           },
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -93,7 +87,6 @@ export function createPopoverDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -113,7 +106,6 @@ export function createPopoverDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -127,7 +119,6 @@ export function createPopoverDefinition(
             fontWeight: "600",
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Description",
@@ -139,7 +130,6 @@ export function createPopoverDefinition(
             lineHeight: "1.5",
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -157,7 +147,6 @@ export function createTooltipDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -175,7 +164,6 @@ export function createTooltipDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -188,7 +176,6 @@ export function createTooltipDefinition(
             lineHeight: "1.4",
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
     ],
   };

@@ -39,7 +39,7 @@ interface PagesSectionProps {
 function findPageBodyElement(elements: readonly Element[] | undefined) {
   return (
     elements?.find((element) => element.type.toLowerCase() === "body") ??
-    elements?.find((element) => element.order_num === 0) ??
+    elements?.[0] ??
     null
   );
 }
@@ -198,15 +198,15 @@ export const PagesSection = memo(function PagesSection({
         remainingPages[0] ??
         null;
       const nextBodyElement = pageToSelect
-        ? ((currentState.pageElementsSnapshot[pageToSelect.id] ?? []).find(
-            (element) => element.order_num === 0,
-          ) ?? null)
+        ? findPageBodyElement(
+            currentState.pageElementsSnapshot[pageToSelect.id],
+          )
         : null;
 
       const loadedNextBodyElement = pageToSelect
-        ? ((
-            useStore.getState().pageElementsSnapshot[pageToSelect.id] ?? []
-          ).find((element) => element.order_num === 0) ?? nextBodyElement)
+        ? (findPageBodyElement(
+            useStore.getState().pageElementsSnapshot[pageToSelect.id],
+          ) ?? nextBodyElement)
         : null;
 
       // 대상 페이지가 이미 로드됐으면 fallback transition 스킵 (깜빡임 방지)
@@ -245,10 +245,9 @@ export const PagesSection = memo(function PagesSection({
           scheduleBackgroundTask(() => {
             void loadPageIfNeeded(pageToSelect.id).then(() => {
               const hydratedBodyElement =
-                (
-                  useStore.getState().pageElementsSnapshot[pageToSelect.id] ??
-                  []
-                ).find((element) => element.order_num === 0) ?? null;
+                findPageBodyElement(
+                  useStore.getState().pageElementsSnapshot[pageToSelect.id],
+                ) ?? null;
 
               if (!hydratedBodyElement) {
                 return;

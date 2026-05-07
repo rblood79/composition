@@ -26,7 +26,6 @@ interface ElementLike {
   id: string;
   type: string;
   parent_id?: string | null;
-  order_num?: number;
   props: Record<string, unknown>;
 }
 
@@ -352,47 +351,39 @@ function collectSubtreeIds<T extends ElementLike>(
 export function selectItemChildrenToItemsArray(
   selectItemChildren: ElementLike[],
 ): StoredSelectItem[] {
-  return [...selectItemChildren]
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0))
-    .map((child) => {
-      const p = child.props ?? {};
-      return {
-        id: child.id,
-        label:
-          typeof p.label === "string" && p.label.length > 0
-            ? p.label
-            : child.id,
-        value: typeof p.value === "string" ? p.value : undefined,
-        textValue: typeof p.textValue === "string" ? p.textValue : undefined,
-        isDisabled: p.isDisabled === true || undefined,
-        icon: typeof p.icon === "string" ? p.icon : undefined,
-        description:
-          typeof p.description === "string" ? p.description : undefined,
-      };
-    });
+  return selectItemChildren.map((child) => {
+    const p = child.props ?? {};
+    return {
+      id: child.id,
+      label:
+        typeof p.label === "string" && p.label.length > 0 ? p.label : child.id,
+      value: typeof p.value === "string" ? p.value : undefined,
+      textValue: typeof p.textValue === "string" ? p.textValue : undefined,
+      isDisabled: p.isDisabled === true || undefined,
+      icon: typeof p.icon === "string" ? p.icon : undefined,
+      description:
+        typeof p.description === "string" ? p.description : undefined,
+    };
+  });
 }
 
 export function comboBoxItemChildrenToItemsArray(
   comboBoxItemChildren: ElementLike[],
 ): StoredComboBoxItem[] {
-  return [...comboBoxItemChildren]
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0))
-    .map((child) => {
-      const p = child.props ?? {};
-      return {
-        id: child.id,
-        label:
-          typeof p.label === "string" && p.label.length > 0
-            ? p.label
-            : child.id,
-        value: typeof p.value === "string" ? p.value : undefined,
-        textValue: typeof p.textValue === "string" ? p.textValue : undefined,
-        isDisabled: p.isDisabled === true || undefined,
-        icon: typeof p.icon === "string" ? p.icon : undefined,
-        description:
-          typeof p.description === "string" ? p.description : undefined,
-      };
-    });
+  return comboBoxItemChildren.map((child) => {
+    const p = child.props ?? {};
+    return {
+      id: child.id,
+      label:
+        typeof p.label === "string" && p.label.length > 0 ? p.label : child.id,
+      value: typeof p.value === "string" ? p.value : undefined,
+      textValue: typeof p.textValue === "string" ? p.textValue : undefined,
+      isDisabled: p.isDisabled === true || undefined,
+      icon: typeof p.icon === "string" ? p.icon : undefined,
+      description:
+        typeof p.description === "string" ? p.description : undefined,
+    };
+  });
 }
 
 /**
@@ -405,45 +396,43 @@ export function listBoxItemChildrenToItemsArray(
   lbiChildren: ElementLike[],
   childrenByParent: Map<string, ElementLike[]>,
 ): StoredListBoxItem[] {
-  return [...lbiChildren]
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0))
-    .map((lbi) => {
-      const p = lbi.props ?? {};
-      const subs = childrenByParent.get(lbi.id) ?? [];
+  return lbiChildren.map((lbi) => {
+    const p = lbi.props ?? {};
+    const subs = childrenByParent.get(lbi.id) ?? [];
 
-      const titleChild = subs.find((s) => {
-        if (s.type !== "Text") return false;
-        const slot = (s.props as { slot?: string })?.slot;
-        return !slot || slot === "title" || slot === "label";
-      });
-      const descChild = subs.find((s) => {
-        if (s.type === "Description") return true;
-        if (s.type === "Text") {
-          const slot = (s.props as { slot?: string })?.slot;
-          return slot === "description";
-        }
-        return false;
-      });
-
-      const labelFromChild = extractStringChildren(titleChild);
-      const descFromChild = extractStringChildren(descChild);
-
-      return {
-        id: lbi.id,
-        label:
-          typeof p.label === "string" && p.label.length > 0
-            ? p.label
-            : labelFromChild && labelFromChild.length > 0
-              ? labelFromChild
-              : lbi.id,
-        value: typeof p.value === "string" ? p.value : undefined,
-        textValue: typeof p.textValue === "string" ? p.textValue : undefined,
-        isDisabled: p.isDisabled === true || undefined,
-        description:
-          typeof p.description === "string" ? p.description : descFromChild,
-        href: typeof p.href === "string" ? p.href : undefined,
-      };
+    const titleChild = subs.find((s) => {
+      if (s.type !== "Text") return false;
+      const slot = (s.props as { slot?: string })?.slot;
+      return !slot || slot === "title" || slot === "label";
     });
+    const descChild = subs.find((s) => {
+      if (s.type === "Description") return true;
+      if (s.type === "Text") {
+        const slot = (s.props as { slot?: string })?.slot;
+        return slot === "description";
+      }
+      return false;
+    });
+
+    const labelFromChild = extractStringChildren(titleChild);
+    const descFromChild = extractStringChildren(descChild);
+
+    return {
+      id: lbi.id,
+      label:
+        typeof p.label === "string" && p.label.length > 0
+          ? p.label
+          : labelFromChild && labelFromChild.length > 0
+            ? labelFromChild
+            : lbi.id,
+      value: typeof p.value === "string" ? p.value : undefined,
+      textValue: typeof p.textValue === "string" ? p.textValue : undefined,
+      isDisabled: p.isDisabled === true || undefined,
+      description:
+        typeof p.description === "string" ? p.description : descFromChild,
+      href: typeof p.href === "string" ? p.href : undefined,
+    };
+  });
 }
 
 function extractStringChildren(
@@ -463,25 +452,23 @@ function extractStringChildren(
  * Tag.children 이 label 역할 (Tag.children: string). 현재 description slot 없음 —
  * 향후 ADR-097 Addendum 1 에서 확장 시 본 함수 시그니처 확장.
  *
- * order_num 기준 정렬. props.children 이 label source (Tag.spec.ts:25 참조).
+ * caller source order 기준 정렬. props.children 이 label source (Tag.spec.ts:25 참조).
  */
 export function tagChildrenToItemsArray(
   tagChildren: ElementLike[],
 ): StoredTagItem[] {
-  return [...tagChildren]
-    .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0))
-    .map((type) => {
-      const p = type.props ?? {};
-      const labelFromChildren =
-        typeof p.children === "string" && p.children.length > 0
-          ? p.children
-          : undefined;
-      return {
-        id: type.id,
-        label: labelFromChildren ?? type.id,
-        isDisabled: p.isDisabled === true || undefined,
-        allowsRemoving:
-          typeof p.allowsRemoving === "boolean" ? p.allowsRemoving : undefined,
-      };
-    });
+  return tagChildren.map((type) => {
+    const p = type.props ?? {};
+    const labelFromChildren =
+      typeof p.children === "string" && p.children.length > 0
+        ? p.children
+        : undefined;
+    return {
+      id: type.id,
+      label: labelFromChildren ?? type.id,
+      isDisabled: p.isDisabled === true || undefined,
+      allowsRemoving:
+        typeof p.allowsRemoving === "boolean" ? p.allowsRemoving : undefined,
+    };
+  });
 }

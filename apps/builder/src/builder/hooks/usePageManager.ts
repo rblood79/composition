@@ -201,9 +201,9 @@ export const usePageManager = ({
 
         setSelectedPageId(pageId);
 
-        const bodyElement = existingPageElements.find(
-          (el) => el.order_num === 0,
-        );
+        const bodyElement =
+          existingPageElements.find((el) => el.type === "body") ??
+          existingPageElements[0];
 
         // mergeElements 전에 auto-select 예약 — race condition 방지
         if (bodyElement && requestAutoSelectAfterUpdate) {
@@ -451,9 +451,12 @@ export const usePageManager = ({
             initializingRef.current = null;
             return { success: true, data: apiPages };
           }
-          const bodyElement = renderModel.elements.find(
-            (el) => el.page_id === pageToSelect.id && el.order_num === 0,
+          const pageBodyCandidates = renderModel.elements.filter(
+            (el) => el.page_id === pageToSelect.id,
           );
+          const bodyElement =
+            pageBodyCandidates.find((el) => el.type === "body") ??
+            pageBodyCandidates[0];
 
           useStore.getState().activatePage(pageToSelect.id, bodyElement?.id);
           setSelectedPageId(pageToSelect.id);

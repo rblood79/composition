@@ -66,10 +66,7 @@ export const RowEditor = memo(function RowEditor({
 
         {/* Row Info */}
         <div className="tab-overview">
-          <p className="tab-overview-text">
-            Cells: {rowCells.length || 0} | Position: #
-            {(element.order_num || 0) + 1}
-          </p>
+          <p className="tab-overview-text">Cells: {rowCells.length || 0}</p>
           <p className="section-overview-help">
             💡 Configure row appearance and dimensions
           </p>

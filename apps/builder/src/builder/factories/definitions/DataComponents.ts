@@ -7,7 +7,6 @@
  */
 
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 
 /**
@@ -23,7 +22,6 @@ export function createDataTableDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -54,7 +52,6 @@ export function createDataTableDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     // DataTable은 자식 요소가 없음
     children: [],
@@ -72,7 +69,6 @@ export function createSlotDefinition(
 ): ComponentDefinition {
   const { parentElement, elements, layoutId } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // Slot은 reusable frame 편집 컨텍스트에서만 사용 가능
   if (!layoutId) {
@@ -89,7 +85,6 @@ export function createSlotDefinition(
         description: "Main content area",
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     // Slot은 자식 요소가 없음 (Page에서 채워짐)
     children: [],

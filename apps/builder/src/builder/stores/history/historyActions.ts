@@ -12,7 +12,6 @@ import {
   sanitizeElementForSupabase,
 } from "../../../adapters/canonical/legacyElementSanitizer";
 import { getElementById, createCompleteProps } from "../utils/elementHelpers";
-import { reorderElements } from "../utils/elementReorder";
 import type { ElementsState } from "../elements";
 import { getDB } from "../../../lib/db";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
@@ -303,7 +302,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
             type: el.type,
             tabId: (el.props as { tabId?: string }).tabId,
             title: (el.props as { title?: string }).title,
-            order_num: el.order_num,
           });
         });
 
@@ -388,14 +386,10 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
         // 2. 자식 요소들을 원래 parent로 이동
         if (entry.data.elements) {
-          const childUpdates = new Map<
-            string,
-            { parent_id: string | null; order_num: number }
-          >();
+          const childUpdates = new Map<string, { parent_id: string | null }>();
           entry.data.elements.forEach((prevChild: Element) => {
             childUpdates.set(prevChild.id, {
               parent_id: prevChild.parent_id ?? null,
-              order_num: prevChild.order_num || 0,
             });
           });
 
@@ -409,7 +403,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
               return {
                 ...el,
                 parent_id: update.parent_id,
-                order_num: update.order_num,
               };
             }
             return el;
@@ -439,16 +432,12 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
         // 2. 자식 요소들을 그룹 안으로 이동
         if (entry.data.elements) {
-          const childUpdates = new Map<string, { order_num: number }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              order_num: prevChild.order_num || 0,
-            });
-          });
+          const childIds = new Set(
+            entry.data.elements.map((prevChild: Element) => prevChild.id),
+          );
 
           restoredElements = restoredElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            if (update) {
+            if (childIds.has(el.id)) {
               console.log(`📥 자식 요소 그룹 안으로 이동:`, {
                 childId: el.id,
                 groupId: entry.elementId,
@@ -456,7 +445,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
               return {
                 ...el,
                 parent_id: entry.elementId,
-                order_num: update.order_num,
               };
             }
             return el;
@@ -556,7 +544,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
               .update({
                 props: entry.data.prevProps || entry.data.prevElement.props,
                 parent_id: entry.data.prevElement.parent_id,
-                order_num: entry.data.prevElement.order_num,
               })
               .eq("id", entry.elementId);
             console.log("✅ Undo: Supabase에서 요소 복원 완료");
@@ -698,7 +685,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
                     sanitizeElement({
                       ...element,
                       parent_id: prevChild.parent_id,
-                      order_num: prevChild.order_num,
                     }),
                   );
                 }
@@ -719,7 +705,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
                 .from("elements")
                 .update({
                   parent_id: prevChild.parent_id,
-                  order_num: prevChild.order_num,
                 })
                 .eq("id", prevChild.id);
             }
@@ -750,7 +735,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
                     sanitizeElement({
                       ...element,
                       parent_id: entry.elementId,
-                      order_num: prevChild.order_num,
                     }),
                   );
                 }
@@ -791,7 +775,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
                     .from("elements")
                     .update({
                       parent_id: entry.elementId, // 그룹 ID
-                      order_num: prevChild.order_num,
                     })
                     .eq("id", prevChild.id);
                 }
@@ -809,19 +792,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     }
 
     console.log("✅ Undo 완료");
-
-    // Undo 완료 후 order_num 재정렬 (충돌 해결)
-    if (currentPageId) {
-      setTimeout(() => {
-        const { elements: latestElements, batchUpdateElementOrders } = get();
-        reorderElements(
-          latestElements,
-          currentPageId,
-          batchUpdateElementOrders,
-        );
-        console.log("📊 Undo 후 order_num 재정렬 완료");
-      }, 100);
-    }
   } catch (error) {
     console.error("Undo 시 오류:", error);
   } finally {
@@ -1064,16 +1034,12 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
         // 2. 자식 요소들을 그룹 안으로 이동
         if (entry.data.elements) {
-          const childUpdates = new Map<string, { order_num: number }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              order_num: prevChild.order_num || 0,
-            });
-          });
+          const childIds = new Set(
+            entry.data.elements.map((prevChild: Element) => prevChild.id),
+          );
 
           newElements = newElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            if (update) {
+            if (childIds.has(el.id)) {
               console.log(`📥 자식 요소 그룹 안으로 이동:`, {
                 childId: el.id,
                 groupId: entry.elementId,
@@ -1081,7 +1047,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
               return {
                 ...el,
                 parent_id: entry.elementId,
-                order_num: update.order_num,
               };
             }
             return el;
@@ -1103,14 +1068,10 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
         // 2. 자식 요소들을 원래 parent로 이동
         if (entry.data.elements) {
-          const childUpdates = new Map<
-            string,
-            { parent_id: string | null; order_num: number }
-          >();
+          const childUpdates = new Map<string, { parent_id: string | null }>();
           entry.data.elements.forEach((prevChild: Element) => {
             childUpdates.set(prevChild.id, {
               parent_id: prevChild.parent_id ?? null,
-              order_num: prevChild.order_num || 0,
             });
           });
 
@@ -1124,7 +1085,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
               return {
                 ...el,
                 parent_id: update.parent_id,
-                order_num: update.order_num,
               };
             }
             return el;
@@ -1394,7 +1354,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
                     sanitizeElement({
                       ...element,
                       parent_id: entry.elementId,
-                      order_num: prevChild.order_num,
                     }),
                   );
                 }
@@ -1435,7 +1394,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
                     .from("elements")
                     .update({
                       parent_id: entry.elementId, // 그룹 ID
-                      order_num: prevChild.order_num,
                     })
                     .eq("id", prevChild.id);
                 }
@@ -1466,7 +1424,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
                     sanitizeElement({
                       ...element,
                       parent_id: prevChild.parent_id,
-                      order_num: prevChild.order_num,
                     }),
                   );
                 }
@@ -1487,7 +1444,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
                 .from("elements")
                 .update({
                   parent_id: prevChild.parent_id,
-                  order_num: prevChild.order_num,
                 })
                 .eq("id", prevChild.id);
             }
@@ -1503,16 +1459,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     }
 
     console.log("✅ Redo 완료");
-
-    // Redo 완료 후 order_num 재정렬 (충돌 해결)
-    const pageId = state.currentPageId;
-    if (pageId) {
-      setTimeout(() => {
-        const { elements: latestElements, batchUpdateElementOrders } = get();
-        reorderElements(latestElements, pageId, batchUpdateElementOrders);
-        console.log("📊 Redo 후 order_num 재정렬 완료");
-      }, 100);
-    }
   } catch (error) {
     console.error("Redo 시 오류:", error);
   } finally {
@@ -1606,18 +1552,6 @@ export const createGoToHistoryIndexAction =
       await syncDatabaseForEntries(entries, direction, get);
 
       console.log("✅ GoToHistoryIndex 완료");
-
-      // order_num 재정렬
-      if (currentPageId) {
-        setTimeout(() => {
-          const { elements: latestElements, batchUpdateElementOrders } = get();
-          reorderElements(
-            latestElements,
-            currentPageId,
-            batchUpdateElementOrders,
-          );
-        }, 100);
-      }
     } catch (error) {
       console.error("GoToHistoryIndex 시 오류:", error);
     } finally {
@@ -1773,14 +1707,10 @@ function applyHistoryEntry(
           (el) => el.id !== entry.elementId,
         );
         if (entry.data.elements) {
-          const childUpdates = new Map<
-            string,
-            { parent_id: string | null; order_num: number }
-          >();
+          const childUpdates = new Map<string, { parent_id: string | null }>();
           entry.data.elements.forEach((prevChild: Element) => {
             childUpdates.set(prevChild.id, {
               parent_id: prevChild.parent_id ?? null,
-              order_num: prevChild.order_num || 0,
             });
           });
           filteredElements = filteredElements.map((el) => {
@@ -1789,7 +1719,6 @@ function applyHistoryEntry(
               ? {
                   ...el,
                   parent_id: update.parent_id,
-                  order_num: update.order_num,
                 }
               : el;
           });
@@ -1814,19 +1743,14 @@ function applyHistoryEntry(
         }
         let restoredElements = [...elements, ...elementsToRestore];
         if (entry.data.elements) {
-          const childUpdates = new Map<string, { order_num: number }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              order_num: prevChild.order_num || 0,
-            });
-          });
+          const childIds = new Set(
+            entry.data.elements.map((prevChild: Element) => prevChild.id),
+          );
           restoredElements = restoredElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            return update
+            return childIds.has(el.id)
               ? {
                   ...el,
                   parent_id: entry.elementId,
-                  order_num: update.order_num,
                 }
               : el;
           });
@@ -1967,19 +1891,14 @@ function applyHistoryEntry(
         }
         let newElements = [...elements, ...elementsToAdd];
         if (entry.data.elements) {
-          const childUpdates = new Map<string, { order_num: number }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              order_num: prevChild.order_num || 0,
-            });
-          });
+          const childIds = new Set(
+            entry.data.elements.map((prevChild: Element) => prevChild.id),
+          );
           newElements = newElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            return update
+            return childIds.has(el.id)
               ? {
                   ...el,
                   parent_id: entry.elementId,
-                  order_num: update.order_num,
                 }
               : el;
           });
@@ -1993,14 +1912,10 @@ function applyHistoryEntry(
           (el) => el.id !== entry.elementId,
         );
         if (entry.data.elements) {
-          const childUpdates = new Map<
-            string,
-            { parent_id: string | null; order_num: number }
-          >();
+          const childUpdates = new Map<string, { parent_id: string | null }>();
           entry.data.elements.forEach((prevChild: Element) => {
             childUpdates.set(prevChild.id, {
               parent_id: prevChild.parent_id ?? null,
-              order_num: prevChild.order_num || 0,
             });
           });
           filteredElements = filteredElements.map((el) => {
@@ -2009,7 +1924,6 @@ function applyHistoryEntry(
               ? {
                   ...el,
                   parent_id: update.parent_id,
-                  order_num: update.order_num,
                 }
               : el;
           });

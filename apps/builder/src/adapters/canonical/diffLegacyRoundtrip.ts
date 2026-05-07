@@ -1,13 +1,12 @@
 /**
  * @fileoverview ADR-116 Phase 3 G4 — 3-A-impl: diffLegacyRoundtrip
  *
- * shadow write 결과 차이 요약 (3 카테고리 분류). Phase 3-A monitoring 1-2주
+ * shadow write 결과 차이 요약 (2 카테고리 분류). Phase 3-A monitoring 1-2주
  * destructive=0 시그널 검증의 source.
  *
- * **3 카테고리 분류**:
+ * **2 카테고리 분류**:
  * - **destructive**: id/parent_id/page_id/layout_id/type/props 무손실 위반.
  *   destructive=0 가 G4 PASS prerequisite (3-B 진입 차단).
- * - **reorder**: order_num 변경 (시각 순서 정합 영향). warn 수준.
  * - **cosmetic**: legacy/canonical 이 동등 의미로 표현하는 차이 (예: 빈 props
  *   `{}` vs `undefined`). ignore.
  *
@@ -16,7 +15,6 @@
  * - missing/extra (한쪽에만 존재) → destructive.
  * - parent_id / page_id / layout_id / type 변경 → destructive.
  * - props deep-equal 위반 → destructive (단, 동등 의미 nullish 차이는 cosmetic).
- * - order_num 변경 → reorder.
  */
 
 import type { Element } from "@/types/builder/unified.types";
@@ -35,8 +33,6 @@ export interface RoundtripDiffEntry {
 export interface RoundtripDiff {
   /** id/parent_id/page_id/layout_id/type/props 무손실 위반 — G4 PASS 차단 */
   destructive: RoundtripDiffEntry[];
-  /** order_num 변경 — warn 수준 */
-  reorder: RoundtripDiffEntry[];
   /** 동등 의미 차이 — ignore */
   cosmetic: RoundtripDiffEntry[];
 }
@@ -61,7 +57,6 @@ export function diffLegacyRoundtrip(
 ): RoundtripDiff {
   const diff: RoundtripDiff = {
     destructive: [],
-    reorder: [],
     cosmetic: [],
   };
 
@@ -109,18 +104,6 @@ export function diffLegacyRoundtrip(
           after: afterEl[field],
         });
       }
-    }
-
-    // order_num → reorder
-    const beforeOrder = beforeEl.order_num ?? 0;
-    const afterOrder = afterEl.order_num ?? 0;
-    if (beforeOrder !== afterOrder) {
-      diff.reorder.push({
-        id,
-        field: "order_num",
-        before: beforeOrder,
-        after: afterOrder,
-      });
     }
 
     // props deep-equal — destructive (동등 nullish 는 cosmetic)

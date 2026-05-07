@@ -36,21 +36,12 @@ export async function addTabItem(params: {
     throw new Error(`TabPanels element not found under Tabs ${tabsElementId}`);
   }
 
-  const panelSiblings = elements.filter(
-    (el) => el.parent_id === tabPanelsEl.id,
-  );
-  const maxPanelOrder = Math.max(
-    0,
-    ...panelSiblings.map((el) => el.order_num || 0),
-  );
-
   const newPanelElement: Element = {
     id: ElementUtils.generateId(),
     page_id: pageId,
     type: "TabPanel",
     props: { itemId: newItemId },
     parent_id: tabPanelsEl.id,
-    order_num: maxPanelOrder + 1,
   };
 
   const db = await getDB();

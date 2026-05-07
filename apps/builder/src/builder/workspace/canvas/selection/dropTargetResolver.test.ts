@@ -617,14 +617,10 @@ describe("resolveDropTarget cross-page body targets", () => {
     ).toEqual({ x: 40, y: 116, width: 160, height: 100 });
     expect(
       result ? computeReorderFromDropTarget(result, source.id, store) : null,
-    ).toEqual([
-      { id: first.id, order_num: 0 },
-      { id: source.id, order_num: 1 },
-      { id: middle.id, order_num: 2 },
-    ]);
+    ).toEqual([{ id: first.id }, { id: source.id }, { id: middle.id }]);
   });
 
-  it("uses childrenMap source order even when legacy order_num differs", () => {
+  it("uses childrenMap source order even when input metadata order differs", () => {
     const body = makeElement("body", { type: "body" });
     const first = makeElement("first", { parent_id: body.id, order_num: 2 });
     const middle = makeElement("middle", { parent_id: body.id, order_num: 0 });
@@ -654,9 +650,9 @@ describe("resolveDropTarget cross-page body targets", () => {
     );
 
     expect(updates).toEqual([
-      { id: first.id, order_num: 0 },
-      { id: source.id, order_num: 1 },
-      { id: middle.id, order_num: 2 },
+      { id: first.id },
+      { id: source.id },
+      { id: middle.id },
     ]);
   });
 });

@@ -355,25 +355,14 @@ export function useCanvasDragDropHelpers({
         }
       }
 
-      const updates = nextIds.map((id, index) => ({
-        elementId: id,
-        updates: {
-          order_num: index,
-          ...(id === movedId && { parent_id: newParentId }),
-        },
-      }));
-
-      if (oldParentId !== newParentId) {
-        const oldSiblings = getSiblings(oldParentId);
-        oldSiblings.forEach((element, index) => {
-          updates.push({
-            elementId: element.id,
-            updates: { order_num: index },
-          });
-        });
-      }
-
-      return updates;
+      return oldParentId !== newParentId
+        ? [
+            {
+              elementId: movedId,
+              updates: { parent_id: newParentId },
+            },
+          ]
+        : [];
     },
     [elementById, elements],
   );

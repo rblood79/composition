@@ -49,7 +49,7 @@ export interface UngroupResult {
 export function createGroupFromSelection(
   elementIds: string[],
   elementsMap: Map<string, Element>,
-  pageId: string
+  pageId: string,
 ): GroupCreationResult {
   if (elementIds.length === 0) {
     throw new Error("[Group] No elements selected to group");
@@ -67,20 +67,11 @@ export function createGroupFromSelection(
   // Find common parent (if all elements have same parent)
   const firstParentId = selectedElements[0].parent_id;
   const allSameParent = selectedElements.every(
-    (el) => el.parent_id === firstParentId
+    (el) => el.parent_id === firstParentId,
   );
 
   // Group's parent_id is the common parent (or null if different parents)
   const groupParentId = allSameParent ? firstParentId : null;
-
-  // Calculate next order_num for group
-  const siblings = Array.from(elementsMap.values()).filter(
-    (el) => el.parent_id === groupParentId && el.page_id === pageId
-  );
-  const maxOrder = siblings.length > 0
-    ? Math.max(...siblings.map((el) => el.order_num || 0))
-    : -1;
-  const groupOrderNum = maxOrder + 1;
 
   // Calculate average position for group positioning
   const positions = selectedElements
@@ -105,16 +96,17 @@ export function createGroupFromSelection(
 
   // Generate customId for group (e.g., "group_1", "group_2")
   const existingGroups = Array.from(elementsMap.values()).filter(
-    (el) => el.type === "Group" && el.customId?.startsWith("group_")
+    (el) => el.type === "Group" && el.customId?.startsWith("group_"),
   );
-  const maxGroupNum = existingGroups.length > 0
-    ? Math.max(
-        ...existingGroups.map((el) => {
-          const match = el.customId?.match(/^group_(\d+)$/);
-          return match ? parseInt(match[1], 10) : 0;
-        })
-      )
-    : 0;
+  const maxGroupNum =
+    existingGroups.length > 0
+      ? Math.max(
+          ...existingGroups.map((el) => {
+            const match = el.customId?.match(/^group_(\d+)$/);
+            return match ? parseInt(match[1], 10) : 0;
+          }),
+        )
+      : 0;
   const groupCustomId = `group_${maxGroupNum + 1}`;
 
   // Create Group element
@@ -133,20 +125,20 @@ export function createGroupFromSelection(
     },
     parent_id: groupParentId,
     page_id: pageId,
-    order_num: groupOrderNum,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
   // Update selected elements' parent_id to group
-  const updatedChildren = selectedElements.map((el, index) => ({
+  const updatedChildren = selectedElements.map((el) => ({
     ...el,
     parent_id: groupElement.id,
-    order_num: index, // Re-sequence children
     updated_at: new Date().toISOString(),
   }));
 
-  console.log(`✅ [Group] Created group with ${updatedChildren.length} elements`);
+  console.log(
+    `✅ [Group] Created group with ${updatedChildren.length} elements`,
+  );
 
   return {
     groupElement,
@@ -181,7 +173,7 @@ function parsePixels(value: unknown): number | null {
  */
 export function ungroupElement(
   groupId: string,
-  elementsMap: Map<string, Element>
+  elementsMap: Map<string, Element>,
 ): UngroupResult {
   const groupElement = elementsMap.get(groupId);
 
@@ -191,13 +183,13 @@ export function ungroupElement(
 
   if (groupElement.type !== "Group") {
     throw new Error(
-      `[Ungroup] Element is not a Group: ${groupId} (type: ${groupElement.type})`
+      `[Ungroup] Element is not a Group: ${groupId} (type: ${groupElement.type})`,
     );
   }
 
   // Get children of group
   const children = Array.from(elementsMap.values()).filter(
-    (el) => el.parent_id === groupId
+    (el) => el.parent_id === groupId,
   );
 
   if (children.length === 0) {
@@ -211,29 +203,18 @@ export function ungroupElement(
   // Move children to group's parent
   const newParentId = groupElement.parent_id;
 
-  // Calculate next order_num for ungrouped children
-  const siblings = Array.from(elementsMap.values()).filter(
-    (el) =>
-      el.parent_id === newParentId &&
-      el.page_id === groupElement.page_id &&
-      el.id !== groupId
-  );
-  let nextOrderNum =
-    siblings.length > 0
-      ? Math.max(...siblings.map((el) => el.order_num || 0)) + 1
-      : 0;
-
   const updatedChildren = children.map((child) => {
     const updatedChild = {
       ...child,
       parent_id: newParentId,
-      order_num: nextOrderNum++,
       updated_at: new Date().toISOString(),
     };
     return updatedChild;
   });
 
-  console.log(`✅ [Ungroup] Ungrouped ${children.length} elements from group ${groupId}`);
+  console.log(
+    `✅ [Ungroup] Ungrouped ${children.length} elements from group ${groupId}`,
+  );
 
   return {
     updatedChildren,

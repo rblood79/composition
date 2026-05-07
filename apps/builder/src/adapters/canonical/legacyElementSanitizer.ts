@@ -19,7 +19,6 @@ export interface SupabaseElement {
   page_id: string | null;
   layout_id?: string | null;
   slot_name?: string | null;
-  order_num: number;
   data_binding?: unknown;
   events?: unknown[];
   deleted?: boolean;
@@ -113,7 +112,6 @@ export const sanitizeElement = (element: Element): Element => {
       page_id: element.page_id || "",
       layout_id: element.layout_id || null, // ⭐ Layout/Slot System: layout_id 포함
       slot_name: element.slot_name || null,
-      order_num: element.order_num || 0,
       dataBinding: element.dataBinding,
       events: element.events,
       componentRole: (element as ElementWithCanonicalFields).componentRole,
@@ -158,7 +156,6 @@ export const sanitizeElementForSupabase = (
       page_id: sanitized.page_id ?? null,
       layout_id: sanitized.layout_id ?? null,
       slot_name: sanitized.slot_name ?? null,
-      order_num: sanitized.order_num ?? 0,
       data_binding: sanitized.dataBinding,
       events: sanitized.events,
       deleted: sanitized.deleted,
@@ -186,7 +183,6 @@ export const sanitizeElementForSupabase = (
       page_id: element.page_id ?? null,
       layout_id: element.layout_id ?? null,
       slot_name: element.slot_name ?? null,
-      order_num: element.order_num ?? 0,
       data_binding: element.dataBinding,
       events: element.events,
       deleted: element.deleted,

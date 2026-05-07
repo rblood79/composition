@@ -113,11 +113,6 @@ export const TagEditor = memo(function TagEditor({
                 }
 
                 const { elements } = useStore.getState();
-                const maxOrderNum = Math.max(
-                  0,
-                  ...fieldChildren.map((el) => el.order_num || 0),
-                );
-
                 const newField: Element = {
                   id: ElementUtils.generateId(),
                   customId: generateCustomId("Field", elements),
@@ -133,7 +128,6 @@ export const TagEditor = memo(function TagEditor({
                     className: "",
                   } as Record<string, unknown>,
                   parent_id: elementId,
-                  order_num: maxOrderNum + 1,
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 };
@@ -260,7 +254,6 @@ export const TagEditor = memo(function TagEditor({
                   className: "",
                 } as Record<string, unknown>,
                 parent_id: elementId,
-                order_num: 1,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               };

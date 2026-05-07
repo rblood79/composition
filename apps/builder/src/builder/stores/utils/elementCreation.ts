@@ -6,7 +6,6 @@ import { normalizeExternalFillIngress } from "../../panels/styles/utils/fillExte
 import { historyManager } from "../history";
 import { getDB } from "../../../lib/db";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
-import { reorderElements } from "./elementReorder";
 import type { ElementsState } from "../elements";
 import { normalizeElementTagInElement } from "./elementTagNormalizer";
 import { applyFactoryPropagation } from "../../utils/propagationEngine";
@@ -125,16 +124,12 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
  * 1. 메모리 상태 업데이트 (즉시 UI 반영)
  * 2. iframe에 postMessage 전송 (프리뷰 동기화)
  * 3. Supabase에 저장 (비동기, 실패해도 메모리는 유지)
- * 4. order_num 재정렬
- *
  * @param set - Zustand setState 함수
  * @param get - Zustand getState 함수
  * @returns addElement 액션 함수
  */
 export const createAddElementAction =
   (set: SetState, get: GetState) => async (element: Element) => {
-    // 🔧 order_num 중복 방지: set() 내부에서 atomic하게 할당
-    // 외부 get() 기반 계산은 race condition으로 중복 가능 → prevState 기반 계산으로 전환
     const normalizedElement = normalizeExternalFillIngress(
       normalizeElementTagInElement(element),
     );
@@ -148,30 +143,7 @@ export const createAddElementAction =
         prevState.elements,
         prevState.elementsMap,
       );
-      // ADR-040 Phase 3: childrenMap O(1) 조회 (elements.filter 배열 순회 제거)
-      const siblings =
-        prevState.childrenMap.get(
-          customIdNormalizedElement.parent_id || "root",
-        ) ?? [];
-      const hasConflict = siblings.some(
-        (sibling) => sibling.order_num === customIdNormalizedElement.order_num,
-      );
-      if (
-        hasConflict ||
-        customIdNormalizedElement.order_num === undefined ||
-        customIdNormalizedElement.order_num === null
-      ) {
-        const maxOrder =
-          siblings.length > 0
-            ? Math.max(...siblings.map((el) => el.order_num || 0))
-            : -1;
-        elementToAdd = {
-          ...customIdNormalizedElement,
-          order_num: maxOrder + 1,
-        };
-      } else {
-        elementToAdd = customIdNormalizedElement;
-      }
+      elementToAdd = customIdNormalizedElement;
       return {
         elements: [...prevState.elements, elementToAdd],
         layoutVersion: prevState.layoutVersion + 1,
@@ -225,25 +197,6 @@ export const createAddElementAction =
         );
       }
     }
-
-    // 🔧 order_num 중복 방지로 인해 재정렬 필요성 감소
-    // 하지만 기존 데이터 호환성을 위해 재정렬 로직 유지 (단, 지연 시간 단축)
-    const currentPageId = get().currentPageId;
-    // Page 요소: currentPageId 기반 reorder (legacy 경로 보존)
-    if (currentPageId && elementToAdd.page_id === currentPageId) {
-      queueMicrotask(() => {
-        const { elements, batchUpdateElementOrders } = get();
-        reorderElements(elements, currentPageId, batchUpdateElementOrders);
-      });
-    }
-    // Reusable frame 자식: frame.id 기반 reorder (canonical context)
-    else if (isReusableContext && parentFrame) {
-      const reusableFrameId = parentFrame.id;
-      queueMicrotask(() => {
-        const { elements, batchUpdateElementOrders } = get();
-        reorderElements(elements, reusableFrameId, batchUpdateElementOrders);
-      });
-    }
   };
 
 /**
@@ -272,7 +225,6 @@ export const createAddComplexElementAction =
       ),
     ).map((child) => normalizeExternalFillIngress(child));
 
-    // 🔧 부모 요소의 order_num 중복 방지: set() 내부에서 atomic하게 할당
     let parentToAdd = normalizedParent;
     let childrenToAdd = normalizedChildren;
 
@@ -296,30 +248,7 @@ export const createAddComplexElementAction =
         return nextChild;
       });
 
-      // ADR-040 Phase 3: childrenMap O(1) 조회 (elements.filter 배열 순회 제거)
-      const siblings =
-        prevState.childrenMap.get(
-          customIdNormalizedParent.parent_id || "root",
-        ) ?? [];
-      const hasConflict = siblings.some(
-        (sibling) => sibling.order_num === customIdNormalizedParent.order_num,
-      );
-      if (
-        hasConflict ||
-        customIdNormalizedParent.order_num === undefined ||
-        customIdNormalizedParent.order_num === null
-      ) {
-        const maxOrder =
-          siblings.length > 0
-            ? Math.max(...siblings.map((el) => el.order_num || 0))
-            : -1;
-        parentToAdd = {
-          ...customIdNormalizedParent,
-          order_num: maxOrder + 1,
-        };
-      } else {
-        parentToAdd = customIdNormalizedParent;
-      }
+      parentToAdd = customIdNormalizedParent;
       return {
         elements: [...prevState.elements, parentToAdd, ...childrenToAdd],
         layoutVersion: prevState.layoutVersion + 1,

@@ -164,7 +164,6 @@ function extractCanonicalComponentMirrorFields(
 export function canonicalNodeToElement(
   node: CanonicalNode,
   parentId: string | null,
-  orderNum: number,
   scope: ElementScopeContext = ROOT_SCOPE,
 ): Element | null {
   // ADR-116 Phase 5 G7 본격 cutover — `x-composition` extension 에서
@@ -190,7 +189,6 @@ export function canonicalNodeToElement(
       type: isLegacySlotHoisted ? "Slot" : node.type,
       props,
       parent_id: parentId,
-      order_num: orderNum,
       page_id: scope.pageId,
       layout_id: scope.layoutId,
       fills: undefined,
@@ -205,7 +203,7 @@ export function canonicalNodeToElement(
 /**
  * canonical document tree 를 평탄한 legacy `Element[]` 로 변환.
  *
- * - DFS 순회 (root → children).
+ * - DFS 순회 (root → children), source order 그대로 보존.
  * - metadata 미보존 노드는 skip — children 은 부모 context (skip 직전 부모 id) 로 승계.
  * - 결과 Element[] 는 buildTreeFromElements 가 `parent_id` 기반으로 재구성 가능.
  */
@@ -217,32 +215,26 @@ export function canonicalDocumentToElements(
   function visit(
     node: CanonicalNode,
     parentLegacyId: string | null,
-    siblingIndex: number,
     scope: ElementScopeContext,
   ): void {
     const nextScope = getNodeScope(node, scope);
-    const element = canonicalNodeToElement(
-      node,
-      parentLegacyId,
-      siblingIndex,
-      nextScope,
-    );
+    const element = canonicalNodeToElement(node, parentLegacyId, nextScope);
     const nextParentId = element?.id ?? parentLegacyId;
     if (element) result.push(element);
     if (node.children) {
-      node.children.forEach((child, idx) => {
-        visit(child, nextParentId, idx, nextScope);
+      node.children.forEach((child) => {
+        visit(child, nextParentId, nextScope);
       });
     }
     getRefDescendantChildren(node).forEach((children) => {
-      children.forEach((child, idx) => {
-        visit(child, nextParentId, idx, nextScope);
+      children.forEach((child) => {
+        visit(child, nextParentId, nextScope);
       });
     });
   }
 
-  doc.children.forEach((child, idx) => {
-    visit(child, null, idx, ROOT_SCOPE);
+  doc.children.forEach((child) => {
+    visit(child, null, ROOT_SCOPE);
   });
 
   return result;

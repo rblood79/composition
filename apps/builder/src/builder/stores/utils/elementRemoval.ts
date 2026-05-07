@@ -5,7 +5,6 @@ import { Element } from "../../../types/core/store.types";
 import { historyManager } from "../history";
 import { getDB } from "../../../lib/db";
 import { createCompleteProps, getElementById } from "./elementHelpers";
-import { reorderElements } from "./elementReorder";
 import type { ElementsState } from "../elements";
 import {
   rebuildPageIndex,
@@ -30,21 +29,6 @@ import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
-
-// ADR-100 Phase 1 (098-a 슬롯): "SelectItem" = RAC 공식 `ListBoxItem` alias. composition 내부 식별자 유지.
-// ADR-101 Phase 1 (098-b 슬롯): "ComboBoxItem" = RAC alias 이름 동일. ADR-073 items SSOT 이관 완료.
-//   (양쪽 모두 기존 프로젝트 migration 경로에 존재 — 삭제 연쇄 대상 포함 필수)
-const COLLECTION_ITEM_TAGS = new Set([
-  "Tab",
-  "Panel",
-  "ListBoxItem",
-  "GridListItem",
-  "MenuItem",
-  "ComboBoxItem",
-  "SelectItem",
-  "TreeItem",
-  "ToggleButton",
-]);
 
 function syncRemovedElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
@@ -89,9 +73,18 @@ function collectElementsToRemove(
   };
 
   let childElements = findChildren(elementId);
+  const getSiblingIndex = (candidate: Element): number => {
+    return elements
+      .filter(
+        (el) =>
+          el.parent_id === candidate.parent_id && el.type === candidate.type,
+      )
+      .findIndex((el) => el.id === candidate.id);
+  };
 
   // Table Column 삭제 시 특별 처리: 연관된 Cell들도 함께 삭제
   if (element.type === "Column") {
+    const columnIndex = getSiblingIndex(element);
     const tableElement = elements.find((el) => {
       const tableHeader = elements.find(
         (header) => header.id === element.parent_id,
@@ -110,12 +103,9 @@ function collectElementsToRemove(
           (el) => el.parent_id === tableBody.id && el.type === "Row",
         );
         const cellsToRemove = rows.flatMap((row) =>
-          elements.filter(
-            (cell) =>
-              cell.parent_id === row.id &&
-              cell.type === "Cell" &&
-              cell.order_num === element.order_num,
-          ),
+          elements
+            .filter((cell) => cell.parent_id === row.id && cell.type === "Cell")
+            .filter((_, index) => index === columnIndex),
         );
         childElements = [...childElements, ...cellsToRemove];
       }
@@ -124,6 +114,7 @@ function collectElementsToRemove(
 
   // Table Cell 삭제 시 특별 처리: 대응하는 Column도 함께 삭제
   if (element.type === "Cell") {
+    const cellIndex = getSiblingIndex(element);
     const row = elements.find((el) => el.id === element.parent_id);
     if (row && row.type === "Row") {
       const tableBody = elements.find((el) => el.id === row.parent_id);
@@ -137,24 +128,24 @@ function collectElementsToRemove(
               el.parent_id === tableElement.id && el.type === "TableHeader",
           );
           if (tableHeader) {
-            const columnToRemove = elements.find(
+            const columns = elements.filter(
               (col) =>
-                col.parent_id === tableHeader.id &&
-                col.type === "Column" &&
-                col.order_num === element.order_num,
+                col.parent_id === tableHeader.id && col.type === "Column",
             );
+            const columnToRemove = columns[cellIndex];
             if (columnToRemove) {
               const allRows = elements.filter(
                 (el) => el.parent_id === tableBody.id && el.type === "Row",
               );
               const otherCellsToRemove = allRows.flatMap((r) =>
-                elements.filter(
-                  (cell) =>
-                    cell.parent_id === r.id &&
-                    cell.type === "Cell" &&
-                    cell.order_num === element.order_num &&
-                    cell.id !== element.id,
-                ),
+                elements
+                  .filter(
+                    (cell) => cell.parent_id === r.id && cell.type === "Cell",
+                  )
+                  .filter(
+                    (cell, index) =>
+                      index === cellIndex && cell.id !== element.id,
+                  ),
               );
               childElements = [
                 ...childElements,
@@ -354,20 +345,6 @@ async function executeRemoval(
       { type: "ELEMENT_REMOVED", payload: { elementId: elementIdsToRemove } },
       "*",
     );
-  }
-
-  // order_num 재정렬
-  const currentPageId = get().currentPageId;
-  if (currentPageId) {
-    const hasCollectionItem = rootElements.some((el) =>
-      COLLECTION_ITEM_TAGS.has(el.type),
-    );
-    if (!hasCollectionItem) {
-      setTimeout(() => {
-        const { elements, batchUpdateElementOrders } = get();
-        reorderElements(elements, currentPageId, batchUpdateElementOrders);
-      }, 100);
-    }
   }
 }
 

@@ -73,9 +73,7 @@ function hasCanonicalFrameElements(
 
 function findFrameBodyElement(elements: Element[]): Element | null {
   return (
-    elements.find((element) => element.type === "body") ??
-    elements.find((element) => element.order_num === 0) ??
-    null
+    elements.find((element) => element.type === "body") ?? elements[0] ?? null
   );
 }
 

@@ -345,7 +345,6 @@ export function usePresetApply({
         // ============================================
         // Step 3: Slot Element 배열 생성
         // ============================================
-        let orderNum = 1;
         const slotElements: Element[] = slotsToCreate.map(
           (slotDef): Element =>
             withFrameElementMirrorId(
@@ -360,7 +359,6 @@ export function usePresetApply({
                 },
                 parent_id: bodyElementId,
                 page_id: null,
-                order_num: orderNum++,
               },
               layoutId,
             ),

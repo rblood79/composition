@@ -1,5 +1,4 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 
 /**
@@ -13,8 +12,6 @@ export function createAvatarDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "Avatar",
@@ -32,7 +29,6 @@ export function createAvatarDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -52,8 +48,6 @@ export function createAvatarGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "AvatarGroup",
@@ -69,7 +63,6 @@ export function createAvatarGroupDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -83,7 +76,6 @@ export function createAvatarGroupDefinition(
             marginLeft: -8,
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Avatar",
@@ -96,7 +88,6 @@ export function createAvatarGroupDefinition(
             marginLeft: -8,
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "Avatar",
@@ -109,7 +100,6 @@ export function createAvatarGroupDefinition(
             marginLeft: -8,
           },
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -126,8 +116,6 @@ export function createStatusLightDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "StatusLight",
@@ -145,7 +133,6 @@ export function createStatusLightDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -164,8 +151,6 @@ export function createInlineAlertDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "InlineAlert",
@@ -175,7 +160,6 @@ export function createInlineAlertDefinition(
         variant: "info",
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -185,7 +169,6 @@ export function createInlineAlertDefinition(
           level: 3,
           className: "alert-heading",
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Description",
@@ -194,7 +177,6 @@ export function createInlineAlertDefinition(
             "There was an error processing your request. Please try again.",
           className: "react-aria-Description",
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -213,8 +195,6 @@ export function createButtonGroupDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "ButtonGroup",
@@ -232,7 +212,6 @@ export function createButtonGroupDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -243,7 +222,6 @@ export function createButtonGroupDefinition(
           fillStyle: "outline",
           size: "md",
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Button",
@@ -253,7 +231,6 @@ export function createButtonGroupDefinition(
           fillStyle: "fill",
           size: "md",
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -272,8 +249,6 @@ export function createAccordionDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "Accordion",
@@ -288,7 +263,6 @@ export function createAccordionDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -300,21 +274,18 @@ export function createAccordionDefinition(
             display: "block",
           },
         } as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "DisclosureHeader",
             props: {
               children: "Section 1",
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "DisclosureContent",
             props: {
               children: "Section 1 content goes here.",
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },
@@ -327,21 +298,18 @@ export function createAccordionDefinition(
             display: "block",
           },
         } as ComponentElementProps,
-        order_num: 2,
         children: [
           {
             type: "DisclosureHeader",
             props: {
               children: "Section 2",
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "DisclosureContent",
             props: {
               children: "Section 2 content goes here.",
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },
@@ -364,8 +332,6 @@ export function createProgressBarDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "ProgressBar",
@@ -392,7 +358,6 @@ export function createProgressBarDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -412,7 +377,6 @@ export function createProgressBarDefinition(
             gridArea: "label",
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "ProgressBarValue",
@@ -428,7 +392,6 @@ export function createProgressBarDefinition(
             justifySelf: "end",
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "ProgressBarTrack",
@@ -442,7 +405,6 @@ export function createProgressBarDefinition(
             gridArea: "bar",
           },
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -462,8 +424,6 @@ export function createMeterDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "Meter",
@@ -489,7 +449,6 @@ export function createMeterDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -507,7 +466,6 @@ export function createMeterDefinition(
             gridArea: "label",
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "MeterValue",
@@ -523,7 +481,6 @@ export function createMeterDefinition(
             justifySelf: "end",
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "MeterTrack",
@@ -537,7 +494,6 @@ export function createMeterDefinition(
             gridArea: "bar",
           },
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -554,8 +510,6 @@ export function createProgressCircleDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "ProgressCircle",
@@ -572,7 +526,6 @@ export function createProgressCircleDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -589,8 +542,6 @@ export function createImageDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "Image",
@@ -607,7 +558,6 @@ export function createImageDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -626,8 +576,6 @@ export function createRangeCalendarDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   const now = new Date();
   const calYear = now.getFullYear();
@@ -647,7 +595,6 @@ export function createRangeCalendarDefinition(
         isReadOnly: false,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -658,7 +605,6 @@ export function createRangeCalendarDefinition(
             month: "long",
           }).format(now),
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "CalendarGrid",
@@ -668,7 +614,6 @@ export function createRangeCalendarDefinition(
           totalDays: calTotalDays,
           todayDate: now.getDate(),
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -687,8 +632,6 @@ export function createIllustratedMessageDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "IllustratedMessage",
@@ -710,7 +653,6 @@ export function createIllustratedMessageDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -730,8 +672,6 @@ export function createCardViewDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "CardView",
@@ -751,7 +691,6 @@ export function createCardViewDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -765,7 +704,6 @@ export function createCardViewDefinition(
             padding: 16,
           },
         } as ComponentElementProps,
-        order_num: 0,
       },
       {
         type: "Card",
@@ -778,7 +716,6 @@ export function createCardViewDefinition(
             padding: 16,
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Card",
@@ -791,7 +728,6 @@ export function createCardViewDefinition(
             padding: 16,
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -809,8 +745,6 @@ export function createTableViewDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "TableView",
@@ -828,7 +762,6 @@ export function createTableViewDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -839,7 +772,6 @@ export function createTableViewDefinition(
             flexDirection: "row",
           },
         } as ComponentElementProps,
-        order_num: 0,
         children: [
           {
             type: "Column",
@@ -847,7 +779,6 @@ export function createTableViewDefinition(
               children: "Name",
               style: { flex: 1, padding: 8, fontWeight: 600 },
             } as ComponentElementProps,
-            order_num: 0,
           },
           {
             type: "Column",
@@ -855,7 +786,6 @@ export function createTableViewDefinition(
               children: "Type",
               style: { flex: 1, padding: 8, fontWeight: 600 },
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "Column",
@@ -863,7 +793,6 @@ export function createTableViewDefinition(
               children: "Status",
               style: { flex: 1, padding: 8, fontWeight: 600 },
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },
@@ -875,14 +804,12 @@ export function createTableViewDefinition(
             flexDirection: "column",
           },
         } as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "Row",
             props: {
               style: { display: "flex", flexDirection: "row" },
             } as ComponentElementProps,
-            order_num: 0,
             children: [
               {
                 type: "Cell",
@@ -890,7 +817,6 @@ export function createTableViewDefinition(
                   children: "Item 1",
                   style: { flex: 1, padding: 8 },
                 } as ComponentElementProps,
-                order_num: 0,
               },
               {
                 type: "Cell",
@@ -898,7 +824,6 @@ export function createTableViewDefinition(
                   children: "File",
                   style: { flex: 1, padding: 8 },
                 } as ComponentElementProps,
-                order_num: 1,
               },
               {
                 type: "Cell",
@@ -906,7 +831,6 @@ export function createTableViewDefinition(
                   children: "Active",
                   style: { flex: 1, padding: 8 },
                 } as ComponentElementProps,
-                order_num: 2,
               },
             ],
           },

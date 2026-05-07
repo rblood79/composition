@@ -25,7 +25,6 @@ import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 
 interface FrameElementTreeNode extends BaseTreeNode {
   type: string;
-  orderNum: number;
   item: ElementTreeItem;
   children?: FrameElementTreeNode[];
 }
@@ -88,7 +87,6 @@ export function FrameElementTree({
           id: node.item.id,
           type: node.item.type,
           parent_id: node.item.parent_id || null,
-          order_num: node.item.order_num,
           props: node.item.props as ElementProps,
           deleted: node.item.deleted,
           page_id: null,
@@ -208,7 +206,6 @@ function toFrameElementTreeNodes(
       hasChildren: children.length > 0,
       children,
       type: item.type,
-      orderNum: item.order_num ?? 0,
       item,
     };
   });

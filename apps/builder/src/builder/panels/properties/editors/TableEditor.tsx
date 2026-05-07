@@ -118,7 +118,6 @@ export const TableEditor = memo(
           props: {},
           parent_id: tableBody.id,
           page_id: element.page_id!,
-          order_num: rows.length,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -161,7 +160,6 @@ export const TableEditor = memo(
             },
             parent_id: rowId,
             page_id: element.page_id!,
-            order_num: i,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
@@ -213,14 +211,6 @@ export const TableEditor = memo(
       if (!tableHeaderElement) return;
 
       try {
-        // 기존 Column Group들의 order_num 중 최대값 찾기
-        const maxOrderNum =
-          actualColumnGroups.length > 0
-            ? Math.max(
-                ...actualColumnGroups.map((group) => group.order_num || 0),
-              )
-            : -1;
-
         const groupId = ElementUtils.generateId();
         const newGroupElement: Element = {
           id: groupId,
@@ -239,7 +229,6 @@ export const TableEditor = memo(
           },
           parent_id: tableHeaderElement.id,
           page_id: element.page_id!,
-          order_num: maxOrderNum + 1, // 중복 방지를 위해 최대값 + 1
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };

@@ -20,7 +20,6 @@ type QuarantinedElementMetadata = {
   sourceComponentRole?: unknown;
   sourceMasterId?: unknown;
   sourceElementType?: unknown;
-  sourceOrderNum?: unknown;
   [QUARANTINED_ELEMENT_PROPS_FIELD]?: Record<string, unknown>;
 };
 
@@ -30,7 +29,6 @@ export type LegacyElementPositionMetadata = {
   role?: unknown;
   masterRef?: unknown;
   elementType?: unknown;
-  orderNum?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -77,7 +75,6 @@ export function readLegacyElementPositionMetadata(
     role: quarantined.sourceComponentRole ?? payload?.componentRole,
     masterRef: quarantined.sourceMasterId ?? payload?.masterId,
     elementType: quarantined.sourceElementType ?? payload?.type,
-    orderNum: quarantined.sourceOrderNum ?? payload?.order_num,
   };
 }
 
@@ -89,7 +86,7 @@ export function readLegacyElementPositionMetadata(
  * export 테스트 fixture 검증이다.
  *
  * **보존 필수 fields**:
- * - core top-level: `id` / `parent_id` / `page_id` / `layout_id` / `order_num` /
+ * - core top-level: `id` / `parent_id` / `page_id` / `layout_id` /
  *   `fills` / `type` (ADR-116 Phase 2 G3 Step 1b — hot path inverse 변환에서
  *   element.type 복원에 필요. ref 노드의 경우 canonical type 이 "ref" 로
  *   변환되므로 원본 element.type 보존 없이 LayerTree 분기 불가).
@@ -114,7 +111,6 @@ export function buildLegacyElementMetadata(element: Element): {
   sourceComponentRole?: LegacyComponentRole;
   sourceMasterId?: string;
   sourceElementType?: string;
-  sourceOrderNum?: number;
 } {
   const legacy = asElementWithLegacyMirror(element);
 
@@ -126,7 +122,6 @@ export function buildLegacyElementMetadata(element: Element): {
     sourceComponentRole: legacy.componentRole,
     sourceMasterId: legacy.masterId,
     sourceElementType: element.type,
-    sourceOrderNum: element.order_num,
     legacyProps: {
       ...element.props,
       id: element.id,
@@ -134,7 +129,6 @@ export function buildLegacyElementMetadata(element: Element): {
       parent_id: element.parent_id,
       page_id: element.page_id,
       layout_id: legacy.layout_id,
-      order_num: element.order_num,
       fills: element.fills,
       type: element.type,
       slot_name: legacy.slot_name,

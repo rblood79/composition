@@ -605,13 +605,11 @@ const MultiSelectContent = memo(function MultiSelectContent({
         updatedChildren.map(async (child) => {
           await updateElement(child.id, {
             parent_id: child.parent_id,
-            order_num: child.order_num,
           });
           await supabase
             .from("elements")
             .update({
               parent_id: child.parent_id,
-              order_num: child.order_num,
               updated_at: new Date().toISOString(),
             })
             .eq("id", child.id);
@@ -1135,7 +1133,6 @@ function PropertiesPanelContent() {
           // Update memory state
           await updateElement(child.id, {
             parent_id: child.parent_id,
-            order_num: child.order_num,
           });
 
           // Save to DB directly (Supabase)
@@ -1143,7 +1140,6 @@ function PropertiesPanelContent() {
             .from("elements")
             .update({
               parent_id: child.parent_id,
-              order_num: child.order_num,
               updated_at: new Date().toISOString(),
             })
             .eq("id", child.id);
@@ -1215,7 +1211,6 @@ function PropertiesPanelContent() {
           // Update memory state
           await updateElement(child.id, {
             parent_id: child.parent_id,
-            order_num: child.order_num,
           });
 
           // Save to DB directly (Supabase)
@@ -1223,7 +1218,6 @@ function PropertiesPanelContent() {
             .from("elements")
             .update({
               parent_id: child.parent_id,
-              order_num: child.order_num,
               updated_at: new Date().toISOString(),
             })
             .eq("id", child.id);

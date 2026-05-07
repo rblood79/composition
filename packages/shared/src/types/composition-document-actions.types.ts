@@ -133,8 +133,8 @@ export interface CanonicalDocumentActions {
   /**
    * 활성 document 의 parentPath 직계 `children[]` 를 반환.
    *
-   * ADR-118 Phase 1: runtime ordering read 는 legacy `order_num` 이 아니라
-   * parent `children[]` index 를 primary source 로 삼는다. `parentPath` 가
+   * ADR-118 Phase 1: runtime ordering read 는 parent `children[]` index 를
+   * primary source 로 삼는다. `parentPath` 가
    * `null` 또는 `"root"` 이면 document root `children[]` 를 반환한다.
    */
   getNodeChildren(parentPath: string | null): readonly CanonicalNode[] | null;
@@ -183,17 +183,6 @@ export interface CanonicalDocumentActions {
     childPath: string,
     index: number,
   ): void;
-
-  /**
-   * adapter/export boundary 에서만 쓰는 legacy order mirror helper.
-   *
-   * parent `children[]` index 에서 파생한 order_num 을 반환하고, child 가
-   * 없으면 `null` 을 반환한다.
-   */
-  getDerivedOrderNum(
-    parentPath: string | null,
-    childPath: string,
-  ): number | null;
 
   /**
    * 활성 document 의 refPath (RefNode) 의 `descendants[descendantPath]` 를

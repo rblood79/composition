@@ -10,7 +10,7 @@
  *      componentRoleAdapter.ts (Stream 2)
  *  - type="Slot" + slot_name + Page.layout_id → slot 메타 + descendants[path].children + page ref:
  *      slotAndLayoutAdapter.ts (Stream 3)
- *  - parent_id/order_num → tree order: 본 파일 buildTree() 함수
+ *  - parent_id/source array order → tree order: 본 파일 buildTree() 함수
  *
  * 저장 포맷 미변경 (Phase 5에서 전환). Phase 2 resolver는 본 adapter 결과만 소비.
  *
@@ -52,7 +52,7 @@ import {
   snapshotThemesFromConfig,
   type ThemeConfigInput,
 } from "./themesAdapter";
-import { sortElementsByOrderThenSource } from "../../builder/utils/elementOrdering";
+import { sortElementsBySource } from "../../builder/utils/elementOrdering";
 
 // ADR-110 Phase 2 ts-3.1: applyCanonicalThemes re-export (BuilderCore entry 용)
 export { applyCanonicalThemes } from "./themesAdapter";
@@ -155,7 +155,7 @@ export function legacyToCanonical(
     childElements.splice(
       0,
       childElements.length,
-      ...sortElementsByOrderThenSource(childElements),
+      ...sortElementsBySource(childElements),
     );
     const canonicalChildren = childElements.map(buildNode);
 
@@ -236,7 +236,7 @@ export function legacyToCanonical(
       pageNodes.push(pageRef);
     } else {
       // layout_id 없는 page: pageElements를 그대로 root children으로 묶음
-      const pageRootElements = sortElementsByOrderThenSource(
+      const pageRootElements = sortElementsBySource(
         pageElements.filter((e) => e.parent_id == null),
         pageElements,
       );

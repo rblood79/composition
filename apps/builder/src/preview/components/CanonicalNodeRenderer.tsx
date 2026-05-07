@@ -87,7 +87,6 @@ export function CanonicalNodeRenderer({
       props: canonicalProps as PreviewElement["props"],
       parent_id: null,
       page_id: null,
-      order_num: 0,
       fills: [],
     },
     getFrameElementMirrorId(canonicalProps),

@@ -26,15 +26,15 @@ const updateElement = (elementId: string, props: Props) => {
   set({ elements: updatedElements });
 
   messenger.send({
-    type: 'UPDATE_ELEMENTS',
-    elements: get().elements,  // 전체 전송
+    type: "UPDATE_ELEMENTS",
+    elements: get().elements, // 전체 전송
   });
 };
 
 // ❌ 불필요한 전체 동기화
 const onElementChange = () => {
   messenger.send({
-    type: 'SYNC_ALL',
+    type: "SYNC_ALL",
     elements: getAllElements(),
   });
 };
@@ -43,7 +43,7 @@ const onElementChange = () => {
 ## Correct
 
 ```typescript
-import { CanvasDeltaMessenger } from '@/builder/utils/canvasDeltaMessenger';
+import { CanvasDeltaMessenger } from "@/builder/utils/canvasDeltaMessenger";
 
 const deltaMessenger = new CanvasDeltaMessenger(iframe);
 
@@ -56,7 +56,10 @@ const addElement = (element: Element, children?: Element[]) => {
 };
 
 // ✅ 요소 수정 시 - 변경된 props만 전송
-const updateElementProps = (elementId: string, propsChanges: Partial<Props>) => {
+const updateElementProps = (
+  elementId: string,
+  propsChanges: Partial<Props>,
+) => {
   set({ elements: applyPropsChanges(elements, elementId, propsChanges) });
 
   deltaMessenger.sendElementUpdated(elementId, propsChanges);
@@ -65,16 +68,16 @@ const updateElementProps = (elementId: string, propsChanges: Partial<Props>) => 
 
 // ✅ 요소 삭제 시 - 삭제된 ID만 전송
 const removeElement = (elementId: string, childIds?: string[]) => {
-  set({ elements: elements.filter(el => !idsToRemove.includes(el.id)) });
+  set({ elements: elements.filter((el) => !idsToRemove.includes(el.id)) });
 
   deltaMessenger.sendElementRemoved(elementId, childIds);
   // 메시지: { type: 'DELTA_ELEMENT_REMOVED', elementId, childIds }
 };
 
 // ✅ 요소 이동 시
-const moveElement = (elementId: string, newParentId: string, newOrder: number) => {
-  deltaMessenger.sendElementMoved(elementId, newParentId, newOrder);
-  // 메시지: { type: 'DELTA_ELEMENT_MOVED', elementId, parentId, orderNum }
+const moveElement = (elementId: string, newParentId: string) => {
+  deltaMessenger.sendElementMoved(elementId, newParentId);
+  // 메시지: { type: 'DELTA_ELEMENT_MOVED', elementId, parentId }
 };
 ```
 
@@ -83,30 +86,28 @@ const moveElement = (elementId: string, newParentId: string, newOrder: number) =
 ```typescript
 // Builder → Preview
 interface DeltaElementAddedMessage {
-  type: 'DELTA_ELEMENT_ADDED';
+  type: "DELTA_ELEMENT_ADDED";
   element: Element;
   childElements?: Element[];
 }
 
 interface DeltaElementUpdatedMessage {
-  type: 'DELTA_ELEMENT_UPDATED';
+  type: "DELTA_ELEMENT_UPDATED";
   elementId: string;
-  propsChanges: Record<string, unknown>;  // 변경된 props만
+  propsChanges: Record<string, unknown>; // 변경된 props만
   parentId?: string | null;
-  orderNum?: number;
 }
 
 interface DeltaElementRemovedMessage {
-  type: 'DELTA_ELEMENT_REMOVED';
+  type: "DELTA_ELEMENT_REMOVED";
   elementId: string;
   childIds?: string[];
 }
 
 interface DeltaElementMovedMessage {
-  type: 'DELTA_ELEMENT_MOVED';
+  type: "DELTA_ELEMENT_MOVED";
   elementId: string;
   parentId: string | null;
-  orderNum: number;
 }
 ```
 
@@ -118,7 +119,7 @@ const switchPage = (pageId: string) => {
   const pageElements = getPageElements(pageId);
 
   messenger.send({
-    type: 'UPDATE_ELEMENTS',  // 전체 동기화
+    type: "UPDATE_ELEMENTS", // 전체 동기화
     elements: pageElements,
     pageInfo: { pageId, layoutId },
   });

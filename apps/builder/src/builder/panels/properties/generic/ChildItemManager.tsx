@@ -42,7 +42,6 @@ export const ChildItemManager = memo(function ChildItemManager({
         className: "",
       },
       parent_id: elementId,
-      order_num: filteredChildren.length + 1,
       customId: generateCustomId(childTag, store.elements),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

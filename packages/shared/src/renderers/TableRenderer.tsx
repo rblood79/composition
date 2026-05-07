@@ -67,7 +67,7 @@ export const renderTable = (
       key: dataKey as string,
       label: (col.props.children || col.props.label || "Column") as string,
       elementId: col.id,
-      order_num: col.order_num,
+      order_num: index,
       allowsSorting: Boolean(col.props.allowsSorting ?? true),
       enableResizing: Boolean(col.props.enableResizing ?? true),
       width: typeof col.props.width === "number" ? col.props.width : 150,
@@ -314,7 +314,7 @@ export const renderTable = (
   const columnGroups = tableHeaderElement
     ? (context.childrenMap.get(tableHeaderElement.id) ?? [])
         .filter((el) => el.type === "ColumnGroup")
-        .map((groupEl) => {
+        .map((groupEl, index) => {
           const props = groupEl.props as ElementProps;
 
           const alignValue = String(props?.align || "center");
@@ -335,7 +335,7 @@ export const renderTable = (
             id: groupEl.id,
             label: String(props?.label || "Group"),
             span: Number(props?.span || 2),
-            order_num: groupEl.order_num,
+            order_num: index,
             align,
             variant,
             sticky: Boolean(props?.sticky || false),

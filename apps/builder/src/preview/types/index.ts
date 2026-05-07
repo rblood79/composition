@@ -15,7 +15,6 @@ export interface PreviewElement {
   text?: string;
   parent_id?: string | null;
   page_id?: string | null; // Layout element면 null
-  order_num?: number;
   dataBinding?: DataBinding;
   deleted?: boolean;
 }
@@ -117,7 +116,6 @@ export interface AddColumnElementsMessage extends PreviewMessage {
       type: string;
       page_id: string;
       parent_id: string;
-      order_num: number;
       props: Record<string, unknown>;
     }>;
   };

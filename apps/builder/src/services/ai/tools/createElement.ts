@@ -4,28 +4,32 @@
  * 캔버스에 새 요소를 생성 (AIPanel.tsx의 executeIntent create case 추출)
  */
 
-import type { ToolExecutor, ToolExecutionResult } from '../../../types/integrations/ai.types';
-import type { Element } from '../../../types/core/store.types';
-import { getStoreState } from '../../../builder/stores';
-import { getDefaultProps } from '../../../types/builder/unified.types';
-import { adaptPropsForElement } from '../styleAdapter';
-import { useAIVisualFeedbackStore } from '../../../builder/stores/aiVisualFeedback';
-import { HierarchyManager } from '../../../builder/utils/HierarchyManager';
+import type {
+  ToolExecutor,
+  ToolExecutionResult,
+} from "../../../types/integrations/ai.types";
+import type { Element } from "../../../types/core/store.types";
+import { getStoreState } from "../../../builder/stores";
+import { getDefaultProps } from "../../../types/builder/unified.types";
+import { adaptPropsForElement } from "../styleAdapter";
+import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
 
 export const createElementTool: ToolExecutor = {
-  name: 'create_element',
+  name: "create_element",
 
   async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
     const type = args.type as string;
     if (!type) {
-      return { success: false, error: 'type는 필수입니다.' };
+      return { success: false, error: "type는 필수입니다." };
     }
 
     const aiProps = (args.props || {}) as Record<string, unknown>;
     const aiStyles = (args.styles || {}) as Record<string, unknown>;
     const aiFills = Array.isArray(args.fills) ? args.fills : undefined;
     const parentIdArg = args.parentId as string | undefined;
-    const dataBindingArg = args.dataBinding as { endpoint?: string } | undefined;
+    const dataBindingArg = args.dataBinding as
+      | { endpoint?: string }
+      | undefined;
 
     try {
       const state = getStoreState();
@@ -36,7 +40,12 @@ export const createElementTool: ToolExecutor = {
       const mergedProps = { ...defaultProps, ...aiProps };
 
       // 스타일 적용
-      const finalProps = adaptPropsForElement(type, mergedProps, aiStyles, aiFills);
+      const finalProps = adaptPropsForElement(
+        type,
+        mergedProps,
+        aiStyles,
+        aiFills,
+      );
 
       // 부모 결정
       let parentId: string | null = parentIdArg || null;
@@ -44,7 +53,7 @@ export const createElementTool: ToolExecutor = {
         if (selectedElementId) {
           parentId = selectedElementId;
         } else {
-          const bodyElement = elements.find((el) => el.type === 'body');
+          const bodyElement = elements.find((el) => el.type === "body");
           if (bodyElement) {
             parentId = bodyElement.id;
           }
@@ -57,23 +66,22 @@ export const createElementTool: ToolExecutor = {
         type,
         props: finalProps,
         parent_id: parentId,
-        page_id: currentPageId || 'default',
-        order_num: HierarchyManager.calculateNextOrderNum(parentId, elements),
+        page_id: currentPageId || "default",
         dataBinding: undefined,
       } as Element;
 
       // dataBinding 처리
       if (dataBindingArg?.endpoint) {
         newElement.dataBinding = {
-          type: 'collection',
-          source: 'api',
+          type: "collection",
+          source: "api",
           config: {
-            baseUrl: 'MOCK_DATA',
+            baseUrl: "MOCK_DATA",
             endpoint: dataBindingArg.endpoint,
             params: {},
             dataMapping: {
-              idField: 'id',
-              labelField: 'name',
+              idField: "id",
+              labelField: "name",
             },
           },
         };
@@ -98,7 +106,7 @@ export const createElementTool: ToolExecutor = {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   },

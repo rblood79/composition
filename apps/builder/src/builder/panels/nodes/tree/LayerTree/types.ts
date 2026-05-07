@@ -1,18 +1,13 @@
 import type { Element } from "../../../../../types/core/store.types";
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 
-export type VirtualChildType =
-  | "toggle"
-  | "checkbox"
-  | "radio"
-  | "tree";
+export type VirtualChildType = "toggle" | "checkbox" | "radio" | "tree";
 
 export interface LayerTreeNode {
   id: string;
   name: string;
   type: string;
   parentId: string | null;
-  orderNum: number;
   depth: number;
   hasChildren: boolean;
   isLeaf: boolean;

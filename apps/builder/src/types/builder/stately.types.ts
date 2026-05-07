@@ -54,8 +54,6 @@ export interface ElementTreeItem extends TreeDataItem {
   type: string;
   /** 부모 요소 ID (flat 구조와의 호환성) */
   parent_id?: string | null;
-  /** 표시 순서 */
-  order_num?: number;
   /** 컴포넌트 props */
   props?: Record<string, unknown>;
   /** 삭제 여부 */

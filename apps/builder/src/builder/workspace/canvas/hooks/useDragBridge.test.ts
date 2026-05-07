@@ -122,19 +122,16 @@ describe("drag snapshot collection", () => {
     expect(snapshot).toEqual([
       {
         id: dragged.id,
-        order_num: 0,
         page_id: "page-1",
         parent_id: body.id,
       },
       {
         id: sibling.id,
-        order_num: 1,
         page_id: "page-1",
         parent_id: body.id,
       },
       {
         id: child.id,
-        order_num: 0,
         page_id: "page-1",
         parent_id: dragged.id,
       },

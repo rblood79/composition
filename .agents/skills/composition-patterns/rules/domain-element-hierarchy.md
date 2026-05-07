@@ -10,14 +10,13 @@ Element 계층 구조 규칙을 정의합니다.
 ## Canonical 우선 경계
 
 direct cutover 이후 runtime 저장/순서 SSOT는 canonical
-`CompositionDocument.children[]`입니다. legacy `Element.parent_id` /
-`order_num`은 Builder mirror와 기존 UI payload 호환용입니다.
+`CompositionDocument.children[]`입니다. `Element.parent_id`는 mirror 구조 필드로
+남지만, `Element.order_num`은 제거됐습니다.
 
 - 신규 Element 예시는 `type` 필드를 사용합니다. legacy `tag` 필드를 새
   저장/상태 코드에 추가하지 않습니다.
-- 명시적 이동/재정렬은 canonical `children[]` splice로 먼저 반영하고,
-  `order_num`은 export mirror에서 파생되도록 둡니다.
-- 단순 props 수정은 canonical sibling 위치를 보존해야 하며, `order_num` drift만
+- 명시적 이동/재정렬은 canonical `children[]` splice로 먼저 반영합니다.
+- 단순 props 수정은 canonical sibling 위치를 보존해야 하며, source order drift만
   보고 remove+append 처리하지 않습니다.
 
 ## 계층 구조
@@ -73,17 +72,10 @@ const element: Element = {
   parent_id: bodyElement?.id ?? null, // Body 아래에 배치
   page_id: pageId,
   layout_id: null, // page_id와 상호 배타적
-  order_num: calculateNextOrderNum(bodyElement?.id, elements), // legacy mirror seed
 };
 
-// ✅ legacy mirror 정규화가 필요한 경우에만 order_num 배치 업데이트
-import { reorderElements } from "@/builder/stores/utils/elementReorder";
-
-// 비동기 콜백에서 반드시 get()으로 최신 상태 참조 (stale closure 방지)
-queueMicrotask(() => {
-  const { elements, batchUpdateElementOrders } = get();
-  reorderElements(elements, pageId, batchUpdateElementOrders);
-});
+// ✅ 명시적 이동만 canonical children[] splice
+moveElementCanonicalPrimary(element.id, bodyElement.id, insertionIndex);
 
 // ✅ Leaf 요소는 항상 말단
 const LEAF_TAGS = ["Text", "Image", "Icon", "Separator"];
@@ -106,5 +98,3 @@ interface Element {
 - `packages/shared/src/types/composition-document.types.ts` - canonical `children[]`, `type`, `ref` format
 - `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical primary write/move
 - `apps/builder/src/builder/stores/utils/elementHelpers.ts` - findBodyByContext
-- `apps/builder/src/builder/utils/HierarchyManager.ts` - 계층 관리 (calculateNextOrderNum: 0-based)
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - legacy order_num mirror 정규화

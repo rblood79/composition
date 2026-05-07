@@ -496,7 +496,6 @@ function collectRuntimeElements(
       props: getRuntimeElementProps(node),
       parent_id: elementParentId,
       page_id: pageId,
-      order_num: index,
     };
     if (node.name !== undefined) {
       element.componentName = node.name;

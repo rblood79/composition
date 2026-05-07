@@ -10,7 +10,10 @@
  * @since 2025-12-10 Phase 3 History Diff System
  */
 
-import type { Element, ComponentElementProps } from "../../../types/core/store.types";
+import type {
+  Element,
+  ComponentElementProps,
+} from "../../../types/core/store.types";
 
 /**
  * Props Diff 타입
@@ -35,8 +38,6 @@ export interface ElementDiff {
   props?: PropsDiff;
   /** parent_id 변경 */
   parentId?: { prev: string | null; next: string | null };
-  /** order_num 변경 */
-  orderNum?: { prev: number; next: number };
   /** 메타데이터 변경 */
   metadata?: {
     customId?: { prev: string | undefined; next: string | undefined };
@@ -58,7 +59,6 @@ export interface SerializableElementDiff {
   elementId: string;
   props?: SerializablePropsDiff;
   parentId?: { prev: string | null; next: string | null };
-  orderNum?: { prev: number; next: number };
   metadata?: {
     customId?: { prev: string | undefined; next: string | undefined };
     events?: { prev: unknown; next: unknown };
@@ -112,7 +112,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
  */
 export function createPropsDiff(
   prevProps: ComponentElementProps,
-  nextProps: ComponentElementProps
+  nextProps: ComponentElementProps,
 ): PropsDiff {
   const diff = createEmptyPropsDiff();
 
@@ -154,7 +154,7 @@ export function createPropsDiff(
  */
 export function createElementDiff(
   prevElement: Element,
-  nextElement: Element
+  nextElement: Element,
 ): ElementDiff {
   const diff: ElementDiff = {
     elementId: prevElement.id,
@@ -163,7 +163,7 @@ export function createElementDiff(
   // Props diff
   const propsDiff = createPropsDiff(
     prevElement.props as ComponentElementProps,
-    nextElement.props as ComponentElementProps
+    nextElement.props as ComponentElementProps,
   );
   if (
     propsDiff.changed.size > 0 ||
@@ -178,14 +178,6 @@ export function createElementDiff(
     diff.parentId = {
       prev: prevElement.parent_id || null,
       next: nextElement.parent_id || null,
-    };
-  }
-
-  // order_num 변경
-  if (prevElement.order_num !== nextElement.order_num) {
-    diff.orderNum = {
-      prev: prevElement.order_num ?? 0,
-      next: nextElement.order_num ?? 0,
     };
   }
 
@@ -258,11 +250,6 @@ export function applyDiffUndo(element: Element, diff: ElementDiff): Element {
     restored.parent_id = diff.parentId.prev;
   }
 
-  // order_num 복원
-  if (diff.orderNum) {
-    restored.order_num = diff.orderNum.prev;
-  }
-
   // metadata 복원
   if (diff.metadata) {
     if (diff.metadata.customId) {
@@ -272,7 +259,8 @@ export function applyDiffUndo(element: Element, diff: ElementDiff): Element {
       restored.events = diff.metadata.events.prev as Element["events"];
     }
     if (diff.metadata.dataBinding) {
-      restored.dataBinding = diff.metadata.dataBinding.prev as Element["dataBinding"];
+      restored.dataBinding = diff.metadata.dataBinding
+        .prev as Element["dataBinding"];
     }
   }
 
@@ -317,11 +305,6 @@ export function applyDiffRedo(element: Element, diff: ElementDiff): Element {
     updated.parent_id = diff.parentId.next;
   }
 
-  // order_num 업데이트
-  if (diff.orderNum) {
-    updated.order_num = diff.orderNum.next;
-  }
-
   // metadata 업데이트
   if (diff.metadata) {
     if (diff.metadata.customId) {
@@ -331,7 +314,8 @@ export function applyDiffRedo(element: Element, diff: ElementDiff): Element {
       updated.events = diff.metadata.events.next as Element["events"];
     }
     if (diff.metadata.dataBinding) {
-      updated.dataBinding = diff.metadata.dataBinding.next as Element["dataBinding"];
+      updated.dataBinding = diff.metadata.dataBinding
+        .next as Element["dataBinding"];
     }
   }
 
@@ -342,16 +326,13 @@ export function applyDiffRedo(element: Element, diff: ElementDiff): Element {
  * Diff가 비어있는지 확인
  */
 export function isDiffEmpty(diff: ElementDiff): boolean {
-  const hasPropsChanges = diff.props && (
-    diff.props.changed.size > 0 ||
-    diff.props.added.size > 0 ||
-    diff.props.removed.size > 0
-  );
+  const hasPropsChanges =
+    diff.props &&
+    (diff.props.changed.size > 0 ||
+      diff.props.added.size > 0 ||
+      diff.props.removed.size > 0);
 
-  return !hasPropsChanges &&
-    !diff.parentId &&
-    !diff.orderNum &&
-    !diff.metadata;
+  return !hasPropsChanges && !diff.parentId && !diff.metadata;
 }
 
 /**
@@ -374,10 +355,6 @@ export function serializeDiff(diff: ElementDiff): SerializableElementDiff {
     serialized.parentId = diff.parentId;
   }
 
-  if (diff.orderNum) {
-    serialized.orderNum = diff.orderNum;
-  }
-
   if (diff.metadata) {
     serialized.metadata = diff.metadata;
   }
@@ -388,7 +365,9 @@ export function serializeDiff(diff: ElementDiff): SerializableElementDiff {
 /**
  * 직렬화된 Diff를 원래 형태로 복원
  */
-export function deserializeDiff(serialized: SerializableElementDiff): ElementDiff {
+export function deserializeDiff(
+  serialized: SerializableElementDiff,
+): ElementDiff {
   const diff: ElementDiff = {
     elementId: serialized.elementId,
   };
@@ -403,10 +382,6 @@ export function deserializeDiff(serialized: SerializableElementDiff): ElementDif
 
   if (serialized.parentId) {
     diff.parentId = serialized.parentId;
-  }
-
-  if (serialized.orderNum) {
-    diff.orderNum = serialized.orderNum;
   }
 
   if (serialized.metadata) {
@@ -442,9 +417,8 @@ export function estimateDiffSize(diff: ElementDiff): number {
     }
   }
 
-  // parentId, orderNum
+  // parentId
   if (diff.parentId) size += 100;
-  if (diff.orderNum) size += 50;
 
   // metadata
   if (diff.metadata) size += 500;
@@ -475,7 +449,7 @@ function estimateValueSize(value: unknown): number {
  */
 export function createBatchDiff(
   prevElements: Element[],
-  nextElements: Element[]
+  nextElements: Element[],
 ): ElementDiff[] {
   const diffs: ElementDiff[] = [];
 
@@ -501,7 +475,7 @@ export function createBatchDiff(
  */
 export function applyBatchDiffUndo(
   elements: Element[],
-  diffs: ElementDiff[]
+  diffs: ElementDiff[],
 ): Element[] {
   const elementsMap = new Map(elements.map((el) => [el.id, el]));
 
@@ -521,7 +495,7 @@ export function applyBatchDiffUndo(
  */
 export function applyBatchDiffRedo(
   elements: Element[],
-  diffs: ElementDiff[]
+  diffs: ElementDiff[],
 ): Element[] {
   const elementsMap = new Map(elements.map((el) => [el.id, el]));
 

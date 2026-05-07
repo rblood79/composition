@@ -21,7 +21,6 @@ import { getDB } from "../../lib/db";
 import { supabase } from "../../env/supabase.client";
 import { pageCache, type LRUCacheStats } from "../utils/LRUPageCache";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
-import { sortElementsByOrderThenSource } from "../utils/elementOrdering";
 
 // ============================================
 // Types
@@ -130,8 +129,7 @@ export function createElementLoaderSlice(
       const elements = await db.elements.getByPage(pageId);
 
       if (elements && elements.length > 0) {
-        // order_num으로 정렬 (getByPage는 정렬하지 않음)
-        return sortElementsByOrderThenSource(elements);
+        return elements;
       }
 
       return null;
@@ -149,8 +147,7 @@ export function createElementLoaderSlice(
       const { data, error } = await supabase
         .from("elements")
         .select("*")
-        .eq("page_id", pageId)
-        .order("order_num");
+        .eq("page_id", pageId);
 
       if (error) throw error;
 

@@ -74,7 +74,6 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
     if (!newColumnLabel.trim() || !newColumnKey.trim() || !tableElement) return;
 
     try {
-      const newOrderNum = columns.length + 1;
       const columnId = ElementUtils.generateId();
 
       // ADR-040: 이벤트 핸들러에서 최신 상태 읽기
@@ -95,7 +94,6 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
         },
         parent_id: elementId, // TableHeader ID
         page_id: element.page_id!,
-        order_num: newOrderNum,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -126,7 +124,6 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
             },
             parent_id: row.id,
             page_id: element.page_id!,
-            order_num: newOrderNum, // 동일한 order_num 사용
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };

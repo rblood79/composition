@@ -75,20 +75,13 @@ const children = useStore((state) => state.childrenMap.get(parentId) ?? []);
 set({ elements: newElements });
 get()._rebuildIndexes(); // elementsMap, childrenMap, pageIndex 갱신
 
-// ✅ updateElementOrder — legacy mirror 정규화 경계에서만 사용
-updateElementOrder(elementId, newOrderNum);
-
-// ✅ batchUpdateElementOrders — 단일 set() + _rebuildIndexes()
-// N개 요소의 legacy order_num mirror를 한번에 업데이트 (N×set() 방지)
-batchUpdateElementOrders([
-  { id: "el-1", order_num: 0 },
-  { id: "el-2", order_num: 1 },
-]);
+// ✅ explicit reorder — canonical children[] splice만 사용
+moveElementCanonicalPrimary(elementId, parentId, insertionIndex);
 ```
 
 canonical cutover 경로에서 runtime order read/write는 parent `children[]`
-index가 SSOT입니다. `order_num`은 export/compat mirror이므로, props update나
-hydration 경로가 stale `order_num`만 보고 sibling 위치를 바꾸지 않게 합니다.
+index가 SSOT입니다. `Element.order_num`은 제거됐으므로 props update나 hydration
+경로가 Element metadata를 sibling 위치로 해석하지 않게 합니다.
 
 ## 선택 상태 동기화
 

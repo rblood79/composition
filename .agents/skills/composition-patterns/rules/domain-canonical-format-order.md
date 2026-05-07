@@ -33,22 +33,22 @@ runtime 판단은 canonical format을 먼저 확인합니다.
 ## Order SSOT
 
 - Runtime order read/write는 parent `children[]` index가 primary입니다.
-- legacy `Element.order_num`은 export/derived mirror와 기존 UI payload 호환용입니다.
-- `canonicalDocumentToElements()`와 `exportLegacyDocument()`는 DFS sibling index로
-  `order_num`을 다시 파생합니다.
-- 일반 props update는 기존 canonical 위치를 보존해야 합니다. `order_num` 차이만
-  보고 기존 node를 제거 후 append하면 수정한 요소가 마지막으로 이동합니다.
+- `Element.order_num`은 제거되었습니다. 신규 Element 생성, IndexedDB `elements`
+  store, history payload, drag/drop payload에 이 필드를 추가하지 않습니다.
+- page/layout 정렬의 `pages.order_num`, `layouts.order_num`은 element sibling
+  order와 별개라 유지합니다.
+- 일반 props update는 기존 canonical 위치를 보존해야 합니다. Element 배열의
+  source 순서나 stale metadata 차이만 보고 기존 node를 제거 후 append하면 수정한
+  요소가 마지막으로 이동합니다.
 - 명시적 reorder/move만 canonical `children[]` splice로 반영합니다.
 
 ## Write APIs
 
 - 단일/cross-parent move: `moveElementCanonicalPrimary(...)`.
-- legacy batch payload를 canonical move로 반영:
-  `applyElementOrderCanonicalPrimary(...)`.
 - shared public surface: `moveNode(...)`, `moveDescendantChild(...)`,
-  `getNodeChildren(...)`, `getDerivedOrderNum(...)`.
-- legacy `reorderElements()`는 compat 정규화 경계입니다. 실행이 필요해도 최신
-  state에서 호출하고, 최종 runtime order는 canonical mirror export로 재검증합니다.
+  `getNodeChildren(...)`.
+- `reorderElements()`, `batchUpdateElementOrders()`, `updateElementOrder()`,
+  `getDerivedOrderNum()`은 제거된 legacy API입니다. 새 경로에서 재도입하지 않습니다.
 
 ## Page / Reusable Derived Behaviors
 
@@ -63,8 +63,8 @@ runtime 판단은 canonical format을 먼저 확인합니다.
 ## Verification
 
 - props update가 sibling order를 바꾸지 않는 테스트를 추가합니다.
-- explicit reorder/move는 `children[]` 순서와 export된 `order_num`을 함께
-  검증합니다.
+- explicit reorder/move는 `children[]` 순서, `childrenMap` source order, IndexedDB
+  canonical document 저장을 함께 검증합니다.
 - origin/instance 변경은 same-page와 cross-page, legacy mirror와 canonical-only
   snapshot 케이스를 모두 고정합니다.
 

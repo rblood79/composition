@@ -1,5 +1,4 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 
 /** Calendar 현재 월 초기 데이터 (DatePicker/DateRangePicker/Calendar 공유) */
@@ -33,7 +32,6 @@ export function createDatePickerDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -56,7 +54,6 @@ export function createDatePickerDefinition(
         isReadOnly: false,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -69,14 +66,12 @@ export function createDatePickerDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "DateInput",
         props: {
           _parentTag: "DatePicker",
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "Calendar",
@@ -85,14 +80,12 @@ export function createDatePickerDefinition(
           isDisabled: false,
           isReadOnly: false,
         } as ComponentElementProps,
-        order_num: 3,
         children: [
           {
             type: "CalendarHeader",
             props: {
               children: monthText,
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "CalendarGrid",
@@ -102,7 +95,6 @@ export function createDatePickerDefinition(
               totalDays: calTotalDays,
               todayDate: now.getDate(),
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },
@@ -125,7 +117,6 @@ export function createDateRangePickerDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -148,7 +139,6 @@ export function createDateRangePickerDefinition(
         isReadOnly: false,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -161,14 +151,12 @@ export function createDateRangePickerDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "DateInput",
         props: {
           _parentTag: "DateRangePicker",
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "Calendar",
@@ -177,14 +165,12 @@ export function createDateRangePickerDefinition(
           isDisabled: false,
           isReadOnly: false,
         } as ComponentElementProps,
-        order_num: 3,
         children: [
           {
             type: "CalendarHeader",
             props: {
               children: monthText,
             } as ComponentElementProps,
-            order_num: 1,
           },
           {
             type: "CalendarGrid",
@@ -194,7 +180,6 @@ export function createDateRangePickerDefinition(
               totalDays: calTotalDays,
               todayDate: now.getDate(),
             } as ComponentElementProps,
-            order_num: 2,
           },
         ],
       },
@@ -218,7 +203,6 @@ export function createCalendarDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -238,7 +222,6 @@ export function createCalendarDefinition(
         isReadOnly: false,
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -246,7 +229,6 @@ export function createCalendarDefinition(
         props: {
           children: monthText,
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "CalendarGrid",
@@ -256,7 +238,6 @@ export function createCalendarDefinition(
           totalDays: calTotalDays,
           todayDate: now.getDate(),
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -277,8 +258,6 @@ export function createDateFieldDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "DateField",
@@ -298,7 +277,6 @@ export function createDateFieldDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -311,14 +289,12 @@ export function createDateFieldDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 0,
       },
       {
         type: "DateInput",
         props: {
           style: { width: "100%" },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "FieldError",
@@ -326,7 +302,6 @@ export function createDateFieldDefinition(
           children: "",
           style: { fontSize: 12, display: "none" },
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -347,8 +322,6 @@ export function createTimeFieldDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "TimeField",
@@ -369,7 +342,6 @@ export function createTimeFieldDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -382,14 +354,12 @@ export function createTimeFieldDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 0,
       },
       {
         type: "DateInput",
         props: {
           style: { width: "100%" },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "FieldError",
@@ -397,7 +367,6 @@ export function createTimeFieldDefinition(
           children: "",
           style: { fontSize: 12, display: "none" },
         } as ComponentElementProps,
-        order_num: 2,
       },
     ],
   };
@@ -417,8 +386,6 @@ export function createColorFieldDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   return {
     type: "ColorField",
@@ -436,7 +403,6 @@ export function createColorFieldDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -449,7 +415,6 @@ export function createColorFieldDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "Input",
@@ -461,7 +426,6 @@ export function createColorFieldDefinition(
             width: "80px",
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "ColorSwatch",
@@ -473,7 +437,6 @@ export function createColorFieldDefinition(
             borderRadius: "4px",
           },
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -493,7 +456,6 @@ export function createColorPickerDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -509,7 +471,6 @@ export function createColorPickerDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -520,7 +481,6 @@ export function createColorPickerDefinition(
             height: "200px",
           },
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "ColorSlider",
@@ -531,7 +491,6 @@ export function createColorPickerDefinition(
             width: "100%",
           },
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "ColorField",
@@ -541,7 +500,6 @@ export function createColorPickerDefinition(
             display: "block",
           },
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };
@@ -564,8 +522,6 @@ export function createColorSwatchPickerDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
-
 
   const defaultColors = [
     "#FF0000",
@@ -590,7 +546,6 @@ export function createColorSwatchPickerDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: defaultColors.map((color, index) => ({
       type: "ColorSwatch",
@@ -601,7 +556,6 @@ export function createColorSwatchPickerDefinition(
           height: 28,
         },
       } as ComponentElementProps,
-      order_num: index + 1,
     })),
   };
 }

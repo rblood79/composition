@@ -63,7 +63,6 @@ export interface Element {
   type: string;
   props: Record<string, unknown>;
   parent_id?: string | null;
-  order_num?: number;
   page_id?: string | null; // Layout element면 null (layout_id와 상호 배타적)
   created_at?: string;
   updated_at?: string;

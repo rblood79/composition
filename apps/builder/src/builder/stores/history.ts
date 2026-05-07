@@ -43,8 +43,6 @@ export interface HistoryEntry {
     prevProps?: ComponentElementProps;
     parentId?: string;
     prevParentId?: string;
-    orderNum?: number;
-    prevOrderNum?: number;
     childElements?: Element[];
     // Phase 7: Multi-element operation data
     elements?: Element[]; // Multiple elements for batch operations
@@ -735,8 +733,6 @@ export class HistoryManager {
     moved?: {
       prevParentId: string | null;
       newParentId: string | null;
-      prevOrderNum: number;
-      newOrderNum: number;
     };
     batch?: {
       updates: Array<{
@@ -769,8 +765,6 @@ export class HistoryManager {
           moved: {
             prevParentId: entry.data.prevParentId || null,
             newParentId: entry.data.parentId || null,
-            prevOrderNum: entry.data.prevOrderNum || 0,
-            newOrderNum: entry.data.orderNum || 0,
           },
         };
       case "batch":

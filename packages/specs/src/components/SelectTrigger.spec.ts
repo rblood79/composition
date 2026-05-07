@@ -12,8 +12,7 @@
  *  1. **저장 식별자 고유성**: builder element tree 에서 "SelectTrigger" 는 Select
  *     내부 전용 Button 으로 factory/editor/layout 분기가 고유. 일반 "Button" tag
  *     과 통합 시 discriminator (`parent.tag === "Select"` 또는 `slot` prop) 분기
- *     필요 → runtime 4 경로 (utils / implicitStyles / buildSpecNodeData /
- *     HierarchyManager) + factory + editor 모두 복잡도↑.
+ *     필요 → runtime layout/spec conversion 경로 + factory + editor 모두 복잡도↑.
  *
  *  2. **runtime DOM RSP 정합 이미 달성** (D1 도메인): `packages/shared/src/components
  *     /Select.tsx:309` 에서 RAC `<Button className="react-aria-Button">` 직접 렌더

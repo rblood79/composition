@@ -1,5 +1,4 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
 import type {
   StoredSelectItem,
@@ -20,7 +19,6 @@ export function createSelectDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   const items: StoredSelectItem[] = [
     { id: crypto.randomUUID(), label: "Aardvark", value: "aardvark" },
@@ -49,7 +47,6 @@ export function createSelectDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -62,7 +59,6 @@ export function createSelectDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 0,
       },
       {
         type: "SelectTrigger",
@@ -71,7 +67,6 @@ export function createSelectDefinition(
             width: "100%",
           },
         } as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "SelectValue",
@@ -79,7 +74,6 @@ export function createSelectDefinition(
               placeholder: "Choose an option...",
               style: { flex: 1 },
             } as ComponentElementProps,
-            order_num: 0,
           },
           {
             type: "SelectIcon",
@@ -87,7 +81,6 @@ export function createSelectDefinition(
               children: "",
               style: { width: 18, height: 18, flexShrink: 0 },
             } as ComponentElementProps,
-            order_num: 1,
           },
         ],
       },
@@ -107,7 +100,6 @@ export function createComboBoxDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -140,7 +132,6 @@ export function createComboBoxDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -153,7 +144,6 @@ export function createComboBoxDefinition(
             fontWeight: 600,
           },
         } as ComponentElementProps,
-        order_num: 0,
       },
       {
         type: "ComboBoxWrapper",
@@ -162,7 +152,6 @@ export function createComboBoxDefinition(
             width: "100%",
           },
         } as ComponentElementProps,
-        order_num: 1,
         children: [
           {
             type: "ComboBoxInput",
@@ -171,7 +160,6 @@ export function createComboBoxDefinition(
               placeholder: "Type or select...",
               style: { flex: 1 },
             } as ComponentElementProps,
-            order_num: 0,
           },
           {
             type: "ComboBoxTrigger",
@@ -179,7 +167,6 @@ export function createComboBoxDefinition(
               children: "",
               style: { width: 18, height: 18, flexShrink: 0 },
             } as ComponentElementProps,
-            order_num: 1,
           },
         ],
       },
@@ -200,7 +187,6 @@ export function createListBoxDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -243,7 +229,6 @@ export function createListBoxDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -260,7 +245,6 @@ export function createGridListDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   // ⭐ Layout/Slot System
 
@@ -299,7 +283,6 @@ export function createGridListDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [],
   };
@@ -313,7 +296,6 @@ export function createListDefinition(
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
-  const orderNum = HierarchyManager.calculateNextOrderNum(parentId, elements);
 
   return {
     type: "List",
@@ -327,7 +309,6 @@ export function createListDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       {
@@ -335,21 +316,18 @@ export function createListDefinition(
         props: {
           children: "Item 1",
         } as ComponentElementProps,
-        order_num: 1,
       },
       {
         type: "ListItem",
         props: {
           children: "Item 2",
         } as ComponentElementProps,
-        order_num: 2,
       },
       {
         type: "ListItem",
         props: {
           children: "Item 3",
         } as ComponentElementProps,
-        order_num: 3,
       },
     ],
   };

@@ -914,19 +914,16 @@ export function computeDropPlaceholderBounds(
 // ============================================
 
 /**
- * resolveDropTarget 결과를 order_num 업데이트 배열로 변환한다.
+ * resolveDropTarget 결과를 최종 형제 id 순서로 변환한다.
  *
- * 드래그 요소를 insertionIndex 위치에 삽입한 후
- * 전체 형제 배열의 order_num을 0-based로 재계산.
- *
- * @returns batchUpdateElementOrders에 전달할 최종 형제 순서 전체.
- *          canonical children 순서도 같은 커밋에서 재작성되도록 unchanged sibling도 포함한다.
+ * 드래그 요소를 insertionIndex 위치에 삽입한 후 전체 형제 배열을 반환한다.
+ * caller 는 이 순서를 canonical children[] 커밋의 검증/히스토리 범위로만 사용한다.
  */
 export function computeReorderFromDropTarget(
   dropTarget: DropTarget,
   draggedElementId: string,
   store: DropTargetStoreSlice,
-): Array<{ id: string; order_num: number }> {
+): Array<{ id: string }> {
   const { containerId, insertionIndex } = dropTarget;
 
   // 드래그 대상을 제외한 형제 (canonical/source order)
@@ -936,17 +933,15 @@ export function computeReorderFromDropTarget(
   // 드래그 요소를 insertionIndex에 삽입
   const newOrder = [
     ...siblings.slice(0, insertionIndex),
-    { id: draggedElementId, order_num: -1 }, // placeholder, 아래서 재할당
+    { id: draggedElementId },
     ...siblings.slice(insertionIndex),
   ];
 
-  // 0-based order_num 재계산. 변경 여부와 무관하게 최종 형제 순서 전체를 반환한다.
-  const updates: Array<{ id: string; order_num: number }> = [];
-  for (let i = 0; i < newOrder.length; i++) {
-    const child = newOrder[i];
+  const updates: Array<{ id: string }> = [];
+  for (const child of newOrder) {
     const existing = store.elementsMap.get(child.id);
     if (!existing) continue;
-    updates.push({ id: child.id, order_num: i });
+    updates.push({ id: child.id });
   }
 
   return updates;

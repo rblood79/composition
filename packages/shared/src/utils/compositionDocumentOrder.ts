@@ -521,11 +521,3 @@ export function moveDescendantChild(
     ? { document: { ...document, children: result.children }, changed: true }
     : { document, changed: false };
 }
-
-export function deriveLegacyOrderNum(
-  parentChildren: readonly CanonicalNode[],
-  childId: string,
-): number | null {
-  const index = parentChildren.findIndex((child) => child.id === childId);
-  return index === -1 ? null : index;
-}

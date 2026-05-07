@@ -1,8 +1,3 @@
-export interface OrderedElementLike {
-  id: string;
-  order_num?: number | null;
-}
-
 export function createElementSourceIndex<T extends { id: string }>(
   elements: readonly T[],
 ): Map<string, number> {
@@ -15,14 +10,11 @@ export function createElementSourceIndex<T extends { id: string }>(
   return sourceIndexById;
 }
 
-export function compareElementsByOrderThenSource<T extends OrderedElementLike>(
+export function compareElementsBySource<T extends { id: string }>(
   left: T,
   right: T,
   sourceIndexById?: ReadonlyMap<string, number>,
 ): number {
-  const orderDiff = (left.order_num ?? 0) - (right.order_num ?? 0);
-  if (orderDiff !== 0) return orderDiff;
-
   if (sourceIndexById) {
     const sourceDiff =
       (sourceIndexById.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
@@ -33,12 +25,12 @@ export function compareElementsByOrderThenSource<T extends OrderedElementLike>(
   return left.id.localeCompare(right.id);
 }
 
-export function sortElementsByOrderThenSource<T extends OrderedElementLike>(
+export function sortElementsBySource<T extends { id: string }>(
   elements: readonly T[],
   sourceElements: readonly { id: string }[] = elements,
 ): T[] {
   const sourceIndexById = createElementSourceIndex(sourceElements);
   return [...elements].sort((left, right) =>
-    compareElementsByOrderThenSource(left, right, sourceIndexById),
+    compareElementsBySource(left, right, sourceIndexById),
   );
 }

@@ -6,7 +6,6 @@ import type {
 } from "../../types/composition-document.types";
 import {
   appendDescendantChild,
-  deriveLegacyOrderNum,
   getCanonicalChildren,
   insertCanonicalChild,
   moveCanonicalChild,
@@ -119,7 +118,7 @@ describe("composition document order helpers", () => {
     ]);
   });
 
-  it("moves descendant children and derives legacy order mirror from index", () => {
+  it("moves descendant children by children[] index", () => {
     const doc = makeDoc([
       makeRefNode("instance", {
         content: {
@@ -135,7 +134,5 @@ describe("composition document order helpers", () => {
     ).children;
 
     expect(children.map((node) => node.id)).toEqual(["b", "a", "c"]);
-    expect(deriveLegacyOrderNum(children, "c")).toBe(2);
-    expect(deriveLegacyOrderNum(children, "ghost")).toBeNull();
   });
 });

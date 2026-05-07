@@ -17,8 +17,8 @@ tags: [domain, component, lifecycle]
 
 canonical cutover 이후에는 Store 단계에서 canonical document write가 먼저
 일어나고, legacy `Element[]`는 `exportLegacyDocument()` mirror로 재파생됩니다.
-순서는 canonical parent `children[]` index가 SSOT이며 `order_num`은 legacy
-compat mirror입니다.
+순서는 canonical parent `children[]` index가 SSOT입니다. `Element.order_num`은
+제거됐으므로 생성/수정/삭제/history/DB payload에 추가하지 않습니다.
 
 ## 1. 생성 (Create)
 
@@ -118,7 +118,6 @@ export function createTagGroupDefinition(context): ComponentDefinition {
         },
       },
       parent_id: parentId,
-      order_num: orderNum,
     },
     children: [
       // Level 2-A: Label (리프 노드 - children 없음)
@@ -128,7 +127,6 @@ export function createTagGroupDefinition(context): ComponentDefinition {
           children: "Tag Group",
           style: { fontSize: 12, fontWeight: 500 },
         },
-        order_num: 1,
       },
       // Level 2-B: TagList (중간 컨테이너 - children으로 Tag 포함)
       {
@@ -141,18 +139,15 @@ export function createTagGroupDefinition(context): ComponentDefinition {
             gap: 4,
           },
         },
-        order_num: 2,
         children: [
           // ← 재귀 중첩: Level 3
           {
             type: "Tag",
             props: { children: "Tag 1" },
-            order_num: 1,
           },
           {
             type: "Tag",
             props: { children: "Tag 2" },
-            order_num: 2,
           },
         ],
       },
@@ -221,7 +216,6 @@ const createElement = (type: string, parentId: string) => {
     type,
     parent_id: parentId,
     page_id: currentPageId,
-    order_num: calculateNextOrderNum(parentId, elements),
     props: getDefaultProps(type),
     created_at: new Date().toISOString(),
   };
@@ -262,7 +256,7 @@ const updateElementProps = (elementId: string, props: Partial<Props>) => {
 const moveElement = (
   elementId: string,
   newParentId: string,
-  newOrder: number,
+  insertionIndex: number,
 ) => {
   const element = getElementById(elementsMap, elementId);
 
@@ -271,9 +265,8 @@ const moveElement = (
     elementId,
     data: {
       prevParentId: element.parent_id,
-      prevOrder: element.order_num,
       newParentId,
-      newOrder,
+      insertionIndex,
     },
   });
 
@@ -330,7 +323,7 @@ function collectElementsToRemove(elementId, elements, elementsMap) {
   // 1. 자식 요소 재귀 수집
   // 2. Table Column → 연관 Cell 수집
   // 3. Table Cell → 연관 Column + 다른 Cell 수집
-  // 4. Tab/Panel → 연결된 Panel/Tab 수집 (tabId 또는 order_num 기반)
+  // 4. Tab/Panel → 연결된 Panel/Tab 수집 (tabId 기반)
   // 5. 중복 제거
   return { rootElement, allElements };
 }
@@ -365,33 +358,24 @@ async function executeRemoval(set, get, rootElements, allUniqueElements) {
   });
 
   // 5. postMessage (Preview 동기화)
-  // 6. legacy order_num mirror 정규화 (필요 시, 컬렉션 아이템 제외)
-  setTimeout(() => {
-    const { elements, batchUpdateElementOrders } = get();
-    reorderElements(elements, currentPageId, batchUpdateElementOrders);
-  }, 100);
+  // 6. explicit reorder는 canonical children[] move API만 사용
 }
 ```
 
 ## Order / Reorder 경계
 
 runtime order는 canonical `children[]` index가 SSOT입니다. 삭제/Undo/Redo 후
-legacy mirror 정규화가 필요하면 `reorderElements()`를 사용하되, 이 값으로
-canonical sibling 위치를 새로 추론하지 않습니다.
+order 복원이 필요하면 canonical/source snapshot을 저장하고
+`moveElementCanonicalPrimary(...)` 또는 canonical document action으로 복원합니다.
+제거된 legacy order API를 재도입하지 않습니다.
 
 ```typescript
-import { reorderElements } from "@/builder/stores/utils/elementReorder";
+moveElementCanonicalPrimary(elementId, parentId, insertionIndex);
 
-// ✅ legacy mirror 정규화: batchUpdateElementOrders 사용 (단일 set() + _rebuildIndexes())
-// 비동기 콜백 안에서 get()으로 최신 상태 참조 (stale closure 방지)
-setTimeout(() => {
-  const { elements, batchUpdateElementOrders } = get();
-  reorderElements(elements, pageId, batchUpdateElementOrders);
-}, 100);
-
-// ❌ 구 패턴: updateElementOrder N회 호출 (N×set())
-// ❌ 구 패턴: setTimeout 밖에서 elements 캡처 (stale closure)
-// ❌ props update 중 order_num 차이를 이유로 canonical node remove+append
+// ❌ removed legacy APIs:
+// updateElementOrder(...)
+// batchUpdateElementOrders(...)
+// reorderElements(...)
 ```
 
 ## 참조 파일
@@ -404,5 +388,4 @@ setTimeout(() => {
 - `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 액션 (collectElementsToRemove, executeRemoval, removeElement, removeElements)
 - `apps/builder/src/adapters/canonical/canonicalMutations.ts` - canonical primary merge/set/move
 - `apps/builder/src/adapters/canonical/exportLegacyDocument.ts` - legacy Element[] mirror export
-- `apps/builder/src/builder/stores/utils/elementReorder.ts` - legacy order_num mirror 정규화
 - `apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts` - 키보드 Delete → removeElements 배치 호출

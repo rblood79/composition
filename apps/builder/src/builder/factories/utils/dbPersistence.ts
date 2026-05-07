@@ -2,7 +2,6 @@ import { Element } from "../../../types/core/store.types";
 import { elementsApi } from "../../../adapters/canonical/legacyElementsApiService";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { createElementCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
-import { HierarchyManager } from "../../utils/HierarchyManager";
 import { updateElementId } from "./elementCreation";
 import { supabase } from "../../../env/supabase.client";
 import { getDB } from "../../../lib/db";
@@ -139,19 +138,10 @@ export async function saveElementsToDb(
       return;
     }
 
-    // ⭐ Layout/Slot System: layout 모드에서는 빈 배열 사용 (pageId가 없음)
-    const existingElements = layoutId
-      ? [] // Layout 모드: order_num 계산용 요소 없음 (향후 필요시 layoutId로 조회)
-      : await elementsApi.getElementsByPageId(pageId);
-
     // 부모 먼저 저장
     const parentToSave = {
       ...parent,
       parent_id: parentId,
-      order_num: HierarchyManager.calculateNextOrderNum(
-        parentId,
-        existingElements,
-      ),
     };
 
     const savedParent = await createElementCanonicalPrimary(parentToSave);
