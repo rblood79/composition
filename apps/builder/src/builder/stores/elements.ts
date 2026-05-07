@@ -47,6 +47,7 @@ import {
 import { ElementUtils } from "../../utils/element/elementUtils";
 import {
   createInstance as createInstanceAction,
+  buildDetachSnapshotsForOrigins,
   detachInstance as detachInstanceAction,
   resetInstanceOverrideField as resetInstanceOverrideFieldAction,
   toggleComponentOrigin as toggleComponentOriginAction,
@@ -59,6 +60,7 @@ import {
 } from "../utils/scheduleTask";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import { normalizeExternalFillIngress } from "../panels/styles/utils/fillExternalIngress";
+import { getActiveCanonicalElementsSnapshot } from "./canonical/canonicalElementSnapshot";
 import {
   type PageElementIndex,
   type ComponentIndex,
@@ -68,7 +70,6 @@ import {
   createEmptyVariableUsageIndex,
   rebuildPageIndex,
   indexElement,
-  unindexElement,
   rebuildComponentIndex,
   rebuildVariableUsageIndex,
   getPageElements as getPageElementsFromIndex,
@@ -524,6 +525,30 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     return getPageElementsFromIndex(pageIndex, pageId, elementsMap);
   };
 
+  const buildDetachedPageRemovalState = (
+    state: ElementsState,
+  ): ElementsState => {
+    const canonicalElements = getActiveCanonicalElementsSnapshot();
+    if (!canonicalElements || canonicalElements.length === 0) return state;
+
+    const mergedById = new Map<string, Element>();
+    for (const element of canonicalElements) {
+      mergedById.set(element.id, element);
+    }
+    for (const element of state.elements) {
+      mergedById.set(element.id, element);
+    }
+
+    const mergedElements = Array.from(mergedById.values());
+    const { elementsMap, childrenMap } = buildIndexes(mergedElements);
+    return {
+      ...state,
+      elements: mergedElements,
+      elementsMap,
+      childrenMap,
+    };
+  };
+
   const applyFullSnapshot = (elements: Element[]) => {
     const { elements: normalizedElements } = normalizeElementTags(elements);
     const canonicalElements = normalizedElements.map((element) =>
@@ -601,28 +626,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     }
   };
 
-  const unindexComponentElement = (
-    componentIndex: ComponentIndex,
-    element: Element,
-  ) => {
-    if (isMasterElement(element)) {
-      componentIndex.masterComponents.delete(element.id);
-      componentIndex.masterToInstances.delete(element.id);
-    }
-
-    if (isInstanceElement(element)) {
-      const masterRef = getInstanceMasterRef(element);
-      if (!masterRef) return;
-      const instanceIds = componentIndex.masterToInstances.get(masterRef);
-      if (instanceIds) {
-        instanceIds.delete(element.id);
-        if (instanceIds.size === 0) {
-          componentIndex.masterToInstances.delete(masterRef);
-        }
-      }
-    }
-  };
-
   const indexVariableUsageElement = (
     variableUsageIndex: VariableUsageIndex,
     element: Element,
@@ -636,27 +639,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         variableUsageIndex.variableToElements.set(variableName, new Set());
       }
       variableUsageIndex.variableToElements.get(variableName)!.add(element.id);
-    }
-  };
-
-  const unindexVariableUsageElement = (
-    variableUsageIndex: VariableUsageIndex,
-    element: Element,
-  ) => {
-    if (!element.variableBindings || element.variableBindings.length === 0) {
-      return;
-    }
-
-    for (const variableName of element.variableBindings) {
-      const elementIds =
-        variableUsageIndex.variableToElements.get(variableName);
-      if (!elementIds) {
-        continue;
-      }
-      elementIds.delete(element.id);
-      if (elementIds.size === 0) {
-        variableUsageIndex.variableToElements.delete(variableName);
-      }
     }
   };
 
@@ -1202,53 +1184,58 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     removePageLocal: (pageId, nextSelection) => {
       const startTime = performance.now();
       set((state) => {
-        const removedElements =
-          getPageElementsFromIndex(
-            state.pageIndex,
-            pageId,
-            state.elementsMap,
-          ) ?? state.elements.filter((element) => element.page_id === pageId);
+        const detachSourceState = buildDetachedPageRemovalState(state);
+        const removedElementsMap = new Map<string, Element>();
+        const indexedRemovedElements = getPageElementsFromIndex(
+          state.pageIndex,
+          pageId,
+          state.elementsMap,
+        );
+        const legacyRemovedElements =
+          indexedRemovedElements.length > 0
+            ? indexedRemovedElements
+            : state.elements.filter((element) => element.page_id === pageId);
+        for (const element of legacyRemovedElements) {
+          removedElementsMap.set(element.id, element);
+        }
+        for (const element of detachSourceState.elements) {
+          if (element.page_id === pageId) {
+            removedElementsMap.set(element.id, element);
+          }
+        }
+        const removedElements = Array.from(removedElementsMap.values());
         const removedElementIds = new Set(
           removedElements.map((element) => element.id),
         );
-        const nextPages = state.pages.filter((page) => page.id !== pageId);
-        const nextElements = state.elements.filter(
-          (element) => !removedElementIds.has(element.id),
+        const autoDetach = buildDetachSnapshotsForOrigins(
+          detachSourceState,
+          removedElements,
+          removedElementIds,
         );
-        const nextElementsMap = new Map(state.elementsMap);
-        const nextChildrenMap = new Map(state.childrenMap);
-        const nextPageIndex = clonePageIndex(state.pageIndex);
-        const nextComponentIndex = cloneComponentIndex(state.componentIndex);
-        const nextVariableUsageIndex = cloneVariableUsageIndex(
-          state.variableUsageIndex,
+        const autoDetachElementsByPreviousId = new Map<string, Element[]>(
+          autoDetach.previousElements.map((element) => [element.id, []]),
         );
-
-        removedElements.forEach((element) => {
-          nextElementsMap.delete(element.id);
-          nextChildrenMap.delete(element.id);
-
-          const parentId = element.parent_id || "root";
-          const siblings = nextChildrenMap.get(parentId);
-          if (siblings) {
-            const nextSiblings = siblings.filter(
-              (child) => child.id !== element.id,
-            );
-            if (nextSiblings.length > 0) {
-              nextChildrenMap.set(parentId, nextSiblings);
-            } else {
-              nextChildrenMap.delete(parentId);
-            }
+        let currentDetachedRootId: string | null = null;
+        for (const element of autoDetach.elements) {
+          if (autoDetachElementsByPreviousId.has(element.id)) {
+            currentDetachedRootId = element.id;
           }
-
-          unindexElement(nextPageIndex, element);
-          unindexComponentElement(nextComponentIndex, element);
-          unindexVariableUsageElement(nextVariableUsageIndex, element);
+          if (currentDetachedRootId) {
+            autoDetachElementsByPreviousId
+              .get(currentDetachedRootId)
+              ?.push(element);
+          }
+        }
+        const nextPages = state.pages.filter((page) => page.id !== pageId);
+        const nextElements = state.elements.flatMap((element) => {
+          if (removedElementIds.has(element.id)) return [];
+          return autoDetachElementsByPreviousId.get(element.id) ?? [element];
         });
+        const nextIndexes = buildIndexes(nextElements);
+        const nextElementsMap = nextIndexes.elementsMap;
 
         const nextPagePositions = { ...state.pagePositions };
         delete nextPagePositions[pageId];
-        const nextPageElementsSnapshot = { ...state.pageElementsSnapshot };
-        delete nextPageElementsSnapshot[pageId];
 
         const requestedElementId = nextSelection?.elementId ?? null;
         const requestedPageId = nextSelection?.pageId ?? null;
@@ -1278,12 +1265,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         return {
           pages: nextPages,
           elements: nextElements,
-          elementsMap: nextElementsMap,
-          childrenMap: nextChildrenMap,
-          pageElementsSnapshot: nextPageElementsSnapshot,
-          pageIndex: nextPageIndex,
-          componentIndex: nextComponentIndex,
-          variableUsageIndex: nextVariableUsageIndex,
+          ...nextIndexes,
           pagePositions: nextPagePositions,
           pagePositionsVersion: state.pagePositionsVersion + 1,
           currentPageId: nextCurrentPageId,
