@@ -1,0 +1,61 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/admin/work/composition/.codex/hooks/protect-files.sh'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/admin/work/composition/.codex/hooks/spec-rebuild-flag.sh'"
+          },
+          {
+            "type": "command",
+            "command": "'/Users/admin/work/composition/.codex/hooks/auto-format.sh'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/admin/work/composition/.codex/hooks/session-start.sh'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/admin/work/composition/.codex/hooks/route-prompt.sh'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/admin/work/composition/.codex/hooks/type-check-gate.sh'",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

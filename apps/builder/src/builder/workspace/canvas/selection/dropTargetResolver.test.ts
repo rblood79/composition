@@ -71,7 +71,7 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
   });
 
-  it("places end insertion line at the last child edge, not halfway down the page", () => {
+  it("places end insertion line after the full gap after the last child, not halfway down the page", () => {
     const page1Body = makeElement("page-1-body", {
       type: "body",
       page_id: "page-1",
@@ -79,6 +79,12 @@ describe("resolveDropTarget cross-page body targets", () => {
     const page2Body = makeElement("page-2-body", {
       type: "body",
       page_id: "page-2",
+      props: {
+        style: {
+          gap: 16,
+          padding: 24,
+        },
+      },
     });
     const source = makeElement("source-button", {
       type: "Button",
@@ -127,7 +133,126 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
     expect(
       result ? computeInsertionLinePosition(result, source.id, store) : null,
-    ).toBe(329);
+    ).toBe(345);
+  });
+
+  it("places middle insertion line after the full gap from the previous child", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const page2Body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+      props: {
+        style: {
+          gap: 16,
+        },
+      },
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: page1Body.id,
+      order_num: 0,
+    });
+    const firstCard = makeElement("first-card", {
+      type: "Card",
+      page_id: "page-2",
+      parent_id: page2Body.id,
+      order_num: 0,
+    });
+    const secondCard = makeElement("second-card", {
+      type: "Card",
+      page_id: "page-2",
+      parent_id: page2Body.id,
+      order_num: 1,
+    });
+
+    mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 120, height: 40 });
+    mockBounds.set(page2Body.id, { x: 900, y: 0, width: 800, height: 1000 });
+    mockBounds.set(firstCard.id, { x: 924, y: 24, width: 360, height: 100 });
+    mockBounds.set(secondCard.id, { x: 924, y: 140, width: 360, height: 100 });
+
+    const store = {
+      childrenMap: new Map([
+        [page1Body.id, [source]],
+        [page2Body.id, [firstCard, secondCard]],
+      ]),
+      elementsMap: new Map([
+        [page1Body.id, page1Body],
+        [page2Body.id, page2Body],
+        [source.id, source],
+        [firstCard.id, firstCard],
+        [secondCard.id, secondCard],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 950, y: 130 },
+      source.id,
+      store,
+      () => [page2Body.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: page2Body.id,
+      insertionIndex: 1,
+      isReparent: true,
+    });
+    expect(
+      result ? computeInsertionLinePosition(result, source.id, store) : null,
+    ).toBe(140);
+  });
+
+  it("places empty-container insertion line at content start padding", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const page2Body = makeElement("page-2-body", {
+      type: "body",
+      page_id: "page-2",
+      props: {
+        style: {
+          paddingTop: 32,
+        },
+      },
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: page1Body.id,
+      order_num: 0,
+    });
+
+    mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 120, height: 40 });
+    mockBounds.set(page2Body.id, { x: 900, y: 0, width: 800, height: 1000 });
+
+    const store = {
+      childrenMap: new Map([[page1Body.id, [source]]]),
+      elementsMap: new Map([
+        [page1Body.id, page1Body],
+        [page2Body.id, page2Body],
+        [source.id, source],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 950, y: 120 },
+      source.id,
+      store,
+      () => [page2Body.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: page2Body.id,
+      insertionIndex: 0,
+      isReparent: true,
+    });
+    expect(
+      result ? computeInsertionLinePosition(result, source.id, store) : null,
+    ).toBe(32);
   });
 
   it("rejects ordinary instance descendants but keeps explicit slot hosts droppable", () => {

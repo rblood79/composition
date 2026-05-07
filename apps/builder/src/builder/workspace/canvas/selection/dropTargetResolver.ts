@@ -18,6 +18,7 @@
 
 import type { Element } from "../../../../types/builder/unified.types";
 import { isLegacyInstanceElement } from "../../../../adapters/canonical/legacyElementFields";
+import { parseGapValue, parsePadding4Way } from "@composition/specs";
 import type { ElementBounds } from "../elementRegistry";
 import { getSceneBounds } from "../skia/renderCommands";
 import { getSpecForTag } from "../sprites/tagSpecMap";
@@ -588,12 +589,43 @@ function getAxisOffset(
   return isHorizontal ? offset.dx : offset.dy;
 }
 
+function getContainerAxisSpacing(
+  element: Element | undefined,
+  isHorizontal: boolean,
+): { paddingStart: number; paddingEnd: number; gap: number } {
+  const style = asRecord(element?.props?.style);
+  const padding = parsePadding4Way({
+    padding: style?.padding,
+    paddingTop: style?.paddingTop,
+    paddingRight: style?.paddingRight,
+    paddingBottom: style?.paddingBottom,
+    paddingLeft: style?.paddingLeft,
+  });
+  const gap = parseGapValue({
+    gap: style?.gap,
+    rowGap: style?.rowGap,
+    columnGap: style?.columnGap,
+  });
+
+  return isHorizontal
+    ? {
+        paddingStart: padding.left,
+        paddingEnd: padding.right,
+        gap: gap.column,
+      }
+    : {
+        paddingStart: padding.top,
+        paddingEnd: padding.bottom,
+        gap: gap.row,
+      };
+}
+
 /**
  * Drop indicator line 의 scene 좌표를 계산한다.
  *
- * Cross-container 는 아직 target siblings 를 움직이지 않으므로 실제 child 경계에
- * 라인을 둔다. Same-container reorder 는 형제 visual offset 으로 열린 gap 의
- * 중앙을 계산한다.
+ * Cross-container 는 아직 target siblings 를 움직이지 않으므로 새 요소가
+ * 실제로 시작될 padding/gap layout boundary 에 라인을 둔다. Same-container
+ * reorder 는 형제 visual offset 으로 열린 gap 의 중앙을 계산한다.
  */
 export function computeInsertionLinePosition(
   dropTarget: DropTarget,
@@ -601,6 +633,8 @@ export function computeInsertionLinePosition(
   store: DropTargetStoreSlice,
 ): number | undefined {
   const { containerId, insertionIndex, isHorizontal } = dropTarget;
+  const container = store.elementsMap.get(containerId);
+  const spacing = getContainerAxisSpacing(container, isHorizontal);
   const sortedChildren = getSortedChildren(containerId, store);
   const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
   const siblingEntries = siblings
@@ -618,11 +652,9 @@ export function computeInsertionLinePosition(
     );
 
   if (siblingEntries.length === 0) {
-    const targetSize = isHorizontal
-      ? dropTarget.containerBounds.width
-      : dropTarget.containerBounds.height;
     return (
-      getAxisStart(dropTarget.containerBounds, isHorizontal) + targetSize / 2
+      getAxisStart(dropTarget.containerBounds, isHorizontal) +
+      spacing.paddingStart
     );
   }
 
@@ -633,12 +665,29 @@ export function computeInsertionLinePosition(
 
   if (isReparent) {
     if (insertionIndex <= 0) {
-      return getAxisStart(siblingEntries[0].bounds, isHorizontal);
+      const firstStart = getAxisStart(siblingEntries[0].bounds, isHorizontal);
+      const contentStart =
+        getAxisStart(dropTarget.containerBounds, isHorizontal) +
+        spacing.paddingStart;
+      return spacing.paddingStart > 0 ? contentStart : firstStart;
     }
     if (insertionIndex >= siblingEntries.length) {
-      return getAxisEnd(
+      const lastEnd = getAxisEnd(
         siblingEntries[siblingEntries.length - 1].bounds,
         isHorizontal,
+      );
+      const contentEnd =
+        getAxisEnd(dropTarget.containerBounds, isHorizontal) -
+        spacing.paddingEnd;
+      if (spacing.gap > 0) {
+        return lastEnd + spacing.gap;
+      }
+      return spacing.paddingEnd > 0 ? (lastEnd + contentEnd) / 2 : lastEnd;
+    }
+    if (spacing.gap > 0) {
+      return (
+        getAxisEnd(siblingEntries[insertionIndex - 1].bounds, isHorizontal) +
+        spacing.gap
       );
     }
     return (
