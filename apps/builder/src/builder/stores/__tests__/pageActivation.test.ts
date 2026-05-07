@@ -115,6 +115,33 @@ describe("page activation selection invariant", () => {
     expect(state.selectedElementIds).toEqual([button.id]);
   });
 
+  it("selectElementWithPageTransition는 명시된 editingContextId를 같은 commit에 반영한다", () => {
+    const body1 = makeElement("body-1", "page-1");
+    const body2 = makeElement("body-2", "page-2");
+    const card = makeElement("card-2", "page-2", {
+      type: "Card",
+      parent_id: body2.id,
+      order_num: 1,
+    });
+    const heading = makeElement("heading-2", "page-2", {
+      type: "Heading",
+      parent_id: card.id,
+      order_num: 0,
+    });
+    useStore.getState().setElements([body1, body2, card, heading]);
+    useStore.setState({ currentPageId: "page-1" });
+
+    useStore.getState().selectElementWithPageTransition(heading.id, "page-2", {
+      editingContextId: card.id,
+    });
+
+    const state = useStore.getState();
+    expect(state.currentPageId).toBe("page-2");
+    expect(state.editingContextId).toBe(card.id);
+    expect(state.selectedElementId).toBe(heading.id);
+    expect(state.selectedElementIds).toEqual([heading.id]);
+  });
+
   it("activatePage는 selectedElementId가 이미 body여도 stale multi selection을 정리한다", () => {
     const body = makeElement("body-1", "page-1");
     const button = makeElement("button-1", "page-1", {

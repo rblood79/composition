@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   resolveClickTarget,
   resolveContextEntryTarget,
+  resolveModifierClickTarget,
 } from "./hierarchicalSelection";
 
 describe("resolveClickTarget", () => {
@@ -93,5 +94,31 @@ describe("resolveClickTarget", () => {
     ]);
 
     expect(resolveContextEntryTarget("card", "card", elementsMap)).toBeNull();
+  });
+
+  it("resolves modifier-click to the concrete child behind a group boundary", () => {
+    const elementsMap = new Map([
+      ["body", { id: "body", type: "body", parent_id: null }],
+      ["card", { id: "card", type: "Card", parent_id: "body" }],
+      ["heading", { id: "heading", type: "Heading", parent_id: "card" }],
+    ]);
+
+    expect(resolveClickTarget("heading", null, elementsMap)).toBe("card");
+    expect(resolveModifierClickTarget("heading", null, elementsMap)).toBe(
+      "heading",
+    );
+  });
+
+  it("keeps modifier-click multi-select behavior for direct boundary targets", () => {
+    const elementsMap = new Map([
+      ["body", { id: "body", type: "body", parent_id: null }],
+      ["card", { id: "card", type: "Card", parent_id: "body" }],
+      ["heading", { id: "heading", type: "Heading", parent_id: "card" }],
+    ]);
+
+    expect(resolveModifierClickTarget("card", null, elementsMap)).toBeNull();
+    expect(
+      resolveModifierClickTarget("heading", "card", elementsMap),
+    ).toBeNull();
   });
 });

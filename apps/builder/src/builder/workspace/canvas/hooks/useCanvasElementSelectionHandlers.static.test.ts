@@ -31,4 +31,20 @@ describe("useCanvasElementSelectionHandlers frame selection contract", () => {
     expect(source).toContain("selectResolvedTarget(");
     expect(source).toContain("setSelectedElement(null);");
   });
+
+  it("uses Shift click for multi-select and keeps Cmd/Ctrl click for direct child selection", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useCanvasElementSelectionHandlers.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("const isMultiSelectKey = modifiers?.shiftKey;");
+    expect(source).not.toContain(
+      "const isMultiSelectKey = modifiers?.metaKey || modifiers?.ctrlKey;",
+    );
+    expect(source).toContain("resolveModifierClickTarget(");
+    expect(source).toContain("selectDirectModifierTarget(");
+    expect(source).toContain("!modifiers.shiftKey");
+    expect(source).toContain("editingContextId,");
+  });
 });

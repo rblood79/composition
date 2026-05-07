@@ -5,8 +5,13 @@ import { selectReusableFrame } from "../../../stores/utils/frameActions";
 import {
   resolveClickTarget,
   resolveContextEntryTarget,
+  resolveEditingContextForTreeSelection,
+  resolveModifierClickTarget,
 } from "../../../utils/hierarchicalSelection";
-import type { Element } from "../../../../types/core/store.types";
+import type {
+  ComponentElementProps,
+  Element,
+} from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 
@@ -26,6 +31,10 @@ interface UseCanvasElementSelectionHandlersOptions {
   selectElementWithPageTransition: (
     elementId: string,
     targetPageId: string | null,
+    options?: {
+      editingContextId?: string | null;
+      props?: ComponentElementProps;
+    },
   ) => void;
   setCurrentPageId: (pageId: string) => void;
   setSelectedElement: (
@@ -98,10 +107,14 @@ function selectResolvedTarget(
   selectElementWithPageTransition: (
     elementId: string,
     targetPageId: string | null,
+    options?: {
+      editingContextId?: string | null;
+      props?: ComponentElementProps;
+    },
   ) => void,
   interactiveElementsMap: Map<string, Element>,
 ): void {
-  const isMultiSelectKey = modifiers?.metaKey || modifiers?.ctrlKey;
+  const isMultiSelectKey = modifiers?.shiftKey;
 
   if (isMultiSelectKey) {
     const currentState = useStore.getState();
@@ -179,6 +192,43 @@ function handleUnresolvedTarget(
   setSelectedElement(elementId);
 }
 
+function selectDirectModifierTarget(
+  elementId: string,
+  interactiveElementsMap: Map<string, Element>,
+  selectElementWithPageTransition: (
+    elementId: string,
+    targetPageId: string | null,
+    options?: {
+      editingContextId?: string | null;
+      props?: ComponentElementProps;
+    },
+  ) => void,
+): void {
+  const state = useStore.getState();
+  const directElement =
+    interactiveElementsMap.get(elementId) ?? state.elementsMap.get(elementId);
+  if (!directElement) return;
+
+  const targetPageId =
+    directElement.page_id && directElement.page_id !== state.currentPageId
+      ? directElement.page_id
+      : null;
+  const editingContextId = resolveEditingContextForTreeSelection(
+    elementId,
+    interactiveElementsMap,
+  );
+  const rawElement = state.elementsMap.get(elementId);
+
+  selectElementWithPageTransition(elementId, targetPageId, {
+    editingContextId,
+    ...(rawElement
+      ? {}
+      : {
+          props: directElement.props as ComponentElementProps | undefined,
+        }),
+  });
+}
+
 export function useCanvasElementSelectionHandlers({
   clearSelection,
   isEditing,
@@ -215,6 +265,23 @@ export function useCanvasElementSelectionHandlers({
         clickedElement.page_id !== state.currentPageId
           ? clickedElement.page_id
           : null;
+      const directModifierTarget =
+        (modifiers?.metaKey || modifiers?.ctrlKey) && !modifiers.shiftKey
+          ? resolveModifierClickTarget(
+              elementId,
+              state.editingContextId,
+              interactiveElementsMap,
+            )
+          : null;
+
+      if (directModifierTarget) {
+        selectDirectModifierTarget(
+          directModifierTarget,
+          interactiveElementsMap,
+          selectElementWithPageTransition,
+        );
+        return;
+      }
 
       let resolvedTarget = resolveClickTarget(
         elementId,

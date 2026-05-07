@@ -202,6 +202,10 @@ export interface ElementsState {
   selectElementWithPageTransition: (
     elementId: string,
     targetPageId: string | null,
+    options?: {
+      editingContextId?: string | null;
+      props?: ComponentElementProps;
+    },
   ) => void;
   undo: () => Promise<void>;
   redo: () => Promise<void>;
@@ -1367,10 +1371,14 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // 본 action은 selection + currentPageId + editingContextId + multiSelectMode를
     // 한 번의 set()에 병합하고, props hydrate는 기존 Phase2 패턴(scheduleNextFrame)
     // 을 그대로 유지한다.
-    selectElementWithPageTransition: (elementId, targetPageId) => {
+    selectElementWithPageTransition: (elementId, targetPageId, options) => {
       const currentState = get();
       const shouldChangePage =
         targetPageId != null && targetPageId !== currentState.currentPageId;
+      const shouldSetEditingContext =
+        options != null &&
+        Object.prototype.hasOwnProperty.call(options, "editingContextId");
+      const externalProps = options?.props;
 
       // ADR-074 Phase 5: 페이지 전환이 실제 발생하는 경우에만
       // input.page-transition 라벨로 계측. selection-only 경로는 통계 왜곡
@@ -1385,13 +1393,17 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
         // Phase 1 (즉시): 캔버스 하이라이트용 상태 병합
         set({
-          ...(shouldChangePage
-            ? { currentPageId: targetPageId, editingContextId: null }
-            : {}),
+          ...(shouldChangePage ? { currentPageId: targetPageId } : {}),
+          ...(shouldSetEditingContext
+            ? { editingContextId: options?.editingContextId ?? null }
+            : shouldChangePage
+              ? { editingContextId: null }
+              : {}),
           selectedElementId: elementId,
           selectedElementIds: [elementId],
           selectedElementIdsSet: new Set([elementId]),
           multiSelectMode: false,
+          ...(externalProps ? { selectedElementProps: externalProps } : {}),
         });
 
         // Phase 2 (다음 프레임): 인스펙터용 props hydrate
@@ -1402,7 +1414,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           const element =
             latestState.elementsMap.get(elementId) ??
             findElementById(latestState.elements, elementId);
-          const initialProps = element ? createCompleteProps(element) : {};
+          const initialProps = element
+            ? createCompleteProps(element)
+            : (externalProps ?? {});
 
           set({ selectedElementProps: initialProps });
         });

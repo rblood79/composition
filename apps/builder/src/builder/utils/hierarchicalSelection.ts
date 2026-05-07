@@ -61,6 +61,24 @@ export function resolveContextEntryTarget(
   return target && target !== contextElementId ? target : null;
 }
 
+export function resolveModifierClickTarget(
+  clickedElementId: string,
+  editingContextId: string | null,
+  elementsMap: Map<string, MinimalElement>,
+): string | null {
+  const boundaryTarget = resolveClickTarget(
+    clickedElementId,
+    editingContextId,
+    elementsMap,
+  );
+  if (!boundaryTarget || boundaryTarget === clickedElementId) return null;
+
+  const clickedElement = elementsMap.get(clickedElementId);
+  if (!clickedElement || isBodyElement(clickedElement)) return null;
+
+  return clickedElementId;
+}
+
 function isRootSelectableElement(
   element: MinimalElement,
   elementsMap: Map<string, MinimalElement>,
