@@ -3,6 +3,7 @@ import type { Element } from "../../../../types/builder/unified.types";
 import type { ElementBounds } from "../elementRegistry";
 import {
   computeInsertionLinePosition,
+  computeSiblingOffsets,
   resolveDropTarget,
 } from "./dropTargetResolver";
 
@@ -384,5 +385,126 @@ describe("resolveDropTarget cross-page body targets", () => {
       containerId: pageBody.id,
       isReparent: false,
     });
+  });
+
+  it("includes column gap when same-parent reorder closes the old slot", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      props: {
+        style: {
+          gap: 16,
+        },
+      },
+    });
+    const first = makeElement("first-card", {
+      parent_id: pageBody.id,
+      order_num: 0,
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+      order_num: 1,
+    });
+    const last = makeElement("last-card", {
+      parent_id: pageBody.id,
+      order_num: 2,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(first.id, { x: 40, y: 0, width: 160, height: 100 });
+    mockBounds.set(source.id, { x: 40, y: 116, width: 120, height: 40 });
+    mockBounds.set(last.id, { x: 40, y: 172, width: 160, height: 100 });
+
+    const store = {
+      childrenMap: new Map([[pageBody.id, [first, source, last]]]),
+      elementsMap: new Map([
+        [pageBody.id, pageBody],
+        [first.id, first],
+        [source.id, source],
+        [last.id, last],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 80, y: 300 },
+      source.id,
+      store,
+      () => [pageBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: pageBody.id,
+      insertionIndex: 2,
+      isHorizontal: false,
+      isReparent: false,
+    });
+    expect(
+      result ? computeSiblingOffsets(result, source.id, store) : null,
+    ).toEqual(new Map([[last.id, { dx: 0, dy: -56 }]]));
+    expect(
+      result ? computeInsertionLinePosition(result, source.id, store) : null,
+    ).toBe(232);
+  });
+
+  it("includes row gap when same-parent reorder closes the old slot", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      props: {
+        style: {
+          flexDirection: "row",
+          gap: 16,
+        },
+      },
+    });
+    const first = makeElement("first-card", {
+      parent_id: pageBody.id,
+      order_num: 0,
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+      order_num: 1,
+    });
+    const last = makeElement("last-card", {
+      parent_id: pageBody.id,
+      order_num: 2,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(first.id, { x: 0, y: 40, width: 100, height: 160 });
+    mockBounds.set(source.id, { x: 116, y: 40, width: 40, height: 120 });
+    mockBounds.set(last.id, { x: 172, y: 40, width: 100, height: 160 });
+
+    const store = {
+      childrenMap: new Map([[pageBody.id, [first, source, last]]]),
+      elementsMap: new Map([
+        [pageBody.id, pageBody],
+        [first.id, first],
+        [source.id, source],
+        [last.id, last],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 300, y: 80 },
+      source.id,
+      store,
+      () => [pageBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: pageBody.id,
+      insertionIndex: 2,
+      isHorizontal: true,
+      isReparent: false,
+    });
+    expect(
+      result ? computeSiblingOffsets(result, source.id, store) : null,
+    ).toEqual(new Map([[last.id, { dx: -56, dy: 0 }]]));
+    expect(
+      result ? computeInsertionLinePosition(result, source.id, store) : null,
+    ).toBe(232);
   });
 });

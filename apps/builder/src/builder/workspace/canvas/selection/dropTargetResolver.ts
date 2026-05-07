@@ -518,8 +518,8 @@ export function resolveDropTarget(
  * - Insertion: 삽입 위치에서 형제들이 공간을 열어줌 (make space)
  *
  * 알고리즘:
- * - origIdx 이후 형제: -dragSize (gap close)
- * - insertionIndex 이후 형제: +dragSize (make space)
+ * - origIdx 이후 형제: -(dragSize + gap) (gap close)
+ * - insertionIndex 이후 형제: +(dragSize + gap) (make space)
  * - 두 오프셋을 합산
  *
  * @returns elementId → { dx, dy } 맵
@@ -531,6 +531,8 @@ export function computeSiblingOffsets(
 ): Map<string, { dx: number; dy: number }> {
   const offsets = new Map<string, { dx: number; dy: number }>();
   const { containerId, insertionIndex, isHorizontal } = dropTarget;
+  const container = store.elementsMap.get(containerId);
+  const spacing = getContainerAxisSpacing(container, isHorizontal);
 
   // 전체 자식 (드래그 요소 포함, order_num 오름차순)
   const sortedChildren = getSortedChildren(containerId, store);
@@ -541,6 +543,7 @@ export function computeSiblingOffsets(
   const dragBounds = getSceneBounds(draggedElementId);
   if (!dragBounds) return offsets;
   const dragSize = isHorizontal ? dragBounds.width : dragBounds.height;
+  const dragSpan = dragSize + spacing.gap;
 
   // id → 원래 인덱스 맵 (O(1) lookup, findIndex N² 제거)
   const origIndexMap = new Map<string, number>();
@@ -554,10 +557,10 @@ export function computeSiblingOffsets(
     const sibling = siblings[i];
     const oi = origIndexMap.get(sibling.id)!;
 
-    // vacate: 원래 드래그 위치 이��� 형제 → gap close
-    const closeGap = oi > origIdx ? -dragSize : 0;
-    // insertion: 삽입 위치 이후 형제 → make space
-    const makeSpace = i >= insertionIndex ? dragSize : 0;
+    // vacate: 원래 드래그 위치 이후 형제 → dragged size + gap 만큼 close
+    const closeGap = oi > origIdx ? -dragSpan : 0;
+    // insertion: 삽입 위치 이후 형제 → dragged size + gap 만큼 make space
+    const makeSpace = i >= insertionIndex ? dragSpan : 0;
 
     const total = closeGap + makeSpace;
     if (total !== 0) {
@@ -625,7 +628,7 @@ function getContainerAxisSpacing(
  *
  * Cross-container 는 아직 target siblings 를 움직이지 않으므로 새 요소가
  * 실제로 시작될 padding/gap layout boundary 에 라인을 둔다. Same-container
- * reorder 는 형제 visual offset 으로 열린 gap 의 중앙을 계산한다.
+ * reorder 도 형제 visual offset 이후의 실제 layout boundary 를 계산한다.
  */
 export function computeInsertionLinePosition(
   dropTarget: DropTarget,
@@ -703,6 +706,7 @@ export function computeInsertionLinePosition(
       ? dragBounds.width
       : dragBounds.height
     : 0;
+  const dragSpan = dragSize + spacing.gap;
   const offsets = computeSiblingOffsets(dropTarget, draggedElementId, store);
 
   if (insertionIndex <= 0) {
@@ -710,7 +714,7 @@ export function computeInsertionLinePosition(
     return (
       getAxisStart(first.bounds, isHorizontal) +
       getAxisOffset(offsets, first.element.id, isHorizontal) -
-      dragSize / 2
+      dragSpan
     );
   }
 
@@ -719,15 +723,15 @@ export function computeInsertionLinePosition(
     return (
       getAxisEnd(last.bounds, isHorizontal) +
       getAxisOffset(offsets, last.element.id, isHorizontal) +
-      dragSize / 2
+      spacing.gap
     );
   }
 
-  const next = siblingEntries[insertionIndex];
+  const previous = siblingEntries[insertionIndex - 1];
   return (
-    getAxisStart(next.bounds, isHorizontal) +
-    getAxisOffset(offsets, next.element.id, isHorizontal) -
-    dragSize / 2
+    getAxisEnd(previous.bounds, isHorizontal) +
+    getAxisOffset(offsets, previous.element.id, isHorizontal) +
+    spacing.gap
   );
 }
 
