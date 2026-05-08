@@ -83,7 +83,6 @@ describe("project export canonical CompositionDocument payload", () => {
         slug: "/",
         project_id: projectId,
         parent_id: null,
-        order_num: 0,
       },
     ]);
     expect(renderModel.elements).toEqual([
@@ -93,12 +92,11 @@ describe("project export canonical CompositionDocument payload", () => {
         props: { children: "Canonical export" },
         parent_id: null,
         page_id: "page-home",
-        order_num: 0,
       },
     ]);
   });
 
-  it("derives page order from document children and mirrors legacy order numbers", () => {
+  it("derives page order from document children without page order mirrors", () => {
     const documentWithReorderedPages: CompositionDocument = {
       version: "composition-1.0",
       children: [
@@ -153,7 +151,9 @@ describe("project export canonical CompositionDocument payload", () => {
       "page-home",
       "page-two",
     ]);
-    expect(renderModel.pages.map((page) => page.order_num)).toEqual([0, 1, 2]);
+    expect(renderModel.pages.every((page) => !("order_num" in page))).toBe(
+      true,
+    );
     expect(renderModel.pages.map((page) => page.slug)).toEqual([
       "/page-3",
       "/",

@@ -35,4 +35,18 @@ describe("preview frame mirror contract", () => {
       ) ?? [],
     ).toHaveLength(2);
   });
+
+  it("does not expose page order_num on the preview runtime page contract", async () => {
+    const storeTypes = await readFile(
+      resolve(__dirname, "store/types.ts"),
+      "utf-8",
+    );
+    const router = await readFile(
+      resolve(__dirname, "router/CanvasRouter.tsx"),
+      "utf-8",
+    );
+
+    expect(storeTypes).not.toContain("order_num");
+    expect(router).not.toContain("order_num");
+  });
 });

@@ -1,5 +1,11 @@
 # ADR-119 Breakdown: Page/Layout order mirror 제거 및 canonical source-order 통합
 
+## Implementation Status
+
+Implemented — 2026-05-08.
+
+Phase 0 inventory: [119-page-layout-order-inventory.md](119-page-layout-order-inventory.md)
+
 ## Scope
 
 이 문서는 `pages.order_num`, `layouts.order_num`, canonical page/layout
@@ -11,21 +17,21 @@ ADR-119는 그 후속으로 page/layout compatibility mirror를 제거한다.
 
 ## Scope Matrix
 
-| Surface                                | 포함 여부 | 최종 order source                                      | 비고                                      |
-| -------------------------------------- | --------- | ------------------------------------------------------ | ----------------------------------------- |
-| PageTree page row order                | In        | document root page-like node source order              | Home identity는 slug `/`                  |
-| Nested PageTree sibling order          | In        | parent_id sibling subsequence of root page source order | sibling-local order field 금지            |
-| Preview/Publish page route order       | In        | derived render model page source order                 | `RuntimePage.order_num` 제거 후보         |
-| page create/reorder/delete             | In        | canonical root `children[]` append/splice              | row mirror order write 금지               |
-| project bootstrap / initial seed       | In        | canonical root `children[]` source order               | dashboard local/cloud 생성 경로 포함      |
-| reusable frame/layout catalog order    | In        | document root reusable frame source order              | Frames tree/layout selector 공유          |
-| layout create/reorder/delete           | In        | canonical root reusable frame append/splice            | `layouts.order_num` 제거 후보             |
-| page/layout canonical metadata         | In        | no order metadata                                      | slug/identity/layout binding만 보존       |
-| IndexedDB `pages.order_num` index      | In        | remove                                                 | DB_VERSION bump 필요                      |
-| IndexedDB `layouts.order_num` index    | In        | remove                                                 | DB_VERSION bump 필요                      |
-| Supabase `pages.order_num` column      | Boundary  | derived compatibility only, physical removal separate  | 별도 migration 승인 필요                  |
-| Table/collection component data order  | Out       | existing component data model                          | ADR-119 범위 아님                         |
-| Element sibling order                  | Out       | already ADR-118 / Element cleanup                      | Phase 0에서 residual hit 제거 확인        |
+| Surface                               | 포함 여부 | 최종 order source                                       | 비고                                 |
+| ------------------------------------- | --------- | ------------------------------------------------------- | ------------------------------------ |
+| PageTree page row order               | In        | document root page-like node source order               | Home identity는 slug `/`             |
+| Nested PageTree sibling order         | In        | parent_id sibling subsequence of root page source order | sibling-local order field 금지       |
+| Preview/Publish page route order      | In        | derived render model page source order                  | `RuntimePage.order_num` 제거 후보    |
+| page create/reorder/delete            | In        | canonical root `children[]` append/splice               | row mirror order write 금지          |
+| project bootstrap / initial seed      | In        | canonical root `children[]` source order                | dashboard local/cloud 생성 경로 포함 |
+| reusable frame/layout catalog order   | In        | document root reusable frame source order               | Frames tree/layout selector 공유     |
+| layout create/reorder/delete          | In        | canonical root reusable frame append/splice             | `layouts.order_num` 제거 후보        |
+| page/layout canonical metadata        | In        | no order metadata                                       | slug/identity/layout binding만 보존  |
+| IndexedDB `pages.order_num` index     | In        | remove                                                  | DB_VERSION bump 필요                 |
+| IndexedDB `layouts.order_num` index   | In        | remove                                                  | DB_VERSION bump 필요                 |
+| Supabase `pages.order_num` column     | Boundary  | derived compatibility only, physical removal separate   | 별도 migration 승인 필요             |
+| Table/collection component data order | Out       | existing component data model                           | ADR-119 범위 아님                    |
+| Element sibling order                 | Out       | already ADR-118 / Element cleanup                       | Phase 0에서 residual hit 제거 확인   |
 
 ## Current Baseline
 
@@ -212,7 +218,11 @@ pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageT
 2. `pages` store `order_num` index 생성 제거.
 3. `layouts` store `order_num` index 생성 제거.
 4. upgrade path에서 기존 index가 있으면 `deleteIndex("order_num")`.
-5. `metaStore.test.ts`에 pages/layouts order index 제거 guard 추가.
+5. 기존 `pages`/`layouts`/`elements` row의 stale `order_num`/`orderNum` field와
+   `documents` canonical node metadata의 stale `order_num`/`orderNum` field를
+   DB v13 upgrade에서 제거한다.
+6. `metaStore.test.ts`에 pages/layouts order index 제거 guard와 stale payload
+   strip guard 추가.
 
 ### API / Supabase
 
@@ -251,6 +261,8 @@ pnpm run codex:preflight
 5. IndexedDB inspection:
    - `documents` store document child order가 primary.
    - `pages`/`layouts` store에 `order_num` index 없음.
+   - 기존 `pages`/`layouts`/`elements` row와 page/layout canonical metadata에
+     stale `order_num`/`orderNum` payload 없음.
    - 신규 body Element payload에 `order_num` 없음.
 
 ### Docs/Rules

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-05-08
+Implemented — 2026-05-08
 
 ## Context
 
@@ -137,7 +137,52 @@ primary source가 되면 안 된다. 따라서 page/layout order도 Element orde
 - **대안 D 기각**: local IndexedDB cleanup과 cloud schema migration을 한 번에 묶어
   rollback surface를 불필요하게 키운다.
 
-> 구현 상세: [119-page-layout-order-mirror-cleanup-breakdown.md](design/119-page-layout-order-mirror-cleanup-breakdown.md)
+> 구현 상세: [119-page-layout-order-mirror-cleanup-breakdown.md](../design/119-page-layout-order-mirror-cleanup-breakdown.md)
+> 구현 인벤토리:
+> [119-page-layout-order-inventory.md](../design/119-page-layout-order-inventory.md)
+
+## Implementation
+
+2026-05-08에 G0-G6를 완료했다.
+
+- PageTree read/write는 `orderNum` payload를 제거하고 ordered id list와
+  `parentId`로 canonical root page source order를 갱신한다. nested sibling
+  reorder는 parent별 sibling subsequence를 기존 root page source slots에
+  merge한다.
+- page create/bootstrap, AddPageDialog/PageParentSelector URL helper, Preview
+  `RuntimePage`, shared render model에서 page `order_num` runtime payload를
+  제거했다.
+- reusable frame/layout projection과 invalidation fingerprint에서
+  `layouts.order_num`을 제거하고 root reusable frame source order를 사용한다.
+- page/layout canonical metadata 생성 경로에서 `metadata.order_num`을 제거하고
+  기존 stale metadata도 update boundary에서 strip한다.
+- IndexedDB `DB_VERSION`을 13으로 올리고 `pages.order_num`/`layouts.order_num`
+  index 생성과 재생성을 제거했다. 기존 index는 upgrade에서 삭제하며, 기존
+  `pages`/`layouts`/`elements` row와 `documents` canonical node metadata에
+  남은 stale `order_num`/`orderNum` payload도 v13 upgrade에서 제거한다.
+- Supabase physical column은 유지하되, `projectSync` cloud upload에서만 local
+  page source index를 call-time derived compatibility field로 보낸다.
+- `.agents` order 규칙은 page/layout 예외 유지가 아니라 adapter compatibility
+  boundary로 갱신했다.
+
+## Scope Clarification
+
+ADR-119의 완료는 repo 전체에서 `order_num` 문자열을 0건으로 만드는 것이 아니라,
+page/layout/Element runtime order source에서 `order_num` mirror를 제거하는 것이다.
+잔존 `order_num` hit는 다음으로 한정한다.
+
+- Supabase physical schema compatibility type 또는 call-time derived upload field.
+- IndexedDB v13 stale value/index 제거 guard.
+- page/layout metadata stale payload strip guard.
+- legacy export fixture coverage.
+- Table/collection component data model의 별도 order field.
+
+2026-05-08 실제 Builder project
+`394ad236-73cd-40c4-91f1-ee57bc699e41`에서 reload 후 확인한 IndexedDB 상태:
+`composition` DB version 13, `pages` index `["project_id"]`, `layouts` index
+`["name","project_id","slug"]`, `elements` index `["page_id","parent_id"]`,
+`pages`/`layouts`/`elements` row의 `order_num` count 0, 해당 project
+`documents` payload의 `order_num` hit 0.
 
 ## Residual Risks
 
@@ -152,22 +197,20 @@ primary source가 되면 안 된다. 따라서 page/layout order도 Element orde
 - nested PageTree는 `parent_id`별 sibling subsequence projection을 사용해야 한다.
   구현이 global source order와 sibling-local order를 혼동하면 DnD 후 tree order가 흔들릴
   수 있다.
-- project bootstrap과 page 생성 body payload에 남은 `Element.order_num` residual은
-  ADR-119 Phase 0에서 닫지 않으면 "order_num 완전 제거" 검증을 false positive로 만든다.
-- `metadata.order_num` 제거 후 debug/round-trip fixture가 order 확인용으로 metadata를
-  보던 테스트는 source order assertion으로 전환해야 한다.
+- legacy import/export fixture와 Table/collection component data의 `order_num`은
+  ADR-119 runtime page/layout order 범위 밖으로 남는다.
 
 ## Gates
 
-| Gate                          | 시점         | 통과 조건                                                                                                  | 실패 시 대안                         |
-| ----------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| G0: inventory                 | Phase 0 종료 | page/layout `order_num` read/write/index/API/test call site를 `runtime`, `adapter-boundary`, `schema`, `test` bucket으로 분류. page 생성 body payload의 `Element.order_num` residual과 bootstrap seed 경로를 별도 blocker로 분류 | 구현 착수 금지                       |
-| G1: page read cutover         | Phase 1 종료 | PageTree, nested sibling projection, hydrate, preview routing, export render model이 stored `pages.order_num` 없이 canonical page source order를 사용 | page path만 rollback                 |
-| G2: layout read cutover       | Phase 2 종료 | Frames/layout list, `canonicalFrameStore`, layout invalidation이 stored `layouts.order_num` 없이 reusable frame source order를 사용 | frame list path rollback             |
-| G3: write cutover             | Phase 3 종료 | page/layout create, reorder, delete가 canonical root `children[]` splice를 먼저 수행하고 row mirror order를 쓰지 않음 | write path별 fallback                |
-| G4: metadata cleanup          | Phase 4 종료 | page/layout canonical node `metadata.order_num` 생성/소비가 제거되고 metadata는 identity/slug/layout mirror만 보존 | metadata mirror read-only 격리       |
-| G5: IndexedDB/API cleanup     | Phase 5 종료 | local IndexedDB `pages.order_num`/`layouts.order_num` index 제거, DB_VERSION bump, API payload는 필요 시 derived boundary로만 유지 | API compatibility field 유지         |
-| G6: verification + rule sync  | Phase 6 종료 | refresh, PageTree DnD, Frames order, Preview route, project sync targeted tests와 `codex:preflight` 통과. `.agents` page/layout 예외 규칙 갱신 | allowlist 재분류 후 phase 재시도     |
+| Gate                         | 시점         | 통과 조건                                                                                                                                                                                                                        | 실패 시 대안                     |
+| ---------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| G0: inventory                | Phase 0 종료 | page/layout `order_num` read/write/index/API/test call site를 `runtime`, `adapter-boundary`, `schema`, `test` bucket으로 분류. page 생성 body payload의 `Element.order_num` residual과 bootstrap seed 경로를 별도 blocker로 분류 | 구현 착수 금지                   |
+| G1: page read cutover        | Phase 1 종료 | PageTree, nested sibling projection, hydrate, preview routing, export render model이 stored `pages.order_num` 없이 canonical page source order를 사용                                                                            | page path만 rollback             |
+| G2: layout read cutover      | Phase 2 종료 | Frames/layout list, `canonicalFrameStore`, layout invalidation이 stored `layouts.order_num` 없이 reusable frame source order를 사용                                                                                              | frame list path rollback         |
+| G3: write cutover            | Phase 3 종료 | page/layout create, reorder, delete가 canonical root `children[]` splice를 먼저 수행하고 row mirror order를 쓰지 않음                                                                                                            | write path별 fallback            |
+| G4: metadata cleanup         | Phase 4 종료 | page/layout canonical node `metadata.order_num` 생성/소비가 제거되고 metadata는 identity/slug/layout mirror만 보존                                                                                                               | metadata mirror read-only 격리   |
+| G5: IndexedDB/API cleanup    | Phase 5 종료 | local IndexedDB `pages.order_num`/`layouts.order_num` index 제거, DB_VERSION bump, API payload는 필요 시 derived boundary로만 유지                                                                                               | API compatibility field 유지     |
+| G6: verification + rule sync | Phase 6 종료 | refresh, PageTree DnD, Frames order, Preview route, project sync targeted tests와 `codex:preflight` 통과. `.agents` page/layout 예외 규칙 갱신                                                                                   | allowlist 재분류 후 phase 재시도 |
 
 ## Consequences
 

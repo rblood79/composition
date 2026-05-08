@@ -43,7 +43,7 @@ export class PagesApiService extends BaseApiService {
           .from("pages")
           .select("*")
           .eq("project_id", projectId)
-          .order("order_num", { ascending: true });
+          .order("created_at", { ascending: true });
       },
       { staleTime: 5 * 60 * 1000 }, // 5분 캐싱
     );

@@ -152,7 +152,6 @@ export const convertPageLayout: ConvertPageLayoutFn = (
       type: "legacy-page",
       pageId: page.id,
       slug: page.slug ?? null,
-      order_num: page.order_num ?? 0,
       parent_id: page.parent_id ?? null,
       layoutId: layout.id,
     },
@@ -408,7 +407,6 @@ export function canonicalFrameToLegacyLayout(node: FrameNode): {
     project_id: (meta?.project_id as string | undefined) ?? "",
     description: (meta?.description as string | undefined) ?? undefined,
     slug: meta?.slug ?? undefined,
-    order_num: (meta?.order_num as number | undefined) ?? undefined,
   };
 
   // P3-D 이전 단계에서는 descendants 역변환 미지원 — empty array 반환.

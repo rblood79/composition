@@ -284,7 +284,6 @@ function Dashboard() {
         title: "Home",
         slug: "/",
         parent_id: null,
-        order_num: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -308,7 +307,6 @@ function Dashboard() {
           project_id: newProject.id,
           title: "Home",
           slug: "/",
-          order_num: 0,
         });
         await elementsApi.createElement(bodyElement);
       } else {
@@ -319,7 +317,6 @@ function Dashboard() {
           project_id: newProject.id,
           title: "Home",
           slug: "/",
-          order_num: 0,
         });
         await elementsApi.createElement(bodyElement);
       }

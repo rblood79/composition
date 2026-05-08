@@ -748,7 +748,6 @@ function ensurePageNode(
       type: "legacy-page",
       pageId,
       slug: page?.slug ?? null,
-      order_num: page?.order_num ?? 0,
       parent_id: page?.parent_id ?? null,
     },
     children: [],
@@ -764,20 +763,22 @@ function buildFrameShell(
   currentDoc: CompositionDocument,
 ): FrameNode {
   const existingFrame = findReusableFrame(currentDoc, layout.id);
+  const metadata: FrameNode["metadata"] = {
+    ...(existingFrame?.metadata ?? {}),
+    type: "legacy-layout",
+    layoutId: layout.id,
+    project_id: layout.project_id,
+    description: layout.description ?? null,
+    slug: layout.slug ?? null,
+  };
+  delete (metadata as Record<string, unknown>).order_num;
+
   return {
     id: existingFrame?.id ?? `layout-${layout.id}`,
     type: "frame",
     reusable: true,
     name: layout.name,
-    metadata: {
-      ...(existingFrame?.metadata ?? {}),
-      type: "legacy-layout",
-      layoutId: layout.id,
-      project_id: layout.project_id,
-      description: layout.description ?? null,
-      slug: layout.slug ?? null,
-      order_num: layout.order_num ?? 0,
-    },
+    metadata,
     slot: existingFrame?.slot,
     children: [],
   };
@@ -794,9 +795,9 @@ function buildPageShell(
     type: "legacy-page",
     pageId: page.id,
     slug: page.slug ?? null,
-    order_num: page.order_num ?? 0,
     parent_id: page.parent_id ?? null,
   };
+  delete (metadata as Record<string, unknown>).order_num;
 
   if (frameId) {
     return {

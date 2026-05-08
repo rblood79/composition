@@ -61,7 +61,7 @@ export async function syncProjectToCloud(projectId: string): Promise<void> {
     console.log("[ProjectSync] 로컬 페이지:", localPages.length);
 
     // 4. 페이지를 Supabase에 업로드
-    for (const page of localPages) {
+    for (const [pageIndex, page] of localPages.entries()) {
       // Page 타입은 title 필드를 사용
       const apiPage = withPageFrameBinding(
         {
@@ -70,7 +70,7 @@ export async function syncProjectToCloud(projectId: string): Promise<void> {
           title: page.title,
           slug: page.slug,
           parent_id: page.parent_id,
-          order_num: page.order_num,
+          order_num: pageIndex,
           created_at: page.created_at,
           updated_at: new Date().toISOString(),
         },
@@ -168,7 +168,7 @@ export async function downloadProjectFromCloud(
           project_id: page.project_id,
           title: page.title,
           slug: page.slug,
-          order_num: page.order_num,
+          parent_id: page.parent_id ?? null,
           created_at: page.created_at,
           updated_at: page.updated_at,
         },

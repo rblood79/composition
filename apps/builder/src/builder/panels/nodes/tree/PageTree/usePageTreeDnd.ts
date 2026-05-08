@@ -16,13 +16,13 @@ export function calculatePageMoveUpdates({
   movedKeys: Set<Key>;
   targetKey: Key;
   dropPosition: "before" | "after" | "on";
-}): Array<{ id: string; parentId?: string | null; orderNum?: number }> {
+}): Array<{ id: string; parentId?: string | null }> {
   const movedIds = [...movedKeys].map((key) => String(key));
   const targetNode = tree.getItem(targetKey)?.value;
   if (!targetNode) return [];
 
   const newParentId =
-    dropPosition === "on" ? targetNode.id : targetNode.parentId ?? null;
+    dropPosition === "on" ? targetNode.id : (targetNode.parentId ?? null);
 
   const oldParentIds = new Set<string | null>();
   movedIds.forEach((id) => {
@@ -35,11 +35,7 @@ export function calculatePageMoveUpdates({
     newParentId,
   ]);
 
-  const updates: Array<{
-    id: string;
-    parentId?: string | null;
-    orderNum?: number;
-  }> = [];
+  const updates: Array<{ id: string; parentId?: string | null }> = [];
 
   affectedParents.forEach((parentId) => {
     const siblings = collectSiblings(tree, parentId);
@@ -50,16 +46,15 @@ export function calculatePageMoveUpdates({
         ? insertAt(
             filtered.map((s) => s.id),
             movedIds,
-            computeInsertIndex(filtered, targetKey, dropPosition)
+            computeInsertIndex(filtered, targetKey, dropPosition),
           )
         : filtered.map((s) => s.id);
 
-    finalListIds.forEach((id, index) => {
+    finalListIds.forEach((id) => {
       const isMoved = movedIds.includes(id);
       updates.push({
         id,
         ...(isMoved && parentId === newParentId && { parentId: newParentId }),
-        orderNum: index,
       });
     });
   });
@@ -69,17 +64,17 @@ export function calculatePageMoveUpdates({
 
 export function collectSiblings(
   tree: TreeDataLike,
-  parentId: string | null
+  parentId: string | null,
 ): PageTreeNode[] {
   return flattenTreeNodes(tree.items).filter(
-    (node) => (node.parentId ?? null) === parentId
+    (node) => (node.parentId ?? null) === parentId,
   );
 }
 
 export function computeInsertIndex(
   siblings: PageTreeNode[],
   targetKey: Key,
-  dropPosition: "before" | "after" | "on"
+  dropPosition: "before" | "after" | "on",
 ): number {
   if (dropPosition === "on") {
     return siblings.length;
@@ -97,7 +92,7 @@ export function computeInsertIndex(
 export function insertAt(
   list: string[],
   items: string[],
-  index: number
+  index: number,
 ): string[] {
   const clampedIndex = Math.max(0, Math.min(index, list.length));
   const next = list.slice();

@@ -44,7 +44,6 @@ function toUrlPage(page: Page) {
       slug: page.slug,
       project_id: page.project_id,
       parent_id: page.parent_id,
-      order_num: page.order_num,
     },
     getNullablePageFrameBindingId(page),
   );

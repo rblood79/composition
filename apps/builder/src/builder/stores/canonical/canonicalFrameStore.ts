@@ -54,14 +54,6 @@ function getStringMetadata(
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function getNumberMetadata(
-  metadata: FrameNode["metadata"],
-  key: string,
-): number | undefined {
-  const value = (metadata as Record<string, unknown> | undefined)?.[key];
-  return typeof value === "number" ? value : undefined;
-}
-
 function createEmptyDocument(): CompositionDocument {
   return {
     version: "composition-1.0",
@@ -73,21 +65,23 @@ function buildReusableFrameShell(
   layout: Layout,
   existingFrame?: FrameNode,
 ): FrameNode {
+  const metadata: FrameNode["metadata"] = {
+    ...(existingFrame?.metadata ?? { type: "legacy-layout" }),
+    type: existingFrame?.metadata?.type ?? "legacy-layout",
+    layoutId: layout.id,
+    project_id: layout.project_id,
+    description: layout.description ?? null,
+    slug: layout.slug ?? null,
+  };
+  delete (metadata as Record<string, unknown>).order_num;
+
   return {
     ...(existingFrame ?? {}),
     id: existingFrame?.id ?? `layout-${layout.id}`,
     type: "frame",
     reusable: true,
     name: layout.name,
-    metadata: {
-      ...(existingFrame?.metadata ?? { type: "legacy-layout" }),
-      type: existingFrame?.metadata?.type ?? "legacy-layout",
-      layoutId: layout.id,
-      project_id: layout.project_id,
-      description: layout.description ?? null,
-      slug: layout.slug ?? null,
-      order_num: layout.order_num ?? 0,
-    },
+    metadata,
     slot: existingFrame?.slot,
     children: existingFrame?.children ?? [],
   };
@@ -132,23 +126,20 @@ export function canonicalDocumentToReusableFrameLayouts(
 ): Layout[] {
   if (!doc) return [];
 
-  return doc.children
-    .filter(isReusableFrameNode)
-    .map((frame, index): Layout => {
-      const id = getReusableFrameMirrorId(frame);
-      const projectId =
-        getStringMetadata(frame.metadata, "project_id") ??
-        getStringMetadata(frame.metadata, "projectId") ??
-        "";
-      return {
-        id,
-        name: frame.name ?? id,
-        project_id: projectId,
-        description: getStringMetadata(frame.metadata, "description"),
-        slug: getStringMetadata(frame.metadata, "slug"),
-        order_num: getNumberMetadata(frame.metadata, "order_num") ?? index,
-      };
-    });
+  return doc.children.filter(isReusableFrameNode).map((frame): Layout => {
+    const id = getReusableFrameMirrorId(frame);
+    const projectId =
+      getStringMetadata(frame.metadata, "project_id") ??
+      getStringMetadata(frame.metadata, "projectId") ??
+      "";
+    return {
+      id,
+      name: frame.name ?? id,
+      project_id: projectId,
+      description: getStringMetadata(frame.metadata, "description"),
+      slug: getStringMetadata(frame.metadata, "slug"),
+    };
+  });
 }
 
 export function getCanonicalReusableFrameLayouts(): Layout[] {

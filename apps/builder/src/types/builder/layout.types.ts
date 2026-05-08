@@ -45,7 +45,6 @@ export interface Layout {
   description?: string;
 
   // Nested Routes & Slug System
-  order_num?: number; // 정렬 순서
   slug?: string; // URL base path (e.g., "/products")
 
   // 404 Page Strategy
@@ -65,12 +64,7 @@ export interface Layout {
 export type LayoutUpdate = Partial<
   Pick<
     Layout,
-    | "name"
-    | "description"
-    | "slug"
-    | "order_num"
-    | "notFoundPageId"
-    | "inheritNotFound"
+    "name" | "description" | "slug" | "notFoundPageId" | "inheritNotFound"
   >
 >;
 

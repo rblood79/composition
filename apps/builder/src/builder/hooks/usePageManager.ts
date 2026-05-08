@@ -231,23 +231,15 @@ export const usePageManager = ({
   const addPage = async (projectId: string): Promise<ApiResult<ApiPage>> => {
     return runWithPageCreationLock(async () => {
       try {
-        // Zustand store의 pages를 사용하여 최대 order_num을 찾기
         const currentPages = useStore.getState().pages;
-
-        // 현재 페이지들의 최대 order_num을 찾아서 +1
-        const maxOrderNum = currentPages.reduce(
-          (max, page) => Math.max(max, page.order_num || 0),
-          -1,
-        );
-        const nextOrderNum = maxOrderNum + 1;
+        const nextPageNumber = currentPages.length + 1;
 
         const newPageData: Page = {
           id: ElementUtils.generateId(),
           project_id: projectId,
-          title: `Page ${nextOrderNum + 1}`,
-          slug: `/page-${nextOrderNum + 1}`,
+          title: `Page ${nextPageNumber}`,
+          slug: `/page-${nextPageNumber}`,
           parent_id: null,
-          order_num: nextOrderNum,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -259,7 +251,6 @@ export const usePageManager = ({
           props: getDefaultProps("body") as ElementProps,
           parent_id: null,
           page_id: newPageData.id,
-          order_num: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -300,23 +291,12 @@ export const usePageManager = ({
 
     return runWithPageCreationLock(async () => {
       try {
-        // Zustand store의 pages를 사용하여 최대 order_num을 찾기
-        const currentPages = useStore.getState().pages;
-
-        // 현재 페이지들의 최대 order_num을 찾아서 +1
-        const maxOrderNum = currentPages.reduce(
-          (max, page) => Math.max(max, page.order_num || 0),
-          -1,
-        );
-        const nextOrderNum = maxOrderNum + 1;
-
         const newPageData: Page = {
           id: ElementUtils.generateId(),
           project_id: projectId,
           title: title,
           slug: slug,
           parent_id: parentId,
-          order_num: nextOrderNum,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -328,7 +308,6 @@ export const usePageManager = ({
           props: getDefaultProps("body") as ElementProps,
           parent_id: null,
           page_id: newPageData.id,
-          order_num: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };

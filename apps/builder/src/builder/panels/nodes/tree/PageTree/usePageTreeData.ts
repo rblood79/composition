@@ -10,7 +10,6 @@ import { enqueuePagePersistence } from "../../../../utils/pagePersistenceQueue";
 export type PageTreeUpdate = {
   id: string;
   parentId?: string | null;
-  orderNum?: number;
 };
 
 type PageNodeMetadata = Record<string, unknown> & {
@@ -18,7 +17,6 @@ type PageNodeMetadata = Record<string, unknown> & {
   parent_id?: unknown;
   slug?: unknown;
   type?: unknown;
-  order_num?: unknown;
 };
 
 type DatabaseAdapter = Awaited<ReturnType<typeof getDB>>;
@@ -92,13 +90,8 @@ export function applyPageTreeUpdates(
 
     const nextParentId =
       update.parentId !== undefined ? update.parentId : page.parent_id;
-    const nextOrderNum =
-      update.orderNum !== undefined ? update.orderNum : page.order_num;
 
-    if (
-      (page.parent_id ?? null) === (nextParentId ?? null) &&
-      (page.order_num ?? 0) === (nextOrderNum ?? 0)
-    ) {
+    if ((page.parent_id ?? null) === (nextParentId ?? null)) {
       return page;
     }
 
@@ -106,73 +99,144 @@ export function applyPageTreeUpdates(
     return {
       ...page,
       ...(update.parentId !== undefined ? { parent_id: update.parentId } : {}),
-      ...(update.orderNum !== undefined ? { order_num: update.orderNum } : {}),
     };
   });
 
-  const updateRankById = new Map(
-    updates.map((update, index) => [update.id, index] as const),
-  );
+  const orderedPages = mergePageTreeUpdateOrder(pages, nextPages, updates);
 
-  return changed
-    ? orderPagesForCanonicalTree(nextPages, updateRankById)
-    : pages;
+  const orderChanged =
+    orderedPages.length !== pages.length ||
+    orderedPages.some((page, index) => page.id !== pages[index]?.id);
+
+  return changed || orderChanged ? orderedPages : pages;
 }
 
-function orderPagesForCanonicalTree(
+function mergePageTreeUpdateOrder(
+  sourcePages: Page[],
   pages: Page[],
-  updateRankById?: Map<string, number>,
+  updates: PageTreeUpdate[],
 ): Page[] {
-  const sourceIndexById = new Map(
-    pages.map((page, index) => [page.id, index] as const),
-  );
-  const childrenByParent = new Map<string | null, Page[]>();
+  if (updates.length === 0) return pages;
 
-  for (const page of pages) {
+  const pageById = new Map(pages.map((page) => [page.id, page] as const));
+  const sourceParentById = new Map(
+    sourcePages.map((page) => [page.id, page.parent_id ?? null] as const),
+  );
+  const orderedIdsByParent = new Map<string | null, string[]>();
+
+  for (const update of updates) {
+    const page = pageById.get(update.id);
+    if (!page) continue;
     const parentId = page.parent_id ?? null;
-    const siblings = childrenByParent.get(parentId);
-    if (siblings) {
-      siblings.push(page);
+    const ids = orderedIdsByParent.get(parentId);
+    if (ids) {
+      ids.push(page.id);
     } else {
-      childrenByParent.set(parentId, [page]);
+      orderedIdsByParent.set(parentId, [page.id]);
     }
   }
 
-  for (const siblings of childrenByParent.values()) {
-    siblings.sort((a, b) => {
-      const aUpdateRank = updateRankById?.get(a.id);
-      const bUpdateRank = updateRankById?.get(b.id);
-      if (aUpdateRank !== undefined && bUpdateRank !== undefined) {
-        return aUpdateRank - bUpdateRank;
-      }
-      return (
-        (sourceIndexById.get(a.id) ?? 0) - (sourceIndexById.get(b.id) ?? 0)
-      );
-    });
+  if (orderedIdsByParent.size === 0) return pages;
+
+  const hasSourceSlotByParent = new Map<string | null, boolean>();
+  const sourceSlotCountByParent = new Map<string | null, number>();
+  for (const sourcePage of sourcePages) {
+    const parentId = sourcePage.parent_id ?? null;
+    if (!orderedIdsByParent.has(parentId)) continue;
+    sourceSlotCountByParent.set(
+      parentId,
+      (sourceSlotCountByParent.get(parentId) ?? 0) + 1,
+    );
+  }
+  for (const [parentId, ids] of orderedIdsByParent) {
+    hasSourceSlotByParent.set(
+      parentId,
+      ids.some((id) => sourceParentById.get(id) === parentId),
+    );
   }
 
-  const orderedPages: Page[] = [];
-  const visited = new Set<string>();
+  const emittedParents = new Set<string | null>();
+  const emittedPageIds = new Set<string>();
+  const cursorByParent = new Map<string | null, number>();
+  const result: Page[] = [];
 
-  const visitChildren = (parentId: string | null) => {
-    for (const page of childrenByParent.get(parentId) ?? []) {
-      if (visited.has(page.id)) continue;
-      visited.add(page.id);
-      orderedPages.push(page);
-      visitChildren(page.id);
+  const emitNextInParentGroup = (parentId: string | null) => {
+    const ids = orderedIdsByParent.get(parentId);
+    if (!ids) return false;
+
+    let cursor = cursorByParent.get(parentId) ?? 0;
+    while (cursor < ids.length) {
+      const id = ids[cursor];
+      cursor += 1;
+      cursorByParent.set(parentId, cursor);
+
+      const page = pageById.get(id);
+      if (!page || emittedPageIds.has(id)) continue;
+
+      result.push(page);
+      emittedPageIds.add(id);
+      if (cursor >= ids.length) {
+        emittedParents.add(parentId);
+      }
+      return true;
+    }
+
+    emittedParents.add(parentId);
+    return false;
+  };
+
+  const emitRemainingParentGroup = (parentId: string | null) => {
+    while (!emittedParents.has(parentId)) {
+      if (!emitNextInParentGroup(parentId)) break;
     }
   };
 
-  visitChildren(null);
+  for (const sourcePage of sourcePages) {
+    const sourceParentId = sourceParentById.get(sourcePage.id) ?? null;
+    if (
+      orderedIdsByParent.has(sourceParentId) &&
+      hasSourceSlotByParent.get(sourceParentId)
+    ) {
+      emitNextInParentGroup(sourceParentId);
+      const remainingSlots =
+        (sourceSlotCountByParent.get(sourceParentId) ?? 1) - 1;
+      sourceSlotCountByParent.set(sourceParentId, remainingSlots);
+      if (remainingSlots <= 0) {
+        emitRemainingParentGroup(sourceParentId);
+      }
+      continue;
+    }
 
-  for (const page of pages) {
-    if (visited.has(page.id)) continue;
-    visited.add(page.id);
-    orderedPages.push(page);
-    visitChildren(page.id);
+    const page = pageById.get(sourcePage.id);
+    if (!page || emittedPageIds.has(page.id)) continue;
+
+    const parentId = page.parent_id ?? null;
+    if (orderedIdsByParent.has(parentId)) {
+      continue;
+    }
+
+    result.push(page);
+    emittedPageIds.add(page.id);
+
+    const childGroupParentId = page.id;
+    if (
+      orderedIdsByParent.has(childGroupParentId) &&
+      !hasSourceSlotByParent.get(childGroupParentId)
+    ) {
+      emitRemainingParentGroup(childGroupParentId);
+    }
   }
 
-  return orderedPages;
+  for (const parentId of orderedIdsByParent.keys()) {
+    emitRemainingParentGroup(parentId);
+  }
+
+  for (const page of pages) {
+    if (emittedPageIds.has(page.id)) continue;
+    result.push(page);
+  }
+
+  return result;
 }
 
 function syncActiveCanonicalPageTreeMetadata(pages: Page[]): string | null {
@@ -198,7 +262,7 @@ export function syncCanonicalPageTreeMetadata(
 ): CompositionDocument {
   const pagesById = new Map(pages.map((page) => [page.id, page]));
   const canonicalPageRankById = new Map(
-    orderPagesForCanonicalTree(pages).map((page, index) => [page.id, index]),
+    pages.map((page, index) => [page.id, index]),
   );
   let changed = false;
 
@@ -215,15 +279,14 @@ export function syncCanonicalPageTreeMetadata(
       type: metadata?.type === "page" ? "page" : "legacy-page",
       pageId: page.id,
       slug: page.slug ?? null,
-      order_num: page.order_num ?? 0,
       parent_id: page.parent_id ?? null,
     };
+    delete nextMetadata.order_num;
 
     const metadataChanged =
       metadata?.type !== nextMetadata.type ||
       metadata?.pageId !== nextMetadata.pageId ||
       metadata?.slug !== nextMetadata.slug ||
-      metadata?.order_num !== nextMetadata.order_num ||
       metadata?.parent_id !== nextMetadata.parent_id;
     const nameChanged = node.name !== page.title;
 
@@ -322,7 +385,6 @@ async function persistPageTreeRecord(
   try {
     await db.pages.update(page.id, {
       parent_id: page.parent_id ?? null,
-      order_num: page.order_num ?? 0,
     });
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("Page not found:")) {
@@ -383,7 +445,6 @@ export function buildPageTree(pages: Page[]): {
         name: page.title || "Untitled",
         slug: page.slug ?? null,
         parentId: page.parent_id ?? null,
-        orderNum: page.order_num ?? 0,
         depth,
         hasChildren: children.length > 0,
         isLeaf: children.length === 0,

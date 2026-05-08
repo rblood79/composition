@@ -205,7 +205,6 @@ export function CanvasRouter({ renderElements, children }: CanvasRouterProps) {
           slug: p.slug,
           project_id: "", // Canvas에서는 사용하지 않음
           parent_id: p.parent_id,
-          order_num: p.order_num,
         },
         getNullablePageFrameBindingId(p),
       ),
@@ -227,7 +226,6 @@ export function CanvasRouter({ renderElements, children }: CanvasRouterProps) {
             slug: page.slug,
             project_id: "",
             parent_id: page.parent_id,
-            order_num: page.order_num,
           },
           pageLayoutId,
         ),

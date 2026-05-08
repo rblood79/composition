@@ -35,7 +35,6 @@ describe("canonicalFrameStore", () => {
         project_id: "proj-1",
         description: "footer frame",
         slug: "/footer",
-        order_num: 1,
       },
       {
         id: "header",
@@ -43,7 +42,6 @@ describe("canonicalFrameStore", () => {
         project_id: "proj-1",
         description: "header frame",
         slug: "/header",
-        order_num: 0,
       },
     ];
 
@@ -58,20 +56,18 @@ describe("canonicalFrameStore", () => {
     ]);
     expect(getCanonicalReusableFrameLayouts()).toEqual([
       {
-        id: "header",
-        name: "Header",
-        project_id: "proj-1",
-        description: "header frame",
-        slug: "/header",
-        order_num: 0,
-      },
-      {
         id: "footer",
         name: "Footer",
         project_id: "proj-1",
         description: "footer frame",
         slug: "/footer",
-        order_num: 1,
+      },
+      {
+        id: "header",
+        name: "Header",
+        project_id: "proj-1",
+        description: "header frame",
+        slug: "/header",
       },
     ]);
   });
@@ -107,7 +103,6 @@ describe("canonicalFrameStore", () => {
           project_id: "proj-1",
           description: "main frame",
           slug: "/main",
-          order_num: 2,
         },
       ],
       "proj-1",
@@ -124,7 +119,7 @@ describe("canonicalFrameStore", () => {
       project_id: "proj-1",
       description: "main frame",
       slug: "/main",
-      order_num: 2,
     });
+    expect(frame.metadata).not.toHaveProperty("order_num");
   });
 });

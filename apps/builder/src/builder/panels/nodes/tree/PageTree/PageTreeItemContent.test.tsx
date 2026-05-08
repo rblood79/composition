@@ -14,7 +14,6 @@ function makePage(): Page {
     slug: "home",
     project_id: "project-1",
     parent_id: null,
-    order_num: 0,
   } as Page;
 }
 
@@ -24,7 +23,6 @@ function makeNode(page = makePage()): PageTreeNode {
     name: page.title || "Untitled",
     slug: page.slug ?? null,
     parentId: page.parent_id ?? null,
-    orderNum: page.order_num ?? 0,
     depth: 0,
     hasChildren: false,
     isLeaf: true,

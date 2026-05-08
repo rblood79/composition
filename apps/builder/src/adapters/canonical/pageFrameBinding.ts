@@ -104,9 +104,9 @@ function buildPageMetadata(
     type: "legacy-page",
     pageId: updatedPage.id,
     slug: updatedPage.slug ?? null,
-    order_num: updatedPage.order_num ?? 0,
     parent_id: updatedPage.parent_id ?? null,
   };
+  delete (metadata as Record<string, unknown>).order_num;
 
   if (frameId) {
     return {

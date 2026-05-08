@@ -122,7 +122,6 @@ export interface Page {
   project_id: string;
   slug: string;
   parent_id?: string | null;
-  order_num?: number;
   created_at?: string;
   updated_at?: string;
 }

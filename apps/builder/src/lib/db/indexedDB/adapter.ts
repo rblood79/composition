@@ -31,7 +31,117 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 11; // Element order uses canonical CompositionDocument.children[] only.
+const DB_VERSION = 13; // Page/layout order uses canonical CompositionDocument.children[] only.
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function deleteLegacyOrderFields(record: Record<string, unknown>): boolean {
+  let changed = false;
+
+  if (Object.prototype.hasOwnProperty.call(record, "order_num")) {
+    delete record.order_num;
+    changed = true;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(record, "orderNum")) {
+    delete record.orderNum;
+    changed = true;
+  }
+
+  return changed;
+}
+
+function stripCanonicalNodeOrderMetadata(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+
+  let changed = false;
+  const metadata = value.metadata;
+
+  if (isRecord(metadata)) {
+    changed = deleteLegacyOrderFields(metadata) || changed;
+    if (Object.keys(metadata).length === 0) {
+      delete value.metadata;
+      changed = true;
+    }
+  }
+
+  const children = value.children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      changed = stripCanonicalNodeOrderMetadata(child) || changed;
+    }
+  }
+
+  const descendants = value.descendants;
+  if (isRecord(descendants)) {
+    for (const descendant of Object.values(descendants)) {
+      changed = stripCanonicalNodeOrderMetadata(descendant) || changed;
+    }
+  }
+
+  return changed;
+}
+
+export function stripLegacyOrderPayload(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+
+  let changed = deleteLegacyOrderFields(value);
+  const document = isRecord(value.document) ? value.document : value;
+  const children = document.children;
+
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      changed = stripCanonicalNodeOrderMetadata(child) || changed;
+    }
+  }
+
+  return changed;
+}
+
+function stripLegacyOrderPayloadsFromStore(
+  transaction: IDBTransaction,
+  storeName: string,
+): void {
+  const store = transaction.objectStore(storeName);
+  const request = store.openCursor();
+  let cleaned = 0;
+
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (!cursor) {
+      if (cleaned > 0) {
+        console.log(
+          `[IndexedDB] Removed legacy order payloads from ${storeName}: ${cleaned}`,
+        );
+      }
+      return;
+    }
+
+    const value = cursor.value;
+    if (stripLegacyOrderPayload(value)) {
+      cleaned += 1;
+      cursor.update(value);
+    }
+    cursor.continue();
+  };
+
+  request.onerror = () => {
+    console.warn(
+      `[IndexedDB] Failed to clean legacy order payloads from ${storeName}`,
+      request.error,
+    );
+  };
+}
+
+function stripLegacyOrderPayloads(transaction: IDBTransaction | null): void {
+  if (!transaction) return;
+
+  for (const storeName of ["documents", "pages", "layouts", "elements"]) {
+    stripLegacyOrderPayloadsFromStore(transaction, storeName);
+  }
+}
 
 export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
@@ -72,6 +182,16 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             `[IndexedDB] Element order cleanup: oldVersion=${oldVersion} → 11`,
           );
         }
+        if (oldVersion < 12 && oldVersion > 0) {
+          console.log(
+            `[IndexedDB] Page/layout order cleanup: oldVersion=${oldVersion} → 12`,
+          );
+        }
+        if (oldVersion < 13 && oldVersion > 0) {
+          console.log(
+            `[IndexedDB] Legacy order payload cleanup: oldVersion=${oldVersion} → 13`,
+          );
+        }
 
         // Projects store
         if (!db.objectStoreNames.contains("projects")) {
@@ -89,8 +209,16 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         if (!db.objectStoreNames.contains("pages")) {
           const pagesStore = db.createObjectStore("pages", { keyPath: "id" });
           pagesStore.createIndex("project_id", "project_id", { unique: false });
-          pagesStore.createIndex("order_num", "order_num", { unique: false });
           console.log("[IndexedDB] Created store: pages");
+        } else {
+          const transaction = (event.target as IDBOpenDBRequest).transaction;
+          if (transaction) {
+            const pagesStore = transaction.objectStore("pages");
+            if (pagesStore.indexNames.contains("order_num")) {
+              pagesStore.deleteIndex("order_num");
+              console.log("[IndexedDB] Removed index: pages.order_num");
+            }
+          }
         }
 
         // Elements store (가장 중요!)
@@ -169,7 +297,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         }
 
         // ✅ 버전 4: Layouts store (Layout/Slot System)
-        // ✅ 버전 6: order_num, slug 인덱스 추가 (Nested Routes)
+        // ✅ 버전 6: slug 인덱스 추가 (Nested Routes)
         if (!db.objectStoreNames.contains("layouts")) {
           const layoutsStore = db.createObjectStore("layouts", {
             keyPath: "id",
@@ -178,21 +306,16 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             unique: false,
           });
           layoutsStore.createIndex("name", "name", { unique: false });
-          layoutsStore.createIndex("order_num", "order_num", { unique: false });
           layoutsStore.createIndex("slug", "slug", { unique: false });
-          console.log(
-            "[IndexedDB] Created store: layouts with order_num, slug indexes",
-          );
+          console.log("[IndexedDB] Created store: layouts with slug index");
         } else {
-          // ✅ 버전 6: 기존 layouts 스토어에 order_num, slug 인덱스 추가
+          // ✅ 버전 6: 기존 layouts 스토어에 slug 인덱스 추가
           const transaction = (event.target as IDBOpenDBRequest).transaction;
           if (transaction) {
             const layoutsStore = transaction.objectStore("layouts");
-            if (!layoutsStore.indexNames.contains("order_num")) {
-              layoutsStore.createIndex("order_num", "order_num", {
-                unique: false,
-              });
-              console.log("[IndexedDB] Added index: layouts.order_num");
+            if (layoutsStore.indexNames.contains("order_num")) {
+              layoutsStore.deleteIndex("order_num");
+              console.log("[IndexedDB] Removed index: layouts.order_num");
             }
             if (!layoutsStore.indexNames.contains("slug")) {
               layoutsStore.createIndex("slug", "slug", { unique: false });
@@ -260,6 +383,12 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             unique: false,
           });
           console.log("[IndexedDB] Created store: transformers");
+        }
+
+        if (oldVersion < 13 && oldVersion > 0) {
+          stripLegacyOrderPayloads(
+            (event.target as IDBOpenDBRequest).transaction,
+          );
         }
 
         console.log("[IndexedDB] Schema upgrade completed");

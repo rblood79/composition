@@ -248,7 +248,6 @@ export function legacyToCanonical(
           type: "legacy-page",
           pageId: page.id,
           slug: page.slug,
-          order_num: page.order_num ?? 0,
           parent_id: page.parent_id ?? null,
         },
         children: pageRootElements.map(buildNode),

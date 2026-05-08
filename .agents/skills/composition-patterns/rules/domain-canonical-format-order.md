@@ -35,8 +35,15 @@ runtime 판단은 canonical format을 먼저 확인합니다.
 - Runtime order read/write는 parent `children[]` index가 primary입니다.
 - `Element.order_num`은 제거되었습니다. 신규 Element 생성, IndexedDB `elements`
   store, history payload, drag/drop payload에 이 필드를 추가하지 않습니다.
-- page/layout 정렬의 `pages.order_num`, `layouts.order_num`은 element sibling
-  order와 별개라 유지합니다.
+- page/layout 정렬도 document root `CompositionDocument.children[]` source
+  order가 primary입니다. `pages.order_num`, `layouts.order_num`,
+  page/layout `metadata.order_num`을 runtime order source로 읽거나 쓰지
+  않습니다. Supabase physical schema compatibility가 필요한 경우에만
+  adapter boundary에서 source order로 파생합니다.
+- `order_num` 검색 hit가 0이어야 한다고 해석하지 않습니다. 허용되는 잔존
+  hit는 Supabase compatibility type, call-time derived project sync field,
+  IndexedDB stale cleanup guard, metadata strip guard, legacy fixture,
+  Table/collection component data model뿐입니다.
 - 일반 props update는 기존 canonical 위치를 보존해야 합니다. Element 배열의
   source 순서나 stale metadata 차이만 보고 기존 node를 제거 후 append하면 수정한
   요소가 마지막으로 이동합니다.

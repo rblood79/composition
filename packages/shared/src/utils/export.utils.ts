@@ -683,12 +683,7 @@ export function deriveProjectRenderModelFromDocument(
           } satisfies CanonicalNode,
         ];
 
-  const orderedPageNodes = pageNodes.map((node, pageIndex) => ({
-    node,
-    orderNum: pageIndex,
-  }));
-
-  const pages: Page[] = orderedPageNodes.map(({ node, orderNum }, index) => {
+  const pages: Page[] = pageNodes.map((node, index) => {
     const layoutBinding = extractPageLayoutBinding(node);
     const page = {
       id: node.id,
@@ -696,7 +691,6 @@ export function deriveProjectRenderModelFromDocument(
       slug: readPageSlug(node, index),
       project_id: projectId,
       parent_id: readPageParentId(node),
-      order_num: orderNum,
     } as Page;
     if (layoutBinding !== null) {
       (
@@ -709,7 +703,7 @@ export function deriveProjectRenderModelFromDocument(
   });
 
   const elements: Element[] = [];
-  orderedPageNodes.forEach(({ node }) => {
+  pageNodes.forEach((node) => {
     collectPageRuntimeElements(document, node, elements);
   });
 

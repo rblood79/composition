@@ -74,18 +74,20 @@ function isReusableFrameNode(node: CanonicalNode): node is FrameNode {
 }
 
 function withLayoutMetadata(frame: FrameNode, layout: Layout): FrameNode {
+  const metadata: FrameNode["metadata"] = {
+    ...(frame.metadata ?? { type: "legacy-layout" }),
+    type: frame.metadata?.type ?? "legacy-layout",
+    layoutId: layout.id,
+    project_id: layout.project_id,
+    description: layout.description ?? null,
+    slug: layout.slug ?? null,
+  };
+  delete (metadata as Record<string, unknown>).order_num;
+
   return {
     ...frame,
     name: layout.name,
-    metadata: {
-      ...(frame.metadata ?? { type: "legacy-layout" }),
-      type: frame.metadata?.type ?? "legacy-layout",
-      layoutId: layout.id,
-      project_id: layout.project_id,
-      description: layout.description ?? null,
-      slug: layout.slug ?? null,
-      order_num: layout.order_num ?? 0,
-    },
+    metadata,
   };
 }
 
@@ -153,13 +155,11 @@ export async function createReusableFrame(
   input: CreateReusableFrameInput,
 ): Promise<ReusableFrameRef> {
   const now = new Date().toISOString();
-  const existingLayouts = getCanonicalReusableFrameLayouts();
   const layout: Layout = {
     id: crypto.randomUUID(),
     name: input.name,
     project_id: input.projectId,
     description: input.description ?? "",
-    order_num: existingLayouts.length,
     created_at: now,
     updated_at: now,
   };

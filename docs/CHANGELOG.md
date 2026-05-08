@@ -5,6 +5,48 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-119 page/layout order mirror cleanup] - 2026-05-08
+
+### Changed
+
+- Page/Layout order의 runtime source를 `pages.order_num`, `layouts.order_num`,
+  page/layout `metadata.order_num`에서 canonical `CompositionDocument.children[]`
+  source order로 전환했다.
+- PageTree DnD는 `orderNum` payload 대신 ordered id list와 `parentId`로 root page
+  source order를 갱신하고, nested sibling reorder는 parent별 subsequence를 기존 root
+  source slots에 merge한다.
+- Preview `RuntimePage.order_num`, shared render model page `order_num`,
+  page create/bootstrap/body seed `order_num`, reusable frame `layouts.order_num`,
+  page/layout canonical metadata `order_num` 생성/소비를 제거했다.
+- IndexedDB DB version을 13으로 올리고 `pages.order_num`/`layouts.order_num` index
+  생성과 재생성을 제거했다. 기존 index는 upgrade에서 삭제하며, v13 upgrade는 기존
+  `pages`/`layouts`/`elements` row와 `documents` canonical metadata에 남은 stale
+  `order_num`/`orderNum` payload도 제거한다.
+- Supabase physical column은 유지하되 `projectSync` cloud upload에서만 local page
+  source index로 call-time derived compatibility field를 보낸다.
+- `.agents` composition order 규칙을 page/layout 예외 유지에서 adapter compatibility
+  boundary로 갱신했다.
+- ADR-119 완료 의미를 "repo-wide `order_num` 문자열 0건"이 아니라
+  "page/layout/runtime order source에서 제거"로 문서화하고, 잔존 hit allowlist를
+  compatibility/migration/Table component data로 고정했다.
+
+### Documentation
+
+- ADR-119 본문을 Implemented로 승격하고 `docs/adr/completed/`로 이동했다.
+- Phase 0 inventory를 `docs/adr/design/119-page-layout-order-inventory.md`에 추가했다.
+- ADR 본문과 inventory에 실제 Builder IndexedDB v13 확인 결과를 추가했다.
+- ADR README 카운트와 완료/미구현 row를 갱신했다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts src/utils/__tests__/compositionDocumentOrder.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/lib/db/__tests__/metaStore.test.ts src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts src/builder/panels/nodes/tree/PageTree/usePageTreeDnd.test.ts src/builder/stores/canonical/__tests__/canonicalFrameStore.test.ts src/builder/stores/utils/__tests__/frameActions.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/stores/__tests__/pageRemovalSemantics.test.ts src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts`
+- `pnpm run codex:typecheck`
+- 실제 Builder URL
+  `http://localhost:5173/builder/394ad236-73cd-40c4-91f1-ee57bc699e41` reload 후
+  IndexedDB 확인: `composition` DB v13, `pages`/`layouts` order index 없음,
+  `pages`/`layouts`/`elements` row order payload count 0, project document order hit 0.
+
 ## [Element order_num removal cleanup] - 2026-05-08
 
 ### Changed

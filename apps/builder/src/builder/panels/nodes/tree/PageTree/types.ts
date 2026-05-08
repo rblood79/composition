@@ -6,7 +6,6 @@ export interface PageTreeNode {
   name: string; // title || "Untitled"
   slug: string | null;
   parentId: string | null;
-  orderNum: number;
   depth: number;
   hasChildren: boolean;
   isLeaf: boolean;

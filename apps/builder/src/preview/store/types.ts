@@ -29,7 +29,6 @@ export interface RuntimePage {
   id: string;
   title: string;
   slug: string;
-  order_num: number;
   parent_id?: string | null; // Nested Routes 지원
 }
 

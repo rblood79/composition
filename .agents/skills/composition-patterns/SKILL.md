@@ -21,23 +21,25 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
 
 ## Macro Rules
 
-| 영역                   | 먼저 볼 파일                                                     | 핵심 확인                                                    |
-| ---------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ |
-| State/Zustand          | [state-management](../../rules/state-management.md)              | Memory → Index → History → DB → Preview → Rebalance          |
-| Canonical Format/Order | [canonical format/order](rules/domain-canonical-format-order.md) | `children[]` order SSOT, ref/origin format, page/layout 예외 |
-| Canvas/WebGL/Preview   | [canvas-rendering](../../rules/canvas-rendering.md)              | Spec/CSS/Canvas/Preview consumer 동시 확인                   |
-| Layout                 | [layout-engine](../../rules/layout-engine.md)                    | `layoutVersion`, full rebuild, cache invalidation            |
-| CSS/Token              | [css-tokens](../../rules/css-tokens.md)                          | token 우선, hard-coded drift 방지                            |
-| Spec SSOT              | [ssot-hierarchy](../../rules/ssot-hierarchy.md)                  | D1 RAC, D2 RSP/custom, D3 Spec 시각 SSOT                     |
-| ADR/Docs               | [adr-writing](../../rules/adr-writing.md)                        | Risk-First 구조, README/status sync                          |
+| 영역                   | 먼저 볼 파일                                                     | 핵심 확인                                                                      |
+| ---------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| State/Zustand          | [state-management](../../rules/state-management.md)              | Memory → Index → History → DB → Preview → Rebalance                            |
+| Canonical Format/Order | [canonical format/order](rules/domain-canonical-format-order.md) | `children[]` order SSOT, ref/origin format, page/layout compatibility boundary |
+| Canvas/WebGL/Preview   | [canvas-rendering](../../rules/canvas-rendering.md)              | Spec/CSS/Canvas/Preview consumer 동시 확인                                     |
+| Layout                 | [layout-engine](../../rules/layout-engine.md)                    | `layoutVersion`, full rebuild, cache invalidation                              |
+| CSS/Token              | [css-tokens](../../rules/css-tokens.md)                          | token 우선, hard-coded drift 방지                                              |
+| Spec SSOT              | [ssot-hierarchy](../../rules/ssot-hierarchy.md)                  | D1 RAC, D2 RSP/custom, D3 Spec 시각 SSOT                                       |
+| ADR/Docs               | [adr-writing](../../rules/adr-writing.md)                        | Risk-First 구조, README/status sync                                            |
 
 ## 핵심 불변식
 
 - Element tree 변경은 direct consumer뿐 아니라 selection, history, preview sync,
   layout, persistence consumer를 함께 감사합니다.
 - canonical `CompositionDocument.children[]`가 runtime order SSOT입니다.
-  `Element.order_num`은 제거됐으므로 새 Element, history, IndexedDB, drag/drop
-  payload에 추가하지 않습니다. page/layout `order_num`만 별도 예외입니다.
+  `Element.order_num`, `pages.order_num`, `layouts.order_num`은 runtime
+  read/write source가 아닙니다. 새 Element, page/layout shell, history,
+  IndexedDB, drag/drop payload에 추가하지 않습니다. Supabase compatibility가
+  필요한 경우에만 adapter boundary에서 source order로 파생합니다.
 - Origin/instance 판단은 `reusable: true`, `type:"ref"`, `ref`,
   `descendants` canonical shape를 우선하고 legacy `componentRole/masterId`는
   adapter mirror로 봅니다.

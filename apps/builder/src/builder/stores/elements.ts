@@ -101,7 +101,6 @@ function shouldInvalidatePagesLayout(
     return (
       !nextPage ||
       page.id !== nextPage.id ||
-      page.order_num !== nextPage.order_num ||
       pageLayoutId(page) !== pageLayoutId(nextPage)
     );
   });

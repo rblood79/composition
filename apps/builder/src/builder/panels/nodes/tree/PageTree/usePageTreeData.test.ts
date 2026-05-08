@@ -11,7 +11,6 @@ function makePage(
   id: string,
   title: string,
   slug: string,
-  orderNum: number,
   parentId: string | null = null,
 ): Page {
   return {
@@ -20,16 +19,15 @@ function makePage(
     slug,
     project_id: "project-1",
     parent_id: parentId,
-    order_num: orderNum,
   } as Page;
 }
 
 describe("buildPageTree", () => {
   it("preserves incoming canonical page order without Home/order_num re-sort", () => {
     const { treeNodes } = buildPageTree([
-      makePage("page-three", "Page 3", "/page-3", 2),
-      makePage("page-home", "Home", "/", 0),
-      makePage("page-two", "Page 2", "/page-2", 1),
+      makePage("page-three", "Page 3", "/page-3"),
+      makePage("page-home", "Home", "/"),
+      makePage("page-two", "Page 2", "/page-2"),
     ]);
 
     expect(treeNodes.map((node) => node.id)).toEqual([
@@ -41,8 +39,8 @@ describe("buildPageTree", () => {
 
   it("marks the slash slug Home page as non-deletable even when another page has order 0", () => {
     const { nodeMap } = buildPageTree([
-      makePage("page-latest", "Page 3", "/page-3", 0),
-      makePage("page-home", "Home", "/", 1),
+      makePage("page-latest", "Page 3", "/page-3"),
+      makePage("page-home", "Home", "/"),
     ]);
 
     expect(nodeMap.get("page-home")?.isRoot).toBe(true);
@@ -53,13 +51,13 @@ describe("buildPageTree", () => {
 
   it("applies page drag/drop updates to the tree source pages", () => {
     const pages = [
-      makePage("page-home", "Home", "/", 0),
-      makePage("page-one", "Page 1", "/page-1", 1),
-      makePage("page-two", "Page 2", "/page-2", 2),
+      makePage("page-home", "Home", "/"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("page-two", "Page 2", "/page-2"),
     ];
 
     const updatedPages = applyPageTreeUpdates(pages, [
-      { id: "page-two", parentId: "page-one", orderNum: 0 },
+      { id: "page-two", parentId: "page-one" },
     ]);
     const { nodeMap } = buildPageTree(updatedPages);
 
@@ -72,14 +70,15 @@ describe("buildPageTree", () => {
 
   it("reorders updated pages into canonical preorder after drag/drop", () => {
     const pages = [
-      makePage("page-home", "Home", "/", 0),
-      makePage("page-one", "Page 1", "/page-1", 1),
-      makePage("page-two", "Page 2", "/page-2", 2),
+      makePage("page-home", "Home", "/"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("page-two", "Page 2", "/page-2"),
     ];
 
     const updatedPages = applyPageTreeUpdates(pages, [
-      { id: "page-two", parentId: null, orderNum: 1 },
-      { id: "page-one", orderNum: 2 },
+      { id: "page-home" },
+      { id: "page-two", parentId: null },
+      { id: "page-one" },
     ]);
 
     expect(updatedPages.map((page) => page.id)).toEqual([
@@ -121,8 +120,8 @@ describe("buildPageTree", () => {
     };
 
     const updatedDocument = syncCanonicalPageTreeMetadata(document, [
-      makePage("page-one", "Page 1", "/page-1", 1),
-      makePage("page-two", "Page 2", "/page-2", 0, "page-one"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("page-two", "Page 2", "/page-2", "page-one"),
     ]);
 
     const pageOne = updatedDocument.children.find(
@@ -134,15 +133,15 @@ describe("buildPageTree", () => {
 
     expect(pageOne?.name).toBe("Page 1");
     expect(pageOne?.metadata).toMatchObject({
-      order_num: 1,
       parent_id: null,
       slug: "/page-1",
     });
     expect(pageTwo?.metadata).toMatchObject({
-      order_num: 0,
       parent_id: "page-one",
       slug: "/page-2",
     });
+    expect(pageOne?.metadata).not.toHaveProperty("order_num");
+    expect(pageTwo?.metadata).not.toHaveProperty("order_num");
   });
 
   it("syncs Pages tree source reorder into canonical document children while preserving reusable roots", () => {
@@ -188,9 +187,9 @@ describe("buildPageTree", () => {
     };
 
     const updatedDocument = syncCanonicalPageTreeMetadata(document, [
-      makePage("page-two", "Page 2", "/page-2", 0),
-      makePage("page-one", "Page 1", "/page-1", 1),
-      makePage("page-home", "Home", "/", 2),
+      makePage("page-two", "Page 2", "/page-2"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("page-home", "Home", "/"),
     ]);
 
     expect(updatedDocument.children.map((node) => node.id)).toEqual([
@@ -202,8 +201,8 @@ describe("buildPageTree", () => {
     expect(
       updatedDocument.children
         .filter((node) => node.id.startsWith("page-"))
-        .map((node) => (node.metadata as { order_num?: unknown }).order_num),
-    ).toEqual([0, 1, 2]);
+        .every((node) => !("order_num" in ((node.metadata ?? {}) as object))),
+    ).toBe(true);
   });
 
   it("ignores stale page order_num when no drag update rank is provided", () => {
@@ -240,9 +239,9 @@ describe("buildPageTree", () => {
     };
 
     const updatedDocument = syncCanonicalPageTreeMetadata(document, [
-      makePage("page-home", "Home", "/", 2),
-      makePage("page-one", "Page 1", "/page-1", 1),
-      makePage("page-two", "Page 2", "/page-2", 0),
+      makePage("page-home", "Home", "/"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("page-two", "Page 2", "/page-2"),
     ]);
 
     expect(updatedDocument.children.map((node) => node.id)).toEqual([
@@ -250,5 +249,33 @@ describe("buildPageTree", () => {
       "page-one",
       "page-two",
     ]);
+  });
+
+  it("merges nested sibling reorder back into root page source order", () => {
+    const pages = [
+      makePage("page-home", "Home", "/"),
+      makePage("child-one", "Child 1", "/child-1", "page-one"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("child-two", "Child 2", "/child-2", "page-one"),
+      makePage("page-two", "Page 2", "/page-2"),
+    ];
+
+    const updatedPages = applyPageTreeUpdates(pages, [
+      { id: "child-two", parentId: "page-one" },
+      { id: "child-one" },
+    ]);
+
+    expect(updatedPages.map((page) => page.id)).toEqual([
+      "page-home",
+      "child-two",
+      "page-one",
+      "child-one",
+      "page-two",
+    ]);
+    expect(
+      buildPageTree(updatedPages)
+        .nodeMap.get("page-one")
+        ?.children?.map((node) => node.id),
+    ).toEqual(["child-two", "child-one"]);
   });
 });

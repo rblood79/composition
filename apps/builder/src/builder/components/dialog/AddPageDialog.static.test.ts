@@ -14,4 +14,13 @@ describe("AddPageDialog page/frame mirror adapter boundary", () => {
     expect(source).toContain("getNullablePageFrameBindingId");
     expect(source).toContain("withPageFrameBinding");
   });
+
+  it("does not pass page order_num through URL helper payloads", async () => {
+    const source = await readFile(
+      resolve(__dirname, "AddPageDialog.tsx"),
+      "utf-8",
+    );
+
+    expect(source).not.toContain("order_num");
+  });
 });

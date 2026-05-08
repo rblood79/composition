@@ -4,14 +4,18 @@ import type { Page } from "../../../../../types/builder/unified.types";
 import { buildPageTree } from "./usePageTreeData";
 import { calculatePageMoveUpdates } from "./usePageTreeDnd";
 
-function makePage(id: string, title: string, slug: string, orderNum: number) {
+function makePage(
+  id: string,
+  title: string,
+  slug: string,
+  parentId: string | null = null,
+) {
   return {
     id,
     title,
     slug,
     project_id: "project-1",
-    parent_id: null,
-    order_num: orderNum,
+    parent_id: parentId,
   } as Page;
 }
 
@@ -29,9 +33,9 @@ function buildDndTree(pages: Page[]) {
 describe("calculatePageMoveUpdates", () => {
   it("emits root reorder updates for Pages tree drag/drop", () => {
     const tree = buildDndTree([
-      makePage("page-home", "Home", "/", 0),
-      makePage("page-one", "Page 1", "/page-1", 1),
-      makePage("page-two", "Page 2", "/page-2", 2),
+      makePage("page-home", "Home", "/"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("page-two", "Page 2", "/page-2"),
     ]);
 
     const updates = calculatePageMoveUpdates({
@@ -42,17 +46,17 @@ describe("calculatePageMoveUpdates", () => {
     });
 
     expect(updates).toEqual([
-      { id: "page-home", orderNum: 0 },
-      { id: "page-two", parentId: null, orderNum: 1 },
-      { id: "page-one", orderNum: 2 },
+      { id: "page-home" },
+      { id: "page-two", parentId: null },
+      { id: "page-one" },
     ]);
   });
 
   it("emits reparent updates when a page is dropped on another page", () => {
     const tree = buildDndTree([
-      makePage("page-home", "Home", "/", 0),
-      makePage("page-one", "Page 1", "/page-1", 1),
-      makePage("page-two", "Page 2", "/page-2", 2),
+      makePage("page-home", "Home", "/"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("page-two", "Page 2", "/page-2"),
     ]);
 
     const updates = calculatePageMoveUpdates({
@@ -63,9 +67,30 @@ describe("calculatePageMoveUpdates", () => {
     });
 
     expect(updates).toEqual([
-      { id: "page-home", orderNum: 0 },
-      { id: "page-one", orderNum: 1 },
-      { id: "page-two", parentId: "page-one", orderNum: 0 },
+      { id: "page-home" },
+      { id: "page-one" },
+      { id: "page-two", parentId: "page-one" },
+    ]);
+  });
+
+  it("emits nested sibling reorder by ordered ids without orderNum mirrors", () => {
+    const tree = buildDndTree([
+      makePage("page-home", "Home", "/"),
+      makePage("page-one", "Page 1", "/page-1"),
+      makePage("child-one", "Child 1", "/child-1", "page-one"),
+      makePage("child-two", "Child 2", "/child-2", "page-one"),
+    ]);
+
+    const updates = calculatePageMoveUpdates({
+      tree,
+      movedKeys: new Set<Key>(["child-two"]),
+      targetKey: "child-one",
+      dropPosition: "before",
+    });
+
+    expect(updates).toEqual([
+      { id: "child-two", parentId: "page-one" },
+      { id: "child-one" },
     ]);
   });
 });

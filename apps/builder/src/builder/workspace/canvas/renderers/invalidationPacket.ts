@@ -160,7 +160,6 @@ function buildLayoutSignature(layouts: Layout[]): string {
         layout.id,
         layout.name,
         layout.slug ?? "",
-        layout.order_num ?? "",
         layout.notFoundPageId ?? "",
         layout.inheritNotFound === false ? 0 : 1,
       ].join(":"),

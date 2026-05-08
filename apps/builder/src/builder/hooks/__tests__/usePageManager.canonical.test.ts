@@ -70,6 +70,14 @@ describe("usePageManager.initializeProject canonical-only hydrate", () => {
     expect(source).not.toContain("withPageFrameBinding");
   });
 
+  it("새 페이지 생성은 page/body order_num mirror 를 계산하거나 쓰지 않는다", async () => {
+    const source = await readUsePageManagerSource();
+
+    expect(source).not.toMatch(/\bmaxOrderNum\b/);
+    expect(source).not.toMatch(/\bnextOrderNum\b/);
+    expect(source).not.toMatch(/order_num:\s*/);
+  });
+
   it("runtime migration helper 를 import 하거나 호출하지 않는다", async () => {
     const source = await readUsePageManagerSource();
     const initFnSource = extractInitializeProject(source);
