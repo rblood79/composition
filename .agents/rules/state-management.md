@@ -16,6 +16,11 @@ Codex용 상태 관리 규칙 엔트리포인트입니다.
   canonical mutation 뒤 legacy `Element[]` mirror를 `setElements()`로 다시 쓰는
   write-back을 재도입하지 않는다. transition cache가 필요하면 canonical-derived
   read-only snapshot으로 owner/제거 phase를 명시한다.
+- History/Undo full snapshot sync는 canonical full-replace semantics를 지켜야 한다.
+  page/layout shell과 structural `body`는 유지하되, incoming snapshot에 없는
+  runtime node가 `db.documents`에 남아 refresh 후 되살아나면 안 된다.
+  add/remove/group 계열 canonical node event schema 전환은 HIGH-risk 계약 변경으로
+  별도 승인 후 진행한다.
 - canonical cutover 경로에서는 `CompositionDocument.children[]`가 order SSOT다.
   `Element.order_num`은 제거됐으므로 props update/history/drag/drop/IndexedDB
   `elements` payload에 다시 만들지 않는다. page/layout order도 document root

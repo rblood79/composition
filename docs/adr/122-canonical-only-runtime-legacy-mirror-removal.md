@@ -4,6 +4,18 @@
 
 In Progress — 2026-05-09
 
+Current execution snapshot:
+
+- Current phase: Phase 4 / G4 `legacy boundary quarantine`.
+- Progress estimate: implementation ~72%, formal gate closure ~60%.
+- Latest completed slice: canonical full-replace pruning + seeded Builder
+  `remove -> undo -> redo -> reload` runtime smoke.
+- Next required decision: History add/remove/group broader canonical node event
+  schema. This is a HIGH-risk History contract change and requires explicit
+  proceed approval before implementation.
+- Known verification blocker: `pnpm run codex:preflight` stops at
+  `codex:guard` because protected `.claude/settings.json` is already dirty.
+
 ## Context
 
 ADR-116은 `CompositionDocument`를 저장/편집/export/import의 SSOT로 승격했고,

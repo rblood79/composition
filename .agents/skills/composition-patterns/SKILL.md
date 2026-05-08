@@ -49,6 +49,10 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
   mirror로 되돌리는 `setElements(exportLegacyDocument(...))` write-back을
   재도입하지 말고, `exportLegacyDocument()`는 cloud/export/import/publish
   compatibility boundary에서만 사용합니다.
+- History/Undo가 full snapshot으로 canonical document를 동기화할 때는 omitted
+  runtime node를 `db.documents`에 남기지 않습니다. page/layout shell과 structural
+  `body`는 보존하지만, incoming snapshot에 없는 legacy-exportable runtime node는
+  full-replace 과정에서 prune해야 합니다.
 - IndexedDB `composition.metadata`, duplicate `composition.history`, and
   `DatabaseAdapter.designVariables` are removed dormant/mismatched local DB
   surfaces. Use the separate `composition-history` DB for undo/redo and the

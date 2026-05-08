@@ -58,6 +58,19 @@ rg -n "exportLegacyDocument\\(|canonicalDocumentToElements\\(|UPDATE_ELEMENTS|UP
 | Phase 5 | stale tests/gates 재정렬          | ADR-116/118/119/120/121 aligned test suite         | G5   | First stale-gate slice complete                                                                                                                                                                                                                             |
 | Phase 6 | final verification                | browser smoke + preflight + docs/rules sync        | G6   | Not started                                                                                                                                                                                                                                                 |
 
+Current execution snapshot (2026-05-09):
+
+- Current phase: Phase 4 / G4.
+- Progress estimate: implementation ~72%, formal gate closure ~60%.
+- Latest closed slice: canonical full-replace pruning in `canonicalMutations`
+  plus seeded Builder `remove -> undo -> redo -> reload` smoke.
+- Current blocker/next entry: History add/remove/group broader canonical node
+  event schema. This is a HIGH-risk History contract/schema change and must be
+  surfaced before implementation.
+- Verification blocker: `pnpm run codex:preflight` currently stops at
+  `codex:guard` because protected `.claude/settings.json` is dirty before this
+  slice.
+
 ## 4. Phase 0 — Hybrid Inventory Freeze
 
 작업:

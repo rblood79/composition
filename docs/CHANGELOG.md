@@ -62,6 +62,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page-owned runtime sibling이 canonical `db.documents`에 남던 persistence drift를
   수정했다. page/layout shell과 structural `body` node는 유지하면서 omitted
   legacy-exportable runtime node는 prune한다.
+- ADR-122 현재 실행 스냅샷을 관련 문서에 동기화했다. 현재 Phase는 Phase 4 / G4,
+  진행률 추정은 구현 약 72% / formal gate 약 60%이며, 다음 진입점은 HIGH-risk
+  History add/remove/group broader canonical node event schema 전환이다.
 
 ### Verification
 

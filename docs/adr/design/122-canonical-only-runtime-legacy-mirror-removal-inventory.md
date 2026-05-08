@@ -20,6 +20,16 @@ Current raw count:
 462
 ```
 
+Current execution snapshot:
+
+```text
+phase: Phase 4 / G4
+implementation progress: ~72%
+formal gate closure: ~60%
+latest closed slice: canonical full-replace prune + remove/redo/reload browser smoke
+next open contract: History add/remove/group broader canonical node event schema
+```
+
 Top raw buckets:
 
 ```text
