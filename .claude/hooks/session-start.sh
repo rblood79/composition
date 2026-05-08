@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # SessionStart hook — 세션 시작 시 composition 전용 agent/skill 로스터 및 권장 워크플로 주입
+# Wave A* (metrics-based auto-progression):
+#   - daily-stats-snapshot.sh (백그라운드, 기존)
+#   - metrics-snapshot.sh (백그라운드, 신규) — ADR drift 누적 수집
+#   - auto-progression-check.sh (foreground, 신규) — Wave 진입 조건 평가 출력
 set -euo pipefail
 
 # 일별 통계 스냅샷 (하루 1회만 기록, 백그라운드 실행으로 세션 시작 블로킹 없음)
 if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/daily-stats-snapshot.sh" ]; then
   "$CLAUDE_PROJECT_DIR/.claude/hooks/daily-stats-snapshot.sh" >/dev/null 2>&1 &
+fi
+
+# Wave A* metrics 수집 (백그라운드 — 새 ADR Implemented commit 분석 후 stats/adr-drift.jsonl 누적)
+if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/metrics-snapshot.sh" ]; then
+  "$CLAUDE_PROJECT_DIR/.claude/hooks/metrics-snapshot.sh" >/dev/null 2>&1 &
 fi
 
 # CHANGELOG drift 자동 감시 (rules/changelog.md §2 명시 — 14일/100 commit 초과 시 catch-up 권고)
@@ -33,6 +42,12 @@ DRIFT_EOF
       fi
     fi
   fi
+fi
+
+# Wave A* auto-progression check (foreground — sample 충족 시 Wave B 진입 알림)
+progression_block=""
+if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-progression-check.sh" ]; then
+  progression_block=$("$CLAUDE_PROJECT_DIR/.claude/hooks/auto-progression-check.sh" 2>/dev/null || true)
 fi
 
 cat <<EOF
@@ -91,8 +106,10 @@ cat <<EOF
 ## 자동 게이트 (Hook)
 - PostToolUse: spec/* 편집 시 \`.claude/.spec-rebuild-pending\` flag → Stop hook 시점 \`pnpm build:specs\` 1회 실행
 - Stop: type-check 전 spec rebuild 게이트 → flag 있으면 build → 그 후 type-check
+- Stop: ADR Implemented 승격 시 README/CHANGELOG 동시 갱신 강제 (block + escape hatch)
+- PreToolUse: 사용자 명시 발의 없는 ADR 신규 생성 차단 (transcript grep 기반)
 
-규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. CRITICAL/HIGH 이슈는 즉시 수정.${drift_block}
+규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. CRITICAL/HIGH 이슈는 즉시 수정.${drift_block}${progression_block}
 </composition-workflow-roster>
 EOF
 
