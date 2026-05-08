@@ -171,14 +171,6 @@ async function removeCanonicalPresetSlots(slotIds: string[]): Promise<void> {
 
   try {
     const db = await getDB();
-    try {
-      await db.elements.deleteMany(slotIds);
-    } catch (error) {
-      console.warn(
-        "⚠️ [IndexedDB] preset slot legacy row 삭제 중 오류 (메모리는 정상):",
-        error,
-      );
-    }
     await persistActiveCanonicalDocument(db);
   } catch (error) {
     console.warn(

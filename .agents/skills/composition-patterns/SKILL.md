@@ -40,6 +40,10 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
   read/write source가 아닙니다. 새 Element, page/layout shell, history,
   IndexedDB, drag/drop payload에 추가하지 않습니다. Supabase compatibility가
   필요한 경우에만 adapter boundary에서 source order로 파생합니다.
+- local project-state persistence는 `DatabaseAdapter.documents`만 사용합니다.
+  `DatabaseAdapter.pages/elements/layouts` 및 IndexedDB `pages/elements/layouts`
+  mirror stores는 제거된 surface이므로 `db.pages/elements/layouts` runtime
+  read/write를 재도입하지 않습니다.
 - Origin/instance 판단은 `reusable: true`, `type:"ref"`, `ref`,
   `descendants` canonical shape를 우선하고 legacy `componentRole/masterId`는
   adapter mirror로 봅니다.

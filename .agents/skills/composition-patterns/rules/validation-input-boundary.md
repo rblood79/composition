@@ -141,7 +141,11 @@ if (!canHaveChildren(parentElement.type)) {
 
 // 3. 저장 레이어: 무결성 검증
 const sanitized = sanitizeElement(element);
-await db.elements.insert(sanitized);
+const nextDocument = upsertElementIntoCanonicalDocument(
+  currentDocument,
+  sanitized,
+);
+await db.documents.put(projectId, nextDocument);
 ```
 
 ## 참조 파일

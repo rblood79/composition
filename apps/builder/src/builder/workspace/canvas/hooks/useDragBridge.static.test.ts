@@ -9,8 +9,8 @@ describe("useDragBridge persistence contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("db.elements.updateMany(updates)");
     expect(source).toContain("persistActiveCanonicalDocument(db)");
+    expect(source).not.toContain("db.elements.updateMany(");
     expect(source).not.toContain("db.elements.update(id");
   });
 

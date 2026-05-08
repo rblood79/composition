@@ -5,13 +5,12 @@
  * 동일한 인터페이스로 사용하기 위한 추상화 레이어
  */
 
-import type { Element, Page } from "../../types/core/store.types";
 import type {
   DesignToken,
   DesignTheme,
   DesignVariable,
 } from "../../types/theme";
-import type { Layout } from "../../types/builder/layout.types";
+import type { Element } from "../../types/core/store.types";
 import type {
   DataTable,
   ApiEndpoint,
@@ -104,46 +103,6 @@ export interface DatabaseAdapter {
     getAll(): Promise<Project[]>;
   };
 
-  // Pages
-  pages: {
-    insert(page: Page): Promise<Page>;
-    insertWithBody?(
-      page: Page,
-      bodyElement: Element,
-    ): Promise<{
-      bodyElement: Element;
-      page: Page;
-    }>;
-    insertMany(pages: Page[]): Promise<Page[]>;
-    update(id: string, data: Partial<Page>): Promise<Page>;
-    delete(id: string): Promise<void>;
-    deleteWithElements?(pageId: string, elementIds: string[]): Promise<void>;
-    getById(id: string): Promise<Page | null>;
-    getByProject(projectId: string): Promise<Page[]>;
-    getAll(): Promise<Page[]>;
-  };
-
-  // Elements (가장 중요!)
-  elements: {
-    insert(element: Element): Promise<Element>;
-    insertMany(elements: Element[]): Promise<Element[]>;
-    put(element: Element): Promise<Element>;
-    update(id: string, data: Partial<Element>): Promise<Element>;
-    updateMany(
-      updates: Array<{ id: string; data: Partial<Element> }>,
-    ): Promise<Element[]>;
-    delete(id: string): Promise<void>;
-    deleteMany(ids: string[]): Promise<void>;
-    getById(id: string): Promise<Element | null>;
-    getByPage(pageId: string): Promise<Element[]>;
-    getChildren(parentId: string): Promise<Element[]>;
-    /**
-     * `parentId` 의 모든 descendant element BFS 수집.
-     */
-    getDescendants(parentId: string): Promise<Element[]>;
-    getAll(): Promise<Element[]>;
-  };
-
   // Design Tokens
   designTokens: {
     insert(token: DesignToken): Promise<DesignToken>;
@@ -177,16 +136,6 @@ export interface DatabaseAdapter {
     getByProject(projectId: string): Promise<DesignVariable[]>;
     getByName(projectId: string, name: string): Promise<DesignVariable | null>;
     getAll(): Promise<DesignVariable[]>;
-  };
-
-  // Layouts (Layout/Slot System)
-  layouts: {
-    insert(layout: Layout): Promise<Layout>;
-    update(id: string, data: Partial<Layout>): Promise<Layout>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<Layout | null>;
-    getByProject(projectId: string): Promise<Layout[]>;
-    getAll(): Promise<Layout[]>;
   };
 
   // Canonical document primary storage (ADR-116)

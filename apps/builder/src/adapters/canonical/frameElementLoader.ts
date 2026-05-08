@@ -1,15 +1,15 @@
 import type { Element } from "@/types/builder/unified.types";
 import { matchesLegacyLayoutId } from "./legacyElementFields";
+import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
+import { canonicalDocumentToElements } from "@/builder/stores/canonical/canonicalElementsView";
 import {
+  canonicalDocumentToFrameElementScopes,
   isElementInCanonicalFrameScope,
   type CanonicalFrameElementScope,
 } from "./frameElementScope";
 
 export interface FrameElementLoaderDb {
-  elements: {
-    getAll(): Promise<Element[]>;
-    getDescendants(parentId: string): Promise<Element[]>;
-  };
+  readonly legacyDbArgument?: never;
 }
 
 function isBodyElement(element: Element): boolean {
@@ -70,20 +70,27 @@ export function collectHydratedFrameElements(
 }
 
 export async function loadFrameElements(
-  db: FrameElementLoaderDb,
-  frameId: string,
+  frameIdOrDb: string | FrameElementLoaderDb,
+  maybeFrameId?: string,
 ): Promise<Element[]> {
-  const descendants = await db.elements.getDescendants(frameId);
-  if (hasFrameBody(descendants, frameId)) {
-    return descendants.filter((element) => !element.deleted);
-  }
+  const frameId =
+    typeof frameIdOrDb === "string" ? frameIdOrDb : (maybeFrameId ?? "");
+  if (!frameId) return [];
 
-  const allElements = await db.elements.getAll();
-  const layoutElements = allElements.filter((element) =>
-    isLegacyFrameElementForFrame(element, frameId),
-  );
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const doc = projectId ? canonical.documents.get(projectId) : null;
+  if (!doc) return [];
 
-  return layoutElements.length > 0
-    ? layoutElements
-    : descendants.filter((element) => !element.deleted);
+  const elements = canonicalDocumentToElements(doc) as Element[];
+  const scope = canonicalDocumentToFrameElementScopes(doc).get(frameId);
+  const frameElements = scope
+    ? elements.filter((element) => isFrameElementForFrame(element, scope))
+    : elements.filter((element) =>
+        isLegacyFrameElementForFrame(element, frameId),
+      );
+
+  return hasFrameBody(frameElements, frameId)
+    ? frameElements.filter((element) => !element.deleted)
+    : frameElements;
 }

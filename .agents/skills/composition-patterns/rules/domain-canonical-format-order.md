@@ -6,8 +6,9 @@ tags: [domain, canonical, order, component]
 ---
 
 Composition Builder의 저장/편집 SSOT는 canonical `CompositionDocument`입니다.
-legacy `Element[]`는 Builder 호환 mirror이며, direct cutover 이후 신규
-runtime 판단은 canonical format을 먼저 확인합니다.
+legacy `Element[]`/`Page[]`/`Layout[]` 형태는 render/cloud/export compatibility
+projection일 뿐 local IndexedDB persistence source가 아닙니다. 신규 runtime 판단은
+canonical format을 먼저 확인합니다.
 
 ## Canonical Format SSOT
 
@@ -19,6 +20,17 @@ runtime 판단은 canonical format을 먼저 확인합니다.
   `x-composition` extension입니다.
 - metadata는 adapter/debug/round-trip 전용입니다. runtime consumer가 metadata를
   props source로 읽지 않습니다.
+
+## Local Persistence SSOT
+
+- local project-state persistence는 `DatabaseAdapter.documents`만 사용합니다.
+- `DatabaseAdapter.pages`, `DatabaseAdapter.elements`, `DatabaseAdapter.layouts`와
+  IndexedDB `pages`/`elements`/`layouts` objectStore는 제거된 surface입니다.
+- production runtime에서 `db.pages`, `db.elements`, `db.layouts` project-state
+  read/write를 재도입하지 않습니다.
+- Supabase `pages`/`elements` row API가 필요한 동안에는 cloud transport
+  compatibility boundary에서만 사용하고, local에는 one-shot `CompositionDocument`
+  변환 후 `db.documents.put()`만 수행합니다.
 
 ## Origin / Instance Format
 
@@ -81,6 +93,9 @@ runtime 판단은 canonical format을 먼저 확인합니다.
 - `packages/shared/src/types/composition-document-actions.types.ts`
 - `apps/builder/src/adapters/canonical/canonicalMutations.ts`
 - `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`
+- `apps/builder/src/lib/db/types.ts`
+- `apps/builder/src/lib/db/indexedDB/adapter.ts`
+- `apps/builder/src/utils/projectSync.ts`
 - `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts`
 - `apps/builder/src/builder/panels/properties/ComponentSemanticsSection.tsx`
 - `apps/builder/src/builder/stores/elements.ts`

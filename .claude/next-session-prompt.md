@@ -90,7 +90,7 @@ Phase 5 G7 closure 진정 work. `updateNodeExtension` API (Phase 5 G7 preflight 
 
 **참조 file**:
 
-- 메모리 entry: `~/.claude/projects/-Users-admin-work-composition/memory/tier3-entry-2026-05-01-session57-adr916-phase5-g6-1-closure.md`
+- 메모리 entry: `~/.claude/projects/-Users-admin-work-composition/memory/session-2026-05-01-session57-adr916-phase5-g6-1-closure.md`
 - ADR 본문: `docs/adr/916-canonical-document-ssot-transition.md`
 - design breakdown: `docs/adr/design/916-canonical-document-ssot-transition-breakdown.md`
 - helper apps/builder: `apps/builder/src/adapters/canonical/legacyExtensionFields.ts`

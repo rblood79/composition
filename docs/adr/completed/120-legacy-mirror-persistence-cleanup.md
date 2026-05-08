@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-05-08
+Implemented — 2026-05-08
 
 ## Context
 
@@ -165,9 +165,10 @@ schema 제거를 분리해 rollout 위험을 제한한다.
   surface를 불필요하게 키운다.
 - **대안 D 기각**: local과 cloud primary source가 갈라져 dual-SSOT 문제가 형태만 바뀐다.
 
-> 구현 상세: [120-legacy-mirror-persistence-cleanup-breakdown.md](design/120-legacy-mirror-persistence-cleanup-breakdown.md)
+> 구현 상세:
+> [120-legacy-mirror-persistence-cleanup-breakdown.md](../design/120-legacy-mirror-persistence-cleanup-breakdown.md)
 > 구현 인벤토리:
-> [120-legacy-mirror-persistence-inventory.md](design/120-legacy-mirror-persistence-inventory.md)
+> [120-legacy-mirror-persistence-inventory.md](../design/120-legacy-mirror-persistence-inventory.md)
 
 ## Risks
 
@@ -178,6 +179,62 @@ schema 제거를 분리해 rollout 위험을 제한한다.
 | DB/API surface deletion blast radius   | tests/mocks/debug UI 또는 non-project-data store가 함께 깨질 수 있다              | delete-runtime/delete-schema/non-project-data/test-fixture bucket을 분리하고 `DatabaseAdapter` mock shape를 단계별로 축소한다    |
 | canonical/export bridge over-deletion  | import/export, frame/ref materialization, legacy fixture coverage가 깨질 수 있다  | `apps/builder/src/adapters/canonical/**`와 shared export bridge는 projection boundary로 유지하고 DB mirror read/write만 제거한다 |
 | IndexedDB upgrade/stale data handling  | 기존 dev DB에서 objectStore 삭제 upgrade가 실패하거나 stale row가 남을 수 있다    | runtime call site 0건 이후 `DB_VERSION` bump, delete-only upgrade allowlist, browser IndexedDB smoke로 검증한다                  |
+
+## Gates
+
+| Gate                            | 시점         | 통과 조건                                                                                                                                  | 실패 시 대안                                                |
+| ------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| G0: inventory + allowlist       | Phase 0 종료 | `db.pages/elements/layouts`, `pagesApi/elementsApi`, legacy mirror field access를 runtime/delete/boundary/test bucket으로 분류             | 구현 착수 금지                                              |
+| G1: local hydrate/create/delete | Phase 1 종료 | dashboard/usePageManager/project lifecycle이 local mirror 없이 `documents` primary로 create, hydrate, delete를 수행                        | dashboard/local lifecycle만 rollback                        |
+| G2: runtime write cutover       | Phase 2 종료 | add/update/remove/drag/history/editor path가 local mirror row가 아니라 active document를 먼저 persist                                      | mutation family별 rollback                                  |
+| G3: frame/page binding cleanup  | Phase 3 종료 | frame create/delete/update, page-frame binding, frame element load가 `layouts/elements/pages` mirror를 project state source로 안 씀        | canonical adapter boundary로 임시 격리 후 G3 재시도         |
+| G4: project sync boundary       | Phase 4 종료 | upload는 document-derived projection만 사용하고, legacy-only download는 one-shot `CompositionDocument` 변환 후 `db.documents.put()`만 수행 | 변환 불가 payload는 explicit error + 후속 import/schema ADR |
+| G5: DB/API surface removal      | Phase 5 종료 | `DatabaseAdapter.pages/elements/layouts` 제거, IndexedDB `pages/elements/layouts` objectStore 삭제 + `DB_VERSION` upgrade 완료             | 임시 runtime guard 후 G5 재시도. guard-only는 완료 아님     |
+| G6: verification/docs/rules     | Phase 6 종료 | targeted tests, `codex:typecheck`, browser refresh/drag/frame/origin-instance smoke, README/changelog/rule sync 완료                       | allowlist 재분류 후 실패 phase 재실행                       |
+
+## Implementation
+
+2026-05-08에 G0-G6를 완료했다.
+
+- dashboard project create/delete와 `usePageManager` hydrate는 local
+  `pages`/`elements`/`layouts` mirror 없이 `db.documents`를 primary로 사용한다.
+- element create/update/remove, history undo/redo, inspector/editor, item editor,
+  collection/selection renderer, drag/drop final commit은 local `db.elements.*`
+  mirror write를 제거하고 active `CompositionDocument` mutation + `db.documents.put()`
+  경로로 수렴했다.
+- reusable frame create/update/delete, page-frame binding, frame element loader,
+  frame cascade, page parent/delete path는 local `db.pages/elements/layouts`를 project
+  state source로 사용하지 않는다.
+- `projectSync` upload는 `db.documents.get(projectId)`에서 render model을 파생해
+  Supabase row payload를 만든다. legacy-only cloud download는 `pages/elements` rows를
+  one-shot `legacyToCanonical(...)`로 변환한 뒤 local에는 `db.documents.put()`만 수행한다.
+- `DatabaseAdapter.pages/elements/layouts` public surface를 제거하고 IndexedDB
+  `DB_VERSION`을 14로 올렸다. v14 upgrade는 기존 `pages`/`elements`/`layouts`
+  objectStore를 delete-only cleanup allowlist로 삭제한다.
+- `.agents` canonical format/order, state-management, async pipeline, component
+  lifecycle, validation rule은 local project-state persistence를 `db.documents` 전용으로
+  갱신했다.
+
+검증 요약:
+
+- Phase 1/2 targeted builder vitest: 10 files / 46 tests PASS.
+- Phase 3 targeted builder vitest: 4 files / 22 tests PASS.
+- Phase 4/5 builder static/canonical vitest: 7 files / 101 tests PASS.
+- shared export/order vitest: 2 files / 19 tests PASS.
+- production runtime grep gate: `db.pages/elements/layouts` project-state call site 0건.
+- `DatabaseAdapter.pages/elements/layouts` surface grep gate 0건.
+- IndexedDB adapter `createObjectStore("pages"|"elements"|"layouts")` 및 runtime
+  `objectStore("pages"|"elements"|"layouts")` grep gate 0건.
+- `pnpm run codex:typecheck` PASS.
+- `pnpm run codex:preflight` PASS.
+- Browser smoke:
+  `http://127.0.0.1:5173/builder/1f180030-67c4-486d-b6a0-498bcea152f5` refresh 후
+  IndexedDB `composition` DB version 14, objectStores =
+  `api_endpoints`, `data_tables`, `design_themes`, `design_tokens`, `documents`,
+  `history`, `metadata`, `projects`, `transformers`, `variables`.
+  `pages`/`elements`/`layouts` objectStore 없음, active `documents` record 존재,
+  `order_num`/`orderNum` payload 없음, canvas nonblank sizing 확인, console
+  error/warning 0건.
 
 ## Scope Clarification
 
@@ -204,18 +261,6 @@ ADR-120의 완료 의미는 repo 전체에서 `legacy` 문자열이나 legacy co
 - Pencil import/export adapter 전체 삭제.
 - Table/collection component data model의 `order_num` 제거.
 - Supabase physical schema drop을 승인 없이 수행하는 작업.
-
-## Gates
-
-| Gate                            | 시점         | 통과 조건                                                                                                                                  | 실패 시 대안                                                |
-| ------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| G0: inventory + allowlist       | Phase 0 종료 | `db.pages/elements/layouts`, `pagesApi/elementsApi`, legacy mirror field access를 runtime/delete/boundary/test bucket으로 분류             | 구현 착수 금지                                              |
-| G1: local hydrate/create/delete | Phase 1 종료 | dashboard/usePageManager/project lifecycle이 local mirror 없이 `documents` primary로 create, hydrate, delete를 수행                        | dashboard/local lifecycle만 rollback                        |
-| G2: runtime write cutover       | Phase 2 종료 | add/update/remove/drag/history/editor path가 local mirror row가 아니라 active document를 먼저 persist                                      | mutation family별 rollback                                  |
-| G3: frame/page binding cleanup  | Phase 3 종료 | frame create/delete/update, page-frame binding, frame element load가 `layouts/elements/pages` mirror를 project state source로 안 씀        | canonical adapter boundary로 임시 격리 후 G3 재시도         |
-| G4: project sync boundary       | Phase 4 종료 | upload는 document-derived projection만 사용하고, legacy-only download는 one-shot `CompositionDocument` 변환 후 `db.documents.put()`만 수행 | 변환 불가 payload는 explicit error + 후속 import/schema ADR |
-| G5: DB/API surface removal      | Phase 5 종료 | `DatabaseAdapter.pages/elements/layouts` 제거, IndexedDB `pages/elements/layouts` objectStore 삭제 + `DB_VERSION` upgrade 완료             | 임시 runtime guard 후 G5 재시도. guard-only는 완료 아님     |
-| G6: verification/docs/rules     | Phase 6 종료 | targeted tests, `codex:typecheck`, browser refresh/drag/frame/origin-instance smoke, README/changelog/rule sync 완료                       | allowlist 재분류 후 실패 phase 재실행                       |
 
 ## Consequences
 

@@ -19,8 +19,6 @@ type PageNodeMetadata = Record<string, unknown> & {
   type?: unknown;
 };
 
-type DatabaseAdapter = Awaited<ReturnType<typeof getDB>>;
-
 export function usePageTreeData(pages: Page[]) {
   const { treeNodes, nodeMap } = useMemo(() => buildPageTree(pages), [pages]);
 
@@ -48,16 +46,8 @@ export function usePageTreeData(pages: Page[]) {
 
       setPages(updatedPages);
       const projectId = syncActiveCanonicalPageTreeMetadata(updatedPages);
-      const changedPageIds = new Set(updates.map((update) => update.id));
-      const changedPages = updatedPages.filter((page) =>
-        changedPageIds.has(page.id),
-      );
-
       void enqueuePagePersistence(async () => {
         const db = await getDB();
-        await Promise.all(
-          changedPages.map((page) => persistPageTreeRecord(db, page)),
-        );
         if (projectId) {
           const document = useCanonicalDocumentStore
             .getState()
@@ -239,7 +229,9 @@ function mergePageTreeUpdateOrder(
   return result;
 }
 
-function syncActiveCanonicalPageTreeMetadata(pages: Page[]): string | null {
+export function syncActiveCanonicalPageTreeMetadata(
+  pages: Page[],
+): string | null {
   const canonicalStore = useCanonicalDocumentStore.getState();
   const projectId =
     canonicalStore.currentProjectId ?? pages[0]?.project_id ?? null;
@@ -376,23 +368,6 @@ function getCanonicalPageId(
   }
 
   return null;
-}
-
-async function persistPageTreeRecord(
-  db: DatabaseAdapter,
-  page: Page,
-): Promise<void> {
-  try {
-    await db.pages.update(page.id, {
-      parent_id: page.parent_id ?? null,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith("Page not found:")) {
-      await db.pages.insert(page);
-      return;
-    }
-    throw error;
-  }
 }
 
 function normalizeSlug(slug: string | null | undefined): string {

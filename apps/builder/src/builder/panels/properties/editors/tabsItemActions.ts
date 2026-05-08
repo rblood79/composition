@@ -7,7 +7,6 @@
 
 import type { Element } from "../../../../types/core/store.types";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
-import { getDB } from "../../../../lib/db";
 import { useStore } from "../../../stores";
 import type { TabItem } from "@composition/specs";
 
@@ -44,9 +43,6 @@ export async function addTabItem(params: {
     parent_id: tabPanelsEl.id,
   };
 
-  const db = await getDB();
-  const insertedPanel = await db.elements.insert(newPanelElement);
-
   const nextItems = [...items, newItem];
   const updatedProps: Record<string, unknown> = { items: nextItems };
   if (items.length === 0) {
@@ -55,14 +51,8 @@ export async function addTabItem(params: {
     updatedProps.defaultSelectedKey = nextItems[0].id;
   }
 
-  try {
-    await db.elements.update(tabsElementId, { props: updatedProps });
-  } catch (err) {
-    console.warn("⚠️ [IndexedDB] update Tabs items failed:", err);
-  }
-
   onUpdate(updatedProps);
-  await addElement(insertedPanel);
+  await addElement(newPanelElement);
 }
 
 export async function removeTabItem(params: {
@@ -107,13 +97,6 @@ export async function removeTabItem(params: {
     updatedProps.defaultSelectedKey = nextItems[0].id;
   }
 
-  const db = await getDB();
-  try {
-    await db.elements.update(tabsElementId, { props: updatedProps });
-  } catch (err) {
-    console.warn("⚠️ [IndexedDB] update Tabs items failed:", err);
-  }
-
   onUpdate(updatedProps);
   if (panelEl) {
     await removeElement(panelEl.id);
@@ -134,22 +117,5 @@ export async function resolvePageId(
     return urlPageId;
   }
 
-  const projectId = pathParts[pathParts.length - 2];
-  if (!projectId) return null;
-
-  try {
-    const db = await getDB();
-    const pages = await db.pages.getByProject(projectId);
-    if (!pages || pages.length === 0) return null;
-
-    const sortedPages = pages.sort((a, b) => {
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return dateB - dateA;
-    });
-    return sortedPages[0].id;
-  } catch (err) {
-    console.error("❌ [IndexedDB] Failed to resolve page ID:", err);
-    return null;
-  }
+  return useStore.getState().pages[0]?.id ?? null;
 }

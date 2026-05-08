@@ -403,30 +403,6 @@ export const renderTagGroup = (
         };
         updateElementProps(element.id, updatedProps);
 
-        try {
-          const db = (await context.services?.getDB?.()) as
-            | {
-                elements: {
-                  update: (
-                    id: string,
-                    data: Record<string, unknown>,
-                  ) => Promise<void>;
-                };
-              }
-            | undefined;
-          if (db) {
-            await db.elements.update(element.id, { props: updatedProps });
-            console.log(
-              "✅ [IndexedDB] TagGroup selectedKeys updated successfully",
-            );
-          }
-        } catch (err) {
-          console.error(
-            "❌ [IndexedDB] Error updating TagGroup selectedKeys:",
-            err,
-          );
-        }
-
         window.parent.postMessage(
           {
             type: "UPDATE_ELEMENT_PROPS",
@@ -467,31 +443,6 @@ export const renderTagGroup = (
 
           updateElementProps(element.id, updatedProps);
 
-          try {
-            const db = (await context.services?.getDB?.()) as
-              | {
-                  elements: {
-                    update: (
-                      id: string,
-                      data: Record<string, unknown>,
-                    ) => Promise<void>;
-                  };
-                }
-              | undefined;
-            if (db) {
-              await db.elements.update(element.id, { props: updatedProps });
-              console.log(
-                "✅ [IndexedDB] TagGroup removedItemIds updated:",
-                updatedRemovedIds,
-              );
-            }
-          } catch (err) {
-            console.error(
-              "❌ [IndexedDB] Error updating TagGroup removedItemIds:",
-              err,
-            );
-          }
-
           window.parent.postMessage(
             {
               type: "UPDATE_ELEMENT_PROPS",
@@ -529,30 +480,6 @@ export const renderTagGroup = (
 
           updateElementProps(element.id, updatedProps);
 
-          try {
-            const db = (await context.services?.getDB?.()) as
-              | {
-                  elements: {
-                    update: (
-                      id: string,
-                      data: Record<string, unknown>,
-                    ) => Promise<void>;
-                  };
-                }
-              | undefined;
-            if (db) {
-              await db.elements.update(element.id, { props: updatedProps });
-              console.log(
-                "✅ [IndexedDB] TagGroup items[] updated after removal",
-              );
-            }
-          } catch (err) {
-            console.error(
-              "❌ [IndexedDB] Error updating TagGroup items[]:",
-              err,
-            );
-          }
-
           window.parent.postMessage(
             {
               type: "UPDATE_ELEMENT_PROPS",
@@ -582,18 +509,7 @@ export const renderTagGroup = (
             }
           }
 
-          try {
-            const db = (await context.services?.getDB?.()) as
-              | { elements: { delete: (id: string) => Promise<void> } }
-              | undefined;
-            if (db) {
-              await db.elements.delete(String(tagId));
-              deletedTagIds.push(String(tagId));
-              console.log(`✅ [IndexedDB] Tag ${tagId} deleted successfully`);
-            }
-          } catch (err) {
-            console.error(`Error deleting type ${tagId}:`, err);
-          }
+          deletedTagIds.push(String(tagId));
         }
 
         const currentElements = elements;
@@ -615,30 +531,6 @@ export const renderTagGroup = (
 
         setElements(updatedElements);
         updateElementProps(element.id, updatedProps);
-
-        try {
-          const db = (await context.services?.getDB?.()) as
-            | {
-                elements: {
-                  update: (
-                    id: string,
-                    data: Record<string, unknown>,
-                  ) => Promise<void>;
-                };
-              }
-            | undefined;
-          if (db) {
-            await db.elements.update(element.id, { props: updatedProps });
-            console.log(
-              "✅ [IndexedDB] TagGroup selectedKeys updated after removal",
-            );
-          }
-        } catch (err) {
-          console.error(
-            "Error updating TagGroup selectedKeys after removal:",
-            err,
-          );
-        }
 
         setTimeout(() => {
           window.parent.postMessage(

@@ -52,6 +52,7 @@ import { useSettingsStore } from "../stores/settingsStore";
 import { SettingsPanel } from "./SettingsPanel";
 import { createInitialProjectDocument } from "./createInitialProjectDocument";
 import type { ProjectListItem, ProjectFilter } from "../types/dashboard.types";
+import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import "./index.css";
 
 interface CreateProjectRequest {
@@ -299,8 +300,7 @@ function Dashboard() {
       };
 
       if (projectCreation === "local") {
-        await db.pages.insert(homePage);
-        await db.elements.insert(bodyElement);
+        // local project state persists through the canonical document only.
       } else if (projectCreation === "cloud") {
         await pagesApi.createPage({
           id: homePageId,
@@ -310,8 +310,6 @@ function Dashboard() {
         });
         await elementsApi.createElement(bodyElement);
       } else {
-        await db.pages.insert(homePage);
-        await db.elements.insert(bodyElement);
         await pagesApi.createPage({
           id: homePageId,
           project_id: newProject.id,
@@ -353,19 +351,14 @@ function Dashboard() {
       // 로컬 삭제
       if (deleteLocation === "local" || deleteLocation === "both") {
         const db = await getDB();
-        const pages = await db.pages.getByProject(id);
+        const document = await db.documents.get(id);
+        const pages = document
+          ? deriveProjectRenderModelFromDocument(document, id).pages
+          : [];
 
         for (const page of pages) {
-          const elements = await db.elements.getByPage(page.id);
-          for (const element of elements) {
-            await db.elements.delete(element.id);
-          }
           await db.history.clear(page.id);
           await historyIndexedDB.clearPageHistory(page.id);
-        }
-
-        for (const page of pages) {
-          await db.pages.delete(page.id);
         }
 
         const tokens = await db.designTokens.getByProject(id);
@@ -376,15 +369,6 @@ function Dashboard() {
         const themes = await db.themes.getByProject(id);
         for (const theme of themes) {
           await db.themes.delete(theme.id as string);
-        }
-
-        const layouts = await db.layouts.getByProject(id);
-        for (const layout of layouts) {
-          const layoutElements = await db.elements.getDescendants(layout.id);
-          for (const element of layoutElements) {
-            await db.elements.delete(element.id);
-          }
-          await db.layouts.delete(layout.id);
         }
 
         const dataTables = await db.data_tables.getByProject(id);
@@ -407,6 +391,7 @@ function Dashboard() {
           await db.transformers.delete(transformer.id);
         }
 
+        await db.documents.delete(id);
         await db.projects.delete(id);
       }
 

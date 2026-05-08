@@ -5,7 +5,6 @@ import { Element } from "../../../types/core/store.types";
 import { normalizeExternalFillIngress } from "../../panels/styles/utils/fillExternalIngress";
 import { historyManager } from "../history";
 import { getDB } from "../../../lib/db";
-import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import type { ElementsState } from "../elements";
 import { normalizeElementTagInElement } from "./elementTagNormalizer";
 import { applyFactoryPropagation } from "../../utils/propagationEngine";
@@ -178,24 +177,15 @@ export const createAddElementAction =
     // 3. iframe 업데이트는 useIframeMessenger의 useEffect에서 자동 처리
     // (elements 변경 감지 → sendElementsToIframe 자동 호출)
 
-    // 4. IndexedDB에 저장 (빠름! 1-5ms)
-    let db: BuilderDb | null = null;
+    // 4. Canonical document 저장
     try {
-      db = await getDB();
-      const sanitized = sanitizeElement(elementToAdd);
-      await db.elements.insert(sanitized);
+      const db = await getDB();
+      await persistActiveCanonicalDocument(db);
     } catch (error) {
-      console.warn("⚠️ [IndexedDB] 저장 중 오류 (메모리는 정상):", error);
-    }
-    if (db) {
-      try {
-        await persistActiveCanonicalDocument(db);
-      } catch (error) {
-        console.warn(
-          "⚠️ [IndexedDB] canonical document 저장 중 오류 (메모리는 정상):",
-          error,
-        );
-      }
+      console.warn(
+        "⚠️ [IndexedDB] canonical document 저장 중 오류 (메모리는 정상):",
+        error,
+      );
     }
   };
 
@@ -286,27 +276,14 @@ export const createAddComplexElementAction =
     // 3. iframe 업데이트는 useIframeMessenger의 useEffect에서 자동 처리
     // (elements 변경 감지 → sendElementsToIframe 자동 호출)
 
-    // 4. IndexedDB에 배치 저장 (빠름! 1-5ms × N)
-    let db: BuilderDb | null = null;
+    // 4. Canonical document 저장
     try {
-      db = await getDB();
-      await db.elements.insertMany(
-        allElements.map((el) => sanitizeElement(el)),
-      );
-      console.log(
-        `✅ [IndexedDB] 복합 컴포넌트 저장 완료: ${parentToAdd.type} + 자식 ${normalizedChildren.length}개`,
-      );
+      const db = await getDB();
+      await persistActiveCanonicalDocument(db);
     } catch (error) {
-      console.warn("⚠️ [IndexedDB] 저장 중 오류 (메모리는 정상):", error);
-    }
-    if (db) {
-      try {
-        await persistActiveCanonicalDocument(db);
-      } catch (error) {
-        console.warn(
-          "⚠️ [IndexedDB] canonical document 저장 중 오류 (메모리는 정상):",
-          error,
-        );
-      }
+      console.warn(
+        "⚠️ [IndexedDB] canonical document 저장 중 오류 (메모리는 정상):",
+        error,
+      );
     }
   };

@@ -3,7 +3,8 @@
 ## Snapshot
 
 - Date: 2026-05-08
-- ADR: [120](../120-legacy-mirror-persistence-cleanup.md)
+- ADR: [120](../completed/120-legacy-mirror-persistence-cleanup.md)
+- Status: Implemented — 2026-05-08
 - Primary local source: `CompositionDocument` in IndexedDB `documents`
 - Cleanup target: local `pages`/`elements`/`layouts` mirror persistence,
   `DatabaseAdapter.pages/elements/layouts`, and IndexedDB mirror objectStores
@@ -24,42 +25,31 @@
 
 ## Current Primary Signals
 
-| Evidence                                 | File/line                                                                                                                                                                                                      | Meaning                                                      |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| local persist primary                    | `apps/builder/src/builder/main/BuilderCore.tsx:163`                                                                                                                                                            | active `CompositionDocument` is persisted via `db.documents` |
-| local hydrate primary                    | `apps/builder/src/builder/hooks/usePageManager.ts:372`                                                                                                                                                         | project hydrate reads `db.documents.get(projectId)`          |
-| adapter still exposes legacy + documents | `apps/builder/src/lib/db/types.ts:108`, `apps/builder/src/lib/db/types.ts:127`, `apps/builder/src/lib/db/types.ts:183`, `apps/builder/src/lib/db/types.ts:193`                                                 | `pages/elements/layouts` coexist with `documents`            |
-| IndexedDB still creates legacy stores    | `apps/builder/src/lib/db/indexedDB/adapter.ts:204`, `apps/builder/src/lib/db/indexedDB/adapter.ts:210`, `apps/builder/src/lib/db/indexedDB/adapter.ts:226`, `apps/builder/src/lib/db/indexedDB/adapter.ts:302` | `documents`, `pages`, `elements`, `layouts` stores coexist   |
+| Evidence                         | File/line                                                                                                                                                 | Meaning                                                                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| local persist primary            | `apps/builder/src/builder/main/BuilderCore.tsx:163`, `apps/builder/src/builder/stores/utils/frameActions.ts:73`                                           | active `CompositionDocument` is persisted via `db.documents`             |
+| local hydrate primary            | `apps/builder/src/builder/hooks/usePageManager.ts:372`                                                                                                    | project hydrate reads `db.documents.get(projectId)`                      |
+| project lifecycle document store | `apps/builder/src/dashboard/index.tsx:322`, `apps/builder/src/dashboard/index.tsx:354`, `apps/builder/src/dashboard/index.tsx:394`                        | dashboard create/delete uses `db.documents` for project document state   |
+| adapter surface removed          | `apps/builder/src/lib/db/types.ts:90`, `apps/builder/src/lib/db/types.ts:142`                                                                             | `DatabaseAdapter` keeps `documents`; `pages/elements/layouts` are absent |
+| IndexedDB cleanup                | `apps/builder/src/lib/db/indexedDB/adapter.ts:32`, `apps/builder/src/lib/db/indexedDB/adapter.ts:207`, `apps/builder/src/lib/db/indexedDB/adapter.ts:810` | DB v14 deletes legacy stores and keeps `documents` as primary            |
+| project sync boundary            | `apps/builder/src/utils/projectSync.ts:65`, `apps/builder/src/utils/projectSync.ts:218`, `apps/builder/src/utils/projectSync.ts:293`                      | upload/download/delete source/sink local project state through documents |
 
-## Delete Runtime Bucket
+## Delete Runtime Bucket (Closed)
 
-These call sites are cleanup candidates because they read/write local legacy mirror
-stores as project document state.
+These pre-implementation call sites were cleanup candidates because they read/write
+local legacy mirror stores as project document state. ADR-120 implementation closed
+the bucket: production `db.pages/elements/layouts` project-state grep gate is 0.
 
-| Surface                        | Current call site                                                                                                                                                                                                                                                                                              | ADR-120 direction                                                                     |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| dashboard project create       | `apps/builder/src/dashboard/index.tsx:301`, `apps/builder/src/dashboard/index.tsx:313`, `apps/builder/src/dashboard/index.tsx:324`                                                                                                                                                                             | create local `documents` only; cloud projection boundary                              |
-| dashboard project delete       | `apps/builder/src/dashboard/index.tsx:356`, `apps/builder/src/dashboard/index.tsx:381`                                                                                                                                                                                                                         | delete `documents`; keep non-project-data store cleanup                               |
-| project upload                 | `apps/builder/src/utils/projectSync.ts:59`, `apps/builder/src/utils/projectSync.ts:88`                                                                                                                                                                                                                         | source from `db.documents`; project legacy upload derived                             |
-| project download               | `apps/builder/src/utils/projectSync.ts:159`, `apps/builder/src/utils/projectSync.ts:178`, `apps/builder/src/utils/projectSync.ts:189`                                                                                                                                                                          | prefer cloud document; avoid local mirror recreation                                  |
-| project delete                 | `apps/builder/src/utils/projectSync.ts:223`, `apps/builder/src/utils/projectSync.ts:236`                                                                                                                                                                                                                       | local delete via `documents`; cloud API boundary only                                 |
-| element loader                 | `apps/builder/src/builder/stores/elementLoader.ts:123`, `apps/builder/src/builder/stores/elementLoader.ts:164`                                                                                                                                                                                                 | derive from canonical document or remove loader path                                  |
-| element create                 | `apps/builder/src/builder/stores/utils/elementCreation.ts:176`, `apps/builder/src/builder/stores/utils/elementCreation.ts:181`                                                                                                                                                                                 | keep canonical merge + document persist; remove mirror insert                         |
-| element update                 | `apps/builder/src/builder/stores/utils/elementUpdate.ts:141`, `apps/builder/src/builder/stores/utils/elementUpdate.ts:160`                                                                                                                                                                                     | keep document persist; remove mirror update helpers                                   |
-| inspector mirror persist       | `apps/builder/src/builder/stores/inspectorActions.ts:267`                                                                                                                                                                                                                                                      | persist inspector changes through canonical document only                             |
-| page parent/slug editor        | `apps/builder/src/builder/panels/properties/editors/PageParentSelector.tsx:142`, `apps/builder/src/builder/panels/properties/editors/PageParentSelector.tsx:171`                                                                                                                                               | update canonical page metadata; remove page row mirror write                          |
-| page delete UI                 | `apps/builder/src/builder/panels/nodes/PagesSection.tsx:277`, `apps/builder/src/builder/panels/nodes/PagesSection.tsx:281`, `apps/builder/src/builder/panels/nodes/PagesSection.tsx:283`                                                                                                                       | delete from canonical document; remove page/elements row delete                       |
-| frame create/update            | `apps/builder/src/builder/stores/utils/frameActions.ts:168`, `apps/builder/src/builder/stores/utils/frameActions.ts:226`                                                                                                                                                                                       | canonical reusable frame node primary                                                 |
-| frame delete                   | `apps/builder/src/builder/stores/utils/frameActions.ts:193`, `apps/builder/src/builder/stores/utils/frameActions.ts:200`                                                                                                                                                                                       | canonical delete primary; remove layout row delete                                    |
-| page-frame binding             | `apps/builder/src/adapters/canonical/pageFrameBinding.ts:303`                                                                                                                                                                                                                                                  | canonical binding primary; remove page row mirror write                               |
-| frame element load             | `apps/builder/src/adapters/canonical/frameElementLoader.ts:72`                                                                                                                                                                                                                                                 | resolve from active document                                                          |
-| frame cascade adapter          | `apps/builder/src/adapters/canonical/frameLayoutCascade.ts:249`, `apps/builder/src/adapters/canonical/frameLayoutCascade.ts:346`, `apps/builder/src/adapters/canonical/frameLayoutCascade.ts:374`                                                                                                              | keep cascade semantics; remove local mirror store as source                           |
-| layout preset cleanup          | `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts:172`                                                                                                                                                                                                                | remove preset slots through canonical document only                                   |
-| drag/drop persist              | `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts:148`, `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts:487`                                                                                                                                                                 | canonical splice + document persist only                                              |
-| factory creation/cache         | `apps/builder/src/builder/factories/utils/elementCreation.ts:124`, `apps/builder/src/builder/factories/utils/dbPersistence.ts:91`                                                                                                                                                                              | route factory persistence and parent lookup through canonical document                |
-| collection/selection renderers | `packages/shared/src/renderers/CollectionRenderers.tsx:417`, `packages/shared/src/renderers/SelectionRenderers.tsx:979`                                                                                                                                                                                        | remove renderer-side direct DB element writes or route through explicit host callback |
-| item/property editors          | `apps/builder/src/builder/panels/properties/editors/TagEditor.tsx:137`, `apps/builder/src/builder/panels/properties/editors/ListBoxItemEditor.tsx:140`, `apps/builder/src/builder/panels/properties/editors/TreeItemEditor.tsx:88`, `apps/builder/src/builder/panels/properties/editors/tabsItemActions.ts:48` | create/update child items through canonical document mutation boundary                |
-| instance materialization       | `apps/builder/src/builder/stores/utils/instanceActions.ts:189`                                                                                                                                                                                                                                                 | materialize/detach through canonical document; remove local element mirror insert     |
+| Surface                        | Initial call site                                                                                                  | Final status                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| dashboard project create       | `apps/builder/src/dashboard/index.tsx`                                                                             | local `documents` only; cloud projection boundary                 |
+| dashboard project delete       | `apps/builder/src/dashboard/index.tsx`                                                                             | local project document delete via `db.documents.delete`           |
+| project upload/download/delete | `apps/builder/src/utils/projectSync.ts`                                                                            | local source/sink `db.documents`; Supabase row API transport only |
+| element loader                 | `apps/builder/src/builder/stores/elementLoader.ts`                                                                 | active canonical document derived view                            |
+| element create/update/remove   | `apps/builder/src/builder/stores/utils/*`                                                                          | active document mutation + `db.documents.put`                     |
+| history/inspector/editor       | `apps/builder/src/builder/stores/history`, `apps/builder/src/builder/stores/inspectorActions.ts`, property editors | local mirror write removed                                        |
+| page/frame binding/cascade     | `apps/builder/src/adapters/canonical/*`, `apps/builder/src/builder/stores/utils/frameActions.ts`                   | canonical document source; projection boundary retained           |
+| drag/drop/factory/renderers    | canvas drag bridge, factory helpers, shared renderers                                                              | canonical splice/document persist or host callback only           |
 
 ## Project Sync Boundary Bucket
 
@@ -94,23 +84,26 @@ export/import/cloud compatibility no longer needs them.
 | historical comments in completed ADRs       | documentation history                                |
 | tests verifying legacy import rejection     | regression guard                                     |
 
-## Phase 0 Search Baseline
+## Final Search Gate
 
-Use these commands at implementation start and paste updated counts into this file.
+Implementation result on 2026-05-08:
 
 ```bash
-rg -n "db\\.(pages|elements|layouts)" apps/builder/src packages/shared/src
-rg -n "pagesApi|elementsApi|layoutsApi" apps/builder/src packages/shared/src
+rg -n "db\\.(pages|elements|layouts)" apps/builder/src packages/shared/src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**' -g '!**/*.test.ts' -g '!**/*.test.tsx'
+rg -n "pages:\\s*\\{|elements:\\s*\\{|layouts:\\s*\\{" apps/builder/src/lib/db/types.ts
 rg -n "createObjectStore\\(\"(pages|elements|layouts)\"|objectStore\\(\"(pages|elements|layouts)\"" apps/builder/src/lib/db/indexedDB/adapter.ts
-rg -n "legacyElementsApiService|PagesApiService" apps/builder/src packages/shared/src
 ```
+
+All three commands return 0 results. Remaining `pagesApi`/`elementsApi` references are
+Supabase/cloud transport compatibility and canonical adapter wrapper boundary only.
 
 ## Completion Gates
 
-| Gate                         | Required evidence                                                                       |
-| ---------------------------- | --------------------------------------------------------------------------------------- |
-| runtime local mirror 0       | production `db.pages/elements/layouts` project-state hits are 0                         |
-| adapter surface removed      | `DatabaseAdapter` no longer exposes `pages/elements/layouts`                            |
-| IndexedDB cleanup            | `pages/elements/layouts` objectStores removed; delete-only upgrade allowlist fixed      |
-| cloud sync boundary explicit | upload derives rows from document; legacy-only download imports rows into document only |
-| browser smoke                | refresh, frame binding, origin/instance, drag/drop, project create/delete verified      |
+| Gate                         | Evidence                                                                                           | Status |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- | ------ |
+| runtime local mirror 0       | production `db.pages/elements/layouts` project-state hits are 0                                    | PASS   |
+| adapter surface removed      | `DatabaseAdapter` no longer exposes `pages/elements/layouts`                                       | PASS   |
+| IndexedDB cleanup            | DB version 14; `pages/elements/layouts` objectStores removed by delete-only upgrade allowlist      | PASS   |
+| cloud sync boundary explicit | upload derives rows from document; legacy-only download imports rows into document only            | PASS   |
+| browser smoke                | new URL smoke shows DB v14, no mirror stores, document exists, no order payload, no console events | PASS   |
+| final preflight              | `pnpm run codex:preflight` completed after docs/rules sync                                         | PASS   |

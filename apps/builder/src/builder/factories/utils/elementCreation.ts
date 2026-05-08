@@ -4,12 +4,22 @@ import { useStore } from "../../stores";
 import { ComponentDefinition, ChildDefinition } from "../types";
 import { generateCustomId } from "../../utils/idGeneration";
 import { getDB } from "../../../lib/db";
-import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import { applyFactoryPropagation } from "../../utils/propagationEngine";
 import { resolveOwnerPageId } from "../../../adapters/canonical/legacyMetadata";
 // ADR-116 Phase 3 G4 — mutation reverse pilot caller (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
+
+async function persistActiveCanonicalDocument(): Promise<void> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return;
+  const db = await getDB();
+  await db.documents.put(projectId, doc);
+}
 
 /**
  * 컴포넌트 정의로부터 실제 Element 데이터 생성 시 필요한 컨텍스트.
@@ -117,16 +127,15 @@ export function addElementsToStore(
     saveSnapshot(newElements, "복합 컴포넌트 생성");
   }
 
-  // 3. IndexedDB에 저장 (백그라운드, 에러 발생 시에도 UI는 정상 동작)
-  const allElements = [parent, ...children];
+  // 3. Canonical document 저장 (백그라운드, 에러 발생 시에도 UI는 정상 동작)
   setTimeout(async () => {
     try {
-      const db = await getDB();
-      await db.elements.insertMany(
-        allElements.map((el) => sanitizeElement(el)),
-      );
+      await persistActiveCanonicalDocument();
     } catch (error) {
-      console.warn("⚠️ [IndexedDB] 저장 중 오류 (메모리는 정상):", error);
+      console.warn(
+        "⚠️ [IndexedDB] canonical document 저장 중 오류 (메모리는 정상):",
+        error,
+      );
     }
   }, 0);
 

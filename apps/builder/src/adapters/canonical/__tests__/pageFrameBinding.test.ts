@@ -10,10 +10,8 @@ import { applyPageFrameBindingCanonicalPrimary } from "../pageFrameBinding";
 
 const mocks = vi.hoisted(() => ({
   db: {
-    pages: {
-      getById: vi.fn(),
-      update: vi.fn(),
-      insert: vi.fn(),
+    documents: {
+      put: vi.fn(),
     },
   },
   getDB: vi.fn(),
@@ -118,7 +116,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
-    mocks.db.pages.getById.mockResolvedValue(page);
     const baseDoc = makeDoc([makeFrameNode()]);
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", baseDoc);
@@ -130,7 +127,7 @@ describe("pageFrameBinding canonical primary helper", () => {
       setPages,
     });
 
-    expect(mocks.loadFrameElements).toHaveBeenCalledWith(mocks.db, "frame-1");
+    expect(mocks.loadFrameElements).toHaveBeenCalledWith("frame-1");
     expect(mocks.mergeElementsCanonicalPrimary).toHaveBeenCalledWith([
       expect.objectContaining({ id: "frame-body" }),
     ]);
@@ -163,9 +160,10 @@ describe("pageFrameBinding canonical primary helper", () => {
     expect(setPages).toHaveBeenCalledWith([
       expect.objectContaining({ id: "page-1", layout_id: "frame-1" }),
     ]);
-    expect(mocks.db.pages.update).toHaveBeenCalledWith("page-1", {
-      layout_id: "frame-1",
-    });
+    expect(mocks.db.documents.put).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({ version: "composition-1.0" }),
+    );
   });
 
   it("clears frame binding without loading frame elements and inserts missing page mirror", async () => {
@@ -180,7 +178,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       : never;
     const setPages = vi.fn();
     const setElements = vi.fn();
-    mocks.db.pages.getById.mockResolvedValue(null);
     const existingPageRef: RefNode = {
       id: "page-2",
       type: "ref",
@@ -231,12 +228,9 @@ describe("pageFrameBinding canonical primary helper", () => {
         type: "body",
       }),
     ]);
-    expect(mocks.db.pages.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "page-2",
-        layout_id: null,
-        updated_at: expect.any(String),
-      }),
+    expect(mocks.db.documents.put).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({ version: "composition-1.0" }),
     );
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     expect(doc?.children.find((node) => node.id === "page-2")).toEqual(
@@ -265,7 +259,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
-    mocks.db.pages.getById.mockResolvedValue(page);
     const existingPageRef: RefNode = {
       id: "page-3",
       type: "ref",
@@ -334,7 +327,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       : never;
     const setPages = vi.fn();
     const setElements = vi.fn();
-    mocks.db.pages.getById.mockResolvedValue(page);
     const existingPageRef: RefNode = {
       id: "page-4",
       type: "ref",
@@ -398,7 +390,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
-    mocks.db.pages.getById.mockResolvedValue(page);
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore
       .getState()
@@ -438,7 +429,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
-    mocks.db.pages.getById.mockResolvedValue(page);
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore
       .getState()

@@ -4,19 +4,8 @@ import type { Layout } from "@/types/builder/layout.types";
 import type { Element } from "@/types/core/store.types";
 
 const mockDb = vi.hoisted(() => ({
-  layouts: {
-    insert: vi.fn(async (layout: Layout) => layout),
-    update: vi.fn(async (id: string, updates: Partial<Layout>) => ({
-      id,
-      name: "Updated Frame",
-      project_id: "proj-1",
-      description: "",
-      ...updates,
-    })),
-    delete: vi.fn(async () => undefined),
-  },
-  elements: {
-    insert: vi.fn(async (element: Element) => element),
+  documents: {
+    put: vi.fn(async (_projectId: string, doc: CompositionDocument) => doc),
   },
 }));
 
@@ -88,15 +77,8 @@ function makeDoc(children: CompositionDocument["children"] = []) {
 describe("frameActions canonical reusable frame API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDb.layouts.insert.mockImplementation(async (layout: Layout) => layout);
-    mockDb.layouts.update.mockImplementation(
-      async (id: string, updates: Partial<Layout>) => ({
-        id,
-        name: "Updated Frame",
-        project_id: "proj-1",
-        description: "",
-        ...updates,
-      }),
+    mockDb.documents.put.mockImplementation(
+      async (_projectId: string, doc: CompositionDocument) => doc,
     );
     useCanonicalDocumentStore.setState({
       documents: new Map(),
@@ -109,7 +91,7 @@ describe("frameActions canonical reusable frame API", () => {
   });
 
   describe("createReusableFrame", () => {
-    it("DB mirror 를 저장하고 active canonical document 에 reusable FrameNode 를 추가한다", async () => {
+    it("active canonical document 에 reusable FrameNode 를 추가하고 document store 를 저장한다", async () => {
       const randomUUIDSpy = vi
         .spyOn(crypto, "randomUUID")
         .mockReturnValue("frame-x");
@@ -120,15 +102,10 @@ describe("frameActions canonical reusable frame API", () => {
         description: "desc",
       });
 
-      expect(mockDb.layouts.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: "frame-x",
-          name: "My Frame",
-          project_id: "proj-1",
-          description: "desc",
-        }),
+      expect(mockDb.documents.put).toHaveBeenCalledWith(
+        "proj-1",
+        expect.objectContaining({ version: "composition-1.0" }),
       );
-      expect(mockDb.elements.insert).toHaveBeenCalledWith(mockBodyElement);
       expect(result).toEqual({ id: "frame-x", name: "My Frame" });
       expect(
         useCanonicalFrameSelectionStore.getState().selectedReusableFrameId,
@@ -157,26 +134,24 @@ describe("frameActions canonical reusable frame API", () => {
       randomUUIDSpy.mockRestore();
     });
 
-    it("description 미지정 시 빈 문자열로 DB mirror 를 저장한다", async () => {
+    it("description 미지정 시 canonical metadata 에 빈 문자열을 저장한다", async () => {
       const randomUUIDSpy = vi
         .spyOn(crypto, "randomUUID")
         .mockReturnValue("frame-y");
 
       await createReusableFrame({ name: "F", projectId: "p" });
 
-      expect(mockDb.layouts.insert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: "F",
-          project_id: "p",
-          description: "",
-        }),
-      );
+      const doc = useCanonicalDocumentStore.getState().getDocument("p");
+      expect(doc?.children[0]).toMatchObject({
+        name: "F",
+        metadata: { project_id: "p", description: "" },
+      });
 
       randomUUIDSpy.mockRestore();
     });
 
-    it("DB mirror 저장이 reject 하면 그대로 throw 한다", async () => {
-      mockDb.layouts.insert.mockRejectedValueOnce(new Error("DB 실패"));
+    it("document 저장이 reject 하면 그대로 throw 한다", async () => {
+      mockDb.documents.put.mockRejectedValueOnce(new Error("DB 실패"));
 
       await expect(
         createReusableFrame({ name: "F", projectId: "p" }),
@@ -185,7 +160,7 @@ describe("frameActions canonical reusable frame API", () => {
   });
 
   describe("deleteReusableFrame", () => {
-    it("canonical delete cascade 를 적용하고 DB layout mirror 를 삭제한다", async () => {
+    it("canonical delete cascade 를 적용하고 document store 를 저장한다", async () => {
       useCanonicalDocumentStore.getState().setDocument(
         "proj-1",
         makeDoc([
@@ -213,7 +188,10 @@ describe("frameActions canonical reusable frame API", () => {
           setElements: mockLiveElementsState.setElements,
         }),
       );
-      expect(mockDb.layouts.delete).toHaveBeenCalledWith("frame-x");
+      expect(mockDb.documents.put).toHaveBeenCalledWith(
+        "proj-1",
+        expect.objectContaining({ version: "composition-1.0" }),
+      );
       expect(
         useCanonicalFrameSelectionStore.getState().selectedReusableFrameId,
       ).toBeNull();
@@ -221,7 +199,7 @@ describe("frameActions canonical reusable frame API", () => {
   });
 
   describe("updateReusableFrameName", () => {
-    it("DB mirror 와 canonical FrameNode name 을 함께 갱신한다", async () => {
+    it("canonical FrameNode name 을 갱신하고 document store 를 저장한다", async () => {
       useCanonicalDocumentStore.getState().setDocument(
         "proj-1",
         makeDoc([
@@ -238,9 +216,9 @@ describe("frameActions canonical reusable frame API", () => {
 
       await updateReusableFrameName("frame-x", "New Name");
 
-      expect(mockDb.layouts.update).toHaveBeenCalledWith(
-        "frame-x",
-        expect.objectContaining({ name: "New Name" }),
+      expect(mockDb.documents.put).toHaveBeenCalledWith(
+        "proj-1",
+        expect.objectContaining({ version: "composition-1.0" }),
       );
       const doc = useCanonicalDocumentStore.getState().getDocument("proj-1");
       expect(doc?.children[0]).toMatchObject({

@@ -10,7 +10,6 @@ import { PropertyEditorProps } from "../types/editorTypes";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { useStore } from "../../../stores";
-import { getDB } from "../../../../lib/db";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
 import type { Element } from "../../../../types/core/store.types";
@@ -84,14 +83,7 @@ export const TreeItemEditor = memo(function TreeItemEditor({
         parent_id: elementId,
       };
 
-      const db = await getDB();
-      const insertedTreeItem = await db.elements.insert(newTreeItemElement);
-      addElement(insertedTreeItem);
-
-      console.log(
-        "✅ [IndexedDB] 새 하위 TreeItem이 추가됨:",
-        insertedTreeItem,
-      );
+      await addElement(newTreeItemElement);
     } catch (err) {
       console.error("Add Child TreeItem error:", err);
       alert("하위 TreeItem 추가 중 오류가 발생했습니다. 다시 시도해주세요.");

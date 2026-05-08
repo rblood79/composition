@@ -25,6 +25,8 @@ import { getDB } from "../../../lib/db";
 import type { Page } from "../../../types/builder/unified.types";
 import { panToPage } from "../../workspace/canvas/viewport/panToPage";
 import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
+import { setElementsCanonicalPrimary } from "../../../adapters/canonical/canonicalMutations";
 import {
   scheduleBackgroundTask,
   scheduleNextFrame,
@@ -185,9 +187,6 @@ export const PagesSection = memo(function PagesSection({
       const pageIndex = pages.findIndex(
         (candidate) => candidate.id === page.id,
       );
-      // ADR-040 Phase 2: pageElementsSnapshot O(1) 조회 (elements.filter 배열 순회 제거)
-      const pageElements = currentState.pageElementsSnapshot[page.id] ?? [];
-      const elementIds = pageElements.map((element) => element.id);
       const remainingPages = pages.filter((p) => p.id !== page.id);
       const previousPage =
         pageIndex > 0 ? (pages[pageIndex - 1] ?? null) : null;
@@ -270,24 +269,25 @@ export const PagesSection = memo(function PagesSection({
         setIsFallbackTransitioning(false);
       }
 
+      setElementsCanonicalPrimary(useStore.getState().elements);
+
       // 2. 영속화는 백그라운드에서 직렬 처리
       enqueuePagePersistence(async () => {
         try {
+          const canonical = useCanonicalDocumentStore.getState();
+          const activeProjectId = canonical.currentProjectId ?? projectId;
+          const doc = activeProjectId
+            ? canonical.documents.get(activeProjectId)
+            : null;
+          if (!activeProjectId || !doc) return;
           const db = await getDB();
-          if (db.pages.deleteWithElements) {
-            await db.pages.deleteWithElements(page.id, elementIds);
-          } else {
-            if (elementIds.length > 0) {
-              await db.elements.deleteMany(elementIds);
-            }
-            await db.pages.delete(page.id);
-          }
+          await db.documents.put(activeProjectId, doc);
         } catch (error) {
           console.error("페이지 삭제 에러:", error);
         }
       });
     },
-    [activatePage, loadPageIfNeeded, pages, removePageLocal],
+    [activatePage, loadPageIfNeeded, pages, projectId, removePageLocal],
   );
 
   return (

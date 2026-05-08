@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { stripLegacyOrderPayload } from "../indexedDB/adapter";
 
 describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
-  it("DB_VERSION 이 13 으로 갱신된다 (page/layout order_num value cleanup)", async () => {
+  it("DB_VERSION 이 14 로 갱신된다 (legacy mirror store cleanup)", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const source = await fs.readFile(filePath, "utf-8");
-    expect(source).toMatch(/const DB_VERSION\s*=\s*13\b/);
+    expect(source).toMatch(/const DB_VERSION\s*=\s*14\b/);
   });
 
   it("documents primary store 와 메서드 그룹이 추가된다", async () => {
@@ -40,40 +40,28 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
     expect(combined).not.toMatch(/\bgetByLayout\b/);
   });
 
-  it("elements store 에 order_num index 를 생성하지 않고 upgrade 에서 제거한다", async () => {
+  it("elements store 를 생성하지 않고 legacy store deletion allowlist 로만 남긴다", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const adapterPath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const adapterSource = await fs.readFile(adapterPath, "utf-8");
 
-    const elementsStoreBlock =
-      adapterSource.match(
-        /if \(!db\.objectStoreNames\.contains\("elements"\)\) \{[\s\S]*?console\.log\("\[IndexedDB\] Created store: elements"\);[\s\S]*?\n\s*\}/,
-      )?.[0] ?? "";
-
-    expect(elementsStoreBlock).not.toContain('createIndex("order_num"');
-    expect(adapterSource).toContain('deleteIndex("order_num")');
+    expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']elements["']/);
+    expect(adapterSource).toContain(
+      'for (const legacyStore of ["pages", "elements", "layouts"] as const)',
+    );
+    expect(adapterSource).toContain("db.deleteObjectStore(legacyStore)");
   });
 
-  it("pages/layouts store 에 order_num index 를 생성하지 않고 upgrade 에서 제거한다", async () => {
+  it("pages/layouts store 를 생성하지 않고 documents store 만 primary 로 유지한다", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const adapterPath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const adapterSource = await fs.readFile(adapterPath, "utf-8");
 
-    const pagesStoreBlock =
-      adapterSource.match(
-        /if \(!db\.objectStoreNames\.contains\("pages"\)\) \{[\s\S]*?console\.log\("\[IndexedDB\] Created store: pages"\);[\s\S]*?\n\s*\}/,
-      )?.[0] ?? "";
-    const layoutsStoreBlock =
-      adapterSource.match(
-        /if \(!db\.objectStoreNames\.contains\("layouts"\)\) \{[\s\S]*?console\.log\([\s\S]*?\);[\s\S]*?\n\s*\}/,
-      )?.[0] ?? "";
-
-    expect(pagesStoreBlock).not.toContain('createIndex("order_num"');
-    expect(layoutsStoreBlock).not.toContain('createIndex("order_num"');
-    expect(adapterSource).toContain('pagesStore.deleteIndex("order_num")');
-    expect(adapterSource).toContain('layoutsStore.deleteIndex("order_num")');
+    expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']pages["']/);
+    expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']layouts["']/);
+    expect(adapterSource).toMatch(/createObjectStore\(\s*["']documents["']/);
     expect(adapterSource).toContain("stripLegacyOrderPayloads(");
   });
 

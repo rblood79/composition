@@ -11,7 +11,6 @@ import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { useStore } from "../../../stores";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import { getDB } from "../../../../lib/db";
 import { generateCustomId } from "../../../utils/idGeneration";
 import type { Element } from "../../../../types/core/store.types";
 
@@ -133,12 +132,9 @@ export const TagEditor = memo(function TagEditor({
                 };
 
                 try {
-                  const db = await getDB();
-                  const inserted = await db.elements.insert(newField);
-                  addElement(inserted);
-                  console.log("✅ [IndexedDB] Field created successfully");
+                  await addElement(newField);
                 } catch (err) {
-                  console.error("❌ [IndexedDB] Failed to create Field:", err);
+                  console.error("Failed to create Field:", err);
                   alert(
                     "Field 추가 중 오류가 발생했습니다. 다시 시도해주세요.",
                   );
@@ -259,12 +255,9 @@ export const TagEditor = memo(function TagEditor({
               };
 
               try {
-                const db = await getDB();
-                const inserted = await db.elements.insert(newField);
-                addElement(inserted);
-                console.log("✅ [IndexedDB] Field created successfully");
+                await addElement(newField);
               } catch (err) {
-                console.error("❌ [IndexedDB] Failed to create Field:", err);
+                console.error("Failed to create Field:", err);
                 alert("Field 추가 중 오류가 발생했습니다. 다시 시도해주세요.");
               }
             }}

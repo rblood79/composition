@@ -965,24 +965,6 @@ export const renderSelect = (
 
         updateElementProps(element.id, updatedProps);
 
-        try {
-          const db = (await context.services?.getDB?.()) as
-            | {
-                elements: {
-                  update: (
-                    id: string,
-                    data: Record<string, unknown>,
-                  ) => Promise<void>;
-                };
-              }
-            | undefined;
-          if (db) {
-            await db.elements.update(element.id, { props: updatedProps });
-          }
-        } catch {
-          // IndexedDB update failed silently
-        }
-
         // 전체 props 전송으로 placeholder 보존
         window.parent.postMessage(
           {
@@ -1299,24 +1281,6 @@ export const renderComboBox = (
         };
 
         updateElementProps(element.id, updatedProps);
-
-        try {
-          const db = (await context.services?.getDB?.()) as
-            | {
-                elements: {
-                  update: (
-                    id: string,
-                    data: Record<string, unknown>,
-                  ) => Promise<void>;
-                };
-              }
-            | undefined;
-          if (db) {
-            await db.elements.update(element.id, { props: updatedProps });
-          }
-        } catch {
-          // IndexedDB update failed silently
-        }
 
         window.parent.postMessage(
           {

@@ -333,8 +333,8 @@ function collectElementsToRemove(elementId, elements, elementsMap) {
 
 ```typescript
 async function executeRemoval(set, get, rootElements, allUniqueElements) {
-  // 1. IndexedDB 배치 삭제
-  await db.elements.deleteMany(elementIdsToRemove);
+  // 1. Canonical document 삭제 + document store 저장
+  await db.documents.put(projectId, nextCanonicalDocument);
 
   // 2. History 기록 (첫 루트를 대표, 나머지는 childElements)
   historyManager.addEntry({

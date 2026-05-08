@@ -26,7 +26,6 @@ import {
 } from "../../utils/editingSemantics";
 import { requestEditingSemanticsImpactConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { getDB } from "../../../lib/db";
-import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
@@ -186,9 +185,6 @@ function persistElementsAfterInstanceMutation(elements: Element[]): void {
   void (async () => {
     try {
       const db = await getDB();
-      await db.elements.insertMany(
-        elements.map((element) => sanitizeElement(element)),
-      );
       const canonical = useCanonicalDocumentStore.getState();
       const projectId = canonical.currentProjectId;
       const doc = projectId ? canonical.documents.get(projectId) : null;

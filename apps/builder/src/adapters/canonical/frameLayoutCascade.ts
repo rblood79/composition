@@ -4,6 +4,7 @@ import type {
   FrameNode,
   RefNode,
 } from "@composition/shared";
+import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
 import { getDefaultProps } from "../../types/builder/unified.types";
 import type { Layout } from "@/types/builder/layout.types";
@@ -13,7 +14,6 @@ import { exportLegacyDocument } from "./exportLegacyDocument";
 import { mergeElementsCanonicalPrimary } from "./canonicalMutations";
 import {
   getLegacyLayoutId,
-  LEGACY_LAYOUT_ID_FIELD,
   matchesLegacyLayoutId,
   withLegacyLayoutId,
 } from "./legacyElementFields";
@@ -241,36 +241,16 @@ function collectRemovedElementIds(
 }
 
 async function persistDeleteReusableFrameMirror(
-  frameId: string,
-  clearedPageIds: string[],
-  deletedElementIds: string[],
+  _frameId: string,
+  _clearedPageIds: string[],
+  _deletedElementIds: string[],
 ): Promise<void> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const doc = projectId ? canonical.documents.get(projectId) : null;
+  if (!projectId || !doc) return;
   const db = await getDB();
-  const persistedPages = await db.pages.getAll();
-  const pageIdsToClear = new Set(clearedPageIds);
-  for (const page of persistedPages) {
-    if (getLegacyLayoutId(page) === frameId) {
-      pageIdsToClear.add(page.id);
-    }
-  }
-
-  if (pageIdsToClear.size > 0) {
-    await Promise.all(
-      Array.from(pageIdsToClear).map((pageId) =>
-        db.pages.update(pageId, { [LEGACY_LAYOUT_ID_FIELD]: null }),
-      ),
-    );
-  }
-
-  if (deletedElementIds.length > 0) {
-    if ("deleteMany" in db.elements) {
-      await db.elements.deleteMany(deletedElementIds);
-    } else {
-      await Promise.all(
-        deletedElementIds.map((elementId) => db.elements.delete(elementId)),
-      );
-    }
-  }
+  await db.documents.put(projectId, doc);
 }
 
 export function createFrameBodyElement(frameId: string): Element {
@@ -342,8 +322,12 @@ export async function duplicateReusableFrameElementsCanonicalPrimary({
   sourceFrameId,
   targetFrameId,
 }: DuplicateReusableFrameElementsInput): Promise<Element[]> {
-  const db = await getDB();
-  const allElements = await db.elements.getAll();
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const doc = projectId ? canonical.documents.get(projectId) : null;
+  if (!doc) return [];
+
+  const allElements = exportLegacyDocument(doc) as Element[];
   const originalElements = allElements.filter((element) =>
     matchesLegacyLayoutId(element, sourceFrameId),
   );
@@ -371,8 +355,14 @@ export async function duplicateReusableFrameElementsCanonicalPrimary({
     ),
   );
 
-  await db.elements.insertMany(newElements);
   mergeElementsCanonicalPrimary(newElements);
+  const nextDoc = projectId
+    ? useCanonicalDocumentStore.getState().documents.get(projectId)
+    : null;
+  if (projectId && nextDoc) {
+    const db = await getDB();
+    await db.documents.put(projectId, nextDoc);
+  }
 
   return newElements;
 }
@@ -380,9 +370,12 @@ export async function duplicateReusableFrameElementsCanonicalPrimary({
 export async function getPageIdsUsingFrameMirror(
   frameId: string,
 ): Promise<string[]> {
-  const db = await getDB();
-  const allPages = await db.pages.getAll();
-  return allPages
-    .filter((page) => getLegacyLayoutId(page) === frameId)
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const doc = projectId ? canonical.documents.get(projectId) : null;
+  if (!projectId || !doc) return [];
+
+  return deriveProjectRenderModelFromDocument(doc, projectId)
+    .pages.filter((page) => getLegacyLayoutId(page) === frameId)
     .map((page) => page.id);
 }

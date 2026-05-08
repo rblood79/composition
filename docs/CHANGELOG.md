@@ -5,7 +5,7 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [ADR-120 legacy mirror persistence cleanup plan] - 2026-05-08
+## [ADR-120 legacy mirror persistence cleanup implementation] - 2026-05-08
 
 ### Documentation
 
@@ -28,7 +28,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `review-adr` 템플릿 정합성을 위해 ADR-120 본문에 별도 Risks 섹션을 추가하고,
   missed mirror write, cloud transport conversion, DB/API deletion, canonical bridge,
   IndexedDB upgrade 위험과 대응을 명시했다.
-- ADR README 현황 요약과 미구현 row를 ADR-120 Proposed 상태에 맞춰 갱신했다.
+- LOW 문서 형식 보강으로 ADR-120 본문의 `Risks → Gates` 순서를 Risk-First 규칙에
+  맞게 정리하고, ADR 작성 가이드의 규칙 링크를 Codex용 `.agents` 엔트리포인트로
+  갱신했다.
+- Phase 1-5 구현을 완료해 dashboard project lifecycle, `usePageManager`,
+  `elementLoader`, element mutation/history/editor/drag, page/frame binding,
+  reusable frame, `projectSync` local source/sink가 local `db.pages/elements/layouts`
+  mirror를 project-state primary로 사용하지 않도록 정리했다.
+- `DatabaseAdapter.pages/elements/layouts` public surface를 제거하고 IndexedDB
+  `DB_VERSION`을 14로 올려 기존 `pages`/`elements`/`layouts` objectStore를
+  delete-only upgrade cleanup으로 삭제한다.
+- `projectSync`는 upload 시 `db.documents.get(projectId)`에서 Supabase row payload를
+  파생하고, legacy-only cloud download는 one-shot `legacyToCanonical(...)` 변환 후
+  local `db.documents.put()`만 수행하도록 static guard를 추가했다.
+- `.agents` canonical format/order, state-management, async pipeline, component
+  lifecycle, validation rule을 local project-state persistence `db.documents` 전용
+  규칙으로 갱신했다.
+- 검증: builder targeted vitest 21 files / 169 tests PASS, shared targeted vitest
+  2 files / 19 tests PASS, production `db.pages/elements/layouts` grep gate 0,
+  `DatabaseAdapter.pages/elements/layouts` grep gate 0, IndexedDB legacy objectStore
+  creation/runtime objectStore grep gate 0, `pnpm run codex:typecheck` PASS,
+  `pnpm run codex:preflight` PASS.
+- Browser smoke: `http://127.0.0.1:5173/builder/1f180030-67c4-486d-b6a0-498bcea152f5`
+  refresh 후 IndexedDB `composition` DB version 14, mirror objectStore 없음,
+  active `documents` record 존재, `order_num`/`orderNum` payload 없음, canvas sizing
+  정상, console error/warning 0건.
+- ADR-120 본문을 `docs/adr/completed/120-legacy-mirror-persistence-cleanup.md`로
+  이동하고 README 현황 요약을 완료 110 / 미구현 8 / 합계 125로 갱신했다.
 
 ## [ADR-119 page/layout order mirror cleanup] - 2026-05-08
 

@@ -462,8 +462,8 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
       expect(source).not.toMatch(/ownership 없음/);
     });
 
-    // [Smoke] sanitizeElement 가 ownership 없는 element 도 정상 처리
-    it("ownership 제거 후 IndexedDB 저장(sanitizeElement) 은 정상 동작한다", async () => {
+    // [Smoke] ownership 없는 element 도 canonical document 저장으로 수렴
+    it("ownership 제거 후 local mirror 없이 canonical document store 를 저장한다", async () => {
       const pageFrame = makePageRefFrame("frame-smoke-1", "page-smoke");
       const doc = makeDoc([pageFrame]);
       const element = makeElement("el-smoke", "Button", {
@@ -475,15 +475,15 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
         doc,
       });
 
-      const sanitizerModule =
-        await import("../../../../adapters/canonical/legacyElementSanitizer");
       const dbModule = await import("../../../../lib/db");
       const db = await (dbModule.getDB as ReturnType<typeof vi.fn>)();
+      useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+      useCanonicalDocumentStore.getState().setDocument("project-1", doc);
 
       await createAddElementAction(setMock, getMock)(element);
 
-      expect(sanitizerModule.sanitizeElement).toHaveBeenCalled();
-      expect(db.elements.insert).toHaveBeenCalled();
+      expect(db.elements.insert).not.toHaveBeenCalled();
+      expect(db.documents.put).toHaveBeenCalled();
     });
   });
 

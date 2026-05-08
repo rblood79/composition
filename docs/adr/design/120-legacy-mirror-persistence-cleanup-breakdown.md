@@ -2,9 +2,42 @@
 
 ## Implementation Status
 
-Proposed — 2026-05-08.
+Implemented — 2026-05-08.
 
 Phase 0 inventory seed: [120-legacy-mirror-persistence-inventory.md](120-legacy-mirror-persistence-inventory.md)
+
+### Gate Closure Summary
+
+| Gate | Status | Evidence                                                                                             |
+| ---- | ------ | ---------------------------------------------------------------------------------------------------- |
+| G0   | Done   | inventory bucket + allowlist 확정                                                                    |
+| G1   | Done   | dashboard create/delete, `usePageManager`, `elementLoader` document-primary tests PASS               |
+| G2   | Done   | element mutation/history/editor/drag local mirror write 제거 tests PASS                              |
+| G3   | Done   | frame/page binding, frame loader, frame action canonical tests PASS                                  |
+| G4   | Done   | `projectSync` document-primary static guard PASS                                                     |
+| G5   | Done   | `DatabaseAdapter.pages/elements/layouts` 제거, DB_VERSION 14, legacy objectStore deletion guard PASS |
+| G6   | Done   | grep gate 0, type-check/preflight PASS, browser smoke PASS, docs/rules sync 완료                     |
+
+최종 검증 명령:
+
+```bash
+pnpm -F @composition/builder exec vitest run src/dashboard/__tests__/createInitialProjectDocument.test.ts src/dashboard/__tests__/dashboardLocalMirror.static.test.ts src/builder/hooks/__tests__/usePageManager.canonical.test.ts src/builder/stores/__tests__/elementLoader.static.test.ts src/lib/db/__tests__/metaStore.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/stores/utils/__tests__/elementUpdateOriginImpact.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/workspace/canvas/hooks/useDragBridge.test.ts src/builder/workspace/canvas/hooks/useDragBridge.static.test.ts
+pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/adapters/canonical/__tests__/frameElementLoader.test.ts src/builder/stores/utils/__tests__/frameActions.test.ts src/builder/stores/canonical/__tests__/canonicalFrameStore.test.ts
+pnpm -F @composition/builder exec vitest run src/utils/projectSync.layoutId.static.test.ts src/lib/db/__tests__/metaStore.test.ts src/builder/stores/canonical
+pnpm -F @composition/shared exec vitest run src/utils/__tests__/exportCanonicalProject.test.ts src/utils/__tests__/compositionDocumentOrder.test.ts
+pnpm run codex:typecheck
+pnpm run codex:preflight
+```
+
+최종 grep gate:
+
+```bash
+rg -n "db\\.(pages|elements|layouts)" apps/builder/src packages/shared/src -g '*.ts' -g '*.tsx' -g '!**/__tests__/**' -g '!**/*.test.ts' -g '!**/*.test.tsx'
+rg -n "pages:\\s*\\{|elements:\\s*\\{|layouts:\\s*\\{" apps/builder/src/lib/db/types.ts
+rg -n "createObjectStore\\(\"(pages|elements|layouts)\"|objectStore\\(\"(pages|elements|layouts)\"" apps/builder/src/lib/db/indexedDB/adapter.ts
+```
+
+위 `rg` 3개는 모두 0건이어야 한다.
 
 ## Scope
 

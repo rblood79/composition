@@ -152,7 +152,7 @@ fi
 - ❌ **HIGH+ phase mode=auto 진행 금지** — 무조건 surface
 - ❌ **fork checkpoint 4 질문 미통과 phase 진입 금지** — adr-writing.md base/응용 분류 / schema 직교성 / framing reverse 검증 / codex 3차 미루지 말 것
 - ❌ **ADR fork 자동 발의 금지** — phase 중 별도 ADR 필요성 발견 시 사용자 surface, 자동 신규 ADR 작성 안 함
-- ❌ **commit message 와 실제 변경 불일치 금지** — agent dispatch 결과 검증 의무 (feedback-agent-completion-failure-pattern, [tier3-entry-2026-04-28-session50-adr912-wave1-landed] 학습)
+- ❌ **commit message 와 실제 변경 불일치 금지** — agent dispatch 결과 검증 의무 (feedback-agent-completion-failure-pattern, [session-2026-04-28-session50-adr912-wave1-landed] 학습)
 - ❌ **destructive 작업 자동 금지** — git reset --hard / git push --force / branch -D / file delete 등 사용자 승인 필수
 - ❌ **Spec D1/D2 침범 금지** — phase 가 D3 시각만 허용해도 D1/D2 변경 발생 시 즉시 stop
 

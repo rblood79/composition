@@ -17,9 +17,9 @@
 
 import type { StateCreator } from "zustand";
 import type { Element } from "../../types/core/store.types";
-import { getDB } from "../../lib/db";
-import { supabase } from "../../env/supabase.client";
+import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import { pageCache, type LRUCacheStats } from "../utils/LRUPageCache";
+import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 
 // ============================================
@@ -118,56 +118,17 @@ export function createElementLoaderSlice(
   // ============================================
 
   /**
-   * IndexedDB에서 페이지 요소 로드
+   * Canonical document에서 페이지 요소 파생
    */
-  const loadFromIndexedDB = async (
-    pageId: string,
-  ): Promise<Element[] | null> => {
-    try {
-      const db = await getDB();
-      // 🔧 FIX: DatabaseAdapter 인터페이스 사용 (Dexie API 대신)
-      const elements = await db.elements.getByPage(pageId);
+  const loadFromCanonicalDocument = (pageId: string): Element[] => {
+    const canonical = useCanonicalDocumentStore.getState();
+    const projectId = canonical.currentProjectId;
+    const document = projectId ? canonical.documents.get(projectId) : null;
+    if (!projectId || !document) return [];
 
-      if (elements && elements.length > 0) {
-        return elements;
-      }
-
-      return null;
-    } catch (error) {
-      console.warn("[Loader] IndexedDB load failed:", error);
-      return null;
-    }
-  };
-
-  /**
-   * Supabase에서 페이지 요소 로드
-   */
-  const loadFromSupabase = async (pageId: string): Promise<Element[]> => {
-    try {
-      const { data, error } = await supabase
-        .from("elements")
-        .select("*")
-        .eq("page_id", pageId);
-
-      if (error) throw error;
-
-      return (data as Element[]) ?? [];
-    } catch (error) {
-      console.error("[Loader] Supabase load failed:", error);
-      return [];
-    }
-  };
-
-  /**
-   * IndexedDB에 요소 저장 (캐싱)
-   */
-  const cacheToIndexedDB = async (elements: Element[]): Promise<void> => {
-    try {
-      const db = await getDB();
-      await db.elements.insertMany(elements);
-    } catch (error) {
-      console.warn("[Loader] IndexedDB cache failed:", error);
-    }
+    return deriveProjectRenderModelFromDocument(document, projectId)
+      .elements.filter((element) => element.page_id === pageId)
+      .map((element) => element as Element);
   };
 
   // ============================================
@@ -237,25 +198,12 @@ export function createElementLoaderSlice(
     }));
 
     try {
-      // 1. IndexedDB에서 먼저 시도
-      let elements = await loadFromIndexedDB(pageId);
-      let loadedFromSupabase = false;
-
-      // 2. IndexedDB에 없으면 Supabase에서 로드
-      if (!elements || elements.length === 0) {
-        elements = await loadFromSupabase(pageId);
-        loadedFromSupabase = true;
-      }
+      let elements = loadFromCanonicalDocument(pageId);
 
       // 레거시 태그(section)를 canonical 태그(Section)로 정규화
       if (elements.length > 0) {
         const { elements: normalizedElements } = normalizeElementTags(elements);
         elements = normalizedElements;
-
-        // Supabase에서 불러온 경우에는 정규화된 결과를 IndexedDB에 캐싱
-        if (loadedFromSupabase) {
-          cacheToIndexedDB(elements);
-        }
       }
 
       // ADR-040 Phase 2: elements + loadedPages를 단일 set()으로 병합 (render burst 축소)

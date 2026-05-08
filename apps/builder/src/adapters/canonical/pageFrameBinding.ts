@@ -12,7 +12,6 @@ import { enqueuePagePersistence } from "../../builder/utils/pagePersistenceQueue
 import { mergeElementsCanonicalPrimary } from "./canonicalMutations";
 import { exportLegacyDocument } from "./exportLegacyDocument";
 import { loadFrameElements } from "./frameElementLoader";
-import { LEGACY_LAYOUT_ID_FIELD } from "./legacyElementFields";
 import {
   getPageFrameBindingId,
   getReusableFrameMirrorId,
@@ -301,25 +300,17 @@ function setCanonicalDocumentFromPageBinding(
 }
 
 async function persistPageFrameBindingMirror(
-  pageId: string,
-  frameId: string | null,
+  _pageId: string,
+  _frameId: string | null,
   updatedPage: Page,
 ): Promise<void> {
   await enqueuePagePersistence(async () => {
+    const canonical = useCanonicalDocumentStore.getState();
+    const projectId = canonical.currentProjectId ?? updatedPage.project_id;
+    const doc = projectId ? canonical.getDocument(projectId) : null;
+    if (!projectId || !doc) return;
     const persistenceDb = await getDB();
-    const existingPage = await persistenceDb.pages.getById(pageId);
-
-    if (existingPage) {
-      await persistenceDb.pages.update(pageId, {
-        [LEGACY_LAYOUT_ID_FIELD]: frameId,
-      });
-      return;
-    }
-
-    await persistenceDb.pages.insert({
-      ...withPageFrameBinding(updatedPage, frameId),
-      updated_at: new Date().toISOString(),
-    });
+    await persistenceDb.documents.put(projectId, doc);
   });
 }
 
@@ -331,8 +322,7 @@ export async function applyPageFrameBindingCanonicalPrimary({
   setElements,
 }: ApplyPageFrameBindingInput): Promise<void> {
   if (frameId) {
-    const db = await getDB();
-    const frameElements = await loadFrameElements(db, frameId);
+    const frameElements = await loadFrameElements(frameId);
     mergeElementsCanonicalPrimary(frameElements as Element[]);
   }
 

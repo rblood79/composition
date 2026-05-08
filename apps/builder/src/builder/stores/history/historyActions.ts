@@ -14,6 +14,11 @@ import {
 import { getElementById, createCompleteProps } from "../utils/elementHelpers";
 import type { ElementsState } from "../elements";
 import { getDB } from "../../../lib/db";
+import {
+  areCanonicalMutationStoreActionsRegistered,
+  setElementsCanonicalPrimary,
+} from "@/adapters/canonical/canonicalMutations";
+import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
 import {
   isWebGLCanvas,
@@ -29,6 +34,21 @@ import {
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
+
+async function persistActiveCanonicalDocument(): Promise<void> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return;
+  const db = await getDB();
+  await db.documents.put(projectId, doc);
+}
+
+function syncHistoryElementsToCanonical(elements: Element[]): void {
+  if (!areCanonicalMutationStoreActionsRegistered()) return;
+  setElementsCanonicalPrimary(elements);
+}
 
 /**
  * 🚀 Phase 2: structuredClone 우선 사용 헬퍼
@@ -464,6 +484,7 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
 
     // 🔧 CRITICAL: elementsMap 재구축 (Undo 후 인덱스 동기화)
     get()._rebuildIndexes();
+    syncHistoryElementsToCanonical(get().elements);
 
     // 2. iframe 업데이트
     // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 스킵
@@ -483,8 +504,9 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       }
     }
 
-    // 3. 데이터베이스 업데이트 (비동기, 실패해도 메모리는 유지)
+    // 3. Canonical document + cloud compatibility 업데이트
     try {
+      await persistActiveCanonicalDocument();
       switch (entry.type) {
         case "add": {
           // 부모 요소와 자식 요소들을 모두 데이터베이스에서 삭제
@@ -493,17 +515,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
             elementIdsToDelete.push(
               ...entry.data.childElements.map((child) => child.id),
             );
-          }
-
-          // IndexedDB에서 삭제
-          try {
-            const db = await getDB();
-            await db.elements.deleteMany(elementIdsToDelete);
-            console.log(
-              `✅ Undo: IndexedDB에서 요소 삭제 완료 (${elementIdsToDelete.length}개)`,
-            );
-          } catch (idbError) {
-            console.warn("⚠️ Undo: IndexedDB 삭제 실패:", idbError);
           }
 
           await supabase.from("elements").delete().in("id", elementIdsToDelete);
@@ -530,15 +541,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
               props: entry.data.prevProps || entry.data.prevElement.props,
             };
 
-            // IndexedDB에 업데이트
-            try {
-              const db = await getDB();
-              await db.elements.put(sanitizeElement(updatedElement));
-              console.log("✅ Undo: IndexedDB에서 요소 업데이트 완료");
-            } catch (idbError) {
-              console.warn("⚠️ Undo: IndexedDB 업데이트 실패:", idbError);
-            }
-
             await supabase
               .from("elements")
               .update({
@@ -560,19 +562,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
               entry.data.childElements.length > 0
             ) {
               elementsToRestore.push(...entry.data.childElements);
-            }
-
-            // IndexedDB에 복원
-            try {
-              const db = await getDB();
-              await db.elements.insertMany(
-                elementsToRestore.map((el) => sanitizeElement(el)),
-              );
-              console.log(
-                `✅ Undo: IndexedDB에서 요소 복원 완료 (${elementsToRestore.length}개)`,
-              );
-            } catch (idbError) {
-              console.warn("⚠️ Undo: IndexedDB 복원 실패:", idbError);
             }
 
             // Supabase에 복원 전 page_id 유효성 확인
@@ -629,30 +618,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
               `🔄 Undo: Batch update DB 동기화 시작 (${entry.data.batchUpdates.length}개)`,
             );
 
-            // IndexedDB에 업데이트
-            try {
-              const db = await getDB();
-              for (const update of entry.data.batchUpdates) {
-                const element = getElementById(
-                  get().elementsMap,
-                  update.elementId,
-                );
-                if (element) {
-                  await db.elements.put(
-                    sanitizeElement({
-                      ...element,
-                      props: update.prevProps,
-                    }),
-                  );
-                }
-              }
-              console.log(
-                `✅ Undo: Batch IndexedDB 동기화 완료 (${entry.data.batchUpdates.length}개)`,
-              );
-            } catch (idbError) {
-              console.warn("⚠️ Undo: Batch IndexedDB 동기화 실패:", idbError);
-            }
-
             for (const update of entry.data.batchUpdates) {
               await supabase
                 .from("elements")
@@ -670,30 +635,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         case "group": {
           // Group 생성 Undo - 그룹 삭제 + 자식들 원래 parent로 업데이트
           console.log("🔄 Undo: Group 생성 취소 DB 동기화");
-
-          // IndexedDB 동기화
-          try {
-            const db = await getDB();
-            // 1. 그룹 요소 삭제
-            await db.elements.delete(entry.elementId);
-            // 2. 자식 요소들의 parent_id 업데이트
-            if (entry.data.elements) {
-              for (const prevChild of entry.data.elements) {
-                const element = getElementById(get().elementsMap, prevChild.id);
-                if (element) {
-                  await db.elements.put(
-                    sanitizeElement({
-                      ...element,
-                      parent_id: prevChild.parent_id,
-                    }),
-                  );
-                }
-              }
-            }
-            console.log("✅ Undo: Group IndexedDB 동기화 완료");
-          } catch (idbError) {
-            console.warn("⚠️ Undo: Group IndexedDB 동기화 실패:", idbError);
-          }
 
           // 1. 그룹 요소 삭제
           await supabase.from("elements").delete().eq("id", entry.elementId);
@@ -718,32 +659,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         case "ungroup": {
           // Ungroup Undo - 그룹 복원 + 자식들 그룹 안으로 이동
           console.log("🔄 Undo: Ungroup 취소 DB 동기화");
-
-          // IndexedDB 동기화
-          try {
-            const db = await getDB();
-            // 1. 그룹 요소 복원
-            if (entry.data.element) {
-              await db.elements.put(sanitizeElement(entry.data.element));
-            }
-            // 2. 자식 요소들 업데이트
-            if (entry.data.elements) {
-              for (const prevChild of entry.data.elements) {
-                const element = getElementById(get().elementsMap, prevChild.id);
-                if (element) {
-                  await db.elements.put(
-                    sanitizeElement({
-                      ...element,
-                      parent_id: entry.elementId,
-                    }),
-                  );
-                }
-              }
-            }
-            console.log("✅ Undo: Ungroup IndexedDB 동기화 완료");
-          } catch (idbError) {
-            console.warn("⚠️ Undo: Ungroup IndexedDB 동기화 실패:", idbError);
-          }
 
           // Supabase에 복원 전 page_id 유효성 확인
           const ungroupPageId = entry.data.element?.page_id;
@@ -1110,6 +1025,7 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
     // 🔧 CRITICAL: elementsMap 재구축 (Redo 후 인덱스 동기화)
     get()._rebuildIndexes();
+    syncHistoryElementsToCanonical(get().elements);
 
     // 2. iframe 업데이트
     // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 스킵
@@ -1129,8 +1045,9 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       }
     }
 
-    // 3. 데이터베이스 업데이트 (비동기, 실패해도 메모리는 유지)
+    // 3. Canonical document + cloud compatibility 업데이트
     try {
+      await persistActiveCanonicalDocument();
       switch (entry.type) {
         case "add": {
           if (entry.data.element) {
@@ -1141,19 +1058,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
               entry.data.childElements.length > 0
             ) {
               elementsToAdd.push(...entry.data.childElements);
-            }
-
-            // IndexedDB에 추가
-            try {
-              const db = await getDB();
-              await db.elements.insertMany(
-                elementsToAdd.map((el) => sanitizeElement(el)),
-              );
-              console.log(
-                `✅ Redo: IndexedDB에서 요소 추가 완료 (${elementsToAdd.length}개)`,
-              );
-            } catch (idbError) {
-              console.warn("⚠️ Redo: IndexedDB 추가 실패:", idbError);
             }
 
             // Supabase에 추가 전 page_id 유효성 확인
@@ -1213,14 +1117,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
           if (entry.data.element) {
             const updatedElement = entry.data.element;
 
-            try {
-              const db = await getDB();
-              await db.elements.put(sanitizeElement(updatedElement));
-              console.log("✅ Redo: IndexedDB에서 요소 업데이트 완료");
-            } catch (idbError) {
-              console.warn("⚠️ Redo: IndexedDB 업데이트 실패:", idbError);
-            }
-
             await supabase
               .from("elements")
               .update(sanitizeElementForSupabase(updatedElement))
@@ -1233,15 +1129,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
                 ...element,
                 props: { ...element.props, ...entry.data.props },
               };
-
-              // IndexedDB에 업데이트
-              try {
-                const db = await getDB();
-                await db.elements.put(sanitizeElement(updatedElement));
-                console.log("✅ Redo: IndexedDB에서 요소 업데이트 완료");
-              } catch (idbError) {
-                console.warn("⚠️ Redo: IndexedDB 업데이트 실패:", idbError);
-              }
 
               await supabase
                 .from("elements")
@@ -1262,17 +1149,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
             );
           }
 
-          // IndexedDB에서 삭제
-          try {
-            const db = await getDB();
-            await db.elements.deleteMany(elementIdsToDelete);
-            console.log(
-              `✅ Redo: IndexedDB에서 요소 삭제 완료 (${elementIdsToDelete.length}개)`,
-            );
-          } catch (idbError) {
-            console.warn("⚠️ Redo: IndexedDB 삭제 실패:", idbError);
-          }
-
           await supabase.from("elements").delete().in("id", elementIdsToDelete);
           console.log(
             `✅ Redo: Supabase에서 요소 삭제 완료 (부모 1개 + 자식 ${
@@ -1288,30 +1164,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
             console.log(
               `🔄 Redo: Batch update DB 동기화 시작 (${entry.data.batchUpdates.length}개)`,
             );
-
-            // IndexedDB 동기화
-            try {
-              const db = await getDB();
-              for (const update of entry.data.batchUpdates) {
-                const element = getElementById(
-                  get().elementsMap,
-                  update.elementId,
-                );
-                if (element) {
-                  await db.elements.put(
-                    sanitizeElement({
-                      ...element,
-                      props: { ...element.props, ...update.newProps },
-                    }),
-                  );
-                }
-              }
-              console.log(
-                `✅ Redo: Batch IndexedDB 동기화 완료 (${entry.data.batchUpdates.length}개)`,
-              );
-            } catch (idbError) {
-              console.warn("⚠️ Redo: Batch IndexedDB 동기화 실패:", idbError);
-            }
 
             // Supabase 동기화
             for (const update of entry.data.batchUpdates) {
@@ -1337,32 +1189,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
         case "group": {
           // Group 생성 Redo - 그룹 추가 + 자식들 parent_id 업데이트
           console.log("🔄 Redo: Group 생성 DB 동기화");
-
-          // IndexedDB 동기화
-          try {
-            const db = await getDB();
-            // 1. 그룹 요소 추가
-            if (entry.data.element) {
-              await db.elements.put(sanitizeElement(entry.data.element));
-            }
-            // 2. 자식 요소들 업데이트
-            if (entry.data.elements) {
-              for (const prevChild of entry.data.elements) {
-                const element = getElementById(get().elementsMap, prevChild.id);
-                if (element) {
-                  await db.elements.put(
-                    sanitizeElement({
-                      ...element,
-                      parent_id: entry.elementId,
-                    }),
-                  );
-                }
-              }
-            }
-            console.log("✅ Redo: Group IndexedDB 동기화 완료");
-          } catch (idbError) {
-            console.warn("⚠️ Redo: Group IndexedDB 동기화 실패:", idbError);
-          }
 
           // Supabase에 추가 전 page_id 유효성 확인
           const groupPageId = entry.data.element?.page_id;
@@ -1409,30 +1235,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
         case "ungroup": {
           // Ungroup Redo - 그룹 삭제 + 자식들 원래 parent로 업데이트
           console.log("🔄 Redo: Ungroup DB 동기화");
-
-          // IndexedDB 동기화
-          try {
-            const db = await getDB();
-            // 1. 그룹 요소 삭제
-            await db.elements.delete(entry.elementId);
-            // 2. 자식 요소들 업데이트
-            if (entry.data.elements) {
-              for (const prevChild of entry.data.elements) {
-                const element = getElementById(get().elementsMap, prevChild.id);
-                if (element) {
-                  await db.elements.put(
-                    sanitizeElement({
-                      ...element,
-                      parent_id: prevChild.parent_id,
-                    }),
-                  );
-                }
-              }
-            }
-            console.log("✅ Redo: Ungroup IndexedDB 동기화 완료");
-          } catch (idbError) {
-            console.warn("⚠️ Redo: Ungroup IndexedDB 동기화 실패:", idbError);
-          }
 
           // 1. 그룹 요소 삭제 (Supabase)
           await supabase.from("elements").delete().eq("id", entry.elementId);
@@ -1530,6 +1332,7 @@ export const createGoToHistoryIndexAction =
 
       // elementsMap 재구축
       get()._rebuildIndexes();
+      syncHistoryElementsToCanonical(get().elements);
 
       // iframe 업데이트
       const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
@@ -1946,19 +1749,18 @@ function applyHistoryEntry(
 }
 
 /**
- * 마지막 상태를 기준으로 데이터베이스 동기화 (배치)
+ * 마지막 상태를 기준으로 canonical document와 cloud compatibility 동기화 (배치)
  */
 async function syncDatabaseForEntries(
   entries: ReturnType<typeof historyManager.undo>[],
   direction: "undo" | "redo",
   get: GetState,
 ): Promise<void> {
-  // 마지막 엔트리의 최종 상태만 DB에 동기화
+  // 마지막 엔트리의 최종 상태만 동기화
   // 모든 중간 엔트리를 개별적으로 동기화하는 대신
   // 최종 elements 상태가 이미 메모리에 적용되어 있으므로
-  // 변경된 요소들만 DB에 업데이트
+  // cloud compatibility에는 변경된 요소들만 업데이트
 
-  const db = await getDB();
   const elementsMap = get().elementsMap;
 
   // 영향받은 요소 ID 수집
@@ -2042,9 +1844,10 @@ async function syncDatabaseForEntries(
   }
 
   try {
+    await persistActiveCanonicalDocument();
+
     // 삭제된 요소 처리
     if (removedElementIds.size > 0) {
-      await db.elements.deleteMany([...removedElementIds]);
       try {
         await supabase
           .from("elements")
@@ -2066,11 +1869,6 @@ async function syncDatabaseForEntries(
     }
 
     if (elementsToUpsert.length > 0) {
-      // IndexedDB 업데이트
-      for (const el of elementsToUpsert) {
-        await db.elements.put(sanitizeElement(el));
-      }
-
       // Supabase 업데이트 (로컬 전용 프로젝트에서는 skip)
       const pageId = elementsToUpsert[0]?.page_id;
       if (pageId) {

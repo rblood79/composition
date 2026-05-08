@@ -4,7 +4,6 @@ import { elementsApi } from "../../../adapters/canonical/legacyElementsApiServic
 import { createElementCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { updateElementId } from "./elementCreation";
 import { supabase } from "../../../env/supabase.client";
-import { getDB } from "../../../lib/db";
 
 /**
  * 참조 무결성 검증: page_id/layout_id와 parent_id가 Supabase DB에 존재하는지 확인
@@ -85,29 +84,11 @@ async function validateReferences(
         // 에러가 있어도 IndexedDB 확인 계속 진행
       }
 
-      // Supabase DB에 없으면 IndexedDB 확인
       if (!parentElement) {
-        try {
-          const db = await getDB();
-          const indexedDbParent = await db.elements.getById(parentId);
-          if (indexedDbParent) {
-            console.log(
-              `[dbPersistence] Parent element ${parentId} found in IndexedDB (not in Supabase yet) - allowing save`,
-            );
-            // IndexedDB에 있으면 저장 허용
-          } else {
-            console.warn(
-              `[dbPersistence] Parent element ${parentId} not found in DB or IndexedDB - skipping save`,
-            );
-            return false;
-          }
-        } catch (indexedDbError) {
-          console.warn(
-            `[dbPersistence] Error checking IndexedDB for parent element ${parentId}:`,
-            indexedDbError,
-          );
-          return false;
-        }
+        console.warn(
+          `[dbPersistence] Parent element ${parentId} not found in Supabase - skipping cloud save`,
+        );
+        return false;
       }
     }
 

@@ -12,6 +12,11 @@ import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,
 } from "../adapters/canonical/frameMirror";
+import { deriveProjectRenderModelFromDocument } from "@composition/shared";
+import { legacyToCanonical } from "../adapters/canonical";
+import { convertComponentRole } from "../adapters/canonical/componentRoleAdapter";
+import { convertPageLayout } from "../adapters/canonical/slotAndLayoutAdapter";
+import type { Page } from "../types/builder/unified.types";
 
 /**
  * 로컬 프로젝트를 클라우드에 동기화
@@ -56,8 +61,16 @@ export async function syncProjectToCloud(projectId: string): Promise<void> {
       });
     }
 
-    // 3. 페이지 읽기
-    const localPages = await db.pages.getByProject(projectId);
+    // 3. Canonical document에서 cloud compatibility payload 파생
+    const localDocument = await db.documents.get(projectId);
+    if (!localDocument) {
+      throw new Error(`프로젝트 문서를 찾을 수 없습니다: ${projectId}`);
+    }
+    const renderModel = deriveProjectRenderModelFromDocument(
+      localDocument,
+      projectId,
+    );
+    const localPages = renderModel.pages;
     console.log("[ProjectSync] 로컬 페이지:", localPages.length);
 
     // 4. 페이지를 Supabase에 업로드
@@ -86,7 +99,9 @@ export async function syncProjectToCloud(projectId: string): Promise<void> {
       }
 
       // 5. 페이지의 요소들 읽기
-      const localElements = await db.elements.getByPage(page.id);
+      const localElements = renderModel.elements.filter(
+        (element) => element.page_id === page.id,
+      );
       console.log(
         `[ProjectSync] 페이지 "${page.title}" 요소:`,
         localElements.length,
@@ -159,7 +174,13 @@ export async function downloadProjectFromCloud(
     const cloudPages = await pagesApi.getPagesByProjectId(projectId);
     console.log("[ProjectSync] 클라우드 페이지:", cloudPages.length);
 
-    // 4. 페이지를 IndexedDB에 저장
+    const storePages: Page[] = [];
+    const cloudElementsByPage = new Map<
+      string,
+      Awaited<ReturnType<typeof elementsApi.getElementsByPageId>>
+    >();
+
+    // 4. Legacy cloud rows를 one-shot CompositionDocument로 변환
     for (const page of cloudPages) {
       // API Page → Store Page 변환
       const storePage = withPageFrameBinding(
@@ -175,20 +196,26 @@ export async function downloadProjectFromCloud(
         getNullablePageFrameBindingId(page),
       );
 
-      await db.pages.insert(storePage);
-
       // 5. 페이지의 요소들 읽기
       const cloudElements = await elementsApi.getElementsByPageId(page.id);
+      cloudElementsByPage.set(page.id, cloudElements);
       console.log(
         `[ProjectSync] 페이지 "${page.title}" 요소:`,
         cloudElements.length,
       );
-
-      // 6. 요소들을 IndexedDB에 저장
-      if (cloudElements.length > 0) {
-        await db.elements.insertMany(cloudElements);
-      }
+      storePages.push(storePage);
     }
+
+    const legacyElements = Array.from(cloudElementsByPage.values()).flat();
+    const document = legacyToCanonical(
+      {
+        pages: storePages,
+        elements: legacyElements,
+        layouts: [],
+      },
+      { convertComponentRole, convertPageLayout },
+    );
+    await db.documents.put(projectId, document);
 
     console.log("✅ [ProjectSync] 다운로드 완료:", projectId);
   } catch (error) {
@@ -218,32 +245,6 @@ export async function deleteProject(
   try {
     if (location === "local" || location === "both") {
       const db = await getDB();
-
-      // 1. 프로젝트의 모든 페이지 삭제
-      const pages = await db.pages.getByProject(projectId);
-      for (const page of pages) {
-        // 페이지의 모든 요소 삭제
-        const elements = await db.elements.getByPage(page.id);
-        if (elements.length > 0) {
-          await db.elements.deleteMany(elements.map((el) => el.id));
-        }
-        // 페이지 삭제
-        await db.pages.delete(page.id);
-      }
-      console.log(`[ProjectSync] 페이지 ${pages.length}개 삭제 완료`);
-
-      // 2. 프로젝트의 레이아웃 삭제
-      const layouts = await db.layouts.getByProject(projectId);
-      for (const layout of layouts) {
-        // 레이아웃의 모든 요소 삭제
-        const layoutElements = await db.elements.getDescendants(layout.id);
-        if (layoutElements.length > 0) {
-          await db.elements.deleteMany(layoutElements.map((el) => el.id));
-        }
-        // 레이아웃 삭제
-        await db.layouts.delete(layout.id);
-      }
-      console.log(`[ProjectSync] 레이아웃 ${layouts.length}개 삭제 완료`);
 
       // 3. 프로젝트의 디자인 토큰 삭제
       const tokens = await db.designTokens.getByProject(projectId);
@@ -289,6 +290,7 @@ export async function deleteProject(
       );
 
       // 6. 프로젝트 삭제
+      await db.documents.delete(projectId);
       await db.projects.delete(projectId);
       console.log("✅ [ProjectSync] 로컬 프로젝트 삭제 완료");
     }

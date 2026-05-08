@@ -6,8 +6,8 @@
  * - PGlite (Electron, 향후 추가 예정)
  */
 
-import { IndexedDBAdapter } from './indexedDB/adapter';
-import type { DatabaseAdapter } from './types';
+import { IndexedDBAdapter } from "./indexedDB/adapter";
+import type { DatabaseAdapter } from "./types";
 
 // 전역 DB 인스턴스 (싱글톤)
 let dbInstance: DatabaseAdapter | null = null;
@@ -19,7 +19,7 @@ let initPromise: Promise<DatabaseAdapter> | null = null;
  * @example
  * ```typescript
  * const db = await getDB();
- * const elements = await db.elements.getByPage(pageId);
+ * const document = await db.documents.get(projectId);
  * ```
  */
 export async function getDB(): Promise<DatabaseAdapter> {
@@ -61,7 +61,7 @@ export async function closeDB(): Promise<void> {
     await dbInstance.close();
     dbInstance = null;
     initPromise = null;
-    console.log('[DB] Database closed');
+    console.log("[DB] Database closed");
   }
 }
 
@@ -77,7 +77,11 @@ export function isDBInitialized(): boolean {
  */
 export async function getCacheStats() {
   const db = await getDB();
-  if ('cache' in db && db.cache && typeof (db.cache as { getStats?: () => unknown }).getStats === 'function') {
+  if (
+    "cache" in db &&
+    db.cache &&
+    typeof (db.cache as { getStats?: () => unknown }).getStats === "function"
+  ) {
     return (db.cache as { getStats: () => unknown }).getStats();
   }
   return null;
@@ -88,10 +92,14 @@ export async function getCacheStats() {
  */
 export async function clearCache() {
   const db = await getDB();
-  if ('cache' in db && db.cache && typeof (db.cache as { clear?: () => void }).clear === 'function') {
+  if (
+    "cache" in db &&
+    db.cache &&
+    typeof (db.cache as { clear?: () => void }).clear === "function"
+  ) {
     (db.cache as { clear: () => void }).clear();
   }
 }
 
 // Re-export types
-export type * from './types';
+export type * from "./types";

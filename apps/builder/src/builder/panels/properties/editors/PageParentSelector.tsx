@@ -23,12 +23,14 @@ import {
   generateSlugFromTitle,
 } from "../../../../utils/slugValidator";
 import { useCanonicalReusableFrameLayouts } from "../../../stores/canonical/canonicalFrameStore";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,
 } from "../../../../adapters/canonical/frameMirror";
 import type { Page } from "../../../../types/builder/unified.types";
+import { syncActiveCanonicalPageTreeMetadata } from "../../nodes/tree/PageTree/usePageTreeData";
 
 interface PageParentSelectorProps {
   pageId: string;
@@ -132,14 +134,20 @@ export const PageParentSelector = memo(function PageParentSelector({
 
       try {
         const { pages: currentPages, setPages } = useStore.getState();
-        const db = await getDB();
 
         const updatedPages = currentPages.map((p) =>
           p.id === pageId ? { ...p, parent_id: newParentId || null } : p,
         );
         setPages(updatedPages);
 
-        await db.pages.update(pageId, { parent_id: newParentId || null });
+        const projectId = syncActiveCanonicalPageTreeMetadata(updatedPages);
+        const doc = projectId
+          ? useCanonicalDocumentStore.getState().documents.get(projectId)
+          : null;
+        if (projectId && doc) {
+          const db = await getDB();
+          await db.documents.put(projectId, doc);
+        }
       } catch (error) {
         console.error(
           "[PageParentSelector] Failed to update page parent:",
@@ -161,14 +169,20 @@ export const PageParentSelector = memo(function PageParentSelector({
 
       try {
         const { pages: currentPages, setPages } = useStore.getState();
-        const db = await getDB();
 
         const updatedPages = currentPages.map((p) =>
           p.id === pageId ? { ...p, slug: newSlug || "" } : p,
         );
         setPages(updatedPages);
 
-        await db.pages.update(pageId, { slug: newSlug || "" });
+        const projectId = syncActiveCanonicalPageTreeMetadata(updatedPages);
+        const doc = projectId
+          ? useCanonicalDocumentStore.getState().documents.get(projectId)
+          : null;
+        if (projectId && doc) {
+          const db = await getDB();
+          await db.documents.put(projectId, doc);
+        }
       } catch (error) {
         console.error(
           "[PageParentSelector] Failed to update page slug:",

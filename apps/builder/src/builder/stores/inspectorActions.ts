@@ -254,29 +254,6 @@ async function persistActiveCanonicalDocument(): Promise<void> {
   await db.documents.put(projectId, doc);
 }
 
-function hasActiveCanonicalProject(): boolean {
-  return Boolean(useCanonicalDocumentStore.getState().currentProjectId);
-}
-
-function isElementNotFoundError(error: unknown): boolean {
-  return (
-    error instanceof Error && error.message.startsWith("Element not found:")
-  );
-}
-
-async function persistInspectorLegacyMirror(
-  elementId: string,
-  payload: Record<string, unknown>,
-): Promise<void> {
-  const db = await getDB();
-  try {
-    await db.elements.update(elementId, payload as Partial<Element>);
-  } catch (error) {
-    if (hasActiveCanonicalProject() && isElementNotFoundError(error)) return;
-    throw error;
-  }
-}
-
 // ============================================
 // Types
 // ============================================
@@ -516,9 +493,8 @@ export const createInspectorActionsSlice: StateCreator<
           additionalUpdates,
         );
 
-        if (hasActiveCanonicalProject()) {
+        if (useCanonicalDocumentStore.getState().currentProjectId) {
           await persistActiveCanonicalDocument();
-          await persistInspectorLegacyMirror(elementId, payload);
         } else {
           await saveService.savePropertyChange(
             {

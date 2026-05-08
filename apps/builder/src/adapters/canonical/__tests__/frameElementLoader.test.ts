@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { Element } from "@/types/core/store.types";
+import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
 import {
   collectHydratedFrameElements,
   hasHydratedFrameElements,
   isFrameElementForFrame,
   isLegacyFrameElementForFrame,
   loadFrameElements,
-  type FrameElementLoaderDb,
 } from "../frameElementLoader";
 import type { CanonicalFrameElementScope } from "../frameElementScope";
 
@@ -34,67 +34,69 @@ function makeScope(
   };
 }
 
-function makeDb(
-  descendants: Element[],
-  allElements: Element[],
-): FrameElementLoaderDb {
-  return {
-    elements: {
-      getAll: vi.fn(async () => allElements),
-      getDescendants: vi.fn(async () => descendants),
-    },
-  };
+function setFrameDocument(children: Array<Record<string, unknown>>) {
+  useCanonicalDocumentStore.setState({
+    currentProjectId: "project-1",
+    documents: new Map([
+      [
+        "project-1",
+        {
+          version: "composition-1.0",
+          children: [
+            {
+              id: "layout-frame-1",
+              type: "frame",
+              reusable: true,
+              metadata: { type: "legacy-layout", layoutId: "frame-1" },
+              children,
+            },
+          ],
+        },
+      ],
+    ]),
+    documentVersion: 0,
+  });
 }
 
 describe("frameElementLoader canonical adapter", () => {
+  beforeEach(() => {
+    useCanonicalDocumentStore.setState({
+      currentProjectId: null,
+      documents: new Map(),
+      documentVersion: 0,
+    });
+  });
+
   it("uses canonical descendants when they include the frame body", async () => {
-    const body = makeElement("body-1", {
-      parent_id: "frame-1",
-      type: "body",
-    });
-    const slot = makeElement("slot-1");
-    const db = makeDb([body, slot], []);
-
-    await expect(loadFrameElements(db, "frame-1")).resolves.toEqual([
-      body,
-      slot,
+    setFrameDocument([
+      {
+        id: "body-1",
+        type: "body",
+        props: {},
+        children: [{ id: "slot-1", type: "Slot", props: {} }],
+      },
     ]);
-    expect(db.elements.getAll).not.toHaveBeenCalled();
+
+    await expect(loadFrameElements("frame-1")).resolves.toEqual([
+      expect.objectContaining({ id: "body-1", type: "body" }),
+      expect.objectContaining({ id: "slot-1", type: "Slot" }),
+    ]);
   });
 
-  it("falls back to layout_id mirror elements when parent_id descendants are empty", async () => {
-    const body = makeElement("body-1", {
-      parent_id: null,
-      type: "body",
-    });
-    const slot = makeElement("slot-1");
-    const otherFrameSlot = makeElement("slot-2", {
-      layout_id: "frame-2",
-    });
-    const pageElement = makeElement("page-button", {
-      layout_id: null,
-      page_id: "page-1",
-      type: "Button",
-    });
-    const db = makeDb([], [body, slot, otherFrameSlot, pageElement]);
-
-    await expect(loadFrameElements(db, "frame-1")).resolves.toEqual([
-      body,
-      slot,
+  it("returns canonical frame scope elements without reading legacy DB mirrors", async () => {
+    setFrameDocument([
+      { id: "body-1", type: "body", props: {} },
+      { id: "slot-1", type: "Slot", props: {} },
     ]);
-    expect(db.elements.getAll).toHaveBeenCalledTimes(1);
+
+    await expect(loadFrameElements("frame-1")).resolves.toEqual([
+      expect.objectContaining({ id: "body-1" }),
+      expect.objectContaining({ id: "slot-1" }),
+    ]);
   });
 
-  it("never returns deleted frame elements from either path", async () => {
-    const body = makeElement("body-1", {
-      deleted: true,
-      parent_id: null,
-      type: "body",
-    });
-    const slot = makeElement("slot-1");
-    const db = makeDb([body], [body, slot]);
-
-    await expect(loadFrameElements(db, "frame-1")).resolves.toEqual([slot]);
+  it("returns an empty list when the active canonical document is missing", async () => {
+    await expect(loadFrameElements("frame-1")).resolves.toEqual([]);
   });
 
   it("reports hydrated frame elements from canonical frame scope", () => {

@@ -4,8 +4,8 @@
  * ADR-111 P2-a (PR-A): canonical-native FramesTab 재설계의 첫 단계.
  *
  * 본 모듈은 canonical FrameNode (`type: "frame"` + `reusable: true`) 의미를
- * 가진 reusable frame CRUD API를 제공한다. DB `layouts` row 는 persistence mirror
- * 로만 유지하고, in-memory SSOT 는 active canonical document 이다.
+ * 가진 reusable frame CRUD API를 제공한다. Persistence SSOT 는 active canonical
+ * document 이다.
  *
  * @see docs/adr/111-layout-frameset-pencil-redesign.md
  * @see docs/adr/design/111-layout-frameset-pencil-redesign-breakdown.md
@@ -63,6 +63,14 @@ export interface ReusableFrameRef {
   id: string;
   /** Frame 이름 */
   name: string;
+}
+
+async function persistCanonicalDocument(projectId: string): Promise<void> {
+  const canonical = useCanonicalDocumentStore.getState();
+  const doc = canonical.getDocument(projectId);
+  if (!doc) return;
+  const db = await getDB();
+  await db.documents.put(projectId, doc);
 }
 
 function createEmptyDocument(): CompositionDocument {
@@ -165,12 +173,9 @@ export async function createReusableFrame(
   };
   const bodyElement = createFrameBodyElement(layout.id);
 
-  const db = await getDB();
-  await db.layouts.insert(layout);
-  await db.elements.insert(bodyElement);
-
   const frame = createReusableFrameNode(layout, bodyElement);
   upsertReusableFrame(frame, input.projectId);
+  await persistCanonicalDocument(input.projectId);
   setSelectedReusableFrameId(layout.id);
 
   return { id: layout.id, name: layout.name };
@@ -186,7 +191,6 @@ export async function createReusableFrame(
  * @param frameId - canonical FrameNode id (현재는 layout id 와 동일)
  */
 export async function deleteReusableFrame(frameId: string): Promise<void> {
-  const db = await getDB();
   const { setPages, setElements } = getLiveElementsState();
   const layouts = getCanonicalReusableFrameLayouts();
 
@@ -197,7 +201,10 @@ export async function deleteReusableFrame(frameId: string): Promise<void> {
     setPages,
     setElements,
   });
-  await db.layouts.delete(frameId);
+  const projectId = useCanonicalDocumentStore.getState().currentProjectId;
+  if (projectId) {
+    await persistCanonicalDocument(projectId);
+  }
 
   if (getSelectedReusableFrameId() === frameId) {
     setSelectedReusableFrameId(null);
@@ -223,19 +230,24 @@ export async function updateReusableFrame(
   frameId: string,
   updates: LayoutUpdate,
 ): Promise<void> {
-  const db = await getDB();
-  const updatedLayout = await db.layouts.update(frameId, {
-    ...updates,
-    updated_at: new Date().toISOString(),
-  });
+  const updatedAt = new Date().toISOString();
   const currentLayouts = getCanonicalReusableFrameLayouts();
+  const activeProjectId = useCanonicalDocumentStore.getState().currentProjectId;
   const sourceLayout =
-    currentLayouts.find((layout) => layout.id === frameId) ?? updatedLayout;
+    currentLayouts.find((layout) => layout.id === frameId) ??
+    ({
+      id: frameId,
+      name: updates.name ?? "Frame",
+      project_id: activeProjectId ?? "",
+      description: "",
+      created_at: updatedAt,
+      updated_at: updatedAt,
+    } satisfies Layout);
   const nextLayout: Layout = {
     ...sourceLayout,
-    ...updatedLayout,
     ...updates,
-    updated_at: updatedLayout.updated_at ?? new Date().toISOString(),
+    project_id: sourceLayout.project_id || activeProjectId || "",
+    updated_at: updatedAt,
   };
   const currentDoc = selectActiveCanonicalDocument();
   const existingFrame = currentDoc?.children.find(
@@ -248,6 +260,9 @@ export async function updateReusableFrame(
   );
 
   upsertReusableFrame(nextFrame, nextLayout.project_id);
+  if (nextLayout.project_id) {
+    await persistCanonicalDocument(nextLayout.project_id);
+  }
 }
 
 /**

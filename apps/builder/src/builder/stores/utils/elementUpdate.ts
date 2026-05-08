@@ -147,72 +147,6 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
   await db.documents.put(projectId, doc);
 }
 
-function hasActiveCanonicalProject(): boolean {
-  return Boolean(useCanonicalDocumentStore.getState().currentProjectId);
-}
-
-function isElementNotFoundError(error: unknown): boolean {
-  return (
-    error instanceof Error && error.message.startsWith("Element not found:")
-  );
-}
-
-async function persistLegacyElementPropsMirrors(
-  db: BuilderDb,
-  elements: Element[],
-): Promise<void> {
-  const results = await Promise.allSettled(
-    elements.map((element) =>
-      db.elements.update(element.id, {
-        props: element.props,
-      }),
-    ),
-  );
-  const failures = results
-    .filter(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    )
-    .map((result) => result.reason);
-
-  if (failures.length === 0) return;
-
-  const canonicalActive = hasActiveCanonicalProject();
-  const blockingFailures = canonicalActive
-    ? failures.filter((reason) => !isElementNotFoundError(reason))
-    : failures;
-
-  if (blockingFailures.length > 0) {
-    throw blockingFailures[0];
-  }
-}
-
-async function persistLegacyElementUpdateMirrors(
-  db: BuilderDb,
-  updates: BatchElementUpdate[],
-): Promise<void> {
-  const results = await Promise.allSettled(
-    updates.map(({ elementId, updates: elementUpdates }) =>
-      db.elements.update(elementId, elementUpdates),
-    ),
-  );
-  const failures = results
-    .filter(
-      (result): result is PromiseRejectedResult => result.status === "rejected",
-    )
-    .map((result) => result.reason);
-
-  if (failures.length === 0) return;
-
-  const canonicalActive = hasActiveCanonicalProject();
-  const blockingFailures = canonicalActive
-    ? failures.filter((reason) => !isElementNotFoundError(reason))
-    : failures;
-
-  if (blockingFailures.length > 0) {
-    throw blockingFailures[0];
-  }
-}
-
 function isLayoutAffectingUpdate(
   changedStyle: Record<string, unknown>,
 ): boolean {
@@ -495,22 +429,14 @@ export const createUpdateElementPropsAction =
 
     // 2. iframe 업데이트는 PropertyPanel에서 직접 처리하도록 변경 (무한 루프 방지)
 
-    // 3. IndexedDB에 저장 (로컬 우선 저장) — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
-    // ⚠️ `props` 인자는 delta(변경분)만 포함. IndexedDB adapter.update 는
-    //   `{ ...existing, ...data }` 로 top-level 필드를 **교체**하므로,
-    //   `{ props: <patch> }` 를 그대로 넘기면 저장본의 props 가 patch 로 축소되어
-    //   label/size/variant 등 다른 키가 소실된다 (batch 경로 574-583 과 동일한 주의).
-    //   → 메모리에서 merge 한 `updatedElement.props` 를 전달하여 누락 방지.
-    //   증상: TagGroup items 편집 후 재하이드레이션 시 Preview label 소실,
-    //        Skia 자식 Label element 는 별도 batch 저장 → 구값 유지 → 두 경로 괴리.
+    // 3. Canonical document 저장 — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
     void (async () => {
       try {
         const db = await getDB();
-        await persistLegacyElementPropsMirrors(db, [updatedElement]);
         await persistActiveCanonicalDocument(db);
       } catch (error) {
         console.warn(
-          "⚠️ [IndexedDB] 요소/canonical document 저장 중 오류 (메모리는 정상):",
+          "⚠️ [IndexedDB] canonical document 저장 중 오류 (메모리는 정상):",
           error,
         );
         // 🚀 Phase 7: Toast + Undo 버튼
@@ -636,16 +562,15 @@ export const createUpdateElementAction =
     get()._rebuildIndexes();
     syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);
 
-    // 2. IndexedDB에 저장 (로컬 우선 저장) — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
+    // 2. Canonical document 저장 — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
     if (typeof indexedDB === "undefined") return;
     void (async () => {
       try {
         const db = await getDB();
-        await db.elements.update(elementId, sanitizedUpdates);
         await persistActiveCanonicalDocument(db);
       } catch (error) {
         console.warn(
-          "⚠️ [IndexedDB] 요소 저장 중 오류 (메모리는 정상):",
+          "⚠️ [IndexedDB] canonical document 저장 중 오류 (메모리는 정상):",
           error,
         );
         // 🚀 Phase 7: Toast + Undo 버튼
@@ -804,20 +729,14 @@ export const createBatchUpdateElementPropsAction =
       });
     }
 
-    // 3. IndexedDB 병렬 저장 — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
-    // ⚠️ validUpdates.props는 delta(변경분)만 포함하므로,
-    // merged된 전체 props를 저장해야 새로고침 시 값 소실 방지
+    // 3. Canonical document 저장 — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
     void (async () => {
       try {
         const db = await getDB();
-        await persistLegacyElementPropsMirrors(
-          db,
-          updatedElementsForPersistence,
-        );
         await persistActiveCanonicalDocument(db);
       } catch (error) {
         console.warn(
-          "⚠️ [IndexedDB] 배치 저장 중 오류 (메모리는 정상):",
+          "⚠️ [IndexedDB] canonical document 배치 저장 중 오류 (메모리는 정상):",
           error,
         );
         // 🚀 Phase 7: Toast + Undo 버튼
@@ -1020,13 +939,15 @@ export const createBatchUpdateElementsAction =
       }
     }
 
-    // 4. IndexedDB 병렬 저장
+    // 4. Canonical document 저장
     try {
       const db = await getDB();
-      await persistLegacyElementUpdateMirrors(db, validUpdates);
       await persistActiveCanonicalDocument(db);
     } catch (error) {
-      console.warn("⚠️ [IndexedDB] 배치 저장 중 오류 (메모리는 정상):", error);
+      console.warn(
+        "⚠️ [IndexedDB] canonical document 배치 저장 중 오류 (메모리는 정상):",
+        error,
+      );
       // 🚀 Phase 7: Toast + Undo 버튼
       globalToast.error("저장에 실패했습니다.", {
         duration: 8000,

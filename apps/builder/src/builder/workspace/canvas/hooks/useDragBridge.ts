@@ -459,34 +459,6 @@ export function useDragBridge({
           void (async () => {
             try {
               const db = await getDB();
-              const currentState = useStore.getState();
-              const persistIds = affectedIdList;
-              const updates = persistIds.flatMap((id) => {
-                const el = currentState.elementsMap.get(id);
-                const snap = prevSnapshotMap.get(id);
-                if (!el) return [];
-                const parentChanged =
-                  finalTarget?.isReparent && el.parent_id !== snap?.parent_id;
-                const pageChanged =
-                  finalTarget?.isReparent && el.page_id !== snap?.page_id;
-                if (parentChanged || pageChanged) {
-                  return [
-                    {
-                      id,
-                      data: {
-                        ...(parentChanged
-                          ? { parent_id: el.parent_id ?? null }
-                          : {}),
-                        ...(pageChanged ? { page_id: el.page_id ?? null } : {}),
-                      },
-                    },
-                  ];
-                }
-                return [];
-              });
-              if (updates.length > 0) {
-                await db.elements.updateMany(updates);
-              }
               await persistActiveCanonicalDocument(db);
             } catch (error) {
               console.error("[DragBridge] reorder/reparent DB persist:", error);

@@ -14,14 +14,12 @@ import type {
   SyncMetadata,
   CanonicalDocumentRecord,
 } from "../types";
-import type { Element, Page } from "../../../types/core/store.types";
 import type {
   DesignToken,
   DesignTheme,
   DesignVariable,
 } from "../../../types/theme";
 import type { CompositionDocument } from "@composition/shared";
-import type { Layout } from "../../../types/builder/layout.types";
 import type {
   DataTable,
   ApiEndpoint,
@@ -31,7 +29,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 13; // Page/layout order uses canonical CompositionDocument.children[] only.
+const DB_VERSION = 14; // ADR-120 removes local pages/elements/layouts mirror stores.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -138,7 +136,8 @@ function stripLegacyOrderPayloadsFromStore(
 function stripLegacyOrderPayloads(transaction: IDBTransaction | null): void {
   if (!transaction) return;
 
-  for (const storeName of ["documents", "pages", "layouts", "elements"]) {
+  for (const storeName of ["documents"]) {
+    if (!transaction.objectStoreNames.contains(storeName)) continue;
     stripLegacyOrderPayloadsFromStore(transaction, storeName);
   }
 }
@@ -147,8 +146,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
 
   // LRU Caches for frequently accessed data
-  private elementCache = new LRUCache<Element>(1000);
-  private pageCache = new LRUCache<Page>(100);
   private projectCache = new LRUCache<Project>(10);
 
   // === Database Lifecycle ===
@@ -205,40 +202,10 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: documents");
         }
 
-        // Pages store
-        if (!db.objectStoreNames.contains("pages")) {
-          const pagesStore = db.createObjectStore("pages", { keyPath: "id" });
-          pagesStore.createIndex("project_id", "project_id", { unique: false });
-          console.log("[IndexedDB] Created store: pages");
-        } else {
-          const transaction = (event.target as IDBOpenDBRequest).transaction;
-          if (transaction) {
-            const pagesStore = transaction.objectStore("pages");
-            if (pagesStore.indexNames.contains("order_num")) {
-              pagesStore.deleteIndex("order_num");
-              console.log("[IndexedDB] Removed index: pages.order_num");
-            }
-          }
-        }
-
-        // Elements store (가장 중요!)
-        if (!db.objectStoreNames.contains("elements")) {
-          const elementsStore = db.createObjectStore("elements", {
-            keyPath: "id",
-          });
-          elementsStore.createIndex("page_id", "page_id", { unique: false });
-          elementsStore.createIndex("parent_id", "parent_id", {
-            unique: false,
-          });
-          console.log("[IndexedDB] Created store: elements");
-        } else {
-          const transaction = (event.target as IDBOpenDBRequest).transaction;
-          if (transaction) {
-            const elementsStore = transaction.objectStore("elements");
-            if (elementsStore.indexNames.contains("order_num")) {
-              elementsStore.deleteIndex("order_num");
-              console.log("[IndexedDB] Removed index: elements.order_num");
-            }
+        for (const legacyStore of ["pages", "elements", "layouts"] as const) {
+          if (db.objectStoreNames.contains(legacyStore)) {
+            db.deleteObjectStore(legacyStore);
+            console.log(`[IndexedDB] Deleted legacy store: ${legacyStore}`);
           }
         }
 
@@ -294,34 +261,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         if (!db.objectStoreNames.contains("metadata")) {
           db.createObjectStore("metadata", { keyPath: "project_id" });
           console.log("[IndexedDB] Created store: metadata");
-        }
-
-        // ✅ 버전 4: Layouts store (Layout/Slot System)
-        // ✅ 버전 6: slug 인덱스 추가 (Nested Routes)
-        if (!db.objectStoreNames.contains("layouts")) {
-          const layoutsStore = db.createObjectStore("layouts", {
-            keyPath: "id",
-          });
-          layoutsStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          layoutsStore.createIndex("name", "name", { unique: false });
-          layoutsStore.createIndex("slug", "slug", { unique: false });
-          console.log("[IndexedDB] Created store: layouts with slug index");
-        } else {
-          // ✅ 버전 6: 기존 layouts 스토어에 slug 인덱스 추가
-          const transaction = (event.target as IDBOpenDBRequest).transaction;
-          if (transaction) {
-            const layoutsStore = transaction.objectStore("layouts");
-            if (layoutsStore.indexNames.contains("order_num")) {
-              layoutsStore.deleteIndex("order_num");
-              console.log("[IndexedDB] Removed index: layouts.order_num");
-            }
-            if (!layoutsStore.indexNames.contains("slug")) {
-              layoutsStore.createIndex("slug", "slug", { unique: false });
-              console.log("[IndexedDB] Added index: layouts.slug");
-            }
-          }
         }
 
         // ✅ 버전 7: Data Panel 스토어들 추가
@@ -402,8 +341,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       this.db = null;
 
       // Clear all caches
-      this.elementCache.clear();
-      this.pageCache.clear();
       this.projectCache.clear();
 
       console.log("[IndexedDB] Database closed and caches cleared");
@@ -540,398 +477,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getAll: async (): Promise<Project[]> => {
       return this.getAllFromStore<Project>("projects");
-    },
-  };
-
-  // === Pages ===
-
-  pages = {
-    insert: async (page: Page): Promise<Page> => {
-      const result = await this.putToStore("pages", page);
-      this.pageCache.set(page.id, result);
-      return result;
-    },
-
-    insertWithBody: async (
-      page: Page,
-      bodyElement: Element,
-    ): Promise<{ bodyElement: Element; page: Page }> => {
-      const db = this.ensureDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(["pages", "elements"], "readwrite");
-        const pagesStore = tx.objectStore("pages");
-        const elementsStore = tx.objectStore("elements");
-
-        pagesStore.put(page);
-        elementsStore.put(bodyElement);
-
-        tx.oncomplete = () => {
-          this.pageCache.set(page.id, page);
-          this.elementCache.set(bodyElement.id, bodyElement);
-          resolve({ page, bodyElement });
-        };
-
-        tx.onerror = () => {
-          reject(tx.error);
-        };
-      });
-    },
-
-    insertMany: async (pages: Page[]): Promise<Page[]> => {
-      if (pages.length === 0) {
-        return [];
-      }
-
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("pages", "readwrite");
-        const store = tx.objectStore("pages");
-
-        // Queue all operations - single transaction commit
-        pages.forEach((page) => {
-          store.put(page);
-        });
-
-        // Resolve when entire transaction completes
-        tx.oncomplete = () => {
-          // Cache all inserted pages
-          this.pageCache.setMany(
-            pages.map((page) => ({ key: page.id, value: page })),
-          );
-
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              `✅ [IndexedDB] pages.insertMany completed: ${pages.length} pages (cached)`,
-            );
-          }
-          resolve(pages);
-        };
-
-        tx.onerror = () => {
-          console.error(
-            "❌ [IndexedDB] pages.insertMany transaction failed:",
-            tx.error,
-          );
-          reject(tx.error);
-        };
-      });
-    },
-
-    update: async (id: string, data: Partial<Page>): Promise<Page> => {
-      let existing = this.pageCache.get(id);
-
-      if (!existing) {
-        existing = await this.getFromStore<Page>("pages", id);
-      }
-
-      if (!existing) {
-        throw new Error(`Page not found: ${id}`);
-      }
-
-      const updated = {
-        ...existing,
-        ...data,
-        updated_at: new Date().toISOString(),
-      };
-      const result = await this.putToStore("pages", updated);
-      this.pageCache.set(id, result);
-      return result;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("pages", id);
-      this.pageCache.delete(id);
-    },
-
-    deleteWithElements: async (
-      pageId: string,
-      elementIds: string[],
-    ): Promise<void> => {
-      const db = this.ensureDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(["pages", "elements"], "readwrite");
-        const pagesStore = tx.objectStore("pages");
-        const elementsStore = tx.objectStore("elements");
-
-        pagesStore.delete(pageId);
-        elementIds.forEach((elementId) => {
-          elementsStore.delete(elementId);
-        });
-
-        tx.oncomplete = () => {
-          this.pageCache.delete(pageId);
-          this.elementCache.deleteMany(elementIds);
-          resolve();
-        };
-
-        tx.onerror = () => {
-          reject(tx.error);
-        };
-      });
-    },
-
-    getById: async (id: string): Promise<Page | null> => {
-      const cached = this.pageCache.get(id);
-
-      if (cached) {
-        return cached;
-      }
-
-      const page = await this.getFromStore<Page>("pages", id);
-
-      if (page) {
-        this.pageCache.set(id, page);
-      }
-
-      return page;
-    },
-
-    getByProject: async (projectId: string): Promise<Page[]> => {
-      return this.getAllByIndex<Page>("pages", "project_id", projectId);
-    },
-
-    getAll: async (): Promise<Page[]> => {
-      return this.getAllFromStore<Page>("pages");
-    },
-  };
-
-  // === Elements (가장 중요!) ===
-
-  elements = {
-    insert: async (element: Element): Promise<Element> => {
-      const result = await this.putToStore("elements", element);
-      // Cache the inserted element
-      this.elementCache.set(element.id, result);
-      return result;
-    },
-
-    insertMany: async (elements: Element[]): Promise<Element[]> => {
-      if (elements.length === 0) {
-        return [];
-      }
-
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("elements", "readwrite");
-        const store = tx.objectStore("elements");
-
-        // Queue all operations - single transaction commit
-        elements.forEach((element) => {
-          store.put(element);
-        });
-
-        // Resolve when entire transaction completes
-        tx.oncomplete = () => {
-          // Cache all inserted elements
-          this.elementCache.setMany(
-            elements.map((el) => ({ key: el.id, value: el })),
-          );
-
-          resolve(elements);
-        };
-
-        tx.onerror = () => {
-          console.error(
-            "❌ [IndexedDB] insertMany transaction failed:",
-            tx.error,
-          );
-          reject(tx.error);
-        };
-      });
-    },
-
-    put: async (element: Element): Promise<Element> => {
-      const result = await this.putToStore("elements", element);
-      this.elementCache.set(element.id, result);
-      return result;
-    },
-
-    update: async (id: string, data: Partial<Element>): Promise<Element> => {
-      // Try cache first
-      let existing = this.elementCache.get(id);
-
-      if (!existing) {
-        // Cache miss - read from IndexedDB
-        existing = await this.getFromStore<Element>("elements", id);
-      }
-
-      if (!existing) {
-        throw new Error(`Element not found: ${id}`);
-      }
-
-      const updated = {
-        ...existing,
-        ...data,
-        updated_at: new Date().toISOString(),
-      };
-      const result = await this.putToStore("elements", updated);
-
-      // Update cache
-      this.elementCache.set(id, result);
-
-      return result;
-    },
-
-    updateMany: async (
-      updates: Array<{ id: string; data: Partial<Element> }>,
-    ): Promise<Element[]> => {
-      if (updates.length === 0) {
-        return [];
-      }
-
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("elements", "readwrite");
-        const store = tx.objectStore("elements");
-
-        const results: Element[] = [];
-
-        // Queue all get+put operations
-        updates.forEach(({ id, data }) => {
-          const getRequest = store.get(id);
-
-          getRequest.onsuccess = () => {
-            const existing = getRequest.result;
-            if (existing) {
-              const updated = {
-                ...existing,
-                ...data,
-                updated_at: new Date().toISOString(),
-              };
-              store.put(updated);
-              results.push(updated);
-            }
-          };
-        });
-
-        // Resolve when entire transaction completes
-        tx.oncomplete = () => {
-          // Update cache with all updated elements
-          this.elementCache.setMany(
-            results.map((el) => ({ key: el.id, value: el })),
-          );
-
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              `✅ [IndexedDB] updateMany completed: ${results.length} elements (cached)`,
-            );
-          }
-          resolve(results);
-        };
-
-        tx.onerror = () => {
-          console.error(
-            "❌ [IndexedDB] updateMany transaction failed:",
-            tx.error,
-          );
-          reject(tx.error);
-        };
-      });
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("elements", id);
-      // Remove from cache
-      this.elementCache.delete(id);
-    },
-
-    deleteMany: async (ids: string[]): Promise<void> => {
-      if (ids.length === 0) {
-        return;
-      }
-
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("elements", "readwrite");
-        const store = tx.objectStore("elements");
-
-        // Queue all delete operations - single transaction commit
-        ids.forEach((id) => {
-          store.delete(id);
-        });
-
-        // Resolve when entire transaction completes
-        tx.oncomplete = () => {
-          // Remove from cache
-          this.elementCache.deleteMany(ids);
-
-          resolve();
-        };
-
-        tx.onerror = () => {
-          console.error(
-            "❌ [IndexedDB] deleteMany transaction failed:",
-            tx.error,
-          );
-          reject(tx.error);
-        };
-      });
-    },
-
-    getById: async (id: string): Promise<Element | null> => {
-      // Try cache first
-      const cached = this.elementCache.get(id);
-
-      if (cached) {
-        return cached;
-      }
-
-      // Cache miss - read from IndexedDB
-      const element = await this.getFromStore<Element>("elements", id);
-
-      if (element) {
-        // Cache for future access
-        this.elementCache.set(id, element);
-      }
-
-      return element;
-    },
-
-    getByPage: async (pageId: string): Promise<Element[]> => {
-      const rows = await this.getAllByIndex<Element>(
-        "elements",
-        "page_id",
-        pageId,
-      );
-      return rows;
-    },
-
-    getChildren: async (parentId: string): Promise<Element[]> => {
-      const rows = await this.getAllByIndex<Element>(
-        "elements",
-        "parent_id",
-        parentId,
-      );
-      return rows;
-    },
-
-    getDescendants: async (parentId: string): Promise<Element[]> => {
-      // canonical (composition-1.0+): parent_id BFS
-      const result: Element[] = [];
-      const queue: string[] = [parentId];
-      const seen = new Set<string>([parentId]);
-      while (queue.length > 0) {
-        const pid = queue.shift() as string;
-        const children = await this.getAllByIndex<Element>(
-          "elements",
-          "parent_id",
-          pid,
-        );
-        for (const child of children) {
-          if (seen.has(child.id)) continue;
-          seen.add(child.id);
-          result.push(child);
-          queue.push(child.id);
-        }
-      }
-      return result;
-    },
-
-    getAll: async (): Promise<Element[]> => {
-      const rows = await this.getAllFromStore<Element>("elements");
-      return rows;
     },
   };
 
@@ -1257,51 +802,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getAll: async (): Promise<DesignVariable[]> => {
       return this.getAllFromStore<DesignVariable>("design_variables");
-    },
-  };
-
-  // === Layouts (Layout/Slot System) ===
-
-  layouts = {
-    insert: async (layout: Layout): Promise<Layout> => {
-      const now = new Date().toISOString();
-      const layoutWithTimestamps: Layout = {
-        ...layout,
-        created_at: layout.created_at || now,
-        updated_at: layout.updated_at || now,
-      };
-      await this.putToStore("layouts", layoutWithTimestamps);
-      return layoutWithTimestamps;
-    },
-
-    update: async (id: string, updates: Partial<Layout>): Promise<Layout> => {
-      const existing = await this.layouts.getById(id);
-      if (!existing) {
-        throw new Error(`Layout ${id} not found`);
-      }
-      const updated: Layout = {
-        ...existing,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-      await this.putToStore("layouts", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("layouts", id);
-    },
-
-    getById: async (id: string): Promise<Layout | null> => {
-      return this.getFromStore<Layout>("layouts", id);
-    },
-
-    getByProject: async (projectId: string): Promise<Layout[]> => {
-      return this.getAllByIndex<Layout>("layouts", "project_id", projectId);
-    },
-
-    getAll: async (): Promise<Layout[]> => {
-      return this.getAllFromStore<Layout>("layouts");
     },
   };
 
@@ -1641,22 +1141,16 @@ export class IndexedDBAdapter implements DatabaseAdapter {
   cache = {
     getStats: () => {
       return {
-        elements: this.elementCache.getStats(),
-        pages: this.pageCache.getStats(),
         projects: this.projectCache.getStats(),
       };
     },
 
     clear: () => {
-      this.elementCache.clear();
-      this.pageCache.clear();
       this.projectCache.clear();
       console.log("[IndexedDB] All caches cleared");
     },
 
     resetStats: () => {
-      this.elementCache.resetStats();
-      this.pageCache.resetStats();
       this.projectCache.resetStats();
       console.log("[IndexedDB] Cache statistics reset");
     },
@@ -1724,13 +1218,10 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         const stores = [
           "projects",
           "documents",
-          "pages",
-          "elements",
           "design_tokens",
           "design_themes",
           "history",
           "metadata",
-          "layouts",
           // ✅ 버전 7: Data Panel 스토어들 추가
           "data_tables",
           "api_endpoints",

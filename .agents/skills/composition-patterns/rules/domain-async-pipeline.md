@@ -66,7 +66,7 @@ export const createAddElementAction =
     // 4. IndexedDB Persist (백그라운드) - 비블로킹
     setTimeout(async () => {
       const db = await getDB();
-      await db.elements.insert(sanitizeElement(element));
+      await db.documents.put(projectId, nextCanonicalDocument);
     }, 0);
 
     // 5. Preview Sync (백그라운드) - WebGL 모드가 아닐 때만
@@ -100,8 +100,8 @@ historyManager.addEntry({
   data: { element: structuredClone(element) }, // 깊은 복사
 });
 
-// ✅ sanitizeElement로 DB 저장 전 정리
-await db.elements.insert(sanitizeElement(element));
+// ✅ project-state 저장은 canonical document만 사용
+await db.documents.put(projectId, nextCanonicalDocument);
 ```
 
 ## 배치 삭제 파이프라인 (removeElements)
@@ -113,7 +113,7 @@ await db.elements.insert(sanitizeElement(element));
 // ✅ 배치 삭제 — 단일 파이프라인 실행
 await removeElements(deletableIds);
 // → collectElementsToRemove() × N → 병합 → executeRemoval() 1회
-//   1. IndexedDB deleteMany (1회)
+//   1. Canonical document mutation + db.documents.put (1회)
 //   2. History addEntry (1건)
 //   3. Skia unregisterSkiaNode (즉시)
 //   4. set() (1회, 원자적)

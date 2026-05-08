@@ -12,7 +12,6 @@ import {
   rebuildVariableUsageIndex,
 } from "./elementIndexer";
 import { buildDetachSnapshotsForOrigins } from "./instanceActions";
-import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
 import {
   isWebGLCanvas,
@@ -196,18 +195,12 @@ async function executeRemoval(
 
   let db: BuilderDb | null = null;
 
-  // IndexedDB 삭제
+  // Canonical document 저장 준비
   if (typeof indexedDB !== "undefined") {
     try {
       db = await getDB();
-      await db.elements.deleteMany(elementIdsToRemove);
-      if (autoDetach.elements.length > 0) {
-        await db.elements.insertMany(
-          autoDetach.elements.map((element) => sanitizeElement(element)),
-        );
-      }
     } catch (error) {
-      console.error("❌ [IndexedDB] 요소 삭제 중 오류:", error);
+      console.error("❌ [IndexedDB] 연결 중 오류:", error);
     }
   }
 
