@@ -560,6 +560,136 @@ describe("resolveDropTarget cross-page body targets", () => {
     ).toBe(232);
   });
 
+  it("uses justify-content: space-between when projecting same-parent reorder feedback", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      props: {
+        style: {
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+      },
+    });
+    const first = makeElement("first-card", {
+      parent_id: pageBody.id,
+      order_num: 0,
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: pageBody.id,
+      order_num: 1,
+    });
+    const third = makeElement("third-card", {
+      parent_id: pageBody.id,
+      order_num: 2,
+    });
+    const last = makeElement("last-card", {
+      parent_id: pageBody.id,
+      order_num: 3,
+    });
+
+    mockBounds.set(pageBody.id, { x: 0, y: 0, width: 500, height: 200 });
+    mockBounds.set(first.id, { x: 0, y: 80, width: 50, height: 40 });
+    mockBounds.set(source.id, { x: 150, y: 70, width: 50, height: 60 });
+    mockBounds.set(third.id, { x: 300, y: 80, width: 50, height: 40 });
+    mockBounds.set(last.id, { x: 450, y: 80, width: 50, height: 40 });
+
+    const store = {
+      childrenMap: new Map([[pageBody.id, [first, source, third, last]]]),
+      elementsMap: new Map([
+        [pageBody.id, pageBody],
+        [first.id, first],
+        [source.id, source],
+        [third.id, third],
+        [last.id, last],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 330, y: 100 },
+      source.id,
+      store,
+      () => [pageBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: pageBody.id,
+      insertionIndex: 2,
+      isHorizontal: true,
+      isReparent: false,
+    });
+    expect(
+      result ? computeSiblingOffsets(result, source.id, store) : null,
+    ).toEqual(new Map([[third.id, { dx: -150, dy: 0 }]]));
+    expect(
+      result ? computeInsertionLinePosition(result, source.id, store) : null,
+    ).toBe(300);
+    expect(
+      result ? computeDropPlaceholderBounds(result, source.id, store) : null,
+    ).toEqual({ x: 300, y: 70, width: 50, height: 60 });
+  });
+
+  it("uses justify-content and align-items for empty flex reparent placeholder", () => {
+    const sourceBody = makeElement("source-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const targetBody = makeElement("target-body", {
+      type: "body",
+      page_id: "page-2",
+      props: {
+        style: {
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 20,
+        },
+      },
+    });
+    const source = makeElement("source-button", {
+      type: "Button",
+      parent_id: sourceBody.id,
+      order_num: 0,
+    });
+
+    mockBounds.set(sourceBody.id, { x: 0, y: 0, width: 300, height: 200 });
+    mockBounds.set(targetBody.id, { x: 100, y: 20, width: 500, height: 200 });
+    mockBounds.set(source.id, { x: 20, y: 20, width: 50, height: 40 });
+
+    const store = {
+      childrenMap: new Map([[sourceBody.id, [source]]]),
+      elementsMap: new Map([
+        [sourceBody.id, sourceBody],
+        [targetBody.id, targetBody],
+        [source.id, source],
+      ]),
+    };
+
+    const result = resolveDropTarget(
+      { x: 350, y: 100 },
+      source.id,
+      store,
+      () => [targetBody.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: targetBody.id,
+      insertionIndex: 0,
+      isHorizontal: true,
+      isReparent: true,
+    });
+    expect(
+      result ? computeInsertionLinePosition(result, source.id, store) : null,
+    ).toBe(325);
+    expect(
+      result ? computeDropPlaceholderBounds(result, source.id, store) : null,
+    ).toEqual({ x: 325, y: 100, width: 50, height: 40 });
+  });
+
   it("keeps same-parent insertion while the cursor is inside the opened placeholder slot", () => {
     const pageBody = makeElement("page-body", {
       type: "body",

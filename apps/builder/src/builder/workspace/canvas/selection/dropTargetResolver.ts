@@ -71,6 +71,21 @@ export interface DropTargetStoreSlice {
   childrenMap: Map<string, Element[]>;
 }
 
+interface ContainerLayoutMetrics {
+  paddingStart: number;
+  paddingEnd: number;
+  crossPaddingStart: number;
+  crossPaddingEnd: number;
+  gap: number;
+  justifyContent: string;
+  alignItems: string;
+}
+
+interface ProjectedLayoutItem {
+  element: Element;
+  bounds: ElementBounds;
+}
+
 // ============================================
 // Internal Utilities
 // ============================================
@@ -117,14 +132,36 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function normalizeCssKeyword(value: string | undefined): string {
+  if (!value) return "";
+  return value
+    .trim()
+    .replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)
+    .toLowerCase();
+}
+
+function getContainerStyleSources(element: Element | undefined): {
+  style: Record<string, unknown> | undefined;
+  specStyles: Record<string, unknown> | undefined;
+} {
+  const style = asRecord(element?.props?.style);
+  const spec = element ? getSpecForTag(element.type) : undefined;
+  return {
+    style,
+    specStyles: asRecord(spec?.containerStyles),
+  };
+}
+
 /**
  * 컨테이너의 주요 flex 방향을 결정한다.
  * inline style 우선, 없으면 Spec.containerStyles 를 fallback 으로 사용한다.
  */
 function detectIsHorizontal(element: Element): boolean {
-  const style = asRecord(element.props?.style);
-  const spec = getSpecForTag(element.type);
-  const specStyles = asRecord(spec?.containerStyles);
+  const { style, specStyles } = getContainerStyleSources(element);
   const flexDir = style?.flexDirection ?? specStyles?.flexDirection;
   if (flexDir === "row" || flexDir === "row-reverse") return true;
 
@@ -152,7 +189,7 @@ function isExplicitSlotHost(element: Element): boolean {
 }
 
 function hasLayoutContainerStyle(element: Element): boolean {
-  const style = asRecord(element.props?.style);
+  const { style, specStyles } = getContainerStyleSources(element);
   const display = style?.display;
   const flexDirection = style?.flexDirection;
   if (
@@ -167,8 +204,6 @@ function hasLayoutContainerStyle(element: Element): boolean {
     return true;
   }
 
-  const spec = getSpecForTag(element.type);
-  const specStyles = asRecord(spec?.containerStyles);
   const specDisplay = specStyles?.display;
   const specFlexDirection = specStyles?.flexDirection;
   return (
@@ -568,6 +603,30 @@ export function computeSiblingOffsets(
 ): Map<string, { dx: number; dy: number }> {
   const offsets = new Map<string, { dx: number; dy: number }>();
   const { containerId, insertionIndex, isHorizontal } = dropTarget;
+
+  const projectedBounds = buildProjectedDropLayout(
+    dropTarget,
+    draggedElementId,
+    store,
+  );
+  if (projectedBounds) {
+    const targetChildren = getSortedChildren(containerId, store).filter(
+      (child) => child.id !== draggedElementId,
+    );
+    for (const sibling of targetChildren) {
+      const currentBounds = getSceneBounds(sibling.id);
+      const targetBounds = projectedBounds.get(sibling.id);
+      if (!currentBounds || !targetBounds) continue;
+
+      const dx = normalizeOffsetValue(targetBounds.x - currentBounds.x);
+      const dy = normalizeOffsetValue(targetBounds.y - currentBounds.y);
+      if (dx !== 0 || dy !== 0) {
+        offsets.set(sibling.id, { dx, dy });
+      }
+    }
+    return offsets;
+  }
+
   const container = store.elementsMap.get(containerId);
   const spacing = getContainerAxisSpacing(container, isHorizontal);
 
@@ -658,6 +717,252 @@ function getCrossStart(bounds: ElementBounds, isHorizontal: boolean): number {
 
 function getCrossSize(bounds: ElementBounds, isHorizontal: boolean): number {
   return isHorizontal ? bounds.height : bounds.width;
+}
+
+function shouldUseFlexProjection(element: Element | undefined): boolean {
+  const { style, specStyles } = getContainerStyleSources(element);
+  const display = style?.display ?? specStyles?.display;
+
+  return (
+    display === "flex" ||
+    display === "inline-flex" ||
+    style?.justifyContent !== undefined ||
+    style?.alignItems !== undefined ||
+    specStyles?.justifyContent !== undefined ||
+    specStyles?.alignItems !== undefined
+  );
+}
+
+function getContainerLayoutMetrics(
+  element: Element | undefined,
+  isHorizontal: boolean,
+): ContainerLayoutMetrics {
+  const { style, specStyles } = getContainerStyleSources(element);
+  const padding = parsePadding4Way({
+    padding: style?.padding,
+    paddingTop: style?.paddingTop,
+    paddingRight: style?.paddingRight,
+    paddingBottom: style?.paddingBottom,
+    paddingLeft: style?.paddingLeft,
+  });
+  const gap = parseGapValue({
+    gap: style?.gap,
+    rowGap: style?.rowGap,
+    columnGap: style?.columnGap,
+  });
+
+  return isHorizontal
+    ? {
+        paddingStart: padding.left,
+        paddingEnd: padding.right,
+        crossPaddingStart: padding.top,
+        crossPaddingEnd: padding.bottom,
+        gap: gap.column,
+        justifyContent:
+          asString(style?.justifyContent ?? specStyles?.justifyContent) ??
+          "flex-start",
+        alignItems: asString(style?.alignItems ?? specStyles?.alignItems) ?? "",
+      }
+    : {
+        paddingStart: padding.top,
+        paddingEnd: padding.bottom,
+        crossPaddingStart: padding.left,
+        crossPaddingEnd: padding.right,
+        gap: gap.row,
+        justifyContent:
+          asString(style?.justifyContent ?? specStyles?.justifyContent) ??
+          "flex-start",
+        alignItems: asString(style?.alignItems ?? specStyles?.alignItems) ?? "",
+      };
+}
+
+function resolveItemCrossAlignment(
+  item: ProjectedLayoutItem,
+  fallbackAlignItems: string,
+): string {
+  const style = asRecord(item.element.props?.style);
+  const alignSelf = normalizeCssKeyword(asString(style?.alignSelf));
+  if (alignSelf && alignSelf !== "auto") return alignSelf;
+  return normalizeCssKeyword(fallbackAlignItems);
+}
+
+function computeAlignedCrossStart(
+  item: ProjectedLayoutItem,
+  containerBounds: ElementBounds,
+  isHorizontal: boolean,
+  metrics: ContainerLayoutMetrics,
+): number {
+  const crossStart =
+    getCrossStart(containerBounds, isHorizontal) + metrics.crossPaddingStart;
+  const innerCrossSize = Math.max(
+    0,
+    getCrossSize(containerBounds, isHorizontal) -
+      metrics.crossPaddingStart -
+      metrics.crossPaddingEnd,
+  );
+  const freeCross = innerCrossSize - getCrossSize(item.bounds, isHorizontal);
+  const alignment = resolveItemCrossAlignment(item, metrics.alignItems);
+
+  if (
+    !alignment ||
+    alignment === "normal" ||
+    alignment === "stretch" ||
+    alignment === "baseline"
+  ) {
+    return crossStart;
+  }
+
+  if (
+    alignment === "center" ||
+    alignment === "safe-center" ||
+    alignment === "unsafe-center"
+  ) {
+    return crossStart + freeCross / 2;
+  }
+  if (
+    alignment === "flex-end" ||
+    alignment === "end" ||
+    alignment === "self-end"
+  ) {
+    return crossStart + freeCross;
+  }
+
+  return crossStart;
+}
+
+function computeProjectedFlexBounds(
+  container: Element,
+  containerBounds: ElementBounds,
+  isHorizontal: boolean,
+  items: ProjectedLayoutItem[],
+): Map<string, ElementBounds> | null {
+  if (items.length === 0) return null;
+
+  const metrics = getContainerLayoutMetrics(container, isHorizontal);
+  const innerMainSize = Math.max(
+    0,
+    getAxisSize(containerBounds, isHorizontal) -
+      metrics.paddingStart -
+      metrics.paddingEnd,
+  );
+  const totalItemMainSize = items.reduce(
+    (sum, item) => sum + getAxisSize(item.bounds, isHorizontal),
+    0,
+  );
+  const baseGapSize = metrics.gap * Math.max(0, items.length - 1);
+  const freeMainSpace = innerMainSize - totalItemMainSize - baseGapSize;
+  const distributableSpace = Math.max(0, freeMainSpace);
+  const justifyContent = normalizeCssKeyword(metrics.justifyContent);
+
+  let leadingSpace = 0;
+  let itemGap = metrics.gap;
+
+  if (
+    justifyContent === "flex-end" ||
+    justifyContent === "end" ||
+    justifyContent === "right"
+  ) {
+    leadingSpace = freeMainSpace;
+  } else if (justifyContent === "center") {
+    leadingSpace = freeMainSpace / 2;
+  } else if (justifyContent === "space-between" && items.length > 1) {
+    itemGap = metrics.gap + distributableSpace / (items.length - 1);
+  } else if (justifyContent === "space-around") {
+    const space = distributableSpace / items.length;
+    leadingSpace = space / 2;
+    itemGap = metrics.gap + space;
+  } else if (justifyContent === "space-evenly") {
+    const space = distributableSpace / (items.length + 1);
+    leadingSpace = space;
+    itemGap = metrics.gap + space;
+  }
+
+  const projected = new Map<string, ElementBounds>();
+  let cursor =
+    getAxisStart(containerBounds, isHorizontal) +
+    metrics.paddingStart +
+    leadingSpace;
+
+  for (const item of items) {
+    const mainSize = getAxisSize(item.bounds, isHorizontal);
+    const crossStart = computeAlignedCrossStart(
+      item,
+      containerBounds,
+      isHorizontal,
+      metrics,
+    );
+
+    projected.set(
+      item.element.id,
+      isHorizontal
+        ? {
+            x: cursor,
+            y: crossStart,
+            width: item.bounds.width,
+            height: item.bounds.height,
+          }
+        : {
+            x: crossStart,
+            y: cursor,
+            width: item.bounds.width,
+            height: item.bounds.height,
+          },
+    );
+    cursor += mainSize + itemGap;
+  }
+
+  return projected;
+}
+
+function buildProjectedDropLayout(
+  dropTarget: DropTarget,
+  draggedElementId: string,
+  store: DropTargetStoreSlice,
+): Map<string, ElementBounds> | null {
+  const container = store.elementsMap.get(dropTarget.containerId);
+  if (!container || !shouldUseFlexProjection(container)) return null;
+
+  const dragged = store.elementsMap.get(draggedElementId);
+  const draggedBounds = getSceneBounds(draggedElementId);
+  if (!dragged || !draggedBounds) return null;
+
+  const children = getSortedChildren(dropTarget.containerId, store).filter(
+    (child) => child.id !== draggedElementId,
+  );
+  const insertionIndex = Math.max(
+    0,
+    Math.min(dropTarget.insertionIndex, children.length),
+  );
+  const orderedChildren = [
+    ...children.slice(0, insertionIndex),
+    dragged,
+    ...children.slice(insertionIndex),
+  ];
+
+  const items = orderedChildren
+    .map((element): ProjectedLayoutItem | null => {
+      const bounds =
+        element.id === draggedElementId
+          ? draggedBounds
+          : getSceneBounds(element.id);
+      return bounds ? { element, bounds } : null;
+    })
+    .filter((item): item is ProjectedLayoutItem => item !== null);
+
+  if (!items.some((item) => item.element.id === draggedElementId)) {
+    return null;
+  }
+
+  return computeProjectedFlexBounds(
+    container,
+    dropTarget.containerBounds,
+    dropTarget.isHorizontal,
+    items,
+  );
+}
+
+function normalizeOffsetValue(value: number): number {
+  return Math.abs(value) < 0.0001 ? 0 : value;
 }
 
 function computeSameParentSiblingOffsetValue(
@@ -789,6 +1094,16 @@ export function computeInsertionLinePosition(
   draggedElementId: string,
   store: DropTargetStoreSlice,
 ): number | undefined {
+  const projectedBounds = buildProjectedDropLayout(
+    dropTarget,
+    draggedElementId,
+    store,
+  );
+  const projectedPlaceholderBounds = projectedBounds?.get(draggedElementId);
+  if (projectedPlaceholderBounds) {
+    return getAxisStart(projectedPlaceholderBounds, dropTarget.isHorizontal);
+  }
+
   const { containerId, insertionIndex, isHorizontal } = dropTarget;
   const container = store.elementsMap.get(containerId);
   const spacing = getContainerAxisSpacing(container, isHorizontal);
@@ -868,6 +1183,16 @@ export function computeDropPlaceholderBounds(
   draggedElementId: string,
   store: DropTargetStoreSlice,
 ): ElementBounds | undefined {
+  const projectedBounds = buildProjectedDropLayout(
+    dropTarget,
+    draggedElementId,
+    store,
+  );
+  const projectedPlaceholderBounds = projectedBounds?.get(draggedElementId);
+  if (projectedPlaceholderBounds) {
+    return projectedPlaceholderBounds;
+  }
+
   const draggedBounds = getSceneBounds(draggedElementId);
   if (!draggedBounds) return undefined;
 
