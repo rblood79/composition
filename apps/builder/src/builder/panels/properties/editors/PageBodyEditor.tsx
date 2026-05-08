@@ -21,6 +21,7 @@ import { PropertyEditorProps } from "../types/editorTypes";
 import { useStore } from "../../../stores";
 import { PageLayoutSelector } from "./PageLayoutSelector";
 import { PageParentSelector } from "./PageParentSelector";
+import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
 export const PageBodyEditor = memo(
   function PageBodyEditor({
@@ -28,18 +29,16 @@ export const PageBodyEditor = memo(
     currentProps,
     onUpdate,
   }: PropertyEditorProps) {
-    // ⭐ 최적화: customId를 현재 시점에만 가져오기 (Zustand 구독 방지)
-    const customId = useMemo(() => {
-      const element = useStore.getState().elementsMap.get(elementId);
-      return element?.customId || "";
-    }, [elementId]);
+    const element = useCanonicalPropertyElement(elementId);
+    const customId = useMemo(
+      () => element?.customId || "",
+      [element?.customId],
+    );
 
     // Page body가 선택된 경우에는 element.page_id가 적용 대상의 정본이다.
     // Frame/projection body처럼 page_id가 없는 경우에만 현재 편집 page로 fallback한다.
     const currentPageId = useStore((state) => state.currentPageId);
-    const selectedElementPageId = useStore(
-      (state) => state.elementsMap.get(elementId)?.page_id ?? null,
-    );
+    const selectedElementPageId = element?.page_id ?? null;
     const targetPageId = selectedElementPageId ?? currentPageId;
 
     // ⭐ 최적화: 각 필드별 onChange 함수를 개별 메모이제이션

@@ -90,9 +90,10 @@ import {
   resolveCanonicalRefTree,
 } from "../../utils/canonicalRefResolution";
 import {
-  getActiveCanonicalElementSnapshot,
-  getActiveCanonicalElementsSnapshot,
-} from "../../stores/canonical/canonicalElementSnapshot";
+  useCanonicalPropertyChildrenMap,
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "./hooks/useCanonicalPropertyRead";
 import { isComponentInstanceMirrorElement } from "../../../adapters/canonical/componentSemanticsMirror";
 
 /**
@@ -114,16 +115,24 @@ const PropertyEditorWrapper = memo(
     // - Page 모드: PageBodyEditor
     // - Layout 모드: LayoutBodyEditor
     const editMode = useEditModeStore((state) => state.mode);
+    const selectedCanonicalElement = useCanonicalPropertyElement(
+      selectedElement.id,
+    );
+    const elementsById = useCanonicalPropertyElementsMap();
+    const childrenByParent = useCanonicalPropertyChildrenMap();
+    const lookupElementList = useMemo(
+      () => Array.from(elementsById.values()),
+      [elementsById],
+    );
     const elementContext = useMemo((): EditorContext => {
       const element =
-        useStore.getState().elementsMap.get(selectedElement.id) ??
-        getActiveCanonicalElementSnapshot(selectedElement.id);
+        elementsById.get(selectedElement.id) ?? selectedCanonicalElement;
       return {
         layoutId: element ? getFrameElementMirrorId(element) : null,
         pageId: element?.page_id || null,
         editMode, // ⭐ 현재 편집 모드 전달
       };
-    }, [selectedElement.id, editMode]);
+    }, [editMode, elementsById, selectedCanonicalElement, selectedElement.id]);
 
     // 요소 타입에 맞는 에디터 동적 로드
     useEffect(() => {
@@ -180,19 +189,10 @@ const PropertyEditorWrapper = memo(
     const handleUpdate = useCallback(
       (updatedProps: Record<string, unknown>) => {
         const state = useStore.getState();
-        let element = state.elementsMap.get(state.selectedElementId ?? "");
-        let lookupElements: Iterable<Element> = state.elementsMap.values();
-        if (!element && state.selectedElementId) {
-          const canonicalElements = getActiveCanonicalElementsSnapshot();
-          element =
-            canonicalElements?.find(
-              (candidate) => candidate.id === state.selectedElementId,
-            ) ?? undefined;
-          lookupElements = canonicalElements ?? lookupElements;
-        }
+        const element =
+          elementsById.get(selectedElement.id) ?? selectedCanonicalElement;
         if (!element) return;
 
-        const lookupElementList = Array.from(lookupElements);
         const effectiveElement = isCanonicalRefElement(element)
           ? resolveCanonicalRefElement(element, lookupElementList)
           : element;
@@ -230,9 +230,9 @@ const PropertyEditorWrapper = memo(
         const propagationElement =
           propagationSource?.elementsMap.get(element.id) ?? effectiveElement;
         const propagationChildrenMap =
-          propagationSource?.childrenMap ?? state.childrenMap;
+          propagationSource?.childrenMap ?? childrenByParent;
         const propagationElementsMap =
-          propagationSource?.elementsMap ?? state.elementsMap;
+          propagationSource?.elementsMap ?? elementsById;
 
         // ADR-048: propagation 규칙 중 변경된 prop과 매칭되는 것이 있으면 자식도 업데이트
         const rules = getPropagationRules(propagationElement.type);
@@ -268,7 +268,13 @@ const PropertyEditorWrapper = memo(
 
         state.updateSelectedProperties(changedProps);
       },
-      [],
+      [
+        childrenByParent,
+        elementsById,
+        lookupElementList,
+        selectedCanonicalElement,
+        selectedElement.id,
+      ],
     );
 
     if (loading) {
@@ -443,6 +449,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
     [rawSelectedElementIds],
   );
   const currentPageId = useStore((state) => state.currentPageId);
+  const elementsById = useCanonicalPropertyElementsMap();
 
   const isMultiSelectActive = multiSelectMode && selectedElementIds.length > 1;
 
@@ -450,13 +457,21 @@ const MultiSelectContent = memo(function MultiSelectContent({
   const removeElement = useStore.getState().removeElement;
   const addElement = useStore.getState().addElement;
   const updateElement = useStore.getState().updateElement;
-  const getElementsMap = () => useStore.getState().elementsMap;
-  const getPageElements = useStore.getState().getPageElements;
+  const getElementsMap = useCallback(
+    () => new Map(elementsById),
+    [elementsById],
+  );
 
   // Get current page elements
-  const currentPageElements = currentPageId
-    ? getPageElements(currentPageId)
-    : [];
+  const currentPageElements = useMemo(
+    () =>
+      currentPageId
+        ? Array.from(elementsById.values()).filter(
+            (element) => !element.deleted && element.page_id === currentPageId,
+          )
+        : [],
+    [currentPageId, elementsById],
+  );
 
   // Get selected elements array for BatchPropertyEditor
   const selectedElements = useMemo(() => {
@@ -475,7 +490,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
       }
     }
     return resolved;
-  }, [isMultiSelectActive, selectedElementIds, currentPageId]);
+  }, [isMultiSelectActive, selectedElementIds, currentPageId, getElementsMap]);
 
   // useCopyPaste hook을 사용하여 클립보드 작업 수행
   const { copyText, pasteText } = useCopyPaste({
@@ -764,6 +779,10 @@ function PropertiesPanelContent() {
   // multiSelectMode, selectedElementIds 구독은 MultiSelectContent에서 수행
   // 🚀 Phase 3: 디바운스된 선택 데이터 사용 (100ms 지연)
   const selectedElement = useDebouncedSelectedElementData();
+  const elementsById = useCanonicalPropertyElementsMap();
+  const selectedCanonicalElement = useCanonicalPropertyElement(
+    selectedElement?.id ?? "",
+  );
 
   // 🚀 Performance: 액션만 가져오기 (구독 없음)
   const removeElement = useStore.getState().removeElement;
@@ -774,7 +793,10 @@ function PropertiesPanelContent() {
   const setSelectedElements = useStore.getState().setSelectedElements;
 
   // 🚀 Performance: getState() 패턴 - 구독 없이 최신 상태 조회
-  const getElementsMap = useCallback(() => useStore.getState().elementsMap, []);
+  const getElementsMap = useCallback(
+    () => new Map(elementsById),
+    [elementsById],
+  );
   const getCurrentPageId = useCallback(
     () => useStore.getState().currentPageId,
     [],
@@ -1038,8 +1060,8 @@ function PropertiesPanelContent() {
 
   const handleDetachSelectedInstance = useCallback(async () => {
     const state = useStore.getState();
-    const selectedId = state.selectedElementId ?? selectedElement?.id;
-    const element = selectedId ? state.elementsMap.get(selectedId) : null;
+    const selectedId = getSelectedElementId() ?? selectedElement?.id;
+    const element = selectedId ? elementsById.get(selectedId) : null;
     if (!selectedId || !canDetachInstance(element)) return;
 
     const confirmed = await requestEditingSemanticsDetachConfirmation({
@@ -1053,7 +1075,7 @@ function PropertiesPanelContent() {
     if (!confirmed) return;
 
     state.detachInstance(selectedId);
-  }, [selectedElement?.id]);
+  }, [elementsById, getSelectedElementId, selectedElement?.id]);
 
   // ⭐ Phase 3: Advanced Selection - Tab Navigation
   const handleTabNavigation = useCallback(
@@ -1639,8 +1661,8 @@ function PropertiesPanelContent() {
           elementId={selectedElement.id}
           currentSlotName={getSlotMirrorName(selectedElement.properties)}
           onSlotChange={(slotName) => {
-            const state = useStore.getState();
-            const element = state.elementsMap.get(selectedElement.id);
+            const element =
+              elementsById.get(selectedElement.id) ?? selectedCanonicalElement;
             const props = withSlotMirrorName(
               (element?.props ?? selectedElement.properties) as Record<
                 string,
@@ -1648,7 +1670,7 @@ function PropertiesPanelContent() {
               >,
               slotName,
             );
-            void state.updateElement(selectedElement.id, {
+            void updateElement(selectedElement.id, {
               props: props as Element["props"],
               [SLOT_NAME_MIRROR_FIELD]: slotName,
             });

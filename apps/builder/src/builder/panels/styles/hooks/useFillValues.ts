@@ -14,6 +14,7 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { useStore } from "../../../stores";
+import { useElementStyleContext } from "./useElementStyleContext";
 import type {
   FillItem,
   ColorInputMode,
@@ -45,21 +46,26 @@ export interface FillValues {
 
 export function useFillValues(): FillValues {
   const selectedId = useStore((s) => s.selectedElementId);
-  const rawFills = useStore((s) => {
-    if (!selectedId) return undefined;
-    return s.elementsMap.get(selectedId) as
-      | { fills?: FillItem[]; props?: { style?: { backgroundColor?: string } } }
-      | undefined;
-  });
+  const { fills, style } = useElementStyleContext(selectedId);
   const activeFillIndex = useFillUIStore((s) => s.activeFillIndex);
   const colorInputMode = useFillUIStore((s) => s.colorInputMode);
   const setActiveFillIndex = useFillUIStore((s) => s.setActiveFillIndex);
   const setColorInputMode = useFillUIStore((s) => s.setColorInputMode);
 
-  const fillsList = useMemo(
-    () => resolveElementFills(rawFills),
-    [rawFills],
+  const rawFills = useMemo(
+    () =>
+      fills || style
+        ? {
+            fills: fills as FillItem[] | undefined,
+            props: {
+              style: style as { backgroundColor?: string } | undefined,
+            },
+          }
+        : undefined,
+    [fills, style],
   );
+
+  const fillsList = useMemo(() => resolveElementFills(rawFills), [rawFills]);
   const activeFill = fillsList[activeFillIndex] ?? null;
 
   return {

@@ -35,12 +35,12 @@ maxTurns: 25
 ### 렌더링 파이프라인
 
 - **CanvasKit/Skia WASM**: 디자인 노드, AI 이펙트, 선택 오버레이 메인 렌더링
-- **PixiJS 8**: 씬 그래프 + EventBoundary 이벤트 처리 (Camera 하위 alpha=0)
+- ~~PixiJS 8~~ — ADR-100으로 제거됨. Canvas 이벤트는 Skia EventBoundary 단일 처리
 - **레이아웃 엔진**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
 
 ### 상태 관리
 
-- **Zustand**: 슬라이스 패턴, 인덱스 (elementsMap, childrenMap, pageIndex)
+- **Zustand**: 슬라이스 패턴 (ADR-122 전환 중 — canonical document = primary, elementsMap/childrenMap = transitional read-only)
 - **파이프라인**: Memory → Index → History → DB Persist → Preview Sync → Order Rebalance
 - **히스토리**: Undo/Redo를 위해 상태 변경 전 반드시 기록
 
@@ -61,7 +61,7 @@ maxTurns: 25
 ### 상태 관리 이슈
 
 - 파이프라인 순서 유지 여부 검증
-- elementsMap/childrenMap 인덱스 정합성 확인
+- canonical document ↔ elementsMap/childrenMap mirror 정합성 확인 (ADR-122: mirror 는 transitional)
 - 히스토리 기록이 변경 전에 수행되는지 확인
 - Zustand 슬라이스 경계 검증
 
@@ -70,7 +70,7 @@ maxTurns: 25
 - **목표**: 60fps Canvas, <3초 초기 로드, <500KB 번들
 - Canvas 렌더링 루프에서 비싼 연산 프로파일링
 - React 컴포넌트 불필요한 리렌더 확인
-- elementsMap O(1) 조회 사용 검증 (배열 순회 금지)
+- hot path 에서 array traversal 금지 — canonical selectors / canonical node lookup 우선, transitional `elementsMap` read-only fallback (ADR-122)
 - 동적 임포트 기회를 위한 번들 크기 점검
 
 ### 통신 이슈
@@ -88,7 +88,7 @@ maxTurns: 25
 
 ## Memory 활용 (세션 간 지식 축적)
 
-디버깅 완료 후 `.claude/agent-memory/debugger/MEMORY.md`에 아래를 기록한다:
+디버깅 완료 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/debugger/` 컨벤션은 2026-05-09 폐기):
 
 - **근본 원인 패턴**: 새로 발견된 버그 패턴과 근본 원인 (동일 버그 재발 시 빠른 진단용)
 - **자주 발생하는 근본 원인**: 반복되는 원인 패턴 업데이트

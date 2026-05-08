@@ -9,19 +9,15 @@ import {
 } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
-import { useStore } from "../../../stores";
+import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
 export const BreadcrumbEditor = memo(function BreadcrumbEditor({
   elementId,
   currentProps,
   onUpdate,
 }: PropertyEditorProps) {
-  // Get customId from element in store
-  // ⭐ 최적화: customId를 현재 시점에만 가져오기 (Zustand 구독 방지)
-  const customId = useMemo(() => {
-    const element = useStore.getState().elementsMap.get(elementId);
-    return element?.customId || "";
-  }, [elementId]);
+  const element = useCanonicalPropertyElement(elementId);
+  const customId = useMemo(() => element?.customId || "", [element?.customId]);
 
   const updateProp = (key: string, value: unknown) => {
     const updatedProps = {

@@ -22,11 +22,11 @@ maxTurns: 20
 
 composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어느 domain**에 해당하는지 판정 필수.
 
-| Domain | 권위 | Spec 관여 |
-| --- | --- | --- |
-| D1 DOM/접근성 | Adobe RAC (절대) | ❌ |
-| D2 Props/API | RSP 참조 + custom | ✅ 타입만 |
-| D3 시각 스타일 | Spec (SSOT) | ✅ 100% |
+| Domain         | 권위              | Spec 관여 |
+| -------------- | ----------------- | --------- |
+| D1 DOM/접근성  | Adobe RAC (절대)  | ❌        |
+| D2 Props/API   | RSP 참조 + custom | ✅ 타입만 |
+| D3 시각 스타일 | Spec (SSOT)       | ✅ 100%   |
 
 정본: [`.claude/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / charter: [ADR-063](../../docs/adr/063-ssot-chain-charter.md)
 
@@ -37,9 +37,9 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 ### 핵심 아키텍처
 
 - **Builder ↔ Preview 분리**: Builder(에디터 UI)와 Preview(사용자 컴포넌트 렌더링)는 iframe으로 격리, postMessage Delta 동기화로 통신
-- **이중 렌더러**: CanvasKit/Skia WASM(메인 렌더링) + PixiJS 8(씬 그래프 + EventBoundary 이벤트 처리, alpha=0)
+- \*\*단일 렌더러: CanvasKit/Skia WASM (ADR-100 PixiJS 제거 완료)
 - **레이아웃 엔진**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
-- **상태 관리**: Zustand 슬라이스 패턴. 인덱스: elementsMap(O(1)), childrenMap, pageIndex
+- **상태 관리**: ADR-116/122 — `CompositionDocument` canonical = primary SSOT. legacy `elementsMap`/`childrenMap` 은 transitional read-only (mutable subscription 금지). Zustand 슬라이스 패턴 유지
 
 ### 성능 기준
 
@@ -53,7 +53,7 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 
 - React 19, React-Aria Components, Zustand, TanStack Query
 - Tailwind CSS v4, tailwind-variants (tv())
-- CanvasKit/Skia WASM + PixiJS 8, @pixi/react
+- CanvasKit/Skia WASM 단일 렌더러 (ADR-100 PixiJS 제거 완료)
 - Taffy WASM + Dropflow Fork (레이아웃 엔진)
 - Groq SDK (llama-3.3-70b-versatile), Supabase, Vite, TypeScript 5, pnpm
 
@@ -118,7 +118,7 @@ ADR 작성 시 위 규칙을 **전부** 따른다. 아래는 architect 에이전
 
 ## Memory 활용 (세션 간 지식 축적)
 
-작업 완료 후 `.claude/agent-memory/architect/MEMORY.md`에 아래를 기록한다:
+작업 완료 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/architect/` 컨벤션은 2026-05-09 폐기):
 
 - **외부 리서치 결과**: 경쟁사/오픈소스 조사에서 발견한 핵심 패턴 (재조사 방지)
 - **아키텍처 제약 발견**: 새로 발견된 hard constraint (성능, 호환성 등)

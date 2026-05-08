@@ -29,6 +29,13 @@ export interface PageFrame {
   elementCount?: number;
 }
 
+export interface FrameBorderArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /** 소스 요소의 씬-로컬 바운드 (elementRegistry 기반) */
 export interface ElementBounds {
   x: number;
@@ -74,6 +81,7 @@ export interface WorkflowHighlightState {
 // ============================================
 
 const EDGE_STROKE_WIDTH = 1; // screen px
+const FRAME_AREA_BORDER_STROKE_WIDTH = 1; // screen px
 const ARROW_SIZE = 8; // screen px
 const DS_INDICATOR_RADIUS = 5; // screen px (data source indicator circle)
 const DS_LABEL_FONT_SIZE = 9; // screen px
@@ -790,6 +798,47 @@ export function renderLayoutGroups(
 // ============================================
 // Page Frame Highlight Renderer
 // ============================================
+
+/**
+ * 페이지/프레임과 캔버스 배경을 구분하기 위한 시각 전용 경계선을 렌더링한다.
+ *
+ * overlay chrome 이므로 layout, hit-test, canonical document에는 영향을 주지 않는다.
+ */
+export function renderFrameAreaBorder(
+  ck: CanvasKit,
+  canvas: Canvas,
+  frameAreas: FrameBorderArea[],
+  zoom: number,
+  color: readonly [number, number, number],
+): void {
+  if (frameAreas.length === 0) return;
+
+  const scope = new SkiaDisposable();
+  try {
+    const safeZoom = Math.max(zoom, 0.001);
+    const strokeWidth = FRAME_AREA_BORDER_STROKE_WIDTH / safeZoom;
+
+    const borderPaint = scope.track(new ck.Paint());
+    borderPaint.setAntiAlias(true);
+    borderPaint.setStyle(ck.PaintStyle.Stroke);
+    borderPaint.setStrokeWidth(strokeWidth);
+    borderPaint.setColor(ck.Color4f(color[0], color[1], color[2], 1));
+
+    const halfStroke = strokeWidth / 2;
+
+    for (const frame of frameAreas) {
+      const rect = ck.XYWHRect(
+        frame.x - halfStroke,
+        frame.y - halfStroke,
+        frame.width + strokeWidth,
+        frame.height + strokeWidth,
+      );
+      canvas.drawRect(rect, borderPaint);
+    }
+  } finally {
+    scope.dispose();
+  }
+}
 
 /**
  * 하이라이트 대상 페이지 프레임에 둥근 테두리 + 반투명 배경을 렌더링한다.

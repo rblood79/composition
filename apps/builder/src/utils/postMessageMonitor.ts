@@ -12,7 +12,7 @@
  * @since 2025-12-18 Phase 9.2
  */
 
-import { longTaskMonitor } from './longTaskMonitor';
+import { longTaskMonitor } from "./longTaskMonitor";
 
 // ============================================
 // Types
@@ -62,7 +62,7 @@ const MAX_LARGE_PAYLOADS = 50;
  * import { postMessageMonitor } from '@/utils/postMessageMonitor';
  *
  * // 메시지 전송 시 기록
- * const message = { type: 'UPDATE_ELEMENTS', payload: elements };
+ * const message = { type: 'THEME_VARS', payload: vars };
  * postMessageMonitor.record(message);
  * iframe.contentWindow.postMessage(message, '*');
  *
@@ -74,7 +74,11 @@ class PostMessageMonitor {
   private messagesByType = new Map<string, MessageStats>();
   private totalMessages = 0;
   private totalSizeBytes = 0;
-  private largePayloads: Array<{ type: string; sizeBytes: number; timestamp: number }> = [];
+  private largePayloads: Array<{
+    type: string;
+    sizeBytes: number;
+    timestamp: number;
+  }> = [];
   private startTime = Date.now();
   private enabled: boolean;
 
@@ -134,7 +138,7 @@ class PostMessageMonitor {
         }
 
         console.warn(
-          `[postMessage] Large payload: ${type} (${(sizeBytes / 1024).toFixed(1)}KB)`
+          `[postMessage] Large payload: ${type} (${(sizeBytes / 1024).toFixed(1)}KB)`,
         );
       }
     } catch {
@@ -146,13 +150,13 @@ class PostMessageMonitor {
    * 메시지에서 타입 추출
    */
   private extractType(message: unknown): string {
-    if (typeof message === 'object' && message !== null) {
+    if (typeof message === "object" && message !== null) {
       const msg = message as Record<string, unknown>;
-      if (typeof msg.type === 'string') {
+      if (typeof msg.type === "string") {
         return msg.type;
       }
     }
-    return 'UNKNOWN';
+    return "UNKNOWN";
   }
 
   // ============================================
@@ -173,7 +177,8 @@ class PostMessageMonitor {
     return {
       totalMessages: this.totalMessages,
       totalSizeKB: this.totalSizeBytes / 1024,
-      avgSizeBytes: this.totalMessages > 0 ? this.totalSizeBytes / this.totalMessages : 0,
+      avgSizeBytes:
+        this.totalMessages > 0 ? this.totalSizeBytes / this.totalMessages : 0,
       messagesByType,
       largePayloads: [...this.largePayloads],
       startTime: this.startTime,
@@ -187,14 +192,14 @@ class PostMessageMonitor {
   printReport(): void {
     const report = this.report();
 
-    console.group('📡 postMessage Monitor Report');
+    console.group("📡 postMessage Monitor Report");
     console.log(`Duration: ${report.durationSeconds.toFixed(1)}s`);
     console.log(`Total Messages: ${report.totalMessages}`);
     console.log(`Total Size: ${report.totalSizeKB.toFixed(1)}KB`);
     console.log(`Avg Size: ${report.avgSizeBytes.toFixed(0)} bytes`);
 
     if (Object.keys(report.messagesByType).length > 0) {
-      console.log('\nBy Type:');
+      console.log("\nBy Type:");
       console.table(
         Object.fromEntries(
           Object.entries(report.messagesByType)
@@ -207,19 +212,21 @@ class PostMessageMonitor {
                 avgBytes: `${stats.avgSizeBytes.toFixed(0)}B`,
                 maxKB: `${(stats.maxSizeBytes / 1024).toFixed(1)}KB`,
               },
-            ])
-        )
+            ]),
+        ),
       );
     }
 
     if (report.largePayloads.length > 0) {
-      console.log(`\nLarge Payloads (>${(LARGE_PAYLOAD_THRESHOLD / 1024).toFixed(0)}KB):`);
+      console.log(
+        `\nLarge Payloads (>${(LARGE_PAYLOAD_THRESHOLD / 1024).toFixed(0)}KB):`,
+      );
       console.table(
         report.largePayloads.slice(-10).map((p) => ({
           type: p.type,
           sizeKB: `${(p.sizeBytes / 1024).toFixed(1)}KB`,
           time: new Date(p.timestamp).toLocaleTimeString(),
-        }))
+        })),
       );
     }
 
@@ -282,7 +289,7 @@ export function monitoredPostMessage(
   target: Window | null | undefined,
   message: unknown,
   targetOrigin: string,
-  transfer?: Transferable[]
+  transfer?: Transferable[],
 ): void {
   // 모니터링 기록
   postMessageMonitor.record(message);
@@ -298,7 +305,8 @@ export function monitoredPostMessage(
 // ============================================
 
 // 개발 모드에서 전역 접근 가능하게 설정
-if (import.meta.env.DEV && typeof window !== 'undefined') {
-  (window as unknown as { postMessageMonitor: PostMessageMonitor }).postMessageMonitor =
-    postMessageMonitor;
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (
+    window as unknown as { postMessageMonitor: PostMessageMonitor }
+  ).postMessageMonitor = postMessageMonitor;
 }

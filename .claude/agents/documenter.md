@@ -97,9 +97,9 @@ Proposed | Accepted | Deprecated | Superseded
 ### 핵심 아키텍처 개념
 
 - **Builder ↔ Preview**: iframe 격리, postMessage Delta 동기화
-- **이중 렌더러**: CanvasKit/Skia WASM(렌더링) + PixiJS 8(이벤트)
+- \*\*단일 렌더러: CanvasKit/Skia WASM (ADR-100 PixiJS 제거 완료)
 - **레이아웃**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계, DirectContainer 직접 배치
-- **상태**: Zustand 슬라이스, elementsMap O(1) 인덱스
+- **상태**: ADR-116/122 canonical document primary. Zustand 슬라이스 + transitional elementsMap read-only
 - **스타일링**: Tailwind CSS v4 + tv() variants
 - **컴포넌트**: React-Aria with hooks
 
@@ -111,7 +111,7 @@ Proposed | Accepted | Deprecated | Superseded
 
 ## Memory 활용 (세션 간 지식 축적)
 
-문서 작업 완료 후 `.claude/agent-memory/documenter/MEMORY.md`에 아래를 기록한다:
+문서 작업 완료 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/documenter/` 컨벤션은 2026-05-09 폐기):
 
 - **docs/ 구조 변경**: 새 디렉토리, 레거시 이동, 인덱스 파일 갱신
 - **ADR 번호 할당 현황**: 번호 충돌 방지를 위한 최신 상태

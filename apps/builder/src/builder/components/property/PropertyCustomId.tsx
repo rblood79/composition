@@ -2,8 +2,11 @@ import React, { useState, useEffect, memo, useId } from "react";
 import { Hash } from "lucide-react";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useStore } from "../../stores";
-import { getActiveCanonicalElementsSnapshot } from "../../stores/canonical/canonicalElementSnapshot";
+import { useCanonicalElements } from "../../stores/canonical/canonicalElementsView";
 import { validateCustomId } from "../../utils/idValidation";
+import type { Element } from "../../../types/builder/unified.types";
+
+const EMPTY_ELEMENTS: Element[] = [];
 
 interface PropertyCustomIdProps {
   label?: string;
@@ -27,21 +30,13 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   const [error, setError] = useState<string | undefined>(undefined);
   const reactId = useId();
   const errorId = `${reactId}-customid-error`;
-
-  // ⭐ 최적화: validation 시에만 elementsMap 가져오기 (구독 방지)
-  // getState()로 현재 시점의 값만 가져옴
-
-  const getValidationElements = () => {
-    const state = useStore.getState();
-    const elementsById = new Map(state.elementsMap);
-    const canonicalElements = getActiveCanonicalElementsSnapshot();
-    for (const element of canonicalElements ?? []) {
-      if (!elementsById.has(element.id)) {
-        elementsById.set(element.id, element);
-      }
-    }
-    return Array.from(elementsById.values());
-  };
+  const canonicalElements = useCanonicalElements();
+  const storeElements = useStore((state) => {
+    if (canonicalElements) return EMPTY_ELEMENTS;
+    const { elements: legacyElements } = state;
+    return legacyElements ?? EMPTY_ELEMENTS;
+  });
+  const validationElements = canonicalElements ?? storeElements;
 
   const commitCustomId = (newCustomId: string) => {
     if (onChange) {
@@ -74,11 +69,10 @@ export const PropertyCustomId = memo(function PropertyCustomId({
 
   const handleBlur = () => {
     // Validate before saving
-    // ⭐ 최적화: validation 시에만 elementsMap 가져오기 (구독 방지)
     const validation = validateCustomId(
       inputValue,
       elementId,
-      getValidationElements(),
+      validationElements,
     );
 
     if (!validation.isValid) {
@@ -104,11 +98,10 @@ export const PropertyCustomId = memo(function PropertyCustomId({
       e.preventDefault();
 
       // Validate before saving
-      // ⭐ 최적화: validation 시에만 elementsMap 가져오기 (구독 방지)
       const validation = validateCustomId(
         inputValue,
         elementId,
-        getValidationElements(),
+        validationElements,
       );
 
       if (!validation.isValid) {

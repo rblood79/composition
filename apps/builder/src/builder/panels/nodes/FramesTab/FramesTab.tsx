@@ -52,6 +52,8 @@ import {
   isCanvasCompareMode,
 } from "../../../../utils/featureFlags";
 
+const EMPTY_ELEMENTS: Element[] = [];
+
 function collectCanonicalFrameElements(
   canonicalElements: Element[] | null,
   frameScope: CanonicalFrameElementScope | null,
@@ -105,11 +107,17 @@ export function FramesTab({
     (state) => state.setCurrentLayoutId,
   );
 
-  // ADR-040: elementsMap O(1) 조회
-  const elementsMap = useStore((state) => state.elementsMap);
   const removeElement = useStore((state) => state.removeElement);
   const canonicalElements = useCanonicalElements();
+  const storeElements = useStore((state) => {
+    if (canonicalElements) return EMPTY_ELEMENTS;
+    const { elements: legacyElements } = state;
+    return legacyElements ?? EMPTY_ELEMENTS;
+  });
   const frameElementScopes = useCanonicalFrameElementScopes();
+  const hydratedElementsMap = useMemo(() => {
+    return new Map(storeElements.map((element) => [element.id, element]));
+  }, [storeElements]);
 
   // ADR-116 projection 제거: active canonical document 의 reusable FrameNode 를
   // 단일 read path 로 사용한다.
@@ -154,7 +162,7 @@ export function FramesTab({
     if (
       hasCanonicalFrameElements(canonicalElements, selectedFrameScope) ||
       (selectedFrameScope &&
-        hasHydratedFrameElements(elementsMap, selectedFrameScope))
+        hasHydratedFrameElements(hydratedElementsMap, selectedFrameScope))
     ) {
       loadedFrameIdsRef.current.add(selectedReusableFrameId);
       return;
@@ -182,7 +190,7 @@ export function FramesTab({
     loadSelectedFrameElements();
   }, [
     selectedReusableFrameId,
-    elementsMap,
+    hydratedElementsMap,
     canonicalElements,
     frameElementScopes,
   ]);
@@ -201,7 +209,8 @@ export function FramesTab({
           !loadedFrameIdsRef.current.has(frameId) &&
           !loadingFrameIdsRef.current.has(frameId) &&
           !hasCanonicalFrameElements(canonicalElements, frameScope) &&
-          (!frameScope || !hasHydratedFrameElements(elementsMap, frameScope))
+          (!frameScope ||
+            !hasHydratedFrameElements(hydratedElementsMap, frameScope))
         );
       });
 
@@ -209,7 +218,8 @@ export function FramesTab({
       const frameScope = frameElementScopes?.get(frame.id) ?? null;
       if (
         hasCanonicalFrameElements(canonicalElements, frameScope) ||
-        (frameScope && hasHydratedFrameElements(elementsMap, frameScope))
+        (frameScope &&
+          hasHydratedFrameElements(hydratedElementsMap, frameScope))
       ) {
         loadedFrameIdsRef.current.add(frame.id);
       }
@@ -257,7 +267,12 @@ export function FramesTab({
     };
 
     loadMissingFrameElements();
-  }, [reusableFrames, elementsMap, canonicalElements, frameElementScopes]);
+  }, [
+    reusableFrames,
+    hydratedElementsMap,
+    canonicalElements,
+    frameElementScopes,
+  ]);
 
   // ADR-116: Frames tree read path 는 active canonical document 를 우선 사용한다.
   // canonical hydration race 동안에만 legacy store mirror 로 fallback 한다.
@@ -271,9 +286,14 @@ export function FramesTab({
     return canonicalFrameElements.length > 0
       ? canonicalFrameElements
       : frameScope
-        ? collectHydratedFrameElements(elementsMap, frameScope)
+        ? collectHydratedFrameElements(hydratedElementsMap, frameScope)
         : [];
-  }, [canonicalElements, elementsMap, currentFrame, frameElementScopes]);
+  }, [
+    canonicalElements,
+    hydratedElementsMap,
+    currentFrame,
+    frameElementScopes,
+  ]);
 
   // Frame 요소 트리 빌드
   const frameElementTree = useMemo(() => {
@@ -306,7 +326,7 @@ export function FramesTab({
         canonicalFrameElements.length > 0
           ? canonicalFrameElements
           : frameScope
-            ? collectHydratedFrameElements(elementsMap, frameScope)
+            ? collectHydratedFrameElements(hydratedElementsMap, frameScope)
             : [];
       const bodyElement = findFrameBodyElement(elementsForFrame);
       if (!bodyElement) return false;
@@ -332,7 +352,7 @@ export function FramesTab({
     },
     [
       canonicalElements,
-      elementsMap,
+      hydratedElementsMap,
       expandKey,
       frameElementScopes,
       requestAutoSelectAfterUpdate,
@@ -372,7 +392,8 @@ export function FramesTab({
       const frameScope = frameElementScopes?.get(frameId) ?? null;
       if (
         hasCanonicalFrameElements(canonicalElements, frameScope) ||
-        (frameScope && hasHydratedFrameElements(elementsMap, frameScope))
+        (frameScope &&
+          hasHydratedFrameElements(hydratedElementsMap, frameScope))
       ) {
         loadedFrameIdsRef.current.add(frameId);
         return;
@@ -405,7 +426,7 @@ export function FramesTab({
     [
       setEditModeLayoutId,
       selectFrameBody,
-      elementsMap,
+      hydratedElementsMap,
       canonicalElements,
       frameElementScopes,
     ],

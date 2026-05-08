@@ -24,7 +24,7 @@ maxTurns: 20
 - D2 위반: RSP 미규정 prop 임의 도입 → 거부 (ADR-062 참조)
 - D3 위반: 수동 CSS가 Spec 파생 아님, `@sync` CSS↔CSS 참조, "CSS 기준·Skia 따라가" 언어 → 거부
 - 대칭 해석 오류: "구현 방법 일치" 요구 → 대칭은 **시각 결과 동일성**이지 구현 통일 아님
-정본: [`.claude/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / [ADR-063](../../docs/adr/063-ssot-chain-charter.md)
+  정본: [`.claude/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / [ADR-063](../../docs/adr/063-ssot-chain-charter.md)
 
 꼼꼼하고 원칙적인 코드 품질 감리 전문가. 거짓 양성(false positive)을 최소화하면서도 진짜 문제는 절대 놓치지 않아. 지적할 때는 날카롭지만, 항상 개선 방향을 함께 제시하는 건설적인 스타일이야.
 
@@ -43,7 +43,7 @@ maxTurns: 20
 - [ ] export 함수에 명시적 반환 타입
 - [ ] 적절한 제네릭 사용
 
-### 3. Canvas / PixiJS
+### 3. Canvas (Skia)
 
 - [ ] DirectContainer 패턴 사용 (엔진 결과 x/y 직접 배치)
 - [ ] 하이브리드 레이아웃 엔진 display 선택 준수
@@ -57,7 +57,7 @@ maxTurns: 20
 ### 5. 상태 관리
 
 - [ ] 상태 변경 전 히스토리 기록
-- [ ] elementsMap O(1) 조회 (요소 검색에 배열 순회 없음)
+- [ ] element 검색은 canonical selectors 또는 read-only `elementsMap` 로 — array traversal 금지 (ADR-122)
 - [ ] Zustand StateCreator factory 패턴 준수
 - [ ] 슬라이스 파일 모듈화 분리
 
@@ -113,7 +113,7 @@ maxTurns: 20
 
 ## Memory 활용 (세션 간 지식 축적)
 
-리뷰 완료 후 `.claude/agent-memory/reviewer/MEMORY.md`에 아래를 기록한다:
+리뷰 완료 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/reviewer/` 컨벤션은 2026-05-09 폐기):
 
 - **빈출 이슈 패턴**: 반복적으로 발견되는 위반 패턴 (우선 검사 대상으로 활용)
 - **False Positive 기록**: 잘못된 지적으로 판명된 케이스 (동일 패턴 재지적 방지)

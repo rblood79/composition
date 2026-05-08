@@ -8,9 +8,9 @@ import type { Element, Page } from "@/types/builder/unified.types";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../../builder/stores/canonical/canonicalElementsView";
 import { enqueuePagePersistence } from "../../builder/utils/pagePersistenceQueue";
 import { mergeElementsCanonicalPrimary } from "./canonicalMutations";
-import { exportLegacyDocument } from "./exportLegacyDocument";
 import { loadFrameElements } from "./frameElementLoader";
 import {
   getPageFrameBindingId,
@@ -30,7 +30,6 @@ export interface ApplyPageFrameBindingInput {
   frameId: string | null;
   getElementsState: () => ElementsStateForPageBinding;
   setPages: (pages: Page[]) => void;
-  setElements?: (elements: Element[]) => void;
 }
 
 function isPageNode(node: CanonicalNode, pageId: string): boolean {
@@ -170,6 +169,26 @@ function findPageOwnedBodyElement(
     }
   }
   return null;
+}
+
+function getPageBindingElementsMap(
+  fallbackElementsMap?: ReadonlyMap<string, Element>,
+): ReadonlyMap<string, Element> | undefined {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const doc = projectId ? canonical.getDocument(projectId) : null;
+  if (!doc) return fallbackElementsMap;
+
+  const elementsMap = new Map<string, Element>();
+  visitCanonicalDocumentElements(doc, (element) => {
+    elementsMap.set(element.id, element);
+  });
+  fallbackElementsMap?.forEach((element, elementId) => {
+    if (!elementsMap.has(elementId)) {
+      elementsMap.set(elementId, element);
+    }
+  });
+  return elementsMap;
 }
 
 function makeBodyNodeFromElement(element: Element): CanonicalNode {
@@ -319,7 +338,6 @@ export async function applyPageFrameBindingCanonicalPrimary({
   frameId,
   getElementsState,
   setPages,
-  setElements,
 }: ApplyPageFrameBindingInput): Promise<void> {
   if (frameId) {
     const frameElements = await loadFrameElements(frameId);
@@ -327,6 +345,7 @@ export async function applyPageFrameBindingCanonicalPrimary({
   }
 
   const state = getElementsState();
+  const { elementsMap: legacyElementsMap } = state;
   const updatedPages = state.pages.map((page) =>
     page.id === pageId ? withPageFrameBinding(page, frameId) : page,
   );
@@ -336,11 +355,10 @@ export async function applyPageFrameBindingCanonicalPrimary({
     throw new Error(`Page not found: ${pageId}`);
   }
 
-  const doc = setCanonicalDocumentFromPageBinding(
+  setCanonicalDocumentFromPageBinding(
     updatedPage,
-    state.elementsMap,
+    getPageBindingElementsMap(legacyElementsMap),
   );
-  setElements?.(exportLegacyDocument(doc) as Element[]);
   setPages(updatedPages);
   await persistPageFrameBindingMirror(pageId, frameId, updatedPage);
 }

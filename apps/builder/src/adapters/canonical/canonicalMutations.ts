@@ -8,8 +8,11 @@
  *
  * in-memory wrapper (merge/set) 가 항상 canonical primary 로 동작한다.
  * (1) active canonical document 또는 snapshot shell 에 입력 elements upsert →
- * (2) canonical store `setDocument` push → (3) `exportLegacyDocument()` 결과를
- * legacy mirror 로 `setElements()` 호출.
+ * (2) canonical store `setDocument` push.
+ *
+ * ADR-122 Phase 1: wrapper 내부의 legacy export 후 `setElements` write-back 은
+ * 제거한다. legacy `elementsMap` 호환 cache 가 transition 중
+ * 필요하면 canonical store subscriber 가 derived read-only snapshot 으로 갱신한다.
  *   DB wrapper (create/update/createMultiple) 는 reverse 영향 없음 — DB persist
  *   자체는 elementsApi 그대로 사용 (D17=A 채택, schema 미변경).
  *
@@ -44,7 +47,6 @@ import type {
 } from "@composition/shared";
 import { moveCanonicalChild } from "@composition/shared";
 import { elementsApi } from "./legacyElementsApiService";
-import { exportLegacyDocument } from "./exportLegacyDocument";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import {
   buildLegacyElementMetadata,
@@ -84,12 +86,15 @@ export type LegacySnapshot = {
  * (`getCurrentLegacySnapshot` / `getCurrentProjectId`).
  */
 export type CanonicalMutationStoreActions = {
-  mergeElements: (els: Element[]) => void;
-  setElements: (els: Element[]) => void;
   /** canonical primary path: 현재 legacy state 전체 snapshot 조회 */
   getCurrentLegacySnapshot: () => LegacySnapshot;
   /** canonical primary path: 활성 projectId (canonical store setDocument target) */
   getCurrentProjectId: () => string | null;
+};
+
+export type CanonicalMutationResult = {
+  changed: boolean;
+  document: CompositionDocument | null;
 };
 
 let _registeredActions: CanonicalMutationStoreActions | null = null;
@@ -102,8 +107,6 @@ let _registeredActions: CanonicalMutationStoreActions | null = null;
  * // BuilderCore.tsx
  * useEffect(() => {
  *   registerCanonicalMutationStoreActions({
- *     mergeElements: useStore.getState().mergeElements,
- *     setElements: useStore.getState().setElements,
  *     getCurrentLegacySnapshot: () => ({
  *       elements: Array.from(useStore.getState().elementsMap.values()),
  *       pages: useStore.getState().pages,
@@ -1352,22 +1355,97 @@ function applyCanonicalSiblingOrder(
   return result.changed ? { ...doc, children: result.nodes } : doc;
 }
 
-function clearChildrenForIncomingElementIds(
-  nodes: CompositionDocument["children"],
-  incomingElementIds: Set<string>,
-): CompositionDocument["children"] {
-  return nodes.map((node) => {
-    if (incomingElementIds.has(node.id)) {
-      return { ...node, children: [] };
+function isFullReplaceShellNode(node: CanonicalNode): boolean {
+  const metadata = node.metadata as { type?: unknown } | undefined;
+  return metadata?.type === "legacy-page" || metadata?.type === "legacy-layout";
+}
+
+function shouldPreserveOmittedFullReplaceNode(node: CanonicalNode): boolean {
+  return isFullReplaceShellNode(node) || node.type === "body";
+}
+
+function hasFullReplaceChildrenPayload(node: CanonicalNode): boolean {
+  if (node.children && node.children.length > 0) return true;
+  if (node.type !== "ref") return false;
+  return Object.values((node as RefNode).descendants ?? {}).some(
+    (override) =>
+      hasDescendantChildrenOverride(override) && override.children.length > 0,
+  );
+}
+
+function clearIncomingFullReplaceNode(node: CanonicalNode): CanonicalNode {
+  if (node.type === "ref") {
+    return {
+      ...(node as RefNode),
+      children: [],
+      descendants: {},
+    } satisfies RefNode;
+  }
+  return { ...node, children: [] };
+}
+
+function pruneRefDescendantsForFullReplace(
+  refNode: RefNode,
+  incomingElementIds: ReadonlySet<string>,
+): RefNode {
+  const descendants = refNode.descendants ?? {};
+  if (Object.keys(descendants).length === 0) return refNode;
+
+  const nextDescendants: RefNode["descendants"] = {};
+  for (const [descendantPath, override] of Object.entries(descendants)) {
+    if (!hasDescendantChildrenOverride(override)) {
+      nextDescendants[descendantPath] = override;
+      continue;
     }
+    nextDescendants[descendantPath] = {
+      ...override,
+      children: pruneChildrenForFullReplace(
+        override.children,
+        incomingElementIds,
+      ),
+    };
+  }
 
-    if (!node.children || node.children.length === 0) return node;
+  return { ...refNode, descendants: nextDescendants };
+}
 
-    const children = clearChildrenForIncomingElementIds(
-      node.children,
+function pruneNodeForFullReplace(
+  node: CanonicalNode,
+  incomingElementIds: ReadonlySet<string>,
+): CanonicalNode | null {
+  if (incomingElementIds.has(node.id)) {
+    return clearIncomingFullReplaceNode(node);
+  }
+
+  let nextNode = node;
+  if (node.children) {
+    nextNode = {
+      ...nextNode,
+      children: pruneChildrenForFullReplace(node.children, incomingElementIds),
+    };
+  }
+
+  if (nextNode.type === "ref") {
+    nextNode = pruneRefDescendantsForFullReplace(
+      nextNode as RefNode,
       incomingElementIds,
     );
-    return children === node.children ? node : { ...node, children };
+  }
+
+  if (shouldPreserveOmittedFullReplaceNode(nextNode)) return nextNode;
+  if (!isLegacyExportableCanonicalNode(nextNode)) {
+    return hasFullReplaceChildrenPayload(nextNode) ? nextNode : null;
+  }
+  return null;
+}
+
+function pruneChildrenForFullReplace(
+  nodes: CompositionDocument["children"],
+  incomingElementIds: ReadonlySet<string>,
+): CompositionDocument["children"] {
+  return nodes.flatMap((node) => {
+    const pruned = pruneNodeForFullReplace(node, incomingElementIds);
+    return pruned ? [pruned] : [];
   });
 }
 
@@ -1375,14 +1453,10 @@ function prepareFullReplaceShell(
   doc: CompositionDocument,
   elements: Element[],
 ): CompositionDocument {
-  if (elements.length === 0) return doc;
   const incomingElementIds = new Set(elements.map((element) => element.id));
   return {
     ...doc,
-    children: clearChildrenForIncomingElementIds(
-      doc.children,
-      incomingElementIds,
-    ),
+    children: pruneChildrenForFullReplace(doc.children, incomingElementIds),
   };
 }
 
@@ -1395,12 +1469,16 @@ function prepareFullReplaceShell(
  *
  * 1. active canonical document 에 incoming elements 를 legacy id 기준 upsert
  * 2. canonical store `setDocument` push
- * 3. `exportLegacyDocument(doc)` → legacy `setElements` mirror
  */
-function applyCanonicalPrimaryMerge(elements: Element[]): void {
+function applyCanonicalPrimaryMerge(
+  elements: Element[],
+): CanonicalMutationResult {
   const actions = getActions();
   const snapshot = actions.getCurrentLegacySnapshot();
   const projectId = actions.getCurrentProjectId();
+  if (!projectId) {
+    return { changed: false, document: null };
+  }
   const currentDoc = getCurrentDocument(projectId);
   const sortedElements = sortElementsForUpsert(elements);
   const upsertedDoc = upsertElementsIntoDocument(
@@ -1414,13 +1492,9 @@ function applyCanonicalPrimaryMerge(elements: Element[]): void {
     currentDoc,
   );
 
-  if (projectId) {
-    useCanonicalDocumentStore.getState().setDocument(projectId, doc);
-  }
+  useCanonicalDocumentStore.getState().setDocument(projectId, doc);
 
-  // legacy mirror — exportLegacyDocument round-trip 결과
-  const legacyMirror = exportLegacyDocument(doc);
-  actions.setElements(legacyMirror);
+  return { changed: true, document: doc };
 }
 
 /**
@@ -1429,12 +1503,16 @@ function applyCanonicalPrimaryMerge(elements: Element[]): void {
  * 1. 기존 pages/layouts snapshot 으로 canonical document shell 구성
  * 2. 입력 elements 를 shell 에 legacy id 기준 upsert
  * 2. canonical store `setDocument` push
- * 3. `exportLegacyDocument(doc)` → legacy `setElements` mirror
  */
-function applyCanonicalPrimarySet(elements: Element[]): void {
+function applyCanonicalPrimarySet(
+  elements: Element[],
+): CanonicalMutationResult {
   const actions = getActions();
   const snapshot = actions.getCurrentLegacySnapshot();
   const projectId = actions.getCurrentProjectId();
+  if (!projectId) {
+    return { changed: false, document: null };
+  }
   const currentDoc = getCurrentDocument(projectId);
   const shellDoc = buildDocumentShellFromSnapshot(currentDoc, snapshot);
   const replaceShellDoc = prepareFullReplaceShell(shellDoc, elements);
@@ -1445,12 +1523,9 @@ function applyCanonicalPrimarySet(elements: Element[]): void {
     snapshot,
   );
   const doc = applyCanonicalSiblingOrder(upsertedDoc, sortedElements);
-  if (projectId) {
-    useCanonicalDocumentStore.getState().setDocument(projectId, doc);
-  }
+  useCanonicalDocumentStore.getState().setDocument(projectId, doc);
 
-  const legacyMirror = exportLegacyDocument(doc);
-  actions.setElements(legacyMirror);
+  return { changed: true, document: doc };
 }
 
 // ─────────────────────────────────────────────
@@ -1464,8 +1539,10 @@ function applyCanonicalPrimarySet(elements: Element[]): void {
  *
  * @param elements - 추가/병합할 legacy element 배열
  */
-export function mergeElementsCanonicalPrimary(elements: Element[]): void {
-  applyCanonicalPrimaryMerge(elements);
+export function mergeElementsCanonicalPrimary(
+  elements: Element[],
+): CanonicalMutationResult {
+  return applyCanonicalPrimaryMerge(elements);
 }
 
 /**
@@ -1475,8 +1552,10 @@ export function mergeElementsCanonicalPrimary(elements: Element[]): void {
  *
  * @param elements - 전체 element 배열 (replace)
  */
-export function setElementsCanonicalPrimary(elements: Element[]): void {
-  applyCanonicalPrimarySet(elements);
+export function setElementsCanonicalPrimary(
+  elements: Element[],
+): CanonicalMutationResult {
+  return applyCanonicalPrimarySet(elements);
 }
 
 /**
@@ -1484,16 +1563,19 @@ export function setElementsCanonicalPrimary(elements: Element[]): void {
  *
  * Drag/drop Phase 4 entry point:
  * - canonical document 를 먼저 이동한다.
- * - legacy `Element[]` 는 `exportLegacyDocument()` mirror 로만 갱신한다.
+ * - legacy `Element[]` mirror write-back 은 수행하지 않는다.
  * - legacy element `order_num` batch 는 제거됐고 canonical children[] index 만 갱신한다.
  */
 export function moveElementCanonicalPrimary(
   elementId: string,
   targetParentId: CanonicalParentId,
   insertionIndex: number,
-): Element[] {
+): CanonicalMutationResult {
   const actions = getActions();
   const projectId = actions.getCurrentProjectId();
+  if (!projectId) {
+    return { changed: false, document: null };
+  }
   const currentDoc = getCurrentDocument(projectId);
   const result = moveCanonicalChild(
     currentDoc,
@@ -1503,18 +1585,12 @@ export function moveElementCanonicalPrimary(
   );
 
   if (!result.changed) {
-    return [];
+    return { changed: false, document: currentDoc };
   }
 
-  if (projectId) {
-    useCanonicalDocumentStore
-      .getState()
-      .setDocument(projectId, result.document);
-  }
+  useCanonicalDocumentStore.getState().setDocument(projectId, result.document);
 
-  const legacyMirror = exportLegacyDocument(result.document);
-  actions.setElements(legacyMirror);
-  return legacyMirror;
+  return { changed: true, document: result.document };
 }
 
 /**
@@ -1524,11 +1600,14 @@ export function moveElementCanonicalPrimary(
  */
 export function applyElementOrderCanonicalPrimary(
   elements: Element[],
-): Element[] {
-  if (elements.length === 0) return [];
+): CanonicalMutationResult {
+  if (elements.length === 0) return { changed: false, document: null };
 
   const actions = getActions();
   const projectId = actions.getCurrentProjectId();
+  if (!projectId) {
+    return { changed: false, document: null };
+  }
   const currentDoc = getCurrentDocument(projectId);
   const sourceIndexById = createElementSourceIndex(elements);
   const orderedMoves = [...elements]
@@ -1568,15 +1647,11 @@ export function applyElementOrderCanonicalPrimary(
     changed = true;
   }
 
-  if (!changed) return [];
+  if (!changed) return { changed: false, document: currentDoc };
 
-  if (projectId) {
-    useCanonicalDocumentStore.getState().setDocument(projectId, doc);
-  }
+  useCanonicalDocumentStore.getState().setDocument(projectId, doc);
 
-  const legacyMirror = exportLegacyDocument(doc);
-  actions.setElements(legacyMirror);
-  return legacyMirror;
+  return { changed: true, document: doc };
 }
 
 // ─────────────────────────────────────────────

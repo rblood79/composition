@@ -5,7 +5,6 @@ import { resolveTopmostHitElementId } from "./selectionModel";
 export function resolveCanvasDetachContextTarget(
   hitCandidates: string[],
   hitElementsMap: Map<string, Element>,
-  canonicalElementsMap: Map<string, Element>,
   hitChildrenMap?: Map<string, Element[]> | null,
 ): string | null {
   const hitElementId = resolveTopmostHitElementId(
@@ -15,7 +14,6 @@ export function resolveCanvasDetachContextTarget(
   );
   if (!hitElementId) return null;
 
-  const element =
-    canonicalElementsMap.get(hitElementId) ?? hitElementsMap.get(hitElementId);
+  const element = hitElementsMap.get(hitElementId);
   return canDetachInstance(element) ? hitElementId : null;
 }

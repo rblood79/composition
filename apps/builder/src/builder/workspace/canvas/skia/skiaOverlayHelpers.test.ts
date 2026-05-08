@@ -66,6 +66,41 @@ describe("buildHoverHighlightTargets editing semantics", () => {
     ]);
   });
 
+  it("uses visible page frame bounds for page body hover when tree bounds are absent", () => {
+    const targets = buildHoverHighlightTargets(
+      new Map(),
+      "page-body",
+      [],
+      false,
+      new Map([
+        [
+          "page-body",
+          makeElement("page-body", { page_id: "page-1", type: "body" }),
+        ],
+      ]),
+      [
+        {
+          id: "page-1",
+          title: "Home",
+          x: 10,
+          y: 20,
+          width: 320,
+          height: 200,
+          elementCount: 0,
+        },
+      ],
+    );
+
+    expect(targets).toEqual([
+      expect.objectContaining({
+        bounds: { x: 10, y: 20, width: 320, height: 200 },
+        dashed: false,
+        semanticRole: null,
+        slotMarkerRole: null,
+      }),
+    ]);
+  });
+
   it("marks slot hover targets with origin and instance slot roles", () => {
     const origin = makeElement("origin", {
       parent_id: null,

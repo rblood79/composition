@@ -9,12 +9,14 @@ import {
 import { PropertyEditorProps } from "../types/editorTypes";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { useStore } from "../../../stores";
+import {
+  useCanonicalPropertyChildren,
+  useCanonicalPropertyElement,
+} from "../hooks/useCanonicalPropertyRead";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { generateCustomId } from "../../../utils/idGeneration";
 import type { Element } from "../../../../types/core/store.types";
-
-const EMPTY_CHILDREN: Element[] = [];
 
 export const TagEditor = memo(function TagEditor({
   elementId,
@@ -25,10 +27,8 @@ export const TagEditor = memo(function TagEditor({
   const addElement = useStore((state) => state.addElement);
   const currentPageId = useStore((state) => state.currentPageId);
   const setSelectedElement = useStore((state) => state.setSelectedElement);
-  // ADR-040: elementsMap/childrenMap O(1) 조회
-  const element = useStore((state) => state.elementsMap.get(elementId));
-  const rawChildren =
-    useStore((state) => state.childrenMap.get(elementId)) ?? EMPTY_CHILDREN;
+  const element = useCanonicalPropertyElement(elementId);
+  const rawChildren = useCanonicalPropertyChildren(elementId);
 
   // Get customId from element in store
   const customId = element?.customId || "";

@@ -492,8 +492,6 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
       state: ReturnType<typeof setupStateMocks>["state"],
     ) {
       registerCanonicalMutationStoreActions({
-        mergeElements: vi.fn(),
-        setElements: vi.fn(),
         getCurrentLegacySnapshot: () => ({
           elements: state.elements,
           pages: [

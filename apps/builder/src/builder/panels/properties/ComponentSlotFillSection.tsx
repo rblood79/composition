@@ -9,6 +9,11 @@ import { resolveReference } from "../../../utils/component/referenceResolution";
 import { PropertySection, PropertySelect } from "../../components";
 import { useStore } from "../../stores";
 import {
+  useCanonicalPropertyChildrenMap,
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "./hooks/useCanonicalPropertyRead";
+import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   getComponentDescendantsMirror,
 } from "../../../adapters/canonical/componentSemanticsMirror";
@@ -53,11 +58,11 @@ function getSlotFillChildren(instance: Element, path: string): unknown[] {
 
 function collectSlotHosts(
   parent: Element,
-  childrenMap: Map<string, Element[]>,
+  childrenByParent: ReadonlyMap<string, Element[]>,
   pathPrefix = "",
 ): SlotHostInfo[] {
   const slots: SlotHostInfo[] = [];
-  const children = childrenMap.get(parent.id) ?? [];
+  const children = childrenByParent.get(parent.id) ?? [];
 
   for (const child of children) {
     const segment = getStableSegment(child);
@@ -70,7 +75,7 @@ function collectSlotHosts(
         recommendedIds: slot,
       });
     }
-    slots.push(...collectSlotHosts(child, childrenMap, path));
+    slots.push(...collectSlotHosts(child, childrenByParent, path));
   }
 
   return slots;
@@ -78,19 +83,19 @@ function collectSlotHosts(
 
 function getFillCandidateOptions(
   slot: SlotHostInfo | undefined,
-  elementsMap: Map<string, Element>,
+  elementsById: ReadonlyMap<string, Element>,
 ): { label: string; value: string }[] {
   if (!slot) return [];
 
   const recommended = slot.recommendedIds
-    .map((reference) => resolveReference(reference, elementsMap.values()))
+    .map((reference) => resolveReference(reference, elementsById.values()))
     .filter((candidate): candidate is Element => Boolean(candidate))
     .filter((candidate) => candidate.reusable === true);
 
   const candidates =
     recommended.length > 0
       ? recommended
-      : [...elementsMap.values()].filter(
+      : [...elementsById.values()].filter(
           (candidate) => candidate.reusable === true,
         );
 
@@ -104,12 +109,12 @@ function getFillCandidateOptions(
 
 function getFilledLabel(
   children: unknown[],
-  elementsMap: Map<string, Element>,
+  elementsById: ReadonlyMap<string, Element>,
 ): string {
   const labels = children.filter(isRecord).map((child) => {
     const ref = typeof child.ref === "string" ? child.ref : undefined;
     const candidate = ref
-      ? resolveReference(ref, elementsMap.values())
+      ? resolveReference(ref, elementsById.values())
       : undefined;
     if (candidate) return getElementLabel(candidate);
     return typeof child.type === "string" ? child.type : "Unknown";
@@ -147,9 +152,9 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
 }: {
   elementId: string;
 }) {
-  const element = useStore((state) => state.elementsMap.get(elementId));
-  const elementsMap = useStore((state) => state.elementsMap);
-  const childrenMap = useStore((state) => state.childrenMap);
+  const element = useCanonicalPropertyElement(elementId);
+  const elementsById = useCanonicalPropertyElementsMap();
+  const childrenByParent = useCanonicalPropertyChildrenMap();
   const updateElement = useStore((state) => state.updateElement);
   const [selectedSlotPath, setSelectedSlotPath] = useState("");
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
@@ -159,13 +164,13 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
     if (!element || !isCanonicalRefElement(element)) return undefined;
     const ref = (element as Element & { ref?: unknown }).ref;
     return typeof ref === "string"
-      ? resolveCanonicalRefMaster(ref, elementsMap.values())
+      ? resolveCanonicalRefMaster(ref, elementsById.values())
       : undefined;
-  }, [element, elementsMap]);
+  }, [element, elementsById]);
 
   const slots = useMemo(
-    () => (master ? collectSlotHosts(master, childrenMap) : []),
-    [childrenMap, master],
+    () => (master ? collectSlotHosts(master, childrenByParent) : []),
+    [childrenByParent, master],
   );
 
   const selectedSlot = useMemo(
@@ -174,8 +179,8 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
   );
 
   const candidateOptions = useMemo(
-    () => getFillCandidateOptions(selectedSlot, elementsMap),
-    [elementsMap, selectedSlot],
+    () => getFillCandidateOptions(selectedSlot, elementsById),
+    [elementsById, selectedSlot],
   );
 
   const legacyOverrideKey = JSON.stringify(
@@ -206,15 +211,13 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
 
   const instance = element;
   const filledChildren = getSlotFillChildren(instance, selectedSlot.path);
-  const filledLabel = getFilledLabel(filledChildren, elementsMap);
+  const filledLabel = getFilledLabel(filledChildren, elementsById);
 
   const handleFillSlot = () => {
-    const latestState = useStore.getState();
-    const latestElementsMap = latestState.elementsMap;
-    const candidate = latestElementsMap.get(selectedCandidateId);
+    const candidate = elementsById.get(selectedCandidateId);
     if (!candidate || !selectedSlot) return;
 
-    const latestInstance = latestElementsMap.get(element.id) ?? instance;
+    const latestInstance = elementsById.get(element.id) ?? instance;
     const legacyDescendantMap =
       getComponentDescendantsMirror(latestInstance) ?? {};
     const currentChildren = getSlotFillChildren(

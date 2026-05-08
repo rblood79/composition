@@ -13,10 +13,15 @@
 import { useCallback, useMemo, useState } from "react";
 import { useStore } from "../../../../stores";
 import {
-  canonicalDocumentToElements,
   useCanonicalElements,
   useCanonicalFrameElementScopes,
+  visitCanonicalDocumentElements,
 } from "../../../../stores/canonical/canonicalElementsView";
+import {
+  useCanonicalPropertyChildrenMap,
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "../../hooks/useCanonicalPropertyRead";
 import { getActiveCanonicalDocument } from "../../../../stores/canonical/canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { LAYOUT_PRESETS } from "./presetDefinitions";
@@ -54,23 +59,33 @@ function readAssignedSlotName(element: Element): string | null {
 }
 
 function buildElementMap(
-  elementsMap: ReadonlyMap<string, Element>,
+  elementsById: ReadonlyMap<string, Element>,
   canonicalElements: Element[] | null,
 ): Map<string, Element> {
-  const combined = new Map<string, Element>(elementsMap);
+  const combined = new Map<string, Element>(elementsById);
   for (const element of canonicalElements ?? []) {
     combined.set(element.id, element);
   }
   return combined;
 }
 
+function collectPresetSourceElements(
+  doc: Parameters<typeof visitCanonicalDocumentElements>[0],
+): Element[] {
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element as Element);
+  });
+  return elements;
+}
+
 function hasSlotChildren(
   slotElement: Element,
   slotName: string,
-  childrenMap: ReadonlyMap<string, Element[]>,
+  childrenByParent: ReadonlyMap<string, Element[]>,
   combinedElements: ReadonlyMap<string, Element>,
 ): boolean {
-  if ((childrenMap.get(slotElement.id) ?? []).length > 0) return true;
+  if ((childrenByParent.get(slotElement.id) ?? []).length > 0) return true;
 
   for (const element of combinedElements.values()) {
     if (element.id === slotElement.id) continue;
@@ -85,20 +100,20 @@ function hasSlotChildren(
 
 export function collectExistingFrameSlots({
   layoutId,
-  elementsMap,
-  childrenMap,
+  elementsById,
+  childrenByParent,
   canonicalElements,
   frameScope,
 }: {
   layoutId: string;
-  elementsMap: ReadonlyMap<string, Element>;
-  childrenMap: ReadonlyMap<string, Element[]>;
+  elementsById: ReadonlyMap<string, Element>;
+  childrenByParent: ReadonlyMap<string, Element[]>;
   canonicalElements: Element[] | null;
   frameScope: CanonicalFrameElementScope | null;
 }): ExistingSlotInfo[] {
   const slotsById = new Map<string, Element>();
 
-  elementsMap.forEach((element) => {
+  elementsById.forEach((element) => {
     if (
       element.type === "Slot" &&
       isLegacyFrameElementForFrame(element, layoutId)
@@ -115,7 +130,7 @@ export function collectExistingFrameSlots({
     }
   }
 
-  const combinedElements = buildElementMap(elementsMap, canonicalElements);
+  const combinedElements = buildElementMap(elementsById, canonicalElements);
 
   return Array.from(slotsById.values()).map((element) => {
     const slotName = readSlotElementName(element);
@@ -125,7 +140,7 @@ export function collectExistingFrameSlots({
       hasChildren: hasSlotChildren(
         element,
         slotName,
-        childrenMap,
+        childrenByParent,
         combinedElements,
       ),
     };
@@ -159,7 +174,7 @@ async function removeCanonicalPresetSlots(slotIds: string[]): Promise<void> {
   if (!doc) return;
 
   const slotIdSet = new Set(slotIds);
-  const sourceElements = canonicalDocumentToElements(doc);
+  const sourceElements = collectPresetSourceElements(doc);
   const filteredElements = filterElementsForPresetSlotReplace(
     sourceElements,
     slotIdSet,
@@ -208,11 +223,11 @@ export function usePresetApply({
   const [isApplying, setIsApplying] = useState(false);
   const canonicalElements = useCanonicalElements();
   const frameElementScopes = useCanonicalFrameElementScopes();
+  const elementsById = useCanonicalPropertyElementsMap();
+  const childrenByParent = useCanonicalPropertyChildrenMap();
+  const bodyElement = useCanonicalPropertyElement(bodyElementId);
 
   // Store actions
-  // ADR-040: elementsMap O(1) 조회 (전체 elements 배열 구독 제거)
-  const elementsMap = useStore((state) => state.elementsMap);
-  const childrenMap = useStore((state) => state.childrenMap);
   const addComplexElement = useStore((state) => state.addComplexElement);
   const removeElements = useStore((state) => state.removeElements);
   const updateElementProps = useStore((state) => state.updateElementProps);
@@ -232,14 +247,14 @@ export function usePresetApply({
   const existingSlots = useMemo((): ExistingSlotInfo[] => {
     return collectExistingFrameSlots({
       layoutId,
-      elementsMap,
-      childrenMap,
+      elementsById,
+      childrenByParent,
       canonicalElements,
       frameScope: frameElementScopes?.get(layoutId) ?? null,
     });
   }, [
-    elementsMap,
-    childrenMap,
+    elementsById,
+    childrenByParent,
     canonicalElements,
     frameElementScopes,
     layoutId,
@@ -247,10 +262,7 @@ export function usePresetApply({
 
   // ⭐ 현재 적용된 프리셋 감지 (body element의 appliedPreset prop에서 읽기)
   const currentPresetKey = useMemo((): string | null => {
-    // ADR-040: elementsMap O(1) 조회
-    const body =
-      elementsMap.get(bodyElementId) ??
-      canonicalElements?.find((element) => element.id === bodyElementId);
+    const body = elementsById.get(bodyElementId) ?? bodyElement;
     if (!body) return null;
 
     const appliedPreset = (body.props as { appliedPreset?: string })
@@ -272,7 +284,7 @@ export function usePresetApply({
     }
 
     return null;
-  }, [elementsMap, canonicalElements, bodyElementId, existingSlots]);
+  }, [bodyElement, bodyElementId, elementsById, existingSlots]);
 
   // 프리셋 적용 함수
   const applyPreset = useCallback(
@@ -304,12 +316,8 @@ export function usePresetApply({
           // set 할 수 있어, 마지막 commit 이 앞선 삭제를 메모리에 되살린다.
           // replace 는 동일 부모의 slot 집합을 한 번에 제거해야 한다.
           const existingSlotIds = existingSlots.map((slot) => slot.elementId);
-          const latestElementsMap = useStore.getState().elementsMap;
-          const legacySlotIds = existingSlotIds.filter((slotId) =>
-            latestElementsMap.has(slotId),
-          );
 
-          await removeElements(legacySlotIds);
+          await removeElements(existingSlotIds);
           await removeCanonicalPresetSlots(existingSlotIds);
 
           console.log(
@@ -359,8 +367,7 @@ export function usePresetApply({
         // ============================================
         // Step 4: Body에 containerStyle 및 appliedPreset 저장
         // ============================================
-        // ADR-040: elementsMap O(1) 조회 (handler 내부 → getState 최신값)
-        const body = useStore.getState().elementsMap.get(bodyElementId);
+        const body = elementsById.get(bodyElementId) ?? bodyElement;
         if (body) {
           const currentStyle =
             ((body.props as { style?: Record<string, unknown> })
@@ -409,6 +416,8 @@ export function usePresetApply({
       layoutId,
       bodyElementId,
       existingSlots,
+      bodyElement,
+      elementsById,
       addComplexElement,
       removeElements,
       updateElementProps,

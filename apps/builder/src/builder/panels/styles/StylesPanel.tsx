@@ -36,10 +36,8 @@ const ModifiedSectionsWrapper = memo(function ModifiedSectionsWrapper() {
 });
 
 const AllSections = memo(function AllSections() {
-  const type = useStore((s) => {
-    const id = s.selectedElementId;
-    return id ? (s.elementsMap.get(id)?.type ?? null) : null;
-  });
+  const selectedElement = useDebouncedSelectedElementData();
+  const type = selectedElement?.type ?? null;
   const hasSpec = type != null && type !== "";
 
   return (
@@ -55,12 +53,9 @@ const AllSections = memo(function AllSections() {
 
 function StylesPanelContent() {
   const hasSelectedElement = useStore((s) => s.selectedElementId != null);
-  const selectedStyle = useStore((s) => {
-    const id = s.selectedElementId;
-    if (!id) return null;
-    const el = s.elementsMap.get(id);
-    return (el?.props?.style as Record<string, unknown> | undefined) ?? null;
-  });
+  const selectedElement = useDebouncedSelectedElementData();
+  const selectedStyle =
+    (selectedElement?.style as Record<string, unknown> | undefined) ?? null;
   const modifiedCount = useMemo(() => {
     if (!selectedStyle) return 0;
     return Object.keys(selectedStyle).filter(

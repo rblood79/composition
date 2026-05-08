@@ -3,7 +3,6 @@ import { Component as ComponentIcon } from "lucide-react";
 import type { Element } from "../../../types/core/store.types";
 import { PropertySection } from "../../components";
 import { useStore } from "../../stores";
-import { useCanonicalElements } from "../../stores/canonical/canonicalElementsView";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { resolveReference } from "../../../utils/component/referenceResolution";
 import {
@@ -16,6 +15,10 @@ import {
   type EditingSemanticsOverrideItem,
 } from "../../utils/editingSemantics";
 import { getFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import {
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "./hooks/useCanonicalPropertyRead";
 
 function resolveOriginElement(
   originId: string | null,
@@ -48,18 +51,11 @@ function isFrameBodyElement(element: Element): boolean {
 
 export const ComponentSemanticsSection = memo(
   function ComponentSemanticsSection({ elementId }: { elementId: string }) {
-    const legacyElement = useStore((state) => state.elementsMap.get(elementId));
-    const elementsMap = useStore((state) => state.elementsMap);
-    const canonicalElements = useCanonicalElements();
-    const element = useMemo(
-      () =>
-        canonicalElements?.find((candidate) => candidate.id === elementId) ??
-        legacyElement,
-      [canonicalElements, elementId, legacyElement],
-    );
+    const element = useCanonicalPropertyElement(elementId);
+    const elementsById = useCanonicalPropertyElementsMap();
     const lookupElements = useMemo(
-      () => canonicalElements ?? Array.from(elementsMap.values()),
-      [canonicalElements, elementsMap],
+      () => Array.from(elementsById.values()),
+      [elementsById],
     );
     const selectElementWithPageTransition = useStore(
       (state) => state.selectElementWithPageTransition,
@@ -122,7 +118,7 @@ export const ComponentSemanticsSection = memo(
     const handleSelectInstances = () => {
       if (instanceIds.length === 0) return;
       const firstInstance =
-        elementsMap.get(instanceIds[0]) ??
+        elementsById.get(instanceIds[0]) ??
         lookupElements.find((candidate) => candidate.id === instanceIds[0]);
       if (firstInstance) {
         selectElementWithPageTransition(

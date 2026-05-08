@@ -31,10 +31,12 @@ const EXCLUDE_PATH_PATTERNS: readonly RegExp[] = [
 ];
 
 const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
+  "apps/builder/src/lib/db/indexedDB/adapter.ts",
   "apps/builder/src/resolvers/canonical/index.ts",
   "apps/builder/src/builder/stores/canonical/canonicalElementsView.ts",
   "apps/builder/src/builder/stores/canonical/canonicalDocumentStore.ts",
   "packages/shared/src/utils/export.utils.ts",
+  "packages/shared/src/utils/compositionDocumentOrder.ts",
   "packages/shared/src/types/composition-vocabulary.ts",
 ]);
 

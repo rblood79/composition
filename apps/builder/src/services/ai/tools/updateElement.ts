@@ -4,18 +4,21 @@
  * 기존 요소의 속성/스타일 수정 (AIPanel.tsx의 executeIntent modify case 추출)
  */
 
-import type { ToolExecutor, ToolExecutionResult } from '../../../types/integrations/ai.types';
-import { getStoreState } from '../../../builder/stores';
-import { adaptStylePatchWithFills } from '../styleAdapter';
-import { useAIVisualFeedbackStore } from '../../../builder/stores/aiVisualFeedback';
+import type {
+  ToolExecutor,
+  ToolExecutionResult,
+} from "../../../types/integrations/ai.types";
+import { adaptStylePatchWithFills } from "../styleAdapter";
+import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
+import { getAiToolReadModel } from "./canonicalToolReadModel";
 
 export const updateElementTool: ToolExecutor = {
-  name: 'update_element',
+  name: "update_element",
 
   async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
     const elementIdArg = args.elementId as string;
     if (!elementIdArg) {
-      return { success: false, error: 'elementId는 필수입니다.' };
+      return { success: false, error: "elementId는 필수입니다." };
     }
 
     const newProps = (args.props || {}) as Record<string, unknown>;
@@ -27,23 +30,32 @@ export const updateElementTool: ToolExecutor = {
       Object.keys(newStyles).length === 0 &&
       (!newFills || newFills.length === 0)
     ) {
-      return { success: false, error: '변경할 props, styles 또는 fills를 지정하세요.' };
+      return {
+        success: false,
+        error: "변경할 props, styles 또는 fills를 지정하세요.",
+      };
     }
 
     try {
-      const state = getStoreState();
-      const { selectedElementId, elementsMap, updateElementProps } = state;
+      const {
+        elementsById,
+        state: { selectedElementId, updateElementProps },
+      } = getAiToolReadModel();
 
       // "selected" → 실제 ID 해석
-      const targetId = elementIdArg === 'selected' ? selectedElementId : elementIdArg;
+      const targetId =
+        elementIdArg === "selected" ? selectedElementId : elementIdArg;
       if (!targetId) {
-        return { success: false, error: '선택된 요소가 없습니다.' };
+        return { success: false, error: "선택된 요소가 없습니다." };
       }
 
       // 요소 존재 확인
-      const element = elementsMap?.get(targetId);
+      const element = elementsById.get(targetId);
       if (!element) {
-        return { success: false, error: `요소를 찾을 수 없습니다: ${targetId}` };
+        return {
+          success: false,
+          error: `요소를 찾을 수 없습니다: ${targetId}`,
+        };
       }
 
       // 업데이트 객체 구성
@@ -51,8 +63,15 @@ export const updateElementTool: ToolExecutor = {
 
       // 스타일 병합 (기존 스타일 유지 + 새 스타일 덮어쓰기)
       if (Object.keys(newStyles).length > 0 || newFills) {
-        const existingStyle = (element.props?.style || {}) as Record<string, unknown>;
-        updates.style = adaptStylePatchWithFills(existingStyle, newStyles, newFills).style;
+        const existingStyle = (element.props?.style || {}) as Record<
+          string,
+          unknown
+        >;
+        updates.style = adaptStylePatchWithFills(
+          existingStyle,
+          newStyles,
+          newFills,
+        ).style;
       }
 
       if (newFills) {
@@ -79,7 +98,7 @@ export const updateElementTool: ToolExecutor = {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   },

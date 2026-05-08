@@ -40,6 +40,7 @@ function makeSceneSnapshot(
     layoutVersion: 1,
     pageSnapshots,
     sceneVersion: 1,
+    source: "canonical",
     viewportVersion: 1,
   };
 }

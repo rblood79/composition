@@ -35,12 +35,24 @@ describe("SkiaCanvas render invalidation contract", () => {
     expect(source).toContain(
       "getChildrenMap: () => rendererInputRef.current.childrenMap,",
     );
+    expect(source).toContain(
+      "getScrollElementsMap: () => rendererInputRef.current.elementsMap,",
+    );
     expect(source).not.toContain(
       "getElements: () => useStore.getState().elementsMap,",
     );
     expect(source).not.toContain(
       "getChildrenMap: () => useStore.getState().childrenMap,",
     );
+    expect(source).toContain("storeRenderBridgeRef.current?.sync(");
+    expect(source).not.toContain(
+      "let prevElements = useStore.getState().elementsMap;",
+    );
+    expect(source).not.toContain(
+      "let prevChildren = useStore.getState().childrenMap;",
+    );
+    expect(source).not.toContain("state.elementsMap !== prevElements");
+    expect(source).not.toContain("state.childrenMap !== prevChildren");
   });
 
   it("uses frameAreas for frame titles and suppresses page titles in layout mode", async () => {

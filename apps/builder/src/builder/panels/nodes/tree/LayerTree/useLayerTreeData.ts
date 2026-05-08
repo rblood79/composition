@@ -18,24 +18,28 @@ import {
 } from "../helpers";
 import type { LayerTreeNode, VirtualChildType } from "./types";
 
+const EMPTY_ELEMENTS: Element[] = [];
+
 export function useLayerTreeData(elements: Element[]) {
-  const allElementsMap = useStore((state) => state.elementsMap);
   const currentPageId = useStore((state) => state.currentPageId);
   const pages = useStore((state) => state.pages);
 
   // ADR-116 direct cutover — canonical store 의 active document 에서 derived
   // Element[] 를 source 로 사용. 초기 hydration 전에는 caller elements[] fallback.
   const canonicalElements = useCanonicalElements();
+  const storeElements = useStore((state) => {
+    if (canonicalElements) return EMPTY_ELEMENTS;
+    const { elements: legacyElements } = state;
+    return legacyElements ?? EMPTY_ELEMENTS;
+  });
   const resolutionElementsMap = useMemo(() => {
-    if (!canonicalElements) return allElementsMap;
-    const map = new Map(
-      canonicalElements.map((element) => [element.id, element]),
-    );
-    for (const [id, element] of allElementsMap) {
-      if (!map.has(id)) map.set(id, element);
+    const sourceElements = canonicalElements ?? storeElements;
+    const map = new Map(sourceElements.map((element) => [element.id, element]));
+    for (const element of elements) {
+      if (!map.has(element.id)) map.set(element.id, element);
     }
     return map;
-  }, [allElementsMap, canonicalElements]);
+  }, [canonicalElements, elements, storeElements]);
 
   const sourceElements = useMemo(() => {
     const baseElements = mergeCanonicalLayerSource(canonicalElements, elements);
@@ -97,8 +101,12 @@ export function useLayerTreeData(elements: Element[]) {
 
   const treeNodes = useMemo(
     () =>
-      convertToLayerTreeNodes(elementTree, projectedElements, allElementsMap),
-    [allElementsMap, elementTree, projectedElements],
+      convertToLayerTreeNodes(
+        elementTree,
+        projectedElements,
+        resolutionElementsMap,
+      ),
+    [elementTree, projectedElements, resolutionElementsMap],
   );
 
   // nodeMap: treeNodes 기반 O(1) 조회용 맵

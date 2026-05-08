@@ -2,6 +2,8 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import type { Page, Element } from "../../../../types/core/store.types";
 import type { BoundingBox } from "../selection/types";
 
+export type SceneInputSource = "canonical" | "legacy-bootstrap";
+
 export interface ScenePageFrame {
   elementCount: number;
   height: number;
@@ -52,6 +54,7 @@ export interface SceneStructureSnapshot {
   layoutVersion: number;
   pageSnapshots: Map<string, ScenePageSnapshot>;
   sceneVersion: number;
+  source: SceneInputSource;
   viewportVersion: number;
 }
 
@@ -88,6 +91,7 @@ export interface BuildSceneStructureInput {
   pageWidth: number;
   pages: Page[];
   panOffset: { x: number; y: number };
+  source: SceneInputSource;
   zoom: number;
 }
 

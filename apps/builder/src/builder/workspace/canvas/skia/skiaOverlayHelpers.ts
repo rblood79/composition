@@ -77,11 +77,14 @@ export function buildHoverHighlightTargets(
   hoveredLeafIds: string[],
   isGroupHover: boolean,
   elementsMap: Map<string, Element> = new Map(),
+  pageFrames: PageFrame[] = [],
 ): HoverHighlightTarget[] {
   const targets: HoverHighlightTarget[] = [];
 
   if (hoveredContextId) {
-    const contextBounds = treeBoundsMap.get(hoveredContextId);
+    const contextBounds =
+      treeBoundsMap.get(hoveredContextId) ??
+      resolvePageBodyBounds(hoveredContextId, elementsMap, pageFrames);
     if (contextBounds) {
       targets.push({
         bounds: contextBounds,
@@ -115,6 +118,27 @@ export function buildHoverHighlightTargets(
   }
 
   return targets;
+}
+
+function resolvePageBodyBounds(
+  elementId: string,
+  elementsMap: Map<string, Element>,
+  pageFrames: PageFrame[],
+): BoundingBox | null {
+  const element = elementsMap.get(elementId);
+  if (element?.type.toLowerCase() !== "body" || !element.page_id) {
+    return null;
+  }
+
+  const pageFrame = pageFrames.find((frame) => frame.id === element.page_id);
+  if (!pageFrame) return null;
+
+  return {
+    x: pageFrame.x,
+    y: pageFrame.y,
+    width: pageFrame.width,
+    height: pageFrame.height,
+  };
 }
 
 export function buildSlotMarkerTargets(

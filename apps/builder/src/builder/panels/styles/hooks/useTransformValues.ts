@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useStore } from "../../../stores";
 import { useElementStyleContext } from "./useElementStyleContext";
 import { useLayoutValue } from "./useLayoutValue";
 import {
@@ -37,10 +36,7 @@ export function useTransformValues(
   const effLeft = useLayoutValue(id, "x");
   const effTop = useLayoutValue(id, "y");
 
-  const isBody = useStore((s) => {
-    if (!id) return false;
-    return s.elementsMap.get(id)?.type?.toLowerCase() === "body";
-  });
+  const isBody = type?.toLowerCase() === "body";
 
   const specPreset = useMemo<TransformSpecPreset>(
     () => resolveSpecPreset(type, size),

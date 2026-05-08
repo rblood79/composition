@@ -47,4 +47,30 @@ describe("useCanvasElementSelectionHandlers frame selection contract", () => {
     expect(source).toContain("!modifiers.shiftKey");
     expect(source).toContain("editingContextId,");
   });
+
+  it("keeps interactive canonical maps authoritative when provided", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useCanvasElementSelectionHandlers.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("const interactiveElementsMap =");
+    expect(source).toContain("getInteractiveElementsMap();");
+    expect(source).toContain("const interactiveChildrenMap =");
+    expect(source).toContain("getInteractiveChildrenMap();");
+    const staleElementsMapRead = ["state", "elementsMap"].join(".");
+    const staleChildrenMapRead = ["state", "childrenMap"].join(".");
+    const staleGetStateMapRead = ["useStore.getState()", "elementsMap"].join(
+      ".",
+    );
+    const staleCoalescedMapRead = ["?? state", "elementsMap.get("].join(".");
+
+    expect(source).not.toContain("allowLegacyFallback");
+    expect(source).not.toContain("const hasInteractiveElementsMap =");
+    expect(source).not.toContain(staleElementsMapRead);
+    expect(source).not.toContain(staleChildrenMapRead);
+    expect(source).not.toContain(staleGetStateMapRead);
+    expect(source).not.toContain(staleCoalescedMapRead);
+    expect(source).not.toContain("?? currentState.elementsMap.get(");
+  });
 });

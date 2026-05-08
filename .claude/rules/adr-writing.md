@@ -34,7 +34,7 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 
 ## ADR Fork / 분리 결정 시 framing checkpoint (CRITICAL)
 
-> **배경**: 2026-04-26~28 ADR-911/912 사례 — baseline (ADR-903 P4) framing 을 자동 승계하여 응용 ADR (ADR-911 frame preset) 을 base ADR (ADR-912 component 추상) 의 선행 ADR 로 잘못 framing. 24+ commits / sub-phase α/β/γ/δ/θ 진행 후 codex 3차 review 에서야 reverse 정정. 본 절차는 동일 손실 재발 차단 contract.
+> **배경**: 2026-04-26~28 ADR-111/112 사례 — baseline (ADR-903 P4) framing 을 자동 승계하여 응용 ADR (ADR-111 frame preset) 을 base ADR (ADR-112 component 추상) 의 선행 ADR 로 잘못 framing. 24+ commits / sub-phase α/β/γ/δ/θ 진행 후 codex 3차 review 에서야 reverse 정정. 본 절차는 동일 손실 재발 차단 contract.
 
 ### 적용 시점 — fork / 분리 결정의 모든 시점
 

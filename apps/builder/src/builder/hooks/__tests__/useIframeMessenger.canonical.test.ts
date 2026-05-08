@@ -67,27 +67,20 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       expect(effectBlock![0]).toMatch(/selectedReusableFrameId/);
     });
 
-    it("elements 변경 시 UPDATE_ELEMENTS 를 다시 전송하는 effect 가 존재한다", async () => {
+    it("canonical document 변경 시 UPDATE_CANONICAL_DOCUMENT 를 active sync 로 전송한다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
       const source = await fs.readFile(filePath, "utf-8");
-      // ADR-116 Phase 2 G3 Step 3 — elements 변수가 dual-mode (legacy store +
-      // canonical derived) 로 확장됨. legacy store subscribe 는 legacyElements
-      // 로 이름 변경, elements 자체는 useMemo 로 dual-mode 분기.
-      expect(source).toMatch(
-        /const legacyElements = useStore\(\(state\) => state\.elements\)/,
-      );
-      expect(source).toMatch(
-        /const elements = useMemo\([\s\S]{0,400}canonicalElements/,
-      );
       const effectBlock = source.match(
-        /pendingElementsFrameRef[\s\S]{0,900}sendElementsToIframe\(elements\);[\s\S]{0,300}\[elements, isWebGLOnly, sendElementsToIframe\]/,
+        /lastSentCanonicalDocumentRef[\s\S]{0,900}sendCanonicalDocumentToIframe\(activeCanonicalDocument\);[\s\S]{0,300}\[activeCanonicalDocument, isWebGLOnly, sendCanonicalDocumentToIframe\]/,
       );
       expect(
         effectBlock,
-        "elements 변경 sync effect 추출 실패 — 시그니처 변경 시 regex 동기화",
+        "canonical document active sync effect 추출 실패 — 시그니처 변경 시 regex 동기화",
       ).not.toBeNull();
+      expect(source).not.toContain("canonicalDocumentToElements(canonicalDoc)");
+      expect(source).not.toContain("sendElementsToIframe(elements)");
     });
 
     it("canonical document 를 Preview 에 별도 전송해 Preview 내부 projection 을 제거한다", async () => {
@@ -104,6 +97,30 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       );
     });
 
+    it("selection echo 는 elementsMap subscription 대신 canonical document traversal 을 우선 사용한다", async () => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
+      const source = await fs.readFile(filePath, "utf-8");
+
+      expect(source).toContain("getActiveCanonicalDocumentForPreviewRead");
+      expect(source).toContain("getActiveCanonicalPreviewElements");
+      expect(source).toContain("visitCanonicalDocumentElements");
+      expect(source).toContain("getElementForPreviewSelection");
+      expect(source).toContain("getPreviewGeneratedElementIds");
+      expect(source).not.toContain("canonicalElementSnapshot");
+      expect(source).not.toContain("useStore.getState().elements.find");
+      expect(source).not.toContain("useStore.getState().elements.map");
+      expect(source).not.toContain(
+        ["const elementsMap = useStore((state) => state", "elementsMap);"].join(
+          ".",
+        ),
+      );
+      expect(source).not.toContain(
+        "const { elementsMap } = useStore.getState();",
+      );
+    });
+
     it("page/frame mirror field access 는 frameMirror adapter 를 경유한다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
@@ -114,6 +131,21 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       expect(source).toContain('from "../../adapters/canonical/frameMirror"');
       expect(source).toContain("getNullablePageFrameBindingId");
       expect(source).toContain("withPageFrameBinding");
+    });
+
+    it("Preview inbound UPDATE_ELEMENTS recovery 로 Builder legacy store cache 를 갱신하지 않는다", async () => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
+      const source = await fs.readFile(filePath, "utf-8");
+
+      expect(source).not.toContain("preview-recovery");
+      expect(source).not.toContain("hard-resync");
+      expect(source).not.toContain('syncMode === "recovery"');
+      expect(source).not.toContain(
+        "recoverElementsSnapshot(event.data.elements",
+      );
+      expect(source).not.toContain("Ignored interactive UPDATE_ELEMENTS");
     });
   });
 });

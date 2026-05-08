@@ -71,15 +71,15 @@ export const renderTree = (
 ): React.ReactNode => {
   const { updateElementProps } = context;
 
-  const treeItemChildren = (context.childrenMap.get(element.id) ?? []).filter(
-    (child) => child.type === "TreeItem",
-  );
+  const treeItemChildren = (
+    context.childrenByParent.get(element.id) ?? []
+  ).filter((child) => child.type === "TreeItem");
 
   const renderTreeItemsRecursively = (
     items: PreviewElement[],
   ): React.ReactNode => {
     return items.map((item) => {
-      const itemChildren = context.childrenMap.get(item.id) ?? [];
+      const itemChildren = context.childrenByParent.get(item.id) ?? [];
       const childTreeItems = itemChildren.filter(
         (child) => child.type === "TreeItem",
       );
@@ -181,7 +181,7 @@ export const renderTreeItem = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const ownChildren = context.childrenMap.get(element.id) ?? [];
+  const ownChildren = context.childrenByParent.get(element.id) ?? [];
   const childTreeItems = ownChildren.filter(
     (child) => child.type === "TreeItem",
   );
@@ -224,15 +224,18 @@ export const renderTagGroup = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const { elements, childrenMap, updateElementProps, setElements } = context;
+  const { elements, childrenByParent, updateElementProps, setElements } =
+    context;
 
   // Tag 자식 검색: TagGroup 직접 자식 또는 TagList 중간 레이어 하위 모두 지원
-  const tagListChild = childrenMap
+  const tagListChild = childrenByParent
     .get(element.id)
     ?.find((child) => child.type === "TagList");
   const tagParentId = tagListChild ? tagListChild.id : element.id;
   const tagChildren =
-    childrenMap.get(tagParentId)?.filter((child) => child.type === "Tag") ?? [];
+    childrenByParent
+      .get(tagParentId)
+      ?.filter((child) => child.type === "Tag") ?? [];
 
   // ColumnMapping 추출
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
@@ -250,7 +253,9 @@ export const renderTagGroup = (
   // Tag 템플릿에 Field children이 있는지 미리 확인
   const tagTemplate = tagChildren.length > 0 ? tagChildren[0] : null;
   const fieldChildrenInTemplate = tagTemplate
-    ? (childrenMap.get(tagTemplate.id)?.filter((c) => c.type === "Field") ?? [])
+    ? (childrenByParent
+        .get(tagTemplate.id)
+        ?.filter((c) => c.type === "Field") ?? [])
     : [];
   const hasFieldChildren = fieldChildrenInTemplate.length > 0;
 
@@ -284,7 +289,7 @@ export const renderTagGroup = (
     ? (item: Record<string, unknown>) => {
         const tagTemplate = tagChildren[0];
         const fieldChildren =
-          context.childrenMap
+          context.childrenByParent
             .get(tagTemplate.id)
             ?.filter((child) => child.type === "Field") ?? [];
 
@@ -531,16 +536,6 @@ export const renderTagGroup = (
 
         setElements(updatedElements);
         updateElementProps(element.id, updatedProps);
-
-        setTimeout(() => {
-          window.parent.postMessage(
-            {
-              type: "UPDATE_ELEMENTS",
-              elements: updatedElements,
-            },
-            getTargetOrigin(),
-          );
-        }, 0);
       }}
     >
       {renderChildren}
@@ -557,7 +552,7 @@ export const renderTag = (
   context: RenderContext,
 ): React.ReactNode => {
   // Field 자식 요소 찾기
-  const fieldChildren = (context.childrenMap.get(element.id) ?? []).filter(
+  const fieldChildren = (context.childrenByParent.get(element.id) ?? []).filter(
     (child) => child.type === "Field",
   );
 
@@ -637,7 +632,7 @@ export const renderToggleButtonGroup = (
   const indicator = Boolean(element.props.indicator);
 
   const toggleButtonChildren = (
-    context.childrenMap.get(element.id) ?? []
+    context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "ToggleButton");
 
   const selectedKeys = new Set<string>(
@@ -687,12 +682,12 @@ export const renderToggleButton = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const { elementsMap, updateElementProps } = context;
+  const { elementsById, updateElementProps } = context;
 
-  const children = context.childrenMap.get(element.id) ?? [];
+  const children = context.childrenByParent.get(element.id) ?? [];
 
   const isInGroup = element.parent_id
-    ? elementsMap.get(element.parent_id)?.type === "ToggleButtonGroup"
+    ? elementsById.get(element.parent_id)?.type === "ToggleButtonGroup"
     : false;
 
   // id는 element.id — group의 selectedKeys Set과 키 일치 필수.
@@ -849,7 +844,7 @@ export const renderMenuItem = (
 ): React.ReactNode => {
   const { renderElement } = context;
 
-  const children = context.childrenMap.get(element.id) ?? [];
+  const children = context.childrenByParent.get(element.id) ?? [];
 
   return (
     <MenuItem
@@ -880,7 +875,7 @@ export const renderToolbar = (
 ): React.ReactNode => {
   const { renderElement } = context;
 
-  const children = context.childrenMap.get(element.id) ?? [];
+  const children = context.childrenByParent.get(element.id) ?? [];
 
   return (
     <Toolbar

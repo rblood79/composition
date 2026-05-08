@@ -21,7 +21,6 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
     type: "frame",
     parent_id: null,
     page_id: "page-1",
-    order_num: 0,
     props: {},
     ...overrides,
   } as Element;
@@ -313,8 +312,16 @@ describe("FrameSlotSection", () => {
       const children = useStore.getState().childrenMap.get("footer") ?? [];
       expect(children).toHaveLength(2);
       expect(children).toEqual([
-        expect.objectContaining({ type: "ref", ref: "origin", order_num: 0 }),
-        expect.objectContaining({ type: "ref", ref: "origin", order_num: 1 }),
+        expect.objectContaining({
+          type: "ref",
+          ref: "origin",
+          parent_id: "footer",
+        }),
+        expect.objectContaining({
+          type: "ref",
+          ref: "origin",
+          parent_id: "footer",
+        }),
       ]);
       expect(children[0].id).not.toBe(children[1].id);
     });

@@ -1,8 +1,5 @@
 import { memo } from "react";
-import { CellElementProps, Element } from "../../../../types/core/store.types";
-
-const EMPTY_CHILDREN: Element[] = [];
-import { useStore } from "../../../stores";
+import type { CellElementProps } from "../../../../types/core/store.types";
 import {
   PropertyInput,
   PropertySelect,
@@ -10,6 +7,10 @@ import {
   PropertySection,
 } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
+import {
+  useCanonicalPropertyChildren,
+  useCanonicalPropertyElement,
+} from "../hooks/useCanonicalPropertyRead";
 import { Ruler, Palette, Grid } from "lucide-react";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 
@@ -29,11 +30,8 @@ export const RowEditor = memo(function RowEditor({
   currentProps,
   onUpdate,
 }: PropertyEditorProps) {
-  // ADR-040: elementsMap O(1) 조회
-  const element = useStore((state) => state.elementsMap.get(elementId));
-  // ADR-040: childrenMap O(1) 조회
-  const rawChildren =
-    useStore((state) => state.childrenMap.get(elementId)) ?? EMPTY_CHILDREN;
+  const element = useCanonicalPropertyElement(elementId);
+  const rawChildren = useCanonicalPropertyChildren(elementId);
 
   // Get customId from element in store
   const customId = element?.customId || "";

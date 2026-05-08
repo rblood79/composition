@@ -6,6 +6,7 @@ import {
 } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { useStore } from "../../../stores";
+import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { Type } from "lucide-react";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 
@@ -14,11 +15,8 @@ export const ColumnGroupEditor = memo(function ColumnGroupEditor({
   currentProps,
   onUpdate,
 }: PropertyEditorProps) {
-  // Get customId from element in store
-  const customId = useMemo(() => {
-    const element = useStore.getState().elementsMap.get(elementId);
-    return element?.customId || "";
-  }, [elementId]);
+  const element = useCanonicalPropertyElement(elementId);
+  const customId = useMemo(() => element?.customId || "", [element?.customId]);
 
   const updateProp = (key: string, value: unknown) => {
     const updatedProps = {

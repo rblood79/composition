@@ -26,6 +26,7 @@ import type { Page } from "../../../types/builder/unified.types";
 import { panToPage } from "../../workspace/canvas/viewport/panToPage";
 import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
 import { setElementsCanonicalPrimary } from "../../../adapters/canonical/canonicalMutations";
 import {
   scheduleBackgroundTask,
@@ -44,6 +45,21 @@ function findPageBodyElement(elements: readonly Element[] | undefined) {
     elements?.[0] ??
     null
   );
+}
+
+function getActiveCanonicalPageElements(): Element[] | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element as Element);
+  });
+  return elements;
 }
 
 export const PagesSection = memo(function PagesSection({
@@ -269,7 +285,10 @@ export const PagesSection = memo(function PagesSection({
         setIsFallbackTransitioning(false);
       }
 
-      setElementsCanonicalPrimary(useStore.getState().elements);
+      const latestState = useStore.getState();
+      setElementsCanonicalPrimary(
+        getActiveCanonicalPageElements() ?? latestState.elements,
+      );
 
       // 2. 영속화는 백그라운드에서 직렬 처리
       enqueuePagePersistence(async () => {

@@ -52,3 +52,48 @@ describe("skiaOverlayBuilder frame title contract", () => {
     expect(frameTitleBlock?.[0]).not.toContain("pageTitleBoundsMap.set");
   });
 });
+
+describe("skiaOverlayBuilder page/frame border contract", () => {
+  it("renders page and frame borders as visual-only overlay chrome using the shared border token", async () => {
+    const source = await readFile(
+      resolve(__dirname, "skiaOverlayBuilder.ts"),
+      "utf-8",
+    );
+    const workflowRendererSource = await readFile(
+      resolve(__dirname, "workflowRenderer.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("renderFrameAreaBorder(");
+    expect(source).toContain('getCSSVariable("--border")');
+
+    const pageFramesBlock = source.match(
+      /const frames = visiblePageFrames \?\? \[\];[\s\S]*?const pageTitleItems = buildPageTitleRenderItems/,
+    );
+    expect(pageFramesBlock).not.toBeNull();
+    expect(pageFramesBlock?.[0]).toContain("renderFrameAreaBorder(");
+
+    const frameAreasBlock = source.match(
+      /const reusableFrameAreas = frameAreas \?\? \[\];[\s\S]*?const frameTitleItems = buildFrameTitleRenderItems/,
+    );
+    expect(frameAreasBlock).not.toBeNull();
+    expect(frameAreasBlock?.[0]).toContain("renderFrameAreaBorder(");
+    expect(frameAreasBlock?.[0]).toContain("reusableFrameAreas");
+
+    expect(workflowRendererSource).toContain(
+      "export function renderFrameAreaBorder(",
+    );
+    expect(workflowRendererSource).toContain(
+      "const strokeWidth = FRAME_AREA_BORDER_STROKE_WIDTH / safeZoom;",
+    );
+    expect(workflowRendererSource).toContain(
+      "const halfStroke = strokeWidth / 2;",
+    );
+    expect(workflowRendererSource).toContain("frame.x - halfStroke");
+    expect(workflowRendererSource).toContain("frame.width + strokeWidth");
+    expect(workflowRendererSource).toContain(
+      "canvas.drawRect(rect, borderPaint);",
+    );
+    expect(workflowRendererSource).not.toContain("pageFrameMap.set(");
+  });
+});

@@ -15,13 +15,13 @@
  * @since 2026-02-21 W3-5
  */
 
-import { useCallback, useEffect } from 'react';
-import type { MutableRefObject } from 'react';
-import { useStore } from '../../../stores';
-import { useViewportSyncStore } from '../stores';
-import { useScrollState } from '../../../stores/scrollState';
-import { notifyLayoutChange } from '../skia/useSkiaNode';
-import type { BoundingBox } from '../selection/types';
+import { useCallback, useEffect } from "react";
+import type { MutableRefObject } from "react";
+import type { Element } from "../../../../types/core/store.types";
+import { useViewportSyncStore } from "../stores";
+import { useScrollState } from "../../../stores/scrollState";
+import { notifyLayoutChange } from "../skia/useSkiaNode";
+import type { BoundingBox } from "../selection/types";
 
 // ============================================
 // Types
@@ -30,6 +30,8 @@ import type { BoundingBox } from '../selection/types';
 interface UseScrollWheelInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
+  /** Active Skia renderer input 에서 파생한 scroll element map */
+  getScrollElementsMap: () => ReadonlyMap<string, Element>;
   /** treeBoundsMap ref (Skia 트리 기반 씬-로컬 절대 바운드) */
   treeBoundsMapRef: MutableRefObject<Map<string, BoundingBox>>;
 }
@@ -40,6 +42,7 @@ interface UseScrollWheelInteractionOptions {
 
 export function useScrollWheelInteraction({
   containerEl,
+  getScrollElementsMap,
   treeBoundsMapRef,
 }: UseScrollWheelInteractionOptions): void {
   const handleWheel = useCallback(
@@ -68,8 +71,7 @@ export function useScrollWheelInteraction({
       const boundsMap = treeBoundsMapRef.current;
       if (!boundsMap || boundsMap.size === 0) return;
 
-      const state = useStore.getState();
-      const { elementsMap } = state;
+      const elementsMap = getScrollElementsMap();
 
       // 포인터 아래의 모든 요소 중 overflow:scroll/auto인 가장 안쪽 요소 탐색
       // (z-order를 고려하여 가장 마지막에 hit된 요소 = 가장 위에 그려진 요소)
@@ -89,8 +91,10 @@ export function useScrollWheelInteraction({
         const element = elementsMap.get(elementId);
         if (!element) continue;
 
-        const overflow = (element.props?.style as Record<string, unknown> | undefined)?.overflow as string | undefined;
-        if (overflow !== 'scroll' && overflow !== 'auto') continue;
+        const overflow = (
+          element.props?.style as Record<string, unknown> | undefined
+        )?.overflow as string | undefined;
+        if (overflow !== "scroll" && overflow !== "auto") continue;
 
         // 스크롤 가능한 요소이면 후보로 등록 (가장 나중에 발견된 것 = 더 안쪽 요소)
         // 더 안쪽 요소가 더 작은 bounds를 가지므로, 안쪽 요소 우선 선택
@@ -116,7 +120,11 @@ export function useScrollWheelInteraction({
       const existing = scrollStore.scrollMap.get(targetElementId);
 
       // maxScroll이 0이면 스크롤 불가 (콘텐츠가 컨테이너 안에 모두 들어감)
-      if (!existing || (existing.maxScrollTop === 0 && existing.maxScrollLeft === 0)) return;
+      if (
+        !existing ||
+        (existing.maxScrollTop === 0 && existing.maxScrollLeft === 0)
+      )
+        return;
 
       // deltaMode 처리: 0=픽셀, 1=라인(~20px), 2=페이지
       let deltaX = e.deltaX;
@@ -137,7 +145,8 @@ export function useScrollWheelInteraction({
       const updated = scrollStore.scrollMap.get(targetElementId);
       const scrollChanged =
         updated &&
-        (updated.scrollTop !== prevScrollTop || updated.scrollLeft !== prevScrollLeft);
+        (updated.scrollTop !== prevScrollTop ||
+          updated.scrollLeft !== prevScrollLeft);
 
       if (scrollChanged) {
         // registryVersion 증가 → Skia content layer 재렌더 트리거
@@ -146,17 +155,17 @@ export function useScrollWheelInteraction({
         e.preventDefault();
       }
     },
-    [containerEl, treeBoundsMapRef],
+    [containerEl, getScrollElementsMap, treeBoundsMapRef],
   );
 
   useEffect(() => {
     if (!containerEl) return;
 
     // passive: false → preventDefault() 사용 가능
-    containerEl.addEventListener('wheel', handleWheel, { passive: false });
+    containerEl.addEventListener("wheel", handleWheel, { passive: false });
 
     return () => {
-      containerEl.removeEventListener('wheel', handleWheel);
+      containerEl.removeEventListener("wheel", handleWheel);
     };
   }, [containerEl, handleWheel]);
 }

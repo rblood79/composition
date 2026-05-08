@@ -9,10 +9,10 @@ import type {
   ToolExecutionResult,
 } from "../../../types/integrations/ai.types";
 import type { Element } from "../../../types/core/store.types";
-import { getStoreState } from "../../../builder/stores";
 import { getDefaultProps } from "../../../types/builder/unified.types";
 import { adaptPropsForElement } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
+import { getAiToolReadModel } from "./canonicalToolReadModel";
 
 export const createElementTool: ToolExecutor = {
   name: "create_element",
@@ -32,8 +32,10 @@ export const createElementTool: ToolExecutor = {
       | undefined;
 
     try {
-      const state = getStoreState();
-      const { elements, selectedElementId, currentPageId, addElement } = state;
+      const {
+        elements,
+        state: { addElement, currentPageId, selectedElementId },
+      } = getAiToolReadModel();
 
       // 기본 props 생성 + AI props 병합
       const defaultProps = getDefaultProps(type);

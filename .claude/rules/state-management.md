@@ -9,12 +9,22 @@ globs:
 
 # 상태 관리 규칙
 
-> 구현 상세는 [state-details.md](.claude/skills/composition-patterns/reference/state-details.md) 참조
+> **상세 패턴 인덱스** (composition-patterns skill reference):
+>
+> - [zustand-childrenmap-staleness](../skills/composition-patterns/rules/zustand-childrenmap-staleness.md) — props stale 회피 (CRITICAL)
+> - [zustand-factory-pattern](../skills/composition-patterns/rules/zustand-factory-pattern.md) — StateCreator 팩토리 (HIGH)
+> - [zustand-modular-files](../skills/composition-patterns/rules/zustand-modular-files.md) — 슬라이스 분리
+> - [domain-o1-lookup](../skills/composition-patterns/rules/domain-o1-lookup.md) — elementsMap/childrenMap O(1)
+> - [domain-async-pipeline](../skills/composition-patterns/rules/domain-async-pipeline.md) — Memory→Index→History→DB→Preview→Rebalance 순서
+> - [domain-history-integration](../skills/composition-patterns/rules/domain-history-integration.md) — Undo/Redo 통합
+> - 구현 상세: [state-details.md](../skills/composition-patterns/reference/state-details.md)
 
 ## Zustand 패턴
 
+> **ADR-116/122 전환 중**: `CompositionDocument` canonical schema 가 primary SSOT. legacy `elementsMap`/`childrenMap` mutable subscription 은 boundary 로 격리 진행. 본 문서는 transitional period 의 hybrid 규칙 — canonical primary 흐름은 [docs/adr/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/122-canonical-only-runtime-legacy-mirror-removal.md) 참조
+
 - StateCreator factory 패턴 + 슬라이스 개별 파일 분리
-- O(1) 인덱스: elementsMap(요소), childrenMap(자식), pageIndex(페이지). 배열 순회 금지
+- O(1) 인덱스: elementsMap(요소), childrenMap(자식), pageIndex(페이지). 배열 순회 금지. **ADR-122 (In Progress)** — Builder hot path 에서 `useStore.elementsMap`/`childrenMap` mutable subscription 금지, canonical selectors / `useStore.elements[]` 기반 read-only derived 사용 권장
 - childrenMap은 구조 변경 시에만 갱신 → props는 elementsMap에서 최신 조회 필수. **Why**: childrenMap이 props stale
 - selector에서 배열/객체 반환 시 `useRef` + `shallow` 캐싱. Zustand v5 `equalityFn` 무시됨 주의
 

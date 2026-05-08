@@ -1,5 +1,5 @@
 ---
-description: Canvas/Skia/PixiJS 렌더링 관련 파일 작업 시 적용
+description: Canvas/Skia 렌더링 관련 파일 작업 시 적용 (ADR-100 PixiJS 제거 완료)
 globs:
   - "apps/builder/src/builder/canvas/**"
   - "packages/specs/**"
@@ -15,10 +15,10 @@ globs:
 >
 > 구현 상세는 [canvas-details.md](../skills/composition-patterns/reference/canvas-details.md) 참조
 
-## 1. Dual Renderer 핵심
+## 1. Skia 단일 렌더러 핵심 (ADR-100)
 
-- Skia=실제 화면 렌더러, PixiJS=이벤트 전용(alpha=0). PixiJS만 수정하면 시각적 변화 없음 → **Skia도 반드시 수정**. **Why**: 두 렌더러가 별개 파이프라인
-- DirectContainer 패턴: 엔진 계산 결과(x/y/w/h)로 직접 배치. **Why**: @pixi/layout 제거됨
+- ADR-100 Unified Skia Engine — Skia 가 화면 + 이벤트 (EventBoundary) 통합 처리. PixiJS 완전 제거됨
+- DirectContainer 패턴: 엔진 계산 결과(x/y/w/h)로 직접 배치. **Why**: @pixi/layout 및 PixiJS 모두 제거 (ADR-100)
 - CanvasKit `heightMultiplier`에 `halfLeading: true` 필수. **Why**: CSS line-height 상하 균등 분배
 
 ## 2. Component Spec 규칙

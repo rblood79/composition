@@ -52,7 +52,7 @@ describe("selectItemChildrenToItemsArray (ADR-073 P5)", () => {
     expect(selectItemChildrenToItemsArray([])).toEqual([]);
   });
 
-  it("order_num 기준 정렬 보존", () => {
+  it("source order 기준 정렬 보존", () => {
     const children: ElementLike[] = [
       {
         id: "b",
@@ -70,7 +70,7 @@ describe("selectItemChildrenToItemsArray (ADR-073 P5)", () => {
       },
     ];
     const items = selectItemChildrenToItemsArray(children);
-    expect(items.map((item) => item.id)).toEqual(["a", "b"]);
+    expect(items.map((item) => item.id)).toEqual(["b", "a"]);
   });
 
   it("label 누락 시 id 로 fallback", () => {
@@ -127,7 +127,7 @@ describe("comboBoxItemChildrenToItemsArray (ADR-073 P5)", () => {
     expect(comboBoxItemChildrenToItemsArray([])).toEqual([]);
   });
 
-  it("order_num 기준 정렬 보존", () => {
+  it("source order 기준 정렬 보존", () => {
     const children: ElementLike[] = [
       {
         id: "b",
@@ -145,7 +145,7 @@ describe("comboBoxItemChildrenToItemsArray (ADR-073 P5)", () => {
       },
     ];
     const items = comboBoxItemChildrenToItemsArray(children);
-    expect(items.map((item) => item.id)).toEqual(["a", "b"]);
+    expect(items.map((item) => item.id)).toEqual(["b", "a"]);
   });
 
   it("label 누락 시 id 로 fallback", () => {

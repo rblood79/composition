@@ -84,10 +84,13 @@ function hasDuplicateCustomId(customId: string, elements: Element[]): boolean {
   return elements.some((element) => element.customId === customId);
 }
 
+function buildCreationElementMap(elements: Element[]): Map<string, Element> {
+  return new Map(elements.map((element) => [element.id, element]));
+}
+
 function withFreshCustomId(
   element: Element,
   allocatedElements: Element[],
-  elementsMap: Map<string, Element>,
 ): Element {
   if (
     element.customId &&
@@ -99,7 +102,10 @@ function withFreshCustomId(
   return {
     ...element,
     customId: generateCustomId(
-      getCustomIdGenerationBase(element, elementsMap),
+      getCustomIdGenerationBase(
+        element,
+        buildCreationElementMap(allocatedElements),
+      ),
       allocatedElements,
     ),
   };
@@ -140,7 +146,6 @@ export const createAddElementAction =
       const customIdNormalizedElement = withFreshCustomId(
         normalizedElement,
         prevState.elements,
-        prevState.elementsMap,
       );
       elementToAdd = customIdNormalizedElement;
       return {
@@ -225,15 +230,10 @@ export const createAddComplexElementAction =
       const customIdNormalizedParent = withFreshCustomId(
         normalizedParent,
         allocatedElements,
-        prevState.elementsMap,
       );
       allocatedElements.push(customIdNormalizedParent);
       childrenToAdd = normalizedChildren.map((child) => {
-        const nextChild = withFreshCustomId(
-          child,
-          allocatedElements,
-          prevState.elementsMap,
-        );
+        const nextChild = withFreshCustomId(child, allocatedElements);
         allocatedElements.push(nextChild);
         return nextChild;
       });

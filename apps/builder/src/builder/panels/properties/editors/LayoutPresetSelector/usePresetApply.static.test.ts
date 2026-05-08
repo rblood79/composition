@@ -20,7 +20,6 @@ function makeElement(
     props: {},
     parent_id: null,
     page_id: null,
-    order_num: 0,
     ...patch,
   } as Element;
 }
@@ -35,9 +34,13 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     expect(source).toContain(
       "const removeElements = useStore((state) => state.removeElements);",
     );
-    expect(source).toContain("await removeElements(legacySlotIds);");
+    expect(source).toContain("await removeElements(existingSlotIds);");
     expect(source).toContain(
       "await removeCanonicalPresetSlots(existingSlotIds);",
+    );
+    expect(source).toContain("useCanonicalPropertyElementsMap");
+    expect(source).not.toContain(
+      ["useStore.getState()", ["elements", "Map"].join("")].join("."),
     );
     expect(source).not.toContain("Promise.all(");
     expect(source).not.toContain("removeElement(slot.elementId)");
@@ -84,8 +87,8 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     expect(
       collectExistingFrameSlots({
         layoutId: "frame-1",
-        elementsMap: new Map([[body.id, body]]),
-        childrenMap: new Map(),
+        elementsById: new Map([[body.id, body]]),
+        childrenByParent: new Map(),
         canonicalElements: [body, slot],
         frameScope,
       }),

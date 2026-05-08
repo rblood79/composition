@@ -12,9 +12,11 @@
  * @since 2025-12-10 Phase 7 Performance Monitoring
  */
 
-import { getStoreState } from '../stores';
-import { historyManager } from '../stores/history';
-import { pageCache } from './LRUPageCache';
+import { getStoreState } from "../stores";
+import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { historyManager } from "../stores/history";
+import { pageCache } from "./LRUPageCache";
 
 // ============================================
 // Types
@@ -42,11 +44,33 @@ export interface PerformanceMetrics {
 
   // 건강 상태
   healthScore: number;
-  status: 'healthy' | 'warning' | 'critical';
+  status: "healthy" | "warning" | "critical";
   warnings: string[];
 
   // 타임스탬프
   timestamp: number;
+}
+
+type StoreSnapshot = ReturnType<typeof getStoreState>;
+
+function getActiveCanonicalElementCount(): number | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  let count = 0;
+  visitCanonicalDocumentElements(doc, () => {
+    count += 1;
+  });
+  return count;
+}
+
+function getCanonicalFirstElementCount(state: StoreSnapshot): number {
+  const { elements: legacyElements } = state;
+  return getActiveCanonicalElementCount() ?? legacyElements?.length ?? 0;
 }
 
 export interface PerformanceThresholds {
@@ -130,13 +154,15 @@ export class PerformanceMonitor {
     const state = getStoreState();
 
     // 브라우저 메모리 API (Chrome only)
-    const memory = (performance as Performance & {
-      memory?: {
-        usedJSHeapSize: number;
-        jsHeapSizeLimit: number;
-        totalJSHeapSize: number;
-      };
-    }).memory;
+    const memory = (
+      performance as Performance & {
+        memory?: {
+          usedJSHeapSize: number;
+          jsHeapSizeLimit: number;
+          totalJSHeapSize: number;
+        };
+      }
+    ).memory;
 
     const browserHeapUsed = memory?.usedJSHeapSize ?? 0;
     const browserHeapLimit = memory?.jsHeapSizeLimit ?? 1;
@@ -154,11 +180,12 @@ export class PerformanceMonitor {
     const fps = this.calculateFPS();
 
     // 건강 점수 및 상태
+    const elementCount = getCanonicalFirstElementCount(state);
     const healthScore = this.calculateHealthScore({
       heapUsagePercent,
       avgRenderTime,
       fps,
-      elementCount: state.elementsMap?.size ?? 0,
+      elementCount,
     });
 
     const status = this.getStatus(healthScore);
@@ -166,11 +193,11 @@ export class PerformanceMonitor {
       heapUsagePercent,
       avgRenderTime,
       fps,
-      elementCount: state.elementsMap?.size ?? 0,
+      elementCount,
     });
 
     this.metrics = {
-      elementCount: state.elementsMap?.size ?? 0,
+      elementCount,
       pageCount: state.pages?.length ?? 0,
       loadedPages: state.loadedPages?.size ?? 0,
 
@@ -226,7 +253,9 @@ export class PerformanceMonitor {
     }, intervalMs);
 
     if (this.enableLogs) {
-      console.log(`📊 [Monitor] Auto-collect started (${intervalMs}ms interval)`);
+      console.log(
+        `📊 [Monitor] Auto-collect started (${intervalMs}ms interval)`,
+      );
     }
   }
 
@@ -242,7 +271,7 @@ export class PerformanceMonitor {
     this.stopFPSMeasurement();
 
     if (this.enableLogs) {
-      console.log('📊 [Monitor] Auto-collect stopped');
+      console.log("📊 [Monitor] Auto-collect stopped");
     }
   }
 
@@ -311,14 +340,16 @@ export class PerformanceMonitor {
    */
   dump(): void {
     const metrics = this.collect();
-    console.log('📊 [Monitor] Performance Metrics:');
+    console.log("📊 [Monitor] Performance Metrics:");
     console.log(`  Health: ${metrics.healthScore}% (${metrics.status})`);
-    console.log(`  Memory: ${this.formatBytes(metrics.browserHeapUsed)} / ${this.formatBytes(metrics.browserHeapLimit)} (${metrics.heapUsagePercent.toFixed(1)}%)`);
+    console.log(
+      `  Memory: ${this.formatBytes(metrics.browserHeapUsed)} / ${this.formatBytes(metrics.browserHeapLimit)} (${metrics.heapUsagePercent.toFixed(1)}%)`,
+    );
     console.log(`  Elements: ${metrics.elementCount}`);
     console.log(`  FPS: ${metrics.fps.toFixed(1)}`);
     console.log(`  Avg Render: ${metrics.avgRenderTime.toFixed(2)}ms`);
     if (metrics.warnings.length > 0) {
-      console.log(`  Warnings: ${metrics.warnings.join(', ')}`);
+      console.log(`  Warnings: ${metrics.warnings.join(", ")}`);
     }
   }
 
@@ -361,10 +392,10 @@ export class PerformanceMonitor {
     return arr.reduce((sum, val) => sum + val, 0) / arr.length;
   }
 
-  private estimateStoreMemory(state: ReturnType<typeof getStoreState>): number {
+  private estimateStoreMemory(state: StoreSnapshot): number {
     try {
       // 대략적인 추정: 요소당 평균 500 bytes
-      const elementCount = state.elementsMap?.size ?? 0;
+      const elementCount = getCanonicalFirstElementCount(state);
       return elementCount * 500;
     } catch {
       return 0;
@@ -427,10 +458,10 @@ export class PerformanceMonitor {
     return Math.max(0, Math.min(100, score));
   }
 
-  private getStatus(healthScore: number): 'healthy' | 'warning' | 'critical' {
-    if (healthScore >= 70) return 'healthy';
-    if (healthScore >= 40) return 'warning';
-    return 'critical';
+  private getStatus(healthScore: number): "healthy" | "warning" | "critical" {
+    if (healthScore >= 70) return "healthy";
+    if (healthScore >= 40) return "warning";
+    return "critical";
   }
 
   private generateWarnings(params: {
@@ -471,15 +502,15 @@ export class PerformanceMonitor {
       try {
         listener(metrics);
       } catch (error) {
-        console.error('[Monitor] Listener error:', error);
+        console.error("[Monitor] Listener error:", error);
       }
     });
   }
 
   private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
   }

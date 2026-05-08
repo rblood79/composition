@@ -24,6 +24,7 @@ import {
   extractPropsChanges,
   shouldUseDelta,
 } from "../utils/canvasDeltaMessenger";
+import { useCanonicalElements } from "../stores/canonical/canonicalElementsView";
 import type { Element } from "../../types/core/store.types";
 // ADR-006 P2-2: postMessage 보안 검증
 import {
@@ -111,8 +112,13 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const isReadyRef = useRef(false);
 
-  // ADR-040: elementsMap.size O(1) 조회 (elements.length 배열 구독 제거)
-  const elementsCount = useStore((state) => state.elementsMap.size);
+  const canonicalElements = useCanonicalElements();
+  const storeElementsCount = useStore((state) => {
+    if (canonicalElements) return 0;
+    const { elements: legacyElements } = state;
+    return legacyElements.length;
+  });
+  const elementsCount = canonicalElements?.length ?? storeElementsCount;
 
   /**
    * Delta 메신저 초기화
@@ -368,16 +374,9 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
 
         console.log(`🚀 [Delta] Sent ${changedIds.length} delta updates`);
       } else {
-        // 전체 전송 (기존 방식)
-        const message = {
-          type: "UPDATE_ELEMENTS",
-          elements: nextElements,
-        };
-        iframe.contentWindow.postMessage(message, window.location.origin);
-
         statsRef.current.fullUpdateSent++;
-        console.log(
-          `🚀 [Delta] Sent full update (${nextElements.length} elements)`,
+        console.warn(
+          `🚀 [Delta] Skipped legacy full update (${nextElements.length} elements)`,
         );
       }
     },

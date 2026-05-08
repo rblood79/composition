@@ -15,8 +15,13 @@ import {
   isCanonicalRefElement,
   resolveCanonicalRefElement,
 } from "../utils/canonicalRefResolution";
-import { useCanonicalSelectedElement } from "./canonical/canonicalElementsView";
-import { getActiveCanonicalElementSnapshot } from "./canonical/canonicalElementSnapshot";
+import type { CompositionDocument } from "@composition/shared";
+import {
+  useCanonicalElements,
+  useCanonicalSelectedElement,
+  visitCanonicalDocumentElements,
+} from "./canonical/canonicalElementsView";
+import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 import {
@@ -98,8 +103,19 @@ export const subscribeStore = useStore.subscribe;
 // Zundo 패턴은 기존 히스토리 시스템에 통합됨
 // useStore가 개선된 히스토리 시스템을 포함함
 
+// 안정적인 빈 배열 참조 (새 배열 생성 방지)
+const EMPTY_ELEMENTS: Element[] = [];
+
 // 간단한 선택기들 (Zustand의 내장 최적화 활용)
-export const useElements = () => useStore((state) => state.elements);
+export const useElements = (): Element[] => {
+  const canonicalElements = useCanonicalElements();
+  const storeElements = useStore((state) => {
+    if (canonicalElements) return EMPTY_ELEMENTS;
+    const { elements: legacyElements } = state;
+    return legacyElements;
+  });
+  return canonicalElements ?? storeElements;
+};
 export const useSelectedElementId = () =>
   useStore((state) => state.selectedElementId);
 // 호환성 alias
@@ -125,6 +141,20 @@ function getSelectedRefOverridePropsFromSource(
     return (element.props ?? {}) as Record<string, unknown>;
   }
   return {};
+}
+
+function findElementInCanonicalDocument(
+  doc: CompositionDocument | null,
+  elementId: string,
+): Element | undefined {
+  if (!doc) return undefined;
+  let match: Element | undefined;
+  visitCanonicalDocumentElements(doc, (element) => {
+    if (element.id === elementId) {
+      match = element;
+    }
+  });
+  return match;
 }
 
 // ============================================
@@ -155,31 +185,35 @@ export const useSelectedElementData = (): SelectedElement | null => {
   // legacy elementsMap fallback. flag 와 무관하게 항상 hook 호출 (Rules of Hooks).
   const canonicalSelectedElement =
     useCanonicalSelectedElement(selectedElementId);
+  const activeCanonicalDocument = useActiveCanonicalDocument();
+  const hasCanonicalDocument = activeCanonicalDocument !== null;
 
   // 🚀 추가 정보를 위해 elementsMap에서 한 번만 읽기 (구독 아님)
   // type, customId, dataBinding은 자주 변경되지 않음
   return useMemo(() => {
     if (!selectedElementId) return null;
 
-    // dual-mode source 결정. canonical mode + canonical 에 element 존재 시
-    // canonical 우선, 그 외 legacy elementsMap fallback.
-    const useCanonical = canonicalSelectedElement !== null;
-
     let element: Element | undefined;
     let resolvedElement: Element | undefined;
 
-    if (useCanonical && canonicalSelectedElement) {
+    if (canonicalSelectedElement) {
       // canonical mode — canonical selected view already resolves ref instances
       // into origin-shaped display elements while preserving the selected id.
       element = canonicalSelectedElement;
       resolvedElement = element;
+    } else if (hasCanonicalDocument) {
+      // ADR-122 Phase 2: active canonical document 가 있는 runtime에서는
+      // legacy elementsMap fallback 으로 선택 데이터를 되살리지 않는다.
+      return null;
     } else {
       // legacy mode — getState()로 동기적 읽기 (구독 없음)
-      const state = useStore.getState();
-      element = state.elementsMap.get(selectedElementId);
+      const { elements: legacyElements = [] } = useStore.getState();
+      element = legacyElements.find(
+        (candidate) => candidate.id === selectedElementId,
+      );
       if (!element) return null;
       resolvedElement = isCanonicalRefElement(element)
-        ? resolveCanonicalRefElement(element, state.elementsMap.values())
+        ? resolveCanonicalRefElement(element, legacyElements)
         : element;
     }
 
@@ -191,8 +225,10 @@ export const useSelectedElementData = (): SelectedElement | null => {
 
     const currentRefOverrideProps = shouldUseResolvedRefProps
       ? getSelectedRefOverridePropsFromSource(
-          getActiveCanonicalElementSnapshot(selectedElementId) ??
-            useStore.getState().elementsMap.get(selectedElementId),
+          findElementInCanonicalDocument(
+            activeCanonicalDocument,
+            selectedElementId,
+          ) ?? (hasCanonicalDocument ? undefined : element),
         )
       : null;
 
@@ -230,7 +266,13 @@ export const useSelectedElementData = (): SelectedElement | null => {
       dataBinding: getElementDataBinding(element, "legacy-only"),
       events: (events as SelectedElement["events"]) || [],
     };
-  }, [selectedElementId, selectedElementProps, canonicalSelectedElement]);
+  }, [
+    selectedElementId,
+    selectedElementProps,
+    canonicalSelectedElement,
+    activeCanonicalDocument,
+    hasCanonicalDocument,
+  ]);
 };
 
 /**
@@ -324,9 +366,6 @@ export const useInspectorActions = () => ({
 // 🚀 Performance Optimized Selectors (Phase 1)
 // ============================================
 
-// 안정적인 빈 배열 참조 (새 배열 생성 방지)
-const EMPTY_ELEMENTS: Element[] = [];
-
 /**
  * 현재 페이지의 요소만 반환하는 선택적 selector
  *
@@ -338,35 +377,43 @@ const EMPTY_ELEMENTS: Element[] = [];
  */
 export const useCurrentPageElements = (): Element[] => {
   const currentPageId = useStore((state) => state.currentPageId);
-  const currentPageElements = useStore((state) => {
-    if (!state.currentPageId) return EMPTY_ELEMENTS;
-    return state.pageElementsSnapshot[state.currentPageId] ?? EMPTY_ELEMENTS;
-  });
+  const elements = useElements();
 
   return useMemo(() => {
     if (!currentPageId) return EMPTY_ELEMENTS;
-    return currentPageElements;
-  }, [currentPageElements, currentPageId]);
+    const currentPageElements = elements.filter(
+      (element) => !element.deleted && element.page_id === currentPageId,
+    );
+    return currentPageElements.length > 0
+      ? currentPageElements
+      : EMPTY_ELEMENTS;
+  }, [currentPageId, elements]);
 };
 
 /**
- * elementsMap을 활용한 O(1) 요소 조회 selector
+ * elements[] 기반 요소 조회 selector
  */
-export const useElementById = (elementId: string | null) =>
-  useStore((state) => {
+export const useElementById = (elementId: string | null) => {
+  const elements = useElements();
+  return useMemo(() => {
     if (!elementId) return undefined;
-    return state.elementsMap.get(elementId);
-  });
+    return elements.find((element) => element.id === elementId);
+  }, [elementId, elements]);
+};
 
 /**
- * childrenMap을 활용한 O(1) 자식 요소 조회 selector
+ * elements[] 기반 자식 요소 조회 selector
  */
-export const useChildElements = (parentId: string | null): Element[] =>
-  useStore((state) => {
+export const useChildElements = (parentId: string | null): Element[] => {
+  const elements = useElements();
+  return useMemo(() => {
     const key = parentId || "root";
-    // 안정적인 빈 배열 참조 반환 (새 배열 생성 방지)
-    return state.childrenMap.get(key) ?? EMPTY_ELEMENTS;
-  });
+    const children = elements.filter(
+      (element) => !element.deleted && (element.parent_id || "root") === key,
+    );
+    return children.length > 0 ? children : EMPTY_ELEMENTS;
+  }, [elements, parentId]);
+};
 
 /**
  * 현재 페이지의 요소 개수만 반환 (가벼운 조회용)
@@ -374,11 +421,7 @@ export const useChildElements = (parentId: string | null): Element[] =>
  * 🆕 Phase 2: O(1) 인덱스 기반 카운트
  */
 export const useCurrentPageElementCount = () => {
-  return useStore((state) => {
-    const { pageIndex, currentPageId } = state;
-    if (!currentPageId) return 0;
-    return pageIndex.elementsByPage.get(currentPageId)?.size ?? 0;
-  });
+  return useCurrentPageElements().length;
 };
 
 // 액션 선택기들

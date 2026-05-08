@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 
+import type { Page } from "../../../types/builder/unified.types";
 import type { Element } from "../../../types/core/store.types";
 import { useStore } from "../index";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
@@ -47,6 +48,16 @@ function makeElement(
     deleted: false,
     ...overrides,
   } as Element;
+}
+
+function makePage(id: string): Page {
+  return {
+    id,
+    title: id,
+    slug: `/${id}`,
+    project_id: "project-1",
+    parent_id: null,
+  } as Page;
 }
 
 function resetStoreState() {
@@ -280,6 +291,33 @@ describe("page activation selection invariant", () => {
     ).toEqual(expect.arrayContaining([body.id, button.id]));
   });
 
+  it("appendPageShell은 elements[]에서 indexes를 재생성하고 body를 선택한다", () => {
+    const bodyOne = makeElement("body-1", "page-1");
+    const bodyTwo = makeElement("body-2", "page-2");
+    useStore.getState().setElements([bodyOne]);
+    useStore.setState({
+      pages: [makePage("page-1")],
+      currentPageId: "page-1",
+    });
+
+    useStore
+      .getState()
+      .appendPageShell(makePage("page-2"), bodyTwo, { x: 100, y: 120 });
+
+    const state = useStore.getState();
+    expect(state.elementsMap.get(bodyTwo.id)).toBe(bodyTwo);
+    expect(state.childrenMap.get("root")?.map((element) => element.id)).toEqual(
+      [bodyOne.id, bodyTwo.id],
+    );
+    expect(state.pageIndex.elementsByPage.get("page-2")?.has(bodyTwo.id)).toBe(
+      true,
+    );
+    expect(
+      state.pageElementsSnapshot["page-2"]?.map((element) => element.id),
+    ).toEqual([bodyTwo.id]);
+    expect(state.selectedElementId).toBe(bodyTwo.id);
+  });
+
   it("lazyLoadPageElements는 현재 page 로드 완료 후 stale 선택을 body로 보정한다", async () => {
     const body = makeElement("body-1", "page-1");
     const button = makeElement("button-1", "page-1", {
@@ -287,7 +325,32 @@ describe("page activation selection invariant", () => {
       parent_id: body.id,
       order_num: 1,
     });
-    mockGetByPage.mockResolvedValueOnce([button, body]);
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: body.id,
+              type: "Body",
+              props: body.props as Record<string, unknown>,
+              children: [
+                {
+                  id: button.id,
+                  type: button.type,
+                  props: button.props as Record<string, unknown>,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } satisfies CompositionDocument;
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", doc);
     useStore.setState({
       currentPageId: "page-1",
       selectedElementId: "page-1",
@@ -302,5 +365,6 @@ describe("page activation selection invariant", () => {
     expect(state.selectedElementId).toBe(body.id);
     expect(state.selectedElementIds).toEqual([body.id]);
     expect(state.loadedPages.has("page-1")).toBe(true);
+    expect(mockGetByPage).not.toHaveBeenCalled();
   });
 });

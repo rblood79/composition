@@ -6,9 +6,12 @@
  * - 자식 요소 수 및 깊이 계산
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useStore } from "../../../stores";
+import { useCanonicalElements } from "../../../stores/canonical/canonicalElementsView";
 import type { Element } from "../../../../types/core/store.types";
+
+const EMPTY_ELEMENTS: Element[] = [];
 
 export interface ComponentMemoryInfo {
   elementId: string;
@@ -64,23 +67,49 @@ function getElementDepth(
   return depth;
 }
 
-// ADR-040: childrenMap O(1) 조회로 자식 수 계산
+function buildElementMap(elements: Element[]): Map<string, Element> {
+  return new Map(elements.map((element) => [element.id, element]));
+}
+
+function buildChildLookup(elements: Element[]): Map<string, Element[]> {
+  const childLookup = new Map<string, Element[]>();
+  for (const element of elements) {
+    if (!element.parent_id) continue;
+    const siblings = childLookup.get(element.parent_id) ?? [];
+    siblings.push(element);
+    childLookup.set(element.parent_id, siblings);
+  }
+  return childLookup;
+}
+
 function countChildren(
   elementId: string,
-  childrenMap: Map<string, Element[]>,
+  childLookup: Map<string, Element[]>,
 ): number {
-  const directChildren = childrenMap.get(elementId) ?? [];
+  const directChildren = childLookup.get(elementId) ?? [];
   return directChildren.reduce(
-    (sum, child) => sum + 1 + countChildren(child.id, childrenMap),
+    (sum, child) => sum + 1 + countChildren(child.id, childLookup),
     0,
   );
 }
 
 export function useComponentMemory(options: UseComponentMemoryOptions = {}) {
   const { enabled = true, sortBy = "memory", limit = 20 } = options;
-  // ADR-040: elementsMap + childrenMap O(1) 조회
-  const elementsMap = useStore((state) => state.elementsMap);
-  const childrenMap = useStore((state) => state.childrenMap);
+  const canonicalElements = useCanonicalElements();
+  const storeElements = useStore((state) => {
+    if (canonicalElements) return EMPTY_ELEMENTS;
+    const { elements: legacyElements } = state;
+    return legacyElements ?? EMPTY_ELEMENTS;
+  });
+  const analysisElements = canonicalElements ?? storeElements;
+  const elementsMap = useMemo(
+    () => buildElementMap(analysisElements),
+    [analysisElements],
+  );
+  const childLookup = useMemo(
+    () => buildChildLookup(analysisElements),
+    [analysisElements],
+  );
   const [componentMemory, setComponentMemory] = useState<ComponentMemoryInfo[]>(
     [],
   );
@@ -104,7 +133,7 @@ export function useComponentMemory(options: UseComponentMemoryOptions = {}) {
 
       const memoryBytes =
         baseSize + idSize + customIdSize + tagSize + propsSize;
-      const childCount = countChildren(el.id, childrenMap);
+      const childCount = countChildren(el.id, childLookup);
       const depth = getElementDepth(el.id, elementsMap);
 
       memoryInfos.push({
@@ -144,7 +173,7 @@ export function useComponentMemory(options: UseComponentMemoryOptions = {}) {
 
     // 상위 N개만
     setComponentMemory(memoryInfos.slice(0, limit));
-  }, [enabled, elementsMap, childrenMap, sortBy, limit]);
+  }, [enabled, elementsMap, childLookup, sortBy, limit]);
 
   useEffect(() => {
     // 다음 프레임에서 분석 실행하여 cascading render 방지

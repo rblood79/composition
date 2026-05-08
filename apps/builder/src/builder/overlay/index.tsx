@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useStore } from "../stores";
+import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
 import { MessageService } from "../../utils/messaging";
 import { isValidPreviewMessage } from "../../utils/messageValidation";
 import { useVisibleOverlays } from "./hooks/useVisibleOverlays";
@@ -8,6 +10,25 @@ import { useOverlayRAF, type OverlayUpdateResult } from "./hooks/useOverlayRAF";
 import { useOverlayDebug } from "./OverlayDebug";
 
 import "./index.css";
+
+function getActiveCanonicalElementForOverlay(
+  elementId: string,
+): { type: string } | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  let found: { type: string } | null = null;
+  visitCanonicalDocumentElements(doc, (element) => {
+    if (!found && element.id === elementId) {
+      found = element;
+    }
+  });
+  return found;
+}
 
 interface Rect {
   top: number;
@@ -90,9 +111,8 @@ export default function SelectionOverlay() {
         // ⭐ body element 선택 시: 실제 <body> 태그에서 찾기
         // (실제 body에 data-element-id가 설정되어 있음)
         if (!element) {
-          // 🚀 Performance: getState()로 현재 elementsMap 조회
-          const elementsMap = useStore.getState().elementsMap;
-          const selectedElement = elementsMap.get(selectedElementId);
+          const selectedElement =
+            getActiveCanonicalElementForOverlay(selectedElementId);
           if (selectedElement?.type === "body") {
             // 실제 <body> 태그에서 찾기
             if (iframe.contentDocument.body.getAttribute("data-element-id")) {
@@ -138,7 +158,7 @@ export default function SelectionOverlay() {
         });
       }
     },
-    [selectedElementId], // 🚀 Performance: elementsMap 의존성 제거 - getState()로 조회
+    [selectedElementId],
   );
 
   // 🚀 Phase 7.1: 멀티 오버레이 스케줄 래퍼 (즉시 실행 옵션)

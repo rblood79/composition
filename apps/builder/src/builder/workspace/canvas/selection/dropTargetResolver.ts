@@ -65,10 +65,10 @@ export interface DropIndicatorSnapshot {
   placeholderBounds?: ElementBounds;
 }
 
-/** resolveDropTarget에 필요한 store 슬라이스 */
-export interface DropTargetStoreSlice {
-  elementsMap: Map<string, Element>;
-  childrenMap: Map<string, Element[]>;
+/** resolveDropTarget에 필요한 canonical-derived read model */
+export interface DropTargetReadModel {
+  elementsById: ReadonlyMap<string, Element>;
+  childrenByParent: ReadonlyMap<string, Element[]>;
 }
 
 interface ContainerLayoutMetrics {
@@ -219,11 +219,11 @@ function hasLayoutContainerStyle(element: Element): boolean {
 
 function isInsideGuardedInstance(
   element: Element,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): boolean {
   let currentId = element.id;
   while (currentId) {
-    const current = store.elementsMap.get(currentId);
+    const current = store.elementsById.get(currentId);
     if (!current) return false;
     if (isComponentInstanceElement(current)) return true;
     currentId = current.parent_id ?? "";
@@ -233,14 +233,14 @@ function isInsideGuardedInstance(
 
 function acceptsDraggedElement(
   candidate: Element,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): boolean {
   if (isBodyElement(candidate)) return true;
   if (isExplicitSlotHost(candidate)) return true;
   if (isInsideGuardedInstance(candidate, store)) return false;
 
   const type = candidate.type.toLowerCase();
-  const hasKnownChildren = store.childrenMap.has(candidate.id);
+  const hasKnownChildren = store.childrenByParent.has(candidate.id);
   const structuralContainer = STRUCTURAL_CONTAINER_TYPES.has(type);
 
   if (structuralContainer) return true;
@@ -250,19 +250,19 @@ function acceptsDraggedElement(
 }
 
 /**
- * childrenMap의 canonical/source order를 보존하면서 최신 Element 값을 조회한다.
- * childrenMap에서 반환된 배열은 stale일 수 있으므로 elementsMap만 refresh source로 사용한다.
+ * childrenByParent의 canonical/source order를 보존하면서 최신 Element 값을 조회한다.
+ * childrenByParent에서 반환된 배열은 stale일 수 있으므로 elementsById만 refresh source로 사용한다.
  */
 function getSortedChildren(
   parentId: string,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): Element[] {
-  const rawChildren = store.childrenMap.get(parentId);
+  const rawChildren = store.childrenByParent.get(parentId);
   if (!rawChildren || rawChildren.length === 0) return [];
 
-  // childrenMap props는 stale → elementsMap에서 최신 조회
+  // childrenByParent props는 stale → elementsById에서 최신 조회
   const fresh = rawChildren
-    .map((c) => store.elementsMap.get(c.id))
+    .map((c) => store.elementsById.get(c.id))
     .filter((c): c is Element => c !== undefined);
 
   return fresh;
@@ -297,12 +297,12 @@ function getBoundedSiblingEntries(
 function isDescendantOf(
   elementId: string,
   ancestorId: string,
-  elementsMap: Map<string, Element>,
+  elementsById: ReadonlyMap<string, Element>,
 ): boolean {
   let currentId: string | undefined = elementId;
   while (currentId) {
     if (currentId === ancestorId) return true;
-    const el = elementsMap.get(currentId);
+    const el = elementsById.get(currentId);
     currentId = el?.parent_id ?? undefined;
   }
   return false;
@@ -316,18 +316,18 @@ function resolveCrossContainerDrop(
   scenePoint: { x: number; y: number },
   draggedElementId: string,
   hitIds: string[],
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): DropTarget | null {
-  const dragged = store.elementsMap.get(draggedElementId);
+  const dragged = store.elementsById.get(draggedElementId);
   if (!dragged) return null;
 
   let bestCandidate: { element: Element; depth: number } | null = null;
 
   for (const hitId of hitIds) {
     if (hitId === draggedElementId) continue;
-    if (isDescendantOf(hitId, draggedElementId, store.elementsMap)) continue;
+    if (isDescendantOf(hitId, draggedElementId, store.elementsById)) continue;
 
-    const hitEl = store.elementsMap.get(hitId);
+    const hitEl = store.elementsById.get(hitId);
     if (!hitEl) continue;
     if (hitId === dragged.parent_id) continue; // 현재 부모는 same-parent 로직이 처리
     const isBody = isBodyElement(hitEl);
@@ -340,7 +340,7 @@ function resolveCrossContainerDrop(
     let cur: string | undefined = hitId;
     while (cur) {
       depth++;
-      const el = store.elementsMap.get(cur);
+      const el = store.elementsById.get(cur);
       cur = el?.parent_id ?? undefined;
     }
 
@@ -407,18 +407,18 @@ function resolveCrossContainerDrop(
 export function resolveDropTarget(
   scenePoint: { x: number; y: number },
   draggedElementId: string,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
   hitTestFn?: (x: number, y: number) => string[],
 ): DropTarget | null {
   // 1. 드래그 요소 조회
-  const dragged = store.elementsMap.get(draggedElementId);
+  const dragged = store.elementsById.get(draggedElementId);
   if (!dragged) return null;
 
   // 2. 부모 컨테이너 결정
   const parentId = dragged.parent_id;
   if (!parentId) return null;
 
-  const parent = store.elementsMap.get(parentId);
+  const parent = store.elementsById.get(parentId);
   if (!parent) return null;
 
   // 3. 컨테이너 bounds 조회 (body 등 bounds 미등록 컨테이너는 자식 bounds로 대체)
@@ -529,7 +529,7 @@ export function resolveDropTarget(
       const crossTargetInsideParent = isDescendantOf(
         crossResult.containerId,
         parentId,
-        store.elementsMap,
+        store.elementsById,
       );
       if (
         cursorOutsideParent ||
@@ -542,7 +542,7 @@ export function resolveDropTarget(
     // 커서가 부모 밖인데 cross-container도 없으면 → 조부모로 reparent (그룹에서 꺼내기)
     if (cursorOutsideParent && parent.parent_id) {
       const grandparentId = parent.parent_id;
-      const grandparent = store.elementsMap.get(grandparentId);
+      const grandparent = store.elementsById.get(grandparentId);
       if (grandparent) {
         const gpBounds = getSceneBounds(grandparentId);
         if (gpBounds) {
@@ -599,7 +599,7 @@ export function resolveDropTarget(
 export function computeSiblingOffsets(
   dropTarget: DropTarget,
   draggedElementId: string,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): Map<string, { dx: number; dy: number }> {
   const offsets = new Map<string, { dx: number; dy: number }>();
   const { containerId, insertionIndex, isHorizontal } = dropTarget;
@@ -627,7 +627,7 @@ export function computeSiblingOffsets(
     return offsets;
   }
 
-  const container = store.elementsMap.get(containerId);
+  const container = store.elementsById.get(containerId);
   const spacing = getContainerAxisSpacing(container, isHorizontal);
 
   // 전체 자식 (드래그 요소 포함, canonical/source order)
@@ -917,12 +917,12 @@ function computeProjectedFlexBounds(
 function buildProjectedDropLayout(
   dropTarget: DropTarget,
   draggedElementId: string,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): Map<string, ElementBounds> | null {
-  const container = store.elementsMap.get(dropTarget.containerId);
+  const container = store.elementsById.get(dropTarget.containerId);
   if (!container || !shouldUseFlexProjection(container)) return null;
 
-  const dragged = store.elementsMap.get(draggedElementId);
+  const dragged = store.elementsById.get(draggedElementId);
   const draggedBounds = getSceneBounds(draggedElementId);
   if (!dragged || !draggedBounds) return null;
 
@@ -1092,7 +1092,7 @@ function findSameParentInsertionIndex(
 export function computeInsertionLinePosition(
   dropTarget: DropTarget,
   draggedElementId: string,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): number | undefined {
   const projectedBounds = buildProjectedDropLayout(
     dropTarget,
@@ -1105,7 +1105,7 @@ export function computeInsertionLinePosition(
   }
 
   const { containerId, insertionIndex, isHorizontal } = dropTarget;
-  const container = store.elementsMap.get(containerId);
+  const container = store.elementsById.get(containerId);
   const spacing = getContainerAxisSpacing(container, isHorizontal);
   const sortedChildren = getSortedChildren(containerId, store);
   const siblings = sortedChildren.filter((c) => c.id !== draggedElementId);
@@ -1181,7 +1181,7 @@ export function computeInsertionLinePosition(
 export function computeDropPlaceholderBounds(
   dropTarget: DropTarget,
   draggedElementId: string,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): ElementBounds | undefined {
   const projectedBounds = buildProjectedDropLayout(
     dropTarget,
@@ -1247,7 +1247,7 @@ export function computeDropPlaceholderBounds(
 export function computeReorderFromDropTarget(
   dropTarget: DropTarget,
   draggedElementId: string,
-  store: DropTargetStoreSlice,
+  store: DropTargetReadModel,
 ): Array<{ id: string }> {
   const { containerId, insertionIndex } = dropTarget;
 
@@ -1264,7 +1264,7 @@ export function computeReorderFromDropTarget(
 
   const updates: Array<{ id: string }> = [];
   for (const child of newOrder) {
-    const existing = store.elementsMap.get(child.id);
+    const existing = store.elementsById.get(child.id);
     if (!existing) continue;
     updates.push({ id: child.id });
   }

@@ -83,7 +83,7 @@ describe("listBoxItemChildrenToItemsArray (ADR-076 P5)", () => {
     expect(items[0].description).toBe("과일 설명");
   });
 
-  it("order_num 기준 정렬", () => {
+  it("source order 기준 정렬", () => {
     const a = el("lb-a", "ListBoxItem", "p", 2, { label: "Third" });
     const b = el("lb-b", "ListBoxItem", "p", 0, { label: "First" });
     const c = el("lb-c", "ListBoxItem", "p", 1, { label: "Second" });
@@ -91,7 +91,7 @@ describe("listBoxItemChildrenToItemsArray (ADR-076 P5)", () => {
       [a, b, c],
       new Map<string, E[]>(),
     );
-    expect(items.map((it) => it.label)).toEqual(["First", "Second", "Third"]);
+    expect(items.map((it) => it.label)).toEqual(["Third", "First", "Second"]);
   });
 });
 
@@ -255,7 +255,7 @@ describe("applyCollectionItemsMigration — Idempotency + 3종 공존", () => {
 });
 
 describe("tagChildrenToItemsArray (ADR-097 Phase 2)", () => {
-  it("Tag props.children → label + order_num 정렬 + boolean 플래그", () => {
+  it("Tag props.children → label + source order 정렬 + boolean 플래그", () => {
     const a = el("t-a", "Tag", "tl", 2, { children: "Third" });
     const b = el("t-b", "Tag", "tl", 0, {
       children: "First",
@@ -268,6 +268,12 @@ describe("tagChildrenToItemsArray (ADR-097 Phase 2)", () => {
     const items = tagChildrenToItemsArray([a, b, c]);
     expect(items).toEqual([
       {
+        id: "t-a",
+        label: "Third",
+        isDisabled: undefined,
+        allowsRemoving: undefined,
+      },
+      {
         id: "t-b",
         label: "First",
         isDisabled: true,
@@ -278,12 +284,6 @@ describe("tagChildrenToItemsArray (ADR-097 Phase 2)", () => {
         label: "Second",
         isDisabled: undefined,
         allowsRemoving: false,
-      },
-      {
-        id: "t-a",
-        label: "Third",
-        isDisabled: undefined,
-        allowsRemoving: undefined,
       },
     ]);
   });

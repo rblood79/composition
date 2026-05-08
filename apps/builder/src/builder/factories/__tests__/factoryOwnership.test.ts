@@ -123,8 +123,6 @@ function assertNoOwnerFields(
 describe("P3-D-1: factory ownership 제거", () => {
   beforeEach(() => {
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements: vi.fn(),
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [],

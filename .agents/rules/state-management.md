@@ -12,6 +12,10 @@ Codex용 상태 관리 규칙 엔트리포인트입니다.
 - project-state DB persistence는 canonical `db.documents`만 사용한다.
   `db.pages`, `db.elements`, `db.layouts` local mirror read/write는 제거된
   surface이므로 재도입하지 않는다.
+- runtime mutation/read/render source는 canonical document가 primary다.
+  canonical mutation 뒤 legacy `Element[]` mirror를 `setElements()`로 다시 쓰는
+  write-back을 재도입하지 않는다. transition cache가 필요하면 canonical-derived
+  read-only snapshot으로 owner/제거 phase를 명시한다.
 - canonical cutover 경로에서는 `CompositionDocument.children[]`가 order SSOT다.
   `Element.order_num`은 제거됐으므로 props update/history/drag/drop/IndexedDB
   `elements` payload에 다시 만들지 않는다. page/layout order도 document root

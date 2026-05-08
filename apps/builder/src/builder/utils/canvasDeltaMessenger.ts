@@ -205,25 +205,6 @@ export class CanvasDeltaMessenger {
     return this.send(message);
   }
 
-  /**
-   * 전체 요소 배열 전송 (fallback)
-   * - Delta가 불가능한 경우 (예: 초기 로드) 사용
-   */
-  sendFullElements(
-    elements: Element[],
-    pageInfo?: { pageId: string | null; layoutId: string | null },
-  ): boolean {
-    if (!this.isReady()) return false;
-
-    const message = {
-      type: "UPDATE_ELEMENTS",
-      elements: elements.map((el) => this.sanitizeElement(el)),
-      pageInfo,
-    };
-
-    return this.send(message);
-  }
-
   // ============================================
   // Private Methods
   // ============================================

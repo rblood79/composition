@@ -70,9 +70,9 @@ export const renderListBox = (
   const { updateElementProps } = context;
 
   // 실제 ListBoxItem 자식 요소들을 찾기
-  const listBoxChildren = (context.childrenMap.get(element.id) ?? []).filter(
-    (child) => child.type === "ListBoxItem",
-  );
+  const listBoxChildren = (
+    context.childrenByParent.get(element.id) ?? []
+  ).filter((child) => child.type === "ListBoxItem");
 
   // ColumnMapping이 있고 visible columns가 있으면 Field Elements 자동 생성
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
@@ -160,9 +160,9 @@ export const renderListBox = (
   if (hasValidTemplate) {
     const listBoxItemTemplate = listBoxChildren[0];
 
-    // Field 자식들 찾기 - context.childrenMap O(1) lookup
+    // Field 자식들 찾기 - context.childrenByParent O(1) lookup
     const fieldChildren = (
-      context.childrenMap.get(listBoxItemTemplate.id) ?? []
+      context.childrenByParent.get(listBoxItemTemplate.id) ?? []
     ).filter((child) => child.type === "Field");
 
     const renderItemFunction = (item: Record<string, unknown>) => {
@@ -342,7 +342,7 @@ export const renderListBoxItem = (
   context: RenderContext,
 ): React.ReactNode => {
   // 모든 자식 요소를 찾기 (Composition 패턴: Text, Description, Field 등)
-  const childElements = context.childrenMap.get(element.id) ?? [];
+  const childElements = context.childrenByParent.get(element.id) ?? [];
 
   // 스켈레톤 플레이스홀더 체크
   const isSkeleton = Boolean(element.props.isSkeleton);
@@ -396,7 +396,7 @@ export const renderDataField = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const { elementsMap } = context;
+  const { elementsById } = context;
 
   // dataBinding이 있고 source가 "parent"인 경우 부모 데이터에서 값 추출
   // ADR-116 G7: element.dataBinding direct (props ignore) — legacy-only priority
@@ -411,7 +411,7 @@ export const renderDataField = (
 
     // 부모 element 찾기 (ListBoxItem, GridListItem 등)
     const parent = element.parent_id
-      ? elementsMap.get(element.parent_id)
+      ? elementsById.get(element.parent_id)
       : undefined;
 
     if (parent && path) {
@@ -434,7 +434,7 @@ export const renderDataField = (
   }
 
   // 자식 요소가 있으면 렌더링
-  const children = context.childrenMap.get(element.id) ?? [];
+  const children = context.childrenByParent.get(element.id) ?? [];
 
   return (
     <DataField
@@ -476,9 +476,9 @@ export const renderGridList = (
   const { updateElementProps } = context;
 
   // 실제 GridListItem 자식 요소들을 찾기
-  const gridListChildren = (context.childrenMap.get(element.id) ?? []).filter(
-    (child) => child.type === "GridListItem",
-  );
+  const gridListChildren = (
+    context.childrenByParent.get(element.id) ?? []
+  ).filter((child) => child.type === "GridListItem");
 
   // ColumnMapping이 있고 visible columns가 있으면 Field Elements 자동 생성
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
@@ -507,9 +507,9 @@ export const renderGridList = (
         // GridListItem 템플릿을 각 데이터 항목에 대해 렌더링
         const gridListItemTemplate = gridListChildren[0];
 
-        // Field 자식들 찾기 - context.childrenMap O(1) lookup
+        // Field 자식들 찾기 - context.childrenByParent O(1) lookup
         const fieldChildren = (
-          context.childrenMap.get(gridListItemTemplate.id) ?? []
+          context.childrenByParent.get(gridListItemTemplate.id) ?? []
         ).filter((child) => child.type === "Field");
 
         return (
@@ -670,7 +670,7 @@ export const renderGridListItem = (
   context: RenderContext,
 ): React.ReactNode => {
   // 모든 자식 요소를 찾기 (Composition 패턴: Text, Description, Field 등)
-  const childElements = context.childrenMap.get(element.id) ?? [];
+  const childElements = context.childrenByParent.get(element.id) ?? [];
 
   // 스켈레톤 플레이스홀더 체크
   const isSkeleton = Boolean(element.props.isSkeleton);
@@ -735,9 +735,9 @@ export const renderSelect = (
   // ADR-100 Phase 1 (098-a 슬롯): "SelectItem" = RAC 공식 `ListBoxItem` alias.
   //   신규 Select 는 items SSOT (factory 가 SelectItem Element 생성 안 함) —
   //   본 필터는 migration 전 기존 프로젝트 저장 데이터 호환 경로.
-  const selectItemChildren = (context.childrenMap.get(element.id) ?? []).filter(
-    (child) => child.type === "SelectItem",
-  );
+  const selectItemChildren = (
+    context.childrenByParent.get(element.id) ?? []
+  ).filter((child) => child.type === "SelectItem");
 
   // ADR-073 P2: items[] SSOT
   const storedItems = (element.props as { items?: StoredSelectItem[] }).items;
@@ -765,11 +765,11 @@ export const renderSelect = (
   const elementProps = { ...element.props };
 
   // Child element에서 props 읽기 (compositional 패턴)
-  const allSelectChildren = context.childrenMap.get(element.id) ?? [];
+  const allSelectChildren = context.childrenByParent.get(element.id) ?? [];
   const selectLabelEl = allSelectChildren.find((c) => c.type === "Label");
   const triggerEl = allSelectChildren.find((c) => c.type === "SelectTrigger");
   const triggerChildren = triggerEl
-    ? (context.childrenMap.get(triggerEl.id) ?? [])
+    ? (context.childrenByParent.get(triggerEl.id) ?? [])
     : [];
   const selectValueEl = triggerChildren.find((c) => c.type === "SelectValue");
 
@@ -810,7 +810,7 @@ export const renderSelect = (
     renderChildren = (item: Record<string, unknown>) => {
       const selectItemTemplate = selectItemChildren[0];
       const fieldChildren = (
-        context.childrenMap.get(selectItemTemplate.id) ?? []
+        context.childrenByParent.get(selectItemTemplate.id) ?? []
       ).filter((child) => child.type === "Field");
 
       return (
@@ -1015,7 +1015,7 @@ export const renderComboBox = (
   // ADR-101 Phase 1 (098-b 슬롯): legacy "ComboBoxItem" Element — items SSOT 흡수 후
   //   기존 프로젝트 호환 경로. RAC alias: ComboBoxItem (이름 동일). ADR-073 이관 완료.
   const comboBoxItemChildren = (
-    context.childrenMap.get(element.id) ?? []
+    context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "ComboBoxItem");
 
   // ADR-073 P2: items[] SSOT
@@ -1055,7 +1055,7 @@ export const renderComboBox = (
     cbRenderChildren = (item: Record<string, unknown>) => {
       const comboBoxItemTemplate = comboBoxItemChildren[0];
       const fieldChildren = (
-        context.childrenMap.get(comboBoxItemTemplate.id) ?? []
+        context.childrenByParent.get(comboBoxItemTemplate.id) ?? []
       ).filter((child) => child.type === "Field");
 
       const textValue = fieldChildren
@@ -1147,11 +1147,11 @@ export const renderComboBox = (
   }
 
   // Child element에서 props 읽기 (compositional 패턴)
-  const allChildren = context.childrenMap.get(element.id) ?? [];
+  const allChildren = context.childrenByParent.get(element.id) ?? [];
   const labelEl = allChildren.find((c) => c.type === "Label");
   const wrapperEl = allChildren.find((c) => c.type === "ComboBoxWrapper");
   const wrapperChildren = wrapperEl
-    ? (context.childrenMap.get(wrapperEl.id) ?? [])
+    ? (context.childrenByParent.get(wrapperEl.id) ?? [])
     : [];
   const inputEl = wrapperChildren.find((c) => c.type === "ComboBoxInput");
 

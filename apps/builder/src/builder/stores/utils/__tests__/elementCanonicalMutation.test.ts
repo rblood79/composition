@@ -174,8 +174,6 @@ function registerCanonicalActions(
   layouts: Layout[] = [makeLayout("frame-1")],
 ): void {
   registerCanonicalMutationStoreActions({
-    mergeElements: vi.fn(),
-    setElements: (elements) => replaceStateElements(state, elements),
     getCurrentLegacySnapshot: () => ({
       elements: state.elements,
       pages: state.pages,
@@ -543,9 +541,6 @@ describe("element mutations keep canonical document primary", () => {
       "button-two",
       "button-one",
     ]);
-    expect(state.childrenMap.get("body")?.map((element) => element.id)).toEqual(
-      ["button-two", "button-one"],
-    );
   });
 
   it("updateSelectedProperties preserves sibling order when canonical metadata order is stale", () => {

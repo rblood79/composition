@@ -10,6 +10,7 @@ import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
 import { Minimize } from "lucide-react";
 import { useStore } from "../../stores";
+import { useCanonicalElements } from "../../stores/canonical/canonicalElementsView";
 import { PanelHeader } from "../../components";
 import { LayerTree } from "./tree/LayerTree";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -25,6 +26,32 @@ interface LayersSectionProps {
 
 const EMPTY_ELEMENTS: Element[] = [];
 
+export function buildLayerSectionElementMap(
+  currentPageElements: Element[],
+  canonicalElements: Element[] | null,
+): Map<string, Element> {
+  const map = new Map<string, Element>();
+  if (canonicalElements) {
+    for (const element of canonicalElements) {
+      map.set(element.id, element);
+    }
+  }
+  for (const element of currentPageElements) {
+    if (!map.has(element.id)) map.set(element.id, element);
+  }
+  return map;
+}
+
+export function resolveLayerTreeEditingContext(
+  element: Element,
+  elementsMap: Map<string, Element>,
+): string | null {
+  const lookup = elementsMap.has(element.id)
+    ? elementsMap
+    : new Map(elementsMap).set(element.id, element);
+  return resolveEditingContextForTreeSelection(element.id, lookup);
+}
+
 export const LayersSection = memo(function LayersSection({
   currentPageId,
 }: LayersSectionProps) {
@@ -37,9 +64,10 @@ export const LayersSection = memo(function LayersSection({
       [currentPageId],
     ),
   );
+  const canonicalElements = useCanonicalElements();
   const currentPageElementsMap = useMemo(
-    () => new Map(currentPageElements.map((element) => [element.id, element])),
-    [currentPageElements],
+    () => buildLayerSectionElementMap(currentPageElements, canonicalElements),
+    [canonicalElements, currentPageElements],
   );
 
   useEffect(() => {
@@ -119,23 +147,17 @@ export const LayersSection = memo(function LayersSection({
   const handleItemClick = useCallback(
     (element: Element) => {
       const state = useStore.getState();
-      let newContextId = resolveEditingContextForTreeSelection(
-        element.id,
-        state.elementsMap,
+      const newContextId = resolveLayerTreeEditingContext(
+        element,
+        currentPageElementsMap,
       );
-
-      if (!state.elementsMap.has(element.id)) {
-        const parentId = element.parent_id ?? null;
-        const parentElement = parentId ? state.elementsMap.get(parentId) : null;
-        newContextId = parentElement?.type === "body" ? null : parentId;
-      }
 
       if (newContextId !== state.editingContextId) {
         state.setEditingContext(newContextId);
       }
       setSelectedElement(element.id);
     },
-    [setSelectedElement],
+    [currentPageElementsMap, setSelectedElement],
   );
 
   const handleItemDelete = useCallback(

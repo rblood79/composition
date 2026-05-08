@@ -40,6 +40,12 @@ interface UseElementHoverInteractionOptions {
   containerEl: HTMLDivElement | null;
   /** Frames tab multi-canvas overview 에서 frame body 빈 영역 hover 판정용 */
   frameAreasRef?: RefObject<ReadonlyArray<FrameHoverArea>>;
+  /** Page mode multi-page canvas 에서 page body 빈 영역 hover 판정용 */
+  pageFramesRef?: RefObject<ReadonlyArray<PageHoverFrame>>;
+  /** Active Skia renderer input 에서 파생한 hover element map */
+  getHoverElementsMap: () => ReadonlyMap<string, Element>;
+  /** Active Skia renderer input 에서 파생한 hover children map */
+  getHoverChildrenMap: () => ReadonlyMap<string, ReadonlyArray<{ id: string }>>;
   /** 호버 상태 ref (60fps 갱신, Zustand 아님) */
   hoverStateRef: MutableRefObject<ElementHoverState>;
   /** overlayVersion ref (리렌더 트리거) */
@@ -50,6 +56,14 @@ interface UseElementHoverInteractionOptions {
 
 interface FrameHoverArea {
   frameId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface PageHoverFrame {
+  id: string;
   x: number;
   y: number;
   width: number;
@@ -130,6 +144,34 @@ export function resolveFrameBodyHoverTarget({
   return null;
 }
 
+export function resolvePageBodyHoverTarget({
+  elementsMap,
+  pageFrames,
+  sceneX,
+  sceneY,
+}: {
+  elementsMap: ReadonlyMap<string, Element>;
+  pageFrames: ReadonlyArray<PageHoverFrame>;
+  sceneX: number;
+  sceneY: number;
+}): string | null {
+  for (let i = pageFrames.length - 1; i >= 0; i--) {
+    const frame = pageFrames[i];
+    if (!containsPoint(frame, sceneX, sceneY)) continue;
+
+    for (const element of elementsMap.values()) {
+      if (element.deleted) continue;
+      if (element.type.toLowerCase() !== "body") continue;
+      if (element.page_id !== frame.id) continue;
+      return element.id;
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
 export function clearElementHoverState(state: ElementHoverState): boolean {
   if (
     state.hoveredElementId === null &&
@@ -152,6 +194,9 @@ export function clearElementHoverState(state: ElementHoverState): boolean {
 export function useElementHoverInteraction({
   containerEl,
   frameAreasRef,
+  pageFramesRef,
+  getHoverElementsMap,
+  getHoverChildrenMap,
   hoverStateRef,
   overlayVersionRef,
   treeBoundsMapRef,
@@ -208,7 +253,9 @@ export function useElementHoverInteraction({
         const sceneY = (mouseY - rect.top - panOffset.y) / zoom;
 
         const state = useStore.getState();
-        const { editingContextId, childrenMap, elementsMap } = state;
+        const editingContextId = state.editingContextId;
+        const childrenMap = getHoverChildrenMap();
+        const elementsMap = getHoverElementsMap();
 
         // Context 레벨 후보 수집 (editingContext 직계 자식 또는 body 직계 자식)
         let candidates: ReadonlyArray<{ id: string }>;
@@ -262,6 +309,17 @@ export function useElementHoverInteraction({
               sceneY,
             });
           }
+
+          // Page mode 의 빈 page body 영역은 root/body child 후보에 포함되지
+          // 않으므로, visible page frame 을 기준으로 body hover target 을 보강한다.
+          if (!contextHitId) {
+            contextHitId = resolvePageBodyHoverTarget({
+              elementsMap,
+              pageFrames: pageFramesRef?.current ?? [],
+              sceneX,
+              sceneY,
+            });
+          }
         }
 
         // 상태 변경 감지 (context 레벨 히트 대상 비교)
@@ -292,6 +350,9 @@ export function useElementHoverInteraction({
     [
       containerEl,
       frameAreasRef,
+      pageFramesRef,
+      getHoverChildrenMap,
+      getHoverElementsMap,
       hoverStateRef,
       overlayVersionRef,
       treeBoundsMapRef,

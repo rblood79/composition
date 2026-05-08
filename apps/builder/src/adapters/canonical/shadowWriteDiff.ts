@@ -1,15 +1,14 @@
 /**
  * @fileoverview ADR-116 Phase 3 G4 — 3-A-impl: shadow write evaluator.
  *
- * canonical write 시 legacy export + diff 평가 + console warn 의 utility 계층.
- * 본 단계 (monitoring 시작 전) 는 pure 함수 + flag + helper 만 제공. attach
- * subscription / auto-fire 는 후속 caller 책임 (caller-driven 패턴, memory
- * `feedback-caller-driven-sync-pattern`).
+ * legacy snapshot 두 시점의 diff 평가 + console warn 의 utility 계층.
+ * ADR-122 이후 canonical document 를 여기서 legacy export 하는 convenience
+ * wrapper 는 제거하고, caller 가 compatibility boundary에서 만든 snapshot만
+ * 명시적으로 넘긴다.
  *
  * **활성화 흐름** (caller 측 통합 예시):
  * ```ts
  * if (isShadowWriteEnabled()) {
- *   const legacyAfter = exportLegacyDocument(canonicalDoc);
  *   const result = evaluateShadowWrite(legacyBefore, legacyAfter);
  *   logShadowWriteResult(result, { projectId });
  * }
@@ -20,10 +19,8 @@
  * - destructive=0 확정 시 3-B 진입 prerequisite 통과.
  */
 
-import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "@/types/builder/unified.types";
 
-import { exportLegacyDocument } from "./exportLegacyDocument";
 import { diffLegacyRoundtrip, type RoundtripDiff } from "./diffLegacyRoundtrip";
 
 // ─────────────────────────────────────────────
@@ -61,7 +58,7 @@ export interface ShadowWriteResult {
  * legacy snapshot 두 시점 비교 → ShadowWriteResult.
  *
  * @param legacyBefore - canonical write 직전 legacy elements (보통 elementsMap snapshot)
- * @param legacyAfter - canonical write 후 `exportLegacyDocument(canonicalDoc)` 결과
+ * @param legacyAfter - compatibility boundary에서 명시적으로 만든 legacy snapshot
  */
 export function evaluateShadowWrite(
   legacyBefore: Element[],
@@ -73,22 +70,10 @@ export function evaluateShadowWrite(
     hasDestructive: diff.destructive.length > 0,
     summary: {
       destructive: diff.destructive.length,
-      reorder: diff.reorder.length,
+      reorder: 0,
       cosmetic: diff.cosmetic.length,
     },
   };
-}
-
-/**
- * canonical document → legacy export → before 와 비교 (편의 wrapper).
- *
- * `evaluateShadowWrite(legacyBefore, exportLegacyDocument(doc))` 의 단축.
- */
-export function evaluateShadowWriteFromCanonical(
-  legacyBefore: Element[],
-  canonicalDoc: CompositionDocument,
-): ShadowWriteResult {
-  return evaluateShadowWrite(legacyBefore, exportLegacyDocument(canonicalDoc));
 }
 
 // ─────────────────────────────────────────────

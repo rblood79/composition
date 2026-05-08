@@ -20,11 +20,29 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useStore } from "../stores";
+import { useCanonicalElements } from "../stores/canonical/canonicalElementsView";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import { supabase } from "../../env/supabase.client";
 import type { Element } from "../../types/core/store.types";
 
 const EMPTY_CHILDREN: Element[] = [];
+
+function useCollectionChildren(elementId: string): Element[] {
+  const canonicalElements = useCanonicalElements();
+  const storeElements = useStore((state) => {
+    if (canonicalElements) return EMPTY_CHILDREN;
+    const { elements: legacyElements } = state;
+    return legacyElements ?? EMPTY_CHILDREN;
+  });
+
+  return useMemo(() => {
+    const sourceElements = canonicalElements ?? storeElements;
+    if (sourceElements.length === 0) return EMPTY_CHILDREN;
+    return sourceElements.filter(
+      (element) => !element.deleted && element.parent_id === elementId,
+    );
+  }, [canonicalElements, elementId, storeElements]);
+}
 
 export interface UseCollectionItemManagerOptions {
   /** 부모 Collection 요소 ID (ListBox, GridList, Select, ComboBox 등) */
@@ -72,11 +90,10 @@ export function useCollectionItemManager(
   );
 
   const currentPageId = useStore((state) => state.currentPageId);
-  const rawChildren =
-    useStore((state) => state.childrenMap.get(elementId)) ?? EMPTY_CHILDREN;
+  const rawChildren = useCollectionChildren(elementId);
 
   /**
-   * 자식 Item 필터링 (childrenMap source order 보존)
+   * 자식 Item 필터링 (canonical/store source order 보존)
    */
   const children = useMemo(() => {
     return rawChildren.filter((child) => child.type === childTag);

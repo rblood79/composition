@@ -11,9 +11,17 @@ describe("ADR-120 Phase 1 elementLoader persistence contract", () => {
 
     expect(source).toContain("loadFromCanonicalDocument");
     expect(source).toContain("deriveProjectRenderModelFromDocument");
+    expect(source).toContain("getActiveCanonicalElements");
+    expect(source).toContain("getPageElementsFromRuntimeState");
+    expect(source).toContain("legacyElements");
     expect(source).not.toContain("getDB");
     expect(source).not.toContain("supabase");
     expect(source).not.toContain("db.elements.getByPage");
     expect(source).not.toContain("db.elements.insertMany");
+
+    const staleMapIteration = ["state", "elementsMap", "forEach"].join(".");
+    const staleGetMapIteration = ["get()", "elementsMap", "forEach"].join(".");
+    expect(source).not.toContain(staleMapIteration);
+    expect(source).not.toContain(staleGetMapIteration);
   });
 });

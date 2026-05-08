@@ -466,7 +466,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
     expect(restored.props).toEqual(original.props);
     expect(restored.parent_id).toBe(original.parent_id);
     expect(restored.page_id).toBe(original.page_id);
-    expect(restored.order_num).toBe(0);
+    expect(restored).not.toHaveProperty("order_num");
     expect(restored.events).toEqual(original.events);
     // props 에 events 누락 (extension 으로 분리됨)
     expect(restored.props).not.toHaveProperty("events");

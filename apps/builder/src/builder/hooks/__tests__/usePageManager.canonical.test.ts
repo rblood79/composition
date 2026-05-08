@@ -95,14 +95,14 @@ describe("usePageManager.initializeProject canonical-only hydrate", () => {
   it("hydrate 중 page shell bridge 가 빈 elements 로 canonical body 를 덮지 않는다", async () => {
     const source = await readUsePageManagerSource();
     const initFnSource = extractInitializeProject(source);
-    const setElementsIndex = initFnSource.indexOf(
-      "setElements(renderModel.elements as Element[])",
+    const hydrateSnapshotIndex = initFnSource.indexOf(
+      "hydrateProjectSnapshot(renderModel.elements as Element[])",
     );
     const setPagesIndex = initFnSource.indexOf("setPages(storePages)");
 
-    expect(setElementsIndex).toBeGreaterThanOrEqual(0);
+    expect(hydrateSnapshotIndex).toBeGreaterThanOrEqual(0);
     expect(setPagesIndex).toBeGreaterThanOrEqual(0);
-    expect(setElementsIndex).toBeLessThan(setPagesIndex);
+    expect(hydrateSnapshotIndex).toBeLessThan(setPagesIndex);
   });
 
   it("hydrate 초기 선택은 page order_num 0이 아니라 slug Home identity 를 사용한다", async () => {

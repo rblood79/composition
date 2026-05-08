@@ -33,7 +33,6 @@ describe("resolveCanvasDetachContextTarget", () => {
       resolveCanvasDetachContextTarget(
         ["instance"],
         new Map([["instance", instance]]),
-        new Map([["instance", instance]]),
       ),
     ).toBe("instance");
   });
@@ -50,7 +49,6 @@ describe("resolveCanvasDetachContextTarget", () => {
       resolveCanvasDetachContextTarget(
         ["instance"],
         new Map([["instance", instance]]),
-        new Map([["instance", instance]]),
       ),
     ).toBe("instance");
   });
@@ -66,15 +64,10 @@ describe("resolveCanvasDetachContextTarget", () => {
       resolveCanvasDetachContextTarget(
         ["origin"],
         new Map([["origin", origin]]),
-        new Map([["origin", origin]]),
       ),
     ).toBeNull();
     expect(
-      resolveCanvasDetachContextTarget(
-        ["plain"],
-        new Map([["plain", plain]]),
-        new Map([["plain", plain]]),
-      ),
+      resolveCanvasDetachContextTarget(["plain"], new Map([["plain", plain]])),
     ).toBeNull();
   });
 });

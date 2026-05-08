@@ -26,6 +26,7 @@ import {
 } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { useStore } from "../../../stores";
+import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { useDataTableStore } from "../../../stores/datatable";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 
@@ -34,11 +35,8 @@ export const DataTableEditor = memo(function DataTableEditor({
   currentProps,
   onUpdate,
 }: PropertyEditorProps) {
-  // Get customId from element in store
-  const customId = useMemo(() => {
-    const element = useStore.getState().elementsMap.get(elementId);
-    return element?.customId || "";
-  }, [elementId]);
+  const element = useCanonicalPropertyElement(elementId);
+  const customId = useMemo(() => element?.customId || "", [element?.customId]);
 
   // DataTable Store에서 현재 DataTable 상태 가져오기
   const dataTableId = String(currentProps.id || "");

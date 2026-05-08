@@ -1,6 +1,6 @@
 # Skills 카탈로그 (composition)
 
-자연어 트리거와 `/` 명령 양쪽으로 발동 가능. 최근 30일 사용 빈도는 2026-04-13 기준.
+자연어 트리거와 `/` 명령 양쪽으로 발동 가능. 사용 빈도는 본 파일 하단의 자동 갱신 블록 (`update-index.sh`) 참조.
 
 ## composition 전용 (프로젝트)
 
@@ -45,41 +45,52 @@
 <!-- usage-stats-begin -->
 <!-- 자동 생성: .claude/hooks/update-index.sh — 수동 편집 금지 -->
 
-## 📊 최근 30일 사용 빈도 (갱신: 2026-04-16)
+## 📊 최근 30일 사용 빈도 (갱신: 2026-05-09)
 
 ### Skills
 
-| Skill                                   | 호출 수 |
-| --------------------------------------- | ------: |
-| superpowers:writing-plans               |       6 |
-| superpowers:brainstorming               |       6 |
-| superpowers:subagent-driven-development |       5 |
-| review-adr                              |       5 |
-| cross-check                             |       5 |
-| composition-patterns                    |       4 |
-| superpowers:using-superpowers           |       2 |
-| superpowers:using-git-worktrees         |       2 |
-| superpowers:systematic-debugging        |       2 |
-| update-config                           |       1 |
-| superpowers:executing-plans             |       1 |
-| react-spectrum                          |       1 |
-| parallel-verify                         |       1 |
-| create-adr                              |       1 |
-| claude-code-guide                       |       1 |
+| Skill                                      | 호출 수 |
+| ------------------------------------------ | ------: |
+| review-adr                                 |      30 |
+| create-adr                                 |      17 |
+| composition-patterns                       |      11 |
+| superpowers:systematic-debugging           |      10 |
+| superpowers:writing-plans                  |       9 |
+| superpowers:subagent-driven-development    |       8 |
+| superpowers:brainstorming                  |       8 |
+| cross-check                                |       7 |
+| parallel-verify                            |       5 |
+| superpowers:executing-plans                |       4 |
+| update-config                              |       3 |
+| superpowers:using-superpowers              |       3 |
+| superpowers:using-git-worktrees            |       3 |
+| superpowers:dispatching-parallel-agents    |       3 |
+| execute-adr                                |       3 |
+| codex:rescue                               |       3 |
+| superpowers:verification-before-completion |       2 |
+| superpowers:test-driven-development        |       1 |
+| superpowers:requesting-code-review         |       1 |
+| superpowers:finishing-a-development-branch |       1 |
+| new-adr                                    |       1 |
+| codex:setup                                |       1 |
+| codex:codex-result-handling                |       1 |
+| claude-code-guide                          |       1 |
 
 ### Agents
 
-| Agent              | 호출 수 |
-| ------------------ | ------: |
-| implementer        |      54 |
-| Explore            |      35 |
-| reviewer           |      15 |
-| debugger           |       7 |
-| codex:codex-rescue |       6 |
-| general-purpose    |       4 |
-| tester             |       2 |
-| refactorer         |       2 |
-| evaluator          |       2 |
-| documenter         |       2 |
+| Agent                     | 호출 수 |
+| ------------------------- | ------: |
+| implementer               |     114 |
+| Explore                   |      69 |
+| general-purpose           |      62 |
+| reviewer                  |      54 |
+| architect                 |      30 |
+| debugger                  |      18 |
+| documenter                |      14 |
+| superpowers:code-reviewer |      12 |
+| codex:codex-rescue        |      11 |
+| refactorer                |       9 |
+| evaluator                 |       8 |
+| tester                    |       6 |
 
 <!-- usage-stats-end -->

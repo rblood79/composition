@@ -4,7 +4,6 @@ import { Key } from "react-aria-components";
 
 import { useStore } from "../stores";
 import { historyManager } from "../stores/history";
-import type { Element } from "../../types/core/store.types";
 import { applyCanonicalThemes } from "@/adapters/canonical";
 
 // 패널 등록 (side effect import - registerAllPanels() 자동 실행)
@@ -19,10 +18,10 @@ import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
 import { startCanonicalDocumentSync } from "../stores/canonical/canonicalDocumentSync";
 // ADR-116 Phase 2 G3 Step 4 — BuilderCore layout refresh dual-mode
 import {
-  subscribeCanonicalStore,
   getActiveCanonicalDocument,
+  subscribeCanonicalStore,
 } from "../stores/canonical/canonicalElementsBridge";
-import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import {
   setElementsCanonicalPrimary,
@@ -44,7 +43,6 @@ import {
   useAutoRecovery,
   useToast,
   useIframeMessenger,
-  useValidation,
   useGlobalKeyboardShortcuts,
 } from "@/builder/hooks";
 // import { projectsApi, type Project } from "../../services/api";  // Supabase 동기화는 대시보드에서만 처리
@@ -54,13 +52,10 @@ import { useThemeConfigStore } from "../../stores/themeConfigStore";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
 import { useEditModeStore } from "../stores/editMode";
-import {
-  getCanonicalReusableFrameLayouts,
-  getSelectedReusableFrameId,
-} from "../stores/canonical/canonicalFrameStore";
+import { getCanonicalReusableFrameLayouts } from "../stores/canonical/canonicalFrameStore";
 import { useDataTableStore } from "../stores/datatable";
 import { useDataStore } from "../stores/data";
-import { isLegacyFrameElementForFrame } from "@/adapters/canonical/frameElementLoader";
+import type { Element } from "../../types/core/store.types";
 
 import { MessageService } from "../../utils/messaging";
 import { isValidPreviewMessage } from "../../utils/messageValidation";
@@ -79,6 +74,26 @@ import {
   applyEditingSemanticsFixture,
   shouldApplyEditingSemanticsFixture,
 } from "../dev/editingSemanticsFixture";
+
+function getActiveCanonicalBuilderElements(): Element[] | null {
+  const doc = getActiveCanonicalDocument();
+  if (!doc) return null;
+
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return elements;
+}
+
+function getCanonicalOrBootstrapBuilderElements(state: {
+  elements?: Element[];
+}): Element[] {
+  const canonicalElements = getActiveCanonicalBuilderElements();
+  if (canonicalElements) return canonicalElements;
+  const { elements: legacyElements = [] } = state;
+  return legacyElements;
+}
 
 export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -108,16 +123,14 @@ export const BuilderCore: React.FC = () => {
   // 위해 callback registration pattern 사용. mount + projectId 변경 시 등록.
   //
   // 2026-05-02 §8.7 확장 — canonical primary reverse path 용 callback 2 추가:
-  // - getCurrentLegacySnapshot: legacy state 전체 snapshot (elements/pages/layouts)
+  // - getCurrentLegacySnapshot: canonical snapshot 우선 + bootstrap fallback
   // - getCurrentProjectId: 활성 projectId (canonical store setDocument target)
   useEffect(() => {
     registerCanonicalMutationStoreActions({
-      mergeElements: useStore.getState().mergeElements,
-      setElements: useStore.getState().setElements,
       getCurrentLegacySnapshot: () => {
         const state = useStore.getState();
         return {
-          elements: Array.from(state.elementsMap.values()),
+          elements: getCanonicalOrBootstrapBuilderElements(state),
           pages: state.pages,
           layouts: getCanonicalReusableFrameLayouts(),
         };
@@ -143,7 +156,9 @@ export const BuilderCore: React.FC = () => {
       if (state.pages === pagesRef) return;
       pagesRef = state.pages;
       if (pageShellBridgeSuspendedRef.current) return;
-      setElementsCanonicalPrimary(Array.from(state.elementsMap.values()));
+      setElementsCanonicalPrimary(
+        getCanonicalOrBootstrapBuilderElements(state),
+      );
     });
   }, [projectId]);
 
@@ -248,7 +263,6 @@ export const BuilderCore: React.FC = () => {
     handleIframeLoad,
     handleMessage,
     // iframeUndo, iframeRedo는 사용하지 않음
-    sendElementsToIframe, // 🚀 elements 동기화용
     // updateElementProps는 제거됨
     iframeReadyState,
     requestAutoSelectAfterUpdate,
@@ -262,8 +276,6 @@ export const BuilderCore: React.FC = () => {
     // pageList,  // 사용하지 않음
   } = usePageManager({ requestAutoSelectAfterUpdate });
   const loadProjectTheme = useUnifiedThemeStore((s) => s.loadActiveTheme);
-  const { validateOrderNumbers } = useValidation();
-
   // 🚀 Phase 5: 페이지 Lazy Loading 통합
   const { isLoading: isPageLoading, stats: pageLoaderStats } = usePageLoader();
   // 인접 페이지 프리로드 (백그라운드)
@@ -541,70 +553,10 @@ export const BuilderCore: React.FC = () => {
     return unsub;
   }, [iframeReadyState]);
 
-  // Phase 4.2 최적화: setTimeout 제거, useEffect batching 활용
-  // legacy validation hook 유지 (dev 모드 전용) - 페이지 변경 시에만 실행
-  useEffect(() => {
-    if (!currentPageId) return;
-    // 🚀 최적화: getState()로 elements 읽기 (구독 제거)
-    const elements = useStore.getState().elements;
-    if (elements.length > 0) {
-      validateOrderNumbers(elements);
-    }
-  }, [currentPageId, validateOrderNumbers]);
-
-  // 🚀 최적화: store.subscribe로 elements 변경 감지 → iframe 동기화
-  // useIframeMessenger에서 elements 구독 제거 후, BuilderCore에서 직접 동기화
-  // 🚀 Phase 11: WebGL-only 모드에서는 iframeReadyState='not_initialized'로 반환되어
-  //    이 구독이 자동으로 스킵됨 (~3ms/변경 절감)
-  const lastSentElementsRef = useRef<Element[]>([]);
-  const lastSentEditModeRef = useRef<string>("page");
-
-  useEffect(() => {
-    // iframe이 준비되지 않았으면 구독하지 않음 (WebGL-only 모드 포함)
-    if (iframeReadyState !== "ready") return;
-
-    // ADR-116 Phase 2 G3 Step 4 — sourceElements 평가 + filter + publish 로직을
-    // 단일 helper 로 추출. legacy/canonical 양쪽 mode 가 동일 logic 으로 publish.
-    const publishElements = (sourceElements: Element[]): void => {
-      const editMode = useEditModeStore.getState().mode;
-      const selectedReusableFrameId = getSelectedReusableFrameId();
-
-      // editMode에 따라 필터링
-      // ADR-116 projection 제거: publish path 에서 projection rebuild 없이
-      // active canonical document 를 재사용한다.
-      let filteredElements = sourceElements;
-      if (editMode === "layout" && selectedReusableFrameId) {
-        filteredElements = sourceElements.filter((el) =>
-          isLegacyFrameElementForFrame(el, selectedReusableFrameId),
-        );
-      }
-
-      // 변경 확인 (editMode도 포함)
-      const editModeChanged = lastSentEditModeRef.current !== editMode;
-      const elementsChanged = lastSentElementsRef.current !== filteredElements;
-
-      if (!editModeChanged && !elementsChanged) return;
-
-      // 전송
-      lastSentElementsRef.current = filteredElements;
-      lastSentEditModeRef.current = editMode;
-      sendElementsToIframe(filteredElements);
-    };
-
-    let lastDerivedRef: Element[] | null = null;
-    const unsubscribe = subscribeCanonicalStore(() => {
-      const doc = getActiveCanonicalDocument();
-      if (!doc) {
-        publishElements(useStore.getState().elements);
-        return;
-      }
-      const derived = canonicalDocumentToElements(doc);
-      if (derived === lastDerivedRef) return;
-      lastDerivedRef = derived;
-      publishElements(derived);
-    });
-    return () => unsubscribe();
-  }, [iframeReadyState, sendElementsToIframe]);
+  // ADR-122 Phase 3: Preview active render sync 는 useIframeMessenger 의
+  // UPDATE_CANONICAL_DOCUMENT effect 가 담당한다. BuilderCore 는 더 이상
+  // canonical document 를 Element[] 로 projection 해서 UPDATE_ELEMENTS 를
+  // publish 하지 않는다.
 
   // NAVIGATE_TO_PAGE 메시지 수신 (Preview iframe에서)
   useEffect(() => {

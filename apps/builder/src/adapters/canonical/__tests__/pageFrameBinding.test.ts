@@ -7,6 +7,7 @@ import type {
 import type { Element, Page } from "@/types/builder/unified.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { applyPageFrameBindingCanonicalPrimary } from "../pageFrameBinding";
+import { exportLegacyDocument } from "../exportLegacyDocument";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -177,7 +178,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
-    const setElements = vi.fn();
     const existingPageRef: RefNode = {
       id: "page-2",
       type: "ref",
@@ -213,14 +213,14 @@ describe("pageFrameBinding canonical primary helper", () => {
       frameId: null,
       getElementsState: () => state,
       setPages,
-      setElements,
     });
 
     expect(mocks.loadFrameElements).not.toHaveBeenCalled();
     expect(setPages).toHaveBeenCalledWith([
       expect.objectContaining({ id: "page-2", layout_id: null }),
     ]);
-    expect(setElements).toHaveBeenCalledWith([
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    expect(exportLegacyDocument(doc!)).toEqual([
       expect.objectContaining({
         id: "page-2-body",
         page_id: "page-2",
@@ -232,7 +232,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       "project-1",
       expect.objectContaining({ version: "composition-1.0" }),
     );
-    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     expect(doc?.children.find((node) => node.id === "page-2")).toEqual(
       expect.objectContaining({
         id: "page-2",
@@ -326,7 +325,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
-    const setElements = vi.fn();
     const existingPageRef: RefNode = {
       id: "page-4",
       type: "ref",
@@ -348,10 +346,10 @@ describe("pageFrameBinding canonical primary helper", () => {
       frameId: null,
       getElementsState: () => state,
       setPages,
-      setElements,
     });
 
-    expect(setElements).toHaveBeenCalledWith([
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    expect(exportLegacyDocument(doc!)).toEqual([
       expect.objectContaining({
         id: "page-4-body",
         page_id: "page-4",
@@ -361,7 +359,6 @@ describe("pageFrameBinding canonical primary helper", () => {
         }),
       }),
     ]);
-    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     expect(doc?.children.find((node) => node.id === "page-4")).toEqual(
       expect.objectContaining({
         id: "page-4",

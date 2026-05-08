@@ -7,7 +7,7 @@ import {
 } from "../../../types/core/store.types";
 import { sanitizeFillDerivedStylePatch } from "../../panels/styles/utils/fillDerivedStyleProps";
 import { historyManager } from "../history";
-import { getElementById, createCompleteProps } from "./elementHelpers";
+import { createCompleteProps } from "./elementHelpers";
 import type { ElementsState } from "../elements";
 import { getDB } from "../../../lib/db";
 import { globalToast } from "../toast";
@@ -22,6 +22,7 @@ import {
   mergeElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 
@@ -153,10 +154,43 @@ function isLayoutAffectingUpdate(
   return Object.keys(changedStyle).some((k) => !NON_LAYOUT_PROPS_UPDATE.has(k));
 }
 
+function buildElementUpdateLookup(elements: Element[]): Map<string, Element> {
+  return new Map(elements.map((element) => [element.id, element]));
+}
+
+function findElementForUpdate(
+  elements: Element[],
+  elementId: string,
+): Element | undefined {
+  return elements.find((element) => element.id === elementId);
+}
+
+function buildElementUpdateChildrenByParent(
+  elements: Element[],
+): Map<string, Element[]> {
+  const childrenByParent = new Map<string, Element[]>();
+  for (const element of elements) {
+    const parentId = element.parent_id;
+    if (!parentId) continue;
+    childrenByParent.set(parentId, [
+      ...(childrenByParent.get(parentId) ?? []),
+      element,
+    ]);
+  }
+  return childrenByParent;
+}
+
+function getElementUpdateSourceElements(
+  state: Pick<ElementsState, "elements">,
+): Element[] {
+  const { elements: legacyElements } = state;
+  return getActiveCanonicalDocumentElements() ?? legacyElements;
+}
+
 function markDirtyWithDescendantsUpdate(
   elementId: string,
   changedStyle: Record<string, unknown>,
-  childrenMap: Map<string, Element[]>,
+  childrenByParent: Map<string, Element[]>,
   dirtySet: Set<string>,
 ): void {
   dirtySet.add(elementId);
@@ -167,7 +201,7 @@ function markDirtyWithDescendantsUpdate(
     const queue = [elementId];
     while (queue.length > 0) {
       const parentId = queue.pop()!;
-      const children = childrenMap.get(parentId) ?? [];
+      const children = childrenByParent.get(parentId) ?? [];
       for (const child of children) {
         dirtySet.add(child.id);
         queue.push(child.id);
@@ -267,9 +301,10 @@ async function confirmOriginImpactIfNeeded(
   if (getEditingSemanticsRole(element) !== "origin") return true;
 
   const startedAt = nowMs();
+  const sourceElements = getElementUpdateSourceElements(state);
   const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
     element,
-    state.elements,
+    sourceElements,
   );
   const countDurationMs = nowMs() - startedAt;
   if (countDurationMs > 100) {
@@ -321,8 +356,8 @@ export const createUpdateElementPropsAction =
       (props ?? {}) as Record<string, unknown>,
     ) as ComponentElementProps;
     const currentState = get();
-    // produce 외부에서는 elementsMap 사용 가능
-    const element = getElementById(currentState.elementsMap, elementId);
+    const sourceElements = getElementUpdateSourceElements(currentState);
+    const element = findElementForUpdate(sourceElements, elementId);
     if (!element) return;
 
     const patch = sanitizedProps as Record<string, unknown>;
@@ -368,11 +403,9 @@ export const createUpdateElementPropsAction =
       ...element,
       props: { ...element.props, ...sanitizedProps },
     };
-    const idx = currentState.elements.indexOf(element);
+    const idx = sourceElements.indexOf(element);
     const updatedElements =
-      idx !== -1
-        ? currentState.elements.with(idx, updatedElement)
-        : currentState.elements;
+      idx !== -1 ? sourceElements.with(idx, updatedElement) : sourceElements;
 
     // 선택된 요소가 업데이트된 경우 selectedElementProps도 업데이트
     const selectedElementProps =
@@ -394,14 +427,14 @@ export const createUpdateElementPropsAction =
     // updateElementProps는 element 구조(parent_id/page_id/type/variableBindings 등)를 바꾸지 않으므로,
     // 전체 인덱스 재구축(O(n)) 대신 변경된 요소만 O(1)로 갱신한다.
     if (updatedElement) {
-      const elementsMap = new Map(currentState.elementsMap);
+      const elementsMap = buildElementUpdateLookup(sourceElements);
       elementsMap.set(elementId, updatedElement);
       if (isLayoutChange) {
         const dirtyIds = new Set(currentState.dirtyElementIds);
         markDirtyWithDescendantsUpdate(
           elementId,
           changedStyle,
-          currentState.childrenMap,
+          buildElementUpdateChildrenByParent(sourceElements),
           dirtyIds,
         );
         set((state) => ({
@@ -475,8 +508,8 @@ export const createUpdateElementAction =
     if (Object.keys(sanitizedUpdates).length === 0) return;
 
     const currentState = get();
-    // produce 외부에서는 elementsMap 사용 가능
-    const element = getElementById(currentState.elementsMap, elementId);
+    const sourceElements = getElementUpdateSourceElements(currentState);
+    const element = findElementForUpdate(sourceElements, elementId);
     if (!element) return;
     if (!(await confirmOriginImpactIfNeeded(currentState, element))) return;
 
@@ -513,12 +546,10 @@ export const createUpdateElementAction =
     }
 
     // ADR-040 Phase 3: indexOf + with() 증분 패치 (elements.map O(N) 제거)
-    const idx = currentState.elements.indexOf(element);
+    const idx = sourceElements.indexOf(element);
     const updatedElement = { ...element, ...sanitizedUpdates };
     const updatedElements =
-      idx !== -1
-        ? currentState.elements.with(idx, updatedElement)
-        : currentState.elements;
+      idx !== -1 ? sourceElements.with(idx, updatedElement) : sourceElements;
     const selectedElementProps =
       currentState.selectedElementId === elementId &&
       sanitizedUpdates.props &&
@@ -541,7 +572,7 @@ export const createUpdateElementAction =
       markDirtyWithDescendantsUpdate(
         elementId,
         changedStyle,
-        currentState.childrenMap,
+        buildElementUpdateChildrenByParent(sourceElements),
         dirtyIds,
       );
       set((state) => ({
@@ -610,14 +641,16 @@ export const createBatchUpdateElementPropsAction =
     if (updates.length === 0) return;
 
     const state = get();
+    const sourceElements = getElementUpdateSourceElements(state);
     const normalizedUpdates = updates.map((update) => ({
       ...update,
       props: sanitizePropsPatch(
         update.props as Record<string, unknown>,
       ) as ComponentElementProps,
     }));
-    const validUpdates = normalizedUpdates.filter(
-      (u) => getElementById(state.elementsMap, u.elementId) !== undefined,
+    const elementLookup = buildElementUpdateLookup(sourceElements);
+    const validUpdates = normalizedUpdates.filter((u) =>
+      elementLookup.has(u.elementId),
     );
 
     if (validUpdates.length === 0) return;
@@ -633,9 +666,9 @@ export const createBatchUpdateElementPropsAction =
     // 업데이트 맵 생성 (O(1) 조회용)
     const updateMap = new Map<string, ComponentElementProps>();
     const updatedElementMap = new Map<string, Element>();
-    const nextElementsMap = new Map(state.elementsMap);
+    const nextElementsMap = new Map(elementLookup);
     for (const { elementId, props } of validUpdates) {
-      const element = getElementById(state.elementsMap, elementId);
+      const element = elementLookup.get(elementId);
       if (element) {
         prevStates.push({
           elementId,
@@ -653,7 +686,7 @@ export const createBatchUpdateElementPropsAction =
     }
 
     // 2. 단일 메모리 상태 업데이트 (불변)
-    const updatedElements = state.elements.map(
+    const updatedElements = sourceElements.map(
       (el) => updatedElementMap.get(el.id) ?? el,
     );
 
@@ -672,6 +705,7 @@ export const createBatchUpdateElementPropsAction =
     // ADR-006 P3-1: batch props 변경 시 dirty tracking
     // 업데이트 중 하나라도 레이아웃 영향이 있으면 layoutVersion 증가
     const dirtyIds = new Set(state.dirtyElementIds);
+    const childrenByParent = buildElementUpdateChildrenByParent(sourceElements);
     let hasAnyLayoutChange = false;
     for (const { elementId, props } of validUpdates) {
       const changedStyle = (props.style ?? {}) as Record<string, unknown>;
@@ -686,7 +720,7 @@ export const createBatchUpdateElementPropsAction =
         markDirtyWithDescendantsUpdate(
           elementId,
           changedStyle,
-          state.childrenMap,
+          childrenByParent,
           dirtyIds,
         );
       }
@@ -766,12 +800,14 @@ export const createBatchUpdateElementsAction =
     if (updates.length === 0) return;
 
     const state = get();
+    const sourceElements = getElementUpdateSourceElements(state);
     const normalizedUpdates = updates.map((update) => ({
       ...update,
       updates: sanitizeElementUpdate(update.updates),
     }));
-    const validUpdates = normalizedUpdates.filter(
-      (u) => getElementById(state.elementsMap, u.elementId) !== undefined,
+    const elementLookup = buildElementUpdateLookup(sourceElements);
+    const validUpdates = normalizedUpdates.filter((u) =>
+      elementLookup.has(u.elementId),
     );
 
     if (validUpdates.length === 0) return;
@@ -787,7 +823,7 @@ export const createBatchUpdateElementsAction =
     // 업데이트 맵 생성 (O(1) 조회용)
     const updateMap = new Map<string, Partial<Element>>();
     for (const { elementId, updates: elementUpdates } of validUpdates) {
-      const element = getElementById(state.elementsMap, elementId);
+      const element = elementLookup.get(elementId);
       if (element) {
         if (elementUpdates.props) {
           prevStates.push({
@@ -801,7 +837,7 @@ export const createBatchUpdateElementsAction =
     }
 
     // 2. 단일 메모리 상태 업데이트 (불변)
-    const updatedElements = state.elements.map((el) => {
+    const updatedElements = sourceElements.map((el) => {
       const updates = updateMap.get(el.id);
       return updates ? { ...el, ...updates } : el;
     });
@@ -924,7 +960,7 @@ export const createBatchUpdateElementsAction =
       if (hasStructuralChange) {
         const affectedIds = validUpdates.map((u) => u.elementId);
         const prevElements = affectedIds
-          .map((id) => getElementById(state.elementsMap, id))
+          .map((id) => elementLookup.get(id))
           .filter((el): el is Element => el !== undefined)
           .map((el) => cloneForHistory(el) as Element);
         const nextElements = affectedIds

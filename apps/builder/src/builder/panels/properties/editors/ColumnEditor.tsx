@@ -7,7 +7,7 @@ import {
 } from "../../../components";
 import type { ColumnElementProps } from "../../../../types/core/store.types";
 import { PropertyEditorProps } from "../types/editorTypes";
-import { useStore } from "../../../stores";
+import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import {
   Type,
   Crown,
@@ -30,8 +30,7 @@ export const ColumnEditor = memo(function ColumnEditor({
   currentProps,
   onUpdate,
 }: PropertyEditorProps) {
-  // ADR-040: elementsMap O(1) 조회
-  const element = useStore((state) => state.elementsMap.get(elementId));
+  const element = useCanonicalPropertyElement(elementId);
 
   // Get customId from element in store
   const customId = element?.customId || "";

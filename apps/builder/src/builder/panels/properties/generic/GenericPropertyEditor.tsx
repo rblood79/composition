@@ -5,6 +5,7 @@ import { useStore } from "../../../stores";
 import type { ComponentEditorProps } from "../../../inspector/types";
 import { evaluateVisibility } from "./evaluateVisibility";
 import { SpecField } from "./SpecField";
+import { useCanonicalPropertyElementsMap } from "../hooks/useCanonicalPropertyRead";
 
 interface GenericPropertyEditorProps extends ComponentEditorProps {
   spec: ComponentSpec<Record<string, unknown>>;
@@ -22,18 +23,19 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
   spec,
   renderAfterSections,
 }: GenericPropertyEditorProps) {
+  const elementsMap = useCanonicalPropertyElementsMap();
+
   const customId = useMemo(() => {
-    const element = useStore.getState().elementsMap.get(elementId);
+    const element = elementsMap.get(elementId);
     return element?.customId || "";
-  }, [elementId]);
+  }, [elementsMap, elementId]);
 
   const parentTag = useMemo(() => {
-    const state = useStore.getState();
-    const element = state.elementsMap.get(elementId);
+    const element = elementsMap.get(elementId);
     if (!element?.parent_id) return undefined;
-    const parent = state.elementsMap.get(element.parent_id);
+    const parent = elementsMap.get(element.parent_id);
     return parent?.type;
-  }, [elementId]);
+  }, [elementsMap, elementId]);
 
   const updateCustomId = (newCustomId: string) => {
     const updateElement = useStore.getState().updateElement;

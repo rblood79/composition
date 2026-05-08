@@ -10,11 +10,14 @@ import { PropertyEditorProps } from "../types/editorTypes";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { useStore } from "../../../stores";
+import {
+  useCanonicalPropertyChildren,
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElements,
+} from "../hooks/useCanonicalPropertyRead";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
 import type { Element } from "../../../../types/core/store.types";
-
-const EMPTY_CHILDREN: Element[] = [];
 
 export const TreeItemEditor = memo(function TreeItemEditor({
   elementId,
@@ -23,10 +26,9 @@ export const TreeItemEditor = memo(function TreeItemEditor({
 }: PropertyEditorProps) {
   // 🚀 Phase 19: Zustand selector 패턴 적용 (불필요한 리렌더링 방지)
   const addElement = useStore((state) => state.addElement);
-  // ADR-040: elementsMap/childrenMap O(1) 조회
-  const element = useStore((state) => state.elementsMap.get(elementId));
-  const rawChildren =
-    useStore((state) => state.childrenMap.get(elementId)) ?? EMPTY_CHILDREN;
+  const element = useCanonicalPropertyElement(elementId);
+  const canonicalPropertyElements = useCanonicalPropertyElements();
+  const rawChildren = useCanonicalPropertyChildren(elementId);
   const [localPageId, setLocalPageId] = useState<string>("");
 
   // Get customId from element in store
@@ -71,7 +73,7 @@ export const TreeItemEditor = memo(function TreeItemEditor({
       const newTreeItemIndex = childTreeItems.length || 0;
       const newTreeItemElement = {
         id: ElementUtils.generateId(),
-        customId: generateCustomId("TreeItem", useStore.getState().elements),
+        customId: generateCustomId("TreeItem", canonicalPropertyElements),
         page_id: localPageId,
         type: "TreeItem",
         props: {

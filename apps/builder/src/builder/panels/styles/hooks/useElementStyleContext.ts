@@ -1,4 +1,4 @@
-import { useStore } from "../../../stores";
+import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
 
 export interface ElementStyleContext {
   style: Record<string, unknown> | undefined;
@@ -9,22 +9,13 @@ export interface ElementStyleContext {
 }
 
 /**
- * Primitive Zustand selectors for an element's style/type/size.
- * Shared by section-value hooks (Appearance / Typography / Layout) to avoid
- * copy-pasting three useStore calls per hook.
+ * Shared canonical property read for an element's style/type/size.
+ * Section-value hooks reuse this so legacy fallback stays behind one boundary.
  */
 export function useElementStyleContext(id: string | null): ElementStyleContext {
-  const element = useStore((s) => {
-    if (!id) return undefined;
-    return s.elementsMap.get(id);
-  });
-  const props = useStore((s) => {
-    if (!id) return undefined;
-    return s.elementsMap.get(id)?.props as
-      | Readonly<Record<string, unknown>>
-      | undefined;
-  });
-  const type = useStore((s) => (id ? s.elementsMap.get(id)?.type : undefined));
+  const element = useCanonicalPropertyElement(id ?? "");
+  const props = element?.props as Readonly<Record<string, unknown>> | undefined;
+  const type = element?.type;
   const style = props?.style as Record<string, unknown> | undefined;
   const size = props?.size as string | undefined;
   const fills = element?.fills as unknown[] | undefined;

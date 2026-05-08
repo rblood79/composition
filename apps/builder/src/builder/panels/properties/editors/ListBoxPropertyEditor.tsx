@@ -1,9 +1,9 @@
-import { createElement, memo } from "react";
+import { createElement, memo, useMemo } from "react";
 import type { ComponentSpec } from "@composition/specs";
-import { useStore } from "../../../stores";
 import { GenericPropertyEditor } from "../generic";
 import { getPropertyEditorSpec } from "../specRegistry";
 import type { ComponentEditorProps } from "../../../inspector/types";
+import { useCanonicalPropertyChildrenMap } from "../hooks/useCanonicalPropertyRead";
 
 /**
  * ADR-076 P6 — ListBox 듀얼 모드 프로퍼티 에디터.
@@ -32,18 +32,19 @@ const ListBoxPropertyEditor = memo(function ListBoxPropertyEditor(
   props: ComponentEditorProps,
 ) {
   const { elementId } = props;
+  const childrenByParent = useCanonicalPropertyChildrenMap();
 
   // 자식 ListBoxItem 중 하나라도 Field 자식 보유 → 템플릿 모드
-  const hasTemplateMode = useStore((state) => {
-    const children = state.childrenMap.get(elementId) ?? [];
+  const hasTemplateMode = useMemo(() => {
+    const children = childrenByParent.get(elementId) ?? [];
     const listBoxItems = children.filter((c) => c.type === "ListBoxItem");
     if (listBoxItems.length === 0) return false;
     for (const lbi of listBoxItems) {
-      const subs = state.childrenMap.get(lbi.id) ?? [];
+      const subs = childrenByParent.get(lbi.id) ?? [];
       if (subs.some((s) => s.type === "Field")) return true;
     }
     return false;
-  });
+  }, [childrenByParent, elementId]);
 
   const spec = getPropertyEditorSpec("ListBox");
   if (!spec) return null;

@@ -23,7 +23,6 @@ import {
 } from "../diffLegacyRoundtrip";
 import {
   evaluateShadowWrite,
-  evaluateShadowWriteFromCanonical,
   isShadowWriteEnabled,
   logShadowWriteResult,
   setShadowWriteEnabled,
@@ -112,7 +111,7 @@ describe("exportLegacyDocument (3-A-impl)", () => {
     const exportedB = after.find((e) => e.id === "el-b")!;
     expect(exportedB.parent_id).toBe("el-a");
     expect(exportedB.page_id).toBe("page-1");
-    expect(exportedB.order_num).toBe(0);
+    expect(exportedB).not.toHaveProperty("order_num");
     expect(exportedB.props).toEqual({ value: 42 });
   });
 
@@ -142,7 +141,6 @@ describe("exportLegacyDocument (3-A-impl)", () => {
         type: "body",
         page_id: "page-1",
         parent_id: null,
-        order_num: 0,
       }),
     ]);
   });
@@ -227,7 +225,6 @@ describe("diffLegacyRoundtrip (3-A-impl)", () => {
     const b = [makeElement("a", { page_id: "p1", order_num: 0 })];
     const result = diffLegacyRoundtrip(a, b);
     expect(result.destructive).toEqual([]);
-    expect(result.reorder).toEqual([]);
     expect(result.cosmetic).toEqual([]);
   });
 
@@ -257,13 +254,12 @@ describe("diffLegacyRoundtrip (3-A-impl)", () => {
     expect(result.destructive[0].after).toBe("p2");
   });
 
-  it("order_num 변경 → reorder (destructive 아님)", () => {
+  it("order_num 변경은 diff 대상이 아니다", () => {
     const before = [makeElement("a", { order_num: 1 })];
     const after = [makeElement("a", { order_num: 2 })];
     const result = diffLegacyRoundtrip(before, after);
     expect(result.destructive).toEqual([]);
-    expect(result.reorder).toHaveLength(1);
-    expect(result.reorder[0].field).toBe("order_num");
+    expect(result.cosmetic).toEqual([]);
   });
 
   it("props 값 변경 → destructive (field=props.{key})", () => {
@@ -333,35 +329,6 @@ describe("shadowWriteDiff (3-A-impl)", () => {
     expect(result.summary.destructive).toBe(1);
   });
 
-  it("evaluateShadowWriteFromCanonical — reports canonical props mismatches", () => {
-    const before: Element[] = [
-      makeElement("el-a", {
-        customId: "el-a",
-        page_id: "page-1",
-        props: { label: "X" },
-      }),
-    ];
-    const doc = {
-      version: "composition-1.0",
-      children: [
-        {
-          id: "page-1",
-          type: "frame",
-          metadata: { type: "legacy-page", pageId: "page-1" },
-          children: [
-            {
-              id: "el-a",
-              type: "Box",
-              props: { label: "Y" },
-            },
-          ],
-        },
-      ],
-    } as CompositionDocument;
-    const result = evaluateShadowWriteFromCanonical(before, doc);
-    expect(result.hasDestructive).toBe(true);
-  });
-
   it("logShadowWriteResult — destructive 시 console.warn 호출", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const result = evaluateShadowWrite(
@@ -373,14 +340,14 @@ describe("shadowWriteDiff (3-A-impl)", () => {
     warnSpy.mockRestore();
   });
 
-  it("logShadowWriteResult — destructive=0 + reorder>0 시 console.info", () => {
+  it("logShadowWriteResult — order_num-only diff 는 silent", () => {
     const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
     const result = evaluateShadowWrite(
       [makeElement("a", { order_num: 0 })],
       [makeElement("a", { order_num: 1 })],
     );
     logShadowWriteResult(result, { projectId: "p1" });
-    expect(infoSpy).toHaveBeenCalled();
+    expect(infoSpy).not.toHaveBeenCalled();
     infoSpy.mockRestore();
   });
 

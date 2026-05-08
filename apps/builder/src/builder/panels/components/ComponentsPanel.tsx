@@ -20,6 +20,17 @@ import { useSelectedReusableFrameId } from "../../stores/canonical/canonicalFram
 import { useElementCreator } from "@/builder/hooks";
 import { belongsToLegacyLayout } from "../../../adapters/canonical";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
+import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
+import type { CompositionDocument } from "@composition/shared";
+import type { Element } from "../../../types/core/store.types";
+
+function getComponentsPanelElements(doc: CompositionDocument): Element[] {
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return elements;
+}
 
 /**
  * ComponentsPanel - Gateway 컴포넌트
@@ -55,15 +66,13 @@ function ComponentsPanelContent() {
   const handleAddElement = useCallback(
     async (type: string, parentId?: string) => {
       // 🆕 콜백 실행 시점에 최신 값을 가져옴 (구독 대신 getState 사용)
-      const state = useStore.getState();
-      const elements = state.elements;
-      const getPageElements = state.getPageElements;
       // ADR-116 projection 제거: element creation path 는 active canonical document 만 사용.
       const doc = getActiveCanonicalDocument();
       if (!doc) {
         console.error("[ComponentsPanel] canonical document is not ready");
         return;
       }
+      const elements = getComponentsPanelElements(doc);
 
       // Layout 모드인 경우
       if (editMode === "layout" && selectedReusableFrameId) {
@@ -111,8 +120,9 @@ function ComponentsPanelContent() {
         return;
       }
 
-      // 🆕 O(1) 인덱스 기반 조회
-      const pageElements = getPageElements(currentPageId);
+      const pageElements = elements.filter(
+        (element) => !element.deleted && element.page_id === currentPageId,
+      );
       await rawHandleAddElement(
         type,
         currentPageId,

@@ -5,6 +5,7 @@ import type { CompositionDocument } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
 import type { Layout } from "@/types/builder/layout.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
+import { canonicalDocumentToElements } from "../../../builder/stores/canonical/canonicalElementsView";
 import {
   applyElementOrderCanonicalPrimary,
   mergeElementsCanonicalPrimary,
@@ -13,6 +14,7 @@ import {
   resetCanonicalMutationStoreActions,
   setElementsCanonicalPrimary,
 } from "../canonicalMutations";
+import { exportLegacyDocument } from "../exportLegacyDocument";
 
 function makeElement(
   id: string,
@@ -115,8 +117,6 @@ describe("canonical mutation wrappers", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", doc);
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [],
@@ -147,13 +147,7 @@ describe("canonical mutation wrappers", () => {
         }),
       }),
     ]);
-    expect(setElements).toHaveBeenCalledWith([
-      expect.objectContaining({
-        id: "body-1",
-        page_id: null,
-        props: { role: "body" },
-      }),
-    ]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("setElementsCanonicalPrimary preserves page shell order metadata", () => {
@@ -165,8 +159,6 @@ describe("canonical mutation wrappers", () => {
     ] as Page[];
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages,
@@ -190,9 +182,11 @@ describe("canonical mutation wrappers", () => {
       "page-two",
       "page-three",
     ]);
-    expect(pageNodes?.map((node) => node.metadata?.order_num)).toEqual([
-      0, 1, 2,
-    ]);
+    expect(
+      pageNodes?.every(
+        (node) => !("order_num" in ((node.metadata ?? {}) as object)),
+      ),
+    ).toBe(true);
   });
 
   it("mergeElementsCanonicalPrimary preserves parent-child ordering in page-owned batches", () => {
@@ -211,8 +205,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -243,17 +235,10 @@ describe("canonical mutation wrappers", () => {
         children: [expect.objectContaining({ id: "child-1" })],
       }),
     ]);
-    expect(setElements).toHaveBeenCalledWith([
-      expect.objectContaining({ id: "parent-1", page_id: "page-1" }),
-      expect.objectContaining({
-        id: "child-1",
-        parent_id: "parent-1",
-        page_id: "page-1",
-      }),
-    ]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
-  it("mergeElementsCanonicalPrimary preserves reordered sibling order after canonical export", () => {
+  it("mergeElementsCanonicalPrimary preserves existing sibling order for legacy-order-only batches", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");
     const body = makeElement("body", "body", {
@@ -301,8 +286,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [body, childA, childB, childC, childD],
         pages: [page],
@@ -324,25 +307,15 @@ describe("canonical mutation wrappers", () => {
     const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
     const bodyNode = pageNode?.children?.find((node) => node.id === body.id);
     expect(bodyNode?.children?.map((node) => node.id)).toEqual([
-      "child-c",
       "child-a",
       "child-b",
-      "child-d",
-    ]);
-
-    const exportedIds = (setElements.mock.calls.at(-1)?.[0] as Element[]).map(
-      (element) => element.id,
-    );
-    expect(exportedIds).toEqual([
-      "body",
       "child-c",
-      "child-a",
-      "child-b",
       "child-d",
     ]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
-  it("moveElementCanonicalPrimary reorders siblings by canonical children splice before legacy mirror export", () => {
+  it("moveElementCanonicalPrimary reorders siblings by canonical children splice", () => {
     const setElements = vi.fn();
     const page = makePage("page-1");
     const body = makeElement("body", "body", {
@@ -384,8 +357,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [body, childA, childB, childC],
         pages: [page],
@@ -394,7 +365,7 @@ describe("canonical mutation wrappers", () => {
       getCurrentProjectId: () => "project-1",
     });
 
-    const mirror = moveElementCanonicalPrimary(childC.id, body.id, 0);
+    const result = moveElementCanonicalPrimary(childC.id, body.id, 0);
 
     const nextDoc = useCanonicalDocumentStore
       .getState()
@@ -406,13 +377,9 @@ describe("canonical mutation wrappers", () => {
       childA.id,
       childB.id,
     ]);
-    expect(mirror.map((element) => [element.id, element.order_num])).toEqual([
-      [body.id, 0],
-      [childC.id, 0],
-      [childA.id, 1],
-      [childB.id, 2],
-    ]);
-    expect(setElements).toHaveBeenCalledWith(mirror);
+    expect(result.changed).toBe(true);
+    expect(result.document).toBe(nextDoc);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("applyElementOrderCanonicalPrimary applies structural batch intent without legacy sibling bridge", () => {
@@ -451,8 +418,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [body, childA, childB],
         pages: [page],
@@ -461,7 +426,7 @@ describe("canonical mutation wrappers", () => {
       getCurrentProjectId: () => "project-1",
     });
 
-    const mirror = applyElementOrderCanonicalPrimary([
+    const result = applyElementOrderCanonicalPrimary([
       { ...childB, order_num: 0 },
       { ...childA, order_num: 1 },
     ]);
@@ -475,11 +440,9 @@ describe("canonical mutation wrappers", () => {
       childB.id,
       childA.id,
     ]);
-    expect(mirror.map((element) => [element.id, element.order_num])).toEqual([
-      [body.id, 0],
-      [childB.id, 0],
-      [childA.id, 1],
-    ]);
+    expect(result.changed).toBe(true);
+    expect(result.document).toBe(nextDoc);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("moveElementCanonicalPrimary reparents across page bodies and derives legacy page scope from canonical position", () => {
@@ -539,8 +502,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [page1Body, source, sourceChild, page2Body, target],
         pages: [page1, page2],
@@ -549,7 +510,8 @@ describe("canonical mutation wrappers", () => {
       getCurrentProjectId: () => "project-1",
     });
 
-    const mirror = moveElementCanonicalPrimary(source.id, page2Body.id, 1);
+    const result = moveElementCanonicalPrimary(source.id, page2Body.id, 1);
+    const mirror = canonicalDocumentToElements(result.document!);
 
     const sourceMirror = mirror.find((element) => element.id === source.id);
     const sourceChildMirror = mirror.find(
@@ -558,18 +520,17 @@ describe("canonical mutation wrappers", () => {
     expect(sourceMirror).toMatchObject({
       parent_id: page2Body.id,
       page_id: "page-2",
-      order_num: 1,
     });
     expect(sourceChildMirror).toMatchObject({
       parent_id: source.id,
       page_id: "page-2",
-      order_num: 0,
     });
     expect(
       mirror
         .filter((element) => element.parent_id === page2Body.id)
         .map((element) => element.id),
     ).toEqual([target.id, source.id]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("mergeElementsCanonicalPrimary does not reorder siblings for props-only batches", () => {
@@ -610,8 +571,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [body, childB, childA],
         pages: [page],
@@ -688,8 +647,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [body, childA, childB, childC, childD],
         pages: [page],
@@ -744,8 +701,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -800,8 +755,6 @@ describe("canonical mutation wrappers", () => {
       .getState()
       .setDocument("project-1", makeDocument());
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -860,11 +813,12 @@ describe("canonical mutation wrappers", () => {
         },
       }),
     ]);
-    expect(setElements).toHaveBeenCalledWith([
+    expect(canonicalDocumentToElements(nextDoc!)).toEqual([
       expect.objectContaining({ id: "frame-body", page_id: null }),
       expect.objectContaining({ id: "slot-content", page_id: null }),
       expect.objectContaining({ id: "page-box", page_id: "page-1" }),
     ]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("setElementsCanonicalPrimary preserves an unbound page body during page-shell rebuild", () => {
@@ -900,8 +854,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -930,12 +882,64 @@ describe("canonical mutation wrappers", () => {
         children: [expect.objectContaining({ id: "page-body" })],
       }),
     ]);
-    expect(setElements).toHaveBeenCalledWith(
+    expect(exportLegacyDocument(nextDoc!)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "page-body", page_id: "page-1" }),
         expect.objectContaining({ id: "frame-body", page_id: null }),
       ]),
     );
+    expect(setElements).not.toHaveBeenCalled();
+  });
+
+  it("setElementsCanonicalPrimary prunes omitted page-owned siblings during full replace", () => {
+    const setElements = vi.fn();
+    const page = makePage("page-1") as Page;
+    const keptButton = makeElement("button-1", "Button", {
+      page_id: "page-1",
+      props: { children: "Kept" },
+    });
+    const removedButton = makeElement("button-2", "Button", {
+      page_id: "page-1",
+      props: { children: "Removed" },
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+          },
+          children: [
+            makeCanonicalElementNode(keptButton),
+            makeCanonicalElementNode(removedButton),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [keptButton],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    setElementsCanonicalPrimary([keptButton]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    const pageNode = nextDoc?.children.find((node) => node.id === "page-1");
+    expect(pageNode?.children?.map((node) => node.id)).toEqual(["button-1"]);
+    expect(canonicalDocumentToElements(nextDoc!)).toEqual([
+      expect.objectContaining({ id: "button-1", page_id: "page-1" }),
+    ]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("setElementsCanonicalPrimary clears omitted page-owned origin children during full replace", () => {
@@ -982,8 +986,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [body],
         pages: [page],
@@ -1001,9 +1003,14 @@ describe("canonical mutation wrappers", () => {
       (node) => node.id === "page-body",
     );
     expect(pageBody?.children ?? []).toEqual([]);
-    expect(setElements).toHaveBeenCalledWith([
+    expect(
+      canonicalDocumentToElements(
+        useCanonicalDocumentStore.getState().getDocument("project-1")!,
+      ),
+    ).toEqual([
       expect.objectContaining({ id: "page-body", page_id: "page-1" }),
     ]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("mergeElementsCanonicalPrimary appends repeated slot fills in order", () => {
@@ -1055,8 +1062,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -1094,15 +1099,16 @@ describe("canonical mutation wrappers", () => {
         },
       }),
     );
-    expect(setElements).toHaveBeenCalledWith(
+    expect(exportLegacyDocument(nextDoc!)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "slot-fill-a", page_id: "page-1" }),
         expect.objectContaining({ id: "slot-fill-b", page_id: "page-1" }),
       ]),
     );
+    expect(setElements).not.toHaveBeenCalled();
   });
 
-  it("mergeElementsCanonicalPrimary preserves reordered slot descendants after canonical export", () => {
+  it("mergeElementsCanonicalPrimary preserves existing slot descendant order for legacy-order-only batches", () => {
     const setElements = vi.fn();
     const page = {
       ...makePage("page-1"),
@@ -1182,8 +1188,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [slotFillA, slotFillB, slotFillC, slotFillD],
         pages: [page],
@@ -1208,17 +1212,8 @@ describe("canonical mutation wrappers", () => {
       | undefined;
     expect(
       descendants?.["frame-body/content"]?.children?.map((node) => node.id),
-    ).toEqual(["slot-fill-c", "slot-fill-a", "slot-fill-b", "slot-fill-d"]);
-
-    const exportedIds = (setElements.mock.calls.at(-1)?.[0] as Element[])
-      .filter((element) => element.id.startsWith("slot-fill-"))
-      .map((element) => element.id);
-    expect(exportedIds).toEqual([
-      "slot-fill-c",
-      "slot-fill-a",
-      "slot-fill-b",
-      "slot-fill-d",
-    ]);
+    ).toEqual(["slot-fill-a", "slot-fill-b", "slot-fill-c", "slot-fill-d"]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("setElementsCanonicalPrimary clears omitted slot fills during full replace", () => {
@@ -1269,8 +1264,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -1301,9 +1294,10 @@ describe("canonical mutation wrappers", () => {
         descendants: {},
       }),
     );
-    expect(setElements).toHaveBeenCalledWith(
+    expect(exportLegacyDocument(nextDoc!)).toEqual(
       expect.not.arrayContaining([expect.objectContaining({ id: "old-fill" })]),
     );
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("mergeElementsCanonicalPrimary preserves ref and descendants mirror fields for legacy export", () => {
@@ -1322,8 +1316,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -1367,7 +1359,7 @@ describe("canonical mutation wrappers", () => {
         },
       }),
     ]);
-    expect(setElements).toHaveBeenCalledWith(
+    expect(exportLegacyDocument(nextDoc!)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "master",
@@ -1383,6 +1375,7 @@ describe("canonical mutation wrappers", () => {
         }),
       ]),
     );
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("mergeElementsCanonicalPrimary preserves canonical ref fields from pasted component instances", () => {
@@ -1416,8 +1409,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -1451,7 +1442,7 @@ describe("canonical mutation wrappers", () => {
         props: { style: { left: "24px" } },
       }),
     ]);
-    expect(setElements).toHaveBeenCalledWith(
+    expect(exportLegacyDocument(nextDoc!)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "instance",
@@ -1463,6 +1454,7 @@ describe("canonical mutation wrappers", () => {
         }),
       ]),
     );
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("mergeElementsCanonicalPrimary stores origin-shaped ref mirrors as RefNode overrides", () => {
@@ -1492,8 +1484,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -1560,8 +1550,6 @@ describe("canonical mutation wrappers", () => {
       ]),
     );
     registerCanonicalMutationStoreActions({
-      mergeElements: vi.fn(),
-      setElements,
       getCurrentLegacySnapshot: () => ({
         elements: [],
         pages: [page],
@@ -1598,10 +1586,8 @@ describe("canonical mutation wrappers", () => {
       }),
     ]);
 
-    const exportedElements = setElements.mock.calls.at(-1)?.[0] as
-      | Element[]
-      | undefined;
-    const exportedOrigin = exportedElements?.find(
+    const derivedElements = exportLegacyDocument(firstDoc!);
+    const exportedOrigin = derivedElements.find(
       (element) => element.id === "origin",
     );
     expect(exportedOrigin).toMatchObject({
@@ -1629,6 +1615,7 @@ describe("canonical mutation wrappers", () => {
         reusable: true,
       }),
     ]);
+    expect(setElements).not.toHaveBeenCalled();
   });
 
   it("merge path does not rebuild via legacyToCanonical", async () => {

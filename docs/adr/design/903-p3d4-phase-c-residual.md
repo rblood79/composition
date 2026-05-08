@@ -45,7 +45,7 @@ layout(reusable frame) 에 속한 elements 는 초기화 시 누락된다.
 
 - `903-p3d4-phase-d-verification.md:205` 시나리오 B-1: page 전환 시 일부 element 누락
   → **"Phase C minimal stub 에서 layoutElements 미병합 → page 전환 시 일부 element 누락"**
-- `tier3-entry-2026-04-26-session31-p3d4-phase-c-landed.md:88-92`:
+- `session-2026-04-26-session31-p3d4-phase-c-landed.md:88-92`:
   "Phase C minimal stub 의 layout-linked pages elements 누락 회귀 수정.
   selectCanonicalDocument 결과의 reusable FrameNode 기반 elements 추출 정합화. ~1.5h"
 

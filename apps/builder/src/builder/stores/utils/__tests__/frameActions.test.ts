@@ -185,7 +185,6 @@ describe("frameActions canonical reusable frame API", () => {
             expect.objectContaining({ id: "frame-x", name: "Frame X" }),
           ],
           setPages: mockLiveElementsState.setPages,
-          setElements: mockLiveElementsState.setElements,
         }),
       );
       expect(mockDb.documents.put).toHaveBeenCalledWith(

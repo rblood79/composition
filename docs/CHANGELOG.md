@@ -5,6 +5,437 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-122 canonical-only runtime G4 continuation] - 2026-05-09
+
+### Changed
+
+- Phase 2/4 follow-up slice로 `ComponentsPanel` add path가 active canonical
+  document를 직접 traversal한 element list를 사용하도록 전환했다. page/layout element
+  후보 계산에서 legacy `state.elements`/`getPageElements` snapshot을 읽지 않는다.
+- `PropertyCustomId`, `TreeItemEditor`, `FramesTab`, `useComponentMemory`,
+  `BuilderCanvas`의 canonical-active fallback을 좁혔다. canonical elements/document가
+  있으면 legacy `state.elements` subscription은 empty bootstrap fallback으로 고정하고,
+  customId validation/generation과 frame hydration/read-model 계산은 canonical-derived
+  element source를 우선 사용한다.
+- unified store의 exported `useElements`/`useElementById`/`useChildElements` hook을
+  canonical-first로 전환하고, standalone `elements.ts`의 미사용 중복 lookup hook surface를
+  제거했다. direct legacy `state.elements` grep은 74 → 70으로 감소했다.
+- `canvasStore.useCanvasElements`도 active canonical elements에서 current page elements를
+  파생하고, legacy `pageElementsSnapshot`은 canonical 비활성 bootstrap fallback으로만
+  사용하도록 좁혔다.
+- `useCurrentPageElements`/`useCurrentPageElementCount`도 unified canonical-first
+  `useElements()` source를 사용하도록 전환하고, standalone `elements.ts`의 미사용 current
+  page selector surface를 제거했다.
+- `elementLoader`의 lazy-loading disabled/already-loaded/loading-wait read path와 page
+  activation invariant lookup을 active canonical document 우선으로 전환했다.
+- `inspectorActions`의 selected/style/fill commit·preview lookup은 active canonical
+  document가 있으면 mutable legacy fallback과 병합하지 않도록 고정했다.
+- `useTextEdit` live edit는 active canonical document가 있으면 missing element를 legacy
+  cache에서 되살리지 않고, wrapper unchanged 시에도 active canonical document 존재 시 legacy
+  patch를 생략한다.
+- `PagesSection` page-delete bridge는 active canonical traversal을 우선 유지하고 fallback
+  필요 시 삭제 후 최신 store snapshot만 사용하도록 좁혔다.
+- `useIframeMessenger` selection echo와 preview-generated dedupe는 active canonical
+  document가 있으면 missing element/id를 legacy cache에서 되살리지 않도록 전환했다.
+  `UPDATE_ELEMENTS` bootstrap은 canonical document 부재 시에만 legacy snapshot을 읽는다.
+- `useResetStyles` reset action도 active canonical document가 있으면 missing selected
+  element를 legacy cache에서 되살리지 않도록 좁혔다.
+- `useSelectedElementData` legacy mode selected/ref override props lookup은 이미 읽은
+  selected element를 재사용하고, 같은 id를 store `elements[]`에서 다시 찾지 않도록 줄였다.
+- `BuilderCore` mutation registration/page-shell bridge fallback은
+  `getCanonicalOrBootstrapBuilderElements()` helper로 격리해 canonical-first bootstrap
+  boundary를 명시했다.
+- `elementUpdate`/`elementRemoval`/`instanceActions`/`elements`/`historyActions`의
+  mutation/history source를 active canonical document elements 우선으로 전환했다.
+  canonical document가 없을 때만 legacy store `elements[]`를 bootstrap fallback으로
+  사용한다.
+- History undo/redo/goToHistoryIndex가 `historyManager.addDiffEntry()`/
+  `addBatchDiffEntry()`에서 생성한 serialized `data.diff`/`data.diffs` event payload를
+  snapshot payload보다 먼저 적용하도록 보강했다. canonical document sync를 index rebuild보다
+  먼저 수행해 active canonical document와 store `elementsMap`이 같은 diff 결과를 보도록
+  고정했다.
+- `canonicalLegacyStoreCacheBridge`와 store `recoverElementsSnapshot` action surface를
+  제거했다. active canonical document 변경 후 legacy store cache를 되살리는 transition
+  subscriber production hit는 0건이다.
+- raw seed는 462로 유지됐고, direct legacy `state.elements` grep은 70 → 0으로 감소했다.
+- `setElementsCanonicalPrimary()` full-replace shell에서 incoming snapshot에 없는
+  page-owned runtime sibling이 canonical `db.documents`에 남던 persistence drift를
+  수정했다. page/layout shell과 structural `body` node는 유지하면서 omitted
+  legacy-exportable runtime node는 prune한다.
+
+### Verification
+
+- `pnpm -F @composition/builder exec vitest run src/builder/components/property/PropertyCustomId.test.tsx src/builder/panels/components/ComponentsPanel.projection.static.test.ts src/builder/panels/properties/editors/canonicalPropertyEditors.static.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/panels/monitor/hooks/useComponentMemory.static.test.ts src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts`
+  — 6 files / 17 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts`
+  — 2 files / 3 tests PASS.
+- direct fallback/static gate suite — 16 files / 41 tests PASS.
+- runtime targeted suite — 10 files / 68 tests PASS.
+- `pnpm run codex:typecheck` — 3 packages PASS.
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/canonicalMutations.test.ts`
+  — 1 file / 23 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts`
+  — 2 files / 3 tests PASS.
+- Browser runtime smoke — local IndexedDB document seed 후
+  `updateElementProps -> addElement(button-2) -> removeElement(button-2) -> undo -> redo -> reload`
+  검증 PASS. Store/document ids 모두 `page-1`, `button-1`만 남고 `button-2`는
+  되살아나지 않음.
+- `git diff --check` — PASS.
+- grep gates: direct legacy `state.elements` 0, raw seed 462, recover bridge production
+  grep 0.
+- `pnpm run codex:preflight` — blocked at `codex:guard` by protected
+  `.claude/settings.json` dirty file.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/index.test.tsx`
+  — 1 file / 6 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/canvasStore.static.test.ts`
+  — 1 file / 2 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/index.test.tsx`
+  — 1 file / 7 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/__tests__/elementLoader.static.test.ts src/builder/stores/inspectorActions.static.test.ts src/builder/workspace/overlay/useTextEdit.static.test.ts`
+  — 3 files / 3 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementUpdate.static.test.ts src/builder/stores/utils/__tests__/elementRemoval.static.test.ts src/builder/stores/utils/__tests__/instanceActions.static.test.ts src/builder/stores/utils/__tests__/elementUpdate.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts`
+  — 5 files / 28 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/__tests__/pageRemovalSemantics.test.ts src/builder/stores/__tests__/pageActivation.test.ts src/builder/stores/__tests__/itemsActions.test.ts src/builder/stores/index.test.tsx src/builder/stores/__tests__/elementMove.test.ts`
+  — 5 files / 29 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/main/canonicalLegacyStoreCacheBridge.static.test.ts src/builder/main/BuilderCore.static.test.ts src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts src/builder/stores/index.test.tsx`
+  — 4 files / 21 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/PagesSection.test.tsx`
+  — 1 file / 5 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts`
+  — 1 file / 8 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/styles/hooks/styleReadCanonical.static.test.ts src/builder/panels/styles/hooks/useResetStyles.test.tsx`
+  — 2 files / 22 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/index.test.tsx`
+  — 1 file / 7 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/main/BuilderCore.static.test.ts`
+  — 1 file / 4 tests PASS.
+- `pnpm run codex:typecheck` — PASS.
+
+## [ADR-122 canonical-only runtime implementation start] - 2026-05-08
+
+### Changed
+
+- ADR-122를 In Progress로 추가해 ADR-116/118/119/120/121 이후 남은
+  canonical-first hybrid runtime 제거 계획을 문서화했다.
+- scope를 internal Builder runtime으로 제한했다. mutation/read/render/preview path에서
+  mutable legacy `Element[]` mirror를 제거하고, legacy projection은
+  cloud/export/import/publish compatibility boundary로만 격리한다.
+- Supabase physical `pages`/`elements` schema 제거는 별도 decision gate로 분리했다.
+- breakdown 문서에 Phase 0-6 계획을 추가했다: hybrid inventory freeze, mutation mirror
+  cut, runtime read canonicalization, Preview/Skia active protocol 전환, boundary
+  quarantine, stale ADR-116 test/gate 재정렬, final browser/preflight verification.
+- Phase 0 inventory 문서를 추가해 607 raw hit를 runtime-forbidden,
+  transition-derived-readonly, boundary-allowed, test-doc bucket으로 분류했다.
+  latest cleanup 후 current raw seed는 462 hit다.
+- Phase 1 첫 slice로 `canonicalMutations` wrapper 내부 legacy
+  `actions.setElements(exportLegacyDocument(doc))` write-back을 제거했다.
+- Phase 2 첫 slice로 selected element data가 active canonical document 존재 시
+  legacy `elementsMap` fallback을 사용하지 않고 selected ref override props fallback도
+  active canonical document를 직접 traversal하도록 변경했다.
+- Phase 2 추가 slice로 LayerTree/LayersSection이 canonical layer node와 editing
+  context map을 우선 사용해 stale legacy `elementsMap` override를 차단했다.
+- Tree expansion slice로 `useTreeExpandState`가 store `elementsMap` 구독 없이
+  caller-provided canonical frame/tree elements에서 parent lookup map을 파생하도록
+  전환하고, FramesTab refresh test를 canonical descendants가 있으면 mirror merge를
+  기대하지 않는 계약으로 정렬했다.
+- FramesTab hydration fallback slice로 frame element 보강 경로가 store
+  `elementsMap` 구독 대신 store `elements`에서 read-only map을 파생하도록 전환했다.
+- Phase 3 첫 slice로 `BuilderCore`의 active `UPDATE_ELEMENTS` Preview publish를
+  제거하고 `useIframeMessenger`의 `UPDATE_CANONICAL_DOCUMENT` active sync를 고정했다.
+- useIframeMessenger selection echo slice로 store `elementsMap` subscription을 제거하고
+  active canonical document traversal을 우선 사용하도록 전환했다.
+- useIframeMessenger preview-generated dedupe slice로 Preview가 요청한
+  column/field element 중복 판정도 active canonical document traversal을 우선
+  사용하도록 전환하고 direct `useStore.getState().elementsMap` read를 제거했다.
+- useDeltaMessenger canonical count slice로 deprecated delta stats count가
+  canonical elements length를 우선 사용하고 store `elementsMap.size` 구독을 제거했다.
+  Follow-up으로 active canonical elements가 있을 때는 store `elements.length`
+  subscription도 bootstrap fallback으로만 남도록 좁혔다.
+- Preview/messaging boundary cleanup slice로 Preview inbound `UPDATE_ELEMENTS`
+  recovery가 Builder legacy store cache를 갱신하던 역방향 branch를 제거하고,
+  `usePageManager` project hydrate를 `hydrateProjectSnapshot` boundary로 좁혔다.
+  shared TagGroup renderer의 parent `UPDATE_ELEMENTS` legacy snapshot 송신, unused
+  `MessagingService`/`IframeMessenger.updateElements` facade, dead
+  `useMessageCoalescing` hook, delta messenger full `UPDATE_ELEMENTS` fallback도 제거했다.
+- Performance monitor canonical count follow-up slice로 monitoring element
+  count/store memory estimate가 active `canonicalElementSnapshot` helper 대신 canonical
+  document traversal count를 직접 사용하고 store `elementsMap.size` count를 제거했다.
+- Monitor component memory canonical read slice로 `useComponentMemory`가 active
+  canonical elements에서 element/child lookup map을 파생하고 store
+  `elementsMap`/`childrenMap` 구독을 제거했다.
+- Canonical property read fallback slice로 `useCanonicalPropertyRead`가 store
+  `elementsMap`/`childrenMap` 직접 구독 대신 store `elements[]`에서 read-only
+  lookup map을 파생한다.
+- Collection item manager canonical children read slice로 `useCollectionItemManager`
+  children read가 active canonical elements를 우선 사용하고 store `childrenMap`
+  직접 read를 제거했다.
+- Canvas selected element canonical read slice로 `useCanvasSelectedElement`가
+  selected id만 store에서 읽고 element lookup은 active canonical elements 우선,
+  store `elements[]` fallback으로 수행한다.
+- LayerTree canonical resolution fallback slice로 LayerTree resolution fallback이
+  store `elementsMap` 구독 대신 store `elements[]`에서 read-only map을 파생한다.
+- BuilderCore direct traversal fallback slice로 mutation registration/page-shell
+  bridge 입력이 active canonical document traversal을 우선 사용하고, store
+  `elements[]`는 canonical document 부재 시 bootstrap fallback으로만 남는다.
+- BuilderCanvas store map fallback slice로 Skia input fallback `elementsMap`/
+  `childrenMap`을 store map 구독 대신 canonical/store `elements[]`에서 파생한다.
+- Selected element data legacy fallback slice로 `useSelectedElementData` legacy
+  bootstrap fallback이 store `elementsMap` get/values 대신 store `elements[]`에서
+  selected/ref lookup을 수행한다.
+- Exported lookup selector cleanup slice로 `useElementById`/`useChildElements`
+  selectors가 store `elementsMap`/`childrenMap` direct read 대신 store
+  `elements[]`에서 read-only lookup을 파생한다.
+- Frame layout cascade deleted-id fallback slice로 frame delete removed-id
+  collection이 store `elementsMap.values()` 대신 store `elements[]`를 사용한다.
+- Inspector lookup fallback slice로 `inspectorActions` style/fill resolved-read가
+  active canonical document traversal fallback을 사용하고 store `elementsMap`을
+  전달하지 않으며 bootstrap fallback은 store `elements[]` iterable로 제한한다.
+- Element loader page elements fallback slice로 lazy-load disabled/already-loaded/
+  loading wait read path가 store `elementsMap.forEach` 순회 대신 store `elements[]`
+  에서 page elements를 필터링한다.
+- Selection hierarchy lookup follow-up slice로 editing context 진입/이탈이 active
+  `canonicalElementSnapshot` helper 대신 canonical document traversal에서 필요한 최소
+  element shape를 파생하고 store `elements[]` fallback으로 parent/child 관계를
+  계산한다.
+- Element removal target collection slice로 삭제 대상 수집이 caller의
+  `state.elementsMap`/`state.childrenMap` 입력을 받지 않고 store `elements[]`에서
+  read-only lookup을 파생한다.
+- Instance action lookup/children slice로 origin/instance lookup, child list,
+  persisted snapshot lookup이 store map 직접 read 대신 store `elements[]` 기반 helper를
+  사용한다.
+- Element update pre-read/dirty traversal slice로 props/batch pre-read와 dirty
+  descendant traversal이 store map direct read 대신 store `elements[]`에서
+  element/children lookup을 파생한다. raw seed는 485로 축소됐다.
+- Elements items/Menu action lookup slice로 일반화 items/Menu 액션이 direct
+  `get().elementsMap.get(...)` 대신 store `elements[]` lookup helper를 사용한다. raw
+  seed는 485로 유지된다.
+- Elements page activation/hydration lookup slice로 page activation target lookup과
+  selected props hydration fallback이 store `elementsMap` direct read 대신 store
+  `elements[]` 우선, active canonical document traversal fallback을 사용한다. page activation
+  lazy-load selection fixture도 canonical document source를 사용하도록 정렬해 raw seed를
+  485에서 482로 줄였다.
+- Elements merge/replace + selection props fallback slice로 `mergeElements`/
+  `replaceElementId` pre-read와 set/select/multi-select props fallback이 store map
+  direct read 대신 store `elements[]` 우선, active canonical document traversal
+  fallback을 사용한다. raw seed는 482에서 480으로 줄었다.
+- Elements page shell/remove/move fallback slice로 page shell append, page removal,
+  cross-container move가 store map direct read 대신 `elements[]`에서 index를 재생성하거나
+  파생한 read-only index를 사용한다. move fallback은 target sibling insertion 기준
+  `order_num`도 함께 갱신한다. raw seed는 480에서 478로 줄었다.
+- Inspector actions style/fill preview slice로 selected element lookup, style/fill
+  preview replacement, update commit dirty-subtree traversal이 store
+  `elementsMap`/`childrenMap` direct read 대신 `elements[]`와 active canonical document
+  traversal fallback에서 lookup/index를 파생한다. raw seed는 478에서 476으로 줄었다.
+- Element creation/instance/TableHeader lookup slice로 customId generation,
+  instance origin toggle/reset override, table row discovery가 store map direct read
+  대신 caller/store `elements[]`에서 local lookup/children index를 파생한다. raw seed는
+  476에서 474로 줄었다.
+- Skia input 첫 slice로 active canonical document가 있으면 page/frame mode 모두
+  canonical-derived read-only tree를 사용하도록 정렬했다. canonical scene snapshot
+  직접 소비 전환은 잔존 작업으로 남겼다.
+- BuilderCanvas Skia input bridge slice로 직접 `canonicalDocumentToElements(...)`
+  projection call site를 제거하고 canonical scene model 경계로 축소했다.
+- Skia scene source marker slice로 `SceneStructureSnapshot`에 canonical/
+  legacy-bootstrap provenance를 추가하고, `BuilderCanvas`가 active canonical document
+  기반 snapshot을 `canonical`로 태그하도록 정렬했다.
+- Skia scene pageIndex slice로 active canonical document가 있으면 `BuilderCanvas`
+  scene snapshot의 `pageIndex`도 store mirror 인덱스 대신 canonical scene model에서
+  재구성한 read-only index를 사용하도록 전환했다.
+- Skia canonical scene model slice로 `BuilderCanvas`가 `useCanonicalElements()` hook
+  boundary 대신 `buildCanonicalSceneModel(activeCanonicalDocument)`에서
+  `elements`/`elementsMap`/`childrenMap`/`pageIndex`/`frameElementScopes`를 공급받도록
+  정렬했다. store mirror는 canonical document 부재 시 hydration fallback으로만
+  남기고, scene model 내부도 `canonicalElementSnapshot` helper 대신 canonical document
+  traversal을 직접 사용하도록 좁혔다.
+- Active snapshot helper cleanup slice로 frame loader, LayoutPreset slot replace,
+  drag/drop history payload, BuilderCore/cache bridge, pageFrameBinding,
+  useIframeMessenger, inspector/history/elements, selection/overlay/property consumers를
+  `visitCanonicalDocumentElements` 또는 canonical read model traversal로 전환했다.
+  `getCanonicalElementsSnapshotFromDocument` export와 active snapshot helper file은
+  제거했고 production import grep은 0 hit다.
+- BuilderCore no-op order validation cleanup slice로 `useValidation`/
+  `validateOrderNumbers` path를 제거해 page change마다 legacy `state.elements`를 읽던
+  dead validation surface를 삭제했다.
+- Canvas drag/drop slice로 `useDragBridge`가 Skia renderer input의 interactive
+  canonical-derived `elementsMap`/`childrenMap`을 우선 사용하고, canonical move 후
+  history payload는 move result document에서 파생한 snapshot을 우선 사용하도록 정렬했다.
+- Canvas auxiliary drag/drop helper slice로 descendant/container/insertion 계산이
+  store `childrenMap` 직접 조회 대신 hook 입력 `elements`에서 파생한 read-only
+  children map을 사용하도록 정렬했다.
+- Canvas selection handler slice로 interactive canonical map provider가 있는
+  BuilderCanvas 경로에서 stale `state.elementsMap` fallback을 선택 source로
+  사용하지 않도록 제한했다.
+- Canvas selection handler required-map slice로 interactive map provider를
+  필수화하고 selection hot path의 stale `state.elementsMap`/`state.childrenMap`
+  fallback을 제거했다.
+- Text edit live update follow-up slice로 `useTextEdit`의 편집 중 텍스트 반영이
+  active `canonicalElementSnapshot` helper 대신 canonical document traversal로 edit
+  element를 찾고, legacy `elementsMap` 직접 패치 대신 canonical mutation wrapper를
+  우선 통과하도록 전환했다. legacy store patch는 canonical hydration 전 bootstrap
+  fallback으로만 남겼다.
+- Skia hover interaction slice로 hover target/leaf 계산이 `rendererInput`에서
+  파생한 canonical-derived `elementsMap`/`childrenMap` provider를 우선 사용하도록
+  연결했다.
+- Skia hover required-map slice로 rendererInput map provider를 필수화하고 hover
+  hot path의 stale `state.elementsMap`/`state.childrenMap` fallback을 제거했다.
+- Skia scroll wheel slice로 wheel hit-test가 rendererInput에서 파생한
+  `elementsMap` provider를 사용하도록 전환하고 direct store map read를 제거했다.
+- Skia `StoreRenderBridge` slice로 render bridge 재동기화를 store map identity
+  subscription 대신 `rendererInput` 변경 effect와 theme/layout publish boundary에
+  묶었다.
+- Legacy canvas surface cleanup slice로 현재 import되지 않는 retained-mode
+  `sceneGraph/*`와 sprite-era `sprites/useResolvedElement.ts` source surface를
+  제거하고 재도입 방지 static gate를 추가했다.
+- Canvas context menu slice로 detach target 해석이 stale `state.elementsMap`
+  fallback 대신 interactive canonical-derived map만 사용하도록 좁혔다.
+- StylesPanel slice로 panel-level type/style read를 direct `elementsMap` 구독 대신
+  canonical selected data hook 기반으로 전환했다.
+- Style value hook slice로 `useElementStyleContext`가 canonical property element
+  hook을 사용하고, fill/transform read가 해당 context를 재사용하도록 정렬했다.
+- Generic properties slice로 `GenericPropertyEditor`/`ChildItemManager`가 canonical
+  element/children을 우선 읽고 legacy map은 canonical 비활성 fallback으로만 남기도록
+  정렬했다.
+- Generic/style follow-up slice로 `ItemsManager`와 `useResetStyles`/
+  `useTransformAuxiliary`가 canonical property element hook을 사용하도록 전환했다.
+  추가 follow-up으로 `useResetStyles` reset action은 active
+  `canonicalElementSnapshot` helper 대신 canonical document traversal을 직접 사용하고,
+  per-hook direct selected `elementsMap`/`childrenMap` read를 제거했다.
+- Simple property editor slice로 `useCanonicalPropertyRead` hook을 추가하고
+  Column/Cell/Row/Tag editor가 canonical property element/children read를 우선
+  사용하도록 정렬했다.
+- Specialized property editor slice로 ListBoxItem/TreeItem/TableBody/TableHeader
+  editor도 canonical property element/children map read hook을 사용하도록 정렬했다.
+- Table editor slice로 `TableEditor`가 canonical-derived element/children map helper를
+  우선 사용하도록 정렬했다.
+- Single-read editor slice로 Breadcrumb/DataTable/GridListItem/ColumnGroup/LayoutBody/
+  PageBody editor가 canonical property element hook을 우선 사용하도록 정렬했다.
+- Specialized editor read slice로 ElementSlotSelector/ListBoxPropertyEditor/
+  SliderEditor가 canonical property element/map hook을 우선 사용하도록 정렬했다.
+- SliderEditor child sync slice로 SliderEditor가 canonical property maps로 child update를
+  직접 만들도록 전환하고, 미사용 `useSyncChildProp`/`useSyncGrandchildProp` hooks와
+  barrel export를 제거했다.
+- Component/Frame slot section read slice로 ComponentSemanticsSection/
+  FrameSlotSection/ComponentSlotFillSection이 canonical property hook을 우선 사용하도록
+  정렬하고 stale `order_num` 테스트 기대를 제거했다.
+- LayoutPresetSelector/usePresetApply slice로 slot/body read를 canonical property
+  hook 기반으로 전환하고 replace handler 내부 store map 조회를 제거했다.
+- PropertiesPanel slice로 editor update baseline, multi-select copy/paste/group/
+  align/distribute 계산, slot change read를 canonical-derived map hook 기반으로
+  전환했다.
+- Central pointer handler slice로 interactive canonical map provider 누락 시 legacy
+  `state.elementsMap`/`state.childrenMap` fallback을 사용하지 않도록 제한했다.
+- Drop target resolver/drag bridge slice로 drag/drop context를
+  `DropTargetReadModel`/`DragReadModel` read-only 계약으로 분리하고
+  `elementsById`/`childrenByParent` 명칭으로 전환했다.
+- Shared renderer context slice로 shared `RenderContext`의 legacy
+  `elementsMap`/`childrenMap` contract를 `ReadonlyMap` 기반
+  `elementsById`/`childrenByParent` read model로 전환하고, Preview가
+  canonical-resolved tree에서 이 context를 주입하도록 정렬했다.
+- BuilderCore page-shell bridge slice로 canonical mutation registration과
+  page-shell reverse bridge 입력이 active canonical element snapshot을 우선
+  사용하고, legacy `state.elementsMap`은 canonical document 부재 시 bootstrap
+  fallback으로만 남도록 좁혔다.
+- PagesSection page-delete bridge slice로 page 삭제 후 canonical reverse bridge 입력도
+  active canonical document를 직접 traversal하고, legacy store elements는
+  canonical document 부재 시 bootstrap fallback으로만 남도록 좁혔다.
+- PageFrameBinding slice로 page frame binding의 page body 보존 입력도 active
+  canonical document를 직접 traversal하고, legacy map은 canonical document에 없는
+  항목 보강용으로만 병합하도록 좁혔다.
+- FrameLayoutCascade slice로 unused reusable frame duplicate helper와 그 안의
+  `exportLegacyDocument(doc)` projection을 제거하고 재도입 방지 static gate를
+  추가했다.
+- BuilderCore recover bridge slice로 transition `recoverElementsSnapshot` subscriber의
+  직접 `canonicalDocumentToElements(doc)` projection과 active snapshot helper 경유를
+  제거하고 active canonical document traversal 입력으로 좁혔다.
+- Canonical legacy cache bridge quarantine slice로 `BuilderCore` 내부 live
+  `recoverElementsSnapshot` subscriber를 `canonicalLegacyStoreCacheBridge` transition
+  boundary로 격리하고, `BuilderCore` direct recovery 재도입을 static gate로 차단했다.
+- Canonical element snapshot boundary/direct traversal slice로 frame loader,
+  LayoutPreset slot replace, drag/drop history payload의 direct
+  `canonicalDocumentToElements(...)` projection을 먼저 helper 경계로 격리한 뒤
+  `visitCanonicalDocumentElements` 직접 traversal로 전환했다.
+- History compatibility sync slice로 undo/redo/goToHistoryIndex 후 cloud compatibility
+  upsert map이 active canonical document traversal을 우선 사용하고 legacy store
+  elements는 canonical document 부재 시 fallback으로만 남도록 좁혔다. Redo props/batch
+  update lookup도 같은 traversal helper를 사용해 direct `get().elementsMap` read를
+  제거했다.
+- AI tool read follow-up slice로 `getAiToolReadModel()`이 active
+  `canonicalElementSnapshot` helper 대신 canonical document traversal을 직접 사용하고,
+  개별 tool의 direct `elementsMap`/`childrenMap` read를 static gate로 차단했다.
+- Overlay/customId read follow-up slice로 Selection overlay body 판정과
+  PropertyCustomId validation이 active `canonicalElementSnapshot` helper 대신 canonical
+  document traversal을 직접 사용하고 direct `elementsMap` lookup을 제거했다.
+- Phase 5 첫 slice로 ADR-119/120/121 이후 stale `order_num`/strict grep/static
+  string tests를 정렬했다.
+- ShadowWriteDiff stale cleanup slice로 dormant canonical→legacy export convenience
+  wrapper를 제거하고, evaluator는 compatibility boundary에서 명시적으로 받은 legacy
+  snapshot만 비교하도록 좁혔다.
+- `.agents` canonical runtime rule에 mutable legacy `Element[]` mirror 재도입 금지
+  원칙을 보강했다.
+- README 현황 요약을 ADR-122 In Progress 기준으로 갱신했다.
+
+### Verification
+
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__`
+- `pnpm -F @composition/shared exec vitest run src/utils`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts src/builder/main/BuilderCore.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/LayersSection.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useDragBridge.test.ts src/builder/workspace/canvas/hooks/useDragBridge.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useCanvasDragDropHelpers.test.ts src/builder/workspace/canvas/hooks/useCanvasDragDropHelpers.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useCanvasElementSelectionHandlers.static.test.ts src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useElementHoverInteraction.test.ts src/builder/workspace/canvas/skia/skiaOverlayHelpers.test.ts src/builder/workspace/canvas/skia/SkiaCanvas.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/panels/styles/StylesPanel.static.test.ts src/builder/panels/styles/hooks/styleReadCanonical.static.test.ts src/builder/panels/styles/hooks/useFillActions.test.tsx src/builder/panels/styles/hooks/useTransformAuxiliary.test.tsx src/builder/panels/properties/generic/genericEditorCanonical.static.test.ts`
+- `pnpm -F @composition/shared exec vitest run src/renderers`
+- `pnpm -F @composition/builder exec vitest run src/builder/main/BuilderCore.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/main/BuilderCore.static.test.ts src/builder/main/canonicalLegacyStoreCacheBridge.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/services/ai/tools/canonicalToolReadModel.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/components/property/PropertyCustomId.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/PagesSection.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/generic/genericEditorCanonical.static.test.ts src/builder/panels/styles/hooks/styleReadCanonical.static.test.ts src/builder/panels/styles/hooks/useResetStyles.test.tsx src/builder/panels/styles/hooks/useTransformAuxiliary.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/workspace/canvas/renderers/__tests__/createSkiaRendererInput.test.ts src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useCanvasElementSelectionHandlers.static.test.ts src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useCanvasElementSelectionHandlers.static.test.ts src/builder/workspace/canvas/hooks/useElementHoverInteraction.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/hooks/useScrollWheelInteraction.static.test.ts src/builder/workspace/canvas/skia/SkiaCanvas.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/legacyCanvasSurfaces.static.test.ts src/builder/workspace/canvas/hooks/useScrollWheelInteraction.static.test.ts src/builder/workspace/canvas/skia/SkiaCanvas.static.test.ts src/resolvers/canonical/__tests__/storeBridge.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/pageFrameBinding.test.ts src/adapters/canonical/__tests__/g6ParityCompletion.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx src/builder/hooks/useTreeExpandState.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/frameLayoutCascade.static.test.ts src/builder/stores/utils/__tests__/frameActions.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/frameElementLoader.test.ts src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.static.test.ts src/builder/workspace/canvas/hooks/useDragBridge.test.ts src/builder/workspace/canvas/hooks/useDragBridge.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/useDeltaMessenger.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/overlay/useTextEdit.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/utils/performanceMonitor.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/monitor/hooks/useComponentMemory.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/hooks/useCanonicalPropertyRead.static.test.ts src/builder/panels/properties/editors/canonicalPropertyEditors.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/useCollectionItemManager.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/canvasStore.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/builder/main/BuilderCore.static.test.ts src/builder/main/canonicalLegacyStoreCacheBridge.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/workspace/canvas/renderers/__tests__/createSkiaRendererInput.test.ts src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/index.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/scene/canonicalSceneModel.test.ts src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/workspace/canvas/renderers/__tests__/createSkiaRendererInput.test.ts src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts src/builder/workspace/canvas/scene/canonicalSceneModel.test.ts src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/workspace/canvas/renderers/__tests__/createSkiaRendererInput.test.ts src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts src/builder/workspace/canvas/scene/canonicalSceneModel.test.ts src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/workspace/canvas/renderers/__tests__/createSkiaRendererInput.test.ts src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/frameLayoutCascade.static.test.ts src/builder/stores/utils/__tests__/frameActions.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/inspectorActions.static.test.ts src/builder/stores/__tests__/inspectorFills.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/__tests__/elementLoader.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/selection.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementRemoval.static.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/instanceActions.static.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementUpdate.static.test.ts src/builder/stores/utils/__tests__/elementUpdateOriginImpact.test.ts src/builder/stores/utils/__tests__/elementCanonicalMutation.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/__tests__/itemsActions.test.ts`
+- ADR-122 grep gates: `canonicalMutations` legacy write-back 0 hits, canvas
+  helper/context menu stale map fallback 0 hits, specialized editor direct legacy
+  map lookup 0 hits, PropertiesPanel direct store map read 0 hits, central pointer
+  legacy map fallback 0 hits, drag/drop resolver legacy map contract 0 hits, raw
+  seed 462 hits.
+- `pnpm run codex:guard`
+- `git diff --check`
+- `pnpm run codex:typecheck`
+
 ## [ADR-121 indexedDB legacy surface cleanup implementation] - 2026-05-08
 
 ### Changed

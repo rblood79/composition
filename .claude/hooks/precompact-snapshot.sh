@@ -9,7 +9,7 @@ echo "=== PreCompact Context Snapshot ==="
 echo ""
 echo "## Project: composition NoCode Builder"
 echo "## Pipeline: Memory→Index→History→DB→Preview→Rebalance"
-echo "## Engines: Taffy WASM (Flex/Grid/Block), CanvasKit/Skia (render), PixiJS (events)"
+echo "## Engines: Taffy WASM (Flex/Grid/Block), CanvasKit/Skia (단일 렌더러 ADR-100)"
 echo ""
 
 # 변경된 파일 목록 수집
@@ -52,7 +52,8 @@ else
   echo "- No inline Tailwind → tv() + CSS files"
   echo "- No any type → explicit types"
   echo "- DirectContainer → engine result x/y"
-  echo "- O(1) elementsMap → no array traversal"
+  echo "- ADR-116/122: canonical document = primary SSOT (elementsMap/childrenMap = transitional read-only)
+- No array traversal in hot path (canonical selectors / read-only elementsMap fallback)"
   echo "- History before state change"
   echo "- layoutVersion + 1 on layout props"
   echo "- batchUpdateElementOrders() single set()"

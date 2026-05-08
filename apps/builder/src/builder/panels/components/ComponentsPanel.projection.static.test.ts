@@ -10,6 +10,12 @@ describe("ComponentsPanel canonical projection contract", () => {
     );
 
     expect(source).toContain("getActiveCanonicalDocument");
+    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).toContain("getComponentsPanelElements(doc)");
+    expect(source).not.toContain("const elements = state.elements");
+    expect(source).not.toContain(
+      "const getPageElements = state.getPageElements",
+    );
     expect(source).not.toContain("selectCanonicalDocument");
   });
 });

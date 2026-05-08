@@ -9,6 +9,7 @@ import {
 import type { CellElementProps } from "../../../../types/core/store.types";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { useStore } from "../../../stores";
+import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { Type, AlignLeft, Palette, Grid } from "lucide-react";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 
@@ -22,8 +23,7 @@ export const CellEditor = memo(function CellEditor({
   currentProps,
   onUpdate,
 }: PropertyEditorProps) {
-  // ADR-040: elementsMap O(1) 조회
-  const element = useStore((state) => state.elementsMap.get(elementId));
+  const element = useCanonicalPropertyElement(elementId);
   const customId = element?.customId || "";
 
   const updateCustomId = (newCustomId: string) => {

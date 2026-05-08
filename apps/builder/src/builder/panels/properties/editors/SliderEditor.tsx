@@ -8,11 +8,15 @@ import {
 import type { ComponentEditorProps } from "../../../inspector/types";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { useStore } from "../../../stores";
-import { useSyncChildProp } from "../../../hooks/useSyncChildProp";
 import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../../../adapters/canonical/frameMirror";
+import {
+  useCanonicalPropertyChildrenMap,
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "../hooks/useCanonicalPropertyRead";
 
 /**
  * Slider hybrid afterSections — Range Mode만 수동
@@ -30,7 +34,9 @@ export const SliderHybridAfterSections = memo(
     currentProps,
     onUpdate,
   }: ComponentEditorProps) {
-    const { buildChildUpdates } = useSyncChildProp(elementId);
+    const element = useCanonicalPropertyElement(elementId);
+    const elementsMap = useCanonicalPropertyElementsMap();
+    const childrenByParent = useCanonicalPropertyChildrenMap();
 
     const isRange = Array.isArray(currentProps.value);
     const rangeValues: [number, number] = isRange
@@ -42,26 +48,36 @@ export const SliderHybridAfterSections = memo(
 
     const syncSliderOutput = useCallback(
       (text: string) => {
-        const childUpdates = buildChildUpdates([
-          { childTag: "SliderOutput", propKey: "children", value: text },
-        ]);
+        const sliderOutput = (childrenByParent.get(elementId) ?? []).find(
+          (child) => child.type === "SliderOutput",
+        );
+        const outputElement = sliderOutput
+          ? (elementsMap.get(sliderOutput.id) ?? sliderOutput)
+          : null;
+        const childUpdates = outputElement
+          ? [
+              {
+                elementId: outputElement.id,
+                props: { ...outputElement.props, children: text },
+              },
+            ]
+          : [];
         if (childUpdates.length > 0) {
           useStore
             .getState()
             .updateSelectedPropertiesWithChildren({}, childUpdates);
         }
       },
-      [buildChildUpdates],
+      [childrenByParent, elementId, elementsMap],
     );
 
     const handleRangeModeToggle = useCallback(
       async (checked: boolean) => {
         const store = useStore.getState();
-        const { childrenMap, elementsMap } = store;
         const minVal = Number(currentProps.minValue) || 0;
         const maxVal = Number(currentProps.maxValue) || 100;
 
-        const sliderChildren = childrenMap.get(elementId) ?? [];
+        const sliderChildren = childrenByParent.get(elementId) ?? [];
         const sliderTrack = sliderChildren.find(
           (c) => c.type === "SliderTrack",
         );
@@ -92,7 +108,7 @@ export const SliderHybridAfterSections = memo(
           }
 
           if (sliderTrack) {
-            const trackChildren = childrenMap.get(sliderTrack.id) ?? [];
+            const trackChildren = childrenByParent.get(sliderTrack.id) ?? [];
             const thumbCount = trackChildren.filter(
               (c) => c.type === "SliderThumb",
             ).length;
@@ -133,7 +149,7 @@ export const SliderHybridAfterSections = memo(
           }
 
           if (sliderTrack) {
-            const trackChildren = childrenMap.get(sliderTrack.id) ?? [];
+            const trackChildren = childrenByParent.get(sliderTrack.id) ?? [];
             const thumbs = trackChildren.filter(
               (c) => c.type === "SliderThumb",
             );
@@ -145,6 +161,8 @@ export const SliderHybridAfterSections = memo(
         }
       },
       [
+        childrenByParent,
+        elementsMap,
         elementId,
         currentProps.minValue,
         currentProps.maxValue,
@@ -156,8 +174,9 @@ export const SliderHybridAfterSections = memo(
     const updateRangeValue = useCallback(
       (index: 0 | 1, raw: string) => {
         const num = raw === "" ? 0 : Number(raw) || 0;
-        const el = useStore.getState().elementsMap.get(elementId);
-        const currentVal = (el?.props as Record<string, unknown>)?.value;
+        const currentVal =
+          (element?.props as Record<string, unknown> | undefined)?.value ??
+          currentProps.value;
         const latest: [number, number] = Array.isArray(currentVal)
           ? [Number(currentVal[0]) || 0, Number(currentVal[1]) || 100]
           : [0, 100];
@@ -165,7 +184,7 @@ export const SliderHybridAfterSections = memo(
         onUpdate({ value: latest });
         syncSliderOutput(`${latest[0]} – ${latest[1]}`);
       },
-      [elementId, onUpdate, syncSliderOutput],
+      [currentProps.value, element?.props, onUpdate, syncSliderOutput],
     );
 
     return (

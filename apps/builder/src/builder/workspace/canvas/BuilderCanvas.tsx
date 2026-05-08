@@ -30,8 +30,6 @@ import {
   useSelectedReusableFrameId,
 } from "../../stores/canonical/canonicalFrameStore";
 import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
-import { canonicalDocumentToElements } from "../../stores/canonical/canonicalElementsView";
-import { canonicalDocumentToFrameElementScopes } from "../../../adapters/canonical/frameElementScope";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import { useCanvasLifecycleStore, useViewportSyncStore } from "./stores";
 import { isWebGLCanvas } from "../../../utils/featureFlags";
@@ -68,7 +66,12 @@ import { usePageDrag } from "./hooks/usePageDrag";
 import { useKeyboardShortcutsRegistry } from "../../hooks/useKeyboardShortcutsRegistry";
 import type { PageTitleBounds } from "./skia/skiaOverlayHelpers";
 
-import { buildSceneStructureSnapshot } from "./scene";
+import {
+  buildCanonicalSceneModel,
+  buildSceneChildrenByParent,
+  buildSceneElementMap,
+  buildSceneStructureSnapshot,
+} from "./scene";
 import {
   computeWorkflowEdges,
   computeDataSourceEdges,
@@ -76,6 +79,7 @@ import {
   computeFrameAreas,
   type WorkflowElementInput,
 } from "./skia/workflowEdges";
+import type { Element } from "../../../types/core/store.types";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
 import { hitTestPoint } from "./wasm-bindings/spatialIndex";
@@ -100,6 +104,7 @@ export interface BuilderCanvasProps {
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 const PAGE_STACK_GAP = 80;
+const EMPTY_ELEMENTS: Element[] = [];
 
 function computeStackedCanvasPosition(
   index: number,
@@ -187,8 +192,19 @@ export function BuilderCanvas({
 
   // Canvas는 컨테이너 크기에 맞춰 자동 동기화 (CSS → 종료 시 renderer.resize)
 
+  const layouts = useCanonicalReusableFrameLayouts();
+  const activeCanonicalDocument = useActiveCanonicalDocument();
+  const canonicalSceneModel = useMemo(() => {
+    if (!activeCanonicalDocument) return null;
+    return buildCanonicalSceneModel(activeCanonicalDocument);
+  }, [activeCanonicalDocument]);
+
   // Store state
-  const storeElements = useStore((state) => state.elements);
+  const storeElements = useStore((state) => {
+    if (activeCanonicalDocument) return EMPTY_ELEMENTS;
+    const { elements: legacyElements } = state;
+    return legacyElements;
+  });
   const pages = useStore((state) => state.pages);
   const currentEditMode = useEditModeStore((state) => state.mode);
   const isFrameEditMode = currentEditMode === "layout";
@@ -228,18 +244,10 @@ export function BuilderCanvas({
   const workflowFocusedPageId = useStore(
     (state) => state.workflowFocusedPageId,
   );
-  const childrenMap = useStore((state) => state.childrenMap);
   const dirtyElementIds = useStore((state) => state.dirtyElementIds);
-  const layouts = useCanonicalReusableFrameLayouts();
-  const activeCanonicalDocument = useActiveCanonicalDocument();
-  const canonicalElements = useMemo(() => {
-    if (!activeCanonicalDocument) return null;
-    return canonicalDocumentToElements(activeCanonicalDocument);
-  }, [activeCanonicalDocument]);
-  const frameElementScopes = useMemo(() => {
-    if (!activeCanonicalDocument) return new Map();
-    return canonicalDocumentToFrameElementScopes(activeCanonicalDocument);
-  }, [activeCanonicalDocument]);
+  const emptyFrameElementScopes = useMemo(() => new Map(), []);
+  const frameElementScopes =
+    canonicalSceneModel?.frameElementScopes ?? emptyFrameElementScopes;
   // Frames tab overview: canvas 는 reusable frame 전체를 표시하고, 이 값은
   // Node tree/properties 의 현재 frame 선택 동기화에 사용한다.
   const selectedReusableFrameId = useSelectedReusableFrameId();
@@ -268,19 +276,21 @@ export function BuilderCanvas({
   );
   const renderVersion = useCanvasLifecycleStore((state) => state.renderVersion);
 
-  // Page mode 는 아직 pageIndex store 계약을 유지하고, frame mode 의 Skia 입력은
-  // ADR-116 canonical document 에서 직접 파생한다.
-  const storeElementsMap = useStore((state) => state.elementsMap);
-  const canonicalElementsMap = useMemo(() => {
-    if (!canonicalElements) return null;
-    return new Map(canonicalElements.map((element) => [element.id, element]));
-  }, [canonicalElements]);
-  const elements =
-    isFrameEditMode && canonicalElements ? canonicalElements : storeElements;
-  const elementsMap =
-    isFrameEditMode && canonicalElementsMap
-      ? canonicalElementsMap
-      : storeElementsMap;
+  // ADR-122 Phase 3: active canonical document 가 있으면 Skia scene input은
+  // Builder store mirror 가 아니라 canonical document 에서 만든 scene model을
+  // 직접 사용한다. store mirror 는 hydration fallback 으로만 남긴다.
+  const storeElementsMap = useMemo(
+    () => buildSceneElementMap(storeElements),
+    [storeElements],
+  );
+  const storeChildrenByParent = useMemo(
+    () => buildSceneChildrenByParent(storeElements),
+    [storeElements],
+  );
+  const elements = canonicalSceneModel?.elements ?? storeElements;
+  const elementsMap = canonicalSceneModel?.elementsMap ?? storeElementsMap;
+  const childrenMap =
+    canonicalSceneModel?.childrenByParent ?? storeChildrenByParent;
   const elementById = elementsMap;
 
   // ADR-006 P3-1: dirtyElementIds 소비 후 초기화
@@ -314,6 +324,7 @@ export function BuilderCanvas({
   );
 
   const pageIndex = useStore((state) => state.pageIndex);
+  const scenePageIndex = canonicalSceneModel?.pageIndex ?? pageIndex;
 
   useEffect(() => {
     const layoutKey = `${pageWidth}:${pageHeight}:${pageLayoutDirection}`;
@@ -349,23 +360,25 @@ export function BuilderCanvas({
       elementsMap,
       layoutVersion,
       pageHeight,
-      pageIndex,
+      pageIndex: scenePageIndex,
       pagePositions,
       pagePositionsVersion,
       pageWidth,
       pages: scenePages,
       panOffset,
+      source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
       zoom,
     });
   }, [
     containerSize,
+    canonicalSceneModel,
     currentPageId,
     elements,
     elementsMap,
     isFrameEditMode,
     layoutVersion,
     pageHeight,
-    pageIndex,
+    scenePageIndex,
     pagePositions,
     pagePositionsVersion,
     pageWidth,
@@ -525,7 +538,7 @@ export function BuilderCanvas({
       editMode: currentEditMode,
       elements,
       elementsMap,
-      pageIndex,
+      pageIndex: scenePageIndex,
       pagePositions,
       pagePositionsVersion,
       pages,
@@ -541,7 +554,7 @@ export function BuilderCanvas({
     dirtyElementIds,
     elements,
     elementsMap,
-    pageIndex,
+    scenePageIndex,
     pagePositions,
     pagePositionsVersion,
     pages,
@@ -624,7 +637,6 @@ export function BuilderCanvas({
       const elementId = resolveCanvasDetachContextTarget(
         hitTestPoint(canvasPoint.x, canvasPoint.y),
         hitElementsMap,
-        state.elementsMap,
         hitChildrenMap,
       );
 
@@ -636,8 +648,7 @@ export function BuilderCanvas({
       event.preventDefault();
       event.stopPropagation();
 
-      const hitElement =
-        state.elementsMap.get(elementId) ?? hitElementsMap.get(elementId);
+      const hitElement = hitElementsMap.get(elementId);
       if (hitElement?.page_id && hitElement.page_id !== state.currentPageId) {
         selectElementWithPageTransition(elementId, hitElement.page_id);
       } else {
@@ -754,6 +765,8 @@ export function BuilderCanvas({
     onEndDragRef,
     onCancelDragRef,
     dropIndicatorSnapshotRef,
+    getInteractiveElementsMap,
+    getInteractiveChildrenMap,
     enabled: isUnifiedFlag("UNIFIED_ENGINE"),
   });
 

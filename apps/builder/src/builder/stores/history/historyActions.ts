@@ -5,13 +5,21 @@ import {
   Element,
   ComponentElementProps,
 } from "../../../types/core/store.types";
-import { historyManager } from "../history";
+import { historyManager, type HistoryEntry } from "../history";
 import { supabase } from "../../../env/supabase.client";
 import {
   sanitizeElement,
   sanitizeElementForSupabase,
 } from "../../../adapters/canonical/legacyElementSanitizer";
 import { getElementById, createCompleteProps } from "../utils/elementHelpers";
+import {
+  applyBatchDiffRedo,
+  applyBatchDiffUndo,
+  applyDiffRedo,
+  applyDiffUndo,
+  deserializeDiff,
+  type SerializableElementDiff,
+} from "../utils/elementDiff";
 import type { ElementsState } from "../elements";
 import { getDB } from "../../../lib/db";
 import {
@@ -19,6 +27,7 @@ import {
   setElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
 import {
   isWebGLCanvas,
@@ -48,6 +57,33 @@ async function persistActiveCanonicalDocument(): Promise<void> {
 function syncHistoryElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
   setElementsCanonicalPrimary(elements);
+}
+
+function getHistorySourceElements(get: GetState): Element[] {
+  const { elements: legacyElements } = get();
+  return getActiveCanonicalHistoryElements() ?? legacyElements;
+}
+
+function getHistoryCompatibilityElementsMap(
+  get: GetState,
+): Map<string, Element> {
+  return new Map(
+    getHistorySourceElements(get).map((element) => [element.id, element]),
+  );
+}
+
+function getActiveCanonicalHistoryElements(): Element[] | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return elements;
 }
 
 /**
@@ -83,6 +119,31 @@ function applyElementSnapshotBatch(
   return [...retained, ...upsertElements];
 }
 
+function applySerializedHistoryDiff(
+  currentElements: Element[],
+  diff: SerializableElementDiff,
+  direction: "undo" | "redo",
+): Element[] {
+  const elementDiff = deserializeDiff(diff);
+  return currentElements.map((element) => {
+    if (element.id !== diff.elementId) return element;
+    return direction === "undo"
+      ? applyDiffUndo(element, elementDiff)
+      : applyDiffRedo(element, elementDiff);
+  });
+}
+
+function applySerializedHistoryDiffs(
+  currentElements: Element[],
+  diffs: SerializableElementDiff[],
+  direction: "undo" | "redo",
+): Element[] {
+  const elementDiffs = diffs.map((diff) => deserializeDiff(diff));
+  return direction === "undo"
+    ? applyBatchDiffUndo(currentElements, elementDiffs)
+    : applyBatchDiffRedo(currentElements, elementDiffs);
+}
+
 function resolveSelectedPropsAfterBatch(
   selectedElementId: string | null,
   selectedElementProps: ComponentElementProps,
@@ -93,6 +154,44 @@ function resolveSelectedPropsAfterBatch(
     (element) => element.id === selectedElementId,
   );
   return selectedElement ? createCompleteProps(selectedElement) : {};
+}
+
+function getHistoryDiffElementIds(entry: HistoryEntry): string[] {
+  const ids = new Set<string>();
+  if (entry.data.diff) ids.add(entry.data.diff.elementId);
+  entry.data.diffs?.forEach((diff) => ids.add(diff.elementId));
+  return [...ids];
+}
+
+async function upsertHistoryCompatibilityElements(
+  elementIds: Iterable<string>,
+  get: GetState,
+): Promise<void> {
+  const elementsMap = getHistoryCompatibilityElementsMap(get);
+  const elementsToUpsert: Element[] = [];
+  for (const id of elementIds) {
+    const element = getElementById(elementsMap, id);
+    if (element) elementsToUpsert.push(element);
+  }
+  if (elementsToUpsert.length === 0) return;
+
+  const pageId = elementsToUpsert.find((element) => element.page_id)?.page_id;
+  if (!pageId) return;
+
+  const { data: pageExists, error: pageError } = await supabase
+    .from("pages")
+    .select("id")
+    .eq("id", pageId)
+    .single();
+
+  if (pageError || !pageExists) return;
+
+  const sanitizedElements = elementsToUpsert.map((element) =>
+    sanitizeElementForSupabase(element),
+  );
+  await supabase
+    .from("elements")
+    .upsert(sanitizedElements, { onConflict: "id" });
 }
 
 /**
@@ -237,7 +336,10 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     console.log("🚀 함수형 업데이트 호출 직전, entry.type:", entry.type);
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
-    const currentState = get();
+    const currentState = {
+      ...get(),
+      elements: getHistorySourceElements(get),
+    };
     console.log("🔧 Undo 함수형 업데이트 실행됨, entry.type:", entry.type);
 
     let updatedElements = currentState.elements;
@@ -262,7 +364,22 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
           elementId: entry.elementId,
           hasPrevProps: !!prevProps,
           hasPrevElement: !!prevElement,
+          hasDiff: !!entry.data.diff,
         });
+
+        if (entry.data.diff) {
+          updatedElements = applySerializedHistoryDiff(
+            currentState.elements,
+            entry.data.diff,
+            "undo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            currentState.selectedElementId,
+            currentState.selectedElementProps,
+            updatedElements,
+          );
+          break;
+        }
 
         // 이전 상태로 복원 (불변 업데이트)
         const elementIndex = currentState.elements.findIndex(
@@ -330,7 +447,18 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       }
 
       case "batch": {
-        if (entry.data.prevElements && entry.data.elements) {
+        if (entry.data.diffs?.length) {
+          updatedElements = applySerializedHistoryDiffs(
+            currentState.elements,
+            entry.data.diffs,
+            "undo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            currentState.selectedElementId,
+            currentState.selectedElementProps,
+            updatedElements,
+          );
+        } else if (entry.data.prevElements && entry.data.elements) {
           const prevElements = entry.data.prevElements.map((element) =>
             cloneForHistory(element),
           );
@@ -482,20 +610,19 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       selectedElementProps: updatedSelectedElementProps,
     });
 
+    syncHistoryElementsToCanonical(updatedElements);
     // 🔧 CRITICAL: elementsMap 재구축 (Undo 후 인덱스 동기화)
     get()._rebuildIndexes();
-    syncHistoryElementsToCanonical(get().elements);
 
     // 2. iframe 업데이트
     // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 스킵
     const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
     if (!isWebGLOnly && typeof window !== "undefined" && window.parent) {
       try {
-        const currentElements = get().elements;
         window.parent.postMessage(
           {
             type: "ELEMENTS_UPDATED",
-            payload: { elements: currentElements.map(sanitizeElement) },
+            payload: { elements: updatedElements.map(sanitizeElement) },
           },
           window.location.origin,
         );
@@ -535,7 +662,10 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
             break;
           }
 
-          if (entry.data.prevElement) {
+          const diffElementIds = getHistoryDiffElementIds(entry);
+          if (diffElementIds.length > 0) {
+            await upsertHistoryCompatibilityElements(diffElementIds, get);
+          } else if (entry.data.prevElement) {
             const updatedElement = {
               ...entry.data.prevElement,
               props: entry.data.prevProps || entry.data.prevElement.props,
@@ -612,6 +742,12 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
         }
 
         case "batch": {
+          const diffElementIds = getHistoryDiffElementIds(entry);
+          if (diffElementIds.length > 0) {
+            await upsertHistoryCompatibilityElements(diffElementIds, get);
+            break;
+          }
+
           // Batch update - 각 요소의 prevProps를 데이터베이스에 업데이트
           if (entry.data.batchUpdates) {
             console.log(
@@ -824,7 +960,10 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     }
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
-    const currentState = get();
+    const currentState = {
+      ...get(),
+      elements: getHistorySourceElements(get),
+    };
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
@@ -838,6 +977,20 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
       case "update": {
         // 업데이트 적용 (불변 업데이트)
+        if (entry.data.diff) {
+          updatedElements = applySerializedHistoryDiff(
+            currentState.elements,
+            entry.data.diff,
+            "redo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            currentState.selectedElementId,
+            currentState.selectedElementProps,
+            updatedElements,
+          );
+          break;
+        }
+
         const elementIndex = currentState.elements.findIndex(
           (el) => el.id === entry.elementId,
         );
@@ -871,7 +1024,18 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       }
 
       case "batch": {
-        if (entry.data.prevElements && entry.data.elements) {
+        if (entry.data.diffs?.length) {
+          updatedElements = applySerializedHistoryDiffs(
+            currentState.elements,
+            entry.data.diffs,
+            "redo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            currentState.selectedElementId,
+            currentState.selectedElementProps,
+            updatedElements,
+          );
+        } else if (entry.data.prevElements && entry.data.elements) {
           const nextElements = entry.data.elements.map((element) =>
             cloneForHistory(element),
           );
@@ -1023,20 +1187,19 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       selectedElementProps: updatedSelectedElementProps,
     });
 
+    syncHistoryElementsToCanonical(updatedElements);
     // 🔧 CRITICAL: elementsMap 재구축 (Redo 후 인덱스 동기화)
     get()._rebuildIndexes();
-    syncHistoryElementsToCanonical(get().elements);
 
     // 2. iframe 업데이트
     // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 스킵
     const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
     if (!isWebGLOnly && typeof window !== "undefined" && window.parent) {
       try {
-        const currentElements = get().elements;
         window.parent.postMessage(
           {
             type: "ELEMENTS_UPDATED",
-            payload: { elements: currentElements.map(sanitizeElement) },
+            payload: { elements: updatedElements.map(sanitizeElement) },
           },
           window.location.origin,
         );
@@ -1114,7 +1277,10 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
             break;
           }
 
-          if (entry.data.element) {
+          const diffElementIds = getHistoryDiffElementIds(entry);
+          if (diffElementIds.length > 0) {
+            await upsertHistoryCompatibilityElements(diffElementIds, get);
+          } else if (entry.data.element) {
             const updatedElement = entry.data.element;
 
             await supabase
@@ -1123,7 +1289,10 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
               .eq("id", entry.elementId);
             console.log("✅ Redo: Supabase에서 요소 업데이트 완료");
           } else if (entry.data.props) {
-            const element = getElementById(get().elementsMap, entry.elementId);
+            const element = getElementById(
+              getHistoryCompatibilityElementsMap(get),
+              entry.elementId,
+            );
             if (element) {
               const updatedElement = {
                 ...element,
@@ -1159,6 +1328,12 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
         }
 
         case "batch": {
+          const diffElementIds = getHistoryDiffElementIds(entry);
+          if (diffElementIds.length > 0) {
+            await upsertHistoryCompatibilityElements(diffElementIds, get);
+            break;
+          }
+
           // Batch update Redo - 각 요소의 newProps를 데이터베이스에 업데이트
           if (entry.data.batchUpdates) {
             console.log(
@@ -1166,11 +1341,9 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
             );
 
             // Supabase 동기화
+            const elementsMap = getHistoryCompatibilityElementsMap(get);
             for (const update of entry.data.batchUpdates) {
-              const element = getElementById(
-                get().elementsMap,
-                update.elementId,
-              );
+              const element = getElementById(elementsMap, update.elementId);
               if (element) {
                 await supabase
                   .from("elements")
@@ -1282,7 +1455,10 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 export const createGoToHistoryIndexAction =
   (set: SetState, get: GetState) => async (targetIndex: number) => {
     try {
-      const state = get();
+      const state = {
+        ...get(),
+        elements: getHistorySourceElements(get),
+      };
       const { currentPageId } = state;
       if (!currentPageId) return;
 
@@ -1305,7 +1481,8 @@ export const createGoToHistoryIndexAction =
       );
 
       // 현재 상태를 가져와서 누적 업데이트
-      let updatedElements = state.elements;
+      const { elements: sourceElements } = state;
+      let updatedElements = sourceElements;
       let updatedSelectedElementId = state.selectedElementId;
       let updatedSelectedElementProps = state.selectedElementProps;
 
@@ -1330,19 +1507,18 @@ export const createGoToHistoryIndexAction =
         selectedElementProps: updatedSelectedElementProps,
       });
 
+      syncHistoryElementsToCanonical(updatedElements);
       // elementsMap 재구축
       get()._rebuildIndexes();
-      syncHistoryElementsToCanonical(get().elements);
 
       // iframe 업데이트
       const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
       if (!isWebGLOnly && typeof window !== "undefined" && window.parent) {
         try {
-          const currentElements = get().elements;
           window.parent.postMessage(
             {
               type: "ELEMENTS_UPDATED",
-              payload: { elements: currentElements.map(sanitizeElement) },
+              payload: { elements: updatedElements.map(sanitizeElement) },
             },
             window.location.origin,
           );
@@ -1405,6 +1581,20 @@ function applyHistoryEntry(
       }
 
       case "update": {
+        if (entry.data.diff) {
+          updatedElements = applySerializedHistoryDiff(
+            elements,
+            entry.data.diff,
+            "undo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            selectedElementId,
+            selectedElementProps,
+            updatedElements,
+          );
+          break;
+        }
+
         const prevProps = entry.data.prevProps
           ? cloneForHistory(entry.data.prevProps)
           : null;
@@ -1457,7 +1647,18 @@ function applyHistoryEntry(
       }
 
       case "batch": {
-        if (entry.data.prevElements && entry.data.elements) {
+        if (entry.data.diffs?.length) {
+          updatedElements = applySerializedHistoryDiffs(
+            elements,
+            entry.data.diffs,
+            "undo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            selectedElementId,
+            selectedElementProps,
+            updatedElements,
+          );
+        } else if (entry.data.prevElements && entry.data.elements) {
           const prevElements = entry.data.prevElements.map((element) =>
             cloneForHistory(element),
           );
@@ -1589,6 +1790,20 @@ function applyHistoryEntry(
       }
 
       case "update": {
+        if (entry.data.diff) {
+          updatedElements = applySerializedHistoryDiff(
+            elements,
+            entry.data.diff,
+            "redo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            selectedElementId,
+            selectedElementProps,
+            updatedElements,
+          );
+          break;
+        }
+
         const propsToUpdate = entry.data.props
           ? cloneForHistory(entry.data.props)
           : null;
@@ -1633,7 +1848,18 @@ function applyHistoryEntry(
       }
 
       case "batch": {
-        if (entry.data.prevElements && entry.data.elements) {
+        if (entry.data.diffs?.length) {
+          updatedElements = applySerializedHistoryDiffs(
+            elements,
+            entry.data.diffs,
+            "redo",
+          );
+          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+            selectedElementId,
+            selectedElementProps,
+            updatedElements,
+          );
+        } else if (entry.data.prevElements && entry.data.elements) {
           const nextElements = entry.data.elements.map((element) =>
             cloneForHistory(element),
           );
@@ -1761,7 +1987,7 @@ async function syncDatabaseForEntries(
   // 최종 elements 상태가 이미 메모리에 적용되어 있으므로
   // cloud compatibility에는 변경된 요소들만 업데이트
 
-  const elementsMap = get().elementsMap;
+  const elementsMap = getHistoryCompatibilityElementsMap(get);
 
   // 영향받은 요소 ID 수집
   const affectedElementIds = new Set<string>();
@@ -1782,6 +2008,9 @@ async function syncDatabaseForEntries(
         case "batch":
           affectedElementIds.add(entry.elementId);
           entry.elementIds?.forEach((id) => affectedElementIds.add(id));
+          getHistoryDiffElementIds(entry).forEach((id) =>
+            affectedElementIds.add(id),
+          );
           entry.data.batchUpdates?.forEach((u: { elementId: string }) =>
             affectedElementIds.add(u.elementId),
           );
@@ -1817,6 +2046,9 @@ async function syncDatabaseForEntries(
         case "batch":
           affectedElementIds.add(entry.elementId);
           entry.elementIds?.forEach((id) => affectedElementIds.add(id));
+          getHistoryDiffElementIds(entry).forEach((id) =>
+            affectedElementIds.add(id),
+          );
           entry.data.batchUpdates?.forEach((u: { elementId: string }) =>
             affectedElementIds.add(u.elementId),
           );

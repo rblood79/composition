@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { create } from "zustand";
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
@@ -10,11 +9,6 @@ import {
   ComputedLayout,
 } from "../../types/core/store.types";
 import { Page } from "../../types/builder/unified.types";
-import {
-  getComponentMasterReference as getInstanceMasterRef,
-  isComponentInstanceMirrorElement as isInstanceElement,
-  isComponentOriginMirrorElement as isMasterElement,
-} from "../../adapters/canonical/componentSemanticsMirror";
 import type { PageLayoutDirection } from "./canvasSettings";
 import { historyManager } from "./history";
 import {
@@ -59,10 +53,8 @@ import {
 } from "../utils/scheduleTask";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import { normalizeExternalFillIngress } from "../panels/styles/utils/fillExternalIngress";
-import {
-  getActiveCanonicalElementSnapshot,
-  getActiveCanonicalElementsSnapshot,
-} from "./canonical/canonicalElementSnapshot";
+import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
 import {
   type PageElementIndex,
   type ComponentIndex,
@@ -71,7 +63,6 @@ import {
   createEmptyComponentIndex,
   createEmptyVariableUsageIndex,
   rebuildPageIndex,
-  indexElement,
   rebuildComponentIndex,
   rebuildVariableUsageIndex,
   getPageElements as getPageElementsFromIndex,
@@ -161,7 +152,6 @@ export interface ElementsState {
 
   setElements: (elements: Element[]) => void;
   hydrateProjectSnapshot: (elements: Element[]) => void;
-  recoverElementsSnapshot: (elements: Element[]) => void;
   mergeElements: (elements: Element[]) => void;
   replaceElementId: (oldId: string, newId: string) => void;
   loadPageElements: (elements: Element[], pageId: string) => void;
@@ -376,15 +366,67 @@ function findPageActivationBodyElement(
   );
 }
 
+function resolveStoreOrCanonicalElement(
+  state: Pick<ElementsState, "elements">,
+  elementId: string,
+): Element | null {
+  const { elements: legacyElements } = state;
+  return (
+    getActiveCanonicalStoreElement(elementId) ??
+    findElementById(legacyElements, elementId)
+  );
+}
+
+function getActiveCanonicalStoreElements(): Element[] | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return elements;
+}
+
+function getActiveCanonicalStoreElement(elementId: string): Element | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  let match: Element | null = null;
+  visitCanonicalDocumentElements(doc, (element) => {
+    if (element.id === elementId) {
+      match = element;
+    }
+  });
+  return match;
+}
+
+function getCanonicalOrStoreElements(
+  state: Pick<ElementsState, "elements">,
+): Element[] {
+  const { elements: legacyElements } = state;
+  return getActiveCanonicalStoreElements() ?? legacyElements;
+}
+
 function resolvePageActivationElementById(
   state: ElementsState,
   elementId: string,
 ): Element | null {
-  return (
-    state.elementsMap.get(elementId) ??
-    findElementById(state.elements, elementId) ??
-    getActiveCanonicalElementSnapshot(elementId)
-  );
+  return resolveStoreOrCanonicalElement(state, elementId);
+}
+
+function getElementForItemsAction(
+  get: () => ElementsState,
+  elementId: string,
+): Element | undefined {
+  const state = get();
+  return findElementById(getCanonicalOrStoreElements(state), elementId);
 }
 
 function resolveCurrentPageSelectionTarget(
@@ -551,8 +593,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
   // 인덱스 재구축 함수 (Phase 2: 페이지 인덱스 포함)
   const _rebuildIndexes = () => {
-    const { elements } = get();
-    set(buildIndexes(elements));
+    const state = get();
+    set(buildIndexes(getCanonicalOrStoreElements(state)));
   };
 
   // 🆕 Phase 2: O(1) 페이지 요소 조회 함수
@@ -564,22 +606,13 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
   const buildDetachedPageRemovalState = (
     state: ElementsState,
   ): ElementsState => {
-    const canonicalElements = getActiveCanonicalElementsSnapshot();
+    const canonicalElements = getActiveCanonicalStoreElements();
     if (!canonicalElements || canonicalElements.length === 0) return state;
 
-    const mergedById = new Map<string, Element>();
-    for (const element of canonicalElements) {
-      mergedById.set(element.id, element);
-    }
-    for (const element of state.elements) {
-      mergedById.set(element.id, element);
-    }
-
-    const mergedElements = Array.from(mergedById.values());
-    const { elementsMap, childrenMap } = buildIndexes(mergedElements);
+    const { elementsMap, childrenMap } = buildIndexes(canonicalElements);
     return {
       ...state,
-      elements: mergedElements,
+      elements: canonicalElements,
       elementsMap,
       childrenMap,
     };
@@ -598,86 +631,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     }));
   };
 
-  const clonePageIndex = (pageIndex: PageElementIndex): PageElementIndex => ({
-    elementsByPage: new Map(
-      Array.from(pageIndex.elementsByPage.entries(), ([pageId, ids]) => [
-        pageId,
-        new Set(ids),
-      ]),
-    ),
-    rootsByPage: new Map(
-      Array.from(pageIndex.rootsByPage.entries(), ([pageId, rootIds]) => [
-        pageId,
-        [...rootIds],
-      ]),
-    ),
-  });
-
-  const cloneComponentIndex = (
-    componentIndex: ComponentIndex,
-  ): ComponentIndex => ({
-    masterToInstances: new Map(
-      Array.from(
-        componentIndex.masterToInstances.entries(),
-        ([masterRefId, ids]) => [masterRefId, new Set(ids)],
-      ),
-    ),
-    masterComponents: new Map(componentIndex.masterComponents),
-  });
-
-  const cloneVariableUsageIndex = (
-    variableUsageIndex: VariableUsageIndex,
-  ): VariableUsageIndex => ({
-    variableToElements: new Map(
-      Array.from(
-        variableUsageIndex.variableToElements.entries(),
-        ([variableName, ids]) => [variableName, new Set(ids)],
-      ),
-    ),
-  });
-
-  // ADR-116 G5-B P5-C: legacy role literal
-  // 검사 → isMasterElement / isInstanceElement 호출로 단일화. 두 type guard
-  // 자체는 read-through fallback marker 보존 (legacy 의미 유지).
-  const indexComponentElement = (
-    componentIndex: ComponentIndex,
-    element: Element,
-  ) => {
-    if (isMasterElement(element)) {
-      componentIndex.masterComponents.set(element.id, element);
-    }
-
-    // ADR-116 G5-B P5-D: legacy origin direct property access →
-    // getInstanceMasterRef helper 호출 단일화 (canonical RefNode 의 ref 도
-    // 자동 호환). isInstanceElement 가 strict legacy 이므로 본 분기에서는
-    // legacy origin 만 도달, helper 의 canonical 분기는 dead in this branch
-    // (안전).
-    if (isInstanceElement(element)) {
-      const masterRef = getInstanceMasterRef(element);
-      if (!masterRef) return;
-      if (!componentIndex.masterToInstances.has(masterRef)) {
-        componentIndex.masterToInstances.set(masterRef, new Set());
-      }
-      componentIndex.masterToInstances.get(masterRef)!.add(element.id);
-    }
-  };
-
-  const indexVariableUsageElement = (
-    variableUsageIndex: VariableUsageIndex,
-    element: Element,
-  ) => {
-    if (!element.variableBindings || element.variableBindings.length === 0) {
-      return;
-    }
-
-    for (const variableName of element.variableBindings) {
-      if (!variableUsageIndex.variableToElements.has(variableName)) {
-        variableUsageIndex.variableToElements.set(variableName, new Set());
-      }
-      variableUsageIndex.variableToElements.get(variableName)!.add(element.id);
-    }
-  };
-
   // 🚀 Phase 4.3: 인스펙터 props hydration을 백그라운드 우선순위로 분리
   // WebGL Canvas의 pointerdown task를 짧게 유지하기 위해,
   // selectedElementProps(종종 큰 객체)는 브라우저 유휴 시간에 채웁니다.
@@ -694,9 +647,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     if (typeof window === "undefined") {
       // SSR/특수 환경: 동기 처리
       const state = get();
-      const element =
-        state.elementsMap.get(elementId) ??
-        findElementById(state.elements, elementId);
+      const element = resolveStoreOrCanonicalElement(state, elementId);
       if (!element) return;
       // 🚀 WebGL 요소의 computedStyle 포함 (borderRadius 등)
       const computedStyle = computeCanvasElementStyle(element);
@@ -721,9 +672,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         const state = get();
         if (state.selectedElementId !== elementId) return; // stale update 방지
 
-        const element =
-          state.elementsMap.get(elementId) ??
-          findElementById(state.elements, elementId);
+        const element = resolveStoreOrCanonicalElement(state, elementId);
         if (!element) return;
 
         longTaskMonitor.measure(
@@ -805,10 +754,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       applyFullSnapshot(elements);
     },
 
-    recoverElementsSnapshot: (elements) => {
-      applyFullSnapshot(elements);
-    },
-
     mergeElements: (elements) => {
       if (elements.length === 0) {
         return;
@@ -819,7 +764,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         normalizeExternalFillIngress(element),
       );
       set((state) => {
-        const mergedMap = new Map(state.elementsMap);
+        const sourceElements = getCanonicalOrStoreElements(state);
+        const mergedMap = new Map(
+          sourceElements.map((element) => [element.id, element]),
+        );
         let changed = false;
 
         canonicalElements.forEach((element) => {
@@ -852,12 +800,13 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       }
 
       set((state) => {
-        const targetElement = state.elementsMap.get(oldId);
+        const sourceElements = getCanonicalOrStoreElements(state);
+        const targetElement = findElementById(sourceElements, oldId);
         if (!targetElement) {
           return state;
         }
 
-        const updatedElements = state.elements.map((element) => {
+        const updatedElements = sourceElements.map((element) => {
           if (element.id === oldId) {
             return { ...element, id: newId };
           }
@@ -1026,9 +975,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           // 선택이 이미 변경되었으면 스킵
           if (latestState.selectedElementId !== elementId) return;
 
-          const element =
-            latestState.elementsMap.get(elementId) ??
-            findElementById(latestState.elements, elementId);
+          const element = resolveStoreOrCanonicalElement(
+            latestState,
+            elementId,
+          );
           const initialProps = element ? createCompleteProps(element) : {};
 
           set({ selectedElementProps: initialProps });
@@ -1050,9 +1000,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       let resolvedProps = props;
 
       if (elementId && !resolvedProps) {
-        const { elementsMap, elements } = currentState;
-        const element =
-          elementsMap.get(elementId) ?? findElementById(elements, elementId);
+        const element = resolveStoreOrCanonicalElement(currentState, elementId);
         if (element) {
           resolvedProps = createCompleteProps(element);
         }
@@ -1145,38 +1093,18 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
       const startTime = performance.now();
       set((state) => {
-        const nextElements = [...state.elements, bodyElement];
+        const nextElements = [
+          ...getCanonicalOrStoreElements(state),
+          bodyElement,
+        ];
         const nextPages = [...state.pages, page];
-        const nextElementsMap = new Map(state.elementsMap);
-        nextElementsMap.set(bodyElement.id, bodyElement);
-
-        const nextChildrenMap = new Map(state.childrenMap);
-        const rootChildren = nextChildrenMap.get("root") ?? [];
-        nextChildrenMap.set("root", [...rootChildren, bodyElement]);
-
-        const nextPageIndex = clonePageIndex(state.pageIndex);
-        indexElement(nextPageIndex, bodyElement, nextElementsMap);
-        const nextComponentIndex = cloneComponentIndex(state.componentIndex);
-        indexComponentElement(nextComponentIndex, bodyElement);
-        const nextVariableUsageIndex = cloneVariableUsageIndex(
-          state.variableUsageIndex,
-        );
-        indexVariableUsageElement(nextVariableUsageIndex, bodyElement);
-        const nextPageElementsSnapshot = {
-          ...state.pageElementsSnapshot,
-          [page.id]: [bodyElement],
-        };
+        const nextIndexes = buildIndexes(nextElements);
 
         return {
           pages: nextPages,
           currentPageId: activate ? page.id : state.currentPageId,
           elements: nextElements,
-          elementsMap: nextElementsMap,
-          childrenMap: nextChildrenMap,
-          pageElementsSnapshot: nextPageElementsSnapshot,
-          pageIndex: nextPageIndex,
-          componentIndex: nextComponentIndex,
-          variableUsageIndex: nextVariableUsageIndex,
+          ...nextIndexes,
           selectedElementId: activate
             ? bodyElement.id
             : state.selectedElementId,
@@ -1214,18 +1142,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       set((state) => {
         const detachSourceState = buildDetachedPageRemovalState(state);
         const removedElementsMap = new Map<string, Element>();
-        const indexedRemovedElements = getPageElementsFromIndex(
-          state.pageIndex,
-          pageId,
-          state.elementsMap,
-        );
-        const legacyRemovedElements =
-          indexedRemovedElements.length > 0
-            ? indexedRemovedElements
-            : state.elements.filter((element) => element.page_id === pageId);
-        for (const element of legacyRemovedElements) {
-          removedElementsMap.set(element.id, element);
-        }
         for (const element of detachSourceState.elements) {
           if (element.page_id === pageId) {
             removedElementsMap.set(element.id, element);
@@ -1255,7 +1171,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           }
         }
         const nextPages = state.pages.filter((page) => page.id !== pageId);
-        const nextElements = state.elements.flatMap((element) => {
+        const nextElements = detachSourceState.elements.flatMap((element) => {
           if (removedElementIds.has(element.id)) return [];
           return autoDetachElementsByPreviousId.get(element.id) ?? [element];
         });
@@ -1416,9 +1332,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           const latestState = get();
           if (latestState.selectedElementId !== elementId) return;
 
-          const element =
-            latestState.elementsMap.get(elementId) ??
-            findElementById(latestState.elements, elementId);
+          const element = resolveStoreOrCanonicalElement(
+            latestState,
+            elementId,
+          );
           const initialProps = element
             ? createCompleteProps(element)
             : (externalProps ?? {});
@@ -1462,36 +1379,39 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // cross-container 이동: parent_id 변경 + canonical children[] reorder
     moveElementToContainer: (elementId, newParentId, insertionIndex) => {
       const prevState = get();
-      const element = prevState.elementsMap.get(elementId);
+      const sourceIndexes = buildIndexes(prevState.elements);
+      const sourceElementsById = sourceIndexes.elementsMap;
+      const sourceChildrenByParent = sourceIndexes.childrenMap;
+      const element = sourceElementsById.get(elementId);
       if (!element || !element.parent_id) return;
 
       const oldParentId = element.parent_id;
       if (oldParentId === newParentId) return;
-      const newParent = prevState.elementsMap.get(newParentId);
+      const newParent = sourceElementsById.get(newParentId);
       if (!newParent) return;
 
       if (areCanonicalMutationStoreActionsRegistered()) {
-        const mirror = moveElementCanonicalPrimary(
+        const result = moveElementCanonicalPrimary(
           elementId,
           newParentId,
           insertionIndex,
         );
-        if (mirror.length > 0) return;
+        if (result.changed) return;
       }
 
       const targetPageId = newParent.page_id ?? element.page_id ?? null;
       const subtreeIds = collectElementSubtreeIds(
         elementId,
-        prevState.childrenMap,
+        sourceChildrenByParent,
       );
 
-      const newSiblings = (prevState.childrenMap.get(newParentId) ?? [])
-        .map((c) => prevState.elementsMap.get(c.id))
+      const newSiblings = (sourceChildrenByParent.get(newParentId) ?? [])
+        .map((c) => sourceElementsById.get(c.id))
         .filter((c): c is Element => c !== undefined);
 
       const updateMap = new Map<
         string,
-        { page_id?: string | null; parent_id?: string }
+        { page_id?: string | null; parent_id?: string; order_num?: number }
       >();
 
       const newOrder = [
@@ -1499,18 +1419,25 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         element,
         ...newSiblings.slice(insertionIndex),
       ];
-      newOrder.forEach((c) => {
+      newOrder.forEach((c, index) => {
+        const nextUpdate = {
+          ...(updateMap.get(c.id) ?? {}),
+          order_num: index,
+        };
         if (c.id === elementId) {
           updateMap.set(c.id, {
+            ...nextUpdate,
             page_id: targetPageId,
             parent_id: newParentId,
           });
+          return;
         }
+        updateMap.set(c.id, nextUpdate);
       });
 
       for (const subtreeId of subtreeIds) {
         if (subtreeId === elementId) continue;
-        const current = prevState.elementsMap.get(subtreeId);
+        const current = sourceElementsById.get(subtreeId);
         if (!current || current.page_id === targetPageId) continue;
         updateMap.set(subtreeId, {
           ...(updateMap.get(subtreeId) ?? {}),
@@ -1524,8 +1451,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         if (!upd) return el;
         return {
           ...el,
-          ...(upd.parent_id ? { parent_id: upd.parent_id } : {}),
+          ...(upd.parent_id !== undefined ? { parent_id: upd.parent_id } : {}),
           ...(upd.page_id !== undefined ? { page_id: upd.page_id } : {}),
+          ...(upd.order_num !== undefined ? { order_num: upd.order_num } : {}),
         };
       });
 
@@ -1546,21 +1474,22 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         reorderedElements.push(current);
       }
 
+      const nextIndexes = buildIndexes(reorderedElements);
       set((state) => ({
         elements: reorderedElements,
+        ...nextIndexes,
         layoutVersion: state.layoutVersion + 1,
       }));
-      get()._rebuildIndexes();
     },
 
     // 🚀 Phase 1: Immer → 함수형 업데이트 (High Risk)
     // ⭐ 다중 선택: 요소를 선택 목록에서 추가/제거 (토글)
     toggleElementInSelection: (elementId: string) => {
       const state = get();
-      const { elementsMap, elements, selectedElementIdsSet } = state;
+      const { selectedElementIdsSet } = state;
 
       const resolveCompleteProps = (id: string) => {
-        const element = elementsMap.get(id) ?? findElementById(elements, id);
+        const element = resolveStoreOrCanonicalElement(state, id);
         return element ? createCompleteProps(element) : null;
       };
 
@@ -1621,10 +1550,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // 🚀 Phase 1: Immer → 함수형 업데이트 (Medium Risk)
     // ⭐ 다중 선택: 여러 요소를 한 번에 선택 (드래그 선택용)
     setSelectedElements: (elementIds: string[]) => {
-      const { elementsMap, elements } = get();
+      const state = get();
 
       const resolveCompleteProps = (id: string) => {
-        const element = elementsMap.get(id) ?? findElementById(elements, id);
+        const element = resolveStoreOrCanonicalElement(state, id);
         return element ? createCompleteProps(element) : null;
       };
 
@@ -1807,7 +1736,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     // items 변경 시 파이프라인(Memory→History→DB) 자동 처리됨.
 
     addItem: async (elementId, itemsKey, item) => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -1831,7 +1760,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     },
 
     removeItem: async (elementId, itemsKey, itemId) => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -1846,7 +1775,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     },
 
     updateItem: async (elementId, itemsKey, itemId, patch) => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -1864,7 +1793,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     // ADR-099 Phase 4: Section/Separator 액션
     addSection: async (elementId, itemsKey, header = "New Section") => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -1886,7 +1815,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     },
 
     addSeparator: async (elementId, itemsKey) => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -1906,7 +1835,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     },
 
     addItemToSection: async (elementId, itemsKey, sectionId, item) => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -1937,7 +1866,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     },
 
     removeItemFromSection: async (elementId, itemsKey, sectionId, itemId) => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -1969,7 +1898,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       itemId,
       patch,
     ) => {
-      const el = get().elementsMap.get(elementId);
+      const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = Array.isArray(
         (el.props as Record<string, unknown>)[itemsKey],
@@ -2015,7 +1944,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     },
 
     reorderMenuItems: async (menuId, fromIndex, toIndex) => {
-      const menu = get().elementsMap.get(menuId);
+      const menu = getElementForItemsAction(get, menuId);
       if (!menu || menu.type !== "Menu") return;
       const items = ((menu.props.items ?? []) as StoredMenuItem[]).slice();
       if (
@@ -2036,81 +1965,3 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
 // 기존 호환성을 위한 useStore export
 export const useStore = create<ElementsState>(createElementsSlice);
-
-// ============================================
-// 🚀 Performance Optimized Selectors
-// ============================================
-
-// 안정적인 빈 배열 참조 (새 배열 생성 방지)
-const EMPTY_ELEMENTS: Element[] = [];
-
-/**
- * 현재 페이지의 요소만 반환하는 선택적 selector
- *
- * 🎯 Phase 2 최적화:
- * - O(1) 조회: pageIndex 기반 인덱스 사용 (filter O(n) → getPageElements O(1))
- * - 안정적인 참조: pageIndex 캐시 활용
- * - 개별 구독: currentPageId, pageIndex, elementsMap 분리 구독
- * - 무한 루프 방지: getSnapshot 결과 캐싱
- *
- * @example
- * ```tsx
- * const currentPageElements = useCurrentPageElements();
- * ```
- */
-export const useCurrentPageElements = (): Element[] => {
-  const currentPageId = useStore((state) => state.currentPageId);
-  const currentPageElements = useStore((state) => {
-    if (!state.currentPageId) return EMPTY_ELEMENTS;
-    return state.pageElementsSnapshot[state.currentPageId] ?? EMPTY_ELEMENTS;
-  });
-
-  return useMemo(() => {
-    if (!currentPageId) return EMPTY_ELEMENTS;
-    return currentPageElements;
-  }, [currentPageElements, currentPageId]);
-};
-
-/**
- * elementsMap을 활용한 O(1) 요소 조회 selector
- *
- * @param elementId - 조회할 요소 ID
- * @returns 요소 또는 undefined
- */
-export const useElementById = (
-  elementId: string | null,
-): Element | undefined => {
-  return useStore((state) => {
-    if (!elementId) return undefined;
-    return state.elementsMap.get(elementId);
-  });
-};
-
-/**
- * childrenMap을 활용한 O(1) 자식 요소 조회 selector
- *
- * @param parentId - 부모 요소 ID (null이면 루트 요소들)
- * @returns 자식 요소 배열
- */
-export const useChildElements = (parentId: string | null): Element[] => {
-  return useStore((state) => {
-    const key = parentId || "root";
-    // 안정적인 빈 배열 참조 반환 (새 배열 생성 방지)
-    return state.childrenMap.get(key) ?? EMPTY_ELEMENTS;
-  });
-};
-
-/**
- * 현재 페이지의 요소 개수만 반환 (가벼운 조회용)
- * 트리 노드 개수 표시 등에 사용
- *
- * 🆕 Phase 2: O(1) 인덱스 기반 카운트
- */
-export const useCurrentPageElementCount = (): number => {
-  return useStore((state) => {
-    const { pageIndex, currentPageId } = state;
-    if (!currentPageId) return 0;
-    // O(1) 인덱스 기반 카운트
-    return pageIndex.elementsByPage.get(currentPageId)?.size ?? 0;
-  });
-};

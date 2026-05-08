@@ -37,6 +37,7 @@ import {
   renderWorkflowEdges,
   renderDataSourceEdges,
   renderLayoutGroups,
+  renderFrameAreaBorder,
   renderPageFrameHighlight,
 } from "./workflowRenderer";
 import {
@@ -70,6 +71,12 @@ import {
   collectHighlightedWorkflowPageIds,
   filterRenderableWorkflowEdges,
 } from "./skiaWorkflowSelection";
+import {
+  FALLBACK_COLORS,
+  cssColorToHex,
+  getCSSVariable,
+} from "../utils/cssVariableReader";
+import { hexToColor4fChannels } from "./themeWatcher";
 
 // ============================================
 // Workflow Overlay Data
@@ -210,6 +217,12 @@ function resolveSelectedFrameIdForTitle(
   return null;
 }
 
+function resolveCanvasBorderColor(): readonly [number, number, number] {
+  return hexToColor4fChannels(
+    cssColorToHex(getCSSVariable("--border"), FALLBACK_COLORS.outlineVariant),
+  );
+}
+
 /**
  * 오버레이 SkiaRenderable을 빌드한다.
  * AI 이펙트, 페이지 타이틀, 워크플로우, 호버, 선택, 미니맵을
@@ -269,6 +282,14 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       if (pageTitleBoundsMap) pageTitleBoundsMap.clear();
       const frames = visiblePageFrames ?? [];
       if (frames.length > 0) {
+        renderFrameAreaBorder(
+          ck,
+          canvas,
+          frames,
+          cameraZoom,
+          resolveCanvasBorderColor(),
+        );
+
         const pageTitleItems = buildPageTitleRenderItems(
           frames,
           selection.currentPageId,
@@ -316,8 +337,19 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       // Page title 과 동일한 Pencil-style label 을 재사용하되, page drag hit-test
       // map 에는 등록하지 않는다. Frame title 은 현재 시점에서 시각 chrome 이며
       // Page title drag 동작과 섞이면 안 된다.
+      const reusableFrameAreas = frameAreas ?? [];
+      if (reusableFrameAreas.length > 0) {
+        renderFrameAreaBorder(
+          ck,
+          canvas,
+          reusableFrameAreas,
+          cameraZoom,
+          resolveCanvasBorderColor(),
+        );
+      }
+
       const frameTitleItems = buildFrameTitleRenderItems(
-        frameAreas ?? [],
+        reusableFrameAreas,
         resolveSelectedFrameIdForTitle(
           selection.selectedElementIds,
           elementsMap,
@@ -457,6 +489,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           hoveredLeafIds,
           isGroupHover,
           elementsMap,
+          frames,
         );
         for (const target of hoverTargets) {
           renderHoverHighlight(

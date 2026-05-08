@@ -32,7 +32,10 @@ import {
   type CanonicalFrameElementScopeMap,
 } from "../../../adapters/canonical/frameElementScope";
 import { resolveCanonicalRefElement } from "../../utils/canonicalRefResolution";
-import { useActiveCanonicalDocument } from "./canonicalElementsBridge";
+import {
+  getActiveCanonicalDocument,
+  useActiveCanonicalDocument,
+} from "./canonicalElementsBridge";
 
 type ElementScopeContext = {
   pageId: string | null;
@@ -211,7 +214,28 @@ export function canonicalDocumentToElements(
   doc: CompositionDocument,
 ): Element[] {
   const result: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    result.push(element);
+  });
 
+  return result;
+}
+
+export function getActiveCanonicalDocumentElements(): Element[] | null {
+  const doc = getActiveCanonicalDocument();
+  if (!doc) return null;
+
+  const result: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    result.push(element);
+  });
+  return result;
+}
+
+export function visitCanonicalDocumentElements(
+  doc: CompositionDocument,
+  visitor: (element: Element, node: CanonicalNode) => void,
+): void {
   function visit(
     node: CanonicalNode,
     parentLegacyId: string | null,
@@ -220,7 +244,7 @@ export function canonicalDocumentToElements(
     const nextScope = getNodeScope(node, scope);
     const element = canonicalNodeToElement(node, parentLegacyId, nextScope);
     const nextParentId = element?.id ?? parentLegacyId;
-    if (element) result.push(element);
+    if (element) visitor(element, node);
     if (node.children) {
       node.children.forEach((child) => {
         visit(child, nextParentId, nextScope);
@@ -236,8 +260,6 @@ export function canonicalDocumentToElements(
   doc.children.forEach((child) => {
     visit(child, null, ROOT_SCOPE);
   });
-
-  return result;
 }
 
 function getNodeScope(

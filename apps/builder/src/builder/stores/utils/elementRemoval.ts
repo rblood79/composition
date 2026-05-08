@@ -4,7 +4,7 @@ import type { StateCreator } from "zustand";
 import { Element } from "../../../types/core/store.types";
 import { historyManager } from "../history";
 import { getDB } from "../../../lib/db";
-import { createCompleteProps, getElementById } from "./elementHelpers";
+import { createCompleteProps } from "./elementHelpers";
 import type { ElementsState } from "../elements";
 import {
   rebuildPageIndex,
@@ -24,6 +24,7 @@ import {
   setElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
@@ -32,6 +33,13 @@ type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 function syncRemovedElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
   setElementsCanonicalPrimary(elements);
+}
+
+function getElementRemovalSourceElements(
+  state: Pick<ElementsState, "elements">,
+): Element[] {
+  const { elements: legacyElements } = state;
+  return getActiveCanonicalDocumentElements() ?? legacyElements;
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
@@ -53,16 +61,27 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
 function collectElementsToRemove(
   elementId: string,
   elements: Element[],
-  elementsMap: Map<string, Element>,
-  childrenMap: Map<string, Element[]>,
 ): { rootElement: Element; allElements: Element[] } | null {
-  const element = getElementById(elementsMap, elementId);
+  const elementsById = new Map(
+    elements.map((element) => [element.id, element]),
+  );
+  const childrenByParent = new Map<string, Element[]>();
+  for (const element of elements) {
+    const parentId = element.parent_id;
+    if (!parentId) continue;
+    childrenByParent.set(parentId, [
+      ...(childrenByParent.get(parentId) ?? []),
+      element,
+    ]);
+  }
+
+  const element = elementsById.get(elementId);
   if (!element) return null;
   if (element.type.toLowerCase() === "body") return null;
 
-  // 자식 요소들 찾기 (재귀적으로) — O(1) childrenMap 사용
+  // 자식 요소들 찾기 (재귀적으로)
   const findChildren = (parentId: string): Element[] => {
-    const directChildren = childrenMap.get(parentId) ?? [];
+    const directChildren = childrenByParent.get(parentId) ?? [];
     const allChildren: Element[] = [];
     for (const child of directChildren) {
       allChildren.push(child);
@@ -187,8 +206,10 @@ async function executeRemoval(
   const elementIdsToRemove = allUniqueElements.map((el) => el.id);
   const removeSet = new Set(elementIdsToRemove);
   const currentState = get();
+  const sourceElements = getElementRemovalSourceElements(currentState);
+  const sourceState = { ...currentState, elements: sourceElements };
   const autoDetach = buildDetachSnapshotsForOrigins(
-    currentState,
+    sourceState,
     allUniqueElements,
     removeSet,
   );
@@ -241,7 +262,7 @@ async function executeRemoval(
   const detachPreviousIds = new Set(
     autoDetach.previousElements.map((element) => element.id),
   );
-  const filteredElements = currentState.elements.filter(
+  const filteredElements = sourceElements.filter(
     (el) => !removeSet.has(el.id) && !detachPreviousIds.has(el.id),
   );
   const updatedElements =
@@ -348,12 +369,8 @@ export const createRemoveElementAction =
   (set: SetState, get: GetState) =>
   async (elementId: string, options?: { skipHistory?: boolean }) => {
     const state = get();
-    const result = collectElementsToRemove(
-      elementId,
-      state.elements,
-      state.elementsMap,
-      state.childrenMap,
-    );
+    const sourceElements = getElementRemovalSourceElements(state);
+    const result = collectElementsToRemove(elementId, sourceElements);
     if (!result) {
       if (import.meta.env.DEV) {
         console.debug("⚠️ removeElement: 삭제 불가 (미존재 또는 Body)", {
@@ -387,17 +404,13 @@ export const createRemoveElementsAction =
     }
 
     const state = get();
+    const sourceElements = getElementRemovalSourceElements(state);
     const rootElements: Element[] = [];
     const allElementsMap = new Map<string, Element>();
 
     // 각 요소에 대해 삭제 대상 수집
     for (const id of elementIds) {
-      const result = collectElementsToRemove(
-        id,
-        state.elements,
-        state.elementsMap,
-        state.childrenMap,
-      );
+      const result = collectElementsToRemove(id, sourceElements);
       if (!result) continue;
 
       rootElements.push(result.rootElement);

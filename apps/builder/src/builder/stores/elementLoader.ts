@@ -102,6 +102,45 @@ type GetState = Parameters<
   StateCreator<ElementLoaderSlice & ElementsStateMinimal>
 >[1];
 
+function getActiveCanonicalElements(): Element[] | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const document = projectId ? canonical.documents.get(projectId) : null;
+  if (!projectId || !document) return null;
+
+  return deriveProjectRenderModelFromDocument(document, projectId).elements.map(
+    (element) => element as Element,
+  );
+}
+
+function getPageElementsFromRuntimeState(
+  state: Pick<ElementsStateMinimal, "elements">,
+  pageId: string,
+): Element[] {
+  const canonicalElements = getActiveCanonicalElements();
+  if (canonicalElements) {
+    return canonicalElements.filter((element) => element.page_id === pageId);
+  }
+
+  const { elements: legacyElements } = state;
+  return legacyElements.filter((element) => element.page_id === pageId);
+}
+
+function findElementFromRuntimeState(
+  state: Pick<ElementsStateMinimal, "elements">,
+  elementId: string,
+): Element | null {
+  const canonicalElements = getActiveCanonicalElements();
+  if (canonicalElements) {
+    return (
+      canonicalElements.find((element) => element.id === elementId) ?? null
+    );
+  }
+
+  const { elements: legacyElements } = state;
+  return legacyElements.find((element) => element.id === elementId) ?? null;
+}
+
 // ============================================
 // Element Loader Factory
 // ============================================
@@ -121,14 +160,9 @@ export function createElementLoaderSlice(
    * Canonical document에서 페이지 요소 파생
    */
   const loadFromCanonicalDocument = (pageId: string): Element[] => {
-    const canonical = useCanonicalDocumentStore.getState();
-    const projectId = canonical.currentProjectId;
-    const document = projectId ? canonical.documents.get(projectId) : null;
-    if (!projectId || !document) return [];
-
-    return deriveProjectRenderModelFromDocument(document, projectId)
-      .elements.filter((element) => element.page_id === pageId)
-      .map((element) => element as Element);
+    const canonicalElements = getActiveCanonicalElements();
+    if (!canonicalElements) return [];
+    return canonicalElements.filter((element) => element.page_id === pageId);
   };
 
   // ============================================
@@ -143,28 +177,13 @@ export function createElementLoaderSlice(
 
     // Lazy Loading 비활성화 시 기존 동작
     if (!state.lazyLoadingEnabled) {
-      // elementsMap에서 해당 페이지 요소 반환
-      const elements: Element[] = [];
-      state.elementsMap.forEach((el) => {
-        if (el.page_id === pageId) {
-          elements.push(el);
-        }
-      });
-      return elements;
+      return getPageElementsFromRuntimeState(state, pageId);
     }
 
     // 이미 로드됨
     if (state.loadedPages.has(pageId)) {
       pageCache.access(pageId);
-
-      // elementsMap에서 해당 페이지 요소 반환
-      const elements: Element[] = [];
-      state.elementsMap.forEach((el) => {
-        if (el.page_id === pageId) {
-          elements.push(el);
-        }
-      });
-      return elements;
+      return getPageElementsFromRuntimeState(state, pageId);
     }
 
     // 로딩 중 - 완료 대기
@@ -173,14 +192,7 @@ export function createElementLoaderSlice(
         const checkLoaded = setInterval(() => {
           if (get().loadedPages.has(pageId)) {
             clearInterval(checkLoaded);
-
-            const elements: Element[] = [];
-            get().elementsMap.forEach((el) => {
-              if (el.page_id === pageId) {
-                elements.push(el);
-              }
-            });
-            resolve(elements);
+            resolve(getPageElementsFromRuntimeState(get(), pageId));
           }
         }, 50);
 
@@ -243,7 +255,10 @@ export function createElementLoaderSlice(
 
         const latestState = get();
         const selectedElement = latestState.selectedElementId
-          ? latestState.elementsMap.get(latestState.selectedElementId)
+          ? findElementFromRuntimeState(
+              latestState,
+              latestState.selectedElementId,
+            )
           : null;
         if (
           latestState.currentPageId === pageId &&

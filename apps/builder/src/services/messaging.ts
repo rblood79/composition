@@ -28,9 +28,9 @@
  * - Origin validation
  */
 
-import { IframeMessenger, MessageResponse } from '../utils/dom/iframeMessenger';
-import { Element, ComponentElementProps } from '../types/core/store.types';
-import { DesignToken } from '../types/theme';
+import { IframeMessenger, MessageResponse } from "../utils/dom/iframeMessenger";
+import { Element, ComponentElementProps } from "../types/core/store.types";
+import { DesignToken } from "../types/theme";
 
 /**
  * Unified message payload type
@@ -109,24 +109,17 @@ export class MessagingService {
   // ===== Element Operations =====
 
   /**
-   * Update all elements (full replace)
-   */
-  async updateElements(elements: Element[]): Promise<MessageResponse> {
-    return this.messenger.sendMessage('UPDATE_ELEMENTS', { elements });
-  }
-
-  /**
    * Update element props (merge or replace)
    */
   async updateElementProps(
     elementId: string,
     props: ComponentElementProps,
-    merge = true
+    merge = true,
   ): Promise<MessageResponse> {
-    return this.messenger.sendMessage('UPDATE_ELEMENT_PROPS', {
+    return this.messenger.sendMessage("UPDATE_ELEMENT_PROPS", {
       elementId,
       props,
-      merge
+      merge,
     });
   }
 
@@ -134,30 +127,33 @@ export class MessagingService {
    * Add a new element
    */
   async addElement(element: Element): Promise<MessageResponse> {
-    return this.messenger.sendMessage('ELEMENT_ADDED', { element });
+    return this.messenger.sendMessage("ELEMENT_ADDED", { element });
   }
 
   /**
    * Remove a single element
    */
   async removeElement(elementId: string): Promise<MessageResponse> {
-    return this.messenger.sendMessage('DELETE_ELEMENT', { elementId });
+    return this.messenger.sendMessage("DELETE_ELEMENT", { elementId });
   }
 
   /**
    * Remove multiple elements
    */
   async removeElements(elementIds: string[]): Promise<MessageResponse> {
-    return this.messenger.sendMessage('DELETE_ELEMENTS', { elementIds });
+    return this.messenger.sendMessage("DELETE_ELEMENTS", { elementIds });
   }
 
   /**
    * Select an element
    */
-  async selectElement(elementId: string | null, props?: ComponentElementProps): Promise<MessageResponse> {
-    return this.messenger.sendMessage('ELEMENT_SELECTED', {
+  async selectElement(
+    elementId: string | null,
+    props?: ComponentElementProps,
+  ): Promise<MessageResponse> {
+    return this.messenger.sendMessage("ELEMENT_SELECTED", {
       elementId,
-      props
+      props,
     });
   }
 
@@ -167,16 +163,18 @@ export class MessagingService {
    * Update theme variables (new format with dark mode support)
    */
   async updateThemeVars(
-    vars: Array<{ cssVar: string; value: string; isDark?: boolean }>
+    vars: Array<{ cssVar: string; value: string; isDark?: boolean }>,
   ): Promise<MessageResponse> {
-    return this.messenger.sendMessage('THEME_VARS', { vars });
+    return this.messenger.sendMessage("THEME_VARS", { vars });
   }
 
   /**
    * Update theme tokens (legacy format)
    */
-  async updateThemeTokens(styles: Record<string, string>): Promise<MessageResponse> {
-    return this.messenger.sendMessage('UPDATE_THEME_TOKENS', { styles });
+  async updateThemeTokens(
+    styles: Record<string, string>,
+  ): Promise<MessageResponse> {
+    return this.messenger.sendMessage("UPDATE_THEME_TOKENS", { styles });
   }
 
   /**
@@ -190,7 +188,7 @@ export class MessagingService {
    * Set dark mode
    */
   async setDarkMode(isDark: boolean): Promise<MessageResponse> {
-    return this.messenger.sendMessage('SET_DARK_MODE', { isDark });
+    return this.messenger.sendMessage("SET_DARK_MODE", { isDark });
   }
 
   // ===== Navigation =====
@@ -199,7 +197,7 @@ export class MessagingService {
    * Navigate to a page
    */
   async navigateToPage(path: string): Promise<MessageResponse> {
-    return this.messenger.sendMessage('NAVIGATE_TO_PAGE', { path });
+    return this.messenger.sendMessage("NAVIGATE_TO_PAGE", { path });
   }
 
   // ===== Error & Loading States =====
@@ -208,14 +206,14 @@ export class MessagingService {
    * Send error message
    */
   async sendError(message: string): Promise<MessageResponse> {
-    return this.messenger.sendMessage('ERROR', { message });
+    return this.messenger.sendMessage("ERROR", { message });
   }
 
   /**
    * Send loading state
    */
   async sendLoading(loading: boolean): Promise<MessageResponse> {
-    return this.messenger.sendMessage('LOADING', { loading });
+    return this.messenger.sendMessage("LOADING", { loading });
   }
 
   // ===== Message Handlers =====
@@ -225,7 +223,7 @@ export class MessagingService {
    */
   registerHandler<T = MessagePayload>(
     type: string,
-    handler: (data: T) => void
+    handler: (data: T) => void,
   ): void {
     this.messenger.registerHandler(type, handler);
   }
@@ -261,7 +259,7 @@ export class MessagingService {
   async sendCustomMessage(
     type: string,
     data: MessagePayload = {},
-    timeout = 5000
+    timeout = 5000,
   ): Promise<MessageResponse> {
     return this.messenger.sendMessage(type, data, timeout);
   }
@@ -279,7 +277,10 @@ export const messagingService = MessagingService.getInstance();
 /**
  * Send message to iframe (simple wrapper)
  */
-export function sendToIframe(type: string, payload: MessagePayload): Promise<MessageResponse> {
+export function sendToIframe(
+  type: string,
+  payload: MessagePayload,
+): Promise<MessageResponse> {
   return messagingService.sendCustomMessage(type, payload);
 }
 
@@ -294,5 +295,5 @@ export function sendToWindow(type: string, payload: MessagePayload): void {
  * Clear overlay (convenience function)
  */
 export function clearOverlay(): void {
-  sendToWindow('CLEAR_OVERLAY', {});
+  sendToWindow("CLEAR_OVERLAY", {});
 }

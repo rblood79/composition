@@ -168,6 +168,7 @@ import {
   deleteReusableFrame,
   selectReusableFrame,
 } from "@/builder/stores/utils/frameActions";
+import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
 
 const createReusableFrameMock = vi.mocked(createReusableFrame);
 const deleteReusableFrameMock = vi.mocked(deleteReusableFrame);
@@ -193,6 +194,11 @@ function resetMockState() {
   mockLayoutsState.selectedReusableFrameId = null;
   mockStoreState.elementsMap = new Map<string, Element>();
   mockStoreState.pages = [];
+  useCanonicalDocumentStore.setState({
+    documents: new Map(),
+    currentProjectId: null,
+    documentVersion: 0,
+  });
   vi.clearAllMocks();
   mockCollapseAll.mockClear();
   mockExpandKey.mockClear();
@@ -299,57 +305,64 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       expect(mockExpandKey).toHaveBeenCalledWith("body-f-1");
     });
 
-    it("새로고침 후 store에 없는 등록 frame들의 body/slot을 보강 로드한다", async () => {
-      mockLayoutsState.layouts = [
-        { id: "f-1", name: "Header Frame", project_id: "test-project" },
-        { id: "f-2", name: "Footer Frame", project_id: "test-project" },
-      ];
-      const body1: Element = makeFrameElement("f-1", {
-        id: "body-f-1",
-        type: "body",
-        props: {},
-        parent_id: null,
-        page_id: null,
-        order_num: 0,
+    it("새로고침 후 canonical frame descendants 가 있으면 mirror merge 없이 사용한다", async () => {
+      const doc = {
+        version: "composition-1.0",
+        children: [
+          {
+            id: "layout-f-1",
+            type: "frame",
+            reusable: true,
+            name: "Header Frame",
+            metadata: {
+              type: "legacy-layout",
+              layoutId: "f-1",
+              project_id: "test-project",
+            },
+            children: [
+              {
+                id: "body-f-1",
+                type: "body",
+                props: {},
+                children: [{ id: "slot-f-1", type: "Slot", props: {} }],
+              },
+            ],
+          },
+          {
+            id: "layout-f-2",
+            type: "frame",
+            reusable: true,
+            name: "Footer Frame",
+            metadata: {
+              type: "legacy-layout",
+              layoutId: "f-2",
+              project_id: "test-project",
+            },
+            children: [
+              {
+                id: "body-f-2",
+                type: "body",
+                props: {},
+                children: [{ id: "slot-f-2", type: "Slot", props: {} }],
+              },
+            ],
+          },
+        ],
+      } as const;
+      mockActiveCanonicalDocument.mockReturnValue(doc);
+      useCanonicalDocumentStore.setState({
+        documents: new Map([["test-project", doc]]),
+        currentProjectId: "test-project",
+        documentVersion: 1,
       });
-      const slot1: Element = makeFrameElement("f-1", {
-        id: "slot-f-1",
-        type: "Slot",
-        props: {},
-        parent_id: "body-f-1",
-        page_id: null,
-        order_num: 1,
-      });
-      const body2: Element = makeFrameElement("f-2", {
-        id: "body-f-2",
-        type: "body",
-        props: {},
-        parent_id: null,
-        page_id: null,
-        order_num: 0,
-      });
-      const slot2: Element = makeFrameElement("f-2", {
-        id: "slot-f-2",
-        type: "Slot",
-        props: {},
-        parent_id: "body-f-2",
-        page_id: null,
-        order_num: 1,
-      });
-      mockGetAllElements.mockResolvedValue([body1, slot1, body2, slot2]);
 
       render(<FramesTab {...makeProps()} />);
 
       await waitFor(() => {
-        expect(mockStoreState.mergeElements).toHaveBeenCalledWith(
-          expect.arrayContaining([
-            expect.objectContaining({ id: "body-f-1" }),
-            expect.objectContaining({ id: "slot-f-1" }),
-            expect.objectContaining({ id: "body-f-2" }),
-            expect.objectContaining({ id: "slot-f-2" }),
-          ]),
-        );
+        expect(screen.getByText("Header Frame")).toBeTruthy();
+        expect(screen.getByText("Footer Frame")).toBeTruthy();
       });
+      expect(mockStoreState.mergeElements).not.toHaveBeenCalled();
     });
 
     it("선택 frame 의 canonical scope 로 body tree를 렌더한다", () => {

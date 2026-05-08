@@ -31,6 +31,11 @@ import { TableElementProps } from "../../../../types/builder/unified.types";
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { useCallback, memo, useMemo } from "react";
 import { generateCustomId } from "../../../utils/idGeneration";
+import {
+  useCanonicalPropertyChildrenMap,
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "../hooks/useCanonicalPropertyRead";
 import "./styles/TableEditor.css";
 
 // interface TableEditorProps {
@@ -44,10 +49,9 @@ export const TableEditor = memo(
     currentProps,
     onUpdate,
   }: PropertyEditorProps) {
-    // ADR-040: elementsMap / childrenMap O(1) 조회
-    const element = useStore((state) => state.elementsMap.get(elementId));
-    const elementsMap = useStore((state) => state.elementsMap);
-    const childrenMap = useStore((state) => state.childrenMap);
+    const element = useCanonicalPropertyElement(elementId);
+    const elementsMap = useCanonicalPropertyElementsMap();
+    const childrenMap = useCanonicalPropertyChildrenMap();
 
     // ⭐ 최적화: customId를 현재 시점에만 가져오기 (Zustand 구독 방지)
     const customId = useMemo(() => {

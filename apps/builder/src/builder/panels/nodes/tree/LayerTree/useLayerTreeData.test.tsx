@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { act, render, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
@@ -34,6 +36,24 @@ describe("useLayerTreeData", () => {
       currentProjectId: null,
       documentVersion: 0,
     });
+  });
+
+  it("derives resolution map from canonical/store elements instead of store map subscription", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useLayerTreeData.ts"),
+      "utf-8",
+    );
+    const directStoreMapSubscription = [
+      "useStore((state) => state.",
+      "elements",
+      "Map)",
+    ].join("");
+
+    expect(source).toContain("useCanonicalElements");
+    expect(source).toContain(
+      "const sourceElements = canonicalElements ?? storeElements",
+    );
+    expect(source).not.toContain(directStoreMapSubscription);
   });
 
   it("projects canonical ref instances as origin type with synthetic children", () => {
@@ -588,5 +608,48 @@ describe("useLayerTreeData", () => {
     const { result } = renderHook(() => useLayerTreeData([pageTwoBody]));
 
     expect(result.current.treeNodes.map((node) => node.id)).toEqual(["body-2"]);
+  });
+
+  it("does not let stale legacy elementsMap override canonical layer nodes", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body",
+              type: "body",
+              props: { style: { display: "grid" } },
+            },
+          ],
+        },
+      ],
+    };
+    const staleBody = makeElement("body", {
+      type: "body",
+      page_id: "page-1",
+      props: { style: { display: "flex" } },
+    });
+
+    useStore.setState({
+      currentPageId: "page-1",
+      elements: [staleBody],
+      elementsMap: new Map([["body", staleBody]]),
+      pageElementsSnapshot: { "page-1": [staleBody] },
+    } as never);
+    act(() => {
+      const canonical = useCanonicalDocumentStore.getState();
+      canonical.setDocument("project-1", doc);
+      canonical.setCurrentProject("project-1");
+    });
+
+    const { result } = renderHook(() => useLayerTreeData([]));
+
+    expect(result.current.nodeMap.get("body")?.element.props.style).toEqual({
+      display: "grid",
+    });
   });
 });

@@ -160,23 +160,23 @@ fi
 
 | 시나리오                          | 입력                                 | 진행                                                                                           |
 | --------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| ADR-912 wave #2 Phase A1 land     | `912` + 다음 phase 자동              | Phase 0 통과 → Phase 1 P3-α surface → 사용자 confirm → 구현 + cross-check → commit + main push |
-| ADR-911 P3-θ slot fill resolution | `911 P3-θ` + mode=confirm-each-phase | HIGH risk 인식 → 강제 surface → 사용자 D7/D8/D9 결정 분기 confirm → 구현 → fixture 검증        |
-| ADR-913 Phase 4 DB migration      | `913 P4`                             | DB schema 키워드 감지 → 무조건 surface → 사용자 확인 후 step-by-step 진행                      |
+| ADR-112 wave #2 Phase A1 land     | `912` + 다음 phase 자동              | Phase 0 통과 → Phase 1 P3-α surface → 사용자 confirm → 구현 + cross-check → commit + main push |
+| ADR-111 P3-θ slot fill resolution | `911 P3-θ` + mode=confirm-each-phase | HIGH risk 인식 → 강제 surface → 사용자 D7/D8/D9 결정 분기 confirm → 구현 → fixture 검증        |
+| ADR-113 Phase 4 DB migration      | `913 P4`                             | DB schema 키워드 감지 → 무조건 surface → 사용자 확인 후 step-by-step 진행                      |
 | 모든 phase land, Status 승격      | `912` (마지막 phase)                 | Phase 5 closure 5단계 적용 — README + archive + reference path + CHANGELOG entry               |
 
 ## Evals
 
 ### Positive
 
-- "ADR-912 다음 phase 진행" → ✅
+- "ADR-112 다음 phase 진행" → ✅
 - "execute adr 911" → ✅
-- "ADR-913 P4 step 4-1 land 해줘" → ✅
+- "ADR-113 P4 step 4-1 land 해줘" → ✅
 - "/execute-adr 100" → ✅
 
 ### Negative
 
-- "ADR-911 의 P3-θ 가 뭐야?" → ❌ 단순 질문 (Read 도구 직접)
+- "ADR-111 의 P3-θ 가 뭐야?" → ❌ 단순 질문 (Read 도구 직접)
 - "ADR 새로 작성해줘" → ❌ create-adr skill
 - "ADR 본문 수정만 해줘" → ❌ Edit 도구 직접
 - design breakdown 없는 ADR → ❌ Phase 0 미충족 즉시 종료

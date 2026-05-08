@@ -62,7 +62,6 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
           frameId: frameId || null,
           getElementsState: () => useStore.getState(),
           setPages: state.setPages,
-          setElements: state.setElements,
         });
       } catch (error) {
         console.error(

@@ -11,8 +11,16 @@ describe("useCentralCanvasPointerHandlers frame body fallback", () => {
 
     expect(source).toContain("const hitElementsMap = getHitElementsMap?.()");
     expect(source).toContain("const hitChildrenMap = getHitChildrenMap?.()");
+    expect(source).not.toContain(
+      ["?? state", ["elements", "Map"].join("")].join("."),
+    );
+    expect(source).not.toContain(
+      ["?? state", ["children", "Map"].join("")].join("."),
+    );
     expect(source).toContain("elementsMap: hitElementsMap,");
-    expect(source).not.toContain("elementsMap: state.elementsMap,");
+    expect(source).not.toContain(
+      ["elementsMap: state", ["elements", "Map"].join("")].join(".") + ",",
+    );
   });
 
   it("keeps the concrete hit element as the double-click target inside selection bounds", async () => {

@@ -7,14 +7,13 @@
  *
  * 본 모듈의 의도:
  * - **shared `ResolverCache` singleton 활용**: Preview / Skia 양쪽이 동일 cache
- *   인스턴스를 공유 (Gate G2 (a) 전제) — sprite consumer wiring 시 즉시 활용
- * - **per-instance mini-doc 옵션**: 개별 instance hook (예: `useResolvedElement`)
- *   이 doc 전체 build 비용 없이 단일 (master, ref) pair 단위로 cache hit 활용
- * - **full tree 옵션**: future sprite-tree consumer 가 한 번에 doc 전체를 받아
- *   id → ResolvedNode index 로 lookup
+ *   인스턴스를 공유 (Gate G2 (a) 전제) — renderer wiring 에서 즉시 활용
+ * - **per-instance mini-doc 옵션**: 단일 (master, ref) pair 단위로 cache hit 활용
+ * - **full tree 옵션**: renderer consumer 가 한 번에 doc 전체를 받아 id →
+ *   ResolvedNode index 로 lookup
  *
- * production render path 변경 없음 — 본 모듈은 helper 만 제공하고, 실제 consumer
- * 전환은 `useResolvedElement` 변경 (D-B) + sprite wiring (후속) 단계에서 진행.
+ * ADR-122 이후 legacy sprite hook surface 는 제거되었고, production consumer 는
+ * Skia `StoreRenderBridge`/preview canonical resolver 경계에서 이 helper 를 사용한다.
  *
  * @see ADR-903 ref/slot composition format migration plan
  * @see resolvers/canonical/index.ts (P2 S1 본체)
@@ -82,7 +81,7 @@ export function prefetchResolvedTreeImports(
 
 /**
  * ResolvedNode 트리를 DFS 로 순회하여 모든 노드를 `id → ResolvedNode` Map 으로
- * 평탄화한다. consumer (sprite, hook) 가 element.id 로 O(1) lookup 할 수 있도록.
+ * 평탄화한다. renderer consumer 가 element.id 로 O(1) lookup 할 수 있도록.
  *
  * 동일 id 가 여러 번 나타나면 (예: 같은 ref 가 여러 page 에서 인스턴스화)
  * 마지막 occurrence 가 우선 — DFS 순서 보장.
@@ -181,8 +180,8 @@ export { extractCanonicalPropsFromResolved } from "./extractCanonicalProps";
  * 단일 (instance, master) pair 를 P2 resolver 의 mini CompositionDocument 로
  * 묶어서 `resolveCanonicalDocument` 를 통과시킨 후 결과 Element 를 재구성한다.
  *
- * `useResolvedElement` 등 per-instance hook 이 doc 전체 build 없이 canonical
- * 경로로 진입하면서도 shared cache hit 효과를 누리도록 설계.
+ * renderer consumer 가 doc 전체 build 없이 단일 instance pair 를 canonical
+ * 경로로 resolve 하면서도 shared cache hit 효과를 누리도록 설계.
  *
  * - master / instance 둘 다 canonical `props` 계약으로 mini document 를 구성 —
  *   P2 resolver 의 `resolveCanonicalRefProps` 가 동일 머지 결과 산출

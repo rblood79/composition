@@ -11,6 +11,10 @@ import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
+import {
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "./hooks/useCanonicalPropertyRead";
 
 type SlotElement = Element & {
   metadata?: Record<string, unknown>;
@@ -57,10 +61,10 @@ export const FrameSlotSection = memo(function FrameSlotSection({
 }: {
   elementId: string;
 }) {
-  const element = useStore(
-    (state) => state.elementsMap.get(elementId) as SlotElement | undefined,
-  );
-  const elementsMap = useStore((state) => state.elementsMap);
+  const element = useCanonicalPropertyElement(elementId) as
+    | SlotElement
+    | undefined;
+  const elementsById = useCanonicalPropertyElementsMap();
   const addElement = useStore((state) => state.addElement);
   const updateElement = useStore((state) => state.updateElement);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
@@ -74,7 +78,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
 
   const reusableCandidates = useMemo(() => {
     const recommended = recommendedIds;
-    return [...elementsMap.values()]
+    return [...elementsById.values()]
       .filter(
         (candidate) =>
           candidate.id !== elementId &&
@@ -88,19 +92,19 @@ export const FrameSlotSection = memo(function FrameSlotSection({
         value: candidate.id,
       }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [elementId, elementsMap, recommendedIds]);
+  }, [elementId, elementsById, recommendedIds]);
 
   const recommendedItems = useMemo(
     () =>
       recommendedIds.map((id) => {
         const candidate =
-          elementsMap.get(id) ?? resolveReference(id, elementsMap.values());
+          elementsById.get(id) ?? resolveReference(id, elementsById.values());
         return {
           id,
           label: candidate ? getElementLabel(candidate) : id,
         };
       }),
-    [elementsMap, recommendedIds],
+    [elementsById, recommendedIds],
   );
 
   useEffect(() => {
@@ -133,7 +137,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
 
   const handleAddRecommendation = () => {
     if (!isActive || !selectedCandidateId) return;
-    const selectedCandidate = elementsMap.get(selectedCandidateId);
+    const selectedCandidate = elementsById.get(selectedCandidateId);
     if (
       selectedCandidate &&
       recommendedIds.some((reference) =>
@@ -151,15 +155,11 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   };
 
   const handleInsertDefault = (id: string) => {
-    const latestState = useStore.getState();
-    const latestElement = latestState.elementsMap.get(element.id) ?? element;
+    const latestElement = elementsById.get(element.id) ?? element;
     if (!latestElement) return;
     const candidate =
-      latestState.elementsMap.get(id) ??
-      resolveReference(id, latestState.elementsMap.values());
+      elementsById.get(id) ?? resolveReference(id, elementsById.values());
     if (!candidate) return;
-
-    const children = latestState.childrenMap.get(latestElement.id) ?? [];
 
     void addElement(
       withFrameElementMirrorId(

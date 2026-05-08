@@ -50,7 +50,7 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
     expect(mutationsSource).toContain("appendChildToDescendants");
     expect(mutationsSource).toContain("removeNodeFromDescendants");
     expect(exportSource).toContain(
-      "walkAndCollect(child, out, nextParentId, index, scopedContext)",
+      "walkAndCollect(child, out, nextParentId, scopedContext)",
     );
     expect(exportSource).toContain("componentRole");
     expect(exportSource).toContain("masterId");

@@ -9,8 +9,10 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain('from "@/adapters/canonical/frameElementLoader";');
-    expect(source).toContain("isLegacyFrameElementForFrame");
+    expect(source).not.toContain(
+      'from "@/adapters/canonical/frameElementLoader";',
+    );
+    expect(source).not.toContain("isLegacyFrameElementForFrame");
     expect(source).toMatch(/if \(editMode === "layout"\) \{/);
     expect(source).not.toContain("loadFrameElements");
     expect(source).not.toMatch(/elements: await loadFrameElements/);
@@ -47,8 +49,14 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       "page shell mutations also update the canonical doc",
     );
     expect(source).toMatch(/if \(state\.pages === pagesRef\) return;/);
-    expect(source).toContain(
-      "setElementsCanonicalPrimary(Array.from(state.elementsMap.values()))",
+    expect(source).toContain("getActiveCanonicalBuilderElements");
+    expect(source).toContain("getCanonicalOrBootstrapBuilderElements");
+    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("canonicalElementSnapshot");
+    expect(source).not.toContain("canonicalDocumentToElements");
+    expect(source).not.toContain("canonicalElements ?? state.elements ?? []");
+    expect(source).not.toContain(
+      ["Array.from(state.", "elements", "Map.values())"].join(""),
     );
   });
 

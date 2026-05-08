@@ -56,15 +56,9 @@ import {
 import { canvasDeltaMessenger } from "../utils/canvasDeltaMessenger";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode optimization
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
-// ADR-116 Phase 2 G3 Step 3 — canonical document → derived Element[] source
-import {
-  useCanonicalElements,
-  canonicalDocumentToElements,
-} from "../stores/canonical/canonicalElementsView";
-import {
-  getActiveCanonicalDocument,
-  useActiveCanonicalDocument,
-} from "../stores/canonical/canonicalElementsBridge";
+import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
+import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
 import type { CompositionDocument } from "@composition/shared";
 // ADR-006 P2-2: postMessage 보안 검증
 import {
@@ -85,6 +79,46 @@ export type IframeReadyState =
 
 // 🎯 모듈 레벨 변수: 모든 useIframeMessenger 인스턴스가 공유
 let pendingAutoSelectElementId: string | null = null;
+
+function getActiveCanonicalDocumentForPreviewRead(): CompositionDocument | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+  return canonical.getDocument(projectId);
+}
+
+function getActiveCanonicalPreviewElements(): Element[] | null {
+  const doc = getActiveCanonicalDocumentForPreviewRead();
+  if (!doc) return null;
+
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return elements;
+}
+
+function getElementForPreviewSelection(elementId: string): Element | null {
+  const canonicalElements = getActiveCanonicalPreviewElements();
+  if (canonicalElements) {
+    return (
+      canonicalElements.find((element) => element.id === elementId) ?? null
+    );
+  }
+
+  const { elements: legacyElements } = useStore.getState();
+  return legacyElements.find((element) => element.id === elementId) ?? null;
+}
+
+function getPreviewGeneratedElementIds(): Set<string> {
+  const canonicalElements = getActiveCanonicalPreviewElements();
+  if (canonicalElements) {
+    return new Set(canonicalElements.map((element) => element.id));
+  }
+
+  const { elements: legacyElements } = useStore.getState();
+  return new Set(legacyElements.map((element) => element.id));
+}
 
 export interface UseIframeMessengerReturn {
   iframeReadyState: IframeReadyState;
@@ -135,20 +169,10 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   const messageQueueRef = useRef<Array<{ type: string; payload: unknown }>>([]);
   const lastAckTimestampRef = useRef<number>(0); // ✅ 마지막 ACK 시점
   const isSendingRef = useRef(false); // ✅ 전송 중 플래그
-  const lastSentElementsRef = useRef<Element[] | null>(null); // ✅ 마지막 전송된 elements (중복 전송 방지)
   const previewGeneratedElementsRef = useRef<Map<string, Element>>(new Map());
   const previewGeneratedElementsFlushIdRef = useRef<number | null>(null);
 
-  const legacyElements = useStore((state) => state.elements);
-  // ADR-116 direct cutover — active canonical document 의 derived Element[] 를
-  // publish source 로 사용. 초기 hydration 전에는 legacy elements fallback.
-  const canonicalElements = useCanonicalElements();
   const activeCanonicalDocument = useActiveCanonicalDocument();
-  const elements = useMemo(() => {
-    if (!canonicalElements) return legacyElements;
-    return canonicalElements;
-  }, [legacyElements, canonicalElements]);
-  const elementsMap = useStore((state) => state.elementsMap);
   const currentPageId = useStore((state) => state.currentPageId);
   const pages = useStore((state) => state.pages);
   const currentEditMode = useEditModeStore((state) => state.mode);
@@ -524,8 +548,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     (elementId: string, props?: ElementProps) => {
       const iframe = MessageService.getIframe();
 
-      // 성능 최적화: Map 사용 (O(1) 조회)
-      const element = elementsMap.get(elementId);
+      const element = getElementForPreviewSelection(elementId);
       if (!element) return;
 
       const message = {
@@ -550,7 +573,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
 
       iframe.contentWindow.postMessage(message, window.location.origin);
     },
-    [elementsMap],
+    [],
   ); // ✅ 의존성에서 iframeReadyState 제거
 
   // 큐에 있는 메시지들 처리
@@ -673,7 +696,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
           // ⭐ ADR-903 P2 옵션 C: 초기 pages 전송 (canonical resolver hydration)
           sendPagesToIframe();
 
-          const canonicalDoc = getActiveCanonicalDocument();
+          const canonicalDoc = activeCanonicalDocument;
           sendCanonicalDocumentToIframe(canonicalDoc);
 
           // ⭐ DataTables 전송 (PropertyDataBinding용)
@@ -685,19 +708,15 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
           // ⭐ Variables 전송 (PropertyDataBinding용)
           sendVariablesToIframe();
 
-          // Elements 전송
-          // sendInitialData 는 useCallback 안의 closure 라 React state (elements) 가
-          // stale 가능. 매 호출 시 active canonical document 를 직접 확인한다.
-          let currentElements: Element[];
-          if (canonicalDoc) {
-            currentElements = canonicalDocumentToElements(canonicalDoc);
-          } else {
-            currentElements = useStore.getState().elements;
-          }
-          if (currentElements.length > 0) {
-            // Phase 2.1 최적화: 참조 저장 (중복 전송 방지)
-            lastSentElementsRef.current = currentElements;
-            sendElementsToIframe(currentElements);
+          // ADR-122 Phase 3: canonical document 가 있으면 Preview active
+          // channel 은 UPDATE_CANONICAL_DOCUMENT 만 사용한다. UPDATE_ELEMENTS
+          // 는 canonical hydration 이전의 legacy compatibility bootstrap 으로
+          // 제한한다.
+          if (!canonicalDoc) {
+            const { elements: currentElements } = useStore.getState();
+            if (currentElements.length > 0) {
+              sendElementsToIframe(currentElements);
+            }
           }
         };
 
@@ -757,11 +776,11 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         event.data.type === "ADD_COLUMN_ELEMENTS" &&
         event.data.payload?.columns
       ) {
-        const { elementsMap } = useStore.getState();
+        const existingElementIds = getPreviewGeneratedElementIds();
         const newColumns = event.data.payload.columns;
 
         const columnsToAdd = newColumns.filter(
-          (col: Element) => !elementsMap.has(col.id),
+          (col: Element) => !existingElementIds.has(col.id),
         );
 
         if (columnsToAdd.length === 0) {
@@ -777,11 +796,11 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         event.data.type === "ADD_FIELD_ELEMENTS" &&
         event.data.payload?.fields
       ) {
-        const { elementsMap } = useStore.getState();
+        const existingElementIds = getPreviewGeneratedElementIds();
         const newFields = event.data.payload.fields;
 
         const fieldsToAdd = newFields.filter(
-          (field: Element) => !elementsMap.has(field.id),
+          (field: Element) => !existingElementIds.has(field.id),
         );
 
         if (fieldsToAdd.length === 0) {
@@ -790,23 +809,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
 
         enqueuePreviewGeneratedElements(fieldsToAdd);
         return;
-      }
-
-      if (event.data.type === "UPDATE_ELEMENTS" && event.data.elements) {
-        const isRecoverySync =
-          event.data.source === "preview-recovery" ||
-          event.data.syncMode === "recovery" ||
-          event.data.reason === "hard-resync";
-
-        if (!isRecoverySync) {
-          console.warn(
-            "[ADR-040] Ignored interactive UPDATE_ELEMENTS from preview; recovery sync only",
-          );
-          return;
-        }
-
-        const { recoverElementsSnapshot } = useStore.getState();
-        recoverElementsSnapshot(event.data.elements as Element[]);
       }
 
       if (event.data.type === "UPDATE_THEME_TOKENS") {
@@ -933,8 +935,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         });
 
         // 선택된 요소 정보를 iframe에 다시 전송하여 오버레이 표시
-        // 성능 최적화: Map 사용 (O(1) 조회)
-        const element = elementsMap.get(event.data.elementId);
+        const element = getElementForPreviewSelection(event.data.elementId);
         if (element) {
           const iframe = MessageService.getIframe();
           if (iframe?.contentWindow) {
@@ -960,8 +961,8 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     },
     [
       enqueuePreviewGeneratedElements,
-      elementsMap,
       processMessageQueue,
+      activeCanonicalDocument,
       sendElementsToIframe,
       sendCanonicalDocumentToIframe,
       sendLayoutsToIframe,
@@ -1067,7 +1068,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     sendPageInfoToIframe,
   ]);
 
-  const pendingElementsFrameRef = useRef<number | null>(null);
   const lastSentCanonicalDocumentRef = useRef<CompositionDocument | null>(null);
   const pendingCanonicalDocumentFrameRef = useRef<number | null>(null);
 
@@ -1091,27 +1091,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       pendingCanonicalDocumentFrameRef.current = null;
     };
   }, [activeCanonicalDocument, isWebGLOnly, sendCanonicalDocumentToIframe]);
-
-  useEffect(() => {
-    if (isWebGLOnly) return;
-
-    if (lastSentElementsRef.current === elements) {
-      return;
-    }
-
-    cancelScheduledFrame(pendingElementsFrameRef.current);
-
-    pendingElementsFrameRef.current = scheduleNextFrame(() => {
-      pendingElementsFrameRef.current = null;
-      lastSentElementsRef.current = elements;
-      sendElementsToIframe(elements);
-    });
-
-    return () => {
-      cancelScheduledFrame(pendingElementsFrameRef.current);
-      pendingElementsFrameRef.current = null;
-    };
-  }, [elements, isWebGLOnly, sendElementsToIframe]);
 
   // ⭐ Nested Routes & Slug System: Layouts가 변경될 때마다 iframe에 전송
   const lastSentLayoutsRef = useRef<string>("");

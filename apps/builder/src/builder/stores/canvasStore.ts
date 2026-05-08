@@ -17,6 +17,7 @@ import { useMemo } from "react";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { useStore } from ".";
+import { useCanonicalElements } from "./canonical/canonicalElementsView";
 import type { Element } from "../../types/core/store.types";
 
 const EMPTY_ELEMENTS: Element[] = [];
@@ -103,29 +104,41 @@ export function useCanvasSetGridSettings() {
  * postMessage 없이 직접 접근
  */
 export function useCanvasElements() {
-  // ADR-040: pageElementsSnapshot O(1) 조회
-  const pageElements =
-    useStore((state) =>
-      state.currentPageId
-        ? state.pageElementsSnapshot[state.currentPageId]
-        : undefined,
-    ) ?? EMPTY_ELEMENTS;
-  return useMemo(
-    () => pageElements.filter((el) => !el.deleted),
-    [pageElements],
+  const currentPageId = useStore((state) => state.currentPageId);
+  const canonicalElements = useCanonicalElements();
+  const storePageElements = useStore((state) =>
+    canonicalElements || !currentPageId
+      ? EMPTY_ELEMENTS
+      : (state.pageElementsSnapshot[currentPageId] ?? EMPTY_ELEMENTS),
   );
+
+  return useMemo(() => {
+    const sourceElements = canonicalElements
+      ? canonicalElements.filter((element) => element.page_id === currentPageId)
+      : storePageElements;
+    return sourceElements.filter((element) => !element.deleted);
+  }, [canonicalElements, currentPageId, storePageElements]);
 }
 
 /**
  * Builder 스토어에서 선택된 요소 가져오기
  */
 export function useCanvasSelectedElement() {
-  // ADR-040: elementsMap O(1) 조회
-  return useStore((state) =>
-    state.selectedElementId
-      ? (state.elementsMap.get(state.selectedElementId) ?? null)
-      : null,
-  );
+  const selectedElementId = useStore((state) => state.selectedElementId);
+  const canonicalElements = useCanonicalElements();
+  const storeElements = useStore((state) => {
+    if (canonicalElements) return EMPTY_ELEMENTS;
+    const { elements: legacyElements } = state;
+    return legacyElements ?? EMPTY_ELEMENTS;
+  });
+
+  return useMemo(() => {
+    if (!selectedElementId) return null;
+    const sourceElements = canonicalElements ?? storeElements;
+    return (
+      sourceElements.find((element) => element.id === selectedElementId) ?? null
+    );
+  }, [canonicalElements, selectedElementId, storeElements]);
 }
 
 /**

@@ -378,7 +378,7 @@ export const usePageManager = ({
 
         const {
           setPages,
-          setElements,
+          hydrateProjectSnapshot,
           initializePagePositions,
           setLazyLoadingEnabled,
           pageLayoutDirection,
@@ -407,7 +407,7 @@ export const usePageManager = ({
           parent_id: page.parent_id ?? null,
         }));
 
-        setElements(renderModel.elements as Element[]);
+        hydrateProjectSnapshot(renderModel.elements as Element[]);
         apiPages.forEach((page) => pageList.append(page));
         setPages(storePages);
 

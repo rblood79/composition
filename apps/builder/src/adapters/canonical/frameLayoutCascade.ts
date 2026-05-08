@@ -10,13 +10,7 @@ import { getDefaultProps } from "../../types/builder/unified.types";
 import type { Layout } from "@/types/builder/layout.types";
 import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
-import { exportLegacyDocument } from "./exportLegacyDocument";
-import { mergeElementsCanonicalPrimary } from "./canonicalMutations";
-import {
-  getLegacyLayoutId,
-  matchesLegacyLayoutId,
-  withLegacyLayoutId,
-} from "./legacyElementFields";
+import { getLegacyLayoutId, withLegacyLayoutId } from "./legacyElementFields";
 
 interface ElementsStateForFrameLayoutCascade {
   pages: Page[];
@@ -28,18 +22,12 @@ interface ApplyDeleteReusableFrameInput {
   layouts: Layout[];
   getElementsState: () => ElementsStateForFrameLayoutCascade;
   setPages: (pages: Page[]) => void;
-  setElements: (elements: Element[]) => void;
 }
 
 export interface DeleteReusableFrameResult {
   clearedPageIds: string[];
   deletedElementIds: string[];
   frameExisted: boolean;
-}
-
-interface DuplicateReusableFrameElementsInput {
-  sourceFrameId: string;
-  targetFrameId: string;
 }
 
 function frameMatchesLayoutId(frame: FrameNode, frameId: string): boolean {
@@ -224,11 +212,48 @@ function removeReusableFrameFromDocument(
   };
 }
 
+function isRuntimeElementNode(node: CanonicalNode): boolean {
+  const metadata = node.metadata as { type?: unknown } | undefined;
+  return (
+    Boolean(node.props) ||
+    metadata?.type === "legacy-slot-hoisted" ||
+    (node.type === "ref" && !isLegacyPageNode(node))
+  );
+}
+
+function collectRuntimeElementNodeIds(
+  nodes: readonly CanonicalNode[],
+  out = new Set<string>(),
+): Set<string> {
+  for (const node of nodes) {
+    if (isRuntimeElementNode(node)) {
+      out.add(node.id);
+    }
+    if (node.children) {
+      collectRuntimeElementNodeIds(node.children, out);
+    }
+    if (node.type === "ref") {
+      const descendants = (node as RefNode).descendants ?? {};
+      for (const override of Object.values(descendants)) {
+        if (
+          override &&
+          typeof override === "object" &&
+          "children" in override &&
+          Array.isArray(override.children)
+        ) {
+          collectRuntimeElementNodeIds(override.children, out);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 function collectRemovedElementIds(
   previousElements: Iterable<Element>,
-  nextElements: Element[],
+  nextDoc: CompositionDocument,
 ): string[] {
-  const nextIds = new Set(nextElements.map((element) => element.id));
+  const nextIds = collectRuntimeElementNodeIds(nextDoc.children);
   const removedIds: string[] = [];
 
   for (const element of previousElements) {
@@ -273,7 +298,6 @@ export async function applyDeleteReusableFrameCanonicalPrimary({
   layouts,
   getElementsState,
   setPages,
-  setElements,
 }: ApplyDeleteReusableFrameInput): Promise<DeleteReusableFrameResult> {
   const state = getElementsState();
   const { pages: nextPages, clearedPageIds } = clearFramePageBindings(
@@ -293,12 +317,7 @@ export async function applyDeleteReusableFrameCanonicalPrimary({
 
   let deletedElementIds: string[] = [];
   if (frameExisted) {
-    const legacyMirror = exportLegacyDocument(nextDoc);
-    deletedElementIds = collectRemovedElementIds(
-      state.elementsMap.values(),
-      legacyMirror,
-    );
-    setElements(legacyMirror);
+    deletedElementIds = collectRemovedElementIds(state.elements ?? [], nextDoc);
   }
 
   if (clearedPageIds.length > 0) {
@@ -316,55 +335,6 @@ export async function applyDeleteReusableFrameCanonicalPrimary({
     deletedElementIds,
     frameExisted,
   };
-}
-
-export async function duplicateReusableFrameElementsCanonicalPrimary({
-  sourceFrameId,
-  targetFrameId,
-}: DuplicateReusableFrameElementsInput): Promise<Element[]> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  const doc = projectId ? canonical.documents.get(projectId) : null;
-  if (!doc) return [];
-
-  const allElements = exportLegacyDocument(doc) as Element[];
-  const originalElements = allElements.filter((element) =>
-    matchesLegacyLayoutId(element, sourceFrameId),
-  );
-
-  if (originalElements.length === 0) {
-    return [];
-  }
-
-  const idMap = new Map<string, string>();
-  originalElements.forEach((element) => {
-    idMap.set(element.id, crypto.randomUUID());
-  });
-
-  const newElements = originalElements.map((element) =>
-    withLegacyLayoutId(
-      {
-        ...element,
-        id: idMap.get(element.id)!,
-        parent_id: element.parent_id
-          ? (idMap.get(element.parent_id) ?? null)
-          : null,
-        page_id: null,
-      },
-      targetFrameId,
-    ),
-  );
-
-  mergeElementsCanonicalPrimary(newElements);
-  const nextDoc = projectId
-    ? useCanonicalDocumentStore.getState().documents.get(projectId)
-    : null;
-  if (projectId && nextDoc) {
-    const db = await getDB();
-    await db.documents.put(projectId, nextDoc);
-  }
-
-  return newElements;
 }
 
 export async function getPageIdsUsingFrameMirror(

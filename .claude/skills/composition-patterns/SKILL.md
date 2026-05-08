@@ -28,6 +28,40 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 - RAC는 unstyled — 스타일은 composition이 D3에서 결정
 - RSP props는 RAC + custom으로 달성 가능한 범위에서 선별 채택
 
+## Runtime SSOT — Canonical Document (ADR-116 + ADR-122 In Progress)
+
+ADR-111 (frame schema) / ADR-112 (editing semantics) / ADR-113 (tag→type rename) 가 land 한 후, ADR-116 이 `CompositionDocument` 를 storage SSOT 로 전환했고, ADR-118/119/120/121 이 legacy mirror persistence 를 제거했다. 현재 ADR-122 가 runtime mirror 제거 진행 중.
+
+### 9 ADR 체인 도착지점
+
+**"Pencil 호환 Canonical Document 가 단일 SSOT 로 Builder runtime 전체를 구동, legacy `Element[]` / `order_num` / hybrid mirror 는 cloud / export/import boundary 로만 격리"**
+
+### Runtime layer 규칙 (ADR-122 Target State)
+
+| Layer                | Target                                                                | 금지                                                        |
+| -------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Mutation             | canonical document patch primary                                      | `setElements(exportLegacyDocument(doc))` mirror write-back  |
+| Store read           | canonical selectors / canonical node lookup / resolved canonical tree | mutable `elementsMap`/`childrenMap` authoritative read      |
+| Skia                 | canonical scene snapshot 또는 resolved canonical tree input           | render 직전 `canonicalDocumentToElements()` full projection |
+| Preview              | `UPDATE_CANONICAL_DOCUMENT` active channel                            | `UPDATE_ELEMENTS` 의존                                      |
+| LayerTree/Properties | canonical node/path/alias view model                                  | legacy `Element` shape 를 primary read model                |
+| Boundary             | cloud/export/import/publish compat adapter                            | Builder hot path `exportLegacyDocument()` 호출              |
+
+### Pencil terminology — 단일 표준 (ADR-111)
+
+| 명칭          | 의미                                                  | 위치                                                                 |
+| ------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| `frame`       | `type: "frame"` 노드 (컨테이너 + 재사용 단위)         | `packages/shared/src/types/composition-document.types.ts::FrameNode` |
+| `ref`         | `type: "ref"` 인스턴스 노드                           | 동일::RefNode                                                        |
+| `reusable`    | `true` 면 재사용 원본                                 | 동일::CanonicalNode                                                  |
+| `slot`        | `false \| string[]` — 추천 reusable component ID 배열 | 동일::FrameNode.slot                                                 |
+| `descendants` | override 맵 (3-mode: patch / replacement / children)  | 동일::RefNode.descendants                                            |
+| `clip`        | overflow:hidden 매핑                                  | 동일::FrameNode.clip                                                 |
+
+### Composition extension — 직교 layer
+
+Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `actions` / `dataBinding` / `editor`) 은 canonical core 와 직교. ADR-116 §Decision 명시: "Pencil primitive schema 그대로 채택하지 않아야 React Aria/Spectrum + Spec component model 보존".
+
 ## 규칙 카테고리
 
 ### CRITICAL (즉시 적용 필수)
@@ -54,7 +88,7 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 
 #### PIXI / Security / Spec
 
-- **[pixi-direct-container](rules/pixi-no-xy-props.md)** / **[pixi-hybrid-layout-engine](rules/pixi-hybrid-layout-engine.md)** / **[pixi-container-hit-rect](rules/pixi-container-hit-rect.md)**
+- ~~`pixi-*` 규칙들 (8 파일)~~ — **ADR-100 으로 OBSOLETE**: PixiJS 제거됨, historical reference 만
 - **[postmessage-origin-verify](rules/postmessage-origin-verify.md)** - origin 검증 필수
 - **[spec-build-sync](rules/spec-build-sync.md)** / **[spec-value-sync](rules/spec-value-sync.md)**
 
@@ -122,14 +156,14 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 
 ### 세션 시작
 
-1. `Read .claude/progress.md` — 현재 상태/알려진 이슈
-2. `Read .claude/agent-memory/{자신}/MEMORY.md` — 이전 세션 맥락
+1. agent dispatch 시 자동 로드: `.claude/agents/<자신>.md` (subagent 정의, 공식) + 본 SKILL.md (Skill 호출 시)
+2. 인수인계 정보는 공식 auto memory (~/.claude/projects/<slug>/memory/MEMORY.md + session-\*.md) 참조 — `.claude/progress.md` / `next-session-prompt.md` 컨벤션은 폐기됨 (2026-05-09)
 3. 중복 작업 방지, 막힌 지점 이어가기
 
 ### 세션 종료
 
-1. progress.md 갱신 (완료/진행 중/이슈)
-2. agent-memory 갱신 (발견사항 기록)
+1. 발견사항은 공식 auto memory (`~/.claude/projects/<slug>/memory/feedback-*.md` 또는 `project-*.md`) 에 기록
+2. 인수인계는 공식 auto memory (memory/session-\*.md) 에 기록 — `.claude/progress.md` 신규 생성 금지
 3. 빌드 통과, 커밋 가능한 상태 보장
 
 ### 에러 복구
@@ -155,7 +189,7 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 
 ### 측정 템플릿
 
-리뷰어 에이전트가 `.claude/agent-memory/reviewer/MEMORY.md`에 기록:
+리뷰어 에이전트가 공식 auto memory `feedback-review-recurring-patterns.md` 에 추가 기록 (또는 신규 `feedback-*.md` 작성):
 
 | 규칙     | 위반 수 | False Positive | 실효성          | 비고 |
 | -------- | ------- | -------------- | --------------- | ---- |

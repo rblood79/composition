@@ -4,34 +4,43 @@
  * 현재 선택된 요소의 상세 정보를 조회
  */
 
-import type { ToolExecutor, ToolExecutionResult } from '../../../types/integrations/ai.types';
-import { getStoreState } from '../../../builder/stores';
+import type {
+  ToolExecutor,
+  ToolExecutionResult,
+} from "../../../types/integrations/ai.types";
+import { getAiToolReadModel } from "./canonicalToolReadModel";
 
 export const getSelectionTool: ToolExecutor = {
-  name: 'get_selection',
+  name: "get_selection",
 
   async execute(): Promise<ToolExecutionResult> {
     try {
-      const state = getStoreState();
-      const { selectedElementId, elementsMap, childrenMap } = state;
+      const {
+        childrenByParent,
+        elementsById,
+        state: { selectedElementId },
+      } = getAiToolReadModel();
 
       if (!selectedElementId) {
         return {
           success: true,
-          data: { selected: null, message: '선택된 요소가 없습니다.' },
+          data: { selected: null, message: "선택된 요소가 없습니다." },
         };
       }
 
-      const element = elementsMap?.get(selectedElementId);
+      const element = elementsById.get(selectedElementId);
       if (!element) {
         return {
           success: true,
-          data: { selected: null, message: '선택된 요소를 찾을 수 없습니다.' },
+          data: {
+            selected: null,
+            message: "선택된 요소를 찾을 수 없습니다.",
+          },
         };
       }
 
       // 자식 요소 ID 목록
-      const children = childrenMap?.get(selectedElementId) || [];
+      const children = childrenByParent.get(selectedElementId) || [];
 
       return {
         success: true,
@@ -48,7 +57,7 @@ export const getSelectionTool: ToolExecutor = {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   },

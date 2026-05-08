@@ -22,8 +22,6 @@ export { dataQueryKeys, useDataPanelQuery } from "./useDataQueries";
 export { useElementCreator } from "./useElementCreator";
 export { usePageLoader, useAdjacentPagePreload } from "./usePageLoader";
 export { usePageManager } from "./usePageManager";
-export { useSyncChildProp } from "./useSyncChildProp";
-export { useSyncGrandchildProp } from "./useSyncGrandchildProp";
 
 // Component & Layout (Phase 2 승격)
 export { useComponentMeta } from "./useComponentMeta";
@@ -52,7 +50,6 @@ export type {
 // Messaging & Communication
 export { useDeltaMessenger } from "./useDeltaMessenger";
 export { useIframeMessenger } from "./useIframeMessenger";
-export { useMessageCoalescing } from "./useMessageCoalescing";
 export { useThemeMessenger } from "./useThemeMessenger";
 
 // Performance & Monitoring
@@ -68,4 +65,3 @@ export { useErrorHandler } from "./useErrorHandler";
 export { useInitialMountDetection } from "./useInitialMountDetection";
 export { useToast } from "./useToast";
 export type { Toast, ToastType } from "./useToast";
-export { useValidation } from "./useValidation";

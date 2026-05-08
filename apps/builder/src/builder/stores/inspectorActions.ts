@@ -44,10 +44,7 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 import { historyManager } from "./history";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
-import {
-  getActiveCanonicalElementSnapshot,
-  getActiveCanonicalElementsSnapshot,
-} from "./canonical/canonicalElementSnapshot";
+import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import type { BatchPropsUpdate } from "./utils/elementUpdate";
 import {
@@ -113,18 +110,79 @@ function getResolvedInspectorElement(
 }
 
 function getInspectorLookupElements(
-  elementsMap: Map<string, Element>,
+  fallbackElements: Iterable<Element> = [],
 ): Iterable<Element> {
-  const canonicalElements = getActiveCanonicalElementsSnapshot();
-  if (!canonicalElements) return elementsMap.values();
+  const canonicalElements = getActiveCanonicalInspectorElements();
+  return canonicalElements ?? fallbackElements;
+}
 
-  const merged = new Map(
-    canonicalElements.map((element) => [element.id, element]),
-  );
-  for (const [id, element] of elementsMap) {
-    if (!merged.has(id)) merged.set(id, element);
+function getInspectorElementById(
+  elements: Iterable<Element>,
+  elementId: string,
+): Element | null {
+  const canonicalElements = getActiveCanonicalInspectorElements();
+  if (canonicalElements) {
+    return (
+      canonicalElements.find((element) => element.id === elementId) ?? null
+    );
   }
-  return merged.values();
+
+  for (const element of elements) {
+    if (element.id === elementId) return element;
+  }
+  return null;
+}
+
+function getActiveCanonicalInspectorElements(): Element[] | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return elements;
+}
+
+function buildInspectorElementMap(
+  elements: Iterable<Element>,
+): Map<string, Element> {
+  const map = new Map<string, Element>();
+  for (const element of elements) {
+    map.set(element.id, element);
+  }
+  return map;
+}
+
+function replaceInspectorElement(
+  elements: readonly Element[],
+  elementId: string,
+  updatedElement: Element,
+): Element[] {
+  const elementIndex = elements.findIndex(
+    (element) => element.id === elementId,
+  );
+  if (elementIndex === -1) return [...elements, updatedElement];
+
+  const nextElements = elements.slice();
+  nextElements[elementIndex] = updatedElement;
+  return nextElements;
+}
+
+function buildInspectorChildrenByParent(
+  elements: Iterable<Element>,
+): Map<string, Element[]> {
+  const childrenByParent = new Map<string, Element[]>();
+  for (const element of elements) {
+    const parentId = element.parent_id || "root";
+    const siblings = childrenByParent.get(parentId) ?? [];
+    siblings.push(element);
+    childrenByParent.set(parentId, siblings);
+  }
+  return childrenByParent;
 }
 
 function getInspectorWritableProps(element: Element): Record<string, unknown> {
@@ -334,12 +392,9 @@ export const createInspectorActionsSlice: StateCreator<
    * Helper: Get current selected element
    */
   const getSelectedElement = (): Element | null => {
-    const { selectedElementId, elementsMap } = get();
+    const { selectedElementId, elements } = get();
     if (!selectedElementId) return null;
-    return (
-      elementsMap.get(selectedElementId) ||
-      getActiveCanonicalElementSnapshot(selectedElementId)
-    );
+    return getInspectorElementById(elements, selectedElementId);
   };
 
   /**
@@ -357,35 +412,13 @@ export const createInspectorActionsSlice: StateCreator<
     /** 프리뷰 → 커밋 시 히스토리 정확성을 위한 원본 요소 */
     prevElementOverride?: Element,
   ) => {
-    const { elementsMap, elements, selectedElementId, currentPageId } = get();
-    const normalizedState = normalizeElementTags(elements);
+    const { elements, selectedElementId, currentPageId } = get();
+    const canonicalElements = getActiveCanonicalInspectorElements();
+    const normalizedState = normalizeElementTags(canonicalElements ?? elements);
     let normalizedElements = normalizedState.elements;
-    const normalizedTagElements = normalizedState.updatedElements;
-
-    let baseElementsMap = elementsMap;
-    if (normalizedTagElements.length > 0) {
-      const normalizedMap = new Map(elementsMap);
-      normalizedTagElements.forEach((el) => {
-        normalizedMap.set(el.id, el);
-      });
-      baseElementsMap = normalizedMap;
-    }
+    let baseElementsMap = buildInspectorElementMap(normalizedElements);
 
     let element = baseElementsMap.get(elementId);
-    if (!element) {
-      const canonicalElements = getActiveCanonicalElementsSnapshot();
-      if (canonicalElements) {
-        const normalizedCanonical = normalizeElementTags(canonicalElements);
-        normalizedElements = normalizedCanonical.elements;
-        baseElementsMap = new Map(
-          normalizedElements.map((canonicalElement) => [
-            canonicalElement.id,
-            canonicalElement,
-          ]),
-        );
-        element = baseElementsMap.get(elementId);
-      }
-    }
     if (!element) return;
 
     // 선택된 요소의 props를 직접 업데이트하므로,
@@ -470,7 +503,11 @@ export const createInspectorActionsSlice: StateCreator<
       // dirtyElementIds: 변경 요소 + 하위 자식 전체 등록 (delegation prop이 자식 레이아웃에 영향)
       if (hasLayoutChange) {
         const dirtyIds = new Set(prevState.dirtyElementIds);
-        collectDirtyElementSubtree(elementId, prevState.childrenMap, dirtyIds);
+        collectDirtyElementSubtree(
+          elementId,
+          buildInspectorChildrenByParent(prevState.elements),
+          dirtyIds,
+        );
         (stateUpdate as Record<string, unknown>).layoutVersion =
           prevState.layoutVersion + 1;
         (stateUpdate as Record<string, unknown>).dirtyElementIds = dirtyIds;
@@ -540,7 +577,7 @@ export const createInspectorActionsSlice: StateCreator<
           : element;
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
-        getInspectorLookupElements(get().elementsMap),
+        getInspectorLookupElements(),
       );
       const currentStyle = {
         ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
@@ -592,10 +629,10 @@ export const createInspectorActionsSlice: StateCreator<
     },
 
     updateSelectedStylePreview: (property, value) => {
-      const { elementsMap, selectedElementId } = get();
+      const { elements, selectedElementId } = get();
       if (!selectedElementId) return;
 
-      const element = elementsMap.get(selectedElementId);
+      const element = getInspectorElementById(elements, selectedElementId);
       if (!element) return;
 
       // 첫 프리뷰 시 원본 요소 스냅샷 저장 (히스토리 정확성)
@@ -605,7 +642,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       const resolvedElement = getResolvedInspectorElement(
         element,
-        getInspectorLookupElements(elementsMap),
+        getInspectorLookupElements(elements),
       );
       const currentStyle = {
         ...((resolvedElement.props?.style as Record<string, string>) || {}),
@@ -653,26 +690,20 @@ export const createInspectorActionsSlice: StateCreator<
       // ⚠️ selectedElementProps는 업데이트하지 않음!
       // → Jotai atom이 변경되지 않아 PropertyUnitInput의 value prop 유지
       // → blur 시 valueActuallyChanged 정상 감지 → onChange(DB 저장) 호출
-      const newElementsMap = new Map(elementsMap);
+      const newElements = replaceInspectorElement(
+        elements,
+        selectedElementId,
+        updatedElement,
+      );
+      const newElementsMap = buildInspectorElementMap(newElements);
       newElementsMap.set(selectedElementId, updatedElement);
-
-      // ADR-040 Phase 3: indexOf 증분 패치 (findIndex O(N) 제거)
-      const currentElements = (get() as CombinedState).elements;
-      const elementIndex = element ? currentElements.indexOf(element) : -1;
-      let newElements: Element[];
-      if (elementIndex !== -1) {
-        newElements = currentElements.slice();
-        newElements[elementIndex] = updatedElement;
-      } else {
-        newElements = currentElements;
-      }
 
       // ADR-006 P3-1: style 프리뷰도 layoutVersion 증가 → 캔버스 레이아웃 즉시 반영
       set((prevState) => {
         const dirtyIds = new Set(prevState.dirtyElementIds);
         collectDirtyElementSubtree(
           selectedElementId,
-          prevState.childrenMap,
+          buildInspectorChildrenByParent(prevState.elements),
           dirtyIds,
         );
 
@@ -701,7 +732,7 @@ export const createInspectorActionsSlice: StateCreator<
           : element;
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
-        getInspectorLookupElements(get().elementsMap),
+        getInspectorLookupElements(),
       );
       const currentStyle = {
         ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
@@ -899,7 +930,7 @@ export const createInspectorActionsSlice: StateCreator<
           : element;
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
-        getInspectorLookupElements(get().elementsMap),
+        getInspectorLookupElements(),
       );
 
       const currentStyle = sanitizeFillDerivedStylePatch(
@@ -918,10 +949,10 @@ export const createInspectorActionsSlice: StateCreator<
     },
 
     updateSelectedFillsPreview: (fills) => {
-      const { elementsMap, selectedElementId } = get();
+      const { elements, selectedElementId } = get();
       if (!selectedElementId) return;
 
-      const element = elementsMap.get(selectedElementId);
+      const element = getInspectorElementById(elements, selectedElementId);
       if (!element) return;
 
       // 첫 프리뷰 시 원본 요소 스냅샷 저장 (히스토리 정확성)
@@ -931,7 +962,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       const resolvedElement = getResolvedInspectorElement(
         element,
-        getInspectorLookupElements(elementsMap),
+        getInspectorLookupElements(elements),
       );
       const currentStyle = sanitizeFillDerivedStylePatch(
         (resolvedElement.props?.style as Record<string, string>) || {},
@@ -948,22 +979,13 @@ export const createInspectorActionsSlice: StateCreator<
 
       // elementsMap만 업데이트 (캔버스 렌더링용)
       // selectedElementProps는 업데이트하지 않음 (Jotai atom value 유지)
-      const newElementsMap = new Map(elementsMap);
+      const newElements = replaceInspectorElement(
+        elements,
+        selectedElementId,
+        updatedElement,
+      );
+      const newElementsMap = buildInspectorElementMap(newElements);
       newElementsMap.set(selectedElementId, updatedElement);
-
-      // ADR-040 Phase 3: indexOf + with() 증분 패치 (findIndex O(N) 제거)
-      const currentElements = (get() as CombinedState).elements;
-      const existingElement = elementsMap.get(selectedElementId);
-      const elementIndex = existingElement
-        ? currentElements.indexOf(existingElement)
-        : -1;
-      let newElements: Element[];
-      if (elementIndex !== -1) {
-        newElements = currentElements.slice();
-        newElements[elementIndex] = updatedElement;
-      } else {
-        newElements = currentElements;
-      }
 
       set({
         elements: newElements,
@@ -972,10 +994,10 @@ export const createInspectorActionsSlice: StateCreator<
     },
 
     updateSelectedFillsPreviewLightweight: (fills) => {
-      const { elementsMap, selectedElementId } = get();
+      const { elements, selectedElementId } = get();
       if (!selectedElementId) return;
 
-      const element = elementsMap.get(selectedElementId);
+      const element = getInspectorElementById(elements, selectedElementId);
       if (!element) return;
 
       // 첫 프리뷰 시 원본 요소 스냅샷 저장 (히스토리 정확성)
@@ -988,21 +1010,13 @@ export const createInspectorActionsSlice: StateCreator<
 
       // 🚀 CSS Preview도 drag 중 fills를 반영해야 하므로 elements 배열도 동기화한다.
       // selectedElementProps는 계속 건드리지 않아 패널 입력 리렌더는 막는다.
-      const newElementsMap = new Map(elementsMap);
+      const newElements = replaceInspectorElement(
+        elements,
+        selectedElementId,
+        updatedElement,
+      );
+      const newElementsMap = buildInspectorElementMap(newElements);
       newElementsMap.set(selectedElementId, updatedElement);
-
-      const currentElements = (get() as CombinedState).elements;
-      const existingElement = elementsMap.get(selectedElementId);
-      const elementIndex = existingElement
-        ? currentElements.indexOf(existingElement)
-        : -1;
-      let newElements: Element[];
-      if (elementIndex !== -1) {
-        newElements = currentElements.slice();
-        newElements[elementIndex] = updatedElement;
-      } else {
-        newElements = currentElements;
-      }
 
       set({
         elements: newElements,

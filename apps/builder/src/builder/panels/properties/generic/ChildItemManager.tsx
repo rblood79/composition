@@ -5,8 +5,7 @@ import { useStore } from "../../../stores";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
 import type { Element } from "../../../../types/core/store.types";
-
-const EMPTY_CHILDREN: Element[] = [];
+import { useCanonicalPropertyChildren } from "../hooks/useCanonicalPropertyRead";
 
 interface ChildItemManagerProps {
   elementId: string;
@@ -20,8 +19,7 @@ export const ChildItemManager = memo(function ChildItemManager({
   const childTag = field.childTag;
   const labelProp = field.labelProp ?? "children";
 
-  const rawChildren =
-    useStore((state) => state.childrenMap.get(elementId)) ?? EMPTY_CHILDREN;
+  const rawChildren = useCanonicalPropertyChildren(elementId);
   const currentPageId = useStore((state) => state.currentPageId);
 
   const filteredChildren = useMemo(

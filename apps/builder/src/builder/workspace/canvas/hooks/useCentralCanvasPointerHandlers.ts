@@ -199,8 +199,11 @@ export function useCentralCanvasPointerHandlers({
       selectionBoundsRef.current = selectionBounds;
 
       const state = useStore.getState();
-      const hitElementsMap = getHitElementsMap?.() ?? state.elementsMap;
-      const hitChildrenMap = getHitChildrenMap?.() ?? state.childrenMap;
+      const hitElementsMap = getHitElementsMap?.();
+      const hitChildrenMap = getHitChildrenMap?.();
+      if (!hitElementsMap || !hitChildrenMap) {
+        return;
+      }
       const selectedIds = state.selectedElementIds;
       const isSingleSelection = selectedIds.length === 1;
       const now = Date.now();

@@ -24,4 +24,22 @@ describe("useDragBridge persistence contract", () => {
     expect(source).not.toContain("state.moveElementToContainer(");
     expect(source).not.toContain("state.batchUpdateElementOrders(");
   });
+
+  it("does not use mutable store maps as drag/drop authority", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useDragBridge.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("resolveDragReadModel(");
+    expect(source).toContain("getInteractiveElementsMap");
+    expect(source).not.toContain("elementsById: dragState.elementsById");
+    expect(source).not.toContain(
+      "childrenByParent: dragState.childrenByParent",
+    );
+    expect(source).not.toContain(
+      "state.childrenByParent.get(finalTarget.containerId)",
+    );
+    expect(source).not.toContain("state.elementsById.get(id)");
+  });
 });

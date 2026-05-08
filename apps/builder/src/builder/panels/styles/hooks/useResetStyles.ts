@@ -9,8 +9,10 @@
  * 🚀 Body 기본값 보존: Reset 시 컴포넌트 기본값으로 복원
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useStore } from "../../../stores";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
 import { getDefaultProps } from "../../../../types/builder/unified.types";
 import {
   resolveAppearanceSpecPreset,
@@ -21,6 +23,8 @@ import {
 import { numToPx, uniform4Way } from "../utils/styleValueHelpers";
 import { LAYOUT_PRESETS } from "../../properties/editors/LayoutPresetSelector/presetDefinitions";
 import { normalizeFramePresetContainerStyle } from "../../properties/editors/LayoutPresetSelector/presetStyle";
+import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
+import type { CompositionDocument } from "@composition/shared";
 
 const PX_LIKE_STYLE_PROPS = new Set([
   "width",
@@ -50,6 +54,37 @@ const PX_LIKE_STYLE_PROPS = new Set([
   "lineHeight",
   "letterSpacing",
 ]);
+
+type ResetBaselineElement = {
+  type: string;
+  props?: Readonly<Record<string, unknown>>;
+};
+
+function getActiveCanonicalResetDocument(): CompositionDocument | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+
+  return canonical.documents.get(projectId) ?? null;
+}
+
+function getActiveCanonicalResetElement(
+  elementId: string,
+): ResetBaselineElement | null {
+  const doc = getActiveCanonicalResetDocument();
+  if (!doc) return null;
+
+  let found: ResetBaselineElement | null = null;
+  visitCanonicalDocumentElements(doc, (element) => {
+    if (!found && element.id === elementId) {
+      found = {
+        type: element.type,
+        props: element.props as Readonly<Record<string, unknown>> | undefined,
+      };
+    }
+  });
+  return found;
+}
 
 function normalizeStyleValue(prop: string, value: unknown): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
@@ -254,11 +289,9 @@ function resolveCurrentStyleValue(
  * 리셋 버튼 조건부 표시용
  */
 export function useHasDirtyStyles(properties: string[]): boolean {
-  return useStore((state) => {
-    const selectedId = state.selectedElementId;
-    if (!selectedId) return false;
-
-    const element = state.elementsMap.get(selectedId);
+  const selectedId = useStore((state) => state.selectedElementId);
+  const element = useCanonicalPropertyElement(selectedId ?? "");
+  return useMemo(() => {
     if (!element) return false;
 
     const currentStyle =
@@ -272,7 +305,7 @@ export function useHasDirtyStyles(properties: string[]): boolean {
       if (currentValue !== resetValue) return true;
     }
     return false;
-  });
+  }, [element, properties]);
 }
 
 /**
@@ -287,7 +320,11 @@ export function useResetStyles() {
     const selectedId = state.selectedElementId;
     if (!selectedId) return;
 
-    const element = state.elementsMap.get(selectedId);
+    const canonicalDocument = getActiveCanonicalResetDocument();
+    const { elements: legacyElements } = state;
+    const element = canonicalDocument
+      ? getActiveCanonicalResetElement(selectedId)
+      : legacyElements.find((candidate) => candidate.id === selectedId);
     if (!element) return;
 
     const currentStyle =

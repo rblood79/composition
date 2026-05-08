@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Plus,
   Trash2,
@@ -19,6 +19,7 @@ import {
   PropertySelect,
   PropertyIconPicker,
 } from "../../../components";
+import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
 // ADR-055: EVENT_REGISTRY에서 select 옵션 파생
 const EVENT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
@@ -338,13 +339,15 @@ export const ItemsManager = memo(function ItemsManager({
   const allowSeparators = field.allowSeparators ?? false;
   const sectionHasSelection = field.sectionHasSelection ?? false;
 
-  const rawItems = useStore((state) => {
-    const el = state.elementsMap.get(elementId);
-    const val = (el?.props as Record<string, unknown> | undefined)?.[itemsKey];
+  const element = useCanonicalPropertyElement(elementId);
+  const rawItems = useMemo(() => {
+    const val = (element?.props as Record<string, unknown> | undefined)?.[
+      itemsKey
+    ];
     return Array.isArray(val)
       ? (val as Record<string, unknown>[])
       : EMPTY_ITEMS;
-  });
+  }, [element, itemsKey]);
 
   const handleAdd = useCallback(() => {
     void useStore

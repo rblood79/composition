@@ -157,6 +157,7 @@ export function buildSceneStructureSnapshot(
         visiblePagePositionVersion,
       ].join(":"),
     ),
+    source: input.source,
     viewportVersion: hashString(
       [
         input.zoom,

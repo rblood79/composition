@@ -482,12 +482,12 @@ function CanvasContent() {
     }).elements as unknown as PreviewElement[];
   }, [elements]);
 
-  // id/parent_id 기반 O(1) 조회 인덱스 (RenderContext에 함께 노출)
-  const elementsMap = useMemo(
+  // id/parent_id 기반 read model (RenderContext에 함께 노출)
+  const elementsById = useMemo(
     () => new Map(resolvedElements.map((el) => [el.id, el])),
     [resolvedElements],
   );
-  const childrenMap = useMemo(() => {
+  const childrenByParent = useMemo(() => {
     const map = new Map<string, PreviewElement[]>();
     for (const el of resolvedElements) {
       const pid = el.parent_id;
@@ -506,8 +506,8 @@ function CanvasContent() {
   const renderContext: RenderContext = useMemo(
     () => ({
       elements: resolvedElements,
-      elementsMap,
-      childrenMap,
+      elementsById,
+      childrenByParent,
       updateElementProps,
       batchUpdateElementProps,
       setElements: (newElements: PreviewElement[]) => {
@@ -522,8 +522,8 @@ function CanvasContent() {
     }),
     [
       resolvedElements,
-      elementsMap,
-      childrenMap,
+      elementsById,
+      childrenByParent,
       updateElementProps,
       batchUpdateElementProps,
       setElements,

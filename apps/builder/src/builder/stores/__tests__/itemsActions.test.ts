@@ -69,6 +69,7 @@ describe("Store items actions (ADR-073 P4)", () => {
       props: { items: [] },
     };
     useStore.setState({
+      elements: [menuEl as never],
       elementsMap: new Map([["menu-1", menuEl as never]]),
     } as never);
     await useStore.getState().addMenuItem("menu-1", { label: "MI" });

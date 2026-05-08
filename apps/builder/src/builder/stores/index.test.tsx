@@ -4,7 +4,14 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import type { Element } from "../../types/core/store.types";
 import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
-import { useSelectedElementData, useStore } from "./index";
+import {
+  useChildElements,
+  useCurrentPageElementCount,
+  useCurrentPageElements,
+  useElementById,
+  useSelectedElementData,
+  useStore,
+} from "./index";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
@@ -268,5 +275,103 @@ describe("useSelectedElementData", () => {
         minValue: 0,
       },
     });
+  });
+
+  it("uses active canonical elements for exported lookup selectors", () => {
+    const doc: CompositionDocument = {
+      schemaVersion: "1.0",
+      children: [
+        {
+          id: "parent",
+          type: "Section",
+          props: {},
+          children: [
+            {
+              id: "child",
+              type: "Text",
+              props: { children: "canonical" },
+            },
+          ],
+        },
+      ],
+    };
+
+    act(() => {
+      const state = useCanonicalDocumentStore.getState();
+      state.setDocument("proj-a", doc);
+      state.setCurrentProject("proj-a");
+    });
+
+    useStore.setState({
+      elements: [makeElement("legacy-only")],
+      elementsMap: new Map(),
+    } as never);
+
+    const { result } = renderHook(() => ({
+      parent: useElementById("parent"),
+      children: useChildElements("parent"),
+    }));
+
+    expect(result.current.parent?.id).toBe("parent");
+    expect(result.current.children.map((element) => element.id)).toEqual([
+      "child",
+    ]);
+  });
+
+  it("uses active canonical elements for current page selectors", () => {
+    const doc: CompositionDocument = {
+      schemaVersion: "1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          props: {},
+          children: [
+            {
+              id: "page-1-child",
+              type: "Text",
+              props: { children: "canonical page" },
+            },
+          ],
+        },
+        {
+          id: "page-2",
+          type: "frame",
+          props: {},
+          children: [
+            {
+              id: "page-2-child",
+              type: "Text",
+              props: { children: "other page" },
+            },
+          ],
+        },
+      ],
+    };
+
+    act(() => {
+      const state = useCanonicalDocumentStore.getState();
+      state.setDocument("proj-a", doc);
+      state.setCurrentProject("proj-a");
+    });
+
+    useStore.setState({
+      currentPageId: "page-1",
+      elements: [makeElement("legacy-only", { page_id: "page-1" })],
+      pageElementsSnapshot: {
+        "page-1": [makeElement("stale-snapshot", { page_id: "page-1" })],
+      },
+    } as never);
+
+    const { result } = renderHook(() => ({
+      elements: useCurrentPageElements(),
+      count: useCurrentPageElementCount(),
+    }));
+
+    expect(result.current.elements.map((element) => element.id)).toEqual([
+      "page-1",
+      "page-1-child",
+    ]);
+    expect(result.current.count).toBe(2);
   });
 });

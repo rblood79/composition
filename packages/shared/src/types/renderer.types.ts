@@ -91,10 +91,10 @@ export interface DataState {
 export interface RenderContext {
   /** 현재 페이지의 모든 elements */
   elements: PreviewElement[];
-  /** id 기반 O(1) 조회용 인덱스 (provider가 elements와 함께 빌드) */
-  elementsMap: Map<string, PreviewElement>;
-  /** parent_id 기반 자식 조회 인덱스 — canonical source order 보존 */
-  childrenMap: Map<string, PreviewElement[]>;
+  /** id 기반 O(1) 조회용 read model (provider가 elements와 함께 빌드) */
+  elementsById: ReadonlyMap<string, PreviewElement>;
+  /** parent_id 기반 자식 조회 read model — canonical source order 보존 */
+  childrenByParent: ReadonlyMap<string, readonly PreviewElement[]>;
   /** element props 업데이트 함수 */
   updateElementProps: (id: string, props: Record<string, unknown>) => void;
   /** 여러 element props를 한 번에 업데이트 (단일 commit, group 자식 sync 등) */

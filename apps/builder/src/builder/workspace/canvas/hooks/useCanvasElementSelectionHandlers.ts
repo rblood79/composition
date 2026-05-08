@@ -46,8 +46,8 @@ interface UseCanvasElementSelectionHandlersOptions {
     elementId: string,
     layoutPosition?: { x: number; y: number; width: number; height: number },
   ) => void;
-  getInteractiveChildrenMap?: () => Map<string, Element[]>;
-  getInteractiveElementsMap?: () => Map<string, Element>;
+  getInteractiveChildrenMap: () => Map<string, Element[]>;
+  getInteractiveElementsMap: () => Map<string, Element>;
 }
 
 const TEXT_EDITABLE_TAGS = new Set([
@@ -119,9 +119,7 @@ function selectResolvedTarget(
   if (isMultiSelectKey) {
     const currentState = useStore.getState();
     const currentPageId = currentState.currentPageId;
-    const targetElement =
-      interactiveElementsMap.get(resolvedTarget) ??
-      currentState.elementsMap.get(resolvedTarget);
+    const targetElement = interactiveElementsMap.get(resolvedTarget);
 
     // 다른 페이지 요소를 modifier와 함께 클릭한 경우: 단일 선택 + 페이지 전환으로 대체
     if (targetElement?.page_id && targetElement.page_id !== currentPageId) {
@@ -148,16 +146,8 @@ function selectResolvedTarget(
   if (targetPageId) {
     selectElementWithPageTransition(resolvedTarget, targetPageId);
   } else {
-    const rawElement = useStore.getState().elementsMap.get(resolvedTarget);
-    syncReusableFrameSelectionForElement(
-      rawElement ?? interactiveElementsMap.get(resolvedTarget),
-    );
-    if (rawElement) {
-      setSelectedElement(resolvedTarget);
-      return;
-    }
-
     const targetElement = interactiveElementsMap.get(resolvedTarget);
+    syncReusableFrameSelectionForElement(targetElement);
     setSelectedElement(
       resolvedTarget,
       targetElement?.props as Record<string, unknown> | undefined,
@@ -205,8 +195,7 @@ function selectDirectModifierTarget(
   ) => void,
 ): void {
   const state = useStore.getState();
-  const directElement =
-    interactiveElementsMap.get(elementId) ?? state.elementsMap.get(elementId);
+  const directElement = interactiveElementsMap.get(elementId);
   if (!directElement) return;
 
   const targetPageId =
@@ -217,15 +206,10 @@ function selectDirectModifierTarget(
     elementId,
     interactiveElementsMap,
   );
-  const rawElement = state.elementsMap.get(elementId);
 
   selectElementWithPageTransition(elementId, targetPageId, {
     editingContextId,
-    ...(rawElement
-      ? {}
-      : {
-          props: directElement.props as ComponentElementProps | undefined,
-        }),
+    props: directElement.props as ComponentElementProps | undefined,
   });
 }
 
@@ -251,11 +235,8 @@ export function useCanvasElementSelectionHandlers({
       }
 
       const state = useStore.getState();
-      const interactiveElementsMap =
-        getInteractiveElementsMap?.() ?? state.elementsMap;
-      const clickedElement =
-        interactiveElementsMap.get(elementId) ??
-        state.elementsMap.get(elementId);
+      const interactiveElementsMap = getInteractiveElementsMap();
+      const clickedElement = interactiveElementsMap.get(elementId);
 
       // ADR-069 Phase 1: page crossing 판정만 여기서 하고, 실제 clearSelection +
       // setCurrentPageId + setSelectedElement 3-set 병합은 selectResolvedTarget
@@ -342,10 +323,8 @@ export function useCanvasElementSelectionHandlers({
   const handleElementDoubleClick = useCallback(
     (elementId: string) => {
       const state = useStore.getState();
-      const interactiveElementsMap =
-        getInteractiveElementsMap?.() ?? state.elementsMap;
-      const interactiveChildrenMap =
-        getInteractiveChildrenMap?.() ?? state.childrenMap;
+      const interactiveElementsMap = getInteractiveElementsMap();
+      const interactiveChildrenMap = getInteractiveChildrenMap();
       const resolvedTarget = resolveClickTarget(
         elementId,
         state.editingContextId,
@@ -355,9 +334,7 @@ export function useCanvasElementSelectionHandlers({
         return;
       }
 
-      const resolvedElement =
-        interactiveElementsMap.get(resolvedTarget) ??
-        state.elementsMap.get(resolvedTarget);
+      const resolvedElement = interactiveElementsMap.get(resolvedTarget);
       if (!resolvedElement) {
         return;
       }

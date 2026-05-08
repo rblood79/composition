@@ -12,6 +12,10 @@ import { useStore } from "../../../stores";
 import type { SlotInfo } from "../../../../types/builder/layout.types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import { getNullablePageFrameBindingId } from "../../../../adapters/canonical/frameMirror";
+import {
+  useCanonicalPropertyElement,
+  useCanonicalPropertyElementsMap,
+} from "../hooks/useCanonicalPropertyRead";
 
 interface ElementSlotSelectorProps {
   elementId: string;
@@ -24,9 +28,8 @@ export const ElementSlotSelector = memo(function ElementSlotSelector({
   currentSlotName,
   onSlotChange,
 }: ElementSlotSelectorProps) {
-  // ADR-040: elementsMap O(1) 조회
-  const element = useStore((state) => state.elementsMap.get(elementId));
-  const elementsMap = useStore((state) => state.elementsMap);
+  const element = useCanonicalPropertyElement(elementId);
+  const elementsMap = useCanonicalPropertyElementsMap();
   const pages = useStore((state) => state.pages);
 
   // Element의 Page → Layout → Slots 찾기
@@ -68,7 +71,7 @@ export const ElementSlotSelector = memo(function ElementSlotSelector({
   // (parent_id가 null이거나 parent가 Page element가 아닌 경우)
   const isRootElement = useMemo(() => {
     if (!element?.parent_id) return true;
-    // parent가 Page element인지 확인 (elementsMap O(1))
+    // parent가 Page element인지 확인
     const parent = elementsMap.get(element.parent_id);
     const parentIsPageElement = parent
       ? parent.page_id === element.page_id

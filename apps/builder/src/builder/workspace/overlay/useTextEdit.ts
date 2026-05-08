@@ -12,6 +12,13 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useStore } from "../../stores";
+import {
+  areCanonicalMutationStoreActionsRegistered,
+  mergeElementsCanonicalPrimary,
+} from "../../../adapters/canonical/canonicalMutations";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
+import type { Element } from "../../../types/core/store.types";
 import type { TextStyleConfig } from "./TextEditOverlay";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { getSkiaNode, notifyLayoutChange } from "../canvas/skia/useSkiaNode";
@@ -99,37 +106,73 @@ const TEXT_ELEMENT_TAGS = new Set([
 // Helper Functions
 // ============================================
 
+function getActiveCanonicalTextEditElements(): Element[] | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return null;
+
+  const doc = canonical.documents.get(projectId);
+  if (!doc) return null;
+
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element as Element);
+  });
+  return elements;
+}
+
+function getTextEditElement(elementId: string): Element | null {
+  const canonicalElements = getActiveCanonicalTextEditElements();
+  if (canonicalElements) {
+    return (
+      canonicalElements.find((element) => element.id === elementId) ?? null
+    );
+  }
+
+  const { elements: legacyElements } = useStore.getState();
+  return legacyElements.find((element) => element.id === elementId) ?? null;
+}
+
+function applyLegacyBootstrapTextProp(updatedElement: Element): void {
+  const state = useStore.getState();
+  const { elements: legacyElements } = state;
+  const elementIndex = legacyElements.findIndex(
+    (element) => element.id === updatedElement.id,
+  );
+  if (elementIndex < 0) return;
+
+  const nextElements = legacyElements.with(elementIndex, updatedElement);
+  const nextElementsMap = new Map(
+    nextElements.map((element) => [element.id, element] as const),
+  );
+
+  useStore.setState((currentState) => ({
+    elements: nextElements,
+    elementsMap: nextElementsMap,
+    layoutVersion: currentState.layoutVersion + 1,
+  }));
+}
+
 /**
  * Store props를 히스토리 없이 업데이트 (편집 중 실시간 레이아웃 반영용)
  *
- * Delta 경로: 텍스트 변경은 구조(계층) 변경이 없으므로
- * elementsMap만 증분 갱신하고 전체 _rebuildIndexes() 재구축을 생략한다.
- * childrenMap/pageIndex는 구조 불변이므로 갱신 불필요.
+ * ADR-122: active canonical document 가 있으면 live text edit도
+ * canonical mutation wrapper를 먼저 통과한다. legacy store patch는 canonical
+ * hydration 전 bootstrap fallback으로만 남긴다.
  */
 function silentUpdateTextProp(elementId: string, value: string): void {
-  const state = useStore.getState();
-  const element = state.elementsMap.get(elementId);
+  const element = getTextEditElement(elementId);
   if (!element) return;
   const props = element.props as Record<string, unknown> | undefined;
   const propKey = getTextPropKey(element.type, props);
   const updatedElement = { ...element, props: { ...props, [propKey]: value } };
 
-  // elementsMap 증분 패치 (새 Map — 불변성 보장)
-  const nextElementsMap = new Map(state.elementsMap);
-  nextElementsMap.set(elementId, updatedElement);
+  if (areCanonicalMutationStoreActionsRegistered()) {
+    const result = mergeElementsCanonicalPrimary([updatedElement]);
+    if (result.changed || getActiveCanonicalTextEditElements()) return;
+  }
 
-  // ADR-040: 텍스트 변경은 구조 불변 → elementsMap 증분 패치만으로 충분
-  // elements 배열도 동기화 (index 일관성)
-  const idx = state.elements.indexOf(element);
-  const nextElements =
-    idx >= 0 ? state.elements.with(idx, updatedElement) : state.elements;
-
-  // 단일 set() — _rebuildIndexes() 전체 재구축 불필요 (구조 불변)
-  useStore.setState({
-    elements: nextElements,
-    elementsMap: nextElementsMap,
-    layoutVersion: state.layoutVersion + 1,
-  });
+  applyLegacyBootstrapTextProp(updatedElement);
 }
 
 /**
@@ -256,8 +299,7 @@ export function useTextEdit(): UseTextEditReturn {
   // 편집 시작 (Pencil startTextEditing + nUt constructor 패턴)
   const startEdit = useCallback(
     (elementId: string, layoutPosition?: LayoutPosition) => {
-      const state = useStore.getState();
-      const element = state.elementsMap.get(elementId);
+      const element = getTextEditElement(elementId);
       if (!element) return;
 
       // 텍스트 요소만 편집 가능
@@ -332,7 +374,7 @@ export function useTextEdit(): UseTextEditReturn {
     // updateText에서 이미 store props를 실시간 반영했으므로
     // 원본으로 복원 → updateElementProps (히스토리 기록) → 최종값 반영
     if (finalValue !== originalValue) {
-      const element = useStore.getState().elementsMap.get(elementId);
+      const element = getTextEditElement(elementId);
       if (element) {
         const props = element.props as Record<string, unknown> | undefined;
         const propKey = getTextPropKey(element.type, props);

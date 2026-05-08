@@ -5,7 +5,7 @@
  * createInstance, detachInstance 등 인스턴스 생명주기 관리.
  *
  * Master propagation은 별도 액션이 불필요:
- * useResolvedElement hook이 elementsMap 변경을 자동 감지하여 리렌더.
+ * canonical ref/descendants shape를 renderer resolver가 매 render input에서 병합한다.
  *
  * @see docs/WASM_DOC_IMPACT_ANALYSIS.md §G.1
  */
@@ -39,13 +39,13 @@ import {
   getComponentMasterReference,
   getComponentOverridesMirror,
   isComponentInstanceMirrorElement,
-  isComponentOriginMirrorElement,
 } from "../../../adapters/canonical/componentSemanticsMirror";
 import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 import { generateCustomId } from "../../utils/idGeneration";
 
 type CanonicalElementFields = {
@@ -109,24 +109,49 @@ function resetCanonicalOverrideRecordField(
   return removeRecordKey(override, fieldKey);
 }
 
+function findInstanceActionElement(
+  elements: Element[],
+  elementId: string | null | undefined,
+): Element | undefined {
+  if (!elementId) return undefined;
+  return elements.find((element) => element.id === elementId);
+}
+
+function getInstanceActionSourceElements(
+  state: Pick<ElementsState, "elements">,
+): Element[] {
+  const { elements: legacyElements } = state;
+  return getActiveCanonicalDocumentElements() ?? legacyElements;
+}
+
+function withInstanceActionSourceState(state: ElementsState): ElementsState {
+  const elements = getInstanceActionSourceElements(state);
+  const { elements: legacyElements } = state;
+  return elements === legacyElements ? state : { ...state, elements };
+}
+
 function resolveRefMaster(
   ref: string,
   state: ElementsState,
 ): Element | undefined {
-  const direct = state.elementsMap.get(ref);
+  const elements = getInstanceActionSourceElements(state);
+  const direct = findInstanceActionElement(elements, ref);
   if (direct) return direct;
 
-  const { pathIdMap } = buildIdPathContext(state.elements);
+  const { pathIdMap } = buildIdPathContext(elements);
   const pathId = pathIdMap.get(ref);
-  if (pathId) return state.elementsMap.get(pathId);
+  const pathElement = findInstanceActionElement(elements, pathId);
+  if (pathElement) return pathElement;
 
-  return state.elements.find(
+  return elements.find(
     (element) => element.customId === ref || element.componentName === ref,
   );
 }
 
 function getSortedChildren(state: ElementsState, parentId: string): Element[] {
-  return state.childrenMap.get(parentId) ?? [];
+  return getInstanceActionSourceElements(state).filter(
+    (element) => element.parent_id === parentId,
+  );
 }
 
 function getComponentNameForElement(element: Element): string {
@@ -242,9 +267,12 @@ function getCanonicalChildren(
 function buildCanonicalDetachSnapshot(
   state: ElementsState,
   refId: string,
-  usedIds = new Set(state.elements.map((element) => element.id)),
+  usedIds = new Set(
+    getInstanceActionSourceElements(state).map((element) => element.id),
+  ),
 ): { elements: Element[]; previousElements: Element[] } | null {
-  const refElement = state.elementsMap.get(refId);
+  const sourceState = withInstanceActionSourceState(state);
+  const refElement = findInstanceActionElement(sourceState.elements, refId);
   if (!refElement || refElement.type !== "ref") return null;
 
   const ref = getCanonicalRef(refElement);
@@ -253,7 +281,7 @@ function buildCanonicalDetachSnapshot(
     return null;
   }
 
-  const master = resolveRefMaster(ref, state);
+  const master = resolveRefMaster(ref, sourceState);
   if (!master) {
     console.warn("[Instance] canonical ref master not found:", ref);
     return null;
@@ -328,7 +356,9 @@ function buildCanonicalDetachSnapshot(
       );
     }
     const nestedRef = !hasReplacement ? getCanonicalRef(source) : null;
-    const nestedMaster = nestedRef ? resolveRefMaster(nestedRef, state) : null;
+    const nestedMaster = nestedRef
+      ? resolveRefMaster(nestedRef, sourceState)
+      : null;
     const materializationSource = nestedMaster ?? source;
     const sourceOverrideProps = nestedMaster
       ? getRootOverrideProps(source)
@@ -379,7 +409,7 @@ function buildCanonicalDetachSnapshot(
       ? []
       : hasChildrenReplacement
         ? ((override!.children as unknown[]) ?? [])
-        : getSortedChildren(state, materializationSource.id);
+        : getSortedChildren(sourceState, materializationSource.id);
 
     childSources.forEach((childSource) => {
       if (hasChildrenReplacement && isRecord(childSource)) {
@@ -423,7 +453,7 @@ function buildCanonicalDetachSnapshot(
   );
   const previousState = { ...refElement };
 
-  getSortedChildren(state, master.id).forEach((child) => {
+  getSortedChildren(sourceState, master.id).forEach((child) => {
     materializeChild(
       child,
       detachedRoot.id,
@@ -443,11 +473,12 @@ function buildLegacyDetachSnapshot(
   state: ElementsState,
   instanceId: string,
 ): { elements: Element[]; previousElements: Element[] } | null {
-  const instance = state.elementsMap.get(instanceId);
+  const sourceElements = getInstanceActionSourceElements(state);
+  const instance = findInstanceActionElement(sourceElements, instanceId);
   if (!instance || !isComponentInstanceMirrorElement(instance)) return null;
 
   const masterRef = getComponentMasterReference(instance);
-  const master = masterRef ? state.elementsMap.get(masterRef) : undefined;
+  const master = findInstanceActionElement(sourceElements, masterRef);
 
   let mergedProps: Record<string, unknown>;
   if (master) {
@@ -480,11 +511,12 @@ function buildDetachSnapshot(
   instanceId: string,
   usedIds?: Set<string>,
 ): { elements: Element[]; previousElements: Element[] } | null {
-  const instance = state.elementsMap.get(instanceId);
+  const sourceState = withInstanceActionSourceState(state);
+  const instance = findInstanceActionElement(sourceState.elements, instanceId);
   if (instance?.type === "ref") {
-    return buildCanonicalDetachSnapshot(state, instanceId, usedIds);
+    return buildCanonicalDetachSnapshot(sourceState, instanceId, usedIds);
   }
-  return buildLegacyDetachSnapshot(state, instanceId);
+  return buildLegacyDetachSnapshot(sourceState, instanceId);
 }
 
 export function buildDetachSnapshotsForOrigins(
@@ -492,7 +524,8 @@ export function buildDetachSnapshotsForOrigins(
   origins: Element[],
   excludedElementIds: Set<string> = new Set(),
 ): { elements: Element[]; previousElements: Element[] } {
-  const usedIds = new Set(state.elements.map((element) => element.id));
+  const sourceState = withInstanceActionSourceState(state);
+  const usedIds = new Set(sourceState.elements.map((element) => element.id));
   const seenInstanceIds = new Set<string>();
   const previousElements: Element[] = [];
   const elements: Element[] = [];
@@ -502,14 +535,14 @@ export function buildDetachSnapshotsForOrigins(
 
     const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
       origin,
-      state.elements,
+      sourceState.elements,
     );
     for (const instanceId of impactedInstanceIds) {
       if (seenInstanceIds.has(instanceId)) continue;
       if (excludedElementIds.has(instanceId)) continue;
       seenInstanceIds.add(instanceId);
 
-      const snapshot = buildDetachSnapshot(state, instanceId, usedIds);
+      const snapshot = buildDetachSnapshot(sourceState, instanceId, usedIds);
       if (!snapshot) {
         console.warn("[Instance] cannot auto-detach impacted instance:", {
           originId: origin.id,
@@ -553,7 +586,8 @@ function applyElementSnapshotBatch(
 
   set((prevState) => {
     const removeIds = new Set(nextElements.map((element) => element.id));
-    const retained = prevState.elements.filter(
+    const sourceElements = getInstanceActionSourceElements(prevState);
+    const retained = sourceElements.filter(
       (element) => !removeIds.has(element.id),
     );
     const updatedElements = [...retained, ...nextElements];
@@ -575,8 +609,10 @@ function applyElementSnapshotBatch(
   });
   get()._rebuildIndexes();
   syncInstanceElementsToCanonical(nextElements);
+  const sourceElements = getInstanceActionSourceElements(get());
   const persistedElements = nextElements.map(
-    (element) => get().elementsMap.get(element.id) ?? element,
+    (element) =>
+      findInstanceActionElement(sourceElements, element.id) ?? element,
   );
   persistElementsAfterInstanceMutation(persistedElements);
 }
@@ -585,7 +621,7 @@ function applyElementSnapshotBatch(
  * Instance 요소 생성
  *
  * master를 참조하는 새 instance element를 생성한다.
- * props는 비워두고, useResolvedElement가 렌더링 시 master props를 병합.
+ * props는 비워두고, renderer resolver가 렌더링 시 master props를 병합.
  */
 export function createInstance(
   get: () => ElementsState,
@@ -598,9 +634,10 @@ export function createInstance(
   parentId: string,
   pageId: string,
 ): Element | null {
-  const state = get();
-  const master = state.elementsMap.get(masterRefId);
-  if (!master || !isComponentOriginMirrorElement(master)) {
+  const state = withInstanceActionSourceState(get());
+  const { elements: sourceElements } = state;
+  const master = findInstanceActionElement(sourceElements, masterRefId);
+  if (!master || getEditingSemanticsRole(master) !== "origin") {
     console.warn("[Instance] master not found or not a master:", masterRefId);
     return null;
   }
@@ -612,7 +649,7 @@ export function createInstance(
   const instanceElement: Element = {
     id: uuidv4(),
     type: master.type,
-    customId: generateCustomId(master.type, state.elements),
+    customId: generateCustomId(master.type, sourceElements),
     props: {},
     parent_id: parentId,
     page_id: pageId,
@@ -624,7 +661,7 @@ export function createInstance(
 
   // ADR-040: elements 배열 추가 + 구조 변경이므로 _rebuildIndexes() 필수
   set((prevState) => ({
-    elements: [...prevState.elements, instanceElement],
+    elements: [...getInstanceActionSourceElements(prevState), instanceElement],
     layoutVersion: prevState.layoutVersion + 1,
   }));
   get()._rebuildIndexes();
@@ -651,7 +688,7 @@ export function detachInstance(
   ) => void,
   instanceId: string,
 ): { previousState: Element } | null {
-  const state = get();
+  const state = withInstanceActionSourceState(get());
   const snapshot = buildDetachSnapshot(state, instanceId);
   if (!snapshot) {
     console.warn("[Instance] element is not an instance:", instanceId);
@@ -709,8 +746,8 @@ export async function toggleComponentOrigin(
   elementId: string,
   options: { beforeMutation?: () => void | Promise<void> } = {},
 ): Promise<{ elements: Element[]; previousElements: Element[] } | null> {
-  const initialState = get();
-  const element = initialState.elementsMap.get(elementId);
+  const initialState = withInstanceActionSourceState(get());
+  const element = findInstanceActionElement(initialState.elements, elementId);
   if (!element) return null;
 
   const role = getEditingSemanticsRole(element);
@@ -734,8 +771,11 @@ export async function toggleComponentOrigin(
 
   await options.beforeMutation?.();
 
-  const latestState = get();
-  const latestElement = latestState.elementsMap.get(elementId);
+  const latestState = withInstanceActionSourceState(get());
+  const latestElement = findInstanceActionElement(
+    latestState.elements,
+    elementId,
+  );
   if (!latestElement) return null;
   const t1Impact = measureOriginImpact(latestElement, latestState.elements);
   const impactChanged =
@@ -801,8 +841,9 @@ export function resetInstanceOverrideField(
   fieldKey: string,
   descendantPath?: string,
 ): { previousState: Element } | null {
-  const state = get();
-  const instance = state.elementsMap.get(instanceId);
+  const state = withInstanceActionSourceState(get());
+  const { elements: sourceElements } = state;
+  const instance = findInstanceActionElement(sourceElements, instanceId);
   if (!instance || !fieldKey) return null;
 
   const previousState = { ...instance };
@@ -867,10 +908,13 @@ export function resetInstanceOverrideField(
   }
 
   set((prevState) => {
-    const idx = prevState.elements.findIndex((el) => el.id === instanceId);
+    const sourceElements = getInstanceActionSourceElements(prevState);
+    const idx = sourceElements.findIndex((el) => el.id === instanceId);
     const nextElements =
-      idx >= 0 ? prevState.elements.with(idx, nextElement) : prevState.elements;
-    const nextElementsMap = new Map(prevState.elementsMap);
+      idx >= 0 ? sourceElements.with(idx, nextElement) : sourceElements;
+    const nextElementsMap = new Map(
+      nextElements.map((element) => [element.id, element]),
+    );
     nextElementsMap.set(instanceId, nextElement);
     return {
       elements: nextElements,
@@ -884,7 +928,10 @@ export function resetInstanceOverrideField(
   });
   get()._rebuildIndexes();
   syncInstanceElementsToCanonical([nextElement]);
-  const persistedElement = get().elementsMap.get(instanceId) ?? nextElement;
+  const persistedSourceElements = getInstanceActionSourceElements(get());
+  const persistedElement =
+    findInstanceActionElement(persistedSourceElements, instanceId) ??
+    nextElement;
   persistElementsAfterInstanceMutation([persistedElement]);
 
   return { previousState };

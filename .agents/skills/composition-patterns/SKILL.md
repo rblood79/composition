@@ -44,6 +44,11 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
   `DatabaseAdapter.pages/elements/layouts` 및 IndexedDB `pages/elements/layouts`
   mirror stores는 제거된 surface이므로 `db.pages/elements/layouts` runtime
   read/write를 재도입하지 않습니다.
+- Builder internal runtime은 canonical `CompositionDocument`를 mutation/read/render
+  source로 수렴해야 합니다. canonical mutation 후 mutable legacy `Element[]`
+  mirror로 되돌리는 `setElements(exportLegacyDocument(...))` write-back을
+  재도입하지 말고, `exportLegacyDocument()`는 cloud/export/import/publish
+  compatibility boundary에서만 사용합니다.
 - IndexedDB `composition.metadata`, duplicate `composition.history`, and
   `DatabaseAdapter.designVariables` are removed dormant/mismatched local DB
   surfaces. Use the separate `composition-history` DB for undo/redo and the

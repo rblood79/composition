@@ -57,13 +57,13 @@ maxTurns: 25
 ### Canvas 테스트
 
 - CanvasKit/Skia WASM 렌더링은 특별한 셋업 필요
-- EventBoundary를 통한 PixiJS 이벤트 테스트
+- Skia EventBoundary 이벤트 테스트 (ADR-100 PixiJS 제거)
 - Taffy WASM 엔진 계산 스타일로 레이아웃 검증
 
 ### 상태 테스트
 
 - 파이프라인 순서 검증: Memory → Index → History → DB → Preview
-- elementsMap O(1) 조회 정확성 테스트
+- canonical node lookup + transitional `elementsMap` 정합성 테스트
 - 히스토리 기록이 적절한 Undo/Redo를 가능하게 하는지 확인
 - Zustand 슬라이스 간 상호작용 테스트
 
@@ -94,7 +94,7 @@ SKILL.md 공통 에러 복구 프로토콜을 따른다:
 
 ## Memory 활용 (세션 간 지식 축적)
 
-테스트 작성 후 `.claude/agent-memory/tester/MEMORY.md`에 아래를 기록한다:
+테스트 작성 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/tester/` 컨벤션은 2026-05-09 폐기):
 
 - **테스트 인프라 현황**: 프레임워크 설정 변경, 커버리지 현황 업데이트
 - **테스트 작성 시 주의사항**: 새로 발견된 셋업/mock 주의점

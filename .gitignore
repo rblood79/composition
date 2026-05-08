@@ -90,6 +90,5 @@ apps/builder/src/**/*.js
 
 # Git worktrees (superpowers skill + agent isolation)
 .worktrees/
-.claude/worktrees/
 .claude/.spec-rebuild-pending
 .claude/stats/audits/

@@ -1,10 +1,8 @@
 import { useState, memo } from "react";
-import {
+import type {
   ColumnElementProps,
   Element,
 } from "../../../../types/core/store.types";
-
-const EMPTY_CHILDREN: Element[] = [];
 import { useStore } from "../../../stores";
 import {
   PropertySelect,
@@ -19,10 +17,18 @@ import { supabase } from "../../../../env/supabase.client";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { generateCustomId } from "../../../utils/idGeneration";
+import {
+  useCanonicalPropertyChildren,
+  useCanonicalPropertyElement,
+} from "../hooks/useCanonicalPropertyRead";
 
 interface TableHeaderElementProps {
   variant?: "default" | "dark" | "light" | "bordered";
   sticky?: boolean;
+}
+
+function getChildElements(elements: readonly Element[], parentId: string) {
+  return elements.filter((element) => element.parent_id === parentId);
 }
 
 // interface TableHeaderEditorProps {
@@ -35,14 +41,9 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
   currentProps,
   onUpdate,
 }: PropertyEditorProps) {
-  // 🚀 Phase 19: Zustand selector 패턴 적용 (불필요한 리렌더링 방지)
-  // ADR-040: elementsMap/childrenMap O(1) 조회
-  const element = useStore((state) => state.elementsMap.get(elementId));
-  const rawChildren =
-    useStore((state) => state.childrenMap.get(elementId)) ?? EMPTY_CHILDREN;
-  const tableElement = useStore((state) =>
-    element?.parent_id ? state.elementsMap.get(element.parent_id) : undefined,
-  );
+  const element = useCanonicalPropertyElement(elementId);
+  const rawChildren = useCanonicalPropertyChildren(elementId);
+  const tableElement = useCanonicalPropertyElement(element?.parent_id ?? "");
   const addElement = useStore((state) => state.addElement);
   const removeElement = useStore((state) => state.removeElement);
   const [isAddingColumn, setIsAddingColumn] = useState(false);
@@ -77,8 +78,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
       const columnId = ElementUtils.generateId();
 
       // ADR-040: 이벤트 핸들러에서 최신 상태 읽기
-      const { elements: currentElements, childrenMap: currentChildrenMap } =
-        useStore.getState();
+      const { elements: currentElements } = useStore.getState();
       // 먼저 모든 새 요소들을 준비
       const newColumnElement: Element = {
         id: columnId,
@@ -98,17 +98,18 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
         updated_at: new Date().toISOString(),
       };
 
-      // TableBody의 모든 Row 찾기 (childrenMap O(1))
-      const tableChildren = currentChildrenMap.get(tableElement.id) ?? [];
+      // TableBody의 모든 Row 찾기
+      const tableChildren = getChildElements(currentElements, tableElement.id);
       const tableBodyElement = tableChildren.find(
         (el) => el.type === "TableBody",
       );
 
       const newCellElements: Element[] = [];
       if (tableBodyElement) {
-        const rows = (currentChildrenMap.get(tableBodyElement.id) ?? []).filter(
-          (el) => el.type === "Row",
-        );
+        const rows = getChildElements(
+          currentElements,
+          tableBodyElement.id,
+        ).filter((el) => el.type === "Row");
 
         // Track all elements for unique ID generation
         const allElementsSoFar = [...currentElements, newColumnElement];

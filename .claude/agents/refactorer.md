@@ -73,7 +73,7 @@ maxTurns: 25
 - **상태**: Zustand 슬라이스 패턴, StateCreator factory
 - **스타일링**: Tailwind CSS v4 + tailwind-variants (tv())
 - **컴포넌트**: React-Aria Components with hooks
-- **Canvas**: CanvasKit/Skia WASM + PixiJS 8, DirectContainer 직접 배치
+- **Canvas**: CanvasKit/Skia WASM 단일 렌더러 (ADR-100), DirectContainer 직접 배치
 - **레이아웃**: Taffy WASM (Flex/Grid/Block) — 단일 엔진 체계
 - **검증**: Zod 경계 입력 검증
 
@@ -88,7 +88,7 @@ SKILL.md 공통 에러 복구 프로토콜을 따른다:
 
 ## Memory 활용 (세션 간 지식 축적)
 
-리팩토링 완료 후 `.claude/agent-memory/refactorer/MEMORY.md`에 아래를 기록한다:
+리팩토링 완료 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/refactorer/` 컨벤션은 2026-05-09 폐기):
 
 - **완료된 주요 리팩토링**: 대규모 구조 변경 이력 (날짜 + 요약)
 - **리팩토링 시 주의 패턴**: 새로 발견된 위험 패턴 (render call 누락, 인터페이스 깨짐 등)

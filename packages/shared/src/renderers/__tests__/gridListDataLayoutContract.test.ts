@@ -24,8 +24,8 @@ import { renderGridList } from "../SelectionRenderers";
 function makeContext(el: PreviewElement): RenderContext {
   return {
     elements: [el],
-    elementsMap: new Map([[el.id, el]]),
-    childrenMap: new Map(),
+    elementsById: new Map([[el.id, el]]),
+    childrenByParent: new Map(),
     updateElementProps: () => {},
     batchUpdateElementProps: () => {},
     setElements: () => {},

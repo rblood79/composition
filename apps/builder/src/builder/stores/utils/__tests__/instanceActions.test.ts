@@ -16,6 +16,7 @@ import {
   withComponentInstanceMirror,
   withComponentOriginMirror,
 } from "@/adapters/canonical/componentSemanticsMirror";
+import { exportLegacyDocument } from "@/adapters/canonical/exportLegacyDocument";
 import type { Element, Page } from "../../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import {
@@ -223,8 +224,6 @@ describe("instance store actions", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", doc);
     registerCanonicalMutationStoreActions({
-      mergeElements: useStore.getState().mergeElements,
-      setElements: useStore.getState().setElements,
       getCurrentLegacySnapshot: () => ({
         elements: useStore.getState().elements,
         pages: [page],
@@ -251,11 +250,9 @@ describe("instance store actions", () => {
       ref: origin.id,
       metadata: expect.objectContaining({
         customId: "button_2",
-        legacyProps: expect.objectContaining({
-          customId: "button_2",
-          componentRole: "instance",
-          masterId: origin.id,
-        }),
+        legacyProps: expect.objectContaining(
+          withComponentInstanceMirror({ customId: "button_2" }, origin.id),
+        ),
       }),
     });
   });
@@ -551,8 +548,6 @@ describe("instance store actions", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", doc);
     registerCanonicalMutationStoreActions({
-      mergeElements: useStore.getState().mergeElements,
-      setElements: useStore.getState().setElements,
       getCurrentLegacySnapshot: () => ({
         elements: useStore.getState().elements,
         pages: [page],
@@ -982,6 +977,7 @@ describe("instance store actions", () => {
               props: { children: "Click" },
               metadata: {
                 type: "legacy-element-props",
+                customId: "primary-action",
                 legacyProps: {
                   id: "button",
                   page_id: "page-1",
@@ -1005,8 +1001,6 @@ describe("instance store actions", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", doc);
     registerCanonicalMutationStoreActions({
-      mergeElements: useStore.getState().mergeElements,
-      setElements: useStore.getState().setElements,
       getCurrentLegacySnapshot: () => ({
         elements: useStore.getState().elements,
         pages: [page],
@@ -1032,7 +1026,9 @@ describe("instance store actions", () => {
         }),
       }),
     ]);
-    expect(useStore.getState().elementsMap.get("button")).toMatchObject(
+    expect(
+      exportLegacyDocument(nextDoc!).find((element) => element.id === "button"),
+    ).toMatchObject(
       withComponentOriginMirror({
         componentName: "primary-action",
         reusable: true,

@@ -1,7 +1,7 @@
 import type { Element } from "@/types/builder/unified.types";
 import { matchesLegacyLayoutId } from "./legacyElementFields";
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
-import { canonicalDocumentToElements } from "@/builder/stores/canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "@/builder/stores/canonical/canonicalElementsView";
 import {
   canonicalDocumentToFrameElementScopes,
   isElementInCanonicalFrameScope,
@@ -14,6 +14,16 @@ export interface FrameElementLoaderDb {
 
 function isBodyElement(element: Element): boolean {
   return element.type.toLowerCase() === "body";
+}
+
+function collectFrameLoaderElements(
+  doc: Parameters<typeof visitCanonicalDocumentElements>[0],
+): Element[] {
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element as Element);
+  });
+  return elements;
 }
 
 export function isFrameElementForFrame(
@@ -82,7 +92,7 @@ export async function loadFrameElements(
   const doc = projectId ? canonical.documents.get(projectId) : null;
   if (!doc) return [];
 
-  const elements = canonicalDocumentToElements(doc) as Element[];
+  const elements = collectFrameLoaderElements(doc);
   const scope = canonicalDocumentToFrameElementScopes(doc).get(frameId);
   const frameElements = scope
     ? elements.filter((element) => isFrameElementForFrame(element, scope))

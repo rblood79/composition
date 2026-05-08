@@ -7,6 +7,20 @@ tags: [domain, history, undo-redo]
 
 상태 변경 전 반드시 히스토리를 기록합니다.
 
+ADR-122 이후 Builder runtime에서 History/Undo는 active canonical document에서
+파생한 element source를 우선 사용합니다. legacy `Element[]` snapshot은
+canonical document가 아직 없는 bootstrap/compatibility fallback일 때만 허용합니다.
+`historyManager.addDiffEntry()` / `addBatchDiffEntry()`가 생성한 serialized
+`data.diff` / `data.diffs` payload는 undo/redo/goToHistoryIndex에서 snapshot
+payload보다 먼저 적용되어야 합니다.
+History replay가 `setElementsCanonicalPrimary(nextElements)`를 호출할 때는 full
+snapshot semantics가 유지되어야 합니다. 즉 page/layout shell과 structural `body`는
+보존하되, `nextElements`에 없는 legacy-exportable runtime node는 canonical
+document에서 prune되어야 하며, 삭제된 node가 `db.documents`에 남아 refresh 후
+되살아나면 안 됩니다. add/remove/group 계열은 아직 canonical node event schema
+확장이 open이므로, schema 전환 전에는 diff/event payload와 full-replace persistence
+smoke를 함께 검증합니다.
+
 ## 히스토리 아키텍처
 
 ```typescript
@@ -48,10 +62,14 @@ historyManager.addEntry({ ... });  // 이미 변경된 후 기록
 
 ```typescript
 import { historyManager } from "@/builder/stores/history";
+import { setElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 
 // ✅ 히스토리 기록 → 상태 변경 순서
 const updateElementProps = (elementId: string, props: Props) => {
-  const element = getElementById(get().elementsMap, elementId);
+  const sourceElements = getActiveCanonicalElements() ?? get().elements;
+  const element = sourceElements.find(
+    (candidate) => candidate.id === elementId,
+  );
   if (!element) return;
 
   // 1. 변경 전 히스토리 기록 (diff 기반)
@@ -62,13 +80,15 @@ const updateElementProps = (elementId: string, props: Props) => {
   );
 
   // 2. 상태 변경
-  set({
-    elements: state.elements.map((el) =>
-      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
-    ),
-  });
+  const nextElements = sourceElements.map((el) =>
+    el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
+  );
+  set({ elements: nextElements });
 
-  // 3. 인덱스 재구성
+  // 3. canonical document를 먼저 갱신
+  setElementsCanonicalPrimary(nextElements);
+
+  // 4. 인덱스 재구성
   get()._rebuildIndexes();
 };
 
@@ -86,13 +106,21 @@ const addElement = (element: Element) => {
 
 // ✅ 배치 작업 시
 const batchUpdate = (updates: ElementUpdate[]) => {
-  const prevElements = updates.map((u) =>
-    structuredClone(getElementById(elementsMap, u.id)),
+  const sourceElements = getActiveCanonicalElements() ?? get().elements;
+  const elementMap = new Map(
+    sourceElements.map((element) => [element.id, element]),
   );
+  const prevElements = updates
+    .map((u) => elementMap.get(u.id))
+    .filter((element): element is Element => Boolean(element))
+    .map((element) => structuredClone(element));
+  const nextElements = applyUpdates(sourceElements, updates);
 
-  historyManager.addBatchDiffEntry(prevElements, newElements);
+  historyManager.addBatchDiffEntry(prevElements, nextElements);
 
-  set({ elements: applyUpdates(elements, updates) });
+  set({ elements: nextElements });
+  setElementsCanonicalPrimary(nextElements);
+  get()._rebuildIndexes();
 };
 ```
 
@@ -139,14 +167,18 @@ get().batchUpdateElementProps(batch);
 
 ### batch 히스토리 Undo/Redo
 
-`batchUpdateElementProps`가 기록하는 `type: 'batch'` 히스토리 엔트리는 `historyActions.ts`에서 완전히 처리됩니다.
+`batchUpdateElementProps`가 기록하는 `type: 'batch'` 히스토리 엔트리는
+`historyActions.ts`에서 처리됩니다. `data.diffs`가 있으면 diff/event payload가
+우선이고, `prevElements/elements` 또는 `batchUpdates`는 compatibility payload입니다.
 
 ```typescript
 // historyActions.ts — batch 엔트리 Undo
 case 'batch':
-  // batch에 포함된 모든 Element를 이전 상태로 한 번에 복원
-  // 부모 Element와 자식 Element가 동시에 원복 → 일관성 유지
-  restoreBatchElements(entry.data.prevElements);
+  if (entry.data.diffs) {
+    applySerializedHistoryDiffs(entry.data.diffs, "undo");
+  } else {
+    restoreCompatibilityBatch(entry.data);
+  }
   break;
 ```
 
@@ -196,16 +228,22 @@ export const createUndoAction = (set, get) => async () => {
       removeElementFromState(entry.elementId);
       break;
     case "update":
-      // 이전 상태로 복원
-      restoreElementState(entry.data.prevElement);
+      if (entry.data.diff) {
+        applySerializedHistoryDiff(entry.data.diff, "undo");
+      } else {
+        restoreCompatibilityElementState(entry.data);
+      }
       break;
     case "remove":
       // 제거된 요소 복원
       addElementToState(entry.data.element);
       break;
     case "batch":
-      // batch에 포함된 모든 Element를 이전 상태로 복원
-      restoreBatchElements(entry.data.prevElements);
+      if (entry.data.diffs) {
+        applySerializedHistoryDiffs(entry.data.diffs, "undo");
+      } else {
+        restoreCompatibilityBatch(entry.data);
+      }
       break;
   }
 };

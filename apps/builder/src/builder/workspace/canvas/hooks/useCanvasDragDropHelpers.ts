@@ -6,7 +6,6 @@ import {
   viewportToScreenPoint,
   viewportToScreenSize,
 } from "../viewport/viewportTransforms";
-import { useStore } from "../../../stores";
 import { sameLegacyOwnership } from "@/adapters/canonical";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { parseZIndex } from "../layout/engines/cssStackingContext";
@@ -44,6 +43,11 @@ export function useCanvasDragDropHelpers({
   panOffset,
   zoom,
 }: UseCanvasDragDropHelpersParams) {
+  const childrenByParentId = useMemo(
+    () => buildChildrenMapFromElements(elements),
+    [elements],
+  );
+
   const sourceIndexById = useMemo(() => {
     const indexes = new Map<string, number>();
     elements.forEach((element, index) => {
@@ -138,28 +142,30 @@ export function useCanvasDragDropHelpers({
     [pageHeight, pageWidth],
   );
 
-  const getDescendantIds = useCallback((rootId: string) => {
-    const childrenMap = useStore.getState().childrenMap;
-    const result = new Set<string>();
-    const stack = [rootId];
+  const getDescendantIds = useCallback(
+    (rootId: string) => {
+      const result = new Set<string>();
+      const stack = [rootId];
 
-    while (stack.length > 0) {
-      const currentId = stack.pop();
-      if (!currentId) {
-        continue;
-      }
-      const children = childrenMap.get(currentId) ?? [];
-      for (const child of children) {
-        if (result.has(child.id)) {
+      while (stack.length > 0) {
+        const currentId = stack.pop();
+        if (!currentId) {
           continue;
         }
-        result.add(child.id);
-        stack.push(child.id);
+        const children = childrenByParentId.get(currentId) ?? [];
+        for (const child of children) {
+          if (result.has(child.id)) {
+            continue;
+          }
+          result.add(child.id);
+          stack.push(child.id);
+        }
       }
-    }
 
-    return result;
-  }, []);
+      return result;
+    },
+    [childrenByParentId],
+  );
 
   const findDropTarget = useCallback(
     (point: { x: number; y: number }, draggedId: string) => {
@@ -236,8 +242,7 @@ export function useCanvasDragDropHelpers({
         flexDirection === "row" || flexDirection === "row-reverse";
 
       // 자식을 가질 수 있는 컨테이너인지 확인
-      const childrenMap = useStore.getState().childrenMap;
-      const targetChildren = childrenMap.get(target.element.id);
+      const targetChildren = childrenByParentId.get(target.element.id);
       const isContainer =
         target.element.type.toLowerCase() === "body" ||
         (targetChildren && targetChildren.length > 0);
@@ -277,6 +282,7 @@ export function useCanvasDragDropHelpers({
     },
     [
       depthMap,
+      childrenByParentId,
       elementById,
       elements,
       getDescendantIds,
@@ -378,8 +384,7 @@ export function useCanvasDragDropHelpers({
       draggedId: string,
       isHorizontal: boolean,
     ): number => {
-      const childrenMap = useStore.getState().childrenMap;
-      const rawSiblings = childrenMap.get(parentId) ?? [];
+      const rawSiblings = childrenByParentId.get(parentId) ?? [];
       const siblings = rawSiblings
         .map((el) => elementById.get(el.id) ?? el)
         .filter((el) => el.id !== draggedId && !el.deleted);
@@ -396,7 +401,7 @@ export function useCanvasDragDropHelpers({
       }
       return siblings.length;
     },
-    [elementById, getElementBounds],
+    [childrenByParentId, elementById, getElementBounds],
   );
 
   return {
@@ -406,4 +411,20 @@ export function useCanvasDragDropHelpers({
     findElementsInLassoArea,
     getElementBounds,
   };
+}
+
+export function buildChildrenMapFromElements(
+  elements: readonly Element[],
+): Map<string, Element[]> {
+  const childrenMap = new Map<string, Element[]>();
+  for (const element of elements) {
+    if (element.deleted || !element.parent_id) continue;
+    const siblings = childrenMap.get(element.parent_id);
+    if (siblings) {
+      siblings.push(element);
+    } else {
+      childrenMap.set(element.parent_id, [element]);
+    }
+  }
+  return childrenMap;
 }

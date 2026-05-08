@@ -39,11 +39,7 @@ const EXCLUDE_PATTERNS: readonly RegExp[] = [
 const VIOLATION_PATTERN =
   /elementsApi\.(create|update|insert|delete)|setElements\(|mergeElements\(/;
 
-const ALLOWED_LINE_PATTERNS: readonly RegExp[] = [
-  // Canonical document hydrate derives an in-memory render model for the
-  // existing element store surface. It is not a legacy persistence write site.
-  /setElements\(renderModel\.elements as Element\[\]\)/,
-];
+const ALLOWED_LINE_PATTERNS: readonly RegExp[] = [];
 
 /**
  * **G4 grep gate PASS 도달 (2026-05-01)**: BASELINE_VIOLATION_COUNT = 0.
@@ -58,7 +54,7 @@ const ALLOWED_LINE_PATTERNS: readonly RegExp[] = [
  *   + dev/editingSemanticsFixture)
  * - 0: mutation reverse 광역 완료 (BuilderCore, stores/elements,
  *   useIframeMessenger, usePageManager, dbPersistence, FramesTab,
- *   PageLayoutSelector, TableEditor, useMessageCoalescing JSDoc)
+ *   PageLayoutSelector, TableEditor)
  *   → **G4 grep gate PASS**.
  */
 const BASELINE_VIOLATION_COUNT = 0;

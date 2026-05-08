@@ -20,7 +20,7 @@ user_invocable: true
 
 # Cross-Check: 렌더링 경로 정합성 검증
 
-변경된 컴포넌트의 CSS(Preview), WebGL(Skia Canvas), PixiJS(이벤트) 렌더링 경로가 일관되게 동작하는지 검증합니다.
+변경된 컴포넌트의 CSS(Preview) ↔ Skia Canvas (Builder, ADR-100 단일 렌더러) 렌더링 경로가 일관되게 동작하는지 검증합니다.
 
 ## Phase 1: 변경 대상 식별
 

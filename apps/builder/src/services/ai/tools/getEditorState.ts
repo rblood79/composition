@@ -4,23 +4,29 @@
  * 현재 에디터 상태를 조회하여 AI에게 컨텍스트를 제공
  */
 
-import type { ToolExecutor, ToolExecutionResult } from '../../../types/integrations/ai.types';
-import { getStoreState } from '../../../builder/stores';
+import type {
+  ToolExecutor,
+  ToolExecutionResult,
+} from "../../../types/integrations/ai.types";
+import { getAiToolReadModel } from "./canonicalToolReadModel";
 
 export const getEditorStateTool: ToolExecutor = {
-  name: 'get_editor_state',
+  name: "get_editor_state",
 
   async execute(args: Record<string, unknown>): Promise<ToolExecutionResult> {
     const includeStyles = args.includeStyles !== false;
-    const maxDepth = typeof args.maxDepth === 'number' ? args.maxDepth : 5;
+    const maxDepth = typeof args.maxDepth === "number" ? args.maxDepth : 5;
 
     try {
-      const state = getStoreState();
-      const { elements, currentPageId, selectedElementId, pages, childrenMap } = state;
+      const {
+        childrenByParent,
+        elements,
+        state: { currentPageId, pages, selectedElementId },
+      } = getAiToolReadModel();
 
       // 현재 페이지 요소만 필터
       const pageElements = elements.filter(
-        (el) => el.page_id === currentPageId
+        (el) => el.page_id === currentPageId,
       );
 
       // 트리 구조로 변환
@@ -28,8 +34,10 @@ export const getEditorStateTool: ToolExecutor = {
         if (depth > maxDepth) return [];
 
         const children = parentId
-          ? childrenMap?.get(parentId) || []
-          : pageElements.filter((el) => el.parent_id === null || el.type === 'body');
+          ? childrenByParent.get(parentId) || []
+          : pageElements.filter(
+              (el) => el.parent_id === null || el.type === "body",
+            );
 
         return children.map((child) => {
           const node: Record<string, unknown> = {
@@ -39,7 +47,7 @@ export const getEditorStateTool: ToolExecutor = {
 
           // 주요 props만 포함 (토큰 절약)
           const propKeys = Object.keys(child.props || {}).filter(
-            (k) => k !== 'style'
+            (k) => k !== "style",
           );
           if (propKeys.length > 0) {
             node.props = propKeys;
@@ -47,7 +55,7 @@ export const getEditorStateTool: ToolExecutor = {
 
           if (includeStyles && child.props?.style) {
             const styleKeys = Object.keys(
-              child.props.style as Record<string, unknown>
+              child.props.style as Record<string, unknown>,
             );
             if (styleKeys.length > 0) {
               node.styleKeys = styleKeys;
@@ -78,7 +86,7 @@ export const getEditorStateTool: ToolExecutor = {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   },

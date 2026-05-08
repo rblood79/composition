@@ -35,6 +35,7 @@ import {
 } from "../skia/dragAnimator";
 import { historyManager } from "../../../stores/history";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
 import { getDB } from "../../../../lib/db";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
@@ -51,6 +52,16 @@ type SceneBoundsResolver = (
   elementId: string,
 ) => BoundingBox | null | undefined;
 
+type DragReadModel = {
+  elementsById: ReadonlyMap<string, Element>;
+  childrenByParent: ReadonlyMap<string, Element[]>;
+};
+
+type DragReadModelResolvers = {
+  getInteractiveElementsMap?: () => Map<string, Element>;
+  getInteractiveChildrenMap?: () => Map<string, Element[]>;
+};
+
 interface UseDragBridgeOptions {
   onStartMoveRef: MutableRefObject<
     (
@@ -65,6 +76,8 @@ interface UseDragBridgeOptions {
   onEndDragRef: MutableRefObject<() => void>;
   onCancelDragRef: MutableRefObject<() => void>;
   dropIndicatorSnapshotRef: MutableRefObject<DropIndicatorSnapshot | null>;
+  getInteractiveElementsMap?: () => Map<string, Element>;
+  getInteractiveChildrenMap?: () => Map<string, Element[]>;
   /** false이면 ref 바인딩 스킵 (SelectionLayer가 대신 바인딩) */
   enabled?: boolean;
 }
@@ -107,12 +120,51 @@ function toDragSnapshotEntry(element: Element): DragSnapshotEntry {
   };
 }
 
+export function resolveDragReadModel(
+  fallback: DragReadModel,
+  resolvers: DragReadModelResolvers = {},
+): DragReadModel {
+  return {
+    elementsById:
+      resolvers.getInteractiveElementsMap?.() ?? fallback.elementsById,
+    childrenByParent:
+      resolvers.getInteractiveChildrenMap?.() ?? fallback.childrenByParent,
+  };
+}
+
+function buildDragReadModelFromElements(elements: Element[]): DragReadModel {
+  const elementsById = new Map(
+    elements.map((element) => [element.id, element]),
+  );
+  const childrenByParent = new Map<string, Element[]>();
+  for (const element of elements) {
+    if (element.deleted || !element.parent_id) continue;
+    const siblings = childrenByParent.get(element.parent_id);
+    if (siblings) {
+      siblings.push(element);
+    } else {
+      childrenByParent.set(element.parent_id, [element]);
+    }
+  }
+  return { elementsById, childrenByParent };
+}
+
+function buildDragReadModelFromCanonicalDocument(
+  doc: Parameters<typeof visitCanonicalDocumentElements>[0],
+): DragReadModel {
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return buildDragReadModelFromElements(elements);
+}
+
 export function collectDragSnapshotEntries(
-  elementsMap: Map<string, Element>,
-  childrenMap: Map<string, Element[]>,
+  elementsById: ReadonlyMap<string, Element>,
+  childrenByParent: ReadonlyMap<string, Element[]>,
   draggedId: string,
 ): DragSnapshotEntry[] {
-  const dragged = elementsMap.get(draggedId);
+  const dragged = elementsById.get(draggedId);
   if (!dragged) return [];
 
   const entries = new Map<string, DragSnapshotEntry>();
@@ -121,7 +173,7 @@ export function collectDragSnapshotEntries(
     entries.set(element.id, toDragSnapshotEntry(element));
   };
 
-  for (const element of elementsMap.values()) {
+  for (const element of elementsById.values()) {
     if (element.parent_id === dragged.parent_id) {
       addElement(element);
     }
@@ -132,9 +184,9 @@ export function collectDragSnapshotEntries(
     const currentId = stack.pop();
     if (!currentId) continue;
 
-    addElement(elementsMap.get(currentId));
+    addElement(elementsById.get(currentId));
 
-    const children = childrenMap.get(currentId) ?? [];
+    const children = childrenByParent.get(currentId) ?? [];
     for (const child of children) {
       const childId = child.id;
       if (entries.has(childId)) continue;
@@ -206,6 +258,8 @@ export function useDragBridge({
   onEndDragRef,
   onCancelDragRef,
   dropIndicatorSnapshotRef,
+  getInteractiveElementsMap,
+  getInteractiveChildrenMap,
   enabled = true,
 }: UseDragBridgeOptions): void {
   const dragStartSnapshotRef = useRef<DragSnapshotEntry[] | null>(null);
@@ -224,7 +278,11 @@ export function useDragBridge({
       const scenePoint = data.current;
       if (!scenePoint) return;
 
-      const dragged = dragState.elementsMap.get(draggedId);
+      const dragStore = resolveDragReadModel(dragState, {
+        getInteractiveElementsMap,
+        getInteractiveChildrenMap,
+      });
+      const dragged = dragStore.elementsById.get(draggedId);
       if (isManualPositionDragTarget(dragged)) {
         setDragVisualOffset(draggedId, delta.x, delta.y);
         updateAnimationTargets(null);
@@ -237,8 +295,8 @@ export function useDragBridge({
       // 드래그 시작 시 원래 parent/page 스냅샷 캡처
       if (!dragStartSnapshotRef.current) {
         dragStartSnapshotRef.current = collectDragSnapshotEntries(
-          dragState.elementsMap,
-          dragState.childrenMap,
+          dragStore.elementsById,
+          dragStore.childrenByParent,
           draggedId,
         );
       }
@@ -269,18 +327,12 @@ export function useDragBridge({
               insertionLinePosition: computeInsertionLinePosition(
                 prevTarget,
                 draggedId,
-                {
-                  elementsMap: dragState.elementsMap,
-                  childrenMap: dragState.childrenMap,
-                },
+                dragStore,
               ),
               placeholderBounds: computeDropPlaceholderBounds(
                 prevTarget,
                 draggedId,
-                {
-                  elementsMap: dragState.elementsMap,
-                  childrenMap: dragState.childrenMap,
-                },
+                dragStore,
               ),
             };
             return;
@@ -292,10 +344,7 @@ export function useDragBridge({
       const resolved = resolveDropTarget(
         scenePoint,
         draggedId,
-        {
-          elementsMap: dragState.elementsMap,
-          childrenMap: dragState.childrenMap,
-        },
+        dragStore,
         hitTestPoint,
       );
 
@@ -303,10 +352,7 @@ export function useDragBridge({
 
       // 형제 시각적 오프셋 갱신
       if (resolved) {
-        const offsets = computeSiblingOffsets(resolved, draggedId, {
-          elementsMap: dragState.elementsMap,
-          childrenMap: dragState.childrenMap,
-        });
+        const offsets = computeSiblingOffsets(resolved, draggedId, dragStore);
         updateAnimationTargets(offsets.size > 0 ? offsets : null);
       } else {
         updateAnimationTargets(null);
@@ -330,15 +376,13 @@ export function useDragBridge({
           insertionLinePosition: computeInsertionLinePosition(
             resolved,
             draggedId,
-            {
-              elementsMap: dragState.elementsMap,
-              childrenMap: dragState.childrenMap,
-            },
+            dragStore,
           ),
-          placeholderBounds: computeDropPlaceholderBounds(resolved, draggedId, {
-            elementsMap: dragState.elementsMap,
-            childrenMap: dragState.childrenMap,
-          }),
+          placeholderBounds: computeDropPlaceholderBounds(
+            resolved,
+            draggedId,
+            dragStore,
+          ),
         };
       } else {
         dropIndicatorSnapshotRef.current = null;
@@ -346,8 +390,12 @@ export function useDragBridge({
     },
     onMoveEnd: (elementId, _delta) => {
       const state = useStore.getState();
+      const dragStore = resolveDragReadModel(state, {
+        getInteractiveElementsMap,
+        getInteractiveChildrenMap,
+      });
       const manualPositionProps = resolveManualPositionDragProps(
-        state.elementsMap.get(elementId),
+        dragStore.elementsById.get(elementId),
         _delta,
       );
       const finalTarget = lastResolvedDropTargetRef.current;
@@ -376,9 +424,11 @@ export function useDragBridge({
         (startSnapshot ?? []).map((snapshot) => [snapshot.id, snapshot]),
       );
       if (startSnapshot && finalTarget?.isReparent) {
-        const targetSiblings = state.childrenMap.get(finalTarget.containerId);
+        const targetSiblings = dragStore.childrenByParent.get(
+          finalTarget.containerId,
+        );
         targetSiblings?.forEach((sibling) => {
-          const element = state.elementsMap.get(sibling.id);
+          const element = dragStore.elementsById.get(sibling.id);
           if (element && !prevSnapshotMap.has(element.id)) {
             prevSnapshotMap.set(element.id, toDragSnapshotEntry(element));
           }
@@ -386,26 +436,41 @@ export function useDragBridge({
       }
 
       // 단일 canonical-primary commit
+      let postMoveStore: DragReadModel | null = null;
       if (finalTarget && !finalTarget.isAdjacentInsertion) {
-        const updates = computeReorderFromDropTarget(finalTarget, elementId, {
-          elementsMap: state.elementsMap,
-          childrenMap: state.childrenMap,
-        });
+        const updates = computeReorderFromDropTarget(
+          finalTarget,
+          elementId,
+          dragStore,
+        );
         if (updates.length > 0) {
-          moveElementCanonicalPrimary(
+          const moveResult = moveElementCanonicalPrimary(
             elementId,
             finalTarget.containerId,
             finalTarget.insertionIndex,
           );
+          if (moveResult.document) {
+            postMoveStore = buildDragReadModelFromCanonicalDocument(
+              moveResult.document,
+            );
+          }
         }
       }
 
       // History + DB Persist
       if (startSnapshot) {
         const state = useStore.getState();
+        const historyStore =
+          postMoveStore ??
+          resolveDragReadModel(state, {
+            getInteractiveElementsMap,
+            getInteractiveChildrenMap,
+          });
         const affectedIds = new Set(prevSnapshotMap.keys());
         if (finalTarget?.isReparent) {
-          const newSiblings = state.childrenMap.get(finalTarget.containerId);
+          const newSiblings = historyStore.childrenByParent.get(
+            finalTarget.containerId,
+          );
           newSiblings?.forEach((c) => affectedIds.add(c.id));
           affectedIds.add(elementId);
         }
@@ -414,7 +479,7 @@ export function useDragBridge({
         const prevElements = affectedIdList
           .map((id) => {
             const snapshot = prevSnapshotMap.get(id);
-            const el = state.elementsMap.get(id);
+            const el = historyStore.elementsById.get(id);
             if (!snapshot || !el) return undefined;
             return {
               ...el,
@@ -428,14 +493,14 @@ export function useDragBridge({
           })
           .filter((el): el is NonNullable<typeof el> => el !== undefined);
         const nextElements = affectedIdList
-          .map((id) => state.elementsMap.get(id))
+          .map((id) => historyStore.elementsById.get(id))
           .filter((el): el is NonNullable<typeof el> => el !== undefined);
 
         if (prevElements.length > 0 && nextElements.length > 0) {
           const hasChange =
             Boolean(finalTarget && !finalTarget.isAdjacentInsertion) ||
             prevElements.some((p) => {
-              const next = state.elementsMap.get(p.id);
+              const next = historyStore.elementsById.get(p.id);
               return (
                 next &&
                 (next.parent_id !== p.parent_id || next.page_id !== p.page_id)

@@ -153,7 +153,7 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:6006
 
 ## Memory 활용 (세션 간 지식 축적)
 
-검증 완료 후 `.claude/agent-memory/evaluator/MEMORY.md`에 아래를 기록한다:
+검증 완료 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/evaluator/` 컨벤션은 2026-05-09 폐기):
 
 - **검증 환경 변경**: 포트, 테스트 계정, 시드 데이터
 - **재현 가능한 실패 패턴**: 반복 발견된 시각 불일치·FPS 저하 케이스

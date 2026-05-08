@@ -3,6 +3,7 @@ import type { Element } from "../../../../types/core/store.types";
 import {
   collectDragSnapshotEntries,
   isManualPositionDragTarget,
+  resolveDragReadModel,
   resolveManualPositionDragProps,
 } from "./useDragBridge";
 import type { BoundingBox } from "../selection/types";
@@ -88,6 +89,37 @@ describe("manual position drag semantics", () => {
 });
 
 describe("drag snapshot collection", () => {
+  it("uses interactive canonical maps ahead of fallback store maps", () => {
+    const fallbackElement = makeElement({
+      id: "button",
+      parent_id: "body",
+      props: { label: "legacy" },
+    });
+    const canonicalElement = makeElement({
+      id: "button",
+      parent_id: "body",
+      props: { label: "canonical" },
+    });
+    const fallback = {
+      elementsById: new Map([[fallbackElement.id, fallbackElement]]),
+      childrenByParent: new Map([["body", [fallbackElement]]]),
+    };
+    const interactive = {
+      elementsById: new Map([[canonicalElement.id, canonicalElement]]),
+      childrenByParent: new Map([["body", [canonicalElement]]]),
+    };
+
+    const resolved = resolveDragReadModel(fallback, {
+      getInteractiveElementsMap: () => interactive.elementsById,
+      getInteractiveChildrenMap: () => interactive.childrenByParent,
+    });
+
+    expect(resolved.elementsById.get("button")?.props).toEqual({
+      label: "canonical",
+    });
+    expect(resolved.childrenByParent.get("body")).toEqual([canonicalElement]);
+  });
+
   it("captures old siblings and dragged subtree page/parent state", () => {
     const body = makeElement({ id: "body", type: "body", parent_id: null });
     const dragged = makeElement({

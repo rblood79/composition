@@ -168,7 +168,7 @@ gh search code "[패턴 키워드]" --language=TypeScript
 
 1. **composition 기존 코드** — 프로젝트 내 유사 구현이 이미 있는지 먼저 확인
 2. **React Spectrum S2 GitHub 소스** — S2 기능 추가/변환 시 실제 구현 참조 (API 문서 < 소스코드)
-3. **사용 중인 라이브러리의 공식 소스** — React-Aria, PixiJS, Taffy 등의 구현 참조
+3. **사용 중인 라이브러리의 공식 소스** — React-Aria, CanvasKit/Skia, Taffy 등의 구현 참조
 4. **검증된 오픈소스** — GitHub Stars 1k+ 프로젝트의 관련 구현
 5. **공식 문서/예제** — 라이브러리 공식 문서의 고급 패턴
 
@@ -184,7 +184,7 @@ gh search code "[패턴 키워드]" --language=TypeScript
 3. **DirectContainer 패턴** → 엔진 결과 x/y 직접 배치
 4. **postMessage origin 검증** → 메시지 핸들러에서 항상 origin 확인
 5. **히스토리 기록 필수** → 변경 전 상태 반드시 기록
-6. **O(1) 검색** → elementsMap으로 요소 검색, 배열 순회 금지
+6. **O(1) 검색** → canonical selectors 우선, `elementsMap` read-only fallback. array traversal 금지 (ADR-122)
 7. **layoutVersion 증가 필수** → 레이아웃 영향 props 변경 시 `layoutVersion + 1` (누락 시 크기 고정 버그)
 8. **order_num 재정렬** → `batchUpdateElementOrders()` 단일 set() 사용, 개별 N회 호출 금지
 9. **Spec TokenRef 변환 필수** → shapes 내 숫자 연산에 TokenRef 직접 사용 금지, `resolveToken()` 필수
@@ -214,9 +214,9 @@ const styles = tv({ base: '...', variants: { ... } });
 
 - StateCreator factory 패턴 준수
 - 슬라이스를 개별 파일로 분리
-- O(1) 인덱스 사용: elementsMap, childrenMap, pageIndex
+- canonical selectors 우선 + read-only elementsMap/childrenMap fallback (ADR-122 mirror runtime 제거 진행)
 
-### Canvas / PixiJS
+### Canvas (Skia)
 
 - DirectContainer로 엔진 결과 x/y 직접 배치
 - 하이브리드 레이아웃 엔진 display 선택 규칙 준수
@@ -301,7 +301,7 @@ Sprint Contract가 있으면 각 완료 기준을 직접 확인한다:
 
 ## Memory 활용 (세션 간 지식 축적)
 
-구현 완료 후 `.claude/agent-memory/implementer/MEMORY.md`에 아래를 기록한다:
+구현 완료 후 공식 auto memory (`~/.claude/projects/<slug>/memory/` 의 `feedback-*.md` 또는 `project-*.md`) 에 아래를 기록한다 (`agent-memory/implementer/` 컨벤션은 2026-05-09 폐기):
 
 - **핵심 파일 경로/엔트리 포인트 변경**: 리네이밍·이동·신규 추가
 - **반복 구현 패턴**: Spec 등록 4-point, size delegation, tv() variants 등 재사용 템플릿

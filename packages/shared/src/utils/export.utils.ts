@@ -377,13 +377,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function mergePropsWithStyleDeep(
   baseProps: Record<string, unknown>,
-  overrides: Record<string, unknown>,
+  patchProps: Record<string, unknown>,
 ): Record<string, unknown> {
-  const merged = { ...baseProps, ...overrides };
-  if (baseProps.style || overrides.style) {
+  const merged = { ...baseProps, ...patchProps };
+  if (baseProps.style || patchProps.style) {
     merged.style = {
       ...((baseProps.style as Record<string, unknown> | undefined) ?? {}),
-      ...((overrides.style as Record<string, unknown> | undefined) ?? {}),
+      ...((patchProps.style as Record<string, unknown> | undefined) ?? {}),
     };
   }
   return merged;

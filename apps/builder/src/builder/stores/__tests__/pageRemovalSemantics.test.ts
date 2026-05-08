@@ -8,8 +8,8 @@ import {
 } from "../../../adapters/canonical/canonicalMutations";
 import { getEditingSemanticsRole } from "../../../adapters/canonical/editingSemantics";
 import type { Element, Page } from "../../../types/builder/unified.types";
-import { getActiveCanonicalElementsSnapshot } from "../canonical/canonicalElementSnapshot";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
+import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 import { useStore } from "../elements";
 
 function makePage(id: string): Page {
@@ -100,6 +100,20 @@ function makePageDocument(
       },
     ],
   };
+}
+
+function findCanonicalElement(
+  doc: CompositionDocument | undefined,
+  elementId: string,
+): Element | undefined {
+  if (!doc) return undefined;
+  let match: Element | undefined;
+  visitCanonicalDocumentElements(doc, (element) => {
+    if (element.id === elementId) {
+      match = element;
+    }
+  });
+  return match;
 }
 
 describe("removePageLocal component semantics", () => {
@@ -255,8 +269,6 @@ describe("removePageLocal component semantics", () => {
     });
     useStore.getState().setElements([bodyOne, instance]);
     registerCanonicalMutationStoreActions({
-      mergeElements: useStore.getState().mergeElements,
-      setElements: useStore.getState().setElements,
       getCurrentLegacySnapshot: () => ({
         elements: Array.from(useStore.getState().elementsMap.values()),
         pages: useStore.getState().pages,
@@ -272,8 +284,9 @@ describe("removePageLocal component semantics", () => {
 
     const state = useStore.getState();
     const detachedInstance = state.elementsMap.get(instance.id);
-    const canonicalInstance = getActiveCanonicalElementsSnapshot()?.find(
-      (element) => element.id === instance.id,
+    const canonicalInstance = findCanonicalElement(
+      useCanonicalDocumentStore.getState().getDocument("project-1"),
+      instance.id,
     );
     expect(detachedInstance).toMatchObject({
       id: instance.id,

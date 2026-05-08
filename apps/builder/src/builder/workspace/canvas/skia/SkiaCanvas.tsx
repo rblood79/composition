@@ -1,12 +1,10 @@
 /**
- * SkiaCanvas — SceneGraph 기반 독립 Skia 렌더러 (ADR-100 Phase 2.6)
+ * SkiaCanvas — 독립 Skia 렌더러 (ADR-100 Phase 2.6)
  *
  * PixiJS Application 없이 동작하는 단독 캔버스 컴포넌트.
  * - 자체 requestAnimationFrame 루프
  * - Camera 클래스로 viewport 제어
  * - 기존 빌드 파이프라인(buildSkiaFrameContent, buildFrameRenderPlan) 재사용
- * - Feature flag: USE_SCENE_GRAPH
- *
  * SkiaOverlay와 동일한 렌더링 결과를 산출하되,
  * PixiJS ticker/Container/EventBoundary에 대한 의존성을 완전히 제거한다.
  */
@@ -112,7 +110,7 @@ export interface SkiaCanvasProps {
 // ---------------------------------------------------------------------------
 
 /**
- * SceneGraph 기반 Skia 단독 렌더러.
+ * Skia 단독 렌더러.
  *
  * PixiJS 없이 동작:
  * - z-index: 2 — CanvasKit 캔버스 (디자인 + 오버레이)
@@ -210,6 +208,7 @@ export function SkiaCanvas({
   // Workflow/hover 캐시
   const invalidationPacketRef = useRef(invalidationPacket);
   const rendererInputRef = useRef(rendererInput);
+  const storeRenderBridgeRef = useRef<StoreRenderBridge | null>(null);
   const lastWorkflowOverlaySignatureRef = useRef("");
   const lastWorkflowGraphSignatureRef = useRef("");
   const lastWfSubTogglesRef = useRef("");
@@ -261,6 +260,13 @@ export function SkiaCanvas({
       rendererInput.sceneSnapshot.document.allPageFrameVersion;
     invalidateCommandStreamCache();
     rendererRef.current?.invalidateContent();
+    storeRenderBridgeRef.current?.sync(
+      rendererInput.elementsMap,
+      getSharedLayoutMap(),
+      resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
+      rendererInput.childrenMap,
+      true,
+    );
     recordInvalidation("content", "rendererInput");
   }, [rendererInput]);
 
@@ -274,26 +280,14 @@ export function SkiaCanvas({
   useEffect(() => {
     if (app) return; // PixiJS가 있으면 기존 Sprite 경로 사용
     const bridge = new StoreRenderBridge();
+    storeRenderBridgeRef.current = bridge;
     bridge.connect({
       getElements: () => rendererInputRef.current.elementsMap,
       getLayoutMap: () => getSharedLayoutMap(),
       getChildrenMap: () => rendererInputRef.current.childrenMap,
-      // 선택적 구독: elementsMap/childrenMap/darkMode 변경 감지
+      // rendererInput 변경은 위 effect 에서 직접 bridge.sync 를 호출한다.
+      // 이 subscription 은 theme-only invalidation boundary 로 제한한다.
       subscribe: (cb) => {
-        let prevElements = useStore.getState().elementsMap;
-        let prevChildren = useStore.getState().childrenMap;
-        const unsubStore = useStore.subscribe(() => {
-          const state = useStore.getState();
-          if (
-            state.elementsMap !== prevElements ||
-            state.childrenMap !== prevChildren
-          ) {
-            prevElements = state.elementsMap;
-            prevChildren = state.childrenMap;
-            cb();
-          }
-        });
-        // themeConfigStore 변경 시 전체 rebuild (darkMode/tint/neutral/radiusScale)
         let prevThemeVersion = useThemeConfigStore.getState().themeVersion;
         const unsubTheme = useThemeConfigStore.subscribe(() => {
           const { themeVersion } = useThemeConfigStore.getState();
@@ -307,7 +301,6 @@ export function SkiaCanvas({
           }
         });
         return () => {
-          unsubStore();
           unsubTheme();
         };
       },
@@ -315,7 +308,12 @@ export function SkiaCanvas({
       getTheme: () => resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
     });
 
-    return () => bridge.dispose();
+    return () => {
+      if (storeRenderBridgeRef.current === bridge) {
+        storeRenderBridgeRef.current = null;
+      }
+      bridge.dispose();
+    };
   }, [app]);
 
   // Camera ↔ viewport 동기화는 viewportState 뮤터블 ref로 대체 (Phase 5.4)
@@ -336,6 +334,9 @@ export function SkiaCanvas({
   useElementHoverInteraction({
     containerEl,
     frameAreasRef,
+    pageFramesRef: visiblePageFramesRef,
+    getHoverElementsMap: () => rendererInputRef.current.elementsMap,
+    getHoverChildrenMap: () => rendererInputRef.current.childrenMap,
     hoverStateRef: elementHoverStateRef,
     overlayVersionRef,
     treeBoundsMapRef,
@@ -343,6 +344,7 @@ export function SkiaCanvas({
 
   useScrollWheelInteraction({
     containerEl,
+    getScrollElementsMap: () => rendererInputRef.current.elementsMap,
     treeBoundsMapRef,
   });
 
@@ -657,7 +659,7 @@ export function SkiaCanvas({
           aiState: packet.ai,
           registryVersion,
           pagePosVersion: contentPagePositionVersion,
-          cameraContainer: null, // SceneGraph 모드: PixiJS Container 불필요
+          cameraContainer: null, // Skia 단독 모드: PixiJS Container 불필요
           cameraX,
           cameraY,
           cameraZoom,

@@ -55,8 +55,8 @@ describe("resolveDropTarget cross-page body targets", () => {
       { x: 940, y: 80 },
       source.id,
       {
-        childrenMap: new Map([[page1Body.id, [source]]]),
-        elementsMap: new Map([
+        childrenByParent: new Map([[page1Body.id, [source]]]),
+        elementsById: new Map([
           [page1Body.id, page1Body],
           [page2Body.id, page2Body],
           [source.id, source],
@@ -110,11 +110,11 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(cardInstance.id, { x: 924, y: 24, width: 360, height: 305 });
 
     const store = {
-      childrenMap: new Map([
+      childrenByParent: new Map([
         [page1Body.id, [source]],
         [page2Body.id, [cardInstance]],
       ]),
-      elementsMap: new Map([
+      elementsById: new Map([
         [page1Body.id, page1Body],
         [page2Body.id, page2Body],
         [source.id, source],
@@ -178,11 +178,11 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(secondCard.id, { x: 924, y: 140, width: 360, height: 100 });
 
     const store = {
-      childrenMap: new Map([
+      childrenByParent: new Map([
         [page1Body.id, [source]],
         [page2Body.id, [firstCard, secondCard]],
       ]),
-      elementsMap: new Map([
+      elementsById: new Map([
         [page1Body.id, page1Body],
         [page2Body.id, page2Body],
         [source.id, source],
@@ -233,8 +233,8 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(page2Body.id, { x: 900, y: 0, width: 800, height: 1000 });
 
     const store = {
-      childrenMap: new Map([[page1Body.id, [source]]]),
-      elementsMap: new Map([
+      childrenByParent: new Map([[page1Body.id, [source]]]),
+      elementsById: new Map([
         [page1Body.id, page1Body],
         [page2Body.id, page2Body],
         [source.id, source],
@@ -313,12 +313,12 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
 
     const store = {
-      childrenMap: new Map([
+      childrenByParent: new Map([
         [page1Body.id, [source]],
         [page2Body.id, [instance]],
         [instance.id, [ordinaryDescendant, slotDescendant]],
       ]),
-      elementsMap: new Map([
+      elementsById: new Map([
         [page1Body.id, page1Body],
         [page2Body.id, page2Body],
         [source.id, source],
@@ -373,8 +373,8 @@ describe("resolveDropTarget cross-page body targets", () => {
       { x: 80, y: 260 },
       source.id,
       {
-        childrenMap: new Map([[pageBody.id, [source, sibling]]]),
-        elementsMap: new Map([
+        childrenByParent: new Map([[pageBody.id, [source, sibling]]]),
+        elementsById: new Map([
           [pageBody.id, pageBody],
           [source.id, source],
           [sibling.id, sibling],
@@ -417,11 +417,11 @@ describe("resolveDropTarget cross-page body targets", () => {
       { x: 80, y: 80 },
       source.id,
       {
-        childrenMap: new Map([
+        childrenByParent: new Map([
           [pageBody.id, [group]],
           [group.id, [source, sibling]],
         ]),
-        elementsMap: new Map([
+        elementsById: new Map([
           [pageBody.id, pageBody],
           [group.id, group],
           [source.id, source],
@@ -469,8 +469,8 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(last.id, { x: 40, y: 172, width: 160, height: 100 });
 
     const store = {
-      childrenMap: new Map([[pageBody.id, [first, source, last]]]),
-      elementsMap: new Map([
+      childrenByParent: new Map([[pageBody.id, [first, source, last]]]),
+      elementsById: new Map([
         [pageBody.id, pageBody],
         [first.id, first],
         [source.id, source],
@@ -530,8 +530,8 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(last.id, { x: 172, y: 40, width: 100, height: 160 });
 
     const store = {
-      childrenMap: new Map([[pageBody.id, [first, source, last]]]),
-      elementsMap: new Map([
+      childrenByParent: new Map([[pageBody.id, [first, source, last]]]),
+      elementsById: new Map([
         [pageBody.id, pageBody],
         [first.id, first],
         [source.id, source],
@@ -598,8 +598,8 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(last.id, { x: 450, y: 80, width: 50, height: 40 });
 
     const store = {
-      childrenMap: new Map([[pageBody.id, [first, source, third, last]]]),
-      elementsMap: new Map([
+      childrenByParent: new Map([[pageBody.id, [first, source, third, last]]]),
+      elementsById: new Map([
         [pageBody.id, pageBody],
         [first.id, first],
         [source.id, source],
@@ -661,8 +661,8 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(source.id, { x: 20, y: 20, width: 50, height: 40 });
 
     const store = {
-      childrenMap: new Map([[sourceBody.id, [source]]]),
-      elementsMap: new Map([
+      childrenByParent: new Map([[sourceBody.id, [source]]]),
+      elementsById: new Map([
         [sourceBody.id, sourceBody],
         [targetBody.id, targetBody],
         [source.id, source],
@@ -720,8 +720,8 @@ describe("resolveDropTarget cross-page body targets", () => {
     mockBounds.set(source.id, { x: 40, y: 172, width: 160, height: 100 });
 
     const store = {
-      childrenMap: new Map([[pageBody.id, [first, middle, source]]]),
-      elementsMap: new Map([
+      childrenByParent: new Map([[pageBody.id, [first, middle, source]]]),
+      elementsById: new Map([
         [pageBody.id, pageBody],
         [first.id, first],
         [middle.id, middle],
@@ -750,14 +750,14 @@ describe("resolveDropTarget cross-page body targets", () => {
     ).toEqual([{ id: first.id }, { id: source.id }, { id: middle.id }]);
   });
 
-  it("uses childrenMap source order even when input metadata order differs", () => {
+  it("uses childrenByParent source order even when input metadata order differs", () => {
     const body = makeElement("body", { type: "body" });
     const first = makeElement("first", { parent_id: body.id, order_num: 2 });
     const middle = makeElement("middle", { parent_id: body.id, order_num: 0 });
     const source = makeElement("source", { parent_id: body.id, order_num: 1 });
     const store = {
-      childrenMap: new Map([[body.id, [first, middle, source]]]),
-      elementsMap: new Map([
+      childrenByParent: new Map([[body.id, [first, middle, source]]]),
+      elementsById: new Map([
         [body.id, body],
         [first.id, first],
         [middle.id, middle],

@@ -1258,7 +1258,7 @@ design §10.2.4 footnote 의 "write boundary cleanup" 정의 (`inspectorActions:
 - adapter 영역 광역 회귀 0 검증: `pnpm vitest run src/adapters/canonical` **165/165 PASS** (11 file 모두 PASS, 161 → 165 +4건)
 - canonical store 영역 회귀 0 검증: `vitest src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts` **23/23 PASS** (extension spread 추가 후 회귀 0)
 - G7 cutover 인접 영역 (`exportSsotGrepGate` / `persistenceWriteThroughStub` / `canonicalDocumentStore` / `FrameSlotSection`) **81/81 PASS**
-- 광역 측정 시 pre-existing fail (`storeBridge.test.ts` / `canonicalDocumentSync.test.ts` zustand init setup fail + `integration.test.ts` TC1) — 단일 file isolated 측정으로 본 cutover 와 무관 noise 분리 (memory tier3-entry 명시 사전 land 6 fail 영역)
+- 광역 측정 시 pre-existing fail (`storeBridge.test.ts` / `canonicalDocumentSync.test.ts` zustand init setup fail + `integration.test.ts` TC1) — 단일 file isolated 측정으로 본 cutover 와 무관 noise 분리 (memory 세션 인수인계 명시 사전 land 6 fail 영역)
 
 **G7 진척 marker**:
 
@@ -1328,7 +1328,7 @@ design §10.2.4 footnote 의 "write boundary cleanup" 정의 — `inspectorActio
 
 #### 10.2.13 G6-2 second slice land (2026-05-02) — history parity 자동 cover (canonicalDocumentSync 회로) + setup fail framing 재조정
 
-**framing**: design §10.2.9 의 G6-2 second slice "canonicalDocumentSync.test.ts setup fail debug + history parity 회귀 codify" — baseline 측정 결과 `setup fail debug` 가 unbounded scope (memory tier3-entry 명시: "elements.ts:1935 dead useStore export + circular import 가능성") 로 확정. **framing 재조정**: setup fail debug 는 별 sub-phase 분리, history parity 회귀 codify 만 isolated vitest 패턴 (memory `feedback-vitest-mock-path-resolution.md` 재활용) 으로 land.
+**framing**: design §10.2.9 의 G6-2 second slice "canonicalDocumentSync.test.ts setup fail debug + history parity 회귀 codify" — baseline 측정 결과 `setup fail debug` 가 unbounded scope (memory 세션 인수인계 명시: "elements.ts:1935 dead useStore export + circular import 가능성") 로 확정. **framing 재조정**: setup fail debug 는 별 sub-phase 분리, history parity 회귀 codify 만 isolated vitest 패턴 (memory `feedback-vitest-mock-path-resolution.md` 재활용) 으로 land.
 
 **fork checkpoint 4 질문 lock-in**:
 
@@ -1399,7 +1399,7 @@ design §10.2.9 명시 G6-2 second slice = `setup fail debug + history parity �
 
 #### 10.2.14 G6-2 third slice debug attempt + framing 재정의 (2026-05-02) — 진정 unbounded scope 확정
 
-**framing**: §10.2.13 명시 G6-2 third slice = `setup fail debug` (memory tier3-entry 명시 "elements.ts:1935 dead useStore export + circular import 가능성", design §10.2.9 추정 LOW ~0.5d). 본 세션 진정 fix 시도 결과 — **dead useStore 와 무관, transitive circular import chain 이 진정 root cause**. 진정 unbounded scope 확정.
+**framing**: §10.2.13 명시 G6-2 third slice = `setup fail debug` (memory 세션 인수인계 명시 "elements.ts:1935 dead useStore export + circular import 가능성", design §10.2.9 추정 LOW ~0.5d). 본 세션 진정 fix 시도 결과 — **dead useStore 와 무관, transitive circular import chain 이 진정 root cause**. 진정 unbounded scope 확정.
 
 **fork checkpoint 4 질문 lock-in**:
 

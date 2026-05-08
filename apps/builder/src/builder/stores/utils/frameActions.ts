@@ -191,7 +191,7 @@ export async function createReusableFrame(
  * @param frameId - canonical FrameNode id (현재는 layout id 와 동일)
  */
 export async function deleteReusableFrame(frameId: string): Promise<void> {
-  const { setPages, setElements } = getLiveElementsState();
+  const { setPages } = getLiveElementsState();
   const layouts = getCanonicalReusableFrameLayouts();
 
   await applyDeleteReusableFrameCanonicalPrimary({
@@ -199,7 +199,6 @@ export async function deleteReusableFrame(frameId: string): Promise<void> {
     layouts,
     getElementsState: getLiveElementsState,
     setPages,
-    setElements,
   });
   const projectId = useCanonicalDocumentStore.getState().currentProjectId;
   if (projectId) {

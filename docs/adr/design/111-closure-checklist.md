@@ -34,4 +34,4 @@ ADR-113 Step 4-4 write-through 은 ADR-111 Phase 2 monitoring 이 아니라 ADR-
 - ADR-111 design breakdown: `docs/adr/design/111-layout-frameset-pencil-redesign-breakdown.md` (843줄)
 - ADR-116: `docs/adr/completed/116-canonical-document-ssot-transition.md` (canonical document SSOT 선행)
 - 메모리 [feedback-adr-closure-5-step.md] — closure 5단계 패턴 정본
-- 메모리 [tier3-entry-2026-04-27-session45-adr110-implemented.md] — 본 세션 진입 가이드
+- 메모리 [session-2026-04-27-session45-adr110-implemented.md] — 본 세션 진입 가이드

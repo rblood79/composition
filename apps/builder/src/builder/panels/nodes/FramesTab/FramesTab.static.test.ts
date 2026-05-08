@@ -42,6 +42,16 @@ describe("FramesTab frame selection race guard", () => {
     expect(source).not.toContain("useLayoutsStore");
   });
 
+  it("derives hydration fallback from store elements instead of subscribing to elementsMap", async () => {
+    const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
+
+    expect(source).toContain("if (canonicalElements) return EMPTY_ELEMENTS;");
+    expect(source).toContain("const { elements: legacyElements } = state;");
+    expect(source).toContain("return legacyElements ?? EMPTY_ELEMENTS;");
+    expect(source).toContain("const hydratedElementsMap = useMemo");
+    expect(source).not.toContain("useStore((state) => state.elementsMap)");
+  });
+
   it("does not add an extra layouts-tab wrapper around Frames sections", async () => {
     const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
 

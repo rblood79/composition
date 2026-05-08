@@ -4,6 +4,11 @@ export {
   buildSceneSelectionState,
 } from "./buildSceneSnapshot";
 export {
+  buildCanonicalSceneModel,
+  buildSceneChildrenByParent,
+  buildSceneElementMap,
+} from "./canonicalSceneModel";
+export {
   buildPageDataMap,
   buildDepthMap,
   buildPageFrames,
@@ -33,5 +38,6 @@ export type {
   SceneSelectionState,
   SceneSnapshot,
   SceneStructureSnapshot,
+  SceneInputSource,
   SelectionSnapshot,
 } from "./sceneSnapshotTypes";
