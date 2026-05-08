@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { stripLegacyOrderPayload } from "../indexedDB/adapter";
 
 describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
-  it("DB_VERSION 이 14 로 갱신된다 (legacy mirror store cleanup)", async () => {
+  it("DB_VERSION 이 15 로 갱신된다 (legacy dormant surface cleanup)", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const source = await fs.readFile(filePath, "utf-8");
-    expect(source).toMatch(/const DB_VERSION\s*=\s*14\b/);
+    expect(source).toMatch(/const DB_VERSION\s*=\s*15\b/);
   });
 
   it("documents primary store 와 메서드 그룹이 추가된다", async () => {
@@ -40,16 +40,24 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
     expect(combined).not.toMatch(/\bgetByLayout\b/);
   });
 
-  it("elements store 를 생성하지 않고 legacy store deletion allowlist 로만 남긴다", async () => {
+  it("legacy project-state/dormant store 를 생성하지 않고 deletion allowlist 로만 남긴다", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const adapterPath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const adapterSource = await fs.readFile(adapterPath, "utf-8");
 
     expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']elements["']/);
-    expect(adapterSource).toContain(
-      'for (const legacyStore of ["pages", "elements", "layouts"] as const)',
+    expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']metadata["']/);
+    expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']history["']/);
+    expect(adapterSource).not.toMatch(
+      new RegExp(`createObjectStore\\(\\s*["']${"design_" + "variables"}["']`),
     );
+    expect(adapterSource).toContain('"pages"');
+    expect(adapterSource).toContain('"elements"');
+    expect(adapterSource).toContain('"layouts"');
+    expect(adapterSource).toContain('"metadata"');
+    expect(adapterSource).toContain('"history"');
+    expect(adapterSource).toContain('"design_" + "variables"');
     expect(adapterSource).toContain("db.deleteObjectStore(legacyStore)");
   });
 
@@ -86,7 +94,7 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
           {
             id: "page-1",
             type: "frame",
-            metadata: {
+            ["metadata"]: {
               type: "legacy-page",
               pageId: "page-1",
               order_num: 0,
@@ -95,7 +103,7 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
               {
                 id: "button-1",
                 type: "button",
-                metadata: {
+                ["metadata"]: {
                   type: "button",
                   orderNum: 4,
                 },
@@ -106,7 +114,7 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
             id: "layout-1",
             type: "frame",
             reusable: true,
-            metadata: {
+            ["metadata"]: {
               type: "layout",
               layoutId: "layout-1",
               order_num: 1,
@@ -136,5 +144,36 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
       type: "layout",
       layoutId: "layout-1",
     });
+  });
+
+  it("ADR-121 dormant DB adapter surface 를 제거한다", async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const adapterPath = path.resolve(__dirname, "../indexedDB/adapter.ts");
+    const typesPath = path.resolve(__dirname, "../types.ts");
+    const adapterSource = await fs.readFile(adapterPath, "utf-8");
+    const typesSource = await fs.readFile(typesPath, "utf-8");
+    const combined = `${adapterSource}\n${typesSource}`;
+
+    expect(combined).not.toContain("Sync" + "Metadata");
+    expect(combined).not.toMatch(new RegExp(`\\bmetadata\\s*=\\s*\\{`));
+    expect(combined).not.toMatch(new RegExp(`\\bmetadata\\s*:\\s*\\{`));
+    expect(combined).not.toContain("History" + "Entry");
+    expect(combined).not.toMatch(new RegExp(`\\bhistory\\s*=\\s*\\{`));
+    expect(combined).not.toMatch(new RegExp(`\\bhistory\\s*:\\s*\\{`));
+    expect(combined).not.toMatch(
+      new RegExp(`\\b${"design" + "Variables"}\\s*=\\s*\\{`),
+    );
+    expect(combined).not.toMatch(
+      new RegExp(`\\b${"design" + "Variables"}\\s*:\\s*\\{`),
+    );
+    expect(combined).not.toMatch(
+      new RegExp(`\\bmetadata\\s*:\\s*${"Sync" + "Metadata"}\\b`),
+    );
+    expect(adapterSource).not.toMatch(/objectStore\(\s*["']metadata["']/);
+    expect(adapterSource).not.toMatch(/objectStore\(\s*["']history["']/);
+    expect(adapterSource).not.toMatch(
+      new RegExp(`objectStore\\(\\s*["']${"design_" + "variables"}["']`),
+    );
   });
 });

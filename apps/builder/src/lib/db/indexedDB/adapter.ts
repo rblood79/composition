@@ -10,15 +10,9 @@
 import type {
   DatabaseAdapter,
   Project,
-  HistoryEntry,
-  SyncMetadata,
   CanonicalDocumentRecord,
 } from "../types";
-import type {
-  DesignToken,
-  DesignTheme,
-  DesignVariable,
-} from "../../../types/theme";
+import type { DesignToken, DesignTheme } from "../../../types/theme";
 import type { CompositionDocument } from "@composition/shared";
 import type {
   DataTable,
@@ -29,7 +23,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 14; // ADR-120 removes local pages/elements/layouts mirror stores.
+const DB_VERSION = 15; // ADR-121 removes dormant legacy IndexedDB surfaces.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -189,6 +183,11 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             `[IndexedDB] Legacy order payload cleanup: oldVersion=${oldVersion} → 13`,
           );
         }
+        if (oldVersion < 15 && oldVersion > 0) {
+          console.log(
+            `[IndexedDB] Legacy dormant surface cleanup: oldVersion=${oldVersion} → 15`,
+          );
+        }
 
         // Projects store
         if (!db.objectStoreNames.contains("projects")) {
@@ -202,7 +201,14 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: documents");
         }
 
-        for (const legacyStore of ["pages", "elements", "layouts"] as const) {
+        for (const legacyStore of [
+          "pages",
+          "elements",
+          "layouts",
+          "metadata",
+          "history",
+          "design_" + "variables",
+        ] as const) {
           if (db.objectStoreNames.contains(legacyStore)) {
             db.deleteObjectStore(legacyStore);
             console.log(`[IndexedDB] Deleted legacy store: ${legacyStore}`);
@@ -233,18 +239,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           }
         }
 
-        // History store
-        if (!db.objectStoreNames.contains("history")) {
-          const historyStore = db.createObjectStore("history", {
-            keyPath: "id",
-          });
-          historyStore.createIndex("page_id", "page_id", { unique: false });
-          historyStore.createIndex("created_at", "created_at", {
-            unique: false,
-          });
-          console.log("[IndexedDB] Created store: history");
-        }
-
         // Design themes store
         if (!db.objectStoreNames.contains("design_themes")) {
           const themesStore = db.createObjectStore("design_themes", {
@@ -255,12 +249,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           });
           themesStore.createIndex("status", "status", { unique: false });
           console.log("[IndexedDB] Created store: design_themes");
-        }
-
-        // Metadata store (sync 상태 저장)
-        if (!db.objectStoreNames.contains("metadata")) {
-          db.createObjectStore("metadata", { keyPath: "project_id" });
-          console.log("[IndexedDB] Created store: metadata");
         }
 
         // ✅ 버전 7: Data Panel 스토어들 추가
@@ -566,92 +554,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
   };
 
-  // === History ===
-
-  history = {
-    insert: async (entry: HistoryEntry): Promise<HistoryEntry> => {
-      return this.putToStore("history", entry);
-    },
-
-    getByPage: async (pageId: string, limit = 50): Promise<HistoryEntry[]> => {
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("history", "readonly");
-        const store = tx.objectStore("history");
-        const index = store.index("page_id");
-        const request = index.getAll(pageId);
-
-        request.onsuccess = () => {
-          const results = request.result
-            .sort(
-              (a, b) =>
-                new Date(b.created_at).getTime() -
-                new Date(a.created_at).getTime(),
-            )
-            .slice(0, limit);
-          resolve(results);
-        };
-        request.onerror = () => reject(request.error);
-      });
-    },
-
-    deleteOldEntries: async (
-      pageId: string,
-      keepCount: number,
-    ): Promise<void> => {
-      const entries = await this.history.getByPage(pageId, 1000);
-      const toDelete = entries.slice(keepCount);
-
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("history", "readwrite");
-        const store = tx.objectStore("history");
-
-        let completed = 0;
-        toDelete.forEach((entry) => {
-          const request = store.delete(entry.id);
-          request.onsuccess = () => {
-            completed++;
-            if (completed === toDelete.length) {
-              resolve();
-            }
-          };
-          request.onerror = () => reject(request.error);
-        });
-
-        if (toDelete.length === 0) {
-          resolve();
-        }
-      });
-    },
-
-    clear: async (pageId: string): Promise<void> => {
-      const entries = await this.history.getByPage(pageId, 1000);
-
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("history", "readwrite");
-        const store = tx.objectStore("history");
-
-        let completed = 0;
-        entries.forEach((entry) => {
-          const request = store.delete(entry.id);
-          request.onsuccess = () => {
-            completed++;
-            if (completed === entries.length) {
-              resolve();
-            }
-          };
-          request.onerror = () => reject(request.error);
-        });
-
-        if (entries.length === 0) {
-          resolve();
-        }
-      });
-    },
-  };
-
   // === Design Themes ===
 
   themes = {
@@ -715,93 +617,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
       });
-    },
-  };
-
-  // === Design Variables (G.2 Variable Reference System) ===
-
-  designVariables = {
-    insert: async (variable: DesignVariable): Promise<DesignVariable> => {
-      const now = new Date().toISOString();
-      const variableWithTimestamps: DesignVariable = {
-        ...variable,
-        created_at: variable.created_at || now,
-        updated_at: variable.updated_at || now,
-      };
-      await this.putToStore("design_variables", variableWithTimestamps);
-      return variableWithTimestamps;
-    },
-
-    insertMany: async (
-      variables: DesignVariable[],
-    ): Promise<DesignVariable[]> => {
-      if (variables.length === 0) {
-        return [];
-      }
-      const db = this.ensureDB();
-      const now = new Date().toISOString();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("design_variables", "readwrite");
-        const store = tx.objectStore("design_variables");
-
-        const variablesWithTimestamps = variables.map((v) => ({
-          ...v,
-          created_at: v.created_at || now,
-          updated_at: v.updated_at || now,
-        }));
-
-        variablesWithTimestamps.forEach((variable) => {
-          store.put(variable);
-        });
-
-        tx.oncomplete = () => resolve(variablesWithTimestamps);
-        tx.onerror = () => reject(tx.error);
-      });
-    },
-
-    update: async (
-      id: string,
-      updates: Partial<DesignVariable>,
-    ): Promise<DesignVariable> => {
-      const existing = await this.designVariables.getById(id);
-      if (!existing) {
-        throw new Error(`DesignVariable ${id} not found`);
-      }
-      const updated: DesignVariable = {
-        ...existing,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-      await this.putToStore("design_variables", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("design_variables", id);
-    },
-
-    getById: async (id: string): Promise<DesignVariable | null> => {
-      return this.getFromStore<DesignVariable>("design_variables", id);
-    },
-
-    getByProject: async (projectId: string): Promise<DesignVariable[]> => {
-      return this.getAllByIndex<DesignVariable>(
-        "design_variables",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getByName: async (
-      projectId: string,
-      name: string,
-    ): Promise<DesignVariable | null> => {
-      const variables = await this.designVariables.getByProject(projectId);
-      return variables.find((v) => v.name === name) || null;
-    },
-
-    getAll: async (): Promise<DesignVariable[]> => {
-      return this.getAllFromStore<DesignVariable>("design_variables");
     },
   };
 
@@ -1114,28 +929,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
   };
 
-  // === Metadata ===
-
-  metadata = {
-    get: async (): Promise<SyncMetadata | null> => {
-      const all = await this.getAllFromStore<SyncMetadata>("metadata");
-      return all[0] || null;
-    },
-
-    set: async (data: SyncMetadata): Promise<void> => {
-      await this.putToStore("metadata", data);
-    },
-
-    update: async (data: Partial<SyncMetadata>): Promise<void> => {
-      const existing = await this.metadata.get();
-      if (!existing) {
-        throw new Error("Metadata not found. Call set() first.");
-      }
-      const updated = { ...existing, ...data };
-      await this.putToStore("metadata", updated);
-    },
-  };
-
   // === Cache Management ===
 
   cache = {
@@ -1160,11 +953,10 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
   batch = {
     export: async () => {
-      const [project, documents, designTokens, metadata] = await Promise.all([
+      const [project, documents, designTokens] = await Promise.all([
         this.projects.getAll().then((projects) => projects[0] || null),
         this.documents.getAll(),
         this.designTokens.getAll(),
-        this.metadata.get(),
       ]);
 
       return {
@@ -1174,7 +966,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             null)
           : (documents[0]?.document ?? null),
         designTokens,
-        metadata,
       };
     },
 
@@ -1182,7 +973,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       project?: Project;
       document?: CompositionDocument;
       designTokens?: DesignToken[];
-      metadata?: SyncMetadata;
     }): Promise<void> => {
       if (data.project) {
         await this.projects.insert(data.project);
@@ -1202,10 +992,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         await this.designTokens.insertMany(data.designTokens);
       }
 
-      if (data.metadata) {
-        await this.metadata.set(data.metadata);
-      }
-
       console.log("[IndexedDB] Import completed:", {
         document: Boolean(data.document),
         designTokens: data.designTokens?.length || 0,
@@ -1220,8 +1006,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           "documents",
           "design_tokens",
           "design_themes",
-          "history",
-          "metadata",
           // ✅ 버전 7: Data Panel 스토어들 추가
           "data_tables",
           "api_endpoints",

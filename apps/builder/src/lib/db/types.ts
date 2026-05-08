@@ -5,12 +5,7 @@
  * 동일한 인터페이스로 사용하기 위한 추상화 레이어
  */
 
-import type {
-  DesignToken,
-  DesignTheme,
-  DesignVariable,
-} from "../../types/theme";
-import type { Element } from "../../types/core/store.types";
+import type { DesignToken, DesignTheme } from "../../types/theme";
 import type {
   DataTable,
   ApiEndpoint,
@@ -28,53 +23,6 @@ export interface Project {
   domain?: string;
   created_at?: string;
   updated_at?: string;
-}
-
-// === History Types ===
-
-export interface HistoryEntry {
-  id: string;
-  page_id: string;
-  type:
-    | "add"
-    | "update"
-    | "remove"
-    | "move"
-    | "batch"
-    | "group"
-    | "ungroup"
-    | "instance-create"
-    | "instance-detach"
-    | "master-propagate";
-  element_id: string;
-  element_ids?: string[];
-  data: {
-    element?: Element;
-    prevElement?: Element;
-    elements?: Element[];
-    prevElements?: Element[];
-    batchUpdates?: Array<{
-      elementId: string;
-      prevProps: Record<string, unknown>;
-      newProps: Record<string, unknown>;
-    }>;
-    groupData?: {
-      groupId: string;
-      childIds: string[];
-    };
-  };
-  created_at: string;
-}
-
-// === Sync Metadata Types ===
-
-export interface SyncMetadata {
-  project_id: string;
-  sync_enabled: boolean;
-  last_sync_at: string | null;
-  local_updated_at: string;
-  cloud_updated_at: string | null;
-  sync_status: "local-only" | "synced" | "conflict" | "pending";
 }
 
 // === Canonical Document Storage (ADR-116 direct cutover) ===
@@ -124,18 +72,6 @@ export interface DatabaseAdapter {
     getByProject(projectId: string): Promise<DesignTheme[]>;
     getActiveTheme(projectId: string): Promise<DesignTheme | null>;
     getAll(): Promise<DesignTheme[]>;
-  };
-
-  // Design Variables (G.2 Variable Reference System)
-  designVariables: {
-    insert(variable: DesignVariable): Promise<DesignVariable>;
-    insertMany(variables: DesignVariable[]): Promise<DesignVariable[]>;
-    update(id: string, data: Partial<DesignVariable>): Promise<DesignVariable>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<DesignVariable | null>;
-    getByProject(projectId: string): Promise<DesignVariable[]>;
-    getByName(projectId: string, name: string): Promise<DesignVariable | null>;
-    getAll(): Promise<DesignVariable[]>;
   };
 
   // Canonical document primary storage (ADR-116)
@@ -199,21 +135,6 @@ export interface DatabaseAdapter {
     getAll(): Promise<Transformer[]>;
   };
 
-  // History
-  history: {
-    insert(entry: HistoryEntry): Promise<HistoryEntry>;
-    getByPage(pageId: string, limit?: number): Promise<HistoryEntry[]>;
-    deleteOldEntries(pageId: string, keepCount: number): Promise<void>;
-    clear(pageId: string): Promise<void>;
-  };
-
-  // Sync Metadata
-  metadata: {
-    get(): Promise<SyncMetadata | null>;
-    set(data: SyncMetadata): Promise<void>;
-    update(data: Partial<SyncMetadata>): Promise<void>;
-  };
-
   // Batch Operations
   batch: {
     // Export all data for sync
@@ -221,7 +142,6 @@ export interface DatabaseAdapter {
       project: Project | null;
       document: CompositionDocument | null;
       designTokens: DesignToken[];
-      metadata: SyncMetadata | null;
     }>;
 
     // Import data from sync
@@ -229,7 +149,6 @@ export interface DatabaseAdapter {
       project?: Project;
       document?: CompositionDocument;
       designTokens?: DesignToken[];
-      metadata?: SyncMetadata;
     }): Promise<void>;
 
     // Clear all data

@@ -357,7 +357,6 @@ function Dashboard() {
           : [];
 
         for (const page of pages) {
-          await db.history.clear(page.id);
           await historyIndexedDB.clearPageHistory(page.id);
         }
 

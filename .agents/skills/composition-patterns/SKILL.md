@@ -44,6 +44,11 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
   `DatabaseAdapter.pages/elements/layouts` 및 IndexedDB `pages/elements/layouts`
   mirror stores는 제거된 surface이므로 `db.pages/elements/layouts` runtime
   read/write를 재도입하지 않습니다.
+- IndexedDB `composition.metadata`, duplicate `composition.history`, and
+  `DatabaseAdapter.designVariables` are removed dormant/mismatched local DB
+  surfaces. Use the separate `composition-history` DB for undo/redo and the
+  active Data Panel `variables` store for runtime variables; do not recreate
+  these stores/APIs without a new ADR.
 - Origin/instance 판단은 `reusable: true`, `type:"ref"`, `ref`,
   `descendants` canonical shape를 우선하고 legacy `componentRole/masterId`는
   adapter mirror로 봅니다.

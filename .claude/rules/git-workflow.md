@@ -78,7 +78,7 @@ PR/push 정책 의문 발생 시 **settings 4 파일 + protect-files hook 직접
 - `~/.claude/settings.local.json`
 - `.claude/hooks/protect-files.sh`
 
-메모리 entry (특히 tier3-entry 의 "main 차단" 류) 가 stale 일 수 있음. settings 가 우선.
+메모리 entry (특히 세션 인수인계 의 "main 차단" 류) 가 stale 일 수 있음. settings 가 우선.
 
 ## 6. 사용자 명시 요청 시에만 분기
 

@@ -5,6 +5,42 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-121 indexedDB legacy surface cleanup implementation] - 2026-05-08
+
+### Changed
+
+- ADR-121을 Implemented로 승격하고 `docs/adr/completed/`로 이동했다.
+- `IndexedDBAdapter`의 `DB_VERSION`을 15로 올리고,
+  `metadata`/`history`/`design_variables` stale store를 delete-only cleanup
+  allowlist에 추가했다.
+- dormant `metadata` sync store/API, `SyncMetadata`, batch export/import metadata
+  payload를 제거했다.
+- duplicate `composition.history` store/API와 dashboard `db.history.clear(page.id)`
+  호출을 제거했다. 별도 `composition-history` DB와
+  `historyIndexedDB.clearPageHistory(page.id)`는 유지한다.
+- production consumer 0건인 `designVariables` adapter API를 제거하고
+  `design_variables` objectStore를 새로 만들지 않도록 고정했다.
+- `docs/reference/schemas/INDEXDB.md`를 v15 current schema로 재작성하고, removed
+  legacy stores를 historical/delete-only note로 격리했다.
+- `.agents` canonical format/order 규칙에 removed
+  `metadata`/`history`/`designVariables` local DB surface를 재도입 금지 surface로
+  추가했다.
+- README 현황 요약을 완료 110→111, 미구현 9→8, 합계 126 유지로 갱신했다.
+
+### Verification
+
+- `pnpm -F @composition/builder exec vitest run src/lib/db/__tests__/metaStore.test.ts src/dashboard/__tests__/dashboardLocalMirror.static.test.ts`
+- ADR-121 grep gates: `metadata`/`composition.history`/`designVariables`/stale
+  objectStore create/read path 0건.
+- Browser smoke:
+  `http://localhost:5173/builder/9115e0fe-81b7-4a57-a996-19e62fec3eaa`에서
+  fresh Playwright context + seeded dev auth session으로 Builder URL 유지,
+  `composition` DB v15, active objectStores 유지,
+  `pages`/`elements`/`layouts`/`metadata`/`history`/`design_variables` 없음,
+  `documents` record 존재, `composition-history` DB 유지, filtered console/page errors
+  0건.
+- `pnpm run codex:preflight`
+
 ## [ADR-120 legacy mirror persistence cleanup implementation] - 2026-05-08
 
 ### Documentation

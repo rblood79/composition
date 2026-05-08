@@ -28,6 +28,11 @@ canonical format을 먼저 확인합니다.
   IndexedDB `pages`/`elements`/`layouts` objectStore는 제거된 surface입니다.
 - production runtime에서 `db.pages`, `db.elements`, `db.layouts` project-state
   read/write를 재도입하지 않습니다.
+- IndexedDB `composition.metadata`, duplicate `composition.history`,
+  `DatabaseAdapter.metadata`, `DatabaseAdapter.history`, and
+  `DatabaseAdapter.designVariables` are removed dormant/mismatched local DB
+  surfaces. Undo/redo persistence must use the separate `composition-history`
+  DB, and runtime variables must use the active Data Panel `variables` store.
 - Supabase `pages`/`elements` row API가 필요한 동안에는 cloud transport
   compatibility boundary에서만 사용하고, local에는 one-shot `CompositionDocument`
   변환 후 `db.documents.put()`만 수행합니다.

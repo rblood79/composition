@@ -14,5 +14,7 @@ describe("ADR-120 Phase 1 dashboard local lifecycle contract", () => {
     expect(source).not.toContain("db.elements.getByPage(");
     expect(source).not.toContain("db.layouts.getByProject(");
     expect(source).not.toContain("db.layouts.delete(");
+    expect(source).not.toContain("db." + "history.clear(");
+    expect(source).toContain("historyIndexedDB.clearPageHistory(");
   });
 });
