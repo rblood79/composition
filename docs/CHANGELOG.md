@@ -5,6 +5,31 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-120 legacy mirror persistence cleanup plan] - 2026-05-08
+
+### Documentation
+
+- ADR-120을 Proposed로 추가해 ADR-111/112/113/116/118/119 이후 남은 local
+  `pages`/`elements`/`layouts` mirror persistence 제거 계획을 문서화했다.
+- 계획 범위를 `CompositionDocument` local runtime primary 유지, `DatabaseAdapter`
+  legacy surface 제거, dashboard/projectSync/history/editor/drag-drop mirror write
+  cleanup, Supabase projection boundary, IndexedDB objectStore cleanup으로 분리했다.
+- Phase 0 inventory 문서를 추가해 current primary evidence, 삭제 대상 runtime bucket,
+  project sync boundary, canonical adapter/export boundary, out-of-scope bucket을
+  구분했다.
+- ADR-120 리뷰 결과를 반영해 inventory의 누락 mirror write/read surface를 보강하고,
+  검증 명령을 현재 repo에 존재하는 test/static grep gate 기준으로 정리했다.
+- ADR-120 결정을 strong local mirror removal로 강화해 production runtime
+  `db.pages/elements/layouts` project-state call site 0건, `DatabaseAdapter` legacy
+  surface 제거, IndexedDB mirror objectStore 삭제를 완료 조건으로 고정했다.
+- cloud legacy-only download 정책을 단순화해 Supabase `pages/elements` rows는 remote
+  transport format으로만 허용하고, 다운로드 시 one-shot `CompositionDocument` 변환 후
+  local `db.documents.put()`만 수행하도록 Phase 4 gate를 명시했다.
+- `review-adr` 템플릿 정합성을 위해 ADR-120 본문에 별도 Risks 섹션을 추가하고,
+  missed mirror write, cloud transport conversion, DB/API deletion, canonical bridge,
+  IndexedDB upgrade 위험과 대응을 명시했다.
+- ADR README 현황 요약과 미구현 row를 ADR-120 Proposed 상태에 맞춰 갱신했다.
+
 ## [ADR-119 page/layout order mirror cleanup] - 2026-05-08
 
 ### Changed

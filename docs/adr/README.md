@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-08 — **ADR-119 Implemented / Page/Layout order mirror cleanup 완료**. ADR-119는 ADR-116 `documents` primary와 ADR-118 `children[]` order SSOT 이후 남은 `pages.order_num`, `layouts.order_num`, page/layout `metadata.order_num` runtime mirror를 제거했다. PageTree/Preview/Frames/page create/bootstrap/IndexedDB/API compatibility 경로는 canonical root `children[]` source order를 primary로 사용하고, Supabase physical column은 별도 migration 전까지 adapter boundary에서 call-time derived field로만 남긴다. ADR 본문은 `docs/adr/completed/119-page-layout-order-mirror-cleanup.md`로 이동했다.
+> **최종 업데이트**: 2026-05-08 — **ADR-120 Proposed / Strong local mirror persistence cleanup 계획 생성**. ADR-120은 ADR-111/112/113/116/118/119 이후 남은 local `pages`/`elements`/`layouts` mirror persistence를 최종 제거 대상으로 고정한다. 완료 기준은 production runtime `db.pages/elements/layouts` project-state call site 0건, `DatabaseAdapter.pages/elements/layouts` public surface 제거, IndexedDB `pages`/`elements`/`layouts` objectStore 삭제다. Supabase physical schema drop은 별도 migration 승인 전까지 `CompositionDocument`에서 파생한 cloud compatibility projection boundary로만 허용하고, legacy-only cloud download는 remote `pages/elements` rows를 one-shot `CompositionDocument`로 변환해 local `db.documents.put()`만 수행한다. `apps/builder/src/adapters/canonical/**` 및 shared export bridge는 삭제 대상이 아니라 projection/export compatibility boundary로 분류한다. 구현 상세: [breakdown](design/120-legacy-mirror-persistence-cleanup-breakdown.md), [inventory](design/120-legacy-mirror-persistence-inventory.md).
+>
+> **2026-05-08 — ADR-119 Implemented / Page/Layout order mirror cleanup 완료**. ADR-119는 ADR-116 `documents` primary와 ADR-118 `children[]` order SSOT 이후 남은 `pages.order_num`, `layouts.order_num`, page/layout `metadata.order_num` runtime mirror를 제거했다. PageTree/Preview/Frames/page create/bootstrap/IndexedDB/API compatibility 경로는 canonical root `children[]` source order를 primary로 사용하고, Supabase physical column은 별도 migration 전까지 adapter boundary에서 call-time derived field로만 남긴다. ADR 본문은 `docs/adr/completed/119-page-layout-order-mirror-cleanup.md`로 이동했다.
 >
 > **2026-05-07 — ADR-118 Implemented / children[] structural order SSOT 전환 완료**. ADR-118은 page 추가 순서 hotfix를 page 전용 보정으로 끝내지 않고, Pencil-compatible parent `children[]` index를 page/frame/group/component origin/ref instance/slot descendants 전체 structural order의 SSOT로 승격했다. Phase 0 inventory와 allowlist를 확정하고, Phase 1 canonical order helper/store action surface, Phase 2 Page/root order cutover, Phase 3 LayerTree/Skia/Preview/Publish read path cutover, Phase 4 canonical-primary drag/drop/write path, Phase 5 component/ref materialization source-order 보존, Phase 6 non-adapter runtime `order_num` primary sort quarantine을 닫았다. Skia drag/drop final commit과 structural-only batch update는 canonical `children[]` splice를 먼저 수행하고 legacy `parent_id`/`order_num` row는 export mirror로 파생한다. PageTree DnD는 update rank/source order로 canonical page slot을 materialize하고, Browser smoke는 seeded local IndexedDB canonical document에서 refresh 후 page source order, derived page mirror order, Body child order, Skia canvas render를 확인했다. ADR 본문은 `docs/adr/completed/118-children-array-order-ssot.md`로 이동했다.
 >
@@ -80,8 +82,8 @@
 | -------------------------------------- | ------- |
 | 완료 (Accepted/Implemented/Superseded) | 109     |
 | 부분 완료                              | 7       |
-| 미구현/진행 (Proposed/In Progress)     | 7       |
-| **합계**                               | **123** |
+| 미구현/진행 (Proposed/In Progress)     | 9       |
+| **합계**                               | **125** |
 
 ---
 
@@ -225,16 +227,17 @@
 
 ### 미구현
 
-| ADR                                         | 제목                                            | 상태     | 규모                                                                                                             | 우선순위 |
-| ------------------------------------------- | ----------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- | :------: |
-| [013](013-quick-connect-data-binding.md)    | Quick Connect 데이터 바인딩                     | Proposed | 5 Phase, 21파일 — 기반 Collection 렌더러 완성, 자동화 UI 미구현                                                  |  **P3**  |
-| [015](015-sitemap-layout.md)                | Sitemap Hierarchy 워크플로우 엣지               | Proposed | 변경 대상 8파일, 코드 미생성                                                                                     |    P5    |
-| [016](016-photoshop-ui-ux.md)               | Photoshop 벤치마크 기반 UI/UX (v2)              | Proposed | P0~P2 3단계, Action Bar + Context Menu + AI Variations                                                           |    P5    |
-| [032](032-events-data-integration.md)       | Events Platform 재설계 + Data 통합              | Proposed | Trigger/Effect/Capability/Recipe 모델 + BindingRef + Condition DSL + Events Panel 연동                           |  **P3**  |
-| [034](034-events-panel-renovation.md)       | Events Panel Renovation                         | Proposed | 패널 IA 전면 개편 + recipe 중심 UX + diagnostics/preview/handler workflow                                        |  **P3**  |
-| [038](038-figma-import.md)                  | Figma 디자인 임포트 시스템                      | Proposed | 4 Phase — API 프록시 + 노드 변환 엔진 + 컴포넌트 매핑 + 이미지 파이프라인                                        |  **P3**  |
-| [054](054-local-llm-architecture.md)        | 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)     | Proposed | 4 Phase — Provider 추상화 + Ollama 연동 + node-llama-cpp Electron 내장 + Qwen3 7B. ADR-011 Supersede             |  **P2**  |
-| [117](117-canvaskit-pathbuilder-upgrade.md) | CanvasKit PathBuilder 전환 및 0.41.1 업그레이드 | Proposed | 5 Phase — API spike + PathBuilder compatibility wrapper + Skia path migration + package bump + visual/perf smoke |  **P2**  |
+| ADR                                             | 제목                                            | 상태     | 규모                                                                                                                                                                                  | 우선순위 |
+| ----------------------------------------------- | ----------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: |
+| [013](013-quick-connect-data-binding.md)        | Quick Connect 데이터 바인딩                     | Proposed | 5 Phase, 21파일 — 기반 Collection 렌더러 완성, 자동화 UI 미구현                                                                                                                       |  **P3**  |
+| [015](015-sitemap-layout.md)                    | Sitemap Hierarchy 워크플로우 엣지               | Proposed | 변경 대상 8파일, 코드 미생성                                                                                                                                                          |    P5    |
+| [016](016-photoshop-ui-ux.md)                   | Photoshop 벤치마크 기반 UI/UX (v2)              | Proposed | P0~P2 3단계, Action Bar + Context Menu + AI Variations                                                                                                                                |    P5    |
+| [032](032-events-data-integration.md)           | Events Platform 재설계 + Data 통합              | Proposed | Trigger/Effect/Capability/Recipe 모델 + BindingRef + Condition DSL + Events Panel 연동                                                                                                |  **P3**  |
+| [034](034-events-panel-renovation.md)           | Events Panel Renovation                         | Proposed | 패널 IA 전면 개편 + recipe 중심 UX + diagnostics/preview/handler workflow                                                                                                             |  **P3**  |
+| [038](038-figma-import.md)                      | Figma 디자인 임포트 시스템                      | Proposed | 4 Phase — API 프록시 + 노드 변환 엔진 + 컴포넌트 매핑 + 이미지 파이프라인                                                                                                             |  **P3**  |
+| [054](054-local-llm-architecture.md)            | 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)     | Proposed | 4 Phase — Provider 추상화 + Ollama 연동 + node-llama-cpp Electron 내장 + Qwen3 7B. ADR-011 Supersede                                                                                  |  **P2**  |
+| [117](117-canvaskit-pathbuilder-upgrade.md)     | CanvasKit PathBuilder 전환 및 0.41.1 업그레이드 | Proposed | 5 Phase — API spike + PathBuilder compatibility wrapper + Skia path migration + package bump + visual/perf smoke                                                                      |  **P2**  |
+| [120](120-legacy-mirror-persistence-cleanup.md) | Legacy mirror persistence 제거 계획             | Proposed | 6 Phase — production runtime `db.pages/elements/layouts` 0건, `DatabaseAdapter.pages/elements/layouts` 제거, IndexedDB mirror objectStore 삭제, projectSync/cloud projection boundary |  **P1**  |
 
 ## Spec SSOT 해체 ADR 체인 — **ADR-036 Fully Implemented 달성 (2026-04-22 세션 18)**
 
