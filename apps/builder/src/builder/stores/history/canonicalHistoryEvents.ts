@@ -42,6 +42,12 @@ export type CanonicalHistoryNodeEvent =
       fromIndex: number;
       toParentId: string | null;
       toIndex: number;
+    }
+  | {
+      type: "update";
+      nodeId: string;
+      prevProps: Record<string, unknown>;
+      nextProps: Record<string, unknown>;
     };
 
 export type CanonicalHistoryEventIds = {
@@ -188,6 +194,39 @@ function moveNode(
   return result.changed ? result.document : doc;
 }
 
+function replaceNodeProps(
+  nodes: CanonicalNode[],
+  nodeId: string,
+  nextProps: Record<string, unknown>,
+): { nodes: CanonicalNode[]; changed: boolean } {
+  let changed = false;
+  const result = nodes.map((node) => {
+    if (node.id === nodeId) {
+      changed = true;
+      return { ...node, props: { ...nextProps } } as CanonicalNode;
+    }
+    if (node.children && node.children.length > 0) {
+      const childResult = replaceNodeProps(node.children, nodeId, nextProps);
+      if (childResult.changed) {
+        changed = true;
+        return { ...node, children: childResult.nodes } as CanonicalNode;
+      }
+    }
+    return node;
+  });
+  return { nodes: result, changed };
+}
+
+function applyNodePropsUpdate(
+  doc: CompositionDocument,
+  nodeId: string,
+  nextProps: Record<string, unknown>,
+): CompositionDocument {
+  const result = replaceNodeProps(doc.children, nodeId, nextProps);
+  if (!result.changed) return doc;
+  return { ...doc, children: result.nodes };
+}
+
 export function applyCanonicalHistoryEventsToDocument(
   doc: CompositionDocument,
   events: CanonicalHistoryNodeEvent[],
@@ -204,6 +243,10 @@ export function applyCanonicalHistoryEventsToDocument(
       return direction === "redo"
         ? removeNode(currentDoc, event.node.id)
         : insertNode(currentDoc, event.parentId, event.index, event.node);
+    }
+    if (event.type === "update") {
+      const props = direction === "redo" ? event.nextProps : event.prevProps;
+      return applyNodePropsUpdate(currentDoc, event.nodeId, props);
     }
     return direction === "redo"
       ? moveNode(currentDoc, event.nodeId, event.toParentId, event.toIndex)
@@ -239,6 +282,10 @@ export function getCanonicalHistoryEventIds(
       upsertIds.add(event.nodeId);
       continue;
     }
+    if (event.type === "update") {
+      upsertIds.add(event.nodeId);
+      continue;
+    }
 
     const ids = collectNodeIds(event.node);
     const shouldDelete =
@@ -256,6 +303,19 @@ export function getCanonicalHistoryEventIds(
   return {
     upsertIds: [...upsertIds],
     deleteIds: [...deleteIds],
+  };
+}
+
+export function buildCanonicalUpdateEvent(
+  nodeId: string,
+  prevProps: Record<string, unknown>,
+  nextProps: Record<string, unknown>,
+): CanonicalHistoryNodeEvent {
+  return {
+    type: "update",
+    nodeId,
+    prevProps: { ...prevProps },
+    nextProps: { ...nextProps },
   };
 }
 

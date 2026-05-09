@@ -1,6 +1,27 @@
 import { BaseApiService } from "../../services/api/BaseApiService";
 import { Element } from "../../types/core/store.types";
 
+/**
+ * `ElementsApiService` — legacy `elements` row CRUD.
+ *
+ * **ADR-123 Phase 1 boundary-only marker**:
+ * - 본 service 는 ADR-123 의 **legacy boundary adapter**. canonical primary
+ *   storage 는 `DocumentsApiService` (1 project = 1 `CompositionDocument` row).
+ * - **Builder hot path (예: editor / canvas / store hot subscription) 에서 직접
+ *   import 금지**. ADR-123 Phase 4 에서 hot path import 0건 grep gate 강제.
+ * - 허용 caller (Phase 1 시점):
+ *   1. `apps/builder/src/utils/projectSync.ts` (cloud sync boundary)
+ *   2. `apps/builder/src/dashboard/index.tsx` (dashboard seed, Phase 3 에서
+ *      `documentsApi.upsertDocument` 로 전환 예정)
+ *   3. `apps/builder/src/adapters/canonical/canonicalMutations.ts` thin wrapper
+ *      (Phase 4 에서 제거 또는 documents row API 위임)
+ *   4. `apps/builder/src/builder/factories/utils/dbPersistence.ts` (Phase 4
+ *      reassessment)
+ * - 신규 caller 추가 금지. 신규 cloud persistence 는 `DocumentsApiService` 경유.
+ *
+ * @see docs/adr/123-cloud-document-row-schema.md
+ * @see apps/builder/src/services/api/DocumentsApiService.ts
+ */
 export class ElementsApiService extends BaseApiService {
   async fetchElements(pageId: string): Promise<Element[]> {
     this.validateInput(

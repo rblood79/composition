@@ -1896,9 +1896,15 @@ function incrementalUpdate(
  * WASM 엔진이 사용 불가하거나 실패하면 null을 반환한다.
  * 호출부(BuilderCanvas)는 null 수신 시 레거시 레벨별 폴백으로 전환해야 한다.
  *
+ * **ADR-125 Phase 1 transition note**: 본 entry 의 `elementsMap`/`childrenMap`
+ * map shape signature 는 transition-derived-readonly. Phase 2 에서
+ * `calculateFullTreeLayoutFromSceneModel(sceneModel, ...)` canonical-native
+ * entry 가 primary path 로 전환된다. 본 entry 는 Phase 2 완료까지 유지하되
+ * 신규 caller 는 `calculateFullTreeLayoutFromSceneModel` 사용 권장.
+ *
  * @param rootElementId  - 루트 컨테이너 요소 ID (보통 body 또는 page root)
- * @param elementsMap    - O(1) 요소 조회 맵 (store의 elementsMap)
- * @param childrenMap    - O(1) 자식 ID 목록 맵 (store의 childrenMap)
+ * @param elementsMap    - O(1) 요소 조회 맵 (canonical scene model derived view)
+ * @param childrenMap    - O(1) 자식 ID 목록 맵 (canonical scene model derived view)
  * @param availableWidth - 루트에 제공할 가용 너비 (px)
  * @param availableHeight- 루트에 제공할 가용 높이 (px)
  * @param getChildElements - elementId → Element[] accessor
@@ -2300,4 +2306,59 @@ export function calculateFullTreeLayout(
     return null;
   }
   // Phase 1: finally { taffy.clear() } 제거 — persistent tree 유지
+}
+
+/**
+ * **ADR-125 Phase 1 — canonical-native layout entry**.
+ *
+ * `CanonicalSceneModel` 을 직접 입력으로 받아 layout 을 계산하는 transitional
+ * entry. 내부적으로 scene model 의 derived `elementsMap`/`childrenByParent` 를
+ * `calculateFullTreeLayout` 에 전달한다.
+ *
+ * Phase 1 에서는 기존 `calculateFullTreeLayout(rootElementId, elementsMap,
+ * childrenMap, ...)` map shape entry 와 **동등** 하다 (signature wrapping 만).
+ * Phase 2 에서 fullTreeLayout 내부 traversal 이 canonical-native 로 전환되면
+ * 본 entry 가 primary path 가 되고 map shape entry 는 deprecated 마킹.
+ *
+ * **신규 caller 는 본 entry 를 사용한다 (transition contract)**.
+ *
+ * @param sceneModel       - canonical document 에서 derived 된 scene snapshot
+ * @param rootElementId    - 루트 컨테이너 요소 ID
+ * @param availableWidth   - 루트에 제공할 가용 너비 (px)
+ * @param availableHeight  - 루트에 제공할 가용 높이 (px)
+ * @param getChildElements - elementId → Element[] accessor (optional, 미전달 시
+ *                           sceneModel.childrenByParent 사용)
+ * @returns elementId → ComputedLayout 맵, 실패 시 null
+ */
+export function calculateFullTreeLayoutFromSceneModel(
+  sceneModel: {
+    elementsMap: Map<string, Element>;
+    childrenByParent: Map<string, Element[]>;
+  },
+  rootElementId: string,
+  availableWidth: number,
+  availableHeight: number,
+  getChildElements?: (id: string) => Element[],
+): Map<string, ComputedLayout> | null {
+  // childrenByParent (Element[]) 를 childrenMap (string[]) 로 derive
+  const childrenIdMap = new Map<string, string[]>();
+  for (const [parentId, children] of sceneModel.childrenByParent) {
+    childrenIdMap.set(
+      parentId,
+      children.map((child) => child.id),
+    );
+  }
+
+  const accessor =
+    getChildElements ??
+    ((id: string) => sceneModel.childrenByParent.get(id) ?? []);
+
+  return calculateFullTreeLayout(
+    rootElementId,
+    sceneModel.elementsMap,
+    childrenIdMap,
+    availableWidth,
+    availableHeight,
+    accessor,
+  );
 }

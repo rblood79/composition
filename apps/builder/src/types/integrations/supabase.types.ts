@@ -180,6 +180,26 @@ export interface Database {
           created_at?: string;
         };
       };
+      /**
+       * **ADR-123 Phase 1 — canonical primary storage row**.
+       *
+       * 1 project = 1 document. `content` 는 `CompositionDocument` 직렬화 JSON.
+       * `pages` / `elements` row 는 migration window 동안 fallback 유지.
+       * Phase 4-5 완료 후 deprecation 검토.
+       *
+       * @see docs/adr/123-cloud-document-row-schema.md
+       * @see docs/migrations/002_create_documents_table.sql
+       */
+      documents: {
+        Row: {
+          id: string;
+          project_id: string;
+          /** `CompositionDocument` 직렬화 JSON (Supabase jsonb column) */
+          content: Record<string, unknown>;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

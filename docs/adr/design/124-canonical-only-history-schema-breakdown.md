@@ -507,6 +507,7 @@ grep -rn "\.data\.element\b\|\.data\.prevElement\b\|\.data\.childElements\|\.dat
 ## 체크리스트
 
 - [x] Phase 0: inventory 측정 완료, [`124-inventory.md`](124-inventory.md) 기록 (2026-05-10)
+- [x] Phase 1: `CanonicalUpdateEvent` 타입 + `applyNodePropsUpdate` + `buildCanonicalUpdateEvent` + G1 unit test 6/6 PASS (2026-05-10)
 - [ ] Phase 1: `CanonicalUpdateEvent` 타입 + apply 함수 + G1 unit test PASS
 - [ ] Phase 2: update/batch entry → canonical event, G2 grep gate 0건
 - [ ] Phase 3: add/remove/auto-detach + session-restore 경로 전환, G3 검증

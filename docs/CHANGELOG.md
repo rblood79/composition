@@ -5,6 +5,35 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-123/124/125 Phase 1 직렬 land — base 3 transitional contract 확립] - 2026-05-10
+
+### Architecture
+
+- **ADR-124 Phase 1 — `CanonicalUpdateEvent` schema 확장 (G1 PASS)**:
+  - `CanonicalHistoryNodeEvent` discriminated union 에 `update` event 추가 (`{ type: "update"; nodeId; prevProps: Record<string, unknown>; nextProps: Record<string, unknown> }`).
+  - `applyCanonicalHistoryEventsToDocument` 의 reduce loop 에 update case 추가 — DFS 로 nodeId 일치 노드 props 교체 (immutable, parent chain copy).
+  - `buildCanonicalUpdateEvent(nodeId, prevProps, nextProps)` helper export — props 객체 spread clone (aliasing 방지).
+  - `getCanonicalHistoryEventIds` 의 update event 처리 추가 — 양 방향 모두 nodeId 를 upsertIds 에 추가 (mutation 만, structural change 없음).
+  - 신규 unit test [`canonicalUpdateEvent.test.ts`](apps/builder/src/builder/stores/history/__tests__/canonicalUpdateEvent.test.ts) 6 시나리오 PASS — round-trip / deep round-trip / missing nodeId / clone / event IDs / multiple sequence.
+  - 위치: `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` + `__tests__/canonicalUpdateEvent.test.ts`
+- **ADR-125 Phase 1 — Canonical scene model boundary 강화**:
+  - `CanonicalSceneModel` interface 에 transition-derived-readonly contract JSDoc 명시 — `elements` 가 canonical-native traversal 결과의 `Element[]` projection / `elementsMap` `childrenByParent` 가 derived view 임을 명시 + Phase 2 에서 layout engine 이 canonical-native 입력으로 전환되면 derived view 사용 빈도 감소 명시.
+  - `buildCanonicalSceneModel` JSDoc 강화 — Builder hot path 에서 `useStore.elementsMap`/`childrenMap` mutable subscription 대신 본 함수의 결과 사용 (ADR-122 HC.1 + ADR-125 §Layer 규칙).
+  - 신규 entry `calculateFullTreeLayoutFromSceneModel(sceneModel, rootElementId, ...)` 추가 — canonical-native layout entry, internal 으로 기존 `calculateFullTreeLayout` map shape 호출. Phase 2 에서 caller 전환 시 primary path 가 됨.
+  - 기존 `calculateFullTreeLayout` JSDoc 에 ADR-125 Phase 1 transition note 추가 — map shape signature 가 transition-derived-readonly 임 명시 + 신규 caller 는 canonical-native entry 사용 권장.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts` + `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts:1907,2310-2369`
+- **ADR-123 Phase 1 — `documents` table + DocumentsApiService**:
+  - Supabase migration SQL 신규: [`docs/migrations/002_create_documents_table.sql`](docs/migrations/002_create_documents_table.sql) — `documents` table (`id` UUID PK / `project_id` FK cascade / `content` JSONB) + `documents_project_id_key` UNIQUE INDEX (1 project = 1 document) + RLS policy (owner read/write) + `updated_at` trigger.
+  - `apps/builder/src/types/integrations/supabase.types.ts` 에 `documents` Row 타입 추가 — `content: Record<string, unknown>` (Supabase jsonb column, runtime 에서 `CompositionDocument` 캐스팅).
+  - `apps/builder/src/services/api/DocumentsApiService.ts` 신규 — `getDocumentByProjectId` (5분 캐싱) / `upsertDocument` (`onConflict: project_id`) / `deleteDocumentByProjectId` (cleanup). PagesApiService 와 동일 BaseApiService 상속 패턴.
+  - `apps/builder/src/adapters/canonical/legacyElementsApiService.ts` 에 boundary-only marker JSDoc 추가 — Phase 1 시점 허용 caller 4곳 명시 (`projectSync` / `dashboard` / `canonicalMutations` thin wrapper / `dbPersistence`) + 신규 caller 추가 금지 + ADR-123 Phase 4 에서 hot path import 0건 grep gate 강제 명시.
+
+### Process
+
+- **Phase 1 직렬 진입 (병렬 worktree 미사용)**: ADR-124 (LOW addition) → ADR-125 (LOW addition) → ADR-123 (migration file + service) 순서로 main 직접 진행. agent commit/push 마감 4회 연속 실패 패턴 회피 (`feedback-agent-completion-failure-pattern.md`).
+- **type-check 3/3 PASS** (cache miss 1회만, shared/publish cache hit). 회귀 vitest 7/7 file 54/54 test PASS (history + scene + canonicalMutations 영역).
+- **ADR-123 Phase 1 의 destructive 단계 (Supabase DB 적용) 미수행**: SQL migration file 작성만, 실제 DB 적용은 Supabase Dashboard / migration tool 수동 실행 (`docs/migrations/001_g1_g2_data_model.sql` 동일 컨벤션).
+
 ## [ADR-123/124/125 Phase 0 inventory freeze — base 3 병렬 진입 시작] - 2026-05-10
 
 ### Documentation
