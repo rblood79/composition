@@ -32,6 +32,8 @@
 
 ## 3. Phase 0 — Inventory Freeze
 
+**Status: Done — 2026-05-10** ([126-inventory.md](126-inventory.md))
+
 **목표**: `Element` 타입 사용처를 bucket으로 분류하고, Phase 1~6 진입 기준을 확정한다.
 
 ### Measurement command seed

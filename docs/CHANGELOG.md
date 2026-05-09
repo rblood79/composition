@@ -5,6 +5,21 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-126 Phase 0 inventory freeze — 응용 ADR 진입 시작] - 2026-05-10
+
+### Documentation
+
+- **ADR-126 Phase 0 — Element 타입 deprecate inventory freeze (G0 PASS)**:
+  - **G0 prerequisite 충족**: ADR-123 / ADR-124 / ADR-125 모두 `Implemented — 2026-05-10` 도달 → 응용 ADR 진입 가능.
+  - 측정 결과 ([126-inventory.md](adr/design/126-inventory.md)):
+    - `Element` 타입 production hit: **1766 line** (breakdown 추정 ~1300 + boundary 일치 범위)
+    - `canonicalDocumentToElements(` callers: **4 location** (정의 1 + production caller 3 — `canonicalHistoryEvents.ts:270` / `canonicalElementsView.ts:352,390`)
+    - `useCanonicalElements` production callers: **~10** (`stores/index` / `properties/hooks` / `monitor/hooks` / `components/property` / `hooks/useDeltaMessenger` / `hooks/useCollectionItemManager` / `panels/properties/editors/LayoutPresetSelector` / `stores/canvasStore` / `panels/nodes/LayersSection`)
+    - `useStore.getState().elementsMap`/`childrenMap` production hit: **0** (ADR-125 land 으로 자동 closure → store-cache bucket 추가 작업 0)
+  - Bucket 분류: `derived-view` (Phase 5 제거) / `store-cache` (ADR-125 자동 closure) / `hot-path-consumer` (Phase 2/4) / `boundary-allowed` (유지) / `test-doc` (Phase 6).
+  - **Phase 1+ 진입 순서 6 phase plan freeze**: Phase 1 derived-view boundary 격리 → Phase 2 hot-path-consumer 전환 (Skia/layout/Preview) → Phase 3 store-cache 정합 → Phase 4 hot-path-consumer 전환 (Properties/LayerTree/History/AI/messaging) → Phase 5 derived-view 제거 → Phase 6 final verification.
+- **Phase 1 진입 권장 (별도 세션)**: derived-view boundary 격리 — `canonicalDocumentToElements`/`useCanonicalElements` 가 boundary allowlist file 내부 정의로만 export, hot path import 차단 grep gate. 회귀 위험 LOW.
+
 ## [ADR-125 Phase 6 verification + Implemented 승격 — base 3 모두 Implemented 도달] - 2026-05-10
 
 ### Architecture
