@@ -2,7 +2,16 @@
 
 ## Status
 
-Proposed — 2026-05-10
+Implemented — 2026-05-10
+
+진행 로그:
+
+- 2026-05-10 Proposed 발의 — ADR-126 Phase 2 진입 직전 framing 4 의문 raise 결과 base ADR 분리
+- 2026-05-10 Phase 0 inventory 사전 — 5 agent 병렬 dispatch (codex review + 4 Explore agent — Phase 0 inventory / Phase 2 hot path 분석 / Phase 4-5 + ADR-124 followup / scene caller 영향). Helper API 60 call site / scene model build chain 18 / scene field read 56 / 위험 신호 없음
+- 2026-05-10 Phase 1 (Helper API 6 신설 — G1 PASS) — `canonicalTraversalHelpers.ts` 신설 (`getChildren` / `getParent` / `getAncestors` / `findByPath` / `getNodeMap` / `getChildrenByParent`) + module-level cache (`documentVersion` + `projectId` 기반 invalidation) + 단위 테스트 28/28 PASS + type-check 0 error
+- 2026-05-10 Phase 2 (Scene model 재설계 — G2 PASS) — `CanonicalSceneModel` interface 변경 (`elements/elementsMap` Element[] → `nodes/nodesMap` CanonicalNode[]) + `buildCanonicalSceneModel` traversal CanonicalNode 직접 사용 (`flattenCanonicalDocumentNodes` helper 신설) + `canonicalSceneModelLegacy.ts` boundary 신설 (`getSceneModelElementsLegacy` / `getSceneModelElementsMapLegacy` / `getSceneModelChildrenByParentLegacy` / `buildLegacyElementMap` / `buildLegacyChildrenByParent`) + BuilderCanvas caller swap (legacy getter 사용) + 기존 scene model test 갱신 + type-check 0 error (turbo cache + forced rebuild 양쪽 baseline 변경 0)
+- 2026-05-10 Phase 3 (Verification — G3 PASS) — type-check FULL TURBO PASS / targeted vitest 30/30 PASS (helper 28 + scene model 2) / preflight FULL TURBO PASS (builder cache miss fresh build PASS) / console error 0 / canvas 2240x1768 idle / FPS 측정은 dev tab background throttle 로 lazy (Phase 1 baseline 120.5fps 변경 없음 — legacy getter 통한 indirect access 라 render 경로 행위 동일)
+- 2026-05-10 Implemented (canonical-native traversal helper + scene model 재설계 도달, ADR-126 Phase 2 prerequisite 충족)
 
 **PREREQUISITE**: ADR-122 (canonical-only runtime) + ADR-125 (render input canonical-native contract) `Implemented` 도달 후 발의 가능. 본 ADR 은 ADR-126 Phase 2 의 prerequisite 로 설계되었다.
 
@@ -94,6 +103,7 @@ scope:
    - `getNodeMap(): Map<string, CanonicalNode>` — 평탄 lookup index (memo 화)
    - `getChildrenByParent(): Map<string, CanonicalNode[]>` — parent_id → children list (memo 화)
 2. **scene model 인터페이스 재설계**:
+
    ```typescript
    export interface CanonicalSceneModel {
      // canonical document SSOT 로부터 derived (read-only)
@@ -107,6 +117,7 @@ scope:
 
    - `Element[]` → `CanonicalNode[]` 으로 export shape 변경
    - `buildCanonicalSceneModel(doc)` 의 internal traversal 도 CanonicalNode 직접 사용
+
 3. **legacy 호환 layer**: scene model 의 기존 caller (ADR-126 Phase 2 transition 미완 상태) 가 사용 가능한 deprecated `elements: Element[]` getter 제공 가능 (Phase 5 격리 이후 제거).
 
 > 구현 상세: [127-canonical-traversal-helper-and-scene-model-redesign-breakdown.md](design/127-canonical-traversal-helper-and-scene-model-redesign-breakdown.md)

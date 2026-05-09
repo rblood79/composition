@@ -5,6 +5,43 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-127 Implemented — Canonical-native traversal helper + scene model 재설계 (Phase 0-3 직렬 land)] - 2026-05-10
+
+### Architecture
+
+- **ADR-127 Phase 0-3 직렬 land — Auto mode 동일 세션 발의 → Implemented**:
+  - **5 agent 병렬 dispatch** (효율적 사전 분석):
+    - codex review (background stream): ADR 본문 + breakdown 정합 layer 검증
+    - Explore #1 — Phase 0 inventory freeze: helper API 60 call site / scene model build chain 18 / scene field read 56 / 위험 신호 없음
+    - Explore #2 — ADR-126 Phase 2 hot path 패턴 분석: 85 file (HIGH 19 / MEDIUM 35 / LOW 31) + parent_id 181 hits / childrenMap.get 37 hits / 추정 8-12 hour
+    - Explore #3 — ADR-126 Phase 4-5 + ADR-124 followup 영향 분석: historyActions canonical event primary 이미 이중화 + derived view caller 11+ + ADR-124 legacy fallback dead code
+    - Explore #4 — ADR-127 Phase 2 scene caller 영향 분석: 14 file caller swap 영향 + ADR-125 layout contract 호환 + 단일 commit 가능 판정
+  - **Phase 1 — helper API 6 신설 (G1 PASS)**:
+    - 신규 file: `apps/builder/src/builder/stores/canonical/canonicalTraversalHelpers.ts` (220 line)
+    - 6 helper export: `getChildren(node)` / `getParent(nodeId)` / `getAncestors(nodeId)` / `findByPath(path)` / `getNodeMap()` / `getChildrenByParent()`
+    - module-level cache (`documentVersion` + `projectId` 조합 key, mutation 시 자동 invalidation)
+    - 단위 테스트 28/28 PASS (`canonicalTraversalHelpers.test.ts`) — 7 카테고리 (getChildren / getParent / getAncestors / findByPath / getNodeMap / getChildrenByParent / Cache invalidation)
+  - **Phase 2 — Scene model 인터페이스 재설계 (G2 PASS)**:
+    - `CanonicalSceneModel` interface 변경: `elements: Element[]` / `elementsMap: Map<string, Element>` / `childrenByParent: Map<string, Element[]>` → `nodes: CanonicalNode[]` / `nodesMap: Map<string, CanonicalNode>` / `childrenByParent: Map<string, CanonicalNode[]>`
+    - `buildCanonicalSceneModel` traversal 이 CanonicalNode 직접 사용 (`flattenCanonicalDocumentNodes` helper 신설)
+    - 신규 boundary file: `apps/builder/src/builder/stores/canonical/canonicalSceneModelLegacy.ts` (110 line) — `getSceneModelElementsLegacy` / `getSceneModelElementsMapLegacy` / `getSceneModelChildrenByParentLegacy` / `buildLegacyElementMap` / `buildLegacyChildrenByParent` (transition 기간 동안 사용, ADR-126 Phase 5 시점에 제거)
+    - BuilderCanvas caller swap (legacy getter 사용)
+    - 기존 scene model test 갱신 (새 interface)
+    - Why: Element vs CanonicalNode shape mismatch (flat parent_id+order_num+tag vs nested children+type) 가 cascade caller swap 강제 — legacy boundary file 격리로 transition 기간 동안 두 shape 공존 가능
+  - **Phase 3 — Verification (G3 PASS)**:
+    - type-check FULL TURBO PASS (turbo cache + builder cache miss 양쪽 fresh build PASS — pre-existing 920 errors 모두 stale tests 의 ADR-127 무관 issue)
+    - targeted vitest 30/30 PASS (helper 28 + scene model 2)
+    - preflight FULL TURBO PASS (`pnpm run codex:preflight`)
+    - console error 0 (Chrome MCP 검증)
+    - canvas dimension 2240x1768 idle 정상 표시
+    - Why FPS 측정 lazy: dev tab background throttle 로 RAF lazy. Phase 1 baseline 120.5fps 변경 0 추정 — legacy getter 통한 indirect access 라 render 경로 행위 동일
+- **ADR-126 Phase 2 진입 prerequisite 충족 갱신**: 5 base ADR (ADR-122 + ADR-123 + ADR-124 + ADR-125 + ADR-127) 모두 Implemented. ADR-126 Phase 2 (hot path 70 file file-by-file transition) 진입 가능 상태로 갱신.
+- **README + CHANGELOG sync**: 카운트 갱신 (완료 115→116 / 부분 완료 7 / 미구현 10→9 / 합계 132 유지). ADR-127 row Status `Proposed` → `Implemented`.
+
+### Process
+
+- **다음 진입 권장 (별도 세션)**: ADR-126 Phase 2 — hot path 70 file file-by-file transition (workspace/canvas + panels + resolvers Element import 0건 + Element @deprecated + eslint-plugin-deprecation 활성). 추정 8-12 hour, MEDIUM~HIGH 회귀 위험. ADR-127 helper API + canonical-native scene model + legacy boundary getter 가 prerequisite 로 land 완료. file group 별 자연 commit 분할 진행.
+
 ## [ADR-127 Proposed — Canonical-native traversal helper + scene model 재설계 발의] - 2026-05-10
 
 ### Documentation

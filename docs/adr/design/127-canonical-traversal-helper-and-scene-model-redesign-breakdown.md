@@ -88,6 +88,8 @@ grep -A2 "^## Status" \
 
 ## 4. Phase 1 — Helper API 신설
 
+**Status: Done — 2026-05-10** — `canonicalTraversalHelpers.ts` 신설 + 6 helper export + 28/28 unit test PASS + type-check 0 error.
+
 **목표**: `canonicalElementsBridge.ts` 또는 별도 module (`canonicalTraversalHelpers.ts`) 에 6 helper API 신설 + 단위 테스트.
 
 ### 작업
@@ -132,6 +134,8 @@ grep -A2 "^## Status" \
 ---
 
 ## 5. Phase 2 — Scene model 재설계
+
+**Status: Done — 2026-05-10** — `CanonicalSceneModel` interface canonical-native 전환 + `canonicalSceneModelLegacy.ts` boundary 격리 + BuilderCanvas caller swap + scene model test 갱신.
 
 **목표**: `canonicalSceneModel.ts` 인터페이스를 CanonicalNode 기반으로 재설계 + caller swap 동반 (단일 commit).
 
@@ -197,6 +201,8 @@ grep -A2 "^## Status" \
 ---
 
 ## 6. Phase 3 — Verification
+
+**Status: Done — 2026-05-10** — type-check FULL TURBO PASS + targeted vitest 30/30 PASS + preflight FULL TURBO PASS + console error 0.
 
 **목표**: ADR-127 G3 통과 + ADR-126 Phase 2 진입 가능 상태 확증.
 

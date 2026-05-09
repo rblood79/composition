@@ -66,12 +66,14 @@ import { usePageDrag } from "./hooks/usePageDrag";
 import { useKeyboardShortcutsRegistry } from "../../hooks/useKeyboardShortcutsRegistry";
 import type { PageTitleBounds } from "./skia/skiaOverlayHelpers";
 
+import { buildCanonicalSceneModel, buildSceneStructureSnapshot } from "./scene";
 import {
-  buildCanonicalSceneModel,
-  buildSceneChildrenByParent,
-  buildSceneElementMap,
-  buildSceneStructureSnapshot,
-} from "./scene";
+  buildLegacyChildrenByParent,
+  buildLegacyElementMap,
+  getSceneModelChildrenByParentLegacy,
+  getSceneModelElementsLegacy,
+  getSceneModelElementsMapLegacy,
+} from "../../stores/canonical/canonicalSceneModelLegacy";
 import {
   computeWorkflowEdges,
   computeDataSourceEdges,
@@ -280,17 +282,22 @@ export function BuilderCanvas({
   // Builder store mirror 가 아니라 canonical document 에서 만든 scene model을
   // 직접 사용한다. store mirror 는 hydration fallback 으로만 남긴다.
   const storeElementsMap = useMemo(
-    () => buildSceneElementMap(storeElements),
+    () => buildLegacyElementMap(storeElements),
     [storeElements],
   );
   const storeChildrenByParent = useMemo(
-    () => buildSceneChildrenByParent(storeElements),
+    () => buildLegacyChildrenByParent(storeElements),
     [storeElements],
   );
-  const elements = canonicalSceneModel?.elements ?? storeElements;
-  const elementsMap = canonicalSceneModel?.elementsMap ?? storeElementsMap;
-  const childrenMap =
-    canonicalSceneModel?.childrenByParent ?? storeChildrenByParent;
+  const elements = canonicalSceneModel
+    ? getSceneModelElementsLegacy(canonicalSceneModel)
+    : storeElements;
+  const elementsMap = canonicalSceneModel
+    ? getSceneModelElementsMapLegacy(canonicalSceneModel)
+    : storeElementsMap;
+  const childrenMap = canonicalSceneModel
+    ? getSceneModelChildrenByParentLegacy(canonicalSceneModel)
+    : storeChildrenByParent;
   const elementById = elementsMap;
 
   // ADR-006 P3-1: dirtyElementIds 소비 후 초기화

@@ -6,8 +6,10 @@ export {
 export {
   buildCanonicalSceneModel,
   buildSceneChildrenByParent,
-  buildSceneElementMap,
+  buildSceneNodeMap,
+  flattenCanonicalDocumentNodes,
 } from "./canonicalSceneModel";
+export type { CanonicalSceneModel } from "./canonicalSceneModel";
 export {
   buildPageDataMap,
   buildDepthMap,

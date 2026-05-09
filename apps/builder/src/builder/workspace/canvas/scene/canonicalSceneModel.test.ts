@@ -6,8 +6,8 @@ import { resolve } from "node:path";
 
 import { buildCanonicalSceneModel } from "./canonicalSceneModel";
 
-describe("buildCanonicalSceneModel", () => {
-  it("builds Skia scene input maps from canonical children source order", () => {
+describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () => {
+  it("builds canonical-native node maps from canonical children source order", () => {
     const document: CompositionDocument = {
       version: "composition-1.0",
       children: [
@@ -18,7 +18,7 @@ describe("buildCanonicalSceneModel", () => {
           children: [
             {
               id: "body-1",
-              type: "body",
+              type: "Body",
               props: {},
               children: [
                 {
@@ -36,22 +36,29 @@ describe("buildCanonicalSceneModel", () => {
           ],
         },
       ],
-    };
+    } as unknown as CompositionDocument;
 
     const model = buildCanonicalSceneModel(document);
 
-    expect(model.elements.map((element) => element.id)).toEqual([
+    // ADR-127 Phase 2 — primary export 가 nodes (CanonicalNode[]) + nodesMap
+    expect(model.nodes.map((node) => node.id)).toEqual([
+      "page-1",
       "body-1",
       "second",
       "first",
     ]);
-    expect(model.elements.every((element) => !("order_num" in element))).toBe(
-      true,
-    );
-    expect(model.elementsMap.get("first")?.page_id).toBe("page-1");
+    expect(model.nodesMap.get("first")?.type).toBe("Button");
+    expect(model.nodesMap.get("body-1")?.type).toBe("Body");
+
+    // childrenByParent: parent id → CanonicalNode[] (children 배열 순서 보존)
     expect(
-      model.childrenByParent.get("body-1")?.map((element) => element.id),
+      model.childrenByParent.get("body-1")?.map((node) => node.id),
     ).toEqual(["second", "first"]);
+    expect(
+      model.childrenByParent.get("page-1")?.map((node) => node.id),
+    ).toEqual(["body-1"]);
+
+    // pageIndex 는 legacy derived index (Element[] 호환 전환은 ADR-126 Phase 2)
     expect([
       ...(model.pageIndex.elementsByPage.get("page-1") ?? new Set()),
     ]).toEqual(["body-1", "second", "first"]);
@@ -63,7 +70,8 @@ describe("buildCanonicalSceneModel", () => {
       "utf-8",
     );
 
-    expect(source).toContain("visitCanonicalDocumentElements");
+    // ADR-127 Phase 2 — buildCanonicalSceneModel 은 자체 traversal
+    // (flattenCanonicalDocumentNodes) 사용. canonicalElementSnapshot helper 미경유.
     expect(source).not.toContain(
       ["getCanonicalElements", "SnapshotFromDocument"].join(""),
     );
