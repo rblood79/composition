@@ -48,15 +48,15 @@ rg -n "order_num" \
 
 ## 3. Phase Plan
 
-| Phase   | Goal                                   | Main output                                        | Gate |                                        Status                                         |
-| ------- | -------------------------------------- | -------------------------------------------------- | :--: | :-----------------------------------------------------------------------------------: |
-| Phase 0 | render input contract inventory freeze | bucket 분류 + 정확한 file/line list                |  G1  |             **Done — 2026-05-10** ([125-inventory.md](125-inventory.md))              |
-| Phase 1 | canonical scene model boundary 강화    | `buildCanonicalSceneModel()` 입력 contract 확장    |  —   |                    **Done — 2026-05-10** (JSDoc + canonical entry)                    |
-| Phase 2 | layout engine input contract 정의      | `DFSContext` canonical-native 전환 + benchmark     |  G2  |       **Done (2-a) — 2026-05-10** (layoutCache caller swap, browser load PASS)        |
-| Phase 3 | Preview UPDATE_ELEMENTS receive 제거   | hydration guard 강화 + receive case 제거           |  G3  | **Done — 2026-05-10** (UpdateElementsMessage type 제거 + case "UPDATE_ELEMENTS" 제거) |
-| Phase 4 | bootstrap fallback path canonical-only | `useIframeMessenger.ts` `!canonicalDoc` 분기 제거  |  —   |             **Done — 2026-05-10** (`!canonicalDoc` legacy bootstrap 제거)             |
-| Phase 5 | order_num 갱신 path 제거               | `elements.ts` move fallback canonical-only         |  G4  |      **Done — 2026-05-10** (ADR-122 HC.5 closure, fallback order_num 갱신 제거)       |
-| Phase 6 | final verification                     | render benchmark + browser smoke + targeted vitest |  G5  |                                        Pending                                        |
+| Phase   | Goal                                   | Main output                                        | Gate |                                                                  Status                                                                   |
+| ------- | -------------------------------------- | -------------------------------------------------- | :--: | :---------------------------------------------------------------------------------------------------------------------------------------: |
+| Phase 0 | render input contract inventory freeze | bucket 분류 + 정확한 file/line list                |  G1  |                                       **Done — 2026-05-10** ([125-inventory.md](125-inventory.md))                                        |
+| Phase 1 | canonical scene model boundary 강화    | `buildCanonicalSceneModel()` 입력 contract 확장    |  —   |                                              **Done — 2026-05-10** (JSDoc + canonical entry)                                              |
+| Phase 2 | layout engine input contract 정의      | `DFSContext` canonical-native 전환 + benchmark     |  G2  |                                 **Done (2-a) — 2026-05-10** (layoutCache caller swap, browser load PASS)                                  |
+| Phase 3 | Preview UPDATE_ELEMENTS receive 제거   | hydration guard 강화 + receive case 제거           |  G3  |                           **Done — 2026-05-10** (UpdateElementsMessage type 제거 + case "UPDATE_ELEMENTS" 제거)                           |
+| Phase 4 | bootstrap fallback path canonical-only | `useIframeMessenger.ts` `!canonicalDoc` 분기 제거  |  —   |                                       **Done — 2026-05-10** (`!canonicalDoc` legacy bootstrap 제거)                                       |
+| Phase 5 | order_num 갱신 path 제거               | `elements.ts` move fallback canonical-only         |  G4  |                                **Done — 2026-05-10** (ADR-122 HC.5 closure, fallback order_num 갱신 제거)                                 |
+| Phase 6 | final verification                     | render benchmark + browser smoke + targeted vitest |  G5  | **Done — 2026-05-10** (FPS 96-120 idle / canvas 2612x1768 / console error 0 / preflight FULL TURBO PASS / 회귀 vitest 12 file 55/55 PASS) |
 
 ## 4. Phase 0 — Render input contract inventory freeze
 

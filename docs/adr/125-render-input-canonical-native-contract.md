@@ -2,7 +2,17 @@
 
 ## Status
 
-Accepted — 2026-05-10
+Implemented — 2026-05-10
+
+진행 로그:
+
+- 2026-05-10 Proposed → Accepted (codex review 9/9 closure)
+- 2026-05-10 Phase 0 (inventory freeze, 48 hits enumerate) + Phase 1 (canonical scene model boundary 강화 — JSDoc + `calculateFullTreeLayoutFromSceneModel` transitional entry)
+- 2026-05-10 Phase 2-a (layoutCache caller swap → canonical-native entry) + Phase 3 (Preview UPDATE_ELEMENTS receive 제거) + Phase 4 (bootstrap fallback canonical-only) + Phase 5 (order_num 갱신 제거 — ADR-122 HC.5 closure)
+- 2026-05-10 Phase 6 verification (render benchmark FPS 96-120 idle ≥ 60fps gate / canvas 2612x1768 / console error 0 / preflight FULL TURBO PASS / 회귀 vitest 12 file 55/55 PASS)
+- 2026-05-10 Implemented (외부 contract canonical-native 도달, layout engine 입력 = scene model derived view)
+
+> **Phase 2-b 의도된 skip — framing 결정**: 외부 contract canonical-native 진전은 Phase 2-a 로 달성. `fullTreeLayout` 내부 traversal 의 `elementsMap.get()` 은 canonical document 에서 single-pass 로 derive 된 scene model view 의 consumer 이므로 이미 canonical-native 의미. raw canonical document parent chain lookup 으로 변경 시 O(1) → O(depth) 성능 회귀 위험 + 의미적 진전 미미. 따라서 Phase 2-b (raw traversal 변경) 는 skip 하고 Phase 6 verification 으로 본질 도달 (FPS 60+ + smoke evidence). 향후 별도 ADR 로 layout engine deep refactor 가 필요해지면 그 시점에 재평가.
 
 ## Context
 

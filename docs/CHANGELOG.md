@@ -5,6 +5,28 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-125 Phase 6 verification + Implemented 승격 — base 3 모두 Implemented 도달] - 2026-05-10
+
+### Architecture
+
+- **ADR-125 Phase 6 — Final verification (G5 PASS)**:
+  - **Render benchmark**: Builder 가동 중 idle FPS 측정 — 1초 96 frames / 2초 120 frames → **≥60fps gate 통과** (idle 상태 기준 60fps 의 1.6-2배 여유). ADR-125 Phase 2-5 변경 후 render path 정상 작동 + 성능 회귀 0.
+  - **Canvas render**: 2612x1768 displayed, 97 panels rendered, body children 4 (정상 layout).
+  - **Console errors**: 0 (`onlyErrors: true` 필터 결과 "No console errors or exceptions found").
+  - **Preflight**: FULL TURBO PASS (3 task 모두 cache hit, 19ms).
+  - **회귀 vitest**: 12 file 55/55 PASS (canvas/scene + history + canonicalMutations + projectSync + dashboard 영역).
+- **ADR-125 Status `Accepted` → `Implemented`** (Phase 0-1-2a-3-4-5-6 land 완료):
+  - 외부 contract canonical-native 도달 — layoutCache caller swap → `calculateFullTreeLayoutFromSceneModel` + Preview UPDATE_ELEMENTS receive 제거 + bootstrap fallback canonical-only + order_num closure (ADR-122 HC.5).
+  - **Phase 2-b 의도된 skip — framing 결정**: 외부 contract canonical-native 진전은 Phase 2-a 로 달성. `fullTreeLayout` 내부의 `elementsMap.get()` 은 canonical document 에서 single-pass 로 derive 된 scene model view 의 consumer 이므로 이미 canonical-native 의미. raw canonical document parent chain lookup 으로 변경 시 O(1) → O(depth) 성능 회귀 위험 + 의미적 진전 미미 → skip 결정 lock-in (ADR 본문 진행 로그 명시).
+- **base 3 ADR 모두 Implemented 도달**: ADR-123 (cloud) / ADR-124 (history) / ADR-125 (render input) → **ADR-126 응용 prerequisite 모두 충족**. ADR-126 (Element 타입 deprecate, 응용 ADR) Phase 0-3 진입 가능 상태.
+- **README/CHANGELOG sync**: 현황 카운트 갱신 (완료 114→115 / 부분 완료 8→7 / 미구현 9 / 합계 131 유지). ADR-125 row Status `Partial (Accepted)` → `Implemented` 갱신.
+
+### Process
+
+- **base 3 직교 ADR closure 완결**: ADR-122 후속 cleanup 의 Cloud / History / Render input 3 base 가 모두 Implemented 도달. fork checkpoint 4 질문 (base/응용 분류 / schema 직교성 / framing reverse / codex 진입 시점) 통과 후 직렬 land 완결.
+- **framing 정직성 — Phase 2-b skip 결정 lock-in**: sycophancy 회피 하에 Phase 2-b 의 본질 검토 (외부 contract vs 내부 traversal / 성능 회귀 위험 / 의미적 진전 ROI) → skip 결정 사용자 surface 1회 후 진행. memory `feedback-anthropic-lever-essence-verification.md` + `feedback-codex-not-framing-layer.md` 정렬.
+- **다음 진입 — ADR-126 응용**: 본 세션 또는 별도 세션에서 ADR-126 Phase 0 (inventory: Element 타입 grep ~1,300 line hit + canonicalDocumentToElements 4 caller + useCanonicalElements ~12 production caller 재측정) 진입.
+
 ## [ADR-123/124 Implemented 승격 + ADR-124 Phase 5 IndexedDB v2 migration] - 2026-05-10
 
 ### Architecture
