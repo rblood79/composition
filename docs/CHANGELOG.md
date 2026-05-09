@@ -5,6 +5,60 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-123/124/125/126 4 ADR 동시 발의 — ADR-122 후속 cleanup 분할 설계] - 2026-05-10
+
+### Documentation
+
+- **ADR-122 후속 cleanup 4 ADR 동시 발의**:
+  - ADR-122 closure 후 잔존 영역 (cloud schema / history schema / render input contract / Element type deprecate) 을 **fork checkpoint 4 질문 통과 후** 4 base/응용 ADR 로 분할 발의.
+  - **base/응용 분류 lock-in**: ADR-123/124/125 = 직교 base (병렬 발의/실행 가능), ADR-126 = 응용 (base 셋 prerequisite).
+  - **의존 그래프**: 123 ∥ 124 ∥ 125 → 126.
+  - **Why**: 4 ADR 동시 설계로 baseline framing 자동 승계 (ADR-111/112 사례) 차단. ADR-122 대안 B 기각 framing (한 ADR 내 cloud + history + render + Element 합치기 = HIGH 누적) 그대로 적용.
+- **ADR-123 — Cloud document-level row schema 단일화** (Proposed, 244 lines + 370 breakdown):
+  - scope: Supabase `pages`/`elements` row schema + `legacyElementsApiService` + `PagesApiService` + `canonicalMutations` cloud wrapper + dashboard direct calls + `projectSync` (6 surface).
+  - Risk 4축: 기술 M / 성능 M / 유지보수 L / 마이그레이션 **H** → HIGH 1.
+  - 4 alternatives (A 현행 / B 즉시 전수 / **C 권장: documents row + boundary adapter** / D schema 유지 + diff 변경).
+  - 7 Phase + 7 Gate (G0~G6, G1 migration window 으로 마이그레이션 H 통제).
+  - 위치: `docs/adr/123-cloud-document-row-schema.md`, `docs/adr/design/123-cloud-document-row-schema-breakdown.md`.
+- **ADR-124 — Canonical-only history entry schema** (Proposed, 175 lines + 513 breakdown):
+  - scope: `historyActions.ts` legacy `data.element/childElements/elements/prevElements` snapshot field + IndexedDB v15 history entry schema + update/batch/auto-detach fallback path.
+  - Risk 4축: 기술 M / 성능 L / 유지보수 L / 마이그레이션 M → HIGH 0.
+  - 4 alternatives (A 현행 / B 즉시 전수 삭제 / **C 권장: canonical event-only + IndexedDB v15→v16 migration** / D deprecated 태그).
+  - 7 Phase + 6 Gate (G1~G6).
+  - 위치: `docs/adr/124-canonical-only-history-schema.md`, `docs/adr/design/124-canonical-only-history-schema-breakdown.md`.
+- **ADR-125 — Render input canonical-native contract** (Proposed, 212 lines + 312 breakdown):
+  - scope: layout engine `elementsMap`/`childrenMap` map shape input + Preview `UPDATE_ELEMENTS` receive type (compatibility 잔존) + `elements.ts` element move fallback `order_num` 갱신 + `useIframeMessenger` `!canonicalDoc` bootstrap fallback.
+  - Risk 4축: 기술 M / 성능 M / 유지보수 L / 마이그레이션 L → HIGH 0.
+  - 4 alternatives (A 현행 / B 즉시 전환 + 성능 검증 부재 / **C 권장: scene model boundary 강화 + benchmark gate** / D layout engine 만 전환).
+  - 7 Phase + 5 Gate (G1~G5, G2 render benchmark gate 로 성능 M 통제).
+  - **ADR-122 HC.5 closure**: `order_num` 재도입 금지 위반 잔존을 본 ADR 에서 최종 제거.
+  - 위치: `docs/adr/125-render-input-canonical-native-contract.md`, `docs/adr/design/125-render-input-canonical-native-contract-breakdown.md`.
+- **ADR-126 — Element 타입 Deprecate (final canonical-only runtime)** (Proposed, 180 lines + 334 breakdown):
+  - **응용 ADR — ADR-123/124/125 모두 `Implemented` prerequisite**. Phase 0 (inventory freeze) 만 선행 가능, Phase 1 이상 base 셋 통과 후 진입.
+  - scope: `Element` 타입 production 1111 라인 + `canonicalDocumentToElements` 4 callers + `useCanonicalElements` 14 callers + store cache `elementsMap`/`childrenMap` canonical-native consumer 100% 전환.
+  - Risk 4축: 기술 **H** / 성능 M / 유지보수 **H** / 마이그레이션 M → HIGH 2 (base 셋 분리로 위험 누적 차단).
+  - 4 alternatives (A 영구 derived view / B 즉시 전수 / **C 권장: consumer 별 점진 + boundary allowlist** / D node alias + type alias 점진 deprecate).
+  - 7 Phase + 7 Gate (G0~G6, R1→G0 prerequisite lock / R2→G1 FPS baseline).
+  - 위치: `docs/adr/126-element-type-deprecate.md`, `docs/adr/design/126-element-type-deprecate-breakdown.md`.
+
+### Process
+
+- **fork checkpoint 4 질문 통과 lock-in**:
+  - Q1 (base/응용 분류): 123/124/125 = base / 126 = 응용 명시.
+  - Q2 (schema 직교성): 123 ↔ 124 ↔ 125 직교, 126 강결합 명시.
+  - Q3 (baseline framing reverse): ADR-122 closure note 4 항목 ("future cloud/Supabase physical schema removal" / "legacy snapshot fields ... compatibility/fallback 경계로 잔존" / "별도 renderer refactor" / soft constraint "한 번에 Element 타입 삭제 안 함") 의 후속 매핑 명시.
+  - Q4 (codex 진입 시점): framing 검증을 codex 3차까지 미루지 말 것 — 본 4 ADR 작성 시점에 Q1-Q3 + extended thinking + memory trigger 로 framing 통과. codex 호출은 본문 정합 layer (grep alias / gate matrix / 본문-breakdown 포인터) 만.
+- **4 architect agent 병렬 dispatch + 본인 직렬 마감 패턴 사용**:
+  - 4 agents 동시 dispatch (worktree 격리, isolation 미사용, scope 분리 — 같은 main 의 다른 path 만 편집).
+  - prompt 안전장치 4중: README/CHANGELOG/코드 편집 금지, commit/push 금지, 다른 ADR 번호 편집 금지, baseline framing 자동 승계 금지.
+  - ADR-125 의 1 회 도중 끊김 → 본인이 ADR-122 breakdown 패턴 참조하여 직접 작성 완료.
+  - ADR-125 본문 의존 방향 reverse 표기 ("ADR-126 prerequisite") 본인 검증 단계에서 정정 ("ADR-126 응용, 본 ADR base 가 prerequisite").
+
+### Memory
+
+- `feedback-adr-consolidation-burden-not-essence.md` — "한 번에", "합쳐서" 표현 발견 시 동기 (a)/(b)/(c) 분류 raise. "발의 부담 절약" 동기는 risk threshold check (HIGH 누적) framing 으로 redirect.
+- `feedback-codex-not-framing-layer.md` — codex review = 본문 정합 layer (grep alias / gate matrix / 절차 컴플라이언스). framing 검증 outsource 금지 — extended thinking + fork checkpoint 4 질문 + memory trigger + raise 의무가 codex 진입 이전에 통과.
+
 ## [ADR-122 canonical-only runtime implemented closure] - 2026-05-09
 
 ### Changed
