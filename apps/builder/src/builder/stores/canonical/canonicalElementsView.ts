@@ -19,6 +19,7 @@ import type {
   CanonicalNode,
   CompositionDocument,
   CompositionExtension,
+  DescendantOverride,
   RefNode,
 } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
@@ -116,6 +117,26 @@ function getRefDescendantChildren(node: CanonicalNode): CanonicalNode[][] {
   return Object.values(descendants)
     .map(readDescendantChildren)
     .filter((children) => children.length > 0);
+}
+
+export function getCanonicalRefOverrideEntries(
+  node: CanonicalNode,
+): Array<[string, DescendantOverride]> {
+  if (node.type !== "ref") return [];
+  const descendants = (node as RefNode).descendants ?? {};
+  return Object.entries(descendants);
+}
+
+export function withCanonicalRefOverrides(
+  refNode: RefNode,
+  overrides: RefNode["descendants"],
+): RefNode {
+  if (overrides && Object.keys(overrides).length > 0) {
+    return { ...refNode, descendants: overrides };
+  }
+
+  const { descendants: _descendants, ...rest } = refNode;
+  return rest as RefNode;
 }
 
 function isPagePlaceholderNode(node: CanonicalNode): boolean {

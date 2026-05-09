@@ -340,10 +340,11 @@ async function confirmOriginImpactIfNeeded(
  * 요소의 props만 업데이트하는 로직을 처리합니다.
  *
  * 처리 순서:
- * 1. 메모리 상태 업데이트 (즉시 UI 반영)
- * 2. 히스토리 추가 (Undo/Redo 지원)
- * 3. iframe 업데이트는 PropertyPanel에서 직접 처리 (무한 루프 방지)
- * 4. SaveService는 외부(Preview, PropertyPanel 등)에서 호출
+ * 1. 히스토리 추가 (Undo/Redo 지원)
+ * 2. canonical document mutation
+ * 3. derived store cache 업데이트 (즉시 UI 반영)
+ * 4. iframe 업데이트는 PropertyPanel에서 직접 처리 (무한 루프 방지)
+ * 5. IndexedDB canonical document 저장
  *
  * @param set - Zustand setState 함수
  * @param get - Zustand getState 함수
@@ -424,6 +425,8 @@ export const createUpdateElementPropsAction =
       ? isLayoutAffectingUpdate(changedStyle)
       : Object.keys(patch).some((k) => k !== "style"); // style 외 props 변경은 레이아웃 영향으로 간주
 
+    syncUpdatedElementToCanonical(updatedElement);
+
     // updateElementProps는 element 구조(parent_id/page_id/type/variableBindings 등)를 바꾸지 않으므로,
     // 전체 인덱스 재구축(O(n)) 대신 변경된 요소만 O(1)로 갱신한다.
     if (updatedElement) {
@@ -458,8 +461,6 @@ export const createUpdateElementPropsAction =
       });
     }
 
-    syncUpdatedElementToCanonical(updatedElement);
-
     // 2. iframe 업데이트는 PropertyPanel에서 직접 처리하도록 변경 (무한 루프 방지)
 
     // 3. Canonical document 저장 — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
@@ -490,9 +491,10 @@ export const createUpdateElementPropsAction =
  * 요소의 전체 속성(props, dataBinding 등)을 업데이트하는 로직을 처리합니다.
  *
  * 처리 순서:
- * 1. 메모리 상태 업데이트
- * 2. 히스토리 추가 (props 변경 시)
- * 3. SaveService는 외부에서 관리 (useSyncWithBuilder)
+ * 1. 히스토리 추가 (props 변경 시)
+ * 2. canonical document mutation
+ * 3. derived store cache 업데이트
+ * 4. IndexedDB canonical document 저장
  *
  * @param set - Zustand setState 함수
  * @param get - Zustand getState 함수
@@ -567,6 +569,8 @@ export const createUpdateElementAction =
       ? isLayoutAffectingUpdate(changedStyle)
       : Boolean(sanitizedUpdates.props); // props 변경이 있으면 레이아웃 영향으로 간주
 
+    syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);
+
     if (isLayoutChange) {
       const dirtyIds = new Set(currentState.dirtyElementIds);
       markDirtyWithDescendantsUpdate(
@@ -591,7 +595,6 @@ export const createUpdateElementAction =
     // 🔧 CRITICAL: elementsMap 재구축 (재선택 시 이전 값 반환 방지)
     // Immer produce() 외부에서 호출 (Map은 Immer가 직접 지원하지 않음)
     get()._rebuildIndexes();
-    syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);
 
     // 2. Canonical document 저장 — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
     if (typeof indexedDB === "undefined") return;
@@ -726,6 +729,11 @@ export const createBatchUpdateElementPropsAction =
       }
     }
 
+    const updatedElementsForPersistence = Array.from(
+      updatedElementMap.values(),
+    );
+    syncUpdatedElementsToCanonical(updatedElementsForPersistence);
+
     if (hasAnyLayoutChange) {
       set((prevState) => ({
         elements: updatedElements,
@@ -741,11 +749,6 @@ export const createBatchUpdateElementPropsAction =
         selectedElementProps: selectedProps,
       });
     }
-
-    const updatedElementsForPersistence = Array.from(
-      updatedElementMap.values(),
-    );
-    syncUpdatedElementsToCanonical(updatedElementsForPersistence);
 
     // 2. 단일 히스토리 엔트리 추가 (batch 타입)
     const currentPageId = get().currentPageId;
@@ -912,6 +915,14 @@ export const createBatchUpdateElementsAction =
       }
     }
 
+    const updatedElementMap = new Map(
+      updatedElements.map((element) => [element.id, element]),
+    );
+    const updatedElementsForPersistence = validUpdates
+      .map((update) => updatedElementMap.get(update.elementId))
+      .filter((element): element is Element => Boolean(element));
+    syncUpdatedElementsToCanonical(updatedElementsForPersistence, validUpdates);
+
     set((prevState) => ({
       elements: updatedElements,
       selectedElementProps: selectedProps,
@@ -926,14 +937,6 @@ export const createBatchUpdateElementsAction =
         dirtyElementIds: dirtyIds,
       }),
     }));
-
-    const updatedElementMap = new Map(
-      updatedElements.map((element) => [element.id, element]),
-    );
-    const updatedElementsForPersistence = validUpdates
-      .map((update) => updatedElementMap.get(update.elementId))
-      .filter((element): element is Element => Boolean(element));
-    syncUpdatedElementsToCanonical(updatedElementsForPersistence, validUpdates);
 
     // 2. 히스토리 엔트리 추가
     const currentPageId = get().currentPageId;

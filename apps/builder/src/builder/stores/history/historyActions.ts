@@ -26,6 +26,10 @@ import {
   areCanonicalMutationStoreActionsRegistered,
   setElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
+import {
+  applyCanonicalHistoryEventsToActiveDocument,
+  getCanonicalHistoryEventIds,
+} from "./canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
@@ -156,6 +160,31 @@ function resolveSelectedPropsAfterBatch(
   return selectedElement ? createCompleteProps(selectedElement) : {};
 }
 
+function resolveSelectionAfterCanonicalEvents(
+  selectedElementId: string | null,
+  selectedElementProps: ComponentElementProps,
+  updatedElements: Element[],
+): {
+  selectedElementId: string | null;
+  selectedElementProps: ComponentElementProps;
+} {
+  if (!selectedElementId) {
+    return { selectedElementId, selectedElementProps };
+  }
+  const selectedElement = updatedElements.find(
+    (element) => element.id === selectedElementId,
+  );
+  return selectedElement
+    ? {
+        selectedElementId,
+        selectedElementProps: createCompleteProps(selectedElement),
+      }
+    : {
+        selectedElementId: null,
+        selectedElementProps: {},
+      };
+}
+
 function getHistoryDiffElementIds(entry: HistoryEntry): string[] {
   const ids = new Set<string>();
   if (entry.data.diff) ids.add(entry.data.diff.elementId);
@@ -192,6 +221,23 @@ async function upsertHistoryCompatibilityElements(
   await supabase
     .from("elements")
     .upsert(sanitizedElements, { onConflict: "id" });
+}
+
+async function syncCloudCompatibilityForCanonicalEvents(
+  entry: HistoryEntry,
+  direction: "undo" | "redo",
+  get: GetState,
+): Promise<void> {
+  const { upsertIds, deleteIds } = getCanonicalHistoryEventIds(
+    entry.data.canonicalEvents,
+    direction,
+  );
+  if (deleteIds.length > 0) {
+    await supabase.from("elements").delete().in("id", deleteIds);
+  }
+  if (upsertIds.length > 0) {
+    await upsertHistoryCompatibilityElements(upsertIds, get);
+  }
 }
 
 /**
@@ -345,264 +391,289 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
+    const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
+      entry.data.canonicalEvents,
+      "undo",
+    );
+    const appliedCanonicalEvents = canonicalEventElements !== null;
 
-    switch (entry.type) {
-      case "add": {
-        // 추가된 요소 제거 (역작업)
-        updatedElements = currentState.elements.filter(
-          (el) => !elementIdsToRemove.includes(el.id),
-        );
-        if (elementIdsToRemove.includes(currentState.selectedElementId || "")) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
-      }
-
-      case "update": {
-        console.log("📥 Update 케이스 실행됨:", {
-          elementId: entry.elementId,
-          hasPrevProps: !!prevProps,
-          hasPrevElement: !!prevElement,
-          hasDiff: !!entry.data.diff,
-        });
-
-        if (entry.data.diff) {
-          updatedElements = applySerializedHistoryDiff(
-            currentState.elements,
-            entry.data.diff,
-            "undo",
+    if (canonicalEventElements) {
+      updatedElements = canonicalEventElements;
+      const selection = resolveSelectionAfterCanonicalEvents(
+        currentState.selectedElementId,
+        currentState.selectedElementProps,
+        updatedElements,
+      );
+      updatedSelectedElementId = selection.selectedElementId;
+      updatedSelectedElementProps = selection.selectedElementProps;
+    } else
+      switch (entry.type) {
+        case "add": {
+          // 추가된 요소 제거 (역작업)
+          updatedElements = currentState.elements.filter(
+            (el) => !elementIdsToRemove.includes(el.id),
           );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            currentState.selectedElementId,
-            currentState.selectedElementProps,
-            updatedElements,
-          );
+          if (
+            elementIdsToRemove.includes(currentState.selectedElementId || "")
+          ) {
+            updatedSelectedElementId = null;
+            updatedSelectedElementProps = {};
+          }
           break;
         }
 
-        // 이전 상태로 복원 (불변 업데이트)
-        const elementIndex = currentState.elements.findIndex(
-          (el) => el.id === entry.elementId,
-        );
-        if (elementIndex >= 0 && prevProps) {
-          const element = currentState.elements[elementIndex];
-          console.log("🔄 Undo: Props 복원", {
+        case "update": {
+          console.log("📥 Update 케이스 실행됨:", {
             elementId: entry.elementId,
-            elementTag: element.type,
-            currentProps: { ...element.props },
-            restoringTo: prevProps,
+            hasPrevProps: !!prevProps,
+            hasPrevElement: !!prevElement,
+            hasDiff: !!entry.data.diff,
           });
 
-          updatedElements = currentState.elements.map((el, i) =>
-            i === elementIndex ? { ...el, props: prevProps } : el,
-          );
-
-          // 선택된 요소가 업데이트된 경우 selectedElementProps도 업데이트
-          if (currentState.selectedElementId === entry.elementId) {
-            console.log("🔄 Undo: 선택된 요소 props도 업데이트");
-            const restoredElement = { ...element, props: prevProps };
-            updatedSelectedElementProps = createCompleteProps(
-              restoredElement,
-              prevProps,
+          if (entry.data.diff) {
+            updatedElements = applySerializedHistoryDiff(
+              currentState.elements,
+              entry.data.diff,
+              "undo",
             );
+            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+              currentState.selectedElementId,
+              currentState.selectedElementProps,
+              updatedElements,
+            );
+            break;
           }
-        } else if (elementIndex >= 0 && prevElement) {
-          console.log("🔄 Undo: 전체 요소 복원", {
-            elementId: entry.elementId,
-            prevElement,
-          });
-          // 전체 요소가 저장된 경우
-          updatedElements = currentState.elements.map((el, i) =>
-            i === elementIndex ? { ...el, ...prevElement } : el,
-          );
-        } else {
-          console.warn("⚠️ Undo 실패: 요소 또는 이전 데이터를 찾을 수 없음", {
-            elementId: entry.elementId,
-            elementFound: elementIndex >= 0,
-            prevPropsFound: !!prevProps,
-            prevElementFound: !!prevElement,
-          });
-        }
-        break;
-      }
 
-      case "remove": {
-        // 삭제된 요소와 자식 요소들 복원
-        console.log("🔄 Undo: 요소 복원 중:", {
-          restoringCount: elementsToRestore.length,
-        });
+          // 이전 상태로 복원 (불변 업데이트)
+          const elementIndex = currentState.elements.findIndex(
+            (el) => el.id === entry.elementId,
+          );
+          if (elementIndex >= 0 && prevProps) {
+            const element = currentState.elements[elementIndex];
+            console.log("🔄 Undo: Props 복원", {
+              elementId: entry.elementId,
+              elementTag: element.type,
+              currentProps: { ...element.props },
+              restoringTo: prevProps,
+            });
 
-        elementsToRestore.forEach((el, index) => {
-          console.log(`📥 복원 요소 ${index + 1}:`, {
-            id: el.id,
-            type: el.type,
-            tabId: (el.props as { tabId?: string }).tabId,
-            title: (el.props as { title?: string }).title,
-          });
-        });
-
-        updatedElements = [...currentState.elements, ...elementsToRestore];
-        break;
-      }
-
-      case "batch": {
-        if (entry.data.diffs?.length) {
-          updatedElements = applySerializedHistoryDiffs(
-            currentState.elements,
-            entry.data.diffs,
-            "undo",
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            currentState.selectedElementId,
-            currentState.selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.prevElements && entry.data.elements) {
-          const prevElements = entry.data.prevElements.map((element) =>
-            cloneForHistory(element),
-          );
-          const nextIds = new Set(
-            entry.data.elements.map((element) => element.id),
-          );
-          updatedElements = applyElementSnapshotBatch(
-            currentState.elements,
-            nextIds,
-            prevElements,
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            currentState.selectedElementId,
-            currentState.selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.batchUpdates) {
-          // Batch update Undo - 각 요소의 이전 props 복원
-          console.log("🔄 Undo: Batch update 복원 중:", {
-            updateCount: entry.data.batchUpdates.length,
-          });
-
-          // 업데이트 맵 생성
-          const updateMap = new Map<string, ComponentElementProps>();
-          entry.data.batchUpdates.forEach(
-            (update: {
-              elementId: string;
-              prevProps: ComponentElementProps;
-            }) => {
-              updateMap.set(update.elementId, update.prevProps);
-            },
-          );
-
-          updatedElements = currentState.elements.map((el) => {
-            const prevPropsForEl = updateMap.get(el.id);
-            if (prevPropsForEl) {
-              console.log(`📥 복원 요소 props:`, {
-                elementId: el.id,
-                type: el.type,
-              });
-              return { ...el, props: prevPropsForEl };
-            }
-            return el;
-          });
-
-          // 선택된 요소가 업데이트된 경우
-          const selectedPrevProps = updateMap.get(
-            currentState.selectedElementId || "",
-          );
-          if (selectedPrevProps) {
-            const selectedEl = updatedElements.find(
-              (el) => el.id === currentState.selectedElementId,
+            updatedElements = currentState.elements.map((el, i) =>
+              i === elementIndex ? { ...el, props: prevProps } : el,
             );
-            if (selectedEl) {
+
+            // 선택된 요소가 업데이트된 경우 selectedElementProps도 업데이트
+            if (currentState.selectedElementId === entry.elementId) {
+              console.log("🔄 Undo: 선택된 요소 props도 업데이트");
+              const restoredElement = { ...element, props: prevProps };
               updatedSelectedElementProps = createCompleteProps(
-                selectedEl,
-                selectedPrevProps,
+                restoredElement,
+                prevProps,
               );
             }
+          } else if (elementIndex >= 0 && prevElement) {
+            console.log("🔄 Undo: 전체 요소 복원", {
+              elementId: entry.elementId,
+              prevElement,
+            });
+            // 전체 요소가 저장된 경우
+            updatedElements = currentState.elements.map((el, i) =>
+              i === elementIndex ? { ...el, ...prevElement } : el,
+            );
+          } else {
+            console.warn("⚠️ Undo 실패: 요소 또는 이전 데이터를 찾을 수 없음", {
+              elementId: entry.elementId,
+              elementFound: elementIndex >= 0,
+              prevPropsFound: !!prevProps,
+              prevElementFound: !!prevElement,
+            });
           }
+          break;
         }
-        break;
-      }
 
-      case "group": {
-        // Group 생성 Undo - 그룹 삭제 + 자식들 원래 parent로 이동
-        console.log("🔄 Undo: Group 생성 취소 중");
+        case "remove": {
+          // 삭제된 요소와 자식 요소들 복원
+          console.log("🔄 Undo: 요소 복원 중:", {
+            restoringCount: elementsToRestore.length,
+          });
 
-        // 1. 그룹 요소 삭제
-        let filteredElements = currentState.elements.filter(
-          (el) => !elementIdsToRemove.includes(el.id),
-        );
-
-        // 2. 자식 요소들을 원래 parent로 이동
-        if (entry.data.elements) {
-          const childUpdates = new Map<string, { parent_id: string | null }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              parent_id: prevChild.parent_id ?? null,
+          elementsToRestore.forEach((el, index) => {
+            console.log(`📥 복원 요소 ${index + 1}:`, {
+              id: el.id,
+              type: el.type,
+              tabId: (el.props as { tabId?: string }).tabId,
+              title: (el.props as { title?: string }).title,
             });
           });
 
-          filteredElements = filteredElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            if (update) {
-              console.log(`📥 자식 요소 원래 parent로 이동:`, {
-                childId: el.id,
-                newParentId: update.parent_id,
-              });
-              return {
-                ...el,
-                parent_id: update.parent_id,
-              };
+          updatedElements = [...currentState.elements, ...elementsToRestore];
+          break;
+        }
+
+        case "batch": {
+          if (entry.data.diffs?.length) {
+            updatedElements = applySerializedHistoryDiffs(
+              currentState.elements,
+              entry.data.diffs,
+              "undo",
+            );
+            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+              currentState.selectedElementId,
+              currentState.selectedElementProps,
+              updatedElements,
+            );
+          } else if (entry.data.prevElements && entry.data.elements) {
+            const prevElements = entry.data.prevElements.map((element) =>
+              cloneForHistory(element),
+            );
+            const nextIds = new Set(
+              entry.data.elements.map((element) => element.id),
+            );
+            updatedElements = applyElementSnapshotBatch(
+              currentState.elements,
+              nextIds,
+              prevElements,
+            );
+            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+              currentState.selectedElementId,
+              currentState.selectedElementProps,
+              updatedElements,
+            );
+          } else if (entry.data.batchUpdates) {
+            // Batch update Undo - 각 요소의 이전 props 복원
+            console.log("🔄 Undo: Batch update 복원 중:", {
+              updateCount: entry.data.batchUpdates.length,
+            });
+
+            // 업데이트 맵 생성
+            const updateMap = new Map<string, ComponentElementProps>();
+            entry.data.batchUpdates.forEach(
+              (update: {
+                elementId: string;
+                prevProps: ComponentElementProps;
+              }) => {
+                updateMap.set(update.elementId, update.prevProps);
+              },
+            );
+
+            updatedElements = currentState.elements.map((el) => {
+              const prevPropsForEl = updateMap.get(el.id);
+              if (prevPropsForEl) {
+                console.log(`📥 복원 요소 props:`, {
+                  elementId: el.id,
+                  type: el.type,
+                });
+                return { ...el, props: prevPropsForEl };
+              }
+              return el;
+            });
+
+            // 선택된 요소가 업데이트된 경우
+            const selectedPrevProps = updateMap.get(
+              currentState.selectedElementId || "",
+            );
+            if (selectedPrevProps) {
+              const selectedEl = updatedElements.find(
+                (el) => el.id === currentState.selectedElementId,
+              );
+              if (selectedEl) {
+                updatedSelectedElementProps = createCompleteProps(
+                  selectedEl,
+                  selectedPrevProps,
+                );
+              }
             }
-            return el;
-          });
+          }
+          break;
         }
 
-        updatedElements = filteredElements;
+        case "group": {
+          // Group 생성 Undo - 그룹 삭제 + 자식들 원래 parent로 이동
+          console.log("🔄 Undo: Group 생성 취소 중");
 
-        // 3. 선택 상태 업데이트
-        if (elementIdsToRemove.includes(currentState.selectedElementId || "")) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
-      }
-
-      case "ungroup": {
-        // Ungroup Undo - 그룹 재생성 + 자식들 그룹 안으로 이동
-        console.log("🔄 Undo: Ungroup 취소 중");
-
-        // 1. 그룹 요소 복원
-        let restoredElements = [...currentState.elements, ...elementsToRestore];
-        console.log(`📥 그룹 요소 복원:`, {
-          groupId: elementsToRestore[0]?.id,
-          type: elementsToRestore[0]?.type,
-        });
-
-        // 2. 자식 요소들을 그룹 안으로 이동
-        if (entry.data.elements) {
-          const childIds = new Set(
-            entry.data.elements.map((prevChild: Element) => prevChild.id),
+          // 1. 그룹 요소 삭제
+          let filteredElements = currentState.elements.filter(
+            (el) => !elementIdsToRemove.includes(el.id),
           );
 
-          restoredElements = restoredElements.map((el) => {
-            if (childIds.has(el.id)) {
-              console.log(`📥 자식 요소 그룹 안으로 이동:`, {
-                childId: el.id,
-                groupId: entry.elementId,
+          // 2. 자식 요소들을 원래 parent로 이동
+          if (entry.data.elements) {
+            const childUpdates = new Map<
+              string,
+              { parent_id: string | null }
+            >();
+            entry.data.elements.forEach((prevChild: Element) => {
+              childUpdates.set(prevChild.id, {
+                parent_id: prevChild.parent_id ?? null,
               });
-              return {
-                ...el,
-                parent_id: entry.elementId,
-              };
-            }
-            return el;
-          });
+            });
+
+            filteredElements = filteredElements.map((el) => {
+              const update = childUpdates.get(el.id);
+              if (update) {
+                console.log(`📥 자식 요소 원래 parent로 이동:`, {
+                  childId: el.id,
+                  newParentId: update.parent_id,
+                });
+                return {
+                  ...el,
+                  parent_id: update.parent_id,
+                };
+              }
+              return el;
+            });
+          }
+
+          updatedElements = filteredElements;
+
+          // 3. 선택 상태 업데이트
+          if (
+            elementIdsToRemove.includes(currentState.selectedElementId || "")
+          ) {
+            updatedSelectedElementId = null;
+            updatedSelectedElementProps = {};
+          }
+          break;
         }
 
-        updatedElements = restoredElements;
-        break;
+        case "ungroup": {
+          // Ungroup Undo - 그룹 재생성 + 자식들 그룹 안으로 이동
+          console.log("🔄 Undo: Ungroup 취소 중");
+
+          // 1. 그룹 요소 복원
+          let restoredElements = [
+            ...currentState.elements,
+            ...elementsToRestore,
+          ];
+          console.log(`📥 그룹 요소 복원:`, {
+            groupId: elementsToRestore[0]?.id,
+            type: elementsToRestore[0]?.type,
+          });
+
+          // 2. 자식 요소들을 그룹 안으로 이동
+          if (entry.data.elements) {
+            const childIds = new Set(
+              entry.data.elements.map((prevChild: Element) => prevChild.id),
+            );
+
+            restoredElements = restoredElements.map((el) => {
+              if (childIds.has(el.id)) {
+                console.log(`📥 자식 요소 그룹 안으로 이동:`, {
+                  childId: el.id,
+                  groupId: entry.elementId,
+                });
+                return {
+                  ...el,
+                  parent_id: entry.elementId,
+                };
+              }
+              return el;
+            });
+          }
+
+          updatedElements = restoredElements;
+          break;
+        }
       }
-    }
 
     set({
       elements: updatedElements,
@@ -610,7 +681,9 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       selectedElementProps: updatedSelectedElementProps,
     });
 
-    syncHistoryElementsToCanonical(updatedElements);
+    if (!appliedCanonicalEvents) {
+      syncHistoryElementsToCanonical(updatedElements);
+    }
     // 🔧 CRITICAL: elementsMap 재구축 (Undo 후 인덱스 동기화)
     get()._rebuildIndexes();
 
@@ -634,73 +707,184 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     // 3. Canonical document + cloud compatibility 업데이트
     try {
       await persistActiveCanonicalDocument();
-      switch (entry.type) {
-        case "add": {
-          // 부모 요소와 자식 요소들을 모두 데이터베이스에서 삭제
-          const elementIdsToDelete = [entry.elementId];
-          if (entry.data.childElements && entry.data.childElements.length > 0) {
-            elementIdsToDelete.push(
-              ...entry.data.childElements.map((child) => child.id),
-            );
-          }
-
-          await supabase.from("elements").delete().in("id", elementIdsToDelete);
-          console.log(
-            `✅ Undo: Supabase에서 요소 삭제 완료 (부모 1개 + 자식 ${
-              entry.data.childElements?.length || 0
-            }개)`,
-          );
-          break;
-        }
-
-        case "update": {
-          // bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기
-          if (entry.elementId === "bulk_update") {
-            console.log(
-              "⏭️ bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기",
-            );
-            break;
-          }
-
-          const diffElementIds = getHistoryDiffElementIds(entry);
-          if (diffElementIds.length > 0) {
-            await upsertHistoryCompatibilityElements(diffElementIds, get);
-          } else if (entry.data.prevElement) {
-            const updatedElement = {
-              ...entry.data.prevElement,
-              props: entry.data.prevProps || entry.data.prevElement.props,
-            };
-
-            await supabase
-              .from("elements")
-              .update({
-                props: entry.data.prevProps || entry.data.prevElement.props,
-                parent_id: entry.data.prevElement.parent_id,
-              })
-              .eq("id", entry.elementId);
-            console.log("✅ Undo: Supabase에서 요소 복원 완료");
-          }
-          break;
-        }
-
-        case "remove": {
-          if (entry.data.element) {
-            // 부모 요소와 자식 요소들을 모두 데이터베이스에 복원
-            const elementsToRestore = [entry.data.element];
+      if (appliedCanonicalEvents) {
+        await syncCloudCompatibilityForCanonicalEvents(entry, "undo", get);
+      } else
+        switch (entry.type) {
+          case "add": {
+            // 부모 요소와 자식 요소들을 모두 데이터베이스에서 삭제
+            const elementIdsToDelete = [entry.elementId];
             if (
               entry.data.childElements &&
               entry.data.childElements.length > 0
             ) {
-              elementsToRestore.push(...entry.data.childElements);
+              elementIdsToDelete.push(
+                ...entry.data.childElements.map((child) => child.id),
+              );
             }
 
+            await supabase
+              .from("elements")
+              .delete()
+              .in("id", elementIdsToDelete);
+            console.log(
+              `✅ Undo: Supabase에서 요소 삭제 완료 (부모 1개 + 자식 ${
+                entry.data.childElements?.length || 0
+              }개)`,
+            );
+            break;
+          }
+
+          case "update": {
+            // bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기
+            if (entry.elementId === "bulk_update") {
+              console.log(
+                "⏭️ bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기",
+              );
+              break;
+            }
+
+            const diffElementIds = getHistoryDiffElementIds(entry);
+            if (diffElementIds.length > 0) {
+              await upsertHistoryCompatibilityElements(diffElementIds, get);
+            } else if (entry.data.prevElement) {
+              const updatedElement = {
+                ...entry.data.prevElement,
+                props: entry.data.prevProps || entry.data.prevElement.props,
+              };
+
+              await supabase
+                .from("elements")
+                .update({
+                  props: entry.data.prevProps || entry.data.prevElement.props,
+                  parent_id: entry.data.prevElement.parent_id,
+                })
+                .eq("id", entry.elementId);
+              console.log("✅ Undo: Supabase에서 요소 복원 완료");
+            }
+            break;
+          }
+
+          case "remove": {
+            if (entry.data.element) {
+              // 부모 요소와 자식 요소들을 모두 데이터베이스에 복원
+              const elementsToRestore = [entry.data.element];
+              if (
+                entry.data.childElements &&
+                entry.data.childElements.length > 0
+              ) {
+                elementsToRestore.push(...entry.data.childElements);
+              }
+
+              // Supabase에 복원 전 page_id 유효성 확인
+              const pageId = elementsToRestore[0]?.page_id;
+              if (pageId) {
+                const { data: pageExists } = await supabase
+                  .from("pages")
+                  .select("id")
+                  .eq("id", pageId)
+                  .single();
+
+                if (!pageExists) {
+                  console.log(
+                    `⏭️ Undo: 페이지가 클라우드에 없음 (로컬 전용), Supabase 저장 skip`,
+                  );
+                } else {
+                  const sanitizedElements = elementsToRestore.map((el) =>
+                    sanitizeElementForSupabase(el),
+                  );
+
+                  const { error: upsertError } = await supabase
+                    .from("elements")
+                    .upsert(sanitizedElements, { onConflict: "id" });
+
+                  if (upsertError) {
+                    // Foreign Key 에러는 로컬 전용 프로젝트를 의미
+                    if (upsertError.code === "23503") {
+                      console.log(
+                        `⏭️ Undo: 로컬 전용 프로젝트, Supabase 저장 skip`,
+                      );
+                    } else {
+                      console.error(
+                        "❌ Undo: Supabase upsert 오류:",
+                        upsertError,
+                      );
+                    }
+                  } else {
+                    console.log(
+                      `✅ Undo: Supabase에서 요소 복원 완료 (부모 1개 + 자식 ${
+                        entry.data.childElements?.length || 0
+                      }개)`,
+                    );
+                  }
+                }
+              }
+            }
+            break;
+          }
+
+          case "batch": {
+            const diffElementIds = getHistoryDiffElementIds(entry);
+            if (diffElementIds.length > 0) {
+              await upsertHistoryCompatibilityElements(diffElementIds, get);
+              break;
+            }
+
+            // Batch update - 각 요소의 prevProps를 데이터베이스에 업데이트
+            if (entry.data.batchUpdates) {
+              console.log(
+                `🔄 Undo: Batch update DB 동기화 시작 (${entry.data.batchUpdates.length}개)`,
+              );
+
+              for (const update of entry.data.batchUpdates) {
+                await supabase
+                  .from("elements")
+                  .update({ props: update.prevProps })
+                  .eq("id", update.elementId);
+              }
+
+              console.log(
+                `✅ Undo: Batch Supabase 동기화 완료 (${entry.data.batchUpdates.length}개)`,
+              );
+            }
+            break;
+          }
+
+          case "group": {
+            // Group 생성 Undo - 그룹 삭제 + 자식들 원래 parent로 업데이트
+            console.log("🔄 Undo: Group 생성 취소 DB 동기화");
+
+            // 1. 그룹 요소 삭제
+            await supabase.from("elements").delete().eq("id", entry.elementId);
+
+            // 2. 자식 요소들의 parent_id 업데이트
+            if (entry.data.elements) {
+              for (const prevChild of entry.data.elements) {
+                await supabase
+                  .from("elements")
+                  .update({
+                    parent_id: prevChild.parent_id,
+                  })
+                  .eq("id", prevChild.id);
+              }
+              console.log(
+                `✅ Undo: Group Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
+              );
+            }
+            break;
+          }
+
+          case "ungroup": {
+            // Ungroup Undo - 그룹 복원 + 자식들 그룹 안으로 이동
+            console.log("🔄 Undo: Ungroup 취소 DB 동기화");
+
             // Supabase에 복원 전 page_id 유효성 확인
-            const pageId = elementsToRestore[0]?.page_id;
-            if (pageId) {
+            const ungroupPageId = entry.data.element?.page_id;
+            if (ungroupPageId) {
               const { data: pageExists } = await supabase
                 .from("pages")
                 .select("id")
-                .eq("id", pageId)
+                .eq("id", ungroupPageId)
                 .single();
 
               if (!pageExists) {
@@ -708,136 +892,34 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
                   `⏭️ Undo: 페이지가 클라우드에 없음 (로컬 전용), Supabase 저장 skip`,
                 );
               } else {
-                const sanitizedElements = elementsToRestore.map((el) =>
-                  sanitizeElementForSupabase(el),
-                );
+                // 1. 그룹 요소 복원 (Supabase)
+                if (entry.data.element) {
+                  await supabase
+                    .from("elements")
+                    .upsert(sanitizeElementForSupabase(entry.data.element), {
+                      onConflict: "id",
+                    });
+                }
 
-                const { error: upsertError } = await supabase
-                  .from("elements")
-                  .upsert(sanitizedElements, { onConflict: "id" });
-
-                if (upsertError) {
-                  // Foreign Key 에러는 로컬 전용 프로젝트를 의미
-                  if (upsertError.code === "23503") {
-                    console.log(
-                      `⏭️ Undo: 로컬 전용 프로젝트, Supabase 저장 skip`,
-                    );
-                  } else {
-                    console.error(
-                      "❌ Undo: Supabase upsert 오류:",
-                      upsertError,
-                    );
+                // 2. 자식 요소들의 parent_id를 그룹 ID로 업데이트
+                if (entry.data.elements) {
+                  for (const prevChild of entry.data.elements) {
+                    await supabase
+                      .from("elements")
+                      .update({
+                        parent_id: entry.elementId, // 그룹 ID
+                      })
+                      .eq("id", prevChild.id);
                   }
-                } else {
                   console.log(
-                    `✅ Undo: Supabase에서 요소 복원 완료 (부모 1개 + 자식 ${
-                      entry.data.childElements?.length || 0
-                    }개)`,
+                    `✅ Undo: Ungroup 취소 Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
                   );
                 }
               }
             }
-          }
-          break;
-        }
-
-        case "batch": {
-          const diffElementIds = getHistoryDiffElementIds(entry);
-          if (diffElementIds.length > 0) {
-            await upsertHistoryCompatibilityElements(diffElementIds, get);
             break;
           }
-
-          // Batch update - 각 요소의 prevProps를 데이터베이스에 업데이트
-          if (entry.data.batchUpdates) {
-            console.log(
-              `🔄 Undo: Batch update DB 동기화 시작 (${entry.data.batchUpdates.length}개)`,
-            );
-
-            for (const update of entry.data.batchUpdates) {
-              await supabase
-                .from("elements")
-                .update({ props: update.prevProps })
-                .eq("id", update.elementId);
-            }
-
-            console.log(
-              `✅ Undo: Batch Supabase 동기화 완료 (${entry.data.batchUpdates.length}개)`,
-            );
-          }
-          break;
         }
-
-        case "group": {
-          // Group 생성 Undo - 그룹 삭제 + 자식들 원래 parent로 업데이트
-          console.log("🔄 Undo: Group 생성 취소 DB 동기화");
-
-          // 1. 그룹 요소 삭제
-          await supabase.from("elements").delete().eq("id", entry.elementId);
-
-          // 2. 자식 요소들의 parent_id 업데이트
-          if (entry.data.elements) {
-            for (const prevChild of entry.data.elements) {
-              await supabase
-                .from("elements")
-                .update({
-                  parent_id: prevChild.parent_id,
-                })
-                .eq("id", prevChild.id);
-            }
-            console.log(
-              `✅ Undo: Group Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
-            );
-          }
-          break;
-        }
-
-        case "ungroup": {
-          // Ungroup Undo - 그룹 복원 + 자식들 그룹 안으로 이동
-          console.log("🔄 Undo: Ungroup 취소 DB 동기화");
-
-          // Supabase에 복원 전 page_id 유효성 확인
-          const ungroupPageId = entry.data.element?.page_id;
-          if (ungroupPageId) {
-            const { data: pageExists } = await supabase
-              .from("pages")
-              .select("id")
-              .eq("id", ungroupPageId)
-              .single();
-
-            if (!pageExists) {
-              console.log(
-                `⏭️ Undo: 페이지가 클라우드에 없음 (로컬 전용), Supabase 저장 skip`,
-              );
-            } else {
-              // 1. 그룹 요소 복원 (Supabase)
-              if (entry.data.element) {
-                await supabase
-                  .from("elements")
-                  .upsert(sanitizeElementForSupabase(entry.data.element), {
-                    onConflict: "id",
-                  });
-              }
-
-              // 2. 자식 요소들의 parent_id를 그룹 ID로 업데이트
-              if (entry.data.elements) {
-                for (const prevChild of entry.data.elements) {
-                  await supabase
-                    .from("elements")
-                    .update({
-                      parent_id: entry.elementId, // 그룹 ID
-                    })
-                    .eq("id", prevChild.id);
-                }
-                console.log(
-                  `✅ Undo: Ungroup 취소 Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
-                );
-              }
-            }
-          }
-          break;
-        }
-      }
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
@@ -967,219 +1049,242 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
+    const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
+      entry.data.canonicalEvents,
+      "redo",
+    );
+    const appliedCanonicalEvents = canonicalEventElements !== null;
 
-    switch (entry.type) {
-      case "add": {
-        // 요소와 자식 요소들 추가
-        updatedElements = [...currentState.elements, ...elementsToAdd];
-        break;
-      }
-
-      case "update": {
-        // 업데이트 적용 (불변 업데이트)
-        if (entry.data.diff) {
-          updatedElements = applySerializedHistoryDiff(
-            currentState.elements,
-            entry.data.diff,
-            "redo",
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            currentState.selectedElementId,
-            currentState.selectedElementProps,
-            updatedElements,
-          );
+    if (canonicalEventElements) {
+      updatedElements = canonicalEventElements;
+      const selection = resolveSelectionAfterCanonicalEvents(
+        currentState.selectedElementId,
+        currentState.selectedElementProps,
+        updatedElements,
+      );
+      updatedSelectedElementId = selection.selectedElementId;
+      updatedSelectedElementProps = selection.selectedElementProps;
+    } else
+      switch (entry.type) {
+        case "add": {
+          // 요소와 자식 요소들 추가
+          updatedElements = [...currentState.elements, ...elementsToAdd];
           break;
         }
 
-        const elementIndex = currentState.elements.findIndex(
-          (el) => el.id === entry.elementId,
-        );
-        if (elementIndex >= 0 && elementToUpdate) {
-          updatedElements = currentState.elements.map((el, i) =>
-            i === elementIndex ? { ...el, ...elementToUpdate } : el,
-          );
-          if (currentState.selectedElementId === entry.elementId) {
-            updatedSelectedElementProps = createCompleteProps(elementToUpdate);
-          }
-        } else if (elementIndex >= 0 && propsToUpdate) {
-          updatedElements = currentState.elements.map((el, i) =>
-            i === elementIndex
-              ? { ...el, props: { ...el.props, ...propsToUpdate } }
-              : el,
-          );
-        }
-        break;
-      }
-
-      case "remove": {
-        // 요소와 자식 요소들 제거
-        updatedElements = currentState.elements.filter(
-          (el) => !elementIdsToRemove.includes(el.id),
-        );
-        if (elementIdsToRemove.includes(currentState.selectedElementId || "")) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
-      }
-
-      case "batch": {
-        if (entry.data.diffs?.length) {
-          updatedElements = applySerializedHistoryDiffs(
-            currentState.elements,
-            entry.data.diffs,
-            "redo",
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            currentState.selectedElementId,
-            currentState.selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.prevElements && entry.data.elements) {
-          const nextElements = entry.data.elements.map((element) =>
-            cloneForHistory(element),
-          );
-          const prevIds = new Set(
-            entry.data.prevElements.map((element) => element.id),
-          );
-          updatedElements = applyElementSnapshotBatch(
-            currentState.elements,
-            prevIds,
-            nextElements,
-          );
-          updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
-            currentState.selectedElementId,
-            currentState.selectedElementProps,
-            updatedElements,
-          );
-        } else if (entry.data.batchUpdates) {
-          // Batch update Redo - 각 요소의 newProps 적용
-          console.log("🔄 Redo: Batch update 적용 중:", {
-            updateCount: entry.data.batchUpdates.length,
-          });
-
-          // 업데이트 맵 생성
-          const updateMap = new Map<string, ComponentElementProps>();
-          entry.data.batchUpdates.forEach(
-            (update: {
-              elementId: string;
-              newProps: ComponentElementProps;
-            }) => {
-              updateMap.set(update.elementId, update.newProps);
-            },
-          );
-
-          updatedElements = currentState.elements.map((el) => {
-            const newPropsForEl = updateMap.get(el.id);
-            if (newPropsForEl) {
-              console.log(`📥 적용 요소 props:`, {
-                elementId: el.id,
-                type: el.type,
-              });
-              return { ...el, props: { ...el.props, ...newPropsForEl } };
-            }
-            return el;
-          });
-
-          // 선택된 요소가 업데이트된 경우
-          const selectedNewProps = updateMap.get(
-            currentState.selectedElementId || "",
-          );
-          if (selectedNewProps) {
-            const selectedEl = updatedElements.find(
-              (el) => el.id === currentState.selectedElementId,
+        case "update": {
+          // 업데이트 적용 (불변 업데이트)
+          if (entry.data.diff) {
+            updatedElements = applySerializedHistoryDiff(
+              currentState.elements,
+              entry.data.diff,
+              "redo",
             );
-            if (selectedEl) {
-              updatedSelectedElementProps = createCompleteProps(selectedEl, {
-                ...selectedEl.props,
-                ...selectedNewProps,
-              });
+            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+              currentState.selectedElementId,
+              currentState.selectedElementProps,
+              updatedElements,
+            );
+            break;
+          }
+
+          const elementIndex = currentState.elements.findIndex(
+            (el) => el.id === entry.elementId,
+          );
+          if (elementIndex >= 0 && elementToUpdate) {
+            updatedElements = currentState.elements.map((el, i) =>
+              i === elementIndex ? { ...el, ...elementToUpdate } : el,
+            );
+            if (currentState.selectedElementId === entry.elementId) {
+              updatedSelectedElementProps =
+                createCompleteProps(elementToUpdate);
+            }
+          } else if (elementIndex >= 0 && propsToUpdate) {
+            updatedElements = currentState.elements.map((el, i) =>
+              i === elementIndex
+                ? { ...el, props: { ...el.props, ...propsToUpdate } }
+                : el,
+            );
+          }
+          break;
+        }
+
+        case "remove": {
+          // 요소와 자식 요소들 제거
+          updatedElements = currentState.elements.filter(
+            (el) => !elementIdsToRemove.includes(el.id),
+          );
+          if (
+            elementIdsToRemove.includes(currentState.selectedElementId || "")
+          ) {
+            updatedSelectedElementId = null;
+            updatedSelectedElementProps = {};
+          }
+          break;
+        }
+
+        case "batch": {
+          if (entry.data.diffs?.length) {
+            updatedElements = applySerializedHistoryDiffs(
+              currentState.elements,
+              entry.data.diffs,
+              "redo",
+            );
+            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+              currentState.selectedElementId,
+              currentState.selectedElementProps,
+              updatedElements,
+            );
+          } else if (entry.data.prevElements && entry.data.elements) {
+            const nextElements = entry.data.elements.map((element) =>
+              cloneForHistory(element),
+            );
+            const prevIds = new Set(
+              entry.data.prevElements.map((element) => element.id),
+            );
+            updatedElements = applyElementSnapshotBatch(
+              currentState.elements,
+              prevIds,
+              nextElements,
+            );
+            updatedSelectedElementProps = resolveSelectedPropsAfterBatch(
+              currentState.selectedElementId,
+              currentState.selectedElementProps,
+              updatedElements,
+            );
+          } else if (entry.data.batchUpdates) {
+            // Batch update Redo - 각 요소의 newProps 적용
+            console.log("🔄 Redo: Batch update 적용 중:", {
+              updateCount: entry.data.batchUpdates.length,
+            });
+
+            // 업데이트 맵 생성
+            const updateMap = new Map<string, ComponentElementProps>();
+            entry.data.batchUpdates.forEach(
+              (update: {
+                elementId: string;
+                newProps: ComponentElementProps;
+              }) => {
+                updateMap.set(update.elementId, update.newProps);
+              },
+            );
+
+            updatedElements = currentState.elements.map((el) => {
+              const newPropsForEl = updateMap.get(el.id);
+              if (newPropsForEl) {
+                console.log(`📥 적용 요소 props:`, {
+                  elementId: el.id,
+                  type: el.type,
+                });
+                return { ...el, props: { ...el.props, ...newPropsForEl } };
+              }
+              return el;
+            });
+
+            // 선택된 요소가 업데이트된 경우
+            const selectedNewProps = updateMap.get(
+              currentState.selectedElementId || "",
+            );
+            if (selectedNewProps) {
+              const selectedEl = updatedElements.find(
+                (el) => el.id === currentState.selectedElementId,
+              );
+              if (selectedEl) {
+                updatedSelectedElementProps = createCompleteProps(selectedEl, {
+                  ...selectedEl.props,
+                  ...selectedNewProps,
+                });
+              }
             }
           }
+          break;
         }
-        break;
-      }
 
-      case "group": {
-        // Group 생성 Redo - 그룹 추가 + 자식들 그룹 안으로 이동
-        console.log("🔄 Redo: Group 생성 중");
+        case "group": {
+          // Group 생성 Redo - 그룹 추가 + 자식들 그룹 안으로 이동
+          console.log("🔄 Redo: Group 생성 중");
 
-        // 1. 그룹 요소 추가
-        let newElements = [...currentState.elements, ...elementsToAdd];
-        console.log(`📥 그룹 요소 추가:`, {
-          groupId: elementsToAdd[0]?.id,
-          type: elementsToAdd[0]?.type,
-        });
+          // 1. 그룹 요소 추가
+          let newElements = [...currentState.elements, ...elementsToAdd];
+          console.log(`📥 그룹 요소 추가:`, {
+            groupId: elementsToAdd[0]?.id,
+            type: elementsToAdd[0]?.type,
+          });
 
-        // 2. 자식 요소들을 그룹 안으로 이동
-        if (entry.data.elements) {
-          const childIds = new Set(
-            entry.data.elements.map((prevChild: Element) => prevChild.id),
+          // 2. 자식 요소들을 그룹 안으로 이동
+          if (entry.data.elements) {
+            const childIds = new Set(
+              entry.data.elements.map((prevChild: Element) => prevChild.id),
+            );
+
+            newElements = newElements.map((el) => {
+              if (childIds.has(el.id)) {
+                console.log(`📥 자식 요소 그룹 안으로 이동:`, {
+                  childId: el.id,
+                  groupId: entry.elementId,
+                });
+                return {
+                  ...el,
+                  parent_id: entry.elementId,
+                };
+              }
+              return el;
+            });
+          }
+
+          updatedElements = newElements;
+          break;
+        }
+
+        case "ungroup": {
+          // Ungroup Redo - 그룹 삭제 + 자식들 원래 parent로 이동
+          console.log("🔄 Redo: Ungroup 실행 중");
+
+          // 1. 그룹 요소 삭제
+          let filteredElements = currentState.elements.filter(
+            (el) => !elementIdsToRemove.includes(el.id),
           );
 
-          newElements = newElements.map((el) => {
-            if (childIds.has(el.id)) {
-              console.log(`📥 자식 요소 그룹 안으로 이동:`, {
-                childId: el.id,
-                groupId: entry.elementId,
+          // 2. 자식 요소들을 원래 parent로 이동
+          if (entry.data.elements) {
+            const childUpdates = new Map<
+              string,
+              { parent_id: string | null }
+            >();
+            entry.data.elements.forEach((prevChild: Element) => {
+              childUpdates.set(prevChild.id, {
+                parent_id: prevChild.parent_id ?? null,
               });
-              return {
-                ...el,
-                parent_id: entry.elementId,
-              };
-            }
-            return el;
-          });
-        }
-
-        updatedElements = newElements;
-        break;
-      }
-
-      case "ungroup": {
-        // Ungroup Redo - 그룹 삭제 + 자식들 원래 parent로 이동
-        console.log("🔄 Redo: Ungroup 실행 중");
-
-        // 1. 그룹 요소 삭제
-        let filteredElements = currentState.elements.filter(
-          (el) => !elementIdsToRemove.includes(el.id),
-        );
-
-        // 2. 자식 요소들을 원래 parent로 이동
-        if (entry.data.elements) {
-          const childUpdates = new Map<string, { parent_id: string | null }>();
-          entry.data.elements.forEach((prevChild: Element) => {
-            childUpdates.set(prevChild.id, {
-              parent_id: prevChild.parent_id ?? null,
             });
-          });
 
-          filteredElements = filteredElements.map((el) => {
-            const update = childUpdates.get(el.id);
-            if (update) {
-              console.log(`📥 자식 요소 원래 parent로 이동:`, {
-                childId: el.id,
-                newParentId: update.parent_id,
-              });
-              return {
-                ...el,
-                parent_id: update.parent_id,
-              };
-            }
-            return el;
-          });
+            filteredElements = filteredElements.map((el) => {
+              const update = childUpdates.get(el.id);
+              if (update) {
+                console.log(`📥 자식 요소 원래 parent로 이동:`, {
+                  childId: el.id,
+                  newParentId: update.parent_id,
+                });
+                return {
+                  ...el,
+                  parent_id: update.parent_id,
+                };
+              }
+              return el;
+            });
+          }
+
+          updatedElements = filteredElements;
+
+          // 3. 선택 상태 업데이트
+          if (
+            elementIdsToRemove.includes(currentState.selectedElementId || "")
+          ) {
+            updatedSelectedElementId = null;
+            updatedSelectedElementProps = {};
+          }
+          break;
         }
-
-        updatedElements = filteredElements;
-
-        // 3. 선택 상태 업데이트
-        if (elementIdsToRemove.includes(currentState.selectedElementId || "")) {
-          updatedSelectedElementId = null;
-          updatedSelectedElementProps = {};
-        }
-        break;
       }
-    }
 
     set({
       elements: updatedElements,
@@ -1187,7 +1292,9 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       selectedElementProps: updatedSelectedElementProps,
     });
 
-    syncHistoryElementsToCanonical(updatedElements);
+    if (!appliedCanonicalEvents) {
+      syncHistoryElementsToCanonical(updatedElements);
+    }
     // 🔧 CRITICAL: elementsMap 재구축 (Redo 후 인덱스 동기화)
     get()._rebuildIndexes();
 
@@ -1211,25 +1318,174 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // 3. Canonical document + cloud compatibility 업데이트
     try {
       await persistActiveCanonicalDocument();
-      switch (entry.type) {
-        case "add": {
-          if (entry.data.element) {
-            // 부모 요소와 자식 요소들을 모두 데이터베이스에 추가
-            const elementsToAdd = [entry.data.element];
+      if (appliedCanonicalEvents) {
+        await syncCloudCompatibilityForCanonicalEvents(entry, "redo", get);
+      } else
+        switch (entry.type) {
+          case "add": {
+            if (entry.data.element) {
+              // 부모 요소와 자식 요소들을 모두 데이터베이스에 추가
+              const elementsToAdd = [entry.data.element];
+              if (
+                entry.data.childElements &&
+                entry.data.childElements.length > 0
+              ) {
+                elementsToAdd.push(...entry.data.childElements);
+              }
+
+              // Supabase에 추가 전 page_id 유효성 확인
+              const pageId = elementsToAdd[0]?.page_id;
+              if (pageId) {
+                const { data: pageExists } = await supabase
+                  .from("pages")
+                  .select("id")
+                  .eq("id", pageId)
+                  .single();
+
+                if (!pageExists) {
+                  console.log(
+                    `⏭️ Redo: 페이지가 클라우드에 없음 (로컬 전용), Supabase 저장 skip`,
+                  );
+                } else {
+                  const { error: upsertError } = await supabase
+                    .from("elements")
+                    .upsert(
+                      elementsToAdd.map((el) => sanitizeElementForSupabase(el)),
+                      { onConflict: "id" },
+                    );
+
+                  if (upsertError) {
+                    if (upsertError.code === "23503") {
+                      console.log(
+                        `⏭️ Redo: 로컬 전용 프로젝트, Supabase 저장 skip`,
+                      );
+                    } else {
+                      console.error(
+                        "❌ Redo: Supabase upsert 오류:",
+                        upsertError,
+                      );
+                    }
+                  } else {
+                    console.log(
+                      `✅ Redo: Supabase에서 요소 추가 완료 (부모 1개 + 자식 ${
+                        entry.data.childElements?.length || 0
+                      }개)`,
+                    );
+                  }
+                }
+              }
+            }
+            break;
+          }
+
+          case "update": {
+            // bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기
+            if (entry.elementId === "bulk_update") {
+              console.log(
+                "⏭️ bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기",
+              );
+              break;
+            }
+
+            const diffElementIds = getHistoryDiffElementIds(entry);
+            if (diffElementIds.length > 0) {
+              await upsertHistoryCompatibilityElements(diffElementIds, get);
+            } else if (entry.data.element) {
+              const updatedElement = entry.data.element;
+
+              await supabase
+                .from("elements")
+                .update(sanitizeElementForSupabase(updatedElement))
+                .eq("id", entry.elementId);
+              console.log("✅ Redo: Supabase에서 요소 업데이트 완료");
+            } else if (entry.data.props) {
+              const element = getElementById(
+                getHistoryCompatibilityElementsMap(get),
+                entry.elementId,
+              );
+              if (element) {
+                const updatedElement = {
+                  ...element,
+                  props: { ...element.props, ...entry.data.props },
+                };
+
+                await supabase
+                  .from("elements")
+                  .update({ props: { ...element.props, ...entry.data.props } })
+                  .eq("id", entry.elementId);
+                console.log("✅ Redo: Supabase에서 요소 업데이트 완료");
+              }
+            }
+            break;
+          }
+
+          case "remove": {
+            // 부모 요소와 자식 요소들을 모두 데이터베이스에서 삭제
+            const elementIdsToDelete = [entry.elementId];
             if (
               entry.data.childElements &&
               entry.data.childElements.length > 0
             ) {
-              elementsToAdd.push(...entry.data.childElements);
+              elementIdsToDelete.push(
+                ...entry.data.childElements.map((child) => child.id),
+              );
             }
 
+            await supabase
+              .from("elements")
+              .delete()
+              .in("id", elementIdsToDelete);
+            console.log(
+              `✅ Redo: Supabase에서 요소 삭제 완료 (부모 1개 + 자식 ${
+                entry.data.childElements?.length || 0
+              }개)`,
+            );
+            break;
+          }
+
+          case "batch": {
+            const diffElementIds = getHistoryDiffElementIds(entry);
+            if (diffElementIds.length > 0) {
+              await upsertHistoryCompatibilityElements(diffElementIds, get);
+              break;
+            }
+
+            // Batch update Redo - 각 요소의 newProps를 데이터베이스에 업데이트
+            if (entry.data.batchUpdates) {
+              console.log(
+                `🔄 Redo: Batch update DB 동기화 시작 (${entry.data.batchUpdates.length}개)`,
+              );
+
+              // Supabase 동기화
+              const elementsMap = getHistoryCompatibilityElementsMap(get);
+              for (const update of entry.data.batchUpdates) {
+                const element = getElementById(elementsMap, update.elementId);
+                if (element) {
+                  await supabase
+                    .from("elements")
+                    .update({ props: { ...element.props, ...update.newProps } })
+                    .eq("id", update.elementId);
+                }
+              }
+
+              console.log(
+                `✅ Redo: Batch update Supabase 동기화 완료 (${entry.data.batchUpdates.length}개)`,
+              );
+            }
+            break;
+          }
+
+          case "group": {
+            // Group 생성 Redo - 그룹 추가 + 자식들 parent_id 업데이트
+            console.log("🔄 Redo: Group 생성 DB 동기화");
+
             // Supabase에 추가 전 page_id 유효성 확인
-            const pageId = elementsToAdd[0]?.page_id;
-            if (pageId) {
+            const groupPageId = entry.data.element?.page_id;
+            if (groupPageId) {
               const { data: pageExists } = await supabase
                 .from("pages")
                 .select("id")
-                .eq("id", pageId)
+                .eq("id", groupPageId)
                 .single();
 
               if (!pageExists) {
@@ -1237,198 +1493,58 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
                   `⏭️ Redo: 페이지가 클라우드에 없음 (로컬 전용), Supabase 저장 skip`,
                 );
               } else {
-                const { error: upsertError } = await supabase
-                  .from("elements")
-                  .upsert(
-                    elementsToAdd.map((el) => sanitizeElementForSupabase(el)),
-                    { onConflict: "id" },
-                  );
-
-                if (upsertError) {
-                  if (upsertError.code === "23503") {
-                    console.log(
-                      `⏭️ Redo: 로컬 전용 프로젝트, Supabase 저장 skip`,
-                    );
-                  } else {
-                    console.error(
-                      "❌ Redo: Supabase upsert 오류:",
-                      upsertError,
-                    );
-                  }
-                } else {
-                  console.log(
-                    `✅ Redo: Supabase에서 요소 추가 완료 (부모 1개 + 자식 ${
-                      entry.data.childElements?.length || 0
-                    }개)`,
-                  );
-                }
-              }
-            }
-          }
-          break;
-        }
-
-        case "update": {
-          // bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기
-          if (entry.elementId === "bulk_update") {
-            console.log(
-              "⏭️ bulk_update는 가짜 ID이므로 데이터베이스 업데이트 건너뛰기",
-            );
-            break;
-          }
-
-          const diffElementIds = getHistoryDiffElementIds(entry);
-          if (diffElementIds.length > 0) {
-            await upsertHistoryCompatibilityElements(diffElementIds, get);
-          } else if (entry.data.element) {
-            const updatedElement = entry.data.element;
-
-            await supabase
-              .from("elements")
-              .update(sanitizeElementForSupabase(updatedElement))
-              .eq("id", entry.elementId);
-            console.log("✅ Redo: Supabase에서 요소 업데이트 완료");
-          } else if (entry.data.props) {
-            const element = getElementById(
-              getHistoryCompatibilityElementsMap(get),
-              entry.elementId,
-            );
-            if (element) {
-              const updatedElement = {
-                ...element,
-                props: { ...element.props, ...entry.data.props },
-              };
-
-              await supabase
-                .from("elements")
-                .update({ props: { ...element.props, ...entry.data.props } })
-                .eq("id", entry.elementId);
-              console.log("✅ Redo: Supabase에서 요소 업데이트 완료");
-            }
-          }
-          break;
-        }
-
-        case "remove": {
-          // 부모 요소와 자식 요소들을 모두 데이터베이스에서 삭제
-          const elementIdsToDelete = [entry.elementId];
-          if (entry.data.childElements && entry.data.childElements.length > 0) {
-            elementIdsToDelete.push(
-              ...entry.data.childElements.map((child) => child.id),
-            );
-          }
-
-          await supabase.from("elements").delete().in("id", elementIdsToDelete);
-          console.log(
-            `✅ Redo: Supabase에서 요소 삭제 완료 (부모 1개 + 자식 ${
-              entry.data.childElements?.length || 0
-            }개)`,
-          );
-          break;
-        }
-
-        case "batch": {
-          const diffElementIds = getHistoryDiffElementIds(entry);
-          if (diffElementIds.length > 0) {
-            await upsertHistoryCompatibilityElements(diffElementIds, get);
-            break;
-          }
-
-          // Batch update Redo - 각 요소의 newProps를 데이터베이스에 업데이트
-          if (entry.data.batchUpdates) {
-            console.log(
-              `🔄 Redo: Batch update DB 동기화 시작 (${entry.data.batchUpdates.length}개)`,
-            );
-
-            // Supabase 동기화
-            const elementsMap = getHistoryCompatibilityElementsMap(get);
-            for (const update of entry.data.batchUpdates) {
-              const element = getElementById(elementsMap, update.elementId);
-              if (element) {
-                await supabase
-                  .from("elements")
-                  .update({ props: { ...element.props, ...update.newProps } })
-                  .eq("id", update.elementId);
-              }
-            }
-
-            console.log(
-              `✅ Redo: Batch update Supabase 동기화 완료 (${entry.data.batchUpdates.length}개)`,
-            );
-          }
-          break;
-        }
-
-        case "group": {
-          // Group 생성 Redo - 그룹 추가 + 자식들 parent_id 업데이트
-          console.log("🔄 Redo: Group 생성 DB 동기화");
-
-          // Supabase에 추가 전 page_id 유효성 확인
-          const groupPageId = entry.data.element?.page_id;
-          if (groupPageId) {
-            const { data: pageExists } = await supabase
-              .from("pages")
-              .select("id")
-              .eq("id", groupPageId)
-              .single();
-
-            if (!pageExists) {
-              console.log(
-                `⏭️ Redo: 페이지가 클라우드에 없음 (로컬 전용), Supabase 저장 skip`,
-              );
-            } else {
-              // 1. 그룹 요소 추가 (Supabase)
-              if (entry.data.element) {
-                await supabase
-                  .from("elements")
-                  .upsert(sanitizeElementForSupabase(entry.data.element), {
-                    onConflict: "id",
-                  });
-              }
-
-              // 2. 자식 요소들의 parent_id를 그룹 ID로 업데이트
-              if (entry.data.elements) {
-                for (const prevChild of entry.data.elements) {
+                // 1. 그룹 요소 추가 (Supabase)
+                if (entry.data.element) {
                   await supabase
                     .from("elements")
-                    .update({
-                      parent_id: entry.elementId, // 그룹 ID
-                    })
-                    .eq("id", prevChild.id);
+                    .upsert(sanitizeElementForSupabase(entry.data.element), {
+                      onConflict: "id",
+                    });
                 }
-                console.log(
-                  `✅ Redo: Group 생성 Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
-                );
+
+                // 2. 자식 요소들의 parent_id를 그룹 ID로 업데이트
+                if (entry.data.elements) {
+                  for (const prevChild of entry.data.elements) {
+                    await supabase
+                      .from("elements")
+                      .update({
+                        parent_id: entry.elementId, // 그룹 ID
+                      })
+                      .eq("id", prevChild.id);
+                  }
+                  console.log(
+                    `✅ Redo: Group 생성 Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
+                  );
+                }
               }
             }
+            break;
           }
-          break;
-        }
 
-        case "ungroup": {
-          // Ungroup Redo - 그룹 삭제 + 자식들 원래 parent로 업데이트
-          console.log("🔄 Redo: Ungroup DB 동기화");
+          case "ungroup": {
+            // Ungroup Redo - 그룹 삭제 + 자식들 원래 parent로 업데이트
+            console.log("🔄 Redo: Ungroup DB 동기화");
 
-          // 1. 그룹 요소 삭제 (Supabase)
-          await supabase.from("elements").delete().eq("id", entry.elementId);
+            // 1. 그룹 요소 삭제 (Supabase)
+            await supabase.from("elements").delete().eq("id", entry.elementId);
 
-          // 2. 자식 요소들의 parent_id를 원래 parent로 업데이트
-          if (entry.data.elements) {
-            for (const prevChild of entry.data.elements) {
-              await supabase
-                .from("elements")
-                .update({
-                  parent_id: prevChild.parent_id,
-                })
-                .eq("id", prevChild.id);
+            // 2. 자식 요소들의 parent_id를 원래 parent로 업데이트
+            if (entry.data.elements) {
+              for (const prevChild of entry.data.elements) {
+                await supabase
+                  .from("elements")
+                  .update({
+                    parent_id: prevChild.parent_id,
+                  })
+                  .eq("id", prevChild.id);
+              }
+              console.log(
+                `✅ Redo: Ungroup Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
+              );
             }
-            console.log(
-              `✅ Redo: Ungroup Supabase 동기화 완료 (자식 ${entry.data.elements.length}개)`,
-            );
+            break;
           }
-          break;
         }
-      }
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
     }
@@ -1485,9 +1601,13 @@ export const createGoToHistoryIndexAction =
       let updatedElements = sourceElements;
       let updatedSelectedElementId = state.selectedElementId;
       let updatedSelectedElementProps = state.selectedElementProps;
+      let allEntriesAppliedAsCanonicalEvents = entries.length > 0;
 
       // 모든 엔트리를 순차적으로 메모리에 적용 (렌더링 없이)
       for (const entry of entries) {
+        if (!entry.data.canonicalEvents?.length) {
+          allEntriesAppliedAsCanonicalEvents = false;
+        }
         const applyResult = applyHistoryEntry(
           entry,
           direction,
@@ -1507,7 +1627,9 @@ export const createGoToHistoryIndexAction =
         selectedElementProps: updatedSelectedElementProps,
       });
 
-      syncHistoryElementsToCanonical(updatedElements);
+      if (!allEntriesAppliedAsCanonicalEvents) {
+        syncHistoryElementsToCanonical(updatedElements);
+      }
       // elementsMap 재구축
       get()._rebuildIndexes();
 
@@ -1554,6 +1676,23 @@ function applyHistoryEntry(
 } {
   if (!entry) {
     return { elements, selectedElementId, selectedElementProps };
+  }
+
+  const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
+    entry.data.canonicalEvents,
+    direction,
+  );
+  if (canonicalEventElements) {
+    const selection = resolveSelectionAfterCanonicalEvents(
+      selectedElementId,
+      selectedElementProps,
+      canonicalEventElements,
+    );
+    return {
+      elements: canonicalEventElements,
+      selectedElementId: selection.selectedElementId,
+      selectedElementProps: selection.selectedElementProps,
+    };
   }
 
   let updatedElements = elements;
@@ -1995,6 +2134,15 @@ async function syncDatabaseForEntries(
 
   for (const entry of entries) {
     if (!entry) continue;
+    if (entry.data.canonicalEvents?.length) {
+      const { upsertIds, deleteIds } = getCanonicalHistoryEventIds(
+        entry.data.canonicalEvents,
+        direction,
+      );
+      upsertIds.forEach((id) => affectedElementIds.add(id));
+      deleteIds.forEach((id) => removedElementIds.add(id));
+      continue;
+    }
 
     if (direction === "undo") {
       switch (entry.type) {

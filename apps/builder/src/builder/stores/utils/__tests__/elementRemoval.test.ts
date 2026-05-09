@@ -41,17 +41,38 @@ describe("removeElements skipHistory option (ADR-073 P5)", () => {
     expect(addEntrySpy).toHaveBeenCalled();
   });
 
+  it("default history payload는 legacy element snapshot 대신 canonicalEvents를 기록함", async () => {
+    await useStore.getState().removeElements(["si-1"]);
+    expect(addEntrySpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "remove",
+        elementId: "si-1",
+        data: expect.objectContaining({
+          canonicalEvents: expect.arrayContaining([
+            expect.objectContaining({
+              type: "remove",
+              node: expect.objectContaining({ id: "si-1" }),
+            }),
+          ]),
+        }),
+      }),
+    );
+    expect(addEntrySpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          element: expect.anything(),
+        }),
+      }),
+    );
+  });
+
   it("skipHistory: true — historyManager.addEntry 호출 안 됨", async () => {
-    await useStore
-      .getState()
-      .removeElements(["si-1"], { skipHistory: true });
+    await useStore.getState().removeElements(["si-1"], { skipHistory: true });
     expect(addEntrySpy).not.toHaveBeenCalled();
   });
 
   it("skipHistory: true 모드에서도 elementsMap 에서 삭제됨", async () => {
-    await useStore
-      .getState()
-      .removeElements(["si-1"], { skipHistory: true });
+    await useStore.getState().removeElements(["si-1"], { skipHistory: true });
     expect(useStore.getState().elementsMap.get("si-1")).toBeUndefined();
   });
 });

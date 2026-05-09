@@ -610,6 +610,9 @@ const MultiSelectContent = memo(function MultiSelectContent({
     if (selectedElementIds.length < 2 || !currentPageId) return;
     try {
       const elementsMap = getElementsMap();
+      const previousChildren = selectedElementIds
+        .map((id: string) => elementsMap.get(id))
+        .filter((el): el is NonNullable<typeof el> => el !== undefined);
       const { groupElement, updatedChildren } = createGroupFromSelection(
         selectedElementIds,
         elementsMap,
@@ -630,7 +633,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
             .eq("id", child.id);
         }),
       );
-      trackGroupCreation(groupElement, updatedChildren);
+      trackGroupCreation(groupElement, previousChildren, updatedChildren);
       onSetSelectedElement(groupElement.id, groupElement.props);
       console.log(
         `✅ [Group] Created group with ${updatedChildren.length} children`,
@@ -1138,6 +1141,9 @@ function PropertiesPanelContent() {
       console.log("[Group] Grouping", selectedElementIds.length, "elements");
 
       const elementsMap = getElementsMap();
+      const previousChildren = selectedElementIds
+        .map((id: string) => elementsMap.get(id))
+        .filter((el): el is NonNullable<typeof el> => el !== undefined);
 
       // Create group from selection
       const { groupElement, updatedChildren } = createGroupFromSelection(
@@ -1180,7 +1186,7 @@ function PropertiesPanelContent() {
       );
 
       // ⭐ Phase 7: Track in history AFTER group creation
-      trackGroupCreation(groupElement, updatedChildren);
+      trackGroupCreation(groupElement, previousChildren, updatedChildren);
 
       // Select the new group
       setSelectedElement(groupElement.id, groupElement.props);
@@ -1215,6 +1221,9 @@ function PropertiesPanelContent() {
 
       // Store group element before deletion for history
       const groupElementForHistory = elementsMap.get(selectedElement.id);
+      const previousChildren = Array.from(elementsMap.values()).filter(
+        (element) => element.parent_id === selectedElement.id,
+      );
 
       // Ungroup element
       const { updatedChildren, groupIdToDelete } = ungroupElement(
@@ -1224,7 +1233,12 @@ function PropertiesPanelContent() {
 
       // ⭐ Phase 7: Track in history BEFORE making changes
       if (groupElementForHistory) {
-        trackUngroup(groupIdToDelete, updatedChildren, groupElementForHistory);
+        trackUngroup(
+          groupIdToDelete,
+          previousChildren,
+          groupElementForHistory,
+          updatedChildren,
+        );
       }
 
       // Update children with new parent_id - Save to DB directly

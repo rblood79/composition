@@ -48,6 +48,7 @@ import {
   mergeElementsCanonicalPrimary,
   createMultipleElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
+import { useCompareModeStore } from "../workspace/canvas/stores";
 import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,
@@ -158,9 +159,14 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 완전 스킵
   // - isWebGLCanvas(): WebGL 캔버스 활성화 여부 (빌드타임 상수)
   // - isCanvasCompareMode(): 비교 모드 (빌드타임 상수)
-  // - WebGL only = WebGL 활성화 && 비교 모드 아님
+  // - runtimeCompareMode: toolbar compare toggle
+  // - WebGL only = WebGL 활성화 && build/runtime 비교 모드 아님
   // ⚠️ React Hook 규칙: 모든 Hook은 조건문 전에 호출해야 함
-  const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
+  const runtimeCompareMode = useCompareModeStore(
+    (state) => state.isCompareMode,
+  );
+  const isWebGLOnly =
+    isWebGLCanvas() && !isCanvasCompareMode() && !runtimeCompareMode;
 
   // ⚠️ Hook 호출은 항상 동일한 순서로 실행 (조건부 early return 금지)
   const [iframeReadyState, setIframeReadyState] =

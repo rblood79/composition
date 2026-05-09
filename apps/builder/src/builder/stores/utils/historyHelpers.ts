@@ -11,6 +11,12 @@ import type {
 } from "../../../types/builder/unified.types";
 import type { ComponentIndex } from "./elementIndexer";
 import { historyManager } from "../history";
+import {
+  buildCanonicalGroupEvents,
+  buildCanonicalInsertEvents,
+  buildCanonicalRemoveEvents,
+  buildCanonicalUngroupEvents,
+} from "../history/canonicalHistoryEvents";
 
 /**
  * Track batch property update in history
@@ -66,6 +72,7 @@ export function trackBatchUpdate(
 export function trackGroupCreation(
   groupElement: Element,
   childElements: Element[],
+  nextChildElements: Element[] = childElements,
 ): void {
   if (childElements.length === 0) return;
 
@@ -74,8 +81,11 @@ export function trackGroupCreation(
     elementId: groupElement.id,
     elementIds: childElements.map((el) => el.id),
     data: {
-      element: groupElement,
-      elements: childElements,
+      canonicalEvents: buildCanonicalGroupEvents(
+        groupElement,
+        childElements,
+        nextChildElements,
+      ),
       groupData: {
         groupId: groupElement.id,
         childIds: childElements.map((el) => el.id),
@@ -99,6 +109,7 @@ export function trackUngroup(
   groupId: string,
   childElements: Element[],
   groupElement: Element,
+  nextChildElements: Element[] = childElements,
 ): void {
   if (childElements.length === 0) return;
 
@@ -107,8 +118,11 @@ export function trackUngroup(
     elementId: groupId,
     elementIds: childElements.map((el) => el.id),
     data: {
-      element: groupElement, // Store group for redo
-      prevElements: childElements, // Store previous state of children
+      canonicalEvents: buildCanonicalUngroupEvents(
+        groupElement,
+        childElements,
+        nextChildElements,
+      ),
       groupData: {
         groupId: groupId,
         childIds: childElements.map((el) => el.id),
@@ -136,8 +150,7 @@ export function trackMultiDelete(elements: Element[]): void {
       type: "remove",
       elementId: element.id,
       data: {
-        element: element,
-        childElements: undefined,
+        canonicalEvents: buildCanonicalRemoveEvents([element]),
       },
     });
   });
@@ -169,9 +182,10 @@ export function trackMultiPaste(newElements: Element[]): void {
     elementId: firstElement.id, // Primary element for reference
     elementIds: newElements.map((el) => el.id), // All pasted element IDs
     data: {
-      element: firstElement, // 첫 번째 요소 (primary)
-      childElements: restElements, // 나머지 요소들 (모두 형제 관계일 수도 있음)
-      elements: newElements, // 전체 요소 목록 (참고용)
+      canonicalEvents: buildCanonicalInsertEvents([
+        firstElement,
+        ...restElements,
+      ]),
     },
   });
 

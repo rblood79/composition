@@ -982,12 +982,15 @@ function CanvasContent() {
     renderLayoutElement,
   ]);
 
+  const hasPreviewContentSource =
+    canonicalDocument !== null || elements.length > 0;
+
   // ⭐ React가 document.body에 직접 마운트되므로 preview-container 불필요
   // body element의 자식들이 직접 <body> 안에 렌더링됨
   /* eslint-disable react-hooks/refs -- renderElementsTree 내부에서 의도적인 ref 접근 */
   return (
     <>
-      {elements.length === 0 ? (
+      {!hasPreviewContentSource ? (
         <div className="preview-empty">No elements available</div>
       ) : (
         renderElementsTree()

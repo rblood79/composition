@@ -11,6 +11,11 @@ import {
   isDiffEmpty,
 } from "./utils/elementDiff";
 import { historyIndexedDB } from "./history/historyIndexedDB";
+import {
+  buildCanonicalInsertEvents,
+  buildCanonicalRemoveEvents,
+  type CanonicalHistoryNodeEvent,
+} from "./history/canonicalHistoryEvents";
 
 /**
  * 간단하고 효율적인 History 시스템
@@ -56,6 +61,7 @@ export interface HistoryEntry {
     // 🆕 Phase 3: Diff-based storage
     diff?: SerializableElementDiff;
     diffs?: SerializableElementDiff[]; // For batch operations
+    canonicalEvents?: CanonicalHistoryNodeEvent[];
   };
   timestamp: number;
   // 🆕 Phase 3: Entry size tracking
@@ -354,6 +360,19 @@ export class HistoryManager {
       },
     });
 
+    const structuralElements = childElements
+      ? [type === "add" ? nextElement : prevElement, ...childElements]
+      : [type === "add" ? nextElement : prevElement];
+    const canonicalEvents =
+      type === "add"
+        ? buildCanonicalInsertEvents(structuralElements)
+        : type === "remove"
+          ? buildCanonicalRemoveEvents(
+              [prevElement],
+              [prevElement, ...(childElements ?? [])],
+            )
+          : undefined;
+
     // 엔트리 생성 (diff 기반 - 메모리 최적화)
     const newEntry: HistoryEntry = {
       id: commandId,
@@ -362,9 +381,7 @@ export class HistoryManager {
       data: {
         // 🆕 Phase 3: diff만 저장 (전체 요소 대신)
         diff: serializedDiff,
-        // add/remove의 경우 전체 요소도 저장 (복원에 필요)
-        ...(type === "add" && { element: nextElement, childElements }),
-        ...(type === "remove" && { element: prevElement, childElements }),
+        ...(canonicalEvents ? { canonicalEvents } : {}),
       },
       timestamp: Date.now(),
       estimatedSize: diffSize,

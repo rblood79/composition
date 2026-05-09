@@ -1,6 +1,6 @@
 # ADR-122 구현 상세 — Canonical-only runtime 전환 및 legacy mirror 제거
 
-본 문서는 [ADR-122](../122-canonical-only-runtime-legacy-mirror-removal.md)의 phase plan,
+본 문서는 [ADR-122](../completed/122-canonical-only-runtime-legacy-mirror-removal.md)의 phase plan,
 inventory, gate 측정 방법을 정의한다. Phase 0 inventory freeze는
 [122-canonical-only-runtime-legacy-mirror-removal-inventory.md](122-canonical-only-runtime-legacy-mirror-removal-inventory.md)에
 기록한다. 핵심은 local persistence cleanup이 아니라
@@ -48,28 +48,31 @@ rg -n "exportLegacyDocument\\(|canonicalDocumentToElements\\(|UPDATE_ELEMENTS|UP
 
 ## 3. Phase Plan
 
-| Phase   | Goal                              | Main output                                        | Gate | Status                                                                                                                                                                                                                                                      |
-| ------- | --------------------------------- | -------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | hybrid inventory freeze           | allowlist + forbidden runtime bucket               | G0   | In progress — inventory file created, residual buckets open                                                                                                                                                                                                 |
-| Phase 1 | mutation mirror 제거              | canonical command wrappers, no legacy write-back   | G1   | First slice complete — `canonicalMutations` wrapper write-back 0                                                                                                                                                                                            |
-| Phase 2 | runtime read canonicalization     | Properties/LayerTree/History/Skia read source 전환 | G2   | Slices complete — selected fallback cut, LayerTree stale map 차단, drag read map 전환                                                                                                                                                                       |
-| Phase 3 | Preview/Skia active protocol 전환 | canonical document/scene channel primary           | G3   | Slices complete — Preview active canonical sync, Skia canonical scene model, drag/drop/selection/shared renderer read-model maps, legacy canvas surface cleanup                                                                                             |
-| Phase 4 | legacy boundary quarantine        | export/import/cloud/publish allowlist only         | G4   | In progress — Preview inbound recovery, unused full-snapshot messaging cleanup, mutation/history canonical-first source, History diff/event undo-redo, `recoverElementsSnapshot` removal, direct legacy `state.elements` 70→0, and full-replace prune/runtime smoke follow-up slices complete |
-| Phase 5 | stale tests/gates 재정렬          | ADR-116/118/119/120/121 aligned test suite         | G5   | First stale-gate slice complete                                                                                                                                                                                                                             |
-| Phase 6 | final verification                | browser smoke + preflight + docs/rules sync        | G6   | Not started                                                                                                                                                                                                                                                 |
+| Phase   | Goal                              | Main output                                        | Gate | Status                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------- | --------------------------------- | -------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | hybrid inventory freeze           | allowlist + forbidden runtime bucket               | G0   | Complete — inventory bucket classified and closure audit updated                                                                                                                                                                                                                                                                                                                                      |
+| Phase 1 | mutation mirror 제거              | canonical command wrappers, no legacy write-back   | G1   | Complete — `canonicalMutations` wrapper write-back 0 and add/update/remove store helpers now canonical-before-cache                                                                                                                                                                                                                                                                                   |
+| Phase 2 | runtime read canonicalization     | Properties/LayerTree/History/Skia read source 전환 | G2   | Slices complete — selected fallback cut, LayerTree stale map 차단, drag read map 전환                                                                                                                                                                                                                                                                                                                 |
+| Phase 3 | Preview/Skia active protocol 전환 | canonical document/scene channel primary           | G3   | Slices complete — Preview active canonical sync, Skia canonical scene model, drag/drop/selection/shared renderer read-model maps, legacy canvas surface cleanup                                                                                                                                                                                                                                       |
+| Phase 4 | legacy boundary quarantine        | export/import/cloud/publish allowlist only         | G4   | Closure slices landed — Preview inbound recovery, unused full-snapshot messaging cleanup, mutation/history canonical-first source, History diff/event undo-redo, add/remove/group canonical node events, `recoverElementsSnapshot` removal, direct legacy `state.elements` 70→0, full-replace prune/runtime smoke, page-shell bridge preservation, and deleted-page anti-resurrection slices complete |
+| Phase 5 | stale tests/gates 재정렬          | ADR-116/118/119/120/121 aligned test suite         | G5   | Complete — stale gates realigned; ADR-113/116 grep gate recovery PASS                                                                                                                                                                                                                                                                                                                                 |
+| Phase 6 | final verification                | browser smoke + preflight + docs/rules sync        | G6   | Complete — exact builder/shared G6 commands PASS, full browser checklist PASS, docs/rules sync updated, `pnpm run codex:preflight` PASS, ADR Implemented archive complete                                                                                                                                                                                                                             |
 
 Current execution snapshot (2026-05-09):
 
-- Current phase: Phase 4 / G4.
-- Progress estimate: implementation ~72%, formal gate closure ~60%.
-- Latest closed slice: canonical full-replace pruning in `canonicalMutations`
-  plus seeded Builder `remove -> undo -> redo -> reload` smoke.
-- Current blocker/next entry: History add/remove/group broader canonical node
-  event schema. This is a HIGH-risk History contract/schema change and must be
-  surfaced before implementation.
-- Verification blocker: `pnpm run codex:preflight` currently stops at
-  `codex:guard` because protected `.claude/settings.json` is dirty before this
-  slice.
+- Current phase: Implemented archive complete.
+- Progress estimate: implementation 100%, formal gate closure 100%.
+- Latest closed slice: page-shell bridge preservation/deleted-page
+  anti-resurrection, Runtime Compare Mode canonical Preview sync, Preview
+  canonical-empty render guard, ADR-113/116 grep gate recovery,
+  add/update/remove store helper canonical-before-cache closure, and full Phase 6
+  browser checklist smoke.
+- Current blocker/next entry: none for ADR-122; future cloud/Supabase physical
+  schema removal remains outside this ADR.
+- Latest verification: `pnpm run codex:preflight` PASS.
+  Exact G6 commands also PASS:
+  `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__ src/builder/stores/canonical`
+  and `pnpm -F @composition/shared exec vitest run src/utils`.
 
 ## 4. Phase 0 — Hybrid Inventory Freeze
 
@@ -101,7 +104,9 @@ rg -n "order_num|metadata\\.order_num|canonicalDocumentToElements\\(|exportLegac
 
 - raw seed 607 hit를 inventory 문서에 bucket rule과 target phase로 분류했고,
   latest cleanup 후 current raw seed는 462 hit다.
-- runtime-forbidden 잔존은 Skia scene snapshot과 Builder store mutation facade로 고정했다.
+- 초기 runtime-forbidden bucket은 Skia scene snapshot과 Builder store mutation facade로
+  고정했고, closure audit에서 canonical scene model 및 canonical-before-cache store
+  helper ordering으로 닫았다.
 - transition-derived Builder canonical-derived store cache bridge는 제거했다.
 
 ## 5. Phase 1 — Mutation Mirror 제거
@@ -314,9 +319,11 @@ pnpm -F @composition/builder exec vitest run \
 - Selection overlay body 판정과 PropertyCustomId validation도 active
   `canonicalElementSnapshot` helper 대신 canonical document traversal을 직접 사용해
   direct `elementsMap` lookup을 제거했다.
-- Broader History/Undo contract는 canonical-first source로 좁혔지만 canonical patch/event
-  contract로 완전히 재작성되지는 않았다. `recoverElementsSnapshot` transition bridge와
-  active snapshot helper consumers/file은 제거됐다.
+- Broader History/Undo contract는 canonical-first source로 좁혔고, add/remove/group/
+  ungroup payload는 canonical node event sequence로 전환했다. update/batch diff event와
+  canonical node events 모두 active canonical document에 먼저 replay된다.
+  `recoverElementsSnapshot` transition bridge와 active snapshot helper consumers/file은
+  제거됐다.
 
 ## 7. Phase 3 — Preview/Skia Active Protocol 전환
 
@@ -383,8 +390,9 @@ pnpm -F @composition/builder exec vitest run \
   `elementsMap`만 사용하며 stale `state.elementsMap` fallback을 제거했다.
 - shared `RenderContext`의 legacy `elementsMap`/`childrenMap` contract를
   `ReadonlyMap` 기반 `elementsById`/`childrenByParent` read model로 전환했다.
-- active snapshot helper consumers/file은 제거됐고, layout engine map contract 제거는
-  아직 open이다.
+- active snapshot helper consumers/file은 제거됐다. layout engine map contract는
+  canonical-derived internal render input으로 유지하며, mutable legacy mirror source가
+  아니므로 ADR-122 G6 blocker에서 제외한다.
 
 Browser smoke:
 
@@ -481,6 +489,14 @@ rg -n "exportLegacyDocument\\(|legacyToCanonical\\(|canonicalDocumentToElements\
   targeted gate: canonicalMutations test 1 file / 23 tests PASS, history diff/static tests
   2 files / 3 tests PASS, `pnpm run codex:typecheck` PASS, seeded Builder browser smoke
   PASS (`button-2` 삭제 후 redo/reload에도 store/document ids 모두 `page-1`, `button-1`).
+- History add/remove/group/ungroup canonical node event schema를 land했다.
+  `HistoryEntry.data.canonicalEvents`는 insert/remove/move sequence로 active canonical
+  document에 직접 replay되며, add/remove/group/ungroup 신규 entry는 legacy
+  `element`/`childElements`/`elements`/`prevElements` snapshot을 기록하지 않는다.
+  실제 page body parent(`legacy-page -> body`) 아래 생성되는 element의 add history
+  누락도 parent ancestor page/reusable context 판정으로 수정했다.
+  targeted gate: history/creation/removal/helper tests 5 files / 28 tests PASS,
+  realistic Builder browser smoke PASS.
 
 ## 9. Phase 5 — Stale Tests/Gates 재정렬
 
@@ -586,17 +602,34 @@ pnpm -F @composition/shared exec vitest run src/utils
   grep 70 → 0.
 - History diff/event undo-redo slice 2 files / 3 tests PASS. Direct fallback cleanup
   slice 15 files / 39 tests PASS. Direct legacy `state.elements` grep 70 → 0.
-- Post-format verification: direct fallback/static gate suite 16 files / 41 tests PASS,
-  runtime targeted suite 10 files / 68 tests PASS, `pnpm run codex:typecheck` PASS,
+- Post-format verification: direct fallback/static gate suite 16 files / 43 tests PASS,
+  runtime targeted suite 11 files / 86 tests PASS, `pnpm run codex:typecheck` PASS,
   direct legacy `state.elements` grep 0, raw seed 462, recover bridge production grep 0.
-  `pnpm run codex:preflight` is blocked at `codex:guard` by the protected
-  `.claude/settings.json` dirty file before format/typecheck steps run.
+  Follow-up `pnpm run codex:preflight` PASS.
 - Full-replace prune follow-up verification: `pnpm -F @composition/builder exec vitest run
-  src/adapters/canonical/__tests__/canonicalMutations.test.ts` — 1 file / 23 tests PASS;
+src/adapters/canonical/__tests__/canonicalMutations.test.ts` — 1 file / 23 tests PASS;
   `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts
-  src/builder/stores/history/historyActions.static.test.ts` — 2 files / 3 tests PASS;
+src/builder/stores/history/historyActions.static.test.ts` — 2 files / 3 tests PASS;
   `pnpm run codex:typecheck` — 3 packages PASS; seeded Builder browser smoke PASS for
   `add/remove/undo/redo/reload` with no `button-2` resurrection.
+- History canonical node event follow-up verification: RED confirmed in
+  `elementCreationCanonical.test.ts` for `legacy-page -> body` add history; after fix
+  `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts`
+  — 5 files / 28 tests PASS. Realistic Builder browser smoke on
+  `legacy-page -> body -> button` confirmed `button-2` add undo/redo, remove undo/redo,
+  reload persistence, and absence of local `pages`/`elements`/`layouts` objectStores.
+- Closure audit grep-gate recovery: exact G6 builder command initially exposed
+  ADR-113 descendants quarantine and ADR-116 G5 strict logic-access regressions in
+  `canonicalHistoryEvents.ts` / `elementCreation.ts`. Ref override traversal now goes
+  through `canonicalElementsView` helper boundary, and frame ownership lookup uses
+  `getFrameElementMirrorId()` instead of direct `layout_id` access. Recovery gate:
+  `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/adr113DescendantsGrepGate.test.ts src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts`
+  — 5 files / 17 tests PASS.
+- Closure audit store helper ordering: `elementCreation`, `elementUpdate`, and
+  `elementRemoval` now call canonical mutation wrappers before updating the
+  derived `elements`/`elementsMap`/`childrenMap` store cache. Guard tests:
+  `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/stores/utils/__tests__/elementUpdate.static.test.ts src/builder/stores/utils/__tests__/elementUpdate.test.ts src/builder/stores/utils/__tests__/elementRemoval.static.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts`
+  — 7 files / 33 tests PASS.
 
 ## 10. Phase 6 — Final Verification / Docs Sync
 
@@ -625,6 +658,30 @@ Browser smoke checklist:
 - `docs/adr/README.md` row/count 갱신
 - `docs/CHANGELOG.md` 변경 내역 추가
 - `.agents/skills/composition-patterns` canonical runtime rule 갱신
+
+2026-05-09 진행:
+
+- History canonical node event slice 관련 ADR 본문, breakdown, inventory,
+  README, changelog, state-management rule, composition-patterns history rule을
+  동기화했다.
+- Partial browser smoke: realistic `legacy-page -> body -> button` seed에서
+  `button-2` add undo/redo, remove undo/redo, reload 후 `db.documents` persistence,
+  local `pages`/`elements`/`layouts` objectStore absence를 확인했다.
+- Full browser smoke: local IndexedDB v15 schema를 새로 seed한 뒤 page/body/element
+  생성 후 reload persistence, sibling reorder, cross-page reparent, slot fill reorder,
+  cross-page `Go to component`/`Select instances` selection, origin page delete 후
+  instance materialization, reload persistence, Preview canonical DOM render, Skia
+  canvas presence, `documents` primary 및 local `pages`/`elements`/`layouts`
+  objectStore absence를 확인했다. Screenshot:
+  `/tmp/adr122-phase6-full-browser-smoke.png`.
+- G6 verification result: full browser checklist PASS and `pnpm run codex:preflight`
+  PASS. Exact builder/shared G6 commands also PASS:
+  `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__ src/builder/stores/canonical`
+  — 25 files / 311 tests PASS;
+  `pnpm -F @composition/shared exec vitest run src/utils` — 5 files / 54 tests PASS.
+- Closure audit follow-up: add/update/remove store helper cache ordering is now
+  canonical-before-cache and covered by targeted/static guard tests. Final
+  verification rerun passed, and ADR-122 is archived as Implemented.
 
 ## 11. Completion Definition
 

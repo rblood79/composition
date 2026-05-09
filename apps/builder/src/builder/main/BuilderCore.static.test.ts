@@ -51,6 +51,16 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     expect(source).toMatch(/if \(state\.pages === pagesRef\) return;/);
     expect(source).toContain("getActiveCanonicalBuilderElements");
     expect(source).toContain("getCanonicalOrBootstrapBuilderElements");
+    expect(source).toContain("getPageShellBridgeElements");
+    expect(source).toContain(
+      "Page store mutations are the one remaining legacy page-shell surface.",
+    );
+    expect(source).toContain(
+      "setElementsCanonicalPrimary(getPageShellBridgeElements(state))",
+    );
+    expect(source).toContain("missingPageBodyShells");
+    expect(source).toMatch(/element\.type === "body"/);
+    expect(source).toMatch(/pageIds\.has\(element\.page_id\)/);
     expect(source).toContain("visitCanonicalDocumentElements");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).not.toContain("canonicalDocumentToElements");

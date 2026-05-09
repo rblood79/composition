@@ -5,7 +5,7 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [ADR-122 canonical-only runtime G4 continuation] - 2026-05-09
+## [ADR-122 canonical-only runtime implemented closure] - 2026-05-09
 
 ### Changed
 
@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `useIframeMessenger` selection echo와 preview-generated dedupe는 active canonical
   document가 있으면 missing element/id를 legacy cache에서 되살리지 않도록 전환했다.
   `UPDATE_ELEMENTS` bootstrap은 canonical document 부재 시에만 legacy snapshot을 읽는다.
+- `useIframeMessenger`는 Runtime Compare Mode store flag도 WebGL-only 차단 조건에
+  반영한다. 이로써 Skia/WebGL canvas 상태와 무관하게 Compare Mode 진입 시 canonical
+  document가 Preview iframe으로 전송된다.
 - `useResetStyles` reset action도 active canonical document가 있으면 missing selected
   element를 legacy cache에서 되살리지 않도록 좁혔다.
 - `useSelectedElementData` legacy mode selected/ref override props lookup은 이미 읽은
@@ -45,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BuilderCore` mutation registration/page-shell bridge fallback은
   `getCanonicalOrBootstrapBuilderElements()` helper로 격리해 canonical-first bootstrap
   boundary를 명시했다.
+- `BuilderCore` page-shell bridge는 page/body shell append 직후 canonical document에서
+  아직 보이지 않는 body shell을 보존하고, origin page 삭제 후 stale canonical-derived
+  snapshot으로 deleted page/ref origin을 되살리지 않도록 bridge 전용 snapshot을 분리했다.
 - `elementUpdate`/`elementRemoval`/`instanceActions`/`elements`/`historyActions`의
   mutation/history source를 active canonical document elements 우선으로 전환했다.
   canonical document가 없을 때만 legacy store `elements[]`를 bootstrap fallback으로
@@ -54,6 +60,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   snapshot payload보다 먼저 적용하도록 보강했다. canonical document sync를 index rebuild보다
   먼저 수행해 active canonical document와 store `elementsMap`이 같은 diff 결과를 보도록
   고정했다.
+- History add/remove/group/ungroup 신규 entry를 legacy element snapshot이 아니라
+  canonical `canonicalEvents` insert/remove/move sequence로 기록하도록 전환했다.
+  undo/redo/goToHistoryIndex는 이 event를 active canonical document에 직접 replay하며,
+  실제 `legacy-page -> body` parent 아래 element 생성도 page context history로 기록된다.
 - `canonicalLegacyStoreCacheBridge`와 store `recoverElementsSnapshot` action surface를
   제거했다. active canonical document 변경 후 legacy store cache를 되살리는 transition
   subscriber production hit는 0건이다.
@@ -62,9 +72,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   page-owned runtime sibling이 canonical `db.documents`에 남던 persistence drift를
   수정했다. page/layout shell과 structural `body` node는 유지하면서 omitted
   legacy-exportable runtime node는 prune한다.
-- ADR-122 현재 실행 스냅샷을 관련 문서에 동기화했다. 현재 Phase는 Phase 4 / G4,
-  진행률 추정은 구현 약 72% / formal gate 약 60%이며, 다음 진입점은 HIGH-risk
-  History add/remove/group broader canonical node event schema 전환이다.
+- Preview `App` render guard는 legacy preview `elements[]`가 비어 있어도 canonical
+  document가 있으면 canonical tree를 렌더링하도록 수정했다. Compare Mode의
+  canonical-only Preview가 빈 화면으로 표시되는 회귀를 막는다.
+- `ComponentSemanticsSection` 테스트 fixture를 current fallback 계약에 맞춰
+  `elements[]` source도 함께 seed하도록 갱신했다.
+- Closure audit에서 exact G6 builder command가 ADR-113 descendants quarantine /
+  ADR-116 G5 strict logic-access regression을 드러냈다. `canonicalHistoryEvents`와
+  `elementCreation`의 ref override traversal은 `canonicalElementsView` helper boundary로
+  이동하고, History canonical event parent lookup은 direct `layout_id` access 대신
+  `frameMirror` helper를 사용하도록 수정했다.
+- ADR-122 store mutation helper ordering을 canonical-before-cache로 닫았다.
+  `elementCreation`, `elementUpdate`, `elementRemoval`은 canonical mutation wrapper를
+  먼저 호출하고 derived `elements`/`elementsMap`/`childrenMap` store cache를 이후
+  갱신한다.
+- ADR-122 현재 실행 스냅샷을 관련 문서에 동기화했다. G0-G6와 final closure review는
+  완료됐고, cloud/Supabase physical schema 제거는 별도 decision gate로 유지한다.
+- ADR-122를 Implemented로 전환하고 본문을 `docs/adr/completed/` archive로 이동했다.
+  README row, breakdown, inventory의 status snapshot을 G0-G6 complete 기준으로
+  동기화했다.
 
 ### Verification
 
@@ -72,8 +98,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   — 6 files / 17 tests PASS.
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts`
   — 2 files / 3 tests PASS.
-- direct fallback/static gate suite — 16 files / 41 tests PASS.
-- runtime targeted suite — 10 files / 68 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts`
+  — 5 files / 28 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts`
+  — RED 확인 후 GREEN, 1 file / 17 tests PASS.
+- direct fallback/static gate suite — 16 files / 43 tests PASS.
+- runtime targeted suite — 11 files / 86 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts src/builder/main/BuilderCore.static.test.ts src/preview/previewFrameMirror.static.test.ts`
+  — 3 files / 17 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/ComponentSemanticsSection.test.tsx`
+  — RED 확인 후 fixture contract 갱신, 1 file / 18 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/adr113DescendantsGrepGate.test.ts src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts`
+  — ADR-113/116 grep gate recovery, 5 files / 17 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/stores/utils/__tests__/elementUpdate.static.test.ts src/builder/stores/utils/__tests__/elementUpdate.test.ts src/builder/stores/utils/__tests__/elementRemoval.static.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts`
+  — store helper canonical-before-cache closure, 7 files / 33 tests PASS.
 - `pnpm run codex:typecheck` — 3 packages PASS.
 - `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/canonicalMutations.test.ts`
   — 1 file / 23 tests PASS.
@@ -83,11 +121,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `updateElementProps -> addElement(button-2) -> removeElement(button-2) -> undo -> redo -> reload`
   검증 PASS. Store/document ids 모두 `page-1`, `button-1`만 남고 `button-2`는
   되살아나지 않음.
+- Browser runtime smoke — realistic `legacy-page -> body -> button` document seed 후
+  `addElement(button-2) -> undo -> redo -> removeElement(button-2) -> undo -> redo -> reload`
+  검증 PASS. Store/document ids 모두 `body-page-1`, `button-1`만 남고 `button-2`는
+  되살아나지 않으며 local `pages`/`elements`/`layouts` objectStore 없음 유지.
+- Full Phase 6 browser smoke — local IndexedDB v15 schema seed 후
+  page/body/element 생성 + reload persistence, sibling reorder, cross-page reparent,
+  slot fill reorder, cross-page `Go to component`/`Select instances` selection,
+  origin page delete 후 instance materialization, reload persistence, Preview
+  canonical DOM render, Skia canvas presence, `documents` primary 및 local
+  `pages`/`elements`/`layouts` objectStore absence PASS. Screenshot:
+  `/tmp/adr122-phase6-full-browser-smoke.png`.
+- Exact G6 commands:
+  `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__ src/builder/stores/canonical`
+  — 25 files / 311 tests PASS;
+  `pnpm -F @composition/shared exec vitest run src/utils` — 5 files / 54 tests PASS.
 - `git diff --check` — PASS.
 - grep gates: direct legacy `state.elements` 0, raw seed 462, recover bridge production
   grep 0.
-- `pnpm run codex:preflight` — blocked at `codex:guard` by protected
-  `.claude/settings.json` dirty file.
+- `pnpm run codex:preflight` — PASS.
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/index.test.tsx`
   — 1 file / 6 tests PASS.
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/canvasStore.static.test.ts`
@@ -375,7 +427,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   snapshot만 비교하도록 좁혔다.
 - `.agents` canonical runtime rule에 mutable legacy `Element[]` mirror 재도입 금지
   원칙을 보강했다.
-- README 현황 요약을 ADR-122 In Progress 기준으로 갱신했다.
+- README 현황 요약을 당시 ADR-122 In Progress 기준으로 갱신했다.
 
 ### Verification
 

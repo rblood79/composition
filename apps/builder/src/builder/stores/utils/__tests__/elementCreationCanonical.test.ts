@@ -208,6 +208,44 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
       );
     });
 
+    it("legacy-page body parent 도 page context 로 판정해 canonical add history 를 기록한다", async () => {
+      const doc = makeDoc([
+        {
+          id: "page-1",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [{ id: "body-page-1", type: "body", props: {} }],
+        } as FrameNode,
+      ]);
+      const element = makeElement("el-body-child", "Button", {
+        parent_id: "body-page-1",
+        page_id: "page-1",
+      });
+
+      const { setMock, getMock } = setupStateMocks({
+        currentPageId: "page-1",
+        doc,
+      });
+
+      await createAddElementAction(setMock, getMock)(element);
+
+      expect(historyModule.historyManager.addEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "add",
+          elementId: "el-body-child",
+          data: expect.objectContaining({
+            canonicalEvents: expect.arrayContaining([
+              expect.objectContaining({
+                type: "insert",
+                parentId: "body-page-1",
+              }),
+            ]),
+          }),
+        }),
+      );
+    });
+
     // [RED] current code: frame mirror 없으면 미기록. GREEN: reusable frame parent 면 기록
     it("canonical parent 가 reusable frame context(reusable=true) 면 historyManager.addEntry 호출된다", async () => {
       const frame = makeReusableFrame("frame-reusable-1");
@@ -333,10 +371,21 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
         expect.objectContaining({
           type: "add",
           elementId: "parent-1",
+          elementIds: ["parent-1", "child-1", "child-2"],
           data: expect.objectContaining({
-            childElements: expect.arrayContaining([
-              expect.objectContaining({ id: "child-1" }),
-              expect.objectContaining({ id: "child-2" }),
+            canonicalEvents: expect.arrayContaining([
+              expect.objectContaining({
+                type: "insert",
+                node: expect.objectContaining({ id: "parent-1" }),
+              }),
+              expect.objectContaining({
+                type: "insert",
+                node: expect.objectContaining({ id: "child-1" }),
+              }),
+              expect.objectContaining({
+                type: "insert",
+                node: expect.objectContaining({ id: "child-2" }),
+              }),
             ]),
           }),
         }),
@@ -429,6 +478,33 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
         "elementsMap\\.forEach[\\s\\S]{0,200}el\\." + "layout_id\\s*===",
       );
       expect(source).not.toMatch(pattern);
+    });
+
+    it("canonical document 를 먼저 mutate 한 뒤 derived store cache 에 추가한다", async () => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const filePath = path.resolve(__dirname, "../elementCreation.ts");
+      const source = await fs.readFile(filePath, "utf-8");
+
+      const singleCanonicalIndex = source.indexOf(
+        "mergeCreatedElementsIntoCanonicalDocument([elementToAdd]);",
+      );
+      const singleStoreIndex = source.indexOf(
+        "elements: [...prevState.elements, elementToAdd],",
+      );
+      expect(singleCanonicalIndex).toBeGreaterThanOrEqual(0);
+      expect(singleStoreIndex).toBeGreaterThanOrEqual(0);
+      expect(singleCanonicalIndex).toBeLessThan(singleStoreIndex);
+
+      const complexCanonicalIndex = source.indexOf(
+        "mergeCreatedElementsIntoCanonicalDocument(allElements);",
+      );
+      const complexStoreIndex = source.indexOf(
+        "elements: [...prevState.elements, ...allElements],",
+      );
+      expect(complexCanonicalIndex).toBeGreaterThanOrEqual(0);
+      expect(complexStoreIndex).toBeGreaterThanOrEqual(0);
+      expect(complexCanonicalIndex).toBeLessThan(complexStoreIndex);
     });
   });
 

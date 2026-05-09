@@ -88,11 +88,39 @@ function getActiveCanonicalBuilderElements(): Element[] | null {
 
 function getCanonicalOrBootstrapBuilderElements(state: {
   elements?: Element[];
+  pages?: Array<{ id: string }>;
 }): Element[] {
   const canonicalElements = getActiveCanonicalBuilderElements();
-  if (canonicalElements) return canonicalElements;
   const { elements: legacyElements = [] } = state;
+  if (canonicalElements) {
+    const canonicalIds = new Set(
+      canonicalElements.map((element) => element.id),
+    );
+    const pageIds = new Set((state.pages ?? []).map((page) => page.id));
+    const missingPageBodyShells = legacyElements.filter(
+      (element) =>
+        !canonicalIds.has(element.id) &&
+        element.type === "body" &&
+        element.parent_id == null &&
+        typeof element.page_id === "string" &&
+        pageIds.has(element.page_id),
+    );
+    return missingPageBodyShells.length > 0
+      ? [...canonicalElements, ...missingPageBodyShells]
+      : canonicalElements;
+  }
   return legacyElements;
+}
+
+function getPageShellBridgeElements(state: {
+  elements?: Element[];
+}): Element[] {
+  // Page store mutations are the one remaining legacy page-shell surface.
+  // At this boundary the active canonical document is stale by definition:
+  // append must include the newly-created body shell, and delete must exclude
+  // removed-page elements after instance materialization.
+  const { elements = [] } = state;
+  return elements;
 }
 
 export const BuilderCore: React.FC = () => {
@@ -156,9 +184,7 @@ export const BuilderCore: React.FC = () => {
       if (state.pages === pagesRef) return;
       pagesRef = state.pages;
       if (pageShellBridgeSuspendedRef.current) return;
-      setElementsCanonicalPrimary(
-        getCanonicalOrBootstrapBuilderElements(state),
-      );
+      setElementsCanonicalPrimary(getPageShellBridgeElements(state));
     });
   }, [projectId]);
 

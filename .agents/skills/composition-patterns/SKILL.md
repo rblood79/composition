@@ -47,12 +47,25 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
 - Builder internal runtime은 canonical `CompositionDocument`를 mutation/read/render
   source로 수렴해야 합니다. canonical mutation 후 mutable legacy `Element[]`
   mirror로 되돌리는 `setElements(exportLegacyDocument(...))` write-back을
-  재도입하지 말고, `exportLegacyDocument()`는 cloud/export/import/publish
-  compatibility boundary에서만 사용합니다.
+  재도입하지 말고, add/update/remove store helper도 canonical mutation을 먼저
+  수행한 뒤 derived store cache를 갱신합니다. `exportLegacyDocument()`는
+  cloud/export/import/publish compatibility boundary에서만 사용합니다.
+- Builder runtime/history helper에서 `RefNode.descendants` 또는 legacy `layout_id`를
+  직접 읽지 않습니다. ref override traversal은 `canonicalElementsView` helper
+  boundary로, frame ownership lookup은 `frameMirror` boundary로 격리합니다.
 - History/Undo가 full snapshot으로 canonical document를 동기화할 때는 omitted
   runtime node를 `db.documents`에 남기지 않습니다. page/layout shell과 structural
   `body`는 보존하지만, incoming snapshot에 없는 legacy-exportable runtime node는
   full-replace 과정에서 prune해야 합니다.
+- History add/remove/group/ungroup 신규 entry는 canonical `canonicalEvents`
+  insert/remove/move sequence를 기록하고 active canonical document에 replay합니다.
+  legacy element snapshots는 기존 history restore나 update/batch fallback 같은
+  compatibility boundary로만 남깁니다.
+- Builder page-shell bridge는 새 page/body shell append를 보존해야 하며, page/origin
+  삭제 후 stale canonical-derived snapshot으로 deleted node를 되살리면 안 됩니다.
+- Preview/Compare Mode active channel은 canonical `CompositionDocument` presence를
+  기준으로 렌더링해야 합니다. runtime Compare Mode에서 WebGL-only branch가 canonical
+  sync를 막거나, Preview가 legacy `elements[]` length 0만 보고 빈 화면을 렌더하면 안 됩니다.
 - IndexedDB `composition.metadata`, duplicate `composition.history`, and
   `DatabaseAdapter.designVariables` are removed dormant/mismatched local DB
   surfaces. Use the separate `composition-history` DB for undo/redo and the

@@ -25,6 +25,7 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import { buildCanonicalRemoveEvents } from "../history/canonicalHistoryEvents";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
@@ -225,39 +226,6 @@ async function executeRemoval(
     }
   }
 
-  // 히스토리: 첫 번째 루트를 대표 elementId로, 나머지 모두를 childElements로 기록
-  // ADR-073 P5: skipHistory=true 시 히스토리 기록 생략 (migration 경로에서 undo 스택 오염 방지)
-  if (currentState.currentPageId && !options.skipHistory) {
-    if (autoDetach.elements.length > 0) {
-      historyManager.addEntry({
-        type: "batch",
-        elementId: rootElements[0].id,
-        elementIds: [
-          ...elementIdsToRemove,
-          ...autoDetach.elements.map((element) => element.id),
-        ],
-        data: {
-          prevElements: [
-            ...allUniqueElements.map((element) => ({ ...element })),
-            ...autoDetach.previousElements.map((element) => ({ ...element })),
-          ],
-          elements: autoDetach.elements.map((element) => ({ ...element })),
-        },
-      });
-    } else {
-      historyManager.addEntry({
-        type: "remove",
-        elementId: rootElements[0].id,
-        data: {
-          element: { ...rootElements[0] },
-          childElements: allUniqueElements
-            .filter((el) => el.id !== rootElements[0].id)
-            .map((child) => ({ ...child })),
-        },
-      });
-    }
-  }
-
   // 요소 필터링
   const detachPreviousIds = new Set(
     autoDetach.previousElements.map((element) => element.id),
@@ -269,6 +237,41 @@ async function executeRemoval(
     autoDetach.elements.length > 0
       ? [...filteredElements, ...autoDetach.elements]
       : filteredElements;
+
+  // 히스토리 payload는 canonical mutation 전에 구성해 삭제 전 node 위치를 보존한다.
+  // ADR-073 P5: skipHistory=true 시 히스토리 기록 생략 (migration 경로에서 undo 스택 오염 방지)
+  let historyEntry: Parameters<typeof historyManager.addEntry>[0] | null = null;
+  if (currentState.currentPageId && !options.skipHistory) {
+    historyEntry =
+      autoDetach.elements.length > 0
+        ? {
+            type: "batch",
+            elementId: rootElements[0].id,
+            elementIds: [
+              ...elementIdsToRemove,
+              ...autoDetach.elements.map((element) => element.id),
+            ],
+            data: {
+              prevElements: [
+                ...allUniqueElements.map((element) => ({ ...element })),
+                ...autoDetach.previousElements.map((element) => ({
+                  ...element,
+                })),
+              ],
+              elements: autoDetach.elements.map((element) => ({ ...element })),
+            },
+          }
+        : {
+            type: "remove",
+            elementId: rootElements[0].id,
+            data: {
+              canonicalEvents: buildCanonicalRemoveEvents(
+                rootElements,
+                allUniqueElements,
+              ),
+            },
+          };
+  }
 
   // 선택 상태 정리
   const isSelectedRemoved = removeSet.has(currentState.selectedElementId || "");
@@ -312,6 +315,11 @@ async function executeRemoval(
     newPageElementsSnapshot[pageId] = pageElements;
   }
 
+  syncRemovedElementsToCanonical(updatedElements);
+  if (historyEntry) {
+    historyManager.addEntry(historyEntry);
+  }
+
   set((state) => ({
     elements: updatedElements,
     elementsMap: newElementsMap,
@@ -338,8 +346,6 @@ async function executeRemoval(
       editingContextId: null,
     }),
   }));
-
-  syncRemovedElementsToCanonical(updatedElements);
 
   if (db) {
     try {

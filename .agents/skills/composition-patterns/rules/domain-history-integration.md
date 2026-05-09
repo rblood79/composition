@@ -17,9 +17,20 @@ History replay가 `setElementsCanonicalPrimary(nextElements)`를 호출할 때�
 snapshot semantics가 유지되어야 합니다. 즉 page/layout shell과 structural `body`는
 보존하되, `nextElements`에 없는 legacy-exportable runtime node는 canonical
 document에서 prune되어야 하며, 삭제된 node가 `db.documents`에 남아 refresh 후
-되살아나면 안 됩니다. add/remove/group 계열은 아직 canonical node event schema
-확장이 open이므로, schema 전환 전에는 diff/event payload와 full-replace persistence
-smoke를 함께 검증합니다.
+되살아나면 안 됩니다.
+
+add/remove/group/ungroup 신규 History entry는 `canonicalEvents` insert/remove/move
+sequence를 기록하고 undo/redo/goToHistoryIndex가 active canonical document에 직접
+replay해야 합니다. legacy `element`/`childElements`/`elements`/`prevElements`
+snapshot fields는 기존 IndexedDB history entry, update/batch fallback, auto-detach
+batch 같은 compatibility/fallback 경계에서만 허용합니다. page body 아래 생성되는
+element도 top-level page/reusable frame descendant context로 판정해 add history를
+누락하지 않아야 합니다.
+History canonical event helper는 ref override traversal과 frame ownership lookup을
+직접 legacy field에 기대면 안 됩니다. `RefNode.descendants` traversal은
+`canonicalElementsView` helper boundary를 통하고, frame ownership은 `frameMirror`
+helper를 사용해 ADR-113 descendants quarantine / ADR-116 strict logic-access gate를
+깨지 않게 유지합니다.
 
 ## 히스토리 아키텍처
 
@@ -32,7 +43,8 @@ interface HistoryEntry {
   type: "add" | "update" | "remove" | "move" | "batch";
   elementId: string;
   data: {
-    element?: Element; // add/remove용
+    canonicalEvents?: CanonicalHistoryNodeEvent[]; // add/remove/group/ungroup용
+    element?: Element; // legacy/restored fallback용
     prevElement?: Element; // update용 (이전 상태)
     diff?: SerializableElementDiff; // diff 기반 (메모리 80% 절약)
   };

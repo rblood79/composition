@@ -33,4 +33,21 @@ describe("elementRemoval canonical read fallback contract", () => {
     expect(source).not.toContain(staleStateElementMap);
     expect(source).not.toContain(staleStateChildMap);
   });
+
+  it("removes nodes from canonical document before updating the derived store cache", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementRemoval.ts"),
+      "utf-8",
+    );
+
+    const canonicalSyncIndex = source.indexOf(
+      "syncRemovedElementsToCanonical(updatedElements);",
+    );
+    const storeCacheIndex = source.indexOf(
+      "set((state) => ({\n    elements: updatedElements,",
+    );
+    expect(canonicalSyncIndex).toBeGreaterThanOrEqual(0);
+    expect(storeCacheIndex).toBeGreaterThanOrEqual(0);
+    expect(canonicalSyncIndex).toBeLessThan(storeCacheIndex);
+  });
 });

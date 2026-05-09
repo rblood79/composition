@@ -36,6 +36,17 @@ describe("preview frame mirror contract", () => {
     ).toHaveLength(2);
   });
 
+  it("renders canonical document content even when legacy preview elements are empty", async () => {
+    const source = await readFile(resolve(__dirname, "App.tsx"), "utf-8");
+
+    expect(source).toContain("const hasPreviewContentSource =");
+    expect(source).toContain(
+      "canonicalDocument !== null || elements.length > 0",
+    );
+    expect(source).toContain("!hasPreviewContentSource ? (");
+    expect(source).not.toContain("elements.length === 0 ? (");
+  });
+
   it("does not expose page order_num on the preview runtime page contract", async () => {
     const storeTypes = await readFile(
       resolve(__dirname, "store/types.ts"),

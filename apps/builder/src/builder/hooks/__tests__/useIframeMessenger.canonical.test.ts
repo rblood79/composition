@@ -83,6 +83,19 @@ describe("P3-D-4: useIframeMessenger UPDATE_ELEMENTS schema 전환 (RED phase)",
       expect(source).not.toContain("sendElementsToIframe(elements)");
     });
 
+    it("runtime compare mode 에서는 WebGL-only no-op 으로 빠지지 않는다", async () => {
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
+      const source = await fs.readFile(filePath, "utf-8");
+
+      expect(source).toContain("useCompareModeStore");
+      expect(source).toContain("runtimeCompareMode");
+      expect(source).toContain(
+        "isWebGLCanvas() && !isCanvasCompareMode() && !runtimeCompareMode",
+      );
+    });
+
     it("canonical document 를 Preview 에 별도 전송해 Preview 내부 projection 을 제거한다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");

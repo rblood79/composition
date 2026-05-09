@@ -60,16 +60,14 @@ describe("ComponentSemanticsSection", () => {
   });
 
   it("renders Origin label for reusable element", () => {
+    const origin = makeElement("origin", {
+      componentName: "ArticleFrame",
+      reusable: true,
+    });
+
     useStore.setState({
-      elementsMap: new Map([
-        [
-          "origin",
-          makeElement("origin", {
-            componentName: "ArticleFrame",
-            reusable: true,
-          }),
-        ],
-      ]),
+      elements: [origin],
+      elementsMap: new Map([["origin", origin]]),
     });
 
     render(<ComponentSemanticsSection elementId="origin" />);
@@ -82,13 +80,14 @@ describe("ComponentSemanticsSection", () => {
   });
 
   it("renders Instance label for ref element", () => {
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+    } as never);
+
     useStore.setState({
-      elementsMap: new Map([
-        [
-          "instance",
-          makeElement("instance", { type: "ref", ref: "origin" } as never),
-        ],
-      ]),
+      elements: [instance],
+      elementsMap: new Map([["instance", instance]]),
     });
 
     render(<ComponentSemanticsSection elementId="instance" />);
@@ -100,8 +99,11 @@ describe("ComponentSemanticsSection", () => {
   });
 
   it("renders Standard label for plain element", () => {
+    const plain = makeElement("plain");
+
     useStore.setState({
-      elementsMap: new Map([["plain", makeElement("plain")]]),
+      elements: [plain],
+      elementsMap: new Map([["plain", plain]]),
     });
 
     render(<ComponentSemanticsSection elementId="plain" />);
@@ -135,6 +137,7 @@ describe("ComponentSemanticsSection", () => {
     );
 
     useStore.setState({
+      elements: [frameBody],
       elementsMap: new Map([["frame-body", frameBody]]),
     });
 

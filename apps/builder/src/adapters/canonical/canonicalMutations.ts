@@ -672,6 +672,39 @@ function legacyElementToCanonicalNode(
   return baseNode;
 }
 
+function cloneCanonicalNodeForHistory(node: CanonicalNode): CanonicalNode {
+  if (typeof structuredClone === "function") {
+    return structuredClone(node) as CanonicalNode;
+  }
+  return JSON.parse(JSON.stringify(node)) as CanonicalNode;
+}
+
+function getCurrentDocumentForHistory(): CompositionDocument {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId =
+    _registeredActions?.getCurrentProjectId() ?? canonical.currentProjectId;
+  return getCurrentDocument(projectId);
+}
+
+export function createCanonicalHistoryNodeFromElement(
+  element: Element,
+): CanonicalNode {
+  const doc = getCurrentDocumentForHistory();
+  const previousNode = findNodeById(doc.children, element.id);
+  return cloneCanonicalNodeForHistory(
+    legacyElementToCanonicalNode(element, doc, previousNode),
+  );
+}
+
+export function getCanonicalHistoryNodeSnapshot(
+  element: Element,
+): CanonicalNode {
+  const doc = getCurrentDocumentForHistory();
+  const node = findNodeById(doc.children, element.id);
+  if (node) return cloneCanonicalNodeForHistory(node);
+  return createCanonicalHistoryNodeFromElement(element);
+}
+
 function findReusableFrame(
   doc: CompositionDocument,
   layoutId: string,
@@ -1535,7 +1568,7 @@ function applyCanonicalPrimarySet(
 /**
  * legacy `mergeElements` 의 canonical-aware wrapper.
  *
- * canonical store mutation 우선 + legacy mirror 자동.
+ * canonical store mutation only. Derived store cache updates are caller-owned.
  *
  * @param elements - 추가/병합할 legacy element 배열
  */
@@ -1548,7 +1581,7 @@ export function mergeElementsCanonicalPrimary(
 /**
  * legacy `setElements` 의 canonical-aware wrapper.
  *
- * canonical store mutation 우선 + legacy mirror 자동.
+ * canonical store mutation only. Derived store cache updates are caller-owned.
  *
  * @param elements - 전체 element 배열 (replace)
  */

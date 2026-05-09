@@ -61,6 +61,13 @@ function getCanonicalProps(elementId: string): Record<string, unknown> {
   return (node?.props ?? {}) as Record<string, unknown>;
 }
 
+function getCanonicalIds(): string[] {
+  const doc = useCanonicalDocumentStore
+    .getState()
+    .getDocument("history-project");
+  return doc?.children.map((child) => child.id) ?? [];
+}
+
 describe("historyActions canonical diff/event application", () => {
   beforeEach(() => {
     historyManager.clearAllHistory();
@@ -161,5 +168,193 @@ describe("historyActions canonical diff/event application", () => {
 
     expect(getCanonicalProps("text-a")).toMatchObject({ children: "A1" });
     expect(getCanonicalProps("text-b")).toMatchObject({ children: "B1" });
+  });
+
+  it("replays add/remove entries from canonical node events without legacy element snapshots", async () => {
+    const node = {
+      id: "button-1",
+      type: "Button",
+      props: { children: "Save" },
+      children: [],
+    };
+
+    useCanonicalDocumentStore.getState().setDocument("history-project", {
+      version: "composition-1.0",
+      children: [node],
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("history-project");
+
+    historyManager.addEntry({
+      type: "add",
+      elementId: node.id,
+      data: {
+        canonicalEvents: [
+          {
+            type: "insert",
+            node,
+            parentId: null,
+            index: 0,
+          },
+        ],
+      } as never,
+    });
+
+    useStore.setState({
+      elements: [
+        makeElement(node.id, node.props, {
+          type: node.type,
+        }),
+      ],
+      elementsMap: new Map([
+        [
+          node.id,
+          makeElement(node.id, node.props, {
+            type: node.type,
+          }),
+        ],
+      ]),
+    } as never);
+
+    await useStore.getState().undo();
+
+    expect(getCanonicalIds()).toEqual([]);
+    expect(useStore.getState().elementsMap.has(node.id)).toBe(false);
+
+    await useStore.getState().redo();
+
+    expect(getCanonicalIds()).toEqual([node.id]);
+    expect(useStore.getState().elementsMap.get(node.id)?.props).toMatchObject({
+      children: "Save",
+    });
+
+    historyManager.addEntry({
+      type: "remove",
+      elementId: node.id,
+      data: {
+        canonicalEvents: [
+          {
+            type: "remove",
+            node,
+            parentId: null,
+            index: 0,
+          },
+        ],
+      } as never,
+    });
+
+    useCanonicalDocumentStore.getState().setDocument("history-project", {
+      version: "composition-1.0",
+      children: [],
+    });
+    useStore.setState({
+      elements: [],
+      elementsMap: new Map(),
+    } as never);
+
+    await useStore.getState().undo();
+
+    expect(getCanonicalIds()).toEqual([node.id]);
+    expect(useStore.getState().elementsMap.get(node.id)?.props).toMatchObject({
+      children: "Save",
+    });
+  });
+
+  it("replays group entries from canonical insert/move events without legacy group snapshots", async () => {
+    const childA = {
+      id: "child-a",
+      type: "Button",
+      props: { children: "A" },
+      children: [],
+    };
+    const childB = {
+      id: "child-b",
+      type: "Button",
+      props: { children: "B" },
+      children: [],
+    };
+    const group = {
+      id: "group-1",
+      type: "Group",
+      props: { label: "Group" },
+      children: [],
+    };
+
+    historyManager.addEntry({
+      type: "group",
+      elementId: group.id,
+      elementIds: [childA.id, childB.id],
+      data: {
+        canonicalEvents: [
+          {
+            type: "insert",
+            node: group,
+            parentId: null,
+            index: 0,
+          },
+          {
+            type: "move",
+            nodeId: childA.id,
+            fromParentId: null,
+            fromIndex: 0,
+            toParentId: group.id,
+            toIndex: 0,
+          },
+          {
+            type: "move",
+            nodeId: childB.id,
+            fromParentId: null,
+            fromIndex: 1,
+            toParentId: group.id,
+            toIndex: 1,
+          },
+        ],
+      } as never,
+    });
+
+    useCanonicalDocumentStore.getState().setDocument("history-project", {
+      version: "composition-1.0",
+      children: [
+        {
+          ...group,
+          children: [childA, childB],
+        },
+      ],
+    });
+    useCanonicalDocumentStore.getState().setCurrentProject("history-project");
+    useStore.setState({
+      elements: [
+        makeElement(group.id, group.props, { type: group.type }),
+        makeElement(childA.id, childA.props, {
+          type: childA.type,
+          parent_id: group.id,
+        }),
+        makeElement(childB.id, childB.props, {
+          type: childB.type,
+          parent_id: group.id,
+        }),
+      ],
+      elementsMap: new Map(),
+    } as never);
+
+    await useStore.getState().undo();
+
+    const undoDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("history-project");
+    expect(undoDoc?.children.map((child) => child.id)).toEqual([
+      childA.id,
+      childB.id,
+    ]);
+
+    await useStore.getState().redo();
+
+    const redoDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("history-project");
+    expect(redoDoc?.children.map((child) => child.id)).toEqual([group.id]);
+    expect(redoDoc?.children[0]?.children?.map((child) => child.id)).toEqual([
+      childA.id,
+      childB.id,
+    ]);
   });
 });

@@ -2,19 +2,22 @@
 
 ## Status
 
-In Progress — 2026-05-09
+Implemented — 2026-05-09
 
-Current execution snapshot:
+Closure snapshot:
 
-- Current phase: Phase 4 / G4 `legacy boundary quarantine`.
-- Progress estimate: implementation ~72%, formal gate closure ~60%.
-- Latest completed slice: canonical full-replace pruning + seeded Builder
-  `remove -> undo -> redo -> reload` runtime smoke.
-- Next required decision: History add/remove/group broader canonical node event
-  schema. This is a HIGH-risk History contract change and requires explicit
-  proceed approval before implementation.
-- Known verification blocker: `pnpm run codex:preflight` stops at
-  `codex:guard` because protected `.claude/settings.json` is already dirty.
+- Completed phases: G0-G6.
+- Final closed slices: page-shell bridge preservation/deleted-page
+  anti-resurrection, Runtime Compare Mode canonical Preview sync, Preview
+  canonical-empty render guard, ADR-113/116 grep gate recovery, add/update/remove
+  store helper canonical-before-cache closure, exact G6 builder/shared
+  verification, full Phase 6 browser checklist smoke, and `pnpm run
+codex:preflight`.
+- Residual policy: repo-wide `legacy`/`Element[]` string 0건이 아니라,
+  Builder internal runtime hot path에서 mutable legacy mirror를 source로 쓰지 않는
+  것이 completion 기준이다. `UPDATE_ELEMENTS` Preview compatibility receive type,
+  publish/cloud/export/import boundary, and canonical-derived renderer maps remain
+  allowed by bucket.
 
 ## Context
 
@@ -23,12 +26,12 @@ ADR-118/119는 structural order를 `children[]` source order로 수렴시켰다.
 ADR-120/121은 local IndexedDB의 `pages`/`elements`/`layouts` mirror persistence와
 dormant DB surface를 제거했다.
 
-그 결과 local persistence primary는 `db.documents`로 닫혔지만, Builder runtime에는
-아직 canonical-first hybrid가 남아 있다. 대표적으로 `canonicalMutations` wrapper는
+ADR 작성 시점의 local persistence primary는 `db.documents`로 닫혔지만, Builder runtime에는
+canonical-first hybrid가 남아 있었다. 대표적으로 `canonicalMutations` wrapper는
 canonical store를 갱신한 뒤 `exportLegacyDocument()` 결과를 legacy `setElements()` mirror로
-되돌리고, 일부 Skia/Preview/Properties/LayerTree 경로는 `Element[]` 또는 `elementsMap`
-derived view를 runtime input으로 소비한다. 이 구조는 legacy primary는 아니지만
-"canonical-only runtime"도 아니다.
+되돌렸고, 일부 Skia/Preview/Properties/LayerTree 경로는 `Element[]` 또는 `elementsMap`
+derived view를 runtime input으로 소비했다. 이 구조는 legacy primary는 아니지만
+"canonical-only runtime"도 아니었다.
 
 이 ADR은 ADR-116의 후속으로, 내부 runtime에서 mutable legacy mirror를 제거하고
 `CompositionDocument`/canonical selectors/resolved canonical tree를 직접 소비하도록 전환한다.
@@ -146,8 +149,8 @@ compatibility export/import boundary로 분리한다.
 - **대안 D 기각**: mutable write-back은 줄지만 runtime data model이 계속 legacy `Element`
   중심이라 canonical-only completion gate를 통과할 수 없다.
 
-> 구현 상세: [122-canonical-only-runtime-legacy-mirror-removal-breakdown.md](design/122-canonical-only-runtime-legacy-mirror-removal-breakdown.md)
-> / [inventory](design/122-canonical-only-runtime-legacy-mirror-removal-inventory.md)
+> 구현 상세: [122-canonical-only-runtime-legacy-mirror-removal-breakdown.md](../design/122-canonical-only-runtime-legacy-mirror-removal-breakdown.md)
+> / [inventory](../design/122-canonical-only-runtime-legacy-mirror-removal-inventory.md)
 
 ## Risks
 
@@ -181,6 +184,11 @@ compatibility export/import boundary로 분리한다.
   latest cleanup 후 current raw seed는 462 hit다.
 - Phase 1 mutation mirror 제거 slice를 land했다. `canonicalMutations` wrapper 내부
   legacy `actions.setElements(exportLegacyDocument(doc))` write-back은 0건이다.
+- Closure audit follow-up으로 `elementCreation`, `elementUpdate`, `elementRemoval`
+  store helper가 derived store cache를 먼저 갱신하고 canonical document를 뒤따라
+  맞추던 순서를 제거했다. 이제 add/update/remove helper는 canonical mutation
+  wrapper를 먼저 호출하고 `elements`/`elementsMap`/`childrenMap` cache를 이후
+  갱신한다.
 - Phase 2 첫 slice로 `useSelectedElementData`가 active canonical document 존재 시
   legacy `elementsMap` fallback으로 선택 데이터를 되살리지 않도록 변경했다.
   Follow-up으로 selected ref override props fallback도 active canonical document를 직접
@@ -199,7 +207,8 @@ compatibility export/import boundary로 분리한다.
   active `UPDATE_CANONICAL_DOCUMENT` sync로 고정했다. `UPDATE_ELEMENTS`는 canonical
   hydration 이전 legacy bootstrap/compat message type으로만 남아 있다. Skia는 active
   canonical document가 있으면 page/frame mode 모두 canonical-derived read-only tree를
-  input으로 사용하도록 전환했지만, canonical scene snapshot 직접 소비는 아직 open이다.
+  input으로 사용하도록 전환했고, follow-up으로 `buildCanonicalSceneModel()` 경계를 통해
+  document-backed scene model을 직접 소비하도록 닫았다.
 - Phase 3 보강 slice로 `useIframeMessenger` selection echo가 store `elementsMap`
   subscription을 사용하지 않고 active canonical document traversal을 우선 조회하도록
   전환했다.
@@ -493,6 +502,13 @@ compatibility export/import boundary로 분리한다.
 - Phase 5 추가 slice로 dormant `shadowWriteDiff`의 canonical→legacy export
   convenience wrapper를 제거하고, shadow-write evaluator가 compatibility
   boundary에서 명시적으로 받은 legacy snapshot만 비교하도록 좁혔다.
+- Phase 4/G4 승인 후속 slice로 History add/remove/group/ungroup payload를
+  legacy `data.element`/`childElements`/`elements`/`prevElements` snapshot 대신
+  canonical `canonicalEvents` insert/remove/move sequence로 기록하고
+  undo/redo/goToHistoryIndex가 active canonical document에 직접 replay하도록
+  전환했다. 이 과정에서 실제 page body parent(`legacy-page -> body`) 아래 생성되는
+  element가 History add entry를 누락하던 원인도 parent ancestor page/reusable context
+  판정으로 수정했다.
 
 검증:
 
@@ -657,15 +673,27 @@ compatibility export/import boundary로 분리한다.
   — full-replace omitted sibling prune regression, 1 file / 23 tests PASS.
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts`
   — History diff/event follow-up after full-replace prune, 2 files / 3 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts`
+  — History canonical node event schema slice, 5 files / 28 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/adr113DescendantsGrepGate.test.ts src/adapters/canonical/__tests__/g5LegacyFieldGrepGate.test.ts src/builder/stores/utils/__tests__/historyHelpers.test.ts src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/history/historyActions.static.test.ts`
+  — ADR-113/116 grep gate recovery slice, 5 files / 17 tests PASS.
+- `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementCreationCanonical.test.ts`
+  — realistic legacy-page body parent add-history regression, 1 file / 17 tests PASS
+  after RED failure confirmation.
 - `pnpm -F @composition/builder exec vitest run src/builder/hooks/useDeltaMessenger.static.test.ts src/builder/hooks/useCollectionItemManager.static.test.ts src/builder/panels/properties/hooks/useCanonicalPropertyRead.static.test.ts src/builder/utils/performanceMonitor.static.test.ts src/builder/stores/canvasStore.static.test.ts src/builder/panels/monitor/hooks/useComponentMemory.static.test.ts src/builder/panels/nodes/FramesTab/FramesTab.static.test.ts src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts src/builder/stores/index.test.tsx src/builder/stores/selection.static.test.ts src/builder/stores/history/historyActions.static.test.ts src/builder/stores/history/historyActions.diff.test.ts src/builder/stores/utils/__tests__/elementUpdate.static.test.ts src/builder/stores/utils/__tests__/elementRemoval.static.test.ts src/builder/stores/utils/__tests__/instanceActions.static.test.ts`
-  — direct fallback/static gate suite, 16 files / 41 tests PASS.
+  — direct fallback/static gate suite, 16 files / 43 tests PASS.
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/elementUpdate.test.ts src/builder/stores/utils/__tests__/elementRemoval.test.ts src/builder/stores/utils/__tests__/instanceActions.test.ts src/builder/stores/__tests__/pageRemovalSemantics.test.ts src/builder/stores/__tests__/pageActivation.test.ts src/builder/stores/__tests__/itemsActions.test.ts src/builder/stores/index.test.tsx src/builder/stores/__tests__/elementMove.test.ts src/builder/main/canonicalLegacyStoreCacheBridge.static.test.ts src/builder/main/BuilderCore.static.test.ts src/builder/hooks/__tests__/useIframeMessenger.canonical.test.ts`
-  — runtime targeted suite, 10 files / 68 tests PASS.
+  — runtime targeted suite, 11 files / 86 tests PASS.
 - `pnpm run codex:typecheck` — 3 packages PASS.
 - grep gates: direct legacy `state.elements` 0, raw seed 462,
   `recoverElementsSnapshot`/bridge subscriber production hits 0.
-- `pnpm run codex:preflight` — blocked at `codex:guard` by pre-existing protected
-  `.claude/settings.json` change; no type/test failure was reached in preflight.
+- `pnpm run codex:preflight` — PASS.
+- `pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__ src/builder/stores/canonical`
+  — exact G6 builder verification, 25 files / 311 tests PASS after moving
+  History canonical event ref override traversal and frame mirror lookup behind
+  canonical helper boundaries.
+- `pnpm -F @composition/shared exec vitest run src/utils` — exact G6 shared
+  verification, 5 files / 54 tests PASS.
 - grep gate: `getCanonicalElementsSnapshotFromDocument` production hits 0.
 - `git diff --check` — PASS.
 - `pnpm run codex:typecheck` — 3 packages PASS.
@@ -678,14 +706,30 @@ compatibility export/import boundary로 분리한다.
   `/tmp/adr122-runtime-smoke-after-fix.png`. Expected fake-auth 401 and WebGL
   ReadPixels warnings only.
 
-잔존: History/Undo는 serialized diff/event payload를 canonical-first source에 적용하는
-경로까지 land했다. 다만 add/remove/group 계열 payload는 아직 canonical node event만으로
-표현되는 완전한 history schema가 아니므로 broader canonical event contract 확장은 open이다.
+Compatibility note: History/Undo는 serialized diff/event payload와 add/remove/group/ungroup
+canonical node event payload를 canonical-first source에 적용하는 경로까지 land했다.
+legacy `element`/`childElements`/`elements`/`prevElements` snapshot fields는
+기존 IndexedDB history entry, update/batch fallback, auto-detach batch 같은
+compatibility/fallback 경계를 위해 타입 surface에 남아 있다.
 `recoverElementsSnapshot` subscriber와 store action은 production surface에서 제거됐고,
 active `canonicalElementSnapshot` helper production consumer와 helper 파일도 제거됐다.
-targeted remove/redo/reload browser smoke는 PASS했다. 전체 Phase 6 browser checklist와
-`pnpm run codex:preflight`는 아직 남아 있으며, preflight는 현재 protected
-`.claude/settings.json` dirty 상태에서 guard 단계에 막힌다.
+targeted remove/redo/reload 및 realistic add/remove History event browser smoke는 PASS했다.
+2026-05-09 follow-up으로 `BuilderCore` page-shell bridge가 새 page body shell을
+보존하고 삭제된 origin page snapshot을 되살리지 않도록 보강했으며,
+`useIframeMessenger`는 runtime Compare Mode에서도 canonical document를 Preview로
+보내도록 고정했다. Preview `App`은 legacy preview `elements[]`가 비어 있어도
+수신한 canonical document가 있으면 canonical tree를 렌더링한다.
+Full Phase 6 browser smoke는 page/body/element 생성 후 reload persistence,
+sibling reorder, cross-page reparent, slot fill reorder, cross-page
+`Go to component`/`Select instances` selection, origin page delete 후 instance
+materialization, reload persistence, Preview canonical DOM render, Skia canvas
+presence, IndexedDB `documents` primary 및 local `pages`/`elements`/`layouts`
+objectStore 부재를 PASS했다. `pnpm run codex:preflight`도 PASS했다. exact G6
+builder/shared commands도 PASS했다. Closure audit 중 History canonical event helper의
+direct `descendants` / `layout_id` access가 ADR-113/116 grep gate를 깨는 것을 발견해
+canonical helper boundary로 이동했다. 이어서 add/update/remove store helper의
+cache-first mutation 순서를 canonical-before-cache로 전환하고 targeted/static guard를
+추가했다. final verification rerun 후 ADR-122를 Implemented로 전환했다.
 
 ## Consequences
 
