@@ -2,7 +2,16 @@
 
 ## Status
 
-Accepted — 2026-05-10
+Implemented — 2026-05-10
+
+진행 로그:
+
+- 2026-05-10 Proposed (codex review 9/9 closure 후 stakeholder review)
+- 2026-05-10 Accepted (Decision/Gates/Risks lock-in)
+- 2026-05-10 Phase 0-6 직렬 land — Phase 0 inventory / Phase 1 documents table + DocumentsApiService / Phase 2 cloud read path canonical primary / Phase 3 cloud write path + dashboard seed / Phase 4 boundary quarantine + grep gate / Phase 5-6 verification (preflight + browser load PASS)
+- 2026-05-10 Implemented (cloud row schema canonical-primary 전환 완료, Supabase migration 002 deployment 환경별 별도 적용)
+
+> Supabase migration 002 의 실제 DB 적용은 deployment 환경별 별도 단계 (`docs/migrations/002_create_documents_table.sql` 수동 실행). 코드 layer 의 canonical-primary 전환은 완료 — `documentsApi` 가 미적용 환경에서도 graceful degradation (try/catch 후 legacy fallback) 보장.
 
 ## Context
 

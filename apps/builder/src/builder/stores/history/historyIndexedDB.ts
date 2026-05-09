@@ -17,7 +17,10 @@
  */
 
 import type { HistoryEntry } from "../history";
-import { migrateV1EntriesToV2 } from "./historyEntryMigration";
+import {
+  migrateV1EntriesToV2,
+  migrateV1EntryToV2,
+} from "./historyEntryMigration";
 
 // ============================================
 // Types
@@ -42,7 +45,11 @@ interface PageHistoryMeta {
 // ============================================
 
 const DB_NAME = "composition-history";
-const DB_VERSION = 1;
+// **ADR-124 Phase 5 — DB v1 → v2 upgrade**.
+// v1 entry (legacy snapshot field) 를 v2 canonical event sequence 로 one-shot
+// 변환. in-memory fallback (`migrateV1EntriesToV2` from Phase 3) 은 유지하되
+// 본격 변환은 onupgradeneeded 시점에 영속화.
+const DB_VERSION = 2;
 const STORE_ENTRIES = "history-entries";
 const STORE_META = "page-meta";
 const MAX_AGE_DAYS = 90;
@@ -100,8 +107,10 @@ export class HistoryIndexedDB {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
+        const transaction = (event.target as IDBOpenDBRequest).transaction;
 
-        // 히스토리 엔트리 스토어
+        // 히스토리 엔트리 스토어 (v1 신규 생성 + v2 동일 store 사용)
         if (!db.objectStoreNames.contains(STORE_ENTRIES)) {
           const entriesStore = db.createObjectStore(STORE_ENTRIES, {
             keyPath: "id",
@@ -118,6 +127,46 @@ export class HistoryIndexedDB {
         // 페이지 메타데이터 스토어
         if (!db.objectStoreNames.contains(STORE_META)) {
           db.createObjectStore(STORE_META, { keyPath: "pageId" });
+        }
+
+        // **ADR-124 Phase 5 — v1 → v2 entry migration**.
+        // 기존 v1 entry 의 legacy snapshot field 를 canonical event sequence 로
+        // one-shot 변환. 변환 불가 entry 는 `canonicalEvents: []` graceful
+        // degradation. 변환 실패 시 catch → 원본 entry 보존 (best-effort).
+        if (oldVersion < 2 && transaction) {
+          try {
+            const store = transaction.objectStore(STORE_ENTRIES);
+            const cursorRequest = store.openCursor();
+            cursorRequest.onsuccess = (e) => {
+              const cursor = (e.target as IDBRequest<IDBCursorWithValue>)
+                .result;
+              if (!cursor) return;
+              try {
+                const record = cursor.value as HistoryDBSchema;
+                const migratedEntry = migrateV1EntryToV2(record.entry);
+                if (migratedEntry !== record.entry) {
+                  cursor.update({ ...record, entry: migratedEntry });
+                }
+              } catch (entryError) {
+                console.warn(
+                  "[HistoryIDB] v1→v2 entry migration 실패 (원본 보존):",
+                  entryError,
+                );
+              }
+              cursor.continue();
+            };
+            cursorRequest.onerror = () => {
+              console.warn(
+                "[HistoryIDB] v1→v2 cursor open 실패 (in-memory fallback 유지):",
+                cursorRequest.error,
+              );
+            };
+          } catch (migrationError) {
+            console.warn(
+              "[HistoryIDB] v1→v2 migration 진입 실패 (in-memory fallback 유지):",
+              migrationError,
+            );
+          }
         }
       };
     });

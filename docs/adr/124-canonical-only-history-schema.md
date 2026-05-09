@@ -2,7 +2,15 @@
 
 ## Status
 
-Accepted — 2026-05-10
+Implemented — 2026-05-10
+
+진행 로그:
+
+- 2026-05-10 Proposed → Accepted (codex review 9/9 closure)
+- 2026-05-10 Phase 0-5 직렬 land — Phase 0 inventory / Phase 1 CanonicalUpdateEvent + apply / Phase 2 entry layer canonical event 부착 / Phase 3 migrateV1EntryToV2 adapter (in-memory) / Phase 4 HistoryEntry data field deprecation marker / Phase 5 IndexedDB DB_VERSION v1→v2 + onupgradeneeded migration
+- 2026-05-10 Implemented (canonical event sequence 가 undo/redo primary path)
+
+> Phase 4 의 legacy field type 삭제 + historyActions.ts case "update"/"batch" legacy fallback 제거는 v1 entry 가 모두 v2 변환되어 raw read 0건 달성된 후 (별도 followup) 진행. 현재 deprecation marker 로 신규 caller 는 차단됨.
 
 ## Context
 

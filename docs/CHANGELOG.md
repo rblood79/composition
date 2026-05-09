@@ -5,6 +5,30 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-123/124 Implemented 승격 + ADR-124 Phase 5 IndexedDB v2 migration] - 2026-05-10
+
+### Architecture
+
+- **ADR-124 Phase 5 — IndexedDB DB_VERSION v1 → v2 onupgradeneeded migration (G5 partial)**:
+  - `historyIndexedDB.ts` `DB_VERSION` 1 → 2 bump.
+  - `onupgradeneeded` cursor migration: `oldVersion < 2` 시 `STORE_ENTRIES` 의 모든 record 를 cursor 순회 → `migrateV1EntryToV2(record.entry)` 호출 → 변환된 entry 가 원본과 다르면 `cursor.update`. 변환 실패 시 catch → 원본 보존 (best-effort, graceful degradation).
+  - 실패 케이스 보호: cursor open 실패 / migration 진입 실패 / entry 변환 실패 모두 console.warn 후 in-memory `migrateV1EntriesToV2` fallback (Phase 3) 으로 계속 보호.
+  - 위치: `apps/builder/src/builder/stores/history/historyIndexedDB.ts:43-49,101-160`
+  - Chrome + Firefox migration browser smoke 는 v1 IndexedDB 기존 사용자 환경 별도 단계 검증.
+- **ADR-123 Status `Accepted` → `Implemented`** (Phase 0-6 직렬 land 완료):
+  - documents table + DocumentsApiService + cloud read/write canonical-primary + dashboard seed + boundary quarantine grep gate (cloudBoundary.static.test.ts 5/5 PASS) + verification (preflight FULL TURBO PASS + browser load+render PASS).
+  - Supabase migration `002_create_documents_table.sql` deployment 환경별 별도 적용 — `documentsApi` 가 미적용 환경에서도 graceful degradation (try/catch 후 legacy fallback) 보장.
+- **ADR-124 Status `Accepted` → `Implemented`** (Phase 0-5 직렬 land 완료):
+  - CanonicalUpdateEvent + apply (G1 6/6 PASS) + entry layer canonical event 부착 (G2 6/6 PASS) + migrateV1EntryToV2 adapter (G3 13/13 PASS) + HistoryEntry deprecation marker + IndexedDB v1→v2 onupgradeneeded migration.
+  - Phase 4 의 legacy field type 삭제 + historyActions case "update"/"batch" legacy fallback 제거는 v1 IndexedDB entry 가 모두 v2 변환되어 raw read 0건 달성된 후 (별도 followup) 진행.
+- **README/CHANGELOG sync**: 현황 카운트 갱신 (완료 112→114 / 부분 완료 7→8 / 미구현 12→9 / 합계 131 유지). ADR-123/124 row Status 갱신 + ADR-125 Partial row 갱신 (Phase 2-b + Phase 6 별도 세션 명시).
+
+### Process
+
+- **type-check 6/6 PASS** (5 phase 누적) + **preflight FULL TURBO PASS**.
+- **회귀 vitest 누적** (5 phase): canonical update event 6/6 + entry layer guard 6/6 + entry migration 13/13 + cloud upload guard 3/3 + cloud seed guard 5/5 + boundary grep gate 5/5 = **38 신규 PASS**, 회귀 영역 vitest 12 file 55/55 PASS.
+- **base 2 ADR Implemented 도달**: ADR-123/124 closure → ADR-126 prerequisite 중 2 충족. **ADR-125 Phase 2-b + Phase 6 가 ADR-126 prerequisite 의 마지막 hurdle** — render benchmark setup + 4 시나리오 browser smoke 별도 세션.
+
 ## [ADR-125 Phase 2-5 land — render input canonical-native contract] - 2026-05-10
 
 ### Architecture

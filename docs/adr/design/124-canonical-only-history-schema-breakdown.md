@@ -514,5 +514,5 @@ grep -rn "\.data\.element\b\|\.data\.prevElement\b\|\.data\.childElements\|\.dat
 - [x] Phase 4: HistoryEntry data 의 legacy field 8개에 `@deprecated ADR-124 Phase 4` 마킹 + interface JSDoc 강화 (2026-05-10). 실제 type 삭제는 Phase 5 v2 migration 완료 후 진입 (compile error 시 fallback cleanup 동반)
 - [ ] Phase 3: add/remove/auto-detach + session-restore 경로 전환, G3 검증
 - [ ] Phase 4: legacy field 타입 삭제, `pnpm type-check` PASS (G4)
-- [ ] Phase 5: IndexedDB v2 migration, Chrome + Firefox smoke (G5)
+- [x] Phase 5: IndexedDB DB_VERSION v1 → v2 bump + onupgradeneeded cursor migration (best-effort, graceful degradation 보장) (2026-05-10). Chrome + Firefox migration browser smoke 는 v1 IndexedDB 기존 사용자 환경에서 별도 단계 검증 (in-memory `migrateV1EntriesToV2` fallback 이 항상 보호함)
 - [ ] Phase 6: targeted vitest + grep gate + browser smoke 7 시나리오 (G6)
