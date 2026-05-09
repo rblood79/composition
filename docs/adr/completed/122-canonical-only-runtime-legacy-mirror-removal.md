@@ -7,6 +7,8 @@ Implemented — 2026-05-09
 Closure snapshot:
 
 - Completed phases: G0-G6.
+- Main closure commit: `d72b85441` (`refactor: close ADR-122 canonical-only
+runtime`).
 - Final closed slices: page-shell bridge preservation/deleted-page
   anti-resurrection, Runtime Compare Mode canonical Preview sync, Preview
   canonical-empty render guard, ADR-113/116 grep gate recovery, add/update/remove
@@ -730,6 +732,9 @@ direct `descendants` / `layout_id` access가 ADR-113/116 grep gate를 깨는 것
 canonical helper boundary로 이동했다. 이어서 add/update/remove store helper의
 cache-first mutation 순서를 canonical-before-cache로 전환하고 targeted/static guard를
 추가했다. final verification rerun 후 ADR-122를 Implemented로 전환했다.
+Main closure commit은 `d72b85441`이며, 커밋 직전 `pnpm run codex:preflight`를
+재실행해 guard/format/type-check 통과를 확인했다. 작업 범위 밖
+`.claude/stats/.last-drift-snapshot-sha`는 커밋에서 제외했다.
 
 ## Consequences
 

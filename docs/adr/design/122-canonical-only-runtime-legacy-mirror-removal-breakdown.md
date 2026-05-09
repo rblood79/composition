@@ -62,6 +62,8 @@ Current execution snapshot (2026-05-09):
 
 - Current phase: Implemented archive complete.
 - Progress estimate: implementation 100%, formal gate closure 100%.
+- Main closure commit: `d72b85441` (`refactor: close ADR-122 canonical-only
+runtime`).
 - Latest closed slice: page-shell bridge preservation/deleted-page
   anti-resurrection, Runtime Compare Mode canonical Preview sync, Preview
   canonical-empty render guard, ADR-113/116 grep gate recovery,
@@ -682,6 +684,9 @@ Browser smoke checklist:
 - Closure audit follow-up: add/update/remove store helper cache ordering is now
   canonical-before-cache and covered by targeted/static guard tests. Final
   verification rerun passed, and ADR-122 is archived as Implemented.
+- Post-commit sync: main commit `d72b85441` records the ADR-122 closure. Commit
+  body includes Korean work notes and verification summary, and the commit
+  excludes unrelated `.claude/stats/.last-drift-snapshot-sha`.
 
 ## 11. Completion Definition
 

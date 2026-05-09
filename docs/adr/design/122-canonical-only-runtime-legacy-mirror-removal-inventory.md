@@ -27,6 +27,7 @@ phase: Implemented archive complete
 implementation progress: 100%
 formal gate closure: 100%
 latest closed slice: ADR-113/116 grep gate recovery + store helper canonical-before-cache closure + exact G6 builder/shared verification
+main closure commit: d72b85441
 next open contract: none for ADR-122; cloud/Supabase physical schema removal remains outside this ADR
 ```
 

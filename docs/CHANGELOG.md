@@ -91,6 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ADR-122를 Implemented로 전환하고 본문을 `docs/adr/completed/` archive로 이동했다.
   README row, breakdown, inventory의 status snapshot을 G0-G6 complete 기준으로
   동기화했다.
+- Main closure commit `d72b85441`을 생성했다. commit subject는 영어로 작성했고,
+  commit body는 한국어 작업내역과 검증 요약을 포함한다.
 
 ### Verification
 
@@ -140,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - grep gates: direct legacy `state.elements` 0, raw seed 462, recover bridge production
   grep 0.
 - `pnpm run codex:preflight` — PASS.
+- Commit 직전 `pnpm run codex:preflight` 재실행 — guard/format/type-check PASS.
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/index.test.tsx`
   — 1 file / 6 tests PASS.
 - `pnpm -F @composition/builder exec vitest run src/builder/stores/canvasStore.static.test.ts`
