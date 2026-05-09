@@ -87,6 +87,8 @@ grep -A2 "^## Status" \
 
 ## 4. Phase 1 — canonical-native model 검증
 
+**Status: Done — 2026-05-10** ([126-phase1-validation.md](126-phase1-validation.md))
+
 **목표**: ADR-123/124/125 Implemented 후 잔존하는 `Element` consumer를 식별하고, canonical-native model이 hot path를 `Element` 없이 커버하는지 검증한다. 실제 코드 변경 최소.
 
 ### 작업

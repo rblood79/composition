@@ -5,6 +5,31 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-126 Phase 1 — canonical-native model 검증 (G1 PASS)] - 2026-05-10
+
+### Documentation
+
+- **ADR-126 Phase 1 — canonical-native model 검증 land**:
+  - **base 3 closure 잔존 검증** (3-축 모두 PASS):
+    - **G1-A** ADR-123 cloud transport boundary: `cloudBoundary.static.test.ts` 5/5 PASS — allowlist 6 file 외 cloud row API import 0 건.
+    - **G1-B** ADR-124 history payload: HistoryEntry data 8 legacy snapshot field `@deprecated` 마킹 (`stores/history.ts:64-82`) + `historyActions.ts` 5 site `entry.data.canonicalEvents` early read primary path 확증.
+    - **G1-C** ADR-125 render input: Preview `UPDATE_ELEMENTS` receive 제거 (`preview/types/index.ts:70` + `messageHandler.ts:44-46`) + `calculateFullTreeLayoutFromSceneModel` swap (`layoutCache.ts:5,343`) + element-level `order_num` 갱신 production 0 hit (page-level `projectSync.ts:103` 은 cloud Page entity field, scope 외).
+  - **Element consumer 카테고리 매핑** ([126-phase1-validation.md](adr/design/126-phase1-validation.md)):
+    - unified.types `Element` 타입 import production: **37 file** — boundary-allowed 18 (`adapters/canonical/*` 15 + `resolvers/canonical/storeBridge` + 2 type 정의) / derived-view 1 (`canonicalElementsView.ts`) / hot-path-consumer 18 (LayerTree 4 + Properties 3 + utils 3 + preview 2 + ai 2 + 기타 4).
+    - annotation 기반 production: **161 file** — canvas hot path (Skia/renderers/layout) **25 file** + panels/Properties/LayerTree ~30 + store/history/inspector/drag-drop ~40 + preview/publish/ai/messaging ~15 + boundary/adapter/utils ~50.
+  - **canonical-native API hot path 커버 가능성 판정**: **YES** — `calculateFullTreeLayoutFromSceneModel` (Phase 2-a 진입점) + scene model derived-readonly view + canonical node/path/alias resolver (ADR-122) + `applyCanonicalHistoryEventsToActiveDocument` (ADR-124) + canonical document `parentId`/`path[]` 가 render/selection/Properties read/Undo/drag-drop hot path 를 `Element` 없이 커버.
+  - **FPS baseline 측정** (Phase 2 비교용 — dev server idle 상태):
+    - canvas 2612x1880 (CSS 1306x940) / panel 0
+    - 300 sample (2.5s) — **median 120.5fps** / p10 107.5 / p99 137.0
+    - 60fps gate -5% bound = 114.4 → median 충분 여유 PASS
+    - console error 0
+  - **Gate G1 통과**: canonical-native model 설계 검증 + ADR-123/124/125 closure 확증 + type-check FULL TURBO PASS + FPS baseline 수립 → **Phase 2 진입 가능 상태**.
+- **breakdown Phase 1 status `Done — 2026-05-10`** 마킹 + ADR 본문 진행 로그 entry 추가.
+
+### Process
+
+- **다음 진입 권장 (별도 세션)**: ADR-126 Phase 2 — hot path consumer 전환 (Skia render path / layout engine input / Preview render / Properties editor / LayerTree). 우선 전환 대상 ~28 file (canvas Skia ~10 + layout ~5 + Preview ~3 + Properties ~5 + LayerTree ~5). 회귀 위험 MEDIUM (canvas hot path 의 `childrenMap.get(id)` 패턴 → `context.resolver.children(node)` swap 필요).
+
 ## [ADR-126 Phase 0 inventory freeze — 응용 ADR 진입 시작] - 2026-05-10
 
 ### Documentation
