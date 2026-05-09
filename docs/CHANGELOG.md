@@ -5,6 +5,17 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-123/124/125 Phase 0 inventory freeze — base 3 병렬 진입 시작] - 2026-05-10
+
+### Documentation
+
+- **ADR-123 / ADR-124 / ADR-125 Phase 0 (inventory freeze) 동시 완료** — base 3 직교 병렬 진입 시작.
+  - **ADR-123 Phase 0** ([123-inventory.md](adr/design/123-inventory.md)): 6 surface bucket 확정 (S1 Supabase row schema / S2 legacyElementsApiService 5 production caller / S3 PagesApiService 4 caller / S4 canonicalMutations thin wrapper 3개 + caller 매핑 / S5 dashboard seed / S6 projectSync element-level upsert) + `legacyToCanonical` production hot path 1건 (`projectSync.ts:210`) + `documents` table DDL/RLS/unique constraint + `DocumentsApiService` 인터페이스 스텁 + payload 크기 추정 (전형 50-200KB / 대규모 2MB → Supabase jsonb 1GB 제약 대비 3-4 orders of magnitude 여유). G0 통과.
+  - **ADR-124 Phase 0** ([124-inventory.md](adr/design/124-inventory.md)): legacy snapshot field reads **167건** vs canonical event/diff reads **26건** 측정 (canonical migration 14% 진행). HistoryEntry data field 11개 bucket 분류 (snapshot-remove 7 / snapshot-batch 3 / non-snapshot meta 1 / diff-based 2 / canonical-done 1). historyActions.ts 42 case block enumerate. `historyIndexedDB.ts` v1 → Phase 5 v2 upgrade 예정. canonicalHistoryEvents.ts 의 `update` event 부재 확인 — Phase 1 신규 추가. G0 통과.
+  - **ADR-125 Phase 0** ([125-inventory.md](adr/design/125-inventory.md)): layout engine 48 hits file:line 단위 enumerate (`fullTreeLayout.ts` 42 / `utils.ts` 6) + Preview UPDATE_ELEMENTS receive 15 hits (useIframeMessenger 11 / messageHandler 2 / preview/types 1 / BuilderCore 3 comment) + `elements.ts:1414/1425/1456` order_num 갱신 3 hits + bucket 분류 (runtime-forbidden / transition-derived-readonly / boundary-allowed). G1 통과.
+- **base 3 병렬 진입 안전성 검증**: Phase 0 = 측정/문서/표 작성만 (read-only) → 코드 변경 0. main HEAD `f54c2495c` 무영향. type-check 영향 없음.
+- **Phase 1 진입 조건 충족**: ADR-123 → Supabase migration 파일 작성 / ADR-124 → `CanonicalUpdateEvent` 타입 정의 + apply 함수 / ADR-125 → canonical scene model boundary 강화. 별도 세션에서 worktree 격리 또는 직렬 진행 가능.
+
 ## [ADR-123/124/125/126 Accepted 승격 — codex review 9/9 closure 후 결정 lock-in] - 2026-05-10
 
 ### Documentation

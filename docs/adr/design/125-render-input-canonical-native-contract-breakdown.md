@@ -48,15 +48,15 @@ rg -n "order_num" \
 
 ## 3. Phase Plan
 
-| Phase   | Goal                                   | Main output                                        | Gate | Status  |
-| ------- | -------------------------------------- | -------------------------------------------------- | :--: | :-----: |
-| Phase 0 | render input contract inventory freeze | bucket 분류 + 정확한 file/line list                |  G1  | Pending |
-| Phase 1 | canonical scene model boundary 강화    | `buildCanonicalSceneModel()` 입력 contract 확장    |  —   | Pending |
-| Phase 2 | layout engine input contract 정의      | `DFSContext` canonical-native 전환 + benchmark     |  G2  | Pending |
-| Phase 3 | Preview UPDATE_ELEMENTS receive 제거   | hydration guard 강화 + receive case 제거           |  G3  | Pending |
-| Phase 4 | bootstrap fallback path canonical-only | `useIframeMessenger.ts` `!canonicalDoc` 분기 제거  |  —   | Pending |
-| Phase 5 | order_num 갱신 path 제거               | `elements.ts` move fallback canonical-only         |  G4  | Pending |
-| Phase 6 | final verification                     | render benchmark + browser smoke + targeted vitest |  G5  | Pending |
+| Phase   | Goal                                   | Main output                                        | Gate |                            Status                            |
+| ------- | -------------------------------------- | -------------------------------------------------- | :--: | :----------------------------------------------------------: |
+| Phase 0 | render input contract inventory freeze | bucket 분류 + 정확한 file/line list                |  G1  | **Done — 2026-05-10** ([125-inventory.md](125-inventory.md)) |
+| Phase 1 | canonical scene model boundary 강화    | `buildCanonicalSceneModel()` 입력 contract 확장    |  —   |                           Pending                            |
+| Phase 2 | layout engine input contract 정의      | `DFSContext` canonical-native 전환 + benchmark     |  G2  |                           Pending                            |
+| Phase 3 | Preview UPDATE_ELEMENTS receive 제거   | hydration guard 강화 + receive case 제거           |  G3  |                           Pending                            |
+| Phase 4 | bootstrap fallback path canonical-only | `useIframeMessenger.ts` `!canonicalDoc` 분기 제거  |  —   |                           Pending                            |
+| Phase 5 | order_num 갱신 path 제거               | `elements.ts` move fallback canonical-only         |  G4  |                           Pending                            |
+| Phase 6 | final verification                     | render benchmark + browser smoke + targeted vitest |  G5  |                           Pending                            |
 
 ## 4. Phase 0 — Render input contract inventory freeze
 

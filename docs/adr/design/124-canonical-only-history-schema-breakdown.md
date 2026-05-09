@@ -50,7 +50,9 @@ grep -n "data\.canonicalEvents\|data\.diff\b\|data\.diffs\b" \
 - `data.element`/`data.childElements`/`data.elements`/`data.prevElements`: 123개 읽기 경로 (`snapshot-remove` + `snapshot-batch` bucket)
 - `data.diff`/`data.diffs`/`data.canonicalEvents`: 별도 경로 (`diff-based` + `canonical-done` bucket)
 
-**Phase 0 완료 기준**: 위 두 bucket 수치가 `docs/adr/design/124-inventory.txt`에 기록됨.
+**Phase 0 완료 기준**: 위 두 bucket 수치가 [`docs/adr/design/124-inventory.md`](124-inventory.md)에 기록됨.
+
+**Phase 0 Status: Done — 2026-05-10**. 측정 결과 (main HEAD `f54c2495c`): legacy snapshot field reads 167건, canonical event/diff reads 26건, HistoryEntry data field 11개 bucket 분류 완료, 42 case block enumerate 완료. Phase 1 진입 가능.
 
 ---
 
@@ -504,7 +506,7 @@ grep -rn "\.data\.element\b\|\.data\.prevElement\b\|\.data\.childElements\|\.dat
 
 ## 체크리스트
 
-- [ ] Phase 0: inventory 측정 완료, `124-inventory.txt` 기록
+- [x] Phase 0: inventory 측정 완료, [`124-inventory.md`](124-inventory.md) 기록 (2026-05-10)
 - [ ] Phase 1: `CanonicalUpdateEvent` 타입 + apply 함수 + G1 unit test PASS
 - [ ] Phase 2: update/batch entry → canonical event, G2 grep gate 0건
 - [ ] Phase 3: add/remove/auto-detach + session-restore 경로 전환, G3 검증
