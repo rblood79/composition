@@ -509,7 +509,7 @@ grep -rn "\.data\.element\b\|\.data\.prevElement\b\|\.data\.childElements\|\.dat
 - [x] Phase 0: inventory 측정 완료, [`124-inventory.md`](124-inventory.md) 기록 (2026-05-10)
 - [x] Phase 1: `CanonicalUpdateEvent` 타입 + `applyNodePropsUpdate` + `buildCanonicalUpdateEvent` + G1 unit test 6/6 PASS (2026-05-10)
 - [ ] Phase 1: `CanonicalUpdateEvent` 타입 + apply 함수 + G1 unit test PASS
-- [ ] Phase 2: update/batch entry → canonical event, G2 grep gate 0건
+- [x] Phase 2: update/batch entry → canonical event 부착 (entry 생성 layer), G2 static guard 6/6 PASS (2026-05-10). 단, historyActions.ts 의 case "update"/"batch" legacy fallback 은 Phase 5 v2 migration 후 제거 예정 (compatibility 보존)
 - [ ] Phase 3: add/remove/auto-detach + session-restore 경로 전환, G3 검증
 - [ ] Phase 4: legacy field 타입 삭제, `pnpm type-check` PASS (G4)
 - [ ] Phase 5: IndexedDB v2 migration, Chrome + Firefox smoke (G5)

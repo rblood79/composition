@@ -14,6 +14,7 @@ import { historyIndexedDB } from "./history/historyIndexedDB";
 import {
   buildCanonicalInsertEvents,
   buildCanonicalRemoveEvents,
+  buildCanonicalUpdateEvent,
   type CanonicalHistoryNodeEvent,
 } from "./history/canonicalHistoryEvents";
 
@@ -363,7 +364,9 @@ export class HistoryManager {
     const structuralElements = childElements
       ? [type === "add" ? nextElement : prevElement, ...childElements]
       : [type === "add" ? nextElement : prevElement];
-    const canonicalEvents =
+    // **ADR-124 Phase 2** — type === "update" 시 canonical update event 자동 부착.
+    // legacy `prevProps`/`prevElement` snapshot field 는 유지 (Phase 3 에서 정리).
+    const canonicalEvents: CanonicalHistoryNodeEvent[] | undefined =
       type === "add"
         ? buildCanonicalInsertEvents(structuralElements)
         : type === "remove"
@@ -371,7 +374,15 @@ export class HistoryManager {
               [prevElement],
               [prevElement, ...(childElements ?? [])],
             )
-          : undefined;
+          : type === "update"
+            ? [
+                buildCanonicalUpdateEvent(
+                  prevElement.id,
+                  prevElement.props as Record<string, unknown>,
+                  nextElement.props as Record<string, unknown>,
+                ),
+              ]
+            : undefined;
 
     // 엔트리 생성 (diff 기반 - 메모리 최적화)
     const newEntry: HistoryEntry = {
@@ -428,14 +439,22 @@ export class HistoryManager {
     const pageHistory = this.pageHistories.get(this.currentPageId);
     if (!pageHistory) return;
 
-    // 각 요소에 대한 diff 생성
+    // 각 요소에 대한 diff 생성 + **ADR-124 Phase 2** canonical update event 동시 생성.
     const diffs: SerializableElementDiff[] = [];
+    const canonicalEvents: CanonicalHistoryNodeEvent[] = [];
     let totalSize = 0;
 
     for (let i = 0; i < prevElements.length; i++) {
       const diff = createElementDiff(prevElements[i], nextElements[i]);
       if (!isDiffEmpty(diff)) {
         diffs.push(serializeDiff(diff));
+        canonicalEvents.push(
+          buildCanonicalUpdateEvent(
+            prevElements[i].id,
+            prevElements[i].props as Record<string, unknown>,
+            nextElements[i].props as Record<string, unknown>,
+          ),
+        );
         totalSize += estimateDiffSize(diff);
       }
     }
@@ -464,6 +483,7 @@ export class HistoryManager {
       elementIds: prevElements.map((el) => el.id),
       data: {
         diffs,
+        canonicalEvents,
       },
       timestamp: Date.now(),
       estimatedSize: totalSize,

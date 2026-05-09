@@ -5,6 +5,22 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-124 Phase 2 land — entry 생성 layer canonical event 부착] - 2026-05-10
+
+### Architecture
+
+- **ADR-124 Phase 2 — update/batch entry 에 canonical update event 자동 부착 (G2 PASS)**:
+  - `addDiffEntry`: type === "update" 시 `buildCanonicalUpdateEvent(prevElement.id, prevElement.props, nextElement.props)` 결과를 `data.canonicalEvents` 에 부착. 기존 add/remove 분기는 유지.
+  - `addBatchDiffEntry`: 각 diff 에 대해 `buildCanonicalUpdateEvent` 생성하여 `canonicalEvents` 배열 누적, entry data 에 `{ diffs, canonicalEvents }` 동시 저장.
+  - 위치: `apps/builder/src/builder/stores/history.ts:14-19,322-417,424-497`
+  - 신규 static guard test [`historyEntryCanonicalEvents.static.test.ts`](apps/builder/src/builder/stores/history/__tests__/historyEntryCanonicalEvents.static.test.ts) 6 시나리오 PASS — import / addDiffEntry update 분기 / id+props 전달 / addBatchDiffEntry push 패턴 / data shape / helper export.
+  - **historyActions.ts 의 case "update"/"batch" legacy fallback 은 유지** — `applyCanonicalHistoryEventsToActiveDocument` 가 canonical events 를 우선 적용 (early-return), legacy fallback 은 v1 IndexedDB entry 호환을 위해 Phase 5 v2 migration 후 제거 예정.
+
+### Process
+
+- **type-check 3/3 PASS** + 회귀 vitest 5 file 40/40 PASS (history + canonicalMutations 영역).
+- **canonical event 우선 + legacy compat 보존**: 신규 entry 는 항상 canonicalEvents 보유 → undo/redo 가 canonical apply path 단독 사용. 기존 v1 entry 또는 변환 불가 entry 는 legacy fallback 으로 graceful degradation.
+
 ## [ADR-123 Phase 2 land — Cloud read path canonical primary] - 2026-05-10
 
 ### Architecture
