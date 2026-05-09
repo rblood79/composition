@@ -93,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   동기화했다.
 - Main closure commit `d72b85441`을 생성했다. commit subject는 영어로 작성했고,
   commit body는 한국어 작업내역과 검증 요약을 포함한다.
+- Related documentation sync commit은 `470b616ed`로 기록한다.
 
 ### Verification
 

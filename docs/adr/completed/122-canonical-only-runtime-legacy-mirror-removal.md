@@ -9,6 +9,7 @@ Closure snapshot:
 - Completed phases: G0-G6.
 - Main closure commit: `d72b85441` (`refactor: close ADR-122 canonical-only
 runtime`).
+- Documentation sync commit: `470b616ed`.
 - Final closed slices: page-shell bridge preservation/deleted-page
   anti-resurrection, Runtime Compare Mode canonical Preview sync, Preview
   canonical-empty render guard, ADR-113/116 grep gate recovery, add/update/remove
@@ -735,6 +736,7 @@ cache-first mutation 순서를 canonical-before-cache로 전환하고 targeted/s
 Main closure commit은 `d72b85441`이며, 커밋 직전 `pnpm run codex:preflight`를
 재실행해 guard/format/type-check 통과를 확인했다. 작업 범위 밖
 `.claude/stats/.last-drift-snapshot-sha`는 커밋에서 제외했다.
+관련 문서 동기화 commit은 `470b616ed`로 기록한다.
 
 ## Consequences
 
