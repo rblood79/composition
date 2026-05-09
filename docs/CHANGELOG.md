@@ -5,6 +5,24 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-123/124/125/126 Accepted 승격 — codex review 9/9 closure 후 결정 lock-in] - 2026-05-10
+
+### Documentation
+
+- **ADR-123/124/125/126 Status `Proposed` → `Accepted` 일괄 승격** (4 ADR 동시).
+  - 승격 근거: codex review (task `task-moyih7q0-hmq30o`, effort high) 본문 정합 layer 7 카테고리 (A inventory / B Risk Threshold / C Gate / D 본문↔breakdown 포인터 / E 의존 ADR / F 템플릿 / G CHANGELOG/README) FAIL 4 + WARN 5 = **9/9 closure**.
+  - framing layer (base/응용 분류 / 의존 방향 / SSOT 경계) 는 fork checkpoint 4 질문 + extended thinking + memory trigger 로 lock-in 유지.
+  - Decision 섹션 + Risk Threshold Check + Gates 표 + 반복 패턴 선차단 selfcheck 모두 본문 명시.
+- **base 3 병렬 phase 1 실행 진입 가능 상태** — ADR-123 / ADR-124 / ADR-125 (직교 base) Accepted 도달. 별도 세션에서 worktree 격리 implementer agent 병렬 dispatch 또는 `execute-adr` skill 사용 가능.
+- **ADR-126 응용 진입 조건** — base 3 모두 `Implemented` 후 Phase 1 진입. Phase 0 (inventory freeze) 만 base 진행 중 선행 가능.
+
+### Process
+
+- **Status 전이 규칙 준수** (`.claude/rules/adr-writing.md` §"Status 전이 규칙"):
+  - `Proposed → Accepted: Decision 섹션이 Gate를 모두 통과, 또는 Gate 없이 합의 완료`
+  - 본 4 ADR 모두 Decision/Gates/Risks 표 lock-in 후 사용자 stakeholder review 받아 Accepted 승격.
+- **Accepted ≠ Implemented**: 본 단계에서는 Status + README 헤더 + CHANGELOG 갱신만, 코드 변경 0. 실제 phase 실행은 별도 세션.
+
 ## [ADR-123/124/125/126 4 ADR 동시 발의 — ADR-122 후속 cleanup 분할 설계] - 2026-05-10
 
 ### Documentation

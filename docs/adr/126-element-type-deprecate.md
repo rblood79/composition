@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-05-10
+Accepted — 2026-05-10
 
 **PREREQUISITE (진입 불가 조건)**: ADR-123, ADR-124, ADR-125 세 ADR 모두 `Implemented` 상태여야 이 ADR의 Phase 1 이상 진입이 가능하다. 세 ADR 중 하나라도 `Accepted` 이하이면 이 ADR은 `Proposed` 상태를 유지하고 Phase 0(inventory freeze)만 선행 수행할 수 있다.
 
