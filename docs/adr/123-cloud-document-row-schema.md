@@ -246,3 +246,10 @@ ADR-126 착수 가능.
   청크 전략이 필요하며 이는 추가 설계 비용이다.
 - migration window 기간(G1~G3) 동안 legacy `pages`/`elements` row와 `documents` row가
   공존한다. 이중 schema 관리가 일시적으로 필요하다.
+
+## 반복 패턴 선차단 체크리스트 (adr-writing.md §"반복 패턴 선차단" 4 항목 selfcheck)
+
+- [x] **HIGH+ 위험 코드 경로 3곳 이상 구체 인용**: R1 (cloud `pages`/`elements` row 데이터 손실 H) → §Context Surface 1-6 에 6 surface file:line 인용 (`supabase.types.ts:150-172`, `legacyElementsApiService.ts`, `PagesApiService.ts`, `canonicalMutations.ts:1699-1733`, `dashboard/index.tsx:305-319`, `projectSync.ts`). R3 (RLS 누락 H) → G1 + G6 RLS smoke test 명시 (auth.uid() mismatch case).
+- [x] **Spec/Generator 확장 ADR 여부**: 본 ADR 은 cloud transport schema cleanup, Spec/Generator 확장 아님. N/A.
+- [x] **BC 훼손 수식화**: 외부 cloud 호환성 위험 (R1) → "기존 cloud project `pages`/`elements` row 100% read-only fallback 보존, migration 완료 후 30일 보존" (G1 + Risks R1 대응). 마이그레이션 영향 = 모든 cloud project (100%), 평균 row 수 = project 별 element 수에 비례.
+- [x] **HIGH+ Phase 분리 가능 여부 검토**: 마이그레이션 H 1개. cloud schema migration 자체를 단일 ADR 로 닫는 것이 최소 단위 (read/write path 별도 분리 시 ADR-123-A/B drift 위험). Phase 0-6 7-phase 분할로 risk 누적 차단. 별도 ADR 분리 불필요.

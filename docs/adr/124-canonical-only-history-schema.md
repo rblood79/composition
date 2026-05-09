@@ -173,3 +173,10 @@ ADR-122는 Builder runtime hot path에서 mutable legacy `Element[]` mirror를 �
 - `CanonicalUpdateEvent` 타입 신규 정의 및 `canonicalHistoryEvents.ts` 확장 필요 (약 +150~200줄).
 - IndexedDB v2 migration 로직 작성 필요 (단, 변환 불가 entry는 no-op으로 graceful degradation).
 - Phase 4 타입 삭제 이후 runtime에서 `entry.data.element` 접근 시 TypeScript compile error — 전수 수정 필요.
+
+## 반복 패턴 선차단 체크리스트 (adr-writing.md §"반복 패턴 선차단" 4 항목 selfcheck)
+
+- [x] **HIGH+ 위험 코드 경로 3곳 이상 구체 인용**: 잔존 HIGH 위험 0. MEDIUM 위험 (R1~R4) 도 코드 경로 인용 — `historyActions.ts` Element production 49 라인, `canonicalHistoryEvents.ts:227` (`canonicalDocumentToElements(nextDoc)`), `historyIndexedDB.ts:43-44` (`DB_NAME='composition-history'` / `DB_VERSION=1`), `data.element/childElements/elements/prevElements` snapshot field 123 hits. HIGH+ 없으므로 본 항목 strict requirement N/A.
+- [x] **Spec/Generator 확장 ADR 여부**: 본 ADR 은 history payload schema, Spec/Generator 확장 아님. N/A.
+- [x] **BC 훼손 수식화**: 기존 IndexedDB `composition-history` v1 entry — Phase 5 v2 upgrade 시 변환 불가 entry 는 no-op (빈 canonicalEvents). 영향 = 기존 entry 100% 중 add/remove/group/ungroup canonical event 보유 entry 는 fully migrated, legacy snapshot only entry 는 undo 시도 시 no-op. 사용자 영향: 미저장 work (이미 commit 된 history) 의 undo 가능성 부분 손실, 향후 작업 0 영향.
+- [x] **HIGH+ Phase 분리 가능 여부 검토**: HIGH+ 0. Phase 분리 불필요. 7-phase 분할로 update/batch/auto-detach 영역별 점진 전환.

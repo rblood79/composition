@@ -210,3 +210,10 @@ childrenMap` shape를 직접 받는다. 호출자는 canonical-derived map을 �
 
 - `fullTreeLayout.ts` 내부 42곳 참조 전환이 큰 변경이다. 단계별 gate가 있어도 수정량이 크다.
 - Phase 2 성능 benchmark gate 실패 시 scene snapshot 캐시 설계가 추가 작업으로 발생한다.
+
+## 반복 패턴 선차단 체크리스트 (adr-writing.md §"반복 패턴 선차단" 4 항목 selfcheck)
+
+- [x] **HIGH+ 위험 코드 경로 3곳 이상 구체 인용**: 잔존 HIGH 위험 0. MEDIUM 위험 (R1~R4) 도 코드 경로 인용 — `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts:857-858` (42 hits), `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (6 hits), `apps/builder/src/preview/messaging/messageHandler.ts:45,300`, `apps/builder/src/preview/types/index.ts:71`, `apps/builder/src/builder/stores/elements.ts:1414-1456` (move fallback `order_num`), `apps/builder/src/builder/hooks/useIframeMessenger.ts:721-726` (bootstrap fallback). HIGH+ 없으므로 본 항목 strict requirement N/A.
+- [x] **Spec/Generator 확장 ADR 여부**: 본 ADR 은 render input contract, Spec/Generator 확장 아님. N/A.
+- [x] **BC 훼손 수식화**: render parity 0 (Hard Constraint). Preview render 회귀 0, Skia 60fps 유지. 영향 = 모든 render path (100%), 회귀 허용 = 0. Phase 2 render benchmark gate (60fps + latency +10% 이내) + Phase 3 Preview canonical hydration guard 강화로 통제.
+- [x] **HIGH+ Phase 분리 가능 여부 검토**: HIGH+ 0. 단, layout engine 42 hits + Preview receive + bootstrap + order_num 4 영역 직교성으로 Phase 2/3/4/5 분리. 별도 ADR 분리 불필요 (각 영역의 코드 경로 결합도 낮아 단일 ADR 내 phase 분리로 충분).

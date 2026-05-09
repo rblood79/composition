@@ -178,3 +178,10 @@ ADR-122 G6 closure 기준으로 Builder runtime hot path에서 mutable legacy mi
 - ADR-123/124/125 prerequisite 완결까지 이 ADR이 대기 상태로 유지된다 (Proposed lock).
 - boundary adapter(cloud/export/import)는 `Element[]` 생성 경로를 계속 유지해야 하므로 boundary 내부 복잡도는 줄지 않는다.
 - `Element` 타입 완전 삭제는 이 ADR scope 밖. 별도 cleanup ADR이 필요하다.
+
+## 반복 패턴 선차단 체크리스트 (adr-writing.md §"반복 패턴 선차단" 4 항목 selfcheck)
+
+- [x] **HIGH+ 위험 코드 경로 3곳 이상 구체 인용**: HIGH 2개 (R1 기술 / R2 유지보수). 코드 경로 인용 — `Element` 타입 grep ~1,300 line hit (production), `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts:234` (`canonicalDocumentToElements` 정의) + `:352` (`useCanonicalElements`) + `:390` (`useCanonicalSelectedElement`) + `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts:227` (history undo result), `useCanonicalElements()` production 14 line hit (call site ~12), store cache `elementsMap`/`childrenMap` 전체. R3 (신규 `Element` 추가) → G2 deprecation lint gate (`@deprecated` + `eslint-plugin-deprecation`).
+- [x] **Spec/Generator 확장 ADR 여부**: 본 ADR 은 type deprecate, Spec/Generator 확장 아님. N/A.
+- [x] **BC 훼손 수식화**: 외부 cloud/export/import boundary 호환성 = 100% 유지 (`Element[]` 생성 경로 boundary allowlist 잔존). 내부 production consumer = 100% canonical-native 전환 (boundary 외 `Element` import 0건 lint gate). 사용자 영향: 0 (render parity / behavior 변경 없음, type-level deprecate 만).
+- [x] **HIGH+ Phase 분리 가능 여부 검토**: HIGH 2 누적이지만 base 3 prerequisite (ADR-123/124/125) 분리로 위험 누적 시점 차단. Phase 0 (G0 prerequisite lock) → Phase 1 (canonical-native model 검증) → Phase 2-5 (consumer 별 점진 전환) 분할로 단일 phase HIGH 누적 회피. 별도 ADR 분리는 base 3개 (123/124/125) 가 이미 분리 완료. 본 ADR 자체 추가 분리는 응용 ADR 의 unity 깨짐.
