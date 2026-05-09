@@ -5,6 +5,35 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-127 Proposed — Canonical-native traversal helper + scene model 재설계 발의] - 2026-05-10
+
+### Documentation
+
+- **ADR-127 Proposed 발의 — ADR-126 Phase 2 진입 직전 framing raise 결과 base ADR 분리**:
+  - **발의 motivation**: ADR-126 Phase 2 진입 시 발견된 4 본질 framing 의문 (CLAUDE.md framing raise 의무 CRITICAL):
+    1. **작업량**: design 추정 ~28 file vs 실 측정 70 file (workspace/canvas + panels + resolvers G2 grep gate scope) — 2.5 배.
+    2. **shape mismatch**: Element (flat with `parent_id` + `tag` + `order_num`) vs CanonicalNode (nested with `children: CanonicalNode[]` + `type` + 배열 순서) — traversal 패턴 자체 변경 필요 (`childrenMap.get(parentId)` → `node.children`).
+    3. **resolver helper API 부족**: `canonicalElementsBridge.ts` 에 `getCanonicalNode` / `useCanonicalNode` / `useActiveCanonicalDocument` 만 존재. **`getChildren/getParent/getAncestors/findByPath/getNodeMap/getChildrenByParent` 미존재**.
+    4. **scene model 자체 재설계**: `canonicalSceneModel.ts:28-34` 가 `Element[]` expose. workspace scope 안. G2 grep gate 통과 = scene model 인터페이스 재설계 필수.
+  - **base/응용 framing 재정렬** (memory `feedback-adr-essence-priority-over-formal-pass` + `feedback-adr-consolidation-burden-not-essence` + `feedback-adr-dependency-direction-stale-baseline` 인용 + ADR fork checkpoint 4 질문 통과):
+    - ADR-127 = **base ADR (추상)** — canonical-native consumer 측 SSOT module 변경 (helper API + scene model 재설계 자연 그루핑)
+    - ADR-126 Phase 2 = **응용** — ADR-127 prerequisite 후 hot path 70 file file-by-file transition 진입
+    - 의존 방향: ADR-122 + ADR-125 → ADR-127 → ADR-126 Phase 2 (reverse 없음)
+  - **대안 평가**: A (ADR-126 안에 sub-step 압축, HIGH 1) + B (ADR-127 + ADR-128 분리, prerequisite 추적 복잡) + **C (ADR-127 통합 발의, HIGH 0, 자연 그루핑 채택)**.
+  - **scope** ([breakdown](adr/design/127-canonical-traversal-helper-and-scene-model-redesign-breakdown.md)):
+    - **Helper API 6 신설** (`canonicalElementsBridge.ts` 확장 또는 `canonicalTraversalHelpers.ts` 별도 module): `getChildren(node)` / `getParent(nodeId)` / `getAncestors(nodeId)` / `findByPath(path)` / `getNodeMap()` / `getChildrenByParent()`. memo 화 + canonical document version 기반 cache invalidation.
+    - **Scene model 인터페이스 재설계**: `CanonicalSceneModel` 의 `elements: Element[]` / `elementsMap: Map<string, Element>` / `childrenByParent: Map<string, Element[]>` → `nodes: CanonicalNode[]` / `nodesMap: Map<string, CanonicalNode>` / `childrenByParent: Map<string, CanonicalNode[]>` 로 export shape 변경.
+    - **caller swap (단일 commit 동반)**: `layoutCache.ts:343` + 기타 5+ caller.
+    - **legacy getter 격리**: `canonicalSceneModelLegacy.ts` 신설 (boundary 위치). transition 기간 동안 deprecated `elements: Element[]` getter 제공. ADR-126 Phase 5 격리 시점에 제거.
+  - **HIGH 0** (R1~R5 모두 MED — race condition / FPS / legacy getter / pencil path / layoutCache caller). 4 Phase 자연 분할: Phase 0 inventory → Phase 1 helper API 신설 → Phase 2 scene model 재설계 + caller swap → Phase 3 verification (60fps gate + smoke).
+  - **30일 공존 기간 상한** — Phase 1 착수 시점 기준.
+- **ADR-126 README row 갱신**: Status `Accepted (Phase 1 Done)` → `Accepted (Phase 1 Done, Phase 2 prerequisite 발의)`. Phase 2 진입 prerequisite 에 ADR-127 추가.
+- **README 헤더 status 갱신** + 카운트 갱신 (미구현 9→10 / 합계 131→132).
+
+### Process
+
+- **다음 진입 권장 (별도 세션)**: ADR-127 fork checkpoint 4 질문 통과 후 codex review 1차 진입 (본문 정합 layer 검증). codex closure 후 Phase 0 inventory freeze → Phase 1 helper API 신설 → Phase 2 scene model 재설계 → Phase 3 verification 단계적 land. ADR-127 Implemented 후 ADR-126 Phase 2 진입 가능.
+
 ## [ADR-126 Phase 1 — canonical-native model 검증 (G1 PASS)] - 2026-05-10
 
 ### Documentation
