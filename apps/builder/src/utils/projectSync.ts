@@ -8,6 +8,7 @@ import { getDB } from "../lib/db";
 import { projectsApi } from "../services/api/ProjectsApiService";
 import { pagesApi } from "../services/api/PagesApiService";
 import { elementsApi } from "../adapters/canonical/legacyElementsApiService";
+import { documentsApi } from "../services/api/DocumentsApiService";
 import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,
@@ -170,7 +171,26 @@ export async function downloadProjectFromCloud(
     await db.projects.insert(cloudProject);
     console.log("[ProjectSync] 프로젝트 메타데이터 다운로드 완료");
 
-    // 3. 페이지 읽기
+    // 3. **ADR-123 Phase 2 — canonical primary path**: documents row 우선 시도.
+    //    row 존재 시 `legacyToCanonical()` 호출 0건. row 없으면 (migration window
+    //    또는 fresh project) legacy fallback 으로 진입.
+    const canonicalDocument =
+      await documentsApi.getDocumentByProjectId(projectId);
+
+    if (canonicalDocument) {
+      await db.documents.put(projectId, canonicalDocument);
+      console.log(
+        "✅ [ProjectSync] documents row primary path — 다운로드 완료:",
+        projectId,
+      );
+      return;
+    }
+
+    console.log(
+      "[ProjectSync] documents row 없음 — legacy fallback 진입 (migration window)",
+    );
+
+    // 4. Legacy fallback: pages + elements row 읽어서 legacyToCanonical 변환
     const cloudPages = await pagesApi.getPagesByProjectId(projectId);
     console.log("[ProjectSync] 클라우드 페이지:", cloudPages.length);
 
@@ -180,7 +200,6 @@ export async function downloadProjectFromCloud(
       Awaited<ReturnType<typeof elementsApi.getElementsByPageId>>
     >();
 
-    // 4. Legacy cloud rows를 one-shot CompositionDocument로 변환
     for (const page of cloudPages) {
       // API Page → Store Page 변환
       const storePage = withPageFrameBinding(
@@ -196,7 +215,6 @@ export async function downloadProjectFromCloud(
         getNullablePageFrameBindingId(page),
       );
 
-      // 5. 페이지의 요소들 읽기
       const cloudElements = await elementsApi.getElementsByPageId(page.id);
       cloudElementsByPage.set(page.id, cloudElements);
       console.log(
@@ -217,7 +235,20 @@ export async function downloadProjectFromCloud(
     );
     await db.documents.put(projectId, document);
 
-    console.log("✅ [ProjectSync] 다운로드 완료:", projectId);
+    // **ADR-123 Phase 2 seeding**: legacy fallback 으로 만든 canonical document 를
+    // documents row 로 seed → 다음 download 시 primary path 가 동작하도록.
+    try {
+      await documentsApi.upsertDocument(projectId, document);
+      console.log("[ProjectSync] documents row seed 완료");
+    } catch (seedError) {
+      // seed 실패는 fallback 다운로드 자체를 실패시키지 않음 (RLS / migration 미적용 등)
+      console.warn(
+        "[ProjectSync] documents row seed 실패 (non-fatal):",
+        seedError,
+      );
+    }
+
+    console.log("✅ [ProjectSync] legacy fallback 다운로드 완료:", projectId);
   } catch (error) {
     console.error("❌ [ProjectSync] 다운로드 실패:", error);
     throw error;

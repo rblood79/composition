@@ -47,15 +47,15 @@ rg -n "legacyToCanonical\(" \
 
 ## 3. Phase Plan
 
-| Phase   | Goal                                 | Main output                                              | Gate | Status                                                       |
-| ------- | ------------------------------------ | -------------------------------------------------------- | ---- | ------------------------------------------------------------ |
-| Phase 0 | inventory freeze + payload 크기 측정 | 6 surface 버킷 확정 + `documents` table 설계             | G0   | **Done — 2026-05-10** ([123-inventory.md](123-inventory.md)) |
-| Phase 1 | `documents` Supabase table 생성      | migration tooling + RLS policy + 타입 정의               | G1   | **Done — 2026-05-10** (migration 002 + DocumentsApiService)  |
-| Phase 2 | cloud read path canonicalization     | download = `documents` row → CompositionDocument hydrate | G2   | Pending                                                      |
-| Phase 3 | cloud write path canonicalization    | upload = CompositionDocument → `documents` row upsert    | G3   | Pending                                                      |
-| Phase 4 | legacy boundary quarantine           | row-level API hot path 제거 + boundary adapter 격리      | G4   | Pending                                                      |
-| Phase 5 | stale tests/gates 재정렬             | ADR-123 aligned test suite + grep gate 0                 | G5   | Pending                                                      |
-| Phase 6 | final verification                   | browser smoke + preflight + docs/rules sync              | G6   | Pending                                                      |
+| Phase   | Goal                                 | Main output                                              | Gate | Status                                                        |
+| ------- | ------------------------------------ | -------------------------------------------------------- | ---- | ------------------------------------------------------------- |
+| Phase 0 | inventory freeze + payload 크기 측정 | 6 surface 버킷 확정 + `documents` table 설계             | G0   | **Done — 2026-05-10** ([123-inventory.md](123-inventory.md))  |
+| Phase 1 | `documents` Supabase table 생성      | migration tooling + RLS policy + 타입 정의               | G1   | **Done — 2026-05-10** (migration 002 + DocumentsApiService)   |
+| Phase 2 | cloud read path canonicalization     | download = `documents` row → CompositionDocument hydrate | G2   | **Done — 2026-05-10** (read path + seed + 6/6 G2 static test) |
+| Phase 3 | cloud write path canonicalization    | upload = CompositionDocument → `documents` row upsert    | G3   | Pending                                                       |
+| Phase 4 | legacy boundary quarantine           | row-level API hot path 제거 + boundary adapter 격리      | G4   | Pending                                                       |
+| Phase 5 | stale tests/gates 재정렬             | ADR-123 aligned test suite + grep gate 0                 | G5   | Pending                                                       |
+| Phase 6 | final verification                   | browser smoke + preflight + docs/rules sync              | G6   | Pending                                                       |
 
 ## 4. Phase 상세
 

@@ -5,6 +5,21 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-123 Phase 2 land — Cloud read path canonical primary] - 2026-05-10
+
+### Architecture
+
+- **ADR-123 Phase 2 — Cloud read path canonicalization (G2 PASS)**:
+  - `downloadProjectFromCloud` 재작성: `documentsApi.getDocumentByProjectId(projectId)` primary 시도 → row 존재 시 `db.documents.put` + early return (legacy fallback 진입 0).
+  - row 없음 (migration window 또는 fresh project): legacy `pages` + `elements` + `legacyToCanonical()` fallback 유지 + 변환 결과를 `documentsApi.upsertDocument` 로 best-effort seed (실패 non-fatal — RLS / migration 미적용 환경 보호).
+  - 위치: `apps/builder/src/utils/projectSync.ts`
+  - 신규 static guard test [`projectSync.documentsApi.static.test.ts`](apps/builder/src/utils/projectSync.documentsApi.static.test.ts) 6 시나리오 PASS — documentsApi import / primary path 우선 / early return / seed / legacy fallback 보존.
+
+### Process
+
+- **type-check 3/3 PASS** + 회귀 vitest 2 file 10/10 PASS (projectSync 영역).
+- **migration window 호환성 유지**: documents row 미존재 시 자동 fallback. 신규 deployment 환경 (Supabase migration 미적용) 에서도 backward compatible.
+
 ## [ADR-123/124/125 Phase 1 직렬 land — base 3 transitional contract 확립] - 2026-05-10
 
 ### Architecture
