@@ -94,8 +94,8 @@
 | -------------------------------------- | ------- |
 | 완료 (Accepted/Implemented/Superseded) | 112     |
 | 부분 완료                              | 7       |
-| 미구현/진행 (Proposed/In Progress)     | 8       |
-| **합계**                               | **127** |
+| 미구현/진행 (Proposed/In Progress)     | 9       |
+| **합계**                               | **128** |
 
 ---
 
@@ -243,16 +243,17 @@
 
 ### 미구현
 
-| ADR                                         | 제목                                            | 상태     | 규모                                                                                                             | 우선순위 |
-| ------------------------------------------- | ----------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------- | :------: |
-| [013](013-quick-connect-data-binding.md)    | Quick Connect 데이터 바인딩                     | Proposed | 5 Phase, 21파일 — 기반 Collection 렌더러 완성, 자동화 UI 미구현                                                  |  **P3**  |
-| [015](015-sitemap-layout.md)                | Sitemap Hierarchy 워크플로우 엣지               | Proposed | 변경 대상 8파일, 코드 미생성                                                                                     |    P5    |
-| [016](016-photoshop-ui-ux.md)               | Photoshop 벤치마크 기반 UI/UX (v2)              | Proposed | P0~P2 3단계, Action Bar + Context Menu + AI Variations                                                           |    P5    |
-| [032](032-events-data-integration.md)       | Events Platform 재설계 + Data 통합              | Proposed | Trigger/Effect/Capability/Recipe 모델 + BindingRef + Condition DSL + Events Panel 연동                           |  **P3**  |
-| [034](034-events-panel-renovation.md)       | Events Panel Renovation                         | Proposed | 패널 IA 전면 개편 + recipe 중심 UX + diagnostics/preview/handler workflow                                        |  **P3**  |
-| [038](038-figma-import.md)                  | Figma 디자인 임포트 시스템                      | Proposed | 4 Phase — API 프록시 + 노드 변환 엔진 + 컴포넌트 매핑 + 이미지 파이프라인                                        |  **P3**  |
-| [054](054-local-llm-architecture.md)        | 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)     | Proposed | 4 Phase — Provider 추상화 + Ollama 연동 + node-llama-cpp Electron 내장 + Qwen3 7B. ADR-011 Supersede             |  **P2**  |
-| [117](117-canvaskit-pathbuilder-upgrade.md) | CanvasKit PathBuilder 전환 및 0.41.1 업그레이드 | Proposed | 5 Phase — API spike + PathBuilder compatibility wrapper + Skia path migration + package bump + visual/perf smoke |  **P2**  |
+| ADR                                                 | 제목                                                   | 상태     | 규모                                                                                                                                           | 우선순위 |
+| --------------------------------------------------- | ------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | :------: |
+| [013](013-quick-connect-data-binding.md)            | Quick Connect 데이터 바인딩                            | Proposed | 5 Phase, 21파일 — 기반 Collection 렌더러 완성, 자동화 UI 미구현                                                                                |  **P3**  |
+| [015](015-sitemap-layout.md)                        | Sitemap Hierarchy 워크플로우 엣지                      | Proposed | 변경 대상 8파일, 코드 미생성                                                                                                                   |    P5    |
+| [016](016-photoshop-ui-ux.md)                       | Photoshop 벤치마크 기반 UI/UX (v2)                     | Proposed | P0~P2 3단계, Action Bar + Context Menu + AI Variations                                                                                         |    P5    |
+| [032](032-events-data-integration.md)               | Events Platform 재설계 + Data 통합                     | Proposed | Trigger/Effect/Capability/Recipe 모델 + BindingRef + Condition DSL + Events Panel 연동                                                         |  **P3**  |
+| [034](034-events-panel-renovation.md)               | Events Panel Renovation                                | Proposed | 패널 IA 전면 개편 + recipe 중심 UX + diagnostics/preview/handler workflow                                                                      |  **P3**  |
+| [038](038-figma-import.md)                          | Figma 디자인 임포트 시스템                             | Proposed | 4 Phase — API 프록시 + 노드 변환 엔진 + 컴포넌트 매핑 + 이미지 파이프라인                                                                      |  **P3**  |
+| [054](054-local-llm-architecture.md)                | 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)            | Proposed | 4 Phase — Provider 추상화 + Ollama 연동 + node-llama-cpp Electron 내장 + Qwen3 7B. ADR-011 Supersede                                           |  **P2**  |
+| [117](117-canvaskit-pathbuilder-upgrade.md)         | CanvasKit PathBuilder 전환 및 0.41.1 업그레이드        | Proposed | 5 Phase — API spike + PathBuilder compatibility wrapper + Skia path migration + package bump + visual/perf smoke                               |  **P2**  |
+| [127](127-layer3-canonical-vocabulary-alignment.md) | Layer 3 Canonical Vocabulary 정렬 — Group → frame 분리 | Proposed | 9 Phase — 신규 Frame.spec.ts + factory rename + grouping filter transitional + renderer/history/adapter frame case + auto-migration. 8-13 파일 |  **P2**  |
 
 ## Spec SSOT 해체 ADR 체인 — **ADR-036 Fully Implemented 달성 (2026-04-22 세션 18)**
 
