@@ -41,19 +41,9 @@ function getTargetOrigin(): string {
 // Message Types (Builder → Preview)
 // ============================================
 
-export interface UpdateElementsMessage {
-  type: "UPDATE_ELEMENTS";
-  elements: PreviewElement[];
-  // ⭐ Layout/Slot System: pageInfo도 함께 전송 (초기 로드 시 Layout 렌더링용)
-  // ADR-903 P3-D-4 Phase B: reusableFrameId 신규 field — canonical model 의
-  // reusable frame 식별자 (현 시점 layoutId 와 동일 의미). legacy layoutId 는
-  // BC 유지, Phase C/D 에서 reusableFrameId 우선 처리 추가 예정.
-  pageInfo?: {
-    pageId: string | null;
-    layoutId: string | null;
-    reusableFrameId?: string | null;
-  };
-}
+// **ADR-125 Phase 3 — UPDATE_ELEMENTS receive 제거**.
+// Builder → Preview 의 active channel 은 UPDATE_CANONICAL_DOCUMENT 단일.
+// 기존 UpdateElementsMessage interface 는 본 phase 에서 삭제됨.
 
 export interface UpdateCanonicalDocumentMessage {
   type: "UPDATE_CANONICAL_DOCUMENT";
@@ -208,7 +198,6 @@ export type DeltaMessage =
   | DeltaBatchUpdateMessage;
 
 export type BuilderToPreviewMessage =
-  | UpdateElementsMessage
   | UpdateCanonicalDocumentMessage
   | UpdateElementPropsMessage
   | DeleteElementMessage
@@ -297,10 +286,6 @@ export class MessageHandler {
     }
 
     switch (data.type) {
-      case "UPDATE_ELEMENTS":
-        this.handleUpdateElements(data);
-        break;
-
       case "UPDATE_CANONICAL_DOCUMENT":
         this.handleUpdateCanonicalDocument(data);
         break;
@@ -392,20 +377,7 @@ export class MessageHandler {
   // Individual Message Handlers
   // ============================================
 
-  private handleUpdateElements(data: UpdateElementsMessage): void {
-    const elements = data.elements || [];
-
-    this.store.setElements(elements);
-
-    // ⭐ Layout/Slot System: pageInfo가 함께 전송된 경우 처리 (초기 로드 시)
-    if (data.pageInfo) {
-      this.store.setCurrentPageId(data.pageInfo.pageId);
-      this.store.setCurrentLayoutId(data.pageInfo.layoutId);
-    }
-
-    // ACK 전송
-    this.sendToBuilder({ type: "ELEMENTS_UPDATED_ACK" });
-  }
+  // **ADR-125 Phase 3** — handleUpdateElements 제거됨. canonical hydration 만 사용.
 
   private handleUpdateCanonicalDocument(
     data: UpdateCanonicalDocumentMessage,

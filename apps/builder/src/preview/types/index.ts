@@ -67,17 +67,7 @@ export interface PreviewMessage {
   [key: string]: unknown;
 }
 
-export interface UpdateElementsMessage extends PreviewMessage {
-  type: "UPDATE_ELEMENTS";
-  elements: PreviewElement[];
-  // ⭐ Layout/Slot System: Page 정보 포함 (초기 로드 시 Layout 렌더링용)
-  // ADR-903 P3-D-4 Phase B: reusableFrameId alias 추가 (BC 유지)
-  pageInfo?: {
-    pageId: string | null;
-    layoutId: string | null;
-    reusableFrameId?: string | null;
-  };
-}
+// **ADR-125 Phase 3** — UpdateElementsMessage 제거됨. canonical document channel 만 사용.
 
 export interface UpdateElementPropsMessage extends PreviewMessage {
   type: "UPDATE_ELEMENT_PROPS";
@@ -186,7 +176,6 @@ export interface ElementsDragSelectedMessage extends PreviewMessage {
 }
 
 export type MessageType =
-  | UpdateElementsMessage
   | UpdateElementPropsMessage
   | DeleteElementsMessage
   | DeleteElementMessage

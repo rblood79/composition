@@ -714,16 +714,10 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
           // ⭐ Variables 전송 (PropertyDataBinding용)
           sendVariablesToIframe();
 
-          // ADR-122 Phase 3: canonical document 가 있으면 Preview active
-          // channel 은 UPDATE_CANONICAL_DOCUMENT 만 사용한다. UPDATE_ELEMENTS
-          // 는 canonical hydration 이전의 legacy compatibility bootstrap 으로
-          // 제한한다.
-          if (!canonicalDoc) {
-            const { elements: currentElements } = useStore.getState();
-            if (currentElements.length > 0) {
-              sendElementsToIframe(currentElements);
-            }
-          }
+          // **ADR-125 Phase 4** — `!canonicalDoc` legacy bootstrap fallback 제거됨.
+          // Preview active channel 은 UPDATE_CANONICAL_DOCUMENT 단일.
+          // canonical document 부재 시 Preview 는 빈 상태 유지 (BuilderCore mount
+          // → canonical hydration → Preview 첫 frame 흐름 deterministic).
         };
 
         // persist hydration 완료 확인

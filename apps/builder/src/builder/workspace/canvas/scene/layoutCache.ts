@@ -2,7 +2,7 @@ import type { Element } from "../../../../types/core/store.types";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
-  calculateFullTreeLayout,
+  calculateFullTreeLayoutFromSceneModel,
   getPublishedFilteredChildrenMap,
   getPublishedSyntheticElementsMap,
   publishFilteredChildrenMap,
@@ -330,10 +330,22 @@ export function getCachedPageLayout({
     bodyPaddingVal.top -
     bodyPaddingVal.bottom;
 
-  const fullTreeLayoutMap = calculateFullTreeLayout(
+  // **ADR-125 Phase 2 — canonical-native layout entry**:
+  // calculateFullTreeLayoutFromSceneModel 은 internal 으로 elementsMap +
+  // childrenByParent 를 받아 fullTreeLayout map shape 로 lower 하는 transitional
+  // entry. 외부 contract 가 canonical-native scene model 형태가 됨.
+  // childrenByParent 는 layoutCache 가 이미 보유한 pageChildrenMap (key: string |
+  // null) 을 string-key 만 추출하여 전달.
+  const childrenByParent = new Map<string, Element[]>();
+  for (const [key, elements] of pageChildrenMap) {
+    if (key !== null) childrenByParent.set(key, elements);
+  }
+  const fullTreeLayoutMap = calculateFullTreeLayoutFromSceneModel(
+    {
+      elementsMap: elementById,
+      childrenByParent,
+    },
     bodyElement.id,
-    elementById,
-    childrenIdMap,
     availableWidth,
     availableHeight,
     (id: string) => pageChildrenMap.get(id) ?? [],

@@ -5,6 +5,33 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-125 Phase 2-5 land — render input canonical-native contract] - 2026-05-10
+
+### Architecture
+
+- **ADR-125 Phase 2-a — Layout engine canonical-native entry caller swap**:
+  - `layoutCache.ts` 의 `calculateFullTreeLayout(elementById, childrenIdMap, ...)` 호출을 `calculateFullTreeLayoutFromSceneModel({elementsMap, childrenByParent}, ...)` 로 swap.
+  - `pageChildrenMap` (Map<string \| null, Element[]>) 의 string-key 만 추출하여 sceneModel-shape `childrenByParent` (Map<string, Element[]>) 로 변환.
+  - 외부 contract 가 canonical-native scene model 형태로 진전. `fullTreeLayout` 내부 traversal (42 hits) 변경은 별도 phase (Phase 2-b, render benchmark 동반).
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts:4-10,333-353`
+- **ADR-125 Phase 3 — Preview `UPDATE_ELEMENTS` receive 제거**:
+  - `apps/builder/src/preview/messaging/messageHandler.ts`: `UpdateElementsMessage` interface 삭제 + `BuilderToPreviewMessage` discriminated union 에서 제거 + `case "UPDATE_ELEMENTS"` switch case 삭제 + `handleUpdateElements` private method 삭제.
+  - `apps/builder/src/preview/types/index.ts`: `UpdateElementsMessage` extends `PreviewMessage` 정의 + `MessageType` union 에서 제거.
+  - Preview active channel = `UPDATE_CANONICAL_DOCUMENT` 단일 (compatibility receive 제거).
+- **ADR-125 Phase 4 — Bootstrap `!canonicalDoc` fallback 제거**:
+  - `useIframeMessenger.ts:721-726` 의 `if (!canonicalDoc) { ... sendElementsToIframe(currentElements) }` legacy bootstrap fallback 제거.
+  - canonical document 부재 시 Preview 는 빈 상태 유지 — BuilderCore mount → canonical hydration → Preview 첫 frame 흐름 deterministic.
+- **ADR-125 Phase 5 — `order_num` 갱신 path 제거 (ADR-122 HC.5 closure)**:
+  - `elements.ts:1412-1456` `moveElementToContainer` legacy fallback path 의 `order_num` 필드 갱신 제거 — `updateMap` type signature 에서 `order_num?: number` 제거 + `newOrder.forEach` 의 `order_num: index` 할당 제거 + spread 의 `order_num` 적용 제거.
+  - canonical `children[]` splice (`moveElementCanonicalPrimary`) 가 primary path. fallback 은 `page_id`/`parent_id` 만 갱신, order 정보는 `reorderedElements` push 순서로 보존.
+  - ADR-122 Hard Constraint #5 (order_num 필드 재도입 금지) closure.
+
+### Process
+
+- **type-check 5/5 PASS** (4 phase 전후 모두) + 회귀 vitest 3 file 20/20 PASS (canvas/scene + elementMove 영역). pre-existing FAIL 2건 (`updateSelectedPropertiesWithChildren stores component instance propagation` / `preserves frame-bound page slot child order`) 는 본 변경과 무관 (baseline `b907887c1` 동일 FAIL 확인).
+- **Browser smoke (load + render)**: Builder reload 후 canvas 2612x1768 displayed + 97 panels rendered + console error 0. 4 시나리오 (create/edit/delete/reorder) 회귀 검증 + `fullTreeLayout` 42 hits 내부 traversal 변경은 Phase 2-b 별도 세션 (render benchmark gate 동반).
+- **현재 env: WebGL canvas mode (Preview iframe 미사용)** — Phase 3-4 의 변경은 legacy iframe Preview env 에서 영향. WebGL only mode 에서는 변경 무영향 (canvas direct render).
+
 ## [ADR-124 P3 + ADR-123 P3-4 + ADR-124 P4 4 phase 직렬 land — base 2 boundary 확립] - 2026-05-10
 
 ### Architecture

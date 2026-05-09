@@ -1409,9 +1409,13 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         .map((c) => sourceElementsById.get(c.id))
         .filter((c): c is Element => c !== undefined);
 
+      // **ADR-125 Phase 5 — order_num 필드 재도입 금지 (ADR-122 HC.5 closure)**.
+      // canonical children[] splice 가 primary path. legacy fallback 은 element
+      // 의 page_id/parent_id 만 갱신하고 order 정보는 newOrder 배열의 reorder
+      // 결과 (reorderedElements push 순서) 로 보존.
       const updateMap = new Map<
         string,
-        { page_id?: string | null; parent_id?: string; order_num?: number }
+        { page_id?: string | null; parent_id?: string }
       >();
 
       const newOrder = [
@@ -1419,20 +1423,11 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         element,
         ...newSiblings.slice(insertionIndex),
       ];
-      newOrder.forEach((c, index) => {
-        const nextUpdate = {
-          ...(updateMap.get(c.id) ?? {}),
-          order_num: index,
-        };
-        if (c.id === elementId) {
-          updateMap.set(c.id, {
-            ...nextUpdate,
-            page_id: targetPageId,
-            parent_id: newParentId,
-          });
-          return;
-        }
-        updateMap.set(c.id, nextUpdate);
+      // newOrder 의 순서는 아래 reorderedElements push 순서로 반영됨
+      // (canonical primary 미등록 환경의 fallback path)
+      updateMap.set(elementId, {
+        page_id: targetPageId,
+        parent_id: newParentId,
       });
 
       for (const subtreeId of subtreeIds) {
@@ -1453,7 +1448,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           ...el,
           ...(upd.parent_id !== undefined ? { parent_id: upd.parent_id } : {}),
           ...(upd.page_id !== undefined ? { page_id: upd.page_id } : {}),
-          ...(upd.order_num !== undefined ? { order_num: upd.order_num } : {}),
         };
       });
 
