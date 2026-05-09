@@ -37,35 +37,65 @@ import {
  * - After: 변경당 ~100-500 bytes (diff만)
  */
 
+/**
+ * `HistoryEntry` — undo/redo 단일 엔트리.
+ *
+ * **ADR-124 Phase 4 deprecation contract**:
+ * - `data.canonicalEvents` 가 primary path. 모든 신규 entry 는 entry 생성 시점에
+ *   canonical event 를 부착한다 (`addDiffEntry` / `addBatchDiffEntry` —
+ *   ADR-124 Phase 2).
+ * - v1 IndexedDB 에서 load 된 entry 는 `migrateV1EntryToV2` adapter 에 의해
+ *   `data.canonicalEvents` 가 보장된다 (ADR-124 Phase 3).
+ * - 하단 `@deprecated` 마킹된 legacy snapshot field 는 v1 IndexedDB
+ *   compatibility 보존을 위해 type 정의는 유지하되 신규 entry 생성 시 사용
+ *   금지. ADR-124 Phase 5 (v1→v2 IndexedDB migration) 완료 후 삭제 예정.
+ * - 신규 entry 의 fallback path 도 `applyCanonicalHistoryEventsToActiveDocument`
+ *   가 우선 적용 (early-return) 하므로 legacy snapshot field read 는 dead.
+ *
+ * @see docs/adr/124-canonical-only-history-schema.md
+ * @see apps/builder/src/builder/stores/history/historyEntryMigration.ts
+ */
 export interface HistoryEntry {
   id: string;
   type: "add" | "update" | "remove" | "move" | "batch" | "group" | "ungroup";
   elementId: string;
   elementIds?: string[]; // For multi-element operations
   data: {
+    /** @deprecated ADR-124 Phase 4 — legacy add/remove snapshot. Phase 5 후 삭제. canonical insert/remove event 사용. */
     element?: Element;
+    /** @deprecated ADR-124 Phase 4 — legacy update snapshot. Phase 5 후 삭제. canonical update event 사용. */
     prevElement?: Element;
+    /** @deprecated ADR-124 Phase 4 — legacy update snapshot. Phase 5 후 삭제. */
     props?: ComponentElementProps;
+    /** @deprecated ADR-124 Phase 4 — legacy update snapshot. Phase 5 후 삭제. */
     prevProps?: ComponentElementProps;
+    /** @deprecated ADR-124 Phase 4 — legacy structural snapshot. Phase 5 후 삭제. canonical event parentId 사용. */
     parentId?: string;
+    /** @deprecated ADR-124 Phase 4 — legacy move snapshot. Phase 5 후 삭제. */
     prevParentId?: string;
+    /** @deprecated ADR-124 Phase 4 — legacy add/remove children snapshot. Phase 5 후 삭제. canonical insert/remove event sequence 사용. */
     childElements?: Element[];
-    // Phase 7: Multi-element operation data
-    elements?: Element[]; // Multiple elements for batch operations
-    prevElements?: Element[]; // Previous state of elements
+    /** @deprecated ADR-124 Phase 4 — legacy batch snapshot. Phase 5 후 삭제. canonical update event sequence 사용. */
+    elements?: Element[];
+    /** @deprecated ADR-124 Phase 4 — legacy batch snapshot. Phase 5 후 삭제. */
+    prevElements?: Element[];
+    /** @deprecated ADR-124 Phase 4 — legacy batch update snapshot. Phase 5 후 삭제. canonical update event sequence 사용. */
     batchUpdates?: Array<{
       elementId: string;
       prevProps: ComponentElementProps;
       newProps: ComponentElementProps;
     }>;
-    groupData?: { groupId: string; childIds: string[] }; // For group operations
-    // 🆕 Phase 3: Diff-based storage
+    /** group/ungroup 메타 (canonical 직접 표현 불가) — Phase 4 deprecation 미해당, 유지. */
+    groupData?: { groupId: string; childIds: string[] };
+    /** Diff-based storage — size 추정용 유지, undo/redo 경로는 canonicalEvents 우선. */
     diff?: SerializableElementDiff;
-    diffs?: SerializableElementDiff[]; // For batch operations
+    /** Diff-based storage (batch) — size 추정용 유지. */
+    diffs?: SerializableElementDiff[];
+    /** **ADR-124 primary** — canonical event sequence (apply 우선 path). */
     canonicalEvents?: CanonicalHistoryNodeEvent[];
   };
   timestamp: number;
-  // 🆕 Phase 3: Entry size tracking
+  /** Entry size tracking */
   estimatedSize?: number;
 }
 

@@ -4,6 +4,7 @@ import {
   projectsApi,
   pagesApi,
   elementsApi,
+  documentsApi,
   type Project,
 } from "../services/api";
 import { getDB } from "../lib/db";
@@ -299,17 +300,27 @@ function Dashboard() {
         updated_at: new Date().toISOString(),
       };
 
+      const initialDocument = createInitialProjectDocument(
+        homePage,
+        bodyElement,
+      );
+
       if (projectCreation === "local") {
         // local project state persists through the canonical document only.
-      } else if (projectCreation === "cloud") {
-        await pagesApi.createPage({
-          id: homePageId,
-          project_id: newProject.id,
-          title: "Home",
-          slug: "/",
-        });
-        await elementsApi.createElement(bodyElement);
-      } else {
+      } else if (projectCreation === "cloud" || projectCreation === "both") {
+        // **ADR-123 Phase 3 — canonical primary cloud seed**:
+        // documents row 단일 upsert. legacy pages/elements seed 는 migration
+        // window 호환성을 위해 best-effort 보조 (Phase 4 quarantine 후 제거).
+        try {
+          await documentsApi.upsertDocument(newProject.id, initialDocument);
+          console.log("[Dashboard] documents row seed 완료");
+        } catch (docSeedError) {
+          console.warn(
+            "[Dashboard] documents row seed 실패 (legacy fallback):",
+            docSeedError,
+          );
+        }
+
         await pagesApi.createPage({
           id: homePageId,
           project_id: newProject.id,
@@ -319,10 +330,7 @@ function Dashboard() {
         await elementsApi.createElement(bodyElement);
       }
 
-      await db.documents.put(
-        newProject.id,
-        createInitialProjectDocument(homePage, bodyElement),
-      );
+      await db.documents.put(newProject.id, initialDocument);
 
       return newProject;
     },

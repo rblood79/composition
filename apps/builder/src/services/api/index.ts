@@ -16,6 +16,7 @@ export {
   type Page,
   type CreatePageData,
 } from "./PagesApiService";
+export { DocumentsApiService, documentsApi } from "./DocumentsApiService";
 import {
   cmsMockData,
   largeMockData,

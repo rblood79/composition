@@ -510,6 +510,8 @@ grep -rn "\.data\.element\b\|\.data\.prevElement\b\|\.data\.childElements\|\.dat
 - [x] Phase 1: `CanonicalUpdateEvent` 타입 + `applyNodePropsUpdate` + `buildCanonicalUpdateEvent` + G1 unit test 6/6 PASS (2026-05-10)
 - [ ] Phase 1: `CanonicalUpdateEvent` 타입 + apply 함수 + G1 unit test PASS
 - [x] Phase 2: update/batch entry → canonical event 부착 (entry 생성 layer), G2 static guard 6/6 PASS (2026-05-10). 단, historyActions.ts 의 case "update"/"batch" legacy fallback 은 Phase 5 v2 migration 후 제거 예정 (compatibility 보존)
+- [x] Phase 3: `migrateV1EntryToV2` adapter 구현 + `historyIndexedDB.getEntriesByPage` 통합 (in-memory v1 → v2 변환), G3 unit test 13/13 PASS (2026-05-10)
+- [x] Phase 4: HistoryEntry data 의 legacy field 8개에 `@deprecated ADR-124 Phase 4` 마킹 + interface JSDoc 강화 (2026-05-10). 실제 type 삭제는 Phase 5 v2 migration 완료 후 진입 (compile error 시 fallback cleanup 동반)
 - [ ] Phase 3: add/remove/auto-detach + session-restore 경로 전환, G3 검증
 - [ ] Phase 4: legacy field 타입 삭제, `pnpm type-check` PASS (G4)
 - [ ] Phase 5: IndexedDB v2 migration, Chrome + Firefox smoke (G5)

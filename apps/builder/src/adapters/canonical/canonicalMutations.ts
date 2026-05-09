@@ -1694,9 +1694,24 @@ export function applyElementOrderCanonicalPrimary(
 // DB wrapper 3개는 §8.7 reverse 영향 없음 — D17=A 채택 (schema 미변경, DB row =
 // legacy export 결과). DB persist 후 caller 가 반환 Element 받아서 in-memory
 // wrapper (merge/set) 호출 → 그 시점에 canonical primary path 가동.
+//
+// **ADR-123 Phase 4 boundary contract**:
+// - 본 wrapper 3개는 element-level granularity 가 필요한 hot path 의 boundary
+//   adapter. 신규 caller 추가 금지 (`projectSync.documentsApi.boundary.static.test.ts`
+//   gate 강제).
+// - migration window 동안 legacy `elements` row 와 canonical `documents` row
+//   양쪽 sync 유지. Phase 5-6 cloud verification 후 legacy row deprecation 검토.
+// - 허용 caller (Phase 4 시점):
+//   1. `dbPersistence.ts` (factory persist)
+//   2. `useIframeMessenger.ts` (queued canonical mutation)
+//   3. `elements.ts` (in-memory canonical primary update)
+// - Phase 5 grep gate: 위 3 caller 외 hot path import 0건 보장.
 
 /**
  * legacy `elementsApi.createElement` 의 canonical-aware wrapper.
+ *
+ * **ADR-123 Phase 4 boundary** — element-level persist 가 필요한 caller 만 사용.
+ * 신규 caller 는 `documentsApi.upsertDocument` 사용 권장.
  *
  * @param element - 신규 legacy element (Partial 허용)
  * @returns 저장된 Element (DB id 포함)
@@ -1709,6 +1724,8 @@ export function createElementCanonicalPrimary(
 
 /**
  * legacy `elementsApi.updateElement` 의 canonical-aware wrapper.
+ *
+ * **ADR-123 Phase 4 boundary** — single element update path. caller: `elements.ts`.
  *
  * @param id - 대상 element id
  * @param patch - 부분 업데이트 patch
@@ -1723,6 +1740,9 @@ export function updateElementCanonicalPrimary(
 
 /**
  * legacy `elementsApi.createMultipleElements` 의 canonical-aware wrapper.
+ *
+ * **ADR-123 Phase 4 boundary** — batch element insert path. caller:
+ * `useIframeMessenger.ts` (queued canonical mutation).
  *
  * @param elements - 신규 legacy element 배열 (Partial 허용)
  * @returns 저장된 Element 배열 (DB id 포함)

@@ -67,6 +67,22 @@ export async function syncProjectToCloud(projectId: string): Promise<void> {
     if (!localDocument) {
       throw new Error(`프로젝트 문서를 찾을 수 없습니다: ${projectId}`);
     }
+
+    // **ADR-123 Phase 3 — canonical primary write path**:
+    // documents row 에 CompositionDocument 단일 upsert. Phase 4 boundary quarantine
+    // 후 legacy pages/elements 경로는 제거 예정. 본 phase 에서는 양쪽 모두 sync
+    // (migration window 호환성).
+    try {
+      await documentsApi.upsertDocument(projectId, localDocument);
+      console.log("[ProjectSync] documents row upsert 완료");
+    } catch (docUpsertError) {
+      // documents table 미적용 환경 (Supabase migration 002 미실행) → legacy fallback
+      console.warn(
+        "[ProjectSync] documents row upsert 실패 (legacy fallback 진입):",
+        docUpsertError,
+      );
+    }
+
     const renderModel = deriveProjectRenderModelFromDocument(
       localDocument,
       projectId,

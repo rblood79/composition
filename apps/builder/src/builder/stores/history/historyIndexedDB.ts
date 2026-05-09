@@ -16,7 +16,8 @@
  * @since 2025-12-10 Phase 3 IndexedDB Integration
  */
 
-import type { HistoryEntry } from '../history';
+import type { HistoryEntry } from "../history";
+import { migrateV1EntriesToV2 } from "./historyEntryMigration";
 
 // ============================================
 // Types
@@ -40,10 +41,10 @@ interface PageHistoryMeta {
 // Constants
 // ============================================
 
-const DB_NAME = 'composition-history';
+const DB_NAME = "composition-history";
 const DB_VERSION = 1;
-const STORE_ENTRIES = 'history-entries';
-const STORE_META = 'page-meta';
+const STORE_ENTRIES = "history-entries";
+const STORE_META = "page-meta";
 const MAX_AGE_DAYS = 90;
 
 // ============================================
@@ -76,16 +77,20 @@ export class HistoryIndexedDB {
    */
   private openDatabase(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const idb = (globalThis as unknown as { indexedDB?: IDBFactory }).indexedDB;
+      const idb = (globalThis as unknown as { indexedDB?: IDBFactory })
+        .indexedDB;
       if (!idb) {
-        reject(new Error('IndexedDB is not available in this environment'));
+        reject(new Error("IndexedDB is not available in this environment"));
         return;
       }
 
       const request = idb.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error('❌ [HistoryIDB] Failed to open database:', request.error);
+        console.error(
+          "❌ [HistoryIDB] Failed to open database:",
+          request.error,
+        );
         reject(request.error);
       };
 
@@ -98,17 +103,22 @@ export class HistoryIndexedDB {
 
         // 히스토리 엔트리 스토어
         if (!db.objectStoreNames.contains(STORE_ENTRIES)) {
-          const entriesStore = db.createObjectStore(STORE_ENTRIES, { keyPath: 'id' });
-          entriesStore.createIndex('pageId', 'pageId', { unique: false });
-          entriesStore.createIndex('createdAt', 'createdAt', { unique: false });
-          entriesStore.createIndex('pageId_createdAt', ['pageId', 'createdAt'], { unique: false });
+          const entriesStore = db.createObjectStore(STORE_ENTRIES, {
+            keyPath: "id",
+          });
+          entriesStore.createIndex("pageId", "pageId", { unique: false });
+          entriesStore.createIndex("createdAt", "createdAt", { unique: false });
+          entriesStore.createIndex(
+            "pageId_createdAt",
+            ["pageId", "createdAt"],
+            { unique: false },
+          );
         }
 
         // 페이지 메타데이터 스토어
         if (!db.objectStoreNames.contains(STORE_META)) {
-          db.createObjectStore(STORE_META, { keyPath: 'pageId' });
+          db.createObjectStore(STORE_META, { keyPath: "pageId" });
         }
-
       };
     });
   }
@@ -135,7 +145,7 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES], 'readwrite');
+        const transaction = db.transaction([STORE_ENTRIES], "readwrite");
         const store = transaction.objectStore(STORE_ENTRIES);
 
         const record: HistoryDBSchema = {
@@ -149,12 +159,12 @@ export class HistoryIndexedDB {
 
         request.onsuccess = () => resolve();
         request.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to save entry:', request.error);
+          console.error("❌ [HistoryIDB] Failed to save entry:", request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] saveEntry error:', error);
+      console.error("❌ [HistoryIDB] saveEntry error:", error);
       // 실패해도 메모리에는 저장되어 있으므로 throw하지 않음
     }
   }
@@ -169,7 +179,7 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES], 'readwrite');
+        const transaction = db.transaction([STORE_ENTRIES], "readwrite");
         const store = transaction.objectStore(STORE_ENTRIES);
 
         let completed = 0;
@@ -195,14 +205,17 @@ export class HistoryIndexedDB {
           request.onerror = () => {
             if (!hasError) {
               hasError = true;
-              console.error('❌ [HistoryIDB] Failed to save entries:', request.error);
+              console.error(
+                "❌ [HistoryIDB] Failed to save entries:",
+                request.error,
+              );
               reject(request.error);
             }
           };
         }
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] saveEntries error:', error);
+      console.error("❌ [HistoryIDB] saveEntries error:", error);
     }
   }
 
@@ -214,9 +227,9 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES], 'readonly');
+        const transaction = db.transaction([STORE_ENTRIES], "readonly");
         const store = transaction.objectStore(STORE_ENTRIES);
-        const index = store.index('pageId');
+        const index = store.index("pageId");
         const request = index.getAll(pageId);
 
         request.onsuccess = () => {
@@ -224,16 +237,23 @@ export class HistoryIndexedDB {
           // 시간순 정렬
           records.sort((a, b) => a.createdAt - b.createdAt);
           const entries = records.map((r) => r.entry);
-          resolve(entries);
+          // **ADR-124 Phase 3** — v1 entry 를 in-memory 에서 v2 canonical event 로
+          // 변환 (Phase 5 IndexedDB v1→v2 migration 이전의 fallback adapter).
+          // 이미 canonicalEvents 보유한 entry 는 identity preserve.
+          const migrated = migrateV1EntriesToV2(entries);
+          resolve(migrated);
         };
 
         request.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to get entries:', request.error);
+          console.error(
+            "❌ [HistoryIDB] Failed to get entries:",
+            request.error,
+          );
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] getEntriesByPage error:', error);
+      console.error("❌ [HistoryIDB] getEntriesByPage error:", error);
       return [];
     }
   }
@@ -246,18 +266,21 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES], 'readwrite');
+        const transaction = db.transaction([STORE_ENTRIES], "readwrite");
         const store = transaction.objectStore(STORE_ENTRIES);
         const request = store.delete(entryId);
 
         request.onsuccess = () => resolve();
         request.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to delete entry:', request.error);
+          console.error(
+            "❌ [HistoryIDB] Failed to delete entry:",
+            request.error,
+          );
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] deleteEntry error:', error);
+      console.error("❌ [HistoryIDB] deleteEntry error:", error);
     }
   }
 
@@ -269,16 +292,20 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES, STORE_META], 'readwrite');
+        const transaction = db.transaction(
+          [STORE_ENTRIES, STORE_META],
+          "readwrite",
+        );
         const entriesStore = transaction.objectStore(STORE_ENTRIES);
         const metaStore = transaction.objectStore(STORE_META);
 
         // 엔트리 삭제
-        const index = entriesStore.index('pageId');
+        const index = entriesStore.index("pageId");
         const request = index.openCursor(pageId);
 
         request.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>)
+            .result;
           if (cursor) {
             cursor.delete();
             cursor.continue();
@@ -293,12 +320,15 @@ export class HistoryIndexedDB {
         };
 
         transaction.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to clear page history:', transaction.error);
+          console.error(
+            "❌ [HistoryIDB] Failed to clear page history:",
+            transaction.error,
+          );
           reject(transaction.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] clearPageHistory error:', error);
+      console.error("❌ [HistoryIDB] clearPageHistory error:", error);
     }
   }
 
@@ -309,12 +339,16 @@ export class HistoryIndexedDB {
   /**
    * 페이지 메타데이터 저장
    */
-  async savePageMeta(pageId: string, currentIndex: number, totalEntries: number): Promise<void> {
+  async savePageMeta(
+    pageId: string,
+    currentIndex: number,
+    totalEntries: number,
+  ): Promise<void> {
     try {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_META], 'readwrite');
+        const transaction = db.transaction([STORE_META], "readwrite");
         const store = transaction.objectStore(STORE_META);
 
         const meta: PageHistoryMeta = {
@@ -328,12 +362,12 @@ export class HistoryIndexedDB {
 
         request.onsuccess = () => resolve();
         request.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to save meta:', request.error);
+          console.error("❌ [HistoryIDB] Failed to save meta:", request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] savePageMeta error:', error);
+      console.error("❌ [HistoryIDB] savePageMeta error:", error);
     }
   }
 
@@ -345,7 +379,7 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_META], 'readonly');
+        const transaction = db.transaction([STORE_META], "readonly");
         const store = transaction.objectStore(STORE_META);
         const request = store.get(pageId);
 
@@ -354,12 +388,12 @@ export class HistoryIndexedDB {
         };
 
         request.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to get meta:', request.error);
+          console.error("❌ [HistoryIDB] Failed to get meta:", request.error);
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] getPageMeta error:', error);
+      console.error("❌ [HistoryIDB] getPageMeta error:", error);
       return null;
     }
   }
@@ -372,7 +406,7 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_META], 'readonly');
+        const transaction = db.transaction([STORE_META], "readonly");
         const store = transaction.objectStore(STORE_META);
         const request = store.getAllKeys();
 
@@ -381,12 +415,15 @@ export class HistoryIndexedDB {
         };
 
         request.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to get page IDs:', request.error);
+          console.error(
+            "❌ [HistoryIDB] Failed to get page IDs:",
+            request.error,
+          );
           reject(request.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] getAllPageIds error:', error);
+      console.error("❌ [HistoryIDB] getAllPageIds error:", error);
       return [];
     }
   }
@@ -401,18 +438,19 @@ export class HistoryIndexedDB {
   async cleanupOldEntries(): Promise<number> {
     try {
       const db = await this.getDB();
-      const cutoffTime = Date.now() - (MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+      const cutoffTime = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
       let deletedCount = 0;
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES], 'readwrite');
+        const transaction = db.transaction([STORE_ENTRIES], "readwrite");
         const store = transaction.objectStore(STORE_ENTRIES);
-        const index = store.index('createdAt');
+        const index = store.index("createdAt");
         const range = IDBKeyRange.upperBound(cutoffTime);
         const request = index.openCursor(range);
 
         request.onsuccess = (event) => {
-          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>)
+            .result;
           if (cursor) {
             cursor.delete();
             deletedCount++;
@@ -425,12 +463,12 @@ export class HistoryIndexedDB {
         };
 
         transaction.onerror = () => {
-          console.error('❌ [HistoryIDB] Cleanup failed:', transaction.error);
+          console.error("❌ [HistoryIDB] Cleanup failed:", transaction.error);
           reject(transaction.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] cleanupOldEntries error:', error);
+      console.error("❌ [HistoryIDB] cleanupOldEntries error:", error);
       return 0;
     }
   }
@@ -443,7 +481,10 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES, STORE_META], 'readwrite');
+        const transaction = db.transaction(
+          [STORE_ENTRIES, STORE_META],
+          "readwrite",
+        );
 
         transaction.objectStore(STORE_ENTRIES).clear();
         transaction.objectStore(STORE_META).clear();
@@ -453,12 +494,15 @@ export class HistoryIndexedDB {
         };
 
         transaction.onerror = () => {
-          console.error('❌ [HistoryIDB] Failed to clear all:', transaction.error);
+          console.error(
+            "❌ [HistoryIDB] Failed to clear all:",
+            transaction.error,
+          );
           reject(transaction.error);
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] clearAll error:', error);
+      console.error("❌ [HistoryIDB] clearAll error:", error);
     }
   }
 
@@ -478,7 +522,10 @@ export class HistoryIndexedDB {
       const db = await this.getDB();
 
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([STORE_ENTRIES, STORE_META], 'readonly');
+        const transaction = db.transaction(
+          [STORE_ENTRIES, STORE_META],
+          "readonly",
+        );
 
         let totalEntries = 0;
         let totalPages = 0;
@@ -505,7 +552,7 @@ export class HistoryIndexedDB {
         };
       });
     } catch (error) {
-      console.error('❌ [HistoryIDB] getStats error:', error);
+      console.error("❌ [HistoryIDB] getStats error:", error);
       return { totalEntries: 0, totalPages: 0, estimatedSize: 0 };
     }
   }

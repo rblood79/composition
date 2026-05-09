@@ -5,6 +5,40 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-124 P3 + ADR-123 P3-4 + ADR-124 P4 4 phase 직렬 land — base 2 boundary 확립] - 2026-05-10
+
+### Architecture
+
+- **ADR-124 Phase 3 — `migrateV1EntryToV2` adapter (G3 PASS)**:
+  - 신규 file [`historyEntryMigration.ts`](apps/builder/src/builder/stores/history/historyEntryMigration.ts) — v1 IndexedDB entry 의 legacy snapshot field (`element` / `prevElement` / `props` / `prevProps` / `childElements` / `elements` / `prevElements` / `batchUpdates`) 를 canonical event sequence 로 변환.
+  - 변환 정책: identity preserve (canonicalEvents 보유) → diff 기반 (update/batch) → legacy snapshot fallback (prevProps / batchUpdates) → graceful degradation (`canonicalEvents: []` for add/remove structural snapshots).
+  - `historyIndexedDB.getEntriesByPage` 통합 — load 시점에 `migrateV1EntriesToV2(entries)` 일괄 변환. Phase 5 v1→v2 onupgradeneeded migration 의 prerequisite adapter.
+  - 신규 unit test [`historyEntryMigration.test.ts`](apps/builder/src/builder/stores/history/__tests__/historyEntryMigration.test.ts) 13 시나리오 PASS — extractPropsFromDiff (3) + migrateV1EntryToV2 (9) + 배치 변환 (1).
+- **ADR-123 Phase 3 — Cloud write path canonicalization (G3 PASS)**:
+  - `syncProjectToCloud` 재작성: `documentsApi.upsertDocument(projectId, localDocument)` primary call → 실패 시 legacy fallback (warn but proceed). legacy `pages`/`elements` upload 는 migration window 호환성 위해 보존 (Phase 4 boundary marker 부착).
+  - `dashboard/index.tsx` cloud project 생성 분기 통합 — `'cloud'` / `'both'` 분기를 `documentsApi.upsertDocument(newProject.id, initialDocument)` 단일 path 로 통합 + legacy `pagesApi.createPage` / `elementsApi.createElement` seed 는 Phase 4 quarantine 후 제거 예정.
+  - `services/api/index.ts` 에 `documentsApi` re-export 추가.
+  - 신규 static guard test [`projectSync.upload.static.test.ts`](apps/builder/src/utils/projectSync.upload.static.test.ts) 3 시나리오 PASS + [`dashboardCloudSeed.static.test.ts`](apps/builder/src/dashboard/__tests__/dashboardCloudSeed.static.test.ts) 5 시나리오 PASS.
+- **ADR-123 Phase 4 — Legacy boundary quarantine (G4 PASS)**:
+  - canonicalMutations thin wrapper 3개 (`createElementCanonicalPrimary` / `updateElementCanonicalPrimary` / `createMultipleElementsCanonicalPrimary`) 에 ADR-123 Phase 4 boundary contract JSDoc 강화 — 허용 caller 명시 (dbPersistence / useIframeMessenger / elements.ts).
+  - 신규 grep gate [`cloudBoundary.static.test.ts`](apps/builder/src/adapters/canonical/__tests__/cloudBoundary.static.test.ts) 5 시나리오 PASS — node fs recursive readdir + readFile 정규식 매칭으로 외부 도구 (`rg`) 의존 제거 (memory: feedback-vitest-no-tests-misleading.md). legacyElementsApiService / PagesApiService / canonicalMutations thin wrapper 3개 / legacyToCanonical 의 production hot path import 가 boundary allowlist 외에 0건임을 강제.
+  - **boundary allowlist (Phase 4 시점)**:
+    - `legacyElementsApiService`: `services/api/index.ts` re-export / `utils/projectSync.ts` cloud sync / `canonicalMutations.ts` wrapper / `dbPersistence.ts` factory persist / `dashboard/index.tsx` cloud seed
+    - `PagesApiService`: 동일 + `usePageManager.ts` type-only import
+    - `canonicalMutations` thin wrapper: `dbPersistence.ts` / `useIframeMessenger.ts` / `elements.ts`
+    - `legacyToCanonical`: `utils/projectSync.ts` legacy fallback / `adapters/canonical/index.ts` declaration / `themesAdapter.ts` `variablesAdapter.ts` `storeBridge.ts` JSDoc
+  - 신규 caller 추가 시 grep gate FAIL → 즉시 감지.
+- **ADR-124 Phase 4 — HistoryEntry data legacy field deprecation 마킹**:
+  - `HistoryEntry.data` 의 8개 legacy snapshot field (`element` / `prevElement` / `props` / `prevProps` / `parentId` / `prevParentId` / `childElements` / `elements` / `prevElements` / `batchUpdates`) 에 `@deprecated ADR-124 Phase 4 — Phase 5 후 삭제` JSDoc 부착.
+  - `HistoryEntry` interface 자체에 ADR-124 Phase 4 deprecation contract JSDoc 추가 — `data.canonicalEvents` 가 primary path, legacy fields 는 v1 IndexedDB compatibility 보존을 위해 type 정의 유지.
+  - 실제 type 삭제 + historyActions.ts case "update"/"batch" legacy fallback cleanup 은 Phase 5 v1→v2 IndexedDB migration 완료 후 진입 (v1 entry 가 모두 v2 로 변환되어 raw read 0건 달성 시).
+
+### Process
+
+- **type-check 3/3 PASS** (builder cache miss 1회만, 나머지 cache hit) + 회귀 vitest 12 file 55/55 PASS.
+- **base 2 boundary 확립**: ADR-123 (cloud) / ADR-124 (history) 가 Phase 4 까지 land — boundary allowlist + grep gate 강제. ADR-125 (render input) Phase 2+ 는 별도 세션 (render benchmark setup 동반).
+- **`@deprecated` 마킹은 type 삭제 prerequisite**: Phase 5 v1→v2 IndexedDB migration 완료 후 fallback dead 확인 → type 삭제 + historyActions.ts cleanup 으로 진입.
+
 ## [ADR-124 Phase 2 land — entry 생성 layer canonical event 부착] - 2026-05-10
 
 ### Architecture
