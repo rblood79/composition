@@ -1,6 +1,6 @@
 # ADR-123 구현 상세 — Cloud document-level row schema 단일화
 
-본 문서는 [ADR-123](../123-cloud-document-row-schema.md)의 phase plan, inventory,
+본 문서는 [ADR-123](../completed/123-cloud-document-row-schema.md)의 phase plan, inventory,
 gate 측정 방법을 정의한다. Phase 0 inventory freeze에서 6개 legacy surface의 버킷을 확정하고,
 Phase 1~6을 순서대로 진행한다. 핵심은 cloud transport schema를 `CompositionDocument` 단일로
 통일하는 것이다.

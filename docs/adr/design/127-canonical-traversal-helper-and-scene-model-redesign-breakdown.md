@@ -1,6 +1,6 @@
 # ADR-127 구현 상세 — Canonical-native traversal helper + scene model 재설계
 
-본 문서는 [ADR-127](../127-canonical-traversal-helper-and-scene-model-redesign.md) 의 Phase 계획, inventory 분류, Gate 측정 방법을 정의한다.
+본 문서는 [ADR-127](../completed/127-canonical-traversal-helper-and-scene-model-redesign.md) 의 Phase 계획, inventory 분류, Gate 측정 방법을 정의한다.
 
 **진입 조건**: ADR-122 + ADR-125 모두 `Implemented` 후 Phase 1 이상 착수 가능. Phase 0 (inventory freeze) 은 선행 수행 가능.
 

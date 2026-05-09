@@ -203,7 +203,7 @@ fallback 보존) + G1 gate(기존 cloud project 데이터 손실 0건 검증)로
 payload 크기 위험은 G0에서 상위 10개 프로젝트의 `CompositionDocument` JSON 크기를 측정하고
 Supabase column 제약과 비교해 확인한다.
 
-> 구현 상세: [123-cloud-document-row-schema-breakdown.md](design/123-cloud-document-row-schema-breakdown.md)
+> 구현 상세: [123-cloud-document-row-schema-breakdown.md](../design/123-cloud-document-row-schema-breakdown.md)
 
 **후속 ADR**: ADR-126 (Element type deprecate)의 prerequisite 중 하나. ADR-123 G6 완료 후
 ADR-126 착수 가능.

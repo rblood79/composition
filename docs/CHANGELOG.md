@@ -5,6 +5,35 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-123/124/125/127 closure 5-step 마감 + ADR-126 부분완료 표 이동] - 2026-05-10
+
+### Documentation
+
+- **ADR-123/124/125/127 본문 `completed/` archive 이관** (closure 5-step §3-§5):
+  - `docs/adr/123-cloud-document-row-schema.md` → `docs/adr/completed/123-cloud-document-row-schema.md`
+  - `docs/adr/124-canonical-only-history-schema.md` → `docs/adr/completed/124-canonical-only-history-schema.md`
+  - `docs/adr/125-render-input-canonical-native-contract.md` → `docs/adr/completed/125-render-input-canonical-native-contract.md`
+  - `docs/adr/127-canonical-traversal-helper-and-scene-model-redesign.md` → `docs/adr/completed/127-canonical-traversal-helper-and-scene-model-redesign.md`
+  - **Why**: ADR Status `Implemented` 변경 직후 본문이 `docs/adr/` root 에 잔존하여 다른 9xx Implemented ADR 와 폴더 일관성 깨짐 (`feedback-adr-closure-5-step` 메모 §"Status 만 Implemented 처리하고 본문이 root 에 남아있으면" 위반).
+- **Reference link path 정합화** (closure 5-step §5):
+  - 본문 4 → design breakdown link 4건 `design/X-...md` → `../design/X-...md`
+  - design breakdown 4 → 본문 link 4건 `../X-...md` → `../completed/X-...md`
+  - `docs/adr/127-...md` `ssot-hierarchy.md` link 경로 1단계 보정 (`../../.claude/...` → `../../../.claude/...`)
+  - `docs/migrations/002_create_documents_table.sql` `@see` link 1건 `docs/adr/123-...` → `docs/adr/completed/123-...`
+- **README.md 표 정렬**:
+  - 미구현 표에서 ADR-123/124/125/127 4 row 제거 + ADR-126 row 제거
+  - 완료 표 (line 239 직후) 에 ADR-123/124/125/127 4 row 추가 (Implemented 2026-05-10)
+  - 부분 완료 표에 ADR-126 row 추가 — Phase 0+1 완료 / Phase 2-6 잔여 / prerequisite 4/4 충족 표기
+  - 현황 카운트: `완료 116→120 / 부분 7→8 / 미구현 9→4 / 합계 132 유지`
+  - 최상단 변경 이력 entry 추가 (closure 작업 요약)
+
+### Notes
+
+- ADR-126 본문은 root 유지 (Accepted 상태 — Phase 2-6 land 후 closure 5-step 진행 예정).
+- `docs/adr/design/` 폴더 위치는 closure 5-step §"보존 대상" 에 따라 root 유지 (다른 9xx Implemented ADR 도 `design/` 사용).
+- `docs/adr/reviews/` historical record path 갱신 안 함 (memory `feedback-adr-closure-5-step` §"보존 대상").
+- 검증: `grep -rnE "\(\.\./12[3-7]-" docs/` 0건 / `grep -rnE "\([0-9]+-(cloud|canonical|render|element|canonical-traversal)" docs/adr/*.md` 0건 (root 본문 잔존 link 0).
+
 ## [ADR-127 Implemented — Canonical-native traversal helper + scene model 재설계 (Phase 0-3 직렬 land)] - 2026-05-10
 
 ### Architecture

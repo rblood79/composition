@@ -183,7 +183,7 @@ childrenMap` shape를 직접 받는다. 호출자는 canonical-derived map을 �
 - **대안 D 기각**: Preview `UPDATE_ELEMENTS` receive 잔존과 `order_num` 잔존이 모두 debt로
   영구화될 위험이 유지보수 HIGH로 평가된다.
 
-> 구현 상세: [125-render-input-canonical-native-contract-breakdown.md](design/125-render-input-canonical-native-contract-breakdown.md)
+> 구현 상세: [125-render-input-canonical-native-contract-breakdown.md](../design/125-render-input-canonical-native-contract-breakdown.md)
 
 ## Risks
 

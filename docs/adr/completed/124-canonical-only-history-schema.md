@@ -143,7 +143,7 @@ ADR-122는 Builder runtime hot path에서 mutable legacy `Element[]` mirror를 �
 - **대안 B 기각**: 기존 IndexedDB history entry 전체 폐기 → 데이터 손실 hard constraint 위반. 코드 변경 surface가 너무 넓어 rollback 불가.
 - **대안 D 기각**: `@deprecated` JSDoc은 강제력이 없어 유지보수 HIGH 위험이 해소되지 않는다. ADR-126 Element 타입 제거를 blocking한다.
 
-> 구현 상세: [124-canonical-only-history-schema-breakdown.md](design/124-canonical-only-history-schema-breakdown.md)
+> 구현 상세: [124-canonical-only-history-schema-breakdown.md](../design/124-canonical-only-history-schema-breakdown.md)
 
 ## Risks
 

@@ -1,6 +1,6 @@
 # ADR-125 구현 상세 — Render input canonical-native contract
 
-본 문서는 [ADR-125](../125-render-input-canonical-native-contract.md) 의 phase plan,
+본 문서는 [ADR-125](../completed/125-render-input-canonical-native-contract.md) 의 phase plan,
 inventory, gate 측정 방법을 정의한다. ADR-122 closure note 의 "별도 renderer
 refactor" 항목을 정식 범위로 닫고, render pipeline 의 입력 계약을 canonical-native
 로 확정하는 구체 단계.

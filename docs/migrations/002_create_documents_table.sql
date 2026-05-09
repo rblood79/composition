@@ -5,7 +5,7 @@
 -- 이 파일은 참조용이며 직접 실행하지 않습니다.
 -- Supabase Dashboard 또는 migration tool에서 실행하세요.
 --
--- @see docs/adr/123-cloud-document-row-schema.md
+-- @see docs/adr/completed/123-cloud-document-row-schema.md
 -- @see docs/adr/design/123-cloud-document-row-schema-breakdown.md
 -- @see docs/adr/design/123-inventory.md
 -- =============================================

@@ -19,7 +19,7 @@ Implemented — 2026-05-10
 
 ### SSOT 체인 도메인 판정
 
-본 ADR 은 [`ssot-hierarchy.md`](../../.claude/rules/ssot-hierarchy.md) **D2 (Props/API) + D3 (시각 스타일) 내부 구조**. canonical document 의 D2 schema (CanonicalNode props/children) 를 hot path consumer 가 traversal 할 수 있도록 helper API 와 scene model derived view 를 재설계한다. D1 (DOM/접근성) 은 무관.
+본 ADR 은 [`ssot-hierarchy.md`](../../../.claude/rules/ssot-hierarchy.md) **D2 (Props/API) + D3 (시각 스타일) 내부 구조**. canonical document 의 D2 schema (CanonicalNode props/children) 를 hot path consumer 가 traversal 할 수 있도록 helper API 와 scene model derived view 를 재설계한다. D1 (DOM/접근성) 은 무관.
 
 ### 발의 배경 — ADR-126 Phase 2 진입 직전 framing 의문 4 가지
 
@@ -120,7 +120,7 @@ scope:
 
 3. **legacy 호환 layer**: scene model 의 기존 caller (ADR-126 Phase 2 transition 미완 상태) 가 사용 가능한 deprecated `elements: Element[]` getter 제공 가능 (Phase 5 격리 이후 제거).
 
-> 구현 상세: [127-canonical-traversal-helper-and-scene-model-redesign-breakdown.md](design/127-canonical-traversal-helper-and-scene-model-redesign-breakdown.md)
+> 구현 상세: [127-canonical-traversal-helper-and-scene-model-redesign-breakdown.md](../design/127-canonical-traversal-helper-and-scene-model-redesign-breakdown.md)
 
 기각 사유:
 

@@ -1,6 +1,6 @@
 # ADR-124 구현 상세: Canonical-only history entry schema
 
-> **ADR 본문**: [124-canonical-only-history-schema.md](../124-canonical-only-history-schema.md)
+> **ADR 본문**: [124-canonical-only-history-schema.md](../completed/124-canonical-only-history-schema.md)
 >
 > **ADR Fork framing lock-in** (adr-writing.md §"ADR Fork / 분리 결정 시 framing checkpoint"):
 >
