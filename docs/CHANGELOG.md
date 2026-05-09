@@ -21,9 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 7 Phase + 7 Gate (G0~G6, G1 migration window 으로 마이그레이션 H 통제).
   - 위치: `docs/adr/123-cloud-document-row-schema.md`, `docs/adr/design/123-cloud-document-row-schema-breakdown.md`.
 - **ADR-124 — Canonical-only history entry schema** (Proposed, 175 lines + 513 breakdown):
-  - scope: `historyActions.ts` legacy `data.element/childElements/elements/prevElements` snapshot field + IndexedDB v15 history entry schema + update/batch/auto-detach fallback path.
+  - scope: `historyActions.ts` legacy `data.element/childElements/elements/prevElements` snapshot field + `composition-history` DB v1 history entry schema + update/batch/auto-detach fallback path.
   - Risk 4축: 기술 M / 성능 L / 유지보수 L / 마이그레이션 M → HIGH 0.
-  - 4 alternatives (A 현행 / B 즉시 전수 삭제 / **C 권장: canonical event-only + IndexedDB v15→v16 migration** / D deprecated 태그).
+  - 4 alternatives (A 현행 / B 즉시 전수 삭제 / **C 권장: canonical event-only + `composition-history` DB v1→v2 migration** / D deprecated 태그).
   - 7 Phase + 6 Gate (G1~G6).
   - 위치: `docs/adr/124-canonical-only-history-schema.md`, `docs/adr/design/124-canonical-only-history-schema-breakdown.md`.
 - **ADR-125 — Render input canonical-native contract** (Proposed, 212 lines + 312 breakdown):
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `docs/adr/125-render-input-canonical-native-contract.md`, `docs/adr/design/125-render-input-canonical-native-contract-breakdown.md`.
 - **ADR-126 — Element 타입 Deprecate (final canonical-only runtime)** (Proposed, 180 lines + 334 breakdown):
   - **응용 ADR — ADR-123/124/125 모두 `Implemented` prerequisite**. Phase 0 (inventory freeze) 만 선행 가능, Phase 1 이상 base 셋 통과 후 진입.
-  - scope: `Element` 타입 production 1111 라인 + `canonicalDocumentToElements` 4 callers + `useCanonicalElements` 14 callers + store cache `elementsMap`/`childrenMap` canonical-native consumer 100% 전환.
+  - scope: `Element` 타입 grep line hit ~1,300 (Phase 0 재측정 seed) + `canonicalDocumentToElements` grep 4 line hit (정의 1 + production call site 3) + `useCanonicalElements` grep 14 line hit (정의/주석 포함, 실 production call site ~12) + store cache `elementsMap`/`childrenMap` canonical-native consumer 100% 전환.
   - Risk 4축: 기술 **H** / 성능 M / 유지보수 **H** / 마이그레이션 M → HIGH 2 (base 셋 분리로 위험 누적 차단).
   - 4 alternatives (A 영구 derived view / B 즉시 전수 / **C 권장: consumer 별 점진 + boundary allowlist** / D node alias + type alias 점진 deprecate).
   - 7 Phase + 7 Gate (G0~G6, R1→G0 prerequisite lock / R2→G1 FPS baseline).

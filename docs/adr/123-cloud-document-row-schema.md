@@ -35,18 +35,22 @@ ADR-122 boundary allowlist로 격리된 cloud legacy surface는 다음 6개이�
 
 **Surface 1 — Supabase row schema**:
 `apps/builder/src/types/integrations/supabase.types.ts:150-172`에 `pages` + `elements` row
-schema가 존재한다 (`page_id`/`parent_id`/`order_num` 필드). local IndexedDB에서 제거된
-schema가 cloud에만 남아 있는 상태이다.
+schema가 존재한다. 정확히는 `pages.Row`에 `parent_id?` + `order_num?` 필드, `elements.Row`에
+`page_id` + `parent_id?` 필드가 있다 (`order_num`은 `elements`에 없음). local IndexedDB에서
+제거된 schema가 cloud에만 남아 있는 상태이다.
 
 **Surface 2 — legacy element row API**:
-`apps/builder/src/adapters/canonical/legacyElementsApiService.ts`의 `ElementsApiService`가
-`createElement`/`updateElement`/`createMultipleElements`/`getElementsByPageId`/`deleteMultipleElements`
-메서드로 Supabase `elements` row에 직접 쓰고 읽는다.
+`apps/builder/src/adapters/canonical/legacyElementsApiService.ts`의 `ElementsApiService`
+전체 method surface — `createElement`/`updateElement`/`updateElementProps`/`createMultipleElements`/
+`getElementsByPageId` (`fetchElements` alias 포함)/`deleteElement`/`deleteMultipleElements` 가
+Supabase `elements` row에 직접 쓰고 읽는다. 현재 production caller는 일부 method (create/update/
+createMultiple/getByPageId/deleteMultiple) 만 사용 중이며, 나머지 method도 row API surface
+allowlist에 포함된다.
 
 **Surface 3 — pages row API**:
-`apps/builder/src/services/api/PagesApiService.ts`의 `PagesApiService`가
-`createPage`/`updatePage`/`getPagesByProjectId` 메서드로 Supabase `pages` row에 직접
-쓰고 읽는다.
+`apps/builder/src/services/api/PagesApiService.ts`의 `PagesApiService` 전체 method surface —
+`createPage`/`updatePage`/`getPagesByProjectId` (`fetchPages` alias 포함)/`deletePage` 가
+Supabase `pages` row에 직접 쓰고 읽는다.
 
 **Surface 4 — canonicalMutations thin wrapper**:
 `apps/builder/src/adapters/canonical/canonicalMutations.ts:1699-1733`에
@@ -211,15 +215,15 @@ ADR-126 착수 가능.
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                   | 실패 시 대안                                            |
-| ---- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| G0   | Phase 0 완료 | 상위 10개 프로젝트 `CompositionDocument` JSON 크기 측정 완료. Supabase `documents` table column 제약 확인. inventory freeze(6 surface 버킷 확정).                                                                                                           | 크기 초과 시 청크 전략 Phase 1 포함하여 재설계.         |
-| G1   | Phase 1 완료 | Supabase `documents` table 생성 + RLS policy 적용 완료. `projects.documents` 테이블에 `project_id` FK 제약 확인. 기존 cloud project `pages`/`elements` row는 read-only fallback으로 보존됨 확인.                                                            | RLS 실패 시 policy 수정 후 재적용.                      |
-| G2   | Phase 2 완료 | cloud read path: `downloadProjectFromCloud`가 `documents` row를 먼저 시도 → fallback only if documents row missing. `legacyToCanonical()` 호출이 Builder hot path에서 제거됨. vitest static guard PASS.                                                     | fallback 동작 실패 시 Phase 2 롤백.                     |
-| G3   | Phase 3 완료 | cloud write path: `syncProjectToCloud`가 `documents` row upsert 전용으로 전환. element-level `createMultipleElements`/`deleteMultipleElements` 호출 0건. dashboard seed cloud 경로가 `documents` row seed로 전환. vitest static guard + browser smoke PASS. | write 실패 시 legacy row write fallback 복원 후 재설계. |
-| G4   | Phase 4 완료 | `legacyElementsApiService.ts`가 Builder hot path에서 import 0건. `canonicalMutations` thin wrapper 3개 제거 또는 경계 명확화. `PagesApiService`가 boundary adapter로만 참조됨. rg grep gate PASS.                                                           | hot path 의존 발견 시 Phase 3 보완 후 재시도.           |
-| G5   | Phase 5 완료 | stale tests 재정렬(projectSync, dashboard, legacyElements 관련). `pnpm run codex:typecheck` PASS. legacy surface grep gate(pages/elements row direct call) 0건.                                                                                             | test 실패 시 해당 surface 보완.                         |
-| G6   | Phase 6 완료 | browser smoke: cloud project 생성 → sync → download → 재개가 documents row 기반으로 동작. `pnpm run codex:preflight` PASS. docs/rules/CHANGELOG sync. ADR Implemented 승격.                                                                                 | 실패 시 해당 phase 롤백 후 재진입.                      |
+| Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                                                            | 실패 시 대안                                                          |
+| ---- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| G0   | Phase 0 완료 | 상위 10개 프로젝트 `CompositionDocument` JSON 크기 측정 완료. Supabase `documents` table column 제약 확인. inventory freeze(6 surface 버킷 확정).                                                                                                                                                    | 크기 초과 시 청크 전략 Phase 1 포함하여 재설계.                       |
+| G1   | Phase 1 완료 | Supabase `documents` table 생성 + RLS policy 적용 완료. `projects.documents` 테이블에 `project_id` FK 제약 확인. 기존 cloud project `pages`/`elements` row는 read-only fallback으로 보존됨 확인.                                                                                                     | RLS 실패 시 policy 수정 후 재적용.                                    |
+| G2   | Phase 2 완료 | cloud read path: `downloadProjectFromCloud`가 `documents` row를 먼저 시도 → fallback only if documents row missing. `legacyToCanonical()` 호출이 Builder hot path에서 제거됨. vitest static guard PASS.                                                                                              | fallback 동작 실패 시 Phase 2 롤백.                                   |
+| G3   | Phase 3 완료 | cloud write path: `syncProjectToCloud`가 `documents` row upsert 전용으로 전환. element-level `createMultipleElements`/`deleteMultipleElements` 호출 0건. dashboard seed cloud 경로가 `documents` row seed로 전환. vitest static guard + browser smoke PASS.                                          | write 실패 시 legacy row write fallback 복원 후 재설계.               |
+| G4   | Phase 4 완료 | `legacyElementsApiService.ts`가 Builder hot path에서 import 0건. `canonicalMutations` thin wrapper 3개 제거 또는 경계 명확화. `PagesApiService`가 boundary adapter로만 참조됨. rg grep gate PASS.                                                                                                    | hot path 의존 발견 시 Phase 3 보완 후 재시도.                         |
+| G5   | Phase 5 완료 | stale tests 재정렬(projectSync, dashboard, legacyElements 관련). `pnpm run codex:typecheck` PASS. legacy surface grep gate(pages/elements row direct call) 0건.                                                                                                                                      | test 실패 시 해당 surface 보완.                                       |
+| G6   | Phase 6 완료 | browser smoke: cloud project 생성 → sync → download → 재개가 documents row 기반으로 동작. **RLS smoke**: 다른 user 의 `documents` row read/write 가 RLS policy 로 차단되는지 명시 검증 (auth.uid() mismatch case). `pnpm run codex:preflight` PASS. docs/rules/CHANGELOG sync. ADR Implemented 승격. | 실패 시 해당 phase 롤백 후 재진입. RLS 차단 실패 시 G1 policy 재설계. |
 
 ## Consequences
 

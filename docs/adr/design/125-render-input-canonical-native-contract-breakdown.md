@@ -37,8 +37,8 @@ rg -n "order_num" \
 
 | Surface                                                                                                                     | 분류                                                    | Phase                    |
 | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------ |
-| `apps/builder/src/builder/workspace/canvas/layout/fullTreeLayout.ts` (42 hits)                                              | runtime-forbidden                                       | Phase 2                  |
-| `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`                                                         | runtime-forbidden                                       | Phase 2                  |
+| `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (42 hits)                                      | runtime-forbidden                                       | Phase 2                  |
+| `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (6 hits)                                                | runtime-forbidden                                       | Phase 2                  |
 | `apps/builder/src/builder/workspace/canvas/layout/engines/BaseTaffyEngine.ts` / `TaffyFlexEngine.ts` / `TaffyGridEngine.ts` | transition-derived-readonly                             | Phase 2 (signature 유지) |
 | `apps/builder/src/preview/messaging/messageHandler.ts:45,300`                                                               | runtime-forbidden                                       | Phase 3                  |
 | `apps/builder/src/preview/types/index.ts:71`                                                                                | runtime-forbidden                                       | Phase 3                  |
