@@ -2,7 +2,7 @@
  * FramesTab
  *
  * ADR-903 P3-C: LayoutsTab → FramesTab 재설계.
- * Canonical reusable frame 목록 표시 + Element 트리.
+ * Canonical reusable frame 목록 표시 + frame node 트리.
  *
  * P3-C 변경 사항:
  * - frame 목록: canonical reusable frame surface
@@ -41,8 +41,8 @@ import {
   loadFrameElements,
 } from "../../../../adapters/canonical/frameElementLoader";
 import type { CanonicalFrameElementScope } from "../../../../adapters/canonical/frameElementScope";
-import { ElementProps } from "../../../../types/integrations/supabase.types";
-import { Element } from "../../../../types/core/store.types";
+import type { ElementProps } from "../../../../types/integrations/supabase.types";
+import type { PanelNode } from "../../panelNode";
 import { buildTreeFromElements } from "../../../utils/treeUtils";
 import { MessageService } from "../../../../utils/messaging";
 import { getDB } from "../../../../lib/db";
@@ -52,12 +52,12 @@ import {
   isCanvasCompareMode,
 } from "../../../../utils/featureFlags";
 
-const EMPTY_ELEMENTS: Element[] = [];
+const EMPTY_ELEMENTS: PanelNode[] = [];
 
 function collectCanonicalFrameElements(
-  canonicalElements: Element[] | null,
+  canonicalElements: PanelNode[] | null,
   frameScope: CanonicalFrameElementScope | null,
-): Element[] {
+): PanelNode[] {
   if (!canonicalElements || !frameScope) return [];
   return canonicalElements.filter((element) =>
     frameScope.elementIds.has(element.id),
@@ -65,7 +65,7 @@ function collectCanonicalFrameElements(
 }
 
 function hasCanonicalFrameElements(
-  canonicalElements: Element[] | null,
+  canonicalElements: PanelNode[] | null,
   frameScope: CanonicalFrameElementScope | null,
 ): boolean {
   return (
@@ -73,7 +73,7 @@ function hasCanonicalFrameElements(
   );
 }
 
-function findFrameBodyElement(elements: Element[]): Element | null {
+function findFrameBodyElement(elements: PanelNode[]): PanelNode | null {
   return (
     elements.find((element) => element.type === "body") ?? elements[0] ?? null
   );
@@ -492,9 +492,9 @@ export function FramesTab({
     }
   }, [projectId, reusableFrames, handleSelectFrame]);
 
-  // Element 삭제 핸들러
+  // Frame node 삭제 핸들러
   const handleDeleteElement = useCallback(
-    async (el: Element) => {
+    async (el: PanelNode) => {
       await removeElement(el.id);
       if (el.id === selectedElementId) {
         setSelectedElement(null);
@@ -517,7 +517,7 @@ export function FramesTab({
         onAdd={handleAddFrame}
       />
 
-      {/* Frame Element Tree — ADR-111 P2 PR-D2 추출 */}
+      {/* Frame node tree — ADR-111 P2 PR-D2 추출 */}
       <FrameElementTree
         tree={frameElementTree}
         frameId={currentFrame?.id ?? null}

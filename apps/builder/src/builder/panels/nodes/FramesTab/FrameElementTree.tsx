@@ -16,12 +16,12 @@ import { Button } from "react-aria-components";
 import { Minimize, ChevronRight, Box, Trash, Settings2 } from "lucide-react";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import type { ElementProps } from "../../../../types/integrations/supabase.types";
-import type { Element } from "../../../../types/core/store.types";
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { PanelHeader } from "../../../components";
 import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
+import type { PanelNode } from "../../panelNode";
 
 interface FrameElementTreeNode extends BaseTreeNode {
   type: string;
@@ -42,10 +42,10 @@ export interface FrameElementTreeProps {
   toggleKey: (id: string) => void;
   /** Collapse All 버튼 핸들러 */
   onCollapseAll: () => void;
-  /** Element 항목 클릭 핸들러 */
-  onElementClick: (element: Element) => void;
-  /** Element 삭제 버튼 핸들러 */
-  onElementDelete: (element: Element) => Promise<void> | void;
+  /** Frame node 항목 클릭 핸들러 */
+  onElementClick: (element: PanelNode) => void;
+  /** Frame node 삭제 버튼 핸들러 */
+  onElementDelete: (element: PanelNode) => Promise<void> | void;
 }
 
 export function FrameElementTree({
@@ -81,7 +81,7 @@ export function FrameElementTree({
   );
 
   const toElement = useCallback(
-    (node: FrameElementTreeNode): Element =>
+    (node: FrameElementTreeNode): PanelNode =>
       withFrameElementMirrorId(
         {
           id: node.item.id,
@@ -223,9 +223,9 @@ function getFrameElementDisplayName(node: FrameElementTreeNode): string {
 interface FrameElementTreeItemContentProps {
   node: FrameElementTreeNode;
   state: TreeItemState;
-  element: Element;
-  onDelete: (element: Element) => Promise<void> | void;
-  onReselect: (element: Element) => void;
+  element: PanelNode;
+  onDelete: (element: PanelNode) => Promise<void> | void;
+  onReselect: (element: PanelNode) => void;
 }
 
 function FrameElementTreeItemContent({

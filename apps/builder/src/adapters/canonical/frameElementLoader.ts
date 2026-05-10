@@ -1,4 +1,3 @@
-import type { Element } from "@/types/builder/unified.types";
 import { matchesLegacyLayoutId } from "./legacyElementFields";
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "@/builder/stores/canonical/canonicalElementsView";
@@ -15,8 +14,15 @@ export interface FrameElementLoaderDb {
 
 export interface FrameElementLike extends CanonicalFrameScopedNode {
   type: string;
+  props?: Record<string, unknown>;
   parent_id?: string | null;
   page_id?: string | null;
+  layout_id?: string | null;
+}
+
+export interface FrameElementNode extends FrameElementLike {
+  id: string;
+  props: Record<string, unknown>;
 }
 
 function isBodyElement(element: FrameElementLike): boolean {
@@ -25,10 +31,10 @@ function isBodyElement(element: FrameElementLike): boolean {
 
 function collectFrameLoaderElements(
   doc: Parameters<typeof visitCanonicalDocumentElements>[0],
-): Element[] {
-  const elements: Element[] = [];
+): FrameElementNode[] {
+  const elements: FrameElementNode[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element as Element);
+    elements.push(element);
   });
   return elements;
 }
@@ -92,7 +98,7 @@ export function collectHydratedFrameElements<T extends FrameElementLike>(
 export async function loadFrameElements(
   frameIdOrDb: string | FrameElementLoaderDb,
   maybeFrameId?: string,
-): Promise<Element[]> {
+): Promise<FrameElementNode[]> {
   const frameId =
     typeof frameIdOrDb === "string" ? frameIdOrDb : (maybeFrameId ?? "");
   if (!frameId) return [];

@@ -512,10 +512,10 @@ shape 를 실제 역할에 맞게 정리했다.
 
 **Status: Core Landed — 2026-05-10**
 
-2-D core 는 panels read path 와 canvas interaction read model 이 Builder store
-`Element` import 를 직접 소비하던 표면을 최소 구조 contract 로 분리했다. 전체 G2-D
-종료는 아니며, frame loader / FramesTab / 생성형 property editor / drop target
-resolver 는 후속 slice 로 남긴다.
+2-D core 와 frame tree read/load follow-up 은 panels read path 와 canvas interaction
+read model 이 Builder store `Element` import 를 직접 소비하던 표면을 최소 구조
+contract 로 분리했다. 전체 G2-D 종료는 아니며, 생성형 property editor / drop
+target resolver 는 후속 slice 로 남긴다.
 
 **구현 결과**:
 
@@ -538,6 +538,12 @@ resolver 는 후속 slice 로 남긴다.
 - `BuilderCanvas.tsx`, `useDragBridge.ts`, `useElementHoverInteraction.ts`, `useScrollWheelInteraction.ts`, `SkiaCanvas.tsx`
   - interactive refs / drag / hover / scroll input 을 `rendererInput.sceneNodesMap` + `sceneChildrenByParent` 로 전환
   - `CanvasSceneNode.layout_id` transition alias 를 보강해 existing frame mirror helper 가 scene node 에서도 frame body 를 판정 가능하게 유지
+- `apps/builder/src/adapters/canonical/frameElementLoader.ts`
+  - store `Element` import/cast 제거
+  - `loadFrameElements()` 반환을 `FrameElementNode` structural contract 로 전환
+- `FramesTab.tsx`, `FrameElementTree.tsx`
+  - frame tree read/delete/click props 를 `PanelNode` 기반으로 전환
+  - frame loader + frame tree production store `Element` import hit 0
 
 **G2-D core evidence**:
 
@@ -547,12 +553,12 @@ resolver 는 후속 slice 로 남긴다.
   - `rendererInputRef.current.elementsMap|childrenMap` interaction hook input hit 0
 - Targeted tests:
   - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/ComponentSlotFillSection.test.tsx src/builder/panels/properties/FrameSlotSection.test.tsx src/builder/panels/properties/ComponentSemanticsSection.test.tsx src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/builder/panels/nodes/LayersSection.test.ts src/builder/workspace/canvas/interaction/selectionModel.test.ts src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts src/builder/workspace/canvas/selection/selectionHitTest.test.ts src/builder/workspace/canvas/hooks/useElementHoverInteraction.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts src/builder/workspace/canvas/scene/canonicalSceneModel.test.ts` — 11 files / 82 tests PASS
+  - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab src/adapters/canonical/__tests__/frameElementLoader.test.ts` — 5 files / 45 tests PASS
 - Type-check:
   - `pnpm -F @composition/builder type-check` PASS
 
 **잔여를 Phase 2/4/5에 위임**:
 
-- `apps/builder/src/adapters/canonical/frameElementLoader.ts` 의 `loadFrameElements()` 반환 `Element[]` 와 `FramesTab` / `FrameElementTree` panels caller 는 후속 slice 에서 정리한다.
 - 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ListBoxItemEditor`, `TagEditor`, `ChildItemManager`, `tabsItemActions`, `TreeItemEditor`, `LayoutPresetSelector/usePresetApply`) 는 write payload / addElement contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
 - `apps/builder/src/builder/workspace/canvas/selection/dropTargetResolver.ts` 는 drag-drop move semantics 와 history commit 이 얽혀 있어 Phase 4 drag-drop consumer 전환에서 별도 처리한다.
 - `rendererInput.ts` 의 render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.
@@ -601,8 +607,7 @@ message/url/layout resolver 의 preview-local contract 를 명시했다.
 
 **잔여를 Phase 2/4/5에 위임**:
 
-- `frameElementLoader.loadFrameElements()` 는 panels/slot selector/preset apply caller 때문에 아직 `Element[]` 를 반환한다.
-- `FramesTab` / `FrameElementTree` / `ElementSlotSelector` / `LayoutPresetSelector/usePresetApply.ts` 등 frame loader/filter caller 는 후속 panels/write payload slice에서 정리한다.
+- `LayoutPresetSelector/usePresetApply.ts` 등 preset/write payload caller 는 후속 panels/write payload slice에서 정리한다.
 
 - `apps/builder/src/preview/utils/layoutResolver.ts`
 - `apps/builder/src/preview/App.tsx`

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 2-D frame panels read/load follow-up land**:
+  - `frameElementLoader.ts` 의 store `Element` import/cast 와 `loadFrameElements()` 의 기존 store 타입 반환을 `FrameElementNode` structural contract 로 전환.
+  - `FramesTab` / `FrameElementTree` 는 `PanelNode` 기반 frame tree read/delete/click props 를 소비하도록 정리.
+  - G2-D frame slice grep: `frameElementLoader.ts` + `FramesTab` + `FrameElementTree` production store `Element` import hit 0.
+  - 검증: builder type-check PASS, targeted Vitest 5 files / 45 tests PASS.
+  - 잔여: `LayoutPresetSelector/usePresetApply`, 생성형 property editors, `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - **ADR-126 Phase 2-D panels/interaction read-model core land**:
   - 신규 `PanelNode` contract 로 Properties/LayerTree read path 를 Builder store `Element` import 에서 분리.
   - 신규 `CanvasInteractionNode` contract 로 selection hit-test, selected bounds, context menu, drag bridge, hover, scroll interaction input 을 구조적 read model 로 전환.
@@ -16,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `CanvasSceneNode.layout_id` transition alias 를 보강해 scene node 기반 frame body interaction helper 호환을 유지.
   - G2-D core grep: panels read path + canvas interaction core production store `Element` import hit 0.
   - 검증: builder type-check PASS, targeted Vitest 11 files / 82 tests PASS.
-  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection, `FramesTab`/frame loader, 생성형 property editors, `dropTargetResolver.ts` 는 Phase 2/4/5에서 정리.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection, 생성형 property editors, `dropTargetResolver.ts` 는 Phase 2/4/5에서 정리.
 - **ADR-126 Phase 2-E preview boundary core land**:
   - `preview/App.tsx` 의 `resolveCanonicalRefTree` 와 frame mirror checks 를 `PreviewElement` generic path 로 전환하고 store `Element` casts/import 를 제거.
   - `preview/utils/layoutResolver.ts` 는 preview-local result types + `PreviewElement` 를 사용하도록 분리.
@@ -24,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `utils/urlGenerator.ts` 는 `UrlPage` / `UrlLayout` contract 로 전환해 preview router 의 builder `Page` import 를 제거.
   - G2-E core grep: `preview/**` + `services/messaging.ts` + `utils/urlGenerator.ts` production `Element` raw/type import + `UPDATE_ELEMENTS` hit 0.
   - 검증: builder type-check PASS, targeted Vitest 2 files / 9 tests PASS.
-  - 잔여: `frameElementLoader.loadFrameElements()` 반환 `Element[]` 와 panels/slot selector/preset apply caller 는 후속 panels/write payload slice 또는 Phase 5에서 정리.
+  - 잔여: panels preset/write payload caller 는 후속 panels/write payload slice 또는 Phase 5에서 정리.
 - **ADR-126 Phase 2-B layout contract core land**:
   - `workspace/canvas/layout/**` production 을 Builder store `Element` import 대신 `CanvasLayoutNode` layout contract 로 전환.
   - `layoutCache.ts` 와 `useLayoutPublisher.ts` 도 `CanvasLayoutNode` 기반 input 을 소비하도록 정리.
