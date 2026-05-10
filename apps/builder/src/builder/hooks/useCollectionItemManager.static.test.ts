@@ -20,5 +20,7 @@ describe("useCollectionItemManager canonical children read contract", () => {
       "const sourceElements = canonicalElements ?? storeElements",
     );
     expect(source).not.toContain(directChildStoreRead);
+    expect(source).not.toContain(["types", "core", "store.types"].join("/"));
+    expect(source).not.toContain(["as", "Element"].join(" "));
   });
 });

@@ -25,7 +25,13 @@ describe("generic property editors canonical read contract", () => {
     );
 
     expect(source).toContain("useCanonicalPropertyChildren(elementId)");
+    expect(source).toContain("useCanonicalPropertyElements()");
+    expect(source).toContain(
+      "generateCustomId(childTag, canonicalPropertyElements)",
+    );
     expect(source).not.toContain("state.childrenMap.get(elementId)");
+    expect(source).not.toContain(["types", "core", "store.types"].join("/"));
+    expect(source).not.toContain(["useStore.getState()", "elements"].join("."));
   });
 
   it("uses canonical property element for generic items arrays", async () => {

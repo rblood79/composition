@@ -4,12 +4,25 @@ import type { ChildrenManagerField } from "@composition/specs";
 import { useStore } from "../../../stores";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
-import type { Element } from "../../../../types/core/store.types";
-import { useCanonicalPropertyChildren } from "../hooks/useCanonicalPropertyRead";
+import {
+  useCanonicalPropertyChildren,
+  useCanonicalPropertyElements,
+} from "../hooks/useCanonicalPropertyRead";
 
 interface ChildItemManagerProps {
   elementId: string;
   field: ChildrenManagerField;
+}
+
+interface ChildItemPayload {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id: string;
+  page_id: string;
+  customId: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const ChildItemManager = memo(function ChildItemManager({
@@ -20,7 +33,11 @@ export const ChildItemManager = memo(function ChildItemManager({
   const labelProp = field.labelProp ?? "children";
 
   const rawChildren = useCanonicalPropertyChildren(elementId);
+  const canonicalPropertyElements = useCanonicalPropertyElements();
   const currentPageId = useStore((state) => state.currentPageId);
+  const addElement = useStore((state) => state.addElement);
+  const setSelectedElements = useStore((state) => state.setSelectedElements);
+  const removeElements = useStore((state) => state.removeElements);
 
   const filteredChildren = useMemo(
     () => rawChildren.filter((child) => child.type === childTag),
@@ -28,8 +45,7 @@ export const ChildItemManager = memo(function ChildItemManager({
   );
 
   const handleAdd = useCallback(() => {
-    const store = useStore.getState();
-    const newElement: Element = {
+    const newElement: ChildItemPayload = {
       id: ElementUtils.generateId(),
       page_id: currentPageId || "1",
       type: childTag,
@@ -40,26 +56,34 @@ export const ChildItemManager = memo(function ChildItemManager({
         className: "",
       },
       parent_id: elementId,
-      customId: generateCustomId(childTag, store.elements),
+      customId: generateCustomId(childTag, canonicalPropertyElements),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    store.addElement(newElement);
+    void addElement(newElement);
   }, [
     elementId,
     childTag,
     field.defaultChildProps,
     filteredChildren.length,
     currentPageId,
+    canonicalPropertyElements,
+    addElement,
   ]);
 
-  const handleSelect = useCallback((childId: string) => {
-    useStore.getState().setSelectedElements([childId]);
-  }, []);
+  const handleSelect = useCallback(
+    (childId: string) => {
+      setSelectedElements([childId]);
+    },
+    [setSelectedElements],
+  );
 
-  const handleDelete = useCallback((childId: string) => {
-    useStore.getState().removeElements([childId]);
-  }, []);
+  const handleDelete = useCallback(
+    (childId: string) => {
+      void removeElements([childId]);
+    },
+    [removeElements],
+  );
 
   return (
     <div className="children-manager">

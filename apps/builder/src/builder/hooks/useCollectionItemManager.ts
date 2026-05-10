@@ -23,11 +23,22 @@ import { useStore } from "../stores";
 import { useCanonicalElements } from "../stores/canonical/canonicalElementsView";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import { supabase } from "../../env/supabase.client";
-import type { Element } from "../../types/core/store.types";
 
-const EMPTY_CHILDREN: Element[] = [];
+interface CollectionItemNode {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  customId?: string;
+  deleted?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
 
-function useCollectionChildren(elementId: string): Element[] {
+const EMPTY_CHILDREN: CollectionItemNode[] = [];
+
+function useCollectionChildren(elementId: string): CollectionItemNode[] {
   const canonicalElements = useCanonicalElements();
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_CHILDREN;
@@ -55,7 +66,7 @@ export interface UseCollectionItemManagerOptions {
 
 export interface UseCollectionItemManagerResult {
   /** 필터링 및 정렬된 자식 Item 목록 */
-  children: Element[];
+  children: CollectionItemNode[];
   /** 현재 선택된 Item의 인덱스 (null: 선택 없음) */
   selectedItemIndex: number | null;
   /** 선택된 Item 인덱스 설정 */
@@ -153,7 +164,7 @@ export function useCollectionItemManager(
       if (error) throw error;
       if (!data) throw new Error("Failed to create element");
 
-      useStore.getState().addElement(data as Element);
+      useStore.getState().addElement(data as CollectionItemNode);
       console.log(`새 ${childTag} 추가됨:`, data);
     } catch (error) {
       console.error(`${childTag} 추가 중 오류:`, error);

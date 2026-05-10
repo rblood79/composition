@@ -559,6 +559,13 @@ target resolver 는 후속 slice 로 남긴다.
 - `tabsItemActions.ts`, `TabsEditor.tsx`
   - TabPanel lookup input 을 caller 주입 `PropertyEditorChildNode[]` 로 전환
   - `tabsItemActions.ts` 의 `useStore.getState().elements` direct read 제거
+- `useCollectionItemManager.ts`
+  - collection children/read result 를 `CollectionItemNode` structural contract 로 전환
+  - Supabase insert 후 store add payload cast 를 store `Element` 대신 `CollectionItemNode` 로 축소
+- `ChildItemManager.tsx`
+  - generated child add payload 를 `ChildItemPayload` 로 전환
+  - customId 생성은 `useCanonicalPropertyElements()` 를 소비
+  - direct `useStore.getState().elements` read 제거
 
 **G2-D core evidence**:
 
@@ -571,12 +578,13 @@ target resolver 는 후속 slice 로 남긴다.
   - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab src/adapters/canonical/__tests__/frameElementLoader.test.ts` — 5 files / 45 tests PASS
   - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.static.test.ts` — 1 file / 4 tests PASS
   - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/editors/canonicalPropertyEditors.static.test.ts` — 1 file / 5 tests PASS
+  - `pnpm -F @composition/builder exec vitest run src/builder/hooks/useCollectionItemManager.static.test.ts src/builder/panels/properties/generic/genericEditorCanonical.static.test.ts` — 2 files / 4 tests PASS
 - Type-check:
   - `pnpm -F @composition/builder type-check` PASS
 
 **잔여를 Phase 2/4/5에 위임**:
 
-- 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ChildItemManager` / `useCollectionItemManager`) 는 write payload / addElement contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
+- 생성형 property editors (`TableEditor`, `TableHeaderEditor`) 는 write payload / addElement contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
 - `apps/builder/src/builder/workspace/canvas/selection/dropTargetResolver.ts` 는 drag-drop move semantics 와 history commit 이 얽혀 있어 Phase 4 drag-drop consumer 전환에서 별도 처리한다.
 - `rendererInput.ts` 의 render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.
 
