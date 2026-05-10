@@ -1,7 +1,29 @@
-import type { Element } from "../../types/core/store.types";
 import { mergePropsWithStyleDeep } from "./instanceResolver";
 import { resolveReference } from "../../utils/component/referenceResolution";
 import type { LegacyElementMirrorFields } from "./legacyElementFields";
+
+export type CanonicalRefResolvableNode = {
+  id: string;
+  type: string;
+  props?: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  layout_id?: string | null;
+  parentId?: string | null;
+  pageId?: string | null;
+  layoutId?: string | null;
+  customId?: string | null;
+  componentName?: string | null;
+  name?: string;
+  reusable?: boolean;
+  deleted?: boolean;
+  slot?: false | string[];
+  metadata?: {
+    componentName?: unknown;
+    customId?: unknown;
+    [key: string]: unknown;
+  };
+};
 
 type CanonicalRefFields = {
   descendants?: unknown;
@@ -15,52 +37,76 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function asCanonicalRefFields(element: Element): Element & CanonicalRefFields {
-  return element as Element & CanonicalRefFields;
+function asCanonicalRefFields<T extends CanonicalRefResolvableNode>(
+  node: T,
+): T & CanonicalRefFields {
+  return node as T & CanonicalRefFields;
 }
 
-function getElementProps(element: Element): Record<string, unknown> {
-  return element.props ?? {};
+function getNodeProps<T extends CanonicalRefResolvableNode>(
+  node: T,
+): Record<string, unknown> {
+  return node.props ?? {};
 }
 
-function getRefOverrideProps(element: Element): Record<string, unknown> {
-  const legacyOverrides = (element as Element & LegacyElementMirrorFields)
-    .overrides;
+function getRefOverrideProps<T extends CanonicalRefResolvableNode>(
+  node: T,
+): Record<string, unknown> {
+  const legacyOverrides = (node as T & LegacyElementMirrorFields).overrides;
   if (isRecord(legacyOverrides)) return legacyOverrides;
-  return element.props ?? {};
+  return node.props ?? {};
 }
 
-export function isCanonicalRefElement(element: Element | undefined): boolean {
-  return getCanonicalRefTarget(element) !== null;
-}
-
-export function getCanonicalRefTarget(
-  element: Element | undefined,
+function getParentId<T extends CanonicalRefResolvableNode>(
+  node: T,
 ): string | null {
-  if (!element) return null;
-  const ref = asCanonicalRefFields(element).ref;
+  return node.parentId ?? node.parent_id ?? null;
+}
+
+function getPageId<T extends CanonicalRefResolvableNode>(
+  node: T,
+): string | null {
+  return node.pageId ?? node.page_id ?? null;
+}
+
+function getLayoutId<T extends CanonicalRefResolvableNode>(
+  node: T,
+): string | null {
+  return node.layoutId ?? node.layout_id ?? null;
+}
+
+export function isCanonicalRefElement<T extends CanonicalRefResolvableNode>(
+  node: T | undefined,
+): boolean {
+  return getCanonicalRefTarget(node) !== null;
+}
+
+export function getCanonicalRefTarget<T extends CanonicalRefResolvableNode>(
+  node: T | undefined,
+): string | null {
+  if (!node) return null;
+  const ref = asCanonicalRefFields(node).ref;
   if (typeof ref === "string" && ref.length > 0) return ref;
 
-  const masterId = (element as Element & LegacyElementMirrorFields).masterId;
+  const masterId = (node as T & LegacyElementMirrorFields).masterId;
   return typeof masterId === "string" && masterId.length > 0 ? masterId : null;
 }
 
-export function resolveCanonicalRefMaster(
+export function resolveCanonicalRefMaster<T extends CanonicalRefResolvableNode>(
   ref: string,
-  elements: Iterable<Element>,
-): Element | undefined {
-  return resolveReference(ref, elements);
+  nodes: Iterable<T>,
+): T | undefined {
+  return resolveReference(ref, nodes);
 }
 
-export function resolveCanonicalRefElement(
-  element: Element,
-  elements: Iterable<Element>,
-): Element {
-  if (!isCanonicalRefElement(element)) return element;
+export function resolveCanonicalRefElement<
+  T extends CanonicalRefResolvableNode,
+>(node: T, nodes: Iterable<T>): T {
+  if (!isCanonicalRefElement(node)) return node;
 
-  const ref = getCanonicalRefTarget(element)!;
-  const master = resolveCanonicalRefMaster(ref, elements);
-  if (!master) return element;
+  const ref = getCanonicalRefTarget(node)!;
+  const master = resolveCanonicalRefMaster(ref, nodes);
+  if (!master) return node;
 
   const {
     componentRole: _componentRole,
@@ -72,29 +118,33 @@ export function resolveCanonicalRefElement(
     reusable: _reusable,
     type: _type,
     ...refFieldOverrides
-  } = element as Element & CanonicalRefFields & LegacyElementMirrorFields;
+  } = node as T & CanonicalRefFields & LegacyElementMirrorFields;
 
   return {
     ...master,
     ...refFieldOverrides,
-    id: element.id,
-    customId: element.customId,
-    parent_id: element.parent_id ?? null,
-    page_id: element.page_id ?? master.page_id ?? null,
-    layout_id: element.layout_id ?? null,
+    id: node.id,
+    customId: node.customId,
+    parentId: getParentId(node),
+    pageId: getPageId(node) ?? getPageId(master),
+    layoutId: getLayoutId(node),
+    parent_id: getParentId(node),
+    page_id: getPageId(node) ?? getPageId(master),
+    layout_id: getLayoutId(node),
     props: mergePropsWithStyleDeep(
-      getElementProps(master),
-      getRefOverrideProps(element),
+      getNodeProps(master),
+      getRefOverrideProps(node),
     ),
     ref,
-    componentName: element.componentName ?? master.componentName,
+    name: node.name ?? master.name,
+    componentName: node.componentName ?? master.componentName,
     reusable: undefined,
-  } as Element;
+  } as T;
 }
 
-export function resolveCanonicalRefElementsMap(
-  elementsMap: Map<string, Element>,
-): Map<string, Element> {
+export function resolveCanonicalRefElementsMap<
+  T extends CanonicalRefResolvableNode,
+>(elementsMap: Map<string, T>): Map<string, T> {
   let changed = false;
   const elements = Array.from(elementsMap.values());
   const resolvedEntries = Array.from(elementsMap.entries()).map(
@@ -108,35 +158,38 @@ export function resolveCanonicalRefElementsMap(
   return changed ? new Map(resolvedEntries) : elementsMap;
 }
 
-export type ResolvedCanonicalRefTree = {
-  childrenMap: Map<string, Element[]>;
-  elements: Element[];
-  elementsMap: Map<string, Element>;
+export type ResolvedCanonicalRefTree<T extends CanonicalRefResolvableNode> = {
+  childrenMap: Map<string, T[]>;
+  elements: T[];
+  elementsMap: Map<string, T>;
 };
 
-function getStableSegment(element: Element): string {
-  return element.customId ?? element.componentName ?? element.id;
+function getStableSegment<T extends CanonicalRefResolvableNode>(
+  node: T,
+): string {
+  return node.customId ?? node.componentName ?? node.name ?? node.id;
 }
 
-function buildChildrenMapFromElements(
-  elements: Iterable<Element>,
-): Map<string, Element[]> {
-  const childrenMap = new Map<string, Element[]>();
+function buildChildrenMapFromElements<T extends CanonicalRefResolvableNode>(
+  elements: Iterable<T>,
+): Map<string, T[]> {
+  const childrenMap = new Map<string, T[]>();
   for (const element of elements) {
-    if (!element.parent_id) continue;
-    const children = childrenMap.get(element.parent_id);
+    const parentId = getParentId(element);
+    if (!parentId) continue;
+    const children = childrenMap.get(parentId);
     if (children) {
       children.push(element);
     } else {
-      childrenMap.set(element.parent_id, [element]);
+      childrenMap.set(parentId, [element]);
     }
   }
 
   return childrenMap;
 }
 
-function getDescendantPatch(
-  refElement: Element,
+function getDescendantPatch<T extends CanonicalRefResolvableNode>(
+  refElement: T,
   path: string,
 ): Record<string, unknown> | null {
   const descendants = asCanonicalRefFields(refElement).descendants;
@@ -202,10 +255,10 @@ function getOverrideNodeSlot(node: OverrideNode): false | string[] | undefined {
   return slot === false || Array.isArray(slot) ? slot : undefined;
 }
 
-function applyDescendantPatchToElement(
-  element: Element,
+function applyDescendantPatchToElement<T extends CanonicalRefResolvableNode>(
+  element: T,
   patch: Record<string, unknown> | null,
-): Element {
+): T {
   if (!patch) return element;
   const patchProps = propsFromDescendantPatch(patch);
   const patchedType =
@@ -216,15 +269,15 @@ function applyDescendantPatchToElement(
   return {
     ...element,
     type: patchedType,
-    props: mergePropsWithStyleDeep(getElementProps(element), patchProps),
-  } as Element;
+    props: mergePropsWithStyleDeep(getNodeProps(element), patchProps),
+  } as T;
 }
 
-function replaceResultElement(
-  element: Element,
-  resultElementsMap: Map<string, Element>,
-  resultElements: Element[],
-): Element {
+function replaceResultElement<T extends CanonicalRefResolvableNode>(
+  element: T,
+  resultElementsMap: Map<string, T>,
+  resultElements: T[],
+): T {
   resultElementsMap.set(element.id, element);
   const index = resultElements.findIndex(
     (candidate) => candidate.id === element.id,
@@ -237,11 +290,13 @@ function replaceResultElement(
   return element;
 }
 
-function removeSyntheticDescendantElements(
+function removeSyntheticDescendantElements<
+  T extends CanonicalRefResolvableNode,
+>(
   syntheticParentId: string,
-  resultElementsMap: Map<string, Element>,
-  resultChildrenMap: Map<string, Element[]>,
-  resultElements: Element[],
+  resultElementsMap: Map<string, T>,
+  resultChildrenMap: Map<string, T[]>,
+  resultElements: T[],
 ): void {
   const idPrefix = `${syntheticParentId}/`;
   for (let index = resultElements.length - 1; index >= 0; index -= 1) {
@@ -266,17 +321,17 @@ function removeSyntheticDescendantElements(
   }
 }
 
-function materializeOverrideChildren(
-  refElement: Element,
+function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
+  refElement: T,
   overrideChildren: unknown[],
   syntheticParentId: string,
-  sourceChildrenMap: Map<string, Element[]>,
-  resultElementsMap: Map<string, Element>,
-  resultChildrenMap: Map<string, Element[]>,
-  resultElements: Element[],
+  sourceChildrenMap: Map<string, T[]>,
+  resultElementsMap: Map<string, T>,
+  resultChildrenMap: Map<string, T[]>,
+  resultElements: T[],
   pathPrefix: string,
 ): void {
-  const syntheticChildren: Element[] = [];
+  const syntheticChildren: T[] = [];
 
   overrideChildren.forEach((child, index) => {
     if (!isRecord(child)) return;
@@ -321,15 +376,19 @@ function materializeOverrideChildren(
       id: syntheticId,
       customId: typeof child.id === "string" ? child.id : segment,
       type,
+      parentId: syntheticParentId,
+      pageId: getPageId(refElement),
+      layoutId: getLayoutId(refElement),
       parent_id: syntheticParentId,
-      page_id: refElement.page_id ?? null,
-      layout_id: refElement.layout_id ?? null,
+      page_id: getPageId(refElement),
+      layout_id: getLayoutId(refElement),
       props: getOverrideNodeProps(child),
+      ...(name ? { name } : {}),
       ...(name ? { componentName: name } : {}),
       ...(ref ? { ref } : {}),
       ...(descendants ? { descendants } : {}),
       ...(slot !== undefined ? { slot } : {}),
-    } as Element;
+    } as T;
 
     const resolvedChild = isCanonicalRefElement(syntheticChild)
       ? resolveCanonicalRefElement(syntheticChild, resultElementsMap.values())
@@ -380,14 +439,14 @@ function materializeOverrideChildren(
   }
 }
 
-function materializeSyntheticDescendants(
-  refElement: Element,
-  sourceParent: Element,
+function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
+  refElement: T,
+  sourceParent: T,
   syntheticParentId: string,
-  sourceChildrenMap: Map<string, Element[]>,
-  resultElementsMap: Map<string, Element>,
-  resultChildrenMap: Map<string, Element[]>,
-  resultElements: Element[],
+  sourceChildrenMap: Map<string, T[]>,
+  resultElementsMap: Map<string, T>,
+  resultChildrenMap: Map<string, T[]>,
+  resultElements: T[],
   pathPrefix = "",
   visitedSourceIds: Set<string> = new Set(),
 ): void {
@@ -396,7 +455,7 @@ function materializeSyntheticDescendants(
   const nextVisitedSourceIds = new Set(visitedSourceIds);
   nextVisitedSourceIds.add(sourceParent.id);
   const sourceChildren = sourceChildrenMap.get(sourceParent.id) ?? [];
-  const syntheticChildren: Element[] = [];
+  const syntheticChildren: T[] = [];
 
   sourceChildren.forEach((sourceChild, index) => {
     const segment = getStableSegment(sourceChild);
@@ -456,12 +515,15 @@ function materializeSyntheticDescendants(
       ...sourceChild,
       id: syntheticId,
       type: patchedType,
+      parentId: syntheticParentId,
+      pageId: getPageId(refElement) ?? getPageId(sourceChild),
+      layoutId: getLayoutId(refElement) ?? getLayoutId(sourceChild),
       parent_id: syntheticParentId,
-      page_id: refElement.page_id ?? sourceChild.page_id ?? null,
-      layout_id: refElement.layout_id ?? sourceChild.layout_id ?? null,
-      props: mergePropsWithStyleDeep(getElementProps(sourceChild), patchProps),
+      page_id: getPageId(refElement) ?? getPageId(sourceChild),
+      layout_id: getLayoutId(refElement) ?? getLayoutId(sourceChild),
+      props: mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
       reusable: undefined,
-    } as Element;
+    } as T;
 
     resultElements.push(syntheticChild);
     resultElementsMap.set(syntheticId, syntheticChild);
@@ -504,11 +566,13 @@ function materializeSyntheticDescendants(
   }
 }
 
-export function resolveCanonicalRefTree(input: {
-  childrenMap?: Map<string, Element[]> | null;
-  elements: Element[];
-  elementsMap: Map<string, Element>;
-}): ResolvedCanonicalRefTree {
+export function resolveCanonicalRefTree<
+  T extends CanonicalRefResolvableNode,
+>(input: {
+  childrenMap?: Map<string, T[]> | null;
+  elements: T[];
+  elementsMap: Map<string, T>;
+}): ResolvedCanonicalRefTree<T> {
   const sourceChildrenMap =
     input.childrenMap ??
     buildChildrenMapFromElements(input.elementsMap.values());

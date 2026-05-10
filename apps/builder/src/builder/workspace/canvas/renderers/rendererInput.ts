@@ -289,6 +289,33 @@ function buildLegacyCanvasSceneGraph(elements: Element[]): CanvasSceneGraph {
   };
 }
 
+function buildSceneParentById(
+  childrenByParent: Map<string, CanvasSceneNode[]>,
+): Map<string, string> {
+  const parentById = new Map<string, string>();
+  for (const [parentId, children] of childrenByParent) {
+    for (const child of children) {
+      parentById.set(child.id, parentId);
+    }
+  }
+  return parentById;
+}
+
+function resolveCanvasSceneGraph(graph: CanvasSceneGraph): CanvasSceneGraph {
+  const resolved = resolveCanonicalRefTree<CanvasSceneNode>({
+    childrenMap: graph.childrenByParent,
+    elements: graph.nodes,
+    elementsMap: graph.nodesMap,
+  });
+
+  return {
+    childrenByParent: resolved.childrenMap,
+    nodes: resolved.elements,
+    nodesMap: resolved.elementsMap,
+    parentById: buildSceneParentById(resolved.childrenMap),
+  };
+}
+
 function buildRendererChildrenMap(
   elements: Iterable<Element>,
 ): Map<string, Element[]> {
@@ -362,16 +389,24 @@ export function createSkiaRendererInput(
     elements: renderTree.elements,
     elementsMap: renderTree.elementsMap,
   });
-  const legacySceneGraph = buildLegacyCanvasSceneGraph(resolvedTree.elements);
+  const sourceSceneGraph =
+    input.sceneChildrenByParent && input.sceneNodes && input.sceneNodesMap
+      ? {
+          childrenByParent: input.sceneChildrenByParent,
+          nodes: input.sceneNodes,
+          nodesMap: input.sceneNodesMap,
+          parentById: buildSceneParentById(input.sceneChildrenByParent),
+        }
+      : buildLegacyCanvasSceneGraph(resolvedTree.elements);
+  const sceneGraph = resolveCanvasSceneGraph(sourceSceneGraph);
 
   return {
     childrenMap: resolvedTree.childrenMap,
     elements: resolvedTree.elements,
     elementsMap: resolvedTree.elementsMap,
-    sceneChildrenByParent:
-      input.sceneChildrenByParent ?? legacySceneGraph.childrenByParent,
-    sceneNodes: input.sceneNodes ?? legacySceneGraph.nodes,
-    sceneNodesMap: input.sceneNodesMap ?? legacySceneGraph.nodesMap,
+    sceneChildrenByParent: sceneGraph.childrenByParent,
+    sceneNodes: sceneGraph.nodes,
+    sceneNodesMap: sceneGraph.nodesMap,
     dirtyElementIds: input.dirtyElementIds,
     editMode: input.editMode,
     pageIndex: input.pageIndex,

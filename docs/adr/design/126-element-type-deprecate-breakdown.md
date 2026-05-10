@@ -409,7 +409,7 @@ renderable `CanvasSceneNode` graph 를 생성한 뒤 Skia render bridge/command 
 
 - `CanvasSceneNode` 는 transition alias `parent_id` / `page_id` / `componentName` 을 가진다. 신규 Skia code 는 `parentId` / `pageId` / `name` 을 선호해야 하며 alias 제거는 lookup/caller cascade 잔여 정리와 함께 진행한다.
 - `BuilderCanvas` 는 scene snapshot/layout/interaction 경로 때문에 `getSceneModelElementsLegacy` / `getSceneModelElementsMapLegacy` / `getSceneModelChildrenByParentLegacy` fallback 을 아직 호출한다. 이는 2-B/2-C/2-D 및 Phase 5에서 제거한다.
-- `rendererInput.ts` 는 canonical scene fields 를 우선 받지만 legacy bootstrap fallback graph 를 유지한다. 2-C(renderer input + ref resolution)에서 fallback 경계를 재축소한다.
+- `rendererInput.ts` 의 legacy bootstrap fallback graph 는 2-C에서 "canonical scene fields 미주입 시에만" 사용하는 fallback으로 축소했다. 다만 `PixiPageRendererInput` / layout publisher / interactive fallback `Element` shape 는 2-B/2-D cascade에서 제거한다.
 
 - `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
@@ -426,6 +426,42 @@ renderable `CanvasSceneNode` graph 를 생성한 뒤 Skia render bridge/command 
 - 기타 `workspace/canvas/layout/**` Element 타입 import file
 
 #### 2-C. Renderer input + ref resolution
+
+**Status: Core Landed — 2026-05-10**
+
+2-C core 는 ref resolver 자체가 `Element` 타입에 고정되어 있던 문제를 먼저 닫았다.
+
+**구현 결과**:
+
+- `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`
+  - `Element` import 제거
+  - `CanonicalRefResolvableNode` generic contract 도입
+  - `resolveCanonicalRefElement<T>()`, `resolveCanonicalRefElementsMap<T>()`, `resolveCanonicalRefTree<T>()` 로 generic화
+  - `parent_id/page_id/layout_id` 와 `parentId/pageId/layoutId` 양쪽을 읽고 쓰도록 transition field bridge 제공
+- `apps/builder/src/resolvers/canonical/storeBridge.ts`
+  - `Element` import 제거
+  - `resolveInstanceWithSharedCache<T extends CanonicalRefResolvableNode>()` 로 generic화
+  - legacy component mirror field / canonical `ref` 양쪽 instance를 동일 경로로 처리
+- `apps/builder/src/builder/workspace/canvas/renderers/rendererInput.ts`
+  - 주입된 `CanvasSceneGraph` 를 `resolveCanonicalRefTree<CanvasSceneNode>()` 로 직접 resolve
+  - canonical scene graph 미주입 시에만 legacy bootstrap fallback graph 생성
+
+**G2-C evidence**:
+
+- Grep gate:
+  - `canonicalRefResolution.ts` + `storeBridge.ts` `Element` raw/type hit 0
+- Targeted tests:
+  - `createSkiaRendererInput.test.ts` 에 canonical scene graph ref resolution 회귀 테스트 추가
+  - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/renderers src/builder/utils/canonicalRefResolution.test.ts src/resolvers/canonical` — 9 files / 113 tests PASS
+- Type-check:
+  - `pnpm -F @composition/builder type-check` PASS
+- Diff hygiene:
+  - `git diff --check` PASS
+
+**잔여를 Phase 2-B/2-D에 위임**:
+
+- `rendererInput.ts` 의 `PixiPageRendererInput` 명칭/shape 는 실제로 layout publisher input 으로 쓰이며 아직 `Element` 를 포함한다. 2-B layout publisher cascade에서 canonical scene node input 으로 바꾼다.
+- `BuilderCanvas` interactive hover/scroll fallback 은 `skiaRendererInput.elementsMap` / `childrenMap` 을 아직 사용한다. 2-D/Phase 4 interaction read-model 정리 때 제거한다.
 
 - `apps/builder/src/builder/workspace/canvas/renderers/rendererInput.ts`
 - `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`

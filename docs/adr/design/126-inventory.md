@@ -124,5 +124,24 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 잔여 bucket:
 
 - `BuilderCanvas` scene snapshot/layout/interaction caller 는 `getSceneModel*Legacy` fallback 을 아직 사용한다. Phase 2-B/2-C/2-D cascade에서 제거 대상.
-- `rendererInput.ts` legacy bootstrap fallback 은 Phase 2-C(renderer input + ref resolution)에서 재축소 대상.
+- `rendererInput.ts` legacy bootstrap fallback 은 Phase 2-C에서 canonical scene graph 미주입 시 fallback 으로 축소됨. `PixiPageRendererInput` / layout publisher / interactive fallback `Element` shape 는 Phase 2-B/2-D 잔여.
 - `CanvasSceneNode` transition alias(`parent_id`, `page_id`, `componentName`) 는 Phase 5 boundary 정리 전까지 임시 허용하되 신규 Skia code 에서는 `parentId`, `pageId`, `name` 을 사용한다.
+
+## 6. Phase 2-C 진행 결과 (2026-05-10)
+
+`canonicalRefResolution.ts` 와 `resolvers/canonical/storeBridge.ts` 의 `Element` 전용성을
+제거하고, renderer input 의 canonical scene graph ref resolution 을
+`CanvasSceneNode` generic path 로 전환했다.
+
+| 측정 대상                                                             | 결과                                                   |
+| --------------------------------------------------------------------- | ------------------------------------------------------ |
+| `adapters/canonical/canonicalRefResolution.ts` `Element` raw/type hit | **0**                                                  |
+| `resolvers/canonical/storeBridge.ts` `Element` raw/type hit           | **0**                                                  |
+| `createSkiaRendererInput()` canonical scene graph ref resolution      | `resolveCanonicalRefTree<CanvasSceneNode>()` 직접 호출 |
+| Targeted Vitest                                                       | **9 files / 113 tests PASS**                           |
+| Type-check                                                            | `pnpm -F @composition/builder type-check` PASS         |
+
+잔여 bucket:
+
+- `rendererInput.ts` 내부 `PixiPageRendererInput` / layout publisher input 은 아직 `Element` shape 를 포함한다. Phase 2-B layout cascade에서 제거 대상.
+- `BuilderCanvas` interactive hover/scroll read-model 은 아직 `skiaRendererInput.elementsMap` / `childrenMap` 을 사용한다. Phase 2-D 또는 Phase 4 interaction read-model 정리 대상.

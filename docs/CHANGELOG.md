@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 2-C renderer input/ref resolution core land**:
+  - `canonicalRefResolution.ts` 를 `Element` import 전용 helper 에서 `CanonicalRefResolvableNode` generic resolver 로 전환.
+  - `resolvers/canonical/storeBridge.ts` 의 per-instance shared-cache resolver 도 `Element` import 없이 generic render node 를 반환하도록 전환.
+  - `createSkiaRendererInput()` 이 주입된 canonical scene graph 를 `resolveCanonicalRefTree<CanvasSceneNode>()` 로 직접 resolve.
+  - G2-C core grep: `canonicalRefResolution.ts` + `storeBridge.ts` `Element` raw/type hit 0.
+  - 검증: builder type-check PASS, targeted Vitest 9 files / 113 tests PASS, `git diff --check` PASS.
+  - 잔여: `rendererInput.ts` layout publisher / interactive fallback `Element` shape 는 2-B/2-D에서 정리.
 - **ADR-126 Phase 2-A Skia/scene core land**:
   - `CanvasSceneNode` / `CanvasSceneGraph` projection 을 추가하고 `CanonicalSceneModel` 이 `sceneNodes`, `sceneNodesMap`, `sceneChildrenByParent`, canonical-derived `pageIndex` 를 expose 하도록 전환.
   - Skia render bridge / command stream 이 `rendererInput.elementsMap` / `childrenMap` 대신 canonical scene maps 를 소비.

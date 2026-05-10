@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Element, Page } from "../../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../../scene/canvasSceneNode";
 import type { ScenePageSnapshot, SceneStructureSnapshot } from "../../scene";
 import { toPageFrameElementId } from "../../scene/resolvePageWithFrame";
 import { createSkiaRendererInput } from "../rendererInput";
@@ -19,6 +20,24 @@ const makePage = (id: string): Page => ({
   slug: id,
   title: id,
 });
+
+const makeSceneNode = (
+  partial: Partial<CanvasSceneNode> & { id: string; type: string },
+): CanvasSceneNode => {
+  const props = partial.props ?? {};
+  return {
+    props,
+    parentId: null,
+    pageId: "page-1",
+    layoutId: null,
+    sourceNode: {
+      id: partial.id,
+      type: partial.type as CanvasSceneNode["sourceNode"]["type"],
+      props,
+    },
+    ...partial,
+  };
+};
 
 function makeSceneSnapshot(
   pageSnapshots: Map<string, ScenePageSnapshot>,
@@ -236,5 +255,79 @@ describe("createSkiaRendererInput", () => {
       second.id,
       first.id,
     ]);
+  });
+
+  it("resolves canonical scene graph refs without using the legacy Element scene fallback", () => {
+    const body = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const sceneBody = makeSceneNode({
+      id: body.id,
+      type: body.type,
+      props: body.props,
+    });
+    const origin = makeSceneNode({
+      id: "origin-card",
+      type: "Card",
+      props: { style: { color: "red" } },
+      reusable: true,
+      name: "OriginCard",
+      componentName: "OriginCard",
+    });
+    const originLabel = makeSceneNode({
+      id: "origin-label",
+      type: "Text",
+      props: { children: "Base" },
+      parentId: origin.id,
+      parent_id: origin.id,
+    });
+    const instance = makeSceneNode({
+      id: "instance-card",
+      type: "ref",
+      props: { style: { backgroundColor: "blue" } },
+      parentId: body.id,
+      parent_id: body.id,
+      ref: origin.id,
+    });
+    const sceneChildrenByParent = new Map<string, CanvasSceneNode[]>([
+      [body.id, [instance]],
+      [origin.id, [originLabel]],
+    ]);
+    const sceneNodes = [sceneBody, origin, originLabel, instance];
+    const sceneNodesMap = new Map(sceneNodes.map((node) => [node.id, node]));
+
+    const input = createSkiaRendererInput({
+      childrenMap: new Map(),
+      dirtyElementIds: new Set(),
+      editMode: "page",
+      elements: [body],
+      elementsMap: new Map([[body.id, body]]),
+      frameAreas: [],
+      framePositions: {},
+      framePositionsVersion: 1,
+      frameElementScopes: new Map(),
+      pageIndex: { elementsByPage: new Map(), rootsByPage: new Map() },
+      pagePositions: {},
+      pagePositionsVersion: 1,
+      pages: [makePage("page-1")],
+      sceneChildrenByParent,
+      sceneNodes,
+      sceneNodesMap,
+      sceneSnapshot: makeSceneSnapshot(new Map()),
+    });
+
+    const resolvedInstance = input.sceneNodesMap.get(instance.id);
+    expect(resolvedInstance?.type).toBe("Card");
+    expect(resolvedInstance?.props).toEqual({
+      style: { backgroundColor: "blue", color: "red" },
+    });
+    expect(
+      input.sceneNodesMap.get("instance-card/origin-label")?.parentId,
+    ).toBe(instance.id);
+    expect(
+      input.sceneChildrenByParent.get(instance.id)?.map((child) => child.id),
+    ).toEqual(["instance-card/origin-label"]);
   });
 });

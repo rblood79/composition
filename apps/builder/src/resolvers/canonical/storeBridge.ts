@@ -3,7 +3,7 @@
  *
  * canonical document + P2 resolver (`resolveCanonicalDocument`) 를
  * **document snapshot 진입점** 으로 묶고, consumer 측에서 사용할 lookup helper 와
- * Element 재구성 helper 를 제공한다.
+ * render node 재구성 helper 를 제공한다.
  *
  * 본 모듈의 의도:
  * - **shared `ResolverCache` singleton 활용**: Preview / Skia 양쪽이 동일 cache
@@ -30,11 +30,7 @@ import type {
   ImportResolverContext,
 } from "@composition/shared";
 
-import type { Element } from "@/types/builder/unified.types";
-import {
-  getComponentOverridesMirror,
-  isComponentInstanceMirrorElement as isInstanceElement,
-} from "@/adapters/canonical/componentSemanticsMirror";
+import type { CanonicalRefResolvableNode } from "@/adapters/canonical/canonicalRefResolution";
 import { resolveCanonicalDocument } from "./index";
 import { getSharedResolverCache } from "./cache";
 import {
@@ -43,6 +39,40 @@ import {
   type PrefetchDocumentImportsResult,
 } from "./importRegistry";
 import { extractCanonicalPropsFromResolved } from "./extractCanonicalProps";
+
+type ComponentInstanceFields = {
+  componentRole?: unknown;
+  masterId?: unknown;
+  overrides?: unknown;
+  ref?: unknown;
+};
+
+function asComponentInstanceFields(
+  node: CanonicalRefResolvableNode,
+): ComponentInstanceFields {
+  return node as CanonicalRefResolvableNode & ComponentInstanceFields;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isInstanceNode(node: CanonicalRefResolvableNode): boolean {
+  const fields = asComponentInstanceFields(node);
+  return (
+    (fields.componentRole === "instance" &&
+      typeof fields.masterId === "string" &&
+      fields.masterId.length > 0) ||
+    (typeof fields.ref === "string" && fields.ref.length > 0)
+  );
+}
+
+function getInstanceOverrides(
+  node: CanonicalRefResolvableNode,
+): Record<string, unknown> {
+  const overrides = asComponentInstanceFields(node).overrides;
+  return isRecord(overrides) ? overrides : (node.props ?? {});
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1) CompositionDocument → ResolvedNode[] selector (full tree)
@@ -178,7 +208,7 @@ export { extractCanonicalPropsFromResolved } from "./extractCanonicalProps";
 
 /**
  * 단일 (instance, master) pair 를 P2 resolver 의 mini CompositionDocument 로
- * 묶어서 `resolveCanonicalDocument` 를 통과시킨 후 결과 Element 를 재구성한다.
+ * 묶어서 `resolveCanonicalDocument` 를 통과시킨 후 결과 render node 를 재구성한다.
  *
  * renderer consumer 가 doc 전체 build 없이 단일 instance pair 를 canonical
  * 경로로 resolve 하면서도 shared cache hit 효과를 누리도록 설계.
@@ -189,17 +219,19 @@ export { extractCanonicalPropsFromResolved } from "./extractCanonicalProps";
  *   조합. 같은 instance / master pair 의 반복 호출은 cache hit
  * - master 가 없으면 `null` 반환 — caller 는 legacy fallback 또는 element 그대로 처리
  *
- * @param instance - legacy instance Element
- * @param master   - instance origin 으로 조회한 master Element
+ * @param instance - legacy/canonical instance render node
+ * @param master   - instance origin 으로 조회한 master render node
  * @param cache    - shared ResolverCache (default: singleton)
- * @returns        canonical 경로로 resolve 된 Element (type = master.type, props = merged)
+ * @returns        canonical 경로로 resolve 된 render node (type = master.type, props = merged)
  */
-export function resolveInstanceWithSharedCache(
-  instance: Element,
-  master: Element | undefined,
+export function resolveInstanceWithSharedCache<
+  T extends CanonicalRefResolvableNode,
+>(
+  instance: T,
+  master: T | undefined,
   cache: ResolverCache = getSharedResolverCache(),
-): Element | null {
-  if (!isInstanceElement(instance)) return null;
+): T | null {
+  if (!isInstanceNode(instance)) return null;
   if (!master) return null;
 
   const masterNode: CanonicalNode = {
@@ -216,7 +248,7 @@ export function resolveInstanceWithSharedCache(
     id: instance.id,
     type: "ref",
     ref: master.id,
-    props: getComponentOverridesMirror(instance) ?? {},
+    props: getInstanceOverrides(instance),
     metadata: {
       type: "canonical-instance",
     },
