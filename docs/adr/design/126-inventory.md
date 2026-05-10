@@ -182,7 +182,7 @@ preview-local node contract 로 분리했다.
 
 잔여 bucket:
 
-- `LayoutPresetSelector/usePresetApply.ts` 등 preset/write payload caller 는 후속 panels/write payload slice 또는 Phase 5에서 정리한다.
+- 잔여 생성형 property editor write payload caller 는 후속 panels/write payload slice 또는 Phase 5에서 정리한다.
 - `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy store read 는 Phase 5 잔여다.
 
 ## 9. Phase 2-D 진행 결과 (2026-05-10)
@@ -190,22 +190,25 @@ preview-local node contract 로 분리했다.
 Panels read path 와 canvas interaction read model 이 Builder store `Element` 타입을 직접
 import 하던 core surface 를 `PanelNode` / `CanvasInteractionNode` 최소 contract 로
 분리했다. frame tree read/load 후속 slice 도 같은 날 `PanelNode` /
-`FrameElementNode` 계약으로 정리했다. 전체 G2-D 종료는 아니며, 생성형 editor /
-drop target resolver 는 후속 slice 로 남긴다.
+`FrameElementNode` 계약으로 정리했다. preset apply read/write payload slice 는
+`PresetElementNode` / `PresetSlotElement` 계약으로 정리했다. 전체 G2-D 종료는
+아니며, 잔여 생성형 editor / drop target resolver 는 후속 slice 로 남긴다.
 
 | 측정 대상                                                                                                                   | 결과                                           |
 | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | panels read path (`useCanonicalPropertyRead`, `LayersSection`, `LayerTree`, Component semantics/slot/fill) store type hit   | **0**                                          |
 | canvas interaction core (`selectionHitTest`, `selectionModel`, `canvasContextMenu`, drag/hover/scroll hooks) store type hit | **0**                                          |
 | frame loader + frame tree (`frameElementLoader`, `FramesTab`, `FrameElementTree`) store type hit                            | **0**                                          |
+| preset apply (`LayoutPresetSelector/usePresetApply.ts`) production store type hit                                           | **0**                                          |
 | interaction hook input `rendererInputRef.current.elementsMap\|childrenMap` hit                                              | **0**                                          |
 | Scene frame body compatibility                                                                                              | `CanvasSceneNode.layout_id` transition alias   |
 | Targeted Vitest                                                                                                             | **11 files / 82 tests PASS**                   |
 | Frame tree targeted Vitest                                                                                                  | **5 files / 45 tests PASS**                    |
+| Preset apply targeted Vitest                                                                                                | **1 file / 4 tests PASS**                      |
 | Type-check                                                                                                                  | `pnpm -F @composition/builder type-check` PASS |
 
 잔여 bucket:
 
-- `TableEditor`, `TableHeaderEditor`, `ListBoxItemEditor`, `TagEditor`, `ChildItemManager`, `tabsItemActions`, `TreeItemEditor`, `LayoutPresetSelector/usePresetApply` 등 생성형 property editor 는 add/write payload contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
+- `TableEditor`, `TableHeaderEditor`, `ListBoxItemEditor`, `TagEditor`, `ChildItemManager`, `tabsItemActions`, `TreeItemEditor` 등 생성형 property editor 는 add/write payload contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
 - `dropTargetResolver.ts` 는 drag-drop move semantics + history commit 이 얽혀 있어 Phase 4 drag-drop consumer 전환에서 별도 처리한다.
 - `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.

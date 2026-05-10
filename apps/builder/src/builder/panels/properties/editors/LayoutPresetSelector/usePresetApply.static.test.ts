@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { Element } from "../../../../../types/builder/unified.types";
 import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 import {
   collectExistingFrameSlots,
@@ -9,11 +8,21 @@ import {
   normalizeFramePresetContainerStyle,
 } from "./usePresetApply";
 
+interface PresetTestNode {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  layout_id?: string | null;
+  deleted?: boolean;
+}
+
 function makeElement(
   id: string,
   type: string,
-  patch: Partial<Element> = {},
-): Element {
+  patch: Partial<PresetTestNode> = {},
+): PresetTestNode {
   return {
     id,
     type,
@@ -21,7 +30,7 @@ function makeElement(
     parent_id: null,
     page_id: null,
     ...patch,
-  } as Element;
+  };
 }
 
 describe("LayoutPresetSelector usePresetApply replace contract", () => {
@@ -39,6 +48,10 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
       "await removeCanonicalPresetSlots(existingSlotIds);",
     );
     expect(source).toContain("useCanonicalPropertyElementsMap");
+    expect(source).not.toContain(
+      ["types", "builder", "unified.types"].join("/"),
+    );
+    expect(source).not.toContain(["as", "Element"].join(" "));
     expect(source).not.toContain(
       ["useStore.getState()", ["elements", "Map"].join("")].join("."),
     );

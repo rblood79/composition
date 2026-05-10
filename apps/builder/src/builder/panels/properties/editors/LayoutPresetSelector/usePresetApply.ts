@@ -31,7 +31,6 @@ import type {
   ExistingSlotInfo,
   SlotDefinition,
 } from "./types";
-import type { Element } from "../../../../../types/builder/unified.types";
 import { isLegacyFrameElementForFrame } from "../../../../../adapters/canonical/frameElementLoader";
 import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 import { withFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
@@ -41,12 +40,28 @@ import { getDB } from "../../../../../lib/db";
 
 export { normalizeFramePresetContainerStyle } from "./presetStyle";
 
-function getElementSlotName(element: Element): string | null {
+interface PresetElementNode {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  layout_id?: string | null;
+  deleted?: boolean;
+}
+
+interface PresetSlotElement extends PresetElementNode {
+  type: "Slot";
+  parent_id: string;
+  page_id: null;
+}
+
+function getElementSlotName(element: PresetElementNode): string | null {
   const slotName = getSlotMirrorName(element);
   return slotName && slotName.length > 0 ? slotName : null;
 }
 
-function readSlotElementName(element: Element): string {
+function readSlotElementName(element: PresetElementNode): string {
   const propsName = (element.props as { name?: unknown } | undefined)?.name;
   if (typeof propsName === "string" && propsName.length > 0) {
     return propsName;
@@ -54,15 +69,15 @@ function readSlotElementName(element: Element): string {
   return getElementSlotName(element) ?? "unnamed";
 }
 
-function readAssignedSlotName(element: Element): string | null {
+function readAssignedSlotName(element: PresetElementNode): string | null {
   return getElementSlotName(element) ?? getSlotMirrorName(element.props);
 }
 
 function buildElementMap(
-  elementsById: ReadonlyMap<string, Element>,
-  canonicalElements: Element[] | null,
-): Map<string, Element> {
-  const combined = new Map<string, Element>(elementsById);
+  elementsById: ReadonlyMap<string, PresetElementNode>,
+  canonicalElements: PresetElementNode[] | null,
+): Map<string, PresetElementNode> {
+  const combined = new Map<string, PresetElementNode>(elementsById);
   for (const element of canonicalElements ?? []) {
     combined.set(element.id, element);
   }
@@ -71,19 +86,19 @@ function buildElementMap(
 
 function collectPresetSourceElements(
   doc: Parameters<typeof visitCanonicalDocumentElements>[0],
-): Element[] {
-  const elements: Element[] = [];
+): PresetElementNode[] {
+  const elements: PresetElementNode[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element as Element);
+    elements.push(element);
   });
   return elements;
 }
 
 function hasSlotChildren(
-  slotElement: Element,
+  slotElement: PresetElementNode,
   slotName: string,
-  childrenByParent: ReadonlyMap<string, Element[]>,
-  combinedElements: ReadonlyMap<string, Element>,
+  childrenByParent: ReadonlyMap<string, PresetElementNode[]>,
+  combinedElements: ReadonlyMap<string, PresetElementNode>,
 ): boolean {
   if ((childrenByParent.get(slotElement.id) ?? []).length > 0) return true;
 
@@ -106,12 +121,12 @@ export function collectExistingFrameSlots({
   frameScope,
 }: {
   layoutId: string;
-  elementsById: ReadonlyMap<string, Element>;
-  childrenByParent: ReadonlyMap<string, Element[]>;
-  canonicalElements: Element[] | null;
+  elementsById: ReadonlyMap<string, PresetElementNode>;
+  childrenByParent: ReadonlyMap<string, PresetElementNode[]>;
+  canonicalElements: PresetElementNode[] | null;
   frameScope: CanonicalFrameElementScope | null;
 }): ExistingSlotInfo[] {
-  const slotsById = new Map<string, Element>();
+  const slotsById = new Map<string, PresetElementNode>();
 
   elementsById.forEach((element) => {
     if (
@@ -148,9 +163,9 @@ export function collectExistingFrameSlots({
 }
 
 export function filterElementsForPresetSlotReplace(
-  elements: Element[],
+  elements: PresetElementNode[],
   slotIds: ReadonlySet<string>,
-): Element[] {
+): PresetElementNode[] {
   if (slotIds.size === 0) return elements;
   return elements.filter((element) => !slotIds.has(element.id));
 }
@@ -198,7 +213,7 @@ async function removeCanonicalPresetSlots(slotIds: string[]): Promise<void> {
 interface UsePresetApplyOptions {
   /** Layout ID */
   layoutId: string;
-  /** Body Element ID */
+  /** Body node ID */
   bodyElementId: string;
 }
 
@@ -343,10 +358,10 @@ export function usePresetApply({
         console.log(`[Preset] Creating ${slotsToCreate.length} new slots...`);
 
         // ============================================
-        // Step 3: Slot Element 배열 생성
+        // Step 3: Slot node 배열 생성
         // ============================================
-        const slotElements: Element[] = slotsToCreate.map(
-          (slotDef): Element =>
+        const slotElements: PresetSlotElement[] = slotsToCreate.map(
+          (slotDef): PresetSlotElement =>
             withFrameElementMirrorId(
               {
                 id: crypto.randomUUID(),
