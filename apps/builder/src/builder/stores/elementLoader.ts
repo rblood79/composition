@@ -21,6 +21,7 @@ import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import { pageCache, type LRUCacheStats } from "../utils/LRUPageCache";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
+import type { StoreElementCacheMap } from "./elements";
 
 // ============================================
 // Types
@@ -87,7 +88,7 @@ export type ElementLoaderSlice = LoaderState & ElementLoaderActions;
 
 interface ElementsStateMinimal {
   elements: Element[];
-  elementsMap: Map<string, Element>;
+  elementsMap: StoreElementCacheMap;
   pageElementsSnapshot: Record<string, Element[]>;
   currentPageId: string | null;
   selectedElementId: string | null;

@@ -254,7 +254,8 @@ rg -n "elementsMap: Map<string, Element>|childrenMap: Map<string, Element\\[\\]>
 - **2026-05-11 grouping read-model slice land**: `elementGrouping.ts` 의 group/ungroup input 을 generic `ReadonlyMap<string, TElement>` contract 로 전환. output payload 는 history/add/update 호환을 위해 `Element` 로 유지. `elementGrouping.static.test.ts` 로 raw `Map<string, Element>` input 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **2026-05-11 element creation lookup slice land**: `elementCreation.ts` 의 ref master/customId generation lookup helper 를 generic readonly map contract 로 전환. 생성 payload와 canonical insert event는 기존 `Element` contract 유지. `elementCreation.storeCache.static.test.ts` 로 raw `Map<string, Element>` lookup helper 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **2026-05-11 element indexer contract slice land**: `elementIndexer.ts` 의 page/component/variable index helper map input 과 `ComponentIndex.masterComponents` 를 generic readonly map contract 로 전환. `PageElementIndex` / `VariableUsageIndex` 구조와 runtime index semantics 는 변경 없음. `elementIndexer.storeCache.static.test.ts` 로 raw `Map<string, Element>` 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
-- 잔여: `elementRemoval` / `elementUpdate` / `historyHelpers` / `historyActions` / `inspectorActions` / `elementLoader`. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 Phase 5/6 allowlist 정렬 필요.
+- **2026-05-11 element loader cache contract slice land**: `elementLoader.ts` 의 minimal state `elementsMap` contract 를 Phase 3 `StoreElementCacheMap` 으로 전환. lazy load/unload runtime behavior 변경 없음. `elementLoader.static.test.ts` 로 raw map state contract 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
+- 잔여: `elementRemoval` / `elementUpdate` / `historyHelpers` / `historyActions` / `inspectorActions`. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 Phase 5/6 allowlist 정렬 필요.
 
 ### 대상 파일
 

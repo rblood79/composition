@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-11 — **ADR-126 Phase 4 element indexer contract slice land**. `elementIndexer.ts` 의 page/component/variable index helper map input 과 `ComponentIndex.masterComponents` 를 generic readonly map contract 로 전환했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
+> **최종 업데이트**: 2026-05-11 — **ADR-126 Phase 4 element loader cache contract slice land**. `elementLoader.ts` 의 minimal state `elementsMap` contract 를 Phase 3 `StoreElementCacheMap` 으로 전환하고 lazy load/unload behavior 는 유지했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
+>
+> **2026-05-11 (직전) — ADR-126 Phase 4 element indexer contract slice land**. `elementIndexer.ts` 의 page/component/variable index helper map input 과 `ComponentIndex.masterComponents` 를 generic readonly map contract 로 전환했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
 >
 > **2026-05-11 (직전) — ADR-126 Phase 4 element creation lookup slice land**. `elementCreation.ts` 의 ref master/customId generation lookup helper 를 generic readonly map contract 로 전환하고 raw `Map<string, Element>` helper 회귀를 static test 로 차단했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
 >

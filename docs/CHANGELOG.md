@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 element loader cache contract slice land**:
+  - `elementLoader.ts` 의 minimal state `elementsMap` contract 를 raw `Map<string, Element>` 에서 Phase 3 `StoreElementCacheMap` 으로 전환했다.
+  - lazy load/unload runtime behavior 는 변경하지 않았다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **ADR-126 Phase 4 element indexer contract slice land**:
   - `elementIndexer.ts` 의 page/component/variable index helper map input 과 `ComponentIndex.masterComponents` 를 generic readonly map contract 로 전환했다.
   - `PageElementIndex` / `VariableUsageIndex` 구조와 runtime index semantics 는 변경하지 않았다.
