@@ -51,9 +51,9 @@ export function createEmptyPageIndex(): PageElementIndex {
  * @param elementsMap id → Element 맵 (빠른 조회용)
  * @returns PageElementIndex
  */
-export function rebuildPageIndex(
-  elements: Element[],
-  elementsMap: Map<string, Element>,
+export function rebuildPageIndex<TElement extends Element>(
+  elements: readonly TElement[],
+  elementsMap: ReadonlyMap<string, TElement>,
 ): PageElementIndex {
   const index = createEmptyPageIndex();
 
@@ -71,10 +71,10 @@ export function rebuildPageIndex(
  * @param element 추가할 요소
  * @param elementsMap id → Element 맵 (부모 확인용)
  */
-export function indexElement(
+export function indexElement<TElement extends Element>(
   index: PageElementIndex,
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: TElement,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): void {
   const { page_id, id, parent_id } = element;
 
@@ -152,11 +152,11 @@ export function unindexElement(
  * @param elementsMap id → Element 맵
  * @returns 페이지의 모든 요소. ADR-118 이후 순서는 index insertion/canonical source order를 보존한다.
  */
-export function getPageElements(
+export function getPageElements<TElement extends Element>(
   index: PageElementIndex,
   pageId: string,
-  elementsMap: Map<string, Element>,
-): Element[] {
+  elementsMap: ReadonlyMap<string, TElement>,
+): TElement[] {
   // 인덱스에서 조회
   const elementIds = index.elementsByPage.get(pageId);
   if (!elementIds || elementIds.size === 0) {
@@ -164,7 +164,7 @@ export function getPageElements(
   }
 
   // Element 배열 생성. Set insertion order는 rebuildPageIndex 입력 순서를 보존한다.
-  const elements: Element[] = [];
+  const elements: TElement[] = [];
   for (const id of elementIds) {
     const element = elementsMap.get(id);
     if (element) {
@@ -183,17 +183,17 @@ export function getPageElements(
  * @param elementsMap id → Element 맵
  * @returns 루트 요소 배열
  */
-export function getRootElements(
+export function getRootElements<TElement extends Element>(
   index: PageElementIndex,
   pageId: string,
-  elementsMap: Map<string, Element>,
-): Element[] {
+  elementsMap: ReadonlyMap<string, TElement>,
+): TElement[] {
   const rootIds = index.rootsByPage.get(pageId);
   if (!rootIds || rootIds.length === 0) {
     return [];
   }
 
-  const roots: Element[] = [];
+  const roots: TElement[] = [];
   for (const id of rootIds) {
     const element = elementsMap.get(id);
     if (element) {
@@ -207,9 +207,9 @@ export function getRootElements(
 /**
  * Body 요소인지 확인
  */
-function isBodyElement(
+function isBodyElement<TElement extends Pick<Element, "type">>(
   elementId: string,
-  elementsMap: Map<string, Element>,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): boolean {
   const element = elementsMap.get(elementId);
   return element?.type === "Body";
@@ -220,15 +220,17 @@ function isBodyElement(
 // ============================================
 
 /** Master-Instance 관계 인덱스 */
-export interface ComponentIndex {
+export interface ComponentIndex<TElement extends Element = Element> {
   /** masterId → Set<instanceId> */
   masterToInstances: Map<string, Set<string>>;
   /** masterId → master Element */
-  masterComponents: Map<string, Element>;
+  masterComponents: Map<string, TElement>;
 }
 
 /** 빈 컴포넌트 인덱스 생성 */
-export function createEmptyComponentIndex(): ComponentIndex {
+export function createEmptyComponentIndex<
+  TElement extends Element = Element,
+>(): ComponentIndex<TElement> {
   return {
     masterToInstances: new Map(),
     masterComponents: new Map(),
@@ -242,8 +244,10 @@ export function createEmptyComponentIndex(): ComponentIndex {
  * 검사 → isMasterElement / isInstanceElement type guard 호출로 단일화. 두 guard
  * 자체는 read-through fallback marker 보존.
  */
-export function rebuildComponentIndex(elements: Element[]): ComponentIndex {
-  const index = createEmptyComponentIndex();
+export function rebuildComponentIndex<TElement extends Element>(
+  elements: readonly TElement[],
+): ComponentIndex<TElement> {
+  const index = createEmptyComponentIndex<TElement>();
 
   for (const el of elements) {
     if (isMasterElement(el)) {
@@ -286,8 +290,8 @@ export function createEmptyVariableUsageIndex(): VariableUsageIndex {
  *
  * element.variableBindings 배열에서 변수 이름 추출하여 역인덱스 생성
  */
-export function rebuildVariableUsageIndex(
-  elements: Element[],
+export function rebuildVariableUsageIndex<TElement extends Element>(
+  elements: readonly TElement[],
 ): VariableUsageIndex {
   const index = createEmptyVariableUsageIndex();
 
@@ -317,11 +321,11 @@ export function rebuildVariableUsageIndex(
  * @param oldParentId 이전 parent_id
  * @param elementsMap id → Element 맵
  */
-export function updateElementParent(
+export function updateElementParent<TElement extends Element>(
   index: PageElementIndex,
-  element: Element,
+  element: TElement,
   oldParentId: string | null,
-  elementsMap: Map<string, Element>,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): void {
   const { page_id, id, parent_id: newParentId } = element;
 

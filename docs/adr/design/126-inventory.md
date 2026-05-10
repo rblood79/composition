@@ -58,7 +58,8 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - Phase 4 utility slice 완료: `layoutInvalidation.ts`, `elementAlignment.ts`, `elementDistribution.ts`, `elementHelpers.ts` 의 map input 은 structural/readonly contract 로 전환.
 - Phase 4 grouping slice 완료: `elementGrouping.ts` 의 group/ungroup input 은 generic readonly map contract 로 전환.
 - Phase 4 element creation lookup slice 완료: `elementCreation.ts` 의 ref master/customId generation lookup helper 는 generic readonly map contract 로 전환.
-- Phase 4 잔여: `elements.ts` 내부 page removal local mutation map, `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementRemoval.ts`, `elementUpdate.ts`, `elementIndexer.ts` 의 `Element` map consumer 전환. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 별도 allowlist 정렬.
+- Phase 4 element indexer slice 완료: `elementIndexer.ts` 의 page/component/variable index helper map input 과 `ComponentIndex.masterComponents` 는 generic readonly map contract 로 전환.
+- Phase 4 잔여: `elements.ts` 내부 page removal local mutation map, `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementRemoval.ts`, `elementUpdate.ts` 의 `Element` map consumer 전환. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 별도 allowlist 정렬.
 
 ### 3-C. `hot-path-consumer` (Phase 2/4 전환 대상)
 

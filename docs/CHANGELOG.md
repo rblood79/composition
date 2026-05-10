@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 element indexer contract slice land**:
+  - `elementIndexer.ts` 의 page/component/variable index helper map input 과 `ComponentIndex.masterComponents` 를 generic readonly map contract 로 전환했다.
+  - `PageElementIndex` / `VariableUsageIndex` 구조와 runtime index semantics 는 변경하지 않았다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **ADR-126 Phase 4 element creation lookup slice land**:
   - `elementCreation.ts` 의 ref master/customId generation lookup helper 를 generic readonly map contract 로 전환하고 `buildCreationElementMap()` 을 `Map<string, TElement>` 로 좁혔다.
   - 생성 payload와 canonical insert event는 기존 `Element` contract 로 유지했다.
