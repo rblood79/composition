@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 grouping read-model slice land**:
+  - `elementGrouping.ts` 의 group/ungroup input 을 raw `Map<string, Element>` 대신 generic `ReadonlyMap<string, TElement>` contract 로 전환했다.
+  - group 생성/해제 output payload 는 기존 history/add/update 경계 호환을 위해 `Element` 로 유지했다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **ADR-126 Phase 4 utility read-model slice land**:
   - `layoutInvalidation.ts`, `elementAlignment.ts`, `elementDistribution.ts`, `elementHelpers.ts` 의 map input 을 structural/readonly contract 로 좁혀 full store `Element` map 의존을 줄였다.
   - `layoutInvalidation.test.ts` 는 local `{ id }` node fixture 로 전환했고, `elementAlignmentDistribution.static.test.ts` 로 alignment/distribution/helper 의 raw `Map<string, Element>` 회귀를 차단했다.

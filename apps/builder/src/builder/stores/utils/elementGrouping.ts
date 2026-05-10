@@ -46,9 +46,9 @@ export interface UngroupResult {
  * // Returns: { groupElement, updatedChildren }
  * ```
  */
-export function createGroupFromSelection(
-  elementIds: string[],
-  elementsMap: Map<string, Element>,
+export function createGroupFromSelection<TElement extends Element>(
+  elementIds: readonly string[],
+  elementsMap: ReadonlyMap<string, TElement>,
   pageId: string,
 ): GroupCreationResult {
   if (elementIds.length === 0) {
@@ -58,7 +58,7 @@ export function createGroupFromSelection(
   // Get selected elements
   const selectedElements = elementIds
     .map((id) => elementsMap.get(id))
-    .filter((el): el is Element => el !== undefined);
+    .filter((el): el is TElement => el !== undefined);
 
   if (selectedElements.length === 0) {
     throw new Error("[Group] Selected elements not found");
@@ -171,9 +171,9 @@ function parsePixels(value: unknown): number | null {
  * // Returns: { updatedChildren, groupIdToDelete: 'group-123' }
  * ```
  */
-export function ungroupElement(
+export function ungroupElement<TElement extends Element>(
   groupId: string,
-  elementsMap: Map<string, Element>,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): UngroupResult {
   const groupElement = elementsMap.get(groupId);
 

@@ -251,6 +251,7 @@ rg -n "elementsMap: Map<string, Element>|childrenMap: Map<string, Element\\[\\]>
 ### 7.0. Phase 4 진행 로그
 
 - **2026-05-11 utility read-model slice land**: `layoutInvalidation.ts`, `elementAlignment.ts`, `elementDistribution.ts`, `elementHelpers.ts` 의 map input 을 structural/readonly contract 로 좁힘. `layoutInvalidation.test.ts` 는 local `{ id }` node fixture 로 전환했고, `elementAlignmentDistribution.static.test.ts` 로 alignment/distribution/helper 의 raw `Map<string, Element>` 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 2 files / 3 tests PASS.
+- **2026-05-11 grouping read-model slice land**: `elementGrouping.ts` 의 group/ungroup input 을 generic `ReadonlyMap<string, TElement>` contract 로 전환. output payload 는 history/add/update 호환을 위해 `Element` 로 유지. `elementGrouping.static.test.ts` 로 raw `Map<string, Element>` input 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - 잔여: `elementCreation` / `elementRemoval` / `elementUpdate` / `elementIndexer` / `historyHelpers` / `historyActions` / `inspectorActions` / `elementLoader`. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 Phase 5/6 allowlist 정렬 필요.
 
 ### 대상 파일
