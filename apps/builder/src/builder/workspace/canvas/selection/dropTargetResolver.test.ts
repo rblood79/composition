@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Element } from "../../../../types/builder/unified.types";
 import type { ElementBounds } from "../elementRegistry";
 import {
   computeDropPlaceholderBounds,
   computeInsertionLinePosition,
   computeReorderFromDropTarget,
   computeSiblingOffsets,
+  type DropTargetNode,
   resolveDropTarget,
 } from "./dropTargetResolver";
 
@@ -15,7 +15,10 @@ vi.mock("../skia/renderCommands", () => ({
   getSceneBounds: (id: string) => mockBounds.get(id),
 }));
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+function makeElement(
+  id: string,
+  overrides: Partial<DropTargetNode> = {},
+): DropTargetNode {
   return {
     id,
     type: "Box",
@@ -25,7 +28,7 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
     props: {},
     deleted: false,
     ...overrides,
-  } as Element;
+  };
 }
 
 describe("resolveDropTarget cross-page body targets", () => {
@@ -102,7 +105,7 @@ describe("resolveDropTarget cross-page body targets", () => {
         order_num: 0,
       }),
       ref: "card-origin",
-    } as Element;
+    };
 
     mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
     mockBounds.set(source.id, { x: 40, y: 40, width: 120, height: 40 });
@@ -280,7 +283,7 @@ describe("resolveDropTarget cross-page body targets", () => {
         order_num: 0,
       }),
       ref: "card-origin",
-    } as Element;
+    };
     const ordinaryDescendant = makeElement("card-instance/content", {
       type: "CardContent",
       page_id: "page-2",

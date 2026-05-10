@@ -16,7 +16,6 @@
  * @since 2026-03-29 ADR-043 Phase 2
  */
 
-import type { Element } from "../../../../types/builder/unified.types";
 import { isLegacyInstanceElement } from "../../../../adapters/canonical/legacyElementFields";
 import { parseGapValue, parsePadding4Way } from "@composition/specs";
 import type { ElementBounds } from "../elementRegistry";
@@ -26,6 +25,20 @@ import { getSpecForTag } from "../sprites/tagSpecMap";
 // ============================================
 // Types
 // ============================================
+
+export interface DropTargetNode {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  deleted?: boolean;
+  order_num?: number;
+  slot?: false | string[];
+  ref?: string;
+  componentRole?: unknown;
+  masterId?: unknown;
+}
 
 export interface DropTarget {
   /** drop target 컨테이너 요소 ID */
@@ -67,8 +80,8 @@ export interface DropIndicatorSnapshot {
 
 /** resolveDropTarget에 필요한 canonical-derived read model */
 export interface DropTargetReadModel {
-  elementsById: ReadonlyMap<string, Element>;
-  childrenByParent: ReadonlyMap<string, Element[]>;
+  elementsById: ReadonlyMap<string, DropTargetNode>;
+  childrenByParent: ReadonlyMap<string, DropTargetNode[]>;
 }
 
 interface ContainerLayoutMetrics {
@@ -82,7 +95,7 @@ interface ContainerLayoutMetrics {
 }
 
 interface ProjectedLayoutItem {
-  element: Element;
+  element: DropTargetNode;
   bounds: ElementBounds;
 }
 
@@ -144,7 +157,7 @@ function normalizeCssKeyword(value: string | undefined): string {
     .toLowerCase();
 }
 
-function getContainerStyleSources(element: Element | undefined): {
+function getContainerStyleSources(element: DropTargetNode | undefined): {
   style: Record<string, unknown> | undefined;
   specStyles: Record<string, unknown> | undefined;
 } {
@@ -160,7 +173,7 @@ function getContainerStyleSources(element: Element | undefined): {
  * 컨테이너의 주요 flex 방향을 결정한다.
  * inline style 우선, 없으면 Spec.containerStyles 를 fallback 으로 사용한다.
  */
-function detectIsHorizontal(element: Element): boolean {
+function detectIsHorizontal(element: DropTargetNode): boolean {
   const { style, specStyles } = getContainerStyleSources(element);
   const flexDir = style?.flexDirection ?? specStyles?.flexDirection;
   if (flexDir === "row" || flexDir === "row-reverse") return true;
@@ -172,23 +185,25 @@ function detectIsHorizontal(element: Element): boolean {
   return false;
 }
 
-function isBodyElement(element: Element): boolean {
+function isBodyElement(element: DropTargetNode): boolean {
   return element.type?.toLowerCase() === "body";
 }
 
-function hasCanonicalRef(element: Element): boolean {
-  return typeof (element as Element & { ref?: unknown }).ref === "string";
+function hasCanonicalRef(element: DropTargetNode): boolean {
+  return (
+    typeof (element as DropTargetNode & { ref?: unknown }).ref === "string"
+  );
 }
 
-function isComponentInstanceElement(element: Element): boolean {
+function isComponentInstanceElement(element: DropTargetNode): boolean {
   return isLegacyInstanceElement(element) || hasCanonicalRef(element);
 }
 
-function isExplicitSlotHost(element: Element): boolean {
+function isExplicitSlotHost(element: DropTargetNode): boolean {
   return Array.isArray(element.slot);
 }
 
-function hasLayoutContainerStyle(element: Element): boolean {
+function hasLayoutContainerStyle(element: DropTargetNode): boolean {
   const { style, specStyles } = getContainerStyleSources(element);
   const display = style?.display;
   const flexDirection = style?.flexDirection;
@@ -218,7 +233,7 @@ function hasLayoutContainerStyle(element: Element): boolean {
 }
 
 function isInsideGuardedInstance(
-  element: Element,
+  element: DropTargetNode,
   store: DropTargetReadModel,
 ): boolean {
   let currentId = element.id;
@@ -232,7 +247,7 @@ function isInsideGuardedInstance(
 }
 
 function acceptsDraggedElement(
-  candidate: Element,
+  candidate: DropTargetNode,
   store: DropTargetReadModel,
 ): boolean {
   if (isBodyElement(candidate)) return true;
@@ -250,27 +265,27 @@ function acceptsDraggedElement(
 }
 
 /**
- * childrenByParent의 canonical/source order를 보존하면서 최신 Element 값을 조회한다.
+ * childrenByParent의 canonical/source order를 보존하면서 최신 DropTargetNode 값을 조회한다.
  * childrenByParent에서 반환된 배열은 stale일 수 있으므로 elementsById만 refresh source로 사용한다.
  */
 function getSortedChildren(
   parentId: string,
   store: DropTargetReadModel,
-): Element[] {
+): DropTargetNode[] {
   const rawChildren = store.childrenByParent.get(parentId);
   if (!rawChildren || rawChildren.length === 0) return [];
 
   // childrenByParent props는 stale → elementsById에서 최신 조회
   const fresh = rawChildren
     .map((c) => store.elementsById.get(c.id))
-    .filter((c): c is Element => c !== undefined);
+    .filter((c): c is DropTargetNode => c !== undefined);
 
   return fresh;
 }
 
 function getBoundedSiblingEntries(
-  siblings: Element[],
-): Array<{ element: Element; bounds: ElementBounds }> {
+  siblings: DropTargetNode[],
+): Array<{ element: DropTargetNode; bounds: ElementBounds }> {
   return siblings
     .map((element) => {
       const bounds = getSceneBounds(element.id);
@@ -280,7 +295,7 @@ function getBoundedSiblingEntries(
       (
         entry,
       ): entry is {
-        element: Element;
+        element: DropTargetNode;
         bounds: ElementBounds;
       } => entry !== null,
     );
@@ -297,7 +312,7 @@ function getBoundedSiblingEntries(
 function isDescendantOf(
   elementId: string,
   ancestorId: string,
-  elementsById: ReadonlyMap<string, Element>,
+  elementsById: ReadonlyMap<string, DropTargetNode>,
 ): boolean {
   let currentId: string | undefined = elementId;
   while (currentId) {
@@ -321,7 +336,7 @@ function resolveCrossContainerDrop(
   const dragged = store.elementsById.get(draggedElementId);
   if (!dragged) return null;
 
-  let bestCandidate: { element: Element; depth: number } | null = null;
+  let bestCandidate: { element: DropTargetNode; depth: number } | null = null;
 
   for (const hitId of hitIds) {
     if (hitId === draggedElementId) continue;
@@ -677,7 +692,7 @@ function getAxisEnd(bounds: ElementBounds, isHorizontal: boolean): number {
 }
 
 function getContainerAxisSpacing(
-  element: Element | undefined,
+  element: DropTargetNode | undefined,
   isHorizontal: boolean,
 ): { paddingStart: number; paddingEnd: number; gap: number } {
   const style = asRecord(element?.props?.style);
@@ -719,7 +734,7 @@ function getCrossSize(bounds: ElementBounds, isHorizontal: boolean): number {
   return isHorizontal ? bounds.height : bounds.width;
 }
 
-function shouldUseFlexProjection(element: Element | undefined): boolean {
+function shouldUseFlexProjection(element: DropTargetNode | undefined): boolean {
   const { style, specStyles } = getContainerStyleSources(element);
   const display = style?.display ?? specStyles?.display;
 
@@ -734,7 +749,7 @@ function shouldUseFlexProjection(element: Element | undefined): boolean {
 }
 
 function getContainerLayoutMetrics(
-  element: Element | undefined,
+  element: DropTargetNode | undefined,
   isHorizontal: boolean,
 ): ContainerLayoutMetrics {
   const { style, specStyles } = getContainerStyleSources(element);
@@ -831,7 +846,7 @@ function computeAlignedCrossStart(
 }
 
 function computeProjectedFlexBounds(
-  container: Element,
+  container: DropTargetNode,
   containerBounds: ElementBounds,
   isHorizontal: boolean,
   items: ProjectedLayoutItem[],
@@ -977,7 +992,9 @@ function computeSameParentSiblingOffsetValue(
   return closeGap + makeSpace;
 }
 
-function buildOriginalIndexMap(children: Element[]): Map<string, number> {
+function buildOriginalIndexMap(
+  children: DropTargetNode[],
+): Map<string, number> {
   const indexes = new Map<string, number>();
   for (let i = 0; i < children.length; i++) {
     indexes.set(children[i].id, i);
@@ -989,7 +1006,7 @@ function computeSameParentInsertionLineFromEntries(
   insertionIndex: number,
   isHorizontal: boolean,
   containerBounds: ElementBounds,
-  siblingEntries: Array<{ element: Element; bounds: ElementBounds }>,
+  siblingEntries: Array<{ element: DropTargetNode; bounds: ElementBounds }>,
   originalIndexMap: Map<string, number>,
   originalDraggedIndex: number,
   dragSpan: number,
@@ -1000,7 +1017,7 @@ function computeSameParentInsertionLineFromEntries(
   }
 
   const getOffset = (
-    entry: { element: Element; bounds: ElementBounds },
+    entry: { element: DropTargetNode; bounds: ElementBounds },
     siblingIndex: number,
   ) =>
     computeSameParentSiblingOffsetValue(
@@ -1042,8 +1059,8 @@ function findSameParentInsertionIndex(
   fallbackIndex: number,
   isHorizontal: boolean,
   containerBounds: ElementBounds,
-  sortedChildren: Element[],
-  siblingEntries: Array<{ element: Element; bounds: ElementBounds }>,
+  sortedChildren: DropTargetNode[],
+  siblingEntries: Array<{ element: DropTargetNode; bounds: ElementBounds }>,
   draggedElementId: string,
   dragBounds: ElementBounds | undefined,
   spacing: { paddingStart: number; gap: number },

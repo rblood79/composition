@@ -9,32 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 2-D drop target resolver read model follow-up land**:
+  - `dropTargetResolver.ts` 의 store `Element` import를 제거하고 `DropTargetNode` structural contract 로 drag/drop target read model, children map, projection helper, reorder helper를 전환.
+  - `dropTargetResolver.test.ts` 도 local `DropTargetNode` fixture 로 전환.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 13 tests PASS.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - **ADR-126 Phase 2-D table generated editor payload follow-up land**:
   - `TableEditor.tsx` / `TableHeaderEditor.tsx` 의 row/column/cell/group create payload 를 `TableEditorElementPayload` / `TableHeaderElementPayload` structural contract 로 전환하고 store `Element` import 및 `: Element[]` payload 를 제거.
   - `TableHeaderEditor` 의 column/cell lookup 과 customId 생성은 canonical property elements 를 소비하도록 전환.
   - 검증: builder type-check PASS, targeted Vitest 1 file / 6 tests PASS.
-  - 잔여: `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - **ADR-126 Phase 2-D collection child manager payload follow-up land**:
   - `useCollectionItemManager.ts` 는 `CollectionItemNode`, `ChildItemManager.tsx` 는 `ChildItemPayload` structural contract 로 store `Element` import/cast 와 direct `useStore.getState().elements` read 를 제거.
   - `ChildItemManager` customId 생성은 `useCanonicalPropertyElements()` 를 소비하도록 전환.
   - 검증: builder type-check PASS, targeted Vitest 2 files / 4 tests PASS.
-  - 잔여: `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - **ADR-126 Phase 2-D generated child editors + tabs actions follow-up land**:
   - 신규 `propertyEditorNode.ts` 의 `PropertyEditorElementPayload` / `PropertyEditorChildNode` contract 로 `ListBoxItemEditor`, `TagEditor`, `TreeItemEditor`, `tabsItemActions`, `TabsEditor` 의 child add payload 와 TabPanel lookup 을 store `Element` import 및 `useStore.getState().elements` direct read 에서 분리.
   - `ListBoxItemEditor` / `TagEditor` customId 생성은 `useCanonicalPropertyElements()` 를 소비하도록 전환.
   - 검증: builder type-check PASS, targeted Vitest 1 file / 5 tests PASS.
-  - 잔여: `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - **ADR-126 Phase 2-D preset apply read/write payload follow-up land**:
   - `LayoutPresetSelector/usePresetApply.ts` 의 store `Element` import/cast 를 제거하고 `PresetElementNode` / `PresetSlotElement` structural contract 로 기존 slot 탐지, canonical replace filter, slot create payload 를 분리.
   - `usePresetApply.static.test.ts` 도 local structural fixture 로 전환하고 production `Element` raw/type/import grep 0건을 고정.
   - 검증: builder type-check PASS, targeted Vitest 1 file / 4 tests PASS.
-  - 잔여: `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - **ADR-126 Phase 2-D frame panels read/load follow-up land**:
   - `frameElementLoader.ts` 의 store `Element` import/cast 와 `loadFrameElements()` 의 기존 store 타입 반환을 `FrameElementNode` structural contract 로 전환.
   - `FramesTab` / `FrameElementTree` 는 `PanelNode` 기반 frame tree read/delete/click props 를 소비하도록 정리.
   - G2-D frame slice grep: `frameElementLoader.ts` + `FramesTab` + `FrameElementTree` production store `Element` import hit 0.
   - 검증: builder type-check PASS, targeted Vitest 5 files / 45 tests PASS.
-  - 잔여: `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - **ADR-126 Phase 2-D panels/interaction read-model core land**:
   - 신규 `PanelNode` contract 로 Properties/LayerTree read path 를 Builder store `Element` import 에서 분리.
   - 신규 `CanvasInteractionNode` contract 로 selection hit-test, selected bounds, context menu, drag bridge, hover, scroll interaction input 을 구조적 read model 로 전환.
@@ -42,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `CanvasSceneNode.layout_id` transition alias 를 보강해 scene node 기반 frame body interaction helper 호환을 유지.
   - G2-D core grep: panels read path + canvas interaction core production store `Element` import hit 0.
   - 검증: builder type-check PASS, targeted Vitest 11 files / 82 tests PASS.
-  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection, `dropTargetResolver.ts` 는 Phase 2/4/5에서 정리.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection 은 Phase 5에서 정리.
 - **ADR-126 Phase 2-E preview boundary core land**:
   - `preview/App.tsx` 의 `resolveCanonicalRefTree` 와 frame mirror checks 를 `PreviewElement` generic path 로 전환하고 store `Element` casts/import 를 제거.
   - `preview/utils/layoutResolver.ts` 는 preview-local result types + `PreviewElement` 를 사용하도록 분리.
