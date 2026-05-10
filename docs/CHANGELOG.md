@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 elements page removal local map slice land**:
+  - `elements.ts` 의 `removePageLocal` page removal/de-dup maps 를 `PageRemovalElementMap` / `PageRemovalElementsByPreviousId` alias contract 로 전환했다.
+  - page shell removal 및 auto-detach semantics 는 변경하지 않았다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **ADR-126 Phase 4 history actions compatibility map slice land**:
   - `historyActions.ts` 의 cloud compatibility upsert lookup map 을 `HistoryCompatibilityElementMap` alias contract 로 전환했다.
   - canonical history event/diff application semantics 는 변경하지 않았다.

@@ -352,6 +352,14 @@ export interface ElementsState {
 export type StoreElementCacheSnapshot = Readonly<Element>;
 export type StoreElementCacheMap = Map<string, StoreElementCacheSnapshot>;
 export type StoreChildrenCacheMap = Map<string, StoreElementCacheSnapshot[]>;
+type PageRemovalElementMap<TElement extends Element = Element> = Map<
+  string,
+  TElement
+>;
+type PageRemovalElementsByPreviousId<TElement extends Element = Element> = Map<
+  string,
+  TElement[]
+>;
 
 type PageActivationPatch = Pick<
   ElementsState,
@@ -1150,7 +1158,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       const startTime = performance.now();
       set((state) => {
         const detachSourceState = buildDetachedPageRemovalState(state);
-        const removedElementsMap = new Map<string, Element>();
+        const removedElementsMap: PageRemovalElementMap = new Map();
         for (const element of detachSourceState.elements) {
           if (element.page_id === pageId) {
             removedElementsMap.set(element.id, element);
@@ -1165,9 +1173,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           removedElements,
           removedElementIds,
         );
-        const autoDetachElementsByPreviousId = new Map<string, Element[]>(
-          autoDetach.previousElements.map((element) => [element.id, []]),
-        );
+        const autoDetachElementsByPreviousId: PageRemovalElementsByPreviousId =
+          new Map(
+            autoDetach.previousElements.map((element) => [element.id, []]),
+          );
         let currentDetachedRootId: string | null = null;
         for (const element of autoDetach.elements) {
           if (autoDetachElementsByPreviousId.has(element.id)) {

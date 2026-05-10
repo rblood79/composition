@@ -13,6 +13,8 @@ describe("elements store cache contract", () => {
     expect(source).toContain("childrenMap: StoreChildrenCacheMap;");
     expect(source).toContain("const elementsMap: StoreElementCacheMap");
     expect(source).toContain("const childrenMap: StoreChildrenCacheMap");
+    expect(source).toContain("type PageRemovalElementMap");
+    expect(source).toContain("type PageRemovalElementsByPreviousId");
     expect(source).not.toContain("elementsMap: Map<string, Element>;");
     expect(source).not.toContain("childrenMap: Map<string, Element[]>;");
     expect(source).not.toContain(
@@ -20,6 +22,12 @@ describe("elements store cache contract", () => {
     );
     expect(source).not.toContain(
       "const childrenMap = new Map<string, Element[]>();",
+    );
+    expect(source).not.toContain(
+      "const removedElementsMap = new Map<string, Element>();",
+    );
+    expect(source).not.toContain(
+      "const autoDetachElementsByPreviousId = new Map<string, Element[]>(",
     );
   });
 });
