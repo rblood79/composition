@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 3 scope cleanup**:
+  - 현재 코드 재측정 결과 `useStore.getState().elementsMap|childrenMap` production direct read 는 adapter doc comment 를 제외하면 0건이지만, `stores/**` 전체 map type grep 은 store state 와 inspector/loader/history/utility consumer 를 함께 잡는 것을 명시했다.
+  - Phase 3 범위를 `elements.ts` 의 `elementsMap`/`childrenMap` store state/cache contract 정렬로 좁히고, mutation/action/history/inspector/loader/utility map consumer 전환은 Phase 4 소유로 재분리했다.
+  - 문서 정리만 수행하며 runtime behavior 변경 없음.
 - **ADR-126 Phase 2 canvas renderer input/bootstrap projection follow-up land**:
   - `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 page-resolved render tree 를 `CanvasSceneNode` contract 로 전환.
   - `createSkiaRendererInput()` 은 caller 주입 `sceneNodes` / `sceneNodesMap` / `sceneChildrenByParent` 를 필수로 소비하며, 내부 legacy scene fallback 을 제거.

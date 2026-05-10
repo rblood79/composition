@@ -208,25 +208,31 @@ rg -n "import.*\bElement\b" \
 
 ## 6. Phase 3 — store cache canonical-native 전환
 
-**목표**: `elementsMap` / `childrenMap` store state의 `Element` key/value 타입 참조를 canonical-native로 전환한다. ADR-125 render input contract closure 후 store cache 가 canonical-derived read-only 로 좁아진 상태에서 진행.
+**Status: Scope Cleaned — 2026-05-10**
+
+**목표**: `elementsMap` / `childrenMap` store state/cache contract 의 `Element` key/value 타입 참조를 canonical-native 또는 deprecated readonly snapshot 으로 전환한다. ADR-125 render input contract closure 후 store cache 가 canonical-derived read-only 로 좁아진 상태에서 진행한다.
+
+**경계 정리**: 현재 `stores/**` 전체 grep 은 `elements.ts` store state 뿐 아니라 `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementCreation.ts`, `elementUpdate.ts`, `elementIndexer.ts`, grouping/alignment/distribution utility 까지 함께 잡는다. 이들은 mutation/action/history/inspector/loader/utility consumer 이므로 Phase 4 소유다. Phase 3 에서는 store state/cache contract 를 먼저 좁히고, `elements: Element[]` compatibility cache 자체 삭제는 Phase 4/5 consumer closure 이후로 미룬다.
 
 ### 작업
 
 1. ADR-122/125 closure 후 direct hot-path read 가 0건인지 확인 — `useStore.getState().elementsMap|childrenMap` 0 hit 는 direct read closure 근거일 뿐 store state 타입 closure 로 간주하지 않는다
-2. `unified.types.ts` store state 인터페이스에서 `elements: Element[]` 제거 또는 canonical-derived readonly 타입으로 교체
-3. `elements.ts` store slice에서 `Element[]` state 제거 또는 deprecated 마킹
-4. `useElements`, `useElementById`, `useChildElements` hook이 canonical-native source를 사용하는지 확인 (ADR-122 Phase 4에서 일부 전환됨)
+2. `elements.ts` 의 `ElementsState.elementsMap` / `childrenMap` state contract 를 `Map<string, Element>` / `Map<string, Element[]>` 에서 structural readonly/deprecated snapshot contract 로 전환
+3. `elements.ts` 의 `buildIndexes()` / local subtree helper 가 위 cache contract 를 생성하도록 정렬. 단, mutation payload 와 `elements: Element[]` compatibility cache 삭제는 Phase 4/5 로 넘긴다
+4. `useElements`, `useElementById`, `useChildElements` hook이 canonical-native source를 우선 사용하는지 확인 (ADR-122 Phase 4에서 일부 전환됨)
+5. `unified.types.ts` 의 legacy `ElementsState.elements: Element[]` 는 store-cache map gate 가 아니므로 Phase 4/5 cleanup 대상 inventory 에 남긴다
 
 ### Phase 3 Gate (G3)
 
 ```bash
-# store state에서 Element key/value 참조
-rg -n "elementsMap.*Element|Element.*elementsMap|childrenMap.*Element" \
-  apps/builder/src/builder/stores \
+# store state/cache contract 에서 Element key/value 참조
+rg -n "elementsMap: Map<string, Element>|childrenMap: Map<string, Element\\[\\]>|new Map<string, Element>|new Map<string, Element\\[\\]>" \
+  apps/builder/src/builder/stores/elements.ts \
   --include="*.ts"
 ```
 
 - 위 명령 결과 non-deprecated 참조 0건
+- `rg -n "useStore\\.getState\\(\\)\\.elementsMap|useStore\\.getState\\(\\)\\.childrenMap" apps/builder/src --glob "*.ts" --glob "*.tsx" --glob "!**/*.test.ts" --glob "!**/*.test.tsx"` 결과 production code direct read 0건 (adapter doc comment 제외)
 - `pnpm -F @composition/builder exec vitest run src/builder/stores` PASS
 
 ---
@@ -329,20 +335,20 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 
 ## 10. Phase Plan 요약
 
-| Phase       | 목표                                                          | 주요 산출물                                                                                     | Gate | 진입 조건                             |
-| ----------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------- |
-| Phase 0     | Inventory freeze                                              | bucket 분류 + prerequisite 확인                                                                 | G0   | 없음 (즉시 수행 가능)                 |
-| Phase 1     | canonical-native model 검증                                   | hot path 커버 가능 여부 + FPS baseline                                                          | G1   | ADR-123/124/125 Implemented           |
-| **Phase 2** | **hot path consumer 전환 (5 sub-group + residual follow-up)** | sub-group 별 caller cascade evidence + targeted vitest + type-check                             | G2   | G1 PASS + ADR-127 Implemented         |
-| ↳ 2-A       | Skia render path                                              | `workspace/canvas/skia/**` + `scene/**` (실측 24 file). scene model 직접 access swap            | G2-A | G1 PASS + ADR-127 Implemented         |
-| ↳ 2-B       | Layout engine                                                 | `workspace/canvas/layout/**` (~8 file). `processedElementsMap` cascade                          | G2-B | 2-A PASS (render path 의존)           |
-| ↳ 2-C       | Renderer input + ref resolution                               | `rendererInput.ts` + `canonicalRefResolution.ts` + `storeBridge.ts` (~8 file)                   | G2-C | 2-A PASS                              |
-| ↳ 2-D       | Panels (properties + nodes/LayerTree)                         | `panels/properties/**` + `panels/nodes/**` (~25 file)                                           | G2-D | 2-C PASS (canonical helper API 의존)  |
-| ↳ 2-E       | Preview render                                                | `preview/**` + `services/messaging.ts` layout receive (~7 file)                                 | G2-E | 2-A PASS (scene snapshot 송신측 의존) |
-| Phase 3     | store cache 전환                                              | `elementsMap`/`childrenMap` store state 타입 canonical-native 또는 deprecated readonly snapshot | G3   | G2 PASS                               |
-| Phase 4     | history/inspector/drag-drop/AI tools/messaging                | 나머지 consumer + boundary allowlist (BuilderCore mount / utility / Factory 포함)               | G4   | G3 PASS                               |
-| Phase 5     | derived view 제거                                             | `canonicalDocumentToElements` non-boundary 0건                                                  | G5   | G4 PASS                               |
-| Phase 6     | final verification                                            | `@deprecated` 마킹 + browser smoke + preflight                                                  | G6   | G5 PASS                               |
+| Phase       | 목표                                                          | 주요 산출물                                                                                                                                                     | Gate | 진입 조건                             |
+| ----------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------- |
+| Phase 0     | Inventory freeze                                              | bucket 분류 + prerequisite 확인                                                                                                                                 | G0   | 없음 (즉시 수행 가능)                 |
+| Phase 1     | canonical-native model 검증                                   | hot path 커버 가능 여부 + FPS baseline                                                                                                                          | G1   | ADR-123/124/125 Implemented           |
+| **Phase 2** | **hot path consumer 전환 (5 sub-group + residual follow-up)** | sub-group 별 caller cascade evidence + targeted vitest + type-check                                                                                             | G2   | G1 PASS + ADR-127 Implemented         |
+| ↳ 2-A       | Skia render path                                              | `workspace/canvas/skia/**` + `scene/**` (실측 24 file). scene model 직접 access swap                                                                            | G2-A | G1 PASS + ADR-127 Implemented         |
+| ↳ 2-B       | Layout engine                                                 | `workspace/canvas/layout/**` (~8 file). `processedElementsMap` cascade                                                                                          | G2-B | 2-A PASS (render path 의존)           |
+| ↳ 2-C       | Renderer input + ref resolution                               | `rendererInput.ts` + `canonicalRefResolution.ts` + `storeBridge.ts` (~8 file)                                                                                   | G2-C | 2-A PASS                              |
+| ↳ 2-D       | Panels (properties + nodes/LayerTree)                         | `panels/properties/**` + `panels/nodes/**` (~25 file)                                                                                                           | G2-D | 2-C PASS (canonical helper API 의존)  |
+| ↳ 2-E       | Preview render                                                | `preview/**` + `services/messaging.ts` layout receive (~7 file)                                                                                                 | G2-E | 2-A PASS (scene snapshot 송신측 의존) |
+| Phase 3     | store cache contract 전환                                     | `elementsMap`/`childrenMap` store state/cache contract 를 canonical-native 또는 deprecated readonly snapshot 으로 정렬. mutation/action utility 는 Phase 4 소유 | G3   | G2 PASS                               |
+| Phase 4     | history/inspector/drag-drop/AI tools/messaging                | 나머지 consumer + boundary allowlist (BuilderCore mount / utility / Factory 포함)                                                                               | G4   | G3 PASS                               |
+| Phase 5     | derived view 제거                                             | `canonicalDocumentToElements` non-boundary 0건                                                                                                                  | G5   | G4 PASS                               |
+| Phase 6     | final verification                                            | `@deprecated` 마킹 + browser smoke + preflight                                                                                                                  | G6   | G5 PASS                               |
 
 **Phase 2 진입 권고 순서**: 2-A → 2-C → 2-B → 2-E → 2-D. 이유 — 2-A (Skia render path) 가 ADR-127 helper API 직접 access 진입점이라 가장 작은 scope 로 진정 reverse 패턴 검증 가능. 2-A 완료 후 cascade 학습값으로 2-B/2-C/2-E/2-D 적용. agent dispatch 사용 여부는 2-A 직접 land 결과 후 판단 (memory `feedback-agent-completion-failure-pattern` — HIGH 위험 작업 agent dispatch 신뢰도 낮음).
 
@@ -360,9 +366,10 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 ### store-cache bucket (Phase 3 — direct read closure 확인 + store state 타입 전환)
 
 - `apps/builder/src/builder/stores/elements.ts`
-- `apps/builder/src/types/builder/unified.types.ts` (store state 인터페이스)
 - direct read 측정: `useStore.getState().elementsMap|childrenMap` production hit = **0** (inventory §3-B)
 - 잔여: `ElementsState.elementsMap: Map<string, Element>` / `childrenMap: Map<string, Element[]>` 타입 참조는 Phase 3 G3 에서 제거 또는 deprecated readonly snapshot 으로 정렬
+- 제외: `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementCreation.ts`, `elementUpdate.ts`, `elementIndexer.ts`, grouping/alignment/distribution utility 의 map consumer 는 Phase 4 전환 대상
+- `apps/builder/src/types/builder/unified.types.ts` 의 legacy `ElementsState.elements: Element[]` 는 store-cache map contract 가 아니므로 Phase 4/5 cleanup 대상 inventory 로 유지
 
 ### hot-path-consumer bucket — Phase 2 sub-group 매핑
 

@@ -48,12 +48,14 @@ production 호출 site (~10):
 - `apps/builder/src/builder/stores/canvasStore.ts:108,128`
 - `apps/builder/src/builder/panels/nodes/LayersSection.tsx`
 
-### 3-B. `store-cache` (Phase 3 전환 — direct read 0, store state 타입 잔여)
+### 3-B. `store-cache` (Phase 3 전환 — direct read 0, store state/cache contract 잔여)
 
 ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과로 `useStore.getState().elementsMap`/`childrenMap` direct hot-path read 는 0건이다. 이는 render/layout direct read closure 근거이며, store state 타입 자체가 닫혔다는 의미는 아니다.
 
-- 측정: `rg -n "useStore.getState().elementsMap|useStore.getState().childrenMap" apps/builder/src` = **0 hit**
-- 잔여: `apps/builder/src/builder/stores/elements.ts` 의 `ElementsState.elementsMap: Map<string, Element>` / `childrenMap: Map<string, Element[]>` 및 store utility의 `Element` key/value 타입 참조는 Phase 3 G3 전환 대상.
+- 측정: `rg -n "useStore.getState().elementsMap|useStore.getState().childrenMap" apps/builder/src --glob "*.ts" --glob "*.tsx" --glob "!**/*.test.ts" --glob "!**/*.test.tsx"` 결과 중 adapter doc comment 1건을 제외하면 production code **0 hit**
+- 2026-05-10 재측정: test 제외 production code direct read 는 adapter doc comment 1건을 제외하면 0건. `stores/**` 의 map type grep 은 `elements.ts` store state 외에 inspector/loader/history/utility consumer 를 함께 잡으므로 Phase 3 gate 로 쓰면 Phase 4 범위가 섞인다.
+- Phase 3 잔여: `apps/builder/src/builder/stores/elements.ts` 의 `ElementsState.elementsMap: Map<string, Element>` / `childrenMap: Map<string, Element[]>` 와 local index 생성 contract 를 structural readonly/deprecated snapshot 으로 정렬.
+- Phase 4 잔여: `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementCreation.ts`, `elementUpdate.ts`, `elementIndexer.ts`, grouping/alignment/distribution utility 의 `Element` map consumer 전환.
 
 ### 3-C. `hot-path-consumer` (Phase 2/4 전환 대상)
 
@@ -85,14 +87,14 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 
 ## 4. Phase 1+ 진입 권장 순서
 
-| Phase | Goal                                                                                                                                                    | Bucket 적용                               | 의존        |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------- |
-| 1     | derived-view boundary 격리 — `canonicalDocumentToElements`/`useCanonicalElements` 가 boundary allowlist file 내부 정의로만 export, hot path import 차단 | `derived-view`                            | —           |
-| 2     | hot-path-consumer 전환 (1) — Skia / layout / Preview render path 가 canonical-native node/path/alias model 직접 소비                                    | `hot-path-consumer` (Skia/layout/Preview) | Phase 1     |
-| 3     | store-cache 정합 — direct read 0 확인 후 `elementsMap`/`childrenMap` store state 타입을 canonical-native 또는 deprecated readonly snapshot 으로 정렬    | `store-cache`                             | Phase 2     |
-| 4     | hot-path-consumer 전환 (2) — Properties / LayerTree / History / drag-drop / AI tools / messaging                                                        | `hot-path-consumer` (나머지)              | Phase 2     |
-| 5     | derived-view 제거 — `canonicalDocumentToElements`/`useCanonicalElements` production caller 0 후 함수 자체 deprecate / boundary allowlist 만 사용        | `derived-view`                            | Phase 1+2+4 |
-| 6     | final verification — `Element` 타입에 `@deprecated` JSDoc + boundary grep gate + targeted vitest + browser smoke                                        | `test-doc`                                | Phase 5     |
+| Phase | Goal                                                                                                                                                            | Bucket 적용                               | 의존        |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------- |
+| 1     | derived-view boundary 격리 — `canonicalDocumentToElements`/`useCanonicalElements` 가 boundary allowlist file 내부 정의로만 export, hot path import 차단         | `derived-view`                            | —           |
+| 2     | hot-path-consumer 전환 (1) — Skia / layout / Preview render path 가 canonical-native node/path/alias model 직접 소비                                            | `hot-path-consumer` (Skia/layout/Preview) | Phase 1     |
+| 3     | store-cache 정합 — direct read 0 확인 후 `elementsMap`/`childrenMap` store state/cache contract 를 canonical-native 또는 deprecated readonly snapshot 으로 정렬 | `store-cache`                             | Phase 2     |
+| 4     | hot-path-consumer 전환 (2) — Properties / LayerTree / History / drag-drop / AI tools / messaging                                                                | `hot-path-consumer` (나머지)              | Phase 2     |
+| 5     | derived-view 제거 — `canonicalDocumentToElements`/`useCanonicalElements` production caller 0 후 함수 자체 deprecate / boundary allowlist 만 사용                | `derived-view`                            | Phase 1+2+4 |
+| 6     | final verification — `Element` 타입에 `@deprecated` JSDoc + boundary grep gate + targeted vitest + browser smoke                                                | `test-doc`                                | Phase 5     |
 
 ## Phase 0 G0 통과 결과
 
@@ -101,7 +103,8 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - [x] derived-view symbol 4 location enumerate
 - [x] useCanonicalElements production caller ~10 enumerate
 - [x] store-cache direct read bucket = 0 hit 확인
-- [ ] store-cache store state 타입 전환은 Phase 3 잔여
+- [x] store-cache Phase 3/4 경계 재정리 — Phase 3 은 `elements.ts` state/cache contract, Phase 4 는 store utility/action consumer
+- [ ] store-cache store state/cache contract 전환은 Phase 3 잔여
 - [x] hot-path-consumer 카테고리 분류 완료
 - [x] boundary-allowed allowlist 명시
 - [x] Phase 1+ 진입 순서 6 phase plan freeze

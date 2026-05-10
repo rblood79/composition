@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-10 — **ADR-126 Phase 2 canvas renderer input/bootstrap projection follow-up land**. `rendererInput.ts` 의 render-tree `Element` shape 를 `CanvasSceneNode` contract 로 전환하고, `BuilderCanvas` 의 `getSceneModel*Legacy` fallback/store `Element` import 를 제거했다. legacy bootstrap 변환은 `canonicalSceneModelLegacy.ts` boundary 로 격리. production grep 0건 + builder type-check + targeted Vitest 4 files / 10 tests PASS.
+> **최종 업데이트**: 2026-05-10 — **ADR-126 Phase 3 scope cleanup**. 현재 코드 재측정 결과 `elementsMap|childrenMap` direct hot-path read 는 닫혔지만, `stores/**` 전체 grep 은 store state 와 inspector/loader/history/utility consumer 를 함께 잡아 Phase 3/4 범위가 섞였다. Phase 3 을 `elements.ts` store state/cache contract 정렬로 좁히고, mutation/action/history/inspector/loader/utility map consumer 는 Phase 4 소유로 재분리했다. 문서 정리만 수행하며 runtime behavior 변경 없음.
+>
+> **2026-05-10 (직전) — ADR-126 Phase 2 canvas renderer input/bootstrap projection follow-up land**. `rendererInput.ts` 의 render-tree `Element` shape 를 `CanvasSceneNode` contract 로 전환하고, `BuilderCanvas` 의 `getSceneModel*Legacy` fallback/store `Element` import 를 제거했다. legacy bootstrap 변환은 `canonicalSceneModelLegacy.ts` boundary 로 격리. production grep 0건 + builder type-check + targeted Vitest 4 files / 10 tests PASS.
 > 잔여는 Phase 3 store-cache 타입, Phase 4 history/inspector/drag-drop/AI/messaging consumer, Phase 5 derived-view/transition alias, Phase 6 final audit 로 재정리.
 >
 > **2026-05-10 (직전) — ADR-126 Phase 2-D drop target resolver read model follow-up land**. `dropTargetResolver.ts` 의 store `Element` import를 제거하고 `DropTargetNode` structural contract 로 drag/drop target read model, children map, projection helper, reorder helper를 전환. production grep 0건 + builder type-check + targeted Vitest 1 file / 13 tests PASS.
