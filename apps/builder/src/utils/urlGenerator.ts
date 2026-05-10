@@ -10,17 +10,24 @@
  * 4. 그 외 → "/" + Page.slug
  */
 
-import type { Page } from "../types/builder/unified.types";
-import type { Layout } from "../types/builder/layout.types";
-
 // ============================================
 // Types
 // ============================================
 
+export interface UrlPage {
+  id: string;
+  slug: string;
+  parent_id?: string | null;
+}
+
+export interface UrlLayout {
+  slug?: string | null;
+}
+
 interface GeneratePageUrlParams {
-  page: Page;
-  layout?: Layout | null;
-  allPages?: Page[];
+  page: UrlPage;
+  layout?: UrlLayout | null;
+  allPages?: UrlPage[];
 }
 
 // ============================================
@@ -93,7 +100,7 @@ export function generatePageUrl({
  * @param parentId - 부모 페이지 ID
  * @param allPages - 전체 페이지 목록
  */
-function buildParentPath(parentId: string, allPages: Page[]): string {
+function buildParentPath(parentId: string, allPages: UrlPage[]): string {
   const parent = allPages.find((p) => p.id === parentId);
   if (!parent) return "";
 

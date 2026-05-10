@@ -1,21 +1,20 @@
 import React from "react";
-import { ElementProps } from "../../types/integrations/supabase.types";
-import { DataBinding } from "../../types/builder/unified.types";
+import type { ElementProps } from "../../types/integrations/supabase.types";
 import { EventEngine } from "../../utils/events/eventEngine";
 
 /**
- * Preview에서 사용하는 Element 타입
+ * Preview runtime node shape.
  */
 export interface PreviewElement {
   id: string;
   customId?: string; // custom_id from database (e.g., button_1, table_1)
   type: string;
   fills?: unknown[];
-  props: ElementProps;
+  props: ElementProps & Record<string, unknown>;
   text?: string;
   parent_id?: string | null;
   page_id?: string | null; // Layout element면 null
-  dataBinding?: DataBinding;
+  dataBinding?: Record<string, unknown>;
   deleted?: boolean;
 }
 
@@ -29,7 +28,7 @@ export interface RenderContext {
   /** parent_id 기반 자식 조회 인덱스 — canonical source order 보존 */
   childrenByParent: ReadonlyMap<string, readonly PreviewElement[]>;
   updateElementProps: (id: string, props: Record<string, unknown>) => void;
-  /** 여러 element props를 한 번에 업데이트 (단일 commit) */
+  /** 여러 node props를 한 번에 업데이트 (단일 commit) */
   batchUpdateElementProps: (
     updates: Array<{ id: string; props: Record<string, unknown> }>,
   ) => void;

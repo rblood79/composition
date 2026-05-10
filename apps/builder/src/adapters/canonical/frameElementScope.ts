@@ -3,8 +3,12 @@ import type {
   CompositionDocument,
   FrameNode,
 } from "@composition/shared";
-import type { Element } from "@/types/builder/unified.types";
 import { getReusableFrameMirrorId } from "./frameMirror";
+
+export interface CanonicalFrameScopedNode {
+  id: string;
+  deleted?: boolean;
+}
 
 export interface CanonicalFrameElementScope {
   bodyElementId: string | null;
@@ -83,9 +87,8 @@ export function canonicalDocumentToFrameElementScopes(
   return scopes;
 }
 
-export function isElementInCanonicalFrameScope(
-  element: Element,
-  scope: CanonicalFrameElementScope,
-): boolean {
+export function isElementInCanonicalFrameScope<
+  T extends CanonicalFrameScopedNode,
+>(element: T, scope: CanonicalFrameElementScope): boolean {
   return !element.deleted && scope.elementIds.has(element.id);
 }

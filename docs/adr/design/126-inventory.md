@@ -165,3 +165,22 @@ layout publisher input 명칭/shape 를 실제 역할에 맞게 정리했다.
 - `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 interaction/read-model fallback 때문에 아직 `Element` shape 를 포함한다. Phase 2-D/Phase 5 제거 대상.
 - `BuilderCanvas` 의 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback, interactive hover/scroll read-model 은 아직 store `Element` import 를 유지한다.
 - `CanvasLayoutNode` 는 transition 중 `parent_id/page_id/layout_id` legacy field 를 허용한다. alias 제거는 Phase 5 boundary 정리에서 처리한다.
+
+## 8. Phase 2-E 진행 결과 (2026-05-10)
+
+Preview runtime boundary 가 Builder store `Element` 로 되돌아가던 cast/import 를 제거하고,
+preview-local node contract 로 분리했다.
+
+| 측정 대상                                                                                              | 결과                                           |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| `apps/builder/src/preview/**` production `Element` raw/type import hit                                 | **0**                                          |
+| `apps/builder/src/services/messaging.ts` + `apps/builder/src/utils/urlGenerator.ts` store type/raw hit | **0**                                          |
+| 같은 scope `UPDATE_ELEMENTS` production hit                                                            | **0**                                          |
+| Preview canonical ref resolution                                                                       | `resolveCanonicalRefTree<PreviewElement>()`    |
+| Targeted Vitest                                                                                        | **2 files / 9 tests PASS**                     |
+| Type-check                                                                                             | `pnpm -F @composition/builder type-check` PASS |
+
+잔여 bucket:
+
+- `frameElementLoader.loadFrameElements()` 는 panels/slot selector/preset apply caller 때문에 아직 `Element[]` 를 반환한다. Phase 2-D/Phase 5에서 frame helper/panel caller 와 함께 정리한다.
+- `rendererInput.ts` render-tree / interactive fallback 과 `BuilderCanvas` legacy store read 는 Phase 2-D/Phase 5 잔여다.

@@ -31,7 +31,6 @@ import { camelToKebab } from "./utils/computedStyleExtractor";
 
 import { resolveCanonicalDocument } from "../resolvers/canonical";
 import { getSharedImportRegistry } from "../resolvers/canonical/importRegistry";
-import type { Element } from "../types/builder/unified.types";
 
 // ADR-903 P2 옵션 C: canonical renderer feature flag
 // ?canonical=1 URL param 으로 opt-in. 기본 false → legacy 경로 보존 (회귀 0 보장).
@@ -243,10 +242,7 @@ function CanvasContent() {
       bodyElement = elements.find(
         (el) =>
           el.type === "body" &&
-          isLegacyFrameElementForFrame(
-            el as unknown as Element,
-            currentLayoutId,
-          ) &&
+          isLegacyFrameElementForFrame(el, currentLayoutId) &&
           !el.parent_id,
       );
     } else if (currentLayoutId && !currentPageId) {
@@ -254,10 +250,7 @@ function CanvasContent() {
       bodyElement = elements.find(
         (el) =>
           el.type === "body" &&
-          isLegacyFrameElementForFrame(
-            el as unknown as Element,
-            currentLayoutId,
-          ) &&
+          isLegacyFrameElementForFrame(el, currentLayoutId) &&
           !el.parent_id,
       );
     } else {
@@ -473,13 +466,11 @@ function CanvasContent() {
 
   const resolvedElements = useMemo(() => {
     if (elements.length === 0) return elements;
-    const sourceElementsMap = new Map(
-      elements.map((el) => [el.id, el as unknown as Element]),
-    );
-    return resolveCanonicalRefTree({
-      elements: elements as unknown as Element[],
+    const sourceElementsMap = new Map(elements.map((el) => [el.id, el]));
+    return resolveCanonicalRefTree<PreviewElement>({
+      elements,
       elementsMap: sourceElementsMap,
-    }).elements as unknown as PreviewElement[];
+    }).elements;
   }, [elements]);
 
   // id/parent_id 기반 read model (RenderContext에 함께 노출)
@@ -531,7 +522,7 @@ function CanvasContent() {
     ],
   );
 
-  // Element 렌더링 함수 (내부)
+  // Preview node 렌더링 함수 (내부)
   const renderElementInternal = useCallback(
     (el: PreviewElement, key?: string): React.ReactNode => {
       const adaptedElement = adaptElementFillStyle(el);
@@ -907,7 +898,7 @@ function CanvasContent() {
     // (currentPageId가 있고 currentLayoutId가 있을 때만 - Layout 모드에서는 currentPageId가 null)
     if (currentLayoutId && currentPageId) {
       const layoutElements = resolvedElements.filter((el) =>
-        isLegacyFrameElementForFrame(el as unknown as Element, currentLayoutId),
+        isLegacyFrameElementForFrame(el, currentLayoutId),
       );
       const pageElements = resolvedElements.filter(
         (el) => el.page_id === currentPageId && !hasFrameElementMirrorId(el),
@@ -938,7 +929,7 @@ function CanvasContent() {
     // ⭐ Layout 편집 모드 (currentLayoutId만 있고 currentPageId 없음)
     if (currentLayoutId && !currentPageId) {
       const layoutElements = resolvedElements.filter((el) =>
-        isLegacyFrameElementForFrame(el as unknown as Element, currentLayoutId),
+        isLegacyFrameElementForFrame(el, currentLayoutId),
       );
       const layoutBody = layoutElements.find(
         (el) => el.type === "body" && !el.parent_id,

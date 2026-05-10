@@ -5,6 +5,7 @@ import { visitCanonicalDocumentElements } from "@/builder/stores/canonical/canon
 import {
   canonicalDocumentToFrameElementScopes,
   isElementInCanonicalFrameScope,
+  type CanonicalFrameScopedNode,
   type CanonicalFrameElementScope,
 } from "./frameElementScope";
 
@@ -12,7 +13,13 @@ export interface FrameElementLoaderDb {
   readonly legacyDbArgument?: never;
 }
 
-function isBodyElement(element: Element): boolean {
+export interface FrameElementLike extends CanonicalFrameScopedNode {
+  type: string;
+  parent_id?: string | null;
+  page_id?: string | null;
+}
+
+function isBodyElement(element: FrameElementLike): boolean {
   return element.type.toLowerCase() === "body";
 }
 
@@ -26,15 +33,15 @@ function collectFrameLoaderElements(
   return elements;
 }
 
-export function isFrameElementForFrame(
-  element: Element,
+export function isFrameElementForFrame<T extends FrameElementLike>(
+  element: T,
   frameScope: CanonicalFrameElementScope,
 ): boolean {
   return isElementInCanonicalFrameScope(element, frameScope);
 }
 
-export function isLegacyFrameElementForFrame(
-  element: Element,
+export function isLegacyFrameElementForFrame<T extends FrameElementLike>(
+  element: T,
   frameId: string,
 ): boolean {
   return (
@@ -44,7 +51,10 @@ export function isLegacyFrameElementForFrame(
   );
 }
 
-function hasFrameBody(elements: Element[], frameId: string): boolean {
+function hasFrameBody<T extends FrameElementLike>(
+  elements: readonly T[],
+  frameId: string,
+): boolean {
   return elements.some(
     (element) =>
       !element.deleted &&
@@ -54,8 +64,8 @@ function hasFrameBody(elements: Element[], frameId: string): boolean {
   );
 }
 
-export function hasHydratedFrameElements(
-  elementsMap: ReadonlyMap<string, Element>,
+export function hasHydratedFrameElements<T extends FrameElementLike>(
+  elementsMap: ReadonlyMap<string, T>,
   frameScope: CanonicalFrameElementScope,
 ): boolean {
   for (const element of elementsMap.values()) {
@@ -66,11 +76,11 @@ export function hasHydratedFrameElements(
   return false;
 }
 
-export function collectHydratedFrameElements(
-  elementsMap: ReadonlyMap<string, Element>,
+export function collectHydratedFrameElements<T extends FrameElementLike>(
+  elementsMap: ReadonlyMap<string, T>,
   frameScope: CanonicalFrameElementScope,
-): Element[] {
-  const frameElements: Element[] = [];
+): T[] {
+  const frameElements: T[] = [];
   for (const element of elementsMap.values()) {
     if (isFrameElementForFrame(element, frameScope)) {
       frameElements.push(element);

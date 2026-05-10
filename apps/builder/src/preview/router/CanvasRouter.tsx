@@ -18,8 +18,11 @@ import { RouterContext } from "./canvasRouterContext";
 import { useCanvasParams } from "./canvasRouterHooks";
 import { useRuntimeStore } from "../store";
 import type { RuntimeLayout } from "../store/types";
-import { generatePageUrl, hasDynamicParams } from "../../utils/urlGenerator";
-import type { Page } from "../../types/builder/unified.types";
+import {
+  generatePageUrl,
+  hasDynamicParams,
+  type UrlPage,
+} from "../../utils/urlGenerator";
 import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,
@@ -196,8 +199,8 @@ export function CanvasRouter({ renderElements, children }: CanvasRouterProps) {
 
   // ⭐ Nested Routes & Slug System: 각 페이지의 최종 URL 계산
   const routeConfigs = useMemo(() => {
-    // RuntimePage를 Page 타입으로 변환 (generatePageUrl 호환)
-    const pagesAsPage: Page[] = pages.map((p) =>
+    // RuntimePage를 URL generator 입력 shape 로 변환
+    const pagesAsPage: UrlPage[] = pages.map((p) =>
       withPageFrameBinding(
         {
           id: p.id,

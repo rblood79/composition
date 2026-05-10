@@ -29,18 +29,28 @@
  */
 
 import { IframeMessenger, MessageResponse } from "../utils/dom/iframeMessenger";
-import { Element, ComponentElementProps } from "../types/core/store.types";
 import { DesignToken } from "../types/theme";
+
+type MessageProps = Record<string, unknown>;
+
+export interface MessagingElement {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  deleted?: boolean;
+}
 
 /**
  * Unified message payload type
  */
 export interface MessagePayload {
-  // Element Operations
-  elements?: Element[];
+  // Node operations
+  elements?: MessagingElement[];
   elementId?: string;
-  props?: ComponentElementProps;
-  element?: Element;
+  props?: MessageProps;
+  element?: MessagingElement;
   elementIds?: string[];
   merge?: boolean;
 
@@ -106,14 +116,14 @@ export class MessagingService {
     }
   }
 
-  // ===== Element Operations =====
+  // ===== Node Operations =====
 
   /**
    * Update element props (merge or replace)
    */
   async updateElementProps(
     elementId: string,
-    props: ComponentElementProps,
+    props: MessageProps,
     merge = true,
   ): Promise<MessageResponse> {
     return this.messenger.sendMessage("UPDATE_ELEMENT_PROPS", {
@@ -126,7 +136,7 @@ export class MessagingService {
   /**
    * Add a new element
    */
-  async addElement(element: Element): Promise<MessageResponse> {
+  async addElement(element: MessagingElement): Promise<MessageResponse> {
     return this.messenger.sendMessage("ELEMENT_ADDED", { element });
   }
 
@@ -149,7 +159,7 @@ export class MessagingService {
    */
   async selectElement(
     elementId: string | null,
-    props?: ComponentElementProps,
+    props?: MessageProps,
   ): Promise<MessageResponse> {
     return this.messenger.sendMessage("ELEMENT_SELECTED", {
       elementId,

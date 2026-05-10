@@ -8,7 +8,7 @@
 import type { CSSProperties } from "react";
 import type { CompositionDocument } from "@composition/shared";
 
-// Element 타입 (Runtime에서 사용하는 최소 타입)
+// Runtime node shape (Preview에서 사용하는 최소 타입)
 export interface RuntimeElement {
   id: string;
   type: string;

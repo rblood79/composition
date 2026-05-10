@@ -517,9 +517,49 @@ shape 를 실제 역할에 맞게 정리했다.
 
 #### 2-E. Preview render
 
+**Status: Core Landed — 2026-05-10**
+
+2-E core 는 Preview runtime 이 이미 갖고 있던 `RuntimeElement` /
+`PreviewElement` 경계를 Builder store `Element` 로 되돌리는 cast/import 를 제거하고,
+message/url/layout resolver 의 preview-local contract 를 명시했다.
+
+**구현 결과**:
+
+- `apps/builder/src/preview/App.tsx`
+  - store `Element` import 제거
+  - `resolveCanonicalRefTree<PreviewElement>()` 로 canonical ref resolution 직접 수행
+  - `isLegacyFrameElementForFrame()` caller cast 제거
+- `apps/builder/src/preview/utils/layoutResolver.ts`
+  - builder `Element` / layout result type import 제거
+  - preview-local `ResolvedElement`, `ResolvedSlotContent`, `LayoutResolutionResult`, `SlotValidationError` 정의
+  - resolver input/output 을 `PreviewElement` 로 전환
+- `apps/builder/src/services/messaging.ts`
+  - `MessagingElement` / `MessageProps` contract 도입
+  - iframe message payload 에서 store `Element` / `ComponentElementProps` import 제거
+- `apps/builder/src/utils/urlGenerator.ts` + `preview/router/CanvasRouter.tsx`
+  - `UrlPage` / `UrlLayout` contract 도입
+  - preview router 의 builder `Page` import 제거
+- `apps/builder/src/adapters/canonical/frameElementScope.ts` / `frameElementLoader.ts`
+  - preview caller 가 store `Element` cast 없이 frame mirror helper 를 호출할 수 있도록 frame helper 를 generic node contract 로 완화
+
+**G2-E evidence**:
+
+- Grep gate:
+  - `apps/builder/src/preview/**` + `apps/builder/src/services/messaging.ts` + `apps/builder/src/utils/urlGenerator.ts` production `Element` raw/type import hit 0
+  - 같은 scope production `UPDATE_ELEMENTS` hit 0
+- Targeted tests:
+  - `pnpm -F @composition/builder exec vitest run src/preview/previewFrameMirror.static.test.ts src/adapters/canonical/__tests__/frameElementLoader.test.ts` — 2 files / 9 tests PASS
+- Type-check:
+  - `pnpm -F @composition/builder type-check` PASS
+
+**잔여를 Phase 2-D/Phase 5에 위임**:
+
+- `frameElementLoader.loadFrameElements()` 는 panels/slot selector/preset apply caller 때문에 아직 `Element[]` 를 반환한다.
+- `apps/builder/src/builder/panels/**`, `ElementSlotSelector`, `LayoutPresetSelector/usePresetApply.ts`, canvas interaction helper 의 frame loader/filter caller 는 2-D/Phase 5에서 함께 정리한다.
+
 - `apps/builder/src/preview/utils/layoutResolver.ts`
 - `apps/builder/src/preview/App.tsx`
-- `apps/builder/src/services/messaging.ts` (layout 관련 receive — `UPDATE_ELEMENTS` 잔존 정리)
+- `apps/builder/src/services/messaging.ts` (iframe message payload boundary)
 
 ### hot-path-consumer bucket — Phase 4 위임 (BuilderCore + utility + AI + drag-drop + history + inspector)
 

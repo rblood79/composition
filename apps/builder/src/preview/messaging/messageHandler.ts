@@ -41,7 +41,7 @@ function getTargetOrigin(): string {
 // Message Types (Builder → Preview)
 // ============================================
 
-// **ADR-125 Phase 3 — UPDATE_ELEMENTS receive 제거**.
+// **ADR-125 Phase 3 — legacy bulk node receive 제거**.
 // Builder → Preview 의 active channel 은 UPDATE_CANONICAL_DOCUMENT 단일.
 // 기존 UpdateElementsMessage interface 는 본 phase 에서 삭제됨.
 

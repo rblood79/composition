@@ -1,18 +1,11 @@
 /**
  * Layout Resolver
  *
- * Layout + Page를 합성하여 최종 Element 트리 생성.
+ * Layout + Page를 합성하여 최종 Preview node 트리 생성.
  * 재귀적 트리 탐색으로 중첩된 Slot 처리.
  */
 
-import type { Element, Page } from "../../types/builder/unified.types";
-import type {
-  Layout,
-  ResolvedElement,
-  ResolvedSlotContent,
-  SlotValidationError,
-  LayoutResolutionResult,
-} from "../../types/builder/layout.types";
+import type { PreviewElement } from "../types";
 import { isLegacyFrameElementForFrame } from "../../adapters/canonical/frameElementLoader";
 import {
   getNullablePageFrameBindingId,
@@ -20,22 +13,56 @@ import {
 } from "../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../adapters/canonical/slotMirror";
 
+interface PreviewPageLike {
+  id: string;
+}
+
+interface PreviewLayoutLike {
+  id: string;
+}
+
+interface ResolvedSlotContent {
+  slotName: string;
+  slotElementId: string;
+  pageElements: PreviewElement[];
+  isEmpty: boolean;
+}
+
+interface LayoutResolutionResult {
+  resolvedTree: ResolvedElement[];
+  slotContents: Map<string, ResolvedSlotContent>;
+  validationErrors: SlotValidationError[];
+  hasLayout: boolean;
+}
+
+interface ResolvedElement {
+  element: PreviewElement;
+  children: ResolvedElement[];
+  isSlotReplaced?: boolean;
+}
+
+interface SlotValidationError {
+  slotName: string;
+  errorType: "REQUIRED_SLOT_EMPTY" | "INVALID_SLOT_NAME";
+  message: string;
+}
+
 // ============================================
 // Main Resolver
 // ============================================
 
 /**
- * Page에 Layout을 적용하여 최종 Element 트리 생성
+ * Page에 Layout을 적용하여 최종 PreviewElement 트리 생성
  *
  * @param page - 현재 Page
  * @param layout - Page에 적용된 Layout (없으면 null)
  * @param allElements - 모든 Elements (Page + Layout 모두)
- * @returns 합성된 Element 트리와 메타데이터
+ * @returns 합성된 PreviewElement 트리와 메타데이터
  */
 export function resolveLayoutForPage(
-  page: Page | null,
-  layout: Layout | null,
-  allElements: Element[],
+  page: PreviewPageLike | null,
+  layout: PreviewLayoutLike | null,
+  allElements: PreviewElement[],
 ): LayoutResolutionResult {
   // Layout 없으면 기존 방식 (Page elements만 렌더링)
   if (!layout || !page || !getNullablePageFrameBindingId(page)) {
@@ -83,15 +110,15 @@ export function resolveLayoutForPage(
 }
 
 // ============================================
-// Element Grouping
+// PreviewElement Grouping
 // ============================================
 
 /**
  * Page elements를 Slot별로 그룹화
  */
 function groupElementsBySlot(
-  pageElements: Element[],
-  slots: Element[],
+  pageElements: PreviewElement[],
+  slots: PreviewElement[],
 ): Map<string, ResolvedSlotContent> {
   const slotContents = new Map<string, ResolvedSlotContent>();
 
@@ -148,7 +175,7 @@ function groupElementsBySlot(
  * Slot 유효성 검사 (필수 Slot이 비어있는지 확인)
  */
 function validateSlots(
-  slots: Element[],
+  slots: PreviewElement[],
   slotContents: Map<string, ResolvedSlotContent>,
 ): SlotValidationError[] {
   const errors: SlotValidationError[] = [];
@@ -180,9 +207,9 @@ function validateSlots(
  * Layout elements를 트리 구조로 변환하고 Slot을 Page elements로 교체
  */
 function buildResolvedTree(
-  layoutElements: Element[],
+  layoutElements: PreviewElement[],
   slotContents: Map<string, ResolvedSlotContent>,
-  allPageElements: Element[],
+  allPageElements: PreviewElement[],
 ): ResolvedElement[] {
   // Root elements (parent_id가 null)
   const roots = layoutElements.filter((el) => !el.parent_id);
@@ -193,13 +220,13 @@ function buildResolvedTree(
 }
 
 /**
- * 단일 Element를 ResolvedElement로 변환 (재귀)
+ * 단일 PreviewElement를 ResolvedElement로 변환 (재귀)
  */
 function buildResolvedElement(
-  element: Element,
-  allLayoutElements: Element[],
+  element: PreviewElement,
+  allLayoutElements: PreviewElement[],
   slotContents: Map<string, ResolvedSlotContent>,
-  allPageElements: Element[],
+  allPageElements: PreviewElement[],
 ): ResolvedElement {
   // Slot인 경우: Page elements로 교체
   if (element.type === "Slot") {
@@ -229,7 +256,7 @@ function buildResolvedElement(
     };
   }
 
-  // 일반 Element: 자식 재귀 처리
+  // 일반 PreviewElement: 자식 재귀 처리
   const children = allLayoutElements
     .filter((el) => el.parent_id === element.id)
     .map((child) =>
@@ -253,8 +280,8 @@ function buildResolvedElement(
  * (Slot 내부의 Page elements 렌더링용)
  */
 function buildPageElementTree(
-  rootElements: Element[],
-  allPageElements: Element[],
+  rootElements: PreviewElement[],
+  allPageElements: PreviewElement[],
 ): ResolvedElement[] {
   return rootElements.map((el) => buildPageElement(el, allPageElements));
 }
@@ -263,8 +290,8 @@ function buildPageElementTree(
  * Page element와 그 자식들을 ResolvedElement로 변환
  */
 function buildPageElement(
-  element: Element,
-  allPageElements: Element[],
+  element: PreviewElement,
+  allPageElements: PreviewElement[],
 ): ResolvedElement {
   const children = allPageElements
     .filter((el) => el.parent_id === element.id)
@@ -278,10 +305,10 @@ function buildPageElement(
 }
 
 /**
- * 기본 Element 트리 구축 (Layout 없을 때)
+ * 기본 PreviewElement 트리 구축 (Layout 없을 때)
  */
 function buildElementTree(
-  elements: Element[],
+  elements: PreviewElement[],
   parentId: string | null,
 ): ResolvedElement[] {
   return elements
@@ -300,21 +327,21 @@ function buildElementTree(
 /**
  * Layout element 여부 확인
  */
-export function isLayoutElement(element: Element): boolean {
+export function isLayoutElement(element: PreviewElement): boolean {
   return hasFrameElementMirrorId(element) && !element.page_id;
 }
 
 /**
  * Page element 여부 확인
  */
-export function isPageElement(element: Element): boolean {
+export function isPageElement(element: PreviewElement): boolean {
   return !!element.page_id && !hasFrameElementMirrorId(element);
 }
 
 /**
  * Slot element 여부 확인
  */
-export function isSlotElement(element: Element): boolean {
+export function isSlotElement(element: PreviewElement): boolean {
   return element.type === "Slot";
 }
 
@@ -324,10 +351,10 @@ export function isSlotElement(element: Element): boolean {
  * - Layout Mode: Layout elements만
  */
 export function filterElementsByEditMode(
-  elements: Element[],
+  elements: PreviewElement[],
   mode: "page" | "layout",
   targetId: string | null,
-): Element[] {
+): PreviewElement[] {
   if (!targetId) return [];
 
   if (mode === "page") {
