@@ -194,8 +194,9 @@ import 하던 core surface 를 `PanelNode` / `CanvasInteractionNode` 최소 cont
 `PresetElementNode` / `PresetSlotElement` 계약으로 정리했다. 전체 G2-D 종료는
 아니며, generated child editor / tabs actions slice 는 `PropertyEditorElementPayload`
 / `PropertyEditorChildNode` 계약으로 정리했다. collection child manager slice 는
-`CollectionItemNode` / `ChildItemPayload` 계약으로 정리했다. 잔여 생성형 editor /
-drop target resolver 는 후속 slice 로 남긴다.
+`CollectionItemNode` / `ChildItemPayload` 계약으로 정리했다. table editor payload
+slice 는 `TableEditorElementPayload` / `TableHeaderElementPayload` 계약으로
+정리했다. drop target resolver 는 후속 slice 로 남긴다.
 
 | 측정 대상                                                                                                                   | 결과                                           |
 | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
@@ -205,6 +206,7 @@ drop target resolver 는 후속 slice 로 남긴다.
 | preset apply (`LayoutPresetSelector/usePresetApply.ts`) production store type hit                                           | **0**                                          |
 | generated child editors + tabs actions store type/direct elements read hit                                                  | **0**                                          |
 | collection child manager (`useCollectionItemManager`, `ChildItemManager`) store type/direct elements read hit               | **0**                                          |
+| table generated editors (`TableEditor`, `TableHeaderEditor`) store type/direct elements read hit                            | **0**                                          |
 | interaction hook input `rendererInputRef.current.elementsMap\|childrenMap` hit                                              | **0**                                          |
 | Scene frame body compatibility                                                                                              | `CanvasSceneNode.layout_id` transition alias   |
 | Targeted Vitest                                                                                                             | **11 files / 82 tests PASS**                   |
@@ -212,10 +214,10 @@ drop target resolver 는 후속 slice 로 남긴다.
 | Preset apply targeted Vitest                                                                                                | **1 file / 4 tests PASS**                      |
 | Generated child editors targeted Vitest                                                                                     | **1 file / 5 tests PASS**                      |
 | Collection child manager targeted Vitest                                                                                    | **2 files / 4 tests PASS**                     |
+| Table generated editors targeted Vitest                                                                                     | **1 file / 6 tests PASS**                      |
 | Type-check                                                                                                                  | `pnpm -F @composition/builder type-check` PASS |
 
 잔여 bucket:
 
-- `TableEditor`, `TableHeaderEditor` 등 생성형 property editor 는 add/write payload contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
 - `dropTargetResolver.ts` 는 drag-drop move semantics + history commit 이 얽혀 있어 Phase 4 drag-drop consumer 전환에서 별도 처리한다.
 - `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.

@@ -24,9 +24,8 @@ import { iconProps } from "../../../../utils/ui/uiConstants";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { supabase } from "../../../../env/supabase.client";
 import { useStore } from "../../../stores";
-import { Element } from "../../../../types/core/store.types";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
-import { TableElementProps } from "../../../../types/builder/unified.types";
+import type { TableElementProps } from "../../../../types/builder/unified.types";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { useCallback, memo, useMemo } from "react";
@@ -42,6 +41,17 @@ import "./styles/TableEditor.css";
 //     // element: Element;
 //     // onChange: (updates: Partial<Element>) => void;
 // }
+
+interface TableEditorElementPayload {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id: string;
+  page_id: string;
+  customId: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export const TableEditor = memo(
   function TableEditor({
@@ -115,7 +125,7 @@ export const TableEditor = memo(
       try {
         const rowId = ElementUtils.generateId();
         const allElements = Array.from(elementsMap.values());
-        const newRowElement: Element = {
+        const newRowElement: TableEditorElementPayload = {
           id: rowId,
           customId: generateCustomId("Row", allElements),
           type: "Row",
@@ -146,7 +156,7 @@ export const TableEditor = memo(
         }
 
         // 각 컬럼에 대한 셀 생성
-        const cellsToCreate: Element[] = [];
+        const cellsToCreate: TableEditorElementPayload[] = [];
         // TableElementProps에는 columns가 없으므로 실제 Column Element들을 사용
         const columnsFromProps = actualColumns;
 
@@ -155,7 +165,7 @@ export const TableEditor = memo(
 
         for (let i = 0; i < columnsFromProps.length; i++) {
           const cellId = ElementUtils.generateId();
-          const newCellElement: Element = {
+          const newCellElement: TableEditorElementPayload = {
             id: cellId,
             customId: generateCustomId("Cell", allElementsSoFar),
             type: "Cell",
@@ -216,7 +226,7 @@ export const TableEditor = memo(
 
       try {
         const groupId = ElementUtils.generateId();
-        const newGroupElement: Element = {
+        const newGroupElement: TableEditorElementPayload = {
           id: groupId,
           customId: generateCustomId(
             "ColumnGroup",

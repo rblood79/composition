@@ -94,6 +94,26 @@ describe("canonical-first property editors", () => {
     }
   });
 
+  it("keeps table generated editors off store Element payload contracts", async () => {
+    const forbiddenStoreTypeImport = ["types", "core", "store.types"].join("/");
+    const forbiddenElementCast = ["as", "Element"].join(" ");
+    const forbiddenElementArray = [":", " Element", "[]"].join("");
+    const forbiddenStoreElementsRead = ["useStore.getState()", "elements"].join(
+      ".",
+    );
+
+    for (const filename of [
+      "TableEditor.tsx",
+      "TableHeaderEditor.tsx",
+    ] as const) {
+      const source = await readFile(resolve(__dirname, filename), "utf-8");
+      expect(source).not.toContain(forbiddenStoreTypeImport);
+      expect(source).not.toContain(forbiddenElementCast);
+      expect(source).not.toContain(forbiddenElementArray);
+      expect(source).not.toContain(forbiddenStoreElementsRead);
+    }
+  });
+
   it("uses canonical property maps in specialized editors", async () => {
     const forbiddenLookups = [
       ["state", ["elements", "Map"].join(""), "get(elementId)"].join("."),

@@ -1,8 +1,5 @@
 import { useState, memo } from "react";
-import type {
-  ColumnElementProps,
-  Element,
-} from "../../../../types/core/store.types";
+import type { ColumnElementProps } from "../../../../types/builder/unified.types";
 import { useStore } from "../../../stores";
 import {
   PropertySelect,
@@ -20,6 +17,7 @@ import { generateCustomId } from "../../../utils/idGeneration";
 import {
   useCanonicalPropertyChildren,
   useCanonicalPropertyElement,
+  useCanonicalPropertyElements,
 } from "../hooks/useCanonicalPropertyRead";
 
 interface TableHeaderElementProps {
@@ -27,7 +25,28 @@ interface TableHeaderElementProps {
   sticky?: boolean;
 }
 
-function getChildElements(elements: readonly Element[], parentId: string) {
+interface TableHeaderLookupNode {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+}
+
+interface TableHeaderElementPayload {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id: string;
+  page_id: string;
+  customId: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function getChildElements(
+  elements: readonly TableHeaderLookupNode[],
+  parentId: string,
+) {
   return elements.filter((element) => element.parent_id === parentId);
 }
 
@@ -43,6 +62,7 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
 }: PropertyEditorProps) {
   const element = useCanonicalPropertyElement(elementId);
   const rawChildren = useCanonicalPropertyChildren(elementId);
+  const canonicalPropertyElements = useCanonicalPropertyElements();
   const tableElement = useCanonicalPropertyElement(element?.parent_id ?? "");
   const addElement = useStore((state) => state.addElement);
   const removeElement = useStore((state) => state.removeElement);
@@ -77,12 +97,10 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
     try {
       const columnId = ElementUtils.generateId();
 
-      // ADR-040: 이벤트 핸들러에서 최신 상태 읽기
-      const { elements: currentElements } = useStore.getState();
       // 먼저 모든 새 요소들을 준비
-      const newColumnElement: Element = {
+      const newColumnElement: TableHeaderElementPayload = {
         id: columnId,
-        customId: generateCustomId("Column", currentElements),
+        customId: generateCustomId("Column", canonicalPropertyElements),
         type: "Column",
         props: {
           key: newColumnKey.trim(),
@@ -99,24 +117,30 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
       };
 
       // TableBody의 모든 Row 찾기
-      const tableChildren = getChildElements(currentElements, tableElement.id);
+      const tableChildren = getChildElements(
+        canonicalPropertyElements,
+        tableElement.id,
+      );
       const tableBodyElement = tableChildren.find(
         (el) => el.type === "TableBody",
       );
 
-      const newCellElements: Element[] = [];
+      const newCellElements: TableHeaderElementPayload[] = [];
       if (tableBodyElement) {
         const rows = getChildElements(
-          currentElements,
+          canonicalPropertyElements,
           tableBodyElement.id,
         ).filter((el) => el.type === "Row");
 
         // Track all elements for unique ID generation
-        const allElementsSoFar = [...currentElements, newColumnElement];
+        const allElementsSoFar = [
+          ...canonicalPropertyElements,
+          newColumnElement,
+        ];
 
         for (const row of rows) {
           const cellId = ElementUtils.generateId();
-          const newCellElement: Element = {
+          const newCellElement: TableHeaderElementPayload = {
             id: cellId,
             customId: generateCustomId("Cell", allElementsSoFar),
             type: "Cell",
@@ -150,7 +174,9 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
       }
 
       // 스토어에 모든 요소 추가
-      allNewElements.forEach((element) => addElement(element));
+      allNewElements.forEach((element) => {
+        void addElement(element);
+      });
 
       // 폼 초기화
       setNewColumnLabel("");
