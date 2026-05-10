@@ -6,6 +6,7 @@ import type {
   CanvasSceneGraph,
   CanvasSceneNode,
 } from "../scene/canvasSceneNode";
+import type { CanvasLayoutNode } from "../layout/layoutNode";
 import type { FrameAreaGroup } from "../skia/workflowEdges";
 import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import type {
@@ -13,13 +14,13 @@ import type {
   CanonicalFrameElementScopeMap,
 } from "../../../../adapters/canonical/frameElementScope";
 
-export interface PixiPageRendererInput {
-  bodyElement: Element | null;
+export interface LayoutPublisherInput {
+  bodyElement: CanvasLayoutNode | null;
   depthMap: Map<string, number>;
   dirtyElementIds: Set<string>;
-  elementById: Map<string, Element>;
+  elementById: Map<string, CanvasLayoutNode>;
   layoutVersion: number;
-  pageElements: Element[];
+  pageElements: CanvasLayoutNode[];
   pageHeight: number;
   pageId: string;
   pagePositionVersion: number;
@@ -30,8 +31,8 @@ export interface PixiPageRendererInput {
   zoom: number;
 }
 
-interface BuildPixiPageRendererInputOptions {
-  elementById: Map<string, Element>;
+interface BuildPageLayoutPublisherInputOptions {
+  elementById: ReadonlyMap<string, CanvasLayoutNode>;
   dirtyElementIds: Set<string>;
   pageHeight: number;
   pageId: string;
@@ -43,7 +44,7 @@ interface BuildPixiPageRendererInputOptions {
   zoom: number;
 }
 
-export function buildPixiPageRendererInput({
+export function buildPageLayoutPublisherInput({
   elementById,
   dirtyElementIds,
   pageHeight,
@@ -54,7 +55,7 @@ export function buildPixiPageRendererInput({
   sceneSnapshot,
   wasmLayoutReady,
   zoom,
-}: BuildPixiPageRendererInputOptions): PixiPageRendererInput | null {
+}: BuildPageLayoutPublisherInputOptions): LayoutPublisherInput | null {
   const pageSnapshot = sceneSnapshot.pageSnapshots.get(pageId);
   if (!pageSnapshot?.bodyElement) {
     return null;
@@ -64,7 +65,7 @@ export function buildPixiPageRendererInput({
     bodyElement: pageSnapshot.bodyElement,
     depthMap: sceneSnapshot.depthMap,
     dirtyElementIds,
-    elementById,
+    elementById: new Map(elementById),
     layoutVersion: sceneSnapshot.layoutVersion,
     pageElements: pageSnapshot.pageElements,
     pageHeight,
@@ -80,7 +81,7 @@ export function buildPixiPageRendererInput({
 
 interface BuildFrameRendererInputOptions {
   dirtyElementIds: Set<string>;
-  elementById: Map<string, Element>;
+  elementById: ReadonlyMap<string, CanvasLayoutNode>;
   /** ADR-111 P3-α framePositions[frameId] (또는 frameAreas fallback) */
   frameHeight: number;
   /** canonical reusable frame scope id */
@@ -97,7 +98,7 @@ interface BuildFrameRendererInputOptions {
 }
 
 /**
- * ADR-111 P3-δ fix #3 (D4=A, 2026-04-28) — frame body 의 PixiPageRendererInput
+ * ADR-111 P3-δ fix #3 (D4=A, 2026-04-28) — frame body 의 LayoutPublisherInput
  * shape 빌드. page-centric 함수와 분리 (rendererInput.ts 의 page 함수와 frame
  * 함수 분리 명확).
  *
@@ -115,7 +116,7 @@ interface BuildFrameRendererInputOptions {
  * 는 page 만 보유). `useLayoutPublisher` 는 pageSnapshot 미사용이므로 다른
  * consumer 영향 없음.
  */
-export function buildFrameRendererInput({
+export function buildFrameLayoutPublisherInput({
   dirtyElementIds,
   elementById,
   frameHeight,
@@ -129,21 +130,22 @@ export function buildFrameRendererInput({
   sceneSnapshot,
   wasmLayoutReady,
   zoom,
-}: BuildFrameRendererInputOptions): PixiPageRendererInput | null {
+}: BuildFrameRendererInputOptions): LayoutPublisherInput | null {
   if (!frameElementScope) return null;
 
+  const layoutElementById = new Map(elementById);
   const bodyElement = frameElementScope.bodyElementId
-    ? (elementById.get(frameElementScope.bodyElementId) ?? null)
+    ? (layoutElementById.get(frameElementScope.bodyElementId) ?? null)
     : null;
   if (!bodyElement || bodyElement.deleted || bodyElement.type !== "body") {
     return null;
   }
 
-  const pageElements: Element[] = [];
+  const pageElements: CanvasLayoutNode[] = [];
 
   for (const elementId of frameElementScope.elementIds) {
     if (elementId === bodyElement.id) continue;
-    const el = elementById.get(elementId);
+    const el = layoutElementById.get(elementId);
     if (!el || el.deleted || el.type === "body") continue;
     pageElements.push(el);
   }
@@ -170,7 +172,7 @@ export function buildFrameRendererInput({
     bodyElement,
     depthMap: sceneSnapshot.depthMap,
     dirtyElementIds,
-    elementById,
+    elementById: layoutElementById,
     layoutVersion: sceneSnapshot.layoutVersion,
     pageElements,
     pageHeight: frameHeight,

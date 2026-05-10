@@ -47,8 +47,8 @@ import {
   resolveSelectedElementsForPage,
 } from "./interaction";
 import {
-  buildFrameRendererInput,
-  buildPixiPageRendererInput,
+  buildFrameLayoutPublisherInput,
+  buildPageLayoutPublisherInput,
   createSceneInvalidationPacket,
   createSkiaRendererInput,
   type RendererSceneInvalidation,
@@ -410,7 +410,7 @@ export function BuilderCanvas({
   const layoutPublisherInputs = useMemo(() => {
     return visiblePages
       .map((page) => {
-        const input = buildPixiPageRendererInput({
+        const input = buildPageLayoutPublisherInput({
           elementById,
           dirtyElementIds,
           pageHeight,
@@ -494,7 +494,7 @@ export function BuilderCanvas({
   ]);
 
   // ADR-111 P3-δ fix #3 (D4=A, 2026-04-28): frame body 의 layout publish input.
-  // page-centric `layoutPublisherInputs` 와 분리 — `buildFrameRendererInput`
+  // page-centric `layoutPublisherInputs` 와 분리 — `buildFrameLayoutPublisherInput`
   // 신규 함수 사용 (P3-α/β/γ/δ 의 domain 분리 일관 패턴).
   // frame authoring 은 현재 page 와 같은 작업면을 전환해서 쓰므로, stale
   // framePositions 대신 정규화된 frameAreas 좌표/크기를 layout publish source 로
@@ -502,7 +502,7 @@ export function BuilderCanvas({
   const frameLayoutPublisherInputs = useMemo(() => {
     return frameAreas
       .map((area) => {
-        const input = buildFrameRendererInput({
+        const input = buildFrameLayoutPublisherInput({
           dirtyElementIds,
           elementById,
           frameHeight: area.height,

@@ -1,31 +1,45 @@
-import { useMemo, type ReactNode } from 'react';
-import type { Element } from '../../../../types/core/store.types';
-import type { CSSStyle } from '../sprites/styleConverter';
+import { useMemo, type ReactNode } from "react";
+import type { CanvasLayoutNode } from "./layoutNode";
+import type { CSSStyle } from "../sprites/styleConverter";
 
 /**
  * CSS Grid 스타일 속성
  */
 export interface GridStyle {
-  display?: 'grid' | 'inline-grid' | 'flex' | 'block' | 'none';
+  display?: "grid" | "inline-grid" | "flex" | "block" | "none";
   gridTemplateColumns?: string;
   gridTemplateRows?: string;
   gridTemplateAreas?: string;
   gridAutoColumns?: string;
   gridAutoRows?: string;
-  gridAutoFlow?: 'row' | 'column' | 'dense' | 'row dense' | 'column dense';
+  gridAutoFlow?: "row" | "column" | "dense" | "row dense" | "column dense";
   gap?: number | string;
   rowGap?: number | string;
   columnGap?: number | string;
-  justifyItems?: 'start' | 'end' | 'center' | 'stretch';
-  alignItems?: 'start' | 'end' | 'center' | 'stretch';
-  justifyContent?: 'start' | 'end' | 'center' | 'stretch' | 'space-around' | 'space-between' | 'space-evenly';
-  alignContent?: 'start' | 'end' | 'center' | 'stretch' | 'space-around' | 'space-between' | 'space-evenly';
+  justifyItems?: "start" | "end" | "center" | "stretch";
+  alignItems?: "start" | "end" | "center" | "stretch";
+  justifyContent?:
+    | "start"
+    | "end"
+    | "center"
+    | "stretch"
+    | "space-around"
+    | "space-between"
+    | "space-evenly";
+  alignContent?:
+    | "start"
+    | "end"
+    | "center"
+    | "stretch"
+    | "space-around"
+    | "space-between"
+    | "space-evenly";
   // Grid Item 속성
   gridColumn?: string;
   gridRow?: string;
   gridArea?: string;
-  justifySelf?: 'start' | 'end' | 'center' | 'stretch';
-  alignSelf?: 'start' | 'end' | 'center' | 'stretch';
+  justifySelf?: "start" | "end" | "center" | "stretch";
+  alignSelf?: "start" | "end" | "center" | "stretch";
 }
 
 /**
@@ -33,7 +47,7 @@ export interface GridStyle {
  */
 export interface GridTrack {
   size: number;
-  unit: 'px' | 'fr' | '%' | 'auto' | 'minmax';
+  unit: "px" | "fr" | "%" | "auto" | "minmax";
   originalValue: string;
   /** minmax용: 최소값 (px) */
   min?: number;
@@ -56,7 +70,7 @@ export interface GridCellBounds {
 }
 
 export interface GridLayoutProps {
-  element: Element;
+  element: CanvasLayoutNode;
   containerWidth: number;
   containerHeight: number;
   isSelected?: boolean;
@@ -64,21 +78,21 @@ export interface GridLayoutProps {
 }
 
 /**
- * Element가 Grid 컨테이너인지 확인
+ * CanvasLayoutNode가 Grid 컨테이너인지 확인
  */
-export function isGridContainer(element: Element): boolean {
+export function isGridContainer(element: CanvasLayoutNode): boolean {
   const style = element.props?.style as CSSStyle | undefined;
   const display = style?.display;
-  return display === 'grid' || display === 'inline-grid';
+  return display === "grid" || display === "inline-grid";
 }
 
 /**
- * Element가 Flex 컨테이너인지 확인
+ * CanvasLayoutNode가 Flex 컨테이너인지 확인
  * 🚀 Phase 7: LayoutEngine.ts에서 이동
  */
-export function isFlexContainer(element: Element): boolean {
+export function isFlexContainer(element: CanvasLayoutNode): boolean {
   const style = element.props?.style as CSSStyle | undefined;
-  return style?.display === 'flex';
+  return style?.display === "flex";
 }
 
 /**
@@ -90,19 +104,19 @@ export function isFlexContainer(element: Element): boolean {
 function tokenizeTemplate(template: string): string[] {
   const tokens: string[] = [];
   let depth = 0;
-  let current = '';
+  let current = "";
 
   for (const ch of template) {
-    if (ch === '(') {
+    if (ch === "(") {
       depth++;
       current += ch;
-    } else if (ch === ')') {
+    } else if (ch === ")") {
       depth--;
       current += ch;
-    } else if (ch === ' ' && depth === 0) {
+    } else if (ch === " " && depth === 0) {
       const trimmed = current.trim();
       if (trimmed) tokens.push(trimmed);
-      current = '';
+      current = "";
     } else {
       current += ch;
     }
@@ -122,21 +136,21 @@ function tokenizeTemplate(template: string): string[] {
  */
 function parseSingleTrackValue(value: string): GridTrack {
   const v = value.trim();
-  if (v.endsWith('fr')) {
-    return { size: 0, unit: 'fr', originalValue: v };
+  if (v.endsWith("fr")) {
+    return { size: 0, unit: "fr", originalValue: v };
   }
-  if (v.endsWith('px')) {
-    return { size: parseFloat(v), unit: 'px', originalValue: v };
+  if (v.endsWith("px")) {
+    return { size: parseFloat(v), unit: "px", originalValue: v };
   }
-  if (v.endsWith('%')) {
+  if (v.endsWith("%")) {
     // % 크기는 resolveGridTracks에서 containerSize 기반으로 계산
-    return { size: 0, unit: '%', originalValue: v };
+    return { size: 0, unit: "%", originalValue: v };
   }
-  if (v === 'auto') {
-    return { size: 0, unit: 'auto', originalValue: v };
+  if (v === "auto") {
+    return { size: 0, unit: "auto", originalValue: v };
   }
   // 알 수 없는 값은 auto로 처리
-  return { size: 0, unit: 'auto', originalValue: v };
+  return { size: 0, unit: "auto", originalValue: v };
 }
 
 /**
@@ -146,31 +160,35 @@ function parseSingleTrackValue(value: string): GridTrack {
  */
 function parseMinmax(expr: string): GridTrack {
   // "minmax(200px, 1fr)" → 내부 인자 추출
-  const inner = expr.slice(expr.indexOf('(') + 1, expr.lastIndexOf(')'));
-  const parts = inner.split(',').map(s => s.trim());
-  const minStr = parts[0] ?? '0px';
-  const maxStr = parts[1] ?? '1fr';
+  const inner = expr.slice(expr.indexOf("(") + 1, expr.lastIndexOf(")"));
+  const parts = inner.split(",").map((s) => s.trim());
+  const minStr = parts[0] ?? "0px";
+  const maxStr = parts[1] ?? "1fr";
 
   let minVal = 0;
-  if (minStr.endsWith('px')) {
+  if (minStr.endsWith("px")) {
     minVal = parseFloat(minStr) || 0;
-  } else if (minStr === 'auto' || minStr === 'min-content' || minStr === 'max-content') {
+  } else if (
+    minStr === "auto" ||
+    minStr === "min-content" ||
+    minStr === "max-content"
+  ) {
     minVal = 0; // 컨텐츠 기반 → 0으로 폴백
   }
 
   // max 값: fr이면 -1 sentinel, px면 실제 값
   let maxVal = -1; // 기본: 1fr
-  if (maxStr.endsWith('fr')) {
+  if (maxStr.endsWith("fr")) {
     maxVal = -(parseFloat(maxStr) || 1); // fr 값을 음수로 저장 (예: 2fr → -2)
-  } else if (maxStr.endsWith('px')) {
+  } else if (maxStr.endsWith("px")) {
     maxVal = parseFloat(maxStr) || 0;
-  } else if (maxStr === 'auto' || maxStr === 'max-content') {
+  } else if (maxStr === "auto" || maxStr === "max-content") {
     maxVal = -1; // 1fr로 동작
   }
 
   return {
     size: 0,
-    unit: 'minmax',
+    unit: "minmax",
     originalValue: expr,
     min: minVal,
     max: maxVal,
@@ -188,18 +206,18 @@ function parseMinmax(expr: string): GridTrack {
 function expandRepeat(
   expr: string,
   containerSize: number,
-  gap: number
+  gap: number,
 ): { tracks: GridTrack[]; isAutoFit: boolean } {
   // "repeat(3, 1fr 200px)" → 인자 추출
-  const inner = expr.slice(expr.indexOf('(') + 1, expr.lastIndexOf(')'));
+  const inner = expr.slice(expr.indexOf("(") + 1, expr.lastIndexOf(")"));
 
   // 첫 번째 콤마 위치 (count와 track-list 분리)
   let depth = 0;
   let firstComma = -1;
   for (let i = 0; i < inner.length; i++) {
-    if (inner[i] === '(') depth++;
-    else if (inner[i] === ')') depth--;
-    else if (inner[i] === ',' && depth === 0) {
+    if (inner[i] === "(") depth++;
+    else if (inner[i] === ")") depth--;
+    else if (inner[i] === "," && depth === 0) {
       firstComma = i;
       break;
     }
@@ -214,8 +232,8 @@ function expandRepeat(
 
   // 반복할 트랙 패턴 파싱
   const patternTokens = tokenizeTemplate(trackListStr);
-  const patternTracks = patternTokens.map(token => {
-    if (token.startsWith('minmax(')) return parseMinmax(token);
+  const patternTracks = patternTokens.map((token) => {
+    if (token.startsWith("minmax(")) return parseMinmax(token);
     return parseSingleTrackValue(token);
   });
 
@@ -223,14 +241,14 @@ function expandRepeat(
 
   // 반복 횟수 결정
   let repeatCount: number;
-  if (countStr === 'auto-fill' || countStr === 'auto-fit') {
-    isAutoFit = countStr === 'auto-fit';
+  if (countStr === "auto-fill" || countStr === "auto-fit") {
+    isAutoFit = countStr === "auto-fit";
     // 패턴 당 최소 크기 합산
     let patternMinSize = 0;
     for (const track of patternTracks) {
-      if (track.unit === 'minmax') {
+      if (track.unit === "minmax") {
         patternMinSize += track.min ?? 0;
-      } else if (track.unit === 'px') {
+      } else if (track.unit === "px") {
         patternMinSize += track.size;
       } else {
         // fr, auto 등은 최소 크기 0으로 가정
@@ -245,9 +263,10 @@ function expandRepeat(
       // gap도 고려: N * patternMinSize + (N * patternTracks.length - 1) * gap <= containerSize
       // 단순화: N * (patternMinSize + gap * patternTracks.length) <= containerSize + gap
       const effectiveGap = gap * patternTracks.length;
-      repeatCount = Math.max(1, Math.floor(
-        (containerSize + gap) / (patternMinSize + effectiveGap)
-      ));
+      repeatCount = Math.max(
+        1,
+        Math.floor((containerSize + gap) / (patternMinSize + effectiveGap)),
+      );
     }
   } else {
     repeatCount = parseInt(countStr, 10) || 1;
@@ -274,7 +293,7 @@ function expandRepeat(
 function resolveGridTracks(
   tracks: GridTrack[],
   containerSize: number,
-  gap: number
+  gap: number,
 ): void {
   if (tracks.length === 0) return;
 
@@ -285,24 +304,24 @@ function resolveGridTracks(
 
   for (const track of tracks) {
     switch (track.unit) {
-      case 'px':
+      case "px":
         fixedSize += track.size;
         break;
-      case '%': {
+      case "%": {
         const pxSize = (parseFloat(track.originalValue) / 100) * containerSize;
         track.size = pxSize;
         fixedSize += pxSize;
         break;
       }
-      case 'fr': {
+      case "fr": {
         const frVal = parseFloat(track.originalValue) || 1;
         frTotal += frVal;
         break;
       }
-      case 'auto':
+      case "auto":
         frTotal += 1; // auto는 1fr로 동작
         break;
-      case 'minmax': {
+      case "minmax": {
         // 1단계에서는 min 크기만 확보
         fixedSize += track.min ?? 0;
         // max가 fr인 경우 fr 풀에 참여
@@ -320,15 +339,15 @@ function resolveGridTracks(
 
   for (const track of tracks) {
     switch (track.unit) {
-      case 'fr': {
+      case "fr": {
         const frVal = parseFloat(track.originalValue) || 1;
         track.size = frSize * frVal;
         break;
       }
-      case 'auto':
+      case "auto":
         track.size = frSize;
         break;
-      case 'minmax': {
+      case "minmax": {
         const minVal = track.min ?? 0;
         if (track.max !== undefined && track.max < 0) {
           // max가 fr: min 보장 + fr 분배
@@ -356,7 +375,7 @@ function resolveGridTracks(
 export function parseGridTemplate(
   template: string | undefined,
   containerSize: number,
-  gap?: number
+  gap?: number,
 ): GridTrack[] {
   if (!template) return [];
 
@@ -366,11 +385,15 @@ export function parseGridTemplate(
   let hasAutoFit = false;
 
   for (const token of tokens) {
-    if (token.startsWith('repeat(')) {
-      const { tracks: expanded, isAutoFit } = expandRepeat(token, containerSize, effectiveGap);
+    if (token.startsWith("repeat(")) {
+      const { tracks: expanded, isAutoFit } = expandRepeat(
+        token,
+        containerSize,
+        effectiveGap,
+      );
       tracks = tracks.concat(expanded);
       if (isAutoFit) hasAutoFit = true;
-    } else if (token.startsWith('minmax(')) {
+    } else if (token.startsWith("minmax(")) {
       tracks.push(parseMinmax(token));
     } else {
       tracks.push(parseSingleTrackValue(token));
@@ -397,8 +420,8 @@ export function parseGridTemplate(
  */
 export function parseGap(value: number | string | undefined): number {
   if (value === undefined) return 0;
-  if (typeof value === 'number') return value;
-  if (value.endsWith('px')) return parseFloat(value);
+  if (typeof value === "number") return value;
+  if (value.endsWith("px")) return parseFloat(value);
   return parseFloat(value) || 0;
 }
 
@@ -414,8 +437,8 @@ export function parseGridArea(area: string | undefined): {
 } {
   if (!area) return {};
 
-  if (area.includes('/')) {
-    const parts = area.split('/').map((p) => p.trim());
+  if (area.includes("/")) {
+    const parts = area.split("/").map((p) => p.trim());
     return {
       rowStart: parseInt(parts[0], 10) || 1,
       colStart: parseInt(parts[1], 10) || 1,
@@ -431,18 +454,24 @@ export function parseGridArea(area: string | undefined): {
  * Grid 템플릿 영역을 파싱하여 영역 맵 생성
  */
 export function parseGridTemplateAreas(
-  template: string | undefined
-): Map<string, { rowStart: number; rowEnd: number; colStart: number; colEnd: number }> {
-  const areas = new Map<string, { rowStart: number; rowEnd: number; colStart: number; colEnd: number }>();
+  template: string | undefined,
+): Map<
+  string,
+  { rowStart: number; rowEnd: number; colStart: number; colEnd: number }
+> {
+  const areas = new Map<
+    string,
+    { rowStart: number; rowEnd: number; colStart: number; colEnd: number }
+  >();
   if (!template) return areas;
 
   const rows = template.match(/"[^"]+"/g);
   if (!rows) return areas;
 
   rows.forEach((row, rowIndex) => {
-    const cells = row.replace(/"/g, '').trim().split(/\s+/);
+    const cells = row.replace(/"/g, "").trim().split(/\s+/);
     cells.forEach((cellName, colIndex) => {
-      if (cellName === '.') return;
+      if (cellName === ".") return;
 
       const existing = areas.get(cellName);
       if (existing) {
@@ -478,17 +507,17 @@ export function parseGridTemplateAreas(
  */
 export function parseGridLine(
   value: string,
-  autoStart: number
+  autoStart: number,
 ): { start: number; end: number } {
-  if (value.includes('/')) {
-    const [startPart, endPart] = value.split('/').map(s => s.trim());
+  if (value.includes("/")) {
+    const [startPart, endPart] = value.split("/").map((s) => s.trim());
 
-    const startIsSpan = startPart.startsWith('span');
-    const endIsSpan = endPart.startsWith('span');
+    const startIsSpan = startPart.startsWith("span");
+    const endIsSpan = endPart.startsWith("span");
 
     if (startIsSpan && !endIsSpan) {
       // "span 2 / 5" → end = 5, start = 5 - 2
-      const spanVal = parseInt(startPart.replace('span', '').trim(), 10) || 1;
+      const spanVal = parseInt(startPart.replace("span", "").trim(), 10) || 1;
       const end = parseInt(endPart, 10) || autoStart + spanVal;
       return { start: end - spanVal, end };
     }
@@ -496,7 +525,7 @@ export function parseGridLine(
     if (!startIsSpan && endIsSpan) {
       // "1 / span 3" → start = 1, end = 1 + 3
       const start = parseInt(startPart, 10) || autoStart;
-      const spanVal = parseInt(endPart.replace('span', '').trim(), 10) || 1;
+      const spanVal = parseInt(endPart.replace("span", "").trim(), 10) || 1;
       return { start, end: start + spanVal };
     }
 
@@ -507,9 +536,9 @@ export function parseGridLine(
   }
 
   // 슬래시 없는 경우
-  if (value.startsWith('span')) {
+  if (value.startsWith("span")) {
     // "span 2" → auto 위치에서 2칸 span
-    const spanVal = parseInt(value.replace('span', '').trim(), 10) || 1;
+    const spanVal = parseInt(value.replace("span", "").trim(), 10) || 1;
     return { start: autoStart, end: autoStart + spanVal };
   }
 
@@ -527,8 +556,11 @@ export function calculateGridCellBounds(
   rowTracks: GridTrack[],
   columnGap: number,
   rowGap: number,
-  templateAreas: Map<string, { rowStart: number; rowEnd: number; colStart: number; colEnd: number }>,
-  childIndex: number
+  templateAreas: Map<
+    string,
+    { rowStart: number; rowEnd: number; colStart: number; colEnd: number }
+  >,
+  childIndex: number,
 ): GridCellBounds {
   const gridStyle = childStyle as GridStyle | undefined;
   const cols = columnTracks.length || 1;
@@ -626,9 +658,9 @@ export function calculateGridCellBounds(
  * Grid 레이아웃 계산 훅
  */
 export function useGridLayout(
-  element: Element,
+  element: CanvasLayoutNode,
   containerWidth: number,
-  containerHeight: number
+  containerHeight: number,
 ) {
   const style = element.props?.style as CSSStyle | GridStyle | undefined;
 
@@ -640,8 +672,16 @@ export function useGridLayout(
     const columnGap = parseGap(gridStyle?.columnGap) ?? gap;
     const rowGap = parseGap(gridStyle?.rowGap) ?? gap;
 
-    const columnTracks = parseGridTemplate(gridStyle?.gridTemplateColumns, containerWidth, columnGap);
-    const rowTracks = parseGridTemplate(gridStyle?.gridTemplateRows, containerHeight, rowGap);
+    const columnTracks = parseGridTemplate(
+      gridStyle?.gridTemplateColumns,
+      containerWidth,
+      columnGap,
+    );
+    const rowTracks = parseGridTemplate(
+      gridStyle?.gridTemplateRows,
+      containerHeight,
+      rowGap,
+    );
 
     const templateAreas = parseGridTemplateAreas(gridStyle?.gridTemplateAreas);
 
@@ -654,4 +694,3 @@ export function useGridLayout(
     };
   }, [style, containerWidth, containerHeight]);
 }
-

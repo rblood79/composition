@@ -409,7 +409,7 @@ renderable `CanvasSceneNode` graph 를 생성한 뒤 Skia render bridge/command 
 
 - `CanvasSceneNode` 는 transition alias `parent_id` / `page_id` / `componentName` 을 가진다. 신규 Skia code 는 `parentId` / `pageId` / `name` 을 선호해야 하며 alias 제거는 lookup/caller cascade 잔여 정리와 함께 진행한다.
 - `BuilderCanvas` 는 scene snapshot/layout/interaction 경로 때문에 `getSceneModelElementsLegacy` / `getSceneModelElementsMapLegacy` / `getSceneModelChildrenByParentLegacy` fallback 을 아직 호출한다. 이는 2-B/2-C/2-D 및 Phase 5에서 제거한다.
-- `rendererInput.ts` 의 legacy bootstrap fallback graph 는 2-C에서 "canonical scene fields 미주입 시에만" 사용하는 fallback으로 축소했다. 다만 `PixiPageRendererInput` / layout publisher / interactive fallback `Element` shape 는 2-B/2-D cascade에서 제거한다.
+- `rendererInput.ts` 의 legacy bootstrap fallback graph 는 2-C에서 "canonical scene fields 미주입 시에만" 사용하는 fallback으로 축소했다. 2-B에서 layout publisher input 은 `CanvasLayoutNode` 계약으로 전환했고, 남은 render-tree/interactive fallback `Element` shape 는 2-D/Phase 5 cascade에서 제거한다.
 
 - `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
@@ -419,6 +419,47 @@ renderable `CanvasSceneNode` graph 를 생성한 뒤 Skia render bridge/command 
 - 기타 `workspace/canvas/skia/**` + `workspace/canvas/scene/**` Element 타입 import file
 
 #### 2-B. Layout engine
+
+**Status: Core Landed — 2026-05-10**
+
+2-B core 는 layout code 가 Builder store `Element` 타입을 직접 import 하던 표면을
+layout 전용 최소 contract 로 분리하고, page/frame layout publisher input 명칭과
+shape 를 실제 역할에 맞게 정리했다.
+
+**구현 결과**:
+
+- `apps/builder/src/builder/workspace/canvas/layout/layoutNode.ts`
+  - `CanvasLayoutNode` layout contract 도입
+  - legacy store node 와 canonical `CanvasSceneNode` 양쪽이 구조적으로 통과 가능한 최소 shape 로 고정
+- `apps/builder/src/builder/workspace/canvas/layout/**`
+  - production `Element` import/raw type surface 제거
+  - `fullTreeLayout.ts`, `implicitStyles.ts`, `utils.ts`, Taffy engine 계층이 `CanvasLayoutNode` 를 소비
+- `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+  - layout cache input 을 `CanvasSceneNode` 전용에서 `CanvasLayoutNode` 로 낮춰 layout contract boundary 를 명시
+- `apps/builder/src/builder/workspace/canvas/renderers/rendererInput.ts`
+  - `PixiPageRendererInput` → `LayoutPublisherInput`
+  - `buildPixiPageRendererInput()` → `buildPageLayoutPublisherInput()`
+  - `buildFrameRendererInput()` → `buildFrameLayoutPublisherInput()`
+  - page/frame layout publisher input 의 `bodyElement` / `elementById` / `pageElements` 를 `CanvasLayoutNode` 로 전환
+- `BuilderCanvas` caller cascade:
+  - page layout publisher input 과 frame layout publisher input 이 새 함수명/shape 를 소비
+  - `useLayoutPublisher` 가 `LayoutPublisherInput` 을 소비
+
+**G2-B evidence**:
+
+- Grep gate:
+  - `workspace/canvas/layout/**` + `workspace/canvas/scene/layoutCache.ts` + `workspace/canvas/hooks/useLayoutPublisher.ts` production `Element` raw/type hit 0
+  - production `PixiPageRendererInput|buildPixiPageRendererInput|buildFrameRendererInput` hit 0
+- Targeted tests:
+  - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/layout src/builder/workspace/canvas/scene/layoutCache.ts src/builder/workspace/canvas/renderers` — 10 files / 63 tests PASS
+- Type-check:
+  - `pnpm -F @composition/builder type-check` PASS
+
+**잔여를 Phase 2-D/Phase 5에 위임**:
+
+- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 interaction/read-model fallback 때문에 아직 store `Element` shape 를 포함한다.
+- `BuilderCanvas` 는 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback, interactive hover/scroll read-model 때문에 아직 store `Element` import 를 유지한다.
+- `CanvasLayoutNode` 는 transition 중 `parent_id/page_id/layout_id` legacy field 를 허용한다. alias 제거는 Phase 5 boundary 정리에서 처리한다.
 
 - `apps/builder/src/builder/workspace/canvas/layout/fullTreeLayout.ts` (`enrichWithIntrinsicSize`, `processedElementsMap`)
 - `apps/builder/src/builder/workspace/canvas/layout/layoutCache.ts`
@@ -460,7 +501,7 @@ renderable `CanvasSceneNode` graph 를 생성한 뒤 Skia render bridge/command 
 
 **잔여를 Phase 2-B/2-D에 위임**:
 
-- `rendererInput.ts` 의 `PixiPageRendererInput` 명칭/shape 는 실제로 layout publisher input 으로 쓰이며 아직 `Element` 를 포함한다. 2-B layout publisher cascade에서 canonical scene node input 으로 바꾼다.
+- `rendererInput.ts` 의 render-tree / interactive fallback `Element` shape 는 2-D/Phase 5 read-model 정리 때 제거한다.
 - `BuilderCanvas` interactive hover/scroll fallback 은 `skiaRendererInput.elementsMap` / `childrenMap` 을 아직 사용한다. 2-D/Phase 4 interaction read-model 정리 때 제거한다.
 
 - `apps/builder/src/builder/workspace/canvas/renderers/rendererInput.ts`

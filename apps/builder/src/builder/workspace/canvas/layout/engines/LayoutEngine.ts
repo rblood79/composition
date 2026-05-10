@@ -6,8 +6,8 @@
  * @since 2026-01-28 Phase 2 - 하이브리드 레이아웃 엔진
  */
 
-import type { Element } from '../../../../../types/core/store.types';
-import type { ComputedStyle } from './cssResolver';
+import type { CanvasLayoutNode } from "../layoutNode";
+import type { ComputedStyle } from "./cssResolver";
 
 /**
  * 계산된 레이아웃 결과
@@ -65,8 +65,8 @@ export interface LayoutContext {
   parentDisplay?: string;
   /** 부모의 computed style (CSS 상속 해석용) */
   parentComputedStyle?: ComputedStyle;
-  /** 요소의 자식 Element 배열을 반환하는 accessor (컨테이너 intrinsic size 계산용) */
-  getChildElements?: (elementId: string) => Element[];
+  /** 요소의 자식 CanvasLayoutNode 배열을 반환하는 accessor (컨테이너 intrinsic size 계산용) */
+  getChildElements?: (elementId: string) => CanvasLayoutNode[];
 }
 
 /**
@@ -86,11 +86,11 @@ export interface LayoutEngine {
    * @returns 각 자식의 계산된 레이아웃
    */
   calculate(
-    parent: Element,
-    children: Element[],
+    parent: CanvasLayoutNode,
+    children: CanvasLayoutNode[],
     availableWidth: number,
     availableHeight: number,
-    context?: LayoutContext
+    context?: LayoutContext,
   ): ComputedLayout[];
 
   /**

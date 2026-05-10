@@ -9,7 +9,7 @@
  * @since 2026-02-28
  */
 
-import type { Element } from "../../../../../types/core/store.types";
+import type { CanvasLayoutNode } from "../layoutNode";
 import { getFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
 import type { ComputedLayout } from "./LayoutEngine";
 import type { TaffyStyle } from "../../wasm-bindings/taffyLayout";
@@ -298,15 +298,18 @@ export function getPublishedFilteredChildrenMap(
 // filteredChildrenMap 에 id만 남으므로, layoutMap/filteredMap 과 같은 root key
 // fallback으로 저장해야 multi-page/frame 렌더에서
 // 마지막 root 의 synthetic children 만 남는 회귀를 막을 수 있다.
-const _perPageSyntheticElementsMaps = new Map<string, Map<string, Element>>();
-let _activeSyntheticElementsMap: Map<string, Element> | null = null;
+const _perPageSyntheticElementsMaps = new Map<
+  string,
+  Map<string, CanvasLayoutNode>
+>();
+let _activeSyntheticElementsMap: Map<string, CanvasLayoutNode> | null = null;
 let _syntheticElementsVersion = 0;
-let _mergedSyntheticElementsMap: Map<string, Element> | null = null;
+let _mergedSyntheticElementsMap: Map<string, CanvasLayoutNode> | null = null;
 let _mergedSyntheticElementsVersion = -1;
 
 function cloneSyntheticElementsMap(
-  map: ReadonlyMap<string, Element>,
-): Map<string, Element> {
+  map: ReadonlyMap<string, CanvasLayoutNode>,
+): Map<string, CanvasLayoutNode> {
   return new Map(map);
 }
 
@@ -323,7 +326,7 @@ function publishCollectedSyntheticElements(rootKey: string): void {
 }
 
 export function publishSyntheticElementsMap(
-  map: ReadonlyMap<string, Element> | null,
+  map: ReadonlyMap<string, CanvasLayoutNode> | null,
   pageId?: string,
 ): void {
   const key = pageId ?? "__default__";
@@ -336,7 +339,7 @@ export function publishSyntheticElementsMap(
 }
 
 /** Synthetic element 등록 (DFS synthetic handler에서 호출) */
-export function registerSyntheticElement(el: Element): void {
+export function registerSyntheticElement(el: CanvasLayoutNode): void {
   if (_activeSyntheticElementsMap) {
     _activeSyntheticElementsMap.set(el.id, el);
     return;
@@ -361,14 +364,17 @@ export function clearSyntheticElements(pageId?: string): void {
 
 export function getPublishedSyntheticElementsMap(
   pageId?: string,
-): Map<string, Element> | null {
+): Map<string, CanvasLayoutNode> | null {
   const key = pageId ?? "__default__";
   const map = _perPageSyntheticElementsMaps.get(key);
   return map ? cloneSyntheticElementsMap(map) : null;
 }
 
 /** Synthetic elements 조회 (command stream 경로에서 elementsMap fallback) */
-export function getSyntheticElementsMap(): ReadonlyMap<string, Element> {
+export function getSyntheticElementsMap(): ReadonlyMap<
+  string,
+  CanvasLayoutNode
+> {
   if (_perPageSyntheticElementsMaps.size === 0) {
     return _activeSyntheticElementsMap ?? new Map();
   }
@@ -376,7 +382,7 @@ export function getSyntheticElementsMap(): ReadonlyMap<string, Element> {
     return _mergedSyntheticElementsMap ?? new Map();
   }
 
-  const merged = new Map<string, Element>();
+  const merged = new Map<string, CanvasLayoutNode>();
   for (const pageMap of _perPageSyntheticElementsMaps.values()) {
     for (const [id, element] of pageMap) merged.set(id, element);
   }
@@ -668,7 +674,7 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
 }
 
 /**
- * Element와 display 정보로 TaffyStyle을 계산 후 Record로 변환.
+ * CanvasLayoutNode와 display 정보로 TaffyStyle을 계산 후 Record로 변환.
  *
  * display 타입에 따라 적절한 변환 함수를 선택한다:
  * - flex / inline-flex  → elementToTaffyStyle() (TaffyFlexEngine)
@@ -676,11 +682,11 @@ function taffyStyleToRecord(style: TaffyStyle): Record<string, unknown> {
  * - 그 외 (block 계열)  → elementToTaffyBlockStyle() + toTaffyDisplay()
  */
 function buildNodeStyle(
-  element: Element,
+  element: CanvasLayoutNode,
   computedStyle: ComputedStyle,
   childDisplays: string[],
   parentDisplay: string,
-  childElements?: Element[],
+  childElements?: CanvasLayoutNode[],
 ): Record<string, unknown> {
   // ADR-079 P2 read-through 확장: Spec containerStyles 를 props.style 에 merge 한
   // enriched element 를 display/grid branch 양쪽에서 일관 참조. ProgressBar/Meter 등이
@@ -691,7 +697,7 @@ function buildNodeStyle(
   const specFallback = resolveContainerStylesFallback(type, rawStyle);
   const hasFallback = Object.keys(specFallback).length > 0;
   const mergedStyle = hasFallback ? { ...specFallback, ...rawStyle } : rawStyle;
-  const enriched: Element = hasFallback
+  const enriched: CanvasLayoutNode = hasFallback
     ? { ...element, props: { ...element.props, style: mergedStyle } }
     : element;
 
@@ -854,14 +860,14 @@ function estimateChildAvailableSize(
 /** DFS 전체에서 공유되는 불변 context + mutable 누적기 */
 interface DFSContext {
   // 불변 참조
-  elementsMap: Map<string, Element>;
+  elementsMap: Map<string, CanvasLayoutNode>;
   childrenMap: Map<string, string[]>;
-  getChildElements: (id: string) => Element[];
+  getChildElements: (id: string) => CanvasLayoutNode[];
   // mutable 누적기
   batch: PersistentBatchNode[];
   indexMap: Map<string, number>;
   visiting: Set<string>;
-  processedElementsMap: Map<string, Element>;
+  processedElementsMap: Map<string, CanvasLayoutNode>;
 }
 
 /**
@@ -1106,7 +1112,7 @@ function traversePostOrder(
       // 부모 → 조상 탐색: 마지막으로 만난 delegation 부모를 기억
       let ancestor = elementsMap.get(rawElement.parent_id);
       let ancestorSize: string | undefined;
-      let lastDelegationAncestor: Element | undefined;
+      let lastDelegationAncestor: CanvasLayoutNode | undefined;
       while (ancestor) {
         if (LABEL_DELEGATION_PARENT_TAGS.has(ancestor.type)) {
           lastDelegationAncestor = ancestor;
@@ -1166,7 +1172,7 @@ function traversePostOrder(
   const rawChildIds = childrenMap.get(elementId) ?? [];
   const rawChildren = rawChildIds
     .map((id) => elementsMap.get(id))
-    .filter((el): el is Element => el !== undefined);
+    .filter((el): el is CanvasLayoutNode => el !== undefined);
 
   const { effectiveParent, filteredChildren } = applyImplicitStyles(
     rawElement,
@@ -1390,7 +1396,7 @@ function traversePostOrder(
             ...implicitStyle,
           },
         },
-      } as Element);
+      } as CanvasLayoutNode);
     } else {
       processedElementsMap.set(filteredChild.id, filteredChild);
     }
@@ -1550,7 +1556,7 @@ function traversePostOrder(
 
   const enrichChildren = filteredChildren;
 
-  let enriched: Element = enrichWithIntrinsicSize(
+  let enriched: CanvasLayoutNode = enrichWithIntrinsicSize(
     element,
     availableWidth,
     availableHeight,
@@ -1907,16 +1913,16 @@ function incrementalUpdate(
  * @param childrenMap    - O(1) 자식 ID 목록 맵 (canonical scene model derived view)
  * @param availableWidth - 루트에 제공할 가용 너비 (px)
  * @param availableHeight- 루트에 제공할 가용 높이 (px)
- * @param getChildElements - elementId → Element[] accessor
+ * @param getChildElements - elementId → CanvasLayoutNode[] accessor
  * @returns elementId → ComputedLayout 맵, 실패 시 null
  */
 export function calculateFullTreeLayout(
   rootElementId: string,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasLayoutNode>,
   childrenMap: Map<string, string[]>,
   availableWidth: number,
   availableHeight: number,
-  getChildElements: (id: string) => Element[],
+  getChildElements: (id: string) => CanvasLayoutNode[],
 ): Map<string, ComputedLayout> | null {
   // WASM 가용성 확인
   if (!isRustWasmReady()) return null;
@@ -1947,7 +1953,7 @@ export function calculateFullTreeLayout(
     batch: [],
     indexMap: new Map<string, number>(),
     visiting: new Set<string>(),
-    processedElementsMap: new Map<string, Element>(),
+    processedElementsMap: new Map<string, CanvasLayoutNode>(),
   };
   const { batch, indexMap, processedElementsMap } = dfsCtx;
 
@@ -2173,7 +2179,7 @@ export function calculateFullTreeLayout(
               ? ({
                   ...childEl,
                   props: { ...childEl.props, style: mergedStyle },
-                } as Element)
+                } as CanvasLayoutNode)
               : childEl;
           const childComputed = resolveStyle(
             mergedStyle,
@@ -2326,21 +2332,21 @@ export function calculateFullTreeLayout(
  * @param rootElementId    - 루트 컨테이너 요소 ID
  * @param availableWidth   - 루트에 제공할 가용 너비 (px)
  * @param availableHeight  - 루트에 제공할 가용 높이 (px)
- * @param getChildElements - elementId → Element[] accessor (optional, 미전달 시
+ * @param getChildElements - elementId → CanvasLayoutNode[] accessor (optional, 미전달 시
  *                           sceneModel.childrenByParent 사용)
  * @returns elementId → ComputedLayout 맵, 실패 시 null
  */
 export function calculateFullTreeLayoutFromSceneModel(
   sceneModel: {
-    elementsMap: Map<string, Element>;
-    childrenByParent: Map<string, Element[]>;
+    elementsMap: Map<string, CanvasLayoutNode>;
+    childrenByParent: Map<string, CanvasLayoutNode[]>;
   },
   rootElementId: string,
   availableWidth: number,
   availableHeight: number,
-  getChildElements?: (id: string) => Element[],
+  getChildElements?: (id: string) => CanvasLayoutNode[],
 ): Map<string, ComputedLayout> | null {
-  // childrenByParent (Element[]) 를 childrenMap (string[]) 로 derive
+  // childrenByParent (CanvasLayoutNode[]) 를 childrenMap (string[]) 로 derive
   const childrenIdMap = new Map<string, string[]>();
   for (const [parentId, children] of sceneModel.childrenByParent) {
     childrenIdMap.set(

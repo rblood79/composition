@@ -10,13 +10,20 @@
  * @since 2026-02-26 Phase 4-2
  */
 
-import type { Element } from '../../../../../types/core/store.types';
-import type { LayoutEngine, ComputedLayout, LayoutContext } from './LayoutEngine';
-import { TaffyLayout } from '../../wasm-bindings/taffyLayout';
-import type { TaffyStyle, TaffyNodeHandle } from '../../wasm-bindings/taffyLayout';
-import { parseMargin, resolveParentContext } from './utils';
-import type { ComputedStyle } from './cssResolver';
-import type { CSSValueContext } from './cssValueParser';
+import type { CanvasLayoutNode } from "../layoutNode";
+import type {
+  LayoutEngine,
+  ComputedLayout,
+  LayoutContext,
+} from "./LayoutEngine";
+import { TaffyLayout } from "../../wasm-bindings/taffyLayout";
+import type {
+  TaffyStyle,
+  TaffyNodeHandle,
+} from "../../wasm-bindings/taffyLayout";
+import { parseMargin, resolveParentContext } from "./utils";
+import type { ComputedStyle } from "./cssResolver";
+import type { CSSValueContext } from "./cssValueParser";
 
 /**
  * Taffy WASM 엔진 공통 추상 클래스
@@ -51,7 +58,10 @@ export abstract class BaseTaffyEngine implements LayoutEngine {
       } catch (err) {
         this.taffyInitFailed = true;
         if (import.meta.env.DEV) {
-          console.warn(`[${this.engineName}] TaffyLayout creation failed:`, err);
+          console.warn(
+            `[${this.engineName}] TaffyLayout creation failed:`,
+            err,
+          );
         }
         return null;
       }
@@ -64,8 +74,8 @@ export abstract class BaseTaffyEngine implements LayoutEngine {
   }
 
   calculate(
-    parent: Element,
-    children: Element[],
+    parent: CanvasLayoutNode,
+    children: CanvasLayoutNode[],
     availableWidth: number,
     availableHeight: number,
     context?: LayoutContext,
@@ -82,7 +92,16 @@ export abstract class BaseTaffyEngine implements LayoutEngine {
     const { parentComputed, cssCtx } = resolveParentContext(parent, context);
 
     try {
-      return this.computeWithTaffy(taffy, parent, children, availableWidth, availableHeight, parentComputed, cssCtx, context);
+      return this.computeWithTaffy(
+        taffy,
+        parent,
+        children,
+        availableWidth,
+        availableHeight,
+        parentComputed,
+        cssCtx,
+        context,
+      );
     } finally {
       try {
         taffy.clear();
@@ -99,8 +118,8 @@ export abstract class BaseTaffyEngine implements LayoutEngine {
    */
   protected abstract computeWithTaffy(
     taffy: TaffyLayout,
-    parent: Element,
-    children: Element[],
+    parent: CanvasLayoutNode,
+    children: CanvasLayoutNode[],
     availableWidth: number,
     availableHeight: number,
     parentComputed: ComputedStyle,
@@ -142,7 +161,7 @@ export abstract class BaseTaffyEngine implements LayoutEngine {
   protected collectResults(
     taffy: TaffyLayout,
     childHandles: TaffyNodeHandle[],
-    childMap: Map<TaffyNodeHandle, Element>,
+    childMap: Map<TaffyNodeHandle, CanvasLayoutNode>,
   ): ComputedLayout[] {
     const layoutMap = taffy.getLayoutsBatch(childHandles);
     const results: ComputedLayout[] = [];
@@ -152,7 +171,9 @@ export abstract class BaseTaffyEngine implements LayoutEngine {
       const layout = layoutMap.get(handle);
       if (!child || !layout) continue;
 
-      const childStyle = child.props?.style as Record<string, unknown> | undefined;
+      const childStyle = child.props?.style as
+        | Record<string, unknown>
+        | undefined;
       const margin = parseMargin(childStyle);
 
       results.push({

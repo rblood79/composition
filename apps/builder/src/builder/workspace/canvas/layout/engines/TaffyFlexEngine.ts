@@ -9,7 +9,7 @@
  * @since 2026-02-17 Phase 5 - Flex Yoga → Taffy 전환
  */
 
-import type { Element } from "../../../../../types/core/store.types";
+import type { CanvasLayoutNode } from "../layoutNode";
 import type { ComputedLayout, LayoutContext } from "./LayoutEngine";
 import { TaffyLayout } from "../../wasm-bindings/taffyLayout";
 import type {
@@ -105,13 +105,13 @@ function resolveMarginAutoSides(style: Record<string, unknown> | undefined): {
 // ─── Style conversion ────────────────────────────────────────────────
 
 /**
- * Element의 style을 TaffyStyle로 변환
+ * CanvasLayoutNode의 style을 TaffyStyle로 변환
  *
  * Taffy 네이티브 형식으로 직접 변환합니다.
  * fit-content, 태그별 크기 계산은 engines/utils.ts의 유틸리티를 사용합니다.
  */
 export function elementToTaffyStyle(
-  element: Element,
+  element: CanvasLayoutNode,
   _computedStyle?: ComputedStyle,
   ctx: CSSValueContext = {},
 ): TaffyStyle {
@@ -323,8 +323,8 @@ export class TaffyFlexEngine extends BaseTaffyEngine {
 
   protected computeWithTaffy(
     taffy: TaffyLayout,
-    parent: Element,
-    children: Element[],
+    parent: CanvasLayoutNode,
+    children: CanvasLayoutNode[],
     availableWidth: number,
     availableHeight: number,
     parentComputed: ComputedStyle,
@@ -429,7 +429,8 @@ export class TaffyFlexEngine extends BaseTaffyEngine {
 
     const secondPassChildren = children.map((child, i) => {
       const type = (child.type ?? "").toLowerCase();
-      if (!INLINE_BLOCK_TAGS.has(type) && !TEXT_LEAF_TAGS.has(type)) return child;
+      if (!INLINE_BLOCK_TAGS.has(type) && !TEXT_LEAF_TAGS.has(type))
+        return child;
 
       const actualWidth = actualWidths.get(child.id);
       if (actualWidth === undefined) return child;
@@ -466,9 +467,9 @@ export class TaffyFlexEngine extends BaseTaffyEngine {
    */
   private _runTaffyPassRaw(
     taffy: TaffyLayout,
-    parent: Element,
-    enrichedChildren: Element[],
-    originalChildren: Element[],
+    parent: CanvasLayoutNode,
+    enrichedChildren: CanvasLayoutNode[],
+    originalChildren: CanvasLayoutNode[],
     availableWidth: number,
     availableHeight: number,
     parentComputed: ComputedStyle,
@@ -476,7 +477,7 @@ export class TaffyFlexEngine extends BaseTaffyEngine {
   ): ComputedLayout[] {
     // CSS order: Taffy 0.9.2는 Style.order를 미지원하므로 TS 레이어에서 재정렬
     // stable sort로 같은 order 값의 요소는 원래 DOM 순서를 유지 (CSS spec)
-    const getOrder = (el: Element): number => {
+    const getOrder = (el: CanvasLayoutNode): number => {
       const s = el.props?.style as Record<string, unknown> | undefined;
       const o = parseInt(String(s?.order ?? "0"), 10);
       return isNaN(o) ? 0 : o;
@@ -508,7 +509,7 @@ export class TaffyFlexEngine extends BaseTaffyEngine {
 
     // 1. 자식 노드 생성
     const childHandles: TaffyNodeHandle[] = [];
-    const childMap = new Map<TaffyNodeHandle, Element>();
+    const childMap = new Map<TaffyNodeHandle, CanvasLayoutNode>();
 
     for (let i = 0; i < sortedEnriched.length; i++) {
       const enrichedChild = sortedEnriched[i];

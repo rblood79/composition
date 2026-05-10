@@ -10,7 +10,7 @@
  * @since 2026-02-28 Phase 1 — Full-Tree WASM Layout 통합
  */
 
-import type { Element } from "../../../../../types/core/store.types";
+import type { CanvasLayoutNode } from "../layoutNode";
 import { parsePadding, PHANTOM_INDICATOR_CONFIGS } from "./utils";
 import {
   InlineAlertSpec,
@@ -48,9 +48,9 @@ function resolveTabPanelPadding(
 
 export interface ImplicitStyleResult {
   /** 스타일이 주입된 부모 요소 (원본 또는 변환본) */
-  effectiveParent: Element;
+  effectiveParent: CanvasLayoutNode;
   /** 필터링 + 스타일 주입된 자식 배열 */
-  filteredChildren: Element[];
+  filteredChildren: CanvasLayoutNode[];
 }
 
 // ─── 공유 유틸 ──────────────────────────────────────────────────────
@@ -275,9 +275,12 @@ function withSpecPadding(
 }
 
 /**
- * 부모 요소의 style을 변경한 새 Element를 반환.
+ * 부모 요소의 style을 변경한 새 CanvasLayoutNode를 반환.
  */
-function withParentStyle(el: Element, style: Record<string, unknown>): Element {
+function withParentStyle(
+  el: CanvasLayoutNode,
+  style: Record<string, unknown>,
+): CanvasLayoutNode {
   return {
     ...el,
     props: { ...el.props, style },
@@ -285,7 +288,9 @@ function withParentStyle(el: Element, style: Record<string, unknown>): Element {
 }
 
 /** GridListItem/ListBoxItem 자식 Text/Description에 CSS 정합성 fontSize/fontWeight/width 주입 */
-function injectCollectionItemFontStyles(children: Element[]): Element[] {
+function injectCollectionItemFontStyles(
+  children: CanvasLayoutNode[],
+): CanvasLayoutNode[] {
   return children.map((child) => {
     const cs = (child.props?.style as Record<string, unknown>) || {};
     if (child.type === "Text") {
@@ -320,9 +325,9 @@ function injectCollectionItemFontStyles(children: Element[]): Element[] {
 }
 
 function injectSideLabelLabelAndWrapperStyles(
-  children: Element[],
+  children: CanvasLayoutNode[],
   wrapperTags: ReadonlySet<string>,
-): Element[] {
+): CanvasLayoutNode[] {
   return children.map((child) => {
     const cs = (child.props?.style || {}) as Record<string, unknown>;
 
@@ -358,9 +363,9 @@ function injectSideLabelLabelAndWrapperStyles(
 }
 
 function injectSideLabelLabelAndContentStyles(
-  children: Element[],
+  children: CanvasLayoutNode[],
   contentTags: ReadonlySet<string>,
-): Element[] {
+): CanvasLayoutNode[] {
   return children.map((child) => {
     const cs = (child.props?.style || {}) as Record<string, unknown>;
 
@@ -440,10 +445,10 @@ function hasResolvedSideLabelVariant(styles: Record<string, string>): boolean {
 }
 
 function injectMatchedSideLabelContentStyles(
-  children: Element[],
+  children: CanvasLayoutNode[],
   nested: Array<{ selector: string }>,
   contentTags: ReadonlySet<string>,
-): Element[] {
+): CanvasLayoutNode[] {
   return children.map((child) => {
     const childTag = child.type ?? "";
     const matches = nested.some((n) =>
@@ -459,8 +464,8 @@ function injectMatchedSideLabelContentStyles(
 }
 
 function getDelegatedSize(
-  el: Element,
-  elementById: Map<string, Element>,
+  el: CanvasLayoutNode,
+  elementById: Map<string, CanvasLayoutNode>,
 ): string {
   const ownSize = (el.props as Record<string, unknown> | undefined)?.size;
   if (typeof ownSize === "string" && ownSize.trim()) {
@@ -498,14 +503,14 @@ function getDelegatedSize(
  *
  * @param containerEl   - 컨테이너 요소
  * @param children      - 원본 자식 배열
- * @param getChildElements - 자식 Element 배열 accessor (Tabs dual lookup용)
+ * @param getChildElements - 자식 CanvasLayoutNode 배열 accessor (Tabs dual lookup용)
  * @param elementById   - 전역 요소 맵 (ComboBoxWrapper → 부모 ComboBox 조회용)
  */
 export function applyImplicitStyles(
-  containerEl: Element,
-  children: Element[],
-  getChildElements: (id: string) => Element[],
-  elementById: Map<string, Element>,
+  containerEl: CanvasLayoutNode,
+  children: CanvasLayoutNode[],
+  getChildElements: (id: string) => CanvasLayoutNode[],
+  elementById: Map<string, CanvasLayoutNode>,
   /** 현재 노드에 사용 가능한 너비 (px) — maxRows 행 시뮬레이션용 */
   _availableWidth?: number,
 ): ImplicitStyleResult {
@@ -565,7 +570,7 @@ export function applyImplicitStyles(
               whiteSpace: cs.whiteSpace ?? "nowrap",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -744,7 +749,7 @@ export function applyImplicitStyles(
             whiteSpace: cs.whiteSpace ?? "nowrap",
           },
         },
-      } as Element;
+      } as CanvasLayoutNode;
     });
   }
 
@@ -773,7 +778,7 @@ export function applyImplicitStyles(
                 whiteSpace: cs.whiteSpace ?? "nowrap",
               },
             },
-          } as Element;
+          } as CanvasLayoutNode;
         }
         return child;
       });
@@ -864,7 +869,7 @@ export function applyImplicitStyles(
       // → spatialIndex에 bounds 등록 → 캔버스에서 TabList/Tab 선택 가능
       // ADR-087 SP2: display/flexDirection 은 TabList.spec containerStyles 로 리프팅됨.
       //   height/width 는 size-based tabBarHeight 주입 (runtime 잔존).
-      const injectedTabList: Element = {
+      const injectedTabList: CanvasLayoutNode = {
         ...tabListEl,
         props: {
           ...tabListEl.props,
@@ -879,19 +884,22 @@ export function applyImplicitStyles(
       // CSS: .react-aria-TabPanel { padding: var(--spacing-md) }
       // TabPanels 또는 직속 Panel에 size별 padding 주입
       const panelContainer = tabPanelsEl ?? directPanel;
-      const injectedPanelContainer: Element | undefined = panelContainer
-        ? {
-            ...panelContainer,
-            props: {
-              ...panelContainer.props,
-              style: {
-                ...((panelContainer.props?.style as Record<string, unknown>) ??
-                  {}),
-                padding: tabPanelPadding,
+      const injectedPanelContainer: CanvasLayoutNode | undefined =
+        panelContainer
+          ? {
+              ...panelContainer,
+              props: {
+                ...panelContainer.props,
+                style: {
+                  ...((panelContainer.props?.style as Record<
+                    string,
+                    unknown
+                  >) ?? {}),
+                  padding: tabPanelPadding,
+                },
               },
-            },
-          }
-        : undefined;
+            }
+          : undefined;
       filteredChildren = [
         injectedTabList,
         ...(injectedPanelContainer ? [injectedPanelContainer] : []),
@@ -969,7 +977,7 @@ export function applyImplicitStyles(
       },
       parent_id: containerEl.id,
       page_id: containerEl.page_id,
-    })) as Element[];
+    })) as CanvasLayoutNode[];
 
     // ADR-087 SP2: display/flexDirection 은 TabList.spec containerStyles 로 리프팅됨.
     //   height/width 는 size-based tabBarHeight 주입 (runtime 잔존).
@@ -1026,7 +1034,7 @@ export function applyImplicitStyles(
               ...withSpecPadding(cs, sizeName),
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1087,7 +1095,7 @@ export function applyImplicitStyles(
               ...withSpecPadding(cs, sizeName),
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1156,7 +1164,7 @@ export function applyImplicitStyles(
               textOverflow: cs.textOverflow ?? "ellipsis",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       // ADR-102: SelectIcon — RAC 공식 미존재 composition 고유 D3 시각 element (chevron 아이콘).
       //   BC HIGH (factory 직렬화 type) → 정당화 유지. grandparent(Select) iconName 전파.
@@ -1183,7 +1191,7 @@ export function applyImplicitStyles(
               flexShrink: cs.flexShrink ?? 0,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1240,7 +1248,7 @@ export function applyImplicitStyles(
               textOverflow: cs.textOverflow ?? "ellipsis",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       if (child.type === "ComboBoxTrigger") {
         // ComboBox → ComboBoxWrapper → ComboBoxTrigger: 조부모(ComboBox)의 iconName 전파
@@ -1265,7 +1273,7 @@ export function applyImplicitStyles(
               flexShrink: cs.flexShrink ?? 0,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1364,7 +1372,7 @@ export function applyImplicitStyles(
               height: inputHeight,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1439,7 +1447,7 @@ export function applyImplicitStyles(
               textOverflow: cs.textOverflow ?? "ellipsis",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       if (child.type === "SearchIcon" || child.type === "SearchClearButton") {
         const iconSz =
@@ -1455,7 +1463,7 @@ export function applyImplicitStyles(
               flexShrink: cs.flexShrink ?? 0,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1509,7 +1517,7 @@ export function applyImplicitStyles(
               whiteSpace: cs.whiteSpace ?? "nowrap",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       if (child.type === "ProgressBarTrack" || child.type === "MeterTrack") {
         const trackTag = child.type.toLowerCase();
@@ -1526,7 +1534,7 @@ export function applyImplicitStyles(
               height: barHeight,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       if (child.type === "ProgressBarValue" || child.type === "MeterValue") {
         const valueFontSize = specSizeFontSize(containerTag, sizeName) ?? 14;
@@ -1546,7 +1554,7 @@ export function applyImplicitStyles(
               whiteSpace: cs.whiteSpace ?? "nowrap",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1611,7 +1619,7 @@ export function applyImplicitStyles(
               whiteSpace: cs.whiteSpace ?? "nowrap",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       if (child.type === "SliderTrack") {
         // ADR-086 P2: layout height = thumbSize (thumb 수용용, visual trackHeight 와 다름).
@@ -1633,7 +1641,7 @@ export function applyImplicitStyles(
               height: trackHeight,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       if (child.type === "SliderOutput") {
         const valueFontSize = specSizeFontSize("slider", sizeName) ?? 14;
@@ -1652,7 +1660,7 @@ export function applyImplicitStyles(
               whiteSpace: cs.whiteSpace ?? "nowrap",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1710,7 +1718,7 @@ export function applyImplicitStyles(
             marginLeft: -(thumbSize / 2),
           },
         },
-      } as Element;
+      } as CanvasLayoutNode;
     });
   }
 
@@ -1775,7 +1783,7 @@ export function applyImplicitStyles(
           gap: ps.gap ?? calGap,
         },
       },
-    } as Element;
+    } as CanvasLayoutNode;
 
     // CalendarHeader/CalendarGrid 자식에 width: 100% + whiteSpace: nowrap 주입
     // whiteSpace: nowrap → ElementSprite 다중 줄 보정 로직 우회 (폰트 메트릭 기반 Y 이탈 방지)
@@ -1792,7 +1800,7 @@ export function applyImplicitStyles(
               whiteSpace: "nowrap",
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1837,7 +1845,7 @@ export function applyImplicitStyles(
             whiteSpace: cs.whiteSpace ?? "nowrap",
           },
         },
-      } as Element;
+      } as CanvasLayoutNode;
     });
   }
 
@@ -1865,7 +1873,7 @@ export function applyImplicitStyles(
           synLabelMargin = indWidth + gap;
         }
 
-        const syntheticLabel: Element = {
+        const syntheticLabel: CanvasLayoutNode = {
           id: `${containerEl.id}__synlabel`,
           type: "Label",
           props: {
@@ -1879,7 +1887,7 @@ export function applyImplicitStyles(
           },
           parent_id: containerEl.id,
           page_id: containerEl.page_id,
-        } as Element;
+        } as CanvasLayoutNode;
         filteredChildren = [syntheticLabel];
       }
     }
@@ -1927,7 +1935,7 @@ export function applyImplicitStyles(
               fontWeight: cs.fontWeight ?? s.headingFontWeight,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       if (child.type === "Description") {
         return {
@@ -1941,7 +1949,7 @@ export function applyImplicitStyles(
               fontWeight: cs.fontWeight ?? s.descFontWeight,
             },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });
@@ -1968,7 +1976,7 @@ export function applyImplicitStyles(
             marginBottom: sep_margin,
           },
         },
-      } as Element;
+      } as CanvasLayoutNode;
     });
   }
 
@@ -1998,7 +2006,7 @@ export function applyImplicitStyles(
               ...child.props,
               children: originalText + indicatorText,
             },
-          } as Element;
+          } as CanvasLayoutNode;
         }
       }
       return child;
@@ -2018,7 +2026,7 @@ export function applyImplicitStyles(
             ...child.props,
             style: { ...cs, flexShrink: 0 },
           },
-        } as Element;
+        } as CanvasLayoutNode;
       }
       return child;
     });

@@ -124,7 +124,7 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 잔여 bucket:
 
 - `BuilderCanvas` scene snapshot/layout/interaction caller 는 `getSceneModel*Legacy` fallback 을 아직 사용한다. Phase 2-B/2-C/2-D cascade에서 제거 대상.
-- `rendererInput.ts` legacy bootstrap fallback 은 Phase 2-C에서 canonical scene graph 미주입 시 fallback 으로 축소됨. `PixiPageRendererInput` / layout publisher / interactive fallback `Element` shape 는 Phase 2-B/2-D 잔여.
+- `rendererInput.ts` legacy bootstrap fallback 은 Phase 2-C에서 canonical scene graph 미주입 시 fallback 으로 축소됨. Phase 2-B에서 layout publisher input 은 `CanvasLayoutNode` 계약으로 전환됐고, render-tree / interactive fallback `Element` shape 는 Phase 2-D/Phase 5 잔여.
 - `CanvasSceneNode` transition alias(`parent_id`, `page_id`, `componentName`) 는 Phase 5 boundary 정리 전까지 임시 허용하되 신규 Skia code 에서는 `parentId`, `pageId`, `name` 을 사용한다.
 
 ## 6. Phase 2-C 진행 결과 (2026-05-10)
@@ -143,5 +143,25 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 
 잔여 bucket:
 
-- `rendererInput.ts` 내부 `PixiPageRendererInput` / layout publisher input 은 아직 `Element` shape 를 포함한다. Phase 2-B layout cascade에서 제거 대상.
+- `rendererInput.ts` 내부 render-tree / interactive fallback 은 아직 `Element` shape 를 포함한다. Phase 2-D/Phase 5에서 제거 대상.
 - `BuilderCanvas` interactive hover/scroll read-model 은 아직 `skiaRendererInput.elementsMap` / `childrenMap` 을 사용한다. Phase 2-D 또는 Phase 4 interaction read-model 정리 대상.
+
+## 7. Phase 2-B 진행 결과 (2026-05-10)
+
+layout engine production surface 를 Builder store `Element` 타입 import 에서 분리하고,
+layout publisher input 명칭/shape 를 실제 역할에 맞게 정리했다.
+
+| 측정 대상                                                                                         | 결과                                           |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `workspace/canvas/layout/**` production `Element` raw/type hit                                    | **0**                                          |
+| `workspace/canvas/scene/layoutCache.ts` + `hooks/useLayoutPublisher.ts` production `Element` hit  | **0**                                          |
+| production `PixiPageRendererInput` / `buildPixiPageRendererInput` / `buildFrameRendererInput` hit | **0**                                          |
+| Layout contract                                                                                   | `CanvasLayoutNode`                             |
+| Targeted Vitest                                                                                   | **10 files / 63 tests PASS**                   |
+| Type-check                                                                                        | `pnpm -F @composition/builder type-check` PASS |
+
+잔여 bucket:
+
+- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 interaction/read-model fallback 때문에 아직 `Element` shape 를 포함한다. Phase 2-D/Phase 5 제거 대상.
+- `BuilderCanvas` 의 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback, interactive hover/scroll read-model 은 아직 store `Element` import 를 유지한다.
+- `CanvasLayoutNode` 는 transition 중 `parent_id/page_id/layout_id` legacy field 를 허용한다. alias 제거는 Phase 5 boundary 정리에서 처리한다.

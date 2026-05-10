@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { Element } from "../../../../../types/core/store.types";
 import type { SceneStructureSnapshot } from "../../scene";
-import { buildFrameRendererInput } from "../rendererInput";
+import { buildFrameLayoutPublisherInput } from "../rendererInput";
 import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 
 type ElementFixtureOptions = Partial<Element> & {
@@ -71,10 +71,10 @@ function makeFrameScope(
   };
 }
 
-describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
+describe("ADR-111 P3-δ fix #3 — buildFrameLayoutPublisherInput", () => {
   it("frame body element 부재 시 null 반환", () => {
     const elementById = new Map<string, Element>();
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 200,
@@ -119,7 +119,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
       [otherFrameBody.id, otherFrameBody],
     ]);
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 844,
@@ -160,7 +160,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
     });
     const elementById = new Map([[body.id, body]]);
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 600,
@@ -197,7 +197,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
     });
     const elementById = new Map([[slot.id, slot]]);
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 200,
@@ -223,7 +223,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
     });
     const elementById = new Map([[slot.id, slot]]);
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 200,
@@ -261,7 +261,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
       [pageElement.id, pageElement],
     ]);
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 200,
@@ -301,7 +301,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
       [deletedSlot.id, deletedSlot],
     ]);
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 200,
@@ -337,7 +337,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
       [body2.id, body2],
     ]);
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 200,
@@ -372,7 +372,7 @@ describe("ADR-111 P3-δ fix #3 — buildFrameRendererInput", () => {
       layoutVersion: 42,
     });
 
-    const result = buildFrameRendererInput({
+    const result = buildFrameLayoutPublisherInput({
       ...baseOptions,
       elementById,
       frameHeight: 200,

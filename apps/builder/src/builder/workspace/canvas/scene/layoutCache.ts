@@ -1,5 +1,5 @@
-import type { CanvasSceneNode } from "./canvasSceneNode";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import type { CanvasLayoutNode } from "../layout/layoutNode";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   calculateFullTreeLayoutFromSceneModel,
@@ -11,9 +11,9 @@ import {
 import { parseBorder, parsePadding } from "../layout/engines/utils";
 
 interface BuildPageChildrenMapInput {
-  bodyElement: CanvasSceneNode | null;
-  elementById: Map<string, CanvasSceneNode>;
-  pageElements: CanvasSceneNode[];
+  bodyElement: CanvasLayoutNode | null;
+  elementById: Map<string, CanvasLayoutNode>;
+  pageElements: CanvasLayoutNode[];
 }
 
 interface CachedPageLayoutEntry {
@@ -25,19 +25,19 @@ interface CachedPageLayoutEntry {
   pageWidth: number;
   wasmLayoutReady: boolean;
   filteredChildIdsMap: Map<string, string[]> | null;
-  syntheticElementsMap: Map<string, CanvasSceneNode> | null;
+  syntheticElementsMap: Map<string, CanvasLayoutNode> | null;
   rootKey: string;
 }
 
 const pageLayoutCache = new Map<string, CachedPageLayoutEntry>();
 
-function isContentsElement(element: CanvasSceneNode | undefined): boolean {
+function isContentsElement(element: CanvasLayoutNode | undefined): boolean {
   const style = element?.props?.style as Record<string, unknown> | undefined;
   return style?.display === "contents";
 }
 
 export function createPageElementsSignature(
-  elements: CanvasSceneNode[],
+  elements: CanvasLayoutNode[],
 ): string {
   return elements
     .map((element) => {
@@ -164,7 +164,7 @@ function serializeLayoutRelevantValue(value: unknown): string {
   }
 }
 
-function createElementLayoutSignature(element: CanvasSceneNode): string {
+function createElementLayoutSignature(element: CanvasLayoutNode): string {
   const props = (element.props ?? {}) as Record<string, unknown>;
   const style = (props.style ?? {}) as Record<string, unknown>;
 
@@ -185,8 +185,8 @@ function createElementLayoutSignature(element: CanvasSceneNode): string {
 }
 
 export function createPageLayoutSignature(
-  bodyElement: CanvasSceneNode | null,
-  elements: CanvasSceneNode[],
+  bodyElement: CanvasLayoutNode | null,
+  elements: CanvasLayoutNode[],
 ): string {
   const signatureParts: string[] = [];
 
@@ -205,8 +205,8 @@ export function buildPageChildrenMap({
   bodyElement,
   elementById,
   pageElements,
-}: BuildPageChildrenMapInput): Map<string | null, CanvasSceneNode[]> {
-  const map = new Map<string | null, CanvasSceneNode[]>();
+}: BuildPageChildrenMapInput): Map<string | null, CanvasLayoutNode[]> {
+  const map = new Map<string | null, CanvasLayoutNode[]>();
   const bodyId = bodyElement?.id ?? null;
 
   const getLayoutParentId = (parentId: string | null): string | null => {
@@ -240,7 +240,7 @@ export function buildPageChildrenMap({
 }
 
 export function buildChildrenIdMap(
-  pageChildrenMap: Map<string | null, CanvasSceneNode[]>,
+  pageChildrenMap: Map<string | null, CanvasLayoutNode[]>,
 ): Map<string, string[]> {
   const childrenIdMap = new Map<string, string[]>();
 
@@ -256,7 +256,7 @@ export function buildChildrenIdMap(
   return childrenIdMap;
 }
 
-function getLayoutPublishKey(bodyElement: CanvasSceneNode): string {
+function getLayoutPublishKey(bodyElement: CanvasLayoutNode): string {
   return (
     bodyElement.page_id ??
     getFrameElementMirrorId(bodyElement) ??
@@ -265,10 +265,10 @@ function getLayoutPublishKey(bodyElement: CanvasSceneNode): string {
 }
 
 interface GetCachedPageLayoutInput {
-  bodyElement: CanvasSceneNode | null;
+  bodyElement: CanvasLayoutNode | null;
   childrenIdMap: Map<string, string[]>;
-  elementById: Map<string, CanvasSceneNode>;
-  pageChildrenMap: Map<string | null, CanvasSceneNode[]>;
+  elementById: Map<string, CanvasLayoutNode>;
+  pageChildrenMap: Map<string | null, CanvasLayoutNode[]>;
   pageElementsSignature: string;
   pageLayoutSignature: string;
   pageHeight: number;
@@ -338,7 +338,7 @@ export function getCachedPageLayout({
   // entry. 외부 contract 가 canonical-native scene model 형태가 됨.
   // childrenByParent 는 layoutCache 가 이미 보유한 pageChildrenMap (key: string |
   // null) 을 string-key 만 추출하여 전달.
-  const childrenByParent = new Map<string, CanvasSceneNode[]>();
+  const childrenByParent = new Map<string, CanvasLayoutNode[]>();
   for (const [key, elements] of pageChildrenMap) {
     if (key !== null) childrenByParent.set(key, elements);
   }

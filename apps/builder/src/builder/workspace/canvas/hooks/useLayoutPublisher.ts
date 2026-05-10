@@ -16,7 +16,7 @@
 
 import { useEffect, useRef } from "react";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
-import type { PixiPageRendererInput } from "../renderers";
+import type { LayoutPublisherInput } from "../renderers";
 import {
   publishFilteredChildrenMap,
   publishLayoutMapsBatch,
@@ -34,7 +34,7 @@ import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 
 interface PageLayoutInput {
   pageId: string;
-  input: PixiPageRendererInput;
+  input: LayoutPublisherInput;
 }
 
 /**

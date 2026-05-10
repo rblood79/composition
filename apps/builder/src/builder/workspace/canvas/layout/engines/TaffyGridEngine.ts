@@ -16,7 +16,7 @@
  * @since 2026-02-17 Phase 6 - Grid → Taffy Grid 통합
  */
 
-import type { Element } from "../../../../../types/core/store.types";
+import type { CanvasLayoutNode } from "../layoutNode";
 import type { ComputedLayout, LayoutContext } from "./LayoutEngine";
 import { TaffyLayout } from "../../wasm-bindings/taffyLayout";
 import type {
@@ -195,13 +195,13 @@ function parseGridTemplateAreas(
 // ─── Style 변환 ────────────────────────────────────────────────────────
 
 /**
- * Element의 CSS Grid 스타일을 TaffyStyle로 변환합니다.
+ * CanvasLayoutNode의 CSS Grid 스타일을 TaffyStyle로 변환합니다.
  *
  * 컨테이너 속성(display, gridTemplate*, gap 등)과
  * 아이템 속성(gridColumn, gridRow, gridArea, alignSelf 등)을 모두 변환합니다.
  */
 export function elementToTaffyGridStyle(
-  element: Element,
+  element: CanvasLayoutNode,
   _computedStyle?: ComputedStyle,
   templateAreas?: TemplateAreasMap,
   ctx: CSSValueContext = {},
@@ -396,8 +396,8 @@ export class TaffyGridEngine extends BaseTaffyEngine {
 
   protected computeWithTaffy(
     taffy: TaffyLayout,
-    parent: Element,
-    children: Element[],
+    parent: CanvasLayoutNode,
+    children: CanvasLayoutNode[],
     availableWidth: number,
     availableHeight: number,
     parentComputed: ComputedStyle,
@@ -415,7 +415,7 @@ export class TaffyGridEngine extends BaseTaffyEngine {
 
     // 1. 자식 노드 생성 (grid item 속성 포함)
     const childHandles: TaffyNodeHandle[] = [];
-    const childMap = new Map<TaffyNodeHandle, Element>();
+    const childMap = new Map<TaffyNodeHandle, CanvasLayoutNode>();
     const getChildElements = context?.getChildElements;
 
     for (const child of children) {

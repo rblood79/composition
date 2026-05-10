@@ -12,7 +12,7 @@
  */
 
 import type { Margin, BoxModel, VerticalAlign } from "./types";
-import type { Element } from "../../../../../types/core/store.types";
+import type { CanvasLayoutNode } from "../layoutNode";
 import {
   fontFamily as specFontFamily,
   BreadcrumbsSpec,
@@ -614,7 +614,7 @@ let _tagGroupAllowsRemovingMap = new Map<string, boolean>();
  *  childrenMap 기반 DFS로 TagGroup 하위 전체 서브트리 ID를 등록하여
  *  중간 래퍼 유무와 무관하게 remove 공간 계산이 일관되게 동작 */
 export function setTagGroupAllowsRemovingContext(
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasLayoutNode>,
   childrenMap: Map<string | null, string[]>,
 ): void {
   _tagGroupAllowsRemovingMap = new Map();
@@ -645,8 +645,8 @@ export function setTagGroupAllowsRemovingContext(
 /** Tag element의 조상 TagGroup이 allowsRemoving인지 조회
  *  DFS 서브트리 등록으로 parent_id 단일 조회만으로 충분 */
 export function isTagAllowsRemoving(
-  element: Element,
-  _elementsMap?: Map<string, Element>,
+  element: CanvasLayoutNode,
+  _elementsMap?: Map<string, CanvasLayoutNode>,
 ): boolean {
   // props에 직접 있으면 (delegation된 경우)
   if ((element.props as Record<string, unknown> | undefined)?.allowsRemoving)
@@ -836,9 +836,9 @@ const DEFAULT_SIZE_BY_TAG: Record<string, string> = {
  * @returns 콘텐츠 기반 너비
  */
 export function calculateContentWidth(
-  element: Element,
-  childElements?: Element[],
-  getChildElements?: (id: string) => Element[],
+  element: CanvasLayoutNode,
+  childElements?: CanvasLayoutNode[],
+  getChildElements?: (id: string) => CanvasLayoutNode[],
   computedStyle?: ComputedStyle,
 ): number {
   const style = element.props?.style as Record<string, unknown> | undefined;
@@ -1472,10 +1472,10 @@ function estimateTextHeight(
  * @returns 콘텐츠 기반 높이 (자식이 없으면 태그별 기본 높이)
  */
 export function calculateContentHeight(
-  element: Element,
+  element: CanvasLayoutNode,
   availableWidth?: number,
-  childElements?: Element[],
-  getChildElements?: (id: string) => Element[],
+  childElements?: CanvasLayoutNode[],
+  getChildElements?: (id: string) => CanvasLayoutNode[],
   computedStyle?: ComputedStyle,
 ): number {
   const style = element.props?.style as Record<string, unknown> | undefined;
@@ -2908,7 +2908,7 @@ export function calculateContentHeight(
  * @param viewportHeight - vh 계산용
  */
 export function parseBoxModel(
-  element: Element,
+  element: CanvasLayoutNode,
   availableWidth: number,
   availableHeight: number,
   viewportWidth?: number,
@@ -3169,7 +3169,7 @@ const SPEC_SHAPES_INPUT_TAGS = new Set([
   "progresscircle",
   "meter",
   "gauge",
-  // ADR-076 P6+: items SSOT 로 자식 Element 소멸 → calculateContentHeight 가
+  // ADR-076 P6+: items SSOT 로 자식 CanvasLayoutNode 소멸 → calculateContentHeight 가
   // items.length × itemH + gap 으로 intrinsic 산출. childElements=0 이어도 주입 필요.
   "listbox",
   // ADR-097 Phase 4A/4B: TagList 도 items SSOT (chip self-render) — row-wrap 기반
@@ -3193,14 +3193,14 @@ const SPEC_SHAPES_INPUT_TAGS = new Set([
  * @param computedStyle - 상속 적용 후 해당 요소의 computed style (fontSize 등 활용)
  */
 export function enrichWithIntrinsicSize(
-  element: Element,
+  element: CanvasLayoutNode,
   availableWidth: number,
   availableHeight: number,
   _computedStyle?: ComputedStyle,
-  childElements?: Element[],
-  getChildElements?: (id: string) => Element[],
+  childElements?: CanvasLayoutNode[],
+  getChildElements?: (id: string) => CanvasLayoutNode[],
   isFlexChild?: boolean,
-): Element {
+): CanvasLayoutNode {
   const style = element.props?.style as Record<string, unknown> | undefined;
   const type = (element.type ?? "").toLowerCase();
 
@@ -3362,7 +3362,7 @@ export function enrichWithIntrinsicSize(
   }
 
   // Width 주입 (inline-block 태그의 fit-content / min-content / max-content 에뮬레이션)
-  // childElements가 있으면 재계산 (ToggleButtonGroup 등 자식이 Element로 저장된 경우)
+  // childElements가 있으면 재계산 (ToggleButtonGroup 등 자식이 CanvasLayoutNode로 저장된 경우)
   // childElements가 없어도 INLINE_BLOCK_TAGS(Tag, Badge 등)는 텍스트 기반 너비 계산 필요:
   // box.contentWidth는 availableWidth 기반이므로 fit-content 시 부모 전체 너비를 차지하는 버그 발생
   const childResolvedWidth =
@@ -3421,7 +3421,7 @@ export function enrichWithIntrinsicSize(
       ...element.props,
       style: injectedStyle,
     },
-  } as Element;
+  } as CanvasLayoutNode;
 }
 
 /**
@@ -3628,7 +3628,10 @@ function getFontMetricsFromStyle(
  * // 높이 100px, baseline이 하단에서 20px 위
  * calculateBaseline(element, 100) // → 80 (상단에서 80px 아래)
  */
-export function calculateBaseline(element: Element, height: number): number {
+export function calculateBaseline(
+  element: CanvasLayoutNode,
+  height: number,
+): number {
   const style = element.props?.style as Record<string, unknown> | undefined;
   const type = (element.type ?? "").toLowerCase();
 
@@ -4062,7 +4065,7 @@ export function applyFlexItemProperties(
  * TaffyFlexEngine.calculate()와 TaffyGridEngine.calculate()에서 동일.
  */
 export function resolveParentContext(
-  parent: Element,
+  parent: CanvasLayoutNode,
   context?: LayoutContext,
 ): { parentComputed: ComputedStyle; cssCtx: CSSValueContext } {
   const parentRawStyle = parent.props?.style as

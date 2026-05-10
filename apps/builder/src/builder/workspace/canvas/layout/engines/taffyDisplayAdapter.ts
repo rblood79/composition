@@ -48,7 +48,7 @@
  * @since 2026-02-28
  */
 
-import type { Element } from "../../../../../types/core/store.types";
+import type { CanvasLayoutNode } from "../layoutNode";
 import { INLINE_BLOCK_TAGS } from "./utils";
 
 // ============================================
@@ -196,10 +196,12 @@ const BLOCK_FALLBACK: TaffyDisplayConfig = { taffyDisplay: "block" };
  * - bottom → 'flex-end'
  * - baseline → 'baseline'
  *
- * @param childElements - 직계 자식 Element 배열
+ * @param childElements - 직계 자식 CanvasLayoutNode 배열
  * @returns Taffy alignItems 값 (기본값: 'center')
  */
-function resolveInlineBlockAlignItems(childElements: Element[]): string {
+function resolveInlineBlockAlignItems(
+  childElements: CanvasLayoutNode[],
+): string {
   const map: Record<string, string> = {
     top: "flex-start",
     middle: "center",
@@ -447,7 +449,7 @@ export function needsBlockChildFullWidth(
  *
  * @param display - 요소의 CSS display 값 (e.g. 'block', 'flex', 'inline-block')
  * @param childDisplays - 직계 자식 요소들의 CSS display 값 배열
- * @param childElements - 직계 자식 Element 배열 (optional). 전달 시 vertical-align 기반
+ * @param childElements - 직계 자식 CanvasLayoutNode 배열 (optional). 전달 시 vertical-align 기반
  *                        alignItems 동적 결정에 사용된다. (ADR-006 P2-3)
  * @returns Taffy 엔진에 전달할 TaffyDisplayConfig
  *
@@ -469,7 +471,7 @@ export function needsBlockChildFullWidth(
 export function toTaffyDisplay(
   display: string,
   childDisplays: string[],
-  childElements?: Element[],
+  childElements?: CanvasLayoutNode[],
 ): TaffyDisplayConfig {
   const parsed = parseDisplay(display);
 

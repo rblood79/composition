@@ -10,7 +10,7 @@
  * @since 2026-02-28 Phase 11 - Block → Taffy Block 전환
  */
 
-import type { Element } from "../../../../../types/core/store.types";
+import type { CanvasLayoutNode } from "../layoutNode";
 import type { ComputedLayout, LayoutContext } from "./LayoutEngine";
 import type {
   TaffyStyle,
@@ -106,18 +106,18 @@ function resolveMarginAutoSides(style: Record<string, unknown> | undefined): {
 // ─── Style 변환 ────────────────────────────────────────────────────────
 
 /**
- * Block 컨텍스트 자식 Element의 style을 TaffyStyle로 변환
+ * Block 컨텍스트 자식 CanvasLayoutNode의 style을 TaffyStyle로 변환
  *
  * TaffyFlexEngine의 elementToTaffyStyle()과 달리 flex 전용 속성(flex-flow,
  * flex shorthand, order 등)을 파싱하지 않습니다.
  * taffyConfig에서 inline-block 리프의 flexGrow/flexShrink를 적용합니다.
  *
- * @param element - 대상 Element
+ * @param element - 대상 CanvasLayoutNode
  * @param taffyConfig - toTaffyDisplay()의 반환값 (자식 노드용)
  * @param ctx - CSS 값 파싱 컨텍스트
  */
 export function elementToTaffyBlockStyle(
-  element: Element,
+  element: CanvasLayoutNode,
   taffyConfig: TaffyDisplayConfig,
   ctx: CSSValueContext = {},
 ): TaffyStyle {
@@ -249,8 +249,8 @@ export class TaffyBlockEngine extends BaseTaffyEngine {
 
   protected computeWithTaffy(
     taffy: TaffyLayout,
-    parent: Element,
-    children: Element[],
+    parent: CanvasLayoutNode,
+    children: CanvasLayoutNode[],
     availableWidth: number,
     availableHeight: number,
     parentComputed: ComputedStyle,
@@ -289,7 +289,7 @@ export class TaffyBlockEngine extends BaseTaffyEngine {
 
     // ── 4. 자식 노드 생성 ───────────────────────────────────────────────
     const childHandles: TaffyNodeHandle[] = [];
-    const childMap = new Map<TaffyNodeHandle, Element>();
+    const childMap = new Map<TaffyNodeHandle, CanvasLayoutNode>();
 
     for (let i = 0; i < enrichedChildren.length; i++) {
       const enrichedChild = enrichedChildren[i];

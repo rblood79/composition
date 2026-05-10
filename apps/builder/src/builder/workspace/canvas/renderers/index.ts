@@ -1,8 +1,8 @@
 export {
-  buildFrameRendererInput,
-  buildPixiPageRendererInput,
+  buildFrameLayoutPublisherInput,
+  buildPageLayoutPublisherInput,
   createSkiaRendererInput,
-  type PixiPageRendererInput,
+  type LayoutPublisherInput,
   type SkiaRendererInput,
 } from "./rendererInput";
 export {
