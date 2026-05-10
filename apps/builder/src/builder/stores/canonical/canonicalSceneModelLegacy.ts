@@ -32,6 +32,10 @@ import {
   getActiveCanonicalDocumentElements,
 } from "./canonicalElementsView";
 
+type LegacyElementSnapshot = Element;
+export type LegacyElementMap = Map<string, LegacyElementSnapshot>;
+export type LegacyChildrenByParentMap = Map<string, LegacyElementSnapshot[]>;
+
 /**
  * Scene model 의 평탄 Element[] projection 반환 (legacy view).
  *
@@ -55,7 +59,7 @@ export function getSceneModelElementsLegacy(
  */
 export function getSceneModelElementsMapLegacy(
   scene: CanonicalSceneModel,
-): Map<string, Element> {
+): LegacyElementMap {
   const elements = getSceneModelElementsLegacy(scene);
   return new Map(elements.map((element) => [element.id, element]));
 }
@@ -69,9 +73,9 @@ export function getSceneModelElementsMapLegacy(
  */
 export function getSceneModelChildrenByParentLegacy(
   scene: CanonicalSceneModel,
-): Map<string, Element[]> {
+): LegacyChildrenByParentMap {
   const elements = getSceneModelElementsLegacy(scene);
-  const map = new Map<string, Element[]>();
+  const map: LegacyChildrenByParentMap = new Map();
   for (const element of elements) {
     if (element.deleted || !element.parent_id) continue;
     const list = map.get(element.parent_id);
@@ -116,8 +120,8 @@ export { canonicalDocumentToElements };
  *   transition path 에서만 사용.
  */
 export function buildLegacyElementMap(
-  elements: Element[],
-): Map<string, Element> {
+  elements: readonly Element[],
+): LegacyElementMap {
   return new Map(elements.map((element) => [element.id, element]));
 }
 
@@ -129,9 +133,9 @@ export function buildLegacyElementMap(
  *   (Zustand legacy mirror) 기반 transition path 에서만 사용.
  */
 export function buildLegacyChildrenByParent(
-  elements: Element[],
-): Map<string, Element[]> {
-  const map = new Map<string, Element[]>();
+  elements: readonly Element[],
+): LegacyChildrenByParentMap {
+  const map: LegacyChildrenByParentMap = new Map();
   for (const element of elements) {
     if (element.deleted || !element.parent_id) continue;
     const list = map.get(element.parent_id);

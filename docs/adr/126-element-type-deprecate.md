@@ -45,6 +45,7 @@ Accepted — 2026-05-10
 - 2026-05-11 Phase 4 history actions compatibility map slice land — `historyActions.ts` 의 cloud compatibility upsert lookup map 을 `HistoryCompatibilityElementMap` alias 로 전환했다. canonical history event/diff application semantics 변경 없음. 검증: builder type-check PASS, targeted Vitest `historyActions.static.test.ts` 1 file / 1 test PASS.
 - 2026-05-11 Phase 4 elements page removal local map slice land — `elements.ts` 의 `removePageLocal` page removal/de-dup maps 를 `PageRemovalElementMap` / `PageRemovalElementsByPreviousId` alias 로 전환했다. page shell removal 및 auto-detach semantics 변경 없음. 검증: builder type-check PASS, targeted Vitest `elements.storeCache.static.test.ts` 1 file / 1 test PASS.
 - 2026-05-11 Phase 4 inspector actions cache contract slice land — `inspectorActions.ts` 의 inspector lookup/children map helpers 와 required state map contract 를 `InspectorElementMap` / `InspectorChildrenMap` alias 로 전환했다. selected props/style/fill write-through 및 canonical merge semantics 변경 없음. 검증: builder type-check PASS, targeted Vitest `inspectorActions.static.test.ts` 1 file / 1 test PASS.
+- 2026-05-11 Phase 4 legacy scene boundary map alias slice land — `canonicalSceneModelLegacy.ts` 의 legacy Element map return contract 를 `LegacyElementMap` / `LegacyChildrenByParentMap` boundary alias 로 전환했다. bootstrap fallback boundary semantics 변경 없음. 검증: builder type-check PASS, targeted Vitest `canonicalSceneModelLegacy.static.test.ts` 1 file / 1 test PASS.
 
 **PREREQUISITE (진입 불가 조건)**:
 
