@@ -5,8 +5,6 @@
  * Utilities for distributing multiple selected elements with even spacing
  */
 
-import type { Element } from "../../../types/core/store.types";
-
 /**
  * Distribution type
  */
@@ -36,6 +34,13 @@ export interface DistributionUpdate {
   };
 }
 
+export interface DistributableElementNode {
+  readonly id: string;
+  readonly props: {
+    readonly style?: unknown;
+  };
+}
+
 /**
  * Parse pixel value from CSS style
  *
@@ -57,7 +62,9 @@ function parsePixels(value: unknown): number | null {
  * @param elements - Elements to distribute
  * @returns Array of element bounds
  */
-function collectElementBounds(elements: Element[]): ElementBounds[] {
+function collectElementBounds(
+  elements: readonly DistributableElementNode[],
+): ElementBounds[] {
   return elements
     .map((el) => {
       const style = (el.props.style || {}) as Record<string, unknown>;
@@ -68,12 +75,7 @@ function collectElementBounds(elements: Element[]): ElementBounds[] {
       const height = parsePixels(style.height);
 
       // Skip elements without position/size
-      if (
-        left === null ||
-        top === null ||
-        width === null ||
-        height === null
-      ) {
+      if (left === null || top === null || width === null || height === null) {
         return null;
       }
 
@@ -233,9 +235,9 @@ function distributeVertically(bounds: ElementBounds[]): DistributionUpdate[] {
  * ```
  */
 export function distributeElements(
-  elementIds: string[],
-  elementsMap: Map<string, Element>,
-  type: DistributionType
+  elementIds: readonly string[],
+  elementsMap: ReadonlyMap<string, DistributableElementNode>,
+  type: DistributionType,
 ): DistributionUpdate[] {
   if (elementIds.length < 3) {
     console.warn("[Distribution] Need at least 3 elements to distribute");
@@ -245,7 +247,7 @@ export function distributeElements(
   // Get elements
   const elements = elementIds
     .map((id) => elementsMap.get(id))
-    .filter((el): el is Element => el !== undefined);
+    .filter((el): el is DistributableElementNode => el !== undefined);
 
   if (elements.length < 3) {
     console.warn("[Distribution] Not enough valid elements to distribute");
@@ -257,7 +259,7 @@ export function distributeElements(
 
   if (bounds.length < 3) {
     console.warn(
-      "[Distribution] Elements missing position/size properties, cannot distribute"
+      "[Distribution] Elements missing position/size properties, cannot distribute",
     );
     return [];
   }
@@ -269,7 +271,7 @@ export function distributeElements(
       : distributeVertically(bounds);
 
   console.log(
-    `✅ [Distribution] Distributed ${updates.length} elements ${type}ly`
+    `✅ [Distribution] Distributed ${updates.length} elements ${type}ly`,
   );
 
   return updates;

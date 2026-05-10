@@ -5,8 +5,6 @@
  * Utilities for aligning multiple selected elements
  */
 
-import type { Element } from "../../../types/core/store.types";
-
 /**
  * Alignment type
  */
@@ -40,6 +38,13 @@ export interface AlignmentUpdate {
   };
 }
 
+export interface AlignableElementNode {
+  readonly id: string;
+  readonly props: {
+    readonly style?: unknown;
+  };
+}
+
 /**
  * Parse pixel value from CSS style
  *
@@ -64,7 +69,7 @@ function parsePixels(value: unknown): number | null {
  */
 function calculateAlignmentTarget(
   bounds: ElementBounds[],
-  type: AlignmentType
+  type: AlignmentType,
 ): number {
   switch (type) {
     case "left":
@@ -103,7 +108,9 @@ function calculateAlignmentTarget(
  * @param elements - Elements to align
  * @returns Array of element bounds
  */
-function collectElementBounds(elements: Element[]): ElementBounds[] {
+function collectElementBounds(
+  elements: readonly AlignableElementNode[],
+): ElementBounds[] {
   return elements
     .map((el) => {
       const style = (el.props.style || {}) as Record<string, unknown>;
@@ -114,12 +121,7 @@ function collectElementBounds(elements: Element[]): ElementBounds[] {
       const height = parsePixels(style.height);
 
       // Skip elements without position/size
-      if (
-        left === null ||
-        top === null ||
-        width === null ||
-        height === null
-      ) {
+      if (left === null || top === null || width === null || height === null) {
         return null;
       }
 
@@ -158,9 +160,9 @@ function collectElementBounds(elements: Element[]): ElementBounds[] {
  * ```
  */
 export function alignElements(
-  elementIds: string[],
-  elementsMap: Map<string, Element>,
-  type: AlignmentType
+  elementIds: readonly string[],
+  elementsMap: ReadonlyMap<string, AlignableElementNode>,
+  type: AlignmentType,
 ): AlignmentUpdate[] {
   if (elementIds.length < 2) {
     console.warn("[Alignment] Need at least 2 elements to align");
@@ -170,7 +172,7 @@ export function alignElements(
   // Get elements
   const elements = elementIds
     .map((id) => elementsMap.get(id))
-    .filter((el): el is Element => el !== undefined);
+    .filter((el): el is AlignableElementNode => el !== undefined);
 
   if (elements.length < 2) {
     console.warn("[Alignment] Not enough valid elements to align");
@@ -182,7 +184,7 @@ export function alignElements(
 
   if (bounds.length < 2) {
     console.warn(
-      "[Alignment] Elements missing position/size properties, cannot align"
+      "[Alignment] Elements missing position/size properties, cannot align",
     );
     return [];
   }
@@ -229,9 +231,7 @@ export function alignElements(
     };
   });
 
-  console.log(
-    `✅ [Alignment] Aligned ${updates.length} elements to ${type}`
-  );
+  console.log(`✅ [Alignment] Aligned ${updates.length} elements to ${type}`);
 
   return updates;
 }

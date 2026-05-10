@@ -248,6 +248,11 @@ rg -n "elementsMap: Map<string, Element>|childrenMap: Map<string, Element\\[\\]>
 
 **목표**: Phase 2에서 다루지 않은 나머지 hot path consumer를 전환한다.
 
+### 7.0. Phase 4 진행 로그
+
+- **2026-05-11 utility read-model slice land**: `layoutInvalidation.ts`, `elementAlignment.ts`, `elementDistribution.ts`, `elementHelpers.ts` 의 map input 을 structural/readonly contract 로 좁힘. `layoutInvalidation.test.ts` 는 local `{ id }` node fixture 로 전환했고, `elementAlignmentDistribution.static.test.ts` 로 alignment/distribution/helper 의 raw `Map<string, Element>` 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 2 files / 3 tests PASS.
+- 잔여: `elementCreation` / `elementRemoval` / `elementUpdate` / `elementIndexer` / `historyHelpers` / `historyActions` / `inspectorActions` / `elementLoader`. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 Phase 5/6 allowlist 정렬 필요.
+
 ### 대상 파일
 
 | 파일                        | 현재 의존                    | 전환 방향                      |

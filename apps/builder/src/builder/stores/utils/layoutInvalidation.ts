@@ -1,5 +1,3 @@
-import type { Element } from "../../../types/core/store.types";
-
 /**
  * InspectorActions에서 top-level props 변경 시 레이아웃 재계산이 필요한 키.
  * 대부분의 스타일 변경은 `style` 객체 전체 갱신으로 들어오지만,
@@ -50,9 +48,13 @@ export const LAYOUT_AFFECTING_PROP_KEYS = new Set([
   "borderLeftWidth",
 ]);
 
+export interface LayoutInvalidationNode {
+  readonly id: string;
+}
+
 export function collectDirtyElementSubtree(
   elementId: string,
-  childrenMap: Map<string, Element[]>,
+  childrenMap: ReadonlyMap<string, readonly LayoutInvalidationNode[]>,
   dirtyIds: Set<string>,
 ): Set<string> {
   dirtyIds.add(elementId);

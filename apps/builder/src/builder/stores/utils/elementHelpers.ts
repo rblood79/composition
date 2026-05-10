@@ -1,5 +1,8 @@
-import { Element, ComponentElementProps } from "../../../types/core/store.types";
-import { ButtonSpec, getSizePreset } from '@composition/specs';
+import {
+  Element,
+  ComponentElementProps,
+} from "../../../types/core/store.types";
+import { ButtonSpec, getSizePreset } from "@composition/specs";
 
 /**
  * Element 조회 및 속성 관리 헬퍼 함수들
@@ -10,11 +13,11 @@ import { ButtonSpec, getSizePreset } from '@composition/specs';
  * --radius-sm: 4px, --radius-md: 6px, --radius-lg: 8px
  */
 const SIZE_BORDER_RADIUS: Record<string, number> = {
-  xs: 4,  // --radius-sm
-  sm: 4,  // --radius-sm
-  md: 6,  // --radius-md
-  lg: 8,  // --radius-lg
-  xl: 8,  // --radius-lg
+  xs: 4, // --radius-sm
+  sm: 4, // --radius-sm
+  md: 6, // --radius-md
+  lg: 8, // --radius-lg
+  xl: 8, // --radius-lg
 };
 
 /**
@@ -27,7 +30,7 @@ const SIZE_BORDER_RADIUS: Record<string, number> = {
  */
 export const findElementById = (
   elements: Element[],
-  id: string
+  id: string,
 ): Element | null => {
   for (const element of elements) {
     if (element.id === id) return element;
@@ -41,10 +44,10 @@ export const findElementById = (
  * @param id - 찾을 요소의 ID
  * @returns 찾은 요소 또는 null
  */
-export const getElementById = (
-  elementsMap: Map<string, Element>,
-  id: string
-): Element | null => {
+export const getElementById = <TElement extends Element>(
+  elementsMap: ReadonlyMap<string, TElement>,
+  id: string,
+): TElement | null => {
   return elementsMap.get(id) || null;
 };
 
@@ -54,11 +57,11 @@ export const getElementById = (
  * @param parentId - 부모 요소의 ID
  * @returns 자식 요소 배열
  */
-export const getChildElements = (
-  childrenMap: Map<string, Element[]>,
-  parentId: string
-): Element[] => {
-  return childrenMap.get(parentId) || [];
+export const getChildElements = <TElement extends Element>(
+  childrenMap: ReadonlyMap<string, readonly TElement[]>,
+  parentId: string,
+): TElement[] => {
+  return [...(childrenMap.get(parentId) || [])];
 };
 
 /**
@@ -72,7 +75,7 @@ export const getChildElements = (
  */
 export const createCompleteProps = (
   element: Element,
-  props?: ComponentElementProps
+  props?: ComponentElementProps,
 ) => ({
   ...element.props,
   ...props,
@@ -90,7 +93,7 @@ export const createCompleteProps = (
  * @returns computedStyle 객체 (borderRadius 등)
  */
 export const computeCanvasElementStyle = (
-  element: Element
+  element: Element,
 ): Record<string, string> => {
   const computedStyle: Record<string, string> = {};
   const props = element.props as Record<string, unknown> | undefined;
@@ -100,18 +103,21 @@ export const computeCanvasElementStyle = (
   // 1. Inline style에서 borderRadius 추출 (최우선)
   if (style?.borderRadius !== undefined) {
     const value = style.borderRadius;
-    computedStyle.borderRadius = typeof value === 'number' ? `${value}px` : String(value);
+    computedStyle.borderRadius =
+      typeof value === "number" ? `${value}px` : String(value);
     return computedStyle;
   }
 
   // 2. 컴포넌트별 spec에서 borderRadius 계산
-  const size = String(props?.size || 'sm');
+  const size = String(props?.size || "sm");
 
   switch (type) {
-    case 'button': {
+    case "button": {
       // Button: ButtonSpec에서 size별 borderRadius 가져오기
-      const sizeSpec = ButtonSpec.sizes[size as keyof typeof ButtonSpec.sizes] || ButtonSpec.sizes[ButtonSpec.defaultSize];
-      const sizePreset = getSizePreset(sizeSpec, 'light');
+      const sizeSpec =
+        ButtonSpec.sizes[size as keyof typeof ButtonSpec.sizes] ||
+        ButtonSpec.sizes[ButtonSpec.defaultSize];
+      const sizePreset = getSizePreset(sizeSpec, "light");
       computedStyle.borderRadius = `${sizePreset.borderRadius}px`;
       break;
     }

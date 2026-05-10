@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-10 — **ADR-126 Phase 3 store cache state contract slice land**. `ElementsState.elementsMap` / `childrenMap` 과 `buildIndexes()` cache 생성부를 `StoreElementCacheSnapshot` 기반 deprecated snapshot contract 로 전환하고, `elements.storeCache.static.test.ts` 로 raw `Map<string, Element>` state/buildIndexes 회귀를 차단했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
+> **최종 업데이트**: 2026-05-11 — **ADR-126 Phase 4 utility read-model slice land**. `layoutInvalidation`, alignment/distribution, element helper lookup 의 map input 을 structural/readonly contract 로 좁혀 store utility 의 full `Element` map 의존을 줄였다. builder type-check + targeted Vitest 2 files / 3 tests PASS. 잔여는 creation/removal/update/indexer/history/inspector/loader consumer 와 bootstrap boundary allowlist 정렬.
+>
+> **2026-05-10 (직전) — ADR-126 Phase 3 store cache state contract slice land**. `ElementsState.elementsMap` / `childrenMap` 과 `buildIndexes()` cache 생성부를 `StoreElementCacheSnapshot` 기반 deprecated snapshot contract 로 전환하고, `elements.storeCache.static.test.ts` 로 raw `Map<string, Element>` state/buildIndexes 회귀를 차단했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
 >
 > **2026-05-10 (직전) — ADR-126 Phase 3 scope cleanup**. 현재 코드 재측정 결과 `elementsMap|childrenMap` direct hot-path read 는 닫혔지만, `stores/**` 전체 grep 은 store state 와 inspector/loader/history/utility consumer 를 함께 잡아 Phase 3/4 범위가 섞였다. Phase 3 을 `elements.ts` store state/cache contract 정렬로 좁히고, mutation/action/history/inspector/loader/utility map consumer 는 Phase 4 소유로 재분리했다. 문서 정리만 수행하며 runtime behavior 변경 없음.
 >

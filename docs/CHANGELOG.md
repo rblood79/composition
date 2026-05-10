@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 utility read-model slice land**:
+  - `layoutInvalidation.ts`, `elementAlignment.ts`, `elementDistribution.ts`, `elementHelpers.ts` 의 map input 을 structural/readonly contract 로 좁혀 full store `Element` map 의존을 줄였다.
+  - `layoutInvalidation.test.ts` 는 local `{ id }` node fixture 로 전환했고, `elementAlignmentDistribution.static.test.ts` 로 alignment/distribution/helper 의 raw `Map<string, Element>` 회귀를 차단했다.
+  - 검증: builder type-check PASS, targeted Vitest 2 files / 3 tests PASS.
 - **ADR-126 Phase 3 store cache state contract slice land**:
   - `ElementsState.elementsMap` / `childrenMap` 과 `buildIndexes()` cache 생성부를 `StoreElementCacheSnapshot` / `StoreElementCacheMap` / `StoreChildrenCacheMap` deprecated snapshot contract 로 전환했다.
   - `elements.storeCache.static.test.ts` 를 추가해 raw `Map<string, Element>` / `Map<string, Element[]>` state/buildIndexes contract 회귀를 차단했다.

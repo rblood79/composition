@@ -3,17 +3,9 @@ import {
   collectDirtyElementSubtree,
   LAYOUT_AFFECTING_PROP_KEYS,
 } from "./layoutInvalidation";
-import type { Element } from "../../../types/core/store.types";
 
-function createElement(id: string, parentId: string | null): Element {
-  return {
-    id,
-    type: "Box",
-    props: {},
-    parent_id: parentId,
-    page_id: "page-1",
-    order_num: 0,
-  } as Element;
+function createNode(id: string): { id: string } {
+  return { id };
 }
 
 describe("layoutInvalidation", () => {
@@ -26,13 +18,13 @@ describe("layoutInvalidation", () => {
   });
 
   it("collects the dirty element and all descendants", () => {
-    const root = createElement("root", null);
-    const child = createElement("child", "root");
-    const grandchild = createElement("grandchild", "child");
-    const sibling = createElement("sibling", "root");
-    const unrelated = createElement("unrelated", null);
+    const root = createNode("root");
+    const child = createNode("child");
+    const grandchild = createNode("grandchild");
+    const sibling = createNode("sibling");
+    const unrelated = createNode("unrelated");
 
-    const childrenMap = new Map<string, Element[]>([
+    const childrenMap = new Map<string, { id: string }[]>([
       ["root", [child, sibling]],
       ["child", [grandchild]],
       ["unrelated", []],
