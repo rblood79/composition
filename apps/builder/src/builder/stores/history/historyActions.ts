@@ -47,6 +47,10 @@ import {
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
+type HistoryCompatibilityElementMap<TElement extends Element = Element> = Map<
+  string,
+  TElement
+>;
 
 async function persistActiveCanonicalDocument(): Promise<void> {
   const canonical = useCanonicalDocumentStore.getState();
@@ -70,7 +74,7 @@ function getHistorySourceElements(get: GetState): Element[] {
 
 function getHistoryCompatibilityElementsMap(
   get: GetState,
-): Map<string, Element> {
+): HistoryCompatibilityElementMap {
   return new Map(
     getHistorySourceElements(get).map((element) => [element.id, element]),
   );

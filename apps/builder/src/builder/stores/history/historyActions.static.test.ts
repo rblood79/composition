@@ -12,6 +12,7 @@ describe("historyActions canonical compatibility sync contract", () => {
     expect(source).toContain("visitCanonicalDocumentElements");
     expect(source).toContain("getActiveCanonicalHistoryElements");
     expect(source).toContain("function getHistorySourceElements");
+    expect(source).toContain("type HistoryCompatibilityElementMap");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).toContain("getHistoryCompatibilityElementsMap(get)");
     expect(source).toContain(
@@ -28,5 +29,8 @@ describe("historyActions canonical compatibility sync contract", () => {
     const staleMapLookup = ["get()", "elementsMap"].join(".");
     expect(source).not.toContain(`const elementsMap = ${staleMapLookup};`);
     expect(source).not.toContain(staleMapLookup);
+    expect(source).not.toContain(
+      "function getHistoryCompatibilityElementsMap(\n  get: GetState,\n): Map<string, Element>",
+    );
   });
 });

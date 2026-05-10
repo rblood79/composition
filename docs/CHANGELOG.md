@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 history actions compatibility map slice land**:
+  - `historyActions.ts` 의 cloud compatibility upsert lookup map 을 `HistoryCompatibilityElementMap` alias contract 로 전환했다.
+  - canonical history event/diff application semantics 는 변경하지 않았다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **ADR-126 Phase 4 element removal cache contract slice land**:
   - `elementRemoval.ts` 의 removal target lookup, children map, post-removal cache rebuild, multi-remove de-dup map 을 `ElementRemovalLookup` / `ElementRemovalChildrenByParent` alias contract 로 전환했다.
   - canonical remove event/history/persistence semantics 는 변경하지 않았다.
