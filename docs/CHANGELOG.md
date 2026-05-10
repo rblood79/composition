@@ -5,6 +5,22 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-126 설계 진행내역 정합화] - 2026-05-10
+
+### Documentation
+
+- **ADR-126 prerequisite 표기 정리**:
+  - Phase 1 prerequisite = ADR-123/124/125 `Implemented`.
+  - Phase 2 prerequisite = Phase 1 G1 PASS + ADR-127 `Implemented`.
+  - dependency baseline 은 ADR-122/123/124/125/127 모두 Implemented 로 명시.
+- **store-cache bucket 판정 정정**:
+  - 기존 "ADR-125 자동 closure / Phase 3 추가 작업 0" 표현을 제거.
+  - 현재 상태는 `useStore.getState().elementsMap|childrenMap` direct hot-path read 0건이지만, `ElementsState.elementsMap: Map<string, Element>` / `childrenMap: Map<string, Element[]>` store state 타입은 Phase 3 잔여로 유지.
+- **Phase 2 breakdown 정합화**:
+  - "6 sub-group" 오기 → 5 sub-group (2-A~2-E) 로 통일.
+  - Phase 2 plan row 에 ADR-127 Implemented 진입 조건을 추가.
+  - README partial row 를 Phase 1 prerequisite 3/3 + Phase 2 prerequisite ADR-127 Implemented 로 갱신.
+
 ## [ADR-123/124/125/127 closure 5-step 마감 + ADR-126 부분완료 표 이동] - 2026-05-10
 
 ### Documentation
@@ -23,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README.md 표 정렬**:
   - 미구현 표에서 ADR-123/124/125/127 4 row 제거 + ADR-126 row 제거
   - 완료 표 (line 239 직후) 에 ADR-123/124/125/127 4 row 추가 (Implemented 2026-05-10)
-  - 부분 완료 표에 ADR-126 row 추가 — Phase 0+1 완료 / Phase 2-6 잔여 / prerequisite 4/4 충족 표기
+  - 부분 완료 표에 ADR-126 row 추가 — Phase 0+1 완료 / Phase 2-6 잔여 / Phase 1 prerequisite 3/3 + Phase 2 prerequisite ADR-127 충족 표기
   - 현황 카운트: `완료 116→120 / 부분 7→8 / 미구현 9→4 / 합계 132 유지`
   - 최상단 변경 이력 entry 추가 (closure 작업 요약)
 
@@ -135,8 +151,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `Element` 타입 production hit: **1766 line** (breakdown 추정 ~1300 + boundary 일치 범위)
     - `canonicalDocumentToElements(` callers: **4 location** (정의 1 + production caller 3 — `canonicalHistoryEvents.ts:270` / `canonicalElementsView.ts:352,390`)
     - `useCanonicalElements` production callers: **~10** (`stores/index` / `properties/hooks` / `monitor/hooks` / `components/property` / `hooks/useDeltaMessenger` / `hooks/useCollectionItemManager` / `panels/properties/editors/LayoutPresetSelector` / `stores/canvasStore` / `panels/nodes/LayersSection`)
-    - `useStore.getState().elementsMap`/`childrenMap` production hit: **0** (ADR-125 land 으로 자동 closure → store-cache bucket 추가 작업 0)
-  - Bucket 분류: `derived-view` (Phase 5 제거) / `store-cache` (ADR-125 자동 closure) / `hot-path-consumer` (Phase 2/4) / `boundary-allowed` (유지) / `test-doc` (Phase 6).
+    - `useStore.getState().elementsMap`/`childrenMap` production hit: **0** (direct hot-path read closure. store state 타입 전환은 Phase 3 잔여)
+  - Bucket 분류: `derived-view` (Phase 5 제거) / `store-cache` (direct read 0 + store state 타입 전환 잔여) / `hot-path-consumer` (Phase 2/4) / `boundary-allowed` (유지) / `test-doc` (Phase 6).
   - **Phase 1+ 진입 순서 6 phase plan freeze**: Phase 1 derived-view boundary 격리 → Phase 2 hot-path-consumer 전환 (Skia/layout/Preview) → Phase 3 store-cache 정합 → Phase 4 hot-path-consumer 전환 (Properties/LayerTree/History/AI/messaging) → Phase 5 derived-view 제거 → Phase 6 final verification.
 - **Phase 1 진입 권장 (별도 세션)**: derived-view boundary 격리 — `canonicalDocumentToElements`/`useCanonicalElements` 가 boundary allowlist file 내부 정의로만 export, hot path import 차단 grep gate. 회귀 위험 LOW.
 

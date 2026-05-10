@@ -22,7 +22,7 @@ docs/adr/125-render-input-canonical-native-contract.md : Implemented — 2026-05
 | `Element` 타입 raw hit (production, exclude tests) | `rg -n "\bElement\b" apps/builder/src --no-heading` (HTMLElement 등 제외)           | **1766 lines**                                                                                                                          |
 | `canonicalDocumentToElements(` production callers  | `rg -n "canonicalDocumentToElements\(" apps/builder/src --no-heading` (테스트 제외) | **4 location**: 정의 1 (`canonicalElementsView.ts:234`) + 호출 3 (`canonicalHistoryEvents.ts:270` / `canonicalElementsView.ts:352,390`) |
 | `useCanonicalElements` 위치                        | `rg -n "useCanonicalElements\b" apps/builder/src --no-heading` (테스트 제외)        | **~20 hit (~10 production caller)**                                                                                                     |
-| `useStore.getState().elementsMap`/`childrenMap`    | `rg -n` (production hot path)                                                       | **0 hit (이미 canonical-native consumer 전환 완료)**                                                                                    |
+| `useStore.getState().elementsMap`/`childrenMap`    | `rg -n` (production hot path direct read)                                           | **0 hit (direct hot-path read closure)**                                                                                                |
 
 → ADR-126 breakdown §1 의 추정 (Element ~1,300 line hit / canonicalDocumentToElements 4 caller / useCanonicalElements ~12 production caller) 과 일치 범위 (1766 ≈ 1300+ boundary, 4 정확, ~10 production).
 
@@ -48,11 +48,12 @@ production 호출 site (~10):
 - `apps/builder/src/builder/stores/canvasStore.ts:108,128`
 - `apps/builder/src/builder/panels/nodes/LayersSection.tsx`
 
-### 3-B. `store-cache` (Phase 3 전환, ADR-125 연동 — 이미 진행)
+### 3-B. `store-cache` (Phase 3 전환 — direct read 0, store state 타입 잔여)
 
-ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과로 `useStore` 의 `elementsMap`/`childrenMap` 가 이미 canonical-native scene model derived view consumer. **Phase 3 추가 작업 0** — 본 ADR 의 store-cache bucket 은 ADR-125 land 로 자동 closure.
+ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과로 `useStore.getState().elementsMap`/`childrenMap` direct hot-path read 는 0건이다. 이는 render/layout direct read closure 근거이며, store state 타입 자체가 닫혔다는 의미는 아니다.
 
 - 측정: `rg -n "useStore.getState().elementsMap|useStore.getState().childrenMap" apps/builder/src` = **0 hit**
+- 잔여: `apps/builder/src/builder/stores/elements.ts` 의 `ElementsState.elementsMap: Map<string, Element>` / `childrenMap: Map<string, Element[]>` 및 store utility의 `Element` key/value 타입 참조는 Phase 3 G3 전환 대상.
 
 ### 3-C. `hot-path-consumer` (Phase 2/4 전환 대상)
 
@@ -88,7 +89,7 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------- |
 | 1     | derived-view boundary 격리 — `canonicalDocumentToElements`/`useCanonicalElements` 가 boundary allowlist file 내부 정의로만 export, hot path import 차단 | `derived-view`                            | —           |
 | 2     | hot-path-consumer 전환 (1) — Skia / layout / Preview render path 가 canonical-native node/path/alias model 직접 소비                                    | `hot-path-consumer` (Skia/layout/Preview) | Phase 1     |
-| 3     | store-cache 정합 — ADR-125 의 자동 closure 확인 + 추가 store cache 가 있는지 grep gate                                                                  | `store-cache`                             | Phase 1     |
+| 3     | store-cache 정합 — direct read 0 확인 후 `elementsMap`/`childrenMap` store state 타입을 canonical-native 또는 deprecated readonly snapshot 으로 정렬    | `store-cache`                             | Phase 2     |
 | 4     | hot-path-consumer 전환 (2) — Properties / LayerTree / History / drag-drop / AI tools / messaging                                                        | `hot-path-consumer` (나머지)              | Phase 2     |
 | 5     | derived-view 제거 — `canonicalDocumentToElements`/`useCanonicalElements` production caller 0 후 함수 자체 deprecate / boundary allowlist 만 사용        | `derived-view`                            | Phase 1+2+4 |
 | 6     | final verification — `Element` 타입에 `@deprecated` JSDoc + boundary grep gate + targeted vitest + browser smoke                                        | `test-doc`                                | Phase 5     |
@@ -99,7 +100,8 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - [x] Element 타입 production hit 측정 (1766 line)
 - [x] derived-view symbol 4 location enumerate
 - [x] useCanonicalElements production caller ~10 enumerate
-- [x] store-cache bucket = 0 hit (ADR-125 자동 closure)
+- [x] store-cache direct read bucket = 0 hit 확인
+- [ ] store-cache store state 타입 전환은 Phase 3 잔여
 - [x] hot-path-consumer 카테고리 분류 완료
 - [x] boundary-allowed allowlist 명시
 - [x] Phase 1+ 진입 순서 6 phase plan freeze

@@ -2,18 +2,21 @@
 
 본 문서는 [ADR-126](../126-element-type-deprecate.md)의 Phase 계획, inventory 분류, Gate 측정 방법을 정의한다.
 
-**진입 조건**: ADR-123 + ADR-124 + ADR-125 모두 `Implemented` 후에야 Phase 1 이상 착수 가능. Phase 0(inventory freeze)은 선행 수행 가능.
+**진입 조건**:
+
+- Phase 1 이상: ADR-123 + ADR-124 + ADR-125 모두 `Implemented` 후 착수 가능. Phase 0(inventory freeze)은 선행 수행 가능.
+- Phase 2 이상: Phase 1 G1 PASS + ADR-127 `Implemented` 후 착수 가능. ADR-127은 canonical traversal helper + scene model canonical-native export prerequisite다.
 
 ---
 
 ## 1. Fork Checkpoint (ADR-writing.md §ADR Fork / 분리 결정 시)
 
-| 질문                           | 판정                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| base / 응용 분류               | ADR-126은 **응용 ADR**. base = ADR-123(cloud document-level row schema) + ADR-124(canonical-only history entry schema) + ADR-125(render input canonical-native contract). 세 base가 cloud transport / history persistence / render input 의 legacy `Element` 의존을 각각 제거하면, ADR-126이 그 위에서 잔존 `Element` consumer를 canonical-native model로 전환하고 타입을 boundary allowlist로 격리한다. |
-| schema 직교성                  | `Element` shape는 canonical node shape의 specialization(flat projection)이 아니라 entirely different flat record. 두 schema는 직교가 아니며 ADR-126은 canonical side로 소비자를 이동시킨다.                                                                                                                                                                                                              |
-| baseline framing reverse 검증  | ADR-122 soft constraint("runtime source 제거 → derived view 축소 → boundary quarantine 순서")를 baseline으로 승계. 이 순서는 ADR-126에서도 유효하다. Phase 0→1→2→3→4→5→6 순서가 이를 반영.                                                                                                                                                                                                               |
-| codex 1차 진입 전 framing 통과 | 4 질문 답변이 ADR 본문 §Context §Decision에 lock-in됨. sub-phase 분해 전 사용자 confirm 획득 필수.                                                                                                                                                                                                                                                                                                       |
+| 질문                           | 판정                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| base / 응용 분류               | ADR-126은 **응용 ADR**. Phase 1 base = ADR-123(cloud document-level row schema) + ADR-124(canonical-only history entry schema) + ADR-125(render input canonical-native contract). Phase 2 prerequisite = ADR-127(canonical traversal helper + scene model 재설계). base/prerequisite가 cloud transport / history persistence / render input / traversal API / scene model 의 legacy `Element` 의존을 각각 제거하면, ADR-126이 그 위에서 잔존 `Element` consumer를 canonical-native model로 전환하고 타입을 boundary allowlist로 격리한다. |
+| schema 직교성                  | `Element` shape는 canonical node shape의 specialization(flat projection)이 아니라 entirely different flat record. 두 schema는 직교가 아니며 ADR-126은 canonical side로 소비자를 이동시킨다.                                                                                                                                                                                                                                                                                                                                               |
+| baseline framing reverse 검증  | ADR-122 soft constraint("runtime source 제거 → derived view 축소 → boundary quarantine 순서")를 baseline으로 승계. 이 순서는 ADR-126에서도 유효하다. Phase 0→1→2→3→4→5→6 순서가 이를 반영.                                                                                                                                                                                                                                                                                                                                                |
+| codex 1차 진입 전 framing 통과 | 4 질문 답변이 ADR 본문 §Context §Decision에 lock-in됨. sub-phase 분해 전 사용자 confirm 획득 필수.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 ---
 
@@ -58,13 +61,13 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 
 ### Bucket 정의
 
-| Bucket              | 의미                                                                                           | Phase                       |
-| ------------------- | ---------------------------------------------------------------------------------------------- | --------------------------- |
-| `derived-view`      | `canonicalDocumentToElements`, `useCanonicalElements`, `useCanonicalSelectedElement` 정의/호출 | Phase 5 제거                |
-| `store-cache`       | `elementsMap`, `childrenMap` store state에서 `Element` key/value 참조                          | Phase 3 전환 (ADR-125 연동) |
-| `hot-path-consumer` | Skia/layout/Preview/Properties/LayerTree/History/drag-drop에서 `Element` 타입 직접 소비        | Phase 2/4 전환              |
-| `boundary-allowed`  | projectSync, exportLegacyDocument, cloud/export/import/publish adapter                         | 유지 허용                   |
-| `test-doc`          | tests, fixtures, docs, static gates                                                            | Phase 6 정렬                |
+| Bucket              | 의미                                                                                                                                                             | Phase          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `derived-view`      | `canonicalDocumentToElements`, `useCanonicalElements`, `useCanonicalSelectedElement` 정의/호출                                                                   | Phase 5 제거   |
+| `store-cache`       | `elementsMap`, `childrenMap` store state에서 `Element` key/value 참조. Direct hot-path `useStore.getState()` read는 ADR-125 이후 0건이나 store state 타입은 잔존 | Phase 3 전환   |
+| `hot-path-consumer` | Skia/layout/Preview/Properties/LayerTree/History/drag-drop에서 `Element` 타입 직접 소비                                                                          | Phase 2/4 전환 |
+| `boundary-allowed`  | projectSync, exportLegacyDocument, cloud/export/import/publish adapter                                                                                           | 유지 허용      |
+| `test-doc`          | tests, fixtures, docs, static gates                                                                                                                              | Phase 6 정렬   |
 
 ### Phase 0 Gate (G0)
 
@@ -89,7 +92,7 @@ grep -A2 "^## Status" \
 
 **Status: Done — 2026-05-10** ([126-phase1-validation.md](126-phase1-validation.md))
 
-**목표**: ADR-123/124/125 Implemented 후 잔존하는 `Element` consumer를 식별하고, canonical-native model이 hot path를 `Element` 없이 커버하는지 검증한다. 실제 코드 변경 최소.
+**목표**: ADR-123/124/125 Implemented 후 잔존하는 `Element` consumer를 식별하고, canonical-native model이 hot path를 `Element` 없이 커버하는지 검증한다. Phase 2에서 필요한 ADR-127 prerequisite(helper API + scene model export shape) 필요성도 확정한다. 실제 코드 변경 최소.
 
 ### 작업
 
@@ -114,7 +117,7 @@ grep -A2 "^## Status" \
 
 ADR-127 발의 배경 §1 의 측정 — Phase 2 G2 grep gate scope (`workspace/canvas + panels + resolvers`) 실측 **70 file**. ADR-126 본문 §"현재 Element 타입 사용 규모" 추정 ~400 line (hot path consumer) 와 일치하지만, file 단위로는 본 §5 의 기존 "우선 전환 대상 file" sub-list (7 file) 와 G2 전체 scope 추정 (~28 file) 모두 실측 70 file 대비 과소 (실측/추정 = 2.5배, sub-list 만 보면 10배) 였다. 이 괴리가 **단일 phase + 단일 grep gate** 구조에서 agent 의 type alias rename 우회 (`Element → LegacyElement`) 가 형식적 PASS 만들 수 있던 root cause.
 
-→ Phase 2 를 **directory 단위 6 sub-group** 으로 재분할하고, 각 sub-group 마다 **caller cascade evidence + targeted vitest + type-check** 의무를 명시한다. grep gate 는 마지막 검증 layer 일 뿐 단독 PASS 기준 아님.
+→ Phase 2 를 **directory 단위 5 sub-group** 으로 재분할하고, 각 sub-group 마다 **caller cascade evidence + targeted vitest + type-check** 의무를 명시한다. grep gate 는 마지막 검증 layer 일 뿐 단독 PASS 기준 아님.
 
 ### 5.1. Sub-group 분할 (Phase 2-A ~ 2-E)
 
@@ -208,7 +211,7 @@ rg -n "import.*\bElement\b" \
 
 ### 작업
 
-1. ADR-122/125 closure 후 이미 canonical-derived 로 좁혀진 store cache 영역 확인 — 중복 전환 방지
+1. ADR-122/125 closure 후 direct hot-path read 가 0건인지 확인 — `useStore.getState().elementsMap|childrenMap` 0 hit 는 direct read closure 근거일 뿐 store state 타입 closure 로 간주하지 않는다
 2. `unified.types.ts` store state 인터페이스에서 `elements: Element[]` 제거 또는 canonical-derived readonly 타입으로 교체
 3. `elements.ts` store slice에서 `Element[]` state 제거 또는 deprecated 마킹
 4. `useElements`, `useElementById`, `useChildElements` hook이 canonical-native source를 사용하는지 확인 (ADR-122 Phase 4에서 일부 전환됨)
@@ -325,20 +328,20 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 
 ## 10. Phase Plan 요약
 
-| Phase       | 목표                                           | 주요 산출물                                                                       | Gate | 진입 조건                                 |
-| ----------- | ---------------------------------------------- | --------------------------------------------------------------------------------- | ---- | ----------------------------------------- |
-| Phase 0     | Inventory freeze                               | bucket 분류 + prerequisite 확인                                                   | G0   | 없음 (즉시 수행 가능)                     |
-| Phase 1     | canonical-native model 검증                    | hot path 커버 가능 여부 + FPS baseline                                            | G1   | ADR-123/124/125 Implemented               |
-| **Phase 2** | **hot path consumer 전환 (5 sub-group 분할)**  | sub-group 별 caller cascade evidence + targeted vitest + type-check               | G2   | G1 PASS                                   |
-| ↳ 2-A       | Skia render path                               | `workspace/canvas/skia/**` + `scene/**` (~12 file). scene model 직접 access swap  | G2-A | G1 PASS                                   |
-| ↳ 2-B       | Layout engine                                  | `workspace/canvas/layout/**` (~8 file). `processedElementsMap` cascade            | G2-B | 2-A PASS (render path 의존)               |
-| ↳ 2-C       | Renderer input + ref resolution                | `rendererInput.ts` + `canonicalRefResolution.ts` + `storeBridge.ts` (~8 file)     | G2-C | 2-A PASS                                  |
-| ↳ 2-D       | Panels (properties + nodes/LayerTree)          | `panels/properties/**` + `panels/nodes/**` (~25 file)                             | G2-D | 2-C PASS (canonical helper API 의존)      |
-| ↳ 2-E       | Preview render                                 | `preview/**` + `services/messaging.ts` layout receive (~7 file)                   | G2-E | 2-A PASS (scene snapshot 송신측 의존)     |
-| Phase 3     | store cache 전환                               | `elementsMap`/`childrenMap` canonical-native                                      | G3   | G2 PASS (ADR-125 render input closure 후) |
-| Phase 4     | history/inspector/drag-drop/AI tools/messaging | 나머지 consumer + boundary allowlist (BuilderCore mount / utility / Factory 포함) | G4   | G3 PASS                                   |
-| Phase 5     | derived view 제거                              | `canonicalDocumentToElements` non-boundary 0건                                    | G5   | G4 PASS                                   |
-| Phase 6     | final verification                             | `@deprecated` 마킹 + browser smoke + preflight                                    | G6   | G5 PASS                                   |
+| Phase       | 목표                                           | 주요 산출물                                                                                     | Gate | 진입 조건                             |
+| ----------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---- | ------------------------------------- |
+| Phase 0     | Inventory freeze                               | bucket 분류 + prerequisite 확인                                                                 | G0   | 없음 (즉시 수행 가능)                 |
+| Phase 1     | canonical-native model 검증                    | hot path 커버 가능 여부 + FPS baseline                                                          | G1   | ADR-123/124/125 Implemented           |
+| **Phase 2** | **hot path consumer 전환 (5 sub-group 분할)**  | sub-group 별 caller cascade evidence + targeted vitest + type-check                             | G2   | G1 PASS + ADR-127 Implemented         |
+| ↳ 2-A       | Skia render path                               | `workspace/canvas/skia/**` + `scene/**` (실측 24 file). scene model 직접 access swap            | G2-A | G1 PASS + ADR-127 Implemented         |
+| ↳ 2-B       | Layout engine                                  | `workspace/canvas/layout/**` (~8 file). `processedElementsMap` cascade                          | G2-B | 2-A PASS (render path 의존)           |
+| ↳ 2-C       | Renderer input + ref resolution                | `rendererInput.ts` + `canonicalRefResolution.ts` + `storeBridge.ts` (~8 file)                   | G2-C | 2-A PASS                              |
+| ↳ 2-D       | Panels (properties + nodes/LayerTree)          | `panels/properties/**` + `panels/nodes/**` (~25 file)                                           | G2-D | 2-C PASS (canonical helper API 의존)  |
+| ↳ 2-E       | Preview render                                 | `preview/**` + `services/messaging.ts` layout receive (~7 file)                                 | G2-E | 2-A PASS (scene snapshot 송신측 의존) |
+| Phase 3     | store cache 전환                               | `elementsMap`/`childrenMap` store state 타입 canonical-native 또는 deprecated readonly snapshot | G3   | G2 PASS                               |
+| Phase 4     | history/inspector/drag-drop/AI tools/messaging | 나머지 consumer + boundary allowlist (BuilderCore mount / utility / Factory 포함)               | G4   | G3 PASS                               |
+| Phase 5     | derived view 제거                              | `canonicalDocumentToElements` non-boundary 0건                                                  | G5   | G4 PASS                               |
+| Phase 6     | final verification                             | `@deprecated` 마킹 + browser smoke + preflight                                                  | G6   | G5 PASS                               |
 
 **Phase 2 진입 권고 순서**: 2-A → 2-C → 2-B → 2-E → 2-D. 이유 — 2-A (Skia render path) 가 ADR-127 helper API 직접 access 진입점이라 가장 작은 scope 로 진정 reverse 패턴 검증 가능. 2-A 완료 후 cascade 학습값으로 2-B/2-C/2-E/2-D 적용. agent dispatch 사용 여부는 2-A 직접 land 결과 후 판단 (memory `feedback-agent-completion-failure-pattern` — HIGH 위험 작업 agent dispatch 신뢰도 낮음).
 
@@ -353,11 +356,12 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 - `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts` (정의)
 - `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` (호출 ~2건)
 
-### store-cache bucket (Phase 3 — ADR-125 자동 closure 확인)
+### store-cache bucket (Phase 3 — direct read closure 확인 + store state 타입 전환)
 
 - `apps/builder/src/builder/stores/elements.ts`
 - `apps/builder/src/types/builder/unified.types.ts` (store state 인터페이스)
-- 측정: `useStore.getState().elementsMap|childrenMap` production hit = **0** (inventory §3-B)
+- direct read 측정: `useStore.getState().elementsMap|childrenMap` production hit = **0** (inventory §3-B)
+- 잔여: `ElementsState.elementsMap: Map<string, Element>` / `childrenMap: Map<string, Element[]>` 타입 참조는 Phase 3 G3 에서 제거 또는 deprecated readonly snapshot 으로 정렬
 
 ### hot-path-consumer bucket — Phase 2 sub-group 매핑
 
@@ -426,4 +430,4 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 
 ## 12. 공존 기간 상한
 
-Phase 1 착수 시점(ADR-123/124/125 Implemented 후) 기준으로 **90일** 내 Phase 6 완결을 목표로 한다. 90일 초과 시 잔존 consumer를 ADR 본문 residual로 기록하고 별도 cleanup ADR 발의.
+Phase 1 착수 시점(ADR-123/124/125 Implemented 후) 기준으로 **90일** 내 Phase 6 완결을 목표로 한다. Phase 2는 ADR-127 Implemented 이후에만 착수한다. 90일 초과 시 잔존 consumer를 ADR 본문 residual로 기록하고 별도 cleanup ADR 발의.
