@@ -25,10 +25,10 @@ import {
  * @param updates - Property updates to apply
  * @param elementsMap - Map of all elements
  */
-export function trackBatchUpdate(
-  elementIds: string[],
+export function trackBatchUpdate<TElement extends Element>(
+  elementIds: readonly string[],
   updates: Record<string, unknown>,
-  elementsMap: Map<string, Element>,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): void {
   if (elementIds.length === 0) return;
 
@@ -230,11 +230,11 @@ export function trackAIBatchOperation(
  * @param componentIndex - 현재 ComponentIndex (masterToInstances 조회용)
  * @param elementsMap - 전체 요소 Map
  */
-export function trackInstancePropagation(
+export function trackInstancePropagation<TElement extends Element>(
   masterRefId: string,
   updates: Record<string, unknown>,
-  componentIndex: ComponentIndex,
-  elementsMap: Map<string, Element>,
+  componentIndex: ComponentIndex<TElement>,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): void {
   const instanceIds = componentIndex.masterToInstances.get(masterRefId);
   if (!instanceIds || instanceIds.size === 0) return;
@@ -318,12 +318,12 @@ export async function redoBatchUpdate(
  * @param updateElement - Function to update element
  * @param elementsMap - Map of all elements
  */
-export async function undoGroupCreation(
+export async function undoGroupCreation<TElement extends Element>(
   groupId: string,
-  childIds: string[],
+  childIds: readonly string[],
   removeElement: (id: string) => Promise<void>,
   updateElement: (id: string, updates: Partial<Element>) => Promise<void>,
-  elementsMap: Map<string, Element>,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): Promise<void> {
   // Get group element to restore children's original parent_id
   const groupElement = elementsMap.get(groupId);

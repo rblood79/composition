@@ -39,6 +39,7 @@ Accepted — 2026-05-10
 - 2026-05-11 Phase 4 element creation lookup slice land — `elementCreation.ts` 의 ref master/customId generation lookup helper 를 generic readonly map contract 로 전환하고 `buildCreationElementMap()` 을 `Map<string, TElement>` 로 좁혔다. 생성 payload와 canonical insert event는 기존 `Element` contract 유지. 검증: builder type-check PASS, targeted Vitest `elementCreation.storeCache.static.test.ts` 1 file / 1 test PASS.
 - 2026-05-11 Phase 4 element indexer contract slice land — `elementIndexer.ts` 의 page/component/variable index helper map input 과 `ComponentIndex.masterComponents` 를 generic readonly map contract 로 전환했다. `PageElementIndex` / `VariableUsageIndex` 구조와 runtime index semantics 는 변경 없음. 검증: builder type-check PASS, targeted Vitest `elementIndexer.storeCache.static.test.ts` 1 file / 1 test PASS.
 - 2026-05-11 Phase 4 element loader cache contract slice land — `elementLoader.ts` 의 minimal state `elementsMap` contract 를 raw `Map<string, Element>` 에서 Phase 3 `StoreElementCacheMap` 으로 전환했다. lazy load/unload runtime behavior 변경 없음. 검증: builder type-check PASS, targeted Vitest `elementLoader.static.test.ts` 1 file / 1 test PASS.
+- 2026-05-11 Phase 4 history helper read-model slice land — `historyHelpers.ts` 의 batch/instance/group undo lookup map input 을 generic readonly map contract 로 전환했다. group/ungroup/multi-delete/paste/history event payload `Element` boundary 는 유지. 검증: builder type-check PASS, targeted Vitest `historyHelpers.storeCache.static.test.ts + historyHelpers.test.ts` 2 files / 3 tests PASS.
 
 **PREREQUISITE (진입 불가 조건)**:
 

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 history helper read-model slice land**:
+  - `historyHelpers.ts` 의 batch/instance/group undo lookup map input 을 generic readonly map contract 로 전환했다.
+  - group/ungroup/multi-delete/paste/history event payload `Element` boundary 는 유지했다.
+  - 검증: builder type-check PASS, targeted Vitest 2 files / 3 tests PASS.
 - **ADR-126 Phase 4 element loader cache contract slice land**:
   - `elementLoader.ts` 의 minimal state `elementsMap` contract 를 raw `Map<string, Element>` 에서 Phase 3 `StoreElementCacheMap` 으로 전환했다.
   - lazy load/unload runtime behavior 는 변경하지 않았다.
