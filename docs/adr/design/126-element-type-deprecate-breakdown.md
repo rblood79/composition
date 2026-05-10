@@ -110,50 +110,95 @@ grep -A2 "^## Status" \
 
 **목표**: render/selection/layout hot path에서 `Element` 타입 import를 canonical-native로 전환한다.
 
-### 우선 전환 대상 파일
+### 5.0. Scope 재측정 (2026-05-10 — agent 우회 사례 후 재freeze)
 
-| 파일                                          | 현재 의존                     | 전환 방향                                                                                  |
-| --------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
-| `StoreRenderBridge.ts`                        | `Element[]` → Skia node input | canonical scene snapshot 직접 소비                                                         |
-| `renderCommands.ts`                           | `Element` 기반 render tree    | canonical-native node traversal                                                            |
-| `rendererInput.ts`                            | `Element[]` input             | canonical-native resolved tree                                                             |
-| `canonicalRefResolution.ts`                   | `Element` 기반 ref resolution | canonical-native ref node API                                                              |
-| `panels/properties/**`                        | `Element` selected node read  | canonical-native property read API (ADR-124 closure 후 history snapshot 의존 제거 후 정리) |
-| `panels/nodes/LayerTree`                      | `Element[]` tree model        | canonical-native node/path model                                                           |
-| Layout engine input (`fullTreeLayout.ts:857`) | `Element[]`                   | ADR-125 closure 후 canonical-derived scene snapshot 직접 소비                              |
+ADR-127 발의 배경 §1 의 측정 — Phase 2 G2 grep gate scope (`workspace/canvas + panels + resolvers`) 실측 **70 file**. ADR-126 본문 §"현재 Element 타입 사용 규모" 추정 ~400 line (hot path consumer) 와 일치하지만, file 단위로는 본 §5 의 기존 "우선 전환 대상 파일 7 file" 표가 5.8배 과소 추정이었다. 이 괴리가 **단일 phase + 단일 grep gate** 구조에서 agent 의 type alias rename 우회 (`Element → LegacyElement`) 가 형식적 PASS 만들 수 있던 root cause.
 
-### 전환 패턴
+→ Phase 2 를 **directory 단위 6 sub-group** 으로 재분할하고, 각 sub-group 마다 **caller cascade evidence + targeted vitest + type-check** 의무를 명시한다. grep gate 는 마지막 검증 layer 일 뿐 단독 PASS 기준 아님.
+
+### 5.1. Sub-group 분할 (Phase 2-A ~ 2-E)
+
+| Sub-group | scope                                                                                                                                                  | 주요 변경                                                                                                                                                                                                                                                   | 예상 file |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| **2-A**   | Skia render path (`workspace/canvas/skia/**` + `workspace/canvas/scene/**`)                                                                            | `StoreRenderBridge.sync()` / `renderFromMaps()` / `buildNodeForElement()` 가 받는 input 을 ADR-127 의 `CanonicalSceneModel.nodes` (scene model 직접 access) 로 교체. 현재 `canonicalSceneModelLegacy.ts` getter 통한 indirect access 를 직접 access 로 swap | ~12 file  |
+| **2-B**   | Layout engine (`workspace/canvas/layout/**`, 특히 `fullTreeLayout.ts` + `enrichWithIntrinsicSize`)                                                     | ADR-125 closure 후 canonical-derived scene snapshot 직접 소비. `processedElementsMap` cascade 함수 시그니처 + caller 동시 swap                                                                                                                              | ~8 file   |
+| **2-C**   | Renderer input + ref resolution (`renderers/rendererInput.ts` + `adapters/canonical/canonicalRefResolution.ts` + `resolvers/canonical/storeBridge.ts`) | `pageElements: Element[]` → `pageNodes: CanonicalNode[]` 함수 시그니처 변경. `buildChildrenMap` → `getChildrenByParent()` (ADR-127 helper)                                                                                                                  | ~8 file   |
+| **2-D**   | Panels (properties + nodes/LayerTree) (`builder/panels/properties/**` + `builder/panels/nodes/**`)                                                     | selected node read + LayerTree tree model 을 canonical-native `useCanonicalNode` / `getNodeMap()` (ADR-127 helper) 로 swap                                                                                                                                  | ~25 file  |
+| **2-E**   | Preview render (`apps/builder/src/preview/**` + `services/messaging.ts` 의 layout 관련 receive)                                                        | `UPDATE_ELEMENTS` receive 잔존 정리 (ADR-125 closure 와 정합). `preview/utils/layoutResolver.ts` canonical scene snapshot 수신                                                                                                                              | ~7 file   |
+
+**Phase 4 로 위임** (Phase 2 scope 외): BuilderCore mount / utility (treeUtils / multiElementCopy / smartSelection / selectionMemory / idGeneration / idValidation) / AI tools (createElement / canonicalToolReadModel) / messaging (canvasDeltaMessenger / iframeMessenger) / history actions / drag-drop / inspector actions / Factory definitions (TableComponents 등).
+
+### 5.2. 진정 reverse 패턴 (agent 우회 차단 명시)
+
+각 sub-group commit 은 다음 4 요건을 **모두** 충족해야 한다. 하나라도 누락 시 commit 차단:
+
+1. **함수 시그니처 변경** — `function f(el: Element): void` → `function f(node: CanonicalNode, ctx?: ...): void` (parameter type + return type 둘 다 검토)
+2. **caller cascade 동반** — 변경 함수의 모든 caller (직접/간접) 가 단일 commit 안에서 같이 변경. 부분 변경 시 type-check 가 fail 하므로 type-check 0 error 가 cascade 완결성을 자동 검증
+3. **lookup pattern 변경** — `childrenMap.get(el.id)` → `getChildren(node)` 또는 `node.children` 직접 access. ADR-127 helper API (`getChildren / getParent / getAncestors / findByPath / getNodeMap / getChildrenByParent`) 만 사용
+4. **type alias rename 금지** — `Element` 식별자를 `LegacyElement` 같은 alias 로 바꿔 grep gate 통과시키는 패턴 절대 금지. memory `feedback-adr-essence-priority-over-formal-pass` 인용 — 형식적 PASS vs 진정 reverse 명시 분리 의무
+
+### 전환 패턴 예시
 
 ```typescript
-// Before
+// ❌ Before — Element 직접 소비
 function renderElement(element: Element): void {
   const children = childrenMap.get(element.id) ?? [];
   // ...
 }
 
-// After (canonical-native)
-function renderNode(node: CanonicalNode, context: RenderContext): void {
-  const children = context.resolver.children(node);
+// ❌ 우회 패턴 (금지) — type alias rename 만으로 grep gate 통과
+import type { LegacyElement as Element } from "..."; // 절대 금지
+function renderElement(element: Element): void {
+  // 행위 동일
+  const children = childrenMap.get(element.id) ?? [];
+}
+
+// ✅ After — canonical-native (진정 reverse)
+import type { CanonicalNode } from "@composition/shared/types/composition-document.types";
+import { getChildren } from "@/builder/stores/canonical/canonicalTraversalHelpers";
+
+function renderNode(node: CanonicalNode): void {
+  const children = getChildren(node); // = node.children, ordered
   // ...
 }
+// → caller cascade: BuilderCanvas / hooks / scene model build 모두 같이 변경
 ```
 
-### Phase 2 Gate (G2)
+### 5.3. Sub-group 별 검증 요건 (Gate G2-A ~ G2-E)
+
+각 sub-group 완료 시 모두 통과 필수. 단일 sub-group commit 단위:
+
+| 검증 항목                       | 기준                                                                                      | 우회 차단                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **caller cascade evidence**     | sub-group 안의 변경 함수 list + 각 caller list 가 commit message body 또는 PR 본문에 명시 | type alias rename 우회 시 caller list 0개 → 자동 차단      |
+| **type-check**                  | `pnpm type-check` 0 error                                                                 | 부분 cascade 시 type 불일치 → fail                         |
+| **targeted vitest**             | sub-group directory 의 `__tests__/**` 또는 `*.test.ts(x)` PASS                            | scene model / helper API test 가 변경 행위 검증            |
+| **grep gate (보조)**            | `rg -n "import.*\bElement\b" <sub-group dir>` 결과 0건 (boundary/test 제외)               | 단독 PASS 기준 아님 — 위 3 검증과 AND 조건                 |
+| **FPS gate (2-A/2-B 만)**       | 60fps 실측 PASS (Phase 1 baseline 120.5 대비 -5% bound = 114fps 이상)                     | render path 변경 sub-group 만 적용 (2-A Skia / 2-B layout) |
+| **render parity (2-A/2-B/2-E)** | Builder ↔ Preview 시각 결과 동일 — `cross-check` skill 또는 수동 screenshot diff          | render path / preview 변경 sub-group 만 적용               |
+
+### 5.4. Phase 2 종료 Gate (G2 — 종합)
+
+5 sub-group (2-A ~ 2-E) 모두 land 후 종합 검증:
 
 ```bash
-# hot path consumer에서 Element 타입 import 0건 검증 (boundary/test 제외)
+# Phase 2 종료 grep gate (보조 검증, 단독 PASS 기준 아님)
 rg -n "import.*\bElement\b" \
   apps/builder/src/builder/workspace \
   apps/builder/src/builder/panels \
   apps/builder/src/resolvers \
+  apps/builder/src/preview \
   --include="*.ts" --include="*.tsx" \
   | grep -v "boundary\|adapter\|test\|spec\|\.test\."
 ```
 
-- 위 명령 결과 0건
-- `pnpm type-check` 0 error
-- 60fps 실측 PASS (Phase 1 baseline 대비 -5% 이내)
-- Skia/Preview targeted Vitest PASS
+- 위 명령 결과 0건 (sub-group 모두 land 후 자동 충족)
+- `pnpm type-check` 0 error (전체 monorepo)
+- 5 sub-group 의 caller cascade evidence 가 ADR 진행 로그에 누적
+- 60fps 실측 PASS (전체 render path 통합)
+- `Element` 타입 alias rename 0건 — `rg -n "(Legacy|Old|Deprecated)Element\b" apps/builder/src` 결과 0 (또는 명시적 boundary file 만)
+- Skia/Preview targeted Vitest PASS (2-A/2-B/2-E 검증)
+- panels properties + nodes targeted Vitest PASS (2-D 검증)
 
 ---
 
@@ -280,53 +325,99 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 
 ## 10. Phase Plan 요약
 
-| Phase   | 목표                             | 주요 산출물                                    | Gate | 진입 조건                                 |
-| ------- | -------------------------------- | ---------------------------------------------- | ---- | ----------------------------------------- |
-| Phase 0 | Inventory freeze                 | bucket 분류 + prerequisite 확인                | G0   | 없음 (즉시 수행 가능)                     |
-| Phase 1 | canonical-native model 검증      | hot path 커버 가능 여부 + FPS baseline         | G1   | ADR-123/124/125 Implemented               |
-| Phase 2 | hot path consumer 전환           | Skia/layout/Preview/Properties/LayerTree       | G2   | G1 PASS                                   |
-| Phase 3 | store cache 전환                 | `elementsMap`/`childrenMap` canonical-native   | G3   | G2 PASS (ADR-125 render input closure 후) |
-| Phase 4 | history/inspector/drag-drop 전환 | 나머지 consumer + boundary allowlist           | G4   | G3 PASS                                   |
-| Phase 5 | derived view 제거                | `canonicalDocumentToElements` non-boundary 0건 | G5   | G4 PASS                                   |
-| Phase 6 | final verification               | `@deprecated` 마킹 + browser smoke + preflight | G6   | G5 PASS                                   |
+| Phase       | 목표                                           | 주요 산출물                                                                       | Gate | 진입 조건                                 |
+| ----------- | ---------------------------------------------- | --------------------------------------------------------------------------------- | ---- | ----------------------------------------- |
+| Phase 0     | Inventory freeze                               | bucket 분류 + prerequisite 확인                                                   | G0   | 없음 (즉시 수행 가능)                     |
+| Phase 1     | canonical-native model 검증                    | hot path 커버 가능 여부 + FPS baseline                                            | G1   | ADR-123/124/125 Implemented               |
+| **Phase 2** | **hot path consumer 전환 (5 sub-group 분할)**  | sub-group 별 caller cascade evidence + targeted vitest + type-check               | G2   | G1 PASS                                   |
+| ↳ 2-A       | Skia render path                               | `workspace/canvas/skia/**` + `scene/**` (~12 file). scene model 직접 access swap  | G2-A | G1 PASS                                   |
+| ↳ 2-B       | Layout engine                                  | `workspace/canvas/layout/**` (~8 file). `processedElementsMap` cascade            | G2-B | 2-A PASS (render path 의존)               |
+| ↳ 2-C       | Renderer input + ref resolution                | `rendererInput.ts` + `canonicalRefResolution.ts` + `storeBridge.ts` (~8 file)     | G2-C | 2-A PASS                                  |
+| ↳ 2-D       | Panels (properties + nodes/LayerTree)          | `panels/properties/**` + `panels/nodes/**` (~25 file)                             | G2-D | 2-C PASS (canonical helper API 의존)      |
+| ↳ 2-E       | Preview render                                 | `preview/**` + `services/messaging.ts` layout receive (~7 file)                   | G2-E | 2-A PASS (scene snapshot 송신측 의존)     |
+| Phase 3     | store cache 전환                               | `elementsMap`/`childrenMap` canonical-native                                      | G3   | G2 PASS (ADR-125 render input closure 후) |
+| Phase 4     | history/inspector/drag-drop/AI tools/messaging | 나머지 consumer + boundary allowlist (BuilderCore mount / utility / Factory 포함) | G4   | G3 PASS                                   |
+| Phase 5     | derived view 제거                              | `canonicalDocumentToElements` non-boundary 0건                                    | G5   | G4 PASS                                   |
+| Phase 6     | final verification                             | `@deprecated` 마킹 + browser smoke + preflight                                    | G6   | G5 PASS                                   |
+
+**Phase 2 진입 권고 순서**: 2-A → 2-C → 2-B → 2-E → 2-D. 이유 — 2-A (Skia render path) 가 ADR-127 helper API 직접 access 진입점이라 가장 작은 scope 로 진정 reverse 패턴 검증 가능. 2-A 완료 후 cascade 학습값으로 2-B/2-C/2-E/2-D 적용. agent dispatch 사용 여부는 2-A 직접 land 결과 후 판단 (memory `feedback-agent-completion-failure-pattern` — HIGH 위험 작업 agent dispatch 신뢰도 낮음).
 
 ---
 
-## 11. 관련 파일 (Phase 0 seed — 실 코드 기준 재측정 필요)
+## 11. 관련 파일 (Phase 0 inventory + Phase 2 sub-group 매핑)
 
-### derived-view bucket
+전체 50+ file inventory 는 [126-inventory.md](126-inventory.md) §3 참조. 본 §11 은 Phase 2 sub-group 별 우선 진입 file + Phase 4 위임 file 매핑.
+
+### derived-view bucket (Phase 5 제거)
 
 - `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts` (정의)
 - `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` (호출 ~2건)
 
-### store-cache bucket
+### store-cache bucket (Phase 3 — ADR-125 자동 closure 확인)
 
 - `apps/builder/src/builder/stores/elements.ts`
 - `apps/builder/src/types/builder/unified.types.ts` (store state 인터페이스)
+- 측정: `useStore.getState().elementsMap|childrenMap` production hit = **0** (inventory §3-B)
 
-### hot-path-consumer bucket (Phase 2 우선)
+### hot-path-consumer bucket — Phase 2 sub-group 매핑
+
+#### 2-A. Skia render path
 
 - `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
+- `apps/builder/src/builder/workspace/canvas/skia/nodeRenderers.ts` (Element type read)
+- `apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts` (legacy getter caller)
+- `apps/builder/src/builder/workspace/canvas/scene/buildSpecNodeData.ts`
+- 기타 `workspace/canvas/skia/**` + `workspace/canvas/scene/**` Element 타입 import file
+
+#### 2-B. Layout engine
+
+- `apps/builder/src/builder/workspace/canvas/layout/fullTreeLayout.ts` (`enrichWithIntrinsicSize`, `processedElementsMap`)
+- `apps/builder/src/builder/workspace/canvas/layout/layoutCache.ts`
+- `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+- 기타 `workspace/canvas/layout/**` Element 타입 import file
+
+#### 2-C. Renderer input + ref resolution
+
 - `apps/builder/src/builder/workspace/canvas/renderers/rendererInput.ts`
 - `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`
 - `apps/builder/src/resolvers/canonical/storeBridge.ts`
-- `apps/builder/src/builder/panels/properties/**`
-- `apps/builder/src/builder/panels/nodes/**` (LayerTree)
 
-### hot-path-consumer bucket (Phase 4)
+#### 2-D. Panels (properties + nodes/LayerTree)
 
+- `apps/builder/src/builder/panels/properties/**` (selected node read + property panels)
+- `apps/builder/src/builder/panels/nodes/**` (LayerTree tree model)
+- `apps/builder/src/builder/panels/properties/hooks/useCanonicalPropertyRead.ts`
+- `apps/builder/src/builder/panels/nodes/LayersSection.tsx`
+
+#### 2-E. Preview render
+
+- `apps/builder/src/preview/utils/layoutResolver.ts`
+- `apps/builder/src/preview/App.tsx`
+- `apps/builder/src/services/messaging.ts` (layout 관련 receive — `UPDATE_ELEMENTS` 잔존 정리)
+
+### hot-path-consumer bucket — Phase 4 위임 (BuilderCore + utility + AI + drag-drop + history + inspector)
+
+- `apps/builder/src/builder/main/BuilderCore.tsx` (mount)
 - `apps/builder/src/builder/stores/history/historyActions.ts`
 - `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts`
 - `apps/builder/src/builder/stores/utils/instanceActions.ts`
 - `apps/builder/src/builder/stores/inspectorActions.ts`
+- `apps/builder/src/builder/utils/treeUtils.ts` / `multiElementCopy.ts` / `smartSelection.ts` / `selectionMemory.ts`
+- `apps/builder/src/utils/element/idGeneration.ts` / `idValidation.ts`
+- `apps/builder/src/services/ai/tools/createElement.ts` / `canonicalToolReadModel.ts`
+- `apps/builder/src/utils/dom/iframeMessenger.ts` / `apps/builder/src/builder/utils/canvasDeltaMessenger.ts`
+- `apps/builder/src/builder/factories/definitions/TableComponents.ts`
 - drag-drop handler files
 
-### boundary-allowed bucket (유지)
+### boundary-allowed bucket (유지 — Phase 4/5/6 grep gate exempt)
 
 - `apps/builder/src/adapters/canonical/exportLegacyDocument.ts`
 - `apps/builder/src/adapters/canonical/legacyElementSanitizer.ts`
+- `apps/builder/src/adapters/canonical/legacyElementFields.ts`
+- `apps/builder/src/adapters/canonical/legacyElementsApiService.ts`
 - `apps/builder/src/adapters/canonical/frameElementLoader.ts`
+- `apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModelLegacy.ts` (ADR-127 transition boundary)
 - `apps/builder/src/utils/projectSync.ts`
 - `packages/shared/src/utils/export.utils.ts`
 - `apps/builder/src/utils/element/elementUtils.ts` (boundary adapter 내부 유틸)
