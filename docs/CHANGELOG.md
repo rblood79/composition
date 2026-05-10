@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 3 store cache state contract slice land**:
+  - `ElementsState.elementsMap` / `childrenMap` 과 `buildIndexes()` cache 생성부를 `StoreElementCacheSnapshot` / `StoreElementCacheMap` / `StoreChildrenCacheMap` deprecated snapshot contract 로 전환했다.
+  - `elements.storeCache.static.test.ts` 를 추가해 raw `Map<string, Element>` / `Map<string, Element[]>` state/buildIndexes contract 회귀를 차단했다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **ADR-126 Phase 3 scope cleanup**:
   - 현재 코드 재측정 결과 `useStore.getState().elementsMap|childrenMap` production direct read 는 adapter doc comment 를 제외하면 0건이지만, `stores/**` 전체 map type grep 은 store state 와 inspector/loader/history/utility consumer 를 함께 잡는 것을 명시했다.
   - Phase 3 범위를 `elements.ts` 의 `elementsMap`/`childrenMap` store state/cache contract 정렬로 좁히고, mutation/action/history/inspector/loader/utility map consumer 전환은 Phase 4 소유로 재분리했다.

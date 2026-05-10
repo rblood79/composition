@@ -54,8 +54,8 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 
 - 측정: `rg -n "useStore.getState().elementsMap|useStore.getState().childrenMap" apps/builder/src --glob "*.ts" --glob "*.tsx" --glob "!**/*.test.ts" --glob "!**/*.test.tsx"` 결과 중 adapter doc comment 1건을 제외하면 production code **0 hit**
 - 2026-05-10 재측정: test 제외 production code direct read 는 adapter doc comment 1건을 제외하면 0건. `stores/**` 의 map type grep 은 `elements.ts` store state 외에 inspector/loader/history/utility consumer 를 함께 잡으므로 Phase 3 gate 로 쓰면 Phase 4 범위가 섞인다.
-- Phase 3 잔여: `apps/builder/src/builder/stores/elements.ts` 의 `ElementsState.elementsMap: Map<string, Element>` / `childrenMap: Map<string, Element[]>` 와 local index 생성 contract 를 structural readonly/deprecated snapshot 으로 정렬.
-- Phase 4 잔여: `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementCreation.ts`, `elementUpdate.ts`, `elementIndexer.ts`, grouping/alignment/distribution utility 의 `Element` map consumer 전환.
+- Phase 3 Slice 1 완료: `apps/builder/src/builder/stores/elements.ts` 의 `ElementsState.elementsMap` / `childrenMap` state field 와 `buildIndexes()` cache 생성부를 `StoreElementCacheSnapshot` / `StoreElementCacheMap` / `StoreChildrenCacheMap` deprecated snapshot contract 로 정렬.
+- Phase 4 잔여: `elements.ts` 내부 page removal local mutation map, `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementCreation.ts`, `elementUpdate.ts`, `elementIndexer.ts`, grouping/alignment/distribution utility 의 `Element` map consumer 전환.
 
 ### 3-C. `hot-path-consumer` (Phase 2/4 전환 대상)
 
@@ -104,7 +104,8 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - [x] useCanonicalElements production caller ~10 enumerate
 - [x] store-cache direct read bucket = 0 hit 확인
 - [x] store-cache Phase 3/4 경계 재정리 — Phase 3 은 `elements.ts` state/cache contract, Phase 4 는 store utility/action consumer
-- [ ] store-cache store state/cache contract 전환은 Phase 3 잔여
+- [x] store-cache state/cache contract slice 완료 — `ElementsState.elementsMap` / `childrenMap` + `buildIndexes()` snapshot alias
+- [ ] store-cache 관련 store utility/action consumer 전환은 Phase 4 잔여
 - [x] hot-path-consumer 카테고리 분류 완료
 - [x] boundary-allowed allowlist 명시
 - [x] Phase 1+ 진입 순서 6 phase plan freeze

@@ -208,11 +208,18 @@ rg -n "import.*\bElement\b" \
 
 ## 6. Phase 3 — store cache canonical-native 전환
 
-**Status: Scope Cleaned — 2026-05-10**
+**Status: Slice 1 Landed — 2026-05-10**
 
 **목표**: `elementsMap` / `childrenMap` store state/cache contract 의 `Element` key/value 타입 참조를 canonical-native 또는 deprecated readonly snapshot 으로 전환한다. ADR-125 render input contract closure 후 store cache 가 canonical-derived read-only 로 좁아진 상태에서 진행한다.
 
 **경계 정리**: 현재 `stores/**` 전체 grep 은 `elements.ts` store state 뿐 아니라 `inspectorActions.ts`, `elementLoader.ts`, `historyHelpers.ts`, `elementCreation.ts`, `elementUpdate.ts`, `elementIndexer.ts`, grouping/alignment/distribution utility 까지 함께 잡는다. 이들은 mutation/action/history/inspector/loader/utility consumer 이므로 Phase 4 소유다. Phase 3 에서는 store state/cache contract 를 먼저 좁히고, `elements: Element[]` compatibility cache 자체 삭제는 Phase 4/5 consumer closure 이후로 미룬다.
+
+**2026-05-10 Slice 1 결과**:
+
+- `ElementsState.elementsMap` / `childrenMap` state field 를 `StoreElementCacheMap` / `StoreChildrenCacheMap` 으로 전환.
+- `StoreElementCacheSnapshot = Readonly<Element>` 를 deprecated compatibility cache snapshot 으로 명시. 이는 최종 canonical-native state 가 아니라 Phase 4 consumer closure 전 임시 snapshot contract 다.
+- `buildIndexes()` 의 cache map 생성부를 snapshot alias 로 전환하고, `elements.storeCache.static.test.ts` 로 raw `Map<string, Element>` state/buildIndexes 회귀를 차단.
+- 잔여: `elements.ts` 내부 `removePageLocal` local mutation map 과 `inspectorActions` / `elementLoader` / history / utility map consumer 는 Phase 4 에서 canonical-native 또는 boundary contract 로 전환.
 
 ### 작업
 
@@ -226,7 +233,7 @@ rg -n "import.*\bElement\b" \
 
 ```bash
 # store state/cache contract 에서 Element key/value 참조
-rg -n "elementsMap: Map<string, Element>|childrenMap: Map<string, Element\\[\\]>|new Map<string, Element>|new Map<string, Element\\[\\]>" \
+rg -n "elementsMap: Map<string, Element>|childrenMap: Map<string, Element\\[\\]>|const elementsMap = new Map<string, Element>|const childrenMap = new Map<string, Element\\[\\]>" \
   apps/builder/src/builder/stores/elements.ts \
   --include="*.ts"
 ```

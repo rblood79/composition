@@ -101,8 +101,8 @@ export interface ElementsState {
   elements: Element[];
   pageElementsSnapshot: Record<string, Element[]>;
   // 성능 최적화: O(1) 조회를 위한 Map 인덱스
-  elementsMap: Map<string, Element>;
-  childrenMap: Map<string, Element[]>;
+  elementsMap: StoreElementCacheMap;
+  childrenMap: StoreChildrenCacheMap;
   // 🆕 Phase 2: 페이지별 인덱스 (O(1) 페이지 요소 조회)
   pageIndex: PageElementIndex;
   // G.1: Component-Instance 인덱스
@@ -344,6 +344,15 @@ export interface ElementsState {
   ) => Promise<void>;
 }
 
+/**
+ * @deprecated ADR-126 Phase 3 compatibility cache snapshot.
+ * Do not add new runtime consumers. Use canonical-native document/scene
+ * models for read paths; Phase 4 owns the remaining mutation/action consumers.
+ */
+export type StoreElementCacheSnapshot = Readonly<Element>;
+export type StoreElementCacheMap = Map<string, StoreElementCacheSnapshot>;
+export type StoreChildrenCacheMap = Map<string, StoreElementCacheSnapshot[]>;
+
 type PageActivationPatch = Pick<
   ElementsState,
   | "currentPageId"
@@ -460,7 +469,7 @@ function resolvePageActivationTarget(
 
 function collectElementSubtreeIds(
   rootId: string,
-  childrenMap: Map<string, Element[]>,
+  childrenMap: StoreChildrenCacheMap,
 ): Set<string> {
   const subtreeIds = new Set<string>();
   const stack = [rootId];
@@ -557,8 +566,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
   // 인덱스 재구축 순수 함수 (Fix 3: atomic update 지원)
   const buildIndexes = (elements: Element[]) => {
-    const elementsMap = new Map<string, Element>();
-    const childrenMap = new Map<string, Element[]>();
+    const elementsMap: StoreElementCacheMap = new Map();
+    const childrenMap: StoreChildrenCacheMap = new Map();
 
     elements.forEach((el) => {
       elementsMap.set(el.id, el);
