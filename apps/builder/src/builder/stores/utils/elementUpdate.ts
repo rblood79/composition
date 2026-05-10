@@ -25,6 +25,14 @@ import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
+type ElementUpdateLookup<TElement extends Element = Element> = Map<
+  string,
+  TElement
+>;
+type ElementUpdateChildrenByParent<TElement extends Element = Element> = Map<
+  string,
+  TElement[]
+>;
 
 // ─── Dirty Tracking 유틸리티 ─────────────────────────────────────────
 // elements.ts의 NON_LAYOUT_PROPS/INHERITED_LAYOUT_PROPS를 재사용하지 않고
@@ -154,7 +162,9 @@ function isLayoutAffectingUpdate(
   return Object.keys(changedStyle).some((k) => !NON_LAYOUT_PROPS_UPDATE.has(k));
 }
 
-function buildElementUpdateLookup(elements: Element[]): Map<string, Element> {
+function buildElementUpdateLookup<TElement extends Element>(
+  elements: readonly TElement[],
+): ElementUpdateLookup<TElement> {
   return new Map(elements.map((element) => [element.id, element]));
 }
 
@@ -165,10 +175,10 @@ function findElementForUpdate(
   return elements.find((element) => element.id === elementId);
 }
 
-function buildElementUpdateChildrenByParent(
-  elements: Element[],
-): Map<string, Element[]> {
-  const childrenByParent = new Map<string, Element[]>();
+function buildElementUpdateChildrenByParent<TElement extends Element>(
+  elements: readonly TElement[],
+): ElementUpdateChildrenByParent<TElement> {
+  const childrenByParent: ElementUpdateChildrenByParent<TElement> = new Map();
   for (const element of elements) {
     const parentId = element.parent_id;
     if (!parentId) continue;
@@ -190,7 +200,7 @@ function getElementUpdateSourceElements(
 function markDirtyWithDescendantsUpdate(
   elementId: string,
   changedStyle: Record<string, unknown>,
-  childrenByParent: Map<string, Element[]>,
+  childrenByParent: ReadonlyMap<string, readonly Pick<Element, "id">[]>,
   dirtySet: Set<string>,
 ): void {
   dirtySet.add(elementId);
@@ -668,7 +678,7 @@ export const createBatchUpdateElementPropsAction =
 
     // 업데이트 맵 생성 (O(1) 조회용)
     const updateMap = new Map<string, ComponentElementProps>();
-    const updatedElementMap = new Map<string, Element>();
+    const updatedElementMap: ElementUpdateLookup = new Map();
     const nextElementsMap = new Map(elementLookup);
     for (const { elementId, props } of validUpdates) {
       const element = elementLookup.get(elementId);
@@ -859,8 +869,8 @@ export const createBatchUpdateElementsAction =
         : state.selectedElementProps;
 
     // Fix 3: 단일 atomic set() — elements + indexes 동시 갱신 (transient 불일치 방지)
-    const elementsMap = new Map<string, Element>();
-    const newChildrenMap = new Map<string, Element[]>();
+    const elementsMap: ElementUpdateLookup = new Map();
+    const newChildrenMap: ElementUpdateChildrenByParent = new Map();
     updatedElements.forEach((el) => {
       elementsMap.set(el.id, el);
       const parentId = el.parent_id || "root";

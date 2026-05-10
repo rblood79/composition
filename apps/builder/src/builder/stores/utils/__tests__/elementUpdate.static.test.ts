@@ -43,6 +43,32 @@ describe("elementUpdate canonical read fallback contract", () => {
     expect(source).not.toContain(staleHelper);
   });
 
+  it("keeps update lookup and children cache contracts behind local aliases", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementUpdate.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("type ElementUpdateLookup");
+    expect(source).toContain("type ElementUpdateChildrenByParent");
+    expect(source).toContain(
+      'childrenByParent: ReadonlyMap<string, readonly Pick<Element, "id">[]>',
+    );
+    expect(source).not.toContain(
+      "function buildElementUpdateLookup(elements: Element[]): Map<string, Element>",
+    );
+    expect(source).not.toContain("): Map<string, Element[]> {");
+    expect(source).not.toContain(
+      "const updatedElementMap = new Map<string, Element>();",
+    );
+    expect(source).not.toContain(
+      "const elementsMap = new Map<string, Element>();",
+    );
+    expect(source).not.toContain(
+      "const newChildrenMap = new Map<string, Element[]>();",
+    );
+  });
+
   it("applies canonical mutations before updating the derived store cache", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementUpdate.ts"),
