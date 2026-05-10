@@ -34,6 +34,23 @@ describe("elementRemoval canonical read fallback contract", () => {
     expect(source).not.toContain(staleStateChildMap);
   });
 
+  it("keeps removal lookup and children cache contracts behind local aliases", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementRemoval.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("type ElementRemovalLookup");
+    expect(source).toContain("type ElementRemovalChildrenByParent");
+    expect(source).toContain(
+      "function collectElementsToRemove<TElement extends Element>",
+    );
+    expect(source).not.toContain("new Map<string, Element[]>()");
+    expect(source).not.toContain("new Map<string, Element>()");
+    expect(source).not.toContain("): Map<string, Element> {");
+    expect(source).not.toContain("): Map<string, Element[]> {");
+  });
+
   it("removes nodes from canonical document before updating the derived store cache", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementRemoval.ts"),

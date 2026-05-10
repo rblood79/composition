@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 element removal cache contract slice land**:
+  - `elementRemoval.ts` 의 removal target lookup, children map, post-removal cache rebuild, multi-remove de-dup map 을 `ElementRemovalLookup` / `ElementRemovalChildrenByParent` alias contract 로 전환했다.
+  - canonical remove event/history/persistence semantics 는 변경하지 않았다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 3 tests PASS.
 - **ADR-126 Phase 4 element update cache contract slice land**:
   - `elementUpdate.ts` 의 lookup/children map helper 와 batch rebuild local map 을 `ElementUpdateLookup` / `ElementUpdateChildrenByParent` alias contract 로 전환했다.
   - descendant dirty tracking input 은 readonly `{ id }` contract 로 좁혔고, canonical mutation/history/persistence semantics 는 변경하지 않았다.

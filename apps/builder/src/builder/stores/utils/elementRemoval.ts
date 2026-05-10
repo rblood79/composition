@@ -30,6 +30,14 @@ import { buildCanonicalRemoveEvents } from "../history/canonicalHistoryEvents";
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
+type ElementRemovalLookup<TElement extends Element = Element> = Map<
+  string,
+  TElement
+>;
+type ElementRemovalChildrenByParent<TElement extends Element = Element> = Map<
+  string,
+  TElement[]
+>;
 
 function syncRemovedElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
@@ -59,14 +67,14 @@ async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
  * @returns 중복 제거된 삭제 대상 요소 배열 (루트 요소 포함)
  *          또는 삭제 불가(Body, 미존재)인 경우 null
  */
-function collectElementsToRemove(
+function collectElementsToRemove<TElement extends Element>(
   elementId: string,
-  elements: Element[],
-): { rootElement: Element; allElements: Element[] } | null {
-  const elementsById = new Map(
+  elements: readonly TElement[],
+): { rootElement: TElement; allElements: TElement[] } | null {
+  const elementsById: ElementRemovalLookup<TElement> = new Map(
     elements.map((element) => [element.id, element]),
   );
-  const childrenByParent = new Map<string, Element[]>();
+  const childrenByParent: ElementRemovalChildrenByParent<TElement> = new Map();
   for (const element of elements) {
     const parentId = element.parent_id;
     if (!parentId) continue;
@@ -81,9 +89,9 @@ function collectElementsToRemove(
   if (element.type.toLowerCase() === "body") return null;
 
   // 자식 요소들 찾기 (재귀적으로)
-  const findChildren = (parentId: string): Element[] => {
+  const findChildren = (parentId: string): TElement[] => {
     const directChildren = childrenByParent.get(parentId) ?? [];
-    const allChildren: Element[] = [];
+    const allChildren: TElement[] = [];
     for (const child of directChildren) {
       allChildren.push(child);
       allChildren.push(...findChildren(child.id));
@@ -92,7 +100,7 @@ function collectElementsToRemove(
   };
 
   let childElements = findChildren(elementId);
-  const getSiblingIndex = (candidate: Element): number => {
+  const getSiblingIndex = (candidate: TElement): number => {
     return elements
       .filter(
         (el) =>
@@ -293,8 +301,8 @@ async function executeRemoval(
   }
 
   // 원자적 상태 업데이트: elements + 모든 인덱스를 단일 set()으로
-  const newElementsMap = new Map<string, Element>();
-  const newChildrenMap = new Map<string, Element[]>();
+  const newElementsMap: ElementRemovalLookup = new Map();
+  const newChildrenMap: ElementRemovalChildrenByParent = new Map();
   updatedElements.forEach((el) => {
     newElementsMap.set(el.id, el);
     const parentId = el.parent_id || "root";
@@ -412,7 +420,7 @@ export const createRemoveElementsAction =
     const state = get();
     const sourceElements = getElementRemovalSourceElements(state);
     const rootElements: Element[] = [];
-    const allElementsMap = new Map<string, Element>();
+    const allElementsMap: ElementRemovalLookup = new Map();
 
     // 각 요소에 대해 삭제 대상 수집
     for (const id of elementIds) {
