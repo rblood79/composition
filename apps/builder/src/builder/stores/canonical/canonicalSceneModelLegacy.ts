@@ -23,6 +23,10 @@ import type { CanonicalNode } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
 
 import type { CanonicalSceneModel } from "../../workspace/canvas/scene/canonicalSceneModel";
+import type {
+  CanvasSceneGraph,
+  CanvasSceneNode,
+} from "../../workspace/canvas/scene/canvasSceneNode";
 import {
   canonicalDocumentToElements,
   getActiveCanonicalDocumentElements,
@@ -138,4 +142,68 @@ export function buildLegacyChildrenByParent(
     }
   }
   return map;
+}
+
+/**
+ * Legacy store `Element[]` 를 Canvas scene graph 로 변환하는 bootstrap boundary.
+ *
+ * @deprecated ADR-126 Phase 5 transition. 신규 workspace/canvas caller 는
+ *   canonical `CanvasSceneGraph` 를 직접 소비해야 한다. 본 helper 는 active
+ *   canonical document 가 아직 없는 초기 bootstrap fallback 에서만 사용한다.
+ */
+export function buildLegacyCanvasSceneGraph(
+  elements: Element[],
+): CanvasSceneGraph {
+  const nodes: CanvasSceneNode[] = [];
+  const nodesMap = new Map<string, CanvasSceneNode>();
+  const childrenByParent = new Map<string, CanvasSceneNode[]>();
+  const parentById = new Map<string, string>();
+
+  for (const element of elements) {
+    const layoutId =
+      typeof (element as { layout_id?: unknown }).layout_id === "string"
+        ? ((element as { layout_id: string }).layout_id ?? null)
+        : null;
+    const node: CanvasSceneNode = {
+      id: element.id,
+      type: element.type,
+      props: element.props ?? {},
+      parentId: element.parent_id ?? null,
+      pageId: element.page_id ?? null,
+      layoutId,
+      parent_id: element.parent_id ?? null,
+      page_id: element.page_id ?? null,
+      layout_id: layoutId,
+      deleted: element.deleted,
+      ...(element.customId ? { customId: element.customId } : {}),
+      ...(element.componentName ? { name: element.componentName } : {}),
+      ...(element.componentName
+        ? { componentName: element.componentName }
+        : {}),
+      sourceNode: {
+        id: element.id,
+        type: element.type as CanonicalNode["type"],
+        props: element.props ?? {},
+      },
+    };
+
+    nodes.push(node);
+    nodesMap.set(node.id, node);
+    if (node.parentId) {
+      parentById.set(node.id, node.parentId);
+      const children = childrenByParent.get(node.parentId);
+      if (children) {
+        children.push(node);
+      } else {
+        childrenByParent.set(node.parentId, [node]);
+      }
+    }
+  }
+
+  return {
+    childrenByParent,
+    nodes,
+    nodesMap,
+    parentById,
+  };
 }

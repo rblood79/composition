@@ -123,8 +123,8 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 
 잔여 bucket:
 
-- `BuilderCanvas` scene snapshot/layout/interaction caller 는 `getSceneModel*Legacy` fallback 을 아직 사용한다. Phase 2-B/2-C/2-D cascade에서 제거 대상.
-- `rendererInput.ts` legacy bootstrap fallback 은 Phase 2-C에서 canonical scene graph 미주입 시 fallback 으로 축소됨. Phase 2-B에서 layout publisher input 은 `CanvasLayoutNode` 계약으로 전환됐고, render-tree fallback `Element` shape 는 Phase 5 잔여.
+- `BuilderCanvas` 의 `getSceneModel*Legacy` fallback 과 `rendererInput.ts` render-tree fallback `Element` shape 는 2026-05-10 canvas renderer input/bootstrap projection follow-up 에서 제거됨.
+- legacy store bootstrap 변환은 `canonicalSceneModelLegacy.ts` boundary 의 `buildLegacyCanvasSceneGraph()` 로 격리됨.
 - `CanvasSceneNode` transition alias(`parent_id`, `page_id`, `componentName`) 는 Phase 5 boundary 정리 전까지 임시 허용하되 신규 Skia code 에서는 `parentId`, `pageId`, `name` 을 사용한다.
 
 ## 6. Phase 2-C 진행 결과 (2026-05-10)
@@ -143,8 +143,8 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 
 잔여 bucket:
 
-- `rendererInput.ts` 내부 render-tree fallback 은 아직 `Element` shape 를 포함한다. Phase 5에서 제거 대상.
-- `BuilderCanvas` legacy bootstrap projection 은 아직 `getSceneModel*Legacy` / store `Element` fallback 을 유지한다. interaction read-model 은 Phase 2-D core 에서 scene maps 로 전환됐다.
+- `rendererInput.ts` 내부 render-tree fallback `Element` shape 는 2026-05-10 follow-up 에서 제거됨.
+- `BuilderCanvas` legacy `getSceneModel*Legacy` / store `Element` fallback 은 2026-05-10 follow-up 에서 제거됨.
 
 ## 7. Phase 2-B 진행 결과 (2026-05-10)
 
@@ -162,8 +162,8 @@ layout publisher input 명칭/shape 를 실제 역할에 맞게 정리했다.
 
 잔여 bucket:
 
-- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 아직 `Element` shape 를 포함한다. Phase 5 제거 대상.
-- `BuilderCanvas` 의 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback 은 아직 store `Element` import 를 유지한다.
+- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 은 `CanvasSceneNode` contract 로 전환됨.
+- `BuilderCanvas` 의 store `Element` import 와 `getSceneModel*Legacy` fallback 은 제거됨.
 - `CanvasLayoutNode` 는 transition 중 `parent_id/page_id/layout_id` legacy field 를 허용한다. alias 제거는 Phase 5 boundary 정리에서 처리한다.
 
 ## 8. Phase 2-E 진행 결과 (2026-05-10)
@@ -183,7 +183,7 @@ preview-local node contract 로 분리했다.
 잔여 bucket:
 
 - 잔여 생성형 property editor write payload caller 는 후속 panels/write payload slice 또는 Phase 5에서 정리한다.
-- `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy store read 는 Phase 5 잔여다.
+- `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy store read 는 2026-05-10 follow-up 에서 제거됐다.
 
 ## 9. Phase 2-D 진행 결과 (2026-05-10)
 
@@ -221,4 +221,26 @@ slice 는 `TableEditorElementPayload` / `TableHeaderElementPayload` 계약으로
 
 잔여 bucket:
 
-- `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.
+- `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 2026-05-10 follow-up 에서 제거됐다.
+- 남은 canvas 계열 debt 는 transition alias 제거와 Phase 4 drag/drop helper 잔여 consumer 정리다.
+
+## 10. Phase 2 follow-up — Canvas renderer input/bootstrap projection (2026-05-10)
+
+2-A~2-D 후속 판정에서 Phase 5 잔여로 남았던 `rendererInput.ts` render-tree
+fallback 과 `BuilderCanvas` legacy bootstrap projection 을 닫았다.
+
+| 측정 대상                                                                                  | 결과                                           |
+| ------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| `BuilderCanvas.tsx` + `renderers/rendererInput.ts` production store `Element` raw/type hit | **0**                                          |
+| 같은 scope `getSceneModel*Legacy` / `canonicalDocumentToElements(` hit                     | **0**                                          |
+| `SkiaRendererInput.elements/elementsMap/childrenMap`                                       | `CanvasSceneNode` contract                     |
+| Legacy bootstrap conversion                                                                | `canonicalSceneModelLegacy.ts` boundary 격리   |
+| Targeted Vitest                                                                            | **4 files / 10 tests PASS**                    |
+| Type-check                                                                                 | `pnpm -F @composition/builder type-check` PASS |
+
+잔여 bucket:
+
+- Phase 3: store-cache state type (`elementsMap` / `childrenMap`) 전환
+- Phase 4: history / inspector / drag-drop / AI tools / messaging 잔여 consumer 전환
+- Phase 5: derived-view 제거 + transition alias 정리
+- Phase 6: final audit / deprecated marking / browser smoke

@@ -38,7 +38,7 @@ describe("SkiaCanvas render invalidation contract", () => {
     expect(source).toContain("rendererInput.sceneNodesMap,");
     expect(source).toContain("rendererInput.sceneChildrenByParent,");
     expect(source).toContain(
-      "getScrollElementsMap: () => rendererInputRef.current.elementsMap,",
+      "getScrollElementsMap: () => rendererInputRef.current.sceneNodesMap,",
     );
     expect(source).not.toContain(
       "getElements: () => useStore.getState().elementsMap,",

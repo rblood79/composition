@@ -10,7 +10,7 @@ describe("useScrollWheelInteraction canonical map contract", () => {
     );
 
     expect(source).toContain(
-      "getScrollElementsMap: () => ReadonlyMap<string, Element>;",
+      "getScrollElementsMap: () => ReadonlyMap<string, CanvasInteractionNode>;",
     );
     expect(source).toContain("const elementsMap = getScrollElementsMap();");
 

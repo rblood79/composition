@@ -67,21 +67,13 @@ import { useKeyboardShortcutsRegistry } from "../../hooks/useKeyboardShortcutsRe
 import type { PageTitleBounds } from "./skia/skiaOverlayHelpers";
 
 import { buildCanonicalSceneModel, buildSceneStructureSnapshot } from "./scene";
-import {
-  buildLegacyChildrenByParent,
-  buildLegacyElementMap,
-  getSceneModelChildrenByParentLegacy,
-  getSceneModelElementsLegacy,
-  getSceneModelElementsMapLegacy,
-} from "../../stores/canonical/canonicalSceneModelLegacy";
+import { buildLegacyCanvasSceneGraph } from "../../stores/canonical/canonicalSceneModelLegacy";
 import {
   computeWorkflowEdges,
   computeDataSourceEdges,
   computeLayoutGroups,
   computeFrameAreas,
-  type WorkflowElementInput,
 } from "./skia/workflowEdges";
-import type { Element } from "../../../types/core/store.types";
 
 import { useGPUProfiler } from "./utils/gpuProfilerCore";
 import { hitTestPoint } from "./wasm-bindings/spatialIndex";
@@ -106,7 +98,7 @@ export interface BuilderCanvasProps {
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 const PAGE_STACK_GAP = 80;
-const EMPTY_ELEMENTS: Element[] = [];
+const EMPTY_ELEMENTS = [];
 
 function computeStackedCanvasPosition(
   index: number,
@@ -281,24 +273,17 @@ export function BuilderCanvas({
   // ADR-122 Phase 3: active canonical document 가 있으면 Skia scene input은
   // Builder store mirror 가 아니라 canonical document 에서 만든 scene model을
   // 직접 사용한다. store mirror 는 hydration fallback 으로만 남긴다.
-  const storeElementsMap = useMemo(
-    () => buildLegacyElementMap(storeElements),
+  const legacySceneGraph = useMemo(
+    () => buildLegacyCanvasSceneGraph(storeElements),
     [storeElements],
   );
-  const storeChildrenByParent = useMemo(
-    () => buildLegacyChildrenByParent(storeElements),
-    [storeElements],
-  );
-  const elements = canonicalSceneModel
-    ? getSceneModelElementsLegacy(canonicalSceneModel)
-    : storeElements;
-  const elementsMap = canonicalSceneModel
-    ? getSceneModelElementsMapLegacy(canonicalSceneModel)
-    : storeElementsMap;
-  const childrenMap = canonicalSceneModel
-    ? getSceneModelChildrenByParentLegacy(canonicalSceneModel)
-    : storeChildrenByParent;
-  const elementById = elementsMap;
+  const sceneNodes = canonicalSceneModel?.sceneNodes ?? legacySceneGraph.nodes;
+  const sceneNodesMap =
+    canonicalSceneModel?.sceneNodesMap ?? legacySceneGraph.nodesMap;
+  const sceneChildrenByParent =
+    canonicalSceneModel?.sceneChildrenByParent ??
+    legacySceneGraph.childrenByParent;
+  const elementById = sceneNodesMap;
 
   // ADR-006 P3-1: dirtyElementIds 소비 후 초기화
   // layoutVersion이 변경되면 render cycle에서 useMemo가 레이아웃을 재계산한 뒤,
@@ -363,8 +348,8 @@ export function BuilderCanvas({
     return buildSceneStructureSnapshot({
       containerSize,
       currentPageId: isFrameEditMode ? null : currentPageId,
-      elements,
-      elementsMap,
+      elements: sceneNodes,
+      elementsMap: sceneNodesMap,
       layoutVersion,
       pageHeight,
       pageIndex: scenePageIndex,
@@ -380,8 +365,6 @@ export function BuilderCanvas({
     containerSize,
     canonicalSceneModel,
     currentPageId,
-    elements,
-    elementsMap,
     isFrameEditMode,
     layoutVersion,
     pageHeight,
@@ -391,6 +374,8 @@ export function BuilderCanvas({
     pageWidth,
     pages,
     panOffset,
+    sceneNodes,
+    sceneNodesMap,
     zoom,
   ]);
 
@@ -439,16 +424,11 @@ export function BuilderCanvas({
   ]);
 
   const workflowEdges = useMemo(() => {
-    return computeWorkflowEdges(
-      pages,
-      elements as unknown as WorkflowElementInput[],
-    );
-  }, [pages, elements]);
+    return computeWorkflowEdges(pages, sceneNodes);
+  }, [pages, sceneNodes]);
   const dataSourceEdges = useMemo(() => {
-    return computeDataSourceEdges(
-      elements as unknown as WorkflowElementInput[],
-    );
-  }, [elements]);
+    return computeDataSourceEdges(sceneNodes);
+  }, [sceneNodes]);
   const layoutGroups = useMemo(() => {
     return computeLayoutGroups(pages, layouts, activeCanonicalDocument);
   }, [activeCanonicalDocument, pages, layouts]);
@@ -540,14 +520,14 @@ export function BuilderCanvas({
 
   const skiaRendererInput = useMemo(() => {
     return createSkiaRendererInput({
-      childrenMap,
+      childrenMap: sceneChildrenByParent,
       dirtyElementIds,
       editMode: currentEditMode,
-      elements,
-      elementsMap,
-      sceneChildrenByParent: canonicalSceneModel?.sceneChildrenByParent,
-      sceneNodes: canonicalSceneModel?.sceneNodes,
-      sceneNodesMap: canonicalSceneModel?.sceneNodesMap,
+      elements: sceneNodes,
+      elementsMap: sceneNodesMap,
+      sceneChildrenByParent,
+      sceneNodes,
+      sceneNodesMap,
       pageIndex: scenePageIndex,
       pagePositions,
       pagePositionsVersion,
@@ -559,12 +539,11 @@ export function BuilderCanvas({
       frameElementScopes,
     });
   }, [
-    childrenMap,
     currentEditMode,
     dirtyElementIds,
-    elements,
-    elementsMap,
-    canonicalSceneModel,
+    sceneChildrenByParent,
+    sceneNodes,
+    sceneNodesMap,
     scenePageIndex,
     pagePositions,
     pagePositionsVersion,

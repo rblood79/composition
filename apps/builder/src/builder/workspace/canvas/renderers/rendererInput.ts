@@ -1,5 +1,4 @@
-import type { Element, Page } from "../../../../types/core/store.types";
-import type { CanonicalNode } from "@composition/shared";
+import type { Page } from "../../../../types/core/store.types";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import type { ScenePageSnapshot, SceneStructureSnapshot } from "../scene";
 import type {
@@ -187,9 +186,9 @@ export function buildFrameLayoutPublisherInput({
 }
 
 export interface SkiaRendererInput {
-  childrenMap: Map<string, Element[]>;
-  elements: Element[];
-  elementsMap: Map<string, Element>;
+  childrenMap: Map<string, CanvasSceneNode[]>;
+  elements: CanvasSceneNode[];
+  elementsMap: Map<string, CanvasSceneNode>;
   sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
   sceneNodes: CanvasSceneNode[];
   sceneNodesMap: Map<string, CanvasSceneNode>;
@@ -216,12 +215,12 @@ export interface SkiaRendererInput {
 }
 
 interface CreateSkiaRendererInputOptions {
-  childrenMap: Map<string, Element[]>;
-  elements: Element[];
-  elementsMap: Map<string, Element>;
-  sceneChildrenByParent?: Map<string, CanvasSceneNode[]>;
-  sceneNodes?: CanvasSceneNode[];
-  sceneNodesMap?: Map<string, CanvasSceneNode>;
+  childrenMap: Map<string, CanvasSceneNode[]>;
+  elements: CanvasSceneNode[];
+  elementsMap: Map<string, CanvasSceneNode>;
+  sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
+  sceneNodes: CanvasSceneNode[];
+  sceneNodesMap: Map<string, CanvasSceneNode>;
   dirtyElementIds: Set<string>;
   editMode: "page" | "layout";
   pageIndex: PageElementIndex;
@@ -236,61 +235,6 @@ interface CreateSkiaRendererInputOptions {
   framePositionsVersion: number;
   frameAreas: FrameAreaGroup[];
   frameElementScopes: CanonicalFrameElementScopeMap;
-}
-
-function buildLegacyCanvasSceneGraph(elements: Element[]): CanvasSceneGraph {
-  const nodes: CanvasSceneNode[] = [];
-  const nodesMap = new Map<string, CanvasSceneNode>();
-  const childrenByParent = new Map<string, CanvasSceneNode[]>();
-  const parentById = new Map<string, string>();
-
-  for (const element of elements) {
-    const layoutId =
-      typeof (element as { layout_id?: unknown }).layout_id === "string"
-        ? ((element as { layout_id: string }).layout_id ?? null)
-        : null;
-    const node: CanvasSceneNode = {
-      id: element.id,
-      type: element.type,
-      props: element.props ?? {},
-      parentId: element.parent_id ?? null,
-      pageId: element.page_id ?? null,
-      layoutId,
-      parent_id: element.parent_id ?? null,
-      page_id: element.page_id ?? null,
-      layout_id: layoutId,
-      deleted: element.deleted,
-      ...(element.customId ? { customId: element.customId } : {}),
-      ...(element.componentName ? { name: element.componentName } : {}),
-      ...(element.componentName
-        ? { componentName: element.componentName }
-        : {}),
-      sourceNode: {
-        id: element.id,
-        type: element.type as CanonicalNode["type"],
-        props: element.props ?? {},
-      },
-    };
-
-    nodes.push(node);
-    nodesMap.set(node.id, node);
-    if (node.parentId) {
-      parentById.set(node.id, node.parentId);
-      const children = childrenByParent.get(node.parentId);
-      if (children) {
-        children.push(node);
-      } else {
-        childrenByParent.set(node.parentId, [node]);
-      }
-    }
-  }
-
-  return {
-    childrenByParent,
-    nodes,
-    nodesMap,
-    parentById,
-  };
 }
 
 function buildSceneParentById(
@@ -321,13 +265,13 @@ function resolveCanvasSceneGraph(graph: CanvasSceneGraph): CanvasSceneGraph {
 }
 
 function buildRendererChildrenMap(
-  elements: Iterable<Element>,
-): Map<string, Element[]> {
-  const childrenMap = new Map<string, Element[]>();
+  elements: Iterable<CanvasSceneNode>,
+): Map<string, CanvasSceneNode[]> {
+  const childrenMap = new Map<string, CanvasSceneNode[]>();
 
   for (const element of elements) {
     if (element.deleted) continue;
-    const parentId = element.parent_id ?? null;
+    const parentId = element.parentId ?? element.parent_id ?? null;
     if (!parentId) continue;
     const list = childrenMap.get(parentId);
     if (list) {
@@ -341,15 +285,15 @@ function buildRendererChildrenMap(
 }
 
 function buildPageResolvedRenderTree(input: CreateSkiaRendererInputOptions): {
-  childrenMap: Map<string, Element[]>;
-  elements: Element[];
-  elementsMap: Map<string, Element>;
+  childrenMap: Map<string, CanvasSceneNode[]>;
+  elements: CanvasSceneNode[];
+  elementsMap: Map<string, CanvasSceneNode>;
 } {
   const elementsMap = new Map(input.elementsMap);
-  const orderedElements: Element[] = [];
+  const orderedElements: CanvasSceneNode[] = [];
   const orderedIndexById = new Map<string, number>();
 
-  const addElement = (element: Element): void => {
+  const addElement = (element: CanvasSceneNode): void => {
     elementsMap.set(element.id, element);
     const existingIndex = orderedIndexById.get(element.id);
     if (existingIndex !== undefined) {
@@ -393,15 +337,12 @@ export function createSkiaRendererInput(
     elements: renderTree.elements,
     elementsMap: renderTree.elementsMap,
   });
-  const sourceSceneGraph =
-    input.sceneChildrenByParent && input.sceneNodes && input.sceneNodesMap
-      ? {
-          childrenByParent: input.sceneChildrenByParent,
-          nodes: input.sceneNodes,
-          nodesMap: input.sceneNodesMap,
-          parentById: buildSceneParentById(input.sceneChildrenByParent),
-        }
-      : buildLegacyCanvasSceneGraph(resolvedTree.elements);
+  const sourceSceneGraph: CanvasSceneGraph = {
+    childrenByParent: input.sceneChildrenByParent,
+    nodes: input.sceneNodes,
+    nodesMap: input.sceneNodesMap,
+    parentById: buildSceneParentById(input.sceneChildrenByParent),
+  };
   const sceneGraph = resolveCanvasSceneGraph(sourceSceneGraph);
 
   return {

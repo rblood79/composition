@@ -16,20 +16,23 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).toContain(
       "return buildCanonicalSceneModel(activeCanonicalDocument);",
     );
-    expect(source).toContain(
-      "const elements = canonicalSceneModel?.elements ?? storeElements;",
-    );
-    expect(source).toContain(
-      "const elementsMap = canonicalSceneModel?.elementsMap ?? storeElementsMap;",
-    );
+    expect(source).toContain("buildLegacyCanvasSceneGraph");
+    expect(source).not.toContain("getSceneModelElementsLegacy");
+    expect(source).not.toContain("getSceneModelElementsMapLegacy");
+    expect(source).not.toContain("getSceneModelChildrenByParentLegacy");
     expect(source).toMatch(
       new RegExp(
         [
-          "const children",
-          "Map =\\s*",
-          "canonicalSceneModel\\?\\.childrenByParent \\?\\? storeChildrenByParent",
+          "const sceneNodes =\\s*",
+          "canonicalSceneModel\\?\\.sceneNodes \\?\\? legacySceneGraph\\.nodes",
         ].join(""),
       ),
+    );
+    expect(source).toMatch(
+      /const sceneNodesMap =\s*canonicalSceneModel\?\.sceneNodesMap \?\? legacySceneGraph\.nodesMap;/,
+    );
+    expect(source).toMatch(
+      /const sceneChildrenByParent =\s*canonicalSceneModel\?\.sceneChildrenByParent \?\?\s*legacySceneGraph\.childrenByParent;/,
     );
     expect(source).toContain(
       "const scenePageIndex = canonicalSceneModel?.pageIndex ?? pageIndex;",

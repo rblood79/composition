@@ -1,18 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import type { Element, Page } from "../../../../../types/core/store.types";
+import type { Page } from "../../../../../types/core/store.types";
 import type { CanvasSceneNode } from "../../scene/canvasSceneNode";
 import type { ScenePageSnapshot, SceneStructureSnapshot } from "../../scene";
 import { toPageFrameElementId } from "../../scene/resolvePageWithFrame";
 import { createSkiaRendererInput } from "../rendererInput";
-
-const makeEl = (
-  partial: Partial<Element> & { id: string; type: string },
-): Element => ({
-  props: {},
-  ...partial,
-});
 
 const makePage = (id: string): Page => ({
   id,
@@ -25,11 +18,17 @@ const makeSceneNode = (
   partial: Partial<CanvasSceneNode> & { id: string; type: string },
 ): CanvasSceneNode => {
   const props = partial.props ?? {};
+  const parentId = partial.parentId ?? partial.parent_id ?? null;
+  const pageId = partial.pageId ?? partial.page_id ?? "page-1";
+  const layoutId = partial.layoutId ?? partial.layout_id ?? null;
   return {
     props,
-    parentId: null,
-    pageId: "page-1",
-    layoutId: null,
+    parentId,
+    pageId,
+    layoutId,
+    parent_id: parentId,
+    page_id: pageId,
+    layout_id: layoutId,
     sourceNode: {
       id: partial.id,
       type: partial.type as CanvasSceneNode["sourceNode"]["type"],
@@ -38,6 +37,35 @@ const makeSceneNode = (
     ...partial,
   };
 };
+
+function buildChildrenByParent(
+  nodes: CanvasSceneNode[],
+): Map<string, CanvasSceneNode[]> {
+  const map = new Map<string, CanvasSceneNode[]>();
+  for (const node of nodes) {
+    const parentId = node.parentId ?? node.parent_id ?? null;
+    if (!parentId) continue;
+    const children = map.get(parentId);
+    if (children) {
+      children.push(node);
+    } else {
+      map.set(parentId, [node]);
+    }
+  }
+  return map;
+}
+
+function makeSceneGraphInput(nodes: CanvasSceneNode[]): {
+  sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
+  sceneNodes: CanvasSceneNode[];
+  sceneNodesMap: Map<string, CanvasSceneNode>;
+} {
+  return {
+    sceneChildrenByParent: buildChildrenByParent(nodes),
+    sceneNodes: nodes,
+    sceneNodesMap: new Map(nodes.map((node) => [node.id, node] as const)),
+  };
+}
 
 function makeSceneSnapshot(
   pageSnapshots: Map<string, ScenePageSnapshot>,
@@ -66,48 +94,50 @@ function makeSceneSnapshot(
 
 describe("createSkiaRendererInput", () => {
   it("merges page-resolved frame projections before canonical tree resolution", () => {
-    const page1Body = makeEl({
+    const page1Body = makeSceneNode({
       id: "page-1-body",
       type: "body",
       page_id: "page-1",
     });
-    const page2Body = makeEl({
+    const page2Body = makeSceneNode({
       id: "page-2-body",
       type: "body",
       page_id: "page-2",
     });
-    const page1Fill = makeEl({
+    const page1Fill = makeSceneNode({
       id: "page-1-fill",
       type: "Card",
       page_id: "page-1",
       parent_id: "page-1-body",
     });
-    const page2Fill = makeEl({
+    const page2Fill = makeSceneNode({
       id: "page-2-fill",
       type: "Button",
       page_id: "page-2",
       parent_id: "page-2-body",
     });
-    const page1Slot = makeEl({
+    const page1Slot = makeSceneNode({
       id: toPageFrameElementId("page-1", "slot-content"),
       type: "Slot",
       page_id: "page-1",
       parent_id: "page-1-body",
     });
-    const page2Slot = makeEl({
+    const page2Slot = makeSceneNode({
       id: toPageFrameElementId("page-2", "slot-content"),
       type: "Slot",
       page_id: "page-2",
       parent_id: "page-2-body",
     });
-    const page1ResolvedFill = {
+    const page1ResolvedFill = makeSceneNode({
       ...page1Fill,
+      parentId: page1Slot.id,
       parent_id: page1Slot.id,
-    };
-    const page2ResolvedFill = {
+    });
+    const page2ResolvedFill = makeSceneNode({
       ...page2Fill,
+      parentId: page2Slot.id,
       parent_id: page2Slot.id,
-    };
+    });
     const elements = [page1Body, page2Body, page1Fill, page2Fill];
     const elementsMap = new Map(elements.map((el) => [el.id, el]));
     const sceneSnapshot = makeSceneSnapshot(
@@ -172,6 +202,7 @@ describe("createSkiaRendererInput", () => {
       pagePositions: {},
       pagePositionsVersion: 1,
       pages: [makePage("page-1"), makePage("page-2")],
+      ...makeSceneGraphInput(elements),
       sceneSnapshot,
     });
 
@@ -186,24 +217,22 @@ describe("createSkiaRendererInput", () => {
   });
 
   it("builds childrenMap from page snapshot source order instead of legacy order_num", () => {
-    const body = makeEl({
+    const body = makeSceneNode({
       id: "page-body",
       type: "body",
       page_id: "page-1",
     });
-    const first = makeEl({
+    const first = makeSceneNode({
       id: "first",
       type: "Box",
       page_id: "page-1",
       parent_id: body.id,
-      order_num: 0,
     });
-    const second = makeEl({
+    const second = makeSceneNode({
       id: "second",
       type: "Box",
       page_id: "page-1",
       parent_id: body.id,
-      order_num: 1,
     });
     const sceneSnapshot = makeSceneSnapshot(
       new Map([
@@ -248,6 +277,7 @@ describe("createSkiaRendererInput", () => {
       pagePositions: {},
       pagePositionsVersion: 1,
       pages: [makePage("page-1")],
+      ...makeSceneGraphInput([body, first, second]),
       sceneSnapshot,
     });
 
@@ -258,7 +288,7 @@ describe("createSkiaRendererInput", () => {
   });
 
   it("resolves canonical scene graph refs without using the legacy Element scene fallback", () => {
-    const body = makeEl({
+    const body = makeSceneNode({
       id: "page-body",
       type: "body",
       page_id: "page-1",
