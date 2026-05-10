@@ -551,6 +551,14 @@ target resolver 는 후속 slice 로 남긴다.
 - `LayoutPresetSelector/usePresetApply.static.test.ts`
   - store `Element` fixture import/cast 제거
   - static guard 에 `types/builder/unified.types` / `as Element` 부정 검증 추가
+- 신규 `apps/builder/src/builder/panels/properties/editors/propertyEditorNode.ts`
+  - property editor child/add payload 용 `PropertyEditorElementPayload` / `PropertyEditorChildNode` structural contract 정의
+- `ListBoxItemEditor.tsx`, `TagEditor.tsx`, `TreeItemEditor.tsx`
+  - generated child add payload 에서 store `Element` import 제거
+  - `ListBoxItemEditor` / `TagEditor` customId 생성은 `useCanonicalPropertyElements()` 를 소비
+- `tabsItemActions.ts`, `TabsEditor.tsx`
+  - TabPanel lookup input 을 caller 주입 `PropertyEditorChildNode[]` 로 전환
+  - `tabsItemActions.ts` 의 `useStore.getState().elements` direct read 제거
 
 **G2-D core evidence**:
 
@@ -562,12 +570,13 @@ target resolver 는 후속 slice 로 남긴다.
   - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/ComponentSlotFillSection.test.tsx src/builder/panels/properties/FrameSlotSection.test.tsx src/builder/panels/properties/ComponentSemanticsSection.test.tsx src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/builder/panels/nodes/LayersSection.test.ts src/builder/workspace/canvas/interaction/selectionModel.test.ts src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts src/builder/workspace/canvas/selection/selectionHitTest.test.ts src/builder/workspace/canvas/hooks/useElementHoverInteraction.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts src/builder/workspace/canvas/scene/canonicalSceneModel.test.ts` — 11 files / 82 tests PASS
   - `pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/FramesTab src/adapters/canonical/__tests__/frameElementLoader.test.ts` — 5 files / 45 tests PASS
   - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.static.test.ts` — 1 file / 4 tests PASS
+  - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/editors/canonicalPropertyEditors.static.test.ts` — 1 file / 5 tests PASS
 - Type-check:
   - `pnpm -F @composition/builder type-check` PASS
 
 **잔여를 Phase 2/4/5에 위임**:
 
-- 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ListBoxItemEditor`, `TagEditor`, `ChildItemManager`, `tabsItemActions`, `TreeItemEditor`) 는 write payload / addElement contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
+- 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ChildItemManager` / `useCollectionItemManager`) 는 write payload / addElement contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
 - `apps/builder/src/builder/workspace/canvas/selection/dropTargetResolver.ts` 는 drag-drop move semantics 와 history commit 이 얽혀 있어 Phase 4 drag-drop consumer 전환에서 별도 처리한다.
 - `rendererInput.ts` 의 render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.
 

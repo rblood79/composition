@@ -20,7 +20,9 @@ Accepted — 2026-05-10
   `LayoutPresetSelector/usePresetApply` 는 아래 preset apply follow-up에서 정리.
   잔여: 생성형 property editors, `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 - 2026-05-10 Phase 2-D follow-up (preset apply read/write payload) land — `LayoutPresetSelector/usePresetApply.ts` 의 store `Element` import/cast 를 제거하고 `PresetElementNode` / `PresetSlotElement` structural contract 로 기존 slot 탐지, canonical replace filter, slot create payload 를 분리. static test 도 local structural fixture 로 전환하고 production `Element` raw/type/import grep 0건을 고정. 검증: builder type-check PASS, targeted Vitest `usePresetApply.static.test.ts` 1 file / 4 tests PASS.
-  잔여: 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ListBoxItemEditor`, `TagEditor`, `ChildItemManager`, `tabsItemActions`, `TreeItemEditor`), `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
+  generated child editors + tabs actions 는 아래 follow-up에서 정리. 잔여: 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ChildItemManager` / `useCollectionItemManager`), `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
+- 2026-05-10 Phase 2-D follow-up (generated child editors + tabs actions) land — 신규 `propertyEditorNode.ts` 의 `PropertyEditorElementPayload` / `PropertyEditorChildNode` structural contract 로 `ListBoxItemEditor`, `TagEditor`, `TreeItemEditor`, `tabsItemActions`, `TabsEditor` 의 child add payload 와 TabPanel lookup 을 store `Element` import 및 `useStore.getState().elements` direct read 에서 분리. `ListBoxItemEditor` / `TagEditor` customId 생성은 `useCanonicalPropertyElements()` 를 소비. 검증: builder type-check PASS, targeted Vitest `canonicalPropertyEditors.static.test.ts` 1 file / 5 tests PASS.
+  잔여: 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ChildItemManager` / `useCollectionItemManager`), `dropTargetResolver.ts`, `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection.
 
 **PREREQUISITE (진입 불가 조건)**:
 

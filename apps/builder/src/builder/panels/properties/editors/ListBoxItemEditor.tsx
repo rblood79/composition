@@ -19,11 +19,12 @@ import { useStore } from "../../../stores";
 import {
   useCanonicalPropertyChildren,
   useCanonicalPropertyElement,
+  useCanonicalPropertyElements,
 } from "../hooks/useCanonicalPropertyRead";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { generateCustomId } from "../../../utils/idGeneration";
-import type { Element } from "../../../../types/core/store.types";
+import type { PropertyEditorElementPayload } from "./propertyEditorNode";
 
 export const ListBoxItemEditor = memo(function ListBoxItemEditor({
   elementId,
@@ -35,6 +36,7 @@ export const ListBoxItemEditor = memo(function ListBoxItemEditor({
   const currentPageId = useStore((state) => state.currentPageId);
   const setSelectedElement = useStore((state) => state.setSelectedElement);
   const element = useCanonicalPropertyElement(elementId);
+  const canonicalPropertyElements = useCanonicalPropertyElements();
   const rawChildren = useCanonicalPropertyChildren(elementId);
 
   // Get customId from element in store
@@ -114,10 +116,12 @@ export const ListBoxItemEditor = memo(function ListBoxItemEditor({
                   return;
                 }
 
-                const { elements } = useStore.getState();
-                const newField: Element = {
+                const newField: PropertyEditorElementPayload = {
                   id: ElementUtils.generateId(),
-                  customId: generateCustomId("Field", elements),
+                  customId: generateCustomId(
+                    "Field",
+                    canonicalPropertyElements,
+                  ),
                   page_id: pageIdToUse,
                   type: "Field",
                   props: {
@@ -239,11 +243,9 @@ export const ListBoxItemEditor = memo(function ListBoxItemEditor({
                 return;
               }
 
-              const { elements } = useStore.getState();
-
-              const newField: Element = {
+              const newField: PropertyEditorElementPayload = {
                 id: ElementUtils.generateId(),
-                customId: generateCustomId("Field", elements),
+                customId: generateCustomId("Field", canonicalPropertyElements),
                 page_id: pageIdToUse,
                 type: "Field",
                 props: {

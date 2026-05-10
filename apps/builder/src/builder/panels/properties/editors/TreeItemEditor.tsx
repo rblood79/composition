@@ -17,7 +17,6 @@ import {
 } from "../hooks/useCanonicalPropertyRead";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { generateCustomId } from "../../../utils/idGeneration";
-import type { Element } from "../../../../types/core/store.types";
 
 export const TreeItemEditor = memo(function TreeItemEditor({
   elementId,

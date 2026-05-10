@@ -74,6 +74,26 @@ describe("canonical-first property editors", () => {
     );
   });
 
+  it("keeps generated child editors off store Element payload contracts", async () => {
+    const forbiddenStoreTypeImport = ["types", "core", "store.types"].join("/");
+    const forbiddenElementCast = ["as", "Element"].join(" ");
+    const forbiddenStoreElementsRead = ["useStore.getState()", "elements"].join(
+      ".",
+    );
+
+    for (const filename of [
+      "ListBoxItemEditor.tsx",
+      "TagEditor.tsx",
+      "TreeItemEditor.tsx",
+      "tabsItemActions.ts",
+    ] as const) {
+      const source = await readFile(resolve(__dirname, filename), "utf-8");
+      expect(source).not.toContain(forbiddenStoreTypeImport);
+      expect(source).not.toContain(forbiddenElementCast);
+      expect(source).not.toContain(forbiddenStoreElementsRead);
+    }
+  });
+
   it("uses canonical property maps in specialized editors", async () => {
     const forbiddenLookups = [
       ["state", ["elements", "Map"].join(""), "get(elementId)"].join("."),

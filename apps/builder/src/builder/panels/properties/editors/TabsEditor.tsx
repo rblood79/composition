@@ -10,6 +10,7 @@ import { PropertyEditorProps } from "../types/editorTypes";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { useStore } from "../../../stores";
+import { useCanonicalPropertyElements } from "../hooks/useCanonicalPropertyRead";
 import { TabsSpec, type TabItem } from "@composition/specs";
 import { addTabItem, removeTabItem, resolvePageId } from "./tabsItemActions";
 
@@ -26,6 +27,7 @@ export const TabsHybridAfterSections = memo(function TabsHybridAfterSections({
   const addElement = useStore((state) => state.addElement);
   const removeElement = useStore((state) => state.removeElement);
   const currentPageId = useStore((state) => state.currentPageId);
+  const canonicalPropertyElements = useCanonicalPropertyElements();
 
   const items = useMemo(
     () => (currentProps.items as TabItem[] | undefined) ?? [],
@@ -68,6 +70,7 @@ export const TabsHybridAfterSections = memo(function TabsHybridAfterSections({
       await addTabItem({
         tabsElementId: elementId,
         pageId: pageIdToUse,
+        elements: canonicalPropertyElements,
         items,
         currentProps,
         onUpdate,
@@ -77,7 +80,15 @@ export const TabsHybridAfterSections = memo(function TabsHybridAfterSections({
       console.error("Add tab item error:", err);
       alert("탭 추가 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
-  }, [addElement, currentPageId, currentProps, elementId, items, onUpdate]);
+  }, [
+    addElement,
+    canonicalPropertyElements,
+    currentPageId,
+    currentProps,
+    elementId,
+    items,
+    onUpdate,
+  ]);
 
   const handleRemoveItem = useCallback(
     async (itemId: string) => {
@@ -85,6 +96,7 @@ export const TabsHybridAfterSections = memo(function TabsHybridAfterSections({
         await removeTabItem({
           tabsElementId: elementId,
           itemId,
+          elements: canonicalPropertyElements,
           items,
           currentProps,
           onUpdate,
@@ -94,7 +106,14 @@ export const TabsHybridAfterSections = memo(function TabsHybridAfterSections({
         console.error("Remove tab item error:", err);
       }
     },
-    [currentProps, elementId, items, onUpdate, removeElement],
+    [
+      canonicalPropertyElements,
+      currentProps,
+      elementId,
+      items,
+      onUpdate,
+      removeElement,
+    ],
   );
 
   return (

@@ -5,21 +5,32 @@
  * items 배열과 TabPanel element 동기화.
  */
 
-import type { Element } from "../../../../types/core/store.types";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { useStore } from "../../../stores";
 import type { TabItem } from "@composition/specs";
+import type {
+  PropertyEditorChildNode,
+  PropertyEditorElementPayload,
+} from "./propertyEditorNode";
 
 export async function addTabItem(params: {
   tabsElementId: string;
   pageId: string;
+  elements: readonly PropertyEditorChildNode[];
   items: TabItem[];
   currentProps: Record<string, unknown>;
   onUpdate: (props: Record<string, unknown>) => void;
-  addElement: (element: Element) => Promise<void>;
+  addElement: (element: PropertyEditorElementPayload) => Promise<void>;
 }): Promise<void> {
-  const { tabsElementId, pageId, items, currentProps, onUpdate, addElement } =
-    params;
+  const {
+    tabsElementId,
+    pageId,
+    elements,
+    items,
+    currentProps,
+    onUpdate,
+    addElement,
+  } = params;
 
   const newItemId = ElementUtils.generateId();
   const newItem: TabItem = {
@@ -27,7 +38,6 @@ export async function addTabItem(params: {
     title: `Tab ${items.length + 1}`,
   };
 
-  const { elements } = useStore.getState();
   const tabPanelsEl = elements.find(
     (el) => el.parent_id === tabsElementId && el.type === "TabPanels",
   );
@@ -35,7 +45,7 @@ export async function addTabItem(params: {
     throw new Error(`TabPanels element not found under Tabs ${tabsElementId}`);
   }
 
-  const newPanelElement: Element = {
+  const newPanelElement: PropertyEditorElementPayload = {
     id: ElementUtils.generateId(),
     page_id: pageId,
     type: "TabPanel",
@@ -58,6 +68,7 @@ export async function addTabItem(params: {
 export async function removeTabItem(params: {
   tabsElementId: string;
   itemId: string;
+  elements: readonly PropertyEditorChildNode[];
   items: TabItem[];
   currentProps: Record<string, unknown>;
   onUpdate: (props: Record<string, unknown>) => void;
@@ -66,6 +77,7 @@ export async function removeTabItem(params: {
   const {
     tabsElementId,
     itemId,
+    elements,
     items,
     currentProps,
     onUpdate,
@@ -78,7 +90,6 @@ export async function removeTabItem(params: {
     return;
   }
 
-  const { elements } = useStore.getState();
   const tabPanelsEl = elements.find(
     (el) => el.parent_id === tabsElementId && el.type === "TabPanels",
   );
