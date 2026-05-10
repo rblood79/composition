@@ -45,7 +45,9 @@ describe("FramesTab frame selection race guard", () => {
   it("derives hydration fallback from store elements instead of subscribing to elementsMap", async () => {
     const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
 
+    expect(source).toContain("useCanonicalPanelElements");
     expect(source).toContain("if (canonicalElements) return EMPTY_ELEMENTS;");
+    expect(source).not.toContain("useCanonicalElements");
     expect(source).toContain("const { elements: legacyElements } = state;");
     expect(source).toContain("return legacyElements ?? EMPTY_ELEMENTS;");
     expect(source).toContain("const hydratedElementsMap = useMemo");

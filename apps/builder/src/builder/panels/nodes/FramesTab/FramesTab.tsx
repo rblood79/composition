@@ -29,10 +29,8 @@ import {
 } from "../../../stores/utils/frameActions";
 import { useEditModeStore } from "../../../stores/editMode";
 import { useStore } from "../../../stores";
-import {
-  useCanonicalElements,
-  useCanonicalFrameElementScopes,
-} from "../../../stores/canonical/canonicalElementsView";
+import { useCanonicalFrameElementScopes } from "../../../stores/canonical/canonicalElementsView";
+import { useCanonicalPanelElements } from "../useCanonicalPanelElements";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import {
@@ -108,7 +106,7 @@ export function FramesTab({
   );
 
   const removeElement = useStore((state) => state.removeElement);
-  const canonicalElements = useCanonicalElements();
+  const canonicalElements = useCanonicalPanelElements();
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;

@@ -127,8 +127,9 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 
 - property derived-view caller slice 완료: `useCanonicalPropertyRead.ts` / `useCollectionItemManager.ts` 는 active canonical document traversal 을 직접 사용하고, `PropertyCustomId` / `usePresetApply` 는 property read helper 를 재사용.
 - `idValidation` 은 `Element[]` 대신 `{ id, customId }` 최소 contract 로 전환.
-- direct `useCanonicalElements()` production caller: **12 → 8**.
-- 잔여 direct caller: `stores/index.ts`, `canvasStore.ts` 2건, `useDeltaMessenger.ts`, `useComponentMemory.ts`, `FramesTab.tsx`, `LayersSection.tsx`, `LayerTree/useLayerTreeData.ts`.
+- nodes derived-view caller slice 완료: `useCanonicalPanelElements()` 를 추가해 Layers/Frames/LayerTree read path 를 active canonical document traversal 기반으로 전환.
+- direct `useCanonicalElements()` production caller: **12 → 8 → 5**.
+- 잔여 direct caller: `stores/index.ts`, `canvasStore.ts` 2건, `useDeltaMessenger.ts`, `useComponentMemory.ts`.
 
 ## 5. Phase 2-A 진행 결과 (2026-05-10)
 

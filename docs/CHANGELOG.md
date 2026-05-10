@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 5 nodes derived-view caller slice land**:
+  - 신규 `useCanonicalPanelElements()` 로 Layers/Frames/LayerTree read path 가 `useCanonicalElements()` 대신 active canonical document traversal 을 사용하도록 전환했다.
+  - direct `useCanonicalElements()` production caller 는 8 → 5로 감소했다.
+  - 검증: builder type-check PASS, targeted Vitest 4 files / 21 tests PASS.
 - **ADR-126 Phase 5 property derived-view caller slice land**:
   - `useCanonicalPropertyRead.ts` / `useCollectionItemManager.ts` 는 `useCanonicalElements()` 대신 active canonical document traversal 을 직접 사용하도록 전환했다.
   - `PropertyCustomId` / `usePresetApply` 는 property read helper 를 재사용하고, `idValidation` 은 `Element[]` 대신 customId validation 최소 contract 를 받도록 좁혔다.

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { Element } from "../../../types/builder/unified.types";
 import {
   buildLayerSectionElementMap,
@@ -18,6 +20,16 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
 }
 
 describe("LayersSection canonical read helpers", () => {
+  it("uses canonical panel read helper instead of useCanonicalElements", async () => {
+    const source = await readFile(
+      resolve(__dirname, "LayersSection.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("useCanonicalPanelElements");
+    expect(source).not.toContain("useCanonicalElements");
+  });
+
   it("keeps canonical elements authoritative over stale page snapshots", () => {
     const staleBody = makeElement("body", {
       type: "body",

@@ -4,7 +4,7 @@ import type { ElementTreeItem } from "../../../../../types/builder/stately.types
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 import { useStore } from "../../../../stores";
 import { resolveCanonicalRefTree } from "../../../../utils/canonicalRefResolution";
-import { useCanonicalElements } from "../../../../stores/canonical/canonicalElementsView";
+import { useCanonicalPanelElements } from "../../useCanonicalPanelElements";
 import { resolvePageWithFrame } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
 import { getPageFrameBindingId } from "../../../../../adapters/canonical/frameMirror";
 import { getElementLayoutId } from "../../../../../adapters/canonical/legacyElementFields";
@@ -26,7 +26,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
 
   // ADR-116 direct cutover — canonical store 의 active document 에서 derived
   // panel read model 을 사용. 초기 hydration 전에는 caller elements[] fallback.
-  const canonicalElements = useCanonicalElements();
+  const canonicalElements = useCanonicalPanelElements();
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;

@@ -9,7 +9,7 @@ import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
 import { Minimize } from "lucide-react";
 import { useStore } from "../../stores";
-import { useCanonicalElements } from "../../stores/canonical/canonicalElementsView";
+import { useCanonicalPanelElements } from "./useCanonicalPanelElements";
 import { PanelHeader } from "../../components";
 import { LayerTree } from "./tree/LayerTree";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -64,7 +64,7 @@ export const LayersSection = memo(function LayersSection({
       [currentPageId],
     ),
   );
-  const canonicalElements = useCanonicalElements();
+  const canonicalElements = useCanonicalPanelElements();
   const currentPageElementsMap = useMemo(
     () => buildLayerSectionElementMap(currentPageElements, canonicalElements),
     [canonicalElements, currentPageElements],

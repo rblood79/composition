@@ -49,7 +49,8 @@ describe("useLayerTreeData", () => {
       "Map)",
     ].join("");
 
-    expect(source).toContain("useCanonicalElements");
+    expect(source).toContain("useCanonicalPanelElements");
+    expect(source).not.toContain("useCanonicalElements");
     expect(source).toContain(
       "const sourceElements = canonicalElements ?? storeElements",
     );
