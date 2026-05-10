@@ -13,7 +13,7 @@
  */
 
 import type { CanvasKit, FontMgr } from "canvaskit-wasm";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { RendererAIInvalidation, SkiaRendererInput } from "../renderers";
 import type { BoundingBox } from "../selection/types";
 import type {
@@ -107,7 +107,8 @@ export function buildSkiaFrameContent(
   let treeBoundsMap: Map<string, BoundingBox>;
   let nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   let contentNode: SkiaRenderable;
-  let renderChildrenMap: Map<string, Element[]> = rendererInput.childrenMap;
+  let renderChildrenMap: Map<string, CanvasSceneNode[]> =
+    rendererInput.sceneChildrenByParent;
 
   if (useCommandStream) {
     const result = buildViaCommandStream(
@@ -147,7 +148,7 @@ export function buildSkiaFrameContent(
   return {
     sharedScene: buildSharedSceneDerivedData(
       treeBoundsMap,
-      rendererInput.elementsMap,
+      rendererInput.sceneNodesMap,
       renderChildrenMap,
       registryVersion,
       pagePosVersion,
@@ -168,8 +169,8 @@ export const buildFrameContent = buildSkiaFrameContent;
 
 export function buildSharedSceneDerivedData(
   treeBoundsMap: Map<string, BoundingBox>,
-  elementsMap: Map<string, Element>,
-  childrenMap: Map<string, Element[]>,
+  elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
   registryVersion: number,
   pagePosVersion: number,
   cameraX: number,
@@ -212,7 +213,7 @@ export function buildWorkflowElementBounds(
 
 interface InternalBuildResult {
   treeBoundsMap: Map<string, BoundingBox>;
-  childrenMap?: Map<string, Element[]>;
+  childrenMap?: Map<string, CanvasSceneNode[]>;
   nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   contentNode: SkiaRenderable;
 }
@@ -246,20 +247,21 @@ function buildViaCommandStream(
 
   // Fix 1: filteredChildrenMap 사용 (layoutMap과 동일 트리 소스)
   const filteredChildIds = getSharedFilteredChildrenMap();
-  let commandChildrenMap: Map<string, Element[]>;
+  let commandChildrenMap: Map<string, CanvasSceneNode[]>;
   if (filteredChildIds) {
     commandChildrenMap = new Map();
     const syntheticMap = getSyntheticElementsMap();
     for (const [parentId, childIds] of filteredChildIds) {
-      const children: Element[] = [];
+      const children: CanvasSceneNode[] = [];
       for (const cid of childIds) {
-        const el = rendererInput.elementsMap.get(cid) ?? syntheticMap.get(cid);
+        const el =
+          rendererInput.sceneNodesMap.get(cid) ?? syntheticMap.get(cid);
         if (el) children.push(el);
       }
       commandChildrenMap.set(parentId, children);
     }
   } else {
-    commandChildrenMap = rendererInput.childrenMap;
+    commandChildrenMap = rendererInput.sceneChildrenByParent;
   }
 
   const stream = getCachedCommandStream(

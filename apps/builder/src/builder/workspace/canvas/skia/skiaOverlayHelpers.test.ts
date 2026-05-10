@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
   buildFrameTitleRenderItems,
   buildHoverHighlightTargets,
   buildSlotMarkerTargets,
 } from "./skiaOverlayHelpers";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+function makeElement(
+  id: string,
+  overrides: Partial<CanvasSceneNode> = {},
+): CanvasSceneNode {
   return {
     id,
     type: "Button",
@@ -15,7 +18,7 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
     order_num: 1,
     props: {},
     ...overrides,
-  } as Element;
+  } as CanvasSceneNode;
 }
 
 describe("buildHoverHighlightTargets editing semantics", () => {

@@ -261,10 +261,10 @@ export function SkiaCanvas({
     invalidateCommandStreamCache();
     rendererRef.current?.invalidateContent();
     storeRenderBridgeRef.current?.sync(
-      rendererInput.elementsMap,
+      rendererInput.sceneNodesMap,
       getSharedLayoutMap(),
       resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
-      rendererInput.childrenMap,
+      rendererInput.sceneChildrenByParent,
       true,
     );
     recordInvalidation("content", "rendererInput");
@@ -282,9 +282,9 @@ export function SkiaCanvas({
     const bridge = new StoreRenderBridge();
     storeRenderBridgeRef.current = bridge;
     bridge.connect({
-      getElements: () => rendererInputRef.current.elementsMap,
+      getElements: () => rendererInputRef.current.sceneNodesMap,
       getLayoutMap: () => getSharedLayoutMap(),
-      getChildrenMap: () => rendererInputRef.current.childrenMap,
+      getChildrenMap: () => rendererInputRef.current.sceneChildrenByParent,
       // rendererInput 변경은 위 effect 에서 직접 bridge.sync 를 호출한다.
       // 이 subscription 은 theme-only invalidation boundary 로 제한한다.
       subscribe: (cb) => {

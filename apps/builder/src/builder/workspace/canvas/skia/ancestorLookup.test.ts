@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { findAncestorByTag } from "./ancestorLookup";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 
 function el(
   id: string,
   type: string,
   parentId: string | null,
   props: Record<string, unknown> = {},
-): Element {
+): CanvasSceneNode {
   return {
     id,
     type,
@@ -15,7 +15,7 @@ function el(
     parent_id: parentId,
     page_id: "p1",
     order_num: 0,
-  } as Element;
+  } as CanvasSceneNode;
 }
 
 describe("findAncestorByTag", () => {

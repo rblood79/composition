@@ -1,4 +1,4 @@
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
   getEditingSlotMarkerRole,
   getEditingSemanticsRole,
@@ -37,7 +37,7 @@ export interface PageFrameLike {
 
 function isRenderableSelectionTarget(
   id: string,
-  element: Element,
+  element: CanvasSceneNode,
   currentPageId: string | null,
   treeBoundsMap: Map<string, BoundingBox>,
 ): boolean {
@@ -116,7 +116,7 @@ export function buildSelectionRenderData(
   cameraZoom: number,
   treeBoundsMap: Map<string, BoundingBox>,
   selection: RendererSelectionInvalidation,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
   pageFrames?: PageFrameLike[],
 ): SelectionRenderResult {
   const selectedIds = selection.selectedElementIds;

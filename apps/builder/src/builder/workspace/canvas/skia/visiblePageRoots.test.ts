@@ -1,11 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import type { Element, Page } from "../../../../types/core/store.types";
+import type { Page } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ScenePageSnapshot } from "../scene";
 import type { SkiaRendererInput } from "../renderers";
 import { collectVisiblePageRoots } from "./visiblePageRoots";
 
-const makeElement = (overrides: Partial<Element>): Element =>
+const makeElement = (overrides: Partial<CanvasSceneNode>): CanvasSceneNode =>
   ({
     id: "body-1",
     type: "body",
@@ -14,7 +15,7 @@ const makeElement = (overrides: Partial<Element>): Element =>
     order_num: 0,
     props: {},
     ...overrides,
-  }) as Element;
+  }) as CanvasSceneNode;
 
 const makePage = (id = "page-1"): Page =>
   ({
@@ -28,6 +29,9 @@ const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => ({
   childrenMap: new Map(),
   elements: [],
   elementsMap: new Map(),
+  sceneChildrenByParent: new Map(),
+  sceneNodes: [],
+  sceneNodesMap: new Map(),
   dirtyElementIds: new Set(),
   editMode: "page",
   pageIndex: { elementsByPage: new Map() } as never,

@@ -2,18 +2,18 @@
 import { describe, expect, it } from "vitest";
 import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { SkiaRendererInput } from "../renderers";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { CanonicalFrameElementScope } from "../../../../adapters/canonical/frameElementScope";
 import { collectVisibleFrameRoots } from "./visibleFrameRoots";
 
-type ElementFixtureOptions = Partial<Element> & {
+type ElementFixtureOptions = Partial<CanvasSceneNode> & {
   frameId?: string | null;
 };
 
 const makeElement = ({
   frameId = null,
   ...overrides
-}: ElementFixtureOptions): Element =>
+}: ElementFixtureOptions): CanvasSceneNode =>
   withFrameElementMirrorId(
     {
       id: "el-1",
@@ -23,7 +23,7 @@ const makeElement = ({
       order_num: 0,
       props: {},
       ...overrides,
-    } as Element,
+    } as CanvasSceneNode,
     frameId,
   );
 
@@ -31,10 +31,17 @@ const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => {
   const elements = partial.elements ?? [];
   const elementsMap =
     partial.elementsMap ?? new Map(elements.map((el) => [el.id, el]));
+  const sceneNodes = partial.sceneNodes ?? (elements as CanvasSceneNode[]);
+  const sceneNodesMap =
+    partial.sceneNodesMap ??
+    new Map(sceneNodes.map((node) => [node.id, node] as const));
   return {
     childrenMap: new Map(),
     elements,
     elementsMap,
+    sceneChildrenByParent: partial.sceneChildrenByParent ?? new Map(),
+    sceneNodes,
+    sceneNodesMap,
     dirtyElementIds: new Set(),
     editMode: "layout",
     pageIndex: { elementsByPage: new Map() } as never,

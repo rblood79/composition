@@ -1,5 +1,5 @@
 import { measureWorkspacePanelInsets } from "../../utils/panelLayoutRuntime";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
   getEditingSlotMarkerRole,
   getEditingSemanticsRole,
@@ -76,7 +76,7 @@ export function buildHoverHighlightTargets(
   hoveredContextId: string | null,
   hoveredLeafIds: string[],
   isGroupHover: boolean,
-  elementsMap: Map<string, Element> = new Map(),
+  elementsMap: Map<string, CanvasSceneNode> = new Map(),
   pageFrames: PageFrame[] = [],
 ): HoverHighlightTarget[] {
   const targets: HoverHighlightTarget[] = [];
@@ -122,7 +122,7 @@ export function buildHoverHighlightTargets(
 
 function resolvePageBodyBounds(
   elementId: string,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
   pageFrames: PageFrame[],
 ): BoundingBox | null {
   const element = elementsMap.get(elementId);
@@ -143,8 +143,8 @@ function resolvePageBodyBounds(
 
 export function buildSlotMarkerTargets(
   treeBoundsMap: Map<string, BoundingBox>,
-  elementsMap: Map<string, Element> = new Map(),
-  childrenMap: Map<string, Element[]> = new Map(),
+  elementsMap: Map<string, CanvasSceneNode> = new Map(),
+  childrenMap: Map<string, CanvasSceneNode[]> = new Map(),
 ): SlotMarkerTarget[] {
   const targets: SlotMarkerTarget[] = [];
 
@@ -164,8 +164,8 @@ export function buildSlotMarkerTargets(
 
 function hasVisibleSlotContent(
   slotHostId: string,
-  elementsMap: Map<string, Element>,
-  childrenMap: Map<string, Element[]>,
+  elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
 ): boolean {
   const renderChildren = childrenMap.get(slotHostId);
   if (renderChildren?.some((child) => !child.deleted)) {

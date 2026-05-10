@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 import { buildPageChildrenMap } from "./layoutCache";
 
 describe("layoutCache filtered children republish contract", () => {
@@ -19,7 +19,7 @@ describe("layoutCache filtered children republish contract", () => {
       /filteredChildIdsMap: Map<string, string\[]> \| null;/,
     );
     expect(source).toMatch(
-      /syntheticElementsMap: Map<string, Element> \| null;/,
+      /syntheticElementsMap: Map<string, CanvasSceneNode> \| null;/,
     );
     expect(source).toMatch(/rootKey: string;/);
     expect(source).toMatch(
@@ -43,7 +43,7 @@ describe("layoutCache filtered children republish contract", () => {
       page_id: "page-1",
       parent_id: null,
       props: {},
-    } as Element;
+    } as CanvasSceneNode;
     const first = {
       id: "first",
       type: "Box",
@@ -51,7 +51,7 @@ describe("layoutCache filtered children republish contract", () => {
       parent_id: body.id,
       order_num: 10,
       props: {},
-    } as Element;
+    } as CanvasSceneNode;
     const second = {
       id: "second",
       type: "Box",
@@ -59,7 +59,7 @@ describe("layoutCache filtered children republish contract", () => {
       parent_id: body.id,
       order_num: 0,
       props: {},
-    } as Element;
+    } as CanvasSceneNode;
 
     const childrenMap = buildPageChildrenMap({
       bodyElement: body,

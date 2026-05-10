@@ -1,12 +1,12 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { canonicalDocumentToFrameElementScopes } from "../../../../adapters/canonical/frameElementScope";
+import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import {
-  rebuildPageIndex,
-  type PageElementIndex,
-} from "../../../stores/utils/elementIndexer";
-import type { Element } from "../../../../types/builder/unified.types";
-import { canonicalDocumentToElements } from "../../../stores/canonical/canonicalElementsView";
+  buildCanvasSceneGraph,
+  buildCanvasScenePageIndex,
+  type CanvasSceneNode,
+} from "./canvasSceneNode";
 
 /**
  * `CanonicalSceneModel` — canonical document 에서 derived 된 scene snapshot.
@@ -16,17 +16,19 @@ import { canonicalDocumentToElements } from "../../../stores/canonical/canonical
  *   CanonicalNode>) + `childrenByParent` (Map<string, CanonicalNode[]>).
  *   canonical document SSOT 의 평탄 projection — workspace hot path consumer 가
  *   직접 소비.
- * - **frameElementScopes / pageIndex**: 기존 derived index. Element 의존이
- *   잔존하지만 caller 는 page lookup 용도로만 사용. ADR-126 Phase 2 transition
- *   이후 canonical-native shape 으로 정렬.
- * - **legacy getter**: `Element[]` projection 이 필요한 transition caller 는
+ * - **frameElementScopes**: 기존 frame scope boundary. caller 는 page/frame lookup
+ *   용도로만 사용. ADR-126 Phase 2 이후 canonical-native shape 으로 정렬.
+ * - **pageIndex**: `sceneNodes` 에서 직접 derive 하므로 scene model 내부에서
+ *   flat legacy projection 을 만들지 않는다.
+ * - **legacy getter**: flat compatibility projection 이 필요한 transition caller 는
  *   `canonicalSceneModelLegacy.ts` (boundary 격리) 의
  *   `getSceneModelElementsLegacy(scene)` / `getSceneModelElementsMapLegacy(scene)`
  *   / `getSceneModelChildrenByParentLegacy(scene)` 사용. ADR-126 Phase 5 시점에
  *   본 helper 제거.
  *
- * **G2 grep gate (workspace scope 의 Element[] 사용)**: scene model interface
- * export 자체에 `Element[]` 미포함. legacy projection 은 boundary file 격리.
+ * **G2 grep gate (workspace scope 의 flat compatibility projection 사용)**:
+ * scene model interface export 자체에 legacy flat array 미포함. compatibility
+ * projection 은 boundary file 격리.
  *
  * **Why**: ADR-126 Phase 2 hot path 70 file transition 진입 prerequisite —
  * scene model 자체가 canonical-native shape 을 expose 해야 caller 가 점진
@@ -35,11 +37,19 @@ import { canonicalDocumentToElements } from "../../../stores/canonical/canonical
 export interface CanonicalSceneModel {
   /** parent canonical node id → children CanonicalNode[] (배열 순서 = source order) */
   childrenByParent: Map<string, CanonicalNode[]>;
+  /** renderable canonical scene node 의 parent id → children list */
+  sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
+  /** renderable canonical scene node 의 평탄 traversal projection */
+  sceneNodes: CanvasSceneNode[];
+  /** renderable canonical scene node O(1) lookup index */
+  sceneNodesMap: Map<string, CanvasSceneNode>;
+  /** renderable canonical scene node 의 child id → parent id index */
+  sceneParentById: Map<string, string>;
   /** canonical document 의 평탄 traversal projection (depth-first, source order) */
   nodes: CanonicalNode[];
   /** O(1) lookup index */
   nodesMap: Map<string, CanonicalNode>;
-  /** legacy derived index — Page entity scope (Element[] 의존 잔존, ADR-126 Phase 2 위임) */
+  /** Page entity scope index, derived from renderable canonical scene nodes */
   frameElementScopes: ReturnType<typeof canonicalDocumentToFrameElementScopes>;
   pageIndex: PageElementIndex;
 }
@@ -104,9 +114,10 @@ export function buildSceneChildrenByParent(
  * **ADR-127 Phase 2 (canonical-native)**:
  * - `nodes` / `nodesMap` / `childrenByParent` 는 모두 canonical-native shape
  *   (CanonicalNode 기반) 으로 derive.
- * - `pageIndex` / `frameElementScopes` 는 legacy derived index — Element[]
- *   호환성을 위해 `canonicalDocumentToElements()` projection 을 internal source
- *   로 사용. ADR-126 Phase 2 transition 이후 canonical-native 로 정렬.
+ * - `pageIndex` 는 `sceneNodes` 에서 직접 derive 한다. scene model build 중
+ *   legacy flat projection 을 만들지 않는다.
+ * - `frameElementScopes` 는 frame scope compatibility boundary 로 유지하며,
+ *   ADR-126 Phase 2 transition 이후 canonical-native shape 으로 정렬한다.
  *
  * Builder hot path 에서 `useStore.elementsMap` mutable subscription 대신 본
  * 함수의 결과 (또는 `useCanonicalSceneSnapshot` derived) 를 사용한다.
@@ -118,19 +129,17 @@ export function buildCanonicalSceneModel(
   const nodes = flattenCanonicalDocumentNodes(doc);
   const nodesMap = buildSceneNodeMap(nodes);
   const childrenByParent = buildSceneChildrenByParent(nodes, doc);
-
-  // legacy pageIndex/frameElementScopes 는 Element 기반 indexer 호출 (boundary).
-  // ADR-126 Phase 2 transition 후 canonical-native 로 정렬 예정.
-  const legacyElements: Element[] = canonicalDocumentToElements(doc);
-  const legacyElementsMap = new Map<string, Element>(
-    legacyElements.map((e) => [e.id, e]),
-  );
+  const sceneGraph = buildCanvasSceneGraph(doc);
 
   return {
     childrenByParent,
+    sceneChildrenByParent: sceneGraph.childrenByParent,
+    sceneNodes: sceneGraph.nodes,
+    sceneNodesMap: sceneGraph.nodesMap,
+    sceneParentById: sceneGraph.parentById,
     nodes,
     nodesMap,
     frameElementScopes: canonicalDocumentToFrameElementScopes(doc),
-    pageIndex: rebuildPageIndex(legacyElements, legacyElementsMap),
+    pageIndex: buildCanvasScenePageIndex(sceneGraph),
   };
 }

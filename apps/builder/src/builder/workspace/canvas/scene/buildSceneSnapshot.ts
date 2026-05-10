@@ -1,4 +1,4 @@
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 import {
   buildPageDataMap,
   buildDepthMap,
@@ -17,7 +17,7 @@ import type {
 
 interface BuildSceneSelectionInput {
   currentPageId: string | null;
-  elementsMap: Map<string, Element>;
+  elementsMap: Map<string, CanvasSceneNode>;
   selectedElementIds: string[];
 }
 

@@ -9,7 +9,7 @@
  * - object-fit 계산 포함 (cover/contain/fill/none)
  */
 
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { Image as SkImage } from "canvaskit-wasm";
@@ -21,7 +21,7 @@ import { buildBaseNodeProps } from "./buildBaseNodeProps";
 // ---------------------------------------------------------------------------
 
 interface ImageBuildInput {
-  element: Element;
+  element: CanvasSceneNode;
   layout: ComputedLayout | undefined;
   /** 비동기 로드된 SkImage (null이면 placeholder 표시) */
   skImage: SkImage | null;

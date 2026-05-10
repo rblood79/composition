@@ -1,9 +1,9 @@
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 import type { SelectionSnapshot } from "./sceneSnapshotTypes";
 
 interface BuildSelectionSnapshotInput {
   currentPageId: string | null;
-  elementsMap: Map<string, Element>;
+  elementsMap: Map<string, CanvasSceneNode>;
   selectedElementIds: string[];
 }
 

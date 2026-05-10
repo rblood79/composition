@@ -1,4 +1,4 @@
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
 import type { SkiaNodeData } from "./nodeRenderers";
 import type { ElementBounds, PageFrame } from "./workflowRenderer";
@@ -82,8 +82,8 @@ export interface ChildOverflowContext {
  */
 export function buildOverflowInfoMap(
   treeBoundsMap: Map<string, BoundingBox>,
-  elementsMap: Map<string, Element>,
-  childrenMap: Map<string, Element[]>,
+  elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
 ): Map<string, OverflowContentInfo> {
   const result = new Map<string, OverflowContentInfo>();
 
@@ -176,8 +176,8 @@ let _cachedOverflowInfoPosVersion = -1;
  */
 export function getCachedOverflowInfoMap(
   treeBoundsMap: Map<string, BoundingBox>,
-  elementsMap: Map<string, Element>,
-  childrenMap: Map<string, Element[]>,
+  elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
   registryVersion: number,
   pagePosVersion: number,
 ): Map<string, OverflowContentInfo> {

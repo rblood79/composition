@@ -1,4 +1,4 @@
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 import type { CullingResult } from "../hooks/useViewportCulling";
 
 const CULLING_CACHE_LIMIT = 24;
@@ -33,8 +33,8 @@ export function getCachedCullingResult(
 
 interface GetCachedRenderIdSetInput {
   cacheKey: string;
-  elementById: Map<string, Element>;
-  visibleElements: Element[];
+  elementById: Map<string, CanvasSceneNode>;
+  visibleElements: CanvasSceneNode[];
 }
 
 export function getCachedRenderIdSet({
@@ -50,7 +50,7 @@ export function getCachedRenderIdSet({
   const ids = new Set<string>();
 
   for (const element of visibleElements) {
-    let current: Element | undefined = element;
+    let current: CanvasSceneNode | undefined = element;
     while (current) {
       if (ids.has(current.id)) {
         break;
@@ -71,7 +71,7 @@ export function getCachedRenderIdSet({
 interface GetCachedTopLevelCandidateIdsInput {
   bodyElementId: string | null;
   cacheKey: string;
-  pageChildrenMap: Map<string | null, Element[]>;
+  pageChildrenMap: Map<string | null, CanvasSceneNode[]>;
 }
 
 export function getCachedTopLevelCandidateIds({
@@ -87,7 +87,7 @@ export function getCachedTopLevelCandidateIds({
   const candidateIds = new Set<string>();
   const roots = pageChildrenMap.get(bodyElementId) ?? [];
 
-  const visitSubtree = (element: Element): void => {
+  const visitSubtree = (element: CanvasSceneNode): void => {
     candidateIds.add(element.id);
     const children = pageChildrenMap.get(element.id) ?? [];
     for (const child of children) {

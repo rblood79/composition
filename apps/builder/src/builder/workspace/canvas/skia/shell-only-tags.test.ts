@@ -60,7 +60,7 @@ const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [
   },
 ];
 
-// Phase 2-B (standalone 실렌더 — factory 자식 Element가 대체 커버)
+// Phase 2-B (standalone 실렌더 — factory 자식 CanvasSceneNode가 대체 커버)
 const phase2BCandidates: Array<{ type: string; spec: AnySpec }> = [
   { type: "Disclosure", spec: DisclosureSpec as unknown as AnySpec },
   { type: "Form", spec: FormSpec as unknown as AnySpec },

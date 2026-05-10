@@ -367,6 +367,50 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 
 #### 2-A. Skia render path
 
+**Status: Core Landed — 2026-05-10**
+
+2-A는 `Element` 타입 표면을 이름만 바꾸는 방식이 아니라 canonical document 에서
+renderable `CanvasSceneNode` graph 를 생성한 뒤 Skia render bridge/command stream 이
+그 graph 를 직접 소비하도록 전환했다.
+
+**구현 결과**:
+
+- 신규 `canvasSceneNode.ts`:
+  - `buildCanvasSceneGraph(doc)` — `CompositionDocument.children` 에서 renderable scene node flat projection + `nodesMap` + `childrenByParent` + `parentById` 생성
+  - `buildCanvasScenePageIndex(graph)` — legacy `rebuildPageIndex(Element[])` 대신 canonical scene graph 기반 page index 생성
+- `canonicalSceneModel.ts`:
+  - `canonicalDocumentToElements()` 내부 호출 제거
+  - `sceneNodes` / `sceneNodesMap` / `sceneChildrenByParent` / `sceneParentById` export 추가
+  - `pageIndex` 를 `buildCanvasScenePageIndex(sceneGraph)` 로 derive
+- `rendererInput.ts`:
+  - `SkiaRendererInput` 에 scene graph fields 추가
+  - canonical scene graph 미주입 시에만 legacy bootstrap fallback graph 생성
+- Skia caller cascade:
+  - `SkiaCanvas` `StoreRenderBridge.sync()` 입력을 `sceneNodesMap` / `sceneChildrenByParent` 로 전환
+  - `StoreRenderBridge` / `renderCommands` / `skiaFramePipeline` / visible roots / node data builders 의 `Element` 타입 표면을 `CanvasSceneNode` 로 전환
+
+**G2-A evidence**:
+
+- 변경 함수/consumer cascade:
+  - `buildCanonicalSceneModel()` → `BuilderCanvas` → `createSkiaRendererInput()` → `SkiaCanvas` → `StoreRenderBridge.sync()`
+  - `buildSkiaFrameContent()` / `buildViaCommandStream()` → `renderCommands` → node data builders
+  - `collectVisibleFrameRoots()` / `collectVisiblePageRoots()` → canonical scene maps
+- Grep gate:
+  - `workspace/canvas/skia/**` + `workspace/canvas/scene/**` production `Element` import/raw hit 0
+  - Skia production `rendererInput.elementsMap|childrenMap` hit 0
+  - `(Legacy|Old|Deprecated)Element` hit 0
+- Verification:
+  - `pnpm -F @composition/builder type-check` PASS
+  - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia src/builder/workspace/canvas/scene src/builder/workspace/canvas/renderers` — 18 files / 152 tests PASS (`HTMLCanvasElement.getContext()` jsdom warning only)
+  - `git diff --check` PASS
+  - browser smoke `/builder/adr-126-phase2a-smoke`: canvas 1440x952, data URL nonblank, console/page error 0, rAF median 120.5fps / p10 112.4 / p99 135.1
+
+**잔여를 Phase 2/5에 위임**:
+
+- `CanvasSceneNode` 는 transition alias `parent_id` / `page_id` / `componentName` 을 가진다. 신규 Skia code 는 `parentId` / `pageId` / `name` 을 선호해야 하며 alias 제거는 lookup/caller cascade 잔여 정리와 함께 진행한다.
+- `BuilderCanvas` 는 scene snapshot/layout/interaction 경로 때문에 `getSceneModelElementsLegacy` / `getSceneModelElementsMapLegacy` / `getSceneModelChildrenByParentLegacy` fallback 을 아직 호출한다. 이는 2-B/2-C/2-D 및 Phase 5에서 제거한다.
+- `rendererInput.ts` 는 canonical scene fields 를 우선 받지만 legacy bootstrap fallback graph 를 유지한다. 2-C(renderer input + ref resolution)에서 fallback 경계를 재축소한다.
+
 - `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
 - `apps/builder/src/builder/workspace/canvas/skia/nodeRenderers.ts` (Element type read)

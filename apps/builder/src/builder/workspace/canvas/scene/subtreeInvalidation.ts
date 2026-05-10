@@ -1,4 +1,4 @@
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 
 export interface PageDirtyState {
   affectedLayoutNodeIds: Set<string>;
@@ -11,10 +11,10 @@ export interface PageDirtyState {
 }
 
 interface BuildPageDirtyStateInput {
-  bodyElement: Element | null;
+  bodyElement: CanvasSceneNode | null;
   dirtyElementIds: Set<string>;
-  elementsMap: Map<string, Element>;
-  pageChildrenMap?: Map<string | null, Element[]>;
+  elementsMap: Map<string, CanvasSceneNode>;
+  pageChildrenMap?: Map<string | null, CanvasSceneNode[]>;
 }
 
 export function buildPageDirtyState({
@@ -65,7 +65,10 @@ export function buildPageDirtyState({
     let currentId = dirtyId;
     let currentElement = elementsMap.get(currentId);
 
-    while (currentElement?.parent_id && dirtyIds.has(currentElement.parent_id)) {
+    while (
+      currentElement?.parent_id &&
+      dirtyIds.has(currentElement.parent_id)
+    ) {
       currentId = currentElement.parent_id;
       currentElement = elementsMap.get(currentId);
     }

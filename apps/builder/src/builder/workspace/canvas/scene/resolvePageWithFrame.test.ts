@@ -6,14 +6,15 @@ import {
   withPageFrameBinding,
 } from "../../../../adapters/canonical/frameMirror";
 import { withSlotMirrorName } from "../../../../adapters/canonical/slotMirror";
-import type { Element, Page } from "../../../../types/core/store.types";
+import type { Page } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 
 import {
   resolvePageWithFrame,
   toPageFrameElementId,
 } from "./resolvePageWithFrame";
 
-type TestElementPartial = Partial<Element> & {
+type TestElementPartial = Partial<CanvasSceneNode> & {
   frameId?: string | null;
   id: string;
   propsSlotMirrorName?: string | null;
@@ -21,12 +22,12 @@ type TestElementPartial = Partial<Element> & {
   type: string;
 };
 
-const makeEl = (partial: TestElementPartial): Element => {
+const makeEl = (partial: TestElementPartial): CanvasSceneNode => {
   const { frameId, propsSlotMirrorName, slotMirrorName, ...element } = partial;
   let row = {
     props: {},
     ...element,
-  } as Element;
+  } as CanvasSceneNode;
 
   if (propsSlotMirrorName !== undefined) {
     row = {
@@ -53,8 +54,9 @@ const makeFramePage = (
   partial: Partial<Page> & { id: string },
 ): Page => withPageFrameBinding(makePage(partial), frameId);
 
-const buildElementsMap = (els: Element[]): Map<string, Element> =>
-  new Map(els.map((el) => [el.id, el]));
+const buildElementsMap = (
+  els: CanvasSceneNode[],
+): Map<string, CanvasSceneNode> => new Map(els.map((el) => [el.id, el]));
 
 describe("ADR-111 P3-θ resolvePageWithFrame", () => {
   it("frame mirror 미바인딩 page → 기존 동작 (body + nonBody, hasFrameBinding=false)", () => {

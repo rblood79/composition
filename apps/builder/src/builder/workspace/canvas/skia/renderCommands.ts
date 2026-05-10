@@ -15,7 +15,7 @@ import type { EffectStyle, MaskImageStyle } from "./types";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { BoundingBox } from "../selection/types";
 import type { AIEffectNodeBounds } from "./types";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
   buildMaskGradientShader,
   determineMaskMode,
@@ -225,7 +225,7 @@ let _cacheRootSignature = "";
  */
 export function getCachedCommandStream(
   rootElementIds: string[],
-  childrenMap: Map<string, Element[]>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: Map<string, ComputedLayout>,
   pagePositions: Record<string, { x: number; y: number }>,
   registryVersion: number,
@@ -278,7 +278,7 @@ export function invalidateCommandStreamCache(): void {
  */
 export function buildRenderCommandStream(
   rootElementIds: string[],
-  childrenMap: Map<string, Element[]>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: Map<string, ComputedLayout>,
   pagePositions: Record<string, { x: number; y: number }>,
 ): RenderCommandStream {
@@ -382,7 +382,7 @@ function visitElement(
   parentAbsY: number,
   commands: RenderCommand[],
   boundsMap: Map<string, BoundingBox>,
-  childrenMap: Map<string, Element[]>,
+  childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: Map<string, ComputedLayout>,
   cmdOffsetX: number = 0,
   cmdOffsetY: number = 0,
@@ -585,7 +585,9 @@ function visitElement(
  * 자식 elements를 z-index로 정렬.
  * skiaNodeRegistry에서 zIndex를 조회한다.
  */
-function sortChildElementsByZIndex(children: Element[]): Element[] {
+function sortChildElementsByZIndex(
+  children: CanvasSceneNode[],
+): CanvasSceneNode[] {
   // z-index가 있는 자식이 하나라도 있는지 확인
   let hasZIndex = false;
   for (const child of children) {

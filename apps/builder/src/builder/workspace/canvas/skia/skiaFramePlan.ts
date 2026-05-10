@@ -6,7 +6,7 @@
  */
 
 import type { CanvasKit, FontMgr, Canvas } from "canvaskit-wasm";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
 import type { RendererInvalidationPacket } from "../renderers";
 import type {
@@ -64,7 +64,7 @@ export interface BuildFrameRenderPlanInput {
   nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   hasAIEffects: boolean;
   contentNode: SkiaRenderable;
-  elementsMap: Map<string, Element>;
+  elementsMap: Map<string, CanvasSceneNode>;
   invalidationPacket: RendererInvalidationPacket;
   allPageFrames?: Array<{
     id: string;
@@ -210,7 +210,7 @@ export function buildSelectionOverlayData(
   snapshot: FrameInputSnapshot,
   sharedScene: SharedSceneDerivedData,
   invalidationPacket: RendererInvalidationPacket,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
   pageFrames?: Array<{
     id: string;
     title: string;

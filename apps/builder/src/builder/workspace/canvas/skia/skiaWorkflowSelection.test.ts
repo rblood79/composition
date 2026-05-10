@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { resolveCanonicalRefElementsMap } from "../../../utils/canonicalRefResolution";
 import type { RendererSelectionInvalidation } from "../renderers";
 import { buildSelectionRenderData } from "./skiaWorkflowSelection";
 
 function makeElement(
   id: string,
-  overrides: Partial<Element> & { frameId?: string | null } = {},
-): Element {
+  overrides: Partial<CanvasSceneNode> & { frameId?: string | null } = {},
+): CanvasSceneNode {
   const { frameId, ...elementOverrides } = overrides;
   const element = {
     id,
@@ -18,7 +18,7 @@ function makeElement(
     order_num: 1,
     props: {},
     ...elementOverrides,
-  } as Element;
+  } as CanvasSceneNode;
 
   return frameId === undefined
     ? element

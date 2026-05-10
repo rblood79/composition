@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import { buildSpecNodeData } from "./buildSpecNodeData";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+function makeElement(
+  id: string,
+  overrides: Partial<CanvasSceneNode> = {},
+): CanvasSceneNode {
   return {
     id,
     type: "Label",
@@ -13,13 +16,16 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
     order_num: 0,
     props: {},
     ...overrides,
-  } as Element;
+  } as CanvasSceneNode;
 }
 
 function collectText(node: SkiaNodeData | undefined | null): string[] {
   if (!node) return [];
   const own = node.text?.content ? [node.text.content] : [];
-  return [...own, ...(node.children ?? []).flatMap((child) => collectText(child))];
+  return [
+    ...own,
+    ...(node.children ?? []).flatMap((child) => collectText(child)),
+  ];
 }
 
 describe("buildSpecNodeData", () => {
@@ -179,44 +185,47 @@ describe("buildSpecNodeData", () => {
     "TimeField",
     "DatePicker",
     "DateRangePicker",
-  ])("uses propagation label override for projected %s Label children", (type) => {
-    const origin = makeElement("origin", {
-      type,
-      reusable: true,
-      props: { label: "Origin label" },
-    });
-    const originLabel = makeElement("origin-label", {
-      type: "Label",
-      customId: "label",
-      parent_id: "origin",
-      props: { children: "Origin label" },
-    });
-    const instance = makeElement("instance", {
-      type: "ref",
-      ref: "origin",
-      props: { label: "Instance label" },
-    } as never);
+  ])(
+    "uses propagation label override for projected %s Label children",
+    (type) => {
+      const origin = makeElement("origin", {
+        type,
+        reusable: true,
+        props: { label: "Origin label" },
+      });
+      const originLabel = makeElement("origin-label", {
+        type: "Label",
+        customId: "label",
+        parent_id: "origin",
+        props: { children: "Origin label" },
+      });
+      const instance = makeElement("instance", {
+        type: "ref",
+        ref: "origin",
+        props: { label: "Instance label" },
+      } as never);
 
-    const tree = resolveCanonicalRefTree({
-      elements: [origin, originLabel, instance],
-      elementsMap: new Map([
-        [origin.id, origin],
-        [originLabel.id, originLabel],
-        [instance.id, instance],
-      ]),
-    });
-    const label = tree.elementsMap.get("instance/label");
+      const tree = resolveCanonicalRefTree({
+        elements: [origin, originLabel, instance],
+        elementsMap: new Map([
+          [origin.id, origin],
+          [originLabel.id, originLabel],
+          [instance.id, instance],
+        ]),
+      });
+      const label = tree.elementsMap.get("instance/label");
 
-    const node = buildSpecNodeData({
-      element: label!,
-      layout: { x: 0, y: 0, width: 120, height: 24 },
-      theme: "light",
-      elementsMap: tree.elementsMap,
-    });
+      const node = buildSpecNodeData({
+        element: label!,
+        layout: { x: 0, y: 0, width: 120, height: 24 },
+        theme: "light",
+        elementsMap: tree.elementsMap,
+      });
 
-    expect(collectText(node)).toContain("Instance label");
-    expect(collectText(node)).not.toContain("Origin label");
-  });
+      expect(collectText(node)).toContain("Instance label");
+      expect(collectText(node)).not.toContain("Origin label");
+    },
+  );
 
   it("uses nested parent placeholder override for projected SearchField input", () => {
     const origin = makeElement("origin", {

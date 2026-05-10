@@ -6,7 +6,7 @@
  * 단일 함수로 통합하여 buildBoxNodeData/buildImageNodeData/buildSpecNodeData에서 재사용.
  */
 
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { EffectStyle } from "./types";
 import type { ClipPathShape } from "../sprites/styleConverter";
@@ -52,7 +52,7 @@ export interface BaseNodeProps {
  * style이 없으면 null 반환.
  */
 export function buildBaseNodeProps(
-  element: Element,
+  element: CanvasSceneNode,
   layout: ComputedLayout | undefined,
 ): BaseNodeProps | null {
   const styleRaw = element.props?.style as

@@ -15,7 +15,7 @@
  * PixiJS 의존성 없음. element.props + layout + theme + elementsMap에서 구축.
  */
 
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
@@ -59,15 +59,15 @@ import { findAncestorByTag } from "./ancestorLookup";
 // ---------------------------------------------------------------------------
 
 interface SpecBuildInput {
-  element: Element;
+  element: CanvasSceneNode;
   layout: ComputedLayout | undefined;
   theme: "light" | "dark";
-  /** childrenMap에서 조회한 자식 Element 목록 */
-  childElements?: Element[];
+  /** childrenMap에서 조회한 자식 CanvasSceneNode 목록 */
+  childElements?: CanvasSceneNode[];
   /** 부모 체인 조회용 (Phase 8) */
-  elementsMap: Map<string, Element>;
+  elementsMap: Map<string, CanvasSceneNode>;
   /** 형제 조회용 — resolveBreadcrumbItemContext, resolveToggleGroupPosition */
-  childrenMap?: Map<string, Element[]>;
+  childrenMap?: Map<string, CanvasSceneNode[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +111,7 @@ const CONTAINER_DIMENSION_TAGS = new Set([
 ]);
 
 /**
- * Shell-only 컨테이너: factory가 자식을 자동 생성하며, 자식 Element가 독립
+ * Shell-only 컨테이너: factory가 자식을 자동 생성하며, 자식 CanvasSceneNode가 독립
  * Skia 노드로 렌더링된다. 부모 spec shapes는 항상 shell(bg+border)만 반환해야 한다.
  * → `_hasChildren` 주입을 **자식 수와 무관하게** 수행한다
  *   (자식을 모두 삭제해도 standalone 렌더링으로 돌아가지 않음 —
@@ -125,7 +125,7 @@ export const SHELL_ONLY_CONTAINER_TAGS = new Set([
   "Calendar",
   "RangeCalendar",
   // ADR-072 Phase 1: standalone 분기가 "bg+border + 빈 container placeholder" 형태임이
-  // 확인된 태그들. factory가 자식 Element를 자동 생성하며, 자식 수 무관 _hasChildren=true 주입.
+  // 확인된 태그들. factory가 자식 CanvasSceneNode를 자동 생성하며, 자식 수 무관 _hasChildren=true 주입.
   "Card",
   "Dialog",
   "Section",
@@ -137,7 +137,7 @@ export const SHELL_ONLY_CONTAINER_TAGS = new Set([
   "CheckboxGroup",
   "RadioGroup",
   "ToggleButtonGroup",
-  // ADR-072 Phase 2-B: factory가 자식 Element로 시각 콘텐츠 렌더링 대체.
+  // ADR-072 Phase 2-B: factory가 자식 CanvasSceneNode로 시각 콘텐츠 렌더링 대체.
   // Disclosure: DisclosureHeader/Content / Form: Heading/Description/FormField /
   // Popover: Heading/Description (arrow는 RAC OverlayArrow DOM 전용) /
   // Tooltip: Description / ColorPicker: ColorArea/ColorSlider/ColorField (각자 Spec).
@@ -147,7 +147,7 @@ export const SHELL_ONLY_CONTAINER_TAGS = new Set([
   "Popover",
   "Tooltip",
   "ColorPicker",
-  // ADR-902 후속: Body 는 페이지 루트. factory 가 자식 Element 를 자동 생성하지
+  // ADR-902 후속: Body 는 페이지 루트. factory 가 자식 CanvasSceneNode 를 자동 생성하지
   // 않지만 빈 페이지에서도 배경이 렌더되어야 하므로 shell-only 규칙 필요.
   // Key 는 lowercase — element.type 가 "body" 이고 Set.has 는 정확 매칭.
   "body",
@@ -216,13 +216,13 @@ const DATE_INPUT_PARENT_TAGS = new Set([
 // Parent Lookup Helpers (pure functions — no hooks)
 // ---------------------------------------------------------------------------
 
-function getProps(element: Element): Record<string, unknown> {
+function getProps(element: CanvasSceneNode): Record<string, unknown> {
   return (element.props ?? {}) as Record<string, unknown>;
 }
 
 function resolveParentLabelText(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): string | null {
   if (element.type !== "Label" || !element.parent_id) return null;
 
@@ -234,10 +234,10 @@ function resolveParentLabelText(
 }
 
 function propagationPathMatches(
-  ancestor: Element,
-  element: Element,
+  ancestor: CanvasSceneNode,
+  element: CanvasSceneNode,
   childPath: PropagationRule["childPath"],
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): boolean {
   const expectedPath = Array.isArray(childPath) ? childPath : [childPath];
   const actualPath = [element.type];
@@ -258,10 +258,10 @@ function propagationPathMatches(
 }
 
 function getPropagationAncestors(
-  element: Element,
-  elementsMap: Map<string, Element>,
-): Element[] {
-  const ancestors: Element[] = [];
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+): CanvasSceneNode[] {
+  const ancestors: CanvasSceneNode[] = [];
   let parentId = element.parent_id;
   while (parentId) {
     const parent = elementsMap.get(parentId);
@@ -303,9 +303,9 @@ function resolvePropagationValue(
 }
 
 function applyParentPropagationProps(
-  element: Element,
+  element: CanvasSceneNode,
   props: Record<string, unknown>,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): Record<string, unknown> {
   let nextProps = props;
   const ancestors = getPropagationAncestors(element, elementsMap);
@@ -351,8 +351,8 @@ function applyParentPropagationProps(
 
 /** Registry 기반 부모 size delegation (0-3 level 조상 탐색) */
 function resolveParentDelegatedSize(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): string | null {
   if (element.type === "Breadcrumb" && element.parent_id) {
     const parent = elementsMap.get(element.parent_id);
@@ -378,9 +378,9 @@ function resolveParentDelegatedSize(
 
 /** Breadcrumb → 부모 Breadcrumbs의 구분자·마지막 여부·비활성 */
 function resolveBreadcrumbItemContext(
-  element: Element,
-  elementsMap: Map<string, Element>,
-  childrenMap?: Map<string, Element[]>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap?: Map<string, CanvasSceneNode[]>,
 ): {
   _isLast: boolean;
   _separator: string;
@@ -396,7 +396,7 @@ function resolveBreadcrumbItemContext(
   const siblings = rawSiblings
     ? rawSiblings.filter((el) => el.type === "Breadcrumb")
     : (() => {
-        const result: Element[] = [];
+        const result: CanvasSceneNode[] = [];
         for (const el of elementsMap.values()) {
           if (el.parent_id === parent.id && el.type === "Breadcrumb") {
             result.push(el);
@@ -416,9 +416,9 @@ function resolveBreadcrumbItemContext(
 
 /** ToggleButton group position + indicator mode */
 function resolveToggleGroupContext(
-  element: Element,
-  elementsMap: Map<string, Element>,
-  childrenMap: Map<string, Element[]> | null,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+  childrenMap: Map<string, CanvasSceneNode[]> | null,
 ): {
   position: {
     orientation: string;
@@ -462,8 +462,8 @@ function resolveToggleGroupContext(
 
 /** DateInput parent type/granularity/hourCycle/locale */
 function resolveDateInputParent(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): Record<string, unknown> | null {
   if (element.type !== "DateInput" || !element.parent_id) return null;
 
@@ -480,8 +480,8 @@ function resolveDateInputParent(
 
 /** Label necessity indicator from parent field */
 function resolveLabelNecessity(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): { indicator: string; isRequired: boolean } | null {
   if (element.type !== "Label" || !element.parent_id) return null;
 
@@ -497,8 +497,8 @@ function resolveLabelNecessity(
 
 /** Label alignment from Form ancestor chain */
 function resolveLabelAlignment(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): string | null {
   if (element.type !== "Label" || !element.parent_id) return null;
 
@@ -522,8 +522,8 @@ function resolveLabelAlignment(
 
 /** ProgressBar/Meter → Track/Value value propagation */
 function resolveProgressProps(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): Record<string, unknown> | null {
   const isTrack =
     element.type === "ProgressBarTrack" || element.type === "MeterTrack";
@@ -579,8 +579,8 @@ function resolveProgressProps(
 
 /** Slider → SliderTrack value propagation */
 function resolveSliderProps(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): Record<string, unknown> | null {
   if (element.type !== "SliderTrack" || !element.parent_id) return null;
 
@@ -604,8 +604,8 @@ function resolveSliderProps(
  * ADR-101: ComboBoxTrigger — Compositional Architecture 고유 element.
  */
 function resolveIconDelegation(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): string | null {
   if (element.type !== "SelectIcon" && element.type !== "ComboBoxTrigger")
     return null;
@@ -630,8 +630,8 @@ function resolveIconDelegation(
 
 /** TagGroup allowsRemoving → Tag child */
 function resolveTagGroupAllowsRemoving(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): boolean {
   if (element.type !== "Tag" || !element.parent_id) return false;
 
@@ -661,8 +661,8 @@ function resolveTagGroupAllowsRemoving(
  * rule 을 Skia 시점에서 방어적으로 해석 — React/CSS 경로와 Canvas 경로의 SSOT 정합성 보장.
  */
 function resolveTagListItemsFromParent(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): Record<string, unknown> | null {
   if (element.type !== "TagList" || !element.parent_id) return null;
   const parent = elementsMap.get(element.parent_id);
@@ -710,8 +710,8 @@ function resolveTagListItemsFromParent(
 
 /** Label in nowrap parent detection */
 function isLabelInNowrapParent(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): boolean {
   if (element.type !== "Label" || !element.parent_id) return false;
   const parent = elementsMap.get(element.parent_id);
@@ -721,8 +721,8 @@ function isLabelInNowrapParent(
 
 /** Accent color from element or ancestor chain */
 function resolveAccentColor(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): TintPreset | undefined {
   const elementAccent = getProps(element).accentColor as TintPreset | undefined;
   if (elementAccent) return elementAccent;

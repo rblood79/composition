@@ -14,7 +14,7 @@
  *   bridge.dispose();       // cleanup
  */
 
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
   getComponentMasterReference as getInstanceMasterRef,
   isComponentInstanceMirrorElement as isInstanceElement,
@@ -41,7 +41,7 @@ import {
   resolveCanonicalRefTree,
 } from "../../../utils/canonicalRefResolution";
 
-function isImageElement(element: Element): boolean {
+function isImageElement(element: CanvasSceneNode): boolean {
   return IMAGE_TAGS.has(element.type);
 }
 
@@ -80,7 +80,7 @@ export function parseTransitionShorthand(value: string): TransitionDef[] {
  * ADR-058 Phase 4: `buildTextNodeData` 완전 폐지로 TEXT_TAGS 분기 로직 제거.
  * 모든 text 컴포넌트가 spec 경로(`buildSpecNodeData`)로 통일됨.
  */
-function isSpecPath(element: Element): boolean {
+function isSpecPath(element: CanvasSceneNode): boolean {
   return !!getSpecForTag(element.type);
 }
 
@@ -97,7 +97,7 @@ export class StoreRenderBridge {
   /** 비동기 이미지 로딩 후 재동기화용 콜백 */
   private pendingResync: (() => void) | null = null;
   /** 이전 elementsMap 참조 (증분 갱신용) */
-  private prevElementsMap: Map<string, Element> | null = null;
+  private prevElementsMap: Map<string, CanvasSceneNode> | null = null;
   /** 이전 theme (변경 감지 → fullRebuild 강제) */
   private prevTheme: "light" | "dark" = "light";
   /** CSS transition 애니메이션 매니저 (선택 연결) */
@@ -107,9 +107,9 @@ export class StoreRenderBridge {
    * Store에 연결하여 elementsMap 변경 시 skiaNodeRegistry를 갱신.
    */
   connect(options: {
-    getElements: () => Map<string, Element>;
+    getElements: () => Map<string, CanvasSceneNode>;
     getLayoutMap: () => Map<string, ComputedLayout> | null;
-    getChildrenMap?: () => Map<string, Element[]>;
+    getChildrenMap?: () => Map<string, CanvasSceneNode[]>;
     subscribe: (callback: () => void) => () => void;
     getTheme?: () => "light" | "dark";
     theme?: "light" | "dark";
@@ -150,10 +150,10 @@ export class StoreRenderBridge {
    * 동기화: 증분 갱신 또는 전체 rebuild 자동 선택.
    */
   sync(
-    elementsMap: Map<string, Element>,
+    elementsMap: Map<string, CanvasSceneNode>,
     layoutMap: Map<string, ComputedLayout> | null,
     theme: "light" | "dark",
-    childrenMap: Map<string, Element[]> | null = null,
+    childrenMap: Map<string, CanvasSceneNode[]> | null = null,
     forceFullRebuild = false,
   ): void {
     const resolvedTree = resolveCanonicalRefTree({
@@ -204,7 +204,7 @@ export class StoreRenderBridge {
    * - non-empty Set: 변경된 요소 ID 목록
    */
   private detectChangedIds(
-    elementsMap: Map<string, Element>,
+    elementsMap: Map<string, CanvasSceneNode>,
   ): Set<string> | null {
     if (!this.prevElementsMap) return null;
     if (this.prevElementsMap === elementsMap) {
@@ -241,10 +241,10 @@ export class StoreRenderBridge {
    */
   private incrementalSync(
     changedIds: Set<string>,
-    elementsMap: Map<string, Element>,
+    elementsMap: Map<string, CanvasSceneNode>,
     layoutMap: Map<string, ComputedLayout> | null,
     theme: "light" | "dark",
-    childrenMap: Map<string, Element[]> | null,
+    childrenMap: Map<string, CanvasSceneNode[]> | null,
   ): void {
     const ctx: BuildContext = {
       layoutMap: layoutMap ?? EMPTY_LAYOUT_MAP,
@@ -327,10 +327,10 @@ export class StoreRenderBridge {
    * 전체 rebuild: 모든 요소 순회 + skiaNodeRegistry 갱신.
    */
   private fullRebuild(
-    elementsMap: Map<string, Element>,
+    elementsMap: Map<string, CanvasSceneNode>,
     layoutMap: Map<string, ComputedLayout> | null,
     theme: "light" | "dark",
-    childrenMap: Map<string, Element[]> | null,
+    childrenMap: Map<string, CanvasSceneNode[]> | null,
   ): void {
     const ctx: BuildContext = {
       layoutMap: layoutMap ?? EMPTY_LAYOUT_MAP,
@@ -344,7 +344,7 @@ export class StoreRenderBridge {
     // virtual id를 Skia node registry에도 등록해야 renderCommands visitElement가
     // 렌더링한다.
     const syntheticMap = getSyntheticElementsMap();
-    const iterableEntries: Array<[string, Element]> = [
+    const iterableEntries: Array<[string, CanvasSceneNode]> = [
       ...elementsMap.entries(),
       ...[...syntheticMap.entries()].filter(([id]) => !elementsMap.has(id)),
     ];
@@ -400,12 +400,12 @@ export class StoreRenderBridge {
    * 단일 요소의 SkiaNodeData 빌드 (routing + build).
    */
   private buildNodeForElement(
-    element: Element,
+    element: CanvasSceneNode,
     id: string,
     layout: ComputedLayout | undefined,
     ctx: BuildContext,
-    elementsMap: Map<string, Element>,
-    childrenMap: Map<string, Element[]> | null,
+    elementsMap: Map<string, CanvasSceneNode>,
+    childrenMap: Map<string, CanvasSceneNode[]> | null,
   ): import("./nodeRendererTypes").SkiaNodeData | null {
     // ADR-903 P2 D-C: instance → resolved (master props 머지)
     // master/instance 시스템에서 instance.props 는 createInstance 시 빈 객체로
@@ -414,7 +414,7 @@ export class StoreRenderBridge {
     //
     // shared `ResolverCache` (Preview / Skia 공통) 를 통과하는 canonical 경로
     // 사용 — `resolveInstanceWithSharedCache` 가 mini CompositionDocument 를
-    // 만들어 P2 resolver 통과 후 Element 재구성 (legacy resolveInstanceElement
+    // 만들어 P2 resolver 통과 후 CanvasSceneNode 재구성 (legacy resolveInstanceElement
     // 와 시각 등가, ADR-903 storeBridge.test.ts TC9 검증).
     //
     // master 가 없는 broken instance 는 null 반환 → 원본 element 유지.
@@ -536,8 +536,8 @@ export class StoreRenderBridge {
    */
   private triggerTransitions(
     elementId: string,
-    prevElement: Element,
-    nextElement: Element,
+    prevElement: CanvasSceneNode,
+    nextElement: CanvasSceneNode,
   ): void {
     const tm = this.transitionManager;
     if (!tm) return;
@@ -635,7 +635,7 @@ export class StoreRenderBridge {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getImageSrc(element: Element): string | null {
+function getImageSrc(element: CanvasSceneNode): string | null {
   const props = element.props as Record<string, unknown> | undefined;
   const src = (props?.src as string) || (props?.source as string) || "";
   return src || null;

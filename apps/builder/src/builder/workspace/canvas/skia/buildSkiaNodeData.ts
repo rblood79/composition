@@ -1,5 +1,5 @@
 /**
- * buildSkiaNodeData — Element→SkiaNodeData 순수 변환 (ADR-100 Phase 6)
+ * buildSkiaNodeData — CanvasSceneNode→SkiaNodeData 순수 변환 (ADR-100 Phase 6)
  *
  * PixiJS Sprite 컴포넌트 없이 store 데이터에서 직접 SkiaNodeData를 구축한다.
  * 기존 유틸리티(convertStyle, buildSkiaEffects)를 재사용.
@@ -10,7 +10,7 @@
  * - image (Image)
  */
 
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
@@ -42,11 +42,11 @@ export interface BuildContext {
 // ---------------------------------------------------------------------------
 
 /**
- * Element → SkiaNodeData 순수 변환.
+ * CanvasSceneNode → SkiaNodeData 순수 변환.
  * PixiJS 의존성 없음. store 데이터만으로 렌더 데이터를 구축.
  */
 export function buildSkiaNodeData(
-  element: Element,
+  element: CanvasSceneNode,
   ctx: BuildContext,
 ): SkiaNodeData | null {
   const style = element.props?.style as Record<string, unknown> | undefined;

@@ -5,7 +5,7 @@
  * PixiJS 의존성 없음. element.props + layoutMap에서 구축.
  */
 
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { EffectStyle } from "./types";
@@ -32,7 +32,7 @@ import {
 // ---------------------------------------------------------------------------
 
 interface BoxBuildInput {
-  element: Element;
+  element: CanvasSceneNode;
   layout: ComputedLayout | undefined;
   scrollState?: {
     scrollTop: number;

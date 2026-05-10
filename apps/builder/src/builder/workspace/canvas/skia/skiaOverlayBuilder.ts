@@ -10,7 +10,7 @@
  */
 
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
 import type { RendererInvalidationPacket } from "../renderers";
 import type { AIEffectNodeBounds, SkiaRenderable } from "./types";
@@ -170,8 +170,8 @@ export interface OverlayBuildInput {
   workflowHoveredEdgeId: string | null;
   // Hover
   elementHoverState: ElementHoverState;
-  elementsMap: Map<string, Element>;
-  childrenMap: Map<string, Element[]>;
+  elementsMap: Map<string, CanvasSceneNode>;
+  childrenMap: Map<string, CanvasSceneNode[]>;
   // Overflow (Figma-style content outline)
   overflowInfoMap?: Map<string, OverflowContentInfo>;
   // Drop Indicator (드래그 중 타겟 표시)
@@ -204,7 +204,7 @@ export interface OverlayBuildInput {
 
 function resolveSelectedFrameIdForTitle(
   selectedElementIds: string[],
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): string | null {
   for (const elementId of selectedElementIds) {
     const element = elementsMap.get(elementId);

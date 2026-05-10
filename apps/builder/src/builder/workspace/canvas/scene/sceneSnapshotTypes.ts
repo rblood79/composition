@@ -1,5 +1,6 @@
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
-import type { Page, Element } from "../../../../types/core/store.types";
+import type { Page } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 import type { BoundingBox } from "../selection/types";
 
 export type SceneInputSource = "canonical" | "legacy-bootstrap";
@@ -15,8 +16,8 @@ export interface ScenePageFrame {
 }
 
 export interface ScenePageData {
-  bodyElement: Element | null;
-  pageElements: Element[];
+  bodyElement: CanvasSceneNode | null;
+  pageElements: CanvasSceneNode[];
 }
 
 export interface ScenePageSnapshot extends ScenePageData {
@@ -81,8 +82,8 @@ export interface SceneSnapshot
 export interface BuildSceneStructureInput {
   containerSize?: { height: number; width: number };
   currentPageId: string | null;
-  elements: Element[];
-  elementsMap: Map<string, Element>;
+  elements: CanvasSceneNode[];
+  elementsMap: Map<string, CanvasSceneNode>;
   layoutVersion: number;
   pageHeight: number;
   pageIndex: PageElementIndex;

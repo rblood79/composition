@@ -1,12 +1,13 @@
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { getPageElements } from "../../../stores/utils/elementIndexer";
-import type { Element, Page } from "../../../../types/core/store.types";
+import type { Page } from "../../../../types/core/store.types";
+import type { CanvasSceneNode } from "./canvasSceneNode";
 import { resolvePageWithFrame } from "./resolvePageWithFrame";
 import type { ScenePageData, ScenePageFrame } from "./sceneSnapshotTypes";
 
 export function buildDepthMap(
-  elements: Element[],
-  elementsMap: Map<string, Element>,
+  elements: CanvasSceneNode[],
+  elementsMap: Map<string, CanvasSceneNode>,
 ): Map<string, number> {
   const cache = new Map<string, number>();
 
@@ -46,7 +47,7 @@ export function buildDepthMap(
 export function buildPageDataMap(
   pages: Page[],
   pageIndex: PageElementIndex,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
 ): Map<string, ScenePageData> {
   const pageDataMap = new Map<string, ScenePageData>();
 
@@ -70,7 +71,7 @@ export function buildPageDataMap(
 export function buildPageFrames(
   pages: Page[],
   pageIndex: PageElementIndex,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, CanvasSceneNode>,
   pagePositions: Record<string, { x: number; y: number } | undefined>,
   pageWidth: number,
   pageHeight: number,

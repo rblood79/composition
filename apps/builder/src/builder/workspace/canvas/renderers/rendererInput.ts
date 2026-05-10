@@ -1,6 +1,11 @@
 import type { Element, Page } from "../../../../types/core/store.types";
+import type { CanonicalNode } from "@composition/shared";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import type { ScenePageSnapshot, SceneStructureSnapshot } from "../scene";
+import type {
+  CanvasSceneGraph,
+  CanvasSceneNode,
+} from "../scene/canvasSceneNode";
 import type { FrameAreaGroup } from "../skia/workflowEdges";
 import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import type {
@@ -183,6 +188,9 @@ export interface SkiaRendererInput {
   childrenMap: Map<string, Element[]>;
   elements: Element[];
   elementsMap: Map<string, Element>;
+  sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
+  sceneNodes: CanvasSceneNode[];
+  sceneNodesMap: Map<string, CanvasSceneNode>;
   dirtyElementIds: Set<string>;
   editMode: "page" | "layout";
   pageIndex: PageElementIndex;
@@ -209,6 +217,9 @@ interface CreateSkiaRendererInputOptions {
   childrenMap: Map<string, Element[]>;
   elements: Element[];
   elementsMap: Map<string, Element>;
+  sceneChildrenByParent?: Map<string, CanvasSceneNode[]>;
+  sceneNodes?: CanvasSceneNode[];
+  sceneNodesMap?: Map<string, CanvasSceneNode>;
   dirtyElementIds: Set<string>;
   editMode: "page" | "layout";
   pageIndex: PageElementIndex;
@@ -223,6 +234,59 @@ interface CreateSkiaRendererInputOptions {
   framePositionsVersion: number;
   frameAreas: FrameAreaGroup[];
   frameElementScopes: CanonicalFrameElementScopeMap;
+}
+
+function buildLegacyCanvasSceneGraph(elements: Element[]): CanvasSceneGraph {
+  const nodes: CanvasSceneNode[] = [];
+  const nodesMap = new Map<string, CanvasSceneNode>();
+  const childrenByParent = new Map<string, CanvasSceneNode[]>();
+  const parentById = new Map<string, string>();
+
+  for (const element of elements) {
+    const node: CanvasSceneNode = {
+      id: element.id,
+      type: element.type,
+      props: element.props ?? {},
+      parentId: element.parent_id ?? null,
+      pageId: element.page_id ?? null,
+      layoutId:
+        typeof (element as { layout_id?: unknown }).layout_id === "string"
+          ? ((element as { layout_id: string }).layout_id ?? null)
+          : null,
+      parent_id: element.parent_id ?? null,
+      page_id: element.page_id ?? null,
+      deleted: element.deleted,
+      ...(element.customId ? { customId: element.customId } : {}),
+      ...(element.componentName ? { name: element.componentName } : {}),
+      ...(element.componentName
+        ? { componentName: element.componentName }
+        : {}),
+      sourceNode: {
+        id: element.id,
+        type: element.type as CanonicalNode["type"],
+        props: element.props ?? {},
+      },
+    };
+
+    nodes.push(node);
+    nodesMap.set(node.id, node);
+    if (node.parentId) {
+      parentById.set(node.id, node.parentId);
+      const children = childrenByParent.get(node.parentId);
+      if (children) {
+        children.push(node);
+      } else {
+        childrenByParent.set(node.parentId, [node]);
+      }
+    }
+  }
+
+  return {
+    childrenByParent,
+    nodes,
+    nodesMap,
+    parentById,
+  };
 }
 
 function buildRendererChildrenMap(
@@ -298,11 +362,16 @@ export function createSkiaRendererInput(
     elements: renderTree.elements,
     elementsMap: renderTree.elementsMap,
   });
+  const legacySceneGraph = buildLegacyCanvasSceneGraph(resolvedTree.elements);
 
   return {
     childrenMap: resolvedTree.childrenMap,
     elements: resolvedTree.elements,
     elementsMap: resolvedTree.elementsMap,
+    sceneChildrenByParent:
+      input.sceneChildrenByParent ?? legacySceneGraph.childrenByParent,
+    sceneNodes: input.sceneNodes ?? legacySceneGraph.nodes,
+    sceneNodesMap: input.sceneNodesMap ?? legacySceneGraph.nodesMap,
     dirtyElementIds: input.dirtyElementIds,
     editMode: input.editMode,
     pageIndex: input.pageIndex,

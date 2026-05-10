@@ -58,7 +58,20 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
       model.childrenByParent.get("page-1")?.map((node) => node.id),
     ).toEqual(["body-1"]);
 
-    // pageIndex 는 legacy derived index (Element[] 호환 전환은 ADR-126 Phase 2)
+    // sceneNodes 는 renderable canonical node projection 이며 flat legacy
+    // projection 없이 page scope 를 보존한다.
+    expect(model.sceneNodes.map((node) => node.id)).toEqual([
+      "body-1",
+      "second",
+      "first",
+    ]);
+    expect(model.sceneNodesMap.get("second")?.parentId).toBe("body-1");
+    expect(model.sceneNodesMap.get("second")?.pageId).toBe("page-1");
+    expect(
+      model.sceneChildrenByParent.get("body-1")?.map((node) => node.id),
+    ).toEqual(["second", "first"]);
+
+    // pageIndex 는 sceneNodes 에서 직접 derive 된다.
     expect([
       ...(model.pageIndex.elementsByPage.get("page-1") ?? new Set()),
     ]).toEqual(["body-1", "second", "first"]);
@@ -75,5 +88,6 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
     expect(source).not.toContain(
       ["getCanonicalElements", "SnapshotFromDocument"].join(""),
     );
+    expect(source).not.toContain("canonicalDocumentToElements");
   });
 });
