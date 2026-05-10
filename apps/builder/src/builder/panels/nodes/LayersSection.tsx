@@ -5,7 +5,6 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import type { Element } from "../../../types/builder/unified.types";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
 import { Minimize } from "lucide-react";
@@ -19,18 +18,19 @@ import {
   scheduleCancelableBackgroundTask,
   scheduleNextFrame,
 } from "../../utils/scheduleTask";
+import type { PanelNode } from "../panelNode";
 
 interface LayersSectionProps {
   currentPageId: string;
 }
 
-const EMPTY_ELEMENTS: Element[] = [];
+const EMPTY_ELEMENTS: PanelNode[] = [];
 
 export function buildLayerSectionElementMap(
-  currentPageElements: Element[],
-  canonicalElements: Element[] | null,
-): Map<string, Element> {
-  const map = new Map<string, Element>();
+  currentPageElements: PanelNode[],
+  canonicalElements: PanelNode[] | null,
+): Map<string, PanelNode> {
+  const map = new Map<string, PanelNode>();
   if (canonicalElements) {
     for (const element of canonicalElements) {
       map.set(element.id, element);
@@ -43,8 +43,8 @@ export function buildLayerSectionElementMap(
 }
 
 export function resolveLayerTreeEditingContext(
-  element: Element,
-  elementsMap: Map<string, Element>,
+  element: PanelNode,
+  elementsMap: Map<string, PanelNode>,
 ): string | null {
   const lookup = elementsMap.has(element.id)
     ? elementsMap
@@ -145,7 +145,7 @@ export const LayersSection = memo(function LayersSection({
   // 🚀 useCallback으로 메모이제이션 - 매 렌더링마다 새 함수 생성 방지
   // 계층적 선택: 트리에서 직접 선택 시 editingContext 자동 조정
   const handleItemClick = useCallback(
-    (element: Element) => {
+    (element: PanelNode) => {
       const state = useStore.getState();
       const newContextId = resolveLayerTreeEditingContext(
         element,

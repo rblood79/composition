@@ -124,7 +124,7 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 잔여 bucket:
 
 - `BuilderCanvas` scene snapshot/layout/interaction caller 는 `getSceneModel*Legacy` fallback 을 아직 사용한다. Phase 2-B/2-C/2-D cascade에서 제거 대상.
-- `rendererInput.ts` legacy bootstrap fallback 은 Phase 2-C에서 canonical scene graph 미주입 시 fallback 으로 축소됨. Phase 2-B에서 layout publisher input 은 `CanvasLayoutNode` 계약으로 전환됐고, render-tree / interactive fallback `Element` shape 는 Phase 2-D/Phase 5 잔여.
+- `rendererInput.ts` legacy bootstrap fallback 은 Phase 2-C에서 canonical scene graph 미주입 시 fallback 으로 축소됨. Phase 2-B에서 layout publisher input 은 `CanvasLayoutNode` 계약으로 전환됐고, render-tree fallback `Element` shape 는 Phase 5 잔여.
 - `CanvasSceneNode` transition alias(`parent_id`, `page_id`, `componentName`) 는 Phase 5 boundary 정리 전까지 임시 허용하되 신규 Skia code 에서는 `parentId`, `pageId`, `name` 을 사용한다.
 
 ## 6. Phase 2-C 진행 결과 (2026-05-10)
@@ -143,8 +143,8 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 
 잔여 bucket:
 
-- `rendererInput.ts` 내부 render-tree / interactive fallback 은 아직 `Element` shape 를 포함한다. Phase 2-D/Phase 5에서 제거 대상.
-- `BuilderCanvas` interactive hover/scroll read-model 은 아직 `skiaRendererInput.elementsMap` / `childrenMap` 을 사용한다. Phase 2-D 또는 Phase 4 interaction read-model 정리 대상.
+- `rendererInput.ts` 내부 render-tree fallback 은 아직 `Element` shape 를 포함한다. Phase 5에서 제거 대상.
+- `BuilderCanvas` legacy bootstrap projection 은 아직 `getSceneModel*Legacy` / store `Element` fallback 을 유지한다. interaction read-model 은 Phase 2-D core 에서 scene maps 로 전환됐다.
 
 ## 7. Phase 2-B 진행 결과 (2026-05-10)
 
@@ -162,8 +162,8 @@ layout publisher input 명칭/shape 를 실제 역할에 맞게 정리했다.
 
 잔여 bucket:
 
-- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 interaction/read-model fallback 때문에 아직 `Element` shape 를 포함한다. Phase 2-D/Phase 5 제거 대상.
-- `BuilderCanvas` 의 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback, interactive hover/scroll read-model 은 아직 store `Element` import 를 유지한다.
+- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 아직 `Element` shape 를 포함한다. Phase 5 제거 대상.
+- `BuilderCanvas` 의 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback 은 아직 store `Element` import 를 유지한다.
 - `CanvasLayoutNode` 는 transition 중 `parent_id/page_id/layout_id` legacy field 를 허용한다. alias 제거는 Phase 5 boundary 정리에서 처리한다.
 
 ## 8. Phase 2-E 진행 결과 (2026-05-10)
@@ -182,5 +182,28 @@ preview-local node contract 로 분리했다.
 
 잔여 bucket:
 
-- `frameElementLoader.loadFrameElements()` 는 panels/slot selector/preset apply caller 때문에 아직 `Element[]` 를 반환한다. Phase 2-D/Phase 5에서 frame helper/panel caller 와 함께 정리한다.
-- `rendererInput.ts` render-tree / interactive fallback 과 `BuilderCanvas` legacy store read 는 Phase 2-D/Phase 5 잔여다.
+- `frameElementLoader.loadFrameElements()` 는 panels/slot selector/preset apply caller 때문에 아직 `Element[]` 를 반환한다. 후속 panels/write payload slice 또는 Phase 5에서 frame helper/panel caller 와 함께 정리한다.
+- `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy store read 는 Phase 5 잔여다.
+
+## 9. Phase 2-D 진행 결과 (2026-05-10)
+
+Panels read path 와 canvas interaction read model 이 Builder store `Element` 타입을 직접
+import 하던 core surface 를 `PanelNode` / `CanvasInteractionNode` 최소 contract 로
+분리했다. 전체 G2-D 종료가 아니라 core land 이며, frame loader / FramesTab /
+생성형 editor / drop target resolver 는 후속 slice 로 남긴다.
+
+| 측정 대상                                                                                                                   | 결과                                           |
+| --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| panels read path (`useCanonicalPropertyRead`, `LayersSection`, `LayerTree`, Component semantics/slot/fill) store type hit   | **0**                                          |
+| canvas interaction core (`selectionHitTest`, `selectionModel`, `canvasContextMenu`, drag/hover/scroll hooks) store type hit | **0**                                          |
+| interaction hook input `rendererInputRef.current.elementsMap\|childrenMap` hit                                              | **0**                                          |
+| Scene frame body compatibility                                                                                              | `CanvasSceneNode.layout_id` transition alias   |
+| Targeted Vitest                                                                                                             | **11 files / 82 tests PASS**                   |
+| Type-check                                                                                                                  | `pnpm -F @composition/builder type-check` PASS |
+
+잔여 bucket:
+
+- `frameElementLoader.loadFrameElements()` 반환 `Element[]` 와 `FramesTab` / `FrameElementTree` panels caller 는 후속 slice에서 정리한다.
+- `TableEditor`, `TableHeaderEditor`, `ListBoxItemEditor`, `TagEditor`, `ChildItemManager`, `tabsItemActions`, `TreeItemEditor`, `LayoutPresetSelector/usePresetApply` 등 생성형 property editor 는 add/write payload contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
+- `dropTargetResolver.ts` 는 drag-drop move semantics + history commit 이 얽혀 있어 Phase 4 drag-drop consumer 전환에서 별도 처리한다.
+- `rendererInput.ts` render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.

@@ -17,11 +17,11 @@
 
 import { useCallback, useEffect } from "react";
 import type { MutableRefObject } from "react";
-import type { Element } from "../../../../types/core/store.types";
 import { useViewportSyncStore } from "../stores";
 import { useScrollState } from "../../../stores/scrollState";
 import { notifyLayoutChange } from "../skia/useSkiaNode";
 import type { BoundingBox } from "../selection/types";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 // ============================================
 // Types
@@ -31,7 +31,7 @@ interface UseScrollWheelInteractionOptions {
   /** 부모 컨테이너 DOM 요소 */
   containerEl: HTMLDivElement | null;
   /** Active Skia renderer input 에서 파생한 scroll element map */
-  getScrollElementsMap: () => ReadonlyMap<string, Element>;
+  getScrollElementsMap: () => ReadonlyMap<string, CanvasInteractionNode>;
   /** treeBoundsMap ref (Skia 트리 기반 씬-로컬 절대 바운드) */
   treeBoundsMapRef: MutableRefObject<Map<string, BoundingBox>>;
 }

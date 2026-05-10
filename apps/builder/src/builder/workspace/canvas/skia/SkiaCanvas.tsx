@@ -335,8 +335,8 @@ export function SkiaCanvas({
     containerEl,
     frameAreasRef,
     pageFramesRef: visiblePageFramesRef,
-    getHoverElementsMap: () => rendererInputRef.current.elementsMap,
-    getHoverChildrenMap: () => rendererInputRef.current.childrenMap,
+    getHoverElementsMap: () => rendererInputRef.current.sceneNodesMap,
+    getHoverChildrenMap: () => rendererInputRef.current.sceneChildrenByParent,
     hoverStateRef: elementHoverStateRef,
     overlayVersionRef,
     treeBoundsMapRef,
@@ -344,7 +344,7 @@ export function SkiaCanvas({
 
   useScrollWheelInteraction({
     containerEl,
-    getScrollElementsMap: () => rendererInputRef.current.elementsMap,
+    getScrollElementsMap: () => rendererInputRef.current.sceneNodesMap,
     treeBoundsMapRef,
   });
 

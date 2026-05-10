@@ -15,12 +15,12 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import type { MutableRefObject, RefObject } from "react";
-import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
 import { useViewportSyncStore } from "../stores";
 import type { BoundingBox } from "../selection/types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import { getDragVisualOffset } from "../skia/nodeRendererTree";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 // ============================================
 // Types
@@ -43,7 +43,7 @@ interface UseElementHoverInteractionOptions {
   /** Page mode multi-page canvas 에서 page body 빈 영역 hover 판정용 */
   pageFramesRef?: RefObject<ReadonlyArray<PageHoverFrame>>;
   /** Active Skia renderer input 에서 파생한 hover element map */
-  getHoverElementsMap: () => ReadonlyMap<string, Element>;
+  getHoverElementsMap: () => ReadonlyMap<string, CanvasInteractionNode>;
   /** Active Skia renderer input 에서 파생한 hover children map */
   getHoverChildrenMap: () => ReadonlyMap<string, ReadonlyArray<{ id: string }>>;
   /** 호버 상태 ref (60fps 갱신, Zustand 아님) */
@@ -121,7 +121,7 @@ export function resolveFrameBodyHoverTarget({
   sceneY,
 }: {
   boundsMap: ReadonlyMap<string, BoundingBox>;
-  elementsMap: ReadonlyMap<string, Element>;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
   frameAreas: ReadonlyArray<FrameHoverArea>;
   sceneX: number;
   sceneY: number;
@@ -150,7 +150,7 @@ export function resolvePageBodyHoverTarget({
   sceneX,
   sceneY,
 }: {
-  elementsMap: ReadonlyMap<string, Element>;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
   pageFrames: ReadonlyArray<PageHoverFrame>;
   sceneX: number;
   sceneY: number;

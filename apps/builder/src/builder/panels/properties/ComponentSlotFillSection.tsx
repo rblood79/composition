@@ -1,6 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Layers, Plus, X } from "lucide-react";
-import type { Element } from "../../../types/core/store.types";
 import {
   resolveCanonicalRefMaster,
   isCanonicalRefElement,
@@ -17,8 +16,9 @@ import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   getComponentDescendantsMirror,
 } from "../../../adapters/canonical/componentSemanticsMirror";
+import type { PanelNode } from "../panelNode";
 
-type SlotHostElement = Element & {
+type SlotHostElement = PanelNode & {
   metadata?: { slot?: unknown };
   slot?: false | string[];
 };
@@ -33,15 +33,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function getElementLabel(element: Element): string {
+function getElementLabel(element: PanelNode): string {
   return element.componentName ?? element.customId ?? element.type;
 }
 
-function getStableSegment(element: Element): string {
+function getStableSegment(element: PanelNode): string {
   return element.customId ?? element.id;
 }
 
-function getSlotValue(element: Element): string[] | null {
+function getSlotValue(element: PanelNode): string[] | null {
   const slotElement = element as SlotHostElement;
   if (Array.isArray(slotElement.slot)) return slotElement.slot;
 
@@ -51,14 +51,14 @@ function getSlotValue(element: Element): string[] | null {
   return null;
 }
 
-function getSlotFillChildren(instance: Element, path: string): unknown[] {
+function getSlotFillChildren(instance: PanelNode, path: string): unknown[] {
   const override = getComponentDescendantsMirror(instance)?.[path];
   return override && Array.isArray(override.children) ? override.children : [];
 }
 
 function collectSlotHosts(
-  parent: Element,
-  childrenByParent: ReadonlyMap<string, Element[]>,
+  parent: PanelNode,
+  childrenByParent: ReadonlyMap<string, PanelNode[]>,
   pathPrefix = "",
 ): SlotHostInfo[] {
   const slots: SlotHostInfo[] = [];
@@ -83,13 +83,13 @@ function collectSlotHosts(
 
 function getFillCandidateOptions(
   slot: SlotHostInfo | undefined,
-  elementsById: ReadonlyMap<string, Element>,
+  elementsById: ReadonlyMap<string, PanelNode>,
 ): { label: string; value: string }[] {
   if (!slot) return [];
 
   const recommended = slot.recommendedIds
     .map((reference) => resolveReference(reference, elementsById.values()))
-    .filter((candidate): candidate is Element => Boolean(candidate))
+    .filter((candidate): candidate is PanelNode => Boolean(candidate))
     .filter((candidate) => candidate.reusable === true);
 
   const candidates =
@@ -109,7 +109,7 @@ function getFillCandidateOptions(
 
 function getFilledLabel(
   children: unknown[],
-  elementsById: ReadonlyMap<string, Element>,
+  elementsById: ReadonlyMap<string, PanelNode>,
 ): string {
   const labels = children.filter(isRecord).map((child) => {
     const ref = typeof child.ref === "string" ? child.ref : undefined;
@@ -124,7 +124,7 @@ function getFilledLabel(
 }
 
 function getFillNodeId(
-  candidate: Element,
+  candidate: PanelNode,
   existingChildren: unknown[],
 ): string {
   const baseId = candidate.customId ?? candidate.id;
@@ -162,7 +162,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
 
   const master = useMemo(() => {
     if (!element || !isCanonicalRefElement(element)) return undefined;
-    const ref = (element as Element & { ref?: unknown }).ref;
+    const ref = element.ref;
     return typeof ref === "string"
       ? resolveCanonicalRefMaster(ref, elementsById.values())
       : undefined;
@@ -243,7 +243,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
           children: nextChildren,
         },
       },
-    } as Partial<Element>);
+    } as Partial<PanelNode>);
   };
 
   const handleClearSlot = () => {
@@ -254,7 +254,7 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
 
     void updateElement(element.id, {
       [COMPONENT_DESCENDANTS_MIRROR_FIELD]: nextLegacyDescendantMap,
-    } as Partial<Element>);
+    } as Partial<PanelNode>);
   };
 
   return (

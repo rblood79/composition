@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 2-D panels/interaction read-model core land**:
+  - 신규 `PanelNode` contract 로 Properties/LayerTree read path 를 Builder store `Element` import 에서 분리.
+  - 신규 `CanvasInteractionNode` contract 로 selection hit-test, selected bounds, context menu, drag bridge, hover, scroll interaction input 을 구조적 read model 로 전환.
+  - `BuilderCanvas` / `SkiaCanvas` interaction input 은 `rendererInput.sceneNodesMap` / `sceneChildrenByParent` 를 소비.
+  - `CanvasSceneNode.layout_id` transition alias 를 보강해 scene node 기반 frame body interaction helper 호환을 유지.
+  - G2-D core grep: panels read path + canvas interaction core production store `Element` import hit 0.
+  - 검증: builder type-check PASS, targeted Vitest 11 files / 82 tests PASS.
+  - 잔여: `rendererInput.ts` render-tree fallback, `BuilderCanvas` legacy bootstrap projection, `FramesTab`/frame loader, 생성형 property editors, `dropTargetResolver.ts` 는 Phase 2/4/5에서 정리.
 - **ADR-126 Phase 2-E preview boundary core land**:
   - `preview/App.tsx` 의 `resolveCanonicalRefTree` 와 frame mirror checks 를 `PreviewElement` generic path 로 전환하고 store `Element` casts/import 를 제거.
   - `preview/utils/layoutResolver.ts` 는 preview-local result types + `PreviewElement` 를 사용하도록 분리.
@@ -16,28 +24,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `utils/urlGenerator.ts` 는 `UrlPage` / `UrlLayout` contract 로 전환해 preview router 의 builder `Page` import 를 제거.
   - G2-E core grep: `preview/**` + `services/messaging.ts` + `utils/urlGenerator.ts` production `Element` raw/type import + `UPDATE_ELEMENTS` hit 0.
   - 검증: builder type-check PASS, targeted Vitest 2 files / 9 tests PASS.
-  - 잔여: `frameElementLoader.loadFrameElements()` 반환 `Element[]` 와 panels/slot selector/preset apply caller 는 2-D/Phase 5에서 정리.
+  - 잔여: `frameElementLoader.loadFrameElements()` 반환 `Element[]` 와 panels/slot selector/preset apply caller 는 후속 panels/write payload slice 또는 Phase 5에서 정리.
 - **ADR-126 Phase 2-B layout contract core land**:
   - `workspace/canvas/layout/**` production 을 Builder store `Element` import 대신 `CanvasLayoutNode` layout contract 로 전환.
   - `layoutCache.ts` 와 `useLayoutPublisher.ts` 도 `CanvasLayoutNode` 기반 input 을 소비하도록 정리.
   - `PixiPageRendererInput` / `buildPixiPageRendererInput` / `buildFrameRendererInput` production 명칭을 `LayoutPublisherInput` / `buildPageLayoutPublisherInput` / `buildFrameLayoutPublisherInput` 으로 정정.
   - G2-B core grep: `layout/**` + `scene/layoutCache.ts` + `hooks/useLayoutPublisher.ts` production `Element` raw/type hit 0, Pixi layout input legacy symbol hit 0.
   - 검증: builder type-check PASS, targeted Vitest 10 files / 63 tests PASS.
-  - 잔여: `rendererInput.ts` render-tree/interactive fallback `Element` shape 와 `BuilderCanvas` legacy store read 는 2-D/Phase 5에서 정리.
+  - 잔여: `rendererInput.ts` render-tree fallback `Element` shape 와 `BuilderCanvas` legacy store read 는 Phase 5에서 정리.
 - **ADR-126 Phase 2-C renderer input/ref resolution core land**:
   - `canonicalRefResolution.ts` 를 `Element` import 전용 helper 에서 `CanonicalRefResolvableNode` generic resolver 로 전환.
   - `resolvers/canonical/storeBridge.ts` 의 per-instance shared-cache resolver 도 `Element` import 없이 generic render node 를 반환하도록 전환.
   - `createSkiaRendererInput()` 이 주입된 canonical scene graph 를 `resolveCanonicalRefTree<CanvasSceneNode>()` 로 직접 resolve.
   - G2-C core grep: `canonicalRefResolution.ts` + `storeBridge.ts` `Element` raw/type hit 0.
   - 검증: builder type-check PASS, targeted Vitest 9 files / 113 tests PASS, `git diff --check` PASS.
-  - 잔여: `rendererInput.ts` render-tree / interactive fallback `Element` shape 는 2-D/Phase 5에서 정리.
+  - 잔여: `rendererInput.ts` render-tree fallback `Element` shape 는 Phase 5에서 정리.
 - **ADR-126 Phase 2-A Skia/scene core land**:
   - `CanvasSceneNode` / `CanvasSceneGraph` projection 을 추가하고 `CanonicalSceneModel` 이 `sceneNodes`, `sceneNodesMap`, `sceneChildrenByParent`, canonical-derived `pageIndex` 를 expose 하도록 전환.
   - Skia render bridge / command stream 이 `rendererInput.elementsMap` / `childrenMap` 대신 canonical scene maps 를 소비.
   - `canonicalSceneModel.ts` 내부 `canonicalDocumentToElements()` 호출 제거.
   - `workspace/canvas/skia/**` + `workspace/canvas/scene/**` production `Element` import/raw hit 0, Skia production `rendererInput.elementsMap|childrenMap` hit 0.
   - 검증: builder type-check PASS, targeted Vitest 18 files / 152 tests PASS, browser smoke canvas 1440x952 nonblank + console/page error 0 + rAF median 120.5fps PASS.
-  - 잔여: `CanvasSceneNode` transition alias, `BuilderCanvas` legacy getter fallback, `rendererInput.ts` render-tree/interactive fallback 은 2-D/Phase 5에서 정리.
+  - 잔여: `CanvasSceneNode` transition alias, `BuilderCanvas` legacy getter fallback, `rendererInput.ts` render-tree fallback 은 Phase 5에서 정리.
 
 ### Documentation
 

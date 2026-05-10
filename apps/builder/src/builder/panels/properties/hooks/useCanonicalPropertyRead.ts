@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 import { useStore } from "../../../stores";
 import { useCanonicalElements } from "../../../stores/canonical/canonicalElementsView";
-import type { Element } from "../../../../types/core/store.types";
+import type { PanelNode } from "../../panelNode";
 
-const EMPTY_CHILDREN: Element[] = [];
-const EMPTY_ELEMENTS: Element[] = [];
+const EMPTY_CHILDREN: PanelNode[] = [];
+const EMPTY_ELEMENTS: PanelNode[] = [];
 
-function buildChildrenMap(elements: Element[]): Map<string, Element[]> {
-  const map = new Map<string, Element[]>();
+function buildChildrenMap(elements: PanelNode[]): Map<string, PanelNode[]> {
+  const map = new Map<string, PanelNode[]>();
   for (const element of elements) {
     if (element.deleted || !element.parent_id) continue;
     const children = map.get(element.parent_id);
@@ -20,11 +20,11 @@ function buildChildrenMap(elements: Element[]): Map<string, Element[]> {
   return map;
 }
 
-function buildElementsMap(elements: Element[]): Map<string, Element> {
+function buildElementsMap(elements: PanelNode[]): Map<string, PanelNode> {
   return new Map(elements.map((element) => [element.id, element]));
 }
 
-function useCanonicalPropertySourceElements(): Element[] {
+function useCanonicalPropertySourceElements(): PanelNode[] {
   const canonicalElements = useCanonicalElements();
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
@@ -35,13 +35,13 @@ function useCanonicalPropertySourceElements(): Element[] {
   return canonicalElements ?? storeElements;
 }
 
-export function useCanonicalPropertyElements(): Element[] {
+export function useCanonicalPropertyElements(): PanelNode[] {
   return useCanonicalPropertySourceElements();
 }
 
 export function useCanonicalPropertyElement(
   elementId: string,
-): Element | undefined {
+): PanelNode | undefined {
   const sourceElements = useCanonicalPropertySourceElements();
 
   return useMemo(() => {
@@ -51,7 +51,7 @@ export function useCanonicalPropertyElement(
 
 export function useCanonicalPropertyElementsMap(): ReadonlyMap<
   string,
-  Element
+  PanelNode
 > {
   const sourceElements = useCanonicalPropertySourceElements();
 
@@ -60,7 +60,7 @@ export function useCanonicalPropertyElementsMap(): ReadonlyMap<
   }, [sourceElements]);
 }
 
-export function useCanonicalPropertyChildren(elementId: string): Element[] {
+export function useCanonicalPropertyChildren(elementId: string): PanelNode[] {
   const sourceElements = useCanonicalPropertySourceElements();
 
   return useMemo(() => {
@@ -73,7 +73,7 @@ export function useCanonicalPropertyChildren(elementId: string): Element[] {
 
 export function useCanonicalPropertyChildrenMap(): ReadonlyMap<
   string,
-  Element[]
+  PanelNode[]
 > {
   const sourceElements = useCanonicalPropertySourceElements();
 

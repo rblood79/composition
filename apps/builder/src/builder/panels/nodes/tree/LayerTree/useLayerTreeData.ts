@@ -1,6 +1,5 @@
 import { useMemo, useCallback } from "react";
 import { buildTreeFromElements } from "../../../../utils/treeUtils";
-import type { Element } from "../../../../../types/core/store.types";
 import type { ElementTreeItem } from "../../../../../types/builder/stately.types";
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 import { useStore } from "../../../../stores";
@@ -17,15 +16,16 @@ import {
   type TreeItem as TreeItemType,
 } from "../helpers";
 import type { LayerTreeNode, VirtualChildType } from "./types";
+import type { PanelNode } from "../../../panelNode";
 
-const EMPTY_ELEMENTS: Element[] = [];
+const EMPTY_ELEMENTS: PanelNode[] = [];
 
-export function useLayerTreeData(elements: Element[]) {
+export function useLayerTreeData(elements: PanelNode[]) {
   const currentPageId = useStore((state) => state.currentPageId);
   const pages = useStore((state) => state.pages);
 
   // ADR-116 direct cutover — canonical store 의 active document 에서 derived
-  // Element[] 를 source 로 사용. 초기 hydration 전에는 caller elements[] fallback.
+  // panel read model 을 사용. 초기 hydration 전에는 caller elements[] fallback.
   const canonicalElements = useCanonicalElements();
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
@@ -185,9 +185,9 @@ export function useLayerTreeData(elements: Element[]) {
 }
 
 function mergeCanonicalLayerSource(
-  canonicalElements: Element[] | null,
-  layerElements: Element[],
-): Element[] {
+  canonicalElements: PanelNode[] | null,
+  layerElements: PanelNode[],
+): PanelNode[] {
   if (!canonicalElements) return layerElements;
   const elementsById = new Map(
     canonicalElements.map((element) => [element.id, element]),
@@ -202,11 +202,11 @@ function mergeCanonicalLayerSource(
   return Array.from(elementsById.values());
 }
 
-function dedupeLayerElementsById(elements: Element[]): Element[] {
+function dedupeLayerElementsById(elements: PanelNode[]): PanelNode[] {
   if (elements.length < 2) return elements;
 
   const seenIds = new Set<string>();
-  const deduped: Element[] = [];
+  const deduped: PanelNode[] = [];
   for (const element of elements) {
     if (seenIds.has(element.id)) continue;
     seenIds.add(element.id);
@@ -218,8 +218,8 @@ function dedupeLayerElementsById(elements: Element[]): Element[] {
 
 function convertToLayerTreeNodes(
   tree: ElementTreeItem[],
-  elements: Element[],
-  persistedElementsMap: Map<string, Element>,
+  elements: PanelNode[],
+  persistedElementsMap: Map<string, PanelNode>,
   depth = 0,
 ): LayerTreeNode[] {
   const elementsMap = new Map(elements.map((el) => [el.id, el]));
@@ -279,7 +279,7 @@ function getDisplayName(item: ElementTreeItem): string {
 function getVirtualChildren(
   item: ElementTreeItem,
   depth: number,
-  element: Element,
+  element: PanelNode,
 ): LayerTreeNode[] {
   const props = item.props as ElementProps | undefined;
   if (!props) return [];

@@ -1,7 +1,7 @@
-import type { Element } from "../../../../types/core/store.types";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { parseZIndex } from "../layout/engines/cssStackingContext";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 export interface CanvasPoint {
   x: number;
@@ -47,7 +47,7 @@ function findFrameBodySelectionAtCanvasPoint({
   frameAreas,
 }: {
   canvasPoint: CanvasPoint;
-  elementsMap: Map<string, Element>;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
   frameAreas: FrameBodySelectionArea[];
 }): BodySelectionResult | null {
   for (let i = frameAreas.length - 1; i >= 0; i--) {
@@ -72,8 +72,8 @@ function findFrameBodySelectionAtCanvasPoint({
 
 export function pickTopmostHitElementId(
   hitCandidates: string[],
-  elementsMap: Map<string, Element>,
-  childrenMap?: Map<string, Element[]> | null,
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>,
+  childrenMap?: ReadonlyMap<string, readonly CanvasInteractionNode[]> | null,
 ): string | null {
   let hitElementId: string | null = null;
   let bestDepth = -1;
@@ -108,8 +108,8 @@ export function pickTopmostHitElementId(
 function compareHitPriority(
   candidateId: string,
   currentId: string,
-  elementsMap: Map<string, Element>,
-  childrenMap?: Map<string, Element[]> | null,
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>,
+  childrenMap?: ReadonlyMap<string, readonly CanvasInteractionNode[]> | null,
 ): number {
   if (candidateId === currentId) return 0;
 
@@ -158,7 +158,7 @@ function compareHitPriority(
 
 function getElementAncestorChain(
   elementId: string,
-  elementsMap: Map<string, Element>,
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>,
 ): string[] {
   const chain: string[] = [];
   let current = elementsMap.get(elementId);
@@ -175,7 +175,7 @@ function getElementAncestorChain(
   return chain;
 }
 
-function readElementZIndex(element: Element): number {
+function readElementZIndex(element: CanvasInteractionNode): number {
   const style = element.props?.style as Record<string, unknown> | undefined;
   const zIndex = style?.zIndex;
   return (
@@ -191,7 +191,7 @@ function compareChildIndex(
   candidateId: string,
   currentId: string,
   parentId: string | null,
-  childrenMap?: Map<string, Element[]> | null,
+  childrenMap?: ReadonlyMap<string, readonly CanvasInteractionNode[]> | null,
 ): number {
   if (!parentId || !childrenMap) return 0;
   const children = childrenMap.get(parentId);
@@ -207,7 +207,7 @@ function compareChildIndex(
 
 function getElementDepth(
   elementId: string,
-  elementsMap: Map<string, Element>,
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>,
 ): number {
   let depth = 0;
   let current = elementsMap.get(elementId);
@@ -238,7 +238,7 @@ export function findBodySelectionAtCanvasPoint({
 }: {
   canvasPoint: CanvasPoint;
   currentPageId: string | null;
-  elementsMap: Map<string, Element>;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
   frameAreas?: FrameBodySelectionArea[];
   pageHeight: number;
   pageIndexElementsByPage: Map<string, Set<string>>;

@@ -409,7 +409,7 @@ renderable `CanvasSceneNode` graph 를 생성한 뒤 Skia render bridge/command 
 
 - `CanvasSceneNode` 는 transition alias `parent_id` / `page_id` / `componentName` 을 가진다. 신규 Skia code 는 `parentId` / `pageId` / `name` 을 선호해야 하며 alias 제거는 lookup/caller cascade 잔여 정리와 함께 진행한다.
 - `BuilderCanvas` 는 scene snapshot/layout/interaction 경로 때문에 `getSceneModelElementsLegacy` / `getSceneModelElementsMapLegacy` / `getSceneModelChildrenByParentLegacy` fallback 을 아직 호출한다. 이는 2-B/2-C/2-D 및 Phase 5에서 제거한다.
-- `rendererInput.ts` 의 legacy bootstrap fallback graph 는 2-C에서 "canonical scene fields 미주입 시에만" 사용하는 fallback으로 축소했다. 2-B에서 layout publisher input 은 `CanvasLayoutNode` 계약으로 전환했고, 남은 render-tree/interactive fallback `Element` shape 는 2-D/Phase 5 cascade에서 제거한다.
+- `rendererInput.ts` 의 legacy bootstrap fallback graph 는 2-C에서 "canonical scene fields 미주입 시에만" 사용하는 fallback으로 축소했다. 2-B에서 layout publisher input 은 `CanvasLayoutNode` 계약으로 전환했고, 2-D에서 interaction read model 은 scene maps 로 전환했다. 남은 render-tree fallback `Element` shape 는 Phase 5 cascade에서 제거한다.
 
 - `apps/builder/src/builder/workspace/canvas/skia/StoreRenderBridge.ts`
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
@@ -455,10 +455,10 @@ shape 를 실제 역할에 맞게 정리했다.
 - Type-check:
   - `pnpm -F @composition/builder type-check` PASS
 
-**잔여를 Phase 2-D/Phase 5에 위임**:
+**잔여를 Phase 5에 위임**:
 
-- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 interaction/read-model fallback 때문에 아직 store `Element` shape 를 포함한다.
-- `BuilderCanvas` 는 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback, interactive hover/scroll read-model 때문에 아직 store `Element` import 를 유지한다.
+- `rendererInput.ts` 의 `SkiaRendererInput.elements/elementsMap/childrenMap` 과 legacy bootstrap render tree 는 아직 store `Element` shape 를 포함한다.
+- `BuilderCanvas` 는 `EMPTY_ELEMENTS`, `getSceneModel*Legacy` fallback 때문에 아직 store `Element` import 를 유지한다.
 - `CanvasLayoutNode` 는 transition 중 `parent_id/page_id/layout_id` legacy field 를 허용한다. alias 제거는 Phase 5 boundary 정리에서 처리한다.
 
 - `apps/builder/src/builder/workspace/canvas/layout/fullTreeLayout.ts` (`enrichWithIntrinsicSize`, `processedElementsMap`)
@@ -501,14 +501,61 @@ shape 를 실제 역할에 맞게 정리했다.
 
 **잔여를 Phase 2-B/2-D에 위임**:
 
-- `rendererInput.ts` 의 render-tree / interactive fallback `Element` shape 는 2-D/Phase 5 read-model 정리 때 제거한다.
-- `BuilderCanvas` interactive hover/scroll fallback 은 `skiaRendererInput.elementsMap` / `childrenMap` 을 아직 사용한다. 2-D/Phase 4 interaction read-model 정리 때 제거한다.
+- `rendererInput.ts` 의 render-tree fallback `Element` shape 는 Phase 5 read-model 정리 때 제거한다.
+- `BuilderCanvas` legacy bootstrap projection 은 아직 `getSceneModel*Legacy` / store `Element` fallback 을 유지한다. interaction read-model 은 2-D core 에서 scene maps 로 전환한다.
 
 - `apps/builder/src/builder/workspace/canvas/renderers/rendererInput.ts`
 - `apps/builder/src/adapters/canonical/canonicalRefResolution.ts`
 - `apps/builder/src/resolvers/canonical/storeBridge.ts`
 
 #### 2-D. Panels (properties + nodes/LayerTree)
+
+**Status: Core Landed — 2026-05-10**
+
+2-D core 는 panels read path 와 canvas interaction read model 이 Builder store
+`Element` import 를 직접 소비하던 표면을 최소 구조 contract 로 분리했다. 전체 G2-D
+종료는 아니며, frame loader / FramesTab / 생성형 property editor / drop target
+resolver 는 후속 slice 로 남긴다.
+
+**구현 결과**:
+
+- 신규 `apps/builder/src/builder/panels/panelNode.ts`
+  - properties / LayerTree 가 읽는 최소 `PanelNode` contract 정의
+  - `id`, `type`, `props`, `parent_id`, `page_id`, `layout_id`, slot/ref/component mirror transition field 만 허용
+- `useCanonicalPropertyRead.ts`
+  - `Element` import 제거
+  - property sections 가 `PanelNode[]`, `ReadonlyMap<string, PanelNode>`, `ReadonlyMap<string, PanelNode[]>` 를 소비
+- `LayersSection.tsx` + `LayerTree/*`
+  - `buildLayerSectionElementMap`, `resolveLayerTreeEditingContext`, `useLayerTreeData`, `LayerTreeNode`, item delete/click props 를 `PanelNode` 기반으로 전환
+  - canonical LayerTree source merge/dedupe 는 type alias rename 없이 caller cascade 동반 전환
+- `ComponentSemanticsSection.tsx`, `ComponentSlotFillSection.tsx`, `FrameSlotSection.tsx`
+  - component origin/slot/fill read path 의 store `Element` import 제거
+  - slot/fill update patch cast 는 `Partial<PanelNode>` 로 좁힘
+- 신규 `apps/builder/src/builder/workspace/canvas/interaction/interactionNode.ts`
+  - selection / context menu / drag / hover / scroll 이 공유하는 최소 `CanvasInteractionNode` contract 정의
+- `selectionHitTest.ts`, `selectionModel.ts`, `canvasContextMenu.ts`
+  - hit-test / selected bounds / detach context menu input 을 `CanvasInteractionNode` map 으로 전환
+- `BuilderCanvas.tsx`, `useDragBridge.ts`, `useElementHoverInteraction.ts`, `useScrollWheelInteraction.ts`, `SkiaCanvas.tsx`
+  - interactive refs / drag / hover / scroll input 을 `rendererInput.sceneNodesMap` + `sceneChildrenByParent` 로 전환
+  - `CanvasSceneNode.layout_id` transition alias 를 보강해 existing frame mirror helper 가 scene node 에서도 frame body 를 판정 가능하게 유지
+
+**G2-D core evidence**:
+
+- Grep gate:
+  - panels read path (`useCanonicalPropertyRead`, `LayersSection`, `LayerTree`, Component semantics/slot/fill sections) store `Element` import hit 0
+  - canvas interaction core (`selectionHitTest`, `selectionModel`, `canvasContextMenu`, drag/hover/scroll hooks) store `Element` import hit 0
+  - `rendererInputRef.current.elementsMap|childrenMap` interaction hook input hit 0
+- Targeted tests:
+  - `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/ComponentSlotFillSection.test.tsx src/builder/panels/properties/FrameSlotSection.test.tsx src/builder/panels/properties/ComponentSemanticsSection.test.tsx src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx src/builder/panels/nodes/LayersSection.test.ts src/builder/workspace/canvas/interaction/selectionModel.test.ts src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts src/builder/workspace/canvas/selection/selectionHitTest.test.ts src/builder/workspace/canvas/hooks/useElementHoverInteraction.test.ts src/builder/workspace/canvas/selection/dropTargetResolver.test.ts src/builder/workspace/canvas/scene/canonicalSceneModel.test.ts` — 11 files / 82 tests PASS
+- Type-check:
+  - `pnpm -F @composition/builder type-check` PASS
+
+**잔여를 Phase 2/4/5에 위임**:
+
+- `apps/builder/src/adapters/canonical/frameElementLoader.ts` 의 `loadFrameElements()` 반환 `Element[]` 와 `FramesTab` / `FrameElementTree` panels caller 는 후속 slice 에서 정리한다.
+- 생성형 property editors (`TableEditor`, `TableHeaderEditor`, `ListBoxItemEditor`, `TagEditor`, `ChildItemManager`, `tabsItemActions`, `TreeItemEditor`, `LayoutPresetSelector/usePresetApply`) 는 write payload / addElement contract 와 함께 Phase 4 또는 Phase 5에서 전환한다.
+- `apps/builder/src/builder/workspace/canvas/selection/dropTargetResolver.ts` 는 drag-drop move semantics 와 history commit 이 얽혀 있어 Phase 4 drag-drop consumer 전환에서 별도 처리한다.
+- `rendererInput.ts` 의 render-tree fallback 과 `BuilderCanvas` legacy bootstrap projection 은 Phase 5 derived-view/store-cache 정리 때 제거한다.
 
 - `apps/builder/src/builder/panels/properties/**` (selected node read + property panels)
 - `apps/builder/src/builder/panels/nodes/**` (LayerTree tree model)
@@ -552,10 +599,10 @@ message/url/layout resolver 의 preview-local contract 를 명시했다.
 - Type-check:
   - `pnpm -F @composition/builder type-check` PASS
 
-**잔여를 Phase 2-D/Phase 5에 위임**:
+**잔여를 Phase 2/4/5에 위임**:
 
 - `frameElementLoader.loadFrameElements()` 는 panels/slot selector/preset apply caller 때문에 아직 `Element[]` 를 반환한다.
-- `apps/builder/src/builder/panels/**`, `ElementSlotSelector`, `LayoutPresetSelector/usePresetApply.ts`, canvas interaction helper 의 frame loader/filter caller 는 2-D/Phase 5에서 함께 정리한다.
+- `FramesTab` / `FrameElementTree` / `ElementSlotSelector` / `LayoutPresetSelector/usePresetApply.ts` 등 frame loader/filter caller 는 후속 panels/write payload slice에서 정리한다.
 
 - `apps/builder/src/preview/utils/layoutResolver.ts`
 - `apps/builder/src/preview/App.tsx`

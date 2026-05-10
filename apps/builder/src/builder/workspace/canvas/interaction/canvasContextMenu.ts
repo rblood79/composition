@@ -1,11 +1,11 @@
-import type { Element } from "../../../../types/core/store.types";
 import { canDetachInstance } from "../../../utils/editingSemantics";
 import { resolveTopmostHitElementId } from "./selectionModel";
+import type { CanvasInteractionNode } from "./interactionNode";
 
 export function resolveCanvasDetachContextTarget(
   hitCandidates: string[],
-  hitElementsMap: Map<string, Element>,
-  hitChildrenMap?: Map<string, Element[]> | null,
+  hitElementsMap: ReadonlyMap<string, CanvasInteractionNode>,
+  hitChildrenMap?: ReadonlyMap<string, readonly CanvasInteractionNode[]> | null,
 ): string | null {
   const hitElementId = resolveTopmostHitElementId(
     hitCandidates,

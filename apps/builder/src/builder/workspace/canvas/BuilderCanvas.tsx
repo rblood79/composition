@@ -5,7 +5,7 @@
  *
  * 기능:
  * - PixiJS Application 초기화
- * - Element 렌더링 (ElementSprite)
+ * - Canvas node 렌더링
  * - Selection Overlay
  * - Zoom/Pan
  *
@@ -576,13 +576,18 @@ export function BuilderCanvas({
     frameElementScopes,
   ]);
 
-  const interactiveElementsMapRef = useRef(skiaRendererInput.elementsMap);
-  const interactiveChildrenMapRef = useRef(skiaRendererInput.childrenMap);
+  const interactiveElementsMapRef = useRef(skiaRendererInput.sceneNodesMap);
+  const interactiveChildrenMapRef = useRef(
+    skiaRendererInput.sceneChildrenByParent,
+  );
 
   useEffect(() => {
-    interactiveElementsMapRef.current = skiaRendererInput.elementsMap;
-    interactiveChildrenMapRef.current = skiaRendererInput.childrenMap;
-  }, [skiaRendererInput.childrenMap, skiaRendererInput.elementsMap]);
+    interactiveElementsMapRef.current = skiaRendererInput.sceneNodesMap;
+    interactiveChildrenMapRef.current = skiaRendererInput.sceneChildrenByParent;
+  }, [
+    skiaRendererInput.sceneChildrenByParent,
+    skiaRendererInput.sceneNodesMap,
+  ]);
 
   const getInteractiveElementsMap = useCallback(
     () => interactiveElementsMapRef.current,
@@ -686,7 +691,7 @@ export function BuilderCanvas({
     if (!elementId) return;
     setCanvasContextMenu(null);
 
-    const element = elements.find((candidate) => candidate.id === elementId);
+    const element = getInteractiveElementsMap().get(elementId);
     const confirmed = await requestEditingSemanticsDetachConfirmation({
       instanceId: elementId,
       instanceLabel:
@@ -698,7 +703,7 @@ export function BuilderCanvas({
     if (!confirmed) return;
 
     detachInstance(elementId);
-  }, [canvasContextMenu?.elementId, detachInstance, elements]);
+  }, [canvasContextMenu?.elementId, detachInstance, getInteractiveElementsMap]);
 
   // ADR-074 Phase 3: packet 을 scene(selection-invariant) / overlay(selection deps)
   // 로 분리. selection-only 변화 시 scenePacket identity 유지 → 하위 useMemo 중
@@ -916,7 +921,7 @@ export function BuilderCanvas({
     editingElementIdRef.current = editState?.elementId ?? null;
   }, [completeEdit, editState?.elementId, isEditing]);
 
-  // Element click handler with multi-select support
+  // Canvas node click handler with multi-select support
   // 🚀 최적화: selectedElementIds를 deps에서 제거하고 getState()로 읽어서
   // 선택 변경 시 handleElementClick 재생성 방지 → 모든 ElementSprite 리렌더링 방지
   // 🚀 Phase 18: startTransition으로 선택 업데이트 → INP 개선 (245ms → ~50ms)

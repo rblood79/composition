@@ -10,7 +10,6 @@ import {
   GripVertical,
 } from "lucide-react";
 import { ICON_EDIT_PROPS, type TreeItem as TreeItemType } from "../helpers";
-import type { Element } from "../../../../../types/core/store.types";
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 import type { TreeItemState } from "../TreeBase/types";
 import type { LayerTreeNode } from "./types";
@@ -22,11 +21,12 @@ import {
   getEditingSemanticsLabel,
   getEditingSemanticsRole,
 } from "../../../../utils/editingSemantics";
+import type { PanelNode } from "../../../panelNode";
 
 interface LayerTreeItemContentProps {
   node: LayerTreeNode;
   state: TreeItemState;
-  onDelete: (element: Element) => Promise<void>;
+  onDelete: (element: PanelNode) => Promise<void>;
   selectedTab?: { parentId: string; tabIndex: number } | null;
   onSelectTabElement?: (
     parentId: string,
@@ -72,7 +72,7 @@ export function LayerTreeItemContent({
 interface NormalItemContentProps {
   node: LayerTreeNode;
   state: TreeItemState;
-  onDelete: (element: Element) => Promise<void>;
+  onDelete: (element: PanelNode) => Promise<void>;
 }
 
 function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {

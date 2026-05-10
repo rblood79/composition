@@ -5,7 +5,6 @@ type Container = {
   visible: boolean;
   position?: { x: number; y: number };
 };
-import type { Element } from "../../../../types/core/store.types";
 import {
   calculateCombinedBounds,
   hitTestHandle,
@@ -22,10 +21,11 @@ import {
 } from "../selection/selectionHitTest";
 import { getViewportController } from "../viewport/ViewportController";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import type { CanvasInteractionNode } from "./interactionNode";
 
 interface ResolveSelectedElementsForPageInput {
   currentPageId: string | null;
-  elementsMap: Map<string, Element>;
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
   selectedElementIds: string[];
 }
 
@@ -38,7 +38,7 @@ interface ComputeSelectionBoundsOptions {
   pagePositions?: Record<string, { x: number; y: number } | undefined>;
   pageWidth: number;
   panOffset?: { x: number; y: number };
-  selectedElements: Element[];
+  selectedElements: CanvasInteractionNode[];
   zoom?: number;
 }
 
@@ -88,12 +88,12 @@ export function resolveSelectedElementsForPage({
   currentPageId,
   elementsMap,
   selectedElementIds,
-}: ResolveSelectedElementsForPageInput): Element[] {
+}: ResolveSelectedElementsForPageInput): CanvasInteractionNode[] {
   if (selectedElementIds.length === 0) {
     return [];
   }
 
-  const resolved: Element[] = [];
+  const resolved: CanvasInteractionNode[] = [];
   for (const id of selectedElementIds) {
     const element = elementsMap.get(id);
     if (!element) continue;
@@ -194,8 +194,8 @@ export function resolveSelectionHit(
 
 export function resolveTopmostHitElementId(
   hitCandidates: string[],
-  elementsMap: Map<string, Element>,
-  childrenMap?: Map<string, Element[]> | null,
+  elementsMap: ReadonlyMap<string, CanvasInteractionNode>,
+  childrenMap?: ReadonlyMap<string, readonly CanvasInteractionNode[]> | null,
 ): string | null {
   return pickTopmostHitElementId(hitCandidates, elementsMap, childrenMap);
 }

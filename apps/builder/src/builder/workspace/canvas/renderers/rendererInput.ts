@@ -245,18 +245,20 @@ function buildLegacyCanvasSceneGraph(elements: Element[]): CanvasSceneGraph {
   const parentById = new Map<string, string>();
 
   for (const element of elements) {
+    const layoutId =
+      typeof (element as { layout_id?: unknown }).layout_id === "string"
+        ? ((element as { layout_id: string }).layout_id ?? null)
+        : null;
     const node: CanvasSceneNode = {
       id: element.id,
       type: element.type,
       props: element.props ?? {},
       parentId: element.parent_id ?? null,
       pageId: element.page_id ?? null,
-      layoutId:
-        typeof (element as { layout_id?: unknown }).layout_id === "string"
-          ? ((element as { layout_id: string }).layout_id ?? null)
-          : null,
+      layoutId,
       parent_id: element.parent_id ?? null,
       page_id: element.page_id ?? null,
+      layout_id: layoutId,
       deleted: element.deleted,
       ...(element.customId ? { customId: element.customId } : {}),
       ...(element.componentName ? { name: element.componentName } : {}),

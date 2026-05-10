@@ -1,6 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { Layers, Minus, Plus, X } from "lucide-react";
-import type { Element } from "../../../types/core/store.types";
 import {
   matchesReference,
   resolveReference,
@@ -15,8 +14,9 @@ import {
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
+import type { PanelNode } from "../panelNode";
 
-type SlotElement = Element & {
+type SlotElement = PanelNode & {
   metadata?: Record<string, unknown>;
   slot?: false | string[];
 };
@@ -31,11 +31,11 @@ const SLOT_HOST_TYPES = new Set([
   "section",
 ]);
 
-function isSlotHostElement(element: Element | undefined): boolean {
+function isSlotHostElement(element: PanelNode | undefined): boolean {
   return Boolean(element && SLOT_HOST_TYPES.has(element.type.toLowerCase()));
 }
 
-function getElementLabel(element: Element): string {
+function getElementLabel(element: PanelNode): string {
   return element.componentName ?? element.customId ?? element.type;
 }
 
@@ -171,7 +171,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           parent_id: latestElement.id,
           page_id: latestElement.page_id ?? null,
           props: {},
-        } as Element,
+        } as PanelNode,
         getFrameElementMirrorId(latestElement),
       ),
     );

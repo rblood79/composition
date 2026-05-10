@@ -14,7 +14,6 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { useStore } from "../../../stores";
-import type { Element } from "../../../../types/core/store.types";
 import { useDragInteraction } from "../selection/useDragInteraction";
 import {
   resolveDropTarget,
@@ -41,6 +40,7 @@ import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
 import type { BoundingBox } from "../selection/types";
 import { moveElementCanonicalPrimary } from "../../../../adapters/canonical/canonicalMutations";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 type DragSnapshotEntry = {
   id: string;
@@ -53,13 +53,13 @@ type SceneBoundsResolver = (
 ) => BoundingBox | null | undefined;
 
 type DragReadModel = {
-  elementsById: ReadonlyMap<string, Element>;
-  childrenByParent: ReadonlyMap<string, Element[]>;
+  elementsById: ReadonlyMap<string, CanvasInteractionNode>;
+  childrenByParent: ReadonlyMap<string, CanvasInteractionNode[]>;
 };
 
 type DragReadModelResolvers = {
-  getInteractiveElementsMap?: () => Map<string, Element>;
-  getInteractiveChildrenMap?: () => Map<string, Element[]>;
+  getInteractiveElementsMap?: () => Map<string, CanvasInteractionNode>;
+  getInteractiveChildrenMap?: () => Map<string, CanvasInteractionNode[]>;
 };
 
 interface UseDragBridgeOptions {
@@ -76,13 +76,15 @@ interface UseDragBridgeOptions {
   onEndDragRef: MutableRefObject<() => void>;
   onCancelDragRef: MutableRefObject<() => void>;
   dropIndicatorSnapshotRef: MutableRefObject<DropIndicatorSnapshot | null>;
-  getInteractiveElementsMap?: () => Map<string, Element>;
-  getInteractiveChildrenMap?: () => Map<string, Element[]>;
+  getInteractiveElementsMap?: () => Map<string, CanvasInteractionNode>;
+  getInteractiveChildrenMap?: () => Map<string, CanvasInteractionNode[]>;
   /** false이면 ref 바인딩 스킵 (SelectionLayer가 대신 바인딩) */
   enabled?: boolean;
 }
 
-function asStyleRecord(element: Element): Record<string, unknown> {
+function asStyleRecord(
+  element: CanvasInteractionNode,
+): Record<string, unknown> {
   const style = element.props?.style;
   return style && typeof style === "object" && !Array.isArray(style)
     ? (style as Record<string, unknown>)
@@ -112,7 +114,9 @@ function formatPx(value: number): string {
   return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}px`;
 }
 
-function toDragSnapshotEntry(element: Element): DragSnapshotEntry {
+function toDragSnapshotEntry(
+  element: CanvasInteractionNode,
+): DragSnapshotEntry {
   return {
     id: element.id,
     page_id: element.page_id,
@@ -132,11 +136,13 @@ export function resolveDragReadModel(
   };
 }
 
-function buildDragReadModelFromElements(elements: Element[]): DragReadModel {
+function buildDragReadModelFromElements(
+  elements: CanvasInteractionNode[],
+): DragReadModel {
   const elementsById = new Map(
     elements.map((element) => [element.id, element]),
   );
-  const childrenByParent = new Map<string, Element[]>();
+  const childrenByParent = new Map<string, CanvasInteractionNode[]>();
   for (const element of elements) {
     if (element.deleted || !element.parent_id) continue;
     const siblings = childrenByParent.get(element.parent_id);
@@ -152,7 +158,7 @@ function buildDragReadModelFromElements(elements: Element[]): DragReadModel {
 function buildDragReadModelFromCanonicalDocument(
   doc: Parameters<typeof visitCanonicalDocumentElements>[0],
 ): DragReadModel {
-  const elements: Element[] = [];
+  const elements: CanvasInteractionNode[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
     elements.push(element);
   });
@@ -160,15 +166,15 @@ function buildDragReadModelFromCanonicalDocument(
 }
 
 export function collectDragSnapshotEntries(
-  elementsById: ReadonlyMap<string, Element>,
-  childrenByParent: ReadonlyMap<string, Element[]>,
+  elementsById: ReadonlyMap<string, CanvasInteractionNode>,
+  childrenByParent: ReadonlyMap<string, CanvasInteractionNode[]>,
   draggedId: string,
 ): DragSnapshotEntry[] {
   const dragged = elementsById.get(draggedId);
   if (!dragged) return [];
 
   const entries = new Map<string, DragSnapshotEntry>();
-  const addElement = (element: Element | undefined): void => {
+  const addElement = (element: CanvasInteractionNode | undefined): void => {
     if (!element) return;
     entries.set(element.id, toDragSnapshotEntry(element));
   };
@@ -209,7 +215,7 @@ async function persistActiveCanonicalDocument(
 }
 
 export function isManualPositionDragTarget(
-  element: Element | undefined,
+  element: CanvasInteractionNode | undefined,
 ): boolean {
   if (!element || element.deleted) {
     return false;
@@ -220,7 +226,7 @@ export function isManualPositionDragTarget(
 }
 
 export function resolveManualPositionDragProps(
-  element: Element | undefined,
+  element: CanvasInteractionNode | undefined,
   delta: { x: number; y: number },
   getBounds: SceneBoundsResolver = getSceneBounds,
 ): Record<string, unknown> | null {

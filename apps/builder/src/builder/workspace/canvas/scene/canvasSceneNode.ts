@@ -37,6 +37,10 @@ export interface CanvasSceneNode {
    */
   page_id?: string | null;
   /**
+   * @deprecated ADR-126 transition alias. Prefer `layoutId` in new Skia code.
+   */
+  layout_id?: string | null;
+  /**
    * Canonical scene nodes are omitted instead of marked deleted. Legacy
    * bootstrap adapters may still pass falsey deleted markers during transition.
    */
@@ -147,6 +151,7 @@ function toCanvasSceneNode(
     layoutId: scope.layoutId,
     parent_id: parentId,
     page_id: scope.pageId,
+    layout_id: scope.layoutId,
     ...(customId ? { customId } : {}),
     ...(node.name !== undefined ? { name: node.name } : {}),
     ...(node.name !== undefined ? { componentName: node.name } : {}),

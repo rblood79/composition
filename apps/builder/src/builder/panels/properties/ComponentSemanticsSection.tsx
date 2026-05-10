@@ -1,6 +1,5 @@
 import { memo, useMemo } from "react";
 import { Component as ComponentIcon } from "lucide-react";
-import type { Element } from "../../../types/core/store.types";
 import { PropertySection } from "../../components";
 import { useStore } from "../../stores";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
@@ -19,18 +18,19 @@ import {
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
+import type { PanelNode } from "../panelNode";
 
 function resolveOriginElement(
   originId: string | null,
-  elements: Iterable<Element>,
-): Element | null {
+  elements: Iterable<PanelNode>,
+): PanelNode | null {
   if (!originId) return null;
   return resolveReference(originId, elements) ?? null;
 }
 
 function getComponentDisplayName(
-  element: Element,
-  originElement: Element | null,
+  element: PanelNode,
+  originElement: PanelNode | null,
 ): string {
   return (
     element.componentName ??
@@ -42,7 +42,7 @@ function getComponentDisplayName(
   );
 }
 
-function isFrameBodyElement(element: Element): boolean {
+function isFrameBodyElement(element: PanelNode): boolean {
   return (
     element.type.toLowerCase() === "body" &&
     getFrameElementMirrorId(element) !== null
