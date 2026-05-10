@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 4 element creation lookup slice land**:
+  - `elementCreation.ts` 의 ref master/customId generation lookup helper 를 generic readonly map contract 로 전환하고 `buildCreationElementMap()` 을 `Map<string, TElement>` 로 좁혔다.
+  - 생성 payload와 canonical insert event는 기존 `Element` contract 로 유지했다.
+  - 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **ADR-126 Phase 4 grouping read-model slice land**:
   - `elementGrouping.ts` 의 group/ungroup input 을 raw `Map<string, Element>` 대신 generic `ReadonlyMap<string, TElement>` contract 로 전환했다.
   - group 생성/해제 output payload 는 기존 history/add/update 경계 호환을 위해 `Element` 로 유지했다.

@@ -100,9 +100,9 @@ function mergeCreatedElementsIntoCanonicalDocument(elements: Element[]): void {
   mergeElementsCanonicalPrimary(elements);
 }
 
-function getRefMasterType(
-  element: Element,
-  elementsMap: Map<string, Element>,
+function getRefMasterType<TElement extends Element>(
+  element: TElement,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): string | null {
   if (element.type !== "ref") return null;
   const ref = (element as Element & { ref?: unknown }).ref;
@@ -116,9 +116,9 @@ function getRefMasterType(
   return elementsMap.get(masterId)?.type ?? null;
 }
 
-function getCustomIdGenerationBase(
-  element: Element,
-  elementsMap: Map<string, Element>,
+function getCustomIdGenerationBase<TElement extends Element>(
+  element: TElement,
+  elementsMap: ReadonlyMap<string, TElement>,
 ): string {
   return (
     getCustomIdBase(element.customId) ??
@@ -131,7 +131,9 @@ function hasDuplicateCustomId(customId: string, elements: Element[]): boolean {
   return elements.some((element) => element.customId === customId);
 }
 
-function buildCreationElementMap(elements: Element[]): Map<string, Element> {
+function buildCreationElementMap<TElement extends Element>(
+  elements: readonly TElement[],
+): Map<string, TElement> {
   return new Map(elements.map((element) => [element.id, element]));
 }
 

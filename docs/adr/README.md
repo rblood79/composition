@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-11 — **ADR-126 Phase 4 grouping read-model slice land**. `elementGrouping.ts` 의 group/ungroup input 을 generic readonly map contract 로 전환하고 raw `Map<string, Element>` input 회귀를 static test 로 차단했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
+> **최종 업데이트**: 2026-05-11 — **ADR-126 Phase 4 element creation lookup slice land**. `elementCreation.ts` 의 ref master/customId generation lookup helper 를 generic readonly map contract 로 전환하고 raw `Map<string, Element>` helper 회귀를 static test 로 차단했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
+>
+> **2026-05-11 (직전) — ADR-126 Phase 4 grouping read-model slice land**. `elementGrouping.ts` 의 group/ungroup input 을 generic readonly map contract 로 전환하고 raw `Map<string, Element>` input 회귀를 static test 로 차단했다. builder type-check + targeted Vitest 1 file / 1 test PASS.
 >
 > **2026-05-11 (직전) — ADR-126 Phase 4 utility read-model slice land**. `layoutInvalidation`, alignment/distribution, element helper lookup 의 map input 을 structural/readonly contract 로 좁혀 store utility 의 full `Element` map 의존을 줄였다. builder type-check + targeted Vitest 2 files / 3 tests PASS. 잔여는 creation/removal/update/indexer/history/inspector/loader consumer 와 bootstrap boundary allowlist 정렬.
 >
