@@ -65,7 +65,8 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - Phase 4 element removal slice 완료: `elementRemoval.ts` 의 removal target lookup, children map, post-removal cache rebuild, multi-remove de-dup map 은 local alias contract 로 전환.
 - Phase 4 history actions slice 완료: `historyActions.ts` 의 cloud compatibility upsert lookup map 은 local alias contract 로 전환.
 - Phase 4 elements page removal slice 완료: `elements.ts` 의 `removePageLocal` page removal/de-dup maps 는 local alias contract 로 전환.
-- Phase 4 잔여: `inspectorActions.ts` 의 `Element` map consumer 전환. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 별도 allowlist 정렬.
+- Phase 4 inspector actions slice 완료: `inspectorActions.ts` 의 inspector lookup/children map helpers 와 required state map contract 는 local alias contract 로 전환.
+- Phase 4 잔여: store/action/helper raw map consumer 는 `canonicalSceneModelLegacy` bootstrap boundary 제외 시 0건. `canonicalSceneModelLegacy` 는 별도 allowlist 정렬.
 
 ### 3-C. `hot-path-consumer` (Phase 2/4 전환 대상)
 

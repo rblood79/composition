@@ -62,6 +62,14 @@ const SHORTHAND_TO_LONGHAND: Record<string, readonly string[]> = {
   padding: ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
   margin: ["marginTop", "marginRight", "marginBottom", "marginLeft"],
 };
+type InspectorElementMap<TElement extends Element = Element> = Map<
+  string,
+  TElement
+>;
+type InspectorChildrenMap<TElement extends Element = Element> = Map<
+  string,
+  TElement[]
+>;
 
 function distributeShorthand(
   style: Record<string, unknown>,
@@ -147,10 +155,10 @@ function getActiveCanonicalInspectorElements(): Element[] | null {
   return elements;
 }
 
-function buildInspectorElementMap(
-  elements: Iterable<Element>,
-): Map<string, Element> {
-  const map = new Map<string, Element>();
+function buildInspectorElementMap<TElement extends Element>(
+  elements: Iterable<TElement>,
+): InspectorElementMap<TElement> {
+  const map: InspectorElementMap<TElement> = new Map();
   for (const element of elements) {
     map.set(element.id, element);
   }
@@ -172,10 +180,10 @@ function replaceInspectorElement(
   return nextElements;
 }
 
-function buildInspectorChildrenByParent(
-  elements: Iterable<Element>,
-): Map<string, Element[]> {
-  const childrenByParent = new Map<string, Element[]>();
+function buildInspectorChildrenByParent<TElement extends Element>(
+  elements: Iterable<TElement>,
+): InspectorChildrenMap<TElement> {
+  const childrenByParent: InspectorChildrenMap<TElement> = new Map();
   for (const element of elements) {
     const parentId = element.parent_id || "root";
     const siblings = childrenByParent.get(parentId) ?? [];
@@ -353,9 +361,9 @@ export interface InspectorActionsState {
 // Required state from other slices
 interface RequiredState {
   selectedElementId: string | null;
-  elementsMap: Map<string, Element>;
+  elementsMap: InspectorElementMap;
   elements: Element[];
-  childrenMap: Map<string, Element[]>;
+  childrenMap: InspectorChildrenMap;
   layoutVersion: number;
   dirtyElementIds: Set<string>;
   currentPageId: string | null;

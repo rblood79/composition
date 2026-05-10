@@ -11,6 +11,8 @@ describe("inspectorActions canonical lookup contract", () => {
 
     expect(source).toContain("visitCanonicalDocumentElements");
     expect(source).toContain("getActiveCanonicalInspectorElements");
+    expect(source).toContain("type InspectorElementMap");
+    expect(source).toContain("type InspectorChildrenMap");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).toContain(
       "function getInspectorLookupElements(\n  fallbackElements: Iterable<Element> = [],\n)",
@@ -22,5 +24,13 @@ describe("inspectorActions canonical lookup contract", () => {
       "getInspectorLookupElements(get().elementsMap)",
     );
     expect(source).not.toContain("getInspectorLookupElements(elementsMap)");
+    expect(source).not.toContain(
+      "function buildInspectorElementMap(\n  elements: Iterable<Element>,\n): Map<string, Element>",
+    );
+    expect(source).not.toContain(
+      "function buildInspectorChildrenByParent(\n  elements: Iterable<Element>,\n): Map<string, Element[]>",
+    );
+    expect(source).not.toContain("elementsMap: Map<string, Element>;");
+    expect(source).not.toContain("childrenMap: Map<string, Element[]>;");
   });
 });

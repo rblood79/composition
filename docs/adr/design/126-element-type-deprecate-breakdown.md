@@ -260,7 +260,8 @@ rg -n "elementsMap: Map<string, Element>|childrenMap: Map<string, Element\\[\\]>
 - **2026-05-11 element removal cache contract slice land**: `elementRemoval.ts` 의 removal target lookup, children map, post-removal cache rebuild, multi-remove de-dup map 을 `ElementRemovalLookup` / `ElementRemovalChildrenByParent` alias 로 전환. canonical remove event/history/persistence semantics 는 유지. `elementRemoval.static.test.ts` 로 raw map contract 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 3 tests PASS.
 - **2026-05-11 history actions compatibility map slice land**: `historyActions.ts` 의 cloud compatibility upsert lookup map 을 `HistoryCompatibilityElementMap` alias 로 전환. canonical history event/diff application semantics 는 유지. `historyActions.static.test.ts` 로 raw map return contract 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
 - **2026-05-11 elements page removal local map slice land**: `elements.ts` 의 `removePageLocal` page removal/de-dup maps 를 `PageRemovalElementMap` / `PageRemovalElementsByPreviousId` alias 로 전환. page shell removal 및 auto-detach semantics 는 유지. `elements.storeCache.static.test.ts` 로 raw local map 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
-- 잔여: `inspectorActions`. `canonicalSceneModelLegacy` 는 bootstrap boundary 로 Phase 5/6 allowlist 정렬 필요.
+- **2026-05-11 inspector actions cache contract slice land**: `inspectorActions.ts` 의 inspector lookup/children map helpers 와 required state map contract 를 `InspectorElementMap` / `InspectorChildrenMap` alias 로 전환. selected props/style/fill write-through 및 canonical merge semantics 는 유지. `inspectorActions.static.test.ts` 로 raw map helper/state contract 회귀를 차단. 검증: builder type-check PASS, targeted Vitest 1 file / 1 test PASS.
+- 잔여: `canonicalSceneModelLegacy` bootstrap boundary 는 Phase 5/6 allowlist 정렬 필요. store/action/helper raw `Map<string, Element>` consumer 는 canonicalSceneModelLegacy boundary 제외 시 0건.
 
 ### 대상 파일
 
