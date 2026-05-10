@@ -123,6 +123,13 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - [x] Phase 1+ 진입 순서 6 phase plan freeze
 - [x] Phase 1 진입 가능 — derived-view boundary 격리 (가장 작은 scope, 회귀 위험 LOW)
 
+## Phase 5 derived-view 진행 결과 (2026-05-11)
+
+- property derived-view caller slice 완료: `useCanonicalPropertyRead.ts` / `useCollectionItemManager.ts` 는 active canonical document traversal 을 직접 사용하고, `PropertyCustomId` / `usePresetApply` 는 property read helper 를 재사용.
+- `idValidation` 은 `Element[]` 대신 `{ id, customId }` 최소 contract 로 전환.
+- direct `useCanonicalElements()` production caller: **12 → 8**.
+- 잔여 direct caller: `stores/index.ts`, `canvasStore.ts` 2건, `useDeltaMessenger.ts`, `useComponentMemory.ts`, `FramesTab.tsx`, `LayersSection.tsx`, `LayerTree/useLayerTreeData.ts`.
+
 ## 5. Phase 2-A 진행 결과 (2026-05-10)
 
 Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canonical document 에서

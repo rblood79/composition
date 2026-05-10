@@ -20,7 +20,8 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useStore } from "../stores";
-import { useCanonicalElements } from "../stores/canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import { supabase } from "../../env/supabase.client";
 
@@ -39,20 +40,30 @@ interface CollectionItemNode {
 const EMPTY_CHILDREN: CollectionItemNode[] = [];
 
 function useCollectionChildren(elementId: string): CollectionItemNode[] {
-  const canonicalElements = useCanonicalElements();
+  const canonicalDocument = useActiveCanonicalDocument();
+  const canonicalChildren = useMemo(() => {
+    if (!canonicalDocument) return null;
+    const children: CollectionItemNode[] = [];
+    visitCanonicalDocumentElements(canonicalDocument, (element) => {
+      if (!element.deleted && element.parent_id === elementId) {
+        children.push(element);
+      }
+    });
+    return children;
+  }, [canonicalDocument, elementId]);
   const storeElements = useStore((state) => {
-    if (canonicalElements) return EMPTY_CHILDREN;
+    if (canonicalChildren) return EMPTY_CHILDREN;
     const { elements: legacyElements } = state;
     return legacyElements ?? EMPTY_CHILDREN;
   });
 
   return useMemo(() => {
-    const sourceElements = canonicalElements ?? storeElements;
+    const sourceElements = canonicalChildren ?? storeElements;
     if (sourceElements.length === 0) return EMPTY_CHILDREN;
     return sourceElements.filter(
       (element) => !element.deleted && element.parent_id === elementId,
     );
-  }, [canonicalElements, elementId, storeElements]);
+  }, [canonicalChildren, elementId, storeElements]);
 }
 
 export interface UseCollectionItemManagerOptions {

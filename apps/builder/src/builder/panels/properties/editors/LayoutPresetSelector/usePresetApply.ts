@@ -13,13 +13,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { useStore } from "../../../../stores";
 import {
-  useCanonicalElements,
   useCanonicalFrameElementScopes,
   visitCanonicalDocumentElements,
 } from "../../../../stores/canonical/canonicalElementsView";
 import {
   useCanonicalPropertyChildrenMap,
   useCanonicalPropertyElement,
+  useCanonicalPropertyElements,
   useCanonicalPropertyElementsMap,
 } from "../../hooks/useCanonicalPropertyRead";
 import { getActiveCanonicalDocument } from "../../../../stores/canonical/canonicalElementsBridge";
@@ -236,7 +236,7 @@ export function usePresetApply({
   bodyElementId,
 }: UsePresetApplyOptions): UsePresetApplyReturn {
   const [isApplying, setIsApplying] = useState(false);
-  const canonicalElements = useCanonicalElements();
+  const canonicalElements = useCanonicalPropertyElements();
   const frameElementScopes = useCanonicalFrameElementScopes();
   const elementsById = useCanonicalPropertyElementsMap();
   const childrenByParent = useCanonicalPropertyChildrenMap();

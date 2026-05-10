@@ -2,11 +2,8 @@ import React, { useState, useEffect, memo, useId } from "react";
 import { Hash } from "lucide-react";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useStore } from "../../stores";
-import { useCanonicalElements } from "../../stores/canonical/canonicalElementsView";
+import { useCanonicalPropertyElements } from "../../panels/properties/hooks/useCanonicalPropertyRead";
 import { validateCustomId } from "../../utils/idValidation";
-import type { Element } from "../../../types/builder/unified.types";
-
-const EMPTY_ELEMENTS: Element[] = [];
 
 interface PropertyCustomIdProps {
   label?: string;
@@ -30,13 +27,7 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   const [error, setError] = useState<string | undefined>(undefined);
   const reactId = useId();
   const errorId = `${reactId}-customid-error`;
-  const canonicalElements = useCanonicalElements();
-  const storeElements = useStore((state) => {
-    if (canonicalElements) return EMPTY_ELEMENTS;
-    const { elements: legacyElements } = state;
-    return legacyElements ?? EMPTY_ELEMENTS;
-  });
-  const validationElements = canonicalElements ?? storeElements;
+  const validationElements = useCanonicalPropertyElements();
 
   const commitCustomId = (newCustomId: string) => {
     if (onChange) {

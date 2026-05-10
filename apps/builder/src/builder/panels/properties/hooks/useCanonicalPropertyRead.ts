@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useStore } from "../../../stores";
-import { useCanonicalElements } from "../../../stores/canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
+import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import type { PanelNode } from "../../panelNode";
 
 const EMPTY_CHILDREN: PanelNode[] = [];
@@ -25,7 +26,15 @@ function buildElementsMap(elements: PanelNode[]): Map<string, PanelNode> {
 }
 
 function useCanonicalPropertySourceElements(): PanelNode[] {
-  const canonicalElements = useCanonicalElements();
+  const canonicalDocument = useActiveCanonicalDocument();
+  const canonicalElements = useMemo(() => {
+    if (!canonicalDocument) return null;
+    const elements: PanelNode[] = [];
+    visitCanonicalDocumentElements(canonicalDocument, (element) => {
+      elements.push(element);
+    });
+    return elements;
+  }, [canonicalDocument]);
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;

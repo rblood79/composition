@@ -11,8 +11,13 @@ describe("useCanonicalPropertyRead", () => {
     const directElementMapFallback = ["state.", "elements", "Map.get"].join("");
     const directChildrenMapFallback = ["state.", "children", "Map"].join("");
 
-    expect(source).toContain("useCanonicalElements");
+    expect(source).toContain("useActiveCanonicalDocument");
+    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("useCanonicalElements");
     expect(source).toContain("useCanonicalPropertySourceElements");
+    expect(source).toContain(
+      "visitCanonicalDocumentElements(canonicalDocument, (element) => {",
+    );
     expect(source).toContain("const { elements: legacyElements } = state;");
     expect(source).toContain("return legacyElements ?? EMPTY_ELEMENTS;");
     expect(source).toContain("buildElementsMap(sourceElements)");

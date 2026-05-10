@@ -47,7 +47,9 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     expect(source).toContain(
       "await removeCanonicalPresetSlots(existingSlotIds);",
     );
+    expect(source).toContain("useCanonicalPropertyElements");
     expect(source).toContain("useCanonicalPropertyElementsMap");
+    expect(source).not.toContain("useCanonicalElements");
     expect(source).not.toContain(
       ["types", "builder", "unified.types"].join("/"),
     );

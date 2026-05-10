@@ -1,4 +1,7 @@
-import type { Element } from "../../types/builder/unified.types";
+interface CustomIdValidationNode {
+  id: string;
+  customId?: string | null;
+}
 
 /**
  * Validates if a custom ID follows HTML ID rules
@@ -32,7 +35,7 @@ export function isValidHtmlId(customId: string): boolean {
 export function isUniqueCustomId(
   customId: string,
   currentElementId: string,
-  pageElements: Element[]
+  pageElements: readonly CustomIdValidationNode[],
 ): boolean {
   if (!customId || customId.trim() === "") {
     return true; // Empty customId is allowed (optional field)
@@ -40,9 +43,7 @@ export function isUniqueCustomId(
 
   // Check if any other element has the same customId
   return !pageElements.some(
-    (el) =>
-      el.customId === customId &&
-      el.id !== currentElementId // Exclude current element
+    (el) => el.customId === customId && el.id !== currentElementId, // Exclude current element
   );
 }
 
@@ -57,7 +58,7 @@ export function isUniqueCustomId(
 export function validateCustomId(
   customId: string,
   currentElementId: string,
-  pageElements: Element[]
+  pageElements: readonly CustomIdValidationNode[],
 ): { isValid: boolean; error?: string } {
   // Allow empty customId (optional field)
   if (!customId || customId.trim() === "") {
