@@ -139,7 +139,7 @@ describe("createSkiaRendererInput", () => {
       parent_id: page2Slot.id,
     });
     const elements = [page1Body, page2Body, page1Fill, page2Fill];
-    const elementsMap = new Map(elements.map((el) => [el.id, el]));
+    const renderNodesMap = new Map(elements.map((el) => [el.id, el]));
     const sceneSnapshot = makeSceneSnapshot(
       new Map([
         [
@@ -193,7 +193,7 @@ describe("createSkiaRendererInput", () => {
       dirtyElementIds: new Set(),
       editMode: "page",
       elements,
-      elementsMap,
+      renderNodesMap,
       frameAreas: [],
       framePositions: {},
       framePositionsVersion: 1,
@@ -206,8 +206,12 @@ describe("createSkiaRendererInput", () => {
       sceneSnapshot,
     });
 
-    expect(input.elementsMap.get("page-1-fill")?.parent_id).toBe(page1Slot.id);
-    expect(input.elementsMap.get("page-2-fill")?.parent_id).toBe(page2Slot.id);
+    expect(input.renderNodesMap.get("page-1-fill")?.parent_id).toBe(
+      page1Slot.id,
+    );
+    expect(input.renderNodesMap.get("page-2-fill")?.parent_id).toBe(
+      page2Slot.id,
+    );
     expect(input.childrenMap.get(page1Slot.id)?.map((el) => el.id)).toEqual([
       "page-1-fill",
     ]);
@@ -264,7 +268,7 @@ describe("createSkiaRendererInput", () => {
       dirtyElementIds: new Set(),
       editMode: "page",
       elements: [body, first, second],
-      elementsMap: new Map([
+      renderNodesMap: new Map([
         [body.id, body],
         [first.id, first],
         [second.id, second],
@@ -333,7 +337,7 @@ describe("createSkiaRendererInput", () => {
       dirtyElementIds: new Set(),
       editMode: "page",
       elements: [body],
-      elementsMap: new Map([[body.id, body]]),
+      renderNodesMap: new Map([[body.id, body]]),
       frameAreas: [],
       framePositions: {},
       framePositionsVersion: 1,

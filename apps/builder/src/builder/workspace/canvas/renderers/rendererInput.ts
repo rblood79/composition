@@ -188,7 +188,7 @@ export function buildFrameLayoutPublisherInput({
 export interface SkiaRendererInput {
   childrenMap: Map<string, CanvasSceneNode[]>;
   elements: CanvasSceneNode[];
-  elementsMap: Map<string, CanvasSceneNode>;
+  renderNodesMap: Map<string, CanvasSceneNode>;
   sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
   sceneNodes: CanvasSceneNode[];
   sceneNodesMap: Map<string, CanvasSceneNode>;
@@ -217,7 +217,7 @@ export interface SkiaRendererInput {
 interface CreateSkiaRendererInputOptions {
   childrenMap: Map<string, CanvasSceneNode[]>;
   elements: CanvasSceneNode[];
-  elementsMap: Map<string, CanvasSceneNode>;
+  renderNodesMap: Map<string, CanvasSceneNode>;
   sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
   sceneNodes: CanvasSceneNode[];
   sceneNodesMap: Map<string, CanvasSceneNode>;
@@ -287,14 +287,14 @@ function buildRendererChildrenMap(
 function buildPageResolvedRenderTree(input: CreateSkiaRendererInputOptions): {
   childrenMap: Map<string, CanvasSceneNode[]>;
   elements: CanvasSceneNode[];
-  elementsMap: Map<string, CanvasSceneNode>;
+  renderNodesMap: Map<string, CanvasSceneNode>;
 } {
-  const elementsMap = new Map(input.elementsMap);
+  const renderNodesMap = new Map(input.renderNodesMap);
   const orderedElements: CanvasSceneNode[] = [];
   const orderedIndexById = new Map<string, number>();
 
   const addElement = (element: CanvasSceneNode): void => {
-    elementsMap.set(element.id, element);
+    renderNodesMap.set(element.id, element);
     const existingIndex = orderedIndexById.get(element.id);
     if (existingIndex !== undefined) {
       orderedElements[existingIndex] = element;
@@ -314,17 +314,17 @@ function buildPageResolvedRenderTree(input: CreateSkiaRendererInputOptions): {
   }
 
   for (const element of input.elements) {
-    addElement(elementsMap.get(element.id) ?? element);
+    addElement(renderNodesMap.get(element.id) ?? element);
   }
 
-  for (const element of input.elementsMap.values()) {
-    addElement(elementsMap.get(element.id) ?? element);
+  for (const element of input.renderNodesMap.values()) {
+    addElement(renderNodesMap.get(element.id) ?? element);
   }
 
   return {
     childrenMap: buildRendererChildrenMap(orderedElements),
     elements: orderedElements,
-    elementsMap,
+    renderNodesMap,
   };
 }
 
@@ -335,7 +335,7 @@ export function createSkiaRendererInput(
   const resolvedTree = resolveCanonicalRefTree({
     childrenMap: renderTree.childrenMap,
     elements: renderTree.elements,
-    elementsMap: renderTree.elementsMap,
+    elementsMap: renderTree.renderNodesMap,
   });
   const sourceSceneGraph: CanvasSceneGraph = {
     childrenByParent: input.sceneChildrenByParent,
@@ -348,7 +348,7 @@ export function createSkiaRendererInput(
   return {
     childrenMap: resolvedTree.childrenMap,
     elements: resolvedTree.elements,
-    elementsMap: resolvedTree.elementsMap,
+    renderNodesMap: resolvedTree.elementsMap,
     sceneChildrenByParent: sceneGraph.childrenByParent,
     sceneNodes: sceneGraph.nodes,
     sceneNodesMap: sceneGraph.nodesMap,
