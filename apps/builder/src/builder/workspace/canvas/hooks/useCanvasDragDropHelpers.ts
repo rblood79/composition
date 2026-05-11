@@ -185,7 +185,7 @@ export function useCanvasDragDropHelpers({
       const candidates: Array<{
         bounds: BoundingBox;
         depth: number;
-        element: Element;
+        element: CanvasInteractionNode;
       }> = [];
 
       for (const element of elements) {

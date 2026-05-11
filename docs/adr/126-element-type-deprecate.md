@@ -9,8 +9,9 @@ runtime source 제거 → derived view 축소 → compatibility/boundary quarant
 정합하며, 즉시 타입 삭제 대신 consumer별 canonical-native 전환 + deprecated
 `Element` import gate 로 닫는 방향이 rollback/호환성 리스크를 가장 낮춘다.
 단, ADR 완료 판정은 아니다. Phase 6 code gate(deprecation marker + 신규 import
-lint 차단)는 land 됐지만, authenticated browser smoke, final grep audit, preflight 가
-아직 남아 있으므로 Status 는 `Accepted` 로 유지하고 `completed/` archive 는 하지 않는다.
+lint 차단)와 scoped production import audit cleanup 은 land 됐지만, authenticated
+browser smoke 가 아직 차단되어 있으므로 Status 는 `Accepted` 로 유지하고
+`completed/` archive 는 하지 않는다.
 
 진행 로그:
 
@@ -61,6 +62,7 @@ lint 차단)는 land 됐지만, authenticated browser smoke, final grep audit, p
 - 2026-05-11 Phase 6 deprecation marker slice land — `unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 을 추가해 신규 runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 structural contract 를 사용하도록 명시했다. 타입 삭제는 별도 cleanup ADR 범위로 유지. 검증: builder type-check PASS.
 - 2026-05-11 Phase 6 deprecation lint gate slice land — `eslint-local-rules` 에 `local/no-deprecated-element-import` 를 추가하고 builder ESLint config 에 error gate 로 연결했다. 현재 compatibility/boundary baseline 파일은 allowlist 로 고정하고, 새 production 파일의 `Element` import 는 lint error 로 차단한다. 검증: ADR-126 isolated lint gate PASS, stdin negative fixture FAIL 확인.
 - 2026-05-11 Phase 6 closure 판정 정리 — 설계/구현 방향은 유지하되, 완료 승격은 보류한다. headless Playwright 로 `/builder/adr-126-final-smoke` 진입 시 `/signin` 으로 redirect 되어 create/edit/delete/undo/redo/reorder/origin-instance/refresh smoke 를 실행하지 못했다. 또한 기존 broad `Element[]|: Element` grep 은 `PreviewElement`, DOM `Element`, compatibility store/action 타입, comment 를 포함해 570줄을 잡아 final pass/fail 단독 기준으로 부적합하므로, final audit 은 scoped derived-view grep + local deprecated import lint gate + authenticated browser smoke + preflight 조합으로 판정한다.
+- 2026-05-11 Phase 6 scoped production import audit cleanup land — `useCanvasElementSelectionHandlers.ts` 의 interactive map contract 를 `CanvasInteractionNode` 로 전환하고, `useCanvasDragDropHelpers.ts` 의 candidate node 타입을 DOM `Element` 로 해석될 수 없게 `CanvasInteractionNode` 로 정정했다. scoped production multiline `Element` import grep 0건, local deprecation lint gate PASS, builder type-check PASS, targeted Vitest 5 files / 18 tests PASS, `pnpm run codex:preflight` PASS.
 
 **PREREQUISITE (진입 불가 조건)**:
 

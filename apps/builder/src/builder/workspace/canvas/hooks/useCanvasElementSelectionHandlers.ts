@@ -8,12 +8,10 @@ import {
   resolveEditingContextForTreeSelection,
   resolveModifierClickTarget,
 } from "../../../utils/hierarchicalSelection";
-import type {
-  ComponentElementProps,
-  Element,
-} from "../../../../types/core/store.types";
+import type { ComponentElementProps } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 interface SelectionModifiers {
   ctrlKey: boolean;
@@ -46,8 +44,8 @@ interface UseCanvasElementSelectionHandlersOptions {
     elementId: string,
     layoutPosition?: { x: number; y: number; width: number; height: number },
   ) => void;
-  getInteractiveChildrenMap: () => Map<string, Element[]>;
-  getInteractiveElementsMap: () => Map<string, Element>;
+  getInteractiveChildrenMap: () => Map<string, CanvasInteractionNode[]>;
+  getInteractiveElementsMap: () => Map<string, CanvasInteractionNode>;
 }
 
 const TEXT_EDITABLE_TAGS = new Set([
@@ -78,7 +76,7 @@ const TEXT_EDITABLE_TAGS = new Set([
 ]);
 
 function syncReusableFrameSelectionForElement(
-  element: Element | undefined,
+  element: CanvasInteractionNode | undefined,
 ): void {
   if (!element) return;
   if (element.page_id != null) return;
@@ -112,7 +110,7 @@ function selectResolvedTarget(
       props?: ComponentElementProps;
     },
   ) => void,
-  interactiveElementsMap: Map<string, Element>,
+  interactiveElementsMap: Map<string, CanvasInteractionNode>,
 ): void {
   const isMultiSelectKey = modifiers?.shiftKey;
 
@@ -157,7 +155,7 @@ function selectResolvedTarget(
 
 function handleUnresolvedTarget(
   elementId: string,
-  clickedElement: Element | undefined,
+  clickedElement: CanvasInteractionNode | undefined,
   setSelectedElement: (elementId: string | null) => void,
   selectElementWithPageTransition: (
     elementId: string,
@@ -184,7 +182,7 @@ function handleUnresolvedTarget(
 
 function selectDirectModifierTarget(
   elementId: string,
-  interactiveElementsMap: Map<string, Element>,
+  interactiveElementsMap: Map<string, CanvasInteractionNode>,
   selectElementWithPageTransition: (
     elementId: string,
     targetPageId: string | null,

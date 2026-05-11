@@ -344,7 +344,13 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
   `/signin` 으로 redirect 되어 authenticated browser smoke 를 실행하지 못했다. 기존
   broad `Element[]|: Element` grep 은 false positive 가 많아 final pass/fail 단독
   기준에서 제외한다.
-- 잔여: authenticated browser smoke, scoped final grep audit, `pnpm run codex:preflight`, ADR Implemented 승격.
+- **2026-05-11 scoped production import audit cleanup land**:
+  `useCanvasElementSelectionHandlers.ts` 의 interactive maps 를 `CanvasInteractionNode`
+  contract 로 좁히고, `useCanvasDragDropHelpers.ts` 의 drop target candidate 타입을
+  DOM `Element` 가 아닌 `CanvasInteractionNode` 로 정정했다. scoped production
+  multiline `Element` import grep 0건, local deprecation lint gate PASS, builder
+  type-check PASS, targeted Vitest 5 files / 18 tests PASS, preflight PASS.
+- 잔여: authenticated browser smoke, ADR Implemented 승격.
 
 ### 작업
 

@@ -68,6 +68,7 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - Phase 4 inspector actions slice 완료: `inspectorActions.ts` 의 inspector lookup/children map helpers 와 required state map contract 는 local alias contract 로 전환.
 - Phase 4 legacy scene boundary alias slice 완료: `canonicalSceneModelLegacy.ts` 의 legacy Element map return contract 는 boundary alias contract 로 전환.
 - Phase 4 잔여: store/action/helper raw map consumer 는 0건. `canonicalSceneModelLegacy` bootstrap boundary 자체 삭제 또는 final allowlist 정렬은 Phase 5/6 소유.
+- Phase 6 scoped production import audit cleanup 완료: `useCanvasElementSelectionHandlers.ts` 의 interactive map contract 는 `CanvasInteractionNode` 로 전환했고, `useCanvasDragDropHelpers.ts` 의 drop target candidate 타입도 `CanvasInteractionNode` 로 정정. scoped production multiline `Element` import grep 0건, local deprecation lint gate PASS, `pnpm run codex:preflight` PASS.
 
 ### 3-C. `hot-path-consumer` (Phase 2/4 전환 대상)
 
@@ -143,7 +144,7 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
   되어 authenticated browser smoke 를 실행하지 못했다. broad `Element[]|: Element`
   grep 은 `PreviewElement`, DOM `Element`, compatibility 타입, comment 를 포함해 570줄을
   잡으므로 final pass/fail 단독 기준으로 쓰지 않는다.
-- 잔여: authenticated browser smoke, scoped final grep audit, preflight, ADR Implemented 승격.
+- 잔여: authenticated browser smoke, ADR Implemented 승격.
 
 ## 5. Phase 2-A 진행 결과 (2026-05-10)
 

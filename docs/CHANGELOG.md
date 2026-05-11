@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 6 scoped production import audit cleanup land**:
+  - `useCanvasElementSelectionHandlers.ts` 의 interactive map contract 를 `CanvasInteractionNode` 로 전환했다.
+  - `useCanvasDragDropHelpers.ts` 의 drop target candidate 타입을 DOM `Element` 가 아닌 `CanvasInteractionNode` 로 정정했다.
+  - scoped production multiline `Element` import grep 0건, local deprecation lint gate PASS, builder type-check PASS, targeted Vitest 5 files / 18 tests PASS, `pnpm run codex:preflight` PASS.
 - **ADR-126 Phase 6 closure 판정 정리**:
-  - 설계 자체는 목적에 맞지만 ADR 완료 판정은 보류한다. Phase 6 deprecation marker + local import lint gate 는 land 됐고, authenticated browser smoke / scoped final grep audit / preflight / Implemented 승격은 잔여로 유지한다.
+  - 설계 자체는 목적에 맞지만 ADR 완료 판정은 보류한다. 당시에는 authenticated browser smoke / scoped final grep audit / preflight / Implemented 승격을 잔여로 기록했고, 이후 scoped audit/preflight 는 위 cleanup slice 에서 통과했다.
   - headless Playwright 로 `/builder/adr-126-final-smoke` 진입 시 `/signin` 으로 redirect 되어 create/edit/delete/undo/redo/reorder/origin-instance/refresh smoke 를 실행하지 못했다.
   - broad `Element[]|: Element` grep 은 `PreviewElement`, DOM `Element`, compatibility 타입, comment 를 포함해 570줄을 잡으므로 final pass/fail 단독 기준에서 제외하고, scoped derived-view grep + `local/no-deprecated-element-import` lint gate + authenticated browser smoke + preflight 조합으로 closure 를 판정한다.
 - **ADR-126 Phase 6 deprecation marker slice land**:
