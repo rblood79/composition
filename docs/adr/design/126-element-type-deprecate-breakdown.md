@@ -300,7 +300,8 @@ rg -n "Element\[\]|: Element\b" \
 
 - **2026-05-11 property derived-view caller slice land**: `useCanonicalPropertyRead.ts` / `useCollectionItemManager.ts` 는 `useCanonicalElements()` 대신 active canonical document traversal 을 직접 사용. `PropertyCustomId` / `usePresetApply` 는 property read helper 를 재사용하도록 전환. `idValidation` 은 `Element[]` 대신 customId validation 최소 contract 로 전환. direct `useCanonicalElements()` production caller 는 12 → 8로 감소. 검증: builder type-check PASS, targeted Vitest 4 files / 8 tests PASS.
 - **2026-05-11 nodes derived-view caller slice land**: 신규 `useCanonicalPanelElements()` 로 Layers/Frames/LayerTree read path 를 active canonical document traversal 기반으로 전환. direct `useCanonicalElements()` production caller 는 8 → 5로 감소. 검증: builder type-check PASS, targeted Vitest 4 files / 21 tests PASS.
-- 잔여 direct caller: `stores/index.ts`, `canvasStore.ts` 2건, `useDeltaMessenger.ts`, `useComponentMemory.ts`. `canonicalElementsView.ts` 정의/내부 호출과 `canonicalHistoryEvents.ts` 의 `canonicalDocumentToElements()` 는 후속 derived-view/boundary slice 소유.
+- **2026-05-11 runtime derived-view hook caller slice land**: `stores/index.ts`, `canvasStore.ts`, `useDeltaMessenger.ts`, `useComponentMemory.ts` 를 active canonical document traversal 기반으로 전환. non-boundary `useCanonicalElements()` / `useCanonicalSelectedElement()` production caller 는 0건. 검증: builder type-check PASS, targeted Vitest 5 files / 12 tests PASS.
+- 잔여 direct caller: `canonicalElementsView.ts` 정의/내부 호출과 `canonicalHistoryEvents.ts` 의 `canonicalDocumentToElements()` 는 후속 derived-view/boundary slice 소유.
 
 ### 작업
 

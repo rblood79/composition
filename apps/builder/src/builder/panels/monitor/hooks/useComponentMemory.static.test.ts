@@ -9,7 +9,9 @@ describe("useComponentMemory canonical read contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("useCanonicalElements");
+    expect(source).toContain("useActiveCanonicalDocument");
+    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("useCanonicalElements");
     expect(source).toContain("if (canonicalElements) return EMPTY_ELEMENTS;");
     expect(source).toContain("const { elements: legacyElements } = state;");
     expect(source).toContain("return legacyElements ?? EMPTY_ELEMENTS;");

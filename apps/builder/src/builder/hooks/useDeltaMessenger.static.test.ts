@@ -9,13 +9,15 @@ describe("useDeltaMessenger canonical count contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("useCanonicalElements");
-    expect(source).toContain("if (canonicalElements) return 0;");
+    expect(source).toContain("useActiveCanonicalDocument");
+    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).toContain("if (canonicalElementsCount !== null) return 0;");
     expect(source).toContain("const { elements: legacyElements } = state;");
     expect(source).toContain("return legacyElements.length;");
     expect(source).toContain(
-      "const elementsCount = canonicalElements?.length ?? storeElementsCount",
+      "const elementsCount = canonicalElementsCount ?? storeElementsCount",
     );
+    expect(source).not.toContain("useCanonicalElements");
     expect(source).not.toContain(["state", "elementsMap.size"].join("."));
   });
 });

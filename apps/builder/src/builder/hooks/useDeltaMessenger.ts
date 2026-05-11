@@ -16,7 +16,7 @@
  * @see src/builder/stores/canvasStore.ts
  */
 
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useMemo } from "react";
 import { useStore } from "../stores";
 import { MessageService } from "../../utils/messaging";
 import {
@@ -24,7 +24,8 @@ import {
   extractPropsChanges,
   shouldUseDelta,
 } from "../utils/canvasDeltaMessenger";
-import { useCanonicalElements } from "../stores/canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
 import type { Element } from "../../types/core/store.types";
 // ADR-006 P2-2: postMessage 보안 검증
 import {
@@ -112,13 +113,21 @@ export const useDeltaMessenger = (): UseDeltaMessengerReturn => {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const isReadyRef = useRef(false);
 
-  const canonicalElements = useCanonicalElements();
+  const activeCanonicalDocument = useActiveCanonicalDocument();
+  const canonicalElementsCount = useMemo(() => {
+    if (!activeCanonicalDocument) return null;
+    let count = 0;
+    visitCanonicalDocumentElements(activeCanonicalDocument, () => {
+      count += 1;
+    });
+    return count;
+  }, [activeCanonicalDocument]);
   const storeElementsCount = useStore((state) => {
-    if (canonicalElements) return 0;
+    if (canonicalElementsCount !== null) return 0;
     const { elements: legacyElements } = state;
     return legacyElements.length;
   });
-  const elementsCount = canonicalElements?.length ?? storeElementsCount;
+  const elementsCount = canonicalElementsCount ?? storeElementsCount;
 
   /**
    * Delta 메신저 초기화

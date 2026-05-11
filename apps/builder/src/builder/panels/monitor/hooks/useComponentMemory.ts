@@ -8,7 +8,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useStore } from "../../../stores";
-import { useCanonicalElements } from "../../../stores/canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
+import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import type { Element } from "../../../../types/core/store.types";
 
 const EMPTY_ELEMENTS: Element[] = [];
@@ -95,7 +96,15 @@ function countChildren(
 
 export function useComponentMemory(options: UseComponentMemoryOptions = {}) {
   const { enabled = true, sortBy = "memory", limit = 20 } = options;
-  const canonicalElements = useCanonicalElements();
+  const activeCanonicalDocument = useActiveCanonicalDocument();
+  const canonicalElements = useMemo(() => {
+    if (!activeCanonicalDocument) return null;
+    const elements: Element[] = [];
+    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
+      elements.push(element);
+    });
+    return elements;
+  }, [activeCanonicalDocument]);
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;

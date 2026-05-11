@@ -17,7 +17,8 @@ import { useMemo } from "react";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { useStore } from ".";
-import { useCanonicalElements } from "./canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
+import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
 import type { Element } from "../../types/core/store.types";
 
 const EMPTY_ELEMENTS: Element[] = [];
@@ -105,19 +106,27 @@ export function useCanvasSetGridSettings() {
  */
 export function useCanvasElements() {
   const currentPageId = useStore((state) => state.currentPageId);
-  const canonicalElements = useCanonicalElements();
+  const activeCanonicalDocument = useActiveCanonicalDocument();
+  const canonicalPageElements = useMemo(() => {
+    if (!activeCanonicalDocument || !currentPageId) return null;
+    const elements: Element[] = [];
+    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
+      if (element.page_id === currentPageId) {
+        elements.push(element);
+      }
+    });
+    return elements;
+  }, [activeCanonicalDocument, currentPageId]);
   const storePageElements = useStore((state) =>
-    canonicalElements || !currentPageId
+    canonicalPageElements || !currentPageId
       ? EMPTY_ELEMENTS
       : (state.pageElementsSnapshot[currentPageId] ?? EMPTY_ELEMENTS),
   );
 
   return useMemo(() => {
-    const sourceElements = canonicalElements
-      ? canonicalElements.filter((element) => element.page_id === currentPageId)
-      : storePageElements;
+    const sourceElements = canonicalPageElements ?? storePageElements;
     return sourceElements.filter((element) => !element.deleted);
-  }, [canonicalElements, currentPageId, storePageElements]);
+  }, [canonicalPageElements, storePageElements]);
 }
 
 /**
@@ -125,20 +134,36 @@ export function useCanvasElements() {
  */
 export function useCanvasSelectedElement() {
   const selectedElementId = useStore((state) => state.selectedElementId);
-  const canonicalElements = useCanonicalElements();
+  const activeCanonicalDocument = useActiveCanonicalDocument();
+  const canonicalSelectedElement = useMemo(() => {
+    if (!activeCanonicalDocument || !selectedElementId) return null;
+    let selectedElement: Element | null = null;
+    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
+      if (element.id === selectedElementId) {
+        selectedElement = element;
+      }
+    });
+    return selectedElement;
+  }, [activeCanonicalDocument, selectedElementId]);
   const storeElements = useStore((state) => {
-    if (canonicalElements) return EMPTY_ELEMENTS;
+    if (activeCanonicalDocument) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;
     return legacyElements ?? EMPTY_ELEMENTS;
   });
 
   return useMemo(() => {
     if (!selectedElementId) return null;
-    const sourceElements = canonicalElements ?? storeElements;
+    if (activeCanonicalDocument) return canonicalSelectedElement;
+    const sourceElements = storeElements;
     return (
       sourceElements.find((element) => element.id === selectedElementId) ?? null
     );
-  }, [canonicalElements, selectedElementId, storeElements]);
+  }, [
+    activeCanonicalDocument,
+    canonicalSelectedElement,
+    selectedElementId,
+    storeElements,
+  ]);
 }
 
 /**

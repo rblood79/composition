@@ -16,11 +16,7 @@ import {
   resolveCanonicalRefElement,
 } from "../utils/canonicalRefResolution";
 import type { CompositionDocument } from "@composition/shared";
-import {
-  useCanonicalElements,
-  useCanonicalSelectedElement,
-  visitCanonicalDocumentElements,
-} from "./canonical/canonicalElementsView";
+import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
 import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
@@ -108,7 +104,15 @@ const EMPTY_ELEMENTS: Element[] = [];
 
 // 간단한 선택기들 (Zustand의 내장 최적화 활용)
 export const useElements = (): Element[] => {
-  const canonicalElements = useCanonicalElements();
+  const activeCanonicalDocument = useActiveCanonicalDocument();
+  const canonicalElements = useMemo(() => {
+    if (!activeCanonicalDocument) return null;
+    const elements: Element[] = [];
+    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
+      elements.push(element);
+    });
+    return elements;
+  }, [activeCanonicalDocument]);
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;
@@ -183,10 +187,21 @@ export const useSelectedElementData = (): SelectedElement | null => {
   // ADR-116 Phase 2 G3 Step 2 — canonical mode 시 selected element 를 canonical
   // store 에서 파생. flag 미활성 또는 canonical 에 노드 없을 때 `null` 반환 →
   // legacy elementsMap fallback. flag 와 무관하게 항상 hook 호출 (Rules of Hooks).
-  const canonicalSelectedElement =
-    useCanonicalSelectedElement(selectedElementId);
   const activeCanonicalDocument = useActiveCanonicalDocument();
   const hasCanonicalDocument = activeCanonicalDocument !== null;
+  const canonicalSelectedElement = useMemo(() => {
+    if (!selectedElementId || !activeCanonicalDocument) return null;
+    const elements: Element[] = [];
+    let selectedElement: Element | null = null;
+    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
+      elements.push(element);
+      if (element.id === selectedElementId) {
+        selectedElement = element;
+      }
+    });
+    if (!selectedElement) return null;
+    return resolveCanonicalRefElement(selectedElement, elements);
+  }, [activeCanonicalDocument, selectedElementId]);
 
   // 🚀 추가 정보를 위해 elementsMap에서 한 번만 읽기 (구독 아님)
   // type, customId, dataBinding은 자주 변경되지 않음

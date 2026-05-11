@@ -10,12 +10,15 @@ describe("canvasStore canonical selected element contract", () => {
     );
 
     expect(source).toContain("const currentPageId = useStore");
+    expect(source).toContain("useActiveCanonicalDocument");
+    expect(source).toContain("visitCanonicalDocumentElements");
     expect(source).toContain(
-      "canonicalElements || !currentPageId\n      ? EMPTY_ELEMENTS",
+      "canonicalPageElements || !currentPageId\n      ? EMPTY_ELEMENTS",
     );
     expect(source).toContain(
-      "canonicalElements.filter((element) => element.page_id === currentPageId)",
+      "if (element.page_id === currentPageId) {\n        elements.push(element);",
     );
+    expect(source).not.toContain("useCanonicalElements");
   });
 
   it("derives selected element from canonical elements before store fallback", async () => {
@@ -29,9 +32,11 @@ describe("canvasStore canonical selected element contract", () => {
       "Map.get(state.selectedElementId)",
     ].join("");
 
-    expect(source).toContain("useCanonicalElements");
     expect(source).toContain(
-      "const sourceElements = canonicalElements ?? storeElements",
+      "const canonicalSelectedElement = useMemo(() => {",
+    );
+    expect(source).toContain(
+      "if (activeCanonicalDocument) return canonicalSelectedElement;",
     );
     expect(source).not.toContain(directElementMapLookup);
   });
