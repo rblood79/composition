@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 6 deprecation marker slice land**:
+  - `unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 을 추가했다.
+  - 신규 Builder runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 도메인별 structural contract 를 사용하고, `Element` 는 legacy compatibility projection/boundary 용도로만 남긴다는 원칙을 타입 정의에 명시했다.
+  - 검증: builder type-check PASS.
 - **ADR-126 Phase 5 derived-view cleanup slice land**:
   - `canonicalHistoryEvents.ts` 가 `canonicalDocumentToElements(nextDoc)` 대신 `visitCanonicalDocumentElements()` 로 undo/redo result snapshot 을 수집하도록 전환했다.
   - `useCanonicalElements()` / `useCanonicalSelectedElement()` production export 와 `canonicalSceneModelLegacy.ts` 의 `canonicalDocumentToElements` re-export 를 제거했다.

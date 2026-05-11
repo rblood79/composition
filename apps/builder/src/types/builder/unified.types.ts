@@ -57,6 +57,13 @@ export interface ColumnMapping {
   [fieldKey: string]: FieldDefinition;
 }
 
+/**
+ * @deprecated ADR-126 Phase 6.
+ * Builder runtime 신규 코드는 canonical `CompositionDocument` / `CanonicalNode`
+ * 또는 도메인별 structural contract 를 사용한다. `Element` 는 legacy
+ * compatibility projection, export/import/cloud boundary, history compatibility,
+ * and transitional store cache surfaces 에서만 허용한다.
+ */
 export interface Element {
   id: string;
   customId?: string; // 사용자 정의 ID (예: button_1, input_2) - 이벤트 핸들링, CSS 선택자용

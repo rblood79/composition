@@ -331,15 +331,22 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
 
 **목표**: 전체 검증 + `Element` 인터페이스를 `@deprecated` 마킹하여 신규 추가를 경고 레벨에서 차단한다. 타입 삭제는 이 ADR scope 밖.
 
+### 9.0. Phase 6 진행 로그
+
+- **2026-05-11 deprecation marker slice land**: `apps/builder/src/types/builder/unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 추가. 신규 Builder runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 도메인별 structural contract 를 사용하고, `Element` 는 legacy compatibility projection, export/import/cloud boundary, history compatibility, transitional store cache surface 에만 허용한다. 검증: builder type-check PASS.
+- 잔여: eslint deprecation gate, browser smoke, full final grep audit, `pnpm run codex:preflight`, ADR Implemented 승격.
+
 ### 작업
 
 1. `unified.types.ts`의 `Element` 인터페이스에 `@deprecated` JSDoc 추가
 
    ```typescript
    /**
-    * @deprecated ADR-126 완결. canonical-native node/path/alias model 사용.
-    * boundary allowlist (projectSync, exportLegacyDocument, cloud/export/import adapter)에서만 허용.
-    * 타입 삭제는 별도 cleanup ADR.
+    * @deprecated ADR-126 Phase 6.
+    * Builder runtime 신규 코드는 canonical `CompositionDocument` / `CanonicalNode`
+    * 또는 도메인별 structural contract 를 사용한다. `Element` 는 legacy
+    * compatibility projection, export/import/cloud boundary, history compatibility,
+    * and transitional store cache surfaces 에서만 허용한다.
     */
    export interface Element { ... }
    ```

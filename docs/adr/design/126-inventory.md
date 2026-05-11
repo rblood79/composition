@@ -134,6 +134,11 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - direct `useCanonicalSelectedElement()` production caller: **0**.
 - direct `canonicalDocumentToElements()` production caller: **1 → 0**. 잔여는 `canonicalElementsView.ts` boundary 정의 1건과 test/docs reference.
 
+## Phase 6 진행 결과 (2026-05-11)
+
+- deprecation marker slice 완료: `apps/builder/src/types/builder/unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 추가.
+- 잔여: eslint deprecation gate, browser smoke, final grep audit, preflight, ADR Implemented 승격.
+
 ## 5. Phase 2-A 진행 결과 (2026-05-10)
 
 Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canonical document 에서
