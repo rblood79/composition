@@ -286,7 +286,11 @@ rg -n "Element\[\]|: Element\b" \
   | grep -v "boundary\|adapter\|projectSync\|export\|import\|publish\|\.test\.\|legacy"
 ```
 
-- 위 명령 결과 0건
+- 위 명령은 broad triage seed 이며 최종 pass/fail 단독 기준이 아니다. 2026-05-11
+  재측정에서는 `PreviewElement`, DOM `Element`, compatibility store/action 타입,
+  comment 까지 함께 잡아 570줄을 반환했다. G4/G6 최종 판정은 scoped path grep,
+  `local/no-deprecated-element-import` allowlist gate, targeted Vitest, browser smoke 를
+  AND 조건으로 사용한다.
 - undo/redo Vitest targeted PASS
 - `inspectorActions` canonical read gate PASS
 
@@ -335,7 +339,12 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
 
 - **2026-05-11 deprecation marker slice land**: `apps/builder/src/types/builder/unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 추가. 신규 Builder runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 도메인별 structural contract 를 사용하고, `Element` 는 legacy compatibility projection, export/import/cloud boundary, history compatibility, transitional store cache surface 에만 허용한다. 검증: builder type-check PASS.
 - **2026-05-11 deprecation lint gate slice land**: `apps/builder/eslint-local-rules/index.js` 에 `local/no-deprecated-element-import` 를 추가하고 `apps/builder/eslint.config.js` 에 error 로 연결. 현재 compatibility/boundary baseline 파일은 allowlist 로 고정하고, 새 production 파일의 `Element` import 및 `import("...").Element` 는 lint error 로 차단한다. 검증: isolated ADR-126 lint gate PASS, stdin negative fixture FAIL 확인.
-- 잔여: browser smoke, full final grep audit, `pnpm run codex:preflight`, ADR Implemented 승격.
+- **2026-05-11 closure 판정 정리**: 설계 자체는 목적에 맞지만 Phase 6 은 아직
+  완료가 아니다. headless Playwright 는 `/builder/adr-126-final-smoke` 진입 시
+  `/signin` 으로 redirect 되어 authenticated browser smoke 를 실행하지 못했다. 기존
+  broad `Element[]|: Element` grep 은 false positive 가 많아 final pass/fail 단독
+  기준에서 제외한다.
+- 잔여: authenticated browser smoke, scoped final grep audit, `pnpm run codex:preflight`, ADR Implemented 승격.
 
 ### 작업
 
@@ -353,22 +362,23 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
    ```
 
 2. local ESLint deprecation gate 로 신규 production `Element` import 차단
-3. browser smoke: create/edit/delete/undo/redo/reorder/origin-instance/refresh 회귀 0
+3. authenticated browser smoke: create/edit/delete/undo/redo/reorder/origin-instance/refresh 회귀 0
 4. `pnpm run codex:preflight` PASS
 5. ADR 본문 Status `Proposed → Implemented` 업데이트
 
 ### Phase 6 Gate (G6)
 
-| 검증 항목         | 명령                                                                                               | 통과 기준                           |
-| ----------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| type-check        | `pnpm type-check`                                                                                  | 0 error                             |
-| store unit tests  | `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical src/adapters/canonical` | PASS                                |
-| shared utils      | `pnpm -F @composition/shared exec vitest run src/utils`                                            | PASS                                |
-| browser smoke     | 수동 + Chrome MCP                                                                                  | create/edit/delete/undo/redo 회귀 0 |
-| boundary grep     | Phase 4 grep gate                                                                                  | 0건                                 |
-| derived view grep | Phase 5 grep gate                                                                                  | 0건                                 |
-| preflight         | `pnpm run codex:preflight`                                                                         | PASS                                |
-| FPS               | 실측                                                                                               | 60fps 기준 -5% 이내                 |
+| 검증 항목         | 명령                                                                                               | 통과 기준                                                           |
+| ----------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| type-check        | `pnpm type-check`                                                                                  | 0 error                                                             |
+| store unit tests  | `pnpm -F @composition/builder exec vitest run src/builder/stores/canonical src/adapters/canonical` | PASS                                                                |
+| shared utils      | `pnpm -F @composition/shared exec vitest run src/utils`                                            | PASS                                                                |
+| browser smoke     | authenticated Browser/Chrome profile                                                               | create/edit/delete/undo/redo/reorder/origin-instance/refresh 회귀 0 |
+| deprecated import | `local/no-deprecated-element-import` isolated lint gate + stdin negative fixture                   | PASS / expected FAIL                                                |
+| boundary grep     | scoped allowlist audit (Phase 4 broad seed 는 triage only)                                         | 신규 production import 0건                                          |
+| derived view grep | Phase 5 grep gate                                                                                  | 0건                                                                 |
+| preflight         | `pnpm run codex:preflight`                                                                         | PASS                                                                |
+| FPS               | 실측                                                                                               | 60fps 기준 -5% 이내                                                 |
 
 ---
 

@@ -4,6 +4,14 @@
 
 Accepted — 2026-05-10
 
+현재 판정 (2026-05-11): 설계 자체는 목적에 맞다. ADR-122 residual 순서인
+runtime source 제거 → derived view 축소 → compatibility/boundary quarantine 과
+정합하며, 즉시 타입 삭제 대신 consumer별 canonical-native 전환 + deprecated
+`Element` import gate 로 닫는 방향이 rollback/호환성 리스크를 가장 낮춘다.
+단, ADR 완료 판정은 아니다. Phase 6 code gate(deprecation marker + 신규 import
+lint 차단)는 land 됐지만, authenticated browser smoke, final grep audit, preflight 가
+아직 남아 있으므로 Status 는 `Accepted` 로 유지하고 `completed/` archive 는 하지 않는다.
+
 진행 로그:
 
 - 2026-05-10 Phase 0 (inventory freeze) — base 3 ADR (ADR-123/124/125) Implemented 도달 후 Phase 1 prerequisite G0 PASS, Element 타입 production 1766 line / canonicalDocumentToElements 4 caller / useCanonicalElements ~10 production caller / store-cache direct read bucket 0 hit freeze. 단, `elementsMap`/`childrenMap` store state 타입 전환은 Phase 3 잔여로 유지 ([126-inventory.md](design/126-inventory.md))
@@ -52,6 +60,7 @@ Accepted — 2026-05-10
 - 2026-05-11 Phase 5 derived-view cleanup slice land — `canonicalHistoryEvents.ts` 가 `canonicalDocumentToElements(nextDoc)` 대신 `visitCanonicalDocumentElements()` 로 history result snapshot 을 직접 수집하도록 전환했다. production `useCanonicalElements()` / `useCanonicalSelectedElement()` export 와 hook test 를 제거하고, `canonicalSceneModelLegacy.ts` 의 `canonicalDocumentToElements` transition re-export 도 제거했다. production `canonicalDocumentToElements(` grep 은 boundary 정의 1건만 남고 non-boundary caller 는 0건. 검증: builder type-check PASS, targeted Vitest 6 files / 24 tests PASS.
 - 2026-05-11 Phase 6 deprecation marker slice land — `unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 을 추가해 신규 runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 structural contract 를 사용하도록 명시했다. 타입 삭제는 별도 cleanup ADR 범위로 유지. 검증: builder type-check PASS.
 - 2026-05-11 Phase 6 deprecation lint gate slice land — `eslint-local-rules` 에 `local/no-deprecated-element-import` 를 추가하고 builder ESLint config 에 error gate 로 연결했다. 현재 compatibility/boundary baseline 파일은 allowlist 로 고정하고, 새 production 파일의 `Element` import 는 lint error 로 차단한다. 검증: ADR-126 isolated lint gate PASS, stdin negative fixture FAIL 확인.
+- 2026-05-11 Phase 6 closure 판정 정리 — 설계/구현 방향은 유지하되, 완료 승격은 보류한다. headless Playwright 로 `/builder/adr-126-final-smoke` 진입 시 `/signin` 으로 redirect 되어 create/edit/delete/undo/redo/reorder/origin-instance/refresh smoke 를 실행하지 못했다. 또한 기존 broad `Element[]|: Element` grep 은 `PreviewElement`, DOM `Element`, compatibility store/action 타입, comment 를 포함해 570줄을 잡아 final pass/fail 단독 기준으로 부적합하므로, final audit 은 scoped derived-view grep + local deprecated import lint gate + authenticated browser smoke + preflight 조합으로 판정한다.
 
 **PREREQUISITE (진입 불가 조건)**:
 
@@ -195,26 +204,26 @@ ADR-122 G6 closure 기준으로 Builder runtime hot path에서 mutable legacy mi
 
 ## Risks
 
-| ID  | 위험                                                                                            | 심각도 | 대응                                                                                         |
-| --- | ----------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------- |
-| R1  | ADR-123/124/125 prerequisite 미완 상태에서 Phase 1 진입 또는 ADR-127 미완 상태에서 Phase 2 진입 |  HIGH  | G0 gate가 Phase 1 prerequisite status를 검증. ADR-127 미완 시 Phase 2에서 hard stop          |
-| R2  | canonical-native selector가 render 매 frame마다 deep traversal 수행 → 60fps 하락                |  HIGH  | Phase 1 gate에서 selector 설계 검토 및 FPS 측정 필수. 문제 시 Phase 1 rollback               |
-| R3  | 전환 중 Element + canonical-native 두 모델 공존으로 consumer 혼란                               |  HIGH  | Phase별 `@deprecated` JSDoc 마킹 + `eslint-plugin-deprecation` 경고로 신규 추가 차단         |
-| R4  | boundary adapter(cloud/export/import)가 canonical-native shape를 받아 계약 파괴                 |  MED   | boundary allowlist 파일 분리 (G4 gate). allowlist 외 `Element[]` 생성은 CI grep gate로 차단  |
-| R5  | history/undo에서 Element diff 기반 logic이 canonical patch를 놓쳐 undo 회귀                     |  MED   | Phase 4 gate에서 canonical history event contract 검증 + undo/redo targeted Vitest           |
-| R6  | test suite의 `Element[]` fixture가 canonical-native 전환 후 silent inflation (0 test 통과)      |  MED   | 각 Phase Vitest에서 expected vs actual count 비교. `canonicalElementsView.test.ts` 명시 포함 |
+| ID  | 위험                                                                                            | 심각도 | 대응                                                                                           |
+| --- | ----------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------- |
+| R1  | ADR-123/124/125 prerequisite 미완 상태에서 Phase 1 진입 또는 ADR-127 미완 상태에서 Phase 2 진입 |  HIGH  | G0 gate가 Phase 1 prerequisite status를 검증. ADR-127 미완 시 Phase 2에서 hard stop            |
+| R2  | canonical-native selector가 render 매 frame마다 deep traversal 수행 → 60fps 하락                |  HIGH  | Phase 1 gate에서 selector 설계 검토 및 FPS 측정 필수. 문제 시 Phase 1 rollback                 |
+| R3  | 전환 중 Element + canonical-native 두 모델 공존으로 consumer 혼란                               |  HIGH  | Phase별 `@deprecated` JSDoc 마킹 + `local/no-deprecated-element-import` gate 로 신규 추가 차단 |
+| R4  | boundary adapter(cloud/export/import)가 canonical-native shape를 받아 계약 파괴                 |  MED   | boundary allowlist 파일 분리 (G4 gate). allowlist 외 `Element[]` 생성은 CI grep gate로 차단    |
+| R5  | history/undo에서 Element diff 기반 logic이 canonical patch를 놓쳐 undo 회귀                     |  MED   | Phase 4 gate에서 canonical history event contract 검증 + undo/redo targeted Vitest             |
+| R6  | test suite의 `Element[]` fixture가 canonical-native 전환 후 silent inflation (0 test 통과)      |  MED   | 각 Phase Vitest에서 expected vs actual count 비교. `canonicalElementsView.test.ts` 명시 포함   |
 
 ## Gates
 
-| Gate                            | 시점         | 통과 조건                                                                                                                                                                                                                                                                                | 실패 시 대안                                            |
-| ------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| G0: prerequisite lock           | Phase 0 종료 | ADR-123, ADR-124, ADR-125 모두 `Implemented`. inventory bucket 분류 완료 (derived view / store cache / hot path consumer / boundary)                                                                                                                                                     | Phase 1 진입 금지. prerequisite ADR 완결 후 재진입      |
-| G1: canonical-native model 검증 | Phase 1 종료 | canonical-native node/path/alias model이 `Element` 없이 Skia/layout/Preview hot path를 커버. type-check 0 error                                                                                                                                                                          | Phase 1 rollback, model 재설계                          |
-| G2: hot path consumer 전환      | Phase 2 종료 | ADR-127 Implemented. Skia/layout/Preview/Properties/LayerTree에서 `Element` 타입 import 0건 (boundary/test 제외). 60fps 실측 PASS. **deprecation lint gate**: `Element` 타입에 `@deprecated` 마킹 + `eslint-plugin-deprecation` 활성화 후 신규 production import 시 lint error 발생 검증 | consumer별 temporary read-only adapter로 격리 후 재시도 |
-| G3: store cache 전환            | Phase 3 종료 | `elements.ts` 의 `elementsMap`/`childrenMap` store state/cache contract 에서 `Element` key/value 타입 참조 0건 또는 canonical-derived readonly/deprecated snapshot 으로 전환됨. `inspectorActions`/`elementLoader`/history/utility map consumer 는 Phase 4 gate 소유로 제외한다.         | ADR-125 결과물과 재정렬                                 |
-| G4: boundary allowlist 격리     | Phase 4 종료 | `exportLegacyDocument()` + `Element[]` 생성이 허용 경로(projectSync/cloud/export/import/publish) 외 production 0건. CI grep gate PASS                                                                                                                                                    | allowlist 보강 후 재시도                                |
-| G5: derived view 제거           | Phase 5 종료 | `canonicalDocumentToElements()`, `useCanonicalElements()`, `useCanonicalSelectedElement()` 호출이 non-boundary production 0건                                                                                                                                                            | derived view → canonical-native 재전환                  |
-| G6: final verification          | Phase 6 종료 | type-check 0 error, targeted Vitest PASS, 60fps 실측 PASS, browser smoke (create/edit/delete/undo/redo/refresh) 회귀 0, `Element[]` production grep gate 기준치 이하                                                                                                                     | 실패 bucket을 residual 기록 후 phase 재실행             |
+| Gate                            | 시점         | 통과 조건                                                                                                                                                                                                                                                                                         | 실패 시 대안                                                                  |
+| ------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
+| G0: prerequisite lock           | Phase 0 종료 | ADR-123, ADR-124, ADR-125 모두 `Implemented`. inventory bucket 분류 완료 (derived view / store cache / hot path consumer / boundary)                                                                                                                                                              | Phase 1 진입 금지. prerequisite ADR 완결 후 재진입                            |
+| G1: canonical-native model 검증 | Phase 1 종료 | canonical-native node/path/alias model이 `Element` 없이 Skia/layout/Preview hot path를 커버. type-check 0 error                                                                                                                                                                                   | Phase 1 rollback, model 재설계                                                |
+| G2: hot path consumer 전환      | Phase 2 종료 | ADR-127 Implemented. Skia/layout/Preview/Properties/LayerTree에서 `Element` 타입 import 0건 (boundary/test 제외). 60fps 실측 PASS. **deprecation lint gate**: `Element` 타입에 `@deprecated` 마킹 + `local/no-deprecated-element-import` 활성화 후 신규 production import 시 lint error 발생 검증 | consumer별 temporary read-only adapter로 격리 후 재시도                       |
+| G3: store cache 전환            | Phase 3 종료 | `elements.ts` 의 `elementsMap`/`childrenMap` store state/cache contract 에서 `Element` key/value 타입 참조 0건 또는 canonical-derived readonly/deprecated snapshot 으로 전환됨. `inspectorActions`/`elementLoader`/history/utility map consumer 는 Phase 4 gate 소유로 제외한다.                  | ADR-125 결과물과 재정렬                                                       |
+| G4: boundary allowlist 격리     | Phase 4 종료 | `exportLegacyDocument()` + `Element[]` 생성이 허용 경로(projectSync/cloud/export/import/publish) 외 production 0건. CI grep gate PASS                                                                                                                                                             | allowlist 보강 후 재시도                                                      |
+| G5: derived view 제거           | Phase 5 종료 | `canonicalDocumentToElements()`, `useCanonicalElements()`, `useCanonicalSelectedElement()` 호출이 non-boundary production 0건                                                                                                                                                                     | derived view → canonical-native 재전환                                        |
+| G6: final verification          | Phase 6 종료 | type-check 0 error, targeted Vitest PASS, 60fps 실측 PASS, authenticated browser smoke (create/edit/delete/undo/redo/reorder/origin-instance/refresh) 회귀 0, scoped derived-view grep 0건, local deprecated import lint gate PASS, preflight PASS. Broad `Element[]                              | : Element` grep 은 false positive가 많아 단독 pass/fail 기준으로 쓰지 않는다. | 실패 bucket을 residual 기록 후 phase 재실행 |
 
 ## Consequences
 
