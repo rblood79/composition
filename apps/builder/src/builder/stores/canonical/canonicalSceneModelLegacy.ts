@@ -15,8 +15,8 @@
  *   를 점진적으로 제거한다 (helper 호출 → canonical-native traversal 로 swap).
  * - ADR-126 Phase 5 (derived view 제거) 시점에 본 module 자체 삭제.
  *
- * **재사용 source**: `canonicalDocumentToElements` (`canonicalElementsView.ts`)
- * 의 traversal logic 을 활용하여 CanonicalNode → Element[] projection 을 만든다.
+ * **재사용 source**: `canonicalElementsView.ts` 의 active document traversal logic
+ * 을 활용하여 CanonicalNode → Element[] projection 을 만든다.
  */
 
 import type { CanonicalNode } from "@composition/shared";
@@ -27,10 +27,7 @@ import type {
   CanvasSceneGraph,
   CanvasSceneNode,
 } from "../../workspace/canvas/scene/canvasSceneNode";
-import {
-  canonicalDocumentToElements,
-  getActiveCanonicalDocumentElements,
-} from "./canonicalElementsView";
+import { getActiveCanonicalDocumentElements } from "./canonicalElementsView";
 
 type LegacyElementSnapshot = Element;
 export type LegacyElementMap = Map<string, LegacyElementSnapshot>;
@@ -101,12 +98,6 @@ export function nodesToElementsLegacy(_nodes: CanonicalNode[]): Element[] {
   // 기존 caller 가 active document 기준 read 패턴이라 동일 source 사용.
   return getActiveCanonicalDocumentElements() ?? [];
 }
-
-// canonicalDocumentToElements 는 doc 인자가 필요한 함수. 위 helper 들은 active
-// document 기준 read 가 자연스러운 transition pattern 이라 active getter 사용.
-// 별도 doc 기반 변환이 필요한 caller 는 직접 canonicalDocumentToElements(doc)
-// 호출.
-export { canonicalDocumentToElements };
 
 // ─────────────────────────────────────────────
 // Legacy Element-based helpers (boundary)

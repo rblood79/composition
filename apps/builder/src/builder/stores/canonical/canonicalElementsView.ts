@@ -9,9 +9,9 @@
  * ADR-116 direct cutover 이후 `CanonicalNode.props` 와 canonical node id/type 이
  * derived view 의 source of truth 이다.
  *
- * Direct cutover 이후 canonical store 가 hydrated 일 때 의미가 있다. 초기
- * hydration 전에는 `useCanonicalElements()` 가 `null` 을 반환하고 caller 가
- * legacy 경로로 fallback 한다.
+ * Direct cutover 이후 canonical store 가 hydrated 일 때 의미가 있다. ADR-126
+ * Phase 5 이후 runtime caller 는 `Element[]` hook 대신 active canonical document
+ * traversal helper 를 직접 사용한다.
  */
 
 import { useMemo } from "react";
@@ -32,7 +32,6 @@ import {
   canonicalDocumentToFrameElementScopes,
   type CanonicalFrameElementScopeMap,
 } from "../../../adapters/canonical/frameElementScope";
-import { resolveCanonicalRefElement } from "../../utils/canonicalRefResolution";
 import {
   getActiveCanonicalDocument,
   useActiveCanonicalDocument,
@@ -234,18 +233,17 @@ export function canonicalNodeToElement(
 export function canonicalDocumentToElements(
   doc: CompositionDocument,
 ): Element[] {
-  const result: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    result.push(element);
-  });
-
-  return result;
+  return collectCanonicalDocumentElements(doc);
 }
 
 export function getActiveCanonicalDocumentElements(): Element[] | null {
   const doc = getActiveCanonicalDocument();
   if (!doc) return null;
 
+  return collectCanonicalDocumentElements(doc);
+}
+
+function collectCanonicalDocumentElements(doc: CompositionDocument): Element[] {
   const result: Element[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
     result.push(element);
@@ -333,65 +331,10 @@ function getNodeScope(
 // React hook
 // ─────────────────────────────────────────────
 
-/**
- * 활성 canonical document 의 `Element[]` derived view 를 React 컴포넌트
- * 에서 구독.
- *
- * - canonical store 비활성 (currentProjectId === null) 또는 doc 미등록 시 `null`.
- * - mutation 시 `useActiveCanonicalDocument` 가 새 reference 반환 → useMemo 가
- *   재계산 → caller 가 새 Element[] 수신.
- * - canonical → Element 변환 비용 = O(n) DFS. document 가 자주 mutate 되면 cost
- *   누적 — Sub-Phase B 후속 sub-step 에서 memoization 강화 고려.
- *
- * @returns canonical 에서 파생된 `Element[]` 또는 `null` (비활성)
- */
-export function useCanonicalElements(): Element[] | null {
-  const doc = useActiveCanonicalDocument();
-  return useMemo(() => {
-    if (!doc) return null;
-    return canonicalDocumentToElements(doc);
-  }, [doc]);
-}
-
 export function useCanonicalFrameElementScopes(): CanonicalFrameElementScopeMap | null {
   const doc = useActiveCanonicalDocument();
   return useMemo(() => {
     if (!doc) return null;
     return canonicalDocumentToFrameElementScopes(doc);
   }, [doc]);
-}
-
-/**
- * 활성 canonical document 에서 selected element 를 `Element` 형태로 파생.
- *
- * **ADR-116 Phase 2 G3 Step 2 (Selection/properties)** read backbone — selected
- * element 의 panel 데이터를 canonical store 에서 직접 파생.
- *
- * **lookup 정책**: selectedElementId 는 canonical node id 와 동일하다.
- *
- * **비용**: O(n) DFS per render. document mutation 또는 selectedElementId 변경시
- * 만 재계산 (useMemo 가드). hot path 가 selection panel 1개라 perf 영향 미미.
- *
- * **반환 조건**:
- * - `selectedElementId === null` → null
- * - canonical store 비활성 (doc null) → null
- * - 매칭 노드 없음 → null
- * - metadata 미보존 노드 (canonicalNodeToElement → null) → null
- *
- * @param selectedElementId — caller 의 selectedElementId (canonical node id)
- * @returns canonical 에서 파생된 legacy `Element` 또는 `null`
- */
-export function useCanonicalSelectedElement(
-  selectedElementId: string | null,
-): Element | null {
-  const doc = useActiveCanonicalDocument();
-  return useMemo(() => {
-    if (!selectedElementId || !doc) return null;
-    const elements = canonicalDocumentToElements(doc);
-    const element = elements.find(
-      (candidate) => candidate.id === selectedElementId,
-    );
-    if (!element) return null;
-    return resolveCanonicalRefElement(element, elements);
-  }, [selectedElementId, doc]);
 }

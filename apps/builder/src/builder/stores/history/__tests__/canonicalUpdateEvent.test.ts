@@ -5,6 +5,8 @@
  * 깊은 nested 노드 (frame 안의 frame 안의 element) 에서도 동일.
  */
 
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { CompositionDocument } from "@composition/shared";
@@ -43,6 +45,16 @@ function makeDoc(): CompositionDocument {
 }
 
 describe("buildCanonicalUpdateEvent + apply", () => {
+  it("collects active-document results through canonical traversal visitor", async () => {
+    const source = await readFile(
+      resolve(__dirname, "..", "canonicalHistoryEvents.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("canonicalDocumentToElements");
+  });
+
   it("round-trip: redo applies nextProps, undo applies prevProps", () => {
     const initial = makeDoc();
     const prevProps = { label: "Click", variant: "primary", size: "md" };

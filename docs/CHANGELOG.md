@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
+- **ADR-126 Phase 5 derived-view cleanup slice land**:
+  - `canonicalHistoryEvents.ts` 가 `canonicalDocumentToElements(nextDoc)` 대신 `visitCanonicalDocumentElements()` 로 undo/redo result snapshot 을 수집하도록 전환했다.
+  - `useCanonicalElements()` / `useCanonicalSelectedElement()` production export 와 `canonicalSceneModelLegacy.ts` 의 `canonicalDocumentToElements` re-export 를 제거했다.
+  - production `canonicalDocumentToElements(` grep 은 boundary 정의 1건만 남고 non-boundary caller 는 0건이다.
+  - 검증: builder type-check PASS, targeted Vitest 6 files / 24 tests PASS.
 - **ADR-126 Phase 5 runtime derived-view hook caller slice land**:
   - `stores/index.ts`, `canvasStore.ts`, `useDeltaMessenger.ts`, `useComponentMemory.ts` 가 `useCanonicalElements()` / `useCanonicalSelectedElement()` 대신 active canonical document traversal 을 사용하도록 전환했다.
   - non-boundary `useCanonicalElements()` / `useCanonicalSelectedElement()` production caller 는 0건으로 감소했다.

@@ -22,14 +22,14 @@
 
 ## 2. Target State
 
-| Layer               | Target                                                                                 | 금지                                                     |
-| ------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| hot path consumer   | canonical-native node/path/alias model 소비                                            | `Element[]` 파생 view를 hot path read source로 사용      |
-| derived view        | boundary allowlist 파일로 격리 (`canonicalDocumentToElements`, `useCanonicalElements`) | non-boundary production 호출                             |
-| store cache         | canonical-derived read-only cache 유지 (ADR-125 render input contract 후 잔존 cache)   | `elementsMap`/`childrenMap`을 `Element` key/value로 유지 |
-| history/undo        | canonical patch/event 계약 기반 diff                                                   | `Element[]` diff 기반 undo history                       |
-| boundary (허용)     | projectSync, exportLegacyDocument, cloud/export/import/publish adapter                 | —                                                        |
-| `Element` 타입 파일 | `@deprecated` 마킹 + boundary allowlist 파일로 이동                                    | hot path에서 신규 `Element` 타입 import                  |
+| Layer               | Target                                                                               | 금지                                                     |
+| ------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| hot path consumer   | canonical-native node/path/alias model 소비                                          | `Element[]` 파생 view를 hot path read source로 사용      |
+| derived view        | boundary allowlist 파일로 격리 (`canonicalDocumentToElements`, traversal visitor)    | non-boundary production 호출                             |
+| store cache         | canonical-derived read-only cache 유지 (ADR-125 render input contract 후 잔존 cache) | `elementsMap`/`childrenMap`을 `Element` key/value로 유지 |
+| history/undo        | canonical patch/event 계약 기반 diff                                                 | `Element[]` diff 기반 undo history                       |
+| boundary (허용)     | projectSync, exportLegacyDocument, cloud/export/import/publish adapter               | —                                                        |
+| `Element` 타입 파일 | `@deprecated` 마킹 + boundary allowlist 파일로 이동                                  | hot path에서 신규 `Element` 타입 import                  |
 
 ---
 
@@ -301,27 +301,28 @@ rg -n "Element\[\]|: Element\b" \
 - **2026-05-11 property derived-view caller slice land**: `useCanonicalPropertyRead.ts` / `useCollectionItemManager.ts` 는 `useCanonicalElements()` 대신 active canonical document traversal 을 직접 사용. `PropertyCustomId` / `usePresetApply` 는 property read helper 를 재사용하도록 전환. `idValidation` 은 `Element[]` 대신 customId validation 최소 contract 로 전환. direct `useCanonicalElements()` production caller 는 12 → 8로 감소. 검증: builder type-check PASS, targeted Vitest 4 files / 8 tests PASS.
 - **2026-05-11 nodes derived-view caller slice land**: 신규 `useCanonicalPanelElements()` 로 Layers/Frames/LayerTree read path 를 active canonical document traversal 기반으로 전환. direct `useCanonicalElements()` production caller 는 8 → 5로 감소. 검증: builder type-check PASS, targeted Vitest 4 files / 21 tests PASS.
 - **2026-05-11 runtime derived-view hook caller slice land**: `stores/index.ts`, `canvasStore.ts`, `useDeltaMessenger.ts`, `useComponentMemory.ts` 를 active canonical document traversal 기반으로 전환. non-boundary `useCanonicalElements()` / `useCanonicalSelectedElement()` production caller 는 0건. 검증: builder type-check PASS, targeted Vitest 5 files / 12 tests PASS.
-- 잔여 direct caller: `canonicalElementsView.ts` 정의/내부 호출과 `canonicalHistoryEvents.ts` 의 `canonicalDocumentToElements()` 는 후속 derived-view/boundary slice 소유.
+- **2026-05-11 derived-view cleanup slice land**: `canonicalHistoryEvents.ts` 의 undo/redo result path 를 `canonicalDocumentToElements(nextDoc)` 대신 `visitCanonicalDocumentElements()` 기반 수집으로 전환. `useCanonicalElements()` / `useCanonicalSelectedElement()` production export 와 hook test 제거. `canonicalSceneModelLegacy.ts` 의 `canonicalDocumentToElements` transition re-export 제거. production grep 은 boundary 정의 1건만 남고 non-boundary caller 는 0건. 검증: builder type-check PASS, targeted Vitest 6 files / 24 tests PASS.
+- 잔여 direct caller: 없음. `canonicalDocumentToElements` 정의는 `canonicalElementsView.ts` boundary/test projection 으로만 유지한다.
 
 ### 작업
 
-1. `canonicalElementsView.ts` non-boundary export 함수들에 `@deprecated` 마킹 확인 (Phase 2에서 선행 가능)
+1. `canonicalElementsView.ts` non-boundary hook export 제거
 2. non-boundary 호출처 0건 확인 (grep gate)
-3. boundary 파일로의 re-export 정리 (`exportLegacyDocument.ts`, `projectSync.ts` 등)
-4. `canonicalElementsView.ts` hot path 함수 파일 자체를 boundary allowlist 디렉토리로 이동
+3. transition re-export 정리 (`canonicalSceneModelLegacy.ts` 등)
+4. `canonicalElementsView.ts` 는 boundary allowlist 파일로 유지하고 Phase 6 final audit 에서 test/doc grep 을 정렬
 
 ### Phase 5 Gate (G5)
 
 ```bash
 # non-boundary에서 canonicalDocumentToElements / useCanonicalElements 호출
-rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
+rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelectedElement\(" \
   apps/builder/src \
   --include="*.ts" --include="*.tsx" \
-  | grep -v "boundary\|adapter\|export\|projectSync\|\.test\."
+  | grep -v "canonicalElementsView.ts\|boundary\|adapter\|export\|projectSync\|\.test\."
 ```
 
 - 위 명령 결과 0건
-- `canonicalElementsView.ts` 자체가 boundary 디렉토리로 이동됨
+- `canonicalElementsView.ts` 는 boundary allowlist 파일로만 남고 hook export 없음
 - `pnpm type-check` 0 error
 
 ---
@@ -377,7 +378,7 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 | ↳ 2-E       | Preview render                                                | `preview/**` + `services/messaging.ts` layout receive (~7 file)                                                                                                 | G2-E | 2-A PASS (scene snapshot 송신측 의존) |
 | Phase 3     | store cache contract 전환                                     | `elementsMap`/`childrenMap` store state/cache contract 를 canonical-native 또는 deprecated readonly snapshot 으로 정렬. mutation/action utility 는 Phase 4 소유 | G3   | G2 PASS                               |
 | Phase 4     | history/inspector/drag-drop/AI tools/messaging                | 나머지 consumer + boundary allowlist (BuilderCore mount / utility / Factory 포함)                                                                               | G4   | G3 PASS                               |
-| Phase 5     | derived view 제거                                             | `canonicalDocumentToElements` non-boundary 0건                                                                                                                  | G5   | G4 PASS                               |
+| Phase 5     | derived view 제거                                             | `canonicalDocumentToElements` non-boundary 0건 + `useCanonicalElements`/`useCanonicalSelectedElement` export 제거                                               | G5   | G4 PASS                               |
 | Phase 6     | final verification                                            | `@deprecated` 마킹 + browser smoke + preflight                                                                                                                  | G6   | G5 PASS                               |
 
 **Phase 2 진입 권고 순서**: 2-A → 2-C → 2-B → 2-E → 2-D. 이유 — 2-A (Skia render path) 가 ADR-127 helper API 직접 access 진입점이라 가장 작은 scope 로 진정 reverse 패턴 검증 가능. 2-A 완료 후 cascade 학습값으로 2-B/2-C/2-E/2-D 적용. agent dispatch 사용 여부는 2-A 직접 land 결과 후 판단 (memory `feedback-agent-completion-failure-pattern` — HIGH 위험 작업 agent dispatch 신뢰도 낮음).
@@ -390,8 +391,8 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(" \
 
 ### derived-view bucket (Phase 5 제거)
 
-- `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts` (정의)
-- `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` (호출 ~2건)
+- `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts` (boundary/test projection 정의)
+- `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` (caller 제거 완료)
 
 ### store-cache bucket (Phase 3 — direct read closure 확인 + store state 타입 전환)
 

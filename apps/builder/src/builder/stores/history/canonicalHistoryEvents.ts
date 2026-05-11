@@ -17,8 +17,8 @@ import {
 import { getFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { Element } from "@/types/core/store.types";
 import {
-  canonicalDocumentToElements,
   getCanonicalRefOverrideEntries,
+  visitCanonicalDocumentElements,
 } from "../canonical/canonicalElementsView";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
@@ -227,6 +227,14 @@ function applyNodePropsUpdate(
   return { ...doc, children: result.nodes };
 }
 
+function collectHistoryResultElements(doc: CompositionDocument): Element[] {
+  const elements: Element[] = [];
+  visitCanonicalDocumentElements(doc, (element) => {
+    elements.push(element);
+  });
+  return elements;
+}
+
 export function applyCanonicalHistoryEventsToDocument(
   doc: CompositionDocument,
   events: CanonicalHistoryNodeEvent[],
@@ -267,7 +275,7 @@ export function applyCanonicalHistoryEventsToActiveDocument(
 
   const nextDoc = applyCanonicalHistoryEventsToDocument(doc, events, direction);
   canonical.setDocument(projectId, nextDoc);
-  return canonicalDocumentToElements(nextDoc);
+  return collectHistoryResultElements(nextDoc);
 }
 
 export function getCanonicalHistoryEventIds(

@@ -2,8 +2,7 @@
  * @fileoverview canonicalElementsView unit tests — ADR-116 direct cutover.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import type {
   CanonicalNode,
   CompositionDocument,
@@ -11,11 +10,7 @@ import type {
 } from "@composition/shared";
 import { ButtonSpec, SectionSpec, TextFieldSpec } from "@composition/specs";
 
-import {
-  canonicalDocumentToElements,
-  useCanonicalSelectedElement,
-} from "../canonicalElementsView";
-import { useCanonicalDocumentStore } from "../canonicalDocumentStore";
+import { canonicalDocumentToElements } from "../canonicalElementsView";
 
 function makeDoc(
   children: CompositionDocument["children"],
@@ -477,139 +472,5 @@ describe("canonicalDocumentToElements — spec consumer parity", () => {
     expect(
       SectionSpec.render!.shapes!(element.props, sizeContext, "default"),
     ).toBeDefined();
-  });
-});
-
-function resetCanonicalStore(): void {
-  useCanonicalDocumentStore.setState({
-    documents: new Map(),
-    currentProjectId: null,
-    documentVersion: 0,
-  });
-}
-
-describe("useCanonicalSelectedElement", () => {
-  beforeEach(() => {
-    resetCanonicalStore();
-  });
-
-  afterEach(() => {
-    resetCanonicalStore();
-  });
-
-  function seedDoc(children: CanonicalNode[]): void {
-    const doc: CompositionDocument = { schemaVersion: "1.0", children };
-    act(() => {
-      const s = useCanonicalDocumentStore.getState();
-      s.setDocument("proj-a", doc);
-      s.setCurrentProject("proj-a");
-    });
-  }
-
-  it("returns null when selectedElementId is null", () => {
-    seedDoc([{ id: "button-1", type: "Button", props: { label: "A" } }]);
-
-    const { result } = renderHook(() => useCanonicalSelectedElement(null));
-
-    expect(result.current).toBeNull();
-  });
-
-  it("returns null when canonical store is inactive", () => {
-    const { result } = renderHook(() =>
-      useCanonicalSelectedElement("button-1"),
-    );
-
-    expect(result.current).toBeNull();
-  });
-
-  it("returns selected canonical node as an Element", () => {
-    seedDoc([
-      {
-        id: "button-1",
-        type: "Button",
-        props: { label: "Click" },
-      },
-    ]);
-
-    const { result } = renderHook(() =>
-      useCanonicalSelectedElement("button-1"),
-    );
-
-    expect(result.current).toMatchObject({
-      id: "button-1",
-      type: "Button",
-      props: { label: "Click" },
-    });
-  });
-
-  it("resolves selected canonical ref nodes to origin-shaped instance elements", () => {
-    seedDoc([
-      {
-        id: "origin",
-        type: "NumberField",
-        reusable: true,
-        props: { label: "Amount", minValue: 0, style: { width: "100%" } },
-      },
-      {
-        id: "instance",
-        type: "ref",
-        ref: "origin",
-        props: { maxValue: 10 },
-      } as CanonicalNode,
-    ]);
-
-    const { result } = renderHook(() =>
-      useCanonicalSelectedElement("instance"),
-    );
-
-    expect(result.current).toMatchObject({
-      id: "instance",
-      type: "NumberField",
-      ref: "origin",
-      props: {
-        label: "Amount",
-        minValue: 0,
-        maxValue: 10,
-        style: { width: "100%" },
-      },
-    });
-  });
-
-  it("returns null when selected node has no props", () => {
-    seedDoc([{ id: "page-1", type: "frame" }]);
-
-    const { result } = renderHook(() => useCanonicalSelectedElement("page-1"));
-
-    expect(result.current).toBeNull();
-  });
-
-  it("reacts to canonical store mutation", () => {
-    seedDoc([
-      {
-        id: "button-1",
-        type: "Button",
-        props: { label: "old" },
-      },
-    ]);
-
-    const { result } = renderHook(() =>
-      useCanonicalSelectedElement("button-1"),
-    );
-    expect(result.current?.props).toEqual({ label: "old" });
-
-    act(() => {
-      useCanonicalDocumentStore.getState().setDocument("proj-a", {
-        schemaVersion: "1.0",
-        children: [
-          {
-            id: "button-1",
-            type: "Button",
-            props: { label: "new" },
-          },
-        ],
-      });
-    });
-
-    expect(result.current?.props).toEqual({ label: "new" });
   });
 });

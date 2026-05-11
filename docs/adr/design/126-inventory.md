@@ -99,14 +99,14 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 
 ## 4. Phase 1+ 진입 권장 순서
 
-| Phase | Goal                                                                                                                                                            | Bucket 적용                               | 의존        |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------- |
-| 1     | derived-view boundary 격리 — `canonicalDocumentToElements`/`useCanonicalElements` 가 boundary allowlist file 내부 정의로만 export, hot path import 차단         | `derived-view`                            | —           |
-| 2     | hot-path-consumer 전환 (1) — Skia / layout / Preview render path 가 canonical-native node/path/alias model 직접 소비                                            | `hot-path-consumer` (Skia/layout/Preview) | Phase 1     |
-| 3     | store-cache 정합 — direct read 0 확인 후 `elementsMap`/`childrenMap` store state/cache contract 를 canonical-native 또는 deprecated readonly snapshot 으로 정렬 | `store-cache`                             | Phase 2     |
-| 4     | hot-path-consumer 전환 (2) — Properties / LayerTree / History / drag-drop / AI tools / messaging                                                                | `hot-path-consumer` (나머지)              | Phase 2     |
-| 5     | derived-view 제거 — `canonicalDocumentToElements`/`useCanonicalElements` production caller 0 후 함수 자체 deprecate / boundary allowlist 만 사용                | `derived-view`                            | Phase 1+2+4 |
-| 6     | final verification — `Element` 타입에 `@deprecated` JSDoc + boundary grep gate + targeted vitest + browser smoke                                                | `test-doc`                                | Phase 5     |
+| Phase | Goal                                                                                                                                                                    | Bucket 적용                               | 의존        |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------- |
+| 1     | derived-view boundary 격리 — `canonicalDocumentToElements`/`useCanonicalElements` 가 boundary allowlist file 내부 정의로만 export, hot path import 차단                 | `derived-view`                            | —           |
+| 2     | hot-path-consumer 전환 (1) — Skia / layout / Preview render path 가 canonical-native node/path/alias model 직접 소비                                                    | `hot-path-consumer` (Skia/layout/Preview) | Phase 1     |
+| 3     | store-cache 정합 — direct read 0 확인 후 `elementsMap`/`childrenMap` store state/cache contract 를 canonical-native 또는 deprecated readonly snapshot 으로 정렬         | `store-cache`                             | Phase 2     |
+| 4     | hot-path-consumer 전환 (2) — Properties / LayerTree / History / drag-drop / AI tools / messaging                                                                        | `hot-path-consumer` (나머지)              | Phase 2     |
+| 5     | derived-view 제거 — `canonicalDocumentToElements` non-boundary caller 0, `useCanonicalElements`/`useCanonicalSelectedElement` export 제거 후 boundary allowlist 만 사용 | `derived-view`                            | Phase 1+2+4 |
+| 6     | final verification — `Element` 타입에 `@deprecated` JSDoc + boundary grep gate + targeted vitest + browser smoke                                                        | `test-doc`                                | Phase 5     |
 
 ## Phase 0 G0 통과 결과
 
@@ -117,7 +117,7 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - [x] store-cache direct read bucket = 0 hit 확인
 - [x] store-cache Phase 3/4 경계 재정리 — Phase 3 은 `elements.ts` state/cache contract, Phase 4 는 store utility/action consumer
 - [x] store-cache state/cache contract slice 완료 — `ElementsState.elementsMap` / `childrenMap` + `buildIndexes()` snapshot alias
-- [ ] store-cache 관련 store utility/action consumer 전환은 Phase 4 잔여
+- [x] store-cache 관련 store utility/action consumer 전환 완료 — raw store/action/helper map consumer 0건
 - [x] hot-path-consumer 카테고리 분류 완료
 - [x] boundary-allowed allowlist 명시
 - [x] Phase 1+ 진입 순서 6 phase plan freeze
@@ -129,9 +129,10 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - `idValidation` 은 `Element[]` 대신 `{ id, customId }` 최소 contract 로 전환.
 - nodes derived-view caller slice 완료: `useCanonicalPanelElements()` 를 추가해 Layers/Frames/LayerTree read path 를 active canonical document traversal 기반으로 전환.
 - runtime derived-view hook caller slice 완료: `stores/index.ts`, `canvasStore.ts`, `useDeltaMessenger.ts`, `useComponentMemory.ts` 를 active canonical document traversal 기반으로 전환.
+- cleanup slice 완료: `canonicalHistoryEvents.ts` 의 `canonicalDocumentToElements(nextDoc)` caller 를 `visitCanonicalDocumentElements()` 기반 수집으로 전환하고, `useCanonicalElements()` / `useCanonicalSelectedElement()` production export 와 `canonicalSceneModelLegacy.ts` re-export 를 제거.
 - direct `useCanonicalElements()` production caller: **12 → 8 → 5 → 0**.
 - direct `useCanonicalSelectedElement()` production caller: **0**.
-- 잔여 direct caller: `canonicalHistoryEvents.ts` 의 `canonicalDocumentToElements()` 와 `canonicalElementsView.ts` 내부 정의/호출.
+- direct `canonicalDocumentToElements()` production caller: **1 → 0**. 잔여는 `canonicalElementsView.ts` boundary 정의 1건과 test/docs reference.
 
 ## 5. Phase 2-A 진행 결과 (2026-05-10)
 

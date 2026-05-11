@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-11 — **ADR-126 Phase 5 runtime derived-view hook caller slice land**. `stores/index.ts`, `canvasStore.ts`, `useDeltaMessenger.ts`, `useComponentMemory.ts` 가 `useCanonicalElements()` / `useCanonicalSelectedElement()` 대신 active canonical document traversal 을 사용하도록 전환했다. non-boundary hook caller 는 0건. builder type-check + targeted Vitest 5 files / 12 tests PASS.
+> **최종 업데이트**: 2026-05-11 — **ADR-126 Phase 5 derived-view cleanup slice land**. `canonicalHistoryEvents.ts` 가 `canonicalDocumentToElements(nextDoc)` 대신 traversal visitor 로 undo/redo result snapshot 을 수집하도록 전환했다. `useCanonicalElements()` / `useCanonicalSelectedElement()` production export 와 `canonicalSceneModelLegacy.ts` re-export 를 제거했고, non-boundary derived-view caller 는 0건. builder type-check + targeted Vitest 6 files / 24 tests PASS.
+>
+> **2026-05-11 (직전) — ADR-126 Phase 5 runtime derived-view hook caller slice land**. `stores/index.ts`, `canvasStore.ts`, `useDeltaMessenger.ts`, `useComponentMemory.ts` 가 `useCanonicalElements()` / `useCanonicalSelectedElement()` 대신 active canonical document traversal 을 사용하도록 전환했다. non-boundary hook caller 는 0건. builder type-check + targeted Vitest 5 files / 12 tests PASS.
 >
 > **2026-05-11 (직전) — ADR-126 Phase 5 nodes derived-view caller slice land**. 신규 `useCanonicalPanelElements()` 로 Layers/Frames/LayerTree read path 가 `useCanonicalElements()` 대신 active canonical document traversal 을 사용하도록 전환했다. direct `useCanonicalElements()` production caller 는 8 → 5. builder type-check + targeted Vitest 4 files / 21 tests PASS.
 >
