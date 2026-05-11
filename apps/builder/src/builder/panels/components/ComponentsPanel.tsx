@@ -22,10 +22,10 @@ import { belongsToLegacyLayout } from "../../../adapters/canonical";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
 import type { CompositionDocument } from "@composition/shared";
-import type { Element } from "../../../types/core/store.types";
+import type { PanelNode } from "../panelNode";
 
-function getComponentsPanelElements(doc: CompositionDocument): Element[] {
-  const elements: Element[] = [];
+function getComponentsPanelElements(doc: CompositionDocument): PanelNode[] {
+  const elements: PanelNode[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
     elements.push(element);
   });

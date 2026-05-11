@@ -33,13 +33,13 @@ import {
   scheduleNextFrame,
 } from "../../utils/scheduleTask";
 import { longTaskMonitor } from "../../../utils/longTaskMonitor";
-import type { Element } from "../../../types/core/store.types";
+import type { PanelNode } from "../panelNode";
 
 interface PagesSectionProps {
   projectId: string | undefined;
 }
 
-function findPageBodyElement(elements: readonly Element[] | undefined) {
+function findPageBodyElement(elements: readonly PanelNode[] | undefined) {
   return (
     elements?.find((element) => element.type.toLowerCase() === "body") ??
     elements?.[0] ??
@@ -47,7 +47,7 @@ function findPageBodyElement(elements: readonly Element[] | undefined) {
   );
 }
 
-function getActiveCanonicalPageElements(): Element[] | null {
+function getActiveCanonicalPageElements(): PanelNode[] | null {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
   if (!projectId) return null;
@@ -55,9 +55,9 @@ function getActiveCanonicalPageElements(): Element[] | null {
   const doc = canonical.documents.get(projectId);
   if (!doc) return null;
 
-  const elements: Element[] = [];
+  const elements: PanelNode[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element as Element);
+    elements.push(element);
   });
   return elements;
 }

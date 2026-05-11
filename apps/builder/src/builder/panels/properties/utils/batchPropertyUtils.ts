@@ -5,7 +5,10 @@
  * Utilities for finding and managing common properties across multiple elements
  */
 
-import type { Element } from "../../../../types/core/store.types";
+export interface BatchPropertyNode {
+  type: string;
+  props?: Record<string, unknown>;
+}
 
 /**
  * Property value info with mixed state detection
@@ -39,7 +42,9 @@ export interface CommonProperties {
  * @param elements - Array of elements to analyze
  * @returns Common properties with mixed state detection
  */
-export function findCommonProperties(elements: Element[]): CommonProperties {
+export function findCommonProperties(
+  elements: readonly BatchPropertyNode[],
+): CommonProperties {
   if (elements.length === 0) {
     return {
       commonProps: [],

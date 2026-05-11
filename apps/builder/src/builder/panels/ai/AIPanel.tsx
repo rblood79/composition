@@ -26,10 +26,9 @@ import type {
   BuilderContext,
   ChatMessage as ChatMessageType,
 } from "../../../types/integrations/chat.types";
-import type { Element } from "../../../types/core/store.types";
 import "./AIPanel.css";
 
-const EMPTY_ELEMENTS: Element[] = [];
+const EMPTY_ELEMENTS: BuilderContext["elements"] = [];
 
 /**
  * ChatMessage - 개별 메시지 표시

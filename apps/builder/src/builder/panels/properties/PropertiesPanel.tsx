@@ -82,7 +82,6 @@ import {
   trackMultiDelete,
 } from "../../stores/utils/historyHelpers";
 import { supabase } from "../../../env/supabase.client";
-import type { Element } from "../../../types/core/store.types";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import {
   isCanonicalRefElement,
@@ -95,6 +94,7 @@ import {
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
 import { isComponentInstanceMirrorElement } from "../../../adapters/canonical/componentSemanticsMirror";
+import type { PanelNode } from "../panelNode";
 
 /**
  * PropertyEditorWrapper - Editor 컴포넌트를 분리하여 불필요한 리렌더링 방지
@@ -482,7 +482,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
     )
       return [];
     const elementsMap = getElementsMap();
-    const resolved: Element[] = [];
+    const resolved: PanelNode[] = [];
     for (const id of selectedElementIds) {
       const el = elementsMap.get(id);
       if (el && el.page_id === currentPageId) {

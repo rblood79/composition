@@ -15,11 +15,16 @@
  */
 
 import { useMemo } from "react";
-import type { Element } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { getCachedCullingResult } from "../scene";
 import { WASM_FLAGS } from "../wasm-bindings/featureFlags";
 import { queryVisibleElements } from "../wasm-bindings/spatialIndex";
+
+export interface ViewportCullingNode {
+  id: string;
+  props?: Record<string, unknown>;
+  parent_id?: string | null;
+}
 
 let _lastCullingWarnTime = 0;
 
@@ -51,7 +56,7 @@ export interface ElementBounds {
 
 export interface CullingResult {
   /** 뷰포트 내에 있는 요소들 */
-  visibleElements: Element[];
+  visibleElements: ViewportCullingNode[];
   /** 컬링된 요소 수 */
   culledCount: number;
   /** 전체 요소 수 */
@@ -125,7 +130,7 @@ export function calculateViewportBoundsScene(
  * 요소의 경계 박스 추출 (style 기반 fallback)
  */
 export function getElementBounds(
-  element: Element,
+  element: ViewportCullingNode,
   layoutPosition?: { x: number; y: number; width: number; height: number },
 ): ElementBounds {
   if (layoutPosition) {
@@ -170,9 +175,9 @@ export function isElementInViewport(
  * 부모-자식 관계를 고려하여 overflow 가능성이 있는 자식을 포함.
  */
 function getBoundsVisibleElements(
-  elements: Element[],
+  elements: ViewportCullingNode[],
   viewport: ViewportBounds,
-): Element[] {
+): ViewportCullingNode[] {
   const parentVisibilityCache = new Map<string, boolean>();
 
   const isParentOnScreen = (parentId: string | null | undefined): boolean => {
@@ -209,8 +214,8 @@ function getBoundsVisibleElements(
  * 불일치 발생 시 콘솔 경고를 출력하여 씬 좌표 동기화 이슈를 조기 감지.
  */
 function crossValidateCulling(
-  elements: Element[],
-  spatialVisibleElements: Element[],
+  elements: ViewportCullingNode[],
+  spatialVisibleElements: ViewportCullingNode[],
   screenWidth: number,
   screenHeight: number,
   zoom: number,
@@ -259,7 +264,7 @@ export interface UseViewportCullingOptions {
   /** culling 결과 캐시 키 */
   cacheKey?: string;
   /** 요소 목록 */
-  elements: Element[];
+  elements: ViewportCullingNode[];
   /** 현재 줌 레벨 */
   zoom: number;
   /** 팬 오프셋 */

@@ -1,5 +1,4 @@
 import { useCallback, useMemo } from "react";
-import type { Element } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import type { BoundingBox } from "../selection";
 import {
@@ -9,19 +8,20 @@ import {
 import { sameLegacyOwnership } from "@/adapters/canonical";
 import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { parseZIndex } from "../layout/engines/cssStackingContext";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 interface UseCanvasDragDropHelpersParams {
   depthMap: Map<string, number>;
-  elementById: Map<string, Element>;
-  elements: Element[];
-  pageElements: Element[];
+  elementById: Map<string, CanvasInteractionNode>;
+  elements: CanvasInteractionNode[];
+  pageElements: CanvasInteractionNode[];
   pageHeight: number;
   pageWidth: number;
   panOffset: { x: number; y: number };
   zoom: number;
 }
 
-function readElementZIndex(element: Element): number {
+function readElementZIndex(element: CanvasInteractionNode): number {
   const style = element.props?.style as Record<string, unknown> | undefined;
   const zIndex = style?.zIndex;
   return (
@@ -115,7 +115,7 @@ export function useCanvasDragDropHelpers({
   );
 
   const getElementBounds = useCallback(
-    (element: Element): BoundingBox | null => {
+    (element: CanvasInteractionNode): BoundingBox | null => {
       if (element.type.toLowerCase() === "body") {
         return { x: 0, y: 0, width: pageWidth, height: pageHeight };
       }
@@ -414,9 +414,9 @@ export function useCanvasDragDropHelpers({
 }
 
 export function buildChildrenMapFromElements(
-  elements: readonly Element[],
-): Map<string, Element[]> {
-  const childrenMap = new Map<string, Element[]>();
+  elements: readonly CanvasInteractionNode[],
+): Map<string, CanvasInteractionNode[]> {
+  const childrenMap = new Map<string, CanvasInteractionNode[]>();
   for (const element of elements) {
     if (element.deleted || !element.parent_id) continue;
     const siblings = childrenMap.get(element.parent_id);

@@ -10,9 +10,16 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useStore } from "../../../stores";
 import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import type { Element } from "../../../../types/core/store.types";
 
-const EMPTY_ELEMENTS: Element[] = [];
+interface ComponentMemoryNode {
+  id: string;
+  customId?: string | null;
+  type: string;
+  props?: Record<string, unknown>;
+  parent_id?: string | null;
+}
+
+const EMPTY_ELEMENTS: ComponentMemoryNode[] = [];
 
 export interface ComponentMemoryInfo {
   elementId: string;
@@ -54,7 +61,7 @@ function estimateObjectSize(obj: unknown): number {
 // ADR-040: elementsMap O(1) 조회로 깊이 계산
 function getElementDepth(
   elementId: string,
-  elementsMap: Map<string, Element>,
+  elementsMap: Map<string, ComponentMemoryNode>,
 ): number {
   let depth = 0;
   let current = elementsMap.get(elementId);
@@ -68,12 +75,16 @@ function getElementDepth(
   return depth;
 }
 
-function buildElementMap(elements: Element[]): Map<string, Element> {
+function buildElementMap(
+  elements: ComponentMemoryNode[],
+): Map<string, ComponentMemoryNode> {
   return new Map(elements.map((element) => [element.id, element]));
 }
 
-function buildChildLookup(elements: Element[]): Map<string, Element[]> {
-  const childLookup = new Map<string, Element[]>();
+function buildChildLookup(
+  elements: ComponentMemoryNode[],
+): Map<string, ComponentMemoryNode[]> {
+  const childLookup = new Map<string, ComponentMemoryNode[]>();
   for (const element of elements) {
     if (!element.parent_id) continue;
     const siblings = childLookup.get(element.parent_id) ?? [];
@@ -85,7 +96,7 @@ function buildChildLookup(elements: Element[]): Map<string, Element[]> {
 
 function countChildren(
   elementId: string,
-  childLookup: Map<string, Element[]>,
+  childLookup: Map<string, ComponentMemoryNode[]>,
 ): number {
   const directChildren = childLookup.get(elementId) ?? [];
   return directChildren.reduce(
@@ -99,7 +110,7 @@ export function useComponentMemory(options: UseComponentMemoryOptions = {}) {
   const activeCanonicalDocument = useActiveCanonicalDocument();
   const canonicalElements = useMemo(() => {
     if (!activeCanonicalDocument) return null;
-    const elements: Element[] = [];
+    const elements: ComponentMemoryNode[] = [];
     visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
       elements.push(element);
     });

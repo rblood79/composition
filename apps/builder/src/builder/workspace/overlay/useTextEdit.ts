@@ -18,11 +18,14 @@ import {
 } from "../../../adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
-import type { Element } from "../../../types/core/store.types";
 import type { TextStyleConfig } from "./TextEditOverlay";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { getSkiaNode, notifyLayoutChange } from "../canvas/skia/useSkiaNode";
 import { extractFullSpecTextStyle } from "./specTextStyleForOverlay";
+
+type TextEditNode = Parameters<
+  Parameters<typeof visitCanonicalDocumentElements>[1]
+>[0];
 
 // ============================================
 // Types
@@ -106,7 +109,7 @@ const TEXT_ELEMENT_TAGS = new Set([
 // Helper Functions
 // ============================================
 
-function getActiveCanonicalTextEditElements(): Element[] | null {
+function getActiveCanonicalTextEditElements(): TextEditNode[] | null {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
   if (!projectId) return null;
@@ -114,14 +117,14 @@ function getActiveCanonicalTextEditElements(): Element[] | null {
   const doc = canonical.documents.get(projectId);
   if (!doc) return null;
 
-  const elements: Element[] = [];
+  const elements: TextEditNode[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element as Element);
+    elements.push(element);
   });
   return elements;
 }
 
-function getTextEditElement(elementId: string): Element | null {
+function getTextEditElement(elementId: string): TextEditNode | null {
   const canonicalElements = getActiveCanonicalTextEditElements();
   if (canonicalElements) {
     return (
@@ -133,7 +136,7 @@ function getTextEditElement(elementId: string): Element | null {
   return legacyElements.find((element) => element.id === elementId) ?? null;
 }
 
-function applyLegacyBootstrapTextProp(updatedElement: Element): void {
+function applyLegacyBootstrapTextProp(updatedElement: TextEditNode): void {
   const state = useStore.getState();
   const { elements: legacyElements } = state;
   const elementIndex = legacyElements.findIndex(

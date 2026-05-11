@@ -18,7 +18,7 @@ import {
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
-import type { Element } from "../../../../types/core/store.types";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
 
 interface ModifierState {
   ctrlKey: boolean;
@@ -39,8 +39,8 @@ interface UseCentralCanvasPointerHandlersOptions {
   >;
   handleElementDoubleClickRef: MutableRefObject<(elementId: string) => void>;
   frameAreas?: FrameBodySelectionArea[];
-  getHitChildrenMap?: () => Map<string, Element[]>;
-  getHitElementsMap?: () => Map<string, Element>;
+  getHitChildrenMap?: () => Map<string, CanvasInteractionNode[]>;
+  getHitElementsMap?: () => Map<string, CanvasInteractionNode>;
   isEditingRef: MutableRefObject<boolean>;
   lastClickTargetRef: MutableRefObject<string | null>;
   lastClickTimeRef: MutableRefObject<number>;

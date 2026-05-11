@@ -1,7 +1,14 @@
 import type { FillItem } from "../../../../types/builder/fill.types";
-import type { Element } from "../../../../types/core/store.types";
 import { migrateBackgroundColor } from "./fillMigration";
 import { parseCssBackgroundToFills } from "./fillCssIngressParser";
+
+type ExternalFillIngressNode = {
+  fills?: unknown;
+  props?: {
+    style?: unknown;
+    [key: string]: unknown;
+  };
+};
 
 type ElementStyleLike = {
   backgroundColor?: string;
@@ -19,7 +26,9 @@ function stripDerivedBackground(
   return nextStyle;
 }
 
-export function normalizeExternalFillIngress<T extends Element>(element: T): T {
+export function normalizeExternalFillIngress<T extends ExternalFillIngressNode>(
+  element: T,
+): T {
   const currentStyle = (element.props?.style ?? {}) as Record<string, unknown>;
   const currentFills = Array.isArray(element.fills)
     ? (element.fills as FillItem[])
@@ -62,7 +71,7 @@ export function normalizeExternalFillIngress<T extends Element>(element: T): T {
   };
 }
 
-export function normalizeExternalFillIngressBatch<T extends Element>(
+export function normalizeExternalFillIngressBatch<T extends ExternalFillIngressNode>(
   elements: T[],
 ): T[] {
   if (elements.length === 0) {
