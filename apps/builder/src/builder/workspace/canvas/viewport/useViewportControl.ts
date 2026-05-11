@@ -26,6 +26,7 @@ import { offsetViewportStateX } from "./viewportActions";
 import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
 import { useScrollState, isScrollable } from "../../../stores/scrollState";
 import { useStore } from "../../../stores";
+import { getCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";
 
 // ============================================
 // Types
@@ -309,13 +310,12 @@ export function useViewportControl(
         e.stopPropagation();
 
         // Phase E: 선택된 스크롤 가능 요소에 wheel 라우팅
-        const storeState = useStore.getState();
-        const selectedIds = storeState.selectedElementIds;
+        const selectedIds = useStore.getState().selectedElementIds;
         if (selectedIds.length === 1) {
           const selectedId = selectedIds[0];
-          const el = storeState.elementsMap.get(selectedId);
+          const node = getCanonicalNode(selectedId);
           const overflow = (
-            el?.props?.style as Record<string, unknown> | undefined
+            node?.props?.style as Record<string, unknown> | undefined
           )?.overflow;
           if (
             (overflow === "scroll" || overflow === "auto") &&
