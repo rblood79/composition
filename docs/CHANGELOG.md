@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ADR-126 Phase 6 closure 판정 정리**:
   - 설계 자체는 목적에 맞지만 ADR 완료 판정은 보류한다. 당시에는 authenticated browser smoke / scoped final grep audit / preflight / Implemented 승격을 잔여로 기록했고, 이후 scoped audit/preflight 는 위 cleanup slice 에서 통과했다.
   - headless Playwright 로 `/builder/adr-126-final-smoke` 진입 시 `/signin` 으로 redirect 되어 create/edit/delete/undo/redo/reorder/origin-instance/refresh smoke 를 실행하지 못했다.
-  - broad `Element[]|: Element` grep 은 `PreviewElement`, DOM `Element`, compatibility 타입, comment 를 포함해 570줄을 잡으므로 final pass/fail 단독 기준에서 제외하고, scoped derived-view grep + `local/no-deprecated-element-import` lint gate + authenticated browser smoke + preflight 조합으로 closure 를 판정한다.
+  - broad `Element[]` / `: Element` grep 은 `PreviewElement`, DOM `Element`, compatibility 타입, comment 를 포함해 570줄을 잡으므로 final pass/fail 단독 기준에서 제외하고, scoped derived-view grep + `local/no-deprecated-element-import` lint gate + authenticated browser smoke + preflight 조합으로 closure 를 판정한다.
 - **ADR-126 Phase 6 deprecation marker slice land**:
   - `unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 을 추가했다.
   - 신규 Builder runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 도메인별 structural contract 를 사용하고, `Element` 는 legacy compatibility projection/boundary 용도로만 남긴다는 원칙을 타입 정의에 명시했다.

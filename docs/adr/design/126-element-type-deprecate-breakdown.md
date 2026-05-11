@@ -342,7 +342,7 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
 - **2026-05-11 closure 판정 정리**: 설계 자체는 목적에 맞지만 Phase 6 은 아직
   완료가 아니다. headless Playwright 는 `/builder/adr-126-final-smoke` 진입 시
   `/signin` 으로 redirect 되어 authenticated browser smoke 를 실행하지 못했다. 기존
-  broad `Element[]|: Element` grep 은 false positive 가 많아 final pass/fail 단독
+  broad `Element[]` / `: Element` grep 은 false positive 가 많아 final pass/fail 단독
   기준에서 제외한다.
 - **2026-05-11 scoped production import audit cleanup land**:
   `useCanvasElementSelectionHandlers.ts` 의 interactive maps 를 `CanvasInteractionNode`
@@ -370,7 +370,7 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
 2. local ESLint deprecation gate 로 신규 production `Element` import 차단
 3. authenticated browser smoke: create/edit/delete/undo/redo/reorder/origin-instance/refresh 회귀 0
 4. `pnpm run codex:preflight` PASS
-5. ADR 본문 Status `Proposed → Implemented` 업데이트
+5. authenticated browser smoke 통과 후 ADR 본문 Status `Accepted → Implemented` 업데이트
 
 ### Phase 6 Gate (G6)
 

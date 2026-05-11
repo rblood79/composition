@@ -141,7 +141,7 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 - deprecation lint gate slice 완료: `local/no-deprecated-element-import` 로 현재 compatibility/boundary baseline 외 신규 production `Element` import 차단. isolated gate PASS, stdin negative fixture FAIL 확인.
 - closure 판정 정리: 설계 자체는 목적에 맞지만 Phase 6 완료 판정은 보류한다.
   headless Playwright 로 `/builder/adr-126-final-smoke` 진입 시 `/signin` 으로 redirect
-  되어 authenticated browser smoke 를 실행하지 못했다. broad `Element[]|: Element`
+  되어 authenticated browser smoke 를 실행하지 못했다. broad `Element[]` / `: Element`
   grep 은 `PreviewElement`, DOM `Element`, compatibility 타입, comment 를 포함해 570줄을
   잡으므로 final pass/fail 단독 기준으로 쓰지 않는다.
 - 잔여: authenticated browser smoke, ADR Implemented 승격.
