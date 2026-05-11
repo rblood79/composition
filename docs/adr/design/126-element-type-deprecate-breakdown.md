@@ -1,6 +1,6 @@
 # ADR-126 구현 상세 — Element 타입 Deprecate 및 canonical-native 전환
 
-본 문서는 [ADR-126](../126-element-type-deprecate.md)의 Phase 계획, inventory 분류, Gate 측정 방법을 정의한다.
+본 문서는 [ADR-126](../completed/126-element-type-deprecate.md)의 Phase 계획, inventory 분류, Gate 측정 방법을 정의한다.
 
 **진입 조건**:
 
@@ -350,7 +350,14 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
   DOM `Element` 가 아닌 `CanvasInteractionNode` 로 정정했다. scoped production
   multiline `Element` import grep 0건, local deprecation lint gate PASS, builder
   type-check PASS, targeted Vitest 5 files / 18 tests PASS, preflight PASS.
-- 잔여: authenticated browser smoke, ADR Implemented 승격.
+- **2026-05-11 final authenticated browser smoke + closure land**: fresh
+  Playwright context + seeded dev auth session 으로 `/builder/adr-126-final-smoke-*`
+  ProtectedRoute 를 통과했다. 외부 Supabase REST compatibility call 은 no-op route 로
+  차단해 사용자/외부 state 없이 Builder runtime 을 검증했다. 결과: create/edit/delete/
+  undo/redo/reorder/origin-instance/refresh PASS, IndexedDB canonical document
+  persisted + refresh 유지, rAF median 120.48fps, console/page/http error 0.
+  ADR-126 Status 는 `Implemented` 로 승격하고 본문은 `docs/adr/completed/` 로 이동했다.
+- 잔여: 없음.
 
 ### 작업
 
@@ -370,7 +377,7 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
 2. local ESLint deprecation gate 로 신규 production `Element` import 차단
 3. authenticated browser smoke: create/edit/delete/undo/redo/reorder/origin-instance/refresh 회귀 0
 4. `pnpm run codex:preflight` PASS
-5. authenticated browser smoke 통과 후 ADR 본문 Status `Accepted → Implemented` 업데이트
+5. authenticated browser smoke 통과 후 ADR 본문 Status `Accepted → Implemented` 업데이트 완료
 
 ### Phase 6 Gate (G6)
 

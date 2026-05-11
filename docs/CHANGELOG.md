@@ -5,6 +5,16 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-126 Implemented 승격 + completed archive] - 2026-05-11
+
+### Architecture
+
+- **ADR-126 Status `Accepted` → `Implemented`**:
+  - final authenticated browser smoke 를 fresh Playwright context + seeded dev auth session 으로 통과했다. 외부 Supabase REST compatibility call 은 no-op route 로 차단해 사용자/외부 state 없이 Builder runtime 을 검증했다.
+  - 검증 결과: create/edit/delete/undo/redo/reorder/origin-instance/refresh PASS, IndexedDB canonical document persisted + refresh 유지, rAF median 120.48fps, console/page/http error 0.
+  - ADR 본문을 `docs/adr/completed/126-element-type-deprecate.md` 로 이동하고 README 완료 섹션/카운트를 정합화했다.
+  - 현황 카운트: `완료 120→121 / 부분 완료 8→7 / 미구현 5 / 합계 133 유지`.
+
 ## [ADR-126 설계 진행내역 정합화] - 2026-05-11
 
 ### Architecture
@@ -553,7 +563,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Risk 4축: 기술 **H** / 성능 M / 유지보수 **H** / 마이그레이션 M → HIGH 2 (base 셋 분리로 위험 누적 차단).
   - 4 alternatives (A 영구 derived view / B 즉시 전수 / **C 권장: consumer 별 점진 + boundary allowlist** / D node alias + type alias 점진 deprecate).
   - 7 Phase + 7 Gate (G0~G6, R1→G0 prerequisite lock / R2→G1 FPS baseline).
-  - 위치: `docs/adr/126-element-type-deprecate.md`, `docs/adr/design/126-element-type-deprecate-breakdown.md`.
+  - 위치: `docs/adr/completed/126-element-type-deprecate.md`, `docs/adr/design/126-element-type-deprecate-breakdown.md`.
 
 ### Process
 

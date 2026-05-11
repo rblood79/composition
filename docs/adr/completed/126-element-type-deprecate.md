@@ -2,21 +2,21 @@
 
 ## Status
 
-Accepted — 2026-05-10
+Implemented — 2026-05-11
 
-현재 판정 (2026-05-11): 설계 자체는 목적에 맞다. ADR-122 residual 순서인
-runtime source 제거 → derived view 축소 → compatibility/boundary quarantine 과
-정합하며, 즉시 타입 삭제 대신 consumer별 canonical-native 전환 + deprecated
-`Element` import gate 로 닫는 방향이 rollback/호환성 리스크를 가장 낮춘다.
-단, ADR 완료 판정은 아니다. Phase 6 code gate(deprecation marker + 신규 import
-lint 차단)와 scoped production import audit cleanup 은 land 됐지만, authenticated
-browser smoke 가 아직 차단되어 있으므로 Status 는 `Accepted` 로 유지하고
-`completed/` archive 는 하지 않는다.
+최종 판정 (2026-05-11): 설계 자체는 목적에 맞고 G6 final verification 까지
+닫혔다. ADR-122 residual 순서인 runtime source 제거 → derived view 축소 →
+compatibility/boundary quarantine 과 정합하며, 즉시 타입 삭제 대신 consumer별
+canonical-native 전환 + deprecated `Element` import gate 로 닫는 방향이
+rollback/호환성 리스크를 가장 낮춘다. Phase 6 code gate(deprecation marker +
+신규 import lint 차단), scoped production import audit cleanup, authenticated
+browser smoke 가 모두 통과했으므로 Status 를 `Implemented` 로 승격하고
+`completed/` archive 로 이동한다.
 
 진행 로그:
 
-- 2026-05-10 Phase 0 (inventory freeze) — base 3 ADR (ADR-123/124/125) Implemented 도달 후 Phase 1 prerequisite G0 PASS, Element 타입 production 1766 line / canonicalDocumentToElements 4 caller / useCanonicalElements ~10 production caller / store-cache direct read bucket 0 hit freeze. 단, `elementsMap`/`childrenMap` store state 타입 전환은 Phase 3 잔여로 유지 ([126-inventory.md](design/126-inventory.md))
-- 2026-05-10 Phase 1 (canonical-native model 검증) — ADR-123 cloud boundary grep gate 5/5 PASS / ADR-124 history canonical event primary read 확증 / ADR-125 render input scene model 단일 source 확증 / Element 타입 import production 37 file (boundary 18 + derived-view 1 + hot-path 18) + annotation 161 file 카테고리 매핑 / canonical-native API hot path 커버 가능 판정 / FPS baseline 측정 (canvas 2612x1880 idle median 120.5 / p10 107.5 / p99 137 ≥ 60fps gate) / type-check FULL TURBO PASS ([126-phase1-validation.md](design/126-phase1-validation.md))
+- 2026-05-10 Phase 0 (inventory freeze) — base 3 ADR (ADR-123/124/125) Implemented 도달 후 Phase 1 prerequisite G0 PASS, Element 타입 production 1766 line / canonicalDocumentToElements 4 caller / useCanonicalElements ~10 production caller / store-cache direct read bucket 0 hit freeze. 단, `elementsMap`/`childrenMap` store state 타입 전환은 Phase 3 잔여로 유지 ([126-inventory.md](../design/126-inventory.md))
+- 2026-05-10 Phase 1 (canonical-native model 검증) — ADR-123 cloud boundary grep gate 5/5 PASS / ADR-124 history canonical event primary read 확증 / ADR-125 render input scene model 단일 source 확증 / Element 타입 import production 37 file (boundary 18 + derived-view 1 + hot-path 18) + annotation 161 file 카테고리 매핑 / canonical-native API hot path 커버 가능 판정 / FPS baseline 측정 (canvas 2612x1880 idle median 120.5 / p10 107.5 / p99 137 ≥ 60fps gate) / type-check FULL TURBO PASS ([126-phase1-validation.md](../design/126-phase1-validation.md))
 - 2026-05-10 Phase 2 진입 시도 → agent type alias rename 우회 검출 (`Element → LegacyElement` 형식 PASS, ADR HC.1 성능 / HC production 0건 의미적 PASS 미충족) → worktree 폐기 (main 영향 0). framing 재freeze: design breakdown §5 의 "우선 전환 대상 file" sub-list (7 file) 와 G2 grep gate 전체 scope 추정 ~28 file vs ADR-127 발의 시 실측 70 file (실측/추정 = 2.5배) 괴리 인지. Phase 2 를 directory 단위 5 sub-group (2-A Skia / 2-B layout / 2-C renderer input / 2-D panels / 2-E preview) 으로 재분할 + 진정 reverse 패턴 4 요건 (함수 시그니처 / caller cascade / lookup pattern / type alias rename 금지) + sub-group 별 G2-A~G2-E 검증 의무 명시 (caller cascade evidence + targeted vitest + type-check, grep gate 단독 PASS 금지). breakdown §5/§10/§11 update — Phase 2 직접 land 진입은 별도 세션. 메모리 인용: `feedback-adr-essence-priority-over-formal-pass`, `feedback-agent-completion-failure-pattern`, `feedback-vitest-no-tests-misleading`
 - 2026-05-10 ADR-127 Implemented 후 Phase 2 prerequisite 확정 — canonical traversal helper 6개 + `CanonicalSceneModel.nodes/nodesMap/childrenByParent` canonical-native export + `canonicalSceneModelLegacy.ts` transition boundary land. Phase 2 진입 조건은 G1 PASS + ADR-127 Implemented. dependency baseline = ADR-122/123/124/125/127 모두 Implemented.
 - 2026-05-10 Phase 2-A (Skia/scene core) land — `CanvasSceneNode` / `CanvasSceneGraph` projection을 추가해 `CanonicalSceneModel` 이 `sceneNodes` / `sceneNodesMap` / `sceneChildrenByParent` / canonical-derived `pageIndex` 를 직접 expose. `canonicalSceneModel.ts` 내부 `canonicalDocumentToElements()` 호출 제거. `SkiaCanvas` / `StoreRenderBridge` / command stream 이 `rendererInput.elementsMap` / `childrenMap` 대신 canonical scene maps 를 소비하도록 caller cascade 동반 전환. G2-A 보조 grep: `workspace/canvas/skia/**` + `workspace/canvas/scene/**` production `Element` import/raw hit 0, Skia production `rendererInput.elementsMap|childrenMap` hit 0, `(Legacy|Old|Deprecated)Element` hit 0. 검증: `pnpm -F @composition/builder type-check` PASS, targeted Vitest `src/builder/workspace/canvas/skia src/builder/workspace/canvas/scene src/builder/workspace/canvas/renderers` 18 files / 152 tests PASS, `git diff --check` PASS, browser smoke `/builder/adr-126-phase2a-smoke` canvas 1440x952 nonblank + console/page error 0 + rAF median 120.5fps (p10 112.4 / p99 135.1). 당시 잔여 `BuilderCanvas` legacy fallback / `rendererInput.ts` render-tree fallback 은 2026-05-10 canvas renderer input/bootstrap follow-up 에서 제거.
@@ -63,6 +63,7 @@ browser smoke 가 아직 차단되어 있으므로 Status 는 `Accepted` 로 유
 - 2026-05-11 Phase 6 deprecation lint gate slice land — `eslint-local-rules` 에 `local/no-deprecated-element-import` 를 추가하고 builder ESLint config 에 error gate 로 연결했다. 현재 compatibility/boundary baseline 파일은 allowlist 로 고정하고, 새 production 파일의 `Element` import 는 lint error 로 차단한다. 검증: ADR-126 isolated lint gate PASS, stdin negative fixture FAIL 확인.
 - 2026-05-11 Phase 6 closure 판정 정리 — 설계/구현 방향은 유지하되, 완료 승격은 보류한다. headless Playwright 로 `/builder/adr-126-final-smoke` 진입 시 `/signin` 으로 redirect 되어 create/edit/delete/undo/redo/reorder/origin-instance/refresh smoke 를 실행하지 못했다. 또한 기존 broad `Element[]` / `: Element` grep 은 `PreviewElement`, DOM `Element`, compatibility store/action 타입, comment 를 포함해 570줄을 잡아 final pass/fail 단독 기준으로 부적합하므로, final audit 은 scoped derived-view grep + local deprecated import lint gate + authenticated browser smoke + preflight 조합으로 판정한다.
 - 2026-05-11 Phase 6 scoped production import audit cleanup land — `useCanvasElementSelectionHandlers.ts` 의 interactive map contract 를 `CanvasInteractionNode` 로 전환하고, `useCanvasDragDropHelpers.ts` 의 candidate node 타입을 DOM `Element` 로 해석될 수 없게 `CanvasInteractionNode` 로 정정했다. scoped production multiline `Element` import grep 0건, local deprecation lint gate PASS, builder type-check PASS, targeted Vitest 5 files / 18 tests PASS, `pnpm run codex:preflight` PASS.
+- 2026-05-11 Phase 6 final authenticated browser smoke + closure land — fresh Playwright context + seeded dev auth session 으로 `/builder/adr-126-final-smoke-*` ProtectedRoute 를 통과하고, 외부 Supabase REST compatibility call 은 no-op route 로 차단해 사용자/외부 state 없이 Builder runtime 을 검증했다. create/edit/delete/undo/redo/reorder/origin-instance/refresh 전부 PASS, IndexedDB canonical document persisted + refresh 유지, rAF median 120.48fps, console/page/http error 0. ADR-126 Status 를 `Implemented` 로 승격하고 본문을 `docs/adr/completed/` 로 archive 한다.
 
 **PREREQUISITE (진입 불가 조건)**:
 
@@ -202,7 +203,7 @@ ADR-122 G6 closure 기준으로 Builder runtime hot path에서 mutable legacy mi
 
 **base ADR prerequisite 본문 명시 위치**: Status 섹션 첫 문단 + Context §의존 ADR 체인 테이블.
 
-> 구현 상세: [126-element-type-deprecate-breakdown.md](design/126-element-type-deprecate-breakdown.md)
+> 구현 상세: [126-element-type-deprecate-breakdown.md](../design/126-element-type-deprecate-breakdown.md)
 
 ## Risks
 

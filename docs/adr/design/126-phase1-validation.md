@@ -232,6 +232,6 @@ function renderNode(node: CanonicalNode, context: RenderContext): void {
 
 ## 9. 관련
 
-- ADR 본문: [docs/adr/126-element-type-deprecate.md](../126-element-type-deprecate.md)
+- ADR 본문: [docs/adr/completed/126-element-type-deprecate.md](../completed/126-element-type-deprecate.md)
 - Breakdown: [docs/adr/design/126-element-type-deprecate-breakdown.md](126-element-type-deprecate-breakdown.md)
 - Phase 0 inventory: [docs/adr/design/126-inventory.md](126-inventory.md)

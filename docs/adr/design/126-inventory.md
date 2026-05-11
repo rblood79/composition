@@ -144,7 +144,14 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
   되어 authenticated browser smoke 를 실행하지 못했다. broad `Element[]` / `: Element`
   grep 은 `PreviewElement`, DOM `Element`, compatibility 타입, comment 를 포함해 570줄을
   잡으므로 final pass/fail 단독 기준으로 쓰지 않는다.
-- 잔여: authenticated browser smoke, ADR Implemented 승격.
+- final authenticated browser smoke + closure 완료: fresh Playwright context + seeded
+  dev auth session 으로 `/builder/adr-126-final-smoke-*` ProtectedRoute 를 통과했다.
+  외부 Supabase REST compatibility call 은 no-op route 로 차단해 사용자/외부 state 없이
+  Builder runtime 을 검증했다. create/edit/delete/undo/redo/reorder/origin-instance/
+  refresh PASS, IndexedDB canonical document persisted + refresh 유지, rAF median
+  120.48fps, console/page/http error 0.
+- 잔여: 없음. ADR-126 Status 는 `Implemented` 로 승격했고 본문은
+  `docs/adr/completed/126-element-type-deprecate.md` 로 이동했다.
 
 ## 5. Phase 2-A 진행 결과 (2026-05-10)
 
