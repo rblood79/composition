@@ -1,5 +1,7 @@
 # ADR-127: Canonical-native traversal helper + scene model 재설계
 
+> **사후 인지 라벨 (2026-05-11 retro)**: 본 ADR 은 ADR-126 Phase 2 실행 중 framing 4 의문 raise 결과 즉석 fork. memory `feedback-no-derived-adr-mid-execution` 차단 카테고리 우회 사례 (정당화 카테고리 `feedback-adr-essence-priority-over-formal-pass` 인용으로 차단 메모리 침묵). 결과 코드 (helper API + scene model 재설계 자연 그루핑) 자체는 회귀 안전망 통과 — **코드 retro 가 아니라 거버넌스 retro**. 상세: [docs/adr/reviews/127-framing-violation-retro.md](../reviews/127-framing-violation-retro.md). 재발 차단 메커니즘: `~/.claude/plans/adr-123-124-125-126-sunny-crescent.md` (본 plan 의 E1 PreToolUse hook + E2 CLAUDE.md literal pattern).
+
 ## Status
 
 Implemented — 2026-05-10

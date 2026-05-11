@@ -233,7 +233,15 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 항상 **Plan 먼저 → Execute → Verify (`/cross-check` + `type-check`)** 순서를 지킨다.
 불확실한 부분은 질문을 먼저 하고, 가정하지 않는다.
 
-**framing 의문은 raise 의무 (CRITICAL)**: ADR base/응용 분류, 의존 방향, SSOT 경계, baseline framing 자동 승계 같은 본질 framing 에 의문이 들면 사용자 마찰을 만들어도 무조건 raise 한다. push-back 회피 (sycophancy default) 시 본질 손실 (예: ADR-111/112 24+ commits 우회) 이 마찰 비용보다 압도적으로 크다. 절차 컴플라이언스 (Risk 표 / Gate 매핑 / type-check PASS) 통과해도 framing 위반은 잡히지 않는다.
+**framing 의문 처리 — Opus 4.7 literal instruction (CRITICAL)**:
+
+ADR base/응용 분류, 의존 방향, SSOT 경계, baseline framing 자동 승계, 추정 vs 실측 gap 같은 본질 framing 의문 발견 시 **다음 절차 순서 엄수**. Anthropic 공식 Opus 4.7 best practice 의 "Don't assume. Ask clarifying questions before acting" literal 패턴 + AISI sycophancy research 의 reframing question 패턴 적용 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md E2):
+
+1. **AskUserQuestion 1 회 호출** — 의문문 형식으로. 예: "이 framing 이 현 ADR scope 안에 흡수 가능한가, 별 ADR fork 가 필요한가?" / "이 추정 vs 실측 gap 이 framing trigger 인가, design Phase 0 inventory 절차 결함인가?" (statement 형식 금지, reframing question 만)
+2. **Don't assume** — 사용자 응답 받기 전 새 ADR 발의 / Phase 분해 / sub-group 분할 / fork 결정 **절대 금지**
+3. **차단 메모리 자기-인용 의무** — AskUserQuestion 호출 시점에 차단 카테고리 메모리 (no-derived-adr-mid-execution / execute-adr-surface-minimization / consolidation-burden / pr-vs-direct-push / settings-precedence) 의 차단 사유를 1 줄로 본문에 명시. 인용 없으면 호출 자체 무효. push-back 회피 (sycophancy default) 시 본질 손실 (예: ADR-111/112 24+ commits 우회 / ADR-127 즉석 fork) 이 마찰 비용보다 압도적으로 크다.
+
+**framing 통과 ≠ 형식 통과 (CRITICAL)**: codex review PASS / agent dispatch 결과 / 메모리 인용 = **본문 정합 layer**, framing layer 아님. framing 통과 = (1) extended thinking 명시 진입 + (2) 사용자 explicit confirm + (3) 차단 메모리 카테고리 우선 평가 통과. 셋 모두 통과 못 하면 fork/분할 차단. 절차 컴플라이언스 (Risk 표 / Gate 매핑 / type-check PASS / codex review PASS) 통과해도 framing 위반은 잡히지 않는다.
 
 **본질 사고 작업은 extended thinking 명시 진입 (CRITICAL)**: ADR fork / 분리 / 의존 방향 결정 / SSOT 경계 판정 / 대안 base/응용 분류 같은 framing 사고 작업은 표면 답변 (plan→execute→done 사이클) 회피하고 깊은 사고 모드로 진입한다. tool 호출로 outsource 금지 — codex review / cross-check skill 은 본문 정합 layer 일 뿐 framing layer 아님. token 효율 학습 압력 우회는 vendor 자체 가이드 정렬 방향.
 ```

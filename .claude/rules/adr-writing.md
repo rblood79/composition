@@ -43,6 +43,10 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 - ADR 한 개를 base / 응용 두 개로 split 할 때
 - 두 ADR 의 의존 방향이 의심될 때 (사용자가 "이거 거꾸로 아닌가" 트리거 시)
 
+### 사용자 explicit confirm 의무 (M2 — 2026-05-11 추가)
+
+4 질문 통과 후 ADR 본문 작성 직전, **claude 가 AskUserQuestion 으로 사용자 명시 confirm 요청 의무**. ADR 본문에 4 질문 lock-in 만으로 confirm 자동 처리 금지 (ADR-127 우회 패턴: 본문 self-lock-in 으로 사용자 confirm 단계 skip). confirm 받은 적 없으면 fork 차단 — 현 ADR scope 안 흡수 (옵션 1) 또는 직후 phase 흡수 (옵션 2). 본 규칙 근거: `~/.claude/plans/adr-123-124-125-126-sunny-crescent.md` M2.
+
 ### 4 질문 통과 절차 (사용자 1회 confirm 필수)
 
 ADR 분리 결정을 commit 하기 **전에** 다음 4 질문을 ADR 본문 또는 design breakdown §1 에 1줄씩 lock-in 한다. 사용자 confirm 받기 전에는 sub-phase 분해 (α/β/γ/δ 류) 진입 금지.
@@ -59,6 +63,16 @@ framing 검증은 표면 사고로 처리 금지. ADR fork 결정 시 명시적�
 ### sub-phase 분해 진입 차단 게이트
 
 본 4 질문이 ADR 본문 또는 design §1 에 lock-in 되지 않았으면 design breakdown 의 sub-phase α/β/γ/δ 분해 자체 차단. 분해된 sub-phase 가 많을수록 framing 위반 인지 비용이 piecewise 분산 누적되어 본질 검증 trigger 못 걸림.
+
+### Phase scope inflation / sub-group N≥3 시 사용자 confirm 의무 (M4 — 2026-05-11 추가)
+
+design breakdown 의 phase 실행 중 다음 조건 발견 시 **AskUserQuestion 의무** (의문문 형식, statement 금지):
+
+- **scope inflation 1.5x 이상**: design 추정 작업량 (예: ~28 file) 대비 실측 (예: 70 file) 이 1.5배 이상. 사용자 question 예시: "design 추정 vs 실측 gap 발견 — 이게 framing trigger 인가, design Phase 0 inventory 절차 결함인가?"
+- **sub-group N≥3 분할**: 단일 phase 를 Phase 2-A/B/C/D/E 같이 3 개 이상 sub-group 으로 분할 시도. 사용자 question 예시: "Phase 2 를 5 sub-group 으로 분할 vs 단일 phase 안 진행 vs design 재freeze, 어느 쪽?"
+- **commit 단위 sliver 분해**: `narrow ADR-NNN ...` / `Phase X-α/β/γ` 형식 commit 이 5 개 이상 누적 예상. 사용자 question 예시: "본 phase 가 5+ commit 으로 분해 예상 — 단일 commit 통합 land 가능?"
+
+confirm 받지 못하면 분할/inflation 차단, 단일 phase 안 진행 또는 design 재freeze 사용자 결정. ADR-126 Phase 2 sub-group 5 분할 + 22+ "narrow ..." commit 패턴 재발 차단 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md M4).
 
 ### 금지 패턴
 
@@ -222,6 +236,7 @@ ADR 작성 후 아래를 자가 검증한다. 하나라도 실패하면 해당 �
 - [ ] Spec/Generator 확장 ADR이면 **"Generator가 자식 selector/variant emit을 지원하는가?"** 를 Context에 선언했는가? (#2, 3/10 — SSOT debt 영구화 선차단)
 - [ ] BC 훼손 가능성이 있으면 **"X% 사용자 영향 / 평균 Y 파일 재직렬화"** 같이 수식화했는가? (#3, 3/10 — "기존 프로젝트 호환" 암묵화 차단)
 - [ ] HIGH+ threshold 초과 시 **"이 Phase를 별도 ADR로 분리 가능한가?"** 질문을 거쳤는가? (부차, 누적 착시 방지)
+- [ ] **추정 vs 실측 gap** (예: 추정 28 file vs 실측 70 file, 2.5배) 이 ADR fork 정당화 사유로 인용되었는가? **gap 은 절차 결함 (Phase 0 inventory freeze 부실), framing trigger 아님**. 본 ADR 안 Phase 0 inventory 보강 commit 으로 흡수, 새 ADR fork 사유 금지 (M3 — 2026-05-11, ADR-127 우회 사례)
 
 ## 금지 패턴
 
