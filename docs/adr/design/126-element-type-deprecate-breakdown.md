@@ -334,7 +334,8 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
 ### 9.0. Phase 6 진행 로그
 
 - **2026-05-11 deprecation marker slice land**: `apps/builder/src/types/builder/unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 추가. 신규 Builder runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 도메인별 structural contract 를 사용하고, `Element` 는 legacy compatibility projection, export/import/cloud boundary, history compatibility, transitional store cache surface 에만 허용한다. 검증: builder type-check PASS.
-- 잔여: eslint deprecation gate, browser smoke, full final grep audit, `pnpm run codex:preflight`, ADR Implemented 승격.
+- **2026-05-11 deprecation lint gate slice land**: `apps/builder/eslint-local-rules/index.js` 에 `local/no-deprecated-element-import` 를 추가하고 `apps/builder/eslint.config.js` 에 error 로 연결. 현재 compatibility/boundary baseline 파일은 allowlist 로 고정하고, 새 production 파일의 `Element` import 및 `import("...").Element` 는 lint error 로 차단한다. 검증: isolated ADR-126 lint gate PASS, stdin negative fixture FAIL 확인.
+- 잔여: browser smoke, full final grep audit, `pnpm run codex:preflight`, ADR Implemented 승격.
 
 ### 작업
 
@@ -351,7 +352,7 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
    export interface Element { ... }
    ```
 
-2. `eslint-plugin-deprecation` 설정에 `Element` 추가 (신규 import 경고)
+2. local ESLint deprecation gate 로 신규 production `Element` import 차단
 3. browser smoke: create/edit/delete/undo/redo/reorder/origin-instance/refresh 회귀 0
 4. `pnpm run codex:preflight` PASS
 5. ADR 본문 Status `Proposed → Implemented` 업데이트

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 을 추가했다.
   - 신규 Builder runtime code 는 canonical `CompositionDocument` / `CanonicalNode` 또는 도메인별 structural contract 를 사용하고, `Element` 는 legacy compatibility projection/boundary 용도로만 남긴다는 원칙을 타입 정의에 명시했다.
   - 검증: builder type-check PASS.
+- **ADR-126 Phase 6 deprecation lint gate slice land**:
+  - `local/no-deprecated-element-import` ESLint rule 을 추가해 현재 compatibility/boundary baseline 파일 외 새 production 파일의 `Element` import 를 error 로 차단한다.
+  - `ImportDeclaration` 과 `import("...").Element` type query 를 모두 검사한다.
+  - 검증: isolated ADR-126 lint gate PASS, stdin negative fixture FAIL 확인.
 - **ADR-126 Phase 5 derived-view cleanup slice land**:
   - `canonicalHistoryEvents.ts` 가 `canonicalDocumentToElements(nextDoc)` 대신 `visitCanonicalDocumentElements()` 로 undo/redo result snapshot 을 수집하도록 전환했다.
   - `useCanonicalElements()` / `useCanonicalSelectedElement()` production export 와 `canonicalSceneModelLegacy.ts` 의 `canonicalDocumentToElements` re-export 를 제거했다.

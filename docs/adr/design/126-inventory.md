@@ -137,7 +137,8 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
 ## Phase 6 진행 결과 (2026-05-11)
 
 - deprecation marker slice 완료: `apps/builder/src/types/builder/unified.types.ts` 의 `Element` 인터페이스에 `@deprecated ADR-126 Phase 6` JSDoc 추가.
-- 잔여: eslint deprecation gate, browser smoke, final grep audit, preflight, ADR Implemented 승격.
+- deprecation lint gate slice 완료: `local/no-deprecated-element-import` 로 현재 compatibility/boundary baseline 외 신규 production `Element` import 차단. isolated gate PASS, stdin negative fixture FAIL 확인.
+- 잔여: browser smoke, final grep audit, preflight, ADR Implemented 승격.
 
 ## 5. Phase 2-A 진행 결과 (2026-05-10)
 

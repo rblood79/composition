@@ -17,6 +17,7 @@ export default [
       "local/prefer-keyboard-shortcuts-registry": "warn",
       "local/prefer-copy-paste-hook": "warn",
       "local/no-eventtype-legacy-import": "error",
+      "local/no-deprecated-element-import": "error",
       // TanStack Virtual v3 는 React Compiler 비호환 — "use no memo" 로 opt-out 완료
       "react-hooks/incompatible-library": "off",
     },
