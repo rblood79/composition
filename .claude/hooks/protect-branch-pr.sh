@@ -103,9 +103,13 @@ RECENT_USER_MSG=$(jq -r '
 ' "$TRANSCRIPT" 2>/dev/null | tail -5)
 
 # 발의 의도 키워드 매칭 (case-insensitive)
-# 한국어: "PR 생성/만들/머지" / "branch 분기/분리/생성" / "feature branch" / "워크트리 push"
-# 영어: "create PR" / "make PR" / "merge PR" / "new branch" / "branch fork" / "feature branch" / "/gh pr"
-if echo "$RECENT_USER_MSG" | grep -qiE 'PR[[:space:]]*(생성|만들|머지|올려|올려줘|create|make|merge)|(생성|만들|create|make|new)[[:space:]]*PR|(branch|브랜치)[[:space:]]*(분기|분리|생성|fork|create|new|push)|feature[[:space:]]*branch|워크트리[[:space:]]*push|gh[[:space:]]*pr'; then
+# 발의 (생성/머지):
+#   - 한국어: "PR 생성/만들/머지" / "branch 분기/분리/생성" / "feature branch" / "워크트리 push"
+#   - 영어: "create PR" / "make PR" / "merge PR" / "new branch" / "branch fork" / "feature branch" / "/gh pr"
+# 정리 (cleanup/삭제):
+#   - 한국어: "branch 정리/삭제" / "stale 정리" / "stale 브랜치" / "branch prune"
+#   - 영어: "delete branch" / "prune branch" / "cleanup branch" / "stale branch"
+if echo "$RECENT_USER_MSG" | grep -qiE 'PR[[:space:]]*(생성|만들|머지|올려|올려줘|create|make|merge)|(생성|만들|create|make|new)[[:space:]]*(PR|branch|브랜치)|(branch|브랜치)[[:space:]]*(분기|분리|생성|fork|create|new|push|정리|삭제|prune|cleanup|delete)|(정리|삭제|prune|cleanup|delete|stale)[[:space:]]*(branch|브랜치)|feature[[:space:]]*branch|워크트리[[:space:]]*push|gh[[:space:]]*pr|stale[[:space:]]*(정리|cleanup|prune)'; then
   exit 0
 fi
 
