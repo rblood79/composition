@@ -67,20 +67,20 @@ src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(850,9): error 
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(886,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/adapters/canonical/__tests__/pageFrameBinding.test.ts(122,7): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
 src/adapters/canonical/__tests__/themes.test.ts(131,7): error TS2739: Type 'Record<string, string[]>' is missing the following properties from type 'ThemeSnapshot': tint, darkMode, neutral, radiusScale
-src/adapters/canonical/canonicalMutations.ts(1009,14): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1028,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1031,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1047,15): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1148,19): error TS18047: 'override' is possibly 'null'.
-src/adapters/canonical/canonicalMutations.ts(1398,42): error TS2367: This comparison appears to be unintentional because the types 'ComponentTag' and '"body"' have no overlap.
-src/adapters/canonical/canonicalMutations.ts(1415,7): error TS2353: Object literal may only specify known properties, and 'descendants' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/canonicalMutations.ts(178,19): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(39,21): error TS2305: Module '"@/types/builder/unified.types"' has no exported member 'Layout'.
-src/adapters/canonical/canonicalMutations.ts(586,61): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(587,17): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(591,9): error TS2353: Object literal may only specify known properties, and 'placeholder' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/canonicalMutations.ts(613,28): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(843,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'CanonicalNode'.
+src/adapters/canonical/canonicalMutations.ts(1010,14): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1029,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1032,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1048,15): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1149,19): error TS18047: 'override' is possibly 'null'.
+src/adapters/canonical/canonicalMutations.ts(1399,42): error TS2367: This comparison appears to be unintentional because the types 'ComponentTag' and '"body"' have no overlap.
+src/adapters/canonical/canonicalMutations.ts(1416,7): error TS2353: Object literal may only specify known properties, and 'descendants' does not exist in type 'CanonicalNode'.
+src/adapters/canonical/canonicalMutations.ts(179,19): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(40,21): error TS2305: Module '"@/types/builder/unified.types"' has no exported member 'Layout'.
+src/adapters/canonical/canonicalMutations.ts(587,61): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(588,17): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(592,9): error TS2353: Object literal may only specify known properties, and 'placeholder' does not exist in type 'CanonicalNode'.
+src/adapters/canonical/canonicalMutations.ts(614,28): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(844,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'CanonicalNode'.
 src/adapters/canonical/frameLayoutCascade.ts(320,56): error TS2339: Property 'elements' does not exist on type 'ElementsStateForFrameLayoutCascade'.
 src/adapters/canonical/frameLayoutCascade.ts(51,30): error TS2345: Argument of type 'CanonicalNode' is not assignable to parameter of type 'FrameNode'.
 src/adapters/canonical/index.ts(168,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.

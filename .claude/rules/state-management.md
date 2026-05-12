@@ -21,10 +21,10 @@ globs:
 
 ## Zustand 패턴
 
-> **ADR-116/122 전환 중**: `CompositionDocument` canonical schema 가 primary SSOT. legacy `elementsMap`/`childrenMap` mutable subscription 은 boundary 로 격리 진행. 본 문서는 transitional period 의 hybrid 규칙 — canonical primary 흐름은 [docs/adr/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/122-canonical-only-runtime-legacy-mirror-removal.md) 참조
+> **ADR-116/122 Implemented (2026-05-02 / 2026-05-09)**: `CompositionDocument` canonical schema 가 primary SSOT 로 land 완료. Builder runtime hot path 의 legacy `elementsMap`/`childrenMap` mutable subscription / mutation 은 0건 — canonical store + read-only derived snapshot 으로 갈음. 잔존 boundary helper (`frameMirror` / `slotMirror` / `componentSemanticsMirror` / `compositionExtensionFields` / `exportLegacyDocument`) 는 ADR-116 G7 + ADR-122 HC.3 boundary allowlist 내 의도된 architectural 영역. canonical 흐름 상세는 [docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md) 참조
 
 - StateCreator factory 패턴 + 슬라이스 개별 파일 분리
-- O(1) 인덱스: elementsMap(요소), childrenMap(자식), pageIndex(페이지). 배열 순회 금지. **ADR-122 (In Progress)** — Builder hot path 에서 `useStore.elementsMap`/`childrenMap` mutable subscription 금지, canonical selectors / `useStore.elements[]` 기반 read-only derived 사용 권장
+- O(1) 인덱스: elementsMap(요소), childrenMap(자식), pageIndex(페이지). 배열 순회 금지. **ADR-122 Implemented (2026-05-09)** — Builder hot path 에서 `useStore.elementsMap`/`childrenMap` mutable subscription 0건. canonical selectors / `useStore.elements[]` 기반 read-only derived 사용
 - childrenMap은 구조 변경 시에만 갱신 → props는 elementsMap에서 최신 조회 필수. **Why**: childrenMap이 props stale
 - selector에서 배열/객체 반환 시 `useRef` + `shallow` 캐싱. Zustand v5 `equalityFn` 무시됨 주의
 
