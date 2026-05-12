@@ -17,7 +17,23 @@
 
 본 ADR Proposed 시점에서 확보된 evidence:
 
-### Supabase `.from(...)` 호출 9 위치 (production)
+### Supabase `.from(...)` 호출 9 위치 (single-line grep, production)
+
+> **⚠ Inventory 결함 — Phase 1 진입 직전 multi-line grep 재실행 의무 (codex 검토 2026-05-12)**:
+>
+> 본 표는 single-line `supabase.from(...)` pattern grep 결과 (9 호출 / 5 file). multi-line `supabase\n .from(...)` 호출이 누락됨. Phase 1 sub-phase 1-α 진입 직전 `rg --multiline 'supabase\s*\n?\s*\.from\('` 재실행 후 본 §2 inventory 를 66 호출 / 12 file 수준으로 갱신 의무.
+>
+> **추가 발견 file** (single-line grep 누락, multi-line 재실행 시 inventory 흡수 대상):
+>
+> - `apps/builder/src/services/api/DocumentsApiService.ts` (3 calls, `documents`)
+> - `apps/builder/src/services/api/ProjectsApiService.ts` (5 calls, `projects`)
+> - `apps/builder/src/services/theme/TokenService.ts` (3 calls, `design_tokens`) — **base scope 외 영역 가능, Phase 3 narrow framing 시점 사용자 confirm 결합**
+> - `apps/builder/src/builder/factories/utils/dbPersistence.ts` (3 calls, `layouts`/`pages`/`elements`)
+> - `apps/builder/src/builder/hooks/useCollectionItemManager.ts` (2 calls, `elements`)
+> - `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` (3 calls, `elements`)
+> - `historyActions.ts` (본 표 3 호출 → 실제 22+ 호출, undo/redo cloud read path 광범위)
+>
+> **base decision 영향 0** — auth-only 격하 결정은 9 든 66 든 동일. 본 inventory 정밀도는 Phase 1 cleanup 작업량 산정 입력 자료.
 
 | File:Line                                                                        | Table      | 의도               |
 | -------------------------------------------------------------------------------- | ---------- | ------------------ |
@@ -74,15 +90,30 @@
 
 → G1 의 상당 부분 (production 35건 + test 190건) 이 cloud-dead 직접 기인 가능. 정확한 비율은 Phase 5 검증.
 
-## §3 Phase 1 — Cloud-only dead call site 직접 제거 (안전한 9 호출)
+## §3 Phase 1 — Cloud-only dead call site 직접 제거
 
-| Sub | File                                               | 작업                                                                                                       | 회귀 검증                             |
-| --- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| 1-α | `legacyElementsApiService.ts:269, 281`             | 두 cloud delete 호출 제거 + `LegacyElementsApiService` class 의 의도 재정의 (IndexedDB only 또는 deletion) | targeted vitest                       |
-| 1-β | `historyActions.ts:240, 862, 1533`                 | undo/redo 시 cloud delete 3 호출 제거. IndexedDB persistence 정합 확인                                     | history undo/redo test                |
-| 1-γ | `TableEditor.tsx:257`, `TableHeaderEditor.tsx:169` | Property editor 저장 시 cloud insert/upsert 제거. IndexedDB write path 만 유지                             | Table editor smoke + 사용자 환경 검증 |
-| 1-δ | `PagesApiService.ts:159`                           | page delete cloud 호출 제거. IndexedDB only delete path 정합                                               | page CRUD test                        |
-| 1-ε | `marginCollapseAudit.ts:19`                        | dev benchmark cloud read 제거 또는 IndexedDB / static fixture 로 전환                                      | benchmark 동작 확인 (optional)        |
+**진입 직전 의무 (multi-line grep 재실행)**:
+
+```bash
+rg --multiline 'supabase\s*\n?\s*\.from\(' apps/builder/src -g '*.ts' -g '*.tsx'
+```
+
+실행 결과로 §2 inventory 갱신 후 sub-phase 분류 확정. 본 표는 single-line grep 결과 9 호출의 의도 분류 + multi-line 재실행 시 추가 sub-phase (1-ζ ~ 1-θ) 흡수 가이드.
+
+| Sub | File                                                                                                                                                                                                      | 작업                                                                                                                                  | 회귀 검증                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 1-α | `legacyElementsApiService.ts:269, 281` + multi-line 5 select 호출 (line 35/81/137/213/253)                                                                                                                | cloud delete + select 호출 제거 + `LegacyElementsApiService` class 의도 재정의 (IndexedDB only 또는 deletion)                         | targeted vitest                        |
+| 1-β | `historyActions.ts:240, 862, 1533` + multi-line 22+ 호출 (line 215/226/731/761/787/802/845/868/889/902/912/1344/1355/1401/1417/1439/1469/1490/1503/1513/1539/2237/2261/2271)                              | undo/redo 시 cloud read/write/delete 전체 호출 제거. IndexedDB persistence 정합 확인. **본 sub-phase 가 Phase 1 작업량 최대**         | history undo/redo test                 |
+| 1-γ | `TableEditor.tsx:257` + multi-line 2 (line 148/193), `TableHeaderEditor.tsx:169`                                                                                                                          | Property editor 저장 시 cloud insert/upsert/select 제거. IndexedDB write path 만 유지                                                 | Table editor smoke + 사용자 환경 검증  |
+| 1-δ | `PagesApiService.ts:159` + multi-line 5 (line 43/64/97/123/151)                                                                                                                                           | page CRUD cloud 호출 제거. IndexedDB only path 정합                                                                                   | page CRUD test                         |
+| 1-ε | `marginCollapseAudit.ts:19` + multi-line 1 (line 30)                                                                                                                                                      | dev benchmark cloud read 제거 또는 IndexedDB / static fixture 로 전환                                                                 | benchmark 동작 확인 (optional)         |
+| 1-ζ | `DocumentsApiService.ts` 3 호출 (line 43/82/110, `documents` table)                                                                                                                                       | documents table CRUD cloud 호출 제거. 사용자 명시 ("Supabase 로그인 외 모두 제거") 정합 — IndexedDB only 전환 또는 file 자체 deletion | targeted vitest + 사용자 환경          |
+| 1-η | `ProjectsApiService.ts` 5 호출 (line 45/70/100/121/143, `projects` table)                                                                                                                                 | projects table CRUD cloud 호출 제거. IndexedDB only 또는 file deletion                                                                | targeted vitest + 사용자 환경          |
+| 1-θ | `dbPersistence.ts` 3 호출 (line 23/46/74, `layouts`/`pages`/`elements`) + `useCollectionItemManager.ts` 2 호출 (line 170/196, `elements`) + `PropertiesPanel.tsx` 3 호출 (line 628/1168/1254, `elements`) | factory persistence layer + collection editor + property panel 의 cloud write 제거. IndexedDB write path 만 유지                      | 사용자 환경 검증 (production hot path) |
+
+**TokenService (`design_tokens` table) 별도 처리**:
+
+`apps/builder/src/services/theme/TokenService.ts` (line 58/90/112, 3 호출, `design_tokens` table) 는 base scope (auth-only 격하) 외 영역 가능. design tokens 가 cloud-sync 자산인지 IndexedDB-native 인지 결정은 Phase 3 narrow framing 시점에 export/import scope 결정과 결합하여 사용자 confirm. 본 결정 전까지 Phase 1 sub-phase 분류 제외.
 
 각 sub-phase 별 (1) 직접 제거 (2) targeted vitest PASS (3) 사용자 환경 검증 (4) commit + push. 메모리 `feedback-pr-vs-direct-push` 정합 main 직접.
 
@@ -97,8 +128,10 @@ Phase 1 직접 제거 후 cloud-only adapter 의 잔존 호출 grep + 추가 제
 | 2-α | `legacyElementsApiService.ts` 전체 dead 여부 검증 + 전체 파일 제거 (또는 IndexedDB-only API service 로 rename + scope 축소) | grep import + 사용자 환경 |
 | 2-β | `PagesApiService.ts` cloud 부분 vs IndexedDB 부분 분리. cloud method 제거                                                   | grep import               |
 | 2-γ | `legacyElementSanitizer.ts` cloud row schema sanitize 부분 제거 또는 file scope 재정의                                      | grep + targeted vitest    |
+| 2-δ | `DocumentsApiService.ts` 전체 dead 여부 검증 + 파일 제거 (또는 IndexedDB-only API service 로 rename)                        | grep import + 사용자 환경 |
+| 2-ε | `ProjectsApiService.ts` 전체 dead 여부 검증 + 파일 제거 (또는 IndexedDB-only API service 로 rename)                         | grep import + 사용자 환경 |
 
-본 Phase 의 결과로 `apps/builder/src/services/api/` 및 `apps/builder/src/adapters/canonical/legacy*` 경로의 cloud 의존 코드 zero. legacy file 5개 → 필요한 것 (IndexedDB 직렬화 / file export / import) 만 잔존, scope 명시.
+본 Phase 의 결과로 `apps/builder/src/services/api/` 및 `apps/builder/src/adapters/canonical/legacy*` 경로의 cloud 의존 코드 zero. legacy file 5개 → 필요한 것 (IndexedDB 직렬화 / file export / import) 만 잔존, scope 명시. Phase 2 진입 직전 §3 multi-line grep 재실행 결과로 adapter file 추가 발견 시 sub-phase 추가 흡수.
 
 ## §5 Phase 3 — Legacy export/import scope 재정의
 
