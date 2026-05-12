@@ -23,22 +23,22 @@ describe("SkiaCanvas render invalidation contract", () => {
     ).not.toBeNull();
   });
 
-  it("feeds StoreRenderBridge from canonical scene-node rendererInput maps", async () => {
+  it("feeds StoreRenderBridge from page-resolved rendererInput maps", async () => {
     const source = await readFile(
       resolve(__dirname, "SkiaCanvas.tsx"),
       "utf-8",
     );
 
     expect(source).toContain(
-      "getElements: () => rendererInputRef.current.sceneNodesMap,",
+      "getElements: () => rendererInputRef.current.renderNodesMap,",
     );
     expect(source).toContain(
-      "getChildrenMap: () => rendererInputRef.current.sceneChildrenByParent,",
+      "getChildrenMap: () => rendererInputRef.current.childrenMap,",
     );
-    expect(source).toContain("rendererInput.sceneNodesMap,");
-    expect(source).toContain("rendererInput.sceneChildrenByParent,");
+    expect(source).toContain("rendererInput.renderNodesMap,");
+    expect(source).toContain("rendererInput.childrenMap,");
     expect(source).toContain(
-      "getScrollElementsMap: () => rendererInputRef.current.sceneNodesMap,",
+      "getScrollElementsMap: () => rendererInputRef.current.renderNodesMap,",
     );
     expect(source).not.toContain(
       "getElements: () => useStore.getState().elementsMap,",

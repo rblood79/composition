@@ -1,8 +1,10 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { canonicalDocumentToFrameElementScopes } from "../../../../adapters/canonical/frameElementScope";
+import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import {
+  type CanvasSceneGraph,
   buildCanvasSceneGraph,
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
@@ -52,6 +54,33 @@ export interface CanonicalSceneModel {
   /** Page entity scope index, derived from renderable canonical scene nodes */
   frameElementScopes: ReturnType<typeof canonicalDocumentToFrameElementScopes>;
   pageIndex: PageElementIndex;
+}
+
+function buildSceneParentById(
+  childrenByParent: Map<string, CanvasSceneNode[]>,
+): Map<string, string> {
+  const parentById = new Map<string, string>();
+  for (const [parentId, children] of childrenByParent) {
+    for (const child of children) {
+      parentById.set(child.id, parentId);
+    }
+  }
+  return parentById;
+}
+
+function resolveSceneGraph(graph: CanvasSceneGraph): CanvasSceneGraph {
+  const resolved = resolveCanonicalRefTree({
+    childrenMap: graph.childrenByParent,
+    elements: graph.nodes,
+    elementsMap: graph.nodesMap,
+  });
+
+  return {
+    childrenByParent: resolved.childrenMap,
+    nodes: resolved.elements,
+    nodesMap: resolved.elementsMap,
+    parentById: buildSceneParentById(resolved.childrenMap),
+  };
 }
 
 /**
@@ -129,7 +158,9 @@ export function buildCanonicalSceneModel(
   const nodes = flattenCanonicalDocumentNodes(doc);
   const nodesMap = buildSceneNodeMap(nodes);
   const childrenByParent = buildSceneChildrenByParent(nodes, doc);
-  const sceneGraph = buildCanvasSceneGraph(doc);
+  const sceneGraph = resolveSceneGraph(
+    buildCanvasSceneGraph(doc, { includeReusableFrames: true }),
+  );
 
   return {
     childrenByParent,

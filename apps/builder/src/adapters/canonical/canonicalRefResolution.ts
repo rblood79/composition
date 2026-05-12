@@ -435,7 +435,17 @@ function materializeOverrideChildren<T extends CanonicalRefResolvableNode>(
   });
 
   if (syntheticChildren.length > 0) {
-    resultChildrenMap.set(syntheticParentId, syntheticChildren);
+    const syntheticChildIds = new Set(
+      syntheticChildren.map((child) => child.id),
+    );
+    const existingChildren = resultChildrenMap.get(syntheticParentId) ?? [];
+    const preservedChildren = existingChildren.filter(
+      (child) => !syntheticChildIds.has(child.id),
+    );
+    resultChildrenMap.set(syntheticParentId, [
+      ...preservedChildren,
+      ...syntheticChildren,
+    ]);
   }
 }
 
@@ -562,7 +572,17 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
   });
 
   if (syntheticChildren.length > 0) {
-    resultChildrenMap.set(syntheticParentId, syntheticChildren);
+    const syntheticChildIds = new Set(
+      syntheticChildren.map((child) => child.id),
+    );
+    const existingChildren = resultChildrenMap.get(syntheticParentId) ?? [];
+    const preservedChildren = existingChildren.filter(
+      (child) => !syntheticChildIds.has(child.id),
+    );
+    resultChildrenMap.set(syntheticParentId, [
+      ...preservedChildren,
+      ...syntheticChildren,
+    ]);
   }
 }
 

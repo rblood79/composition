@@ -86,6 +86,78 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     expect(result.pageElements.map((el) => el.id)).toEqual(["btn"]);
   });
 
+  it("page의 frame 바인딩이 layoutId로 들어와도 frame projection 동작", () => {
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const frameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      frameId: "frame-1",
+      page_id: null,
+      order_num: 0,
+    });
+    const frameText = makeEl({
+      id: "frame-text",
+      type: "Text",
+      frameId: "frame-1",
+      page_id: null,
+      parent_id: "frame-body",
+      order_num: 1,
+    });
+
+    const result = resolvePageWithFrame({
+      page: makePage({ id: "page-1", layoutId: "frame-1" }),
+      pageElements: [pageBody],
+      elementsMap: buildElementsMap([pageBody, frameBody, frameText]),
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.bodyElement?.id).toBe("page-body");
+    expect(result.pageElements.map((el) => el.id)).toEqual([
+      toPageFrameElementId("page-1", "frame-text"),
+    ]);
+  });
+
+  it("layout-id alias(`layout-<id>`) page 바인딩도 정규화되어 frame 합성 동작", () => {
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const frameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      frameId: "layout-frame-1",
+      page_id: null,
+      order_num: 0,
+    });
+    const frameText = makeEl({
+      id: "frame-text",
+      type: "Text",
+      frameId: "layout-frame-1",
+      page_id: null,
+      parent_id: "frame-body",
+      order_num: 1,
+    });
+
+    const result = resolvePageWithFrame({
+      page: { ...makePage({ id: "page-1" }), layout_id: "layout-frame-1" },
+      pageElements: [pageBody],
+      elementsMap: buildElementsMap([pageBody, frameBody, frameText]),
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.bodyElement?.id).toBe("page-body");
+    expect(result.pageElements.map((el) => el.id)).toEqual([
+      toPageFrameElementId("page-1", "frame-text"),
+    ]);
+  });
+
   it("frame binding projection preserves source order instead of legacy order_num", () => {
     const pageBody = makeEl({
       id: "page-body",
@@ -201,6 +273,47 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     expect(result.hasFrameBinding).toBe(false);
     expect(result.bodyElement?.id).toBe("page-body");
     expect(result.pageElements.map((el) => el.id)).toEqual(["btn"]);
+  });
+
+  it("frame elements 가 layoutId 로만 들어와도 projection 된다", () => {
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const frameBody = {
+      id: "frame-body",
+      type: "body",
+      page_id: "page-1",
+      parent_id: null,
+      props: {},
+      pageId: "page-1",
+      layoutId: "frame-1",
+      parentId: null,
+    } as CanvasSceneNode;
+    const frameText = {
+      id: "frame-text",
+      type: "Text",
+      page_id: "page-1",
+      parent_id: "frame-body",
+      props: {},
+      pageId: "page-1",
+      layoutId: "frame-1",
+      parentId: null,
+    } as CanvasSceneNode;
+
+    const result = resolvePageWithFrame({
+      page: makePage({ id: "page-1", layoutId: "frame-1" }),
+      pageElements: [pageBody],
+      elementsMap: buildElementsMap([pageBody, frameBody, frameText]),
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.bodyElement?.id).toBe("page-body");
+    expect(result.pageElements.map((el) => el.id)).toEqual([
+      toPageFrameElementId("page-1", "frame-text"),
+    ]);
   });
 
   describe("T2 — frame body + slot 구조 inline 노출 (page slot fill 없음)", () => {
@@ -382,6 +495,116 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
       expect(slotContent?.parent_id).toBe("page-body");
       expect(slotContent?.props?._slotChrome).toBe("hidden");
       expect(slotContent?.props?._slotMarkerChrome).toBe("visible");
+    });
+
+    it("frame projection 은 page tree 에 body 타입을 추가하지 않는다", () => {
+      const nestedFrameBody = makeEl({
+        id: "frame-nested-body",
+        type: "body",
+        frameId: FRAME_ID,
+        page_id: null,
+        parent_id: "frame-body",
+        order_num: 0,
+      });
+
+      const pageSlotCard = makeEl({
+        id: "page-slot-card",
+        type: "Card",
+        page_id: "page-1",
+        parent_id: "page-body",
+        order_num: 1,
+      });
+      const withNestedBody = buildElementsMap([
+        frameBody,
+        slotHeader,
+        slotContent,
+        slotFooter,
+        textHeader,
+        textFooter,
+        pageBody,
+        nestedFrameBody,
+        pageSlotCard,
+      ]);
+      const frameScopedBodyId = toPageFrameElementId(
+        "page-1",
+        nestedFrameBody.id,
+      );
+
+      const nested = resolvePageWithFrame({
+        page: makeFramePage(FRAME_ID, { id: "page-1" }),
+        pageElements: [pageBody, pageSlotCard],
+        elementsMap: withNestedBody,
+      });
+
+      expect(nested.hasFrameBinding).toBe(true);
+      expect(nested.bodyElement?.id).toBe("page-body");
+      expect(nested.pageElements.map((el) => el.id)).not.toContain(
+        frameScopedBodyId,
+      );
+    });
+
+    it("중첩 body 자식은 body 노드 없이 page-body 에 다시 reparent 된다", () => {
+      const nestedFrameBody = makeEl({
+        id: "frame-nested-body",
+        type: "body",
+        frameId: FRAME_ID,
+        page_id: null,
+        parent_id: "frame-body",
+        order_num: 0,
+      });
+      const nestedSlot = makeEl({
+        id: "nested-content-slot",
+        type: "Slot",
+        frameId: FRAME_ID,
+        page_id: null,
+        parent_id: nestedFrameBody.id,
+        order_num: 1,
+        props: { name: "content" },
+      });
+      const nestedText = makeEl({
+        id: "nested-content-text",
+        type: "Text",
+        frameId: FRAME_ID,
+        page_id: null,
+        parent_id: nestedSlot.id,
+        order_num: 0,
+      });
+      const elementsMap = buildElementsMap([
+        frameBody,
+        slotHeader,
+        slotContent,
+        slotFooter,
+        textHeader,
+        textFooter,
+        nestedFrameBody,
+        nestedSlot,
+        nestedText,
+        pageBody,
+      ]);
+
+      const result = resolvePageWithFrame({
+        page: makeFramePage(FRAME_ID, { id: "page-1" }),
+        pageElements: [pageBody],
+        elementsMap,
+      });
+
+      const scopedSlotId = toPageFrameElementId("page-1", nestedSlot.id);
+      const scopedTextId = toPageFrameElementId("page-1", nestedText.id);
+      const projectedSlot = result.pageElements.find(
+        (el) => el.id === scopedSlotId,
+      );
+      const projectedText = result.pageElements.find(
+        (el) => el.id === scopedTextId,
+      );
+      expect(result.hasFrameBinding).toBe(true);
+      expect(result.bodyElement?.id).toBe("page-body");
+      expect(projectedSlot).toBeDefined();
+      expect(projectedText).toBeDefined();
+      expect(projectedSlot?.parent_id).toBe("page-body");
+      expect(projectedText?.parent_id).toBe(scopedSlotId);
+      expect(result.pageElements.map((el) => el.id)).not.toContain(
+        toPageFrameElementId("page-1", nestedFrameBody.id),
+      );
     });
   });
 
@@ -765,6 +988,61 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     expect(result.hasFrameBinding).toBe(true);
     expect(result.bodyElement?.id).toBe("page-1-body");
     expect(result.pageElements.map((el) => el.id)).toEqual([projectedSlotId]);
+    expect(result.pageElements[0]?.parent_id).toBe("page-1-body");
+  });
+
+  it("ADR-126 bound page ref hydrate 와 origin frame subtree 가 공존해도 slot 을 중복 projection 하지 않는다", () => {
+    const FRAME_ID = "frame-hydrated";
+    const pageBody = makeEl({
+      id: "page-1-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const originFrameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      frameId: FRAME_ID,
+      page_id: null,
+    });
+    const originSlot = makeEl({
+      id: "slot-content",
+      type: "Slot",
+      frameId: FRAME_ID,
+      page_id: null,
+      parent_id: originFrameBody.id,
+      props: { name: "content" },
+    });
+    const hydratedFrameBody = makeEl({
+      id: toPageFrameElementId("page-1", "frame-body"),
+      type: "body",
+      frameId: FRAME_ID,
+      page_id: "page-1",
+    });
+    const hydratedSlot = makeEl({
+      id: toPageFrameElementId("page-1", "slot-content"),
+      type: "Slot",
+      frameId: FRAME_ID,
+      page_id: "page-1",
+      parent_id: hydratedFrameBody.id,
+      props: { name: "content" },
+    });
+    const elementsMap = buildElementsMap([
+      originFrameBody,
+      originSlot,
+      pageBody,
+      hydratedFrameBody,
+      hydratedSlot,
+    ]);
+
+    const result = resolvePageWithFrame({
+      page: makeFramePage(FRAME_ID, { id: "page-1" }),
+      pageElements: [pageBody, hydratedFrameBody, hydratedSlot],
+      elementsMap,
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.bodyElement?.id).toBe("page-1-body");
+    expect(result.pageElements.map((el) => el.id)).toEqual([hydratedSlot.id]);
     expect(result.pageElements[0]?.parent_id).toBe("page-1-body");
   });
 

@@ -524,7 +524,7 @@ export function BuilderCanvas({
       dirtyElementIds,
       editMode: currentEditMode,
       elements: sceneNodes,
-      elementsMap: sceneNodesMap,
+      renderNodesMap: sceneNodesMap,
       sceneChildrenByParent,
       sceneNodes,
       sceneNodesMap,

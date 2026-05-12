@@ -18,6 +18,12 @@ describe("frameMirror adapter helpers", () => {
     expect(getNullablePageFrameBindingId(page)).toBe("frame-1");
     expect(getPageFrameBindingId(page)).toBe("frame-1");
     expect(getPageFrameBindingId(null)).toBe("");
+    expect(
+      getNullablePageFrameBindingId({
+        id: "page-2",
+        layoutId: "frame-2",
+      } as Page),
+    ).toBe("frame-2");
     expect(withPageFrameBinding({ id: "page-2" }, null)).toEqual({
       id: "page-2",
       layout_id: null,
@@ -53,7 +59,13 @@ describe("frameMirror adapter helpers", () => {
     expect(
       getFrameElementMirrorId({ id: "body", layout_id: "frame-1" } as Element),
     ).toBe("frame-1");
+    expect(
+      getFrameElementMirrorId({ id: "body", layoutId: "frame-3" } as Element),
+    ).toBe("frame-3");
     expect(hasFrameElementMirrorId({ id: "body", layout_id: "frame-1" })).toBe(
+      true,
+    );
+    expect(hasFrameElementMirrorId({ id: "body", layoutId: "frame-3" })).toBe(
       true,
     );
     expect(getFrameElementMirrorId({ id: "body" } as Element)).toBeNull();
@@ -62,5 +74,20 @@ describe("frameMirror adapter helpers", () => {
       id: "body",
       layout_id: "frame-2",
     });
+  });
+
+  it("normalizes layout-id alias values while reading mirror ids", () => {
+    expect(
+      getFrameElementMirrorId({
+        id: "body",
+        layout_id: "layout-frame-1",
+      } as Element),
+    ).toBe("frame-1");
+    expect(
+      getNullablePageFrameBindingId({
+        id: "page-3",
+        layout_id: "layout-frame-7",
+      } as Page),
+    ).toBe("frame-7");
   });
 });

@@ -4,7 +4,10 @@ import type { CompositionDocument } from "@composition/shared";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { getPageElements } from "../../../stores/utils/elementIndexer";
+import { buildPageDataMap } from "./buildSceneIndex";
 import { buildCanonicalSceneModel } from "./canonicalSceneModel";
+import { toPageFrameElementId } from "./resolvePageWithFrame";
 
 describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () => {
   it("builds canonical-native node maps from canonical children source order", () => {
@@ -118,5 +121,145 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
       ["getCanonicalElements", "SnapshotFromDocument"].join(""),
     );
     expect(source).not.toContain("canonicalDocumentToElements");
+  });
+
+  it("resolves bound page ref descendants before deriving pageIndex", () => {
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "frame-text-1",
+                  type: "Text",
+                  props: { children: "inside" },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "ref",
+          ref: "layout-frame-1",
+          name: "Page 1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            layoutId: "frame-1",
+          },
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const model = buildCanonicalSceneModel(document);
+    const pageElements = getPageElements(
+      model.pageIndex,
+      "page-1",
+      model.sceneNodesMap,
+    );
+
+    const bodyElement = pageElements.find(
+      (element) => element.type.toLowerCase() === "body",
+    );
+
+    expect(bodyElement).toBeDefined();
+    expect(bodyElement?.type).toBe("Body");
+    expect(bodyElement?.id).toBe("page-1/frame-body-1");
+    expect(pageElements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: bodyElement!.id, type: "Body" }),
+      ]),
+    );
+    expect(model.sceneNodesMap.has(bodyElement!.id)).toBe(true);
+  });
+
+  it("keeps page-owned body descendants when a bound page ref materializes frame slots", () => {
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body-1",
+              type: "body",
+              props: { style: { display: "flex" } },
+              children: [
+                {
+                  id: "slot-content",
+                  type: "frame",
+                  metadata: {
+                    type: "legacy-slot-hoisted",
+                    slotName: "content",
+                  },
+                  props: {},
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "page-1",
+          type: "ref",
+          ref: "layout-frame-1",
+          name: "Page 1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            layoutId: "frame-1",
+          },
+          descendants: {
+            content: {
+              children: [
+                {
+                  id: "page-body-1",
+                  type: "body",
+                  props: { style: { width: 390, height: 844 } },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const model = buildCanonicalSceneModel(document);
+    const pageData = buildPageDataMap(
+      [
+        {
+          id: "page-1",
+          project_id: "project-1",
+          slug: "page-1",
+          title: "Page 1",
+          layout_id: "frame-1",
+        } as never,
+      ],
+      model.pageIndex,
+      model.sceneNodesMap,
+    ).get("page-1");
+
+    expect(
+      model.sceneChildrenByParent.get("page-1")?.map((node) => node.id),
+    ).toEqual(expect.arrayContaining(["page-body-1", "page-1/frame-body-1"]));
+    expect(pageData?.bodyElement?.id).toBe("page-body-1");
+    expect(pageData?.pageElements.map((element) => element.id)).toContain(
+      toPageFrameElementId("page-1", "slot-content"),
+    );
+    expect(pageData?.pageElements.map((element) => element.id)).not.toContain(
+      "page-1",
+    );
   });
 });

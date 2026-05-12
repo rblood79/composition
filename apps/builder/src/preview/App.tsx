@@ -863,7 +863,12 @@ function CanvasContent() {
           const isPage = meta?.type === "page" || meta?.type === "legacy-page";
           if (!isPage) return false;
           if (!currentPageId) return true;
-          return meta?.pageId === currentPageId;
+
+          const resolvedPageId =
+            typeof meta?.pageId === "string" && meta.pageId.length > 0
+              ? meta.pageId
+              : node.id;
+          return resolvedPageId === currentPageId;
         });
 
         if (pageNodes.length === 0) {

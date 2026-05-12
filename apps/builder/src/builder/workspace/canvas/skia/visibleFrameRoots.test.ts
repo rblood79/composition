@@ -28,9 +28,14 @@ const makeElement = ({
   );
 
 const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => {
+  const typedPartial = partial as Partial<SkiaRendererInput> & {
+    elementsMap?: Map<string, CanvasSceneNode>;
+    renderNodesMap?: Map<string, CanvasSceneNode>;
+  };
   const elements = partial.elements ?? [];
   const elementsMap =
-    partial.elementsMap ?? new Map(elements.map((el) => [el.id, el]));
+    typedPartial?.elementsMap ?? new Map(elements.map((el) => [el.id, el]));
+  const renderNodesMap = typedPartial?.renderNodesMap ?? elementsMap;
   const sceneNodes = partial.sceneNodes ?? (elements as CanvasSceneNode[]);
   const sceneNodesMap =
     partial.sceneNodesMap ??
@@ -39,6 +44,7 @@ const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => {
     childrenMap: new Map(),
     elements,
     elementsMap,
+    renderNodesMap,
     sceneChildrenByParent: partial.sceneChildrenByParent ?? new Map(),
     sceneNodes,
     sceneNodesMap,
@@ -134,6 +140,42 @@ describe("ADR-111 P3-δ collectVisibleFrameRoots", () => {
 
     expect(result.rootElementIds).toEqual(["frame-body-1"]);
     expect(result.bodyPagePositions["frame-body-1"]).toEqual({ x: 100, y: 50 });
+  });
+
+  it("sceneNodesMap 가 아닌 renderNodesMap 의 frame body 도 root 등록한다", () => {
+    const bodyEl = makeElement({
+      id: "frame-body-render-only",
+      type: "body",
+      frameId: "frame-B",
+    });
+
+    const result = collectVisibleFrameRoots(
+      makeInput({
+        elements: [],
+        renderNodesMap: new Map([[bodyEl.id, bodyEl]]),
+        sceneNodes: [],
+        sceneNodesMap: new Map(),
+        frameElementScopes: new Map([
+          ["frame-B", makeFrameScope("frame-B", bodyEl.id)],
+        ]),
+        frameAreas: [
+          {
+            frameId: "frame-B",
+            frameName: "Frame B",
+            x: 30,
+            y: 40,
+            width: 320,
+            height: 200,
+          },
+        ],
+      }),
+    );
+
+    expect(result.rootElementIds).toEqual(["frame-body-render-only"]);
+    expect(result.bodyPagePositions["frame-body-render-only"]).toEqual({
+      x: 30,
+      y: 40,
+    });
   });
 
   it("canonical frame scope 밖의 body 는 frame mode root 로 등록하지 않는다", () => {

@@ -106,7 +106,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     });
   });
 
-  it("hydrates selected frame elements, updates canonical document, then mirrors page binding", async () => {
+  it("updates page binding without rewriting the reusable frame subtree", async () => {
     const page = makePage();
     const state = {
       pages: [page],
@@ -117,7 +117,24 @@ describe("pageFrameBinding canonical primary helper", () => {
       ? S
       : never;
     const setPages = vi.fn();
-    const baseDoc = makeDoc([makeFrameNode()]);
+    const frameBody: CanonicalNode = {
+      id: "frame-body",
+      type: "body",
+      props: {},
+      children: [
+        {
+          id: "slot-content",
+          type: "frame",
+          props: { name: "content" },
+          metadata: { type: "legacy-slot-hoisted", slotName: "content" },
+        },
+      ],
+    };
+    const baseFrame = {
+      ...makeFrameNode(),
+      children: [frameBody],
+    } as CanonicalNode;
+    const baseDoc = makeDoc([baseFrame]);
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", baseDoc);
 
@@ -128,10 +145,8 @@ describe("pageFrameBinding canonical primary helper", () => {
       setPages,
     });
 
-    expect(mocks.loadFrameElements).toHaveBeenCalledWith("frame-1");
-    expect(mocks.mergeElementsCanonicalPrimary).toHaveBeenCalledWith([
-      expect.objectContaining({ id: "frame-body" }),
-    ]);
+    expect(mocks.loadFrameElements).not.toHaveBeenCalled();
+    expect(mocks.mergeElementsCanonicalPrimary).not.toHaveBeenCalled();
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const pageNode = doc?.children.find((node) => node.id === "page-1") as
       | RefNode
@@ -153,7 +168,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     ).toEqual(
       expect.objectContaining({
         children: expect.arrayContaining([
-          makeFrameNode(),
+          baseFrame,
           expect.objectContaining({ id: "page-1", type: "ref" }),
         ]),
       }),

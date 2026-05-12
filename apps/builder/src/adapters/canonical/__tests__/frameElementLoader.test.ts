@@ -134,4 +134,17 @@ describe("frameElementLoader canonical adapter", () => {
       ),
     ).toBe(false);
   });
+
+  it("accepts canonical layoutId when legacy layout_id is absent", () => {
+    expect(
+      isLegacyFrameElementForFrame(
+        makeElement("frame-slot", {
+          layout_id: undefined,
+          // @ts-expect-error 테스트: canonical 필드 시뮬레이션
+          layoutId: "frame-1",
+        }),
+        "frame-1",
+      ),
+    ).toBe(true);
+  });
 });

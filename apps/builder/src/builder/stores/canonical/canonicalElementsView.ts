@@ -26,6 +26,7 @@ import type { Element } from "../../../types/builder/unified.types";
 import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
+  normalizeFrameLayoutId,
 } from "../../../adapters/canonical/frameMirror";
 import { readLegacyMetadataCustomId } from "../../../adapters/canonical/legacyMetadata";
 import {
@@ -313,11 +314,9 @@ function getNodeScope(
   if (node.type === "frame" && node.reusable === true) {
     const metadataLayoutId = metadata?.layoutId;
     const layoutId =
-      typeof metadataLayoutId === "string"
-        ? metadataLayoutId
-        : node.id.startsWith("layout-")
-          ? node.id.slice("layout-".length)
-          : node.id;
+      normalizeFrameLayoutId(
+        typeof metadataLayoutId === "string" ? metadataLayoutId : null,
+      ) ?? node.id;
     return {
       pageId: null,
       layoutId,

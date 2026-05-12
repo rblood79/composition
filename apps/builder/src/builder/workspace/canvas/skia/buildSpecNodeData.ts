@@ -241,9 +241,12 @@ function propagationPathMatches(
 ): boolean {
   const expectedPath = Array.isArray(childPath) ? childPath : [childPath];
   const actualPath = [element.type];
+  const visited = new Set<string>([element.id]);
   let parentId = element.parent_id;
 
   while (parentId) {
+    if (visited.has(parentId)) return false;
+    visited.add(parentId);
     const parent = elementsMap.get(parentId);
     if (!parent) return false;
     if (parent.id === ancestor.id) {
@@ -262,8 +265,11 @@ function getPropagationAncestors(
   elementsMap: Map<string, CanvasSceneNode>,
 ): CanvasSceneNode[] {
   const ancestors: CanvasSceneNode[] = [];
+  const visited = new Set<string>([element.id]);
   let parentId = element.parent_id;
   while (parentId) {
+    if (visited.has(parentId)) break;
+    visited.add(parentId);
     const parent = elementsMap.get(parentId);
     if (!parent) break;
     ancestors.push(parent);
@@ -504,7 +510,10 @@ function resolveLabelAlignment(
 
   // Walk from parent → ancestors looking for Form
   let currentId: string | null | undefined = element.parent_id;
+  const visited = new Set<string>([element.id]);
   while (currentId) {
+    if (visited.has(currentId)) break;
+    visited.add(currentId);
     const ancestor = elementsMap.get(currentId);
     if (!ancestor) break;
 
@@ -728,7 +737,10 @@ function resolveAccentColor(
   if (elementAccent) return elementAccent;
 
   let pid = element.parent_id;
+  const visited = new Set<string>([element.id]);
   while (pid) {
+    if (visited.has(pid)) break;
+    visited.add(pid);
     const p = elementsMap.get(pid);
     if (!p) break;
     const ac = getProps(p).accentColor as TintPreset | undefined;

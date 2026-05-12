@@ -7,6 +7,7 @@ import type {
 
 import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legacyMetadata";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
+import { normalizeFrameLayoutId } from "../../../../adapters/canonical/frameMirror";
 
 type SceneScopeContext = {
   pageId: string | null;
@@ -59,6 +60,10 @@ export interface CanvasSceneNode {
   sourceNode: CanonicalNode;
 }
 
+interface BuildCanvasSceneGraphOptions {
+  includeReusableFrames?: boolean;
+}
+
 export interface CanvasSceneGraph {
   childrenByParent: Map<string, CanvasSceneNode[]>;
   nodes: CanvasSceneNode[];
@@ -75,9 +80,39 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function isCanonicalNode(value: unknown): value is CanonicalNode {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { id?: unknown; type?: unknown };
+  return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
+function readDescendantChildren(override: unknown): CanonicalNode[] {
+  if (!override || typeof override !== "object") return [];
+  if (isCanonicalNode(override)) return [override];
+
+  const children = (override as { children?: unknown }).children;
+  if (!Array.isArray(children)) return [];
+  return children.filter(isCanonicalNode);
+}
+
+function getRefDescendantChildren(node: CanonicalNode): CanonicalNode[][] {
+  if (node.type !== "ref") return [];
+  const metadata = node.metadata as SceneScopeMetadata | undefined;
+  if (metadata?.type !== "page" && metadata?.type !== "legacy-page") return [];
+
+  const descendants = (node as RefNode).descendants ?? {};
+  return Object.values(descendants)
+    .map(readDescendantChildren)
+    .filter((children) => children.length > 0);
+}
+
 function isPagePlaceholderNode(node: CanonicalNode): boolean {
   const metadata = node.metadata as SceneScopeMetadata | undefined;
-  return metadata?.type === "page" || metadata?.type === "legacy-page";
+  const isPageMeta =
+    metadata?.type === "page" || metadata?.type === "legacy-page";
+  const isBoundRef =
+    node.type === "ref" && typeof metadata?.layoutId === "string";
+  return isPageMeta && !isBoundRef;
 }
 
 function getNodeScope(
@@ -99,6 +134,17 @@ function getNodeScope(
   }
 
   if (
+    node.type === "ref" &&
+    typeof metadata?.layoutId === "string" &&
+    (metadata?.type === "page" || metadata?.type === "legacy-page")
+  ) {
+    return {
+      pageId: typeof metadata?.pageId === "string" ? metadata.pageId : node.id,
+      layoutId: null,
+    };
+  }
+
+  if (
     node.type === "frame" &&
     node.reusable !== true &&
     scope.pageId === null
@@ -112,11 +158,9 @@ function getNodeScope(
   if (node.type === "frame" && node.reusable === true) {
     const metadataLayoutId = metadata?.layoutId;
     const layoutId =
-      typeof metadataLayoutId === "string"
-        ? metadataLayoutId
-        : node.id.startsWith("layout-")
-          ? node.id.slice("layout-".length)
-          : node.id;
+      normalizeFrameLayoutId(
+        typeof metadataLayoutId === "string" ? metadataLayoutId : null,
+      ) ?? node.id;
     return {
       pageId: null,
       layoutId,
@@ -130,11 +174,21 @@ function toCanvasSceneNode(
   node: CanonicalNode,
   parentId: string | null,
   scope: SceneScopeContext,
+  includeReusableFrames: boolean,
 ): CanvasSceneNode | null {
   const metadata = node.metadata as SceneScopeMetadata | undefined;
   const isLegacySlotHoisted = metadata?.type === "legacy-slot-hoisted";
   const isRenderableRef = node.type === "ref" && !isPagePlaceholderNode(node);
-  if (!node.props && !isLegacySlotHoisted && !isRenderableRef) return null;
+  const isReusableFrame =
+    node.type === "frame" && node.reusable === true && includeReusableFrames;
+  if (
+    !node.props &&
+    !isLegacySlotHoisted &&
+    !isRenderableRef &&
+    !isReusableFrame
+  ) {
+    return null;
+  }
 
   const props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {
@@ -176,11 +230,13 @@ function toCanvasSceneNode(
 
 export function buildCanvasSceneGraph(
   doc: CompositionDocument,
+  options: BuildCanvasSceneGraphOptions = {},
 ): CanvasSceneGraph {
   const nodes: CanvasSceneNode[] = [];
   const nodesMap = new Map<string, CanvasSceneNode>();
   const childrenByParent = new Map<string, CanvasSceneNode[]>();
   const parentById = new Map<string, string>();
+  const { includeReusableFrames = false } = options;
 
   function visit(
     node: CanonicalNode,
@@ -188,7 +244,12 @@ export function buildCanvasSceneGraph(
     scope: SceneScopeContext,
   ): void {
     const nextScope = getNodeScope(node, scope);
-    const sceneNode = toCanvasSceneNode(node, parentSceneId, nextScope);
+    const sceneNode = toCanvasSceneNode(
+      node,
+      parentSceneId,
+      nextScope,
+      includeReusableFrames,
+    );
     const nextParentId = sceneNode?.id ?? parentSceneId;
 
     if (sceneNode) {
@@ -207,6 +268,11 @@ export function buildCanvasSceneGraph(
 
     node.children?.forEach((child) => {
       visit(child, nextParentId, nextScope);
+    });
+    getRefDescendantChildren(node).forEach((children) => {
+      children.forEach((child) => {
+        visit(child, nextParentId, nextScope);
+      });
     });
   }
 

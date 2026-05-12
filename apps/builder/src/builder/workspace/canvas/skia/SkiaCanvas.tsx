@@ -261,10 +261,10 @@ export function SkiaCanvas({
     invalidateCommandStreamCache();
     rendererRef.current?.invalidateContent();
     storeRenderBridgeRef.current?.sync(
-      rendererInput.sceneNodesMap,
+      rendererInput.renderNodesMap,
       getSharedLayoutMap(),
       resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
-      rendererInput.sceneChildrenByParent,
+      rendererInput.childrenMap,
       true,
     );
     recordInvalidation("content", "rendererInput");
@@ -282,9 +282,9 @@ export function SkiaCanvas({
     const bridge = new StoreRenderBridge();
     storeRenderBridgeRef.current = bridge;
     bridge.connect({
-      getElements: () => rendererInputRef.current.sceneNodesMap,
+      getElements: () => rendererInputRef.current.renderNodesMap,
       getLayoutMap: () => getSharedLayoutMap(),
-      getChildrenMap: () => rendererInputRef.current.sceneChildrenByParent,
+      getChildrenMap: () => rendererInputRef.current.childrenMap,
       // rendererInput 변경은 위 effect 에서 직접 bridge.sync 를 호출한다.
       // 이 subscription 은 theme-only invalidation boundary 로 제한한다.
       subscribe: (cb) => {
@@ -335,8 +335,8 @@ export function SkiaCanvas({
     containerEl,
     frameAreasRef,
     pageFramesRef: visiblePageFramesRef,
-    getHoverElementsMap: () => rendererInputRef.current.sceneNodesMap,
-    getHoverChildrenMap: () => rendererInputRef.current.sceneChildrenByParent,
+    getHoverElementsMap: () => rendererInputRef.current.renderNodesMap,
+    getHoverChildrenMap: () => rendererInputRef.current.childrenMap,
     hoverStateRef: elementHoverStateRef,
     overlayVersionRef,
     treeBoundsMapRef,
@@ -344,7 +344,7 @@ export function SkiaCanvas({
 
   useScrollWheelInteraction({
     containerEl,
-    getScrollElementsMap: () => rendererInputRef.current.sceneNodesMap,
+    getScrollElementsMap: () => rendererInputRef.current.renderNodesMap,
     treeBoundsMapRef,
   });
 
@@ -688,7 +688,7 @@ export function SkiaCanvas({
       const framePlan = observe(PERF_LABEL.RENDER_PLAN_BUILD, () =>
         buildFrameRenderPlan({
           ck,
-          elementsMap: currentRendererInput.elementsMap,
+          elementsMap: currentRendererInput.renderNodesMap,
           fontMgr,
           invalidationPacket: packet,
           snapshot,

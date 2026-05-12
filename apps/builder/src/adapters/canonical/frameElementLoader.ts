@@ -1,4 +1,3 @@
-import { matchesLegacyLayoutId } from "./legacyElementFields";
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "@/builder/stores/canonical/canonicalElementsView";
 import {
@@ -7,6 +6,7 @@ import {
   type CanonicalFrameScopedNode,
   type CanonicalFrameElementScope,
 } from "./frameElementScope";
+import { getFrameElementMirrorId } from "./frameMirror";
 
 export interface FrameElementLoaderDb {
   readonly legacyDbArgument?: never;
@@ -52,7 +52,7 @@ export function isLegacyFrameElementForFrame<T extends FrameElementLike>(
 ): boolean {
   return (
     !element.deleted &&
-    matchesLegacyLayoutId(element, frameId) &&
+    getFrameElementMirrorId(element) === frameId &&
     element.page_id == null
   );
 }
@@ -65,7 +65,7 @@ function hasFrameBody<T extends FrameElementLike>(
     (element) =>
       !element.deleted &&
       isBodyElement(element) &&
-      (matchesLegacyLayoutId(element, frameId) ||
+      (getFrameElementMirrorId(element) === frameId ||
         element.parent_id === frameId),
   );
 }

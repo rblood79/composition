@@ -75,7 +75,11 @@ export function useLayerTreeData(elements: PanelNode[]) {
       return legacyLayerSource;
     }
 
-    return [resolvedPage.bodyElement, ...resolvedPage.pageElements];
+    const resolvedPageElements = resolvedPage.pageElements.filter(
+      (element) => element.type.toLowerCase() !== "body",
+    );
+
+    return [resolvedPage.bodyElement, ...resolvedPageElements];
   }, [
     elements,
     canonicalElements,

@@ -5,6 +5,15 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Builder page frame render fix] - 2026-05-12
+
+### Fixed
+
+- **Page body Frame 적용 후 Skia canvas 렌더 누락 수정**:
+  - Page-resolved frame slot/child projection 을 Skia node registry, command stream child lookup, overlay/hover/scroll lookup 이 동일한 `renderNodesMap` / `childrenMap` 으로 소비하도록 정렬했다.
+  - 검증: targeted Vitest 6 files / 28 tests PASS, `pnpm run codex:typecheck` PASS, `pnpm run codex:preflight` PASS, `git diff --check` PASS.
+  - 로컬 서버 `http://127.0.0.1:5173` 는 응답 확인. Builder 내부 시각 smoke 는 `/signin` 인증 화면에서 차단되어 자동 실행하지 못했다.
+
 ## [ADR-126 Implemented 승격 + completed archive] - 2026-05-11
 
 ### Architecture

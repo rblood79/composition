@@ -108,7 +108,7 @@ export function buildSkiaFrameContent(
   let nodeBoundsMap: Map<string, AIEffectNodeBounds> | null;
   let contentNode: SkiaRenderable;
   let renderChildrenMap: Map<string, CanvasSceneNode[]> =
-    rendererInput.sceneChildrenByParent;
+    rendererInput.childrenMap;
 
   if (useCommandStream) {
     const result = buildViaCommandStream(
@@ -148,7 +148,7 @@ export function buildSkiaFrameContent(
   return {
     sharedScene: buildSharedSceneDerivedData(
       treeBoundsMap,
-      rendererInput.sceneNodesMap,
+      rendererInput.renderNodesMap,
       renderChildrenMap,
       registryVersion,
       pagePosVersion,
@@ -255,13 +255,13 @@ function buildViaCommandStream(
       const children: CanvasSceneNode[] = [];
       for (const cid of childIds) {
         const el =
-          rendererInput.sceneNodesMap.get(cid) ?? syntheticMap.get(cid);
+          rendererInput.renderNodesMap.get(cid) ?? syntheticMap.get(cid);
         if (el) children.push(el);
       }
       commandChildrenMap.set(parentId, children);
     }
   } else {
-    commandChildrenMap = rendererInput.sceneChildrenByParent;
+    commandChildrenMap = rendererInput.childrenMap;
   }
 
   const stream = getCachedCommandStream(

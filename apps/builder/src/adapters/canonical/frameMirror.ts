@@ -1,15 +1,51 @@
 import type { FrameNode } from "@composition/shared";
 import {
   getLegacyLayoutId,
-  hasLegacyLayoutId,
   LEGACY_LAYOUT_ID_FIELD,
   withLegacyLayoutId,
 } from "./legacyElementFields";
 
 export const FRAME_ELEMENT_MIRROR_ID_FIELD = LEGACY_LAYOUT_ID_FIELD;
 
+const LAYOUT_ID_PREFIX = "layout-";
+
+function normalizeLayoutId(rawId: string): string {
+  if (!rawId.length) return rawId;
+  return rawId.startsWith(LAYOUT_ID_PREFIX)
+    ? rawId.slice(LAYOUT_ID_PREFIX.length)
+    : rawId;
+}
+
+export function normalizeFrameLayoutId(
+  rawId: string | null | undefined,
+): string | null {
+  return typeof rawId === "string" ? normalizeLayoutId(rawId) : null;
+}
+
+type LegacyOrCanonicalLayoutIdHolder = {
+  [LEGACY_LAYOUT_ID_FIELD]?: unknown;
+  layoutId?: unknown;
+};
+
+function asLayoutHolder(
+  value: unknown,
+): LegacyOrCanonicalLayoutIdHolder | null {
+  return value && typeof value === "object"
+    ? (value as LegacyOrCanonicalLayoutIdHolder)
+    : null;
+}
+
+function getLegacyOrCanonicalLayoutId(value: unknown): string | null {
+  const legacyLayoutId = getLegacyLayoutId(value);
+  if (legacyLayoutId !== null) return normalizeLayoutId(legacyLayoutId);
+
+  const fields = asLayoutHolder(value);
+  const layoutId = fields?.layoutId;
+  return typeof layoutId === "string" ? normalizeLayoutId(layoutId) : null;
+}
+
 export function getNullablePageFrameBindingId(page: unknown): string | null {
-  return getLegacyLayoutId(page);
+  return getLegacyOrCanonicalLayoutId(page);
 }
 
 export function getPageFrameBindingId(page: unknown): string {
@@ -29,11 +65,11 @@ export function getReusableFrameMirrorId(frame: FrameNode): string {
     typeof metadata?.layoutId === "string" && metadata.layoutId.length > 0
       ? metadata.layoutId
       : frame.id;
-  return rawId.startsWith("layout-") ? rawId.slice("layout-".length) : rawId;
+  return normalizeLayoutId(rawId);
 }
 
 export function getFrameElementMirrorId(element: unknown): string | null {
-  return getLegacyLayoutId(element);
+  return getLegacyOrCanonicalLayoutId(element);
 }
 
 export function isPageFrameProjectionElement(element: unknown): boolean {
@@ -45,7 +81,7 @@ export function isPageFrameProjectionElement(element: unknown): boolean {
 }
 
 export function hasFrameElementMirrorId(value: unknown): boolean {
-  return hasLegacyLayoutId(value);
+  return getFrameElementMirrorId(value) !== null;
 }
 
 export function withFrameElementMirrorId<T extends object>(

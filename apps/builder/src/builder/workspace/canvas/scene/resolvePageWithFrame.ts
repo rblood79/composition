@@ -251,16 +251,22 @@ export function resolvePageWithFrame(
     return { bodyElement: body, pageElements: nonBody, hasFrameBinding: false };
   }
 
-  const frameElements: CanvasSceneNode[] = [];
+  const legacyFrameElements: CanvasSceneNode[] = [];
+  const hydratedFrameElements: CanvasSceneNode[] = [];
   for (const el of elementsMap.values()) {
-    if (
-      !isLegacyFrameElementForFrame(el, layoutId) &&
-      !isHydratedPageFrameElement(el, page.id, layoutId)
-    ) {
-      continue;
+    if (isHydratedPageFrameElement(el, page.id, layoutId)) {
+      hydratedFrameElements.push(el);
+    } else if (isLegacyFrameElementForFrame(el, layoutId)) {
+      legacyFrameElements.push(el);
     }
-    frameElements.push(el);
   }
+
+  const hasHydratedFrameBody = hydratedFrameElements.some((el) =>
+    isBodyType(el.type),
+  );
+  const frameElements = hasHydratedFrameBody
+    ? hydratedFrameElements
+    : legacyFrameElements;
 
   let frameBody: CanvasSceneNode | null = null;
   for (const el of frameElements) {
@@ -290,27 +296,59 @@ export function resolvePageWithFrame(
   const pageBodyId = pageBody.id;
   const frameBodyId = frameBody.id;
   const frameElementIds = new Set(frameElements.map((el) => el.id));
+  const frameElementById = new Map(
+    frameElements.map((el) => [el.id, el] as const),
+  );
   const resolvedPageBody = mergePageBodyWithFrameLayout(pageBody, frameBody);
   const pageContentElements = pageNonBody.filter(
-    (el) => !frameElementIds.has(el.id),
+    (el) => el.id !== page.id && !frameElementIds.has(el.id),
   );
 
-  const projectFrameElementId = (id: string): string =>
-    isProjectedPageFrameElementId(page.id, id)
-      ? id
-      : toPageFrameElementId(page.id, id);
+  const projectFrameElementId = (el: CanvasSceneNode): string => {
+    if (isProjectedPageFrameElementId(page.id, el.id)) return el.id;
+    const sourceId = el.sourceNode?.id;
+    return toPageFrameElementId(
+      page.id,
+      typeof sourceId === "string" && sourceId.length > 0 ? sourceId : el.id,
+    );
+  };
 
-  const projectFrameParentId = (parentId: string | null | undefined) => {
-    if (!parentId || parentId === frameBodyId) return pageBodyId;
-    return frameElementIds.has(parentId)
-      ? projectFrameElementId(parentId)
-      : parentId;
+  const resolveProjectableParentId = (parentId: string | null | undefined) => {
+    if (!parentId || parentId === frameBodyId) {
+      return pageBodyId;
+    }
+
+    let currentParentId = parentId;
+    let safety = 0;
+
+    while (frameElementIds.has(currentParentId) && safety < 64) {
+      const currentParent = frameElementById.get(currentParentId);
+      if (!currentParent) {
+        return currentParentId;
+      }
+
+      if (isBodyType(currentParent.type)) {
+        currentParentId = currentParent.parent_id;
+        if (!currentParentId) {
+          return pageBodyId;
+        }
+        if (currentParentId === frameBodyId) {
+          return pageBodyId;
+        }
+        continue;
+      }
+      return projectFrameElementId(currentParent);
+    }
+
+    return currentParentId === frameBodyId || !currentParentId
+      ? pageBodyId
+      : currentParentId;
   };
 
   const projectFrameElement = (el: CanvasSceneNode): CanvasSceneNode => ({
     ...el,
-    id: projectFrameElementId(el.id),
-    parent_id: projectFrameParentId(el.parent_id),
+    id: projectFrameElementId(el),
+    parent_id: resolveProjectableParentId(el.parent_id),
     page_id: page.id,
   });
 
@@ -341,6 +379,7 @@ export function resolvePageWithFrame(
 
   for (const el of frameElements) {
     if (el.id === frameBodyId) continue;
+    if (isBodyType(el.type)) continue;
     if (hiddenChildIds.has(el.id)) continue;
     const projected = projectFrameElement(el);
     if (el.parent_id === frameBodyId) {

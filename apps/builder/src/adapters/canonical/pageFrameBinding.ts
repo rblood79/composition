@@ -10,8 +10,6 @@ import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "../../builder/stores/canonical/canonicalElementsView";
 import { enqueuePagePersistence } from "../../builder/utils/pagePersistenceQueue";
-import { mergeElementsCanonicalPrimary } from "./canonicalMutations";
-import { loadFrameElements } from "./frameElementLoader";
 import {
   getPageFrameBindingId,
   getReusableFrameMirrorId,
@@ -339,11 +337,6 @@ export async function applyPageFrameBindingCanonicalPrimary({
   getElementsState,
   setPages,
 }: ApplyPageFrameBindingInput): Promise<void> {
-  if (frameId) {
-    const frameElements = await loadFrameElements(frameId);
-    mergeElementsCanonicalPrimary(frameElements as Element[]);
-  }
-
   const state = getElementsState();
   const { elementsMap: legacyElementsMap } = state;
   const updatedPages = state.pages.map((page) =>

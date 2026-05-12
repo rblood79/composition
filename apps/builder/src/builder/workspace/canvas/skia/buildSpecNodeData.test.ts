@@ -271,4 +271,33 @@ describe("buildSpecNodeData", () => {
     expect(collectText(node)).toContain("Find records");
     expect(collectText(node)).not.toContain("Search");
   });
+
+  it("does not throw when parent links contain a cycle", () => {
+    const tagGroup = makeElement("tag-group", {
+      type: "TagGroup",
+      parent_id: "tag-list",
+      props: {
+        items: [{ id: "one", label: "One" }],
+        maxRows: 1,
+      },
+    });
+    const tagList = makeElement("tag-list", {
+      type: "TagList",
+      parent_id: "tag-group",
+      props: {},
+    });
+    const elementsMap = new Map([
+      [tagGroup.id, tagGroup],
+      [tagList.id, tagList],
+    ]);
+
+    expect(() =>
+      buildSpecNodeData({
+        element: tagList,
+        layout: { x: 0, y: 0, width: 160, height: 32 },
+        theme: "light",
+        elementsMap,
+      }),
+    ).not.toThrow();
+  });
 });

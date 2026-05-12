@@ -481,6 +481,78 @@ describe("useLayerTreeData", () => {
     expect(result.current.nodeMap.get("page-card")?.parentId).toBe(slotId);
   });
 
+  it("does not add nested frame body to layer tree output", () => {
+    const pageBody = makeElement("page-body", {
+      type: "body",
+      page_id: "page-1",
+      order_num: 0,
+    });
+    const frameBody = makeElement("frame-body", {
+      type: "body",
+      page_id: null,
+      layout_id: "frame-1",
+      order_num: 0,
+    } as never);
+    const nestedFrameBody = makeElement("frame-nested-body", {
+      type: "body",
+      page_id: null,
+      layout_id: "frame-1",
+      parent_id: "frame-body",
+      order_num: 0,
+    } as never);
+    const frameSlot = makeElement("slot-content", {
+      type: "Slot",
+      page_id: null,
+      layout_id: "frame-1",
+      parent_id: "frame-body",
+      order_num: 1,
+      props: { name: "content" },
+    } as never);
+    const pageCard = makeElement("page-card", {
+      type: "Card",
+      page_id: "page-1",
+      parent_id: "page-body",
+      order_num: 1,
+    });
+    const elements = [
+      pageBody,
+      frameBody,
+      nestedFrameBody,
+      frameSlot,
+      pageCard,
+    ];
+    const slotId = toPageFrameElementId("page-1", "slot-content");
+
+    useStore.setState({
+      currentPageId: "page-1",
+      pages: [
+        {
+          id: "page-1",
+          title: "Page 1",
+          project_id: "project-1",
+          slug: "/page-1",
+          layout_id: "frame-1",
+        },
+      ],
+      elements,
+      elementsMap: new Map(elements.map((element) => [element.id, element])),
+    } as never);
+
+    const { result } = renderHook(() => useLayerTreeData(elements));
+
+    expect(result.current.treeNodes.map((node) => node.id)).toEqual([
+      "page-body",
+    ]);
+    expect(
+      result.current.nodeMap.get(slotId)?.children?.map((node) => node.id),
+    ).toEqual(["page-card"]);
+    expect(
+      result.current.nodeMap.has(
+        toPageFrameElementId("page-1", "frame-nested-body"),
+      ),
+    ).toBe(false);
+  });
+
   it("keeps live page snapshot children when canonical frame binding is active", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",

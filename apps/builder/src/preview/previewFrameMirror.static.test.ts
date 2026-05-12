@@ -60,4 +60,12 @@ describe("preview frame mirror contract", () => {
     expect(storeTypes).not.toContain("order_num");
     expect(router).not.toContain("order_num");
   });
+
+  it("uses node.id fallback when canonical page metadata pageId is missing", async () => {
+    const source = await readFile(resolve(__dirname, "App.tsx"), "utf-8");
+
+    expect(source).toContain("const resolvedPageId");
+    expect(source).toContain("node.id");
+    expect(source).toContain("meta?.pageId");
+  });
 });
