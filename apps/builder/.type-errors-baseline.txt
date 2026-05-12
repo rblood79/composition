@@ -66,20 +66,6 @@ src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(841,9): error 
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(850,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(886,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/adapters/canonical/__tests__/pageFrameBinding.test.ts(122,7): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(119,40): error TS2352: Conversion of type '{ version: string; children: { id: string; type: "frame"; name: string; metadata: { type: string; pageId: string; slug: string; }; children: { id: string; type: "body"; props: { width: string; }; }[]; }[]; }' to type 'CompositionDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(166,29): error TS2322: Type '"solid"' is not assignable to type 'FillType'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(179,9): error TS2353: Object literal may only specify known properties, and 'componentRole' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(185,9): error TS2353: Object literal may only specify known properties, and 'componentRole' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(224,50): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(225,50): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(258,40): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(259,39): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(346,27): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(347,27): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(48,5): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(60,22): error TS2322: Type '{ id: string; title: string; slug: string; order_num: number; }[]' is not assignable to type 'Page[]'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(88,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(95,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/adapters/canonical/__tests__/themes.test.ts(131,7): error TS2739: Type 'Record<string, string[]>' is missing the following properties from type 'ThemeSnapshot': tint, darkMode, neutral, radiusScale
 src/adapters/canonical/canonicalMutations.ts(1009,14): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/canonicalMutations.ts(1028,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
@@ -95,7 +81,6 @@ src/adapters/canonical/canonicalMutations.ts(587,17): error TS2339: Property 'la
 src/adapters/canonical/canonicalMutations.ts(591,9): error TS2353: Object literal may only specify known properties, and 'placeholder' does not exist in type 'CanonicalNode'.
 src/adapters/canonical/canonicalMutations.ts(613,28): error TS2339: Property 'slot_name' does not exist on type 'Element'.
 src/adapters/canonical/canonicalMutations.ts(843,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/diffLegacyRoundtrip.ts(44,3): error TS2322: Type '"layout_id"' is not assignable to type 'keyof Element'.
 src/adapters/canonical/frameLayoutCascade.ts(320,56): error TS2339: Property 'elements' does not exist on type 'ElementsStateForFrameLayoutCascade'.
 src/adapters/canonical/frameLayoutCascade.ts(51,30): error TS2345: Argument of type 'CanonicalNode' is not assignable to parameter of type 'FrameNode'.
 src/adapters/canonical/index.ts(168,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.
