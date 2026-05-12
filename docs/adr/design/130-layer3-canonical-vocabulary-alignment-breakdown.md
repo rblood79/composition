@@ -1,6 +1,6 @@
-# ADR-128 Design Breakdown — Layer 3 Canonical Vocabulary 정렬
+# ADR-130 Design Breakdown — Layer 3 Canonical Vocabulary 정렬
 
-> **본 문서는 ADR-128 의 구현 상세 (Phase / 파일 변경표 / 체크리스트)** 입니다. 결정 / 위험 / Gate 는 [128-layer3-canonical-vocabulary-alignment.md](../128-layer3-canonical-vocabulary-alignment.md) 본문 참조.
+> **본 문서는 ADR-130 의 구현 상세 (Phase / 파일 변경표 / 체크리스트)** 입니다. 결정 / 위험 / Gate 는 [130-layer3-canonical-vocabulary-alignment.md](../130-layer3-canonical-vocabulary-alignment.md) 본문 참조.
 >
 > **Source plan**: `/root/.claude/plans/vectorized-frolicking-mochi.md` (2026-05-09 explore+brainstorm 종합).
 
@@ -215,7 +215,7 @@ Gate G8: targeted vitest run + `pnpm tsc --noEmit` (또는 `pnpm run codex:typec
 
 - ARIA 보존 cross-check: GroupSpec (`role: "group"`) 사용처 회귀 없음 — storybook + a11y test
 - `pnpm run codex:preflight` (ADR-116/122 closure 표준 gate) 통과
-- README 갱신: ADR-123 Status `Proposed → Accepted → Implemented` 진행
+- README 갱신: ADR-130 Status `Proposed → Accepted → Implemented` 진행
 - CHANGELOG 갱신: `### Architecture` 섹션 추가
 
 Gate G9: codex:preflight PASS + README 정합 + CHANGELOG 정합.
@@ -292,7 +292,7 @@ Phase 0 baseline (date: TBD):
 
 문서:
 
-- `docs/adr/123-layer3-canonical-vocabulary-alignment.md` (본 ADR)
+- `docs/adr/130-layer3-canonical-vocabulary-alignment.md` (본 ADR)
 - `docs/pencil-copy/composition-mapping.md` (13 row 표 SSOT 명문화 — 옵션)
 - `docs/CHANGELOG.md` (Implemented 승격 시)
 - `docs/adr/README.md` (Status 진행)

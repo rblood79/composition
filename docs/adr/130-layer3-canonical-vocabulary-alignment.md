@@ -1,4 +1,4 @@
-# ADR-128: Layer 3 Canonical Vocabulary 정렬 — `type: "Group"` → `type: "frame"` 분리
+# ADR-130: Layer 3 Canonical Vocabulary 정렬 — `type: "Group"` → `type: "frame"` 분리
 
 ## Status
 
@@ -40,7 +40,7 @@ composition 의 element.type 어휘는 ADR-116 (`CompositionDocument` canonical 
 
 - 사용자 인지 부담 (어휘 혼란 해소)
 - builder palette 노출은 Frame 만 (RAC ARIA Group palette entry 부활은 후속 슬라이스)
-- 13 row 매핑 표 ([breakdown §2](design/128-layer3-canonical-vocabulary-alignment-breakdown.md#§2-13-row-vocabulary-매핑-표-layer-3-ssot)) 가 단일 SSOT — 4 ADR (903/111/116/122) 교집합에 흩어진 결정을 단일 source 로 명문화
+- 13 row 매핑 표 ([breakdown §2](design/130-layer3-canonical-vocabulary-alignment-breakdown.md#§2-13-row-vocabulary-매핑-표-layer-3-ssot)) 가 단일 SSOT — 4 ADR (903/111/116/122) 교집합에 흩어진 결정을 단일 source 로 명문화
 
 ## Alternatives Considered
 
@@ -107,7 +107,7 @@ composition 의 element.type 어휘는 ADR-116 (`CompositionDocument` canonical 
 - **대안 B 기각**: 유지보수 HIGH (데이터 경로 분기 영구화 → 사용자 인지 부담 누적, ADR-116/122 closure 후 잔존 debt). metadata 의존 round-trip 의 fragile 성.
 - **대안 C 기각**: 유지보수 HIGH (D1 ARIA 침범 + 후행 분리 비용). alias 비용 절감 (~5줄 vs ~50줄) 보다 a11y 정확도 누적 손실 + 향후 spec 분리 시 ADR-908 Phase 4 패턴 재발 비용 압도적.
 
-> 구현 상세: [128-layer3-canonical-vocabulary-alignment-breakdown.md](design/128-layer3-canonical-vocabulary-alignment-breakdown.md)
+> 구현 상세: [130-layer3-canonical-vocabulary-alignment-breakdown.md](design/130-layer3-canonical-vocabulary-alignment-breakdown.md)
 
 ## Risks
 
@@ -132,7 +132,7 @@ composition 의 element.type 어휘는 ADR-116 (`CompositionDocument` canonical 
 | G6   | Phase 6 종료            | `pencilRoundtrip.test.ts` 5+1 fixture (legacy-group.pen 신규) PASS                                                | toPencilType switch metadata 우선순위 재검토            |
 | G7   | Phase 7 종료            | dev/staging 통합 테스트 — `Group + group_N` → `frame` 변환 + ARIA Group (customId 없음) 보존                      | hydration 위치 재선택 (`tagRename.ts` vs `buildNode()`) |
 | G8   | Phase 8 종료            | targeted vitest run + `pnpm tsc --noEmit` (또는 `pnpm run codex:typecheck`) PASS                                  | 회귀 fixture 추가, 타입 mismatch 격리                   |
-| G9   | Phase 9 종료 (closure)  | `pnpm run codex:preflight` PASS + README ADR-128 Status 진행 + CHANGELOG `### Architecture` 섹션 추가             | preflight 실패 점검 후 Status `Implemented` 보류        |
+| G9   | Phase 9 종료 (closure)  | `pnpm run codex:preflight` PASS + README ADR-130 Status 진행 + CHANGELOG `### Architecture` 섹션 추가             | preflight 실패 점검 후 Status `Implemented` 보류        |
 
 ## Consequences
 
