@@ -13,8 +13,10 @@
  * ADR-122 Phase 1: wrapper 내부의 legacy export 후 `setElements` write-back 은
  * 제거한다. legacy `elementsMap` 호환 cache 가 transition 중
  * 필요하면 canonical store subscriber 가 derived read-only snapshot 으로 갱신한다.
- *   DB wrapper (create/update/createMultiple) 는 reverse 영향 없음 — DB persist
- *   자체는 elementsApi 그대로 사용 (D17=A 채택, schema 미변경).
+ *   DB wrapper (create/update/createMultiple) 는 (ADR-128) cloud `elements`
+ *   row persistence 가 dead 화되면서 함께 제거됨. canonical mutation 만 in-memory
+ *   document 갱신을 담당하고 IndexedDB persistence 는 documents store 의 subscriber
+ *   가 처리한다.
  *
  * **무한 루프 방지**: `canonicalDocumentSync` 는 direct cutover 이후 legacy
  * store subscribe/projection 을 수행하지 않는다. wrapper 가 canonical store 와
@@ -46,7 +48,6 @@ import type {
   SerializedEventHandler,
 } from "@composition/shared";
 import { moveCanonicalChild } from "@composition/shared";
-import { elementsApi } from "./legacyElementsApiService";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import {
   buildLegacyElementMetadata,
@@ -1688,67 +1689,10 @@ export function applyElementOrderCanonicalPrimary(
 }
 
 // ─────────────────────────────────────────────
-// DB persistence wrapper API
+// (ADR-128) cloud DB persistence wrapper API removed.
+// 기존 createElementCanonicalPrimary / updateElementCanonicalPrimary /
+// createMultipleElementsCanonicalPrimary 는 Supabase `elements` row 의 element-level
+// granularity persistence boundary 였으나, auth-only 격하 정책으로 cloud data
+// layer dead. 후속 element persistence 는 IndexedDB `documents` (canonical) +
+// in-memory canonical mutation (mergeElementsCanonicalPrimary 등) 만 사용.
 // ─────────────────────────────────────────────
-//
-// DB wrapper 3개는 §8.7 reverse 영향 없음 — D17=A 채택 (schema 미변경, DB row =
-// legacy export 결과). DB persist 후 caller 가 반환 Element 받아서 in-memory
-// wrapper (merge/set) 호출 → 그 시점에 canonical primary path 가동.
-//
-// **ADR-123 Phase 4 boundary contract**:
-// - 본 wrapper 3개는 element-level granularity 가 필요한 hot path 의 boundary
-//   adapter. 신규 caller 추가 금지 (`projectSync.documentsApi.boundary.static.test.ts`
-//   gate 강제).
-// - migration window 동안 legacy `elements` row 와 canonical `documents` row
-//   양쪽 sync 유지. Phase 5-6 cloud verification 후 legacy row deprecation 검토.
-// - 허용 caller (Phase 4 시점):
-//   1. `dbPersistence.ts` (factory persist)
-//   2. `useIframeMessenger.ts` (queued canonical mutation)
-//   3. `elements.ts` (in-memory canonical primary update)
-// - Phase 5 grep gate: 위 3 caller 외 hot path import 0건 보장.
-
-/**
- * legacy `elementsApi.createElement` 의 canonical-aware wrapper.
- *
- * **ADR-123 Phase 4 boundary** — element-level persist 가 필요한 caller 만 사용.
- * 신규 caller 는 `documentsApi.upsertDocument` 사용 권장.
- *
- * @param element - 신규 legacy element (Partial 허용)
- * @returns 저장된 Element (DB id 포함)
- */
-export function createElementCanonicalPrimary(
-  element: Partial<Element>,
-): Promise<Element> {
-  return elementsApi.createElement(element);
-}
-
-/**
- * legacy `elementsApi.updateElement` 의 canonical-aware wrapper.
- *
- * **ADR-123 Phase 4 boundary** — single element update path. caller: `elements.ts`.
- *
- * @param id - 대상 element id
- * @param patch - 부분 업데이트 patch
- * @returns 업데이트된 Element
- */
-export function updateElementCanonicalPrimary(
-  id: string,
-  patch: Partial<Element>,
-): Promise<Element> {
-  return elementsApi.updateElement(id, patch);
-}
-
-/**
- * legacy `elementsApi.createMultipleElements` 의 canonical-aware wrapper.
- *
- * **ADR-123 Phase 4 boundary** — batch element insert path. caller:
- * `useIframeMessenger.ts` (queued canonical mutation).
- *
- * @param elements - 신규 legacy element 배열 (Partial 허용)
- * @returns 저장된 Element 배열 (DB id 포함)
- */
-export function createMultipleElementsCanonicalPrimary(
-  elements: Partial<Element>[],
-): Promise<Element[]> {
-  return elementsApi.createMultipleElements(elements);
-}

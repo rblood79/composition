@@ -44,10 +44,7 @@ import { Element } from "../../types/core/store.types";
 // ElementUtils는 현재 사용되지 않음
 import { MessageService } from "../../utils/messaging";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
-import {
-  mergeElementsCanonicalPrimary,
-  createMultipleElementsCanonicalPrimary,
-} from "@/adapters/canonical/canonicalMutations";
+import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import {
   getNullablePageFrameBindingId,
@@ -85,7 +82,7 @@ function getActiveCanonicalDocumentForPreviewRead(): CompositionDocument | null 
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
   if (!projectId) return null;
-  return canonical.getDocument(projectId);
+  return canonical.getDocument(projectId) ?? null;
 }
 
 function getActiveCanonicalPreviewElements(): Element[] | null {
@@ -214,15 +211,9 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
       return;
     }
 
+    // (ADR-128) cloud `elements` row persistence 제거. canonical document
+    // mutation 만으로 IndexedDB persistence 흐름 완결.
     mergeElementsCanonicalPrimary(queuedElements);
-
-    void (async () => {
-      try {
-        await createMultipleElementsCanonicalPrimary(queuedElements);
-      } catch (error) {
-        console.error("❌ Preview generated elements DB 저장 실패:", error);
-      }
-    })();
   }, []);
 
   const enqueuePreviewGeneratedElements = useCallback(

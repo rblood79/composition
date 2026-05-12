@@ -2,7 +2,7 @@
  * Element Utilities
  *
  * ✅ Refactored (2025-11-12)
- * - Removed API wrapper methods (use elementsApi directly)
+ * - Removed API wrapper methods (ADR-128 이후 cloud elements API 전체 dead)
  * - Kept essential utility functions (generateId, findBodyElement, etc.)
  */
 

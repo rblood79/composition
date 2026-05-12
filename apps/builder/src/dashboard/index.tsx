@@ -1,16 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router";
-import {
-  projectsApi,
-  pagesApi,
-  elementsApi,
-  documentsApi,
-  type Project,
-} from "../services/api";
 import { getDB } from "../lib/db";
-import { ElementProps } from "../types/integrations/supabase.types";
 import { getDefaultProps } from "../types/builder/unified.types";
+import { ElementProps } from "../types/integrations/supabase.types";
 import { ElementUtils } from "../utils/element/elementUtils";
+import { supabase } from "../env/supabase.client";
 import {
   Button,
   TextField,
@@ -19,63 +13,64 @@ import {
   Skeleton,
   Separator,
   Tooltip,
-  ToggleButtonGroup,
-  ToggleButton,
 } from "@composition/shared/components";
 import { TooltipTrigger } from "react-aria-components";
-import { useAsyncQuery } from "../builder/hooks/useAsyncQuery";
 import { useAsyncMutation } from "../builder/hooks/useAsyncMutation";
 import {
   SquarePlus,
-  Cloud,
-  HardDrive,
-  Download,
   Settings,
   Plus,
   Package,
-  CloudUpload,
   Trash,
   FolderOpen,
   Layers,
 } from "lucide-react";
-import {
-  mergeProjects,
-  getStorageBadge,
-  getAvailableActions,
-  formatRelativeTime,
-} from "../utils/projectMerger";
-import {
-  syncProjectToCloud,
-  downloadProjectFromCloud,
-} from "../utils/projectSync";
 import { historyIndexedDB } from "../builder/stores/history/historyIndexedDB";
 import { useSettingsStore } from "../stores/settingsStore";
 import { SettingsPanel } from "./SettingsPanel";
 import { createInitialProjectDocument } from "./createInitialProjectDocument";
-import type { ProjectListItem, ProjectFilter } from "../types/dashboard.types";
+import type { ProjectListItem } from "../types/dashboard.types";
 import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import "./index.css";
+
+// (ADR-128) cloud `projects` row schema 의 잔재. local-only dashboard 가
+// IndexedDB project 를 표현할 때만 사용.
+interface LocalProject {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface CreateProjectRequest {
   name: string;
 }
 
-/** Badge variant 매핑 */
-function getBadgeVariant(
-  className: string,
-): "informative" | "positive" | "accent" | "notice" | "neutral" {
-  switch (className) {
-    case "badge-local":
-      return "informative";
-    case "badge-cloud":
-      return "positive";
-    case "badge-synced":
-      return "accent";
-    case "badge-conflict":
-      return "notice";
-    default:
-      return "neutral";
-  }
+function formatRelativeTime(date: Date | undefined | null): string {
+  if (!date) return "";
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  const diffMs = Date.now() - d.getTime();
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  return d.toLocaleDateString();
+}
+
+async function getCurrentUserId(): Promise<string> {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error) throw new Error(`Session error: ${error.message}`);
+  if (!session?.user) throw new Error("No authenticated user found");
+  return session.user.id;
 }
 
 /** 프로젝트 카드 컴포넌트 */
@@ -83,20 +78,13 @@ function ProjectCard({
   project,
   loading,
   onOpen,
-  onSync,
-  onDownload,
   onDelete,
 }: {
   project: ProjectListItem;
   loading: boolean;
   onOpen: (id: string) => void;
-  onSync: (id: string) => void;
-  onDownload: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const badge = getStorageBadge(project);
-  const actions = getAvailableActions(project);
-
   return (
     <Card
       orientation="horizontal"
@@ -112,70 +100,29 @@ function ProjectCard({
       <div className="project-card-content">
         <div className="project-card-header">
           <span className="project-card-title">{project.name}</span>
-          <Badge
-            variant={getBadgeVariant(badge.className)}
-            size="sm"
-            fillStyle="subtle"
-          >
-            {badge.label}
+          <Badge variant="informative" size="sm" fillStyle="subtle">
+            Local
           </Badge>
         </div>
 
         <span className="project-card-meta">
           {formatRelativeTime(project.lastModified)}
-          {project.sync.lastSyncAt && (
-            <> &middot; Synced {formatRelativeTime(project.sync.lastSyncAt)}</>
-          )}
         </span>
       </div>
 
       <div className="project-card-actions">
-        {actions.canOpen && (
-          <TooltipTrigger delay={300}>
-            <Button
-              variant="primary"
-              size="xs"
-              onPress={() => onOpen(project.id)}
-              isDisabled={loading}
-              aria-label="Open project"
-            >
-              <Package size={14} />
-            </Button>
-            <Tooltip>Open</Tooltip>
-          </TooltipTrigger>
-        )}
-
-        {actions.canSync && (
-          <TooltipTrigger delay={300}>
-            <Button
-              variant="secondary"
-              fillStyle="outline"
-              size="xs"
-              onPress={() => onSync(project.id)}
-              isDisabled={loading}
-              aria-label="Sync to cloud"
-            >
-              <CloudUpload size={14} />
-            </Button>
-            <Tooltip>Sync to Cloud</Tooltip>
-          </TooltipTrigger>
-        )}
-
-        {actions.canDownload && (
-          <TooltipTrigger delay={300}>
-            <Button
-              variant="secondary"
-              fillStyle="outline"
-              size="xs"
-              onPress={() => onDownload(project.id)}
-              isDisabled={loading}
-              aria-label="Download from cloud"
-            >
-              <Download size={14} />
-            </Button>
-            <Tooltip>Download</Tooltip>
-          </TooltipTrigger>
-        )}
+        <TooltipTrigger delay={300}>
+          <Button
+            variant="primary"
+            size="xs"
+            onPress={() => onOpen(project.id)}
+            isDisabled={loading}
+            aria-label="Open project"
+          >
+            <Package size={14} />
+          </Button>
+          <Tooltip>Open</Tooltip>
+        </TooltipTrigger>
 
         <TooltipTrigger delay={300}>
           <Button
@@ -209,76 +156,55 @@ function ProjectCardSkeleton() {
 function Dashboard() {
   const navigate = useNavigate();
   const [newProjectName, setNewProjectName] = useState("");
-  const [filter, setFilter] = useState<ProjectFilter>("all");
-  const [mergedProjects, setMergedProjects] = useState<ProjectListItem[]>([]);
+  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-
   const projectCreation = useSettingsStore((state) => state.projectCreation);
 
-  // Fetch cloud projects
-  const cloudProjectsQuery = useAsyncQuery<Project>(
-    async () => await projectsApi.fetchProjects(),
-  );
+  void projectCreation; // (ADR-128) cloud option 제거됨. settings 자체는 보존.
 
-  // Load and merge local + cloud projects
-  useEffect(() => {
-    const loadProjects = async () => {
-      try {
-        const db = await getDB();
-        const localProjectsRaw = await db.projects.getAll();
-
-        const localProjects: Project[] = localProjectsRaw.map((p) => ({
-          id: p.id,
-          name: p.name,
-          created_by: p.created_by || "",
-          created_at: p.created_at || new Date().toISOString(),
-          updated_at: p.updated_at || new Date().toISOString(),
-        }));
-
-        const cloudProjects = cloudProjectsQuery.data || [];
-        const merged = mergeProjects(localProjects, cloudProjects);
-        setMergedProjects(merged);
-      } catch (error) {
-        console.error("[Dashboard] 프로젝트 로드 실패:", error);
-      }
-    };
-
-    if (!cloudProjectsQuery.isLoading) {
-      loadProjects();
+  const loadProjects = useCallback(async () => {
+    setIsLoadingProjects(true);
+    try {
+      const db = await getDB();
+      const localProjectsRaw = await db.projects.getAll();
+      const merged: ProjectListItem[] = localProjectsRaw.map((p) => ({
+        id: p.id,
+        name: p.name,
+        storage: { local: true, cloud: false },
+        sync: { status: "local-only" },
+        createdAt: new Date(p.created_at ?? Date.now()),
+        lastModified: new Date(p.updated_at ?? Date.now()),
+      }));
+      setProjects(merged);
+    } catch (error) {
+      console.error("[Dashboard] 프로젝트 로드 실패:", error);
+    } finally {
+      setIsLoadingProjects(false);
     }
-  }, [cloudProjectsQuery.data, cloudProjectsQuery.isLoading]);
+  }, []);
 
-  // Create project mutation
-  const createProjectMutation = useAsyncMutation<Project, CreateProjectRequest>(
+  useEffect(() => {
+    void loadProjects();
+  }, [loadProjects]);
+
+  const createProjectMutation = useAsyncMutation<
+    LocalProject,
+    CreateProjectRequest
+  >(
     async ({ name }) => {
       const db = await getDB();
-      const user = await projectsApi.getCurrentUser();
+      const userId = await getCurrentUserId();
 
-      let newProject: Project;
+      const newProject: LocalProject = {
+        id: ElementUtils.generateId(),
+        name: name.trim(),
+        created_by: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      await db.projects.insert(newProject);
 
-      if (projectCreation === "local") {
-        newProject = {
-          id: ElementUtils.generateId(),
-          name: name.trim(),
-          created_by: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        await db.projects.insert(newProject);
-      } else if (projectCreation === "cloud") {
-        newProject = await projectsApi.createProject({
-          name: name.trim(),
-          created_by: user.id,
-        });
-      } else {
-        newProject = await projectsApi.createProject({
-          name: name.trim(),
-          created_by: user.id,
-        });
-        await db.projects.insert(newProject);
-      }
-
-      // 기본 페이지 + body 요소 생성
       const homePageId = ElementUtils.generateId();
       const homePage = {
         id: homePageId,
@@ -305,139 +231,67 @@ function Dashboard() {
         bodyElement,
       );
 
-      if (projectCreation === "local") {
-        // local project state persists through the canonical document only.
-      } else if (projectCreation === "cloud" || projectCreation === "both") {
-        // **ADR-123 Phase 3 — canonical primary cloud seed**:
-        // documents row 단일 upsert. legacy pages/elements seed 는 migration
-        // window 호환성을 위해 best-effort 보조 (Phase 4 quarantine 후 제거).
-        try {
-          await documentsApi.upsertDocument(newProject.id, initialDocument);
-          console.log("[Dashboard] documents row seed 완료");
-        } catch (docSeedError) {
-          console.warn(
-            "[Dashboard] documents row seed 실패 (legacy fallback):",
-            docSeedError,
-          );
-        }
-
-        await pagesApi.createPage({
-          id: homePageId,
-          project_id: newProject.id,
-          title: "Home",
-          slug: "/",
-        });
-        await elementsApi.createElement(bodyElement);
-      }
-
       await db.documents.put(newProject.id, initialDocument);
 
       return newProject;
     },
     {
       onSuccess: (newProject) => {
-        cloudProjectsQuery.reload();
         setNewProjectName("");
+        void loadProjects();
         navigate(`/builder/${newProject.id}`);
       },
     },
   );
 
-  // Delete project mutation
   const deleteProjectMutation = useAsyncMutation<void, string>(
     async (id) => {
-      let deleteLocation: "local" | "cloud" | "both";
+      const db = await getDB();
+      const document = await db.documents.get(id);
+      const pages = document
+        ? deriveProjectRenderModelFromDocument(document, id).pages
+        : [];
 
-      if (filter === "local") {
-        deleteLocation = "local";
-      } else if (filter === "cloud") {
-        deleteLocation = "cloud";
-      } else {
-        deleteLocation = "both";
+      for (const page of pages) {
+        await historyIndexedDB.clearPageHistory(page.id);
       }
 
-      // 로컬 삭제
-      if (deleteLocation === "local" || deleteLocation === "both") {
-        const db = await getDB();
-        const document = await db.documents.get(id);
-        const pages = document
-          ? deriveProjectRenderModelFromDocument(document, id).pages
-          : [];
-
-        for (const page of pages) {
-          await historyIndexedDB.clearPageHistory(page.id);
-        }
-
-        const tokens = await db.designTokens.getByProject(id);
-        for (const token of tokens) {
-          await db.designTokens.delete(token.id);
-        }
-
-        const themes = await db.themes.getByProject(id);
-        for (const theme of themes) {
-          await db.themes.delete(theme.id as string);
-        }
-
-        const dataTables = await db.data_tables.getByProject(id);
-        for (const dataTable of dataTables) {
-          await db.data_tables.delete(dataTable.id);
-        }
-
-        const apiEndpoints = await db.api_endpoints.getByProject(id);
-        for (const endpoint of apiEndpoints) {
-          await db.api_endpoints.delete(endpoint.id);
-        }
-
-        const variables = await db.variables.getByProject(id);
-        for (const variable of variables) {
-          await db.variables.delete(variable.id);
-        }
-
-        const transformers = await db.transformers.getByProject(id);
-        for (const transformer of transformers) {
-          await db.transformers.delete(transformer.id);
-        }
-
-        await db.documents.delete(id);
-        await db.projects.delete(id);
+      const tokens = await db.designTokens.getByProject(id);
+      for (const token of tokens) {
+        await db.designTokens.delete(token.id);
       }
 
-      // 클라우드 삭제
-      if (deleteLocation === "cloud" || deleteLocation === "both") {
-        try {
-          await projectsApi.deleteProject(id);
-        } catch (error) {
-          console.warn("[Dashboard] Supabase 삭제 실패:", error);
-        }
+      const themes = await db.themes.getByProject(id);
+      for (const theme of themes) {
+        await db.themes.delete(theme.id as string);
       }
+
+      const dataTables = await db.data_tables.getByProject(id);
+      for (const dataTable of dataTables) {
+        await db.data_tables.delete(dataTable.id);
+      }
+
+      const apiEndpoints = await db.api_endpoints.getByProject(id);
+      for (const endpoint of apiEndpoints) {
+        await db.api_endpoints.delete(endpoint.id);
+      }
+
+      const variables = await db.variables.getByProject(id);
+      for (const variable of variables) {
+        await db.variables.delete(variable.id);
+      }
+
+      const transformers = await db.transformers.getByProject(id);
+      for (const transformer of transformers) {
+        await db.transformers.delete(transformer.id);
+      }
+
+      await db.documents.delete(id);
+      await db.projects.delete(id);
     },
     {
       onSuccess: () => {
-        cloudProjectsQuery.reload();
-      },
-    },
-  );
-
-  // Sync project mutation
-  const syncProjectMutation = useAsyncMutation<void, string>(
-    async (projectId) => {
-      await syncProjectToCloud(projectId);
-    },
-    {
-      onSuccess: () => {
-        cloudProjectsQuery.reload();
-      },
-    },
-  );
-
-  // Download project mutation
-  const downloadProjectMutation = useAsyncMutation<void, string>(
-    async (projectId) => {
-      await downloadProjectFromCloud(projectId);
-    },
-    {
-      onSuccess: () => {
-        cloudProjectsQuery.reload();
+        void loadProjects();
       },
     },
   );
@@ -463,52 +317,14 @@ function Dashboard() {
     }
   };
 
-  const handleSyncProject = async (id: string) => {
-    try {
-      await syncProjectMutation.execute(id);
-    } catch (err) {
-      console.error("[Dashboard] Sync 에러:", err);
-    }
-  };
-
-  const handleDownloadProject = async (id: string) => {
-    try {
-      await downloadProjectMutation.execute(id);
-    } catch (err) {
-      console.error("[Dashboard] Download 에러:", err);
-    }
-  };
-
-  // 필터링
-  const filteredProjects = useMemo(
-    () =>
-      mergedProjects.filter((project) => {
-        if (filter === "local") return project.storage.local;
-        if (filter === "cloud") return project.storage.cloud;
-        return true;
-      }),
-    [mergedProjects, filter],
-  );
+  const filteredProjects = useMemo(() => projects, [projects]);
 
   const loading =
-    cloudProjectsQuery.isLoading ||
+    isLoadingProjects ||
     createProjectMutation.isLoading ||
-    deleteProjectMutation.isLoading ||
-    syncProjectMutation.isLoading ||
-    downloadProjectMutation.isLoading;
+    deleteProjectMutation.isLoading;
 
-  const error =
-    cloudProjectsQuery.error ||
-    createProjectMutation.error ||
-    deleteProjectMutation.error ||
-    syncProjectMutation.error ||
-    downloadProjectMutation.error;
-
-  const counts = {
-    all: mergedProjects.length,
-    local: mergedProjects.filter((p) => p.storage.local).length,
-    cloud: mergedProjects.filter((p) => p.storage.cloud).length,
-  };
+  const error = createProjectMutation.error || deleteProjectMutation.error;
 
   return (
     <div className="dashboard">
@@ -520,25 +336,9 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-header-right">
-          <ToggleButtonGroup
-            selectionMode="single"
-            selectedKeys={new Set([filter])}
-            onSelectionChange={(keys) => {
-              const selected = [...keys][0] as ProjectFilter;
-              if (selected) setFilter(selected);
-            }}
-            size="sm"
-          >
-            <ToggleButton id="all" size="sm">
-              All ({counts.all})
-            </ToggleButton>
-            <ToggleButton id="local" size="sm">
-              <HardDrive size={12} /> Local ({counts.local})
-            </ToggleButton>
-            <ToggleButton id="cloud" size="sm">
-              <Cloud size={12} /> Cloud ({counts.cloud})
-            </ToggleButton>
-          </ToggleButtonGroup>
+          <Badge variant="informative" size="sm" fillStyle="subtle">
+            {projects.length} project{projects.length === 1 ? "" : "s"}
+          </Badge>
 
           <Separator orientation="vertical" />
 
@@ -592,7 +392,7 @@ function Dashboard() {
         </form>
 
         {/* Projects Grid */}
-        {cloudProjectsQuery.isLoading && mergedProjects.length === 0 ? (
+        {isLoadingProjects && projects.length === 0 ? (
           <ProjectCardSkeleton />
         ) : filteredProjects.length === 0 ? (
           <div className="dashboard-empty">
@@ -610,8 +410,6 @@ function Dashboard() {
                 project={project}
                 loading={loading}
                 onOpen={(id) => navigate(`/builder/${id}`)}
-                onSync={handleSyncProject}
-                onDownload={handleDownloadProject}
                 onDelete={handleDeleteProject}
               />
             ))}

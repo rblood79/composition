@@ -1,28 +1,26 @@
 /**
  * Dashboard Types
  *
- * 대시보드에서 사용하는 프로젝트 관련 타입 정의
+ * 대시보드에서 사용하는 프로젝트 관련 타입 정의.
+ *
+ * (ADR-128) cloud data layer dead 정책 — 모든 ProjectListItem 은 local-only.
+ * cloud/sync/conflict 관련 필드는 호환 보존을 위해 type 만 유지하고 실 값은
+ * 항상 `{ local: true, cloud: false }` / `{ status: "local-only" }`.
  */
-
-import type { Project } from "../services/api/ProjectsApiService";
 
 /**
  * 프로젝트 저장 위치
  */
 export interface ProjectStorage {
   local: boolean; // IndexedDB에 존재
-  cloud: boolean; // Supabase에 존재
+  cloud: boolean; // (deprecated) — ADR-128 이후 항상 false
   filePath?: string; // .composition 파일 경로 (있는 경우)
 }
 
 /**
- * 프로젝트 동기화 상태
+ * 프로젝트 동기화 상태 (ADR-128 이후 사실상 "local-only" 만 사용)
  */
-export type SyncStatus =
-  | "local-only" // 로컬에만 존재
-  | "cloud-only" // 클라우드에만 존재
-  | "synced" // 동기화됨 (같은 버전)
-  | "conflict"; // 충돌 (로컬/클라우드 버전이 다름)
+export type SyncStatus = "local-only" | "cloud-only" | "synced" | "conflict";
 
 /**
  * 프로젝트 동기화 정보
@@ -36,33 +34,23 @@ export interface ProjectSync {
 
 /**
  * 대시보드 프로젝트 목록 아이템
- *
- * 로컬과 클라우드 프로젝트를 병합한 통합 타입
  */
 export interface ProjectListItem {
   id: string;
   name: string;
 
-  // 위치 정보
   storage: ProjectStorage;
-
-  // 동기화 정보
   sync: ProjectSync;
 
-  // 표시 정보
   thumbnail?: string;
   pageCount?: number;
   elementCount?: number;
   createdAt: Date;
   lastModified: Date;
-
-  // 원본 프로젝트 데이터 (필요 시)
-  localProject?: Project;
-  cloudProject?: Project;
 }
 
 /**
- * 프로젝트 필터 타입
+ * 프로젝트 필터 타입 (ADR-128 이후 "all" / "local" 만 의미 있음)
  */
 export type ProjectFilter = "all" | "local" | "cloud";
 
@@ -79,8 +67,8 @@ export interface StorageBadge {
  * 사용 가능한 액션 정보
  */
 export interface ProjectActions {
-  canSync: boolean; // 클라우드 동기화 가능
-  canDownload: boolean; // 클라우드에서 다운로드 가능
-  canOpen: boolean; // 열기 가능
-  canExport: boolean; // .composition 파일로 내보내기 가능
+  canSync: boolean;
+  canDownload: boolean;
+  canOpen: boolean;
+  canExport: boolean;
 }

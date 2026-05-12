@@ -147,20 +147,20 @@ src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(60,22): err
 src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(88,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/adapters/canonical/__tests__/persistenceWriteThroughStub.test.ts(95,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/adapters/canonical/__tests__/themes.test.ts(131,7): error TS2739: Type 'Record<string, string[]>' is missing the following properties from type 'ThemeSnapshot': tint, darkMode, neutral, radiusScale
-src/adapters/canonical/canonicalMutations.ts(1008,14): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1027,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1030,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1046,15): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1147,19): error TS18047: 'override' is possibly 'null'.
-src/adapters/canonical/canonicalMutations.ts(1397,42): error TS2367: This comparison appears to be unintentional because the types 'ComponentTag' and '"body"' have no overlap.
-src/adapters/canonical/canonicalMutations.ts(1414,7): error TS2353: Object literal may only specify known properties, and 'descendants' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/canonicalMutations.ts(177,19): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1007,14): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1026,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1029,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1045,15): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(1146,19): error TS18047: 'override' is possibly 'null'.
+src/adapters/canonical/canonicalMutations.ts(1396,42): error TS2367: This comparison appears to be unintentional because the types 'ComponentTag' and '"body"' have no overlap.
+src/adapters/canonical/canonicalMutations.ts(1413,7): error TS2353: Object literal may only specify known properties, and 'descendants' does not exist in type 'CanonicalNode'.
+src/adapters/canonical/canonicalMutations.ts(176,19): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/canonicalMutations.ts(37,21): error TS2305: Module '"@/types/builder/unified.types"' has no exported member 'Layout'.
-src/adapters/canonical/canonicalMutations.ts(585,61): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(586,17): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(590,9): error TS2353: Object literal may only specify known properties, and 'placeholder' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/canonicalMutations.ts(612,28): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(842,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'CanonicalNode'.
+src/adapters/canonical/canonicalMutations.ts(584,61): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(585,17): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(589,9): error TS2353: Object literal may only specify known properties, and 'placeholder' does not exist in type 'CanonicalNode'.
+src/adapters/canonical/canonicalMutations.ts(611,28): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/canonicalMutations.ts(841,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'CanonicalNode'.
 src/adapters/canonical/diffLegacyRoundtrip.ts(44,3): error TS2322: Type '"layout_id"' is not assignable to type 'keyof Element'.
 src/adapters/canonical/frameLayoutCascade.ts(320,56): error TS2339: Property 'elements' does not exist on type 'ElementsStateForFrameLayoutCascade'.
 src/adapters/canonical/frameLayoutCascade.ts(51,30): error TS2345: Argument of type 'CanonicalNode' is not assignable to parameter of type 'FrameNode'.
@@ -171,17 +171,9 @@ src/adapters/canonical/index.ts(220,53): error TS2339: Property 'layout_id' does
 src/adapters/canonical/index.ts(231,30): error TS2339: Property 'layout_id' does not exist on type 'Page'.
 src/adapters/canonical/index.ts(232,38): error TS2339: Property 'layout_id' does not exist on type 'Page'.
 src/adapters/canonical/index.ts(271,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementSanitizer.ts(113,26): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementSanitizer.ts(114,26): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementSanitizer.ts(157,28): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementSanitizer.ts(158,28): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementSanitizer.ts(184,26): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementSanitizer.ts(185,26): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementSanitizer.ts(93,59): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/legacyElementsApiService.ts(145,14): error TS2352: Conversion of type '{ customId: unknown; dataBinding: unknown; componentRole: unknown; masterId: unknown; componentName: unknown; variableBindings: unknown; }[]' to type 'Element[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/adapters/canonical/legacyElementsApiService.ts(225,12): error TS2352: Conversion of type '{ customId: unknown; dataBinding: unknown; componentRole: unknown; masterId: unknown; componentName: unknown; variableBindings: unknown; }' to type 'Element' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/adapters/canonical/legacyElementsApiService.ts(41,12): error TS2352: Conversion of type '{ customId: unknown; dataBinding: unknown; componentRole: unknown; masterId: unknown; componentName: unknown; variableBindings: unknown; }[]' to type 'Element[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/adapters/canonical/legacyElementsApiService.ts(92,12): error TS2352: Conversion of type '{ customId: unknown; dataBinding: unknown; componentRole: unknown; masterId: unknown; componentName: unknown; variableBindings: unknown; }' to type 'Element' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/adapters/canonical/legacyElementSanitizer.ts(64,59): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/legacyElementSanitizer.ts(84,26): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/legacyElementSanitizer.ts(85,26): error TS2339: Property 'slot_name' does not exist on type 'Element'.
 src/adapters/canonical/pageFrameBinding.ts(162,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/pageFrameBinding.ts(195,5): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
 src/adapters/canonical/pageFrameBinding.ts(204,5): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
@@ -199,9 +191,8 @@ src/builder/components/dialog/AddPageDialog.tsx(151,13): error TS2322: Type '{ i
 src/builder/factories/__tests__/factoryOwnership.test.ts(393,24): error TS2352: Conversion of type 'ChildDefinition' to type '{ order_num: unknown; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/factories/__tests__/factoryOwnership.test.ts(76,3): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: never[]; layoutId: null; }' but required in type 'ComponentCreationContext'.
 src/builder/factories/ComponentFactory.ts(644,11): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: Element[]; }' but required in type 'ComponentCreationContext'.
-src/builder/hooks/useIframeMessenger.ts(88,3): error TS2322: Type 'CompositionDocument | undefined' is not assignable to type 'CompositionDocument | null'.
 src/builder/inspector/utils/elementMapper.ts(22,5): error TS2322: Type 'import("/Users/admin/work/composition/packages/shared/src/types/element.types").DataBinding | undefined' is not assignable to type 'import("/Users/admin/work/composition/apps/builder/src/builder/inspector/types").DataBinding | undefined'.
-src/builder/main/BuilderCore.tsx(450,15): error TS2345: Argument of type 'ThemeConfigState' is not assignable to parameter of type 'ThemeConfigSetters'.
+src/builder/main/BuilderCore.tsx(456,15): error TS2345: Argument of type 'ThemeConfigState' is not assignable to parameter of type 'ThemeConfigSetters'.
 src/builder/panels/ai/hooks/useAgentLoop.ts(200,5): error TS18047: 'agent' is possibly 'null'.
 src/builder/panels/components/ComponentsPanel.tsx(109,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/components/ComponentsPanel.tsx(130,9): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
@@ -433,7 +424,7 @@ src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts(441,49): er
 src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts(457,52): error TS2345: Argument of type '{ width: number; height: number; fontSize: number; }' is not assignable to parameter of type 'SizeSpec'.
 src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts(473,50): error TS2345: Argument of type '{ width: number; height: number; fontSize: number; }' is not assignable to parameter of type 'SizeSpec'.
 src/builder/stores/canonical/canonicalSceneModelLegacy.ts(160,13): error TS2352: Conversion of type 'Element' to type '{ layout_id: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/builder/stores/elements.ts(446,3): error TS2322: Type 'Element | null' is not assignable to type 'Element | undefined'.
+src/builder/stores/elements.ts(445,3): error TS2322: Type 'Element | null' is not assignable to type 'Element | undefined'.
 src/builder/stores/history/__tests__/canonicalUpdateEvent.test.ts(179,9): error TS2352: Conversion of type 'CanonicalNode' to type '{ props: { label: string; }; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/stores/history/__tests__/canonicalUpdateEvent.test.ts(193,9): error TS2352: Conversion of type 'CanonicalNode' to type '{ props: { label: string; }; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/stores/history/historyActions.diff.test.ts(183,18): error TS2322: Type '{ id: string; type: string; props: { children: string; }; children: never[]; }' is not assignable to type 'CanonicalNode'.
@@ -690,6 +681,3 @@ src/preview/App.tsx(806,11): error TS2345: Argument of type 'import("/Users/admi
 src/preview/components/CanonicalNodeRenderer.tsx(111,19): error TS2345: Argument of type 'import("/Users/admin/work/composition/apps/builder/src/preview/types/index").PreviewElement' is not assignable to parameter of type 'import("/Users/admin/work/composition/packages/shared/src/types/renderer.types").PreviewElement'.
 src/preview/router/CanvasRouter.tsx(237,15): error TS2322: Type '{ id: string; name: string; project_id: string; slug: string | undefined; } | null' is not assignable to type 'UrlLayout | null | undefined'.
 src/services/save/saveService.ts(148,13): error TS7053: Element implicitly has an 'any' type because expression of type 'SaveTable' can't be used to index type 'DatabaseAdapter'.
-src/utils/projectSync.ts(139,11): error TS2345: Argument of type '{ updated_at: string; id: string; customId?: string | undefined; type: string; props: Record<string, unknown>; fills?: unknown[] | undefined; parent_id?: string | null | undefined; page_id?: string | null | undefined; ... 5 more ...; variableBindings?: string[] | undefined; }[]' is not assignable to parameter of type 'Partial<Element>[]'.
-src/utils/urlGenerator.ts(154,13): error TS2304: Cannot find name 'Page'.
-src/utils/urlGenerator.ts(192,59): error TS2304: Cannot find name 'Page'.

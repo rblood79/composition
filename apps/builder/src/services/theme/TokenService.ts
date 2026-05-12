@@ -1,5 +1,5 @@
 /**
- * Token Service (Slimmed — ADR-021 Phase D)
+ * Token Service (Slimmed — ADR-021 Phase D + ADR-128)
  *
  * 보존: getResolvedTokens, createToken, updateToken, deleteToken,
  *       bulkUpsertTokens, generateCSSVariable
@@ -7,9 +7,11 @@
  *       getTokensByType, resolveAlias, isTokenNameUnique,
  *       subscribeToTokenChanges, subscribeToProjectTokens,
  *       getTokenStats, exportTokensW3C, importTokensW3C
+ *
+ * (ADR-128) cloud `design_tokens` row 의존 제거. BaseApiService extends 해제.
+ * createToken/updateToken/deleteToken 모두 IndexedDB-native 로 통일.
  */
 
-import { BaseApiService } from "../api/BaseApiService";
 import type {
   DesignToken,
   ResolvedToken,
@@ -17,7 +19,7 @@ import type {
   UpdateTokenInput,
 } from "../../types/theme";
 
-export class TokenService extends BaseApiService {
+export class TokenService {
   /**
    * 테마의 모든 토큰 조회 (IndexedDB)
    */
@@ -46,73 +48,64 @@ export class TokenService extends BaseApiService {
   }
 
   /**
-   * 토큰 생성 (Supabase)
+   * 토큰 생성 (IndexedDB)
    */
   static async createToken(input: CreateTokenInput): Promise<DesignToken> {
-    const instance = new TokenService();
+    const { getDB } = await import("../../lib/db");
+    const { ElementUtils } = await import("../../utils/element/elementUtils");
+    const db = await getDB();
 
-    const result = await instance.handleApiCall<DesignToken>(
-      "createToken",
-      async () => {
-        return await instance.supabase
-          .from("design_tokens")
-          .insert({
-            project_id: input.project_id,
-            theme_id: input.theme_id,
-            name: input.name,
-            type: input.type,
-            value: input.value,
-            scope: input.scope,
-            alias_of: input.alias_of || null,
-            css_variable: input.css_variable,
-          })
-          .select()
-          .single();
-      },
-    );
+    const now = new Date().toISOString();
+    const token: DesignToken = {
+      id: ElementUtils.generateId(),
+      project_id: input.project_id,
+      theme_id: input.theme_id,
+      name: input.name,
+      type: input.type,
+      value: input.value,
+      scope: input.scope ?? "semantic",
+      alias_of: input.alias_of ?? null,
+      css_variable: input.css_variable,
+      created_at: now,
+      updated_at: now,
+    };
 
-    return result;
+    await db.designTokens.insert(token);
+    return token;
   }
 
   /**
-   * 토큰 업데이트 (Supabase)
+   * 토큰 업데이트 (IndexedDB)
    */
   static async updateToken(
     tokenId: string,
     updates: UpdateTokenInput,
   ): Promise<DesignToken> {
-    const instance = new TokenService();
+    const { getDB } = await import("../../lib/db");
+    const db = await getDB();
 
-    const result = await instance.handleApiCall<DesignToken>(
-      "updateToken",
-      async () => {
-        return await instance.supabase
-          .from("design_tokens")
-          .update({
-            ...updates,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", tokenId)
-          .select()
-          .single();
-      },
-    );
+    const existing = await db.designTokens.getById(tokenId);
+    if (!existing) {
+      throw new Error(`[TokenService] updateToken: token ${tokenId} not found`);
+    }
 
-    return result;
+    const merged: DesignToken = {
+      ...existing,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+
+    await db.designTokens.update(tokenId, merged);
+    return merged;
   }
 
   /**
-   * 토큰 삭제 (Supabase)
+   * 토큰 삭제 (IndexedDB)
    */
   static async deleteToken(tokenId: string): Promise<void> {
-    const instance = new TokenService();
-
-    await instance.handleDeleteCall("deleteToken", async () => {
-      return await instance.supabase
-        .from("design_tokens")
-        .delete()
-        .eq("id", tokenId);
-    });
+    const { getDB } = await import("../../lib/db");
+    const db = await getDB();
+    await db.designTokens.delete(tokenId);
   }
 
   /**

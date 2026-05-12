@@ -72,7 +72,6 @@ import { getNullablePageFrameBindingId } from "@/adapters/canonical/frameMirror"
 import {
   areCanonicalMutationStoreActionsRegistered,
   moveElementCanonicalPrimary,
-  updateElementCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 
 function pageLayoutId(page: Page): string | null {
@@ -896,35 +895,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         };
       });
 
-      // 정규화/마이그레이션으로 변경된 요소가 있으면 DB에도 저장 (백그라운드)
-      const changedElementIds = new Set<string>([
-        ...normalizedTagElements.map((el) => el.id),
-        ...orphanMigratedElements.map((el) => el.id),
-      ]);
-
-      if (changedElementIds.size > 0) {
-        const elementById = new Map(migratedElements.map((el) => [el.id, el]));
-        const elementsToPersist = Array.from(changedElementIds)
-          .map((id) => elementById.get(id))
-          .filter((el): el is Element => Boolean(el));
-
-        Promise.all(
-          elementsToPersist.map((el) =>
-            updateElementCanonicalPrimary(el.id, el),
-          ),
-        )
-          .then(() => {
-            console.log(
-              `✅ ${elementsToPersist.length}개 요소 정규화/마이그레이션 DB 업데이트 완료`,
-            );
-          })
-          .catch((error) => {
-            console.warn(
-              "⚠️ 요소 정규화/마이그레이션 DB 업데이트 실패:",
-              error,
-            );
-          });
-      }
+      // (ADR-128) cloud `elements` row persistence 제거. canonical document
+      // mutation 이 IndexedDB persistence 를 담당 — 본 위치의 element-level
+      // cloud sync 호출은 불필요.
     },
 
     // Factory 함수로 생성된 addElement 사용

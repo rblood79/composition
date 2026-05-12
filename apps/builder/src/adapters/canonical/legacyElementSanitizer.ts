@@ -1,39 +1,10 @@
 import type { Element } from "../../types/core/store.types";
 import type { ElementWithLegacyMirror } from "./legacyElementFields";
 
-/**
- * Supabase 저장용 Element 타입 (snake_case 컬럼명)
- *
- * **ADR-903 P3-A Hidden bug D2**: `page_id` 는 layout element 에서 `null` 이 될 수 있다.
- * layout element 는 `layout_id` 를 가지며 `page_id` 가 `null` 이지만, 기존 `string`
- * (required) 타입 정의로 인해 런타임에 빈 문자열(`""`)로 강제되는 버그가 있었다.
- * `string | null` 로 완화하여 layout element 저장/로드 round-trip 정확성 보장.
- */
-export interface SupabaseElement {
-  id: string;
-  custom_id?: string;
-  type: string;
-  props: Record<string, unknown>;
-  parent_id: string | null;
-  /** layout element 의 경우 null. page element 의 경우 page UUID. */
-  page_id: string | null;
-  layout_id?: string | null;
-  slot_name?: string | null;
-  data_binding?: unknown;
-  events?: unknown[];
-  deleted?: boolean;
-  component_role?: string;
-  master_id?: string;
-  overrides?: Record<string, unknown>;
-  descendants?: unknown;
-  component_name?: string;
-  reusable?: boolean;
-  ref?: string;
-  metadata?: Record<string, unknown>;
-  variable_bindings?: string[];
-  fills?: unknown;
-  border?: unknown;
-}
+// (ADR-128) `SupabaseElement` interface + `sanitizeElementForSupabase` 함수는
+// Supabase `elements` row schema (snake_case) 변환 전용으로, cloud data layer
+// dead 정책에 따라 제거됨. canonical document persistence 는 IndexedDB
+// `documents` row 만 사용하므로 별도 직렬화 helper 불필요.
 
 type ElementWithCanonicalFields = ElementWithLegacyMirror & {
   children?: unknown;
@@ -127,76 +98,5 @@ export const sanitizeElement = (element: Element): Element => {
       fills: element.fills,
       border: element.border,
     } as Element;
-  }
-};
-
-/**
- * Supabase 저장용 Element 직렬화 함수
- *
- * camelCase 필드를 snake_case로 변환하여 Supabase 컬럼명과 일치시킵니다.
- * - customId → custom_id
- * - dataBinding → data_binding
- *
- * @param element - 직렬화할 Element 객체
- * @returns Supabase 저장용 Element 객체 (snake_case)
- */
-export const sanitizeElementForSupabase = (
-  element: Element,
-): SupabaseElement => {
-  try {
-    const sanitized = withSerializableElementFields(element);
-    const canonical = sanitized as ElementWithCanonicalFields;
-
-    return {
-      id: sanitized.id,
-      custom_id: sanitized.customId,
-      type: sanitized.type,
-      props: sanitized.props,
-      parent_id: sanitized.parent_id ?? null,
-      page_id: sanitized.page_id ?? null,
-      layout_id: sanitized.layout_id ?? null,
-      slot_name: sanitized.slot_name ?? null,
-      data_binding: sanitized.dataBinding,
-      events: sanitized.events,
-      deleted: sanitized.deleted,
-      component_role: canonical.componentRole,
-      master_id: canonical.masterId,
-      overrides: canonical.overrides,
-      descendants: canonical.descendants,
-      component_name: canonical.componentName,
-      reusable: canonical.reusable,
-      ref: canonical.ref,
-      metadata: canonical.metadata,
-      variable_bindings: sanitized.variableBindings,
-      fills: sanitized.fills,
-      border: sanitized.border,
-    };
-  } catch (error) {
-    console.error("Element sanitization for Supabase error:", error);
-    const legacy = element as ElementWithCanonicalFields;
-    return {
-      id: element.id || "",
-      custom_id: element.customId,
-      type: element.type || "",
-      props: {},
-      parent_id: element.parent_id ?? null,
-      page_id: element.page_id ?? null,
-      layout_id: element.layout_id ?? null,
-      slot_name: element.slot_name ?? null,
-      data_binding: element.dataBinding,
-      events: element.events,
-      deleted: element.deleted,
-      component_role: legacy.componentRole,
-      master_id: legacy.masterId,
-      overrides: legacy.overrides,
-      descendants: legacy.descendants,
-      component_name: legacy.componentName,
-      reusable: legacy.reusable,
-      ref: legacy.ref,
-      metadata: legacy.metadata,
-      variable_bindings: element.variableBindings,
-      fills: element.fills,
-      border: element.border,
-    };
   }
 };

@@ -45,8 +45,14 @@ import {
   useIframeMessenger,
   useGlobalKeyboardShortcuts,
 } from "@/builder/hooks";
-// import { projectsApi, type Project } from "../../services/api";  // Supabase 동기화는 대시보드에서만 처리
-import type { Project } from "../../services/api";
+// (ADR-128) cloud `Project` type 제거 — IndexedDB 가 보존하는 최소 필드만 local 표현.
+interface Project {
+  id: string;
+  name: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
 import { useUnifiedThemeStore } from "../../stores/themeStore";
 import { useThemeConfigStore } from "../../stores/themeConfigStore";
 import { useUiStore } from "../../stores/uiStore";

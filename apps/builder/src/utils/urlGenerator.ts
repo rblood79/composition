@@ -151,7 +151,7 @@ function normalizeUrl(url: string): string {
 export function hasCircularReference(
   pageId: string,
   newParentId: string | null,
-  allPages: Page[],
+  allPages: UrlPage[],
 ): boolean {
   if (!newParentId) return false;
 
@@ -189,7 +189,7 @@ export function hasCircularReference(
  * getNestingDepth('nike-page-id', allPages)
  * // → 2 (products=0, shoes=1, nike=2)
  */
-export function getNestingDepth(pageId: string, allPages: Page[]): number {
+export function getNestingDepth(pageId: string, allPages: UrlPage[]): number {
   let depth = 0;
   let currentId: string | null = pageId;
 

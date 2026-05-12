@@ -1,8 +1,20 @@
 import { startTransition, useState, useRef, useCallback } from "react";
 import { useListData } from "react-stately";
 import { Element } from "../../types/core/store.types";
-import { type Page as ApiPage } from "../../services/api/PagesApiService";
 import { type Page, getDefaultProps } from "../../types/builder/unified.types";
+
+// (ADR-128) Page type 은 cloud Supabase row schema 기원이었지만 cloud data
+// layer dead 후 IndexedDB-native 표현으로 inline 유지 — 본 hook 안에서만 사용.
+interface ApiPage {
+  id: string;
+  project_id: string;
+  title: string;
+  slug: string;
+  order_num?: number;
+  created_at?: string;
+  updated_at?: string;
+  parent_id?: string | null;
+}
 import { getDB } from "../../lib/db";
 import { useStore } from "../stores";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)

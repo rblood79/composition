@@ -1,22 +1,7 @@
-// 모든 API 서비스들을 통합하여 export
-export { BaseApiService } from "./BaseApiService";
-export {
-  ElementsApiService,
-  elementsApi,
-} from "../../adapters/canonical/legacyElementsApiService";
-export {
-  ProjectsApiService,
-  projectsApi,
-  type Project,
-  type CreateProjectData,
-} from "./ProjectsApiService";
-export {
-  PagesApiService,
-  pagesApi,
-  type Page,
-  type CreatePageData,
-} from "./PagesApiService";
-export { DocumentsApiService, documentsApi } from "./DocumentsApiService";
+// (ADR-128) cloud `BaseApiService` / `ElementsApiService` / `ProjectsApiService` /
+// `PagesApiService` / `DocumentsApiService` exports 제거. Supabase data layer
+// dead 정책에 따라 cloud adapter file 전부 삭제되었다. 본 index 는 mock data
+// API + apiConfig + handleApiError 만 export 한다.
 import {
   cmsMockData,
   largeMockData,
@@ -110,11 +95,6 @@ export type {
   MockPhoto,
   MockTodo,
 };
-
-// Import the instances for the ApiService class
-import { elementsApi } from "../../adapters/canonical/legacyElementsApiService";
-import { projectsApi } from "./ProjectsApiService";
-import { pagesApi } from "./PagesApiService";
 
 // === Mock API Endpoint ===
 interface MockApiConfig {
@@ -902,8 +882,5 @@ export const handleApiError = (
 };
 
 // API 서비스 통합 클래스 (선택적)
-export class ApiService {
-  static elements = elementsApi;
-  static projects = projectsApi;
-  static pages = pagesApi;
-}
+// (ADR-128) `ApiService` 통합 클래스 제거 — cloud-only adapter 전부 삭제됨.
+// 신규 caller 는 mock API (`apiConfig`) 또는 IndexedDB (`getDB()`) 직접 사용.
