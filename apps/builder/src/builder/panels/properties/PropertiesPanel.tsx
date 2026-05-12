@@ -81,7 +81,6 @@ import {
   trackMultiPaste,
   trackMultiDelete,
 } from "../../stores/utils/historyHelpers";
-import { supabase } from "../../../env/supabase.client";
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import {
   isCanonicalRefElement,
@@ -624,13 +623,6 @@ const MultiSelectContent = memo(function MultiSelectContent({
           await updateElement(child.id, {
             parent_id: child.parent_id,
           });
-          await supabase
-            .from("elements")
-            .update({
-              parent_id: child.parent_id,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", child.id);
         }),
       );
       trackGroupCreation(groupElement, previousChildren, updatedChildren);
@@ -1155,33 +1147,12 @@ function PropertiesPanelContent() {
       // Add group to store (this saves to DB)
       await addElement(groupElement);
 
-      // Update children with new parent_id - Save to DB directly
+      // Update children with new parent_id (IndexedDB persistence via updateElement)
       await Promise.all(
         updatedChildren.map(async (child) => {
-          // Update memory state
           await updateElement(child.id, {
             parent_id: child.parent_id,
           });
-
-          // Save to DB directly (Supabase)
-          const { error } = await supabase
-            .from("elements")
-            .update({
-              parent_id: child.parent_id,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", child.id);
-
-          if (error) {
-            console.error(
-              `❌ [Group] Failed to save child ${child.id} to DB:`,
-              error,
-            );
-          } else {
-            console.log(
-              `✅ [Group] Saved child ${child.id} to DB: parent_id=${child.parent_id}`,
-            );
-          }
         }),
       );
 
@@ -1241,33 +1212,12 @@ function PropertiesPanelContent() {
         );
       }
 
-      // Update children with new parent_id - Save to DB directly
+      // Update children with new parent_id (IndexedDB persistence via updateElement)
       await Promise.all(
         updatedChildren.map(async (child) => {
-          // Update memory state
           await updateElement(child.id, {
             parent_id: child.parent_id,
           });
-
-          // Save to DB directly (Supabase)
-          const { error } = await supabase
-            .from("elements")
-            .update({
-              parent_id: child.parent_id,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", child.id);
-
-          if (error) {
-            console.error(
-              `❌ [Ungroup] Failed to save child ${child.id} to DB:`,
-              error,
-            );
-          } else {
-            console.log(
-              `✅ [Ungroup] Saved child ${child.id} to DB: parent_id=${child.parent_id}`,
-            );
-          }
         }),
       );
 

@@ -23,7 +23,6 @@ import { useStore } from "../stores";
 import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
 import { ElementUtils } from "../../utils/element/elementUtils";
-import { supabase } from "../../env/supabase.client";
 
 interface CollectionItemNode {
   id: string;
@@ -164,19 +163,9 @@ export function useCollectionItemManager(
         parent_id: elementId,
       };
 
-      // ElementUtils.createChildElementWithParentCheck was removed
-      // Use Supabase directly
-      const { data, error } = await supabase
-        .from("elements")
-        .insert(newItem)
-        .select()
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error("Failed to create element");
-
-      useStore.getState().addElement(data as CollectionItemNode);
-      console.log(`새 ${childTag} 추가됨:`, data);
+      // IndexedDB persistence via addElement
+      useStore.getState().addElement(newItem as CollectionItemNode);
+      console.log(`새 ${childTag} 추가됨:`, newItem);
     } catch (error) {
       console.error(`${childTag} 추가 중 오류:`, error);
     }
@@ -191,23 +180,9 @@ export function useCollectionItemManager(
   const deleteItem = useCallback(
     async (itemId: string) => {
       try {
-        // Supabase에서 삭제
-        const { error } = await supabase
-          .from("elements")
-          .delete()
-          .eq("id", itemId);
-
-        if (error) {
-          console.error(`${childTag} 삭제 에러:`, error);
-          return;
-        }
-
-        // Zustand store에서 제거
+        // IndexedDB persistence via removeElement
         await useStore.getState().removeElement(itemId);
-
-        // 선택 상태 해제
         setSelectedItemIndex(null);
-
         console.log(`${childTag} 삭제됨:`, itemId);
       } catch (error) {
         console.error(`${childTag} 삭제 중 오류:`, error);

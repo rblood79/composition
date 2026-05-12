@@ -10,7 +10,6 @@ import {
   createElementsFromDefinition,
   addElementsToStore,
 } from "./utils/elementCreation";
-import { saveElementsInBackground } from "./utils/dbPersistence";
 import { ElementUtils } from "../../utils/element/elementUtils";
 
 // 컴포넌트 정의 임포트
@@ -239,11 +238,8 @@ export class ComponentFactory {
       layoutId,
     });
 
-    // 3. 스토어에 추가 (즉시 UI 업데이트)
+    // 3. 스토어에 추가 (IndexedDB persistence via addElement)
     addElementsToStore(parent, children);
-
-    // 4. DB에 저장 (백그라운드)
-    saveElementsInBackground(parent, children, parentId, pageId, layoutId);
 
     return {
       parent,

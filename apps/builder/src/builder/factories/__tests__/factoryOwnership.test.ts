@@ -23,11 +23,6 @@ import {
   resetCanonicalMutationStoreActions,
 } from "@/adapters/canonical/canonicalMutations";
 
-vi.mock("../utils/dbPersistence", () => ({
-  saveElementsToDb: vi.fn(async () => undefined),
-  saveElementsInBackground: vi.fn(),
-}));
-
 vi.mock("../../../lib/db", () => ({
   getDB: vi.fn(async () => ({
     elements: {

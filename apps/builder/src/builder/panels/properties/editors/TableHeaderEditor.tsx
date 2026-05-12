@@ -10,7 +10,6 @@ import {
 import { PropertyEditorProps } from "../types/editorTypes";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { Table, Pin, SquarePlus, Trash, Tag, Type } from "lucide-react";
-import { supabase } from "../../../../env/supabase.client";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
 import { generateCustomId } from "../../../utils/idGeneration";
@@ -157,23 +156,8 @@ export const TableHeaderEditor = memo(function TableHeaderEditor({
         }
       }
 
-      // 모든 요소를 한 번에 데이터베이스에 추가
-      // Convert customId to custom_id for database
+      // 스토어에 모든 요소 추가 (IndexedDB persistence 는 addElement 안에서 처리)
       const allNewElements = [newColumnElement, ...newCellElements];
-      const elementsForDB = allNewElements.map((el) => {
-        const elForDB = { ...el, custom_id: el.customId };
-        delete elForDB.customId;
-        return elForDB;
-      });
-
-      const { error } = await supabase.from("elements").insert(elementsForDB);
-
-      if (error) {
-        console.error("컬럼 추가 실패:", error);
-        return;
-      }
-
-      // 스토어에 모든 요소 추가
       allNewElements.forEach((element) => {
         void addElement(element);
       });

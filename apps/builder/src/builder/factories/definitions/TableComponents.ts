@@ -11,7 +11,6 @@ import {
   createDefaultColumnGroupProps,
 } from "../../../types/builder/unified.types";
 import { addElementsToStore } from "../utils/elementCreation";
-import { saveElementsToDb } from "../utils/dbPersistence";
 import { generateCustomId } from "../../utils/idGeneration";
 
 /**
@@ -65,11 +64,8 @@ export async function createTable(
 
   const children: Element[] = [tableHeader, tableBody];
 
-  // 스토어에 추가
+  // 스토어에 추가 (IndexedDB persistence via addElement)
   addElementsToStore(parent, children);
-
-  // DB에 저장
-  await saveElementsToDb(parent, children, parentId, pageId);
 
   return {
     parent,

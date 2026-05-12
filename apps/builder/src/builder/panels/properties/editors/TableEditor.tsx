@@ -22,7 +22,6 @@ import {
 import { PropertyEditorProps } from "../types/editorTypes";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { PROPERTY_LABELS } from "../../../../utils/ui/labels";
-import { supabase } from "../../../../env/supabase.client";
 import { useStore } from "../../../stores";
 import { ElementUtils } from "../../../../utils/element/elementUtils";
 import type { TableElementProps } from "../../../../types/builder/unified.types";
@@ -136,25 +135,6 @@ export const TableEditor = memo(
           updated_at: new Date().toISOString(),
         };
 
-        // 행 생성
-        // Convert customId to custom_id for database
-        const rowForDB = {
-          ...newRowElement,
-          custom_id: newRowElement.customId,
-        };
-        delete rowForDB.customId;
-
-        const { error: rowError } = await supabase
-          .from("elements")
-          .upsert([rowForDB], {
-            onConflict: "id",
-          });
-
-        if (rowError) {
-          console.error("행 추가 실패:", rowError);
-          return;
-        }
-
         // 각 컬럼에 대한 셀 생성
         const cellsToCreate: TableEditorElementPayload[] = [];
         // TableElementProps에는 columns가 없으므로 실제 Column Element들을 사용
@@ -181,26 +161,7 @@ export const TableEditor = memo(
           allElementsSoFar.push(newCellElement);
         }
 
-        // 셀들 생성
-        // Convert customId to custom_id for database
-        const cellsForDB = cellsToCreate.map((cell) => {
-          const cellForDB = { ...cell, custom_id: cell.customId };
-          delete cellForDB.customId;
-          return cellForDB;
-        });
-
-        const { error: cellsError } = await supabase
-          .from("elements")
-          .upsert(cellsForDB, {
-            onConflict: "id",
-          });
-
-        if (cellsError) {
-          console.error("셀 추가 실패:", cellsError);
-          return;
-        }
-
-        // 메모리 상태 업데이트
+        // 메모리 상태 업데이트 (IndexedDB persistence 는 mergeElementsCanonicalPrimary 안에서 처리)
         mergeElementsCanonicalPrimary([newRowElement, ...cellsToCreate]);
 
         console.log("✅ 테이블 행 추가 완료");
@@ -247,23 +208,7 @@ export const TableEditor = memo(
           updated_at: new Date().toISOString(),
         };
 
-        // Convert customId to custom_id for database
-        const groupForDB = {
-          ...newGroupElement,
-          custom_id: newGroupElement.customId,
-        };
-        delete groupForDB.customId;
-
-        const { error } = await supabase.from("elements").upsert([groupForDB], {
-          onConflict: "id",
-        });
-
-        if (error) {
-          console.error("Column Group 추가 실패:", error);
-          return;
-        }
-
-        // 메모리 상태 업데이트
+        // 메모리 상태 업데이트 (IndexedDB persistence 는 mergeElementsCanonicalPrimary 안에서 처리)
         mergeElementsCanonicalPrimary([newGroupElement]);
 
         console.log("✅ Column Group 추가 완료");
