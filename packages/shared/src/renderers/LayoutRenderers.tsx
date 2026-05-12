@@ -30,7 +30,7 @@ import {
 import { parseColor } from "react-aria-components";
 import { Slot } from "../components/Slot";
 import { getIconData } from "@composition/specs";
-import { getElementDataBinding } from "../utils/legacyExtensionFields";
+import { getElementDataBinding } from "../utils/compositionExtensionFields";
 import type {
   PreviewElement,
   RenderContext,

@@ -7,7 +7,7 @@
 import type { Element } from "../../types/core/store.types";
 import type { ElementTreeItem } from "../../types/builder/stately.types";
 import type { ElementProps } from "../../types/integrations/supabase.types";
-import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
+import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import { sortElementsBySource } from "./elementOrdering";
 
 /**

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { DataBinding, PreviewElement, RenderContext } from "../types";
-import { getElementDataBinding } from "../utils/legacyExtensionFields";
+import { getElementDataBinding } from "../utils/compositionExtensionFields";
 
 /**
  * 데이터 로드 함수 (DataTable Store의 로직 재사용)

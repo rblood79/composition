@@ -35,7 +35,7 @@ import {
   isListBoxSectionEntry,
   isGridListSectionEntry,
 } from "@composition/specs";
-import { getElementDataBinding } from "../utils/legacyExtensionFields";
+import { getElementDataBinding } from "../utils/compositionExtensionFields";
 
 /**
  * Selection 관련 컴포넌트 렌더러

@@ -10,9 +10,10 @@
  * (1) active canonical document 또는 snapshot shell 에 입력 elements upsert →
  * (2) canonical store `setDocument` push.
  *
- * ADR-122 Phase 1: wrapper 내부의 legacy export 후 `setElements` write-back 은
- * 제거한다. legacy `elementsMap` 호환 cache 가 transition 중
- * 필요하면 canonical store subscriber 가 derived read-only snapshot 으로 갱신한다.
+ * ADR-122 Implemented (2026-05-09): wrapper 내부의 legacy export 후
+ * `setElements` write-back 은 제거됐다. legacy `elementsMap` 호환 read 가
+ * 필요한 site 는 canonical store subscriber 가 derived read-only snapshot 으로
+ * 제공한다 (mutable subscription 0건 유지).
  *   DB wrapper (create/update/createMultiple) 는 (ADR-128) cloud `elements`
  *   row persistence 가 dead 화되면서 함께 제거됨. canonical mutation 만 in-memory
  *   document 갱신을 담당하고 IndexedDB persistence 는 documents store 의 subscriber

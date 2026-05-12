@@ -18,7 +18,7 @@ import {
 import type { CompositionDocument } from "@composition/shared";
 import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
-import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
+import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 import {
   getComponentOverridesMirror,

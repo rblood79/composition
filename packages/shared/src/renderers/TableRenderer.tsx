@@ -8,7 +8,7 @@ import type {
   ColumnMapping,
 } from "../types";
 import { generateId } from "../utils";
-import { getElementDataBinding } from "../utils/legacyExtensionFields";
+import { getElementDataBinding } from "../utils/compositionExtensionFields";
 
 /**
  * Table 컴포넌트 렌더러

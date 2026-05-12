@@ -20,7 +20,7 @@ import {
 import {
   getElementDataBinding,
   getElementEvents,
-} from "../../adapters/canonical/legacyExtensionFields";
+} from "../../adapters/canonical/compositionExtensionFields";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
 
