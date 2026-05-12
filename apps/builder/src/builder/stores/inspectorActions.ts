@@ -28,6 +28,10 @@ import { saveService } from "../../services/save";
 import { getDB } from "../../lib/db";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import {
+  migrateLegacyDataBindingToRootData,
+  migrateLegacyEventsToRootEvents,
+} from "../../adapters/canonical/rootCollectionMigration";
+import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_OVERRIDES_MIRROR_FIELD,
   getComponentDescendantsMirror,
@@ -273,6 +277,96 @@ function getSelectedPropsForState(
 ): Record<string, unknown> {
   const resolved = getResolvedInspectorElement(updatedElement, lookupElements);
   return (resolved.props ?? fallbackProps) as Record<string, unknown>;
+}
+
+/**
+ * ADR-131 Phase 4 — root collection sync helper.
+ *
+ * Inspector mutation 직후 canonical document `events` / `actions` / `data`
+ * root collection 에 동일 변경을 sync. legacy Element.events / dataBinding 도
+ * 유지 (dual-write — preview/Skia 가 legacy 경로로 read).
+ *
+ * dev data 0 가정 — 신규 input 가 root collection 의 primary SSOT 가 됨.
+ * Phase 6 cleanup 시점에 legacy field 자체를 제거하고 root collection 단일
+ * SSOT 전환.
+ */
+function syncEventsToRootCollection(
+  elementId: string,
+  events: readonly unknown[] | undefined,
+): void {
+  const store = useCanonicalDocumentStore.getState();
+  if (!store.currentProjectId) return;
+
+  // 1) 이 element 가 target 인 기존 events 제거 (clean slate)
+  const doc = store.getDocument(store.currentProjectId);
+  const existingEvents = doc?.events ?? [];
+  const filteredEvents = existingEvents.filter((e) => e.target !== elementId);
+
+  // 2) 이 element 의 events 가 actions chain 참조하던 것 제거
+  const existingActions = doc?.actions ?? [];
+  const eventsForThisElement = existingEvents.filter(
+    (e) => e.target === elementId,
+  );
+  const refIds = new Set<string>();
+  for (const ev of eventsForThisElement) {
+    if (ev.actionRef) refIds.add(ev.actionRef);
+    if (ev.fallbackActionRef) refIds.add(ev.fallbackActionRef);
+  }
+  // chain follow — visited set 로 DAG 안전
+  const visited = new Set<string>();
+  const queue = [...refIds];
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    if (visited.has(cur)) continue;
+    visited.add(cur);
+    const action = existingActions.find((a) => a.id === cur);
+    if (action?.next) queue.push(...action.next);
+  }
+  const filteredActions = existingActions.filter((a) => !visited.has(a.id));
+
+  // 3) 신규 events 변환
+  const eventArr = Array.isArray(events) ? events : [];
+  const result = migrateLegacyEventsToRootEvents(
+    elementId,
+    eventArr as Parameters<typeof migrateLegacyEventsToRootEvents>[1],
+  );
+
+  const nextEvents = [...filteredEvents, ...result.events];
+  const nextActions = [...filteredActions, ...result.actions];
+
+  store.setEvents(nextEvents.length > 0 ? nextEvents : undefined);
+  store.setActions(nextActions.length > 0 ? nextActions : undefined);
+}
+
+function syncDataBindingToRootCollection(
+  elementId: string,
+  dataBinding: Element["dataBinding"] | null,
+): void {
+  const store = useCanonicalDocumentStore.getState();
+  if (!store.currentProjectId) return;
+
+  const expectedId = `db_${elementId}`;
+
+  if (!dataBinding) {
+    // removal
+    const existing = store
+      .getDocument(store.currentProjectId)
+      ?.data?.some((d) => d.id === expectedId);
+    if (existing) store.removeData(expectedId);
+    return;
+  }
+
+  const next = migrateLegacyDataBindingToRootData(elementId, dataBinding);
+  if (!next) return;
+
+  const exists = store
+    .getDocument(store.currentProjectId)
+    ?.data?.some((d) => d.id === expectedId);
+  if (exists) {
+    store.updateData(expectedId, next);
+  } else {
+    store.addData(next);
+  }
 }
 
 function buildInspectorPersistencePayload(
@@ -873,6 +967,14 @@ export const createInspectorActionsSlice: StateCreator<
         {},
         { dataBinding: dataBinding as Element["dataBinding"] },
       );
+
+      // ADR-131 Phase 4 — root collection mirror write.
+      // legacy Element.dataBinding 유지 (preview/runtime 호환) + canonical
+      // `document.data` 에도 sync. Phase 6 cleanup 에서 legacy 제거.
+      syncDataBindingToRootCollection(
+        element.id,
+        (dataBinding ?? null) as Element["dataBinding"] | null,
+      );
     },
 
     // ============================================
@@ -886,6 +988,9 @@ export const createInspectorActionsSlice: StateCreator<
       updateAndSave(element.id, {
         events: events as unknown as ElementEvent[],
       });
+
+      // ADR-131 Phase 4 — root collection mirror write
+      syncEventsToRootCollection(element.id, events);
     },
 
     addSelectedEvent: (event) => {
@@ -893,9 +998,12 @@ export const createInspectorActionsSlice: StateCreator<
       if (!element) return;
 
       const currentEvents = (element.props?.events as EventHandler[]) || [];
+      const next = [...currentEvents, event];
       updateAndSave(element.id, {
-        events: [...currentEvents, event] as unknown as ElementEvent[],
+        events: next as unknown as ElementEvent[],
       });
+
+      syncEventsToRootCollection(element.id, next);
     },
 
     updateSelectedEvent: (id, event) => {
@@ -907,6 +1015,8 @@ export const createInspectorActionsSlice: StateCreator<
       updateAndSave(element.id, {
         events: updatedEvents as unknown as ElementEvent[],
       });
+
+      syncEventsToRootCollection(element.id, updatedEvents);
     },
 
     removeSelectedEvent: (id) => {
@@ -918,6 +1028,8 @@ export const createInspectorActionsSlice: StateCreator<
       updateAndSave(element.id, {
         events: updatedEvents as unknown as ElementEvent[],
       });
+
+      syncEventsToRootCollection(element.id, updatedEvents);
     },
 
     // ============================================
