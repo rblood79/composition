@@ -1,16 +1,17 @@
 /**
  * @fileoverview ADR-116 Phase 5 G7 Extension Boundary — packages/shared 영역
- * legacy `Element.events` / `Element.dataBinding` read-through helper.
+ * composition extension namespace (`x-composition.events` /
+ * `x-composition.dataBinding`) read-through helper.
  *
- * canonical primary 저장 위치 = `CompositionNode.extension['x-composition']`
- * (apps/builder canonical store mutation 시 `updateNodeExtension` API 사용,
- * Phase 5 G7 preflight land). legacy `Element.events` / `Element.dataBinding`
- * 는 transition bridge — read-through fallback only.
+ * **의도된 architectural boundary** (ADR-116 본문 §5 + Gate G7):
+ *   canonical core 에는 문서 구조 문법과 component props 만 두고, Composition
+ *   app behavior 는 `x-composition` extension namespace 로 분리. events /
+ *   dataBinding 은 Pencil format 에 없는 composition 만의 확장이므로 canonical
+ *   core 에 흡수 금지.
  *
- * **본 helper 는 packages/shared 영역 (renderers 등) caller 가 legacy field 를
- * 직접 read 하는 site 를 단일 진입점으로 단일화**. apps/builder 영역의
- * `apps/builder/src/adapters/canonical/legacyExtensionFields.ts` 와 별 helper
- * (monorepo dependency 정합 — packages/shared 가 apps/builder import 불가).
+ * **별 helper 분리 이유**: monorepo dependency 정합 — packages/shared 가
+ * apps/builder import 불가하므로, apps/builder 영역의 동명 helper
+ * (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts`) 와 분리.
  *
  * **priority 차이 framing note** (design §10.2.4 후속 결정):
  * - apps/builder 영역 (canvasDeltaMessenger / workflowEdges): default `'props-first'`
@@ -22,7 +23,7 @@
  * canonical primary 저장 진입과 함께 통일 결정 사항. 본 helper 는 priority
  * option 으로 양쪽 caller 를 동일 API 로 수용.
  *
- * @see docs/adr/116-canonical-document-ssot-transition.md §G7 Extension Boundary
+ * @see docs/adr/completed/116-canonical-document-ssot-transition.md §G7 Extension Boundary
  * @see docs/adr/design/116-canonical-document-ssot-transition-breakdown.md §10.2 G6-1
  */
 

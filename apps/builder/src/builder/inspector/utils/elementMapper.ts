@@ -1,6 +1,6 @@
 import type { Element } from "../../../types/core/store.types";
 import type { SelectedElement } from "../types";
-import { getElementDataBinding } from "../../../adapters/canonical/legacyExtensionFields";
+import { getElementDataBinding } from "../../../adapters/canonical/compositionExtensionFields";
 
 /**
  * Builder의 Element 타입을 Inspector의 SelectedElement 타입으로 변환

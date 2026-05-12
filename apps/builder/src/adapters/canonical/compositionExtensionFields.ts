@@ -1,21 +1,26 @@
 /**
- * @fileoverview ADR-116 Phase 5 G7 Extension Boundary — legacy `Element.events`
- * / `Element.dataBinding` read-through helper.
+ * @fileoverview ADR-116 Phase 5 G7 Extension Boundary — composition extension
+ * namespace (`x-composition.events` / `x-composition.dataBinding`) read-through
+ * helper.
  *
- * canonical primary 저장 위치 = `CompositionNode.extension['x-composition']`
- * (canonical store mutation 시 `updateNodeExtension` API 사용, Phase 5 G7
- * preflight land). legacy `Element.events` / `Element.dataBinding` 는 transition
- * bridge — read-through fallback only.
+ * **의도된 architectural boundary** (ADR-116 본문 §5 + Gate G7):
+ *   canonical core 에는 문서 구조 문법과 component props 만 두고, Composition
+ *   app behavior (`events`, `actions`, `dataBinding`, editor state) 는
+ *   `x-composition` extension namespace 로 분리한다. 이는 Pencil format 과
+ *   composition vocabulary 의 동시 호환을 위한 design choice — events /
+ *   dataBinding 은 Pencil format 에 없는 composition 만의 확장이므로
+ *   canonical core 에 흡수 금지.
+ *
+ * **저장 위치**: canonical primary = `CompositionNode.extension['x-composition']`
+ *   (canonical store mutation 시 `updateNodeExtension` API 사용). 본 helper 는
+ *   `Element.events` / `Element.dataBinding` field 를 통한 read-through fallback
+ *   path 도 제공해 priority option 으로 양쪽 storage 를 지원한다.
  *
  * **`Element.actions` 영역 명시 제외**: Element type 에 top-level `actions?` field
  * 자체 미정의. `actions` 는 처음부터 nested (`events[].actions` 또는 canonical
  * `CompositionExtension.actions`) 로만 존재 — 본 helper scope 외.
  *
- * 본 helper 는 caller 가 legacy field 를 직접 read 하는 site 를 단일 진입점으로
- * 단일화하여, Phase 5 G7 closure 시점에 helper 내부 logic 만 reverse 하면 모든
- * caller 가 자동 canonical primary 로 전환되도록 한다.
- *
- * @see docs/adr/116-canonical-document-ssot-transition.md §G7 Extension Boundary
+ * @see docs/adr/completed/116-canonical-document-ssot-transition.md §G7 Extension Boundary
  * @see docs/adr/design/116-canonical-document-ssot-transition-breakdown.md §10.2 G6-1
  */
 

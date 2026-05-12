@@ -26,7 +26,7 @@ import type { FillItem } from "../../types/builder/fill.types";
 import { sanitizeFillDerivedStylePatch } from "../panels/styles/utils/fillDerivedStyleProps";
 import { saveService } from "../../services/save";
 import { getDB } from "../../lib/db";
-import { getElementDataBinding } from "../../adapters/canonical/legacyExtensionFields";
+import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_OVERRIDES_MIRROR_FIELD,

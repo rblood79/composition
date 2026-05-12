@@ -30,7 +30,7 @@ import type {
 } from "@composition/specs";
 import { isMenuSectionEntry, isMenuSeparatorEntry } from "@composition/specs";
 import { getSelectedChildIds } from "./selection";
-import { getElementDataBinding } from "../utils/legacyExtensionFields";
+import { getElementDataBinding } from "../utils/compositionExtensionFields";
 
 /**
  * Stored → Runtime 변환 (Q11=나: EVENT_REGISTRY에 직접 의존 금지)

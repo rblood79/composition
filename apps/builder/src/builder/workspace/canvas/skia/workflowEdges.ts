@@ -9,7 +9,7 @@
  */
 
 import { getLegacyPageLayoutId } from "@/adapters/canonical";
-import { getElementEvents } from "@/adapters/canonical/legacyExtensionFields";
+import { getElementEvents } from "@/adapters/canonical/compositionExtensionFields";
 import type { CompositionDocument, FrameNode } from "@composition/shared";
 
 // ============================================
