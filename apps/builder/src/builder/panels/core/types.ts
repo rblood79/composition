@@ -31,7 +31,10 @@ export type PanelDisplayMode = "panel" | "modal";
 
 /**
  * 패널 ID
- * Note: 'data' 패널은 제거되었습니다. 데이터 바인딩은 DataTable 패널과 컴포넌트 Property Editor를 통해 관리합니다.
+ *
+ * ADR-131 Phase 5 (2026-05-13): 'data' / 'actions' 패널 재도입 — canonical
+ * `document.data` / `document.actions` root collection 직접 편집.
+ * 이전 'data' 패널과 다른 scope (cross-node 공유 data 자원 + workflow action chain).
  */
 export type PanelId =
   // Navigation panels
@@ -52,6 +55,9 @@ export type PanelId =
   | "styles"
   | "events"
   | "history"
+  // ADR-131 Phase 5 G3 — Root collection editor panels
+  | "data"
+  | "actions"
   // Bottom panels
   | "monitor";
 
