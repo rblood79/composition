@@ -5,6 +5,25 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [apps/builder type-check governance — references-only silent pass 본질 fix] - 2026-05-12
+
+### Infrastructure
+
+- **`apps/builder` type-check 무효 상태 발견 및 본질 fix**:
+  - `apps/builder/tsconfig.json` 이 `files: []` + project references 만 정의 — `tsc --noEmit` 단일 호출 시 references 자동 수행 안 됨 (project references 는 `tsc -b` 또는 명시 `tsc -p <config>` 필요) → **0 파일 검사 silent PASS**.
+  - 결과: `5c8f76057 rename SkiaRendererInput.elementsMap → renderNodesMap` 류 production caller 누락 (BuilderCanvas:527 / SkiaCanvas:691) 이 commit body 의 "type-check PASS" 주장에도 불구하고 실제로는 검사되지 않은 채 main 에 진입. **누적 699 type 에러** 가 silent 통과 중인 상태였다.
+  - 검증: `git checkout 5c8f76057 && cd apps/builder && pnpm exec tsc --noEmit --listFiles | grep apps/builder/src | wc -l` → `0`. `tsc -p tsconfig.app.json --noEmit` 직접 호출 → BuilderCanvas:527 TS2561 + SkiaCanvas:691 TS2551 정상 catch.
+
+- **본질 fix — baseline wrapper 패턴 도입**:
+  - `apps/builder/scripts/type-check-baseline.sh` 신규 — `tsconfig.app.json` + `tsconfig.node.json` 양쪽 명시 검사 + baseline 대비 새 위반만 fail.
+  - `apps/builder/.type-errors-baseline.txt` 신규 — 현 누적 699 에러 freeze (sorted, deterministic).
+  - `apps/builder/package.json` `"type-check"` → `"bash scripts/type-check-baseline.sh"` 로 정정. raw 검사용 `"type-check:raw"` + `"type-check:strict"` 옵션 추가.
+  - 효과: 본 commit 이후 새 type 위반은 `pnpm type-check` 에서 즉시 fail. 누적 정리는 별 phase 흡수 (ADR-116 후속 또는 별 governance 작업) 로 점진적 진행.
+
+- **Governance debt 명시화**:
+  - 본 commit 이전 모든 commit body 의 `"type-check PASS"` 는 apps/builder 한정으로 무효였음. ADR-908 / ADR-126 / ADR-116 등 최근 작업의 type-check evidence 는 사실상 미검증.
+  - 누적 699 에러 정리는 ADR-116 후속 phase 또는 별 governance 작업으로 단계적 흡수 (새 ADR 발의 금지 — 메모리 `no-derived-adr-mid-execution`).
+
 ## [Builder page frame render fix] - 2026-05-12
 
 ### Fixed
