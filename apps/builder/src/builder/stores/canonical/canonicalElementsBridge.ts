@@ -23,7 +23,13 @@
  */
 
 import { useSyncExternalStore } from "react";
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  SerializedAction,
+  SerializedData,
+  SerializedEvent,
+} from "@composition/shared";
 import {
   selectActiveCanonicalDocument,
   selectCanonicalNode,
@@ -118,5 +124,81 @@ export function useActiveCanonicalDocument(): CompositionDocument | null {
     subscribeCanonicalStore,
     () => getActiveCanonicalDocument(),
     () => null,
+  );
+}
+
+// ─────────────────────────────────────────────
+// ADR-131 Phase 3 — Root collection hooks
+// ─────────────────────────────────────────────
+
+const EMPTY_EVENT_LIST: readonly SerializedEvent[] = Object.freeze([]);
+const EMPTY_DATA_LIST: readonly SerializedData[] = Object.freeze([]);
+const EMPTY_ACTION_LIST: readonly SerializedAction[] = Object.freeze([]);
+
+/**
+ * 활성 canonical document 의 `events` root collection 을 구독.
+ *
+ * 미정의 시 안정적인 동일 빈 배열 reference 반환 (re-render churn 회피).
+ * mutation 시 새 array reference 가 store 에서 publish → React 재구독.
+ */
+export function useDocumentEvents(): readonly SerializedEvent[] {
+  return useSyncExternalStore(
+    subscribeCanonicalStore,
+    () =>
+      selectActiveCanonicalDocument()?.events ??
+      (EMPTY_EVENT_LIST as SerializedEvent[]),
+    () => EMPTY_EVENT_LIST as SerializedEvent[],
+  );
+}
+
+/**
+ * 특정 UI node id 를 `target` 으로 가진 events 만 filter.
+ *
+ * 빈 결과는 module-level 빈 배열 reference 사용 — useSyncExternalStore 의
+ * `getSnapshot must return same value on re-call` 계약 충족.
+ *
+ * cross-call cache 가 필요한 경우 (target 별 stable filter) 는 Phase 4
+ * 시점에 useMemo + targetIndex map 도입.
+ */
+export function useEventsForTarget(
+  targetNodeId: string | null,
+): readonly SerializedEvent[] {
+  return useSyncExternalStore(
+    subscribeCanonicalStore,
+    () => {
+      if (!targetNodeId) return EMPTY_EVENT_LIST as SerializedEvent[];
+      const all = selectActiveCanonicalDocument()?.events;
+      if (!all || all.length === 0) {
+        return EMPTY_EVENT_LIST as SerializedEvent[];
+      }
+      const filtered = all.filter((e) => e.target === targetNodeId);
+      if (filtered.length === 0) {
+        return EMPTY_EVENT_LIST as SerializedEvent[];
+      }
+      return filtered;
+    },
+    () => EMPTY_EVENT_LIST as SerializedEvent[],
+  );
+}
+
+/** 활성 document 의 `data` root collection 구독. */
+export function useDocumentData(): readonly SerializedData[] {
+  return useSyncExternalStore(
+    subscribeCanonicalStore,
+    () =>
+      selectActiveCanonicalDocument()?.data ??
+      (EMPTY_DATA_LIST as SerializedData[]),
+    () => EMPTY_DATA_LIST as SerializedData[],
+  );
+}
+
+/** 활성 document 의 `actions` root collection 구독. */
+export function useDocumentActions(): readonly SerializedAction[] {
+  return useSyncExternalStore(
+    subscribeCanonicalStore,
+    () =>
+      selectActiveCanonicalDocument()?.actions ??
+      (EMPTY_ACTION_LIST as SerializedAction[]),
+    () => EMPTY_ACTION_LIST as SerializedAction[],
   );
 }

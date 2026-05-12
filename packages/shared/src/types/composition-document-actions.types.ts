@@ -28,6 +28,9 @@ import type {
   CompositionExtension,
   CompositionDocument,
   DescendantOverride,
+  SerializedAction,
+  SerializedData,
+  SerializedEvent,
 } from "./composition-document.types";
 
 // ─────────────────────────────────────────────
@@ -200,4 +203,62 @@ export interface CanonicalDocumentActions {
     descendantPath: string,
     value: DescendantOverride,
   ): void;
+
+  // ─────────────────────────────────────────────
+  // ADR-131 Phase 3 — Root collection mutation surface
+  // ─────────────────────────────────────────────
+
+  /**
+   * 활성 document 의 `events` root collection 전체를 교체.
+   * `undefined` 또는 `[]` 전달 시 events 영역을 제거.
+   */
+  setEvents(events: SerializedEvent[] | undefined): void;
+
+  /**
+   * 활성 document 의 `events[].id === eventId` 인 항목을 부분 patch.
+   * 미발견 시 no-op + dev warn. `id` / `type` 변경은 silently 무시.
+   */
+  updateEvent(eventId: string, patch: Partial<SerializedEvent>): void;
+
+  /**
+   * 활성 document 의 `events` collection 에 신규 entry append.
+   * 동일 `id` 가 이미 존재하면 no-op + dev warn.
+   */
+  addEvent(event: SerializedEvent): void;
+
+  /**
+   * 활성 document 의 `events[].id === eventId` 항목을 제거.
+   * 미발견 시 no-op + dev warn.
+   */
+  removeEvent(eventId: string): void;
+
+  /** 활성 document 의 `data` root collection 전체를 교체. */
+  setData(data: SerializedData[] | undefined): void;
+
+  /**
+   * 활성 document 의 `data[].id === dataId` 항목을 부분 patch.
+   * 미발견 시 no-op + dev warn.
+   */
+  updateData(dataId: string, patch: Partial<SerializedData>): void;
+
+  /** 활성 document 의 `data` collection 에 신규 entry append. */
+  addData(data: SerializedData): void;
+
+  /** 활성 document 의 `data[].id === dataId` 항목을 제거. */
+  removeData(dataId: string): void;
+
+  /** 활성 document 의 `actions` root collection 전체를 교체. */
+  setActions(actions: SerializedAction[] | undefined): void;
+
+  /**
+   * 활성 document 의 `actions[].id === actionId` 항목을 부분 patch.
+   * 미발견 시 no-op + dev warn.
+   */
+  updateAction(actionId: string, patch: Partial<SerializedAction>): void;
+
+  /** 활성 document 의 `actions` collection 에 신규 entry append. */
+  addAction(action: SerializedAction): void;
+
+  /** 활성 document 의 `actions[].id === actionId` 항목을 제거. */
+  removeAction(actionId: string): void;
 }

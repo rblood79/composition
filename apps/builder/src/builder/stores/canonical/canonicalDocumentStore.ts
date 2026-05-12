@@ -26,6 +26,9 @@ import type {
   CompositionDocument,
   DescendantOverride,
   RefNode,
+  SerializedAction,
+  SerializedData,
+  SerializedEvent,
 } from "@composition/shared";
 import {
   appendDescendantChild as appendDescendantChildToDocument,
@@ -719,8 +722,218 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
         };
       });
     },
+
+    // ── ADR-131 Phase 3 — Root collection mutations ──
+
+    setEvents: (events) => {
+      mutateActiveDoc(set, "setEvents", (doc) => {
+        if (!events || events.length === 0) {
+          if (doc.events === undefined) return doc;
+          const next = { ...doc };
+          delete next.events;
+          return next;
+        }
+        return { ...doc, events: [...events] };
+      });
+    },
+
+    addEvent: (event) => {
+      mutateActiveDoc(set, "addEvent", (doc) => {
+        const existing = doc.events ?? [];
+        if (existing.some((e) => e.id === event.id)) {
+          devWarn("addEvent: id already exists", { id: event.id });
+          return doc;
+        }
+        return { ...doc, events: [...existing, event] };
+      });
+    },
+
+    updateEvent: (eventId, patch) => {
+      mutateActiveDoc(set, "updateEvent", (doc) => {
+        const existing = doc.events ?? [];
+        const idx = existing.findIndex((e) => e.id === eventId);
+        if (idx === -1) {
+          devWarn("updateEvent: id not found", { id: eventId });
+          return doc;
+        }
+        const sanitized = { ...patch };
+        delete sanitized.id;
+        delete sanitized.type;
+        const next = [...existing];
+        next[idx] = { ...next[idx], ...sanitized };
+        return { ...doc, events: next };
+      });
+    },
+
+    removeEvent: (eventId) => {
+      mutateActiveDoc(set, "removeEvent", (doc) => {
+        const existing = doc.events ?? [];
+        const filtered = existing.filter((e) => e.id !== eventId);
+        if (filtered.length === existing.length) {
+          devWarn("removeEvent: id not found", { id: eventId });
+          return doc;
+        }
+        if (filtered.length === 0) {
+          const next = { ...doc };
+          delete next.events;
+          return next;
+        }
+        return { ...doc, events: filtered };
+      });
+    },
+
+    setData: (data) => {
+      mutateActiveDoc(set, "setData", (doc) => {
+        if (!data || data.length === 0) {
+          if (doc.data === undefined) return doc;
+          const next = { ...doc };
+          delete next.data;
+          return next;
+        }
+        return { ...doc, data: [...data] };
+      });
+    },
+
+    addData: (data) => {
+      mutateActiveDoc(set, "addData", (doc) => {
+        const existing = doc.data ?? [];
+        if (existing.some((d) => d.id === data.id)) {
+          devWarn("addData: id already exists", { id: data.id });
+          return doc;
+        }
+        return { ...doc, data: [...existing, data] };
+      });
+    },
+
+    updateData: (dataId, patch) => {
+      mutateActiveDoc(set, "updateData", (doc) => {
+        const existing = doc.data ?? [];
+        const idx = existing.findIndex((d) => d.id === dataId);
+        if (idx === -1) {
+          devWarn("updateData: id not found", { id: dataId });
+          return doc;
+        }
+        const sanitized = { ...patch };
+        delete sanitized.id;
+        delete sanitized.type;
+        const next = [...existing];
+        next[idx] = { ...next[idx], ...sanitized };
+        return { ...doc, data: next };
+      });
+    },
+
+    removeData: (dataId) => {
+      mutateActiveDoc(set, "removeData", (doc) => {
+        const existing = doc.data ?? [];
+        const filtered = existing.filter((d) => d.id !== dataId);
+        if (filtered.length === existing.length) {
+          devWarn("removeData: id not found", { id: dataId });
+          return doc;
+        }
+        if (filtered.length === 0) {
+          const next = { ...doc };
+          delete next.data;
+          return next;
+        }
+        return { ...doc, data: filtered };
+      });
+    },
+
+    setActions: (actions) => {
+      mutateActiveDoc(set, "setActions", (doc) => {
+        if (!actions || actions.length === 0) {
+          if (doc.actions === undefined) return doc;
+          const next = { ...doc };
+          delete next.actions;
+          return next;
+        }
+        return { ...doc, actions: [...actions] };
+      });
+    },
+
+    addAction: (action) => {
+      mutateActiveDoc(set, "addAction", (doc) => {
+        const existing = doc.actions ?? [];
+        if (existing.some((a) => a.id === action.id)) {
+          devWarn("addAction: id already exists", { id: action.id });
+          return doc;
+        }
+        return { ...doc, actions: [...existing, action] };
+      });
+    },
+
+    updateAction: (actionId, patch) => {
+      mutateActiveDoc(set, "updateAction", (doc) => {
+        const existing = doc.actions ?? [];
+        const idx = existing.findIndex((a) => a.id === actionId);
+        if (idx === -1) {
+          devWarn("updateAction: id not found", { id: actionId });
+          return doc;
+        }
+        const sanitized = { ...patch };
+        delete sanitized.id;
+        delete sanitized.type;
+        const next = [...existing];
+        next[idx] = { ...next[idx], ...sanitized };
+        return { ...doc, actions: next };
+      });
+    },
+
+    removeAction: (actionId) => {
+      mutateActiveDoc(set, "removeAction", (doc) => {
+        const existing = doc.actions ?? [];
+        const filtered = existing.filter((a) => a.id !== actionId);
+        if (filtered.length === existing.length) {
+          devWarn("removeAction: id not found", { id: actionId });
+          return doc;
+        }
+        if (filtered.length === 0) {
+          const next = { ...doc };
+          delete next.actions;
+          return next;
+        }
+        return { ...doc, actions: filtered };
+      });
+    },
   }),
 );
+
+/**
+ * ADR-131 Phase 3 — shared mutation helper for root collection actions.
+ *
+ * 활성 doc 존재 검증 + clone-on-write + documentVersion bump 패턴을 통합.
+ * `transform` 가 doc 자체를 반환하면 (no-op) state 무변경.
+ */
+function mutateActiveDoc(
+  set: (
+    partial:
+      | Partial<CanonicalDocumentState>
+      | ((state: CanonicalDocumentState) => Partial<CanonicalDocumentState>),
+  ) => void,
+  methodName: string,
+  transform: (doc: CompositionDocument) => CompositionDocument,
+): void {
+  set((state) => {
+    const projectId = state.currentProjectId;
+    if (!projectId) {
+      devWarn(`${methodName} called without active project`);
+      return state;
+    }
+    const doc = state.documents.get(projectId);
+    if (!doc) {
+      devWarn(`${methodName}: active project has no document`, { projectId });
+      return state;
+    }
+    const nextDoc = transform(doc);
+    if (nextDoc === doc) return state;
+    const nextMap = new Map(state.documents);
+    nextMap.set(projectId, nextDoc);
+    return {
+      documents: nextMap,
+      documentVersion: state.documentVersion + 1,
+    };
+  });
+}
 
 // ─────────────────────────────────────────────
 // Selectors / utilities
