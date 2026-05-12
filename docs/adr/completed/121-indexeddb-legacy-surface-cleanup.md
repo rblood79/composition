@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-08
 
+> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (cloud transport boundary 부분, 2026-05-12)** — IndexedDB surface cleanup 결과 자체는 유효, 본 ADR 본문이 명시한 "cloud sync 호환 보존" 명분은 stale.
+
 ## Context
 
 ADR-116/118/119/120 이후 local project document state의 primary는

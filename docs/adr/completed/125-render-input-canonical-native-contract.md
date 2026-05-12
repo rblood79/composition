@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-10
 
+> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (cloud schema 호환 부분, 2026-05-12)** — render input canonical-native contract 자체는 유효, 본 ADR 이 cloud `elements` row schema 호환 보존 명분으로 남긴 fallback 영역은 stale.
+
 진행 로그:
 
 - 2026-05-10 Proposed → Accepted (codex review 9/9 closure)

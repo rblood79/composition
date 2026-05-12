@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-10
 
+> **Superseded in full by [ADR-128](128-supabase-backend-decommission.md) (2026-05-12)** — cloud `documents` row schema 단일화 결정 자체가 cloud data layer dead 정책으로 무효화. canonical document persistence 는 IndexedDB `documents` table 단일 path 유지.
+
 진행 로그:
 
 - 2026-05-10 Proposed (codex review 9/9 closure 후 stakeholder review)

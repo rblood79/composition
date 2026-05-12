@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-10
 
+> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (history cloud persistence 부분, 2026-05-12)** — canonical-only history entry schema 자체는 유효, history `elements` row cloud delete/upsert 흐름은 dead.
+
 진행 로그:
 
 - 2026-05-10 Proposed → Accepted (codex review 9/9 closure)

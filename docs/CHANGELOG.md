@@ -5,6 +5,44 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Supabase backend decommission — auth-only 격하 + cloud data layer dead 인정 (ADR-128)] - 2026-05-12
+
+### Breaking Changes
+
+- **Supabase cloud data layer 전체 제거**:
+  - `supabase.from(...)` 호출 production hot path 전수 dead 화 (Phase 1 builder canvas 영역 25+ 호출 / Phase 2 dashboard + services/api 영역 50+ 호출).
+  - **유지**: `supabase.auth.*` (signIn, signUp, getSession, signOut, token refresh) — 로그인 기능만 격하 유지. dev 환경 / production 환경 차이 없음 가정.
+  - **삭제 file 11개**: `BaseApiService`, `ElementsApiService` (`legacyElementsApiService`), `ProjectsApiService`, `PagesApiService`, `DocumentsApiService`, `projectSync`, `projectMerger`, cloud boundary test 4건.
+  - **dashboard cloud UI 제거**: "Sync to cloud" / "Download from cloud" / Cloud filter button / `projectCreation === "cloud"` & `"both"` 분기 / cloud project query / merge → local IndexedDB-only dashboard.
+  - **Why**: 사용자 명시 정합 ("현재 로그인 후 모두 IndexedDB 에서 구현 중. Supabase 로그인 기능 외에는 제거해도 된다"). cloud 복원 시나리오는 미래 신규 ADR 으로 reverse 가능.
+
+### Architecture
+
+- **ADR-128 Phase 1-6 직렬 land**:
+  - Phase 1 (`704350cbb`) — builder canvas 영역 cloud 호출 25+ 제거: `marginCollapseAudit`, `dbPersistence`, `historyActions` cloud delete/upsert, `TableEditor`, `TableHeaderEditor`, `PropertiesPanel`, `useCollectionItemManager`, `ComponentFactory`, `TableComponents`.
+  - Phase 2 (`a58ae1975`) — cloud adapter file + projectSync/projectMerger 일괄 제거 (단일 commit, -2,441 line):
+    - canonical mutation cloud boundary 해체 (`canonicalMutations` 의 `createElement/updateElement/createMultipleElements` Primary wrapper 3개 + `elements.ts` / `useIframeMessenger.ts` 의 element-level cloud persistence 호출 제거)
+    - dashboard cloud UI 전수 제거 (470→250 line) — IndexedDB-only dashboard
+    - `TokenService` IndexedDB-native 통일 (Phase 3 narrow scope 의 `design_tokens` 흡수) — `BaseApiService` extends 해제, `createToken`/`updateToken`/`deleteToken` 모두 `db.designTokens` 호출로 전환
+    - `legacyElementSanitizer`: `SupabaseElement` interface + `sanitizeElementForSupabase` 함수 제거 (snake_case row 변환은 cloud 전용이었음). `sanitizeElement` (active caller: canvasDeltaMessenger / historyActions) 유지.
+  - Phase 3 — `exportLegacyDocument()` + `legacyToCanonical()` file export/import 시나리오 **유지** (JSON 파일 IndexedDB round-trip 으로 의도 재정의, cloud Supabase row roundtrip 아님).
+  - Phase 4 — `ADR-121~127` Status block 에 "**Superseded in part by ADR-128**" 1-line addendum 추가 (ADR-123 은 in full).
+  - Phase 5 — baseline 측정:
+    - type-error: 699 (Phase 0) → 695 (Phase 1) → **683 (Phase 2, -16 cumulative)**. wrapper PASS, 신규 위반 0.
+    - 번들 raw 5,621,890 bytes (~5,490 KB / 5.4 MB) / gzipped 1,560,678 bytes (~1,524 KB / 1.5 MB) — Phase 0 절대 baseline 부재로 본 측정은 ADR-128 land-후 reference baseline.
+  - Phase 6 — `.type-errors-baseline.txt` 683 freeze + Status Implemented 승격 + README + CHANGELOG.
+
+### Documentation
+
+- **ADR-121~127 part-supersede addendum**: 7 ADR 본문 상단 Status block 다음에 "Superseded in part by ADR-128 (cloud transport boundary 부분, 2026-05-12)" 1줄 추가. ADR-123 은 "Superseded in full" (cloud `documents` row schema 자체가 dead). ADR 본문 Status 자체는 Implemented 유지 (반복적 part-supersede 는 본 ADR 만으로 충분).
+- `docs/adr/README.md` 의 ADR-128 entry Proposed → Implemented (`completed/` archive) + ADR-127 비고에 part-supersede 표시.
+- `docs/adr/128-supabase-backend-decommission.md` → `docs/adr/completed/128-supabase-backend-decommission.md` 이동.
+
+### Fixed (사용자-가시 영향 없음)
+
+- 회귀 검증: MCP 브라우저 smoke 시나리오 (create / edit / undo) PASS, 콘솔 에러 0건, cloud 호출 0건.
+- vitest canonical test 30/30 PASS (`legacyElementSanitizer` + `canonicalMutations` + `pageFrameBinding`).
+
 ## [apps/builder type-check governance — references-only silent pass 본질 fix] - 2026-05-12
 
 ### Infrastructure

@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-11
 
+> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (cloud-only boundary 18 file 부분, 2026-05-12)** — Element 타입 Deprecate 결정 자체는 유효, 본 ADR 이 명시한 "boundary 18 file 유지" 중 cloud transport 영역 (legacyElementsApiService / projectSync / cloud adapter) 는 dead 로 전면 제거됨.
+
 최종 판정 (2026-05-11): 설계 자체는 목적에 맞고 G6 final verification 까지
 닫혔다. ADR-122 residual 순서인 runtime source 제거 → derived view 축소 →
 compatibility/boundary quarantine 과 정합하며, 즉시 타입 삭제 대신 consumer별

@@ -161,25 +161,43 @@ Phase 1 cloud 호출 제거 후 잔존 dead file 일괄 제거. sub-phase 분해
 
 Phase 1~4 완료 후 두 baseline 동시 refresh + 측정:
 
-### 5-A. Type-error baseline 측정
+### 5-A. Type-error baseline 측정 (실측 2026-05-12)
 
-- Phase 1 dead code 9 호출 + Phase 2 cloud adapter 제거 → `apps/builder/.type-errors-baseline.txt` 자동 감소량 측정
 - 측정 방법: `cd apps/builder && pnpm exec tsc -p tsconfig.app.json --noEmit 2>&1 | grep "error TS" | wc -l`
-- baseline (Phase 0): **699 에러**
-- 목표 추정: G1 (snake_case 227) 의 cloud-dead 기인 부분 자동 해소 — **-100~-150 추정** (정확한 비율은 측정으로 확정)
-- 자동 감소 후 잔존 type 에러는 진정한 stale 마이그레이션 영역 (canonical-native schema 정합 작업)
-- 잔존 에러의 ADR 매핑 갱신 — 메모리 `project-type-baseline-categories.md` 의 G1/G2 재분류
+- baseline:
+  - Phase 0 시점: **699**
+  - Phase 1 land 후 (`704350cbb`): **695** (-4)
+  - Phase 2 land 후 (`a58ae1975`): **683** (-12 vs Phase 1, **-16 cumulative vs Phase 0**)
+- 목표 추정 (-100~-150) 대비 실측 (-16): **목표 미달**. 원인 분석:
+  - G1 (snake_case 227건) 중 production code 35건 + test 190건 분포에서 cloud-dead 직접 기인은 주로 production. test 의 G1 은 schema 호환 보존 fixture 로 본 ADR scope 외.
+  - production 35건 중 본 phase 가 흡수한 cloud-dead 는 dbPersistence / cloud adapter file / wrapper API 영역의 ~16건. 잔존 ~19건은 historyActions 의 legacy snake_case (`order_num` / `page_id` / `layout_id`) 잔존 — ADR-116 후속 phase 정리 대상.
+- 잔존 type 에러는 진정한 stale 마이그레이션 영역 (canonical-native schema 정합 작업) — 메모리 `project-type-baseline-categories.md` 의 G1/G2 재분류 후 ADR-116 후속 phase 정확한 scope 결정 입력
 
 ### 5-B. 번들 사이즈 baseline 측정 (R6 반영)
 
 본 ADR Consequences/Positive 의 "번들 사이즈 감소" 주장을 정량 검증.
 
-**baseline 측정 (Phase 0 시점)**:
+**baseline 측정 (Phase 2 land 후, 2026-05-12)**:
 
-- 측정 방법: `pnpm build` 후 `apps/builder/dist/assets/` 내 production chunk 사이즈 합산
-  - 명령어: `du -ch apps/builder/dist/assets/*.js | tail -1` (총 JS chunk gzipped)
-  - 보조: `ls -lh apps/builder/dist/assets/index-*.js apps/builder/dist/assets/vendor-*.js` (개별 chunk)
-- baseline 값: Phase 0 inventory 시점에 측정 후 본 §5-B 에 기록 (TBD — Phase 1 진입 직전 확정)
+Phase 0 / Phase 1 시점은 prod build 가 누적 baseline 정합 사유 (`tsc -b` strict) 로 정상 산출 못 함. Phase 2 land 후 `pnpm exec vite build` 만 사용 (tsc 우회) 으로 실측. **Phase 0 절대 baseline 부재로 인해 본 측정은 "ADR-128 land 후 size" 단일 snapshot**.
+
+- 측정 명령: `pnpm exec vite build && find apps/builder/dist -name "*.js" -type f | xargs -I{} gzip -c {} | wc -c`
+- 실측 값 (`a58ae1975` HEAD):
+  - 총 JS chunk **raw**: 5,621,890 bytes (~5,490 KB / **5.4 MB**)
+  - 총 JS chunk **gzipped**: 1,560,678 bytes (~1,524 KB / **1.5 MB**)
+  - Top chunk: `main-Cv6dyOXM.js` 2.3 MB raw
+
+**추정 감소량 정합 평가**:
+
+| 제거 영역                                                  | 추정 raw 크기           | 실측 비교                                                                                                                  |
+| ---------------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| legacyElementsApiService.ts                                | ~9.4KB raw              | dead 제거                                                                                                                  |
+| ProjectsApiService / DocumentsApiService / PagesApiService | ~13.2KB raw 합          | dead 제거                                                                                                                  |
+| BaseApiService.ts                                          | ~7.5KB raw              | dead 제거                                                                                                                  |
+| projectSync.ts + projectMerger.ts                          | ~18.4KB raw 합          | dead 제거                                                                                                                  |
+| 9 supabase.from 호출 위치 inline 코드 (Phase 1 분)         | 추정 수 KB              | Phase 1 commit message 명시 ~480 line                                                                                      |
+| @supabase/supabase-js tree-shaking 효과                    | ~10-30KB 감소 추정 (gz) | auth-only 사용으로 일부 module dead                                                                                        |
+| **총 추정 (gzipped)**                                      | **-15KB ~ -40KB**       | **목표 정합 영역 — Phase 0 baseline 부재로 절대 정량 검증 불가**, 본 phase 산출물은 land-후 reference baseline 으로 freeze |
 
 **목표 추정 (Phase 1~2 합산)**:
 

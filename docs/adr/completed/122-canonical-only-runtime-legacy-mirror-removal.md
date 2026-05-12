@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-09
 
+> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (cloud transport boundary 부분, 2026-05-12)** — canonical-only runtime + legacy mirror 제거 자체는 유효, `exportLegacyDocument()` 의 "cloud/export/import/temporary compatibility boundary" 명분 중 cloud transport 부분은 stale (file export 시나리오는 유지).
+
 Closure snapshot:
 
 - Completed phases: G0-G6.

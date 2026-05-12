@@ -6,6 +6,8 @@
 
 Implemented — 2026-05-10
 
+> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (cloud transport 영향 부분, 2026-05-12)** — canonical traversal helper + scene model 재설계 자체는 유효, 본 ADR 이 cloud transport boundary 정합을 가정한 design 일부는 stale.
+
 진행 로그:
 
 - 2026-05-10 Proposed 발의 — ADR-126 Phase 2 진입 직전 framing 4 의문 raise 결과 base ADR 분리

@@ -2,7 +2,24 @@
 
 ## Status
 
-Proposed — 2026-05-12
+Implemented — 2026-05-12
+
+진행 로그:
+
+- 2026-05-12 Proposed (codex review 0/0 — single-author 본문, 사용자 explicit base scope confirm)
+- 2026-05-12 Phase 1 land (`704350cbb`) — builder canvas 영역 cloud 호출 제거 (옵션 A): marginCollapseAudit / dbPersistence / historyActions cloud 25+ 호출 / TableEditor / TableHeaderEditor / PropertiesPanel / useCollectionItemManager / ComponentFactory / TableComponents. type-error baseline 699→695 (-4)
+- 2026-05-12 Phase 2 land (`a58ae1975`) — cloud adapter + projectSync/projectMerger 전수 제거 (단일 작업):
+  - canonical mutation cloud boundary 해체 (canonicalMutations 의 createElement/updateElement/createMultipleElements Primary wrapper 3개 + elements.ts / useIframeMessenger.ts 의 element-level cloud persistence 호출 제거)
+  - cloud-only file 삭제 11개: legacyElementsApiService / BaseApiService / ProjectsApiService / PagesApiService / DocumentsApiService / projectSync / projectMerger + 관련 boundary/sync test 4건
+  - dashboard cloud UI 제거 (~470→~250 line) — cloud filter / Sync to cloud / Download from cloud / cloud project query / merge / cloud branch 전체 제거, IndexedDB-only dashboard 로 단순화
+  - TokenService IndexedDB-native 통일 (Phase 3 narrow scope 의 design_tokens 흡수) — BaseApiService extends 해제, createToken/updateToken/deleteToken IndexedDB 전환
+  - legacyElementSanitizer: SupabaseElement type + sanitizeElementForSupabase 함수 제거
+  - usePageManager: ApiPage 를 file-local interface 로 inline / BuilderCore: Project type local 정의 / urlGenerator: Page → UrlPage 통일
+  - type-error baseline 695→683 (-12, -16 cumulative)
+- 2026-05-12 Phase 3 결정 lock-in — `exportLegacyDocument()` + `legacyToCanonical()` file export/import 시나리오 유지 (JSON 파일 IndexedDB round-trip 의도로 재정의), TokenService 는 Phase 2 commit 에서 IndexedDB-native 흡수 완결
+- 2026-05-12 Phase 4 land — ADR-121~127 Status block 에 "Superseded in part by ADR-128" 1-line addendum 추가 (ADR-123 은 in full)
+- 2026-05-12 Phase 5 baseline 측정 — type-error 683 / 번들 raw 5.4MB / gzipped 1.5MB 산출. Phase 0 절대 baseline 부재로 본 측정은 "ADR-128 land 후 reference baseline"
+- 2026-05-12 Phase 6 final freeze — `.type-errors-baseline.txt` 683 freeze + Status Implemented 승격 + README + CHANGELOG
 
 ## Context
 
