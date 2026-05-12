@@ -2,7 +2,18 @@
 
 ## Status
 
-Proposed — 2026-05-12
+Accepted — 2026-05-13 (Phase 0-6 land + G1-G4 PASS)
+
+진행 로그:
+
+- 2026-05-12 — ADR 본문 발의 (Proposed) + design breakdown land
+- 2026-05-13 — Phase 0 inventory baseline freeze (HEAD `5a4eab270`)
+- 2026-05-13 — Phase 1 schema land G1 PASS (HEAD `7c7bd69b0`) — `CompositionDocument.events|data|actions` root field + `SerializedEvent / SerializedData / SerializedAction` 신규 타입 + ADR-116 `CompositionExtension` 영역 `@deprecated ADR-131` 마커
+- 2026-05-13 — Phase 2 adapter migration G2 PASS (HEAD `b51aea868`) — `rootCollectionMigration.ts` round-trip helper (17/17 PASS)
+- 2026-05-13 — Phase 3 store/bridge API land (HEAD `7b6bf2057`) — `setEvents/Data/Actions + update/add/remove` mutation + `useDocumentEvents/Data/Actions / useEventsForTarget` hook (11/11 PASS)
+- 2026-05-13 — Phase 4 consumer rewrite (dual-write) (HEAD `2e20fe393`) — Inspector mutation 5 함수 + AI createElement.ts → root collection mirror sync
+- 2026-05-13 — Phase 5 Inspector UI 3 panel G3 PASS (code-side) (HEAD `80199c8a6`) — `DataPanel` + `ActionsPanel` 신규 + `PanelId` union 확장
+- 2026-05-13 — Phase 6 ADR-116 §3 cleanup G4 PASS — ADR-116 본문 §3 + design breakdown §3 partial supersede 마커 + `adr131XCompositionGrepGate.test.ts` grep gate (production runtime direct access 0건 차단 — boundary allowlist 외)
 
 ## Context
 

@@ -109,6 +109,8 @@ interface CompositionExtendedNode extends CanonicalNode {
 | `metadata.composition` | 기존 `metadata` 활용 가능                                | `metadata.type` 계약과 섞이고 app behavior가 metadata로 과적재됨 | 기각 |
 | `props.events`         | 기존 renderer path와 가까움                              | function callback/React props와 혼동, core/behavior 경계 붕괴    | 기각 |
 
+> **Partially superseded by [ADR-131](../131-events-data-actions-first-class-collections.md) (2026-05-13)** — `x-composition.events` / `actions` / `dataBinding` 채택 결정은 root collection 분리 (ADR-131 대안 A) 로 격하. 본 §3 결정 근거 ("Pencil-compatible core 와 분리") 는 Pencil 정통에 events / data / actions 카테고리 자체가 없다는 점을 반영하지 못한 framing 이었음 (ADR-131 §Context 참조). `editor` namespace 영역만 본 §3 결정 유지.
+
 규칙:
 
 1. function callback은 serialize하지 않는다.

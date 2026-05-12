@@ -311,6 +311,7 @@ ADR-903은 `CompositionDocument` canonical format, `reusable/ref/descendants/slo
 3. **Component props 위치 확정** — `Button`, `TextField`, `Section` 같은 component semantics는 `metadata.legacyProps`가 아니라 `CanonicalNode.props?: Record<string, unknown>`에 저장한다. `metadata.legacyProps`는 transition adapter 출력일 뿐 최종 SSOT가 아니다.
 4. **Hot path projection 금지** — drag, selection, canvas render, preview sync, layer tree update 같은 고빈도 경로에서 `legacyToCanonical()` 전체 문서 재구성을 호출하지 않는다.
 5. **Core vs extension 경계 명시** — canonical core에는 문서 구조 문법과 component props만 둔다. Composition app behavior(`events`, `actions`, `dataBinding`, editor state)는 namespaced extension으로 분리한다.
+   > **Partially superseded by [ADR-131](../131-events-data-actions-first-class-collections.md) (2026-05-13)** — `events` / `actions` / `dataBinding` 영역은 `CompositionDocument.events` / `actions` / `data` root collection 으로 격하되었다. Pencil format 정통에 events / data / actions 카테고리가 없으므로 namespace extension 보다 root collection 분리가 본질 정합 (ADR-110 themes/variables 패턴 정합). `editor` namespace 영역만 본 §3 결정 유지.
 6. **신규 format 직접 전환** — 개발 단계에서는 기존 프로젝트 read-through/rollback 보장을 목표로 두지 않는다. 신규 write는 canonical document를 우선하고, legacy payload는 export/adapter 경계에서만 생성한다.
 7. **역방향 adapter 명시** — canonical primary 저장으로 전환하기 전에 `CompositionDocument -> legacy elements[]/pages[]/layouts[]` export adapter와 roundtrip 검증이 존재해야 한다.
 8. **시각/데이터 회귀 0** — 전환 후 기존 샘플 프로젝트와 사용자 프로젝트의 Skia/Preview/Publish 렌더 결과와 slot/ref editing semantics가 보존되어야 한다.
