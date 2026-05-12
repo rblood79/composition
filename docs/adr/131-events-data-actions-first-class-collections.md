@@ -15,6 +15,7 @@ Accepted — 2026-05-13 (Phase 0-6 land + G1-G4 PASS)
 - 2026-05-13 — Phase 5 Inspector UI 3 panel G3 PASS (code-side) (HEAD `80199c8a6`) — `DataPanel` + `ActionsPanel` 신규 + `PanelId` union 확장
 - 2026-05-13 — Phase 6 ADR-116 §3 cleanup G4 PASS — ADR-116 본문 §3 + design breakdown §3 partial supersede 마커 + `adr131XCompositionGrepGate.test.ts` grep gate (production runtime direct access 0건 차단 — boundary allowlist 외)
 - 2026-05-13 — Phase 7 IndexedDB store land (design §4 D1=(a) → (b) swap) — `design_themes / variables / data_tables / api_endpoints / transformers` 패턴 정합. DB_VERSION 15 → 16 + `events / data / actions` store 3개 신규 (keyPath:`id`, index:`project_id` / `target` (events) / `kind` (3 stores)). `persistActiveCanonicalDocument` 가 canonical document save 시 root collection field 를 별 store 로 fan-out sync (full-set replacement, dev data 0 가정). 사용자 framing trigger: "design_themes 등은 빈 테이블인데 생성되어있음" 발언. DevTools 표시 + cross-project query 일관성.
+- 2026-05-13 — Phase 7-revert (사용자 framing 정정) — `data` store 가 기존 `data_tables` / `api_endpoints` 와 중복 개념. DB_VERSION 16 → 17 + `data` store deleteObjectStore + `SerializedDataRecord` / `db.data` adapter CRUD 제거 + `syncRootCollectionsToIndexedDB` 의 data 영역 제거. `events / actions` 별 store 는 정당 (기존 미존재) — 유지. `CompositionDocument.data` root field / `SerializedData` type / `DataPanel` / `useDocumentData` 는 schema 영역에서 별도 framing 정리 (현 commit scope 외 — element.dataBinding 의 root projection 의도 vs data_tables 통합 vs 전수 revert 결정 분기). metaStore.test DB_VERSION assertion 16→17 update.
 
 ## Context
 

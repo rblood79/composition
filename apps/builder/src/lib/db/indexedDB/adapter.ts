@@ -12,7 +12,6 @@ import type {
   Project,
   CanonicalDocumentRecord,
   SerializedActionRecord,
-  SerializedDataRecord,
   SerializedEventRecord,
 } from "../types";
 import type { DesignToken, DesignTheme } from "../../../types/theme";
@@ -26,7 +25,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 16; // ADR-131 Phase 7: events/data/actions root collection stores.
+const DB_VERSION = 17; // ADR-131 Phase 7-revert: data store 제거 (data_tables 중복).
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -315,9 +314,15 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: transformers");
         }
 
-        // ADR-131 Phase 7 — events / data / actions root collection stores
+        // ADR-131 Phase 7 — events / actions root collection stores
         // (design §4 D1=(b) — design_themes / variables / data_tables /
         //  api_endpoints / transformers 패턴 정합)
+        //
+        // **data store 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing 정정으로
+        // `data` store 는 기존 `data_tables` / `api_endpoints` 와 중복 개념으로
+        // 판정 → 본 upgrade path 에서 제거. `CompositionDocument.data` root field 와
+        // `SerializedData` type 은 schema 영역에서 별도 framing 정리 (현 commit
+        // scope 외). DB_VERSION 16 의 (단명 land) `data` store 는 17 에서 drop.
         if (!db.objectStoreNames.contains("events")) {
           const eventsStore = db.createObjectStore("events", {
             keyPath: "id",
@@ -330,11 +335,13 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: events");
         }
 
-        if (!db.objectStoreNames.contains("data")) {
-          const dataStore = db.createObjectStore("data", { keyPath: "id" });
-          dataStore.createIndex("project_id", "project_id", { unique: false });
-          dataStore.createIndex("kind", "kind", { unique: false });
-          console.log("[IndexedDB] Created store: data");
+        // DB_VERSION 16 에서 단명 생성된 `data` store 를 17 에서 drop.
+        // 사용자 framing — `data_tables` / `api_endpoints` 와 중복 개념.
+        if (db.objectStoreNames.contains("data")) {
+          db.deleteObjectStore("data");
+          console.log(
+            "[IndexedDB] Deleted store: data (ADR-131 Phase 7-revert)",
+          );
         }
 
         if (!db.objectStoreNames.contains("actions")) {
@@ -1022,52 +1029,8 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
   };
 
-  data = {
-    insert: async (
-      record: SerializedDataRecord,
-    ): Promise<SerializedDataRecord> => {
-      await this.putToStore("data", record);
-      return record;
-    },
-
-    update: async (
-      id: string,
-      patch: Partial<SerializedDataRecord>,
-    ): Promise<SerializedDataRecord> => {
-      const existing = await this.data.getById(id);
-      if (!existing) throw new Error(`Data ${id} not found`);
-      const updated: SerializedDataRecord = {
-        ...existing,
-        ...patch,
-        id: existing.id,
-        type: "data",
-      };
-      await this.putToStore("data", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("data", id);
-    },
-
-    getById: async (id: string): Promise<SerializedDataRecord | null> => {
-      return this.getFromStore<SerializedDataRecord>("data", id);
-    },
-
-    getByProject: async (
-      projectId: string,
-    ): Promise<SerializedDataRecord[]> => {
-      return this.getAllByIndex<SerializedDataRecord>(
-        "data",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getAll: async (): Promise<SerializedDataRecord[]> => {
-      return this.getAllFromStore<SerializedDataRecord>("data");
-    },
-  };
+  // ADR-131 Phase 7-revert (2026-05-13): `data` store 제거 — 기존 `data_tables`
+  // / `api_endpoints` 와 중복 개념. DB_VERSION 17 에서 deleteObjectStore.
 
   actions = {
     insert: async (

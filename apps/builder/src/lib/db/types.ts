@@ -15,7 +15,6 @@ import type {
 import type {
   CompositionDocument,
   SerializedAction,
-  SerializedData,
   SerializedEvent,
 } from "@composition/shared";
 
@@ -40,15 +39,17 @@ export interface CanonicalDocumentRecord {
 
 // === ADR-131 — Root collection store records ===
 //
-// 각 store row 는 SerializedEvent/Data/Action 본체 + `project_id` 필드.
+// 각 store row 는 SerializedEvent/Action 본체 + `project_id` 필드.
 // IndexedDB index = `project_id` (cross-project 분리), `target` (events 전용),
-// `kind` (3 store 공통).
+// `kind` (events / actions 공통).
+//
+// **`SerializedDataRecord` 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing
+// 정정 — `data` store 는 기존 `data_tables` / `api_endpoints` 와 중복 개념.
+// DB_VERSION 17 에서 data store deleteObjectStore + 본 type 제거.
+// `SerializedData` schema 와 `CompositionDocument.data` root field 는 schema
+// 영역에서 별도 framing 정리 (현 commit scope 외).
 
 export interface SerializedEventRecord extends SerializedEvent {
-  project_id: string;
-}
-
-export interface SerializedDataRecord extends SerializedData {
   project_id: string;
 }
 
@@ -172,18 +173,8 @@ export interface DatabaseAdapter {
     getAll(): Promise<SerializedEventRecord[]>;
   };
 
-  // ADR-131 Phase 7 — Data root collection store
-  data: {
-    insert(record: SerializedDataRecord): Promise<SerializedDataRecord>;
-    update(
-      id: string,
-      patch: Partial<SerializedDataRecord>,
-    ): Promise<SerializedDataRecord>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<SerializedDataRecord | null>;
-    getByProject(projectId: string): Promise<SerializedDataRecord[]>;
-    getAll(): Promise<SerializedDataRecord[]>;
-  };
+  // ADR-131 Phase 7-revert (2026-05-13): `data` store 부재 — 기존 `data_tables`
+  // / `api_endpoints` 와 중복 개념.
 
   // ADR-131 Phase 7 — Actions root collection store
   actions: {

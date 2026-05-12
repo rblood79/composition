@@ -433,12 +433,9 @@ async function syncRootCollectionsToIndexedDB(
     await db.events.insert({ ...ev, project_id: projectId });
   }
 
-  // Data
-  const existingData = await db.data.getByProject(projectId);
-  await Promise.all(existingData.map((d) => db.data.delete(d.id)));
-  for (const d of doc.data ?? []) {
-    await db.data.insert({ ...d, project_id: projectId });
-  }
+  // Data — 별 store 부재 (Phase 7-revert): `data_tables` / `api_endpoints` 와
+  // 중복 개념. `doc.data` 는 canonical document root field 로만 보존, 별 store
+  // fan-out 없음. schema 영역 추가 framing 정정 시 별도 처리.
 
   // Actions
   const existingActions = await db.actions.getByProject(projectId);

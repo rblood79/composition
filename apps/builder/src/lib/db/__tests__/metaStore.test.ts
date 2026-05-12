@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { stripLegacyOrderPayload } from "../indexedDB/adapter";
 
 describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
-  it("DB_VERSION 이 16 로 갱신된다 (ADR-131 events/data/actions stores)", async () => {
+  it("DB_VERSION 이 17 로 갱신된다 (ADR-131 Phase 7-revert: data store 제거)", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const source = await fs.readFile(filePath, "utf-8");
-    expect(source).toMatch(/const DB_VERSION\s*=\s*16\b/);
+    expect(source).toMatch(/const DB_VERSION\s*=\s*17\b/);
   });
 
   it("documents primary store 와 메서드 그룹이 추가된다", async () => {
