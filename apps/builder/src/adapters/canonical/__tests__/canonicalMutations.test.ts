@@ -16,11 +16,32 @@ import {
 } from "../canonicalMutations";
 import { exportLegacyDocument } from "../exportLegacyDocument";
 
+/**
+ * Legacy roundtrip fixture types.
+ *
+ * `exportLegacyDocument` 가 보존해야 할 legacy JSON shape (`order_num` /
+ * `layout_id` / `slot_name` / `componentRole` / `masterId`) 를 검증하기 위한
+ * test-only 확장 타입. ADR-126 Phase 6 에서 `Element` interface 가 canonical-
+ * native 로 정리되면서 이 필드들은 runtime 타입에서 제거되었으나, JSON export/
+ * import boundary 에서는 외부 호환을 위해 metadata.legacyProps 에 보존된다.
+ */
+type LegacyTestElement = Element & {
+  order_num?: number;
+  layout_id?: string | null;
+  slot_name?: string | null;
+  componentRole?: string | null;
+  masterId?: string | null;
+  overrides?: Record<string, unknown>;
+  descendants?: Record<string, unknown>;
+};
+
+type LegacyTestPage = Page & { order_num?: number };
+
 function makeElement(
   id: string,
   type: string,
-  patch: Partial<Element> = {},
-): Element {
+  patch: Partial<LegacyTestElement> = {},
+): LegacyTestElement {
   return {
     id,
     type,
@@ -30,17 +51,17 @@ function makeElement(
     layout_id: null,
     order_num: 0,
     ...patch,
-  } as Element;
+  } as LegacyTestElement;
 }
 
-function makePage(id: string): Page {
+function makePage(id: string): LegacyTestPage {
   return {
     id,
     title: id,
     project_id: "project-1",
     slug: `/${id}`,
     order_num: 0,
-  } as Page;
+  } as LegacyTestPage;
 }
 
 function makeLayout(id: string): Layout {
@@ -51,15 +72,28 @@ function makeLayout(id: string): Layout {
   };
 }
 
-function makeDocument(children: CompositionDocument["children"] = []) {
+/**
+ * makeDocument — test fixture 용 CompositionDocument builder.
+ *
+ * `children` 의 타입을 의도적으로 `Array<Record<string, unknown>>` 로 느슨하게
+ * 받는다. canonical `CompositionDocument["children"]` 은 `FrameNode | RefNode`
+ * union 이지만, fixture 가 inline literal 로 union 의 한 member (`ref` /
+ * `placeholder` 등) 를 작성할 때 TypeScript 가 narrow 하지 못해 excess
+ * property check 가 발동한다. legacy roundtrip 검증 의도상 type 강제는
+ * `exportLegacyDocument` 실행 시점에 충분히 보장되므로, fixture builder 는
+ * loose-typed object 를 받고 결과만 satisfies 로 검증한다.
+ */
+function makeDocument(
+  children: Array<Record<string, unknown>> = [],
+): CompositionDocument {
   return {
     version: "composition-1.0",
-    children,
+    children: children as unknown as CompositionDocument["children"],
   } satisfies CompositionDocument;
 }
 
 function makeCanonicalElementNode(
-  element: Element,
+  element: LegacyTestElement,
   children: CompositionDocument["children"] = [],
 ): CompositionDocument["children"][number] {
   return {
@@ -69,13 +103,9 @@ function makeCanonicalElementNode(
     metadata: {
       type: "legacy-element-props",
       sourceParentId: element.parent_id,
-      sourceSlotName: (element as Element & { slot_name?: string | null })
-        .slot_name,
-      sourceComponentRole: (
-        element as Element & { componentRole?: string | null }
-      ).componentRole,
-      sourceMasterId: (element as Element & { masterId?: string | null })
-        .masterId,
+      sourceSlotName: element.slot_name,
+      sourceComponentRole: element.componentRole,
+      sourceMasterId: element.masterId,
       sourceElementType: element.type,
       sourceOrderNum: element.order_num,
       legacyProps: {
@@ -156,7 +186,7 @@ describe("canonical mutation wrappers", () => {
       { ...makePage("page-home"), title: "Home", slug: "/", order_num: 0 },
       { ...makePage("page-two"), title: "Page 2", order_num: 1 },
       { ...makePage("page-three"), title: "Page 3", order_num: 2 },
-    ] as Page[];
+    ] as unknown as Page[];
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     registerCanonicalMutationStoreActions({
       getCurrentLegacySnapshot: () => ({
@@ -429,7 +459,7 @@ describe("canonical mutation wrappers", () => {
     const result = applyElementOrderCanonicalPrimary([
       { ...childB, order_num: 0 },
       { ...childA, order_num: 1 },
-    ]);
+    ] as unknown as Element[]);
 
     const nextDoc = useCanonicalDocumentStore
       .getState()
