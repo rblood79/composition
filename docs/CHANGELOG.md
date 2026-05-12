@@ -14,6 +14,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: targeted Vitest 6 files / 28 tests PASS, `pnpm run codex:typecheck` PASS, `pnpm run codex:preflight` PASS, `git diff --check` PASS.
   - 로컬 서버 `http://127.0.0.1:5173` 는 응답 확인. Builder 내부 시각 smoke 는 `/signin` 인증 화면에서 차단되어 자동 실행하지 못했다.
 
+- **`SkiaRendererInput.elementsMap` → `renderNodesMap` 리네이밍 누락 production caller 2건 수정**:
+  - `BuilderCanvas.tsx:527` 가 `elementsMap: sceneNodesMap` 으로 옛 key 를 전달 → `buildPageResolvedRenderTree` 의 `input.renderNodesMap.values()` 에서 TypeError → Builder mount crash.
+  - `SkiaCanvas.tsx:691` 가 `currentRendererInput.elementsMap` 으로 미존재 필드 접근 → `buildSelectionRenderData` 의 `elementsMap.get(id)` 에서 TypeError → frame plan build crash.
+  - **Why**: 직전 인터페이스 리네이밍 commit (`5c8f76057`) 이 test fixture 는 갱신했으나 production caller 2건을 누락. `useRef(rendererInput)` inferred type 약화로 type-check 가 잡지 못함.
+  - 위치: `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx`, `apps/builder/src/builder/workspace/canvas/skia/SkiaCanvas.tsx`.
+
+- **Page Properties 패널에서 Frame 등록 시 page 투명 + Frame slot 사라짐 + Layers body 중복 회귀 수정** (ADR-116 transitional 영역):
+  - root cause: scene graph ↔ canonical document SSOT 정합 3-layer gap.
+  - **L1 — `isPagePlaceholderNode`**: `ref + metadata.layoutId` 조합 (frame-bound page ref) 을 일반 page placeholder 와 혼동 → `isRenderableRef = false` → page ref 가 scene 에서 제외 → Frame slot 사라짐.
+  - **L2 — `getNodeScope`**: frame-bound page ref 에 pageId scope 미부여 → descendants 의 pageId null → page 내 element 가 `buildCanvasScenePageIndex` 진입 실패.
+  - **L3 — `toCanvasSceneNode` null guard**: master reusable frame 이 `props` 없어 scene 에서 제외 → `resolveCanonicalRefMaster` lookup 실패 → synthetic children 미생성 → Skia 빈 페이지.
+  - 수정: (a) `isPagePlaceholderNode` 가 `isPageMeta && !isBoundRef` 로 frame-bound page ref 를 제외 (b) `getNodeScope` 에 frame-bound page ref 의 pageId scope 유지 분기 추가 (c) `buildCanvasSceneGraph(doc, options)` 에 `includeReusableFrames?: boolean` 옵션 추가 — `canonicalSceneModel.ts:162` 의 rendererInput 빌드 경로만 `true` 전달 / Layers · 일반 view 는 default `false` (master 제외) 로 Layers body 중복 차단.
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts`.
+  - 회귀 차단: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.test.ts` 신규 — `includeReusableFrames` 옵션 행동 + frame-bound page ref scope 보존 + master children 의 pageIndex 제외 + 일반 page 영향 없음 5개 case fixture.
+  - 검증: `pnpm type-check` 3/3 PASS, 신규 fixture 5/5 PASS. Builder 시각 smoke 는 사용자 환경 brwoser 검증 필요.
+
 ## [ADR-126 Implemented 승격 + completed archive] - 2026-05-11
 
 ### Architecture
