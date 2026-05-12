@@ -324,13 +324,13 @@ src/builder/stores/__tests__/rootStoreAccess.test.ts(13,5): error TS2353: Object
 src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(154,26): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
 src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(206,26): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
 src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(41,3): error TS2820: Type '"Frame"' is not assignable to type 'ComponentTag'. Did you mean '"frame"'?
-src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(447,28): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
-src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(487,56): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
-src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(531,28): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
-src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(569,30): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
-src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(572,30): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
-src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(676,28): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
-src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(759,55): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
+src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(451,28): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
+src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(491,56): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
+src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(535,28): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
+src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(573,30): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
+src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(576,30): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
+src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(680,28): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
+src/builder/stores/canonical/__tests__/canonicalDocumentStore.test.ts(763,55): error TS2345: Argument of type '"Frame"' is not assignable to parameter of type 'ComponentTag | undefined'.
 src/builder/stores/canonical/__tests__/canonicalElementsBridge.test.tsx(35,5): error TS2322: Type '"element"' is not assignable to type 'ComponentTag'.
 src/builder/stores/canonical/__tests__/canonicalElementsBridge.test.tsx(45,5): error TS2353: Object literal may only specify known properties, and 'schemaVersion' does not exist in type 'CompositionDocument'.
 src/builder/stores/canonical/__tests__/canonicalElementsView.test.ts(123,13): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?

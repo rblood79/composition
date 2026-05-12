@@ -345,7 +345,9 @@ describe("canonicalDocumentStore — updateNodeExtension", () => {
 
     useCanonicalDocumentStore.getState().updateNodeExtension("button-1", {
       events: [{ kind: "onPress", actionRef: "action-1" }],
-      actions: [{ id: "action-1", kind: "navigate", target: "/home" }],
+      actions: [
+        { id: "action-1", type: "action", kind: "navigate", target: "/home" },
+      ],
       dataBinding: {
         type: "value",
         source: "state",
@@ -357,7 +359,9 @@ describe("canonicalDocumentStore — updateNodeExtension", () => {
     const extension = getExtension("button-1");
     expect(extension).toEqual({
       events: [{ kind: "onPress", actionRef: "action-1" }],
-      actions: [{ id: "action-1", kind: "navigate", target: "/home" }],
+      actions: [
+        { id: "action-1", type: "action", kind: "navigate", target: "/home" },
+      ],
       dataBinding: {
         type: "value",
         source: "state",

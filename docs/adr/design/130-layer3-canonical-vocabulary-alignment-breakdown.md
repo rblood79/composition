@@ -114,7 +114,7 @@ Gate G1 (CRITICAL): `pnpm build:specs` 통과 + 신규 test PASS + storybook 회
   - `createGroupDefinition` body 재정렬: `type: "Group"` → `type: "frame"` (line 16, 18 두 곳)
   - props 표준: `{ slot: false, clip: false, placeholder: false, style: { display: "flex", flexDirection: "column", gap: ... } }`
   - rename: `createFrameLayoutDefinition` (semantic-implementation 정합)
-- `apps/builder/src/builder/factories/ComponentFactory.ts:113`
+- `apps/builder/src/builder/factories/ComponentFactory.ts:112`
   - 옵션 A1 (권장): creator map key/method `Frame: createFrame`
   - 옵션 A2 (보수): key `Group` 유지 + method 가 `type: "frame"` 생성 (단기 호환, 장기 부채)
 - `apps/builder/src/builder/panels/components/ComponentList.tsx:88`
@@ -134,7 +134,7 @@ Gate G2: factory unit test PASS + palette 클릭 → frame 생성 통합 검증.
     - **Why**: migration 후 잔존 legacy `Group` + 신규 `frame` 공존 transitional period 동안 next-id 계산이 양쪽 count 해야 `group_N` 중복 발급 방지. migration 완료 후 `Group` 분기 제거 (Phase 5 cleanup)
   - line 116: `type: "Group"` → `type: "frame"` (신규 group 생성 시 type)
   - **line 184 (NEW)**: `groupElement.type !== "Group"` ungroup validation guard → `groupElement.type !== "frame" && groupElement.type !== "Group"`
-- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx:1212`
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx:1183`
   - ungroup 버튼 UI guard: `selectedElement.type !== "Group"` → `selectedElement.type !== "frame" && selectedElement.type !== "Group"`
   - **Why**: legacy `Group` element 도 ungroup 동작 보장 (migration 보완)
 
@@ -146,12 +146,12 @@ Gate G3: `elementGrouping.test.ts` (없으면 신규) — group/ungroup 액션�
 
 작업:
 
-- `apps/builder/src/preview/App.tsx:623`
+- `apps/builder/src/preview/App.tsx:614-615`
   - preview switch: `case "Group": return "div";` → `case "Group": case "frame": return "div";`
   - **Why**: preview 가 type → HTML tag 결정 분기에서 frame 누락 시 frame 미렌더
-- `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts:1737`
+- `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts:1745`
   - `new Set(["Group"])` → `new Set(["Group", "frame"])` (정확한 set 명/사용처는 implementation 시 line 인접 코드 정독)
-- `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts:~580` (HIGH 점검)
+- `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts:2732` (HIGH 점검)
   - `if (type === "group")` (lowercase) bounding box 높이 계산 분기 의도 확인
   - (a) PascalCase "Group" 의도였다면 → `(type === "Group" || type === "frame")` 정정
   - (b) lowercase pencil "group" 의도였다면 → lowercase "frame" 도 추가

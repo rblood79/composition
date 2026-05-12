@@ -412,6 +412,39 @@ export interface CompositionDocument {
 
   /** canonical 노드 트리 */
   children: CanonicalNode[];
+
+  /**
+   * 이벤트 선언 root collection — ADR-131 Phase 1.
+   *
+   * Pencil format 에 events 카테고리가 존재하지 않으므로 `x-composition.events`
+   * extension namespace 대신 root collection 분리 (ADR-110 themes/variables 패턴 정합).
+   *
+   * 각 `SerializedEvent.target` 이 UI node id 를 참조하며,
+   * `useEventsForTarget(nodeId)` 가 filter 한다.
+   *
+   * ADR-116 §3 `x-composition.events` 는 본 필드로 partial supersede 됨.
+   */
+  events?: SerializedEvent[];
+
+  /**
+   * 데이터 binding 선언 root collection — ADR-131 Phase 1.
+   *
+   * cross-node 공유 자원 성격이므로 root collection 위치가 자연.
+   * UI node `props.dataSource` 등이 `SerializedData.id` 를 string 으로 참조.
+   *
+   * ADR-116 §3 `x-composition.dataBinding` 는 본 필드로 partial supersede 됨.
+   */
+  data?: SerializedData[];
+
+  /**
+   * 액션 chain 선언 root collection — ADR-131 Phase 1.
+   *
+   * `SerializedAction.next[]` 으로 chain 구성. `SerializedEvent.actionRef` 가
+   * actions[].id 를 참조 (DAG validator Phase 3 진입).
+   *
+   * ADR-116 §3 `x-composition.actions` 는 본 필드로 partial supersede 됨.
+   */
+  actions?: SerializedAction[];
 }
 
 // ─────────────────────────────────────────────
@@ -454,40 +487,35 @@ export function migrate(
 /**
  * **ADR-116 G1 §3 채택안** — `x-composition` extension namespace.
  *
- * canonical core 는 Pencil 구조 정합 유지를 위해 Composition-only behavior
- * (event handler / data binding / workflow action / editor metadata) 를
- * core field 로 직접 추가하지 않는다. 대신 namespaced extension 으로 분리.
+ * @deprecated ADR-131 (2026-05-13) — `events` / `actions` / `dataBinding` 영역은
+ *   `CompositionDocument.events` / `actions` / `data` root collection 으로
+ *   partial supersede. `editor` 영역만 유지 (editor-only metadata).
  *
- * **저장 가능**:
- * - `events`: serialized event handler descriptor (callback 본문 아님)
- * - `actions`: workflow action sequence (function reference 아님)
- * - `dataBinding`: app data source binding 선언
- * - `editor`: editor-only metadata (selection state / panel collapsed 등)
+ *   Pencil format 정통에 events / data / actions 카테고리가 존재하지 않으므로
+ *   namespace extension 보다 root collection 분리가 본질 정합 (themes / variables
+ *   패턴 정합). 자세한 framing 정정은 ADR-131 §Context 참조.
  *
- * **저장 금지**:
- * - function callback / React element / runtime object
- * - hover visual state (이는 Spec/renderer state 이며 event 가 아님)
- *
- * **전환 규칙** (design §3 dual-storage inventory):
- * - 기존 top-level `Element.events` → `x-composition.events` 로 이동.
- *   legacy export 시 top-level 로 복원.
- * - 기존 `props.events` (Preview event handler path) → `x-composition.events`
- *   에서 preview adapter 가 event handler map 생성.
- * - 기존 `Element.dataBinding` / DB `data_binding` → `x-composition.dataBinding`
- *   으로 이동. legacy export 시 `data_binding` 으로 복원.
- * - 기존 Events Panel `actions` → `x-composition.events[].actions` 아래에 serialize.
- *
- * Phase 5 G7 Extension Boundary gate 충족 시점에 events/dataBinding/actions
- * 이 canonical core 에 직접 직렬화되는 0건 상태로 cutover.
+ * canonical core 는 Pencil 구조 정합 유지를 위해 Composition-only behavior 를
+ * core field 로 직접 추가하지 않았던 이전 결정. 본 namespace 의 events / actions /
+ * dataBinding 영역은 ADR-131 Phase 6 cleanup 에서 cutover 완료 후 제거 예정.
  */
 export interface CompositionExtension {
-  /** Serialized event handler descriptor (callback 함수 본문 직렬화 금지) */
+  /**
+   * @deprecated ADR-131 — `CompositionDocument.events` root collection 사용.
+   * Serialized event handler descriptor (callback 함수 본문 직렬화 금지)
+   */
   events?: SerializedEventHandler[];
 
-  /** App data source binding 선언 */
+  /**
+   * @deprecated ADR-131 — `CompositionDocument.data` root collection 사용.
+   * App data source binding 선언
+   */
   dataBinding?: SerializedDataBinding;
 
-  /** Workflow action sequence (function reference 아님) */
+  /**
+   * @deprecated ADR-131 — `CompositionDocument.actions` root collection 사용.
+   * Workflow action sequence (function reference 아님)
+   */
   actions?: SerializedAction[];
 
   /** Editor-only metadata (selection state 등) — runtime read/write 만 */
@@ -506,12 +534,17 @@ export interface CompositionExtendedNode extends CanonicalNode {
 }
 
 // ─────────────────────────────────────────────
-// ADR-116 G1 — Extension payload primitive type stubs
+// ADR-116 G1 — Extension payload primitive type stubs (deprecated by ADR-131)
 // ─────────────────────────────────────────────
 
 /**
+ * @deprecated ADR-131 — `SerializedEvent` (root collection) 사용. 본 type 은
+ *   `CompositionExtension.events` (deprecated) 의 element type. Phase 6 cleanup
+ *   에서 제거 예정. Phase 2 adapter 가 본 type ↔ `SerializedEvent` round-trip.
+ *
  * Phase 0 placeholder. Phase 5 G7 시점에 events/actions/dataBinding 의 정확한
- * serializer schema 가 확정되면 본 stub 을 구체 타입으로 교체.
+ * serializer schema 가 확정되면 본 stub 을 구체 타입으로 교체 — 의도였으나
+ * ADR-131 가 root collection 분리로 partial supersede.
  *
  * 현재 의도:
  * - `kind`: "onPress" / "onSelectionChange" 등 React Aria event name 직렬화
@@ -526,23 +559,114 @@ export interface SerializedEventHandler {
 }
 
 /**
- * Phase 0 placeholder. workflow action sequence 직렬화 stub.
- * Phase 5 G7 시점에 정확한 action schema 확정.
+ * Workflow action sequence 직렬화. ADR-131 Phase 1 — root collection
+ * `CompositionDocument.actions[]` 의 element type.
+ *
+ * `next[]` chain 으로 다른 action id 참조. Phase 3 runtime validator 에서
+ * DAG 검증 (순환 차단).
+ *
+ * function callback / React element / runtime object 직렬화 금지.
  */
 export interface SerializedAction {
+  /** stable id — `SerializedEvent.actionRef` / 다른 action `next[]` 참조 대상 */
   id: string;
+  /** discriminator — 본 type 의 root collection 정체성 명시 */
+  type: "action";
+  /** action 종류 (`"navigate"` / `"setValue"` / `"fetch"` / ...) */
   kind: string;
+  /** action-specific 설정 (`ActionConfig` 매핑 placeholder) */
+  config?: Record<string, unknown>;
+  /** chain — 다음에 실행할 action id 들 (DAG, 순환 차단) */
+  next?: string[];
+  /** 미래 확장 슬롯 (예: `delay`, `condition`) */
   [k: string]: unknown;
 }
 
 /**
- * Phase 0 placeholder. data binding 선언 직렬화 stub.
+ * @deprecated ADR-131 — `SerializedData` (root collection) 사용. 본 type 은
+ *   `CompositionExtension.dataBinding` (deprecated) 의 payload type. Phase 6
+ *   cleanup 에서 제거 예정. Phase 2 adapter 가 본 type ↔ `SerializedData`
+ *   round-trip.
+ *
  * legacy `DataBinding` (`apps/builder/src/types/builder/unified.types.ts`) 를
- * 그대로 받아오는 구조. Phase 5 G7 시점에 D2 Props/API 매핑 정합화.
+ * 그대로 받아오는 구조.
  */
 export interface SerializedDataBinding {
   type: "collection" | "value" | "field";
   source: string;
   config: Record<string, unknown>;
+  [k: string]: unknown;
+}
+
+// ─────────────────────────────────────────────
+// ADR-131 Phase 1 — Root Collection Primitive Types
+// ─────────────────────────────────────────────
+
+/**
+ * Event 선언 (root collection) — ADR-131 Phase 1.
+ *
+ * `CompositionDocument.events[]` 의 element type. UI node 의 `props.<eventName>`
+ * (예: `props.onPress`) 가 본 type 의 `id` 를 string 으로 참조하면, runtime
+ * 에서 `useEventsForTarget(nodeId)` 가 `target === nodeId` 인 entries 를 filter.
+ *
+ * `actionRef` 가 `CompositionDocument.actions[]` 의 id 를 참조하면 chain head
+ * action 으로 진입 (`SerializedAction.next[]` 로 chain 구성).
+ *
+ * Pencil format 정합: events 카테고리가 Pencil 정통에 없으므로 root collection
+ * 위치가 Pencil import / export 시 자연 drop / sidecar 처리 가능. ADR-116 §3
+ * `x-composition.events` 의 namespace extension 결정은 본 type 으로 partial
+ * superseded.
+ */
+export interface SerializedEvent {
+  /** stable id — `props.<eventName>` 참조 대상 */
+  id: string;
+  /** discriminator — 본 type 의 root collection 정체성 명시 */
+  type: "event";
+  /** event 종류 (`"onPress"` / `"onSelectionChange"` / `"onChange"` / ...) */
+  kind: string;
+  /** event 발생 대상 UI node id */
+  target: string;
+  /** chain head action id 참조 (`CompositionDocument.actions[].id`) */
+  actionRef?: string;
+  /**
+   * else branch placeholder — 기존 EventsPanel `elseActions` 보존용.
+   * Phase 2 adapter 에서 `EventHandler.elseActions` ↔ `fallbackActionRef`
+   * (또는 chain action 의 `onError` config) 로 매핑.
+   */
+  fallbackActionRef?: string;
+  /**
+   * 조건부 실행 (JS 표현식 직렬화 placeholder). 본 형식은 Phase 1 시점에
+   * `Record<string, unknown>` placeholder — Phase 3 validator 가 schema 확정.
+   */
+  condition?: Record<string, unknown>;
+  /** 미래 확장 슬롯 (예: `debounce`, `throttle`, `preventDefault`) */
+  [k: string]: unknown;
+}
+
+/**
+ * Data 선언 (root collection) — ADR-131 Phase 1.
+ *
+ * `CompositionDocument.data[]` 의 element type. cross-node 공유 자원 — 여러
+ * UI node 가 같은 dataSource 를 string id 로 참조 가능. UI node 의
+ * `props.dataSource` 등이 본 type 의 `id` 를 참조.
+ *
+ * 기존 `SerializedDataBinding` (deprecated) 는 element-attached scope 였으나,
+ * 본 type 은 root collection scope — cross-node 공유 mental model 자연.
+ *
+ * Pencil format 정합: data 카테고리가 Pencil 정통에 없으므로 root collection
+ * 위치가 import / export 시 자연 drop / sidecar 처리 가능.
+ */
+export interface SerializedData {
+  /** stable id — `props.dataSource` / `props.fieldRef` 참조 대상 */
+  id: string;
+  /** discriminator — 본 type 의 root collection 정체성 명시 */
+  type: "data";
+  /** binding 종류 — legacy `DataBinding.type` 와 정합 */
+  kind: "collection" | "value" | "field";
+  /** endpoint / static value / field path */
+  source: string;
+  /** binding-specific 설정 (`DataBindingConfig` 매핑 placeholder) */
+  config?: Record<string, unknown>;
+  /** 미래 확장 슬롯 (예: `polling`, `transform`, `cache`) */
   [k: string]: unknown;
 }
