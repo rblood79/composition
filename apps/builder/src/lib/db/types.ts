@@ -12,7 +12,12 @@ import type {
   Variable,
   Transformer,
 } from "../../types/builder/data.types";
-import type { CompositionDocument } from "@composition/shared";
+import type {
+  CompositionDocument,
+  SerializedAction,
+  SerializedData,
+  SerializedEvent,
+} from "@composition/shared";
 
 // === Project Types ===
 
@@ -31,6 +36,24 @@ export interface CanonicalDocumentRecord {
   project_id: string;
   document: CompositionDocument;
   updated_at: string;
+}
+
+// === ADR-131 — Root collection store records ===
+//
+// 각 store row 는 SerializedEvent/Data/Action 본체 + `project_id` 필드.
+// IndexedDB index = `project_id` (cross-project 분리), `target` (events 전용),
+// `kind` (3 store 공통).
+
+export interface SerializedEventRecord extends SerializedEvent {
+  project_id: string;
+}
+
+export interface SerializedDataRecord extends SerializedData {
+  project_id: string;
+}
+
+export interface SerializedActionRecord extends SerializedAction {
+  project_id: string;
 }
 
 // === Database Adapter Interface ===
@@ -133,6 +156,46 @@ export interface DatabaseAdapter {
     getByInputDataTable(tableName: string): Promise<Transformer[]>;
     getByOutputDataTable(tableName: string): Promise<Transformer[]>;
     getAll(): Promise<Transformer[]>;
+  };
+
+  // ADR-131 Phase 7 — Events root collection store
+  events: {
+    insert(record: SerializedEventRecord): Promise<SerializedEventRecord>;
+    update(
+      id: string,
+      patch: Partial<SerializedEventRecord>,
+    ): Promise<SerializedEventRecord>;
+    delete(id: string): Promise<void>;
+    getById(id: string): Promise<SerializedEventRecord | null>;
+    getByProject(projectId: string): Promise<SerializedEventRecord[]>;
+    getByTarget(target: string): Promise<SerializedEventRecord[]>;
+    getAll(): Promise<SerializedEventRecord[]>;
+  };
+
+  // ADR-131 Phase 7 — Data root collection store
+  data: {
+    insert(record: SerializedDataRecord): Promise<SerializedDataRecord>;
+    update(
+      id: string,
+      patch: Partial<SerializedDataRecord>,
+    ): Promise<SerializedDataRecord>;
+    delete(id: string): Promise<void>;
+    getById(id: string): Promise<SerializedDataRecord | null>;
+    getByProject(projectId: string): Promise<SerializedDataRecord[]>;
+    getAll(): Promise<SerializedDataRecord[]>;
+  };
+
+  // ADR-131 Phase 7 — Actions root collection store
+  actions: {
+    insert(record: SerializedActionRecord): Promise<SerializedActionRecord>;
+    update(
+      id: string,
+      patch: Partial<SerializedActionRecord>,
+    ): Promise<SerializedActionRecord>;
+    delete(id: string): Promise<void>;
+    getById(id: string): Promise<SerializedActionRecord | null>;
+    getByProject(projectId: string): Promise<SerializedActionRecord[]>;
+    getAll(): Promise<SerializedActionRecord[]>;
   };
 
   // Batch Operations

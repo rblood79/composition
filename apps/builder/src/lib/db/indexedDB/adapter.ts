@@ -11,6 +11,9 @@ import type {
   DatabaseAdapter,
   Project,
   CanonicalDocumentRecord,
+  SerializedActionRecord,
+  SerializedDataRecord,
+  SerializedEventRecord,
 } from "../types";
 import type { DesignToken, DesignTheme } from "../../../types/theme";
 import type { CompositionDocument } from "@composition/shared";
@@ -23,7 +26,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 15; // ADR-121 removes dormant legacy IndexedDB surfaces.
+const DB_VERSION = 16; // ADR-131 Phase 7: events/data/actions root collection stores.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -310,6 +313,39 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             unique: false,
           });
           console.log("[IndexedDB] Created store: transformers");
+        }
+
+        // ADR-131 Phase 7 — events / data / actions root collection stores
+        // (design §4 D1=(b) — design_themes / variables / data_tables /
+        //  api_endpoints / transformers 패턴 정합)
+        if (!db.objectStoreNames.contains("events")) {
+          const eventsStore = db.createObjectStore("events", {
+            keyPath: "id",
+          });
+          eventsStore.createIndex("project_id", "project_id", {
+            unique: false,
+          });
+          eventsStore.createIndex("target", "target", { unique: false });
+          eventsStore.createIndex("kind", "kind", { unique: false });
+          console.log("[IndexedDB] Created store: events");
+        }
+
+        if (!db.objectStoreNames.contains("data")) {
+          const dataStore = db.createObjectStore("data", { keyPath: "id" });
+          dataStore.createIndex("project_id", "project_id", { unique: false });
+          dataStore.createIndex("kind", "kind", { unique: false });
+          console.log("[IndexedDB] Created store: data");
+        }
+
+        if (!db.objectStoreNames.contains("actions")) {
+          const actionsStore = db.createObjectStore("actions", {
+            keyPath: "id",
+          });
+          actionsStore.createIndex("project_id", "project_id", {
+            unique: false,
+          });
+          actionsStore.createIndex("kind", "kind", { unique: false });
+          console.log("[IndexedDB] Created store: actions");
         }
 
         if (oldVersion < 13 && oldVersion > 0) {
@@ -926,6 +962,157 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getAll: async (): Promise<Transformer[]> => {
       return this.getAllFromStore<Transformer>("transformers");
+    },
+  };
+
+  // === ADR-131 Phase 7 — Root collection stores ===
+
+  events = {
+    insert: async (
+      record: SerializedEventRecord,
+    ): Promise<SerializedEventRecord> => {
+      await this.putToStore("events", record);
+      return record;
+    },
+
+    update: async (
+      id: string,
+      patch: Partial<SerializedEventRecord>,
+    ): Promise<SerializedEventRecord> => {
+      const existing = await this.events.getById(id);
+      if (!existing) throw new Error(`Event ${id} not found`);
+      const updated: SerializedEventRecord = {
+        ...existing,
+        ...patch,
+        id: existing.id,
+        type: "event",
+      };
+      await this.putToStore("events", updated);
+      return updated;
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.deleteFromStore("events", id);
+    },
+
+    getById: async (id: string): Promise<SerializedEventRecord | null> => {
+      return this.getFromStore<SerializedEventRecord>("events", id);
+    },
+
+    getByProject: async (
+      projectId: string,
+    ): Promise<SerializedEventRecord[]> => {
+      return this.getAllByIndex<SerializedEventRecord>(
+        "events",
+        "project_id",
+        projectId,
+      );
+    },
+
+    getByTarget: async (target: string): Promise<SerializedEventRecord[]> => {
+      return this.getAllByIndex<SerializedEventRecord>(
+        "events",
+        "target",
+        target,
+      );
+    },
+
+    getAll: async (): Promise<SerializedEventRecord[]> => {
+      return this.getAllFromStore<SerializedEventRecord>("events");
+    },
+  };
+
+  data = {
+    insert: async (
+      record: SerializedDataRecord,
+    ): Promise<SerializedDataRecord> => {
+      await this.putToStore("data", record);
+      return record;
+    },
+
+    update: async (
+      id: string,
+      patch: Partial<SerializedDataRecord>,
+    ): Promise<SerializedDataRecord> => {
+      const existing = await this.data.getById(id);
+      if (!existing) throw new Error(`Data ${id} not found`);
+      const updated: SerializedDataRecord = {
+        ...existing,
+        ...patch,
+        id: existing.id,
+        type: "data",
+      };
+      await this.putToStore("data", updated);
+      return updated;
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.deleteFromStore("data", id);
+    },
+
+    getById: async (id: string): Promise<SerializedDataRecord | null> => {
+      return this.getFromStore<SerializedDataRecord>("data", id);
+    },
+
+    getByProject: async (
+      projectId: string,
+    ): Promise<SerializedDataRecord[]> => {
+      return this.getAllByIndex<SerializedDataRecord>(
+        "data",
+        "project_id",
+        projectId,
+      );
+    },
+
+    getAll: async (): Promise<SerializedDataRecord[]> => {
+      return this.getAllFromStore<SerializedDataRecord>("data");
+    },
+  };
+
+  actions = {
+    insert: async (
+      record: SerializedActionRecord,
+    ): Promise<SerializedActionRecord> => {
+      await this.putToStore("actions", record);
+      return record;
+    },
+
+    update: async (
+      id: string,
+      patch: Partial<SerializedActionRecord>,
+    ): Promise<SerializedActionRecord> => {
+      const existing = await this.actions.getById(id);
+      if (!existing) throw new Error(`Action ${id} not found`);
+      const updated: SerializedActionRecord = {
+        ...existing,
+        ...patch,
+        id: existing.id,
+        type: "action",
+      };
+      await this.putToStore("actions", updated);
+      return updated;
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.deleteFromStore("actions", id);
+    },
+
+    getById: async (id: string): Promise<SerializedActionRecord | null> => {
+      return this.getFromStore<SerializedActionRecord>("actions", id);
+    },
+
+    getByProject: async (
+      projectId: string,
+    ): Promise<SerializedActionRecord[]> => {
+      return this.getAllByIndex<SerializedActionRecord>(
+        "actions",
+        "project_id",
+        projectId,
+      );
+    },
+
+    getAll: async (): Promise<SerializedActionRecord[]> => {
+      return this.getAllFromStore<SerializedActionRecord>("actions");
     },
   };
 

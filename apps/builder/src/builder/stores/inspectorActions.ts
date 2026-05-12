@@ -412,6 +412,40 @@ async function persistActiveCanonicalDocument(): Promise<void> {
   if (!doc) return;
   const db = await getDB();
   await db.documents.put(projectId, doc);
+
+  // ADR-131 Phase 7 — fan-out to dedicated IndexedDB stores so DevTools 표시가
+  // design_themes / variables / data_tables / api_endpoints / transformers
+  // 와 동일하게 events / data / actions 도 별 store entries 로 보인다.
+  // dev data 0 가정 — full-set replacement (project 별 기존 row 삭제 후 재기록).
+  await syncRootCollectionsToIndexedDB(projectId, doc);
+}
+
+async function syncRootCollectionsToIndexedDB(
+  projectId: string,
+  doc: import("@composition/shared").CompositionDocument,
+): Promise<void> {
+  const db = await getDB();
+
+  // Events
+  const existingEvents = await db.events.getByProject(projectId);
+  await Promise.all(existingEvents.map((e) => db.events.delete(e.id)));
+  for (const ev of doc.events ?? []) {
+    await db.events.insert({ ...ev, project_id: projectId });
+  }
+
+  // Data
+  const existingData = await db.data.getByProject(projectId);
+  await Promise.all(existingData.map((d) => db.data.delete(d.id)));
+  for (const d of doc.data ?? []) {
+    await db.data.insert({ ...d, project_id: projectId });
+  }
+
+  // Actions
+  const existingActions = await db.actions.getByProject(projectId);
+  await Promise.all(existingActions.map((a) => db.actions.delete(a.id)));
+  for (const a of doc.actions ?? []) {
+    await db.actions.insert({ ...a, project_id: projectId });
+  }
 }
 
 // ============================================
