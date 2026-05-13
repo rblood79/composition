@@ -1,16 +1,26 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Element } from "@/types/core/store.types";
+import type { CompositionDocument } from "@composition/shared";
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
+import { canonicalDocumentToFrameElementScopes } from "../frameElementScope";
+import type { CanonicalFrameElementScope } from "../frameElementScope";
 import {
   collectHydratedFrameElements,
   hasHydratedFrameElements,
   isFrameElementForFrame,
   isLegacyFrameElementForFrame,
   loadFrameElements,
+  type FrameElementLike,
 } from "../frameElementLoader";
-import type { CanonicalFrameElementScope } from "../frameElementScope";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+type TestFrameElement = FrameElementLike & {
+  layoutId?: string | null;
+  order_num?: number;
+};
+
+function makeElement(
+  id: string,
+  overrides: Partial<TestFrameElement> = {},
+): TestFrameElement {
   return {
     id,
     type: "Slot",
@@ -20,7 +30,7 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
     order_num: 1,
     props: {},
     ...overrides,
-  } as Element;
+  };
 }
 
 function makeScope(
@@ -35,25 +45,22 @@ function makeScope(
 }
 
 function setFrameDocument(children: Array<Record<string, unknown>>) {
+  const doc: CompositionDocument = {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "layout-frame-1",
+        type: "frame",
+        reusable: true,
+        metadata: { type: "legacy-layout", layoutId: "frame-1" },
+        children,
+      },
+    ],
+  } as unknown as CompositionDocument;
+
   useCanonicalDocumentStore.setState({
     currentProjectId: "project-1",
-    documents: new Map([
-      [
-        "project-1",
-        {
-          version: "composition-1.0",
-          children: [
-            {
-              id: "layout-frame-1",
-              type: "frame",
-              reusable: true,
-              metadata: { type: "legacy-layout", layoutId: "frame-1" },
-              children,
-            },
-          ],
-        },
-      ],
-    ]),
+    documents: new Map([["project-1", doc]]),
     documentVersion: 0,
   });
 }
@@ -95,12 +102,48 @@ describe("frameElementLoader canonical adapter", () => {
     ]);
   });
 
+  it("keeps props-less ref instances inside canonical frame scope", async () => {
+    setFrameDocument([
+      {
+        id: "body-1",
+        type: "body",
+        props: {},
+        children: [
+          {
+            id: "slot-1",
+            type: "Slot",
+            props: {},
+            children: [{ id: "button-4", type: "ref", ref: "button-origin" }],
+          },
+        ],
+      },
+      {
+        id: "button-origin",
+        type: "Button",
+        reusable: true,
+        props: { children: "Button" },
+      },
+    ]);
+
+    const doc = useCanonicalDocumentStore
+      .getState()
+      .documents.get("project-1")!;
+    const scope = canonicalDocumentToFrameElementScopes(doc).get("frame-1");
+
+    expect(scope?.elementIds.has("button-4")).toBe(true);
+    await expect(loadFrameElements("frame-1")).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "button-4", type: "ref" }),
+      ]),
+    );
+  });
+
   it("returns an empty list when the active canonical document is missing", async () => {
     await expect(loadFrameElements("frame-1")).resolves.toEqual([]);
   });
 
   it("reports hydrated frame elements from canonical frame scope", () => {
-    const elementsMap = new Map<string, Element>([
+    const elementsMap = new Map<string, TestFrameElement>([
       ["page-button", makeElement("page-button", { page_id: "page-1" })],
       ["deleted", makeElement("deleted", { deleted: true })],
       ["frame-slot", makeElement("frame-slot")],
@@ -140,7 +183,6 @@ describe("frameElementLoader canonical adapter", () => {
       isLegacyFrameElementForFrame(
         makeElement("frame-slot", {
           layout_id: undefined,
-          // @ts-expect-error 테스트: canonical 필드 시뮬레이션
           layoutId: "frame-1",
         }),
         "frame-1",

@@ -262,4 +262,96 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
       "page-1",
     );
   });
+
+  it("keeps page ref instance descendants under the projected frame Slot", () => {
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body-1",
+              type: "body",
+              props: { style: { display: "flex" } },
+              children: [
+                {
+                  id: "slot-content",
+                  type: "frame",
+                  metadata: {
+                    type: "legacy-slot-hoisted",
+                    slotName: "content",
+                  },
+                  props: {},
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "button-origin",
+          type: "Button",
+          reusable: true,
+          props: { children: "Origin" },
+        },
+        {
+          id: "page-1",
+          type: "ref",
+          ref: "layout-frame-1",
+          name: "Page 1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            layoutId: "frame-1",
+          },
+          descendants: {
+            "frame-body-1/slot-content": {
+              children: [
+                {
+                  id: "button-1",
+                  type: "Button",
+                  props: { children: "Button" },
+                },
+                {
+                  id: "button-4",
+                  type: "ref",
+                  ref: "button-origin",
+                },
+              ],
+            },
+          },
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const model = buildCanonicalSceneModel(document);
+    const pageData = buildPageDataMap(
+      [
+        {
+          id: "page-1",
+          project_id: "project-1",
+          slug: "page-1",
+          title: "Page 1",
+          layout_id: "frame-1",
+        } as never,
+      ],
+      model.pageIndex,
+      model.sceneNodesMap,
+    ).get("page-1");
+    const projectedSlotId = toPageFrameElementId("page-1", "slot-content");
+    const pageButton = pageData?.pageElements.find(
+      (element) => element.id === "button-1",
+    );
+    const instanceButton = pageData?.pageElements.find(
+      (element) => element.id === "button-4",
+    );
+
+    expect(pageButton?.parent_id).toBe(projectedSlotId);
+    expect(instanceButton?.parent_id).toBe(projectedSlotId);
+    expect(pageButton?.parentId).toBe(projectedSlotId);
+    expect(instanceButton?.parentId).toBe(projectedSlotId);
+  });
 });

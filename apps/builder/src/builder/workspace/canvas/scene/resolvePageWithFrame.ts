@@ -84,6 +84,7 @@ function asPageResolvedSlot(
 ): CanvasSceneNode {
   return {
     ...slot,
+    parentId,
     parent_id: parentId,
     props: {
       ...slot.props,
@@ -313,7 +314,9 @@ export function resolvePageWithFrame(
     );
   };
 
-  const resolveProjectableParentId = (parentId: string | null | undefined) => {
+  const resolveProjectableParentId = (
+    parentId: string | null | undefined,
+  ): string | null => {
     if (!parentId || parentId === frameBodyId) {
       return pageBodyId;
     }
@@ -328,13 +331,14 @@ export function resolvePageWithFrame(
       }
 
       if (isBodyType(currentParent.type)) {
-        currentParentId = currentParent.parent_id;
-        if (!currentParentId) {
+        const nextParentId = currentParent.parent_id ?? null;
+        if (!nextParentId) {
           return pageBodyId;
         }
-        if (currentParentId === frameBodyId) {
+        if (nextParentId === frameBodyId) {
           return pageBodyId;
         }
+        currentParentId = nextParentId;
         continue;
       }
       return projectFrameElementId(currentParent);
@@ -345,17 +349,41 @@ export function resolvePageWithFrame(
       : currentParentId;
   };
 
-  const projectFrameElement = (el: CanvasSceneNode): CanvasSceneNode => ({
-    ...el,
-    id: projectFrameElementId(el),
-    parent_id: resolveProjectableParentId(el.parent_id),
-    page_id: page.id,
-  });
+  const projectFrameElement = (el: CanvasSceneNode): CanvasSceneNode => {
+    const parentId = resolveProjectableParentId(el.parent_id);
+    return {
+      ...el,
+      id: projectFrameElementId(el),
+      parentId,
+      parent_id: parentId,
+      pageId: page.id,
+      page_id: page.id,
+    };
+  };
+
+  const slotNameByContentParentId = new Map<string, string>();
+  for (const el of frameElements) {
+    if (el.type !== "Slot") continue;
+    const slotName = readSlotElementName(el);
+    slotNameByContentParentId.set(el.id, slotName);
+    slotNameByContentParentId.set(projectFrameElementId(el), slotName);
+  }
 
   const pageRootBySlot = new Map<string, CanvasSceneNode[]>();
   const pageNonRoot: CanvasSceneNode[] = [];
   for (const el of pageContentElements) {
-    const isRoot = !el.parent_id || el.parent_id === pageBodyId;
+    const parentSlotName = el.parent_id
+      ? slotNameByContentParentId.get(el.parent_id)
+      : undefined;
+    if (parentSlotName) {
+      const list = pageRootBySlot.get(parentSlotName);
+      if (list) list.push(el);
+      else pageRootBySlot.set(parentSlotName, [el]);
+      continue;
+    }
+
+    const isRoot =
+      !el.parent_id || el.parent_id === pageBodyId || el.parent_id === page.id;
     if (!isRoot) {
       pageNonRoot.push(el);
       continue;
@@ -411,7 +439,7 @@ export function resolvePageWithFrame(
       continue;
     }
     for (const el of elements) {
-      result.push({ ...el, parent_id: targetSlot.id });
+      result.push({ ...el, parentId: targetSlot.id, parent_id: targetSlot.id });
     }
   }
 

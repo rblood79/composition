@@ -8,6 +8,7 @@ import type { CanonicalFrameElementScope } from "../../../../../adapters/canonic
 
 type ElementFixtureOptions = Partial<Element> & {
   frameId?: string | null;
+  ref?: string;
 };
 
 const makeElement = ({
@@ -58,11 +59,16 @@ const baseOptions = {
   zoom: 1,
 };
 
+type FrameScopeFixtureInput = Omit<
+  Partial<CanonicalFrameElementScope>,
+  "elementIds"
+> & {
+  elementIds?: string[];
+  frameId: string;
+};
+
 function makeFrameScope(
-  partial: Partial<CanonicalFrameElementScope> & {
-    elementIds?: string[];
-    frameId: string;
-  },
+  partial: FrameScopeFixtureInput,
 ): CanonicalFrameElementScope {
   return {
     bodyElementId: null,
@@ -150,6 +156,58 @@ describe("ADR-111 P3-δ fix #3 — buildFrameLayoutPublisherInput", () => {
     expect(
       result!.pageElements.find((el) => el.id === "other-body"),
     ).toBeUndefined();
+  });
+
+  it("scope 에 props 없는 ref instance 가 있으면 Slot 자식으로 frame layout input 에 포함한다", () => {
+    const body = makeElement({
+      id: "frame-body",
+      type: "body",
+      frameId: "frame-A",
+    });
+    const slot = makeElement({
+      id: "slot-content",
+      type: "Slot",
+      parent_id: body.id,
+      frameId: "frame-A",
+    });
+    const instance = makeElement({
+      id: "button-4",
+      type: "ref",
+      parent_id: slot.id,
+      frameId: "frame-A",
+      ref: "button-origin",
+      props: undefined,
+    });
+    const elementById = new Map([
+      [body.id, body],
+      [slot.id, slot],
+      [instance.id, instance],
+    ]);
+
+    const result = buildFrameLayoutPublisherInput({
+      ...baseOptions,
+      elementById,
+      frameHeight: 200,
+      frameId: "frame-A",
+      frameElementScope: makeFrameScope({
+        frameId: "frame-A",
+        bodyElementId: body.id,
+        elementIds: [body.id, slot.id, instance.id],
+      }),
+      frameWidth: 320,
+      frameX: 0,
+      frameY: 0,
+      sceneSnapshot: makeSceneSnapshot(),
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.pageElements.map((el) => el.id)).toEqual([
+      "slot-content",
+      "button-4",
+    ]);
+    expect(result!.pageElements.find((el) => el.id === "button-4")).toEqual(
+      expect.objectContaining({ parent_id: "slot-content", type: "ref" }),
+    );
   });
 
   it("pageWidth/pageHeight = frameWidth/frameHeight 매핑", () => {

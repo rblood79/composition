@@ -868,6 +868,59 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     expect(childResult?.parent_id).toBe("page-root");
   });
 
+  it("page-owned instance 가 원본 frame Slot 을 parent 로 가져도 projected Slot 아래에 둔다", () => {
+    const FRAME_ID = "frame-1";
+    const frameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      frameId: FRAME_ID,
+      page_id: null,
+    });
+    const slotContent = makeEl({
+      id: "slot-content",
+      type: "Slot",
+      frameId: FRAME_ID,
+      page_id: null,
+      parent_id: "frame-body",
+      props: { name: "content" },
+    });
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const pageInstance = makeEl({
+      id: "button-4",
+      type: "ref",
+      page_id: "page-1",
+      parentId: "slot-content",
+      parent_id: "slot-content",
+      ref: "button-origin",
+    });
+    const elementsMap = buildElementsMap([
+      frameBody,
+      slotContent,
+      pageBody,
+      pageInstance,
+    ]);
+
+    const result = resolvePageWithFrame({
+      page: makeFramePage(FRAME_ID, { id: "page-1" }),
+      pageElements: [pageBody, pageInstance],
+      elementsMap,
+    });
+
+    const remappedInstance = result.pageElements.find(
+      (el) => el.id === "button-4",
+    );
+    expect(remappedInstance?.parent_id).toBe(
+      toPageFrameElementId("page-1", "slot-content"),
+    );
+    expect(remappedInstance?.parentId).toBe(
+      toPageFrameElementId("page-1", "slot-content"),
+    );
+  });
+
   it("동일 frame 을 여러 page 에 적용해도 page별 slot projection id 가 충돌하지 않는다", () => {
     const FRAME_ID = "frame-shared";
     const frameBody = makeEl({

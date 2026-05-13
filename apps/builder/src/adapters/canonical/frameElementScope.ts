@@ -36,6 +36,23 @@ function isLegacySlotHoistedNode(node: CanonicalNode): boolean {
   );
 }
 
+function isPagePlaceholderNode(node: CanonicalNode): boolean {
+  const metadataType = (node.metadata as { type?: unknown } | undefined)?.type;
+  return metadataType === "page" || metadataType === "legacy-page";
+}
+
+/**
+ * `type: "ref"` 인스턴스 노드 중 page placeholder 가 아닌 것 — renderable ref.
+ * `canonicalElementsView.ts::canonicalNodeToElement` 의 `isRenderableRef` 조건과 동기화.
+ */
+function isRenderableRefNode(node: CanonicalNode): boolean {
+  return (
+    node.type === "ref" &&
+    typeof (node as CanonicalNode & { ref?: unknown }).ref === "string" &&
+    !isPagePlaceholderNode(node)
+  );
+}
+
 function collectElementScopeIds(
   node: CanonicalNode,
   elementIds: Set<string>,
@@ -43,7 +60,11 @@ function collectElementScopeIds(
 ): string | null {
   let bodyElementId = currentBodyElementId;
 
-  if (node.props || isLegacySlotHoistedNode(node)) {
+  if (
+    node.props ||
+    isLegacySlotHoistedNode(node) ||
+    isRenderableRefNode(node)
+  ) {
     elementIds.add(node.id);
     if (!bodyElementId && isBodyNode(node)) {
       bodyElementId = node.id;
