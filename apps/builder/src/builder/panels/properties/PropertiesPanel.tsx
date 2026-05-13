@@ -1134,13 +1134,26 @@ function PropertiesPanelContent() {
       console.log("[Group] Grouping", selectedElementIds.length, "elements");
 
       const elementsMap = getElementsMap();
-      const previousChildren = selectedElementIds
+      // Filter out cross-page selections: keep only elements belonging to current page.
+      // Why: cross-page mix → createGroupFromSelection 의 allSameParent=false →
+      // groupParentId=null → frame 이 page-body 가 아닌 page root 레벨에 생성되는 회귀.
+      const samePageIds = selectedElementIds.filter((id: string) => {
+        const el = elementsMap.get(id);
+        return el !== undefined && el.page_id === pageId;
+      });
+      if (samePageIds.length < 2) {
+        console.warn(
+          `[Group] After page filter (currentPage=${pageId}), only ${samePageIds.length} element(s) remain — skip`,
+        );
+        return;
+      }
+      const previousChildren = samePageIds
         .map((id: string) => elementsMap.get(id))
         .filter((el): el is NonNullable<typeof el> => el !== undefined);
 
       // Create group from selection
       const { groupElement, updatedChildren } = createGroupFromSelection(
-        selectedElementIds,
+        samePageIds,
         elementsMap,
         pageId,
       );

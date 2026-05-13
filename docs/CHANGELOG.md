@@ -5,6 +5,19 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Cross-page grouping fix — frame parent_id null 회귀 차단] - 2026-05-13
+
+### Bug Fixes
+
+- **Cross-page selection 상태에서 그룹화 (Cmd+G) → frame 이 page-body 가 아닌 page root 레벨에 생성되는 회귀**:
+  - 다른 page 의 instance 가 multi-select selection 에 잔류한 상태에서 그룹화 시 `createGroupFromSelection` 의 `allSameParent === false` 분기 발동 → `groupParentId = null` → frame 의 parent_id 가 null 로 설정되어 page-body 자식이 아닌 page root (body 와 같은 레벨) 에 생성
+  - **Why**: page 전환 시 multi-select selection 이 자동 clear 되지 않음 + grouping 진입점에서 page 경계 검증 누락. cross-page mix 입력에 대한 방어 부재
+  - 수정 1 — caller 방어: `PropertiesPanel.handleGroupSelection` 에 `currentPageId` filter 추가. `el.page_id === pageId` 만 통과시킴. filter 후 element ≤1 이면 skip + warn
+  - 수정 2 — util safety net: `createGroupFromSelection` 자체에 `el.page_id === pageId` defensive filter 추가. caller 가 누락해도 util 단에서 cross-page mix 차단
+  - 위치: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` (`handleGroupSelection`) + `apps/builder/src/builder/stores/utils/elementGrouping.ts` (`createGroupFromSelection`)
+  - 관련: ADR-130 Implemented (2026-05-13) 직후 발견된 cross-page selection 회귀
+  - type-check baseline 602 정합 (line shift 8건 baseline update 반영)
+
 ## [Responsive Constraint UI 종결 — ADR-026 Implemented (타협) + 이행 안 함 결정 4건] - 2026-05-13
 
 ### Architecture

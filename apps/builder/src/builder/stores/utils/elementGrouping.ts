@@ -64,12 +64,27 @@ export function createGroupFromSelection<TElement extends Element>(
   }
 
   // Get selected elements
-  const selectedElements = elementIds
+  const rawSelectedElements = elementIds
     .map((id) => elementsMap.get(id))
     .filter((el): el is TElement => el !== undefined);
 
-  if (selectedElements.length === 0) {
+  if (rawSelectedElements.length === 0) {
     throw new Error("[Group] Selected elements not found");
+  }
+
+  // Defensive: filter out cross-page elements (Layout elements with page_id=null
+  // are allowed only when caller explicitly passes their layout's parent page).
+  // Why: cross-page mix → allSameParent=false → groupParentId=null → frame 이
+  // page-body 가 아닌 page root 레벨에 생성되는 회귀. Caller (PropertiesPanel)
+  // 가 이미 동일 page filter 를 수행하나, util 레이어 safety net 으로 중복 방어.
+  const selectedElements = rawSelectedElements.filter(
+    (el) => el.page_id === pageId,
+  );
+
+  if (selectedElements.length === 0) {
+    throw new Error(
+      `[Group] No selected elements on current page (pageId=${pageId})`,
+    );
   }
 
   // Find common parent (if all elements have same parent)
