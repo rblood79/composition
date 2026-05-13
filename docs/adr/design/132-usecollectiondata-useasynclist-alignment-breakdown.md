@@ -234,9 +234,9 @@ const list = useAsyncList({
 - (a) Legacy collection api source 사용 element 의 `dataBinding` 을 PropertyDataBinding 형식으로 마이그레이션 권장 (사용자 UI 가이드), 본 ADR scope 에서는 기존 흐름 유지
 - (b) Legacy collection api 결과를 ephemeral data*tables row (예: `\_\_legacy*${elementId}`) 로 sink — 임시 SSOT 정합
 
-**Phase 2 잠정 결정**: (a) — Legacy collection 은 사용 element 0건 또는 적은 수 가정 (Phase 0 inventory 에서 grep `type: "collection"` 카운트 확정 후 재평가). (b) 가 필요하면 별 ADR.
+**Phase 2 확정 (2026-05-13 Phase 0 inventory)**: **(a) 흐름 유지 lock-in**. Phase 0 grep 결과 — Legacy collection (`type:"collection", source:"api"`) 사용 데이터 element **0건** 확정. factory `DataComponents.ts` / AI tool `createElement.ts` / test fixture 외 실 사용 없음. 별 ADR fork 불필요. `loadStaticData` / `loadApiData` 헬퍼 함수 유지 (Phase 1 변경에서 그대로 보존됨).
 
-**Phase 2 commit**: `feat(adr-132): Phase 2 — legacy collection sink decision lock-in`
+**Phase 2 commit**: 결정 lock-in 만, 코드 변경 없음. Phase 3/4 와 단일 commit 통합.
 
 ### Phase 3 — Canvas vs Builder isCanvasContext 분기 통합
 
@@ -251,13 +251,21 @@ const list = useAsyncList({
 - G3-1: Canvas 측 read 가 `data_tables.runtimeData` 에서 가져오는지 확인 (`syncDataTablesToCanvas` postMessage 경유)
 - G3-2: `isCanvasContext` 분기 제거 또는 단순화
 
+**Phase 3 확정 (2026-05-13 Phase 0 inventory)**: **분기 잔존 lock-in (G3 실패 시 대안 채택)**. Phase 0 grep — `apiEndpointService?` 가 optional 정의 (`packages/shared/src/types/collection.types.ts:174`), Canvas 측 주입 보장 안 됨. Canvas iframe 안 `useDataStore` instance 의 `executeApiEndpoint` action 자체는 호출 가능하나 endpoint.id 매칭 + runtimeStore.dataTables sink 양쪽 정합 보강 작업 추가 필요 → 본 ADR scope 안 추가 작업은 오버엔지니어링. Phase 1 단일화 시 `isCanvasContext` 분기를 `useAsyncList.load` callback 안으로 옮겨 보존했으므로 Phase 3 의 단일화 목적 (load callback 단일 진입점) 부분 충족. Canvas 측 sink 정합 완성은 후속 ADR 발의 영역.
+
+**Phase 3 commit**: 결정 lock-in 만, 코드 변경 없음. Phase 2/4 와 단일 commit 통합.
+
 ### Phase 4 — collectionDataCache 의 data_tables 정합 검증
 
 **목표**: `collectionDataCache` LRU 가 `data_tables.runtimeData` 와 staleness 충돌 없는지 검증. dataTables Zustand subscribe → 변경 시 cache invalidate 필요.
 
 **의문**: data_tables.runtimeData 가 갱신될 때 useCollectionData hook 의 `list` 가 reload 되는가? — useDataStore 의 dataTables Map 이 selector 로 subscribed 되어 있고 변경 시 hook re-render → useAsyncList load 재실행되어야 함.
 
-**Phase 4 commit**: `feat(adr-132): Phase 4 — collectionDataCache + dataTables subscribe 정합`
+**Phase 4 확정 (2026-05-13)**: **Phase 1 변경에 이미 흡수 완료**. Builder hook 의 `dataTablesMap = useDataStore((s) => s.dataTables)` selector 가 Map immutable update 시에만 새 reference 생산 → `useEffect([dataTablesMap, propertyBindingFormat, ...])` 가 api binding 일 때 `list.reload()` trigger. cache invalidation 은 `list.reload()` 호출 시 `reloadTrigger === 0` 캐시 hit 조건이 자연 회피 (Phase 1 단일화로 reloadTrigger state 자체 삭제). Shared hook 도 동일 패턴 (`useEffect([dataTables, ...])` — DI Context 로부터 받은 array 가 Map snapshot 변경 시 새 reference).
+
+cache key 에 dataTables version 포함하는 강한 격리 방안은 본 ADR scope 안 추가 작업이며 staleness 실측 회귀 발생 시 추가 ADR 으로 처리.
+
+**Phase 4 commit**: 결정 lock-in 만, 코드 변경 없음. Phase 2/3 와 단일 commit 통합.
 
 ### Phase 5 — rename sweep (`data_tables` / `dataTables` → `collections`)
 
