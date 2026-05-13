@@ -1,8 +1,14 @@
 # ADR-038: Figma 디자인 임포트 시스템
 
-> **상태**: Proposed
-> **날짜**: 2026-03-13
+> **상태**: Deprecated — 2026-05-13
+> **날짜**: 2026-03-13 (Proposed) / 2026-05-13 (Deprecated)
 > **작성자**: Claude Code
+
+## Deprecation 사유 (2026-05-13 — 사용자 결정)
+
+> 현재 불필요하며 ADR 설계 규칙에 의거하여 설계되지 않아 필요시 재설계 해야 한다.
+
+본 ADR 본문은 historical context 보존 차원에서 `docs/adr/completed/` 로 이동. 향후 Figma 임포트 기능 필요 시 [adr-writing.md](../../../.claude/rules/adr-writing.md) Risk-First 템플릿 (Context → Alternatives Considered → Risk Threshold Check → Decision → Risks → Gates → Consequences) + framing checkpoint 4 질문 lock-in + 3-domain 분류 (D1/D2/D3) 절차 통과 후 재발의.
 
 ---
 
