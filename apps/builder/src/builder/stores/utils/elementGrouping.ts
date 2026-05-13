@@ -63,36 +63,23 @@ export function createGroupFromSelection<TElement extends Element>(
     throw new Error("[Group] No elements selected to group");
   }
 
-  // Get selected elements
-  const rawSelectedElements = elementIds
+  // Get selected elements. Cross-page selection 도 허용 — 모든 element 가 frame 의
+  // child 로 reparent 되며 다른 page 의 element 는 frame.page_id 로 page 이동.
+  const selectedElements = elementIds
     .map((id) => elementsMap.get(id))
     .filter((el): el is TElement => el !== undefined);
 
-  if (rawSelectedElements.length === 0) {
+  if (selectedElements.length === 0) {
     throw new Error("[Group] Selected elements not found");
   }
 
-  // Defensive: filter out cross-page elements (Layout elements with page_id=null
-  // are allowed only when caller explicitly passes their layout's parent page).
-  // Why: cross-page mix → allSameParent=false → groupParentId=null → frame 이
-  // page-body 가 아닌 page root 레벨에 생성되는 회귀. Caller (PropertiesPanel)
-  // 가 이미 동일 page filter 를 수행하나, util 레이어 safety net 으로 중복 방어.
-  const selectedElements = rawSelectedElements.filter(
-    (el) => el.page_id === pageId,
-  );
-
-  if (selectedElements.length === 0) {
-    throw new Error(
-      `[Group] No selected elements on current page (pageId=${pageId})`,
-    );
-  }
-
-  // Pencil-style 정책: 최초 선택한 요소의 parent + position 을 frame 의 anchor 로 사용.
-  // Why: "공통 부모를 찾는 allSameParent 검사 → 다르면 null" 정책은 cross-parent
-  // multi-select 시 frame 이 page root 레벨로 떨어지는 회귀를 야기. Pencil app 동작 정합:
-  //   "최초 선택 요소가 가진 parent 의 자리에 frame 이 생성되고 나머지 요소들이 들어간다".
+  // Pencil-style 정책: 최초 선택한 요소의 parent + page + position 을 frame anchor 로.
+  // Why: 사용자 framing — "최초 선택 요소가 가진 parent 의 자리에 frame 이 생성되고
+  // 나머지 요소들이 들어간다". cross-page selection 시 첫 element 의 page 가 frame
+  // page 가 되고 다른 page 의 element 도 그 page 로 이동 (page_id reparent 포함).
   const firstElement = selectedElements[0];
   const groupParentId = firstElement.parent_id;
+  const groupPageId = firstElement.page_id ?? pageId;
   const firstStyle = (firstElement.props.style || {}) as Record<
     string,
     unknown
@@ -133,15 +120,17 @@ export function createGroupFromSelection<TElement extends Element>(
       },
     },
     parent_id: groupParentId,
-    page_id: pageId,
+    page_id: groupPageId,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
-  // Update selected elements' parent_id to group
+  // Update selected elements' parent_id + page_id to group.
+  // cross-page 의 다른 page element 도 frame.page_id 로 이동.
   const updatedChildren = selectedElements.map((el) => ({
     ...el,
     parent_id: groupElement.id,
+    page_id: groupPageId,
     updated_at: new Date().toISOString(),
   }));
 

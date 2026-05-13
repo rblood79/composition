@@ -5,6 +5,18 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Cross-page grouping 허용 + page_id reparent 정합] - 2026-05-14
+
+### Bug Fixes
+
+- **Cross-page selection 그룹화 시 frame 안에 한 element 만 들어가는 회귀**:
+  - 두 element 가 다른 page 에 있는 상태에서 그룹화 시도 → frame 은 생성되지만 frame 의 child 로 한 element 만 들어감 (나머지는 원래 page 에 그대로 잔류)
+  - **Why**: 직전 fix 의 page filter (`el.page_id === pageId` 만 통과) 가 cross-page selection 을 완전 차단. 사용자 framing 정합 안 됨 — Pencil app 은 cross-page selection 도 그룹화 허용하며 다른 page 의 element 도 frame 의 page 로 이동시킴
+  - 수정 1 — caller page filter 제거: `PropertiesPanel.handleGroupSelection` 의 `samePageIds` filter 삭제. 모든 selectedElementIds 가 그룹화 대상
+  - 수정 2 — util defensive page filter 제거: `createGroupFromSelection` 의 `el.page_id === pageId` filter 삭제. 모든 selectedElements 가 frame child 로 reparent
+  - 수정 3 — page_id 도 함께 reparent: frame.page_id = firstElement.page_id. updatedChildren 의 page_id 도 frame.page_id 로 변경. `handleGroupSelection` 의 `updateElement` 가 `{ parent_id, page_id }` 둘 다 전달. cross-page element 가 frame 의 page 로 이동해야 frame 의 child 로 정상 인식
+  - 위치: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` + `apps/builder/src/builder/stores/utils/elementGrouping.ts`
+
 ## [Grouping policy Pencil-style 정렬 + child reparent race 차단] - 2026-05-14
 
 ### Bug Fixes
