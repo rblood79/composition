@@ -53,6 +53,13 @@ grep -n "processedData\|dataTableData\|apiEndpointData\|datatableState" packages
 - `docs/adr/132-baseline.md` (또는 design 문서 §2 inline) 에 grep 결과 + 라인 표 + HEAD hash freeze
 - 통계: PropertyDataBinding api source 분기 LOC, useAsyncList load callback LOC, local useState 개수
 - 컴포넌트 read 진입점 dependency 다이어그램 1장
+- **frozen 수치 lock-in (adr-writing.md 동적 seed #3 BC 수식화 충족 의무)**:
+  - `apiEndpointData` / `setApiEndpointData` / `apiEndpointLoading` / `apiEndpointError` site count (예상 shared 5 + builder 6 = 11 site)
+  - `reloadTrigger` 호출처 site count (예상 0-3 site, grep 후 확정)
+  - `loadStaticData` / `loadApiData` 사용 element 측정 (Legacy collection 사용 빈도 — R4 평가용)
+  - RAC renderer 측 useCollectionData caller site count (Table / ListBox / GridList / ComboBox / Select / Tree / Breadcrumbs)
+  - `apiEndpointService` DI Context Canvas 측 주입 site (R2 검증용)
+  - `executeApiEndpoint` 의 `signal: AbortSignal` 파라미터 지원 여부 (Soft Constraint line 47)
 
 ### Phase 0 commit
 
@@ -74,22 +81,27 @@ useEffect(() => {
   setApiEndpointData(items);
 }, [...]);
 
-// After — useAsyncList load callback 단일화
+// After — useAsyncList load callback 단일화 + error surface 패턴
 const list = useAsyncList({
   async load({ signal }) {
+    // throw 시 useAsyncList 가 list.error 에 자동 sink, list.isLoading false 로 전환
+    // RAC collection 컴포넌트는 list.error / list.isLoading 을 prop binding (Table renderState / ListBox renderEmpty 등)
     if (propertyBindingFormat) {
       const binding = stableDataBinding;
       if (binding.source === "dataTable") {
-        // dataTables.find(name) 의 mockData/runtimeData read (sync)
-        return { items: resolveDataTableRows(binding.name) };
+        const rows = resolveDataTableRows(binding.name);
+        if (rows === null) throw new Error(`DataTable not found: ${binding.name}`);
+        return { items: rows };
       }
       if (binding.source === "api") {
-        // executeApiEndpoint trigger → targetDataTable.runtimeData read
         const endpoint = apiEndpoints.find(ep => ep.name === binding.name);
         if (!endpoint) throw new Error(`endpoint not found: ${binding.name}`);
+        if (!endpoint.targetDataTable) throw new Error(`endpoint.targetDataTable missing: ${binding.name}`);
+        // signal: AbortSignal 전파 (Phase 0 inventory 에서 executeApiEndpoint 지원 확인 후)
         await apiEndpointService.executeApiEndpoint(endpoint.id, { signal });
-        // executeApiEndpoint 내부에서 syncDataTablesToCanvas → 호출 후 read
-        return { items: resolveDataTableRows(endpoint.targetDataTable) };
+        const rows = resolveDataTableRows(endpoint.targetDataTable);
+        if (rows === null) throw new Error(`targetDataTable not found after execute: ${endpoint.targetDataTable}`);
+        return { items: rows };
       }
     }
     // Legacy collection 흐름 유지
@@ -103,6 +115,10 @@ const list = useAsyncList({
     return { items: [] };
   },
 });
+
+// RAC consumer 측 error UX binding (예시)
+// <Table ... renderState={list.error ? <ErrorRow message={list.error.message} /> : null}
+//        renderEmptyState={() => list.isLoading ? <Spinner /> : <Empty />}>
 ```
 
 **삭제 대상**:
@@ -122,6 +138,7 @@ const list = useAsyncList({
 - type-check 3/3 PASS (apps/builder baseline 변동 가능, 측정)
 - vitest 기존 PASS 유지
 - Storybook / Chrome MCP smoke — Table / ListBox / GridList / ComboBox / Select 의 api source binding element 5종 read 정상
+- **error surface smoke (R6 대응)**: 3 케이스 검증 — (1) `endpoint not found` (잘못된 binding.name), (2) `fetch fail` (네트워크 에러 mock), (3) `abort` (component unmount mid-fetch). 각 케이스에 RAC `list.error` / `list.isLoading` 이 collection 컴포넌트 error UX prop 으로 적절히 binding 되는지 확인
 
 **Phase 1 Gate**:
 
@@ -173,23 +190,25 @@ const list = useAsyncList({
 
 ## §4 Gate matrix (Risk ↔ Gate 1:1 매핑)
 
-| Risk                                                                                                                  | Phase | Gate | 통과 조건                                                                                                                        | 실패 시 대안                                                       |
-| :-------------------------------------------------------------------------------------------------------------------- | :---: | :--- | :------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------- |
-| R1 (useAsyncList load 안에서 dataTables Zustand selector subscribe 가능한가 — load 는 async fn 안이라 hook 호출 불가) |   1   | G1   | dataTables / apiEndpoints / endpointService 모두 useAsyncList 바깥에서 hook subscribe + load callback 안에서는 closure 로 access | dataTables 변경 시 `list.reload()` 명시 trigger (useEffect 1 line) |
-| R2 (executeApiEndpoint 가 Canvas 측에서 호출 가능한가 — DI Context 격리)                                              |   3   | G3-1 | `apiEndpointService` DI Context 가 Canvas 측 useCollectionData provider 에 주입되어 있음                                         | Canvas 측은 기존 proxy fetch 유지, Builder 측만 정합 (분기 잔존)   |
-| R3 (collectionDataCache 가 data_tables 갱신 시 stale 가능)                                                            |   4   | G4   | dataTables Zustand selector subscribe → 변경 시 cache invalidate or list.reload                                                  | cache key 에 dataTables version 포함                               |
-| R4 (Legacy collection api source 사용 element 가 0건이라는 가정 깨질 경우 mass migration 필요)                        |   2   | G2   | Phase 0 inventory grep `type: "collection"` AND `source: "api"` element 사용 빈도 측정, 0건 또는 < 5건 시 (a) 유지               | (b) ephemeral data_tables sink 또는 별 ADR fork                    |
-| R5 (PropertyDataBinding api source element 가 reload UX 회귀 — 기존 reloadTrigger 사용자 노출 surface 어디)           |   1   | G1-2 | reload UX 가 `list.reload()` 로 동작 동등                                                                                        | `reloadTrigger` 호출처 모두 `list.reload()` 로 치환                |
+| Risk                                                                                                                  | Phase | Gate | 통과 조건                                                                                                                        | 실패 시 대안                                                                                                             |
+| :-------------------------------------------------------------------------------------------------------------------- | :---: | :--- | :------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| R1 (useAsyncList load 안에서 dataTables Zustand selector subscribe 가능한가 — load 는 async fn 안이라 hook 호출 불가) |   1   | G1   | dataTables / apiEndpoints / endpointService 모두 useAsyncList 바깥에서 hook subscribe + load callback 안에서는 closure 로 access | dataTables 변경 시 `list.reload()` 명시 trigger (useEffect 1 line)                                                       |
+| R2 (executeApiEndpoint 가 Canvas 측에서 호출 가능한가 — DI Context 격리)                                              |   3   | G3-1 | `apiEndpointService` DI Context 가 Canvas 측 useCollectionData provider 에 주입되어 있음                                         | Canvas 측은 기존 proxy fetch 유지, Builder 측만 정합 (분기 잔존)                                                         |
+| R3 (collectionDataCache 가 data_tables 갱신 시 stale 가능)                                                            |   4   | G4   | dataTables Zustand selector subscribe → 변경 시 cache invalidate or list.reload                                                  | cache key 에 dataTables version 포함                                                                                     |
+| R4 (Legacy collection api source 사용 element 가 0건이라는 가정 깨질 경우 mass migration 필요)                        |   2   | G2   | Phase 0 inventory grep `type: "collection"` AND `source: "api"` element 사용 빈도 측정, 0건 또는 < 5건 시 (a) 유지               | (b) ephemeral data_tables sink 또는 별 ADR fork                                                                          |
+| R5 (PropertyDataBinding api source element 가 reload UX 회귀 — 기존 reloadTrigger 사용자 노출 surface 어디)           |   1   | G1-2 | reload UX 가 `list.reload()` 로 동작 동등                                                                                        | `reloadTrigger` 호출처 모두 `list.reload()` 로 치환                                                                      |
+| R6 (useAsyncList load callback throw 시 RAC/RSC error surface 처리 — happy path 외 검증 누락 가능성)                  |   1   | G1-3 | error surface 3 케이스 (endpoint not found / fetch fail / abort) Storybook + Chrome MCP smoke PASS                               | RAC `list.error` / `list.isLoading` 미binding 시 collection 컴포넌트 error UX 미작동 — Phase 1 land 차단 후 binding 보강 |
 
 ## §5 잔존 운영 위험 (Risks)
 
-| ID  | 위험                                                       | 심각도  | 대응                                                                                |
-| :-: | :--------------------------------------------------------- | :-----: | :---------------------------------------------------------------------------------- |
-| R1  | useAsyncList load 안 dataTables selector 접근 패턴 fragile | **MED** | hook subscribe + closure read 패턴 표준화, [[feedback-zustand-selector-cache]] 검토 |
-| R2  | Canvas iframe 측 executeApiEndpoint DI 미주입 가능성       | **MED** | Phase 0 inventory 에서 DI Context 주입 site 확인 후 Phase 3 진입                    |
-| R3  | collectionDataCache staleness                              | **LOW** | dataTables subscribe + list.reload 패턴                                             |
-| R4  | Legacy collection 사용 element mass migration burden       | **LOW** | Phase 0 inventory 확정 후 평가, 본 ADR scope 내 단일 결정 lock-in                   |
-| R5  | reloadTrigger UX 회귀                                      | **LOW** | 사용처 grep + list.reload 치환                                                      |
+| ID  | 위험                                                                                            | 심각도  | 대응                                                                                                                                                                                                                                                                       |
+| :-: | :---------------------------------------------------------------------------------------------- | :-----: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | useAsyncList load 안 dataTables selector 접근 패턴 fragile (closure cache + subscribe fallback) | **MED** | hook subscribe + closure read 패턴 표준화. [[feedback-zustand-selector-cache]] (selector cache 함정) + [[feedback-zustand-subscribe-with-selector-fragility]] (subscribeWithSelector middleware fallback) 양쪽 검토. useDataStore 는 subscribeWithSelector middleware 사용 |
+| R2  | Canvas iframe 측 executeApiEndpoint DI 미주입 가능성                                            | **MED** | Phase 0 inventory 에서 DI Context 주입 site 확인 후 Phase 3 진입                                                                                                                                                                                                           |
+| R3  | collectionDataCache staleness + Canvas postMessage timing race                                  | **LOW** | dataTables subscribe + list.reload 패턴. Canvas 측은 `syncDataTablesToCanvas` postMessage 수신 후 list.reload trigger                                                                                                                                                      |
+| R4  | Legacy collection 사용 element mass migration burden                                            | **LOW** | Phase 0 inventory 확정 후 평가, 본 ADR scope 내 단일 결정 lock-in                                                                                                                                                                                                          |
+| R5  | reloadTrigger UX 회귀                                                                           | **LOW** | 사용처 grep + list.reload 치환                                                                                                                                                                                                                                             |
+| R6  | useAsyncList load throw 시 RAC/RSC error surface 처리 (list.error / list.isLoading binding)     | **MED** | Phase 1 핵심 변경 시 error surface 패턴 명시 (§3 Phase 1 code 예시 참조) + 3 케이스 smoke (endpoint not found / fetch fail / abort)                                                                                                                                        |
 
 잔존 HIGH 위험 0건.
 
