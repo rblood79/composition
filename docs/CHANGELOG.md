@@ -5,6 +5,23 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [updateElement concurrent race root fix — atomic set callback] - 2026-05-14
+
+### Architecture
+
+- **store-layer root fix — `updateElement` 의 concurrent race 차단**:
+  - 사용자 goal "단순 임시 fix 가 아닌 근본 원인 해결" 정합. 직전 그룹화 fix 의 sequential `for-await` 은 store-layer race 의 caller-side 우회 (surface 표현). 본 commit 으로 `updateElement` 자체 atomic 화 → 모든 caller race-free
+  - **Why (root cause)**: `updateElement` 가 `set` 외부에서 `currentState = get()` snapshot 캡처 → `sourceElements.with(idx, updatedElement)` 로 `updatedElements` derive → `set({ elements: updatedElements })` 호출. Promise.all concurrent 호출 시 두 호출이 같은 stale snapshot 기반 derive → set 의 last-write-wins 로 다른 element 변경이 lost. canonical 자체는 `getCurrentDocument` 기반 latest doc lookup 이라 race 안전했으나, legacy `state.elements` mirror 가 `_rebuildIndexes` 의 primary derive source 이므로 mirror race 가 UI 에 그대로 노출 (그룹화 시 frame 안 한 child 만 들어가는 회귀)
+  - 수정: `set((state) => { ... })` callback 안에서 `getElementUpdateSourceElements(state)` 로 latest source 캡처 → `findIndex` + `with()` 로 latest base 위에 increment patch. Zustand `set` callback 의 atomicity 보장으로 concurrent 호출도 sequential 적용 (microtask queue 순)
+  - 위치: `apps/builder/src/builder/stores/utils/elementUpdate.ts` (`createUpdateElementAction`)
+  - 효과: 그룹화 child reparent / batch alignment / 기타 concurrent updateElement 호출 자동 race-free. ADR-040 indexOf+with() 증분 패치 패턴은 latest base 위에서 동일 작동
+
+### Bug Fixes
+
+- **그룹화 child reparent `Promise.all` 복원** (root fix 후속):
+  - 직전 sequential `for-await` 패턴은 store-layer race 의 caller-side 우회. `updateElement` 가 atomic 화되어 concurrent 호출도 안전 → `Promise.all` 회복하여 store atomicity 신뢰 명시
+  - 위치: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` (`handleGroupSelection`)
+
 ## [Cross-page shift+click multi-select 허용] - 2026-05-14
 
 ### Bug Fixes

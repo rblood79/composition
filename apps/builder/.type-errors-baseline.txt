@@ -229,13 +229,13 @@ src/builder/panels/properties/FrameSlotSection.tsx(170,42): error TS2345: Argume
 src/builder/panels/properties/FrameSlotSection.tsx(87,30): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'ReferenceResolvable'.
 src/builder/panels/properties/generic/ChildItemManager.tsx(59,44): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/PropertiesPanel.tsx(1146,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1167,40): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(1209,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1216,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(1286,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1355,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1645,39): error TS2339: Property 'props' does not exist on type 'Element'.
-src/builder/panels/properties/PropertiesPanel.tsx(1646,15): error TS2353: Object literal may only specify known properties, and '[SLOT_NAME_MIRROR_FIELD]' does not exist in type 'Partial<Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1168,40): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/PropertiesPanel.tsx(1210,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1217,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/PropertiesPanel.tsx(1287,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1356,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1646,39): error TS2339: Property 'props' does not exist on type 'Element'.
+src/builder/panels/properties/PropertiesPanel.tsx(1647,15): error TS2353: Object literal may only specify known properties, and '[SLOT_NAME_MIRROR_FIELD]' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/PropertiesPanel.tsx(196,56): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
 src/builder/panels/properties/PropertiesPanel.tsx(197,40): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
 src/builder/panels/properties/PropertiesPanel.tsx(217,33): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.

@@ -1150,18 +1150,19 @@ function PropertiesPanelContent() {
       // Add group to store (this saves to DB)
       await addElement(groupElement);
 
-      // Update children with new parent_id + page_id — sequential await 로 race 차단.
-      // Why: (1) Promise.all 동시 호출 시 각 updateElement 가 시작 시점에 stale
-      // `get()` snapshot 을 기반으로 derive → `set` 의 last-write-wins 로 일부 child
-      // 의 update 가 lost. sequential await 로 각 호출이 직전 호출의 canonical/elements
-      // state 갱신을 본 후 시작. (2) page_id 도 함께 update — cross-page 의 다른 page
-      // element 가 frame.page_id 로 이동해야 frame 의 child 로 정상 인식.
-      for (const child of updatedChildren) {
-        await updateElement(child.id, {
-          parent_id: child.parent_id,
-          page_id: child.page_id,
-        });
-      }
+      // Update children with new parent_id + page_id.
+      // updateElement 가 store-layer 에서 atomic (set callback 안 latest state 기반
+      // derive) 이므로 concurrent Promise.all 호출도 race-free. page_id 도 함께
+      // update — cross-page 의 다른 page element 가 frame.page_id 로 이동해야
+      // canonical document tree 의 page 경계 정합 + frame 의 child 로 정상 인식.
+      await Promise.all(
+        updatedChildren.map((child) =>
+          updateElement(child.id, {
+            parent_id: child.parent_id,
+            page_id: child.page_id,
+          }),
+        ),
+      );
 
       // ⭐ Phase 7: Track in history AFTER group creation
       trackGroupCreation(groupElement, previousChildren, updatedChildren);

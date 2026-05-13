@@ -557,17 +557,8 @@ export const createUpdateElementAction =
       });
     }
 
-    // ADR-040 Phase 3: indexOf + with() 증분 패치 (elements.map O(N) 제거)
-    const idx = sourceElements.indexOf(element);
+    // canonical update — `getCurrentDocument` 기반 latest doc lookup 이므로 자체 atomic
     const updatedElement = { ...element, ...sanitizedUpdates };
-    const updatedElements =
-      idx !== -1 ? sourceElements.with(idx, updatedElement) : sourceElements;
-    const selectedElementProps =
-      currentState.selectedElementId === elementId &&
-      sanitizedUpdates.props &&
-      updatedElement
-        ? createCompleteProps(updatedElement, sanitizedUpdates.props)
-        : currentState.selectedElementProps;
 
     // ADR-006 P3-1: props.style 변경 시 dirty tracking
     const changedStyle = (sanitizedUpdates.props?.style ?? {}) as Record<
@@ -581,26 +572,51 @@ export const createUpdateElementAction =
 
     syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);
 
-    if (isLayoutChange) {
-      const dirtyIds = new Set(currentState.dirtyElementIds);
-      markDirtyWithDescendantsUpdate(
-        elementId,
-        changedStyle,
-        buildElementUpdateChildrenByParent(sourceElements),
-        dirtyIds,
+    // Atomic derive — set callback 안에서 latest `state` 기반으로 elements 재계산.
+    // Why: concurrent 호출 (예: Promise.all 로 여러 updateElement) 시 모든 호출이
+    // 외부에서 같은 stale `currentState` snapshot 기반으로 `updatedElements` derive
+    // 하면 `set` 의 last-write-wins 로 다른 element 변경이 lost → 사용자 가시 회귀
+    // (예: 그룹화 시 frame 안에 한 child 만 들어가는 race). canonical 자체는 latest
+    // doc 기반이라 안전하나, legacy state.elements mirror 가 _rebuildIndexes 의
+    // primary derive source 이므로 mirror race 가 UI 에 그대로 노출됨. ADR-040 의
+    // indexOf+with() 증분 패치는 latest base 위에서도 동일하게 작동.
+    set((state) => {
+      const latestSource = getElementUpdateSourceElements(state);
+      const latestIdx = latestSource.findIndex((el) => el.id === elementId);
+      if (latestIdx === -1) return state; // 다른 호출로 이미 삭제된 경우 skip
+
+      const latestElement = latestSource[latestIdx];
+      const latestUpdatedElement = { ...latestElement, ...sanitizedUpdates };
+      const latestUpdatedElements = latestSource.with(
+        latestIdx,
+        latestUpdatedElement,
       );
-      set((state) => ({
-        elements: updatedElements,
-        selectedElementProps,
-        layoutVersion: state.layoutVersion + 1,
-        dirtyElementIds: dirtyIds,
-      }));
-    } else {
-      set({
-        elements: updatedElements,
-        selectedElementProps,
-      });
-    }
+
+      const latestSelectedElementProps =
+        state.selectedElementId === elementId && sanitizedUpdates.props
+          ? createCompleteProps(latestUpdatedElement, sanitizedUpdates.props)
+          : state.selectedElementProps;
+
+      if (isLayoutChange) {
+        const dirtyIds = new Set(state.dirtyElementIds);
+        markDirtyWithDescendantsUpdate(
+          elementId,
+          changedStyle,
+          buildElementUpdateChildrenByParent(latestSource),
+          dirtyIds,
+        );
+        return {
+          elements: latestUpdatedElements,
+          selectedElementProps: latestSelectedElementProps,
+          layoutVersion: state.layoutVersion + 1,
+          dirtyElementIds: dirtyIds,
+        };
+      }
+      return {
+        elements: latestUpdatedElements,
+        selectedElementProps: latestSelectedElementProps,
+      };
+    });
 
     // 🔧 CRITICAL: elementsMap 재구축 (재선택 시 이전 값 반환 방지)
     // Immer produce() 외부에서 호출 (Map은 Immer가 직접 지원하지 않음)
