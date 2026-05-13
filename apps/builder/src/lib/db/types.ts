@@ -10,7 +10,6 @@ import type {
   DataTable,
   ApiEndpoint,
   Variable,
-  Transformer,
 } from "../../types/builder/data.types";
 import type {
   CompositionDocument,
@@ -143,20 +142,6 @@ export interface DatabaseAdapter {
     getByScope(scope: string): Promise<Variable[]>;
     getByPage(pageId: string): Promise<Variable[]>;
     getAll(): Promise<Variable[]>;
-  };
-
-  // Transformers (Data Panel System)
-  transformers: {
-    insert(transformer: Transformer): Promise<Transformer>;
-    update(id: string, data: Partial<Transformer>): Promise<Transformer>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<Transformer | null>;
-    getByProject(projectId: string): Promise<Transformer[]>;
-    getByName(name: string): Promise<Transformer | null>;
-    getByLevel(level: string): Promise<Transformer[]>;
-    getByInputDataTable(tableName: string): Promise<Transformer[]>;
-    getByOutputDataTable(tableName: string): Promise<Transformer[]>;
-    getAll(): Promise<Transformer[]>;
   };
 
   // ADR-131 Phase 7 — Events root collection store

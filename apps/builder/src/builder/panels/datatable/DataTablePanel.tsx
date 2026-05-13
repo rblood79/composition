@@ -1,11 +1,10 @@
 /**
  * DataTablePanel - 프로젝트 레벨 데이터 관리 패널
  *
- * 4개 탭 구성:
+ * 3개 탭 구성:
  * - DataTables: 스키마 + Mock 데이터 관리
  * - API Endpoints: 외부 API 연결 설정
  * - Variables: 전역/페이지 상태 관리
- * - Transformers: 데이터 변환 시스템
  *
  * 편집 UI는 DataTableEditorPanel에서 처리
  *
@@ -20,14 +19,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Table2,
-  Globe,
-  Variable,
-  Workflow,
-  RefreshCw,
-  Database,
-} from "lucide-react";
+import { Table2, Globe, Variable, RefreshCw, Database } from "lucide-react";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import type { PanelProps } from "../core/types";
 import { useDataStore } from "../../stores/data";
@@ -37,10 +29,9 @@ import { PanelHeader, EmptyState, LoadingSpinner } from "../../components";
 import { DataTableList } from "./components/DataTableList";
 import { ApiEndpointList } from "./components/ApiEndpointList";
 import { VariableList } from "./components/VariableList";
-import { TransformerList } from "./components/TransformerList";
 import "./DataTablePanel.css";
 
-type DataTableTab = "tables" | "endpoints" | "variables" | "transformers";
+type DataTableTab = "tables" | "endpoints" | "variables";
 
 interface TabConfig {
   id: DataTableTab;
@@ -52,7 +43,6 @@ const TABS: TabConfig[] = [
   { id: "tables", label: "Tables", icon: Table2 },
   { id: "endpoints", label: "APIs", icon: Globe },
   { id: "variables", label: "Variables", icon: Variable },
-  { id: "transformers", label: "Transformers", icon: Workflow },
 ];
 
 export function DataTablePanel({ isActive }: PanelProps) {
@@ -68,10 +58,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
   // - enabled: isActive && !!currentProjectId → 패널 비활성 시 fetching 안함
   // - staleTime: 5분 캐싱 → 중복 요청 방지
   // - 자동 dedupe → 같은 요청 동시 발생 시 1회만 실행
-  const {
-    isLoading,
-    refetch,
-  } = useDataPanelQuery(currentProjectId, {
+  const { isLoading, refetch } = useDataPanelQuery(currentProjectId, {
     enabled: isActive,
   });
 
@@ -79,12 +66,15 @@ export function DataTablePanel({ isActive }: PanelProps) {
   const fetchCollections = useDataStore((state) => state.fetchCollections);
   const fetchApiEndpoints = useDataStore((state) => state.fetchApiEndpoints);
   const fetchVariables = useDataStore((state) => state.fetchVariables);
-  const fetchTransformers = useDataStore((state) => state.fetchTransformers);
 
   // 🆕 패널 활성화 시 IndexedDB에서 Zustand Store로 데이터 동기화
   // React Query 캐시와 별개로, Zustand Store도 초기화해야 DataTableList에서 보임
   useEffect(() => {
-    if (isActive && currentProjectId && initialLoadedRef.current !== currentProjectId) {
+    if (
+      isActive &&
+      currentProjectId &&
+      initialLoadedRef.current !== currentProjectId
+    ) {
       initialLoadedRef.current = currentProjectId;
 
       // Zustand Store에 데이터 로드 (IndexedDB → Memory)
@@ -92,22 +82,33 @@ export function DataTablePanel({ isActive }: PanelProps) {
         fetchCollections(currentProjectId),
         fetchApiEndpoints(currentProjectId),
         fetchVariables(currentProjectId),
-        fetchTransformers(currentProjectId),
-      ]).then(() => {
-      }).catch((error) => {
-        console.error(`❌ [DataTablePanel] 초기화 실패:`, error);
-      });
+      ])
+        .then(() => {})
+        .catch((error) => {
+          console.error(`❌ [DataTablePanel] 초기화 실패:`, error);
+        });
     }
-  }, [isActive, currentProjectId, fetchCollections, fetchApiEndpoints, fetchVariables, fetchTransformers]);
+  }, [
+    isActive,
+    currentProjectId,
+    fetchCollections,
+    fetchApiEndpoints,
+    fetchVariables,
+  ]);
 
   // Editor Store 액션
   const editorMode = useDataTableEditorStore((state) => state.mode);
-  const openTableCreator = useDataTableEditorStore((state) => state.openTableCreator);
-  const openTableEditor = useDataTableEditorStore((state) => state.openTableEditor);
+  const openTableCreator = useDataTableEditorStore(
+    (state) => state.openTableCreator,
+  );
+  const openTableEditor = useDataTableEditorStore(
+    (state) => state.openTableEditor,
+  );
   const closeEditor = useDataTableEditorStore((state) => state.close);
 
   // 현재 편집 중인 테이블 ID (하이라이트용)
-  const editingTableId = editorMode?.type === "table-edit" ? editorMode.tableId : null;
+  const editingTableId =
+    editorMode?.type === "table-edit" ? editorMode.tableId : null;
 
   // Performance: Don't render if not active
   if (!isActive) {
@@ -118,7 +119,10 @@ export function DataTablePanel({ isActive }: PanelProps) {
   if (!currentProjectId) {
     return (
       <div className="datatable-panel">
-        <PanelHeader icon={<Database size={iconProps.size} />} title="DataTable" />
+        <PanelHeader
+          icon={<Database size={iconProps.size} />}
+          title="DataTable"
+        />
         <EmptyState message="프로젝트를 선택하세요" />
       </div>
     );
@@ -132,7 +136,6 @@ export function DataTablePanel({ isActive }: PanelProps) {
       fetchCollections(currentProjectId);
       fetchApiEndpoints(currentProjectId);
       fetchVariables(currentProjectId);
-      fetchTransformers(currentProjectId);
     }
   };
 
@@ -207,9 +210,6 @@ export function DataTablePanel({ isActive }: PanelProps) {
         )}
         {activeTab === "variables" && (
           <VariableList projectId={currentProjectId} />
-        )}
-        {activeTab === "transformers" && (
-          <TransformerList projectId={currentProjectId} />
         )}
       </div>
     </div>

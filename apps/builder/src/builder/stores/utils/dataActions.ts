@@ -1,7 +1,7 @@
 /**
  * Data Store Actions - Factory Pattern
  *
- * DataTable, ApiEndpoint, Variable, Transformer의
+ * DataTable, ApiEndpoint, Variable의
  * CRUD 및 실행 액션을 독립적인 팩토리 함수로 분리
  *
  * ✅ IndexedDB 사용 (Supabase 대신)
@@ -21,15 +21,14 @@ import type {
   Variable,
   VariableCreate,
   VariableUpdate,
-  Transformer,
-  TransformerCreate,
-  TransformerUpdate,
   DataStoreState,
   DataStoreActions,
-  TransformContext,
 } from "../../../types/builder/data.types";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
-import { isWebGLCanvas, isCanvasCompareMode } from "../../../utils/featureFlags";
+import {
+  isWebGLCanvas,
+  isCanvasCompareMode,
+} from "../../../utils/featureFlags";
 
 // Type aliases for set/get
 type DataStore = DataStoreState & DataStoreActions;
@@ -53,9 +52,9 @@ function syncCollectionsToCanvas(collections: Map<string, DataTable>): void {
 
   try {
     // previewFrame ID로 Canvas iframe 찾기
-    const iframe = document.getElementById('previewFrame') as HTMLIFrameElement;
+    const iframe = document.getElementById("previewFrame") as HTMLIFrameElement;
     if (iframe?.contentWindow) {
-      const dataTablesArray = Array.from(collections.values()).map(dt => ({
+      const dataTablesArray = Array.from(collections.values()).map((dt) => ({
         id: dt.id,
         name: dt.name,
         schema: dt.schema,
@@ -64,13 +63,16 @@ function syncCollectionsToCanvas(collections: Map<string, DataTable>): void {
         useMockData: dt.useMockData,
       }));
 
-      iframe.contentWindow.postMessage({
-        type: 'UPDATE_DATA_TABLES',
-        collections: dataTablesArray,
-      }, '*');
+      iframe.contentWindow.postMessage(
+        {
+          type: "UPDATE_DATA_TABLES",
+          collections: dataTablesArray,
+        },
+        "*",
+      );
     }
   } catch (error) {
-    console.warn('⚠️ Canvas 동기화 실패:', error);
+    console.warn("⚠️ Canvas 동기화 실패:", error);
   }
 }
 
@@ -88,9 +90,14 @@ export const createFetchDataTablesAction =
 
     try {
       const db = await getDB();
-      const data = await (db as unknown as {
-        collections: { getByProject: (projectId: string) => Promise<DataTable[]> }
-      }).collections?.getByProject(projectId) || [];
+      const data =
+        (await (
+          db as unknown as {
+            collections: {
+              getByProject: (projectId: string) => Promise<DataTable[]>;
+            };
+          }
+        ).collections?.getByProject(projectId)) || [];
 
       const dataTablesMap = new Map<string, DataTable>();
       (data || []).forEach((dt) => {
@@ -136,9 +143,11 @@ export const createCreateDataTableAction =
         updated_at: new Date().toISOString(),
       };
 
-      await (db as unknown as {
-        collections: { insert: (dt: DataTable) => Promise<DataTable> }
-      }).collections?.insert(newDataTable);
+      await (
+        db as unknown as {
+          collections: { insert: (dt: DataTable) => Promise<DataTable> };
+        }
+      ).collections?.insert(newDataTable);
 
       // 메모리 상태 업데이트
       const { collections } = get();
@@ -172,9 +181,16 @@ export const createUpdateDataTableAction =
   async (id: string, updates: DataTableUpdate): Promise<void> => {
     try {
       const db = await getDB();
-      await (db as unknown as {
-        collections: { update: (id: string, updates: DataTableUpdate) => Promise<DataTable> }
-      }).collections?.update(id, updates);
+      await (
+        db as unknown as {
+          collections: {
+            update: (
+              id: string,
+              updates: DataTableUpdate,
+            ) => Promise<DataTable>;
+          };
+        }
+      ).collections?.update(id, updates);
 
       // 메모리 상태 업데이트
       const { collections } = get();
@@ -188,7 +204,11 @@ export const createUpdateDataTableAction =
 
       if (foundKey) {
         const existing = newMap.get(foundKey)!;
-        const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
+        const updated = {
+          ...existing,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        };
 
         // 이름이 변경된 경우 키도 업데이트
         if (updates.name && updates.name !== foundKey) {
@@ -222,17 +242,18 @@ export const createDeleteDataTableAction =
   async (id: string): Promise<void> => {
     set({ isLoading: true });
 
-
     try {
       const db = await getDB();
 
       // ⚠️ Optional chaining 제거하고 명시적 호출
-      const dataTablesStore = (db as unknown as {
-        collections: { delete: (id: string) => Promise<void> }
-      }).collections;
+      const dataTablesStore = (
+        db as unknown as {
+          collections: { delete: (id: string) => Promise<void> };
+        }
+      ).collections;
 
       if (!dataTablesStore) {
-        throw new Error('collections store not found in database');
+        throw new Error("collections store not found in database");
       }
 
       await dataTablesStore.delete(id);
@@ -322,9 +343,14 @@ export const createFetchApiEndpointsAction =
 
     try {
       const db = await getDB();
-      const data = await (db as unknown as {
-        api_endpoints: { getByProject: (projectId: string) => Promise<ApiEndpoint[]> }
-      }).api_endpoints?.getByProject(projectId) || [];
+      const data =
+        (await (
+          db as unknown as {
+            api_endpoints: {
+              getByProject: (projectId: string) => Promise<ApiEndpoint[]>;
+            };
+          }
+        ).api_endpoints?.getByProject(projectId)) || [];
 
       const apiEndpointsMap = new Map<string, ApiEndpoint>();
       (data || []).forEach((ep) => {
@@ -377,9 +403,11 @@ export const createCreateApiEndpointAction =
         updated_at: new Date().toISOString(),
       };
 
-      await (db as unknown as {
-        api_endpoints: { insert: (ep: ApiEndpoint) => Promise<ApiEndpoint> }
-      }).api_endpoints?.insert(newApiEndpoint);
+      await (
+        db as unknown as {
+          api_endpoints: { insert: (ep: ApiEndpoint) => Promise<ApiEndpoint> };
+        }
+      ).api_endpoints?.insert(newApiEndpoint);
 
       // 메모리 상태 업데이트
       const { apiEndpoints } = get();
@@ -410,9 +438,16 @@ export const createUpdateApiEndpointAction =
   async (id: string, updates: ApiEndpointUpdate): Promise<void> => {
     try {
       const db = await getDB();
-      await (db as unknown as {
-        api_endpoints: { update: (id: string, updates: ApiEndpointUpdate) => Promise<ApiEndpoint> }
-      }).api_endpoints?.update(id, updates);
+      await (
+        db as unknown as {
+          api_endpoints: {
+            update: (
+              id: string,
+              updates: ApiEndpointUpdate,
+            ) => Promise<ApiEndpoint>;
+          };
+        }
+      ).api_endpoints?.update(id, updates);
 
       // 메모리 상태 업데이트
       const { apiEndpoints } = get();
@@ -426,7 +461,11 @@ export const createUpdateApiEndpointAction =
 
       if (foundKey) {
         const existing = newMap.get(foundKey)!;
-        const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
+        const updated = {
+          ...existing,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        };
 
         // 이름이 변경된 경우 키도 업데이트
         if (updates.name && updates.name !== foundKey) {
@@ -459,9 +498,11 @@ export const createDeleteApiEndpointAction =
 
     try {
       const db = await getDB();
-      await (db as unknown as {
-        api_endpoints: { delete: (id: string) => Promise<void> }
-      }).api_endpoints?.delete(id);
+      await (
+        db as unknown as {
+          api_endpoints: { delete: (id: string) => Promise<void> };
+        }
+      ).api_endpoints?.delete(id);
 
       // 메모리 상태 업데이트
       const { apiEndpoints } = get();
@@ -568,7 +609,8 @@ export const createExecuteApiEndpointAction =
 
       // 개발 환경에서 외부 API 호출 시 프록시 사용 (CORS 우회)
       let fetchUrl = url;
-      const isExternalUrl = url.startsWith("http://") || url.startsWith("https://");
+      const isExternalUrl =
+        url.startsWith("http://") || url.startsWith("https://");
       const isDevelopment = import.meta.env.DEV;
 
       if (isExternalUrl && isDevelopment) {
@@ -577,7 +619,10 @@ export const createExecuteApiEndpointAction =
 
       // Timeout 설정 (AbortController 사용)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), endpoint.timeout || 30000);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        endpoint.timeout || 30000,
+      );
 
       // Fetch 요청
       const response = await fetch(fetchUrl, {
@@ -650,9 +695,14 @@ export const createFetchVariablesAction =
 
     try {
       const db = await getDB();
-      const data = await (db as unknown as {
-        variables: { getByProject: (projectId: string) => Promise<Variable[]> }
-      }).variables?.getByProject(projectId) || [];
+      const data =
+        (await (
+          db as unknown as {
+            variables: {
+              getByProject: (projectId: string) => Promise<Variable[]>;
+            };
+          }
+        ).variables?.getByProject(projectId)) || [];
 
       const variablesMap = new Map<string, Variable>();
       (data || []).forEach((v) => {
@@ -697,9 +747,11 @@ export const createCreateVariableAction =
         updated_at: new Date().toISOString(),
       };
 
-      await (db as unknown as {
-        variables: { insert: (v: Variable) => Promise<Variable> }
-      }).variables?.insert(newVariable);
+      await (
+        db as unknown as {
+          variables: { insert: (v: Variable) => Promise<Variable> };
+        }
+      ).variables?.insert(newVariable);
 
       // 메모리 상태 업데이트
       const { variables } = get();
@@ -730,9 +782,13 @@ export const createUpdateVariableAction =
   async (id: string, updates: VariableUpdate): Promise<void> => {
     try {
       const db = await getDB();
-      await (db as unknown as {
-        variables: { update: (id: string, updates: VariableUpdate) => Promise<Variable> }
-      }).variables?.update(id, updates);
+      await (
+        db as unknown as {
+          variables: {
+            update: (id: string, updates: VariableUpdate) => Promise<Variable>;
+          };
+        }
+      ).variables?.update(id, updates);
 
       // 메모리 상태 업데이트
       const { variables } = get();
@@ -746,7 +802,11 @@ export const createUpdateVariableAction =
 
       if (foundKey) {
         const existing = newMap.get(foundKey)!;
-        const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
+        const updated = {
+          ...existing,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        };
 
         // 이름이 변경된 경우 키도 업데이트
         if (updates.name && updates.name !== foundKey) {
@@ -779,9 +839,11 @@ export const createDeleteVariableAction =
 
     try {
       const db = await getDB();
-      await (db as unknown as {
-        variables: { delete: (id: string) => Promise<void> }
-      }).variables?.delete(id);
+      await (
+        db as unknown as {
+          variables: { delete: (id: string) => Promise<void> };
+        }
+      ).variables?.delete(id);
 
       // 메모리 상태 업데이트
       const { variables } = get();
@@ -842,316 +904,6 @@ export const createSetVariableValueAction =
   };
 
 // ============================================
-// Transformer Actions
-// ============================================
-
-/**
- * 프로젝트의 모든 Transformer을 가져오는 액션
- */
-export const createFetchTransformersAction =
-  (set: SetState) =>
-  async (projectId: string): Promise<void> => {
-    set({ isLoading: true });
-
-    try {
-      const db = await getDB();
-      const data = await (db as unknown as {
-        transformers: { getByProject: (projectId: string) => Promise<Transformer[]> }
-      }).transformers?.getByProject(projectId) || [];
-
-      const transformersMap = new Map<string, Transformer>();
-      (data || []).forEach((t) => {
-        transformersMap.set(t.name, t);
-      });
-
-      set((state) => ({
-        transformers: transformersMap,
-        isLoading: false,
-        errors: new Map(state.errors),
-      }));
-    } catch (error) {
-      console.error("❌ Transformer 목록 조회 실패:", error);
-      set((state) => {
-        const newErrors = new Map(state.errors);
-        newErrors.set("fetchTransformers", error as Error);
-        return { errors: newErrors, isLoading: false };
-      });
-    }
-  };
-
-/**
- * 새 Transformer을 생성하는 액션
- */
-export const createCreateTransformerAction =
-  (set: SetState, get: GetState) =>
-  async (data: TransformerCreate): Promise<Transformer> => {
-    set({ isLoading: true });
-
-    try {
-      const db = await getDB();
-      const newTransformer: Transformer = {
-        id: crypto.randomUUID(),
-        name: data.name,
-        project_id: data.project_id,
-        level: data.level,
-        responseMapping: data.responseMapping,
-        jsTransformer: data.jsTransformer,
-        customFunction: data.customFunction,
-        inputDataTable: data.inputDataTable,
-        outputDataTable: data.outputDataTable,
-        enabled: data.enabled ?? true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      await (db as unknown as {
-        transformers: { insert: (t: Transformer) => Promise<Transformer> }
-      }).transformers?.insert(newTransformer);
-
-      // 메모리 상태 업데이트
-      const { transformers } = get();
-      const newMap = new Map(transformers);
-      newMap.set(newTransformer.name, newTransformer);
-
-      set({ transformers: newMap, isLoading: false });
-
-      return newTransformer;
-    } catch (error) {
-      console.error("❌ Transformer 생성 실패:", error);
-      set((state) => {
-        const newErrors = new Map(state.errors);
-        newErrors.set("createTransformer", error as Error);
-        return { errors: newErrors, isLoading: false };
-      });
-      throw error;
-    }
-  };
-
-/**
- * Transformer을 업데이트하는 액션
- */
-export const createUpdateTransformerAction =
-  (set: SetState, get: GetState) =>
-  async (id: string, updates: TransformerUpdate): Promise<void> => {
-    set({ isLoading: true });
-
-    try {
-      const db = await getDB();
-      await (db as unknown as {
-        transformers: { update: (id: string, updates: TransformerUpdate) => Promise<Transformer> }
-      }).transformers?.update(id, updates);
-
-      // 메모리 상태 업데이트
-      const { transformers } = get();
-      const newMap = new Map(transformers);
-
-      // ID로 Transformer 찾기
-      let foundKey: string | undefined;
-      transformers.forEach((t, key) => {
-        if (t.id === id) foundKey = key;
-      });
-
-      if (foundKey) {
-        const existing = newMap.get(foundKey)!;
-        const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
-
-        // 이름이 변경된 경우 키도 업데이트
-        if (updates.name && updates.name !== foundKey) {
-          newMap.delete(foundKey);
-          newMap.set(updates.name, updated);
-        } else {
-          newMap.set(foundKey, updated);
-        }
-      }
-
-      set({ transformers: newMap, isLoading: false });
-    } catch (error) {
-      console.error("❌ Transformer 업데이트 실패:", error);
-      set((state) => {
-        const newErrors = new Map(state.errors);
-        newErrors.set("updateTransformer", error as Error);
-        return { errors: newErrors, isLoading: false };
-      });
-      throw error;
-    }
-  };
-
-/**
- * Transformer을 삭제하는 액션
- */
-export const createDeleteTransformerAction =
-  (set: SetState, get: GetState) =>
-  async (id: string): Promise<void> => {
-    set({ isLoading: true });
-
-    try {
-      const db = await getDB();
-      await (db as unknown as {
-        transformers: { delete: (id: string) => Promise<void> }
-      }).transformers?.delete(id);
-
-      // 메모리 상태 업데이트
-      const { transformers } = get();
-      const newMap = new Map(transformers);
-
-      // ID로 Transformer 찾아서 삭제
-      transformers.forEach((t, key) => {
-        if (t.id === id) newMap.delete(key);
-      });
-
-      set({ transformers: newMap, isLoading: false });
-    } catch (error) {
-      console.error("❌ Transformer 삭제 실패:", error);
-      set((state) => {
-        const newErrors = new Map(state.errors);
-        newErrors.set("deleteTransformer", error as Error);
-        return { errors: newErrors, isLoading: false };
-      });
-      throw error;
-    }
-  };
-
-/**
- * Transformer을 실행하는 액션
- */
-export const createExecuteTransformerAction =
-  (get: GetState) =>
-  async (id: string, inputData: unknown[]): Promise<unknown[]> => {
-    const { transformers, collections, variables } = get();
-
-    // ID로 Transformer 찾기
-    let transformer: Transformer | undefined;
-    transformers.forEach((t) => {
-      if (t.id === id) transformer = t;
-    });
-
-    if (!transformer) {
-      throw new Error(`Transformer not found: ${id}`);
-    }
-
-    if (!transformer.enabled) {
-      console.warn(`⚠️ Transformer "${transformer.name}" is disabled`);
-      return inputData;
-    }
-
-    try {
-      // Transform Context 구성
-      const context: TransformContext = {
-        collections: Object.fromEntries(
-          Array.from(collections.entries()).map(([k, v]) => [
-            k,
-            v.useMockData ? v.mockData : (v.runtimeData || []),
-          ])
-        ),
-        variables: Object.fromEntries(
-          Array.from(variables.entries()).map(([k, v]) => [k, v.defaultValue])
-        ),
-        api: {
-          fetch: async (url, options) => {
-            const response = await fetch(url, options);
-            return response.json();
-          },
-        },
-        utils: {
-          formatDate: (date, format) => {
-            // 간단한 날짜 포맷팅 (실제로는 dayjs 등 사용)
-            const d = new Date(date);
-            return format
-              .replace("YYYY", d.getFullYear().toString())
-              .replace("MM", (d.getMonth() + 1).toString().padStart(2, "0"))
-              .replace("DD", d.getDate().toString().padStart(2, "0"));
-          },
-          formatCurrency: (amount, currency) => {
-            return new Intl.NumberFormat("ko-KR", {
-              style: "currency",
-              currency,
-            }).format(amount);
-          },
-        },
-      };
-
-      let result: unknown[] = inputData;
-
-      // Level에 따라 변환 실행
-      switch (transformer.level) {
-        case "level1_mapping":
-          // Level 1: Response Mapping (노코드)
-          if (transformer.responseMapping) {
-            const { dataPath, fieldMappings } = transformer.responseMapping;
-
-            // dataPath 적용
-            if (dataPath && typeof inputData === "object") {
-              const paths = dataPath.split(".");
-              result = paths.reduce((obj: unknown, path) => {
-                if (obj && typeof obj === "object" && path in obj) {
-                  return (obj as Record<string, unknown>)[path];
-                }
-                return obj;
-              }, inputData) as unknown[];
-            }
-
-            // fieldMappings 적용
-            if (fieldMappings && Array.isArray(result)) {
-              result = result.map((item) => {
-                const mappedItem: Record<string, unknown> = {};
-                fieldMappings.forEach((mapping) => {
-                  let value = (item as Record<string, unknown>)[mapping.sourceKey];
-
-                  // Transform 적용
-                  if (mapping.transform && value !== undefined) {
-                    switch (mapping.transform) {
-                      case "uppercase":
-                        value = String(value).toUpperCase();
-                        break;
-                      case "lowercase":
-                        value = String(value).toLowerCase();
-                        break;
-                      case "trim":
-                        value = String(value).trim();
-                        break;
-                      case "number":
-                        value = Number(value);
-                        break;
-                      case "boolean":
-                        value = Boolean(value);
-                        break;
-                      case "date":
-                        value = new Date(String(value)).toISOString();
-                        break;
-                    }
-                  }
-
-                  mappedItem[mapping.targetKey] = value;
-                });
-                return mappedItem;
-              });
-            }
-          }
-          break;
-
-        case "level2_transformer":
-          // Level 2: JS Transformer (로우코드)
-          if (transformer.jsTransformer?.code) {
-            const fn = new Function("data", "context", transformer.jsTransformer.code);
-            result = fn(inputData, context);
-          }
-          break;
-
-        case "level3_custom":
-          // Level 3: Custom Function (풀코드)
-          // 이 레벨은 실제로는 서버에서 실행하거나 웹워커에서 실행해야 함
-          console.warn("Level 3 Custom Function은 아직 지원되지 않습니다.");
-          break;
-      }
-
-      return Array.isArray(result) ? result : [result];
-    } catch (error) {
-      console.error(`❌ Transformer "${transformer?.name}" 실행 실패:`, error);
-      throw error;
-    }
-  };
-
-// ============================================
 // Utility Actions
 // ============================================
 
@@ -1170,7 +922,6 @@ export const createResetAction = (set: SetState) => (): void => {
     collections: new Map(),
     apiEndpoints: new Map(),
     variables: new Map(),
-    transformers: new Map(),
     loadingApis: new Set(),
     errors: new Map(),
     isLoading: false,

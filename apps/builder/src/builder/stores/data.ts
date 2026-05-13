@@ -1,7 +1,7 @@
 /**
  * Data Store - Zustand Store for Data Panel System
  *
- * DataTable, ApiEndpoint, Variable, Transformer 관리
+ * DataTable, ApiEndpoint, Variable 관리
  * Factory Pattern으로 액션을 분리하여 코드 재사용성 향상
  *
  * ## 아키텍처 설계
@@ -27,7 +27,6 @@ import type {
   DataTable,
   ApiEndpoint,
   Variable,
-  Transformer,
   DataStoreState,
   DataStoreActions,
 } from "../../types/builder/data.types";
@@ -52,12 +51,6 @@ import {
   createDeleteVariableAction,
   createGetVariableValueAction,
   createSetVariableValueAction,
-  // Transformer Actions
-  createFetchTransformersAction,
-  createCreateTransformerAction,
-  createUpdateTransformerAction,
-  createDeleteTransformerAction,
-  createExecuteTransformerAction,
   // Utility Actions
   createClearErrorsAction,
   createResetAction,
@@ -153,13 +146,6 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   const getVariableValue = createGetVariableValueAction(get);
   const setVariableValue = createSetVariableValueAction(set, get);
 
-  // Transformer Actions
-  const fetchTransformers = createFetchTransformersAction(set);
-  const createTransformer = createCreateTransformerAction(set, get);
-  const updateTransformer = createUpdateTransformerAction(set, get);
-  const deleteTransformer = createDeleteTransformerAction(set, get);
-  const executeTransformer = createExecuteTransformerAction(get);
-
   // Utility Actions
   const clearErrors = createClearErrorsAction(set);
   const reset = createResetAction(set);
@@ -213,7 +199,6 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
         fetchVariables(projectId),
         fetchCollections(projectId),
         fetchApiEndpoints(projectId),
-        fetchTransformers(projectId),
       ]);
 
       // persist:true인 Variable들의 런타임 값 복원
@@ -250,7 +235,6 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     collections: new Map<string, DataTable>(),
     apiEndpoints: new Map<string, ApiEndpoint>(),
     variables: new Map<string, Variable>(),
-    transformers: new Map<string, Transformer>(),
     loadingApis: new Set<string>(),
     errors: new Map<string, Error>(),
     isLoading: false,
@@ -286,13 +270,6 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     deleteVariable,
     getVariableValue,
     setVariableValue,
-
-    // Transformer CRUD
-    fetchTransformers,
-    createTransformer,
-    updateTransformer,
-    deleteTransformer,
-    executeTransformer,
 
     // Runtime Values
     setRuntimeValue,
@@ -373,22 +350,6 @@ export const useVariable = (name: string): Variable | undefined => {
 export const useVariableValue = (name: string): unknown => {
   const getRuntimeValue = useDataStore((state) => state.getRuntimeValue);
   return getRuntimeValue(name);
-};
-
-/**
- * 모든 Transformer 목록 가져오기
- */
-export const useTransformers = (): Transformer[] => {
-  const transformers = useDataStore((state) => state.transformers);
-  return Array.from(transformers.values());
-};
-
-/**
- * 특정 Transformer 가져오기
- */
-export const useTransformer = (name: string): Transformer | undefined => {
-  const transformers = useDataStore((state) => state.transformers);
-  return transformers.get(name);
 };
 
 // ============================================

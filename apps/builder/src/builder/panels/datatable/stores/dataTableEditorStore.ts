@@ -5,10 +5,7 @@
  */
 
 import { create } from "zustand";
-import type {
-  DataTableEditorStore,
-  ApiEditorTab,
-} from "../types/editorTypes";
+import type { DataTableEditorStore, ApiEditorTab } from "../types/editorTypes";
 import { useStore } from "../../../stores";
 
 /**
@@ -33,7 +30,7 @@ function deactivateEditorPanel() {
     setPanelLayout({
       ...panelLayout,
       activeLeftPanels: panelLayout.activeLeftPanels.filter(
-        (id) => id !== "datatableEditor"
+        (id) => id !== "datatableEditor",
       ),
     });
   }
@@ -79,17 +76,6 @@ export const useDataTableEditorStore = create<DataTableEditorStore>((set) => ({
     activateEditorPanel();
   },
 
-  // Transformer Actions
-  openTransformerCreator: (projectId: string) => {
-    set({ mode: { type: "transformer-create", projectId } });
-    activateEditorPanel();
-  },
-
-  openTransformerEditor: (transformerId: string) => {
-    set({ mode: { type: "transformer-edit", transformerId } });
-    activateEditorPanel();
-  },
-
   // Close
   close: () => {
     set({ mode: null });
@@ -111,7 +97,5 @@ export const useDataTableEditorActions = () =>
     openApiEditor: state.openApiEditor,
     openVariableCreator: state.openVariableCreator,
     openVariableEditor: state.openVariableEditor,
-    openTransformerCreator: state.openTransformerCreator,
-    openTransformerEditor: state.openTransformerEditor,
     close: state.close,
   }));

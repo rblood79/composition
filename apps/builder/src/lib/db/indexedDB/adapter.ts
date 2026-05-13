@@ -20,7 +20,6 @@ import type {
   DataTable,
   ApiEndpoint,
   Variable,
-  Transformer,
 } from "../../../types/builder/data.types";
 import { LRUCache } from "./LRUCache";
 
@@ -308,28 +307,18 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: variables");
         }
 
-        // Transformers store
-        if (!db.objectStoreNames.contains("transformers")) {
-          const transformersStore = db.createObjectStore("transformers", {
-            keyPath: "id",
-          });
-          transformersStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          transformersStore.createIndex("name", "name", { unique: false });
-          transformersStore.createIndex("level", "level", { unique: false });
-          transformersStore.createIndex("inputDataTable", "inputDataTable", {
-            unique: false,
-          });
-          transformersStore.createIndex("outputDataTable", "outputDataTable", {
-            unique: false,
-          });
-          console.log("[IndexedDB] Created store: transformers");
+        // ADR-132 Phase 7: legacy `transformers` store drop (dead infrastructure cleanup).
+        // 3-Level Transformer 시스템 전체 제거 — 외부 caller 0건 검증 완료.
+        if (db.objectStoreNames.contains("transformers")) {
+          db.deleteObjectStore("transformers");
+          console.log(
+            "[IndexedDB] Deleted legacy store: transformers (ADR-132 Phase 7)",
+          );
         }
 
         // ADR-131 Phase 7 — events / actions root collection stores
         // (design §4 D1=(b) — design_themes / variables / collections /
-        //  api_endpoints / transformers 패턴 정합)
+        //  api_endpoints 패턴 정합)
         //
         // **data store 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing 정정으로
         // `data` store 는 기존 `collections` / `api_endpoints` 와 중복 개념으로
@@ -904,87 +893,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
   };
 
-  // === Transformers (Data Panel System) ===
-
-  transformers = {
-    insert: async (transformer: Transformer): Promise<Transformer> => {
-      const now = new Date().toISOString();
-      const transformerWithTimestamps: Transformer = {
-        ...transformer,
-        created_at: transformer.created_at || now,
-        updated_at: transformer.updated_at || now,
-      };
-      await this.putToStore("transformers", transformerWithTimestamps);
-      return transformerWithTimestamps;
-    },
-
-    update: async (
-      id: string,
-      updates: Partial<Transformer>,
-    ): Promise<Transformer> => {
-      const existing = await this.transformers.getById(id);
-      if (!existing) {
-        throw new Error(`Transformer ${id} not found`);
-      }
-      const updated: Transformer = {
-        ...existing,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-      await this.putToStore("transformers", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("transformers", id);
-    },
-
-    getById: async (id: string): Promise<Transformer | null> => {
-      return this.getFromStore<Transformer>("transformers", id);
-    },
-
-    getByProject: async (projectId: string): Promise<Transformer[]> => {
-      return this.getAllByIndex<Transformer>(
-        "transformers",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getByName: async (name: string): Promise<Transformer | null> => {
-      const results = await this.getAllByIndex<Transformer>(
-        "transformers",
-        "name",
-        name,
-      );
-      return results[0] || null;
-    },
-
-    getByLevel: async (level: string): Promise<Transformer[]> => {
-      return this.getAllByIndex<Transformer>("transformers", "level", level);
-    },
-
-    getByInputDataTable: async (tableName: string): Promise<Transformer[]> => {
-      return this.getAllByIndex<Transformer>(
-        "transformers",
-        "inputDataTable",
-        tableName,
-      );
-    },
-
-    getByOutputDataTable: async (tableName: string): Promise<Transformer[]> => {
-      return this.getAllByIndex<Transformer>(
-        "transformers",
-        "outputDataTable",
-        tableName,
-      );
-    },
-
-    getAll: async (): Promise<Transformer[]> => {
-      return this.getAllFromStore<Transformer>("transformers");
-    },
-  };
-
   // === ADR-131 Phase 7 — Root collection stores ===
 
   events = {
@@ -1173,7 +1081,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           "collections",
           "api_endpoints",
           "variables",
-          "transformers",
         ];
         const tx = db.transaction(stores, "readwrite");
 

@@ -281,11 +281,6 @@ function Dashboard() {
         await db.variables.delete(variable.id);
       }
 
-      const transformers = await db.transformers.getByProject(id);
-      for (const transformer of transformers) {
-        await db.transformers.delete(transformer.id);
-      }
-
       await db.documents.delete(id);
       await db.projects.delete(id);
     },

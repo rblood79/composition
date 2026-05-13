@@ -13,13 +13,17 @@
  * @since 2025-12-10 Phase 6 React Query
  */
 
-import { useQuery, useMutation, useQueryClient, UseQueryResult } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryResult,
+} from "@tanstack/react-query";
 import { getDB } from "../../lib/db";
 import type {
   DataTable,
   ApiEndpoint,
   Variable,
-  Transformer,
 } from "../../types/builder/data.types";
 
 // ============================================
@@ -51,12 +55,6 @@ export const dataQueryKeys = {
     [...dataQueryKeys.all, "variables", projectId] as const,
   variable: (projectId: string, variableName: string) =>
     [...dataQueryKeys.variables(projectId), variableName] as const,
-
-  // Transformers
-  transformers: (projectId: string) =>
-    [...dataQueryKeys.all, "transformers", projectId] as const,
-  transformer: (projectId: string, transformerName: string) =>
-    [...dataQueryKeys.transformers(projectId), transformerName] as const,
 };
 
 // ============================================
@@ -70,7 +68,9 @@ async function fetchCollections(projectId: string): Promise<DataTable[]> {
   const db = await getDB();
   const data = await (
     db as unknown as {
-      collections: { getByProject: (projectId: string) => Promise<DataTable[]> };
+      collections: {
+        getByProject: (projectId: string) => Promise<DataTable[]>;
+      };
     }
   ).collections?.getByProject(projectId);
 
@@ -107,22 +107,6 @@ async function fetchVariables(projectId: string): Promise<Variable[]> {
   return data || [];
 }
 
-/**
- * Transformers 조회
- */
-async function fetchTransformers(projectId: string): Promise<Transformer[]> {
-  const db = await getDB();
-  const data = await (
-    db as unknown as {
-      transformers: {
-        getByProject: (projectId: string) => Promise<Transformer[]>;
-      };
-    }
-  ).transformers?.getByProject(projectId);
-
-  return data || [];
-}
-
 // ============================================
 // React Query Hooks
 // ============================================
@@ -144,12 +128,12 @@ async function fetchTransformers(projectId: string): Promise<Transformer[]> {
  */
 export function useDataTablesQuery(
   projectId: string | null | undefined,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ): UseQueryResult<DataTable[], Error> {
   return useQuery({
     queryKey: dataQueryKeys.collections(projectId || ""),
     queryFn: () => fetchCollections(projectId!),
-    enabled: !!projectId && (options?.enabled !== false),
+    enabled: !!projectId && options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5분
   });
 }
@@ -159,12 +143,12 @@ export function useDataTablesQuery(
  */
 export function useApiEndpointsQuery(
   projectId: string | null | undefined,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ): UseQueryResult<ApiEndpoint[], Error> {
   return useQuery({
     queryKey: dataQueryKeys.apiEndpoints(projectId || ""),
     queryFn: () => fetchApiEndpoints(projectId!),
-    enabled: !!projectId && (options?.enabled !== false),
+    enabled: !!projectId && options?.enabled !== false,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -174,27 +158,12 @@ export function useApiEndpointsQuery(
  */
 export function useVariablesQuery(
   projectId: string | null | undefined,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ): UseQueryResult<Variable[], Error> {
   return useQuery({
     queryKey: dataQueryKeys.variables(projectId || ""),
     queryFn: () => fetchVariables(projectId!),
-    enabled: !!projectId && (options?.enabled !== false),
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-/**
- * Transformers 조회 훅
- */
-export function useTransformersQuery(
-  projectId: string | null | undefined,
-  options?: { enabled?: boolean }
-): UseQueryResult<Transformer[], Error> {
-  return useQuery({
-    queryKey: dataQueryKeys.transformers(projectId || ""),
-    queryFn: () => fetchTransformers(projectId!),
-    enabled: !!projectId && (options?.enabled !== false),
+    enabled: !!projectId && options?.enabled !== false,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -207,7 +176,6 @@ export interface DataPanelData {
   collections: DataTable[];
   apiEndpoints: ApiEndpoint[];
   variables: Variable[];
-  transformers: Transformer[];
 }
 
 export interface DataPanelQueryResult {
@@ -231,50 +199,40 @@ export interface DataPanelQueryResult {
  *   if (isLoading) return <Loading />;
  *   if (error) return <Error error={error} />;
  *
- *   const { collections, apiEndpoints, variables, transformers } = data;
+ *   const { collections, apiEndpoints, variables } = data;
  *   // ...
  * }
  * ```
  */
 export function useDataPanelQuery(
   projectId: string | null | undefined,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ): DataPanelQueryResult {
-  const enabled = !!projectId && (options?.enabled !== false);
+  const enabled = !!projectId && options?.enabled !== false;
 
   const dataTablesQuery = useDataTablesQuery(projectId, { enabled });
   const apiEndpointsQuery = useApiEndpointsQuery(projectId, { enabled });
   const variablesQuery = useVariablesQuery(projectId, { enabled });
-  const transformersQuery = useTransformersQuery(projectId, { enabled });
 
   const isLoading =
     dataTablesQuery.isLoading ||
     apiEndpointsQuery.isLoading ||
-    variablesQuery.isLoading ||
-    transformersQuery.isLoading;
+    variablesQuery.isLoading;
 
   const isError =
     dataTablesQuery.isError ||
     apiEndpointsQuery.isError ||
-    variablesQuery.isError ||
-    transformersQuery.isError;
+    variablesQuery.isError;
 
   const error =
-    dataTablesQuery.error ||
-    apiEndpointsQuery.error ||
-    variablesQuery.error ||
-    transformersQuery.error;
+    dataTablesQuery.error || apiEndpointsQuery.error || variablesQuery.error;
 
   const data =
-    dataTablesQuery.data &&
-    apiEndpointsQuery.data &&
-    variablesQuery.data &&
-    transformersQuery.data
+    dataTablesQuery.data && apiEndpointsQuery.data && variablesQuery.data
       ? {
           collections: dataTablesQuery.data,
           apiEndpoints: apiEndpointsQuery.data,
           variables: variablesQuery.data,
-          transformers: transformersQuery.data,
         }
       : undefined;
 
@@ -282,7 +240,6 @@ export function useDataPanelQuery(
     dataTablesQuery.refetch();
     apiEndpointsQuery.refetch();
     variablesQuery.refetch();
-    transformersQuery.refetch();
   };
 
   return {
@@ -353,7 +310,10 @@ export function useUpdateDataTableMutation() {
       const updated = await (
         db as unknown as {
           collections: {
-            update: (id: string, data: Partial<DataTable>) => Promise<DataTable>;
+            update: (
+              id: string,
+              data: Partial<DataTable>,
+            ) => Promise<DataTable>;
           };
         }
       ).collections.update(tableId, updates);
@@ -374,12 +334,7 @@ export function useDeleteDataTableMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      tableId,
-    }: {
-      projectId: string;
-      tableId: string;
-    }) => {
+    mutationFn: async ({ tableId }: { projectId: string; tableId: string }) => {
       const db = await getDB();
       await (
         db as unknown as {
@@ -414,9 +369,6 @@ export function useInvalidateProjectData() {
     });
     queryClient.invalidateQueries({
       queryKey: [...dataQueryKeys.all, "variables", projectId],
-    });
-    queryClient.invalidateQueries({
-      queryKey: [...dataQueryKeys.all, "transformers", projectId],
     });
   };
 }

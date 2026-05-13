@@ -428,7 +428,7 @@ export const BuilderCore: React.FC = () => {
 
       if (editMode === "layout") {
         try {
-          // ⭐ DataStore 초기화 (Variables, DataTables, ApiEndpoints, Transformers)
+          // ⭐ DataStore 초기화 (Variables, DataTables, ApiEndpoints)
           await useDataStore.getState().initializeForProject(projectId);
         } catch (error) {
           console.error("[BuilderCore] DataStore 초기화 실패:", error);

@@ -89,7 +89,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultPosition: "left",
     minWidth: 337,
     maxWidth: 337,
-    description: "DataTables, APIs, Variables, Transformers 관리",
+    description: "DataTables, APIs, Variables 관리",
     shortcut: "Ctrl+Shift+T",
   },
   {
@@ -102,7 +102,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultPosition: "left",
     minWidth: 490,
     maxWidth: 490,
-    description: "DataTable, API, Variable, Transformer 편집",
+    description: "DataTable, API, Variable 편집",
   },
 
   // Font Manager panel

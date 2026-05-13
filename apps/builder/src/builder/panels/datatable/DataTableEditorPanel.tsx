@@ -5,7 +5,6 @@
  * - DataTable 생성/편집
  * - API Endpoint 편집
  * - Variable 편집
- * - Transformer 편집
  *
  * Store 기반으로 모드에 따라 에디터 컴포넌트를 렌더링
  * 탭은 패널 레벨에서 관리 (DataTablePanel과 동일한 구조)
@@ -92,7 +91,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const [tableTab, setTableTab] = useState<TableEditorTab>("schema");
   // API 에디터 초기 탭: mode.initialTab이 있으면 사용 (useEffect 대신 초기값으로)
   const [apiTab, setApiTab] = useState<ApiEditorTab>(
-    mode.type === "api-edit" && mode.initialTab ? mode.initialTab : "basic"
+    mode.type === "api-edit" && mode.initialTab ? mode.initialTab : "basic",
   );
   const [variableTab, setVariableTab] = useState<VariableEditorTab>("basic");
 
@@ -103,23 +102,18 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const dataTablesMap = useDataStore((state) => state.collections);
   const apiEndpointsMap = useDataStore((state) => state.apiEndpoints);
   const variablesMap = useDataStore((state) => state.variables);
-  const transformersMap = useDataStore((state) => state.transformers);
 
   const collections = useMemo(
     () => Array.from(dataTablesMap.values()),
-    [dataTablesMap]
+    [dataTablesMap],
   );
   const apiEndpoints = useMemo(
     () => Array.from(apiEndpointsMap.values()),
-    [apiEndpointsMap]
+    [apiEndpointsMap],
   );
   const variables = useMemo(
     () => Array.from(variablesMap.values()),
-    [variablesMap]
-  );
-  const transformers = useMemo(
-    () => Array.from(transformersMap.values()),
-    [transformersMap]
+    [variablesMap],
   );
 
   // 모드에 따른 헤더 제목 결정
@@ -142,14 +136,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
       case "variable-edit": {
         const variable = variables.find((v) => v.id === mode.variableId);
         return variable?.name || "Variable Editor";
-      }
-      case "transformer-create":
-        return "New Transformer";
-      case "transformer-edit": {
-        const transformer = transformers.find(
-          (t) => t.id === mode.transformerId
-        );
-        return transformer?.name || "Transformer Editor";
       }
       default:
         return "Editor";
@@ -240,8 +226,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
       // 다른 create 모드들은 TODO 상태이므로 탭 없음
       case "api-create":
       case "variable-create":
-      case "transformer-create":
-      case "transformer-edit":
       default:
         return null;
     }
@@ -309,21 +293,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
         );
       }
 
-      case "transformer-create":
-        // TODO: TransformerCreator 구현 필요
-        return <EmptyState message="Transformer 생성 기능 준비 중" />;
-
-      case "transformer-edit": {
-        const transformer = transformers.find(
-          (t) => t.id === mode.transformerId
-        );
-        if (!transformer) {
-          return <EmptyState message="Transformer를 찾을 수 없습니다" />;
-        }
-        // TODO: TransformerEditor 구현 필요
-        return <EmptyState message="Transformer 편집 기능 준비 중" />;
-      }
-
       default:
         return <EmptyState message="편집할 항목을 선택하세요" />;
     }
@@ -374,10 +343,6 @@ function getModeKey(mode: NonNullable<DataTableEditorMode>): string {
       return `variable-create-${mode.projectId}`;
     case "variable-edit":
       return `variable-edit-${mode.variableId}`;
-    case "transformer-create":
-      return `transformer-create-${mode.projectId}`;
-    case "transformer-edit":
-      return `transformer-edit-${mode.transformerId}`;
     default:
       return `unknown-${Date.now()}`;
   }

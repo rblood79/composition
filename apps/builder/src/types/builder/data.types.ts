@@ -4,7 +4,6 @@
  * DataTable = 스키마 + Mock 데이터 + 런타임 데이터
  * ApiEndpoint = 외부 API 연결 설정 + 응답 매핑
  * Variable = 앱 전역/페이지 상태 관리
- * Transformer = 3단계 데이터 변환 시스템
  */
 
 // ============================================
@@ -318,136 +317,18 @@ export type VariableCreate = Pick<Variable, "name" | "project_id" | "type"> & {
  * Variable 업데이트용 타입
  */
 export type VariableUpdate = Partial<
-  Pick<Variable, "name" | "type" | "defaultValue" | "persist" | "scope" | "page_id" | "validation" | "transform">
+  Pick<
+    Variable,
+    | "name"
+    | "type"
+    | "defaultValue"
+    | "persist"
+    | "scope"
+    | "page_id"
+    | "validation"
+    | "transform"
+  >
 >;
-
-// ============================================
-// Transformer (3단계 변환 시스템)
-// ============================================
-
-/**
- * 변환 레벨
- */
-export type TransformLevel =
-  | "level1_mapping" // 노코드 Response Mapping
-  | "level2_transformer" // 로우코드 JS Transformer
-  | "level3_custom"; // 풀코드 TypeScript Custom Function
-
-/**
- * 필드 매핑 (Level 1)
- */
-export interface FieldMapping {
-  sourceKey: string; // API 응답 필드명
-  targetKey: string; // DataTable 필드명
-  transform?: "uppercase" | "lowercase" | "trim" | "number" | "boolean" | "date";
-}
-
-/**
- * Level 1: Response Mapping 설정
- */
-export interface ResponseMappingConfig {
-  dataPath: string; // "data.users"
-  fieldMappings: FieldMapping[];
-}
-
-/**
- * Level 2: JS Transformer 설정
- */
-export interface JsTransformerConfig {
-  /** JavaScript 코드 (data와 context 변수가 자동 주입됨) */
-  code: string;
-}
-
-/**
- * Level 3: Custom Function 설정
- */
-export interface CustomFunctionConfig {
-  /** TypeScript 함수 전체 코드 */
-  code: string;
-
-  /** export된 함수명 */
-  functionName: string;
-
-  /** 외부 라이브러리 의존성 (lodash, dayjs 등) */
-  dependencies?: string[];
-}
-
-/**
- * Transformer 타입 (transformers 테이블)
- */
-export interface Transformer {
-  id: string;
-  name: string;
-  project_id: string;
-
-  /** 변환 레벨 */
-  level: TransformLevel;
-
-  /** Level 1: Response Mapping (노코드) */
-  responseMapping?: ResponseMappingConfig;
-
-  /** Level 2: JS Transformer (로우코드) */
-  jsTransformer?: JsTransformerConfig;
-
-  /** Level 3: Custom Function (풀코드) */
-  customFunction?: CustomFunctionConfig;
-
-  /** 입력 DataTable */
-  inputDataTable?: string;
-
-  /** 출력 DataTable */
-  outputDataTable?: string;
-
-  /** 활성화 여부 */
-  enabled: boolean;
-
-  created_at?: string;
-  updated_at?: string;
-}
-
-/**
- * Transformer 생성용 타입
- */
-export type TransformerCreate = Pick<
-  Transformer,
-  "name" | "project_id" | "level"
-> & {
-  responseMapping?: ResponseMappingConfig;
-  jsTransformer?: JsTransformerConfig;
-  customFunction?: CustomFunctionConfig;
-  inputDataTable?: string;
-  outputDataTable?: string;
-  enabled?: boolean;
-};
-
-/**
- * Transformer 업데이트용 타입
- */
-export type TransformerUpdate = Partial<
-  Omit<Transformer, "id" | "project_id" | "created_at" | "updated_at">
->;
-
-/**
- * Transform Context (변환 함수에 주입되는 컨텍스트)
- */
-export interface TransformContext {
-  /** 다른 DataTable 접근 */
-  collections: Record<string, unknown[]>;
-
-  /** 변수 접근 */
-  variables: Record<string, unknown>;
-
-  /** 추가 API 호출 (Level 3 전용) */
-  api: {
-    fetch: (url: string, options?: RequestInit) => Promise<unknown>;
-  };
-
-  /** 유틸리티 */
-  utils: {
-    formatDate: (date: string, format: string) => string;
-    formatCurrency: (amount: number, currency: string) => string;
-  };
-}
 
 // ============================================
 // DataBinding (Visual Picker 하이브리드)
@@ -514,9 +395,6 @@ export interface DataStoreState {
   /** 프로젝트의 모든 Variable */
   variables: Map<string, Variable>;
 
-  /** 프로젝트의 모든 Transformer */
-  transformers: Map<string, Transformer>;
-
   /** 현재 로딩 중인 API ID 목록 */
   loadingApis: Set<string>;
 
@@ -544,7 +422,10 @@ export interface DataStoreActions {
   createApiEndpoint: (data: ApiEndpointCreate) => Promise<ApiEndpoint>;
   updateApiEndpoint: (id: string, updates: ApiEndpointUpdate) => Promise<void>;
   deleteApiEndpoint: (id: string) => Promise<void>;
-  executeApiEndpoint: (id: string, params?: Record<string, unknown>) => Promise<unknown>;
+  executeApiEndpoint: (
+    id: string,
+    params?: Record<string, unknown>,
+  ) => Promise<unknown>;
 
   // Variable CRUD
   fetchVariables: (projectId: string) => Promise<void>;
@@ -553,13 +434,6 @@ export interface DataStoreActions {
   deleteVariable: (id: string) => Promise<void>;
   getVariableValue: (name: string) => unknown;
   setVariableValue: (name: string, value: unknown) => void;
-
-  // Transformer CRUD
-  fetchTransformers: (projectId: string) => Promise<void>;
-  createTransformer: (data: TransformerCreate) => Promise<Transformer>;
-  updateTransformer: (id: string, updates: TransformerUpdate) => Promise<void>;
-  deleteTransformer: (id: string) => Promise<void>;
-  executeTransformer: (id: string, inputData: unknown[]) => Promise<unknown[]>;
 
   // Utilities
   clearErrors: () => void;
@@ -614,18 +488,5 @@ export function isVariable(obj: unknown): obj is Variable {
     "name" in obj &&
     "type" in obj &&
     "scope" in obj
-  );
-}
-
-/**
- * Transformer 타입 가드
- */
-export function isTransformer(obj: unknown): obj is Transformer {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    "id" in obj &&
-    "name" in obj &&
-    "level" in obj
   );
 }

@@ -383,8 +383,8 @@ async function persistActiveCanonicalDocument(): Promise<void> {
   await db.documents.put(projectId, doc);
 
   // ADR-131 Phase 7 — fan-out to dedicated IndexedDB stores so DevTools 표시가
-  // design_themes / variables / collections / api_endpoints / transformers
-  // 와 동일하게 events / data / actions 도 별 store entries 로 보인다.
+  // design_themes / variables / collections / api_endpoints
+  // 와 동일하게 events / actions 도 별 store entries 로 보인다.
   // dev data 0 가정 — full-set replacement (project 별 기존 row 삭제 후 재기록).
   await syncRootCollectionsToIndexedDB(projectId, doc);
 }
