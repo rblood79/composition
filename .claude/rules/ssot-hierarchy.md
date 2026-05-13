@@ -62,6 +62,14 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 - consumer 는 항상 `resolveFillTokens(variant)` / `resolveIndicatorFill(im)` 경유로 fill 접근 (direct property access 금지).
 - 비-background 색상 (`text / border / textHover / borderHover / selectedText / outlineText / subtleText / selectedBorder / emphasizedSelectedText / emphasizedSelectedBorder`) 는 VariantSpec 직접 필드로 유지 — fill preset 언어로의 확장은 후속 ADR 판정.
 
+**D1 ↔ D3 분리 사례 — RAC `Group` ↔ canonical `frame` (ADR-130 Implemented 2026-05-13)**:
+
+- RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — `Group.spec.ts` 보존 (변경 0)
+- canonical `frame` = D3 layout container — `Frame.spec.ts` 신규 (skipCSSGeneration:true, ARIA role 없음)
+- 진입점 단일화: builder palette / multi-select grouping / pencil import 모두 `type: "frame"`. RAC ARIA Group 으로 layout 의도 흡수 금지 (D1 침범)
+- canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 와 Frame.spec 1:1 정합. alias (`BASE_TAG_SPEC_MAP["frame"] = GroupSpec`) 패턴 금지 — ARIA role emit 으로 D1 침범
+- legacy `type: "Group" + customId="group_N"` 은 `isLegacyGroupForFrameMigration()` 으로 1회 hydration migration 대상. ARIA Group (customId 없음 또는 다른 prefix) 보존
+
 ## 2. 용어 사전
 
 | 용어                         | 정의                                           | 적용 대상                              |
