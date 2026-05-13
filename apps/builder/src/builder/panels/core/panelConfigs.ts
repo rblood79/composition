@@ -19,7 +19,6 @@ import {
   History,
   Type,
   Workflow,
-  Layers,
 } from "lucide-react";
 import type { PanelConfig } from "./types";
 import { PanelRegistry } from "./PanelRegistry";
@@ -39,8 +38,8 @@ import { StylesPanel } from "../styles/StylesPanel";
 import { EventsPanel } from "../events/EventsPanel";
 import { HistoryPanel } from "../history/HistoryPanel";
 
-// ADR-131 Phase 5 — Inspector UI 3 panel (G3)
-import { DataPanel } from "../data/DataPanel";
+// ADR-131 Phase 5 — Inspector UI panel (events 는 EventsPanel 기존 / actions 신규)
+// ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
 import { ActionsPanel } from "../actions/ActionsPanel";
 
 // Font Manager panel
@@ -207,20 +206,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     description: "이벤트 핸들러 관리",
     shortcut: "Ctrl+Shift+E",
   },
-  // ADR-131 Phase 5 G3 — Data root collection panel
-  {
-    id: "data",
-    name: "데이터",
-    nameEn: "Data",
-    icon: Layers,
-    component: DataPanel,
-    category: "editor",
-    defaultPosition: "right",
-    minWidth: 233,
-    maxWidth: 500,
-    description: "document.data 루트 컬렉션 (ADR-131)",
-  },
   // ADR-131 Phase 5 G3 — Actions root collection panel
+  // (DataPanel 은 Phase 8 에서 제거 — DataTablePanel 이 data SSOT)
   {
     id: "actions",
     name: "액션",

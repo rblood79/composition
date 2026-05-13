@@ -426,15 +426,12 @@ export interface CompositionDocument {
    */
   events?: SerializedEvent[];
 
-  /**
-   * 데이터 binding 선언 root collection — ADR-131 Phase 1.
-   *
-   * cross-node 공유 자원 성격이므로 root collection 위치가 자연.
-   * UI node `props.dataSource` 등이 `SerializedData.id` 를 string 으로 참조.
-   *
-   * ADR-116 §3 `x-composition.dataBinding` 는 본 필드로 partial supersede 됨.
-   */
-  data?: SerializedData[];
+  // ADR-131 Phase 8 (2026-05-13): `data` root field 제거.
+  // 사용자 framing 정정 — data SSOT 는 이미 `data_tables` / `api_endpoints` /
+  // `variables` 로 IndexedDB store 분리되어 있으며, RAC/RSC 컴포넌트는
+  // `useCollectionData({ datatableId | dataBinding })` 로 통합 소비.
+  // `Element.dataBinding` 은 element 별 binding reference (어떤 data source 를
+  // 어떻게 가리킬지) — root collection 격상 의미 없음.
 
   /**
    * 액션 chain 선언 root collection — ADR-131 Phase 1.
@@ -643,30 +640,10 @@ export interface SerializedEvent {
   [k: string]: unknown;
 }
 
-/**
- * Data 선언 (root collection) — ADR-131 Phase 1.
- *
- * `CompositionDocument.data[]` 의 element type. cross-node 공유 자원 — 여러
- * UI node 가 같은 dataSource 를 string id 로 참조 가능. UI node 의
- * `props.dataSource` 등이 본 type 의 `id` 를 참조.
- *
- * 기존 `SerializedDataBinding` (deprecated) 는 element-attached scope 였으나,
- * 본 type 은 root collection scope — cross-node 공유 mental model 자연.
- *
- * Pencil format 정합: data 카테고리가 Pencil 정통에 없으므로 root collection
- * 위치가 import / export 시 자연 drop / sidecar 처리 가능.
- */
-export interface SerializedData {
-  /** stable id — `props.dataSource` / `props.fieldRef` 참조 대상 */
-  id: string;
-  /** discriminator — 본 type 의 root collection 정체성 명시 */
-  type: "data";
-  /** binding 종류 — legacy `DataBinding.type` 와 정합 */
-  kind: "collection" | "value" | "field";
-  /** endpoint / static value / field path */
-  source: string;
-  /** binding-specific 설정 (`DataBindingConfig` 매핑 placeholder) */
-  config?: Record<string, unknown>;
-  /** 미래 확장 슬롯 (예: `polling`, `transform`, `cache`) */
-  [k: string]: unknown;
-}
+// ADR-131 Phase 8 (2026-05-13): `SerializedData` type 제거.
+// 사용자 framing 정정 — data SSOT 는 이미 `data_tables` / `api_endpoints` /
+// `variables` 로 IndexedDB store 분리 + RAC/RSC 컴포넌트가
+// `useCollectionData({ datatableId | dataBinding })` 로 통합 소비. binding 자체는
+// element 별 reference + config (`Element.dataBinding`) — root collection 격상
+// 의미 없음. `SerializedDataBinding` (deprecated) 가 binding payload SSOT 로
+// 잔존 — Phase 6 후속 ADR 에서 cleanup 결정.

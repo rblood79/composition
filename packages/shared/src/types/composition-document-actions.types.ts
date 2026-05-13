@@ -29,7 +29,6 @@ import type {
   CompositionDocument,
   DescendantOverride,
   SerializedAction,
-  SerializedData,
   SerializedEvent,
 } from "./composition-document.types";
 
@@ -232,20 +231,8 @@ export interface CanonicalDocumentActions {
    */
   removeEvent(eventId: string): void;
 
-  /** 활성 document 의 `data` root collection 전체를 교체. */
-  setData(data: SerializedData[] | undefined): void;
-
-  /**
-   * 활성 document 의 `data[].id === dataId` 항목을 부분 patch.
-   * 미발견 시 no-op + dev warn.
-   */
-  updateData(dataId: string, patch: Partial<SerializedData>): void;
-
-  /** 활성 document 의 `data` collection 에 신규 entry append. */
-  addData(data: SerializedData): void;
-
-  /** 활성 document 의 `data[].id === dataId` 항목을 제거. */
-  removeData(dataId: string): void;
+  // ADR-131 Phase 8 (2026-05-13): `setData/addData/updateData/removeData` 제거.
+  // 사용자 framing — `data_tables` / `api_endpoints` / `variables` 가 data SSOT.
 
   /** 활성 document 의 `actions` root collection 전체를 교체. */
   setActions(actions: SerializedAction[] | undefined): void;

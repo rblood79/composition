@@ -27,10 +27,7 @@ import { sanitizeFillDerivedStylePatch } from "../panels/styles/utils/fillDerive
 import { saveService } from "../../services/save";
 import { getDB } from "../../lib/db";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
-import {
-  migrateLegacyDataBindingToRootData,
-  migrateLegacyEventsToRootEvents,
-} from "../../adapters/canonical/rootCollectionMigration";
+import { migrateLegacyEventsToRootEvents } from "../../adapters/canonical/rootCollectionMigration";
 import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   COMPONENT_OVERRIDES_MIRROR_FIELD,
@@ -338,36 +335,8 @@ function syncEventsToRootCollection(
   store.setActions(nextActions.length > 0 ? nextActions : undefined);
 }
 
-function syncDataBindingToRootCollection(
-  elementId: string,
-  dataBinding: Element["dataBinding"] | null,
-): void {
-  const store = useCanonicalDocumentStore.getState();
-  if (!store.currentProjectId) return;
-
-  const expectedId = `db_${elementId}`;
-
-  if (!dataBinding) {
-    // removal
-    const existing = store
-      .getDocument(store.currentProjectId)
-      ?.data?.some((d) => d.id === expectedId);
-    if (existing) store.removeData(expectedId);
-    return;
-  }
-
-  const next = migrateLegacyDataBindingToRootData(elementId, dataBinding);
-  if (!next) return;
-
-  const exists = store
-    .getDocument(store.currentProjectId)
-    ?.data?.some((d) => d.id === expectedId);
-  if (exists) {
-    store.updateData(expectedId, next);
-  } else {
-    store.addData(next);
-  }
-}
+// ADR-131 Phase 8 (2026-05-13): syncDataBindingToRootCollection 제거.
+// data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
 
 function buildInspectorPersistencePayload(
   element: Element,
@@ -999,13 +968,9 @@ export const createInspectorActionsSlice: StateCreator<
         { dataBinding: dataBinding as Element["dataBinding"] },
       );
 
-      // ADR-131 Phase 4 — root collection mirror write.
-      // legacy Element.dataBinding 유지 (preview/runtime 호환) + canonical
-      // `document.data` 에도 sync. Phase 6 cleanup 에서 legacy 제거.
-      syncDataBindingToRootCollection(
-        element.id,
-        (dataBinding ?? null) as Element["dataBinding"] | null,
-      );
+      // ADR-131 Phase 8 (2026-05-13): root collection sync 제거.
+      // data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
+      // Element.dataBinding 은 element 별 binding reference 로 유지.
     },
 
     // ============================================

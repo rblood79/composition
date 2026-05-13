@@ -27,7 +27,6 @@ import type {
   CanonicalNode,
   CompositionDocument,
   SerializedAction,
-  SerializedData,
   SerializedEvent,
 } from "@composition/shared";
 import {
@@ -132,7 +131,6 @@ export function useActiveCanonicalDocument(): CompositionDocument | null {
 // ─────────────────────────────────────────────
 
 const EMPTY_EVENT_LIST: readonly SerializedEvent[] = Object.freeze([]);
-const EMPTY_DATA_LIST: readonly SerializedData[] = Object.freeze([]);
 const EMPTY_ACTION_LIST: readonly SerializedAction[] = Object.freeze([]);
 
 /**
@@ -181,16 +179,9 @@ export function useEventsForTarget(
   );
 }
 
-/** 활성 document 의 `data` root collection 구독. */
-export function useDocumentData(): readonly SerializedData[] {
-  return useSyncExternalStore(
-    subscribeCanonicalStore,
-    () =>
-      selectActiveCanonicalDocument()?.data ??
-      (EMPTY_DATA_LIST as SerializedData[]),
-    () => EMPTY_DATA_LIST as SerializedData[],
-  );
-}
+// ADR-131 Phase 8 (2026-05-13): useDocumentData 제거.
+// data SSOT 는 `data_tables` / `api_endpoints` / `variables`. RAC/RSC consumer
+// 는 `useCollectionData({ datatableId | dataBinding })` 사용.
 
 /** 활성 document 의 `actions` root collection 구독. */
 export function useDocumentActions(): readonly SerializedAction[] {

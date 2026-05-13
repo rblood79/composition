@@ -91,22 +91,9 @@ export const createElementTool: ToolExecutor = {
 
       await addElement(newElement);
 
-      // ADR-131 Phase 4 — root collection mirror write.
-      // dataBinding 이 있으면 canonical `document.data` 에 sync entry 추가.
-      if (newElement.dataBinding) {
-        const { useCanonicalDocumentStore } =
-          await import("../../../builder/stores/canonical/canonicalDocumentStore");
-        const { migrateLegacyDataBindingToRootData } =
-          await import("../../../adapters/canonical/rootCollectionMigration");
-        const store = useCanonicalDocumentStore.getState();
-        if (store.currentProjectId) {
-          const data = migrateLegacyDataBindingToRootData(
-            newElement.id,
-            newElement.dataBinding,
-          );
-          if (data) store.addData(data);
-        }
-      }
+      // ADR-131 Phase 8 (2026-05-13): root collection data sync 제거.
+      // data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
+      // Element.dataBinding 은 element 별 binding reference 로 유지.
 
       // G.3 시각 피드백: 생성 완료 flash
       useAIVisualFeedbackStore.getState().addFlashForNode(newElement.id, {

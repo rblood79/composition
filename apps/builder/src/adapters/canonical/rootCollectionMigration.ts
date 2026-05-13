@@ -30,10 +30,9 @@
 import type {
   CompositionDocument,
   SerializedAction,
-  SerializedData,
   SerializedEvent,
 } from "@composition/shared";
-import type { DataBinding, Element } from "../../types/builder/unified.types";
+import type { Element } from "../../types/builder/unified.types";
 
 /**
  * legacy EventHandler shape — `apps/builder/src/builder/panels/events/types/eventTypes.ts`
@@ -140,51 +139,29 @@ function buildActionChain(
   return { head: ids[0], list };
 }
 
-/**
- * `Element.dataBinding` (legacy `DataBinding`) → ADR-131 root collection
- * `SerializedData`.
- *
- * id 생성 규칙: `db_<elementId>`. 같은 element 가 단 하나의 dataBinding 만
- * 가지므로 단일 id 충분. cross-element 공유 자원 mechanism (여러 element 가 같은
- * `SerializedData.id` 를 `props.dataSource` 로 참조) 은 Phase 4 consumer rewrite
- * 시점에 introduce.
- *
- * legacy `DataBinding.source` ("supabase" / "api" / "state" / "static" /
- * "parent") 는 `SerializedData.source` 의 자유 string 으로 흡수. legacy
- * `DataBinding.config` 는 `SerializedData.config` 로 그대로 전달.
- */
-export function migrateLegacyDataBindingToRootData(
-  elementId: string,
-  legacyBinding: DataBinding | undefined | null,
-): SerializedData | undefined {
-  if (!legacyBinding) return undefined;
-  return {
-    id: `db_${elementId}`,
-    type: "data",
-    kind: legacyBinding.type,
-    source: legacyBinding.source,
-    config: legacyBinding.config,
-  };
-}
+// ADR-131 Phase 8 (2026-05-13): migrateLegacyDataBindingToRootData 제거.
+// data SSOT 는 `data_tables` 등 별 store. `Element.dataBinding` 은 element 별
+// binding reference 로 보존 (root collection 격상 의미 없음).
 
 /**
- * legacy `Element[]` 전수 → root collection `events|data|actions` 변환.
+ * legacy `Element[]` 전수 → root collection `events|actions` 변환.
  *
- * 각 element 의 `events` 와 `dataBinding` 을 추출하여 document 수준 collection
- * 으로 흘려보낸다. dev data 0 가정 (Phase 0 inventory) — 거의 빈 결과 예상.
+ * 각 element 의 `events` 를 추출하여 document 수준 collection 으로 흘려보낸다.
+ * dev data 0 가정 (Phase 0 inventory) — 거의 빈 결과 예상.
  *
  * **사용처 (Phase 4)**: `legacyToCanonical()` 변환 직후 호출하여 결과 doc 에
- * `events|data|actions` 주입.
+ * `events|actions` 주입.
+ *
+ * **ADR-131 Phase 8 (2026-05-13)**: data 영역 제거 — data SSOT 는 `data_tables`
+ * 등 별 store. `Element.dataBinding` 은 element 별 binding reference 로 보존.
  */
 export function migrateLegacyElementsToRootCollections(
   elements: readonly Element[],
 ): {
   events: SerializedEvent[];
-  data: SerializedData[];
   actions: SerializedAction[];
 } {
   const events: SerializedEvent[] = [];
-  const data: SerializedData[] = [];
   const actions: SerializedAction[] = [];
 
   for (const el of elements) {
@@ -197,46 +174,36 @@ export function migrateLegacyElementsToRootCollections(
     );
     events.push(...eventResult.events);
     actions.push(...eventResult.actions);
-
-    const dataResult = migrateLegacyDataBindingToRootData(
-      el.id,
-      el.dataBinding,
-    );
-    if (dataResult) data.push(dataResult);
   }
 
-  return { events, data, actions };
+  return { events, actions };
 }
 
 /**
  * `CompositionDocument` 에 root collection 결과를 병합.
  *
- * 기존 doc 의 events/data/actions 이 있으면 append. id 충돌 시 신규 collection
- * 의 id 가 우선 (사용자 신규 입력 우선).
+ * 기존 doc 의 events/actions 이 있으면 append. id 충돌 시 기존 entry 가 우선
+ * (dedupe by id, first wins).
+ *
+ * **ADR-131 Phase 8 (2026-05-13)**: data 영역 제거.
  */
 export function mergeIntoDocument(
   doc: CompositionDocument,
   collections: {
     events?: SerializedEvent[];
-    data?: SerializedData[];
     actions?: SerializedAction[];
   },
 ): CompositionDocument {
   const existingEvents = doc.events ?? [];
-  const existingData = doc.data ?? [];
   const existingActions = doc.actions ?? [];
 
   const newEvents = collections.events ?? [];
-  const newData = collections.data ?? [];
   const newActions = collections.actions ?? [];
 
   return {
     ...doc,
     ...(existingEvents.length || newEvents.length
       ? { events: dedupeById([...existingEvents, ...newEvents]) }
-      : {}),
-    ...(existingData.length || newData.length
-      ? { data: dedupeById([...existingData, ...newData]) }
       : {}),
     ...(existingActions.length || newActions.length
       ? { actions: dedupeById([...existingActions, ...newActions]) }
@@ -316,23 +283,5 @@ function expandActionChain(
   return out;
 }
 
-/**
- * root `SerializedData[]` 에서 `db_<elementId>` 패턴으로 element 별 dataBinding
- * 복원.
- */
-export function rootDataToLegacyByElement(
-  data: readonly SerializedData[] | undefined,
-): Map<string, DataBinding> {
-  const result = new Map<string, DataBinding>();
-  if (!data) return result;
-  for (const entry of data) {
-    if (!entry.id.startsWith("db_")) continue;
-    const elementId = entry.id.slice(3);
-    result.set(elementId, {
-      type: entry.kind,
-      source: entry.source as DataBinding["source"],
-      config: entry.config ?? {},
-    });
-  }
-  return result;
-}
+// ADR-131 Phase 8 (2026-05-13): rootDataToLegacyByElement 제거.
+// data SSOT 는 `data_tables` 등 별 store. `Element.dataBinding` 보존.

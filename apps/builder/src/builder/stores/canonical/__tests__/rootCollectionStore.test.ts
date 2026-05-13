@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type {
   CompositionDocument,
   SerializedAction,
-  SerializedData,
   SerializedEvent,
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../canonicalDocumentStore";
@@ -140,27 +139,8 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
     });
   });
 
-  describe("data collection", () => {
-    it("addData + updateData + removeData", () => {
-      setupActiveDoc();
-      const store = useCanonicalDocumentStore.getState();
-      const d: SerializedData = {
-        id: "d1",
-        type: "data",
-        kind: "collection",
-        source: "supabase",
-        config: { table: "items" },
-      };
-      store.addData(d);
-      store.updateData("d1", { source: "api" });
-      let doc = useCanonicalDocumentStore.getState().getDocument("p")!;
-      expect(doc.data?.[0].source).toBe("api");
-
-      store.removeData("d1");
-      doc = useCanonicalDocumentStore.getState().getDocument("p")!;
-      expect(doc.data).toBeUndefined();
-    });
-  });
+  // ADR-131 Phase 8 (2026-05-13): data collection test 제거.
+  // data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
 
   describe("actions collection", () => {
     it("addAction + updateAction (next chain) + removeAction", () => {
@@ -220,11 +200,9 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
       // 미존재 id
       store.removeEvent("missing");
       store.updateEvent("missing", { kind: "x" });
-      store.removeData("missing");
       store.removeAction("missing");
       // 빈 set → 이미 undefined 이므로 no-op
       store.setEvents(undefined);
-      store.setData(undefined);
       store.setActions(undefined);
       expect(useCanonicalDocumentStore.getState().documentVersion).toBe(before);
     });

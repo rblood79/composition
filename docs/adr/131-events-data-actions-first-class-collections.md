@@ -16,6 +16,7 @@ Accepted — 2026-05-13 (Phase 0-6 land + G1-G4 PASS)
 - 2026-05-13 — Phase 6 ADR-116 §3 cleanup G4 PASS — ADR-116 본문 §3 + design breakdown §3 partial supersede 마커 + `adr131XCompositionGrepGate.test.ts` grep gate (production runtime direct access 0건 차단 — boundary allowlist 외)
 - 2026-05-13 — Phase 7 IndexedDB store land (design §4 D1=(a) → (b) swap) — `design_themes / variables / data_tables / api_endpoints / transformers` 패턴 정합. DB_VERSION 15 → 16 + `events / data / actions` store 3개 신규 (keyPath:`id`, index:`project_id` / `target` (events) / `kind` (3 stores)). `persistActiveCanonicalDocument` 가 canonical document save 시 root collection field 를 별 store 로 fan-out sync (full-set replacement, dev data 0 가정). 사용자 framing trigger: "design_themes 등은 빈 테이블인데 생성되어있음" 발언. DevTools 표시 + cross-project query 일관성.
 - 2026-05-13 — Phase 7-revert (사용자 framing 정정) — `data` store 가 기존 `data_tables` / `api_endpoints` 와 중복 개념. DB_VERSION 16 → 17 + `data` store deleteObjectStore + `SerializedDataRecord` / `db.data` adapter CRUD 제거 + `syncRootCollectionsToIndexedDB` 의 data 영역 제거. `events / actions` 별 store 는 정당 (기존 미존재) — 유지. `CompositionDocument.data` root field / `SerializedData` type / `DataPanel` / `useDocumentData` 는 schema 영역에서 별도 framing 정리 (현 commit scope 외 — element.dataBinding 의 root projection 의도 vs data_tables 통합 vs 전수 revert 결정 분기). metaStore.test DB_VERSION assertion 16→17 update.
+- 2026-05-13 — Phase 8 (사용자 framing 완결) — **SerializedData / `CompositionDocument.data` 영역 전수 revert**. 사용자 framing: "RAC/RSC 컴포넌트에서 사용되는 data 의 SSOT = `data_tables`" + `useCollectionData({ datatableId | dataBinding })` 통합 소비 패턴 + `Element.dataBinding` 은 element 별 binding reference + config. ADR-131 의 SerializedData root collection 격상은 **잘못된 framing**. 제거: `SerializedData` type / `CompositionDocument.data` root field / `setData/addData/updateData/removeData` mutation / `useDocumentData` hook / `migrateLegacyDataBindingToRootData` / `rootDataToLegacyByElement` / `syncDataBindingToRootCollection` / `DataPanel` (디렉토리 전체) / PanelId "data" / AI tools `createElement` 의 root data sync. ADR-116 §3 partial supersede marker 정정 — `dataBinding` 영역 §3 결정 유지로 revert (events/actions 만 supersede). `Element.dataBinding` legacy field 유지 (binding reference). `events` / `actions` root collection 은 유지 — 기존 SSOT 미존재이며 root collection 격상 정당.
 
 ## Context
 
@@ -101,7 +102,7 @@ Accepted — 2026-05-13 (Phase 0-6 land + G1-G4 PASS)
 
 ## Decision
 
-**대안 A: Root collection 분리**를 채택한다.
+**대안 A: Root collection 분리**를 채택한다 — **단 events / actions 영역만**. data 영역은 Phase 8 (2026-05-13) 에서 본 결정에서 revert 되었다 — data SSOT 는 이미 `data_tables` / `api_endpoints` / `variables` 별 IndexedDB store 로 분리되어 있고 RAC/RSC 컴포넌트가 `useCollectionData({ datatableId | dataBinding })` 로 통합 소비한다. `Element.dataBinding` 은 element 별 binding reference 로 보존 (ADR-116 §3 dataBinding 영역 결정 유지).
 
 선택 근거:
 

@@ -27,7 +27,6 @@ import type {
   DescendantOverride,
   RefNode,
   SerializedAction,
-  SerializedData,
   SerializedEvent,
 } from "@composition/shared";
 import {
@@ -782,62 +781,8 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
       });
     },
 
-    setData: (data) => {
-      mutateActiveDoc(set, "setData", (doc) => {
-        if (!data || data.length === 0) {
-          if (doc.data === undefined) return doc;
-          const next = { ...doc };
-          delete next.data;
-          return next;
-        }
-        return { ...doc, data: [...data] };
-      });
-    },
-
-    addData: (data) => {
-      mutateActiveDoc(set, "addData", (doc) => {
-        const existing = doc.data ?? [];
-        if (existing.some((d) => d.id === data.id)) {
-          devWarn("addData: id already exists", { id: data.id });
-          return doc;
-        }
-        return { ...doc, data: [...existing, data] };
-      });
-    },
-
-    updateData: (dataId, patch) => {
-      mutateActiveDoc(set, "updateData", (doc) => {
-        const existing = doc.data ?? [];
-        const idx = existing.findIndex((d) => d.id === dataId);
-        if (idx === -1) {
-          devWarn("updateData: id not found", { id: dataId });
-          return doc;
-        }
-        const sanitized = { ...patch };
-        delete sanitized.id;
-        delete sanitized.type;
-        const next = [...existing];
-        next[idx] = { ...next[idx], ...sanitized };
-        return { ...doc, data: next };
-      });
-    },
-
-    removeData: (dataId) => {
-      mutateActiveDoc(set, "removeData", (doc) => {
-        const existing = doc.data ?? [];
-        const filtered = existing.filter((d) => d.id !== dataId);
-        if (filtered.length === existing.length) {
-          devWarn("removeData: id not found", { id: dataId });
-          return doc;
-        }
-        if (filtered.length === 0) {
-          const next = { ...doc };
-          delete next.data;
-          return next;
-        }
-        return { ...doc, data: filtered };
-      });
-    },
+    // ADR-131 Phase 8 (2026-05-13): setData/addData/updateData/removeData 제거.
+    // data SSOT 는 `data_tables` / `api_endpoints` / `variables` (별 store).
 
     setActions: (actions) => {
       mutateActiveDoc(set, "setActions", (doc) => {

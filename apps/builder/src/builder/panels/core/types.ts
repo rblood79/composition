@@ -32,9 +32,10 @@ export type PanelDisplayMode = "panel" | "modal";
 /**
  * 패널 ID
  *
- * ADR-131 Phase 5 (2026-05-13): 'data' / 'actions' 패널 재도입 — canonical
- * `document.data` / `document.actions` root collection 직접 편집.
- * 이전 'data' 패널과 다른 scope (cross-node 공유 data 자원 + workflow action chain).
+ * ADR-131 Phase 5 (2026-05-13): 'actions' 패널 신규 — canonical
+ * `document.actions` root collection 직접 편집.
+ * ADR-131 Phase 8 (2026-05-13): 'data' 패널 제거 — `DataTablePanel` (기존, 'datatable')
+ * 이 data SSOT 역할. `Element.dataBinding` 은 element 별 binding reference.
  */
 export type PanelId =
   // Navigation panels
@@ -55,8 +56,7 @@ export type PanelId =
   | "styles"
   | "events"
   | "history"
-  // ADR-131 Phase 5 G3 — Root collection editor panels
-  | "data"
+  // ADR-131 Phase 5 G3 — Actions root collection editor panel
   | "actions"
   // Bottom panels
   | "monitor";

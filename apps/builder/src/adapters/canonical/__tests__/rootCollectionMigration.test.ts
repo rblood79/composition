@@ -1,24 +1,22 @@
 /**
  * @fileoverview ADR-131 Phase 2 G2 — rootCollectionMigration round-trip 검증.
+ *
+ * **ADR-131 Phase 8 (2026-05-13)**: data 영역 test 제거 — data SSOT 는
+ * `data_tables` / `api_endpoints` / `variables` (별 store). events / actions
+ * round-trip 만 보존.
  */
 
 import { describe, expect, it } from "vitest";
 import type {
   CompositionDocument,
   SerializedAction,
-  SerializedData,
   SerializedEvent,
 } from "@composition/shared";
-import type {
-  DataBinding,
-  Element,
-} from "../../../types/builder/unified.types";
+import type { Element } from "../../../types/builder/unified.types";
 import {
   mergeIntoDocument,
-  migrateLegacyDataBindingToRootData,
   migrateLegacyElementsToRootCollections,
   migrateLegacyEventsToRootEvents,
-  rootDataToLegacyByElement,
   rootEventsToLegacyByTarget,
 } from "../rootCollectionMigration";
 
@@ -133,33 +131,8 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
     });
   });
 
-  describe("migrateLegacyDataBindingToRootData", () => {
-    it("returns undefined when binding undefined or null", () => {
-      expect(
-        migrateLegacyDataBindingToRootData("el-1", undefined),
-      ).toBeUndefined();
-      expect(migrateLegacyDataBindingToRootData("el-1", null)).toBeUndefined();
-    });
-
-    it("generates id with db_ prefix + element id", () => {
-      const result = migrateLegacyDataBindingToRootData("listbox-1", {
-        type: "collection",
-        source: "supabase",
-        config: { table: "users" },
-      });
-
-      expect(result).toEqual<SerializedData>({
-        id: "db_listbox-1",
-        type: "data",
-        kind: "collection",
-        source: "supabase",
-        config: { table: "users" },
-      });
-    });
-  });
-
   describe("migrateLegacyElementsToRootCollections", () => {
-    it("aggregates events / data / actions across elements", () => {
+    it("aggregates events / actions across elements", () => {
       const elements: Element[] = [
         {
           id: "btn-1",
@@ -174,16 +147,6 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
           ],
         },
         {
-          id: "listbox-1",
-          type: "ListBox",
-          props: {},
-          dataBinding: {
-            type: "collection",
-            source: "api",
-            config: { endpoint: "/items" },
-          },
-        },
-        {
           id: "plain-1",
           type: "Frame",
           props: {},
@@ -192,19 +155,17 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
 
       const result = migrateLegacyElementsToRootCollections(elements);
       expect(result.events).toHaveLength(1);
-      expect(result.data).toHaveLength(1);
       expect(result.actions).toHaveLength(1);
       expect(result.events[0].target).toBe("btn-1");
-      expect(result.data[0].id).toBe("db_listbox-1");
     });
 
-    it("yields empty result when no element has events/dataBinding", () => {
+    it("yields empty result when no element has events", () => {
       const elements: Element[] = [
         { id: "p1", type: "Frame", props: {} },
         { id: "p2", type: "Text", props: { text: "hi" } },
       ];
       const result = migrateLegacyElementsToRootCollections(elements);
-      expect(result).toEqual({ events: [], data: [], actions: [] });
+      expect(result).toEqual({ events: [], actions: [] });
     });
   });
 
@@ -214,10 +175,9 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
       children: [],
     };
 
-    it("yields no events/data/actions keys when nothing to merge", () => {
+    it("yields no events/actions keys when nothing to merge", () => {
       const result = mergeIntoDocument(baseDoc, {});
       expect(result.events).toBeUndefined();
-      expect(result.data).toBeUndefined();
       expect(result.actions).toBeUndefined();
     });
 
@@ -231,7 +191,7 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
       expect(baseDoc.events).toBeUndefined();
     });
 
-    it("dedupes by id (new wins last position-wise but earlier seen wins)", () => {
+    it("dedupes by id (first wins)", () => {
       const docWithEvents: CompositionDocument = {
         ...baseDoc,
         events: [
@@ -245,7 +205,6 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
         ],
       });
       expect(result.events).toHaveLength(2);
-      // 첫 dedupe — existing ev1 보존, 새 ev1 drop
       expect(result.events?.find((e) => e.id === "ev1")?.kind).toBe("onPress");
       expect(result.events?.find((e) => e.id === "ev2")).toBeDefined();
     });
@@ -286,18 +245,6 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
       ]);
     });
 
-    it("preserves dataBinding by element id", () => {
-      const original: DataBinding = {
-        type: "collection",
-        source: "supabase",
-        config: { table: "users" },
-      };
-      const forward = migrateLegacyDataBindingToRootData("listbox-1", original);
-      expect(forward).toBeDefined();
-      const backByElement = rootDataToLegacyByElement([forward!]);
-      expect(backByElement.get("listbox-1")).toEqual(original);
-    });
-
     it("groups multiple events by their target element id", () => {
       const e1 = migrateLegacyEventsToRootEvents("btn-1", [
         { id: "ev1", event: "onPress" },
@@ -327,7 +274,6 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
       ];
       const result = rootEventsToLegacyByTarget(events, actions);
       const restored = result.get("btn-1")?.[0].actions;
-      // visited set 로 cycle 차단 — a1 / a2 1번씩만 등장
       expect(restored).toHaveLength(2);
       expect(restored?.map((a) => a.id)).toEqual(["a1", "a2"]);
     });
