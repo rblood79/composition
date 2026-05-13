@@ -40,6 +40,21 @@ globs:
 - DB 저장 시 merged 전체 props 저장 (delta만 저장 금지). **Why**: 새로고침 후 미포함 props 소실
 - 요소 삭제 후 `pageElementsSnapshot` 갱신 필수. **Why**: 미갱신 시 레이어 패널에 유령 항목
 
+## Canonical sync 호출 순서 (CRITICAL)
+
+ADR-116/122 canonical-only-runtime 후 `_rebuildIndexes` 는 `getCanonicalOrStoreElements()` → canonical 우선 derive (elements.ts:430). 신규 mutation 함수 추가 시 다음 순서 엄수:
+
+```ts
+set({ elements: ... });            // 1. legacy array 갱신
+syncXxxToCanonical([...]);          // 2. canonical document update 먼저
+get()._rebuildIndexes();            // 3. 최신 canonical 기반 derive
+persistXxxAfterMutation([...]);    // 4. IndexedDB persist (백그라운드)
+```
+
+**금지 패턴**: `set` → `_rebuildIndexes` → canonical update — `_rebuildIndexes` 가 **stale canonical** 로 elementsMap mirror 빌드하여 `reusable` / `componentRole` / mirror field 누락 race 발생. 사용자 가시 영향: 신규 프로젝트 생성 직후 origin → copy → paste 시 instance 가 일반 element 로 생성. 새로고침 후 IndexedDB → canonical hydrate 정합화로 영구 회복.
+
+회귀 이력: instanceActions.ts 3곳 fix — commits `a859f8b97` (applyElementSnapshotBatch) + `ee91020c4` (createInstance / resetInstanceOverrideField).
+
 ## 스타일 패널 (Zustand → Jotai Bridge)
 
 - PropertyUnitInput: focus 시 selectedElementId ref 캡처 → blur 시 비교 → 다르면 onChange 스킵. **Why**: mousedown→blur 이벤트 순서로 blur 시점에 이미 새 요소 선택됨
