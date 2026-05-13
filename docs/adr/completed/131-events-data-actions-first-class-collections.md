@@ -2,7 +2,17 @@
 
 ## Status
 
-Accepted — 2026-05-13 (Phase 0-6 land + G1-G4 PASS)
+Implemented — 2026-05-13 (Phase 0-8 전수 완결 + G1-G4 PASS + ADR-133 partial reverse 반영)
+
+### Implemented 승격 사유 (2026-05-13)
+
+Phase 0-6 G1-G4 PASS land 후 Phase 7 (IndexedDB store land) → Phase 7-revert (data store drop) → Phase 8 (SerializedData / `CompositionDocument.data` 영역 전수 revert) 까지 사용자 framing 정합 완결. events / actions root collection 영역은 schema + adapter + store + bridge + Inspector UI 전수 land. data 영역은 사용자 framing ("RAC/RSC data SSOT = `data_tables`") 으로 revert 완결.
+
+### ADR-133 (Proposed 2026-05-13) partial reverse 영향
+
+[ADR-133](133-events-panel-simplification.md) 본 ADR-131 Phase 5 G3 (`ActionsPanel` 별도 panel) UX 표면 결정을 **partial reverse** — schema root collection 격상 결정 자체는 유지 (`CompositionDocument.actions` + `SerializedAction` + `useDocumentActions` + `useCanonicalDocumentStore.addAction/updateAction/removeAction`), ActionsPanel UI 만 EventsPanel inline 으로 흡수 (cross-event reuse 토글). 본 ADR 의 Phase 5 G3 land 결과 (DataPanel 디렉토리는 Phase 8 revert 로 이미 제거, ActionsPanel 디렉토리는 ADR-133 D4 로 제거 예정) 는 ADR-133 Implemented 시점에 ADR-133 references 에서 추적.
+
+진행 로그:
 
 진행 로그:
 

@@ -295,7 +295,7 @@ historical context 보존 — 본문 archive (completed/ 이동) 만, 본문 삭
 
 ## References
 
-- [ADR-131: events/data/actions 일급 컴포넌트 루트 컬렉션](131-events-data-actions-first-class-collections.md) — schema base (Phase 5 G3 ActionsPanel UX 결정 partial reverse 대상)
+- [ADR-131: events/data/actions 일급 컴포넌트 루트 컬렉션](completed/131-events-data-actions-first-class-collections.md) — schema base (Phase 5 G3 ActionsPanel UX 결정 partial reverse 대상). Implemented 2026-05-13
 - [ADR-132: useCollectionData useAsyncList 정합 + collections rename + Transformer 제거](132-usecollectiondata-useasynclist-alignment.md) — collections rename baseline
 - [ADR-110: Canonical Themes / Variables](completed/110-canonical-themes-variables-land-plan.md) — root collection 패턴 baseline
 - [ADR-116: Canonical Document SSOT 전환](completed/116-canonical-document-ssot-transition.md) — Phase 5 §3 partial supersede (ADR-131 경유)
