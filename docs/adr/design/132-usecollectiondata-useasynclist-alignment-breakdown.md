@@ -195,7 +195,7 @@ const list = useAsyncList({
 
 **목표**: Phase 1-4 완료 후 single PR 로 mechanical rename land. Builder + Publish + Shared + Preview 동시 변경 (R8 — postMessage schema 양쪽 동시 deploy 필요).
 
-**rename 매핑**:
+**rename 매핑 (rule: UI surface 유지 + internal data 어휘 rename)**:
 
 | Before                               | After                                 | 영역                                                                     |
 | ------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------ |
@@ -207,10 +207,26 @@ const list = useAsyncList({
 | `dataTablesVersion`                  | `collectionsVersion`                  | Zustand counter                                                          |
 | `useDataStore.dataTables`            | `useDataStore.collections`            | store API                                                                |
 | `endpoint.targetDataTable`           | `endpoint.targetCollection`           | api_endpoints type (이름은 `data_tables` row 가리키는 reference, rename) |
+| `DataTablesMap`                      | `CollectionsMap`                      | internal Pascal type (data structure)                                    |
+| `DataTableState`                     | `CollectionState`                     | internal Pascal type (store state)                                       |
+| `DataTableConfig`                    | `CollectionConfig`                    | internal Pascal type (config)                                            |
+| `DataTableData`                      | `CollectionData`                      | internal Pascal type (row data)                                          |
+| `DataTableRow`                       | `CollectionRow`                       | internal Pascal type (row)                                               |
 
-**유지 (UI/UX surface — 사용자 framing 명시)**:
+**유지 (UI/UX surface — Pascal `DataTable` 사용자 노출만)**:
 
-- `DataTable` Pascal: Component (`DataTable.tsx` / `DataTableComponent.tsx`) / Editor (`DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `ApiEndpointEditor.tsx`) / Panel (`datatable/`) / Type 이름 (`datatable.types.ts`)
+- **Component** (사용자 컴포넌트 / renderer): `DataTable.tsx` / `DataTableComponent.tsx`
+- **Editor** (Inspector / Panel editor): `DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `DataTableList.tsx` / `ApiEndpointEditor.tsx`
+- **Action editor** (사용자 노출 action 이름): `LoadDataTableActionEditor.tsx` / `SaveToDataTableActionEditor.tsx`
+- **파일명 + 디렉토리**: `datatable.types.ts` / `panels/datatable/` 디렉토리
+- **UI 텍스트**: DataPanel label / "Table 추가" 버튼 텍스트 / Action 이름 ("Load DataTable" / "Save to DataTable")
+
+**rule lock-in (옵션 1 — 사용자 explicit confirm 2026-05-13)**:
+
+> `DataTable` Pascal 은 **사용자 노출 (UI component / Editor / Panel / Action 이름 / 디렉토리)** 만 유지. **internal data structure type** (Map / State / Config / Data / Row / nested property like `targetDataTable`) 은 `Collection` 으로 rename.
+
+근거: type 이름만으로 "UI surface 인가 internal data 인가" 즉시 구분. RSP Dynamic Collections 정통 어휘 정합 (internal). 사용자 RDB 친숙도 유지 (UI).
+
 - DataPanel UI label / "Table 추가" 버튼 / "DataTable 패널" 등 사용자 노출 텍스트
 - 사용자 framing: "UI 는 `DataTable` 이 직관 (RDB 친숙도) — 내부 데이터 구조만 `collections` 정합"
 
@@ -243,15 +259,31 @@ const list = useAsyncList({
 - `collections` object store 신규 생성
 - 사용자 본인 dev DB export 권고 (R9 — commit message 안 명시)
 
-**검증**:
+**검증** (Phase 5 grep gate — 6-way):
 
-- `rg '\bdata_tables\b' -t ts -g '!*.test.*' -g '!node_modules'` = **0 hit** (theme/legacy 주석 허용 list 명시 — 본 ADR scope 밖 영역)
-- `rg '\bdataTables\b' -t ts -g '!*.test.*' -g '!node_modules'` = **0 hit**
-- `rg '"dataTables"' -t ts -g '!node_modules'` = **0 hit** (postMessage type literal)
-- `rg '\bDataTable\b' -t ts -g '!node_modules'` = **baseline 보존** (Pascal UI 어휘 유지)
+- `rg '\bdata_tables\b' -g '*.{ts,tsx}' -g '!*.test.*' -g '!node_modules'` = **0 hit** (코드 .ts/.tsx 만, docs .md 는 별도)
+- `rg '\bdataTables\b' -g '*.{ts,tsx}' -g '!*.test.*' -g '!node_modules'` = **0 hit**
+- `rg '\btargetDataTable\b' -g '*.{ts,tsx}' -g '!node_modules'` = **0 hit** (endpoint nested property)
+- `rg '\b(DataTablesMap|DataTableState|DataTableConfig|DataTableData|DataTableRow)\b' -g '*.{ts,tsx}' -g '!node_modules'` = **0 hit** (internal Pascal type)
+- `rg '"dataTables"' -g '*.{ts,tsx}' -g '!node_modules'` = **0 hit** (postMessage type literal)
+- `rg '\bDataTable\b' -g '*.{ts,tsx}' -g '!node_modules'` = **baseline 보존** — UI surface allowlist:
+  - `DataTable.tsx` (Component) / `DataTableComponent.tsx` (renderer)
+  - `DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `DataTableList.tsx` / `ApiEndpointEditor.tsx`
+  - `LoadDataTableActionEditor.tsx` / `SaveToDataTableActionEditor.tsx`
+  - `datatable.types.ts` (파일명) / `panels/datatable/` 디렉토리
+  - UI label / 버튼 텍스트 / Action 이름 (사용자 노출)
 - type-check 3/3 PASS
 - vitest 기존 PASS 유지
 - Chrome MCP smoke — DataTable 패널 / API endpoint 실행 / RAC collection 컴포넌트 read 정상
+
+**docs (.md) 갱신 정책**:
+
+- ADR-132 본문 / breakdown / reviews / README ✅ 갱신
+- 현 schema reference (`docs/reference/schemas/INDEXDB.md`) **갱신 필수** (현 schema 반영)
+- `docs/reference/components/TRANSFORMER_SECURITY.md` / `docs/how-to/development/PANEL_OPTIMIZATION.md` **검토 후 결정** (현 문서 vs historical)
+- Historical ADR (116/120/121/122/131 본문 + completed/, design breakdown) **historical 보존** (Status 시점 어휘)
+- `docs/legacy/DATA_SYNC.md` / `docs/legacy/DATASET_RENAME.md` **legacy 보존**
+- `docs/features/completed/DATA_PANEL.md` / `docs/features/completed/NESTED_ROUTES.md` **completed historical 보존**
 
 **Phase 5 Gate**: G6 (rename sweep grep gate — ADR 본문 §Gates 참조)
 
@@ -310,16 +342,28 @@ const list = useAsyncList({
 - `apps/builder/src/builder/hooks/useCollectionData.ts` 전수 (Phase 1-4 정합)
 - `packages/shared/src/hooks/collectionDataContext.tsx` (DI 영향만)
 - `packages/shared/src/hooks/useCollectionDataCache.ts` (Phase 4 영향만)
-- **Phase 5 rename sweep — `data_tables` / `dataTables` → `collections` 전수 (50+ 파일)**:
+- **Phase 5 rename sweep — `data_tables` / `dataTables` → `collections` 전수 (코드 .ts/.tsx 31 파일 + targetDataTable 6 파일 + internal Pascal type 약 10 파일)**:
   - DB layer: `apps/builder/src/lib/db/indexedDB/adapter.ts` / `types.ts`
-  - Zustand store: `apps/builder/src/builder/stores/datatable.ts` / `data.ts` / `utils/dataActions.ts` / `inspectorActions.ts`
-  - Hook layer: `useDataQueries.ts` / `useIframeMessenger.ts`
-  - Canonical document: `packages/shared/src/types/composition-document.types.ts` (`dataTables` field → `collections`)
+  - Zustand store: `apps/builder/src/builder/stores/datatable.ts` (store 이름 변경, 파일명 유지) / `data.ts` / `utils/dataActions.ts` / `inspectorActions.ts`
+  - Hook layer: `useDataQueries.ts` / `useIframeMessenger.ts` / `useCollectionData.tsx` / `useCollectionData.ts`
+  - Canonical document: `packages/shared/src/types/composition-document.types.ts` (`dataTables` field → `collections`) / `composition-document-actions.types.ts`
   - Canonical adapters: `apps/builder/src/adapters/canonical/rootCollectionMigration.ts` / `canonical/canonicalDocumentStore.ts` / `canonical/canonicalElementsBridge.ts`
-  - Preview / Publish: `apps/builder/src/preview/messaging/messageHandler.ts` / `runtimeStore.ts` + `apps/publish` 측 string rename
+  - Preview / Publish: `apps/builder/src/preview/messaging/messageHandler.ts` / `runtimeStore.ts` / `preview/store/types.ts`
+  - Type definitions: `apps/builder/src/types/builder/data.types.ts` / `apps/builder/src/types/datatable.types.ts` (파일명 유지) / `packages/shared/src/types/collection.types.ts`
+  - Events / Action types: `apps/builder/src/builder/panels/events/types/eventTypes.ts` / `events.types.ts` / `actions/ActionEditor.tsx`
   - AI tool prompt: `apps/builder/src/services/ai/tools/createElement.ts`
   - Dashboard: `apps/builder/src/dashboard/index.tsx`
-- **UI/UX 어휘는 유지** (`DataTable` Pascal): `DataTable.tsx` / `DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `DataTableList.tsx` / `DataTableComponent.tsx` / `ApiEndpointEditor.tsx` / `datatable.types.ts` / DataPanel label / "Table 추가" 버튼 텍스트
+  - Property binding: `apps/builder/src/builder/components/property/PropertyDataBinding.tsx`
+  - Builder core: `apps/builder/src/builder/main/BuilderCore.tsx`
+- **Internal Pascal type rename** (옵션 1 lock-in — 사용자 explicit confirm 2026-05-13):
+  - `DataTablesMap` → `CollectionsMap` / `DataTableState` → `CollectionState` / `DataTableConfig` → `CollectionConfig` / `DataTableData` → `CollectionData` / `DataTableRow` → `CollectionRow`
+  - `targetDataTable` nested property → `targetCollection` (6 파일: `dataActions.ts` / `ApiEndpointEditor.tsx` / `data.types.ts` / `indexedDB/adapter.ts` / `events.types.ts` / `DataTableList.tsx`)
+- **UI/UX 어휘는 유지** (Pascal `DataTable` — 사용자 노출만):
+  - Component / Renderer: `DataTable.tsx` / `DataTableComponent.tsx`
+  - Editor: `DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `DataTableList.tsx` / `ApiEndpointEditor.tsx`
+  - Action editor (사용자 노출 action 이름): `LoadDataTableActionEditor.tsx` / `SaveToDataTableActionEditor.tsx`
+  - 파일명 / 디렉토리: `datatable.types.ts` / `panels/datatable/`
+  - UI 텍스트: DataPanel label / "Table 추가" 버튼 / Action 이름 ("Load DataTable" / "Save to DataTable")
 
 **본 ADR scope 밖** (별 ADR 발의):
 
