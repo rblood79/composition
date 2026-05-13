@@ -9,7 +9,7 @@
 > - **Level 1 (노코드 Response Mapping)**: `ApiEndpoint.responseMapping` 필드가 흡수. `src/builder/stores/utils/dataActions.ts:executeApiEndpoint` 의 `endpoint.responseMapping.dataPath` 처리 참조
 > - **Level 2/3 (JS / Custom TS)**: 제거됨. 향후 필요 시 별 ADR 재도입
 >
-> **참조**: [ADR-132](../../adr/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [ADR-132 breakdown](../../adr/design/132-usecollectiondata-useasynclist-alignment-breakdown.md) §3 Phase 7
+> **참조**: [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [ADR-132 breakdown](../../adr/design/132-usecollectiondata-useasynclist-alignment-breakdown.md) §3 Phase 7
 >
 > ---
 >

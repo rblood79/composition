@@ -23,7 +23,7 @@
 
 Transformer 시스템은 외부 caller 0건 검증 후 dead infrastructure 로 판정되어 전수 제거됨. Level 1 (노코드 Response Mapping) 기능은 `ApiEndpoint.responseMapping` 필드가 흡수. Level 2/3 (JS / Custom TS) 는 향후 필요 시 별 ADR 재도입 — 그때 안전 패턴 (Web Worker 격리 / WASM sandbox) 채택 필수. 아래 historical 내용은 제거 이전 시점 (2025-12-02) 의 분석 기록.
 
-**참조**: [ADR-132](../../adr/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [TRANSFORMER_SECURITY.md](../components/TRANSFORMER_SECURITY.md) (historical)
+**참조**: [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [TRANSFORMER_SECURITY.md](../components/TRANSFORMER_SECURITY.md) (historical)
 
 ---
 

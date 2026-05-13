@@ -1,6 +1,6 @@
 # ADR-132 design breakdown — useCollectionData useAsyncList 정합 + collections sink 통일 (+ data_tables → collections rename + Transformer 제거)
 
-> 본 문서는 [ADR-132](../132-usecollectiondata-useasynclist-alignment.md) 의 구현 상세. ADR 본문에는 framing 결정 + 잔존 위험 + Gate 만, 본 문서는 Phase 분해 / 파일 목록 / 체크리스트 / 코드 예시.
+> 본 문서는 [ADR-132](../completed/132-usecollectiondata-useasynclist-alignment.md) 의 구현 상세. ADR 본문에는 framing 결정 + 잔존 위험 + Gate 만, 본 문서는 Phase 분해 / 파일 목록 / 체크리스트 / 코드 예시.
 >
 > **2026-05-13 scope 확장**: 사용자 explicit confirm 으로 `data_tables` (snake) / `dataTables` (camel) → `collections` rename 포함. `DataTable` Pascal (UI 컴포넌트 / Editor / Panel) 유지. IndexedDB store drop 정책 (개발 단계, migration 코드 없음).
 >

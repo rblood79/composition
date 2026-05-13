@@ -1,6 +1,6 @@
 # composition Builder 패널 최적화 종합 계획
 
-> **⚠ Historical Notice (2026-05-13)**: 본 가이드의 코드 예시 중 `useTransformersQuery` / `fetchTransformers` / `activeTab === "transformers"` 분기 / Transformer 관련 패턴은 **ADR-132 Phase 7 (2026-05-13)** 에서 Transformer 시스템 전수 제거로 더 이상 유효하지 않음. React Query 최적화 패턴 자체 (캐싱 / dedupe / conditional fetch) 는 여전히 유효 — DataTables / API Endpoints / Variables 3-tab 에만 적용. `dataTables` 어휘는 `collections` 로 rename 됨 (ADR-132 Phase 5). 참조: [ADR-132](../../adr/132-usecollectiondata-useasynclist-alignment.md).
+> **⚠ Historical Notice (2026-05-13)**: 본 가이드의 코드 예시 중 `useTransformersQuery` / `fetchTransformers` / `activeTab === "transformers"` 분기 / Transformer 관련 패턴은 **ADR-132 Phase 7 (2026-05-13)** 에서 Transformer 시스템 전수 제거로 더 이상 유효하지 않음. React Query 최적화 패턴 자체 (캐싱 / dedupe / conditional fetch) 는 여전히 유효 — DataTables / API Endpoints / Variables 3-tab 에만 적용. `dataTables` 어휘는 `collections` 로 rename 됨 (ADR-132 Phase 5). 참조: [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md).
 >
 > **작성일**: 2025-12-09
 > **목표**: 12시간 이상 사용해도 처음과 같은 퍼포먼스를 유지하는 안정적인 빌더 시스템 구축
