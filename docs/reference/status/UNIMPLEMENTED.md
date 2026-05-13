@@ -3,13 +3,13 @@
 > **Note**: 현재 비활성화되어 있거나 향후 구현 예정인 기능들입니다.
 > 구현 완료 시 해당 섹션을 `docs/features/`로 이동합니다.
 
-**최종 업데이트**: 2025-12-02
+**최종 업데이트**: 2026-05-13 (ADR-132 Phase 7 — Transformer 시스템 전수 제거 반영)
 
 ---
 
 ## 목차
 
-1. [Transformer 보안 샌드박스](#1-transformer-보안-샌드박스)
+1. ~~[Transformer 보안 샌드박스](#1-transformer-보안-샌드박스)~~ ⚫ Superseded (ADR-132 Phase 7 — Transformer 시스템 제거)
 2. ~~[MOCK_DATA Migration](#2-mock_data-migration)~~ ✅ 완료
 3. [Server-side Action](#3-server-side-action)
 4. [Context Menu System](#4-context-menu-system)
@@ -17,11 +17,21 @@
 
 ---
 
-## 1. Transformer 보안 샌드박스
+## 1. ~~Transformer 보안 샌드박스~~ ⚫ Superseded
 
-**Status**: ⛔ Level 3 비활성화 중 (보안 샌드박스 구현 전까지)
-**Priority**: P0 (Level 3 활성화 전제 조건)
-**Related**: DatasetPanel > Transformers 탭
+**Status**: ⚫ **SUPERSEDED — ADR-132 Phase 7 (2026-05-13) 에서 Transformer 3-Level 시스템 전수 제거**
+
+Transformer 시스템은 외부 caller 0건 검증 후 dead infrastructure 로 판정되어 전수 제거됨. Level 1 (노코드 Response Mapping) 기능은 `ApiEndpoint.responseMapping` 필드가 흡수. Level 2/3 (JS / Custom TS) 는 향후 필요 시 별 ADR 재도입 — 그때 안전 패턴 (Web Worker 격리 / WASM sandbox) 채택 필수. 아래 historical 내용은 제거 이전 시점 (2025-12-02) 의 분석 기록.
+
+**참조**: [ADR-132](../../adr/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [TRANSFORMER_SECURITY.md](../components/TRANSFORMER_SECURITY.md) (historical)
+
+---
+
+### (Historical) Transformer 보안 샌드박스
+
+**Status (historical)**: ⛔ Level 3 비활성화 중 (보안 샌드박스 구현 전까지)
+**Priority (historical)**: P0 (Level 3 활성화 전제 조건)
+**Related (historical)**: DatasetPanel > Transformers 탭 (ADR-132 Phase 7 에서 제거됨)
 
 ### 현재 상태
 
@@ -272,13 +282,13 @@ CREATE TABLE custom_presets (
 
 ## 우선순위 요약
 
-| 순위       | 기능                    | 상태 | 비고                           |
-| ---------- | ----------------------- | ---- | ------------------------------ |
-| **P0**     | Transformer 샌드박스    | ⛔   | Level 3 활성화 전제 조건       |
-| **P1**     | Server-side Action      | 📋   | API Key 보호                   |
-| ~~**P2**~~ | ~~MOCK_DATA Migration~~ | ✅   | DataTable Preset으로 구현 완료 |
-| **Medium** | Context Menu System     | 📋   | UX 개선                        |
-| **Low**    | Layout Preset 개선      | 📋   | 편의 기능                      |
+| 순위       | 기능                     | 상태 | 비고                                                                   |
+| ---------- | ------------------------ | ---- | ---------------------------------------------------------------------- |
+| ~~**P0**~~ | ~~Transformer 샌드박스~~ | ⚫   | Superseded — ADR-132 Phase 7 (2026-05-13) Transformer 시스템 전수 제거 |
+| **P1**     | Server-side Action       | 📋   | API Key 보호                                                           |
+| ~~**P2**~~ | ~~MOCK_DATA Migration~~  | ✅   | DataTable Preset으로 구현 완료                                         |
+| **Medium** | Context Menu System      | 📋   | UX 개선                                                                |
+| **Low**    | Layout Preset 개선       | 📋   | 편의 기능                                                              |
 
 ---
 

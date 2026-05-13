@@ -1,10 +1,26 @@
 # Transformer Security Analysis & Solutions
 
-> **Status**: 🔴 Security Issue Identified - Level 2 Transformer uses `new Function()` pattern
+> **Status**: ⚫ **SUPERSEDED — Transformer 3-Level 시스템 전수 제거 (ADR-132 Phase 7, 2026-05-13)**
 >
-> **Last Updated**: 2025-12-05
+> Transformer 시스템은 외부 caller 0건 검증 후 dead infrastructure 로 판정되어 전수 제거됨 (commit `c52fd344f`, ~800 LOC). 본 문서의 보안 우려 (Level 2 `new Function()` 패턴) 는 더 이상 해당 없음. 향후 데이터 변환 로직 재도입 시 본 문서를 reference 로 활용하되, 새 ADR 발의 후 안전 패턴 (Level 1 mapping 우선 / Web Worker 격리 / WASM sandbox) 채택 필수.
 >
-> **Related Files**:
+> **현재 대체 경로**:
+>
+> - **Level 1 (노코드 Response Mapping)**: `ApiEndpoint.responseMapping` 필드가 흡수. `src/builder/stores/utils/dataActions.ts:executeApiEndpoint` 의 `endpoint.responseMapping.dataPath` 처리 참조
+> - **Level 2/3 (JS / Custom TS)**: 제거됨. 향후 필요 시 별 ADR 재도입
+>
+> **참조**: [ADR-132](../../adr/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [ADR-132 breakdown](../../adr/design/132-usecollectiondata-useasynclist-alignment-breakdown.md) §3 Phase 7
+>
+> ---
+>
+> 아래 historical 내용은 ADR-132 Phase 7 이전 시점 (2025-12-05) 의 분석 기록.
+
+> **Status (historical)**: 🔴 Security Issue Identified - Level 2 Transformer uses `new Function()` pattern
+>
+> **Last Updated (historical)**: 2025-12-05
+>
+> **Related Files (historical, 모두 ADR-132 Phase 7 에서 제거됨)**:
+>
 > - `src/builder/stores/utils/dataActions.ts:1066` - Vulnerable code location
 > - `src/builder/panels/dataset/components/TransformerList.tsx` - UI component
 > - `src/types/builder/data.types.ts` - Type definitions
@@ -51,6 +67,7 @@ case "level2_transformer":
 ### 🚨 Critical Security Risks
 
 #### 1. **Code Injection**
+
 ```javascript
 // Example: Malicious code execution
 const maliciousCode = `
@@ -68,6 +85,7 @@ const maliciousCode = `
 ```
 
 #### 2. **Context Over-Exposure**
+
 ```typescript
 const context: TransformContext = {
   dataTables: {...},   // ❌ Access to ALL data tables
@@ -80,6 +98,7 @@ const context: TransformContext = {
 ```
 
 #### 3. **DOM Manipulation (XSS)**
+
 ```javascript
 // Example: XSS attack
 const xssCode = `
@@ -89,6 +108,7 @@ const xssCode = `
 ```
 
 #### 4. **Browser API Abuse**
+
 ```javascript
 // Example: Browser API abuse
 const abuseCode = `
@@ -104,13 +124,13 @@ const abuseCode = `
 
 ### Attack Surface
 
-| Attack Vector | Risk Level | Impact |
-|---------------|------------|--------|
-| **Code Injection** | 🔴 Critical | Full system compromise |
-| **Data Exfiltration** | 🔴 Critical | All DataTables/Variables exposed |
-| **XSS** | 🟠 High | DOM manipulation, session hijacking |
-| **API Abuse** | 🟠 High | Unauthorized external requests |
-| **LocalStorage Access** | 🟡 Medium | User data theft |
+| Attack Vector           | Risk Level  | Impact                              |
+| ----------------------- | ----------- | ----------------------------------- |
+| **Code Injection**      | 🔴 Critical | Full system compromise              |
+| **Data Exfiltration**   | 🔴 Critical | All DataTables/Variables exposed    |
+| **XSS**                 | 🟠 High     | DOM manipulation, session hijacking |
+| **API Abuse**           | 🟠 High     | Unauthorized external requests      |
+| **LocalStorage Access** | 🟡 Medium   | User data theft                     |
 
 ---
 
@@ -128,12 +148,12 @@ const abuseCode = `
 // 1. Create Worker: src/workers/transformer.worker.ts
 /// <reference lib="webworker" />
 
-self.addEventListener('message', (event) => {
+self.addEventListener("message", (event) => {
   const { code, data, context } = event.data;
 
   try {
     // Isolated execution environment
-    const fn = new Function('data', 'context', code);
+    const fn = new Function("data", "context", code);
     const result = fn(data, context);
 
     self.postMessage({ success: true, result });
@@ -143,13 +163,13 @@ self.addEventListener('message', (event) => {
 });
 
 // 2. Use in Store: src/builder/stores/utils/dataActions.ts
-import TransformerWorker from '@/workers/transformer.worker.ts?worker';
+import TransformerWorker from "@/workers/transformer.worker.ts?worker";
 
 const worker = new TransformerWorker();
 
 worker.postMessage({ code, data, context });
 
-worker.addEventListener('message', (e) => {
+worker.addEventListener("message", (e) => {
   if (e.data.success) {
     resolve(e.data.result);
   } else {
@@ -161,6 +181,7 @@ worker.addEventListener('message', (e) => {
 #### Pros & Cons
 
 **Pros**:
+
 - ✅ Runs in separate thread (isolated from main thread)
 - ✅ No DOM access
 - ✅ No localStorage/sessionStorage access
@@ -168,17 +189,18 @@ worker.addEventListener('message', (e) => {
 - ✅ Vite auto-bundles workers with `?worker` suffix
 
 **Cons**:
+
 - ⚠️ `fetch` still available (need to remove from context)
 - ⚠️ Requires worker lifecycle management
 
 #### Browser Compatibility
 
 | Browser | Minimum Version | Support |
-|---------|----------------|---------|
-| Chrome | 4+ | ✅ |
-| Firefox | 3.5+ | ✅ |
-| Safari | 4+ | ✅ |
-| Edge | 12+ | ✅ |
+| ------- | --------------- | ------- |
+| Chrome  | 4+              | ✅      |
+| Firefox | 3.5+            | ✅      |
+| Safari  | 4+              | ✅      |
+| Edge    | 12+             | ✅      |
 
 **Verdict**: ✅ Universal support - safe to use
 
@@ -225,12 +247,14 @@ result = fn(inputData, safeContext);
 #### Pros & Cons
 
 **Pros**:
+
 - ✅ Very simple implementation
 - ✅ Minimal code changes
 - ✅ Controllable context access
 - ✅ Can be implemented immediately
 
 **Cons**:
+
 - ⚠️ Still runs in main thread
 - ⚠️ DOM access still possible
 - ⚠️ Browser APIs still accessible
@@ -247,13 +271,13 @@ result = fn(inputData, safeContext);
 
 ```typescript
 // Execute transformation on server
-const response = await fetch('/api/transform/execute', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/transform/execute", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     transformerId: id,
     inputData,
-  })
+  }),
 });
 
 const result = await response.json();
@@ -262,12 +286,14 @@ const result = await response.json();
 #### Pros & Cons
 
 **Pros**:
+
 - ✅ Complete isolation from client
 - ✅ Server-side code validation possible
 - ✅ Rate limiting applicable
 - ✅ No client-side security concerns
 
 **Cons**:
+
 - ⚠️ Requires server infrastructure (Node.js/Deno/Cloudflare Workers)
 - ⚠️ Network latency
 - ⚠️ Server costs
@@ -285,8 +311,8 @@ const result = await response.json();
 
 ```typescript
 // Create sandboxed iframe
-const iframe = document.createElement('iframe');
-iframe.sandbox = 'allow-scripts'; // No forms, popups, etc.
+const iframe = document.createElement("iframe");
+iframe.sandbox = "allow-scripts"; // No forms, popups, etc.
 iframe.srcdoc = `
   <script>
     window.addEventListener('message', (event) => {
@@ -302,17 +328,19 @@ iframe.srcdoc = `
   </script>
 `;
 
-iframe.contentWindow.postMessage({ code, data, context }, '*');
+iframe.contentWindow.postMessage({ code, data, context }, "*");
 ```
 
 #### Pros & Cons
 
 **Pros**:
+
 - ✅ Strong isolation with `sandbox` attribute
 - ✅ Similar pattern to existing Canvas iframe
 - ✅ Can restrict specific capabilities
 
 **Cons**:
+
 - ⚠️ DOM overhead (creates iframe element)
 - ⚠️ More complex cleanup
 - ⚠️ Sandbox restrictions may limit features
@@ -372,19 +400,19 @@ const executeTransformer = async (code, data, context) => {
 
 **Goal**: Reduce attack surface by 50%
 
-| Task | File | Estimated Time |
-|------|------|----------------|
-| 1. Create `createSafeContext()` helper | `src/builder/stores/utils/transformContext.ts` | 1 hour |
-| 2. Update `executeTransformer` to use safe context | `src/builder/stores/utils/dataActions.ts` | 30 min |
-| 3. Add tests for context restrictions | `src/builder/stores/utils/__tests__/transformContext.test.ts` | 1 hour |
-| 4. Update documentation | `CLAUDE.md`, `TRANSFORMER_SECURITY.md` | 30 min |
+| Task                                               | File                                                          | Estimated Time |
+| -------------------------------------------------- | ------------------------------------------------------------- | -------------- |
+| 1. Create `createSafeContext()` helper             | `src/builder/stores/utils/transformContext.ts`                | 1 hour         |
+| 2. Update `executeTransformer` to use safe context | `src/builder/stores/utils/dataActions.ts`                     | 30 min         |
+| 3. Add tests for context restrictions              | `src/builder/stores/utils/__tests__/transformContext.test.ts` | 1 hour         |
+| 4. Update documentation                            | `CLAUDE.md`, `TRANSFORMER_SECURITY.md`                        | 30 min         |
 
 #### Code Changes
 
 **New File**: `src/builder/stores/utils/transformContext.ts`
 
 ```typescript
-import type { TransformContext } from '@/types/builder/data.types';
+import type { TransformContext } from "@/types/builder/data.types";
 
 /**
  * Creates a safe, restricted context for transformer execution
@@ -398,7 +426,7 @@ import type { TransformContext } from '@/types/builder/data.types';
 export function createSafeContext(
   dataTables: Map<string, DataTable>,
   variables: Map<string, Variable>,
-  allowedTables: string[] = []
+  allowedTables: string[] = [],
 ): TransformContext {
   return {
     // Controlled read-only access
@@ -413,7 +441,9 @@ export function createSafeContext(
       }
 
       // Return deep copy to prevent mutations
-      return structuredClone(table.useMockData ? table.mockData : table.runtimeData);
+      return structuredClone(
+        table.useMockData ? table.mockData : table.runtimeData,
+      );
     },
 
     // Read-only variable access
@@ -464,12 +494,12 @@ case "level2_transformer":
 
 **Goal**: Design worker architecture
 
-| Task | Deliverable | Estimated Time |
-|------|-------------|----------------|
-| 1. Worker API design | Architecture document | 1 hour |
-| 2. Message protocol definition | Protocol spec | 1 hour |
-| 3. Error handling strategy | Error handling doc | 1 hour |
-| 4. Worker lifecycle design | Lifecycle diagram | 1 hour |
+| Task                           | Deliverable           | Estimated Time |
+| ------------------------------ | --------------------- | -------------- |
+| 1. Worker API design           | Architecture document | 1 hour         |
+| 2. Message protocol definition | Protocol spec         | 1 hour         |
+| 3. Error handling strategy     | Error handling doc    | 1 hour         |
+| 4. Worker lifecycle design     | Lifecycle diagram     | 1 hour         |
 
 ---
 
@@ -477,13 +507,13 @@ case "level2_transformer":
 
 **Goal**: Implement isolated execution environment
 
-| Task | File | Estimated Time |
-|------|------|----------------|
-| 1. Create transformer worker | `src/workers/transformer.worker.ts` | 2 hours |
-| 2. Create worker manager | `src/utils/transformerWorkerManager.ts` | 2 hours |
-| 3. Update executeTransformer | `src/builder/stores/utils/dataActions.ts` | 1 hour |
-| 4. Add worker tests | `src/workers/__tests__/transformer.worker.test.ts` | 2 hours |
-| 5. Update Vite config (if needed) | `vite.config.ts` | 30 min |
+| Task                              | File                                               | Estimated Time |
+| --------------------------------- | -------------------------------------------------- | -------------- |
+| 1. Create transformer worker      | `src/workers/transformer.worker.ts`                | 2 hours        |
+| 2. Create worker manager          | `src/utils/transformerWorkerManager.ts`            | 2 hours        |
+| 3. Update executeTransformer      | `src/builder/stores/utils/dataActions.ts`          | 1 hour         |
+| 4. Add worker tests               | `src/workers/__tests__/transformer.worker.test.ts` | 2 hours        |
+| 5. Update Vite config (if needed) | `vite.config.ts`                                   | 30 min         |
 
 #### Key Files
 
@@ -506,12 +536,12 @@ interface TransformResult {
   error?: string;
 }
 
-self.addEventListener('message', (event: MessageEvent<TransformMessage>) => {
+self.addEventListener("message", (event: MessageEvent<TransformMessage>) => {
   const { id, code, data, context } = event.data;
 
   try {
     // Execute transformation in isolated worker context
-    const fn = new Function('data', 'context', code);
+    const fn = new Function("data", "context", code);
     const result = fn(data, context);
 
     const response: TransformResult = {
@@ -536,17 +566,20 @@ self.addEventListener('message', (event: MessageEvent<TransformMessage>) => {
 **New File**: `src/utils/transformerWorkerManager.ts`
 
 ```typescript
-import TransformerWorker from '@/workers/transformer.worker.ts?worker';
+import TransformerWorker from "@/workers/transformer.worker.ts?worker";
 
 /**
  * Manages transformer worker lifecycle and execution
  */
 export class TransformerWorkerManager {
   private worker: Worker | null = null;
-  private pendingRequests = new Map<string, {
-    resolve: (result: unknown[]) => void;
-    reject: (error: Error) => void;
-  }>();
+  private pendingRequests = new Map<
+    string,
+    {
+      resolve: (result: unknown[]) => void;
+      reject: (error: Error) => void;
+    }
+  >();
 
   constructor() {
     this.initWorker();
@@ -555,7 +588,7 @@ export class TransformerWorkerManager {
   private initWorker() {
     this.worker = new TransformerWorker();
 
-    this.worker.addEventListener('message', (event) => {
+    this.worker.addEventListener("message", (event) => {
       const { id, success, result, error } = event.data;
 
       const pending = this.pendingRequests.get(id);
@@ -570,8 +603,8 @@ export class TransformerWorkerManager {
       this.pendingRequests.delete(id);
     });
 
-    this.worker.addEventListener('error', (error) => {
-      console.error('[TransformerWorker] Error:', error);
+    this.worker.addEventListener("error", (error) => {
+      console.error("[TransformerWorker] Error:", error);
       // Restart worker on critical error
       this.restart();
     });
@@ -580,10 +613,10 @@ export class TransformerWorkerManager {
   async execute(
     code: string,
     data: unknown[],
-    context: Record<string, unknown>
+    context: Record<string, unknown>,
   ): Promise<unknown[]> {
     if (!this.worker) {
-      throw new Error('Worker not initialized');
+      throw new Error("Worker not initialized");
     }
 
     const id = crypto.randomUUID();
@@ -595,7 +628,7 @@ export class TransformerWorkerManager {
       setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
-          reject(new Error('Transformer execution timeout'));
+          reject(new Error("Transformer execution timeout"));
         }
       }, 30000);
 
@@ -611,7 +644,7 @@ export class TransformerWorkerManager {
 
     // Reject all pending requests
     for (const [id, pending] of this.pendingRequests.entries()) {
-      pending.reject(new Error('Worker restarted'));
+      pending.reject(new Error("Worker restarted"));
       this.pendingRequests.delete(id);
     }
 
@@ -637,13 +670,13 @@ export const transformerWorkerManager = new TransformerWorkerManager();
 
 **Goal**: Complete migration and validate security
 
-| Task | Estimated Time |
-|------|----------------|
-| 1. Update all transformer calls to use worker | 2 hours |
-| 2. Add integration tests | 2 hours |
-| 3. Security validation tests | 2 hours |
-| 4. Performance benchmarking | 1 hour |
-| 5. Documentation update | 1 hour |
+| Task                                          | Estimated Time |
+| --------------------------------------------- | -------------- |
+| 1. Update all transformer calls to use worker | 2 hours        |
+| 2. Add integration tests                      | 2 hours        |
+| 3. Security validation tests                  | 2 hours        |
+| 4. Performance benchmarking                   | 1 hour         |
+| 5. Documentation update                       | 1 hour         |
 
 ---
 
@@ -651,12 +684,12 @@ export const transformerWorkerManager = new TransformerWorkerManager();
 
 **Goal**: Add TypeScript + external library support
 
-| Task | Estimated Time |
-|------|----------------|
-| 1. Design Level 3 architecture | 2 hours |
-| 2. Implement TS compilation (esbuild) | 3 hours |
-| 3. Add dependency sandboxing | 2 hours |
-| 4. Testing & documentation | 1 hour |
+| Task                                  | Estimated Time |
+| ------------------------------------- | -------------- |
+| 1. Design Level 3 architecture        | 2 hours        |
+| 2. Implement TS compilation (esbuild) | 3 hours        |
+| 3. Add dependency sandboxing          | 2 hours        |
+| 4. Testing & documentation            | 1 hour         |
 
 ---
 
@@ -740,11 +773,11 @@ const invalidCode = `
 
 ### Web Worker Overhead
 
-| Aspect | Impact | Mitigation |
-|--------|--------|------------|
-| **Message Serialization** | ~1-5ms per transformation | Use Transferable objects for large datasets |
-| **Worker Startup** | ~10-50ms first time | Keep worker alive, reuse for multiple transformations |
-| **Thread Context Switch** | Minimal (~0.1ms) | Acceptable for data transformation use case |
+| Aspect                    | Impact                    | Mitigation                                            |
+| ------------------------- | ------------------------- | ----------------------------------------------------- |
+| **Message Serialization** | ~1-5ms per transformation | Use Transferable objects for large datasets           |
+| **Worker Startup**        | ~10-50ms first time       | Keep worker alive, reuse for multiple transformations |
+| **Thread Context Switch** | Minimal (~0.1ms)          | Acceptable for data transformation use case           |
 
 ### Recommendations
 
@@ -791,26 +824,27 @@ const result = await executeTransformer(transformerId, inputData);
 
 ### Code References
 
-| File | Line | Description |
-|------|------|-------------|
-| `src/builder/stores/utils/dataActions.ts` | 1063-1069 | Current vulnerable code |
-| `src/builder/stores/utils/dataActions.ts` | 945-1083 | executeTransformer function |
-| `src/builder/panels/dataset/components/TransformerList.tsx` | 1-166 | Transformer UI |
-| `src/types/builder/data.types.ts` | - | Type definitions |
+| File                                                        | Line      | Description                 |
+| ----------------------------------------------------------- | --------- | --------------------------- |
+| `src/builder/stores/utils/dataActions.ts`                   | 1063-1069 | Current vulnerable code     |
+| `src/builder/stores/utils/dataActions.ts`                   | 945-1083  | executeTransformer function |
+| `src/builder/panels/dataset/components/TransformerList.tsx` | 1-166     | Transformer UI              |
+| `src/types/builder/data.types.ts`                           | -         | Type definitions            |
 
 ---
 
 ## Status Tracking
 
-| Phase | Status | Completed Date |
-|-------|--------|----------------|
-| **Phase 1: Context Whitelist** | 🔴 Not Started | - |
-| **Phase 2: Web Worker Design** | 🔴 Not Started | - |
-| **Phase 3: Web Worker Implementation** | 🔴 Not Started | - |
-| **Phase 4: Migration & Testing** | 🔴 Not Started | - |
-| **Phase 5: Level 3 Implementation** | 🔴 Not Started | - |
+| Phase                                  | Status         | Completed Date |
+| -------------------------------------- | -------------- | -------------- |
+| **Phase 1: Context Whitelist**         | 🔴 Not Started | -              |
+| **Phase 2: Web Worker Design**         | 🔴 Not Started | -              |
+| **Phase 3: Web Worker Implementation** | 🔴 Not Started | -              |
+| **Phase 4: Migration & Testing**       | 🔴 Not Started | -              |
+| **Phase 5: Level 3 Implementation**    | 🔴 Not Started | -              |
 
 **Legend**:
+
 - 🔴 Not Started
 - 🟡 In Progress
 - 🟢 Testing

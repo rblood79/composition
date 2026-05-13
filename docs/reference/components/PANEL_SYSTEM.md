@@ -12,7 +12,7 @@ composition의 유연한 패널 시스템 문서입니다.
 
 - **Nodes** - 페이지 계층 구조 탐색 (`Ctrl+Shift+N`)
 - **Components** - 컴포넌트 라이브러리 (`Ctrl+Shift+C`)
-- **Dataset** - DataTables, APIs, Variables, Transformers 관리 (`Ctrl+Shift+T`)
+- **Dataset** - DataTables, APIs, Variables 관리 (`Ctrl+Shift+T`)
 
 ### Tool 패널 (2개)
 
@@ -45,7 +45,7 @@ src/builder/
 │   ├── nodes/NodesPanel.tsx
 │   ├── components/ComponentsPanel.tsx
 │   ├── dataset/
-│   │   ├── DatasetPanel.tsx  # DataTables, APIs, Variables, Transformers
+│   │   ├── DatasetPanel.tsx  # DataTables, APIs, Variables (ADR-132 Phase 7: Transformers 제거)
 │   │   ├── components/       # List 컴포넌트들
 │   │   ├── editors/          # Editor 컴포넌트들
 │   │   └── presets/          # DataTable Preset System

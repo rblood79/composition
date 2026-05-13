@@ -169,7 +169,7 @@ docs/
 
 - [패널 시스템](./reference/components/PANEL_SYSTEM.md)
 - [React Aria 라이브러리 통합](./reference/components/REACT_ARIA_LIBRARIES.md)
-- [Transformer 보안](./reference/components/TRANSFORMER_SECURITY.md)
+- ~~[Transformer 보안](./reference/components/TRANSFORMER_SECURITY.md)~~ ⚫ Superseded (ADR-132 Phase 7)
 - [Custom ID 패턴](./reference/components/CUSTOM_ID_PATTERN.md)
 - [SaveService](./reference/components/SAVESERVICE.md)
 - [Canvas Interactions](./reference/components/CANVAS_INTERACTIONS.md)
@@ -184,7 +184,7 @@ docs/
 
 - [완료된 기능 요약](./reference/status/COMPLETED.md) - 전체 완료 기능 인덱스
 - [계획된 기능 상세](./reference/status/PLANNED.md) - Context Menu, DataTable 등
-- [미구현 기능 개요](./reference/status/UNIMPLEMENTED.md) - Transformer 보안, Server-side Action 등
+- [미구현 기능 개요](./reference/status/UNIMPLEMENTED.md) - Server-side Action 등 (Transformer 보안 ⚫ Superseded ADR-132 Phase 7)
 - [DB 호환성](./reference/status/DB_COMPATIBILITY.md)
 - [Style 시스템](./reference/status/STYLE_SYSTEM.md)
 - [React Aria 1.13](./reference/status/REACT_ARIA_1.13.md)
