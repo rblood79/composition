@@ -2,7 +2,7 @@
 
 ## Status
 
-Partial (2026-03-08) — Phase 1-4 구현 완료 (Phase 4 부분: Fill 비활성화 힌트)
+Implemented (타협) — 2026-05-13. Phase 1-4 land 완료. 보류 3건 (Phase 3 Box Model 다이어그램 / Phase 4 부모 display 변경 시 자동 CSS 재매핑 / Phase 4 다중 선택 일괄 적용) + Phase 1 §변경 파일 목록 "신규" 항목 `sizeModeResolver.test.ts` 1건은 **이행 안 함 결정** (사용자 결정 2026-05-13). 사유: 본 ADR 의 핵심 가치인 "Figma/Framer Size Mode UI + CSS 역추론" 은 Phase 1-4 land 로 달성. 보류 3건은 본문 §"Phase X 완료 (2026-03-08)" 진행 로그에 명시된 ROI/위험 사유로 의도된 잔존이며, 별 ADR 발의 또는 향후 필요 시점에 재평가.
 
 ## Context
 
@@ -412,3 +412,18 @@ width: auto / fit-content  → Fit
 - [ADR-008: Layout Engine](008-layout-engine.md) — Taffy WASM 단일 엔진
 - [ADR-009: Figma-Class Rendering](009-full-tree-wasm-layout.md) — 렌더링/레이아웃 파이프라인
 - [PENCIL_VS_composition_UI_UX.md](../legacy/PENCIL_VS_composition_UI_UX.md) — Pencil 비교 분석 (정렬/배치/스냅)
+
+---
+
+## 이행 안 함 결정 (2026-05-13)
+
+사용자 결정으로 다음 4건은 본 ADR scope 안에서 이행하지 않고 종결한다. Status 헤더 "Implemented (타협)" 의 근거.
+
+| #   | 항목                                          | Phase                                  | 본문 명시 보류 사유                                                                                  | 처리 방향                                                                                     |
+| --- | --------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 1   | `BoxModelDiagram.tsx` (신규 컴포넌트)         | Phase 3                                | "Box Model 다이어그램은 보류 — 핵심 가치 대비 복잡도 높음" (본문 §301)                               | 별 ADR 발의 필요 시 재평가. 현 시점 ROI 없음                                                  |
+| 2   | 부모 display 변경 시 자식 CSS 자동 재매핑     | Phase 4                                | "위험도 높아 보류 — 사용자가 수동으로 모드 재선택" (본문 §307)                                       | 사용자가 모드 재선택하는 현 동작 유지. 향후 사용성 이슈 누적 시 재평가                        |
+| 3   | 다중 선택 일괄 적용                           | Phase 4                                | "스타일 패널이 단일 selectedElementId 만 지원하므로 보류" (본문 §308)                                | 다중 선택 인프라가 도입되는 시점에 별 ADR 으로 묶어 처리                                      |
+| 4   | `sizeModeResolver.test.ts` (단위 테스트 신규) | Phase 1 변경 파일 목록 §변경 파일 목록 | 변경 파일 목록에 "신규" 로 명시되었으나 land 0건 (`find` 검증) — G1-1~G1-7 Gate 검증 evidence 미land | 신규 회귀 발견 시점에 회귀 fixture 형태로 추가. 현재 동작 정합은 사용자 runtime 검증으로 갈음 |
+
+본 결정은 본 ADR Status 를 `Partial` 에서 `Implemented (타협)` 로 전이하는 근거이며, 이후 본문은 `docs/adr/completed/026-responsive-constraint-ui.md` 로 이관 (`feedback-adr-closure-5-step.md` 절차).

@@ -5,6 +5,24 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Responsive Constraint UI 종결 — ADR-026 Implemented (타협) + 이행 안 함 결정 4건] - 2026-05-13
+
+### Architecture
+
+- **ADR-026 Implemented (타협) 승격 + completed/ archive**:
+  - Phase 1-4 land 완료 (이미 2026-03-08 land 분 — Size Mode Fixed/Fill/Fit + Min/Max + Aspect Ratio + Self-Alignment 3x3 + Fill 비활성 힌트)
+  - **이행 안 함 결정 4건** (사용자 결정 2026-05-13):
+    1. Phase 3 `BoxModelDiagram.tsx` (신규) — "핵심 가치 대비 복잡도 높음" (본문 §301)
+    2. Phase 4 부모 display 변경 시 자동 CSS 재매핑 — "위험도 높음, 사용자가 수동 재선택" (본문 §307)
+    3. Phase 4 다중 선택 일괄 적용 — "스타일 패널 단일 selectedElementId 제약" (본문 §308)
+    4. Phase 1 §변경 파일 목록 `sizeModeResolver.test.ts` (신규) — G1-1~G1-7 Gate evidence 미land, 회귀 발견 시점에 fixture 추가
+  - **Why**: 본 ADR 의 핵심 가치 (Figma/Framer Size Mode UI + CSS 역추론) 는 Phase 1-4 land 로 달성. 보류 3건은 본문 §"Phase X 완료 (2026-03-08)" 진행 로그에 명시된 ROI/위험 사유로 의도된 잔존. 별 ADR 발의 또는 향후 필요 시점에 재평가
+  - Status `Partial (2026-03-08)` → `Implemented (타협) — 2026-05-13`
+  - 본문 `docs/adr/026-responsive-constraint-ui.md` → `docs/adr/completed/026-responsive-constraint-ui.md` git mv + §"이행 안 함 결정 (2026-05-13)" 섹션 추가
+  - README.md 갱신: "부분 완료" → "완료" 섹션 row 이동, P4 로드맵 영역 ADR-026 줄 그어 종결 표시, 변경 이력 entry 추가
+  - 코드 변경 0건 — 본문 사후 종결 trail only (no user-visible runtime change)
+  - ADR-042 (2026-05-13 직전 turn) 와 동일 "Implemented (타협)" 사후 종결 패턴 — feedback-adr-closure-5-step 의 5 단계 (Status / 진행 로그 / README 이동 / 본문 archive / reference path 정합화) 전수 적용
+
 ## [AI Assistant 차세대 아키텍처 plan land — ADR-134 Proposed + ADR-011 / ADR-054 Deprecated] - 2026-05-13
 
 ### Architecture
