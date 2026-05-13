@@ -116,15 +116,10 @@ function selectResolvedTarget(
 
   if (isMultiSelectKey) {
     const currentState = useStore.getState();
-    const currentPageId = currentState.currentPageId;
-    const targetElement = interactiveElementsMap.get(resolvedTarget);
-
-    // 다른 페이지 요소를 modifier와 함께 클릭한 경우: 단일 선택 + 페이지 전환으로 대체
-    if (targetElement?.page_id && targetElement.page_id !== currentPageId) {
-      selectElementWithPageTransition(resolvedTarget, targetElement.page_id);
-      return;
-    }
-
+    // Cross-page shift+click 허용: 이전 page 의 selection 유지하면서 다른 page 의
+    // element 도 multi-select 에 추가. currentPageId 는 변경하지 않음 — 사용자가
+    // active 한 page 를 유지하며, cross-page selection 상태로 그룹화 등 후속
+    // 작업이 가능. 모든 page 의 element 가 canvas 에 동시 렌더링되므로 visible.
     const selectedSet = new Set(currentState.selectedElementIds);
     if (selectedSet.has(resolvedTarget)) {
       selectedSet.delete(resolvedTarget);

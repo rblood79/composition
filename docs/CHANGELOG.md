@@ -5,6 +5,17 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Cross-page shift+click multi-select 허용] - 2026-05-14
+
+### Bug Fixes
+
+- **다른 page 의 element 끼리는 shift+click 으로 multi-select 불가 회귀**:
+  - 동일 page 내에서는 shift+click multi-select 정상. 다른 page 의 element 를 shift+click 시 cross-page 차단 분기가 발동되어 단일 선택 + page 전환으로 강제됨
+  - **Why**: `useCanvasElementSelectionHandlers.ts` 의 명시적 차단 코드 — `if (targetElement.page_id !== currentPageId) { selectElementWithPageTransition(...); return; }`. ADR-069 (3-set → 1-set 병합 성능 최적화) 도입 시점에 잠입한 분기로 추정. 차단 의도가 ADR 문서에 명시되어 있지 않음
+  - 수정: cross-page 차단 분기 제거 → shift+click 이 same-page / cross-page 동일 로직으로 selection set 추가/제거. `currentPageId` 는 변경하지 않음 (사용자 active page 유지). 모든 page 가 canvas 에 동시 렌더링되므로 cross-page selection 도 visible
+  - 위치: `apps/builder/src/builder/workspace/canvas/hooks/useCanvasElementSelectionHandlers.ts` (line 117-141)
+  - 효과: 직전 cross-page grouping fix (`55a8a4689`) 와 정합 — cross-page selection 자체가 가능해야 cross-page 그룹화 의미가 있음
+
 ## [Cross-page grouping 허용 + page_id reparent 정합] - 2026-05-14
 
 ### Bug Fixes
