@@ -5,6 +5,21 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Cross-page selection box 표시 — isRenderableSelectionTarget filter root fix] - 2026-05-14
+
+### Bug Fixes
+
+- **다른 page 의 요소끼리 다중 선택 시 selection box 가 표시되지 않는 회귀**:
+  - same-page multi-select: selection box + handles 정상 표시. cross-page (currentPageId 와 다른 page 의 element 들) multi-select 시 selection box 자체 미표시
+  - **Why (root cause)**: `skiaWorkflowSelection.ts:38` `isRenderableSelectionTarget` filter 가 cross-page 일반 element 를 reject. 기존 분기:
+    - same-page (page_id === currentPageId) → 통과
+    - page_id == null + frame mirror → 통과 (ADR-130 layout/frame body special case)
+    - **cross-page 일반 element (page_id != null, != currentPageId) → 차단**
+  - 이 filter 는 cross-page selection 자체가 차단된 시기 (commit `ef22be877` 이전) 의 design choice. 차단 분기 제거 후에도 selection 표시 layer 의 filter 가 잔존 → cross-page selectedIds 가 모두 reject → boxes empty → selectionBounds null → box 안 그려짐
+  - 수정: cross-page 일반 element 도 `treeBoundsMap.has(id)` 이면 통과. multi-page rendering ([[multipage]] 메모리 — 전체 page 동시 canvas 렌더링) 으로 cross-page element 도 visible 한 정합 복원. 기존 same-page / frame mirror 분기는 그대로 유지
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/skiaWorkflowSelection.ts` (`isRenderableSelectionTarget`)
+  - 효과: 직전 cross-page selection 흐름 (shift+click 허용 → multi-select state → cross-page grouping) 의 선행 fix 들과 정합. cross-page selection 의 시각 표시 완결
+
 ## [Multi-select corner handles 표시 — visual consistency root fix] - 2026-05-14
 
 ### Bug Fixes
