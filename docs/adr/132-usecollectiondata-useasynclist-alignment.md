@@ -2,13 +2,20 @@
 
 ## Status
 
-Proposed — 2026-05-13
+Implemented — 2026-05-13
 
 진행 로그:
 
 - 2026-05-13 — ADR 본문 발의 (Proposed) + design breakdown land
 - 2026-05-13 — scope 확장: `data_tables` → `collections` rename 포함 (사용자 explicit confirm — RSP Dynamic Collections 정통 framing 1:1 정합. 개발 단계라 user data migration 위험 0, DB drop 으로 처리)
 - 2026-05-13 — scope 확장 #2: Transformer 3-Level 변환 시스템 전체 제거 (사용자 explicit framing — "초기 over-engineering, 불필요". `executeTransformer` 외부 caller 0건 grep 검증. IndexedDB `transformers` store 포함 전수 drop)
+- 2026-05-13 — Phase 0~8 완결 land (commits `12d1ff833..c52fd344f`):
+  - Phase 0 (`12d1ff833`): inventory baseline freeze — 11 apiEndpointData site / 9 reloadTrigger / 15 snake / 18 camel / 58 Pascal / 14 Transformer 파일 측정
+  - Phase 1 (`b09e65faf`): useAsyncList load callback 단일화 — apiEndpointData useState 4 + useEffect 블록 + reloadTrigger 제거, dataTablesMap subscribe 로 list.reload trigger (-136 LOC)
+  - Phase 2/3/4 (`d2b644f37`): Legacy collection (a) 유지 + Canvas 분기 잔존 + dataTables subscribe Phase 1 흡수 lock-in
+  - Phase 5 (`dd2c91a38`): `data_tables` → `collections` rename 32 파일 + DB_VERSION 17 → 18 + legacy data_tables store drop migration. G6 6-way grep gate 통과
+  - Phase 7 (`c52fd344f`): Transformer 3-Level 시스템 전수 제거 16 파일 (-814 LOC net) + TransformerList.tsx 파일 삭제 (사용자 explicit 승인) + transformers store drop migration. G7 5-way grep gate 통과
+  - Phase 8 (현재): Status Implemented 승격 + README + CHANGELOG
 
 ## Context
 

@@ -5,6 +5,44 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [useCollectionData useAsyncList 정합 + collections sink 통일 + data_tables → collections rename + Transformer 제거 (ADR-132)] - 2026-05-13
+
+### Breaking Changes
+
+- **IndexedDB `data_tables` store → `collections` store rename + DB_VERSION 17 → 18**:
+  - 개발 단계 정책: legacy `data_tables` store `deleteObjectStore` migration (in-progress dev DB 데이터 손실, migration 코드 없음).
+  - 사용자 자신 dev DB export 권고 (Phase 5 commit 직전).
+  - **Why**: RSP Dynamic Collections 정통 용어 1:1 정합. `useAsyncList` / Collection 컴포넌트 / `items` prop SSOT 어휘 통일.
+- **`data_tables`/`dataTables` → `collections` 36 파일 mechanical rename**:
+  - Zustand `useDataStore.dataTables` → `useDataStore.collections` / `setDataTables` → `setCollections` 등 actions 어휘 정렬.
+  - postMessage `SYNC_DATA_TABLES` → `SYNC_COLLECTIONS` / `"dataTables"` literal → `"collections"` (Builder ↔ Canvas iframe 양쪽 동시 deploy 단일 commit, R8 대응).
+  - internal Pascal type rename: `DataTablesMap`/`DataTableState`/`DataTableConfig`/`DataTableData`/`DataTableRow` → `Collection*` / `targetDataTable` nested property → `targetCollection`.
+  - **UI surface 유지 (Pascal `DataTable`)**: Component / Editor / Panel / Action editor / 파일명 / 디렉토리 / UI 텍스트 / Action 이름 ("Load DataTable" 등) — 옵션 1 lock-in 사용자 explicit confirm.
+- **Transformer 3-Level 변환 시스템 전수 제거** (Phase 7, ~800 LOC):
+  - **Why**: 사용자 explicit framing — "초기 over-engineering, 불필요". `executeTransformer` 외부 caller (events/actions / `Element.dataBinding` / AI prompt) **0건** grep 검증 완료. UI 자체 (`TransformerList.tsx` Play 버튼) 만 trigger.
+  - 제거: Types (`Transformer`/`TransformLevel`/`FieldMapping`/`ResponseMappingConfig`/`JsTransformerConfig`/`CustomFunctionConfig`/`TransformContext`/`TransformerCreate`/`TransformerUpdate`/`isTransformer`) / DB layer (`transformers` store + 10-method CRUD + DB_VERSION 18 안 동시 drop) / Zustand store (state slice + 5 actions + selectors + ~250 LOC action creators) / Hook layer (`fetchTransformers` + `useTransformersQuery` + query key) / UI (DataTable Panel "Transformers" 탭 + TABS 항목 + `TransformerList.tsx` 파일 삭제).
+  - **기능 손실 없음**: Level 1 (노코드 Response Mapping) 은 ApiEndpoint `responseMapping` 필드가 흡수. Level 2/3 는 향후 필요 시 별 ADR 재도입.
+
+### Architecture
+
+- **ADR-132 Phase 0~8 Implemented (commits `12d1ff833..c52fd344f`. -814 LOC net)**:
+  - **Phase 0 — inventory baseline freeze** (`12d1ff833`): 11 `apiEndpointData` site / 9 `reloadTrigger` site / 15 snake 파일 / 18 camel 파일 / 58 Pascal allowlist / 14 Transformer 파일 측정 + Phase 7 진입 전 final 3-way 검증 통과 (events/actions / `Element.dataBinding` / AI prompt 모두 0건).
+  - **Phase 1 — useAsyncList load callback 단일화** (`b09e65faf`, -136 LOC net): PropertyDataBinding `source="api"` 분기를 별도 `useEffect` + `apiEndpointData` useState 4 + `reloadTrigger` 에서 `useAsyncList.load` 안으로 흡수. `collections.runtimeData` 가 단일 sink. `dataTablesMap = useDataStore((s) => s.collections)` Map immutable update subscribe → `list.reload()` trigger (R1/R3 대응).
+  - **Phase 2/3/4 — 결정 lock-in 통합 commit** (`d2b644f37`): (a) Legacy collection 흐름 유지 — Phase 0 grep 결과 실 element 0건, (b) Canvas `isCanvasContext` 분기 잔존 lock-in (G3 실패 대안 — Canvas iframe DI Context 보장 안 됨, 후속 ADR 영역), (c) cache + collections subscribe 정합 Phase 1 에 이미 흡수.
+  - **Phase 5 — rename sweep + DB schema** (`dd2c91a38`, 36 파일): mechanical rename (Builder + Publish + Preview + Shared 동시 단일 commit) + DB_VERSION 17 → 18 + legacy `data_tables` store drop migration. G6 6-way grep gate 통과 (snake / camel / `targetDataTable` / internal Pascal / postMessage literal / UI surface allowlist).
+  - **Phase 7 — Transformer 제거 sweep** (`c52fd344f`, 16 파일 -1029/+215): 16 파일 + TransformerList.tsx 파일 삭제 (사용자 explicit 승인) + transformers store drop migration (DB_VERSION 18 안 동시 처리). G7 5-way grep gate 통과 (Transformer / transformers / type names / 5 actions / 파일 부재).
+  - **Phase 8 — Status Implemented**: ADR Status 승격 + README + CHANGELOG 갱신.
+- **사용자 framing 정합 land 완료**:
+  - ADR-131 Phase 8 revert framing ("RAC/RSC read 진입점은 `data_tables` 통일") 직접 후속 약속 land.
+  - 사용자 framing 4 질문 lock-in 통과 (base/응용 분류 / schema 직교성 / baseline framing reverse / codex 3차 미루지 않음).
+  - 사용자 explicit confirm 3 회 (Phase scope 확장 #1 rename / scope 확장 #2 Transformer 제거 / Phase 7 TransformerList.tsx 파일 삭제).
+
+### Infrastructure
+
+- **`pnpm type-check` 3/3 PASS** (baseline 602 known errors 변동 0).
+- **`vitest metaStore.test.ts` 7/7 PASS** (DB_VERSION 18 assertion 갱신).
+- **G6 / G7 grep gate**: 양쪽 모두 0 hit (잔존은 모두 ADR-132 drop migration 의 의도된 string literal / comment).
+
 ## [스타일 패널 dead UI 정리 — ComponentStateSection 제거] - 2026-05-13
 
 ### Bug Fixes
