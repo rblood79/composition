@@ -225,6 +225,17 @@ function persistElementsAfterInstanceMutation(elements: Element[]): void {
   })();
 }
 
+/**
+ * Canonical document 에 instance mutation 결과를 sync.
+ *
+ * **호출 순서 invariant (CRITICAL)**: mutation 함수는 `set` → 본 함수 →
+ * `_rebuildIndexes` 순서 엄수. `_rebuildIndexes` 가 canonical 우선 derive
+ * (elements.ts:430 `getCanonicalOrStoreElements`) 이므로 본 함수 호출 전에
+ * `_rebuildIndexes` 가 실행되면 stale canonical 로 elementsMap mirror 빌드 →
+ * `reusable` / `componentRole` / mirror field 누락. 회귀: commits a859f8b97
+ * + ee91020c4. 상세는 `.claude/rules/state-management.md` 의 "Canonical sync
+ * 호출 순서" 섹션 참조.
+ */
 function syncInstanceElementsToCanonical(elements: Element[]): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
   mergeElementsCanonicalPrimary(elements);
@@ -607,8 +618,7 @@ function applyElementSnapshotBatch(
       layoutVersion: prevState.layoutVersion + 1,
     };
   });
-  // canonical document 먼저 update — `_rebuildIndexes` 의 derive (canonical 우선) 가
-  // stale canonical 을 읽어 elementsMap mirror 의 reusable/componentRole 누락하는 race 방지
+  // canonical-first sync invariant — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical(nextElements);
   get()._rebuildIndexes();
   const sourceElements = getInstanceActionSourceElements(get());
@@ -666,8 +676,7 @@ export function createInstance(
     elements: [...getInstanceActionSourceElements(prevState), instanceElement],
     layoutVersion: prevState.layoutVersion + 1,
   }));
-  // canonical document 먼저 update — `_rebuildIndexes` 의 derive (canonical 우선) 가
-  // stale canonical 을 읽어 elementsMap mirror 의 instance mirror field 누락 race 방지
+  // canonical-first sync invariant — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical([instanceElement]);
   get()._rebuildIndexes();
   persistElementsAfterInstanceMutation([instanceElement]);
@@ -930,7 +939,7 @@ export function resetInstanceOverrideField(
       layoutVersion: prevState.layoutVersion + 1,
     };
   });
-  // canonical document 먼저 update — `_rebuildIndexes` race 방지 (위 createInstance 와 동일)
+  // canonical-first sync invariant — syncInstanceElementsToCanonical JSDoc 참조
   syncInstanceElementsToCanonical([nextElement]);
   get()._rebuildIndexes();
   const persistedSourceElements = getInstanceActionSourceElements(get());
