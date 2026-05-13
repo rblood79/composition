@@ -2,11 +2,37 @@
 
 ## Status
 
-Proposed
+Implemented (타협 완료) — 2026-05-13
 
 ## Date
 
-2026-03-19
+2026-03-19 (Proposed) / 2026-05-13 (Implemented)
+
+## Implementation 완결 사유 (2026-05-13 — 사용자 결정)
+
+> 현실적으로 Skia 와 HTML 의 1-2px 를 일치시킬 수는 없음. 그래서 현재는 미완이지만 타협안으로 완료로 이동.
+
+### Tier 별 land 결과 (2026-05-13 grep 실증)
+
+| Tier        | 영역                                                            | land 상태                                         | 잔존 컴포넌트                                                                                   |
+| ----------- | --------------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Tier 1      | text width 추정 제거 (`fontSize * 0.55` / `text.length * 0.55`) | **100% land**                                     | 0건 (Tag / Breadcrumbs / Tabs 모두 `_containerWidth` injection 으로 정합)                       |
+| Tier 1 확장 | `_containerWidth` / `_containerHeight` injection 패턴 확산      | **다수 컴포넌트 land**                            | ProgressBarTrack / SearchField / ColorField / Select / GridList / SelectTrigger / MeterTrack 등 |
+| Tier 2      | `size.height / 2` → `_containerHeight / 2` (세로 중앙)          | **본문 ROI 보류 결정 유지** — 5+ 위치 의도된 잔존 | Table.spec.ts:251+302 / Toast.spec.ts:318 / Skeleton.spec.ts:169-171 / Disclosure.spec.ts:182   |
+| Tier 3      | StatusLight (utils.ts) `text.length * fontSize * 0.6`           | **본문 보류 결정 유지** — 별도 설계 영역          | utils.ts (레이아웃 엔진 내부, Spec 외 영역)                                                     |
+
+### 타협 사유
+
+본문 §"Phase별 ROI 분석" Tier 2 직접 인용:
+
+> 효과: 낮음 — `size.height/2` → `containerHeight/2`는 1~2px(border) 차이, 육안 거의 불가
+> 리스크: L — 1px 차이라 회귀해도 영향 미미
+> ROI: 낮음 — 수정 4곳 대비 시각적 개선 미미
+> 권장: 보류 — 실제 버그 리포트 시 적용
+
+→ Skia 와 HTML 의 본질적 sub-pixel 비대칭은 영원히 100% 일치 불가능한 영역. 본문 ROI 분석이 이미 "보류" 결정. 본질 영역 (Tier 1 text width 추정) 100% land + Tier 2/3 본문 의도된 보류 = **타협 Implemented**.
+
+향후 Skia ↔ HTML 시각 비대칭 버그 리포트 발생 시 별 ADR 발의 또는 본 ADR Tier 2/3 재개. 본문 historical context 보존 (`docs/adr/completed/` 이동, 본문 삭제 금지).
 
 ## Decision Makers
 
