@@ -1,8 +1,10 @@
-# ADR-132 design breakdown — useCollectionData useAsyncList 정합 + collections sink 통일 (+ data_tables → collections rename)
+# ADR-132 design breakdown — useCollectionData useAsyncList 정합 + collections sink 통일 (+ data_tables → collections rename + Transformer 제거)
 
 > 본 문서는 [ADR-132](../132-usecollectiondata-useasynclist-alignment.md) 의 구현 상세. ADR 본문에는 framing 결정 + 잔존 위험 + Gate 만, 본 문서는 Phase 분해 / 파일 목록 / 체크리스트 / 코드 예시.
 >
 > **2026-05-13 scope 확장**: 사용자 explicit confirm 으로 `data_tables` (snake) / `dataTables` (camel) → `collections` rename 포함. `DataTable` Pascal (UI 컴포넌트 / Editor / Panel) 유지. IndexedDB store drop 정책 (개발 단계, migration 코드 없음).
+>
+> **2026-05-13 scope 확장 #2**: Transformer 3-Level 변환 시스템 전체 제거 (사용자 explicit framing — "초기 over-engineering, 불필요"). `executeTransformer` 외부 caller 0건 grep 검증. IndexedDB `transformers` store + Zustand state+actions + DataTable Panel "Transformers" 탭 + `TransformerList.tsx` 전수 제거. Phase 7 sweep 신규.
 
 ## §1 framing checkpoint 4 질문 lock-in (M2 — 사용자 explicit confirm 2026-05-13)
 
@@ -69,6 +71,16 @@ grep -n "processedData\|dataTableData\|apiEndpointData\|datatableState" packages
   - postMessage type literal: `"dataTables"` / `"SYNC_DATA_TABLES"` / `"DATA_TABLES_*"` (Builder ↔ Canvas iframe payload)
   - canonical document field name: `composition-document.types.ts` 의 `dataTables` field
   - AI tool prompt 어휘 (`createElement.ts`)
+- **Transformer 제거 baseline frozen (Phase 7 sweep 대상)**:
+  - `\bTransformer\b` / `\btransformers\b` (변수 / 타입) 15 파일 — type 정의 / IndexedDB store / Zustand state+actions / UI 탭 / TransformerList 컴포넌트
+  - `\bTransformLevel\|TransformContext\|FieldMapping\|ResponseMappingConfig\|JsTransformerConfig\|CustomFunctionConfig\b` — type 정의 1 파일 + import 사이트 다수
+  - `executeTransformer\|fetchTransformers\|createTransformer\|updateTransformer\|deleteTransformer` — actions 5종. UI caller (TransformerList / DataTablePanel / useDataQueries) 외 events/actions 흐름 caller = **0건**
+  - IndexedDB `"transformers"` object store name literal — `adapter.ts` 12 hits
+  - DB_VERSION 현재값 + bump 후 값 frozen
+  - **사용 흔적 grep (Phase 7 진입 전 final 검증)**:
+    - `Element.actions[].action.type === "transform" / "transformer"` 사용처 — 0건 예상
+    - `element.dataBinding.transformer*` 류 binding — 0건 예상
+    - LLM AI prompt 안 "Transformer" 언급 — 0건 예상 (createElement.ts 검증)
 
 ### Phase 0 commit
 
@@ -289,11 +301,85 @@ const list = useAsyncList({
 
 **Phase 5 commit**: `feat(adr-132): Phase 5 — data_tables → collections rename sweep + DB_VERSION bump`
 
-### Phase 6 — Status Implemented + README + CHANGELOG
+### Phase 7 — Transformer 제거 sweep (dead infrastructure cleanup)
+
+**목표**: Transformer 3-Level 변환 시스템 (type + IndexedDB store + Zustand state+actions + UI 탭 + TransformerList) 전수 제거. 단일 commit (or 작은 묶음 2-3 commit) 로 land.
+
+**진입 전 final 검증** (Phase 6 codex review N차 이후):
+
+```bash
+# 1. events/actions 흐름 caller — 0건이어야 진입 가능
+rg "executeTransformer|action\.type === \"transform\"" apps/builder/src --type ts --type tsx
+
+# 2. Element.dataBinding 안 transformer 참조 — 0건이어야 진입 가능
+rg "transformer" apps/builder/src/types/builder apps/builder/src/builder/components/property --type ts --type tsx -i
+
+# 3. AI tool prompt 안 Transformer 언급 — 0건이어야 진입 가능
+rg "Transformer" apps/builder/src/services/ai --type ts
+```
+
+진입 전 검증에서 caller 발견 시 — 별 ADR fork (Transformer 사용 흐름이 실재한다는 framing 검증 후 본 ADR scope 에서 빼고 별 ADR 발의).
+
+**제거 영역**:
+
+1. **Type definitions** (`apps/builder/src/types/builder/data.types.ts`):
+   - `Transformer / TransformLevel / FieldMapping / ResponseMappingConfig / JsTransformerConfig / CustomFunctionConfig / TransformContext / TransformerCreate / TransformerUpdate / isTransformer` 전수 제거
+   - `DataPanelStore` interface 의 `transformers: Map<string, Transformer>` state + 5 actions signature 제거
+2. **DB layer**:
+   - `apps/builder/src/lib/db/types.ts` — Transformer type 제거
+   - `apps/builder/src/lib/db/indexedDB/adapter.ts`:
+     - `transformers` object store create 블록 제거 (line 298-318)
+     - `this.transformers = { ... }` CRUD 블록 제거 (line 894-972 영역)
+     - `transformers` 사용 cleanup 블록 제거 (line 1163 등)
+     - **DB_VERSION bump** (한 번에 `data_tables` drop + `transformers` drop + `collections` create)
+3. **Zustand store**:
+   - `apps/builder/src/builder/stores/data.ts` — Transformer import / state slice / 5 actions (`fetchTransformers / createTransformer / updateTransformer / deleteTransformer / executeTransformer`) / `useTransformers` selector / `useTransformer` selector 전수 제거
+   - `apps/builder/src/builder/stores/utils/dataActions.ts` — 5 action creator (`createFetchTransformersAction / createCreateTransformerAction / createUpdateTransformerAction / createDeleteTransformerAction / createExecuteTransformerAction`) 전수 제거 (~250 LOC)
+   - `apps/builder/src/builder/stores/inspectorActions.ts` — Transformer 참조 (있으면) 제거
+4. **Hook layer**:
+   - `apps/builder/src/builder/hooks/useDataQueries.ts`:
+     - `fetchTransformers` function 제거 (line 113-)
+     - `useTransformers` TanStack Query hook 제거 (line 196 / line 419 영역)
+     - `dataQueryKeys.transformers` query key 제거 (line 57)
+5. **UI 영역**:
+   - `apps/builder/src/builder/panels/datatable/DataTablePanel.tsx`:
+     - `DataTableTab` enum 의 `"transformers"` 제거 (line 43)
+     - `TABS` 배열의 Transformers tab 제거 (line 55 — `{ id: "transformers", label: "Transformers", icon: Workflow }`)
+     - `activeTab === "transformers"` conditional rendering 제거 (line 211)
+     - `fetchTransformers` 호출 제거 (line 82, 95, 101, 135)
+   - `apps/builder/src/builder/panels/datatable/DataTableEditorPanel.tsx` — Transformer 영역 제거
+   - `apps/builder/src/builder/panels/datatable/components/TransformerList.tsx` — **파일 삭제** (사용자 explicit 승인 필요. ADR commit 직전 별도 확인)
+   - `apps/builder/src/builder/panels/datatable/index.ts` — `TransformerList` export 제거
+   - `apps/builder/src/builder/panels/datatable/types/editorTypes.ts` — Transformer 관련 type 제거
+   - `apps/builder/src/builder/panels/datatable/stores/dataTableEditorStore.ts` — Transformer state 제거
+   - `apps/builder/src/builder/panels/datatable/editors/ApiEndpointEditor.tsx` — Transformer 연계 (있을 경우) 제거
+   - `apps/builder/src/builder/panels/core/panelConfigs.ts` — Transformer 관련 panel 항목 제거
+6. **외부 사용 (예상 0건, 진입 전 final 검증)**:
+   - `apps/builder/src/builder/main/BuilderCore.tsx` — fetchTransformers 호출 제거
+   - `apps/builder/src/dashboard/index.tsx` — Transformer 참조 (있을 경우) 제거
+
+**파일 삭제 정책 (composition CLAUDE.md §"마이그레이션/리네임/삭제 작업 원칙")**:
+
+> 원본 파일 삭제는 명시적 승인 필요. ADR 본문 commit 후 Phase 7 land 직전 별도 사용자 확인 — "원본 파일 `TransformerList.tsx` 를 삭제해도 되나요?"
+
+**검증** (Phase 7 grep gate — 5-way, ADR 본문 G7 참조):
+
+- `rg '\bTransformer\b' -g '*.{ts,tsx}' -g '!node_modules'` = **0 hit**
+- `rg '\btransformers\b' -g '*.{ts,tsx}' -g '!node_modules'` = **0 hit** (object store name literal 포함)
+- `rg '\b(TransformLevel|TransformContext|FieldMapping|ResponseMappingConfig|JsTransformerConfig|CustomFunctionConfig)\b' -g '*.{ts,tsx}' -g '!node_modules'` = **0 hit**
+- `rg 'executeTransformer|fetchTransformers|createTransformer|updateTransformer|deleteTransformer' -g '*.{ts,tsx}' -g '!node_modules'` = **0 hit**
+- `apps/builder/src/builder/panels/datatable/components/TransformerList.tsx` 파일 부재
+- type-check 3/3 PASS
+- vitest 기존 PASS 유지
+- Chrome MCP smoke — DataTable 패널의 Tables / API / Var 3개 탭만 존재 + 정상 작동, Transformer 탭 사라짐 확인
+
+**Phase 7 commit**: `feat(adr-132): Phase 7 — Transformer 3-Level 시스템 전수 제거 (dead infrastructure cleanup)`
+
+### Phase 8 — Status Implemented + README + CHANGELOG
 
 - ADR Status `Proposed → Implemented`
 - `docs/adr/README.md` ADR-132 entry 갱신
-- `docs/CHANGELOG.md` 신 엔트리 (rename + sink 통일 양쪽 명시)
+- `docs/CHANGELOG.md` 신 엔트리 (rename + sink 통일 + Transformer 제거 3건 명시)
 
 ## §4 Gate matrix (Risk ↔ Gate 1:1 매핑)
 
@@ -308,6 +394,7 @@ const list = useAsyncList({
 | R7 (rename mechanical 누락 — string literal selector / DB store name / postMessage type 잔존 시 runtime crash)        |   5   | G6   | `\bdata_tables\b` / `\bdataTables\b` / `"dataTables"` literal grep 3-way 모두 0 hit. `DataTable` Pascal baseline 보존            | 누락 site 보강 후 재검증, type-check baseline 갱신                                                                       |
 | R8 (Builder ↔ Canvas postMessage payload schema 양쪽 동시 deploy 필요 — 한쪽만 land 시 iframe silent fail)            |   5   | G6   | rename land 시 `apps/builder` + `apps/publish` + preview iframe messageHandler **3-way 단일 commit**                             | rollback 후 단일 commit 재구성                                                                                           |
 | R9 (IndexedDB `data_tables` store drop 시 dev 환경 in-progress 데이터 손실)                                           |   5   | G6   | DB_VERSION bump 한 번에 drop + create 묶음. commit message 안 본인 dev DB export 권고 명시                                       | dev 환경 재시작 후 데이터 재생성 (개발 단계 user data 손실 허용)                                                         |
+| R10 (Transformer 제거 시 외부 caller 가 늦게 발견되어 runtime crash)                                                  |   7   | G7   | Phase 7 진입 전 final 검증 grep 3-way (events/actions / Element.dataBinding / AI prompt) = 0건. type-check 3/3 PASS              | caller 발견 시 별 ADR fork (Transformer 사용 흐름 실재 framing 검증 후 본 ADR scope 에서 제외)                           |
 
 ## §5 잔존 운영 위험 (Risks)
 
@@ -322,6 +409,7 @@ const list = useAsyncList({
 | R7  | rename mechanical 누락 — string literal selector / DB store name / postMessage type 잔존        | **MED** | Phase 5 sweep grep gate 3-way (`\bdata_tables\b` / `\bdataTables\b` / `"dataTables"` literal) = 0 hit. type-check baseline 동시 갱신. AI tool `createElement.ts` prompt 어휘 갱신                                                                                          |
 | R8  | Builder ↔ Canvas postMessage payload schema 양쪽 동시 deploy 필요 — 한쪽만 land 시 silent fail  | **MED** | rename land 시 `apps/builder` + `apps/publish` + preview iframe `messageHandler.ts` / `useIframeMessenger.ts` / `runtimeStore.ts` 동시 단일 commit                                                                                                                         |
 | R9  | IndexedDB `data_tables` store drop 시 dev 환경 in-progress 데이터 손실                          | **LOW** | DB_VERSION bump 한 번에 drop + create 묶음. commit message 안 본인 dev DB export 권고. 개발 단계 user data 손실 허용                                                                                                                                                       |
+| R10 | Transformer 제거 시 외부 caller (events/actions / Element.dataBinding / AI prompt) 늦게 발견    | **LOW** | Phase 7 진입 전 final 검증 grep 3-way = 0건 확인 후 진입. 검증에서 caller 발견 시 별 ADR fork (본 ADR scope 에서 제외). UI 자체 caller (TransformerList.tsx) 만 존재하므로 위험 LOW                                                                                        |
 
 잔존 HIGH 위험 0건.
 
@@ -364,6 +452,21 @@ const list = useAsyncList({
   - Action editor (사용자 노출 action 이름): `LoadDataTableActionEditor.tsx` / `SaveToDataTableActionEditor.tsx`
   - 파일명 / 디렉토리: `datatable.types.ts` / `panels/datatable/`
   - UI 텍스트: DataPanel label / "Table 추가" 버튼 / Action 이름 ("Load DataTable" / "Save to DataTable")
+- **Phase 7 Transformer 제거 sweep — 영향 15 파일 (외부 caller 0건 검증 후 진입)**:
+  - Type definitions: `apps/builder/src/types/builder/data.types.ts` (Transformer 관련 10개 type / interface 전수 제거)
+  - DB layer: `apps/builder/src/lib/db/types.ts` (Transformer type) / `apps/builder/src/lib/db/indexedDB/adapter.ts` (transformers store create + CRUD 블록 + DB_VERSION bump)
+  - Zustand store: `apps/builder/src/builder/stores/data.ts` (state slice + 5 actions) / `apps/builder/src/builder/stores/utils/dataActions.ts` (5 action creator ~250 LOC) / `apps/builder/src/builder/stores/inspectorActions.ts` (있을 경우)
+  - Hook layer: `apps/builder/src/builder/hooks/useDataQueries.ts` (fetchTransformers / useTransformers / query key)
+  - UI 영역:
+    - `apps/builder/src/builder/panels/datatable/DataTablePanel.tsx` (Transformers 탭 + tab enum + fetch 호출)
+    - `apps/builder/src/builder/panels/datatable/DataTableEditorPanel.tsx` (Transformer 영역)
+    - `apps/builder/src/builder/panels/datatable/components/TransformerList.tsx` (**파일 삭제** — 사용자 explicit 승인 필요)
+    - `apps/builder/src/builder/panels/datatable/index.ts` (export 제거)
+    - `apps/builder/src/builder/panels/datatable/types/editorTypes.ts` (Transformer type)
+    - `apps/builder/src/builder/panels/datatable/stores/dataTableEditorStore.ts` (Transformer state)
+    - `apps/builder/src/builder/panels/datatable/editors/ApiEndpointEditor.tsx` (Transformer 연계, 있을 경우)
+    - `apps/builder/src/builder/panels/core/panelConfigs.ts` (Transformer panel 항목)
+  - 외부 (예상 0건): `apps/builder/src/builder/main/BuilderCore.tsx` (fetchTransformers) / `apps/builder/src/dashboard/index.tsx` (Transformer 참조)
 
 **본 ADR scope 밖** (별 ADR 발의):
 

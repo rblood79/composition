@@ -1,4 +1,4 @@
-# ADR-132: useCollectionData useAsyncList 정합 + collections sink 통일 (+ data_tables → collections rename)
+# ADR-132: useCollectionData useAsyncList 정합 + collections sink 통일 (+ data_tables → collections rename + Transformer 제거)
 
 ## Status
 
@@ -8,6 +8,7 @@ Proposed — 2026-05-13
 
 - 2026-05-13 — ADR 본문 발의 (Proposed) + design breakdown land
 - 2026-05-13 — scope 확장: `data_tables` → `collections` rename 포함 (사용자 explicit confirm — RSP Dynamic Collections 정통 framing 1:1 정합. 개발 단계라 user data migration 위험 0, DB drop 으로 처리)
+- 2026-05-13 — scope 확장 #2: Transformer 3-Level 변환 시스템 전체 제거 (사용자 explicit framing — "초기 over-engineering, 불필요". `executeTransformer` 외부 caller 0건 grep 검증. IndexedDB `transformers` store 포함 전수 drop)
 
 ## Context
 
@@ -42,8 +43,17 @@ Proposed — 2026-05-13
    - **rule lock-in**: `DataTable` Pascal 은 **사용자 노출 (UI component / Editor / Panel / Action 이름 / 디렉토리)** 만 유지. **internal data structure type** 은 `Collection` 으로 rename
    - **UI surface 유지** (Pascal `DataTable`): `DataTable.tsx` / `DataTableComponent.tsx` / `DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `DataTableList.tsx` / `ApiEndpointEditor.tsx` / `datatable.types.ts` (파일명) / `LoadDataTableActionEditor.tsx` / `SaveToDataTableActionEditor.tsx` (Action 이름 사용자 노출) / 디렉토리 `panels/datatable/` / DataPanel UI label / "Table 추가" 텍스트
    - **internal type rename** (Pascal): `DataTablesMap` → `CollectionsMap` / `DataTableState` → `CollectionState` / `DataTableConfig` → `CollectionConfig` / `DataTableData` → `CollectionData` / `DataTableRow` → `CollectionRow` / `targetDataTable` → `targetCollection` (endpoint property)
-5. **DB drop 정책**: 개발 단계 — IndexedDB `data_tables` store 는 drop 후 `collections` 신규 생성 (migration 코드 작성 금지, user data 손실 없음)
+5. **DB drop 정책**: 개발 단계 — IndexedDB `data_tables` store 는 drop 후 `collections` 신규 생성 (migration 코드 작성 금지, user data 손실 없음). 동시에 IndexedDB `transformers` store 도 drop (Transformer 제거)
 6. **Canvas iframe 호환**: Builder ↔ Canvas 양쪽 동일 fetcher 사용 (DI 가능하면) 또는 분기 명시 lock-in. postMessage payload schema (`dataTables` → `collections`) 양쪽 동시 deploy
+7. **Transformer 제거** (사용자 explicit framing 2026-05-13 — "초기 over-engineering, 불필요"):
+   - **dead infrastructure 검증**: `executeTransformer` 외부 caller (events/actions 흐름) **0건** (grep 결과 2026-05-13 HEAD). UI 자체 (`TransformerList.tsx` 의 `Play` 버튼) 만 trigger
+   - **제거 영역 (전수)**:
+     - **Types**: `Transformer / TransformLevel / FieldMapping / ResponseMappingConfig / JsTransformerConfig / CustomFunctionConfig / TransformContext / TransformerCreate / TransformerUpdate / isTransformer` (`data.types.ts`)
+     - **DB**: IndexedDB `transformers` store + `adapter.ts` `transformers` CRUD 블록 + `lib/db/types.ts` Transformer type
+     - **Zustand store**: `useDataStore.transformers` Map state + 5 actions (`fetchTransformers / createTransformer / updateTransformer / deleteTransformer / executeTransformer`) + `createFetchTransformersAction` 류 5 action creator
+     - **Hook**: `useDataQueries.ts` Transformer query (`fetchTransformers` / TanStack Query key)
+     - **UI**: DataTable Panel 의 "Transformers" 탭 + `TransformerList.tsx` 파일 + `DataTablePanel.tsx` 의 `transformers` tab enum + `BuilderCore.tsx` fetch + `dataTableEditorStore.ts` Transformer state + `editorTypes.ts` Transformer type + `panelConfigs.ts` Transformer 항목 + `DataTableEditorPanel.tsx` Transformer 영역
+   - **DB drop 정책 동일 적용**: DB_VERSION bump 한 번에 (a) `data_tables` drop + `collections` create + (b) `transformers` store drop. migration 코드 없음
 
 ### Soft Constraints
 
@@ -66,12 +76,33 @@ Proposed — 2026-05-13
   - `DataTablesMap` / `DataTableState` / `DataTableConfig` / `DataTableData` / `DataTableRow` (internal Pascal type) — `Collection*` rename
   - `DataTable` Pascal **UI surface 유지** (변경 제외): `DataTable.tsx` / `DataTableComponent.tsx` / `DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `DataTableList.tsx` / `ApiEndpointEditor.tsx` / `LoadDataTableActionEditor.tsx` / `SaveToDataTableActionEditor.tsx` / `datatable.types.ts` 파일명 / 디렉토리 `panels/datatable/`
   - **docs (.md) 30 파일**: ADR-132 본문/breakdown/reviews/README ✅ 갱신. 현 schema reference (`docs/reference/schemas/INDEXDB.md`) 갱신 필수. Historical ADR (116/120/121/122/131 + completed/) 보존. `docs/legacy/` 보존. `docs/features/completed/DATA_PANEL.md` 보존
+- **Transformer 제거 baseline** (frozen 예정 — Phase 7 sweep 대상):
+  - `\bTransformer\b` / `\btransformers\b` / `\bTransformLevel\b` / `\bTransformContext\b` / `\bResponseMappingConfig\b` / `\bJsTransformerConfig\b` / `\bCustomFunctionConfig\b` / `\bFieldMapping\b` / `\bisTransformer\b` — 15 파일 영향
+  - `executeTransformer` / `fetchTransformers` / `createTransformer` / `updateTransformer` / `deleteTransformer` 호출 — 외부 caller (events/actions 흐름) **0건** 검증 완료 (Phase 7 sweep 시 재검증)
+  - IndexedDB `"transformers"` object store name literal — `adapter.ts` 12 hits + 다수
+  - 영향 파일 15개 (HEAD `c108021fa` 기준 grep):
+    - `apps/builder/src/types/builder/data.types.ts` — type 전수 제거
+    - `apps/builder/src/lib/db/types.ts` — Transformer type 제거
+    - `apps/builder/src/lib/db/indexedDB/adapter.ts` — `transformers` store 생성 블록 제거 + CRUD 블록 제거 + DB_VERSION bump
+    - `apps/builder/src/builder/stores/data.ts` — state slice + 5 actions 제거 + `Transformer` import 제거
+    - `apps/builder/src/builder/stores/utils/dataActions.ts` — 5 action creator 제거
+    - `apps/builder/src/builder/stores/inspectorActions.ts` — Transformer 참조 (있을 경우) 제거
+    - `apps/builder/src/builder/hooks/useDataQueries.ts` — fetchTransformers / TanStack Query key 제거
+    - `apps/builder/src/builder/main/BuilderCore.tsx` — fetchTransformers 호출 제거
+    - `apps/builder/src/dashboard/index.tsx` — Transformer 참조 (있을 경우) 제거
+    - `apps/builder/src/builder/panels/core/panelConfigs.ts` — Transformer 항목 제거
+    - `apps/builder/src/builder/panels/datatable/DataTablePanel.tsx` — `transformers` tab + 해당 conditional rendering 제거
+    - `apps/builder/src/builder/panels/datatable/DataTableEditorPanel.tsx` — Transformer 영역 제거
+    - `apps/builder/src/builder/panels/datatable/types/editorTypes.ts` — Transformer type 제거
+    - `apps/builder/src/builder/panels/datatable/editors/ApiEndpointEditor.tsx` — Transformer 연계 (있을 경우) 제거
+    - `apps/builder/src/builder/panels/datatable/stores/dataTableEditorStore.ts` — Transformer state 제거
+  - **파일 삭제** (사용자 explicit 승인 후): `apps/builder/src/builder/panels/datatable/components/TransformerList.tsx`
 
 ## Alternatives Considered
 
 ### 대안 A: useAsyncList load callback 단일화 + collections sink 통일 + rename (사용자 framing 정합)
 
-- **설명**: (1) PropertyDataBinding `source="api"` 분기를 `useAsyncList.load` 안으로 흡수. `useEffect` + `apiEndpointData` useState 삭제. load callback 안에서 source 별 분기 처리 → `source="api"` 시 `executeApiEndpoint` 호출 → `targetCollection.runtimeData` read. `source="dataTable"` 시 directly `collections.find(name).runtimeData` read. 결과 모두 `list.items` 단일 출구. (2) `data_tables` (snake) / `dataTables` (camel) → `collections` mechanical rename. `DataTable` Pascal (UI 컴포넌트 / Editor / Panel) 유지. (3) IndexedDB `data_tables` store drop + `collections` 신규 생성 (개발 단계, migration 코드 없음)
+- **설명**: (1) PropertyDataBinding `source="api"` 분기를 `useAsyncList.load` 안으로 흡수. `useEffect` + `apiEndpointData` useState 삭제. load callback 안에서 source 별 분기 처리 → `source="api"` 시 `executeApiEndpoint` 호출 → `targetCollection.runtimeData` read. `source="dataTable"` 시 directly `collections.find(name).runtimeData` read. 결과 모두 `list.items` 단일 출구. (2) `data_tables` (snake) / `dataTables` (camel) → `collections` mechanical rename. `DataTable` Pascal (UI 컴포넌트 / Editor / Panel) 유지. (3) IndexedDB `data_tables` store drop + `collections` 신규 생성 (개발 단계, migration 코드 없음). (4) **Transformer 3-Level 변환 시스템 전체 제거** — dead infrastructure (외부 caller 0건). type / IndexedDB store / Zustand state+actions / UI 탭 / TransformerList 컴포넌트 전수 제거. DB_VERSION bump 한 번에 `data_tables` drop + `transformers` drop + `collections` create
 - **근거**:
   - RSP `useAsyncList` 정통 패턴 ([react-aria.adobe.com/collections](https://react-aria.adobe.com/collections) 의 Asynchronous loading 섹션) 정합
   - 사용자 framing 명시 lock-in ([[project-data-tables-ssot-framing]] + 2026-05-13 본 세션 explicit confirm — sink 통일 + rename 양쪽)
@@ -151,19 +182,21 @@ Proposed — 2026-05-13
 | R7  | rename mechanical 누락 (snake/camel mixed 잔존) — type-check 통과해도 string literal (selector / DB store name / postMessage type) 잔존 시 runtime crash          |  MED   | Phase 5 rename sweep 에서 grep gate 3-way 검증 (`\bdata_tables\b` / `\bdataTables\b` literal / postMessage type literal). type-check baseline 도 동시 갱신. AI tool `createElement.ts` prompt 어휘 갱신                                                                                                                                                                                                                                                                                      |
 | R8  | Builder ↔ Canvas postMessage payload schema (`dataTables` → `collections`) 양쪽 동시 deploy 필요. 한쪽만 land 시 iframe 통신 silent fail                          |  MED   | rename land 시 `apps/builder` + `apps/publish` + preview iframe 측 messageHandler 3-way 단일 commit. `useIframeMessenger.ts` / `messageHandler.ts` / `runtimeStore.ts` 동시 변경 lock-in                                                                                                                                                                                                                                                                                                     |
 | R9  | IndexedDB `data_tables` store drop 시 dev 환경 user (개발자 본인) 의 in-progress 작업 데이터 손실                                                                 |  LOW   | DB_VERSION bump 한 번에 두 작업 (drop + 신규 create) 묶음. dev 환경 안내 + 본 ADR commit 직전 사용자 자신의 dev DB export 권고                                                                                                                                                                                                                                                                                                                                                               |
+| R10 | Transformer 제거 시 외부 caller (events/actions 흐름 / element factory) 가 늦게 발견되면 runtime crash                                                            |  LOW   | Phase 7 sweep 전 재검증 grep (`executeTransformer` / `fetchTransformers` / `transformers` map access) = 0건 확인 후 진행. `isTransformer` 타입 가드 호출처 / `useTransformer` selector 호출처 동시 grep. 발견 시 caller 부터 제거 후 type / store 제거                                                                                                                                                                                                                                       |
 
 잔존 HIGH 위험 0건.
 
 ## Gates
 
-| Gate         |                    시점                     | 통과 조건                                                                                                                                                                                                                                                                                                                                            | 실패 시 대안                                                                                     |
-| :----------- | :-----------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
-| G1 (Phase 1) |        useAsyncList 단일화 land 직후        | `grep apiEndpointData packages/shared apps/builder` = 0건 + useEffect 안 fetch 호출 0건 + useAsyncList load callback 안 api 분기가 `executeApiEndpoint` → `targetDataTable.runtimeData` read                                                                                                                                                         | useAsyncList 안 load 안에서 dataTables selector 접근 패턴 검증, 실패 시 list.reload trigger 패턴 |
-| G2 (Phase 2) |     Legacy collection 사용 빈도 측정 후     | `type:"collection"` AND `source:"api"` 사용 element grep = 0 또는 < 5건 → 흐름 유지 결정 lock-in                                                                                                                                                                                                                                                     | ephemeral data_tables sink 또는 별 ADR fork (Phase 0 inventory 결과 기반)                        |
-| G3 (Phase 3) |         Canvas 분기 통합 land 직후          | Canvas / Builder 양쪽 `executeApiEndpoint` 거친 후 data_tables.runtimeData read 정합                                                                                                                                                                                                                                                                 | Canvas 분기 잔존 lock-in (DI 미주입 시)                                                          |
-| G4 (Phase 4) | cache + dataTables subscribe 정합 land 직후 | dataTables.runtimeData 변경 시 useCollectionData hook list 가 reload 되거나 cache invalidate 됨 (실 동작 smoke)                                                                                                                                                                                                                                      | cache key 에 dataTables version 포함                                                             |
-| G5 (Phase 5) |           Status Implemented 직전           | 모든 G1-G4 + G6 통과 + type-check 3/3 + vitest PASS + Chrome MCP smoke 5 컴포넌트 PASS                                                                                                                                                                                                                                                               | 미해결 Gate 실패 시 Phase 별 rollback                                                            |
-| G6 (Phase 5) |           rename sweep land 직후            | **6-way grep gate**: (1) `\bdata_tables\b` = 0 / (2) `\bdataTables\b` = 0 / (3) `\btargetDataTable\b` = 0 / (4) `\b(DataTablesMap\|DataTableState\|DataTableConfig\|DataTableData\|DataTableRow)\b` = 0 / (5) `"dataTables"` literal = 0 / (6) `\bDataTable\b` = UI surface allowlist hit만 (Component / Editor / Action editor / 파일명 / 디렉토리) | rename 누락 site 보강 후 재검증                                                                  |
+| Gate         |                    시점                     | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                           | 실패 시 대안                                                                                     |
+| :----------- | :-----------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------- |
+| G1 (Phase 1) |        useAsyncList 단일화 land 직후        | `grep apiEndpointData packages/shared apps/builder` = 0건 + useEffect 안 fetch 호출 0건 + useAsyncList load callback 안 api 분기가 `executeApiEndpoint` → `targetDataTable.runtimeData` read                                                                                                                                                                                                                                                        | useAsyncList 안 load 안에서 dataTables selector 접근 패턴 검증, 실패 시 list.reload trigger 패턴 |
+| G2 (Phase 2) |     Legacy collection 사용 빈도 측정 후     | `type:"collection"` AND `source:"api"` 사용 element grep = 0 또는 < 5건 → 흐름 유지 결정 lock-in                                                                                                                                                                                                                                                                                                                                                    | ephemeral data_tables sink 또는 별 ADR fork (Phase 0 inventory 결과 기반)                        |
+| G3 (Phase 3) |         Canvas 분기 통합 land 직후          | Canvas / Builder 양쪽 `executeApiEndpoint` 거친 후 data_tables.runtimeData read 정합                                                                                                                                                                                                                                                                                                                                                                | Canvas 분기 잔존 lock-in (DI 미주입 시)                                                          |
+| G4 (Phase 4) | cache + dataTables subscribe 정합 land 직후 | dataTables.runtimeData 변경 시 useCollectionData hook list 가 reload 되거나 cache invalidate 됨 (실 동작 smoke)                                                                                                                                                                                                                                                                                                                                     | cache key 에 dataTables version 포함                                                             |
+| G5 (Phase 5) |           Status Implemented 직전           | 모든 G1-G4 + G6 통과 + type-check 3/3 + vitest PASS + Chrome MCP smoke 5 컴포넌트 PASS                                                                                                                                                                                                                                                                                                                                                              | 미해결 Gate 실패 시 Phase 별 rollback                                                            |
+| G6 (Phase 5) |           rename sweep land 직후            | **6-way grep gate**: (1) `\bdata_tables\b` = 0 / (2) `\bdataTables\b` = 0 / (3) `\btargetDataTable\b` = 0 / (4) `\b(DataTablesMap\|DataTableState\|DataTableConfig\|DataTableData\|DataTableRow)\b` = 0 / (5) `"dataTables"` literal = 0 / (6) `\bDataTable\b` = UI surface allowlist hit만 (Component / Editor / Action editor / 파일명 / 디렉토리)                                                                                                | rename 누락 site 보강 후 재검증                                                                  |
+| G7 (Phase 7) |      Transformer 제거 sweep land 직후       | **5-way grep gate**: (1) `\bTransformer\b` = 0 / (2) `\btransformers\b` = 0 (object store name literal 포함) / (3) `\bTransformLevel\|TransformContext\|FieldMapping\|ResponseMappingConfig\|JsTransformerConfig\|CustomFunctionConfig\b` = 0 / (4) `executeTransformer\|fetchTransformers\|createTransformer\|updateTransformer\|deleteTransformer` = 0 / (5) `apps/builder/src/builder/panels/datatable/components/TransformerList.tsx` 파일 부재 | 누락 site 보강 후 재검증. type-check 3/3 + vitest PASS                                           |
 
 ## Consequences
 
@@ -174,6 +207,7 @@ Proposed — 2026-05-13
 - 사용자 framing ("RAC/RSC read 진입점은 collections 통일") 정합 → ADR-131 Phase 8 revert framing 의 후속 약속 land
 - RSP `useAsyncList` 정통 패턴 정합 → 향후 RAC/RSC 버전 upgrade 시 정합 비용 ↓
 - **rename 으로 RSP Dynamic Collections 용어 1:1 정합** — 신규 contributor 가 RSP 문서를 그대로 매핑 가능. 향후 ADR 들이 `collections` 단일 어휘로 작성 가능
+- **Transformer 제거로 dead infrastructure 정리** — 외부 caller 0건이던 3-Level 변환 시스템 (~700 LOC type+store+DB+UI) 전수 제거. `Element.dataBinding.source` enum / `events / actions` 흐름 단순화 시 신규 contributor 가 Transformer 존재 인지 비용 없음. ApiEndpoint 의 `responseMapping` 필드가 Level 1 (노코드 mapping) 기능 흡수 — 기능 손실 없음
 
 ### Negative
 
@@ -183,4 +217,5 @@ Proposed — 2026-05-13
 - Legacy collection 사용 element 가 예상보다 많을 경우 별 ADR fork 의무 (consolidation-burden 차단 카테고리 적용)
 - **rename 으로 50+ 파일 mechanical 변경** — Phase 5 sweep 시 단일 commit 으로 land (Builder + Publish + Preview + Shared 동시). 한쪽만 land 시 iframe postMessage silent fail (R8 대응)
 - **IndexedDB `data_tables` store drop** — 개발 환경에서 본인 in-progress 데이터 손실. DB_VERSION bump 시 자동 drop, 사용자 본인 dev DB export 권고 (R9 대응)
+- **Transformer 탭 / API 사라짐** — DataTable Panel 의 "Transformers" 탭 + `useDataStore.transformers` Map state + 5 actions (`fetchTransformers / createTransformer / updateTransformer / deleteTransformer / executeTransformer`) 즉시 사라짐. UI 사용 흔적 (Panel 탭 + Workflow icon) 사용자 노출 영역에서 제거 — 사용자 explicit confirm 2026-05-13. 향후 변환 로직 필요 시 ApiEndpoint `responseMapping` (Level 1) / Actions 시스템 / 별 ADR 발의로 재도입
 - **scope 경계 (별 ADR 분리 영역)**: AI tool `createElement` 의 `element.dataBinding.config` 직접 endpoint 박는 패턴 정정 (W3) / `apps/publish` 의 `ProjectData` 직렬화 정합 (W4) / DataPanel UI 정적 입력 + API 결과 표시 UX / `Element.dataBinding.source` enum 정합 (`static/api/supabase/state/parent` 5종 valid 재평가) — 본 ADR scope 밖, 후속 ADR 발의 필요. 상세: [design breakdown §7 scope 경계 명시](design/132-usecollectiondata-useasynclist-alignment-breakdown.md#7-scope-경계-명시)
