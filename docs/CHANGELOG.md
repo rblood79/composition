@@ -5,6 +5,24 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Grouping policy Pencil-style 정렬 + child reparent race 차단] - 2026-05-14
+
+### Bug Fixes
+
+- **그룹화 시 frame 은 생성되지만 selectedElements 가 frame 의 child 로 들어가지 않는 회귀**:
+  - 같은 page 의 instance multi-select → Cmd+G → frame 은 정상 생성되지만 instance 들이 frame 의 child 로 reparent 되지 않음. 결과: frame 이 빈 컨테이너로 남고 instance 들은 원래 부모 자리에 잔류
+  - **Why**: `handleGroupSelection` 의 child reparent 가 `Promise.all` concurrent 호출 → 각 `updateElement` 가 시작 시점에 stale `get()` snapshot 을 기반으로 derive → `set` 의 last-write-wins 로 일부 child 의 parent_id update 가 lost. canonical / elements state 갱신 사이 race 윈도우 발생
+  - 수정 — sequential await: `Promise.all(...)` → `for (const child of updatedChildren) { await updateElement(...) }` 변경. 각 호출이 직전 호출의 canonical/elements state 갱신을 본 후 시작 → race 차단
+  - 위치: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` (`handleGroupSelection`)
+
+### Architecture
+
+- **그룹화 parent 결정 정책 Pencil-style 정렬**:
+  - 직전 정책 (`allSameParent` 검사 → 다르면 null) 은 cross-parent multi-select 시 frame 이 page root 레벨로 떨어지는 회귀 야기. 사용자 framing — Pencil app 동작 정합: "최초 선택 요소가 가진 parent 의 자리에 frame 이 생성되고 나머지 요소들이 들어간다"
+  - 변경: `createGroupFromSelection` 의 parent 결정 = 최초 선택 element 의 `parent_id`. frame position (left/top) = 최초 선택 element 의 left/top. `allSameParent` 분기 + `avgLeft/avgTop` 계산 제거
+  - 위치: `apps/builder/src/builder/stores/utils/elementGrouping.ts` (`createGroupFromSelection`)
+  - type-check baseline 602 정합 (regenerate — 1 entry resolved + 7 entries +3 line shift)
+
 ## [Cross-page grouping fix — frame parent_id null 회귀 차단] - 2026-05-13
 
 ### Bug Fixes

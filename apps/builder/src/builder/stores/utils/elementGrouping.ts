@@ -87,35 +87,18 @@ export function createGroupFromSelection<TElement extends Element>(
     );
   }
 
-  // Find common parent (if all elements have same parent)
-  const firstParentId = selectedElements[0].parent_id;
-  const allSameParent = selectedElements.every(
-    (el) => el.parent_id === firstParentId,
-  );
-
-  // Group's parent_id is the common parent (or null if different parents)
-  const groupParentId = allSameParent ? firstParentId : null;
-
-  // Calculate average position for group positioning
-  const positions = selectedElements
-    .map((el) => {
-      const style = (el.props.style || {}) as Record<string, unknown>;
-      const left = parsePixels(style.left);
-      const top = parsePixels(style.top);
-      return { left, top };
-    })
-    .filter((pos) => pos.left !== null && pos.top !== null);
-
-  const avgLeft =
-    positions.length > 0
-      ? positions.reduce((sum, pos) => sum + (pos.left || 0), 0) /
-        positions.length
-      : 0;
-  const avgTop =
-    positions.length > 0
-      ? positions.reduce((sum, pos) => sum + (pos.top || 0), 0) /
-        positions.length
-      : 0;
+  // Pencil-style 정책: 최초 선택한 요소의 parent + position 을 frame 의 anchor 로 사용.
+  // Why: "공통 부모를 찾는 allSameParent 검사 → 다르면 null" 정책은 cross-parent
+  // multi-select 시 frame 이 page root 레벨로 떨어지는 회귀를 야기. Pencil app 동작 정합:
+  //   "최초 선택 요소가 가진 parent 의 자리에 frame 이 생성되고 나머지 요소들이 들어간다".
+  const firstElement = selectedElements[0];
+  const groupParentId = firstElement.parent_id;
+  const firstStyle = (firstElement.props.style || {}) as Record<
+    string,
+    unknown
+  >;
+  const firstLeft = parsePixels(firstStyle.left) ?? 0;
+  const firstTop = parsePixels(firstStyle.top) ?? 0;
 
   // Generate customId for group (e.g., "group_1", "group_2").
   // Count both new "frame" and legacy "Group" so `group_N` is not double-issued
@@ -145,8 +128,8 @@ export function createGroupFromSelection<TElement extends Element>(
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        left: `${avgLeft}px`,
-        top: `${avgTop}px`,
+        left: `${firstLeft}px`,
+        top: `${firstTop}px`,
       },
     },
     parent_id: groupParentId,

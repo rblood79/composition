@@ -1161,14 +1161,17 @@ function PropertiesPanelContent() {
       // Add group to store (this saves to DB)
       await addElement(groupElement);
 
-      // Update children with new parent_id (IndexedDB persistence via updateElement)
-      await Promise.all(
-        updatedChildren.map(async (child) => {
-          await updateElement(child.id, {
-            parent_id: child.parent_id,
-          });
-        }),
-      );
+      // Update children with new parent_id — sequential await 로 race 차단.
+      // Why: Promise.all 동시 호출 시 각 updateElement 가 시작 시점에 stale `get()`
+      // snapshot 을 기반으로 derive → `set` 의 last-write-wins 로 일부 child 의
+      // parent_id update 가 lost. 직전 buggy 동작: frame 은 생성되지만 selectedElements
+      // 가 frame 의 child 로 들어가지 않음. sequential await 로 각 호출이 직전 호출의
+      // canonical/elements state 갱신을 본 후 시작.
+      for (const child of updatedChildren) {
+        await updateElement(child.id, {
+          parent_id: child.parent_id,
+        });
+      }
 
       // ⭐ Phase 7: Track in history AFTER group creation
       trackGroupCreation(groupElement, previousChildren, updatedChildren);
