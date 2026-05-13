@@ -607,8 +607,10 @@ function applyElementSnapshotBatch(
       layoutVersion: prevState.layoutVersion + 1,
     };
   });
-  get()._rebuildIndexes();
+  // canonical document 먼저 update — `_rebuildIndexes` 의 derive (canonical 우선) 가
+  // stale canonical 을 읽어 elementsMap mirror 의 reusable/componentRole 누락하는 race 방지
   syncInstanceElementsToCanonical(nextElements);
+  get()._rebuildIndexes();
   const sourceElements = getInstanceActionSourceElements(get());
   const persistedElements = nextElements.map(
     (element) =>
