@@ -2,7 +2,23 @@
 
 ## Status
 
-Proposed (v2, 2026-03-12)
+Deprecated — 2026-05-13 (Replaced by [ADR-133](../133-events-panel-simplification.md) + ADR-131 partial supersede)
+
+### land 영역 (ADR-131 / ADR-132 / ADR-133 흡수)
+
+- **events / actions root collection schema** — [ADR-131](../131-events-data-actions-first-class-collections.md) Phase 1-4 가 `CompositionDocument.events` / `actions` root field + `SerializedEvent` / `SerializedAction` 타입 land. v2 §1 (TriggerRegistry) + §2 (EffectRegistry 의 일부) 영역 partial supersede 완결
+- **dataBinding ↔ collections rename** — [ADR-132](../132-usecollectiondata-useasynclist-alignment.md) 가 `data_tables` → `collections` rename + `useCollectionData` `useAsyncList` 정통 정합 land
+- **canonical schema UI 표면 정합** — [ADR-133](../133-events-panel-simplification.md) D2/D3/D4 가 EventsPanel canonical primary 전환 + ActionsPanel 흡수
+
+### 미land 영역 (ADR-134 응용 이관)
+
+- **TriggerRegistry** (payload schema 정의) — 현 `EVENT_REGISTRY` 가 1차 대용, payload schema 부재
+- **EffectRegistry** (validate + run 단일화) — 현 `actionMetadata.ts` + `eventEngine.ts` 2분리 유지
+- **CapabilityRegistry** (`pressable` / `selectable` / `editable` / `submittable` / `openable` / `collection` / `filterable` / `data-bound` 자동 추론) — 현 `COMPONENT_RECOMMENDED_EVENTS` 컴포넌트별 하드코딩 유지
+- **RecipeRegistry** (추천 ↔ Quick Connect ↔ 템플릿 통합) — 현 18 templates 데이터 / 추천 chips 가 1차 대용
+- **BindingRef AST** (stable id 기반 참조 system) — 현 `Element.dataBinding` + `collections` rename 으로 partial 정합, AST 자체 미land
+- **Condition DSL 완전 AST** — ADR-133 D6 가 1단계 placeholder (`{kind:"comparison" \| "raw", left?, op?, right?, expression?}`) 만 lock-in, 완전 DSL 미land
+- **EventHandler.source provenance** (`manual` / `recipe` + `recipeId` + `version` + `generatedAt`)
 
 ## Date
 

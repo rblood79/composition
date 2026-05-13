@@ -16,6 +16,17 @@ Implemented — 2026-05-13
   - Phase 5 (`dd2c91a38`): `data_tables` → `collections` rename 32 파일 + DB_VERSION 17 → 18 + legacy data_tables store drop migration. G6 6-way grep gate 통과
   - Phase 7 (`c52fd344f`): Transformer 3-Level 시스템 전수 제거 16 파일 (-814 LOC net) + TransformerList.tsx 파일 삭제 (사용자 explicit 승인) + transformers store drop migration. G7 5-way grep gate 통과
   - Phase 8 (현재): Status Implemented 승격 + README + CHANGELOG
+- 2026-05-13 — closure 5-step 마감 + 후속 docs 동기화 (commits `bb3c9d752..314bd3639..7ed4407d1`):
+  - 본문 archive `docs/adr/completed/132-...md` 이동 + reference link path 정합 (5 곳)
+  - 활성 reference docs 갱신 (INDEXDB schema v18 / TRANSFORMER_SECURITY Superseded marker / UNIMPLEMENTED P0 Superseded / PANEL_SYSTEM 3-tab / PANEL_OPTIMIZATION historical marker)
+- 2026-05-13 — `/simplify` follow-up (commit `0381042d5`, -84 LOC net):
+  - 3 agent 병렬 review (reuse / quality / efficiency) 의 high-ROI 4 finding 적용
+  - Dead param 제거 (Builder `loadApiData` `_componentName`)
+  - `dataTableData` / `dataTableSchema` 중간 변수 제거 → `dataTableResult?.data` 직접 사용
+  - Type guard 추출: `isPropertyBinding` / `asPropertyBinding` / `PropertyDataBindingShape` — 양쪽 hook 9곳 `as unknown as` cast 통합 (cast 1곳만 유지)
+  - Response normalization helper: `normalizeApiResponse(result)` — 양쪽 hook ~20 line 중복 제거
+  - 신규 public API (4): `@composition/shared` 에 `isPropertyBinding` / `asPropertyBinding` / `normalizeApiResponse` / `PropertyDataBindingShape` export 추가
+  - 검증: type-check 3/3 PASS (baseline 602 freeze, 변동 0)
 
 ## Context
 

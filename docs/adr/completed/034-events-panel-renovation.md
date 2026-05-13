@@ -2,7 +2,21 @@
 
 ## Status
 
-Proposed
+Deprecated — 2026-05-13 (Replaced by [ADR-133](../133-events-panel-simplification.md))
+
+### land 영역 (ADR-133 흡수)
+
+- **Panel UX 전면 개편** — ADR-133 D1 가 4 depth + 2 overlay → 2 depth (default) + L4 expand toggle (power user) 로 단순화. RAC props list mental model 정합
+- **canonical primary 전환** — ADR-133 D2 가 `selectedElement.events` legacy direct read 제거 + `useEventsForTarget` canonical hook 전환
+- **Property Editor 자식 아이템 제거 (Collection items pattern)** — ADR-132 + ADR-013 Proposed (Quick Connect) 진행 중. ADR-133 scope 외 (별 영역)
+
+### 미land 영역 (ADR-134 응용 이관)
+
+- **7 섹션 IA renovation** — `ConnectionStatusSection` / `RecommendedRecipesSection` / `HandlersListSection` / `HandlerEditorSection` / `DiagnosticsSection` / `PreviewSection`. **ADR-133 의 RAC-props-list 모델로 대체** — 7 섹션 monolith 분해 framing 자체가 RAC 정통 매핑과 다른 방향이며 사용자 framing "뎁스 너무 복잡" + "1년차 신입 OK" baseline 부정합
+- **recipe 중심 UX** — RecommendedRecipesSection / "Selection sync" / "Open detail modal" / "Search filter binding" 등 recipe id 기반 추천. ADR-032 의 RecipeRegistry 선행 필수
+- **diagnostics / preview** — DiagnosticsSection (broken binding / invalid condition / recipe drift / auto-fix 제안) + PreviewSection (코드 출력 또는 intent 미리보기). ADR-032 의 BindingDiagnosticsService 선행
+- **Property Editor 이벤트 설정 제거 (108 에디터)** — onClick / onChange / onPress 등 산재된 이벤트 바인딩 설정을 Events Panel 로 중앙 집중. ADR-133 scope 밖 — 별 ADR 발의 영역
+- **Manual / Recipe / Broken 상태 모델** — handler 상태 배지 (Manual / Recipe / Warning / Broken / Disabled)
 
 ## Date
 

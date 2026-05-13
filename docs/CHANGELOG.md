@@ -43,6 +43,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`vitest metaStore.test.ts` 7/7 PASS** (DB_VERSION 18 assertion 갱신).
 - **G6 / G7 grep gate**: 양쪽 모두 0 hit (잔존은 모두 ADR-132 drop migration 의 의도된 string literal / comment).
 
+### Features (`/simplify` follow-up, commit `0381042d5`)
+
+- **신규 public API 4 — `@composition/shared` export**:
+  - `isPropertyBinding(binding): binding is PropertyDataBindingShape` — PropertyDataBinding (`{ source, name }`) 형식 type guard
+  - `asPropertyBinding(binding): PropertyDataBindingShape | null` — PropertyDataBinding cast view (DataBinding union source enum 충돌 우회용)
+  - `normalizeApiResponse(result: unknown): Record<string, unknown>[]` — API fetch 결과를 items 배열로 정규화 (Array.isArray / results / data / items / single object 5-tier fallback)
+  - `PropertyDataBindingShape` interface — `{ source: string; name: string; refreshMode?: string; refreshInterval?: number }`
+  - **Why**: 양쪽 hook (Builder / Shared `useCollectionData`) 의 9곳 `as unknown as { source, name }` cast 와 ~20 line 중복 normalization 을 공통 helper 로 추출. 향후 다른 collection consumer 도 동일 helper 재사용 가능
+  - 위치: `packages/shared/src/hooks/useCollectionData.tsx` (export) + `packages/shared/src/hooks/index.ts` (재export)
+
+### Architecture (`/simplify` follow-up)
+
+- **`useCollectionData` hook cleanup** (Builder + Shared 양쪽 -84 LOC net):
+  - Dead param 제거: Builder `loadApiData` 의 `_componentName: string` (미사용) + caller 정합
+  - Derived state 단순화: `dataTableData` / `dataTableSchema` 중간 변수 제거 → `dataTableResult?.data` / `dataTableResult?.schema` 직접 참조
+  - Cast 통합: 양쪽 hook 의 9곳 `as unknown as { source, name }` → `asPropertyBinding(binding)` 단일 cast 지점
+  - Response normalization 중복 제거: 양쪽 hook ~20 line 동일 분기 → `normalizeApiResponse(result)` 1 호출
+  - `refreshMode` / `refreshInterval` useMemo 2 → optional chaining 직접 표현 (computation 0, useMemo 제거)
+  - `isApiBinding` / `isDataTableBinding` 변수 hoist — 3+ 곳 중복 비교 통합
+  - WHAT-narrating 주석 다수 삭제 (변수명이 이미 설명하는 영역)
+
 ## [스타일 패널 dead UI 정리 — ComponentStateSection 제거] - 2026-05-13
 
 ### Bug Fixes
