@@ -50,10 +50,9 @@ function isRenderableSelectionTarget(
   // bounds 가 등록되지 않은 element 는 selection box 그릴 좌표 부재 → 차단.
   if (!treeBoundsMap.has(id)) return false;
 
-  // cross-page 일반 element — multi-page rendering ([[multipage]] 메모리) 으로
-  // 모든 page 의 element 가 canvas 에 동시 렌더링되므로, page_id 와 currentPageId
-  // 가 달라도 bounds 가 등록된 element 는 selection box 표시 가능. cross-page
-  // multi-select 정합 (직전 fix ef22be877 의 cross-page shift+click 허용 후속).
+  // cross-page 일반 element — multi-page rendering 으로 모든 page 의 element 가
+  // canvas 에 동시 렌더링되므로, page_id 와 currentPageId 가 달라도 bounds 가
+  // 등록된 element 는 selection box 표시 가능.
   if (element.page_id != null) return true;
 
   // page_id null + frame mirror id 보유 — ADR-130 frame canonical layout/body

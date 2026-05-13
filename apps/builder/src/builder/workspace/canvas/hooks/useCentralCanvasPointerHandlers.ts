@@ -286,7 +286,7 @@ export function useCentralCanvasPointerHandlers({
       }
 
       if (inSelectionBounds) {
-        if (selectedIds.length > 0 && selectionBounds) {
+        if (hasSelection && selectionBounds) {
           const targetId = selectedIds[0] ?? null;
           const doubleClickTargetId = resolveDoubleClickTargetId(
             hitElementId,
