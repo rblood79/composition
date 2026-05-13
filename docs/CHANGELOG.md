@@ -5,6 +5,18 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Multi-select corner handles 표시 — visual consistency root fix] - 2026-05-14
+
+### Bug Fixes
+
+- **다중 선택 (multi-select) 시 selection box 의 모서리 (handles) 가 표시되지 않는 회귀**:
+  - same-page multi-select: selection box (combined bounds) 는 정상 표시, 그러나 corner handles 미표시. cross-page 도 동일
+  - **Why (root cause)**: `skiaWorkflowSelection.ts:213` 의 `showHandles = selectedIds.length === 1` 조건이 multi-select 시 무조건 false. `16b99decc` (2026-03-12 Workspace refactor) 에서 파일 신규 작성 시점부터 존재한 잠정적 미구현 표시 (multi-select handles 미구현 상태). Figma / Pencil / Sketch 등 standard design tool 동작 (multi-select 시 combined bounds 의 corner handles 표시) 과 불일치
+  - 수정 1 — `showHandles = selectedIds.length >= 1`: multi-select 시에도 combined bounds 의 corner handles 표시
+  - 수정 2 — pointer hit test 일관성: `useCentralCanvasPointerHandlers.ts` 의 handle hit test (line 211) + cursor 분기 (line 424, 462) 의 `isSingleSelection` → `hasSelection = selectedIds.length >= 1`. multi-select 시 handle 위 cursor 표시 + handle hit drag 비활성 return 일관 (single 도 동일 동작)
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/skiaWorkflowSelection.ts` + `useCentralCanvasPointerHandlers.ts`
+  - 효과: 사용자가 multi-select 영역의 corner handles 를 시각적으로 인식. Resize drag 동작 자체는 single 도 미구현 (handles = visual indicator only) — 본 fix scope 밖
+
 ## [updateElement concurrent race root fix — atomic set callback] - 2026-05-14
 
 ### Architecture

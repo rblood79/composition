@@ -205,17 +205,17 @@ export function useCentralCanvasPointerHandlers({
         return;
       }
       const selectedIds = state.selectedElementIds;
-      const isSingleSelection = selectedIds.length === 1;
+      const hasSelection = selectedIds.length >= 1;
       const now = Date.now();
 
-      if (isSingleSelection && selectionBounds) {
+      if (hasSelection && selectionBounds) {
         const { hitHandle } = resolveSelectionHit(
           canvasPos,
           selectionBounds,
           zoom,
         );
         if (hitHandle) {
-          // 리사이즈 핸들 히트 — 드래그 기능 비활성 상태
+          // 리사이즈 핸들 히트 — 드래그 기능 비활성 상태 (single/multi 공통)
           return;
         }
       }
@@ -421,9 +421,9 @@ export function useCentralCanvasPointerHandlers({
       });
 
       const state = useStore.getState();
-      const isSingleSelection = state.selectedElementIds.length === 1;
+      const hasSelection = state.selectedElementIds.length >= 1;
 
-      if (isSingleSelection) {
+      if (hasSelection) {
         const selectionBounds =
           selectionBoundsRef.current ?? computeSelectionBoundsForHitTest();
         const { hitHandle } = resolveSelectionHit(
@@ -459,9 +459,9 @@ export function useCentralCanvasPointerHandlers({
       });
 
       const state = useStore.getState();
-      const isSingleSelection = state.selectedElementIds.length === 1;
+      const hasSelection = state.selectedElementIds.length >= 1;
 
-      if (isSingleSelection) {
+      if (hasSelection) {
         const selectionBounds =
           selectionBoundsRef.current ?? computeSelectionBoundsForHitTest();
         const { hitHandle } = resolveSelectionHit(

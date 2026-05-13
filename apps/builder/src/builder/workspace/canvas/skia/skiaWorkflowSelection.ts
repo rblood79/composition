@@ -210,7 +210,10 @@ export function buildSelectionRenderData(
     }
 
     selectionBounds = calculateCombinedBounds(boxes);
-    showHandles = selectedIds.length === 1;
+    // multi-select 시에도 combined bounds 의 corner handles 표시. Figma / Pencil /
+    // Sketch standard 동작 정합 — 사용자가 selection 영역을 시각적으로 인식.
+    // Resize drag 동작 자체는 single 도 미구현 (handles 는 visual indicator only).
+    showHandles = selectedIds.length >= 1;
   }
 
   return {
