@@ -5,6 +5,17 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [스타일 패널 dead UI 정리 — ComponentStateSection 제거] - 2026-05-13
+
+### Bug Fixes
+
+- **스타일 패널 상단 "State" 섹션 제거**:
+  - dropdown (Default/Hover/Pressed/Focused/Disabled) 선택값을 `useComponentStatePreviewStore` 에 저장만 하고 Skia renderer / CSSGenerator / Preview iframe 어느 consumer 도 구독하지 않아 시각 출력 0% 변화 — force-state injection wiring 미land 상태로 UI 만 먼저 land 된 dead 영역.
+  - **Why**: dead UI 가 사용자 혼동 유발 ("State 바꿔도 아무것도 안 바뀐다"). 의도 (variant force-preview) 가 살아나면 ADR-908 fill SSOT (`FillTokenSpec` × state 2축) 위에 재설계 — 첫 시도보다 wiring 비용 낮음.
+  - 삭제: `apps/builder/src/builder/panels/styles/sections/ComponentStateSection.tsx`, `apps/builder/src/builder/panels/styles/hooks/useComponentStatePreview.ts`.
+  - 정리: `sections/index.ts` export 1줄 / `StylesPanel.tsx` import + JSX + 미사용 `hasSpec` 계산 제거. `useSectionCollapse.collapseAll` 의 기본 4-section (transform/layout/appearance/typography) 와 `size === 4` 가드는 그대로 유지 (영향 없음).
+  - 검증: 잔존 참조 grep 0건 / `pnpm type-check` 3/3 PASS (baseline 602 freeze).
+
 ## [Layer 3 Canonical Vocabulary 정렬 — Group → frame 분리 (ADR-130)] - 2026-05-13
 
 ### Architecture

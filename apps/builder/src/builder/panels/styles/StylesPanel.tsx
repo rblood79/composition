@@ -15,7 +15,6 @@ import {
   AppearanceSection,
   TypographySection,
   ModifiedStylesSection,
-  ComponentStateSection,
 } from "./sections";
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { useStyleActions } from "./hooks/useStyleActions";
@@ -36,13 +35,8 @@ const ModifiedSectionsWrapper = memo(function ModifiedSectionsWrapper() {
 });
 
 const AllSections = memo(function AllSections() {
-  const selectedElement = useDebouncedSelectedElementData();
-  const type = selectedElement?.type ?? null;
-  const hasSpec = type != null && type !== "";
-
   return (
     <>
-      <ComponentStateSection hasSpec={hasSpec} />
       <TransformSection />
       <LayoutSection />
       <AppearanceSection />
