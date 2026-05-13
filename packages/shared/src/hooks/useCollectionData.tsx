@@ -156,6 +156,58 @@ async function loadApiData(
 }
 
 // ============================================
+// PropertyDataBinding helpers (ADR-132 Phase 1 후속 simplify)
+// ============================================
+
+/** PropertyDataBinding 정규형 — Legacy `DataBinding ({ type: "collection" })` 와 disjoint */
+export interface PropertyDataBindingShape {
+  source: string;
+  name: string;
+  refreshMode?: string;
+  refreshInterval?: number;
+}
+
+/** PropertyDataBinding 형식 type guard — `{ source, name }` (Legacy `{ type: "collection" }` 와 구분) */
+export function isPropertyBinding(
+  binding: unknown,
+): binding is PropertyDataBindingShape {
+  return (
+    typeof binding === "object" &&
+    binding !== null &&
+    "source" in binding &&
+    "name" in binding &&
+    !("type" in binding)
+  );
+}
+
+/** PropertyDataBinding 으로 cast 한 view 반환 (DataBinding union 과 충돌하는 source enum narrow 우회용) */
+export function asPropertyBinding(
+  binding: unknown,
+): PropertyDataBindingShape | null {
+  return isPropertyBinding(binding)
+    ? (binding as unknown as PropertyDataBindingShape)
+    : null;
+}
+
+/** API fetch 결과를 `Record<string, unknown>[]` 로 정규화. results/data/items 우선순위 fallback. */
+export function normalizeApiResponse(
+  result: unknown,
+): Record<string, unknown>[] {
+  if (Array.isArray(result)) {
+    return result as Record<string, unknown>[];
+  }
+  if (result && typeof result === "object") {
+    const obj = result as Record<string, unknown>;
+    if (Array.isArray(obj.results))
+      return obj.results as Record<string, unknown>[];
+    if (Array.isArray(obj.data)) return obj.data as Record<string, unknown>[];
+    if (Array.isArray(obj.items)) return obj.items as Record<string, unknown>[];
+    return [obj];
+  }
+  return [];
+}
+
+// ============================================
 // Hook
 // ============================================
 
@@ -235,83 +287,54 @@ export function useCollectionData({
 
   const stableDataBinding = useMemo(() => dataBinding, [dataBindingKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // PropertyDataBinding 형식 감지 (source: 'dataTable', name: 'xxx')
-  const propertyBindingFormat =
-    stableDataBinding &&
-    "source" in stableDataBinding &&
-    "name" in stableDataBinding &&
-    !("type" in stableDataBinding);
+  const propertyBinding = asPropertyBinding(stableDataBinding);
+  const propertyBindingFormat = propertyBinding !== null;
 
-  // Auto-refresh 설정 추출
-  const refreshMode = useMemo(() => {
-    if (propertyBindingFormat) {
-      const binding = stableDataBinding as unknown as { refreshMode?: string };
-      return binding.refreshMode || "manual";
-    }
-    return "manual";
-  }, [propertyBindingFormat, stableDataBinding]);
-
-  const refreshInterval = useMemo(() => {
-    if (propertyBindingFormat) {
-      const binding = stableDataBinding as unknown as {
-        refreshInterval?: number;
-      };
-      return binding.refreshInterval || 5000;
-    }
-    return 5000;
-  }, [propertyBindingFormat, stableDataBinding]);
+  const refreshMode = propertyBinding?.refreshMode || "manual";
+  const refreshInterval = propertyBinding?.refreshInterval || 5000;
 
   // DataTable 바인딩인 경우 mockData와 schema 직접 반환 (sync read)
   const dataTableResult = useMemo(() => {
-    if (propertyBindingFormat) {
-      const binding = stableDataBinding as unknown as {
-        source: string;
-        name: string;
-      };
-      if (binding.source === "dataTable" && binding.name) {
-        const table = collections.find((dt) => dt.name === binding.name);
-        if (table) {
-          const hasRuntimeData =
-            table.runtimeData && table.runtimeData.length > 0;
-          const data = table.useMockData
-            ? table.mockData
-            : hasRuntimeData
-              ? table.runtimeData
-              : table.mockData;
-          const schema: SchemaField[] = (table.schema || []).map((field) => ({
-            key: field.key,
-            type: field.type,
-            label: field.label,
-          }));
-          return { data, schema };
-        }
+    if (
+      propertyBinding &&
+      propertyBinding.source === "dataTable" &&
+      propertyBinding.name
+    ) {
+      const table = collections.find((dt) => dt.name === propertyBinding.name);
+      if (table) {
+        const hasRuntimeData =
+          table.runtimeData && table.runtimeData.length > 0;
+        const data = table.useMockData
+          ? table.mockData
+          : hasRuntimeData
+            ? table.runtimeData
+            : table.mockData;
+        const schema: SchemaField[] = (table.schema || []).map((field) => ({
+          key: field.key,
+          type: field.type,
+          label: field.label,
+        }));
+        return { data, schema };
       }
     }
     return null;
-  }, [propertyBindingFormat, collections, stableDataBinding]);
-
-  const dataTableData = dataTableResult?.data || null;
-  const dataTableSchema = dataTableResult?.schema;
+  }, [propertyBinding, collections]);
 
   const list = useAsyncList<Record<string, unknown>>({
     async load({ signal }: AsyncListLoadOptions) {
-      // PropertyDataBinding 형식 — source 별 분기
-      if (propertyBindingFormat) {
-        const binding = stableDataBinding as unknown as {
-          source: string;
-          name: string;
-        };
-
-        if (binding.source === "dataTable") {
+      if (propertyBinding) {
+        if (propertyBinding.source === "dataTable") {
           // sync useMemo (dataTableResult) 가 processedData 1번 tier 처리.
           return { items: [] };
         }
 
-        if (binding.source === "api" && binding.name) {
-          const endpoint = apiEndpoints.find((ep) => ep.name === binding.name);
+        if (propertyBinding.source === "api" && propertyBinding.name) {
+          const endpoint = apiEndpoints.find(
+            (ep) => ep.name === propertyBinding.name,
+          );
           if (!endpoint) {
             throw new Error(
-              `API Endpoint '${binding.name}'을 찾을 수 없습니다`,
+              `API Endpoint '${propertyBinding.name}'을 찾을 수 없습니다`,
             );
           }
 
@@ -327,7 +350,7 @@ export function useCollectionData({
           let result: unknown;
 
           if (isCanvasContext) {
-            // Canvas: proxy 직접 호출 (Phase 3 에서 통합 예정)
+            // Canvas: proxy 직접 호출 (Phase 3 에서 통합 예정 — Canvas DI 미보장)
             const url = `${endpoint.baseUrl}${endpoint.path}`;
             const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
 
@@ -354,29 +377,12 @@ export function useCollectionData({
 
             result = await response.json();
           } else {
-            // Builder: apiEndpointService.executeApiEndpoint (collections.runtimeData sink)
             result = await apiEndpointService?.executeApiEndpoint?.(
               endpoint.id,
             );
           }
 
-          // 결과 → items 배열 정규화
-          let items: Record<string, unknown>[] = [];
-          if (Array.isArray(result)) {
-            items = result as Record<string, unknown>[];
-          } else if (result && typeof result === "object") {
-            const resultObj = result as Record<string, unknown>;
-            if (Array.isArray(resultObj.results)) {
-              items = resultObj.results as Record<string, unknown>[];
-            } else if (Array.isArray(resultObj.data)) {
-              items = resultObj.data as Record<string, unknown>[];
-            } else if (Array.isArray(resultObj.items)) {
-              items = resultObj.items as Record<string, unknown>[];
-            } else {
-              items = [resultObj];
-            }
-          }
-
+          const items = normalizeApiResponse(result);
           if (cacheKey) {
             collectionDataCache.set(cacheKey, items);
           }
@@ -427,16 +433,16 @@ export function useCollectionData({
   });
 
   // R1/R3 대응 — collections 변경 시 api binding list.reload trigger
+  const isApiBinding = propertyBinding?.source === "api";
+  const isDataTableBinding = propertyBinding?.source === "dataTable";
+
   useEffect(() => {
-    const isApiBinding =
-      propertyBindingFormat &&
-      (stableDataBinding as unknown as { source: string }).source === "api";
     if (isApiBinding) {
       list.reload();
     }
     // list 는 stable instance, dependency 에서 제외 (eslint-disable)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collections, propertyBindingFormat, stableDataBinding]);
+  }, [collections, isApiBinding]);
 
   // 정렬 함수
   const sort = useCallback(
@@ -449,6 +455,7 @@ export function useCollectionData({
   // 필터링 및 정렬된 데이터
   const processedData = useMemo(() => {
     // 우선순위: DataTable (sync) > DataTable Store > AsyncList (api/legacy)
+    const dataTableData = dataTableResult?.data;
     let sourceData: Record<string, unknown>[];
 
     if (dataTableData && dataTableData.length > 0) {
@@ -497,7 +504,7 @@ export function useCollectionData({
     sortDescriptor,
     datatableId,
     datatableState,
-    dataTableData,
+    dataTableResult,
   ]);
 
   // 페이지네이션 지원 (향후 구현)
@@ -510,35 +517,23 @@ export function useCollectionData({
       dataTableService.loadDataTable?.(datatableId);
       return;
     }
-    if (propertyBindingFormat) {
-      const binding = stableDataBinding as unknown as {
-        source: string;
-        name: string;
-      };
-      if (binding.source === "api" && binding.name) {
-        const cacheKey = createCacheKey(stableDataBinding);
-        if (cacheKey) {
-          collectionDataCache.invalidate(cacheKey);
-        }
-        list.reload();
-        return;
+    if (
+      propertyBinding &&
+      propertyBinding.source === "api" &&
+      propertyBinding.name
+    ) {
+      const cacheKey = createCacheKey(stableDataBinding);
+      if (cacheKey) {
+        collectionDataCache.invalidate(cacheKey);
       }
+      list.reload();
+      return;
     }
     list.reload();
-  }, [
-    datatableId,
-    dataTableService,
-    list,
-    propertyBindingFormat,
-    stableDataBinding,
-  ]);
+  }, [datatableId, dataTableService, list, propertyBinding, stableDataBinding]);
 
   // Auto-refresh 기능
   useEffect(() => {
-    const isApiBinding =
-      propertyBindingFormat &&
-      (stableDataBinding as unknown as { source: string }).source === "api";
-
     if (!isApiBinding) return;
 
     if (refreshMode === "interval" && refreshInterval > 0) {
@@ -550,23 +545,8 @@ export function useCollectionData({
         clearInterval(intervalId);
       };
     }
-  }, [
-    refreshMode,
-    refreshInterval,
-    propertyBindingFormat,
-    stableDataBinding,
-    reload,
-    componentName,
-  ]);
+  }, [refreshMode, refreshInterval, isApiBinding, reload, componentName]);
 
-  // 로딩/에러 상태
-  const isApiBinding =
-    propertyBindingFormat &&
-    (stableDataBinding as unknown as { source: string }).source === "api";
-
-  const isDataTableBinding =
-    propertyBindingFormat &&
-    (stableDataBinding as unknown as { source: string }).source === "dataTable";
   const isDataTablePending = isDataTableBinding && collections.length === 0;
 
   const loading = propertyBindingFormat
@@ -582,7 +562,7 @@ export function useCollectionData({
       ? list.error
         ? list.error.message
         : null
-      : dataTableData === null && stableDataBinding && !isDataTablePending
+      : !dataTableResult && stableDataBinding && !isDataTablePending
         ? `DataTable을 찾을 수 없습니다`
         : null
     : datatableId
@@ -605,7 +585,7 @@ export function useCollectionData({
     error,
     reload,
     clearCache,
-    schema: dataTableSchema,
+    schema: dataTableResult?.schema,
     sort,
     filterText,
     setFilterText,
