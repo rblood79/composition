@@ -1742,7 +1742,7 @@ export function applyImplicitStyles(
     if (sideMode) {
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
-        new Set(["Group"]),
+        new Set(["Group", "frame"]), // ADR-130: canonical frame 정합
       );
     }
     effectiveParent = withParentStyle(

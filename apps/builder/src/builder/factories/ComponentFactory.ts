@@ -31,7 +31,7 @@ import {
   createListDefinition,
 } from "./definitions/SelectionComponents";
 import {
-  createGroupDefinition,
+  createFrameLayoutDefinition,
   createToggleButtonGroupDefinition,
   createSwitcherDefinition,
   createCheckboxGroupDefinition,
@@ -109,7 +109,7 @@ export class ComponentFactory {
     Toolbar: ComponentFactory.createToolbar,
     NumberField: ComponentFactory.createNumberField,
     SearchField: ComponentFactory.createSearchField,
-    Group: ComponentFactory.createGroup,
+    frame: ComponentFactory.createFrame, // ADR-130: was "Group" pre-130
     ToggleButtonGroup: ComponentFactory.createToggleButtonGroup,
     Switcher: ComponentFactory.createSwitcher,
     CheckboxGroup: ComponentFactory.createCheckboxGroup,
@@ -294,10 +294,10 @@ export class ComponentFactory {
     return this.createComponent(createSearchFieldDefinition, context);
   }
 
-  private static async createGroup(
+  private static async createFrame(
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
-    return this.createComponent(createGroupDefinition, context);
+    return this.createComponent(createFrameLayoutDefinition, context);
   }
 
   private static async createToggleButtonGroup(

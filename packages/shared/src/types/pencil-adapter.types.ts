@@ -241,6 +241,12 @@ function toPencilType(node: CanonicalNode): PencilNodeType {
       return "text";
     case "Icon":
       return "icon_font";
+    // ADR-130 Phase 6: explicit case for legacy "Group" (RAC ARIA semantic).
+    // Without this branch the default fall-through still returns "frame", but
+    // making it explicit locks in the metadata round-trip priority (header of
+    // this function already returns metadata.pencilType when present).
+    case "Group":
+      return "frame";
     default:
       return "frame";
   }

@@ -2727,9 +2727,9 @@ export function calculateContentHeight(
     });
 
     if (visibleBlockChildren.length > 0) {
-      // Group: 자식이 원래 캔버스 좌표(left/top)를 유지하므로
-      // block flow 합산이 아닌 bounding box 기반 높이 계산
-      if (type === "group") {
+      // Group/frame: 자식이 원래 캔버스 좌표(left/top)를 유지하므로
+      // block flow 합산이 아닌 bounding box 기반 높이 계산 (ADR-130)
+      if (type === "group" || type === "frame") {
         let minTop = Infinity;
         let maxBottom = 0;
         for (const child of visibleBlockChildren) {

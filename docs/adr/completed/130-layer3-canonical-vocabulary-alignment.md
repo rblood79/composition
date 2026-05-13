@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-05-09
+Implemented — 2026-05-13 (Phase 0~9 land 완료, `pnpm run codex:preflight` PASS)
 
 ## Context
 
@@ -107,7 +107,7 @@ composition 의 element.type 어휘는 ADR-116 (`CompositionDocument` canonical 
 - **대안 B 기각**: 유지보수 HIGH (데이터 경로 분기 영구화 → 사용자 인지 부담 누적, ADR-116/122 closure 후 잔존 debt). metadata 의존 round-trip 의 fragile 성.
 - **대안 C 기각**: 유지보수 HIGH (D1 ARIA 침범 + 후행 분리 비용). alias 비용 절감 (~5줄 vs ~50줄) 보다 a11y 정확도 누적 손실 + 향후 spec 분리 시 ADR-908 Phase 4 패턴 재발 비용 압도적.
 
-> 구현 상세: [130-layer3-canonical-vocabulary-alignment-breakdown.md](design/130-layer3-canonical-vocabulary-alignment-breakdown.md)
+> 구현 상세: [130-layer3-canonical-vocabulary-alignment-breakdown.md](../design/130-layer3-canonical-vocabulary-alignment-breakdown.md)
 
 ## Risks
 

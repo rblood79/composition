@@ -611,7 +611,8 @@ function CanvasContent() {
           // Form 복합 컴포넌트
           case "FormField":
             return "div";
-          case "Group":
+          case "Group": // RAC ARIA semantic (D1)
+          case "frame": // ADR-130: canonical layout container (D3)
             return "div";
           case "FieldError":
             return "span";

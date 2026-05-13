@@ -3,23 +3,29 @@ import { ComponentDefinition, ComponentCreationContext } from "../types";
 import type { StoredTagItem } from "@composition/specs";
 
 /**
- * Group 컴포넌트 정의 (Element Grouping Container)
- * Phase 4: Grouping & Organization
+ * Frame layout container 정의 (ADR-130 Phase 2).
+ *
+ * 이전 이름: `createGroupDefinition` — RAC ARIA `Group` (D1) 와 canonical layout
+ * `frame` (D3) 의 분리 의도를 명확히 하기 위해 rename.
+ *
+ * @see docs/adr/130-layer3-canonical-vocabulary-alignment.md §3 Phase 2
  */
-export function createGroupDefinition(
+export function createFrameLayoutDefinition(
   context: ComponentCreationContext,
 ): ComponentDefinition {
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
 
   return {
-    type: "Group",
+    type: "frame",
     parent: {
-      type: "Group",
+      type: "frame",
       props: {
-        label: "Element Group",
+        label: "Frame",
         style: {
-          display: "block",
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
           position: "relative",
         },
       } as ComponentElementProps,

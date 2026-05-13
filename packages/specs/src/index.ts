@@ -441,6 +441,10 @@ export type { ToastProps } from "./components/Toast.spec";
 export { GroupSpec } from "./components/Group.spec";
 export type { GroupProps } from "./components/Group.spec";
 
+// Frame — ADR-130: canonical layout container
+export { FrameSpec } from "./components/Frame.spec";
+export type { FrameProps } from "./components/Frame.spec";
+
 export { SlotSpec } from "./components/Slot.spec";
 export type { SlotProps } from "./components/Slot.spec";
 

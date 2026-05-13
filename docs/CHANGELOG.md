@@ -5,6 +5,29 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Layer 3 Canonical Vocabulary 정렬 — Group → frame 분리 (ADR-130)] - 2026-05-13
+
+### Architecture
+
+- **ADR-130 Phase 0~9 Implemented**:
+  - **Phase 1 — 신규 `Frame.spec.ts`**: `packages/specs/src/components/Frame.spec.ts` (skipCSSGeneration:true, ARIA role 없음, FrameNode `clip`/`placeholder` 1차 필드 정합). `BASE_TAG_SPEC_MAP["frame"] = FrameSpec` 등록 + `getElementForTag("frame") → "div"`. RAC `Group` spec 변경 0 (D1/ARIA semantic 보존).
+  - **Phase 2 — Factory 진입점 정렬**: `createGroupDefinition` → `createFrameLayoutDefinition` (semantic rename). `ComponentFactory.creators` map key `Group` → `frame` + private method `createGroup` → `createFrame`. `ComponentList.tsx` palette entry `{ type: "Group", label: "group" }` → `{ type: "frame", label: "frame" }`.
+  - **Phase 3 — Grouping action 정렬 + transitional ID collision guard**: `elementGrouping.createGroupFromSelection` 결과 `type: "frame"`. `customId` 발급 filter 가 legacy `Group` + 신규 `frame` 양쪽 count (`(type === "frame" || type === "Group") && customId?.startsWith("group_")`) → migration 중 `group_N` 중복 발급 방지. `ungroupElement` + `PropertiesPanel.handleUngroupSelection` 양쪽 type 수용.
+  - **Phase 4 — Renderer / Layout frame case**: `preview/App.tsx` `case "Group": case "frame": return "div"`, `implicitStyles.ts:1745` `new Set(["Group", "frame"])`, `utils.ts:2732` `type === "group" || type === "frame"` (lowercase 정규화 분기, bounding-box 높이 계산).
+  - **Phase 6 — Pencil round-trip adapter 명시화**: `pencil-adapter.types.ts` `toPencilType()` switch 에 `case "Group": return "frame"` 추가 (metadata round-trip 우선순위 lock-in).
+  - **Phase 7 — Auto-migration hydration step**: `tagRename.ts` 에 `isLegacyGroupForFrameMigration(legacyTag, customId)` 신규 — `element.type === "Group" && customId.startsWith("group_")` 만 변환 대상. `canonical/index.ts buildNode()` 가 baseType 결정 시 guard 호출 → 1회 hydration migration. ARIA Group (customId 없음/다른 prefix) 보존.
+  - **Phase 8 — Test 회귀**: 신규 `elementGrouping.adr130.test.ts` (3 case: type:frame 검증 / transitional collision / ungroup 양쪽 수용) + `tagRename.adr130.test.ts` (4 case: Group+group_N migration / ARIA Group 보존 / non-Group skip). 기존 `pencilRoundtrip.test.ts` 5+1 / `historyActions.diff.test.ts` 회귀 0.
+  - **Phase 9 — closure**: `pnpm run codex:preflight` PASS, `.type-errors-baseline.txt` 602 freeze (line shift 만 발생, 새 위반 0). README ADR-130 → Implemented.
+
+### Documentation
+
+- ADR-130 Status `Proposed → Implemented` (2026-05-13). README.md entry 갱신.
+- `docs/adr/design/130-...-breakdown.md` §6 Phase 0 baseline 기록 (raw count 6 line / 5 files / customId 생성 위치 / roundtrip Group 사용 0건).
+
+### Bug Fixes (사용자-가시 영향 없음)
+
+- builder palette "group" 추가 시 element.type 이 분기 영구화되던 데이터 경로 분기 해소 — 동일 시각 결과, internal vocabulary 통일.
+
 ## [Supabase backend decommission — auth-only 격하 + cloud data layer dead 인정 (ADR-128)] - 2026-05-12
 
 ### Breaking Changes

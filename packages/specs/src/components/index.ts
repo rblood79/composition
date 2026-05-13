@@ -329,6 +329,10 @@ export type { NavProps } from "./Nav.spec";
 export { GroupSpec } from "./Group.spec";
 export type { GroupProps } from "./Group.spec";
 
+// Frame — ADR-130: canonical layout container (D3, distinct from RAC Group D1/ARIA)
+export { FrameSpec } from "./Frame.spec";
+export type { FrameProps } from "./Frame.spec";
+
 // Slot
 export { SlotSpec } from "./Slot.spec";
 export type { SlotProps } from "./Slot.spec";

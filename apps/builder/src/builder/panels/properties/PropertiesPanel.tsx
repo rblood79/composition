@@ -1180,8 +1180,11 @@ function PropertiesPanelContent() {
 
   // ⭐ Phase 4: Ungroup Selection (Cmd+Shift+G)
   const handleUngroupSelection = useCallback(async () => {
-    if (!selectedElement || selectedElement.type !== "Group") {
-      console.warn("[Ungroup] Selected element is not a Group");
+    if (
+      !selectedElement ||
+      (selectedElement.type !== "frame" && selectedElement.type !== "Group")
+    ) {
+      console.warn("[Ungroup] Selected element is not a frame/Group");
       return;
     }
 

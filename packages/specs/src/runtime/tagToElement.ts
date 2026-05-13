@@ -60,6 +60,7 @@ import { DisclosureGroupSpec } from "../components/DisclosureGroup.spec";
 import { ToolbarSpec } from "../components/Toolbar.spec";
 import { ToastSpec } from "../components/Toast.spec";
 import { GroupSpec } from "../components/Group.spec";
+import { FrameSpec } from "../components/Frame.spec";
 import { SlotSpec } from "../components/Slot.spec";
 import { SkeletonSpec } from "../components/Skeleton.spec";
 import { DropZoneSpec } from "../components/DropZone.spec";
@@ -182,6 +183,9 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Toolbar: ToolbarSpec,
   Toast: ToastSpec,
   Group: GroupSpec,
+  // ADR-130: canonical layout container (lowercase pencil structural).
+  // Group (PascalCase) = RAC ARIA semantic / frame (lowercase) = layout primitive.
+  frame: FrameSpec,
   Slot: SlotSpec,
   Skeleton: SkeletonSpec,
   DropZone: DropZoneSpec,

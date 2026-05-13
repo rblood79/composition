@@ -83,13 +83,13 @@ src/adapters/canonical/canonicalMutations.ts(614,28): error TS2339: Property 'sl
 src/adapters/canonical/canonicalMutations.ts(844,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'CanonicalNode'.
 src/adapters/canonical/frameLayoutCascade.ts(320,56): error TS2339: Property 'elements' does not exist on type 'ElementsStateForFrameLayoutCascade'.
 src/adapters/canonical/frameLayoutCascade.ts(51,30): error TS2345: Argument of type 'CanonicalNode' is not assignable to parameter of type 'FrameNode'.
-src/adapters/canonical/index.ts(168,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(176,30): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(199,13): error TS1360: Type '{ descendants?: Record<string, unknown> | undefined; ref: string; }' does not satisfy the expected type 'Partial<RefNode>'.
-src/adapters/canonical/index.ts(220,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(231,30): error TS2339: Property 'layout_id' does not exist on type 'Page'.
-src/adapters/canonical/index.ts(232,38): error TS2339: Property 'layout_id' does not exist on type 'Page'.
-src/adapters/canonical/index.ts(271,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(179,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(187,30): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(210,13): error TS1360: Type '{ descendants?: Record<string, unknown> | undefined; ref: string; }' does not satisfy the expected type 'Partial<RefNode>'.
+src/adapters/canonical/index.ts(231,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(242,30): error TS2339: Property 'layout_id' does not exist on type 'Page'.
+src/adapters/canonical/index.ts(243,38): error TS2339: Property 'layout_id' does not exist on type 'Page'.
+src/adapters/canonical/index.ts(282,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(64,59): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(84,26): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(85,26): error TS2339: Property 'slot_name' does not exist on type 'Element'.
@@ -230,12 +230,12 @@ src/builder/panels/properties/FrameSlotSection.tsx(87,30): error TS2345: Argumen
 src/builder/panels/properties/generic/ChildItemManager.tsx(59,44): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/PropertiesPanel.tsx(1143,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
 src/builder/panels/properties/PropertiesPanel.tsx(1160,40): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(1202,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1209,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(1279,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1348,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1638,39): error TS2339: Property 'props' does not exist on type 'Element'.
-src/builder/panels/properties/PropertiesPanel.tsx(1639,15): error TS2353: Object literal may only specify known properties, and '[SLOT_NAME_MIRROR_FIELD]' does not exist in type 'Partial<Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1205,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1212,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/PropertiesPanel.tsx(1282,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1351,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
+src/builder/panels/properties/PropertiesPanel.tsx(1641,39): error TS2339: Property 'props' does not exist on type 'Element'.
+src/builder/panels/properties/PropertiesPanel.tsx(1642,15): error TS2353: Object literal may only specify known properties, and '[SLOT_NAME_MIRROR_FIELD]' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/PropertiesPanel.tsx(195,56): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
 src/builder/panels/properties/PropertiesPanel.tsx(196,40): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
 src/builder/panels/properties/PropertiesPanel.tsx(216,33): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
@@ -595,8 +595,8 @@ src/builder/workspace/canvas/skia/visibleFrameRoots.test.ts(46,5): error TS2561:
 src/builder/workspace/canvas/skia/visiblePageRoots.test.ts(31,3): error TS2561: Object literal may only specify known properties, but 'elementsMap' does not exist in type 'SkiaRendererInput'. Did you mean to write 'elements'?
 src/preview/App.tsx(405,52): error TS2345: Argument of type 'Element' is not assignable to parameter of type 'HTMLElement'.
 src/preview/App.tsx(537,11): error TS2345: Argument of type 'import("/Users/admin/work/composition/apps/builder/src/preview/types/index").PreviewElement' is not assignable to parameter of type 'import("/Users/admin/work/composition/packages/shared/src/types/renderer.types").PreviewElement'.
-src/preview/App.tsx(763,11): error TS2345: Argument of type 'import("/Users/admin/work/composition/apps/builder/src/preview/types/index").PreviewElement' is not assignable to parameter of type 'import("/Users/admin/work/composition/packages/shared/src/types/renderer.types").PreviewElement'.
-src/preview/App.tsx(806,11): error TS2345: Argument of type 'import("/Users/admin/work/composition/apps/builder/src/preview/types/index").PreviewElement' is not assignable to parameter of type 'import("/Users/admin/work/composition/packages/shared/src/types/renderer.types").PreviewElement'.
+src/preview/App.tsx(764,11): error TS2345: Argument of type 'import("/Users/admin/work/composition/apps/builder/src/preview/types/index").PreviewElement' is not assignable to parameter of type 'import("/Users/admin/work/composition/packages/shared/src/types/renderer.types").PreviewElement'.
+src/preview/App.tsx(807,11): error TS2345: Argument of type 'import("/Users/admin/work/composition/apps/builder/src/preview/types/index").PreviewElement' is not assignable to parameter of type 'import("/Users/admin/work/composition/packages/shared/src/types/renderer.types").PreviewElement'.
 src/preview/components/CanonicalNodeRenderer.tsx(111,19): error TS2345: Argument of type 'import("/Users/admin/work/composition/apps/builder/src/preview/types/index").PreviewElement' is not assignable to parameter of type 'import("/Users/admin/work/composition/packages/shared/src/types/renderer.types").PreviewElement'.
 src/preview/router/CanvasRouter.tsx(237,15): error TS2322: Type '{ id: string; name: string; project_id: string; slug: string | undefined; } | null' is not assignable to type 'UrlLayout | null | undefined'.
 src/services/save/saveService.ts(148,13): error TS7053: Element implicitly has an 'any' type because expression of type 'SaveTable' can't be used to index type 'DatabaseAdapter'.

@@ -258,10 +258,17 @@ Gate G9: codex:preflight PASS + README 정합 + CHANGELOG 정합.
 > implementation 시 baseline 수치 기록.
 
 ```
-Phase 0 baseline (date: TBD):
-- `type: "Group"` raw count (apps/builder/src): TBD
-- customId `group_` prefix 분포: TBD
-- pencilRoundtrip.test.ts fixture 의 Group 사용: TBD
+Phase 0 baseline (date: 2026-05-13):
+- `type: "Group"` raw count (apps/builder/src): 6 (5 files)
+  - LayersSection.test.ts:57
+  - ComponentList.tsx:88
+  - elementGrouping.ts:99, 116
+  - historyActions.diff.test.ts:277
+  - GroupComponents.ts:16, 18
+- customId `group_` prefix 생성 위치: elementGrouping.ts:97-115 (`group_${maxGroupNum + 1}`)
+- pencilRoundtrip.test.ts fixture 의 Group 사용: 0건 (grep `Group` / `"group"` 일치 없음)
+- type-check baseline: PASS (602 known errors)
+- HEAD: ed920ab22
 ```
 
 ---

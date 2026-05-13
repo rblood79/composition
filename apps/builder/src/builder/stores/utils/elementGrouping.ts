@@ -95,8 +95,13 @@ export function createGroupFromSelection<TElement extends Element>(
       : 0;
 
   // Generate customId for group (e.g., "group_1", "group_2")
+  // ADR-130 Phase 3: transitional period — count both legacy "Group" + new "frame"
+  // so `group_N` is not double-issued during the migration. Remove "Group" branch
+  // once §5 Phase 2/3 (lowercase literal cleanup) lands.
   const existingGroups = Array.from(elementsMap.values()).filter(
-    (el) => el.type === "Group" && el.customId?.startsWith("group_"),
+    (el) =>
+      (el.type === "frame" || el.type === "Group") &&
+      el.customId?.startsWith("group_"),
   );
   const maxGroupNum =
     existingGroups.length > 0
@@ -109,15 +114,16 @@ export function createGroupFromSelection<TElement extends Element>(
       : 0;
   const groupCustomId = `group_${maxGroupNum + 1}`;
 
-  // Create Group element
+  // Create frame element (ADR-130: canonical layout container, was "Group" pre-130)
   const groupElement: Element = {
     id: ElementUtils.generateId(),
     customId: groupCustomId,
-    type: "Group",
+    type: "frame",
     props: {
-      label: `Group (${selectedElements.length} elements)`,
+      label: `Frame (${selectedElements.length} elements)`,
       style: {
-        display: "block",
+        display: "flex",
+        flexDirection: "column",
         position: "relative",
         left: `${avgLeft}px`,
         top: `${avgTop}px`,
@@ -181,9 +187,10 @@ export function ungroupElement<TElement extends Element>(
     throw new Error(`[Ungroup] Group element not found: ${groupId}`);
   }
 
-  if (groupElement.type !== "Group") {
+  // ADR-130 Phase 3: accept both new "frame" and legacy "Group" during transition.
+  if (groupElement.type !== "frame" && groupElement.type !== "Group") {
     throw new Error(
-      `[Ungroup] Element is not a Group: ${groupId} (type: ${groupElement.type})`,
+      `[Ungroup] Element is not a frame/Group: ${groupId} (type: ${groupElement.type})`,
     );
   }
 

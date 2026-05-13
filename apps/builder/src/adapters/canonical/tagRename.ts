@@ -29,6 +29,20 @@ export function tagToType(legacyTag: string): ComponentTag {
 }
 
 /**
+ * ADR-130 Phase 7 — legacy `type: "Group" + customId: "group_N"` 1회 hydration migration.
+ *
+ * - ARIA RAC `Group` 보존: customId 없음 또는 다른 prefix → false (변환 안 함)
+ * - canonical layout `frame` 정렬: customId `group_` prefix 있는 builder UI grouping
+ *   결과만 변환 대상
+ */
+export function isLegacyGroupForFrameMigration(
+  legacyTag: string,
+  customId?: string,
+): boolean {
+  return legacyTag === "Group" && !!customId && customId.startsWith("group_");
+}
+
+/**
  * Slot 특수 처리 분기 판정.
  * caller (slotAndLayoutAdapter)가 이 함수로 Slot 여부 확인 후 별도 변환 분기.
  */
