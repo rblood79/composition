@@ -175,8 +175,8 @@ export interface RuntimeStoreState extends StateHierarchy {
   setDataState: (sourceId: string, state: DataState) => void;
 
   // DataTables (PropertyDataBinding용)
-  dataTables: RuntimeDataTable[];
-  setDataTables: (tables: RuntimeDataTable[]) => void;
+  collections: RuntimeDataTable[];
+  setCollections: (tables: RuntimeDataTable[]) => void;
 
   // ApiEndpoints (PropertyDataBinding용)
   apiEndpoints: RuntimeApiEndpoint[];

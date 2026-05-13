@@ -266,9 +266,9 @@ function Dashboard() {
         await db.themes.delete(theme.id as string);
       }
 
-      const dataTables = await db.data_tables.getByProject(id);
-      for (const dataTable of dataTables) {
-        await db.data_tables.delete(dataTable.id);
+      const collections = await db.collections.getByProject(id);
+      for (const dataTable of collections) {
+        await db.collections.delete(dataTable.id);
       }
 
       const apiEndpoints = await db.api_endpoints.getByProject(id);

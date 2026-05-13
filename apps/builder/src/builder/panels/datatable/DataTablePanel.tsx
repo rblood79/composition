@@ -76,7 +76,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
   });
 
   // Zustand Store는 여전히 사용 (mutations 및 Canvas 동기화)
-  const fetchDataTables = useDataStore((state) => state.fetchDataTables);
+  const fetchCollections = useDataStore((state) => state.fetchCollections);
   const fetchApiEndpoints = useDataStore((state) => state.fetchApiEndpoints);
   const fetchVariables = useDataStore((state) => state.fetchVariables);
   const fetchTransformers = useDataStore((state) => state.fetchTransformers);
@@ -89,7 +89,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
 
       // Zustand Store에 데이터 로드 (IndexedDB → Memory)
       Promise.all([
-        fetchDataTables(currentProjectId),
+        fetchCollections(currentProjectId),
         fetchApiEndpoints(currentProjectId),
         fetchVariables(currentProjectId),
         fetchTransformers(currentProjectId),
@@ -98,7 +98,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
         console.error(`❌ [DataTablePanel] 초기화 실패:`, error);
       });
     }
-  }, [isActive, currentProjectId, fetchDataTables, fetchApiEndpoints, fetchVariables, fetchTransformers]);
+  }, [isActive, currentProjectId, fetchCollections, fetchApiEndpoints, fetchVariables, fetchTransformers]);
 
   // Editor Store 액션
   const editorMode = useDataTableEditorStore((state) => state.mode);
@@ -129,7 +129,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
       // 🚀 Phase 6: React Query refetch + Zustand store 동기화
       refetch();
       // Zustand Store도 업데이트 (Canvas 동기화용)
-      fetchDataTables(currentProjectId);
+      fetchCollections(currentProjectId);
       fetchApiEndpoints(currentProjectId);
       fetchVariables(currentProjectId);
       fetchTransformers(currentProjectId);

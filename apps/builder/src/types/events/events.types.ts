@@ -125,7 +125,7 @@ export interface RefreshDataTableActionValue {
 export interface ExecuteApiActionValue {
   apiEndpointName: string;
   params?: Record<string, unknown>;
-  targetDataTable?: string; // 결과를 저장할 DataTable
+  targetCollection?: string; // 결과를 저장할 DataTable
   targetVariable?: string; // 결과를 저장할 Variable
   onSuccess?: string; // 성공 시 실행할 액션 ID
   onError?: string; // 실패 시 실행할 액션 ID

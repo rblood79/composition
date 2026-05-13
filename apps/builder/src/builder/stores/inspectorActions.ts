@@ -336,7 +336,7 @@ function syncEventsToRootCollection(
 }
 
 // ADR-131 Phase 8 (2026-05-13): syncDataBindingToRootCollection 제거.
-// data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
+// data SSOT 는 `collections` / `api_endpoints` / `variables`.
 
 function buildInspectorPersistencePayload(
   element: Element,
@@ -383,7 +383,7 @@ async function persistActiveCanonicalDocument(): Promise<void> {
   await db.documents.put(projectId, doc);
 
   // ADR-131 Phase 7 — fan-out to dedicated IndexedDB stores so DevTools 표시가
-  // design_themes / variables / data_tables / api_endpoints / transformers
+  // design_themes / variables / collections / api_endpoints / transformers
   // 와 동일하게 events / data / actions 도 별 store entries 로 보인다.
   // dev data 0 가정 — full-set replacement (project 별 기존 row 삭제 후 재기록).
   await syncRootCollectionsToIndexedDB(projectId, doc);
@@ -402,7 +402,7 @@ async function syncRootCollectionsToIndexedDB(
     await db.events.insert({ ...ev, project_id: projectId });
   }
 
-  // Data — 별 store 부재 (Phase 7-revert): `data_tables` / `api_endpoints` 와
+  // Data — 별 store 부재 (Phase 7-revert): `collections` / `api_endpoints` 와
   // 중복 개념. `doc.data` 는 canonical document root field 로만 보존, 별 store
   // fan-out 없음. schema 영역 추가 framing 정정 시 별도 처리.
 
@@ -969,7 +969,7 @@ export const createInspectorActionsSlice: StateCreator<
       );
 
       // ADR-131 Phase 8 (2026-05-13): root collection sync 제거.
-      // data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
+      // data SSOT 는 `collections` / `api_endpoints` / `variables`.
       // Element.dataBinding 은 element 별 binding reference 로 유지.
     },
 

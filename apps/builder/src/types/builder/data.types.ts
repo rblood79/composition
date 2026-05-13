@@ -50,7 +50,7 @@ export interface DataField {
 }
 
 /**
- * DataTable 타입 (data_tables 테이블)
+ * DataTable 타입 (collections 테이블)
  */
 export interface DataTable {
   id: string;
@@ -207,7 +207,7 @@ export interface ApiEndpoint {
   responseMapping: ResponseMapping;
 
   // Target DataTable
-  targetDataTable?: string; // DataTable name to populate
+  targetCollection?: string; // DataTable name to populate
 
   // Server-side Execution (API key protection)
   executionMode: ExecutionMode;
@@ -233,7 +233,7 @@ export type ApiEndpointCreate = Pick<
   bodyType?: BodyType;
   bodyTemplate?: string;
   responseMapping?: ResponseMapping;
-  targetDataTable?: string;
+  targetCollection?: string;
   executionMode?: ExecutionMode;
   serverConfig?: ServerConfig;
   timeout?: number;
@@ -432,7 +432,7 @@ export type TransformerUpdate = Partial<
  */
 export interface TransformContext {
   /** 다른 DataTable 접근 */
-  dataTables: Record<string, unknown[]>;
+  collections: Record<string, unknown[]>;
 
   /** 변수 접근 */
   variables: Record<string, unknown>;
@@ -506,7 +506,7 @@ export interface ElementDataBinding {
  */
 export interface DataStoreState {
   /** 프로젝트의 모든 DataTable */
-  dataTables: Map<string, DataTable>;
+  collections: Map<string, DataTable>;
 
   /** 프로젝트의 모든 API Endpoint */
   apiEndpoints: Map<string, ApiEndpoint>;
@@ -532,10 +532,10 @@ export interface DataStoreState {
  */
 export interface DataStoreActions {
   // DataTable CRUD
-  fetchDataTables: (projectId: string) => Promise<void>;
+  fetchCollections: (projectId: string) => Promise<void>;
   createDataTable: (data: DataTableCreate) => Promise<DataTable>;
-  updateDataTable: (id: string, updates: DataTableUpdate) => Promise<void>;
-  deleteDataTable: (id: string) => Promise<void>;
+  updateCollection: (id: string, updates: DataTableUpdate) => Promise<void>;
+  deleteCollection: (id: string) => Promise<void>;
   getDataTableData: (name: string) => Record<string, unknown>[];
   setRuntimeData: (name: string, data: Record<string, unknown>[]) => void;
 

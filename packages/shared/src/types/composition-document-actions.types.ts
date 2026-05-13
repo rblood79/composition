@@ -232,7 +232,7 @@ export interface CanonicalDocumentActions {
   removeEvent(eventId: string): void;
 
   // ADR-131 Phase 8 (2026-05-13): `setData/addData/updateData/removeData` 제거.
-  // 사용자 framing — `data_tables` / `api_endpoints` / `variables` 가 data SSOT.
+  // 사용자 framing — `collections` / `api_endpoints` / `variables` 가 data SSOT.
 
   /** 활성 document 의 `actions` root collection 전체를 교체. */
   setActions(actions: SerializedAction[] | undefined): void;

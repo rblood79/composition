@@ -28,7 +28,7 @@ import {
 import { ChevronDown, Database, Globe, Variable, Link2, X, RefreshCw } from 'lucide-react';
 import { iconProps, iconEditProps } from '../../../utils/ui/uiConstants';
 import { PropertyFieldset } from './PropertyFieldset';
-import { useDataTables, useApiEndpoints, useVariables } from '../../stores/data';
+import { useCollections, useApiEndpoints, useVariables } from '../../stores/data';
 import './PropertyDataBinding.css';
 
 // ============================================
@@ -99,7 +99,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   disabled,
 }: PropertyDataBindingProps) {
   // Data Store에서 소스 목록 가져오기
-  const dataTables = useDataTables();
+  const collections = useCollections();
   const apiEndpoints = useApiEndpoints();
   const variables = useVariables();
 
@@ -115,7 +115,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const getNameOptions = useCallback(() => {
     switch (source) {
       case 'dataTable':
-        return dataTables.map((dt) => ({
+        return collections.map((dt) => ({
           value: dt.name,
           label: dt.name,
           description: dt.description,
@@ -138,7 +138,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
       default:
         return [];
     }
-  }, [source, dataTables, apiEndpoints, variables]);
+  }, [source, collections, apiEndpoints, variables]);
 
   // 소스 타입 변경 (fully controlled - onChange 즉시 호출)
   const handleSourceChange = useCallback(

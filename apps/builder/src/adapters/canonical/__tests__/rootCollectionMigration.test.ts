@@ -2,7 +2,7 @@
  * @fileoverview ADR-131 Phase 2 G2 — rootCollectionMigration round-trip 검증.
  *
  * **ADR-131 Phase 8 (2026-05-13)**: data 영역 test 제거 — data SSOT 는
- * `data_tables` / `api_endpoints` / `variables` (별 store). events / actions
+ * `collections` / `api_endpoints` / `variables` (별 store). events / actions
  * round-trip 만 보존.
  */
 

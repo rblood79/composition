@@ -427,7 +427,7 @@ export interface CompositionDocument {
   events?: SerializedEvent[];
 
   // ADR-131 Phase 8 (2026-05-13): `data` root field 제거.
-  // 사용자 framing 정정 — data SSOT 는 이미 `data_tables` / `api_endpoints` /
+  // 사용자 framing 정정 — data SSOT 는 이미 `collections` / `api_endpoints` /
   // `variables` 로 IndexedDB store 분리되어 있으며, RAC/RSC 컴포넌트는
   // `useCollectionData({ datatableId | dataBinding })` 로 통합 소비.
   // `Element.dataBinding` 은 element 별 binding reference (어떤 data source 를
@@ -641,7 +641,7 @@ export interface SerializedEvent {
 }
 
 // ADR-131 Phase 8 (2026-05-13): `SerializedData` type 제거.
-// 사용자 framing 정정 — data SSOT 는 이미 `data_tables` / `api_endpoints` /
+// 사용자 framing 정정 — data SSOT 는 이미 `collections` / `api_endpoints` /
 // `variables` 로 IndexedDB store 분리 + RAC/RSC 컴포넌트가
 // `useCollectionData({ datatableId | dataBinding })` 로 통합 소비. binding 자체는
 // element 별 reference + config (`Element.dataBinding`) — root collection 격상

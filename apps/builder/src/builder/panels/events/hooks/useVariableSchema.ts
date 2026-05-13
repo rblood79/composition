@@ -234,7 +234,7 @@ interface UseVariableSchemaOptions {
   /** 현재 이벤트 타입 (이벤트 페이로드 스키마 결정) */
   eventType?: string;
   /** 프로젝트의 DataTable 목록 */
-  dataTables?: DataTableInfo[];
+  collections?: DataTableInfo[];
   /** 프로젝트의 API 엔드포인트 목록 */
   apiEndpoints?: ApiEndpointInfo[];
   /** 추가 상태 스키마 */
@@ -249,7 +249,7 @@ interface UseVariableSchemaOptions {
  * @example
  * const schema = useVariableSchema({
  *   eventType: 'onClick',
- *   dataTables: projectDataTables,
+ *   collections: projectDataTables,
  *   apiEndpoints: projectApiEndpoints,
  * });
  *
@@ -258,7 +258,7 @@ interface UseVariableSchemaOptions {
 export function useVariableSchema(options: UseVariableSchemaOptions = {}): VariableSchema {
   const {
     eventType,
-    dataTables = [],
+    collections = [],
     apiEndpoints = [],
     additionalState = {},
     additionalVariables = {},
@@ -272,7 +272,7 @@ export function useVariableSchema(options: UseVariableSchemaOptions = {}): Varia
 
     // DataTable 스키마 생성
     const datatableSchema: Record<string, SchemaNode> = {};
-    for (const table of dataTables) {
+    for (const table of collections) {
       const columnProps: Record<string, SchemaNode> = {};
       for (const col of table.columns) {
         columnProps[col.name] = {
@@ -307,7 +307,7 @@ export function useVariableSchema(options: UseVariableSchemaOptions = {}): Varia
       element: DEFAULT_ELEMENT_SCHEMA,
       variable: additionalVariables,
     };
-  }, [eventType, dataTables, apiEndpoints, additionalState, additionalVariables]);
+  }, [eventType, collections, apiEndpoints, additionalState, additionalVariables]);
 }
 
 /**

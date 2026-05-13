@@ -47,7 +47,7 @@ export interface DataTableTransform {
 /**
  * DataTable 설정
  */
-export interface DataTableConfig {
+export interface CollectionConfig {
   /** DataTable 고유 ID */
   id: string;
 
@@ -79,7 +79,7 @@ export interface DataTableConfig {
 /**
  * DataTable 런타임 상태
  */
-export interface DataTableState {
+export interface CollectionState {
   /** DataTable ID */
   id: string;
 
@@ -104,10 +104,10 @@ export interface DataTableState {
  */
 export interface DataTableStoreState {
   /** 모든 DataTable 설정 (id -> config) */
-  dataTables: Map<string, DataTableConfig>;
+  collections: Map<string, CollectionConfig>;
 
   /** 모든 DataTable 런타임 상태 (id -> state) */
-  dataTableStates: Map<string, DataTableState>;
+  dataTableStates: Map<string, CollectionState>;
 }
 
 /**
@@ -115,7 +115,7 @@ export interface DataTableStoreState {
  */
 export interface DataTableStoreActions {
   /** DataTable 등록 */
-  registerDataTable: (config: DataTableConfig) => void;
+  registerDataTable: (config: CollectionConfig) => void;
 
   /** DataTable 제거 */
   unregisterDataTable: (dataTableId: string) => void;
@@ -139,10 +139,10 @@ export interface DataTableStoreActions {
   getDataTableData: (dataTableId: string) => Record<string, unknown>[];
 
   /** DataTable 상태 가져오기 */
-  getDataTableState: (dataTableId: string) => DataTableState | undefined;
+  getDataTableState: (dataTableId: string) => CollectionState | undefined;
 
   /** DataTable 설정 업데이트 */
-  updateDataTableConfig: (dataTableId: string, updates: Partial<DataTableConfig>) => void;
+  updateDataTableConfig: (dataTableId: string, updates: Partial<CollectionConfig>) => void;
 
   /** 모든 DataTable 초기화 */
   clearAllDataTables: () => void;
@@ -188,7 +188,7 @@ export interface DataTableConsumerProps {
 }
 
 /**
- * useDataTable 훅 반환 타입
+ * useCollection 훅 반환 타입
  */
 export interface UseDataTableResult {
   /** 로드된 데이터 */
@@ -208,9 +208,9 @@ export interface UseDataTableResult {
 }
 
 /**
- * 타입 가드: DataTableConfig 확인
+ * 타입 가드: CollectionConfig 확인
  */
-export function isDataTableConfig(config: unknown): config is DataTableConfig {
+export function isDataTableConfig(config: unknown): config is CollectionConfig {
   return (
     typeof config === 'object' &&
     config !== null &&

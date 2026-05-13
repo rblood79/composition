@@ -782,7 +782,7 @@ export const useCanonicalDocumentStore = create<CanonicalDocumentStore>(
     },
 
     // ADR-131 Phase 8 (2026-05-13): setData/addData/updateData/removeData 제거.
-    // data SSOT 는 `data_tables` / `api_endpoints` / `variables` (별 store).
+    // data SSOT 는 `collections` / `api_endpoints` / `variables` (별 store).
 
     setActions: (actions) => {
       mutateActiveDoc(set, "setActions", (doc) => {

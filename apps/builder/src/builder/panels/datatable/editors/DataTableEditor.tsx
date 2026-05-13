@@ -45,19 +45,19 @@ export function DataTableEditor({
   onClose,
   activeTab,
 }: DataTableEditorProps) {
-  const updateDataTable = useDataStore((state) => state.updateDataTable);
+  const updateCollection = useDataStore((state) => state.updateCollection);
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
 
   // Schema 업데이트
   const handleSchemaUpdate = useCallback(
     async (newSchema: DataField[]) => {
       try {
-        await updateDataTable(dataTable.id, { schema: newSchema });
+        await updateCollection(dataTable.id, { schema: newSchema });
       } catch (error) {
         console.error("스키마 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateDataTable]
+    [dataTable.id, updateCollection]
   );
 
   // 필드 추가
@@ -95,12 +95,12 @@ export function DataTableEditor({
   const handleMockDataUpdate = useCallback(
     async (newMockData: Record<string, unknown>[]) => {
       try {
-        await updateDataTable(dataTable.id, { mockData: newMockData });
+        await updateCollection(dataTable.id, { mockData: newMockData });
       } catch (error) {
         console.error("Mock 데이터 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateDataTable]
+    [dataTable.id, updateCollection]
   );
 
   // Mock 데이터 행 추가
@@ -156,24 +156,24 @@ export function DataTableEditor({
   const handleUseMockDataToggle = useCallback(
     async (checked: boolean) => {
       try {
-        await updateDataTable(dataTable.id, { useMockData: checked });
+        await updateCollection(dataTable.id, { useMockData: checked });
       } catch (error) {
         console.error("useMockData 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateDataTable]
+    [dataTable.id, updateCollection]
   );
 
   // 이름 변경
   const handleNameChange = useCallback(
     async (name: string) => {
       try {
-        await updateDataTable(dataTable.id, { name });
+        await updateCollection(dataTable.id, { name });
       } catch (error) {
         console.error("이름 업데이트 실패:", error);
       }
     },
-    [dataTable.id, updateDataTable]
+    [dataTable.id, updateCollection]
   );
 
   // Note: onClose is handled by parent DataTableEditorPanel

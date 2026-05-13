@@ -225,8 +225,8 @@ export const createRuntimeStore = () =>
     // ============================================
     // DataTables (PropertyDataBinding용)
     // ============================================
-    dataTables: [],
-    setDataTables: (tables: RuntimeDataTable[]) => set({ dataTables: tables }),
+    collections: [],
+    setCollections: (tables: RuntimeDataTable[]) => set({ collections: tables }),
 
     // ============================================
     // ApiEndpoints (PropertyDataBinding용)

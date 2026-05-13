@@ -46,7 +46,7 @@ type GetState = Parameters<StateCreator<DataStore>>[1];
  *
  * 🚀 Phase 11: WebGL-only 모드에서는 postMessage 스킵
  */
-function syncDataTablesToCanvas(dataTables: Map<string, DataTable>): void {
+function syncCollectionsToCanvas(collections: Map<string, DataTable>): void {
   // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 불필요
   const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
   if (isWebGLOnly) return;
@@ -55,7 +55,7 @@ function syncDataTablesToCanvas(dataTables: Map<string, DataTable>): void {
     // previewFrame ID로 Canvas iframe 찾기
     const iframe = document.getElementById('previewFrame') as HTMLIFrameElement;
     if (iframe?.contentWindow) {
-      const dataTablesArray = Array.from(dataTables.values()).map(dt => ({
+      const dataTablesArray = Array.from(collections.values()).map(dt => ({
         id: dt.id,
         name: dt.name,
         schema: dt.schema,
@@ -66,7 +66,7 @@ function syncDataTablesToCanvas(dataTables: Map<string, DataTable>): void {
 
       iframe.contentWindow.postMessage({
         type: 'UPDATE_DATA_TABLES',
-        dataTables: dataTablesArray,
+        collections: dataTablesArray,
       }, '*');
     }
   } catch (error) {
@@ -89,8 +89,8 @@ export const createFetchDataTablesAction =
     try {
       const db = await getDB();
       const data = await (db as unknown as {
-        data_tables: { getByProject: (projectId: string) => Promise<DataTable[]> }
-      }).data_tables?.getByProject(projectId) || [];
+        collections: { getByProject: (projectId: string) => Promise<DataTable[]> }
+      }).collections?.getByProject(projectId) || [];
 
       const dataTablesMap = new Map<string, DataTable>();
       (data || []).forEach((dt) => {
@@ -98,18 +98,18 @@ export const createFetchDataTablesAction =
       });
 
       set((state) => ({
-        dataTables: dataTablesMap,
+        collections: dataTablesMap,
         isLoading: false,
         errors: new Map(state.errors),
       }));
 
       // 🆕 Canvas에 동기화 (기존 DataTable도 Canvas에 전송)
-      syncDataTablesToCanvas(dataTablesMap);
+      syncCollectionsToCanvas(dataTablesMap);
     } catch (error) {
       console.error("❌ DataTable 목록 조회 실패:", error);
       set((state) => {
         const newErrors = new Map(state.errors);
-        newErrors.set("fetchDataTables", error as Error);
+        newErrors.set("fetchCollections", error as Error);
         return { errors: newErrors, isLoading: false };
       });
     }
@@ -137,18 +137,18 @@ export const createCreateDataTableAction =
       };
 
       await (db as unknown as {
-        data_tables: { insert: (dt: DataTable) => Promise<DataTable> }
-      }).data_tables?.insert(newDataTable);
+        collections: { insert: (dt: DataTable) => Promise<DataTable> }
+      }).collections?.insert(newDataTable);
 
       // 메모리 상태 업데이트
-      const { dataTables } = get();
-      const newMap = new Map(dataTables);
+      const { collections } = get();
+      const newMap = new Map(collections);
       newMap.set(newDataTable.name, newDataTable);
 
-      set({ dataTables: newMap, isLoading: false });
+      set({ collections: newMap, isLoading: false });
 
       // 🆕 Canvas에 동기화 (UPDATE_DATA_TABLES)
-      syncDataTablesToCanvas(newMap);
+      syncCollectionsToCanvas(newMap);
 
       return newDataTable;
     } catch (error) {
@@ -173,16 +173,16 @@ export const createUpdateDataTableAction =
     try {
       const db = await getDB();
       await (db as unknown as {
-        data_tables: { update: (id: string, updates: DataTableUpdate) => Promise<DataTable> }
-      }).data_tables?.update(id, updates);
+        collections: { update: (id: string, updates: DataTableUpdate) => Promise<DataTable> }
+      }).collections?.update(id, updates);
 
       // 메모리 상태 업데이트
-      const { dataTables } = get();
-      const newMap = new Map(dataTables);
+      const { collections } = get();
+      const newMap = new Map(collections);
 
       // ID로 DataTable 찾기
       let foundKey: string | undefined;
-      dataTables.forEach((dt, key) => {
+      collections.forEach((dt, key) => {
         if (dt.id === id) foundKey = key;
       });
 
@@ -199,15 +199,15 @@ export const createUpdateDataTableAction =
         }
       }
 
-      set({ dataTables: newMap });
+      set({ collections: newMap });
 
       // 🆕 Canvas에 동기화
-      syncDataTablesToCanvas(newMap);
+      syncCollectionsToCanvas(newMap);
     } catch (error) {
       console.error("❌ DataTable 업데이트 실패:", error);
       set((state) => {
         const newErrors = new Map(state.errors);
-        newErrors.set("updateDataTable", error as Error);
+        newErrors.set("updateCollection", error as Error);
         return { errors: newErrors };
       });
       throw error;
@@ -228,35 +228,35 @@ export const createDeleteDataTableAction =
 
       // ⚠️ Optional chaining 제거하고 명시적 호출
       const dataTablesStore = (db as unknown as {
-        data_tables: { delete: (id: string) => Promise<void> }
-      }).data_tables;
+        collections: { delete: (id: string) => Promise<void> }
+      }).collections;
 
       if (!dataTablesStore) {
-        throw new Error('data_tables store not found in database');
+        throw new Error('collections store not found in database');
       }
 
       await dataTablesStore.delete(id);
 
       // 메모리 상태 업데이트
-      const { dataTables } = get();
-      const newMap = new Map(dataTables);
+      const { collections } = get();
+      const newMap = new Map(collections);
 
       // ID로 DataTable 찾아서 삭제
-      dataTables.forEach((dt, key) => {
+      collections.forEach((dt, key) => {
         if (dt.id === id) {
           newMap.delete(key);
         }
       });
 
-      set({ dataTables: newMap, isLoading: false });
+      set({ collections: newMap, isLoading: false });
 
       // 🆕 Canvas에도 동기화 (삭제된 상태 반영)
-      syncDataTablesToCanvas(newMap);
+      syncCollectionsToCanvas(newMap);
     } catch (error) {
       console.error("❌ DataTable 삭제 실패:", error);
       set((state) => {
         const newErrors = new Map(state.errors);
-        newErrors.set("deleteDataTable", error as Error);
+        newErrors.set("deleteCollection", error as Error);
         return { errors: newErrors, isLoading: false };
       });
       throw error;
@@ -269,8 +269,8 @@ export const createDeleteDataTableAction =
 export const createGetDataTableDataAction =
   (get: GetState) =>
   (name: string): Record<string, unknown>[] => {
-    const { dataTables } = get();
-    const dataTable = dataTables.get(name);
+    const { collections } = get();
+    const dataTable = collections.get(name);
 
     if (!dataTable) {
       console.warn(`⚠️ DataTable "${name}" not found`);
@@ -291,21 +291,21 @@ export const createGetDataTableDataAction =
 export const createSetRuntimeDataAction =
   (set: SetState, get: GetState) =>
   (name: string, data: Record<string, unknown>[]): void => {
-    const { dataTables } = get();
-    const dataTable = dataTables.get(name);
+    const { collections } = get();
+    const dataTable = collections.get(name);
 
     if (!dataTable) {
       console.warn(`⚠️ DataTable "${name}" not found`);
       return;
     }
 
-    const newMap = new Map(dataTables);
+    const newMap = new Map(collections);
     newMap.set(name, { ...dataTable, runtimeData: data });
 
-    set({ dataTables: newMap });
+    set({ collections: newMap });
 
     // 🆕 Canvas에 동기화
-    syncDataTablesToCanvas(newMap);
+    syncCollectionsToCanvas(newMap);
   };
 
 // ============================================
@@ -368,7 +368,7 @@ export const createCreateApiEndpointAction =
         bodyType: data.bodyType || "none",
         bodyTemplate: data.bodyTemplate,
         responseMapping: data.responseMapping || { dataPath: "data" },
-        targetDataTable: data.targetDataTable,
+        targetCollection: data.targetCollection,
         executionMode: data.executionMode || "client",
         serverConfig: data.serverConfig,
         timeout: data.timeout || 30000,
@@ -602,19 +602,19 @@ export const createExecuteApiEndpointAction =
       }
 
       // Target DataTable에 데이터 설정
-      if (endpoint.targetDataTable && mappedData) {
-        const { dataTables } = get();
-        const targetTable = dataTables.get(endpoint.targetDataTable);
+      if (endpoint.targetCollection && mappedData) {
+        const { collections } = get();
+        const targetTable = collections.get(endpoint.targetCollection);
         if (targetTable) {
-          const newDataTables = new Map(dataTables);
-          newDataTables.set(endpoint.targetDataTable, {
+          const newDataTables = new Map(collections);
+          newDataTables.set(endpoint.targetCollection, {
             ...targetTable,
             runtimeData: Array.isArray(mappedData) ? mappedData : [mappedData],
           });
-          set({ dataTables: newDataTables });
+          set({ collections: newDataTables });
 
           // 🆕 Canvas에 동기화
-          syncDataTablesToCanvas(newDataTables);
+          syncCollectionsToCanvas(newDataTables);
         }
       }
 
@@ -1017,7 +1017,7 @@ export const createDeleteTransformerAction =
 export const createExecuteTransformerAction =
   (get: GetState) =>
   async (id: string, inputData: unknown[]): Promise<unknown[]> => {
-    const { transformers, dataTables, variables } = get();
+    const { transformers, collections, variables } = get();
 
     // ID로 Transformer 찾기
     let transformer: Transformer | undefined;
@@ -1037,8 +1037,8 @@ export const createExecuteTransformerAction =
     try {
       // Transform Context 구성
       const context: TransformContext = {
-        dataTables: Object.fromEntries(
-          Array.from(dataTables.entries()).map(([k, v]) => [
+        collections: Object.fromEntries(
+          Array.from(collections.entries()).map(([k, v]) => [
             k,
             v.useMockData ? v.mockData : (v.runtimeData || []),
           ])
@@ -1167,7 +1167,7 @@ export const createClearErrorsAction = (set: SetState) => (): void => {
  */
 export const createResetAction = (set: SetState) => (): void => {
   set({
-    dataTables: new Map(),
+    collections: new Map(),
     apiEndpoints: new Map(),
     variables: new Map(),
     transformers: new Map(),

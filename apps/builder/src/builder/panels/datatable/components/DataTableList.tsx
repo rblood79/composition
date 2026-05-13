@@ -27,12 +27,12 @@ export function DataTableList({
   onCreateClick,
 }: DataTableListProps) {
   // 개별 selector로 Map 직접 구독 (리렌더링 최적화)
-  const dataTablesMap = useDataStore((state) => state.dataTables);
+  const dataTablesMap = useDataStore((state) => state.collections);
   const apiEndpointsMap = useDataStore((state) => state.apiEndpoints);
-  const deleteDataTable = useDataStore((state) => state.deleteDataTable);
+  const deleteCollection = useDataStore((state) => state.deleteCollection);
 
   // useMemo로 배열 변환 캐싱 (Map 참조가 변경될 때만 재계산)
-  const dataTables = useMemo(
+  const collections = useMemo(
     () => Array.from(dataTablesMap.values()),
     [dataTablesMap],
   );
@@ -47,7 +47,7 @@ export function DataTableList({
   // DataTable 이름으로 연결된 API Endpoint 찾기
   const getLinkedApi = useMemo(
     () => (tableName: string) => {
-      return apiEndpoints.find((api) => api.targetDataTable === tableName);
+      return apiEndpoints.find((api) => api.targetCollection === tableName);
     },
     [apiEndpoints],
   );
@@ -57,7 +57,7 @@ export function DataTableList({
     if (!confirm("정말 삭제하시겠습니까?")) return;
 
     try {
-      await deleteDataTable(id);
+      await deleteCollection(id);
       if (editingId === id) {
         onEditingChange(null);
       }
@@ -76,11 +76,11 @@ export function DataTableList({
       id="datatable-list"
       title="Table List"
       badge={
-        <span className="datatable-list-count">{dataTables.length}개</span>
+        <span className="datatable-list-count">{collections.length}개</span>
       }
       collapsible={false}
     >
-      {dataTables.length === 0 ? (
+      {collections.length === 0 ? (
         <div className="datatable-empty">
           <Table2 size={32} className="datatable-empty-icon" />
           <p className="datatable-empty-text">
@@ -90,7 +90,7 @@ export function DataTableList({
         </div>
       ) : (
         <div className="list-group" role="list">
-          {dataTables.map((table) => {
+          {collections.map((table) => {
             const linkedApi = getLinkedApi(table.name);
             return (
               <div

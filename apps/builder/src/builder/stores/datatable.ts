@@ -10,8 +10,8 @@
 import { create } from 'zustand';
 import type {
   DataTableStore,
-  DataTableConfig,
-  DataTableState,
+  CollectionConfig,
+  CollectionState,
   DataTableStatus,
   DataTableTransform,
 } from '../../types/datatable.types';
@@ -20,7 +20,7 @@ import type { DataBinding } from '../../types/builder/unified.types';
 /**
  * 초기 DataTable 상태 생성
  */
-const createInitialDataTableState = (id: string): DataTableState => ({
+const createInitialDataTableState = (id: string): CollectionState => ({
   id,
   status: 'idle',
   data: [],
@@ -309,13 +309,13 @@ async function fetchDataTableData(
  */
 export const useDataTableStore = create<DataTableStore>((set, get) => ({
   // 상태
-  dataTables: new Map<string, DataTableConfig>(),
-  dataTableStates: new Map<string, DataTableState>(),
+  collections: new Map<string, CollectionConfig>(),
+  dataTableStates: new Map<string, CollectionState>(),
 
   // DataTable 등록
-  registerDataTable: (config: DataTableConfig) => {
+  registerDataTable: (config: CollectionConfig) => {
     set((state) => {
-      const newDataTables = new Map(state.dataTables);
+      const newDataTables = new Map(state.collections);
       const newDataTableStates = new Map(state.dataTableStates);
 
       newDataTables.set(config.id, config);
@@ -328,7 +328,7 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
       console.log(`📊 DataTable registered: ${config.id} (${config.name})`);
 
       return {
-        dataTables: newDataTables,
+        collections: newDataTables,
         dataTableStates: newDataTableStates,
       };
     });
@@ -336,8 +336,8 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
 
   // DataTable 제거
   unregisterDataTable: (dataTableId: string) => {
-    const { dataTables } = get();
-    const config = dataTables.get(dataTableId);
+    const { collections } = get();
+    const config = collections.get(dataTableId);
 
     // localStorage 캐시 정리 (Phase 6 Advanced)
     if (config?.persistCache) {
@@ -345,7 +345,7 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
     }
 
     set((state) => {
-      const newDataTables = new Map(state.dataTables);
+      const newDataTables = new Map(state.collections);
       const newDataTableStates = new Map(state.dataTableStates);
 
       newDataTables.delete(dataTableId);
@@ -354,7 +354,7 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
       console.log(`🗑️ DataTable unregistered: ${dataTableId}`);
 
       return {
-        dataTables: newDataTables,
+        collections: newDataTables,
         dataTableStates: newDataTableStates,
       };
     });
@@ -362,8 +362,8 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
 
   // DataTable 데이터 로드
   loadDataTable: async (dataTableId: string) => {
-    const { dataTables, dataTableStates } = get();
-    const config = dataTables.get(dataTableId);
+    const { collections, dataTableStates } = get();
+    const config = collections.get(dataTableId);
 
     if (!config) {
       console.warn(`⚠️ DataTable not found: ${dataTableId}`);
@@ -478,8 +478,8 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
 
   // DataTable 데이터 새로고침 (캐시 무시)
   refreshDataTable: async (dataTableId: string) => {
-    const { dataTables } = get();
-    const config = dataTables.get(dataTableId);
+    const { collections } = get();
+    const config = collections.get(dataTableId);
 
     if (!config) {
       console.warn(`⚠️ DataTable not found: ${dataTableId}`);
@@ -507,14 +507,14 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
 
   // 모든 DataTable 새로고침
   refreshAllDataTables: async () => {
-    const { dataTables, refreshDataTable } = get();
-    const dataTableIds = Array.from(dataTables.keys());
+    const { collections, refreshDataTable } = get();
+    const dataTableIds = Array.from(collections.keys());
 
-    console.log(`🔄 Refreshing all dataTables (${dataTableIds.length})`);
+    console.log(`🔄 Refreshing all collections (${dataTableIds.length})`);
 
     await Promise.all(dataTableIds.map((id) => refreshDataTable(id)));
 
-    console.log(`✅ All dataTables refreshed`);
+    console.log(`✅ All collections refreshed`);
   },
 
   // DataTable에 소비자 등록
@@ -569,9 +569,9 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
   },
 
   // DataTable 설정 업데이트
-  updateDataTableConfig: (dataTableId: string, updates: Partial<DataTableConfig>) => {
+  updateDataTableConfig: (dataTableId: string, updates: Partial<CollectionConfig>) => {
     set((state) => {
-      const newDataTables = new Map(state.dataTables);
+      const newDataTables = new Map(state.collections);
       const existingConfig = newDataTables.get(dataTableId);
 
       if (existingConfig) {
@@ -583,36 +583,36 @@ export const useDataTableStore = create<DataTableStore>((set, get) => ({
         console.log(`📝 DataTable config updated: ${dataTableId}`);
       }
 
-      return { dataTables: newDataTables };
+      return { collections: newDataTables };
     });
   },
 
   // 모든 DataTable 초기화
   clearAllDataTables: () => {
-    const { dataTables } = get();
+    const { collections } = get();
 
     // 모든 localStorage 캐시 정리 (Phase 6 Advanced)
-    dataTables.forEach((config, dataTableId) => {
+    collections.forEach((config, dataTableId) => {
       if (config.persistCache) {
         clearCachedData(dataTableId);
       }
     });
 
     set({
-      dataTables: new Map(),
+      collections: new Map(),
       dataTableStates: new Map(),
     });
 
-    console.log(`🧹 All dataTables cleared`);
+    console.log(`🧹 All collections cleared`);
   },
 }));
 
 /**
  * DataTable 선택자 훅들
  */
-export const useDataTable = (dataTableId: string) => {
+export const useCollection = (dataTableId: string) => {
   return useDataTableStore((state) => ({
-    config: state.dataTables.get(dataTableId),
+    config: state.collections.get(dataTableId),
     state: state.dataTableStates.get(dataTableId),
     data: state.dataTableStates.get(dataTableId)?.data || [],
     loading: state.dataTableStates.get(dataTableId)?.status === 'loading',
@@ -637,7 +637,7 @@ export const useDataTableActions = () => {
 
 export const useAllDataTables = () => {
   return useDataTableStore((state) => ({
-    dataTables: Array.from(state.dataTables.values()),
+    collections: Array.from(state.collections.values()),
     dataTableStates: state.dataTableStates,
   }));
 };

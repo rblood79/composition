@@ -1024,7 +1024,7 @@ export function App() {
         setPages: storeState.setPages,
         setLayouts: storeState.setLayouts,
         setDataSources: storeState.setDataSources,
-        setDataTables: storeState.setDataTables,
+        setCollections: storeState.setCollections,
         setApiEndpoints: storeState.setApiEndpoints,
         setVariables: storeState.setVariables,
         setAuthToken: storeState.setAuthToken,

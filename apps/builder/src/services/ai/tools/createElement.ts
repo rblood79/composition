@@ -92,7 +92,7 @@ export const createElementTool: ToolExecutor = {
       await addElement(newElement);
 
       // ADR-131 Phase 8 (2026-05-13): root collection data sync 제거.
-      // data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
+      // data SSOT 는 `collections` / `api_endpoints` / `variables`.
       // Element.dataBinding 은 element 별 binding reference 로 유지.
 
       // G.3 시각 피드백: 생성 완료 flash

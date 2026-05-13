@@ -107,7 +107,7 @@ export interface UpdateDataSourcesMessage {
 
 export interface UpdateDataTablesMessage {
   type: "UPDATE_DATA_TABLES";
-  dataTables: RuntimeDataTable[];
+  collections: RuntimeDataTable[];
 }
 
 export interface UpdateApiEndpointsMessage {
@@ -236,7 +236,7 @@ type StoreActions = Pick<
   | "setPages"
   | "setLayouts"
   | "setDataSources"
-  | "setDataTables"
+  | "setCollections"
   | "setApiEndpoints"
   | "setVariables"
   | "setAuthToken"
@@ -447,8 +447,8 @@ export class MessageHandler {
   }
 
   private handleUpdateDataTables(data: UpdateDataTablesMessage): void {
-    const dataTables = data.dataTables || [];
-    this.store.setDataTables(dataTables);
+    const collections = data.collections || [];
+    this.store.setCollections(collections);
   }
 
   private handleUpdateApiEndpoints(data: UpdateApiEndpointsMessage): void {

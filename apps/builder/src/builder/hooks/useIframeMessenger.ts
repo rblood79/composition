@@ -33,7 +33,7 @@ import {
   useSelectedReusableFrameId,
 } from "../stores/canonical/canonicalFrameStore";
 import {
-  useDataTables,
+  useCollections,
   useApiEndpoints,
   useVariables,
   getVariablesForCanvas,
@@ -185,7 +185,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   const selectedReusableFrameId = useSelectedReusableFrameId();
 
   // ⭐ DataTables 구독 (PropertyDataBinding용)
-  const dataTables = useDataTables();
+  const collections = useCollections();
 
   // ⭐ ApiEndpoints 구독 (PropertyDataBinding용)
   const apiEndpoints = useApiEndpoints();
@@ -441,8 +441,8 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     // 🔧 FIX: Ref를 사용하여 최신 상태 확인
     const currentReadyState = iframeReadyStateRef.current;
 
-    // 현재 dataTables 가져오기
-    const currentDataTables = dataTables;
+    // 현재 collections 가져오기
+    const currentDataTables = collections;
 
     // RuntimeDataTable 형태로 변환 (id, name, mockData, runtimeData, useMockData, schema 전송)
     // ⭐ mockData의 키는 schema의 key를 그대로 유지 (label 변환 제거)
@@ -459,7 +459,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
 
     const message = {
       type: "UPDATE_DATA_TABLES",
-      dataTables: runtimeDataTables,
+      collections: runtimeDataTables,
     };
 
     // iframe이 준비되지 않았으면 큐에 넣기
@@ -472,7 +472,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     }
 
     iframe.contentWindow.postMessage(message, window.location.origin);
-  }, [dataTables]); // dataTables 변경 시 갱신
+  }, [collections]); // collections 변경 시 갱신
 
   // ⭐ ApiEndpoints를 iframe에 전송 (PropertyDataBinding용)
   const sendApiEndpointsToIframe = useCallback(() => {
@@ -1147,7 +1147,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   useEffect(() => {
     // JSON 문자열로 비교 (mockData 변경 감지 포함)
     const dataTablesJson = JSON.stringify(
-      dataTables.map((dt) => ({
+      collections.map((dt) => ({
         id: dt.id,
         name: dt.name,
         mockData: dt.mockData,
@@ -1163,7 +1163,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     // 값 저장 후 전송 (sendDataTablesToIframe 내부에서 iframe 준비 상태에 따라 큐잉 또는 직접 전송)
     lastSentDataTablesRef.current = dataTablesJson;
     sendDataTablesToIframe();
-  }, [dataTables, sendDataTablesToIframe]);
+  }, [collections, sendDataTablesToIframe]);
 
   // ⭐ ApiEndpoints가 변경될 때마다 iframe에 전송 (PropertyDataBinding용)
   const lastSentApiEndpointsRef = useRef<string>("");

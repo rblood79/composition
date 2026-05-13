@@ -100,12 +100,12 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const [creatorMode, setCreatorMode] = useState<CreatorMode>("preset");
 
   // 데이터 조회 - 개별 selector + useMemo로 리렌더링 최적화
-  const dataTablesMap = useDataStore((state) => state.dataTables);
+  const dataTablesMap = useDataStore((state) => state.collections);
   const apiEndpointsMap = useDataStore((state) => state.apiEndpoints);
   const variablesMap = useDataStore((state) => state.variables);
   const transformersMap = useDataStore((state) => state.transformers);
 
-  const dataTables = useMemo(
+  const collections = useMemo(
     () => Array.from(dataTablesMap.values()),
     [dataTablesMap]
   );
@@ -128,7 +128,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
       case "table-create":
         return "Data Table Creator";
       case "table-edit": {
-        const dataTable = dataTables.find((t) => t.id === mode.tableId);
+        const dataTable = collections.find((t) => t.id === mode.tableId);
         return dataTable?.name || "Table Editor";
       }
       case "api-create":
@@ -260,7 +260,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         );
 
       case "table-edit": {
-        const dataTable = dataTables.find((t) => t.id === mode.tableId);
+        const dataTable = collections.find((t) => t.id === mode.tableId);
         if (!dataTable) {
           return <EmptyState message="테이블을 찾을 수 없습니다" />;
         }

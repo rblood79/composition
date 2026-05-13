@@ -626,8 +626,8 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
 
       <PropertyInput
         label="Target DataTable"
-        value={endpoint.targetDataTable || ""}
-        onChange={(value) => onUpdate({ targetDataTable: value })}
+        value={endpoint.targetCollection || ""}
+        onChange={(value) => onUpdate({ targetCollection: value })}
         placeholder="pokemon_list"
       />
       <p className="field-description">
@@ -811,7 +811,7 @@ function TestEditor({
           onColumnsChange={onColumnsChange}
           onImport={onImport}
           isImporting={isImporting}
-          defaultTableName={endpoint.targetDataTable || ""}
+          defaultTableName={endpoint.targetCollection || ""}
         />
       )}
     </div>

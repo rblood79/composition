@@ -140,7 +140,7 @@ describe("ADR-131 Phase 3 — canonicalDocumentStore root collection mutations",
   });
 
   // ADR-131 Phase 8 (2026-05-13): data collection test 제거.
-  // data SSOT 는 `data_tables` / `api_endpoints` / `variables`.
+  // data SSOT 는 `collections` / `api_endpoints` / `variables`.
 
   describe("actions collection", () => {
     it("addAction + updateAction (next chain) + removeAction", () => {

@@ -41,7 +41,7 @@ export interface DataTableDefinition {
 /**
  * DataTable 상태
  */
-export interface DataTableState {
+export interface CollectionState {
   data: Record<string, unknown>[];
   status: 'idle' | 'loading' | 'success' | 'error';
   error?: string | null;
@@ -132,7 +132,7 @@ export interface UseCollectionDataResult {
  */
 export interface DataTableService {
   /** DataTable 상태 조회 */
-  getDataTableState: (datatableId: string) => DataTableState | undefined;
+  getDataTableState: (datatableId: string) => CollectionState | undefined;
   /** DataTable 목록 조회 */
   getDataTables: () => DataTableDefinition[];
   /** Consumer 등록 */

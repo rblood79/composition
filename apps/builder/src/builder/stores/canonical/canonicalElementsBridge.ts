@@ -180,7 +180,7 @@ export function useEventsForTarget(
 }
 
 // ADR-131 Phase 8 (2026-05-13): useDocumentData 제거.
-// data SSOT 는 `data_tables` / `api_endpoints` / `variables`. RAC/RSC consumer
+// data SSOT 는 `collections` / `api_endpoints` / `variables`. RAC/RSC consumer
 // 는 `useCollectionData({ datatableId | dataBinding })` 사용.
 
 /** 활성 document 의 `actions` root collection 구독. */

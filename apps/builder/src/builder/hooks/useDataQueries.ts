@@ -35,10 +35,10 @@ export const dataQueryKeys = {
   all: ["data"] as const,
 
   // DataTables
-  dataTables: (projectId: string) =>
-    [...dataQueryKeys.all, "dataTables", projectId] as const,
+  collections: (projectId: string) =>
+    [...dataQueryKeys.all, "collections", projectId] as const,
   dataTable: (projectId: string, tableName: string) =>
-    [...dataQueryKeys.dataTables(projectId), tableName] as const,
+    [...dataQueryKeys.collections(projectId), tableName] as const,
 
   // API Endpoints
   apiEndpoints: (projectId: string) =>
@@ -66,13 +66,13 @@ export const dataQueryKeys = {
 /**
  * DataTables 조회
  */
-async function fetchDataTables(projectId: string): Promise<DataTable[]> {
+async function fetchCollections(projectId: string): Promise<DataTable[]> {
   const db = await getDB();
   const data = await (
     db as unknown as {
-      data_tables: { getByProject: (projectId: string) => Promise<DataTable[]> };
+      collections: { getByProject: (projectId: string) => Promise<DataTable[]> };
     }
-  ).data_tables?.getByProject(projectId);
+  ).collections?.getByProject(projectId);
 
   return data || [];
 }
@@ -147,8 +147,8 @@ export function useDataTablesQuery(
   options?: { enabled?: boolean }
 ): UseQueryResult<DataTable[], Error> {
   return useQuery({
-    queryKey: dataQueryKeys.dataTables(projectId || ""),
-    queryFn: () => fetchDataTables(projectId!),
+    queryKey: dataQueryKeys.collections(projectId || ""),
+    queryFn: () => fetchCollections(projectId!),
     enabled: !!projectId && (options?.enabled !== false),
     staleTime: 5 * 60 * 1000, // 5분
   });
@@ -204,7 +204,7 @@ export function useTransformersQuery(
 // ============================================
 
 export interface DataPanelData {
-  dataTables: DataTable[];
+  collections: DataTable[];
   apiEndpoints: ApiEndpoint[];
   variables: Variable[];
   transformers: Transformer[];
@@ -231,7 +231,7 @@ export interface DataPanelQueryResult {
  *   if (isLoading) return <Loading />;
  *   if (error) return <Error error={error} />;
  *
- *   const { dataTables, apiEndpoints, variables, transformers } = data;
+ *   const { collections, apiEndpoints, variables, transformers } = data;
  *   // ...
  * }
  * ```
@@ -271,7 +271,7 @@ export function useDataPanelQuery(
     variablesQuery.data &&
     transformersQuery.data
       ? {
-          dataTables: dataTablesQuery.data,
+          collections: dataTablesQuery.data,
           apiEndpoints: apiEndpointsQuery.data,
           variables: variablesQuery.data,
           transformers: transformersQuery.data,
@@ -315,11 +315,11 @@ export function useCreateDataTableMutation() {
       const db = await getDB();
       const created = await (
         db as unknown as {
-          data_tables: {
+          collections: {
             create: (data: Partial<DataTable>) => Promise<DataTable>;
           };
         }
-      ).data_tables.create({
+      ).collections.create({
         ...dataTable,
         project_id: projectId,
       });
@@ -328,7 +328,7 @@ export function useCreateDataTableMutation() {
     onSuccess: (_, { projectId }) => {
       // 캐시 무효화
       queryClient.invalidateQueries({
-        queryKey: dataQueryKeys.dataTables(projectId),
+        queryKey: dataQueryKeys.collections(projectId),
       });
     },
   });
@@ -352,16 +352,16 @@ export function useUpdateDataTableMutation() {
       const db = await getDB();
       const updated = await (
         db as unknown as {
-          data_tables: {
+          collections: {
             update: (id: string, data: Partial<DataTable>) => Promise<DataTable>;
           };
         }
-      ).data_tables.update(tableId, updates);
+      ).collections.update(tableId, updates);
       return updated;
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({
-        queryKey: dataQueryKeys.dataTables(projectId),
+        queryKey: dataQueryKeys.collections(projectId),
       });
     },
   });
@@ -383,13 +383,13 @@ export function useDeleteDataTableMutation() {
       const db = await getDB();
       await (
         db as unknown as {
-          data_tables: { delete: (id: string) => Promise<void> };
+          collections: { delete: (id: string) => Promise<void> };
         }
-      ).data_tables.delete(tableId);
+      ).collections.delete(tableId);
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({
-        queryKey: dataQueryKeys.dataTables(projectId),
+        queryKey: dataQueryKeys.collections(projectId),
       });
     },
   });
@@ -407,7 +407,7 @@ export function useInvalidateProjectData() {
 
   return (projectId: string) => {
     queryClient.invalidateQueries({
-      queryKey: [...dataQueryKeys.all, "dataTables", projectId],
+      queryKey: [...dataQueryKeys.all, "collections", projectId],
     });
     queryClient.invalidateQueries({
       queryKey: [...dataQueryKeys.all, "apiEndpoints", projectId],

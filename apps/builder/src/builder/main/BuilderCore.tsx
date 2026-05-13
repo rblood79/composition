@@ -672,12 +672,12 @@ export const BuilderCore: React.FC = () => {
       targetVariable?: string;
     }) {
       const { dataTableName, forceRefresh } = payload;
-      const { dataTables, loadDataTable, refreshDataTable } =
+      const { collections, loadDataTable, refreshDataTable } =
         useDataTableStore.getState();
 
       // DataTable을 이름으로 검색
       let targetDataTableId: string | null = null;
-      dataTables.forEach((config, id) => {
+      collections.forEach((config, id) => {
         if (config.name === dataTableName) {
           targetDataTableId = id;
         }
@@ -797,12 +797,12 @@ export const BuilderCore: React.FC = () => {
         keyField,
         transform,
       } = payload;
-      const { dataTables, dataTableStates } = useDataTableStore.getState();
+      const { collections, dataTableStates } = useDataTableStore.getState();
 
       // DataTable을 이름으로 검색
       let targetDataTableId: string | null = null;
       let targetConfig = null;
-      dataTables.forEach((config, id) => {
+      collections.forEach((config, id) => {
         if (config.name === dataTableName) {
           targetDataTableId = id;
           targetConfig = config;

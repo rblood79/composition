@@ -3,7 +3,7 @@
  *
  * ADR-132 Phase 1 — useAsyncList load callback 단일 진입점.
  * PropertyDataBinding (source="api"/"dataTable") + Legacy collection 모두
- * `useAsyncList.load` 안에서 분기 처리. `data_tables.runtimeData` 가 단일 sink.
+ * `useAsyncList.load` 안에서 분기 처리. `collections.runtimeData` 가 단일 sink.
  *
  * DI 패턴을 통해 Builder와 Publish에서 다른 서비스 구현을 사용할 수 있습니다.
  *
@@ -187,7 +187,7 @@ export function useCollectionData({
     : undefined;
 
   // DataTable 목록 조회
-  const dataTables = useMemo(
+  const collections = useMemo(
     () => dataTableService?.getDataTables() ?? [],
     [dataTableService],
   );
@@ -269,7 +269,7 @@ export function useCollectionData({
         name: string;
       };
       if (binding.source === "dataTable" && binding.name) {
-        const table = dataTables.find((dt) => dt.name === binding.name);
+        const table = collections.find((dt) => dt.name === binding.name);
         if (table) {
           const hasRuntimeData =
             table.runtimeData && table.runtimeData.length > 0;
@@ -288,7 +288,7 @@ export function useCollectionData({
       }
     }
     return null;
-  }, [propertyBindingFormat, dataTables, stableDataBinding]);
+  }, [propertyBindingFormat, collections, stableDataBinding]);
 
   const dataTableData = dataTableResult?.data || null;
   const dataTableSchema = dataTableResult?.schema;
@@ -354,7 +354,7 @@ export function useCollectionData({
 
             result = await response.json();
           } else {
-            // Builder: apiEndpointService.executeApiEndpoint (data_tables.runtimeData sink)
+            // Builder: apiEndpointService.executeApiEndpoint (collections.runtimeData sink)
             result = await apiEndpointService?.executeApiEndpoint?.(
               endpoint.id,
             );
@@ -426,7 +426,7 @@ export function useCollectionData({
     getKey: (item) => String(item.id || Math.random()),
   });
 
-  // R1/R3 대응 — dataTables 변경 시 api binding list.reload trigger
+  // R1/R3 대응 — collections 변경 시 api binding list.reload trigger
   useEffect(() => {
     const isApiBinding =
       propertyBindingFormat &&
@@ -436,7 +436,7 @@ export function useCollectionData({
     }
     // list 는 stable instance, dependency 에서 제외 (eslint-disable)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataTables, propertyBindingFormat, stableDataBinding]);
+  }, [collections, propertyBindingFormat, stableDataBinding]);
 
   // 정렬 함수
   const sort = useCallback(
@@ -567,7 +567,7 @@ export function useCollectionData({
   const isDataTableBinding =
     propertyBindingFormat &&
     (stableDataBinding as unknown as { source: string }).source === "dataTable";
-  const isDataTablePending = isDataTableBinding && dataTables.length === 0;
+  const isDataTablePending = isDataTableBinding && collections.length === 0;
 
   const loading = propertyBindingFormat
     ? isApiBinding

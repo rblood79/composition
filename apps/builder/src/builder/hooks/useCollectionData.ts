@@ -3,7 +3,7 @@ import { useMemo, useState, useCallback, useEffect } from "react";
 import type { DataBinding } from "../../types/builder/unified.types";
 import type { AsyncListLoadOptions } from "../../types/builder/stately.types";
 import { useDataTableStore } from "../stores/datatable";
-import { useDataTables, useApiEndpoints, useDataStore } from "../stores/data";
+import { useCollections, useApiEndpoints, useDataStore } from "../stores/data";
 import { useRuntimeStore } from "../../preview/store/runtimeStore";
 import { collectionDataCache, createCacheKey } from "./useCollectionDataCache";
 
@@ -12,7 +12,7 @@ import { collectionDataCache, createCacheKey } from "./useCollectionDataCache";
  *
  * ADR-132 Phase 1 — useAsyncList load callback 단일화.
  * PropertyDataBinding (source="api"/"dataTable") + Legacy collection 모두
- * `useAsyncList.load` 안에서 분기 처리. `data_tables.runtimeData` 가 단일 sink.
+ * `useAsyncList.load` 안에서 분기 처리. `collections.runtimeData` 가 단일 sink.
  *
  * DataTable Store 지원:
  * - datatableId가 있으면 DataTable Store에서 데이터를 가져옵니다.
@@ -222,9 +222,9 @@ export function useCollectionData({
 
   // DataTable Store 접근 (PropertyDataBinding 형식 지원)
   // Canvas에서는 runtime store, Builder에서는 builder store 사용
-  const builderDataTables = useDataTables();
-  const canvasDataTables = useRuntimeStore((state) => state.dataTables);
-  const dataTables = isCanvasContext ? canvasDataTables : builderDataTables;
+  const builderDataTables = useCollections();
+  const canvasDataTables = useRuntimeStore((state) => state.collections);
+  const collections = isCanvasContext ? canvasDataTables : builderDataTables;
 
   // ApiEndpoint Store 접근 (PropertyDataBinding 형식 지원)
   // Canvas에서는 runtime store, Builder에서는 builder store 사용
@@ -235,8 +235,8 @@ export function useCollectionData({
     : builderApiEndpoints;
   const executeApiEndpoint = useDataStore((state) => state.executeApiEndpoint);
 
-  // dataTables Map reference — 변경 시 list.reload trigger 용 (R1/R3 — Map immutable update 시에만 새 reference)
-  const dataTablesMap = useDataStore((state) => state.dataTables);
+  // collections Map reference — 변경 시 list.reload trigger 용 (R1/R3 — Map immutable update 시에만 새 reference)
+  const dataTablesMap = useDataStore((state) => state.collections);
 
   // DataTable consumer 등록/해제
   useEffect(() => {
@@ -316,7 +316,7 @@ export function useCollectionData({
         name: string;
       };
       if (binding.source === "dataTable" && binding.name) {
-        const table = dataTables.find((dt) => dt.name === binding.name);
+        const table = collections.find((dt) => dt.name === binding.name);
         if (table) {
           const hasRuntimeData =
             table.runtimeData && table.runtimeData.length > 0;
@@ -335,7 +335,7 @@ export function useCollectionData({
       }
     }
     return null;
-  }, [propertyBindingFormat, dataTables, stableDataBinding]);
+  }, [propertyBindingFormat, collections, stableDataBinding]);
 
   const dataTableData = dataTableResult?.data || null;
   const dataTableSchema = dataTableResult?.schema;
@@ -398,7 +398,7 @@ export function useCollectionData({
             }
             result = await response.json();
           } else {
-            // Builder: executeApiEndpoint 호출 (data_tables.runtimeData sink)
+            // Builder: executeApiEndpoint 호출 (collections.runtimeData sink)
             result = await executeApiEndpoint(endpoint.id);
           }
 
@@ -468,7 +468,7 @@ export function useCollectionData({
     getKey: (item) => String(item.id || Math.random()),
   });
 
-  // R1/R3 대응 — dataTables 변경 시 api binding list.reload trigger
+  // R1/R3 대응 — collections 변경 시 api binding list.reload trigger
   useEffect(() => {
     const isApiBinding =
       propertyBindingFormat &&
@@ -609,7 +609,7 @@ export function useCollectionData({
   const isDataTableBinding =
     propertyBindingFormat &&
     (stableDataBinding as unknown as { source: string }).source === "dataTable";
-  const isDataTablePending = isDataTableBinding && dataTables.length === 0;
+  const isDataTablePending = isDataTableBinding && collections.length === 0;
 
   const loading = propertyBindingFormat
     ? isApiBinding

@@ -25,7 +25,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 17; // ADR-131 Phase 7-revert: data store 제거 (data_tables 중복).
+const DB_VERSION = 18; // ADR-132 Phase 5: data_tables → collections rename, legacy data_tables store drop.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -253,17 +253,26 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           console.log("[IndexedDB] Created store: design_themes");
         }
 
+        // ADR-132 Phase 5 (DB_VERSION 18): legacy `data_tables` store drop.
+        // `collections` 신규 store 가 같은 schema 로 대체. 개발 단계 — migration 코드 없음.
+        if (db.objectStoreNames.contains("data_tables")) {
+          db.deleteObjectStore("data_tables");
+          console.log(
+            "[IndexedDB] Deleted legacy store: data_tables (ADR-132 Phase 5)",
+          );
+        }
+
         // ✅ 버전 7: Data Panel 스토어들 추가
-        // DataTables store
-        if (!db.objectStoreNames.contains("data_tables")) {
-          const dataTablesStore = db.createObjectStore("data_tables", {
+        // Collections store (ADR-132 Phase 5: data_tables → collections rename)
+        if (!db.objectStoreNames.contains("collections")) {
+          const dataTablesStore = db.createObjectStore("collections", {
             keyPath: "id",
           });
           dataTablesStore.createIndex("project_id", "project_id", {
             unique: false,
           });
           dataTablesStore.createIndex("name", "name", { unique: false });
-          console.log("[IndexedDB] Created store: data_tables");
+          console.log("[IndexedDB] Created store: collections");
         }
 
         // ApiEndpoints store
@@ -275,9 +284,13 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             unique: false,
           });
           apiEndpointsStore.createIndex("name", "name", { unique: false });
-          apiEndpointsStore.createIndex("targetDataTable", "targetDataTable", {
-            unique: false,
-          });
+          apiEndpointsStore.createIndex(
+            "targetCollection",
+            "targetCollection",
+            {
+              unique: false,
+            },
+          );
           console.log("[IndexedDB] Created store: api_endpoints");
         }
 
@@ -315,11 +328,11 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         }
 
         // ADR-131 Phase 7 — events / actions root collection stores
-        // (design §4 D1=(b) — design_themes / variables / data_tables /
+        // (design §4 D1=(b) — design_themes / variables / collections /
         //  api_endpoints / transformers 패턴 정합)
         //
         // **data store 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing 정정으로
-        // `data` store 는 기존 `data_tables` / `api_endpoints` 와 중복 개념으로
+        // `data` store 는 기존 `collections` / `api_endpoints` 와 중복 개념으로
         // 판정 → 본 upgrade path 에서 제거. `CompositionDocument.data` root field 와
         // `SerializedData` type 은 schema 영역에서 별도 framing 정리 (현 commit
         // scope 외). DB_VERSION 16 의 (단명 land) `data` store 는 17 에서 drop.
@@ -336,7 +349,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         }
 
         // DB_VERSION 16 에서 단명 생성된 `data` store 를 17 에서 drop.
-        // 사용자 framing — `data_tables` / `api_endpoints` 와 중복 개념.
+        // 사용자 framing — `collections` / `api_endpoints` 와 중복 개념.
         if (db.objectStoreNames.contains("data")) {
           db.deleteObjectStore("data");
           console.log(
@@ -698,7 +711,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
   // === Data Tables (Data Panel System) ===
 
-  data_tables = {
+  collections = {
     insert: async (dataTable: DataTable): Promise<DataTable> => {
       const now = new Date().toISOString();
       const dataTableWithTimestamps: DataTable = {
@@ -706,7 +719,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         created_at: dataTable.created_at || now,
         updated_at: dataTable.updated_at || now,
       };
-      await this.putToStore("data_tables", dataTableWithTimestamps);
+      await this.putToStore("collections", dataTableWithTimestamps);
       return dataTableWithTimestamps;
     },
 
@@ -714,7 +727,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       id: string,
       updates: Partial<DataTable>,
     ): Promise<DataTable> => {
-      const existing = await this.data_tables.getById(id);
+      const existing = await this.collections.getById(id);
       if (!existing) {
         throw new Error(`DataTable ${id} not found`);
       }
@@ -723,21 +736,21 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         ...updates,
         updated_at: new Date().toISOString(),
       };
-      await this.putToStore("data_tables", updated);
+      await this.putToStore("collections", updated);
       return updated;
     },
 
     delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("data_tables", id);
+      await this.deleteFromStore("collections", id);
     },
 
     getById: async (id: string): Promise<DataTable | null> => {
-      return this.getFromStore<DataTable>("data_tables", id);
+      return this.getFromStore<DataTable>("collections", id);
     },
 
     getByProject: async (projectId: string): Promise<DataTable[]> => {
       return this.getAllByIndex<DataTable>(
-        "data_tables",
+        "collections",
         "project_id",
         projectId,
       );
@@ -745,7 +758,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getByName: async (name: string): Promise<DataTable | null> => {
       const results = await this.getAllByIndex<DataTable>(
-        "data_tables",
+        "collections",
         "name",
         name,
       );
@@ -753,7 +766,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
 
     getAll: async (): Promise<DataTable[]> => {
-      return this.getAllFromStore<DataTable>("data_tables");
+      return this.getAllFromStore<DataTable>("collections");
     },
   };
 
@@ -816,7 +829,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     getByTargetDataTable: async (tableName: string): Promise<ApiEndpoint[]> => {
       return this.getAllByIndex<ApiEndpoint>(
         "api_endpoints",
-        "targetDataTable",
+        "targetCollection",
         tableName,
       );
     },
@@ -1029,7 +1042,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     },
   };
 
-  // ADR-131 Phase 7-revert (2026-05-13): `data` store 제거 — 기존 `data_tables`
+  // ADR-131 Phase 7-revert (2026-05-13): `data` store 제거 — 기존 `collections`
   // / `api_endpoints` 와 중복 개념. DB_VERSION 17 에서 deleteObjectStore.
 
   actions = {
@@ -1157,7 +1170,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           "design_tokens",
           "design_themes",
           // ✅ 버전 7: Data Panel 스토어들 추가
-          "data_tables",
+          "collections",
           "api_endpoints",
           "variables",
           "transformers",

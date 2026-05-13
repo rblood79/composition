@@ -140,7 +140,7 @@ function buildActionChain(
 }
 
 // ADR-131 Phase 8 (2026-05-13): migrateLegacyDataBindingToRootData 제거.
-// data SSOT 는 `data_tables` 등 별 store. `Element.dataBinding` 은 element 별
+// data SSOT 는 `collections` 등 별 store. `Element.dataBinding` 은 element 별
 // binding reference 로 보존 (root collection 격상 의미 없음).
 
 /**
@@ -152,7 +152,7 @@ function buildActionChain(
  * **사용처 (Phase 4)**: `legacyToCanonical()` 변환 직후 호출하여 결과 doc 에
  * `events|actions` 주입.
  *
- * **ADR-131 Phase 8 (2026-05-13)**: data 영역 제거 — data SSOT 는 `data_tables`
+ * **ADR-131 Phase 8 (2026-05-13)**: data 영역 제거 — data SSOT 는 `collections`
  * 등 별 store. `Element.dataBinding` 은 element 별 binding reference 로 보존.
  */
 export function migrateLegacyElementsToRootCollections(
@@ -284,4 +284,4 @@ function expandActionChain(
 }
 
 // ADR-131 Phase 8 (2026-05-13): rootDataToLegacyByElement 제거.
-// data SSOT 는 `data_tables` 등 별 store. `Element.dataBinding` 보존.
+// data SSOT 는 `collections` 등 별 store. `Element.dataBinding` 보존.

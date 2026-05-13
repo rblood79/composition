@@ -44,7 +44,7 @@ export interface CanonicalDocumentRecord {
 // `kind` (events / actions 공통).
 //
 // **`SerializedDataRecord` 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing
-// 정정 — `data` store 는 기존 `data_tables` / `api_endpoints` 와 중복 개념.
+// 정정 — `data` store 는 기존 `collections` / `api_endpoints` 와 중복 개념.
 // DB_VERSION 17 에서 data store deleteObjectStore + 본 type 제거.
 // `SerializedData` schema 와 `CompositionDocument.data` root field 는 schema
 // 영역에서 별도 framing 정리 (현 commit scope 외).
@@ -110,7 +110,7 @@ export interface DatabaseAdapter {
   };
 
   // Data Tables (Data Panel System)
-  data_tables: {
+  collections: {
     insert(dataTable: DataTable): Promise<DataTable>;
     update(id: string, data: Partial<DataTable>): Promise<DataTable>;
     delete(id: string): Promise<void>;
@@ -173,7 +173,7 @@ export interface DatabaseAdapter {
     getAll(): Promise<SerializedEventRecord[]>;
   };
 
-  // ADR-131 Phase 7-revert (2026-05-13): `data` store 부재 — 기존 `data_tables`
+  // ADR-131 Phase 7-revert (2026-05-13): `data` store 부재 — 기존 `collections`
   // / `api_endpoints` 와 중복 개념.
 
   // ADR-131 Phase 7 — Actions root collection store

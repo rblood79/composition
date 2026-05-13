@@ -15,7 +15,7 @@
  *    - 런타임 중 변경된 값은 runtimeValues Map에서 관리
  *
  * 3. **Canvas 동기화**: subscribe로 자동 전송
- *    - variables/dataTables/apiEndpoints 변경 시 자동으로 iframe에 전송
+ *    - variables/collections/apiEndpoints 변경 시 자동으로 iframe에 전송
  *
  * @see docs/features/DATA_PANEL_SYSTEM.md
  */
@@ -131,10 +131,10 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   // Factory 함수로 액션 생성
 
   // DataTable Actions
-  const fetchDataTables = createFetchDataTablesAction(set);
+  const fetchCollections = createFetchDataTablesAction(set);
   const createDataTable = createCreateDataTableAction(set, get);
-  const updateDataTable = createUpdateDataTableAction(set, get);
-  const deleteDataTable = createDeleteDataTableAction(set, get);
+  const updateCollection = createUpdateDataTableAction(set, get);
+  const deleteCollection = createDeleteDataTableAction(set, get);
   const getDataTableData = createGetDataTableDataAction(get);
   const setRuntimeData = createSetRuntimeDataAction(set, get);
 
@@ -211,7 +211,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
       // Supabase에서 병렬로 로드
       await Promise.all([
         fetchVariables(projectId),
-        fetchDataTables(projectId),
+        fetchCollections(projectId),
         fetchApiEndpoints(projectId),
         fetchTransformers(projectId),
       ]);
@@ -234,7 +234,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
       });
 
       console.log(
-        `[DataStore] Initialized: ${variables.size} variables, ${get().dataTables.size} tables`,
+        `[DataStore] Initialized: ${variables.size} variables, ${get().collections.size} tables`,
       );
     } catch (error) {
       console.error("[DataStore] Initialization failed:", error);
@@ -247,7 +247,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     // ============================================
     // State
     // ============================================
-    dataTables: new Map<string, DataTable>(),
+    collections: new Map<string, DataTable>(),
     apiEndpoints: new Map<string, ApiEndpoint>(),
     variables: new Map<string, Variable>(),
     transformers: new Map<string, Transformer>(),
@@ -265,10 +265,10 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     // ============================================
 
     // DataTable CRUD
-    fetchDataTables,
+    fetchCollections,
     createDataTable,
-    updateDataTable,
-    deleteDataTable,
+    updateCollection,
+    deleteCollection,
     getDataTableData,
     setRuntimeData,
 
@@ -322,17 +322,17 @@ export const useDataStore = create<DataStore>()(
 /**
  * 모든 DataTable 목록 가져오기
  */
-export const useDataTables = (): DataTable[] => {
-  const dataTables = useDataStore((state) => state.dataTables);
-  return Array.from(dataTables.values());
+export const useCollections = (): DataTable[] => {
+  const collections = useDataStore((state) => state.collections);
+  return Array.from(collections.values());
 };
 
 /**
  * 특정 DataTable 가져오기
  */
-export const useDataTable = (name: string): DataTable | undefined => {
-  const dataTables = useDataStore((state) => state.dataTables);
-  return dataTables.get(name);
+export const useCollection = (name: string): DataTable | undefined => {
+  const collections = useDataStore((state) => state.collections);
+  return collections.get(name);
 };
 
 /**
