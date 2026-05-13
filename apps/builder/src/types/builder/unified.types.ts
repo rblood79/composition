@@ -3,6 +3,7 @@ import React from "react";
 import { ElementEvent } from "../events/events.types";
 import { TokenValue, DesignToken } from "../theme";
 import type { StoredMenuItem, StoredTagItem } from "@composition/specs";
+import type { DataBinding as SharedDataBinding } from "@composition/shared";
 
 // === 기본 타입 정의 ===
 
@@ -28,12 +29,9 @@ export interface BaseElementProps extends Record<string, unknown> {
 
 // === 통합된 Element 타입 ===
 
-// Inspector 데이터 바인딩 타입 (export)
-export interface DataBinding {
-  type: "collection" | "value" | "field";
-  source: "supabase" | "api" | "state" | "static" | "parent";
-  config: Record<string, unknown>;
-}
+// Element 데이터 바인딩 타입 — SSOT 는 @composition/shared 의 element.types.ts
+// 본 파일에서는 re-export 만 수행. 변경은 shared package 에서 반영
+export type DataBinding = SharedDataBinding;
 
 // === 컬럼 매핑 타입 (ListBox, Select 등 Collection 컴포넌트용) ===
 export type FieldType =
