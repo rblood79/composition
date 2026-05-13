@@ -148,13 +148,13 @@ export function legacyToCanonical(
 
   function buildNode(element: Element): CanonicalNode {
     // ADR-130 Phase 7: legacy "Group" + customId="group_N" → canonical "frame".
-    // ARIA RAC Group (customId 없음/다른 prefix) 은 변환하지 않고 그대로 통과.
-    const baseType = isLegacyGroupForFrameMigration(
+    const sourceTag = isLegacyGroupForFrameMigration(
       element.type,
       element.customId,
     )
-      ? tagToType("frame")
-      : tagToType(element.type);
+      ? "frame"
+      : element.type;
+    const baseType = tagToType(sourceTag);
 
     // componentRole 분기: master → reusable / instance → ref
     const roleResult = convertComponentRole(element, {

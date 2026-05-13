@@ -9,6 +9,14 @@ import type { Element } from "../../../types/core/store.types";
 import { ElementUtils } from "../../../utils/element/elementUtils";
 
 /**
+ * ADR-130 transitional guard — accept both canonical "frame" and legacy "Group"
+ * during the migration period. Removed once §5 lowercase cleanup ADR lands.
+ */
+export function isFrameOrLegacyGroup(type: string | undefined): boolean {
+  return type === "frame" || type === "Group";
+}
+
+/**
  * Group creation result
  */
 export interface GroupCreationResult {
@@ -94,14 +102,11 @@ export function createGroupFromSelection<TElement extends Element>(
         positions.length
       : 0;
 
-  // Generate customId for group (e.g., "group_1", "group_2")
-  // ADR-130 Phase 3: transitional period — count both legacy "Group" + new "frame"
-  // so `group_N` is not double-issued during the migration. Remove "Group" branch
-  // once §5 Phase 2/3 (lowercase literal cleanup) lands.
+  // Generate customId for group (e.g., "group_1", "group_2").
+  // Count both new "frame" and legacy "Group" so `group_N` is not double-issued
+  // during the ADR-130 migration period (see `isFrameOrLegacyGroup`).
   const existingGroups = Array.from(elementsMap.values()).filter(
-    (el) =>
-      (el.type === "frame" || el.type === "Group") &&
-      el.customId?.startsWith("group_"),
+    (el) => isFrameOrLegacyGroup(el.type) && el.customId?.startsWith("group_"),
   );
   const maxGroupNum =
     existingGroups.length > 0
@@ -187,8 +192,7 @@ export function ungroupElement<TElement extends Element>(
     throw new Error(`[Ungroup] Group element not found: ${groupId}`);
   }
 
-  // ADR-130 Phase 3: accept both new "frame" and legacy "Group" during transition.
-  if (groupElement.type !== "frame" && groupElement.type !== "Group") {
+  if (!isFrameOrLegacyGroup(groupElement.type)) {
     throw new Error(
       `[Ungroup] Element is not a frame/Group: ${groupId} (type: ${groupElement.type})`,
     );

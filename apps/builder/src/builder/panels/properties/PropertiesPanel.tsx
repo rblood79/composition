@@ -67,6 +67,7 @@ import {
 import { selectionMemory } from "../../utils/selectionMemory";
 import {
   createGroupFromSelection,
+  isFrameOrLegacyGroup,
   ungroupElement,
 } from "../../stores/utils/elementGrouping";
 import { alignElements } from "../../stores/utils/elementAlignment";
@@ -1180,10 +1181,7 @@ function PropertiesPanelContent() {
 
   // ⭐ Phase 4: Ungroup Selection (Cmd+Shift+G)
   const handleUngroupSelection = useCallback(async () => {
-    if (
-      !selectedElement ||
-      (selectedElement.type !== "frame" && selectedElement.type !== "Group")
-    ) {
+    if (!selectedElement || !isFrameOrLegacyGroup(selectedElement.type)) {
       console.warn("[Ungroup] Selected element is not a frame/Group");
       return;
     }
