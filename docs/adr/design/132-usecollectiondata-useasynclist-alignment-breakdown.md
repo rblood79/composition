@@ -82,6 +82,62 @@ grep -n "processedData\|dataTableData\|apiEndpointData\|datatableState" packages
     - `element.dataBinding.transformer*` 류 binding — 0건 예상
     - LLM AI prompt 안 "Transformer" 언급 — 0건 예상 (createElement.ts 검증)
 
+### Phase 0 inventory 결과 (2026-05-13, HEAD `ad2c371b3`)
+
+**baseline grep 5종 (useCollectionData 영역)**:
+
+|  #  | 측정                                                                                   |   shared    | builder | total  |
+| :-: | :------------------------------------------------------------------------------------- | :---------: | :-----: | :----: |
+|  1  | `apiEndpointData` / `setApiEndpointData` site                                          |      5      |    6    | **11** |
+|  2  | `loadStaticData` / `loadApiData` 호출                                                  |     2+2     |   2+2   |   8    |
+|  3  | `isCanvasContext` / `/api/proxy` 분기                                                  |      4      |    7    |   11   |
+|  4  | PropertyDataBinding `source: dataTable\|api` 분기                                      |      9      |    7    |   16   |
+|  5  | `processedData` 4-tier (dataTableData / apiEndpointData / datatableState / list.items) | 4-tier 확정 |    —    |   —    |
+
+**frozen 수치 (Phase 1+ 의 BC 수식화 의무)**:
+
+- `apiEndpointData` / `setApiEndpointData` / `apiEndpointLoading` / `apiEndpointError` site: 11 (shared 5 + builder 6) — Phase 1 sweep 대상
+- `reloadTrigger` 호출처: 9 site (모두 useCollectionData hook 내부) — `list.reload()` 치환 대상
+- `loadStaticData` / `loadApiData` 호출: 8 site (useAsyncList load callback 내부) — Legacy collection 흐름 유지
+- **Legacy collection (`type:"collection"`) 사용 element**: factory `DataComponents.ts` 1건 + AI tool `createElement.ts` 1건 + test fixture 4건 + 8 RAC 컴포넌트 (Select/RadioGroup/ListBox/ComboBox/GridList/Menu/TagGroup/CheckboxGroup) 의 hook 분기 = 사용자 데이터 element 측정 결과 **0건 (별 ADR fork 불필요, Phase 2 (a) 채택 lock-in)**
+- RAC renderer read 진입점: 8 컴포넌트 (Table / ListBox / GridList / ComboBox / Select / Tree / Breadcrumbs / Menu)
+- `apiEndpointService` DI Context 주입 site: `packages/shared/src/types/collection.types.ts:174` 에 `apiEndpointService?` optional 정의. Canvas 측 주입 보장 안 됨 → **R2 잠재 위험 — Phase 3 분기 잔존 가능성**
+- `executeApiEndpoint` 의 `signal: AbortSignal` 파라미터 지원 여부: `dataActions.ts:587 signal: controller.signal` 내부 사용 있음, 그러나 caller-supplied signal 받는 interface 아님 → Phase 1 에서 interface 확장 필요 (or signal 전파 deferred)
+
+**rename baseline frozen (Phase 5 sweep 대상, code .ts/.tsx 만)**:
+
+- `\bdata_tables\b` (snake): **15 파일**
+- `\bdataTables\b` (camel): **18 파일**
+- `\bDataTable\b` (Pascal): **58 파일** — UI surface allowlist 보존 (Component / Editor / Panel / Action / 파일명 / 디렉토리)
+- DB_VERSION 현재값 측정 (adapter.ts) 후 Phase 5 에서 bump
+
+**Transformer 제거 baseline frozen (Phase 7 sweep 대상)**:
+
+- `\bTransformer\b` / `\btransformers\b` (변수 / 타입): **14 파일** (예측 15 파일 중 13 + AI prompt 0 + others)
+- 14 파일 상세 hit count:
+  - `apps/builder/src/types/builder/data.types.ts:17` (type 정의 중심)
+  - `apps/builder/src/lib/db/types.ts:11`
+  - `apps/builder/src/builder/stores/inspectorActions.ts:1`
+  - `apps/builder/src/lib/db/indexedDB/adapter.ts:35` (transformers store)
+  - `apps/builder/src/builder/stores/data.ts:14`
+  - `apps/builder/src/builder/hooks/useDataQueries.ts:14`
+  - `apps/builder/src/builder/panels/datatable/components/TransformerList.tsx:14` (파일 삭제 대상)
+  - `apps/builder/src/builder/panels/datatable/DataTablePanel.tsx:3`
+  - `apps/builder/src/builder/panels/datatable/stores/dataTableEditorStore.ts:1`
+  - `apps/builder/src/builder/panels/datatable/DataTableEditorPanel.tsx:9`
+  - `apps/builder/src/dashboard/index.tsx:3`
+  - `apps/builder/src/builder/stores/utils/dataActions.ts:40`
+  - `apps/builder/src/builder/panels/core/panelConfigs.ts:1`
+  - `apps/builder/src/builder/panels/datatable/types/editorTypes.ts:2`
+- **Phase 7 진입 전 final 검증 grep 3-way (2026-05-13 측정)**:
+  - `executeTransformer` / `action.type === "transform"` events/actions 흐름 caller — `apps/builder/src/types/builder/data.types.ts:562` (interface 선언) + `apps/builder/src/builder/stores/data.ts:161,295` (action factory) + `TransformerList.tsx:34,71` (UI 자체) = **외부 caller 0건 ✓**
+  - `Element.dataBinding.transformer*` 류 binding — `data.types.ts` (type 정의 자체) 외 caller 0건 ✓
+  - LLM AI prompt 안 "Transformer" 언급 (`services/ai/`) — **0건 ✓**
+
+**Phase 7 진입 가능 lock-in**: 3-way 검증 모두 통과 → Phase 7 sweep 진입 가능.
+
+**Phase 2 (a) lock-in**: Legacy collection (`type:"collection", source:"api"`) 사용 데이터 element 0건 → R4 위험 해소, 흐름 유지 (별 ADR fork 불필요).
+
 ### Phase 0 commit
 
 `docs(adr-132): Phase 0 inventory baseline freeze`
