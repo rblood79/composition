@@ -1,6 +1,8 @@
-# ADR-132 design breakdown — useCollectionData useAsyncList 정합 + data_tables sink 통일
+# ADR-132 design breakdown — useCollectionData useAsyncList 정합 + collections sink 통일 (+ data_tables → collections rename)
 
 > 본 문서는 [ADR-132](../132-usecollectiondata-useasynclist-alignment.md) 의 구현 상세. ADR 본문에는 framing 결정 + 잔존 위험 + Gate 만, 본 문서는 Phase 분해 / 파일 목록 / 체크리스트 / 코드 예시.
+>
+> **2026-05-13 scope 확장**: 사용자 explicit confirm 으로 `data_tables` (snake) / `dataTables` (camel) → `collections` rename 포함. `DataTable` Pascal (UI 컴포넌트 / Editor / Panel) 유지. IndexedDB store drop 정책 (개발 단계, migration 코드 없음).
 
 ## §1 framing checkpoint 4 질문 lock-in (M2 — 사용자 explicit confirm 2026-05-13)
 
@@ -60,6 +62,13 @@ grep -n "processedData\|dataTableData\|apiEndpointData\|datatableState" packages
   - RAC renderer 측 useCollectionData caller site count (Table / ListBox / GridList / ComboBox / Select / Tree / Breadcrumbs)
   - `apiEndpointService` DI Context Canvas 측 주입 site (R2 검증용)
   - `executeApiEndpoint` 의 `signal: AbortSignal` 파라미터 지원 여부 (Soft Constraint line 47)
+- **rename baseline frozen (Phase 5 sweep 대상)**:
+  - `\bdata_tables\b` (snake) 13 파일 — DB schema / canonical document / IndexedDB adapter / dataActions / inspectorActions / rootCollectionMigration / 외
+  - `\bdataTables\b` (camel) 15+ 파일 — Zustand store API / hook / postMessage / panel / messageHandler / 외
+  - `\bDataTable\b` (Pascal) 30+ 파일 — **변경 제외 baseline 보존** (UI 컴포넌트 / Editor / Panel / Type 이름 유지)
+  - postMessage type literal: `"dataTables"` / `"SYNC_DATA_TABLES"` / `"DATA_TABLES_*"` (Builder ↔ Canvas iframe payload)
+  - canonical document field name: `composition-document.types.ts` 의 `dataTables` field
+  - AI tool prompt 어휘 (`createElement.ts`)
 
 ### Phase 0 commit
 
@@ -182,11 +191,77 @@ const list = useAsyncList({
 
 **Phase 4 commit**: `feat(adr-132): Phase 4 — collectionDataCache + dataTables subscribe 정합`
 
-### Phase 5 — Status Implemented + README + CHANGELOG
+### Phase 5 — rename sweep (`data_tables` / `dataTables` → `collections`)
+
+**목표**: Phase 1-4 완료 후 single PR 로 mechanical rename land. Builder + Publish + Shared + Preview 동시 변경 (R8 — postMessage schema 양쪽 동시 deploy 필요).
+
+**rename 매핑**:
+
+| Before                               | After                                 | 영역                                                                     |
+| ------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------ |
+| `data_tables`                        | `collections`                         | IndexedDB store name / DB type / canonical document                      |
+| `dataTables`                         | `collections`                         | Zustand store property / action API / postMessage                        |
+| `setDataTables` / `addDataTable` 등  | `setCollections` / `addCollection` 등 | Zustand actions                                                          |
+| `syncDataTablesToCanvas`             | `syncCollectionsToCanvas`             | postMessage helper                                                       |
+| `SYNC_DATA_TABLES` / `DATA_TABLES_*` | `SYNC_COLLECTIONS` / `COLLECTIONS_*`  | postMessage type literal                                                 |
+| `dataTablesVersion`                  | `collectionsVersion`                  | Zustand counter                                                          |
+| `useDataStore.dataTables`            | `useDataStore.collections`            | store API                                                                |
+| `endpoint.targetDataTable`           | `endpoint.targetCollection`           | api_endpoints type (이름은 `data_tables` row 가리키는 reference, rename) |
+
+**유지 (UI/UX surface — 사용자 framing 명시)**:
+
+- `DataTable` Pascal: Component (`DataTable.tsx` / `DataTableComponent.tsx`) / Editor (`DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `ApiEndpointEditor.tsx`) / Panel (`datatable/`) / Type 이름 (`datatable.types.ts`)
+- DataPanel UI label / "Table 추가" 버튼 / "DataTable 패널" 등 사용자 노출 텍스트
+- 사용자 framing: "UI 는 `DataTable` 이 직관 (RDB 친숙도) — 내부 데이터 구조만 `collections` 정합"
+
+**핵심 변경 영역 (단일 commit)**:
+
+1. **DB schema layer** (`apps/builder/src/lib/db/`):
+   - `adapter.ts` 18 hits — IndexedDB store name `data_tables` → `collections`. **DB_VERSION bump + drop + create** (migration 코드 없음)
+   - `types.ts` 3 + 7 hits — DB type rename
+2. **Zustand store layer** (`apps/builder/src/builder/stores/`):
+   - `datatable.ts` (23 + 28 hits) → 파일 rename 검토 (`collections.ts`?). 또는 store 이름만 변경, 파일명 유지
+   - `data.ts` 7 + 10 hits — store interface
+   - `utils/dataActions.ts` 9 + 29 + 18 hits — actions API rename
+3. **Hook layer**:
+   - `useCollectionData.tsx` 4 + 7 hits — Phase 1 와 동시 변경 (단일 commit 권장)
+   - `useDataQueries.ts` 8 + 11 + 12 hits
+   - `useIframeMessenger.ts` 7 hits — postMessage payload schema
+4. **Canonical document** (`packages/shared/src/types/composition-document.types.ts` 2 hits):
+   - canonical document `dataTables` field → `collections`
+   - ADR-116/122 framing 정합 (canonical SSOT 어휘 통일)
+5. **Preview/Publish**:
+   - `apps/builder/src/preview/messaging/messageHandler.ts` 3 hits
+   - `apps/builder/src/preview/store/runtimeStore.ts` 2 hits
+   - `apps/publish/` 측 — `ProjectData` 직렬화 path 동시 정합 (W4 scope 일부 포함, 단순 string rename 만)
+6. **AI tool prompt** (`apps/builder/src/services/ai/tools/createElement.ts` 1 hit):
+   - LLM 에게 전달하는 system prompt 어휘 갱신
+
+**삭제 / 자동 생성**:
+
+- IndexedDB 기존 `data_tables` object store 자동 drop (DB_VERSION bump 시)
+- `collections` object store 신규 생성
+- 사용자 본인 dev DB export 권고 (R9 — commit message 안 명시)
+
+**검증**:
+
+- `rg '\bdata_tables\b' -t ts -g '!*.test.*' -g '!node_modules'` = **0 hit** (theme/legacy 주석 허용 list 명시 — 본 ADR scope 밖 영역)
+- `rg '\bdataTables\b' -t ts -g '!*.test.*' -g '!node_modules'` = **0 hit**
+- `rg '"dataTables"' -t ts -g '!node_modules'` = **0 hit** (postMessage type literal)
+- `rg '\bDataTable\b' -t ts -g '!node_modules'` = **baseline 보존** (Pascal UI 어휘 유지)
+- type-check 3/3 PASS
+- vitest 기존 PASS 유지
+- Chrome MCP smoke — DataTable 패널 / API endpoint 실행 / RAC collection 컴포넌트 read 정상
+
+**Phase 5 Gate**: G6 (rename sweep grep gate — ADR 본문 §Gates 참조)
+
+**Phase 5 commit**: `feat(adr-132): Phase 5 — data_tables → collections rename sweep + DB_VERSION bump`
+
+### Phase 6 — Status Implemented + README + CHANGELOG
 
 - ADR Status `Proposed → Implemented`
 - `docs/adr/README.md` ADR-132 entry 갱신
-- `docs/CHANGELOG.md` 신 엔트리
+- `docs/CHANGELOG.md` 신 엔트리 (rename + sink 통일 양쪽 명시)
 
 ## §4 Gate matrix (Risk ↔ Gate 1:1 매핑)
 
@@ -198,6 +273,9 @@ const list = useAsyncList({
 | R4 (Legacy collection api source 사용 element 가 0건이라는 가정 깨질 경우 mass migration 필요)                        |   2   | G2   | Phase 0 inventory grep `type: "collection"` AND `source: "api"` element 사용 빈도 측정, 0건 또는 < 5건 시 (a) 유지               | (b) ephemeral data_tables sink 또는 별 ADR fork                                                                          |
 | R5 (PropertyDataBinding api source element 가 reload UX 회귀 — 기존 reloadTrigger 사용자 노출 surface 어디)           |   1   | G1-2 | reload UX 가 `list.reload()` 로 동작 동등                                                                                        | `reloadTrigger` 호출처 모두 `list.reload()` 로 치환                                                                      |
 | R6 (useAsyncList load callback throw 시 RAC/RSC error surface 처리 — happy path 외 검증 누락 가능성)                  |   1   | G1-3 | error surface 3 케이스 (endpoint not found / fetch fail / abort) Storybook + Chrome MCP smoke PASS                               | RAC `list.error` / `list.isLoading` 미binding 시 collection 컴포넌트 error UX 미작동 — Phase 1 land 차단 후 binding 보강 |
+| R7 (rename mechanical 누락 — string literal selector / DB store name / postMessage type 잔존 시 runtime crash)        |   5   | G6   | `\bdata_tables\b` / `\bdataTables\b` / `"dataTables"` literal grep 3-way 모두 0 hit. `DataTable` Pascal baseline 보존            | 누락 site 보강 후 재검증, type-check baseline 갱신                                                                       |
+| R8 (Builder ↔ Canvas postMessage payload schema 양쪽 동시 deploy 필요 — 한쪽만 land 시 iframe silent fail)            |   5   | G6   | rename land 시 `apps/builder` + `apps/publish` + preview iframe messageHandler **3-way 단일 commit**                             | rollback 후 단일 commit 재구성                                                                                           |
+| R9 (IndexedDB `data_tables` store drop 시 dev 환경 in-progress 데이터 손실)                                           |   5   | G6   | DB_VERSION bump 한 번에 drop + create 묶음. commit message 안 본인 dev DB export 권고 명시                                       | dev 환경 재시작 후 데이터 재생성 (개발 단계 user data 손실 허용)                                                         |
 
 ## §5 잔존 운영 위험 (Risks)
 
@@ -209,6 +287,9 @@ const list = useAsyncList({
 | R4  | Legacy collection 사용 element mass migration burden                                            | **LOW** | Phase 0 inventory 확정 후 평가, 본 ADR scope 내 단일 결정 lock-in                                                                                                                                                                                                          |
 | R5  | reloadTrigger UX 회귀                                                                           | **LOW** | 사용처 grep + list.reload 치환                                                                                                                                                                                                                                             |
 | R6  | useAsyncList load throw 시 RAC/RSC error surface 처리 (list.error / list.isLoading binding)     | **MED** | Phase 1 핵심 변경 시 error surface 패턴 명시 (§3 Phase 1 code 예시 참조) + 3 케이스 smoke (endpoint not found / fetch fail / abort)                                                                                                                                        |
+| R7  | rename mechanical 누락 — string literal selector / DB store name / postMessage type 잔존        | **MED** | Phase 5 sweep grep gate 3-way (`\bdata_tables\b` / `\bdataTables\b` / `"dataTables"` literal) = 0 hit. type-check baseline 동시 갱신. AI tool `createElement.ts` prompt 어휘 갱신                                                                                          |
+| R8  | Builder ↔ Canvas postMessage payload schema 양쪽 동시 deploy 필요 — 한쪽만 land 시 silent fail  | **MED** | rename land 시 `apps/builder` + `apps/publish` + preview iframe `messageHandler.ts` / `useIframeMessenger.ts` / `runtimeStore.ts` 동시 단일 commit                                                                                                                         |
+| R9  | IndexedDB `data_tables` store drop 시 dev 환경 in-progress 데이터 손실                          | **LOW** | DB_VERSION bump 한 번에 drop + create 묶음. commit message 안 본인 dev DB export 권고. 개발 단계 user data 손실 허용                                                                                                                                                       |
 
 잔존 HIGH 위험 0건.
 
@@ -225,14 +306,24 @@ const list = useAsyncList({
 
 **본 ADR 안**:
 
-- `packages/shared/src/hooks/useCollectionData.tsx` 전수
-- `apps/builder/src/builder/hooks/useCollectionData.ts` 전수
+- `packages/shared/src/hooks/useCollectionData.tsx` 전수 (Phase 1-4 정합)
+- `apps/builder/src/builder/hooks/useCollectionData.ts` 전수 (Phase 1-4 정합)
 - `packages/shared/src/hooks/collectionDataContext.tsx` (DI 영향만)
 - `packages/shared/src/hooks/useCollectionDataCache.ts` (Phase 4 영향만)
+- **Phase 5 rename sweep — `data_tables` / `dataTables` → `collections` 전수 (50+ 파일)**:
+  - DB layer: `apps/builder/src/lib/db/indexedDB/adapter.ts` / `types.ts`
+  - Zustand store: `apps/builder/src/builder/stores/datatable.ts` / `data.ts` / `utils/dataActions.ts` / `inspectorActions.ts`
+  - Hook layer: `useDataQueries.ts` / `useIframeMessenger.ts`
+  - Canonical document: `packages/shared/src/types/composition-document.types.ts` (`dataTables` field → `collections`)
+  - Canonical adapters: `apps/builder/src/adapters/canonical/rootCollectionMigration.ts` / `canonical/canonicalDocumentStore.ts` / `canonical/canonicalElementsBridge.ts`
+  - Preview / Publish: `apps/builder/src/preview/messaging/messageHandler.ts` / `runtimeStore.ts` + `apps/publish` 측 string rename
+  - AI tool prompt: `apps/builder/src/services/ai/tools/createElement.ts`
+  - Dashboard: `apps/builder/src/dashboard/index.tsx`
+- **UI/UX 어휘는 유지** (`DataTable` Pascal): `DataTable.tsx` / `DataTableEditor.tsx` / `DataTableEditorPanel.tsx` / `DataTableList.tsx` / `DataTableComponent.tsx` / `ApiEndpointEditor.tsx` / `datatable.types.ts` / DataPanel label / "Table 추가" 버튼 텍스트
 
 **본 ADR scope 밖** (별 ADR 발의):
 
-- AI tool `createElement.ts` 의 `element.dataBinding.config` 직접 endpoint 박는 패턴 정정 (W3)
-- apps/publish 의 `ProjectData` 직렬화 정합 (W4)
+- AI tool `createElement.ts` 의 `element.dataBinding.config` 직접 endpoint 박는 패턴 정정 (W3) — string rename 만 본 ADR 안, dataBinding 구조 변경은 별 ADR
+- apps/publish 의 `ProjectData` 직렬화 정합 (W4) — string rename 만 본 ADR 안, 직렬화 schema 정합은 별 ADR
 - DataPanel UI 의 정적 입력 / API 결과 표시 UX 개선
 - Element.dataBinding type 의 source enum 정합 (현 `static/api/supabase/state/parent` 5종 enum 의 valid 여부 재평가)
