@@ -1,6 +1,10 @@
 # composition AI 기능 업그레이드 설계
 
-> **Superseded by [ADR-054](054-local-llm-architecture.md)** — 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)
+> **Status: Deprecated — 2026-05-13** (Replaced by [ADR-134](../134-ai-assistant-llm-infrastructure-unification.md) — AI Assistant 차세대 아키텍처)
+>
+> **사유**: 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 land 된 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical vocabulary (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합. 이전 marker "Superseded by ADR-054" 도 ADR-054 Proposed 영역과 함께 ADR-134 로 통합 흡수.
+>
+> **Phase A1~A4 land 산출물 보존 영역**: 7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback. ADR-134 Phase 2 (Groq 제거 + Ollama Provider 1st) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환.
 
 > 작성일: 2026-01-31
 > 참고: `docs/RENDERING_ARCHITECTURE.md` (렌더링 전환 계획)

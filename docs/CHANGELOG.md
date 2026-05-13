@@ -5,6 +5,51 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [AI Assistant 차세대 아키텍처 plan land — ADR-134 Proposed + ADR-011 / ADR-054 Deprecated] - 2026-05-13
+
+### Architecture
+
+- **ADR-134 Proposed 발의** (AI Assistant 차세대 아키텍처 — LLM 인프라 + 도구/UI 통합):
+  - 위치: `docs/adr/134-ai-assistant-llm-infrastructure-unification.md` + `docs/adr/design/134-ai-assistant-llm-infrastructure-unification-breakdown.md`
+  - 사용자 framing 정합 — "기존 계획 [ADR-011 + ADR-054] 폐기 후 신규 ADR 을 생성하는 것이 맞다고 본다"
+  - **Why**: ADR-011 (AI Assistant 설계, 2026-01-31, Phase A1~A4 land + P5 부분완료) + ADR-054 (로컬 LLM 아키텍처, 2026-04-05, Proposed) 가 land 된 4 SSOT 영역 — canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical vocabulary (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) — 정합 미반영. 단순 supersede 가 아니라 system 정합 격차 해소 목적
+  - framing checkpoint 4 질문 통과 — Q1 base/응용 분류 (ADR-054 base + ADR-011 응용, 직교 specialization) / Q2 schema 직교성 (Provider 추상화 ↔ AI 도구/UI) / Q3 baseline framing reverse 검증 (기존 단일 supersede 관계 정정) / Q4 단일 통합 사용자 explicit confirm
+  - Risk Threshold Check — 대안 A (단일 통합, 선택) HIGH 0개 / 대안 B (base+응용 분리 fork) HIGH 1개 유지보수 / 대안 C (ADR-054 유지 + ADR-011 만 Deprecated + 신규 응용 ADR) HIGH 1개 유지보수 + 사용자 framing 충돌
+  - sub-decision D1-D9 — D1 LLMProvider 추상화 (4-way: Ollama / node-llama-cpp / Anthropic / OpenAI-compatible) / D2 AI 도구 canonical 정합 / D3 data_tables SSOT 정합 / D4 events/actions root collection 정합 / D5 frame canonical vocabulary 정합 / D6 컴포넌트 카탈로그 (RAC/RSP) / D7 AI 설계 지능 (Plan→Execute→Verify) / D8 모델 라우팅 (난이도 기반) / D9 AIPanel UX 1년차 신입 baseline
+  - Phase 0-9 + Gates G1-G7 + Risks R1-R11 (R1 HIGH Electron 시점 미확정 → Phase 9 G7)
+  - **plan-only land** — Phase 0-9 실행 작업 + 코드 변경은 사용자 plan review 후 별 step (ADR-133 동일 패턴)
+
+### Deprecated
+
+- **ADR-011 (AI Assistant 설계, Groq Tool Calling) — Replaced by ADR-134**:
+  - 위치: `docs/adr/011-ai-assistant-design.md` → `docs/adr/completed/011-ai-assistant-design.md`
+  - **Why**: 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합
+  - 보존 영역 — Phase A1~A4 land 산출물 (7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback) 은 ADR-134 Phase 2 (Groq 제거 + Ollama Provider 1st) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환
+  - 이전 P5 ADR-011 A5 (CanvasKit 스키마 변환 / 멀티모달 / 인스턴스/변수 도구) 영역 → ADR-135+ 응용 ADR 이관 (미발의)
+
+- **ADR-054 (로컬 LLM 아키텍처, Ollama → node-llama-cpp) — Replaced by ADR-134**:
+  - 위치: `docs/adr/054-local-llm-architecture.md` → `docs/adr/completed/054-local-llm-architecture.md`
+  - **Why**: Proposed 상태로 land 0건. 작성 시점 (2026-04-05) 이후 land 된 canonical document SSOT / data_tables SSOT / events/actions root collection / frame canonical / AIPanel UX 1년차 신입 baseline 정합 미반영
+  - 흡수 영역 — Provider 추상화 base 영역 + Hard Constraints 7개 + Gates G1-G6 모두 ADR-134 (단일 통합) 에 정합 갱신
+  - design breakdown 본문 (`docs/adr/design/054-local-llm-architecture-breakdown.md`) 은 ADR-135+ 응용 영역 (AI 멀티모달 / CanvasKit 스키마 변환 / 인스턴스 도구 / AI 텍스트 생성 / 접근성 감사 / MCP Protocol) 미래 참조용으로 유지
+
+### Documentation
+
+- README.md 갱신 (위 변경 일괄 반영):
+  - 부분완료 표에서 ADR-011 P5 행 삭제
+  - 미구현 표에서 ADR-054 P2 행 삭제 + ADR-134 Proposed 행 추가
+  - Deprecated 섹션에 ADR-011 / ADR-054 행 추가 (사유 + 후속 처리 명시)
+  - 다음목표 표에 ADR-011 / ADR-054 Deprecated 행 추가 + ADR-134 Proposed P2 행 추가
+  - P5 헤더 정정 (`ADR-011 A5 + ADR-015 + ADR-016` → `ADR-015 + ADR-016`, ADR-011 A5 → ADR-135+ 이관 표시)
+  - 2026-05-13 (본 turn) 재산정 note 추가 + 활동 기록 entry 추가
+  - 최상단 update note 보강
+
+### Infrastructure
+
+- git mv 100% similarity rename staging 패턴 학습 재적용 — `git mv` 후 `git add <dst>` 명시 + `git diff --cached --find-renames=50` 으로 stats 검증 (`+6/-1` ADR-011 / `+12/-4` ADR-054 staged diff 정상 확인). ADR-038 / ADR-042 사례 (2026-05-13 직전 turn) 재발 방지
+
+---
+
 ## [EventsPanel UX 단순화 plan land — ADR-131 / ADR-042 Implemented + 4 ADR Deprecated + ADR-133 Proposed] - 2026-05-13
 
 ### Architecture

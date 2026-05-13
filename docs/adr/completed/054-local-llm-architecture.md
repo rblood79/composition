@@ -1,10 +1,16 @@
 # ADR-054: 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)
 
-> Supersedes [ADR-011](011-ai-assistant-design.md)
+> **Status: Deprecated — 2026-05-13** (Replaced by [ADR-134](../134-ai-assistant-llm-infrastructure-unification.md) — AI Assistant 차세대 아키텍처)
+>
+> **사유**: Proposed 상태로 land 0건. 본 ADR 의 Provider 추상화 base 영역 + Hard Constraints 7개 + Gates G1-G6 은 ADR-134 (단일 통합) 에 정합 갱신되어 흡수. 작성 시점 (2026-04-05) 이후 land 된 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 정합 미반영.
+>
+> **ADR-054 → ADR-134 매핑** (design breakdown §14 참조): Phase 1 (Groq 제거 + Provider) → ADR-134 Phase 1+2 / Phase 2 (로컬 모델 Tool Calling) → Phase 2+5 / Phase 3 (Canvas FPS) → Phase 9 / Phase 4-5 (카탈로그) → Phase 5 / Phase 6 (디자인 지능) → Phase 6 / Phase 7 (접근성 감사) → ADR-135+ 응용 (scope 밖)
+
+> Supersedes [ADR-011](011-ai-assistant-design.md) — 함께 Deprecated, ADR-134 로 통합 흡수
 
 ## Status
 
-Proposed — 2026-04-05
+Deprecated — 2026-05-13 (Replaced by [ADR-134](../134-ai-assistant-llm-infrastructure-unification.md))
 
 ## Context
 
@@ -134,7 +140,7 @@ Pencil, Google Stitch처럼 자연어로 페이지 전체를 디자인할 수 �
 - **대안 B 기각**: Electron 마이그레이션 시점 미확정. 그때까지 AI 개발 전면 차단은 비용 과다
 - **대안 C 기각**: WebGPU 성능이 Agent Loop + Canvas 렌더링 동시 실행에 부적합. Electron 전환 시 투자 회수 불가
 
-> 구현 상세: [054-local-llm-architecture-breakdown.md](design/054-local-llm-architecture-breakdown.md)
+> 구현 상세: [054-local-llm-architecture-breakdown.md](../design/054-local-llm-architecture-breakdown.md) — Deprecated 영역, ADR-134 design breakdown 으로 흡수
 
 ## Gates
 
