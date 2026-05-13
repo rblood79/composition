@@ -46,9 +46,7 @@ export interface ComponentIntent {
   styles?: Record<string, unknown>;
   fills?: unknown[];
   dataBinding?: {
-    baseUrl: string;
     endpoint: string;
-    params?: Record<string, unknown>;
   };
   description?: string;
 }

@@ -80,12 +80,7 @@ export class IntentParser {
       return {
         action: "create",
         componentType: "Table",
-        dataBinding: endpoint
-          ? {
-              baseUrl: "MOCK_DATA",
-              endpoint,
-            }
-          : undefined,
+        dataBinding: endpoint ? { endpoint } : undefined,
         description: "테이블 컴포넌트를 생성합니다.",
       };
     }
@@ -126,12 +121,7 @@ export class IntentParser {
       return {
         action: "create",
         componentType: "Select",
-        dataBinding: endpoint
-          ? {
-              baseUrl: "MOCK_DATA",
-              endpoint,
-            }
-          : undefined,
+        dataBinding: endpoint ? { endpoint } : undefined,
         description: "Select 컴포넌트를 생성합니다.",
       };
     }
