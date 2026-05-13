@@ -5,6 +5,66 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [EventsPanel UX 단순화 plan land — ADR-131 / ADR-042 Implemented + 4 ADR Deprecated + ADR-133 Proposed] - 2026-05-13
+
+### Architecture
+
+- **ADR-131 Implemented 승격** (commit `217ac682a`):
+  - events/data/actions 일급 컴포넌트 루트 컬렉션 — Phase 0-8 전수 완결.
+  - Phase 0 inventory baseline → Phase 1 schema land G1 (`SerializedEvent`/`SerializedAction` 신규 타입 + `CompositionExtension` `@deprecated ADR-131` 마커) → Phase 2 adapter migration G2 (`rootCollectionMigration.ts` round-trip 17/17 PASS) → Phase 3 store/bridge API (12 mutation surface + 4 hook, 11/11 PASS) → Phase 4 consumer rewrite dual-write (Inspector mutation 5 함수 + AI createElement root mirror) → Phase 5 Inspector UI 3 panel G3 (`DataPanel` + `ActionsPanel` 신규 + `PanelId` union 확장) → Phase 6 ADR-116 §3 cleanup G4 (`adr131XCompositionGrepGate.test.ts` production direct access 0건 차단) → Phase 7 IndexedDB store land (events/data/actions store 3개, DB_VERSION 15→16) → Phase 7-revert (data store drop, DB_VERSION 16→17, 사용자 framing 정정 "data_tables 중복 개념") → Phase 8 `SerializedData` / `CompositionDocument.data` 영역 전수 revert (사용자 framing 완결 "RAC/RSC data SSOT = `data_tables`").
+  - **Why**: Pencil format 정통에 events/data/actions 카테고리 자체가 없다는 framing 정정. ADR-116 §3 `x-composition.events|actions|dataBinding` namespace extension 결정을 partial supersede + ADR-110 themes/variables root collection 패턴 정합.
+  - ADR-133 (Proposed 2026-05-13) 가 Phase 5 G3 ActionsPanel UX 표면 결정만 partial reverse — schema root collection 격상 유지.
+  - 위치: `packages/shared/src/types/composition-document.types.ts` / `apps/builder/src/builder/stores/canonical/canonicalElementsBridge.ts` / `apps/builder/src/builder/adapters/canonical/rootCollectionMigration.ts`.
+- **ADR-042 Implemented (타협) 승격** (commits `e2932cc62` + `2d86ea98a`):
+  - Spec Container Dimension Injection — Tier 1 100% land + Tier 2/3 본문 ROI 보류 결정 유지.
+  - **Tier 1** text width 추정 제거 (`fontSize * 0.55` / `text.length * 0.55` / `0.35`) — Tag / Breadcrumbs / Tabs 모두 `_containerWidth` injection 으로 정합. 잔존 0건.
+  - **Tier 1 확장** `_containerWidth/_containerHeight` injection 패턴 다수 컴포넌트 확산 — ProgressBarTrack / SearchField / ColorField / Select / GridList / SelectTrigger / MeterTrack 등.
+  - **Tier 2** `size.height/2` → `_containerHeight/2` 본문 ROI 보류 결정 유지 — Table.spec.ts:251+302 / Toast.spec.ts:318 / Skeleton.spec.ts:169-171 / Disclosure.spec.ts:182 5+ 위치 의도된 잔존. 본문 §Phase별 ROI 분석 "1~2px 차이 육안 거의 불가" 명시.
+  - **Tier 3** StatusLight (utils.ts) 본문 보류 결정 유지 (별도 설계 영역).
+  - **Why (타협 사유)**: 사용자 결정 — "현실적으로 Skia 와 HTML 의 1-2px 를 일치시킬 수는 없음. 그래서 현재는 미완이지만 타협안으로 완료로 이동". Skia 와 HTML 의 본질적 sub-pixel 비대칭은 영원히 100% 일치 불가능한 영역. 본질 영역 (Tier 1) 100% land + Tier 2/3 본문 의도된 보류 = 타협 Implemented.
+- **ADR-133 Proposed 발의** (commit `53bc5d6eb`):
+  - EventsPanel UX 단순화 (1년차 신입 baseline) + canonical events/actions 단일화 + ActionsPanel 흡수 + RAC convention 정합 — base ADR.
+  - **D1**: EventsPanel UI depth 4→2 축소 (default 표면) — L1 element RAC callback props list + L2 inline expand 1-action binding. expand toggle = multi-action chain + condition + custom event (L4 power user 격리).
+  - **D2**: Primary store canonical — `useEventsForTarget(elementId)` + `useDocumentActions()` direct. legacy `element.props.events` 는 Pencil import/export adapter round-trip 만.
+  - **D3**: action chain canonical — inline `actions[]` → `SerializedAction.next[]` chain. THEN/ELSE → `actionRef` / `fallbackActionRef`.
+  - **D4**: ActionsPanel 흡수 — `apps/builder/src/builder/panels/actions/` 디렉토리 전체 + `PanelId "actions"` 제거. cross-event reuse 는 EventsPanel 안 "다른 event 에서도 사용" 토글.
+  - **D5**: ADR-010 P0/P1 UI 표면 보존 (RecommendedEventsSection / TemplateSuggestionSection / RecommendedActionsChips / 누락 경고 4 영역).
+  - **D6**: condition placeholder lock-in — `{kind:"comparison"|"raw", left?, op?, right?, expression?}` 1단계 AST.
+  - **D7**: debounce/throttle `SerializedEvent` 확장 슬롯.
+  - **D8 breaking changes 3 종** (사용자 explicit Q1/Q2/Q5): `onClick` → `onPress` deprecation / `onMouseEnter`/`onMouseLeave` → `onHoverStart`/`onHoverEnd` rename / `onMouseDown`/`onMouseUp`/`onKeyPress`/`onDoubleClick` 4 종 EventType union 제거.
+  - **D9 callback gap 13 신규 추가** (사용자 explicit Q3): Table 6 종 (`onRowAction`/`onSortChange`/`onResize`/`onResizeStart`/`onResizeEnd`/`onLoadMore`) + SearchField (`onClear`) + ComboBox (`onInputChange`) + Press lifecycle 4 종 (`onPressStart`/`onPressEnd`/`onPressChange`/`onPressUp`) + Hover lifecycle (`onHoverChange`).
+  - **Why**: 사용자 framing — "이벤트패널 뎁스 너무 복잡" + "ActionsPanel 뭐하는 기능이지?" + "1년차 신입 개발자라도 사용할 수준이어야한다" + "RAC,RSC 의 이벤트 샘플부터 벤치마크를 해야". RAC/RSC 정통 mental model = "컴포넌트별 semantic callback prop 1~3 개에 handler 1 개 binding" 정합.
+  - **Evidence**: `~/.claude/plans/rac-rsc-event-callback-benchmark.md` (42 RAC + 9 RSP 컴포넌트 callback inventory).
+  - Phase 0-7 + Gate G1-G7 + Risk R1-R11 + scope 경계 (ADR-134 응용 분리).
+  - 위치: `docs/adr/133-events-panel-simplification.md` + `docs/adr/design/133-events-panel-simplification-breakdown.md`.
+  - Phase 0-7 실행 작업 + 본문 land 작업 + 코드 변경은 사용자 plan review 후 단계.
+
+### Deprecated
+
+- **ADR-010 Events Panel Smart Recommendations** → completed/ — Replaced by ADR-133:
+  - P0/P1 land 영역 (RecommendedEventsSection / TemplateSuggestionSection / RecommendedActionsChips / ActionBlock 누락 경고 4 영역) ADR-133 D5 흡수.
+  - P1.5 UX 폴리싱 + P2 AI 자연어 생성 / 커맨드 팔레트 / 시뮬레이션 / 개인화 추천 → ADR-134 응용 이관.
+- **ADR-032 Events Platform 재설계 v2** → completed/ — Replaced by ADR-133 + ADR-131 partial supersede 완결:
+  - events/actions root collection schema → ADR-131 / canonical UI 표면 → ADR-133 D2/D3/D4.
+  - TriggerRegistry / EffectRegistry / CapabilityRegistry / RecipeRegistry / BindingRef AST / Condition DSL 완전 AST / EventHandler.source provenance → ADR-134 응용.
+- **ADR-034 Events Panel Renovation** → completed/ — Replaced by ADR-133:
+  - Panel UX 전면 개편 (4 depth → 2 depth) → ADR-133 D1 + canonical primary → D2.
+  - 7 섹션 IA renovation (ConnectionStatusSection / RecommendedRecipesSection / HandlersListSection / HandlerEditorSection / DiagnosticsSection / PreviewSection) → **ADR-134 응용**. **Why**: 7 섹션 monolith 분해 framing 자체가 RAC 정통 매핑 framing 과 다른 방향이며 사용자 framing "뎁스 너무 복잡" + "1년차 신입 OK" baseline 부정합.
+  - recipe 중심 UX / diagnostics / preview / Manual/Recipe/Broken 상태 모델 / Property Editor 이벤트 설정 제거 (108 에디터) → ADR-134 응용 이관.
+- **ADR-038 Figma 디자인 임포트 시스템** → completed/ — 사용자 결정 (재설계 영역):
+  - **Why**: "현재 불필요하며 ADR 설계 규칙에 의거하여 설계되지 않아 필요시 재설계 해야 한다".
+  - 향후 재발의 시 `adr-writing.md` Risk-First 템플릿 (Context → Alternatives Considered → Risk Threshold Check → Decision → Risks → Gates → Consequences) + framing checkpoint 4 질문 lock-in + 3-domain 분류 (D1/D2/D3) 절차 통과 의무.
+
+### Documentation
+
+- **ADR-133 본문 + design breakdown 신규 작성** — `docs/adr/133-events-panel-simplification.md` + `docs/adr/design/133-events-panel-simplification-breakdown.md`. framing checkpoint 4 질문 lock-in + sub-decision D1-D9 + Phase 0-7 + Gate G1-G7 + Risk R1-R11 + ADR-134 응용 분리 명시.
+- **ADR-010 / 032 / 034 / 038 / 042 / 131 본문 → `docs/adr/completed/` 이동** — historical context 보존 (본문 archive 만, 본문 삭제 금지). 6 ADR 본문 상단에 Status 마킹 + land 영역 / 미land 영역 (응용 ADR 이관) 명시.
+- **README.md 갱신**: 부분완료 표 정리 (ADR-010 / ADR-042 행 삭제) + 미구현 표 정리 (ADR-032 / 034 / 038 / 131 행 삭제 + ADR-133 추가) + Deprecated 섹션 신설 (4 ADR) + Implemented 표 추가 (ADR-131 / ADR-042) + P3/P5 우선순위 항목 정리 + 활동 기록 entry 추가 + 최상단 update note 추가.
+
+### Infrastructure
+
+- **`git mv` 100% similarity rename 패턴 인지** — `git mv` 가 working tree edit 를 자동 stage 하지 않음. ADR-038 (commit `d4a908773`) 과 ADR-042 (commit `2d86ea98a`) 두 번 누락 발견 후 보강 commit 으로 복구. 다음 ADR 처리 시 `git mv <src> <dst>` 후 `git add <dst>` 명시 필수.
+
 ## [useCollectionData useAsyncList 정합 + collections sink 통일 + data_tables → collections rename + Transformer 제거 (ADR-132)] - 2026-05-13
 
 ### Breaking Changes
