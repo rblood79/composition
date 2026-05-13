@@ -455,9 +455,9 @@ src/builder/stores/utils/instanceActions.ts(398,13): error TS2345: Argument of t
 src/builder/stores/utils/instanceActions.ts(445,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Element'.
 src/builder/stores/utils/instanceActions.ts(499,9): error TS2353: Object literal may only specify known properties, and '[COMPONENT_ROLE_MIRROR_FIELD]' does not exist in type 'Element'.
 src/builder/stores/utils/instanceActions.ts(658,5): error TS2353: Object literal may only specify known properties, and '[COMPONENT_ROLE_MIRROR_FIELD]' does not exist in type 'Element'.
-src/builder/stores/utils/instanceActions.ts(760,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Element'.
-src/builder/stores/utils/instanceActions.ts(801,5): error TS2353: Object literal may only specify known properties, and '[COMPONENT_ROLE_MIRROR_FIELD]' does not exist in type 'Element'.
-src/builder/stores/utils/instanceActions.ts(883,7): error TS2353: Object literal may only specify known properties, and '[COMPONENT_OVERRIDES_MIRROR_FIELD]' does not exist in type 'Element'.
+src/builder/stores/utils/instanceActions.ts(762,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Element'.
+src/builder/stores/utils/instanceActions.ts(803,5): error TS2353: Object literal may only specify known properties, and '[COMPONENT_ROLE_MIRROR_FIELD]' does not exist in type 'Element'.
+src/builder/stores/utils/instanceActions.ts(885,7): error TS2353: Object literal may only specify known properties, and '[COMPONENT_OVERRIDES_MIRROR_FIELD]' does not exist in type 'Element'.
 src/builder/utils/canonicalRefDependencies.test.ts(24,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/utils/canonicalRefDependencies.test.ts(62,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/utils/canonicalRefResolution.test.ts(134,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.

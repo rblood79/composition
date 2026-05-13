@@ -666,8 +666,10 @@ export function createInstance(
     elements: [...getInstanceActionSourceElements(prevState), instanceElement],
     layoutVersion: prevState.layoutVersion + 1,
   }));
-  get()._rebuildIndexes();
+  // canonical document 먼저 update — `_rebuildIndexes` 의 derive (canonical 우선) 가
+  // stale canonical 을 읽어 elementsMap mirror 의 instance mirror field 누락 race 방지
   syncInstanceElementsToCanonical([instanceElement]);
+  get()._rebuildIndexes();
   persistElementsAfterInstanceMutation([instanceElement]);
 
   return instanceElement;
@@ -928,8 +930,9 @@ export function resetInstanceOverrideField(
       layoutVersion: prevState.layoutVersion + 1,
     };
   });
-  get()._rebuildIndexes();
+  // canonical document 먼저 update — `_rebuildIndexes` race 방지 (위 createInstance 와 동일)
   syncInstanceElementsToCanonical([nextElement]);
+  get()._rebuildIndexes();
   const persistedSourceElements = getInstanceActionSourceElements(get());
   const persistedElement =
     findInstanceActionElement(persistedSourceElements, instanceId) ??
