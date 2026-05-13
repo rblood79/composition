@@ -16,7 +16,7 @@ Proposed — 2026-05-13
 
 ### 문제 framing
 
-[ADR-131 Phase 8 revert (2026-05-13)](completed/131-events-data-actions-first-class-collections.md) 가 lock-in 한 사용자 framing — **"RAC/RSC 컴포넌트에서 사용되는 data 의 SSOT = `data_tables`. `Element.dataBinding` 은 element 별 binding reference"** — 의 직접 후속.
+[ADR-131 Phase 8 revert (2026-05-13)](131-events-data-actions-first-class-collections.md) 가 lock-in 한 사용자 framing — **"RAC/RSC 컴포넌트에서 사용되는 data 의 SSOT = `data_tables`. `Element.dataBinding` 은 element 별 binding reference"** — 의 직접 후속.
 
 `useCollectionData` (read 진입점 hook) 현 코드의 PropertyDataBinding `source="api"` 분기는:
 
@@ -162,3 +162,4 @@ Proposed — 2026-05-13
 - useAsyncList load callback 안 dataTables selector closure 패턴이 fragile 한 경우 list.reload trigger useEffect 추가 (1-2 line cost)
 - Canvas 측 `executeApiEndpoint` DI 미주입 시 Phase 3 분기 잔존 가능성 (Phase 0 inventory 후 결정)
 - Legacy collection 사용 element 가 예상보다 많을 경우 별 ADR fork 의무 (consolidation-burden 차단 카테고리 적용)
+- **scope 경계 (별 ADR 분리 영역)**: AI tool `createElement` 의 `element.dataBinding.config` 직접 endpoint 박는 패턴 정정 (W3) / `apps/publish` 의 `ProjectData` 직렬화 정합 (W4) / DataPanel UI 정적 입력 + API 결과 표시 UX / `Element.dataBinding.source` enum 정합 (`static/api/supabase/state/parent` 5종 valid 재평가) — 본 ADR scope 밖, 후속 ADR 발의 필요. 상세: [design breakdown §7 scope 경계 명시](design/132-usecollectiondata-useasynclist-alignment-breakdown.md#7-scope-경계-명시)
