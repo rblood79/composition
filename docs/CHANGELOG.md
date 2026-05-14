@@ -5,6 +5,22 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-130 후속 UI label cleanup — Group → Frame] - 2026-05-15
+
+### Architecture
+
+- **단축키 description 과 i18n 라벨을 canonical vocabulary 에 정합**:
+  - `Cmd+G` (group action) description `"Group"` → `"Frame"`, ko `"그룹화"` → `"프레임"`. `Cmd+Shift+G` (ungroup) `"Ungroup"` → `"Unframe"`, ko `"그룹 해제"` → `"프레임 해제"`.
+  - **Why**: ADR-130 Implemented 후에도 단축키 / palette translation 이 legacy `"Group"` 라벨을 유지해 사용자 가시 영역과 canonical vocabulary (`type: "frame"`) 간 inconsistency 잔존. design §5 line 153 "UX 일관성 결정 후속 슬라이스" 해소.
+  - 위치: `apps/builder/src/builder/config/keyboardShortcuts.ts:357-375`.
+- **`i18n/translations.ts` 의 dead `components.group` entry 4 locale 일괄 제거**:
+  - ko `"그룹"` / en `"Group"` / ja `"グループ"` / zh `"分组"` 4 entry + `i18n/types.ts` `TranslationKeys.components.group: string` 필드 삭제.
+  - **Why**: palette 라벨은 `ComponentList.tsx` 의 하드코딩 `{ type: "frame", label: "frame" }` (ADR-130 line 42 정합) 로 노출되며, `components.group` translation 은 동적 lookup 0건의 dead entry. 메모리 / type compile 상 활성 필드로 잡혀 정리 미완으로 인지되던 부분.
+  - 위치: `apps/builder/src/i18n/translations.ts:71/219/365/513`, `apps/builder/src/i18n/types.ts:99`.
+- **scope 제외 (보류)**:
+  - lowercase `"group"` literal in `packages/.../composition-vocabulary.ts:145` — ADR-130 R6 본문 "즉시 제거 시 round-trip 깨짐 — Phase 2/3 후속 ADR" framing 정합 유지.
+  - `unified.types.ts:1563 createDefaultColumnGroupProps` 의 `label: "Group"` — Table column grouping 컨텍스트 (frame Group 무관).
+
 ## [ADR-135 Page-frame projection boundary implementation] - 2026-05-14
 
 ### Architecture

@@ -360,8 +360,8 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
-    description: "Group",
-    i18n: { ko: "그룹화" },
+    description: "Frame",
+    i18n: { ko: "프레임" },
   },
 
   ungroup: {
@@ -370,8 +370,8 @@ export const SHORTCUT_DEFINITIONS: ShortcutDefinitions = {
     category: "canvas",
     scope: "canvas-focused",
     priority: SHORTCUT_PRIORITY.CANVAS,
-    description: "Ungroup",
-    i18n: { ko: "그룹 해제" },
+    description: "Unframe",
+    i18n: { ko: "프레임 해제" },
   },
 
   alignLeft: {

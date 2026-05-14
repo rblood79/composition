@@ -96,7 +96,6 @@ export interface TranslationKeys {
     // Layout
     panel: string;
     card: string;
-    group: string;
     tabs: string;
     breadcrumbs: string;
     link: string;
