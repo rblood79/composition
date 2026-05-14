@@ -72,7 +72,7 @@ SKILL.md 공통 에러 복구 프로토콜을 따른다:
 
 ## Memory 활용 (세션 간 지식 축적)
 
-리팩토링 완료 후 `.Codex/agent-memory/refactorer/MEMORY.md`에 아래를 기록한다:
+리팩토링 완료 후 `.agents/agent-memory/refactorer/MEMORY.md`에 아래를 기록한다:
 
 - **완료된 주요 리팩토링**: 대규모 구조 변경 이력 (날짜 + 요약)
 - **리팩토링 시 주의 패턴**: 새로 발견된 위험 패턴 (render call 누락, 인터페이스 깨짐 등)

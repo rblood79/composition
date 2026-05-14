@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # INDEX.md 사용 빈도 자동 갱신
-# 데이터 소스: ~/.claude/projects/-Users-admin-work-composition/*.jsonl (session transcripts)
-# 실행: .claude/hooks/update-index.sh [days]   (기본 30)
+# 데이터 소스: ~/.codex/sessions/**/*.jsonl (session transcripts)
+# 실행: .codex/hooks/update-index.sh [days]   (기본 30)
 set -euo pipefail
 
 days="${1:-30}"
-proj_sessions="$HOME/.claude/projects/-Users-admin-work-composition"
-index="${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/skills/INDEX.md"
+project_dir="${CODEX_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
+proj_sessions="$HOME/.codex/sessions"
+index="$project_dir/.agents/skills/INDEX.md"
 
 [ ! -d "$proj_sessions" ] && { echo "세션 디렉토리 없음"; exit 1; }
 [ ! -f "$index" ] && { echo "INDEX.md 없음"; exit 1; }
@@ -32,7 +33,7 @@ block_end="<!-- usage-stats-end -->"
 
 {
   echo "$block_start"
-  echo "<!-- 자동 생성: .claude/hooks/update-index.sh — 수동 편집 금지 -->"
+  echo "<!-- 자동 생성: .codex/hooks/update-index.sh — 수동 편집 금지 -->"
   echo ""
   echo "## 📊 최근 ${days}일 사용 빈도 (갱신: ${ts})"
   echo ""

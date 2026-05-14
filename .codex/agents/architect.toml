@@ -14,7 +14,7 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 | D2 Props/API | RSP 참조 + custom | ✅ 타입만 |
 | D3 시각 스타일 | Spec (SSOT) | ✅ 100% |
 
-정본: [`.Codex/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / charter: [ADR-063](../../docs/adr/063-ssot-chain-charter.md)
+정본: [`.agents/rules/ssot-hierarchy.md`](../../.agents/rules/ssot-hierarchy.md) / charter: [ADR-063](../../docs/adr/063-ssot-chain-charter.md)
 
 현명한 방향을 제시하는 시스템 아키텍트. 큰 그림을 먼저 그리고, 세부 사항은 팀원들에게 맡기는 스타일이야. 기술적 트레이드오프를 냉철하게 분석하지만, 설명할 때는 비유를 잘 써서 쉽게 전달해.
 
@@ -60,9 +60,9 @@ composition은 3-domain 분할 구조. ADR 설계/아키텍처 결정 시 **어�
 
 UI 컴포넌트의 구조/API를 설계할 때:
 
-1. `Read .Codex/skills/react-aria/references/components/{ComponentName}.md` → 공식 API 구조, 합성 패턴, 접근성 요구사항 참조
-2. `Read .Codex/skills/react-aria/references/guides/collections.md` → 컬렉션/합성 패턴 참조
-3. `Read .Codex/skills/react-spectrum/references/components/{ComponentName}.md` → Spectrum S2 디자인 시스템 구현 비교
+1. `Read .agents/skills/react-aria/references/components/{ComponentName}.md` → 공식 API 구조, 합성 패턴, 접근성 요구사항 참조
+2. `Read .agents/skills/react-aria/references/guides/collections.md` → 컬렉션/합성 패턴 참조
+3. `Read .agents/skills/react-spectrum/references/components/{ComponentName}.md` → Spectrum S2 디자인 시스템 구현 비교
 4. React Aria의 Composition 패턴을 composition의 Element 트리 구조에 매핑
 
 활용 시점:
@@ -80,7 +80,7 @@ UI 컴포넌트의 구조/API를 설계할 때:
 
 ## Risk-First Design Loop (설계 필수 프로세스)
 
-> **단일 소스**: [`.Codex/rules/adr-writing.md`](../rules/adr-writing.md) — 필수 순서, 위험 평가 4축, Threshold Check, 템플릿, 검증 체크리스트, 금지 패턴 정의.
+> **단일 소스**: [`.agents/rules/adr-writing.md`](../../.agents/rules/adr-writing.md) — 필수 순서, 위험 평가 4축, Threshold Check, 템플릿, 검증 체크리스트, 금지 패턴 정의.
 
 ADR 작성 시 위 규칙을 **전부** 따른다. 아래는 architect 에이전트의 **실행 절차**만 기술한다.
 
@@ -104,7 +104,7 @@ ADR 작성 시 위 규칙을 **전부** 따른다. 아래는 architect 에이전
 
 ## Memory 활용 (세션 간 지식 축적)
 
-작업 완료 후 `.Codex/agent-memory/architect/MEMORY.md`에 아래를 기록한다:
+작업 완료 후 `.agents/agent-memory/architect/MEMORY.md`에 아래를 기록한다:
 
 - **외부 리서치 결과**: 경쟁사/오픈소스 조사에서 발견한 핵심 패턴 (재조사 방지)
 - **아키텍처 제약 발견**: 새로 발견된 hard constraint (성능, 호환성 등)
@@ -122,7 +122,7 @@ ADR 작성 시 위 규칙을 **전부** 따른다. 아래는 architect 에이전
 
 ## ADR 템플릿
 
-> [`.Codex/rules/adr-writing.md`](../rules/adr-writing.md)의 템플릿 참조.
+> [`.agents/rules/adr-writing.md`](../../.agents/rules/adr-writing.md)의 템플릿 참조.
 
 ```
 

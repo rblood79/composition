@@ -4,8 +4,8 @@
 # 하루 1 entry 누적. 일간 활동 = (오늘 - 어제) diff로 계산 가능
 set -euo pipefail
 
-project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-log_file="$project_dir/.claude/stats/daily-log.jsonl"
+project_dir="${CODEX_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
+log_file="$project_dir/.codex/stats/daily-log.jsonl"
 mkdir -p "$(dirname "$log_file")"
 touch "$log_file"
 
@@ -29,7 +29,7 @@ if grep -q "\"date\":\"$today\"" "$log_file" 2>/dev/null; then
   exit 0
 fi
 
-proj_sessions="$HOME/.claude/projects/-Users-admin-work-composition"
+proj_sessions="$HOME/.codex/sessions"
 [ ! -d "$proj_sessions" ] && exit 0
 
 cd "$proj_sessions"

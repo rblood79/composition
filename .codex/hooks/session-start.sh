@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # SessionStart hook — 세션 시작 시 composition 전용 agent/skill 로스터 및 권장 워크플로 주입
 set -euo pipefail
+INPUT=$(cat)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/codex-hook-utils.sh"
+PROJECT_DIR=$(codex_hook_project_dir "$INPUT")
 
 # 일별 통계 스냅샷 (하루 1회만 기록, 백그라운드 실행으로 세션 시작 블로킹 없음)
-if [ -x "$CLAUDE_PROJECT_DIR/.claude/hooks/daily-stats-snapshot.sh" ]; then
-  "$CLAUDE_PROJECT_DIR/.claude/hooks/daily-stats-snapshot.sh" >/dev/null 2>&1 &
+if [ -x "$PROJECT_DIR/.codex/hooks/daily-stats-snapshot.sh" ]; then
+  CODEX_PROJECT_DIR="$PROJECT_DIR" "$PROJECT_DIR/.codex/hooks/daily-stats-snapshot.sh" >/dev/null 2>&1 &
 fi
 
 # CHANGELOG drift 자동 감시 (rules/changelog.md §2 명시 — 14일/100 commit 초과 시 catch-up 권고)
 drift_block=""
-CHANGELOG_PATH="$CLAUDE_PROJECT_DIR/docs/CHANGELOG.md"
+CHANGELOG_PATH="$PROJECT_DIR/docs/CHANGELOG.md"
 if [ -f "$CHANGELOG_PATH" ]; then
   last_date=$(grep -m1 -oE '^## \[.*\] - [0-9]{4}-[0-9]{2}-[0-9]{2}' "$CHANGELOG_PATH" 2>/dev/null \
               | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1 || true)
@@ -18,7 +23,7 @@ if [ -f "$CHANGELOG_PATH" ]; then
     last_epoch=$(date -j -f "%Y-%m-%d" "$last_date" +%s 2>/dev/null || echo 0)
     if [ "$last_epoch" -gt 0 ]; then
       days_diff=$(( (today_epoch - last_epoch) / 86400 ))
-      commits_since=$(git -C "$CLAUDE_PROJECT_DIR" log --since="$last_date" --oneline 2>/dev/null | wc -l | tr -d ' ')
+      commits_since=$(git -C "$PROJECT_DIR" log --since="$last_date" --oneline 2>/dev/null | wc -l | tr -d ' ')
       if [ "$days_diff" -gt 14 ] || [ "$commits_since" -gt 100 ]; then
         drift_block=$(cat <<DRIFT_EOF
 
@@ -89,7 +94,7 @@ cat <<EOF
 - \`/execute-adr\` — ADR 자율 phase 실행 (HIGH 위험은 사용자 surface)
 
 ## 자동 게이트 (Hook)
-- PostToolUse: spec/* 편집 시 \`.claude/.spec-rebuild-pending\` flag → Stop hook 시점 \`pnpm build:specs\` 1회 실행
+- PostToolUse: spec/* 편집 시 \`.codex/.spec-rebuild-pending\` flag → Stop hook 시점 \`pnpm build:specs\` 1회 실행
 - Stop: type-check 전 spec rebuild 게이트 → flag 있으면 build → 그 후 type-check
 
 규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. CRITICAL/HIGH 이슈는 즉시 수정.${drift_block}

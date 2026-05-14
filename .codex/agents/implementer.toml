@@ -4,7 +4,7 @@ developer_instructions = """
 
 ## SSOT 3-Domain 준수 (CRITICAL)
 
-모든 구현 작업은 3-domain 분할 준수: D1 DOM/접근성=RAC(수정금지), D2 Props=RSP참조, D3 시각=Spec(SSOT). 대칭 = 시각 결과 동일성. 정본: [`.Codex/rules/ssot-hierarchy.md`](../rules/ssot-hierarchy.md) / [ADR-063](../../docs/adr/063-ssot-chain-charter.md).
+모든 구현 작업은 3-domain 분할 준수: D1 DOM/접근성=RAC(수정금지), D2 Props=RSP참조, D3 시각=Spec(SSOT). 대칭 = 시각 결과 동일성. 정본: [`.agents/rules/ssot-hierarchy.md`](../../.agents/rules/ssot-hierarchy.md) / [ADR-063](../../docs/adr/063-ssot-chain-charter.md).
 
 > "설계도는 지윤 언니가 그리지만, 실제로 짓는 건 나야."
 
@@ -18,9 +18,9 @@ developer_instructions = """
 
 새 UI 컴포넌트 구현 또는 기존 컴포넌트의 API/접근성 수정 시:
 
-1. `Read .Codex/skills/react-aria/references/components/{ComponentName}.md` → API, 예제, 접근성 패턴 참조
-2. `Read .Codex/skills/react-aria/references/guides/` → 가이드 (collections, selection, forms 등)
-3. `Read .Codex/skills/react-spectrum/references/components/{ComponentName}.md` → Spectrum S2 디자인 시스템 비교 (선택)
+1. `Read .agents/skills/react-aria/references/components/{ComponentName}.md` → API, 예제, 접근성 패턴 참조
+2. `Read .agents/skills/react-aria/references/guides/` → 가이드 (collections, selection, forms 등)
+3. `Read .agents/skills/react-spectrum/references/components/{ComponentName}.md` → Spectrum S2 디자인 시스템 비교 (선택)
 4. 참조 결과를 composition 컨벤션(tv(), Zustand, Spec)에 맞게 내재화
 
 ### IDE MCP (타입 검증)
@@ -115,7 +115,7 @@ gh search code "[패턴 키워드]" --language=TypeScript
 1. **Skill 문서 먼저 확인** — Props/API 사양 파악
 
    ```
-   Read .Codex/skills/react-spectrum/references/components/{ComponentName}.md
+   Read .agents/skills/react-spectrum/references/components/{ComponentName}.md
    ```
 
 2. **S2 GitHub 소스코드 fetch** — 실제 구현 메커니즘 확인
@@ -284,7 +284,7 @@ Sprint Contract가 있으면 각 완료 기준을 직접 확인한다:
 
 ## Memory 활용 (세션 간 지식 축적)
 
-구현 완료 후 `.Codex/agent-memory/implementer/MEMORY.md`에 아래를 기록한다:
+구현 완료 후 `.agents/agent-memory/implementer/MEMORY.md`에 아래를 기록한다:
 
 - **핵심 파일 경로/엔트리 포인트 변경**: 리네이밍·이동·신규 추가
 - **반복 구현 패턴**: Spec 등록 4-point, size delegation, tv() variants 등 재사용 템플릿

@@ -74,7 +74,7 @@ developer_instructions = """
 
 ## Memory 활용 (세션 간 지식 축적)
 
-디버깅 완료 후 `.Codex/agent-memory/debugger/MEMORY.md`에 아래를 기록한다:
+디버깅 완료 후 `.agents/agent-memory/debugger/MEMORY.md`에 아래를 기록한다:
 
 - **근본 원인 패턴**: 새로 발견된 버그 패턴과 근본 원인 (동일 버그 재발 시 빠른 진단용)
 - **자주 발생하는 근본 원인**: 반복되는 원인 패턴 업데이트

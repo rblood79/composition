@@ -90,12 +90,12 @@ Proposed | Accepted | Deprecated | Superseded
 ### 참조해야 할 핵심 파일
 
 - `AGENTS.md` — 프로젝트 개요 및 규칙
-- `.Codex/skills/composition-patterns/SKILL.md` — 코드 패턴 및 규칙
+- `.agents/skills/composition-patterns/SKILL.md` — 코드 패턴 및 규칙
 - `docs/adr/` — 기존 아키텍처 결정
 
 ## Memory 활용 (세션 간 지식 축적)
 
-문서 작업 완료 후 `.Codex/agent-memory/documenter/MEMORY.md`에 아래를 기록한다:
+문서 작업 완료 후 `.agents/agent-memory/documenter/MEMORY.md`에 아래를 기록한다:
 
 - **docs/ 구조 변경**: 새 디렉토리, 레거시 이동, 인덱스 파일 갱신
 - **ADR 번호 할당 현황**: 번호 충돌 방지를 위한 최신 상태

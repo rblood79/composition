@@ -3,11 +3,15 @@
 # agent가 응답 완료 시 자동으로 pnpm type-check 실행
 # 2.1.x JSON 응답 형식: {"decision":"block","reason":"..."} 사용 (exit 0 with JSON)
 #
-# 사전 단계: spec-rebuild-flag.sh 가 생성한 .claude/.spec-rebuild-pending flag 확인 →
+# 사전 단계: spec-rebuild-flag.sh 가 생성한 .codex/.spec-rebuild-pending flag 확인 →
 #   있으면 pnpm build:specs 1회 실행 후 flag 삭제. 다중 편집 debounce.
 set -euo pipefail
 
 INPUT=$(cat)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/codex-hook-utils.sh"
+PROJECT_DIR=$(codex_hook_project_dir "$INPUT")
 
 # 재진입 방지
 STOP_HOOK_ACTIVE="${STOP_HOOK_ACTIVE:-false}"
@@ -15,10 +19,10 @@ if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
   exit 0
 fi
 
-cd "${CLAUDE_PROJECT_DIR:-.}"
+cd "$PROJECT_DIR"
 
 # Spec rebuild gate: flag 존재 시 build:specs 1회 실행
-SPEC_FLAG="${CLAUDE_PROJECT_DIR:-.}/.claude/.spec-rebuild-pending"
+SPEC_FLAG="$PROJECT_DIR/.codex/.spec-rebuild-pending"
 if [ -f "$SPEC_FLAG" ]; then
   if ! BUILD_OUTPUT=$(pnpm build:specs 2>&1); then
     REASON_TEXT="build:specs 실패. spec 빌드 에러를 수정하세요:

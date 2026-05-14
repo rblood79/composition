@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # UserPromptSubmit hook — 프롬프트 분류 후 관련 skill/agent 힌트를 system-reminder로 주입
-# Claude Code 레퍼런스: https://docs.claude.com/en/docs/claude-code/hooks
+# Codex hooks: https://developers.openai.com/codex/hooks
 #
 # stdin으로 JSON을 받고, stdout으로 출력한 텍스트가 additionalContext로 주입된다.
 
 set -euo pipefail
 
-# JSON payload 읽기 (claude code가 stdin으로 전달)
 payload=$(cat)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/codex-hook-utils.sh"
+PROJECT_DIR=$(codex_hook_project_dir "$payload")
 
 # prompt 추출 (jq 없을 수도 있으니 fallback)
 if command -v jq >/dev/null 2>&1; then
@@ -109,8 +112,8 @@ if echo "$prompt" | grep -qiE "아니야|아니라|그게 아니|잘못|틀렸|�
   hints="${hints}
 - 사용자 정정 감지 → 정정 내용이 framing / process / SSOT / 정책 / 의존 방향 류면 **same-session memory 적재 권고**:
   1. 정정 내용 요약 (1-2 문장 + Why + How to apply)
-  2. \`~/.claude/projects/-Users-admin-work-composition/memory/feedback-*.md\` 신규 또는 기존 갱신
-  3. \`MEMORY.md\` 인덱스에 한 줄 추가
+  2. 필요한 경우 사용자에게 memory update 요청 여부 확인
+  3. Codex memory는 사용자 명시 요청이 있을 때만 ad-hoc note로 갱신
   - 단발성 사실 정정 (typo / 변수명 / 숫자 오타) 이면 skip
   - 회피 패턴: \"다음에 기억하겠음\" 약속만 (메모리 미적재) — 다음 세션에서 동일 정정 재발 위험
   - 우선 적재 카테고리: SSOT 경계, ADR 의존 방향, framing raise 의무, git/PR 정책, 재발 패턴"
@@ -118,8 +121,8 @@ fi
 
 # 완료 / 머지 — git working tree에 변경 있을 때만 의미 있음 (단순 질문 false-positive 차단)
 if echo "$prompt" | grep -qiE "완료|끝났|마무리|머지|merge|PR|커밋|commit"; then
-  if ! git -C "${CLAUDE_PROJECT_DIR:-.}" diff --quiet HEAD 2>/dev/null \
-     || [ -n "$(git -C "${CLAUDE_PROJECT_DIR:-.}" ls-files --others --exclude-standard 2>/dev/null)" ]; then
+  if ! git -C "$PROJECT_DIR" diff --quiet HEAD 2>/dev/null \
+     || [ -n "$(git -C "$PROJECT_DIR" ls-files --others --exclude-standard 2>/dev/null)" ]; then
     hints="${hints}
 - 완료 직전 체크:
   - \`superpowers:verification-before-completion\` (evidence before assertions)

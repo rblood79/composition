@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # 주간 사용 리포트 — 지난 7일간 세션/skill/agent 활용도 분석
-# 사용: .claude/hooks/weekly-report.sh [days]  (기본 7)
+# 사용: .codex/hooks/weekly-report.sh [days]  (기본 7)
 set -euo pipefail
 
 days="${1:-7}"
-proj_sessions="$HOME/.claude/projects/-Users-admin-work-composition"
+project_dir="${CODEX_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
+proj_sessions="$HOME/.codex/sessions"
 
 if [ ! -d "$proj_sessions" ]; then
   echo "세션 디렉토리 없음: $proj_sessions"
@@ -56,10 +57,10 @@ for s in "brainstorming" "writing-plans" "verification-before-completion" "syste
 done
 
 # INDEX.md 자동 갱신 (update-index.sh 연동)
-if [ -x "${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/update-index.sh" ]; then
+if [ -x "$project_dir/.codex/hooks/update-index.sh" ]; then
   echo ""
   echo "--- INDEX.md 갱신 ---"
-  "${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/update-index.sh" "$days"
+  CODEX_PROJECT_DIR="$project_dir" "$project_dir/.codex/hooks/update-index.sh" "$days"
 fi
 
 exit 0

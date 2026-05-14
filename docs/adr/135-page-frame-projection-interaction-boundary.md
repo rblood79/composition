@@ -33,6 +33,8 @@ Frame을 Page에 적용한 상태에서 Skia 캔버스의 선택/slot fill/drag-
 5. **refresh hydration 후 동일 동작** — 새로고침이 문제를 고치는 효과가 아니라, refresh 전후 render/selection/mutation state가 동일해야 한다.
 6. **Canvas 60fps 유지** — interaction resolver는 pointer hot path에서 O(1) map lookup 중심이어야 하며, canonical document full traversal을 pointer move마다 수행하면 안 된다.
 7. **Preview/Publish schema 영향 없음** — projected render ID는 Builder Skia interaction boundary 전용이며, export/publish payload에는 projection metadata가 유출되지 않아야 한다.
+8. **canonical mutation 후 derived mirror/index 즉시 수렴** — Frame apply/remove/delete, Slot fill, element update 뒤 `elementsMap` / `childrenMap` / frame scope view가 canonical document와 같은 tick에서 같은 truth를 노출해야 한다.
+9. **scope invalidation은 document reference에만 의존 금지** — frame scope derive는 `documentVersion` 또는 동등한 mutation counter를 구독해야 하며, same-reference document mutation hole을 허용하지 않는다.
 
 ### Soft Constraints
 
@@ -84,12 +86,12 @@ Frame을 Page에 적용한 상태에서 Skia 캔버스의 선택/slot fill/drag-
 
 ### Risk Threshold Check
 
-| 대안                                         | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
-| -------------------------------------------- | :--: | :--: | :------: | :----------: | :--------: |
-| A: interaction map만 교체                    |  H   |  L   |    H     |      M       |     2      |
-| B: projected ID를 canonical ID로 승격        |  C   |  M   |    H     |      H       |     3      |
-| C: render-space interaction + resolver 선택  |  M   |  M   |    M     |      L       |     0      |
-| D: Page Frame binding 기능 일시 disable      |  M   |  L   |    H     |      M       |     1      |
+| 대안                                        | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
+| ------------------------------------------- | :--: | :--: | :------: | :----------: | :--------: |
+| A: interaction map만 교체                   |  H   |  L   |    H     |      M       |     2      |
+| B: projected ID를 canonical ID로 승격       |  C   |  M   |    H     |      H       |     3      |
+| C: render-space interaction + resolver 선택 |  M   |  M   |    M     |      L       |     0      |
+| D: Page Frame binding 기능 일시 disable     |  M   |  L   |    H     |      M       |     1      |
 
 루프 판정: HIGH 0개 대안 C가 존재한다. CRITICAL 위험이 있는 대안 B는 기각한다. 추가 대안 불필요.
 
@@ -119,33 +121,39 @@ Frame을 Page에 적용한 상태에서 Skia 캔버스의 선택/slot fill/drag-
 - **D5**: `pageFrameBinding` apply/remove는 descendant path별 children을 보존한다. unapply 시 Slot mirror metadata를 남기고, reapply 시 frame Slot registry로 path를 복원한다.
 - **D6**: mutation boundary에는 dev assert를 둔다. `::page-frame::` ID가 canonical mutation target/document/history로 들어가면 실패시킨다.
 - **D7**: browser smoke는 refresh 전후 selection/slot visibility/drag-drop 결과를 IndexedDB `documents`와 Skia 화면 양쪽에서 확인한다.
+- **D8**: props 없는 Slot host도 frame scope에 포함한다. Slot inclusion은 `node.props` 존재 여부가 아니라 Slot identity/source role을 기준으로 판정한다.
+- **D9**: canonical update와 legacy mirror/index refresh는 stale pre-callback snapshot을 사용하지 않는다. latest store/canonical document 기준으로 mutation과 derived cache rebuild를 하나의 boundary에서 수행한다.
 
 > 구현 상세: [135-page-frame-projection-interaction-boundary-breakdown.md](design/135-page-frame-projection-interaction-boundary-breakdown.md)
 
 ## Risks
 
-| ID | 위험 | 심각도 | 대응 |
-| --- | --- | :---: | --- |
-| R1 | resolver가 pointer hot path에서 canonical traversal을 수행해 FPS가 떨어질 수 있음 | MED | projection metadata를 render input 생성 시 미리 구성하고 pointer path는 map lookup만 수행 |
-| R2 | projected Slot drop target을 descendant path로 잘못 변환해 다른 Slot에 저장 | MED | Slot name/path registry fixture + multi-slot roundtrip test |
-| R3 | 기존 sceneNodesMap 기반 context menu/static test와 충돌 | MED | scene inspection과 interaction visual truth를 테스트 이름/fixture로 분리 |
-| R4 | pageFrameBinding roundtrip 보존 로직이 legacy slot mirror와 canonical descendants 양쪽을 모두 다뤄 복잡도 증가 | MED | boundary helper를 `pageFrameProjectionTarget.ts`로 격리하고 exhaustive fixture 작성 |
-| R5 | 기존 dirty/stale project fixture에 이미 projected ID가 저장된 경우 hydration이 깨질 수 있음 | LOW | 개발 단계라 runtime migration 대신 audit/repair dev helper와 test fixture cleanup으로 처리 |
-| R6 | Frame source Slot rename 시 descendant path remap 정책이 불명확 | MED | Phase 4에서 Slot source identity 우선, name fallback, unmatched fallback policy를 Gate로 고정 |
-| R7 | helper guard UX가 projected Slot hit와 page-owned element hit를 혼동 | MED | `CanvasInteractionTarget` union으로 `select` / `slot-guard` / `none` 분리 |
+| ID  | 위험                                                                                                                                                | 심각도 | 대응                                                                                                                                                                                                                                                                             |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | resolver가 pointer hot path에서 canonical traversal을 수행해 FPS가 떨어질 수 있음                                                                   |  MED   | projection metadata를 render input 생성 시 미리 구성하고 pointer path는 map lookup만 수행                                                                                                                                                                                        |
+| R2  | projected Slot drop target을 descendant path로 잘못 변환해 다른 Slot에 저장                                                                         |  MED   | Slot name/path registry fixture + multi-slot roundtrip test                                                                                                                                                                                                                      |
+| R3  | 기존 sceneNodesMap 기반 context menu/static test와 충돌                                                                                             |  MED   | scene inspection과 interaction visual truth를 테스트 이름/fixture로 분리                                                                                                                                                                                                         |
+| R4  | pageFrameBinding roundtrip 보존 로직이 legacy slot mirror와 canonical descendants 양쪽을 모두 다뤄 복잡도 증가                                      |  MED   | boundary helper를 `pageFrameProjectionTarget.ts`로 격리하고 exhaustive fixture 작성                                                                                                                                                                                              |
+| R5  | 기존 dirty/stale project fixture에 이미 projected ID가 저장된 경우 hydration이 깨질 수 있음                                                         |  LOW   | 개발 단계라 runtime migration 대신 audit/repair dev helper와 test fixture cleanup으로 처리                                                                                                                                                                                       |
+| R6  | Frame source Slot rename 시 descendant path remap 정책이 불명확                                                                                     |  MED   | Phase 4에서 Slot source identity 우선, name fallback, unmatched fallback policy를 Gate로 고정                                                                                                                                                                                    |
+| R7  | helper guard UX가 projected Slot hit와 page-owned element hit를 혼동                                                                                |  MED   | `CanvasInteractionTarget` union으로 `select` / `slot-guard` / `none` 분리                                                                                                                                                                                                        |
+| R8  | Frame mutation 뒤 `setPages()`만 수행되어 `elementsMap` / `childrenMap` mirror가 stale 상태로 남을 수 있음                                          |  HIGH  | Phase 0에 stale mirror failing fixture 추가, Phase 4/5에서 canonical-derived indexes rebuild 또는 동등한 invalidation boundary를 blocking gate로 둠                                                                                                                              |
+| R9  | frame scope derive가 `node.props` 또는 doc reference에 의존해 props 없는 Slot host / same-ref document mutation을 누락할 수 있음                    |  HIGH  | Slot host inclusion rule + `documentVersion` 기반 invalidation test를 Phase 4/5 Gate에 포함                                                                                                                                                                                      |
+| R10 | `updateElement` 계열 canonical sync가 set callback 밖 stale element snapshot을 사용해 overlapping update에서 canonical patch loss를 만들 수 있음    |  HIGH  | canonical update는 latest element/doc 기준으로 수행하고, Phase 5에 atomicity regression fixture를 추가                                                                                                                                                                           |
+| R11 | page 생성 시 `appendPageShell({ activate: true })`와 layout branch `activatePage()`가 중복 호출되어 selection/page activation race를 증폭할 수 있음 |  MED   | page creation fixture로 activation 1회 계약을 고정하고, ADR-135 실행 전후 unrelated race로 분리 추적. Phase 0 fixture 통과 시점에 `apps/builder/src/builder/hooks/usePageManager.ts` working tree diff를 commit (수렴 시) 또는 revert (다른 fix가 더 자연스러울 때) 결정 lock-in |
 
-잔존 HIGH 위험 없음.
+R8-R10은 ADR-135의 render/canonical ID boundary와 직접 같은 원인은 아니지만, 같은 사용자 증상으로 재발할 수 있는 adjacent HIGH 위험이다. Phase 0 failing fixture와 G4-G6 blocking gate에서 닫히기 전에는 Implemented로 승격하지 않는다.
 
 ## Gates
 
-| Gate | 시점 | 통과 조건 | 실패 시 대안 |
-| ---- | ---- | --------- | ------------ |
-| G1 | Phase 1 완료 | interaction read model이 render-space를 사용하고, static test가 scene map 회귀를 차단 | Phase 1 범위에서 selection-only patch 중단 후 resolver 설계 재검토 |
-| G2 | Phase 2 완료 | projected Slot / page-owned child hit가 `CanvasInteractionTarget`으로 안정 변환되고 synthetic ID가 selection state에 저장되지 않음 | target union 재설계 |
-| G3 | Phase 3 완료 | drag/drop mutation target에 `::page-frame::` ID 0건, projected Slot drop이 `RefNode.descendants[path].children`로 commit | mutation API를 node children / ref descendants 두 entry로 더 분리 |
-| G4 | Phase 4 완료 | apply → remove → apply 후 header/content/footer/custom Slot children과 order 보존 | pageFrameBinding rollback + Slot mirror policy 재검토 |
-| G5 | Phase 5 완료 | unit/static/targeted Vitest 전원 PASS + dev assert negative fixture FAIL 확인 | scope 재분리 또는 disable fallback 검토 |
-| G6 | Phase 6 완료 | authenticated browser smoke에서 selection, slot visibility, drag/drop, refresh hydration PASS + console/page/http error 0 | 구현 보류, failing path를 별도 ADR/phase로 분리 |
+| Gate | 시점         | 통과 조건                                                                                                                                                             | 실패 시 대안                                                             |
+| ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| G1   | Phase 1 완료 | interaction read model이 render-space를 사용하고, static test가 scene map 회귀를 차단                                                                                 | Phase 1 범위에서 selection-only patch 중단 후 resolver 설계 재검토       |
+| G2   | Phase 2 완료 | projected Slot / page-owned child hit가 `CanvasInteractionTarget`으로 안정 변환되고 synthetic ID가 selection state에 저장되지 않음                                    | target union 재설계                                                      |
+| G3   | Phase 3 완료 | drag/drop mutation target에 `::page-frame::` ID 0건, projected Slot drop이 `RefNode.descendants[path].children`로 commit                                              | mutation API를 node children / ref descendants 두 entry로 더 분리        |
+| G4   | Phase 4 완료 | apply → remove → apply 후 header/content/footer/custom Slot children과 order 보존, props 없는 Slot host visibility PASS, frame mutation 후 mirror/index 정합 PASS     | pageFrameBinding rollback + Slot mirror/scope invalidation policy 재검토 |
+| G5   | Phase 5 완료 | unit/static/targeted Vitest 전원 PASS + dev assert negative fixture FAIL + canonical atomicity/mirror stale/page activation regression PASS                           | scope 재분리 또는 adjacent atomicity ADR 분리                            |
+| G6   | Phase 6 완료 | authenticated browser smoke에서 selection, slot visibility, drag/drop, refresh hydration, IndexedDB documents, mirror/index snapshot PASS + console/page/http error 0 | 구현 보류, failing path를 별도 ADR/phase로 분리                          |
 
 ## Consequences
 

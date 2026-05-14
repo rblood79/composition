@@ -33,8 +33,8 @@ fi
 
 # spec rebuild 보류 표시 (PostToolUse spec-rebuild-flag.sh 가 생성한 flag 존재 시)
 spec_flag=""
-PROJECT_ROOT="${cwd:-${CLAUDE_PROJECT_DIR:-.}}"
-if [ -f "$PROJECT_ROOT/.claude/.spec-rebuild-pending" ]; then
+PROJECT_ROOT="${cwd:-${CODEX_PROJECT_DIR:-.}}"
+if [ -f "$PROJECT_ROOT/.codex/.spec-rebuild-pending" ]; then
   spec_flag="${MAGENTA}⟳ specs${RESET}"
 fi
 

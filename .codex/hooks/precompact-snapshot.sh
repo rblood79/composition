@@ -2,8 +2,8 @@
 # PreCompact Context Snapshot — 컨텍스트 압축 직전 핵심 정보 재주입
 # 변경된 파일 패턴에 맞는 규칙만 동적 주입 (Context Engineering: Just-in-time)
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-RULES_DIR="$PROJECT_DIR/rules"
+PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+RULES_DIR="$PROJECT_DIR/.agents/rules"
 
 echo "=== PreCompact Context Snapshot ==="
 echo ""
@@ -61,6 +61,6 @@ else
 fi
 
 echo "## Key Files"
-echo "- SKILL.md: .claude/skills/composition-patterns/SKILL.md"
-echo "- Rules: .claude/rules/ (canvas-rendering, layout-engine, state-management, css-tokens)"
+echo "- SKILL.md: .agents/skills/composition-patterns/SKILL.md"
+echo "- Rules: .agents/rules/ (canvas-rendering, layout-engine, state-management, css-tokens)"
 echo "=== End Snapshot ==="

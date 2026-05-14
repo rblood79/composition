@@ -78,7 +78,7 @@ SKILL.md 공통 에러 복구 프로토콜을 따른다:
 
 ## Memory 활용 (세션 간 지식 축적)
 
-테스트 작성 후 `.Codex/agent-memory/tester/MEMORY.md`에 아래를 기록한다:
+테스트 작성 후 `.agents/agent-memory/tester/MEMORY.md`에 아래를 기록한다:
 
 - **테스트 인프라 현황**: 프레임워크 설정 변경, 커버리지 현황 업데이트
 - **테스트 작성 시 주의사항**: 새로 발견된 셋업/mock 주의점
