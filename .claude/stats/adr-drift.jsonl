@@ -11,3 +11,4 @@
 {"sha":"e2932cc62e0c0e4787da4304472b8900cbf94d07","date":"2026-05-13T17:57:34+09:00","promoted_adrs":["docs/adr/completed/042-spec-dimension-injection.md"],"readme_updated":false,"changelog_updated":false,"synced":false}
 {"sha":"217ac682ab73f3772f16103e1b328c69264a5356","date":"2026-05-13T17:59:11+09:00","promoted_adrs":["docs/adr/completed/131-events-data-actions-first-class-collections.md"],"readme_updated":false,"changelog_updated":false,"synced":false}
 {"sha":"71f52748f95b5309f7a3af39a66eb42a833b6951","date":"2026-05-13T23:37:02+09:00","promoted_adrs":["docs/adr/completed/026-responsive-constraint-ui.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"ebc7e1d03af9eb2a9241834f49c0c5af43cefcf2","date":"2026-05-14T23:35:42+09:00","promoted_adrs":["docs/adr/135-page-frame-projection-interaction-boundary.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
