@@ -17,9 +17,9 @@
 
 import type { StateCreator } from "zustand";
 import type { Element } from "../../types/core/store.types";
-import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import { pageCache, type LRUCacheStats } from "../utils/LRUPageCache";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
+import { canonicalDocumentToElements } from "./canonical/canonicalElementsView";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import type { StoreElementCacheMap } from "./elements";
 
@@ -109,7 +109,7 @@ function getActiveCanonicalElements(): Element[] | null {
   const document = projectId ? canonical.documents.get(projectId) : null;
   if (!projectId || !document) return null;
 
-  return deriveProjectRenderModelFromDocument(document, projectId).elements.map(
+  return canonicalDocumentToElements(document).map(
     (element) => element as Element,
   );
 }

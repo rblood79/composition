@@ -14,6 +14,7 @@
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { useStore } from "../../../stores";
+import type { Element } from "../../../../types/core/store.types";
 import { useDragInteraction } from "../selection/useDragInteraction";
 import {
   resolveDropTarget,
@@ -39,8 +40,9 @@ import { getDB } from "../../../../lib/db";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
 import type { BoundingBox } from "../selection/types";
-import { moveElementCanonicalPrimary } from "../../../../adapters/canonical/canonicalMutations";
+import { moveElementToCanonicalTarget } from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
+import { resolveCanonicalMoveTarget } from "../interaction";
 
 type DragSnapshotEntry = {
   id: string;
@@ -56,6 +58,13 @@ type DragReadModel = {
   elementsById: ReadonlyMap<string, CanvasInteractionNode>;
   childrenByParent: ReadonlyMap<string, CanvasInteractionNode[]>;
 };
+
+type DragReadModelFallback =
+  | DragReadModel
+  | {
+      elementsMap: ReadonlyMap<string, CanvasInteractionNode>;
+      childrenMap: ReadonlyMap<string, CanvasInteractionNode[]>;
+    };
 
 type DragReadModelResolvers = {
   getInteractiveElementsMap?: () => Map<string, CanvasInteractionNode>;
@@ -125,14 +134,20 @@ function toDragSnapshotEntry(
 }
 
 export function resolveDragReadModel(
-  fallback: DragReadModel,
+  fallback: DragReadModelFallback,
   resolvers: DragReadModelResolvers = {},
 ): DragReadModel {
+  const fallbackElementsById =
+    "elementsById" in fallback ? fallback.elementsById : fallback.elementsMap;
+  const fallbackChildrenByParent =
+    "childrenByParent" in fallback
+      ? fallback.childrenByParent
+      : fallback.childrenMap;
   return {
     elementsById:
-      resolvers.getInteractiveElementsMap?.() ?? fallback.elementsById,
+      resolvers.getInteractiveElementsMap?.() ?? fallbackElementsById,
     childrenByParent:
-      resolvers.getInteractiveChildrenMap?.() ?? fallback.childrenByParent,
+      resolvers.getInteractiveChildrenMap?.() ?? fallbackChildrenByParent,
   };
 }
 
@@ -450,12 +465,16 @@ export function useDragBridge({
           dragStore,
         );
         if (updates.length > 0) {
-          const moveResult = moveElementCanonicalPrimary(
-            elementId,
-            finalTarget.containerId,
-            finalTarget.insertionIndex,
-          );
+          const canonicalTarget = resolveCanonicalMoveTarget({
+            renderTargetId: finalTarget.containerId,
+            insertionIndex: finalTarget.insertionIndex,
+            elementsMap: dragStore.elementsById,
+          });
+          const moveResult = canonicalTarget
+            ? moveElementToCanonicalTarget(elementId, canonicalTarget)
+            : { changed: false, document: null };
           if (moveResult.document) {
+            useStore.getState()._rebuildIndexes?.();
             postMoveStore = buildDragReadModelFromCanonicalDocument(
               moveResult.document,
             );
@@ -518,8 +537,8 @@ export function useDragBridge({
               elementId: "drag-reorder",
               elementIds: affectedIdList,
               data: {
-                prevElements,
-                elements: nextElements,
+                prevElements: prevElements as Element[],
+                elements: nextElements as Element[],
               },
             });
           }

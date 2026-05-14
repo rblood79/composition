@@ -557,9 +557,6 @@ export const createUpdateElementAction =
       });
     }
 
-    // canonical update — `getCurrentDocument` 기반 latest doc lookup 이므로 자체 atomic
-    const updatedElement = { ...element, ...sanitizedUpdates };
-
     // ADR-006 P3-1: props.style 변경 시 dirty tracking
     const changedStyle = (sanitizedUpdates.props?.style ?? {}) as Record<
       string,
@@ -569,8 +566,6 @@ export const createUpdateElementAction =
     const isLayoutChange = hasStyleChange
       ? isLayoutAffectingUpdate(changedStyle)
       : Boolean(sanitizedUpdates.props); // props 변경이 있으면 레이아웃 영향으로 간주
-
-    syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);
 
     // Atomic derive — set callback 안에서 latest `state` 기반으로 elements 재계산.
     // Why: concurrent 호출 (예: Promise.all 로 여러 updateElement) 시 모든 호출이
@@ -585,6 +580,7 @@ export const createUpdateElementAction =
 
       const latestElement = latestSource[latestIdx];
       const latestUpdatedElement = { ...latestElement, ...sanitizedUpdates };
+      syncUpdatedElementToCanonical(latestUpdatedElement, sanitizedUpdates);
       const latestUpdatedElements = latestSource.with(
         latestIdx,
         latestUpdatedElement,

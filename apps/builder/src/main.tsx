@@ -30,6 +30,7 @@ import Signin from "./auth/Signin";
 const PublishApp = lazy(() => import("@composition/publish"));
 import { supabase } from "./env/supabase.client";
 import { Session } from "@supabase/supabase-js";
+import { isDevAutoLoginEnabled, tryDevAutoSignIn } from "./auth/devAutoLogin";
 import {
   ParticleBackground,
   ParticleBackgroundProvider,
@@ -41,10 +42,14 @@ export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 
   useEffect(() => {
     const fetchSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
+      let current = (await supabase.auth.getSession()).data.session;
+      if (!current && isDevAutoLoginEnabled()) {
+        const ok = await tryDevAutoSignIn();
+        if (ok) {
+          current = (await supabase.auth.getSession()).data.session;
+        }
+      }
+      setSession(current);
       setLoading(false);
     };
     fetchSession();

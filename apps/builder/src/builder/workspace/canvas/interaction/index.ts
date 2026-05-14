@@ -7,6 +7,11 @@ export {
 } from "./selectionModel";
 export { resolveCanvasDetachContextTarget } from "./canvasContextMenu";
 export {
+  resolveCanvasInteractionTarget,
+  type CanvasInteractionTarget,
+} from "./resolveCanvasInteractionTarget";
+export { resolveCanonicalMoveTarget } from "./resolveCanonicalMutationTarget";
+export {
   commitPointerClick,
   isPointerDoubleClick,
   resetPointerClick,

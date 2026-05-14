@@ -327,6 +327,87 @@ function appendToDescendantChildren(
   return { children: nextChildren, changed };
 }
 
+function insertIntoDescendantChildren(
+  children: readonly CanonicalNode[],
+  refPath: string,
+  descendantPath: string,
+  child: CanonicalNode,
+  index: number,
+): { children: CanonicalNode[]; changed: boolean } {
+  let changed = false;
+  const nextChildren = children.map((node) => {
+    let nextNode = node;
+
+    if (node.children && node.children.length > 0) {
+      const childResult = insertIntoDescendantChildren(
+        node.children,
+        refPath,
+        descendantPath,
+        child,
+        index,
+      );
+      if (childResult.changed) {
+        changed = true;
+        nextNode = { ...nextNode, children: childResult.children };
+      }
+    }
+
+    if (nextNode.type !== "ref") return nextNode;
+
+    const refNode = nextNode as RefNode;
+    const descendants = refNode.descendants ?? {};
+
+    if (refNode.id === refPath) {
+      const currentOverride = descendants[descendantPath];
+      if (currentOverride && !isDescendantChildrenMode(currentOverride)) {
+        return nextNode;
+      }
+
+      const currentChildren = currentOverride?.children ?? [];
+      const inserted = [...currentChildren];
+      inserted.splice(clampIndex(index, inserted.length), 0, child);
+      changed = true;
+      return cloneRefWithDescendants(refNode, {
+        ...descendants,
+        [descendantPath]: { children: inserted },
+      });
+    }
+
+    let descendantsChanged = false;
+    const nextDescendants: RefNode["descendants"] = {};
+
+    for (const [path, override] of Object.entries(descendants)) {
+      if (!isDescendantChildrenMode(override)) {
+        nextDescendants[path] = override;
+        continue;
+      }
+
+      const descendantResult = insertIntoDescendantChildren(
+        override.children,
+        refPath,
+        descendantPath,
+        child,
+        index,
+      );
+      if (descendantResult.changed) {
+        descendantsChanged = true;
+        nextDescendants[path] = {
+          children: descendantResult.children,
+        };
+        continue;
+      }
+
+      nextDescendants[path] = override;
+    }
+
+    if (!descendantsChanged) return nextNode;
+    changed = true;
+    return cloneRefWithDescendants(refNode, nextDescendants);
+  });
+
+  return { children: nextChildren, changed };
+}
+
 function moveWithinDescendantChildren(
   children: readonly CanonicalNode[],
   refPath: string,
@@ -519,5 +600,35 @@ export function moveDescendantChild(
   );
   return result.changed
     ? { document: { ...document, children: result.children }, changed: true }
+    : { document, changed: false };
+}
+
+export function moveCanonicalChildToDescendants(
+  document: CompositionDocument,
+  childId: string,
+  refPath: string,
+  descendantPath: string,
+  index: number,
+): CanonicalDocumentOrderResult {
+  const movingNode = findNodeInChildren(document.children, childId);
+  if (!movingNode || nodeContainsId(movingNode, refPath)) {
+    return { document, changed: false };
+  }
+
+  const removed = removeCanonicalChild(document, childId);
+  if (!removed.removed) return { document, changed: false };
+
+  const inserted = insertIntoDescendantChildren(
+    removed.document.children,
+    refPath,
+    descendantPath,
+    removed.removed,
+    index,
+  );
+  return inserted.changed
+    ? {
+        document: { ...removed.document, children: inserted.children },
+        changed: true,
+      }
     : { document, changed: false };
 }

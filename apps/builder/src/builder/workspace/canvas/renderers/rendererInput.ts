@@ -188,6 +188,8 @@ export function buildFrameLayoutPublisherInput({
 export interface SkiaRendererInput {
   childrenMap: Map<string, CanvasSceneNode[]>;
   elements: CanvasSceneNode[];
+  interactionChildrenMap: Map<string, CanvasSceneNode[]>;
+  interactionNodesMap: Map<string, CanvasSceneNode>;
   renderNodesMap: Map<string, CanvasSceneNode>;
   sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
   sceneNodes: CanvasSceneNode[];
@@ -348,6 +350,8 @@ export function createSkiaRendererInput(
   return {
     childrenMap: resolvedTree.childrenMap,
     elements: resolvedTree.elements,
+    interactionChildrenMap: resolvedTree.childrenMap,
+    interactionNodesMap: resolvedTree.elementsMap,
     renderNodesMap: resolvedTree.elementsMap,
     sceneChildrenByParent: sceneGraph.childrenByParent,
     sceneNodes: sceneGraph.nodes,

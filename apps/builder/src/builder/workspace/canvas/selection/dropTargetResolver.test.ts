@@ -354,6 +354,53 @@ describe("resolveDropTarget cross-page body targets", () => {
     });
   });
 
+  it("treats projected frame Slot nodes as cross-page drop containers", () => {
+    const page1Body = makeElement("page-1-body", {
+      type: "body",
+      page_id: "page-1",
+    });
+    const source = makeElement("source-card", {
+      parent_id: page1Body.id,
+      order_num: 0,
+    });
+    const projectedSlot = makeElement("page-2::page-frame::slot-content", {
+      type: "Slot",
+      page_id: "page-2",
+      parent_id: "page-2::page-frame::frame-body",
+      order_num: 0,
+    });
+
+    mockBounds.set(page1Body.id, { x: 0, y: 0, width: 800, height: 600 });
+    mockBounds.set(source.id, { x: 40, y: 40, width: 120, height: 40 });
+    mockBounds.set(projectedSlot.id, {
+      x: 900,
+      y: 120,
+      width: 420,
+      height: 96,
+    });
+
+    const result = resolveDropTarget(
+      { x: 940, y: 150 },
+      source.id,
+      {
+        childrenByParent: new Map([[page1Body.id, [source]]]),
+        elementsById: new Map([
+          [page1Body.id, page1Body],
+          [source.id, source],
+          [projectedSlot.id, projectedSlot],
+        ]),
+      },
+      () => [projectedSlot.id],
+    );
+
+    expect(result).toMatchObject({
+      containerId: projectedSlot.id,
+      insertionIndex: 0,
+      isReparent: true,
+      originalParentId: page1Body.id,
+    });
+  });
+
   it("keeps same-parent body hits on the reorder path", () => {
     const pageBody = makeElement("page-body", {
       type: "body",

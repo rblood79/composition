@@ -26,6 +26,7 @@ import {
   deriveProjectRenderModelFromDocument,
   type CompositionDocument,
 } from "@composition/shared";
+import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 
 const PAGE_STACK_GAP = 80;
 
@@ -296,7 +297,6 @@ export const usePageManager = ({
           });
 
         if (layoutId) {
-          useStore.getState().activatePage(newPage.id, bodyElement.id);
           setSelectedPageId(newPage.id);
         }
 
@@ -376,7 +376,8 @@ export const usePageManager = ({
           parent_id: page.parent_id ?? null,
         }));
 
-        hydrateProjectSnapshot(renderModel.elements as Element[]);
+        const canonicalElements = canonicalDocumentToElements(document);
+        hydrateProjectSnapshot(canonicalElements as Element[]);
         apiPages.forEach((page) => pageList.append(page));
         setPages(storePages);
 
@@ -399,7 +400,7 @@ export const usePageManager = ({
             initializingRef.current = null;
             return { success: true, data: apiPages };
           }
-          const pageBodyCandidates = renderModel.elements.filter(
+          const pageBodyCandidates = canonicalElements.filter(
             (el) => el.page_id === pageToSelect.id,
           );
           const bodyElement =

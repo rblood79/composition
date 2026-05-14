@@ -555,17 +555,20 @@ export function BuilderCanvas({
     frameElementScopes,
   ]);
 
-  const interactiveElementsMapRef = useRef(skiaRendererInput.sceneNodesMap);
+  const interactiveElementsMapRef = useRef(
+    skiaRendererInput.interactionNodesMap,
+  );
   const interactiveChildrenMapRef = useRef(
-    skiaRendererInput.sceneChildrenByParent,
+    skiaRendererInput.interactionChildrenMap,
   );
 
   useEffect(() => {
-    interactiveElementsMapRef.current = skiaRendererInput.sceneNodesMap;
-    interactiveChildrenMapRef.current = skiaRendererInput.sceneChildrenByParent;
+    interactiveElementsMapRef.current = skiaRendererInput.interactionNodesMap;
+    interactiveChildrenMapRef.current =
+      skiaRendererInput.interactionChildrenMap;
   }, [
-    skiaRendererInput.sceneChildrenByParent,
-    skiaRendererInput.sceneNodesMap,
+    skiaRendererInput.interactionChildrenMap,
+    skiaRendererInput.interactionNodesMap,
   ]);
 
   const getInteractiveElementsMap = useCallback(

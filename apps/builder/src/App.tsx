@@ -17,6 +17,7 @@ import {
 import { useParticleBackground } from "./components/ParticleBackground";
 import { ParticleButton } from "./components/ParticleButton";
 import { ToggleButton } from "@composition/shared/components";
+import { isDevAutoLoginEnabled } from "./auth/devAutoLogin";
 
 // 회오리 성장 설정
 const VORTEX_GROWTH_RATE = 0.02;
@@ -50,7 +51,7 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute(
       "data-theme",
-      isDarkMode ? "dark" : "light"
+      isDarkMode ? "dark" : "light",
     );
     localStorage.setItem("theme", isDarkMode ? "dark" : "light");
   }, [isDarkMode]);
@@ -100,14 +101,14 @@ function App() {
         if (vortexRef.current.active) {
           vortexRef.current.strength = Math.min(
             vortexRef.current.strength + VORTEX_GROWTH_RATE,
-            VORTEX_MAX_STRENGTH
+            VORTEX_MAX_STRENGTH,
           );
           vortexRef.current.radius = 20 + vortexRef.current.strength * 160;
           vortexRef.current.height = vortexRef.current.strength * 250;
         }
       }, 16);
     },
-    [vortexRef, screenToWorld]
+    [vortexRef, screenToWorld],
   );
 
   // 회오리 이동 (마우스 무브)
@@ -121,7 +122,7 @@ function App() {
       vortexRef.current.x = x;
       vortexRef.current.y = y;
     },
-    [vortexRef, screenToWorld]
+    [vortexRef, screenToWorld],
   );
 
   // 회오리 종료 (마우스 업) - 천천히 흩어지도록
@@ -150,7 +151,9 @@ function App() {
           <div className="header-container">
             <div className="landing-header">
               <h1 className="landing-header-title">COMPOSE</h1>
-              <p className="landing-header-subtitle">Bespoke by design, cutting-edge platform.</p>
+              <p className="landing-header-subtitle">
+                Bespoke by design, cutting-edge platform.
+              </p>
             </div>
           </div>
           <div className="landing-cta">
@@ -158,7 +161,9 @@ function App() {
               size="md"
               className="react-aria-Button"
               variant="primary"
-              onClick={() => navigate("/signin")}
+              onClick={() =>
+                navigate(isDevAutoLoginEnabled() ? "/dashboard" : "/signin")
+              }
             >
               Start App
             </ParticleButton>

@@ -1,6 +1,19 @@
 # ADR-135 Design Breakdown — Page-Frame Projection Interaction Boundary
 
-> 본문: [135-page-frame-projection-interaction-boundary.md](../135-page-frame-projection-interaction-boundary.md). plan-only land 상태 — Phase 0-6 실행 작업 + 코드 변경은 사용자 plan review 후 별 step.
+> 본문: [135-page-frame-projection-interaction-boundary.md](../135-page-frame-projection-interaction-boundary.md). Phase 1-6 implemented 상태 — refresh/bootstrap/lazy-load mirror projection leak까지 closure.
+
+## Execution Snapshot — 2026-05-14
+
+| Gate | 상태 | Evidence                                                                                                                                                                                                                                                                         |
+| ---- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1   | PASS | `rendererInput.ts` / `BuilderCanvas.tsx` interaction read model을 render-space map으로 전환. `BuilderCanvas.projection.static.test.ts`와 `createSkiaRendererInput.test.ts`가 scene map 회귀를 차단.                                                                              |
+| G2   | PASS | `CanvasSceneNode.projection`, `resolvePageWithFrame.ts` metadata, `resolveCanvasInteractionTarget.ts` land. projected Slot은 `slot-guard`, page-owned child는 canonical `select` target으로 정규화. projected Slot chrome hit는 Page/body fallback selection을 유지.             |
+| G3   | PASS | `resolveCanonicalMutationTarget.ts`, `CanonicalMoveTarget`, `moveElementToCanonicalTarget()`, `moveCanonicalChildToDescendants()` land. projected ID canonical mutation target negative fixture PASS.                                                                            |
+| G4   | PASS | `pageFrameBinding.ts` descendant-path roundtrip 보존, `frameElementScope.ts` props-less Slot inclusion, `canonicalElementsView.ts` `documentVersion` invalidation, `frameActions.ts` index rebuild, drag 후 frame unapply ownership 보존, page-shell bridge topology guard land. |
+| G5   | PASS | targeted Vitest 16 files / 62 tests PASS, `pnpm run codex:typecheck` PASS, `git diff --check` PASS, `pnpm run codex:preflight` PASS. canonical atomicity, page activation regression, bootstrap/lazy-load canonical-only fixture 포함.                                           |
+| G6   | PASS | authenticated browser smoke에서 refresh 전후 runtime `elementsMap` synthetic 0, IndexedDB `documents` synthetic 0, console/page/http error 0 확인. 이전 fixture smoke의 ownership/Slot persistence PASS와 결합해 최종 승격.                                                      |
+
+R8-R12 closure decision: 모두 ADR-135 execution 안에서 처리했다. R8은 frame mutation index rebuild fixture, R9는 props-less Slot inclusion + `documentVersion` invalidation, R10은 `updateElement` stale snapshot 제거, R11은 layout-bound page creation duplicate activation 제거, R12는 bootstrap/lazy-load canonical-only hydrate로 닫는다.
 
 ## 0. Scope
 
@@ -15,6 +28,7 @@
 - Frame mutation 후 canonical-derived `elementsMap` / `childrenMap` / frame scope view 수렴 보장
 - props 없는 Slot host와 `documentVersion` 기반 frame scope invalidation 보장
 - ADR-135 증상을 재발시킬 수 있는 canonical update stale snapshot / page activation 중복 호출 회귀 방지
+- refresh/bootstrap 및 lazy-load store mirror가 render projection ID를 수용하지 않는 canonical-only hydrate 보장
 - targeted unit/static test + browser smoke 설계
 
 ### Out of scope
@@ -75,12 +89,14 @@ interaction read model을 render-space로 바꾸면 projected Slot ID가 `contai
 2. `setPages()`는 page list와 layout invalidation만 수행하고 `elementsMap` / `childrenMap`을 rebuild하지 않는다.
 3. frame scope derive는 현재 doc reference 중심으로 memoize되고, Slot inclusion은 일부 경로에서 `node.props` 존재 여부에 의존한다.
 4. `updateElement` canonical sync는 set callback 밖에서 만든 stale `updatedElement` snapshot을 먼저 canonical에 반영할 수 있다.
+5. `usePageManager.initializeProject()`와 `elementLoader`가 `deriveProjectRenderModelFromDocument().elements`를 store mirror hydrate source로 쓰면, refresh 후 `elementsMap`에 `page::page-frame::slot` ID가 섞일 수 있다.
 
 결과:
 
 - ADR-135의 render/canonical ID split-brain을 고쳐도 stale mirror 또는 stale frame scope가 같은 사용자 증상(selection skip, Slot visibility miss)을 재현할 수 있다.
 - props 없는 Slot host가 scope에서 빠지면 `collectHydratedFrameElements()` 필터에서 Slot 자체가 사라질 수 있다.
 - overlapping update가 canonical document와 derived mirror를 서로 다른 element snapshot으로 갱신할 수 있다.
+- canonical document와 IndexedDB는 정상인데 runtime `elementsMap`만 projected render ID로 오염되어 refresh 후 selection/drop target 해석이 다시 split-brain 상태가 될 수 있다.
 
 ## 2. Target Architecture
 
@@ -340,7 +356,7 @@ Dev assert:
 Gate:
 
 - 실패하는 테스트가 정확히 원인 증상을 잡아야 Phase 1 진입.
-- Phase 1 진입 전 R8-R11 closure path 결정 lock-in. 각 위험을 ADR-135 실행 내 fix할지 follow-up ADR로 split할지 결정하고, 결정 결과를 `§2.7` 보강 또는 follow-up ADR 본문 link로 본 breakdown에 명시한다. 결정 evidence 없이 Phase 1 진입 금지.
+- R8-R11 closure path 결정 lock-in: 2026-05-14 execution land에서 네 위험 모두 ADR-135 실행 내 fix로 처리했다. R8은 frame mutation index rebuild fixture, R9는 props-less Slot inclusion + `documentVersion` invalidation, R10은 `updateElement` stale snapshot 제거, R11은 page activation 중복 호출 제거로 닫는다.
 
 ### Phase 1 — interaction read model render-space alignment (G1)
 
@@ -534,19 +550,24 @@ Smoke 시나리오:
 3. Page에 Frame 적용.
 4. 각 Slot에 page-owned element 배치.
 5. 각 element 선택 가능 확인.
-6. Slot guard 표시 확인.
-7. element를 Slot 간 이동.
-8. Frame 적용 해제 → 재적용.
-9. 브라우저 새로고침.
-10. Skia 화면, Layer tree, IndexedDB `documents`의 descendants path 비교.
-11. Dev snapshot에서 canonical document와 `elementsMap` / `childrenMap`의 frame-bound children 정합 확인.
-12. props 없는 Slot fixture가 refresh 전후 모두 Skia와 frame scope에 남아있는지 확인.
+6. Frame 적용 Page의 projected Slot chrome 영역을 클릭해도 Page/body fallback selection이 유지되는지 확인.
+7. Slot guard 표시 확인.
+8. element를 Slot 간 이동.
+9. Frame 적용 해제 → 재적용. 이때 drag했던 element가 이전 Page가 아니라 Frame 적용 해제한 Page에 남아있는지 확인.
+10. Frame 적용 Page의 projected Slot 영역이 drop target으로 잡히는지 확인.
+11. 브라우저 새로고침.
+12. Skia 화면, Layer tree, IndexedDB `documents`의 descendants path 비교.
+13. Dev snapshot에서 canonical document와 `elementsMap` / `childrenMap`의 frame-bound children 정합 확인.
+14. props 없는 Slot fixture가 refresh 전후 모두 Skia와 frame scope에 남아있는지 확인.
 
 Gate G6:
 
 - selection PASS.
+- Frame 적용 Page body/page fallback selection PASS.
 - Slot visibility PASS.
 - drag/drop PASS.
+- projected Slot drop target PASS.
+- drag 후 frame unapply page ownership PASS.
 - refresh hydration PASS.
 - console/page/http error 0.
 - document JSON에 `::page-frame::` 0건.
@@ -555,18 +576,19 @@ Gate G6:
 
 ## 4. Test Matrix
 
-| 증상                           | 테스트                                                   | 통과 조건                                                                             |
-| ------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| element 선택 안 됨             | `resolveCanvasInteractionTarget.test.ts`                 | projected Slot/child hit가 selection-safe target으로 변환                             |
-| helper guard 안 뜸             | `resolveCanvasInteractionTarget.test.ts`                 | projected Slot hit가 `slot-guard` 반환                                                |
-| Slot 사라짐                    | `pageFrameBinding.roundtrip.test.ts`                     | apply/remove/apply 후 descendant paths 보존                                           |
-| props 없는 Slot host 사라짐    | `frameElementScope.test.ts`                              | Slot host inclusion이 `node.props` 존재 여부에 의존하지 않음                          |
-| drag/drop 후 refresh 깨짐      | `resolveCanonicalMutationTarget.test.ts` + browser smoke | canonical document에 synthetic ID 0건                                                 |
-| map split-brain 재발           | `BuilderCanvas.projection.static.test.ts`                | interaction path의 `sceneNodesMap` 사용 차단                                          |
-| render path 회귀               | `createSkiaRendererInput.test.ts`                        | projected Slot ID가 render/interaction map에 존재                                     |
-| frame mutation 후 stale mirror | `frameActions.indexSync.test.ts`                         | canonical document와 `elementsMap` / `childrenMap`이 같은 frame-bound tree를 노출     |
-| canonical update patch loss    | `elementUpdate.atomicity.test.ts`                        | 연속 update 후 canonical document와 legacy mirror가 같은 latest element snapshot 보유 |
-| page activation race           | `usePageManager.pageCreation.test.tsx`                   | layout-bound page 생성 시 activation 1회                                              |
+| 증상                           | 테스트                                                                              | 통과 조건                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| element 선택 안 됨             | `resolveCanvasInteractionTarget.test.ts`                                            | projected Slot/child hit가 selection-safe target으로 변환                                   |
+| helper guard 안 뜸             | `resolveCanvasInteractionTarget.test.ts`                                            | projected Slot hit가 `slot-guard` 반환                                                      |
+| Slot 사라짐                    | `pageFrameBinding.roundtrip.test.ts`                                                | apply/remove/apply 후 descendant paths 보존                                                 |
+| props 없는 Slot host 사라짐    | `frameElementScope.test.ts`                                                         | Slot host inclusion이 `node.props` 존재 여부에 의존하지 않음                                |
+| drag/drop 후 refresh 깨짐      | `resolveCanonicalMutationTarget.test.ts` + browser smoke                            | canonical document에 synthetic ID 0건                                                       |
+| map split-brain 재발           | `BuilderCanvas.projection.static.test.ts`                                           | interaction path의 `sceneNodesMap` 사용 차단                                                |
+| render path 회귀               | `createSkiaRendererInput.test.ts`                                                   | projected Slot ID가 render/interaction map에 존재                                           |
+| frame mutation 후 stale mirror | `frameActions.indexSync.test.ts`                                                    | canonical document와 `elementsMap` / `childrenMap`이 같은 frame-bound tree를 노출           |
+| canonical update patch loss    | `elementUpdate.atomicity.test.ts`                                                   | 연속 update 후 canonical document와 legacy mirror가 같은 latest element snapshot 보유       |
+| page activation race           | `usePageManager.pageCreation.test.tsx`                                              | layout-bound page 생성 시 activation 1회                                                    |
+| refresh 후 mirror synthetic    | `usePageManager.canonical.test.ts` + `elementLoader.static.test.ts` + browser smoke | bootstrap/lazy-load hydrate source가 canonical traversal이고 `elementsMap` synthetic ID 0건 |
 
 ## 5. Implementation Guardrails
 
@@ -574,6 +596,7 @@ Gate G6:
 - `::page-frame::` substring guard는 mutation boundary와 persistence test에 둔다.
 - pointer move hot path는 `CompositionDocument` traversal을 하지 않는다.
 - `pageFrameBinding` roundtrip helper는 `RefNode.descendants` boundary 파일에 격리한다.
+- `usePageManager.initializeProject()`와 `elementLoader`는 store mirror hydrate source로 `canonicalDocumentToElements()`만 사용한다. `deriveProjectRenderModelFromDocument().elements`는 render/read model 전용이다.
 - fallback Slot policy는 silent fallback 금지. unmatched fallback은 dev warning + fixture로 고정한다.
 - Slot host scope inclusion은 `props` 유무와 독립적이어야 한다.
 - canonical-derived hook/cache는 doc reference만으로 invalidation하지 않는다. `documentVersion` 또는 동등한 mutation counter를 함께 사용한다.
@@ -616,12 +639,12 @@ Then run authenticated browser smoke for Phase 6 scenario.
 
 ## 7. Completion Criteria
 
-ADR-135 can move from Proposed to Implemented only when:
+ADR-135 can move from In Progress to Implemented only when:
 
 - G1-G6 all pass.
 - targeted tests and type-check pass.
 - browser smoke confirms selection/slot visibility/drag/drop/refresh hydration.
 - `documents` JSON and history payload contain 0 projected render IDs.
 - frame scope, canonical document, and derived mirror/index convergence tests pass.
-- known adjacent races R8-R11 are either fixed in this ADR execution or explicitly split into a follow-up ADR before Implemented promotion.
+- known adjacent races R8-R12 are fixed in this ADR execution or explicitly split into a follow-up ADR before Implemented promotion.
 - README and `docs/CHANGELOG.md` record implementation completion in the same commit or immediately following commit.

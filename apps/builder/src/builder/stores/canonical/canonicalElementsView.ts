@@ -37,6 +37,7 @@ import {
   getActiveCanonicalDocument,
   useActiveCanonicalDocument,
 } from "./canonicalElementsBridge";
+import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 
 type ElementScopeContext = {
   pageId: string | null;
@@ -332,8 +333,11 @@ function getNodeScope(
 
 export function useCanonicalFrameElementScopes(): CanonicalFrameElementScopeMap | null {
   const doc = useActiveCanonicalDocument();
+  const documentVersion = useCanonicalDocumentStore(
+    (state) => state.documentVersion,
+  );
   return useMemo(() => {
     if (!doc) return null;
     return canonicalDocumentToFrameElementScopes(doc);
-  }, [doc]);
+  }, [doc, documentVersion]);
 }

@@ -22,6 +22,28 @@ type SceneScopeMetadata = {
   slotName?: unknown;
 };
 
+export type CanvasProjectionMetadata =
+  | {
+      kind: "page-frame-element";
+      pageId: string;
+      sourceElementId: string;
+      renderElementId: string;
+      renderParentId: string | null;
+      canonicalParentId: string | null;
+      slotName?: string;
+      descendantPath?: string;
+    }
+  | {
+      kind: "page-slot-fill";
+      pageId: string;
+      sourceElementId: string;
+      renderElementId: string;
+      renderParentId: string;
+      canonicalParentId: string | null;
+      slotName: string;
+      descendantPath: string;
+    };
+
 export interface CanvasSceneNode {
   id: string;
   type: string;
@@ -54,6 +76,7 @@ export interface CanvasSceneNode {
   name?: string;
   metadata?: CanonicalNode["metadata"];
   reusable?: true;
+  projection?: CanvasProjectionMetadata;
   ref?: string;
   descendants?: Record<string, DescendantOverride>;
   slot?: false | string[];

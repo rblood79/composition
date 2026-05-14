@@ -36,6 +36,14 @@ function isLegacySlotHoistedNode(node: CanonicalNode): boolean {
   );
 }
 
+function isSlotHostNode(node: CanonicalNode): boolean {
+  return (
+    node.type === "Slot" ||
+    Array.isArray((node as CanonicalNode & { slot?: unknown }).slot) ||
+    isLegacySlotHoistedNode(node)
+  );
+}
+
 function isPagePlaceholderNode(node: CanonicalNode): boolean {
   const metadataType = (node.metadata as { type?: unknown } | undefined)?.type;
   return metadataType === "page" || metadataType === "legacy-page";
@@ -62,6 +70,7 @@ function collectElementScopeIds(
 
   if (
     node.props ||
+    isSlotHostNode(node) ||
     isLegacySlotHoistedNode(node) ||
     isRenderableRefNode(node)
   ) {

@@ -218,6 +218,10 @@ describe("createSkiaRendererInput", () => {
     expect(input.childrenMap.get(page2Slot.id)?.map((el) => el.id)).toEqual([
       "page-2-fill",
     ]);
+    expect(input.interactionNodesMap.has(page1Slot.id)).toBe(true);
+    expect(
+      input.interactionChildrenMap.get(page1Slot.id)?.map((el) => el.id),
+    ).toEqual(["page-1-fill"]);
   });
 
   it("builds childrenMap from page snapshot source order instead of legacy order_num", () => {

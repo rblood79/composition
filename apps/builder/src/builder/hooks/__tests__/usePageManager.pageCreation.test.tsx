@@ -80,4 +80,26 @@ describe("usePageManager page creation activation", () => {
     expect(state.selectedElementId).toBe(createdBody?.id);
     expect(state.selectedElementIds).toEqual([createdBody?.id]);
   });
+
+  it("layout-bound addPageWithParams도 appendPageShell activation 외 activatePage를 중복 호출하지 않는다", async () => {
+    const home = makePage("page-1");
+    const homeBody = makeBody("body-1", home.id);
+    useStore.getState().appendPageShell(home, homeBody, { x: 0, y: 0 });
+
+    const activateSpy = vi.spyOn(useStore.getState(), "activatePage");
+    const { result } = renderHook(() => usePageManager());
+
+    await act(async () => {
+      const addResult = await result.current.addPageWithParams({
+        projectId: "project-1",
+        title: "Layout Page",
+        slug: "/layout-page",
+        layoutId: "frame-1",
+      });
+      expect(addResult.success).toBe(true);
+    });
+
+    expect(activateSpy).not.toHaveBeenCalled();
+    expect(useStore.getState().currentPageId).not.toBe(home.id);
+  });
 });

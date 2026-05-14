@@ -48,7 +48,10 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     expect(source).toContain(
       "page shell mutations also update the canonical doc",
     );
-    expect(source).toMatch(/if \(state\.pages === pagesRef\) return;/);
+    expect(source).toContain("hasPageShellTopologyChanged");
+    expect(source).toMatch(
+      /if \(!hasPageShellTopologyChanged\(pagesRef, state\.pages\)\) \{[\s\S]*?pagesRef = state\.pages;[\s\S]*?return;[\s\S]*?\}/,
+    );
     expect(source).toContain("getActiveCanonicalBuilderElements");
     expect(source).toContain("getCanonicalOrBootstrapBuilderElements");
     expect(source).toContain("getPageShellBridgeElements");

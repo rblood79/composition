@@ -11,16 +11,19 @@ import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canoni
 import { visitCanonicalDocumentElements } from "../../builder/stores/canonical/canonicalElementsView";
 import { enqueuePagePersistence } from "../../builder/utils/pagePersistenceQueue";
 import {
+  getFrameElementMirrorId,
   getPageFrameBindingId,
   getReusableFrameMirrorId,
   withPageFrameBinding,
 } from "./frameMirror";
+import { withSlotMirrorName } from "./slotMirror";
 
 export { getPageFrameBindingId } from "./frameMirror";
 
 interface ElementsStateForPageBinding {
   pages: Page[];
   elementsMap?: ReadonlyMap<string, Element>;
+  _rebuildIndexes?: () => void;
 }
 
 export interface ApplyPageFrameBindingInput {
@@ -118,29 +121,103 @@ function buildPageMetadata(
   return withoutLayoutId;
 }
 
+function readSlotNameFromDescendantPath(descendantPath: string): string {
+  const lastSegment = descendantPath.split("/").filter(Boolean).at(-1);
+  if (!lastSegment) return "content";
+  return lastSegment.startsWith("slot-")
+    ? lastSegment.slice("slot-".length)
+    : lastSegment;
+}
+
+function withPageFrameSlotRoundtripMirror(
+  node: CanonicalNode,
+  descendantPath: string,
+): CanonicalNode {
+  const slotName = readSlotNameFromDescendantPath(descendantPath);
+  const metadata = {
+    ...(node.metadata ?? {}),
+    pageFrameDescendantPath: descendantPath,
+    pageFrameSlotName: slotName,
+  };
+  return withSlotMirrorName(
+    {
+      ...node,
+      metadata,
+    },
+    slotName,
+  ) as CanonicalNode;
+}
+
 function getChildrenFromDescendants(refNode: RefNode): CanonicalNode[] {
   const children: CanonicalNode[] = [];
   const descendants = refNode.descendants ?? {};
 
-  for (const override of Object.values(descendants)) {
+  for (const [descendantPath, override] of Object.entries(descendants)) {
     if (
       override &&
       typeof override === "object" &&
       "children" in override &&
       Array.isArray(override.children)
     ) {
-      children.push(...override.children);
+      children.push(
+        ...override.children.map((child) =>
+          withPageFrameSlotRoundtripMirror(child, descendantPath),
+        ),
+      );
     } else if (
       override &&
       typeof override === "object" &&
       "type" in override &&
       typeof override.type === "string"
     ) {
-      children.push(override as CanonicalNode);
+      children.push(
+        withPageFrameSlotRoundtripMirror(
+          override as CanonicalNode,
+          descendantPath,
+        ),
+      );
     }
   }
 
   return children;
+}
+
+function readPageFrameDescendantPath(node: CanonicalNode): string | null {
+  const metadata = node.metadata as
+    | { pageFrameDescendantPath?: unknown; pageFrameSlotName?: unknown }
+    | undefined;
+  if (typeof metadata?.pageFrameDescendantPath === "string") {
+    return metadata.pageFrameDescendantPath;
+  }
+  if (typeof metadata?.pageFrameSlotName === "string") {
+    return metadata.pageFrameSlotName;
+  }
+  return null;
+}
+
+function buildDescendantsFromDirectChildren(
+  children: readonly CanonicalNode[] | undefined,
+): RefNode["descendants"] | undefined {
+  if (!children || children.length === 0) return undefined;
+
+  const descendants: RefNode["descendants"] = {};
+  for (const child of children) {
+    if (isBodyElementNode(child)) continue;
+    const descendantPath = readPageFrameDescendantPath(child) ?? "content";
+    const current = descendants[descendantPath];
+    const currentChildren =
+      current &&
+      typeof current === "object" &&
+      "children" in current &&
+      Array.isArray(current.children)
+        ? current.children
+        : [];
+    descendants[descendantPath] = {
+      children: [...currentChildren, child],
+    };
+  }
+
+  return Object.keys(descendants).length > 0 ? descendants : undefined;
 }
 
 function isBodyElementNode(node: CanonicalNode): boolean {
@@ -159,7 +236,7 @@ function findPageOwnedBodyElement(
   for (const element of elementsMap.values()) {
     if (
       element.page_id === pageId &&
-      element.layout_id == null &&
+      getFrameElementMirrorId(element) == null &&
       !element.deleted &&
       isBodyElement(element)
     ) {
@@ -192,7 +269,7 @@ function getPageBindingElementsMap(
 function makeBodyNodeFromElement(element: Element): CanonicalNode {
   return {
     id: element.id,
-    type: "body",
+    type: "body" as CanonicalNode["type"],
     props: element.props ?? {},
     children: [],
   };
@@ -201,7 +278,7 @@ function makeBodyNodeFromElement(element: Element): CanonicalNode {
 function makeDefaultPageBodyNode(pageId: string): CanonicalNode {
   return {
     id: `${pageId}-body`,
-    type: "body",
+    type: "body" as CanonicalNode["type"],
     props: getDefaultProps("body") as Record<string, unknown>,
     children: [],
   };
@@ -236,6 +313,8 @@ function buildPageNode(
         : undefined;
     const directChildren =
       existingNode?.type === "frame" ? existingNode.children : undefined;
+    const rebuiltDescendants =
+      buildDescendantsFromDirectChildren(directChildren);
     const nextNode: RefNode = {
       id: updatedPage.id,
       type: "ref",
@@ -244,8 +323,8 @@ function buildPageNode(
       metadata: buildPageMetadata(updatedPage, frameId, existingNode),
       ...(descendants && Object.keys(descendants).length > 0
         ? { descendants }
-        : directChildren && directChildren.length > 0
-          ? { descendants: { content: { children: directChildren } } }
+        : rebuiltDescendants
+          ? { descendants: rebuiltDescendants }
           : {}),
     };
     return nextNode;
@@ -352,6 +431,7 @@ export async function applyPageFrameBindingCanonicalPrimary({
     updatedPage,
     getPageBindingElementsMap(legacyElementsMap),
   );
+  state._rebuildIndexes?.();
   setPages(updatedPages);
   await persistPageFrameBindingMirror(pageId, frameId, updatedPage);
 }

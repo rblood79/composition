@@ -12,8 +12,8 @@ import {
   resetPointerClick,
   resolveBodySelection,
   resolveDoubleClickTargetId,
+  resolveCanvasInteractionTarget,
   resolveSelectionHit,
-  resolveTopmostHitElementId,
 } from "../interaction";
 import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
@@ -220,11 +220,47 @@ export function useCentralCanvasPointerHandlers({
         }
       }
 
-      const hitElementId = resolveTopmostHitElementId(
-        hitTestPoint(canvasPos.x, canvasPos.y),
-        hitElementsMap,
-        hitChildrenMap,
-      );
+      const interactionTarget = resolveCanvasInteractionTarget({
+        candidateIds: hitTestPoint(canvasPos.x, canvasPos.y),
+        elementsMap: hitElementsMap,
+        childrenMap: hitChildrenMap,
+      });
+      if (interactionTarget.kind === "slot-guard") {
+        if (!event.shiftKey) {
+          const bodySelection = resolveBodySelection({
+            canvasPoint: canvasPos,
+            currentPageId: state.currentPageId,
+            elementsMap: hitElementsMap,
+            frameAreas,
+            pageHeight,
+            pageIndexElementsByPage: state.pageIndex.elementsByPage,
+            pageSelectionEnabled,
+            pagePositions: state.pagePositions,
+            pageWidth,
+            pages: state.pages,
+          });
+
+          if (bodySelection.bodyElementId) {
+            handleElementClickRef.current(bodySelection.bodyElementId, {
+              ctrlKey: event.ctrlKey,
+              metaKey: event.metaKey,
+              shiftKey: event.shiftKey,
+            });
+          } else if (bodySelection.pageId) {
+            if (bodySelection.pageId !== state.currentPageId) {
+              setCurrentPageId(bodySelection.pageId);
+            }
+            setSelectedElements([]);
+          }
+        }
+        return;
+      }
+      const hitElementId =
+        interactionTarget.kind === "select"
+          ? interactionTarget.elementId
+          : null;
+      const hitTargetPageId =
+        interactionTarget.kind === "select" ? interactionTarget.pageId : null;
 
       // body가 선택된 상태에서는 inSelectionBounds를 무시한다.
       // body의 selectionBounds가 전체 페이지를 커버하므로,
@@ -281,6 +317,8 @@ export function useCentralCanvasPointerHandlers({
               startClientY: event.clientY,
             };
           }
+        } else if (hitTargetPageId && hitTargetPageId !== state.currentPageId) {
+          selectElementWithPageTransition(hitElementId, hitTargetPageId);
         }
         return;
       }

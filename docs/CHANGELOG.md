@@ -5,6 +5,20 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-135 Page-frame projection boundary implementation] - 2026-05-14
+
+### Architecture
+
+- **Skia Frame 적용 Page의 selection/slot/mutation 경계 정합**:
+  - render-space interaction map, projection metadata, selection target resolver, drag/drop canonical mutation target resolver를 도입해 projected render ID가 selection state 또는 canonical mutation target으로 유입되는 경로를 차단했다.
+  - Frame 적용 Page에서 projected Slot chrome이 hit-test top target이 되어도 일반 Page와 동일하게 Page/body fallback selection이 동작하도록 보강했다.
+  - Frame 적용 Page로 drag한 element가 Frame 해제 후 이전 Page 위치로 되돌아가는 stale mirror race를 막기 위해 drag commit 직후 index rebuild와 frame binding `setPages()` 전 rebuild 순서를 고정했다.
+  - Frame apply/unapply의 `layout_id` 변경이 page-shell bridge를 자극해 canonical document를 stale legacy mirror로 덮는 경로를 차단했다. page-shell bridge는 이제 page id topology 변경에만 반응한다.
+  - projected `Slot` render node를 drop target container로 인정해 Frame 적용 Page의 Slot 영역으로 드래그할 때 target이 잡히지 않는 경로를 보강했다.
+  - refresh/bootstrap 및 lazy page load가 `deriveProjectRenderModelFromDocument().elements`를 store mirror hydrate source로 사용해 `elementsMap`에 `::page-frame::` projected ID를 섞던 마지막 경로를 차단했다. page list 파생은 render model을 유지하되, `hydrateProjectSnapshot()` / `lazyLoadPageElements()`는 canonical traversal만 사용한다.
+  - `pageFrameBinding` apply/remove roundtrip에서 Slot descendant path를 보존하고, props 없는 Slot host scope inclusion, frame mutation index rebuild, `updateElement` atomicity, page activation 중복 호출 회귀를 fixture로 고정했다.
+  - 검증: targeted Vitest 16 files / 62 tests PASS, type-check/preflight PASS, authenticated browser smoke PASS(refresh 전후 runtime `elementsMap` synthetic 0, IndexedDB `documents` synthetic 0, console/page/http error 0).
+
 ## [Add Page activation race fix] - 2026-05-14
 
 ### Bug Fixes

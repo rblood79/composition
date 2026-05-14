@@ -6,6 +6,7 @@ import type {
 } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
+import { canonicalDocumentToElements } from "../../../builder/stores/canonical/canonicalElementsView";
 import { applyPageFrameBindingCanonicalPrimary } from "../pageFrameBinding";
 import { exportLegacyDocument } from "../exportLegacyDocument";
 
@@ -119,7 +120,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     const setPages = vi.fn();
     const frameBody: CanonicalNode = {
       id: "frame-body",
-      type: "body",
+      type: "Body",
       props: {},
       children: [
         {
@@ -258,6 +259,81 @@ describe("pageFrameBinding canonical primary helper", () => {
         ]),
       }),
     );
+  });
+
+  it("rebuilds canonical-derived mirror before setPages notifies page shell subscribers", async () => {
+    const page = makePage("page-2", "frame-1");
+    const draggedChild: CanonicalNode = {
+      id: "dragged-card",
+      type: "Card",
+      props: { label: "Dragged" },
+    };
+    const state = {
+      pages: [page],
+      elementsMap: new Map<string, Element>([
+        [
+          "dragged-card",
+          {
+            id: "dragged-card",
+            type: "Card",
+            props: { label: "Dragged" },
+            parent_id: "page-1-body",
+            page_id: "page-1",
+            layout_id: null,
+          } as Element,
+        ],
+      ]),
+      _rebuildIndexes: vi.fn(() => {
+        const doc = useCanonicalDocumentStore
+          .getState()
+          .getDocument("project-1");
+        const elements = doc ? canonicalDocumentToElements(doc) : [];
+        state.elementsMap = new Map(
+          elements.map((element) => [element.id, element]),
+        );
+      }),
+    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+    const setPages = vi.fn(() => {
+      expect(state.elementsMap?.get("dragged-card")?.page_id).toBe("page-2");
+    });
+    const existingPageRef: RefNode = {
+      id: "page-2",
+      type: "ref",
+      ref: "layout-frame-1",
+      metadata: {
+        type: "legacy-page",
+        pageId: "page-2",
+        slug: "/page-2",
+        layoutId: "frame-1",
+      },
+      descendants: {
+        "frame-body/slot-content": {
+          children: [draggedChild],
+        },
+      },
+    };
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
+
+    await applyPageFrameBindingCanonicalPrimary({
+      pageId: page.id,
+      frameId: null,
+      getElementsState: () => state,
+      setPages,
+    });
+
+    expect(
+      (state._rebuildIndexes as ReturnType<typeof vi.fn>).mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(setPages.mock.invocationCallOrder[0]);
+    expect(setPages).toHaveBeenCalledOnce();
   });
 
   it("clears frame binding to a page frame with a body when the ref has no descendants", async () => {

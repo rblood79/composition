@@ -200,6 +200,7 @@ export async function deleteReusableFrame(frameId: string): Promise<void> {
     getElementsState: getLiveElementsState,
     setPages,
   });
+  getLiveElementsState()._rebuildIndexes();
   const projectId = useCanonicalDocumentStore.getState().currentProjectId;
   if (projectId) {
     await persistCanonicalDocument(projectId);

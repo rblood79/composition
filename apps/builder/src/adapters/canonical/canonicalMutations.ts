@@ -48,7 +48,10 @@ import type {
   SerializedDataBinding,
   SerializedEventHandler,
 } from "@composition/shared";
-import { moveCanonicalChild } from "@composition/shared";
+import {
+  moveCanonicalChild,
+  moveCanonicalChildToDescendants,
+} from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import {
   buildLegacyElementMetadata,
@@ -98,6 +101,48 @@ export type CanonicalMutationResult = {
   changed: boolean;
   document: CompositionDocument | null;
 };
+
+export type CanonicalMoveTarget =
+  | {
+      kind: "node-children";
+      parentId: CanonicalParentId;
+      insertionIndex: number;
+    }
+  | {
+      kind: "ref-descendants";
+      refNodeId: string;
+      descendantPath: string;
+      insertionIndex: number;
+    };
+
+function hasProjectedPageFrameId(id: string | null | undefined): boolean {
+  return typeof id === "string" && id.includes("::page-frame::");
+}
+
+function assertCanonicalMoveTarget(
+  elementId: string,
+  target: CanonicalMoveTarget,
+): void {
+  if (hasProjectedPageFrameId(elementId)) {
+    throw new Error(`Projected render id cannot be moved: ${elementId}`);
+  }
+  if (
+    target.kind === "node-children" &&
+    hasProjectedPageFrameId(target.parentId)
+  ) {
+    throw new Error(
+      `Projected render id cannot be used as canonical parent: ${target.parentId}`,
+    );
+  }
+  if (
+    target.kind === "ref-descendants" &&
+    hasProjectedPageFrameId(target.refNodeId)
+  ) {
+    throw new Error(
+      `Projected render id cannot be used as canonical ref target: ${target.refNodeId}`,
+    );
+  }
+}
 
 let _registeredActions: CanonicalMutationStoreActions | null = null;
 
@@ -176,7 +221,7 @@ function sortElementsForUpsert(elements: Element[]): Element[] {
 
   return [...elements].sort((a, b) => {
     const ownerPriority = (element: Element): number => {
-      if (element.layout_id) return 0;
+      if (asElementWithLegacyMirror(element).layout_id) return 0;
       if (element.page_id) return 1;
       return 2;
     };
@@ -583,9 +628,12 @@ function legacyElementToCanonicalNode(
       : getCanonicalRefTarget(element);
 
   if (isLegacySlotTag(element.type)) {
+    const legacyElement = asElementWithLegacyMirror(element);
     const slotName =
-      (element.props.name as string | undefined) ?? element.slot_name ?? null;
-    if (element.layout_id) {
+      (element.props.name as string | undefined) ??
+      legacyElement.slot_name ??
+      null;
+    if (legacyElement.layout_id) {
       return {
         id: previousNode?.id ?? element.id,
         type: "frame",
@@ -601,7 +649,7 @@ function legacyElementToCanonicalNode(
           slotName: slotName ?? "content",
         },
         children: [],
-      };
+      } as unknown as CanonicalNode;
     }
 
     return {
@@ -611,7 +659,7 @@ function legacyElementToCanonicalNode(
       ...(previousNode?.children ? { children: previousNode.children } : {}),
       metadata: {
         type: "legacy-slot",
-        slot_name: element.slot_name,
+        slot_name: legacyElement.slot_name,
         ...(slotName ? { slotName } : {}),
       },
     };
@@ -848,7 +896,7 @@ function buildPageShell(
         layoutId: frameId,
       },
       descendants: {},
-    } satisfies RefNode;
+    } as unknown as RefNode;
   }
 
   const frameMetadata = {
@@ -1007,7 +1055,7 @@ function upsertElementIntoDocument(
     legacy.componentRole === "master" &&
     !element.parent_id &&
     !element.page_id &&
-    !element.layout_id
+    !legacy.layout_id
   ) {
     return {
       ...docWithoutExisting,
@@ -1026,10 +1074,10 @@ function upsertElementIntoDocument(
     }
   }
 
-  if (element.layout_id) {
+  if (legacy.layout_id) {
     const ensured = ensureReusableFrame(
       docWithoutExisting,
-      element.layout_id,
+      legacy.layout_id,
       snapshot,
     );
     return attachChildToFrame(ensured.doc, ensured.frame, node);
@@ -1045,7 +1093,7 @@ function upsertElementIntoDocument(
       ensured.doc,
       ensured.pageNode,
       node,
-      element.slot_name,
+      legacy.slot_name,
     );
   }
 
@@ -1146,6 +1194,7 @@ function hasDescendantChildrenOverride(
   return (
     Boolean(override) &&
     typeof override === "object" &&
+    override !== null &&
     "children" in override &&
     Array.isArray((override as { children?: unknown }).children)
   );
@@ -1396,7 +1445,7 @@ function isFullReplaceShellNode(node: CanonicalNode): boolean {
 }
 
 function shouldPreserveOmittedFullReplaceNode(node: CanonicalNode): boolean {
-  return isFullReplaceShellNode(node) || node.type === "body";
+  return isFullReplaceShellNode(node) || node.type.toLowerCase() === "body";
 }
 
 function hasFullReplaceChildrenPayload(node: CanonicalNode): boolean {
@@ -1414,7 +1463,7 @@ function clearIncomingFullReplaceNode(node: CanonicalNode): CanonicalNode {
       ...(node as RefNode),
       children: [],
       descendants: {},
-    } satisfies RefNode;
+    } as RefNode;
   }
   return { ...node, children: [] };
 }
@@ -1618,6 +1667,44 @@ export function moveElementCanonicalPrimary(
     targetParentId,
     insertionIndex,
   );
+
+  if (!result.changed) {
+    return { changed: false, document: currentDoc };
+  }
+
+  useCanonicalDocumentStore.getState().setDocument(projectId, result.document);
+
+  return { changed: true, document: result.document };
+}
+
+export function moveElementToCanonicalTarget(
+  elementId: string,
+  target: CanonicalMoveTarget,
+): CanonicalMutationResult {
+  assertCanonicalMoveTarget(elementId, target);
+
+  const actions = getActions();
+  const projectId = actions.getCurrentProjectId();
+  if (!projectId) {
+    return { changed: false, document: null };
+  }
+
+  const currentDoc = getCurrentDocument(projectId);
+  const result =
+    target.kind === "node-children"
+      ? moveCanonicalChild(
+          currentDoc,
+          elementId,
+          target.parentId,
+          target.insertionIndex,
+        )
+      : moveCanonicalChildToDescendants(
+          currentDoc,
+          elementId,
+          target.refNodeId,
+          target.descendantPath,
+          target.insertionIndex,
+        );
 
   if (!result.changed) {
     return { changed: false, document: currentDoc };

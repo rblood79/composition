@@ -13,6 +13,7 @@ export interface CanvasInteractionNode {
   componentName?: string | null;
   name?: string | null;
   ref?: string;
+  projection?: unknown;
   masterId?: string | null;
   componentRole?: unknown;
 }

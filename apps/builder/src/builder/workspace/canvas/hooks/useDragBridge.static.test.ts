@@ -20,9 +20,23 @@ describe("useDragBridge persistence contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("moveElementCanonicalPrimary(");
+    expect(source).toContain("moveElementToCanonicalTarget(");
     expect(source).not.toContain("state.moveElementToContainer(");
     expect(source).not.toContain("state.batchUpdateElementOrders(");
+  });
+
+  it("rebuilds derived store indexes immediately after canonical drop commit", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useDragBridge.ts"),
+      "utf-8",
+    );
+    const commitBlock = source.match(
+      /const moveResult =[\s\S]*?postMoveStore = buildDragReadModelFromCanonicalDocument/,
+    )?.[0];
+
+    expect(commitBlock).toBeTruthy();
+    expect(commitBlock).toContain("moveElementToCanonicalTarget(");
+    expect(commitBlock).toContain("useStore.getState()._rebuildIndexes?.()");
   });
 
   it("does not use mutable store maps as drag/drop authority", async () => {

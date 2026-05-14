@@ -96,13 +96,26 @@ describe("usePageManager.initializeProject canonical-only hydrate", () => {
     const source = await readUsePageManagerSource();
     const initFnSource = extractInitializeProject(source);
     const hydrateSnapshotIndex = initFnSource.indexOf(
-      "hydrateProjectSnapshot(renderModel.elements as Element[])",
+      "hydrateProjectSnapshot(canonicalElements as Element[])",
     );
     const setPagesIndex = initFnSource.indexOf("setPages(storePages)");
 
     expect(hydrateSnapshotIndex).toBeGreaterThanOrEqual(0);
     expect(setPagesIndex).toBeGreaterThanOrEqual(0);
     expect(hydrateSnapshotIndex).toBeLessThan(setPagesIndex);
+  });
+
+  it("hydrateProjectSnapshot 은 page-frame projection render elements 를 넣지 않는다", async () => {
+    const source = await readUsePageManagerSource();
+    const initFnSource = extractInitializeProject(source);
+
+    expect(initFnSource).toContain("canonicalDocumentToElements(document)");
+    expect(initFnSource).toContain(
+      "hydrateProjectSnapshot(canonicalElements as Element[])",
+    );
+    expect(initFnSource).not.toContain(
+      "hydrateProjectSnapshot(renderModel.elements",
+    );
   });
 
   it("hydrate 초기 선택은 page order_num 0이 아니라 slug Home identity 를 사용한다", async () => {

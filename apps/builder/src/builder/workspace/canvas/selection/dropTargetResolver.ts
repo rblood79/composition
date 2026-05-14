@@ -200,7 +200,7 @@ function isComponentInstanceElement(element: DropTargetNode): boolean {
 }
 
 function isExplicitSlotHost(element: DropTargetNode): boolean {
-  return Array.isArray(element.slot);
+  return Array.isArray(element.slot) || element.type?.toLowerCase() === "slot";
 }
 
 function hasLayoutContainerStyle(element: DropTargetNode): boolean {

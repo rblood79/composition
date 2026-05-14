@@ -70,6 +70,38 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).not.toContain(staleContextMenuArgument);
   });
 
+  it("uses render-resolved interaction maps for hit-test and drag read models", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCanvas.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("skiaRendererInput.interactionNodesMap");
+    expect(source).toContain("skiaRendererInput.interactionChildrenMap");
+    expect(source).not.toContain(
+      "interactiveElementsMapRef.current = skiaRendererInput.sceneNodesMap",
+    );
+    expect(source).not.toContain(
+      "interactiveChildrenMapRef.current = skiaRendererInput.sceneChildrenByParent",
+    );
+  });
+
+  it("keeps page/body fallback selection when projected Slot chrome is hit", async () => {
+    const source = await readFile(
+      resolve(__dirname, "hooks/useCentralCanvasPointerHandlers.ts"),
+      "utf-8",
+    );
+    const slotGuardBlock = source.match(
+      /if \(interactionTarget\.kind === "slot-guard"\) \{[\s\S]*?return;\n      \}/,
+    )?.[0];
+
+    expect(slotGuardBlock).toBeTruthy();
+    expect(slotGuardBlock).toContain("resolveBodySelection({");
+    expect(slotGuardBlock).toContain("handleElementClickRef.current");
+    expect(slotGuardBlock).toContain("setCurrentPageId(bodySelection.pageId)");
+    expect(slotGuardBlock).toContain("setSelectedElements([])");
+  });
+
   it("tags scene snapshots with canonical vs legacy-bootstrap source", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderCanvas.tsx"),

@@ -78,6 +78,18 @@ function readSlotElementName(slot: CanvasSceneNode): string {
   return fromProps ?? getSlotMirrorName(slot) ?? "content";
 }
 
+function getCanonicalSourceId(el: CanvasSceneNode): string {
+  const sourceId = el.sourceNode?.id;
+  return typeof sourceId === "string" && sourceId.length > 0 ? sourceId : el.id;
+}
+
+function getSlotDescendantPath(
+  frameBody: CanvasSceneNode,
+  slot: CanvasSceneNode,
+): string {
+  return `${getCanonicalSourceId(frameBody)}/${getCanonicalSourceId(slot)}`;
+}
+
 function asPageResolvedSlot(
   slot: CanvasSceneNode,
   parentId: string,
@@ -307,11 +319,7 @@ export function resolvePageWithFrame(
 
   const projectFrameElementId = (el: CanvasSceneNode): string => {
     if (isProjectedPageFrameElementId(page.id, el.id)) return el.id;
-    const sourceId = el.sourceNode?.id;
-    return toPageFrameElementId(
-      page.id,
-      typeof sourceId === "string" && sourceId.length > 0 ? sourceId : el.id,
-    );
+    return toPageFrameElementId(page.id, getCanonicalSourceId(el));
   };
 
   const resolveProjectableParentId = (
@@ -351,6 +359,7 @@ export function resolvePageWithFrame(
 
   const projectFrameElement = (el: CanvasSceneNode): CanvasSceneNode => {
     const parentId = resolveProjectableParentId(el.parent_id);
+    const slotName = el.type === "Slot" ? readSlotElementName(el) : undefined;
     return {
       ...el,
       id: projectFrameElementId(el),
@@ -358,6 +367,18 @@ export function resolvePageWithFrame(
       parent_id: parentId,
       pageId: page.id,
       page_id: page.id,
+      projection: {
+        kind: "page-frame-element",
+        pageId: page.id,
+        sourceElementId: getCanonicalSourceId(el),
+        renderElementId: projectFrameElementId(el),
+        renderParentId: parentId,
+        canonicalParentId: el.parent_id ?? null,
+        ...(slotName ? { slotName } : {}),
+        ...(slotName
+          ? { descendantPath: getSlotDescendantPath(frameBody, el) }
+          : {}),
+      },
     };
   };
 
@@ -438,8 +459,25 @@ export function resolvePageWithFrame(
       result.push(...elements);
       continue;
     }
+    const descendantPath =
+      targetSlot.projection?.descendantPath ??
+      `${getCanonicalSourceId(frameBody)}/${getCanonicalSourceId(targetSlot)}`;
     for (const el of elements) {
-      result.push({ ...el, parentId: targetSlot.id, parent_id: targetSlot.id });
+      result.push({
+        ...el,
+        parentId: targetSlot.id,
+        parent_id: targetSlot.id,
+        projection: {
+          kind: "page-slot-fill",
+          pageId: page.id,
+          sourceElementId: getCanonicalSourceId(el),
+          renderElementId: el.id,
+          renderParentId: targetSlot.id,
+          canonicalParentId: el.parent_id ?? null,
+          slotName,
+          descendantPath,
+        },
+      });
     }
   }
 
