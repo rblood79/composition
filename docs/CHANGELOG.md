@@ -5,6 +5,18 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-128 후속 dead interface 추가 제거 — supabase.types 3종] - 2026-05-15
+
+### Architecture
+
+- **`supabase.types.ts` 의 dead interface 3종 제거** (~63 line):
+  - `ToggleButtonGroupProps` (line 57-80, 24 line) — production caller 0
+  - `ListBoxItemData` (line 151-179, 29 line) — production caller 0
+  - `ListBoxProps` (line 181-190, 10 line) — production caller 0
+  - **Why**: 본 interface 3종이 `supabase.types.ts` 안에 잔존했으나 production code 어디서도 import/사용 안 됨. `ToggleButtonProps` (1 caller) + `ButtonProps` (2 caller) + `ElementProps` (877 caller) 는 active 유지.
+  - 위치: `apps/builder/src/types/integrations/supabase.types.ts`.
+  - 검증: type-check baseline 562 외 신규 0 PASS.
+
 ## [ADR-126 후속 fallback 단순화 — rendererInput parent_id dead fallback 제거] - 2026-05-15
 
 ### Architecture

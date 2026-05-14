@@ -54,31 +54,6 @@ export interface ButtonProps {
     | undefined;
 }
 
-export interface ToggleButtonGroupProps {
-  value?: string[];
-  defaultValue?: string[];
-  onChange?: (value: string[]) => void;
-  isDisabled?: boolean;
-  children?: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  "data-element-id"?: string;
-  selectionMode?: "single" | "multiple";
-  orientation?: "horizontal" | "vertical";
-  [key: string]:
-    | string
-    | string[]
-    | boolean
-    | React.ReactNode
-    | React.CSSProperties
-    | ((value: string[]) => void)
-    | "single"
-    | "multiple"
-    | "horizontal"
-    | "vertical"
-    | undefined;
-}
-
 export interface ElementProps {
   tag?: string;
   style?: React.CSSProperties;
@@ -147,44 +122,3 @@ export interface ElementProps {
 // ADR-128 cloud decommission 후 Supabase Database interface 는 production caller 0 (auth 만 active).
 // 본 interface 와 row 정의 (pages / elements / design_tokens / documents) 는 dead — 제거됨 (2026-05-15).
 // auth 사용은 `env/supabase.client.ts` 의 `createClient()` 가 직접 처리.
-
-export interface ListBoxItemData {
-  id: string;
-  type?: "simple" | "complex" | "custom";
-  text?: string;
-  label?: string;
-  description?: string;
-  subtitle?: string;
-  image?: {
-    src: string;
-    alt?: string;
-    size?: "small" | "medium" | "large";
-  };
-  icon?: {
-    name: string;
-    size?: number;
-    color?: string;
-  };
-  disabled?: boolean;
-  selected?: boolean;
-  style?: React.CSSProperties;
-  className?: string;
-  metadata?: Record<string, unknown>;
-  actions?: Array<{
-    id: string;
-    label: string;
-    icon?: string;
-    onClick?: () => void;
-  }>;
-}
-
-export interface ListBoxProps extends Omit<
-  ElementProps,
-  keyof { [key: string]: unknown }
-> {
-  label?: string;
-  orientation?: "horizontal" | "vertical";
-  itemLayout?: "default" | "compact" | "detailed" | "grid";
-  items?: ListBoxItemData[];
-  [key: string]: unknown;
-}
