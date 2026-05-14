@@ -144,65 +144,9 @@ export interface ElementProps {
     | undefined;
 }
 
-export interface Database {
-  public: {
-    Tables: {
-      pages: {
-        Row: {
-          id: string;
-          title: string;
-          project_id: string;
-          slug: string;
-          parent_id?: string | null;
-          order_num?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      elements: {
-        Row: {
-          id: string;
-          type: string;
-          props: ElementProps;
-          page_id: string;
-          parent_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      design_tokens: {
-        Row: {
-          id: string;
-          project_id: string;
-          name: string;
-          type: string;
-          value: TokenValue;
-          created_at?: string;
-        };
-      };
-      /**
-       * **ADR-123 Phase 1 — canonical primary storage row**.
-       *
-       * 1 project = 1 document. `content` 는 `CompositionDocument` 직렬화 JSON.
-       * `pages` / `elements` row 는 migration window 동안 fallback 유지.
-       * Phase 4-5 완료 후 deprecation 검토.
-       *
-       * @see docs/adr/123-cloud-document-row-schema.md
-       * @see docs/migrations/002_create_documents_table.sql
-       */
-      documents: {
-        Row: {
-          id: string;
-          project_id: string;
-          /** `CompositionDocument` 직렬화 JSON (Supabase jsonb column) */
-          content: Record<string, unknown>;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-    };
-  };
-}
+// ADR-128 cloud decommission 후 Supabase Database interface 는 production caller 0 (auth 만 active).
+// 본 interface 와 row 정의 (pages / elements / design_tokens / documents) 는 dead — 제거됨 (2026-05-15).
+// auth 사용은 `env/supabase.client.ts` 의 `createClient()` 가 직접 처리.
 
 export interface ListBoxItemData {
   id: string;

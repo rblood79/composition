@@ -5,6 +5,16 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-128 후속 dead surface 제거 — Supabase Database interface] - 2026-05-15
+
+### Architecture
+
+- **`supabase.types.ts` 의 `Database` interface 통째로 제거** (60 line):
+  - `Database['public']['Tables']` (pages / elements / design_tokens / documents row 정의) production caller 0건 확인 후 제거. `supabase.from()` / `supabase.rpc()` / table query 도 production 0건 — ADR-128 cloud decommission 후 dead surface.
+  - **Why**: `supabase.types.ts` 의 `ElementProps` 등 type 정의는 877 caller (canonical Element props) 로 활성 유지하되, Supabase DB schema 자체는 dead. file rename 은 광범위 작업이라 별도 영역 — 본 commit 은 dead interface 만 제거.
+  - active 잔존: `supabase.auth.*` 6 caller (main.tsx / Signin.tsx / devAutoLogin.ts / dashboard) — `env/supabase.client.ts` 의 `createClient()` 직접 사용.
+  - 위치: `apps/builder/src/types/integrations/supabase.types.ts:147-205`.
+
 ## [ADR-130 후속 UI label cleanup — Group → Frame] - 2026-05-15
 
 ### Architecture
