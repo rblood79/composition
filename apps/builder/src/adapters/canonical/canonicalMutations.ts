@@ -1117,6 +1117,44 @@ type LegacyNodeMetadata = {
   slotName?: unknown;
 };
 
+function getEffectiveLegacyPositionRole(
+  element: Element,
+  legacy: ReturnType<typeof asElementWithLegacyMirror>,
+): "master" | "instance" | undefined {
+  if (
+    legacy.componentRole === "master" ||
+    legacy.componentRole === "instance"
+  ) {
+    return legacy.componentRole;
+  }
+  if ((element as Element & { reusable?: boolean }).reusable === true) {
+    return "master";
+  }
+  return getCanonicalRefTarget(element) ? "instance" : undefined;
+}
+
+function getEffectiveLegacyPositionMasterRef(
+  element: Element,
+  legacy: ReturnType<typeof asElementWithLegacyMirror>,
+): string | undefined {
+  if (getEffectiveLegacyPositionRole(element, legacy) !== "instance") {
+    return undefined;
+  }
+  if (legacy.masterId) return legacy.masterId;
+  return getCanonicalRefTarget(element) ?? undefined;
+}
+
+function hasIncomingLegacyPositionMetadata(
+  element: Element,
+  legacy: ReturnType<typeof asElementWithLegacyMirror>,
+): boolean {
+  return (
+    element.parent_id != null ||
+    legacy.layout_id != null ||
+    legacy.slot_name != null
+  );
+}
+
 function shouldPreserveExistingCanonicalPosition(
   previousNode: CanonicalNode,
   element: Element,
@@ -1148,12 +1186,22 @@ function legacyPositionMatches(
 
   const previous = readLegacyElementPositionMetadata(metadata);
   if (!previous) return false;
-
+  const effectiveRole = getEffectiveLegacyPositionRole(element, legacy);
+  const effectiveMasterRef = getEffectiveLegacyPositionMasterRef(
+    element,
+    legacy,
+  );
+  const hasPositionMetadata = hasIncomingLegacyPositionMetadata(
+    element,
+    legacy,
+  );
   return (
-    sameLegacyValue(previous.parentId, element.parent_id) &&
-    sameLegacyValue(previous.slotName, legacy.slot_name) &&
-    sameLegacyValue(previous.role, legacy.componentRole) &&
-    sameLegacyValue(previous.masterRef, legacy.masterId) &&
+    (!hasPositionMetadata ||
+      sameLegacyValue(previous.parentId, element.parent_id)) &&
+    (!hasPositionMetadata ||
+      sameLegacyValue(previous.slotName, legacy.slot_name)) &&
+    sameLegacyValue(previous.role, effectiveRole) &&
+    sameLegacyValue(previous.masterRef, effectiveMasterRef) &&
     sameLegacyValue(previous.elementType, element.type)
   );
 }
