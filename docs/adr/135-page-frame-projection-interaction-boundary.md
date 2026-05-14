@@ -142,7 +142,7 @@ Frame을 Page에 적용한 상태에서 Skia 캔버스의 선택/slot fill/drag-
 | R10 | `updateElement` 계열 canonical sync가 set callback 밖 stale element snapshot을 사용해 overlapping update에서 canonical patch loss를 만들 수 있음    |  HIGH  | canonical update는 latest element/doc 기준으로 수행하고, Phase 5에 atomicity regression fixture를 추가                                                                                                                                                                           |
 | R11 | page 생성 시 `appendPageShell({ activate: true })`와 layout branch `activatePage()`가 중복 호출되어 selection/page activation race를 증폭할 수 있음 |  MED   | page creation fixture로 activation 1회 계약을 고정하고, ADR-135 실행 전후 unrelated race로 분리 추적. Phase 0 fixture 통과 시점에 `apps/builder/src/builder/hooks/usePageManager.ts` working tree diff를 commit (수렴 시) 또는 revert (다른 fix가 더 자연스러울 때) 결정 lock-in |
 
-R8-R10은 ADR-135의 render/canonical ID boundary와 직접 같은 원인은 아니지만, 같은 사용자 증상으로 재발할 수 있는 adjacent HIGH 위험이다. Phase 0 failing fixture와 G4-G6 blocking gate에서 닫히기 전에는 Implemented로 승격하지 않는다.
+R8-R10은 ADR-135의 render/canonical ID boundary와 직접 같은 원인은 아니지만, 같은 사용자 증상으로 재발할 수 있는 adjacent HIGH 위험이다. Phase 0 failing fixture와 G4-G6 blocking gate에서 닫히기 전에는 Implemented로 승격하지 않는다. R11은 MED 위험이지만 같은 page/frame 생성 경로에서 selection/page activation race를 증폭할 수 있으므로 Phase 1 진입 전 fix / revert / follow-up ADR split 중 하나로 lock-in한다.
 
 ## Gates
 

@@ -322,6 +322,10 @@ Dev assert:
 - `apps/builder/src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts`
 - `apps/builder/src/builder/workspace/canvas/interaction/__tests__/resolveCanvasInteractionTarget.test.ts`
 - `apps/builder/src/adapters/canonical/__tests__/pageFrameBinding.roundtrip.test.ts`
+- `apps/builder/src/adapters/canonical/__tests__/frameElementScope.test.ts`
+- `apps/builder/src/builder/stores/utils/__tests__/frameActions.indexSync.test.ts`
+- `apps/builder/src/builder/stores/utils/__tests__/elementUpdate.atomicity.test.ts`
+- `apps/builder/src/builder/hooks/__tests__/usePageManager.pageCreation.test.tsx`
 
 검증:
 
@@ -336,7 +340,7 @@ Dev assert:
 Gate:
 
 - 실패하는 테스트가 정확히 원인 증상을 잡아야 Phase 1 진입.
-- Phase 1 진입 전 R8-R10 closure path 결정 lock-in. 각 위험을 ADR-135 실행 내 fix할지 follow-up ADR로 split할지 결정하고, 결정 결과를 `§2.7` 보강 또는 follow-up ADR 본문 link로 본 breakdown에 명시한다. 결정 evidence 없이 Phase 1 진입 금지.
+- Phase 1 진입 전 R8-R11 closure path 결정 lock-in. 각 위험을 ADR-135 실행 내 fix할지 follow-up ADR로 split할지 결정하고, 결정 결과를 `§2.7` 보강 또는 follow-up ADR 본문 link로 본 breakdown에 명시한다. 결정 evidence 없이 Phase 1 진입 금지.
 
 ### Phase 1 — interaction read model render-space alignment (G1)
 
@@ -582,8 +586,11 @@ Gate G6:
 Targeted tests:
 
 ```bash
+pnpm -F @composition/builder test -- src/builder/workspace/canvas/BuilderCanvas.projection.static.test.ts
+pnpm -F @composition/builder test -- src/builder/workspace/canvas/skia/skiaFramePipeline.static.test.ts
 pnpm -F @composition/builder test -- src/builder/workspace/canvas/interaction/__tests__/resolveCanvasInteractionTarget.test.ts
 pnpm -F @composition/builder test -- src/builder/workspace/canvas/interaction/__tests__/resolveCanonicalMutationTarget.test.ts
+pnpm -F @composition/builder test -- src/adapters/canonical/__tests__/canonicalMutations.projectedIdGuard.test.ts
 pnpm -F @composition/builder test -- src/adapters/canonical/__tests__/pageFrameBinding.roundtrip.test.ts
 pnpm -F @composition/builder test -- src/adapters/canonical/__tests__/frameElementScope.test.ts
 pnpm -F @composition/builder test -- src/builder/stores/utils/__tests__/frameActions.indexSync.test.ts
