@@ -10,11 +10,10 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { isReactQueryDevtoolsEnabled } from "./utils/featureFlags";
+import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
 
-// 🚀 Phase 9: Performance Monitors (dev mode only)
-// Side-effect import to initialize monitors and attach to window
-import "./utils/longTaskMonitor";
-import "./utils/postMessageMonitor";
+// Phase 9: Performance monitors are opt-in diagnostics in dev mode.
+initPerformanceDiagnostics();
 import "./builder/utils/migrateGlobal";
 import "./fonts/initBuiltinFonts";
 import "./builder/fonts/initCustomFonts";

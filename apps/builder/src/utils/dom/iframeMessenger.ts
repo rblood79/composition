@@ -28,14 +28,31 @@ export interface MessageResponse {
   timestamp: number;
 }
 
+interface PendingMessage {
+  resolve: (response: MessageResponse) => void;
+  reject: (error: Error) => void;
+  timeoutId: ReturnType<typeof setTimeout>;
+}
+
+interface QueuedMessage extends PendingMessage {
+  message: MessageData;
+}
+
 export class IframeMessenger {
   private iframe: HTMLIFrameElement | null = null;
   private handlers: Map<string, MessageHandler> = new Map();
-  private messageQueue: MessageData[] = [];
+  private messageQueue: QueuedMessage[] = [];
   private isReady = false;
   private maxQueueSize = 100;
   private allowedOrigins: string[];
-  private messageTimeouts = new Map<string, NodeJS.Timeout>();
+  private pendingMessages = new Map<string, PendingMessage>();
+  private readonly messageListener = (event: MessageEvent) => {
+    this.handleWindowMessage(event);
+  };
+  private readonly iframeLoadListener = () => {
+    this.isReady = true;
+    this.flushMessageQueue();
+  };
 
   constructor(iframeRef?: HTMLIFrameElement, allowedOrigins?: string[]) {
     this.allowedOrigins = allowedOrigins || [window.location.origin];
@@ -44,49 +61,66 @@ export class IframeMessenger {
   }
 
   setIframe(iframe: HTMLIFrameElement) {
+    if (this.iframe) {
+      this.iframe.removeEventListener("load", this.iframeLoadListener);
+    }
+
     this.iframe = iframe;
     this.isReady = false;
 
-    iframe.addEventListener("load", () => {
-      this.isReady = true;
-      this.flushMessageQueue();
-    });
+    iframe.addEventListener("load", this.iframeLoadListener);
   }
 
   private initMessageListener() {
-    window.addEventListener("message", (event) => {
-      // Origin 검증 강화
-      if (!this.isAllowedOrigin(event.origin)) {
-        console.warn(
-          `Blocked message from unauthorized origin: ${event.origin}`,
-        );
-        return;
-      }
+    window.addEventListener("message", this.messageListener);
+  }
 
-      const { type, id, ...data } = event.data as MessageData;
+  private handleWindowMessage(event: MessageEvent): void {
+    if (!this.isAllowedOrigin(event.origin)) {
+      console.warn(`Blocked message from unauthorized origin: ${event.origin}`);
+      return;
+    }
 
-      // 메시지 ID 검증
-      if (!id || typeof id !== "string") {
-        console.warn("Invalid message: missing or invalid ID");
-        return;
-      }
+    if (!this.isExpectedSource(event.source)) {
+      console.warn("Blocked message from unexpected source");
+      return;
+    }
 
-      // iframe 준비 신호 처리
-      if (type === "PREVIEW_READY") {
-        this.isReady = true;
-        this.flushMessageQueue();
-        return;
-      }
+    const message = event.data as Partial<MessageData & MessageResponse>;
+    const { type, id, ...data } = message;
 
-      const handler = this.handlers.get(type);
-      if (handler) {
-        try {
-          handler(data);
-        } catch (error) {
-          console.error(`Message handler error for type "${type}":`, error);
-        }
+    if (!id || typeof id !== "string") {
+      console.warn("Invalid message: missing or invalid ID");
+      return;
+    }
+
+    const pending = this.pendingMessages.get(id);
+    if (pending && typeof message.success === "boolean") {
+      clearTimeout(pending.timeoutId);
+      this.pendingMessages.delete(id);
+      pending.resolve(message as MessageResponse);
+      return;
+    }
+
+    if (type === "PREVIEW_READY") {
+      this.isReady = true;
+      this.flushMessageQueue();
+      return;
+    }
+
+    const handler = this.handlers.get(String(type));
+    if (handler) {
+      try {
+        handler(data);
+      } catch (error) {
+        console.error(`Message handler error for type "${type}":`, error);
       }
-    });
+    }
+  }
+
+  private isExpectedSource(source: MessageEventSource | null): boolean {
+    if (!this.iframe?.contentWindow) return true;
+    return source === this.iframe.contentWindow;
   }
 
   private isAllowedOrigin(origin: string): boolean {
@@ -112,63 +146,56 @@ export class IframeMessenger {
     return new Promise((resolve, reject) => {
       const messageId = ElementUtils.generateId();
       const message: MessageData = {
+        ...data,
         type,
         id: messageId,
         timestamp: Date.now(),
-        ...data,
       };
 
-      // 타임아웃 설정
       const timeoutId = setTimeout(() => {
-        this.messageTimeouts.delete(messageId);
+        this.pendingMessages.delete(messageId);
+        this.messageQueue = this.messageQueue.filter(
+          (queued) => queued.message.id !== messageId,
+        );
         reject(new Error(`Message timeout: ${type}`));
       }, timeout);
 
-      this.messageTimeouts.set(messageId, timeoutId);
+      const pending: PendingMessage = { resolve, reject, timeoutId };
+      this.pendingMessages.set(messageId, pending);
 
       if (!this.isReady || !this.iframe?.contentWindow) {
         if (this.messageQueue.length >= this.maxQueueSize) {
-          // 큐가 가득 찬 경우 오래된 메시지 제거
           const removed = this.messageQueue.shift();
-          if (removed?.id) {
-            const timeoutId = this.messageTimeouts.get(removed.id);
-            if (timeoutId) {
-              clearTimeout(timeoutId);
-              this.messageTimeouts.delete(removed.id);
-            }
+          if (removed) {
+            clearTimeout(removed.timeoutId);
+            this.pendingMessages.delete(removed.message.id);
+            removed.reject(
+              new Error(`Message queue overflow: ${removed.message.type}`),
+            );
           }
         }
-        this.messageQueue.push(message);
+        this.messageQueue.push({ message, ...pending });
         return;
       }
 
-      try {
-        this.iframe.contentWindow.postMessage(message, window.location.origin);
-
-        // 응답 핸들러 등록
-        const responseHandler = (event: MessageEvent) => {
-          const response = event.data as MessageResponse;
-          if (response.id === messageId) {
-            clearTimeout(timeoutId);
-            this.messageTimeouts.delete(messageId);
-            window.removeEventListener("message", responseHandler);
-            resolve(response);
-          }
-        };
-
-        window.addEventListener("message", responseHandler);
-      } catch (error) {
-        clearTimeout(timeoutId);
-        this.messageTimeouts.delete(messageId);
-        reject(error);
-      }
+      this.postMessage(message, pending);
     });
+  }
+
+  private postMessage(message: MessageData, pending: PendingMessage): void {
+    try {
+      this.iframe?.contentWindow?.postMessage(message, window.location.origin);
+    } catch (error) {
+      clearTimeout(pending.timeoutId);
+      this.pendingMessages.delete(message.id);
+      pending.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   private flushMessageQueue() {
     while (this.messageQueue.length > 0) {
-      const message = this.messageQueue.shift()!;
-      this.sendMessage(message.type, message);
+      const queued = this.messageQueue.shift()!;
+      this.postMessage(queued.message, queued);
     }
   }
 
@@ -190,9 +217,17 @@ export class IframeMessenger {
 
   // 정리
   destroy() {
-    // 모든 타임아웃 정리
-    this.messageTimeouts.forEach((timeout) => clearTimeout(timeout));
-    this.messageTimeouts.clear();
+    window.removeEventListener("message", this.messageListener);
+
+    if (this.iframe) {
+      this.iframe.removeEventListener("load", this.iframeLoadListener);
+    }
+
+    this.pendingMessages.forEach((pending) => {
+      clearTimeout(pending.timeoutId);
+      pending.reject(new Error("IframeMessenger destroyed"));
+    });
+    this.pendingMessages.clear();
 
     this.handlers.clear();
     this.messageQueue = [];

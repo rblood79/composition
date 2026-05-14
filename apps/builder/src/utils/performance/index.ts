@@ -36,7 +36,7 @@ export {
   PERF_MARKERS,
   type StylePanelMetrics,
   type PerformanceSummary,
-} from './stylePanelMetrics';
+} from "./stylePanelMetrics";
 
 export {
   fpsMonitor,
@@ -44,7 +44,7 @@ export {
   measureAverageFrameTime,
   type FPSStats,
   type FrameInfo,
-} from './fpsMonitor';
+} from "./fpsMonitor";
 
 export {
   memoryMonitor,
@@ -54,15 +54,21 @@ export {
   type MemorySnapshot,
   type MemoryStats,
   type MemoryDiff,
-} from './memoryMonitor';
+} from "./memoryMonitor";
+
+export { initPerformanceDiagnostics } from "./diagnostics";
+export {
+  globalPerformanceMonitor,
+  type PerformanceStats as AsyncPerformanceStats,
+} from "../performanceMonitor";
 
 // ============================================
 // Import for internal use
 // ============================================
 
-import { stylePanelMetrics } from './stylePanelMetrics';
-import { fpsMonitor } from './fpsMonitor';
-import { memoryMonitor } from './memoryMonitor';
+import { stylePanelMetrics } from "./stylePanelMetrics";
+import { fpsMonitor } from "./fpsMonitor";
+import { memoryMonitor } from "./memoryMonitor";
 
 // ============================================
 // Types
@@ -137,38 +143,38 @@ export const STYLE_PANEL_SLO = {
  * 모든 모니터 시작
  */
 export function startAllMonitors(): void {
-  console.log('🚀 Starting all performance monitors...');
+  console.log("🚀 Starting all performance monitors...");
 
   stylePanelMetrics.setEnabled(true);
   fpsMonitor.start();
   memoryMonitor.start();
 
-  console.log('✅ All monitors started');
+  console.log("✅ All monitors started");
 }
 
 /**
  * 모든 모니터 중지
  */
 export function stopAllMonitors(): void {
-  console.log('🛑 Stopping all performance monitors...');
+  console.log("🛑 Stopping all performance monitors...");
 
   fpsMonitor.stop();
   memoryMonitor.stop();
 
-  console.log('✅ All monitors stopped');
+  console.log("✅ All monitors stopped");
 }
 
 /**
  * 모든 모니터 리셋
  */
 export function resetAllMonitors(): void {
-  console.log('🔄 Resetting all performance monitors...');
+  console.log("🔄 Resetting all performance monitors...");
 
   stylePanelMetrics.reset();
   fpsMonitor.reset();
   memoryMonitor.reset();
 
-  console.log('✅ All monitors reset');
+  console.log("✅ All monitors reset");
 }
 
 /**
@@ -193,32 +199,36 @@ export function generatePerformanceReport(): PerformanceReport {
   // SLO 검증
   if (stylePanelSummary.p95StyleCalcTime > STYLE_PANEL_SLO.styleCalcP95) {
     sloViolations.push(
-      `Style calc P95 (${stylePanelSummary.p95StyleCalcTime.toFixed(2)}ms) > ${STYLE_PANEL_SLO.styleCalcP95}ms`
+      `Style calc P95 (${stylePanelSummary.p95StyleCalcTime.toFixed(2)}ms) > ${STYLE_PANEL_SLO.styleCalcP95}ms`,
     );
   }
 
   if (stylePanelSummary.p95RenderTime > STYLE_PANEL_SLO.renderP95) {
     sloViolations.push(
-      `Render P95 (${stylePanelSummary.p95RenderTime.toFixed(2)}ms) > ${STYLE_PANEL_SLO.renderP95}ms`
+      `Render P95 (${stylePanelSummary.p95RenderTime.toFixed(2)}ms) > ${STYLE_PANEL_SLO.renderP95}ms`,
     );
   }
 
   if (fpsStats.avgFps > 0 && fpsStats.avgFps < STYLE_PANEL_SLO.minFps) {
-    sloViolations.push(`Avg FPS (${fpsStats.avgFps}) < ${STYLE_PANEL_SLO.minFps}`);
+    sloViolations.push(
+      `Avg FPS (${fpsStats.avgFps}) < ${STYLE_PANEL_SLO.minFps}`,
+    );
   }
 
   const frameDropRate =
-    fpsStats.totalFrames > 0 ? (fpsStats.frameDrops / fpsStats.totalFrames) * 100 : 0;
+    fpsStats.totalFrames > 0
+      ? (fpsStats.frameDrops / fpsStats.totalFrames) * 100
+      : 0;
   if (frameDropRate > STYLE_PANEL_SLO.maxFrameDropRate) {
     sloViolations.push(
-      `Frame drop rate (${frameDropRate.toFixed(1)}%) > ${STYLE_PANEL_SLO.maxFrameDropRate}%`
+      `Frame drop rate (${frameDropRate.toFixed(1)}%) > ${STYLE_PANEL_SLO.maxFrameDropRate}%`,
     );
   }
 
   const growthRateMB = memoryStats.growthRate / (1024 * 1024);
   if (growthRateMB > STYLE_PANEL_SLO.maxMemoryGrowthRate) {
     sloViolations.push(
-      `Memory growth rate (${growthRateMB.toFixed(2)}MB/s) > ${STYLE_PANEL_SLO.maxMemoryGrowthRate}MB/s`
+      `Memory growth rate (${growthRateMB.toFixed(2)}MB/s) > ${STYLE_PANEL_SLO.maxMemoryGrowthRate}MB/s`,
     );
   }
 
@@ -246,7 +256,8 @@ export function generatePerformanceReport(): PerformanceReport {
         ? memoryStats.baseline.usedJSHeapSize / (1024 * 1024)
         : null,
       deltaMB: memoryStats.baseline
-        ? (memoryStats.current.usedJSHeapSize - memoryStats.baseline.usedJSHeapSize) /
+        ? (memoryStats.current.usedJSHeapSize -
+            memoryStats.baseline.usedJSHeapSize) /
           (1024 * 1024)
         : null,
       estimatedGCCount: memoryStats.estimatedGCCount,
@@ -255,7 +266,7 @@ export function generatePerformanceReport(): PerformanceReport {
     duration: Math.max(
       stylePanelSummary.duration,
       fpsStats.duration,
-      memoryStats.duration
+      memoryStats.duration,
     ),
     sloViolations,
   };
@@ -292,18 +303,20 @@ export function useRenderCount(sectionName: string): void {
 // DevTools Integration
 // ============================================
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
   // 전역 객체에 성능 유틸리티 노출
-  (window as unknown as {
-    __perfTools: {
-      startAll: typeof startAllMonitors;
-      stopAll: typeof stopAllMonitors;
-      resetAll: typeof resetAllMonitors;
-      printAll: typeof printAllStats;
-      report: typeof generatePerformanceReport;
-      exportJSON: typeof exportReportJSON;
-    };
-  }).__perfTools = {
+  (
+    window as unknown as {
+      __perfTools: {
+        startAll: typeof startAllMonitors;
+        stopAll: typeof stopAllMonitors;
+        resetAll: typeof resetAllMonitors;
+        printAll: typeof printAllStats;
+        report: typeof generatePerformanceReport;
+        exportJSON: typeof exportReportJSON;
+      };
+    }
+  ).__perfTools = {
     startAll: startAllMonitors,
     stopAll: stopAllMonitors,
     resetAll: resetAllMonitors,
@@ -312,5 +325,5 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     exportJSON: exportReportJSON,
   };
 
-  console.log('🔧 Performance tools available at window.__perfTools');
+  console.log("🔧 Performance tools available at window.__perfTools");
 }

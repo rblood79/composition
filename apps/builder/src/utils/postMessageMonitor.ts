@@ -304,8 +304,9 @@ export function monitoredPostMessage(
 // DevTools Integration
 // ============================================
 
-// 개발 모드에서 전역 접근 가능하게 설정
-if (import.meta.env.DEV && typeof window !== "undefined") {
+export function initPostMessageMonitorDiagnostics(): void {
+  if (!import.meta.env.DEV || typeof window === "undefined") return;
+
   (
     window as unknown as { postMessageMonitor: PostMessageMonitor }
   ).postMessageMonitor = postMessageMonitor;

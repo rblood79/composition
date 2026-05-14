@@ -119,10 +119,11 @@ class LongTaskMonitor {
   constructor(thresholds: ThresholdConfig = DEFAULT_THRESHOLDS) {
     this.thresholds = thresholds;
     this.enabled = import.meta.env.DEV;
+  }
 
-    if (this.enabled) {
-      this.setupLongTaskObserver();
-    }
+  initialize(): void {
+    if (!this.enabled || this.observer) return;
+    this.setupLongTaskObserver();
   }
 
   // ============================================
@@ -493,8 +494,10 @@ export function startMeasure(name: string): () => void {
 // DevTools Integration
 // ============================================
 
-// 개발 모드에서 전역 접근 가능하게 설정
-if (import.meta.env.DEV && typeof window !== "undefined") {
+export function initLongTaskMonitorDiagnostics(): void {
+  longTaskMonitor.initialize();
+  if (!import.meta.env.DEV || typeof window === "undefined") return;
+
   (window as unknown as { longTaskMonitor: LongTaskMonitor }).longTaskMonitor =
     longTaskMonitor;
 }

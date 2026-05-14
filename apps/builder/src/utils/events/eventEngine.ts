@@ -6,14 +6,15 @@ import {
   EventExecutionResult,
   isImplementedActionType,
 } from "../../types/events/events.types";
+import {
+  createActionHandlers,
+  type EventActionHandler,
+} from "./actionHandlerRegistry";
 
 export class EventEngine {
   private static instance: EventEngine;
   private state: Record<string, unknown> = {};
-  private actionHandlers: Record<
-    string,
-    (action: EventAction, context: EventContext) => unknown
-  > = {};
+  private actionHandlers: Record<string, EventActionHandler> = {};
   private executionTimeouts = new Map<string, NodeJS.Timeout>();
   private lastShownModalId?: string;
   private modalBackdrops = new Map<string, string>();
@@ -31,56 +32,36 @@ export class EventEngine {
   }
 
   private initializeActionHandlers() {
-    this.actionHandlers = {
-      // Legacy snake_case
-      update_state: this.executeUpdateStateAction.bind(this),
-      navigate: this.executeNavigateAction.bind(this),
-      toggle_visibility: this.executeToggleVisibilityAction.bind(this),
-      show_modal: this.executeShowModalAction.bind(this),
-      hide_modal: this.executeHideModalAction.bind(this),
-      scroll_to: this.executeScrollToAction.bind(this),
-      copy_to_clipboard: this.executeCopyToClipboardAction.bind(this),
-      custom_function: this.executeCustomFunctionAction.bind(this),
-      validate_form: this.executeValidateFormAction.bind(this),
-      reset_form: this.executeResetFormAction.bind(this),
-
-      // New camelCase (Inspector)
+    this.actionHandlers = createActionHandlers({
       updateState: this.executeUpdateStateAction.bind(this),
-      setState: this.executeUpdateStateAction.bind(this),
-      scrollTo: this.executeScrollToAction.bind(this),
+      navigate: this.executeNavigateAction.bind(this),
+      toggleVisibility: this.executeToggleVisibilityAction.bind(this),
       showModal: this.executeShowModalAction.bind(this),
       hideModal: this.executeHideModalAction.bind(this),
-      showToast: this.executeShowToastAction.bind(this),
-      toggleVisibility: this.executeToggleVisibilityAction.bind(this),
-      validateForm: this.executeValidateFormAction.bind(this),
-      resetForm: this.executeResetFormAction.bind(this),
-      submitForm: this.executeSubmitFormAction.bind(this),
+      scrollTo: this.executeScrollToAction.bind(this),
       copyToClipboard: this.executeCopyToClipboardAction.bind(this),
       customFunction: this.executeCustomFunctionAction.bind(this),
+      validateForm: this.executeValidateFormAction.bind(this),
+      resetForm: this.executeResetFormAction.bind(this),
+      showToast: this.executeShowToastAction.bind(this),
+      submitForm: this.executeSubmitFormAction.bind(this),
       apiCall: this.executeAPICallAction.bind(this),
-
-      // Component Interaction (Phase 3)
       setComponentState: this.executeSetComponentStateAction.bind(this),
       triggerComponentAction:
         this.executeTriggerComponentActionAction.bind(this),
       updateFormField: this.executeUpdateFormFieldAction.bind(this),
-      // Collection Interaction (Phase 4)
       filterCollection: this.executeFilterCollectionAction.bind(this),
       selectItem: this.executeSelectItemAction.bind(this),
       clearSelection: this.executeClearSelectionAction.bind(this),
-
-      // Data Panel Integration (Phase 5)
       loadDataTable: this.executeLoadDataTableAction.bind(this),
       syncComponent: this.executeSyncComponentAction.bind(this),
       saveToDataTable: this.executeSaveToDataTableAction.bind(this),
-
-      // Variable Actions
       setVariable: this.executeSetVariableAction.bind(this),
       getVariable: this.executeGetVariableAction.bind(this),
       fetchDataTable: this.executeFetchDataTableAction.bind(this),
       refreshDataTable: this.executeRefreshDataTableAction.bind(this),
       executeApi: this.executeApiAction.bind(this),
-    };
+    });
   }
 
   setState(key: string, value: unknown) {
@@ -374,13 +355,7 @@ export class EventEngine {
       // 빌더 모드 (iframe 안)에서 실행 중인지 확인
       if (this.isBuilderMode()) {
         // postMessage로 부모에게 페이지 전환 요청
-        window.parent.postMessage(
-          {
-            type: "NAVIGATE_TO_PAGE",
-            payload: { path, replace },
-          },
-          "*",
-        );
+        this.postBuilderMessage("NAVIGATE_TO_PAGE", { path, replace });
       } else {
         // 퍼블리시 모드에서는 React Router 사용 (향후 구현)
         console.warn(
@@ -404,6 +379,10 @@ export class EventEngine {
    */
   private isBuilderMode(): boolean {
     return window.self !== window.top && window.parent !== window.self;
+  }
+
+  private postBuilderMessage(type: string, payload: unknown): void {
+    window.parent.postMessage({ type, payload }, window.location.origin);
   }
 
   /**
@@ -853,13 +832,7 @@ export class EventEngine {
 
     // postMessage로 Builder에 토스트 표시 요청
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "SHOW_TOAST",
-          payload: config,
-        },
-        "*",
-      );
+      this.postBuilderMessage("SHOW_TOAST", config);
     } else {
       console.log(`[Toast ${config.variant || "info"}]: ${config.message}`);
     }
@@ -904,13 +877,7 @@ export class EventEngine {
 
     // postMessage로 Preview에 상태 변경 요청
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "SET_COMPONENT_STATE",
-          payload: config,
-        },
-        "*",
-      );
+      this.postBuilderMessage("SET_COMPONENT_STATE", config);
     } else {
       console.warn(
         "[EventEngine] setComponentState in published mode not yet implemented",
@@ -929,13 +896,7 @@ export class EventEngine {
 
     // postMessage로 Preview에 액션 실행 요청
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "TRIGGER_COMPONENT_ACTION",
-          payload: config,
-        },
-        "*",
-      );
+      this.postBuilderMessage("TRIGGER_COMPONENT_ACTION", config);
     } else {
       console.warn(
         "[EventEngine] triggerComponentAction in published mode not yet implemented",
@@ -993,13 +954,7 @@ export class EventEngine {
 
     // postMessage로 Preview에 필터링 요청
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "FILTER_COLLECTION",
-          payload: config,
-        },
-        "*",
-      );
+      this.postBuilderMessage("FILTER_COLLECTION", config);
     } else {
       console.warn(
         "[EventEngine] filterCollection in published mode not yet implemented",
@@ -1017,13 +972,7 @@ export class EventEngine {
 
     // postMessage로 Preview에 선택 요청
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "SELECT_ITEM",
-          payload: config,
-        },
-        "*",
-      );
+      this.postBuilderMessage("SELECT_ITEM", config);
     } else {
       console.warn(
         "[EventEngine] selectItem in published mode not yet implemented",
@@ -1038,13 +987,7 @@ export class EventEngine {
 
     // postMessage로 Preview에 선택 해제 요청
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "CLEAR_SELECTION",
-          payload: config,
-        },
-        "*",
-      );
+      this.postBuilderMessage("CLEAR_SELECTION", config);
     } else {
       console.warn(
         "[EventEngine] clearSelection in published mode not yet implemented",
@@ -1073,18 +1016,12 @@ export class EventEngine {
 
     // Builder 모드에서만 실행 (Canvas → Builder 통신)
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "LOAD_DATA_TABLE",
-          payload: {
-            dataTableName: config.dataTableName,
-            forceRefresh: config.forceRefresh ?? false,
-            cacheTTL: config.cacheTTL,
-            targetVariable: config.targetVariable,
-          },
-        },
-        "*",
-      );
+      this.postBuilderMessage("LOAD_DATA_TABLE", {
+        dataTableName: config.dataTableName,
+        forceRefresh: config.forceRefresh ?? false,
+        cacheTTL: config.cacheTTL,
+        targetVariable: config.targetVariable,
+      });
     } else {
       console.warn(
         "[EventEngine] loadDataTable in published mode not yet implemented",
@@ -1112,18 +1049,12 @@ export class EventEngine {
     }
 
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "SYNC_COMPONENT",
-          payload: {
-            sourceId: config.sourceId,
-            targetId: config.targetId,
-            syncMode: config.syncMode || "replace",
-            dataPath: config.dataPath,
-          },
-        },
-        "*",
-      );
+      this.postBuilderMessage("SYNC_COMPONENT", {
+        sourceId: config.sourceId,
+        targetId: config.targetId,
+        syncMode: config.syncMode || "replace",
+        dataPath: config.dataPath,
+      });
     } else {
       console.warn(
         "[EventEngine] syncComponent in published mode not yet implemented",
@@ -1153,20 +1084,14 @@ export class EventEngine {
     }
 
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "SAVE_TO_DATA_TABLE",
-          payload: {
-            dataTableName: config.dataTableName,
-            source: config.source || "response",
-            sourcePath: config.sourcePath,
-            saveMode: config.saveMode || "replace",
-            keyField: config.keyField,
-            transform: config.transform,
-          },
-        },
-        "*",
-      );
+      this.postBuilderMessage("SAVE_TO_DATA_TABLE", {
+        dataTableName: config.dataTableName,
+        source: config.source || "response",
+        sourcePath: config.sourcePath,
+        saveMode: config.saveMode || "replace",
+        keyField: config.keyField,
+        transform: config.transform,
+      });
     } else {
       console.warn(
         "[EventEngine] saveToDataTable in published mode not yet implemented",
@@ -1197,17 +1122,11 @@ export class EventEngine {
 
     // Builder에 변경 사항 알림 (persist:true인 경우 DB에 저장)
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "SET_VARIABLE",
-          payload: {
-            variableName: config.variableName,
-            value: config.value,
-            persist: config.persist ?? false,
-          },
-        },
-        "*",
-      );
+      this.postBuilderMessage("SET_VARIABLE", {
+        variableName: config.variableName,
+        value: config.value,
+        persist: config.persist ?? false,
+      });
     }
   }
 
@@ -1255,16 +1174,10 @@ export class EventEngine {
     }
 
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "FETCH_DATA_TABLE",
-          payload: {
-            dataTableName: config.dataTableName,
-            targetVariable: config.targetVariable,
-          },
-        },
-        "*",
-      );
+      this.postBuilderMessage("FETCH_DATA_TABLE", {
+        dataTableName: config.dataTableName,
+        targetVariable: config.targetVariable,
+      });
     } else {
       console.warn(
         "[EventEngine] fetchDataTable in published mode not yet implemented",
@@ -1288,15 +1201,9 @@ export class EventEngine {
     }
 
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "REFRESH_DATA_TABLE",
-          payload: {
-            dataTableName: config.dataTableName,
-          },
-        },
-        "*",
-      );
+      this.postBuilderMessage("REFRESH_DATA_TABLE", {
+        dataTableName: config.dataTableName,
+      });
     } else {
       console.warn(
         "[EventEngine] refreshDataTable in published mode not yet implemented",
@@ -1320,17 +1227,11 @@ export class EventEngine {
     }
 
     if (this.isBuilderMode()) {
-      window.parent.postMessage(
-        {
-          type: "EXECUTE_API",
-          payload: {
-            endpointName: config.endpointName,
-            params: config.params,
-            targetVariable: config.targetVariable,
-          },
-        },
-        "*",
-      );
+      this.postBuilderMessage("EXECUTE_API", {
+        endpointName: config.endpointName,
+        params: config.params,
+        targetVariable: config.targetVariable,
+      });
     } else {
       console.warn(
         "[EventEngine] executeApi in published mode not yet implemented",

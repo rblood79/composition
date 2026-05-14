@@ -10,8 +10,30 @@ import type { CompositionDocument } from "@composition/shared";
 import { Element } from "../../types/core/store.types";
 import { frameNodeIdForLegacyLayout } from "../../adapters/canonical";
 
+interface ElementLookup {
+  byId: Map<string, Element>;
+  childrenByParentId: Map<string, Element[]>;
+}
+
 // 통합 요소 관리 유틸리티
 export class ElementUtils {
+  private static buildLookup(elements: Element[]): ElementLookup {
+    const byId = new Map<string, Element>();
+    const childrenByParentId = new Map<string, Element[]>();
+
+    for (const element of elements) {
+      byId.set(element.id, element);
+
+      if (element.parent_id) {
+        const siblings = childrenByParentId.get(element.parent_id) ?? [];
+        siblings.push(element);
+        childrenByParentId.set(element.parent_id, siblings);
+      }
+    }
+
+    return { byId, childrenByParentId };
+  }
+
   /**
    * Generate unique element ID using crypto.randomUUID()
    */
@@ -98,19 +120,24 @@ export class ElementUtils {
     elements: Element[],
     pageId: string,
   ): { elements: Element[]; updatedElements: Element[] } {
-    const bodyElement = elements.find(
-      (el) => el.page_id === pageId && el.type === "body",
-    );
+    let bodyElement: Element | undefined;
+    const orphanElements: Element[] = [];
+
+    for (const element of elements) {
+      if (element.page_id !== pageId) continue;
+      if (element.type === "body") {
+        bodyElement = element;
+        continue;
+      }
+      if (element.parent_id === null) {
+        orphanElements.push(element);
+      }
+    }
 
     if (!bodyElement) {
       console.warn(`⚠️ Body 요소를 찾을 수 없습니다: pageId=${pageId}`);
       return { elements, updatedElements: [] };
     }
-
-    const orphanElements = elements.filter(
-      (el) =>
-        el.page_id === pageId && el.parent_id === null && el.type !== "body",
-    );
 
     if (orphanElements.length === 0) {
       return { elements, updatedElements: [] };
@@ -127,12 +154,12 @@ export class ElementUtils {
       ...el,
       parent_id: bodyElement.id,
     }));
+    const updatedById = new Map(
+      updatedElements.map((element) => [element.id, element]),
+    );
 
     // 전체 요소 배열에서 업데이트된 요소들로 교체
-    const newElements = elements.map((el) => {
-      const updated = updatedElements.find((u) => u.id === el.id);
-      return updated || el;
-    });
+    const newElements = elements.map((el) => updatedById.get(el.id) || el);
 
     return {
       elements: newElements,
@@ -144,12 +171,15 @@ export class ElementUtils {
    * Get all child elements recursively
    */
   static getDescendants(elements: Element[], parentId: string): Element[] {
-    const children = elements.filter((el) => el.parent_id === parentId);
-    const allDescendants = [...children];
+    const { childrenByParentId } = this.buildLookup(elements);
+    const allDescendants: Element[] = [];
+    const stack = [...(childrenByParentId.get(parentId) ?? [])];
 
-    children.forEach((child) => {
-      allDescendants.push(...this.getDescendants(elements, child.id));
-    });
+    while (stack.length > 0) {
+      const child = stack.shift()!;
+      allDescendants.push(child);
+      stack.unshift(...(childrenByParentId.get(child.id) ?? []));
+    }
 
     return allDescendants;
   }
@@ -162,13 +192,14 @@ export class ElementUtils {
     ancestorId: string,
     descendantId: string,
   ): boolean {
-    let current = elements.find((el) => el.id === descendantId);
+    const { byId } = this.buildLookup(elements);
+    let current = byId.get(descendantId);
 
     while (current) {
       if (current.parent_id === ancestorId) {
         return true;
       }
-      current = elements.find((el) => el.id === current!.parent_id);
+      current = current.parent_id ? byId.get(current.parent_id) : undefined;
     }
 
     return false;
@@ -178,12 +209,13 @@ export class ElementUtils {
    * Get the path from root to element (breadcrumb)
    */
   static getElementPath(elements: Element[], elementId: string): Element[] {
+    const { byId } = this.buildLookup(elements);
     const path: Element[] = [];
-    let current = elements.find((el) => el.id === elementId);
+    let current = byId.get(elementId);
 
     while (current) {
       path.unshift(current);
-      current = elements.find((el) => el.id === current!.parent_id);
+      current = current.parent_id ? byId.get(current.parent_id) : undefined;
     }
 
     return path;
