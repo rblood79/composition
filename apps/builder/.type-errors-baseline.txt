@@ -7,10 +7,6 @@ src/adapters/canonical/__tests__/componentRoleAdapter.test.ts(58,7): error TS235
 src/adapters/canonical/__tests__/componentRoleAdapter.test.ts(77,7): error TS2353: Object literal may only specify known properties, and 'componentRole' does not exist in type 'Partial<Element> & { id: string; }'.
 src/adapters/canonical/__tests__/componentSemanticsMirror.test.ts(17,20): error TS2352: Conversion of type '{ id: string; componentRole: string; }' to type 'Element' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/adapters/canonical/__tests__/componentSemanticsMirror.test.ts(21,22): error TS2352: Conversion of type '{ id: string; componentRole: string; masterId: string; }' to type 'Element' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
-src/adapters/canonical/__tests__/frameElementLoader.test.ts(132,38): error TS2353: Object literal may only specify known properties, and 'layout_id' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/frameElementLoader.test.ts(142,11): error TS2353: Object literal may only specify known properties, and 'layout_id' does not exist in type 'Partial<Element>'.
-src/adapters/canonical/__tests__/frameElementLoader.test.ts(143,11): error TS2578: Unused '@ts-expect-error' directive.
-src/adapters/canonical/__tests__/frameElementLoader.test.ts(40,5): error TS2322: Type 'Map<string, { version: string; children: { id: string; type: "frame"; reusable: true; metadata: { type: string; layoutId: string; }; children: Record<string, unknown>[]; }[]; }>' is not assignable to type 'Map<string, CompositionDocument>'.
 src/adapters/canonical/__tests__/frameMirror.test.ts(16,18): error TS2352: Conversion of type '{ id: string; layout_id: string; }' to type 'Page' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/adapters/canonical/__tests__/frameMirror.test.ts(22,37): error TS2352: Conversion of type '{ id: string; layoutId: string; }' to type 'Page' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/adapters/canonical/__tests__/frameMirror.test.ts(42,32): error TS2352: Conversion of type '{ id: string; type: "frame"; reusable: true; metadata: { layoutId: string; }; }' to type 'FrameNode' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
@@ -65,24 +61,8 @@ src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(81,35): error 
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(841,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(850,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(886,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
-src/adapters/canonical/__tests__/pageFrameBinding.test.ts(122,7): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
 src/adapters/canonical/__tests__/themes.test.ts(131,7): error TS2739: Type 'Record<string, string[]>' is missing the following properties from type 'ThemeSnapshot': tint, darkMode, neutral, radiusScale
-src/adapters/canonical/canonicalMutations.ts(1010,14): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1029,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1032,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1048,15): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(1149,19): error TS18047: 'override' is possibly 'null'.
-src/adapters/canonical/canonicalMutations.ts(1399,42): error TS2367: This comparison appears to be unintentional because the types 'ComponentTag' and '"body"' have no overlap.
-src/adapters/canonical/canonicalMutations.ts(1416,7): error TS2353: Object literal may only specify known properties, and 'descendants' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/canonicalMutations.ts(179,19): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/canonicalMutations.ts(40,21): error TS2305: Module '"@/types/builder/unified.types"' has no exported member 'Layout'.
-src/adapters/canonical/canonicalMutations.ts(587,61): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(588,17): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(592,9): error TS2353: Object literal may only specify known properties, and 'placeholder' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/canonicalMutations.ts(614,28): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/canonicalMutations.ts(844,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'CanonicalNode'.
-src/adapters/canonical/frameLayoutCascade.ts(320,56): error TS2339: Property 'elements' does not exist on type 'ElementsStateForFrameLayoutCascade'.
-src/adapters/canonical/frameLayoutCascade.ts(51,30): error TS2345: Argument of type 'CanonicalNode' is not assignable to parameter of type 'FrameNode'.
 src/adapters/canonical/index.ts(179,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.
 src/adapters/canonical/index.ts(187,30): error TS2339: Property 'slot_name' does not exist on type 'Element'.
 src/adapters/canonical/index.ts(210,13): error TS1360: Type '{ descendants?: Record<string, unknown> | undefined; ref: string; }' does not satisfy the expected type 'Partial<RefNode>'.
@@ -93,9 +73,6 @@ src/adapters/canonical/index.ts(282,53): error TS2339: Property 'layout_id' does
 src/adapters/canonical/legacyElementSanitizer.ts(64,59): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(84,26): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(85,26): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/pageFrameBinding.ts(162,15): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/pageFrameBinding.ts(195,5): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
-src/adapters/canonical/pageFrameBinding.ts(204,5): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
 src/adapters/canonical/slotAndLayoutAdapter.ts(108,13): error TS2339: Property 'layout_id' does not exist on type 'Page'.
 src/adapters/canonical/slotAndLayoutAdapter.ts(110,52): error TS2339: Property 'layout_id' does not exist on type 'Page'.
 src/adapters/canonical/slotAndLayoutAdapter.ts(113,75): error TS2339: Property 'layout_id' does not exist on type 'Page'.
@@ -111,7 +88,6 @@ src/builder/factories/__tests__/factoryOwnership.test.ts(393,24): error TS2352: 
 src/builder/factories/__tests__/factoryOwnership.test.ts(76,3): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: never[]; layoutId: null; }' but required in type 'ComponentCreationContext'.
 src/builder/factories/ComponentFactory.ts(644,11): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: Element[]; }' but required in type 'ComponentCreationContext'.
 src/builder/inspector/utils/elementMapper.ts(22,5): error TS2322: Type 'import("/Users/admin/work/composition/packages/shared/src/types/element.types").DataBinding | undefined' is not assignable to type 'import("/Users/admin/work/composition/apps/builder/src/builder/inspector/types").DataBinding | undefined'.
-src/builder/main/BuilderCore.tsx(456,15): error TS2345: Argument of type 'ThemeConfigState' is not assignable to parameter of type 'ThemeConfigSetters'.
 src/builder/panels/ai/hooks/useAgentLoop.ts(200,5): error TS18047: 'agent' is possibly 'null'.
 src/builder/panels/components/ComponentsPanel.tsx(109,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/components/ComponentsPanel.tsx(130,9): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
@@ -485,11 +461,6 @@ src/builder/workspace/canvas/BuilderCanvas.tsx(198,41): error TS7005: Variable '
 src/builder/workspace/canvas/hooks/useDragBridge.test.ts(129,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/builder/workspace/canvas/hooks/useDragBridge.test.ts(135,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/builder/workspace/canvas/hooks/useDragBridge.test.ts(141,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/workspace/canvas/hooks/useDragBridge.ts(287,46): error TS2345: Argument of type 'Store' is not assignable to parameter of type 'DragReadModel'.
-src/builder/workspace/canvas/hooks/useDragBridge.ts(399,46): error TS2345: Argument of type 'Store' is not assignable to parameter of type 'DragReadModel'.
-src/builder/workspace/canvas/hooks/useDragBridge.ts(471,32): error TS2345: Argument of type 'Store' is not assignable to parameter of type 'DragReadModel'.
-src/builder/workspace/canvas/hooks/useDragBridge.ts(521,17): error TS2322: Type '{ page_id: string | null | undefined; parent_id: string | null | undefined; id: string; type: string; props: Record<string, unknown>; layout_id?: string | null | undefined; parentId?: string | ... 1 more ... | undefined; ... 8 more ...; componentRole?: unknown; }[]' is not assignable to type 'Element[]'.
-src/builder/workspace/canvas/hooks/useDragBridge.ts(522,17): error TS2322: Type 'CanvasInteractionNode[]' is not assignable to type 'Element[]'.
 src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(137,9): error TS2322: Type 'CanvasLayoutNode[]' is not assignable to type 'CanonicalRefResolvableNode[]'.
 src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(138,9): error TS2322: Type 'Map<string, CanvasLayoutNode>' is not assignable to type 'Map<string, CanonicalRefResolvableNode>'.
 src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(146,9): error TS2322: Type 'CanonicalRefResolvableNode | CanvasLayoutNode' is not assignable to type 'CanvasLayoutNode | null'.
@@ -514,16 +485,6 @@ src/builder/workspace/canvas/layout/engines/calendar-symmetry.test.ts(36,5): err
 src/builder/workspace/canvas/layout/engines/calendar-symmetry.test.ts(46,5): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/builder/workspace/canvas/layout/engines/implicitStyles.ts(923,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
 src/builder/workspace/canvas/layout/engines/implicitStyles.ts(957,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(130,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(171,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(207,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(234,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(272,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(312,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(348,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/__tests__/buildFrameRendererInput.test.ts(383,9): error TS2322: Type 'string[]' is not assignable to type 'ReadonlySet<string> & string[]'.
-src/builder/workspace/canvas/renderers/rendererInput.ts(153,5): error TS2741: Property 'sourceNode' is missing in type 'CanvasLayoutNode' but required in type 'CanvasSceneNode'.
-src/builder/workspace/canvas/renderers/rendererInput.ts(165,5): error TS2322: Type 'CanvasLayoutNode[]' is not assignable to type 'CanvasSceneNode[]'.
 src/builder/workspace/canvas/scene/layoutCache.static.test.ts(47,19): error TS2352: Conversion of type '{ id: string; type: string; page_id: string; parent_id: string; order_num: number; props: {}; }' to type 'CanvasSceneNode' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/workspace/canvas/scene/layoutCache.static.test.ts(55,20): error TS2352: Conversion of type '{ id: string; type: string; page_id: string; parent_id: string; order_num: number; props: {}; }' to type 'CanvasSceneNode' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts(101,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'TestElementPartial'.
@@ -566,7 +527,6 @@ src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts(67,7): error TS2
 src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts(678,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'TestElementPartial'.
 src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts(74,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'TestElementPartial'.
 src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts(94,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'TestElementPartial'.
-src/builder/workspace/canvas/scene/resolvePageWithFrame.ts(331,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string'.
 src/builder/workspace/canvas/skia/ancestorLookup.test.ts(11,10): error TS2352: Conversion of type '{ id: string; type: string; props: Record<string, unknown>; parent_id: string | null; page_id: string; order_num: number; }' to type 'CanvasSceneNode' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts(129,7): error TS2741: Property 'elementId' is missing in type '{ x: number; y: number; width: number; height: number; }' but required in type 'ComputedLayout'.
 src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts(168,7): error TS2741: Property 'elementId' is missing in type '{ x: number; y: number; width: number; height: number; }' but required in type 'ComputedLayout'.
