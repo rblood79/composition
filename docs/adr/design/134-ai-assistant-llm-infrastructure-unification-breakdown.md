@@ -6,7 +6,7 @@
 
 본문 §framing checkpoint 4 질문 lock-in 참조. base/응용 분류 (ADR-054 base + ADR-011 응용) + schema 직교성 (Provider ↔ 도구/UI) + baseline reverse 검증 + 단일 통합 (사용자 explicit confirm) 통과.
 
-## 1. scope 경계 — ADR-134 vs ADR-135+ 응용 분리
+## 1. scope 경계 — ADR-134 vs ADR-136+ 응용 분리
 
 ### ADR-134 scope 안 (본 ADR)
 
@@ -14,7 +14,7 @@
 - **응용 영역** (ADR-011 흡수): 7개 AI 도구 canonical 정합 / 컴포넌트 카탈로그 (RAC/RSP) / AI 설계 지능 (Plan→Execute→Verify) / AIPanel UX 1년차 신입 baseline / 자기 수정 / 모델 선택 UX
 - **4 격차 영역 동시 정합**: canonical document (ADR-116/122) / data_tables (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX (ADR-133)
 
-### ADR-134 scope 밖 (ADR-135+ 응용, 미발의)
+### ADR-134 scope 밖 (ADR-136+ 응용, 미발의)
 
 본 ADR Phase 9 land 후 별 ADR 분리 검토 영역:
 
@@ -270,7 +270,7 @@
 | Phase 4 (컴포넌트 카탈로그)      | Phase 5                              |
 | Phase 5 (Props 정확도)           | Phase 5 G5                           |
 | Phase 6 (디자인 지능)            | Phase 6                              |
-| Phase 7 (접근성 감사)            | **ADR-134 scope 밖** (ADR-135+ 응용) |
+| Phase 7 (접근성 감사)            | **ADR-134 scope 밖** (ADR-136+ 응용) |
 
 ## 15. 사용자 plan review 후 진입 절차
 

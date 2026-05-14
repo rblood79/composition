@@ -5,6 +5,15 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Add Page activation race fix] - 2026-05-14
+
+### Bug Fixes
+
+- **새 page 생성 직후 요소 추가가 간헐적으로 이전 page 상태를 참조하는 회귀 수정**:
+  - **Why (root cause)**: `usePageManager.addPage()` 가 새 page/body shell 을 append 한 뒤 page activation 을 next frame 으로 지연했다. 이 frame gap 안에 요소 추가가 들어오면 `currentPageId` / selected body 가 아직 이전 page 를 가리켜 helper guard 없이 잘못된 page context 로 생성될 수 있었다.
+  - 수정: 새 page/body shell append 와 같은 store commit 에서 `activate: true` 로 즉시 current page 와 selected body 를 갱신한다. next-frame activation 예약 경로는 제거했다.
+  - 회귀 차단: `usePageManager.pageCreation.test.tsx` 에서 `addPage()` promise resolve 직후, timer/frame flush 전에도 새 page body 가 활성 선택인지 검증한다.
+
 ## [Cross-page selection box 표시 — isRenderableSelectionTarget filter root fix] - 2026-05-14
 
 ### Bug Fixes
@@ -141,13 +150,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `docs/adr/011-ai-assistant-design.md` → `docs/adr/completed/011-ai-assistant-design.md`
   - **Why**: 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합
   - 보존 영역 — Phase A1~A4 land 산출물 (7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback) 은 ADR-134 Phase 2 (Groq 제거 + Ollama Provider 1st) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환
-  - 이전 P5 ADR-011 A5 (CanvasKit 스키마 변환 / 멀티모달 / 인스턴스/변수 도구) 영역 → ADR-135+ 응용 ADR 이관 (미발의)
+  - 이전 P5 ADR-011 A5 (CanvasKit 스키마 변환 / 멀티모달 / 인스턴스/변수 도구) 영역 → ADR-136+ 응용 ADR 이관 (미발의)
 
 - **ADR-054 (로컬 LLM 아키텍처, Ollama → node-llama-cpp) — Replaced by ADR-134**:
   - 위치: `docs/adr/054-local-llm-architecture.md` → `docs/adr/completed/054-local-llm-architecture.md`
   - **Why**: Proposed 상태로 land 0건. 작성 시점 (2026-04-05) 이후 land 된 canonical document SSOT / data_tables SSOT / events/actions root collection / frame canonical / AIPanel UX 1년차 신입 baseline 정합 미반영
   - 흡수 영역 — Provider 추상화 base 영역 + Hard Constraints 7개 + Gates G1-G6 모두 ADR-134 (단일 통합) 에 정합 갱신
-  - design breakdown 본문 (`docs/adr/design/054-local-llm-architecture-breakdown.md`) 은 ADR-135+ 응용 영역 (AI 멀티모달 / CanvasKit 스키마 변환 / 인스턴스 도구 / AI 텍스트 생성 / 접근성 감사 / MCP Protocol) 미래 참조용으로 유지
+  - design breakdown 본문 (`docs/adr/design/054-local-llm-architecture-breakdown.md`) 은 ADR-136+ 응용 영역 (AI 멀티모달 / CanvasKit 스키마 변환 / 인스턴스 도구 / AI 텍스트 생성 / 접근성 감사 / MCP Protocol) 미래 참조용으로 유지
 
 ### Documentation
 
@@ -156,7 +165,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 미구현 표에서 ADR-054 P2 행 삭제 + ADR-134 Proposed 행 추가
   - Deprecated 섹션에 ADR-011 / ADR-054 행 추가 (사유 + 후속 처리 명시)
   - 다음목표 표에 ADR-011 / ADR-054 Deprecated 행 추가 + ADR-134 Proposed P2 행 추가
-  - P5 헤더 정정 (`ADR-011 A5 + ADR-015 + ADR-016` → `ADR-015 + ADR-016`, ADR-011 A5 → ADR-135+ 이관 표시)
+  - P5 헤더 정정 (`ADR-011 A5 + ADR-015 + ADR-016` → `ADR-015 + ADR-016`, ADR-011 A5 → ADR-136+ 이관 표시)
   - 2026-05-13 (본 turn) 재산정 note 추가 + 활동 기록 entry 추가
   - 최상단 update note 보강
 

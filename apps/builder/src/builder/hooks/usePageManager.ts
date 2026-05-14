@@ -1,4 +1,4 @@
-import { startTransition, useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useListData } from "react-stately";
 import { Element } from "../../types/core/store.types";
 import { type Page, getDefaultProps } from "../../types/builder/unified.types";
@@ -26,7 +26,6 @@ import {
   deriveProjectRenderModelFromDocument,
   type CompositionDocument,
 } from "@composition/shared";
-import { scheduleNextFrame } from "../utils/scheduleTask";
 
 const PAGE_STACK_GAP = 80;
 
@@ -113,46 +112,9 @@ export const usePageManager = ({
   // 3. 중복 초기화 방지
   const initializingRef = useRef<string | null>(null);
   const creatingPageRef = useRef(false);
-  const pendingActivationFrameRef = useRef<number | null>(null);
-  const pendingActivationPageIdRef = useRef<string | null>(null);
 
   const pages = useStore((state) => state.pages);
   const lazyLoadingEnabled = useStore((state) => state.lazyLoadingEnabled);
-
-  const cancelPendingActivation = useCallback(() => {
-    const taskId = pendingActivationFrameRef.current;
-    if (taskId === null) return;
-
-    if (typeof cancelAnimationFrame !== "undefined") {
-      cancelAnimationFrame(taskId);
-    } else {
-      clearTimeout(taskId);
-    }
-
-    pendingActivationFrameRef.current = null;
-    pendingActivationPageIdRef.current = null;
-  }, []);
-
-  const schedulePageActivation = useCallback(
-    (pageId: string, elementId?: string | null) => {
-      cancelPendingActivation();
-      pendingActivationPageIdRef.current = pageId;
-
-      pendingActivationFrameRef.current = scheduleNextFrame(() => {
-        pendingActivationFrameRef.current = null;
-
-        if (pendingActivationPageIdRef.current !== pageId) {
-          return;
-        }
-
-        pendingActivationPageIdRef.current = null;
-        startTransition(() => {
-          useStore.getState().activatePage(pageId, elementId);
-        });
-      });
-    },
-    [cancelPendingActivation],
-  );
 
   const runWithPageCreationLock = useCallback(
     async <T>(
@@ -276,10 +238,8 @@ export const usePageManager = ({
         useStore
           .getState()
           .appendPageShell(newPage, bodyElement, nextPosition, {
-            activate: false,
+            activate: true,
           });
-
-        schedulePageActivation(newPage.id, bodyElement.id);
 
         console.log("✅ 페이지 추가 완료:", newPage.title);
         return { success: true, data: newPage };
@@ -332,15 +292,12 @@ export const usePageManager = ({
         useStore
           .getState()
           .appendPageShell(newPage, bodyElement, nextPosition, {
-            activate: false,
+            activate: true,
           });
 
         if (layoutId) {
-          cancelPendingActivation();
           useStore.getState().activatePage(newPage.id, bodyElement.id);
           setSelectedPageId(newPage.id);
-        } else {
-          schedulePageActivation(newPage.id, bodyElement.id);
         }
 
         console.log(

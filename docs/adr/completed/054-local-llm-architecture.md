@@ -4,7 +4,7 @@
 >
 > **사유**: Proposed 상태로 land 0건. 본 ADR 의 Provider 추상화 base 영역 + Hard Constraints 7개 + Gates G1-G6 은 ADR-134 (단일 통합) 에 정합 갱신되어 흡수. 작성 시점 (2026-04-05) 이후 land 된 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 정합 미반영.
 >
-> **ADR-054 → ADR-134 매핑** (design breakdown §14 참조): Phase 1 (Groq 제거 + Provider) → ADR-134 Phase 1+2 / Phase 2 (로컬 모델 Tool Calling) → Phase 2+5 / Phase 3 (Canvas FPS) → Phase 9 / Phase 4-5 (카탈로그) → Phase 5 / Phase 6 (디자인 지능) → Phase 6 / Phase 7 (접근성 감사) → ADR-135+ 응용 (scope 밖)
+> **ADR-054 → ADR-134 매핑** (design breakdown §14 참조): Phase 1 (Groq 제거 + Provider) → ADR-134 Phase 1+2 / Phase 2 (로컬 모델 Tool Calling) → Phase 2+5 / Phase 3 (Canvas FPS) → Phase 9 / Phase 4-5 (카탈로그) → Phase 5 / Phase 6 (디자인 지능) → Phase 6 / Phase 7 (접근성 감사) → ADR-136+ 응용 (scope 밖)
 
 > Supersedes [ADR-011](011-ai-assistant-design.md) — 함께 Deprecated, ADR-134 로 통합 흡수
 
