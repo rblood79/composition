@@ -278,7 +278,7 @@ function buildRendererChildrenMap(
 
   for (const element of elements) {
     if (element.deleted) continue;
-    const parentId = element.parentId ?? element.parent_id ?? null;
+    const parentId = element.parentId ?? null;
     if (!parentId) continue;
     const list = childrenMap.get(parentId);
     if (list) {

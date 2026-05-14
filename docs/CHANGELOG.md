@@ -5,6 +5,17 @@ All notable changes to composition will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ADR-126 후속 fallback 단순화 — rendererInput parent_id dead fallback 제거] - 2026-05-15
+
+### Architecture
+
+- **`rendererInput.ts:281` 의 `element.parentId ?? element.parent_id ?? null` fallback 을 `element.parentId ?? null` 로 단순화**:
+  - **Why**: 본 함수의 input type 은 `Iterable<CanvasSceneNode>`. `CanvasSceneNode.parentId` 는 `string | null` required. 모든 build site (`canvasSceneNode.ts:226` `toCanvasSceneNode` + `resolvePageWithFrame.ts:99` `asPageResolvedSlot`) 가 `parentId` 와 deprecated alias `parent_id` 를 동일 값으로 동시 주입 → `?? element.parent_id` fallback 은 dead code.
+  - 위치: `apps/builder/src/builder/workspace/canvas/renderers/rendererInput.ts:281`.
+  - 검증: type-check baseline 562 외 신규 0 PASS + `createSkiaRendererInput.test.ts` 3/3 PASS.
+- **scope 외 (보류)**:
+  - `canonicalRefResolution.ts:63/69/75` 의 `getParentId/getPageId/getLayoutId` generic helper — `CanonicalRefResolvableNode.parentId?: string | null` optional input 으로 canonical / legacy 양쪽 node 받는 의도. fallback 단순화 불가 (HIGH risk).
+
 ## [ADR-128 후속 dead surface 제거 — Supabase Database interface] - 2026-05-15
 
 ### Architecture
