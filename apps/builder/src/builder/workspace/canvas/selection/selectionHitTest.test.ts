@@ -41,6 +41,26 @@ describe("findBodySelectionAtCanvasPoint", () => {
     expect(result).toEqual({ bodyElementId: "page-body", pageId: "page-1" });
   });
 
+  it("selects canonical Body nodes with uppercase type for empty page clicks", () => {
+    const result = findBodySelectionAtCanvasPoint({
+      canvasPoint: { x: 40, y: 40 },
+      currentPageId: "page-1",
+      elementsMap: new Map([
+        [
+          "page-body",
+          makeBody({ id: "page-body", page_id: "page-1", type: "Body" }),
+        ],
+      ]),
+      pageHeight: 600,
+      pageIndexElementsByPage: new Map([["page-1", new Set(["page-body"])]]),
+      pagePositions: { "page-1": { x: 0, y: 0 } },
+      pageWidth: 800,
+      pages: [{ id: "page-1" }],
+    });
+
+    expect(result).toEqual({ bodyElementId: "page-body", pageId: "page-1" });
+  });
+
   it("selects frame body before overlapping page body in frame authoring", () => {
     const result = findBodySelectionAtCanvasPoint({
       canvasPoint: { x: 40, y: 40 },

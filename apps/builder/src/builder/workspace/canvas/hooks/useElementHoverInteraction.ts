@@ -265,7 +265,7 @@ export function useElementHoverInteraction({
           // 루트: 모든 body의 직계 자식 수집
           const rootCandidates: Array<{ id: string }> = [];
           for (const [, el] of elementsMap) {
-            if (el.type !== "body") continue;
+            if (el.type.toLowerCase() !== "body") continue;
             const bodyChildren = childrenMap.get(el.id);
             if (bodyChildren) {
               for (const child of bodyChildren) {

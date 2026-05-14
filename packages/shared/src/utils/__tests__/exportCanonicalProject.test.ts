@@ -442,6 +442,159 @@ describe("project export canonical CompositionDocument payload", () => {
     });
   });
 
+  it("uses a direct page body when a frame-bound page also has descendants", () => {
+    const documentWithDirectBody: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "ref",
+          ref: "layout-frame-1",
+          name: "Home",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-home",
+            layoutId: "frame-1",
+          },
+          children: [
+            {
+              id: "page-home-body",
+              type: "body",
+              props: { style: { width: "100%", height: "100%" } },
+            },
+          ],
+          descendants: {
+            content: {
+              children: [
+                {
+                  id: "page-card",
+                  type: "Card",
+                  props: { children: "Page content" },
+                },
+              ],
+            },
+          },
+        },
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [
+            {
+              id: "frame-body",
+              type: "Body",
+              props: { style: { display: "flex" } },
+              children: [
+                {
+                  id: "slot-content",
+                  type: "Slot",
+                  props: { name: "content" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithDirectBody,
+      projectId,
+      "page-home",
+    );
+
+    expect(
+      renderModel.elements.find((el) => el.id === "page-home-body"),
+    ).toMatchObject({
+      id: "page-home-body",
+      page_id: "page-home",
+      parent_id: null,
+      props: expect.objectContaining({
+        style: { width: "100%", height: "100%" },
+      }),
+    });
+    expect(
+      renderModel.elements.find((el) => el.id === "page-card"),
+    ).toMatchObject({
+      id: "page-card",
+      page_id: "page-home",
+      parent_id: "page-home-body",
+    });
+  });
+
+  it("keeps direct page body children and descendant slot fills together", () => {
+    const documentWithMixedPageOwnedContent: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "ref",
+          ref: "layout-frame-1",
+          name: "Home",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-home",
+            layoutId: "frame-1",
+          },
+          children: [
+            {
+              id: "page-home-body",
+              type: "Body",
+              props: { style: { width: "100%", height: "100%" } },
+              children: [
+                {
+                  id: "page-button",
+                  type: "Button",
+                  props: { children: "Direct" },
+                },
+              ],
+            },
+          ],
+          descendants: {
+            content: {
+              children: [
+                {
+                  id: "page-card",
+                  type: "Card",
+                  props: { children: "Slot fill" },
+                },
+              ],
+            },
+          },
+        },
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [],
+        },
+      ],
+    } as never;
+
+    const renderModel = deriveProjectRenderModelFromDocument(
+      documentWithMixedPageOwnedContent,
+      projectId,
+      "page-home",
+    );
+
+    expect(
+      renderModel.elements.find((el) => el.id === "page-button"),
+    ).toMatchObject({
+      id: "page-button",
+      page_id: "page-home",
+      parent_id: "page-home-body",
+    });
+    expect(
+      renderModel.elements.find((el) => el.id === "page-card"),
+    ).toMatchObject({
+      id: "page-card",
+      page_id: "page-home",
+      parent_id: "page-home-body",
+    });
+  });
+
   it("hydrates canonical legacy-slot-hoisted frame nodes as Slot marker elements", () => {
     const documentWithHoistedSlot: CompositionDocument = {
       version: "composition-1.0",

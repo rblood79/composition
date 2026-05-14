@@ -11,8 +11,10 @@ import type { Layout } from "@/types/builder/layout.types";
 import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import { getLegacyLayoutId, withLegacyLayoutId } from "./legacyElementFields";
+import { getPageOwnedChildrenFromFrameRef } from "./pageFrameRefChildren";
 
 interface ElementsStateForFrameLayoutCascade {
+  elements?: Element[];
   pages: Page[];
   elementsMap: Map<string, Element>;
 }
@@ -48,7 +50,7 @@ function findReusableFrame(
       (node): node is FrameNode =>
         node.type === "frame" &&
         node.reusable === true &&
-        frameMatchesLayoutId(node, frameId),
+        frameMatchesLayoutId(node as FrameNode, frameId),
     ) ?? null
   );
 }
@@ -146,35 +148,10 @@ function removeLayoutIdFromMetadata(
   return metadata;
 }
 
-function childrenFromRefDescendants(refNode: RefNode): CanonicalNode[] {
-  const children: CanonicalNode[] = [];
-  const descendants = refNode.descendants ?? {};
-
-  for (const override of Object.values(descendants)) {
-    if (
-      override &&
-      typeof override === "object" &&
-      "children" in override &&
-      Array.isArray(override.children)
-    ) {
-      children.push(...override.children);
-    } else if (
-      override &&
-      typeof override === "object" &&
-      "type" in override &&
-      typeof override.type === "string"
-    ) {
-      children.push(override as CanonicalNode);
-    }
-  }
-
-  return children;
-}
-
 function clearPageFrameBindingNode(node: CanonicalNode): FrameNode {
   const children =
     node.type === "ref"
-      ? childrenFromRefDescendants(node as RefNode)
+      ? getPageOwnedChildrenFromFrameRef(node as RefNode)
       : (node.children ?? []);
   return {
     id: node.id,

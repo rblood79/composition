@@ -580,15 +580,13 @@ function collectPageOwnedRuntimeElements(
   elements: Element[],
 ): void {
   const descendantChildren = getRefDescendantChildren(pageNode);
-  const pageOwnedChildren =
-    descendantChildren.length > 0
-      ? descendantChildren
-      : (pageNode.children ?? []);
+  const directChildren = pageNode.children ?? [];
+  const directBody = directChildren.find(isBodyNode) ?? null;
 
-  if (pageOwnedChildren.some(isBodyNode)) {
+  if (!directBody && descendantChildren.some(isBodyNode)) {
     collectRuntimeElements(
       document,
-      pageOwnedChildren,
+      descendantChildren,
       pageId,
       null,
       elements,
@@ -597,8 +595,16 @@ function collectPageOwnedRuntimeElements(
     return;
   }
 
-  const pageBody = makeDefaultPageBodyNode(pageId);
+  const pageBody = directBody ?? makeDefaultPageBodyNode(pageId);
   collectRuntimeElements(document, [pageBody], pageId, null, elements, null);
+
+  const seenIds = new Set([pageBody.id]);
+  const pageOwnedChildren: CanonicalNode[] = [];
+  for (const child of [...directChildren, ...descendantChildren]) {
+    if (seenIds.has(child.id) || isBodyNode(child)) continue;
+    pageOwnedChildren.push(child);
+    seenIds.add(child.id);
+  }
 
   if (pageOwnedChildren.length === 0) return;
 

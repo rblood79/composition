@@ -47,7 +47,11 @@ export function collectVisibleFrameRoots(
     const bodyElement =
       rendererInput.renderNodesMap.get(bodyId) ??
       rendererInput.sceneNodesMap.get(bodyId);
-    if (!bodyElement || bodyElement.deleted || bodyElement.type !== "body") {
+    if (
+      !bodyElement ||
+      bodyElement.deleted ||
+      bodyElement.type.toLowerCase() !== "body"
+    ) {
       continue;
     }
 

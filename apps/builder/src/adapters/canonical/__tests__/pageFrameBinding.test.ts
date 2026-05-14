@@ -261,6 +261,94 @@ describe("pageFrameBinding canonical primary helper", () => {
     );
   });
 
+  it("keeps the page body as a canonical child when applying a frame binding", async () => {
+    const page = makePage("page-5");
+    const pageBody: CanonicalNode = {
+      id: "page-5-body",
+      type: "Body",
+      props: {
+        className: "react-aria-Body",
+        style: { width: "100%", height: "100%" },
+      },
+      children: [],
+    };
+    const pageCard: CanonicalNode = {
+      id: "page-5-card",
+      type: "Card",
+      props: { label: "Card" },
+      metadata: {
+        type: "legacy-element-props",
+        pageFrameDescendantPath: "content",
+      },
+    };
+    const existingPageNode: CanonicalNode = {
+      id: "page-5",
+      type: "frame",
+      name: "Page 5",
+      metadata: {
+        type: "legacy-page",
+        pageId: "page-5",
+        slug: "/page-5",
+      },
+      children: [pageBody, pageCard],
+    };
+    const state = {
+      pages: [page],
+      elementsMap: new Map<string, Element>(),
+    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+    const setPages = vi.fn();
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDoc([makeFrameNode(), existingPageNode]));
+
+    await applyPageFrameBindingCanonicalPrimary({
+      pageId: page.id,
+      frameId: "frame-1",
+      getElementsState: () => state,
+      setPages,
+    });
+
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const pageNode = doc?.children.find((node) => node.id === "page-5") as
+      | RefNode
+      | undefined;
+    expect(pageNode).toEqual(
+      expect.objectContaining({
+        id: "page-5",
+        type: "ref",
+        children: [
+          expect.objectContaining({
+            id: "page-5-body",
+            type: "Body",
+            props: expect.objectContaining({
+              style: { width: "100%", height: "100%" },
+            }),
+          }),
+        ],
+        descendants: {
+          content: {
+            children: [expect.objectContaining({ id: "page-5-card" })],
+          },
+        },
+      }),
+    );
+    expect(exportLegacyDocument(doc!)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "page-5-body",
+          page_id: "page-5",
+          layout_id: null,
+          type: "Body",
+        }),
+      ]),
+    );
+  });
+
   it("rebuilds canonical-derived mirror before setPages notifies page shell subscribers", async () => {
     const page = makePage("page-2", "frame-1");
     const draggedChild: CanonicalNode = {
@@ -464,6 +552,96 @@ describe("pageFrameBinding canonical primary helper", () => {
           }),
         ],
       }),
+    );
+  });
+
+  it("clears frame binding without dropping page-owned body children", async () => {
+    const page = makePage("page-6", "frame-1");
+    const pageButton: CanonicalNode = {
+      id: "page-6-button",
+      type: "Button",
+      props: { children: "Submit" },
+    };
+    const pageInstance: RefNode = {
+      id: "page-6-instance",
+      type: "ref",
+      ref: "component-card",
+      props: {},
+    };
+    const pageBody: CanonicalNode = {
+      id: "page-6-body",
+      type: "Body",
+      props: {
+        className: "react-aria-Body",
+        style: { width: "100%", height: "100%" },
+      },
+      children: [pageButton, pageInstance],
+    };
+    const state = {
+      pages: [page],
+      elementsMap: new Map<string, Element>(),
+    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+    const setPages = vi.fn();
+    const existingPageRef: RefNode = {
+      id: "page-6",
+      type: "ref",
+      ref: "layout-frame-1",
+      metadata: {
+        type: "legacy-page",
+        pageId: "page-6",
+        slug: "/page-6",
+        layoutId: "frame-1",
+      },
+      children: [pageBody],
+    };
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
+
+    await applyPageFrameBindingCanonicalPrimary({
+      pageId: page.id,
+      frameId: null,
+      getElementsState: () => state,
+      setPages,
+    });
+
+    const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const pageNode = doc?.children.find((node) => node.id === "page-6");
+    expect(pageNode).toEqual(
+      expect.objectContaining({
+        id: "page-6",
+        type: "frame",
+        children: [
+          expect.objectContaining({
+            id: "page-6-body",
+            children: [
+              expect.objectContaining({ id: "page-6-button" }),
+              expect.objectContaining({ id: "page-6-instance" }),
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(exportLegacyDocument(doc!)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "page-6-button",
+          page_id: "page-6",
+          parent_id: "page-6-body",
+          layout_id: null,
+        }),
+        expect.objectContaining({
+          id: "page-6-instance",
+          page_id: "page-6",
+          parent_id: "page-6-body",
+          layout_id: null,
+        }),
+      ]),
     );
   });
 

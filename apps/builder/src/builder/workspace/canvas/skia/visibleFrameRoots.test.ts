@@ -142,6 +142,35 @@ describe("ADR-111 P3-δ collectVisibleFrameRoots", () => {
     expect(result.bodyPagePositions["frame-body-1"]).toEqual({ x: 100, y: 50 });
   });
 
+  it("canonical Body casing 을 frame root 로 인정한다", () => {
+    const bodyEl = makeElement({
+      id: "frame-body-1",
+      type: "Body",
+      frameId: "frame-A",
+    });
+
+    const result = collectVisibleFrameRoots(
+      makeInput({
+        elements: [bodyEl],
+        frameElementScopes: new Map([
+          ["frame-A", makeFrameScope("frame-A", bodyEl.id)],
+        ]),
+        frameAreas: [
+          {
+            frameId: "frame-A",
+            frameName: "Frame A",
+            x: 100,
+            y: 50,
+            width: 320,
+            height: 200,
+          },
+        ],
+      }),
+    );
+
+    expect(result.rootElementIds).toEqual(["frame-body-1"]);
+  });
+
   it("sceneNodesMap 가 아닌 renderNodesMap 의 frame body 도 root 등록한다", () => {
     const bodyEl = makeElement({
       id: "frame-body-render-only",

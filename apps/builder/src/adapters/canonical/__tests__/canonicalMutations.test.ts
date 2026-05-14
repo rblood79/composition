@@ -851,6 +851,99 @@ describe("canonical mutation wrappers", () => {
     expect(setElements).not.toHaveBeenCalled();
   });
 
+  it("setElementsCanonicalPrimary keeps bound page direct body children during shell rebuild", () => {
+    const setElements = vi.fn();
+    const page = {
+      ...makePage("page-1"),
+      layout_id: "frame-1",
+    } as Page;
+    const layout = makeLayout("frame-1");
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [],
+        },
+        {
+          id: "page-1",
+          type: "ref",
+          ref: "layout-frame-1",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-1",
+            layoutId: "frame-1",
+          },
+          children: [
+            {
+              id: "page-1-body",
+              type: "Body",
+              props: {},
+              children: [
+                { id: "page-1-button", type: "Button", props: {} },
+                {
+                  id: "page-1-instance",
+                  type: "ref",
+                  ref: "origin",
+                  props: {},
+                },
+              ],
+            },
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [],
+        pages: [page],
+        layouts: [layout],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    setElementsCanonicalPrimary([
+      makeElement("page-1-body", "Body", {
+        page_id: "page-1",
+        props: {},
+      }),
+      makeElement("page-1-button", "Button", {
+        page_id: "page-1",
+        parent_id: "page-1-body",
+      }),
+      makeElement("page-1-instance", "ref", {
+        page_id: "page-1",
+        parent_id: "page-1-body",
+        ref: "origin",
+      } as Partial<LegacyTestElement>),
+    ]);
+
+    const nextDoc = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1");
+    expect(JSON.stringify(nextDoc)).toContain("page-1-button");
+    expect(JSON.stringify(nextDoc)).toContain("page-1-instance");
+    expect(exportLegacyDocument(nextDoc!)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "page-1-button",
+          page_id: "page-1",
+          parent_id: "page-1-body",
+        }),
+        expect.objectContaining({
+          id: "page-1-instance",
+          page_id: "page-1",
+          parent_id: "page-1-body",
+        }),
+      ]),
+    );
+    expect(setElements).not.toHaveBeenCalled();
+  });
+
   it("setElementsCanonicalPrimary preserves an unbound page body during page-shell rebuild", () => {
     const setElements = vi.fn();
     const page = makePage("page-1") as Page;

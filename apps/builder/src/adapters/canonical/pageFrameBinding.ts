@@ -16,6 +16,7 @@ import {
   getReusableFrameMirrorId,
   withPageFrameBinding,
 } from "./frameMirror";
+import { getPageOwnedChildrenFromFrameRef } from "./pageFrameRefChildren";
 import { withSlotMirrorName } from "./slotMirror";
 
 export { getPageFrameBindingId } from "./frameMirror";
@@ -148,40 +149,6 @@ function withPageFrameSlotRoundtripMirror(
   ) as CanonicalNode;
 }
 
-function getChildrenFromDescendants(refNode: RefNode): CanonicalNode[] {
-  const children: CanonicalNode[] = [];
-  const descendants = refNode.descendants ?? {};
-
-  for (const [descendantPath, override] of Object.entries(descendants)) {
-    if (
-      override &&
-      typeof override === "object" &&
-      "children" in override &&
-      Array.isArray(override.children)
-    ) {
-      children.push(
-        ...override.children.map((child) =>
-          withPageFrameSlotRoundtripMirror(child, descendantPath),
-        ),
-      );
-    } else if (
-      override &&
-      typeof override === "object" &&
-      "type" in override &&
-      typeof override.type === "string"
-    ) {
-      children.push(
-        withPageFrameSlotRoundtripMirror(
-          override as CanonicalNode,
-          descendantPath,
-        ),
-      );
-    }
-  }
-
-  return children;
-}
-
 function readPageFrameDescendantPath(node: CanonicalNode): string | null {
   const metadata = node.metadata as
     | { pageFrameDescendantPath?: unknown; pageFrameSlotName?: unknown }
@@ -311,8 +278,12 @@ function buildPageNode(
       existingNode?.type === "ref"
         ? (existingNode as RefNode).descendants
         : undefined;
-    const directChildren =
-      existingNode?.type === "frame" ? existingNode.children : undefined;
+    const directChildren = existingNode?.children ?? [];
+    const pageBodyChildren = ensurePageBodyChild(
+      directChildren.filter(isBodyElementNode),
+      updatedPage,
+      elementsMap,
+    );
     const rebuiltDescendants =
       buildDescendantsFromDirectChildren(directChildren);
     const nextNode: RefNode = {
@@ -321,6 +292,7 @@ function buildPageNode(
       ref: frameRefId ?? toLegacyFrameRefId(frameId),
       name: updatedPage.title,
       metadata: buildPageMetadata(updatedPage, frameId, existingNode),
+      children: pageBodyChildren,
       ...(descendants && Object.keys(descendants).length > 0
         ? { descendants }
         : rebuiltDescendants
@@ -332,7 +304,10 @@ function buildPageNode(
 
   const children =
     existingNode?.type === "ref"
-      ? getChildrenFromDescendants(existingNode as RefNode)
+      ? getPageOwnedChildrenFromFrameRef(
+          existingNode as RefNode,
+          withPageFrameSlotRoundtripMirror,
+        )
       : (existingNode?.children ?? []);
   const childrenWithBody = ensurePageBodyChild(
     children,

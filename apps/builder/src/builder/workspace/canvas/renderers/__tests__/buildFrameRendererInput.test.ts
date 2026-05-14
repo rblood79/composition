@@ -158,6 +158,43 @@ describe("ADR-111 P3-δ fix #3 — buildFrameLayoutPublisherInput", () => {
     ).toBeUndefined();
   });
 
+  it("accepts canonical Body casing when building frame layout input", () => {
+    const body = makeElement({
+      id: "frame-body-A",
+      type: "Body",
+      frameId: "frame-A",
+    });
+    const slot = makeElement({
+      id: "slot-1",
+      type: "Slot",
+      parent_id: "frame-body-A",
+      frameId: "frame-A",
+    });
+    const elementById = new Map<string, Element>([
+      [body.id, body],
+      [slot.id, slot],
+    ]);
+
+    const result = buildFrameLayoutPublisherInput({
+      ...baseOptions,
+      elementById,
+      frameHeight: 844,
+      frameId: "frame-A",
+      frameElementScope: makeFrameScope({
+        frameId: "frame-A",
+        bodyElementId: body.id,
+        elementIds: [body.id, slot.id],
+      }),
+      frameWidth: 390,
+      frameX: 470,
+      frameY: 0,
+      sceneSnapshot: makeSceneSnapshot(),
+    });
+
+    expect(result?.bodyElement).toBe(body);
+    expect(result?.pageElements.map((el) => el.id)).toEqual(["slot-1"]);
+  });
+
   it("scope 에 props 없는 ref instance 가 있으면 Slot 자식으로 frame layout input 에 포함한다", () => {
     const body = makeElement({
       id: "frame-body",

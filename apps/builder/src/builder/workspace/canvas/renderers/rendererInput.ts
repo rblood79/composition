@@ -136,21 +136,26 @@ export function buildFrameLayoutPublisherInput({
   const bodyElement = frameElementScope.bodyElementId
     ? (layoutElementById.get(frameElementScope.bodyElementId) ?? null)
     : null;
-  if (!bodyElement || bodyElement.deleted || bodyElement.type !== "body") {
+  if (
+    !bodyElement ||
+    bodyElement.deleted ||
+    bodyElement.type.toLowerCase() !== "body"
+  ) {
     return null;
   }
 
-  const pageElements: CanvasLayoutNode[] = [];
+  const bodySceneElement = bodyElement as CanvasSceneNode;
+  const pageElements: CanvasSceneNode[] = [];
 
   for (const elementId of frameElementScope.elementIds) {
     if (elementId === bodyElement.id) continue;
     const el = layoutElementById.get(elementId);
-    if (!el || el.deleted || el.type === "body") continue;
-    pageElements.push(el);
+    if (!el || el.deleted || el.type.toLowerCase() === "body") continue;
+    pageElements.push(el as CanvasSceneNode);
   }
 
   const frameSnapshot: ScenePageSnapshot = {
-    bodyElement,
+    bodyElement: bodySceneElement,
     contentVersion: 0,
     frame: {
       elementCount: pageElements.length,
@@ -168,7 +173,7 @@ export function buildFrameLayoutPublisherInput({
   };
 
   return {
-    bodyElement,
+    bodyElement: bodySceneElement,
     depthMap: sceneSnapshot.depthMap,
     dirtyElementIds,
     elementById: layoutElementById,

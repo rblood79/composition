@@ -290,7 +290,7 @@ export function findBodySelectionAtCanvasPoint({
 
   for (const elementId of pageElementIds) {
     const element = elementsMap.get(elementId);
-    if (element?.type === "body") {
+    if (element?.type.toLowerCase() === "body") {
       return {
         bodyElementId: element.id,
         pageId,

@@ -60,6 +60,7 @@ import {
 import { getCanonicalSlotDeclaration } from "./slotDeclaration";
 import { isLegacySlotTag, tagToType } from "./tagRename";
 import { getPageFrameBindingId } from "./frameMirror";
+import { getPageOwnedChildrenFromFrameRef } from "./pageFrameRefChildren";
 import { asElementWithLegacyMirror } from "./legacyElementFields";
 import {
   compareElementsBySource,
@@ -886,6 +887,11 @@ function buildPageShell(
   delete (metadata as Record<string, unknown>).order_num;
 
   if (frameId) {
+    const existingChildren = existingPage?.children ?? [];
+    const existingDescendants =
+      existingPage?.type === "ref"
+        ? (existingPage as RefNode).descendants
+        : undefined;
     return {
       id: existingPage?.id ?? page.id,
       type: "ref",
@@ -895,7 +901,10 @@ function buildPageShell(
         ...metadata,
         layoutId: frameId,
       },
-      descendants: {},
+      ...(existingChildren.length > 0 ? { children: existingChildren } : {}),
+      ...(existingDescendants && Object.keys(existingDescendants).length > 0
+        ? { descendants: existingDescendants }
+        : {}),
     } as unknown as RefNode;
   }
 
@@ -906,7 +915,7 @@ function buildPageShell(
 
   const children =
     existingPage?.type === "ref"
-      ? getDescendantChildrenArrays(existingPage as RefNode).flat()
+      ? getPageOwnedChildrenFromFrameRef(existingPage as RefNode)
       : (existingPage?.children ?? []);
 
   return {
@@ -1481,13 +1490,16 @@ function pruneRefDescendantsForFullReplace(
       nextDescendants[descendantPath] = override;
       continue;
     }
-    nextDescendants[descendantPath] = {
-      ...override,
-      children: pruneChildrenForFullReplace(
-        override.children,
-        incomingElementIds,
-      ),
-    };
+    const children = pruneChildrenForFullReplace(
+      override.children,
+      incomingElementIds,
+    );
+    if (children.length > 0) {
+      nextDescendants[descendantPath] = {
+        ...override,
+        children,
+      };
+    }
   }
 
   return { ...refNode, descendants: nextDescendants };
