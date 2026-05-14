@@ -54,7 +54,12 @@ interface Project {
   updated_at: string;
 }
 import { useUnifiedThemeStore } from "../../stores/themeStore";
-import { useThemeConfigStore } from "../../stores/themeConfigStore";
+import {
+  useThemeConfigStore,
+  type DarkModePreference,
+  type RadiusScale,
+} from "../../stores/themeConfigStore";
+import type { TintPreset } from "../../utils/theme/tintToSkiaColors";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
 import { useEditModeStore } from "../stores/editMode";
@@ -75,7 +80,10 @@ import {
 import { exportProject } from "@composition/shared/utils";
 import { loadFontRegistry } from "../fonts/customFonts";
 import { generateThemeCSS } from "../../utils/theme/generateThemeCSS";
-import { NEUTRAL_PALETTES } from "../../utils/theme/neutralToSkiaColors";
+import {
+  NEUTRAL_PALETTES,
+  type NeutralPreset,
+} from "../../utils/theme/neutralToSkiaColors";
 import {
   applyEditingSemanticsFixture,
   shouldApplyEditingSemanticsFixture,
@@ -127,6 +135,21 @@ function getPageShellBridgeElements(state: {
   // removed-page elements after instance materialization.
   const { elements = [] } = state;
   return elements;
+}
+
+function hasPageShellTopologyChanged(
+  previousPages: ReadonlyArray<{ id: string }> | undefined,
+  nextPages: ReadonlyArray<{ id: string }> | undefined,
+): boolean {
+  if (previousPages === nextPages) return false;
+  if (!previousPages || !nextPages) return true;
+  if (previousPages.length !== nextPages.length) return true;
+
+  const previousIds = new Set(previousPages.map((page) => page.id));
+  for (const page of nextPages) {
+    if (!previousIds.has(page.id)) return true;
+  }
+  return false;
 }
 
 export const BuilderCore: React.FC = () => {
@@ -187,7 +210,10 @@ export const BuilderCore: React.FC = () => {
     if (!projectId) return;
     let pagesRef = useStore.getState().pages;
     return useStore.subscribe((state) => {
-      if (state.pages === pagesRef) return;
+      if (!hasPageShellTopologyChanged(pagesRef, state.pages)) {
+        pagesRef = state.pages;
+        return;
+      }
       pagesRef = state.pages;
       if (pageShellBridgeSuspendedRef.current) return;
       setElementsCanonicalPrimary(getPageShellBridgeElements(state));
@@ -451,10 +477,16 @@ export const BuilderCore: React.FC = () => {
         try {
           const doc = getActiveCanonicalDocument();
           if (doc) {
-            const applied = applyCanonicalThemes(
-              doc,
-              useThemeConfigStore.getState(),
-            );
+            const themeState = useThemeConfigStore.getState();
+            const applied = applyCanonicalThemes(doc, {
+              setTint: (tint) => themeState.setTint(tint as TintPreset),
+              setDarkMode: (mode) =>
+                themeState.setDarkMode(mode as DarkModePreference),
+              setNeutral: (neutral) =>
+                themeState.setNeutral(neutral as NeutralPreset),
+              setRadiusScale: (scale) =>
+                themeState.setRadiusScale(scale as RadiusScale),
+            });
             if (applied && import.meta.env.DEV) {
               console.log(
                 "[ADR-110 P2 ts-3.1] applied canonical themes from document",
