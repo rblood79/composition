@@ -199,6 +199,77 @@ describe("multiElementCopy", () => {
     });
   });
 
+  it("pastes reusable origins inside a mixed selection as instances", () => {
+    const body = makeElement("body", { type: "body" });
+    const standard = makeElement("standard", {
+      type: "Box",
+      customId: "box_1",
+      parent_id: body.id,
+    });
+    const origin = makeElement("origin", {
+      type: "Button",
+      reusable: true,
+      customId: "button_1",
+      parent_id: body.id,
+      componentName: "A",
+    } as never);
+    const originLabel = makeElement("origin-label", {
+      type: "Text",
+      parent_id: origin.id,
+    });
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: origin.id,
+      customId: "button_2",
+      parent_id: body.id,
+      componentName: "A",
+    } as never);
+    const copied = copyMultipleElements(
+      [standard.id, origin.id, instance.id],
+      new Map(
+        [body, standard, origin, originLabel, instance].map((element) => [
+          element.id,
+          element,
+        ]),
+      ),
+    );
+
+    const pasted = pasteMultipleElements(
+      copied,
+      "page-1",
+      { x: 10, y: 10 },
+      [body, standard, origin, originLabel, instance],
+      { targetParentId: body.id },
+    );
+
+    expect(pasted).toHaveLength(3);
+    expect(pasted[0]).toMatchObject({
+      type: "Box",
+      customId: "box_2",
+      parent_id: body.id,
+    });
+    expect(pasted[1]).toMatchObject({
+      type: "ref",
+      ref: origin.id,
+      customId: "button_3",
+      parent_id: body.id,
+      componentName: "A",
+    });
+    expect(pasted[2]).toMatchObject({
+      type: "ref",
+      ref: origin.id,
+      customId: "button_4",
+      parent_id: body.id,
+      componentName: "A",
+    });
+    expect(
+      pasted.some(
+        (element) => (element as Element & { reusable?: boolean }).reusable,
+      ),
+    ).toBe(false);
+    expect(pasted.some((element) => element.type === "Text")).toBe(false);
+  });
+
   it("resolves the paste target from the selected page body or selected container", () => {
     const body = makeElement("page-2-body", {
       type: "body",

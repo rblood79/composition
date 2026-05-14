@@ -99,6 +99,31 @@ function getReusableOriginRoot(copiedData: CopiedElementsData): Element | null {
   return root;
 }
 
+function getReusableOriginRootIds(copiedData: CopiedElementsData): Set<string> {
+  const elementsById = new Map(
+    copiedData.elements.map((element) => [element.id, element]),
+  );
+  return new Set(
+    copiedData.rootIds.filter((id) => {
+      const element = elementsById.get(id);
+      return element ? isReusableOrigin(element) : false;
+    }),
+  );
+}
+
+function isDescendantOfReusableOriginRoot(
+  element: Element,
+  reusableOriginRootIds: ReadonlySet<string>,
+  elementsById: ReadonlyMap<string, Element>,
+): boolean {
+  let parentId = element.parent_id;
+  while (parentId) {
+    if (reusableOriginRootIds.has(parentId)) return true;
+    parentId = elementsById.get(parentId)?.parent_id ?? null;
+  }
+  return false;
+}
+
 function parsePixels(value: unknown): number {
   if (typeof value === "string") {
     const match = value.match(/^(-?\d+(?:\.\d+)?)px$/);
@@ -290,16 +315,59 @@ export function pasteMultipleElements(
     ];
   }
 
+  const elementsById = new Map(
+    copiedData.elements.map((element) => [element.id, element]),
+  );
+  const reusableOriginRootIds = getReusableOriginRootIds(copiedData);
+  const pasteSourceElements = copiedData.elements.filter(
+    (element) =>
+      !isDescendantOfReusableOriginRoot(
+        element,
+        reusableOriginRootIds,
+        elementsById,
+      ),
+  );
+
   // Create ID mapping: old ID → new ID
   const idMap = new Map<string, string>();
-  copiedData.elements.forEach((element) => {
+  pasteSourceElements.forEach((element) => {
     idMap.set(element.id, ElementUtils.generateId());
   });
 
   // Create new elements with updated IDs and relationships
   const allocatedElements = [...existingElements];
-  const newElements: Element[] = copiedData.elements.map((element) => {
+  const newElements: Element[] = pasteSourceElements.map((element) => {
     const newId = idMap.get(element.id)!;
+
+    if (reusableOriginRootIds.has(element.id)) {
+      const instanceElement = withFreshCustomId(
+        {
+          id: newId,
+          type: "ref",
+          ref: element.id,
+          [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
+          [COMPONENT_MASTER_ID_MIRROR_FIELD]: element.id,
+          parent_id: shouldUseTargetParent
+            ? targetParentId
+            : (element.parent_id ?? null),
+          page_id: currentPageId,
+          props: createRefOverrideProps(element, offset),
+          componentName: element.componentName,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Element,
+        allocatedElements,
+        getCustomIdGenerationBase(element, allocatedElements),
+      );
+      const normalizedElement = normalizeExternalFillIngress(
+        withFrameElementMirrorId(
+          instanceElement,
+          getFrameElementMirrorId(element),
+        ),
+      );
+      allocatedElements.push(normalizedElement);
+      return normalizedElement;
+    }
 
     // Determine new parent_id
     let newParentId: string | null = null;
