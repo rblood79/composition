@@ -44,9 +44,7 @@ export function collectVisibleFrameRoots(
     const frameScope = rendererInput.frameElementScopes.get(area.frameId);
     const bodyId = frameScope?.bodyElementId ?? null;
     if (!bodyId) continue;
-    const bodyElement =
-      rendererInput.renderNodesMap.get(bodyId) ??
-      rendererInput.sceneNodesMap.get(bodyId);
+    const bodyElement = rendererInput.renderNodesMap.get(bodyId);
     if (
       !bodyElement ||
       bodyElement.deleted ||

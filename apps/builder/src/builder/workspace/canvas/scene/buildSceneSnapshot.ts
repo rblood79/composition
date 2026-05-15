@@ -29,6 +29,58 @@ function hashString(value: string): number {
   return Math.abs(hash);
 }
 
+function stableSerialize(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
+  }
+
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`)
+    .join(",")}}`;
+}
+
+function createNodeProjectionSignature(node: CanvasSceneNode | null) {
+  if (!node) return null;
+  return {
+    deleted: node.deleted === true,
+    id: node.id,
+    layoutId: node.layoutId ?? node.layout_id ?? null,
+    pageId: node.pageId ?? node.page_id ?? null,
+    parentId: node.parentId ?? node.parent_id ?? null,
+    projection: node.projection ?? null,
+    props: node.props ?? {},
+    ref: node.ref ?? null,
+    reusable: node.reusable === true,
+    type: node.type,
+  };
+}
+
+function createResolvedProjectionSignature(input: {
+  elements: CanvasSceneNode[];
+  pageSnapshots: Map<string, ScenePageSnapshot>;
+}): number {
+  return hashString(
+    stableSerialize({
+      rawSceneNodes: input.elements.map(createNodeProjectionSignature),
+      resolvedPages: Array.from(input.pageSnapshots.entries()).map(
+        ([pageId, snapshot]) => ({
+          bodyElement: createNodeProjectionSignature(snapshot.bodyElement),
+          pageElements: snapshot.pageElements.map(
+            createNodeProjectionSignature,
+          ),
+          pageId,
+        }),
+      ),
+    }),
+  );
+}
+
 /**
  * ADR-074 Phase 2: selection-invariant structure snapshot.
  *
@@ -131,6 +183,10 @@ export function buildSceneStructureSnapshot(
       })
       .join(":"),
   );
+  const projectionContentSignature = createResolvedProjectionSignature({
+    elements: input.elements,
+    pageSnapshots,
+  });
 
   return {
     depthMap,
@@ -155,6 +211,7 @@ export function buildSceneStructureSnapshot(
         input.pages.length,
         visibleContentVersion,
         visiblePagePositionVersion,
+        projectionContentSignature,
       ].join(":"),
     ),
     source: input.source,

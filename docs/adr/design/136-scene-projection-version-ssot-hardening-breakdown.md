@@ -1,6 +1,6 @@
 # ADR-136 Design Breakdown — Scene Projection Version SSOT Hardening
 
-> 본문: [136-scene-projection-version-ssot-hardening.md](../136-scene-projection-version-ssot-hardening.md). ADR-135 완료 이후 남은 projection version/fallback contract를 좁은 hardening scope로 닫는다.
+> 본문: [136-scene-projection-version-ssot-hardening.md](../completed/136-scene-projection-version-ssot-hardening.md). ADR-135 완료 이후 남은 projection version/fallback contract를 좁은 hardening scope로 닫는다.
 
 ## 0. Scope
 

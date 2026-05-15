@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-136 Scene Projection Version SSOT Hardening] - 2026-05-15
+
+### Architecture
+
+- **ADR-136 Implemented — projection/version contract hardening**:
+  - `buildSceneStructureSnapshot()`의 `sceneVersion`에 stable resolved projection content signature를 포함했다. signature는 raw scene nodes와 resolved `pageSnapshots`의 `bodyElement` / `pageElements`를 함께 반영해 same-count props/parent/ref/projection metadata 변경을 version 변경으로 고정한다.
+  - `collectVisibleFrameRoots()`의 `renderNodesMap -> sceneNodesMap` fallback을 제거했다. downstream frame root 수집은 확정 render model인 `renderNodesMap`만 authoritative source로 사용한다.
+  - Skia/render utility에 `renderNodesMap.get(...) ?? sceneNodesMap.get(...)` fallback이 재도입되지 않도록 static gate를 추가했다. 단일 라인과 멀티라인 fallback fixture를 모두 차단한다.
+  - ADR 본문을 `docs/adr/completed/136-scene-projection-version-ssot-hardening.md`로 이동하고 README 상태/카운트/변경 이력을 정합화했다.
+  - 검증: targeted Vitest 7 files / 30 tests PASS, `pnpm run codex:typecheck` PASS, `pnpm run codex:preflight` PASS.
+
 ## [Catch-up — D1+D2 dead surface 정리 (rootEventsToLegacyByTarget 제거 + CHANGELOG 아카이빙)] - 2026-05-15
 
 ### Infrastructure

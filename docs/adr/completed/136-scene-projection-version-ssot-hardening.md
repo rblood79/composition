@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-05-15
+Implemented — 2026-05-15
 
 ## Context
 
@@ -124,7 +124,7 @@ ADR-135는 Page/Frame projection에서 render-space interaction map, projection 
 - **D7**: ADR-135의 synthetic ID canonical persistence 금지와 refresh mirror synthetic 0건 browser contract는 본 ADR의 regression gate로 계승한다.
 - **D8**: projection-relevant field (frame metadata / projection prop / ref state / 신규 canonical schema field 등) 가 추가될 때마다 projection content signature input 목록을 동시에 갱신한다. 누락은 R1 (signature false negative) 재발 trigger 이며, layoutVersion 3-심볼 체인 (`LAYOUT_PROP_KEYS` / `NON_LAYOUT_PROPS_UPDATE` / `INHERITED_LAYOUT_PROPS_UPDATE`) 동시 점검과 같은 contract 로 다룬다. signature input 정의 위치 (`buildSceneStructureSnapshot()` 또는 추출된 `projectionSignature.ts`) 를 SSOT 로 본다.
 
-> 구현 상세: [136-scene-projection-version-ssot-hardening-breakdown.md](design/136-scene-projection-version-ssot-hardening-breakdown.md)
+> 구현 상세: [136-scene-projection-version-ssot-hardening-breakdown.md](../design/136-scene-projection-version-ssot-hardening-breakdown.md)
 
 ## Risks
 
@@ -146,6 +146,13 @@ ADR-135는 Page/Frame projection에서 render-space interaction map, projection 
 | G3   | Phase 3 완료 | downstream render/bridge/skia utility에 `renderNodesMap.get(...) ?? sceneNodesMap.get(...)`류 fallback 0건. 멀티라인 fallback도 포착하는 regex 또는 AST 기반 static gate 사용 | allowlist와 금지 패턴 재정의                  |
 | G4   | Phase 4 완료 | targeted Vitest + `pnpm run codex:typecheck` PASS                                                                                                                             | failing path를 해당 Phase로 되돌려 scope 축소 |
 | G5   | 완료 전      | `pnpm run codex:preflight` PASS, 필요 시 ADR-135 refresh/synthetic browser smoke 재실행                                                                                       | Implemented 승격 보류                         |
+
+## Implementation Notes
+
+- Phase 1: `buildSceneStructureSnapshot()`의 `sceneVersion` 입력에 stable resolved projection content signature를 추가했다. signature는 raw scene nodes와 `pageSnapshots`의 resolved `bodyElement` / `pageElements`를 함께 반영한다.
+- Phase 2: `collectVisibleFrameRoots()`의 `renderNodesMap -> sceneNodesMap` fallback을 제거했다. frame body가 render model에 없으면 downstream에서 조용히 보정하지 않는다.
+- Phase 3: downstream Skia/render utility에서 `renderNodesMap.get(...) ?? sceneNodesMap.get(...)` fallback을 재도입하지 못하도록 static gate를 추가했다. 단일 라인과 멀티라인 패턴을 모두 fixture로 고정한다.
+- Phase 4: targeted Vitest, `pnpm run codex:typecheck`, `pnpm run codex:preflight` 통과 후 Implemented로 승격한다.
 
 ## Consequences
 

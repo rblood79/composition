@@ -207,6 +207,39 @@ describe("ADR-111 P3-δ collectVisibleFrameRoots", () => {
     });
   });
 
+  it("renderNodesMap 에 frame body 가 없으면 sceneNodesMap hit 으로 fallback 하지 않는다", () => {
+    const bodyEl = makeElement({
+      id: "frame-body-scene-only",
+      type: "body",
+      frameId: "frame-C",
+    });
+
+    const result = collectVisibleFrameRoots(
+      makeInput({
+        elements: [],
+        renderNodesMap: new Map(),
+        sceneNodes: [bodyEl],
+        sceneNodesMap: new Map([[bodyEl.id, bodyEl]]),
+        frameElementScopes: new Map([
+          ["frame-C", makeFrameScope("frame-C", bodyEl.id)],
+        ]),
+        frameAreas: [
+          {
+            frameId: "frame-C",
+            frameName: "Frame C",
+            x: 30,
+            y: 40,
+            width: 320,
+            height: 200,
+          },
+        ],
+      }),
+    );
+
+    expect(result.rootElementIds).toEqual([]);
+    expect(result.bodyPagePositions).toEqual({});
+  });
+
   it("canonical frame scope 밖의 body 는 frame mode root 로 등록하지 않는다", () => {
     const pageBody = makeElement({
       id: "page-body",
