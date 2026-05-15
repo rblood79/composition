@@ -90,6 +90,11 @@ Codex에서 자동 실행된다고 가정하지 않습니다. 필요한 자동�
 ## Git / Changelog
 
 - 커밋 메시지는 `type: summary` 형식을 사용합니다.
+- 반복 fix/revert 가시화(claude/codex 공통): `fix(scope)`/`revert(scope)` 커밋은
+  `.claude/hooks/fix-visibility.sh`가 git log로 집계해 scope별 횟수·회귀 테스트
+  동반 여부를 표시합니다(판정·차단 없이 표시만). 선택적으로 커밋 본문에
+  `Error-Category: <design-miss|human-error|multi-event|env-tooling>` trailer를
+  넣으면 분류별 집계가 가능합니다. trailer가 없어도 scope 기반으로 동작합니다.
 - 사용자가 commit/push를 요청하면 기본 흐름은 `git commit` 후
   `git push origin main`입니다.
 - branch 분기, web PR, `gh pr create`는 사용자가 명시적으로 요청한 경우에만

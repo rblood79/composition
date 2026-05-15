@@ -32,6 +32,10 @@
           {
             "type": "command",
             "command": "'/Users/admin/work/composition/.codex/hooks/session-start.sh'"
+          },
+          {
+            "type": "command",
+            "command": "CLAUDE_PROJECT_DIR='/Users/admin/work/composition' '/Users/admin/work/composition/.claude/hooks/fix-visibility.sh'"
           }
         ]
       }
@@ -53,6 +57,11 @@
             "type": "command",
             "command": "'/Users/admin/work/composition/.codex/hooks/type-check-gate.sh'",
             "timeout": 120
+          },
+          {
+            "type": "command",
+            "command": "CLAUDE_PROJECT_DIR='/Users/admin/work/composition' '/Users/admin/work/composition/.claude/hooks/fix-visibility.sh'",
+            "timeout": 15
           }
         ]
       }
