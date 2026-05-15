@@ -222,66 +222,7 @@ function dedupeById<T extends { id: string }>(list: readonly T[]): T[] {
   return out;
 }
 
-/**
- * root collection → legacy `Element.events` (target 별 grouping) 복원.
- *
- * `canonicalToLegacy()` / `exportLegacyDocument()` 시점에 사용. dev data 0
- * 가정에서 거의 빈 동작.
- */
-export function rootEventsToLegacyByTarget(
-  events: readonly SerializedEvent[] | undefined,
-  actions: readonly SerializedAction[] | undefined,
-): Map<string, LegacyEventHandlerShape[]> {
-  const result = new Map<string, LegacyEventHandlerShape[]>();
-  if (!events || events.length === 0) return result;
-
-  const actionMap = new Map<string, SerializedAction>();
-  for (const a of actions ?? []) actionMap.set(a.id, a);
-
-  for (const ev of events) {
-    const handler: LegacyEventHandlerShape = {
-      id: ev.id,
-      event: ev.kind,
-      actions: ev.actionRef ? expandActionChain(ev.actionRef, actionMap) : [],
-    };
-    if (ev.fallbackActionRef) {
-      handler.elseActions = expandActionChain(ev.fallbackActionRef, actionMap);
-    }
-    if (ev.condition !== undefined) {
-      const cond = ev.condition;
-      handler.condition =
-        typeof cond === "object" && cond !== null && "expr" in cond
-          ? (cond.expr as string)
-          : (cond as Record<string, unknown>);
-    }
-
-    const list = result.get(ev.target) ?? [];
-    list.push(handler);
-    result.set(ev.target, list);
-  }
-  return result;
-}
-
-function expandActionChain(
-  head: string,
-  actionMap: Map<string, SerializedAction>,
-): LegacyEventActionShape[] {
-  const out: LegacyEventActionShape[] = [];
-  const visited = new Set<string>();
-  let cursor: string | undefined = head;
-  while (cursor && !visited.has(cursor)) {
-    visited.add(cursor);
-    const action = actionMap.get(cursor);
-    if (!action) break;
-    out.push({
-      id: action.id,
-      type: action.kind,
-      ...(action.config !== undefined ? { config: action.config } : {}),
-    });
-    cursor = action.next?.[0];
-  }
-  return out;
-}
-
 // ADR-131 Phase 8 (2026-05-13): rootDataToLegacyByElement 제거.
 // data SSOT 는 `collections` 등 별 store. `Element.dataBinding` 보존.
+// 2026-05-15: rootEventsToLegacyByTarget 제거 — production caller 0.
+// canonical-only runtime 에서 legacy Element.events round-trip 미사용.

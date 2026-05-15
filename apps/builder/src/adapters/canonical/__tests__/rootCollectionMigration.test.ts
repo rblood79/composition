@@ -17,7 +17,6 @@ import {
   mergeIntoDocument,
   migrateLegacyElementsToRootCollections,
   migrateLegacyEventsToRootEvents,
-  rootEventsToLegacyByTarget,
 } from "../rootCollectionMigration";
 
 describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
@@ -207,75 +206,6 @@ describe("ADR-131 Phase 2 — rootCollectionMigration", () => {
       expect(result.events).toHaveLength(2);
       expect(result.events?.find((e) => e.id === "ev1")?.kind).toBe("onPress");
       expect(result.events?.find((e) => e.id === "ev2")).toBeDefined();
-    });
-  });
-
-  describe("round-trip — legacy → root → legacy", () => {
-    it("preserves event handler + chain action structure", () => {
-      const originalEvents = [
-        {
-          id: "ev1",
-          event: "onPress",
-          actions: [
-            { id: "a1", type: "navigate", config: { path: "/home" } },
-            { id: "a2", type: "showToast", config: { message: "Hi" } },
-          ],
-          elseActions: [{ id: "e1", type: "logError" }],
-        },
-      ];
-
-      const forward = migrateLegacyEventsToRootEvents("btn-1", originalEvents);
-      const backByTarget = rootEventsToLegacyByTarget(
-        forward.events,
-        forward.actions,
-      );
-
-      const restored = backByTarget.get("btn-1");
-      expect(restored).toHaveLength(1);
-      expect(restored?.[0]).toMatchObject({
-        id: "ev1",
-        event: "onPress",
-      });
-      expect(restored?.[0].actions).toEqual([
-        { id: "a1", type: "navigate", config: { path: "/home" } },
-        { id: "a2", type: "showToast", config: { message: "Hi" } },
-      ]);
-      expect(restored?.[0].elseActions).toEqual([
-        { id: "e1", type: "logError" },
-      ]);
-    });
-
-    it("groups multiple events by their target element id", () => {
-      const e1 = migrateLegacyEventsToRootEvents("btn-1", [
-        { id: "ev1", event: "onPress" },
-      ]);
-      const e2 = migrateLegacyEventsToRootEvents("btn-2", [
-        { id: "ev2", event: "onClick" },
-      ]);
-      const allEvents = [...e1.events, ...e2.events];
-      const grouped = rootEventsToLegacyByTarget(allEvents, []);
-      expect(grouped.get("btn-1")?.[0].id).toBe("ev1");
-      expect(grouped.get("btn-2")?.[0].id).toBe("ev2");
-    });
-
-    it("breaks chain cycle gracefully (DAG safety)", () => {
-      const actions: SerializedAction[] = [
-        { id: "a1", type: "action", kind: "navigate", next: ["a2"] },
-        { id: "a2", type: "action", kind: "showToast", next: ["a1"] }, // cycle
-      ];
-      const events: SerializedEvent[] = [
-        {
-          id: "ev1",
-          type: "event",
-          kind: "onPress",
-          target: "btn-1",
-          actionRef: "a1",
-        },
-      ];
-      const result = rootEventsToLegacyByTarget(events, actions);
-      const restored = result.get("btn-1")?.[0].actions;
-      expect(restored).toHaveLength(2);
-      expect(restored?.map((a) => a.id)).toEqual(["a1", "a2"]);
     });
   });
 });

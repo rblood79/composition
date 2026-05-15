@@ -461,15 +461,6 @@ src/builder/workspace/canvas/BuilderCanvas.tsx(198,41): error TS7005: Variable '
 src/builder/workspace/canvas/hooks/useDragBridge.test.ts(129,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/builder/workspace/canvas/hooks/useDragBridge.test.ts(135,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/builder/workspace/canvas/hooks/useDragBridge.test.ts(141,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(137,9): error TS2322: Type 'CanvasLayoutNode[]' is not assignable to type 'CanonicalRefResolvableNode[]'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(138,9): error TS2322: Type 'Map<string, CanvasLayoutNode>' is not assignable to type 'Map<string, CanonicalRefResolvableNode>'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(146,9): error TS2322: Type 'CanonicalRefResolvableNode | CanvasLayoutNode' is not assignable to type 'CanvasLayoutNode | null'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(147,9): error TS2322: Type 'Map<string, CanonicalRefResolvableNode>' is not assignable to type 'Map<string, CanvasLayoutNode>'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(148,9): error TS2322: Type 'CanonicalRefResolvableNode[]' is not assignable to type 'CanvasLayoutNode[]'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(151,37): error TS2345: Argument of type 'CanonicalRefResolvableNode[]' is not assignable to parameter of type 'CanvasLayoutNode[]'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(156,9): error TS2345: Argument of type 'CanonicalRefResolvableNode | CanvasLayoutNode' is not assignable to parameter of type 'CanvasLayoutNode | null'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(162,9): error TS2322: Type 'CanonicalRefResolvableNode | CanvasLayoutNode' is not assignable to type 'CanvasLayoutNode | null'.
-src/builder/workspace/canvas/hooks/useLayoutPublisher.ts(164,9): error TS2322: Type 'Map<string, CanonicalRefResolvableNode>' is not assignable to type 'Map<string, CanvasLayoutNode>'.
 src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts(28,7): error TS2353: Object literal may only specify known properties, and 'ref' does not exist in type 'Partial<Element>'.
 src/builder/workspace/canvas/interaction/canvasContextMenu.test.ts(60,44): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/workspace/canvas/layout/engines/__tests__/sideLabelImplicitStyles.test.ts(43,21): error TS2339: Property 'childrenIds' does not exist on type 'Element'.
@@ -548,9 +539,6 @@ src/builder/workspace/canvas/skia/selectionRenderer.ts(51,44): error TS2345: Arg
 src/builder/workspace/canvas/skia/selectionRenderer.ts(52,34): error TS2345: Argument of type '{ weight: number; width: number; slant: number; }' is not assignable to parameter of type 'FontStyle'.
 src/builder/workspace/canvas/skia/skiaFramePipeline.ts(259,31): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
 src/builder/workspace/canvas/skia/skiaFramePlan.ts(164,5): error TS2741: Property 'semanticTargets' is missing in type 'SelectionOverlayBuildResult' but required in type 'SelectionRenderResult'.
-src/builder/workspace/canvas/skia/StoreRenderBridge.ts(305,52): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
-src/builder/workspace/canvas/skia/StoreRenderBridge.ts(313,9): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
-src/builder/workspace/canvas/skia/StoreRenderBridge.ts(347,11): error TS2322: Type '[string, CanvasLayoutNode][]' is not assignable to type '[string, CanvasSceneNode][]'.
 src/builder/workspace/canvas/skia/visibleFrameRoots.test.ts(46,5): error TS2561: Object literal may only specify known properties, but 'elementsMap' does not exist in type 'SkiaRendererInput'. Did you mean to write 'elements'?
 src/builder/workspace/canvas/skia/visiblePageRoots.test.ts(31,3): error TS2561: Object literal may only specify known properties, but 'elementsMap' does not exist in type 'SkiaRendererInput'. Did you mean to write 'elements'?
 src/preview/App.tsx(405,52): error TS2345: Argument of type 'Element' is not assignable to parameter of type 'HTMLElement'.
