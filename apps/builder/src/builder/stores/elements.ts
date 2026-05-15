@@ -1055,6 +1055,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     selectTabElement: (elementId, props, tabIndex) =>
       set({
         selectedElementId: elementId,
+        selectedElementIds: [elementId],
+        selectedElementIdsSet: new Set([elementId]),
+        multiSelectMode: false,
         selectedElementProps: props,
         selectedTab: { parentId: elementId, tabIndex },
       }),

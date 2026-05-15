@@ -238,19 +238,31 @@ export function useGlobalKeyboardShortcuts() {
    */
   const handleCanvasDelete = useCallback(async () => {
     const {
+      selectedElementId,
       selectedElementIds,
       elementsMap,
       removeElements,
       setSelectedElement,
     } = useStore.getState();
 
-    if (selectedElementIds.length === 0) {
+    const selectedIdsForDelete = [...selectedElementIds];
+    if (
+      selectedElementId &&
+      !selectedIdsForDelete.includes(selectedElementId)
+    ) {
+      const primaryElement = elementsMap.get(selectedElementId);
+      if (primaryElement?.type.toLowerCase() !== "body") {
+        selectedIdsForDelete.unshift(selectedElementId);
+      }
+    }
+
+    if (selectedIdsForDelete.length === 0) {
       console.log("[Keyboard] Delete: No elements selected");
       return;
     }
 
     // Body 요소는 키보드로 삭제 불가 (페이지 삭제 시에만 함께 삭제)
-    const deletableIds = selectedElementIds.filter((id) => {
+    const deletableIds = selectedIdsForDelete.filter((id) => {
       const el = elementsMap.get(id);
       return el && el.type.toLowerCase() !== "body";
     });
