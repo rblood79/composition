@@ -73,16 +73,27 @@ ADR-135는 Page/Frame projection에서 render-space interaction map, projection 
   - 유지보수: **MEDIUM** — 왜 rebuild됐는지 invalidation reason이 흐려진다.
   - 마이그레이션: **LOW** — API 변경은 작다.
 
+### 대안 E: Identity-as-version — immutable ProjectedSnapshot 으로 boundary 분리
+
+- 설명: 숫자 `sceneVersion` / `projectionVersion` token 자체를 폐기하고, immutable `ProjectedSnapshot` object 의 참조 identity 를 version 으로 사용한다. `sceneNodesMap` / `sceneChildrenByParent` 는 snapshot type 에서 분리해 diagnostic-only 모듈로 옮긴다. `LayoutPublisherInput` / `SkiaRendererInput` / `SkiaCanvas` / `StoreRenderBridge` 는 같은 snapshot 참조를 공유하고, downstream 에서의 render-to-scene fallback 패턴은 컴파일 단에서 차단된다.
+- 근거: ADR-135 가 확립한 4 invariant ("projection content 변경 = version 변경" / "consumer 가 같은 truth" / "scene fallback 금지" / "synthetic ID canonical 격리") 중 앞 3 개를 type/identity 수준에 baked 하여 R1 (signature field 누락) · R3 (downstream fallback) · R4 (allowlist 경계) 카테고리를 구조적으로 제거한다. 대안 C 의 전체 ProjectionModel 통합보다 좁지만, renderer input contract 재정의 수준의 변경은 필요하다.
+- 위험:
+  - 기술: **HIGH** — `LayoutPublisherInput` / `SkiaRendererInput` / `SkiaCanvas` / `StoreRenderBridge` 의 숫자 `projectionVersion` 전제와 관련 static test 가 모두 contract 교체 대상이다. 단순 signature 정밀화가 아니라 renderer input 계약 재정의다.
+  - 성능: **MEDIUM** — immutable snapshot emit/memoization 정책을 새로 잡아야 하며, snapshot object churn이 늘 수 있다.
+  - 유지보수: **LOW** — Phase 3 static gate 가 compile-time 으로 흡수되어 dead weight 가 되고 R1/R3/R4 가 invariant 가 아닌 type 으로 표현된다.
+  - 마이그레이션: **MEDIUM** — canonical schema / persisted document / IndexedDB 는 바꾸지 않지만, diagnostics/layer inspection read path 를 render consumer 타입에서 분리해야 한다.
+
 ### Risk Threshold Check
 
-| 대안                                  | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
-| ------------------------------------- | :--: | :--: | :------: | :----------: | :--------: |
-| A: coarse version 유지                |  H   |  L   |    H     |      L       |     2      |
-| B: content signature + fallback 제거  |  M   |  M   |    L     |      L       |     0      |
-| C: immutable ProjectionModel 도입     |  H   |  M   |    M     |      M       |     1      |
-| D: snapshot identity마다 full rebuild |  M   |  H   |    M     |      L       |     1      |
+| 대안                                           | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
+| ---------------------------------------------- | :--: | :--: | :------: | :----------: | :--------: |
+| A: coarse version 유지                         |  H   |  L   |    H     |      L       |     2      |
+| B: content signature + fallback 제거           |  M   |  M   |    L     |      L       |     0      |
+| C: immutable ProjectionModel 전체 도입         |  H   |  M   |    M     |      M       |     1      |
+| D: snapshot identity마다 full rebuild          |  M   |  H   |    M     |      L       |     1      |
+| E: Identity-as-version (boundary 만 immutable) |  H   |  M   |    L     |      M       |     1      |
 
-루프 판정: HIGH 0개 대안 B가 존재한다. CRITICAL 위험은 없다. 대안 C는 장기 후보로 유지하되, ADR-135 직후의 hardening 목표에는 과하다.
+루프 판정: HIGH 0개 대안 B가 존재한다. CRITICAL 위험은 없다. 대안 C는 장기 후보로 유지하되, ADR-135 직후의 hardening 목표에는 과하다. 대안 E는 R1/R3/R4를 구조적으로 제거하는 상위 설계이지만 (a) renderer input contract 재정의로 변경 폭과 회귀 위험이 크고, (b) ADR-135 직후 hardening이 아니라 별도 renderer input contract 재정의 ADR의 식별성을 가진다. 따라서 본 ADR에서는 대안 B를 채택하고 대안 E는 후속 ADR 후보로 보류한다.
 
 ## Decision
 
@@ -100,16 +111,18 @@ ADR-135는 Page/Frame projection에서 render-space interaction map, projection 
 - **대안 A 기각**: version token이 projection content를 대표하지 못하는 근본 원인을 남긴다.
 - **대안 C 기각**: 장기적으로는 더 강한 모델이지만 현재 목표 대비 변경 범위와 회귀 위험이 크다.
 - **대안 D 기각**: full rebuild로 stale registry 위험은 줄지만 원인 모델을 명확히 하지 못하고 성능 위험이 크다.
+- **대안 E 보류**: illegal state 를 더 강하게 차단하는 상위 설계이고 R1/R3/R4 카테고리를 구조적으로 제거하지만, 두 이유로 본 ADR에서는 채택하지 않는다. 첫째, renderer input contract 재정의로 변경 폭과 회귀 위험이 크다. 둘째, 더 중요하게는 ADR-135 직후 projection/version hardening이 아니라 renderer input contract 재정의라는 별도 ADR 식별성을 가진다. 대안 B 구현 후에도 signature 누락이 fixture 밖에서 재발하거나 Phase 3 static gate가 유지보수 부담으로 커지면, 후속 ADR에서 `ProjectedSnapshot` / `DiagnosticSceneSnapshot` 타입 분리를 통한 대안 E 채택을 재검토한다.
 
 ### Sub-decisions
 
-- **D1**: `sceneVersion`은 layout/page position version과 함께 stable projection content signature를 입력으로 삼는다.
-- **D2**: projection content signature는 최소한 id, type, parent/page/layout id, ref/reusable/deleted state, stable props, projection metadata를 포함한다.
+- **D1**: `sceneVersion`은 layout/page position version과 함께 stable resolved projection content signature를 입력으로 삼는다.
+- **D2**: projection content signature는 raw `input.elements`만 보지 않는다. `buildPageDataMap()` / `pageSnapshots`가 만든 resolved `bodyElement` / `pageElements`를 포함해 최소한 id, type, parent/page/layout id, ref/reusable/deleted state, stable props, projection metadata를 반영한다.
 - **D3**: signature 계산은 `buildSceneStructureSnapshot()` 시점에만 수행하고 pointer/hover hot path로 옮기지 않는다.
 - **D4**: layout-mode frame root 수집은 `renderNodesMap`만 authoritative source로 사용한다.
 - **D5**: `renderNodesMap`에 body/root가 없으면 downstream fallback으로 숨기지 않고 upstream projection/test 실패로 다룬다.
 - **D6**: downstream renderer/bridge/Skia utility에서 `sceneNodesMap`을 render fallback으로 쓰는 패턴은 static gate로 금지한다.
 - **D7**: ADR-135의 synthetic ID canonical persistence 금지와 refresh mirror synthetic 0건 browser contract는 본 ADR의 regression gate로 계승한다.
+- **D8**: projection-relevant field (frame metadata / projection prop / ref state / 신규 canonical schema field 등) 가 추가될 때마다 projection content signature input 목록을 동시에 갱신한다. 누락은 R1 (signature false negative) 재발 trigger 이며, layoutVersion 3-심볼 체인 (`LAYOUT_PROP_KEYS` / `NON_LAYOUT_PROPS_UPDATE` / `INHERITED_LAYOUT_PROPS_UPDATE`) 동시 점검과 같은 contract 로 다룬다. signature input 정의 위치 (`buildSceneStructureSnapshot()` 또는 추출된 `projectionSignature.ts`) 를 SSOT 로 본다.
 
 > 구현 상세: [136-scene-projection-version-ssot-hardening-breakdown.md](design/136-scene-projection-version-ssot-hardening-breakdown.md)
 
@@ -122,16 +135,17 @@ ADR-135는 Page/Frame projection에서 render-space interaction map, projection 
 | R3  | fallback 제거 후 기존 fixture에서 body/root 누락이 드러날 수 있음                           |  MED   | 누락을 downstream에서 보정하지 않고 rendererInput 생성 경계에서 수정                             |
 | R4  | `sceneNodesMap`은 diagnostics/layer inspection에 여전히 필요해 금지 범위가 과도해질 수 있음 |  LOW   | static gate는 downstream render fallback 패턴만 금지하고 inspection 사용은 allowlist             |
 | R5  | ADR-135 완료 상태와 혼동되어 기존 구현을 재오픈하는 것처럼 보일 수 있음                     |  LOW   | 본문과 README에 ADR-135 후속 hardening ADR임을 명시                                              |
+| R6  | signature/static gate 기반 hardening이 fixture 밖에서 같은 종류의 누락을 반복할 수 있음     |  MED   | G1-1/G1-2/G1-4 fixture를 1차 방어선으로 두고, fixture 밖 재발 시 대안 E 후속 ADR 검토를 trigger  |
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                  | 실패 시 대안                                  |
-| ---- | ------------ | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| G1   | Phase 1 완료 | same-count projection content 변경 시 `sceneVersion`이 변경되는 Vitest PASS                                | signature 포함 field 재검토                   |
-| G2   | Phase 2 완료 | `collectVisibleFrameRoots()`가 `sceneNodesMap` fallback 없이 `renderNodesMap`만 소비하는 fixture PASS      | rendererInput root 생성 경계 수정             |
-| G3   | Phase 3 완료 | downstream render/bridge/skia utility에 `renderNodesMap.get(...) ?? sceneNodesMap.get(...)`류 fallback 0건 | allowlist와 금지 패턴 재정의                  |
-| G4   | Phase 4 완료 | targeted Vitest + `pnpm run codex:typecheck` PASS                                                          | failing path를 해당 Phase로 되돌려 scope 축소 |
-| G5   | 완료 전      | `pnpm run codex:preflight` PASS, 필요 시 ADR-135 refresh/synthetic browser smoke 재실행                    | Implemented 승격 보류                         |
+| Gate | 시점         | 통과 조건                                                                                                                                                                     | 실패 시 대안                                  |
+| ---- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| G1   | Phase 1 완료 | same-count projection content 변경 시 `sceneVersion`이 변경되는 Vitest PASS                                                                                                   | signature 포함 field 재검토                   |
+| G2   | Phase 2 완료 | `collectVisibleFrameRoots()`가 `sceneNodesMap` fallback 없이 `renderNodesMap`만 소비하는 fixture PASS                                                                         | rendererInput root 생성 경계 수정             |
+| G3   | Phase 3 완료 | downstream render/bridge/skia utility에 `renderNodesMap.get(...) ?? sceneNodesMap.get(...)`류 fallback 0건. 멀티라인 fallback도 포착하는 regex 또는 AST 기반 static gate 사용 | allowlist와 금지 패턴 재정의                  |
+| G4   | Phase 4 완료 | targeted Vitest + `pnpm run codex:typecheck` PASS                                                                                                                             | failing path를 해당 Phase로 되돌려 scope 축소 |
+| G5   | 완료 전      | `pnpm run codex:preflight` PASS, 필요 시 ADR-135 refresh/synthetic browser smoke 재실행                                                                                       | Implemented 승격 보류                         |
 
 ## Consequences
 

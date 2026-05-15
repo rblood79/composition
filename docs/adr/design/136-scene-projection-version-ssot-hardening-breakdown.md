@@ -16,6 +16,7 @@
 
 - ADR-135 상태 재오픈
 - 새 immutable `ProjectionModel` 전체 도입
+- Identity-as-version `ProjectedSnapshot` 도입 및 renderer input contract 재정의
 - canonical document / IndexedDB / export schema 변경
 - Page Frame authoring UX 변경
 - Preview/Publish renderer 변경
@@ -55,7 +56,7 @@ layout-mode visible frame root 수집은 render model body를 `renderNodesMap`�
 - page positions version
 - page id order
 - visible content/page position version
-- stable projection content signature
+- stable resolved projection content signature
 
 projection content signature의 최소 입력:
 
@@ -68,6 +69,8 @@ projection content signature의 최소 입력:
 - reusable/deleted state
 - stable props
 - projection metadata
+
+중요: signature source는 raw `input.elements`만이면 부족하다. Page/Frame projection metadata는 `resolvePageWithFrame()`이 `buildPageDataMap()` / `pageSnapshots` 생성 과정에서 붙이므로, signature helper는 resolved `bodyElement` / `pageElements`를 반드시 포함해야 한다.
 
 ### 2.2 Downstream consumption contract
 
@@ -109,15 +112,17 @@ Gate:
 작업:
 
 1. local `stableSerialize()` helper를 추가한다.
-2. `createProjectionContentSignature(elements)` helper를 추가한다.
-3. `sceneVersion` hash input에 `projectionContentSignature`를 포함한다.
-4. signature helper가 너무 커지면 별도 `projectionSignature.ts`로 추출한다.
+2. `createResolvedProjectionSignature({ elements, pageSnapshots })` 또는 동등한 helper를 추가한다.
+3. helper는 raw scene nodes와 `pageSnapshots`의 resolved `bodyElement` / `pageElements`를 함께 순회한다.
+4. `sceneVersion` hash input에 `projectionContentSignature`를 포함한다.
+5. signature helper가 너무 커지면 별도 `projectionSignature.ts`로 추출한다.
 
 Gate:
 
 - G1-1: same-count props 변경 시 `sceneVersion` 변경.
 - G1-2: same-count parent/layout/ref/projection metadata 변경 시 `sceneVersion` 변경.
 - G1-3: pointer/hover path에 signature helper import 없음.
+- G1-4: Page/Frame binding fixture에서 `resolvePageWithFrame()`이 부여한 `projection` metadata 변경이 `sceneVersion`에 반영됨.
 
 ### Phase 2 — Remove render-to-scene fallback
 
@@ -150,10 +155,11 @@ Gate:
 1. downstream render/bridge/skia utility에서 `renderNodesMap` 실패 후 `sceneNodesMap` fallback하는 패턴을 금지한다.
 2. diagnostics/layer inspection 사용은 allowlist로 분리한다.
 3. `resolveCanonicalRefTree`가 rendererInput 이후 downstream 경로에서 재도입되지 않는지 기존 static test와 연결한다.
+4. static gate는 `renderNodesMap.get(...) ?? sceneNodesMap.get(...)` 단일 라인뿐 아니라 멀티라인 `??` fallback도 포착하는 regex 또는 AST 기반 검사로 만든다.
 
 Gate:
 
-- G3-1: fallback 금지 static test PASS.
+- G3-1: fallback 금지 static test PASS. 단일 라인/멀티라인 fallback fixture 모두 차단.
 - G3-2: allowed diagnostics usage는 명시 allowlist로만 PASS.
 - G3-3: downstream duplicate projection/resolve 회귀 0건.
 
@@ -180,6 +186,7 @@ Gate:
   - same-count props 변경
   - same-count parent/layout/ref 변경
   - projection metadata 변경
+  - `resolvePageWithFrame()` resolved page element projection metadata 변경
 - `visibleFrameRoots.test.ts`
   - render map only success
   - render map miss + scene map hit does not fallback
@@ -199,3 +206,4 @@ ADR-136은 다음 조건을 모두 만족해야 Implemented로 승격한다.
 3. static gate가 fallback/duplicate projection 회귀를 차단한다.
 4. targeted Vitest, type-check, preflight가 PASS한다.
 5. 사용자 가시 render 흐름이 바뀐 경우 browser smoke가 PASS한다.
+6. same-count projection 변경 또는 render-to-scene fallback 누락이 fixture 밖에서 재발하면, Identity-as-version `ProjectedSnapshot` 후속 ADR 검토 trigger로 기록한다.
