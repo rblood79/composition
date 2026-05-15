@@ -13,6 +13,7 @@
 | 렌더링 정합성  | `.agents/skills/cross-check/SKILL.md`          | `canvas-rendering.md`, `css-tokens.md`, `ssot-hierarchy.md` |
 | ADR 생성/리뷰  | `create-adr` 또는 `review-adr` skill           | `adr-writing.md`, 대상 ADR, `docs/adr/README.md`            |
 | Git/Changelog  | `.agents/rules/git-workflow.md`                | `.agents/rules/changelog.md`                                |
+| Goal 완료 처리 | `.agents/rules/goal-lifecycle.md`              | 실제 `get_goal` 결과와 objective 일치 여부                  |
 
 ## Harness 명령
 
@@ -34,6 +35,9 @@
   직접 실행합니다.
 - 신뢰도 낮은 statusline/usage graph wrapper는 만들지 않습니다. 지원 표면이
   없으면 한계를 보고합니다.
+- goal 완료 처리는 `.agents/rules/goal-lifecycle.md`를 따릅니다. developer
+  objective나 resume 문구가 보여도 `get_goal`이 `null`이면
+  `update_goal(status="complete")`를 호출하지 않습니다.
 - dirty worktree에서는 무관한 사용자 변경 파일을 포맷하거나 수정하지 않도록
   대상 파일을 명시해 gate를 실행합니다.
 
