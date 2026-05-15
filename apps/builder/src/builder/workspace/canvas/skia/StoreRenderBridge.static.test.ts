@@ -17,4 +17,26 @@ describe("StoreRenderBridge layout publish contract", () => {
     );
     expect(source).toMatch(/forceFullRebuild \|\| themeChanged/);
   });
+
+  it("does not independently resolve canonical refs inside the bridge sync path", async () => {
+    const source = await readFile(
+      resolve(__dirname, "StoreRenderBridge.ts"),
+      "utf-8",
+    );
+
+    expect(source).not.toContain("resolveCanonicalRefTree");
+    expect(source).not.toMatch(/const resolvedTree = resolveCanonicalRefTree/);
+  });
+
+  it("tracks projectionVersion instead of inferring projection changes from map identity", async () => {
+    const source = await readFile(
+      resolve(__dirname, "StoreRenderBridge.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("getProjectionVersion");
+    expect(source).toContain("projectionVersion: number");
+    expect(source).toContain("private prevProjectionVersion");
+    expect(source).toContain("projectionChanged");
+  });
 });

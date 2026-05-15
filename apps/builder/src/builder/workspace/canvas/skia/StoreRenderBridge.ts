@@ -14,6 +14,7 @@
  *   bridge.dispose();       // cleanup
  */
 
+import type { CanvasLayoutNode } from "../layout/layoutNode";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
   getComponentMasterReference as getInstanceMasterRef,
@@ -34,15 +35,56 @@ import { onLayoutPublished } from "../layout";
 import { getSyntheticElementsMap } from "../layout/engines/fullTreeLayout";
 import type { TransitionManager } from "./transitionManager";
 import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
+import type { CanonicalNode } from "@composition/shared";
 import { InlineAlertSpec, parsePxValue } from "@composition/specs";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
-import {
-  resolveCanonicalRefElement,
-  resolveCanonicalRefTree,
-} from "../../../utils/canonicalRefResolution";
+import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
 
 function isImageElement(element: CanvasSceneNode): boolean {
   return IMAGE_TAGS.has(element.type);
+}
+
+function toSyntheticSceneNode(element: CanvasLayoutNode): CanvasSceneNode {
+  const parentId = element.parentId ?? element.parent_id ?? null;
+  const pageId = element.pageId ?? element.page_id ?? null;
+  const layoutId = element.layoutId ?? element.layout_id ?? null;
+  const nameCandidate = element.name ?? element.componentName;
+  const name = typeof nameCandidate === "string" ? nameCandidate : undefined;
+  const slot =
+    element.slot === false || Array.isArray(element.slot)
+      ? element.slot
+      : undefined;
+  const sourceNode: CanonicalNode = {
+    id: element.id,
+    type: element.type as CanonicalNode["type"],
+    props: element.props,
+  };
+  if (name !== undefined) sourceNode.name = name;
+  if (element.reusable === true) sourceNode.reusable = true;
+  if (slot !== undefined) sourceNode.slot = slot;
+
+  const sceneNode: CanvasSceneNode = {
+    id: element.id,
+    type: element.type,
+    props: element.props,
+    parentId,
+    pageId,
+    layoutId,
+    parent_id: parentId,
+    page_id: pageId,
+    layout_id: layoutId,
+    sourceNode,
+  };
+  if (typeof element.customId === "string")
+    sceneNode.customId = element.customId;
+  if (typeof element.componentName === "string") {
+    sceneNode.componentName = element.componentName;
+  }
+  if (name !== undefined) sceneNode.name = name;
+  if (element.deleted !== undefined) sceneNode.deleted = element.deleted;
+  if (element.reusable === true) sceneNode.reusable = true;
+  if (slot !== undefined) sceneNode.slot = slot;
+  return sceneNode;
 }
 
 /** Collection item 태그 — 기본 border/background 스타일 적용 대상 */
@@ -98,6 +140,7 @@ export class StoreRenderBridge {
   private pendingResync: (() => void) | null = null;
   /** 이전 elementsMap 참조 (증분 갱신용) */
   private prevElementsMap: Map<string, CanvasSceneNode> | null = null;
+  private prevProjectionVersion: number | null = null;
   /** 이전 theme (변경 감지 → fullRebuild 강제) */
   private prevTheme: "light" | "dark" = "light";
   /** CSS transition 애니메이션 매니저 (선택 연결) */
@@ -110,6 +153,7 @@ export class StoreRenderBridge {
     getElements: () => Map<string, CanvasSceneNode>;
     getLayoutMap: () => Map<string, ComputedLayout> | null;
     getChildrenMap?: () => Map<string, CanvasSceneNode[]>;
+    getProjectionVersion: () => number;
     subscribe: (callback: () => void) => () => void;
     getTheme?: () => "light" | "dark";
     theme?: "light" | "dark";
@@ -120,6 +164,7 @@ export class StoreRenderBridge {
       getElements,
       getLayoutMap,
       getChildrenMap,
+      getProjectionVersion,
       subscribe,
       getTheme,
       theme = "light",
@@ -133,6 +178,7 @@ export class StoreRenderBridge {
         getLayoutMap(),
         resolveTheme(),
         getChildrenMap?.() ?? null,
+        getProjectionVersion(),
         forceFullRebuild,
       );
     };
@@ -154,24 +200,20 @@ export class StoreRenderBridge {
     layoutMap: Map<string, ComputedLayout> | null,
     theme: "light" | "dark",
     childrenMap: Map<string, CanvasSceneNode[]> | null = null,
+    projectionVersion: number,
     forceFullRebuild = false,
   ): void {
-    const resolvedTree = resolveCanonicalRefTree({
-      childrenMap,
-      elements: Array.from(elementsMap.values()),
-      elementsMap,
-    });
-    const renderElementsMap = resolvedTree.elementsMap;
-    const renderChildrenMap = resolvedTree.childrenMap;
-
     // theme 변경 시 전체 rebuild 강제 (모든 Spec 색상 재계산 필요)
     const themeChanged = theme !== this.prevTheme;
     this.prevTheme = theme;
+    const projectionChanged =
+      this.prevProjectionVersion !== null &&
+      this.prevProjectionVersion !== projectionVersion;
 
     const changedIds =
-      forceFullRebuild || themeChanged
+      forceFullRebuild || themeChanged || projectionChanged
         ? null
-        : this.detectChangedIds(renderElementsMap);
+        : this.detectChangedIds(elementsMap);
 
     if (changedIds === null) {
       // 첫 실행, theme 변경, layout publish, image load: 전체 rebuild
@@ -179,22 +221,23 @@ export class StoreRenderBridge {
       // addElement 직후 첫 store sync에서 layout이 아직 없으면
       // buildSpecNodeData가 null을 반환할 수 있으므로 incremental sync로
       // 빠지면 "selection은 있으나 보이지 않음" 상태가 남는다.
-      this.fullRebuild(renderElementsMap, layoutMap, theme, renderChildrenMap);
+      this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
     } else if (changedIds.size === 0) {
       // 동일 참조 = 요소 변경 없음, layout만 변경 → 전체 rebuild
-      this.fullRebuild(renderElementsMap, layoutMap, theme, renderChildrenMap);
+      this.fullRebuild(elementsMap, layoutMap, theme, childrenMap);
     } else {
       // 증분 갱신: 변경된 요소만 rebuild
       this.incrementalSync(
         changedIds,
-        renderElementsMap,
+        elementsMap,
         layoutMap,
         theme,
-        renderChildrenMap,
+        childrenMap,
       );
     }
 
-    this.prevElementsMap = renderElementsMap;
+    this.prevElementsMap = elementsMap;
+    this.prevProjectionVersion = projectionVersion;
   }
 
   /**
@@ -283,7 +326,10 @@ export class StoreRenderBridge {
     const syntheticMap = getSyntheticElementsMap();
 
     for (const id of expandedIds) {
-      const element = elementsMap.get(id) ?? syntheticMap.get(id);
+      const syntheticElement = syntheticMap.get(id);
+      const element =
+        elementsMap.get(id) ??
+        (syntheticElement ? toSyntheticSceneNode(syntheticElement) : undefined);
       if (!element) {
         // 삭제된 요소
         unregisterSkiaNode(id);
@@ -344,9 +390,15 @@ export class StoreRenderBridge {
     // virtual id를 Skia node registry에도 등록해야 renderCommands visitElement가
     // 렌더링한다.
     const syntheticMap = getSyntheticElementsMap();
+    const syntheticEntries: Array<[string, CanvasSceneNode]> = [];
+    for (const [id, element] of syntheticMap) {
+      if (!elementsMap.has(id)) {
+        syntheticEntries.push([id, toSyntheticSceneNode(element)]);
+      }
+    }
     const iterableEntries: Array<[string, CanvasSceneNode]> = [
       ...elementsMap.entries(),
-      ...[...syntheticMap.entries()].filter(([id]) => !elementsMap.has(id)),
+      ...syntheticEntries,
     ];
 
     for (const [id, element] of iterableEntries) {
@@ -613,6 +665,7 @@ export class StoreRenderBridge {
     }
     this.pendingResync = null;
     this.prevElementsMap = null;
+    this.prevProjectionVersion = null;
 
     for (const id of this.registeredIds) {
       unregisterSkiaNode(id);

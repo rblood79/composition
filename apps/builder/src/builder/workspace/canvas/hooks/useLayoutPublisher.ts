@@ -30,7 +30,6 @@ import {
   buildPageChildrenMap,
   buildChildrenIdMap,
 } from "../scene/layoutCache";
-import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 
 interface PageLayoutInput {
   pageId: string;
@@ -90,7 +89,7 @@ export function useLayoutPublisher(
         input.bodyElement,
         input.pageElements,
       );
-      return `${pageId}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
+      return `${pageId}:${input.projectionVersion}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
     })
     .join("||");
 
@@ -133,35 +132,25 @@ export function useLayoutPublisher(
       for (const element of pageElements) {
         sourceElementById.set(element.id, element);
       }
-      const resolvedTree = resolveCanonicalRefTree({
-        elements: pageElements,
-        elementsMap: sourceElementById,
-      });
-      const resolvedElementById = resolvedTree.elementsMap;
-      const resolvedBodyElement =
-        resolvedElementById.get(bodyElement.id) ?? bodyElement;
-      const resolvedPageElements = resolvedTree.elements;
-
       const pageChildrenMap = buildPageChildrenMap({
-        bodyElement: resolvedBodyElement,
-        elementById: resolvedElementById,
-        pageElements: resolvedPageElements,
+        bodyElement,
+        elementById: sourceElementById,
+        pageElements,
       });
-      const pageElementsSignature =
-        createPageElementsSignature(resolvedPageElements);
-      const freshElements = resolvedPageElements.map(
-        (el) => resolvedElementById.get(el.id) ?? el,
+      const pageElementsSignature = createPageElementsSignature(pageElements);
+      const freshElements = pageElements.map(
+        (el) => sourceElementById.get(el.id) ?? el,
       );
       const pageLayoutSignature = createPageLayoutSignature(
-        resolvedBodyElement,
+        bodyElement,
         freshElements,
       );
       const childrenIdMap = buildChildrenIdMap(pageChildrenMap);
 
       const layoutMap = getCachedPageLayout({
-        bodyElement: resolvedBodyElement,
+        bodyElement,
         childrenIdMap,
-        elementById: resolvedElementById,
+        elementById: sourceElementById,
         pageChildrenMap,
         pageElementsSignature,
         pageLayoutSignature,

@@ -7,7 +7,6 @@ import type {
 } from "../scene/canvasSceneNode";
 import type { CanvasLayoutNode } from "../layout/layoutNode";
 import type { FrameAreaGroup } from "../skia/workflowEdges";
-import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import type {
   CanonicalFrameElementScope,
   CanonicalFrameElementScopeMap,
@@ -24,6 +23,7 @@ export interface LayoutPublisherInput {
   pageId: string;
   pagePositionVersion: number;
   pageSnapshot: ScenePageSnapshot;
+  projectionVersion: number;
   pageWidth: number;
   panOffset: { x: number; y: number };
   wasmLayoutReady: boolean;
@@ -71,6 +71,7 @@ export function buildPageLayoutPublisherInput({
     pageId,
     pagePositionVersion,
     pageSnapshot,
+    projectionVersion: sceneSnapshot.sceneVersion,
     pageWidth,
     panOffset,
     wasmLayoutReady,
@@ -183,6 +184,7 @@ export function buildFrameLayoutPublisherInput({
     pageId: frameId,
     pagePositionVersion,
     pageSnapshot: frameSnapshot,
+    projectionVersion: sceneSnapshot.sceneVersion,
     pageWidth: frameWidth,
     panOffset,
     wasmLayoutReady,
@@ -205,6 +207,7 @@ export interface SkiaRendererInput {
   pagePositionsVersion: number;
   pagePositions: Record<string, { x: number; y: number } | undefined>;
   pageSnapshots: Map<string, ScenePageSnapshot>;
+  projectionVersion: number;
   pages: Page[];
   sceneSnapshot: SceneStructureSnapshot;
 
@@ -254,21 +257,6 @@ function buildSceneParentById(
     }
   }
   return parentById;
-}
-
-function resolveCanvasSceneGraph(graph: CanvasSceneGraph): CanvasSceneGraph {
-  const resolved = resolveCanonicalRefTree<CanvasSceneNode>({
-    childrenMap: graph.childrenByParent,
-    elements: graph.nodes,
-    elementsMap: graph.nodesMap,
-  });
-
-  return {
-    childrenByParent: resolved.childrenMap,
-    nodes: resolved.elements,
-    nodesMap: resolved.elementsMap,
-    parentById: buildSceneParentById(resolved.childrenMap),
-  };
 }
 
 function buildRendererChildrenMap(
@@ -339,34 +327,29 @@ export function createSkiaRendererInput(
   input: CreateSkiaRendererInputOptions,
 ): SkiaRendererInput {
   const renderTree = buildPageResolvedRenderTree(input);
-  const resolvedTree = resolveCanonicalRefTree({
-    childrenMap: renderTree.childrenMap,
-    elements: renderTree.elements,
-    elementsMap: renderTree.renderNodesMap,
-  });
   const sourceSceneGraph: CanvasSceneGraph = {
     childrenByParent: input.sceneChildrenByParent,
     nodes: input.sceneNodes,
     nodesMap: input.sceneNodesMap,
     parentById: buildSceneParentById(input.sceneChildrenByParent),
   };
-  const sceneGraph = resolveCanvasSceneGraph(sourceSceneGraph);
 
   return {
-    childrenMap: resolvedTree.childrenMap,
-    elements: resolvedTree.elements,
-    interactionChildrenMap: resolvedTree.childrenMap,
-    interactionNodesMap: resolvedTree.elementsMap,
-    renderNodesMap: resolvedTree.elementsMap,
-    sceneChildrenByParent: sceneGraph.childrenByParent,
-    sceneNodes: sceneGraph.nodes,
-    sceneNodesMap: sceneGraph.nodesMap,
+    childrenMap: renderTree.childrenMap,
+    elements: renderTree.elements,
+    interactionChildrenMap: renderTree.childrenMap,
+    interactionNodesMap: renderTree.renderNodesMap,
+    renderNodesMap: renderTree.renderNodesMap,
+    sceneChildrenByParent: sourceSceneGraph.childrenByParent,
+    sceneNodes: sourceSceneGraph.nodes,
+    sceneNodesMap: sourceSceneGraph.nodesMap,
     dirtyElementIds: input.dirtyElementIds,
     editMode: input.editMode,
     pageIndex: input.pageIndex,
     pagePositionsVersion: input.pagePositionsVersion,
     pagePositions: input.pagePositions,
     pageSnapshots: input.sceneSnapshot.pageSnapshots,
+    projectionVersion: input.sceneSnapshot.sceneVersion,
     pages: input.pages,
     sceneSnapshot: input.sceneSnapshot,
     framePositions: input.framePositions,

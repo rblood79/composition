@@ -265,6 +265,7 @@ export function SkiaCanvas({
       getSharedLayoutMap(),
       resolveSkiaTheme(useThemeConfigStore.getState().darkMode),
       rendererInput.childrenMap,
+      rendererInput.projectionVersion,
       true,
     );
     recordInvalidation("content", "rendererInput");
@@ -285,6 +286,7 @@ export function SkiaCanvas({
       getElements: () => rendererInputRef.current.renderNodesMap,
       getLayoutMap: () => getSharedLayoutMap(),
       getChildrenMap: () => rendererInputRef.current.childrenMap,
+      getProjectionVersion: () => rendererInputRef.current.projectionVersion,
       // rendererInput 변경은 위 effect 에서 직접 bridge.sync 를 호출한다.
       // 이 subscription 은 theme-only invalidation boundary 로 제한한다.
       subscribe: (cb) => {
@@ -335,8 +337,8 @@ export function SkiaCanvas({
     containerEl,
     frameAreasRef,
     pageFramesRef: visiblePageFramesRef,
-    getHoverElementsMap: () => rendererInputRef.current.renderNodesMap,
-    getHoverChildrenMap: () => rendererInputRef.current.childrenMap,
+    getHoverElementsMap: () => rendererInputRef.current.interactionNodesMap,
+    getHoverChildrenMap: () => rendererInputRef.current.interactionChildrenMap,
     hoverStateRef: elementHoverStateRef,
     overlayVersionRef,
     treeBoundsMapRef,
@@ -344,7 +346,7 @@ export function SkiaCanvas({
 
   useScrollWheelInteraction({
     containerEl,
-    getScrollElementsMap: () => rendererInputRef.current.renderNodesMap,
+    getScrollElementsMap: () => rendererInputRef.current.interactionNodesMap,
     treeBoundsMapRef,
   });
 

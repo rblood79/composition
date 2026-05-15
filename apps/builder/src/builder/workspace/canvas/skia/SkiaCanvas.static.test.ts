@@ -38,7 +38,13 @@ describe("SkiaCanvas render invalidation contract", () => {
     expect(source).toContain("rendererInput.renderNodesMap,");
     expect(source).toContain("rendererInput.childrenMap,");
     expect(source).toContain(
-      "getScrollElementsMap: () => rendererInputRef.current.renderNodesMap,",
+      "getHoverElementsMap: () => rendererInputRef.current.interactionNodesMap,",
+    );
+    expect(source).toContain(
+      "getHoverChildrenMap: () => rendererInputRef.current.interactionChildrenMap,",
+    );
+    expect(source).toContain(
+      "getScrollElementsMap: () => rendererInputRef.current.interactionNodesMap,",
     );
     expect(source).not.toContain(
       "getElements: () => useStore.getState().elementsMap,",
@@ -47,6 +53,10 @@ describe("SkiaCanvas render invalidation contract", () => {
       "getChildrenMap: () => useStore.getState().childrenMap,",
     );
     expect(source).toContain("storeRenderBridgeRef.current?.sync(");
+    expect(source).toContain("rendererInput.projectionVersion");
+    expect(source).toContain(
+      "getProjectionVersion: () => rendererInputRef.current.projectionVersion,",
+    );
     expect(source).not.toContain(
       "let prevElements = useStore.getState().elementsMap;",
     );

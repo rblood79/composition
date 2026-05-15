@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Page } from "../../../../../types/core/store.types";
+import { resolveCanonicalRefTree } from "../../../../utils/canonicalRefResolution";
 import type { CanvasSceneNode } from "../../scene/canvasSceneNode";
 import type { ScenePageSnapshot, SceneStructureSnapshot } from "../../scene";
 import { toPageFrameElementId } from "../../scene/resolvePageWithFrame";
@@ -212,6 +213,8 @@ describe("createSkiaRendererInput", () => {
     expect(input.renderNodesMap.get("page-2-fill")?.parent_id).toBe(
       page2Slot.id,
     );
+    expect(input.interactionNodesMap).toBe(input.renderNodesMap);
+    expect(input.interactionChildrenMap).toBe(input.childrenMap);
     expect(input.childrenMap.get(page1Slot.id)?.map((el) => el.id)).toEqual([
       "page-1-fill",
     ]);
@@ -295,7 +298,7 @@ describe("createSkiaRendererInput", () => {
     ]);
   });
 
-  it("resolves canonical scene graph refs without using the legacy Element scene fallback", () => {
+  it("consumes an already-resolved canonical scene graph without using the legacy Element scene fallback", () => {
     const body = makeSceneNode({
       id: "page-body",
       type: "body",
@@ -336,6 +339,12 @@ describe("createSkiaRendererInput", () => {
     const sceneNodes = [sceneBody, origin, originLabel, instance];
     const sceneNodesMap = new Map(sceneNodes.map((node) => [node.id, node]));
 
+    const resolvedScene = resolveCanonicalRefTree({
+      childrenMap: sceneChildrenByParent,
+      elements: sceneNodes,
+      elementsMap: sceneNodesMap,
+    });
+
     const input = createSkiaRendererInput({
       childrenMap: new Map(),
       dirtyElementIds: new Set(),
@@ -350,9 +359,9 @@ describe("createSkiaRendererInput", () => {
       pagePositions: {},
       pagePositionsVersion: 1,
       pages: [makePage("page-1")],
-      sceneChildrenByParent,
-      sceneNodes,
-      sceneNodesMap,
+      sceneChildrenByParent: resolvedScene.childrenMap,
+      sceneNodes: resolvedScene.elements,
+      sceneNodesMap: resolvedScene.elementsMap,
       sceneSnapshot: makeSceneSnapshot(new Map()),
     });
 

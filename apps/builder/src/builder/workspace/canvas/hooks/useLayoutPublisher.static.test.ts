@@ -40,7 +40,7 @@ describe("useLayoutPublisher invalidation contract", () => {
     );
     expect(source).toContain("for (const element of pageElements)");
     expect(source).toContain("sourceElementById.set(element.id, element);");
-    expect(source).toMatch(/elementsMap: sourceElementById,/);
+    expect(source).toContain("elementById: sourceElementById,");
     expect(source).toContain("layoutUpdates.push({ key, map: layoutMap });");
     expect(source).toMatch(/publishFilteredChildrenMap\(null, key\);/);
     expect(source).toMatch(/publishSyntheticElementsMap\(null, key\);/);
@@ -49,5 +49,24 @@ describe("useLayoutPublisher invalidation contract", () => {
     );
     expect(source).not.toMatch(/publishLayoutMap\(layoutMap, key\);/);
     expect(source).toContain("publishedKeysRef.current = activeKeys;");
+  });
+
+  it("does not independently resolve canonical refs while publishing layout", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useLayoutPublisher.ts"),
+      "utf-8",
+    );
+
+    expect(source).not.toContain("resolveCanonicalRefTree");
+    expect(source).not.toMatch(/const resolvedTree = resolveCanonicalRefTree/);
+  });
+
+  it("uses projectionVersion as part of the layout publish invalidation key", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useLayoutPublisher.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("input.projectionVersion");
   });
 });
