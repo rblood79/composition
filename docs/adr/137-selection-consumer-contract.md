@@ -21,7 +21,7 @@ composition Builder 의 Page 선택 → Frame 속성 변경 흐름에서 **선�
 1. Canvas FPS 60fps 유지 — React concurrent priority (`useDeferredValue` 기반 inspector update) 보존. Layer A 변경은 zero-runtime-cost 만 허용.
 2. ADR-130 projection body / frame body 흐름 회귀 0 — `element.page_id == null` 케이스가 정상 동작해야 함.
 3. ADR-040 (Atomic Page Activation) / ADR-074 (input pipeline SSOT) / ADR-116 / ADR-122 (canonical-only-runtime) 의 selection state 정의 변경 없음.
-4. apps/builder type-check baseline 562 유지 (현 baseline 회귀 0).
+4. apps/builder type-check baseline **550 유지** (실측 2026-05-15 `apps/builder/.type-errors-baseline.txt`, no new violations).
 
 **Soft Constraints**:
 
@@ -43,12 +43,16 @@ composition Builder 의 Page 선택 → Frame 속성 변경 흐름에서 **선�
 
 ### 대안 B: Selection Consumer Contract SSOT 격상 (4-layer) — 권장
 
-- 설명: selection consumer 의 카테고리 분류 규약 (A. page-bound mutation / B. element-bound mutation / C. selection display) 자체를 SSOT 로 격상. 4 layer 로 강제: (Layer A) typed accessor 분리 + `DeferredSelectedElement` brand → mutation 함수 시그니처에서 type error 로 차단. (Layer B) page-bound action contract 에 `source: "selection" | "explicit-context"` origin 표식 + selection 경로 commit 직전 live store 와 일치 검증 → 불일치 시 차단. (Layer C) `.claude/rules/state-management.md` 에 "Selection Consumer Contract (CRITICAL)" 명문화. (Layer D) vitest contract test + (선택) ESLint rule.
-- 근거: React 18 공식 docs ("useDeferredValue is intended for display, not effectful work"), Redux Toolkit thunk pattern (caller-provided context + live state mismatch check), 본 코드베이스 ADR-907 (Container style pipeline 4-Layer SSOT 패턴) 과 디자인 언어 정합.
+- 설명: selection consumer 의 카테고리 분류 규약 (A. page-bound mutation / B. element-bound mutation / C. selection display) 자체를 SSOT 로 격상. 4 layer 로 강제:
+  - **Layer A** — Typed accessor 분리. **page-bound mutation API 는 `SelectedElement` 를 받지 않고 `ImmediateSelectionSnapshot` opaque 타입만 받음** (TypeScript 구조적 타입에서 intersection brand 는 supertype assign 차단 불가 → opaque snapshot 으로 진입점 자체 분리). deferred 결과는 `DeferredSelectedElement` 로 표시 (display 전용).
+  - **Layer B** — Page-bound action contract: 진입점 2 갈래 — (1) `state.applyPageFrameBindingFromSelection(snapshot, frameId)` selection 경로, 내부에서 snapshot.currentPageId 직접 사용, caller stale pageId 진입 불가. (2) `state.applyPageFrameBindingExplicit({ pageId, frameId, contextReason })` projection body / editing context 전용, mismatch 검증 skip. **caller pageId 와 live store mismatch 가 코드 차원에서 불가능**.
+  - **Layer C** — Codex/Claude 양쪽 진입점에 규칙 명문화 — `.agents/rules/state-management.md` + `.agents/skills/composition-patterns/SKILL.md` + `.agents/skills/INDEX.md` (Codex 우선 진입점) + `.claude/rules/state-management.md` + `.claude/skills/composition-patterns/SKILL.md` (legacy 참조 병행).
+  - **Layer D** — vitest contract test + UI invariant test (PageBodyEditor 가 stale mismatch 상태에서 PageLayoutSelector/PageParentSelector hide/disable) + (선택) ESLint rule.
+- 근거: React 18 공식 docs ("useDeferredValue is intended for display, not effectful work"), TypeScript opaque type pattern (Effect TS / branded opaque types — intersection brand 의 supertype assignability 한계 회피), Redux Toolkit thunk pattern (live state 직접 read), 본 코드베이스 ADR-907 (Container style pipeline 4-Layer SSOT 패턴) 과 디자인 언어 정합.
 - 위험:
-  - 기술: **MEDIUM** — 4 layer 통합 디자인 + type brand 도입 학습 비용. 신규 store action 시그니처에 source 표식 추가 의무
-  - 성능: **LOW** — typed accessor / action contract 모두 zero-runtime-cost. mismatch guard 는 dev 모드 console.error + commit 차단 1회 추가
-  - 유지보수: **LOW** — drift 차단 메커니즘 다중 layer. 신규 editor 추가 시 type/test 자동 강제
+  - 기술: **MEDIUM** — 4 layer 통합 디자인 + opaque snapshot 진입점 분리 학습 비용. 신규 page-bound action 추가 시 2 진입점 분류 의무
+  - 성능: **LOW** — typed accessor / action contract / opaque snapshot 모두 zero-runtime-cost. mismatch guard 는 explicit 경로의 dev 모드 console.error 1회 추가
+  - 유지보수: **LOW** — drift 차단 메커니즘 다중 layer (opaque snapshot 으로 caller-stale 진입 자체 차단). 신규 editor 추가 시 type/test 자동 강제
   - 마이그레이션: **MEDIUM** — Phase 5 응용 정정 (3 editor) + 후속 StylesPanel / EventsPanel audit (별도 ADR scope)
 
 ### 대안 C: page_id SSOT 위치 변경 — element.page_id 강등 + store.currentPageId 단독
@@ -92,35 +96,35 @@ composition Builder 의 Page 선택 → Frame 속성 변경 흐름에서 **선�
 
 본 ADR 채택 후 이행 중 관리해야 할 잔존 운영 위험:
 
-| ID  | 위험                                                                                         | 심각도 | 대응                                                                           |
-| --- | -------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------ |
-| R1  | 신규 page-bound editor 추가 시 `source: "selection"` 표식 누락 → mismatch guard 미적용       |  MED   | Layer A brand (type-check) + Layer D contract test 가 자동 감지 (Gate G2/G5)   |
-| R2  | projection body / explicit-context 케이스 분류 누락 → 정당한 경로가 mismatch guard 로 차단됨 |  MED   | Phase 5 회귀 fixture + Chrome MCP smoke (Gate G6)                              |
-| R3  | StylesPanel / EventsPanel deferred-chain commit race 잔존 (본 ADR 의 1차 응용 scope 밖)      |  LOW   | 후속 audit ADR 후보. Layer A brand 가 부분 차단 — 새 mutation 시그니처 강제    |
-| R4  | type brand 가 `as` cast 회피 누적 시 검증 우회                                               |  LOW   | Layer D ESLint rule (선택 도입) + contract test 강화                           |
-| R5  | Layer C 규칙 명문화가 LLM agent 의 신규 코드 생성 시 자동 적용 안 됨 (review 의존)           |  LOW   | `composition-patterns/SKILL.md` CRITICAL 규칙 entry — agent prompt 진입점 보장 |
+| ID  | 위험                                                                                         | 심각도 | 대응                                                                                                                                                                      |
+| --- | -------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 신규 page-bound editor 추가 시 `source: "selection"` 표식 누락 → mismatch guard 미적용       |  MED   | Layer A brand (type-check) + Layer D contract test 가 자동 감지 (Gate G2/G5)                                                                                              |
+| R2  | projection body / explicit-context 케이스 분류 누락 → 정당한 경로가 mismatch guard 로 차단됨 |  MED   | Phase 5 회귀 fixture + Chrome MCP smoke (Gate G6)                                                                                                                         |
+| R3  | StylesPanel / EventsPanel deferred-chain commit race 잔존 (본 ADR 의 1차 응용 scope 밖)      |  LOW   | 후속 audit ADR 후보. Layer A brand 가 부분 차단 — 새 mutation 시그니처 강제                                                                                               |
+| R4  | opaque snapshot 이 `as` cast 누적 시 mutation API 검증 우회                                  |  LOW   | Layer D ESLint rule (선택 도입) + contract test 가 `as ImmediateSelectionSnapshot` AST 차단                                                                               |
+| R5  | Layer C 규칙 명문화가 LLM agent 의 신규 코드 생성 시 자동 적용 안 됨 (review 의존)           |  LOW   | `.agents/skills/composition-patterns/SKILL.md` (Codex 우선) + `.claude/skills/composition-patterns/SKILL.md` (legacy) CRITICAL 규칙 entry — 양쪽 agent prompt 진입점 보장 |
 
 R1+R2 가 동시에 HIGH 로 누적되면 Phase 5 진입 전 stop + Gate G6 재범위.
 
 ## Gates
 
-| Gate | 시점                     | 통과 조건                                                                                                                | 실패 시 대안                                              |
-| ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| G1   | Phase 0 audit lock-in    | 4 deferred consumer 호출처 분류 + 3 page-bound editor inventory + scope inflation 1.5x 미달                              | scope inflation 발견 시 사용자 confirm 후 재범위          |
-| G2   | Phase 1 Layer A land     | type-check 3/3 PASS + `DeferredSelectedElement` → mutation 시그니처 직접 전달 시 type error negative fixture 통과        | brand 도입 부담 시 immediate accessor 만 도입, brand 보류 |
-| G3   | Phase 2 Layer B land     | `pageFrameBinding.test.ts` 신규 fixture (stale-mismatch 차단 + explicit-context skip) 통과 + projection roundtrip 0 회귀 | source 표식 분리 + dev assert 조건 보강                   |
-| G4   | Phase 3 Layer C land     | rule entry 통합 review 통과 + 응용 ADR 참조 의무 명시                                                                    | rule 본문 보강 후 재 review                               |
-| G5   | Phase 4 Layer D land     | `selectionConsumerContract.test.ts` 통과 + type-check baseline 562 유지                                                  | ESLint rule 도입 보류 가능, contract test 만으로 진행     |
-| G6   | Phase 5 응용 정정        | 사용자 재현 시나리오 PASS (Page B 적용) + projection body 회귀 0 + Chrome MCP 시각 검증                                  | Layer B mismatch guard 강화 + UI invariant 추가           |
-| G7   | Phase 6 Implemented 승격 | preflight PASS + authenticated Chrome MCP smoke PASS + 사용자 explicit confirm                                           | —                                                         |
+| Gate | 시점                     | 통과 조건                                                                                                                                                                                                                                                                                                     | 실패 시 대안                                                                                                               |
+| ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| G1   | Phase 0 audit lock-in    | 4 deferred consumer 호출처 분류 + 3 page-bound editor inventory + scope inflation 1.5x 미달                                                                                                                                                                                                                   | scope inflation 발견 시 사용자 confirm 후 재범위                                                                           |
+| G2   | Phase 1 Layer A land     | type-check 3/3 PASS + page-bound mutation API 시그니처가 `ImmediateSelectionSnapshot` opaque 타입만 받음 + `SelectedElement` 또는 `DeferredSelectedElement` 직접 전달 시 type error negative fixture 통과                                                                                                     | opaque snapshot 진입점 분리 보강 (Codex round 1 review #1 정정 — intersection brand 단독으로는 supertype assign 차단 불가) |
+| G3   | Phase 2 Layer B land     | `pageFrameBinding.test.ts` 신규 fixture (selection 경로 snapshot live state 일치 + explicit 경로 mismatch skip) 통과 + projection roundtrip 0 회귀                                                                                                                                                            | 진입점 2 갈래 (`FromSelection` / `Explicit`) 분리 보강                                                                     |
+| G4   | Phase 3 Layer C land     | `.agents/rules/state-management.md` + `.agents/skills/composition-patterns/SKILL.md` + `.agents/skills/INDEX.md` (Codex 우선) + `.claude/*` 동등 entry 통합 review 통과 + 응용 ADR 참조 의무 명시                                                                                                             | rule 본문 보강 후 재 review                                                                                                |
+| G5   | Phase 4 Layer D land     | `selectionConsumerContract.test.ts` 통과 + UI invariant test (PageBodyEditor stale mismatch 시 page-bound editor hide/disable) 통과 + type-check baseline **550 유지** (no new violations)                                                                                                                    | ESLint rule 도입 보류 가능, contract test 만으로 진행                                                                      |
+| G6   | Phase 5 응용 정정        | (a) 사용자 재현 시나리오 — stale window 클릭 시 **mutation 0 + dev warn + page-bound editor hide/disable** + (b) deferred update 후 PageBodyEditor B_body 갱신 → 재클릭 시 **Page B 만 정상 적용** + (c) projection body 회귀 0 + Chrome MCP 시각 검증 (Codex round 1 review #2 정정 — 단계별 통과 조건 명시) | Layer B mismatch guard 강화 + UI invariant 추가                                                                            |
+| G7   | Phase 6 Implemented 승격 | preflight PASS + authenticated Chrome MCP smoke PASS + 사용자 explicit confirm                                                                                                                                                                                                                                | —                                                                                                                          |
 
 ## Consequences
 
 ### Positive
 
-- 사용자 정황 "동일 오류 반복" 의 재발 경로 차단 — type-check (Layer A) / contract test (Layer D) / runtime guard (Layer B) 3 강제로 drift 차단력 HIGH
-- 신규 page-bound editor 추가 시 자동 적용 — `DeferredSelectedElement` brand 가 mutation 시그니처 진입 차단, `source` 표식 누락 시 type error
-- StylesPanel / EventsPanel 의 잠재 commit race 도 Layer A brand 로 부분 차단 (mutation chain 직접 진입 차단)
+- 사용자 정황 "동일 오류 반복" 의 재발 경로 차단 — type-check (Layer A `ImmediateSelectionSnapshot` opaque 진입점) / contract test (Layer D) / runtime guard (Layer B 진입점 2 갈래) 3 강제로 drift 차단력 HIGH
+- 신규 page-bound editor 추가 시 자동 적용 — `SelectedElement` / `DeferredSelectedElement` 가 page-bound mutation 시그니처에 진입 불가 (opaque snapshot 만 허용), 진입점 분류 누락 시 type error
+- StylesPanel / EventsPanel 의 잠재 commit race 도 Layer A opaque snapshot 으로 부분 차단 (deferred 결과 진입 자체 차단)
 - ADR-907 (Container style pipeline 4-Layer) 와 정합 — composition 의 "SSOT contract" 디자인 언어 강화
 - 본 ADR 의 카테고리 분류 규약이 후속 audit ADR (StylesPanel / EventsPanel) 의 base 로 재사용
 

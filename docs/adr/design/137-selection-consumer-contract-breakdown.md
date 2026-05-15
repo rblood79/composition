@@ -53,36 +53,60 @@
 - 위 분류 표 / inventory 가 `breakdown.md` §3 에 lock-in
 - scope inflation 1.5x trigger 점검 — 추정 5-7 file 대비 실측 5-7 file 일치, inflation 없음
 
-## 4. Phase 1 — Layer A (Typed Accessor + Brand)
+## 4. Phase 1 — Layer A (Typed Accessor + Opaque Snapshot)
+
+> **Codex round 1 review #1 정정 (2026-05-15)**: 기존 `SelectedElement & { __brand }` intersection brand 디자인은 TypeScript 구조적 타입에서 supertype assign 차단 불가 (branded 타입이 `SelectedElement` 의 subtype 이므로 `f(x: SelectedElement)` 시그니처에 그대로 assign 가능 — type error 보장 불가). **page-bound mutation API 가 `SelectedElement` 를 받지 않고 `ImmediateSelectionSnapshot` opaque 타입만 받는 진입점 분리** 로 정정.
 
 ### 4-1. 변경 대상
 
-| 파일                                                                  | 변경                                                                                                                                                                                                                               |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/builder/src/builder/stores/index.ts`                            | 신규 `useImmediateSelectedElementId()` + `useImmediateCurrentPageId()` accessor 추가 / 기존 `useDebouncedSelectedElementData()` return 을 `DeferredSelectedElement` brand 로 cast / `useDeferredSelectedElementId()` 도 brand 적용 |
-| `apps/builder/src/builder/inspector/types.ts` (or 적절한 type module) | `DeferredSelectedElement` brand type export                                                                                                                                                                                        |
+| 파일                                                                  | 변경                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/builder/src/builder/stores/index.ts`                            | 신규 `useImmediateSelectionSnapshot()` accessor — `ImmediateSelectionSnapshot` opaque 타입 반환 / 기존 `useDebouncedSelectedElementData()` return 을 `DeferredSelectedElement` 로 명시 (display 전용 마커) / `useImmediateSelectedElementId()` + `useImmediateCurrentPageId()` 도 즉시 read 용 helper 로 함께 export |
+| `apps/builder/src/builder/inspector/types.ts` (or 적절한 type module) | `ImmediateSelectionSnapshot` opaque 타입 + `DeferredSelectedElement` display 마커 타입 export                                                                                                                                                                                                                        |
 
 ### 4-2. 코드 예시 (의도 표현, 실제 구현은 phase 진입 시 확정)
 
 ```ts
+// opaque snapshot — 외부에서 직접 생성 불가, accessor 만 출구
+declare const IMMEDIATE_SNAPSHOT_BRAND: unique symbol;
+export interface ImmediateSelectionSnapshot {
+  readonly [IMMEDIATE_SNAPSHOT_BRAND]: true;
+  readonly selectedElementId: string | null;
+  readonly currentPageId: string | null;
+}
+
+// deferred 결과는 display 전용 표시 — mutation API 가 받지 않음
 declare const DEFERRED_BRAND: unique symbol;
 export type DeferredSelectedElement = SelectedElement & {
   readonly [DEFERRED_BRAND]: true;
 };
 
-export function useImmediateSelectedElementId(): string | null {
-  return useStore((s) => s.selectedElementId);
+export function useImmediateSelectionSnapshot(): ImmediateSelectionSnapshot {
+  return useStore((s) => ({
+    [IMMEDIATE_SNAPSHOT_BRAND]: true as const,
+    selectedElementId: s.selectedElementId,
+    currentPageId: s.currentPageId,
+  }));
 }
 
-export function useImmediateCurrentPageId(): string | null {
-  return useStore((s) => s.currentPageId);
-}
-
+// 기존 deferred accessor — return 을 DeferredSelectedElement 로 표시
 export function useDebouncedSelectedElementData(): DeferredSelectedElement | null {
   const currentData = useSelectedElementData();
   return useDeferredValue(currentData) as DeferredSelectedElement | null;
 }
+
+// page-bound mutation API 시그니처 — ImmediateSelectionSnapshot 만 받음
+//   → SelectedElement / DeferredSelectedElement 직접 전달 시 type error
+export function applyPageFrameBindingFromSelection(
+  snapshot: ImmediateSelectionSnapshot,
+  frameId: string | null,
+): Promise<void> {
+  // 내부에서 snapshot.currentPageId 직접 사용
+  // caller 가 stale pageId 를 전달할 진입점 자체가 없음
+}
 ```
+
+**핵심**: `ImmediateSelectionSnapshot` 는 opaque (외부에서 literal 생성 불가). `useImmediateSelectionSnapshot()` 만 출구. `SelectedElement` 와 구조적으로 비호환 → `f(x: ImmediateSelectionSnapshot)` 시그니처에 `SelectedElement` / `DeferredSelectedElement` 전달 시 **type error 보장**.
 
 ### 4-3. Gate G2
 
@@ -139,13 +163,18 @@ export async function applyPageFrameBindingCanonicalPrimary(
 
 ## 6. Phase 3 — Layer C (규칙 명문화)
 
+> **Codex round 1 review #3 정정 (2026-05-15)**: `AGENTS.md:13` 정책 — `.agents/*` 가 Codex 우선 진입점, `.claude/*` 는 legacy reference. Layer C 대상이 `.claude/*` 만이면 Codex 진입점에서 Selection Consumer Contract 미적용 → 재발 차단 빈틈. **`.agents/*` 를 1차 대상, `.claude/*` 를 동등 병행 대상으로 확장**.
+
 ### 6-1. 변경 대상
 
-| 파일                                           | 변경                                                                                                                     |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `.claude/rules/state-management.md`            | §"Selection Consumer Contract (CRITICAL)" 신설 — 3 카테고리 표 + 허용 / 금지 accessor + 신규 mutation 카테고리 분류 의무 |
-| `.claude/skills/composition-patterns/SKILL.md` | CRITICAL 규칙 entry — Selection consumer 분류 누락 시 즉시 차단                                                          |
-| `.claude/rules/ssot-hierarchy.md` (선택)       | D3 운영 규칙 부록으로 "Selection consumer SSOT" 참조 추가                                                                |
+| 파일                                                                         | 변경                                                                                                                     |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `.agents/rules/state-management.md` **(Codex 우선)**                         | §"Selection Consumer Contract (CRITICAL)" 신설 — 3 카테고리 표 + 허용 / 금지 accessor + 신규 mutation 카테고리 분류 의무 |
+| `.agents/skills/composition-patterns/SKILL.md` **(Codex 우선)**              | CRITICAL 규칙 entry — Selection consumer 분류 누락 시 즉시 차단                                                          |
+| `.agents/skills/INDEX.md` **(Codex 우선)**                                   | Selection Consumer Contract 항목 인덱스 추가 (관련 skill / rule cross-link)                                              |
+| `.claude/rules/state-management.md` (legacy 병행)                            | §"Selection Consumer Contract (CRITICAL)" 동등 신설 — 본문은 `.agents/*` 와 동기화                                       |
+| `.claude/skills/composition-patterns/SKILL.md` (legacy 병행)                 | CRITICAL 규칙 entry 동등 — 본문은 `.agents/*` 와 동기화                                                                  |
+| `.agents/rules/ssot-hierarchy.md` + `.claude/rules/ssot-hierarchy.md` (선택) | D3 운영 규칙 부록으로 "Selection consumer SSOT" 참조 추가                                                                |
 
 ### 6-2. Gate G4
 
@@ -156,11 +185,12 @@ export async function applyPageFrameBindingCanonicalPrimary(
 
 ### 7-1. 변경 대상
 
-| 파일                                                                     | 변경                                                                                                                                                                                             |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `apps/builder/src/__tests__/selectionConsumerContract.test.ts`           | 신규 contract test — page-bound mutation 모듈이 `DeferredSelectedElement` 결과를 mutation 함수에 직접 전달하지 않음을 AST 로 검증 / page-bound store action `source` 파라미터 누락 시 type error |
-| `apps/builder/src/adapters/canonical/__tests__/pageFrameBinding.test.ts` | 신규 fixture 추가 (stale-mismatch 차단 / explicit-context skip)                                                                                                                                  |
-| (선택) `.eslint-rules/no-deferred-into-mutation.js`                      | `DeferredSelectedElement` 타입 변수를 mutation 함수 인자로 전달 차단                                                                                                                             |
+| 파일                                                                                              | 변경                                                                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/builder/src/__tests__/selectionConsumerContract.test.ts`                                    | 신규 contract test — page-bound mutation 함수 시그니처가 `ImmediateSelectionSnapshot` opaque 타입만 받음을 AST 로 검증 + `SelectedElement` / `DeferredSelectedElement` 인자 negative fixture 통과 |
+| `apps/builder/src/adapters/canonical/__tests__/pageFrameBinding.test.ts`                          | 신규 fixture 추가 — selection 경로 (snapshot 기반 live state 일치) + explicit 경로 (mismatch 검증 skip) + projection body roundtrip 회귀 0                                                        |
+| `apps/builder/src/builder/panels/properties/editors/__tests__/PageBodyEditor.uiInvariant.test.ts` | 신규 UI invariant test — PageBodyEditor 가 stale mismatch 상태 (deferred element.page_id ≠ live currentPageId) 에서 PageLayoutSelector / PageParentSelector 를 hide/disable 처리                  |
+| (선택) `.eslint-rules/no-immediate-snapshot-cast.js`                                              | `as ImmediateSelectionSnapshot` cast 누적 시 review 차단 — Layer D opaque snapshot 진입점 우회 방지                                                                                               |
 
 ### 7-2. Gate G5
 
@@ -209,8 +239,8 @@ export async function applyPageFrameBindingCanonicalPrimary(
 
 ### 9-2. Gate G7
 
-- type-check 3/3 PASS (baseline 유지)
-- targeted vitest (contract test + pageFrameBinding round-trip + 회귀 fixture) PASS
+- type-check 3/3 PASS + **baseline 550 유지 (실측 2026-05-15 `apps/builder/.type-errors-baseline.txt`, no new violations)**
+- targeted vitest (contract test + pageFrameBinding round-trip + UI invariant + 회귀 fixture) PASS
 - `pnpm run codex:preflight` PASS
 - authenticated Chrome MCP smoke (재현 시나리오 + projection body 회귀) PASS
 - 사용자 explicit confirm — "Implemented 승격 가능" 명시
