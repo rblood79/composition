@@ -97,7 +97,18 @@ fi
 if echo "$prompt" | grep -qiE "상태|store|zustand|slice|elementsMap|childrenMap"; then
   hints="${hints}
 - 상태관리 작업 → rules/state-management.md 자동 로드
-- 파이프라인 순서 필수: Memory → Index → History → DB → Preview → Rebalance"
+- 파이프라인 순서 필수: Memory → Index → History → DB → Preview → Rebalance
+- ADR-137 Selection Consumer Contract: page-bound mutation 은 deferred selection/display 값을 쓰지 말고 commit 시점 `readImmediateSelectionSnapshot()` + `apply*FromSelection(snapshot, ...)` 또는 명시 context 의 `apply*Explicit({ pageId, contextReason, ... })` 로 분류"
+fi
+
+# Page-bound selection/frame race
+if echo "$prompt" | grep -qiE "Page.*Frame|Frame.*Page|page-bound|selectedElement|deferred.*selection|선택.*Frame|프러퍼티.*Frame|다른 Page|currentPageId"; then
+  hints="${hints}
+- Page-bound selection/frame 경로 감지 → ADR-137 Selection Consumer Contract 확인
+  - deferred inspector data 는 display-only
+  - selection write 는 commit 시점 \`readImmediateSelectionSnapshot()\`
+  - projection/editing context 만 explicit \`pageId\` + \`contextReason\` 허용
+  - stale mismatch 상태에서는 page-bound controls hide/disable"
 fi
 
 # 병렬 검증

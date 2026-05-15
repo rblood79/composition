@@ -13,6 +13,16 @@ Codex 세션 인수인계가 필요할 때만 보는 짧은 진행 index입니�
 
 ## Codex 운영 메모
 
+- 2026-05-15: ADR-137 Implemented. Page 선택 직후 Properties > Frame 변경이
+  stale deferred `selectedElement.page_id` / stale `pageId` closure 때문에 다른
+  page에 적용되던 경로를 Selection Consumer Contract로 차단했다.
+  page-bound mutation은 `readImmediateSelectionSnapshot()` +
+  `apply*FromSelection(snapshot, ...)` 또는 명시 context의
+  `apply*Explicit({ pageId, contextReason, ... })`로 분류한다. 문서:
+  `docs/adr/completed/137-selection-consumer-contract.md`, breakdown:
+  `docs/adr/design/137-selection-consumer-contract-breakdown.md`. 검증:
+  targeted Vitest 5 files / 19 tests, `pnpm run codex:preflight`, browser quick
+  check errors 0 / warnings 4.
 - 2026-05-15: goal tool lifecycle guard 추가. developer objective/resume 문구와
   실제 goal runtime state는 분리될 수 있으므로 완료 처리 전
   `.agents/rules/goal-lifecycle.md`에 따라 `get_goal`을 정본으로 확인한다.

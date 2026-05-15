@@ -60,6 +60,11 @@ fi
 
 if echo "$PROMPT" | grep -qiE "상태|store|zustand|slice|elementsMap|childrenMap|history"; then
   add_hint "state: load .agents/rules/state-management.md; preserve Memory -> Index -> History -> DB -> Preview -> Rebalance"
+  add_hint "adr-137: page-bound mutation must use readImmediateSelectionSnapshot() + apply*FromSelection(snapshot, ...) or explicit context via apply*Explicit({ pageId, contextReason, ... })"
+fi
+
+if echo "$PROMPT" | grep -qiE "Page.*Frame|Frame.*Page|page-bound|selectedElement|deferred.*selection|선택.*Frame|프러퍼티.*Frame|다른 Page|currentPageId"; then
+  add_hint "adr-137: verify Selection Consumer Contract; deferred inspector data is display-only, stale mismatch should hide/disable page-bound controls"
 fi
 
 if echo "$PROMPT" | grep -qiE "전체 검증|일괄|패밀리|컴포넌트 전체|parallel|sweep|서브에이전트|병렬"; then
