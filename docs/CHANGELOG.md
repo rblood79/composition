@@ -98,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - projected `Slot` render node를 drop target container로 인정해 Frame 적용 Page의 Slot 영역으로 드래그할 때 target이 잡히지 않는 경로를 보강했다.
   - refresh/bootstrap 및 lazy page load가 `deriveProjectRenderModelFromDocument().elements`를 store mirror hydrate source로 사용해 `elementsMap`에 `::page-frame::` projected ID를 섞던 마지막 경로를 차단했다. page list 파생은 render model을 유지하되, `hydrateProjectSnapshot()` / `lazyLoadPageElements()`는 canonical traversal만 사용한다.
   - `pageFrameBinding` apply/remove roundtrip에서 Slot descendant path를 보존하고, props 없는 Slot host scope inclusion, frame mutation index rebuild, `updateElement` atomicity, page activation 중복 호출 회귀를 fixture로 고정했다.
+  - ADR 본문을 `docs/adr/completed/135-page-frame-projection-interaction-boundary.md`로 이동하고 README 상태 섹션/링크를 정합화했다.
   - 검증: targeted Vitest 16 files / 62 tests PASS, type-check/preflight PASS, authenticated browser smoke PASS(refresh 전후 runtime `elementsMap` synthetic 0, IndexedDB `documents` synthetic 0, console/page/http error 0).
 
 ## [Add Page activation race fix] - 2026-05-14

@@ -140,7 +140,7 @@ Frame을 Page에 적용한 상태에서 Skia 캔버스의 선택/slot fill/drag-
 - **D9**: canonical update와 legacy mirror/index refresh는 stale pre-callback snapshot을 사용하지 않는다. latest store/canonical document 기준으로 mutation과 derived cache rebuild를 하나의 boundary에서 수행한다.
 - **D10**: project bootstrap과 lazy page load는 page list 파생에는 render model을 사용할 수 있지만, store mirror hydrate에는 canonical traversal만 사용한다. refresh 후 `elementsMap`에 projected render ID가 남으면 Gate 실패다.
 
-> 구현 상세: [135-page-frame-projection-interaction-boundary-breakdown.md](design/135-page-frame-projection-interaction-boundary-breakdown.md)
+> 구현 상세: [135-page-frame-projection-interaction-boundary-breakdown.md](../design/135-page-frame-projection-interaction-boundary-breakdown.md)
 
 ## Risks
 

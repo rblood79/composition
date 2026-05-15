@@ -1,6 +1,6 @@
 # ADR-135 Design Breakdown — Page-Frame Projection Interaction Boundary
 
-> 본문: [135-page-frame-projection-interaction-boundary.md](../135-page-frame-projection-interaction-boundary.md). Phase 1-6 implemented 상태 — refresh/bootstrap/lazy-load mirror projection leak까지 closure.
+> 본문: [135-page-frame-projection-interaction-boundary.md](../completed/135-page-frame-projection-interaction-boundary.md). Phase 1-6 implemented 상태 — refresh/bootstrap/lazy-load mirror projection leak까지 closure.
 
 ## Execution Snapshot — 2026-05-14
 
