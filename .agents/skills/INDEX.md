@@ -28,5 +28,7 @@ skill만 여세요.
 ## 검증
 
 - 완료 전 기본 gate: `pnpm run codex:preflight`
+- goal 완료 처리 전: `.agents/rules/goal-lifecycle.md`에 따라 `get_goal`로
+  active goal과 objective 일치 여부 확인
 - Spec/CSS 생성 영향: `pnpm run build:specs` 필요 여부 확인
 - 라우팅이 애매하면: `pnpm run codex:route -- "<요청>"`
