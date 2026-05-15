@@ -85,7 +85,6 @@ const contentComp = [
 
 const layoutComp = [
   { type: "Card", label: "card", icon: AppWindowMac },
-  // ADR-130: canonical layout container (was "Group" — RAC ARIA group is now D1-only).
   { type: "frame", label: "frame", icon: GroupIcon },
   { type: "Tabs", label: "tabs", icon: AppWindow },
   { type: "Breadcrumbs", label: "breadcrumbs", icon: ChevronRight },

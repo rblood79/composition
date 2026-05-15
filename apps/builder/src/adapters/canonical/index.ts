@@ -147,7 +147,6 @@ export function legacyToCanonical(
   const childrenByParent = indexChildrenByParent(elements);
 
   function buildNode(element: Element): CanonicalNode {
-    // ADR-130 Phase 7: legacy "Group" + customId="group_N" → canonical "frame".
     const sourceTag = isLegacyGroupForFrameMigration(
       element.type,
       element.customId,

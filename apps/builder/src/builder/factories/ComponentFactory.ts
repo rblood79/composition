@@ -109,7 +109,7 @@ export class ComponentFactory {
     Toolbar: ComponentFactory.createToolbar,
     NumberField: ComponentFactory.createNumberField,
     SearchField: ComponentFactory.createSearchField,
-    frame: ComponentFactory.createFrame, // ADR-130: was "Group" pre-130
+    frame: ComponentFactory.createFrame,
     ToggleButtonGroup: ComponentFactory.createToggleButtonGroup,
     Switcher: ComponentFactory.createSwitcher,
     CheckboxGroup: ComponentFactory.createCheckboxGroup,
