@@ -108,13 +108,15 @@ Tabs origin 은 `props.items` 직렬화 배열 (ADR-066) 과 `TabPanels` 하위 
 
 ### `reusableCard.scenarios.test.ts` — region(`descendants[childId]`) baseline 3
 
-> Card factory (`LayoutComponents.ts:73-189`) 의 하위 영역은 `CardPreview` / `CardHeader` / `CardContent` / `CardFooter` **자식 노드**다. canonical schema 의 `slot` 필드 (`composition-document.types.ts:266-272`) 는 `false | string[]` 로 — `string[]` 은 *해당 slot 에 삽입 가능한 추천 reusable component ID 배열*이며 명명 영역 목록이 아니다. Card factory 는 `slot` 필드를 설정하지 않는다. 따라서 Card 의 영역별 override 는 `slot` 필드가 아니라 **`RefNode.descendants["CardHeader"]` 등 자식 stable id path**로 작동한다. ADR 본문 §Decision 의 "Card (baseline — slot 검증)" 은 이 named child region 의 `descendants` override 검증을 가리킨다.
+> Card factory (`LayoutComponents.ts:73-189`) 의 하위 영역은 `CardPreview` / `CardHeader` / `CardContent` / `CardFooter` **자식 노드**다. canonical schema 의 `slot` 필드 (`composition-document.types.ts:266-272`) 는 `false | string[]` 로 — `string[]` 은 *해당 slot 에 삽입 가능한 추천 reusable component ID 배열*이며 명명 영역 목록이 아니다. Card factory 는 `slot` 필드를 설정하지 않는다. 따라서 Card 의 영역별 override 는 `slot` 필드가 아니라 **`RefNode.descendants[<자식 stable id>]` 자식 id path**로 작동한다. ADR 본문 §Decision 의 "Card (baseline — slot 검증)" 은 이 named child region 의 `descendants` override 검증을 가리킨다.
+>
+> **`descendants` key 는 type 이름이 아니라 자식 노드의 stable `id`** — resolver 는 `currentPath = parentPath ? parentPath + "/" + child.id : child.id` 로 path 를 빌드한다 (`resolvers/canonical/index.ts:220`). factory 자식은 정의 시점엔 id 가 없고 생성 시 customId 가 부여된다 — CardHeader 의 경우 `cardheader_1` 형식 (`idGeneration.ts:27-68`). 따라서 본 시나리오의 key 예시 `"cardheader_1"` 은 _해당 CardHeader 자식의 실제 customId_ 를 가리키며, 중첩 시 `"card_1/cardheader_1"` 처럼 slash path 가 된다. test fixture 는 자식 노드에 명시 id 를 부여하고 그 id 로 `descendants` key 를 구성한다.
 
-| 검증                 | 내용                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| region 인식          | Card origin 등록 시 `CardPreview/CardHeader/CardContent/CardFooter` 자식 subtree 보존 + 각 자식 stable id 가 `descendants` path 로 addressable    |
-| region override      | instance 가 `descendants["CardHeader"]` 로 한 영역만 patch(mode A) 또는 children 교체(mode C) → `CardContent/CardFooter` 는 origin 그대로 resolve |
-| region override 격리 | instance A 의 `descendants["CardHeader"]` 변경이 instance B 의 동일 영역에 무영향                                                                 |
+| 검증                 | 내용                                                                                                                                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| region 인식          | Card origin 등록 시 `CardPreview/CardHeader/CardContent/CardFooter` 자식 subtree 보존 + 각 자식의 stable `id` 가 `descendants` path 로 addressable                         |
+| region override      | instance 가 `descendants["cardheader_1"]` (= CardHeader 자식 id) 로 한 영역만 patch(mode A) 또는 children 교체(mode C) → `CardContent/CardFooter` 는 origin 그대로 resolve |
+| region override 격리 | instance A 의 `descendants["cardheader_1"]` 변경이 instance B 의 동일 영역에 무영향                                                                                        |
 
 ## 5. fork 감지 helper (신규)
 
