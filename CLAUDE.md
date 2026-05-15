@@ -144,9 +144,9 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 
 | Hook                  | 시점             | 동작                                                               |
 | --------------------- | ---------------- | ------------------------------------------------------------------ |
-| **SessionStart**      | 세션 시작 시     | agent/skill 로스터 주입 + 일별 통계 스냅샷(백그라운드)             |
+| **SessionStart**      | 세션 시작 시     | agent/skill 로스터 주입 + 일별 통계 + fix/revert 집계 표시(백그라운드) |
 | **UserPromptSubmit**  | 프롬프트 전송 시 | 9개 키워드 카테고리 감지 → 관련 skill/agent 힌트 주입               |
-| **Stop**              | 작업 완료 시     | `.ts/.tsx` 변경 있으면 `pnpm type-check` — 실패 시 JSON decision:block |
+| **Stop**              | 작업 완료 시     | `.ts/.tsx` 변경 시 `pnpm type-check` (실패 시 block) + fix/revert commit 가시화 |
 | **SubagentStop**      | 서브에이전트 종료 | `agent_type/agent_id`를 `stats/agents.jsonl` 기록 (2.1.x payload)  |
 | **PreToolUse**        | Edit/Write 전    | 보호 파일 편집 차단 (JSON permissionDecision:deny)                 |
 | **PostToolUse**       | Edit/Write 후    | Prettier 자동 포맷                                                 |
