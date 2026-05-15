@@ -215,6 +215,7 @@ const styles = tv({ base: '...', variants: { ... } });
 - StateCreator factory 패턴 준수
 - 슬라이스를 개별 파일로 분리
 - canonical selectors 우선 + read-only elementsMap/childrenMap fallback (ADR-122 mirror runtime 제거 진행)
+- ADR-137 Selection Consumer Contract 준수: page-bound mutation 은 deferred selection/display 값을 쓰지 않는다. selection 경로는 commit 시점 `readImmediateSelectionSnapshot()` + `apply*FromSelection(snapshot, ...)`, projection/editing context 는 `apply*Explicit({ pageId, contextReason, ... })` 만 사용한다. stale mismatch 상태에서는 page-bound controls 를 hide/disable 한다.
 
 ### Canvas (Skia)
 

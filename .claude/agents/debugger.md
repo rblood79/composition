@@ -64,6 +64,7 @@ maxTurns: 25
 - canonical document ↔ elementsMap/childrenMap mirror 정합성 확인 (ADR-122: mirror 는 transitional)
 - 히스토리 기록이 변경 전에 수행되는지 확인
 - Zustand 슬라이스 경계 검증
+- ADR-137 Selection Consumer Contract 검증: page-bound mutation 이 deferred `SelectedElement`/inspector display data 또는 stale `pageId` closure 를 commit source 로 쓰지 않는지 확인. selection 경로는 commit 시점 `readImmediateSelectionSnapshot()` + `apply*FromSelection(snapshot, ...)`, projection/editing context 는 `apply*Explicit({ pageId, contextReason, ... })` 로 분류되어야 한다.
 
 ### 성능 이슈
 

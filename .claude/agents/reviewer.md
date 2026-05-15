@@ -60,6 +60,7 @@ maxTurns: 20
 - [ ] element 검색은 canonical selectors 또는 read-only `elementsMap` 로 — array traversal 금지 (ADR-122)
 - [ ] Zustand StateCreator factory 패턴 준수
 - [ ] 슬라이스 파일 모듈화 분리
+- [ ] ADR-137 Selection Consumer Contract 준수 — page-bound mutation 이 deferred `SelectedElement`/stale `pageId` closure 를 쓰지 않고 `readImmediateSelectionSnapshot()` 기반 FromSelection 진입점 또는 `contextReason` 있는 Explicit 진입점으로 분류됨
 
 ### 6. 성능
 

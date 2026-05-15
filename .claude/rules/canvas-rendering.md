@@ -198,6 +198,18 @@ ParagraphStyle 변경 시 **3곳 동시 업데이트** 필수: canvaskitTextMeas
 - `renderCommands.ts` (Command Stream 경로): `visitElement`에서 자식 boundsMap 좌표에 부모 `scrollOffset` 차감 필수. **Why**: boundsMap은 절대 좌표 → 렌더링의 `canvas.translate`와 동기화 필요
 - `scrollState.scrollVersion`: 스크롤 변경 시 `getCachedTreeBoundsMap` 캐시 무효화용 카운터. **Why**: `registryVersion`/`pagePosVersion`만으로는 스크롤 변경 미감지
 
+## 9. Render-Space Interaction Boundary (ADR-135/136 Implemented 2026-05-14/15)
+
+> Page Frame projection 도입 후, hit-test/그리기 ID 공간과 canonical document ID 공간을 분리. 위반 시 데이터 corruption 또는 split-brain 인터랙션 발생.
+
+- **ID 공간 분리**: hit-test/그리기 authoritative source 는 `renderNodesMap` / `interactionNodesMap`. `sceneNodesMap` 은 diagnostic/inspection 전용 — `renderNodesMap.get(x) ?? sceneNodesMap.get(x)` 류 render fallback **금지** (static gate 0건)
+- **projected ID 비영속**: `::page-frame::` projected ID 는 canonical document / IndexedDB / history payload 에 저장 금지. refresh 후 `elementsMap` 에 synthetic projected ID 0건이어야 함
+- **canonical move target**: projected Slot 으로의 drag/drop 은 `resolveCanonicalMoveTarget` → `moveElementToCanonicalTarget` 단일 mutation entry. **금지**: projected render ID 를 canonical mutation 의 `containerId`/target 으로 직접 전달
+- **Slot roundtrip 무손실**: Frame apply/remove/apply 반복 후 header/content/footer/custom Slot 의 `RefNode.descendants[path].children` 순서 보존. unapply 시 Slot mirror metadata 보존 → reapply 시 path 복원
+- **bootstrap canonical-only**: store mirror hydrate 는 canonical traversal 만 (`canonicalDocumentToElements()` 등). `deriveProjectRenderModelFromDocument()` elements 는 Skia 그리기 전용 — mirror hydrate source 로 사용 금지
+- **sceneVersion signature (ADR-136)**: `sceneVersion` = layoutVersion + pagePositionsVersion + **projection content signature** (node id/type/parent/page/layout id, ref·reusable·deleted state, stable props, ADR-135 projection metadata). signature 계산은 `buildSceneStructureSnapshot()` 시점만 (pointer hot path 금지)
+- **projection-relevant field 추가 규칙**: frame metadata / projection prop / ref state / 신규 canonical schema field 추가 시 signature input 목록 **동시 갱신** — `layoutVersion` 3-심볼 체인과 동급 보수 의무. 누락 시 same-count phantom change 미감지 (signature false negative)
+
 ## 상세 레퍼런스
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)

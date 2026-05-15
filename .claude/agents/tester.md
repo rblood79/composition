@@ -66,6 +66,7 @@ maxTurns: 25
 - canonical node lookup + transitional `elementsMap` 정합성 테스트
 - 히스토리 기록이 적절한 Undo/Redo를 가능하게 하는지 확인
 - Zustand 슬라이스 간 상호작용 테스트
+- ADR-137 Selection Consumer Contract 테스트: Page A → Page B 전환 직후 page-bound action 은 wrong-page mutation 0, stale mismatch UI hide/disable, deferred update 이후 live page 정상 적용을 검증한다. projection/editing context 는 `apply*Explicit({ pageId, contextReason, ... })` 회귀 fixture 로 분리 검증한다.
 
 ### 통신 테스트
 

@@ -62,6 +62,20 @@ persistXxxAfterMutation([...]);    // 4. IndexedDB persist (백그라운드)
 
 회귀 이력: instanceActions.ts 3곳 fix — commits `a859f8b97` (applyElementSnapshotBatch) + `ee91020c4` (createInstance / resetInstanceOverrideField).
 
+## Root Collection SSOT (ADR-131 Implemented 2026-05-13)
+
+- `CompositionDocument.events` / `actions` 가 일급 root collection. 각 entry 는 flat node 구조 (ADR-110 `themes`/`variables` 패턴과 동일) → 향후 behavior 카테고리 확장 시 동일 패턴 적용
+- mutation 은 `syncXxxToCanonical()` 경유 (root collection 전용 sync). UI node 는 `props.onPress: "ev1"` 같은 **string id** 로 root collection entry 를 참조 — static type guard 필수
+- ADR-116 §3 `x-composition.events|actions` extension field 는 본 root field 로 partial supersede 됨
+- **data 영역 제외**: ADR-131 Phase 8 사용자 framing revert — `data_tables` (→ `collections`) 가 데이터 SSOT 유지, `CompositionDocument.data` root field 미도입
+
+## Collections read 진입점 (ADR-132 Implemented 2026-05-13)
+
+- RAC collection 컴포넌트 (Table/ListBox/GridList/ComboBox/Select/Tree/Breadcrumbs) 의 items read 는 `useCollectionData({ datatableId | dataBinding })` **단일 경유**
+- source="api" 는 `useAsyncList.load` callback 안에서 `executeApiEndpoint` 호출 → `collections.runtimeData` sink → `list.items` read. **금지**: useEffect + local useState 로 endpoint 결과 보관 (legacy 우회 패턴)
+- rename: `data_tables` (snake/DB) / `dataTables` (camel/store) → `collections` (canonical). internal type 도 `CollectionsMap` / `CollectionState` / `targetCollection`
+- **UI surface 심볼은 유지**: `DataTable*` (DataTableEditor / DataTablePanel / panels/datatable/ 등) 은 사용자 노출이라 rename 제외
+
 ## 스타일 패널 (Zustand → Jotai Bridge)
 
 - PropertyUnitInput: focus 시 selectedElementId ref 캡처 → blur 시 비교 → 다르면 onChange 스킵. **Why**: mousedown→blur 이벤트 순서로 blur 시점에 이미 새 요소 선택됨
