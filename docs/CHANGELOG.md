@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Fix Visibility — 반복 fix/revert 가시화 hook] - 2026-05-15
+
+### Infrastructure
+
+- **반복 fix/revert 가시화 hook 도입** (`fix-visibility.sh`):
+  - git log 의 `fix(scope)` / `revert(scope)` 커밋을 scope 별로 집계해 회귀 테스트(`*.test.ts`) 동반 여부를 표시하는 hook 신설.
+  - SessionStart 시점: 최근 30일 scope 별 fix/revert 집계 표시. Stop 시점: 직전 커밋이 fix/revert 면 1줄 사실 표시.
+  - **판정·임계·차단 없이 측정값만 노출** — 해석은 사람. 자동 임계 판정은 gaming·"늦은 감지" 단점이 있어 의도적으로 배제 (설계 진화: v3 Error Journal → v4 Budget Gate → v5 Visibility).
+  - claude (`.claude/hooks/` + `.claude/settings.json`) 와 codex (`.codex/hooks.json`) 가 동일 스크립트를 공유. git log 가 단일 SSOT — 별도 저장소 없음.
+  - 선택적 `Error-Category:` git trailer (`design-miss` / `human-error` / `multi-event` / `env-tooling`) 로 분류 집계 가능. trailer 없어도 scope 기반으로 동작.
+  - **Why**: 30일 fix/revert 비율 9.3% (업계 평균 약 1.5배), 같은 영역 4회+ 반복 fix 가 첫 fix 의 root cause 미해결을 시사. 외부 reference — Anthropic Claude Code postmortem (eval-first) + Google SRE Beyoncé Rule / Error Budget Policy.
+  - 위치: `.claude/hooks/fix-visibility.sh`, `.claude/settings.json`, `.codex/hooks.json`, `AGENTS.md` (커밋 `b8f9e143d`).
+
 ## [ADR-137 Selection Consumer Contract] - 2026-05-15
 
 ### Bug Fixes
