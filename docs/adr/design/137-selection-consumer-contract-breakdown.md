@@ -15,15 +15,15 @@
 
 ## 2. Phase 분해
 
-| Phase       | 목표                                                                 | 작업 단위                                                                                                                     | Gate |
-| ----------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---- |
-| **Phase 0** | deferred selection consumer audit lock-in                            | 4 호출처 분류 + 잠재 page-bound editor inventory + scope freeze                                                               | G1   |
-| **Phase 1** | Layer A 도입 — typed accessor + DeferredSelectedElement brand        | `stores/index.ts` 신규 immediate accessor + brand type + 기존 deferred 류 cast                                                | G2   |
-| **Phase 2** | Layer B 도입 — action contract source 표식 + mismatch guard          | `pageFrameBinding.ts` action 시그니처 + selection / explicit-context 분기 + dev assert                                        | G3   |
-| **Phase 3** | Layer C 명문화 — rules / SKILL 갱신                                  | `.claude/rules/state-management.md` §"Selection Consumer Contract" 신설 + `composition-patterns/SKILL.md` CRITICAL 규칙 entry | G4   |
-| **Phase 4** | Layer D 검증 인프라 — contract test + (선택) ESLint rule             | `selectionConsumerContract.test.ts` 신설 + page-bound mutation source 표식 누락 시 type error 보강                            | G5   |
-| **Phase 5** | 응용 정정 — PageBodyEditor / PageLayoutSelector / PageParentSelector | UI invariant (deferred page_id vs live currentPageId mismatch 시 editor disable) + handler closure 정정                       | G6   |
-| **Phase 6** | Implemented 승격 + README / CHANGELOG                                | 재현 시나리오 + projection body 회귀 fixture + Chrome MCP 시각 검증 통과 후                                                   | G7   |
+| Phase       | 목표                                                                 | 작업 단위                                                                                                                                                                                                                    | Gate |
+| ----------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| **Phase 0** | deferred selection consumer audit lock-in                            | 4 호출처 분류 + 잠재 page-bound editor inventory + scope freeze                                                                                                                                                              | G1   |
+| **Phase 1** | Layer A 도입 — `ImmediateSelectionSnapshot` opaque type 진입점 분리  | `stores/index.ts` 신규 `readImmediateSelectionSnapshot()` non-subscription helper + primitive accessor 분리 + `DeferredSelectedElement` display 전용 마커. selector 안 object literal 회피 (AGENTS.md §"그룹 selector 금지") | G2   |
+| **Phase 2** | Layer B 도입 — page-bound action 진입점 2 갈래 분리                  | `pageFrameBinding.ts` — `applyPageFrameBindingFromSelection(snapshot, frameId, ...)` (snapshot 만 받음, 내부 snapshot.currentPageId 사용) + `applyPageFrameBindingExplicit({ pageId, contextReason, ... })` (검증 skip)      | G3   |
+| **Phase 3** | Layer C 명문화 — `.agents/*` 우선 + `.claude/*` 병행                 | `.agents/rules/state-management.md` + `.agents/skills/composition-patterns/SKILL.md` + `.agents/skills/INDEX.md` (Codex 우선) + `.claude/*` (legacy 병행) — 동등 §"Selection Consumer Contract" 신설                         | G4   |
+| **Phase 4** | Layer D 검증 인프라 — contract test + UI invariant test              | `selectionConsumerContract.test.ts` 신설 (page-bound mutation 시그니처가 `ImmediateSelectionSnapshot` opaque 만 받음, `SelectedElement`/`DeferredSelectedElement` 전달 시 type error) + UI invariant test                    | G5   |
+| **Phase 5** | 응용 정정 — PageBodyEditor / PageLayoutSelector / PageParentSelector | handler closure 정정 (snapshot 기반 호출로 전환) + UI invariant (deferred page_id vs live currentPageId mismatch 시 page-bound editor hide/disable)                                                                          | G6   |
+| **Phase 6** | Implemented 승격 + README / CHANGELOG                                | 재현 시나리오 + projection body 회귀 fixture + Chrome MCP 시각 검증 통과 후                                                                                                                                                  | G7   |
 
 ## 3. Phase 0 — Audit Lock-in
 
@@ -67,7 +67,7 @@
 ### 4-2. 코드 예시 (의도 표현, 실제 구현은 phase 진입 시 확정)
 
 ```ts
-// opaque snapshot — 외부에서 직접 생성 불가, accessor 만 출구
+// opaque snapshot — 외부에서 직접 생성 불가, helper 만 출구
 declare const IMMEDIATE_SNAPSHOT_BRAND: unique symbol;
 export interface ImmediateSelectionSnapshot {
   readonly [IMMEDIATE_SNAPSHOT_BRAND]: true;
@@ -81,15 +81,26 @@ export type DeferredSelectedElement = SelectedElement & {
   readonly [DEFERRED_BRAND]: true;
 };
 
-export function useImmediateSelectionSnapshot(): ImmediateSelectionSnapshot {
-  return useStore((s) => ({
+// non-subscription helper — selector object literal 패턴 회피 (AGENTS.md §"그룹 selector 금지")
+// 호출 시점에 useStore.getState() 로 즉시 snapshot 생성. subscription 비용 0, rerender 무관.
+export function readImmediateSelectionSnapshot(): ImmediateSelectionSnapshot {
+  const state = useStore.getState();
+  return {
     [IMMEDIATE_SNAPSHOT_BRAND]: true as const,
-    selectedElementId: s.selectedElementId,
-    currentPageId: s.currentPageId,
-  }));
+    selectedElementId: state.selectedElementId,
+    currentPageId: state.currentPageId,
+  };
 }
 
-// 기존 deferred accessor — return 을 DeferredSelectedElement 로 표시
+// UI 표시용 primitive subscription — 각 primitive 반환이라 selector identity 안전
+export function useImmediateSelectedElementId(): string | null {
+  return useStore((s) => s.selectedElementId);
+}
+export function useImmediateCurrentPageId(): string | null {
+  return useStore((s) => s.currentPageId);
+}
+
+// 기존 deferred accessor — return 을 DeferredSelectedElement 로 표시 (display 전용 마커)
 export function useDebouncedSelectedElementData(): DeferredSelectedElement | null {
   const currentData = useSelectedElementData();
   return useDeferredValue(currentData) as DeferredSelectedElement | null;
@@ -97,69 +108,105 @@ export function useDebouncedSelectedElementData(): DeferredSelectedElement | nul
 
 // page-bound mutation API 시그니처 — ImmediateSelectionSnapshot 만 받음
 //   → SelectedElement / DeferredSelectedElement 직접 전달 시 type error
-export function applyPageFrameBindingFromSelection(
+export async function applyPageFrameBindingFromSelection(
   snapshot: ImmediateSelectionSnapshot,
   frameId: string | null,
 ): Promise<void> {
   // 내부에서 snapshot.currentPageId 직접 사용
   // caller 가 stale pageId 를 전달할 진입점 자체가 없음
 }
+
+// page-bound mutation handler (commit 시점에 snapshot 생성, subscription 없음)
+const handleLayoutChange = useCallback(async (frameId: string | null) => {
+  const snapshot = readImmediateSelectionSnapshot();
+  await applyPageFrameBindingFromSelection(snapshot, frameId);
+}, []);
 ```
 
-**핵심**: `ImmediateSelectionSnapshot` 는 opaque (외부에서 literal 생성 불가). `useImmediateSelectionSnapshot()` 만 출구. `SelectedElement` 와 구조적으로 비호환 → `f(x: ImmediateSelectionSnapshot)` 시그니처에 `SelectedElement` / `DeferredSelectedElement` 전달 시 **type error 보장**.
+**핵심**:
+
+- `ImmediateSelectionSnapshot` 는 opaque (외부에서 literal 생성 불가).
+- `readImmediateSelectionSnapshot()` 은 **non-subscription helper** — selector 안 object literal 반환 패턴 회피로 AGENTS.md §"그룹 selector / useShallow 회피" 정합. subscription 비용 0, rerender 무관.
+- `SelectedElement` 와 구조적으로 비호환 → `f(x: ImmediateSelectionSnapshot)` 시그니처에 `SelectedElement` / `DeferredSelectedElement` 전달 시 **type error 보장**.
 
 ### 4-3. Gate G2
 
 - type-check 3/3 PASS
 - `DeferredSelectedElement` 가 mutation handler 시그니처에 직접 전달 시 type error 발생 (negative fixture 추가)
 
-## 5. Phase 2 — Layer B (Action Contract Source 표식 + Mismatch Guard)
+## 5. Phase 2 — Layer B (진입점 2 갈래 분리)
+
+> **Codex round 2 review #1 정정 (2026-05-15)**: 기존 `ApplyPageFrameBindingInput` + `source: "selection" \| "explicit-context"` 단일 진입점 + source 표식 디자인은 본문 Decision (2 진입점 분리) 과 충돌. **selection 경로는 snapshot 만 받고 pageId 는 내부 currentPageId 에서 파생, explicit 경로만 명시 pageId 허용** 으로 정정.
 
 ### 5-1. 변경 대상
 
-| 파일                                                                            | 변경                                                                                                                                                                                                                                                                |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/builder/src/adapters/canonical/pageFrameBinding.ts`                       | `ApplyPageFrameBindingInput` 에 `source: "selection" \| "explicit-context"` 추가 / `applyPageFrameBindingCanonicalPrimary` 내부에 `source === "selection"` 시 `getElementsState().currentPageId === pageId` 일치 검증 + 불일치 시 dev `console.error` + commit 차단 |
-| `apps/builder/src/builder/stores/elements.ts` (or 별도 page-bound action slice) | 신규 store action `applyPageFrameBinding({ frameId, source })` 래퍼 — 내부에서 caller pageId 전달 + source 표식                                                                                                                                                     |
+| 파일                                                                            | 변경                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/builder/src/adapters/canonical/pageFrameBinding.ts`                       | 기존 `applyPageFrameBindingCanonicalPrimary({ pageId, ... })` 단일 진입점 제거 / 신규 `applyPageFrameBindingFromSelection({ snapshot, frameId, ... })` selection 경로 + `applyPageFrameBindingExplicit({ pageId, contextReason, frameId, ... })` explicit 경로 2 진입점 분리. selection 경로 내부는 snapshot.currentPageId 직접 사용 |
+| `apps/builder/src/builder/stores/elements.ts` (or 별도 page-bound action slice) | 신규 store action 2 갈래: `applyPageFrameBindingFromSelection(frameId)` (handler 안에서 snapshot 생성 후 호출) + `applyPageFrameBindingExplicit({ pageId, contextReason, frameId })` (projection / editing context 전용)                                                                                                             |
 
 ### 5-2. 코드 예시 (의도)
 
 ```ts
-// pageFrameBinding.ts
-export interface ApplyPageFrameBindingInput {
-  pageId: string;
+// pageFrameBinding.ts — 진입점 2 갈래 분리, source 표식 제거
+export interface ApplyPageFrameBindingFromSelectionInput {
+  snapshot: ImmediateSelectionSnapshot; // pageId 명시 인자 없음
   frameId: string | null;
-  source: "selection" | "explicit-context";
   getElementsState: () => ElementsStateForPageBinding;
   setPages: (pages: Page[]) => void;
 }
 
-export async function applyPageFrameBindingCanonicalPrimary(
-  input: ApplyPageFrameBindingInput,
+export interface ApplyPageFrameBindingExplicitInput {
+  pageId: string; // explicit caller pageId
+  contextReason: string; // projection / editing context 등 사유 (telemetry / review)
+  frameId: string | null;
+  getElementsState: () => ElementsStateForPageBinding;
+  setPages: (pages: Page[]) => void;
+}
+
+// selection 경로 — caller stale pageId 진입 불가능
+export async function applyPageFrameBindingFromSelection(
+  input: ApplyPageFrameBindingFromSelectionInput,
 ): Promise<void> {
+  const targetPageId = input.snapshot.currentPageId;
+  if (targetPageId == null) return; // selection 없음
   const live = input.getElementsState();
-  if (input.source === "selection") {
-    if (live.currentPageId == null || live.currentPageId !== input.pageId) {
-      if (import.meta.env.DEV) {
-        console.error("[applyPageFrameBinding] stale target rejected", {
-          caller_pageId: input.pageId,
-          live_currentPageId: live.currentPageId,
-        });
-      }
-      return; // commit 차단
+  // snapshot 이 commit 시점에 생성됐으면 live 와 일치 — 추가 sanity check
+  if (live.currentPageId !== targetPageId) {
+    if (import.meta.env.DEV) {
+      console.error("[applyPageFrameBindingFromSelection] snapshot stale", {
+        snapshot_pageId: targetPageId,
+        live_currentPageId: live.currentPageId,
+      });
     }
+    return; // commit 차단
   }
-  // 기존 mutation 로직 (변경 없음)
+  // 기존 mutation 로직 — pageId = targetPageId 로 호출
+  // ...
+}
+
+// explicit 경로 — projection / editing context 전용. live mismatch 검증 skip.
+export async function applyPageFrameBindingExplicit(
+  input: ApplyPageFrameBindingExplicitInput,
+): Promise<void> {
+  if (import.meta.env.DEV) {
+    console.debug("[applyPageFrameBindingExplicit] explicit context", {
+      pageId: input.pageId,
+      contextReason: input.contextReason,
+    });
+  }
+  // 기존 mutation 로직 — pageId = input.pageId 로 호출 (검증 skip)
   // ...
 }
 ```
 
 ### 5-3. Gate G3
 
-- targeted vitest `pageFrameBinding.test.ts` round-trip 통과 (source 표식 포함)
-- 신규 fixture: `source: "selection"` + pageId mismatch → commit 차단 + 무 mutation
-- `source: "explicit-context"` 경로 → 검증 skip + 정상 commit
-- projection body roundtrip 회귀 0
+- targeted vitest `pageFrameBinding.test.ts` round-trip 통과 (2 진입점 분리 포함)
+- 신규 fixture A: `applyPageFrameBindingFromSelection` 의 snapshot.currentPageId 가 live currentPageId 와 mismatch → commit 차단 + 무 mutation
+- 신규 fixture B: `applyPageFrameBindingExplicit` 경로 → live currentPageId 무관 정상 commit (contextReason 기록 검증)
+- projection body roundtrip 회귀 0 (Explicit 경로 사용)
+- 구형 `applyPageFrameBindingCanonicalPrimary({ pageId, source })` API 호출처 0 (production grep gate)
 
 ## 6. Phase 3 — Layer C (규칙 명문화)
 

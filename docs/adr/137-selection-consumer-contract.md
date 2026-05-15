@@ -96,13 +96,13 @@ composition Builder 의 Page 선택 → Frame 속성 변경 흐름에서 **선�
 
 본 ADR 채택 후 이행 중 관리해야 할 잔존 운영 위험:
 
-| ID  | 위험                                                                                         | 심각도 | 대응                                                                                                                                                                      |
-| --- | -------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 신규 page-bound editor 추가 시 `source: "selection"` 표식 누락 → mismatch guard 미적용       |  MED   | Layer A brand (type-check) + Layer D contract test 가 자동 감지 (Gate G2/G5)                                                                                              |
-| R2  | projection body / explicit-context 케이스 분류 누락 → 정당한 경로가 mismatch guard 로 차단됨 |  MED   | Phase 5 회귀 fixture + Chrome MCP smoke (Gate G6)                                                                                                                         |
-| R3  | StylesPanel / EventsPanel deferred-chain commit race 잔존 (본 ADR 의 1차 응용 scope 밖)      |  LOW   | 후속 audit ADR 후보. Layer A brand 가 부분 차단 — 새 mutation 시그니처 강제                                                                                               |
-| R4  | opaque snapshot 이 `as` cast 누적 시 mutation API 검증 우회                                  |  LOW   | Layer D ESLint rule (선택 도입) + contract test 가 `as ImmediateSelectionSnapshot` AST 차단                                                                               |
-| R5  | Layer C 규칙 명문화가 LLM agent 의 신규 코드 생성 시 자동 적용 안 됨 (review 의존)           |  LOW   | `.agents/skills/composition-patterns/SKILL.md` (Codex 우선) + `.claude/skills/composition-patterns/SKILL.md` (legacy) CRITICAL 규칙 entry — 양쪽 agent prompt 진입점 보장 |
+| ID  | 위험                                                                                                                                                                | 심각도 | 대응                                                                                                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 신규 page-bound editor 추가 시 진입점 분류 누락 (selection 경로용 `applyPageFrameBindingFromSelection` 대신 explicit API 오용 / 또는 reverse) → mismatch guard 우회 |  MED   | Layer A opaque snapshot 진입점 (type-check) + Layer D contract test 가 자동 감지 (Gate G2/G5). `applyPageFrameBindingExplicit` 의 `contextReason` 인자 누락 시 type error |
+| R2  | projection body / explicit-context 케이스 분류 누락 → 정당한 경로가 mismatch guard 로 차단됨                                                                        |  MED   | Phase 5 회귀 fixture + Chrome MCP smoke (Gate G6)                                                                                                                         |
+| R3  | StylesPanel / EventsPanel deferred-chain commit race 잔존 (본 ADR 의 1차 응용 scope 밖)                                                                             |  LOW   | 후속 audit ADR 후보. Layer A brand 가 부분 차단 — 새 mutation 시그니처 강제                                                                                               |
+| R4  | opaque snapshot 이 `as` cast 누적 시 mutation API 검증 우회                                                                                                         |  LOW   | Layer D ESLint rule (선택 도입) + contract test 가 `as ImmediateSelectionSnapshot` AST 차단                                                                               |
+| R5  | Layer C 규칙 명문화가 LLM agent 의 신규 코드 생성 시 자동 적용 안 됨 (review 의존)                                                                                  |  LOW   | `.agents/skills/composition-patterns/SKILL.md` (Codex 우선) + `.claude/skills/composition-patterns/SKILL.md` (legacy) CRITICAL 규칙 entry — 양쪽 agent prompt 진입점 보장 |
 
 R1+R2 가 동시에 HIGH 로 누적되면 Phase 5 진입 전 stop + Gate G6 재범위.
 
@@ -130,7 +130,7 @@ R1+R2 가 동시에 HIGH 로 누적되면 Phase 5 진입 전 stop + Gate G6 재�
 
 ### Negative
 
-- type brand 도입 학습 비용 — 신규 mutation handler 작성 시 `SelectedElement` vs `DeferredSelectedElement` 구분 의무
-- explicit-context 케이스 분류 의무 — 새 page-bound mutation 추가 시 `source: "selection" | "explicit-context"` 표식 강제. 사람이 분류 누락 시 R1 발현
+- opaque snapshot 진입점 학습 비용 — 신규 page-bound mutation handler 작성 시 `readImmediateSelectionSnapshot()` + `applyPageFrameBindingFromSelection(snapshot, ...)` 패턴 의무. `SelectedElement` / `DeferredSelectedElement` 진입 차단
+- 진입점 2 갈래 분류 의무 — 새 page-bound mutation 추가 시 `FromSelection` vs `Explicit` 진입점 선택 강제. explicit 경로 사용 시 `contextReason` 인자 명시 필수. 사람이 분류 누락 시 R1 발현
 - StylesPanel / EventsPanel commit race 의 본격 audit 는 본 ADR scope 외 — 후속 ADR 작성 부담 잔존
 - Phase 5 응용 정정이 PageParentSelector 의 동일 패턴 fix 까지 포함 → 작업량 +1 file (추정 5-7 file 범위 안)
