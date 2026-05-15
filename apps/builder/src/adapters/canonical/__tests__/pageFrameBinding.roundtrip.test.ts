@@ -7,7 +7,7 @@ import type {
 import type { Element, Page } from "@/types/builder/unified.types";
 
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-import { applyPageFrameBindingCanonicalPrimary } from "../pageFrameBinding";
+import { applyPageFrameBindingExplicit } from "../pageFrameBinding";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -117,8 +117,9 @@ describe("page frame binding roundtrip", () => {
     const elementsMap = new Map<string, Element>();
     const rebuildIndexes = vi.fn();
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: "page-1",
+      contextReason: "page-frame-binding-roundtrip-test",
       frameId: null,
       getElementsState: () => ({
         pages,
@@ -128,8 +129,9 @@ describe("page frame binding roundtrip", () => {
       setPages,
     });
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: "page-1",
+      contextReason: "page-frame-binding-roundtrip-test",
       frameId: "frame-1",
       getElementsState: () => ({
         pages,

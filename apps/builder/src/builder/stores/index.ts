@@ -10,7 +10,11 @@ import {
   createInspectorActionsSlice,
   InspectorActionsState,
 } from "./inspectorActions";
-import type { SelectedElement } from "../inspector/types";
+import type {
+  DeferredSelectedElement,
+  ImmediateSelectionSnapshot,
+  SelectedElement,
+} from "../inspector/types";
 import {
   isCanonicalRefElement,
   resolveCanonicalRefElement,
@@ -128,6 +132,20 @@ export const useSelectedElementProps = () =>
   useStore((state) => state.selectedElementProps);
 export const useCurrentPageId = () => useStore((state) => state.currentPageId);
 export const usePages = () => useStore((state) => state.pages);
+
+export function readImmediateSelectionSnapshot(): ImmediateSelectionSnapshot {
+  const state = useStore.getState();
+  return {
+    selectedElementId: state.selectedElementId,
+    currentPageId: state.currentPageId,
+  } as ImmediateSelectionSnapshot;
+}
+
+export const useImmediateSelectedElementId = (): string | null =>
+  useStore((state) => state.selectedElementId);
+
+export const useImmediateCurrentPageId = (): string | null =>
+  useStore((state) => state.currentPageId);
 
 function hasCanonicalRefMirror(element: Element | undefined): boolean {
   const ref = (element as (Element & { ref?: unknown }) | undefined)?.ref;
@@ -269,18 +287,28 @@ export const useSelectedElementData = (): SelectedElement | null => {
       unknown
     >;
 
-    return {
+    const dataBinding = getElementDataBinding(element, "legacy-only");
+    const selectedElement: SelectedElement = {
       id: element.id,
-      customId: element.customId,
       type: resolvedElement.type,
       properties: otherProps,
       style: (style as React.CSSProperties) || {},
-      computedStyle: computedStyle as Partial<React.CSSProperties> | undefined,
       semanticClasses: [],
       cssVariables: {},
-      dataBinding: getElementDataBinding(element, "legacy-only"),
       events: (events as SelectedElement["events"]) || [],
     };
+    if (element.customId !== undefined) {
+      selectedElement.customId = element.customId;
+    }
+    if (computedStyle !== undefined) {
+      selectedElement.computedStyle =
+        computedStyle as Partial<React.CSSProperties>;
+    }
+    if (dataBinding !== undefined) {
+      selectedElement.dataBinding =
+        dataBinding as unknown as SelectedElement["dataBinding"];
+    }
+    return selectedElement;
   }, [
     selectedElementId,
     selectedElementProps,
@@ -301,10 +329,11 @@ export const useSelectedElementData = (): SelectedElement | null => {
  *
  * @returns SelectedElement | null (지연됨)
  */
-export const useDebouncedSelectedElementData = (): SelectedElement | null => {
-  const currentData = useSelectedElementData();
-  return useDeferredValue(currentData);
-};
+export const useDebouncedSelectedElementData =
+  (): DeferredSelectedElement | null => {
+    const currentData = useSelectedElementData();
+    return useDeferredValue(currentData) as DeferredSelectedElement | null;
+  };
 
 /**
  * 🚀 Phase 4.5: useDeferredValue 기반 선택 요소 ID

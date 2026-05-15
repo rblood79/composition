@@ -16,6 +16,15 @@ skill만 여세요.
 | `react-aria`           | [react-aria/SKILL.md](react-aria/SKILL.md)                     | React Aria API/접근성 reference             | 해당 component reference               |
 | `react-spectrum`       | [react-spectrum/SKILL.md](react-spectrum/SKILL.md)             | Spectrum Props/API reference                | 해당 component reference               |
 
+## Selection Consumer Contract
+
+- ADR-137 page-bound mutation 규칙은
+  [state-management.md](../rules/state-management.md)와
+  [composition-patterns](composition-patterns/SKILL.md)를 함께 적용합니다.
+- display-only deferred selection과 effectful page-bound write를 분리합니다.
+  page-bound write는 `ImmediateSelectionSnapshot` 기반 FromSelection 진입점 또는
+  `contextReason`이 있는 Explicit 진입점 중 하나로 분류해야 합니다.
+
 ## Claude Command Aliases
 
 | 예전 표현      | Codex 사용 방식                                              |

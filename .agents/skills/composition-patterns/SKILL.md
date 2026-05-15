@@ -35,6 +35,12 @@ composition 코드 작업의 rule index입니다. 이 파일은 routing용으로
 
 - Element tree 변경은 direct consumer뿐 아니라 selection, history, preview sync,
   layout, persistence consumer를 함께 감사합니다.
+- Selection Consumer Contract (ADR-137): page-bound mutation은
+  `SelectedElement`/deferred inspector data에서 pageId를 캡처하지 않습니다.
+  selection 경로는 commit 시점 `readImmediateSelectionSnapshot()` +
+  `apply*FromSelection(snapshot, ...)`, projection/editing context는
+  `apply*Explicit({ pageId, contextReason, ... })`로 분리합니다. stale
+  deferred page mismatch 상태에서는 page-bound controls를 hide/disable합니다.
 - canonical `CompositionDocument.children[]`가 runtime order SSOT입니다.
   `Element.order_num`, `pages.order_num`, `layouts.order_num`은 runtime
   read/write source가 아닙니다. 새 Element, page/layout shell, history,

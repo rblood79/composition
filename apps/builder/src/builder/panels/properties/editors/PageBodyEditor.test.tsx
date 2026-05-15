@@ -7,8 +7,22 @@ import { useStore } from "../../../stores";
 import { PageBodyEditor } from "./PageBodyEditor";
 
 vi.mock("./PageLayoutSelector", () => ({
-  PageLayoutSelector: ({ pageId }: { pageId: string }) => (
-    <div data-testid="layout-page">{pageId}</div>
+  PageLayoutSelector: ({
+    pageId,
+    bindingMode,
+    contextReason,
+  }: {
+    pageId: string;
+    bindingMode?: string;
+    contextReason?: string;
+  }) => (
+    <div
+      data-testid="layout-page"
+      data-binding-mode={bindingMode}
+      data-context-reason={contextReason}
+    >
+      {pageId}
+    </div>
   ),
 }));
 
@@ -48,10 +62,10 @@ describe("PageBodyEditor page target", () => {
     cleanup();
   });
 
-  it("page body가 선택되면 전역 currentPageId보다 element.page_id를 frame 적용 대상으로 우선한다", () => {
+  it("page body가 live currentPageId와 일치하면 element.page_id를 page-bound editor 대상으로 사용한다", () => {
     const body = makeBodyElement("body-page-1", "page-1");
     useStore.setState({
-      currentPageId: "page-2",
+      currentPageId: "page-1",
       elements: [body],
       elementsMap: new Map([[body.id, body]]),
     } as never);
@@ -68,8 +82,30 @@ describe("PageBodyEditor page target", () => {
     expect(screen.getByTestId("parent-page").textContent).toBe("page-1");
   });
 
+  it("deferred stale page body가 live currentPageId와 다르면 page-bound editor를 숨긴다", () => {
+    const body = makeBodyElement("body-page-1", "page-1");
+    useStore.setState({
+      currentPageId: "page-2",
+      elements: [body],
+      elementsMap: new Map([[body.id, body]]),
+    } as never);
+
+    render(
+      <PageBodyEditor
+        elementId={body.id}
+        currentProps={{}}
+        onUpdate={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId("layout-page")).toBeNull();
+    expect(screen.queryByTestId("parent-page")).toBeNull();
+  });
+
   it("frame/projection body처럼 page_id가 없으면 currentPageId를 fallback 대상으로 사용한다", () => {
-    const body = makeBodyElement("frame-body", null, { layout_id: "frame-1" });
+    const body = makeBodyElement("frame-body", null, {
+      layout_id: "frame-1",
+    } as Partial<Element>);
     useStore.setState({
       currentPageId: "page-2",
       elements: [body],
@@ -85,6 +121,12 @@ describe("PageBodyEditor page target", () => {
     );
 
     expect(screen.getByTestId("layout-page").textContent).toBe("page-2");
+    expect(
+      screen.getByTestId("layout-page").getAttribute("data-binding-mode"),
+    ).toBe("explicit");
+    expect(
+      screen.getByTestId("layout-page").getAttribute("data-context-reason"),
+    ).toBe("projection-body");
     expect(screen.getByTestId("parent-page").textContent).toBe("page-2");
   });
 });

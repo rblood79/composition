@@ -8,6 +8,13 @@ Codex용 상태 관리 규칙 엔트리포인트입니다.
 핵심:
 
 - 파이프라인 순서 보존: Memory → Index → History → DB → Preview → Rebalance
+- Selection Consumer Contract (ADR-137): page-bound mutation은 deferred
+  selection/display 값을 받지 않는다. Properties/Inspector 표시에는
+  `useDebouncedSelectedElementData()`를 사용할 수 있지만, effectful page-bound
+  write는 commit 시점 `readImmediateSelectionSnapshot()`으로 snapshot을 만들고
+  `apply*FromSelection(snapshot, ...)` 진입점으로만 호출한다. projection body,
+  frame editing context처럼 명시 page context가 필요한 경우만
+  `apply*Explicit({ pageId, contextReason, ... })`를 사용한다.
 - store update와 preview sync, persistence를 분리해서 본다.
 - project-state DB persistence는 canonical `db.documents`만 사용한다.
   `db.pages`, `db.elements`, `db.layouts` local mirror read/write는 제거된

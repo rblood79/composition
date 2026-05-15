@@ -7,7 +7,14 @@ import type {
 import type { Element, Page } from "@/types/builder/unified.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { canonicalDocumentToElements } from "../../../builder/stores/canonical/canonicalElementsView";
-import { applyPageFrameBindingCanonicalPrimary } from "../pageFrameBinding";
+import {
+  readImmediateSelectionSnapshot,
+  useStore,
+} from "../../../builder/stores";
+import {
+  applyPageFrameBindingExplicit,
+  applyPageFrameBindingFromSelection,
+} from "../pageFrameBinding";
 import { exportLegacyDocument } from "../exportLegacyDocument";
 
 const mocks = vi.hoisted(() => ({
@@ -105,6 +112,74 @@ describe("pageFrameBinding canonical primary helper", () => {
       currentProjectId: null,
       documentVersion: 0,
     });
+    useStore.setState({
+      currentPageId: null,
+      selectedElementId: null,
+    } as never);
+  });
+
+  it("selection entrypoint applies the frame to the live current page only", async () => {
+    const pageA = makePage("page-a");
+    const pageB = makePage("page-b");
+    const state = {
+      pages: [pageA, pageB],
+      currentPageId: "page-b",
+      elementsMap: new Map<string, Element>(),
+    } as Parameters<typeof applyPageFrameBindingFromSelection>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+    const setPages = vi.fn();
+    useStore.setState({
+      currentPageId: "page-b",
+      selectedElementId: "page-b-body",
+    } as never);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDoc([makeFrameNode("frame-2")]));
+
+    await applyPageFrameBindingFromSelection({
+      snapshot: readImmediateSelectionSnapshot(),
+      frameId: "frame-2",
+      getElementsState: () => state,
+      setPages,
+    });
+
+    expect(setPages).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "page-a", layout_id: null }),
+      expect.objectContaining({ id: "page-b", layout_id: "frame-2" }),
+    ]);
+  });
+
+  it("selection entrypoint skips mutation when the snapshot is stale", async () => {
+    const pageA = makePage("page-a");
+    const pageB = makePage("page-b");
+    const setPages = vi.fn();
+    useStore.setState({
+      currentPageId: "page-a",
+      selectedElementId: "page-a-body",
+    } as never);
+    const snapshot = readImmediateSelectionSnapshot();
+    const state = {
+      pages: [pageA, pageB],
+      currentPageId: "page-b",
+      elementsMap: new Map<string, Element>(),
+    } as Parameters<typeof applyPageFrameBindingFromSelection>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+
+    await applyPageFrameBindingFromSelection({
+      snapshot,
+      frameId: "frame-2",
+      getElementsState: () => state,
+      setPages,
+    });
+
+    expect(setPages).not.toHaveBeenCalled();
   });
 
   it("updates page binding without rewriting the reusable frame subtree", async () => {
@@ -112,7 +187,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     const state = {
       pages: [page],
       elementsMap: new Map<string, Element>(),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -139,8 +214,9 @@ describe("pageFrameBinding canonical primary helper", () => {
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", baseDoc);
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: "frame-1",
       getElementsState: () => state,
       setPages,
@@ -188,7 +264,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     const state = {
       pages: [page],
       elementsMap: new Map<string, Element>(),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -224,8 +300,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: null,
       getElementsState: () => state,
       setPages,
@@ -295,7 +372,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     const state = {
       pages: [page],
       elementsMap: new Map<string, Element>(),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -306,8 +383,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeFrameNode(), existingPageNode]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: "frame-1",
       getElementsState: () => state,
       setPages,
@@ -380,7 +458,7 @@ describe("pageFrameBinding canonical primary helper", () => {
           elements.map((element) => [element.id, element]),
         );
       }),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -410,8 +488,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: null,
       getElementsState: () => state,
       setPages,
@@ -431,7 +510,7 @@ describe("pageFrameBinding canonical primary helper", () => {
       elementsMap: new Map<string, Element>([
         ["frame-body", makeElement("frame-body")],
       ]),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -453,8 +532,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: null,
       getElementsState: () => state,
       setPages,
@@ -498,7 +578,7 @@ describe("pageFrameBinding canonical primary helper", () => {
         [hydratedPageBody.id, hydratedPageBody],
         ["frame-body", makeElement("frame-body")],
       ]),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -520,8 +600,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: null,
       getElementsState: () => state,
       setPages,
@@ -580,7 +661,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     const state = {
       pages: [page],
       elementsMap: new Map<string, Element>(),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -603,8 +684,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: null,
       getElementsState: () => state,
       setPages,
@@ -650,7 +732,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     const state = {
       pages: [page],
       elementsMap: new Map<string, Element>(),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -661,8 +743,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeNativeFrameNode()]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: "frame-native",
       getElementsState: () => state,
       setPages,
@@ -689,7 +772,7 @@ describe("pageFrameBinding canonical primary helper", () => {
     const state = {
       pages: [page],
       elementsMap: new Map<string, Element>(),
-    } as Parameters<typeof applyPageFrameBindingCanonicalPrimary>[0] extends {
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
       getElementsState: () => infer S;
     }
       ? S
@@ -700,8 +783,9 @@ describe("pageFrameBinding canonical primary helper", () => {
       .getState()
       .setDocument("project-1", makeDoc([makeFrameNode("frame-2")]));
 
-    await applyPageFrameBindingCanonicalPrimary({
+    await applyPageFrameBindingExplicit({
       pageId: page.id,
+      contextReason: "page-frame-binding-test",
       frameId: "frame-2",
       getElementsState: () => state,
       setPages,

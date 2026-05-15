@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-137 Selection Consumer Contract] - 2026-05-15
+
+### Bug Fixes
+
+- **Page Frame 속성이 다른 Page에 적용되는 stale selection race 수정**:
+  - Page A에서 Page B로 선택 직후 Properties > Frame 변경 시 이전 deferred `selectedElement.page_id`와 stale handler `pageId` closure가 Page A를 갱신하던 경로를 제거했다.
+  - PageBodyEditor는 deferred element page와 live `currentPageId`가 mismatch인 stale window에서 PageLayoutSelector/PageParentSelector를 숨긴다.
+  - PageLayoutSelector는 commit 시점 `readImmediateSelectionSnapshot()`을 읽어 `applyPageFrameBindingFromSelection`으로만 frame binding을 변경한다.
+
+### Architecture
+
+- **ADR-137 Implemented — Selection Consumer Contract**:
+  - `ImmediateSelectionSnapshot` opaque type, `DeferredSelectedElement` display marker, `readImmediateSelectionSnapshot()` helper를 추가했다.
+  - page-frame binding write API를 `applyPageFrameBindingFromSelection({ snapshot, ... })`와 `applyPageFrameBindingExplicit({ pageId, contextReason, ... })`로 분리했다.
+  - `.agents/*` Codex 우선 규칙과 `.claude/*` legacy 규칙에 page-bound mutation contract를 반영했다.
+  - 검증: targeted Vitest 5 files / 19 tests PASS, `pnpm run codex:preflight` PASS, browser quick check errors 0 / warnings 4, baseline 550 유지.
+
 ## [ADR-136 Scene Projection Version SSOT Hardening] - 2026-05-15
 
 ### Architecture

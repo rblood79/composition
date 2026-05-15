@@ -66,6 +66,18 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 
 ### CRITICAL (즉시 적용 필수)
 
+#### Selection Consumer Contract (ADR-137)
+
+- Page-bound mutation은 deferred inspector selection/display data에서 pageId를
+  캡처하지 않는다.
+- Selection 경로는 commit 시점 `readImmediateSelectionSnapshot()`으로 만든
+  `ImmediateSelectionSnapshot`과 `apply*FromSelection(snapshot, ...)` 진입점을
+  사용한다.
+- Projection body / frame editing context처럼 명시 page context가 정당한 경로만
+  `apply*Explicit({ pageId, contextReason, ... })`를 사용한다.
+- Deferred `element.page_id`와 live `currentPageId`가 mismatch인 stale window에서는
+  page-bound controls를 hide/disable한다.
+
 #### Domain (domain-\*)
 
 - **[domain-element-hierarchy](rules/domain-element-hierarchy.md)** - Element 계층 구조

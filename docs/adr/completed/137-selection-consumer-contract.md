@@ -2,7 +2,12 @@
 
 ## Status
 
-Proposed — 2026-05-15
+Implemented — 2026-05-15
+
+## Progress Log
+
+- 2026-05-15 — Implemented execution approved. Promoted from Proposed to In Progress to satisfy execute-adr Phase 0 entry criteria.
+- 2026-05-15 — Phase 0-6 land complete. Added `ImmediateSelectionSnapshot`, split page-frame binding into selection/explicit entrypoints, documented `.agents/*` + `.claude/*` contract, added regression tests, fixed stale PageBodyEditor/PageLayoutSelector/PageParentSelector paths, and promoted to Implemented.
 
 ## Context
 
@@ -90,7 +95,15 @@ composition Builder 의 Page 선택 → Frame 속성 변경 흐름에서 **선�
 - **대안 A 기각**: 유지보수 HIGH — 사용자 정황 "동일 오류 반복" 이 정확히 이 패턴의 재현. 신규 page-bound editor 추가 시 guard 누락 강제 메커니즘 부재. 사람-리뷰 의존만으로는 review-fatigue 누적 → 회귀 직결.
 - **대안 C 기각**: scope inflation 1.5x 이상 + projection body / IndexedDB hydration migration 회귀 위험 HIGH. ambiguity 자체 제거는 더 큰 reframing → 별도 ADR 후보 (본 ADR 의 후속 작업으로 분리 가능).
 
-> 구현 상세: [137-selection-consumer-contract-breakdown.md](design/137-selection-consumer-contract-breakdown.md)
+> 구현 상세: [137-selection-consumer-contract-breakdown.md](../design/137-selection-consumer-contract-breakdown.md)
+
+## Implementation Notes
+
+- Layer A: `ImmediateSelectionSnapshot` / `DeferredSelectedElement` types and `readImmediateSelectionSnapshot()` non-subscription helper landed.
+- Layer B: `applyPageFrameBindingFromSelection({ snapshot, ... })` and `applyPageFrameBindingExplicit({ pageId, contextReason, ... })` landed; the legacy `applyPageFrameBindingCanonicalPrimary` caller surface was removed.
+- Layer C: Codex-first `.agents/*` rules and legacy `.claude/*` references now document the Selection Consumer Contract.
+- Layer D / Phase 5: targeted Vitest covers the selection contract, page-frame binding selection/explicit behavior, PageBodyEditor stale mismatch invariant, PageLayoutSelector static contract, and projection roundtrip.
+- Verification: targeted Vitest 5 files / 19 tests PASS, `pnpm run codex:preflight` PASS, browser quick check errors 0 / warnings 4. Full authenticated Page A -> Page B UI smoke was not run because no seeded project/browser state was available in this pass.
 
 ## Risks
 

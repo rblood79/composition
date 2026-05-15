@@ -1,6 +1,6 @@
 # ADR-137 Design Breakdown — Selection Consumer Contract
 
-> **본 문서는 ADR-137 의 구현 상세** (Phase / 파일 변경표 / 코드 예시 / 검증 절차) 만 보관한다. 결정 / 위험 / Gates 는 [`../137-selection-consumer-contract.md`](../137-selection-consumer-contract.md) 본문 참조.
+> **본 문서는 ADR-137 의 구현 상세** (Phase / 파일 변경표 / 코드 예시 / 검증 절차) 만 보관한다. 결정 / 위험 / Gates 는 [`../completed/137-selection-consumer-contract.md`](../completed/137-selection-consumer-contract.md) 본문 참조.
 
 ## 1. ADR fork 관점 점검 (4 질문 lock-in — `.claude/rules/adr-writing.md` §"4 질문 통과 절차")
 
@@ -24,6 +24,8 @@
 | **Phase 4** | Layer D 검증 인프라 — contract test + UI invariant test              | `selectionConsumerContract.test.ts` 신설 (page-bound mutation 시그니처가 `ImmediateSelectionSnapshot` opaque 만 받음, `SelectedElement`/`DeferredSelectedElement` 전달 시 type error) + UI invariant test                    | G5   |
 | **Phase 5** | 응용 정정 — PageBodyEditor / PageLayoutSelector / PageParentSelector | handler closure 정정 (snapshot 기반 호출로 전환) + UI invariant (deferred page_id vs live currentPageId mismatch 시 page-bound editor hide/disable)                                                                          | G6   |
 | **Phase 6** | Implemented 승격 + README / CHANGELOG                                | 재현 시나리오 + projection body 회귀 fixture + Chrome MCP 시각 검증 통과 후                                                                                                                                                  | G7   |
+
+**Implementation status (2026-05-15)**: Phase 0-6 land complete. Chrome MCP visual smoke was not run in this pass; the stale-window and projection-body behaviors are covered by targeted Vitest/static fixtures and full codex gates.
 
 ## 3. Phase 0 — Audit Lock-in
 

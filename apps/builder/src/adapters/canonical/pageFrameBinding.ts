@@ -4,6 +4,7 @@ import type {
   FrameNode,
   RefNode,
 } from "@composition/shared";
+import type { ImmediateSelectionSnapshot } from "../../builder/inspector/types";
 import type { Element, Page } from "@/types/builder/unified.types";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import { getDB } from "../../lib/db";
@@ -23,12 +24,28 @@ export { getPageFrameBindingId } from "./frameMirror";
 
 interface ElementsStateForPageBinding {
   pages: Page[];
+  currentPageId?: string | null;
   elementsMap?: ReadonlyMap<string, Element>;
   _rebuildIndexes?: () => void;
 }
 
-export interface ApplyPageFrameBindingInput {
+interface ApplyPageFrameBindingForPageIdInput {
   pageId: string;
+  frameId: string | null;
+  getElementsState: () => ElementsStateForPageBinding;
+  setPages: (pages: Page[]) => void;
+}
+
+export interface ApplyPageFrameBindingFromSelectionInput {
+  snapshot: ImmediateSelectionSnapshot;
+  frameId: string | null;
+  getElementsState: () => ElementsStateForPageBinding;
+  setPages: (pages: Page[]) => void;
+}
+
+export interface ApplyPageFrameBindingExplicitInput {
+  pageId: string;
+  contextReason: string;
   frameId: string | null;
   getElementsState: () => ElementsStateForPageBinding;
   setPages: (pages: Page[]) => void;
@@ -385,12 +402,12 @@ async function persistPageFrameBindingMirror(
   });
 }
 
-export async function applyPageFrameBindingCanonicalPrimary({
+async function applyPageFrameBindingForPageId({
   pageId,
   frameId,
   getElementsState,
   setPages,
-}: ApplyPageFrameBindingInput): Promise<void> {
+}: ApplyPageFrameBindingForPageIdInput): Promise<void> {
   const state = getElementsState();
   const { elementsMap: legacyElementsMap } = state;
   const updatedPages = state.pages.map((page) =>
@@ -409,4 +426,46 @@ export async function applyPageFrameBindingCanonicalPrimary({
   state._rebuildIndexes?.();
   setPages(updatedPages);
   await persistPageFrameBindingMirror(pageId, frameId, updatedPage);
+}
+
+export async function applyPageFrameBindingFromSelection({
+  snapshot,
+  frameId,
+  getElementsState,
+  setPages,
+}: ApplyPageFrameBindingFromSelectionInput): Promise<void> {
+  const targetPageId = snapshot.currentPageId;
+  if (!targetPageId) return;
+
+  const state = getElementsState();
+  if (state.currentPageId !== targetPageId) {
+    if (import.meta.env.DEV) {
+      console.warn("[applyPageFrameBindingFromSelection] stale snapshot", {
+        snapshotCurrentPageId: targetPageId,
+        liveCurrentPageId: state.currentPageId,
+      });
+    }
+    return;
+  }
+
+  await applyPageFrameBindingForPageId({
+    pageId: targetPageId,
+    frameId,
+    getElementsState: () => state,
+    setPages,
+  });
+}
+
+export async function applyPageFrameBindingExplicit({
+  pageId,
+  frameId,
+  getElementsState,
+  setPages,
+}: ApplyPageFrameBindingExplicitInput): Promise<void> {
+  await applyPageFrameBindingForPageId({
+    pageId,
+    frameId,
+    getElementsState,
+    setPages,
+  });
 }

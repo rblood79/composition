@@ -45,6 +45,20 @@ export interface SelectedElement {
   events?: EventHandler[];
 }
 
+declare const IMMEDIATE_SELECTION_SNAPSHOT_BRAND: unique symbol;
+
+export interface ImmediateSelectionSnapshot {
+  readonly [IMMEDIATE_SELECTION_SNAPSHOT_BRAND]: true;
+  readonly selectedElementId: string | null;
+  readonly currentPageId: string | null;
+}
+
+declare const DEFERRED_SELECTED_ELEMENT_BRAND: unique symbol;
+
+export type DeferredSelectedElement = SelectedElement & {
+  readonly [DEFERRED_SELECTED_ELEMENT_BRAND]: true;
+};
+
 /**
  * 데이터 바인딩 타입
  */

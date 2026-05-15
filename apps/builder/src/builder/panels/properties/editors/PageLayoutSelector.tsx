@@ -10,20 +10,25 @@
 import { memo, useMemo, useCallback } from "react";
 import { Layout, X } from "lucide-react";
 import { PropertySelect, PropertySection } from "../../../components";
-import { useStore } from "../../../stores";
+import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import { useCanonicalReusableFrameLayouts } from "../../../stores/canonical/canonicalFrameStore";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 import {
-  applyPageFrameBindingCanonicalPrimary,
+  applyPageFrameBindingExplicit,
+  applyPageFrameBindingFromSelection,
   getPageFrameBindingId,
 } from "../../../../adapters/canonical/pageFrameBinding";
 
 interface PageLayoutSelectorProps {
   pageId: string;
+  bindingMode?: "selection" | "explicit";
+  contextReason?: string;
 }
 
 export const PageLayoutSelector = memo(function PageLayoutSelector({
   pageId,
+  bindingMode = "selection",
+  contextReason = "page-layout-selector",
 }: PageLayoutSelectorProps) {
   const page = useStore((state) => state.pages.find((p) => p.id === pageId));
   const layouts = useCanonicalReusableFrameLayouts();
@@ -57,8 +62,20 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
     async (frameId: string) => {
       try {
         const state = useStore.getState();
-        await applyPageFrameBindingCanonicalPrimary({
-          pageId,
+        if (bindingMode === "explicit") {
+          await applyPageFrameBindingExplicit({
+            pageId,
+            contextReason,
+            frameId: frameId || null,
+            getElementsState: () => useStore.getState(),
+            setPages: state.setPages,
+          });
+          return;
+        }
+
+        const snapshot = readImmediateSelectionSnapshot();
+        await applyPageFrameBindingFromSelection({
+          snapshot,
           frameId: frameId || null,
           getElementsState: () => useStore.getState(),
           setPages: state.setPages,
@@ -70,7 +87,7 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
         );
       }
     },
-    [pageId],
+    [bindingMode, contextReason, pageId],
   );
 
   if (reusableFrames.length === 0) return null;

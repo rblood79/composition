@@ -35,11 +35,19 @@ export const PageBodyEditor = memo(
       [element?.customId],
     );
 
-    // Page body가 선택된 경우에는 element.page_id가 적용 대상의 정본이다.
+    // Page body는 live currentPageId와 일치할 때만 page-bound controls를 노출한다.
     // Frame/projection body처럼 page_id가 없는 경우에만 현재 편집 page로 fallback한다.
     const currentPageId = useStore((state) => state.currentPageId);
     const selectedElementPageId = element?.page_id ?? null;
-    const targetPageId = selectedElementPageId ?? currentPageId;
+    const hasStalePageMismatch =
+      selectedElementPageId != null &&
+      currentPageId != null &&
+      selectedElementPageId !== currentPageId;
+    const targetPageId = hasStalePageMismatch
+      ? null
+      : (selectedElementPageId ?? currentPageId);
+    const isExplicitPageContext =
+      selectedElementPageId == null && targetPageId != null;
 
     // ⭐ 최적화: 각 필드별 onChange 함수를 개별 메모이제이션
     const handleClassNameChange = useCallback(
@@ -52,7 +60,16 @@ export const PageBodyEditor = memo(
     return (
       <>
         {/* ⭐ Page 전용: Layout 선택 */}
-        {targetPageId && <PageLayoutSelector pageId={targetPageId} />}
+        {targetPageId &&
+          (isExplicitPageContext ? (
+            <PageLayoutSelector
+              pageId={targetPageId}
+              bindingMode="explicit"
+              contextReason="projection-body"
+            />
+          ) : (
+            <PageLayoutSelector pageId={targetPageId} />
+          ))}
 
         {/* ⭐ Nested Routes & Slug System: Parent Page 선택 */}
         {targetPageId && <PageParentSelector pageId={targetPageId} />}

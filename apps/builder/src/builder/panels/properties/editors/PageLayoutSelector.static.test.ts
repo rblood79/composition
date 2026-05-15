@@ -3,15 +3,19 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("PageLayoutSelector frame binding persistence contract", () => {
-  it("delegates frame binding writes to the canonical primary adapter", async () => {
+  it("delegates frame binding writes through the ADR-137 selection consumer contract", async () => {
     const source = await readFile(
       resolve(__dirname, "PageLayoutSelector.tsx"),
       "utf-8",
     );
 
-    expect(source).toContain("applyPageFrameBindingCanonicalPrimary");
-    expect(source).toMatch(
-      /await applyPageFrameBindingCanonicalPrimary\(\{\s*pageId,/,
+    expect(source).toContain("readImmediateSelectionSnapshot");
+    expect(source).toContain("applyPageFrameBindingFromSelection");
+    expect(source).toContain("applyPageFrameBindingExplicit");
+    expect(source).toMatch(/readImmediateSelectionSnapshot\(\)/);
+    expect(source).not.toContain("applyPageFrameBindingCanonicalPrimary");
+    expect(source).not.toMatch(
+      /await applyPageFrameBindingFromSelection\(\{\s*pageId,/,
     );
     expect(source).not.toMatch(/LEGACY_LAYOUT_ID_FIELD/);
     expect(source).not.toMatch(/withLegacyLayoutId/);

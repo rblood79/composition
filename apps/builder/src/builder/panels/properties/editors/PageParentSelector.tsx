@@ -11,7 +11,7 @@ import {
   PropertySection,
   PropertyInput,
 } from "../../../components";
-import { useStore } from "../../../stores";
+import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import { getDB } from "../../../../lib/db";
 import {
   hasCircularReference,
@@ -37,6 +37,19 @@ interface PageParentSelectorProps {
 }
 
 const MAX_NESTING_DEPTH = 5;
+
+function warnStalePageBoundMutation(
+  action: string,
+  pageId: string,
+  livePageId: string | null,
+): void {
+  if (import.meta.env.DEV) {
+    console.warn(`[PageParentSelector] skipped stale ${action}`, {
+      pageId,
+      livePageId,
+    });
+  }
+}
 
 function toUrlPage(page: Page) {
   return withPageFrameBinding(
@@ -79,14 +92,7 @@ export const PageParentSelector = memo(function PageParentSelector({
 
     return generatePageUrl({
       page: toUrlPage(page),
-      layout: layout
-        ? {
-            id: layout.id,
-            name: layout.name,
-            project_id: layout.project_id,
-            slug: layout.slug || undefined,
-          }
-        : null,
+      layout: layout ? { slug: layout.slug ?? null } : null,
       allPages: pages.map(toUrlPage),
     });
   }, [page, pages, layouts]);
@@ -124,9 +130,16 @@ export const PageParentSelector = memo(function PageParentSelector({
 
   const handleParentChange = useCallback(
     async (newParentId: string) => {
+      const snapshot = readImmediateSelectionSnapshot();
+      const targetPageId = snapshot.currentPageId;
+      if (!targetPageId || targetPageId !== pageId) {
+        warnStalePageBoundMutation("parent change", pageId, targetPageId);
+        return;
+      }
+
       if (
         newParentId &&
-        hasCircularReference(pageId, newParentId, pages.map(toUrlPage))
+        hasCircularReference(targetPageId, newParentId, pages.map(toUrlPage))
       ) {
         console.error("[PageParentSelector] Circular reference detected");
         return;
@@ -136,7 +149,7 @@ export const PageParentSelector = memo(function PageParentSelector({
         const { pages: currentPages, setPages } = useStore.getState();
 
         const updatedPages = currentPages.map((p) =>
-          p.id === pageId ? { ...p, parent_id: newParentId || null } : p,
+          p.id === targetPageId ? { ...p, parent_id: newParentId || null } : p,
         );
         setPages(updatedPages);
 
@@ -160,6 +173,13 @@ export const PageParentSelector = memo(function PageParentSelector({
 
   const handleSlugChange = useCallback(
     async (newSlug: string) => {
+      const snapshot = readImmediateSelectionSnapshot();
+      const targetPageId = snapshot.currentPageId;
+      if (!targetPageId || targetPageId !== pageId) {
+        warnStalePageBoundMutation("slug change", pageId, targetPageId);
+        return;
+      }
+
       const validation = validateSlug(newSlug);
       if (!validation.valid) {
         setSlugError(validation.error || "Invalid slug");
@@ -171,7 +191,7 @@ export const PageParentSelector = memo(function PageParentSelector({
         const { pages: currentPages, setPages } = useStore.getState();
 
         const updatedPages = currentPages.map((p) =>
-          p.id === pageId ? { ...p, slug: newSlug || "" } : p,
+          p.id === targetPageId ? { ...p, slug: newSlug || "" } : p,
         );
         setPages(updatedPages);
 

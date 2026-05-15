@@ -37,6 +37,13 @@ globs:
 
 - 상태 변경 전 히스토리 기록 필수 (Undo/Redo). **Why**: 기록 없이 변경 시 되돌리기 불가
 - Stale closure 방지: setTimeout/queueMicrotask 안에서 `get()`으로 최신 상태 참조. **Why**: 외부 캡처 변수 stale
+- Selection Consumer Contract (ADR-137): page-bound mutation은 deferred
+  `SelectedElement`/inspector display data에서 pageId를 캡처하지 않는다.
+  selection 경로는 commit 시점 `readImmediateSelectionSnapshot()`으로 만든
+  `ImmediateSelectionSnapshot`을 `apply*FromSelection(snapshot, ...)`에 전달하고,
+  projection body/frame editing context는 `apply*Explicit({ pageId, contextReason,
+... })`만 사용한다. stale deferred page mismatch 상태에서는 page-bound controls를
+  hide/disable한다.
 - DB 저장 시 merged 전체 props 저장 (delta만 저장 금지). **Why**: 새로고침 후 미포함 props 소실
 - 요소 삭제 후 `pageElementsSnapshot` 갱신 필수. **Why**: 미갱신 시 레이어 패널에 유령 항목
 
