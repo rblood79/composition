@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `collectVisibleFrameRoots()`의 `renderNodesMap -> sceneNodesMap` fallback을 제거했다. downstream frame root 수집은 확정 render model인 `renderNodesMap`만 authoritative source로 사용한다.
   - Skia/render utility에 `renderNodesMap.get(...) ?? sceneNodesMap.get(...)` fallback이 재도입되지 않도록 static gate를 추가했다. 단일 라인과 멀티라인 fallback fixture를 모두 차단한다.
   - ADR 본문을 `docs/adr/completed/136-scene-projection-version-ssot-hardening.md`로 이동하고 README 상태/카운트/변경 이력을 정합화했다.
-  - 검증: targeted Vitest 7 files / 30 tests PASS, `pnpm run codex:typecheck` PASS, `pnpm run codex:preflight` PASS.
+  - 검증: targeted Vitest 7 files / 27 tests PASS, `pnpm run codex:typecheck` PASS, `pnpm run codex:preflight` PASS.
 
 ## [Catch-up — D1+D2 dead surface 정리 (rootEventsToLegacyByTarget 제거 + CHANGELOG 아카이빙)] - 2026-05-15
 
