@@ -4,12 +4,12 @@
 
 ## 1. ADR fork 관점 점검 (4 질문 lock-in — `.claude/rules/adr-writing.md` §"4 질문 통과 절차")
 
-| 질문                          | 답                                                                                                                                                                                                                                                                                                                   |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. base / 응용 분류           | **base** ADR. 응용 = ADR-137 후속 phase (PageBodyEditor / PageLayoutSelector / PageParentSelector 정정) 또는 향후 별도 응용 ADR (StylesPanel / EventsPanel deferred-chain audit). 본 ADR 의 schema(typed accessor + action contract + 카테고리 분류 규약) 가 응용 ADR 의 prerequisite                                |
-| 2. schema 직교성              | Zustand selection state shape 변경 없음. **소비 규약** 만 추가. ADR-040 (Atomic Page Activation), ADR-074 (input pipeline SSOT), ADR-116 / ADR-122 (canonical-only-runtime) 의 selection 정의 그대로 사용 ✓                                                                                                          |
-| 3. 선행 ADR 전제 reverse 검증 | ADR-040 의 atomic page activation 패턴 / ADR-074 의 input 측 SSOT / ADR-116/122 canonical mirror — 모두 변경 없이 그대로 사용. reverse 부담 0 ✓                                                                                                                                                                      |
-| 4. codex 3차 미루지 말 것     | 핵심 의문 = "type brand + action contract source 표식 + runtime mismatch guard 3-layer 가 모두 필요한가, type brand 만으로 충분한가". Phase 0 inventory 시점에 결정 lock-in. layer 축소는 [feedback-analysis-precision-patterns](../../../.claude/.. "link") 의 §4 "currentPageId 단독 사용 회귀 함정" 으로 차단됨 ✓ |
+| 질문                          | 답                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. base / 응용 분류           | **base** ADR. 응용 = ADR-137 후속 phase (PageBodyEditor / PageLayoutSelector / PageParentSelector 정정) 또는 향후 별도 응용 ADR (StylesPanel / EventsPanel deferred-chain audit). 본 ADR 의 schema(typed accessor + action contract + 카테고리 분류 규약) 가 응용 ADR 의 prerequisite                                               |
+| 2. schema 직교성              | Zustand selection state shape 변경 없음. **소비 규약** 만 추가. ADR-040 (Atomic Page Activation), ADR-074 (input pipeline SSOT), ADR-116 / ADR-122 (canonical-only-runtime) 의 selection 정의 그대로 사용 ✓                                                                                                                         |
+| 3. 선행 ADR 전제 reverse 검증 | ADR-040 의 atomic page activation 패턴 / ADR-074 의 input 측 SSOT / ADR-116/122 canonical mirror — 모두 변경 없이 그대로 사용. reverse 부담 0 ✓                                                                                                                                                                                     |
+| 4. codex 3차 미루지 말 것     | 핵심 의문 = "Layer A opaque snapshot 진입점 분리 + Layer B 2 진입점 분리 + Layer C/D 규칙·검증 인프라 4-layer 가 모두 필요한가, 일부 축소 가능한가". Phase 0 inventory 시점에 결정 lock-in. layer 축소는 [feedback-analysis-precision-patterns](../../../.claude/.. "link") 의 §4 "currentPageId 단독 사용 회귀 함정" 으로 차단됨 ✓ |
 
 사용자 explicit confirm 받음 (2026-05-15 본 세션 ADR-137 작성 지시).
 
@@ -59,10 +59,10 @@
 
 ### 4-1. 변경 대상
 
-| 파일                                                                  | 변경                                                                                                                                                                                                                                                                                                                 |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/builder/src/builder/stores/index.ts`                            | 신규 `useImmediateSelectionSnapshot()` accessor — `ImmediateSelectionSnapshot` opaque 타입 반환 / 기존 `useDebouncedSelectedElementData()` return 을 `DeferredSelectedElement` 로 명시 (display 전용 마커) / `useImmediateSelectedElementId()` + `useImmediateCurrentPageId()` 도 즉시 read 용 helper 로 함께 export |
-| `apps/builder/src/builder/inspector/types.ts` (or 적절한 type module) | `ImmediateSelectionSnapshot` opaque 타입 + `DeferredSelectedElement` display 마커 타입 export                                                                                                                                                                                                                        |
+| 파일                                                                  | 변경                                                                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/builder/src/builder/stores/index.ts`                            | 신규 `readImmediateSelectionSnapshot()` non-subscription helper — 호출 시점 `useStore.getState()` 로 `ImmediateSelectionSnapshot` opaque 타입 생성 / 기존 `useDebouncedSelectedElementData()` return 을 `DeferredSelectedElement` 로 명시 (display 전용 마커) / `useImmediateSelectedElementId()` + `useImmediateCurrentPageId()` 는 primitive subscription accessor 로 함께 export |
+| `apps/builder/src/builder/inspector/types.ts` (or 적절한 type module) | `ImmediateSelectionSnapshot` opaque 타입 + `DeferredSelectedElement` display 마커 타입 export                                                                                                                                                                                                                                                                                       |
 
 ### 4-2. 코드 예시 (의도 표현, 실제 구현은 phase 진입 시 확정)
 
@@ -256,16 +256,16 @@ export async function applyPageFrameBindingExplicit(
 
 ### 8-2. PageLayoutSelector
 
-| 파일                                                                                                              | 변경                                                                                                                                                                    |
-| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `editors/PageLayoutSelector.tsx`                                                                                  | `handleLayoutChange` 가 신규 store action `applyPageFrameBinding({ frameId, source: "selection" })` 호출 — pageId 직접 전달 제거. Layer B mismatch guard 가 commit 차단 |
-| 또는 caller 가 pageId 명시 전달이 필요한 case (Frame editing context 진입 시) → `source: "explicit-context"` 사용 |
+| 파일                                                                                                                                                       | 변경                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `editors/PageLayoutSelector.tsx`                                                                                                                           | `handleLayoutChange` 가 `readImmediateSelectionSnapshot()` 으로 commit 시점 snapshot 생성 후 `applyPageFrameBindingFromSelection(snapshot, frameId)` 호출 — closure 의 stale `pageId` prop 직접 전달 제거. target page 는 진입점 내부에서 `snapshot.currentPageId` 로 파생 |
+| Frame editing context 진입 등 caller 가 명시 pageId 를 의도적으로 전달하는 case → `applyPageFrameBindingExplicit({ pageId, contextReason, frameId })` 사용 |
 
 ### 8-3. PageParentSelector
 
-| 파일                             | 변경                                                                  |
-| -------------------------------- | --------------------------------------------------------------------- |
-| `editors/PageParentSelector.tsx` | 동일 패턴 정정 — handler 가 신규 page-bound action 사용 + source 표식 |
+| 파일                             | 변경                                                                                                                                                       |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `editors/PageParentSelector.tsx` | 동일 패턴 정정 — handler 가 `readImmediateSelectionSnapshot()` + `applyPageFrameBindingFromSelection` 진입점 사용 (page-parent 변경도 page-bound mutation) |
 
 ### 8-4. Gate G6
 
@@ -297,17 +297,17 @@ export async function applyPageFrameBindingExplicit(
 1. 프로젝트에 Page A / Page B 2 개 생성. 각각 Frame X / Frame Y 적용 상태.
 2. Node panel 에서 Page A 선택 — Properties 패널에 PageBodyEditor + PageLayoutSelector 표시.
 3. 같은 panel 에서 Page B 즉시 클릭 — `currentPageId = B` 전환.
-4. Properties 패널이 deferred selection 으로 인해 잠깐 PageBodyEditor (A_body) 를 보여주는 윈도우 내에 "Apply Frame" 선택 → Frame Z.
-5. **기대 (수정 후)**: Layer B mismatch guard 가 `source: "selection"` 경로의 pageId(A) ≠ currentPageId(B) 감지 → commit 차단. dev console 에 stale target rejected 출력. Page A / Page B 모두 frame 변경 없음.
-6. deferred update 가 commit 되어 PageBodyEditor 가 B_body 로 갱신된 후 사용자가 다시 "Apply Frame Z" 선택 → Page B 에 정상 적용.
+4. Properties 패널이 deferred selection 으로 인해 잠깐 PageBodyEditor (A_body) 를 보여주는 윈도우 내에 "Apply Frame" 시도 → UI invariant (PageBodyEditor 가 deferred `element.page_id` ≠ live `currentPageId` 감지) 가 PageLayoutSelector 를 disable/hide → 클릭 불가 (1차 방어).
+5. **기대 (수정 후)**: 어떤 경로로든 `handleLayoutChange` 가 호출되더라도 `readImmediateSelectionSnapshot()` 이 commit 시점의 live snapshot (`currentPageId = B`) 을 생성 → `applyPageFrameBindingFromSelection` 이 `snapshot.currentPageId = B` 를 target 으로 사용. stale `pageId` prop (A) 이 진입점에 전달될 경로 자체가 없음 → Page A 오적용 0 (2차 방어, 진입점 분리).
+6. deferred update 가 commit 되어 PageBodyEditor 가 B_body 로 갱신 → PageLayoutSelector 재활성화 → 사용자가 "Apply Frame Z" 선택 → Page B 에 정상 적용.
 
 projection body 회귀 체크:
 
 1. Frame editing context 진입 — projection body 선택.
-2. PageLayoutSelector 가 표시되더라도 `source: "explicit-context"` 경로로 호출되어 mismatch 검증 skip → 정상 동작.
+2. PageLayoutSelector 가 표시되는 경우 `applyPageFrameBindingExplicit({ pageId, contextReason: "frame-editing-context", frameId })` 진입점으로 호출 → 명시 pageId 사용, snapshot 파생 없이 정상 동작.
 
 ## 11. 잠재 후속 작업 (본 ADR scope 밖)
 
-- **StylesPanel / EventsPanel deferred-chain audit** — 본 ADR 의 Layer A brand 와 contract test 가 자동으로 회귀 차단하지만, 상세 분류는 별도 audit ADR 후보 (현 scope 미달)
+- **StylesPanel / EventsPanel deferred-chain audit** — 본 ADR 의 Layer A opaque snapshot 진입점 분리 + contract test 가 자동으로 회귀 차단하지만, 상세 분류는 별도 audit ADR 후보 (현 scope 미달)
 - **page_id SSOT 위치 변경** (대안 C) — element.page_id 강등 + projection explicit context — 더 큰 reframing, 별도 ADR 후보
 - **신규 page-bound editor 추가 워크플로** — `composition-patterns/SKILL.md` 의 신규 editor 추가 체크리스트에 "Selection Consumer Contract 분류 의무" 추가 (Phase 3 에서 land)
