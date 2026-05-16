@@ -76,10 +76,13 @@ but-unmatched 케이스를 구분하지 못한다. Phase 0 에서 컴포넌트�
 대상인가 (b) manual-only 의도인가를 spec 의 `skipCSSGeneration` 플래그 기준으로
 분류하고, gate 는 "generated 대상인데 import 누락" 만 FAIL 로 판정한다.
 
-### 2-3. 현 64 누락 전수 분류 → baseline 작성
+### 2-3. 현 미등록 전수 분류 → baseline 작성
 
-`sweep-2026-05-16.json` 의 등록 누락 issue 를 `(컴포넌트 × 레지스트리)` 쌍으로
-정규화 → `componentRegistrationBaseline.json` 생성.
+baseline 은 레지스트리 **실제 diff** (불변식 A/B 의 expected − actual) 로 산출한다.
+`sweep-2026-05-16.json` 은 4 근본 원인의 _증상_ audit 이라 baseline source 로
+부적합 (등록 누락 외 prop-naming / compound 모델 이슈 혼재 + 일부 오진).
+실행 결과는 §2.5-3 draft 표, 정밀 `componentRegistrationBaseline.json` 은 Phase 1
+contract test 첫 실행 산물 (§2.5-6).
 
 ### 2-4. 의도적 예외 식별 → exception map
 
@@ -93,20 +96,103 @@ but-unmatched 케이스를 구분하지 못한다. Phase 0 에서 컴포넌트�
 **Gate G0**: 4 산출물 (canonical list SSOT 결정 / 레지스트리 표 / baseline /
 exception map) 작성 완료.
 
+## 2.5. Phase 0 실행 결과 (2026-05-17)
+
+### 2.5-1. 레지스트리 actual enumeration
+
+| 레지스트리                            | 위치                                                 |         actual 키 수 |
+| ------------------------------------- | ---------------------------------------------------- | -------------------: |
+| `universe` (spec glob)                | `packages/specs/src/components/*.spec.ts`            |                  119 |
+| `rendererMap`                         | `packages/shared/src/renderers/index.ts`             |                   95 |
+| `BASE_TAG_SPEC_MAP`                   | `packages/specs/src/runtime/tagToElement.ts`         |                  104 |
+| `TAG_SPEC_MAP` (확장)                 | = BASE ∪ `childSpecs` 9 (`expandChildSpecs`)         |                  113 |
+| `TAG_SPEC_MAP` (builder merged)       | `apps/builder/.../sprites/tagSpecMap.ts` (+ alias 9) |                  122 |
+| `COMPLEX_COMPONENT_TAGS`              | `apps/builder/src/builder/factories/constants.ts`    |                   53 |
+| `ComponentFactory.creators`           | `apps/builder/.../factories/ComponentFactory.ts`     |                   60 |
+| `getDefaultProps` (`defaultPropsMap`) | `apps/builder/src/types/builder/unified.types.ts`    |                   79 |
+| `styles/index.css` `@import`          | `packages/shared/.../styles/index.css`               | 35 (인프라 CSS 혼재) |
+
+`childSpecs` 자동 확장 9개: CardContent, CardFooter, CardHeader, CheckboxItems,
+GridListItem, Header, ListBoxItem, RadioItems, TagList.
+
+### 2.5-2. 모델 확정 — placeable anchor 불변식
+
+canonical 목록 모델 = **레지스트리별 expected set** (사용자 결정 2026-05-16).
+순환 정의를 피하기 위해 expected set 을 두 불변식으로 고정한다:
+
+- **불변식 A**: 모든 `universe` (spec 파일) 는 `TAG_SPEC_MAP` (확장) 에 존재해야
+  한다 — 미등록 시 Skia `getSpecForTag()=null`. casing (`Frame`↔`frame`) 반영.
+- **불변식 B**: 모든 `placeable` (`ComponentFactory.creators` 60) 는
+  `rendererMap` + `TAG_SPEC_MAP` + `getDefaultProps` 에 존재해야 한다 — placeable
+  = 사용자가 실제 배치 가능한 컴포넌트, 3 소비 레지스트리 전부 필요.
+
+`COMPLEX_COMPONENT_TAGS` 는 완결성 레지스트리가 아니라 curated 분류 → 불변식
+대상에서 제외 (sanity-check 만: 모든 COMPLEX 항목이 placeable 인지). `styles/
+index.css` 는 `skipCSSGeneration` 분류 필요 → Phase 1 에서 조건부 판정.
+
+### 2.5-3. draft baseline — 현 미등록 (regex enumeration 기준)
+
+| 불변식 | 레지스트리        | 미등록 | 항목                                                                                                                                                                                                                                             |
+| ------ | ----------------- | -----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A      | `TAG_SPEC_MAP`    |      7 | Accordion · Autocomplete · Field · Image · MenuItem · Modal · TailSwatch                                                                                                                                                                         |
+| B      | `rendererMap`     |      5 | ColorPicker · List · Switcher · TextArea · frame                                                                                                                                                                                                 |
+| B      | `TAG_SPEC_MAP`    |      4 | Accordion · DataTable · Image · Navigation                                                                                                                                                                                                       |
+| B      | `getDefaultProps` |     19 | Accordion · Avatar · AvatarGroup · ButtonGroup · CardView · ColorSwatchPicker · DataTable · IllustratedMessage · List · Navigation · Pagination · ProgressCircle · RangeCalendar · StatusLight · Switcher · TableView · TextArea · Toast · frame |
+
+불변식 A 7건 1차 분류:
+
+- **real drift 후보** — Accordion (placeable+rendered, Skia spec 미등록) / Field
+  / Modal / TailSwatch (rendererMap 존재, TAG_SPEC_MAP 미등록)
+- **intended 후보** — Image (`IMAGE_TAGS` ImageSprite 특수 경로)
+- **Phase 1 확인** — Autocomplete (어디에도 미등록 — unwired 컴포넌트 여부) /
+  MenuItem (ADR-068 Menu items SSOT — 별도 소비 경로 여부)
+
+### 2.5-4. exception 후보
+
+- `Image` — `IMAGE_TAGS` (`Image`/`Avatar`/`Logo`/`Thumbnail`) ImageSprite 경로,
+  TAG_SPEC_MAP 미등록 의도 (`tagSpecMap.ts` `IMAGE_TAGS`)
+- `DataTable` / `Navigation` — spec 파일 없는 creator (각각 Table / Nav alias) →
+  불변식 A 대상 아님, B 의 TAG_SPEC_MAP 검사에서 alias 해소 필요
+- `rendererMap` 의 spec 없는 키 10개 — CardPreview · Cell · Column · DataTable ·
+  DisclosureContent · Navigation · Row · TableBody · TableHeader · TreeItem
+  (Table/Tree 내부 부품 — 독립 spec 없이 부모 renderer 가 처리, 의도)
+- `frame` (lowercase) — `Frame.spec.ts` 의 canonical 타입 키 (ADR-130), casing
+  정합 처리 대상이지 누락 아님
+
+### 2.5-5. Phase 1 test 위치 결정
+
+contract test 는 `packages/shared` 의 `rendererMap` 과 `apps/builder` 의
+`ComponentFactory`/`getDefaultProps`/`COMPLEX_COMPONENT_TAGS` 를 **동시 import**
+해야 한다. 패키지 의존 방향 (`specs ← shared ← builder`) 상 `packages/shared`
+test 는 `apps/builder` 를 import 할 수 없다 → **test 위치는 `apps/builder` 로
+확정** (7 레지스트리 전부 import 가능한 유일 패키지). breakdown §3 의 위치 미정은
+본 결정으로 해소.
+
+### 2.5-6. baseline.json 산출 시점
+
+위 draft baseline 은 source 파일 **regex enumeration** 기준이라 runtime
+`expandChildSpecs` / builder merge / alias 해소를 완전 반영하지 못한다.
+machine-readable `componentRegistrationBaseline.json` 은 **Phase 1 contract test
+첫 실행 산물** 로 확정한다 (test 가 실제 모듈을 import → 정확한 expected/actual
+diff). Phase 0 의 baseline 은 본 §2.5-3 draft 표로 갈음 (G0 충족).
+
+**Gate G0 판정**: canonical 모델 확정 (2.5-2) / 레지스트리 표 (2.5-1) / draft
+baseline (2.5-3) / exception 후보 (2.5-4) — 4 산출물 완료. Phase 1 진입 가능.
+
 ## 3. Phase 1 — Contract test
 
 `componentRegistrationContract.test.ts` 작성.
 
-- 위치: `packages/shared/src/renderers/__tests__/` (rendererStyleContract 인접)
-  vs 신규 cross-package 위치 — Phase 1 에서 cross-package import 가능성 고려해
-  결정.
-- 매트릭스: canonical list × N 레지스트리. 각 `(컴포넌트, 레지스트리)` 쌍에
-  대해 존재 여부 assert.
+- 위치: **`apps/builder` 내** (§2.5-5 결정 — 7 레지스트리 전부 import 가능한
+  유일 패키지. `packages/shared` test 는 패키지 경계상 `apps/builder` import 불가).
+- 매트릭스: 불변식 A (universe × TAG_SPEC_MAP) + 불변식 B (placeable × {rendererMap,
+  TAG_SPEC_MAP, getDefaultProps}). 각 `(컴포넌트, 레지스트리)` 쌍 존재 여부 assert.
+- 첫 실행 시 미등록 쌍 → `componentRegistrationBaseline.json` 으로 capture (§2.5-6).
 - 판정: baseline 에 있으면 skip(known debt) / exception 에 있으면 skip(intended)
   / 둘 다 아니면 FAIL.
 
-**Gate G1**: contract test 가 현 코드에서 PASS (baseline + exception 으로 64
-누락 수용). 신규 누락을 주입한 negative fixture 가 FAIL 하는지 확인.
+**Gate G1**: contract test 가 현 코드에서 PASS (baseline + exception 으로 현
+미등록 수용). 신규 누락을 주입한 negative fixture 가 FAIL 하는지 확인.
 
 ## 4. Phase 2 — CI 편입
 
