@@ -57,6 +57,7 @@ import { TagSpec } from "../components/Tag.spec";
 import { GridListSpec } from "../components/GridList.spec";
 import { DisclosureSpec } from "../components/Disclosure.spec";
 import { DisclosureGroupSpec } from "../components/DisclosureGroup.spec";
+import { AccordionSpec } from "../components/Accordion.spec";
 import { ToolbarSpec } from "../components/Toolbar.spec";
 import { ToastSpec } from "../components/Toast.spec";
 import { GroupSpec } from "../components/Group.spec";
@@ -177,6 +178,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   TagGroup: TagGroupSpec,
   Tag: TagSpec,
   GridList: GridListSpec,
+  Accordion: AccordionSpec,
   Disclosure: DisclosureSpec,
   DisclosureGroup: DisclosureGroupSpec,
   DisclosureHeader: DisclosureHeaderSpec,

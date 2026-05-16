@@ -955,6 +955,14 @@ export interface DisclosureGroupElementProps extends BaseElementProps {
   isDisabled?: boolean;
 }
 
+// === Accordion Element Props ===
+// Accordion = DisclosureGroup wrapper (renderAccordion). props 형태는 동일.
+export interface AccordionElementProps extends BaseElementProps {
+  children?: React.ReactNode;
+  allowsMultipleExpanded?: boolean;
+  isDisabled?: boolean;
+}
+
 // === DropZone Element Props ===
 export interface DropZoneElementProps extends BaseElementProps {
   children?: React.ReactNode;
@@ -1149,6 +1157,7 @@ export type ComponentElementProps =
   | FormElementProps
   | DisclosureElementProps
   | DisclosureGroupElementProps
+  | AccordionElementProps
   | DropZoneElementProps
   | FileTriggerElementProps
   | SeparatorElementProps
@@ -1820,6 +1829,18 @@ export function createDefaultDisclosureGroupProps(): DisclosureGroupElementProps
   };
 }
 
+export function createDefaultAccordionProps(): AccordionElementProps {
+  // createAccordionDefinition (DisplayComponents.ts) 의 parent props 와 일치.
+  return {
+    allowsMultipleExpanded: false,
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+    },
+  };
+}
+
 export function createDefaultInlineAlertProps(): BaseElementProps {
   // ADR-083 Phase 1 (R5): width:"100%" 는 InlineAlertSpec.containerStyles SSOT 로 이관.
   //   Phase 0 공통 선주입 layer(implicitStyles.ts applyImplicitStyles 진입부)가
@@ -2129,6 +2150,7 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Description: createDefaultDescriptionProps,
   Disclosure: createDefaultDisclosureProps,
   DisclosureGroup: createDefaultDisclosureGroupProps,
+  Accordion: createDefaultAccordionProps,
   Dialog: createDefaultDialogProps,
   Form: createDefaultFormProps,
   Menu: createDefaultMenuProps,
