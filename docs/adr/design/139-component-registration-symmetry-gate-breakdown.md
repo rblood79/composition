@@ -309,3 +309,37 @@ R1(baseline 정체) 을 실효 차단하려면 ratchet 이 "안내" 가 아니�
 
 전 Phase 완결 — ADR-139 Status `Implemented` 승격 (2026-05-17). ADR 본문은
 `docs/adr/completed/` 로 이동.
+
+## 9. Baseline 운영 기록
+
+gate land 이후 baseline 32건의 점진 해소·재분류 기록. baseline = 해소 대상
+debt, exception = 영구 정당. 잘못 baseline 에 든 항목을 exception 으로 재분류하는
+것도 정당한 debt 감소다 (false-debt 제거).
+
+### 9.1. 2026-05-17 — baseline triage + 3건 exception 재분류
+
+25개 컴포넌트 전수 triage (실제 모듈 import 진단으로 7 레지스트리 권위 매트릭스
+확보). baseline TAG_SPEC_MAP 8건 중 3건이 **실제 debt 가 아니라 의도된 구조적
+누락** 으로 확인되어 exception 으로 재분류:
+
+| 컴포넌트   | 재분류 사유 (코드 근거)                                                                       |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| MenuItem   | `Menu.props.items[]` 데이터 — 독립 element/tag 아님 (ADR-068 Menu items SSOT)                 |
+| Navigation | creators alias — `createNavDefinition` 이 `type:"Nav"` 생성, `Navigation` 타입 element 미존재 |
+| DataTable  | 비시각적 데이터 관리 컴포넌트 (`createDataTableDefinition` 주석) — Skia spec shapes 불필요    |
+
+결과: baseline TAG_SPEC_MAP 8→5, `BASELINE_RATCHET.TAG_SPEC_MAP` 8→5, exception
+TAG_SPEC_MAP 1→4. contract test 10/10 유지 (재분류는 런타임 무변경).
+
+잔존 baseline 29건 = 실제 debt 로 확정, 후속 해소 대상:
+
+- **TAG_SPEC_MAP 5** — Accordion / Field / Modal / TailSwatch 는 placeable/팔레트
+  노출 element 인데 `BASE_TAG_SPEC_MAP` 미등록 (Skia `getSpecForTag`=null). 각
+  등록 시 spec shapes 반영 → `/cross-check` 필요. Autocomplete 는 unwired (제품
+  결정: wiring vs spec 제거).
+- **rendererMap 5** — ColorPicker / List / Switcher / TextArea / frame. 모두
+  placeable 인데 renderer 미등록 (composite 는 통상 renderer 보유 → 이례적).
+  frame 은 generic div fallback 으로 정상일 가능성, 나머지는 renderer 추가 검토.
+- **getDefaultProps 19** — placeable 인데 `DEFAULT_PROPS_MAP` 미등록 → factory
+  `{}` fallback. `getDefaultProps` 의 실제 소비 경로 (creator-backed vs generic)
+  확인 후 일괄 처리.

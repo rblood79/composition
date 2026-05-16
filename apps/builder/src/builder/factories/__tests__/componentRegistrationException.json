@@ -1,7 +1,10 @@
 {
-  "_doc": "ADR-139 — 의도된 등록 부재 (intended exception). baseline 과 달리 영구 정당하며 해소 대상이 아니다. 각 항목은 사유 + 근거를 명시한다. 신규 추가 시 ADR/rule 링크 의무.",
+  "_doc": "ADR-139 — 의도된 등록 부재 (intended exception). baseline 과 달리 영구 정당하며 해소 대상이 아니다. 각 항목은 사유 + 근거를 명시한다. 신규 추가 시 ADR/rule/코드 근거 링크 의무.",
   "TAG_SPEC_MAP": {
-    "Image": "IMAGE_TAGS(Image/Avatar/Logo/Thumbnail) 는 ImageSprite/buildImageNodeData 렌더 경로 — Skia spec shapes 미사용. 근거: apps/builder/src/builder/workspace/canvas/sprites/tagSpecMap.ts IMAGE_TAGS"
+    "DataTable": "비시각적 데이터 관리 컴포넌트 — Skia spec shapes 불필요. createDataTableDefinition 이 type:\"DataTable\" element 를 생성하나 시각 표현이 없다. 근거: apps/builder/src/builder/factories/definitions/DataComponents.ts 주석 \"DataTable 컴포넌트 (비시각적, 데이터 관리용)\". 렌더는 rendererMap renderDataTable 경유.",
+    "Image": "IMAGE_TAGS(Image/Avatar/Logo/Thumbnail) 는 ImageSprite/buildImageNodeData 렌더 경로 — Skia spec shapes 미사용. 근거: apps/builder/src/builder/workspace/canvas/sprites/tagSpecMap.ts IMAGE_TAGS",
+    "MenuItem": "MenuItem 은 Menu.props.items[] 배열 데이터 — 독립 element/tag 아님. MenuItem.spec.ts 는 menu item 시각 spec 용도. 근거: ADR-068 Menu items SSOT.",
+    "Navigation": "creators alias — createNavDefinition 이 type:\"Nav\" element 를 생성하며 \"Navigation\" 타입 element 는 트리에 존재하지 않는다. Nav 가 정본 tag, Navigation 은 팔레트 alias. 근거: apps/builder/src/builder/factories/definitions/NavigationComponents.ts createNavDefinition + ComponentFactory.creators Navigation→createNav."
   },
   "rendererMap": {},
   "getDefaultProps": {}

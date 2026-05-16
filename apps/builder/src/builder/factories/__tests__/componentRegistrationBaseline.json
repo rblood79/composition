@@ -1,14 +1,11 @@
 {
   "_doc": "ADR-139 — 현 미등록 known debt (exception 과 달리 해소 대상). Phase 3 ratchet 활성: 본 파일의 레지스트리별 항목 수는 componentRegistrationContract.test.ts 의 BASELINE_RATCHET 와 정확히 일치해야 한다. 항목 추가(append) 시 FAIL — 신규 컴포넌트는 baseline 진입 불가, 전 레지스트리 등록 후 병합. 누락 해소 시 항목 제거 + BASELINE_RATCHET 동시 하향 필요.",
   "TAG_SPEC_MAP": {
-    "Accordion": "placeable+rendererMap 등록되나 Skia spec 미등록 — real drift 후보",
-    "Autocomplete": "spec 파일만 존재, 어디에도 미등록 — unwired 컴포넌트 여부 확인 필요",
-    "Field": "rendererMap(renderDataField) 등록되나 TAG_SPEC_MAP 미등록",
-    "MenuItem": "MenuItem.spec.ts(ADR-068) 존재, childSpecs 확장/BASE 미등록 — 별도 소비 경로 확인 필요",
-    "Modal": "rendererMap(renderModal) 등록되나 TAG_SPEC_MAP 미등록",
-    "TailSwatch": "rendererMap(renderTailSwatch) 등록되나 TAG_SPEC_MAP 미등록",
-    "DataTable": "creator 존재(Table alias)하나 spec/TAG_SPEC_MAP 미등록",
-    "Navigation": "creator 존재(Nav alias)하나 spec/TAG_SPEC_MAP 미등록"
+    "Accordion": "placeable(creators) + rendererMap(renderAccordion) 등록 + Accordion.spec.ts 존재하나 TAG_SPEC_MAP 미등록 — real drift (Skia getSpecForTag=null). 해소: BASE_TAG_SPEC_MAP 등록",
+    "Autocomplete": "Autocomplete.spec.ts 존재하나 creators/rendererMap/TAG_SPEC_MAP/팔레트 모두 미등록 — unwired 컴포넌트. 해소: 전 경로 wiring 또는 spec 제거 (제품 결정 필요)",
+    "Field": "rendererMap(renderDataField) 등록 + ListBoxItemEditor/TagEditor 가 type:\"Field\" element 생성 — 실제 element 인데 TAG_SPEC_MAP 미등록. 해소: BASE_TAG_SPEC_MAP 등록",
+    "Modal": "rendererMap(renderModal) 등록 + ComponentList 팔레트 노출(type:\"Modal\") — 배치 가능 element 인데 TAG_SPEC_MAP 미등록. 해소: BASE_TAG_SPEC_MAP 등록",
+    "TailSwatch": "rendererMap(renderTailSwatch) 등록 + ComponentList 팔레트 노출(type:\"TailSwatch\") — 배치 가능 element 인데 TAG_SPEC_MAP 미등록. 해소: BASE_TAG_SPEC_MAP 등록"
   },
   "rendererMap": {
     "ColorPicker": "placeable 이나 rendererMap 미등록",
