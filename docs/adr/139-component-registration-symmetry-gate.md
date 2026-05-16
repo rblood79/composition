@@ -10,14 +10,20 @@ composition 컴포넌트 파이프라인은 한 컴포넌트가 정상 동작하
 레지스트리에 각각 등록**되어야 한다. 한 곳이라도 누락되면 해당 경로만 조용히
 깨진다:
 
-| 레지스트리                           | 위치                                                     | 누락 시 증상                                     |
-| ------------------------------------ | -------------------------------------------------------- | ------------------------------------------------ |
-| `rendererMap`                        | `packages/shared/src/renderers/index.ts`                 | Preview/Publish 가 generic `<div>` fallback      |
-| `BASE_TAG_SPEC_MAP` / `TAG_SPEC_MAP` | `packages/specs/src/runtime/tagToElement.ts`             | `getSpecForTag()=null` → Skia spec shapes 미진입 |
-| `COMPLEX_COMPONENT_TAGS`             | `apps/builder/src/builder/factories/constants.ts`        | factory 복합 컴포넌트 경로 미진입                |
-| `getDefaultProps`                    | `apps/builder/src/types/builder/unified.types.ts`        | factory 가 `{}` 빈 props 생성                    |
-| `ComponentFactory` creators          | `apps/builder/src/builder/factories/ComponentFactory.ts` | 빌더 생성 자체 불가                              |
-| `styles/index.css` `@import`         | `packages/shared/src/components/styles/index.css`        | generated CSS 번들 미포함 → Preview 스타일 없음  |
+| 레지스트리                           | 위치                                                              | 누락 시 증상                                      |
+| ------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------- |
+| `rendererMap`                        | `packages/shared/src/renderers/index.ts`                          | Preview/Publish 가 generic `<div>` fallback       |
+| `BASE_TAG_SPEC_MAP` / `TAG_SPEC_MAP` | `packages/specs/src/runtime/tagToElement.ts`                      | `getSpecForTag()=null` → Skia spec shapes 미진입  |
+| `TAG_SPEC_MAP` (builder merged)      | `apps/builder/src/builder/workspace/canvas/sprites/tagSpecMap.ts` | `getSpecForTag()=null` → Skia/Builder 경로 미진입 |
+| `COMPLEX_COMPONENT_TAGS`             | `apps/builder/src/builder/factories/constants.ts`                 | factory 복합 컴포넌트 경로 미진입                 |
+| `getDefaultProps`                    | `apps/builder/src/types/builder/unified.types.ts`                 | factory 가 `{}` 빈 props 생성                     |
+| `ComponentFactory` creators          | `apps/builder/src/builder/factories/ComponentFactory.ts`          | 빌더 생성 자체 불가                               |
+| `styles/index.css` `@import`         | `packages/shared/src/components/styles/index.css`                 | generated CSS 번들 미포함 → Preview 스타일 없음   |
+
+> **builder merged `TAG_SPEC_MAP`**: `packages/specs` 정본을 `BUILDER_ALIAS_MAP`(8
+> alias)과 병합한 별도 map 이다. `packages/specs` 정본이 맞아도 alias layer 가
+> 어긋나면 Skia/Builder 경로만 조용히 깨지므로, gate inventory 에 별도 항목으로
+> 포함한다.
 
 이 레지스트리들은 **전부 수동 유지**된다. `canvas-rendering.md §2`에 "Spec 등록
 4-point 체크리스트"가 명문화되어 있을 만큼 등록점이 많고, 누락이 일어나기 쉽다.
@@ -47,7 +53,7 @@ D2 타입 일관성을 "등록 누락이 build-가시화" 되도록 강제한다
 
 ### 대안 A: 단일 manifest → codegen
 
-- 설명: 하나의 component manifest(SSOT)에서 위 5+ 레지스트리를 코드 생성. 누락이
+- 설명: 하나의 component manifest(SSOT)에서 위 7 레지스트리를 코드 생성. 누락이
   구조적으로 불가능해진다.
 - 위험: 기술(M) — codegen 인프라 신규 / 성능(L) / 유지보수(M) — manifest schema
   진화 / 마이그레이션(**H**) — `renderers/index.ts` · `factories/constants.ts` ·
@@ -69,9 +75,10 @@ D2 타입 일관성을 "등록 누락이 build-가시화" 되도록 강제한다
 ### 대안 C: ESLint custom rule
 
 - 설명: static analysis 로 누락 감지.
-- 위험: 기술(**H**) — 레지스트리가 서로 다른 파일·패키지·형태(Set / Record /
-  barrel / CSS `@import`)에 흩어져 있다. ESLint 는 파일 단위 모델 —
-  cross-file·cross-package 완결성 검사에 부적합 / 성능(L) / 유지보수(M) /
+- 위험: 기술(**H**) — ESLint custom rule 도 파일시스템·타입 정보 접근으로
+  cross-file 검사 자체는 가능하나, 레지스트리가 서로 다른 파일·패키지·형태(Set /
+  Record / barrel / CSS `@import` / runtime alias)에 흩어져 있어 이를 모두
+  포괄하는 rule 구현비가 Vitest contract test 보다 높다 / 성능(L) / 유지보수(M) /
   마이그레이션(L).
 
 ### 대안 D: Runtime dev-mode warning
@@ -83,12 +90,12 @@ D2 타입 일관성을 "등록 누락이 build-가시화" 되도록 강제한다
 
 ### Risk Threshold Check
 
-| 대안 | HIGH+ 위험               | 판정                   |
-| ---- | ------------------------ | ---------------------- |
-| A    | 마이그레이션 HIGH        | 단독 도입 불가         |
-| B    | 없음                     | **통과**               |
-| C    | 기술 HIGH                | cross-file 검사 부적합 |
-| D    | 없음 (단 gate 목적 미달) | "gate" 정의 미충족     |
+| 대안 | HIGH+ 위험               | 판정                                    |
+| ---- | ------------------------ | --------------------------------------- |
+| A    | 마이그레이션 HIGH        | 단독 도입 불가                          |
+| B    | 없음                     | **통과**                                |
+| C    | 기술 HIGH                | 이질적 레지스트리 포괄 rule 구현비 과다 |
+| D    | 없음 (단 gate 목적 미달) | "gate" 정의 미충족                      |
 
 대안 B 만 HIGH 위험 0 + gate 목적(build 차단)을 충족한다. 루프 불필요.
 
@@ -105,8 +112,9 @@ D2 타입 일관성을 "등록 누락이 build-가시화" 되도록 강제한다
     것은 한 커밋에 적용 불가하고, 기존 수동 커스터마이징을 잃는다. 단 codegen
     은 gate 안정화 + baseline 0 도달 후 누락을 *원천 차단*하는 수단으로 후속
     ADR 후보로 남긴다 (Consequences 참조).
-  - C: 레지스트리가 cross-file·cross-package 로 흩어져 ESLint 파일 단위 모델로
-    완결성을 검사할 수 없다.
+  - C: ESLint 도 cross-file 검사 자체는 가능하나, 이질적 형태(Set / Record /
+    barrel / CSS `@import` / runtime alias)를 모두 포괄하는 custom rule 구현비가
+    Vitest contract test 보다 높다.
   - D: build/CI 를 차단하지 못해 누락이 병합을 통과 — "gate" 정의 미충족.
 
 **BC 영향**: gate 는 검증 코드만 추가하며 런타임 동작·schema·prop 을 변경하지
@@ -126,8 +134,17 @@ D2 타입 일관성을 "등록 누락이 build-가시화" 되도록 강제한다
 
 ## Gates
 
-잔존 HIGH 위험 없음 — Gate 테이블 불요. R1/R2(MED) 대응은 Risks 표에 명시하며,
-운영 검증은 design breakdown 의 Phase Gate 로 관리한다.
+잔존 HIGH 위험 없음 — adr-writing.md 상 HIGH 위험 부재 시 Gate 테이블은 생략
+가능하다. R1/R2(MED) 대응은 Risks 표에 명시했다.
+
+다만 본 ADR 은 **검증 인프라 도입** 자체가 목적이므로, 구현 전 차단 조건을
+design breakdown 의 **Phase Gate G0~G3** 로 관리한다:
+
+- **G0** — Phase 0 inventory 4 산출물(canonical list SSOT / 레지스트리 표 /
+  baseline / exception map) 완료
+- **G1** — contract test 가 현 코드 PASS + negative fixture FAIL
+- **G2** — CI/preflight 편입 + FAIL 시 병합 차단 확인
+- **G3** — baseline ratchet 동작(감소 시 FAIL / append 시 FAIL) 확인
 
 ## Consequences
 

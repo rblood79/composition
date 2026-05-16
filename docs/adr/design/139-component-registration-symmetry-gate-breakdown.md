@@ -35,25 +35,46 @@ T1~T3 은 T4 와 직교한다 — 각각 별도 ADR/작업으로 다룬다. 본 
 
 후보:
 
-- (a) `BASE_TAG_SPEC_MAP` keys (`packages/specs`)
-- (b) `packages/specs/src/components/*.spec.ts` 파일 목록
-- (c) `ComponentTag` union type
+- (a) `BASE_TAG_SPEC_MAP` keys (`packages/specs`) — runtime Record, `Object.keys`
+  로 즉시 enumerate 가능.
+- (b) `packages/specs/src/components/*.spec.ts` 파일 glob — `composition-vocabulary.ts`
+  주석이 "실측 `*.spec.ts` 파일명 기준 118개" 라 명시. glob 으로 build 시
+  enumerate 가능.
+- (c) `ComponentTag` union type — `packages/shared/src/types/composition-vocabulary.ts`
+  의 **순수 TypeScript `type` alias union**. 런타임 값이 없어 `Object.keys` 로
+  enumerate 불가 — ts-morph / TS compiler API 가 별도로 필요.
 
-Phase 0 산출물: 3 후보 비교 + 단일 SSOT 선정 근거 기록. 잠정 권장 (c) —
-타입 차원 SSOT, build 시 enumerate 가능.
+Phase 0 산출물: 3 후보 비교 + 단일 SSOT 선정 근거 기록. 잠정 권장 **(b)** —
+런타임 도구 없이 glob 만으로 enumerate 가능하고, spec 파일 존재가 곧 컴포넌트
+정의이므로 SSOT 의미상 자연스럽다. (c) 채택 시 ts-morph 의존 추가 비용을 Phase 0
+에서 별도 평가한다.
 
 ### 2-2. 레지스트리 목록·형태 확정
 
 각 레지스트리의 (파일 경로, 자료구조, 키 추출 방법) 표 작성:
 
-| 레지스트리                           | 자료구조   | 키 추출           |
-| ------------------------------------ | ---------- | ----------------- |
-| `rendererMap`                        | Record     | `Object.keys`     |
-| `BASE_TAG_SPEC_MAP` / `TAG_SPEC_MAP` | Map/Record | keys              |
-| `COMPLEX_COMPONENT_TAGS`             | Set        | iterate           |
-| `getDefaultProps`                    | Record/Map | keys              |
-| `ComponentFactory` creators          | Record     | keys              |
-| `styles/index.css`                   | CSS 텍스트 | `@import` 줄 파싱 |
+| 레지스트리                           | 위치                                | 자료구조   | 키 추출           |
+| ------------------------------------ | ----------------------------------- | ---------- | ----------------- |
+| `rendererMap`                        | `packages/shared`                   | Record     | `Object.keys`     |
+| `BASE_TAG_SPEC_MAP` / `TAG_SPEC_MAP` | `packages/specs`                    | Map/Record | keys              |
+| `TAG_SPEC_MAP` (builder merged)      | `apps/builder` `sprites/tagSpecMap` | Record     | keys              |
+| `COMPLEX_COMPONENT_TAGS`             | `apps/builder`                      | Set        | iterate           |
+| `getDefaultProps`                    | `apps/builder`                      | Record/Map | keys              |
+| `ComponentFactory` creators          | `apps/builder`                      | Record     | keys              |
+| `styles/index.css`                   | `packages/shared`                   | CSS 텍스트 | `@import` 줄 파싱 |
+
+**builder merged `TAG_SPEC_MAP` (HIGH — codex round 2)**: `apps/builder/.../sprites/tagSpecMap.ts`
+가 `packages/specs` 정본을 `BUILDER_ALIAS_MAP`(8 alias)과 병합한 별도 map 을
+export 하며 `getSpecForTag()` / `StoreRenderBridge` / Skia 경로가 직접 소비한다.
+`packages/specs` 정본이 맞아도 alias layer drift 는 Builder 경로만 깨뜨리므로
+별도 검증 항목으로 포함한다.
+
+**CSS registry 검증 한계 (MED — codex round 2)**: `styles/index.css` 는 spec
+generated CSS 와 수동 CSS 가 혼재한다(Leaf=generated, Container/Composite=manual).
+`@import` 존재 여부만으로는 `skipCSSGeneration` 의도 / manual-only / generated-
+but-unmatched 케이스를 구분하지 못한다. Phase 0 에서 컴포넌트별 (a) generated
+대상인가 (b) manual-only 의도인가를 spec 의 `skipCSSGeneration` 플래그 기준으로
+분류하고, gate 는 "generated 대상인데 import 누락" 만 FAIL 로 판정한다.
 
 ### 2-3. 현 64 누락 전수 분류 → baseline 작성
 
@@ -96,12 +117,18 @@ exception map) 작성 완료.
 
 ## 5. Phase 3 — Baseline ratchet
 
-- contract test 가 baseline 보다 누락이 적으면 "baseline 갱신 권장" 안내
-  (apps/builder type-check baseline 패턴 동일).
-- baseline append 차단: 신규 컴포넌트가 baseline 에 추가되려 하면 FAIL.
+R1(baseline 정체) 을 실효 차단하려면 ratchet 이 "안내" 가 아니라 **FAIL** 이어야
+한다 (codex round 2 MED-1):
 
-**Gate G3**: ratchet 동작 확인 — 누락 1건 수정 후 baseline 미갱신 시 안내 출력,
-baseline append 시 FAIL.
+- **감소 시 FAIL**: `currentMissing < baselineMissing` 이면 contract test FAIL.
+  메시지로 `pnpm test:registration-contract --update-baseline` 류 재측정 명령을
+  안내 → baseline 파일을 줄어든 값으로 갱신해야 통과. baseline 이 줄어든 채
+  방치되는 경로를 차단한다.
+- **append 시 FAIL**: 신규 컴포넌트가 baseline 에 추가되려 하면 FAIL — 신규
+  컴포넌트는 baseline 진입 불가, 반드시 전 레지스트리 등록 후 병합.
+
+**Gate G3**: ratchet 동작 확인 — (1) 누락 1건 수정 후 baseline 미갱신 시 FAIL +
+재측정 명령 안내 출력, (2) baseline append 시 FAIL.
 
 ## 6. 신규 레지스트리 추가 체크리스트 (R3 대응)
 
@@ -113,11 +140,11 @@ baseline append 시 FAIL.
 
 ## 7. Risks → Gate 매핑
 
-| Risk               | Gate | 통과 조건                                    |
-| ------------------ | ---- | -------------------------------------------- |
-| R1 (baseline 정체) | G3   | ratchet — append 차단 + 감소 시 갱신 안내    |
-| R2 (예외 stale)    | G0   | exception map 항목마다 사유 + 링크 주석 의무 |
-| R3 (gate 유지보수) | §6   | 신규 레지스트리 추가 체크리스트              |
+| Risk               | Gate | 통과 조건                                       |
+| ------------------ | ---- | ----------------------------------------------- |
+| R1 (baseline 정체) | G3   | ratchet — append 시 FAIL + 감소 시 FAIL(재측정) |
+| R2 (예외 stale)    | G0   | exception map 항목마다 사유 + 링크 주석 의무    |
+| R3 (gate 유지보수) | §6   | 신규 레지스트리 추가 체크리스트                 |
 
 ## 8. 검증 체크리스트
 
