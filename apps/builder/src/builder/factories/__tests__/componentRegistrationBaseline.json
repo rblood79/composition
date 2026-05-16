@@ -1,5 +1,5 @@
 {
-  "_doc": "ADR-139 — 현 미등록 known debt. exception 과 달리 해소 대상. Phase 3 ratchet: 항목은 줄어들 수만 있고 신규 append 시 FAIL. draft (breakdown §2.5-3) — Phase 1 contract test 첫 실행으로 정밀화.",
+  "_doc": "ADR-139 — 현 미등록 known debt (exception 과 달리 해소 대상). Phase 3 ratchet 활성: 본 파일의 레지스트리별 항목 수는 componentRegistrationContract.test.ts 의 BASELINE_RATCHET 와 정확히 일치해야 한다. 항목 추가(append) 시 FAIL — 신규 컴포넌트는 baseline 진입 불가, 전 레지스트리 등록 후 병합. 누락 해소 시 항목 제거 + BASELINE_RATCHET 동시 하향 필요.",
   "TAG_SPEC_MAP": {
     "Accordion": "placeable+rendererMap 등록되나 Skia spec 미등록 — real drift 후보",
     "Autocomplete": "spec 파일만 존재, 어디에도 미등록 — unwired 컴포넌트 여부 확인 필요",

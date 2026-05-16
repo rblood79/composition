@@ -1,7 +1,7 @@
 # ADR-139 구현 상세 — 컴포넌트 등록·대칭 build-time gate
 
-> 본 문서는 [ADR-139](../139-component-registration-symmetry-gate.md) 의 구현
-> 상세다. ADR 본문은 Context / Alternatives / Decision / Risks / Gates 만 담는다.
+> 본 문서는 [ADR-139](../completed/139-component-registration-symmetry-gate.md) 의
+> 구현 상세다. ADR 본문은 Context / Alternatives / Decision / Risks / Gates 만 담는다.
 
 ## 1. ADR 분리 점검
 
@@ -257,6 +257,32 @@ R1(baseline 정체) 을 실효 차단하려면 ratchet 이 "안내" 가 아니�
 **Gate G3**: ratchet 동작 확인 — (1) 누락 1건 수정 후 baseline 미갱신 시 FAIL +
 재측정 명령 안내 출력, (2) baseline append 시 FAIL.
 
+### 5.1. Phase 3 실행 결과 (2026-05-17)
+
+- `componentRegistrationContract.test.ts` 에 ratchet 추가 — `BASELINE_RATCHET`
+  const (`{ rendererMap: 5, TAG_SPEC_MAP: 8, getDefaultProps: 19 }`) + `ratchetVerdict()`
+  helper + 2 test (real ratchet / negative fixture). 총 **10/10 PASS**.
+- ratchet 기준 = `baseline.json` 의 레지스트리별 항목 수가 `BASELINE_RATCHET` 와
+  **정확히 일치** (`===`). `BASELINE_RATCHET` 은 test 코드(리뷰 대상)에 두어,
+  데이터 파일 `baseline.json` 단독 편집(append 우회)이 반드시 리뷰되는 코드
+  편집을 동반하게 한다. ratchet 은 줄어들 수만 있다.
+- **append FAIL**: `baseline.json` 항목 수 > ratchet → "신규 누락은 baseline
+  진입 불가" FAIL.
+- **감소 FAIL**: 누락 해소로 항목 제거 시 항목 수 < ratchet → "BASELINE_RATCHET
+  를 N 으로 낮춰 재측정" FAIL. 더불어 staleness test 가 해소된 항목의 제거를
+  강제하므로, baseline.json 정리 + ratchet 하향이 lockstep 으로 묶인다.
+- **`--update-baseline` flag 미구현**: breakdown §5 가 "류" 로 제시한 재측정 CLI
+  플래그는 도입하지 않았다. vitest 커스텀 플래그 배선 대신, FAIL 메시지가 편집
+  대상(`baseline.json` / `BASELINE_RATCHET` const)과 목표값을 직접 안내한다 —
+  codex round 2 MED-1 이 요구한 것은 "FAIL 강제" 이고, Gate G3 (1) 의 "재측정
+  명령 안내" 는 이 메시지로 충족.
+- **Gate G3 검증**: `baseline.json` 일시 변조로 (1) append (fake 항목 주입) →
+  `rendererMap: baseline 6건 > ratchet 5건` FAIL exit 1, (2) 감소 (ColorPicker
+  제거) → `rendererMap: baseline 4건 < ratchet 5건 … 재측정` FAIL — 양쪽 확인 후
+  revert, 10/10 PASS 복귀.
+
+**Gate G3 판정**: append FAIL + 감소 FAIL + 재측정 안내 — 완료.
+
 ## 6. 신규 레지스트리 추가 체크리스트 (R3 대응)
 
 새 레지스트리를 파이프라인에 추가할 때:
@@ -275,10 +301,11 @@ R1(baseline 정체) 을 실효 차단하려면 ratchet 이 "안내" 가 아니�
 
 ## 8. 검증 체크리스트
 
-- [ ] Phase 0-3 각 Gate(G0~G3) 통과
-- [ ] `pnpm type-check` PASS
-- [ ] 기존 test 회귀 없음
-- [ ] README ADR-139 Implemented 갱신 + CHANGELOG `Infrastructure` 항목
+- [x] Phase 0-3 각 Gate(G0~G3) 통과 — G0 §2.5 / G1 §3.1 / G2 §4.1 / G3 §5.1
+- [x] `pnpm type-check` PASS — apps/builder baseline 547 유지, 신규 위반 0
+- [x] 기존 test 회귀 없음 — contract test 10/10 PASS, factories `factoryOwnership`
+      1-fail 은 pre-existing (git stash 검증)
+- [x] README ADR-139 Implemented 갱신 + CHANGELOG `Infrastructure` 항목
 
-Phase 0-3 실행은 사용자 검토 후 단계다 (ADR-133/134 와 동일 — 현재 커밋은 설계
-문서만 추가, 코드 변경 없음).
+전 Phase 완결 — ADR-139 Status `Implemented` 승격 (2026-05-17). ADR 본문은
+`docs/adr/completed/` 로 이동.

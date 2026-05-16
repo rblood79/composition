@@ -1,5 +1,5 @@
 /**
- * ADR-139 Phase 1 — 컴포넌트 등록·대칭 contract test
+ * ADR-139 Phase 1·3 — 컴포넌트 등록·대칭 contract test
  *
  * composition 컴포넌트는 정상 동작하려면 여러 독립 레지스트리에 각각 등록되어야
  * 한다. 한 곳이라도 누락되면 해당 경로만 조용히 깨진다. 본 test 는 등록 누락을
@@ -13,11 +13,15 @@
  * 미등록 쌍은 baseline(known debt) 또는 exception(intended) 에 있을 때만 허용.
  * 신규 컴포넌트는 baseline 진입 불가 — 전 레지스트리 등록 후 병합해야 PASS.
  *
+ * Phase 3 ratchet: baseline 항목 수를 BASELINE_RATCHET 로 freeze — baseline.json
+ *                  에 항목을 추가(append)하면 FAIL, 누락이 해소됐는데 const 를
+ *                  미갱신하면 FAIL (재측정 강제). baseline 은 줄어들 수만 있다.
+ *
  * 참조:
  * - docs/adr/139-component-registration-symmetry-gate.md
- * - docs/adr/design/139-component-registration-symmetry-gate-breakdown.md §2.5 §3
+ * - docs/adr/design/139-component-registration-symmetry-gate-breakdown.md §2.5 §3 §5
  *
- * 실행: pnpm vitest run apps/builder/src/builder/factories/__tests__/componentRegistrationContract.test.ts
+ * 실행: pnpm test:registration-contract
  */
 
 import fs from "node:fs";
@@ -96,6 +100,28 @@ function unexpectedMissing(
     .filter((c) => !hasCI(keys, c))
     .filter((c) => !allowed(reg, c))
     .sort();
+}
+
+// ── Phase 3: baseline ratchet (breakdown §5) ──
+// baseline 의 레지스트리별 항목 수를 freeze 한다. 이 const 는 줄어들 수만 있다
+// (ratchet). baseline.json 항목 수가 이 값과 어긋나면 ratchet 테스트 FAIL:
+//  - append (현재 > frozen): 신규 누락이 baseline 으로 우회 시도 — 금지
+//  - shrink (현재 < frozen): 누락 해소됐으나 const 미갱신 — 재측정 필요
+// baseline.json 은 데이터 파일이라 단독 편집이 쉽다. 이 const 를 test 코드(리뷰
+// 대상)에 두어, baseline 변경이 반드시 리뷰되는 코드 편집을 동반하게 한다.
+const BASELINE_RATCHET: Record<RegistryName, number> = {
+  rendererMap: 5,
+  TAG_SPEC_MAP: 8,
+  getDefaultProps: 19,
+};
+
+type RatchetVerdict = "ok" | "append" | "shrink";
+
+/** baseline 항목 수 vs frozen ratchet 비교 */
+function ratchetVerdict(current: number, frozen: number): RatchetVerdict {
+  if (current > frozen) return "append";
+  if (current < frozen) return "shrink";
+  return "ok";
 }
 
 describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
@@ -183,5 +209,36 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
       stale,
       `이미 등록되어 baseline/exception 에서 제거해야 할 항목: ${stale.join(", ")}`,
     ).toEqual([]);
+  });
+
+  // ── Phase 3 ratchet: baseline append 금지 / 감소 시 재측정 강제 ──
+  it("baseline ratchet — 항목 수가 BASELINE_RATCHET 와 정확히 일치", () => {
+    const violations: string[] = [];
+    for (const reg of Object.keys(BASELINE_RATCHET) as RegistryName[]) {
+      const count = Object.keys(baseline[reg] ?? {}).length;
+      const frozen = BASELINE_RATCHET[reg];
+      const verdict = ratchetVerdict(count, frozen);
+      if (verdict === "append") {
+        violations.push(
+          `${reg}: baseline ${count}건 > ratchet ${frozen}건 — 신규 누락은 ` +
+            `baseline 진입 불가. 컴포넌트를 전 레지스트리에 등록 후 병합하거나, ` +
+            `정당한 known debt 면 BASELINE_RATCHET.${reg} 를 ${count} 로 올린 뒤 ` +
+            `리뷰를 받으세요.`,
+        );
+      } else if (verdict === "shrink") {
+        violations.push(
+          `${reg}: baseline ${count}건 < ratchet ${frozen}건 — 누락 ` +
+            `${frozen - count}건 해소됨. BASELINE_RATCHET.${reg} 를 ${count} 로 ` +
+            `낮춰 재측정하세요.`,
+        );
+      }
+    }
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("ratchet negative fixture — append / 감소 verdict 가 감지됨", () => {
+    expect(ratchetVerdict(6, 5)).toBe("append");
+    expect(ratchetVerdict(4, 5)).toBe("shrink");
+    expect(ratchetVerdict(5, 5)).toBe("ok");
   });
 });

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-05-16
+Implemented — 2026-05-17
 
 - Proposed 2026-05-16 — review-adr round 1 (승인 가능)
 - Codex review round 2 (GO-WITH-FIXES) — HIGH 2 + MED 3 + LOW 1 정정 완료
@@ -14,6 +14,10 @@ Accepted — 2026-05-16
 getRegisteredTypes` / `DEFAULT_PROPS_MAP` export)
 - Phase 2 완료 2026-05-17 — `test:registration-contract` script + `codex:registration`
   게이트 + `codex:preflight` 체인 편입 (Gate G2). 결과: breakdown §4.1
+- Phase 3 완료 2026-05-17 — `BASELINE_RATCHET` 도입 (baseline append 시 FAIL /
+  감소 시 재측정 FAIL, Gate G3). contract test 10/10 PASS. 결과: breakdown §5.1
+- Implemented 2026-05-17 — Phase 0-3 전 Gate(G0~G3) 통과. type-check baseline 547
+  유지, 기존 test 회귀 0
 
 ## Context
 
@@ -131,7 +135,7 @@ D2 타입 일관성을 "등록 누락이 build-가시화" 되도록 강제한다
 **BC 영향**: gate 는 검증 코드만 추가하며 런타임 동작·schema·prop 을 변경하지
 않는다. 기존 프로젝트 호환성 훼손 0.
 
-> 구현 상세: [139-component-registration-symmetry-gate-breakdown.md](design/139-component-registration-symmetry-gate-breakdown.md)
+> 구현 상세: [139-component-registration-symmetry-gate-breakdown.md](../design/139-component-registration-symmetry-gate-breakdown.md)
 
 ## Risks
 

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컴포넌트 등록·대칭 build-time gate — ADR-139] - 2026-05-17
+
+### Infrastructure
+
+- **컴포넌트 등록 누락을 build/CI 시점에 차단하는 contract test gate** (ADR-139 Phase 0~3):
+  - composition 컴포넌트는 정상 동작하려면 `rendererMap` / `TAG_SPEC_MAP` (정본 + 빌더 merged) / `getDefaultProps` / `ComponentFactory` creators 등 여러 독립 레지스트리에 각각 수동 등록되어야 하는데, 한 곳이라도 빠지면 해당 경로만 조용히 깨졌다.
+  - **Why**: 등록점이 많고 전부 수동 유지 — 누락이 build 를 통과해 수동 sweep (`sweep-2026-05-16.json` 기준 54% drift) 으로만 발견됐다. `.claude/rules/ssot-hierarchy.md §4-1` 이 "build-time 자동화 미완성. 향후 과제" 로 명시한 영역.
+  - 신규 `componentRegistrationContract.test.ts` (10 test) — 불변식 A (모든 spec 파일 ⟹ TAG_SPEC_MAP) + 불변식 B (모든 placeable ⟹ rendererMap + TAG_SPEC_MAP + getDefaultProps) + builder merged 정합 + negative fixture. 등록 누락 시 test FAIL.
+  - 현 미등록 32건은 `componentRegistrationBaseline.json` (known debt), `Image` 1건은 `componentRegistrationException.json` (intended) 로 수용. 신규 컴포넌트는 baseline 진입 불가 — `BASELINE_RATCHET` 가 baseline append 시 FAIL / 누락 해소 후 미갱신 시 재측정 FAIL.
+  - `pnpm test:registration-contract` script + `scripts/codex/registration-gate.sh` → `codex:preflight` 체인 편입 (`codex:typecheck` 와 동급).
+  - 레지스트리 enumerate 를 위해 `ComponentFactory.getRegisteredTypes()` 접근자 + `DEFAULT_PROPS_MAP` module-scope export 추가 (동작 불변).
+  - 위치: `apps/builder/src/builder/factories/__tests__/componentRegistrationContract.test.ts`, `scripts/codex/registration-gate.sh`
+
 ## [Fix Visibility — 반복 fix/revert 가시화 hook] - 2026-05-15
 
 ### Infrastructure
