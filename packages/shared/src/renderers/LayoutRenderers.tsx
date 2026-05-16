@@ -1707,8 +1707,8 @@ export const renderProgressCircle = (
   _context: RenderContext,
 ): React.ReactNode => {
   const size =
-    element.props.size === "S" ? 24 : element.props.size === "L" ? 64 : 32;
-  const strokeWidth = element.props.size === "L" ? 4 : 3;
+    element.props.size === "sm" ? 24 : element.props.size === "lg" ? 64 : 32;
+  const strokeWidth = element.props.size === "lg" ? 4 : 3;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const value = Math.max(0, Math.min(100, Number(element.props.value ?? 0)));
