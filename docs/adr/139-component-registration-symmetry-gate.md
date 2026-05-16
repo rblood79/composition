@@ -12,6 +12,8 @@ Accepted — 2026-05-16
 - Phase 1 완료 2026-05-17 — `componentRegistrationContract.test.ts` (8/8 PASS,
   Gate G1) + baseline/exception JSON + 레지스트리 노출 (`ComponentFactory.
 getRegisteredTypes` / `DEFAULT_PROPS_MAP` export)
+- Phase 2 완료 2026-05-17 — `test:registration-contract` script + `codex:registration`
+  게이트 + `codex:preflight` 체인 편입 (Gate G2). 결과: breakdown §4.1
 
 ## Context
 

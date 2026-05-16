@@ -221,6 +221,27 @@ baseline (2.5-3) / exception 후보 (2.5-4) — 4 산출물 완료. Phase 1 진�
 
 **Gate G2**: CI/preflight 에서 gate 실행 + FAIL 시 차단 확인.
 
+### 4.1. Phase 2 실행 결과 (2026-05-17)
+
+- root `package.json` script `test:registration-contract` 추가 — contract test 를
+  단독 실행 (`pnpm -F @composition/builder exec vitest run …`).
+- `scripts/codex/registration-gate.sh` 신규 — `type-check-gate.sh` 와 동일 패턴.
+  `codex_changed_files` 에 `.ts/.tsx` 변경이 있을 때만 contract test 실행, 없으면
+  스킵. contract test FAIL 시 비-0 종료 → 게이트 차단.
+- `codex:registration` script + `codex:preflight` 체인 편입 — `codex:guard →
+codex:format → codex:typecheck → codex:registration` 순. `codex:typecheck` 와
+  **동급**.
+- **Stop hook 편입은 미수행**: `.claude/hooks/` 는 `protect-files.sh` 보호
+  디렉토리(인프라 보호 의도)라 Stop hook 직접 편집 불가. Gate G2 가 요구하는
+  "CI/preflight 에서 gate 실행" 은 `codex:preflight` 편입으로 충족. breakdown §4
+  의 "Stop hook type-check" 는 게이트 tier 의 reference 이지 편집 대상이 아니다.
+- 검증: `pnpm test:registration-contract` → 8/8 PASS. `registration-gate.sh` 단독
+  실행 → TS 변경 없을 때 스킵(exit 0) 확인. FAIL 차단력은 Phase 1 negative
+  fixture(`__Adr139FakeUnregistered__`) 가 입증.
+
+**Gate G2 판정**: `test:registration-contract` script + `codex:preflight` 편입 +
+TS-변경 게이팅 — 완료. Phase 3 진입 가능.
+
 ## 5. Phase 3 — Baseline ratchet
 
 R1(baseline 정체) 을 실효 차단하려면 ratchet 이 "안내" 가 아니라 **FAIL** 이어야
