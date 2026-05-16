@@ -58,6 +58,9 @@ import { GridListSpec } from "../components/GridList.spec";
 import { DisclosureSpec } from "../components/Disclosure.spec";
 import { DisclosureGroupSpec } from "../components/DisclosureGroup.spec";
 import { AccordionSpec } from "../components/Accordion.spec";
+import { ModalSpec } from "../components/Modal.spec";
+import { FieldSpec } from "../components/Field.spec";
+import { TailSwatchSpec } from "../components/TailSwatch.spec";
 import { ToolbarSpec } from "../components/Toolbar.spec";
 import { ToastSpec } from "../components/Toast.spec";
 import { GroupSpec } from "../components/Group.spec";
@@ -179,6 +182,9 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Tag: TagSpec,
   GridList: GridListSpec,
   Accordion: AccordionSpec,
+  Modal: ModalSpec,
+  Field: FieldSpec,
+  TailSwatch: TailSwatchSpec,
   Disclosure: DisclosureSpec,
   DisclosureGroup: DisclosureGroupSpec,
   DisclosureHeader: DisclosureHeaderSpec,
