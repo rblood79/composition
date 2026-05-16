@@ -173,6 +173,17 @@ export class ComponentFactory {
   };
 
   /**
+   * 등록된 creator type 목록.
+   *
+   * ADR-139: `componentRegistrationContract` 가 placeable 컴포넌트 집합을
+   * enumerate 하는 진입점. `creators` 는 `private static` 이라 외부에서 직접
+   * 키를 읽을 수 없으므로 read-only 접근자를 노출한다.
+   */
+  static getRegisteredTypes(): string[] {
+    return Object.keys(ComponentFactory.creators);
+  }
+
+  /**
    * 복합 컴포넌트 생성 (메인 메서드)
    * @param layoutId - reusable frame 편집 컨텍스트 id
    * @param doc - Canonical CompositionDocument (ADR-903 P3-E E-6: layout body 변환 용)

@@ -1,0 +1,8 @@
+{
+  "_doc": "ADR-139 — 의도된 등록 부재 (intended exception). baseline 과 달리 영구 정당하며 해소 대상이 아니다. 각 항목은 사유 + 근거를 명시한다. 신규 추가 시 ADR/rule 링크 의무.",
+  "TAG_SPEC_MAP": {
+    "Image": "IMAGE_TAGS(Image/Avatar/Logo/Thumbnail) 는 ImageSprite/buildImageNodeData 렌더 경로 — Skia spec shapes 미사용. 근거: apps/builder/src/builder/workspace/canvas/sprites/tagSpecMap.ts IMAGE_TAGS"
+  },
+  "rendererMap": {},
+  "getDefaultProps": {}
+}

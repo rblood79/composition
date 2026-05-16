@@ -194,6 +194,26 @@ baseline (2.5-3) / exception 후보 (2.5-4) — 4 산출물 완료. Phase 1 진�
 **Gate G1**: contract test 가 현 코드에서 PASS (baseline + exception 으로 현
 미등록 수용). 신규 누락을 주입한 negative fixture 가 FAIL 하는지 확인.
 
+### 3.1. Phase 1 실행 결과 (2026-05-17)
+
+- `apps/builder/src/builder/factories/__tests__/componentRegistrationContract.test.ts`
+  작성 — 8 test (sanity / 불변식 A / 불변식 B ×3 / builder merged 정합 /
+  negative fixture / baseline staleness), **8/8 PASS** (Gate G1 충족).
+- baseline / exception 데이터 — 같은 `__tests__/` 디렉토리에 JSON:
+  - `componentRegistrationException.json` — intended 1건 (`Image`/TAG_SPEC_MAP,
+    IMAGE_TAGS 경로)
+  - `componentRegistrationBaseline.json` — known debt: TAG_SPEC_MAP 8 /
+    rendererMap 5 / getDefaultProps 19. §2.5-3 draft 와 실측 일치.
+- 레지스트리 노출 (gate enumerate 용 최소 변경):
+  - `ComponentFactory.getRegisteredTypes()` — `private static creators` read-only
+    접근자 신규.
+  - `unified.types.ts` — 함수 내부 `defaultPropsMap` → module-scope
+    `export const DEFAULT_PROPS_MAP` 승격 (`getDefaultProps` 동작 불변).
+- `apps/builder/.type-errors-baseline.txt` 550→547 — `getRegisteredTypes` 추가로
+  인한 line-shift 1건 정합 + 사전 stale 3건 정리. 신규 type 에러 0.
+- negative fixture: 가짜 미등록 주입 시 `unexpectedMissing` 이 검출 — gate 차단력
+  확인.
+
 ## 4. Phase 2 — CI 편입
 
 - `package.json` script 추가 (예: `test:registration-contract`).

@@ -9,6 +9,9 @@ Accepted — 2026-05-16
 - Accepted 2026-05-16 — 사용자 합의, Phase 0 착수
 - Phase 0 완료 2026-05-17 — 레지스트리 inventory + per-registry expected-set 모델
   확정 (Gate G0). 결과: breakdown §2.5
+- Phase 1 완료 2026-05-17 — `componentRegistrationContract.test.ts` (8/8 PASS,
+  Gate G1) + baseline/exception JSON + 레지스트리 노출 (`ComponentFactory.
+getRegisteredTypes` / `DEFAULT_PROPS_MAP` export)
 
 ## Context
 
