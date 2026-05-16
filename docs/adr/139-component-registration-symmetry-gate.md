@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-05-16
+Accepted — 2026-05-16
+
+- Proposed 2026-05-16 — review-adr round 1 (승인 가능)
+- Codex review round 2 (GO-WITH-FIXES) — HIGH 2 + MED 3 + LOW 1 정정 완료
+- Accepted 2026-05-16 — 사용자 합의, Phase 0 착수
 
 ## Context
 
