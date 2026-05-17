@@ -8,21 +8,21 @@ Proposed — 2026-05-17
 
 composition의 D3(시각 스타일) Spec은 Adobe 공식 React Aria starter(`/Users/admin/work/react-aria-starter`, Storybook `localhost:6006`)의 디자인을 참조 원천으로 삼아 ADR-022(S2 하이브리드 토큰)·ADR-036(Spec-First)으로 의도적으로 분기·발전시켜 왔다. 2026-05-17 사용자 지시로 starter 대비 composition이 받아들여야 할 스타일 업데이트를 전수 점검(체크/설계 문서: `docs/reference/audits/2026-05-17-rac-starter-style-update-*.md`)한 결과, **starter에 있고 composition이 일관되게 결여한 유일한 디자인 언어**는 **press-scale micro-interaction** — `[data-pressed]` 시 요소를 `scale: 0.9~0.98`로 축소하는 촉각 눌림 피드백 — 으로 확인됐다.
 
-starter는 이를 9개 이상 컴포넌트(Button·ToggleButton·Calendar 셀·GridList 항목·Disclosure 헤더·Tag·Switch thumb 등)에 일관 적용하나, composition은 generated CSS·수동 CSS·spec 전부 0건이다. 본 ADR은 이 단일 디자인 언어를 composition Spec D3 SSOT 경유로 도입하는 결정이다.
+starter는 이를 Button·ToggleButton·ToggleButtonGroup·Calendar/RangeCalendar 셀·GridList 항목·Disclosure 헤더·Tag·Form 버튼·Switch thumb 등 다수 컴포넌트에 일관 적용하나, composition은 generated CSS·수동 CSS·spec 전부 0건이다. 본 ADR은 이 단일 디자인 언어를 composition Spec D3 SSOT 경유로 도입하는 결정이다. (도입 대상·제외 대상의 정확한 분류는 breakdown §1 참조 — ToggleButtonGroup·Form 버튼은 자식 Button/ToggleButton의 C1-a로 transitively 커버된다.)
 
 **Domain**: D3(시각 스타일). SSOT는 composition의 Spec. react-aria-starter는 시각 참조 원천이지 D3의 상위 권위가 아니다 — 도입 시에도 composition Spec을 경유해 Builder Skia ↔ Preview/Publish CSS 두 consumer의 시각 대칭을 유지한다 (`ssot-hierarchy.md` D3).
 
 **Hard Constraints**:
 
-1. **D3 대칭** — Builder Skia ↔ Preview/Publish CSS는 동일 Spec source에서 시각 결과 동일성을 산출해야 한다. 단 Skia `componentState`는 `"default" | "disabled"`만 지원하며(`buildSpecNodeData.ts:1000-1014`, `:1080` 주석), Builder Skia는 hover/pressed를 렌더하지 않는다 → press-scale은 Preview/Publish CSS 인터랙션 한정, Skia가 pressed를 안 그리므로 비대칭이 발생하지 않는다.
+1. **D3 대칭** — Builder Skia ↔ Preview/Publish CSS는 동일 Spec source에서 시각 결과 동일성을 산출해야 한다(`ssot-hierarchy.md` D3). Skia `componentState`는 `"default" | "disabled"`만 지원하며(`buildSpecNodeData.ts:1000-1014`, `:1080` 주석), Builder Skia는 hover/pressed를 렌더하지 않는다 → press-scale은 Builder Skia가 표현하지 않는 pressed 상태에만 작용한다. D3 대칭은 default·disabled 상태에서 그대로 유지되며, pressed는 Skia 비표현 상태로서 **Preview/Publish 전용 인터랙션으로 수용**한다 — 대칭 평가 범위 밖의 예외이며 Risks R5로 명시한다.
 2. **하위 호환** — 기존 프로젝트 재직렬화 0. spec `states` 추가는 CSS 출력만 변경하며 element/document 데이터 스키마는 무변경.
-3. **CSSGenerator snapshot 안정성** — `@composition/specs` 326 test는 의도된 diff(press-scale 도입 컴포넌트)만 변경, 그 외 bit-identical 유지.
+3. **CSSGenerator snapshot 안정성** — CSSGenerator snapshot test는 press-scale 도입 컴포넌트(Button/ToggleButton/DisclosureHeader)의 generated CSS만 변경하고, 그 외 spec의 generated CSS snapshot은 bit-identical 유지한다. `@composition/specs` 전체 test suite도 통과를 유지한다.
 4. **Canvas 60fps** — Skia가 pressed를 미렌더하므로 Canvas 성능 영향 0.
 
 **Soft Constraints**:
 
 - `StateEffect.scale?: number` 필드(`packages/specs/src/types/state.types.ts`)와 CSSGenerator의 `transform: scale()` emit(`CSSGenerator.ts:1033-1034` pressed / `:981-982` hover)이 **이미 존재** — leaf 컴포넌트 press-scale 도입에 신규 spec capability·generator 코드 변경이 불필요하다.
-- sub-element(Calendar 셀·GridList 항목·Tag)는 skipCSSGeneration + 수동 CSS 영역으로, 해당 컴포넌트는 spec이 sub-element 단위 `states`를 표현하지 않는다.
+- sub-element(CalendarCell·GridList 항목·Tag)는 부모 spec이 sub-element 단위 `states`를 표현하지 않아 수동 CSS가 시각 스타일을 담당한다. CalendarCell의 pressed 수동 CSS는 Calendar/RangeCalendar 공통 selector를 둔 `CalendarCommon.css`에 있다(부모 Calendar는 generated CSS를 별도로 가지나 CalendarCell 상태 스타일은 수동 CSS 소관).
 
 ## Alternatives Considered
 
@@ -72,7 +72,7 @@ starter는 이를 9개 이상 컴포넌트(Button·ToggleButton·Calendar 셀·G
 
 선택 근거:
 
-1. **잔존 위험 수용 가능** — A의 유일한 MED는 유지보수(sub-element press-scale의 수동 CSS 잔존). 그러나 Calendar·GridList·TagGroup은 **이미 skipCSSGeneration + 수동 CSS 영역**이다. press-scale을 그 수동 CSS에 추가하는 것은 신규 debt 생성이 아니라 기존 debt 영역 내 한 줄 확장이며, ADR-059(skipCSSGeneration 해체)가 진행될 때 해당 수동 CSS 전체와 함께 spec화될 대상에 자연 포함된다.
+1. **잔존 위험 수용 가능** — A의 유일한 MED는 유지보수(sub-element press-scale의 수동 CSS 잔존). 그러나 CalendarCell·GridList 항목·Tag 같은 sub-element는 부모 spec이 sub-element 단위 `states`를 표현하지 않아 **이미 수동 CSS가 시각 스타일을 담당하는 영역**이다(예: CalendarCell은 `CalendarCommon.css`). press-scale을 그 수동 CSS에 추가하는 것은 신규 debt 생성이 아니라 기존 수동 CSS 영역 내 한 줄 확장이며, ADR-059(skipCSSGeneration 해체)·sub-element spec화가 진행될 때 해당 수동 CSS 전체와 함께 spec화될 대상에 자연 포함된다.
 2. **leaf는 기존 capability 활용** — `StateEffect.scale` + CSSGenerator emit이 이미 존재하므로 Button·ToggleButton·DisclosureHeader는 spec `states.pressed.scale` 값 추가만으로 도입 완결 — generator·타입 코드 변경 0.
 3. **Skia 작업 0** — Skia는 pressed를 미렌더하므로 D3 대칭 위반이 발생하지 않는다.
 
@@ -85,18 +85,19 @@ starter는 이를 9개 이상 컴포넌트(Button·ToggleButton·Calendar 셀·G
 
 ## Risks
 
-| ID  | 위험                                                                                                             | 심각도 | 대응                                                                                                                          |
-| --- | ---------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------- |
-| R1  | sub-element press-scale(C1-b·C2)이 수동 CSS에 잔존 — ssot debt                                                   |  MED   | 신규 debt 아닌 기존 skipCSSGeneration 영역 내 확장. ADR-059 해체 시 해당 수동 CSS와 함께 spec화 대상으로 명시 (breakdown §5). |
-| R2  | button archetype base transition에 `transform` 추가 시 button archetype 전체(Button/ToggleButton/Link 등)로 파급 |  LOW   | `transform`을 사용하지 않는 button archetype 컴포넌트는 transition 항목 추가가 무해(no-op). `/cross-check`로 회귀 확인.       |
-| R3  | Button/ToggleButton의 기존 inset-shadow press 피드백 제거(설계 결정 DD1) = 사용자-가시 변경                      |  MED   | breakdown §1 DD1으로 명시, Phase 0에서 사용자 확정. CHANGELOG Features 반영.                                                  |
-| R4  | CSSGenerator snapshot 변경                                                                                       |  LOW   | 의도된 3개 CSS(Button/ToggleButton/DisclosureHeader) `[data-pressed]` diff만 — 그 외 bit-identical 확인.                      |
+| ID  | 위험                                                                                                                                    | 심각도 | 대응                                                                                                                                                                                                                                                   |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | sub-element press-scale(C1-b·C2)이 수동 CSS에 잔존 — ssot debt                                                                          |  MED   | 신규 debt 아닌 기존 수동 CSS 영역 내 확장(sub-element는 부모 spec이 `states` 미표현). ADR-059 해체·sub-element spec화 시 해당 수동 CSS와 함께 spec화 대상으로 명시 (breakdown §5).                                                                     |
+| R2  | button archetype base transition에 `transform` 추가 시 button archetype 전체(Button/ToggleButton/Link 등)로 파급                        |  LOW   | `transform`을 사용하지 않는 button archetype 컴포넌트는 transition 항목 추가가 무해(no-op). `/cross-check`로 회귀 확인.                                                                                                                                |
+| R3  | Button/ToggleButton의 기존 inset-shadow press 피드백 제거(설계 결정 DD1) = 사용자-가시 변경                                             |  MED   | breakdown §1 DD1으로 명시, Phase 0에서 사용자 확정. CHANGELOG Features 반영.                                                                                                                                                                           |
+| R4  | CSSGenerator snapshot 변경                                                                                                              |  LOW   | 의도된 3개 CSS(Button/ToggleButton/DisclosureHeader) `[data-pressed]` diff만 — 그 외 snapshot bit-identical 확인.                                                                                                                                      |
+| R5  | pressed 상태가 Builder Skia에서 비표현 — press-scale이 Preview/Publish에만 적용되어 D3 symmetric consumer 간 pressed 시각 결과가 불일치 |  LOW   | 의도된 수용. Skia `componentState`가 `default`·`disabled`만 지원하는 현 아키텍처의 결과(`buildSpecNodeData.ts:1000-1014`). default·disabled 대칭은 무영향. Skia가 pressed를 렌더하게 되면 spec `states.pressed.scale`을 Skia 경로도 소비하도록 재평가. |
 
 잔존 HIGH 위험 없음.
 
 ## Gates
 
-잔존 HIGH 위험 없음 — Gate 테이블 불요. 단 MED 위험 R1·R3·R4의 통과 조건을 검증 체크리스트(breakdown §4)로 관리한다: CSSGenerator snapshot 의도 diff 확인(R4), `/cross-check` 7개 컴포넌트 회귀 없음(R2), DD1 사용자 확정(R3), ADR-059 후속 명시(R1).
+잔존 HIGH 위험 없음 — Gate 테이블 불요. MED·LOW 위험의 통과 조건을 검증 체크리스트(breakdown §4)로 관리한다: CSSGenerator snapshot 의도 diff 확인(R4), `/cross-check` 7개 컴포넌트 default·disabled 상태 회귀 없음(R2·R5 — Skia는 pressed를 미표현하므로 default 상태 무변경 = 회귀 없음, pressed는 Preview/Publish 전용 인터랙션으로 수용), DD1 사용자 확정(R3), ADR-059 후속 명시(R1).
 
 ## Consequences
 
