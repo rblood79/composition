@@ -1,6 +1,6 @@
 # ADR-140 구현 상세 — press-scale micro-interaction 도입
 
-> 본 문서는 [ADR-140](../140-press-scale-micro-interaction.md)의 구현 상세 (Phase / 파일 변경표 / 체크리스트).
+> 본 문서는 [ADR-140](../completed/140-press-scale-micro-interaction.md)의 구현 상세 (Phase / 파일 변경표 / 체크리스트).
 > 선행 분석: [docs/reference/audits/2026-05-17-rac-starter-style-update-check.md](../../reference/audits/2026-05-17-rac-starter-style-update-check.md) + [-design.md](../../reference/audits/2026-05-17-rac-starter-style-update-design.md)
 
 ## §1. 범위 + 설계 결정
@@ -69,7 +69,7 @@ react-aria-starter의 `[data-pressed] { scale: 0.9~0.98 }` 촉각 눌림 피드�
 ### Phase 5 — 검증
 
 - `pnpm build:specs` + `pnpm type-check`.
-- CSSGenerator snapshot 갱신 — 의도된 diff(Button/ToggleButton/DisclosureHeader 3개 generated CSS의 `[data-pressed]` 변경분)만, 그 외 snapshot bit-identical. `@composition/specs` 전체 test suite 통과 확인.
+- CSSGenerator snapshot 갱신 — 두 종류 diff: (1) Button/ToggleButton (`[data-pressed]` boxShadow→`scale`) + DisclosureHeader (`[data-pressed]` 신규) 3개, (2) button·archetype-미지정 컴포넌트 19개 base transition 에 `transform 0.15s ease` 추가 (DD3 — `CSSGenerator.ts` 71·128 두 위치 결과). 합 20 snapshot 갱신. `@composition/specs` 전체 test suite 통과 확인.
 - `/cross-check` — Button/ToggleButton/Calendar/GridList/Tag/Disclosure/Switch (Skia는 pressed 미렌더 → default 상태 무변경 확인 = 회귀 없음).
 - Preview에서 각 컴포넌트 press 시 축소 육안.
 
@@ -91,12 +91,12 @@ react-aria-starter의 `[data-pressed] { scale: 0.9~0.98 }` 촉각 눌림 피드�
 ## §4. 검증 체크리스트
 
 - [x] DD1/DD2/DD3 사용자 확정 완료 (2026-05-17 — DD1=(b) scale 단독 / DD2=(a) press scale 신축만 / DD3=transform 추가).
-- [ ] `pnpm build:specs` PASS — generated CSS에 `transform: scale()` emit 확인.
-- [ ] `pnpm type-check` PASS.
-- [ ] CSSGenerator snapshot — 의도된 3개 CSS diff 외 0.
-- [ ] `/cross-check` — 7개 컴포넌트 default 상태 회귀 없음 (Skia 무변경).
-- [ ] Preview에서 7개 컴포넌트 press 축소 육안 확인.
-- [ ] CHANGELOG 반영 (사용자-가시 micro-interaction 신규 = Features 트리거).
+- [x] `pnpm build:specs` PASS — generated CSS에 `transform: scale()` emit 확인 (Button/ToggleButton `scale(0.95)`, DisclosureHeader `scale(0.97)`, inset-shadow 미존재).
+- [x] `pnpm type-check` PASS (baseline 547, 신규 위반 0).
+- [x] CSSGenerator snapshot — Button/ToggleButton/DisclosureHeader scale 3개 + button·archetype-미지정 transition 19개 (DD3) = 20 snapshot 갱신. `@composition/specs` 326/326 test PASS.
+- [x] cross-check (정적) — pressed 는 Skia 비렌더 (`componentState`=default·disabled) → 7개 컴포넌트 default 상태 CSS·Skia 무변경, 회귀 없음. pressed 비대칭은 ADR Risks R5 의도된 수용.
+- [ ] Preview에서 7개 컴포넌트 press 축소 육안 확인 — dev 서버 실행 후 수동 (press 상태는 pointer-down 유지 필요 → 프로그래매틱 검증 부적합).
+- [x] CHANGELOG 반영 (ADR-140 Features 엔트리 — 2026-05-17).
 
 ## §5. 후속 (범위 외 — 본 ADR 미포함)
 

@@ -61,6 +61,8 @@
 
     &[data-pressed] {
       background: color-mix(in srgb, var(--bg-overlay) 80%, var(--bg-muted));
+      /* ADR-140 C1-b: press-scale 0.98 (transition: all 이 scale 포함) */
+      scale: 0.98;
     }
 
     &[data-focus-visible] {

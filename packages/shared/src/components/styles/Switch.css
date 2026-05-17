@@ -50,6 +50,8 @@
 
       &:before {
         background: var(--bg-emphasis);
+        /* ADR-140 C2: thumb 비균일 press-scale 신축 (transition: all 이 scale 포함) */
+        scale: 1.2 1;
       }
     }
 

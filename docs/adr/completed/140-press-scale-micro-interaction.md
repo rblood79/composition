@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-05-17
+Implemented — 2026-05-17
+
+Proposed → Implemented (2026-05-17): Codex 리뷰(GO-WITH-FIXES) 4건 반영 + 설계 결정 DD1/DD2/DD3 확정 후 Phase 1~5 구현·검증 완료. `pnpm type-check` baseline 547 무증가, `@composition/specs` 326/326 PASS, CSSGenerator snapshot 20개 갱신. 구현 상세·검증 결과는 [breakdown §2·§4](../design/140-press-scale-micro-interaction-breakdown.md) 참조.
 
 ## Context
 
@@ -81,7 +83,7 @@ starter는 이를 Button·ToggleButton·ToggleButtonGroup·Calendar/RangeCalenda
 - **대안 B 기각**: leaf 컴포넌트가 보유한 spec capability를 의도적으로 우회해 수동 CSS override를 신규 도입 — D3 SSOT 분산, skipCSSGeneration 미적용 컴포넌트에 수동 CSS 역도입, ADR-059 역행. 유지보수 HIGH.
 - **대안 C 기각**: sub-element spec 모델 신설은 press-scale이라는 좁은 목적 대비 scope 과대. CalendarCell/GridListItem/Tag의 spec 승격은 ADR-059와 직교하는 별도 대형 결정으로, 본 ADR에 포함 시 범위 과대 확장.
 
-> 구현 상세: [140-press-scale-micro-interaction-breakdown.md](design/140-press-scale-micro-interaction-breakdown.md)
+> 구현 상세: [140-press-scale-micro-interaction-breakdown.md](../design/140-press-scale-micro-interaction-breakdown.md)
 
 ## Risks
 

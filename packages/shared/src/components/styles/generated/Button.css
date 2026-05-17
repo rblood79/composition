@@ -15,7 +15,7 @@
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
@@ -157,7 +157,7 @@
 }
 
 .react-aria-Button[data-pressed] {
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  transform: scale(0.95);
 }
 
 .react-aria-Button[data-disabled] {

@@ -82,7 +82,10 @@ export const DisclosureHeaderSpec: ComponentSpec<DisclosureHeaderProps> = {
     },
   },
 
-  states: {},
+  states: {
+    // ADR-140 C1-c: Disclosure 헤더 press-scale 촉각 피드백
+    pressed: { scale: 0.97 },
+  },
 
   render: {
     shapes: () => [],

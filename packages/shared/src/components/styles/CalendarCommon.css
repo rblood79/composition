@@ -107,6 +107,8 @@
     outline: none;
     forced-color-adjust: none;
     color: var(--fg);
+    /* ADR-140 C1-b: press-scale 촉각 피드백 트랜지션 */
+    transition: scale 0.15s ease;
   }
 
   /* ========== CalendarCell State Styles ========== */
@@ -149,6 +151,8 @@
   .react-aria-Calendar .react-aria-CalendarCell[data-pressed],
   .react-aria-RangeCalendar .react-aria-CalendarCell[data-pressed] {
     background: color-mix(in srgb, var(--bg-muted) 75%, black);
+    /* ADR-140 C1-b: press-scale 0.9 */
+    scale: 0.9;
   }
 
   /* Disabled state */

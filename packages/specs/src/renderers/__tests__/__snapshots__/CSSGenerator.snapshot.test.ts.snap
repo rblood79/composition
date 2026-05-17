@@ -117,7 +117,7 @@ exports[`CSSGenerator snapshot baseline > AvatarGroup 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -649,7 +649,7 @@ exports[`CSSGenerator snapshot baseline > Body 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -909,7 +909,7 @@ exports[`CSSGenerator snapshot baseline > Button 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
@@ -1051,7 +1051,7 @@ exports[`CSSGenerator snapshot baseline > Button 1`] = `
 }
 
 .react-aria-Button[data-pressed] {
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  transform: scale(0.95);
 }
 
 .react-aria-Button[data-disabled] {
@@ -1092,7 +1092,7 @@ exports[`CSSGenerator snapshot baseline > ButtonGroup 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -1315,7 +1315,7 @@ exports[`CSSGenerator snapshot baseline > Card 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default size */
@@ -1651,7 +1651,7 @@ exports[`CSSGenerator snapshot baseline > CardView 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -4161,7 +4161,7 @@ exports[`CSSGenerator snapshot baseline > Disclosure 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default size */
@@ -4349,6 +4349,10 @@ exports[`CSSGenerator snapshot baseline > DisclosureHeader 1`] = `
 .react-aria-DisclosureHeader[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-DisclosureHeader[data-pressed] {
+  transform: scale(0.97);
 }
 
 .react-aria-DisclosureHeader[data-disabled] {
@@ -4556,7 +4560,7 @@ exports[`CSSGenerator snapshot baseline > FileTrigger 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
     display: inline-block;
 
@@ -5658,7 +5662,7 @@ exports[`CSSGenerator snapshot baseline > Link 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
@@ -5795,7 +5799,7 @@ exports[`CSSGenerator snapshot baseline > List 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -6865,7 +6869,7 @@ exports[`CSSGenerator snapshot baseline > Nav 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -7348,7 +7352,7 @@ exports[`CSSGenerator snapshot baseline > Pagination 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
     display: flex;
     flex-direction: column;
@@ -9074,7 +9078,7 @@ exports[`CSSGenerator snapshot baseline > Section 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -10199,7 +10203,7 @@ exports[`CSSGenerator snapshot baseline > Slot 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default size */
@@ -10728,7 +10732,7 @@ exports[`CSSGenerator snapshot baseline > Switcher 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -10840,7 +10844,7 @@ exports[`CSSGenerator snapshot baseline > Tab 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -10996,7 +11000,7 @@ exports[`CSSGenerator snapshot baseline > TableView 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Default variant */
@@ -12087,7 +12091,7 @@ exports[`CSSGenerator snapshot baseline > ToggleButton 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
@@ -12194,7 +12198,7 @@ exports[`CSSGenerator snapshot baseline > ToggleButton 1`] = `
 }
 
 .react-aria-ToggleButton[data-pressed] {
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  transform: scale(0.95);
 }
 
 .react-aria-ToggleButton[data-disabled] {
@@ -12358,7 +12362,7 @@ exports[`CSSGenerator snapshot baseline > Toolbar 1`] = `
     box-sizing: border-box;
     cursor: pointer;
     user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
     display: flex;
     flex-wrap: wrap;

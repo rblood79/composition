@@ -53,6 +53,10 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+.react-aria-DisclosureHeader[data-pressed] {
+  transform: scale(0.97);
+}
+
 .react-aria-DisclosureHeader[data-disabled] {
   opacity: 0.38;
   cursor: not-allowed;

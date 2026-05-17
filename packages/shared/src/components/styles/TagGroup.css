@@ -60,6 +60,11 @@
       background: color-mix(in srgb, var(--tag-color) 92%, black);
     }
 
+    /* ADR-140 C1-b: press-scale 0.96 (transition: all 이 scale 포함) */
+    &[data-pressed] {
+      scale: 0.96;
+    }
+
     &[data-focus-visible] {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
@@ -78,7 +83,9 @@
       padding: var(--spacing-2xs);
       margin-left: var(--spacing-2xs);
       color: var(--fg-base);
-      transition: color 200ms;
+      transition:
+        color 200ms,
+        scale 0.15s ease;
       outline: none;
       font-size: var(--text-sm);
       border-radius: 100%;
@@ -88,6 +95,11 @@
 
       &[data-hovered] {
         color: var(--fg-emphasis);
+      }
+
+      /* ADR-140 C1-b: remove-button press-scale 0.9 */
+      &[data-pressed] {
+        scale: 0.9;
       }
 
       &[data-focus-visible] {

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [press-scale 마이크로 인터랙션 — ADR-140] - 2026-05-17
+
+### Features
+
+- **press 시 축소 촉각 피드백 도입** (ADR-140 Phase 1~5):
+  - react-aria-starter 의 `[data-pressed] { scale }` 눌림 피드백 디자인 언어를 composition 인터랙티브 컴포넌트에 도입 — Button·ToggleButton(0.95) / Disclosure 헤더(0.97) / Calendar·RangeCalendar 셀(0.9) / GridList 항목(0.98) / Tag(0.96)·Tag remove-button(0.9) / Switch thumb(비균일 `1.2 1` 신축).
+  - Button·ToggleButton·DisclosureHeader 는 Spec `states.pressed.scale` → CSSGenerator 가 `transform: scale()` 자동 생성. Calendar·GridList·Tag·Switch 는 수동 CSS (해당 컴포넌트가 skipCSSGeneration 이거나 sub-element 대상).
+  - **Why**: starter 가 모든 인터랙티브 요소에 일관 적용하는 촉각 피드백이 composition 에는 부재 — 클릭 시 시각 반응이 색상 변화에만 의존했다.
+  - button archetype 공통 transition (`CSSGenerator.ts`) 에 `transform 0.15s ease` 추가 — press 축소가 부드럽게 애니메이션. transform 미사용 컴포넌트엔 무해 no-op.
+  - pressed 는 Builder Skia 비표현 상태 — press-scale 은 Preview/Publish 전용 인터랙션 (Skia `componentState` 가 default·disabled 만 지원). default·disabled 시각 대칭은 무영향.
+  - 위치: `packages/specs/src/components/{Button,ToggleButton,DisclosureHeader}.spec.ts`, `packages/specs/src/renderers/CSSGenerator.ts`, `packages/shared/src/components/styles/{CalendarCommon,GridList,TagGroup,Switch}.css`
+
+- **Button·ToggleButton pressed inset-shadow 제거** (ADR-140 DD1):
+  - 기존 `pressed` 상태의 `box-shadow: inset 0 1px 2px rgba(0,0,0,0.1)` 를 제거하고 press-scale 단독으로 전환.
+  - **Why**: starter 디자인 언어는 press 피드백으로 scale 만 사용 — scale + inset-shadow 병존 시 시각 과중. (사용자-가시 변경)
+
 ## [컴포넌트 등록·대칭 build-time gate — ADR-139] - 2026-05-17
 
 ### Infrastructure

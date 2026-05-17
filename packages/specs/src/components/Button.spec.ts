@@ -335,7 +335,8 @@ export const ButtonSpec: ComponentSpec<ButtonProps> = {
       // variant별 hover 색상은 variants에서 정의
     },
     pressed: {
-      boxShadow: "inset 0 1px 2px rgba(0,0,0,0.1)",
+      // ADR-140 DD1: press-scale 단독 — inset-shadow 제거 (starter 디자인 언어 정합)
+      scale: 0.95,
     },
     disabled: {
       opacity: 0.38,
