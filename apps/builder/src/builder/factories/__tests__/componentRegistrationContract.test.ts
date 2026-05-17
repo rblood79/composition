@@ -111,7 +111,7 @@ function unexpectedMissing(
 // 대상)에 두어, baseline 변경이 반드시 리뷰되는 코드 편집을 동반하게 한다.
 const BASELINE_RATCHET: Record<RegistryName, number> = {
   rendererMap: 0,
-  TAG_SPEC_MAP: 1,
+  TAG_SPEC_MAP: 0,
   getDefaultProps: 0,
 };
 
