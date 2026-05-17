@@ -110,7 +110,7 @@ function unexpectedMissing(
 // baseline.json 은 데이터 파일이라 단독 편집이 쉽다. 이 const 를 test 코드(리뷰
 // 대상)에 두어, baseline 변경이 반드시 리뷰되는 코드 편집을 동반하게 한다.
 const BASELINE_RATCHET: Record<RegistryName, number> = {
-  rendererMap: 5,
+  rendererMap: 0,
   TAG_SPEC_MAP: 1,
   getDefaultProps: 0,
 };

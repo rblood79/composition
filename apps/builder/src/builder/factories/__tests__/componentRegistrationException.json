@@ -6,7 +6,13 @@
     "MenuItem": "MenuItem 은 Menu.props.items[] 배열 데이터 — 독립 element/tag 아님. MenuItem.spec.ts 는 menu item 시각 spec 용도. 근거: ADR-068 Menu items SSOT.",
     "Navigation": "creators alias — createNavDefinition 이 type:\"Nav\" element 를 생성하며 \"Navigation\" 타입 element 는 트리에 존재하지 않는다. Nav 가 정본 tag, Navigation 은 팔레트 alias. 근거: apps/builder/src/builder/factories/definitions/NavigationComponents.ts createNavDefinition + ComponentFactory.creators Navigation→createNav."
   },
-  "rendererMap": {},
+  "rendererMap": {
+    "ColorPicker": "복합 color 컨테이너 — 자식(ColorArea/ColorSlider/ColorWheel/ColorField/ColorSwatch)이 각자 rendererMap renderer 보유. preview/App.tsx resolveHtmlTag 이 ColorPicker→\"div\" fallback 명시 처리 (\"Color 복합 컴포넌트 (rendererMap 미등록)\"). 컨테이너는 spec-fallback `<div class=\"react-aria-ColorPicker\">` 로 충분 — 전용 renderer 불요.",
+    "List": "presentational 리스트 컨테이너 — 자식 ListItem 이 콘텐츠 렌더. RAC ListBox(선택·키보드 nav)와 달리 상호작용 없음. spec-backed(ListSpec) 이므로 Preview fallback 이 react-aria-List className + data-* 주입. 전용 renderer 불요.",
+    "Switcher": "segmented control 컨테이너 — RAC \"Switcher\" 컴포넌트 부재(composition custom). flex 컨테이너 + 자식 ToggleButton(renderToggleButton 보유) 조합. 컨테이너는 spec-fallback 으로 충분.",
+    "TextArea": "form 컨테이너 — 자식 Label/Input/FieldError 가 각자 renderer 보유 (Input 이 실제 입력 필드 렌더). 컨테이너는 flex wrapper 라 spec-fallback `<div class=\"react-aria-TextArea\">` 로 충분 — 전용 renderer 불요.",
+    "frame": "ADR-130 canonical layout container — ARIA role 없음 (RAC Group 의 role=\"group\" 비대응, renderGroup 불요). spec-fallback `<div class=\"react-aria-frame\">{children}</div>` 가 정확한 렌더. 근거: docs/adr/completed/130-layer3-canonical-vocabulary-alignment.md."
+  },
   "getDefaultProps": {
     "Navigation": "creators alias — createNavDefinition 이 type:\"Nav\" element 를 생성하며 \"Navigation\" 타입 element 는 트리에 존재하지 않는다. getDefaultProps(\"Navigation\") 은 실제 호출되지 않음 (생성·reset 모두 Nav 기준). 근거: ComponentFactory.creators Navigation→createNav alias (TAG_SPEC_MAP exception 과 동일 사유).",
     "DataTable": "비시각적 데이터 컴포넌트 — createDataTableDefinition 이 동적 id(datatable-${Date.now()}) + dataBinding config 를 생성하므로 정적 createDefault*Props 패턴 부적합. 시각 표현 없어 reset-styles 무의미. 근거: apps/builder/src/builder/factories/definitions/DataComponents.ts createDataTableDefinition (TAG_SPEC_MAP exception 과 동일 사유)."
