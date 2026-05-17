@@ -215,15 +215,13 @@ export function createTreeDefinition(
       {
         type: "TreeItem",
         props: {
-          title: "Node 1",
-          hasChildren: true,
+          children: "Node 1",
         } as ComponentElementProps,
       },
       {
         type: "TreeItem",
         props: {
-          title: "Node 2",
-          hasChildren: false,
+          children: "Node 2",
         } as ComponentElementProps,
       },
     ],

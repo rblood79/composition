@@ -43,6 +43,7 @@ import { MeterSpec } from "../components/Meter.spec";
 import { ProgressBarSpec } from "../components/ProgressBar.spec";
 import { TableSpec } from "../components/Table.spec";
 import { TreeSpec } from "../components/Tree.spec";
+import { TreeItemSpec } from "../components/TreeItem.spec";
 import { TabsSpec } from "../components/Tabs.spec";
 import { TabListSpec } from "../components/TabList.spec";
 import { TabPanelsSpec } from "../components/TabPanels.spec";
@@ -171,6 +172,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   SliderOutput: SliderOutputSpec,
   Table: TableSpec,
   Tree: TreeSpec,
+  TreeItem: TreeItemSpec,
   Tabs: TabsSpec,
   TabList: TabListSpec,
   TabPanels: TabPanelsSpec,

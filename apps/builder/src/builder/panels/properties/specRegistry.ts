@@ -76,6 +76,7 @@ import {
   ToolbarSpec,
   TooltipSpec,
   TreeSpec,
+  TreeItemSpec,
   RangeCalendarSpec,
   TextSpec,
 } from "@composition/specs";
@@ -181,6 +182,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Toolbar: ToolbarSpec as ComponentSpec<Record<string, unknown>>,
   Tooltip: TooltipSpec as ComponentSpec<Record<string, unknown>>,
   Tree: TreeSpec as ComponentSpec<Record<string, unknown>>,
+  TreeItem: TreeItemSpec as ComponentSpec<Record<string, unknown>>,
   RangeCalendar: RangeCalendarSpec as ComponentSpec<Record<string, unknown>>,
 };
 

@@ -252,6 +252,10 @@ export type { TableProps, TableColumn, TableRow } from "./Table.spec";
 export { TreeSpec } from "./Tree.spec";
 export type { TreeProps } from "./Tree.spec";
 
+// TreeItem
+export { TreeItemSpec } from "./TreeItem.spec";
+export type { TreeItemProps } from "./TreeItem.spec";
+
 // Tabs
 export { TabsSpec } from "./Tabs.spec";
 export type { TabsProps } from "./Tabs.spec";

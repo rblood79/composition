@@ -375,6 +375,8 @@ export type {
 
 export { TreeSpec } from "./components/Tree.spec";
 export type { TreeProps } from "./components/Tree.spec";
+export { TreeItemSpec } from "./components/TreeItem.spec";
+export type { TreeItemProps } from "./components/TreeItem.spec";
 
 export { TabsSpec } from "./components/Tabs.spec";
 export type { TabsProps, TabItem } from "./components/Tabs.spec";

@@ -8,9 +8,7 @@
  */
 
 import type { ComponentSpec, Shape, TokenRef } from "../types";
-import { fontFamily } from "../primitives/typography";
 import { resolveStateColors } from "../utils/stateEffect";
-import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
 import {
   Tag,
   FileText,
@@ -247,41 +245,23 @@ export const TreeSpec: ComponentSpec<TreeProps> = {
 
   render: {
     shapes: (_props, size, state = "default") => {
+      // Disclosure 버그 클래스 수정 (2026-05-18): Tree 는 자식 TreeItem Element 가
+      // 각자 행을 렌더한다 (Preview renderTree 와 D3 대칭). 컨테이너 spec 은
+      // 배경/테두리 shell 만 담당 — 기존 하드코딩 더미 트리(Root/Documents/...) 제거.
       const variant = TreeSpec.variants![TreeSpec.defaultVariant!];
       const borderRadius = size.borderRadius;
 
-      const ff = fontFamily.sans;
-      const itemHeight = 32;
-      const indent = 20;
-
-      // Phase C: 기본 트리 아이템 (3레벨 중첩)
-      const treeItems = [
-        { label: "Root", level: 0, expanded: true },
-        { label: "Documents", level: 1, expanded: true },
-        { label: "file.txt", level: 2, expanded: false },
-        { label: "readme.md", level: 2, expanded: false },
-        { label: "Images", level: 1, expanded: false },
-      ];
-
-      const paddingY = (size.paddingY as unknown as number) || 8;
-
-      const fontSize = resolveSpecFontSize(size.fontSize, 14);
-
-      const totalHeight = paddingY * 2 + treeItems.length * itemHeight;
-
       const shapes: Shape[] = [
-        // 배경
         {
           id: "bg",
           type: "roundRect" as const,
           x: 0,
           y: 0,
           width: "auto",
-          height: totalHeight,
+          height: "auto",
           radius: borderRadius as unknown as number,
           fill: resolveStateColors(variant, state).background,
         },
-        // 테두리
         {
           type: "border" as const,
           target: "bg",
@@ -290,41 +270,6 @@ export const TreeSpec: ComponentSpec<TreeProps> = {
           radius: borderRadius as unknown as number,
         },
       ];
-
-      // 트리 아이템 Shape 생성
-      let y = paddingY;
-      for (const item of treeItems) {
-        const x = size.paddingX + item.level * indent;
-
-        // expand/collapse 아이콘 (자식이 있는 경우)
-        if (item.level < 2) {
-          shapes.push({
-            type: "icon_font" as const,
-            iconName: item.expanded ? "chevron-down" : "chevron-right",
-            x: x - 4,
-            y: y + itemHeight / 2,
-            fontSize: 14,
-            fill: variant.text,
-            strokeWidth: 2,
-          });
-        }
-
-        // 아이템 텍스트
-        shapes.push({
-          type: "text" as const,
-          x: x + 12,
-          y: y + itemHeight / 2,
-          text: item.label,
-          fontSize,
-          fontFamily: ff,
-          fontWeight: item.level === 0 ? 600 : 400,
-          fill: variant.text,
-          align: "left" as const,
-          baseline: "middle" as const,
-        });
-
-        y += itemHeight;
-      }
 
       return shapes;
     },

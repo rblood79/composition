@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Disclosure·Tree Skia 렌더링 정합 — 복합 컨테이너 자식 spec 누락 수정] - 2026-05-18
+
+### Bug Fixes
+
+- **Tree 컴포넌트 Skia 캔버스에 하드코딩 더미 트리만 표시**:
+  - `Tree.spec.render.shapes` 가 props 를 무시(`_props`)하고 하드코딩된 더미 트리(Root/Documents/file.txt/readme.md/Images)만 렌더 + `TreeItem` 은 spec 부재·전 레지스트리 미등록.
+  - **Why**: 사용자가 Tree 항목을 추가·편집·삭제해도 Builder Skia 캔버스에는 항상 고정 더미 5-노드만 표시 — Preview(DOM)와 심하게 어긋남.
+  - 수정: `Tree.spec` 은 컨테이너 배경/테두리 shell 만 렌더, 신규 `TreeItem.spec` 이 각 행(chevron + 라벨)을 렌더하도록 전환. Preview `renderTree` 의 자식 TreeItem Element 재귀 렌더와 D3 대칭. `TreeItem` 을 `BASE_TAG_SPEC_MAP` / `specRegistry` / specs export 4곳 등록. factory 의 TreeItem `title` prop 을 `children` 으로 정합 (children-manager `labelProp` 일치).
+  - 위치: `packages/specs/src/components/{Tree,TreeItem}.spec.ts`, `packages/specs/src/runtime/tagToElement.ts`, `apps/builder/src/builder/factories/definitions/LayoutComponents.ts`
+
+- **Disclosure 컴포넌트 Skia 캔버스에 빈 테두리 카드만 표시** (commit dfb51aab6):
+  - `DisclosureHeader.spec.render.shapes` 가 `() => []` 반환 + `DisclosureContent.spec` 부재 → SHELL_ONLY 컨테이너의 자식이 시각 콘텐츠를 렌더하지 못해 빈 카드만 표시.
+  - **Why**: factory 가 헤더/콘텐츠 텍스트를 자식 element prop 으로 주입하지만 그 자식 spec 에 렌더 경로가 없었음 (Tree 와 동일한 "복합 컨테이너 자식 spec 누락" 버그 클래스).
+  - 수정: `DisclosureHeader.spec` 이 chevron + 제목 텍스트 렌더, 신규 `DisclosureContent.spec` 이 패널 텍스트 렌더.
+  - 위치: `packages/specs/src/components/{DisclosureHeader,DisclosureContent}.spec.ts`
+
 ## [press-scale 마이크로 인터랙션 — ADR-140] - 2026-05-17
 
 ### Features
