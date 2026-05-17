@@ -556,6 +556,9 @@ export type { CodeProps } from "./components/Code.spec";
 export { DisclosureHeaderSpec } from "./components/DisclosureHeader.spec";
 export type { DisclosureHeaderProps } from "./components/DisclosureHeader.spec";
 
+export { DisclosureContentSpec } from "./components/DisclosureContent.spec";
+export type { DisclosureContentProps } from "./components/DisclosureContent.spec";
+
 export { DescriptionSpec } from "./components/Description.spec";
 export type { DescriptionProps } from "./components/Description.spec";
 

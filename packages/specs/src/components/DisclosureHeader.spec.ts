@@ -8,6 +8,8 @@
  */
 
 import type { ComponentSpec, TokenRef } from "../types";
+import { fontFamily } from "../primitives/typography";
+import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
 import { Heading } from "lucide-react";
 
 export interface DisclosureHeaderProps {
@@ -88,6 +90,50 @@ export const DisclosureHeaderSpec: ComponentSpec<DisclosureHeaderProps> = {
   },
 
   render: {
-    shapes: () => [],
+    shapes: (props, size) => {
+      const text = String(
+        props.children ?? (props as Record<string, unknown>).title ?? "Section",
+      );
+      const fontSize = resolveSpecFontSize(
+        props.style?.fontSize ?? size.fontSize,
+        14,
+      );
+      const ff = (props.style?.fontFamily as string) || fontFamily.sans;
+      const textColor: TokenRef =
+        (props.style?.color as TokenRef) ?? ("{color.neutral}" as TokenRef);
+      const chevronSize = Math.round(fontSize * 1.1);
+      const paddingX = 12;
+      const paddingY = 8;
+      // chevron 좌측, 텍스트 chevron 우측에 gap(6px) 두고 배치
+      // 행 높이 = fontSize + paddingY*2, 수직 중앙 = (height/2)
+      const rowHeight = fontSize + paddingY * 2;
+      const cy = rowHeight / 2;
+
+      return [
+        // chevron 아이콘 (ChevronRight)
+        {
+          type: "icon_font" as const,
+          iconName: "chevron-right",
+          x: paddingX + chevronSize / 2,
+          y: cy,
+          fontSize: chevronSize,
+          fill: "{color.neutral-subdued}" as TokenRef,
+          strokeWidth: 2,
+        },
+        // 타이틀 텍스트
+        {
+          type: "text" as const,
+          x: paddingX + chevronSize + 6,
+          y: cy,
+          text,
+          fontSize,
+          fontFamily: ff,
+          fontWeight: 600,
+          fill: textColor,
+          baseline: "middle" as const,
+          align: "left" as const,
+        },
+      ];
+    },
   },
 };

@@ -12,7 +12,7 @@ import { parsePxValue, parseBorderWidth } from "../primitives";
 import { fontFamily } from "../primitives/typography";
 import { resolveStateColors } from "../utils/stateEffect";
 import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
-import { Type, ToggleLeft, PointerOff } from "lucide-react";
+import { ToggleLeft, PointerOff, Type } from "lucide-react";
 
 /**
  * Disclosure Props
@@ -142,6 +142,10 @@ export const DisclosureSpec: ComponentSpec<DisclosureProps> = {
       );
 
       const hasChildren = !!(props as Record<string, unknown>)._hasChildren;
+      // _hasChildren=true: Disclosure는 투명 레이아웃 컨테이너.
+      // 헤더/콘텐츠 시각 요소는 각 자식 spec(DisclosureHeader/DisclosureContent)이 담당.
+      if (hasChildren) return [];
+
       const shapes: Shape[] = [
         // 배경
         {
@@ -163,7 +167,6 @@ export const DisclosureSpec: ComponentSpec<DisclosureProps> = {
           radius: borderRadius as unknown as number,
         },
       ];
-      if (hasChildren) return shapes;
 
       // 헤더 + 콘텐츠 (standalone 전용)
       shapes.push(

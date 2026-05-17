@@ -98,6 +98,7 @@ import { ParagraphSpec } from "../components/Paragraph.spec";
 import { KbdSpec } from "../components/Kbd.spec";
 import { CodeSpec } from "../components/Code.spec";
 import { DisclosureHeaderSpec } from "../components/DisclosureHeader.spec";
+import { DisclosureContentSpec } from "../components/DisclosureContent.spec";
 import { DescriptionSpec } from "../components/Description.spec";
 import { SliderOutputSpec } from "../components/SliderOutput.spec";
 import { DateSegmentSpec } from "../components/DateSegment.spec";
@@ -190,6 +191,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Disclosure: DisclosureSpec,
   DisclosureGroup: DisclosureGroupSpec,
   DisclosureHeader: DisclosureHeaderSpec,
+  DisclosureContent: DisclosureContentSpec,
   Toolbar: ToolbarSpec,
   Toast: ToastSpec,
   Group: GroupSpec,

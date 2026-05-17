@@ -29,6 +29,7 @@ import {
   DisclosureSpec,
   DisclosureGroupSpec,
   DisclosureHeaderSpec,
+  DisclosureContentSpec,
   DropZoneSpec,
   FieldSpec,
   FileTriggerSpec,
@@ -124,6 +125,9 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
     Record<string, unknown>
   >,
   DisclosureHeader: DisclosureHeaderSpec as ComponentSpec<
+    Record<string, unknown>
+  >,
+  DisclosureContent: DisclosureContentSpec as ComponentSpec<
     Record<string, unknown>
   >,
   DropZone: DropZoneSpec as ComponentSpec<Record<string, unknown>>,
