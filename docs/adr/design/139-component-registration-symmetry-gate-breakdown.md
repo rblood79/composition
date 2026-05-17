@@ -343,3 +343,27 @@ TAG_SPEC_MAP 1→4. contract test 10/10 유지 (재분류는 런타임 무변경
 - **getDefaultProps 19** — placeable 인데 `DEFAULT_PROPS_MAP` 미등록 → factory
   `{}` fallback. `getDefaultProps` 의 실제 소비 경로 (creator-backed vs generic)
   확인 후 일괄 처리.
+
+### 9.2. 2026-05-17 — baseline 전수 소진 (29→0)
+
+§9.1 의 잔존 29건을 한 건씩 조사·해소. baseline 전 레지스트리 빈 객체 도달,
+`BASELINE_RATCHET` 전부 0. 이후 신규 등록 누락은 contract test 가 즉시 FAIL.
+
+| 카테고리           | 처리                                                                                                                                                                                                                  |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TAG_SPEC_MAP 5     | Accordion / Modal / Field / TailSwatch / Autocomplete — `BASE_TAG_SPEC_MAP` 등록. 5건 모두 `render.shapes:()=>[]` empty-shapes spec — Skia 경로 box→spec 전환이 canonical `frame` 과 동일 (cross-check 확증)          |
+| rendererMap 5      | ColorPicker / List / Switcher / TextArea / frame — per-component triage 결과 5건 전부 container 컴포넌트, Preview spec-fallback (`<div class="react-aria-{Type}">{children}</div>`) 이 정확한 렌더 → exception 재분류 |
+| getDefaultProps 19 | real-debt 16 → `createDefault*Props` 등록 (factory definition parent props 정합) / false-debt 2 (Navigation alias, DataTable 동적 id) → exception. (Accordion 1건은 TAG_SPEC 와 함께 §선행 처리)                      |
+
+**cross-check**: TAG_SPEC_MAP 등록 5건은 empty-shapes spec 이라 Skia 경로가
+`buildBoxNodeData` → `buildSpecNodeData` 로 전환되나, 결과가 canonical 컨테이너
+`frame` 과 픽셀 동일 (Chrome MCP 로 Accordion + Field/Modal/TailSwatch + frame
+나란히 배치 확증, `applyInlineBorderOverlay` longhand border / transparent fill).
+getDefaultProps·rendererMap 처리는 생성·reset 로직 / 분류 변경이라 렌더 무변경.
+
+**누적 추이**: 32 (triage 후 29) → Accordion 27 → Field/Modal/TailSwatch 24 →
+getDefaultProps 6 → rendererMap 1 → Autocomplete 0.
+
+commits: `667a65eb2` (Accordion) / `1941d6028` (Field·Modal·TailSwatch) /
+`7e2b419f8` (getDefaultProps 18) / `ae19900d1` (rendererMap 5) /
+`f63eba6c4` (Autocomplete).

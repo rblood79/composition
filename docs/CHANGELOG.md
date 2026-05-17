@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 레지스트리 enumerate 를 위해 `ComponentFactory.getRegisteredTypes()` 접근자 + `DEFAULT_PROPS_MAP` module-scope export 추가 (동작 불변).
   - 위치: `apps/builder/src/builder/factories/__tests__/componentRegistrationContract.test.ts`, `scripts/codex/registration-gate.sh`
 
+- **baseline debt 32→0 전수 소진** (ADR-139 후속, 같은 날):
+  - gate 도입 직후 known debt 32건을 한 건씩 조사·해소. TAG_SPEC_MAP 5건 (Accordion / Modal / Field / TailSwatch / Autocomplete) → `BASE_TAG_SPEC_MAP` 등록. getDefaultProps 19건 → `createDefault*Props` creator 등록 (factory definition parent props 정합) + false-debt 2건 (Navigation creators alias / DataTable 동적 id) exception 재분류. rendererMap 5건 (ColorPicker / List / Switcher / TextArea / frame) → per-component triage 결과 전부 container 컴포넌트로 Preview spec-fallback 이 정확한 렌더 → exception 재분류.
+  - TAG_SPEC_MAP 등록 5건은 `render.shapes:()=>[]` empty-shapes spec — Skia 경로가 generic box → spec 으로 전환되나 결과가 canonical 컨테이너 `frame` 과 픽셀 동일함을 Chrome MCP cross-check 로 확증 (Accordion + Field/Modal/TailSwatch + frame 나란히 배치 비교).
+  - **Why**: baseline 은 gate 도입 시 기존 누락을 일시 수용하는 known debt 목록 — 방치하면 영구화. 전수 소진 후 baseline·`BASELINE_RATCHET` 전 레지스트리 0 도달 → 이후 신규 등록 누락은 contract test 가 즉시 FAIL (baseline 우회 불가).
+  - 상세: `docs/adr/design/139-component-registration-symmetry-gate-breakdown.md` §9.1~9.2.
+
 ## [Fix Visibility — 반복 fix/revert 가시화 hook] - 2026-05-15
 
 ### Infrastructure
