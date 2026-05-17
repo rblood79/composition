@@ -7,5 +7,8 @@
     "Navigation": "creators alias — createNavDefinition 이 type:\"Nav\" element 를 생성하며 \"Navigation\" 타입 element 는 트리에 존재하지 않는다. Nav 가 정본 tag, Navigation 은 팔레트 alias. 근거: apps/builder/src/builder/factories/definitions/NavigationComponents.ts createNavDefinition + ComponentFactory.creators Navigation→createNav."
   },
   "rendererMap": {},
-  "getDefaultProps": {}
+  "getDefaultProps": {
+    "Navigation": "creators alias — createNavDefinition 이 type:\"Nav\" element 를 생성하며 \"Navigation\" 타입 element 는 트리에 존재하지 않는다. getDefaultProps(\"Navigation\") 은 실제 호출되지 않음 (생성·reset 모두 Nav 기준). 근거: ComponentFactory.creators Navigation→createNav alias (TAG_SPEC_MAP exception 과 동일 사유).",
+    "DataTable": "비시각적 데이터 컴포넌트 — createDataTableDefinition 이 동적 id(datatable-${Date.now()}) + dataBinding config 를 생성하므로 정적 createDefault*Props 패턴 부적합. 시각 표현 없어 reset-styles 무의미. 근거: apps/builder/src/builder/factories/definitions/DataComponents.ts createDataTableDefinition (TAG_SPEC_MAP exception 과 동일 사유)."
+  }
 }

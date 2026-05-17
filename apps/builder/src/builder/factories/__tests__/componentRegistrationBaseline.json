@@ -10,24 +10,5 @@
     "TextArea": "placeable 이나 rendererMap 미등록 — TextField 경로 공유 여부 확인 필요",
     "frame": "placeable(ADR-130 canonical container) 이나 rendererMap 미등록"
   },
-  "getDefaultProps": {
-    "Avatar": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "AvatarGroup": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "ButtonGroup": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "CardView": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "ColorSwatchPicker": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "DataTable": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "IllustratedMessage": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "List": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "Navigation": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "Pagination": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "ProgressCircle": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "RangeCalendar": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "StatusLight": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "Switcher": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "TableView": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "TextArea": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "Toast": "placeable 이나 DEFAULT_PROPS_MAP 미등록",
-    "frame": "placeable 이나 DEFAULT_PROPS_MAP 미등록"
-  }
+  "getDefaultProps": {}
 }

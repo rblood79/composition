@@ -112,7 +112,7 @@ function unexpectedMissing(
 const BASELINE_RATCHET: Record<RegistryName, number> = {
   rendererMap: 5,
   TAG_SPEC_MAP: 1,
-  getDefaultProps: 18,
+  getDefaultProps: 0,
 };
 
 type RatchetVerdict = "ok" | "append" | "shrink";

@@ -2091,6 +2091,190 @@ export function createDefaultSkeletonProps(): BaseElementProps {
  * 집합을 enumerate 하여 placeable 컴포넌트의 default props 누락을 검증한다.
  * (이전엔 `getDefaultProps` 함수 내부 const 라 외부 enumerate 불가)
  */
+// === ADR-139 baseline debt — getDefaultProps 미등록 해소 ===
+// 각 createDefault*Props 는 대응 factory definition 의 parent props 와 정합.
+// 동적 값(crypto id 등)은 제외. useResetStyles 는 .style 만 소비, 생성 simple
+// path 는 전체 props 소비.
+
+export function createDefaultAvatarProps(): BaseElementProps {
+  return {
+    src: "",
+    alt: "Avatar",
+    initials: "A",
+    size: "md",
+    isDisabled: false,
+    style: { width: 32, height: 32 },
+  };
+}
+
+export function createDefaultAvatarGroupProps(): BaseElementProps {
+  return {
+    size: "md",
+    label: "Team",
+    style: { display: "flex", flexDirection: "row", alignItems: "center" },
+  };
+}
+
+export function createDefaultButtonGroupProps(): BaseElementProps {
+  return {
+    size: "md",
+    orientation: "horizontal",
+    align: "end",
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      gap: 8,
+      width: "fit-content",
+    },
+  };
+}
+
+export function createDefaultCardViewProps(): BaseElementProps {
+  return {
+    layout: "grid",
+    size: "md",
+    density: "regular",
+    columns: 3,
+    gap: 16,
+    style: { display: "flex", flexWrap: "wrap", gap: 16, width: "100%" },
+  };
+}
+
+export function createDefaultColorSwatchPickerProps(): BaseElementProps {
+  return {
+    columns: 6,
+    style: { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  };
+}
+
+export function createDefaultIllustratedMessageProps(): BaseElementProps {
+  return {
+    size: "md",
+    heading: "No results",
+    description: "Try another search term.",
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+      padding: 24,
+      width: 320,
+      height: 280,
+    },
+  };
+}
+
+export function createDefaultListProps(): BaseElementProps {
+  return {
+    style: { display: "flex", flexDirection: "column", gap: 4 },
+  };
+}
+
+export function createDefaultPaginationProps(): BaseElementProps {
+  return {
+    totalPages: 5,
+    currentPage: 1,
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+  };
+}
+
+export function createDefaultProgressCircleProps(): BaseElementProps {
+  return {
+    value: 75,
+    size: "md",
+    isIndeterminate: false,
+    isDisabled: false,
+    style: { width: 32, height: 32 },
+  };
+}
+
+export function createDefaultRangeCalendarProps(): BaseElementProps {
+  return {
+    variant: "default",
+    size: "md",
+    defaultToday: true,
+    isDisabled: false,
+    isReadOnly: false,
+  };
+}
+
+export function createDefaultStatusLightProps(): BaseElementProps {
+  return {
+    variant: "positive",
+    children: "Available",
+    size: "md",
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+  };
+}
+
+export function createDefaultSwitcherProps(): BaseElementProps {
+  return {
+    items: ["Tab 1", "Tab 2"],
+    activeIndex: 0,
+    isDisabled: false,
+    style: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      width: 240,
+      height: 40,
+    },
+  };
+}
+
+export function createDefaultTableViewProps(): BaseElementProps {
+  return {
+    density: "regular",
+    isStriped: false,
+    isQuiet: false,
+    allowsSorting: true,
+    style: { display: "flex", flexDirection: "column", width: "100%" },
+  };
+}
+
+export function createDefaultTextAreaProps(): BaseElementProps {
+  return {
+    label: "Text Area",
+    name: "",
+    description: "",
+    errorMessage: "",
+    placeholder: "Enter text...",
+    value: "",
+    rows: 3,
+    style: { width: "100%" },
+  };
+}
+
+export function createDefaultToastProps(): BaseElementProps {
+  return {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "4px",
+      padding: "12px 16px",
+      borderRadius: "8px",
+      width: "fit-content",
+    },
+  };
+}
+
+export function createDefaultFrameProps(): BaseElementProps {
+  return {
+    style: { display: "flex", flexDirection: "column" },
+  };
+}
+
 export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Button: createDefaultButtonProps,
   TextField: createDefaultTextFieldProps,
@@ -2173,6 +2357,23 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Icon: createDefaultIconProps,
   MaskedFrame: createDefaultMaskedFrameProps,
   Skeleton: createDefaultSkeletonProps,
+  // ADR-139 baseline debt 해소 — factory definition parent props 정합
+  Avatar: createDefaultAvatarProps,
+  AvatarGroup: createDefaultAvatarGroupProps,
+  ButtonGroup: createDefaultButtonGroupProps,
+  CardView: createDefaultCardViewProps,
+  ColorSwatchPicker: createDefaultColorSwatchPickerProps,
+  IllustratedMessage: createDefaultIllustratedMessageProps,
+  List: createDefaultListProps,
+  Pagination: createDefaultPaginationProps,
+  ProgressCircle: createDefaultProgressCircleProps,
+  RangeCalendar: createDefaultRangeCalendarProps,
+  StatusLight: createDefaultStatusLightProps,
+  Switcher: createDefaultSwitcherProps,
+  TableView: createDefaultTableViewProps,
+  TextArea: createDefaultTextAreaProps,
+  Toast: createDefaultToastProps,
+  frame: createDefaultFrameProps,
 };
 
 export function getDefaultProps(type: string): ComponentElementProps {
