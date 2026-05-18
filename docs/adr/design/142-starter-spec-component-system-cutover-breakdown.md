@@ -1,4 +1,4 @@
-# ADR-142 Breakdown: Starter primitive binding + canonical 문서 기반 컴포넌트 시스템 family 단위 cutover
+# ADR-142 Breakdown: RAC primitive binding + canonical 문서 기반 컴포넌트 시스템 family 단위 cutover
 
 ## 1. 목표
 
@@ -29,18 +29,18 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 
 ### 새로 만들 파일
 
-| 파일                                                                  | 책임                                                                                               |
-| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `docs/reference/audits/2026-05-19-canonical-component-inventory.md`   | starter 컴포넌트 primitive/composed 분류 + shared/Panel/Factory/rendererMap/124 ComponentSpec diff |
-| `packages/specs/src/starter/types.ts`                                 | `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type(`PropContract`/`PanelMeta` 등)             |
-| `packages/specs/src/starter/bindings/{Primitive}.binding.ts`          | leaf RAC primitive 약 35개의 `PrimitiveBinding` — starter 기준 신규 작성                           |
-| `packages/specs/src/starter/outputs/toRacProps.ts`                    | canonical props → RAC component props 투영 (유일한 binding 변환기)                                 |
-| `packages/specs/src/starter/componentCatalog.ts`                      | primitive + reusable entry 단일 registry + family/cutover/panel metadata                           |
-| `packages/specs/src/starter/library/`                                 | 조합 컴포넌트의 seed reusable canonical 문서 (Phase 2 산출, Builder 저작분 export)                 |
-| `packages/specs/src/starter/__tests__/componentCatalog.test.ts`       | catalog entry 무결성 + family atomicity 검증                                                       |
-| `apps/builder/src/preview/__tests__/canonicalPreviewRefSlot.test.tsx` | Preview 가 reusable/ref/descendants/slot resolved tree 를 실제 DOM 으로 렌더링하는지 검증 (F1~F4)  |
-| `apps/builder/.../skia/__tests__/canonicalSkiaSymmetry.test.ts`       | generic 렌더러 DOM↔Skia 시각 대칭 fixture                                                          |
-| `packages/shared/src/components/legacy/README.md`                     | legacy 구현의 compatibility boundary 규칙                                                          |
+| 파일                                                                  | 책임                                                                                                         |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `docs/reference/audits/2026-05-19-canonical-component-inventory.md`   | starter 컴포넌트 primitive/composed 분류 + shared/Panel/Factory/rendererMap/124 ComponentSpec diff           |
+| `packages/specs/src/catalog/types.ts`                                 | `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type(`PropContract`/`PanelMeta` 등)                       |
+| `packages/specs/src/catalog/bindings/{Primitive}.binding.ts`          | leaf RAC primitive 약 35개의 `PrimitiveBinding` — `react-aria-components` 기준 작성 (D3 시각은 starter 참조) |
+| `packages/specs/src/catalog/outputs/toRacProps.ts`                    | canonical props → RAC component props 투영 (유일한 binding 변환기)                                           |
+| `packages/specs/src/catalog/componentCatalog.ts`                      | primitive + reusable entry 단일 registry + family/cutover/panel metadata                                     |
+| `packages/specs/src/catalog/library/`                                 | 조합 컴포넌트의 seed reusable canonical 문서 (Phase 2 산출, Builder 저작분 export)                           |
+| `packages/specs/src/catalog/__tests__/componentCatalog.test.ts`       | catalog entry 무결성 + family atomicity 검증                                                                 |
+| `apps/builder/src/preview/__tests__/canonicalPreviewRefSlot.test.tsx` | Preview 가 reusable/ref/descendants/slot resolved tree 를 실제 DOM 으로 렌더링하는지 검증 (F1~F4)            |
+| `apps/builder/.../skia/__tests__/canonicalSkiaSymmetry.test.ts`       | generic 렌더러 DOM↔Skia 시각 대칭 fixture                                                                    |
+| `packages/shared/src/components/legacy/README.md`                     | legacy 구현의 compatibility boundary 규칙                                                                    |
 
 ### 수정할 파일
 
@@ -50,7 +50,7 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 | `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`                      | fallback 포함 모든 렌더 경로가 `ResolvedNode.children` 를 잃지 않게 정리 — generic 렌더러 DOM backend 의 단일 진입점으로 승격 |
 | `apps/builder/src/resolvers/canonical/index.ts`                                      | reusable/ref/descendants/slot resolved-tree 계약 fixture 보강 (TC8/TC9 버그 수정 포함)                                        |
 | `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`                | Skia 경로를 resolved canonical tree + theme 소비로 재작성. `render.shapes()`/`specShapesToSkia` 경로 격리                     |
-| `packages/shared/src/components/index.ts`                                            | primitive wrapper barrel export (starter import + `toRacProps`)                                                               |
+| `packages/shared/src/components/index.ts`                                            | primitive wrapper barrel export (`react-aria-components` import + `toRacProps`)                                               |
 | `packages/shared/src/renderers/index.ts`                                             | `rendererMap` 을 legacy compatibility fallback 으로 격리                                                                      |
 | `apps/builder/src/builder/panels/components/ComponentList.tsx`                       | hard-coded catalog 를 `componentCatalog` 소비로 전환                                                                          |
 | `apps/builder/src/builder/factories/ComponentFactory.ts`                             | primitive 배치 = binding 노드 삽입, 조합 컴포넌트 배치 = reusable 로의 `ref` 삽입                                             |
@@ -69,10 +69,11 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 
 ### 경계 규칙
 
-- `packages/react-aria-starter/src/**`: upstream snapshot. product behavior 직접 수정 금지.
-- `packages/specs/src/starter/**`: `PrimitiveBinding` + `componentCatalog` + `toRacProps`. 새 시스템의 코드 정의 영역. legacy `components/**`/`renderers/**` 를 import 하지 않는다.
+- `react-aria-components`(npm): D1 runtime primitive. `PrimitiveBinding` 과 primitive wrapper 가 import 하는 대상.
+- `packages/react-aria-starter/src/**`: Adobe starter kit 의 vendored snapshot — D3 시각/구조 참조 코드. runtime import 대상 아님. 원본 직접 수정 금지.
+- `packages/specs/src/catalog/**`: `PrimitiveBinding` + `componentCatalog` + `toRacProps`. 새 시스템의 코드 정의 영역. legacy `components/**`/`renderers/**` 를 import 하지 않는다.
 - `packages/specs/src/components/**` + `renderers/ReactRenderer.ts` + `renderers/CSSGenerator.ts`: legacy.
-- `packages/shared/src/components/**`: starter primitive wrapper surface.
+- `packages/shared/src/components/**`: RAC primitive wrapper surface (`react-aria-components` import + `toRacProps`).
 - `packages/shared/src/components/legacy/**`: compatibility fallback. active Builder authoring path 에서 직접 import 금지.
 
 ## 3. PrimitiveBinding + componentCatalog 모델
@@ -95,7 +96,7 @@ export type CutoverState = "legacy" | "cutting-over" | "starter";
 // leaf RAC primitive 1개당 1개. 약 35개. 시각/변형/구조 필드 없음.
 export interface PrimitiveBinding {
   source: {
-    package: "@composition/react-aria-starter-upstream";
+    package: "react-aria-components"; // D1 runtime primitive (npm)
     importPath: string;
     component: string;
   };
@@ -146,9 +147,9 @@ export type ComponentCatalogEntry =
 
 규약:
 
-- `kind: "primitive"` — starter 에 leaf RAC primitive 가 있는 항목. 예: Button, TextField, Checkbox, Dialog, ListBox, Tree, Table. `binding` 으로 정의한다.
+- `kind: "primitive"` — `react-aria-components` 에 leaf RAC primitive 가 있는 항목. 예: Button, TextField, Checkbox, Dialog, ListBox, Tree, Table. `binding` 으로 정의한다.
 - `kind: "reusable"` — 조합 컴포넌트. 예: Card, Section, 아이콘이 붙은 Button. `reusableId` 가 canonical reusable 문서를 가리킨다. 코드 정의가 없다.
-- composition-native(`Frame`/`Slot`/reusable tooling)는 starter import 없이 catalog 에 등록한다. `family: "composition-native"`.
+- composition-native(`Frame`/`Slot`/reusable tooling)는 RAC primitive 없이 catalog 에 등록한다. `family: "composition-native"`.
 - `family` 와 `cutover` 가 family 단위 atomic cutover 의 SSOT 다. 한 family 의 모든 entry 는 `cutover` 를 `legacy → cutting-over → starter` 로 함께 거치며, 같은 family 안에서 `legacy` 와 `starter` 가 혼재할 수 없다.
 
 시각 SSOT 의 위치:
@@ -174,7 +175,7 @@ Phase 0~5 는 family cutover 착수 전 1회 수행하는 **공통 기반** 단�
 작업:
 
 1. `packages/react-aria-starter/UPSTREAM.md` 정책 기준 starter source 보호 확인. `codex:format`/`codex:guard` 대상 제외 확인.
-2. starter 55 컴포넌트를 **primitive**(leaf RAC, → `PrimitiveBinding`)와 **composed**(조합, → reusable 문서)로 분류.
+2. starter 55 컴포넌트를 **primitive**(leaf RAC, → `PrimitiveBinding`)와 **composed**(조합, → reusable 문서)로 분류. 각 primitive 의 D3 시각 참조 starter 파일을 함께 기록 (upstream diff workflow, R7).
 3. 기존 124 `ComponentSpec` 처분 명시 — 전수 legacy.
 4. 6개 registry(Panel/Factory/rendererMap/getDefaultProps/BASE_TAG_SPEC_MAP/builder TAG_SPEC_MAP) diff 수집.
 5. 비-DOM-trivial primitive(arc/track/indicator 등) 목록 식별 — `skiaPrimitive` 후보.
@@ -189,7 +190,7 @@ Gate: G0, G1
 
 작업:
 
-1. `packages/specs/src/starter/types.ts` — `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type.
+1. `packages/specs/src/catalog/types.ts` — `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type.
 2. `outputs/toRacProps.ts` — canonical props → RAC props 투영.
 3. **generic 렌더러 DOM backend**: `CanonicalNodeRenderer` 를 resolved canonical tree 의 단일 렌더 진입점으로 승격. fallback 경로가 `ResolvedNode.children` 를 잃지 않게 정리.
 4. **Preview resolved-tree 소비**: `App.tsx` 가 `resolveCanonicalDocument()` 결과를 단일 source 로 삼게 한다. legacy `elements[]` 경로 격리.
@@ -208,7 +209,7 @@ Gate: **G2 (공통 기반 gate — R1 1:1)**
 작업:
 
 1. 조합 컴포넌트를 Builder 안에서 만들고 reusable 로 승격하는 흐름 정비 (reusable 승격 tooling).
-2. family 별 조합 컴포넌트의 seed reusable 문서를 `packages/specs/src/starter/library/` 로 export.
+2. family 별 조합 컴포넌트의 seed reusable 문서를 `packages/specs/src/catalog/library/` 로 export.
 3. `componentCatalog.ts` — primitive entry(binding) + reusable entry(reusableId) + family/cutover/panel.
 4. `componentCatalog.test.ts` — entry 무결성, 같은 family 의 `cutover` 동일성, primitive entry 의 `binding` 존재, reusable entry 의 `reusableId` 가 library 문서에 resolve.
 
@@ -217,12 +218,12 @@ Gate: G3
 
 ### Phase 3 — shared primitive wrapper surface + legacy boundary
 
-목표: `packages/shared/src/components` 를 약 35개의 thin starter primitive wrapper 로 재정의한다.
+목표: `packages/shared/src/components` 를 약 35개의 thin RAC primitive wrapper 로 재정의한다.
 
 작업:
 
 1. 기존 active 구현을 family 별로 `packages/shared/src/components/legacy/` 로 이동할 계획 작성.
-2. 새 primitive wrapper 는 기존 public filename 유지 (`Button.tsx` 등). starter import + `toRacProps` + generated CSS class 부착. starter source 수정 금지.
+2. 새 primitive wrapper 는 기존 public filename 유지 (`Button.tsx` 등). `react-aria-components` import + `toRacProps` + generated CSS class 부착. starter 원본은 수정하지 않는다 (D3 시각 참조 전용).
 3. 조합 컴포넌트는 shared 파일을 만들지 않는다 — catalog 의 reusable entry + library 문서.
 4. `index.ts` barrel 은 primitive wrapper surface 만 export.
 5. `legacy/README.md` 에 import 허용 경계 명시.
@@ -258,7 +259,7 @@ Gate: G3 (불변식), G4 (family 마다 Phase 6 에서)
 
 1. CSS 는 generic 렌더러가 theme/variables root collection + 노드 style/`data-*` 에서 생성. 컴포넌트당 CSS 정의 없음.
 2. Skia backend 는 resolved tree + theme 를 그린다. 비-DOM-trivial primitive 는 `skiaPrimitive` draw module.
-3. starter CSS 는 reference diff 로만 사용.
+3. starter CSS 는 D3 시각 참조 diff 로만 사용 (runtime 미포함).
 4. generic 생성으로 표현 못 하는 RAC structural CSS 만 좁은 manual escape hatch.
 
 검증: `pnpm -F @composition/specs build` / `pnpm run codex:typecheck`
@@ -288,7 +289,7 @@ Gate: G4 / G5 / G6 (family 반복), G7 (최종)
 | 5    | Tree·Table         | Tree, Table, TableView                                                                                             | HIGH     | RAC primitive binding + collections 데이터. 수동 우회 금지  |
 | 6    | overlays           | Dialog, Modal, Popover, Tooltip, Toast, DropZone                                                                   | MED      | portal/overlay structural CSS escape hatch 검증             |
 | 7    | date/color         | Calendar, RangeCalendar, DatePicker, DateRangePicker, ColorPicker, ColorArea, ColorWheel, ColorSlider, ColorSwatch | MED-HIGH | arc/wheel = `skiaPrimitive`                                 |
-| 8    | composition-native | Frame, Slot, reusable tools                                                                                        | LOW-MED  | starter 미존재 — catalog 등록만, binding 없음               |
+| 8    | composition-native | Frame, Slot, reusable tools                                                                                        | LOW-MED  | RAC primitive 미존재 — catalog 등록만, binding 없음         |
 
 정확한 컴포넌트 → family 배정은 Phase 0 inventory 산출물이 SSOT 다.
 
@@ -296,9 +297,9 @@ Gate: G4 / G5 / G6 (family 반복), G7 (최종)
 
 | #   | 단계                                                            | 파일                                                           |
 | --- | --------------------------------------------------------------- | -------------------------------------------------------------- |
-| 1   | catalog entry `cutover: "cutting-over"` 표시                    | `packages/specs/src/starter/componentCatalog.ts`               |
-| 2   | family 의 primitive 멤버 → `PrimitiveBinding` 작성              | `packages/specs/src/starter/bindings/{Primitive}.binding.ts`   |
-| 3   | family 의 조합 멤버 → reusable canonical 문서 저작              | `packages/specs/src/starter/library/` (Builder 저작 후 export) |
+| 1   | catalog entry `cutover: "cutting-over"` 표시                    | `packages/specs/src/catalog/componentCatalog.ts`               |
+| 2   | family 의 primitive 멤버 → `PrimitiveBinding` 작성              | `packages/specs/src/catalog/bindings/{Primitive}.binding.ts`   |
+| 3   | family 의 조합 멤버 → reusable canonical 문서 저작              | `packages/specs/src/catalog/library/` (Builder 저작 후 export) |
 | 4   | 해당 family 의 legacy 구현 → `legacy/` 이동 (`git mv`)          | `packages/shared/src/components/legacy/{Comp}.tsx`             |
 | 5   | family 의 primitive wrapper 작성                                | `packages/shared/src/components/{Primitive}.tsx`               |
 | 6   | barrel export 경로 교체                                         | `packages/shared/src/components/index.ts`                      |
@@ -326,7 +327,7 @@ cutover 후 허용되는 legacy usage:
 - Preview/Publish primary renderer
 - Skia primary renderer
 - Inspector props source
-- `packages/specs/src/starter/**` 가 기존 `ComponentSpec` / `ReactRenderer` / `CSSGenerator` 를 import
+- `packages/specs/src/catalog/**` 가 기존 `ComponentSpec` / `ReactRenderer` / `CSSGenerator` 를 import
 
 ## 7. 완료 판정
 
