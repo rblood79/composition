@@ -882,6 +882,9 @@ export const renderToolbar = (
       key={element.id}
       data-custom-id={element.customId}
       data-element-id={element.id}
+      orientation={
+        (element.props.orientation as "horizontal" | "vertical") || "horizontal"
+      }
       style={element.props.style}
       className={element.props.className}
       aria-label={String(element.props["aria-label"] || "Toolbar")}

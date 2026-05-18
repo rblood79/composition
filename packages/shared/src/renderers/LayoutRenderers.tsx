@@ -1347,8 +1347,9 @@ export const renderStatusLight = (
   _context: RenderContext,
 ): React.ReactNode => {
   const size = String(element.props.size || "md").toLowerCase();
-  const dotSize = { sm: 8, md: 10, lg: 12 }[size] ?? 10;
-  const fontSize = { sm: 12, md: 14, lg: 16 }[size] ?? 14;
+  // StatusLightSpec.sizes 와 정합 (sm/md/lg/xl)
+  const dotSize = { sm: 8, md: 10, lg: 12, xl: 14 }[size] ?? 10;
+  const fontSize = { sm: 12, md: 14, lg: 16, xl: 18 }[size] ?? 14;
 
   const variantColorMap: Record<string, string> = {
     neutral: "var(--fg-muted)",
@@ -1438,6 +1439,17 @@ export const renderButtonGroup = (
     center: "center",
     end: "flex-end",
   };
+  // ButtonGroupSpec.render 와 정합: orientation → flexDirection, size → gap
+  const flexDirection =
+    (element.props.orientation as string) === "vertical" ? "column" : "row";
+  const gapBySize: Record<string, number> = {
+    xs: 4,
+    sm: 6,
+    md: 8,
+    lg: 10,
+    xl: 12,
+  };
+  const gap = gapBySize[String(element.props.size || "md")] ?? 8;
 
   return (
     <div
@@ -1447,8 +1459,8 @@ export const renderButtonGroup = (
       role="group"
       style={{
         display: "flex",
-        flexDirection: "row",
-        gap: 8,
+        flexDirection,
+        gap,
         justifyContent: justifyMap[align] ?? "flex-end",
         ...element.props.style,
       }}
