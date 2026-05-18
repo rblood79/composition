@@ -1,4 +1,4 @@
-@import './animations.css';
+@import "./animations.css";
 
 @layer components {
   .react-aria-ModalOverlay {
@@ -23,13 +23,16 @@
   }
 
   .react-aria-Modal {
-    border-radius: var(--radius-md);
+    /* ADR-141 Phase 5 (P4 / 감사 H14·H15): radius lg→xl + max-width 300px→min(500px,90vw)
+       — starter Modal 정합. radius 는 ModalSpec.sizes.md.borderRadius 와 동일 토큰(R5 dual-CSS).
+       max-width 는 min() 복합값이라 ContainerStylesSchema 미수용 → 수동 CSS 전용. */
+    border-radius: var(--radius-xl);
     outline: none;
     box-shadow: var(--drop-shadow-md);
     background: var(--bg-overlay);
     color: var(--fg);
     border: 1px solid var(--border-hover);
-    max-width: 300px;
+    max-width: min(500px, 90vw);
 
     &[data-entering] {
       animation: modal-zoom 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);

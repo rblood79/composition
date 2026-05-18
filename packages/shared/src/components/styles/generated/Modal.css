@@ -20,7 +20,7 @@
   height: auto;
   padding: 24px 24px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   gap: 8px;
 }
 
@@ -41,7 +41,7 @@
   height: auto;
   padding: 24px 24px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   gap: 8px;
 }
 

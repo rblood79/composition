@@ -53,7 +53,9 @@ export const ModalSpec: ComponentSpec<ModalProps> = {
       paddingX: 24,
       paddingY: 24,
       fontSize: "{typography.text-sm}" as TokenRef,
-      borderRadius: "{radius.lg}" as TokenRef,
+      // ADR-141 Phase 5 (P4 / 감사 H14): Modal radius lg→xl — starter 정합.
+      //   수동 overlays.css `.react-aria-Modal` 와 동일 토큰으로 유지(R5 dual-CSS).
+      borderRadius: "{radius.xl}" as TokenRef,
       gap: 8,
     },
   },

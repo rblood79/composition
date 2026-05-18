@@ -31,14 +31,14 @@
 
 ## 3. Phase 구성
 
-| Phase       | 범위                                                                       | 패턴  | Gate    |
-| ----------- | -------------------------------------------------------------------------- | ----- | ------- |
-| **Phase 0** | 감사 (완료)                                                                | —     | —       |
-| **Phase 1** | P2 — H16 chevron rotate 반영 / 5항목 재분류 (§4.1)                         | P2    | G1 + G2 |
-| **Phase 2** | P6 — H5 Link underline / H7 DropZone drop-target 반영, 2항목 재분류 (§4.2) | P6    | G1 + G2 |
-| **Phase 3** | P4 — per-item 조사 결과 기계적 채택 0건, 전수 exclude/defer (§4.3)         | P4    | G1 + G2 |
-| **Phase 4** | P5 — per-item 조사 결과 기계적 채택 0건, 전수 exclude/defer (§4.4)         | P5    | G1 + R2 |
-| **Phase 5** | P1/P3 — 디자인 결정 후에만 착수                                            | P1·P3 | G3      |
+| Phase       | 범위                                                                       | 패턴     | Gate    |
+| ----------- | -------------------------------------------------------------------------- | -------- | ------- |
+| **Phase 0** | 감사 (완료)                                                                | —        | —       |
+| **Phase 1** | P2 — H16 chevron rotate 반영 / 5항목 재분류 (§4.1)                         | P2       | G1 + G2 |
+| **Phase 2** | P6 — H5 Link underline / H7 DropZone drop-target 반영, 2항목 재분류 (§4.2) | P6       | G1 + G2 |
+| **Phase 3** | P4 — per-item 조사 결과 기계적 채택 0건, 전수 exclude/defer (§4.3)         | P4       | G1 + G2 |
+| **Phase 4** | P5 — per-item 조사 결과 기계적 채택 0건, 전수 exclude/defer (§4.4)         | P5       | G1 + R2 |
+| **Phase 5** | P1·P3 G3 기각(사각/flat 유지) / Modal H14·H15 채택 (§4.5)                  | P1·P3·P4 | G3      |
 
 Phase 1→2→3 은 순차. Phase 4 는 R2(Generator emit 능력) 확인 결과에 종속. Phase 5 는 G3(디자인 결정) 통과 전 미착수.
 
@@ -52,7 +52,7 @@ HIGH 18 + MED 27 의 항목별 starter/composition `file:line` 은 감사 문서
 - **Phase 2 (P6)**: H5 Link underline + H7 DropZone drop-target 반영 완료, 잔여 2항목 재분류 — §4.2 참조.
 - **Phase 3 (P4)**: per-item 조사 결과 기계적 채택 0건 — 전수 exclude/defer, §4.3 참조.
 - **Phase 4 (P5)**: per-item 조사 결과 기계적 채택 0건 — 전수 exclude/defer, §4.4 참조.
-- **Phase 5 (P1·P3)**: H1·H2 icon-only 원형, H6 SearchField pill, H18 ProgressBar 3d / MED Switch·Slider·Meter box-shadow. (H11 Tag pill 은 TagGroup 범위 제외로 이관.)
+- **Phase 5 (P1·P3)**: G3 디자인 결정 — P1·P3 기각, Modal H14·H15(Phase 3 defer 분) 채택. §4.5 참조.
 
 ### 4.1 Phase 1 (P2) 실행 결과 (2026-05-18)
 
@@ -113,15 +113,29 @@ per-item 조사 결과 P5 구조 항목 중 **기계적 채택 대상 0건** —
 
 **Phase 4 = R2 종속 phase**: breakdown §3 이 "Phase 4 는 R2(Generator emit 능력) 확인 결과에 종속"으로 사전 명시. R2 가 RangeCalendar range-band·Menu grid-subgrid 를 emit 불가로 확정하므로 H8/H9/Menu 의 defer 는 ADR R2 게이트의 예정된 귀결. ToggleButtonGroup 은 R2 와 무관하게 composition 디자인 발산으로 exclude.
 
+### 4.5 Phase 5 (P1·P3 + Modal) 실행 결과 (2026-05-18)
+
+G3 게이트 — composition 디자인 시스템 오너에게 P1 형태·P3 입체감 + Phase 3 defer 분(Modal)을 surface. 사용자 explicit 결정:
+
+| 항목                                                                           | 결정 | 사유 / 반영                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P1 형태** (icon-only Button/ToggleButton 원형, SearchField·ColorSwatch pill) | 기각 | composition 이 전 컴포넌트에서 일관되게 `radius-md/lg` 사각 계열 사용 — 의도적 디자인 언어. ADR Decision 의 "composition radius-md 가 의도면 기각" 확정. 코드 변경 0.                                                                                                                                     |
+| **P3 입체 box-shadow** (Switch thumb, Slider/ProgressBar/Meter fill)           | 기각 | composition 의 flat 디자인이 의도적. H18 ProgressBar shimmer 포함 전수 기각. 코드 변경 0.                                                                                                                                                                                                                 |
+| **H14·H15 Modal** radius/max-width                                             | 채택 | radius lg→xl: `ModalSpec.sizes.md.borderRadius` `{radius.xl}` + 수동 `overlays.css` `var(--radius-xl)` (R5 dual-CSS — generated/Modal.css ↔ overlays.css 양쪽 일치로 cascade 무관 보장). max-width 300px→`min(500px,90vw)`: `min()` 복합값이라 `ContainerStylesSchema` 미수용 → 수동 `overlays.css` 전용. |
+
+**P1/P3 기각의 영속성**: 본 §4.5 + ADR Decision 의 P1/P3 항목은 차기 starter 감사가 SearchField pill·icon-only 원형·Switch/Slider 3d 등을 재플래그하지 않도록 "composition 의도적 발산" 기준으로 보존된다.
+
+**Modal Skia 무관**: `ModalSpec.render.shapes: () => []` — Skia 는 Modal 을 렌더하지 않음(overlay portal). radius 변경은 generated `Modal.css` + 수동 `overlays.css` 의 Preview 경로에만 영향, D3 Skia↔CSS 대칭 대상 아님.
+
 ## 5. BC 영향 수식화 (R4 대응)
 
-| Phase           | 시각 변경 컴포넌트                                    | BC 성격                                                       |
-| --------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
-| Phase 1 (P2)    | Disclosure (chevron rotate 1, §4.1)                   | 신규 애니메이션 추가 — 정적 스냅샷 BC 없음, 동작만 추가       |
-| Phase 2 (P6)    | Link·DropZone (2, §4.2)                               | 신규 상태/장식 스타일 추가 — 정적 스냅샷 BC 없음, 상태만 추가 |
-| Phase 3 (P4)    | 없음 (전수 exclude/defer, §4.3)                       | 코드 변경 0 — 조사·문서화 phase                               |
-| Phase 4 (P5)    | 없음 (전수 exclude/defer, §4.4)                       | 코드 변경 0 — 조사·문서화 phase                               |
-| Phase 5 (P1·P3) | SearchField·ColorSwatch·Button·Switch·Slider 등 (~11) | 형태/입체감 변경 — 전 기존 프로젝트 시각 회귀                 |
+| Phase           | 시각 변경 컴포넌트                      | BC 성격                                                                                    |
+| --------------- | --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Phase 1 (P2)    | Disclosure (chevron rotate 1, §4.1)     | 신규 애니메이션 추가 — 정적 스냅샷 BC 없음, 동작만 추가                                    |
+| Phase 2 (P6)    | Link·DropZone (2, §4.2)                 | 신규 상태/장식 스타일 추가 — 정적 스냅샷 BC 없음, 상태만 추가                              |
+| Phase 3 (P4)    | 없음 (전수 exclude/defer, §4.3)         | 코드 변경 0 — 조사·문서화 phase                                                            |
+| Phase 4 (P5)    | 없음 (전수 exclude/defer, §4.4)         | 코드 변경 0 — 조사·문서화 phase                                                            |
+| Phase 5 (P1·P3) | Modal (radius/max-width 1) — P1·P3 기각 | Modal radius/max-width 가시 변경 — modal 1종 국소 BC. P1/P3 기각으로 형태/입체감 회귀 없음 |
 
 Phase 1·2 는 가산적(BC 낮음), Phase 3 는 레이아웃 영향, Phase 5 는 BC 최대 — 디자인 결정 + 사용자 공지 필요.
 
