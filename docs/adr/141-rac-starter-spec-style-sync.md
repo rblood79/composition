@@ -18,12 +18,12 @@ composition 은 `react-aria-starter/src` 를 React Aria Components 의 스타일
 
 **Soft Constraints**:
 
-- CSSGenerator 의 emit 능력 — 일부 starter rule(형제 selector `td:first-child`, `::after` overlay)은 현재 Generator 가 emit 하지 못한다.
+- CSSGenerator 의 emit 능력 — 일부 starter rule(RangeCalendar range-band 띠, Menu grid-subgrid, `::after` overlay)은 현재 Generator 가 emit 하지 못한다.
 - starter 의 일부 스타일은 composition 이 의도적으로 발산한 디자인 결정일 수 있어, 채택 여부는 제품 판단을 요한다.
 
 **Phase 0 감사**: `react-aria-starter/src` ↔ composition Spec 의 시각 delta 를 registered 컴포넌트 ~45 개에 대해 실측했다. HIGH 18 + MED 27 + LOW ~20, 6 패턴(P1 형태 / P2 micro-interaction / P3 입체 box-shadow / P4 치수 / P5 구조 / P6 상태 누락)으로 수렴. 상세: [2026-05-18-rac-starter-spec-style-diff.md](../reference/audits/2026-05-18-rac-starter-spec-style-diff.md).
 
-**범위 제외**: Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider 6 컴포넌트는 본 ADR 범위 외다. 후자 6 개는 generated CSS 가 없는 skipCSSGeneration 컨테이너로, 시각 정의가 수동 CSS 에 있어 starter 동기화에 해체가 선행돼야 한다 → ADR-059(skipCSSGeneration 해체) 후속으로 분리. 본 ADR 타겟은 제외 후 전원 generated CSS 보유 컴포넌트이며, 모든 변경이 순수 Spec 수정이다(Decision §Spec 반영 경로).
+**범위 제외**: Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider 는 본 ADR 범위 외다. 이들 skipCSSGeneration 컨테이너는 ADR-059(skipCSSGeneration 해체, Implemented 2026-04-15)·ADR-106-a~d(skipCSSGeneration 감사 완결, 2026-04-21)가 이미 다뤘다 — CSSGenerator 가 RAC 내부 selector·`::after`·orientation 분기를 emit 못 해 **해체 불가가 확정된 G2 정당 Tier 3 예외**다(`해체 대기 debt` 아님). 이들로의 starter 동기화는 CSSGenerator 능력 확장 또는 수동 CSS 경로를 요하는 별도 작업이다. 본 ADR 타겟은 제외 후 대다수가 generated CSS 보유 컴포넌트이며, 잔존 skipCSSGeneration sub-component 예외는 Decision §Spec 반영 경로 참조.
 
 ## Alternatives Considered
 
@@ -104,23 +104,25 @@ composition 은 `react-aria-starter/src` 를 React Aria Components 의 스타일
 
 ### Spec 반영 경로 — D3 SSOT 정합
 
-본 ADR 타겟은 범위 제외 후 **전원 generated CSS 보유 컴포넌트**다 (Button·Dialog·Modal·Popover·Disclosure·ProgressBar·Meter·Switch·Slider·Form·NumberField·Checkbox·Radio·RangeCalendar·Calendar·DropZone·Link·Tooltip·Toast·Separator 등). 따라서 채택 delta 의 반영 경로는 단일하다:
+D3 SSOT 원칙상 시각 변경은 Spec 에 반영돼야 한다(수동 CSS 직접 편집은 consumer 수정). 본 ADR 타겟의 반영 경로:
 
-- **Spec 수정 → `pnpm build:specs` → generated CSS 재생성**. Spec 이 D3 시각 SSOT 이고 그 수정이 곧 SSOT 수정이다. 수동 CSS 직접 편집(consumer 수정) 0건.
-- **이중 CSS override (Modal/Dialog/Popover `overlays.css` 등)** — generated + 수동 공존. Spec 재생성분이 `@layer components` specificity 로 가려지지 않는지 Phase 별 cross-check(G1)로 확인.
+- **generated CSS 보유 타겟 (대다수)** — Button·Dialog·Modal·Popover·Disclosure·ProgressBar·Meter·Switch·Slider·Form·NumberField·Checkbox·Radio·RangeCalendar·Calendar·DropZone·Link·Tooltip·Toast·Separator 등. Spec 수정 → `pnpm build:specs` → generated CSS 재생성. Spec 수정이 곧 D3 SSOT 수정.
+- **skipCSSGeneration sub-component 예외** — `DisclosureContent`(감사 H17 패널 height transition, Phase 1)·`ColorSwatchPicker`(P1, Phase 5)는 generated CSS 가 없다(`skipCSSGeneration: true`, parent 가 inline-emit 안 함). 해당 delta 의 반영 경로(parent Disclosure 의 ADR-078 child inline-emit / skipCSSGeneration 재판정 등)는 해당 Phase 착수 시 확정한다 — 순수 Spec 수정이 아닐 수 있다.
+- **이중 CSS override** — Modal/Dialog/Popover 는 generated + `overlays.css` 수동 공존. Spec 재생성분이 `@layer components` specificity 로 가려지지 않는지 Phase 별 cross-check(G1)로 확인(Risk R5).
 
-skipCSSGeneration 컨테이너(Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider + Table)는 시각 정의가 수동 CSS 에 있어 Spec 수정만으로 반영되지 않는다 → 본 ADR 범위에서 제외하고 ADR-059(skipCSSGeneration 해체) 후속으로 분리한다. 이로써 본 ADR 은 skipCSSGeneration 해체 의존이 0 이며 모든 변경이 순수 Spec 수정이다. 실측 근거: 커밋 `49989e7f6` 시점 `packages/shared/src/components/styles/generated/` grep — 제외 컴포넌트는 generated CSS 부재, 잔여 타겟은 전원 보유.
+**제외 원칙**: generated CSS 가 없는 skipCSSGeneration 컨테이너(Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider + Table)는 본 ADR 범위 외. ADR-059·ADR-106-a~d 가 CSSGenerator 구조적 미지원(RAC 내부 selector·`::after`·orientation)으로 인한 **G2 정당 Tier 3 예외**로 이미 분류했다 — `해체 후속` 대상이 아니라 CSSGenerator 능력 확장을 요하는 별도 작업이다. 실측 근거: 커밋 `49989e7f6` 시점 `packages/shared/src/components/styles/generated/` grep.
 
 > 구현 상세: [141-rac-starter-spec-style-sync-breakdown.md](design/141-rac-starter-spec-style-sync-breakdown.md)
 
 ## Risks
 
-| ID  | 위험                                                       | 심각도 | 대응                                                  |
-| --- | ---------------------------------------------------------- | :----: | ----------------------------------------------------- |
-| R1  | 채택분의 Builder Skia ↔ Preview CSS 시각 대칭 깨짐         |  MED   | 패턴별 cross-check Gate (G1)                          |
-| R2  | CSSGenerator 가 일부 starter rule(형제 selector) emit 불가 |  MED   | 채택 전 Generator 능력 확인, 불가 시 해당 delta 보류  |
-| R3  | P1/P3 보류 항목이 디자인 결정 없이 영구 미결 표류          |  MED   | breakdown 에 디자인 결정 항목·기준 명시               |
-| R4  | 채택분의 기존 프로젝트 시각 회귀                           |  MED   | 채택 패턴별 BC 영향 컴포넌트 수를 breakdown 에 수식화 |
+| ID  | 위험                                                                                                                            | 심각도 | 대응                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------- |
+| R1  | 채택분의 Builder Skia ↔ Preview CSS 시각 대칭 깨짐                                                                              |  MED   | 패턴별 cross-check Gate (G1)                                                                   |
+| R2  | CSSGenerator 가 일부 starter rule(RangeCalendar range-band / Menu grid-subgrid) emit 불가                                       |  MED   | 채택 전 Generator 능력 확인, 불가 시 해당 delta 보류                                           |
+| R3  | P1/P3 보류 항목이 디자인 결정 없이 영구 미결 표류                                                                               |  MED   | breakdown 에 디자인 결정 항목·기준 명시                                                        |
+| R4  | 채택분의 기존 프로젝트 시각 회귀                                                                                                |  MED   | 채택 패턴별 BC 영향 컴포넌트 수를 breakdown 에 수식화                                          |
+| R5  | 이중 CSS(Modal/Dialog/Popover `overlays.css` 수동)가 Spec 재생성분을 `@layer` specificity 로 override → Spec 수정이 시각 미반영 |  MED   | 해당 컴포넌트 Phase 착수 시 generated↔수동 우선순위 cross-check(G1), override 시 수동 CSS 정정 |
 
 잔존 HIGH 위험 없음.
 
