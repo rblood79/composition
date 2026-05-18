@@ -18,7 +18,11 @@ else
   FILES="$(codex_changed_files)"
 fi
 
-TARGETS="$(echo "$FILES" | grep -E '\.(ts|tsx|js|jsx|css|json|md)$' || true)"
+TARGETS="$(
+  echo "$FILES" |
+    grep -E '\.(ts|tsx|js|jsx|css|json|md)$' |
+    grep -Ev '^packages/react-aria-starter/' || true
+)"
 
 if [ -z "$TARGETS" ]; then
   echo "[codex:format] 포맷 대상 없음"
