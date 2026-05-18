@@ -118,6 +118,56 @@ export function resolveCanonicalDescendantOverride(
 }
 
 // ─────────────────────────────────────────────
+// ADR-138 A-1 — items fork 감지 (canonical)
+// ─────────────────────────────────────────────
+
+/**
+ * `TabItem = { id; title }` flat object (`Tabs.spec.ts:20`) 의 구조 동치 비교.
+ * 배열 길이 + 각 항목의 1-depth key/value 동일성만 검사한다.
+ */
+function itemsEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  return a.every((ai, i) => {
+    const bi = b[i];
+    if (ai === bi) return true;
+    if (typeof ai !== "object" || typeof bi !== "object" || !ai || !bi)
+      return false;
+    const ak = Object.keys(ai as object);
+    const bk = Object.keys(bi as object);
+    return (
+      ak.length === bk.length &&
+      ak.every(
+        (k) =>
+          (ai as Record<string, unknown>)[k] ===
+          (bi as Record<string, unknown>)[k],
+      )
+    );
+  });
+}
+
+/**
+ * instance(`RefNode`) 가 origin(master `CanonicalNode`) 대비 `props.items` 를
+ * override(fork) 했는지 판정. ADR-138 A-3 fork 표시 조건 + A-1 시나리오 2/3
+ * assert 의 SSOT.
+ *
+ * - `refNode.props.items === undefined` → override 없음 → not forked.
+ * - canonical `RefNode.props` 는 override delta 이므로 `items` 키 존재 자체가
+ *   override 후보. master 와 구조 동치면 (no-op write) fork 아님.
+ *
+ * v1 은 `items` 만 (Tabs 핵심). 다른 prop fork 감지는 후속 ADR (A-4).
+ */
+export function hasItemsOverride(
+  refNode: RefNode,
+  master: CanonicalNode,
+): boolean {
+  const refItems = refNode.props?.items;
+  if (refItems === undefined) return false; // override 없음
+  return !itemsEqual(refItems, master.props?.items);
+}
+
+// ─────────────────────────────────────────────
 // Legacy public API — 시그니처 무변경
 // ─────────────────────────────────────────────
 

@@ -1,6 +1,8 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-18 — **ADR-141 Proposed (react-aria-starter 참조 스타일의 Spec D3 반영)**. react-aria-starter/src 업데이트 스타일을 composition Spec(D3 시각 SSOT)에 반영하는 신규 ADR. Phase 0 감사(registered ~45 컴포넌트 ↔ starter, HIGH 18 + MED 27 + LOW ~20, 6 패턴 P1 형태 / P2 micro-interaction / P3 입체 box-shadow / P4 치수 / P5 구조 / P6 상태 누락 수렴) 완료. 대안 B(패턴 선별 채택) 결정 — P2·P6·P4 채택, P1 형태·P3 입체감은 composition 디자인 언어 의도 가능성으로 디자인 결정 보류. 잔존 HIGH 위험 없음. 감사 `docs/reference/audits/2026-05-18-rac-starter-spec-style-diff.md`, design breakdown `design/141-rac-starter-spec-style-sync-breakdown.md`. Phase 1-5 실행은 사용자 plan review 후 단계.
+> **최종 업데이트**: 2026-05-18 — **ADR-138 Implemented (컴포넌트 패널 복합 컴포넌트 reusable origin-instance 부착 — dynamic 검증 + 진입점/fork UX)**. ADR-116/130 canonical reusable schema(`reusable` origin + `type:"ref"` instance + `descendants[path]` override)를 복합 컴포넌트 Tabs/Card 에서 검증하고 진입점·fork UX 를 보강하는 응용 ADR — canonical schema 변경 0. Phase 0 freeze 로 당초 신규 2 컴포넌트(`AddAsComponentMenu`/`InstanceForkBadge`) 계획이 기존 인프라 재사용으로 대체 (LayerTree context menu 확장 + ComponentSemanticsSection override 목록 확장) — 신규 2 (test) + 수정 4 = 6 파일. Phase 1 `hasItemsOverride` helper + `reusableTabs`(8)/`reusableCard`(3) 시나리오 테스트 (vitest 11/11). Phase 2 layer tree 우클릭 "Add as component" 1-step origin 승격. Phase 3 instance items shallow fork 시 "items (forked)" / "Reset to origin" 표시. type-check baseline 547 무증가, Chrome MCP 5 시나리오 runtime 통과, cross-check 는 Spec/CSS/Skia 렌더링 무변경으로 N/A. A-4 잔여 ComponentTag sweep 은 별도 ADR. design breakdown `design/138-component-palette-reusable-breakdown.md`.
+>
+> **2026-05-18 (직전) — ADR-141 Proposed (react-aria-starter 참조 스타일의 Spec D3 반영)**. react-aria-starter/src 업데이트 스타일을 composition Spec(D3 시각 SSOT)에 반영하는 신규 ADR. Phase 0 감사(registered ~45 컴포넌트 ↔ starter, HIGH 18 + MED 27 + LOW ~20, 6 패턴 P1 형태 / P2 micro-interaction / P3 입체 box-shadow / P4 치수 / P5 구조 / P6 상태 누락 수렴) 완료. 대안 B(패턴 선별 채택) 결정 — P2·P6·P4 채택, P1 형태·P3 입체감은 composition 디자인 언어 의도 가능성으로 디자인 결정 보류. 잔존 HIGH 위험 없음. 감사 `docs/reference/audits/2026-05-18-rac-starter-spec-style-diff.md`, design breakdown `design/141-rac-starter-spec-style-sync-breakdown.md`. Phase 1-5 실행은 사용자 plan review 후 단계.
 >
 > **2026-05-17 (직전) — **ADR-140 Implemented (react-aria-starter press-scale micro-interaction 도입)\*_. react-aria-starter(공식 React Aria starter, `localhost:6006`) 대비 composition 이 받아들여야 할 스타일 업데이트 후보를 전수 점검(`docs/reference/audits/2026-05-17-rac-starter-style-update-_.md`)한 결과, starter 에 있고 composition 이 일관되게 결여한 유일한 디자인 언어는 press-scale micro-interaction(`[data-pressed]`시`scale: 0.9~0.98`축소)으로 확인됐다. 하이브리드(대안 A) 채택 — leaf(Button/ToggleButton/DisclosureHeader)는 spec`states.pressed.scale`(`StateEffect.scale`+ CSSGenerator`transform: scale()`emit 기존 활용 — 신규 capability 불요), sub-element(Calendar 셀/GridList 항목/Tag/Switch thumb)는 수동 CSS. Skia`componentState`는 default|disabled 만이라 press 미렌더 → Skia 작업 0, D3 비대칭 없음. 대안 B(전수 수동 CSS) 유지보수 HIGH 기각, 대안 C(전수 spec) scope 과대 기각. 잔존 HIGH 위험 없음. design breakdown: `design/140-press-scale-micro-interaction-breakdown.md`. C3(Checkbox 체크마크)는 채택 기각, C4(Separator)/C5(Toast)는 범위 외. Phase 1~5 구현·검증 완료 — 설계 결정 DD1(inset-shadow 제거)·DD2·DD3 확정, type-check baseline 547 무증가, @composition/specs 326/326 PASS, CSSGenerator snapshot 20개 갱신. 본문 docs/adr/completed/.
 >
@@ -452,40 +454,40 @@ ADR-098 Charter + ADR-099 (098-c Collection Section/Header) / ADR-100 (098-a Sel
 
 ## 다음 진행 목표 (2026-04-06 기준)
 
-| 순서 | 대상    | 내용                                                                                                                    | 규모 |          상태          |
-| :--: | ------- | ----------------------------------------------------------------------------------------------------------------------- | :--: | :--------------------: |
-|  -   | ADR-050 | Container Overflow 프로퍼티 — 해칭 패턴 + clipChildren (2026-04-03)                                                     |  소  |        **완료**        |
-|  -   | ADR-052 | S2 Props API 정합성 — 이름 변경 4건, formatOptions 통합, showValue 제거 (2026-04-05)                                    |  중  |        **완료**        |
-|  -   | ADR-053 | S2 Props 커버리지 확장 — size XL 17개, contextualHelp, staticColor auto (2026-04-05)                                    |  중  |        **완료**        |
-|  -   | ADR-055 | 이벤트 레지스트리 SSOT — EVENT_REGISTRY 정본 도입, 수동 정의 제거 (2026-04-06)                                          |  중  |        **완료**        |
-|  -   | -       | 이벤트 패널 등록 누락 보강 — TextArea 등록, onChangeEnd/onExpandedChange/onRemove, form Props (2026-04-06)              |  소  |        **완료**        |
-|  -   | -       | 컴포넌트 프로퍼티 전수조사 — 65+ spec RSP 정합성 감사, 과잉 props 제거, 브라우저 props sections 제거                    |  대  |        **완료**        |
-|  -   | ADR-057 | Text Shape Feature Parity 이식 — 13개 feature `specShapeConverter` 이식 (2026-04-10)                                    |  중  |        **완료**        |
-|  -   | ADR-058 | TEXT_TAGS 예외 경로 해체 — 9/9 text 컴포넌트 Skia 경로 통일 (2026-04-11)                                                |  중  |        **완료**        |
-|  -   | ADR-060 | Form Control Indicator 스키마 확장 — 6개 매직 테이블 해체 (2026-04-13)                                                  |  중  |        **완료**        |
-|  -   | ADR-061 | Focus Ring 토큰화 — 53개 spec TokenRef 전환 (2026-04-13)                                                                |  중  |        **완료**        |
-|  -   | ADR-062 | Field Spec RSP 정합 — 11개 Field variant 제거 + 6개 isQuiet 보강 (2026-04-13)                                           |  중  |        **완료**        |
-|  -   | ADR-064 | ComponentSpec shapes API variant 제거 + self-lookup (2026-04-15)                                                        |  중  |        **완료**        |
-|  -   | ADR-065 | Panel 컴포넌트 제거 — D2 위반 해소 (2026-04-15)                                                                         |  중  |        **완료**        |
-|  -   | ADR-066 | Tabs items SSOT 전환 — RAC Collection Items 패턴 정합 (2026-04-15)                                                      |  중  |        **완료**        |
-|  -   | ADR-067 | Style Panel Skia-native Read Path — Jotai 제거 (2026-04-15)                                                             |  대  |        **완료**        |
-|  -   | ADR-068 | Menu items SSOT + MenuItem Spec 신설 — Skia 0-height 구조적 해결 (2026-04-17)                                           |  대  |        **완료**        |
-|  -   | ADR-069 | 입력·프레임 Violation 완화 — longtask p95 dev 645ms → prod 88ms (2026-04-17)                                            |  중  |        **완료**        |
-|  -   | ADR-070 | MenuItem CSS 색상 SSOT — StateEffect hover/disabled 색상 emit 인프라 (2026-04-17)                                       |  중  |        **완료**        |
-|  -   | ADR-059 | Composite Field CSS SSOT 확립 — skipCSSGeneration 55개→9개 (2026-04-15)                                                 |  대  |        **완료**        |
-|  1   | ADR-048 | Props Propagation 잔여 — CSS/Preview 경로 통합 + labelPosition 전파 규칙 추가                                           |  중  |                        |
-|  -   | ADR-042 | Spec Container Dimension Injection — Tier 1 100% + Tier 2/3 본문 ROI 보류 (2026-05-13)                                  |  소  | **Implemented (타협)** |
-|  -   | ADR-131 | events/data/actions 일급 컴포넌트 루트 컬렉션 — Phase 0-8 전수 완결 (2026-05-13)                                        |  대  |        **완료**        |
-|  -   | ADR-038 | Figma 디자인 임포트 — 사용자 결정 "현재 불필요 + ADR 설계 규칙 부정합" (2026-05-13)                                     |  -   |     **Deprecated**     |
-|  -   | ADR-032 | Events Platform 재설계 — events/actions schema → ADR-131 / UI 표면 → ADR-133 (2026-05-13)                               |  -   |     **Deprecated**     |
-|  -   | ADR-034 | Events Panel Renovation — Panel UX → ADR-133 D1/D2 / 7 섹션 IA → ADR-134 (2026-05-13)                                   |  -   |     **Deprecated**     |
-|  -   | ADR-010 | Events Panel Smart Recommendations — P0/P1 land → ADR-133 D5 흡수, P1.5/P2 → ADR-134 (2026-05-13)                       |  -   |     **Deprecated**     |
-|  -   | ADR-011 | AI Assistant 설계 (Groq Tool Calling) — Phase A1~A4 land → ADR-134 Phase 2/3/8 점진 전환 (2026-05-13)                   |  -   |     **Deprecated**     |
-|  -   | ADR-054 | 로컬 LLM 아키텍처 (Ollama → node-llama-cpp) — Provider base + Hard Constraints + Gates → ADR-134 흡수 (2026-05-13)      |  -   |     **Deprecated**     |
-|  2   | ADR-134 | AI Assistant 차세대 아키텍처 — LLM 인프라 + 도구/UI 통합 (ADR-011 + ADR-054 통합, plan-only land)                       |  대  |      **Proposed**      |
-|  2   | ADR-133 | EventsPanel UX 단순화 (1년차 신입 baseline) + canonical events/actions 단일화 + ActionsPanel 흡수 + RAC convention 정합 |  대  |      **Proposed**      |
-|  3   | ADR-013 | Quick Connect 데이터 바인딩 — 1클릭 Collection 연결 자동화 (ADR-133 선행)                                               |  대  |                        |
-|  1   | ADR-138 | 컴포넌트 패널 복합 컴포넌트 reusable origin-instance 부착 — Tabs/Card dynamic 검증 + 진입점/fork UX (ADR-116/130 응용)  |  중  |      **Proposed**      |
+| 순서 | 대상    | 내용                                                                                                                             | 규모 |          상태          |
+| :--: | ------- | -------------------------------------------------------------------------------------------------------------------------------- | :--: | :--------------------: |
+|  -   | ADR-050 | Container Overflow 프로퍼티 — 해칭 패턴 + clipChildren (2026-04-03)                                                              |  소  |        **완료**        |
+|  -   | ADR-052 | S2 Props API 정합성 — 이름 변경 4건, formatOptions 통합, showValue 제거 (2026-04-05)                                             |  중  |        **완료**        |
+|  -   | ADR-053 | S2 Props 커버리지 확장 — size XL 17개, contextualHelp, staticColor auto (2026-04-05)                                             |  중  |        **완료**        |
+|  -   | ADR-055 | 이벤트 레지스트리 SSOT — EVENT_REGISTRY 정본 도입, 수동 정의 제거 (2026-04-06)                                                   |  중  |        **완료**        |
+|  -   | -       | 이벤트 패널 등록 누락 보강 — TextArea 등록, onChangeEnd/onExpandedChange/onRemove, form Props (2026-04-06)                       |  소  |        **완료**        |
+|  -   | -       | 컴포넌트 프로퍼티 전수조사 — 65+ spec RSP 정합성 감사, 과잉 props 제거, 브라우저 props sections 제거                             |  대  |        **완료**        |
+|  -   | ADR-057 | Text Shape Feature Parity 이식 — 13개 feature `specShapeConverter` 이식 (2026-04-10)                                             |  중  |        **완료**        |
+|  -   | ADR-058 | TEXT_TAGS 예외 경로 해체 — 9/9 text 컴포넌트 Skia 경로 통일 (2026-04-11)                                                         |  중  |        **완료**        |
+|  -   | ADR-060 | Form Control Indicator 스키마 확장 — 6개 매직 테이블 해체 (2026-04-13)                                                           |  중  |        **완료**        |
+|  -   | ADR-061 | Focus Ring 토큰화 — 53개 spec TokenRef 전환 (2026-04-13)                                                                         |  중  |        **완료**        |
+|  -   | ADR-062 | Field Spec RSP 정합 — 11개 Field variant 제거 + 6개 isQuiet 보강 (2026-04-13)                                                    |  중  |        **완료**        |
+|  -   | ADR-064 | ComponentSpec shapes API variant 제거 + self-lookup (2026-04-15)                                                                 |  중  |        **완료**        |
+|  -   | ADR-065 | Panel 컴포넌트 제거 — D2 위반 해소 (2026-04-15)                                                                                  |  중  |        **완료**        |
+|  -   | ADR-066 | Tabs items SSOT 전환 — RAC Collection Items 패턴 정합 (2026-04-15)                                                               |  중  |        **완료**        |
+|  -   | ADR-067 | Style Panel Skia-native Read Path — Jotai 제거 (2026-04-15)                                                                      |  대  |        **완료**        |
+|  -   | ADR-068 | Menu items SSOT + MenuItem Spec 신설 — Skia 0-height 구조적 해결 (2026-04-17)                                                    |  대  |        **완료**        |
+|  -   | ADR-069 | 입력·프레임 Violation 완화 — longtask p95 dev 645ms → prod 88ms (2026-04-17)                                                     |  중  |        **완료**        |
+|  -   | ADR-070 | MenuItem CSS 색상 SSOT — StateEffect hover/disabled 색상 emit 인프라 (2026-04-17)                                                |  중  |        **완료**        |
+|  -   | ADR-059 | Composite Field CSS SSOT 확립 — skipCSSGeneration 55개→9개 (2026-04-15)                                                          |  대  |        **완료**        |
+|  1   | ADR-048 | Props Propagation 잔여 — CSS/Preview 경로 통합 + labelPosition 전파 규칙 추가                                                    |  중  |                        |
+|  -   | ADR-042 | Spec Container Dimension Injection — Tier 1 100% + Tier 2/3 본문 ROI 보류 (2026-05-13)                                           |  소  | **Implemented (타협)** |
+|  -   | ADR-131 | events/data/actions 일급 컴포넌트 루트 컬렉션 — Phase 0-8 전수 완결 (2026-05-13)                                                 |  대  |        **완료**        |
+|  -   | ADR-038 | Figma 디자인 임포트 — 사용자 결정 "현재 불필요 + ADR 설계 규칙 부정합" (2026-05-13)                                              |  -   |     **Deprecated**     |
+|  -   | ADR-032 | Events Platform 재설계 — events/actions schema → ADR-131 / UI 표면 → ADR-133 (2026-05-13)                                        |  -   |     **Deprecated**     |
+|  -   | ADR-034 | Events Panel Renovation — Panel UX → ADR-133 D1/D2 / 7 섹션 IA → ADR-134 (2026-05-13)                                            |  -   |     **Deprecated**     |
+|  -   | ADR-010 | Events Panel Smart Recommendations — P0/P1 land → ADR-133 D5 흡수, P1.5/P2 → ADR-134 (2026-05-13)                                |  -   |     **Deprecated**     |
+|  -   | ADR-011 | AI Assistant 설계 (Groq Tool Calling) — Phase A1~A4 land → ADR-134 Phase 2/3/8 점진 전환 (2026-05-13)                            |  -   |     **Deprecated**     |
+|  -   | ADR-054 | 로컬 LLM 아키텍처 (Ollama → node-llama-cpp) — Provider base + Hard Constraints + Gates → ADR-134 흡수 (2026-05-13)               |  -   |     **Deprecated**     |
+|  2   | ADR-134 | AI Assistant 차세대 아키텍처 — LLM 인프라 + 도구/UI 통합 (ADR-011 + ADR-054 통합, plan-only land)                                |  대  |      **Proposed**      |
+|  2   | ADR-133 | EventsPanel UX 단순화 (1년차 신입 baseline) + canonical events/actions 단일화 + ActionsPanel 흡수 + RAC convention 정합          |  대  |      **Proposed**      |
+|  3   | ADR-013 | Quick Connect 데이터 바인딩 — 1클릭 Collection 연결 자동화 (ADR-133 선행)                                                        |  대  |                        |
+|  -   | ADR-138 | 컴포넌트 패널 복합 컴포넌트 reusable origin-instance 부착 — Tabs/Card dynamic 검증 + 진입점/fork UX, Phase 0-3 완결 (2026-05-18) |  중  |        **완료**        |
 
 > 완료된 이전 목표는 변경 이력 참조
 >

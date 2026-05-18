@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [컴포넌트 패널 복합 컴포넌트 reusable 검증 — ADR-138 Tabs/Card origin-instance] - 2026-05-18
+
+### Features
+
+- **레이어 트리 우클릭 "Add as component" — 1-step origin 승격** (ADR-138 Phase 2):
+  - 레이어 트리 항목 우클릭 메뉴를 instance 한정에서 일반 element 까지 확장. standard element 는 "Add as component", origin 은 "Remove component", instance 는 "Detach instance" 를 표시.
+  - **Why**: 기존에는 element 선택 후 Properties 패널 진입을 거쳐야 origin 승격이 가능 — reusable 모델 발견성이 낮았음.
+  - 위치: `apps/builder/src/builder/panels/nodes/tree/LayerTree/LayerTreeItemContent.tsx`
+- **instance items fork 표시 — "items (forked)"** (ADR-138 Phase 3):
+  - instance 가 `props.items` 를 override 하면 origin 과 shallow fork — origin items 변경이 더 이상 반영되지 않는다. Properties 패널 "Component" 섹션 override 목록에서 해당 행을 "items (forked)" / "Reset to origin" + 설명 tooltip 으로 구분 표시.
+  - **Why**: fork 발생 시 사용자 인지 수단이 없어 origin 변경 미반영을 버그로 오인할 수 있었음.
+  - 위치: `apps/builder/src/builder/panels/properties/ComponentSemanticsSection.tsx`
+
+### Architecture
+
+- **canonical reusable schema 의 복합 컴포넌트 검증** (ADR-138 Phase 1):
+  - ADR-116/130 의 `reusable` origin + `type:"ref"` instance + `descendants[path]` override schema 가 복합 컴포넌트(Tabs dynamic items / Card region)에서 작동하는지 end-to-end 검증. canonical schema 변경 0.
+  - `hasItemsOverride(refNode, master)` canonical fork-감지 helper 추가 + `reusableTabs.scenarios`(8) / `reusableCard.scenarios`(3) vitest 시나리오 — 11/11 PASS.
+  - Phase 0 freeze 로 당초 신규 2 컴포넌트(`AddAsComponentMenu`/`InstanceForkBadge`) 계획이 기존 인프라 재사용으로 대체 — 신규 2 (test) + 수정 4 = 6 파일.
+  - 위치: `apps/builder/src/adapters/canonical/instanceResolver.ts`, `apps/builder/src/adapters/canonical/__tests__/reusable{Tabs,Card}.scenarios.test.ts`
+
 ## [복합 컨테이너 자식 spec 누락 — Skia 렌더링 정합 수정] - 2026-05-18
 
 ### Bug Fixes

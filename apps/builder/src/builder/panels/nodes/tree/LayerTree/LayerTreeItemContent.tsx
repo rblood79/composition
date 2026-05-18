@@ -79,6 +79,9 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
   const { depth, hasChildren, type, element, name, isSyntheticRefChild } = node;
   const { isSelected, isExpanded, isFocusVisible } = state;
   const detachInstance = useStore((store) => store.detachInstance);
+  const toggleComponentOrigin = useStore(
+    (store) => store.toggleComponentOrigin,
+  );
   const semanticsRole = getEditingSemanticsRole(element);
   const semanticsLabel = getEditingSemanticsLabel(semanticsRole);
   const isDetachableInstance = canDetachInstance(element);
@@ -115,7 +118,9 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
   );
 
   const handleContextMenu = (event: React.MouseEvent) => {
-    if (isSyntheticRefChild || !isDetachableInstance) return;
+    // ADR-138 A-2: instance 뿐 아니라 일반 element 도 우클릭 메뉴 노출
+    // ("Add as component" 진입점). body / synthetic ref child 만 제외.
+    if (isSyntheticRefChild || type === "body") return;
     event.preventDefault();
     event.stopPropagation();
     setContextMenuPosition({ x: event.clientX, y: event.clientY });
@@ -130,6 +135,12 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
     });
     if (!confirmed) return;
     detachInstance(element.id);
+  };
+
+  // ADR-138 A-2: layer tree 우클릭 1-step origin 승격/해제 진입점.
+  const handleToggleComponentOrigin = async () => {
+    setContextMenuPosition(null);
+    await toggleComponentOrigin(element.id);
   };
 
   return (
@@ -228,14 +239,36 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <button
-            className="layer-context-menu-item"
-            onClick={handleDetachInstance}
-            role="menuitem"
-            type="button"
-          >
-            Detach instance
-          </button>
+          {!semanticsRole && (
+            <button
+              className="layer-context-menu-item"
+              onClick={handleToggleComponentOrigin}
+              role="menuitem"
+              type="button"
+            >
+              Add as component
+            </button>
+          )}
+          {semanticsRole === "origin" && (
+            <button
+              className="layer-context-menu-item"
+              onClick={handleToggleComponentOrigin}
+              role="menuitem"
+              type="button"
+            >
+              Remove component
+            </button>
+          )}
+          {isDetachableInstance && (
+            <button
+              className="layer-context-menu-item"
+              onClick={handleDetachInstance}
+              role="menuitem"
+              type="button"
+            >
+              Detach instance
+            </button>
+          )}
         </div>
       )}
     </div>

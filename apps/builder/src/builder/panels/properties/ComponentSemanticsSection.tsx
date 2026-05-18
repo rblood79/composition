@@ -200,23 +200,43 @@ export const ComponentSemanticsSection = memo(
               >
                 <span className="component-semantics-name">Overrides</span>
                 <div className="component-semantics-field-list">
-                  {overrideItems.map((item) => (
-                    <button
-                      aria-label={`Reset ${item.label} override`}
-                      className="component-semantics-field"
-                      key={item.id}
-                      onClick={() => handleResetOverrideField(item)}
-                      type="button"
-                    >
-                      <span className="component-semantics-field-dot" />
-                      <span className="component-semantics-field-name">
-                        {item.label}
-                      </span>
-                      <span className="component-semantics-field-reset">
-                        Reset
-                      </span>
-                    </button>
-                  ))}
+                  {overrideItems.map((item) => {
+                    // ADR-138 A-3: instance 가 props.items 를 override 하면
+                    // origin 과 shallow fork — origin items 변경이 더 이상
+                    // 반영되지 않는다. 일반 override 와 구분해 fork 임을 명시.
+                    const isItemsFork =
+                      item.fieldKey === "items" && !item.descendantPath;
+                    return (
+                      <button
+                        aria-label={
+                          isItemsFork
+                            ? "Reset forked items to origin"
+                            : `Reset ${item.label} override`
+                        }
+                        className={
+                          isItemsFork
+                            ? "component-semantics-field component-semantics-field--fork"
+                            : "component-semantics-field"
+                        }
+                        key={item.id}
+                        onClick={() => handleResetOverrideField(item)}
+                        title={
+                          isItemsFork
+                            ? "이 인스턴스의 items 가 origin 과 분리(fork)되었습니다 — origin items 변경이 반영되지 않습니다. Reset 시 origin 에 다시 연결됩니다."
+                            : undefined
+                        }
+                        type="button"
+                      >
+                        <span className="component-semantics-field-dot" />
+                        <span className="component-semantics-field-name">
+                          {isItemsFork ? "items (forked)" : item.label}
+                        </span>
+                        <span className="component-semantics-field-reset">
+                          {isItemsFork ? "Reset to origin" : "Reset"}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

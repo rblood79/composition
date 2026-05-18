@@ -2,15 +2,17 @@
 
 ## Status
 
-Proposed — 2026-05-15
+Implemented — 2026-05-18
 
 진행 로그:
 
-- 2026-05-15 — brainstorming (Google Stitch / Pencil app 벤치마크 → A안 "Pencil 모델 완성" 선택) 후 ADR 발의 (Proposed)
+- 2026-05-15 — brainstorming (Google Stitch / Pencil app 벤치마크 → A안 "Pencil 모델 완성" 선택) 후 ADR 작성 (Proposed)
+- 2026-05-15 — review-adr Round 1 검토 (`docs/adr/reviews/138.md`)
 - 사용자 framing lock-in:
   - "기존 컴포넌트 패널의 컴포넌트들에 reusable origin-instance + slot 기능을 부착하면 기본 요소 수정이 복합 컴포넌트에 일괄 반영되어 편의성/유지보수성이 올라갈지" — 본 ADR 의 본질 질문
   - "dynamic 까지 체크가 되어야 제대로 확인" — pilot 은 dynamic items 검증 가능한 컴포넌트로
   - 시나리오 3 (instance 가 items 일부 patch + origin 나머지 반영) 처리 = **옵션 A 채택** — items 는 shallow override (instance 가 items 건드리면 origin 과 완전 분리)
+- 2026-05-18 — Phase 0~3 구현 완료 → Accepted → Implemented. vitest 11/11 (reusableTabs 8 + reusableCard 3) · type-check 0 new violation (baseline 547) · Chrome MCP 5 시나리오 runtime 통과 (우클릭 "Add as component" → origin 승격 / instance items override → "items (forked)" 표시 / "Reset to origin" → origin 재연결). Phase 0 freeze 로 신규 컴포넌트 2개 계획이 기존 인프라(LayerTree context menu / ComponentSemanticsSection override 목록) 재사용으로 대체 — 6 파일.
 
 ## Context
 
