@@ -167,13 +167,13 @@ export const ToastSpec: ComponentSpec<ToastProps> = {
     negative: {
       fill: {
         default: {
-          base: "{color.purple-subtle}" as TokenRef,
-          hover: "{color.purple-subtle}" as TokenRef,
-          pressed: "{color.purple-subtle}" as TokenRef,
+          base: "{color.negative-subtle}" as TokenRef,
+          hover: "{color.negative-subtle}" as TokenRef,
+          pressed: "{color.negative-subtle}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
-      border: "{color.purple}" as TokenRef,
+      border: "{color.negative}" as TokenRef,
     },
   },
 

@@ -68,16 +68,16 @@
 }
 
 .react-aria-Toast[data-variant="negative"] {
-  background: var(--color-purple-100);
+  background: var(--color-error-100);
   color: var(--fg);
-  border-color: var(--color-purple-600);
+  border-color: var(--negative);
 
   &[data-hovered] {
-    background: var(--color-purple-100);
+    background: var(--color-error-100);
   }
 
   &[data-pressed] {
-    background: var(--color-purple-100);
+    background: var(--color-error-100);
   }
 }
 
