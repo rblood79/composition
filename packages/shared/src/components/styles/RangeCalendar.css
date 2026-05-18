@@ -1,44 +1,81 @@
 @layer components {
-  /* RangeCalendar-specific styles (공통 구조는 CalendarCommon.css) */
+  /* RangeCalendar-specific styles (공통 구조는 CalendarCommon.css)
+   *
+   * 범위 선택 = starter range-band 형태 (ADR-141 감사 H8 후속, 2026-05-18):
+   *   중간 셀은 얇은 --accent-subtle 띠, 양끝은 --accent pill 캡.
+   *   띠는 ::before 레이어로 그려 td 패딩(2px)을 가로로 메워 연속성 확보
+   *   — starter 의 border-collapse + inner-span 모델을 composition 의
+   *   td-padding grid 로 내재화 (DOM 구조 변경 없이 시각 결과 대칭).
+   */
   .react-aria-RangeCalendar {
     .react-aria-CalendarCell {
+      /* 선택 셀: 띠는 ::before 가 담당, 셀 자체 배경은 투명 */
+      &[data-selected] {
+        background: transparent;
+        color: var(--fg);
+        border-radius: 0;
+        isolation: isolate; /* ::before z-index 를 셀 stacking context 로 격리 */
+      }
+
+      /* 범위 띠: 좌우 2px(td 패딩) 확장 → 인접 선택 셀과 맞닿아 연속 */
+      &[data-selected]::before {
+        content: "";
+        position: absolute;
+        inset: 0 calc(-1 * var(--spacing-2xs));
+        background: var(--accent-subtle);
+        z-index: -1;
+      }
+
+      &[data-selected][data-hovered]::before {
+        background: color-mix(in srgb, var(--accent-subtle) 65%, var(--accent));
+      }
+
+      /* 범위 시작: accent pill 캡 (왼쪽 라운드, 좌측 확장 제거) */
+      &[data-selection-start]::before {
+        left: 0;
+        background: var(--accent);
+        border-start-start-radius: var(--radius-full);
+        border-end-start-radius: var(--radius-full);
+      }
+
+      /* 범위 끝: accent pill 캡 (오른쪽 라운드, 우측 확장 제거) */
+      &[data-selection-end]::before {
+        right: 0;
+        background: var(--accent);
+        border-start-end-radius: var(--radius-full);
+        border-end-end-radius: var(--radius-full);
+      }
+
+      /* 시작 = 끝(단일 날짜 선택): 전체 pill */
+      &[data-selection-start][data-selection-end]::before {
+        border-radius: var(--radius-full);
+      }
+
+      /* 캡 셀의 날짜 텍스트는 accent 위 → on-accent 색 */
+      &[data-selection-start],
+      &[data-selection-end] {
+        color: var(--fg-on-accent);
+      }
+
+      /* focus ring */
       &[data-focus-visible] {
         outline: 2px solid var(--accent);
         outline-offset: -2px;
       }
 
-      /* Range selection: 선택된 범위 전체 배경 */
-      &[data-selected] {
-        background: var(--accent);
-        color: var(--fg-on-accent);
-        border-radius: 0; /* 연속 범위를 위해 radius 제거 */
-
-        &[data-hovered] {
-          background: color-mix(in srgb, var(--accent) 85%, black);
-        }
-
-        &[data-focus-visible] {
-          outline-color: var(--fg-on-accent);
-          outline-offset: -3px;
-        }
+      &[data-selection-start][data-focus-visible],
+      &[data-selection-end][data-focus-visible] {
+        outline-color: var(--fg-on-accent);
+        outline-offset: -3px;
       }
+    }
 
-      /* 범위 시작: 왼쪽만 둥글게 */
-      &[data-selection-start] {
-        border-start-start-radius: var(--radius-full);
-        border-end-start-radius: var(--radius-full);
-      }
-
-      /* 범위 끝: 오른쪽만 둥글게 */
-      &[data-selection-end] {
-        border-start-end-radius: var(--radius-full);
-        border-end-end-radius: var(--radius-full);
-      }
-
-      /* 시작 = 끝(단일 날짜 선택): 전체 둥글게 */
-      &[data-selection-start][data-selection-end] {
-        border-radius: var(--radius-full);
-      }
+    /* today dot: 범위 중간 셀(연한 띠)은 accent 로 가시성 확보
+     * — 시작/끝 캡 셀은 CalendarCommon 의 --fg-on-accent 유지 */
+    .react-aria-CalendarCell[data-today][data-selected]:not(
+        [data-selection-start]
+      ):not([data-selection-end])::after {
+      background: var(--accent);
     }
   }
 

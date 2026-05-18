@@ -106,15 +106,15 @@ composition은 현재 기본값만 사용. 커스텀 규칙은 `~/.claude/settin
 
 ### 자동 기록
 
-| 파일                        | 트리거                       | 스키마                                                               |
-| --------------------------- | ---------------------------- | -------------------------------------------------------------------- |
-| `stats/agents.jsonl`        | SubagentStop hook            | `{ts, agent_type, agent_id, session_id}` — 서브에이전트 종료마다 1건 |
-| `stats/agents.legacy.jsonl` | (격리 보존)                  | 구 스키마 183건 — 참고용                                             |
-| `stats/daily-log.jsonl`     | SessionStart hook (하루 1회) | `{date, sessions, turns, skills:{...}, agents:{...}}` — 누적 카운트  |
+| 파일                                               | 트리거                       | 스키마                                                                                                                                                                       |
+| -------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stats/daily-log.jsonl`                            | SessionStart hook (하루 1회) | `{date, sessions, turns, skills:{...}, agents:{...}}`. skill/agent 카운트는 현존 세션 transcript(`~/.claude/projects/`) grep 집계 — 단조 누적 아님 (transcript 정리 시 감소) |
+| `stats/archive/agents.deprecated-2026-04-30.jsonl` | (deprecated 보존)            | 구 SubagentStop hook 스키마 `{ts, agent_type, agent_id, session_id}`. SubagentStop hook 현재 미등록                                                                          |
+| `stats/archive/agents.legacy.jsonl`                | (격리 보존)                  | 더 구 스키마 183건 — 참고용                                                                                                                                                  |
 
 ### daily-log.jsonl 활용
 
-매일 최초 세션 접속 시 자동 기록되는 누적 스냅샷. 일간 활동량은 인접 2일 diff로 계산:
+매일 최초 세션 접속 시 transcript grep 으로 재집계되는 스냅샷 (단조 누적 아님). 일간 활동량은 인접 2일 diff 로 추정 — transcript 정리된 날은 diff 가 음수일 수 있음:
 
 ```bash
 # 전일 대비 diff (어제 ~ 오늘 사이 skill 활동)

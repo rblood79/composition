@@ -16,3 +16,6 @@
 {"sha":"3cdef0549e380555184988f0387603659a86ad49","date":"2026-05-15T15:22:55+09:00","promoted_adrs":["docs/adr/completed/135-page-frame-projection-interaction-boundary.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"05602ac4e1244e77b94102963d8f139e1472c839","date":"2026-05-15T18:03:41+09:00","promoted_adrs":["docs/adr/completed/137-selection-consumer-contract.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"778687c93ead2b5a4244be1d23f0e8481be1658a","date":"2026-05-17T00:57:38+09:00","promoted_adrs":["docs/adr/completed/139-component-registration-symmetry-gate.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"8834a9df809bfd748002cde9cf2f71a4cb8dbd9b","date":"2026-05-17T23:37:10+09:00","promoted_adrs":["docs/adr/completed/140-press-scale-micro-interaction.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"35349675a32a8f6fb8edaf9ad5c41fd3e6570c71","date":"2026-05-18T16:51:30+09:00","promoted_adrs":["docs/adr/138-component-palette-reusable.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"deefdd897b09f6546116f6d4bb0a65d34c3f6a49","date":"2026-05-18T20:22:28+09:00","promoted_adrs":["docs/adr/completed/141-rac-starter-spec-style-sync.md"],"readme_updated":true,"changelog_updated":true,"synced":true}

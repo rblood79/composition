@@ -147,7 +147,6 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 | **SessionStart**      | 세션 시작 시     | agent/skill 로스터 주입 + 일별 통계 + fix/revert 집계 표시(백그라운드) |
 | **UserPromptSubmit**  | 프롬프트 전송 시 | 9개 키워드 카테고리 감지 → 관련 skill/agent 힌트 주입               |
 | **Stop**              | 작업 완료 시     | `.ts/.tsx` 변경 시 `pnpm type-check` (실패 시 block) + fix/revert commit 가시화 |
-| **SubagentStop**      | 서브에이전트 종료 | `agent_type/agent_id`를 `stats/agents.jsonl` 기록 (2.1.x payload)  |
 | **PreToolUse**        | Edit/Write 전    | 보호 파일 편집 차단 (JSON permissionDecision:deny)                 |
 | **PostToolUse**       | Edit/Write 후    | Prettier 자동 포맷                                                 |
 | **PreCompact**        | 컨텍스트 압축 시 | 핵심 규칙 재주입                                                   |
@@ -156,14 +155,14 @@ composition은 3개 독립 domain으로 구성된다. 모든 코드/문서 작�
 
 | 스크립트                        | 호출 시점                 | 역할                                                          |
 | ------------------------------- | ------------------------- | ------------------------------------------------------------- |
-| `daily-stats-snapshot.sh`       | SessionStart (백그라운드) | 하루 1회 누적 스냅샷 → `stats/daily-log.jsonl`                |
+| `daily-stats-snapshot.sh`       | SessionStart (백그라운드) | 하루 1회 — 세션 transcript grep 집계 → `stats/daily-log.jsonl` 1 entry |
 | `update-index.sh`               | weekly-report.sh 종료 시  | `skills/INDEX.md` 하단 사용 빈도 블록 자동 갱신               |
 | `weekly-report.sh [days]`       | 수동 실행                 | 주간 리포트 + INDEX.md 갱신                                    |
 
 로그 파일:
-- `stats/agents.jsonl` — SubagentStop 2.1.x 스키마 (`agent_type/agent_id/session_id`)
-- `stats/agents.legacy.jsonl` — 구 스키마 183건 (참고용 보존)
-- `stats/daily-log.jsonl` — 일별 누적 (`date/sessions/turns/skills/agents`)
+- `stats/daily-log.jsonl` — 일별 1 entry (`date/sessions/turns/skills/agents`). skill/agent 집계는 현존 세션 transcript(`~/.claude/projects/`) grep 기반 — transcript 정리 시 수치 감소 가능 (단조 누적 아님)
+- `stats/archive/agents.deprecated-2026-04-30.jsonl` — 구 SubagentStop hook 기록 (2026-04-16~04-30, 보존). SubagentStop hook 은 현재 미등록 → agent 통계는 daily-log.jsonl 로 일원화
+- `stats/archive/agents.legacy.jsonl` — 더 구 스키마 (참고용 보존)
 
 ## 참조 체계
 
