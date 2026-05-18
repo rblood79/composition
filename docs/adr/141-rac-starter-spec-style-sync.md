@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-18 (Phase 3/5 완료)
+In Progress — 2026-05-18 (Phase 4/5 완료)
 
 > 진행 로그:
 >
@@ -10,6 +10,7 @@ In Progress — 2026-05-18 (Phase 3/5 완료)
 > - 2026-05-18 Phase 1 (P2) — H16 Disclosure chevron rotate 반영 (`DisclosureSpec.composition` + CSSGenerator `compositionOwnsContainerBox` 정밀화). 잔여 5항목은 per-item 조사 결과 Spec 단독 반영 불가로 재분류 (Risks R6, breakdown §4.1).
 > - 2026-05-18 Phase 2 (P6) — H5 Link underline + H7 DropZone drop-target 를 `composition.rootSelectors` 로 반영. CSSGenerator 의 broad `!spec.composition` variant 게이트 2곳을 `compositionOwnsContainerBox()` 헬퍼로 정밀화(Phase 1 의 height/padding 게이트와 통합 — 4 site 단일 predicate). 잔여 2항목(Form `[role=alert]`·ListBox selected divider)은 per-item 조사 결과 재분류 (Risks R7, breakdown §4.2).
 > - 2026-05-18 Phase 3 (P4) — per-item 조사 결과 기계적 채택 대상 0건. Dialog/Popover/Tooltip/Meter/ProgressBar/Toast 의 치수 격차는 composition 의 의도적 multi-size 스케일(audit §4 "의도적 영역")로 exclude, Modal radius/max-width(H14·H15)·DateRangePicker `[slot=end]` margin(H10)·Separator 두께는 가시 BC/런타임 검증/다른 디자인 모델로 defer. 코드 변경 0 — 조사·문서화 phase (사용자 결정, Risks R8, breakdown §4.3).
+> - 2026-05-18 Phase 4 (P5) — per-item 조사 결과 기계적 채택 대상 0건. H3·H4 ToggleButtonGroup overlap/corner-radius 는 composition 의 indicator-mode 디자인(SelectionIndicator 슬라이딩, 버튼 borderless)이 starter 의 segmented-control 과 다른 모델 → exclude. H8·H9 RangeCalendar range-band·inner-span + MED Menu grid-subgrid 는 R2(CSSGenerator emit 불가) + R5(RangeCalendar generated CSS index.css 미연결)로 defer. 코드 변경 0 — 조사·문서화 phase (Risks R9, breakdown §4.4).
 
 ## Context
 
@@ -133,6 +134,7 @@ D3 SSOT 원칙상 시각 변경은 Spec 에 반영돼야 한다(수동 CSS 직�
 | R6  | Phase 1(P2) 6항목 중 H16(chevron rotate)만 Spec 반영, 5항목(H17·H18·TabPanel·Checkbox·ToggleButtonGroup)은 per-item 조사 후 재분류 — Spec 단독 반영 불가/P3-class/기수행. 재분류분이 후속 경로 없이 표류 가능                                                   |  MED   | breakdown §4.1 에 항목별 재분류 사유·후속 경로 명시. H18→Phase 5(P3 계열), H17·TabPanel·Checkbox→별도 작업, ToggleButtonGroup→ADR-140 기수행(불요)                                                                                                           |
 | R7  | Phase 2(P6) 4항목 중 H5·H7 만 Spec 반영, 2항목(Form `[role=alert]`·ListBox selected divider)은 재분류 — composition 의도적 발산 / CSSGenerator·Skia 미대응. 재분류분 표류 가능                                                                                  |  MED   | breakdown §4.2 에 항목별 사유 명시. Form `[role=alert]`→전용 `InlineAlert` 컴포넌트가 이미 수행(반영 시 이중 스타일 충돌). ListBox selected divider→`:has()`+`::after`+adjacent sibling, Skia 대응 없음 → manual `ListBox.css`(ADR-076 §0-2 예외) 영역, 별도 |
 | R8  | Phase 3(P4) 전수 exclude/defer — 기계적 채택 0건. P4 치수 격차가 composition 의 의도적 multi-size 스케일 / 가시 BC ambiguous 로 판명. defer 항목(Modal H14·H15, DateRangePicker H10)이 후속 경로 없이 표류 가능                                                 |  MED   | breakdown §4.3 에 항목별 사유. Modal·DateRangePicker 는 Phase 5 디자인/런타임 검증 surface 에 합류. multi-size exclude 항목은 차기 starter 감사의 재플래그 방지 기준으로 §4.3 보존                                                                           |
+| R9  | Phase 4(P5) 전수 exclude/defer — 기계적 채택 0건. ToggleButtonGroup 구조는 composition indicator-mode 디자인 발산, RangeCalendar·Menu 구조는 R2(emit 불가)/R5 로 defer. defer 항목이 후속 경로 없이 표류 가능                                                   |  MED   | breakdown §4.4 에 항목별 사유. RangeCalendar range-band·Menu grid-subgrid 는 CSSGenerator 능력 확장 ADR 의 대상(별도). ToggleButtonGroup 은 디자인 발산으로 후속 불요                                                                                        |
 
 잔존 HIGH 위험 없음.
 
