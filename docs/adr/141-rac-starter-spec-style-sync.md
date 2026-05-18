@@ -2,7 +2,12 @@
 
 ## Status
 
-Proposed — 2026-05-18
+In Progress — 2026-05-18 (Phase 1/5 완료)
+
+> 진행 로그:
+>
+> - 2026-05-18 Proposed → In Progress — 구현 착수 합의.
+> - 2026-05-18 Phase 1 (P2) — H16 Disclosure chevron rotate 반영 (`DisclosureSpec.composition` + CSSGenerator `compositionOwnsContainerBox` 정밀화). 잔여 5항목은 per-item 조사 결과 Spec 단독 반영 불가로 재분류 (Risks R6, breakdown §4.1).
 
 ## Context
 
@@ -116,13 +121,14 @@ D3 SSOT 원칙상 시각 변경은 Spec 에 반영돼야 한다(수동 CSS 직�
 
 ## Risks
 
-| ID  | 위험                                                                                                                                                                                                                                                            | 심각도 | 대응                                                                                                                        |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 채택분의 Builder Skia ↔ Preview CSS 시각 대칭 깨짐                                                                                                                                                                                                              |  MED   | 패턴별 cross-check Gate (G1)                                                                                                |
-| R2  | CSSGenerator 가 일부 starter rule(RangeCalendar range-band / Menu grid-subgrid) emit 불가                                                                                                                                                                       |  MED   | 채택 전 Generator 능력 확인, 불가 시 해당 delta 보류                                                                        |
-| R3  | P1/P3 보류 항목이 디자인 결정 없이 영구 미결 표류                                                                                                                                                                                                               |  MED   | breakdown 에 디자인 결정 항목·기준 명시                                                                                     |
-| R4  | 채택분의 기존 프로젝트 시각 회귀                                                                                                                                                                                                                                |  MED   | 채택 패턴별 BC 영향 컴포넌트 수를 breakdown 에 수식화                                                                       |
-| R5  | 이중 CSS(generated+수동 공존 ~18 — Modal/Dialog/Popover `overlays.css`, Calendar, Checkbox/Radio/Switch, Link/ListBox/Tooltip/Toast 등) 수동 CSS 가 Spec 재생성분 override, 또는 `RangeCalendar` 처럼 generated 가 `index.css` 미연결 → Spec 수정이 시각 미반영 |  MED   | 컴포넌트 Phase 착수 시 generated↔수동 우선순위 + `index.css` import 배선 cross-check(G1), 미반영 시 수동 CSS 정정 또는 배선 |
+| ID  | 위험                                                                                                                                                                                                                                                            | 심각도 | 대응                                                                                                                                               |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 채택분의 Builder Skia ↔ Preview CSS 시각 대칭 깨짐                                                                                                                                                                                                              |  MED   | 패턴별 cross-check Gate (G1)                                                                                                                       |
+| R2  | CSSGenerator 가 일부 starter rule(RangeCalendar range-band / Menu grid-subgrid) emit 불가                                                                                                                                                                       |  MED   | 채택 전 Generator 능력 확인, 불가 시 해당 delta 보류                                                                                               |
+| R3  | P1/P3 보류 항목이 디자인 결정 없이 영구 미결 표류                                                                                                                                                                                                               |  MED   | breakdown 에 디자인 결정 항목·기준 명시                                                                                                            |
+| R4  | 채택분의 기존 프로젝트 시각 회귀                                                                                                                                                                                                                                |  MED   | 채택 패턴별 BC 영향 컴포넌트 수를 breakdown 에 수식화                                                                                              |
+| R5  | 이중 CSS(generated+수동 공존 ~18 — Modal/Dialog/Popover `overlays.css`, Calendar, Checkbox/Radio/Switch, Link/ListBox/Tooltip/Toast 등) 수동 CSS 가 Spec 재생성분 override, 또는 `RangeCalendar` 처럼 generated 가 `index.css` 미연결 → Spec 수정이 시각 미반영 |  MED   | 컴포넌트 Phase 착수 시 generated↔수동 우선순위 + `index.css` import 배선 cross-check(G1), 미반영 시 수동 CSS 정정 또는 배선                        |
+| R6  | Phase 1(P2) 6항목 중 H16(chevron rotate)만 Spec 반영, 5항목(H17·H18·TabPanel·Checkbox·ToggleButtonGroup)은 per-item 조사 후 재분류 — Spec 단독 반영 불가/P3-class/기수행. 재분류분이 후속 경로 없이 표류 가능                                                   |  MED   | breakdown §4.1 에 항목별 재분류 사유·후속 경로 명시. H18→Phase 5(P3 계열), H17·TabPanel·Checkbox→별도 작업, ToggleButtonGroup→ADR-140 기수행(불요) |
 
 잔존 HIGH 위험 없음.
 

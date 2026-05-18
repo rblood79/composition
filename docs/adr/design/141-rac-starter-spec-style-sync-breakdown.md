@@ -31,14 +31,14 @@
 
 ## 3. Phase 구성
 
-| Phase       | 범위                                  | 패턴  | Gate    |
-| ----------- | ------------------------------------- | ----- | ------- |
-| **Phase 0** | 감사 (완료)                           | —     | —       |
-| **Phase 1** | P2 micro-interaction 채택             | P2    | G1 + G2 |
-| **Phase 2** | P6 상태 누락 채택                     | P6    | G1 + G2 |
-| **Phase 3** | P4 치수 개별 채택 (의도 항목 제외)    | P4    | G1 + G2 |
-| **Phase 4** | P5 구조 — Generator 능력 확인 후 개별 | P5    | G1 + R2 |
-| **Phase 5** | P1/P3 — 디자인 결정 후에만 착수       | P1·P3 | G3      |
+| Phase       | 범위                                               | 패턴  | Gate    |
+| ----------- | -------------------------------------------------- | ----- | ------- |
+| **Phase 0** | 감사 (완료)                                        | —     | —       |
+| **Phase 1** | P2 — H16 chevron rotate 반영 / 5항목 재분류 (§4.1) | P2    | G1 + G2 |
+| **Phase 2** | P6 상태 누락 채택                                  | P6    | G1 + G2 |
+| **Phase 3** | P4 치수 개별 채택 (의도 항목 제외)                 | P4    | G1 + G2 |
+| **Phase 4** | P5 구조 — Generator 능력 확인 후 개별              | P5    | G1 + R2 |
+| **Phase 5** | P1/P3 — 디자인 결정 후에만 착수                    | P1·P3 | G3      |
 
 Phase 1→2→3 은 순차. Phase 4 는 R2(Generator emit 능력) 확인 결과에 종속. Phase 5 는 G3(디자인 결정) 통과 전 미착수.
 
@@ -48,17 +48,32 @@ Phase 1→2→3 은 순차. Phase 4 는 R2(Generator emit 능력) 확인 결과�
 
 HIGH 18 + MED 27 의 항목별 starter/composition `file:line` 은 감사 문서 §1·§2 에 수록. Phase 매핑:
 
-- **Phase 1 (P2)**: H16 Disclosure chevron rotate(Disclosure spec — generated CSS), H17 패널 height transition(`DisclosureContent` — skipCSSGeneration, 반영 경로 착수 시 확정), H18 ProgressBar(fill 애니메이션 일부), MED TabPanel 전환·Checkbox checkmark draw·ToggleButtonGroup pressed.
+- **Phase 1 (P2)**: H16 chevron rotate 반영 완료, 잔여 5항목 재분류 — §4.1 참조.
 - **Phase 2 (P6)**: H5 Link underline, H7 DropZone drop-target, MED Form `[role=alert]`·ListBox selected divider. (Tree selected divider 는 Tree 범위 제외로 이관.)
 - **Phase 3 (P4)**: H10 DateRangePicker `[slot=end]` margin, H12·H13 Dialog/Popover padding(의도 검토), H14·H15 Modal radius/max-width, MED track-height·Tooltip padding 등.
 - **Phase 4 (P5)**: H3·H4 ToggleButtonGroup overlap/radius, H8·H9 RangeCalendar range-band/inner-span(`RangeCalendar` 는 generated CSS 가 `index.css` 미연결 — 수동 `RangeCalendar.css` 경로, R5), MED Menu 구조.
 - **Phase 5 (P1·P3)**: H1·H2 icon-only 원형, H6 SearchField pill, H18 ProgressBar 3d / MED Switch·Slider·Meter box-shadow. (H11 Tag pill 은 TagGroup 범위 제외로 이관.)
 
+### 4.1 Phase 1 (P2) 실행 결과 (2026-05-18)
+
+per-item 조사 결과 P2 6항목 중 **H16 만 Spec 단독 반영 가능** — 나머지 5항목은 아래 사유로 재분류 (ADR 본문 R6).
+
+| 항목                                       | 결과                       | 사유 / 후속 경로                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **H16** Disclosure chevron rotate          | ✅ 반영                    | `DisclosureSpec.composition` 신설 — `staticSelectors`(`.disclosure-chevron` base svg) + `rootSelectors`(`&[data-expanded]` → `rotate:90deg`). CSSGenerator `compositionOwnsContainerBox` 정밀화 동반 — `composition` 객체 존재만으로 size emit 을 skip 하던 over-broad 조건을 layout/containerStyles/containerVariants 일 때만 skip 으로 교정. |
+| **H17** Disclosure panel height transition | 재분류 — renderer-level    | `DisclosureContent` `skipCSSGeneration:true` + CSS 파일 부재 + starter 의 `--disclosure-panel-height`(RAC JS 측정 변수) 부재. 순수 Spec 수정 불가 — RAC DisclosurePanel height interpolation 도입 또는 수동 CSS 경로 = 별도 작업.                                                                                                              |
+| **H18** ProgressBar fill 애니메이션        | 재분류 — P3 계열 (Phase 5) | starter `.fill` 의 상시 동작 shimmer(`@keyframes progress-fill`) + 3d box-shadow 는 상태 트리거 micro-interaction 이 아닌 장식. 감사도 H18 을 "P2/P3" 분류 — ADR Decision 의 P3 보류와 동일 계열, Phase 5 디자인 결정 대상.                                                                                                                    |
+| **TabPanel** entering/exiting 전환         | 재분류 — 미확인            | `&[data-entering]`/`&[data-exiting]` rootSelectors 필요. RAC `TabPanel` 의 해당 data-attr emit 여부 미확인 — RAC 소스 확인 후 Phase 4(P5 구조) 또는 별도.                                                                                                                                                                                      |
+| **Checkbox** checkmark draw                | 재분류 — 별도              | Skia 가 checkmark 를 `line` shape 2개로 렌더(SVG `<path>` 부재) → `stroke-dasharray` draw 는 Preview 전용 D3 비대칭. 수동 `Checkbox.css` 영역 + dead CSS(`stroke-dashoffset:44`, ADR-140 §5) 잔존 — composition 내부 CSS 정리와 함께 별도.                                                                                                     |
+| **ToggleButtonGroup** pressed              | 불요 (no-op)               | ADR-140 §1 — 각 ToggleButton 의 `states.pressed.scale`(C1-a)로 이미 transitive 반영. 신규 작업 없음.                                                                                                                                                                                                                                           |
+
+**H16 D3 대칭 잔존(R1)**: Skia(DisclosureHeader `icon_font`)는 transient rotate 를 렌더하지 않아 expand 시 Skia chevron 방향(`>` 고정)과 Preview(`v` 회전)가 어긋난다. ADR-140 R5(pressed Skia 비대칭 의도 수용)와 동일 계열 — Skia chevron 방향 동기화는 후속 항목.
+
 ## 5. BC 영향 수식화 (R4 대응)
 
 | Phase           | 시각 변경 컴포넌트                                    | BC 성격                                                 |
 | --------------- | ----------------------------------------------------- | ------------------------------------------------------- |
-| Phase 1 (P2)    | Disclosure·TabPanel·Checkbox·ProgressBar (~5)         | 신규 애니메이션 추가 — 정적 스냅샷 BC 없음, 동작만 추가 |
+| Phase 1 (P2)    | Disclosure (chevron rotate 1, §4.1)                   | 신규 애니메이션 추가 — 정적 스냅샷 BC 없음, 동작만 추가 |
 | Phase 2 (P6)    | Link·DropZone·Form·ListBox (~4)                       | 신규 상태 스타일 추가 — 기존 상태 무변경                |
 | Phase 3 (P4)    | Dialog·Modal·Popover·DateRangePicker 등 (~10)         | 치수 변경 — 기존 프로젝트 레이아웃 미세 이동 가능       |
 | Phase 5 (P1·P3) | SearchField·ColorSwatch·Button·Switch·Slider 등 (~11) | 형태/입체감 변경 — 전 기존 프로젝트 시각 회귀           |

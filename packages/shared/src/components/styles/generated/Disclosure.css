@@ -75,11 +75,33 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Disclosure {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-Disclosure .disclosure-chevron {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    rotate: 0deg;
+    transition: rotate 200ms;
+  }
+
+
+  .react-aria-Disclosure[data-expanded] .disclosure-chevron {
+    rotate: 90deg;
+  }
 
 
 } /* @layer components */

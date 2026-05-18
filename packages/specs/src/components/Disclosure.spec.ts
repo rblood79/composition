@@ -82,6 +82,39 @@ export const DisclosureSpec: ComponentSpec<DisclosureProps> = {
     },
   },
 
+  // ADR-141 Phase 1 (P2 / 감사 H16): chevron rotate micro-interaction.
+  //   접힘 상태 = chevron-right(`>`), 펼침 상태([data-expanded]) → 90° 회전(`v`).
+  //   `.disclosure-chevron` 은 Disclosure.tsx 가 렌더하는 trigger svg — 기존 CSS 전무.
+  //   crop: size(--icon-size 상속)·stroke 기본형 + rotate + transition 을 함께 정의.
+  //   Skia(DisclosureHeader icon_font)는 transient rotate 미지원 → CSS 전용 enhancement
+  //   (ADR-141 R1 — data-expanded chevron 방향은 Skia 후속 재분류 대상).
+  composition: {
+    staticSelectors: {
+      ".disclosure-chevron": {
+        width: "var(--icon-size)",
+        height: "var(--icon-size)",
+        "flex-shrink": "0",
+        fill: "none",
+        stroke: "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        rotate: "0deg",
+        transition: "rotate 200ms",
+      },
+    },
+    rootSelectors: {
+      "&[data-expanded]": {
+        nested: {
+          ".disclosure-chevron": {
+            rotate: "90deg",
+          },
+        },
+      },
+    },
+    delegation: [],
+  },
+
   render: {
     shapes: (props, size, state = "default") => {
       // variant 제거 (ADR-059 B2.2): default 색상 토큰 상수 사용

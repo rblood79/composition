@@ -395,13 +395,22 @@ export function generateCSS<Props>(
   }
 
   // Size 스타일
-  const isComposite = !!spec.composition;
+  // ADR-141: composition 이 컨테이너 box (layout / containerStyles / containerVariants)
+  //   를 정의할 때만 sizes 경로의 height/padding 을 skip (이중 emit 방지).
+  //   staticSelectors / rootSelectors / animations 전용 composition (예: Disclosure
+  //   chevron) 은 layout-composite 가 아니므로 sizes 기반 height/padding 을 유지한다.
+  const compositionOwnsContainerBox =
+    !!spec.composition &&
+    (!!spec.composition.layout ||
+      !!spec.composition.containerStyles ||
+      !!spec.composition.containerVariants);
   const hasContainerStylesOuter = !!spec.containerStyles;
   // progress archetype: sizes.height는 bar track 높이이며 컨테이너 height가 아님
-  const skipHeight = isComposite || spec.archetype === "progress";
+  const skipHeight =
+    compositionOwnsContainerBox || spec.archetype === "progress";
   // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
   const skipPaddingOuter =
-    isComposite ||
+    compositionOwnsContainerBox ||
     (hasContainerStylesOuter && spec.containerStyles?.padding != null);
   const skipBorderRadiusOuter =
     hasContainerStylesOuter && spec.containerStyles?.borderRadius != null;
@@ -616,12 +625,19 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
 
   // default size 속성 (있으면)
   if (defaultSize) {
-    const isComposite = !!spec.composition;
+    // ADR-141: composition 이 컨테이너 box 를 정의할 때만 skip (위 per-size 블록과
+    //   동일 기준 — staticSelectors / rootSelectors 전용 composition 은 미해당).
+    const compositionOwnsContainerBox =
+      !!spec.composition &&
+      (!!spec.composition.layout ||
+        !!spec.composition.containerStyles ||
+        !!spec.composition.containerVariants);
     const hasContainerStyles = !!spec.containerStyles;
-    const skipDefaultHeight = isComposite || spec.archetype === "progress";
+    const skipDefaultHeight =
+      compositionOwnsContainerBox || spec.archetype === "progress";
     // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
     const skipPadding =
-      isComposite ||
+      compositionOwnsContainerBox ||
       (hasContainerStyles && spec.containerStyles?.padding != null);
     const skipBorderRadius =
       hasContainerStyles && spec.containerStyles?.borderRadius != null;
