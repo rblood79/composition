@@ -6,6 +6,8 @@ Proposed — 2026-05-19 (개정 — 컴포넌트당 contract 모델에서 canoni
 
 ## Context
 
+**목표: 검증된 pencil document format 과 검증된 Adobe React Aria Components(RAC)를 Builder(Skia)에서 만나게 한다.** pencil format 은 문서/구조 layer(canonical document — frame/ref/reusable/descendants/slot)이고, RAC 는 D1(DOM/접근성/상호작용) layer 다. 둘 다 각각 검증된 자산이다. ADR-142 는 이 둘을 발명하지 않고 잇는다 — 두 자산이 만나는 지점은 canonical 문서 + `PrimitiveBinding` 이며, 그 결과를 DOM(RAC 가 실제 실행)과 Skia(RAC 의 시각을 generic 렌더러가 재현) 두 경로가 같은 모습으로 소비한다. 새 위험은 두 자산 자체가 아니라 그 둘을 잇는 seam 에 있다(R1).
+
 composition 의 컴포넌트 시스템은 builder 방식 변경, local DB 형식 변경, reusable/origin/instance/slot 모델 보정, CSS 최적화, Preview/Skia 경로 보정이 누적되면서 정본이 여러 개인 상태가 되었다. 컴포넌트 하나를 등록하려면 서로 독립된 6개 목록(Component Panel hard-coded list / Factory creator map / `rendererMap` / `getDefaultProps` map / `BASE_TAG_SPEC_MAP` / builder `TAG_SPEC_MAP`)에 각각 등록해야 한다. 이 목록들이 어긋나면서 등록 누락과 CSS/Skia drift 가 반복된다.
 
 `packages/specs/src/components/*.spec.ts` 124개는 컴포넌트당 정의 파일이다. 이 모델(`ComponentSpec.render.shapes()`)은 시각을 직접 그리는 함수 중심이라, starter 의 RAC 구조(parts/slots/render-prop state, collection children)를 표현하지 못한다. 그 결과 Builder(Skia)와 Preview(DOM)가 같은 컴포넌트를 다르게 그리는 정합 실패가 반복됐다.
