@@ -36,7 +36,7 @@
 | **Phase 0** | 감사 (완료)                                                                | —     | —       |
 | **Phase 1** | P2 — H16 chevron rotate 반영 / 5항목 재분류 (§4.1)                         | P2    | G1 + G2 |
 | **Phase 2** | P6 — H5 Link underline / H7 DropZone drop-target 반영, 2항목 재분류 (§4.2) | P6    | G1 + G2 |
-| **Phase 3** | P4 치수 개별 채택 (의도 항목 제외)                                         | P4    | G1 + G2 |
+| **Phase 3** | P4 — per-item 조사 결과 기계적 채택 0건, 전수 exclude/defer (§4.3)         | P4    | G1 + G2 |
 | **Phase 4** | P5 구조 — Generator 능력 확인 후 개별                                      | P5    | G1 + R2 |
 | **Phase 5** | P1/P3 — 디자인 결정 후에만 착수                                            | P1·P3 | G3      |
 
@@ -50,7 +50,7 @@ HIGH 18 + MED 27 의 항목별 starter/composition `file:line` 은 감사 문서
 
 - **Phase 1 (P2)**: H16 chevron rotate 반영 완료, 잔여 5항목 재분류 — §4.1 참조.
 - **Phase 2 (P6)**: H5 Link underline + H7 DropZone drop-target 반영 완료, 잔여 2항목 재분류 — §4.2 참조.
-- **Phase 3 (P4)**: H10 DateRangePicker `[slot=end]` margin, H12·H13 Dialog/Popover padding(의도 검토), H14·H15 Modal radius/max-width, MED track-height·Tooltip padding 등.
+- **Phase 3 (P4)**: per-item 조사 결과 기계적 채택 0건 — 전수 exclude/defer, §4.3 참조.
 - **Phase 4 (P5)**: H3·H4 ToggleButtonGroup overlap/radius, H8·H9 RangeCalendar range-band/inner-span(`RangeCalendar` 는 generated CSS 가 `index.css` 미연결 — 수동 `RangeCalendar.css` 경로, R5), MED Menu 구조.
 - **Phase 5 (P1·P3)**: H1·H2 icon-only 원형, H6 SearchField pill, H18 ProgressBar 3d / MED Switch·Slider·Meter box-shadow. (H11 Tag pill 은 TagGroup 범위 제외로 이관.)
 
@@ -84,13 +84,30 @@ per-item 조사 결과 P6 4항목 중 **H5·H7 만 Spec 반영 가능** — 나�
 
 **H7 base 비대칭 잔존**: generated `DropZone.css` 는 base border/background 가 부재(Skia 만 dashed border + bg 렌더). drop-target 의 border-color 변화는 base border 부재로 CSS 미반영 — H7(drop-target 상태) scope 외의 base-level 비대칭. 별도 항목.
 
+### 4.3 Phase 3 (P4) 실행 결과 (2026-05-18)
+
+per-item 조사 결과 P4 치수 항목 중 **기계적 채택 대상 0건** — 전수 exclude/defer (ADR 본문 R8, 사용자 결정 "문서화 종결 + 계속 진행").
+
+| 항목                                        | 결과                        | 사유                                                                                                                                                                                                                                                        |
+| ------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **H12** Dialog padding (8↔40)               | exclude — 의도적 multi-size | composition Dialog 는 xs~xl padding 스케일(2/4/8/12/16) 보유. starter 단일 40px ↔ composition md 8px 비교는 multi-size vs single-size — audit §4 가 "composition 이 starter 단일 size 를 확장한 의도적 영역"으로 명시. 스케일 값 재조정은 디자인 결정 영역. |
+| **H13** Popover padding (16↔8)              | exclude — 의도적 multi-size | composition Popover sm/md/lg = 12/16/20 스케일. starter 의 `[data-trigger=MenuTrigger] padding:0` 예외는 starter 의 Menu-in-Popover 아키텍처 전용 — composition 은 Menu/Select 가 독립 컴포넌트.                                                            |
+| **Tooltip** padding (6/10↔4/8)              | exclude — 의도적 multi-size | composition sm/md/lg = 4-8 / 6-10 / 8-12. sm 이 starter 값(4/8)과 일치 — composition md 는 스케일 상의 한 점.                                                                                                                                               |
+| **Meter·ProgressBar** track height (8↔10)   | exclude — 의도적 multi-size | `.track` height 가 `sizeSelectors` 로 xs~lg 차등(`var(--spacing-xs/sm/md/lg)`). composition 의 deliberate multi-size.                                                                                                                                       |
+| **Toast** width (auto↔230)                  | exclude — 의도적 발산       | composition Toast 는 content-width + `data-position` 6종 + 5-size 모델. starter 고정 230px 와 다른 디자인.                                                                                                                                                  |
+| **Separator** 두께 (1↔2)                    | exclude — 다른 디자인 모델  | composition Separator 는 variant 기반(solid/dashed/dotted/accent/neutral/surface) — starter 의 단순 `background+height:2px` 와 다른 디자인.                                                                                                                 |
+| **H14·H15** Modal radius/max-width          | defer → Phase 5             | 수동 `overlays.css`(R5 dual-CSS) 의 단일값(`radius-md`, `max-width:300px`). starter(`radius-xl`, `min(500px,90vw)`)로 변경 시 전 기존 modal 가시 BC. 의도 판별 불가 — Phase 5 디자인 결정 surface 에 합류.                                                  |
+| **H10** DateRangePicker `[slot=end]` margin | defer → Phase 5             | starter `margin-right:1.75rem` 은 starter Group 레이아웃 보정값. composition DateRangePicker 는 `--drp-btn-width` 자체 레이아웃 — `[slot=end]` 오버랩 여부는 런타임 검증 필요. Phase 5 surface 에 합류.                                                     |
+
+**핵심 발견**: P4 "치수 격차" 의 대부분은 composition 이 starter 의 단일-size 컴포넌트를 deliberate multi-size 스케일로 확장한 결과다. starter 단일값 ↔ composition md 값의 직접 비교는 성립하지 않으며, 채택은 composition 의 size 스케일 자체를 재설계하는 디자인 결정이 된다. 본 §4.3 의 exclude 기준은 차기 starter 감사가 동일 항목을 재플래그하지 않도록 보존한다.
+
 ## 5. BC 영향 수식화 (R4 대응)
 
 | Phase           | 시각 변경 컴포넌트                                    | BC 성격                                                       |
 | --------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
 | Phase 1 (P2)    | Disclosure (chevron rotate 1, §4.1)                   | 신규 애니메이션 추가 — 정적 스냅샷 BC 없음, 동작만 추가       |
 | Phase 2 (P6)    | Link·DropZone (2, §4.2)                               | 신규 상태/장식 스타일 추가 — 정적 스냅샷 BC 없음, 상태만 추가 |
-| Phase 3 (P4)    | Dialog·Modal·Popover·DateRangePicker 등 (~10)         | 치수 변경 — 기존 프로젝트 레이아웃 미세 이동 가능             |
+| Phase 3 (P4)    | 없음 (전수 exclude/defer, §4.3)                       | 코드 변경 0 — 조사·문서화 phase                               |
 | Phase 5 (P1·P3) | SearchField·ColorSwatch·Button·Switch·Slider 등 (~11) | 형태/입체감 변경 — 전 기존 프로젝트 시각 회귀                 |
 
 Phase 1·2 는 가산적(BC 낮음), Phase 3 는 레이아웃 영향, Phase 5 는 BC 최대 — 디자인 결정 + 사용자 공지 필요.
