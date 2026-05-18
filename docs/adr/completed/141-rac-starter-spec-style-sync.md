@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-18 (Phase 5/5 완료 — closure 대기)
+Implemented — 2026-05-18
 
 > 진행 로그:
 >
@@ -12,6 +12,7 @@ In Progress — 2026-05-18 (Phase 5/5 완료 — closure 대기)
 > - 2026-05-18 Phase 3 (P4) — per-item 조사 결과 기계적 채택 대상 0건. Dialog/Popover/Tooltip/Meter/ProgressBar/Toast 의 치수 격차는 composition 의 의도적 multi-size 스케일(audit §4 "의도적 영역")로 exclude, Modal radius/max-width(H14·H15)·DateRangePicker `[slot=end]` margin(H10)·Separator 두께는 가시 BC/런타임 검증/다른 디자인 모델로 defer. 코드 변경 0 — 조사·문서화 phase (사용자 결정, Risks R8, breakdown §4.3).
 > - 2026-05-18 Phase 4 (P5) — per-item 조사 결과 기계적 채택 대상 0건. H3·H4 ToggleButtonGroup overlap/corner-radius 는 composition 의 indicator-mode 디자인(SelectionIndicator 슬라이딩, 버튼 borderless)이 starter 의 segmented-control 과 다른 모델 → exclude. H8·H9 RangeCalendar range-band·inner-span + MED Menu grid-subgrid 는 R2(CSSGenerator emit 불가) + R5(RangeCalendar generated CSS index.css 미연결)로 defer. 코드 변경 0 — 조사·문서화 phase (Risks R9, breakdown §4.4).
 > - 2026-05-18 Phase 5 (P1·P3) — G3 디자인 결정 surface. 사용자 결정: P1 형태(pill/원형)·P3 입체 box-shadow 모두 기각 — composition 의 사각 계열·flat 이 의도적 디자인 언어로 확정. Modal radius/max-width(H14·H15, Phase 3 defer 분)는 채택 — `ModalSpec.sizes.md.borderRadius` lg→xl + 수동 `overlays.css` radius `radius-xl`·max-width `min(500px,90vw)` starter 정합 (Risks R10, breakdown §4.5).
+> - 2026-05-18 Implemented 승격 — Phase 1~5 전수 완결. 반영분: H16 Disclosure chevron rotate / H5 Link underline / H7 DropZone drop-target / H14·H15 Modal radius·max-width. P1·P3 는 G3 디자인 결정으로 기각, P4·P5 구조분은 composition 의도적 발산 / R2·R5 로 exclude·defer. defer 잔여: DateRangePicker H10(런타임 검증) / RangeCalendar·Menu 구조(CSSGenerator 능력 확장 별도 ADR). 본문 `completed/` 이관.
 
 ## Context
 
@@ -30,7 +31,7 @@ composition 은 `react-aria-starter/src` 를 React Aria Components 의 스타일
 - CSSGenerator 의 emit 능력 — 일부 starter rule(RangeCalendar range-band 띠, Menu grid-subgrid, `::after` overlay)은 현재 Generator 가 emit 하지 못한다.
 - starter 의 일부 스타일은 composition 이 의도적으로 발산한 디자인 결정일 수 있어, 채택 여부는 제품 판단을 요한다.
 
-**Phase 0 감사**: `react-aria-starter/src` ↔ composition Spec 의 시각 delta 를 registered 컴포넌트 ~45 개에 대해 실측했다. HIGH 18 + MED 27 + LOW ~20, 6 패턴(P1 형태 / P2 micro-interaction / P3 입체 box-shadow / P4 치수 / P5 구조 / P6 상태 누락)으로 수렴. 상세: [2026-05-18-rac-starter-spec-style-diff.md](../reference/audits/2026-05-18-rac-starter-spec-style-diff.md).
+**Phase 0 감사**: `react-aria-starter/src` ↔ composition Spec 의 시각 delta 를 registered 컴포넌트 ~45 개에 대해 실측했다. HIGH 18 + MED 27 + LOW ~20, 6 패턴(P1 형태 / P2 micro-interaction / P3 입체 box-shadow / P4 치수 / P5 구조 / P6 상태 누락)으로 수렴. 상세: [2026-05-18-rac-starter-spec-style-diff.md](../../reference/audits/2026-05-18-rac-starter-spec-style-diff.md).
 
 **범위 제외**: Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider 는 본 ADR 범위 외다. 이들 skipCSSGeneration 컨테이너는 ADR-059(skipCSSGeneration 해체, Implemented 2026-04-15)·ADR-106(skipCSSGeneration 감사 — charter + 후속 a/b/d, 2026-04-21)가 이미 다뤘다 — CSSGenerator 가 RAC 내부 selector·`::after`·orientation 분기를 emit 못 해 **해체 불가가 확정된 G2 정당 Tier 3 예외**다(`해체 대기 debt` 아님). 이들로의 starter 동기화는 CSSGenerator 능력 확장 또는 수동 CSS 경로를 요하는 별도 작업이다. 본 ADR 타겟은 제외 후 대다수가 generated CSS 보유 컴포넌트이며, 잔존 skipCSSGeneration sub-component 예외는 Decision §Spec 반영 경로 참조.
 
@@ -121,7 +122,7 @@ D3 SSOT 원칙상 시각 변경은 Spec 에 반영돼야 한다(수동 CSS 직�
 
 **제외 원칙**: generated CSS 가 없는 skipCSSGeneration 컨테이너(Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider + Table)는 본 ADR 범위 외. ADR-059·ADR-106(charter + 후속 a/b/d)가 CSSGenerator 구조적 미지원(RAC 내부 selector·`::after`·orientation)으로 인한 **G2 정당 Tier 3 예외**로 이미 분류했다 — Color family 4건은 106-a, TagGroup 은 106-b, Tag/SearchField/Field 는 106-d, Table/Tree/GridList/ColorArea 는 106 charter 소관 — `해체 후속` 대상이 아니라 CSSGenerator 능력 확장을 요하는 별도 작업이다. 실측 근거: 커밋 `49989e7f6` 시점 `packages/shared/src/components/styles/generated/` grep.
 
-> 구현 상세: [141-rac-starter-spec-style-sync-breakdown.md](design/141-rac-starter-spec-style-sync-breakdown.md)
+> 구현 상세: [141-rac-starter-spec-style-sync-breakdown.md](../design/141-rac-starter-spec-style-sync-breakdown.md)
 
 ## Risks
 

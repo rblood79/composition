@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [react-aria-starter 참조 스타일 D3 반영 — ADR-141 Phase 1~5] - 2026-05-18
+
+### Bug Fixes
+
+- **Link underline Preview 누락 정정** (ADR-141 Phase 2 / 감사 H5):
+  - Preview 의 Link 컴포넌트에 underline 이 표시되지 않았다. Skia `render.shapes` 는 `textDecoration:"underline"` 으로 underline 을 렌더하고 있어 Builder ↔ Preview 시각 비대칭.
+  - **Why**: generated `Link.css` 에 underline rule 자체가 부재.
+  - 수정: `LinkSpec.composition.rootSelectors` 신설 — base `text-decoration:underline` + hover `text-decoration-thickness:1.5px`.
+  - 위치: `packages/specs/src/components/Link.spec.ts`
+
+### Features
+
+- **Disclosure chevron rotate 애니메이션** (ADR-141 Phase 1 / 감사 H16):
+  - Disclosure 펼침 시 chevron 이 200ms 에 걸쳐 90° 회전. `DisclosureSpec.composition` (staticSelectors `.disclosure-chevron` + rootSelectors `&[data-expanded]`).
+  - 위치: `packages/specs/src/components/Disclosure.spec.ts`
+- **DropZone drop-target 상태 시각** (ADR-141 Phase 2 / 감사 H7):
+  - 파일 드래그 오버 시 DropZone 배경이 `--bg-inset`, 텍스트가 `--accent` 로 강조 — Skia 의 `isDropTarget` 활성 시각과 대칭.
+  - 위치: `packages/specs/src/components/DropZone.spec.ts`
+- **Modal 치수 starter 정합** (ADR-141 Phase 5 / 감사 H14·H15):
+  - Modal 모서리 반경 `radius-md → radius-xl`, 최대 너비 `300px → min(500px, 90vw)`.
+  - 위치: `packages/specs/src/components/Modal.spec.ts`, `packages/shared/src/components/styles/overlays.css`
+
+### Architecture
+
+- **ADR-141 Implemented — react-aria-starter 참조 스타일의 Spec D3 반영**:
+  - Phase 0 감사(HIGH 18 + MED 27, 6 패턴) → 대안 B(패턴 선별 채택). Phase 1~5 전수 완결.
+  - P1 형태(pill/원형)·P3 입체 box-shadow 는 G3 디자인 결정으로 기각 — composition 의 사각 계열·flat 이 의도적 디자인 언어로 확정.
+  - P4 치수·P5 구조의 대부분은 composition 의 의도적 multi-size 스케일·다른 디자인 모델(ToggleButtonGroup indicator-mode 등) 또는 CSSGenerator emit 불가(R2)·dual-CSS(R5)로 exclude·defer.
+- **CSSGenerator `compositionOwnsContainerBox` 헬퍼 정밀화** (ADR-141 Phase 2):
+  - `composition` 객체 존재만으로 variant CSS / sizes height·padding emit 을 skip 하던 broad 조건을, `layout`/`containerStyles`/`containerVariants` 소유 시에만 skip 하도록 4 site 단일 predicate 로 통합 교정.
+  - **Why**: rootSelectors/staticSelectors 전용 `composition`(Disclosure/Link/DropZone) 추가 시 variant·height·padding CSS 가 누락되는 회귀 차단.
+  - 위치: `packages/specs/src/renderers/CSSGenerator.ts`
+
 ## [컴포넌트 패널 복합 컴포넌트 reusable 검증 — ADR-138 Tabs/Card origin-instance] - 2026-05-18
 
 ### Features

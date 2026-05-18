@@ -1,6 +1,6 @@
 # ADR-141 구현 상세 — react-aria-starter 참조 스타일의 Spec D3 반영
 
-> 본 문서는 [ADR-141](../141-rac-starter-spec-style-sync.md) 의 구현 상세. 결정 근거·대안·위험은 ADR 본문 참조.
+> 본 문서는 [ADR-141](../completed/141-rac-starter-spec-style-sync.md) 의 구현 상세. 결정 근거·대안·위험은 ADR 본문 참조.
 
 ## 1. 작성 맥락 (fork 아님 확인)
 
