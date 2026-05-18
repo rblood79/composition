@@ -37,11 +37,11 @@ Implemented — 2026-05-18
 
 #### F1. reusable 인프라가 95% land 되었으나 Frame 외 검증이 비어 있다
 
-ADR-111/112 (Pencil 모델 도입) + ADR-116~130 (canonical SSOT 전환) 으로 `reusable origin-instance + slot` schema·시각 마커·단축키·Properties 패널이 land 됐다. 그러나 end-to-end 검증된 범위는 사실상 `type: "frame"` 위주이며, **복합 컴포넌트 (Tabs / Select / Card / ComboBox 등 RAC composition) 가 origin 으로 등록될 때 `slot` override + `descendants[path]` 가 어떻게 작동하는지 검증/문서가 비어 있다.**
+ADR-111/112 (Pencil 모델 도입) + ADR-116~130 (canonical SSOT 전환) 으로 `reusable origin-instance + slot` schema·시각 마커·단축키·Properties 패널이 land 됐다. 그러나 end-to-end 검증된 범위는 사실상 `type: "frame"` 위주이며, **복합 컴포넌트 (Tabs / Select / Card / ComboBox 등 RAC composition) 가 origin 으로 등록될 때 `descendants[path]` 자식 영역 override 가 어떻게 작동하는지 검증/문서가 비어 있다.**
 
 #### F2. Tabs items 같은 직렬화 배열은 Pencil schema 의 회색지대
 
-- Pencil 모델의 `descendants[slotPath]` 는 child element 단위 patch (DOM 자식).
+- Pencil 모델의 `descendants[path]` 는 child element 단위 patch (DOM 자식).
 - 그러나 ADR-066 으로 composition 의 Tabs items 는 **`props.items` 안 직렬화 배열** (Tab element 소멸).
 - "items 배열의 한 항목" 은 child element 도 prop 도 아닌 중간 entity — `descendants` 가 직접 다루지 않는다.
 
@@ -59,7 +59,7 @@ instance 가 items 를 override 하면 origin 과 분리(fork)되지만, 사용�
 
 ### 대안 A: Pencil 모델 완성 — 검증 + 진입점/fork UX
 
-- 설명: 이미 95% land 된 reusable 인프라의 잔여 5% 를 완성. Tabs (primary, dynamic items) + Card (baseline, slot) pilot 으로 base schema 를 end-to-end 검증하고, 진입점 context menu + fork badge UX 를 보강. schema 변경 0.
+- 설명: 이미 95% land 된 reusable 인프라의 잔여 5% 를 완성. Tabs (primary, dynamic items) + Card (baseline, region/descendants) pilot 으로 base schema 를 end-to-end 검증하고, 진입점 context menu + fork badge UX 를 보강. schema 변경 0.
 - 위험: 기술(LOW — 신규 schema 없음, test + helper + UX layer) / 성능(LOW — resolver per-render merge 그대로) / 유지보수(LOW — 기존 모듈 함수 호출, 결합도 증가 미미) / 마이그레이션(LOW — BC 영향 0)
 
 ### 대안 B: Google Stitch 편입 — AI 화면 생성 + 테마 통합
@@ -89,7 +89,7 @@ instance 가 items 를 override 하면 origin 과 분리(fork)되지만, 사용�
 
 세부 결정:
 
-- **pilot**: Tabs (primary — dynamic items 검증) + Card (baseline — slot 검증). 단순/복잡 비교로 schema gap vs 컴포넌트 특유 edge case 를 구분.
+- **pilot**: Tabs (primary — dynamic items 검증) + Card (baseline — region/descendants 검증). 단순/복잡 비교로 schema gap vs 컴포넌트 특유 edge case 를 구분. (`slot` 필드는 `false | string[]` — 슬롯 추천 component ID 배열로, Tabs/Card factory 가 설정하지 않으며 본 ADR 범위 외. Card 영역 override 는 `descendants[<자식 stable id>]` 로 작동 — breakdown §4 참조.)
 - **시나리오 3 처리**: items 는 **shallow override (fork)** — instance 가 `props.items` 를 건드리면 origin 과 완전 분리. Pencil 패턴 그대로. 분리 사실을 명시 UX(`InstanceForkBadge`)로 사용자에게 전달.
 - **scope**: A-1 검증 + A-2 진입점 UX + A-3 fork UX 를 단일 ADR 로 통합 land. A-4 (잔여 ComponentTag 전수 sweep) 는 pilot 통과 후 별도 발의.
 
@@ -108,7 +108,7 @@ Decision 이행 중 관리할 잔존 운영 위험. 잔존 HIGH 위험 없음 �
 | --- | ------------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------- |
 | R1  | items shallow override fork 후 사용자가 fork 사실을 인지 못 하면 origin 변경 미반영을 버그로 오인 |  MED   | A-3 `InstanceForkBadge` 가 fork 상태 + [Reset to origin] 명시. 시나리오 3 진입 시 confirm dialog                      |
 | R2  | A-4 잔여 ComponentTag sweep 이 후속 ADR 로 분리 → 검증 범위가 Tabs/Card 한정인 채로 방치될 debt   |  MED   | Decision 에 A-4 별도 발의 명시. pilot 통과 직후 sweep ADR 발의를 후속 작업으로 lock-in                                |
-| R3  | `descendants[slotPath].patch` orphan (origin child 삭제 후 instance patch 잔존) 자동 정리 미정    |  LOW   | resolver 가 dangling 무시 (사용자 가시 영향 없음). export/serialize 단 정리는 후속 ADR — breakdown §2 Phase 4 외 영역 |
+| R3  | `descendants[path].patch` orphan (origin child 삭제 후 instance patch 잔존) 자동 정리 미정        |  LOW   | resolver 가 dangling 무시 (사용자 가시 영향 없음). export/serialize 단 정리는 후속 ADR — breakdown §2 Phase 4 외 영역 |
 | R4  | Chrome MCP runtime 검증이 환경 의존 (브라우저 세션)                                               |  LOW   | vitest 8+3 시나리오가 1차 gate. Chrome MCP 는 보조 runtime 확인                                                       |
 
 ## Gates
