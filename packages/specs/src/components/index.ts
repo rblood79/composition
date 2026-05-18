@@ -216,6 +216,14 @@ export type { TimeFieldProps } from "./TimeField.spec";
 export { CalendarSpec } from "./Calendar.spec";
 export type { CalendarProps } from "./Calendar.spec";
 
+// CalendarHeader (Calendar 슬롯 — index.ts barrel 과 정합)
+export { CalendarHeaderSpec } from "./CalendarHeader.spec";
+export type { CalendarHeaderProps } from "./CalendarHeader.spec";
+
+// CalendarGrid (Calendar 슬롯 — index.ts barrel 과 정합)
+export { CalendarGridSpec } from "./CalendarGrid.spec";
+export type { CalendarGridProps } from "./CalendarGrid.spec";
+
 // RangeCalendar
 export { RangeCalendarSpec } from "./RangeCalendar.spec";
 export type { RangeCalendarProps } from "./RangeCalendar.spec";
