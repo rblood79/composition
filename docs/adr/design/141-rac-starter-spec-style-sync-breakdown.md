@@ -7,7 +7,7 @@
 본 ADR 은 base/응용 fork 가 아니라 **신규 initiative ADR** 이다. ADR-063(SSOT charter)·ADR-140(press-scale)을 prerequisite 로 참조하되 어느 ADR 도 재오픈하지 않는다. ADR-140 은 P2 패턴의 부분 선례(press-scale 단일 축)이고, ADR-141 은 6 패턴 전체를 다룬다.
 
 - Phase 0 인벤토리: [2026-05-18-rac-starter-spec-style-diff.md](../../reference/audits/2026-05-18-rac-starter-spec-style-diff.md) (HIGH 18 + MED 27 + LOW ~20, 6 패턴).
-- 부수 참고: [2026-05-18-spec-ssot-inventory.md](../../reference/audits/2026-05-18-spec-ssot-inventory.md) (skipCSSGeneration 33 분류 — 본 ADR 직접 대상 아님).
+- skipCSSGeneration 분류: [2026-05-18-spec-ssot-inventory.md](../../reference/audits/2026-05-18-spec-ssot-inventory.md) (33 분류). 본 ADR 은 generated CSS 미보유 컴포넌트(Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider + Table)를 범위에서 제외 → 타겟 전원 generated CSS 보유, skipCSSGeneration 해체 의존 0.
 
 ## 2. 패턴별 채택 판정 상세
 
@@ -24,7 +24,7 @@
 
 채택 전 explicit confirm 필요:
 
-- P1: SearchField·Tag·ColorSwatch·ColorSwatchPicker·icon-only Button/ToggleButton 을 starter pill(`9999px`) 로 통일할 것인가, composition `radius-md/lg` 유지할 것인가.
+- P1: SearchField·ColorSwatch·ColorSwatchPicker·icon-only Button/ToggleButton 을 starter pill(`9999px`) 로 통일할 것인가, composition `radius-md/lg` 유지할 것인가. (Tag pill 은 TagGroup 범위 제외로 ADR-059 후속 이관.)
 - P3: Switch thumb·Slider/ProgressBar/Meter fill 에 입체 box-shadow 를 도입할 것인가.
 
 결정 기준: composition 디자인 시스템 오너의 의도 확인. 미결 시 본 ADR 의 P1/P3 Phase 는 착수하지 않는다 (R3 대응).
@@ -42,24 +42,26 @@
 
 Phase 1→2→3 은 순차. Phase 4 는 R2(Generator emit 능력) 확인 결과에 종속. Phase 5 는 G3(디자인 결정) 통과 전 미착수.
 
+**해체 의존 0**: 범위 제외(Table + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider) 후 본 ADR 타겟은 전원 generated CSS 보유 → skipCSSGeneration 해체 선행이 불필요하다. 전 Phase 의 delta 는 Spec 수정 → `pnpm build:specs` 재생성으로 반영된다.
+
 ## 4. 컴포넌트별 delta 매핑
 
 HIGH 18 + MED 27 의 항목별 starter/composition `file:line` 은 감사 문서 §1·§2 에 수록. Phase 매핑:
 
 - **Phase 1 (P2)**: H16·H17 Disclosure(chevron rotate / panel height), H18 ProgressBar(fill 애니메이션 일부), MED TabPanel 전환·Checkbox checkmark draw·ToggleButtonGroup pressed.
-- **Phase 2 (P6)**: H5 Link underline, H7 DropZone drop-target, MED Form `[role=alert]`·ListBox/Tree selected divider.
+- **Phase 2 (P6)**: H5 Link underline, H7 DropZone drop-target, MED Form `[role=alert]`·ListBox selected divider. (Tree selected divider 는 Tree 범위 제외로 이관.)
 - **Phase 3 (P4)**: H10 DateRangePicker `[slot=end]` margin, H12·H13 Dialog/Popover padding(의도 검토), H14·H15 Modal radius/max-width, MED track-height·Tooltip padding 등.
 - **Phase 4 (P5)**: H3·H4 ToggleButtonGroup overlap/radius, H8·H9 RangeCalendar range-band/inner-span, MED Menu 구조.
-- **Phase 5 (P1·P3)**: H1·H2 icon-only 원형, H6 SearchField pill, H11 Tag pill + H18 ProgressBar 3d / MED Switch·Slider·Meter box-shadow.
+- **Phase 5 (P1·P3)**: H1·H2 icon-only 원형, H6 SearchField pill, H18 ProgressBar 3d / MED Switch·Slider·Meter box-shadow. (H11 Tag pill 은 TagGroup 범위 제외로 이관.)
 
 ## 5. BC 영향 수식화 (R4 대응)
 
-| Phase           | 시각 변경 컴포넌트                                        | BC 성격                                                 |
-| --------------- | --------------------------------------------------------- | ------------------------------------------------------- |
-| Phase 1 (P2)    | Disclosure·TabPanel·Checkbox·ProgressBar (~5)             | 신규 애니메이션 추가 — 정적 스냅샷 BC 없음, 동작만 추가 |
-| Phase 2 (P6)    | Link·DropZone·Form·ListBox·Tree (~5)                      | 신규 상태 스타일 추가 — 기존 상태 무변경                |
-| Phase 3 (P4)    | Dialog·Modal·Popover·DateRangePicker 등 (~10)             | 치수 변경 — 기존 프로젝트 레이아웃 미세 이동 가능       |
-| Phase 5 (P1·P3) | SearchField·Tag·ColorSwatch·Button·Switch·Slider 등 (~12) | 형태/입체감 변경 — 전 기존 프로젝트 시각 회귀           |
+| Phase           | 시각 변경 컴포넌트                                    | BC 성격                                                 |
+| --------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| Phase 1 (P2)    | Disclosure·TabPanel·Checkbox·ProgressBar (~5)         | 신규 애니메이션 추가 — 정적 스냅샷 BC 없음, 동작만 추가 |
+| Phase 2 (P6)    | Link·DropZone·Form·ListBox (~4)                       | 신규 상태 스타일 추가 — 기존 상태 무변경                |
+| Phase 3 (P4)    | Dialog·Modal·Popover·DateRangePicker 등 (~10)         | 치수 변경 — 기존 프로젝트 레이아웃 미세 이동 가능       |
+| Phase 5 (P1·P3) | SearchField·ColorSwatch·Button·Switch·Slider 등 (~11) | 형태/입체감 변경 — 전 기존 프로젝트 시각 회귀           |
 
 Phase 1·2 는 가산적(BC 낮음), Phase 3 는 레이아웃 영향, Phase 5 는 BC 최대 — 디자인 결정 + 사용자 공지 필요.
 
@@ -77,6 +79,6 @@ Phase 1·2 는 가산적(BC 낮음), Phase 3 는 레이아웃 영향, Phase 5 �
 
 ## 7. 미해결 / 후속
 
-- Table 패밀리 — 본 ADR 범위 외 (별도 아키텍처 검토).
+- Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider — 본 ADR 범위 외. generated CSS 미보유 skipCSSGeneration 컨테이너로 starter 동기화에 해체 선행 필요 → ADR-059(skipCSSGeneration 해체) 후속. 이관 감사 항목: H11(Tag pill), MED 의 Tree selected divider·GridListItem 카드 shadow·ColorArea aspect-ratio·ColorSlider track height.
 - CSSGenerator 형제 selector emit 능력 — Phase 4 착수 전 확인. 미지원 시 해당 P5 delta 는 수동 CSS 경로 또는 보류.
 - P1/P3 디자인 결정 — 본 ADR 외부 (디자인 시스템 오너 confirm).

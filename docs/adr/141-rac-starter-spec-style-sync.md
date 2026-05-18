@@ -23,6 +23,8 @@ composition 은 `react-aria-starter/src` 를 React Aria Components 의 스타일
 
 **Phase 0 감사**: `react-aria-starter/src` ↔ composition Spec 의 시각 delta 를 registered 컴포넌트 ~45 개에 대해 실측했다. HIGH 18 + MED 27 + LOW ~20, 6 패턴(P1 형태 / P2 micro-interaction / P3 입체 box-shadow / P4 치수 / P5 구조 / P6 상태 누락)으로 수렴. 상세: [2026-05-18-rac-starter-spec-style-diff.md](../reference/audits/2026-05-18-rac-starter-spec-style-diff.md).
 
+**범위 제외**: Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider 6 컴포넌트는 본 ADR 범위 외다. 후자 6 개는 generated CSS 가 없는 skipCSSGeneration 컨테이너로, 시각 정의가 수동 CSS 에 있어 starter 동기화에 해체가 선행돼야 한다 → ADR-059(skipCSSGeneration 해체) 후속으로 분리. 본 ADR 타겟은 제외 후 전원 generated CSS 보유 컴포넌트이며, 모든 변경이 순수 Spec 수정이다(Decision §Spec 반영 경로).
+
 ## Alternatives Considered
 
 ### 대안 A: 전량 채택 (wholesale sync)
@@ -99,6 +101,15 @@ composition 은 `react-aria-starter/src` 를 React Aria Components 의 스타일
 - **P1 형태(pill/원형) → 보류, 디자인 결정 필요** (composition `radius-md` 가 의도면 기각)
 - **P3 입체 box-shadow → 보류, 디자인 결정 필요** (composition flat 이 의도면 기각)
 - **P5 구조 → 개별** (RangeCalendar range-band 등 cross-check 후 판정)
+
+### Spec 반영 경로 — D3 SSOT 정합
+
+본 ADR 타겟은 범위 제외 후 **전원 generated CSS 보유 컴포넌트**다 (Button·Dialog·Modal·Popover·Disclosure·ProgressBar·Meter·Switch·Slider·Form·NumberField·Checkbox·Radio·RangeCalendar·Calendar·DropZone·Link·Tooltip·Toast·Separator 등). 따라서 채택 delta 의 반영 경로는 단일하다:
+
+- **Spec 수정 → `pnpm build:specs` → generated CSS 재생성**. Spec 이 D3 시각 SSOT 이고 그 수정이 곧 SSOT 수정이다. 수동 CSS 직접 편집(consumer 수정) 0건.
+- **이중 CSS override (Modal/Dialog/Popover `overlays.css` 등)** — generated + 수동 공존. Spec 재생성분이 `@layer components` specificity 로 가려지지 않는지 Phase 별 cross-check(G1)로 확인.
+
+skipCSSGeneration 컨테이너(Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider + Table)는 시각 정의가 수동 CSS 에 있어 Spec 수정만으로 반영되지 않는다 → 본 ADR 범위에서 제외하고 ADR-059(skipCSSGeneration 해체) 후속으로 분리한다. 이로써 본 ADR 은 skipCSSGeneration 해체 의존이 0 이며 모든 변경이 순수 Spec 수정이다. 실측 근거: 커밋 `49989e7f6` 시점 `packages/shared/src/components/styles/generated/` grep — 제외 컴포넌트는 generated CSS 부재, 잔여 타겟은 전원 보유.
 
 > 구현 상세: [141-rac-starter-spec-style-sync-breakdown.md](design/141-rac-starter-spec-style-sync-breakdown.md)
 

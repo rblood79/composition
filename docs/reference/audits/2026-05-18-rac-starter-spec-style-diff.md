@@ -4,7 +4,7 @@
 **목적:** `react-aria-starter/src`(RAC 스타일 참조 원본) 업데이트분을 composition Spec(D3 SSOT)에 반영하기 위한 Phase 0 실측.
 **방법:** registered 컴포넌트 ↔ `react-aria-starter/src` 스타일을 5 패밀리 병렬 감사. 각 delta 는 starter/composition 양쪽 `file:line` + 값 인용.
 **방법론 (CRITICAL):** composition 은 자체 토큰 체계(`--accent`/`--text-*`/`--bg-*`)를 쓴다. **토큰 이름 차이는 diff 아님.** 치수값·신규 rule·구조·상태 동작 차이만 delta 로 집계 (ADR-140 의 "composition 토큰 체계로 내재화" 원칙).
-**범위:** Table 패밀리 제외 (별도 아키텍처 검토). ProgressCircle 등 starter CSS 미존재 컴포넌트 제외.
+**범위:** Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider 제외 — generated CSS 미보유 skipCSSGeneration 컨테이너로 ADR-059(skipCSSGeneration 해체) 후속 이관. ProgressCircle 등 starter CSS 미존재 컴포넌트 제외. 제외 컴포넌트 관련 감사 항목(H11 Tag pill, §2 MED 의 Tree selected divider·GridListItem 카드 shadow·ColorArea aspect-ratio·ColorSlider track height)은 ADR-141 범위 외.
 **한계:** 병렬 agent 감사 결과 — HIGH 항목은 채택 시점에 per-item 재확인 필요.
 
 ---
