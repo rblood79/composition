@@ -129,6 +129,27 @@ const DEFAULT_BASE_STYLES = [
   `    font-family: var(--font-sans);`,
 ];
 
+/**
+ * ADR-141: composition 이 컨테이너 box (layout / composition.containerStyles /
+ * containerVariants) 를 소유하는 "layout-composite" spec 인지 판정.
+ *
+ * true → variant CSS 블록 / sizes 의 height·padding emit 을 skip (자식 또는
+ * containerVariants 가 색상·치수 관리).
+ * false → staticSelectors / rootSelectors / animations 전용 composition
+ * (예: Disclosure chevron, Link underline, DropZone drop-target) — layout-composite
+ * 가 아니므로 variant 블록과 sizes height/padding 을 정상 emit.
+ */
+function compositionOwnsContainerBox<Props>(
+  spec: ComponentSpec<Props>,
+): boolean {
+  return (
+    !!spec.composition &&
+    (!!spec.composition.layout ||
+      !!spec.composition.containerStyles ||
+      !!spec.composition.containerVariants)
+  );
+}
+
 // ─── Main Generator ─────────────────────────────────────────────────────────
 
 /**
@@ -177,7 +198,7 @@ export function generateCSS<Props>(
   lines.push("");
 
   // Variant 스타일 — 다음 경우 skip:
-  // - Composite 컨테이너 (자식이 색상 관리)
+  // - Composite 컨테이너 — composition 이 layout/containerStyles/containerVariants 소유 (자식이 색상 관리)
   // - containerStyles 에 color 필드(background/text/border) 선언 (ADR-071 Menu 패턴 — 단일 variant 색상 SSOT)
   // - variants 없는 Spec (ADR-062 Field 계열)
   // - skipVariantCss:true (escape hatch, 현재 사용처 0)
@@ -190,7 +211,7 @@ export function generateCSS<Props>(
     spec.containerStyles?.border
   );
   if (
-    !spec.composition &&
+    !compositionOwnsContainerBox(spec) &&
     !containerHasColors &&
     spec.variants != null &&
     !spec.skipVariantCss
@@ -395,22 +416,14 @@ export function generateCSS<Props>(
   }
 
   // Size 스타일
-  // ADR-141: composition 이 컨테이너 box (layout / containerStyles / containerVariants)
-  //   를 정의할 때만 sizes 경로의 height/padding 을 skip (이중 emit 방지).
-  //   staticSelectors / rootSelectors / animations 전용 composition (예: Disclosure
-  //   chevron) 은 layout-composite 가 아니므로 sizes 기반 height/padding 을 유지한다.
-  const compositionOwnsContainerBox =
-    !!spec.composition &&
-    (!!spec.composition.layout ||
-      !!spec.composition.containerStyles ||
-      !!spec.composition.containerVariants);
+  // ADR-141: composition 이 컨테이너 box 를 소유할 때만 sizes 경로 height/padding skip.
+  const ownsContainerBox = compositionOwnsContainerBox(spec);
   const hasContainerStylesOuter = !!spec.containerStyles;
   // progress archetype: sizes.height는 bar track 높이이며 컨테이너 height가 아님
-  const skipHeight =
-    compositionOwnsContainerBox || spec.archetype === "progress";
+  const skipHeight = ownsContainerBox || spec.archetype === "progress";
   // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
   const skipPaddingOuter =
-    compositionOwnsContainerBox ||
+    ownsContainerBox ||
     (hasContainerStylesOuter && spec.containerStyles?.padding != null);
   const skipBorderRadiusOuter =
     hasContainerStylesOuter && spec.containerStyles?.borderRadius != null;
@@ -590,7 +603,11 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     lines.push("  /* Container styles (ADR-071 + ADR-083 Phase 1) */");
     lines.push(...emitContainerStyles(spec.containerStyles));
   }
-  if (!baseContainerHasColors && defaultVariant && !spec.composition) {
+  if (
+    !baseContainerHasColors &&
+    defaultVariant &&
+    !compositionOwnsContainerBox(spec)
+  ) {
     // default variant 색상 — Composite 컨테이너는 자식이 관리하므로 skip
     const mode = spec.cssEmitMode ?? "direct";
     // ADR-908 Phase 4-a: defaultVariant alias 도 fill token seam 경유
@@ -625,19 +642,13 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
 
   // default size 속성 (있으면)
   if (defaultSize) {
-    // ADR-141: composition 이 컨테이너 box 를 정의할 때만 skip (위 per-size 블록과
-    //   동일 기준 — staticSelectors / rootSelectors 전용 composition 은 미해당).
-    const compositionOwnsContainerBox =
-      !!spec.composition &&
-      (!!spec.composition.layout ||
-        !!spec.composition.containerStyles ||
-        !!spec.composition.containerVariants);
+    // ADR-141: composition 이 컨테이너 box 를 소유할 때만 skip (위 per-size 블록과 동일 기준).
+    const ownsContainerBox = compositionOwnsContainerBox(spec);
     const hasContainerStyles = !!spec.containerStyles;
-    const skipDefaultHeight =
-      compositionOwnsContainerBox || spec.archetype === "progress";
+    const skipDefaultHeight = ownsContainerBox || spec.archetype === "progress";
     // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
     const skipPadding =
-      compositionOwnsContainerBox ||
+      ownsContainerBox ||
       (hasContainerStyles && spec.containerStyles?.padding != null);
     const skipBorderRadius =
       hasContainerStyles && spec.containerStyles?.borderRadius != null;

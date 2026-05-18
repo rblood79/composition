@@ -84,6 +84,22 @@ export const DropZoneSpec: ComponentSpec<DropZoneProps> = {
     },
   },
 
+  // ADR-141 Phase 2 (P6 / 감사 H7): drop-target 상태 시각 — Skia render.shapes 의
+  //   isDropTarget 활성 시각(background→layer-2, text→accent)과 대칭.
+  //   starter 의 outline 은 Skia 대응 없어 제외, border-color 는 generated CSS 에
+  //   base border 부재로 미반영 (base 비대칭, H7 scope 외).
+  composition: {
+    rootSelectors: {
+      "&[data-drop-target]": {
+        styles: {
+          background: "var(--bg-inset)",
+          color: "var(--accent)",
+        },
+      },
+    },
+    delegation: [],
+  },
+
   render: {
     shapes: (props, size, state = "default") => {
       // B2.1: variant 제거 — default 시각 토큰 상수화

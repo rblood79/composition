@@ -258,6 +258,25 @@ export const LinkSpec: ComponentSpec<LinkProps> = {
     },
   },
 
+  // ADR-141 Phase 2 (P6 / 감사 H5): Link underline.
+  //   base `&` — Skia render.shapes 의 textDecoration:"underline" 과 대칭
+  //     (generated CSS 에 underline rule 부재 정정). containerStyles 는 고정 스키마
+  //     (ContainerStylesSchema) 라 text-decoration 미수용 → rootSelectors `&` 경유.
+  //   `&[data-hovered]` — hover 시 underline 두께 강조 (starter Link.css:15-17).
+  //     Skia componentState 는 default|disabled 만 → hover 미렌더, 본 rule 은 Preview
+  //     전용 (ADR-141 R1 transient-state 비대칭 — ADR-140 R5 선례 수용 범위).
+  composition: {
+    rootSelectors: {
+      "&": {
+        styles: { "text-decoration": "underline" },
+      },
+      "&[data-hovered]": {
+        styles: { "text-decoration-thickness": "1.5px" },
+      },
+    },
+    delegation: [],
+  },
+
   render: {
     shapes: (props, size, state = "default") => {
       const variant =

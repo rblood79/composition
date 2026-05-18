@@ -66,11 +66,20 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-DropZone {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-DropZone[data-drop-target] {
+    background: var(--bg-inset);
+    color: var(--accent);
+  }
 
 
 } /* @layer components */

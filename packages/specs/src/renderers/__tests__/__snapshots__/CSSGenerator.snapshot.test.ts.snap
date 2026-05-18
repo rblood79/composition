@@ -4610,11 +4610,20 @@ exports[`CSSGenerator snapshot baseline > DropZone 1`] = `
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-DropZone {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-DropZone[data-drop-target] {
+    background: var(--bg-inset);
+    color: var(--accent);
+  }
 
 
 } /* @layer components */"
@@ -6011,6 +6020,9 @@ exports[`CSSGenerator snapshot baseline > Link 1`] = `
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Link {
     forced-color-adjust: auto;
@@ -6022,6 +6034,15 @@ exports[`CSSGenerator snapshot baseline > Link 1`] = `
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-Link {
+    text-decoration: underline;
+  }
+
+  .react-aria-Link[data-hovered] {
+    text-decoration-thickness: 1.5px;
+  }
+
 
 } /* @layer components */"
 `;
