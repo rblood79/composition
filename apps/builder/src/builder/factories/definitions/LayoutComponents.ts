@@ -83,7 +83,6 @@ export function createCardDefinition(
     parent: {
       type: "Card",
       props: {
-        variant: "primary",
         size: "md",
         orientation: "vertical",
         title: "Card Title",

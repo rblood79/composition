@@ -17,6 +17,7 @@ export interface ColorSliderProps {
   size?: "sm" | "md" | "lg";
   channel?: "hue" | "saturation" | "lightness" | "brightness" | "alpha";
   colorSpace?: "rgb" | "hsl" | "hsb";
+  orientation?: "horizontal" | "vertical";
   value?: number;
   isDisabled?: boolean;
   /** ElementSprite 주입: 엔진 계산 최종 폭 */

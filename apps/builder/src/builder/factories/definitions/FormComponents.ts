@@ -609,7 +609,7 @@ export function createSliderDefinition(
         isDisabled: false,
         isRequired: false,
         orientation: "horizontal",
-        showValue: true,
+        showValueLabel: true,
         style: {
           width: "100%",
         },

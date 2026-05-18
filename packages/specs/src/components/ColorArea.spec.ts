@@ -20,6 +20,22 @@ export interface ColorAreaProps {
   xValue?: number;
   yValue?: number;
   colorSpace?: "rgb" | "hsl" | "hsb";
+  xChannel?:
+    | "red"
+    | "green"
+    | "blue"
+    | "hue"
+    | "saturation"
+    | "lightness"
+    | "brightness";
+  yChannel?:
+    | "red"
+    | "green"
+    | "blue"
+    | "hue"
+    | "saturation"
+    | "lightness"
+    | "brightness";
   isDisabled?: boolean;
   style?: Record<string, string | number | undefined>;
 }
@@ -118,7 +134,8 @@ export const ColorAreaSpec: ComponentSpec<ColorAreaProps> = {
               { value: "hsl", label: "HSL" },
               { value: "hsb", label: "HSB" },
             ],
-           defaultValue: "rgb" },
+            defaultValue: "rgb",
+          },
           {
             key: "xChannel",
             type: "enum",
@@ -133,7 +150,8 @@ export const ColorAreaSpec: ComponentSpec<ColorAreaProps> = {
               { value: "lightness", label: "Lightness" },
               { value: "brightness", label: "Brightness" },
             ],
-           defaultValue: "saturation" },
+            defaultValue: "saturation",
+          },
           {
             key: "yChannel",
             type: "enum",
@@ -148,7 +166,8 @@ export const ColorAreaSpec: ComponentSpec<ColorAreaProps> = {
               { value: "lightness", label: "Lightness" },
               { value: "brightness", label: "Brightness" },
             ],
-           defaultValue: "brightness" },
+            defaultValue: "brightness",
+          },
         ],
       },
       {

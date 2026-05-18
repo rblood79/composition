@@ -340,7 +340,7 @@ export function createProgressBarDefinition(
       props: {
         label: "Progress",
         value: 50,
-        showValue: true,
+        showValueLabel: true,
         size: "md",
         // Grid 속성 store 직접 주입 (Skia/Taffy 즉시 반영).
         // store 에는 longhand (rowGap/columnGap) 만 — shorthand `gap` 은 미저장
@@ -434,7 +434,7 @@ export function createMeterDefinition(
         value: 75,
         minValue: 0,
         maxValue: 100,
-        showValue: true,
+        showValueLabel: true,
         variant: "informative",
         size: "md",
         // Grid 속성 store 직접 주입 (ProgressBar 와 동일 이유).

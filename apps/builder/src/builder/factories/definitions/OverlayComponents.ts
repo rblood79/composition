@@ -23,7 +23,6 @@ export function createDialogDefinition(
     parent: {
       type: "Dialog",
       props: {
-        variant: "accent",
         size: "md",
         isDismissable: false,
         style: {
