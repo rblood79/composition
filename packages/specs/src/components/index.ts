@@ -34,9 +34,17 @@ export type { CardContentProps } from "./CardContent.spec";
 export { CardFooterSpec } from "./CardFooter.spec";
 export type { CardFooterProps } from "./CardFooter.spec";
 
+// CardPreview (Disclosure·Tree 버그 클래스 수정 — container slot spec)
+export { CardPreviewSpec } from "./CardPreview.spec";
+export type { CardPreviewProps } from "./CardPreview.spec";
+
 // Dialog
 export { DialogSpec } from "./Dialog.spec";
 export type { DialogProps } from "./Dialog.spec";
+
+// DialogFooter (Disclosure·Tree 버그 클래스 수정 — container slot spec)
+export { DialogFooterSpec } from "./DialogFooter.spec";
+export type { DialogFooterProps } from "./DialogFooter.spec";
 
 // Link
 export { LinkSpec } from "./Link.spec";
@@ -117,6 +125,10 @@ export type { SwitchProps } from "./Switch.spec";
 // Form
 export { FormSpec } from "./Form.spec";
 export type { FormProps } from "./Form.spec";
+
+// FormField (Disclosure·Tree 버그 클래스 수정 — container slot spec)
+export { FormFieldSpec } from "./FormField.spec";
+export type { FormFieldProps } from "./FormField.spec";
 
 // Select
 export { SelectSpec } from "./Select.spec";

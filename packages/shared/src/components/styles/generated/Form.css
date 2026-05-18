@@ -86,4 +86,78 @@
 }
 
 
+/* ─── Child Spec: FormField (ADR-078) ─── */
+
+.react-aria-FormField {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="xs"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="sm"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="lg"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 6px;
+}
+
+.react-aria-FormField[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 6px;
+}
+
+.react-aria-FormField[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-FormField[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-FormField {
+    forced-color-adjust: auto;
+  }
+}
+
+
 } /* @layer components */

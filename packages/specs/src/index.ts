@@ -238,8 +238,14 @@ export type { CardContentProps } from "./components/CardContent.spec";
 export { CardFooterSpec } from "./components/CardFooter.spec";
 export type { CardFooterProps } from "./components/CardFooter.spec";
 
+export { CardPreviewSpec } from "./components/CardPreview.spec";
+export type { CardPreviewProps } from "./components/CardPreview.spec";
+
 export { DialogSpec } from "./components/Dialog.spec";
 export type { DialogProps } from "./components/Dialog.spec";
+
+export { DialogFooterSpec } from "./components/DialogFooter.spec";
+export type { DialogFooterProps } from "./components/DialogFooter.spec";
 
 export { LinkSpec } from "./components/Link.spec";
 export type { LinkProps } from "./components/Link.spec";
@@ -308,6 +314,9 @@ export type { SwitchProps } from "./components/Switch.spec";
 
 export { FormSpec } from "./components/Form.spec";
 export type { FormProps } from "./components/Form.spec";
+
+export { FormFieldSpec } from "./components/FormField.spec";
+export type { FormFieldProps } from "./components/FormField.spec";
 
 export { SelectSpec } from "./components/Select.spec";
 export type { SelectProps } from "./components/Select.spec";

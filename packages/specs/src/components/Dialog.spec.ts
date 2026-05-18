@@ -10,6 +10,7 @@
 import type { ComponentSpec, Shape, TokenRef } from "../types";
 import { resolveStateColors } from "../utils/stateEffect";
 import { MessageSquare, ToggleLeft, Parentheses } from "lucide-react";
+import { DialogFooterSpec } from "./DialogFooter.spec";
 
 /**
  * Dialog Props
@@ -130,6 +131,9 @@ export const DialogSpec: ComponentSpec<DialogProps> = {
   },
 
   states: {},
+
+  // ADR-094 expandChildSpecs: DialogFooter 슬롯 spec 을 Skia/Taffy 에 자동 등록.
+  childSpecs: [DialogFooterSpec],
 
   render: {
     shapes: (props, size, state = "default") => {

@@ -21,6 +21,7 @@ import {
   FormInput,
   Sparkles,
 } from "lucide-react";
+import { FormFieldSpec } from "./FormField.spec";
 
 /**
  * Form Props
@@ -237,6 +238,9 @@ export const FormSpec: ComponentSpec<FormProps> = {
     },
     focusVisible: {},
   },
+
+  // ADR-094 expandChildSpecs: FormField 슬롯 spec 을 Skia/Taffy 에 자동 등록.
+  childSpecs: [FormFieldSpec],
 
   composition: {
     layout: "flex-column",

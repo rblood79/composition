@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Disclosure·Tree Skia 렌더링 정합 — 복합 컨테이너 자식 spec 누락 수정] - 2026-05-18
+## [복합 컨테이너 자식 spec 누락 — Skia 렌더링 정합 수정] - 2026-05-18
 
 ### Bug Fixes
 
@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: factory 가 헤더/콘텐츠 텍스트를 자식 element prop 으로 주입하지만 그 자식 spec 에 렌더 경로가 없었음 (Tree 와 동일한 "복합 컨테이너 자식 spec 누락" 버그 클래스).
   - 수정: `DisclosureHeader.spec` 이 chevron + 제목 텍스트 렌더, 신규 `DisclosureContent.spec` 이 패널 텍스트 렌더.
   - 위치: `packages/specs/src/components/{DisclosureHeader,DisclosureContent}.spec.ts`
+
+- **Card·Dialog·Form 자식 슬롯 컨테이너 Skia 미렌더** (CardPreview / DialogFooter / FormField):
+  - 세 슬롯 컨테이너에 spec 파일이 없어 Skia `buildSpecNodeData` 의 `getSpecForTag` 가 null 반환 → 컨테이너 노드 미생성. Preview(DOM)는 `renderCardPreview` / `App.tsx` DialogFooter case 로 정상 렌더 → Builder ↔ Preview 시각 비대칭(D3 위반).
+  - **Why**: Card/Dialog/Form factory 가 자식 슬롯 Element 를 생성하지만 해당 태그의 spec 이 없었음 (Disclosure·Tree 와 동일한 "복합 컨테이너 자식 spec 누락" 버그 클래스). CardPreview 는 borderRadius/overflow clip 영역이 누락됐다.
+  - 수정: 신규 `CardPreview.spec` / `DialogFooter.spec` / `FormField.spec` 추가 (컨테이너 shell, `render.shapes: () => []`). 부모 `Card/Dialog/Form` spec 의 `childSpecs` 에 등록 → ADR-094 `expandChildSpecs` 가 `TAG_SPEC_MAP` 자동 등록 (ADR-139 등록 contract test 통과). 전체 컴포넌트 spec 정합성 검증(7 패밀리)에서 발견.
+  - 위치: `packages/specs/src/components/{CardPreview,DialogFooter,FormField}.spec.ts`, `packages/specs/src/components/{Card,Dialog,Form}.spec.ts`
 
 ## [press-scale 마이크로 인터랙션 — ADR-140] - 2026-05-17
 

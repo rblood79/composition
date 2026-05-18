@@ -1631,6 +1631,80 @@ exports[`CSSGenerator snapshot baseline > Card 1`] = `
 }
 
 
+/* ─── Child Spec: CardPreview (ADR-078) ─── */
+
+.react-aria-CardPreview {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 8px;
+}
+
+.react-aria-CardPreview[data-size="xs"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-CardPreview[data-size="sm"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-CardPreview[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 8px;
+}
+
+.react-aria-CardPreview[data-size="lg"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 8px;
+}
+
+.react-aria-CardPreview[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 8px;
+}
+
+.react-aria-CardPreview[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-CardPreview[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-CardPreview {
+    forced-color-adjust: auto;
+  }
+}
+
+
 } /* @layer components */"
 `;
 
@@ -4141,6 +4215,80 @@ exports[`CSSGenerator snapshot baseline > Dialog 1`] = `
   }
 }
 
+/* ─── Child Spec: DialogFooter (ADR-078) ─── */
+
+.react-aria-DialogFooter {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 8px;
+}
+
+.react-aria-DialogFooter[data-size="xs"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-DialogFooter[data-size="sm"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+  gap: 8px;
+}
+
+.react-aria-DialogFooter[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 8px;
+}
+
+.react-aria-DialogFooter[data-size="lg"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 12px;
+}
+
+.react-aria-DialogFooter[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 12px;
+}
+
+.react-aria-DialogFooter[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-DialogFooter[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-DialogFooter {
+    forced-color-adjust: auto;
+  }
+}
+
+
 } /* @layer components */"
 `;
 
@@ -4736,6 +4884,80 @@ exports[`CSSGenerator snapshot baseline > Form 1`] = `
 
 @media (forced-colors: active) {
   .react-aria-Form {
+    forced-color-adjust: auto;
+  }
+}
+
+
+/* ─── Child Spec: FormField (ADR-078) ─── */
+
+.react-aria-FormField {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="xs"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="sm"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  gap: 4px;
+}
+
+.react-aria-FormField[data-size="lg"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 6px;
+}
+
+.react-aria-FormField[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-none);
+  gap: 6px;
+}
+
+.react-aria-FormField[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-FormField[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-FormField {
     forced-color-adjust: auto;
   }
 }
