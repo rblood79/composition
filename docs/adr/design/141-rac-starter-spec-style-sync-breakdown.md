@@ -7,7 +7,7 @@
 본 ADR 은 base/응용 fork 가 아니라 **신규 initiative ADR** 이다. ADR-063(SSOT charter)·ADR-140(press-scale)을 prerequisite 로 참조하되 어느 ADR 도 재오픈하지 않는다. ADR-140 은 P2 패턴의 부분 선례(press-scale 단일 축)이고, ADR-141 은 6 패턴 전체를 다룬다.
 
 - Phase 0 인벤토리: [2026-05-18-rac-starter-spec-style-diff.md](../../reference/audits/2026-05-18-rac-starter-spec-style-diff.md) (HIGH 18 + MED 27 + LOW ~20, 6 패턴).
-- skipCSSGeneration 분류: [2026-05-18-spec-ssot-inventory.md](../../reference/audits/2026-05-18-spec-ssot-inventory.md) (33 분류). 본 ADR 은 generated CSS 미보유 skipCSSGeneration 컨테이너(Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider + Table)를 범위에서 제외 — ADR-059·ADR-106-a~d 가 CSSGenerator 구조적 미지원으로 인한 G2 정당 Tier 3 예외로 이미 분류함. 단 sub-component `DisclosureContent`(H17)·`ColorSwatchPicker`(P1)는 skipCSSGeneration 이나 본 ADR 잔존 — 반영 경로는 해당 Phase 착수 시 확정(ADR 본문 §Spec 반영 경로).
+- skipCSSGeneration 분류: [2026-05-18-spec-ssot-inventory.md](../../reference/audits/2026-05-18-spec-ssot-inventory.md) (33 분류). 본 ADR 은 generated CSS 미보유 skipCSSGeneration 컨테이너(Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider + Table)를 범위에서 제외 — ADR-059·ADR-106(charter + 후속 a/b/d)가 CSSGenerator 구조적 미지원으로 인한 G2 정당 Tier 3 예외로 이미 분류함. 단 sub-component `DisclosureContent`(H17)·`ColorSwatchPicker`(P1)는 skipCSSGeneration 이나 본 ADR 잔존, `RangeCalendar`(H8/H9)는 generated CSS 가 `index.css` 미연결 — 반영 경로는 해당 Phase 착수 시 확정(ADR 본문 §Spec 반영 경로).
 
 ## 2. 패턴별 채택 판정 상세
 
@@ -42,7 +42,7 @@
 
 Phase 1→2→3 은 순차. Phase 4 는 R2(Generator emit 능력) 확인 결과에 종속. Phase 5 는 G3(디자인 결정) 통과 전 미착수.
 
-**반영 경로**: 범위 제외(Table + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider) 후 본 ADR 타겟은 대다수가 generated CSS 보유 → Spec 수정 → `pnpm build:specs` 재생성으로 반영된다. 예외 — `DisclosureContent`(H17, Phase 1)·`ColorSwatchPicker`(P1, Phase 5)는 skipCSSGeneration sub-component 로 generated CSS 가 없어, 해당 delta 의 반영 경로(parent ADR-078 child inline-emit / skipCSSGeneration 재판정)는 해당 Phase 착수 시 확정한다.
+**반영 경로**: 범위 제외(Table + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider) 후 본 ADR 타겟은 대다수가 generated CSS 보유 → Spec 수정 → `pnpm build:specs` 재생성으로 반영된다. 예외 — `DisclosureContent`(H17, Phase 1)·`ColorSwatchPicker`(P1, Phase 5)는 skipCSSGeneration sub-component 로 generated CSS 가 없어, 해당 delta 의 반영 경로(parent ADR-078 child inline-emit / skipCSSGeneration 재판정)는 해당 Phase 착수 시 확정한다. 또한 `RangeCalendar`(H8/H9, Phase 4)는 generated CSS 파일이 있으나 `index.css` 가 import 안 함(수동 `RangeCalendar.css` 가 live) → 수동/dual-CSS 경로(ADR 본문 R5).
 
 ## 4. 컴포넌트별 delta 매핑
 
@@ -51,7 +51,7 @@ HIGH 18 + MED 27 의 항목별 starter/composition `file:line` 은 감사 문서
 - **Phase 1 (P2)**: H16 Disclosure chevron rotate(Disclosure spec — generated CSS), H17 패널 height transition(`DisclosureContent` — skipCSSGeneration, 반영 경로 착수 시 확정), H18 ProgressBar(fill 애니메이션 일부), MED TabPanel 전환·Checkbox checkmark draw·ToggleButtonGroup pressed.
 - **Phase 2 (P6)**: H5 Link underline, H7 DropZone drop-target, MED Form `[role=alert]`·ListBox selected divider. (Tree selected divider 는 Tree 범위 제외로 이관.)
 - **Phase 3 (P4)**: H10 DateRangePicker `[slot=end]` margin, H12·H13 Dialog/Popover padding(의도 검토), H14·H15 Modal radius/max-width, MED track-height·Tooltip padding 등.
-- **Phase 4 (P5)**: H3·H4 ToggleButtonGroup overlap/radius, H8·H9 RangeCalendar range-band/inner-span, MED Menu 구조.
+- **Phase 4 (P5)**: H3·H4 ToggleButtonGroup overlap/radius, H8·H9 RangeCalendar range-band/inner-span(`RangeCalendar` 는 generated CSS 가 `index.css` 미연결 — 수동 `RangeCalendar.css` 경로, R5), MED Menu 구조.
 - **Phase 5 (P1·P3)**: H1·H2 icon-only 원형, H6 SearchField pill, H18 ProgressBar 3d / MED Switch·Slider·Meter box-shadow. (H11 Tag pill 은 TagGroup 범위 제외로 이관.)
 
 ## 5. BC 영향 수식화 (R4 대응)
@@ -79,6 +79,6 @@ Phase 1·2 는 가산적(BC 낮음), Phase 3 는 레이아웃 영향, Phase 5 �
 
 ## 7. 미해결 / 후속
 
-- Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider — 본 ADR 범위 외. ADR-059·ADR-106-a~d 가 CSSGenerator 구조적 미지원(RAC 내부 selector·`::after`·orientation)으로 인한 G2 정당 Tier 3 예외로 이미 분류함 — `해체 후속` 이 아니라 CSSGenerator 능력 확장 ADR 의 대상. 이관 감사 항목: H11(Tag pill), MED 의 Tree selected divider·GridListItem 카드 shadow·ColorArea aspect-ratio·ColorSlider track height.
+- Table 패밀리 + Tree·TagGroup·ColorPicker·GridList·ColorArea·ColorSlider — 본 ADR 범위 외. ADR-059·ADR-106(charter + 후속 a/b/d)가 CSSGenerator 구조적 미지원(RAC 내부 selector·`::after`·orientation)으로 인한 G2 정당 Tier 3 예외로 이미 분류함(Color 4건 106-a / TagGroup 106-b / Tag·SearchField·Field 106-d / Table·Tree·GridList·ColorArea 는 106 charter) — `해체 후속` 이 아니라 CSSGenerator 능력 확장 ADR 의 대상. 이관 감사 항목: H11(Tag pill), MED 의 Tree selected divider·GridListItem 카드 shadow·ColorArea aspect-ratio·ColorSlider track height.
 - CSSGenerator 형제 selector emit 능력 — Phase 4 착수 전 확인. 미지원 시 해당 P5 delta 는 수동 CSS 경로 또는 보류.
 - P1/P3 디자인 결정 — 본 ADR 외부 (디자인 시스템 오너 confirm).
