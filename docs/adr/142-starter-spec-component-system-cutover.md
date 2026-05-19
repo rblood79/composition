@@ -29,7 +29,7 @@ composition 의 컴포넌트 시스템은 builder 방식 변경, local DB 형식
 
 ### 3-domain 분류 (ADR-063 정합)
 
-- **D1 DOM/접근성/상호작용**: `react-aria-components`(npm)가 절대 권위이자 runtime primitive 다. `apps/builder` 와 `packages/shared` 의 `catalog:` 의존으로 설치되어 있고, `packages/shared/src/components` 의 51개 파일이 직접 import 한다. composition 은 RAC 동작을 수동 재구현하지 않는다.
+- **D1 DOM/접근성/상호작용**: `react-aria-components`(npm)가 절대 권위이자 runtime primitive 다. `apps/builder` 와 `packages/shared` 의 `catalog:` 의존으로 설치되어 있고, `packages/shared/src/components` 의 57개 파일이 직접 import 한다. composition 은 RAC 동작을 수동 재구현하지 않는다.
 - **D2 Props/API**: 조합 컴포넌트는 reusable frame 노드가 선언한 propsSchema 가 SSOT 다. primitive 는 `PrimitiveBinding` 이 받는 props 집합이 SSOT 다. 컴포넌트당 Spec 파일이 아니다.
 - **D3 시각/구조**: 시각 SSOT 는 theme/variables root collection(ADR-110)이다. 구조 SSOT 는 canonical 문서 트리 자체다. 컴포넌트당 `visual` 필드를 두지 않는다. `packages/react-aria-starter/src`(Adobe starter kit 의 vendored snapshot, 55 컴포넌트)는 이 D3 시각/구조를 저작할 때 참조하는 **reference 코드** 다 — runtime import 대상이 아니며(repo 전역 import 0건), `private` 패키지로 `main`/`exports` 가 없다.
 - **Document/runtime format**: canonical `CompositionDocument` 가 저장·편집·runtime mutation source 다. 본 ADR 은 이 스키마를 변경하지 않고 그 위에 세운다.
@@ -81,7 +81,7 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 
 - 설명: shared wrapper 계층을 최소화하고 `react-aria-components` 를 제품 컴포넌트 곳곳에서 직접 import 한다.
 - 근거: upstream RAC 와 가장 가까운, 가장 얇은 코드 경로가 된다.
-- 위험: 기술(HIGH) — composition props mapping / canonical payload 정규화 / `toRacProps` 투영을 둘 단일 위치가 사라져 51개 이상 파일에 흩어진다. 성능(LOW). 유지보수(HIGH) — Inspector·Skia 경로 연결점이 분산되고, RAC 버전 업데이트가 제품 코드 곳곳을 직접 흔든다. 마이그레이션(MEDIUM).
+- 위험: 기술(HIGH) — composition props mapping / canonical payload 정규화 / `toRacProps` 투영을 둘 단일 위치가 사라져 57개 이상 파일에 흩어진다. 성능(LOW). 유지보수(HIGH) — Inspector·Skia 경로 연결점이 분산되고, RAC 버전 업데이트가 제품 코드 곳곳을 직접 흔든다. 마이그레이션(MEDIUM).
 
 ### 대안 E: Canonical 문서 SSOT + RAC primitive binding (document 모델)
 
