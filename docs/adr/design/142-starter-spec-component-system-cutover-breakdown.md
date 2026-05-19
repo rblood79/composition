@@ -247,12 +247,12 @@ Gate: G0, G1
 4. **Preview resolved-tree 소비**: `App.tsx` 가 `resolveCanonicalDocument()` 결과를 단일 source 로 삼게 한다. legacy `elements[]` 경로 격리.
 5. **generic 렌더러 Skia backend**: `buildSpecNodeData.ts` Skia 경로를 resolved canonical tree + theme 소비로 재작성. `render.shapes()`/`specShapesToSkia` 격리.
 6. resolver 버그 수정: nested ref `_resolvedFrom` 미주입, descendants mode C `validateSlotContract` 누락.
-7. **Button primitive 파일럿**: 첫 `PrimitiveBinding` 작성 + DOM/Skia 양쪽 렌더 확인.
+7. **Button primitive 파일럿**: 첫 `PrimitiveBinding` 작성 + DOM/Skia 양쪽 렌더 확인 + Skia 렌더 frame budget 60fps 측정(R10 — 대안 E 성능 LOW 평가 확정 근거).
 8. **generic Inspector field renderer**: `outputs/inspectorFields.ts` 가 `PropContract` 집합 + theme 로 Inspector 편집 필드를 generic 생성. `GenericPropertyEditor` 가 컴포넌트당 `spec.properties.sections` 대신 이를 소비. `section` 태그 그룹핑 + `variant`/`size` 값 theme 조회 포함. Button `accepts` 로 검증.
-9. fixture: `canonicalPreviewRefSlot.test.tsx`(F1 reusable origin / F2 ref instance + descendants A·B·C / F3 slot fill / F4 fallback 경로 resolved children 보존), `canonicalSkiaSymmetry.test.ts`(DOM↔Skia 대칭), `inspectorFields.test.ts`(`PropContract`→필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회).
+9. fixture: `canonicalPreviewRefSlot.test.tsx`(F1 reusable origin / F2 ref instance + descendants A·B·C / F3 slot fill / F4 fallback 경로 resolved children 보존), `canonicalSkiaSymmetry.test.ts`(DOM↔Skia 대칭 + Button Skia 렌더 frame budget 60fps), `inspectorFields.test.ts`(`PropContract`→필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회).
 
 검증: `pnpm -F @composition/builder test canonicalPreviewRefSlot` / `pnpm -F @composition/builder test resolver` / `pnpm -F @composition/shared test inspectorFields` / `pnpm run codex:typecheck`
-Gate: **G2 (공통 기반 gate — R1 1:1)**
+Gate: **G2 (공통 기반 gate — R1·R10)**
 
 ### Phase 2 — Reusable 컴포넌트 저작 + componentCatalog
 
@@ -325,7 +325,7 @@ family 순서: primitives·actions → fields → selection → collections → 
 
 각 family 마다 §5 표준 체크리스트 수행. 통과 시 `cutover:"catalog"` flip — 4경로 동시 발효. 실패 시 그 family 만 `cutover:"legacy"` 유지, 다음 family 진행.
 
-전 family 가 `cutover:"catalog"` 도달 시 legacy allowlist 고정 + release note + README/ADR status 갱신 + ADR-036/907/908 status 재평가.
+전 family 가 `cutover:"catalog"` 도달 시 legacy allowlist 고정 + release note + README/ADR status 갱신 + ADR-036/907/908/140/141 status 재평가.
 
 검증 (family 마다): `pnpm run codex:guard` / `pnpm run codex:typecheck` / `pnpm run codex:preflight`
 Gate: G4 / G5 / G6 (family 반복), G7 (최종)
@@ -394,4 +394,4 @@ ADR-142 를 Implemented 로 승격하려면 전 family 가 `cutover:"catalog"` �
 7. Tree/Table 이 RAC primitive binding + collections 데이터로 Skia·Preview 양쪽에서 동작한다.
 8. legacy import allowlist 외 active usage 0건, active 경로의 `ComponentSpec`/`ReactRenderer`/`render.shapes` 참조 0건.
 9. `pnpm run codex:preflight` 통과.
-10. ADR 본문·README status 가 Implemented 로 동기화되고, ADR-036/907/908 status 가 재평가된다.
+10. ADR 본문·README status 가 Implemented 로 동기화되고, ADR-036/907/908/140/141 status 가 재평가된다.
