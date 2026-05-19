@@ -1,6 +1,8 @@
 packages:
   - apps/*
   - packages/*
+  # react-aria-starter 는 읽기 전용 D3 시각 참조 스냅샷 — 설치 그래프 제외 (ADR-142)
+  - "!packages/react-aria-starter"
 
 catalogs:
   default:
