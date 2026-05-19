@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-05-19 (개정 — 컴포넌트당 contract 모델에서 canonical 문서 모델로)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c 진입 전 별도 승인 필요)
 
 ## Context
 

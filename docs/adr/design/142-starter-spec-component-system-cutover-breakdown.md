@@ -238,6 +238,12 @@ Phase 0~5 는 family cutover 착수 전 1회 수행하는 **공통 기반** 단�
 검증: `pnpm run codex:guard` / `pnpm run codex:format`
 Gate: G0, G1
 
+Status: Implemented — 2026-05-20. 산출물:
+`docs/reference/audits/2026-05-19-canonical-component-inventory.md`.
+검증: `pnpm run codex:guard`, `pnpm run codex:typecheck`,
+`pnpm test:registration-contract`, `pnpm run codex:format`,
+`pnpm run codex:preflight`.
+
 ### Phase 1 — PrimitiveBinding + generic 렌더러 + Preview resolved-tree (공통 기반 핵심)
 
 Phase 1 은 공통 기반의 핵심이자 대안 E 의 kill-switch 단계다. **Phase 1a (proof slice)** 가 핵심 베팅(R1·R10)을 최소 수직 슬라이스로 falsify-가능하게 증명한 뒤에만 **Phase 1b (공통 기반 완성)** 로 진입한다. Phase 1a 가 실패하면 family cutover 가 아니라 ADR-142 대안 E 자체를 재검토한다.
