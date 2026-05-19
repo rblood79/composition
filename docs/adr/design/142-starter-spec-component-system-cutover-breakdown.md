@@ -250,7 +250,7 @@ Gate: G0, G1
 4. **Preview resolved-tree 소비**: `App.tsx` 가 `resolveCanonicalDocument()` 결과를 단일 source 로 삼게 한다. legacy `elements[]` 경로 격리.
 5. **generic 렌더러 Skia backend**: `buildSpecNodeData.ts` Skia 경로를 resolved canonical tree + theme 소비로 재작성. `render.shapes()`/`specShapesToSkia` 격리.
 6. resolver 버그 수정: nested ref `_resolvedFrom` 미주입, descendants mode C `validateSlotContract` 누락.
-7. **Button primitive 파일럿**: 첫 `PrimitiveBinding` 작성(검증·확정한 `design.md` §7.1 공통 유틸 패턴 참조) + DOM/Skia 양쪽 렌더 확인 + Skia 렌더 frame budget 60fps 측정(R10 — 대안 E 성능 LOW 평가 확정 근거).
+7. **Button primitive 파일럿**: 첫 `PrimitiveBinding` 작성(검증·확정한 `design.md` Components / Utilities 공통 유틸 패턴 참조) + DOM/Skia 양쪽 렌더 확인 + Skia 렌더 frame budget 60fps 측정(R10 — 대안 E 성능 LOW 평가 확정 근거).
 8. **generic Inspector field renderer**: `outputs/inspectorFields.ts` 가 `PropContract` 집합 + theme 로 Inspector 편집 필드를 generic 생성. `GenericPropertyEditor` 가 컴포넌트당 `spec.properties.sections` 대신 이를 소비. `section` 태그 그룹핑 + `variant`/`size` 값 theme 조회 포함. Button `accepts` 로 검증.
 9. fixture: `canonicalPreviewRefSlot.test.tsx`(F1 reusable origin / F2 ref instance + descendants A·B·C / F3 slot fill / F4 fallback 경로 resolved children 보존), `canonicalSkiaSymmetry.test.ts`(DOM↔Skia 대칭 + Button Skia 렌더 frame budget 60fps), `inspectorFields.test.ts`(`PropContract`→필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회).
 
