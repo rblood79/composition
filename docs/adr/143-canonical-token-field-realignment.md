@@ -29,7 +29,7 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 **Soft Constraints**:
 
 - ADR-110 본문은 Implemented 상태로 보존하고 본 ADR 이 `variables` 필드 결정만 partial supersede 한다.
-- dormant ThemeStudio 코드 정리는 사용처 grep 결과에 따라 폐기 또는 재작성.
+- ThemeStudio 코드 정리(폐기/재작성/scope 제외)는 Phase 0 inventory 사용처 grep 결과로 확정 (breakdown §2-4).
 
 ## Alternatives Considered
 
