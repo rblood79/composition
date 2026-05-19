@@ -9,8 +9,3 @@ export {
   useStyleUpdateCallback,
   useValueCallback,
 } from "./useFrameCallback";
-
-// Theme hooks (re-export from theme module)
-export { useTokens } from "./theme";
-
-export type { UseTokensOptions, UseTokensReturn } from "./theme";

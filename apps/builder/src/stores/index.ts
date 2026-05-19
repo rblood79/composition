@@ -17,14 +17,6 @@ export {
   type UiScale,
 } from "./uiStore";
 
-// 디자인 시스템 테마/토큰
-export {
-  useUnifiedThemeStore,
-  useTokens,
-  useThemeLoading,
-  useThemeError,
-} from "./themeStore";
-
 // 앱 환경 설정
 export { useSettingsStore, getSettings } from "./settingsStore";
 

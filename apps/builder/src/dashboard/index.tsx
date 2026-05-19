@@ -256,16 +256,6 @@ function Dashboard() {
         await historyIndexedDB.clearPageHistory(page.id);
       }
 
-      const tokens = await db.designTokens.getByProject(id);
-      for (const token of tokens) {
-        await db.designTokens.delete(token.id);
-      }
-
-      const themes = await db.themes.getByProject(id);
-      for (const theme of themes) {
-        await db.themes.delete(theme.id as string);
-      }
-
       const collections = await db.collections.getByProject(id);
       for (const dataTable of collections) {
         await db.collections.delete(dataTable.id);

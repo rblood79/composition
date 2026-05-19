@@ -14,7 +14,6 @@ import type {
   SerializedActionRecord,
   SerializedEventRecord,
 } from "../types";
-import type { DesignToken, DesignTheme } from "../../../types/theme";
 import type { CompositionDocument } from "@composition/shared";
 import type {
   DataTable,
@@ -24,7 +23,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 18; // ADR-132 Phase 5: data_tables → collections rename, legacy data_tables store drop.
+const DB_VERSION = 19; // ADR-143 Phase 4: design_tokens / design_themes store 폐기 (ThemeStudio dead code 제거).
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -216,40 +215,19 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           }
         }
 
-        // Design tokens store
-        if (!db.objectStoreNames.contains("design_tokens")) {
-          const tokensStore = db.createObjectStore("design_tokens", {
-            keyPath: "id",
-          });
-          tokensStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          tokensStore.createIndex("theme_id", "theme_id", { unique: false });
-          console.log("[IndexedDB] Created store: design_tokens");
-        } else {
-          // ✅ 버전 3: 기존 스토어에 theme_id 인덱스 추가
-          const transaction = (event.target as IDBOpenDBRequest).transaction;
-          if (transaction) {
-            const tokensStore = transaction.objectStore("design_tokens");
-            if (!tokensStore.indexNames.contains("theme_id")) {
-              tokensStore.createIndex("theme_id", "theme_id", {
-                unique: false,
-              });
-              console.log("[IndexedDB] Added index: design_tokens.theme_id");
-            }
+        // ADR-143 Phase 4 (DB_VERSION 19): design_tokens / design_themes store 폐기.
+        // canonical document 의 themes/tokens 필드가 시각 토큰 SSOT —
+        // dead ThemeStudio (themeStore / TokenService / ThemeService) 동반 제거.
+        for (const legacyThemeStore of [
+          "design_tokens",
+          "design_themes",
+        ] as const) {
+          if (db.objectStoreNames.contains(legacyThemeStore)) {
+            db.deleteObjectStore(legacyThemeStore);
+            console.log(
+              `[IndexedDB] Deleted legacy store: ${legacyThemeStore} (ADR-143 Phase 4)`,
+            );
           }
-        }
-
-        // Design themes store
-        if (!db.objectStoreNames.contains("design_themes")) {
-          const themesStore = db.createObjectStore("design_themes", {
-            keyPath: "id",
-          });
-          themesStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          themesStore.createIndex("status", "status", { unique: false });
-          console.log("[IndexedDB] Created store: design_themes");
         }
 
         // ADR-132 Phase 5 (DB_VERSION 18): legacy `data_tables` store drop.
@@ -510,158 +488,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getAll: async (): Promise<Project[]> => {
       return this.getAllFromStore<Project>("projects");
-    },
-  };
-
-  // === Design Tokens ===
-
-  designTokens = {
-    getById: async (id: string): Promise<DesignToken | null> => {
-      return this.getFromStore<DesignToken>("design_tokens", id);
-    },
-
-    insert: async (token: DesignToken): Promise<DesignToken> => {
-      return this.putToStore("design_tokens", token);
-    },
-
-    insertMany: async (tokens: DesignToken[]): Promise<DesignToken[]> => {
-      if (tokens.length === 0) {
-        return [];
-      }
-
-      const db = this.ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("design_tokens", "readwrite");
-        const store = tx.objectStore("design_tokens");
-
-        // Queue all operations - single transaction commit
-        tokens.forEach((token) => {
-          store.put(token);
-        });
-
-        // Resolve when entire transaction completes
-        tx.oncomplete = () => {
-          if (process.env.NODE_ENV === "development") {
-            console.log(
-              `✅ [IndexedDB] designTokens.insertMany completed: ${tokens.length} tokens`,
-            );
-          }
-          resolve(tokens);
-        };
-
-        tx.onerror = () => {
-          console.error(
-            "❌ [IndexedDB] designTokens.insertMany transaction failed:",
-            tx.error,
-          );
-          reject(tx.error);
-        };
-      });
-    },
-
-    update: async (
-      id: string,
-      data: Partial<DesignToken>,
-    ): Promise<DesignToken> => {
-      const existing = await this.getFromStore<DesignToken>(
-        "design_tokens",
-        id,
-      );
-      if (!existing) {
-        throw new Error(`Design token not found: ${id}`);
-      }
-      const updated = { ...existing, ...data };
-      return this.putToStore("design_tokens", updated);
-    },
-
-    delete: async (id: string): Promise<void> => {
-      return this.deleteFromStore("design_tokens", id);
-    },
-
-    getByProject: async (projectId: string): Promise<DesignToken[]> => {
-      return this.getAllByIndex<DesignToken>(
-        "design_tokens",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getByTheme: async (themeId: string): Promise<DesignToken[]> => {
-      return this.getAllByIndex<DesignToken>(
-        "design_tokens",
-        "theme_id",
-        themeId,
-      );
-    },
-
-    getAll: async (): Promise<DesignToken[]> => {
-      return this.getAllFromStore<DesignToken>("design_tokens");
-    },
-  };
-
-  // === Design Themes ===
-
-  themes = {
-    getAll: async (): Promise<DesignTheme[]> => {
-      return this.getAllFromStore<DesignTheme>("design_themes");
-    },
-
-    getById: async (id: string): Promise<DesignTheme | null> => {
-      return this.getFromStore<DesignTheme>("design_themes", id);
-    },
-
-    getByProject: async (projectId: string): Promise<DesignTheme[]> => {
-      const db = this.ensureDB();
-      return new Promise<DesignTheme[]>((resolve, reject) => {
-        const tx = db.transaction("design_themes", "readonly");
-        const store = tx.objectStore("design_themes");
-        const index = store.index("project_id");
-        const request = index.getAll(projectId);
-
-        request.onsuccess = () =>
-          resolve((request.result || []) as DesignTheme[]);
-        request.onerror = () => reject(request.error);
-      });
-    },
-
-    getActiveTheme: async (projectId: string): Promise<DesignTheme | null> => {
-      const themes = await this.themes.getByProject(projectId);
-      const activeTheme = themes.find((t) => t.status === "active");
-      return activeTheme || themes[0] || null;
-    },
-
-    insert: async (theme: DesignTheme): Promise<DesignTheme> => {
-      await this.putToStore("design_themes", theme);
-      return theme;
-    },
-
-    update: async (
-      id: string,
-      updates: Partial<DesignTheme>,
-    ): Promise<DesignTheme> => {
-      const existing = await this.themes.getById(id);
-      if (!existing) {
-        throw new Error(`Theme ${id} not found`);
-      }
-      const updated = {
-        ...existing,
-        ...updates,
-        updated_at: new Date().toISOString(),
-      };
-      await this.putToStore("design_themes", updated);
-      return updated;
-    },
-
-    delete: async (id: string) => {
-      const db = this.ensureDB();
-      return new Promise<void>((resolve, reject) => {
-        const tx = db.transaction("design_themes", "readwrite");
-        const store = tx.objectStore("design_themes");
-        const request = store.delete(id);
-
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
     },
   };
 
@@ -1024,10 +850,9 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
   batch = {
     export: async () => {
-      const [project, documents, designTokens] = await Promise.all([
+      const [project, documents] = await Promise.all([
         this.projects.getAll().then((projects) => projects[0] || null),
         this.documents.getAll(),
-        this.designTokens.getAll(),
       ]);
 
       return {
@@ -1036,14 +861,12 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           ? (documents.find((doc) => doc.project_id === project.id)?.document ??
             null)
           : (documents[0]?.document ?? null),
-        designTokens,
       };
     },
 
     import: async (data: {
       project?: Project;
       document?: CompositionDocument;
-      designTokens?: DesignToken[];
     }): Promise<void> => {
       if (data.project) {
         await this.projects.insert(data.project);
@@ -1059,13 +882,8 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         await this.documents.put(projectId, data.document);
       }
 
-      if (data.designTokens && data.designTokens.length > 0) {
-        await this.designTokens.insertMany(data.designTokens);
-      }
-
       console.log("[IndexedDB] Import completed:", {
         document: Boolean(data.document),
-        designTokens: data.designTokens?.length || 0,
       });
     },
 
@@ -1075,8 +893,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         const stores = [
           "projects",
           "documents",
-          "design_tokens",
-          "design_themes",
           // ✅ 버전 7: Data Panel 스토어들 추가
           "collections",
           "api_endpoints",

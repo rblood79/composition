@@ -53,7 +53,6 @@ interface Project {
   created_at: string;
   updated_at: string;
 }
-import { useUnifiedThemeStore } from "../../stores/themeStore";
 import {
   useThemeConfigStore,
   type DarkModePreference,
@@ -333,7 +332,6 @@ export const BuilderCore: React.FC = () => {
     initializeProject,
     // pageList,  // 사용하지 않음
   } = usePageManager({ requestAutoSelectAfterUpdate });
-  const loadProjectTheme = useUnifiedThemeStore((s) => s.loadActiveTheme);
   // 🚀 Phase 5: 페이지 Lazy Loading 통합
   const { isLoading: isPageLoading, stats: pageLoaderStats } = usePageLoader();
   // 인접 페이지 프리로드 (백그라운드)
@@ -463,10 +461,6 @@ export const BuilderCore: React.FC = () => {
 
       setIsLoading(false);
 
-      // ✅ 테마 로드 (비동기 처리 - 완료 기다리지 않음)
-      // iframe ready 시 subscribe가 자동으로 전송 처리
-      loadProjectTheme(projectId);
-
       // ADR-021 Phase C: localStorage에서 ThemeConfig 복원
       useThemeConfigStore.getState().initThemeConfig(projectId);
 
@@ -515,7 +509,7 @@ export const BuilderCore: React.FC = () => {
     return () => {
       MessageService.clearIframeCache();
     };
-  }, [projectId, initializeProject, setIsLoading, setError, loadProjectTheme]);
+  }, [projectId, initializeProject, setIsLoading, setError]);
 
   // 🔧 FIX: 프리뷰 요소 전송은 PREVIEW_READY 핸들러에서 처리
   // (BuilderCore에서 중복 전송하지 않음 - useIframeMessenger.ts:178-201 참고)

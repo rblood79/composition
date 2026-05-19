@@ -5,7 +5,6 @@
  * 동일한 인터페이스로 사용하기 위한 추상화 레이어
  */
 
-import type { DesignToken, DesignTheme } from "../../types/theme";
 import type {
   DataTable,
   ApiEndpoint,
@@ -72,29 +71,6 @@ export interface DatabaseAdapter {
     delete(id: string): Promise<void>;
     getById(id: string): Promise<Project | null>;
     getAll(): Promise<Project[]>;
-  };
-
-  // Design Tokens
-  designTokens: {
-    insert(token: DesignToken): Promise<DesignToken>;
-    insertMany(tokens: DesignToken[]): Promise<DesignToken[]>;
-    update(id: string, data: Partial<DesignToken>): Promise<DesignToken>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<DesignToken | null>;
-    getByTheme(themeId: string): Promise<DesignToken[]>;
-    getByProject(projectId: string): Promise<DesignToken[]>;
-    getAll(): Promise<DesignToken[]>;
-  };
-
-  // Design Themes
-  themes: {
-    insert(theme: DesignTheme): Promise<DesignTheme>;
-    update(id: string, data: Partial<DesignTheme>): Promise<DesignTheme>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<DesignTheme | null>;
-    getByProject(projectId: string): Promise<DesignTheme[]>;
-    getActiveTheme(projectId: string): Promise<DesignTheme | null>;
-    getAll(): Promise<DesignTheme[]>;
   };
 
   // Canonical document primary storage (ADR-116)
@@ -180,14 +156,12 @@ export interface DatabaseAdapter {
     export(): Promise<{
       project: Project | null;
       document: CompositionDocument | null;
-      designTokens: DesignToken[];
     }>;
 
     // Import data from sync
     import(data: {
       project?: Project;
       document?: CompositionDocument;
-      designTokens?: DesignToken[];
     }): Promise<void>;
 
     // Clear all data

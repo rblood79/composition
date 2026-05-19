@@ -29,7 +29,6 @@ import { ColorPickerPanel } from "./ColorPickerPanel";
 import { GradientEditor } from "./GradientEditor";
 import { MeshGradientEditor } from "./MeshGradientEditor";
 import { ImageFillEditor } from "./ImageFillEditor";
-import { VariableBindingButton } from "./VariableBindingButton";
 import { BlendModeSelector } from "./BlendModeSelector";
 
 import "./FillDetailPopover.css";
@@ -145,18 +144,12 @@ export const FillDetailPopover = memo(function FillDetailPopover({
         onChange={handleCategoryChange}
       />
       {isColor && (
-        <>
-          <VariableBindingButton
-            value={rawColorValue}
-            onChange={handleColorChangeEndCommitted}
-          />
-          <ColorPickerPanel
-            value={committedColorValue}
-            resetKey={`${fill.id}:${fill.type}`}
-            onChange={onColorChange}
-            onChangeEnd={handleColorChangeEndCommitted}
-          />
-        </>
+        <ColorPickerPanel
+          value={committedColorValue}
+          resetKey={`${fill.id}:${fill.type}`}
+          onChange={onColorChange}
+          onChangeEnd={handleColorChangeEndCommitted}
+        />
       )}
       {isGradient && (
         <GradientEditor
