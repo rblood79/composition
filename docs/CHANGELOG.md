@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 1a — PrimitiveBinding + generic renderer proof slice] - 2026-05-20
+
+### Architecture
+
+- **Button `PrimitiveBinding` proof surface 추가**:
+  - `packages/shared/src/catalog` 에 최소 `PrimitiveBinding` 타입, Button canonical props → RAC props 투영, Button binding registry 를 추가했다.
+  - **Why**: ADR-142 의 코드 정의 단위를 기존 `ComponentSpec`/`render.shapes()` 확장이 아니라 leaf RAC primitive binding 으로 고정하기 위한 첫 proof.
+- **Preview canonical renderer Button primitive branch 추가**:
+  - `CanonicalNodeRenderer` 가 Button resolved node 를 `rendererMap` fallback 보다 먼저 `PrimitiveBinding` 기반 shared Button wrapper 로 렌더한다.
+  - reusable origin + `type:"ref"` instance 가 `resolveCanonicalDocument()` 뒤 같은 primitive branch 로 DOM 렌더되는 fixture 를 추가했다.
+- **Skia generic resolved-tree proof 추가**:
+  - `buildSpecNodeData.ts` 에 resolved canonical tree + theme 를 소비하는 generic Skia traversal proof path 를 추가했다.
+  - Button ref proof set 은 `ButtonSpec.render.shapes()` 호출 없이 Skia node/text 를 생성한다.
+  - 205개 Button ref canonical 문서 fixture 로 `durationMs <= 16.67` / `estimatedFps >= 60` frame-budget gate 를 고정했다.
+
+### Documentation
+
+- ADR-142 본문, breakdown, README row 를 Phase 1a G2a/G2b/G2c 완료 상태로 갱신했다. 다음 진입점은 Phase 1b G2d(generic Inspector + 공통 기반 완성)이다.
+
 ## [Canonical 시각 토큰 필드 정명 + theme/token SSOT 재정렬 — ADR-143] - 2026-05-19
 
 ### Breaking Changes

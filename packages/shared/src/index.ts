@@ -9,13 +9,16 @@
  */
 
 // Types
-export * from './types';
+export * from "./types";
 
 // Utils
-export * from './utils';
+export * from "./utils";
 
 // Hooks
-export * from './hooks';
+export * from "./hooks";
 
 // Runtime (Phase 3)
-export * from './runtime';
+export * from "./runtime";
+
+// ADR-142 Phase 1a — primitive binding proof surface
+export * from "./catalog";

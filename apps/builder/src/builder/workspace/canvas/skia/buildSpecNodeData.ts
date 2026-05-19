@@ -19,7 +19,15 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
+  getPrimitiveBinding,
+  toButtonRacProps,
+  type ButtonRacProps,
+  type ResolvedNode,
+} from "@composition/shared";
+import {
+  fontFamily,
   normalizeBreadcrumbRspSizeKey,
+  parsePxValue,
   type ComponentState,
   type PropagationRule,
 } from "@composition/specs";
@@ -68,6 +76,26 @@ interface SpecBuildInput {
   elementsMap: Map<string, CanvasSceneNode>;
   /** 형제 조회용 — resolveBreadcrumbItemContext, resolveToggleGroupPosition */
   childrenMap?: Map<string, CanvasSceneNode[]>;
+}
+
+export interface GenericResolvedSkiaLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface GenericResolvedSkiaBuildInput {
+  node: ResolvedNode;
+  theme: "light" | "dark";
+  layout?: GenericResolvedSkiaLayout;
+  layoutById?: ReadonlyMap<string, GenericResolvedSkiaLayout>;
+}
+
+export interface GenericResolvedSkiaFrameBudget {
+  nodeCount: number;
+  durationMs: number;
+  estimatedFps: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -748,6 +776,282 @@ function resolveAccentColor(
     pid = p.parent_id;
   }
   return undefined;
+}
+
+// ---------------------------------------------------------------------------
+// ADR-142 Phase 1a generic resolved-tree Skia proof
+// ---------------------------------------------------------------------------
+
+export function buildGenericResolvedSkiaNodeData(
+  input: GenericResolvedSkiaBuildInput,
+): SkiaNodeData | null {
+  const layout = resolveGenericLayout(input);
+  if (layout.width <= 0 || layout.height <= 0) return null;
+
+  const binding = getPrimitiveBinding(String(input.node.type));
+  if (binding?.skiaPrimitive?.kind === "button") {
+    return buildGenericButtonNode(input.node, layout, input.theme);
+  }
+
+  const style = readGenericStyle(input.node);
+  const children = (input.node.children ?? [])
+    .map((child) =>
+      buildGenericResolvedSkiaNodeData({
+        node: child,
+        theme: input.theme,
+        layoutById: input.layoutById,
+      }),
+    )
+    .filter((child): child is SkiaNodeData => child !== null);
+
+  return {
+    type: "container",
+    elementId: input.node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(
+          typeof style.backgroundColor === "string"
+            ? style.backgroundColor
+            : undefined,
+          input.theme === "dark" ? 0x111827 : 0xffffff,
+        ),
+        style.backgroundColor === "transparent" ? 0 : 1,
+      ),
+      borderRadius: readNumber(style.borderRadius, 0),
+    },
+    ...(children.length > 0 ? { children } : {}),
+  };
+}
+
+export function measureGenericResolvedSkiaFrameBudget(
+  input: GenericResolvedSkiaBuildInput,
+): GenericResolvedSkiaFrameBudget {
+  const startedAt = performance.now();
+  const node = buildGenericResolvedSkiaNodeData(input);
+  const durationMs = performance.now() - startedAt;
+  const effectiveDuration = Math.max(durationMs, 0.001);
+  return {
+    nodeCount: countSkiaNodeData(node),
+    durationMs,
+    estimatedFps: 1000 / effectiveDuration,
+  };
+}
+
+function buildGenericButtonNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toButtonRacProps(node.props ?? {}) as ButtonRacProps;
+  const palette = resolveGenericButtonPalette(props, theme);
+  const size = resolveGenericButtonSize(props.size);
+  const style = readGenericStyle(node);
+  const textContent = props.children;
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: layout.height,
+    visible: true,
+    text: {
+      content: textContent,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "center",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: layout.width,
+      autoCenter: true,
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: palette.fillColor,
+      borderRadius: readNumber(style.borderRadius, size.radius),
+      strokeColor: palette.strokeColor,
+      strokeWidth: palette.strokeWidth,
+    },
+    children: [textNode],
+  };
+}
+
+function resolveGenericLayout(
+  input: GenericResolvedSkiaBuildInput,
+): GenericResolvedSkiaLayout {
+  const style = readGenericStyle(input.node);
+  const layout = input.layoutById?.get(input.node.id) ?? input.layout;
+  return {
+    x: layout?.x ?? readTranslateX(style.transform) ?? readNumber(style.x, 0),
+    y: layout?.y ?? readTranslateY(style.transform) ?? readNumber(style.y, 0),
+    width:
+      layout?.width ?? readNumber(style.width, defaultGenericWidth(input.node)),
+    height:
+      layout?.height ??
+      readNumber(style.height, defaultGenericHeight(input.node)),
+  };
+}
+
+function readGenericStyle(node: ResolvedNode): Record<string, unknown> {
+  const style = node.props?.style;
+  return Boolean(style) && typeof style === "object" && !Array.isArray(style)
+    ? (style as Record<string, unknown>)
+    : {};
+}
+
+function isGenericNodeVisible(style: Record<string, unknown>): boolean {
+  return (
+    style.display !== "none" &&
+    style.display !== "contents" &&
+    style.visibility !== "hidden" &&
+    style.visibility !== "collapse"
+  );
+}
+
+function defaultGenericWidth(node: ResolvedNode): number {
+  return getPrimitiveBinding(String(node.type)) ? 120 : 0;
+}
+
+function defaultGenericHeight(node: ResolvedNode): number {
+  return getPrimitiveBinding(String(node.type)) ? 36 : 0;
+}
+
+function readNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = parsePxValue(value, fallback);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function readTranslateX(value: unknown): number | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = value.match(/translate\(\s*(-?\d+(?:\.\d+)?)px?/);
+  return match ? Number(match[1]) : undefined;
+}
+
+function readTranslateY(value: unknown): number | undefined {
+  if (typeof value !== "string") return undefined;
+  const match = value.match(
+    /translate\(\s*-?\d+(?:\.\d+)?px?\s*,\s*(-?\d+(?:\.\d+)?)px?/,
+  );
+  return match ? Number(match[1]) : undefined;
+}
+
+function resolveGenericButtonSize(size: ButtonRacProps["size"]): {
+  fontSize: number;
+  lineHeight: number;
+  radius: number;
+} {
+  switch (size) {
+    case "xs":
+      return { fontSize: 11, lineHeight: 14, radius: 4 };
+    case "sm":
+      return { fontSize: 12, lineHeight: 16, radius: 4 };
+    case "lg":
+      return { fontSize: 16, lineHeight: 24, radius: 8 };
+    case "xl":
+      return { fontSize: 18, lineHeight: 28, radius: 8 };
+    case "md":
+    default:
+      return { fontSize: 14, lineHeight: 20, radius: 6 };
+  }
+}
+
+function resolveGenericButtonPalette(
+  props: ButtonRacProps,
+  theme: "light" | "dark",
+): {
+  fillColor: Float32Array;
+  textColor: Float32Array;
+  strokeColor: Float32Array;
+  strokeWidth: number;
+} {
+  const isDark = theme === "dark";
+  const token = (() => {
+    if (props.fillStyle === "outline") {
+      return {
+        fill: "transparent",
+        text:
+          props.variant === "accent"
+            ? "#2563eb"
+            : isDark
+              ? "#f9fafb"
+              : "#111827",
+        stroke: isDark ? "#6b7280" : "#d1d5db",
+      };
+    }
+    switch (props.variant) {
+      case "accent":
+        return { fill: "#2563eb", text: "#ffffff", stroke: "#2563eb" };
+      case "secondary":
+        return {
+          fill: isDark ? "#374151" : "#f3f4f6",
+          text: isDark ? "#f9fafb" : "#111827",
+          stroke: isDark ? "#4b5563" : "#d1d5db",
+        };
+      case "negative":
+        return { fill: "#dc2626", text: "#ffffff", stroke: "#dc2626" };
+      case "premium":
+      case "genai":
+        return { fill: "#7c3aed", text: "#ffffff", stroke: "#7c3aed" };
+      case "ghost":
+        return {
+          fill: "transparent",
+          text: isDark ? "#f9fafb" : "#111827",
+          stroke: "transparent",
+        };
+      case "primary":
+      default:
+        return {
+          fill: isDark ? "#f9fafb" : "#111827",
+          text: isDark ? "#111827" : "#ffffff",
+          stroke: isDark ? "#f9fafb" : "#111827",
+        };
+    }
+  })();
+
+  return {
+    fillColor:
+      token.fill === "transparent"
+        ? Float32Array.of(0, 0, 0, 0)
+        : colorIntToFloat32(cssColorToHex(token.fill), 1),
+    textColor: colorIntToFloat32(cssColorToHex(token.text), 1),
+    strokeColor:
+      token.stroke === "transparent"
+        ? Float32Array.of(0, 0, 0, 0)
+        : colorIntToFloat32(cssColorToHex(token.stroke), 1),
+    strokeWidth: token.stroke === "transparent" ? 0 : 1,
+  };
+}
+
+function countSkiaNodeData(node: SkiaNodeData | null): number {
+  if (!node) return 0;
+  return (
+    1 +
+    (node.children ?? []).reduce(
+      (count, child) => count + countSkiaNodeData(child),
+      0,
+    )
+  );
 }
 
 // ---------------------------------------------------------------------------

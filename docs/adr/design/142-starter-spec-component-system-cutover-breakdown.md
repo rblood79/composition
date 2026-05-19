@@ -30,20 +30,22 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 
 ### 새로 만들 파일
 
-| 파일                                                                  | 책임                                                                                                         |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `docs/reference/audits/2026-05-19-canonical-component-inventory.md`   | starter 컴포넌트 primitive/composed 분류 + shared/Panel/Factory/rendererMap/124 ComponentSpec diff           |
-| `packages/shared/src/catalog/types.ts`                                | `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type(`PropContract`/`PanelMeta` 등)                       |
-| `packages/shared/src/catalog/bindings/{Primitive}.binding.ts`         | leaf RAC primitive 약 35개의 `PrimitiveBinding` — `react-aria-components` 기준 작성 (D3 시각은 starter 참조) |
-| `packages/shared/src/catalog/outputs/toRacProps.ts`                   | canonical props → RAC component props 투영 (유일한 binding 변환기)                                           |
-| `packages/shared/src/catalog/outputs/inspectorFields.ts`              | `PropContract` 집합 + theme → Inspector 편집 필드 generic 생성 (컴포넌트당 `SpecField` 분기 대체)            |
-| `packages/shared/src/catalog/componentCatalog.ts`                     | primitive + reusable entry 단일 registry + family/cutover/panel metadata                                     |
-| `packages/shared/src/catalog/library/`                                | 조합 컴포넌트의 seed reusable canonical 문서 (Phase 2 산출, Builder 저작분 export)                           |
-| `packages/shared/src/catalog/__tests__/componentCatalog.test.ts`      | catalog entry 무결성 + family atomicity 검증                                                                 |
-| `packages/shared/src/catalog/__tests__/inspectorFields.test.ts`       | `PropContract`→Inspector 필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회 검증                         |
-| `apps/builder/src/preview/__tests__/canonicalPreviewRefSlot.test.tsx` | Preview 가 reusable/ref/descendants/slot resolved tree 를 실제 DOM 으로 렌더링하는지 검증 (F1~F4)            |
-| `apps/builder/.../skia/__tests__/canonicalSkiaSymmetry.test.ts`       | generic 렌더러 DOM↔Skia 시각 대칭 + worst-case 부하 Skia frame budget(G2c) fixture                           |
-| `packages/shared/src/components/legacy/README.md`                     | legacy 구현의 compatibility boundary 규칙                                                                    |
+| 파일                                                                           | 책임                                                                                                         |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `docs/reference/audits/2026-05-19-canonical-component-inventory.md`            | starter 컴포넌트 primitive/composed 분류 + shared/Panel/Factory/rendererMap/124 ComponentSpec diff           |
+| `packages/shared/src/catalog/types.ts`                                         | `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type(`PropContract`/`PanelMeta` 등)                       |
+| `packages/shared/src/catalog/primitives/{Primitive}.ts`                        | leaf RAC primitive 약 35개의 `PrimitiveBinding` — `react-aria-components` 기준 작성 (D3 시각은 starter 참조) |
+| `packages/shared/src/catalog/outputs/toRacProps.ts`                            | canonical props → RAC component props 투영 (유일한 binding 변환기)                                           |
+| `packages/shared/src/catalog/registry.ts`                                      | Phase 1a/1b primitive binding lookup surface                                                                 |
+| `packages/shared/src/catalog/outputs/inspectorFields.ts`                       | `PropContract` 집합 + theme → Inspector 편집 필드 generic 생성 (컴포넌트당 `SpecField` 분기 대체)            |
+| `packages/shared/src/catalog/componentCatalog.ts`                              | primitive + reusable entry 단일 registry + family/cutover/panel metadata                                     |
+| `packages/shared/src/catalog/library/`                                         | 조합 컴포넌트의 seed reusable canonical 문서 (Phase 2 산출, Builder 저작분 export)                           |
+| `packages/shared/src/catalog/__tests__/componentCatalog.test.ts`               | catalog entry 무결성 + family atomicity 검증                                                                 |
+| `packages/shared/src/catalog/__tests__/inspectorFields.test.ts`                | `PropContract`→Inspector 필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회 검증                         |
+| `apps/builder/src/preview/__tests__/canonicalPreviewRefSlot.test.tsx`          | Preview 가 reusable/ref/descendants/slot resolved tree 를 실제 DOM 으로 렌더링하는지 검증 (F1~F4)            |
+| `apps/builder/src/preview/components/CanonicalNodeRenderer.adr142.test.tsx`    | Phase 1a Button primitive + reusable ref DOM proof fixture                                                   |
+| `apps/builder/src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts` | generic 렌더러 DOM↔Skia 시각 대칭 + worst-case 부하 Skia frame budget(G2c) fixture                           |
+| `packages/shared/src/components/legacy/README.md`                              | legacy 구현의 compatibility boundary 규칙                                                                    |
 
 ### 수정할 파일
 
@@ -266,6 +268,27 @@ Phase 1 은 공통 기반의 핵심이자 대안 E 의 kill-switch 단계다. **
 
 검증: `pnpm -F @composition/builder test canonicalSkiaSymmetry` / `pnpm run codex:typecheck`
 Gate: **G2a / G2b / G2c (proof gate — kill-switch)**
+
+Status: Implemented — 2026-05-20. 산출물:
+`packages/shared/src/catalog/types.ts`,
+`packages/shared/src/catalog/outputs/toRacProps.ts`,
+`packages/shared/src/catalog/primitives/button.ts`,
+`packages/shared/src/catalog/registry.ts`,
+`apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`,
+`apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`.
+Fixture:
+`apps/builder/src/preview/components/CanonicalNodeRenderer.adr142.test.tsx`,
+`apps/builder/src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`.
+검증: `pnpm -F @composition/builder exec vitest run
+src/preview/components/CanonicalNodeRenderer.adr142.test.tsx`,
+`pnpm -F @composition/builder exec vitest run
+src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`,
+`pnpm -F @composition/builder exec vitest run
+src/preview/components/CanonicalNodeRenderer.adr142.test.tsx
+src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`,
+`pnpm run codex:typecheck`. G2c 는 205개 Button ref canonical 문서 fixture 에서
+`durationMs <= 16.67` / `estimatedFps >= 60` 으로 고정했다. Phase 1a 는
+family cutover, generic Inspector, `componentCatalog` 완성을 포함하지 않는다.
 
 #### Phase 1b — 공통 기반 완성
 

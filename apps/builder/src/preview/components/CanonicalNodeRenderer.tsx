@@ -18,9 +18,17 @@
 
 import React from "react";
 import { rendererMap } from "@composition/shared/renderers";
-import { adaptElementFillStyle } from "@composition/shared";
+import {
+  adaptElementFillStyle,
+  getPrimitiveBinding,
+  type ButtonRacProps,
+} from "@composition/shared";
+import { Button } from "@composition/shared/components";
 import type { ResolvedNode } from "@composition/shared";
-import type { RenderContext as SharedRenderContext } from "@composition/shared/types";
+import type {
+  PreviewElement as SharedPreviewElement,
+  RenderContext as SharedRenderContext,
+} from "@composition/shared/types";
 import { extractCanonicalPropsFromResolved } from "../../resolvers/canonical/storeBridge";
 import type { RenderContext } from "../types/index";
 import type { PreviewElement } from "../types/index";
@@ -101,6 +109,18 @@ export function CanonicalNodeRenderer({
     "data-element-id": elementId,
   };
 
+  const primitiveBinding = getPrimitiveBinding(adaptedEl.type);
+  if (primitiveBinding) {
+    const primitiveElement = renderPrimitiveNode({
+      node,
+      adaptedEl,
+      renderContext,
+      parentPath: currentPath,
+      markerProps,
+    });
+    if (primitiveElement) return primitiveElement;
+  }
+
   // ── rendererMap 위임 ──────────────────────────────────────────────────────
   const renderer = rendererMap[adaptedEl.type];
   if (renderer) {
@@ -108,7 +128,10 @@ export function CanonicalNodeRenderer({
     // 여기서는 rendererMap 에 그대로 위임. DOM 마커는 wrapper div 로 감쌈.
     return (
       <div key={node.id} {...markerProps} style={{ display: "contents" }}>
-        {renderer(adaptedEl, renderContext as unknown as SharedRenderContext)}
+        {renderer(
+          adaptedEl as unknown as SharedPreviewElement,
+          renderContext as unknown as SharedRenderContext,
+        )}
       </div>
     );
   }
@@ -161,4 +184,43 @@ function resolveGenericHtmlTag(type: string): string {
     ref: "div",
   };
   return KNOWN_HTML[type] ?? type.toLowerCase();
+}
+
+function renderPrimitiveNode({
+  node,
+  adaptedEl,
+  renderContext,
+  parentPath,
+  markerProps,
+}: {
+  node: ResolvedNode;
+  adaptedEl: PreviewElement;
+  renderContext: RenderContext;
+  parentPath: string;
+  markerProps: Record<"data-canonical-id" | "data-element-id", string>;
+}): React.ReactElement | null {
+  if (adaptedEl.type !== "Button") return null;
+
+  const binding = getPrimitiveBinding("Button");
+  if (!binding) return null;
+
+  const { children: racChildren, ...buttonProps } = binding.toRacProps(
+    adaptedEl.props as Record<string, unknown>,
+  ) as ButtonRacProps;
+  const renderedChildren = node.children?.length
+    ? node.children.map((child) => (
+        <CanonicalNodeRenderer
+          key={child.id}
+          node={child}
+          renderContext={renderContext}
+          parentPath={parentPath}
+        />
+      ))
+    : racChildren;
+
+  return (
+    <Button key={node.id} {...buttonProps} {...markerProps}>
+      {renderedChildren}
+    </Button>
+  );
 }

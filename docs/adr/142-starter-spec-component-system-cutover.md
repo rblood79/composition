@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c 진입 전 별도 승인 필요)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; 다음 진입점 Phase 1b G2d)
 
 ## Context
 
@@ -167,6 +167,13 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 | G5      | family Preview/Publish/Skia 정합                | 해당 family fixture 가 Preview DOM, Skia 양쪽에서 동일 시각 결과(`/cross-check`). reusable/ref/slot 렌더 정상                                                                                                                                                 | 해당 family hidden 또는 legacy fallback           |
 | G6      | family Legacy 격리                              | 해당 family 의 active 경로에서 `components/legacy` import + `ComponentSpec`/`ReactRenderer`/`render.shapes` 참조 0건                                                                                                                                          | 해당 family cutover 보류                          |
 | G7      | Final verification                              | `pnpm run codex:preflight` 통과. 전 family `cutover:"catalog"` 도달. README/ADR status 동기화. ADR-036/907/908/140/141 status 재평가                                                                                                                          | 실패 family commit revert (다른 family 영향 없음) |
+
+2026-05-20 판정: Phase 1a proof slice 가 G2a/G2b/G2c 를 통과했다. 범위는 Button
+1개 primitive binding + reusable-origin/ref-instance 수직 슬라이스이며, family
+cutover 또는 generic Inspector 는 포함하지 않는다. G2c 측정은
+`canonicalSkiaSymmetry.test.ts` 의 205개 Button ref canonical 문서 fixture 에서
+generic Skia traversal `durationMs <= 16.67` / `estimatedFps >= 60` 을 검증한다.
+다음 gate 는 Phase 1b G2d 다.
 
 ## Consequences
 
