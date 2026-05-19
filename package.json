@@ -27,8 +27,6 @@
     "test": "turbo run test",
     "test:coverage": "pnpm -F @composition/specs test:coverage",
     "clean": "turbo run clean && rm -rf node_modules",
-    "storybook": "pnpm -F @composition/builder storybook",
-    "build-storybook": "pnpm -F @composition/builder build-storybook",
     "playwright:install": "npx playwright install",
     "test:e2e": "playwright test",
     "check:pixi-plan": "pnpm -F @composition/builder check:pixi-plan",

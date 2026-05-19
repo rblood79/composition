@@ -10,7 +10,6 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 pnpm dev          # 개발 서버
 pnpm build        # 빌드
 pnpm type-check   # 타입 체크
-pnpm storybook    # Storybook
 ```
 
 ## 프로젝트 구조

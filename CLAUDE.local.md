@@ -47,7 +47,6 @@ git worktree remove <worktree-path>
 pnpm dev                    # 개발 서버
 pnpm build:specs            # Spec 빌드
 pnpm type-check             # 타입 체크
-pnpm storybook              # Storybook
 ```
 
 ## 장기 세션 관리
