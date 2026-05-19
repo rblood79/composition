@@ -19,3 +19,4 @@
 {"sha":"8834a9df809bfd748002cde9cf2f71a4cb8dbd9b","date":"2026-05-17T23:37:10+09:00","promoted_adrs":["docs/adr/completed/140-press-scale-micro-interaction.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"35349675a32a8f6fb8edaf9ad5c41fd3e6570c71","date":"2026-05-18T16:51:30+09:00","promoted_adrs":["docs/adr/138-component-palette-reusable.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
 {"sha":"deefdd897b09f6546116f6d4bb0a65d34c3f6a49","date":"2026-05-18T20:22:28+09:00","promoted_adrs":["docs/adr/completed/141-rac-starter-spec-style-sync.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
+{"sha":"6e64d9543ff4275f3ed945b629c917888b9c3bce","date":"2026-05-19T18:33:29+09:00","promoted_adrs":["docs/adr/completed/143-canonical-token-field-realignment.md"],"readme_updated":true,"changelog_updated":true,"synced":true}
