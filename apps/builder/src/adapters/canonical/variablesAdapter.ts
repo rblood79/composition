@@ -52,6 +52,17 @@ export type { TokensSnapshot, TokensSnapshotEntry } from "@composition/shared";
  */
 export type ResolvedTokenMap = Record<string, string | number | boolean>;
 
+/**
+ * resolved 값의 런타임 타입 → `TokensSnapshotEntry.type` 추론.
+ * 직렬화 불가 값(undefined / object 등)은 `null` 반환 (caller 가 스킵).
+ */
+function inferTokenType(value: unknown): TokensSnapshotEntry["type"] | null {
+  if (typeof value === "string") return "color";
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  return null;
+}
+
 // ─────────────────────────────────────────────
 // Core adapter functions
 // ─────────────────────────────────────────────
@@ -71,18 +82,8 @@ export function snapshotTokensFromResolved(
   const snapshot: TokensSnapshot = {};
 
   for (const [key, value] of Object.entries(resolvedTokens)) {
-    let type: TokensSnapshotEntry["type"];
-
-    if (typeof value === "string") {
-      type = "color"; // Spec TokenRef resolve 결과는 기본적으로 색상값
-    } else if (typeof value === "number") {
-      type = "number";
-    } else if (typeof value === "boolean") {
-      type = "boolean";
-    } else {
-      // 예외 케이스: 직렬화 불가 값은 스킵
-      continue;
-    }
+    const type = inferTokenType(value);
+    if (type === null) continue; // 직렬화 불가 값은 스킵
 
     snapshot[key] = {
       type,
@@ -193,4 +194,88 @@ export function resolveCanonicalToken(
   const key = `${category}.${name}`;
 
   return doc.tokens?.[key]?.value;
+}
+
+// ─────────────────────────────────────────────
+// ADR-143 Phase 3 — 토큰 델타 저장 / merge
+// ─────────────────────────────────────────────
+
+/**
+ * spec-token override 델타 + user-defined token 만 추출한 `TokensSnapshot` 빌드.
+ *
+ * ADR-143 §3-2: `CompositionDocument.tokens` 는 토큰 전체 세트가 아니라
+ * **델타만** 저장한다 — 문서 비대화(Hard Constraint 3) 차단.
+ *
+ * - spec-token: `seedTokens`(`primitives/` 기본값)와 **다른 값** 만 저장 (override 델타).
+ *   seed 와 동일한 값(미커스터마이즈)은 제외 → 미커스터마이즈 프로젝트는 빈 객체에 근접.
+ * - user-defined: 항상 저장 (seed 에 없는 신규 토큰).
+ *
+ * `mergeTokensSnapshot()` 의 역연산. spec 기본 토큰은 런타임 seed 로 복원되므로
+ * 문서에 중복 저장하지 않는다.
+ *
+ * @param args.resolvedTokens - 현재 프로젝트의 spec-token resolve 결과 (override 반영)
+ * @param args.seedTokens - `primitives/` 기본 토큰 resolve 결과 (델타 비교 기준)
+ * @param args.userDefinedTokens - 사용자 정의 신규 토큰 (선택)
+ * @returns 델타 TokensSnapshot
+ */
+export function buildTokensSnapshot(args: {
+  resolvedTokens: ResolvedTokenMap;
+  seedTokens: ResolvedTokenMap;
+  userDefinedTokens?: Record<
+    string,
+    { type: TokensSnapshotEntry["type"]; value: string | number | boolean }
+  >;
+}): TokensSnapshot {
+  const { resolvedTokens, seedTokens, userDefinedTokens } = args;
+  const snapshot: TokensSnapshot = {};
+
+  // spec-token: seed 와 다른 값(override)만 저장
+  for (const [key, value] of Object.entries(resolvedTokens)) {
+    if (seedTokens[key] === value) continue; // 기본값과 동일 → 델타 아님
+    const type = inferTokenType(value);
+    if (type === null) continue;
+    snapshot[key] = { type, value, source: "spec-token" };
+  }
+
+  // user-defined: 전부 저장 (seed 에 없는 신규 토큰)
+  for (const [key, def] of Object.entries(userDefinedTokens ?? {})) {
+    snapshot[key] = {
+      type: def.type,
+      value: def.value,
+      source: "user-defined",
+    };
+  }
+
+  return snapshot;
+}
+
+/**
+ * `primitives/` seed + 문서 `tokens` 델타 → 완전한 `TokensSnapshot` 으로 merge.
+ *
+ * ADR-143 §3-2 merge 순서: `primitives/` seed → 문서 `tokens` 델타 override.
+ * `buildTokensSnapshot()` 의 역연산 — 런타임에서 완전한 토큰 세트 복원.
+ *
+ * @param seedTokens - `primitives/` 기본 토큰 resolve 결과
+ * @param delta - 문서 `tokens` 필드 (델타) — undefined 면 seed 만 반환
+ * @returns seed + 델타 override 가 합쳐진 완전한 TokensSnapshot
+ */
+export function mergeTokensSnapshot(
+  seedTokens: ResolvedTokenMap,
+  delta: TokensSnapshot | undefined,
+): TokensSnapshot {
+  const merged: TokensSnapshot = {};
+
+  // seed 전부 (spec-token)
+  for (const [key, value] of Object.entries(seedTokens)) {
+    const type = inferTokenType(value);
+    if (type === null) continue;
+    merged[key] = { type, value, source: "spec-token" };
+  }
+
+  // 문서 델타 override (spec-token override + user-defined)
+  for (const [key, entry] of Object.entries(delta ?? {})) {
+    merged[key] = entry;
+  }
+
+  return merged;
 }
