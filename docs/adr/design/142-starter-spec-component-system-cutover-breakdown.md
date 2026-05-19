@@ -91,7 +91,7 @@ export type ComponentFamily =
   | "date-color"
   | "composition-native";
 
-export type CutoverState = "legacy" | "cutting-over" | "starter";
+export type CutoverState = "legacy" | "cutting-over" | "catalog";
 
 // leaf RAC primitive 1개당 1개. 약 35개. 시각/변형/구조 필드 없음.
 export interface PrimitiveBinding {
@@ -140,7 +140,7 @@ export type ComponentCatalogEntry =
       type: string;
       family: ComponentFamily;
       cutover: CutoverState;
-      reusableId: string; // starter/library 의 canonical reusable frame id
+      reusableId: string; // catalog/library 의 canonical reusable frame id
       panel: PanelMeta;
     };
 ```
@@ -150,7 +150,7 @@ export type ComponentCatalogEntry =
 - `kind: "primitive"` — `react-aria-components` 에 leaf RAC primitive 가 있는 항목. 예: Button, TextField, Checkbox, Dialog, ListBox, Tree, Table. `binding` 으로 정의한다.
 - `kind: "reusable"` — 조합 컴포넌트. 예: Card, Section, 아이콘이 붙은 Button. `reusableId` 가 canonical reusable 문서를 가리킨다. 코드 정의가 없다.
 - composition-native(`Frame`/`Slot`/reusable tooling)는 RAC primitive 없이 catalog 에 등록한다. `family: "composition-native"`.
-- `family` 와 `cutover` 가 family 단위 atomic cutover 의 SSOT 다. 한 family 의 모든 entry 는 `cutover` 를 `legacy → cutting-over → starter` 로 함께 거치며, 같은 family 안에서 `legacy` 와 `starter` 가 혼재할 수 없다.
+- `family` 와 `cutover` 가 family 단위 atomic cutover 의 SSOT 다. 한 family 의 모든 entry 는 `cutover` 를 `legacy → cutting-over → catalog` 로 함께 거치며, 같은 family 안에서 `legacy` 와 `catalog` 가 혼재할 수 없다.
 
 시각 SSOT 의 위치:
 
@@ -244,7 +244,7 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 
 불변식:
 
-- **C**: `placeable === true && cutover === "starter"` catalog entry ⟹ Panel + Factory + generic 렌더러(DOM·Skia)가 커버.
+- **C**: `placeable === true && cutover === "catalog"` catalog entry ⟹ Panel + Factory + generic 렌더러(DOM·Skia)가 커버.
 - **D (family atomic)**: 같은 `family` 의 entry 는 `cutover` 값이 전부 동일. 혼재 시 FAIL.
 - **E**: `cutover === "legacy"` entry 는 Panel official catalog 에서 제외.
 
@@ -271,9 +271,9 @@ Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 family 순서: primitives·actions → fields → selection → collections → Tree·Table → overlays → date·color → composition-native (§5 표 참조).
 
-각 family 마다 §5 표준 체크리스트 수행. 통과 시 `cutover:"starter"` flip — 4경로 동시 발효. 실패 시 그 family 만 `cutover:"legacy"` 유지, 다음 family 진행.
+각 family 마다 §5 표준 체크리스트 수행. 통과 시 `cutover:"catalog"` flip — 4경로 동시 발효. 실패 시 그 family 만 `cutover:"legacy"` 유지, 다음 family 진행.
 
-전 family 가 `cutover:"starter"` 도달 시 legacy allowlist 고정 + release note + README/ADR status 갱신 + ADR-036/907/908 status 재평가.
+전 family 가 `cutover:"catalog"` 도달 시 legacy allowlist 고정 + release note + README/ADR status 갱신 + ADR-036/907/908 status 재평가.
 
 검증 (family 마다): `pnpm run codex:guard` / `pnpm run codex:typecheck` / `pnpm run codex:preflight`
 Gate: G4 / G5 / G6 (family 반복), G7 (최종)
@@ -306,7 +306,7 @@ Gate: G4 / G5 / G6 (family 반복), G7 (최종)
 | 7   | Panel/Factory 가 해당 family 를 catalog 로 소비                 | `ComponentList.tsx` / `ComponentFactory.ts`                    |
 | 8   | generic 렌더러가 family 커버 확인 (DOM + Skia) + `/cross-check` | `CanonicalNodeRenderer.tsx` / `buildSpecNodeData.ts`           |
 | 9   | registration contract 불변식 C/D/E + family fixture 통과        | `pnpm test:registration-contract` + family fixture             |
-| 10  | 통과 시 catalog entry `cutover: "starter"` flip                 | `componentCatalog.ts` — 4경로 동시 발효                        |
+| 10  | 통과 시 catalog entry `cutover: "catalog"` flip                 | `componentCatalog.ts` — 4경로 동시 발효                        |
 
 - 4~6 사이 빌드 깨짐 구간은 family 의 (legacy 이동 + 새 파일 + barrel) 을 한 cohesive commit 으로 묶어 main 에 깨진 중간 상태가 들어가지 않게 한다.
 - 9 미통과 시 10 미실행 — 해당 family `cutover:"legacy"` 유지, 다음 family 진행.
@@ -331,7 +331,7 @@ cutover 후 허용되는 legacy usage:
 
 ## 7. 완료 판정
 
-ADR-142 를 Implemented 로 승격하려면 전 family 가 `cutover:"starter"` 에 도달하고 아래가 모두 참이어야 한다.
+ADR-142 를 Implemented 로 승격하려면 전 family 가 `cutover:"catalog"` 에 도달하고 아래가 모두 참이어야 한다.
 
 1. inventory + `componentCatalog` 가 현재 official component set 을 설명하고, 124 `ComponentSpec` 의 legacy 처분이 명시된다.
 2. 조합 컴포넌트가 canonical reusable 문서로 정의되어 있고, 코드 정의가 leaf primitive 약 35개의 `PrimitiveBinding` 으로 한정된다.

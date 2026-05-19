@@ -149,7 +149,7 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 
 ## Gates
 
-공통 기반 Gate(G0~G3)는 family cutover 착수 전 1회 통과한다. family cutover Gate(G4~G6)는 family 마다 반복 적용하며 한 family 의 4경로를 동시에 검증한다. G7 은 전 family 가 `cutover:"starter"` 에 도달했을 때 1회 통과한다.
+공통 기반 Gate(G0~G3)는 family cutover 착수 전 1회 통과한다. family cutover Gate(G4~G6)는 family 마다 반복 적용하며 한 family 의 4경로를 동시에 검증한다. G7 은 전 family 가 `cutover:"catalog"` 에 도달했을 때 1회 통과한다.
 
 | Gate   | 시점                             | 통과 조건                                                                                                                                                                                                                                                                                                                                       | 실패 시 대안                                      |
 | ------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
@@ -160,7 +160,7 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 | G4     | family Builder cutover           | 해당 family 의 Component Panel / Factory 가 catalog 기준으로 동작. manual duplicate registration 없음                                                                                                                                                                                                                                           | 해당 family legacy 유지                           |
 | G5     | family Preview/Publish/Skia 정합 | 해당 family fixture 가 Preview DOM, Skia 양쪽에서 동일 시각 결과(`/cross-check`). reusable/ref/slot 렌더 정상                                                                                                                                                                                                                                   | 해당 family hidden 또는 legacy fallback           |
 | G6     | family Legacy 격리               | 해당 family 의 active 경로에서 `components/legacy` import + `ComponentSpec`/`ReactRenderer`/`render.shapes` 참조 0건                                                                                                                                                                                                                            | 해당 family cutover 보류                          |
-| G7     | Final verification               | `pnpm run codex:preflight` 통과. 전 family `cutover:"starter"` 도달. README/ADR status 동기화. ADR-036/907/908 status 재평가                                                                                                                                                                                                                    | 실패 family commit revert (다른 family 영향 없음) |
+| G7     | Final verification               | `pnpm run codex:preflight` 통과. 전 family `cutover:"catalog"` 도달. README/ADR status 동기화. ADR-036/907/908 status 재평가                                                                                                                                                                                                                    | 실패 family commit revert (다른 family 영향 없음) |
 
 ## Consequences
 
