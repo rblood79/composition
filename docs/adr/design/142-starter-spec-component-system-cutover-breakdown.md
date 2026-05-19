@@ -17,7 +17,7 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 핵심 산출물:
 
 - starter inventory + primitive/composed 분류표 + 124 `ComponentSpec` legacy 처분 목록
-- 단일 `packages/react-aria-starter/design.md` — starter token/패턴 중복 제거 reference (검증·확정)
+- 단일 `packages/react-aria-starter/design.md` — Google DESIGN.md section set 을 차용한 starter token/패턴 중복 제거 reference (검증·확정)
 - `PrimitiveBinding` 타입 + `componentCatalog` 타입
 - generic 렌더러 (DOM backend + Skia backend) — resolved canonical tree + theme 소비
 - Preview resolved-tree 단일 소비 (reusable/ref/descendants/slot 가 실제로 렌더)
@@ -75,7 +75,7 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 
 - `react-aria-components`(npm): D1 runtime primitive. `PrimitiveBinding` 과 primitive wrapper 가 import 하는 대상.
 - `packages/react-aria-starter/src/**`: Adobe starter kit 의 vendored snapshot — D3 시각/구조 참조 코드. runtime import 대상 아님. 원본 직접 수정 금지.
-- `packages/react-aria-starter/design.md`: starter/src 56 CSS 의 중복 제거 token/패턴 **단일** reference (Phase 0 검증·확정 산출물). markdown — runtime import 대상 아님, theme/tokens 저작의 입력 가이드이며 런타임 계약 아님. `src/` 하위 컴포넌트별 design.md 생성 금지 (중복 SSOT 방지).
+- `packages/react-aria-starter/design.md`: starter/src 56 CSS 의 중복 제거 token/패턴 **단일** reference (Phase 0 검증·확정 산출물). Google DESIGN.md section set 을 차용하되 composition 확장(Motion / Mapping / Appendix)을 Components 뒤에 삽입하고 Do's and Don'ts 를 최종 guardrail 로 둔다. YAML hex-token front matter layer 는 채택하지 않는다. markdown — runtime import 대상 아님, theme/tokens 저작의 입력 가이드이며 런타임 계약 아님. `src/` 하위 컴포넌트별 design.md 생성 금지 (중복 SSOT 방지).
 - `packages/shared/src/catalog/**`: `PrimitiveBinding` + `componentCatalog` + `PropContract` + `toRacProps` + `inspectorFields`. 새 시스템의 코드 정의 영역. canonical document 모델(`CompositionDocument`/`CanonicalNode`/`ResolvedNode`)·theme/tokens 를 소비하므로 그 타입이 정의된 `shared` 에 둔다 — `specs` 는 canonical 타입을 모르고 `specs ← shared` 의존 방향상 `shared` 를 import 할 수 없다. catalog 는 같은 패키지인 `shared` 의 canonical/resolver 타입을 직접 쓰고, `shared/components` 의 primitive wrapper 가 catalog 의 `toRacProps` 를 import 한다(동일 패키지 — 순환 없음). legacy `packages/specs/src/components/**`/`renderers/**` 는 import 하지 않는다.
 - `packages/specs/src/components/**` + `renderers/ReactRenderer.ts` + `renderers/CSSGenerator.ts`: legacy.
 - `packages/shared/src/components/**`: RAC primitive wrapper surface (`react-aria-components` import + `toRacProps`).
@@ -233,7 +233,7 @@ Phase 0~5 는 family cutover 착수 전 1회 수행하는 **공통 기반** 단�
 4. 6개 registry(Panel/Factory/rendererMap/getDefaultProps/BASE_TAG_SPEC_MAP/builder TAG_SPEC_MAP) diff 수집.
 5. 비-DOM-trivial primitive(arc/track/indicator 등) 목록 식별 — `skiaPrimitive` 후보.
 6. `docs/reference/audits/2026-05-19-canonical-component-inventory.md` 작성.
-7. **단일 `packages/react-aria-starter/design.md` 검증·확정** — starter/src 56 CSS 의 token/패턴을 중복 제거해 정규화한 단일 reference 가 누락·stale 없이 완전한지 검증·보강한다 (§1 역할·경계 / §2 token taxonomy / §3 상태 토큰 규칙 / §4 공통 유틸 패턴 / §5 구조 패턴 / §6 채택·제외 기준 / §7 매핑 표). 컴포넌트별 산출물이 아니다. 이 문서는 Phase 1~6 의 theme/tokens 저작·`PrimitiveBinding` 작성·reusable 문서 저작의 **필수 선행 입력**이며, runtime D3 SSOT(theme/tokens root collection)로 승격하지 않는다.
+7. **단일 `packages/react-aria-starter/design.md` 검증·확정** — starter/src 56 CSS 의 token/패턴을 중복 제거해 정규화한 단일 reference 가 누락·stale 없이 완전한지 검증·보강한다. 구조는 Overview / Colors / Typography / Layout / Elevation & Depth / Shapes / Components / Motion / Mapping / Appendix / Do's and Don'ts 순서다. Google DESIGN.md section set 을 차용하되 composition 확장을 Components 뒤에 삽입하고, Do's and Don'ts 를 최종 guardrail 로 둔다. Google DESIGN.md 의 YAML hex-token front matter layer 는 채택하지 않고, starter 의 OKLCH relative-color 모델·light/dark adaptation·forced-colors 경계를 보존한다. 이 문서는 Phase 1~6 의 theme/tokens 저작·`PrimitiveBinding` 작성·reusable 문서 저작의 **필수 선행 입력**이며, runtime D3 SSOT(theme/tokens root collection)로 승격하지 않는다.
 
 검증: `pnpm run codex:guard` / `pnpm run codex:format`
 Gate: G0, G1
@@ -250,7 +250,7 @@ Gate: G0, G1
 4. **Preview resolved-tree 소비**: `App.tsx` 가 `resolveCanonicalDocument()` 결과를 단일 source 로 삼게 한다. legacy `elements[]` 경로 격리.
 5. **generic 렌더러 Skia backend**: `buildSpecNodeData.ts` Skia 경로를 resolved canonical tree + theme 소비로 재작성. `render.shapes()`/`specShapesToSkia` 격리.
 6. resolver 버그 수정: nested ref `_resolvedFrom` 미주입, descendants mode C `validateSlotContract` 누락.
-7. **Button primitive 파일럿**: 첫 `PrimitiveBinding` 작성(검증·확정한 `design.md` §4 유틸 패턴 참조) + DOM/Skia 양쪽 렌더 확인 + Skia 렌더 frame budget 60fps 측정(R10 — 대안 E 성능 LOW 평가 확정 근거).
+7. **Button primitive 파일럿**: 첫 `PrimitiveBinding` 작성(검증·확정한 `design.md` §7.1 공통 유틸 패턴 참조) + DOM/Skia 양쪽 렌더 확인 + Skia 렌더 frame budget 60fps 측정(R10 — 대안 E 성능 LOW 평가 확정 근거).
 8. **generic Inspector field renderer**: `outputs/inspectorFields.ts` 가 `PropContract` 집합 + theme 로 Inspector 편집 필드를 generic 생성. `GenericPropertyEditor` 가 컴포넌트당 `spec.properties.sections` 대신 이를 소비. `section` 태그 그룹핑 + `variant`/`size` 값 theme 조회 포함. Button `accepts` 로 검증.
 9. fixture: `canonicalPreviewRefSlot.test.tsx`(F1 reusable origin / F2 ref instance + descendants A·B·C / F3 slot fill / F4 fallback 경로 resolved children 보존), `canonicalSkiaSymmetry.test.ts`(DOM↔Skia 대칭 + Button Skia 렌더 frame budget 60fps), `inspectorFields.test.ts`(`PropContract`→필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회).
 
