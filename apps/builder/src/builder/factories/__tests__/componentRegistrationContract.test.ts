@@ -31,6 +31,11 @@ import { describe, it, expect } from "vitest";
 
 import { rendererMap } from "@composition/shared/renderers";
 import { TAG_SPEC_MAP } from "@composition/specs";
+import {
+  componentCatalog,
+  getPrimitiveBinding,
+  listPlaceableCatalogEntries,
+} from "@composition/shared/catalog";
 import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/sprites/tagSpecMap";
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import { DEFAULT_PROPS_MAP } from "@/types/builder/unified.types";
@@ -240,5 +245,59 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
     expect(ratchetVerdict(6, 5)).toBe("append");
     expect(ratchetVerdict(4, 5)).toBe("shrink");
     expect(ratchetVerdict(5, 5)).toBe("ok");
+  });
+
+  it("ADR-142 불변식 C — active catalog placeable 은 Panel/Factory/generic 렌더러 coverage 를 가진다", () => {
+    const activeEntries = listPlaceableCatalogEntries();
+    const violations: string[] = [];
+
+    for (const entry of activeEntries) {
+      if (!hasCI(rendererKeys, entry.type)) {
+        violations.push(`${entry.type}: rendererMap 누락`);
+      }
+      if (!hasCI(builderTagSpecKeys, entry.type)) {
+        violations.push(`${entry.type}: builder TAG_SPEC_MAP 누락`);
+      }
+      if (!hasCI(defaultPropsKeys, entry.type)) {
+        violations.push(`${entry.type}: getDefaultProps 누락`);
+      }
+      if (entry.kind === "primitive" && !getPrimitiveBinding(entry.type)) {
+        violations.push(`${entry.type}: PrimitiveBinding lookup 누락`);
+      }
+      if (entry.kind === "reusable") {
+        violations.push(`${entry.type}: reusable catalog factory path 미구현`);
+      }
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("ADR-142 불변식 D — catalog family cutover 값은 family 안에서 섞이지 않는다", () => {
+    const byFamily = new Map<string, Set<string>>();
+
+    for (const entry of componentCatalog) {
+      const states = byFamily.get(entry.family) ?? new Set<string>();
+      states.add(entry.cutover);
+      byFamily.set(entry.family, states);
+    }
+
+    const mixedFamilies = [...byFamily.entries()]
+      .filter(([, states]) => states.size > 1)
+      .map(([family, states]) => `${family}: ${[...states].join(",")}`);
+
+    expect(mixedFamilies, mixedFamilies.join("\n")).toEqual([]);
+  });
+
+  it("ADR-142 불변식 E — legacy catalog entry 는 active placeable catalog 에 노출되지 않는다", () => {
+    const activeTypes = new Set(
+      listPlaceableCatalogEntries().map((entry) => entry.type),
+    );
+    const legacyExposed = componentCatalog
+      .filter(
+        (entry) => entry.cutover === "legacy" && activeTypes.has(entry.type),
+      )
+      .map((entry) => entry.type);
+
+    expect(legacyExposed).toEqual([]);
   });
 });

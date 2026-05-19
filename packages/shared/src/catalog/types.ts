@@ -1,4 +1,8 @@
 import type { ComponentTag } from "../types/composition-vocabulary";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+} from "../types/composition-document.types";
 
 export type ComponentFamily =
   | "primitives/actions"
@@ -107,3 +111,21 @@ export type ComponentCatalogEntry =
       cutover: CutoverState;
       panel: PanelMeta;
     };
+
+export interface ReusableCatalogMeta {
+  source: "catalog-library";
+  phase: "ADR-142-Phase2";
+  propsSchema: PropContractMap;
+}
+
+export type CatalogReusableRoot = CanonicalNode & {
+  reusable: true;
+  "x-composition"?: {
+    catalog?: ReusableCatalogMeta;
+    [key: string]: unknown;
+  };
+};
+
+export interface ReusableCatalogDocument extends CompositionDocument {
+  children: [CatalogReusableRoot];
+}

@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; 다음 진입점 Phase 2 G3)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; 다음 진입점 G3 Panel/Factory catalog 배선)
 
 ## Context
 
@@ -182,6 +182,16 @@ primitive binding 이 있을 때 legacy `spec.properties.sections` 보다 이
 PropContract 경로를 먼저 소비한다. F1~F4 Preview fixture 는 reusable origin,
 ref instance, descendants A/B/C, slot fill, fallback resolved children 보존을
 검증한다. 다음 gate 는 Phase 2 G3 (`componentCatalog` + reusable library) 다.
+
+2026-05-20 추가 판정: Phase 2 catalog/library slice 를 land 했다.
+`packages/shared/src/catalog/componentCatalog.ts` 가 Button primitive active entry
+와 Card/Section reusable legacy seed entry 를 가진다.
+`packages/shared/src/catalog/library/` 의 Card/Section reusable canonical 문서는
+`x-composition.catalog.propsSchema` extension meta 로 exposed props 를 보존한다.
+`componentCatalog.test.ts` 와 registration contract 의 ADR-142 C/D/E 불변식은
+primitive binding resolve, reusable document resolve, family atomicity,
+legacy active 노출 차단을 검증한다. 단, G3 의 Component Panel / Factory
+catalog-only 배선은 아직 완료 판정하지 않는다 — 다음 진입점은 Phase 4 배선이다.
 
 ## Consequences
 

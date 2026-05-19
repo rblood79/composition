@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 2 — componentCatalog + reusable library seed] - 2026-05-20
+
+### Architecture
+
+- **`componentCatalog` skeleton 추가**:
+  - Button primitive entry 는 `PrimitiveBinding` 을 직접 참조하고 `cutover:"catalog"` active entry 로 등록했다.
+  - Card / Section 은 reusable canonical document seed 로 등록하되 `cutover:"legacy"` 로 유지해 active family cutover 전 노출을 막았다.
+- **reusable library seed 추가**:
+  - `packages/shared/src/catalog/library/` 에 Card / Section reusable canonical 문서를 추가했다.
+  - exposed props 는 canonical core schema 를 바꾸지 않고 root node 의 `x-composition.catalog.propsSchema` extension meta 로 보존한다.
+- **G3 contract 기반 추가**:
+  - `componentCatalog.test.ts` 가 primitive binding, reusable document resolve, family atomicity, legacy active 노출 차단을 검증한다.
+  - `componentRegistrationContract.test.ts` 에 ADR-142 C/D/E 불변식을 추가했다.
+
+### Documentation
+
+- ADR-142 본문, breakdown, README row, Phase 0 inventory 를 Phase 2 catalog/library slice 완료 상태로 갱신했다. Panel/Factory catalog-only 배선은 다음 G3 잔여 작업이다.
+
 ## [ADR-142 Phase 1b — PropContract inspector + Preview ref/slot fixture] - 2026-05-20
 
 ### Architecture

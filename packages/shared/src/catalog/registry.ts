@@ -1,13 +1,13 @@
 import type { PrimitiveBinding } from "./types";
-import {
-  buttonInspectorThemeValues,
-  buttonPrimitiveBinding,
-} from "./primitives/button";
+import { buttonInspectorThemeValues } from "./primitives/button";
 import type { InspectorThemeLookup } from "./outputs/inspectorFields";
+import { componentCatalog } from "./componentCatalog";
 
-const PRIMITIVE_BINDINGS: Record<string, PrimitiveBinding> = {
-  Button: buttonPrimitiveBinding as unknown as PrimitiveBinding,
-};
+const PRIMITIVE_BINDINGS = Object.fromEntries(
+  componentCatalog
+    .filter((entry) => entry.kind === "primitive")
+    .map((entry) => [entry.type, entry.binding as PrimitiveBinding]),
+) as Record<string, PrimitiveBinding>;
 
 export function getPrimitiveBinding(
   type: string,

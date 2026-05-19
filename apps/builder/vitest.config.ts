@@ -30,6 +30,10 @@ export default defineConfig({
         replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/renderers/index.ts")}`,
       },
       {
+        find: "@composition/shared/catalog",
+        replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/catalog/index.ts")}`,
+      },
+      {
         find: "@composition/shared/hooks",
         replacement: `${resolve(import.meta.dirname, "../../packages/shared/src/hooks/index.ts")}`,
       },

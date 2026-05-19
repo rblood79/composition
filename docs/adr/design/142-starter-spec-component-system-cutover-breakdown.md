@@ -341,6 +341,25 @@ origin/ref/descendants 3-mode/slot fill/fallback children Preview fixture 를
 검증: `pnpm -F @composition/shared test componentCatalog` / `pnpm -F @composition/shared type-check`
 Gate: G3
 
+Status: Implemented — 2026-05-20 (catalog/library slice). 산출물:
+`packages/shared/src/catalog/componentCatalog.ts`,
+`packages/shared/src/catalog/library/card.ts`,
+`packages/shared/src/catalog/library/section.ts`,
+`packages/shared/src/catalog/__tests__/componentCatalog.test.ts`.
+Button primitive entry 는 `cutover:"catalog"` 로 active 등록하고, Card/Section 은
+reusable canonical document seed 로 등록하되 `cutover:"legacy"` 로 유지한다.
+reusable exposed props 는 canonical core schema 를 바꾸지 않고
+`x-composition.catalog.propsSchema` extension meta 에 둔다. registration contract
+불변식 C/D/E 를 추가해 active catalog coverage, family atomicity, legacy active
+노출 차단을 검증한다. G3 의 Panel/Factory catalog-only 배선은 Phase 4 잔여다.
+검증: `pnpm -F @composition/shared exec vitest run
+src/catalog/__tests__/componentCatalog.test.ts
+src/catalog/__tests__/inspectorFields.test.ts`,
+`pnpm -F @composition/builder exec vitest run
+src/builder/factories/__tests__/componentRegistrationContract.test.ts`,
+`pnpm -F @composition/shared type-check`,
+`pnpm run codex:typecheck`.
+
 ### Phase 3 — shared primitive wrapper surface + legacy boundary
 
 목표: `packages/shared/src/components` 를 약 35개의 thin RAC primitive wrapper 로 재정의한다.
