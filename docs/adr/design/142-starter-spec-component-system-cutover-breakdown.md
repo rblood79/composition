@@ -42,7 +42,7 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 | `packages/shared/src/catalog/__tests__/componentCatalog.test.ts`      | catalog entry 무결성 + family atomicity 검증                                                                 |
 | `packages/shared/src/catalog/__tests__/inspectorFields.test.ts`       | `PropContract`→Inspector 필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회 검증                         |
 | `apps/builder/src/preview/__tests__/canonicalPreviewRefSlot.test.tsx` | Preview 가 reusable/ref/descendants/slot resolved tree 를 실제 DOM 으로 렌더링하는지 검증 (F1~F4)            |
-| `apps/builder/.../skia/__tests__/canonicalSkiaSymmetry.test.ts`       | generic 렌더러 DOM↔Skia 시각 대칭 fixture                                                                    |
+| `apps/builder/.../skia/__tests__/canonicalSkiaSymmetry.test.ts`       | generic 렌더러 DOM↔Skia 시각 대칭 + worst-case 부하 Skia frame budget(G2c) fixture                           |
 | `packages/shared/src/components/legacy/README.md`                     | legacy 구현의 compatibility boundary 규칙                                                                    |
 
 ### 수정할 파일
@@ -240,22 +240,41 @@ Gate: G0, G1
 
 ### Phase 1 — PrimitiveBinding + generic 렌더러 + Preview resolved-tree (공통 기반 핵심)
 
-목표: 대안 E 의 HIGH 위험(R1)을 다루는 단계. generic 렌더러와 Preview resolved-tree 소비를 동작 상태로 만든다.
+Phase 1 은 공통 기반의 핵심이자 대안 E 의 kill-switch 단계다. **Phase 1a (proof slice)** 가 핵심 베팅(R1·R10)을 최소 수직 슬라이스로 falsify-가능하게 증명한 뒤에만 **Phase 1b (공통 기반 완성)** 로 진입한다. Phase 1a 가 실패하면 family cutover 가 아니라 ADR-142 대안 E 자체를 재검토한다.
+
+#### Phase 1a — Proof slice (kill-switch)
+
+목표: 'resolved canonical tree → generic 렌더러(DOM+Skia) → theme' 경로가 (1) primitive 노드와 ref 노드 양쪽에서 연결되는지 (2) worst-case 부하에서 60fps 인지를 최소 코드로 증명한다. 1a 는 spike — proof 통과 시 1b 가 확장하는 실제 기반이 되고, kill-switch 발동 시 폐기 대상이다.
 
 작업:
 
-1. `packages/shared/src/catalog/types.ts` — `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type.
-2. `outputs/toRacProps.ts` — canonical props → RAC props 투영.
-3. **generic 렌더러 DOM backend**: `CanonicalNodeRenderer` 를 resolved canonical tree 의 단일 렌더 진입점으로 승격. fallback 경로가 `ResolvedNode.children` 를 잃지 않게 정리.
-4. **Preview resolved-tree 소비**: `App.tsx` 가 `resolveCanonicalDocument()` 결과를 단일 source 로 삼게 한다. legacy `elements[]` 경로 격리.
-5. **generic 렌더러 Skia backend**: `buildSpecNodeData.ts` Skia 경로를 resolved canonical tree + theme 소비로 재작성. `render.shapes()`/`specShapesToSkia` 격리.
-6. resolver 버그 수정: nested ref `_resolvedFrom` 미주입, descendants mode C `validateSlotContract` 누락.
-7. **Button primitive 파일럿**: 첫 `PrimitiveBinding` 작성(검증·확정한 `design.md` Components / Utilities 공통 유틸 패턴 참조) + DOM/Skia 양쪽 렌더 확인 + Skia 렌더 frame budget 60fps 측정(R10 — 대안 E 성능 LOW 평가 확정 근거).
-8. **generic Inspector field renderer**: `outputs/inspectorFields.ts` 가 `PropContract` 집합 + theme 로 Inspector 편집 필드를 generic 생성. `GenericPropertyEditor` 가 컴포넌트당 `spec.properties.sections` 대신 이를 소비. `section` 태그 그룹핑 + `variant`/`size` 값 theme 조회 포함. Button `accepts` 로 검증.
-9. fixture: `canonicalPreviewRefSlot.test.tsx`(F1 reusable origin / F2 ref instance + descendants A·B·C / F3 slot fill / F4 fallback 경로 resolved children 보존), `canonicalSkiaSymmetry.test.ts`(DOM↔Skia 대칭 + Button Skia 렌더 frame budget 60fps), `inspectorFields.test.ts`(`PropContract`→필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회).
+1. `packages/shared/src/catalog/types.ts` — proof 에 필요한 최소 `PrimitiveBinding` 타입 (Button 1개분).
+2. `outputs/toRacProps.ts` — Button 투영분.
+3. **generic 렌더러 DOM backend**: `CanonicalNodeRenderer` 를 resolved canonical tree 의 단일 렌더 진입점으로 승격.
+4. **generic 렌더러 Skia backend**: `buildSpecNodeData.ts` Skia 경로의 generic traversal core 를 resolved tree + theme 소비로 작성. `render.shapes()`/`specShapesToSkia` 미사용 경로.
+5. **Preview resolved-tree 소비**: `App.tsx` 가 `resolveCanonicalDocument()` 결과를 단일 source 로 삼게 한다.
+6. **Button 수직 슬라이스 (primitive 노드)**: 첫 `PrimitiveBinding` 작성(검증·확정한 `design.md` Components / Utilities 공통 유틸 패턴 참조) + resolved tree → DOM/Skia/theme 렌더. Inspector 편집 proof 는 1b/G2d.
+7. **최소 composed 수직 슬라이스 (ref 노드)**: reusable-origin + `type:"ref"` instance 1쌍을 generic 렌더러로 렌더. 조합 컴포넌트 = reusable 문서가 ADR-142 의 핵심 thesis 이므로, 렌더러가 primitive 노드뿐 아니라 ref 노드를 처리함을 proof 에 포함한다.
+8. **worst-case 부하 측정 (R1·R10)**: 200+ 노드(ref 노드 포함) collection canonical 문서를 generic 렌더러 Skia backend 로 인터랙션 re-render. (a) 절대 60fps + (b) 현 `render.shapes()` 경로 대비 frame 비용 회귀 한계 이내 — 양쪽 측정. 측정 환경은 대표 device profile 로 명시. Button 은 최저부하라 R10 의 비용 축(generic traversal × 노드 수)을 증명하지 못한다.
+9. fixture: `canonicalSkiaSymmetry.test.ts`(Button + ref proof set 의 DOM↔Skia 시각 대칭 + worst-case 부하 frame budget).
+
+검증: `pnpm -F @composition/builder test canonicalSkiaSymmetry` / `pnpm run codex:typecheck`
+Gate: **G2a / G2b / G2c (proof gate — kill-switch)**
+
+#### Phase 1b — 공통 기반 완성
+
+목표: Phase 1a proof gate 통과 후 나머지 공통 기반을 완성한다.
+
+작업:
+
+1. `PrimitiveBinding` + `ComponentCatalogEntry` + sub-type 타입 전체 확정.
+2. resolver 버그 수정: nested ref `_resolvedFrom` 미주입, descendants mode C `validateSlotContract` 누락.
+3. Preview fallback 경로가 `ResolvedNode.children` 를 잃지 않게 정리. legacy `elements[]` 경로 격리.
+4. **generic Inspector field renderer**: `outputs/inspectorFields.ts` 가 `PropContract` 집합 + theme 로 Inspector 편집 필드를 generic 생성. `GenericPropertyEditor` 가 컴포넌트당 `spec.properties.sections` 대신 이를 소비. `section` 태그 그룹핑 + `variant`/`size` 값 theme 조회 포함. Button `accepts` 로 검증.
+5. fixture: `canonicalPreviewRefSlot.test.tsx`(F1 reusable origin / F2 ref instance + descendants A·B·C / F3 slot fill / F4 fallback 경로 resolved children 보존), `inspectorFields.test.ts`(`PropContract`→필드 생성 / `section` 그룹핑 / `variant` 값 theme 조회).
 
 검증: `pnpm -F @composition/builder test canonicalPreviewRefSlot` / `pnpm -F @composition/builder test resolver` / `pnpm -F @composition/shared test inspectorFields` / `pnpm run codex:typecheck`
-Gate: **G2 (공통 기반 gate — R1·R10)**
+Gate: **G2d (공통 기반 완성)**
 
 ### Phase 2 — Reusable 컴포넌트 저작 + componentCatalog
 
