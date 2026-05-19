@@ -1,6 +1,6 @@
 # ADR-143 구현 상세 — Canonical 시각 토큰 필드 정명 + theme/token SSOT 재정렬
 
-> 본 문서는 ADR-143 의 **구현 상세**다. 결정/대안/위험/Gate 는 [ADR-143 본문](../143-canonical-token-field-realignment.md) 참조.
+> 본 문서는 ADR-143 의 **구현 상세**다. 결정/대안/위험/Gate 는 [ADR-143 본문](../completed/143-canonical-token-field-realignment.md) 참조.
 
 ## 1. Scope + ADR 관계
 

@@ -2,7 +2,17 @@
 
 ## Status
 
-Accepted — 2026-05-19
+Implemented — 2026-05-19
+
+> 진행 로그:
+>
+> - 2026-05-19 Proposed → Accepted — review-adr round 1·2 정정 반영 후 승격.
+> - 2026-05-19 Phase 0 — inventory: rename 대상 심볼 7종 + 사용처 baseline 고정, 런타임 `variables` 도메인 분리 확정, objectStore 폐기 + ThemeStudio 정리 scope 사용자 confirm (`docs/reference/audits/2026-05-19-adr143-token-field-inventory.md`, commit `1ad327e09`).
+> - 2026-05-19 Phase 1-2 — canonical 타입 `variables`→`tokens` 정명 (`VariablesSnapshot`→`TokensSnapshot` 등) + adapter/resolver 정명 (`resolveCanonicalToken`). §3-3 충돌은 (b) `CanonicalTokenRef`($var 구문 유지) 채택 (commit `b986c2e00`).
+> - 2026-05-19 Phase 3 — 토큰 델타 저장 — `buildTokensSnapshot`(override 델타 + user-defined 추출) + `mergeTokensSnapshot`(seed + 델타 merge). Gate G2 미커스터마이즈 `tokens` ≤ 5KB PASS (commit `012fbe38e`).
+> - 2026-05-19 Phase 4 — IndexedDB `design_tokens`/`design_themes` objectStore 폐기 (`DB_VERSION` 18→19) + dead ThemeStudio chain 제거. Phase 0 의 "objectStore 의존 제거" scope 가 Phase 4 정밀 조사에서 전 chain dead 로 확인 — ThemeStudio(`themeStore`/`TokenService`/`ThemeService`/`useTokens`)는 UI 진입점 0, `loadActiveTheme`→`activeTheme=null` early return → `VariableBindingButton`도 항상 빈 목록. dead 파일 8개 + `BuilderCore.loadProjectTheme` + `FillDetailPopover` VariableBindingButton + dashboard cleanup 동반 제거 (-1528 LOC, commit `6788fda1c`). R5 의 "live consumer 재배선"은 실측 결과 재배선이 아닌 dead 제거였다.
+> - 2026-05-19 Phase 5 — 런타임 `variables` 도메인 경계 주석 (`data.types.ts`, commit `fb59fd206`).
+> - 2026-05-19 Phase 6 — Implemented 승격. ADR-142 Decision #5 wording `theme/variables`→`theme/tokens` sync, ADR-110 partial supersede 마커, README/CHANGELOG. 본문 `completed/` 이관.
 
 ## Context
 
@@ -17,7 +27,7 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 
 본 ADR 은 ADR-110 의 successor 다. ADR-110 본문 line 90·106 이 후속을 "별도 ADR-110-b" 로 명시 예고했다. ADR-142 는 line 44 에서 _"canonical schema(`CompositionDocument`)는 변경하지 않는다. 본 ADR 범위 밖이다"_ 라고 명시하므로, `CompositionDocument` 필드 rename 의 정당한 home 은 본 ADR 이다.
 
-**Domain (SSOT 체인 — [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))**: D3(시각 스타일). canonical document 의 `tokens`/`themes` 필드 명명·구조. 런타임 `variables` 분리는 D3 ↔ app-logic 경계 명확화.
+**Domain (SSOT 체인 — [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md))**: D3(시각 스타일). canonical document 의 `tokens`/`themes` 필드 명명·구조. 런타임 `variables` 분리는 D3 ↔ app-logic 경계 명확화.
 
 **Hard Constraints**:
 
@@ -100,7 +110,7 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 - **대안 C 기각**: W3C 표준 용어(token) 및 기존 `DesignToken` 코드와 필드명이 영구 불일치한다. 또한 런타임 `variables`(사용 중 store) rename 비용이 대안 A 의 시각 필드 rename 비용보다 크다.
 - **대안 D 기각**: canonical document 단일 SSOT 와 평행한 SSOT 를 재생성하여 ADR-116/122 가 9개 ADR 로 제거한 mirror-drift 를 부활시킨다. cross-document 테마 공유는 `.pen` `imports` 가 담당하므로 상위 수준 배치는 불필요하다.
 
-> 구현 상세: [143-canonical-token-field-realignment-breakdown.md](design/143-canonical-token-field-realignment-breakdown.md)
+> 구현 상세: [143-canonical-token-field-realignment-breakdown.md](../design/143-canonical-token-field-realignment-breakdown.md)
 
 ## Risks
 
@@ -116,7 +126,7 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 
 ## Gates
 
-잔존 HIGH 위험 없음 — Gate 테이블 불요. Phase별 통과 조건(G0~G4)은 [breakdown §5](design/143-canonical-token-field-realignment-breakdown.md) 참조.
+잔존 HIGH 위험 없음 — Gate 테이블 불요. Phase별 통과 조건(G0~G4)은 [breakdown §5](../design/143-canonical-token-field-realignment-breakdown.md) 참조.
 
 ## Consequences
 

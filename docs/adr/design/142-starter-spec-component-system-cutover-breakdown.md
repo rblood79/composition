@@ -8,7 +8,7 @@
 - **코드 정의** 는 leaf RAC primitive 약 35개의 `PrimitiveBinding` 으로 한정한다.
 - **등록** 은 단일 `componentCatalog` 로 통합한다 (기존 6개 목록 대체).
 - **렌더** 는 resolved canonical tree + theme 를 소비하는 generic 렌더러 1개로 한다 (DOM backend + Skia backend).
-- **시각** 은 theme/variables root collection 이 SSOT 다.
+- **시각** 은 theme/tokens root collection 이 SSOT 다.
 
 기존 `packages/specs` 의 `ComponentSpec`(`render.shapes()` 124개) / `ReactRenderer` / `CSSGenerator` / `specShapesToSkia` / `rendererMap` 은 참조·확장·migration source 가 아니다. legacy boundary 로 격리한다.
 
@@ -67,14 +67,14 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `packages/specs/src/components/*.spec.ts` (124)     | legacy. 새 시스템이 import/파생하지 않음. legacy 문서 호환·migration reference 로만 유지 |
 | `packages/specs/src/renderers/ReactRenderer.ts`     | legacy. className/dataAttributes/style 만 산출 — RAC 구조 표현 불가                      |
-| `packages/specs/src/renderers/CSSGenerator.ts`      | legacy. 새 CSS 는 generic 렌더러가 theme/variables 에서 생성                             |
+| `packages/specs/src/renderers/CSSGenerator.ts`      | legacy. 새 CSS 는 generic 렌더러가 theme/tokens 에서 생성                                |
 | `apps/builder/.../skia/` 의 `specShapesToSkia` 경로 | legacy. 새 Skia 는 generic 렌더러가 resolved tree + theme 소비                           |
 
 ### 경계 규칙
 
 - `react-aria-components`(npm): D1 runtime primitive. `PrimitiveBinding` 과 primitive wrapper 가 import 하는 대상.
 - `packages/react-aria-starter/src/**`: Adobe starter kit 의 vendored snapshot — D3 시각/구조 참조 코드. runtime import 대상 아님. 원본 직접 수정 금지.
-- `packages/shared/src/catalog/**`: `PrimitiveBinding` + `componentCatalog` + `PropContract` + `toRacProps` + `inspectorFields`. 새 시스템의 코드 정의 영역. canonical document 모델(`CompositionDocument`/`CanonicalNode`/`ResolvedNode`)·theme/variables 를 소비하므로 그 타입이 정의된 `shared` 에 둔다 — `specs` 는 canonical 타입을 모르고 `specs ← shared` 의존 방향상 `shared` 를 import 할 수 없다. catalog 는 같은 패키지인 `shared` 의 canonical/resolver 타입을 직접 쓰고, `shared/components` 의 primitive wrapper 가 catalog 의 `toRacProps` 를 import 한다(동일 패키지 — 순환 없음). legacy `packages/specs/src/components/**`/`renderers/**` 는 import 하지 않는다.
+- `packages/shared/src/catalog/**`: `PrimitiveBinding` + `componentCatalog` + `PropContract` + `toRacProps` + `inspectorFields`. 새 시스템의 코드 정의 영역. canonical document 모델(`CompositionDocument`/`CanonicalNode`/`ResolvedNode`)·theme/tokens 를 소비하므로 그 타입이 정의된 `shared` 에 둔다 — `specs` 는 canonical 타입을 모르고 `specs ← shared` 의존 방향상 `shared` 를 import 할 수 없다. catalog 는 같은 패키지인 `shared` 의 canonical/resolver 타입을 직접 쓰고, `shared/components` 의 primitive wrapper 가 catalog 의 `toRacProps` 를 import 한다(동일 패키지 — 순환 없음). legacy `packages/specs/src/components/**`/`renderers/**` 는 import 하지 않는다.
 - `packages/specs/src/components/**` + `renderers/ReactRenderer.ts` + `renderers/CSSGenerator.ts`: legacy.
 - `packages/shared/src/components/**`: RAC primitive wrapper surface (`react-aria-components` import + `toRacProps`).
 - `packages/shared/src/components/legacy/**`: compatibility fallback. active Builder authoring path 에서 직접 import 금지.
@@ -206,7 +206,7 @@ Inspector 편집 source (PropContract):
 시각 SSOT 의 위치:
 
 - 컴포넌트의 변형(variant)은 `PrimitiveBinding` 이나 catalog 가 아니라 **노드의 `data-*` 속성 + theme 규칙** 으로 표현한다.
-- generic 렌더러의 CSS 생성 단계가 theme/variables root collection 에서 `data-*` → token 매핑 CSS 를 generic 하게 만든다. 컴포넌트당 CSS 정의가 없다.
+- generic 렌더러의 CSS 생성 단계가 theme/tokens root collection 에서 `data-*` → token 매핑 CSS 를 generic 하게 만든다. 컴포넌트당 CSS 정의가 없다.
 - 조합 컴포넌트의 시각은 reusable 문서 노드의 일반 style props 다 — 사용자 콘텐츠와 동일한 데이터.
 
 Tree/Table:
@@ -309,7 +309,7 @@ Gate: G3 (불변식), G4 (family 마다 Phase 6 에서)
 
 작업:
 
-1. CSS 는 generic 렌더러가 theme/variables root collection + 노드 style/`data-*` 에서 생성. 컴포넌트당 CSS 정의 없음.
+1. CSS 는 generic 렌더러가 theme/tokens root collection + 노드 style/`data-*` 에서 생성. 컴포넌트당 CSS 정의 없음.
 2. Skia backend 는 resolved tree + theme 를 그린다. 비-DOM-trivial primitive 는 `skiaPrimitive` draw module.
 3. starter CSS 는 D3 시각 참조 diff 로만 사용 (runtime 미포함).
 4. generic 생성으로 표현 못 하는 RAC structural CSS 만 좁은 manual escape hatch.

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canonical 시각 토큰 필드 정명 + theme/token SSOT 재정렬 — ADR-143] - 2026-05-19
+
+### Breaking Changes
+
+- **IndexedDB `DB_VERSION` 18 → 19 — `design_tokens` / `design_themes` objectStore 폐기** (ADR-143 Phase 4):
+  - canonical `CompositionDocument` 의 `themes` / `tokens` 필드가 시각 토큰 SSOT — 평행 objectStore 2개 제거.
+  - **Why**: 두 store 는 live CRUD caller 0 인 dead 경로 — 데이터를 생성하는 코드 자체가 없었다. 개발 단계 정책상 `DB_VERSION` bump 시 migration 코드 없이 drop (ADR-132 Phase 5 선례).
+  - 영향: 기존 프로젝트의 IndexedDB `design_tokens` / `design_themes` 데이터는 drop — 단 dead store 라 실질 데이터 손실 0.
+  - 위치: `apps/builder/src/lib/db/indexedDB/adapter.ts`
+
+### Architecture
+
+- **canonical 시각 토큰 필드 `variables` → `tokens` 정명** (ADR-143 Phase 1~3):
+  - `CompositionDocument.variables`(시각 design token) → `tokens`. `VariablesSnapshot`→`TokensSnapshot`, `VariableRef`→`CanonicalTokenRef`(`$var` 구문 유지), `VariableDefinition`→`TokenDefinition`, `…OrVariable` 4종→`…OrToken`. canonical adapter 함수도 token 명명(`resolveCanonicalToken` 등).
+  - **Why**: 시각 design value 의 표준 용어는 "design token" (W3C Design Tokens Format Module 2025-10 stable + React Spectrum + composition 자체 `DesignToken` 코드 — 3중 정합). 런타임 `variables` store(`authToken` 류 앱 상태)와 단어가 겹치던 이중 의미 해소 — D3 시각 ↔ app-logic 도메인 경계 명확화.
+  - 토큰 델타 저장 — `buildTokensSnapshot`(spec-token override 델타 + user-defined 만 추출) + `mergeTokensSnapshot`(`primitives/` seed + 델타 merge). 미커스터마이즈 프로젝트 `tokens` 필드 ≤ 5KB (문서 비대화 차단).
+  - 위치: `packages/shared/src/types/composition-document.types.ts`, `apps/builder/src/adapters/canonical/variablesAdapter.ts`
+- **dead ThemeStudio 코드 chain 제거** (ADR-143 Phase 4 — 8개 파일, -1528 LOC):
+  - `themeStore` / `TokenService` / `ThemeService` / `useTokens` / `VariableBindingButton` + theme barrel 삭제.
+  - **Why**: ThemeStudio 는 UI 진입점이 0 — `loadActiveTheme` 가 항상 `activeTheme=null` early return → `tokens` 빈 배열, `VariableBindingButton` 도 항상 빈 목록. 전 chain dead 코드.
+  - `BuilderCore.loadProjectTheme` 호출 / `FillDetailPopover` 의 VariableBindingButton / dashboard 의 token·theme cleanup 동반 제거.
+
+### Documentation
+
+- **ADR-143 Implemented 승격** (ADR-110 successor):
+  - ADR-110 본문에 `variables` 필드 명명 partial supersede 마커 추가.
+  - ADR-142 Decision #5 wording sync — `theme/variables` → `theme/tokens`.
+  - 런타임 `variables` store(`Variable` 타입)에 도메인 경계 주석 — canonical `tokens`(D3 시각)와 별개 app-logic 도메인 명시.
+
 ## [react-aria-starter 참조 스타일 D3 반영 — ADR-141 Phase 1~5] - 2026-05-18
 
 ### Bug Fixes

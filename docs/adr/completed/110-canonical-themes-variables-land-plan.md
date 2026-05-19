@@ -4,6 +4,8 @@
 
 **Implemented** — 2026-04-27 (Phase 1 G-A + Phase 2 G-B 전원 통과 — `themes`/`variables` read-only snapshot adapter + write-through adapter + variables resolver + round-trip 통합 + 시각 회귀 0 검증 완료)
 
+> **Partial supersede ([ADR-143](143-canonical-token-field-realignment.md), 2026-05-19)**: 본 ADR 이 land 한 `CompositionDocument.variables` 필드는 ADR-143 이 `tokens` 로 정명했다 (W3C Design Tokens 표준 + React Spectrum + 기존 `DesignToken` 코드 3중 정합). `themes` 필드와 본 ADR 의 Phase 1·2 결정(snapshot adapter / write-through / resolver / round-trip)은 유효하게 보존된다 — `variables` 필드 **명명**만 partial supersede 다. canonical adapter 의 `variables` 관련 심볼(`snapshotVariablesFromTokens`/`resolveCanonicalVariable` 등)은 ADR-143 Phase 1-2 에서 token 명명으로 rename 됐다.
+
 ## Context
 
 ### Domain (SSOT 체인 — [ssot-hierarchy.md](../../.claude/rules/ssot-hierarchy.md))
