@@ -4,7 +4,7 @@ import type {
   ComponentSize,
 } from "../../types/componentVariants.types";
 
-const BUTTON_VARIANTS = new Set<ButtonVariant>([
+export const BUTTON_VARIANT_VALUES = [
   "accent",
   "primary",
   "secondary",
@@ -12,11 +12,27 @@ const BUTTON_VARIANTS = new Set<ButtonVariant>([
   "premium",
   "genai",
   "ghost",
-]);
+] as const satisfies readonly ButtonVariant[];
 
-const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(["fill", "outline"]);
-const BUTTON_SIZES = new Set<ComponentSize>(["xs", "sm", "md", "lg", "xl"]);
-const BUTTON_TYPES = new Set(["button", "submit", "reset"]);
+export const BUTTON_FILL_STYLE_VALUES = [
+  "fill",
+  "outline",
+] as const satisfies readonly ButtonFillStyle[];
+
+export const BUTTON_SIZE_VALUES = [
+  "xs",
+  "sm",
+  "md",
+  "lg",
+  "xl",
+] as const satisfies readonly ComponentSize[];
+
+export const BUTTON_TYPE_VALUES = ["button", "submit", "reset"] as const;
+
+const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
+const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
+const BUTTON_SIZES = new Set<ComponentSize>(BUTTON_SIZE_VALUES);
+const BUTTON_TYPES = new Set<string>(BUTTON_TYPE_VALUES);
 
 export interface ButtonCanonicalProps extends Record<string, unknown> {
   children?: unknown;

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 1b — PropContract inspector + Preview ref/slot fixture] - 2026-05-20
+
+### Architecture
+
+- **`PrimitiveBinding` 공통 타입 확정**:
+  - `PropContract`, `ComponentCatalogEntry`, `CutoverState`, `PanelMeta` 타입을 `packages/shared/src/catalog/types.ts` 에 추가했다.
+  - Button binding 의 `accepts` 를 editable PropContract map 으로 전환하고, `toRacProps` 의 Button variant/size/type value set 을 공유 surface 로 노출했다.
+- **generic Inspector field renderer proof 추가**:
+  - `outputs/inspectorFields.ts` 가 `PropContract` 집합 + theme lookup 으로 Inspector section/field model 을 생성한다.
+  - Builder `GenericPropertyEditor` 는 Button primitive binding 이 있을 때 legacy `spec.properties.sections` 보다 `PropContract` 경로를 먼저 소비하고, `CatalogField` 가 property controls 로 렌더한다.
+- **Preview F1~F4 fixture 추가**:
+  - reusable origin, ref instance + descendants A/B/C, slot fill, fallback resolved children 보존을 `canonicalPreviewRefSlot.test.tsx` 로 고정했다.
+
+### Documentation
+
+- ADR-142 본문, breakdown, README row, Phase 0 inventory 를 Phase 1b G2d 완료 상태로 갱신했다. 다음 진입점은 Phase 2 G3(`componentCatalog` + reusable library)이다.
+
 ## [ADR-142 Phase 1a — PrimitiveBinding + generic renderer proof slice] - 2026-05-20
 
 ### Architecture

@@ -43,4 +43,16 @@ describe("generic property editors canonical read contract", () => {
     expect(source).toContain("useCanonicalPropertyElement(elementId)");
     expect(source).not.toContain("state.elementsMap.get(elementId)");
   });
+
+  it("uses ADR-142 PropContract fields before legacy spec sections when a primitive binding exists", async () => {
+    const source = await readFile(
+      resolve(__dirname, "GenericPropertyEditor.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("getPrimitiveBinding");
+    expect(source).toContain("buildInspectorFieldSections");
+    expect(source).toContain("CatalogField");
+    expect(source).toContain("primitiveBinding?.props.accepts");
+  });
 });

@@ -228,5 +228,5 @@ Phase 1a 는 G2a~G2c kill-switch 이므로, 아래 조건 없이는 진입하지
 - [x] 단일 `design.md` section set 과 reference-only 경계 확인.
 
 → ADR-142 Phase 0 은 G0/G1 기준으로 완료. 2026-05-20 Phase 1a proof slice
-(G2a/G2b/G2c kill-switch) 도 완료됐으며, 다음 진입점은 Phase 1b 공통 기반 완성
-(G2d) 이다.
+(G2a/G2b/G2c kill-switch) 와 Phase 1b 공통 기반 완성(G2d)도 완료됐다. 다음
+진입점은 Phase 2 reusable 컴포넌트 저작 + `componentCatalog` 구성(G3)이다.

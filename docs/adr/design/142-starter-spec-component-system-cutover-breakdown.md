@@ -45,6 +45,7 @@ cutover 는 공통 기반을 1회 고정한 뒤 family(컴포넌트군) 단위�
 | `apps/builder/src/preview/__tests__/canonicalPreviewRefSlot.test.tsx`          | Preview 가 reusable/ref/descendants/slot resolved tree 를 실제 DOM 으로 렌더링하는지 검증 (F1~F4)            |
 | `apps/builder/src/preview/components/CanonicalNodeRenderer.adr142.test.tsx`    | Phase 1a Button primitive + reusable ref DOM proof fixture                                                   |
 | `apps/builder/src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts` | generic 렌더러 DOM↔Skia 시각 대칭 + worst-case 부하 Skia frame budget(G2c) fixture                           |
+| `apps/builder/src/builder/panels/properties/generic/CatalogField.tsx`          | `InspectorFieldModel` 을 Builder property controls 로 렌더하는 Phase 1b bridge                               |
 | `packages/shared/src/components/legacy/README.md`                              | legacy 구현의 compatibility boundary 규칙                                                                    |
 
 ### 수정할 파일
@@ -304,6 +305,27 @@ family cutover, generic Inspector, `componentCatalog` 완성을 포함하지 않
 
 검증: `pnpm -F @composition/builder test canonicalPreviewRefSlot` / `pnpm -F @composition/builder test resolver` / `pnpm -F @composition/shared test inspectorFields` / `pnpm run codex:typecheck`
 Gate: **G2d (공통 기반 완성)**
+
+Status: Implemented — 2026-05-20. 산출물:
+`packages/shared/src/catalog/types.ts`,
+`packages/shared/src/catalog/outputs/inspectorFields.ts`,
+`packages/shared/src/catalog/primitives/button.ts`,
+`apps/builder/src/builder/panels/properties/generic/CatalogField.tsx`,
+`apps/builder/src/builder/panels/properties/generic/GenericPropertyEditor.tsx`.
+Fixture:
+`packages/shared/src/catalog/__tests__/inspectorFields.test.ts`,
+`apps/builder/src/preview/__tests__/canonicalPreviewRefSlot.test.tsx`,
+`apps/builder/src/builder/panels/properties/generic/genericEditorCanonical.static.test.ts`.
+검증: `pnpm -F @composition/shared exec vitest run
+src/catalog/__tests__/inspectorFields.test.ts`,
+`pnpm -F @composition/builder exec vitest run
+src/builder/panels/properties/generic/genericEditorCanonical.static.test.ts
+src/preview/__tests__/canonicalPreviewRefSlot.test.tsx`,
+`pnpm run codex:typecheck`. G2d 는 Button `accepts` 기준 generic Inspector
+field 생성, theme lookup 기반 `variant`/`size` option 생성, reusable
+origin/ref/descendants 3-mode/slot fill/fallback children Preview fixture 를
+고정한다. Phase 1b 는 `componentCatalog` 완성 또는 family cutover 를 포함하지
+않는다.
 
 ### Phase 2 — Reusable 컴포넌트 저작 + componentCatalog
 

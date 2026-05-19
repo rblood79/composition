@@ -1,5 +1,9 @@
 import type { PrimitiveBinding } from "./types";
-import { buttonPrimitiveBinding } from "./primitives/button";
+import {
+  buttonInspectorThemeValues,
+  buttonPrimitiveBinding,
+} from "./primitives/button";
+import type { InspectorThemeLookup } from "./outputs/inspectorFields";
 
 const PRIMITIVE_BINDINGS: Record<string, PrimitiveBinding> = {
   Button: buttonPrimitiveBinding as unknown as PrimitiveBinding,
@@ -13,6 +17,13 @@ export function getPrimitiveBinding(
 
 export function isPrimitiveBindingType(type: string): boolean {
   return getPrimitiveBinding(type) !== undefined;
+}
+
+export function getPrimitiveInspectorThemeValues(
+  type: string,
+): InspectorThemeLookup {
+  if (type === "Button") return buttonInspectorThemeValues;
+  return {};
 }
 
 export const primitiveBindings = PRIMITIVE_BINDINGS;

@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; 다음 진입점 Phase 1b G2d)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; 다음 진입점 Phase 2 G3)
 
 ## Context
 
@@ -173,7 +173,15 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 cutover 또는 generic Inspector 는 포함하지 않는다. G2c 측정은
 `canonicalSkiaSymmetry.test.ts` 의 205개 Button ref canonical 문서 fixture 에서
 generic Skia traversal `durationMs <= 16.67` / `estimatedFps >= 60` 을 검증한다.
-다음 gate 는 Phase 1b G2d 다.
+
+2026-05-20 추가 판정: Phase 1b 공통 기반이 G2d 를 통과했다.
+`PrimitiveBinding`/`ComponentCatalogEntry`/`PropContract` 타입을 확정하고,
+`outputs/inspectorFields.ts` 가 `PropContract` 집합 + theme lookup 으로 generic
+Inspector field section 을 생성한다. `GenericPropertyEditor` 는 Button
+primitive binding 이 있을 때 legacy `spec.properties.sections` 보다 이
+PropContract 경로를 먼저 소비한다. F1~F4 Preview fixture 는 reusable origin,
+ref instance, descendants A/B/C, slot fill, fallback resolved children 보존을
+검증한다. 다음 gate 는 Phase 2 G3 (`componentCatalog` + reusable library) 다.
 
 ## Consequences
 
