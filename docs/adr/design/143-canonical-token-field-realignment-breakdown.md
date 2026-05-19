@@ -14,14 +14,14 @@
 
 - `CompositionDocument.variables` → `tokens`
 - `VariablesSnapshot` / `VariablesSnapshotEntry` → `TokensSnapshot` / `TokensSnapshotEntry`
-- `VariableDefinition` → `TokenDefinition`
+- `VariableDefinition` → `TokenDefinition` — 단 이 타입은 doc-comment 상 "D2 props 참조용으로 유지(하위 호환)"(`composition-document.types.ts:389`)다. D3 `Token` 명명 이동이 정합인지 또는 rename 대상에서 제외할지 Phase 0 inventory 에서 확정.
 - `NumberOrVariable` / `StringOrVariable` / `BooleanOrVariable` / `ColorOrVariable` → `…OrToken`
 - `VariableRef` — §3-3 충돌 처리
 - `themes` / `ThemeSnapshot` — **이름 유지** (.pen `themes` 와 동일)
 
 ### 2-2. canonical adapter / resolver (`apps/builder`)
 
-- ADR-110 land 함수: `buildVariablesSnapshot` → `buildTokensSnapshot`, `resolveCanonicalVariable` → `resolveCanonicalToken`. `applyCanonicalThemes` 는 이름 유지.
+- ADR-110 변수 land 함수 (실제 심볼 — `apps/builder/src/adapters/canonical/variablesAdapter.ts`): `snapshotVariablesFromTokens()` / `readCanonicalVariables()` / `resolveCanonicalVariable()` → token 명명으로 rename (예: `resolveCanonicalVariable` → `resolveCanonicalToken`). `applyCanonicalThemes` 는 이름 유지. 정확한 rename 대상·신규명은 Phase 0 inventory 의 `variablesAdapter.ts` 전수 grep 으로 확정 — `buildVariablesSnapshot` 같은 미존재 심볼 가정 금지.
 - 직렬화 경계: `.pen` export/import 시 `tokens` ↔ `.pen` `variables` 매핑 (§3-4).
 
 ### 2-3. IndexedDB (`apps/builder/src/lib/db/indexedDB/adapter.ts`)
@@ -30,10 +30,11 @@
 - ADR-132 Phase 5 선례 — 현 개발 단계 정책상 migration 코드 없이 store drop/recreate 허용.
 - adapter 의 `design_tokens`/`design_themes` CRUD 메서드 제거.
 
-### 2-4. dormant ThemeStudio 코드
+### 2-4. ThemeStudio 코드 (사용처 미확정 — Phase 0 inventory 대상)
 
 - `stores/themeStore.ts`, `services/theme/TokenService.ts`, `utils/theme/tokenParser.ts`, `types/theme/index.ts`(`DesignToken`/`DesignTheme`/`DesignVariable`).
-- dormant(미사용) 확인됨 → **폐기가 기본**. Phase 0 inventory 의 사용처 grep 결과로 폐기/재작성 확정.
+- **dormant 아님** — `themeStore.ts` 는 `BuilderCore.tsx`(`useUnifiedThemeStore`) + `VariableBindingButton.tsx`(`useTokens`) 에서 live import, `DesignToken` 타입은 `store.types.ts`/`figma.types.ts`/`generation.types.ts`/`unified.types.ts` 등에서 import 중. (dormant 인 것은 `design_tokens`/`design_themes` **objectStore** — live CRUD caller 0.)
+- Phase 0 inventory 가 ThemeStudio 사용처를 전수 grep → **폐기 / 재작성 / 본 ADR scope 제외** 중 하나로 결정. 폐기를 기본값으로 가정하지 않는다 (R5).
 
 ### 2-5. 런타임 `variables` (분리 명시)
 
@@ -77,25 +78,25 @@
 
 ## 4. Phase
 
-| Phase | 작업                                                                                                                                                  | 산출물                        |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| 0     | inventory — `variables`/`VariablesSnapshot`/`VariableRef`/`VariableDefinition` 참조 + `design_tokens`/`design_themes` 사용처 전수 grep. baseline 고정 | inventory 문서                |
-| 1     | canonical 타입 정명 (§2-1) + §3-3 충돌 결정                                                                                                           | composition-document.types.ts |
-| 2     | adapter/resolver 정명 (§2-2) + `.pen` 직렬화 매핑 (§3-4)                                                                                              | canonical adapter             |
-| 3     | 토큰 델타 저장 규칙 구현 (§3-2)                                                                                                                       | buildTokensSnapshot + merge   |
-| 4     | IndexedDB store 폐기 + dormant 코드 정리 (§2-3, §2-4)                                                                                                 | adapter.ts DB_VERSION bump    |
-| 5     | 런타임 `variables` 도메인 경계 주석 (§2-5)                                                                                                            | data.types.ts 주석            |
-| 6     | ADR-142 Decision #5 wording sync + ADR-110 partial supersede 마커 + README/CHANGELOG                                                                  | 문서 정합                     |
+| Phase | 작업                                                                                                                                                                                                                                                                                                                                    | 산출물                        |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 0     | inventory — `variables`/`VariablesSnapshot`/`VariableRef`/`VariableDefinition` 참조 + `design_tokens`/`design_themes` objectStore CRUD 사용처 + ThemeStudio 코드(`themeStore.ts`/`TokenService.ts`/`tokenParser.ts`/`types/theme`/`DesignToken`) live consumer 전수 grep. baseline 고정 + ThemeStudio 정리 scope(폐기/재작성/제외) 결정 | inventory 문서                |
+| 1     | canonical 타입 정명 (§2-1) + §3-3 충돌 결정                                                                                                                                                                                                                                                                                             | composition-document.types.ts |
+| 2     | adapter/resolver 정명 (§2-2) + `.pen` 직렬화 매핑 (§3-4)                                                                                                                                                                                                                                                                                | canonical adapter             |
+| 3     | 토큰 델타 저장 규칙 구현 (§3-2)                                                                                                                                                                                                                                                                                                         | buildTokensSnapshot + merge   |
+| 4     | IndexedDB objectStore 폐기 + ThemeStudio 코드 Phase 0 결정 반영 (§2-3, §2-4)                                                                                                                                                                                                                                                            | adapter.ts DB_VERSION bump    |
+| 5     | 런타임 `variables` 도메인 경계 주석 (§2-5)                                                                                                                                                                                                                                                                                              | data.types.ts 주석            |
+| 6     | ADR-142 Decision #5 wording sync + ADR-110 partial supersede 마커 + README/CHANGELOG                                                                                                                                                                                                                                                    | 문서 정합                     |
 
 ## 5. Phase별 Gate
 
-| Gate | 시점      | 통과 조건                                                                                                                                   |
-| ---- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| G0   | Phase 0   | inventory baseline 고정 — rename 대상 심볼 수 + 사용처 파일 수 확정                                                                         |
-| G1   | Phase 1-3 | `CompositionDocument.variables`/`VariablesSnapshot` 잔존 0 (grep). type-check 3/3. canonical adapter vitest PASS (ADR-110 테스트 갱신 포함) |
-| G2   | Phase 3   | 미커스터마이즈 프로젝트 `tokens` 필드 ≤ 5KB 실측. spec-token seed ↔ user-defined override merge 테스트 PASS                                 |
-| G3   | Phase 4   | `design_tokens`/`design_themes` objectStore + dormant 코드 사용처 0. DB_VERSION bump 후 신규 프로젝트 정상                                  |
-| G4   | Phase 6   | `.pen` round-trip 무손실 테스트 PASS. ADR-142 Decision #5 wording = `theme/tokens`. ADR-110 partial supersede 마커                          |
+| Gate | 시점      | 통과 조건                                                                                                                                                                                                |
+| ---- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | Phase 0   | inventory baseline 고정 — rename 대상 심볼 수 + 사용처 파일 수 확정                                                                                                                                      |
+| G1   | Phase 1-3 | `CompositionDocument.variables`/`VariablesSnapshot` 잔존 0 (grep). type-check 3/3. canonical adapter vitest PASS (ADR-110 테스트 갱신 포함)                                                              |
+| G2   | Phase 3   | 미커스터마이즈 프로젝트 `tokens` 필드 ≤ 5KB 실측. spec-token seed ↔ user-defined override merge 테스트 PASS                                                                                              |
+| G3   | Phase 4   | `design_tokens`/`design_themes` objectStore 제거 + adapter CRUD 메서드 사용처 0. ThemeStudio 코드는 Phase 0 결정대로 처리(폐기 선택 시 live consumer 재배선 완료). DB_VERSION bump 후 신규 프로젝트 정상 |
+| G4   | Phase 6   | `.pen` round-trip 무손실 테스트 PASS. ADR-142 Decision #5 wording = `theme/tokens`. ADR-110 partial supersede 마커                                                                                       |
 
 ## 6. 검증
 

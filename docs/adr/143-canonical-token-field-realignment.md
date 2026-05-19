@@ -12,7 +12,7 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 
 1. **이름 이중 의미** — `CompositionDocument.variables`(시각 design token)와 런타임 `variables` IndexedDB store(`Variable` 타입 — `authToken`/`currentUser` 류 앱 런타임 상태)가 같은 단어를 쓴다. 두 개는 서로 다른 도메인(D3 시각 ↔ app-logic)이다.
 2. **표준 용어 불일치** — 시각 design value 의 표준 용어는 "design token" 이다. W3C Design Tokens Community Group 의 Design Tokens Format Module 이 2025-10 첫 stable 에 도달했고, React Spectrum(D2)·Style Dictionary·Salesforce·Material 이 모두 "design token" 을 쓴다. composition 자체 코드도 `DesignToken` / `design_tokens` 다. "variables" 는 Figma UI·`.pen` 포맷의 design-tool 관례일 뿐 표준/엔지니어링 용어가 아니다.
-3. **dormant 중복 store** — IndexedDB 에 `design_tokens` + `design_themes` store(ThemeStudio 계열 — `DesignToken`/`DesignTheme` + `themeStore.ts`/`TokenService.ts`)가 canonical document 의 `themes`/`variables` 필드와 평행하게 존재하나 미사용 상태다.
+3. **dormant 중복 store** — IndexedDB 에 `design_tokens` + `design_themes` objectStore 가 canonical document 의 `themes`/`variables` 필드와 평행하게 존재하나, live CRUD caller 가 0 인 dormant 상태다. 단 이 store 를 다루던 ThemeStudio 코드(`themeStore.ts`/`TokenService.ts`/`DesignToken`/`DesignTheme`)는 dormant 아님 — `themeStore.ts` 는 `BuilderCore.tsx` + `VariableBindingButton.tsx` 에서 live import 중이다. **objectStore 의 dormant 여부와 코드의 live 여부는 분리** 한다.
 4. **문서 비대화 위험** — canonical document 가 토큰 전체 세트(프로젝트마다 동일한 spec 기본 토큰 수백 개)를 담으면 비대해진다.
 
 본 ADR 은 ADR-110 의 successor 다. ADR-110 본문 line 90·106 이 후속을 "별도 ADR-110-b" 로 명시 예고했다. ADR-142 는 line 44 에서 _"canonical schema(`CompositionDocument`)는 변경하지 않는다. 본 ADR 범위 밖이다"_ 라고 명시하므로, `CompositionDocument` 필드 rename 의 정당한 home 은 본 ADR 이다.
@@ -36,7 +36,7 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 ### 대안 A: canonical `variables` → `tokens` 정명 + 델타 저장 + store 통합
 
 - 설명: `CompositionDocument.variables`(시각) → `tokens` 로 rename. 런타임 `variables` store 는 이름 유지(별개 도메인). `design_tokens`/`design_themes` IndexedDB store 폐기 — 데이터는 canonical document 필드로. 문서는 user-defined + override 델타만 저장하고 spec 기본 토큰은 `primitives/` 런타임 seed.
-- 근거: W3C Design Tokens Format Module(2025-10 stable) + React Spectrum(D2) + composition 기존 `DesignToken` 코드 — 3중 정합. dormant store 는 사용처 0.
+- 근거: W3C Design Tokens Format Module(2025-10 stable) + React Spectrum(D2) + composition 기존 `DesignToken` 코드 — 3중 정합. `design_tokens`/`design_themes` objectStore 는 live CRUD caller 0(폐기 가능). ThemeStudio 코드 정리는 별개 — Phase 0 inventory 결과에 따라 폐기/재작성/scope 제외 결정.
 - 위험:
   - 기술: LOW — 필드 rename + adapter 정명. 신규 메커니즘 없음.
   - 성능: LOW — 델타 저장으로 문서 크기 오히려 감소.
@@ -104,12 +104,13 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 
 ## Risks
 
-| ID  | 위험                                                                                                                      | 심각도 | 대응                                                                                                  |
-| --- | ------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------- |
-| R1  | `.pen` 포맷 필드명(`variables`) ↔ composition 내부 필드명(`tokens`) 불일치 → 직렬화 경계에서 매핑 누락 시 round-trip 손실 |  MED   | 직렬화 adapter 단일 진입점 + round-trip 무손실 테스트 (breakdown §3-4)                                |
-| R2  | `variables` → `tokens` rename 이 canonical adapter / resolver / consumer 다수에 파급. 누락 시 stale 참조                  |  MED   | Phase 0 inventory 전수 grep + grep gate(`CompositionDocument.variables` 잔존 0) + type-check          |
-| R3  | 델타 저장 — spec 기본 토큰 seed ↔ user-defined override merge 순서 오류 시 사용자 override 가 기본값에 묻힘               |  MED   | `source: "spec-token" \| "user-defined"` 구분자 기반 merge, 순서 테스트 (breakdown §3-2)              |
-| R4  | ADR-110(Implemented)의 Gate G-A/G-B 테스트가 `variables` 이름에 의존                                                      |  LOW   | ADR-110 canonical adapter 테스트를 `tokens` 정명으로 동시 갱신. ADR-110 본문에 partial supersede 마커 |
+| ID  | 위험                                                                                                                                                       | 심각도 | 대응                                                                                                                                                 |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | `.pen` 포맷 필드명(`variables`) ↔ composition 내부 필드명(`tokens`) 불일치 → 직렬화 경계에서 매핑 누락 시 round-trip 손실                                  |  MED   | 직렬화 adapter 단일 진입점 + round-trip 무손실 테스트 (breakdown §3-4)                                                                               |
+| R2  | `variables` → `tokens` rename 이 canonical adapter / resolver / consumer 다수에 파급. 누락 시 stale 참조                                                   |  MED   | Phase 0 inventory 전수 grep + grep gate(`CompositionDocument.variables` 잔존 0) + type-check                                                         |
+| R3  | 델타 저장 — spec 기본 토큰 seed ↔ user-defined override merge 순서 오류 시 사용자 override 가 기본값에 묻힘                                                |  MED   | `source: "spec-token" \| "user-defined"` 구분자 기반 merge, 순서 테스트 (breakdown §3-2)                                                             |
+| R4  | ADR-110(Implemented)의 Gate G-A/G-B 테스트가 `variables` 이름에 의존                                                                                       |  LOW   | ADR-110 canonical adapter 테스트를 `tokens` 정명으로 동시 갱신. ADR-110 본문에 partial supersede 마커                                                |
+| R5  | ThemeStudio 코드(`DesignToken`/`themeStore`/`TokenService`) 정리·rename 시 `BuilderCore.tsx`/`VariableBindingButton.tsx` + 타입 5+ 파일 live consumer 파급 |  MED   | Phase 0 inventory 가 ThemeStudio 사용처 전수 grep → 폐기/재작성/scope 제외 결정. 폐기 선택 시 live consumer 재배선 완료를 breakdown G3 통과 조건으로 |
 
 잔존 HIGH 위험 없음.
 
@@ -123,13 +124,14 @@ ADR-110(Implemented, 2026-04-27)이 `CompositionDocument.themes` / `variables` �
 
 - "variables" 이중 의미 해소 — `tokens`(D3 시각) ↔ `variables`(런타임 앱 상태) 도메인 경계 명확화.
 - W3C Design Tokens 표준 + React Spectrum(D2) + 기존 `DesignToken` 코드 3중 정합.
-- dormant `design_tokens`/`design_themes` IndexedDB store 2개 + ThemeStudio dormant 코드 제거.
+- dormant `design_tokens`/`design_themes` IndexedDB objectStore 2개 제거 (live CRUD caller 0).
 - 델타 저장 규칙으로 canonical document 크기 억제 — 토큰 미커스터마이즈 프로젝트 `tokens` ≤ 5KB.
 - ADR-142 Decision #5 의 "theme/variables root collection" 모호성 해소 — wording 을 "theme/tokens" 로 sync 가능.
 
 ### Negative
 
 - canonical 타입 / adapter / resolver / consumer 에 `variables` → `tokens` rename 파급.
+- ThemeStudio 코드(`DesignToken`/`themeStore`/`TokenService`)는 dormant 아님 — 정리 대상에 포함 시 `BuilderCore.tsx`/`VariableBindingButton.tsx` 등 live consumer 재배선 발생. 정리 scope 는 Phase 0 inventory 가 확정 (R5).
 - `DB_VERSION` bump — `design_tokens`/`design_themes` store drop.
 - `.pen` 직렬화 경계에 `tokens` ↔ `variables` 매핑 1건 추가 (내부 모델명 ≠ wire 포맷명).
 - ADR-110 canonical adapter 테스트 동시 갱신 + ADR-142 Decision #5 wording sync 필요.
