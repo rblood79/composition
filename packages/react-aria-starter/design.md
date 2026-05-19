@@ -1,62 +1,60 @@
-# React Aria Starter — Design Reference (단일 token/패턴 문서)
+## Overview
 
-> **reference baseline, not runtime SSOT.**
-> 본 문서는 `packages/react-aria-starter/src` 의 CSS 에서 추출한 **단일 공통** token/패턴
-> reference 다. composition 의 시각 정본이 아니라, 시각 정본을 저작할 때 참조하는 입력
-> 가이드다.
->
-> - 본 문서의 섹션 구조는 Google DESIGN.md spec
->   (`google-labs-code/design.md`, alpha)의 section set 을 차용한다. 단 composition 확장
->   (Motion / Mapping / Appendix)을 Components 뒤에 삽입하고, Do's and Don'ts 는 최종
->   guardrail 로 둔다. YAML hex-token front matter layer 는 미채택한다. composition 은
->   OKLCH relative-color 모델과 light/dark adaptation 을 쓰며, 본 문서는 runtime 계약이 아니다.
-> - ADR-142 runtime D3 시각 SSOT = **theme/tokens root collection** (+ `PrimitiveBinding`
->   - canonical 문서). 본 문서는 그 저작의 입력일 뿐 런타임 계약으로 승격하지 않는다.
-> - **컴포넌트별 design.md 생성 금지** — starter 디자인 분석의 유일 문서는 본 파일
->   하나다 (`src/` 하위 컴포넌트별 문서 추가는 중복 SSOT 를 만든다).
-> - starter 는 upstream 스냅샷이다 (`UPSTREAM.md`). `src/` 원본은 수정하지 않는다.
+### Reference Boundary
 
----
+**reference baseline, not runtime SSOT.**
 
-## 1. Overview
+본 문서는 `packages/react-aria-starter/src` 의 CSS 에서 추출한 **단일 공통** token/패턴
+reference 다. composition 의 시각 정본이 아니라, 시각 정본을 저작할 때 참조하는 입력
+가이드다.
 
-### 1.1 역할
+- 본 문서의 top-level section 은 Google DESIGN.md spec
+  (`google-labs-code/design.md`, alpha)의 생성 툴 출력 포맷을 따른다. composition 확장
+  섹션(Motion / Mapping / Appendix)은 같은 포맷으로 Components 뒤, Do's and Don'ts 앞에
+  둔다. YAML hex-token front matter layer 는 미채택한다. composition 은 OKLCH
+  relative-color 모델과 light/dark adaptation 을 쓰며, 본 문서는 runtime 계약이 아니다.
+- ADR-142 runtime D3 시각 SSOT = **theme/tokens root collection** (+ `PrimitiveBinding`
+  - canonical 문서). 본 문서는 그 저작의 입력일 뿐 런타임 계약으로 승격하지 않는다.
+- **컴포넌트별 design.md 생성 금지** — starter 디자인 분석의 유일 문서는 본 파일
+  하나다 (`src/` 하위 컴포넌트별 문서 추가는 중복 SSOT 를 만든다).
+- starter 는 upstream 스냅샷이다 (`UPSTREAM.md`). `src/` 원본은 수정하지 않는다.
+
+### 역할
 
 - starter 56개 CSS 의 token/패턴을 **중복 제거**해 한 곳에 정규화한 reference.
 - ADR-142 의 spec 이행(theme/tokens 저작 / `PrimitiveBinding` 작성 / reusable 문서)에서
-  **필수 선행 입력**으로 쓰인다 — color 규칙(§2), typography 규칙(§3), layout 규칙(§4),
-  elevation 규칙(§5), shape 규칙(§6), component/state 규칙(§7)을 spec 이행 전 확정 입력으로
-  제공한다.
+  **필수 선행 입력**으로 쓰인다 — Colors / Typography / Layout / Elevation & Depth /
+  Shapes / Components / Motion / Mapping / Appendix / Do's and Don'ts 를 spec 이행 전 확정
+  입력으로 제공한다.
 - **정본 아님**: 본 문서는 런타임이 import 하지 않는다. 시각 정본은 theme/tokens root
   collection 이다.
 
-### 1.2 starter 스타일링 원칙
+### starter 스타일링 원칙
 
 - 모든 컴포넌트는 `.react-aria-{ComponentName}` 단일 루트 클래스로 시작.
 - 상태는 클래스 토글이 아닌 **`[data-*]` 속성**으로 표현 (React Aria 가 DOM 에 주입).
 - 색상 하드코딩 없음 — 컴포넌트 CSS 에 hex 색상 0건, 모두 `var(--*)` 토큰 사용.
 - CSS Nesting 적극 사용 (`&[data-*]`). 빌드 시 Lightning CSS / PostCSS Nesting 으로 평탄화.
 
-### 1.3 token ↔ 런타임 주입 변수 구분 (CRITICAL)
+### token ↔ 런타임 주입 변수 구분 (CRITICAL)
 
 `var(--*)` 참조 중 일부는 **design token 이 아니라 React Aria 가 런타임에 주입하는
 레이아웃 변수**다. 본 문서의 token 표는 후자를 포함하지 않는다.
 
-- design token: `theme.css` / `utilities.css` 가 정의 — §2~§7 및 Motion 확장의 대상.
+- design token: `theme.css` / `utilities.css` 가 정의 — Colors / Typography / Layout /
+  Elevation & Depth / Shapes / Components / Motion / Mapping 의 대상.
 - 런타임 주입 변수 (토큰 아님): `--trigger-width`, `--visual-viewport-height`,
   `--origin`, `--page-height`, `--percent`, `--start`, `--size`, `--tab-panel-width/height`,
   `--tree-item-level`, `--table-row-level`, `--disclosure-panel-height` 등. RAC 가 style
   속성으로 주입 → D1/런타임 영역, theme/tokens 대상 아님.
 
----
-
-## 2. Colors
+## Colors
 
 정의 원천은 `theme.css` (전역) + `utilities.css` (유틸 진입점)이다. starter 의 color
 모델은 hex 단일값이 아니라 OKLCH relative color + semantic token + light/dark adaptation
 조합이다.
 
-### 2.1 Color (OKLCH)
+### Color (OKLCH)
 
 모든 색상은 **OKLCH** 색공간의 `oklch(from … l c h)` relative color 로 파생된다.
 한 base hue → 16단계 스케일: `oklch(from {base} {lightness-N} {chroma-N} h)`.
@@ -90,7 +88,9 @@
 `--chroma-600~1600 = c`). `--gray-50` 은 스케일 밖 특수값 (Light `#ffffff`, Dark
 `oklch(22% 0 0)`).
 
-**시맨틱 색상** — 컴포넌트 CSS 는 원시 스케일 대신 아래 시맨틱 토큰을 우선 사용.
+### Semantic
+
+컴포넌트 CSS 는 원시 스케일 대신 아래 시맨틱 토큰을 우선 사용.
 
 | 토큰                                       | 값                                            | 토큰                               | 값                               |
 | ------------------------------------------ | --------------------------------------------- | ---------------------------------- | -------------------------------- |
@@ -119,7 +119,7 @@
 > 정의되고(`:root` light/dark 미정의), 컴포넌트 CSS 참조 0건이다 — 고대비 모드 전용
 > 미사용 토큰. theme/tokens 저작 시 채택 보류 후보(Do's and Don'ts).
 
-### 2.2 시맨틱 토큰 상태 네이밍 규칙
+### State Token Naming
 
 `{prop}` / `{prop}-hover` / `{prop}-pressed` / `{prop}-disabled` 접미사 규칙:
 
@@ -129,16 +129,14 @@
 - 강조 배경: `--highlight-background` / `-pressed` / `-invalid`
 - 중립 오버레이: `--highlight-hover` / `-pressed` (배경 위 hover/pressed 음영)
 
-### 2.3 hover / pressed / disabled
+### States
 
-- hover/pressed 는 유틸 패턴(§7.1)의 진입점 변수(`--button-color` 등)나 시맨틱 `-hover`/
-  `-pressed` 토큰으로 파생.
+- hover/pressed 는 유틸 패턴(Components / Utilities)의 진입점 변수(`--button-color` 등)나
+  시맨틱 `-hover` / `-pressed` 토큰으로 파생.
 - pressed micro-interaction: `[data-pressed]` 시 `scale: 0.9` (indicator, segmented-control item).
 - disabled: `-disabled` 토큰 + box-shadow 제거.
 
----
-
-## 3. Typography
+## Typography
 
 | 토큰             | 값              | 200dpi+ | 비고          |
 | ---------------- | --------------- | ------- | ------------- |
@@ -149,20 +147,18 @@
 font-family `system-ui` 고정, font-weight 본문 normal · Label/Button 등 `500`,
 line-height `1.5`.
 
----
+## Layout
 
-## 4. Layout
-
-### 4.1 Spacing
+### Spacing System
 
 `--spacing: 0.25rem` (4px) 기준, `--spacing-1`~`--spacing-10` = `N × --spacing`.
 주요: `-1`(4) `-2`(8) `-3`(12, 수평 패딩) `-4`(16, 아이콘) `-8`(32, **컨트롤 높이
-표준** → §4.4 field-height).
+표준** → field-height).
 
 > 고해상도 모바일(`@media (min-resolution: 200dpi)`)에서 `--spacing` 자체가
 > `0.25rem × 1.25` 로 확대 → 전 간격 동시 스케일.
 
-### 4.2 group-seam — 그룹 컨트롤 이음
+### group-seam — 그룹 컨트롤 이음
 
 인접 컨트롤을 하나의 단위로 시각 결합하는 패턴. **바깥 컨테이너가 border/radius/
 overflow 를 소유하고, 안쪽 항목은 테두리 없이 flush** 배치된다.
@@ -175,13 +171,13 @@ overflow 를 소유하고, 안쪽 항목은 테두리 없이 flush** 배치된�
   배경 없이 flush.
 - **ToggleButtonGroup**: 같은 계열 — 그룹이 단일 외곽, 항목은 seam 으로 연결.
 
-### 4.3 overlay-size — 오버레이 표면 치수
+### overlay-size — 오버레이 표면 치수
 
 Popover / Modal / ColorArea / ColorWheel 등 오버레이·표면은 고정 px 치수
 (관측 100·150·200·250·300·500px)를 쓴다 — **토큰화되지 않은 영역**. theme/tokens 저작
 시 별도 판정 필요(Do's and Don'ts).
 
-### 4.4 field-height — 컨트롤 높이 표준
+### field-height — 컨트롤 높이 표준
 
 표준 컨트롤 높이 = `--spacing-8` (32px). Button / Input / ComboBox / Date\* / ListBox·
 Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
@@ -190,24 +186,20 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
 > 대신 리터럴 `32px` 를 하드코딩 — 동일 값의 비일관 표현(중복 요소). theme/tokens 저작
 > 시 control-height 단일 규칙으로 정규화.
 
----
-
-## 5. Elevation & Depth
+## Elevation & Depth
 
 라이트/다크에서 서로 다른 box-shadow 레시피를 쓰는 물리적 입체 표현.
 
 - `--popover-shadow`: Light `0 8px 20px rgba(0 0 0/.12)` / Dark `… /.5`. 팝오버는
   `filter: drop-shadow(var(--popover-shadow))` 로 적용.
-- `.button-base` / `.indicator` / `.inset`: 다중 inset shadow 레시피(§7.1). 라이트/다크에서
-  하이라이트·그림자 방향이 반전.
+- `.button-base` / `.indicator` / `.inset`: 다중 inset shadow 레시피(Components /
+  Utilities). 라이트/다크에서 하이라이트·그림자 방향이 반전.
 - 흰색/검정 alpha 오버레이(`rgb(255 255 255/.N)`, `rgb(0 0 0/.N)`)는 specular highlight·
-  inner shadow 용 — 토큰화 안 됨, 레시피는 `utilities.css`(§7.1).
+  inner shadow 용 — 토큰화 안 됨, 레시피는 `utilities.css`(Components / Utilities).
 
----
+## Shapes
 
-## 6. Shapes
-
-### 6.1 Radius
+### Border Radius Scale
 
 | 토큰          | 값   | 용도                           |
 | ------------- | ---- | ------------------------------ |
@@ -216,9 +208,9 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
 | `--radius-lg` | 10px | 팝오버·오버레이                |
 | `--radius-xl` | 16px | 대형 표면                      |
 
-완전 둥근 형태(`9999px`)는 토큰이 아니라 반복 리터럴이다 → **pill 패턴**(§6.2).
+완전 둥근 형태(`9999px`)는 토큰이 아니라 반복 리터럴이다 → **pill 패턴**.
 
-### 6.2 pill — 완전 둥근 형태
+### pill — 완전 둥근 형태
 
 - `border-radius: 9999px`. 컴포넌트 CSS 에 **18곳** (토큰 아님, 리터럴 반복).
 - 사용처: 원형 day cell(Calendar / RangeCalendar 범위 끝) · 둥근 트랙(Meter /
@@ -226,19 +218,17 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
   아이콘 버튼(Button) · 스와치(ColorSwatch / ColorSwatchPicker) · ToggleButton.
 - 정규화 제안: `radius` 스케일에 "full/pill" 단계로 흡수 가능.
 
----
-
-## 7. Components
+## Components
 
 상태(hover / pressed / focus-visible / disabled)는 클래스가 아니라 RAC 가 주입하는
 `[data-*]` 속성으로 트리거되고, 시맨틱 토큰 네이밍 규칙으로 표현된다.
 
-### 7.1 공통 유틸 패턴 (`utilities.css`, `@layer utilities`)
+### Utilities (`utilities.css`, `@layer utilities`)
 
 컴포넌트가 className 으로 직접 사용하는 3개 공통 시각 패턴. 각 패턴은 `--{name}-color`
 류 **로컬 진입점 변수**를 노출 → 컴포넌트가 1줄 오버라이드로 변형.
 
-#### 7.1.1 `.button-base` — 볼록한 버튼형 표면
+**`.button-base` — 볼록한 버튼형 표면**
 
 - 진입점: `--button-color` (기본 `--tint`).
 - 파생: `--button-background/-gradient/-border/-highlight/-shadow/-text` 를 base color 의
@@ -250,21 +240,21 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
   (배경 없음, hover 시만 표시).
 - transition: `background, color, scale, box-shadow` / 200ms.
 
-#### 7.1.2 `.indicator` — 작은 컨트롤 인디케이터
+**`.indicator` — 작은 컨트롤 인디케이터**
 
 - 진입점: `--indicator-color` (기본 `--gray`).
 - checkbox / radio / switch thumb / slider thumb 의 공통 표면.
 - `[data-selected]` / `[data-indeterminate]` 부모 하위에서 `--highlight-background` 로 전환.
 - `[data-pressed]` 시 `scale: 0.9`, `[data-invalid]` 시 `--invalid-color`.
 
-#### 7.1.3 `.inset` — 오목한 입력 영역
+**`.inset` — 오목한 입력 영역**
 
 - 진입점: `--inset-background`(기본 `--field-background`) / `--inset-border`.
 - 입력 필드 / 슬라이더·프로그레스 트랙 공통.
 - `.inset.track` 변형: 더 얕은 inset (트랙 전용).
 - 상태: `[data-hovered/pressed]`(테두리 진하게) / `[data-invalid]` / `[data-disabled]`.
 
-### 7.2 focus-visible — 전역 규칙
+### focus-visible
 
 `[data-focus-visible]` → `outline: 2px solid var(--focus-ring-color)` + `outline-offset`:
 
@@ -274,7 +264,7 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
 | 입력 필드 (`.inset`)  | `-1px` | 안으로 들어간 영역 — inset outline |
 | SegmentedControl item | `4px`  | pill 컨테이너 외곽 여유            |
 
-### 7.3 `[data-*]` 상태 속성 (빈도순)
+### `[data-*]` 상태 속성 (빈도순)
 
 `[data-selected]`(41) · `[data-focus-visible]`(41) · `[data-pressed]`(36) ·
 `[data-disabled]`(33) · `[data-drop-target]`(15) · `[data-hovered]`(11) ·
@@ -283,7 +273,17 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
 `[data-indeterminate]` / `[data-placeholder]` / `[data-sort-direction]` /
 `[data-selection-mode]` / `[data-current]` / `[data-has-child-items]`.
 
-### 7.4 비-토큰 de-facto 표준
+## Motion
+
+- 표준 transition **200ms** — 컴포넌트 CSS 에 36회. **토큰화되어 있지 않음**(리터럴
+  반복) — de-facto 표준값.
+- 그 외: 300ms(5) / 400ms(4) / 250ms(1) / 150ms(1).
+- `@keyframes`: `modal-fade` / `modal-zoom` / `sheet-slide` / `sheet-blur` /
+  `progress-fill` / `slide-in` / `slide-out`.
+- 오버레이 진입/이탈: `[data-entering]` / `[data-exiting]` + `--origin`(런타임 주입)별
+  방향 transform.
+
+### De-facto Standards
 
 토큰이 없으나 사실상 표준값으로 반복되는 항목 — theme/tokens 저작 시 토큰화 검토 대상:
 
@@ -291,99 +291,72 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
 - border-width `1px` / focus-outline `2px`.
 - 흰색/검정 alpha 오버레이(specular highlight·inner shadow 레시피, `utilities.css`).
 
-## Motion (composition 확장)
-
-- 표준 transition **200ms** — 컴포넌트 CSS 에 36회. **토큰화되어 있지 않음**(리터럴
-  반복) — de-facto 표준값(§7.4).
-- 그 외: 300ms(5) / 400ms(4) / 250ms(1) / 150ms(1).
-- `@keyframes`: `modal-fade` / `modal-zoom` / `sheet-slide` / `sheet-blur` /
-  `progress-fill` / `slide-in` / `slide-out`.
-- 오버레이 진입/이탈: `[data-entering]` / `[data-exiting]` + `--origin`(런타임 주입)별
-  방향 transform.
-
----
-
-## Mapping — starter rule → composition token semantic → ADR-142 (composition 확장)
+## Mapping
 
 starter 의 token/패턴을 composition 시맨틱으로 번역하고 ADR-142 의 어느 SSOT 로
 반영되는지 기록한다. **composition 시맨틱 측 정의는 `.claude/rules/css-tokens.md` 가
 정본** — 본 표는 그것을 참조하며 재정의하지 않는다.
 
-| starter rule (DESIGN.md section set)         | composition 시맨틱 (css-tokens.md)         | ADR-142 반영 대상                                        |
-| -------------------------------------------- | ------------------------------------------ | -------------------------------------------------------- |
-| `--text-color` / `-hover` / `-disabled`      | `--fg` / `--fg-emphasis` / `--fg-disabled` | theme/tokens root collection                             |
-| `--background-color`                         | `--bg`                                     | theme/tokens root collection                             |
-| `--overlay-background`                       | `--bg-overlay`                             | theme/tokens root collection                             |
-| `--field-background`                         | `--bg-inset`                               | theme/tokens root collection                             |
-| `--border-color` / `-hover` / `-disabled`    | `--border` / `-hover` / `-disabled`        | theme/tokens root collection                             |
-| `--highlight-background` (accent)            | `--accent`                                 | theme/tokens root collection                             |
-| `--focus-ring-color`                         | `--focus-ring`                             | theme/tokens root collection                             |
-| §6.1 radius 스케일                           | radius 토큰                                | theme/tokens root collection                             |
-| §4.1 spacing 스케일                          | spacing 토큰                               | theme/tokens root collection                             |
-| §3 typography                                | typography 토큰                            | theme/tokens root collection                             |
-| §7.2 focus-visible 전역 규칙                 | focus 상태 규칙                            | theme/tokens (generic 렌더러 상태 CSS)                   |
-| §7.1.1 `.button-base` 유틸                   | 버튼 시각 패턴                             | theme/tokens + `PrimitiveBinding`(Button)                |
-| §7.1.2 `.indicator` 유틸                     | 인디케이터 패턴                            | theme/tokens + `PrimitiveBinding`(Checkbox/Radio/Switch) |
-| §7.1.3 `.inset` 유틸                         | 입력 inset 패턴                            | theme/tokens + `PrimitiveBinding`(field 계열)            |
-| §6.2 pill (`9999px`)                         | radius full/pill 단계                      | theme/tokens root collection                             |
-| §4.2 group-seam                              | 그룹 컨테이너 구조 규칙                    | reusable canonical 문서 (그룹 컴포넌트)                  |
-| §4.4 field-height (`--spacing-8`)            | control-height 규칙                        | theme/tokens + `PrimitiveBinding`                        |
-| §4.3 overlay-size                            | (판정 보류 — Do's and Don'ts)              | 별도 판정                                                |
-| Motion 확장: transition/keyframes/enter-exit | motion 규칙                                | theme/tokens + generic 렌더러 상태 CSS                   |
+| starter rule (DESIGN.md section set)      | composition 시맨틱 (css-tokens.md)         | ADR-142 반영 대상                                        |
+| ----------------------------------------- | ------------------------------------------ | -------------------------------------------------------- |
+| `--text-color` / `-hover` / `-disabled`   | `--fg` / `--fg-emphasis` / `--fg-disabled` | theme/tokens root collection                             |
+| `--background-color`                      | `--bg`                                     | theme/tokens root collection                             |
+| `--overlay-background`                    | `--bg-overlay`                             | theme/tokens root collection                             |
+| `--field-background`                      | `--bg-inset`                               | theme/tokens root collection                             |
+| `--border-color` / `-hover` / `-disabled` | `--border` / `-hover` / `-disabled`        | theme/tokens root collection                             |
+| `--highlight-background` (accent)         | `--accent`                                 | theme/tokens root collection                             |
+| `--focus-ring-color`                      | `--focus-ring`                             | theme/tokens root collection                             |
+| radius 스케일                             | radius 토큰                                | theme/tokens root collection                             |
+| spacing 스케일                            | spacing 토큰                               | theme/tokens root collection                             |
+| typography                                | typography 토큰                            | theme/tokens root collection                             |
+| focus-visible 전역 규칙                   | focus 상태 규칙                            | theme/tokens (generic 렌더러 상태 CSS)                   |
+| `.button-base` 유틸                       | 버튼 시각 패턴                             | theme/tokens + `PrimitiveBinding`(Button)                |
+| `.indicator` 유틸                         | 인디케이터 패턴                            | theme/tokens + `PrimitiveBinding`(Checkbox/Radio/Switch) |
+| `.inset` 유틸                             | 입력 inset 패턴                            | theme/tokens + `PrimitiveBinding`(field 계열)            |
+| pill (`9999px`)                           | radius full/pill 단계                      | theme/tokens root collection                             |
+| group-seam                                | 그룹 컨테이너 구조 규칙                    | reusable canonical 문서 (그룹 컴포넌트)                  |
+| field-height (`--spacing-8`)              | control-height 규칙                        | theme/tokens + `PrimitiveBinding`                        |
+| overlay-size                              | (판정 보류 — Do's and Don'ts)              | 별도 판정                                                |
+| motion: transition/keyframes/enter-exit   | motion 규칙                                | theme/tokens + generic 렌더러 상태 CSS                   |
 
 > "반영 대상" 열은 theme/tokens 항목 / `PrimitiveBinding` / reusable canonical 문서 중
 > 하나 — ADR-142 의 "결과 반영은 `componentCatalog` / `PrimitiveBinding` / reusable
 > canonical 문서로만" 원칙과 정합한다.
 
----
+## Appendix
 
-## Appendix. 파일 인벤토리
+### Source Inventory
 
 `packages/react-aria-starter/src` 의 CSS 총 **56개** = 토큰/유틸 2 + 컴포넌트 54.
 
-- **토큰/유틸 (2)**: `theme.css`, `utilities.css` — 본 문서 §2~§7 의 정의 원천.
+- **토큰/유틸 (2)**: `theme.css`, `utilities.css` — 본 문서의 token/utility 정의 원천.
 - **컴포넌트 CSS (54)** — 각 1파일, 상단에서 `theme.css` / `utilities.css` 를 `@import`.
   대형(>5KB): `ListBox` `Table` `GridList` `Tree`. 중형(2~5KB): `Menu` `Slider` `Tabs`
   `RangeCalendar` `ProgressBar` `TagGroup` `Toast`. 그 외 소형 다수.
 - **스토리 전용 (2, 디자인 시스템 아님)**: `stories/styles.css`, `.storybook/preview.css`.
 
----
-
 ## Do's and Don'ts
 
-theme/tokens 저작에서 starter 의 어떤 항목을 채택하고 무엇을 제외하는지의 판정 기준.
+### Do
 
-### Do — starter upstream 귀속 항목 채택
+- starter 업데이트로 다시 들어올 항목은 theme/tokens 가 starter 에서 가져온다.
+- Colors 의 OKLCH 모델 / 시맨틱 색상 / 상태 색상 네이밍을 채택한다.
+- Typography / Layout / Elevation & Depth / Shapes 의 token scale 을 채택한다.
+- Components 의 utility 패턴(button-base / indicator / inset), focus-visible, `[data-*]`
+  상태 속성을 채택한다.
+- Motion / Mapping / Appendix 는 생성 툴 포맷과 같은 top-level 확장 섹션으로 유지한다.
 
-starter 업데이트로 다시 들어올 항목. theme/tokens 가 starter 에서 가져온다.
+### Don't
 
-- §2 Colors (OKLCH 모델 / 시맨틱 색상 / 상태 색상 네이밍)
-- §3 Typography
-- §4 Layout (spacing / group-seam / overlay-size / field-height)
-- §5 Elevation & Depth
-- §6 Shapes (radius / pill)
-- §7 Components (button-base / indicator / inset / focus-visible / `[data-*]` 상태 속성)
-- Motion composition 확장 (표준 transition / overlay entering-exiting / keyframes)
-
-### Don't — composition 고유 디자인 언어를 starter 명칭 그대로 채택하지 않음
-
-composition 이 의도적으로 starter 와 다르게 정한 것. starter 에서 채택하지 않는다.
-
-- composition 시맨틱 변수 체계 — `--bg-*` / `--fg-*` / `--border-*` / `--accent-*`
-  (`.claude/rules/css-tokens.md`). starter 의 upstream 명칭(`--text-color`, `--gray-N`,
-  `--field-background`)을 그대로 채택하지 않고 Mapping 확장을 거친다.
-- S2 TokenRef 체계 (`{color.accent}` 등), tint preset system.
-- 금지된 M3 토큰 — 채택 불가.
-
-### 판정 질문
-
-- "starter 업데이트로 다시 들어올 항목인가?" → **채택**.
-- "composition 이 의도적으로 다르게 정한 것인가?" → **제외**.
-- 회색지대 → Mapping 확장 표에 starter rule 과 composition 시맨틱을 병기해 판정 보류.
-
----
+- composition 시맨틱 변수 체계(`--bg-*` / `--fg-*` / `--border-*` / `--accent-*`)를
+  starter upstream 명칭(`--text-color`, `--gray-N`, `--field-background`)으로 대체하지
+  않는다. Mapping 표를 거친다.
+- S2 TokenRef 체계(`{color.accent}` 등), tint preset system 을 starter 명칭으로 덮지 않는다.
+- 금지된 M3 토큰은 채택하지 않는다.
+- design.md 를 runtime D3 SSOT 나 런타임 계약으로 승격하지 않는다.
+- `packages/react-aria-starter/src` 하위에 컴포넌트별 design.md 를 추가하지 않는다.
 
 > **upstream 갱신 시**: 본 문서는 `UPSTREAM.md` §Update Flow 에 맞춰 재생성한다. starter
-> 스냅샷이 바뀌면 Google DESIGN.md section set 과 composition 확장(Motion / Mapping /
-> Appendix / Do's and Don'ts)의 token/패턴을 재추출하고 Mapping 표를 갱신한다. 본 문서는 그
-> 시점 외에는 freeze 상태를 유지한다(ADR-142 Phase 0 산출물).
+> 스냅샷이 바뀌면 Google DESIGN.md top-level section set 과 composition 확장(Motion /
+> Mapping / Appendix)의 token/패턴을 재추출하고 Mapping 표를 갱신한다. 본 문서는 그 시점
+> 외에는 freeze 상태를 유지한다(ADR-142 Phase 0 산출물).
