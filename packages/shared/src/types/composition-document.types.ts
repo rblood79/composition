@@ -12,8 +12,12 @@
  *
  * **pencil schema 정합**: 필드명은 pencil.dev 공식 schema 와 동일
  * (`type` / `reusable` / `ref` / `descendants` / `slot` / `clip` / `placeholder` /
- * `version` / `themes` / `variables` / `imports` / `name` / `metadata`) 사용.
- * 이름 변경 금지.
+ * `version` / `themes` / `imports` / `name` / `metadata`) 사용. 이름 변경 금지.
+ *
+ * **ADR-143 예외**: pencil `variables` root 필드는 내부 모델에서 `tokens` 로
+ * 정명 (D3 시각 design token ↔ 런타임 `variables` store 의 이중 의미 해소).
+ * `.pen` wire 포맷은 `variables` 유지 — 직렬화 경계에서 `tokens` ↔ `variables`
+ * 매핑 (ADR-143 §3-4).
  *
  * **ADR-116 G1 boundary (Schema Boundary Freeze)**:
  *
@@ -62,17 +66,17 @@ export interface ThemeSnapshot {
 }
 
 // ─────────────────────────────────────────────
-// VariablesSnapshot — ADR-110 Phase 1
+// TokensSnapshot — ADR-110 Phase 1 / ADR-143 정명 (Variables → Tokens)
 // ─────────────────────────────────────────────
 
 /**
- * `VariablesSnapshot` 내 개별 변수 항목.
+ * `TokensSnapshot` 내 개별 design token 항목.
  *
- * ADR-110 R3 대응: `source` 구분자로 Spec TokenRef vs 사용자 정의 변수를 구분.
+ * ADR-110 R3 대응: `source` 구분자로 Spec TokenRef vs 사용자 정의 토큰을 구분.
  * - `spec-token`: `packages/specs/src/primitives/tokenResolver.ts` 에서 resolve 된 값
  * - `user-defined`: 사용자가 직접 정의한 변수 (향후 UI에서 편집 가능)
  */
-export interface VariablesSnapshotEntry {
+export interface TokensSnapshotEntry {
   type: "color" | "number" | "string" | "boolean";
   value: string | number | boolean;
   /** ADR-110 R3: 변수 출처 구분자 */
@@ -80,52 +84,54 @@ export interface VariablesSnapshotEntry {
 }
 
 /**
- * canonical document `variables` 필드의 snapshot 타입.
+ * canonical document `tokens` 필드의 snapshot 타입 (ADR-143 정명).
  *
  * ADR-110 대안 B: ADR-022 TokenRef/CSS 변수 체계의 read-only snapshot.
- * `legacyToCanonical()` 호출 시 `getVariables()` 콜백으로 주입됨.
+ * `legacyToCanonical()` 호출 시 `getTokens()` 콜백으로 주입됨.
  *
- * Phase 2 이후 `variables`가 Spec TokenRef resolver와 통합되어
- * `resolveCanonicalVariable(ref, document)` 진입점이 생성될 예정.
+ * `tokens` 는 Spec TokenRef resolver와 통합되어
+ * `resolveCanonicalToken(ref, document)` 진입점으로 resolve 된다.
  */
-export type VariablesSnapshot = Record<string, VariablesSnapshotEntry>;
+export type TokensSnapshot = Record<string, TokensSnapshotEntry>;
 
 // ─────────────────────────────────────────────
-// Variable Reference Primitives
+// Token Reference Primitives
 // ─────────────────────────────────────────────
 
 /**
- * `$var` 참조 — ADR-022 TokenRef와 통합되는 canonical variable 참조 문법.
+ * `$var` 참조 — ADR-022 TokenRef와 통합되는 canonical token 참조 문법.
  *
- * 예: `{ $var: "primary" }` → `CompositionDocument.variables["primary"]` 참조
+ * 예: `{ $var: "primary" }` → `CompositionDocument.tokens["primary"]` 참조.
+ * ADR-143 §3-3: 참조 구문(`$var`)은 유지 — spec build-time `TokenRef`
+ * (brace 구문)와 다른 layer 라 타입명만 `CanonicalTokenRef` 로 정명.
  */
-export interface VariableRef {
+export interface CanonicalTokenRef {
   $var: string;
 }
 
-/** 숫자 또는 variable 참조 */
-export type NumberOrVariable = number | VariableRef;
+/** 숫자 또는 token 참조 */
+export type NumberOrToken = number | CanonicalTokenRef;
 
-/** 문자열 또는 variable 참조 */
-export type StringOrVariable = string | VariableRef;
+/** 문자열 또는 token 참조 */
+export type StringOrToken = string | CanonicalTokenRef;
 
-/** boolean 또는 variable 참조 */
-export type BooleanOrVariable = boolean | VariableRef;
+/** boolean 또는 token 참조 */
+export type BooleanOrToken = boolean | CanonicalTokenRef;
 
-/** 색상 문자열 또는 variable 참조 (hex / rgb / hsl 등) */
-export type ColorOrVariable = string | VariableRef;
+/** 색상 문자열 또는 token 참조 (hex / rgb / hsl 등) */
+export type ColorOrToken = string | CanonicalTokenRef;
 
 // ─────────────────────────────────────────────
-// Variable Definition
+// Token Definition
 // ─────────────────────────────────────────────
 
 /**
- * 문서 레벨 variable 정의 — `CompositionDocument.variables` 의 값 타입.
+ * 문서 레벨 design token 정의 — `CompositionDocument.tokens` 의 값 타입 (ADR-143 정명).
  *
  * ADR-022 Spec TokenRef + composition preset 통합.
  * 기존 CSS 변수 체계(`--accent`, `--bg-raised` 등)는 resolver가 이 정의에서 자동 emit.
  */
-export interface VariableDefinition {
+export interface TokenDefinition {
   type: "color" | "number" | "string" | "boolean";
   value: string | number | boolean;
 }
@@ -302,7 +308,7 @@ export interface FrameNode extends CanonicalNode {
    * `true` 일 때 children 이 frame 경계를 넘으면 clip.
    * composition 기존 `style.overflow: "hidden"` 과 매핑.
    */
-  clip?: BooleanOrVariable;
+  clip?: BooleanOrToken;
 
   /**
    * 빈 frame UI hint.
@@ -383,14 +389,17 @@ export interface CompositionDocument {
   themes?: ThemeSnapshot;
 
   /**
-   * 문서 variable 선언 — ADR-022 Spec TokenRef + 사용자 정의 변수 통합.
+   * 문서 design token 선언 — ADR-022 Spec TokenRef + 사용자 정의 토큰 통합.
    *
-   * ADR-110 Phase 1: `VariablesSnapshot` (read-only snapshot).
-   * 기존 `VariableDefinition` 타입은 D2 props 참조용으로 유지 (하위 호환).
-   * 필드에서 `{ $var: "primary" }` 형태로 참조.
-   * Phase 2 이후: `resolveCanonicalVariable(ref, document)` → `tokenResolver.ts` 통합.
+   * ADR-143: `variables` → `tokens` 정명 (D3 시각 design token).
+   * ADR-110 Phase 1: `TokensSnapshot` (read-only snapshot).
+   * 기존 `TokenDefinition` 타입은 D2 props 참조용으로 유지 (하위 호환).
+   * 필드에서 `{ $var: "primary" }` (`CanonicalTokenRef`) 형태로 참조하며
+   * `resolveCanonicalToken(ref, document)` → `tokenResolver.ts` 로 resolve.
+   *
+   * `.pen` wire 포맷은 `variables` — 직렬화 경계에서 매핑 (ADR-143 §3-4).
    */
-  variables?: VariablesSnapshot;
+  tokens?: TokensSnapshot;
 
   /**
    * 참조형 import hook — 외부 `.pen` 또는 canonical 문서 파일을 URL/path 로 참조.

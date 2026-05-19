@@ -63,13 +63,13 @@ src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(850,9): error 
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(886,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/adapters/canonical/__tests__/themes.test.ts(131,7): error TS2739: Type 'Record<string, string[]>' is missing the following properties from type 'ThemeSnapshot': tint, darkMode, neutral, radiusScale
 src/adapters/canonical/canonicalMutations.ts(40,21): error TS2305: Module '"@/types/builder/unified.types"' has no exported member 'Layout'.
-src/adapters/canonical/index.ts(178,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(186,30): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(209,13): error TS1360: Type '{ descendants?: Record<string, unknown> | undefined; ref: string; }' does not satisfy the expected type 'Partial<RefNode>'.
-src/adapters/canonical/index.ts(230,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(241,30): error TS2339: Property 'layout_id' does not exist on type 'Page'.
-src/adapters/canonical/index.ts(242,38): error TS2339: Property 'layout_id' does not exist on type 'Page'.
-src/adapters/canonical/index.ts(281,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(174,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(182,30): error TS2339: Property 'slot_name' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(205,13): error TS1360: Type '{ descendants?: Record<string, unknown> | undefined; ref: string; }' does not satisfy the expected type 'Partial<RefNode>'.
+src/adapters/canonical/index.ts(226,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
+src/adapters/canonical/index.ts(237,30): error TS2339: Property 'layout_id' does not exist on type 'Page'.
+src/adapters/canonical/index.ts(238,38): error TS2339: Property 'layout_id' does not exist on type 'Page'.
+src/adapters/canonical/index.ts(277,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(64,59): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(84,26): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(85,26): error TS2339: Property 'slot_name' does not exist on type 'Element'.

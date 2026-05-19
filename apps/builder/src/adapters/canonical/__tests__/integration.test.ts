@@ -17,7 +17,7 @@ import {
   belongsToLegacyLayout,
   getLegacyPageLayoutId,
   applyCanonicalThemes,
-  resolveCanonicalVariable,
+  resolveCanonicalToken,
 } from "../index";
 import { convertComponentRole } from "../componentRoleAdapter";
 import { convertPageLayout } from "../slotAndLayoutAdapter";
@@ -28,8 +28,8 @@ import {
   readCanonicalThemes,
 } from "../themesAdapter";
 import {
-  snapshotVariablesFromTokens,
-  readCanonicalVariables,
+  snapshotTokensFromResolved,
+  readCanonicalTokens,
   type ResolvedTokenMap,
 } from "../variablesAdapter";
 import { resolveToken } from "@composition/specs";
@@ -820,7 +820,7 @@ describe("getLegacyPageLayoutId (ADR-903 P3-D-5 step 5d)", () => {
 describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
   /**
    * full pipeline:
-   *   1. legacyToCanonical(input, { getThemeConfig, getVariables }) → doc
+   *   1. legacyToCanonical(input, { getThemeConfig, getTokens }) → doc
    *   2. apply (themes) + resolve (variables)
    *   3. re-snapshot (= round-trip 결과)
    *   4. 1차 snapshot 과 2차 snapshot 동일성 검증
@@ -838,13 +838,13 @@ describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
       "size.borderRadius": 8,
     };
 
-    // 1차 build — getThemeConfig + getVariables 양쪽 주입
+    // 1차 build — getThemeConfig + getTokens 양쪽 주입
     const doc = legacyToCanonical(
       { elements: [], pages: [], layouts: [] },
       {
         ...deps,
         getThemeConfig: () => initialThemeConfig,
-        getVariables: () => initialTokens,
+        getTokens: () => initialTokens,
       },
     );
 
@@ -877,17 +877,17 @@ describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
       snapshotThemesFromConfig(initialThemeConfig),
     );
 
-    // re-snapshot 2: variables — resolveCanonicalVariable 결과로 새 token map 빌드
+    // re-snapshot 2: tokens — resolveCanonicalToken 결과로 새 token map 빌드
     const resolvedAgain: ResolvedTokenMap = {};
     for (const key of Object.keys(initialTokens)) {
       const match = key.match(/^(\w+)\.(.+)$/);
       if (!match) continue;
       const [, category, name] = match;
-      const value = resolveCanonicalVariable(`{${category}.${name}}`, doc);
+      const value = resolveCanonicalToken(`{${category}.${name}}`, doc);
       if (value !== undefined) resolvedAgain[key] = value;
     }
-    const reSnapshotVars = snapshotVariablesFromTokens(resolvedAgain);
-    expect(reSnapshotVars).toEqual(snapshotVariablesFromTokens(initialTokens));
+    const reSnapshotVars = snapshotTokensFromResolved(resolvedAgain);
+    expect(reSnapshotVars).toEqual(snapshotTokensFromResolved(initialTokens));
   });
 
   it("TC-RT2: round-trip 멱등 — 같은 doc 으로 2회 apply/resolve 시 결과 안정", () => {
@@ -901,7 +901,7 @@ describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
 
     const doc = legacyToCanonical(
       { elements: [], pages: [], layouts: [] },
-      { ...deps, getThemeConfig: () => config, getVariables: () => tokens },
+      { ...deps, getThemeConfig: () => config, getTokens: () => tokens },
     );
 
     // apply 1회
@@ -943,11 +943,11 @@ describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
     expect(captured1).toEqual(config);
 
     // resolve 도 멱등
-    expect(resolveCanonicalVariable("{color.accent}", doc)).toBe("#5b21b6");
-    expect(resolveCanonicalVariable("{color.accent}", doc)).toBe("#5b21b6");
+    expect(resolveCanonicalToken("{color.accent}", doc)).toBe("#5b21b6");
+    expect(resolveCanonicalToken("{color.accent}", doc)).toBe("#5b21b6");
   });
 
-  it("TC-RT3: 한쪽만 주입 — themes 만 / variables 만 / 둘 다 미주입", () => {
+  it("TC-RT3: 한쪽만 주입 — themes 만 / tokens 만 / 둘 다 미주입", () => {
     const config: ThemeConfigInput = {
       tint: "blue",
       darkMode: "system",
@@ -962,17 +962,17 @@ describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
       { ...deps, getThemeConfig: () => config },
     );
     expect(readCanonicalThemes(docA)).toBeDefined();
-    expect(readCanonicalVariables(docA)).toBeUndefined();
-    expect(resolveCanonicalVariable("{color.base}", docA)).toBeUndefined();
+    expect(readCanonicalTokens(docA)).toBeUndefined();
+    expect(resolveCanonicalToken("{color.base}", docA)).toBeUndefined();
 
-    // case B: variables 만
+    // case B: tokens 만
     const docB = legacyToCanonical(
       { elements: [], pages: [], layouts: [] },
-      { ...deps, getVariables: () => tokens },
+      { ...deps, getTokens: () => tokens },
     );
     expect(readCanonicalThemes(docB)).toBeUndefined();
-    expect(readCanonicalVariables(docB)).toBeDefined();
-    expect(resolveCanonicalVariable("{color.base}", docB)).toBe("#fff");
+    expect(readCanonicalTokens(docB)).toBeDefined();
+    expect(resolveCanonicalToken("{color.base}", docB)).toBe("#fff");
     // apply 시 false (themes 미존재)
     const setters: ThemeConfigSetters = {
       setTint: () => {},
@@ -988,9 +988,9 @@ describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
       deps,
     );
     expect(readCanonicalThemes(docC)).toBeUndefined();
-    expect(readCanonicalVariables(docC)).toBeUndefined();
+    expect(readCanonicalTokens(docC)).toBeUndefined();
     expect(applyCanonicalThemes(docC, setters)).toBe(false);
-    expect(resolveCanonicalVariable("{color.base}", docC)).toBeUndefined();
+    expect(resolveCanonicalToken("{color.base}", docC)).toBeUndefined();
   });
 
   it("TC-RT4: Gate G-B 통합 — light theme resolveToken 결과로 빌드된 doc 의 round-trip", () => {
@@ -1006,14 +1006,12 @@ describe("ADR-110 Phase 2 ts-3.3 — Round-trip 통합", () => {
 
     const doc = legacyToCanonical(
       { elements: [], pages: [], layouts: [] },
-      { ...deps, getVariables: () => tokens },
+      { ...deps, getTokens: () => tokens },
     );
 
     // round-trip: doc 에서 resolve 한 값 = 처음 resolveToken 한 값과 동일
     for (const ref of refs) {
-      expect(resolveCanonicalVariable(ref, doc)).toBe(
-        resolveToken(ref, "light"),
-      );
+      expect(resolveCanonicalToken(ref, doc)).toBe(resolveToken(ref, "light"));
     }
   });
 });

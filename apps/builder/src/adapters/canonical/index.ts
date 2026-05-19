@@ -62,10 +62,10 @@ import { sortElementsBySource } from "../../builder/utils/elementOrdering";
 export { applyCanonicalThemes } from "./themesAdapter";
 export type { ThemeConfigSetters } from "./themesAdapter";
 
-// ADR-110 Phase 2 ts-3.2: resolveCanonicalVariable re-export (consumer 용)
-export { resolveCanonicalVariable } from "./variablesAdapter";
+// ADR-110 Phase 2 ts-3.2 / ADR-143: resolveCanonicalToken re-export (consumer 용)
+export { resolveCanonicalToken } from "./variablesAdapter";
 import {
-  snapshotVariablesFromTokens,
+  snapshotTokensFromResolved,
   type ResolvedTokenMap,
 } from "./variablesAdapter";
 import { isComponentOriginMirrorElement } from "./componentSemanticsMirror";
@@ -120,12 +120,12 @@ export interface LegacyAdapterDeps {
    */
   getThemeConfig?: () => ThemeConfigInput;
   /**
-   * ADR-110 Phase 1 — variables read-only snapshot 주입 (선택).
+   * ADR-110 Phase 1 / ADR-143 — tokens read-only snapshot 주입 (선택).
    *
-   * 전달 시: `doc.variables = snapshotVariablesFromTokens(getVariables())` 주입.
-   * 미전달 시: `doc.variables = undefined` (BC — 기존 동작 유지).
+   * 전달 시: `doc.tokens = snapshotTokensFromResolved(getTokens())` 주입.
+   * 미전달 시: `doc.tokens = undefined` (BC — 기존 동작 유지).
    */
-  getVariables?: () => ResolvedTokenMap;
+  getTokens?: () => ResolvedTokenMap;
 }
 
 export function legacyToCanonical(
@@ -133,12 +133,8 @@ export function legacyToCanonical(
   deps: LegacyAdapterDeps,
 ): CompositionDocument {
   const { elements, pages, layouts } = input;
-  const {
-    convertComponentRole,
-    convertPageLayout,
-    getThemeConfig,
-    getVariables,
-  } = deps;
+  const { convertComponentRole, convertPageLayout, getThemeConfig, getTokens } =
+    deps;
 
   // 1. id path 컨텍스트 구축 (UUID → stable path remap)
   const idPathCtx = buildIdPathContext(elements);
@@ -290,16 +286,14 @@ export function legacyToCanonical(
 
   // ADR-110 Phase 1: variables read-only snapshot 주입 (opt-in)
   // call-time 직렬화 — subscribe 기반 아님 (R4 대응: stale snapshot 방지)
-  const variablesSnapshot = getVariables
-    ? snapshotVariablesFromTokens(getVariables())
+  const tokensSnapshot = getTokens
+    ? snapshotTokensFromResolved(getTokens())
     : undefined;
 
   return {
     version: "composition-1.0",
     ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
-    ...(variablesSnapshot !== undefined
-      ? { variables: variablesSnapshot }
-      : {}),
+    ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
     children: [...layoutFrames, ...reusableMasters, ...pageNodes],
   };
 }
