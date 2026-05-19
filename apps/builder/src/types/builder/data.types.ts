@@ -248,6 +248,13 @@ export type ApiEndpointUpdate = Partial<
 
 // ============================================
 // Variable (전역 변수)
+//
+// 도메인 경계 (ADR-143): 본 `Variable` 타입 / `variables` IndexedDB store 는
+// 앱 런타임 상태(`authToken` / `currentUser` 류 — app-logic 도메인)다.
+// canonical document 의 `tokens` 필드(D3 시각 design token — ADR-143 으로
+// `variables` → `tokens` 정명)와 단어가 겹치지만 **별개 도메인**이며 서로
+// 참조·통합하지 않는다. 시각 토큰은 `composition-document.types.ts` 의
+// `CompositionDocument.tokens` / `TokensSnapshot` 참조.
 // ============================================
 
 /**
