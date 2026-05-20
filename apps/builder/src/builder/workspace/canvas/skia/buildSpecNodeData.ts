@@ -36,6 +36,7 @@ import {
   toSeparatorRacProps,
   toSliderRacProps,
   toSwitchRacProps,
+  toTagGroupRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
   toToggleButtonRacProps,
@@ -60,6 +61,8 @@ import {
   type SeparatorRacProps,
   type SliderRacProps,
   type SwitchRacProps,
+  type TagGroupItemDescriptor,
+  type TagGroupRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type ToggleButtonRacProps,
@@ -886,6 +889,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "grid-list") {
     return buildGenericGridListNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "tag-group") {
+    return buildGenericTagGroupNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -2690,6 +2696,157 @@ function buildGenericGridListNode(
   };
 }
 
+function buildGenericTagGroupNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toTagGroupRacProps(node.props ?? {}) as TagGroupRacProps;
+  const style = readGenericStyle(node);
+  const isDark = theme === "dark";
+  const size = resolveGenericTagGroupSize(props.size);
+  const items: TagGroupItemDescriptor[] = props.items ?? [];
+  const padding = readNumber(style.padding, 0);
+  const gap = readNumber(style.gap, 8);
+  const labelHeight = props.label ? size.labelHeight : 0;
+  const chipsStartY = padding + labelHeight + (props.label ? 8 : 0);
+  const selectedKeys = new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.selectedKey ? [props.selectedKey] : []),
+    ...(props.defaultSelectedKeys ?? []),
+    ...(props.defaultSelectedKey ? [props.defaultSelectedKey] : []),
+  ]);
+
+  const backgroundNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:background`,
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: layout.height,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(0x000000, 0),
+      borderRadius: readNumber(style.borderRadius, 0),
+    },
+  };
+
+  const labelNode: SkiaNodeData[] = props.label
+    ? [
+        {
+          type: "text",
+          elementId: `${node.id}:label`,
+          x: padding,
+          y: padding,
+          width: Math.max(layout.width - padding * 2, 0),
+          height: size.labelHeight,
+          visible: true,
+          text: {
+            content: props.label,
+            fontFamilies: [fontFamily.sans],
+            fontSize: size.labelFontSize,
+            fontWeight: 600,
+            color: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+            align: "left",
+            lineHeight: size.labelLineHeight,
+            paddingLeft: 0,
+            paddingTop: 0,
+            maxWidth: Math.max(layout.width - padding * 2, 0),
+            verticalAlign: "middle",
+          },
+        },
+      ]
+    : [];
+
+  let nextX = padding;
+  let nextY = chipsStartY;
+  const availableWidth = Math.max(layout.width - padding * 2, 0);
+  const chipNodes = items.flatMap((item): SkiaNodeData[] => {
+    const chipWidth = Math.min(
+      Math.max(item.label.length * size.charWidth + size.paddingX * 2, 48),
+      availableWidth,
+    );
+    if (nextX > padding && nextX + chipWidth > padding + availableWidth) {
+      nextX = padding;
+      nextY += size.chipHeight + gap;
+    }
+    const x = nextX;
+    const y = nextY;
+    nextX += chipWidth + gap;
+
+    const isSelected = selectedKeys.has(item.id);
+    const isNegative =
+      props.variant === "negative" || props.variant === "error";
+    const isAccent = props.variant === "accent" || props.variant === "primary";
+    const fillColor = resolveTagGroupChipFill({
+      isDark,
+      isSelected,
+      isAccent,
+      isNegative,
+    });
+    const strokeColor = resolveTagGroupChipStroke({
+      isDark,
+      isSelected,
+      isAccent,
+      isNegative,
+    });
+    const textColor = item.isDisabled
+      ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+      : colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+
+    return [
+      {
+        type: "box",
+        elementId: `${node.id}:tag:${item.id}:bg`,
+        x,
+        y,
+        width: chipWidth,
+        height: size.chipHeight,
+        visible: true,
+        box: {
+          fillColor,
+          borderRadius: size.radius,
+          strokeColor,
+          strokeWidth: isSelected ? 2 : 1,
+        },
+      },
+      {
+        type: "text",
+        elementId: `${node.id}:tag:${item.id}:text`,
+        x: x + size.paddingX,
+        y,
+        width: Math.max(chipWidth - size.paddingX * 2, 0),
+        height: size.chipHeight,
+        visible: true,
+        text: {
+          content: item.label,
+          fontFamilies: [fontFamily.sans],
+          fontSize: size.fontSize,
+          fontWeight: 500,
+          color: textColor,
+          align: "left",
+          lineHeight: size.lineHeight,
+          paddingLeft: 0,
+          paddingTop: 0,
+          maxWidth: Math.max(chipWidth - size.paddingX * 2, 0),
+          verticalAlign: "middle",
+        },
+      },
+    ];
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [backgroundNode, ...labelNode, ...chipNodes],
+  };
+}
+
 function flattenListBoxItems(
   entries: ListBoxRacProps["items"],
 ): ListBoxItemDescriptor[] {
@@ -2730,6 +2887,98 @@ function isGridListSectionDescriptor(
   entry: GridListEntryDescriptor,
 ): entry is Extract<GridListEntryDescriptor, { type: "section" }> {
   return entry.type === "section";
+}
+
+function resolveGenericTagGroupSize(size: TagGroupRacProps["size"]): {
+  labelFontSize: number;
+  labelLineHeight: number;
+  labelHeight: number;
+  fontSize: number;
+  lineHeight: number;
+  chipHeight: number;
+  paddingX: number;
+  radius: number;
+  charWidth: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        labelFontSize: 12,
+        labelLineHeight: 16,
+        labelHeight: 18,
+        fontSize: 12,
+        lineHeight: 16,
+        chipHeight: 24,
+        paddingX: 10,
+        radius: 12,
+        charWidth: 7,
+      };
+    case "lg":
+      return {
+        labelFontSize: 15,
+        labelLineHeight: 22,
+        labelHeight: 24,
+        fontSize: 14,
+        lineHeight: 20,
+        chipHeight: 34,
+        paddingX: 14,
+        radius: 17,
+        charWidth: 8,
+      };
+    case "md":
+    default:
+      return {
+        labelFontSize: 13,
+        labelLineHeight: 20,
+        labelHeight: 22,
+        fontSize: 13,
+        lineHeight: 18,
+        chipHeight: 30,
+        paddingX: 12,
+        radius: 15,
+        charWidth: 7.5,
+      };
+  }
+}
+
+function resolveTagGroupChipFill({
+  isDark,
+  isSelected,
+  isAccent,
+  isNegative,
+}: {
+  isDark: boolean;
+  isSelected: boolean;
+  isAccent: boolean;
+  isNegative: boolean;
+}): ReturnType<typeof colorIntToFloat32> {
+  if (isSelected && isNegative) {
+    return colorIntToFloat32(isDark ? 0x7f1d1d : 0xfee2e2, 1);
+  }
+  if (isSelected && isAccent) {
+    return colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1);
+  }
+  return colorIntToFloat32(isDark ? 0x1f2937 : 0xf9fafb, 1);
+}
+
+function resolveTagGroupChipStroke({
+  isDark,
+  isSelected,
+  isAccent,
+  isNegative,
+}: {
+  isDark: boolean;
+  isSelected: boolean;
+  isAccent: boolean;
+  isNegative: boolean;
+}): ReturnType<typeof colorIntToFloat32> {
+  if (isSelected && isNegative) {
+    return colorIntToFloat32(isDark ? 0xfca5a5 : 0xdc2626, 1);
+  }
+  if (isSelected && isAccent) {
+    return colorIntToFloat32(isDark ? 0x93c5fd : 0x2563eb, 1);
+  }
+  return colorIntToFloat32(isDark ? 0x4b5563 : 0xd1d5db, 1);
 }
 
 function resolveGenericLayout(

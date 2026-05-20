@@ -357,5 +357,10 @@ fixture 로 고정했다. GridList collections primitive pilot 은 `toGridListRa
 Preview GridList primitive branch / generic Skia card label+description fixture 를
 추가했다. GridList 는 canonical `items[]` 를 RAC GridList card surface 로 투영하며
 `GridListSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+TagGroup collections primitive pilot 은 `toTagGroupRacProps()` /
+`tagGroupPrimitiveBinding` / active catalog entry / shared `TagGroup.tsx` projection /
+Preview TagGroup primitive branch / generic Skia label+chip fixture 를 추가했다.
+TagGroup 은 canonical `items[]` 를 RAC TagGroup chip surface 로 투영하며
+`TagGroupSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
 collections family 전체 완료 주장은 아직 하지 않는다. ADR-132 collection 데이터 binding 과
-Menu/TagGroup/ComboBox/Select/Tabs 잔여 전환이 다음 범위다.
+Menu/ComboBox/Select/Tabs 잔여 전환이 다음 범위다.

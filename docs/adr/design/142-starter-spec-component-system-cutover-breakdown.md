@@ -548,6 +548,13 @@ projection / Preview GridList primitive branch / generic Skia card label+descrip
 collections family 두 번째 pilot 이며, ADR-132 collection 데이터 binding 전체 전환과
 Menu/TagGroup/ComboBox/Select/Tabs 는 잔여다.
 
+2026-05-20 추가 slice: TagGroup collections primitive 를 `cutover:"catalog"` 로
+등록했다. `tagGroupPrimitiveBinding` / `toTagGroupRacProps()` / shared `TagGroup.tsx`
+projection / Preview TagGroup primitive branch / generic Skia label+chip fixture 를
+추가했고, `TagGroupSpec.render.shapes()` 미호출을 검증한다. 이는 ListBox/GridList 에
+이은 collections family 세 번째 pilot 이며, ADR-132 collection 데이터 binding 전체
+전환과 Menu/ComboBox/Select/Tabs 는 잔여다.
+
 ### Phase 6 — Family-gated atomic cutover
 
 목표: Phase 0~5 공통 기반 위에서 family 순서대로 4경로를 atomic 하게 전환한다.

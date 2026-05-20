@@ -17,6 +17,7 @@ import { searchFieldPrimitiveBinding } from "./primitives/searchField";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import { sliderPrimitiveBinding } from "./primitives/slider";
 import { switchPrimitiveBinding } from "./primitives/switch";
+import { tagGroupPrimitiveBinding } from "./primitives/tagGroup";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { timeFieldPrimitiveBinding } from "./primitives/timeField";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
@@ -339,6 +340,19 @@ export const componentCatalog = [
       category: "collections",
       label: "grid list",
       icon: "Grid",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "TagGroup",
+    family: "collections",
+    cutover: "catalog",
+    binding: tagGroupPrimitiveBinding,
+    panel: {
+      category: "collections",
+      label: "tag group",
+      icon: "Tags",
       placeable: true,
     },
   },

@@ -22,6 +22,7 @@ import {
   SeparatorSpec,
   SliderSpec,
   SwitchSpec,
+  TagGroupSpec,
   TextFieldSpec,
   TimeFieldSpec,
   ToggleButtonSpec,
@@ -440,6 +441,39 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
         "PNG - 2/3/2024",
         "Hiking Trail",
       ]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved TagGroup items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TagGroupSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "tag-group-1",
+        type: "TagGroup",
+        props: {
+          label: "Flavors",
+          variant: "accent",
+          size: "md",
+          selectionMode: "multiple",
+          selectedKeys: ["mint"],
+          items: [
+            { id: "chocolate", label: "Chocolate" },
+            { id: "mint", label: "Mint" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 320, height: 96 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("tag-group-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Flavors", "Chocolate", "Mint"]),
     );
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();

@@ -229,6 +229,25 @@ export const GRID_LIST_SELECTION_MODE_VALUES = LIST_BOX_SELECTION_MODE_VALUES;
 export const GRID_LIST_SELECTION_BEHAVIOR_VALUES =
   LIST_BOX_SELECTION_BEHAVIOR_VALUES;
 export const GRID_LIST_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
+export const TAG_GROUP_VARIANT_VALUES = [
+  "default",
+  "accent",
+  "neutral",
+  "negative",
+] as const;
+const TAG_GROUP_LEGACY_VISUAL_VARIANT_VALUES = [
+  "primary",
+  "secondary",
+  "tertiary",
+  "error",
+  "surface",
+] as const;
+export const TAG_GROUP_SIZE_VALUES = ["sm", "md", "lg"] as const;
+export const TAG_GROUP_SELECTION_MODE_VALUES = LIST_BOX_SELECTION_MODE_VALUES;
+export const TAG_GROUP_SELECTION_BEHAVIOR_VALUES =
+  LIST_BOX_SELECTION_BEHAVIOR_VALUES;
+export const TAG_GROUP_LABEL_POSITION_VALUES = TEXT_FIELD_LABEL_POSITION_VALUES;
+export const TAG_GROUP_LABEL_ALIGN_VALUES = ["start", "end"] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -358,6 +377,21 @@ const GRID_LIST_SELECTION_BEHAVIORS = new Set<string>(
 const GRID_LIST_VALIDATION_BEHAVIORS = new Set<string>(
   GRID_LIST_VALIDATION_BEHAVIOR_VALUES,
 );
+const TAG_GROUP_VARIANTS = new Set<string>([
+  ...TAG_GROUP_VARIANT_VALUES,
+  ...TAG_GROUP_LEGACY_VISUAL_VARIANT_VALUES,
+]);
+const TAG_GROUP_SIZES = new Set<string>(TAG_GROUP_SIZE_VALUES);
+const TAG_GROUP_SELECTION_MODES = new Set<string>(
+  TAG_GROUP_SELECTION_MODE_VALUES,
+);
+const TAG_GROUP_SELECTION_BEHAVIORS = new Set<string>(
+  TAG_GROUP_SELECTION_BEHAVIOR_VALUES,
+);
+const TAG_GROUP_LABEL_POSITIONS = new Set<string>(
+  TAG_GROUP_LABEL_POSITION_VALUES,
+);
+const TAG_GROUP_LABEL_ALIGNS = new Set<string>(TAG_GROUP_LABEL_ALIGN_VALUES);
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -1236,6 +1270,75 @@ export interface GridListRacProps extends Record<string, unknown> {
   defaultSelectedKey?: string;
   defaultSelectedKeys?: string[];
   items?: GridListEntryDescriptor[];
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface TagGroupItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  isDisabled?: boolean;
+  allowsRemoving?: boolean;
+}
+
+export interface TagGroupCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  contextualHelp?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  labelAlign?: unknown;
+  maxRows?: unknown;
+  isEmphasized?: unknown;
+  filterText?: unknown;
+  filterFields?: unknown;
+  selectionMode?: unknown;
+  selectionBehavior?: unknown;
+  selectedKey?: unknown;
+  selectedKeys?: unknown;
+  defaultSelectedKey?: unknown;
+  defaultSelectedKeys?: unknown;
+  disallowEmptySelection?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  allowsRemoving?: unknown;
+  allowsCustomValue?: unknown;
+  items?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface TagGroupRacProps extends Record<string, unknown> {
+  label?: string;
+  description?: string;
+  errorMessage?: string;
+  contextualHelp?: string;
+  variant:
+    | (typeof TAG_GROUP_VARIANT_VALUES)[number]
+    | (typeof TAG_GROUP_LEGACY_VISUAL_VARIANT_VALUES)[number];
+  size: (typeof TAG_GROUP_SIZE_VALUES)[number];
+  labelPosition: (typeof TAG_GROUP_LABEL_POSITION_VALUES)[number];
+  labelAlign: (typeof TAG_GROUP_LABEL_ALIGN_VALUES)[number];
+  maxRows?: number;
+  isEmphasized: boolean;
+  filterText?: string;
+  filterFields?: string[];
+  selectionMode: (typeof TAG_GROUP_SELECTION_MODE_VALUES)[number];
+  selectionBehavior: (typeof TAG_GROUP_SELECTION_BEHAVIOR_VALUES)[number];
+  selectedKey?: string;
+  selectedKeys?: string[];
+  defaultSelectedKey?: string;
+  defaultSelectedKeys?: string[];
+  disallowEmptySelection: boolean;
+  isDisabled: boolean;
+  isReadOnly: boolean;
+  isInvalid: boolean;
+  allowsRemoving: boolean;
+  allowsCustomValue: boolean;
+  items?: TagGroupItemDescriptor[];
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2203,6 +2306,70 @@ export function toGridListRacProps(
   };
 }
 
+export function toTagGroupRacProps(
+  props: TagGroupCanonicalProps,
+): TagGroupRacProps {
+  const items = normalizeTagGroupItems(props.items);
+  const maxRows = normalizeTagGroupMaxRows(props.maxRows);
+  return {
+    ...(readString(props.label, "").trim()
+      ? { label: readString(props.label, "") }
+      : {}),
+    ...(readString(props.description, "").trim()
+      ? { description: readString(props.description, "") }
+      : {}),
+    ...(readString(props.errorMessage, "").trim()
+      ? { errorMessage: readString(props.errorMessage, "") }
+      : {}),
+    ...(readString(props.contextualHelp, "").trim()
+      ? { contextualHelp: readString(props.contextualHelp, "") }
+      : {}),
+    variant: normalizeTagGroupVariant(props.variant),
+    size: normalizeTagGroupSize(props.size),
+    labelPosition: normalizeTagGroupLabelPosition(props.labelPosition),
+    labelAlign: normalizeTagGroupLabelAlign(props.labelAlign),
+    ...(maxRows !== undefined ? { maxRows } : {}),
+    isEmphasized: props.isEmphasized === true,
+    ...(typeof props.filterText === "string"
+      ? { filterText: props.filterText }
+      : {}),
+    ...(normalizeStringArray(props.filterFields)
+      ? { filterFields: normalizeStringArray(props.filterFields) }
+      : {}),
+    selectionMode: normalizeTagGroupSelectionMode(props.selectionMode),
+    selectionBehavior: normalizeTagGroupSelectionBehavior(
+      props.selectionBehavior,
+    ),
+    ...(typeof props.selectedKey === "string"
+      ? { selectedKey: props.selectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.selectedKeys)
+      ? { selectedKeys: normalizeStringValueArray(props.selectedKeys) }
+      : {}),
+    ...(typeof props.defaultSelectedKey === "string"
+      ? { defaultSelectedKey: props.defaultSelectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultSelectedKeys)
+      ? {
+          defaultSelectedKeys: normalizeStringValueArray(
+            props.defaultSelectedKeys,
+          ),
+        }
+      : {}),
+    disallowEmptySelection: props.disallowEmptySelection === true,
+    isDisabled: props.isDisabled === true,
+    isReadOnly: props.isReadOnly === true,
+    isInvalid: props.isInvalid === true,
+    allowsRemoving: props.allowsRemoving === true,
+    allowsCustomValue: props.allowsCustomValue === true,
+    ...(items.length > 0 ? { items } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -3017,6 +3184,84 @@ function normalizeGridListEntry(
       ? { isDisabled: value.isDisabled }
       : {}),
     ...(value.type === "item" ? { type: "item" as const } : {}),
+  };
+}
+
+function normalizeTagGroupVariant(value: unknown): TagGroupRacProps["variant"] {
+  return typeof value === "string" && TAG_GROUP_VARIANTS.has(value)
+    ? (value as TagGroupRacProps["variant"])
+    : "default";
+}
+
+function normalizeTagGroupSize(
+  value: unknown,
+): (typeof TAG_GROUP_SIZE_VALUES)[number] {
+  return typeof value === "string" && TAG_GROUP_SIZES.has(value)
+    ? (value as (typeof TAG_GROUP_SIZE_VALUES)[number])
+    : "md";
+}
+
+function normalizeTagGroupLabelPosition(
+  value: unknown,
+): (typeof TAG_GROUP_LABEL_POSITION_VALUES)[number] {
+  return typeof value === "string" && TAG_GROUP_LABEL_POSITIONS.has(value)
+    ? (value as (typeof TAG_GROUP_LABEL_POSITION_VALUES)[number])
+    : "top";
+}
+
+function normalizeTagGroupLabelAlign(
+  value: unknown,
+): (typeof TAG_GROUP_LABEL_ALIGN_VALUES)[number] {
+  return typeof value === "string" && TAG_GROUP_LABEL_ALIGNS.has(value)
+    ? (value as (typeof TAG_GROUP_LABEL_ALIGN_VALUES)[number])
+    : "start";
+}
+
+function normalizeTagGroupMaxRows(value: unknown): number | undefined {
+  const maxRows = readFiniteNumber(value);
+  if (maxRows === undefined || maxRows <= 0) return undefined;
+  return Math.max(1, Math.round(maxRows));
+}
+
+function normalizeTagGroupSelectionMode(
+  value: unknown,
+): (typeof TAG_GROUP_SELECTION_MODE_VALUES)[number] {
+  return typeof value === "string" && TAG_GROUP_SELECTION_MODES.has(value)
+    ? (value as (typeof TAG_GROUP_SELECTION_MODE_VALUES)[number])
+    : "none";
+}
+
+function normalizeTagGroupSelectionBehavior(
+  value: unknown,
+): (typeof TAG_GROUP_SELECTION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && TAG_GROUP_SELECTION_BEHAVIORS.has(value)
+    ? (value as (typeof TAG_GROUP_SELECTION_BEHAVIOR_VALUES)[number])
+    : "toggle";
+}
+
+function normalizeTagGroupItems(value: unknown): TagGroupItemDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeTagGroupItem(entry))
+    .filter((entry): entry is TagGroupItemDescriptor => entry !== undefined);
+}
+
+function normalizeTagGroupItem(
+  value: unknown,
+): TagGroupItemDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  const label = readString(value.label, "").trim();
+  if (!label) return undefined;
+  const id = readString(value.id, label);
+  return {
+    id,
+    label,
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
+      : {}),
+    ...(typeof value.allowsRemoving === "boolean"
+      ? { allowsRemoving: value.allowsRemoving }
+      : {}),
   };
 }
 

@@ -352,6 +352,29 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog TagGroup placement with canonical items", () => {
+    const creation = resolveCatalogElementCreation("TagGroup");
+
+    expect(creation).toMatchObject({
+      elementType: "TagGroup",
+      props: {
+        label: "Tag Group",
+        variant: "default",
+        size: "md",
+        labelPosition: "top",
+        selectionMode: "multiple",
+        allowsRemoving: false,
+        items: [
+          { id: "tag-1", label: "Chocolate" },
+          { id: "tag-2", label: "Mint" },
+          { id: "tag-3", label: "Strawberry" },
+          { id: "tag-4", label: "Vanilla" },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

@@ -14,6 +14,7 @@ import { radioInspectorThemeValues } from "./primitives/radio";
 import { searchFieldInspectorThemeValues } from "./primitives/searchField";
 import { sliderInspectorThemeValues } from "./primitives/slider";
 import { switchInspectorThemeValues } from "./primitives/switch";
+import { tagGroupInspectorThemeValues } from "./primitives/tagGroup";
 import { textFieldInspectorThemeValues } from "./primitives/textField";
 import { timeFieldInspectorThemeValues } from "./primitives/timeField";
 import type { InspectorThemeLookup } from "./outputs/inspectorFields";
@@ -44,6 +45,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "Link") return linkInspectorThemeValues;
   if (type === "GridList") return gridListInspectorThemeValues;
   if (type === "ListBox") return listBoxInspectorThemeValues;
+  if (type === "TagGroup") return tagGroupInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;

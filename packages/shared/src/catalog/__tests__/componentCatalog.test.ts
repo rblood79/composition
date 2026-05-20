@@ -14,6 +14,7 @@ import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { sliderPrimitiveBinding } from "../primitives/slider";
 import { switchPrimitiveBinding } from "../primitives/switch";
+import { tagGroupPrimitiveBinding } from "../primitives/tagGroup";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { toolbarPrimitiveBinding } from "../primitives/toolbar";
@@ -448,6 +449,28 @@ describe("ADR-142 component catalog", () => {
     ]);
   });
 
+  it("registers TagGroup as an active collections primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("TagGroup");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(tagGroupPrimitiveBinding);
+    expect(entry.family).toBe("collections");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("TagGroup");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("tag-group");
+    expect(entry.panel.category).toBe("collections");
+    expect(entry.panel.label).toBe("tag group");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual([
+      { id: "tag-1", label: "Chocolate" },
+      { id: "tag-2", label: "Mint" },
+      { id: "tag-3", label: "Strawberry" },
+      { id: "tag-4", label: "Vanilla" },
+    ]);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -507,6 +530,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Slider");
     expect(activeTypes).toContain("ListBox");
     expect(activeTypes).toContain("GridList");
+    expect(activeTypes).toContain("TagGroup");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

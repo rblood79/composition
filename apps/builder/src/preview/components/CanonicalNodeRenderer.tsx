@@ -40,6 +40,7 @@ import {
   type SeparatorRacProps,
   type SliderRacProps,
   type SwitchRacProps,
+  type TagGroupRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type ToolbarRacProps,
@@ -66,6 +67,7 @@ import {
   Separator,
   Slider,
   Switch,
+  TagGroup,
   TextField,
   TimeField,
   Toolbar,
@@ -484,6 +486,14 @@ function renderPrimitiveNode({
     ) as GridListRacProps;
 
     return <GridList key={node.id} {...gridListProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "TagGroup") {
+    const tagGroupProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as TagGroupRacProps;
+
+    return <TagGroup key={node.id} {...tagGroupProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

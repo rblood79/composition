@@ -31,6 +31,7 @@ const {
   legacySeparatorRenderer,
   legacySliderRenderer,
   legacySwitchRenderer,
+  legacyTagGroupRenderer,
   legacyTextFieldRenderer,
   legacyTimeFieldRenderer,
   legacyToggleButtonRenderer,
@@ -92,6 +93,9 @@ const {
   legacySwitchRenderer: vi.fn(() => (
     <label data-legacy-renderer="Switch">legacy</label>
   )),
+  legacyTagGroupRenderer: vi.fn(() => (
+    <div data-legacy-renderer="TagGroup">legacy</div>
+  )),
   legacyTextFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="TextField">legacy</div>
   )),
@@ -130,6 +134,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Separator: legacySeparatorRenderer,
     Slider: legacySliderRenderer,
     Switch: legacySwitchRenderer,
+    TagGroup: legacyTagGroupRenderer,
     TextField: legacyTextFieldRenderer,
     TimeField: legacyTimeFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
@@ -173,6 +178,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacySeparatorRenderer.mockClear();
     legacySliderRenderer.mockClear();
     legacySwitchRenderer.mockClear();
+    legacyTagGroupRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyTimeFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
@@ -956,6 +962,39 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       grid,
     );
     expect(legacyGridListRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders TagGroup canonical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "tag-group-1",
+      type: "TagGroup",
+      props: {
+        label: "Flavors",
+        variant: "accent",
+        size: "lg",
+        selectionMode: "multiple",
+        selectedKeys: ["mint"],
+        items: [
+          { id: "chocolate", label: "Chocolate" },
+          { id: "mint", label: "Mint", allowsRemoving: true },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const tagGroupRoot = container.querySelector(".react-aria-TagGroup");
+    expect(tagGroupRoot?.getAttribute("data-type-variant")).toBe("accent");
+    expect(tagGroupRoot?.getAttribute("data-type-size")).toBe("lg");
+    expect(container.querySelector("[data-canonical-id='tag-group-1']")).toBe(
+      tagGroupRoot,
+    );
+    expect(screen.getByText("Flavors")).toBeTruthy();
+    expect(screen.getByText("Chocolate")).toBeTruthy();
+    expect(screen.getByText("Mint")).toBeTruthy();
+    expect(legacyTagGroupRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

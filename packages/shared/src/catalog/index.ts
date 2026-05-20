@@ -20,6 +20,7 @@ export * from "./primitives/searchField";
 export * from "./primitives/separator";
 export * from "./primitives/slider";
 export * from "./primitives/switch";
+export * from "./primitives/tagGroup";
 export * from "./primitives/textField";
 export * from "./primitives/timeField";
 export * from "./primitives/toolbar";

@@ -13,6 +13,7 @@ import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { sliderPrimitiveBinding } from "../primitives/slider";
 import { switchPrimitiveBinding } from "../primitives/switch";
+import { tagGroupPrimitiveBinding } from "../primitives/tagGroup";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
@@ -30,6 +31,7 @@ import {
   toSearchFieldRacProps,
   toSliderRacProps,
   toSwitchRacProps,
+  toTagGroupRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
 } from "../outputs/toRacProps";
@@ -1125,6 +1127,81 @@ describe("ADR-142 inspector field contracts", () => {
           label: "Hiking Trail",
           isDisabled: true,
         },
+      ],
+    });
+  });
+
+  it("groups TagGroup PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "TagGroup",
+      contracts: tagGroupPrimitiveBinding.props.accepts,
+      theme: {
+        variants: { TagGroup: ["default", "accent", "neutral", "negative"] },
+        sizes: { TagGroup: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Filtering",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "items",
+      "description",
+      "errorMessage",
+      "contextualHelp",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "variant",
+      "size",
+      "labelPosition",
+      "labelAlign",
+      "maxRows",
+      "isEmphasized",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "filterText",
+      "filterFields",
+    ]);
+    expect(sections[3].fields.map((field) => field.key)).toEqual([
+      "selectionMode",
+      "selectionBehavior",
+      "disallowEmptySelection",
+      "isDisabled",
+      "isReadOnly",
+      "isInvalid",
+      "allowsRemoving",
+      "allowsCustomValue",
+    ]);
+  });
+
+  it("projects TagGroup canonical items through the catalog boundary", () => {
+    expect(
+      toTagGroupRacProps({
+        label: "Flavors",
+        variant: "negative",
+        size: "lg",
+        selectionMode: "multiple",
+        selectedKeys: ["mint"],
+        items: [
+          { id: "chocolate", label: "Chocolate" },
+          { id: "mint", label: "Mint", allowsRemoving: true },
+          { id: "ignored", label: "" },
+          42,
+        ],
+      }),
+    ).toMatchObject({
+      label: "Flavors",
+      variant: "negative",
+      size: "lg",
+      selectionMode: "multiple",
+      selectedKeys: ["mint"],
+      items: [
+        { id: "chocolate", label: "Chocolate" },
+        { id: "mint", label: "Mint", allowsRemoving: true },
       ],
     });
   });
