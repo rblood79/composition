@@ -164,6 +164,23 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog ColorField placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("ColorField");
+
+    expect(creation).toMatchObject({
+      elementType: "ColorField",
+      props: {
+        label: "Color",
+        value: "#000000",
+        placeholder: "#000000",
+        colorSpace: "rgb",
+        size: "md",
+        labelPosition: "top",
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

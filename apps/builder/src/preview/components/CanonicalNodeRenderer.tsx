@@ -24,6 +24,7 @@ import {
   type BreadcrumbRacProps,
   type BreadcrumbsRacProps,
   type ButtonRacProps,
+  type ColorFieldRacProps,
   type DateFieldRacProps,
   type LinkRacProps,
   type NumberFieldRacProps,
@@ -39,6 +40,7 @@ import {
   Breadcrumb,
   Breadcrumbs,
   Button,
+  ColorField,
   DateField,
   Link,
   NumberField,
@@ -350,6 +352,14 @@ function renderPrimitiveNode({
     ) as TimeFieldRacProps;
 
     return <TimeField key={node.id} {...timeFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "ColorField") {
+    const colorFieldProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ColorFieldRacProps;
+
+    return <ColorField key={node.id} {...colorFieldProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

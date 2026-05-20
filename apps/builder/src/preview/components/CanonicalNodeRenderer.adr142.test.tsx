@@ -15,6 +15,7 @@ const {
   legacyButtonRenderer,
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
+  legacyColorFieldRenderer,
   legacyDateFieldRenderer,
   legacyLinkRenderer,
   legacyNumberFieldRenderer,
@@ -34,6 +35,9 @@ const {
   )),
   legacyBreadcrumbsRenderer: vi.fn(() => (
     <nav data-legacy-renderer="Breadcrumbs">legacy</nav>
+  )),
+  legacyColorFieldRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ColorField">legacy</div>
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
@@ -70,6 +74,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Button: legacyButtonRenderer,
     Breadcrumb: legacyBreadcrumbRenderer,
     Breadcrumbs: legacyBreadcrumbsRenderer,
+    ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
     Link: legacyLinkRenderer,
     NumberField: legacyNumberFieldRenderer,
@@ -102,6 +107,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyButtonRenderer.mockClear();
     legacyBreadcrumbRenderer.mockClear();
     legacyBreadcrumbsRenderer.mockClear();
+    legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
@@ -517,5 +523,32 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector(".react-aria-TimeField"),
     );
     expect(legacyTimeFieldRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ColorField through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "colorfield-1",
+      type: "ColorField",
+      props: {
+        label: "Brand color",
+        value: "#3366ff",
+        placeholder: "#000000",
+        colorSpace: "rgb",
+        size: "lg",
+        isRequired: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const input = screen.getByRole("textbox", { name: /Brand color/ });
+    expect((input as HTMLInputElement).value).toBe("#3366FF");
+    expect(input.getAttribute("placeholder")).toBe("#000000");
+    expect(container.querySelector("[data-canonical-id='colorfield-1']")).toBe(
+      container.querySelector(".react-aria-ColorField"),
+    );
+    expect(legacyColorFieldRenderer).not.toHaveBeenCalled();
   });
 });

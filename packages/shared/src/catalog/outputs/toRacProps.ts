@@ -84,6 +84,22 @@ export const TIME_FIELD_GRANULARITY_VALUES = [
   "second",
 ] as const;
 export const TIME_FIELD_HOUR_CYCLE_VALUES = DATE_FIELD_HOUR_CYCLE_VALUES;
+export const COLOR_FIELD_CHANNEL_VALUES = [
+  "hue",
+  "saturation",
+  "lightness",
+  "brightness",
+  "red",
+  "green",
+  "blue",
+  "alpha",
+] as const;
+export const COLOR_FIELD_COLOR_SPACE_VALUES = ["rgb", "hsl", "hsb"] as const;
+export const COLOR_FIELD_LABEL_ALIGN_VALUES = [
+  "start",
+  "center",
+  "end",
+] as const;
 export const DATE_FIELD_CALENDAR_VALUES = [
   "gregory",
   "buddhist",
@@ -167,6 +183,13 @@ const DATE_FIELD_GRANULARITIES = new Set<string>(DATE_FIELD_GRANULARITY_VALUES);
 const DATE_FIELD_HOUR_CYCLES = new Set<string>(DATE_FIELD_HOUR_CYCLE_VALUES);
 const TIME_FIELD_GRANULARITIES = new Set<string>(TIME_FIELD_GRANULARITY_VALUES);
 const TIME_FIELD_HOUR_CYCLES = new Set<string>(TIME_FIELD_HOUR_CYCLE_VALUES);
+const COLOR_FIELD_CHANNELS = new Set<string>(COLOR_FIELD_CHANNEL_VALUES);
+const COLOR_FIELD_COLOR_SPACES = new Set<string>(
+  COLOR_FIELD_COLOR_SPACE_VALUES,
+);
+const COLOR_FIELD_LABEL_ALIGNS = new Set<string>(
+  COLOR_FIELD_LABEL_ALIGN_VALUES,
+);
 const DATE_FIELD_CALENDARS = new Set<string>(DATE_FIELD_CALENDAR_VALUES);
 const NUMBER_FIELD_FORMAT_STYLES = new Set<string>(
   NUMBER_FIELD_FORMAT_STYLE_VALUES,
@@ -533,6 +556,50 @@ export interface TimeFieldRacProps extends Record<string, unknown> {
   isInvalid?: boolean;
   hideTimeZone?: boolean;
   shouldForceLeadingZeros?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ColorFieldCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  placeholder?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  channel?: unknown;
+  colorSpace?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  labelAlign?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  isQuiet?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ColorFieldRacProps extends Record<string, unknown> {
+  label: string;
+  placeholder: string;
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  labelAlign?: "start" | "center" | "end";
+  isQuiet: boolean;
+  value?: string;
+  defaultValue?: string;
+  description?: string;
+  errorMessage?: string;
+  channel?: (typeof COLOR_FIELD_CHANNEL_VALUES)[number];
+  colorSpace?: (typeof COLOR_FIELD_COLOR_SPACE_VALUES)[number];
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -1036,6 +1103,62 @@ export function toTimeFieldRacProps(
   };
 }
 
+export function toColorFieldRacProps(
+  props: ColorFieldCanonicalProps,
+): ColorFieldRacProps {
+  return {
+    label: readString(props.label, "Color"),
+    placeholder: readString(props.placeholder, "#000000"),
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    ...(normalizeColorFieldLabelAlign(props.labelAlign)
+      ? { labelAlign: normalizeColorFieldLabelAlign(props.labelAlign) }
+      : {}),
+    ...(typeof props.value === "string" && props.value.length > 0
+      ? { value: props.value }
+      : {}),
+    ...(typeof props.defaultValue === "string" && props.defaultValue.length > 0
+      ? { defaultValue: props.defaultValue }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(normalizeColorFieldChannel(props.channel)
+      ? { channel: normalizeColorFieldChannel(props.channel) }
+      : {}),
+    ...(normalizeColorFieldColorSpace(props.colorSpace)
+      ? { colorSpace: normalizeColorFieldColorSpace(props.colorSpace) }
+      : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -1293,6 +1416,30 @@ function normalizeTextFieldNecessityIndicator(
 ): "icon" | "label" | undefined {
   return typeof value === "string" && TEXT_FIELD_NECESSITY_INDICATORS.has(value)
     ? (value as "icon" | "label")
+    : undefined;
+}
+
+function normalizeColorFieldChannel(
+  value: unknown,
+): (typeof COLOR_FIELD_CHANNEL_VALUES)[number] | undefined {
+  return typeof value === "string" && COLOR_FIELD_CHANNELS.has(value)
+    ? (value as (typeof COLOR_FIELD_CHANNEL_VALUES)[number])
+    : undefined;
+}
+
+function normalizeColorFieldColorSpace(
+  value: unknown,
+): (typeof COLOR_FIELD_COLOR_SPACE_VALUES)[number] | undefined {
+  return typeof value === "string" && COLOR_FIELD_COLOR_SPACES.has(value)
+    ? (value as (typeof COLOR_FIELD_COLOR_SPACE_VALUES)[number])
+    : undefined;
+}
+
+function normalizeColorFieldLabelAlign(
+  value: unknown,
+): "start" | "center" | "end" | undefined {
+  return typeof value === "string" && COLOR_FIELD_LABEL_ALIGNS.has(value)
+    ? (value as "start" | "center" | "end")
     : undefined;
 }
 

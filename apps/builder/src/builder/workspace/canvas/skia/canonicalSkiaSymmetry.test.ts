@@ -6,6 +6,7 @@ import {
   BreadcrumbSpec,
   BreadcrumbsSpec,
   ButtonSpec,
+  ColorFieldSpec,
   DateFieldSpec,
   LinkSpec,
   NumberFieldSpec,
@@ -346,6 +347,34 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("timefield-1");
     expect(collectText(node)).toContain("Start time");
     expect(collectText(node)).toContain("09:30");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ColorField through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ColorFieldSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "colorfield-1",
+        type: "ColorField",
+        props: {
+          label: "Brand color",
+          value: "#3366ff",
+          placeholder: "#000000",
+          colorSpace: "rgb",
+          channel: "red",
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 220, height: 72 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("colorfield-1");
+    expect(collectText(node)).toContain("Brand color");
+    expect(collectText(node)).toContain("#3366ff");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

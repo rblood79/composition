@@ -1,5 +1,6 @@
 import type { PrimitiveBinding } from "./types";
 import { buttonInspectorThemeValues } from "./primitives/button";
+import { colorFieldInspectorThemeValues } from "./primitives/colorField";
 import { dateFieldInspectorThemeValues } from "./primitives/dateField";
 import { linkInspectorThemeValues } from "./primitives/link";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
@@ -35,6 +36,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "SearchField") return searchFieldInspectorThemeValues;
   if (type === "DateField") return dateFieldInspectorThemeValues;
   if (type === "TimeField") return timeFieldInspectorThemeValues;
+  if (type === "ColorField") return colorFieldInspectorThemeValues;
   return {};
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
@@ -9,6 +10,7 @@ import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
 import {
   toButtonRacProps,
+  toColorFieldRacProps,
   toDateFieldRacProps,
   toNumberFieldRacProps,
   toSearchFieldRacProps,
@@ -380,6 +382,59 @@ describe("ADR-142 inspector field contracts", () => {
       size: "lg",
       isRequired: true,
       labelPosition: "side",
+    });
+  });
+
+  it("groups ColorField PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "ColorField",
+      contracts: colorFieldPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { ColorField: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Color",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "value",
+      "placeholder",
+      "description",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "colorSpace",
+      "channel",
+    ]);
+  });
+
+  it("projects ColorField canonical props through the catalog boundary", () => {
+    expect(
+      toColorFieldRacProps({
+        label: "Brand color",
+        value: "#3366ff",
+        placeholder: "#000000",
+        colorSpace: "rgb",
+        channel: "red",
+        size: "lg",
+        isRequired: true,
+        labelPosition: "side",
+        labelAlign: "end",
+      }),
+    ).toMatchObject({
+      label: "Brand color",
+      value: "#3366ff",
+      placeholder: "#000000",
+      colorSpace: "rgb",
+      channel: "red",
+      size: "lg",
+      isRequired: true,
+      labelPosition: "side",
+      labelAlign: "end",
     });
   });
 });

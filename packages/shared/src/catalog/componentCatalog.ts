@@ -1,6 +1,7 @@
 import { breadcrumbPrimitiveBinding } from "./primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
+import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
@@ -185,6 +186,19 @@ export const componentCatalog = [
       category: "dateTime",
       label: "time field",
       icon: "ChevronDown",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ColorField",
+    family: "fields",
+    cutover: "catalog",
+    binding: colorFieldPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "color field",
+      icon: "Palette",
       placeable: true,
     },
   },
