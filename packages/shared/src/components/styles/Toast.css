@@ -45,6 +45,7 @@
 
 /* Individual Toast */
 .react-aria-Toast {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm, 8px);
@@ -59,6 +60,25 @@
   pointer-events: auto;
   animation: toast-slide-in 0.3s ease-out;
   min-width: 280px;
+  height: auto;
+  min-height: 48px;
+}
+
+.react-aria-Toast[data-size="sm"] {
+  min-height: 40px;
+}
+
+.react-aria-Toast[data-size="lg"] {
+  min-height: 56px;
+}
+
+/* RAC ToastContent wraps the icon/title/description block. */
+.react-aria-ToastContent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm, 8px);
+  flex: 1;
+  min-width: 0;
 }
 
 @keyframes toast-slide-in {
@@ -74,11 +94,7 @@
 
 /* Variant: info */
 .react-aria-Toast[data-variant="info"] {
-  background-color: color-mix(
-    in srgb,
-    var(--accent) 12%,
-    var(--bg-overlay)
-  );
+  background-color: color-mix(in srgb, var(--accent) 12%, var(--bg-overlay));
   color: var(--fg);
 }
 
@@ -100,6 +116,19 @@
   color: var(--color-green-500, #4caf50);
 }
 
+.react-aria-Toast[data-variant="positive"] {
+  background-color: color-mix(
+    in srgb,
+    var(--color-green-500, #4caf50) 12%,
+    var(--bg-overlay)
+  );
+  color: var(--fg);
+}
+
+.react-aria-Toast[data-variant="positive"] .toast-icon {
+  color: var(--color-green-500, #4caf50);
+}
+
 /* Variant: warning */
 .react-aria-Toast[data-variant="warning"] {
   background-color: color-mix(in srgb, #ff9800 12%, var(--bg-overlay));
@@ -110,17 +139,31 @@
   color: #ff9800;
 }
 
+.react-aria-Toast[data-variant="neutral"] {
+  background-color: var(--bg-overlay);
+  color: var(--fg);
+}
+
+.react-aria-Toast[data-variant="neutral"] .toast-icon {
+  color: var(--fg-muted, var(--fg));
+}
+
 /* Variant: error */
 .react-aria-Toast[data-variant="error"] {
-  background-color: color-mix(
-    in srgb,
-    var(--negative) 12%,
-    var(--bg-overlay)
-  );
+  background-color: color-mix(in srgb, var(--negative) 12%, var(--bg-overlay));
   color: var(--fg);
 }
 
 .react-aria-Toast[data-variant="error"] .toast-icon {
+  color: var(--negative);
+}
+
+.react-aria-Toast[data-variant="negative"] {
+  background-color: color-mix(in srgb, var(--negative) 12%, var(--bg-overlay));
+  color: var(--fg);
+}
+
+.react-aria-Toast[data-variant="negative"] .toast-icon {
   color: var(--negative);
 }
 
@@ -138,12 +181,14 @@
 }
 
 .toast-title {
+  display: block;
   font-size: var(--text-base, 16px);
   font-weight: 500;
   line-height: 1.4;
 }
 
 .toast-description {
+  display: block;
   font-size: var(--text-sm, 14px);
   margin-top: var(--spacing-xs, 4px);
   opacity: 0.8;

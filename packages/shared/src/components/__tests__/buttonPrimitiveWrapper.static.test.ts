@@ -209,6 +209,18 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps and RAC Toast queue primitives as the Toast projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../Toast.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toToastRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+    expect(source).toContain("UNSTABLE_Toast");
+    expect(source).toContain("UNSTABLE_ToastQueue");
+  });
+
   it("uses catalog toRacProps as the Switch prop projection source", () => {
     const source = fs.readFileSync(
       new URL("../Switch.tsx", import.meta.url),

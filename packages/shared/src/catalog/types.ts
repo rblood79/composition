@@ -57,6 +57,7 @@ export interface PrimitiveSkiaDescriptor {
     | "time-field"
     | "toggle-button"
     | "tooltip"
+    | "toast"
     | "tree";
 }
 

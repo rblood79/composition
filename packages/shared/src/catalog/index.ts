@@ -34,6 +34,7 @@ export * from "./primitives/textField";
 export * from "./primitives/timeField";
 export * from "./primitives/tooltip";
 export * from "./primitives/toolbar";
+export * from "./primitives/toast";
 export * from "./primitives/toggleButton";
 export * from "./primitives/toggleButtonGroup";
 export * from "./primitives/tree";

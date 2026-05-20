@@ -27,6 +27,7 @@ import { tagGroupInspectorThemeValues } from "./primitives/tagGroup";
 import { textFieldInspectorThemeValues } from "./primitives/textField";
 import { timeFieldInspectorThemeValues } from "./primitives/timeField";
 import { tooltipInspectorThemeValues } from "./primitives/tooltip";
+import { toastInspectorThemeValues } from "./primitives/toast";
 import { treeInspectorThemeValues } from "./primitives/tree";
 import type { InspectorThemeLookup } from "./outputs/inspectorFields";
 import { componentCatalog } from "./componentCatalog";
@@ -80,6 +81,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "Dialog") return dialogInspectorThemeValues;
   if (type === "Popover") return popoverInspectorThemeValues;
   if (type === "Modal") return modalInspectorThemeValues;
+  if (type === "Toast") return toastInspectorThemeValues;
   if (type === "Form") return formInspectorThemeValues;
   return {};
 }

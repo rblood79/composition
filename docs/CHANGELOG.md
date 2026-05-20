@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Toast overlays primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Toast active primitive binding 추가**:
+  - `componentCatalog` 에 `Toast` 를 `cutover:"catalog"` active `overlays` primitive 로 등록했다.
+  - canonical title/description/variant/size/position/timeout props 를 RAC Toast surface 로 투영하는 `toToastRacProps()` 와 `toastPrimitiveBinding` 을 추가했다.
+  - `Toast.tsx` shared wrapper 가 기존 `ToastProvider`/`useToast` API 를 보존하면서 내부 표시 surface 를 RAC `UNSTABLE_ToastQueue`/ToastRegion/Toast 로 전환한다.
+- **Toast Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Toast resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 toast icon + title + description 을 렌더하고 `ToastSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- overlays family pilot 은 DropZone/Tooltip/Dialog/Popover/Modal/Toast 까지 완료했다. 다음 family entrypoint 는 date/color 다.
+
 ## [ADR-142 Phase 3/5/6 — Modal overlays primitive catalog pilot] - 2026-05-20
 
 ### Architecture

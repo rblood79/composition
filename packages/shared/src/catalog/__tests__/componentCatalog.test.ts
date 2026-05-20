@@ -26,6 +26,7 @@ import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { tooltipPrimitiveBinding } from "../primitives/tooltip";
 import { toolbarPrimitiveBinding } from "../primitives/toolbar";
+import { toastPrimitiveBinding } from "../primitives/toast";
 import { toggleButtonGroupPrimitiveBinding } from "../primitives/toggleButtonGroup";
 import {
   componentCatalog,
@@ -402,8 +403,28 @@ describe("ADR-142 component catalog", () => {
     });
   });
 
-  it("keeps unfinished overlays outside the active catalog", () => {
-    expect(getComponentCatalogEntry("Toast")).toBeUndefined();
+  it("registers Toast as an active overlays primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Toast");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(toastPrimitiveBinding);
+    expect(entry.family).toBe("overlays");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("UNSTABLE_Toast");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("toast");
+    expect(entry.panel.category).toBe("overlays");
+    expect(entry.panel.label).toBe("toast");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      defaultTitle: "Notification",
+      defaultDescription: "Toast message content.",
+      variant: "info",
+      size: "md",
+      position: "bottom",
+      timeout: 5000,
+    });
   });
 
   it("registers Switch as an active selection primitive catalog entry", () => {

@@ -286,6 +286,23 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Toast placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Toast");
+
+    expect(creation).toMatchObject({
+      elementType: "Toast",
+      props: {
+        defaultTitle: "Notification",
+        defaultDescription: "Toast message content.",
+        variant: "info",
+        size: "md",
+        position: "bottom",
+        timeout: 5000,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog Switch placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Switch");
 

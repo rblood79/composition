@@ -172,6 +172,21 @@ export const MODAL_SIZE_VALUES = BUTTON_SIZE_VALUES;
 export const POPOVER_VARIANT_VALUES = ["accent", "neutral", "surface"] as const;
 export const POPOVER_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const POPOVER_PLACEMENT_VALUES = TOOLTIP_PLACEMENT_VALUES;
+export const TOAST_VARIANT_VALUES = [
+  "info",
+  "positive",
+  "neutral",
+  "negative",
+] as const;
+export const TOAST_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const TOAST_POSITION_VALUES = [
+  "top end",
+  "top start",
+  "top",
+  "bottom end",
+  "bottom start",
+  "bottom",
+] as const;
 export const LINK_VARIANT_VALUES = [
   "primary",
   "secondary",
@@ -379,6 +394,22 @@ const MODAL_SIZES = BUTTON_SIZES;
 const POPOVER_VARIANTS = new Set<string>(POPOVER_VARIANT_VALUES);
 const POPOVER_SIZES = SEPARATOR_SIZES;
 const POPOVER_PLACEMENTS = TOOLTIP_PLACEMENTS;
+const TOAST_VARIANTS = new Set<string>([
+  ...TOAST_VARIANT_VALUES,
+  "success",
+  "warning",
+  "error",
+]);
+const TOAST_SIZES = SEPARATOR_SIZES;
+const TOAST_POSITIONS = new Set<string>([
+  ...TOAST_POSITION_VALUES,
+  "top-right",
+  "top-left",
+  "top-center",
+  "bottom-right",
+  "bottom-left",
+  "bottom-center",
+]);
 const LINK_VARIANTS = new Set<LinkVariant>(LINK_VARIANT_VALUES);
 const LINK_SIZES = new Set<ComponentSize>(LINK_SIZE_VALUES);
 const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
@@ -1092,6 +1123,35 @@ export interface ModalRacProps extends Record<string, unknown> {
   defaultOpen?: boolean;
   isDismissable?: boolean;
   isKeyboardDismissDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ToastCanonicalProps extends Record<string, unknown> {
+  defaultTitle?: unknown;
+  defaultDescription?: unknown;
+  title?: unknown;
+  description?: unknown;
+  message?: unknown;
+  children?: unknown;
+  text?: unknown;
+  label?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  position?: unknown;
+  timeout?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ToastRacProps extends Record<string, unknown> {
+  title: string;
+  description?: string;
+  children: string;
+  variant: (typeof TOAST_VARIANT_VALUES)[number];
+  size: ComponentSizeSubset;
+  position: (typeof TOAST_POSITION_VALUES)[number];
+  timeout: number;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2605,6 +2665,24 @@ export function toModalRacProps(props: ModalCanonicalProps): ModalRacProps {
   };
 }
 
+export function toToastRacProps(props: ToastCanonicalProps): ToastRacProps {
+  const title = readToastTitle(props);
+  const description = readToastDescription(props);
+  return {
+    title,
+    ...(description ? { description } : {}),
+    children: description ?? title,
+    variant: normalizeToastVariant(props.variant),
+    size: normalizeToastSize(props.size),
+    position: normalizeToastPosition(props.position),
+    timeout: readFiniteNumber(props.timeout) ?? 5000,
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -3489,6 +3567,22 @@ function readModalText(props: ModalCanonicalProps): string {
   return readString(value, "Modal content");
 }
 
+function readToastTitle(props: ToastCanonicalProps): string {
+  const value = props.defaultTitle ?? props.title ?? props.label;
+  return readString(value, "Notification");
+}
+
+function readToastDescription(props: ToastCanonicalProps): string | undefined {
+  const value =
+    props.defaultDescription ??
+    props.description ??
+    props.message ??
+    props.children ??
+    props.text;
+  const description = readString(value, "").trim();
+  return description.length > 0 ? description : undefined;
+}
+
 function readRadioText(props: RadioCanonicalProps): string {
   const value = props.children ?? props.label ?? props.text;
   if (typeof value === "string") return value;
@@ -3669,6 +3763,38 @@ function normalizeModalSize(value: unknown): ComponentSize {
   return typeof value === "string" && MODAL_SIZES.has(value as ComponentSize)
     ? (value as ComponentSize)
     : "md";
+}
+
+function normalizeToastVariant(
+  value: unknown,
+): (typeof TOAST_VARIANT_VALUES)[number] {
+  if (value === "success") return "positive";
+  if (value === "warning") return "neutral";
+  if (value === "error") return "negative";
+  return typeof value === "string" && TOAST_VARIANTS.has(value)
+    ? (value as (typeof TOAST_VARIANT_VALUES)[number])
+    : "info";
+}
+
+function normalizeToastSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    TOAST_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeToastPosition(
+  value: unknown,
+): (typeof TOAST_POSITION_VALUES)[number] {
+  if (value === "top-right") return "top end";
+  if (value === "top-left") return "top start";
+  if (value === "top-center") return "top";
+  if (value === "bottom-right") return "bottom end";
+  if (value === "bottom-left") return "bottom start";
+  if (value === "bottom-center") return "bottom";
+  return typeof value === "string" && TOAST_POSITIONS.has(value)
+    ? (value as (typeof TOAST_POSITION_VALUES)[number])
+    : "bottom";
 }
 
 function normalizeTextFieldLabelPosition(value: unknown): "top" | "side" {

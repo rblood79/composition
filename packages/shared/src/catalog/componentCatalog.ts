@@ -34,6 +34,7 @@ import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { timeFieldPrimitiveBinding } from "./primitives/timeField";
 import { tooltipPrimitiveBinding } from "./primitives/tooltip";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
+import { toastPrimitiveBinding } from "./primitives/toast";
 import { toggleButtonGroupPrimitiveBinding } from "./primitives/toggleButtonGroup";
 import { toggleButtonPrimitiveBinding } from "./primitives/toggleButton";
 import { treePrimitiveBinding } from "./primitives/tree";
@@ -315,6 +316,19 @@ export const componentCatalog = [
       category: "overlays",
       label: "modal",
       icon: "InspectionPanel",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Toast",
+    family: "overlays",
+    cutover: "catalog",
+    binding: toastPrimitiveBinding,
+    panel: {
+      category: "overlays",
+      label: "toast",
+      icon: "Bell",
       placeable: true,
     },
   },

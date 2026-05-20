@@ -49,6 +49,7 @@ import {
   toTextFieldRacProps,
   toTimeFieldRacProps,
   toTooltipRacProps,
+  toToastRacProps,
   toToggleButtonRacProps,
   toTreeRacProps,
   type BreadcrumbRacProps,
@@ -92,6 +93,7 @@ import {
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type TooltipRacProps,
+  type ToastRacProps,
   type ToggleButtonRacProps,
   type TreeItemDescriptor,
   type TreeRacProps,
@@ -897,6 +899,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "modal") {
     return buildGenericModalNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "toast") {
+    return buildGenericToastNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "tooltip") {
     return buildGenericTooltipNode(input.node, layout, input.theme);
@@ -2297,6 +2302,107 @@ function buildGenericModalNode(
       borderRadius: readNumber(style.borderRadius, size.radius),
     },
     children: [textNode],
+  };
+}
+
+function buildGenericToastNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toToastRacProps(node.props ?? {}) as ToastRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericToastSize(props.size);
+  const palette = resolveGenericToastPalette(props.variant, style, theme);
+  const contentX = size.paddingX + size.iconSize + size.gap;
+  const contentWidth = Math.max(layout.width - contentX - size.paddingX, 0);
+  const titleNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:title`,
+    x: contentX,
+    y: size.paddingY,
+    width: contentWidth,
+    height: size.titleLineHeight,
+    visible: true,
+    text: {
+      content: props.title,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.titleFontSize,
+      fontWeight: 600,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.titleLineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: contentWidth,
+      whiteSpace: "normal",
+      overflowWrap: "break-word",
+    },
+  };
+  const children: SkiaNodeData[] = [
+    {
+      type: "container",
+      elementId: `${node.id}:icon`,
+      x: size.paddingX,
+      y: size.paddingY,
+      width: size.iconSize,
+      height: size.iconSize,
+      visible: true,
+      box: {
+        fillColor: palette.iconColor,
+        strokeColor: palette.iconColor,
+        strokeWidth: 0,
+        borderRadius: size.iconSize / 2,
+      },
+      children: [],
+    },
+    titleNode,
+  ];
+
+  if (props.description) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:description`,
+      x: contentX,
+      y: size.paddingY + size.titleLineHeight + 4,
+      width: contentWidth,
+      height: Math.max(
+        layout.height - size.paddingY * 2 - size.titleLineHeight - 4,
+        size.descriptionLineHeight,
+      ),
+      visible: true,
+      text: {
+        content: props.description,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.descriptionFontSize,
+        fontWeight: 400,
+        color: palette.textColor,
+        align: "left",
+        lineHeight: size.descriptionLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: contentWidth,
+        whiteSpace: "normal",
+        overflowWrap: "break-word",
+      },
+    });
+  }
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: palette.fillColor,
+      strokeColor: palette.strokeColor,
+      strokeWidth: readNumber(style.borderWidth, 1),
+      borderRadius: readNumber(style.borderRadius, size.radius),
+    },
+    children,
   };
 }
 
@@ -5080,6 +5186,119 @@ function resolveGenericModalPalette(
     fillColor: colorIntToFloat32(cssColorToHex(background), 1),
     strokeColor: colorIntToFloat32(cssColorToHex(border), 1),
     textColor: colorIntToFloat32(cssColorToHex(text), 1),
+  };
+}
+
+function resolveGenericToastSize(size: ToastRacProps["size"]): {
+  paddingX: number;
+  paddingY: number;
+  titleFontSize: number;
+  descriptionFontSize: number;
+  titleLineHeight: number;
+  descriptionLineHeight: number;
+  iconSize: number;
+  gap: number;
+  radius: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        paddingX: 12,
+        paddingY: 8,
+        titleFontSize: 14,
+        descriptionFontSize: 12,
+        titleLineHeight: 18,
+        descriptionLineHeight: 16,
+        iconSize: 16,
+        gap: 8,
+        radius: 8,
+      };
+    case "lg":
+      return {
+        paddingX: 20,
+        paddingY: 16,
+        titleFontSize: 18,
+        descriptionFontSize: 14,
+        titleLineHeight: 24,
+        descriptionLineHeight: 20,
+        iconSize: 24,
+        gap: 12,
+        radius: 12,
+      };
+    case "md":
+    default:
+      return {
+        paddingX: 16,
+        paddingY: 12,
+        titleFontSize: 16,
+        descriptionFontSize: 14,
+        titleLineHeight: 22,
+        descriptionLineHeight: 18,
+        iconSize: 20,
+        gap: 10,
+        radius: 10,
+      };
+  }
+}
+
+function resolveGenericToastPalette(
+  variant: ToastRacProps["variant"],
+  style: Record<string, unknown>,
+  theme: "light" | "dark",
+): {
+  fillColor: Float32Array;
+  strokeColor: Float32Array;
+  textColor: Float32Array;
+  iconColor: Float32Array;
+} {
+  const isDark = theme === "dark";
+  const fallback = (() => {
+    switch (variant) {
+      case "positive":
+        return {
+          background: isDark ? "#052e16" : "#dcfce7",
+          border: "#16a34a",
+          icon: "#16a34a",
+        };
+      case "negative":
+        return {
+          background: isDark ? "#450a0a" : "#fee2e2",
+          border: "#dc2626",
+          icon: "#dc2626",
+        };
+      case "neutral":
+        return {
+          background: isDark ? "#1f2937" : "#f3f4f6",
+          border: isDark ? "#4b5563" : "#d1d5db",
+          icon: isDark ? "#d1d5db" : "#6b7280",
+        };
+      case "info":
+      default:
+        return {
+          background: isDark ? "#172554" : "#dbeafe",
+          border: "#2563eb",
+          icon: "#2563eb",
+        };
+    }
+  })();
+  const background =
+    typeof style.backgroundColor === "string"
+      ? style.backgroundColor
+      : fallback.background;
+  const border =
+    typeof style.borderColor === "string" ? style.borderColor : fallback.border;
+  const text =
+    typeof style.color === "string"
+      ? style.color
+      : isDark
+        ? "#f9fafb"
+        : "#111827";
+
+  return {
+    fillColor: colorIntToFloat32(cssColorToHex(background), 1),
+    strokeColor: colorIntToFloat32(cssColorToHex(border), 1),
+    textColor: colorIntToFloat32(cssColorToHex(text), 1),
+    iconColor: colorIntToFloat32(cssColorToHex(fallback.icon), 1),
   };
 }
 

@@ -45,6 +45,7 @@ const {
   legacyTextFieldRenderer,
   legacyTimeFieldRenderer,
   legacyTooltipRenderer,
+  legacyToastRenderer,
   legacyToggleButtonRenderer,
   legacyToggleButtonGroupRenderer,
   legacyToolbarRenderer,
@@ -147,6 +148,9 @@ const {
   legacyTooltipRenderer: vi.fn(() => (
     <div data-legacy-renderer="Tooltip">legacy</div>
   )),
+  legacyToastRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Toast">legacy</div>
+  )),
   legacyToggleButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="ToggleButton">legacy</button>
   )),
@@ -196,6 +200,7 @@ vi.mock("@composition/shared/renderers", () => ({
     TextField: legacyTextFieldRenderer,
     TimeField: legacyTimeFieldRenderer,
     Tooltip: legacyTooltipRenderer,
+    Toast: legacyToastRenderer,
     ToggleButton: legacyToggleButtonRenderer,
     ToggleButtonGroup: legacyToggleButtonGroupRenderer,
     Toolbar: legacyToolbarRenderer,
@@ -252,6 +257,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyTextFieldRenderer.mockClear();
     legacyTimeFieldRenderer.mockClear();
     legacyTooltipRenderer.mockClear();
+    legacyToastRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
     legacyToggleButtonGroupRenderer.mockClear();
     legacyToolbarRenderer.mockClear();
@@ -904,6 +910,35 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(modal?.textContent).toContain("Modal body");
     expect(modal?.getAttribute("data-size")).toBe("md");
     expect(legacyModalRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Toast through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "toast-1",
+      type: "Toast",
+      props: {
+        defaultTitle: "Saved",
+        defaultDescription: "Changes synced.",
+        variant: "positive",
+        size: "lg",
+        position: "bottom",
+      },
+    };
+
+    render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const toast = screen.getByRole("alert");
+    const toastRoot = document.body.querySelector(
+      "[data-canonical-id='toast-1']",
+    );
+    expect(toastRoot?.className).toContain("react-aria-Toast");
+    expect(toast.textContent).toContain("Saved");
+    expect(toast.textContent).toContain("Changes synced.");
+    expect(toastRoot?.getAttribute("data-size")).toBe("lg");
+    expect(toastRoot?.getAttribute("data-variant")).toBe("positive");
+    expect(legacyToastRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Switch through PrimitiveBinding before rendererMap fallback", () => {

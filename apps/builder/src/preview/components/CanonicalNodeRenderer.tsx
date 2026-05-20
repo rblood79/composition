@@ -53,6 +53,7 @@ import {
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type TooltipRacProps,
+  type ToastRacProps,
   type ToolbarRacProps,
   type ToggleButtonGroupRacProps,
   type ToggleButtonRacProps,
@@ -91,6 +92,7 @@ import {
   TextField,
   TimeField,
   Tooltip,
+  Toast,
   Toolbar,
   ToggleButton,
   ToggleButtonGroup,
@@ -650,6 +652,14 @@ function renderPrimitiveNode({
     ) as ModalRacProps;
 
     return <Modal key={node.id} {...modalProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Toast") {
+    const toastProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ToastRacProps;
+
+    return <Toast key={node.id} {...toastProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

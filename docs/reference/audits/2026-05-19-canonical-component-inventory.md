@@ -433,4 +433,12 @@ generic Skia panel+text fixture 를 추가했다. Modal 은 `ModalSpec.render.sh
 호출하지 않는 generic Skia fixture 로 고정했다. shared Modal wrapper 는 기존
 DialogTrigger context 를 보존하면서 catalog/Preview 단독 surface 에서는 controlled
 DialogTrigger anchor 로 DOM modal 을 생성한다.
-Toast overlays slice 는 잔여이며, 다음 family entrypoint 는 Toast 또는 date/color 다.
+Toast overlays primitive pilot 은 `toToastRacProps()` / `toastPrimitiveBinding` /
+active catalog entry / shared `Toast.tsx` RAC `UNSTABLE_ToastQueue` projection /
+Preview Toast primitive branch / generic Skia icon+title+description fixture 를
+추가했다. Toast 는 `ToastSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했다. shared Toast wrapper 는 기존 `ToastProvider`/`useToast` API 를
+보존하면서 내부 표시 surface 를 RAC ToastRegion/Toast 로 전환하고, catalog/Preview
+단독 surface 에서는 standalone queue 로 DOM toast 를 생성한다. overlays family pilot
+은 DropZone/Tooltip/Dialog/Popover/Modal/Toast 까지 완료했으며, 다음 family
+entrypoint 는 date/color 다.

@@ -36,6 +36,7 @@ import {
   TextFieldSpec,
   TimeFieldSpec,
   TooltipSpec,
+  ToastSpec,
   ToggleButtonSpec,
   ToggleButtonGroupSpec,
   ToolbarSpec,
@@ -1201,6 +1202,34 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("modal-1");
     expect(collectText(node)).toContain("Modal body");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Toast through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ToastSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "toast-1",
+        type: "Toast",
+        props: {
+          defaultTitle: "Saved",
+          defaultDescription: "Changes synced.",
+          variant: "positive",
+          size: "md",
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["toast-1", { x: 24, y: 32, width: 320, height: 96 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("toast-1");
+    expect(collectText(node)).toContain("Saved");
+    expect(collectText(node)).toContain("Changes synced.");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });
