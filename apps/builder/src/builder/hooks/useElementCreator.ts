@@ -132,7 +132,7 @@ export function resolveCatalogElementCreation(
 
   return {
     elementType: entry.type,
-    props: {} as ComponentElementProps,
+    props: { ...(entry.defaultProps ?? {}) } as ComponentElementProps,
   };
 }
 

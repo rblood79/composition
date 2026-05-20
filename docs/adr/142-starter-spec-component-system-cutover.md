@@ -2,7 +2,15 @@
 
 ## Status
 
-In Progress — 2026-05-21 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/DatePicker/DateRangePicker/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/DatePicker/DateRangePicker/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, overlays family 는 DropZone/Tooltip/Dialog/Popover/Modal/Toast pilot 완료, date/color family 는 ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/DatePicker/DateRangePicker pilot 진행, ADR-132 collection 데이터 binding 전체 전환은 잔여)
+In Progress — 2026-05-21 (G0/G1, G2a~G2d, G3 완료. Phase 6 family
+cutover 는 primitives/actions, fields, selection, collections, Tree·Table,
+overlays, date/color, composition-native 까지 `componentCatalog`
+`cutover:"catalog"` 상태에 도달했다. active primitive/reusable/native Inspector
+entrypoint 는 `PrimitiveBinding.props.accepts` 또는 reusable/native
+`propsSchema` 를 `specRegistry` 보다 먼저 소비한다. Tree/Table 의 legacy static
+collection `x-composition.dataBinding` 은 resolved render props 로 투영되고
+Preview/Skia static collection fixture 로 검증된다. G7 최종 preflight, README/status
+동기화, ADR-036/907/908/140/141 재평가가 closure 잔여다.)
 
 ## Context
 
@@ -578,6 +586,18 @@ Tree/Table/TableView resolved node 를 legacy `rendererMap` 보다 primitive bra
 TableView rows/cells 를 container + box/text node 로 렌더하고 `TreeSpec.render.shapes()` /
 `TableSpec.render.shapes()` / `TableViewSpec.render.shapes()` 를 호출하지 않는 fixture 를
 가진다. ADR-132 collection 데이터 binding 전체 전환은 잔여다.
+
+2026-05-21 추가 판정: catalog binding field 와 composition-native family cutover 를
+land 했다. `CatalogField` 는 `kind:"binding"` 을 더 이상 null 로 숨기지 않고
+`PropertyDataBinding` 으로 렌더하며, 변경 값은 canonical core props 가 아니라
+`x-composition.dataBinding` 경계에 저장한다. `extractCanonicalPropsFromResolved()` 는
+resolved node 의 `x-composition.dataBinding` 을 render-only props 로 투영하고,
+legacy static collection binding 은 Tree `items` / Table `rows` 로 materialize 해서
+Preview 와 Skia static collection fixture 양쪽에서 동작한다. `componentCatalog` 는
+Card/Section reusable entry 와 `frame`/`Slot` native entry 를 모두
+`cutover:"catalog"` 로 전환했고, reusable/native `propsSchema` 는
+`GenericPropertyEditor` 의 catalog contract 경로를 사용한다. `Slot` 은 layout mode
+전용 `layoutOnly` panel entry 로 노출된다.
 
 2026-05-20 추가 판정: DropZone overlays primitive catalog pilot 을 land 했다.
 `packages/shared/src/catalog/primitives/dropZone.ts` 와 `toDropZoneRacProps()` 가

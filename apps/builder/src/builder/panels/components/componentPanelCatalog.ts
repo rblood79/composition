@@ -128,6 +128,7 @@ export function getCatalogPanelComponents(
       type: entry.type,
       label: entry.panel.label,
       icon: catalogIcon(entry),
+      layoutOnly: entry.panel.layoutOnly,
       categoryKey: entry.panel.category,
       source: "catalog",
     }));
@@ -217,5 +218,10 @@ export function getComponentPanelGroups({
     groups[categoryKey].push(component);
   }
 
-  return mergeCatalogPanelComponents(groups, getCatalogPanelComponents());
+  return mergeCatalogPanelComponents(
+    groups,
+    getCatalogPanelComponents(
+      listPlaceableCatalogEntries({ includeLayoutOnly: isLayoutMode }),
+    ),
+  );
 }

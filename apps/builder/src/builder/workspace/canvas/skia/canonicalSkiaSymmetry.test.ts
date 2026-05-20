@@ -23,6 +23,7 @@ import {
   DropZoneSpec,
   FileTriggerSpec,
   FormSpec,
+  FrameSpec,
   GridListSpec,
   LinkSpec,
   ListBoxSpec,
@@ -34,9 +35,11 @@ import {
   RadioSpec,
   RangeCalendarSpec,
   SearchFieldSpec,
+  SectionSpec,
   SelectSpec,
   SeparatorSpec,
   SliderSpec,
+  SlotSpec,
   SwitchSpec,
   TableSpec,
   TableViewSpec,
@@ -143,6 +146,79 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.children?.[0]?.box?.fillColor).toBeDefined();
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
+  });
+
+  it("renders composition-native frame, Slot, and reusable Section through generic containers without render.shapes", () => {
+    const frameShapes = vi.spyOn(FrameSpec.render, "shapes");
+    const slotShapes = vi.spyOn(SlotSpec.render, "shapes");
+    const sectionShapes = vi.spyOn(SectionSpec.render, "shapes");
+
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "native-frame",
+        type: "frame",
+        props: {
+          style: {
+            width: 320,
+            height: 180,
+            backgroundColor: "#ffffff",
+          },
+        },
+        children: [
+          {
+            id: "native-slot",
+            type: "Slot",
+            props: {
+              name: "content",
+              style: {
+                width: 280,
+                height: 64,
+                backgroundColor: "#f8fafc",
+              },
+            },
+          },
+          {
+            id: "catalog-section",
+            type: "Section",
+            props: {
+              style: {
+                width: 280,
+                height: 72,
+                backgroundColor: "#ffffff",
+              },
+            },
+            children: [
+              {
+                id: "section-text",
+                type: "Text",
+                props: { children: "Reusable section" },
+              },
+            ],
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["native-frame", { x: 0, y: 0, width: 320, height: 180 }],
+        ["native-slot", { x: 16, y: 16, width: 280, height: 64 }],
+        ["catalog-section", { x: 16, y: 96, width: 280, height: 72 }],
+        ["section-text", { x: 24, y: 104, width: 180, height: 24 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.elementId).toBe("native-frame");
+    expect(node?.children?.map((child) => child.elementId)).toEqual([
+      "native-slot",
+      "catalog-section",
+    ]);
+    expect(node?.children?.[1]?.children?.[0]?.elementId).toBe("section-text");
+    expect(frameShapes).not.toHaveBeenCalled();
+    expect(slotShapes).not.toHaveBeenCalled();
+    expect(sectionShapes).not.toHaveBeenCalled();
+    frameShapes.mockRestore();
+    slotShapes.mockRestore();
+    sectionShapes.mockRestore();
   });
 
   it("renders a Button icon through the generic Skia path without render.shapes", () => {
@@ -670,6 +746,42 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     renderShapes.mockRestore();
   });
 
+  it("renders a resolved Tree static collection dataBinding path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TreeSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "tree-binding-1",
+        type: "Tree",
+        props: {
+          "aria-label": "Bound tree",
+          expandedKeys: ["docs"],
+        },
+        "x-composition": {
+          dataBinding: {
+            type: "collection",
+            source: "static",
+            config: {
+              data: [
+                {
+                  id: "docs",
+                  label: "Docs",
+                  children: [{ id: "adr", label: "ADR" }],
+                },
+              ],
+            },
+          },
+        },
+      } as CanonicalNode,
+      theme: "light",
+      layout: { x: 24, y: 32, width: 280, height: 120 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(collectText(node)).toEqual(expect.arrayContaining(["Docs", "ADR"]));
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
   it("renders a resolved Table rows and columns path without render.shapes", () => {
     const renderShapes = vi.spyOn(TableSpec.render, "shapes");
     const node = buildGenericResolvedSkiaNodeData({
@@ -700,6 +812,41 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
       expect.arrayContaining(["Name", "Role", "Ada Lovelace", "Engineer"]),
     );
     expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Table static collection dataBinding path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TableSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "table-binding-1",
+        type: "Table",
+        props: {
+          "aria-label": "Bound people",
+          columns: [
+            { id: "name", label: "Name", isRowHeader: true },
+            { id: "role", label: "Role" },
+          ],
+        },
+        "x-composition": {
+          dataBinding: {
+            type: "collection",
+            source: "static",
+            config: {
+              data: [{ id: "ada", name: "Ada Lovelace", role: "Engineer" }],
+            },
+          },
+        },
+      } as CanonicalNode,
+      theme: "light",
+      layout: { x: 24, y: 32, width: 360, height: 120 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Name", "Role", "Ada Lovelace", "Engineer"]),
+    );
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

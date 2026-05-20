@@ -139,6 +139,7 @@ export interface PanelMeta {
   label: string;
   icon: string;
   placeable: boolean;
+  layoutOnly?: boolean;
 }
 
 export type ComponentCatalogEntry =
@@ -163,6 +164,8 @@ export type ComponentCatalogEntry =
       type: ComponentTag;
       family: "composition-native";
       cutover: CutoverState;
+      defaultProps?: Record<string, unknown>;
+      propsSchema?: PropContractMap;
       panel: PanelMeta;
     };
 

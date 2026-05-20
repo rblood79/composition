@@ -831,19 +831,7 @@ describe("ADR-142 element creator catalog bridge", () => {
   });
 
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
-    const creation = resolveCatalogElementCreation({
-      kind: "reusable",
-      type: "Card",
-      family: "composition-native",
-      cutover: "catalog",
-      reusableId: "catalog-reusable-card",
-      panel: {
-        category: "layout",
-        label: "card",
-        icon: "AppWindowMac",
-        placeable: true,
-      },
-    });
+    const creation = resolveCatalogElementCreation("Card");
 
     expect(creation).toEqual({
       elementType: "ref",
@@ -852,6 +840,24 @@ describe("ADR-142 element creator catalog bridge", () => {
       componentRole: "instance",
       masterId: "catalog-reusable-card",
       componentName: "Card",
+    });
+  });
+
+  it("describes native catalog placement with native default props", () => {
+    expect(resolveCatalogElementCreation("frame")).toEqual({
+      elementType: "frame",
+      props: {
+        style: { display: "flex", flexDirection: "column" },
+      },
+    });
+
+    expect(resolveCatalogElementCreation("Slot")).toEqual({
+      elementType: "Slot",
+      props: {
+        name: "content",
+        required: false,
+        description: "",
+      },
     });
   });
 });

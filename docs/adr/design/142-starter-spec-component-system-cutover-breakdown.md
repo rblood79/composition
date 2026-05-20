@@ -788,6 +788,17 @@ selection family, ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs 의
 Inspector props source 는 `getPrimitiveBinding()` 우선 경로로 진입한다. legacy
 `specRegistry` 는 catalog binding 이 없는 component fallback 으로만 남아 있다.
 
+2026-05-21 현황: 모든 `componentCatalog` entry 는 `cutover:"catalog"` 이며
+`legacy`/`cutting-over` entry 는 0건이다. Card/Section reusable entry 는 active
+catalog ref creation payload 로 배치되고, `frame`/`Slot` composition-native entry 는
+native catalog creation payload 로 배치된다. `Slot` 은 layout mode 에서만 노출되는
+`layoutOnly` entry 다. active primitive/reusable/native Inspector props source 는
+`getPrimitiveBinding()` 또는 `getCatalogPropsSchema()` 우선 경로로 진입하며,
+`kind:"binding"` field 는 `x-composition.dataBinding` update path 를 사용한다.
+resolved render props 는 static collection `dataBinding` 을 Tree `items` / Table
+`rows` 로 materialize 하므로 Tree/Table static collection binding fixture 가
+Preview/Skia 양쪽에서 동작한다.
+
 ## 7. 완료 판정
 
 ADR-142 를 Implemented 로 승격하려면 전 family 가 `cutover:"catalog"` 에 도달하고 아래가 모두 참이어야 한다.

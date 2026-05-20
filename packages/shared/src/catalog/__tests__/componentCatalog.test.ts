@@ -1022,19 +1022,51 @@ describe("ADR-142 component catalog", () => {
 
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
+    const sectionEntry = getComponentCatalogEntry("Section");
 
     expect(entry?.kind).toBe("reusable");
-    if (entry?.kind !== "reusable") return;
+    expect(sectionEntry?.kind).toBe("reusable");
+    if (entry?.kind !== "reusable" || sectionEntry?.kind !== "reusable") return;
 
     const document = getReusableCatalogDocument(entry.reusableId);
     const root = getReusableCatalogRoot(entry.reusableId);
     const propsSchema = getReusableCatalogPropsSchema(entry.reusableId);
+    const sectionRoot = getReusableCatalogRoot(sectionEntry.reusableId);
 
+    expect(entry.cutover).toBe("catalog");
+    expect(sectionEntry.cutover).toBe("catalog");
     expect(document?.children).toHaveLength(1);
     expect(root?.id).toBe(entry.reusableId);
     expect(root?.type).toBe("Card");
     expect(root?.reusable).toBe(true);
+    expect(sectionRoot?.type).toBe("Section");
+    expect(sectionRoot?.reusable).toBe(true);
     expect(propsSchema?.title?.kind).toBe("string");
+  });
+
+  it("registers composition-native Frame and Slot as active native catalog entries", () => {
+    const frame = getComponentCatalogEntry("frame");
+    const slot = getComponentCatalogEntry("Slot");
+
+    expect(frame?.kind).toBe("native");
+    expect(slot?.kind).toBe("native");
+    if (frame?.kind !== "native" || slot?.kind !== "native") return;
+
+    expect(frame.cutover).toBe("catalog");
+    expect(slot.cutover).toBe("catalog");
+    expect(frame.family).toBe("composition-native");
+    expect(slot.family).toBe("composition-native");
+    expect(frame.defaultProps?.style).toMatchObject({
+      display: "flex",
+      flexDirection: "column",
+    });
+    expect(frame.propsSchema?.clip?.kind).toBe("boolean");
+    expect(slot.defaultProps).toMatchObject({
+      name: "content",
+      required: false,
+    });
+    expect(slot.propsSchema?.name?.kind).toBe("string");
+    expect(slot.panel.layoutOnly).toBe(true);
   });
 
   it("keeps family cutover states atomic", () => {
@@ -1095,7 +1127,15 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Tree");
     expect(activeTypes).toContain("Table");
     expect(activeTypes).toContain("TableView");
+    expect(activeTypes).toContain("Card");
+    expect(activeTypes).toContain("Section");
+    expect(activeTypes).toContain("frame");
     expect(activeTypes).not.toContain("Breadcrumb");
-    expect(activeTypes).not.toContain("Card");
+    expect(activeTypes).not.toContain("Slot");
+
+    const layoutActiveTypes = listPlaceableCatalogEntries({
+      includeLayoutOnly: true,
+    }).map((entry) => entry.type);
+    expect(layoutActiveTypes).toContain("Slot");
   });
 });

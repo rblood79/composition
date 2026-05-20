@@ -7,20 +7,30 @@ describe("ADR-142 primitive editor registry cutover", () => {
     const source = await readFile(resolve(__dirname, "registry.ts"), "utf-8");
 
     expect(source).toContain("getPrimitiveBinding");
+    expect(source).toContain("getComponentCatalogEntry");
+    expect(source).toContain("getCatalogPropsSchema");
     expect(source).toContain(
       "const primitiveBinding = getPrimitiveBinding(type)",
     );
     expect(source).toContain("componentType: primitiveBinding.tag");
+    expect(source).toContain('catalogEntry.kind === "reusable"');
+    expect(source).toContain('catalogEntry.kind === "native"');
+    expect(source).toContain("catalogContracts");
 
     const primitiveIndex = source.indexOf(
       "const primitiveBinding = getPrimitiveBinding(type)",
+    );
+    const catalogIndex = source.indexOf(
+      "const catalogEntry = getComponentCatalogEntry(type)",
     );
     const specIndex = source.indexOf(
       "const propertySpec = getPropertyEditorSpec(type)",
     );
 
     expect(primitiveIndex).toBeGreaterThan(-1);
+    expect(catalogIndex).toBeGreaterThan(-1);
     expect(specIndex).toBeGreaterThan(-1);
     expect(primitiveIndex).toBeLessThan(specIndex);
+    expect(catalogIndex).toBeLessThan(specIndex);
   });
 });

@@ -1,6 +1,10 @@
 import { createElement, type ComponentType } from "react";
 import type { ComponentEditorProps } from "../types";
-import { getPrimitiveBinding } from "@composition/shared";
+import {
+  getCatalogPropsSchema,
+  getComponentCatalogEntry,
+  getPrimitiveBinding,
+} from "@composition/shared";
 import { componentMetadata } from "@composition/shared/components/metadata";
 import { GenericPropertyEditor } from "../../panels/properties/generic";
 import { getPropertyEditorSpec } from "../../panels/properties/specRegistry";
@@ -174,6 +178,23 @@ export async function getEditor(
       createElement(GenericPropertyEditor, {
         ...props,
         componentType: primitiveBinding.tag,
+      });
+    editorCache.set(type, genericEditor);
+    return genericEditor;
+  }
+
+  const catalogEntry = getComponentCatalogEntry(type);
+  const catalogContracts = getCatalogPropsSchema(type);
+  if (
+    catalogContracts &&
+    catalogEntry?.cutover === "catalog" &&
+    (catalogEntry.kind === "reusable" || catalogEntry.kind === "native")
+  ) {
+    const genericEditor: ComponentType<ComponentEditorProps> = (props) =>
+      createElement(GenericPropertyEditor, {
+        ...props,
+        componentType: catalogEntry.type,
+        catalogContracts,
       });
     editorCache.set(type, genericEditor);
     return genericEditor;

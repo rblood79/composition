@@ -47,7 +47,7 @@ import { toastPrimitiveBinding } from "./primitives/toast";
 import { toggleButtonGroupPrimitiveBinding } from "./primitives/toggleButtonGroup";
 import { toggleButtonPrimitiveBinding } from "./primitives/toggleButton";
 import { treePrimitiveBinding } from "./primitives/tree";
-import type { ComponentCatalogEntry } from "./types";
+import type { ComponentCatalogEntry, PropContractMap } from "./types";
 import {
   getReusableCatalogDocument,
   getReusableCatalogPropsSchema,
@@ -670,7 +670,7 @@ export const componentCatalog = [
     kind: "reusable",
     type: "Card",
     family: "composition-native",
-    cutover: "legacy",
+    cutover: "catalog",
     reusableId: "catalog-reusable-card",
     panel: {
       category: "layout",
@@ -683,13 +683,83 @@ export const componentCatalog = [
     kind: "reusable",
     type: "Section",
     family: "composition-native",
-    cutover: "legacy",
+    cutover: "catalog",
     reusableId: "catalog-reusable-section",
     panel: {
       category: "collections",
       label: "section",
       icon: "Square",
       placeable: true,
+    },
+  },
+  {
+    kind: "native",
+    type: "frame",
+    family: "composition-native",
+    cutover: "catalog",
+    defaultProps: {
+      style: { display: "flex", flexDirection: "column" },
+    },
+    propsSchema: {
+      clip: {
+        kind: "boolean",
+        label: "Clip",
+        section: "appearance",
+        default: false,
+      },
+      placeholder: {
+        kind: "boolean",
+        label: "Placeholder",
+        section: "state",
+        default: false,
+      },
+    },
+    panel: {
+      category: "layout",
+      label: "frame",
+      icon: "GroupIcon",
+      placeable: true,
+    },
+  },
+  {
+    kind: "native",
+    type: "Slot",
+    family: "composition-native",
+    cutover: "catalog",
+    defaultProps: {
+      name: "content",
+      required: false,
+      description: "",
+    },
+    propsSchema: {
+      name: {
+        kind: "string",
+        label: "Name",
+        section: "content",
+        default: "content",
+        placeholder: "content",
+      },
+      description: {
+        kind: "string",
+        label: "Description",
+        section: "content",
+        default: "",
+        placeholder: "Main content area",
+        emptyToUndefined: true,
+      },
+      required: {
+        kind: "boolean",
+        label: "Required",
+        section: "state",
+        default: false,
+      },
+    },
+    panel: {
+      category: "layout",
+      label: "slot",
+      icon: "Layers",
+      placeable: true,
+      layoutOnly: true,
     },
   },
 ] as const satisfies readonly ComponentCatalogEntry[];
@@ -704,9 +774,18 @@ export function getComponentCatalogEntry(
   return componentCatalog.find((entry) => entry.type === type);
 }
 
-export function listPlaceableCatalogEntries(): ComponentCatalogEntry[] {
+export function listPlaceableCatalogEntries({
+  includeLayoutOnly = false,
+}: {
+  includeLayoutOnly?: boolean;
+} = {}): ComponentCatalogEntry[] {
   return componentCatalog.filter(
-    (entry) => entry.panel.placeable && entry.cutover === "catalog",
+    (entry) =>
+      entry.panel.placeable &&
+      entry.cutover === "catalog" &&
+      (!("layoutOnly" in entry.panel) ||
+        !entry.panel.layoutOnly ||
+        includeLayoutOnly),
   );
 }
 
@@ -714,10 +793,24 @@ export function getCatalogDefaultProps(
   type: string,
 ): Record<string, unknown> | undefined {
   const entry = getComponentCatalogEntry(type);
-  if (entry?.kind !== "primitive" || entry.cutover !== "catalog") {
+  if (!entry || entry.cutover !== "catalog") {
     return undefined;
   }
-  return { ...entry.binding.defaultProps };
+  if (entry.kind === "primitive") return { ...entry.binding.defaultProps };
+  if (entry.kind === "native") return { ...(entry.defaultProps ?? {}) };
+  return undefined;
+}
+
+export function getCatalogPropsSchema(
+  type: string,
+): PropContractMap | undefined {
+  const entry = getComponentCatalogEntry(type);
+  if (!entry || entry.cutover !== "catalog") return undefined;
+  if (entry.kind === "primitive") return entry.binding.props.accepts;
+  if (entry.kind === "reusable") {
+    return getReusableCatalogPropsSchema(entry.reusableId);
+  }
+  return entry.propsSchema;
 }
 
 export {

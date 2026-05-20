@@ -2,22 +2,28 @@ import { memo } from "react";
 import type { InspectorFieldModel } from "@composition/shared";
 import {
   PropertyInput,
+  PropertyDataBinding,
   PropertyNumberInput,
   PropertySelect,
   PropertySizeToggle,
   PropertySwitch,
+  type DataBindingValue,
 } from "../../../components";
 
 interface CatalogFieldProps {
   field: InspectorFieldModel;
   currentProps: Record<string, unknown>;
   onUpdate: (updatedProps: Record<string, unknown>) => void;
+  dataBinding?: unknown;
+  onDataBindingUpdate?: (dataBinding: unknown | undefined) => void;
 }
 
 export const CatalogField = memo(function CatalogField({
   field,
   currentProps,
   onUpdate,
+  dataBinding,
+  onDataBindingUpdate,
 }: CatalogFieldProps) {
   const currentValue = currentProps[field.key] ?? field.defaultValue;
   const update = (value: unknown) => onUpdate({ [field.key]: value });
@@ -105,8 +111,24 @@ export const CatalogField = memo(function CatalogField({
         />
       );
 
-    case "icon":
     case "binding":
+      return (
+        <PropertyDataBinding
+          label={field.label}
+          value={(dataBinding as DataBindingValue | null | undefined) ?? null}
+          onChange={(value) => {
+            onDataBindingUpdate?.(value ?? undefined);
+            if (value !== null) {
+              onUpdate({
+                [field.key]: undefined,
+                ...(field.key === "rows" ? { items: undefined } : {}),
+              });
+            }
+          }}
+        />
+      );
+
+    case "icon":
       return null;
 
     default:

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import type {
   CompositionDocument,
   RefNode,
@@ -1696,6 +1696,43 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(container.querySelector("[data-canonical-id='tree-1']")).toBe(
       treeRoot,
     );
+    expect(legacyTreeRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Tree static collection dataBinding through PrimitiveBinding before rendererMap fallback", async () => {
+    const node = {
+      id: "tree-binding-1",
+      type: "Tree",
+      props: {
+        "aria-label": "Bound tree",
+        expandedKeys: ["docs"],
+      },
+      "x-composition": {
+        dataBinding: {
+          type: "collection",
+          source: "static",
+          config: {
+            data: [
+              {
+                id: "docs",
+                label: "Docs",
+                children: [{ id: "adr", label: "ADR" }],
+              },
+            ],
+          },
+        },
+      },
+    } as ResolvedNode;
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    await waitFor(() => expect(screen.getByText("Docs")).toBeTruthy());
+    expect(screen.getByText("ADR")).toBeTruthy();
+    expect(
+      container.querySelector("[data-canonical-id='tree-binding-1']"),
+    ).toBe(container.querySelector(".react-aria-Tree"));
     expect(legacyTreeRenderer).not.toHaveBeenCalled();
   });
 

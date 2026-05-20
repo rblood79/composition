@@ -39,6 +39,10 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     const comboBox = catalogItems.find((item) => item.type === "ComboBox");
     const select = catalogItems.find((item) => item.type === "Select");
     const tabs = catalogItems.find((item) => item.type === "Tabs");
+    const card = catalogItems.find((item) => item.type === "Card");
+    const section = catalogItems.find((item) => item.type === "Section");
+    const frame = catalogItems.find((item) => item.type === "frame");
+    const slot = catalogItems.find((item) => item.type === "Slot");
 
     expect(button?.source).toBe("catalog");
     expect(button?.categoryKey).toBe("buttons");
@@ -100,6 +104,16 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     expect(tabs?.source).toBe("catalog");
     expect(tabs?.categoryKey).toBe("collections");
     expect(tabs?.label).toBe("tabs");
+    expect(card?.source).toBe("catalog");
+    expect(card?.categoryKey).toBe("layout");
+    expect(card?.label).toBe("card");
+    expect(section?.source).toBe("catalog");
+    expect(section?.categoryKey).toBe("collections");
+    expect(section?.label).toBe("section");
+    expect(frame?.source).toBe("catalog");
+    expect(frame?.categoryKey).toBe("layout");
+    expect(frame?.label).toBe("frame");
+    expect(slot).toBeUndefined();
   });
 
   it("builds panel groups from shared catalog inventory", () => {
@@ -112,7 +126,15 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     expect(normalGroups.layout.some((item) => item.type === "Slot")).toBe(
       false,
     );
-    expect(layoutGroups.layout.some((item) => item.type === "Slot")).toBe(true);
+    expect(
+      layoutGroups.layout.find((item) => item.type === "Slot")?.source,
+    ).toBe("catalog");
+    expect(
+      normalGroups.layout.find((item) => item.type === "frame")?.source,
+    ).toBe("catalog");
+    expect(
+      normalGroups.layout.find((item) => item.type === "Card")?.source,
+    ).toBe("catalog");
     expect(normalGroups.content.length).toBeGreaterThan(5);
     expect(normalGroups.forms.length).toBeGreaterThan(5);
   });

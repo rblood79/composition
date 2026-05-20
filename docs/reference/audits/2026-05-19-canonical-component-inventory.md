@@ -486,3 +486,13 @@ generic Skia label-input-icon fixture 를 추가했다. DateRangePicker 는
 고정했다. date/color family 는
 ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/
 DatePicker/DateRangePicker 까지 진행했다.
+
+Composition-native cutover 는 2026-05-21 기준 Card/Section reusable entry 를
+`cutover:"catalog"` 로 flip 하고 `frame`/`Slot` native catalog entry 를 추가했다.
+Card/Section 은 reusable canonical document seed 를 `type:"ref"` creation payload 로
+소비하고, `frame`/`Slot` 은 RAC primitive 없이 native catalog default props 와
+`propsSchema` 로 배치·편집한다. `Slot` 은 layout mode 전용 `layoutOnly` panel entry
+이며 일반 component palette 에는 노출하지 않는다. `kind:"binding"` PropContract 는
+Inspector 에서 `PropertyDataBinding` 을 통해 `x-composition.dataBinding` 으로 저장되고,
+legacy static collection binding 은 resolved render props 에서 Tree `items` 또는
+Table `rows` 로 materialize 되어 Preview/Skia fixture 로 고정됐다.

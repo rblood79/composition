@@ -2,8 +2,10 @@ import { createElement, memo, useMemo, type ComponentType } from "react";
 import type { ComponentSpec } from "@composition/specs";
 import {
   buildInspectorFieldSections,
+  getElementDataBinding,
   getPrimitiveInspectorThemeValues,
   getPrimitiveBinding,
+  type PropContractMap,
 } from "@composition/shared";
 import { PropertyCustomId, PropertySection } from "../../../components";
 import { useStore } from "../../../stores";
@@ -15,6 +17,7 @@ import { useCanonicalPropertyElementsMap } from "../hooks/useCanonicalPropertyRe
 
 interface GenericPropertyEditorProps extends ComponentEditorProps {
   componentType?: string;
+  catalogContracts?: PropContractMap;
   spec?: ComponentSpec<Record<string, unknown>>;
   renderAfterSections?: ComponentType<{
     elementId: string;
@@ -28,6 +31,7 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
   currentProps,
   onUpdate,
   componentType,
+  catalogContracts,
   spec,
   renderAfterSections,
 }: GenericPropertyEditorProps) {
@@ -50,6 +54,13 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
     return parent?.type;
   }, [elementsMap, elementId]);
 
+  const dataBinding = useMemo(() => {
+    const element = elementsMap.get(elementId);
+    return element
+      ? getElementDataBinding(element, "extension-first")
+      : undefined;
+  }, [elementsMap, elementId]);
+
   const updateCustomId = (newCustomId: string) => {
     const updateElement = useStore.getState().updateElement;
     if (updateElement && elementId) {
@@ -57,14 +68,25 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
     }
   };
 
+  const updateDataBinding = (nextDataBinding: unknown | undefined) => {
+    const updateSelectedDataBinding =
+      useStore.getState().updateSelectedDataBinding;
+    updateSelectedDataBinding(
+      nextDataBinding as Parameters<typeof updateSelectedDataBinding>[0],
+    );
+  };
+
   const catalogSections = useMemo(() => {
-    if (!primitiveBinding?.props.accepts) return [];
+    const contracts = primitiveBinding?.props.accepts ?? catalogContracts;
+    if (!contracts) return [];
     return buildInspectorFieldSections({
-      componentType: primitiveBinding.tag,
-      contracts: primitiveBinding.props.accepts,
-      theme: getPrimitiveInspectorThemeValues(primitiveBinding.tag),
+      componentType: primitiveBinding?.tag ?? editorType,
+      contracts,
+      theme: primitiveBinding
+        ? getPrimitiveInspectorThemeValues(primitiveBinding.tag)
+        : {},
     });
-  }, [primitiveBinding]);
+  }, [catalogContracts, editorType, primitiveBinding]);
 
   const { visibleSections, firstContentIndex } = useMemo(() => {
     const sections = (spec?.properties?.sections ?? []).filter((section) =>
@@ -116,6 +138,8 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
                   field={field}
                   currentProps={currentProps}
                   onUpdate={onUpdate}
+                  dataBinding={dataBinding}
+                  onDataBindingUpdate={updateDataBinding}
                 />
               ))}
           </PropertySection>

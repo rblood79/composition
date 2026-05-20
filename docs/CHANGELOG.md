@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 6 — Composition-native catalog cutover + binding field bridge] - 2026-05-21
+
+### Architecture
+
+- **Composition-native catalog cutover**:
+  - Card/Section reusable entries 를 `cutover:"catalog"` active entry 로 전환했다.
+  - `frame` / `Slot` native catalog entries 를 추가하고, native default props 와
+    reusable/native `propsSchema` 를 generic Inspector contract 로 연결했다.
+  - `Slot` 은 layout mode 전용 `layoutOnly` entry 로 분리해 일반 component palette
+    노출을 막았다.
+- **Collection binding field bridge**:
+  - `CatalogField` 의 `kind:"binding"` 을 `PropertyDataBinding` UI 로 연결했다.
+  - binding 값은 canonical core props 가 아니라 `x-composition.dataBinding` 경계에
+    저장하고, resolved render props 에서만 wrapper props 로 투영한다.
+  - legacy static collection dataBinding 은 Tree `items` / Table `rows` 로 materialize
+    되어 Preview/Skia static collection fixture 로 검증된다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/catalog/__tests__/componentCatalog.test.ts src/catalog/__tests__/inspectorFields.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/preview/components/CanonicalNodeRenderer.adr142.test.tsx src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts src/resolvers/canonical/__tests__/extractCanonicalPropsFromResolved.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/generic/genericEditorCanonical.static.test.ts src/resolvers/canonical/__tests__/extractCanonicalPropsFromResolved.test.ts src/adapters/canonical/__tests__/adr131XCompositionGrepGate.test.ts`
+- `pnpm run codex:typecheck`
+
 ## [ADR-142 Phase 3/5/6 — DateRangePicker date-color primitive catalog pilot] - 2026-05-21
 
 ### Architecture

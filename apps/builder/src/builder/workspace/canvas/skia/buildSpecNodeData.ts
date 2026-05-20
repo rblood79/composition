@@ -19,6 +19,7 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
+  getElementDataBinding,
   getPrimitiveBinding,
   toBreadcrumbRacProps,
   toButtonRacProps,
@@ -5162,12 +5163,66 @@ function buildGenericTabsNode(
   };
 }
 
+function readStaticCollectionDataBinding(
+  node: ResolvedNode,
+): Record<string, unknown>[] {
+  const binding = getElementDataBinding(node, "extension-first");
+  if (!isGenericRecord(binding) || binding.type !== "collection") return [];
+  if (binding.source !== "static") return [];
+  const config = binding.config;
+  if (!isGenericRecord(config) || !Array.isArray(config.data)) return [];
+  return config.data.filter(isGenericRecord);
+}
+
+function readStaticTreeDataBindingItems(
+  node: ResolvedNode,
+): TreeItemDescriptor[] {
+  return readStaticCollectionDataBinding(node).map((item, index) =>
+    toStaticTreeItem(item, index),
+  );
+}
+
+function toStaticTreeItem(
+  item: Record<string, unknown>,
+  index: number,
+): TreeItemDescriptor {
+  const id = readStringValue(item.id, String(index));
+  return {
+    id,
+    label: readStringValue(
+      item.label ?? item.name ?? item.title,
+      `Item ${index + 1}`,
+    ),
+    ...(Array.isArray(item.children)
+      ? {
+          children: item.children
+            .filter(isGenericRecord)
+            .map((child, childIndex) => toStaticTreeItem(child, childIndex)),
+        }
+      : {}),
+  };
+}
+
+function readStaticTableDataBindingRows(
+  node: ResolvedNode,
+): TableRowDescriptor[] {
+  return readStaticCollectionDataBinding(node).map((row, index) => ({
+    id: readStringValue(row.id, String(index)),
+    ...row,
+  }));
+}
+
 function buildGenericTreeNode(
   node: ResolvedNode,
   layout: GenericResolvedSkiaLayout,
   theme: "light" | "dark",
 ): SkiaNodeData {
-  const props = toTreeRacProps(node.props ?? {}) as TreeRacProps;
+  const rawProps = node.props ?? {};
+  const boundItems = readStaticTreeDataBindingItems(node);
+  const props = toTreeRacProps({
+    ...rawProps,
+    ...(!rawProps.items && boundItems.length > 0 ? { items: boundItems } : {}),
+  }) as TreeRacProps;
   const style = readGenericStyle(node);
   const isDark = theme === "dark";
   const rows = flattenTreeItems(props.items);
@@ -5299,7 +5354,14 @@ function buildGenericTableNode(
   layout: GenericResolvedSkiaLayout,
   theme: "light" | "dark",
 ): SkiaNodeData {
-  const props = toTableRacProps(node.props ?? {}) as TableRacProps;
+  const rawProps = node.props ?? {};
+  const boundRows = readStaticTableDataBindingRows(node);
+  const props = toTableRacProps({
+    ...rawProps,
+    ...(!rawProps.rows && !rawProps.items && boundRows.length > 0
+      ? { rows: boundRows }
+      : {}),
+  }) as TableRacProps;
   const style = readGenericStyle(node);
   const isDark = theme === "dark";
   const columns = props.columns;
@@ -5697,9 +5759,11 @@ function resolveGenericLayout(
 
 function readGenericStyle(node: ResolvedNode): Record<string, unknown> {
   const style = node.props?.style;
-  return Boolean(style) && typeof style === "object" && !Array.isArray(style)
-    ? (style as Record<string, unknown>)
-    : {};
+  return isGenericRecord(style) ? style : {};
+}
+
+function isGenericRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function isGenericNodeVisible(style: Record<string, unknown>): boolean {
@@ -5724,6 +5788,14 @@ function readNumber(value: unknown, fallback: number): number {
   if (typeof value === "string") {
     const parsed = parsePxValue(value, fallback);
     return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function readStringValue(value: unknown, fallback: string): string {
+  if (typeof value === "string" && value.length > 0) return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
   }
   return fallback;
 }

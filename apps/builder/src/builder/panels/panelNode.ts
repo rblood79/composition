@@ -4,6 +4,7 @@ export interface PanelNode {
   id: string;
   type: string;
   props: Record<string, unknown>;
+  dataBinding?: unknown;
   parent_id?: string | null;
   page_id?: string | null;
   layout_id?: string | null;
@@ -19,4 +20,7 @@ export interface PanelNode {
   componentRole?: unknown;
   masterId?: unknown;
   overrides?: unknown;
+  "x-composition"?: {
+    dataBinding?: unknown;
+  };
 }
