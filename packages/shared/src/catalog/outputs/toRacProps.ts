@@ -265,6 +265,16 @@ export const MENU_DIRECTION_VALUES = [
   "right",
 ] as const;
 export const MENU_SELECTION_MODE_VALUES = LIST_BOX_SELECTION_MODE_VALUES;
+export const COMBO_BOX_SIZE_VALUES = BUTTON_SIZE_VALUES;
+export const COMBO_BOX_LABEL_POSITION_VALUES = TEXT_FIELD_LABEL_POSITION_VALUES;
+export const COMBO_BOX_NECESSITY_INDICATOR_VALUES =
+  TEXT_FIELD_NECESSITY_INDICATOR_VALUES;
+export const COMBO_BOX_MENU_TRIGGER_VALUES = [
+  "focus",
+  "input",
+  "manual",
+] as const;
+export const COMBO_BOX_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -414,6 +424,17 @@ const MENU_SIZES = new Set<string>(MENU_SIZE_VALUES);
 const MENU_ALIGNS = new Set<string>(MENU_ALIGN_VALUES);
 const MENU_DIRECTIONS = new Set<string>(MENU_DIRECTION_VALUES);
 const MENU_SELECTION_MODES = new Set<string>(MENU_SELECTION_MODE_VALUES);
+const COMBO_BOX_SIZES = new Set<ComponentSize>(COMBO_BOX_SIZE_VALUES);
+const COMBO_BOX_LABEL_POSITIONS = new Set<string>(
+  COMBO_BOX_LABEL_POSITION_VALUES,
+);
+const COMBO_BOX_NECESSITY_INDICATORS = new Set<string>(
+  COMBO_BOX_NECESSITY_INDICATOR_VALUES,
+);
+const COMBO_BOX_MENU_TRIGGERS = new Set<string>(COMBO_BOX_MENU_TRIGGER_VALUES);
+const COMBO_BOX_VALIDATION_BEHAVIORS = new Set<string>(
+  COMBO_BOX_VALIDATION_BEHAVIOR_VALUES,
+);
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -1410,6 +1431,76 @@ export interface MenuRacProps extends Record<string, unknown> {
   selectedKeys?: string[];
   defaultSelectedKeys?: string[];
   items?: MenuItemDescriptor[];
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ComboBoxItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  value?: string;
+  textValue?: string;
+  isDisabled?: boolean;
+  icon?: string;
+  description?: string;
+}
+
+export interface ComboBoxCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  contextualHelp?: unknown;
+  placeholder?: unknown;
+  inputValue?: unknown;
+  defaultInputValue?: unknown;
+  selectedKey?: unknown;
+  defaultSelectedKey?: unknown;
+  items?: unknown;
+  size?: unknown;
+  iconName?: unknown;
+  labelPosition?: unknown;
+  isQuiet?: unknown;
+  allowsCustomValue?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isInvalid?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  autoFocus?: unknown;
+  menuTrigger?: unknown;
+  validationBehavior?: unknown;
+  name?: unknown;
+  form?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ComboBoxRacProps extends Record<string, unknown> {
+  label?: string;
+  description?: string;
+  errorMessage?: string;
+  contextualHelp?: string;
+  placeholder: string;
+  inputValue?: string;
+  defaultInputValue?: string;
+  selectedKey?: string;
+  defaultSelectedKey?: string;
+  items?: ComboBoxItemDescriptor[];
+  size: ComponentSize;
+  iconName: string;
+  labelPosition: (typeof COMBO_BOX_LABEL_POSITION_VALUES)[number];
+  isQuiet: boolean;
+  allowsCustomValue: boolean;
+  necessityIndicator?: (typeof COMBO_BOX_NECESSITY_INDICATOR_VALUES)[number];
+  isRequired: boolean;
+  isInvalid: boolean;
+  isDisabled: boolean;
+  isReadOnly: boolean;
+  autoFocus: boolean;
+  menuTrigger: (typeof COMBO_BOX_MENU_TRIGGER_VALUES)[number];
+  validationBehavior: (typeof COMBO_BOX_VALIDATION_BEHAVIOR_VALUES)[number];
+  name?: string;
+  form?: string;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2473,6 +2564,67 @@ export function toMenuRacProps(props: MenuCanonicalProps): MenuRacProps {
   };
 }
 
+export function toComboBoxRacProps(
+  props: ComboBoxCanonicalProps,
+): ComboBoxRacProps {
+  const items = normalizeComboBoxItems(props.items);
+  return {
+    ...(readString(props.label, "").trim()
+      ? { label: readString(props.label, "") }
+      : {}),
+    ...(readString(props.description, "").trim()
+      ? { description: readString(props.description, "") }
+      : {}),
+    ...(readString(props.errorMessage, "").trim()
+      ? { errorMessage: readString(props.errorMessage, "") }
+      : {}),
+    ...(readString(props.contextualHelp, "").trim()
+      ? { contextualHelp: readString(props.contextualHelp, "") }
+      : {}),
+    placeholder: readString(props.placeholder, "Type or select..."),
+    ...(typeof props.inputValue === "string"
+      ? { inputValue: props.inputValue }
+      : {}),
+    ...(typeof props.defaultInputValue === "string"
+      ? { defaultInputValue: props.defaultInputValue }
+      : {}),
+    ...(typeof props.selectedKey === "string"
+      ? { selectedKey: props.selectedKey }
+      : {}),
+    ...(typeof props.defaultSelectedKey === "string"
+      ? { defaultSelectedKey: props.defaultSelectedKey }
+      : {}),
+    ...(items.length > 0 ? { items } : {}),
+    size: normalizeComboBoxSize(props.size),
+    iconName: readString(props.iconName, "chevron-down"),
+    labelPosition: normalizeComboBoxLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    allowsCustomValue: props.allowsCustomValue === true,
+    ...(normalizeComboBoxNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeComboBoxNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    isRequired: props.isRequired === true,
+    isInvalid: props.isInvalid === true,
+    isDisabled: props.isDisabled === true,
+    isReadOnly: props.isReadOnly === true,
+    autoFocus: props.autoFocus === true,
+    menuTrigger: normalizeComboBoxMenuTrigger(props.menuTrigger),
+    validationBehavior: normalizeComboBoxValidationBehavior(
+      props.validationBehavior,
+    ),
+    ...(typeof props.name === "string" ? { name: props.name } : {}),
+    ...(typeof props.form === "string" ? { form: props.form } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -3443,6 +3595,78 @@ function normalizeMenuItem(value: unknown): MenuItemDescriptor | undefined {
       : {}),
     ...(typeof value.href === "string" ? { href: value.href } : {}),
     ...(children.length > 0 ? { children } : {}),
+  };
+}
+
+function normalizeComboBoxSize(value: unknown): ComponentSize {
+  return typeof value === "string" &&
+    COMBO_BOX_SIZES.has(value as ComponentSize)
+    ? (value as ComponentSize)
+    : "md";
+}
+
+function normalizeComboBoxLabelPosition(
+  value: unknown,
+): (typeof COMBO_BOX_LABEL_POSITION_VALUES)[number] {
+  return typeof value === "string" && COMBO_BOX_LABEL_POSITIONS.has(value)
+    ? (value as (typeof COMBO_BOX_LABEL_POSITION_VALUES)[number])
+    : "top";
+}
+
+function normalizeComboBoxNecessityIndicator(
+  value: unknown,
+): (typeof COMBO_BOX_NECESSITY_INDICATOR_VALUES)[number] | undefined {
+  return typeof value === "string" && COMBO_BOX_NECESSITY_INDICATORS.has(value)
+    ? (value as (typeof COMBO_BOX_NECESSITY_INDICATOR_VALUES)[number])
+    : undefined;
+}
+
+function normalizeComboBoxMenuTrigger(
+  value: unknown,
+): (typeof COMBO_BOX_MENU_TRIGGER_VALUES)[number] {
+  return typeof value === "string" && COMBO_BOX_MENU_TRIGGERS.has(value)
+    ? (value as (typeof COMBO_BOX_MENU_TRIGGER_VALUES)[number])
+    : "focus";
+}
+
+function normalizeComboBoxValidationBehavior(
+  value: unknown,
+): (typeof COMBO_BOX_VALIDATION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && COMBO_BOX_VALIDATION_BEHAVIORS.has(value)
+    ? (value as (typeof COMBO_BOX_VALIDATION_BEHAVIOR_VALUES)[number])
+    : "native";
+}
+
+function normalizeComboBoxItems(value: unknown): ComboBoxItemDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeComboBoxItem(entry))
+    .filter((entry): entry is ComboBoxItemDescriptor => entry !== undefined);
+}
+
+function normalizeComboBoxItem(
+  value: unknown,
+): ComboBoxItemDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  const label = readString(value.label, "").trim();
+  if (!label) return undefined;
+  const id = readString(value.id ?? value.value, label);
+  return {
+    id,
+    label,
+    ...(typeof value.value === "string" || typeof value.value === "number"
+      ? { value: String(value.value) }
+      : {}),
+    ...(typeof value.textValue === "string"
+      ? { textValue: value.textValue }
+      : {}),
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
+      : {}),
+    ...(typeof value.icon === "string" ? { icon: value.icon } : {}),
+    ...(typeof value.description === "string"
+      ? { description: value.description }
+      : {}),
   };
 }
 

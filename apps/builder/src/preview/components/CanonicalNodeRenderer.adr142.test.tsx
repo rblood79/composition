@@ -18,6 +18,7 @@ const {
   legacyColorFieldRenderer,
   legacyCheckboxRenderer,
   legacyCheckboxGroupRenderer,
+  legacyComboBoxRenderer,
   legacyDateFieldRenderer,
   legacyFileTriggerRenderer,
   legacyFormRenderer,
@@ -56,6 +57,9 @@ const {
   )),
   legacyCheckboxGroupRenderer: vi.fn(() => (
     <div data-legacy-renderer="CheckboxGroup">legacy</div>
+  )),
+  legacyComboBoxRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ComboBox">legacy</div>
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
@@ -124,6 +128,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Breadcrumbs: legacyBreadcrumbsRenderer,
     Checkbox: legacyCheckboxRenderer,
     CheckboxGroup: legacyCheckboxGroupRenderer,
+    ComboBox: legacyComboBoxRenderer,
     ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
     FileTrigger: legacyFileTriggerRenderer,
@@ -169,6 +174,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyBreadcrumbsRenderer.mockClear();
     legacyCheckboxRenderer.mockClear();
     legacyCheckboxGroupRenderer.mockClear();
+    legacyComboBoxRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyFileTriggerRenderer.mockClear();
@@ -1029,6 +1035,39 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector("[data-canonical-id='menu-1']"),
     ).toBeTruthy();
     expect(legacyMenuRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ComboBox canonical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "combo-1",
+      type: "ComboBox",
+      props: {
+        label: "Animals",
+        placeholder: "Pick one",
+        inputValue: "Cat",
+        selectedKey: "cat",
+        size: "md",
+        items: [
+          { id: "aardvark", label: "Aardvark", value: "aardvark" },
+          { id: "cat", label: "Cat", value: "cat" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const comboRoot = container.querySelector(".react-aria-ComboBox");
+    expect(comboRoot?.getAttribute("data-size")).toBe("md");
+    expect(container.querySelector("[data-canonical-id='combo-1']")).toBe(
+      comboRoot,
+    );
+    expect(screen.getByText("Animals")).toBeTruthy();
+    expect(container.querySelector("input")?.getAttribute("placeholder")).toBe(
+      "Pick one",
+    );
+    expect(legacyComboBoxRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
+import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
@@ -22,6 +23,7 @@ import {
   toButtonRacProps,
   toCheckboxRacProps,
   toColorFieldRacProps,
+  toComboBoxRacProps,
   toDateFieldRacProps,
   toFileTriggerRacProps,
   toFormRacProps,
@@ -1269,6 +1271,76 @@ describe("ADR-142 inspector field contracts", () => {
       items: [
         { id: "copy", label: "Copy", shortcut: "Cmd+C" },
         { id: "paste", label: "Paste", isDisabled: true },
+      ],
+    });
+  });
+
+  it("groups ComboBox PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "ComboBox",
+      contracts: comboBoxPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { ComboBox: ["xs", "sm", "md", "lg", "xl"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "items",
+      "description",
+      "errorMessage",
+      "placeholder",
+      "contextualHelp",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "size",
+      "iconName",
+      "labelPosition",
+      "isQuiet",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "selectedKey",
+      "inputValue",
+      "allowsCustomValue",
+      "necessityIndicator",
+      "isRequired",
+      "isInvalid",
+      "isDisabled",
+      "isReadOnly",
+    ]);
+  });
+
+  it("projects ComboBox canonical items through the catalog boundary", () => {
+    expect(
+      toComboBoxRacProps({
+        label: "Animals",
+        placeholder: "Pick one",
+        size: "lg",
+        selectedKey: "cat",
+        inputValue: "Cat",
+        allowsCustomValue: true,
+        items: [
+          { id: "aardvark", label: "Aardvark", value: "aardvark" },
+          { id: "cat", label: "Cat", value: "cat", isDisabled: true },
+          { id: "ignored", label: "" },
+          42,
+        ],
+      }),
+    ).toMatchObject({
+      label: "Animals",
+      placeholder: "Pick one",
+      size: "lg",
+      selectedKey: "cat",
+      inputValue: "Cat",
+      allowsCustomValue: true,
+      items: [
+        { id: "aardvark", label: "Aardvark", value: "aardvark" },
+        { id: "cat", label: "Cat", value: "cat", isDisabled: true },
       ],
     });
   });

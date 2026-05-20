@@ -25,6 +25,7 @@ import {
   toCheckboxGroupRacProps,
   toCheckboxRacProps,
   toColorFieldRacProps,
+  toComboBoxRacProps,
   toDateFieldRacProps,
   toGridListRacProps,
   toLinkRacProps,
@@ -46,6 +47,8 @@ import {
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorFieldRacProps,
+  type ComboBoxItemDescriptor,
+  type ComboBoxRacProps,
   type DateFieldRacProps,
   type GridListEntryDescriptor,
   type GridListItemDescriptor,
@@ -898,6 +901,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "menu") {
     return buildGenericMenuNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "combo-box") {
+    return buildGenericComboBoxNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -3026,6 +3032,235 @@ function buildGenericMenuNode(
     height: layout.height,
     visible: isGenericNodeVisible(style),
     children: [...triggerNodes, menuBackground, ...itemNodes],
+  };
+}
+
+function buildGenericComboBoxNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toComboBoxRacProps(node.props ?? {}) as ComboBoxRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericTextFieldSize(props.size);
+  const isDark = theme === "dark";
+  const items: ComboBoxItemDescriptor[] = props.items ?? [];
+  const labelColor = colorIntToFloat32(isDark ? 0xe5e7eb : 0x374151, 1);
+  const inputTextColor = colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+  const placeholderColor = colorIntToFloat32(isDark ? 0x9ca3af : 0x6b7280, 1);
+  const strokeColor = colorIntToFloat32(
+    props.isInvalid ? 0xdc2626 : isDark ? 0x6b7280 : 0xd1d5db,
+    1,
+  );
+  const labelHeight = props.label ? size.labelHeight : 0;
+  const inputY = labelHeight ? labelHeight + size.gap : 0;
+  const inputHeight = size.inputHeight;
+  const selectedItem = items.find(
+    (item) => item.id === props.selectedKey || item.value === props.selectedKey,
+  );
+  const valueText =
+    props.inputValue?.trim() ||
+    props.defaultInputValue?.trim() ||
+    selectedItem?.label ||
+    props.placeholder;
+  const hasValue =
+    Boolean(props.inputValue?.trim()) ||
+    Boolean(props.defaultInputValue?.trim()) ||
+    selectedItem !== undefined;
+  const iconSize = Math.max(size.inputFontSize, 14);
+  const itemHeight = Math.max(size.inputLineHeight + 8, 28);
+  const listY = inputY + inputHeight + 8;
+  const listWidth = Math.max(layout.width, 160);
+  const listHeight = Math.max(items.length * itemHeight + 8, itemHeight + 8);
+  const visibleItems = items.slice(0, Math.max(1, Math.floor(96 / itemHeight)));
+  const children: SkiaNodeData[] = [
+    {
+      type: "box",
+      elementId: `${node.id}:background`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(0x000000, 0),
+        borderRadius: readNumber(style.borderRadius, 0),
+      },
+    },
+  ];
+
+  if (props.label) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:label`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: size.labelHeight,
+      visible: true,
+      text: {
+        content: props.label,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.labelFontSize,
+        fontWeight: 500,
+        color: labelColor,
+        align: "left",
+        lineHeight: size.labelLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: layout.width,
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+      },
+    });
+  }
+
+  const icon = getIconData(props.iconName || "chevron-down");
+  children.push({
+    type: "container",
+    elementId: `${node.id}:input`,
+    x: 0,
+    y: inputY,
+    width: layout.width,
+    height: inputHeight,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        isDark ? 0x111827 : 0xffffff,
+        props.isQuiet ? 0 : 1,
+      ),
+      borderRadius: readNumber(style.borderRadius, 6),
+      strokeColor,
+      strokeWidth: props.isQuiet ? 0 : 1,
+    },
+    children: [
+      {
+        type: "text",
+        elementId: `${node.id}:value`,
+        x: 0,
+        y: 0,
+        width: layout.width,
+        height: inputHeight,
+        visible: true,
+        text: {
+          content: valueText,
+          fontFamilies: [fontFamily.sans],
+          fontSize: size.inputFontSize,
+          color: hasValue ? inputTextColor : placeholderColor,
+          align: "left",
+          lineHeight: size.inputLineHeight,
+          paddingLeft: size.paddingX,
+          paddingTop: 0,
+          maxWidth: Math.max(layout.width - size.paddingX * 2 - iconSize, 0),
+          verticalAlign: "middle",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        },
+      },
+      ...(icon
+        ? [
+            {
+              type: "icon_path" as const,
+              elementId: `${node.id}:trigger-icon`,
+              x: Math.max(layout.width - size.paddingX - iconSize, 0),
+              y: Math.max((inputHeight - iconSize) / 2, 0),
+              width: iconSize,
+              height: iconSize,
+              visible: true,
+              iconPath: {
+                paths: icon.paths,
+                circles: icon.circles,
+                cx: iconSize / 2,
+                cy: iconSize / 2,
+                size: iconSize,
+                strokeColor: placeholderColor,
+                strokeWidth: 2,
+              },
+            },
+          ]
+        : []),
+    ],
+  });
+
+  if (items.length > 0) {
+    children.push({
+      type: "box",
+      elementId: `${node.id}:list:bg`,
+      x: 0,
+      y: listY,
+      width: listWidth,
+      height: listHeight,
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(isDark ? 0x1f2937 : 0xffffff, 1),
+        borderRadius: readNumber(style.borderRadius, 8),
+        strokeColor: colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1),
+        strokeWidth: 1,
+      },
+    });
+
+    children.push(
+      ...visibleItems.flatMap((item, index): SkiaNodeData[] => {
+        const y = listY + 4 + index * itemHeight;
+        const isSelected =
+          item.id === props.selectedKey || item.value === props.selectedKey;
+        const textColor = item.isDisabled
+          ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+          : inputTextColor;
+        return [
+          {
+            type: "box",
+            elementId: `${node.id}:item:${item.id}:bg`,
+            x: 4,
+            y,
+            width: Math.max(listWidth - 8, 0),
+            height: itemHeight,
+            visible: true,
+            box: {
+              fillColor: isSelected
+                ? colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1)
+                : colorIntToFloat32(0x000000, 0),
+              borderRadius: 4,
+            },
+          },
+          {
+            type: "text",
+            elementId: `${node.id}:item:${item.id}:label`,
+            x: 12,
+            y,
+            width: Math.max(listWidth - 24, 0),
+            height: itemHeight,
+            visible: true,
+            text: {
+              content: item.label,
+              fontFamilies: [fontFamily.sans],
+              fontSize: size.inputFontSize,
+              fontWeight: isSelected ? 600 : 500,
+              color: textColor,
+              align: "left",
+              lineHeight: size.inputLineHeight,
+              paddingLeft: 0,
+              paddingTop: 0,
+              maxWidth: Math.max(listWidth - 24, 0),
+              verticalAlign: "middle",
+              whiteSpace: "nowrap",
+              textOverflow: "ellipsis",
+            },
+          },
+        ];
+      }),
+    );
+  }
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children,
   };
 }
 

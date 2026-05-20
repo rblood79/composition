@@ -9,6 +9,7 @@ import {
   CheckboxGroupSpec,
   CheckboxSpec,
   ColorFieldSpec,
+  ComboBoxSpec,
   DateFieldSpec,
   FileTriggerSpec,
   FormSpec,
@@ -509,6 +510,39 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("menu-1");
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Actions", "Copy", "Cmd+C", "Paste"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ComboBox items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ComboBoxSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "combo-1",
+        type: "ComboBox",
+        props: {
+          label: "Animals",
+          placeholder: "Pick one",
+          inputValue: "Cat",
+          selectedKey: "cat",
+          size: "md",
+          items: [
+            { id: "aardvark", label: "Aardvark", value: "aardvark" },
+            { id: "cat", label: "Cat", value: "cat" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 280, height: 128 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("combo-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Animals", "Cat", "Aardvark"]),
     );
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();

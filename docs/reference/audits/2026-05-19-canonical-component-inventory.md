@@ -144,7 +144,7 @@ track/indicator/arc/cell state 를 별도 draw module 로 표현할 가능성이
 | `ProgressBar`, `ProgressCircle`, `Meter`                                                   | progress track/value/arc geometry                                                              |
 | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker`                               | date cell state, range band, calendar grid                                                     |
 | `ColorArea`, `ColorSlider`, `ColorWheel`, `ColorThumb`, `ColorSwatch`, `ColorSwatchPicker` | gradient/arc/thumb/color fill                                                                  |
-| `ListBox`, `GridList`, `Menu`, `TagGroup`, `Tabs`                                          | collection item state, keyboard/selection state visualization                                  |
+| `ListBox`, `GridList`, `Menu`, `TagGroup`, `ComboBox`, `Tabs`                              | collection item state, keyboard/selection state visualization                                  |
 | `Tree`, `Table`                                                                            | collections 데이터 + row/cell/tree disclosure state. 수동 우회 구현으로 full support 주장 금지 |
 
 Phase 1a 의 Button proof 는 최소 연결성 검증이고, 위 후보들의 비용/시각 대칭은
@@ -368,5 +368,11 @@ generic Skia trigger+item row fixture 를 추가했다. Menu 는 canonical `item
 Menu item surface 로 투영하며 `MenuSpec.render.shapes()` 를 호출하지 않는 generic Skia
 fixture 로 고정했다. Panel category 는 기존 사용자 위치를 보존하기 위해 `buttons` 로
 유지한다.
+ComboBox collections primitive pilot 은 `toComboBoxRacProps()` /
+`comboBoxPrimitiveBinding` / active catalog entry / shared `ComboBox.tsx` projection /
+Preview ComboBox primitive branch / generic Skia label+input+item row fixture 를
+추가했다. ComboBox 는 canonical `items[]` 를 RAC ComboBox item surface 로 투영하며
+`ComboBoxSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+Panel category 는 기존 사용자 위치를 보존하기 위해 `forms` 로 유지한다.
 collections family 전체 완료 주장은 아직 하지 않는다. ADR-132 collection 데이터 binding 과
-ComboBox/Select/Tabs 잔여 전환이 다음 범위다.
+Select/Tabs 잔여 전환이 다음 범위다.

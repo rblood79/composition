@@ -5,6 +5,7 @@ import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
+import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
@@ -493,6 +494,28 @@ describe("ADR-142 component catalog", () => {
     ]);
   });
 
+  it("registers ComboBox as an active collections primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("ComboBox");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(comboBoxPrimitiveBinding);
+    expect(entry.family).toBe("collections");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("ComboBox");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("combo-box");
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("combo box");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual([
+      { id: "item-1", label: "Aardvark", value: "aardvark" },
+      { id: "item-2", label: "Cat", value: "cat" },
+      { id: "item-3", label: "Dog", value: "dog" },
+      { id: "item-4", label: "Kangaroo", value: "kangaroo" },
+    ]);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -554,6 +577,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("GridList");
     expect(activeTypes).toContain("TagGroup");
     expect(activeTypes).toContain("Menu");
+    expect(activeTypes).toContain("ComboBox");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

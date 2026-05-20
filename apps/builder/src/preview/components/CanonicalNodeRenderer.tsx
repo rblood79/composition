@@ -27,6 +27,7 @@ import {
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorFieldRacProps,
+  type ComboBoxRacProps,
   type DateFieldRacProps,
   type FileTriggerRacProps,
   type FormRacProps,
@@ -55,6 +56,7 @@ import {
   Checkbox,
   CheckboxGroup,
   ColorField,
+  ComboBox,
   DateField,
   FileTrigger,
   Form,
@@ -508,6 +510,14 @@ function renderPrimitiveNode({
         <MenuButton {...menuProps} />
       </div>
     );
+  }
+
+  if (adaptedEl.type === "ComboBox") {
+    const comboBoxProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ComboBoxRacProps;
+
+    return <ComboBox key={node.id} {...comboBoxProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

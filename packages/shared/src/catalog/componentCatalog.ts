@@ -4,6 +4,7 @@ import { buttonPrimitiveBinding } from "./primitives/button";
 import { checkboxGroupPrimitiveBinding } from "./primitives/checkboxGroup";
 import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
+import { comboBoxPrimitiveBinding } from "./primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
 import { formPrimitiveBinding } from "./primitives/form";
@@ -367,6 +368,19 @@ export const componentCatalog = [
       category: "buttons",
       label: "menu",
       icon: "Menu",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ComboBox",
+    family: "collections",
+    cutover: "catalog",
+    binding: comboBoxPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "combo box",
+      icon: "ChevronDown",
       placeable: true,
     },
   },

@@ -3,6 +3,7 @@ import { buttonInspectorThemeValues } from "./primitives/button";
 import { checkboxGroupInspectorThemeValues } from "./primitives/checkboxGroup";
 import { checkboxInspectorThemeValues } from "./primitives/checkbox";
 import { colorFieldInspectorThemeValues } from "./primitives/colorField";
+import { comboBoxInspectorThemeValues } from "./primitives/comboBox";
 import { dateFieldInspectorThemeValues } from "./primitives/dateField";
 import { formInspectorThemeValues } from "./primitives/form";
 import { gridListInspectorThemeValues } from "./primitives/gridList";
@@ -48,6 +49,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "ListBox") return listBoxInspectorThemeValues;
   if (type === "TagGroup") return tagGroupInspectorThemeValues;
   if (type === "Menu") return menuInspectorThemeValues;
+  if (type === "ComboBox") return comboBoxInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;
