@@ -168,6 +168,13 @@ export const listBoxPrimitiveBinding: PrimitiveBinding<
       { id: "item-1", label: "Aardvark", value: "aardvark" },
       { id: "item-2", label: "Cat", value: "cat" },
       { id: "item-3", label: "Kangaroo", value: "kangaroo" },
+      { id: "item-4", label: "Dog", value: "dog" },
+      { id: "item-5", label: "Elephant", value: "elephant" },
+      { id: "item-6", label: "Giraffe", value: "giraffe" },
+      { id: "item-7", label: "Hippo", value: "hippo" },
+      { id: "item-8", label: "Lion", value: "lion" },
+      { id: "item-9", label: "Monkey", value: "monkey" },
+      { id: "item-10", label: "Panda", value: "panda" },
     ],
   },
   props: {

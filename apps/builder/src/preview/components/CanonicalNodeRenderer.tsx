@@ -24,6 +24,7 @@ import {
   type BreadcrumbRacProps,
   type BreadcrumbsRacProps,
   type ButtonRacProps,
+  type CalendarRacProps,
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorAreaRacProps,
@@ -68,6 +69,7 @@ import {
   Breadcrumb,
   Breadcrumbs,
   Button,
+  Calendar,
   Checkbox,
   CheckboxGroup,
   ColorArea,
@@ -140,6 +142,7 @@ export const CANONICAL_PRIMITIVE_RENDERER_TYPES = new Set([
   "Breadcrumb",
   "Breadcrumbs",
   "Button",
+  "Calendar",
   "Checkbox",
   "CheckboxGroup",
   "ColorArea",
@@ -526,6 +529,25 @@ function renderPrimitiveNode({
       <ColorPicker key={node.id} {...colorPickerProps} {...markerProps}>
         {renderedChildren}
       </ColorPicker>
+    );
+  }
+
+  if (adaptedEl.type === "Calendar") {
+    const {
+      value: _value,
+      style,
+      ...calendarProps
+    } = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as CalendarRacProps;
+
+    return (
+      <Calendar
+        key={node.id}
+        {...calendarProps}
+        style={style as React.CSSProperties | undefined}
+        {...markerProps}
+      />
     );
   }
 

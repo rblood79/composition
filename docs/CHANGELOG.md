@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Calendar date-color primitive catalog pilot] - 2026-05-21
+
+### Architecture
+
+- **Calendar active primitive binding 추가**:
+  - `componentCatalog` 에 `Calendar` 를 `cutover:"catalog"` active `date-color` primitive 로 등록했다.
+  - canonical variant/size/month paging/date state props 를 RAC Calendar surface 로 투영하는 `toCalendarRacProps()` 와 `calendarPrimitiveBinding` 을 추가했다.
+  - `Calendar.tsx` shared wrapper 가 catalog projection 을 소비하고 `data-variant`/`data-size`/`data-max-visible-months` 상태를 active preview 경로에 반영한다.
+- **Calendar Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Calendar resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 는 month heading, weekday row, day cells 를 생성하고 `CalendarSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+  - 현재 ListBox binding 의 확장된 default items 와 catalog placement fixture 기대값을 동기화했다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/catalog/__tests__/componentCatalog.test.ts src/components/__tests__/buttonPrimitiveWrapper.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/useElementCreator.catalog.test.ts src/preview/components/CanonicalNodeRenderer.adr142.test.tsx src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`
+
+### Documentation
+
+- date/color family pilot 은 ColorSwatch, ColorSlider, ColorArea, ColorWheel, ColorPicker, Calendar 까지 진행했다. RangeCalendar/DatePicker/DateRangePicker 계열은 후속 slice 로 남아 있다.
+
 ## [ADR-142 Phase 3/5/6 — ColorPicker date-color primitive catalog pilot] - 2026-05-21
 
 ### Architecture

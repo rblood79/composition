@@ -452,6 +452,8 @@ export interface TreeItemElementProps extends BaseElementProps {
 export interface CalendarElementProps extends BaseElementProps {
   value?: unknown;
   defaultValue?: unknown;
+  variant?: "default" | "accent";
+  size?: "sm" | "md" | "lg";
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isInvalid?: boolean;
@@ -461,6 +463,7 @@ export interface CalendarElementProps extends BaseElementProps {
   defaultToday?: boolean;
 
   pageBehavior?: "single" | "visible";
+  maxVisibleMonths?: number;
   errorMessage?: string;
   onChange?: (value: unknown) => void;
 }
@@ -1526,8 +1529,13 @@ export function createDefaultTreeItemProps(): TreeItemElementProps {
 
 export function createDefaultCalendarProps(): CalendarElementProps {
   return {
+    variant: "default",
+    size: "md",
+    maxVisibleMonths: 1,
+    defaultToday: true,
     isDisabled: false,
     isReadOnly: false,
+    isInvalid: false,
   };
 }
 

@@ -22,6 +22,7 @@ import {
   getPrimitiveBinding,
   toBreadcrumbRacProps,
   toButtonRacProps,
+  toCalendarRacProps,
   toCheckboxGroupRacProps,
   toCheckboxRacProps,
   toColorAreaRacProps,
@@ -58,6 +59,7 @@ import {
   toTreeRacProps,
   type BreadcrumbRacProps,
   type ButtonRacProps,
+  type CalendarRacProps,
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorAreaRacProps,
@@ -896,6 +898,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "date-field") {
     return buildGenericDateFieldNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "calendar") {
+    return buildGenericCalendarNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "drop-zone") {
     return buildGenericDropZoneNode(input.node, layout, input.theme);
@@ -1750,6 +1755,189 @@ function buildGenericDateFieldNode(
         0,
       ),
       borderRadius: readNumber(style.borderRadius, 0),
+    },
+    children,
+  };
+}
+
+function buildGenericCalendarNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toCalendarRacProps(node.props ?? {}) as CalendarRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericCalendarSize(props.size);
+  const isDark = theme === "dark";
+  const opacity = props.isDisabled ? 0.44 : 1;
+  const month = resolveGenericCalendarMonth(props);
+  const monthLabel = month.toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+  const daysInMonth = new Date(
+    month.getFullYear(),
+    month.getMonth() + 1,
+    0,
+  ).getDate();
+  const firstDayOffset = new Date(
+    month.getFullYear(),
+    month.getMonth(),
+    1,
+  ).getDay();
+  const padding = size.padding;
+  const contentWidth = Math.max(layout.width - padding * 2, 0);
+  const cellGap = size.cellGap;
+  const cellWidth = Math.max((contentWidth - cellGap * 6) / 7, 0);
+  const cellHeight = size.cellSize;
+  const gridTop = padding + size.headerHeight + size.weekdayHeight;
+  const textColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#f9fafb" : "#111827"),
+    opacity,
+  );
+  const mutedColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#9ca3af" : "#64748b"),
+    opacity,
+  );
+  const accentColor = colorIntToFloat32(
+    cssColorToHex(props.variant === "accent" ? "#2563eb" : "#111827"),
+    opacity,
+  );
+  const fillColor = colorIntToFloat32(
+    cssColorToHex(
+      typeof style.backgroundColor === "string"
+        ? style.backgroundColor
+        : isDark
+          ? "#111827"
+          : "#ffffff",
+    ),
+    opacity,
+  );
+  const strokeColor = colorIntToFloat32(
+    cssColorToHex(props.isInvalid ? "#dc2626" : isDark ? "#374151" : "#d1d5db"),
+    opacity,
+  );
+  const children: SkiaNodeData[] = [
+    {
+      type: "text",
+      elementId: `${node.id}:month`,
+      x: padding,
+      y: padding,
+      width: contentWidth,
+      height: size.headerHeight,
+      visible: true,
+      text: {
+        content: monthLabel,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.headerFontSize,
+        fontWeight: 600,
+        color: textColor,
+        align: "center",
+        lineHeight: size.headerHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: contentWidth,
+        whiteSpace: "nowrap",
+      },
+    },
+  ];
+
+  for (const [index, weekday] of [
+    "S",
+    "M",
+    "T",
+    "W",
+    "T",
+    "F",
+    "S",
+  ].entries()) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:weekday-${index}`,
+      x: padding + index * (cellWidth + cellGap),
+      y: padding + size.headerHeight,
+      width: cellWidth,
+      height: size.weekdayHeight,
+      visible: true,
+      text: {
+        content: weekday,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.weekdayFontSize,
+        fontWeight: 600,
+        color: mutedColor,
+        align: "center",
+        lineHeight: size.weekdayHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: cellWidth,
+      },
+    });
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const position = firstDayOffset + day - 1;
+    const row = Math.floor(position / 7);
+    const column = position % 7;
+    const x = padding + column * (cellWidth + cellGap);
+    const y = gridTop + row * (cellHeight + cellGap);
+    const isToday = props.defaultToday && day === 21;
+
+    children.push({
+      type: "container",
+      elementId: `${node.id}:day-${day}`,
+      x,
+      y,
+      width: cellWidth,
+      height: cellHeight,
+      visible: true,
+      box: {
+        fillColor: isToday
+          ? colorIntToFloat32(cssColorToHex("#dbeafe"), opacity)
+          : colorIntToFloat32(cssColorToHex("#ffffff"), 0),
+        borderRadius: cellHeight / 2,
+        strokeColor: isToday ? accentColor : undefined,
+        strokeWidth: isToday ? 1 : 0,
+      },
+      children: [
+        {
+          type: "text",
+          elementId: `${node.id}:day-${day}:text`,
+          x: 0,
+          y: 0,
+          width: cellWidth,
+          height: cellHeight,
+          visible: true,
+          text: {
+            content: String(day),
+            fontFamilies: [fontFamily.sans],
+            fontSize: size.dayFontSize,
+            fontWeight: isToday ? 600 : 400,
+            color: isToday ? accentColor : textColor,
+            align: "center",
+            lineHeight: cellHeight,
+            paddingLeft: 0,
+            paddingTop: 0,
+            maxWidth: cellWidth,
+            autoCenter: true,
+          },
+        },
+      ],
+    });
+  }
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor,
+      borderRadius: readNumber(style.borderRadius, size.radius),
+      strokeColor,
+      strokeWidth: props.isInvalid ? 2 : 1,
     },
     children,
   };
@@ -6182,6 +6370,78 @@ function resolveGenericColorWheelSize(size: ColorWheelRacProps["size"]): {
     default:
       return { thumbSize: 20 };
   }
+}
+
+function resolveGenericCalendarSize(size: CalendarRacProps["size"]): {
+  padding: number;
+  radius: number;
+  headerHeight: number;
+  headerFontSize: number;
+  weekdayHeight: number;
+  weekdayFontSize: number;
+  cellSize: number;
+  cellGap: number;
+  dayFontSize: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        padding: 10,
+        radius: 8,
+        headerHeight: 28,
+        headerFontSize: 13,
+        weekdayHeight: 20,
+        weekdayFontSize: 10,
+        cellSize: 28,
+        cellGap: 2,
+        dayFontSize: 12,
+      };
+    case "lg":
+      return {
+        padding: 16,
+        radius: 12,
+        headerHeight: 40,
+        headerFontSize: 17,
+        weekdayHeight: 28,
+        weekdayFontSize: 12,
+        cellSize: 40,
+        cellGap: 4,
+        dayFontSize: 15,
+      };
+    case "md":
+    default:
+      return {
+        padding: 12,
+        radius: 10,
+        headerHeight: 34,
+        headerFontSize: 15,
+        weekdayHeight: 24,
+        weekdayFontSize: 11,
+        cellSize: 32,
+        cellGap: 3,
+        dayFontSize: 14,
+      };
+  }
+}
+
+function resolveGenericCalendarMonth(props: CalendarRacProps): Date {
+  const parsed =
+    parseYearMonth(props.defaultFocusedValue) ??
+    parseYearMonth(props.defaultValue) ??
+    parseYearMonth(props.value);
+  if (parsed) return parsed;
+  return new Date(2026, 4, 1);
+}
+
+function parseYearMonth(value: unknown): Date | null {
+  if (typeof value !== "string") return null;
+  const match = /^(\d{4})-(\d{2})/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return null;
+  if (month < 1 || month > 12) return null;
+  return new Date(year, month - 1, 1);
 }
 
 function mixHexColors(from: number, to: number, amount: number): number {

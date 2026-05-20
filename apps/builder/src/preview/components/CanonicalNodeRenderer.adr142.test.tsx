@@ -13,6 +13,7 @@ import { CanonicalNodeRenderer } from "./CanonicalNodeRenderer";
 
 const {
   legacyButtonRenderer,
+  legacyCalendarRenderer,
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
   legacyColorAreaRenderer,
@@ -58,6 +59,9 @@ const {
 } = vi.hoisted(() => ({
   legacyButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="Button">legacy</button>
+  )),
+  legacyCalendarRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Calendar">legacy</div>
   )),
   legacyBreadcrumbRenderer: vi.fn(() => (
     <li data-legacy-renderer="Breadcrumb">legacy</li>
@@ -188,6 +192,7 @@ const {
 vi.mock("@composition/shared/renderers", () => ({
   rendererMap: {
     Button: legacyButtonRenderer,
+    Calendar: legacyCalendarRenderer,
     Breadcrumb: legacyBreadcrumbRenderer,
     Breadcrumbs: legacyBreadcrumbsRenderer,
     Checkbox: legacyCheckboxRenderer,
@@ -250,6 +255,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
   afterEach(() => {
     cleanup();
     legacyButtonRenderer.mockClear();
+    legacyCalendarRenderer.mockClear();
     legacyBreadcrumbRenderer.mockClear();
     legacyBreadcrumbsRenderer.mockClear();
     legacyCheckboxRenderer.mockClear();
@@ -318,6 +324,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       button,
     );
     expect(legacyButtonRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Calendar through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "calendar-1",
+      type: "Calendar",
+      props: {
+        "aria-label": "Availability",
+        variant: "accent",
+        size: "lg",
+        maxVisibleMonths: 2,
+        defaultToday: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const calendar = container.querySelector(
+      "[data-canonical-id='calendar-1']",
+    );
+    expect(calendar).not.toBeNull();
+    expect(calendar?.className).toContain("react-aria-Calendar");
+    expect((calendar as HTMLElement).dataset.variant).toBe("accent");
+    expect((calendar as HTMLElement).dataset.size).toBe("lg");
+    expect((calendar as HTMLElement).dataset.maxVisibleMonths).toBe("2");
+    expect(legacyCalendarRenderer).not.toHaveBeenCalled();
   });
 
   it("renders a resolved reusable Button ref through the same primitive branch", () => {

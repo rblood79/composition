@@ -271,6 +271,24 @@ describe("ADR-142 element creator catalog bridge", () => {
     ]);
   });
 
+  it("describes catalog Calendar placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Calendar");
+
+    expect(creation).toMatchObject({
+      elementType: "Calendar",
+      props: {
+        variant: "default",
+        size: "md",
+        maxVisibleMonths: 1,
+        defaultToday: true,
+        isDisabled: false,
+        isReadOnly: false,
+        isInvalid: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog FileTrigger placement with a trigger child template", () => {
     const creation = resolveCatalogElementCreation("FileTrigger");
 
@@ -499,13 +517,16 @@ describe("ADR-142 element creator catalog bridge", () => {
         variant: "default",
         orientation: "vertical",
         selectionMode: "single",
-        items: [
-          { id: "item-1", label: "Aardvark", value: "aardvark" },
-          { id: "item-2", label: "Cat", value: "cat" },
-          { id: "item-3", label: "Kangaroo", value: "kangaroo" },
-        ],
       },
     });
+    expect(creation?.props.items).toEqual(
+      expect.arrayContaining([
+        { id: "item-1", label: "Aardvark", value: "aardvark" },
+        { id: "item-2", label: "Cat", value: "cat" },
+        { id: "item-3", label: "Kangaroo", value: "kangaroo" },
+      ]),
+    );
+    expect(creation?.props.items).toHaveLength(10);
     expect(creation?.children).toBeUndefined();
   });
 

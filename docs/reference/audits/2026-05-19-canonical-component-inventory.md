@@ -67,7 +67,7 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 | ------------------- | ------------ | ------------------ | --------------------------------- | ------------------------------------------------ |
 | `Breadcrumbs`       | primitive    | primitives/actions | `Breadcrumbs.css`                 | Breadcrumb subpart 포함                          |
 | `Button`            | primitive    | primitives/actions | `Button.css`                      | Phase 1a proof slice 후보                        |
-| `Calendar`          | primitive    | date-color         | `Calendar.css`                    | `CalendarCell`/`CalendarGrid` subpart 포함       |
+| `Calendar`          | primitive    | date-color         | `Calendar.css`                    | active `skiaPrimitive` pilot                     |
 | `Checkbox`          | primitive    | selection          | `Checkbox.css`                    | indicator draw 검증 필요                         |
 | `CheckboxGroup`     | primitive    | selection          | `CheckboxGroup.css`               | group + checkbox children                        |
 | `ColorArea`         | primitive    | date-color         | `ColorArea.css`                   | active `skiaPrimitive` pilot                     |
@@ -465,5 +465,9 @@ ColorPicker date/color primitive pilot 은 `toColorPickerRacProps()` /
 ColorField placement / shared `ColorPicker.tsx` projection / Preview ColorPicker
 primitive branch / generic Skia resolved-children fixture 를 추가했다. ColorPicker 는
 `ColorPickerSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
-date/color family 는 ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker 까지
-진행했다.
+Calendar date/color primitive pilot 은 `toCalendarRacProps()` /
+`calendarPrimitiveBinding` / active catalog entry / shared `Calendar.tsx`
+projection / Preview Calendar primitive branch / generic Skia month grid fixture 를
+추가했다. Calendar 는 `CalendarSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했다. date/color family 는
+ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar 까지 진행했다.

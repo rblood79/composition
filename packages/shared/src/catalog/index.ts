@@ -4,6 +4,7 @@ export * from "./outputs/inspectorFields";
 export * from "./primitives/breadcrumb";
 export * from "./primitives/breadcrumbs";
 export * from "./primitives/button";
+export * from "./primitives/calendar";
 export * from "./primitives/checkbox";
 export * from "./primitives/checkboxGroup";
 export * from "./primitives/colorArea";

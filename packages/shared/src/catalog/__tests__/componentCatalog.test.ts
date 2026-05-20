@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { breadcrumbPrimitiveBinding } from "../primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { calendarPrimitiveBinding } from "../primitives/calendar";
 import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorAreaPrimitiveBinding } from "../primitives/colorArea";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
@@ -382,6 +383,31 @@ describe("ADR-142 component catalog", () => {
     });
   });
 
+  it("registers Calendar as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Calendar");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(calendarPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Calendar");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("calendar");
+    expect(entry.panel.category).toBe("dateTime");
+    expect(entry.panel.label).toBe("calendar");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      variant: "default",
+      size: "md",
+      maxVisibleMonths: 1,
+      defaultToday: true,
+      isDisabled: false,
+      isReadOnly: false,
+      isInvalid: false,
+    });
+  });
+
   it("registers Form as an active fields primitive catalog entry with child templates", () => {
     const entry = getComponentCatalogEntry("Form");
 
@@ -687,10 +713,33 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.category).toBe("collections");
     expect(entry.panel.label).toBe("list box");
     expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual(
+      expect.arrayContaining([
+        { id: "item-1", label: "Aardvark", value: "aardvark" },
+        { id: "item-2", label: "Cat", value: "cat" },
+        { id: "item-3", label: "Kangaroo", value: "kangaroo" },
+      ]),
+    );
+    expect(entry.binding.defaultProps.items).toHaveLength(10);
+  });
+
+  it("keeps ListBox default items deterministic for catalog placement", () => {
+    const entry = getComponentCatalogEntry("ListBox");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
     expect(entry.binding.defaultProps.items).toEqual([
       { id: "item-1", label: "Aardvark", value: "aardvark" },
       { id: "item-2", label: "Cat", value: "cat" },
       { id: "item-3", label: "Kangaroo", value: "kangaroo" },
+      { id: "item-4", label: "Dog", value: "dog" },
+      { id: "item-5", label: "Elephant", value: "elephant" },
+      { id: "item-6", label: "Giraffe", value: "giraffe" },
+      { id: "item-7", label: "Hippo", value: "hippo" },
+      { id: "item-8", label: "Lion", value: "lion" },
+      { id: "item-9", label: "Monkey", value: "monkey" },
+      { id: "item-10", label: "Panda", value: "panda" },
     ]);
   });
 

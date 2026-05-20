@@ -6,6 +6,7 @@ import {
   BreadcrumbSpec,
   BreadcrumbsSpec,
   ButtonSpec,
+  CalendarSpec,
   CheckboxGroupSpec,
   CheckboxSpec,
   ColorAreaSpec,
@@ -1254,6 +1255,36 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
       "color-picker-field",
     ]);
     expect(collectText(node)).toContain("Hex");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Calendar through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(CalendarSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "calendar-1",
+        type: "Calendar",
+        props: {
+          variant: "accent",
+          size: "md",
+          maxVisibleMonths: 1,
+          defaultToday: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["calendar-1", { x: 12, y: 16, width: 284, height: 300 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("calendar-1");
+    expect(collectText(node)).toContain("May 2026");
+    expect(
+      node?.children?.some((child) => child.elementId?.endsWith(":day-1")),
+    ).toBe(true);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

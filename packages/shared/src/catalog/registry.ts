@@ -1,5 +1,6 @@
 import type { PrimitiveBinding } from "./types";
 import { buttonInspectorThemeValues } from "./primitives/button";
+import { calendarInspectorThemeValues } from "./primitives/calendar";
 import { checkboxGroupInspectorThemeValues } from "./primitives/checkboxGroup";
 import { checkboxInspectorThemeValues } from "./primitives/checkbox";
 import { colorAreaInspectorThemeValues } from "./primitives/colorArea";
@@ -86,6 +87,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "ColorSwatch") return colorSwatchInspectorThemeValues;
   if (type === "ColorWheel") return colorWheelInspectorThemeValues;
   if (type === "ColorPicker") return colorPickerInspectorThemeValues;
+  if (type === "Calendar") return calendarInspectorThemeValues;
   if (type === "DropZone") return dropZoneInspectorThemeValues;
   if (type === "Tooltip") return tooltipInspectorThemeValues;
   if (type === "Dialog") return dialogInspectorThemeValues;

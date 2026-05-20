@@ -29,6 +29,7 @@ export interface PrimitiveSkiaDescriptor {
   kind:
     | "breadcrumb"
     | "button"
+    | "calendar"
     | "checkbox"
     | "checkbox-group"
     | "color-area"

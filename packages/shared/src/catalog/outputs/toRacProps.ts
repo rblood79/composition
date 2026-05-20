@@ -124,6 +124,14 @@ export const COLOR_PICKER_VARIANT_VALUES = [
   "expanded",
 ] as const;
 export const COLOR_PICKER_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
+export const CALENDAR_VARIANT_VALUES = ["default", "accent"] as const;
+export const CALENDAR_SIZE_VALUES = ["sm", "md", "lg"] as const;
+export const CALENDAR_PAGE_BEHAVIOR_VALUES = ["visible", "single"] as const;
+export const CALENDAR_SELECTION_ALIGNMENT_VALUES = [
+  "start",
+  "center",
+  "end",
+] as const;
 export const FORM_VARIANT_VALUES = ["default", "outlined"] as const;
 export const FORM_METHOD_VALUES = ["get", "post"] as const;
 export const FORM_ENCTYPE_VALUES = [
@@ -405,6 +413,12 @@ const COLOR_SLIDER_SIZES = COLOR_SWATCH_SIZES;
 const COLOR_WHEEL_SIZES = COLOR_SWATCH_SIZES;
 const COLOR_PICKER_VARIANTS = new Set<string>(COLOR_PICKER_VARIANT_VALUES);
 const COLOR_PICKER_SIZES = COLOR_SWATCH_SIZES;
+const CALENDAR_VARIANTS = new Set<string>(CALENDAR_VARIANT_VALUES);
+const CALENDAR_SIZES = new Set<string>(CALENDAR_SIZE_VALUES);
+const CALENDAR_PAGE_BEHAVIORS = new Set<string>(CALENDAR_PAGE_BEHAVIOR_VALUES);
+const CALENDAR_SELECTION_ALIGNMENTS = new Set<string>(
+  CALENDAR_SELECTION_ALIGNMENT_VALUES,
+);
 const FORM_VARIANTS = new Set<string>(FORM_VARIANT_VALUES);
 const FORM_METHODS = new Set<string>(FORM_METHOD_VALUES);
 const FORM_ENCTYPES = new Set<string>(FORM_ENCTYPE_VALUES);
@@ -1100,6 +1114,58 @@ export interface ColorPickerRacProps extends Record<string, unknown> {
   variant: (typeof COLOR_PICKER_VARIANT_VALUES)[number];
   size: ComponentSizeSubset;
   isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface CalendarCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  label?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  defaultToday?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  defaultFocusedValue?: unknown;
+  minValue?: unknown;
+  maxValue?: unknown;
+  selectionAlignment?: unknown;
+  pageBehavior?: unknown;
+  maxVisibleMonths?: unknown;
+  locale?: unknown;
+  calendarSystem?: unknown;
+  calendar?: unknown;
+  errorMessage?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  autoFocus?: unknown;
+  isLoading?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface CalendarRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  variant: (typeof CALENDAR_VARIANT_VALUES)[number];
+  size: (typeof CALENDAR_SIZE_VALUES)[number];
+  defaultToday: boolean;
+  maxVisibleMonths: number;
+  selectionAlignment: (typeof CALENDAR_SELECTION_ALIGNMENT_VALUES)[number];
+  pageBehavior: (typeof CALENDAR_PAGE_BEHAVIOR_VALUES)[number];
+  value?: string;
+  defaultValue?: string;
+  defaultFocusedValue?: string;
+  minValue?: string;
+  maxValue?: string;
+  locale?: string;
+  calendarSystem?: (typeof DATE_FIELD_CALENDAR_VALUES)[number];
+  errorMessage?: string;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  autoFocus?: boolean;
+  isLoading?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2787,6 +2853,70 @@ export function toColorPickerRacProps(
   };
 }
 
+export function toCalendarRacProps(
+  props: CalendarCanonicalProps,
+): CalendarRacProps {
+  return {
+    "aria-label": readString(props["aria-label"] ?? props.label, "Calendar"),
+    variant: normalizeCalendarVariant(props.variant),
+    size: normalizeCalendarSize(props.size),
+    defaultToday: props.defaultToday !== false,
+    maxVisibleMonths: normalizeCalendarMaxVisibleMonths(props.maxVisibleMonths),
+    selectionAlignment: normalizeCalendarSelectionAlignment(
+      props.selectionAlignment,
+    ),
+    pageBehavior: normalizeCalendarPageBehavior(props.pageBehavior),
+    ...(typeof props.value === "string" && props.value.length > 0
+      ? { value: props.value }
+      : {}),
+    ...(typeof props.defaultValue === "string" && props.defaultValue.length > 0
+      ? { defaultValue: props.defaultValue }
+      : {}),
+    ...(typeof props.defaultFocusedValue === "string" &&
+    props.defaultFocusedValue.length > 0
+      ? { defaultFocusedValue: props.defaultFocusedValue }
+      : {}),
+    ...(typeof props.minValue === "string" && props.minValue.length > 0
+      ? { minValue: props.minValue }
+      : {}),
+    ...(typeof props.maxValue === "string" && props.maxValue.length > 0
+      ? { maxValue: props.maxValue }
+      : {}),
+    ...(typeof props.locale === "string" && props.locale.length > 0
+      ? { locale: props.locale }
+      : {}),
+    ...(normalizeDateFieldCalendar(props.calendarSystem ?? props.calendar)
+      ? {
+          calendarSystem: normalizeDateFieldCalendar(
+            props.calendarSystem ?? props.calendar,
+          ),
+        }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.autoFocus === "boolean"
+      ? { autoFocus: props.autoFocus }
+      : {}),
+    ...(typeof props.isLoading === "boolean"
+      ? { isLoading: props.isLoading }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toFormRacProps(props: FormCanonicalProps): FormRacProps {
   return {
     size: normalizeTextFieldSize(props.size),
@@ -4259,6 +4389,44 @@ function normalizeColorPickerSize(value: unknown): ComponentSizeSubset {
     COLOR_PICKER_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
+}
+
+function normalizeCalendarVariant(
+  value: unknown,
+): (typeof CALENDAR_VARIANT_VALUES)[number] {
+  return typeof value === "string" && CALENDAR_VARIANTS.has(value)
+    ? (value as (typeof CALENDAR_VARIANT_VALUES)[number])
+    : "default";
+}
+
+function normalizeCalendarSize(
+  value: unknown,
+): (typeof CALENDAR_SIZE_VALUES)[number] {
+  return typeof value === "string" && CALENDAR_SIZES.has(value)
+    ? (value as (typeof CALENDAR_SIZE_VALUES)[number])
+    : "md";
+}
+
+function normalizeCalendarPageBehavior(
+  value: unknown,
+): (typeof CALENDAR_PAGE_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && CALENDAR_PAGE_BEHAVIORS.has(value)
+    ? (value as (typeof CALENDAR_PAGE_BEHAVIOR_VALUES)[number])
+    : "visible";
+}
+
+function normalizeCalendarSelectionAlignment(
+  value: unknown,
+): (typeof CALENDAR_SELECTION_ALIGNMENT_VALUES)[number] {
+  return typeof value === "string" && CALENDAR_SELECTION_ALIGNMENTS.has(value)
+    ? (value as (typeof CALENDAR_SELECTION_ALIGNMENT_VALUES)[number])
+    : "center";
+}
+
+function normalizeCalendarMaxVisibleMonths(value: unknown): number {
+  const numeric = readFiniteNumber(value);
+  if (numeric === undefined) return 1;
+  return Math.max(1, Math.min(Math.round(numeric), 3));
 }
 
 function normalizeFormLabelAlign(value: unknown): "start" | "center" | "end" {

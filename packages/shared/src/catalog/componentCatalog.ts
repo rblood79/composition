@@ -1,6 +1,7 @@
 import { breadcrumbPrimitiveBinding } from "./primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
+import { calendarPrimitiveBinding } from "./primitives/calendar";
 import { checkboxGroupPrimitiveBinding } from "./primitives/checkboxGroup";
 import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorAreaPrimitiveBinding } from "./primitives/colorArea";
@@ -230,6 +231,19 @@ export const componentCatalog = [
       category: "forms",
       label: "color field",
       icon: "Palette",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Calendar",
+    family: "date-color",
+    cutover: "catalog",
+    binding: calendarPrimitiveBinding,
+    panel: {
+      category: "dateTime",
+      label: "calendar",
+      icon: "Calendar",
       placeable: true,
     },
   },
