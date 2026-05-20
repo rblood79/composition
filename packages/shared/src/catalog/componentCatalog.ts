@@ -3,6 +3,7 @@ import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
+import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
 import { formPrimitiveBinding } from "./primitives/form";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
@@ -213,6 +214,19 @@ export const componentCatalog = [
       category: "forms",
       label: "form",
       icon: "GroupIcon",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "FileTrigger",
+    family: "fields",
+    cutover: "catalog",
+    binding: fileTriggerPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "file trigger",
+      icon: "Upload",
       placeable: true,
     },
   },

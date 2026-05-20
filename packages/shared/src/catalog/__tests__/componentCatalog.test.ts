@@ -5,6 +5,7 @@ import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
+import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
@@ -254,6 +255,25 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers FileTrigger as an active fields primitive catalog entry with a trigger child template", () => {
+    const entry = getComponentCatalogEntry("FileTrigger");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(fileTriggerPrimitiveBinding);
+    expect(entry.family).toBe("fields");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("FileTrigger");
+    const placement = entry.binding.placement;
+    expect(placement?.kind).toBe("node-with-children");
+    if (placement?.kind !== "node-with-children") return;
+    expect(placement.children.map((child) => child.type)).toEqual(["Button"]);
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("file trigger");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -304,6 +324,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("TimeField");
     expect(activeTypes).toContain("ColorField");
     expect(activeTypes).toContain("Form");
+    expect(activeTypes).toContain("FileTrigger");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

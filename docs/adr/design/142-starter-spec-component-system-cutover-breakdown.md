@@ -377,7 +377,8 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 
 Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar / TextField /
-NumberField / SearchField / DateField / TimeField / ColorField / Form
+NumberField / SearchField / DateField / TimeField / ColorField / Form /
+FileTrigger
 primitive wrapper boundary slices; Button Icon PropContract parity). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
@@ -394,14 +395,15 @@ primitive wrapper boundary slices; Button Icon PropContract parity). `packages/s
 `toDateFieldRacProps()` 를, `packages/shared/src/components/TimeField.tsx` 는
 `toTimeFieldRacProps()` 를, `packages/shared/src/components/ColorField.tsx` 는
 `toColorFieldRacProps()` 를, `packages/shared/src/components/Form.tsx` 는
-`toFormRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
-props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar/Form 은
+`toFormRacProps()` 를, `packages/shared/src/components/FileTrigger.tsx` 는
+`toFileTriggerRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
+props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar/Form/FileTrigger 은
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
 포함한다. Button 은 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 으로
 `iconName` / `iconPosition` / `iconStrokeWidth` 를 노출하고 shared Button wrapper 가
 이를 Icon child 로 렌더한다. `packages/shared/src/components/legacy/README.md` 는
 compatibility fallback 허용 범위와 active Builder authoring import 금지 경계를
-문서화했다. 이 slice 는 placeable fourteen primitive plus Breadcrumb subpart 의 G6
+문서화했다. 이 slice 는 placeable fifteen primitive plus Breadcrumb subpart 의 G6
 boundary 를 고정하지만, 전체 primitive wrapper family 이동과 `index.ts` barrel
 정리는 아직 남아 있다.
 
@@ -453,14 +455,14 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
-ToggleButton button-like + ToggleButtonGroup/Toolbar/Form child-recursive generic
+ToggleButton button-like + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
 Skia slices; Button icon_path parity). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
 `breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `toggle-button` 를 추가하고, generic Skia path 가
 Separator resolved node 를 `line` node 로, Link resolved node 를 underline text node
 로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField/TimeField/ColorField resolved node 를
 label/input/value container/text node 로, ColorField swatch 를 box node 로, ToggleButton resolved node 를 selected/emphasized 상태의
 button-like container/text node 로 렌더한다.
-ToggleButtonGroup/Toolbar/Form 은 dedicated `skiaPrimitive` 없이 generic container +
+ToggleButtonGroup/Toolbar/Form/FileTrigger 은 dedicated `skiaPrimitive` 없이 generic container +
 resolved children 재귀 렌더 경로로 커버한다. Button `iconName` 은 generic Skia
 Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.ts` 는
 `ButtonSpec.render.shapes()`,
@@ -469,11 +471,11 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `TextFieldSpec.render.shapes()`, `NumberFieldSpec.render.shapes()`,
 `SearchFieldSpec.render.shapes()`, `DateFieldSpec.render.shapes()`,
 `TimeFieldSpec.render.shapes()`, `ColorFieldSpec.render.shapes()`,
-`FormSpec.render.shapes()`,
+`FormSpec.render.shapes()`, `FileTriggerSpec.render.shapes()`,
 `ToggleButtonSpec.render.shapes()`,
 `ToggleButtonGroupSpec.render.shapes()`,
 `ToolbarSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/ToggleButton/ToggleButtonGroup/Toolbar 외
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/ToggleButtonGroup/Toolbar 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 ### Phase 6 — Family-gated atomic cutover
@@ -491,16 +493,16 @@ Gate: G4 / G5 / G6 (family 반복), G7 (최종)
 
 ## 5. Family 실행 순서 + cutover 체크리스트
 
-| 순서 | Family             | 대표 컴포넌트                                                                                                      | 난이도   | 비고                                                        |
-| ---- | ------------------ | ------------------------------------------------------------------------------------------------------------------ | -------- | ----------------------------------------------------------- |
-| 1    | primitives/actions | Button, ToggleButton(Group), Link, Separator, Icon, Badge                                                          | LOW      | golden path 파일럿. binding + generic 렌더러 패턴 확립      |
-| 2    | fields             | TextField, NumberField, SearchField, DateField, TimeField, ColorField, Form, Field, FileTrigger                    | LOW-MED  | canonical props 검증                                        |
-| 3    | selection          | Checkbox(Group), Radio(Group), Switch, Slider                                                                      | MED      | state/data-attribute parity. Slider track = `skiaPrimitive` |
-| 4    | collections        | ListBox, GridList, Menu, TagGroup, ComboBox, Select, Tabs                                                          | MED-HIGH | collections 데이터 binding(ADR-132)                         |
-| 5    | Tree·Table         | Tree, Table, TableView                                                                                             | HIGH     | RAC primitive binding + collections 데이터. 수동 우회 금지  |
-| 6    | overlays           | Dialog, Modal, Popover, Tooltip, Toast, DropZone                                                                   | MED      | portal/overlay structural CSS escape hatch 검증             |
-| 7    | date/color         | Calendar, RangeCalendar, DatePicker, DateRangePicker, ColorPicker, ColorArea, ColorWheel, ColorSlider, ColorSwatch | MED-HIGH | arc/wheel = `skiaPrimitive`                                 |
-| 8    | composition-native | Frame, Slot, reusable tools                                                                                        | LOW-MED  | RAC primitive 미존재 — catalog 등록만, binding 없음         |
+| 순서 | Family             | 대표 컴포넌트                                                                                                                               | 난이도   | 비고                                                        |
+| ---- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------- |
+| 1    | primitives/actions | Button, ToggleButton(Group), Link, Separator, Icon, Badge                                                                                   | LOW      | golden path 파일럿. binding + generic 렌더러 패턴 확립      |
+| 2    | fields             | TextField, NumberField, SearchField, DateField, TimeField, ColorField, Form, FileTrigger (`Field` 는 helper/DataField surface 로 별도 분류) | LOW-MED  | canonical props 검증                                        |
+| 3    | selection          | Checkbox(Group), Radio(Group), Switch, Slider                                                                                               | MED      | state/data-attribute parity. Slider track = `skiaPrimitive` |
+| 4    | collections        | ListBox, GridList, Menu, TagGroup, ComboBox, Select, Tabs                                                                                   | MED-HIGH | collections 데이터 binding(ADR-132)                         |
+| 5    | Tree·Table         | Tree, Table, TableView                                                                                                                      | HIGH     | RAC primitive binding + collections 데이터. 수동 우회 금지  |
+| 6    | overlays           | Dialog, Modal, Popover, Tooltip, Toast, DropZone                                                                                            | MED      | portal/overlay structural CSS escape hatch 검증             |
+| 7    | date/color         | Calendar, RangeCalendar, DatePicker, DateRangePicker, ColorPicker, ColorArea, ColorWheel, ColorSlider, ColorSwatch                          | MED-HIGH | arc/wheel = `skiaPrimitive`                                 |
+| 8    | composition-native | Frame, Slot, reusable tools                                                                                                                 | LOW-MED  | RAC primitive 미존재 — catalog 등록만, binding 없음         |
 
 정확한 컴포넌트 → family 배정은 Phase 0 inventory 산출물이 SSOT 다.
 

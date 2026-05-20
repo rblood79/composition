@@ -8,6 +8,7 @@ import {
   ButtonSpec,
   ColorFieldSpec,
   DateFieldSpec,
+  FileTriggerSpec,
   FormSpec,
   LinkSpec,
   NumberFieldSpec,
@@ -424,6 +425,42 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Email", "hello@example.com", "Submit"]),
     );
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved FileTrigger and trigger child through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(FileTriggerSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "file-trigger-1",
+        type: "FileTrigger",
+        props: {
+          acceptedFileTypes: ["image/png", "image/jpeg"],
+          allowsMultiple: true,
+        },
+        children: [
+          {
+            id: "file-trigger-button",
+            type: "Button",
+            props: {
+              children: "Upload",
+              variant: "primary",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["file-trigger-1", { x: 24, y: 32, width: 160, height: 48 }],
+        ["file-trigger-button", { x: 24, y: 32, width: 120, height: 36 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("file-trigger-1");
+    expect(collectText(node)).toContain("Upload");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

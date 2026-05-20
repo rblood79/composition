@@ -114,6 +114,10 @@ export const FORM_TARGET_VALUES = [
   "_top",
 ] as const;
 export const FORM_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
+export const FILE_TRIGGER_DEFAULT_CAMERA_VALUES = [
+  "user",
+  "environment",
+] as const;
 export const DATE_FIELD_CALENDAR_VALUES = [
   "gregory",
   "buddhist",
@@ -210,6 +214,9 @@ const FORM_ENCTYPES = new Set<string>(FORM_ENCTYPE_VALUES);
 const FORM_TARGETS = new Set<string>(FORM_TARGET_VALUES);
 const FORM_VALIDATION_BEHAVIORS = new Set<string>(
   FORM_VALIDATION_BEHAVIOR_VALUES,
+);
+const FILE_TRIGGER_DEFAULT_CAMERAS = new Set<string>(
+  FILE_TRIGGER_DEFAULT_CAMERA_VALUES,
 );
 const DATE_FIELD_CALENDARS = new Set<string>(DATE_FIELD_CALENDAR_VALUES);
 const NUMBER_FIELD_FORMAT_STYLES = new Set<string>(
@@ -661,6 +668,20 @@ export interface FormRacProps extends Record<string, unknown> {
   isDisabled?: boolean;
   className?: string;
   style?: Record<string, unknown>;
+}
+
+export interface FileTriggerCanonicalProps extends Record<string, unknown> {
+  acceptedFileTypes?: unknown;
+  allowsMultiple?: unknown;
+  acceptDirectory?: unknown;
+  defaultCamera?: unknown;
+}
+
+export interface FileTriggerRacProps extends Record<string, unknown> {
+  acceptedFileTypes?: string[];
+  allowsMultiple?: boolean;
+  acceptDirectory?: boolean;
+  defaultCamera?: (typeof FILE_TRIGGER_DEFAULT_CAMERA_VALUES)[number];
 }
 
 export interface LinkCanonicalProps extends Record<string, unknown> {
@@ -1261,6 +1282,26 @@ export function toFormRacProps(props: FormCanonicalProps): FormRacProps {
   };
 }
 
+export function toFileTriggerRacProps(
+  props: FileTriggerCanonicalProps,
+): FileTriggerRacProps {
+  const acceptedFileTypes = normalizeAcceptedFileTypes(props.acceptedFileTypes);
+  return {
+    ...(acceptedFileTypes.length > 0 ? { acceptedFileTypes } : {}),
+    ...(typeof props.allowsMultiple === "boolean"
+      ? { allowsMultiple: props.allowsMultiple }
+      : {}),
+    ...(typeof props.acceptDirectory === "boolean"
+      ? { acceptDirectory: props.acceptDirectory }
+      : {}),
+    ...(normalizeFileTriggerDefaultCamera(props.defaultCamera)
+      ? {
+          defaultCamera: normalizeFileTriggerDefaultCamera(props.defaultCamera),
+        }
+      : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -1591,6 +1632,19 @@ function normalizeFormValidationBehavior(
   return typeof value === "string" && FORM_VALIDATION_BEHAVIORS.has(value)
     ? (value as (typeof FORM_VALIDATION_BEHAVIOR_VALUES)[number])
     : "native";
+}
+
+function normalizeAcceptedFileTypes(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function normalizeFileTriggerDefaultCamera(
+  value: unknown,
+): (typeof FILE_TRIGGER_DEFAULT_CAMERA_VALUES)[number] | undefined {
+  return typeof value === "string" && FILE_TRIGGER_DEFAULT_CAMERAS.has(value)
+    ? (value as (typeof FILE_TRIGGER_DEFAULT_CAMERA_VALUES)[number])
+    : undefined;
 }
 
 function normalizeNumberFieldFormatOptions(

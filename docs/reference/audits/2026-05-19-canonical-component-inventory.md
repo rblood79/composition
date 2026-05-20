@@ -294,3 +294,11 @@ TextField/TextField/Button child template / Preview primitive branch / generic S
 container+children fixture 를 추가했다. Form 은 dedicated `skiaPrimitive` 없이
 generic container 재귀 경로로 고정했고 `FormSpec.render.shapes()` 를 호출하지
 않는다. fields family 전체 완료 판정은 아니다.
+FileTrigger primitive pilot 은 `fields` family 의 여덟 번째 active slice 로
+`toFileTriggerRacProps()` / `fileTriggerPrimitiveBinding` / active catalog entry /
+FileTrigger placement Button child template / Preview primitive branch / generic Skia
+container+trigger-child fixture 를 추가했다. FileTrigger 는 dedicated
+`skiaPrimitive` 없이 generic container 재귀 경로로 고정했고
+`FileTriggerSpec.render.shapes()` 를 호출하지 않는다. `Field` 는 독립 RAC leaf
+primitive 가 아니라 Label/Text/Input/FieldError helper 및 DataField surface 이므로
+active primitive 승격 대상에서 제외했다.

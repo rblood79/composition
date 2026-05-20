@@ -17,6 +17,7 @@ const {
   legacyBreadcrumbsRenderer,
   legacyColorFieldRenderer,
   legacyDateFieldRenderer,
+  legacyFileTriggerRenderer,
   legacyFormRenderer,
   legacyLinkRenderer,
   legacyNumberFieldRenderer,
@@ -42,6 +43,9 @@ const {
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
+  )),
+  legacyFileTriggerRenderer: vi.fn(() => (
+    <div data-legacy-renderer="FileTrigger">legacy</div>
   )),
   legacyFormRenderer: vi.fn(() => (
     <form data-legacy-renderer="Form">legacy</form>
@@ -80,6 +84,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Breadcrumbs: legacyBreadcrumbsRenderer,
     ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
+    FileTrigger: legacyFileTriggerRenderer,
     Form: legacyFormRenderer,
     Link: legacyLinkRenderer,
     NumberField: legacyNumberFieldRenderer,
@@ -114,6 +119,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyBreadcrumbsRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
+    legacyFileTriggerRenderer.mockClear();
     legacyFormRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
@@ -605,5 +611,38 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(screen.getByRole("textbox", { name: /Email/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Submit" })).toBeTruthy();
     expect(legacyFormRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders FileTrigger and trigger child through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "file-trigger-1",
+      type: "FileTrigger",
+      props: {
+        acceptedFileTypes: ["image/png", "image/jpeg"],
+        allowsMultiple: true,
+        acceptDirectory: false,
+        defaultCamera: "environment",
+      },
+      children: [
+        {
+          id: "file-trigger-button",
+          type: "Button",
+          props: {
+            children: "Upload",
+            variant: "primary",
+          },
+        },
+      ],
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy();
+    expect(
+      container.querySelector("[data-canonical-id='file-trigger-1']"),
+    ).toBeTruthy();
+    expect(legacyFileTriggerRenderer).not.toHaveBeenCalled();
   });
 });

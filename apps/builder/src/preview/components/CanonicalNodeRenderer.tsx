@@ -26,6 +26,7 @@ import {
   type ButtonRacProps,
   type ColorFieldRacProps,
   type DateFieldRacProps,
+  type FileTriggerRacProps,
   type FormRacProps,
   type LinkRacProps,
   type NumberFieldRacProps,
@@ -43,6 +44,7 @@ import {
   Button,
   ColorField,
   DateField,
+  FileTrigger,
   Form,
   Link,
   NumberField,
@@ -381,6 +383,26 @@ function renderPrimitiveNode({
       <Form key={node.id} {...formProps} {...markerProps}>
         {renderedChildren}
       </Form>
+    );
+  }
+
+  if (adaptedEl.type === "FileTrigger") {
+    const fileTriggerProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as FileTriggerRacProps;
+    const renderedChildren = node.children?.map((child) => (
+      <CanonicalNodeRenderer
+        key={child.id}
+        node={child}
+        renderContext={renderContext}
+        parentPath={parentPath}
+      />
+    ));
+
+    return (
+      <FileTrigger key={node.id} {...fileTriggerProps} {...markerProps}>
+        {renderedChildren}
+      </FileTrigger>
     );
   }
 

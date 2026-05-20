@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form generic Skia pilot 완료; 다음 진입점 fields 잔여 Field/FileTrigger 분류 + Phase 5 CSS/Skia generic 정합)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger generic Skia pilot 완료; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 Phase 5 CSS/Skia generic 정합 + Phase 6 family gate)
 
 ## Context
 
@@ -394,6 +394,21 @@ Skia path 는 dedicated `skiaPrimitive` 없이 Form container 와 resolved child
 렌더하고 `FormSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 이는
 `fields` family 의 일곱 번째 active primitive pilot 이며 family 전체 완료 판정은
 아니다.
+
+2026-05-20 추가 판정: FileTrigger primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/fileTrigger.ts` 와
+`toFileTriggerRacProps()` 가 FileTrigger canonical props 를 RAC FileTrigger props 로
+정규화한다. `componentCatalog` 는 FileTrigger 를 `cutover:"catalog"` active fields
+primitive 로 등록하고, placement 는 Button trigger 자식을 함께 만든다.
+`packages/shared/src/components/FileTrigger.tsx` 는 shared wrapper surface 에서 이
+projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 FileTrigger resolved node
+를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더하며 trigger child 를
+같은 resolved-tree 경로로 재귀 렌더한다. generic Skia path 는 dedicated
+`skiaPrimitive` 없이 FileTrigger container 와 Button child 를 렌더하고
+`FileTriggerSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 이는
+`fields` family 의 여덟 번째 active primitive pilot 이다. `Field` 는
+`react-aria-components` leaf primitive 가 아니라 Label/Text/Input/FieldError helper
+및 DataField surface 이므로 active primitive 로 승격하지 않는다.
 
 ## Consequences
 

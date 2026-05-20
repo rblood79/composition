@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — FileTrigger primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **FileTrigger active primitive binding 추가**:
+  - `componentCatalog` 에 `FileTrigger` 를 `cutover:"catalog"` active fields primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toFileTriggerRacProps()` 와 `fileTriggerPrimitiveBinding` 을 추가했다.
+  - FileTrigger placement 는 `PrimitiveBinding.placement` child template 으로 Button trigger 자식을 함께 만든다.
+- **FileTrigger shared wrapper / Preview / Skia generic 경로 연결**:
+  - `FileTrigger.tsx` 가 catalog projection 을 소비하도록 전환했다.
+  - `CanonicalNodeRenderer` 가 FileTrigger resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더하고 trigger child 를 같은 resolved-tree 경로로 재귀 렌더한다.
+  - generic Skia path 가 FileTrigger container 와 Button child 를 렌더하고 `FileTriggerSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `fields` family 의 여덟 번째 active primitive pilot 이다. `Field` 는 RAC leaf primitive 가 아니라 helper/DataField surface 로 분류해 active primitive 승격 대상에서 제외했다.
+
 ## [ADR-142 Phase 3/5/6 — Form primitive catalog pilot] - 2026-05-20
 
 ### Architecture

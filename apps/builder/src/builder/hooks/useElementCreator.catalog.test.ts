@@ -181,6 +181,26 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog FileTrigger placement with a trigger child template", () => {
+    const creation = resolveCatalogElementCreation("FileTrigger");
+
+    expect(creation).toMatchObject({
+      elementType: "FileTrigger",
+      props: {
+        acceptedFileTypes: ["image/*"],
+        allowsMultiple: false,
+        acceptDirectory: false,
+      },
+    });
+    expect(creation?.children?.map((child) => child.elementType)).toEqual([
+      "Button",
+    ]);
+    expect(creation?.children?.[0]?.props).toMatchObject({
+      children: "Upload",
+      type: "button",
+    });
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

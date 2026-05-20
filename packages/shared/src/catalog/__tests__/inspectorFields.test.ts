@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
+import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
@@ -13,6 +14,7 @@ import {
   toButtonRacProps,
   toColorFieldRacProps,
   toDateFieldRacProps,
+  toFileTriggerRacProps,
   toFormRacProps,
   toNumberFieldRacProps,
   toSearchFieldRacProps,
@@ -499,6 +501,39 @@ describe("ADR-142 inspector field contracts", () => {
       variant: "outlined",
       autoFocus: true,
       restoreFocus: true,
+    });
+  });
+
+  it("groups FileTrigger PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "FileTrigger",
+      contracts: fileTriggerPrimitiveBinding.props.accepts,
+    });
+
+    expect(sections.map((section) => section.title)).toEqual(["File", "State"]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "acceptedFileTypes",
+      "defaultCamera",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "allowsMultiple",
+      "acceptDirectory",
+    ]);
+  });
+
+  it("projects FileTrigger canonical props through the catalog boundary", () => {
+    expect(
+      toFileTriggerRacProps({
+        acceptedFileTypes: ["image/png", "image/jpeg", 12],
+        allowsMultiple: true,
+        acceptDirectory: true,
+        defaultCamera: "environment",
+      }),
+    ).toEqual({
+      acceptedFileTypes: ["image/png", "image/jpeg"],
+      allowsMultiple: true,
+      acceptDirectory: true,
+      defaultCamera: "environment",
     });
   });
 });
