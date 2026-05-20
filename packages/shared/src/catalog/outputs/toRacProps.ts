@@ -168,6 +168,9 @@ export const TOOLTIP_PLACEMENT_VALUES = [
 ] as const;
 export const DIALOG_SIZE_VALUES = BUTTON_SIZE_VALUES;
 export const DIALOG_ROLE_VALUES = ["dialog", "alertdialog"] as const;
+export const POPOVER_VARIANT_VALUES = ["accent", "neutral", "surface"] as const;
+export const POPOVER_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const POPOVER_PLACEMENT_VALUES = TOOLTIP_PLACEMENT_VALUES;
 export const LINK_VARIANT_VALUES = [
   "primary",
   "secondary",
@@ -371,6 +374,9 @@ const TOOLTIP_SIZES = SEPARATOR_SIZES;
 const TOOLTIP_PLACEMENTS = new Set<string>(TOOLTIP_PLACEMENT_VALUES);
 const DIALOG_SIZES = BUTTON_SIZES;
 const DIALOG_ROLES = new Set<string>(DIALOG_ROLE_VALUES);
+const POPOVER_VARIANTS = new Set<string>(POPOVER_VARIANT_VALUES);
+const POPOVER_SIZES = SEPARATOR_SIZES;
+const POPOVER_PLACEMENTS = TOOLTIP_PLACEMENTS;
 const LINK_VARIANTS = new Set<LinkVariant>(LINK_VARIANT_VALUES);
 const LINK_SIZES = new Set<ComponentSize>(LINK_SIZE_VALUES);
 const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
@@ -1014,6 +1020,46 @@ export interface DialogRacProps extends Record<string, unknown> {
   size: ComponentSize;
   role: (typeof DIALOG_ROLE_VALUES)[number];
   isDismissable: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface PopoverCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  text?: unknown;
+  label?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  placement?: unknown;
+  offset?: unknown;
+  containerPadding?: unknown;
+  crossOffset?: unknown;
+  shouldFlip?: unknown;
+  showArrow?: unknown;
+  containFocus?: unknown;
+  autoFocus?: unknown;
+  restoreFocus?: unknown;
+  isOpen?: unknown;
+  defaultOpen?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface PopoverRacProps extends Record<string, unknown> {
+  children: string;
+  variant: (typeof POPOVER_VARIANT_VALUES)[number];
+  size: ComponentSizeSubset;
+  placement: (typeof POPOVER_PLACEMENT_VALUES)[number];
+  offset: number;
+  containerPadding: number;
+  crossOffset: number;
+  shouldFlip: boolean;
+  showArrow: boolean;
+  containFocus: boolean;
+  autoFocus: boolean;
+  restoreFocus: boolean;
+  isOpen?: boolean;
+  defaultOpen?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2476,6 +2522,33 @@ export function toDialogRacProps(props: DialogCanonicalProps): DialogRacProps {
   };
 }
 
+export function toPopoverRacProps(
+  props: PopoverCanonicalProps,
+): PopoverRacProps {
+  return {
+    children: readPopoverText(props),
+    variant: normalizePopoverVariant(props.variant),
+    size: normalizePopoverSize(props.size),
+    placement: normalizePopoverPlacement(props.placement),
+    offset: readFiniteNumber(props.offset) ?? 8,
+    containerPadding: readFiniteNumber(props.containerPadding) ?? 12,
+    crossOffset: readFiniteNumber(props.crossOffset) ?? 0,
+    shouldFlip: props.shouldFlip !== false,
+    showArrow: props.showArrow !== false,
+    containFocus: props.containFocus === true,
+    autoFocus: props.autoFocus !== false,
+    restoreFocus: props.restoreFocus !== false,
+    ...(typeof props.isOpen === "boolean" ? { isOpen: props.isOpen } : {}),
+    ...(typeof props.defaultOpen === "boolean"
+      ? { defaultOpen: props.defaultOpen }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -3350,6 +3423,11 @@ function readDialogText(props: DialogCanonicalProps): string {
   return readString(value, "Dialog content");
 }
 
+function readPopoverText(props: PopoverCanonicalProps): string {
+  const value = props.children ?? props.text ?? props.label;
+  return readString(value, "Popover content");
+}
+
 function readRadioText(props: RadioCanonicalProps): string {
   const value = props.children ?? props.label ?? props.text;
   if (typeof value === "string") return value;
@@ -3501,6 +3579,29 @@ function normalizeDialogRole(
   return typeof value === "string" && DIALOG_ROLES.has(value)
     ? (value as (typeof DIALOG_ROLE_VALUES)[number])
     : "dialog";
+}
+
+function normalizePopoverVariant(
+  value: unknown,
+): (typeof POPOVER_VARIANT_VALUES)[number] {
+  return typeof value === "string" && POPOVER_VARIANTS.has(value)
+    ? (value as (typeof POPOVER_VARIANT_VALUES)[number])
+    : "surface";
+}
+
+function normalizePopoverSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    POPOVER_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizePopoverPlacement(
+  value: unknown,
+): (typeof POPOVER_PLACEMENT_VALUES)[number] {
+  return typeof value === "string" && POPOVER_PLACEMENTS.has(value)
+    ? (value as (typeof POPOVER_PLACEMENT_VALUES)[number])
+    : "bottom";
 }
 
 function normalizeTextFieldLabelPosition(value: unknown): "top" | "side" {

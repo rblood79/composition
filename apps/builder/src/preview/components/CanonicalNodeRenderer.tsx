@@ -38,6 +38,7 @@ import {
   type ListBoxRacProps,
   type MenuRacProps,
   type NumberFieldRacProps,
+  type PopoverRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
   type SearchFieldRacProps,
@@ -74,6 +75,7 @@ import {
   ListBox,
   MenuButton,
   NumberField,
+  Popover,
   Radio,
   RadioGroup,
   SearchField,
@@ -630,6 +632,14 @@ function renderPrimitiveNode({
     ) as DialogRacProps;
 
     return <Dialog key={node.id} {...dialogProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Popover") {
+    const popoverProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as PopoverRacProps;
+
+    return <Popover key={node.id} {...popoverProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

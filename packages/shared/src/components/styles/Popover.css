@@ -130,6 +130,17 @@
     position: static;
   }
 
+  .react-aria-PopoverAnchor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   /* ========== Reduced Motion Support ========== */
   @media (prefers-reduced-motion: reduce) {
     .react-aria-Popover {

@@ -470,11 +470,11 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
-ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + CheckboxGroup label/children + Slider label/output/track/fill/thumb + DropZone dashed container + Tooltip bubble/text/arrow + Dialog panel/text + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
+ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + CheckboxGroup label/children + Slider label/output/track/fill/thumb + DropZone dashed container + Tooltip bubble/text/arrow + Dialog panel/text + Popover panel/text/arrow + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
 Skia slices + Tabs tab-list/panel + Tree row/disclosure + Table/TableView
 header/row/cell generic Skia slices; Button icon_path parity).
 `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
-`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `drop-zone` / `tooltip` / `dialog` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` / `list-box` / `grid-list` / `tag-group` / `menu` / `combo-box` / `select` / `tabs` / `tree` / `table` 를 추가하고, generic Skia path 가
+`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `drop-zone` / `tooltip` / `dialog` / `popover` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` / `list-box` / `grid-list` / `tag-group` / `menu` / `combo-box` / `select` / `tabs` / `tree` / `table` 를 추가하고, generic Skia path 가
 Separator resolved node 를 `line` node 로, Link resolved node 를 underline text node
 로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField/TimeField/ColorField resolved node 를
 label/input/value container/text node 로, ColorField swatch 를 box node 로, ToggleButton resolved node 를 selected/emphasized 상태의
@@ -485,6 +485,7 @@ Slider resolved node 를 label/output/track/fill/thumb container+text/box node �
 DropZone resolved node 를 dashed container + upload icon + label/description node 로,
 Tooltip resolved node 를 bubble + text + optional arrow node 로,
 Dialog resolved node 를 panel + text node 로,
+Popover resolved node 를 panel + text + optional arrow node 로,
 Tree resolved node 를 hierarchical row/disclosure/text node 로,
 Table/TableView resolved node 를 header/row/cell container+text node 로 렌더한다.
 ToggleButtonGroup/Toolbar/Form/FileTrigger 은 dedicated `skiaPrimitive` 없이 generic container +
@@ -500,6 +501,7 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `DropZoneSpec.render.shapes()`,
 `TooltipSpec.render.shapes()`,
 `DialogSpec.render.shapes()`,
+`PopoverSpec.render.shapes()`,
 `ToggleButtonSpec.render.shapes()`,
 `SwitchSpec.render.shapes()`,
 `CheckboxSpec.render.shapes()`,
@@ -509,7 +511,7 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `ToolbarSpec.render.shapes()`, `TabsSpec.render.shapes()`,
 `TreeSpec.render.shapes()`, `TableSpec.render.shapes()`,
 `TableViewSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/DropZone/Tooltip/Dialog/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView 외
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
@@ -633,7 +635,13 @@ surface 에서는 controlled TooltipTrigger anchor 로 실제 tooltip DOM 을 �
 2026-05-20 추가 slice: Dialog overlays primitive 를 `cutover:"catalog"` 로 등록했다.
 `dialogPrimitiveBinding` / `toDialogRacProps()` / shared `Dialog.tsx` projection /
 Preview Dialog primitive branch / generic Skia panel+text fixture 를 추가했고,
-`DialogSpec.render.shapes()` 미호출을 검증한다. Modal/Popover/Toast overlays slice 는
+`DialogSpec.render.shapes()` 미호출을 검증한다.
+2026-05-20 추가 slice: Popover overlays primitive 를 `cutover:"catalog"` 로 등록했다.
+`popoverPrimitiveBinding` / `toPopoverRacProps()` / shared `Popover.tsx` projection /
+Preview Popover primitive branch / generic Skia panel+text+arrow fixture 를 추가했고,
+`PopoverSpec.render.shapes()` 미호출을 검증한다. shared Popover wrapper 는 기존
+DialogTrigger context 를 보존하면서 catalog/Preview 단독 surface 에서는 controlled
+DialogTrigger anchor 로 실제 popover DOM 을 생성한다. Modal/Toast overlays slice 는
 잔여다.
 
 ### Phase 6 — Family-gated atomic cutover

@@ -15,6 +15,7 @@ import { linkPrimitiveBinding } from "./primitives/link";
 import { listBoxPrimitiveBinding } from "./primitives/listBox";
 import { menuPrimitiveBinding } from "./primitives/menu";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
+import { popoverPrimitiveBinding } from "./primitives/popover";
 import { radioGroupPrimitiveBinding } from "./primitives/radioGroup";
 import { radioPrimitiveBinding } from "./primitives/radio";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
@@ -286,6 +287,19 @@ export const componentCatalog = [
     panel: {
       category: "overlays",
       label: "dialog",
+      icon: "AppWindowMac",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Popover",
+    family: "overlays",
+    cutover: "catalog",
+    binding: popoverPrimitiveBinding,
+    panel: {
+      category: "overlays",
+      label: "popover",
       icon: "AppWindowMac",
       placeable: true,
     },

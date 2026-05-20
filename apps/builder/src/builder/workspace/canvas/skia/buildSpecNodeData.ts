@@ -34,6 +34,7 @@ import {
   toListBoxRacProps,
   toMenuRacProps,
   toNumberFieldRacProps,
+  toPopoverRacProps,
   toRadioGroupRacProps,
   toRadioRacProps,
   toSearchFieldRacProps,
@@ -69,6 +70,7 @@ import {
   type MenuItemDescriptor,
   type MenuRacProps,
   type NumberFieldRacProps,
+  type PopoverRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
   type SearchFieldRacProps,
@@ -887,6 +889,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "dialog") {
     return buildGenericDialogNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "popover") {
+    return buildGenericPopoverNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "tooltip") {
     return buildGenericTooltipNode(input.node, layout, input.theme);
@@ -2174,6 +2179,68 @@ function buildGenericDialogNode(
       borderRadius: readNumber(style.borderRadius, size.radius),
     },
     children: [textNode],
+  };
+}
+
+function buildGenericPopoverNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toPopoverRacProps(node.props ?? {}) as PopoverRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericPopoverSize(props.size);
+  const palette = resolveGenericPopoverPalette(props.variant, style, theme);
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: size.paddingX,
+    y: size.paddingY,
+    width: Math.max(layout.width - size.paddingX * 2, 0),
+    height: Math.max(layout.height - size.paddingY * 2, 0),
+    visible: true,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+      whiteSpace: "normal",
+      overflowWrap: "break-word",
+    },
+  };
+  const children: SkiaNodeData[] = [textNode];
+
+  if (props.showArrow) {
+    const arrow = buildGenericTooltipArrowNode(
+      node.id,
+      props.placement,
+      layout,
+      palette.strokeColor,
+    );
+    if (arrow) children.push(arrow);
+  }
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: palette.fillColor,
+      strokeColor: palette.strokeColor,
+      strokeWidth: readNumber(style.borderWidth, 1),
+      borderRadius: readNumber(style.borderRadius, size.radius),
+    },
+    children,
   };
 }
 
@@ -4790,6 +4857,90 @@ function resolveGenericDialogPalette(
   };
 }
 
+function resolveGenericPopoverSize(size: PopoverRacProps["size"]): {
+  paddingX: number;
+  paddingY: number;
+  fontSize: number;
+  lineHeight: number;
+  radius: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        paddingX: 12,
+        paddingY: 12,
+        fontSize: 14,
+        lineHeight: 20,
+        radius: 8,
+      };
+    case "lg":
+      return {
+        paddingX: 20,
+        paddingY: 20,
+        fontSize: 18,
+        lineHeight: 28,
+        radius: 16,
+      };
+    case "md":
+    default:
+      return {
+        paddingX: 16,
+        paddingY: 16,
+        fontSize: 16,
+        lineHeight: 24,
+        radius: 12,
+      };
+  }
+}
+
+function resolveGenericPopoverPalette(
+  variant: PopoverRacProps["variant"],
+  style: Record<string, unknown>,
+  theme: "light" | "dark",
+): {
+  fillColor: Float32Array;
+  strokeColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const isDark = theme === "dark";
+  const background =
+    typeof style.backgroundColor === "string"
+      ? style.backgroundColor
+      : variant === "surface"
+        ? isDark
+          ? "#1f2937"
+          : "#f8fafc"
+        : isDark
+          ? "#111827"
+          : "#ffffff";
+  const border =
+    typeof style.borderColor === "string"
+      ? style.borderColor
+      : (() => {
+          switch (variant) {
+            case "accent":
+              return "#2563eb";
+            case "neutral":
+              return isDark ? "#6b7280" : "#94a3b8";
+            case "surface":
+            default:
+              return isDark ? "#374151" : "#e2e8f0";
+          }
+        })();
+  const text =
+    typeof style.color === "string"
+      ? style.color
+      : isDark
+        ? "#f9fafb"
+        : "#111827";
+
+  return {
+    fillColor: colorIntToFloat32(cssColorToHex(background), 1),
+    strokeColor: colorIntToFloat32(cssColorToHex(border), 1),
+    textColor: colorIntToFloat32(cssColorToHex(text), 1),
+  };
+}
+
 function resolveGenericTooltipSize(size: TooltipRacProps["size"]): {
   paddingX: number;
   paddingY: number;
@@ -4866,7 +5017,7 @@ function resolveGenericTooltipPalette(
 
 function buildGenericTooltipArrowNode(
   elementId: string,
-  placement: TooltipRacProps["placement"],
+  placement: TooltipRacProps["placement"] | PopoverRacProps["placement"],
   layout: GenericResolvedSkiaLayout,
   strokeColor: Float32Array,
 ): SkiaNodeData | null {

@@ -29,6 +29,7 @@ const {
   legacyListBoxRenderer,
   legacyMenuRenderer,
   legacyNumberFieldRenderer,
+  legacyPopoverRenderer,
   legacyRadioRenderer,
   legacyRadioGroupRenderer,
   legacySearchFieldRenderer,
@@ -96,6 +97,9 @@ const {
   )),
   legacyNumberFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="NumberField">legacy</div>
+  )),
+  legacyPopoverRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Popover">legacy</div>
   )),
   legacyRadioRenderer: vi.fn(() => (
     <label data-legacy-renderer="Radio">legacy</label>
@@ -172,6 +176,7 @@ vi.mock("@composition/shared/renderers", () => ({
     ListBox: legacyListBoxRenderer,
     Menu: legacyMenuRenderer,
     NumberField: legacyNumberFieldRenderer,
+    Popover: legacyPopoverRenderer,
     Radio: legacyRadioRenderer,
     RadioGroup: legacyRadioGroupRenderer,
     SearchField: legacySearchFieldRenderer,
@@ -226,6 +231,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyListBoxRenderer.mockClear();
     legacyMenuRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
+    legacyPopoverRenderer.mockClear();
     legacyRadioRenderer.mockClear();
     legacyRadioGroupRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
@@ -839,6 +845,36 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       dialog,
     );
     expect(legacyDialogRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Popover through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "popover-1",
+      type: "Popover",
+      props: {
+        children: "Popover body",
+        variant: "accent",
+        size: "lg",
+        placement: "bottom",
+        showArrow: true,
+        isOpen: true,
+      },
+    };
+
+    render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const popover = document.body.querySelector(
+      "[data-canonical-id='popover-1']",
+    );
+    expect(dialog.textContent).toContain("Popover body");
+    expect(popover?.className).toContain("react-aria-Popover");
+    expect(popover?.getAttribute("data-size")).toBe("lg");
+    expect(popover?.getAttribute("data-variant")).toBe("accent");
+    expect(popover?.getAttribute("data-placement")).toBe("bottom");
+    expect(legacyPopoverRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Switch through PrimitiveBinding before rendererMap fallback", () => {

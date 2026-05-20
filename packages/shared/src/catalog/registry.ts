@@ -13,6 +13,7 @@ import { linkInspectorThemeValues } from "./primitives/link";
 import { listBoxInspectorThemeValues } from "./primitives/listBox";
 import { menuInspectorThemeValues } from "./primitives/menu";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
+import { popoverInspectorThemeValues } from "./primitives/popover";
 import { radioGroupInspectorThemeValues } from "./primitives/radioGroup";
 import { radioInspectorThemeValues } from "./primitives/radio";
 import { searchFieldInspectorThemeValues } from "./primitives/searchField";
@@ -76,6 +77,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "DropZone") return dropZoneInspectorThemeValues;
   if (type === "Tooltip") return tooltipInspectorThemeValues;
   if (type === "Dialog") return dialogInspectorThemeValues;
+  if (type === "Popover") return popoverInspectorThemeValues;
   if (type === "Form") return formInspectorThemeValues;
   return {};
 }

@@ -250,6 +250,25 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Popover placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Popover");
+
+    expect(creation).toMatchObject({
+      elementType: "Popover",
+      props: {
+        children: "Popover content",
+        variant: "surface",
+        size: "md",
+        placement: "bottom",
+        offset: 8,
+        shouldFlip: true,
+        showArrow: true,
+        isOpen: true,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog Switch placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Switch");
 

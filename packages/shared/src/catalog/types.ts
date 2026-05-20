@@ -41,6 +41,7 @@ export interface PrimitiveSkiaDescriptor {
     | "list-box"
     | "menu"
     | "number-field"
+    | "popover"
     | "radio"
     | "radio-group"
     | "search-field"

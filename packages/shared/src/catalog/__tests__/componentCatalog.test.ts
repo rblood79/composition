@@ -15,6 +15,7 @@ import { gridListPrimitiveBinding } from "../primitives/gridList";
 import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { menuPrimitiveBinding } from "../primitives/menu";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
+import { popoverPrimitiveBinding } from "../primitives/popover";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { selectPrimitiveBinding } from "../primitives/select";
 import { sliderPrimitiveBinding } from "../primitives/slider";
@@ -352,9 +353,32 @@ describe("ADR-142 component catalog", () => {
     });
   });
 
+  it("registers Popover as an active overlays primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Popover");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(popoverPrimitiveBinding);
+    expect(entry.family).toBe("overlays");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Popover");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("popover");
+    expect(entry.panel.category).toBe("overlays");
+    expect(entry.panel.label).toBe("popover");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      children: "Popover content",
+      variant: "surface",
+      placement: "bottom",
+      size: "md",
+      showArrow: true,
+      isOpen: true,
+    });
+  });
+
   it("keeps unfinished overlays outside the active catalog", () => {
     expect(getComponentCatalogEntry("Modal")).toBeUndefined();
-    expect(getComponentCatalogEntry("Popover")).toBeUndefined();
     expect(getComponentCatalogEntry("Toast")).toBeUndefined();
   });
 
@@ -735,6 +759,8 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("FileTrigger");
     expect(activeTypes).toContain("DropZone");
     expect(activeTypes).toContain("Tooltip");
+    expect(activeTypes).toContain("Dialog");
+    expect(activeTypes).toContain("Popover");
     expect(activeTypes).toContain("Switch");
     expect(activeTypes).toContain("Checkbox");
     expect(activeTypes).toContain("CheckboxGroup");

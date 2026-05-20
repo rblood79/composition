@@ -20,6 +20,7 @@ import {
   ListBoxSpec,
   MenuSpec,
   NumberFieldSpec,
+  PopoverSpec,
   RadioGroupSpec,
   RadioSpec,
   SearchFieldSpec,
@@ -1145,6 +1146,34 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("dialog-1");
     expect(collectText(node)).toContain("Dialog body");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Popover through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(PopoverSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "popover-1",
+        type: "Popover",
+        props: {
+          children: "Popover body",
+          variant: "accent",
+          size: "lg",
+          placement: "bottom",
+          showArrow: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["popover-1", { x: 24, y: 32, width: 280, height: 140 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("popover-1");
+    expect(collectText(node)).toContain("Popover body");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });
