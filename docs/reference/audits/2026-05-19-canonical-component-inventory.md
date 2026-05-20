@@ -442,3 +442,9 @@ fixture 로 고정했다. shared Toast wrapper 는 기존 `ToastProvider`/`useTo
 단독 surface 에서는 standalone queue 로 DOM toast 를 생성한다. overlays family pilot
 은 DropZone/Tooltip/Dialog/Popover/Modal/Toast 까지 완료했으며, 다음 family
 entrypoint 는 date/color 다.
+ColorSwatch date/color primitive pilot 은 `toColorSwatchRacProps()` /
+`colorSwatchPrimitiveBinding` / active catalog entry / shared `ColorSwatch.tsx`
+projection / Preview ColorSwatch primitive branch / generic Skia color fill fixture 를
+추가했다. ColorSwatch 는 `ColorSwatchSpec.render.shapes()` 를 호출하지 않는 generic
+Skia fixture 로 고정했다. date/color family 는 ColorSwatch 로 착수했으며,
+ColorArea/ColorSlider/ColorWheel 의 gradient/arc draw 는 후속 slice 로 남긴다.

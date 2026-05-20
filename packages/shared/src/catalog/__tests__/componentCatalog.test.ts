@@ -5,6 +5,7 @@ import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
+import { colorSwatchPrimitiveBinding } from "../primitives/colorSwatch";
 import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { dialogPrimitiveBinding } from "../primitives/dialog";
@@ -246,6 +247,30 @@ describe("ADR-142 component catalog", () => {
     expect(entry.binding.skiaPrimitive?.kind).toBe("color-field");
     expect(entry.panel.category).toBe("forms");
     expect(entry.panel.placeable).toBe(true);
+  });
+
+  it("registers ColorSwatch as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("ColorSwatch");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(colorSwatchPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("ColorSwatch");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("color-swatch");
+    expect(entry.panel.category).toBe("color");
+    expect(entry.panel.label).toBe("color swatch");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      color: "#3B82F6",
+      variant: "default",
+      size: "md",
+      rounding: "default",
+      isSelected: false,
+      isDisabled: false,
+    });
   });
 
   it("registers Form as an active fields primitive catalog entry with child templates", () => {

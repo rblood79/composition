@@ -657,6 +657,12 @@ icon+title+description fixture 를 추가했고, `ToastSpec.render.shapes()` 미
 검증한다. shared Toast wrapper 는 기존 `ToastProvider`/`useToast` API 를 보존하면서
 내부 표시 surface 를 RAC ToastRegion/Toast 로 전환하고, catalog/Preview 단독
 surface 에서는 standalone queue 로 실제 toast DOM 을 생성한다.
+2026-05-20 추가 slice: ColorSwatch date/color primitive 를 `cutover:"catalog"` 로
+등록했다. `colorSwatchPrimitiveBinding` / `toColorSwatchRacProps()` / shared
+`ColorSwatch.tsx` projection / Preview ColorSwatch primitive branch / generic Skia
+color fill fixture 를 추가했고, `ColorSwatchSpec.render.shapes()` 미호출을 검증한다.
+ColorSwatch 는 date/color family 의 첫 pilot 이며, gradient/arc 가 필요한
+ColorArea/ColorSlider/ColorWheel 계열은 후속 slice 로 남긴다.
 
 ### Phase 6 — Family-gated atomic cutover
 

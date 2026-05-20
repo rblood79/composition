@@ -7,4 +7,28 @@
     border-radius: var(--radius-md);
     box-shadow: var(--drop-shadow-sm);
   }
+
+  .react-aria-ColorSwatch[data-size="sm"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  .react-aria-ColorSwatch[data-size="lg"] {
+    width: 36px;
+    height: 36px;
+  }
+
+  .react-aria-ColorSwatch[data-rounding="none"] {
+    border-radius: 0;
+  }
+
+  .react-aria-ColorSwatch[data-rounding="full"] {
+    border-radius: 999px;
+  }
+
+  .react-aria-ColorSwatch[data-selected] {
+    box-shadow:
+      0 0 0 2px var(--bg),
+      0 0 0 4px var(--accent);
+  }
 }

@@ -4,6 +4,7 @@ import { buttonPrimitiveBinding } from "./primitives/button";
 import { checkboxGroupPrimitiveBinding } from "./primitives/checkboxGroup";
 import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
+import { colorSwatchPrimitiveBinding } from "./primitives/colorSwatch";
 import { comboBoxPrimitiveBinding } from "./primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { dialogPrimitiveBinding } from "./primitives/dialog";
@@ -224,6 +225,19 @@ export const componentCatalog = [
     panel: {
       category: "forms",
       label: "color field",
+      icon: "Palette",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ColorSwatch",
+    family: "date-color",
+    cutover: "catalog",
+    binding: colorSwatchPrimitiveBinding,
+    panel: {
+      category: "color",
+      label: "color swatch",
       icon: "Palette",
       placeable: true,
     },

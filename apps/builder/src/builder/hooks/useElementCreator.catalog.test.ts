@@ -181,6 +181,23 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog ColorSwatch placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("ColorSwatch");
+
+    expect(creation).toMatchObject({
+      elementType: "ColorSwatch",
+      props: {
+        color: "#3B82F6",
+        variant: "default",
+        size: "md",
+        rounding: "default",
+        isSelected: false,
+        isDisabled: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog FileTrigger placement with a trigger child template", () => {
     const creation = resolveCatalogElementCreation("FileTrigger");
 

@@ -16,6 +16,7 @@ const {
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
   legacyColorFieldRenderer,
+  legacyColorSwatchRenderer,
   legacyCheckboxRenderer,
   legacyCheckboxGroupRenderer,
   legacyComboBoxRenderer,
@@ -62,6 +63,9 @@ const {
   )),
   legacyColorFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="ColorField">legacy</div>
+  )),
+  legacyColorSwatchRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ColorSwatch">legacy</div>
   )),
   legacyCheckboxRenderer: vi.fn(() => (
     <label data-legacy-renderer="Checkbox">legacy</label>
@@ -174,6 +178,7 @@ vi.mock("@composition/shared/renderers", () => ({
     CheckboxGroup: legacyCheckboxGroupRenderer,
     ComboBox: legacyComboBoxRenderer,
     ColorField: legacyColorFieldRenderer,
+    ColorSwatch: legacyColorSwatchRenderer,
     DateField: legacyDateFieldRenderer,
     Dialog: legacyDialogRenderer,
     DropZone: legacyDropZoneRenderer,
@@ -231,6 +236,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyCheckboxGroupRenderer.mockClear();
     legacyComboBoxRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
+    legacyColorSwatchRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyDialogRenderer.mockClear();
     legacyDropZoneRenderer.mockClear();
@@ -694,6 +700,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector(".react-aria-ColorField"),
     );
     expect(legacyColorFieldRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ColorSwatch through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "color-swatch-1",
+      type: "ColorSwatch",
+      props: {
+        color: "#22c55e",
+        size: "lg",
+        variant: "selected",
+        rounding: "full",
+        isSelected: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const swatch = container.querySelector(
+      "[data-canonical-id='color-swatch-1']",
+    );
+    expect(swatch?.className).toContain("react-aria-ColorSwatch");
+    expect(swatch?.getAttribute("data-color")).toBe("#22c55e");
+    expect(swatch?.getAttribute("data-size")).toBe("lg");
+    expect(swatch?.getAttribute("data-variant")).toBe("selected");
+    expect(swatch?.getAttribute("data-rounding")).toBe("full");
+    expect(legacyColorSwatchRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Form and children through PrimitiveBinding before rendererMap fallback", () => {

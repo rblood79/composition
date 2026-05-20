@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — ColorSwatch date-color primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **ColorSwatch active primitive binding 추가**:
+  - `componentCatalog` 에 `ColorSwatch` 를 `cutover:"catalog"` active `date-color` primitive 로 등록했다.
+  - canonical color/variant/size/rounding/selected/disabled props 를 RAC ColorSwatch surface 로 투영하는 `toColorSwatchRacProps()` 와 `colorSwatchPrimitiveBinding` 을 추가했다.
+  - `ColorSwatch.tsx` shared wrapper 가 catalog projection 을 소비하고 `data-color`/`data-size`/`data-rounding` 상태를 active preview 경로에 반영한다.
+- **ColorSwatch Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 ColorSwatch resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 color fill swatch 를 렌더하고 `ColorSwatchSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- date/color family pilot 을 ColorSwatch 로 착수했다. ColorArea/ColorSlider/ColorWheel 계열 gradient/arc draw 는 후속 slice 로 남아 있다.
+
 ## [ADR-142 Phase 3/5/6 — Toast overlays primitive catalog pilot] - 2026-05-20
 
 ### Architecture

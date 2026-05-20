@@ -32,6 +32,7 @@ export interface PrimitiveSkiaDescriptor {
     | "checkbox"
     | "checkbox-group"
     | "color-field"
+    | "color-swatch"
     | "combo-box"
     | "date-field"
     | "dialog"

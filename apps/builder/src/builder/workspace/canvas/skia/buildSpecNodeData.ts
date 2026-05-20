@@ -25,6 +25,7 @@ import {
   toCheckboxGroupRacProps,
   toCheckboxRacProps,
   toColorFieldRacProps,
+  toColorSwatchRacProps,
   toComboBoxRacProps,
   toDateFieldRacProps,
   toDialogRacProps,
@@ -57,6 +58,7 @@ import {
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorFieldRacProps,
+  type ColorSwatchRacProps,
   type ComboBoxItemDescriptor,
   type ComboBoxRacProps,
   type DateFieldRacProps,
@@ -911,6 +913,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "color-field") {
     return buildGenericColorFieldNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "color-swatch") {
+    return buildGenericColorSwatchNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "toggle-button") {
     return buildGenericToggleButtonNode(input.node, layout, input.theme);
@@ -1990,6 +1995,55 @@ function buildGenericColorFieldNode(
       borderRadius: readNumber(style.borderRadius, 0),
     },
     children,
+  };
+}
+
+function buildGenericColorSwatchNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toColorSwatchRacProps(node.props ?? {}) as ColorSwatchRacProps;
+  const style = readGenericStyle(node);
+  const isDark = theme === "dark";
+  const size = Math.min(layout.width, layout.height);
+  const radius =
+    props.rounding === "full"
+      ? size / 2
+      : props.rounding === "none"
+        ? 0
+        : readNumber(style.borderRadius, props.size === "sm" ? 4 : 6);
+  const stroke = props.isSelected
+    ? "#2563eb"
+    : typeof style.borderColor === "string"
+      ? style.borderColor
+      : isDark
+        ? "#4b5563"
+        : "#d1d5db";
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(
+          typeof style.backgroundColor === "string"
+            ? style.backgroundColor
+            : props.color,
+          0x3b82f6,
+        ),
+        props.isDisabled ? 0.38 : 1,
+      ),
+      strokeColor: colorIntToFloat32(cssColorToHex(stroke), 1),
+      strokeWidth: props.isSelected ? 2 : readNumber(style.borderWidth, 1),
+      borderRadius: radius,
+    },
+    children: [],
   };
 }
 

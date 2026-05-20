@@ -9,6 +9,7 @@ import {
   CheckboxGroupSpec,
   CheckboxSpec,
   ColorFieldSpec,
+  ColorSwatchSpec,
   ComboBoxSpec,
   DateFieldSpec,
   DialogSpec,
@@ -1064,6 +1065,34 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("file-trigger-1");
     expect(collectText(node)).toContain("Upload");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ColorSwatch through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ColorSwatchSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "color-swatch-1",
+        type: "ColorSwatch",
+        props: {
+          color: "#22c55e",
+          variant: "selected",
+          size: "lg",
+          rounding: "full",
+          isSelected: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["color-swatch-1", { x: 12, y: 16, width: 36, height: 36 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("color-swatch-1");
+    expect(node?.box).toBeDefined();
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

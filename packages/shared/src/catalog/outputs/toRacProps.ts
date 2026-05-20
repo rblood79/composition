@@ -100,6 +100,13 @@ export const COLOR_FIELD_LABEL_ALIGN_VALUES = [
   "center",
   "end",
 ] as const;
+export const COLOR_SWATCH_VARIANT_VALUES = ["default", "selected"] as const;
+export const COLOR_SWATCH_SIZE_VALUES = ["sm", "md", "lg"] as const;
+export const COLOR_SWATCH_ROUNDING_VALUES = [
+  "default",
+  "none",
+  "full",
+] as const;
 export const FORM_VARIANT_VALUES = ["default", "outlined"] as const;
 export const FORM_METHOD_VALUES = ["get", "post"] as const;
 export const FORM_ENCTYPE_VALUES = [
@@ -366,6 +373,9 @@ const COLOR_FIELD_COLOR_SPACES = new Set<string>(
 const COLOR_FIELD_LABEL_ALIGNS = new Set<string>(
   COLOR_FIELD_LABEL_ALIGN_VALUES,
 );
+const COLOR_SWATCH_VARIANTS = new Set<string>(COLOR_SWATCH_VARIANT_VALUES);
+const COLOR_SWATCH_SIZES = new Set<string>(COLOR_SWATCH_SIZE_VALUES);
+const COLOR_SWATCH_ROUNDINGS = new Set<string>(COLOR_SWATCH_ROUNDING_VALUES);
 const FORM_VARIANTS = new Set<string>(FORM_VARIANT_VALUES);
 const FORM_METHODS = new Set<string>(FORM_METHOD_VALUES);
 const FORM_ENCTYPES = new Set<string>(FORM_ENCTYPE_VALUES);
@@ -931,6 +941,28 @@ export interface ColorFieldRacProps extends Record<string, unknown> {
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isInvalid?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ColorSwatchCanonicalProps extends Record<string, unknown> {
+  color?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  rounding?: unknown;
+  isSelected?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ColorSwatchRacProps extends Record<string, unknown> {
+  color: string;
+  variant: (typeof COLOR_SWATCH_VARIANT_VALUES)[number];
+  size: ComponentSizeSubset;
+  rounding: (typeof COLOR_SWATCH_ROUNDING_VALUES)[number];
+  isSelected: boolean;
+  isDisabled?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2499,6 +2531,25 @@ export function toColorFieldRacProps(
   };
 }
 
+export function toColorSwatchRacProps(
+  props: ColorSwatchCanonicalProps,
+): ColorSwatchRacProps {
+  return {
+    color: readString(props.color, "#3B82F6"),
+    variant: normalizeColorSwatchVariant(props.variant),
+    size: normalizeColorSwatchSize(props.size),
+    rounding: normalizeColorSwatchRounding(props.rounding),
+    isSelected: props.isSelected === true,
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toFormRacProps(props: FormCanonicalProps): FormRacProps {
   return {
     size: normalizeTextFieldSize(props.size),
@@ -3833,6 +3884,29 @@ function normalizeColorFieldLabelAlign(
   return typeof value === "string" && COLOR_FIELD_LABEL_ALIGNS.has(value)
     ? (value as "start" | "center" | "end")
     : undefined;
+}
+
+function normalizeColorSwatchVariant(
+  value: unknown,
+): (typeof COLOR_SWATCH_VARIANT_VALUES)[number] {
+  return typeof value === "string" && COLOR_SWATCH_VARIANTS.has(value)
+    ? (value as (typeof COLOR_SWATCH_VARIANT_VALUES)[number])
+    : "default";
+}
+
+function normalizeColorSwatchSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    COLOR_SWATCH_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeColorSwatchRounding(
+  value: unknown,
+): (typeof COLOR_SWATCH_ROUNDING_VALUES)[number] {
+  return typeof value === "string" && COLOR_SWATCH_ROUNDINGS.has(value)
+    ? (value as (typeof COLOR_SWATCH_ROUNDING_VALUES)[number])
+    : "default";
 }
 
 function normalizeFormLabelAlign(value: unknown): "start" | "center" | "end" {

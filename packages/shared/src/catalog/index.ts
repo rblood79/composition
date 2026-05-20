@@ -7,6 +7,7 @@ export * from "./primitives/button";
 export * from "./primitives/checkbox";
 export * from "./primitives/checkboxGroup";
 export * from "./primitives/colorField";
+export * from "./primitives/colorSwatch";
 export * from "./primitives/comboBox";
 export * from "./primitives/dateField";
 export * from "./primitives/dialog";
