@@ -1,5 +1,6 @@
 import type { PrimitiveBinding } from "./types";
 import { buttonInspectorThemeValues } from "./primitives/button";
+import { linkInspectorThemeValues } from "./primitives/link";
 import type { InspectorThemeLookup } from "./outputs/inspectorFields";
 import { componentCatalog } from "./componentCatalog";
 
@@ -23,6 +24,7 @@ export function getPrimitiveInspectorThemeValues(
   type: string,
 ): InspectorThemeLookup {
   if (type === "Button") return buttonInspectorThemeValues;
+  if (type === "Link") return linkInspectorThemeValues;
   return {};
 }
 

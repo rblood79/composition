@@ -3,7 +3,9 @@ import type {
   ButtonVariant,
   ComponentSizeSubset,
   ComponentSize,
+  LinkVariant,
   SeparatorVariant,
+  StaticColor,
 } from "../../types/componentVariants.types";
 
 export const BUTTON_VARIANT_VALUES = [
@@ -42,6 +44,22 @@ export const SEPARATOR_SIZE_VALUES = [
   "md",
   "lg",
 ] as const satisfies readonly ComponentSizeSubset[];
+export const LINK_VARIANT_VALUES = [
+  "primary",
+  "secondary",
+] as const satisfies readonly LinkVariant[];
+export const LINK_SIZE_VALUES = BUTTON_SIZE_VALUES;
+export const LINK_STATIC_COLOR_VALUES = [
+  "auto",
+  "black",
+  "white",
+] as const satisfies readonly StaticColor[];
+export const LINK_TARGET_VALUES = [
+  "_self",
+  "_blank",
+  "_parent",
+  "_top",
+] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -50,6 +68,10 @@ const BUTTON_TYPES = new Set<string>(BUTTON_TYPE_VALUES);
 const SEPARATOR_ORIENTATIONS = new Set<string>(SEPARATOR_ORIENTATION_VALUES);
 const SEPARATOR_VARIANTS = new Set<SeparatorVariant>(SEPARATOR_VARIANT_VALUES);
 const SEPARATOR_SIZES = new Set<ComponentSizeSubset>(SEPARATOR_SIZE_VALUES);
+const LINK_VARIANTS = new Set<LinkVariant>(LINK_VARIANT_VALUES);
+const LINK_SIZES = new Set<ComponentSize>(LINK_SIZE_VALUES);
+const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
+const LINK_TARGETS = new Set<string>(LINK_TARGET_VALUES);
 
 export interface ButtonCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -93,6 +115,42 @@ export interface SeparatorRacProps extends Record<string, unknown> {
   style?: Record<string, unknown>;
 }
 
+export interface LinkCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  text?: unknown;
+  label?: unknown;
+  href?: unknown;
+  target?: unknown;
+  rel?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  isQuiet?: unknown;
+  staticColor?: unknown;
+  isExternal?: unknown;
+  showExternalIcon?: unknown;
+  isLoading?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface LinkRacProps extends Record<string, unknown> {
+  children: string;
+  variant: LinkVariant;
+  size: ComponentSize;
+  isQuiet: boolean;
+  staticColor: StaticColor;
+  showExternalIcon: boolean;
+  href?: string;
+  target?: "_self" | "_blank" | "_parent" | "_top";
+  rel?: string;
+  isExternal?: boolean;
+  isLoading?: boolean;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
 export function toButtonRacProps(props: ButtonCanonicalProps): ButtonRacProps {
   return {
     children: readButtonText(props),
@@ -127,11 +185,47 @@ export function toSeparatorRacProps(
   };
 }
 
+export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
+  return {
+    children: readLinkText(props),
+    variant: normalizeLinkVariant(props.variant),
+    size: normalizeLinkSize(props.size),
+    isQuiet: props.isQuiet === true,
+    staticColor: normalizeLinkStaticColor(props.staticColor),
+    showExternalIcon: props.showExternalIcon !== false,
+    ...(typeof props.href === "string" ? { href: props.href } : {}),
+    ...(typeof props.target === "string" && LINK_TARGETS.has(props.target)
+      ? { target: props.target as "_self" | "_blank" | "_parent" | "_top" }
+      : {}),
+    ...(typeof props.rel === "string" ? { rel: props.rel } : {}),
+    ...(typeof props.isExternal === "boolean"
+      ? { isExternal: props.isExternal }
+      : {}),
+    ...(typeof props.isLoading === "boolean"
+      ? { isLoading: props.isLoading }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 function readButtonText(props: ButtonCanonicalProps): string {
   const value = props.children ?? props.text ?? props.label;
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   return "Button";
+}
+
+function readLinkText(props: LinkCanonicalProps): string {
+  const value = props.children ?? props.text ?? props.label;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "Link";
 }
 
 function normalizeButtonVariant(value: unknown): ButtonVariant {
@@ -180,6 +274,25 @@ function normalizeSeparatorSize(value: unknown): ComponentSizeSubset {
     SEPARATOR_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
+}
+
+function normalizeLinkVariant(value: unknown): LinkVariant {
+  return typeof value === "string" && LINK_VARIANTS.has(value as LinkVariant)
+    ? (value as LinkVariant)
+    : "primary";
+}
+
+function normalizeLinkSize(value: unknown): ComponentSize {
+  return typeof value === "string" && LINK_SIZES.has(value as ComponentSize)
+    ? (value as ComponentSize)
+    : "md";
+}
+
+function normalizeLinkStaticColor(value: unknown): StaticColor {
+  return typeof value === "string" &&
+    LINK_STATIC_COLORS.has(value as StaticColor)
+    ? (value as StaticColor)
+    : "auto";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

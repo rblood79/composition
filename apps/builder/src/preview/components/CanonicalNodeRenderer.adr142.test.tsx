@@ -11,18 +11,21 @@ import { resolveCanonicalDocument } from "../../resolvers/canonical";
 import type { RenderContext } from "../types";
 import { CanonicalNodeRenderer } from "./CanonicalNodeRenderer";
 
-const { legacyButtonRenderer, legacySeparatorRenderer } = vi.hoisted(() => ({
-  legacyButtonRenderer: vi.fn(() => (
-    <button data-legacy-renderer="Button">legacy</button>
-  )),
-  legacySeparatorRenderer: vi.fn(() => (
-    <div data-legacy-renderer="Separator">legacy</div>
-  )),
-}));
+const { legacyButtonRenderer, legacyLinkRenderer, legacySeparatorRenderer } =
+  vi.hoisted(() => ({
+    legacyButtonRenderer: vi.fn(() => (
+      <button data-legacy-renderer="Button">legacy</button>
+    )),
+    legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
+    legacySeparatorRenderer: vi.fn(() => (
+      <div data-legacy-renderer="Separator">legacy</div>
+    )),
+  }));
 
 vi.mock("@composition/shared/renderers", () => ({
   rendererMap: {
     Button: legacyButtonRenderer,
+    Link: legacyLinkRenderer,
     Separator: legacySeparatorRenderer,
   },
 }));
@@ -44,6 +47,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
   afterEach(() => {
     cleanup();
     legacyButtonRenderer.mockClear();
+    legacyLinkRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
   });
 
@@ -141,5 +145,29 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       separator,
     );
     expect(legacySeparatorRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Link through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "link-1",
+      type: "Link",
+      props: {
+        children: "Open docs",
+        href: "https://example.com/docs",
+        variant: "secondary",
+        size: "lg",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const link = screen.getByRole("link", { name: "Open docs" });
+    expect(link.getAttribute("href")).toBe("https://example.com/docs");
+    expect(link.dataset.variant).toBe("secondary");
+    expect(link.dataset.size).toBe("lg");
+    expect(container.querySelector("[data-canonical-id='link-1']")).toBe(link);
+    expect(legacyLinkRenderer).not.toHaveBeenCalled();
   });
 });

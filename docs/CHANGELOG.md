@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Link primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Link active primitive binding 추가**:
+  - `componentCatalog` 에 `Link` 를 `cutover:"catalog"` active primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toLinkRacProps()` 와 `linkPrimitiveBinding` 을 추가했다.
+- **Link shared wrapper / Preview / Skia generic 경로 연결**:
+  - `Link.tsx` 가 catalog projection 을 소비하도록 전환했다.
+  - `CanonicalNodeRenderer` 가 `Link` resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 `Link` 를 underline text node 로 렌더하고 `LinkSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `primitives/actions` family 의 세 번째 active primitive pilot 이다. family 전체 cutover 는 아직 완료 판정하지 않는다.
+
 ## [ADR-142 Phase 3/5/6 — Separator primitive catalog pilot] - 2026-05-20
 
 ### Architecture

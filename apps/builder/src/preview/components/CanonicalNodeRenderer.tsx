@@ -22,9 +22,10 @@ import {
   adaptElementFillStyle,
   getPrimitiveBinding,
   type ButtonRacProps,
+  type LinkRacProps,
   type SeparatorRacProps,
 } from "@composition/shared";
-import { Button, Separator } from "@composition/shared/components";
+import { Button, Link, Separator } from "@composition/shared/components";
 import type { ResolvedNode } from "@composition/shared";
 import type {
   PreviewElement as SharedPreviewElement,
@@ -209,6 +210,28 @@ function renderPrimitiveNode({
     ) as SeparatorRacProps;
 
     return <Separator key={node.id} {...separatorProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Link") {
+    const { children: racChildren, ...linkProps } = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as LinkRacProps;
+    const renderedChildren = node.children?.length
+      ? node.children.map((child) => (
+          <CanonicalNodeRenderer
+            key={child.id}
+            node={child}
+            renderContext={renderContext}
+            parentPath={parentPath}
+          />
+        ))
+      : racChildren;
+
+    return (
+      <Link key={node.id} {...linkProps} {...markerProps}>
+        {renderedChildren}
+      </Link>
+    );
   }
 
   if (adaptedEl.type !== "Button") return null;

@@ -375,14 +375,15 @@ src/builder/factories/__tests__/componentRegistrationContract.test.ts`,
 검증: `pnpm run codex:typecheck`
 Gate: G6 일부 (legacy 격리 경계 확립)
 
-Status: In Progress — 2026-05-20 (Button + Separator primitive wrapper
+Status: In Progress — 2026-05-20 (Button / Separator / Link primitive wrapper
 boundary slices). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를, `packages/shared/src/components/Separator.tsx` 는
-`toSeparatorRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
-props source 로 소비한다. `packages/shared/src/components/legacy/README.md` 는
+`toSeparatorRacProps()` 를, `packages/shared/src/components/Link.tsx` 는
+`toLinkRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의 props
+source 로 소비한다. `packages/shared/src/components/legacy/README.md` 는
 compatibility fallback 허용 범위와 active Builder authoring import 금지 경계를
-문서화했다. 이 slice 는 Button/Separator proof family 의 G6 boundary 를 고정하지만,
-전체 primitive wrapper family 이동과 `index.ts` barrel 정리는 아직 남아 있다.
+문서화했다. 이 slice 는 세 primitive 의 G6 boundary 를 고정하지만, 전체 primitive
+wrapper family 이동과 `index.ts` barrel 정리는 아직 남아 있다.
 
 ### Phase 4 — Panel + Factory catalog 배선
 
@@ -431,11 +432,12 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 검증: `pnpm -F @composition/specs build` / `pnpm run codex:typecheck`
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
-Status: In Progress — 2026-05-20 (Separator generic Skia line slice).
-`PrimitiveSkiaDescriptor.kind` 에 `separator` 를 추가하고, generic Skia path 가
-Separator resolved node 를 `line` node 로 렌더한다. `canonicalSkiaSymmetry.test.ts`
-는 `SeparatorSpec.render.shapes()` 미호출을 검증한다. Button/Separator 외
-primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
+Status: In Progress — 2026-05-20 (Separator line + Link text generic Skia
+slices). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` 를 추가하고,
+generic Skia path 가 Separator resolved node 를 `line` node 로, Link resolved node
+를 underline text node 로 렌더한다. `canonicalSkiaSymmetry.test.ts` 는
+`SeparatorSpec.render.shapes()` 와 `LinkSpec.render.shapes()` 미호출을 검증한다.
+Button/Separator/Link 외 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 ### Phase 6 — Family-gated atomic cutover
 

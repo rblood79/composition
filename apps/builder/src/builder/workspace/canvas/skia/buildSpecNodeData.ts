@@ -21,8 +21,10 @@ import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   getPrimitiveBinding,
   toButtonRacProps,
+  toLinkRacProps,
   toSeparatorRacProps,
   type ButtonRacProps,
+  type LinkRacProps,
   type ResolvedNode,
   type SeparatorRacProps,
 } from "@composition/shared";
@@ -794,6 +796,9 @@ export function buildGenericResolvedSkiaNodeData(
   if (binding?.skiaPrimitive?.kind === "button") {
     return buildGenericButtonNode(input.node, layout, input.theme);
   }
+  if (binding?.skiaPrimitive?.kind === "link") {
+    return buildGenericLinkNode(input.node, layout, input.theme);
+  }
   if (binding?.skiaPrimitive?.kind === "separator") {
     return buildGenericSeparatorNode(input.node, layout, input.theme);
   }
@@ -937,6 +942,43 @@ function buildGenericSeparatorNode(
       ...(resolveGenericSeparatorDasharray(props.variant)
         ? { strokeDasharray: resolveGenericSeparatorDasharray(props.variant) }
         : {}),
+    },
+  };
+}
+
+function buildGenericLinkNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toLinkRacProps(node.props ?? {}) as LinkRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericLinkSize(props.size);
+  const textColor = resolveGenericLinkTextColor(props, style, theme);
+
+  return {
+    type: "text",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: readNumber(style.fontSize, size.fontSize),
+      fontWeight: 500,
+      color: textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: layout.width,
+      decoration: 1,
+      decorationColor: textColor,
+      whiteSpace: "nowrap",
+      textOverflow: "ellipsis",
     },
   };
 }
@@ -1089,6 +1131,45 @@ function resolveGenericButtonPalette(
         : colorIntToFloat32(cssColorToHex(token.stroke), 1),
     strokeWidth: token.stroke === "transparent" ? 0 : 1,
   };
+}
+
+function resolveGenericLinkSize(size: LinkRacProps["size"]): {
+  fontSize: number;
+  lineHeight: number;
+} {
+  switch (size) {
+    case "xs":
+      return { fontSize: 11, lineHeight: 14 };
+    case "sm":
+      return { fontSize: 12, lineHeight: 16 };
+    case "lg":
+      return { fontSize: 16, lineHeight: 24 };
+    case "xl":
+      return { fontSize: 18, lineHeight: 28 };
+    case "md":
+    default:
+      return { fontSize: 14, lineHeight: 20 };
+  }
+}
+
+function resolveGenericLinkTextColor(
+  props: LinkRacProps,
+  style: Record<string, unknown>,
+  theme: "light" | "dark",
+): Float32Array {
+  if (typeof style.color === "string") {
+    return colorIntToFloat32(cssColorToHex(style.color), 1);
+  }
+  if (props.staticColor === "white") {
+    return colorIntToFloat32(0xffffff, 1);
+  }
+  if (props.staticColor === "black") {
+    return colorIntToFloat32(0x111827, 1);
+  }
+  if (props.variant === "secondary") {
+    return colorIntToFloat32(theme === "dark" ? 0xd1d5db : 0x4b5563, 1);
+  }
+  return colorIntToFloat32(theme === "dark" ? 0x93c5fd : 0x2563eb, 1);
 }
 
 function resolveGenericSeparatorStrokeWidth(

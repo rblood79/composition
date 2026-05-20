@@ -1,4 +1,5 @@
 import { buttonPrimitiveBinding } from "./primitives/button";
+import { linkPrimitiveBinding } from "./primitives/link";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import type { ComponentCatalogEntry } from "./types";
 import {
@@ -18,6 +19,19 @@ export const componentCatalog = [
       category: "buttons",
       label: "button",
       icon: "MousePointer",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Link",
+    family: "primitives/actions",
+    cutover: "catalog",
+    binding: linkPrimitiveBinding,
+    panel: {
+      category: "layout",
+      label: "link",
+      icon: "Link",
       placeable: true,
     },
   },

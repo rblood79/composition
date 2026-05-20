@@ -244,4 +244,6 @@ wrapper family 완료 판정은 아니다. 이어서 Separator primitive pilot �
 `toSeparatorRacProps()` / `separatorPrimitiveBinding` / active catalog entry /
 Preview primitive branch / generic Skia `line` 렌더 fixture 를 추가했다. 이 역시
 `primitives/actions` family 의 일부 pilot 이며 family 전체 cutover 완료 판정은
-아니다.
+아니다. Link primitive pilot 도 같은 방식으로 `toLinkRacProps()` /
+`linkPrimitiveBinding` / active catalog entry / Preview primitive branch / generic
+Skia underline text fixture 를 추가했다.

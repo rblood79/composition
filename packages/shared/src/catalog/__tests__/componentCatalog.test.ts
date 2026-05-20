@@ -36,6 +36,19 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers Link as an active primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Link");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.family).toBe("primitives/actions");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Link");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("link");
+    expect(entry.panel.category).toBe("layout");
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -74,6 +87,7 @@ describe("ADR-142 component catalog", () => {
 
     expect(activeTypes).toContain("Button");
     expect(activeTypes).toContain("Separator");
+    expect(activeTypes).toContain("Link");
     expect(activeTypes).not.toContain("Card");
   });
 });

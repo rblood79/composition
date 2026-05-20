@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { resolveCanonicalDocument } from "../../../../resolvers/canonical";
-import { ButtonSpec, SeparatorSpec } from "@composition/specs";
+import { ButtonSpec, LinkSpec, SeparatorSpec } from "@composition/specs";
 import {
   buildGenericResolvedSkiaNodeData,
   measureGenericResolvedSkiaFrameBudget,
@@ -111,6 +111,31 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.line?.x1).toBe(2);
     expect(node?.line?.y2).toBe(80);
     expect(node?.line?.strokeDasharray).toEqual([6, 4]);
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Link through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(LinkSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "link-1",
+        type: "Link",
+        props: {
+          children: "Open docs",
+          variant: "secondary",
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 160, height: 28 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("text");
+    expect(node?.elementId).toBe("link-1");
+    expect(node?.text?.content).toBe("Open docs");
+    expect(node?.text?.decoration).toBe(1);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });
