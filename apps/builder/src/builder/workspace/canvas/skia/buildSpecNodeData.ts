@@ -25,6 +25,7 @@ import {
   toCheckboxGroupRacProps,
   toCheckboxRacProps,
   toColorFieldRacProps,
+  toColorSliderRacProps,
   toColorSwatchRacProps,
   toComboBoxRacProps,
   toDateFieldRacProps,
@@ -58,6 +59,7 @@ import {
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorFieldRacProps,
+  type ColorSliderRacProps,
   type ColorSwatchRacProps,
   type ComboBoxItemDescriptor,
   type ComboBoxRacProps,
@@ -913,6 +915,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "color-field") {
     return buildGenericColorFieldNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "color-slider") {
+    return buildGenericColorSliderNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "color-swatch") {
     return buildGenericColorSwatchNode(input.node, layout, input.theme);
@@ -2044,6 +2049,116 @@ function buildGenericColorSwatchNode(
       borderRadius: radius,
     },
     children: [],
+  };
+}
+
+function buildGenericColorSliderNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toColorSliderRacProps(node.props ?? {}) as ColorSliderRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericColorSliderSize(props.size);
+  const isVertical = props.orientation === "vertical";
+  const isDark = theme === "dark";
+  const value = Math.max(0, Math.min(props.value, 1));
+  const trackThickness = size.trackThickness;
+  const thumbSize = size.thumbSize;
+  const trackX = isVertical
+    ? Math.max((layout.width - trackThickness) / 2, 0)
+    : 0;
+  const trackY = isVertical
+    ? 0
+    : Math.max((layout.height - trackThickness) / 2, 0);
+  const trackWidth = isVertical ? trackThickness : Math.max(layout.width, 0);
+  const trackHeight = isVertical ? Math.max(layout.height, 0) : trackThickness;
+  const trackLength = isVertical ? trackHeight : trackWidth;
+  const usableLength = Math.max(trackLength - thumbSize, 0);
+  const thumbX = isVertical
+    ? trackX + trackThickness / 2 - thumbSize / 2
+    : value * usableLength;
+  const thumbY = isVertical
+    ? (1 - value) * usableLength
+    : trackY + trackThickness / 2 - thumbSize / 2;
+  const opacity = props.isDisabled ? 0.4 : 1;
+  const trackColors = getGenericColorSliderTrackColors(props);
+
+  const trackBackground: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:track-background`,
+    x: trackX,
+    y: trackY,
+    width: trackWidth,
+    height: trackHeight,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(isDark ? 0x374151 : 0xe5e7eb, opacity),
+      borderRadius: trackThickness / 2,
+    },
+  };
+
+  const trackSegments = trackColors.map((color, index): SkiaNodeData => {
+    const segmentCount = trackColors.length;
+    const segmentLength = trackLength / segmentCount;
+    const x = isVertical ? trackX : trackX + index * segmentLength;
+    const y = isVertical ? trackY + index * segmentLength : trackY;
+    const width = isVertical
+      ? trackWidth
+      : Math.max(
+          index === segmentCount - 1 ? trackWidth - x : segmentLength,
+          0,
+        );
+    const height = isVertical
+      ? Math.max(
+          index === segmentCount - 1 ? trackHeight - y : segmentLength,
+          0,
+        )
+      : trackHeight;
+
+    return {
+      type: "box",
+      elementId: `${node.id}:track-${index}`,
+      x,
+      y,
+      width,
+      height,
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(cssColorToHex(color, 0xff0000), opacity),
+        borderRadius: trackThickness / 2,
+      },
+    };
+  });
+
+  const thumbNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:thumb`,
+    x: thumbX,
+    y: thumbY,
+    width: thumbSize,
+    height: thumbSize,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(props.defaultValue, 0xff0000),
+        props.isDisabled ? 0.5 : 1,
+      ),
+      borderRadius: thumbSize / 2,
+      strokeColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+      strokeWidth: 3,
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [trackBackground, ...trackSegments, thumbNode],
   };
 }
 
@@ -5834,6 +5949,55 @@ function resolveGenericSliderSize(size: SliderRacProps["size"]): {
         thumbSize: 18,
         gap: 8,
       };
+  }
+}
+
+function resolveGenericColorSliderSize(size: ColorSliderRacProps["size"]): {
+  trackThickness: number;
+  thumbSize: number;
+} {
+  switch (size) {
+    case "sm":
+      return { trackThickness: 14, thumbSize: 16 };
+    case "lg":
+      return { trackThickness: 22, thumbSize: 24 };
+    case "md":
+    default:
+      return { trackThickness: 18, thumbSize: 20 };
+  }
+}
+
+function getGenericColorSliderTrackColors(
+  props: ColorSliderRacProps,
+): string[] {
+  if (props.isDisabled) return ["#9ca3af", "#6b7280"];
+  switch (props.channel) {
+    case "hue":
+      return [
+        "#ff0000",
+        "#ffff00",
+        "#00ff00",
+        "#00ffff",
+        "#0000ff",
+        "#ff00ff",
+        "#ff0000",
+      ];
+    case "saturation":
+      return ["#ffffff", props.defaultValue];
+    case "brightness":
+      return ["#000000", props.defaultValue];
+    case "lightness":
+      return ["#000000", props.defaultValue, "#ffffff"];
+    case "red":
+      return ["#000000", "#ff0000"];
+    case "green":
+      return ["#000000", "#00ff00"];
+    case "blue":
+      return ["#000000", "#0000ff"];
+    case "alpha":
+      return ["#ffffff", props.defaultValue];
+    default:
+      return ["#ffffff", props.defaultValue];
   }
 }
 

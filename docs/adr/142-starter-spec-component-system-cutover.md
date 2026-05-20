@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, overlays family 는 DropZone/Tooltip/Dialog/Popover/Modal/Toast pilot 완료, date/color family 는 ColorSwatch pilot 착수, ADR-132 collection 데이터 binding 전체 전환은 잔여)
+In Progress — 2026-05-21 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, overlays family 는 DropZone/Tooltip/Dialog/Popover/Modal/Toast pilot 완료, date/color family 는 ColorSwatch/ColorSlider pilot 진행, ADR-132 collection 데이터 binding 전체 전환은 잔여)
 
 ## Context
 
@@ -638,7 +638,39 @@ text/size/focus/open/dismiss props 를 RAC Modal surface 로 정규화한다.
 생성한다. Preview `CanonicalNodeRenderer` 는 Modal resolved node 를 legacy
 `rendererMap` 보다 primitive branch 에서 먼저 렌더한다. generic Skia path 는 Modal
 panel + text 를 container/text node 로 렌더하고 `ModalSpec.render.shapes()` 를
-호출하지 않는 fixture 를 가진다. Toast overlays slice 는 잔여다.
+호출하지 않는 fixture 를 가진다.
+
+2026-05-20 추가 판정: Toast overlays primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/toast.ts` 와 `toToastRacProps()` 가 Toast
+title/description/variant/size/position/timeout props 를 RAC Toast surface 로
+정규화한다. `componentCatalog` 는 Toast 를 `cutover:"catalog"` active `overlays`
+primitive 로 등록한다. `packages/shared/src/components/Toast.tsx` 는 기존
+`ToastProvider`/`useToast` API 를 보존하면서 내부 표시 surface 를 RAC
+ToastRegion/Toast 로 전환하고, catalog/Preview 단독 surface 에서는 standalone
+queue 로 실제 toast DOM surface 를 생성한다. Preview `CanonicalNodeRenderer` 는
+Toast resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+generic Skia path 는 Toast icon + title + description 을 container/text node 로
+렌더하고 `ToastSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다.
+
+2026-05-20 추가 판정: ColorSwatch date/color primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/colorSwatch.ts` 와 `toColorSwatchRacProps()` 가
+ColorSwatch color/variant/size/rounding/selected/disabled props 를 RAC ColorSwatch
+surface 로 정규화한다. `componentCatalog` 는 ColorSwatch 를 `cutover:"catalog"`
+active `date-color` primitive 로 등록한다. shared `ColorSwatch.tsx` 는 catalog
+projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 ColorSwatch resolved node 를
+legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다. generic Skia path 는
+ColorSwatch color fill 을 box node 로 렌더하고 `ColorSwatchSpec.render.shapes()` 를
+호출하지 않는 fixture 를 가진다.
+
+2026-05-21 추가 판정: ColorSlider date/color primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/colorSlider.ts` 와 `toColorSliderRacProps()` 가
+ColorSlider color/channel/colorSpace/orientation/size/value/disabled props 를 RAC
+ColorSlider surface 로 정규화한다. `componentCatalog` 는 ColorSlider 를
+`cutover:"catalog"` active `date-color` primitive 로 등록한다. shared
+`ColorSlider.tsx` 는 catalog projection 을 소비하고, Preview `CanonicalNodeRenderer` 는
+ColorSlider resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저
+렌더한다. generic Skia path 는 ColorSlider track/thumb 를 box node 로 렌더하고
+`ColorSliderSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다.
 
 ## Consequences
 

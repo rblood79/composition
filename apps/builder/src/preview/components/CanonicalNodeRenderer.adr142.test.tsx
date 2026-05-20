@@ -16,6 +16,7 @@ const {
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
   legacyColorFieldRenderer,
+  legacyColorSliderRenderer,
   legacyColorSwatchRenderer,
   legacyCheckboxRenderer,
   legacyCheckboxGroupRenderer,
@@ -63,6 +64,9 @@ const {
   )),
   legacyColorFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="ColorField">legacy</div>
+  )),
+  legacyColorSliderRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ColorSlider">legacy</div>
   )),
   legacyColorSwatchRenderer: vi.fn(() => (
     <div data-legacy-renderer="ColorSwatch">legacy</div>
@@ -178,6 +182,7 @@ vi.mock("@composition/shared/renderers", () => ({
     CheckboxGroup: legacyCheckboxGroupRenderer,
     ComboBox: legacyComboBoxRenderer,
     ColorField: legacyColorFieldRenderer,
+    ColorSlider: legacyColorSliderRenderer,
     ColorSwatch: legacyColorSwatchRenderer,
     DateField: legacyDateFieldRenderer,
     Dialog: legacyDialogRenderer,
@@ -236,6 +241,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyCheckboxGroupRenderer.mockClear();
     legacyComboBoxRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
+    legacyColorSliderRenderer.mockClear();
     legacyColorSwatchRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyDialogRenderer.mockClear();
@@ -728,6 +734,36 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(swatch?.getAttribute("data-variant")).toBe("selected");
     expect(swatch?.getAttribute("data-rounding")).toBe("full");
     expect(legacyColorSwatchRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ColorSlider through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "color-slider-1",
+      type: "ColorSlider",
+      props: {
+        color: "#ff0000",
+        channel: "hue",
+        colorSpace: "hsb",
+        orientation: "horizontal",
+        size: "lg",
+        value: 0.75,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const slider = container.querySelector(
+      "[data-canonical-id='color-slider-1']",
+    );
+    expect(slider?.className).toContain("react-aria-ColorSlider");
+    expect(slider?.getAttribute("data-channel")).toBe("hue");
+    expect(slider?.getAttribute("data-color-space")).toBe("hsb");
+    expect(slider?.getAttribute("data-orientation")).toBe("horizontal");
+    expect(slider?.getAttribute("data-size")).toBe("lg");
+    expect(slider?.getAttribute("data-value")).toBe("0.75");
+    expect(legacyColorSliderRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Form and children through PrimitiveBinding before rendererMap fallback", () => {

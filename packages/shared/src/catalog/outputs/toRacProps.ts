@@ -107,6 +107,13 @@ export const COLOR_SWATCH_ROUNDING_VALUES = [
   "none",
   "full",
 ] as const;
+export const COLOR_SLIDER_CHANNEL_VALUES = COLOR_FIELD_CHANNEL_VALUES;
+export const COLOR_SLIDER_COLOR_SPACE_VALUES = COLOR_FIELD_COLOR_SPACE_VALUES;
+export const COLOR_SLIDER_ORIENTATION_VALUES = [
+  "horizontal",
+  "vertical",
+] as const;
+export const COLOR_SLIDER_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
 export const FORM_VARIANT_VALUES = ["default", "outlined"] as const;
 export const FORM_METHOD_VALUES = ["get", "post"] as const;
 export const FORM_ENCTYPE_VALUES = [
@@ -376,6 +383,12 @@ const COLOR_FIELD_LABEL_ALIGNS = new Set<string>(
 const COLOR_SWATCH_VARIANTS = new Set<string>(COLOR_SWATCH_VARIANT_VALUES);
 const COLOR_SWATCH_SIZES = new Set<string>(COLOR_SWATCH_SIZE_VALUES);
 const COLOR_SWATCH_ROUNDINGS = new Set<string>(COLOR_SWATCH_ROUNDING_VALUES);
+const COLOR_SLIDER_CHANNELS = COLOR_FIELD_CHANNELS;
+const COLOR_SLIDER_COLOR_SPACES = COLOR_FIELD_COLOR_SPACES;
+const COLOR_SLIDER_ORIENTATIONS = new Set<string>(
+  COLOR_SLIDER_ORIENTATION_VALUES,
+);
+const COLOR_SLIDER_SIZES = COLOR_SWATCH_SIZES;
 const FORM_VARIANTS = new Set<string>(FORM_VARIANT_VALUES);
 const FORM_METHODS = new Set<string>(FORM_METHOD_VALUES);
 const FORM_ENCTYPES = new Set<string>(FORM_ENCTYPE_VALUES);
@@ -962,6 +975,34 @@ export interface ColorSwatchRacProps extends Record<string, unknown> {
   size: ComponentSizeSubset;
   rounding: (typeof COLOR_SWATCH_ROUNDING_VALUES)[number];
   isSelected: boolean;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ColorSliderCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  label?: unknown;
+  color?: unknown;
+  defaultValue?: unknown;
+  value?: unknown;
+  channel?: unknown;
+  colorSpace?: unknown;
+  orientation?: unknown;
+  size?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ColorSliderRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  defaultValue: string;
+  value: number;
+  channel: (typeof COLOR_SLIDER_CHANNEL_VALUES)[number];
+  colorSpace: (typeof COLOR_SLIDER_COLOR_SPACE_VALUES)[number];
+  orientation: (typeof COLOR_SLIDER_ORIENTATION_VALUES)[number];
+  size: ComponentSizeSubset;
   isDisabled?: boolean;
   className?: string;
   style?: Record<string, unknown>;
@@ -2550,6 +2591,30 @@ export function toColorSwatchRacProps(
   };
 }
 
+export function toColorSliderRacProps(
+  props: ColorSliderCanonicalProps,
+): ColorSliderRacProps {
+  return {
+    "aria-label": readString(
+      props["aria-label"] ?? props.label,
+      "Color slider",
+    ),
+    defaultValue: readString(props.color ?? props.defaultValue, "#ff0000"),
+    value: normalizeColorSliderValue(props.value),
+    channel: normalizeColorSliderChannel(props.channel),
+    colorSpace: normalizeColorSliderColorSpace(props.colorSpace),
+    orientation: normalizeColorSliderOrientation(props.orientation),
+    size: normalizeColorSliderSize(props.size),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toFormRacProps(props: FormCanonicalProps): FormRacProps {
   return {
     size: normalizeTextFieldSize(props.size),
@@ -3907,6 +3972,43 @@ function normalizeColorSwatchRounding(
   return typeof value === "string" && COLOR_SWATCH_ROUNDINGS.has(value)
     ? (value as (typeof COLOR_SWATCH_ROUNDING_VALUES)[number])
     : "default";
+}
+
+function normalizeColorSliderChannel(
+  value: unknown,
+): (typeof COLOR_SLIDER_CHANNEL_VALUES)[number] {
+  return typeof value === "string" && COLOR_SLIDER_CHANNELS.has(value)
+    ? (value as (typeof COLOR_SLIDER_CHANNEL_VALUES)[number])
+    : "hue";
+}
+
+function normalizeColorSliderColorSpace(
+  value: unknown,
+): (typeof COLOR_SLIDER_COLOR_SPACE_VALUES)[number] {
+  return typeof value === "string" && COLOR_SLIDER_COLOR_SPACES.has(value)
+    ? (value as (typeof COLOR_SLIDER_COLOR_SPACE_VALUES)[number])
+    : "hsb";
+}
+
+function normalizeColorSliderOrientation(
+  value: unknown,
+): (typeof COLOR_SLIDER_ORIENTATION_VALUES)[number] {
+  return typeof value === "string" && COLOR_SLIDER_ORIENTATIONS.has(value)
+    ? (value as (typeof COLOR_SLIDER_ORIENTATION_VALUES)[number])
+    : "horizontal";
+}
+
+function normalizeColorSliderSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    COLOR_SLIDER_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeColorSliderValue(value: unknown): number {
+  const numeric = readFiniteNumber(value);
+  if (numeric === undefined) return 0.5;
+  return Math.max(0, Math.min(numeric, 1));
 }
 
 function normalizeFormLabelAlign(value: unknown): "start" | "center" | "end" {

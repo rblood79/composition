@@ -1104,6 +1104,24 @@ export interface ColorSwatchElementProps extends BaseElementProps {
   colorSpace?: "rgb" | "hsl" | "hsb";
 }
 
+export interface ColorSliderElementProps extends BaseElementProps {
+  color?: string;
+  value?: number;
+  channel?:
+    | "hue"
+    | "saturation"
+    | "brightness"
+    | "lightness"
+    | "red"
+    | "green"
+    | "blue"
+    | "alpha";
+  colorSpace?: "rgb" | "hsl" | "hsb";
+  orientation?: "horizontal" | "vertical";
+  size?: "sm" | "md" | "lg";
+  isDisabled?: boolean;
+}
+
 // === 통합된 ComponentElementProps ===
 export type ComponentElementProps =
   | ButtonElementProps
@@ -1172,7 +1190,8 @@ export type ComponentElementProps =
   | RangeCalendarElementProps
   | ColorFieldElementProps
   | ColorPickerElementProps
-  | ColorSwatchElementProps;
+  | ColorSwatchElementProps
+  | ColorSliderElementProps;
 
 // === 스토어 상태 타입 ===
 export interface ElementsState {
@@ -1959,6 +1978,22 @@ export function createDefaultColorSwatchProps(): ColorSwatchElementProps {
   };
 }
 
+export function createDefaultColorSliderProps(): ColorSliderElementProps {
+  return {
+    color: "#ff0000",
+    value: 0.5,
+    channel: "hue",
+    colorSpace: "hsb",
+    orientation: "horizontal",
+    size: "md",
+    isDisabled: false,
+    style: {
+      display: "block",
+      width: "100%",
+    },
+  };
+}
+
 export function createDefaultDropZoneProps(): DropZoneElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; border:2px dashed var(--outline-variant)
@@ -2347,6 +2382,7 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   ColorField: createDefaultColorFieldProps,
   ColorPicker: createDefaultColorPickerProps,
   ColorSwatch: createDefaultColorSwatchProps,
+  ColorSlider: createDefaultColorSliderProps,
   DropZone: createDefaultDropZoneProps,
   FileTrigger: createDefaultFileTriggerProps,
   Tooltip: createDefaultTooltipProps,

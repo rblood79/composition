@@ -198,6 +198,24 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog ColorSlider placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("ColorSlider");
+
+    expect(creation).toMatchObject({
+      elementType: "ColorSlider",
+      props: {
+        color: "#ff0000",
+        channel: "hue",
+        colorSpace: "hsb",
+        orientation: "horizontal",
+        size: "md",
+        value: 0.5,
+        isDisabled: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog FileTrigger placement with a trigger child template", () => {
     const creation = resolveCatalogElementCreation("FileTrigger");
 

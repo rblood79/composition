@@ -4,6 +4,7 @@ import { buttonPrimitiveBinding } from "./primitives/button";
 import { checkboxGroupPrimitiveBinding } from "./primitives/checkboxGroup";
 import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
+import { colorSliderPrimitiveBinding } from "./primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "./primitives/colorSwatch";
 import { comboBoxPrimitiveBinding } from "./primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
@@ -239,6 +240,19 @@ export const componentCatalog = [
       category: "color",
       label: "color swatch",
       icon: "Palette",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ColorSlider",
+    family: "date-color",
+    cutover: "catalog",
+    binding: colorSliderPrimitiveBinding,
+    panel: {
+      category: "color",
+      label: "color slider",
+      icon: "SlidersHorizontal",
       placeable: true,
     },
   },

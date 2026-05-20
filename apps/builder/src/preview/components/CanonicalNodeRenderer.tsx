@@ -27,6 +27,7 @@ import {
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorFieldRacProps,
+  type ColorSliderRacProps,
   type ColorSwatchRacProps,
   type ComboBoxRacProps,
   type DateFieldRacProps,
@@ -67,6 +68,7 @@ import {
   Checkbox,
   CheckboxGroup,
   ColorField,
+  ColorSlider,
   ColorSwatch,
   ComboBox,
   DateField,
@@ -418,6 +420,14 @@ function renderPrimitiveNode({
     ) as ColorFieldRacProps;
 
     return <ColorField key={node.id} {...colorFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "ColorSlider") {
+    const colorSliderProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ColorSliderRacProps;
+
+    return <ColorSlider key={node.id} {...colorSliderProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ColorSwatch") {

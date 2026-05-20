@@ -5,6 +5,7 @@ import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
+import { colorSliderPrimitiveBinding } from "../primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "../primitives/colorSwatch";
 import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
@@ -269,6 +270,31 @@ describe("ADR-142 component catalog", () => {
       size: "md",
       rounding: "default",
       isSelected: false,
+      isDisabled: false,
+    });
+  });
+
+  it("registers ColorSlider as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("ColorSlider");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(colorSliderPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("ColorSlider");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("color-slider");
+    expect(entry.panel.category).toBe("color");
+    expect(entry.panel.label).toBe("color slider");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      color: "#ff0000",
+      channel: "hue",
+      colorSpace: "hsb",
+      orientation: "horizontal",
+      size: "md",
+      value: 0.5,
       isDisabled: false,
     });
   });
@@ -825,6 +851,8 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("DateField");
     expect(activeTypes).toContain("TimeField");
     expect(activeTypes).toContain("ColorField");
+    expect(activeTypes).toContain("ColorSwatch");
+    expect(activeTypes).toContain("ColorSlider");
     expect(activeTypes).toContain("Form");
     expect(activeTypes).toContain("FileTrigger");
     expect(activeTypes).toContain("DropZone");

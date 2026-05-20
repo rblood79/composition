@@ -73,7 +73,7 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 | `ColorArea`         | primitive    | date-color         | `ColorArea.css`                   | `skiaPrimitive` 후보                             |
 | `ColorField`        | primitive    | fields             | `ColorField.css`                  | field family                                     |
 | `ColorPicker`       | primitive    | date-color         | `ColorPicker.css`                 | picker shell + color controls                    |
-| `ColorSlider`       | primitive    | date-color         | `ColorSlider.css`                 | `skiaPrimitive` 후보                             |
+| `ColorSlider`       | primitive    | date-color         | `ColorSlider.css`                 | active `skiaPrimitive` pilot                     |
 | `ColorSwatch`       | primitive    | date-color         | `ColorSwatch.css`                 | color fill draw 검증 필요                        |
 | `ColorSwatchPicker` | primitive    | date-color         | `ColorSwatchPicker.css`           | collection-like picker                           |
 | `ColorThumb`        | primitive    | date-color         | `ColorThumb.css`                  | `skiaPrimitive` 후보                             |
@@ -446,5 +446,10 @@ ColorSwatch date/color primitive pilot 은 `toColorSwatchRacProps()` /
 `colorSwatchPrimitiveBinding` / active catalog entry / shared `ColorSwatch.tsx`
 projection / Preview ColorSwatch primitive branch / generic Skia color fill fixture 를
 추가했다. ColorSwatch 는 `ColorSwatchSpec.render.shapes()` 를 호출하지 않는 generic
-Skia fixture 로 고정했다. date/color family 는 ColorSwatch 로 착수했으며,
-ColorArea/ColorSlider/ColorWheel 의 gradient/arc draw 는 후속 slice 로 남긴다.
+Skia fixture 로 고정했다. ColorSlider date/color primitive pilot 은
+`toColorSliderRacProps()` / `colorSliderPrimitiveBinding` / active catalog entry /
+shared `ColorSlider.tsx` projection / Preview ColorSlider primitive branch /
+generic Skia track-thumb fixture 를 추가했다. ColorSlider 는
+`ColorSliderSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+date/color family 는 ColorSwatch 에 이어 ColorSlider 까지 진행했으며,
+ColorArea/ColorWheel 의 gradient/arc draw 는 후속 slice 로 남긴다.
