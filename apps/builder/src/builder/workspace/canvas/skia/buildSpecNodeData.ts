@@ -23,10 +23,12 @@ import {
   toButtonRacProps,
   toLinkRacProps,
   toSeparatorRacProps,
+  toToggleButtonRacProps,
   type ButtonRacProps,
   type LinkRacProps,
   type ResolvedNode,
   type SeparatorRacProps,
+  type ToggleButtonRacProps,
 } from "@composition/shared";
 import {
   fontFamily,
@@ -802,6 +804,9 @@ export function buildGenericResolvedSkiaNodeData(
   if (binding?.skiaPrimitive?.kind === "separator") {
     return buildGenericSeparatorNode(input.node, layout, input.theme);
   }
+  if (binding?.skiaPrimitive?.kind === "toggle-button") {
+    return buildGenericToggleButtonNode(input.node, layout, input.theme);
+  }
 
   const style = readGenericStyle(input.node);
   const children = (input.node.children ?? [])
@@ -980,6 +985,58 @@ function buildGenericLinkNode(
       whiteSpace: "nowrap",
       textOverflow: "ellipsis",
     },
+  };
+}
+
+function buildGenericToggleButtonNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toToggleButtonRacProps(
+    node.props ?? {},
+  ) as ToggleButtonRacProps;
+  const palette = resolveGenericToggleButtonPalette(props, theme);
+  const size = resolveGenericToggleButtonSize(props.size);
+  const style = readGenericStyle(node);
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: layout.height,
+    visible: true,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "center",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: layout.width,
+      autoCenter: true,
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: palette.fillColor,
+      borderRadius: readNumber(style.borderRadius, size.radius),
+      strokeColor: palette.strokeColor,
+      strokeWidth: palette.strokeWidth,
+    },
+    children: [textNode],
   };
 }
 
@@ -1170,6 +1227,64 @@ function resolveGenericLinkTextColor(
     return colorIntToFloat32(theme === "dark" ? 0xd1d5db : 0x4b5563, 1);
   }
   return colorIntToFloat32(theme === "dark" ? 0x93c5fd : 0x2563eb, 1);
+}
+
+function resolveGenericToggleButtonSize(size: ToggleButtonRacProps["size"]): {
+  fontSize: number;
+  lineHeight: number;
+  radius: number;
+} {
+  switch (size) {
+    case "sm":
+      return { fontSize: 12, lineHeight: 16, radius: 4 };
+    case "lg":
+      return { fontSize: 16, lineHeight: 24, radius: 8 };
+    case "md":
+    default:
+      return { fontSize: 14, lineHeight: 20, radius: 6 };
+  }
+}
+
+function resolveGenericToggleButtonPalette(
+  props: ToggleButtonRacProps,
+  theme: "light" | "dark",
+): {
+  fillColor: Float32Array;
+  textColor: Float32Array;
+  strokeColor: Float32Array;
+  strokeWidth: number;
+} {
+  const isDark = theme === "dark";
+  if (props.isQuiet) {
+    return {
+      fillColor: Float32Array.of(0, 0, 0, 0),
+      textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+      strokeColor: Float32Array.of(0, 0, 0, 0),
+      strokeWidth: 0,
+    };
+  }
+  if (props.isSelected && props.isEmphasized) {
+    return {
+      fillColor: colorIntToFloat32(0x2563eb, 1),
+      textColor: colorIntToFloat32(0xffffff, 1),
+      strokeColor: colorIntToFloat32(0x2563eb, 1),
+      strokeWidth: 1,
+    };
+  }
+  if (props.isSelected) {
+    return {
+      fillColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+      textColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+      strokeColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+      strokeWidth: 1,
+    };
+  }
+  return {
+    fillColor: colorIntToFloat32(isDark ? 0x374151 : 0xf3f4f6, 1),
+    textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+    strokeColor: colorIntToFloat32(isDark ? 0x4b5563 : 0xd1d5db, 1),
+    strokeWidth: 1,
+  };
 }
 
 function resolveGenericSeparatorStrokeWidth(

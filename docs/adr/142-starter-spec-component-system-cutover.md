@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link primitive wrapper boundary slice 완료; Separator/Link generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/ToggleButton primitive wrapper boundary slice 완료; Separator/Link/ToggleButton generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
 
 ## Context
 
@@ -235,6 +235,19 @@ branch 에서 먼저 렌더한다. generic Skia path 는 Link 를 underline text
 생성하고 `LinkSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 이는
 `primitives/actions` family 의 세 번째 active primitive pilot 이며, family 전체 완료
 판정은 아니다.
+
+2026-05-20 추가 판정: ToggleButton primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/toggleButton.ts` 와
+`toToggleButtonRacProps()` 가 ToggleButton canonical props 를 RAC ToggleButton props
+로 정규화한다. `componentCatalog` 는 ToggleButton 을 `cutover:"catalog"` active
+primitive 로 등록한다. `packages/shared/src/components/ToggleButton.tsx` 는 shared
+wrapper surface 에서 이 projection 을 소비하고, Preview `CanonicalNodeRenderer` 는
+ToggleButton resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저
+렌더한다. generic Skia path 는 ToggleButton 을 selected/emphasized 상태를 반영한
+button-like container/text node 로 생성하고 `ToggleButtonSpec.render.shapes()` 를
+호출하지 않는 fixture 를 가진다. 이는 `primitives/actions` family 의 네 번째 active
+primitive pilot 이며, ToggleButtonGroup/Icon/Badge 등 family 잔여 완료 판정은
+아니다.
 
 ## Consequences
 

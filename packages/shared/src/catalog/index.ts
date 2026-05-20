@@ -4,6 +4,7 @@ export * from "./outputs/inspectorFields";
 export * from "./primitives/button";
 export * from "./primitives/link";
 export * from "./primitives/separator";
+export * from "./primitives/toggleButton";
 export * from "./registry";
 export * from "./library";
 export * from "./componentCatalog";

@@ -246,4 +246,7 @@ Preview primitive branch / generic Skia `line` 렌더 fixture 를 추가했다. 
 `primitives/actions` family 의 일부 pilot 이며 family 전체 cutover 완료 판정은
 아니다. Link primitive pilot 도 같은 방식으로 `toLinkRacProps()` /
 `linkPrimitiveBinding` / active catalog entry / Preview primitive branch / generic
-Skia underline text fixture 를 추가했다.
+Skia underline text fixture 를 추가했다. ToggleButton primitive pilot 도
+`toToggleButtonRacProps()` / `toggleButtonPrimitiveBinding` / active catalog entry /
+Preview primitive branch / generic Skia selected/emphasized button-like fixture 로
+확장했다.

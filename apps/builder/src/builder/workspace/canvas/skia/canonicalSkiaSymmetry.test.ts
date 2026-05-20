@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { resolveCanonicalDocument } from "../../../../resolvers/canonical";
-import { ButtonSpec, LinkSpec, SeparatorSpec } from "@composition/specs";
+import {
+  ButtonSpec,
+  LinkSpec,
+  SeparatorSpec,
+  ToggleButtonSpec,
+} from "@composition/specs";
 import {
   buildGenericResolvedSkiaNodeData,
   measureGenericResolvedSkiaFrameBudget,
@@ -136,6 +141,32 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("link-1");
     expect(node?.text?.content).toBe("Open docs");
     expect(node?.text?.decoration).toBe(1);
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ToggleButton through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ToggleButtonSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "toggle-button-1",
+        type: "ToggleButton",
+        props: {
+          children: "Pinned",
+          isSelected: true,
+          isEmphasized: true,
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 120, height: 36 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("toggle-button-1");
+    expect(collectText(node)).toContain("Pinned");
+    expect(node?.box?.fillColor).toBeDefined();
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

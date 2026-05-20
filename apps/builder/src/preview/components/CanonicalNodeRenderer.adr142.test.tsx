@@ -11,22 +11,30 @@ import { resolveCanonicalDocument } from "../../resolvers/canonical";
 import type { RenderContext } from "../types";
 import { CanonicalNodeRenderer } from "./CanonicalNodeRenderer";
 
-const { legacyButtonRenderer, legacyLinkRenderer, legacySeparatorRenderer } =
-  vi.hoisted(() => ({
-    legacyButtonRenderer: vi.fn(() => (
-      <button data-legacy-renderer="Button">legacy</button>
-    )),
-    legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
-    legacySeparatorRenderer: vi.fn(() => (
-      <div data-legacy-renderer="Separator">legacy</div>
-    )),
-  }));
+const {
+  legacyButtonRenderer,
+  legacyLinkRenderer,
+  legacySeparatorRenderer,
+  legacyToggleButtonRenderer,
+} = vi.hoisted(() => ({
+  legacyButtonRenderer: vi.fn(() => (
+    <button data-legacy-renderer="Button">legacy</button>
+  )),
+  legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
+  legacySeparatorRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Separator">legacy</div>
+  )),
+  legacyToggleButtonRenderer: vi.fn(() => (
+    <button data-legacy-renderer="ToggleButton">legacy</button>
+  )),
+}));
 
 vi.mock("@composition/shared/renderers", () => ({
   rendererMap: {
     Button: legacyButtonRenderer,
     Link: legacyLinkRenderer,
     Separator: legacySeparatorRenderer,
+    ToggleButton: legacyToggleButtonRenderer,
   },
 }));
 
@@ -49,6 +57,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyButtonRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
+    legacyToggleButtonRenderer.mockClear();
   });
 
   it("renders Button through PrimitiveBinding before rendererMap fallback", () => {
@@ -169,5 +178,30 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(link.dataset.size).toBe("lg");
     expect(container.querySelector("[data-canonical-id='link-1']")).toBe(link);
     expect(legacyLinkRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ToggleButton through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "toggle-button-1",
+      type: "ToggleButton",
+      props: {
+        children: "Pinned",
+        isSelected: true,
+        isEmphasized: true,
+        size: "lg",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Pinned" });
+    expect(toggle.dataset.size).toBe("lg");
+    expect(toggle.dataset.emphasized).toBe("true");
+    expect(
+      container.querySelector("[data-canonical-id='toggle-button-1']"),
+    ).toBe(toggle);
+    expect(legacyToggleButtonRenderer).not.toHaveBeenCalled();
   });
 });

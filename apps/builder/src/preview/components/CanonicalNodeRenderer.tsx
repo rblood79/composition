@@ -24,8 +24,14 @@ import {
   type ButtonRacProps,
   type LinkRacProps,
   type SeparatorRacProps,
+  type ToggleButtonRacProps,
 } from "@composition/shared";
-import { Button, Link, Separator } from "@composition/shared/components";
+import {
+  Button,
+  Link,
+  Separator,
+  ToggleButton,
+} from "@composition/shared/components";
 import type { ResolvedNode } from "@composition/shared";
 import type {
   PreviewElement as SharedPreviewElement,
@@ -231,6 +237,28 @@ function renderPrimitiveNode({
       <Link key={node.id} {...linkProps} {...markerProps}>
         {renderedChildren}
       </Link>
+    );
+  }
+
+  if (adaptedEl.type === "ToggleButton") {
+    const { children: racChildren, ...toggleButtonProps } = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ToggleButtonRacProps;
+    const renderedChildren = node.children?.length
+      ? node.children.map((child) => (
+          <CanonicalNodeRenderer
+            key={child.id}
+            node={child}
+            renderContext={renderContext}
+            parentPath={parentPath}
+          />
+        ))
+      : racChildren;
+
+    return (
+      <ToggleButton key={node.id} {...toggleButtonProps} {...markerProps}>
+        {renderedChildren}
+      </ToggleButton>
     );
   }
 

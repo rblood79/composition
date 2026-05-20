@@ -60,6 +60,7 @@ export const LINK_TARGET_VALUES = [
   "_parent",
   "_top",
 ] as const;
+export const TOGGLE_BUTTON_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -72,6 +73,9 @@ const LINK_VARIANTS = new Set<LinkVariant>(LINK_VARIANT_VALUES);
 const LINK_SIZES = new Set<ComponentSize>(LINK_SIZE_VALUES);
 const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
 const LINK_TARGETS = new Set<string>(LINK_TARGET_VALUES);
+const TOGGLE_BUTTON_SIZES = new Set<ComponentSizeSubset>(
+  TOGGLE_BUTTON_SIZE_VALUES,
+);
 
 export interface ButtonCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -151,6 +155,30 @@ export interface LinkRacProps extends Record<string, unknown> {
   style?: Record<string, unknown>;
 }
 
+export interface ToggleButtonCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  text?: unknown;
+  label?: unknown;
+  size?: unknown;
+  isSelected?: unknown;
+  isEmphasized?: unknown;
+  isQuiet?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ToggleButtonRacProps extends Record<string, unknown> {
+  children: string;
+  size: ComponentSizeSubset;
+  isEmphasized: boolean;
+  isQuiet: boolean;
+  isSelected?: boolean;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
 export function toButtonRacProps(props: ButtonCanonicalProps): ButtonRacProps {
   return {
     children: readButtonText(props),
@@ -214,6 +242,27 @@ export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   };
 }
 
+export function toToggleButtonRacProps(
+  props: ToggleButtonCanonicalProps,
+): ToggleButtonRacProps {
+  return {
+    children: readToggleButtonText(props),
+    size: normalizeToggleButtonSize(props.size),
+    isEmphasized: props.isEmphasized === true,
+    isQuiet: props.isQuiet === true,
+    ...(typeof props.isSelected === "boolean"
+      ? { isSelected: props.isSelected }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 function readButtonText(props: ButtonCanonicalProps): string {
   const value = props.children ?? props.text ?? props.label;
   if (typeof value === "string") return value;
@@ -226,6 +275,13 @@ function readLinkText(props: LinkCanonicalProps): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   return "Link";
+}
+
+function readToggleButtonText(props: ToggleButtonCanonicalProps): string {
+  const value = props.children ?? props.text ?? props.label;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "Toggle";
 }
 
 function normalizeButtonVariant(value: unknown): ButtonVariant {
@@ -293,6 +349,13 @@ function normalizeLinkStaticColor(value: unknown): StaticColor {
     LINK_STATIC_COLORS.has(value as StaticColor)
     ? (value as StaticColor)
     : "auto";
+}
+
+function normalizeToggleButtonSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    TOGGLE_BUTTON_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
