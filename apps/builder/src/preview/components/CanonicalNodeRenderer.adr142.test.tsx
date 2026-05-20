@@ -17,6 +17,7 @@ const {
   legacyBreadcrumbsRenderer,
   legacyLinkRenderer,
   legacyNumberFieldRenderer,
+  legacySearchFieldRenderer,
   legacySeparatorRenderer,
   legacyTextFieldRenderer,
   legacyToggleButtonRenderer,
@@ -35,6 +36,9 @@ const {
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacyNumberFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="NumberField">legacy</div>
+  )),
+  legacySearchFieldRenderer: vi.fn(() => (
+    <div data-legacy-renderer="SearchField">legacy</div>
   )),
   legacySeparatorRenderer: vi.fn(() => (
     <div data-legacy-renderer="Separator">legacy</div>
@@ -60,6 +64,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Breadcrumbs: legacyBreadcrumbsRenderer,
     Link: legacyLinkRenderer,
     NumberField: legacyNumberFieldRenderer,
+    SearchField: legacySearchFieldRenderer,
     Separator: legacySeparatorRenderer,
     TextField: legacyTextFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
@@ -89,6 +94,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyBreadcrumbsRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
+    legacySearchFieldRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
@@ -422,5 +428,33 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector(".react-aria-NumberField"),
     );
     expect(legacyNumberFieldRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders SearchField through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "searchfield-1",
+      type: "SearchField",
+      props: {
+        label: "Search docs",
+        value: "adr",
+        placeholder: "Search...",
+        type: "search",
+        size: "lg",
+        isRequired: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const input = screen.getByRole("searchbox", { name: /Search docs/ });
+    expect((input as HTMLInputElement).value).toBe("adr");
+    expect(input.getAttribute("type")).toBe("search");
+    expect(input.getAttribute("placeholder")).toBe("Search...");
+    expect(container.querySelector("[data-canonical-id='searchfield-1']")).toBe(
+      container.querySelector(".react-aria-SearchField"),
+    );
+    expect(legacySearchFieldRenderer).not.toHaveBeenCalled();
   });
 });

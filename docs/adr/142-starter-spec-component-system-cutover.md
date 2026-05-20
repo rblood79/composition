@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField generic Skia pilot 완료; 다음 진입점 fields 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField generic Skia pilot 완료; 다음 진입점 fields 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
 
 ## Context
 
@@ -333,6 +333,18 @@ generic Skia path 는 NumberField label/input/value 를 container/text node 로
 렌더하고 `NumberFieldSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 이는
 `fields` family 의 두 번째 active primitive pilot 이며 family 전체 완료 판정은
 아니다.
+
+2026-05-20 추가 판정: SearchField primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/searchField.ts` 와 `toSearchFieldRacProps()` 가
+SearchField canonical props 를 RAC SearchField/Input/Label props 로 정규화한다.
+`componentCatalog` 는 SearchField 를 `cutover:"catalog"` active fields primitive 로
+등록한다. `packages/shared/src/components/SearchField.tsx` 는 shared wrapper surface
+에서 이 projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 SearchField
+resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+generic Skia path 는 SearchField label/input/value 와 search icon 을
+container/text/icon_path node 로 렌더하고 `SearchFieldSpec.render.shapes()` 를
+호출하지 않는 fixture 를 가진다. 이는 `fields` family 의 세 번째 active primitive
+pilot 이며 family 전체 완료 판정은 아니다.
 
 ## Consequences
 

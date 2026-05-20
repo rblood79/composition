@@ -26,6 +26,7 @@ import {
   type ButtonRacProps,
   type LinkRacProps,
   type NumberFieldRacProps,
+  type SearchFieldRacProps,
   type SeparatorRacProps,
   type TextFieldRacProps,
   type ToolbarRacProps,
@@ -38,6 +39,7 @@ import {
   Button,
   Link,
   NumberField,
+  SearchField,
   Separator,
   TextField,
   Toolbar,
@@ -320,6 +322,14 @@ function renderPrimitiveNode({
     ) as NumberFieldRacProps;
 
     return <NumberField key={node.id} {...numberFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "SearchField") {
+    const searchFieldProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as SearchFieldRacProps;
+
+    return <SearchField key={node.id} {...searchFieldProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

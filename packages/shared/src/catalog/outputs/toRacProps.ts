@@ -45,6 +45,32 @@ export const TEXT_FIELD_TYPE_VALUES = [
 ] as const;
 export const TEXT_FIELD_LABEL_POSITION_VALUES = ["top", "side"] as const;
 export const TEXT_FIELD_NECESSITY_INDICATOR_VALUES = ["icon", "label"] as const;
+export const SEARCH_FIELD_TYPE_VALUES = [
+  "search",
+  "text",
+  "url",
+  "tel",
+  "email",
+] as const;
+export const SEARCH_FIELD_INPUT_MODE_VALUES = [
+  "none",
+  "text",
+  "tel",
+  "url",
+  "email",
+  "numeric",
+  "decimal",
+  "search",
+] as const;
+export const SEARCH_FIELD_ENTER_KEY_HINT_VALUES = [
+  "enter",
+  "done",
+  "go",
+  "next",
+  "previous",
+  "search",
+  "send",
+] as const;
 export const NUMBER_FIELD_FORMAT_STYLE_VALUES = [
   "decimal",
   "currency",
@@ -110,6 +136,13 @@ const TEXT_FIELD_LABEL_POSITIONS = new Set<string>(
 );
 const TEXT_FIELD_NECESSITY_INDICATORS = new Set<string>(
   TEXT_FIELD_NECESSITY_INDICATOR_VALUES,
+);
+const SEARCH_FIELD_TYPES = new Set<string>(SEARCH_FIELD_TYPE_VALUES);
+const SEARCH_FIELD_INPUT_MODES = new Set<string>(
+  SEARCH_FIELD_INPUT_MODE_VALUES,
+);
+const SEARCH_FIELD_ENTER_KEY_HINTS = new Set<string>(
+  SEARCH_FIELD_ENTER_KEY_HINT_VALUES,
 );
 const NUMBER_FIELD_FORMAT_STYLES = new Set<string>(
   NUMBER_FIELD_FORMAT_STYLE_VALUES,
@@ -308,6 +341,60 @@ export interface NumberFieldRacProps extends Record<string, unknown> {
   step?: number;
   locale?: string;
   formatOptions?: Intl.NumberFormatOptions;
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface SearchFieldCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  placeholder?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  type?: unknown;
+  inputMode?: unknown;
+  pattern?: unknown;
+  minLength?: unknown;
+  maxLength?: unknown;
+  autoCorrect?: unknown;
+  spellCheck?: unknown;
+  enterKeyHint?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  isQuiet?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface SearchFieldRacProps extends Record<string, unknown> {
+  label: string;
+  placeholder: string;
+  type: (typeof SEARCH_FIELD_TYPE_VALUES)[number];
+  inputMode: (typeof SEARCH_FIELD_INPUT_MODE_VALUES)[number];
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  isQuiet: boolean;
+  value?: string;
+  defaultValue?: string;
+  description?: string;
+  errorMessage?: string;
+  pattern?: string;
+  minLength?: number;
+  maxLength?: number;
+  autoCorrect?: "on" | "off";
+  spellCheck?: boolean;
+  enterKeyHint?: (typeof SEARCH_FIELD_ENTER_KEY_HINT_VALUES)[number];
   necessityIndicator?: "icon" | "label";
   isRequired?: boolean;
   isDisabled?: boolean;
@@ -615,6 +702,69 @@ export function toNumberFieldRacProps(
   };
 }
 
+export function toSearchFieldRacProps(
+  props: SearchFieldCanonicalProps,
+): SearchFieldRacProps {
+  return {
+    label: readString(props.label, "Search"),
+    placeholder: readString(props.placeholder, "Search..."),
+    type: normalizeSearchFieldType(props.type),
+    inputMode: normalizeSearchFieldInputMode(props.inputMode),
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    ...(typeof props.value === "string" ? { value: props.value } : {}),
+    ...(typeof props.defaultValue === "string"
+      ? { defaultValue: props.defaultValue }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.pattern === "string" ? { pattern: props.pattern } : {}),
+    ...(readFiniteNumber(props.minLength) !== undefined
+      ? { minLength: readFiniteNumber(props.minLength) }
+      : {}),
+    ...(readFiniteNumber(props.maxLength) !== undefined
+      ? { maxLength: readFiniteNumber(props.maxLength) }
+      : {}),
+    ...(normalizeSearchFieldAutoCorrect(props.autoCorrect)
+      ? { autoCorrect: normalizeSearchFieldAutoCorrect(props.autoCorrect) }
+      : {}),
+    ...(typeof props.spellCheck === "boolean"
+      ? { spellCheck: props.spellCheck }
+      : {}),
+    ...(normalizeSearchFieldEnterKeyHint(props.enterKeyHint)
+      ? { enterKeyHint: normalizeSearchFieldEnterKeyHint(props.enterKeyHint) }
+      : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -793,6 +943,22 @@ function normalizeTextFieldType(
     : "text";
 }
 
+function normalizeSearchFieldType(
+  value: unknown,
+): (typeof SEARCH_FIELD_TYPE_VALUES)[number] {
+  return typeof value === "string" && SEARCH_FIELD_TYPES.has(value)
+    ? (value as (typeof SEARCH_FIELD_TYPE_VALUES)[number])
+    : "search";
+}
+
+function normalizeSearchFieldInputMode(
+  value: unknown,
+): (typeof SEARCH_FIELD_INPUT_MODE_VALUES)[number] {
+  return typeof value === "string" && SEARCH_FIELD_INPUT_MODES.has(value)
+    ? (value as (typeof SEARCH_FIELD_INPUT_MODE_VALUES)[number])
+    : "search";
+}
+
 function normalizeTextFieldSize(value: unknown): ComponentSize {
   return normalizeButtonSize(value);
 }
@@ -845,6 +1011,20 @@ function normalizeNumberFieldFormatOptions(
   }
 
   return Object.keys(options).length > 0 ? options : undefined;
+}
+
+function normalizeSearchFieldAutoCorrect(
+  value: unknown,
+): "on" | "off" | undefined {
+  return value === "on" || value === "off" ? value : undefined;
+}
+
+function normalizeSearchFieldEnterKeyHint(
+  value: unknown,
+): (typeof SEARCH_FIELD_ENTER_KEY_HINT_VALUES)[number] | undefined {
+  return typeof value === "string" && SEARCH_FIELD_ENTER_KEY_HINTS.has(value)
+    ? (value as (typeof SEARCH_FIELD_ENTER_KEY_HINT_VALUES)[number])
+    : undefined;
 }
 
 function normalizeButtonIconPosition(value: unknown): "start" | "end" {

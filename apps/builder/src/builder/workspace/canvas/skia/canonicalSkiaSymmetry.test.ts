@@ -8,6 +8,7 @@ import {
   ButtonSpec,
   LinkSpec,
   NumberFieldSpec,
+  SearchFieldSpec,
   SeparatorSpec,
   TextFieldSpec,
   ToggleButtonSpec,
@@ -262,6 +263,33 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("numberfield-1");
     expect(collectText(node)).toContain("Quantity");
     expect(collectText(node)).toContain("42");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved SearchField through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(SearchFieldSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "searchfield-1",
+        type: "SearchField",
+        props: {
+          label: "Search docs",
+          value: "adr",
+          placeholder: "Search...",
+          type: "search",
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 240, height: 72 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("searchfield-1");
+    expect(collectText(node)).toContain("Search docs");
+    expect(collectText(node)).toContain("adr");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

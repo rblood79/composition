@@ -15,6 +15,9 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     const numberField = catalogItems.find(
       (item) => item.type === "NumberField",
     );
+    const searchField = catalogItems.find(
+      (item) => item.type === "SearchField",
+    );
 
     expect(button?.source).toBe("catalog");
     expect(button?.categoryKey).toBe("buttons");
@@ -23,6 +26,9 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     expect(numberField?.source).toBe("catalog");
     expect(numberField?.categoryKey).toBe("forms");
     expect(numberField?.label).toBe("number field");
+    expect(searchField?.source).toBe("catalog");
+    expect(searchField?.categoryKey).toBe("forms");
+    expect(searchField?.label).toBe("search field");
   });
 
   it("builds panel groups from shared catalog inventory", () => {

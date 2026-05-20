@@ -6,6 +6,7 @@ export * from "./primitives/breadcrumbs";
 export * from "./primitives/button";
 export * from "./primitives/link";
 export * from "./primitives/numberField";
+export * from "./primitives/searchField";
 export * from "./primitives/separator";
 export * from "./primitives/textField";
 export * from "./primitives/toolbar";

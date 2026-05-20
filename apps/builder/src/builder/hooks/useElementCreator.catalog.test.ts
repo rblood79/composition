@@ -111,6 +111,24 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog SearchField placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("SearchField");
+
+    expect(creation).toMatchObject({
+      elementType: "SearchField",
+      props: {
+        label: "Search",
+        value: "",
+        placeholder: "Search...",
+        type: "search",
+        inputMode: "search",
+        size: "md",
+        labelPosition: "top",
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

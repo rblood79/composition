@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
+import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
 import {
   toButtonRacProps,
   toNumberFieldRacProps,
+  toSearchFieldRacProps,
   toTextFieldRacProps,
 } from "../outputs/toRacProps";
 
@@ -206,6 +208,57 @@ describe("ADR-142 inspector field contracts", () => {
       step: 2,
       locale: "en-US",
       formatOptions: { style: "decimal", notation: "standard" },
+      size: "lg",
+      isRequired: true,
+      labelPosition: "side",
+    });
+  });
+
+  it("groups SearchField PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "SearchField",
+      contracts: searchFieldPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { SearchField: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Input Type",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "value",
+      "placeholder",
+      "description",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "type",
+      "inputMode",
+    ]);
+  });
+
+  it("projects SearchField canonical props through the catalog boundary", () => {
+    expect(
+      toSearchFieldRacProps({
+        label: "Search docs",
+        value: "adr",
+        placeholder: "Search...",
+        type: "search",
+        inputMode: "search",
+        size: "lg",
+        isRequired: true,
+        labelPosition: "side",
+      }),
+    ).toMatchObject({
+      label: "Search docs",
+      value: "adr",
+      placeholder: "Search...",
+      type: "search",
+      inputMode: "search",
       size: "lg",
       isRequired: true,
       labelPosition: "side",

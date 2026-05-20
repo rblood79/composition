@@ -2,6 +2,7 @@ import type { PrimitiveBinding } from "./types";
 import { buttonInspectorThemeValues } from "./primitives/button";
 import { linkInspectorThemeValues } from "./primitives/link";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
+import { searchFieldInspectorThemeValues } from "./primitives/searchField";
 import { textFieldInspectorThemeValues } from "./primitives/textField";
 import type { InspectorThemeLookup } from "./outputs/inspectorFields";
 import { componentCatalog } from "./componentCatalog";
@@ -29,6 +30,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "Link") return linkInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
+  if (type === "SearchField") return searchFieldInspectorThemeValues;
   return {};
 }
 
