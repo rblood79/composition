@@ -55,6 +55,28 @@ describe("ADR-142 element creator catalog bridge", () => {
     ]);
   });
 
+  it("describes catalog breadcrumbs placement with breadcrumb child templates", () => {
+    const creation = resolveCatalogElementCreation("Breadcrumbs");
+
+    expect(creation).toMatchObject({
+      elementType: "Breadcrumbs",
+      props: {
+        "aria-label": "Breadcrumbs",
+        size: "M",
+        isDisabled: false,
+      },
+    });
+    expect(creation?.children?.map((child) => child.elementType)).toEqual([
+      "Breadcrumb",
+      "Breadcrumb",
+      "Breadcrumb",
+    ]);
+    expect(creation?.children?.[0]?.props).toMatchObject({
+      children: "Home",
+      href: "/",
+    });
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

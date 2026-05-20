@@ -62,6 +62,22 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the Breadcrumbs and Breadcrumb prop projection sources", () => {
+    const breadcrumbsSource = fs.readFileSync(
+      new URL("../Breadcrumbs.tsx", import.meta.url),
+      "utf8",
+    );
+    const breadcrumbSource = fs.readFileSync(
+      new URL("../Breadcrumb.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(breadcrumbsSource).toContain("toBreadcrumbsRacProps");
+    expect(breadcrumbsSource).toContain("../catalog/outputs/toRacProps");
+    expect(breadcrumbSource).toContain("toBreadcrumbRacProps");
+    expect(breadcrumbSource).toContain("../catalog/outputs/toRacProps");
+  });
+
   it("documents the shared components legacy compatibility boundary", () => {
     const readmeUrl = new URL("../legacy/README.md", import.meta.url);
 

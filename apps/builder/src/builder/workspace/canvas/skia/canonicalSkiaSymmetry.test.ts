@@ -3,6 +3,8 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { resolveCanonicalDocument } from "../../../../resolvers/canonical";
 import {
+  BreadcrumbSpec,
+  BreadcrumbsSpec,
   ButtonSpec,
   LinkSpec,
   SeparatorSpec,
@@ -260,6 +262,60 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     ]);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
+  });
+
+  it("renders resolved Breadcrumbs and Breadcrumb children through the generic Skia path without render.shapes", () => {
+    const renderBreadcrumbsShapes = vi.spyOn(BreadcrumbsSpec.render, "shapes");
+    const renderBreadcrumbShapes = vi.spyOn(BreadcrumbSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "breadcrumbs-1",
+        type: "Breadcrumbs",
+        props: {
+          "aria-label": "Trail",
+          size: "L",
+        },
+        children: [
+          {
+            id: "breadcrumb-1",
+            type: "Breadcrumb",
+            props: {
+              children: "Home",
+              href: "/",
+              size: "L",
+            },
+          },
+          {
+            id: "breadcrumb-2",
+            type: "Breadcrumb",
+            props: {
+              children: "Docs",
+              href: "/docs",
+              size: "L",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["breadcrumbs-1", { x: 20, y: 24, width: 240, height: 28 }],
+        ["breadcrumb-1", { x: 20, y: 24, width: 72, height: 28 }],
+        ["breadcrumb-2", { x: 104, y: 24, width: 72, height: 28 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("breadcrumbs-1");
+    expect(collectText(node)).toEqual(expect.arrayContaining(["Home", "Docs"]));
+    expect(node?.children?.map((child) => child.elementId)).toEqual([
+      "breadcrumb-1",
+      "breadcrumb-2",
+    ]);
+    expect(renderBreadcrumbsShapes).not.toHaveBeenCalled();
+    expect(renderBreadcrumbShapes).not.toHaveBeenCalled();
+    renderBreadcrumbsShapes.mockRestore();
+    renderBreadcrumbShapes.mockRestore();
   });
 
   it("measures 200+ resolved Button refs under the 60fps frame budget", () => {

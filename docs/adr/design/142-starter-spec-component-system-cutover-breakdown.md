@@ -375,21 +375,25 @@ src/builder/factories/__tests__/componentRegistrationContract.test.ts`,
 검증: `pnpm run codex:typecheck`
 Gate: G6 일부 (legacy 격리 경계 확립)
 
-Status: In Progress — 2026-05-20 (Button / Separator / Link / ToggleButton /
-ToggleButtonGroup / Toolbar primitive wrapper boundary slices).
-`packages/shared/src/components/Button.tsx` 는 `toButtonRacProps()` 를,
+Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
+Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar primitive
+wrapper boundary slices). `packages/shared/src/components/Button.tsx` 는
+`toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
 `packages/shared/src/components/Link.tsx` 는 `toLinkRacProps()` 를,
+`packages/shared/src/components/Breadcrumbs.tsx` 는 `toBreadcrumbsRacProps()` 를,
+`packages/shared/src/components/Breadcrumb.tsx` 는 `toBreadcrumbRacProps()` 를,
 `packages/shared/src/components/ToggleButton.tsx` 는 `toToggleButtonRacProps()` 를,
 `packages/shared/src/components/ToggleButtonGroup.tsx` 는
 `toToggleButtonGroupRacProps()` 를, `packages/shared/src/components/Toolbar.tsx` 는
 `toToolbarRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
-props source 로 소비한다. ToggleButtonGroup/Toolbar 는
+props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar 는
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
 포함한다. `packages/shared/src/components/legacy/README.md` 는
 compatibility fallback 허용 범위와 active Builder authoring import 금지 경계를
-문서화했다. 이 slice 는 여섯 primitive 의 G6 boundary 를 고정하지만, 전체 primitive
-wrapper family 이동과 `index.ts` barrel 정리는 아직 남아 있다.
+문서화했다. 이 slice 는 placeable seven primitive plus Breadcrumb subpart 의 G6
+boundary 를 고정하지만, 전체 primitive wrapper family 이동과 `index.ts` barrel
+정리는 아직 남아 있다.
 
 ### Phase 4 — Panel + Factory catalog 배선
 
@@ -438,18 +442,20 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 검증: `pnpm -F @composition/specs build` / `pnpm run codex:typecheck`
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
-Status: In Progress — 2026-05-20 (Separator line + Link text + ToggleButton
-button-like + ToggleButtonGroup/Toolbar child-recursive generic Skia slices).
-`PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` / `toggle-button` 를
-추가하고, generic Skia path 가 Separator resolved node 를 `line` node 로, Link
-resolved node 를 underline text node 로, ToggleButton resolved node 를
-selected/emphasized 상태의 button-like container/text node 로 렌더한다.
+Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb text +
+ToggleButton button-like + ToggleButtonGroup/Toolbar child-recursive generic
+Skia slices). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
+`breadcrumb` / `toggle-button` 를 추가하고, generic Skia path 가 Separator resolved
+node 를 `line` node 로, Link resolved node 를 underline text node 로, Breadcrumb
+subpart 를 text node 로, ToggleButton resolved node 를 selected/emphasized 상태의
+button-like container/text node 로 렌더한다.
 ToggleButtonGroup/Toolbar 는 dedicated `skiaPrimitive` 없이 generic container +
 resolved children 재귀 렌더 경로로 커버한다. `canonicalSkiaSymmetry.test.ts` 는
 `SeparatorSpec.render.shapes()`, `LinkSpec.render.shapes()`,
+`BreadcrumbsSpec.render.shapes()`, `BreadcrumbSpec.render.shapes()`,
 `ToggleButtonSpec.render.shapes()`, `ToggleButtonGroupSpec.render.shapes()`,
 `ToolbarSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/ToggleButton/ToggleButtonGroup/Toolbar 외
+Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 ### Phase 6 — Family-gated atomic cutover

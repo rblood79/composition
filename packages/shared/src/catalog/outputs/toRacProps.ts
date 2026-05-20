@@ -8,6 +8,7 @@ import type {
   StaticColor,
 } from "../../types/componentVariants.types";
 
+export const BREADCRUMBS_SIZE_VALUES = ["S", "M", "L"] as const;
 export const BUTTON_VARIANT_VALUES = [
   "accent",
   "primary",
@@ -100,6 +101,45 @@ const TOGGLE_BUTTON_GROUP_SELECTION_MODES = new Set<string>(
 const TOOLBAR_ORIENTATIONS = new Set<string>(TOOLBAR_ORIENTATION_VALUES);
 const TOOLBAR_SIZES = new Set<ComponentSizeSubset>(TOOLBAR_SIZE_VALUES);
 const TOOLBAR_VARIANTS = new Set<string>(TOOLBAR_VARIANT_VALUES);
+const BREADCRUMBS_SIZES = new Set<string>(BREADCRUMBS_SIZE_VALUES);
+
+export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  label?: unknown;
+  title?: unknown;
+  href?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface BreadcrumbRacProps extends Record<string, unknown> {
+  children: string;
+  href?: string;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface BreadcrumbsCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  size?: unknown;
+  isDisabled?: unknown;
+  showRoot?: unknown;
+  isMultiline?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface BreadcrumbsRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  size: "S" | "M" | "L";
+  isDisabled?: boolean;
+  showRoot?: boolean;
+  isMultiline?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
 
 export interface ButtonCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -253,6 +293,44 @@ export interface ToolbarRacProps extends Record<string, unknown> {
   style?: Record<string, unknown>;
 }
 
+export function toBreadcrumbRacProps(
+  props: BreadcrumbCanonicalProps,
+): BreadcrumbRacProps {
+  return {
+    children: readBreadcrumbText(props),
+    ...(typeof props.href === "string" ? { href: props.href } : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
+export function toBreadcrumbsRacProps(
+  props: BreadcrumbsCanonicalProps,
+): BreadcrumbsRacProps {
+  return {
+    "aria-label": readBreadcrumbsLabel(props),
+    size: normalizeBreadcrumbsSize(props.size),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.showRoot === "boolean"
+      ? { showRoot: props.showRoot }
+      : {}),
+    ...(typeof props.isMultiline === "boolean"
+      ? { isMultiline: props.isMultiline }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toButtonRacProps(props: ButtonCanonicalProps): ButtonRacProps {
   return {
     children: readButtonText(props),
@@ -385,6 +463,19 @@ function readButtonText(props: ButtonCanonicalProps): string {
   return "Button";
 }
 
+function readBreadcrumbText(props: BreadcrumbCanonicalProps): string {
+  const value = props.children ?? props.label ?? props.title;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "Breadcrumb";
+}
+
+function readBreadcrumbsLabel(props: BreadcrumbsCanonicalProps): string {
+  return typeof props["aria-label"] === "string"
+    ? props["aria-label"]
+    : "Breadcrumbs";
+}
+
 function readLinkText(props: LinkCanonicalProps): string {
   const value = props.children ?? props.text ?? props.label;
   if (typeof value === "string") return value;
@@ -471,6 +562,12 @@ function normalizeToggleButtonSize(value: unknown): ComponentSizeSubset {
     TOGGLE_BUTTON_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
+}
+
+function normalizeBreadcrumbsSize(value: unknown): "S" | "M" | "L" {
+  return typeof value === "string" && BREADCRUMBS_SIZES.has(value)
+    ? (value as "S" | "M" | "L")
+    : "M";
 }
 
 function normalizeToggleButtonGroupSize(value: unknown): ComponentSizeSubset {

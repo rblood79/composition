@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { breadcrumbPrimitiveBinding } from "../primitives/breadcrumb";
+import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { toolbarPrimitiveBinding } from "../primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "../primitives/toggleButtonGroup";
@@ -106,6 +108,33 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.category).toBe("buttons");
   });
 
+  it("registers Breadcrumbs as an active primitive catalog entry with Breadcrumb child templates", () => {
+    const breadcrumbEntry = getComponentCatalogEntry("Breadcrumb");
+    const breadcrumbsEntry = getComponentCatalogEntry("Breadcrumbs");
+
+    expect(breadcrumbEntry?.kind).toBe("primitive");
+    if (breadcrumbEntry?.kind !== "primitive") return;
+    expect(breadcrumbEntry.binding).toBe(breadcrumbPrimitiveBinding);
+    expect(breadcrumbEntry.cutover).toBe("catalog");
+    expect(breadcrumbEntry.panel.placeable).toBe(false);
+
+    expect(breadcrumbsEntry?.kind).toBe("primitive");
+    if (breadcrumbsEntry?.kind !== "primitive") return;
+    expect(breadcrumbsEntry.binding).toBe(breadcrumbsPrimitiveBinding);
+    expect(breadcrumbsEntry.family).toBe("primitives/actions");
+    expect(breadcrumbsEntry.cutover).toBe("catalog");
+    expect(breadcrumbsEntry.binding.runtime.exportName).toBe("Breadcrumbs");
+    const placement = breadcrumbsEntry.binding.placement;
+    expect(placement?.kind).toBe("node-with-children");
+    if (placement?.kind !== "node-with-children") return;
+    expect(placement.children.map((child) => child.type)).toEqual([
+      "Breadcrumb",
+      "Breadcrumb",
+      "Breadcrumb",
+    ]);
+    expect(breadcrumbsEntry.panel.category).toBe("layout");
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -148,6 +177,8 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("ToggleButton");
     expect(activeTypes).toContain("ToggleButtonGroup");
     expect(activeTypes).toContain("Toolbar");
+    expect(activeTypes).toContain("Breadcrumbs");
+    expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });
 });

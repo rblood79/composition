@@ -1,3 +1,5 @@
+import { breadcrumbPrimitiveBinding } from "./primitives/breadcrumb";
+import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { separatorPrimitiveBinding } from "./primitives/separator";
@@ -22,6 +24,32 @@ export const componentCatalog = [
       category: "buttons",
       label: "button",
       icon: "MousePointer",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Breadcrumb",
+    family: "primitives/actions",
+    cutover: "catalog",
+    binding: breadcrumbPrimitiveBinding,
+    panel: {
+      category: "layout",
+      label: "breadcrumb",
+      icon: "ChevronRight",
+      placeable: false,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Breadcrumbs",
+    family: "primitives/actions",
+    cutover: "catalog",
+    binding: breadcrumbsPrimitiveBinding,
+    panel: {
+      category: "layout",
+      label: "breadcrumbs",
+      icon: "ChevronRight",
       placeable: true,
     },
   },

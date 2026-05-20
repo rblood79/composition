@@ -21,6 +21,8 @@ import { rendererMap } from "@composition/shared/renderers";
 import {
   adaptElementFillStyle,
   getPrimitiveBinding,
+  type BreadcrumbRacProps,
+  type BreadcrumbsRacProps,
   type ButtonRacProps,
   type LinkRacProps,
   type SeparatorRacProps,
@@ -29,6 +31,8 @@ import {
   type ToggleButtonRacProps,
 } from "@composition/shared";
 import {
+  Breadcrumb,
+  Breadcrumbs,
   Button,
   Link,
   Separator,
@@ -220,6 +224,38 @@ function renderPrimitiveNode({
     ) as SeparatorRacProps;
 
     return <Separator key={node.id} {...separatorProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Breadcrumb") {
+    const { children: racChildren, ...breadcrumbProps } = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as BreadcrumbRacProps;
+
+    return (
+      <Breadcrumb key={node.id} {...breadcrumbProps} {...markerProps}>
+        {racChildren}
+      </Breadcrumb>
+    );
+  }
+
+  if (adaptedEl.type === "Breadcrumbs") {
+    const breadcrumbsProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as BreadcrumbsRacProps;
+    const renderedChildren = node.children?.map((child) => (
+      <CanonicalNodeRenderer
+        key={child.id}
+        node={child}
+        renderContext={renderContext}
+        parentPath={parentPath}
+      />
+    ));
+
+    return (
+      <Breadcrumbs key={node.id} {...breadcrumbsProps} {...markerProps}>
+        {renderedChildren}
+      </Breadcrumbs>
+    );
   }
 
   if (adaptedEl.type === "Link") {

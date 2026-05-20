@@ -13,6 +13,8 @@ import { CanonicalNodeRenderer } from "./CanonicalNodeRenderer";
 
 const {
   legacyButtonRenderer,
+  legacyBreadcrumbRenderer,
+  legacyBreadcrumbsRenderer,
   legacyLinkRenderer,
   legacySeparatorRenderer,
   legacyToggleButtonRenderer,
@@ -21,6 +23,12 @@ const {
 } = vi.hoisted(() => ({
   legacyButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="Button">legacy</button>
+  )),
+  legacyBreadcrumbRenderer: vi.fn(() => (
+    <li data-legacy-renderer="Breadcrumb">legacy</li>
+  )),
+  legacyBreadcrumbsRenderer: vi.fn(() => (
+    <nav data-legacy-renderer="Breadcrumbs">legacy</nav>
   )),
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacySeparatorRenderer: vi.fn(() => (
@@ -40,6 +48,8 @@ const {
 vi.mock("@composition/shared/renderers", () => ({
   rendererMap: {
     Button: legacyButtonRenderer,
+    Breadcrumb: legacyBreadcrumbRenderer,
+    Breadcrumbs: legacyBreadcrumbsRenderer,
     Link: legacyLinkRenderer,
     Separator: legacySeparatorRenderer,
     ToggleButton: legacyToggleButtonRenderer,
@@ -65,6 +75,8 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
   afterEach(() => {
     cleanup();
     legacyButtonRenderer.mockClear();
+    legacyBreadcrumbRenderer.mockClear();
+    legacyBreadcrumbsRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
@@ -299,5 +311,48 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(legacyToolbarRenderer).not.toHaveBeenCalled();
     expect(legacyButtonRenderer).not.toHaveBeenCalled();
     expect(legacySeparatorRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Breadcrumbs and Breadcrumb children through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "breadcrumbs-1",
+      type: "Breadcrumbs",
+      props: {
+        "aria-label": "Trail",
+        size: "L",
+      },
+      children: [
+        {
+          id: "breadcrumb-1",
+          type: "Breadcrumb",
+          props: {
+            children: "Home",
+            href: "/",
+          },
+        },
+        {
+          id: "breadcrumb-2",
+          type: "Breadcrumb",
+          props: {
+            children: "Docs",
+            href: "/docs",
+          },
+        },
+      ],
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const navigation = screen.getByRole("list", { name: "Trail" });
+    const docs = screen.getByRole("link", { name: "Docs" });
+    expect(navigation.dataset.size).toBe("L");
+    expect(container.querySelector("[data-canonical-id='breadcrumbs-1']")).toBe(
+      navigation,
+    );
+    expect(docs.getAttribute("href")).toBe("/docs");
+    expect(legacyBreadcrumbsRenderer).not.toHaveBeenCalled();
+    expect(legacyBreadcrumbRenderer).not.toHaveBeenCalled();
   });
 });

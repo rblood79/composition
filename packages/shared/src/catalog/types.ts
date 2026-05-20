@@ -26,7 +26,7 @@ export interface PrimitiveRuntimeDescriptor {
 }
 
 export interface PrimitiveSkiaDescriptor {
-  kind: "button" | "link" | "separator" | "toggle-button";
+  kind: "breadcrumb" | "button" | "link" | "separator" | "toggle-button";
 }
 
 export interface PrimitivePlacementChildTemplate {

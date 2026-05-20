@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Breadcrumbs primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Breadcrumbs active primitive binding 추가**:
+  - `componentCatalog` 에 `Breadcrumbs` 를 `cutover:"catalog"` active primitive 로 등록했다.
+  - subpart `Breadcrumb` 는 non-placeable primitive binding 으로 등록해 parent resolved-tree 렌더와 Skia text 렌더를 legacy renderer/spec 에 맡기지 않는다.
+  - canonical props → RAC props projection 인 `toBreadcrumbsRacProps()` / `toBreadcrumbRacProps()` 와 각 PrimitiveBinding 을 추가했다.
+- **Breadcrumbs shared wrapper / Preview / Skia generic 경로 연결**:
+  - `Breadcrumbs.tsx` 와 `Breadcrumb.tsx` 가 catalog projection 을 소비하도록 전환했다.
+  - `CanonicalNodeRenderer` 가 Breadcrumbs/Breadcrumb resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 Breadcrumb subpart 를 text node 로 렌더하고 `BreadcrumbsSpec.render.shapes()` / `BreadcrumbSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `primitives/actions` family 의 일곱 번째 active primitive pilot 이다. `Breadcrumb` 는 panel placeable 이 아닌 parent subpart binding 이다.
+
 ## [ADR-142 Phase 3/5/6 — Toolbar primitive catalog pilot] - 2026-05-20
 
 ### Architecture

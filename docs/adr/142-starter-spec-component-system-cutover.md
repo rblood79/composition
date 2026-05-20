@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/ToggleButton/ToggleButtonGroup/Toolbar primitive wrapper boundary slice 완료; Separator/Link/ToggleButton/ToggleButtonGroup/Toolbar generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar primitive wrapper boundary slice 완료; Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
 
 ## Context
 
@@ -278,6 +278,24 @@ children 을 재귀 렌더하고 `ToolbarSpec.render.shapes()` 를 호출하지 
 가진다. 이는 `primitives/actions` family 의 여섯 번째 active primitive pilot 이다.
 Icon/Badge 는 RAC runtime primitive 가 아닌 local visual wrapper 이므로 별도 분류
 없이는 `PrimitiveRuntimeSource: "react-aria-components"` 로 승격하지 않는다.
+
+2026-05-20 추가 판정: Breadcrumbs primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/breadcrumbs.ts` 와
+`toBreadcrumbsRacProps()` 가 Breadcrumbs canonical props 를 RAC Breadcrumbs props 로
+정규화한다. subpart `Breadcrumb` 는
+`packages/shared/src/catalog/primitives/breadcrumb.ts` 와 `toBreadcrumbRacProps()` 로
+non-placeable primitive binding 을 갖는다. `componentCatalog` 는 Breadcrumbs 를
+`cutover:"catalog"` active placeable primitive 로, Breadcrumb 을 parent-only
+non-placeable primitive 로 등록한다. Breadcrumbs placement 는
+`PrimitiveBinding.placement` child template 으로 기본 Breadcrumb 자식 3개를 함께
+만든다. `packages/shared/src/components/Breadcrumbs.tsx` 와
+`packages/shared/src/components/Breadcrumb.tsx` 는 shared wrapper surface 에서 이
+projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 Breadcrumbs/Breadcrumb
+resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+generic Skia path 는 Breadcrumb subpart 를 text node 로 렌더하고
+`BreadcrumbsSpec.render.shapes()` / `BreadcrumbSpec.render.shapes()` 를 호출하지
+않는 fixture 를 가진다. 이는 `primitives/actions` family 의 일곱 번째 active
+primitive pilot 이다.
 
 ## Consequences
 

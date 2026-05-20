@@ -20,10 +20,12 @@ import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   getPrimitiveBinding,
+  toBreadcrumbRacProps,
   toButtonRacProps,
   toLinkRacProps,
   toSeparatorRacProps,
   toToggleButtonRacProps,
+  type BreadcrumbRacProps,
   type ButtonRacProps,
   type LinkRacProps,
   type ResolvedNode,
@@ -798,6 +800,9 @@ export function buildGenericResolvedSkiaNodeData(
   if (binding?.skiaPrimitive?.kind === "button") {
     return buildGenericButtonNode(input.node, layout, input.theme);
   }
+  if (binding?.skiaPrimitive?.kind === "breadcrumb") {
+    return buildGenericBreadcrumbNode(input.node, layout, input.theme);
+  }
   if (binding?.skiaPrimitive?.kind === "link") {
     return buildGenericLinkNode(input.node, layout, input.theme);
   }
@@ -905,6 +910,49 @@ function buildGenericButtonNode(
       strokeWidth: palette.strokeWidth,
     },
     children: [textNode],
+  };
+}
+
+function buildGenericBreadcrumbNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toBreadcrumbRacProps(node.props ?? {}) as BreadcrumbRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericBreadcrumbSize(
+    typeof node.props?.size === "string" ? node.props.size : "M",
+  );
+  const textColor =
+    typeof style.color === "string"
+      ? colorIntToFloat32(cssColorToHex(style.color), 1)
+      : colorIntToFloat32(
+          cssColorToHex(theme === "dark" ? "#d1d5db" : "#4b5563"),
+          1,
+        );
+
+  return {
+    type: "text",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: readNumber(style.fontSize, size.fontSize),
+      fontWeight: 500,
+      color: textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: layout.width,
+      whiteSpace: "nowrap",
+      textOverflow: "ellipsis",
+    },
   };
 }
 
@@ -1120,6 +1168,21 @@ function resolveGenericButtonSize(size: ButtonRacProps["size"]): {
     case "md":
     default:
       return { fontSize: 14, lineHeight: 20, radius: 6 };
+  }
+}
+
+function resolveGenericBreadcrumbSize(size: unknown): {
+  fontSize: number;
+  lineHeight: number;
+} {
+  switch (size) {
+    case "S":
+      return { fontSize: 12, lineHeight: 16 };
+    case "L":
+      return { fontSize: 16, lineHeight: 24 };
+    case "M":
+    default:
+      return { fontSize: 14, lineHeight: 20 };
   }
 }
 
