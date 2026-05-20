@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Menu, MousePointer } from "lucide-react";
 
 import {
+  getComponentPanelGroups,
   getCatalogPanelComponents,
   mergeCatalogPanelComponents,
   type ComponentPanelDefinition,
@@ -16,6 +17,21 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     expect(button?.categoryKey).toBe("buttons");
     expect(button?.label).toBe("button");
     expect(button?.icon).toBe(MousePointer);
+  });
+
+  it("builds panel groups from shared catalog inventory", () => {
+    const normalGroups = getComponentPanelGroups({ isLayoutMode: false });
+    const layoutGroups = getComponentPanelGroups({ isLayoutMode: true });
+
+    expect(
+      normalGroups.buttons.find((item) => item.type === "Button")?.source,
+    ).toBe("catalog");
+    expect(normalGroups.layout.some((item) => item.type === "Slot")).toBe(
+      false,
+    );
+    expect(layoutGroups.layout.some((item) => item.type === "Slot")).toBe(true);
+    expect(normalGroups.content.length).toBeGreaterThan(5);
+    expect(normalGroups.forms.length).toBeGreaterThan(5);
   });
 
   it("lets catalog entries replace matching legacy panel definitions", () => {

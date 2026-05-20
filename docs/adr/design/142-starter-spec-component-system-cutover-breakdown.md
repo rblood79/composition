@@ -395,15 +395,18 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 검증: `pnpm test:registration-contract` / `pnpm run codex:typecheck`
 Gate: G3 (불변식), G4 (family 마다 Phase 6 에서)
 
-Status: In Progress — 2026-05-20. Active catalog entry bridge 완료:
+Status: Implemented — 2026-05-20. Active catalog entry bridge 완료:
 `apps/builder/src/builder/panels/components/componentPanelCatalog.ts` 가
 `cutover:"catalog"` entry 를 panel item 으로 매핑하고 같은 type 의 legacy panel
 definition 을 제자리 replacement 한다. `useElementCreator` 의
 `resolveDefaultPropsForCreation()` 은 active primitive catalog entry 의
-`binding.defaultProps` 를 legacy `getDefaultProps` 보다 먼저 사용한다. Fixture:
-`componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`. 남은 G3 배선:
-non-catalog legacy hard-coded panel list 를 catalog inventory 로 이동하고, reusable
-catalog entry 배치를 `type:"ref"` insertion 으로 연결한다.
+`binding.defaultProps` 를 legacy `getDefaultProps` 보다 먼저 사용한다.
+`packages/shared/src/catalog/panelInventory.ts` 가 기존 Component Panel 7개 카테고리
+inventory 를 보유하고, `ComponentList` 는 이 shared catalog inventory 를 소비한다.
+`resolveCatalogElementCreation()` 은 reusable catalog entry 가 `cutover:"catalog"` 로
+전환될 때 `type:"ref"` + `ref/masterId/componentRole:"instance"` payload 를 만든다.
+Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
+실제 reusable active flip 은 family cutover gate 에서 수행한다.
 
 ### Phase 5 — CSS / Skia generic 생성 정합
 

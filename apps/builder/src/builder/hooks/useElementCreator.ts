@@ -1,6 +1,10 @@
 import { useCallback, useRef, useEffect } from "react";
 import type { CompositionDocument } from "@composition/shared";
-import { getCatalogDefaultProps } from "@composition/shared/catalog";
+import {
+  getCatalogDefaultProps,
+  getComponentCatalogEntry,
+  type ComponentCatalogEntry,
+} from "@composition/shared/catalog";
 import {
   Element,
   ComponentElementProps,
@@ -57,6 +61,19 @@ interface ResolveCreationParentIdInput {
   doc: CompositionDocument;
 }
 
+export interface CatalogElementCreationPayload {
+  elementType: string;
+  props: ComponentElementProps;
+  ref?: string;
+  componentRole?: "instance";
+  masterId?: string;
+  componentName?: string;
+}
+
+function isCatalogEntry(value: unknown): value is ComponentCatalogEntry {
+  return value !== null && typeof value === "object" && "cutover" in value;
+}
+
 export function resolveCreationParentId({
   selectedElementId,
   elements,
@@ -77,6 +94,36 @@ export function resolveCreationParentId({
     layoutId || null,
     doc,
   );
+}
+
+export function resolveCatalogElementCreation(
+  input: string | ComponentCatalogEntry,
+): CatalogElementCreationPayload | undefined {
+  const entry = isCatalogEntry(input) ? input : getComponentCatalogEntry(input);
+  if (!entry || entry.cutover !== "catalog") return undefined;
+
+  if (entry.kind === "primitive") {
+    return {
+      elementType: entry.type,
+      props: { ...entry.binding.defaultProps } as ComponentElementProps,
+    };
+  }
+
+  if (entry.kind === "reusable") {
+    return {
+      elementType: "ref",
+      props: {} as ComponentElementProps,
+      ref: entry.reusableId,
+      componentRole: "instance",
+      masterId: entry.reusableId,
+      componentName: entry.type,
+    };
+  }
+
+  return {
+    elementType: entry.type,
+    props: {} as ComponentElementProps,
+  };
 }
 
 export function resolveDefaultPropsForCreation(
@@ -158,7 +205,8 @@ export const useElementCreator = (): UseElementCreatorReturn => {
           // 복합 컴포넌트인지 확인 (공유 상수 사용)
 
           const operation = async () => {
-            if (COMPLEX_COMPONENT_TAGS.has(type)) {
+            const catalogCreation = resolveCatalogElementCreation(type);
+            if (!catalogCreation && COMPLEX_COMPONENT_TAGS.has(type)) {
               // ComponentFactory를 사용하여 복합 컴포넌트 생성
               const result = await ComponentFactory.createComplexComponent(
                 type,
@@ -209,12 +257,25 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 }
               }
 
+              const creation = catalogCreation ?? {
+                elementType: type,
+                props: getDefaultProps(type),
+              };
+
               const newElement: Element = withFrameElementMirrorId(
                 {
                   id: crypto.randomUUID(), // UUID 생성
-                  type,
+                  type: creation.elementType,
                   customId: generateCustomId(type, elements),
-                  props: getDefaultProps(type),
+                  props: creation.props,
+                  ...(creation.ref
+                    ? {
+                        ref: creation.ref,
+                        componentRole: creation.componentRole,
+                        masterId: creation.masterId,
+                        componentName: creation.componentName,
+                      }
+                    : {}),
                   // Layout 모드면 legacy layout binding 사용, 아니면 page_id 사용
                   page_id: layoutId ? null : currentPageId,
                   parent_id: parentId,

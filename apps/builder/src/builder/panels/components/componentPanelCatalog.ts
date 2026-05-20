@@ -1,12 +1,57 @@
 import type { ComponentType, SVGProps } from "react";
 import {
+  AlertTriangle,
   AppWindowMac,
+  AppWindow,
+  BarChart3,
+  Calendar,
+  CalendarCheck,
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  CircleDashed,
+  CircleDot,
+  CircleUser,
+  FileUp,
+  Frame,
+  Grid,
+  GroupIcon,
+  Hash,
+  ImageIcon,
+  InspectionPanel,
+  Layers,
+  Link as LinkIcon,
+  ListIcon,
+  ListTree,
+  Loader,
+  Menu,
+  MessageSquare,
   MousePointer,
+  Paintbrush,
+  RectangleEllipsis,
+  Search,
+  SeparatorHorizontal,
+  Settings,
+  SlidersHorizontal,
+  Smile,
   Square,
+  SquareCheck,
+  Star,
+  TableProperties,
+  Tag,
+  Text,
+  ToggleLeft,
+  ToggleRight,
+  Upload,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import {
+  componentPanelCategoryConfig,
+  listComponentPanelInventoryEntries,
   listPlaceableCatalogEntries,
+  type ComponentPanelCategory,
+  type ComponentPanelInventoryEntry,
   type ComponentCatalogEntry,
 } from "@composition/shared/catalog";
 
@@ -21,10 +66,53 @@ export interface ComponentPanelDefinition {
   source?: ComponentPanelSource;
 }
 
+export const categoryConfig = componentPanelCategoryConfig;
+
 const catalogIconMap: Record<string, LucideIcon> = {
+  AlertTriangle,
+  AppWindow,
   AppWindowMac,
+  BarChart3,
+  Calendar,
+  CalendarCheck,
+  CalendarDays,
+  ChevronDown,
+  ChevronRight,
+  CircleDashed,
+  CircleDot,
+  CircleUser,
+  FileUp,
+  Frame,
+  Grid,
+  GroupIcon,
+  Hash,
+  ImageIcon,
+  InspectionPanel,
+  Layers,
+  Link: LinkIcon,
+  ListIcon,
+  ListTree,
+  Loader,
+  Menu,
+  MessageSquare,
   MousePointer,
+  Paintbrush,
+  RectangleEllipsis,
+  Search,
+  SeparatorHorizontal,
+  Settings,
+  SlidersHorizontal,
+  Smile,
   Square,
+  SquareCheck,
+  Star,
+  TableProperties,
+  Tag,
+  Text,
+  ToggleLeft,
+  ToggleRight,
+  Upload,
+  Users,
 };
 
 function catalogIcon(entry: ComponentCatalogEntry): LucideIcon {
@@ -43,6 +131,27 @@ export function getCatalogPanelComponents(
       categoryKey: entry.panel.category,
       source: "catalog",
     }));
+}
+
+function panelInventoryIcon(entry: ComponentPanelInventoryEntry): LucideIcon {
+  return catalogIconMap[entry.icon] ?? Square;
+}
+
+export function getPanelInventoryComponents({
+  isLayoutMode,
+}: {
+  isLayoutMode: boolean;
+}): ComponentPanelDefinition[] {
+  return listComponentPanelInventoryEntries({
+    includeLayoutOnly: isLayoutMode,
+  }).map((entry) => ({
+    type: entry.type,
+    label: entry.label,
+    icon: panelInventoryIcon(entry),
+    layoutOnly: entry.layoutOnly,
+    categoryKey: entry.category,
+    source: "legacy",
+  }));
 }
 
 export function mergeCatalogPanelComponents<
@@ -79,4 +188,34 @@ export function mergeCatalogPanelComponents<
   }
 
   return merged;
+}
+
+function emptyPanelGroups(): Record<
+  ComponentPanelCategory,
+  ComponentPanelDefinition[]
+> {
+  return {
+    content: [],
+    layout: [],
+    buttons: [],
+    forms: [],
+    collections: [],
+    dateTime: [],
+    overlays: [],
+  };
+}
+
+export function getComponentPanelGroups({
+  isLayoutMode,
+}: {
+  isLayoutMode: boolean;
+}): Record<ComponentPanelCategory, ComponentPanelDefinition[]> {
+  const groups = emptyPanelGroups();
+
+  for (const component of getPanelInventoryComponents({ isLayoutMode })) {
+    const categoryKey = component.categoryKey as ComponentPanelCategory;
+    groups[categoryKey].push(component);
+  }
+
+  return mergeCatalogPanelComponents(groups, getCatalogPanelComponents());
 }

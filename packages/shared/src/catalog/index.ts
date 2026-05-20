@@ -5,3 +5,4 @@ export * from "./primitives/button";
 export * from "./registry";
 export * from "./library";
 export * from "./componentCatalog";
+export * from "./panelInventory";

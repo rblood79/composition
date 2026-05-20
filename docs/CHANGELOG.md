@@ -17,10 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Element creation default props catalog 우선 경로 추가**:
   - `useElementCreator` 의 default props resolver 가 active primitive catalog entry 의 `binding.defaultProps` 를 legacy `getDefaultProps` 보다 먼저 사용한다.
   - Button creation 기본 props 가 `PrimitiveBinding.defaultProps` 에서 오는 fixture 를 추가했다.
+- **legacy panel inventory 를 shared catalog surface 로 이동**:
+  - Component Panel의 기존 hard-coded 7개 카테고리 목록을 `packages/shared/src/catalog/panelInventory.ts` 로 이동했다.
+  - `ComponentList` 는 shared panel inventory + active `componentCatalog` replacement 결과만 소비한다.
+- **reusable ref insertion payload 기반 추가**:
+  - reusable catalog entry 가 `cutover:"catalog"` 로 전환될 때 `type:"ref"` + `ref/masterId/componentRole:"instance"` payload 로 생성되도록 `resolveCatalogElementCreation()`을 추가했다.
 
 ### Documentation
 
-- 이 변경은 active catalog entry bridge 이며, non-catalog legacy hard-coded panel list 제거와 reusable factory ref insertion 은 다음 G3 잔여 작업이다.
+- 이 변경은 G3 catalog inventory bridge 이며, reusable catalog entry 의 실제 active flip 은 family cutover gate 에서 수행한다.
 
 ## [ADR-142 Phase 2 — componentCatalog + reusable library seed] - 2026-05-20
 

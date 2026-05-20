@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 active Button Panel/Factory bridge 완료; 다음 진입점 G3 legacy panel list 제거 + reusable factory ref insertion)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; 다음 진입점 Phase 3 shared primitive wrapper surface + legacy boundary)
 
 ## Context
 
@@ -198,8 +198,12 @@ catalog-only 배선은 아직 완료 판정하지 않는다 — 다음 진입점
 같은 type 의 legacy panel definition 을 기존 위치에서 replacement 한다. 현재 active
 entry 인 Button 은 catalog `panel` metadata 가 source 다. `useElementCreator` 는
 active primitive catalog entry 의 `binding.defaultProps` 를 legacy
-`getDefaultProps` 보다 먼저 사용한다. 단, non-catalog legacy hard-coded panel list
-제거와 reusable entry 의 factory `ref` insertion 은 아직 남아 있다.
+`getDefaultProps` 보다 먼저 사용한다. 이어서 기존 Component Panel 7개 카테고리
+inventory 를 `packages/shared/src/catalog/panelInventory.ts` 로 이동해
+`ComponentList` 가 shared catalog inventory + active catalog replacement 결과만
+소비하도록 바꿨다. reusable catalog entry 는 `cutover:"catalog"` 로 전환될 때
+`type:"ref"` + `ref/masterId/componentRole:"instance"` payload 로 해석된다. 실제
+reusable active flip 은 family cutover gate 에서 수행한다.
 
 ## Consequences
 
