@@ -216,6 +216,22 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Checkbox placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Checkbox");
+
+    expect(creation).toMatchObject({
+      elementType: "Checkbox",
+      props: {
+        children: "Checkbox",
+        size: "md",
+        isSelected: false,
+        isIndeterminate: false,
+        isEmphasized: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

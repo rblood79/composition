@@ -177,6 +177,7 @@ export const TOGGLE_BUTTON_GROUP_SELECTION_MODE_VALUES = [
 export const TOOLBAR_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const TOOLBAR_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const TOOLBAR_VARIANT_VALUES = ["default", "accent"] as const;
+export const CHECKBOX_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const SWITCH_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
@@ -246,6 +247,7 @@ const TOGGLE_BUTTON_GROUP_SELECTION_MODES = new Set<string>(
 const TOOLBAR_ORIENTATIONS = new Set<string>(TOOLBAR_ORIENTATION_VALUES);
 const TOOLBAR_SIZES = new Set<ComponentSizeSubset>(TOOLBAR_SIZE_VALUES);
 const TOOLBAR_VARIANTS = new Set<string>(TOOLBAR_VARIANT_VALUES);
+const CHECKBOX_SIZES = new Set<ComponentSizeSubset>(CHECKBOX_SIZE_VALUES);
 const SWITCH_SIZES = new Set<ComponentSizeSubset>(SWITCH_SIZE_VALUES);
 const BREADCRUMBS_SIZES = new Set<string>(BREADCRUMBS_SIZE_VALUES);
 
@@ -773,6 +775,45 @@ export interface SwitchRacProps extends Record<string, unknown> {
   isLoading?: boolean;
   name?: string;
   value?: string;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface CheckboxCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  label?: unknown;
+  size?: unknown;
+  isSelected?: unknown;
+  defaultSelected?: unknown;
+  isIndeterminate?: unknown;
+  isEmphasized?: unknown;
+  isDisabled?: unknown;
+  isInvalid?: unknown;
+  isReadOnly?: unknown;
+  isRequired?: unknown;
+  isLoading?: unknown;
+  name?: unknown;
+  value?: unknown;
+  form?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface CheckboxRacProps extends Record<string, unknown> {
+  children: string;
+  size: ComponentSizeSubset;
+  isEmphasized: boolean;
+  isSelected?: boolean;
+  defaultSelected?: boolean;
+  isIndeterminate?: boolean;
+  isDisabled?: boolean;
+  isInvalid?: boolean;
+  isReadOnly?: boolean;
+  isRequired?: boolean;
+  isLoading?: boolean;
+  name?: string;
+  value?: string;
+  form?: string;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -1414,6 +1455,47 @@ export function toSwitchRacProps(props: SwitchCanonicalProps): SwitchRacProps {
   };
 }
 
+export function toCheckboxRacProps(
+  props: CheckboxCanonicalProps,
+): CheckboxRacProps {
+  return {
+    children: readCheckboxText(props),
+    size: normalizeCheckboxSize(props.size),
+    isEmphasized: props.isEmphasized === true,
+    ...(typeof props.isSelected === "boolean"
+      ? { isSelected: props.isSelected }
+      : {}),
+    ...(typeof props.defaultSelected === "boolean"
+      ? { defaultSelected: props.defaultSelected }
+      : {}),
+    ...(typeof props.isIndeterminate === "boolean"
+      ? { isIndeterminate: props.isIndeterminate }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isLoading === "boolean"
+      ? { isLoading: props.isLoading }
+      : {}),
+    ...(typeof props.name === "string" ? { name: props.name } : {}),
+    ...(typeof props.value === "string" ? { value: props.value } : {}),
+    ...(typeof props.form === "string" ? { form: props.form } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -1513,6 +1595,13 @@ function readSwitchText(props: SwitchCanonicalProps): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   return "Switch";
+}
+
+function readCheckboxText(props: CheckboxCanonicalProps): string {
+  const value = props.children ?? props.label;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "Checkbox";
 }
 
 function normalizeButtonVariant(value: unknown): ButtonVariant {
@@ -1895,6 +1984,13 @@ function normalizeToolbarVariant(value: unknown): "default" | "accent" {
 function normalizeSwitchSize(value: unknown): ComponentSizeSubset {
   return typeof value === "string" &&
     SWITCH_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeCheckboxSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    CHECKBOX_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
 }

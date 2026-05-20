@@ -378,7 +378,7 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar / TextField /
 NumberField / SearchField / DateField / TimeField / ColorField / Form /
-FileTrigger
+FileTrigger / Checkbox
 primitive wrapper boundary slices; Button Icon PropContract parity). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
@@ -396,7 +396,8 @@ primitive wrapper boundary slices; Button Icon PropContract parity). `packages/s
 `toTimeFieldRacProps()` 를, `packages/shared/src/components/ColorField.tsx` 는
 `toColorFieldRacProps()` 를, `packages/shared/src/components/Form.tsx` 는
 `toFormRacProps()` 를, `packages/shared/src/components/FileTrigger.tsx` 는
-`toFileTriggerRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
+`toFileTriggerRacProps()` 를, `packages/shared/src/components/Checkbox.tsx` 는
+`toCheckboxRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
 props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar/Form/FileTrigger 은
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
 포함한다. Button 은 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 으로
@@ -455,13 +456,14 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
-ToggleButton button-like + Switch track/thumb/label + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
+ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
 Skia slices; Button icon_path parity). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
-`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `toggle-button` / `switch` 를 추가하고, generic Skia path 가
+`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `toggle-button` / `switch` / `checkbox` 를 추가하고, generic Skia path 가
 Separator resolved node 를 `line` node 로, Link resolved node 를 underline text node
 로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField/TimeField/ColorField resolved node 를
 label/input/value container/text node 로, ColorField swatch 를 box node 로, ToggleButton resolved node 를 selected/emphasized 상태의
-button-like container/text node 로, Switch resolved node 를 track/thumb/label container+box/text node 로 렌더한다.
+button-like container/text node 로, Switch resolved node 를 track/thumb/label container+box/text node 로,
+Checkbox resolved node 를 box/indicator/label container+box/text node 로 렌더한다.
 ToggleButtonGroup/Toolbar/Form/FileTrigger 은 dedicated `skiaPrimitive` 없이 generic container +
 resolved children 재귀 렌더 경로로 커버한다. Button `iconName` 은 generic Skia
 Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.ts` 는
@@ -474,9 +476,10 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `FormSpec.render.shapes()`, `FileTriggerSpec.render.shapes()`,
 `ToggleButtonSpec.render.shapes()`,
 `SwitchSpec.render.shapes()`,
+`CheckboxSpec.render.shapes()`,
 `ToggleButtonGroupSpec.render.shapes()`,
 `ToolbarSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/ToggleButtonGroup/Toolbar 외
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/Checkbox/ToggleButtonGroup/Toolbar 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
@@ -493,7 +496,13 @@ actions/fields primitive 의 Inspector active path 는 `properties.sections` /
 `switchPrimitiveBinding` / `toSwitchRacProps()` / shared `Switch.tsx` projection /
 Preview primitive branch / generic Skia track-thumb-label fixture 를 추가했고,
 `SwitchSpec.render.shapes()` 미호출을 검증한다. 이는 selection family 의 첫 slice 이며
-Checkbox, CheckboxGroup, Radio, RadioGroup, Slider 는 아직 legacy cutover 잔여다.
+이후 Checkbox slice 로 확장했다.
+
+2026-05-20 추가 slice: Checkbox selection primitive 를 `cutover:"catalog"` 로 등록했다.
+`checkboxPrimitiveBinding` / `toCheckboxRacProps()` / shared `Checkbox.tsx` projection /
+Preview primitive branch / generic Skia box-indicator-label fixture 를 추가했고,
+`CheckboxSpec.render.shapes()` 미호출을 검증한다. Checkbox 는 TreeItem 내부 slot 예외를
+wrapper 에 유지한다. selection family 잔여는 CheckboxGroup, Radio, RadioGroup, Slider 다.
 
 ### Phase 6 — Family-gated atomic cutover
 

@@ -6,6 +6,7 @@ import {
   BreadcrumbSpec,
   BreadcrumbsSpec,
   ButtonSpec,
+  CheckboxSpec,
   ColorFieldSpec,
   DateFieldSpec,
   FileTriggerSpec,
@@ -239,6 +240,32 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("switch-1");
     expect(collectText(node)).toContain("Notifications");
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Checkbox through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(CheckboxSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "checkbox-1",
+        type: "Checkbox",
+        props: {
+          children: "Remember me",
+          isSelected: true,
+          isEmphasized: true,
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 180, height: 36 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("checkbox-1");
+    expect(collectText(node)).toContain("Remember me");
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();

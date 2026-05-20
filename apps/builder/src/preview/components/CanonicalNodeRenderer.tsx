@@ -24,6 +24,7 @@ import {
   type BreadcrumbRacProps,
   type BreadcrumbsRacProps,
   type ButtonRacProps,
+  type CheckboxRacProps,
   type ColorFieldRacProps,
   type DateFieldRacProps,
   type FileTriggerRacProps,
@@ -43,6 +44,7 @@ import {
   Breadcrumb,
   Breadcrumbs,
   Button,
+  Checkbox,
   ColorField,
   DateField,
   FileTrigger,
@@ -374,6 +376,14 @@ function renderPrimitiveNode({
     ) as SwitchRacProps;
 
     return <Switch key={node.id} {...switchProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Checkbox") {
+    const checkboxProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as CheckboxRacProps;
+
+    return <Checkbox key={node.id} {...checkboxProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

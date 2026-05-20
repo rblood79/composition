@@ -25,6 +25,7 @@ describe("ADR-142 Component Panel catalog bridge", () => {
       (item) => item.type === "FileTrigger",
     );
     const switchControl = catalogItems.find((item) => item.type === "Switch");
+    const checkbox = catalogItems.find((item) => item.type === "Checkbox");
 
     expect(button?.source).toBe("catalog");
     expect(button?.categoryKey).toBe("buttons");
@@ -51,6 +52,9 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     expect(switchControl?.source).toBe("catalog");
     expect(switchControl?.categoryKey).toBe("forms");
     expect(switchControl?.label).toBe("switch");
+    expect(checkbox?.source).toBe("catalog");
+    expect(checkbox?.categoryKey).toBe("forms");
+    expect(checkbox?.label).toBe("checkbox");
   });
 
   it("builds panel groups from shared catalog inventory", () => {

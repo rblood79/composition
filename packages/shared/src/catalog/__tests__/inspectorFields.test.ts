@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
@@ -13,6 +14,7 @@ import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
 import {
   toButtonRacProps,
+  toCheckboxRacProps,
   toColorFieldRacProps,
   toDateFieldRacProps,
   toFileTriggerRacProps,
@@ -585,6 +587,64 @@ describe("ADR-142 inspector field contracts", () => {
       isDisabled: false,
       isReadOnly: true,
       value: "notifications",
+    });
+  });
+
+  it("groups Checkbox PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "Checkbox",
+      contracts: checkboxPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { Checkbox: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual(["children"]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "isEmphasized",
+      "size",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "isSelected",
+      "isIndeterminate",
+      "isRequired",
+      "isInvalid",
+      "isDisabled",
+      "isReadOnly",
+      "isLoading",
+    ]);
+  });
+
+  it("projects Checkbox canonical props through the catalog boundary", () => {
+    expect(
+      toCheckboxRacProps({
+        children: "Remember me",
+        size: "lg",
+        isEmphasized: true,
+        isSelected: true,
+        isIndeterminate: false,
+        isRequired: true,
+        isInvalid: true,
+        isDisabled: false,
+        isReadOnly: true,
+        value: "remember",
+      }),
+    ).toMatchObject({
+      children: "Remember me",
+      size: "lg",
+      isEmphasized: true,
+      isSelected: true,
+      isIndeterminate: false,
+      isRequired: true,
+      isInvalid: true,
+      isDisabled: false,
+      isReadOnly: true,
+      value: "remember",
     });
   });
 });

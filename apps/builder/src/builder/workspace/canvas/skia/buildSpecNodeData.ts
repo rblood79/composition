@@ -22,6 +22,7 @@ import {
   getPrimitiveBinding,
   toBreadcrumbRacProps,
   toButtonRacProps,
+  toCheckboxRacProps,
   toColorFieldRacProps,
   toDateFieldRacProps,
   toLinkRacProps,
@@ -34,6 +35,7 @@ import {
   toToggleButtonRacProps,
   type BreadcrumbRacProps,
   type ButtonRacProps,
+  type CheckboxRacProps,
   type ColorFieldRacProps,
   type DateFieldRacProps,
   type LinkRacProps,
@@ -847,6 +849,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "switch") {
     return buildGenericSwitchNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "checkbox") {
+    return buildGenericCheckboxNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -2015,6 +2020,93 @@ function buildGenericSwitchNode(
   };
 }
 
+function buildGenericCheckboxNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toCheckboxRacProps(node.props ?? {}) as CheckboxRacProps;
+  const size = resolveGenericCheckboxSize(props.size);
+  const palette = resolveGenericCheckboxPalette(props, theme);
+  const style = readGenericStyle(node);
+  const boxY = Math.max((layout.height - size.boxSize) / 2, 0);
+  const labelX = size.boxSize + size.gap;
+  const labelWidth = Math.max(layout.width - labelX, 0);
+
+  const boxNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:box`,
+    x: 0,
+    y: boxY,
+    width: size.boxSize,
+    height: size.boxSize,
+    visible: true,
+    box: {
+      fillColor: palette.boxFillColor,
+      borderRadius: size.radius,
+      strokeColor: palette.boxStrokeColor,
+      strokeWidth: palette.boxStrokeWidth,
+    },
+  };
+
+  const indicatorNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:indicator`,
+    x: 0,
+    y: boxY,
+    width: size.boxSize,
+    height: size.boxSize,
+    visible: props.isSelected === true || props.isIndeterminate === true,
+    text: {
+      content: props.isIndeterminate ? "-" : "✓",
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.indicatorFontSize,
+      fontWeight: 700,
+      color: palette.indicatorColor,
+      align: "center",
+      lineHeight: size.boxSize,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: size.boxSize,
+      verticalAlign: "middle",
+    },
+  };
+
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: labelX,
+    y: 0,
+    width: labelWidth,
+    height: layout.height,
+    visible: labelWidth > 0,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 400,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: labelWidth,
+      verticalAlign: "middle",
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [boxNode, indicatorNode, textNode],
+  };
+}
+
 function resolveGenericLayout(
   input: GenericResolvedSkiaBuildInput,
 ): GenericResolvedSkiaLayout {
@@ -2392,6 +2484,46 @@ function resolveGenericSwitchSize(size: SwitchRacProps["size"]): {
   }
 }
 
+function resolveGenericCheckboxSize(size: CheckboxRacProps["size"]): {
+  fontSize: number;
+  lineHeight: number;
+  boxSize: number;
+  radius: number;
+  indicatorFontSize: number;
+  gap: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        fontSize: 12,
+        lineHeight: 16,
+        boxSize: 16,
+        radius: 4,
+        indicatorFontSize: 13,
+        gap: 8,
+      };
+    case "lg":
+      return {
+        fontSize: 16,
+        lineHeight: 24,
+        boxSize: 24,
+        radius: 6,
+        indicatorFontSize: 18,
+        gap: 12,
+      };
+    case "md":
+    default:
+      return {
+        fontSize: 14,
+        lineHeight: 20,
+        boxSize: 20,
+        radius: 4,
+        indicatorFontSize: 16,
+        gap: 10,
+      };
+  }
+}
+
 function resolveGenericSwitchPalette(
   props: SwitchRacProps,
   theme: "light" | "dark",
@@ -2415,6 +2547,40 @@ function resolveGenericSwitchPalette(
     trackStrokeColor: colorIntToFloat32(isDark ? 0x4b5563 : 0xd1d5db, 1),
     trackStrokeWidth: props.isSelected ? 0 : 1,
     thumbColor: colorIntToFloat32(0xffffff, 1),
+    textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+  };
+}
+
+function resolveGenericCheckboxPalette(
+  props: CheckboxRacProps,
+  theme: "light" | "dark",
+): {
+  boxFillColor: Float32Array;
+  boxStrokeColor: Float32Array;
+  boxStrokeWidth: number;
+  indicatorColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const isDark = theme === "dark";
+  const selectedColor = props.isEmphasized
+    ? 0x2563eb
+    : isDark
+      ? 0xf9fafb
+      : 0x111827;
+  const isChecked = props.isSelected === true || props.isIndeterminate === true;
+
+  return {
+    boxFillColor: isChecked
+      ? colorIntToFloat32(selectedColor, 1)
+      : colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+    boxStrokeColor: isChecked
+      ? colorIntToFloat32(selectedColor, 1)
+      : colorIntToFloat32(isDark ? 0x6b7280 : 0xd1d5db, 1),
+    boxStrokeWidth: 1,
+    indicatorColor: colorIntToFloat32(
+      props.isEmphasized || !isDark ? 0xffffff : 0x111827,
+      1,
+    ),
     textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
   };
 }

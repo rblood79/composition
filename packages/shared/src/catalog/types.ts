@@ -29,6 +29,7 @@ export interface PrimitiveSkiaDescriptor {
   kind:
     | "breadcrumb"
     | "button"
+    | "checkbox"
     | "color-field"
     | "date-field"
     | "link"

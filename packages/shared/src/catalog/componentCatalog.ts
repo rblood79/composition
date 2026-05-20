@@ -1,6 +1,7 @@
 import { breadcrumbPrimitiveBinding } from "./primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
+import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
@@ -228,6 +229,19 @@ export const componentCatalog = [
       category: "forms",
       label: "file trigger",
       icon: "Upload",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Checkbox",
+    family: "selection",
+    cutover: "catalog",
+    binding: checkboxPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "checkbox",
+      icon: "CheckSquare",
       placeable: true,
     },
   },

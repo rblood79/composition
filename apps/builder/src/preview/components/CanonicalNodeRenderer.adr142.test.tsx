@@ -16,6 +16,7 @@ const {
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
   legacyColorFieldRenderer,
+  legacyCheckboxRenderer,
   legacyDateFieldRenderer,
   legacyFileTriggerRenderer,
   legacyFormRenderer,
@@ -41,6 +42,9 @@ const {
   )),
   legacyColorFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="ColorField">legacy</div>
+  )),
+  legacyCheckboxRenderer: vi.fn(() => (
+    <label data-legacy-renderer="Checkbox">legacy</label>
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
@@ -86,6 +90,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Button: legacyButtonRenderer,
     Breadcrumb: legacyBreadcrumbRenderer,
     Breadcrumbs: legacyBreadcrumbsRenderer,
+    Checkbox: legacyCheckboxRenderer,
     ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
     FileTrigger: legacyFileTriggerRenderer,
@@ -122,6 +127,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyButtonRenderer.mockClear();
     legacyBreadcrumbRenderer.mockClear();
     legacyBreadcrumbsRenderer.mockClear();
+    legacyCheckboxRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyFileTriggerRenderer.mockClear();
@@ -679,5 +685,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     );
     expect(switchControl).toBeTruthy();
     expect(legacySwitchRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Checkbox through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "checkbox-1",
+      type: "Checkbox",
+      props: {
+        children: "Remember me",
+        isSelected: true,
+        isEmphasized: true,
+        size: "lg",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const checkbox = screen.getByRole("checkbox", {
+      name: "Remember me",
+    });
+    const checkboxRoot = container.querySelector(".react-aria-Checkbox");
+    expect(checkboxRoot?.getAttribute("data-size")).toBe("lg");
+    expect(checkboxRoot?.getAttribute("data-emphasized")).toBe("true");
+    expect(container.querySelector("[data-canonical-id='checkbox-1']")).toBe(
+      checkboxRoot,
+    );
+    expect(checkbox).toBeTruthy();
+    expect(legacyCheckboxRenderer).not.toHaveBeenCalled();
   });
 });
