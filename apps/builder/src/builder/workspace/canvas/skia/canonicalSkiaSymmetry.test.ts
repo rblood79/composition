@@ -11,6 +11,7 @@ import {
   ColorFieldSpec,
   ComboBoxSpec,
   DateFieldSpec,
+  DropZoneSpec,
   FileTriggerSpec,
   FormSpec,
   GridListSpec,
@@ -1058,6 +1059,35 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("file-trigger-1");
     expect(collectText(node)).toContain("Upload");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved DropZone through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(DropZoneSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "drop-zone-1",
+        type: "DropZone",
+        props: {
+          label: "Drop source files",
+          description: "PNG, SVG, or PDF",
+          size: "lg",
+          isDropTarget: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["drop-zone-1", { x: 24, y: 32, width: 280, height: 160 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("drop-zone-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Drop source files", "PNG, SVG, or PDF"]),
+    );
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

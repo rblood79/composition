@@ -7,6 +7,7 @@ import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
+import { dropZonePrimitiveBinding } from "../primitives/dropZone";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { gridListPrimitiveBinding } from "../primitives/gridList";
@@ -281,6 +282,28 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.category).toBe("forms");
     expect(entry.panel.label).toBe("file trigger");
     expect(entry.panel.placeable).toBe(true);
+  });
+
+  it("registers DropZone as an active overlays primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("DropZone");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(dropZonePrimitiveBinding);
+    expect(entry.family).toBe("overlays");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("DropZone");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("drop-zone");
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("drop zone");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      label: "Drop files here",
+      description: "Upload files by dropping them in this area.",
+      size: "md",
+      isDisabled: false,
+    });
   });
 
   it("registers Switch as an active selection primitive catalog entry", () => {
@@ -658,6 +681,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("ColorField");
     expect(activeTypes).toContain("Form");
     expect(activeTypes).toContain("FileTrigger");
+    expect(activeTypes).toContain("DropZone");
     expect(activeTypes).toContain("Switch");
     expect(activeTypes).toContain("Checkbox");
     expect(activeTypes).toContain("CheckboxGroup");

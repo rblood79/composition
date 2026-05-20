@@ -6,6 +6,7 @@ import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { comboBoxPrimitiveBinding } from "./primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
+import { dropZonePrimitiveBinding } from "./primitives/dropZone";
 import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
 import { formPrimitiveBinding } from "./primitives/form";
 import { gridListPrimitiveBinding } from "./primitives/gridList";
@@ -244,6 +245,19 @@ export const componentCatalog = [
     panel: {
       category: "forms",
       label: "file trigger",
+      icon: "Upload",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "DropZone",
+    family: "overlays",
+    cutover: "catalog",
+    binding: dropZonePrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "drop zone",
       icon: "Upload",
       placeable: true,
     },

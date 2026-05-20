@@ -201,6 +201,22 @@ describe("ADR-142 element creator catalog bridge", () => {
     });
   });
 
+  it("describes catalog DropZone placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("DropZone");
+
+    expect(creation).toMatchObject({
+      elementType: "DropZone",
+      props: {
+        label: "Drop files here",
+        description: "Upload files by dropping them in this area.",
+        size: "md",
+        isDisabled: false,
+        isDropTarget: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog Switch placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Switch");
 

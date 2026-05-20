@@ -27,6 +27,7 @@ import {
   toColorFieldRacProps,
   toComboBoxRacProps,
   toDateFieldRacProps,
+  toDropZoneRacProps,
   toGridListRacProps,
   toLinkRacProps,
   toListBoxRacProps,
@@ -54,6 +55,7 @@ import {
   type ComboBoxItemDescriptor,
   type ComboBoxRacProps,
   type DateFieldRacProps,
+  type DropZoneRacProps,
   type GridListEntryDescriptor,
   type GridListItemDescriptor,
   type GridListRacProps,
@@ -875,6 +877,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "date-field") {
     return buildGenericDateFieldNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "drop-zone") {
+    return buildGenericDropZoneNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "time-field") {
     return buildGenericTimeFieldNode(input.node, layout, input.theme);
@@ -1958,6 +1963,154 @@ function buildGenericColorFieldNode(
         0,
       ),
       borderRadius: readNumber(style.borderRadius, 0),
+    },
+    children,
+  };
+}
+
+function buildGenericDropZoneNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toDropZoneRacProps(node.props ?? {}) as DropZoneRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericDropZoneSize(props.size);
+  const isDark = theme === "dark";
+  const isActive = props.isDropTarget;
+  const fillColor = colorIntToFloat32(
+    cssColorToHex(
+      typeof style.backgroundColor === "string"
+        ? style.backgroundColor
+        : isActive
+          ? isDark
+            ? "#172554"
+            : "#eff6ff"
+          : isDark
+            ? "#111827"
+            : "#ffffff",
+    ),
+    props.isDisabled ? 0.46 : 1,
+  );
+  const strokeColor = colorIntToFloat32(
+    cssColorToHex(
+      typeof style.borderColor === "string"
+        ? style.borderColor
+        : isActive
+          ? "#2563eb"
+          : isDark
+            ? "#4b5563"
+            : "#cbd5e1",
+    ),
+    props.isDisabled ? 0.46 : 1,
+  );
+  const labelColor = colorIntToFloat32(
+    cssColorToHex(
+      typeof style.color === "string"
+        ? style.color
+        : isActive
+          ? "#2563eb"
+          : isDark
+            ? "#e5e7eb"
+            : "#334155",
+    ),
+    props.isDisabled ? 0.46 : 1,
+  );
+  const descriptionColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#9ca3af" : "#64748b"),
+    props.isDisabled ? 0.38 : 1,
+  );
+  const iconData = getIconData("Upload");
+  const iconX = Math.max((layout.width - size.iconSize) / 2, 0);
+  const iconY = size.paddingY;
+  const labelY = iconY + size.iconSize + size.gap;
+  const descriptionY = labelY + size.labelLineHeight + 4;
+  const children: SkiaNodeData[] = [];
+
+  if (iconData) {
+    children.push({
+      type: "icon_path",
+      elementId: `${node.id}:icon`,
+      x: iconX,
+      y: iconY,
+      width: size.iconSize,
+      height: size.iconSize,
+      visible: true,
+      iconPath: {
+        paths: iconData.paths,
+        circles: iconData.circles,
+        cx: size.iconSize / 2,
+        cy: size.iconSize / 2,
+        size: size.iconSize,
+        strokeColor: labelColor,
+        strokeWidth: 2,
+      },
+    });
+  }
+
+  children.push({
+    type: "text",
+    elementId: `${node.id}:label`,
+    x: size.paddingX,
+    y: labelY,
+    width: Math.max(layout.width - size.paddingX * 2, 0),
+    height: size.labelLineHeight,
+    visible: true,
+    text: {
+      content: props.label,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.labelFontSize,
+      fontWeight: 500,
+      color: labelColor,
+      align: "center",
+      lineHeight: size.labelLineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+      whiteSpace: "nowrap",
+      textOverflow: "ellipsis",
+    },
+  });
+
+  if (props.description) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:description`,
+      x: size.paddingX,
+      y: descriptionY,
+      width: Math.max(layout.width - size.paddingX * 2, 0),
+      height: size.descriptionLineHeight,
+      visible: true,
+      text: {
+        content: props.description,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.descriptionFontSize,
+        color: descriptionColor,
+        align: "center",
+        lineHeight: size.descriptionLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+      },
+    });
+  }
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor,
+      borderRadius: readNumber(style.borderRadius, size.radius),
+      strokeColor,
+      strokeWidth: readNumber(style.borderWidth, 2),
+      strokeStyle: "dashed",
     },
     children,
   };
@@ -4374,6 +4527,58 @@ function resolveGenericTextFieldSize(size: TextFieldRacProps["size"]): {
         inputHeight: 34,
         paddingX: 12,
         gap: 6,
+      };
+  }
+}
+
+function resolveGenericDropZoneSize(size: DropZoneRacProps["size"]): {
+  paddingX: number;
+  paddingY: number;
+  iconSize: number;
+  gap: number;
+  labelFontSize: number;
+  labelLineHeight: number;
+  descriptionFontSize: number;
+  descriptionLineHeight: number;
+  radius: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        paddingX: 16,
+        paddingY: 16,
+        iconSize: 24,
+        gap: 8,
+        labelFontSize: 13,
+        labelLineHeight: 18,
+        descriptionFontSize: 12,
+        descriptionLineHeight: 16,
+        radius: 8,
+      };
+    case "lg":
+      return {
+        paddingX: 32,
+        paddingY: 30,
+        iconSize: 40,
+        gap: 16,
+        labelFontSize: 18,
+        labelLineHeight: 28,
+        descriptionFontSize: 14,
+        descriptionLineHeight: 20,
+        radius: 12,
+      };
+    case "md":
+    default:
+      return {
+        paddingX: 24,
+        paddingY: 24,
+        iconSize: 32,
+        gap: 12,
+        labelFontSize: 14,
+        labelLineHeight: 20,
+        descriptionFontSize: 13,
+        descriptionLineHeight: 18,
+        radius: 10,
       };
   }
 }

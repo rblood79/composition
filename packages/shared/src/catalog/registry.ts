@@ -5,6 +5,7 @@ import { checkboxInspectorThemeValues } from "./primitives/checkbox";
 import { colorFieldInspectorThemeValues } from "./primitives/colorField";
 import { comboBoxInspectorThemeValues } from "./primitives/comboBox";
 import { dateFieldInspectorThemeValues } from "./primitives/dateField";
+import { dropZoneInspectorThemeValues } from "./primitives/dropZone";
 import { formInspectorThemeValues } from "./primitives/form";
 import { gridListInspectorThemeValues } from "./primitives/gridList";
 import { linkInspectorThemeValues } from "./primitives/link";
@@ -70,6 +71,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "DateField") return dateFieldInspectorThemeValues;
   if (type === "TimeField") return timeFieldInspectorThemeValues;
   if (type === "ColorField") return colorFieldInspectorThemeValues;
+  if (type === "DropZone") return dropZoneInspectorThemeValues;
   if (type === "Form") return formInspectorThemeValues;
   return {};
 }

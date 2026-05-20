@@ -137,64 +137,62 @@
 
 ---
 
-## 4. composition 측 차용 검토 가능 패턴 (사실 기반 우선순위)
+## 4. composition 측 차용 검토 가능 패턴 (엔터프라이즈 target 기준)
 
+> **Framing 전제** (2026-05-20 사용자 정정 반영):
+>
+> - composition product target = **엔터프라이즈급 빌더** (`feedback-composition-enterprise-target` 메모리)
+> - **fallback / graceful degradation 패턴** 은 차용 후보에서 자동 제외 — 정상 동작 보장이 product 책임 (`feedback-no-fallback-thinking` 메모리)
+> - "60fps 충족" 은 최저선 — 도달 목표 아님 (`feedback-performance-completeness` 메모리)
+>
 > 본 문서는 차용 자체를 결정하지 않는다. **후속 ADR 발의의 input** 으로 정리만 함.
 
-### Tier A — ROI 높음 (직접 효과 예상)
+### Must — 엔터프라이즈 target 도달 위해 필수
 
-1. **WebGL → SW 자동 fallback** (OpenPencil-Z `renderer.ts:87-98`)
-   - composition 약점: WebGL context loss 시 복구 경로 없음, dev 도중 GPU 리셋 시 빈 화면 가능
-   - 적용 비용: 작음 — `MakeSWCanvasSurface` 분기 추가
-   - composition framing 영향: 없음 (SSOT 무관, 환경 견고성 layer)
-
-2. **Subtree Picture cache** (OpenPencil-D `renderer.ts` + ADR-135 frame projection 자연 매칭)
+1. **Subtree Picture cache** (OpenPencil-D `renderer.ts` + ADR-135 frame projection 자연 매칭)
    - ADR-135 가 frame 을 projection 단위로 격상시킨 후 frame 단위 Picture 캐싱이 자연스러움
-   - reusable frame (component origin) 의 paint 결과 재사용 가능
+   - reusable frame (component origin) 의 paint 결과 재사용 — 대규모 문서 60fps 의 결정타
    - 적용 비용: 중간 — invalidation 정책 (어떤 변경이 Picture 무효화 trigger 인지) 필요
 
-### Tier B — 선결 조건 있음
+2. **Retained backing (3x oversample + 6ms idle budget)** (OpenPencil-D `renderer/retained-backing.ts`)
+   - 정지 상태에서 viewport 3배 영역 미리 raster 캐시 → pan/zoom 중 캐시 이미지만 transform (재렌더 0)
+   - 정지 후 2-18 idle frame 대기 → crisp 재캐시
+   - pan/zoom 60fps 직접 도달의 표준 패턴
+   - 적용 비용: 중간 — idle scheduler + invalidation 정책
 
 3. **`requestRender` / `requestRepaint` 분리** (OpenPencil-D `create.ts:78`)
-   - **선결 조건**: Picture 캐시 도입 (#2). 캐시가 없으면 분리 효과 0
-   - 적용 비용: 작음 (분리 자체) + 큼 (Picture 캐시 필수 동반)
+   - 구조 변경 (`sceneVersion++`) vs 디스플레이 갱신 (`renderVersion++`) 분리
+   - selection / hover 잦은 시각 변경 시 Picture 캐시 유지 + overlay 만 갱신
+   - **#1 Subtree Picture cache 와 묶음** — 캐시 없이 분리만으로는 효과 0
+   - 적용 비용: 작음 (분리 자체)
 
 4. **Paint 객체 pool** (OpenPencil-D `paints.ts:13-111` 11개 고정)
-   - 효과: GC 압박 감소. 단 composition `SkiaDisposable` try/finally 가 leak 은 막고 있어 누수 risk 는 낮음
-   - 적용 비용: 작음
-   - **단**, 측정 우선 — composition profile 에서 Paint allocate 가 hot 한지 확인 후 결정
+   - 고정 Paint 객체 mutate 재사용 → GC 압박 제거
+   - composition 현재: `SkiaDisposable` try/finally 가 leak 은 막지만 매 draw new + delete 패턴 유지
+   - 엔터프라이즈 대규모 노드에서 Paint allocate cost 무시 불가
+   - 적용 비용: 작음 — profile evidence 없이도 도입 정당화 (target 부합)
 
-### Tier C — 비추 / 조건부
+### Nice-to-have — 워크플로 보조 (별도 영역)
 
-5. **opentype.js 측정 검증** (OpenPencil-D)
-   - **채택 비추천** — composition `canvas-rendering.md §3` 가 CanvasKit native 측정 단일 SSOT 확립 (`canvaskitTextMeasurer` + paragraph getMaxIntrinsicWidth 교정)
-   - Canvas 2D ↔ CanvasKit 보정 layer 제거가 composition 의 의식적 ADR-100 결정. opentype.js 추가는 trade-off 역행
-   - **단**, Figma `.fig` import/export 가 composition 에 들어올 경우 검증 layer 로만 한정 도입 (메인 측정 경로 X)
-
-6. **3단 텍스트 캐시 (256+64+128MB)** (OpenPencil-Z)
-   - composition 은 Paragraph 객체 LRU 1단으로 충분 — 빌더 텍스트량이 디자인 도구 수준 (수천 텍스트 노드) 아님
-   - 캐시 메모리 256MB 는 builder 환경 (다른 tab 공존) 에서 부적절
-   - **채택 비추천** — 필요 시 `getMaxParagraphCacheSize()` 한계 상향만으로 충분
-
-7. **rbush R-tree** (OpenPencil-Z hit-test)
-   - composition 은 이미 **Rust WASM SpatialIndex 그리드** 사용 → rbush 보다 데이터 흐름이 단순 (cell batch update)
-   - **채택 비추천** — 이미 우월한 인프라
-
-### Tier D — 차용 아닌 학습 reference
-
-8. **AI streaming overlay 5단** (OpenPencil-Z `skia-engine.ts:259-342`)
+5. **AI streaming overlay 5단** (OpenPencil-Z `skia-engine.ts:259-342`)
    - composition AIPanel 이 캔버스 위 indicator 표시할 때 참조 패턴 (glow / badge / border / preview-fill)
-   - ADR-134 (AI Assistant LLM 통합) Proposed 상태 — Phase 도중 참조 가능
+   - ADR-134 (AI Assistant LLM 통합) Proposed 상태 — Phase 도중 참조
 
-9. **Concurrent Agent Teams orchestrator** (OpenPencil-Z)
+6. **Concurrent Agent Teams orchestrator** (OpenPencil-Z)
    - composition `dispatching-parallel-agents` skill 보다 도메인-aware (페이지 공간 분해)
    - 사용자 workflow 가 multi-agent 빈도 높아질 때 참조
 
-10. **Yjs CRDT + Trystero P2P** (OpenPencil-D)
-    - composition 협업이 Supabase Realtime 일변도. P2P 협업 추후 도입 시 reference
+7. **Yjs CRDT + Trystero P2P** (OpenPencil-D)
+   - composition 협업이 Supabase Realtime 일변도. P2P 협업 추후 도입 시 reference
 
-### 차용 안 하는 이유 명시 (의식적 trade-off)
+### 채택 제외 — fallback 사고 / 우위 영역 충돌
 
+- **WebGL → SW 자동 fallback** (OpenPencil-Z `renderer.ts:87-98`) — fallback 사고 회피 (`feedback-no-fallback-thinking`). WebGL context loss 발생 원인을 product 가 해결 (GPU 메모리 관리 / 리소스 dispose 명시 / 환경 요구 명시)
+- **Vector → Bitmap 텍스트 fallback** (OpenPencil-Z) — 동일 framing
+- **Path SVG parser 다중 fallback** (OpenPencil-Z) — 동일 framing
+- **opentype.js 측정 검증** (OpenPencil-D) — composition `canvas-rendering.md §3` 가 CanvasKit native 측정 단일 SSOT 확립. ADR-100 의식적 결정 역행
+- **3단 텍스트 캐시 (256+64+128MB)** (OpenPencil-Z) — composition 은 Paragraph 객체 LRU 1단으로 충분. 256MB 메모리 상한이 builder 환경 (다른 tab 공존) 에서 부적절. 필요 시 `getMaxParagraphCacheSize()` 한계 상향만으로 충분
+- **rbush R-tree** (OpenPencil-Z hit-test) — composition 은 이미 Rust WASM SpatialIndex 그리드 사용 → 우위. 변경 비추천
 - **자체 layout 엔진 (JS flex-like, OpenPencil-Z 패턴)** — composition 의 Taffy WASM (Flex + Grid + Block 통합 + 증분 갱신) 이 우위. 변경 비추천
 - **Yoga 포크 (OpenPencil-D)** — Taffy 가 Block 까지 통합 처리, Yoga 는 Grid 별도 add. 변경 비추천
 - **SceneGraph class 모델 (OpenPencil-D)** — composition canonical document + Spec SSOT 모델과 본질 충돌. 변경 비추천
@@ -257,11 +255,13 @@
 
 본 문서는 비교 분석까지. 다음 step 은 사용자 선택:
 
-| 옵션 | 내용                                                                | 비용 | 본질 영향                                                    |
-| ---- | ------------------------------------------------------------------- | ---- | ------------------------------------------------------------ |
-| B    | Tier A #1 (SW fallback) ADR 발의                                    | 작음 | composition WebGL context loss 견고성 보강                   |
-| C    | Tier A #2 (Subtree Picture cache) 사전 profiling                    | 중간 | profile evidence 없이 도입 시 risk threshold check 실패 가능 |
-| D    | 기존 분석 문서 2개의 stale 부분 (hit-test / 텍스트 캐시) 정정 patch | 작음 | 두 분석 문서 신뢰도 회복                                     |
-| E    | 본 문서까지로 closure (별도 액션 없음)                              | 0    | 비교 자체가 목적 — 후속 결정은 추후                          |
+| 옵션 | 내용                                                                                   | 비용 | 본질 영향                                                                 |
+| ---- | -------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------- |
+| A    | Must #1 (Subtree Picture cache) ADR 작성 — ADR-135 frame projection 후속으로 자연 매칭 | 중간 | 엔터프라이즈 대규모 문서 60fps 도달의 결정타. invalidation 정책 설계 동반 |
+| B    | Must #2 (Retained backing) ADR 작성 — pan/zoom 60fps 표준 패턴                         | 중간 | pan/zoom 절대 60fps. idle scheduler 정책 동반                             |
+| C    | Must #3 (requestRender/Repaint 분리) — Must #1 과 묶어 같은 ADR 처리 권장              | 작음 | Must #1 의 효과 활성화 단계. 단독 land 시 효과 0                          |
+| D    | Must #4 (Paint pool 11) ADR 작성 — profile evidence 없이도 도입 정당화 (target 부합)   | 작음 | GC 압박 제거. 측정 후행도 가능                                            |
+| E    | 기존 분석 문서 2개의 stale 부분 (hit-test / 텍스트 캐시) 정정 patch                    | 작음 | 두 분석 문서 신뢰도 회복                                                  |
+| F    | 본 문서까지로 closure (별도 액션 없음)                                                 | 0    | 비교 자체가 목적 — 후속 결정은 추후                                       |
 
-본 문서 §0 fact-check 표가 정정 분을 흡수했으므로, 옵션 D 는 두 분석 문서 자체 수정 여부만 사용자 결정 (본 문서로 참고 가능하므로 우선순위 낮음).
+본 문서 §0 fact-check 표가 정정 분을 흡수했으므로, 옵션 E 는 두 분석 문서 자체 수정 여부만 사용자 결정 (본 문서로 참고 가능하므로 우선순위 낮음).

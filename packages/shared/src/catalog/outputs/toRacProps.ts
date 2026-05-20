@@ -148,6 +148,7 @@ export const SEPARATOR_SIZE_VALUES = [
   "md",
   "lg",
 ] as const satisfies readonly ComponentSizeSubset[];
+export const DROP_ZONE_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const LINK_VARIANT_VALUES = [
   "primary",
   "secondary",
@@ -345,6 +346,7 @@ const NUMBER_FIELD_NOTATIONS = new Set<string>(NUMBER_FIELD_NOTATION_VALUES);
 const SEPARATOR_ORIENTATIONS = new Set<string>(SEPARATOR_ORIENTATION_VALUES);
 const SEPARATOR_VARIANTS = new Set<SeparatorVariant>(SEPARATOR_VARIANT_VALUES);
 const SEPARATOR_SIZES = new Set<ComponentSizeSubset>(SEPARATOR_SIZE_VALUES);
+const DROP_ZONE_SIZES = SEPARATOR_SIZES;
 const LINK_VARIANTS = new Set<LinkVariant>(LINK_VARIANT_VALUES);
 const LINK_SIZES = new Set<ComponentSize>(LINK_SIZE_VALUES);
 const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
@@ -920,6 +922,26 @@ export interface FileTriggerRacProps extends Record<string, unknown> {
   allowsMultiple?: boolean;
   acceptDirectory?: boolean;
   defaultCamera?: (typeof FILE_TRIGGER_DEFAULT_CAMERA_VALUES)[number];
+}
+
+export interface DropZoneCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  description?: unknown;
+  size?: unknown;
+  isDropTarget?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface DropZoneRacProps extends Record<string, unknown> {
+  label: string;
+  description?: string;
+  size: ComponentSizeSubset;
+  isDropTarget: boolean;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
 }
 
 export interface LinkCanonicalProps extends Record<string, unknown> {
@@ -2328,6 +2350,25 @@ export function toFileTriggerRacProps(
   };
 }
 
+export function toDropZoneRacProps(
+  props: DropZoneCanonicalProps,
+): DropZoneRacProps {
+  const description = readString(props.description, "").trim();
+  return {
+    label: readString(props.label, "Drop files here"),
+    ...(description ? { description } : {}),
+    size: normalizeDropZoneSize(props.size),
+    isDropTarget: props.isDropTarget === true,
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -3299,6 +3340,13 @@ function normalizeDateFieldCalendar(
 
 function normalizeTextFieldSize(value: unknown): ComponentSize {
   return normalizeButtonSize(value);
+}
+
+function normalizeDropZoneSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    DROP_ZONE_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
 }
 
 function normalizeTextFieldLabelPosition(value: unknown): "top" | "side" {

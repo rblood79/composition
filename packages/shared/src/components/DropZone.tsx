@@ -2,13 +2,17 @@ import {
   DropZone as AriaDropZone,
   DropZoneProps as AriaDropZoneProps,
   Text,
-  composeRenderProps
-} from 'react-aria-components';
+  composeRenderProps,
+} from "react-aria-components";
 
-import { Upload } from 'lucide-react';
-import type { ComponentSize } from '../types';
+import { Upload } from "lucide-react";
+import type { ComponentSize } from "../types";
+import {
+  toDropZoneRacProps,
+  type DropZoneCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 
-import './styles/generated/DropZone.css';
+import "./styles/generated/DropZone.css";
 
 export interface DropZoneProps extends AriaDropZoneProps {
   /**
@@ -24,6 +28,9 @@ export interface DropZoneProps extends AriaDropZoneProps {
    * Description text
    */
   description?: string;
+  isDropTarget?: boolean;
+  "data-canonical-id"?: string;
+  "data-element-id"?: string;
 }
 
 /**
@@ -41,28 +48,43 @@ export interface DropZoneProps extends AriaDropZoneProps {
  * </DropZone>
  */
 export function DropZone({
-  size = 'md',
-  label,
-  description,
   children,
+  label: _label,
+  description: _description,
+  size: _size,
+  isDropTarget: _isDropTarget,
+  isDisabled: _isDisabled,
   ...props
 }: DropZoneProps) {
+  const { label, description, isDisabled, isDropTarget, size } =
+    toDropZoneRacProps({
+      ...props,
+      label: _label,
+      description: _description,
+      size: _size,
+      isDropTarget: _isDropTarget,
+      isDisabled: _isDisabled,
+    } as DropZoneCanonicalProps);
   const dropZoneClassName = composeRenderProps(
     props.className,
     (className, renderProps) => {
-      const classes = ['react-aria-DropZone'];
+      const classes = ["react-aria-DropZone"];
       if (className) classes.push(className);
-      if (renderProps.isDropTarget) classes.push('is-drop-target');
-      if (renderProps.isFocusVisible) classes.push('is-focus-visible');
-      return classes.join(' ');
-    }
+      if (isDropTarget || renderProps.isDropTarget) {
+        classes.push("is-drop-target");
+      }
+      if (renderProps.isFocusVisible) classes.push("is-focus-visible");
+      return classes.join(" ");
+    },
   );
 
   return (
     <AriaDropZone
       {...props}
       className={dropZoneClassName}
+      isDisabled={isDisabled}
       data-size={size}
+      data-drop-target={isDropTarget || undefined}
     >
       {children || (
         <div className="dropzone-content">

@@ -29,6 +29,7 @@ import {
   type ColorFieldRacProps,
   type ComboBoxRacProps,
   type DateFieldRacProps,
+  type DropZoneRacProps,
   type FileTriggerRacProps,
   type FormRacProps,
   type GridListRacProps,
@@ -62,6 +63,7 @@ import {
   ColorField,
   ComboBox,
   DateField,
+  DropZone,
   FileTrigger,
   Form,
   GridList,
@@ -600,6 +602,14 @@ function renderPrimitiveNode({
         {renderedChildren}
       </FileTrigger>
     );
+  }
+
+  if (adaptedEl.type === "DropZone") {
+    const dropZoneProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as DropZoneRacProps;
+
+    return <DropZone key={node.id} {...dropZoneProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

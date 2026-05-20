@@ -20,6 +20,7 @@ const {
   legacyCheckboxGroupRenderer,
   legacyComboBoxRenderer,
   legacyDateFieldRenderer,
+  legacyDropZoneRenderer,
   legacyFileTriggerRenderer,
   legacyFormRenderer,
   legacyGridListRenderer,
@@ -68,6 +69,9 @@ const {
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
+  )),
+  legacyDropZoneRenderer: vi.fn(() => (
+    <div data-legacy-renderer="DropZone">legacy</div>
   )),
   legacyFileTriggerRenderer: vi.fn(() => (
     <div data-legacy-renderer="FileTrigger">legacy</div>
@@ -151,6 +155,7 @@ vi.mock("@composition/shared/renderers", () => ({
     ComboBox: legacyComboBoxRenderer,
     ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
+    DropZone: legacyDropZoneRenderer,
     FileTrigger: legacyFileTriggerRenderer,
     Form: legacyFormRenderer,
     GridList: legacyGridListRenderer,
@@ -202,6 +207,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyComboBoxRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
+    legacyDropZoneRenderer.mockClear();
     legacyFileTriggerRenderer.mockClear();
     legacyFormRenderer.mockClear();
     legacyGridListRenderer.mockClear();
@@ -740,6 +746,33 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector("[data-canonical-id='file-trigger-1']"),
     ).toBeTruthy();
     expect(legacyFileTriggerRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders DropZone through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "drop-zone-1",
+      type: "DropZone",
+      props: {
+        label: "Drop source files",
+        description: "PNG, SVG, or PDF",
+        size: "lg",
+        isDropTarget: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const dropZone = container.querySelector(".react-aria-DropZone");
+    expect(dropZone?.getAttribute("data-size")).toBe("lg");
+    expect(dropZone?.className).toContain("is-drop-target");
+    expect(screen.getByText("Drop source files")).toBeTruthy();
+    expect(screen.getByText("PNG, SVG, or PDF")).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='drop-zone-1']")).toBe(
+      dropZone,
+    );
+    expect(legacyDropZoneRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Switch through PrimitiveBinding before rendererMap fallback", () => {
