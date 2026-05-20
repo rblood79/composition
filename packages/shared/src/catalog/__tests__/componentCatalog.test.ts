@@ -23,6 +23,19 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers Separator as an active primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Separator");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.family).toBe("primitives/actions");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Separator");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("separator");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -60,6 +73,7 @@ describe("ADR-142 component catalog", () => {
     );
 
     expect(activeTypes).toContain("Button");
+    expect(activeTypes).toContain("Separator");
     expect(activeTypes).not.toContain("Card");
   });
 });

@@ -21,8 +21,10 @@ import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   getPrimitiveBinding,
   toButtonRacProps,
+  toSeparatorRacProps,
   type ButtonRacProps,
   type ResolvedNode,
+  type SeparatorRacProps,
 } from "@composition/shared";
 import {
   fontFamily,
@@ -792,6 +794,9 @@ export function buildGenericResolvedSkiaNodeData(
   if (binding?.skiaPrimitive?.kind === "button") {
     return buildGenericButtonNode(input.node, layout, input.theme);
   }
+  if (binding?.skiaPrimitive?.kind === "separator") {
+    return buildGenericSeparatorNode(input.node, layout, input.theme);
+  }
 
   const style = readGenericStyle(input.node);
   const children = (input.node.children ?? [])
@@ -890,6 +895,49 @@ function buildGenericButtonNode(
       strokeWidth: palette.strokeWidth,
     },
     children: [textNode],
+  };
+}
+
+function buildGenericSeparatorNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toSeparatorRacProps(node.props ?? {}) as SeparatorRacProps;
+  const style = readGenericStyle(node);
+  const strokeWidth = readNumber(
+    style.borderWidth,
+    resolveGenericSeparatorStrokeWidth(props.size),
+  );
+  const strokeColor = colorIntToFloat32(
+    cssColorToHex(
+      typeof style.borderColor === "string" ? style.borderColor : undefined,
+      theme === "dark" ? 0x4b5563 : 0xd1d5db,
+    ),
+    1,
+  );
+  const isVertical = props.orientation === "vertical";
+  const halfStroke = strokeWidth / 2;
+
+  return {
+    type: "line",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    line: {
+      x1: isVertical ? layout.width / 2 : 0,
+      y1: isVertical ? 0 : halfStroke,
+      x2: isVertical ? layout.width / 2 : layout.width,
+      y2: isVertical ? layout.height : halfStroke,
+      strokeColor,
+      strokeWidth,
+      ...(resolveGenericSeparatorDasharray(props.variant)
+        ? { strokeDasharray: resolveGenericSeparatorDasharray(props.variant) }
+        : {}),
+    },
   };
 }
 
@@ -1041,6 +1089,35 @@ function resolveGenericButtonPalette(
         : colorIntToFloat32(cssColorToHex(token.stroke), 1),
     strokeWidth: token.stroke === "transparent" ? 0 : 1,
   };
+}
+
+function resolveGenericSeparatorStrokeWidth(
+  size: SeparatorRacProps["size"],
+): number {
+  switch (size) {
+    case "sm":
+      return 1;
+    case "lg":
+      return 4;
+    case "md":
+    default:
+      return 2;
+  }
+}
+
+function resolveGenericSeparatorDasharray(
+  variant: SeparatorRacProps["variant"],
+): number[] | undefined {
+  switch (variant) {
+    case "dashed":
+      return [6, 4];
+    case "dotted":
+      return [1, 3];
+    case "default":
+    case "solid":
+    default:
+      return undefined;
+  }
 }
 
 function countSkiaNodeData(node: SkiaNodeData | null): number {

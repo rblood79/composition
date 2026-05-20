@@ -22,8 +22,9 @@ import {
   adaptElementFillStyle,
   getPrimitiveBinding,
   type ButtonRacProps,
+  type SeparatorRacProps,
 } from "@composition/shared";
-import { Button } from "@composition/shared/components";
+import { Button, Separator } from "@composition/shared/components";
 import type { ResolvedNode } from "@composition/shared";
 import type {
   PreviewElement as SharedPreviewElement,
@@ -199,10 +200,18 @@ function renderPrimitiveNode({
   parentPath: string;
   markerProps: Record<"data-canonical-id" | "data-element-id", string>;
 }): React.ReactElement | null {
-  if (adaptedEl.type !== "Button") return null;
-
-  const binding = getPrimitiveBinding("Button");
+  const binding = getPrimitiveBinding(adaptedEl.type);
   if (!binding) return null;
+
+  if (adaptedEl.type === "Separator") {
+    const separatorProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as SeparatorRacProps;
+
+    return <Separator key={node.id} {...separatorProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type !== "Button") return null;
 
   const { children: racChildren, ...buttonProps } = binding.toRacProps(
     adaptedEl.props as Record<string, unknown>,

@@ -11,15 +11,19 @@ import { resolveCanonicalDocument } from "../../resolvers/canonical";
 import type { RenderContext } from "../types";
 import { CanonicalNodeRenderer } from "./CanonicalNodeRenderer";
 
-const { legacyButtonRenderer } = vi.hoisted(() => ({
+const { legacyButtonRenderer, legacySeparatorRenderer } = vi.hoisted(() => ({
   legacyButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="Button">legacy</button>
+  )),
+  legacySeparatorRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Separator">legacy</div>
   )),
 }));
 
 vi.mock("@composition/shared/renderers", () => ({
   rendererMap: {
     Button: legacyButtonRenderer,
+    Separator: legacySeparatorRenderer,
   },
 }));
 
@@ -40,6 +44,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
   afterEach(() => {
     cleanup();
     legacyButtonRenderer.mockClear();
+    legacySeparatorRenderer.mockClear();
   });
 
   it("renders Button through PrimitiveBinding before rendererMap fallback", () => {
@@ -111,5 +116,30 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(button.dataset.canonicalId).toBe("button-instance");
     expect(button.dataset.variant).toBe("negative");
     expect(legacyButtonRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Separator through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "separator-1",
+      type: "Separator",
+      props: {
+        orientation: "vertical",
+        variant: "dashed",
+        size: "lg",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const separator = screen.getByRole("separator");
+    expect(separator.dataset.orientation).toBe("vertical");
+    expect(separator.dataset.variant).toBe("dashed");
+    expect(separator.dataset.size).toBe("lg");
+    expect(container.querySelector("[data-canonical-id='separator-1']")).toBe(
+      separator,
+    );
+    expect(legacySeparatorRenderer).not.toHaveBeenCalled();
   });
 });

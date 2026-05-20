@@ -26,7 +26,7 @@ export interface PrimitiveRuntimeDescriptor {
 }
 
 export interface PrimitiveSkiaDescriptor {
-  kind: "button";
+  kind: "button" | "separator";
 }
 
 export type InspectorFieldKind =

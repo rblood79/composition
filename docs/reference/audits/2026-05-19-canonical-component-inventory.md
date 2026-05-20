@@ -240,4 +240,8 @@ Button shared wrapper 가 catalog `toButtonRacProps()` 를 소비하도록 전�
 `packages/shared/src/components/legacy/README.md` 가 active Builder authoring /
 Panel / Factory / Preview / Publish runtime 에서 legacy import 금지 경계를
 문서화했다. 이 slice 는 Button proof family 의 boundary 이며 전체 primitive
-wrapper family 완료 판정은 아니다.
+wrapper family 완료 판정은 아니다. 이어서 Separator primitive pilot 으로
+`toSeparatorRacProps()` / `separatorPrimitiveBinding` / active catalog entry /
+Preview primitive branch / generic Skia `line` 렌더 fixture 를 추가했다. 이 역시
+`primitives/actions` family 의 일부 pilot 이며 family 전체 cutover 완료 판정은
+아니다.

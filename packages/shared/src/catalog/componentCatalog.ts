@@ -1,4 +1,5 @@
 import { buttonPrimitiveBinding } from "./primitives/button";
+import { separatorPrimitiveBinding } from "./primitives/separator";
 import type { ComponentCatalogEntry } from "./types";
 import {
   getReusableCatalogDocument,
@@ -17,6 +18,19 @@ export const componentCatalog = [
       category: "buttons",
       label: "button",
       icon: "MousePointer",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Separator",
+    family: "primitives/actions",
+    cutover: "catalog",
+    binding: separatorPrimitiveBinding,
+    panel: {
+      category: "content",
+      label: "separator",
+      icon: "SeparatorHorizontal",
       placeable: true,
     },
   },

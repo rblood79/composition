@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import { resolveCanonicalDocument } from "../../../../resolvers/canonical";
-import { ButtonSpec } from "@composition/specs";
+import { ButtonSpec, SeparatorSpec } from "@composition/specs";
 import {
   buildGenericResolvedSkiaNodeData,
   measureGenericResolvedSkiaFrameBudget,
@@ -85,6 +85,32 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectText(node)).toContain("Save 0");
     expect(node?.children?.[0]?.elementId).toBe("button-ref-0");
     expect(node?.children?.[0]?.box?.fillColor).toBeDefined();
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Separator through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(SeparatorSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "separator-1",
+        type: "Separator",
+        props: {
+          orientation: "vertical",
+          variant: "dashed",
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 12, y: 16, width: 4, height: 80 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("line");
+    expect(node?.elementId).toBe("separator-1");
+    expect(node?.line?.x1).toBe(2);
+    expect(node?.line?.y2).toBe(80);
+    expect(node?.line?.strokeDasharray).toEqual([6, 4]);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });
