@@ -230,5 +230,7 @@ Phase 1a 는 G2a~G2c kill-switch 이므로, 아래 조건 없이는 진입하지
 → ADR-142 Phase 0 은 G0/G1 기준으로 완료. 2026-05-20 Phase 1a proof slice
 (G2a/G2b/G2c kill-switch) 와 Phase 1b 공통 기반 완성(G2d)도 완료됐다. Phase 2
 catalog/library slice 로 Button active primitive entry, Card/Section reusable
-seed 문서, registration contract C/D/E 기반을 추가했다. 다음 진입점은 G3 의
-Panel/Factory catalog-only 배선이다.
+seed 문서, registration contract C/D/E 기반을 추가했다. 이어서 G3 active-entry
+bridge 로 Button panel item 과 element creation default props 가 catalog 를 우선
+소비하도록 연결했다. 다음 진입점은 non-catalog legacy hard-coded panel list 의
+catalog inventory 이동과 reusable factory `ref` insertion 이다.

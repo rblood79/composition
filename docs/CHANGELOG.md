@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 G3 active catalog Panel/Factory bridge] - 2026-05-20
+
+### Architecture
+
+- **Component Panel active catalog bridge 추가**:
+  - `ComponentList` 가 `cutover:"catalog"` active entry 를 panel item 으로 매핑하고, 같은 type 의 legacy panel definition 을 제자리 replacement 한다.
+  - 현재 active catalog entry 인 Button 은 기존 위치를 유지하되 catalog metadata(`panel.label`, `panel.category`, `panel.icon`)가 source 가 된다.
+- **Element creation default props catalog 우선 경로 추가**:
+  - `useElementCreator` 의 default props resolver 가 active primitive catalog entry 의 `binding.defaultProps` 를 legacy `getDefaultProps` 보다 먼저 사용한다.
+  - Button creation 기본 props 가 `PrimitiveBinding.defaultProps` 에서 오는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 active catalog entry bridge 이며, non-catalog legacy hard-coded panel list 제거와 reusable factory ref insertion 은 다음 G3 잔여 작업이다.
+
 ## [ADR-142 Phase 2 — componentCatalog + reusable library seed] - 2026-05-20
 
 ### Architecture

@@ -64,6 +64,16 @@ export function listPlaceableCatalogEntries(): ComponentCatalogEntry[] {
   );
 }
 
+export function getCatalogDefaultProps(
+  type: string,
+): Record<string, unknown> | undefined {
+  const entry = getComponentCatalogEntry(type);
+  if (entry?.kind !== "primitive" || entry.cutover !== "catalog") {
+    return undefined;
+  }
+  return { ...entry.binding.defaultProps };
+}
+
 export {
   getReusableCatalogDocument,
   getReusableCatalogPropsSchema,

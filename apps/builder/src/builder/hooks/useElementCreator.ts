@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from "react";
 import type { CompositionDocument } from "@composition/shared";
+import { getCatalogDefaultProps } from "@composition/shared/catalog";
 import {
   Element,
   ComponentElementProps,
@@ -78,6 +79,15 @@ export function resolveCreationParentId({
   );
 }
 
+export function resolveDefaultPropsForCreation(
+  type: string,
+): ComponentElementProps {
+  return (
+    (getCatalogDefaultProps(type) as ComponentElementProps | undefined) ??
+    getCentralDefaultProps(type)
+  );
+}
+
 export const useElementCreator = (): UseElementCreatorReturn => {
   const isProcessingRef = useRef(false);
   const elementsRef = useRef<Element[]>([]);
@@ -100,7 +110,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
   }, []); // 빈 의존성 배열로 한 번만 실행
 
   const getDefaultProps = useCallback((type: string): ComponentElementProps => {
-    return getCentralDefaultProps(type);
+    return resolveDefaultPropsForCreation(type);
   }, []);
 
   const handleAddElement = useCallback(

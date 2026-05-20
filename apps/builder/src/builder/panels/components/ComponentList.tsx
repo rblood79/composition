@@ -59,6 +59,11 @@ import { useFavoriteComponents } from "../../hooks/useFavoriteComponents";
 import { useSectionCollapse } from "../styles/hooks/useSectionCollapse";
 import "@composition/shared/components/styles/ComponentList.css";
 import { Badge } from "@composition/shared/components/Badge";
+import {
+  getCatalogPanelComponents,
+  mergeCatalogPanelComponents,
+  type ComponentPanelDefinition,
+} from "./componentPanelCatalog";
 // import { ToggleButton, ToggleButtonGroup, Button, TextField, Label, Input, Description, FieldError, Checkbox, CheckboxGroup } from '../components/list';
 
 interface ComponentListProps {
@@ -81,7 +86,7 @@ const contentComp = [
   { type: "ProgressCircle", label: "progress circle", icon: CircleDashed },
   { type: "Image", label: "image", icon: ImageIcon },
   { type: "IllustratedMessage", label: "illustrated message", icon: ImageIcon },
-] as const;
+] as const satisfies readonly ComponentPanelDefinition[];
 
 const layoutComp = [
   { type: "Card", label: "card", icon: AppWindowMac },
@@ -95,7 +100,7 @@ const layoutComp = [
   { type: "Disclosure", label: "disclosure", icon: ChevronDown },
   { type: "CardView", label: "card view", icon: Grid },
   { type: "Slot", label: "slot", icon: Layers, layoutOnly: true },
-] as const;
+] as const satisfies readonly ComponentPanelDefinition[];
 
 const buttonsComp = [
   { type: "Button", label: "button", icon: MousePointer },
@@ -104,7 +109,7 @@ const buttonsComp = [
   { type: "Toolbar", label: "toolbar", icon: Settings },
   { type: "ButtonGroup", label: "button group", icon: GroupIcon },
   { type: "Menu", label: "menu", icon: Menu },
-] as const;
+] as const satisfies readonly ComponentPanelDefinition[];
 
 const formsComp = [
   { type: "TextField", label: "text field", icon: RectangleEllipsis },
@@ -121,7 +126,7 @@ const formsComp = [
   { type: "DropZone", label: "drop zone", icon: Upload },
   { type: "FileTrigger", label: "file trigger", icon: FileUp },
   { type: "Form", label: "form", icon: GroupIcon },
-] as const;
+] as const satisfies readonly ComponentPanelDefinition[];
 
 const collectionsComp = [
   { type: "Table", label: "table", icon: TableProperties },
@@ -131,7 +136,7 @@ const collectionsComp = [
   { type: "TagGroup", label: "type group", icon: Tag },
   { type: "Section", label: "section", icon: Square },
   { type: "TableView", label: "table view", icon: TableProperties },
-] as const;
+] as const satisfies readonly ComponentPanelDefinition[];
 
 const dateTimeComp = [
   { type: "Calendar", label: "calendar", icon: Calendar },
@@ -140,14 +145,14 @@ const dateTimeComp = [
   { type: "DateField", label: "date field", icon: CalendarCheck },
   { type: "TimeField", label: "time field", icon: ChevronDown },
   { type: "RangeCalendar", label: "range calendar", icon: CalendarDays },
-] as const;
+] as const satisfies readonly ComponentPanelDefinition[];
 
 const overlaysComp = [
   { type: "Dialog", label: "dialog", icon: AppWindowMac },
   { type: "Modal", label: "modal", icon: InspectionPanel },
   { type: "Popover", label: "popover", icon: AppWindowMac },
   { type: "Tooltip", label: "tooltip", icon: MessageSquare },
-] as const;
+] as const satisfies readonly ComponentPanelDefinition[];
 
 // 카테고리 설정 (레이블 및 설명)
 const categoryConfig = {
@@ -210,6 +215,7 @@ const ComponentList = memo(
     } = useRecentComponents();
     const { favoriteTags } = useFavoriteComponents();
     const [searchQuery, setSearchQuery] = useState("");
+    const catalogComponents = useMemo(() => getCatalogPanelComponents(), []);
 
     // Edit Mode 상태 가져오기 (Layout 모드에서만 Slot 컴포넌트 표시)
     const editMode = useEditModeStore((state) => state.mode);
@@ -240,20 +246,24 @@ const ComponentList = memo(
     // 컴포넌트 그룹을 메모이제이션 (7개 카테고리)
     // Layout 모드가 아닐 때는 layoutOnly 컴포넌트(Slot)를 필터링
     const componentGroups = useMemo(
-      () => ({
-        content: contentComp,
-        layout: isLayoutMode
-          ? layoutComp
-          : layoutComp.filter(
-              (comp) => !("layoutOnly" in comp && comp.layoutOnly),
-            ),
-        buttons: buttonsComp,
-        forms: formsComp,
-        collections: collectionsComp,
-        dateTime: dateTimeComp,
-        overlays: overlaysComp,
-      }),
-      [isLayoutMode],
+      () =>
+        mergeCatalogPanelComponents(
+          {
+            content: [...contentComp],
+            layout: isLayoutMode
+              ? [...layoutComp]
+              : layoutComp.filter(
+                  (comp) => !("layoutOnly" in comp && comp.layoutOnly),
+                ),
+            buttons: [...buttonsComp],
+            forms: [...formsComp],
+            collections: [...collectionsComp],
+            dateTime: [...dateTimeComp],
+            overlays: [...overlaysComp],
+          },
+          catalogComponents,
+        ),
+      [catalogComponents, isLayoutMode],
     );
 
     // 검색용 모든 컴포넌트 배열 생성
