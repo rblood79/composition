@@ -21,6 +21,7 @@ const {
   legacyDateFieldRenderer,
   legacyFileTriggerRenderer,
   legacyFormRenderer,
+  legacyGridListRenderer,
   legacyLinkRenderer,
   legacyListBoxRenderer,
   legacyNumberFieldRenderer,
@@ -62,6 +63,9 @@ const {
   )),
   legacyFormRenderer: vi.fn(() => (
     <form data-legacy-renderer="Form">legacy</form>
+  )),
+  legacyGridListRenderer: vi.fn(() => (
+    <div data-legacy-renderer="GridList">legacy</div>
   )),
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacyListBoxRenderer: vi.fn(() => (
@@ -116,6 +120,7 @@ vi.mock("@composition/shared/renderers", () => ({
     DateField: legacyDateFieldRenderer,
     FileTrigger: legacyFileTriggerRenderer,
     Form: legacyFormRenderer,
+    GridList: legacyGridListRenderer,
     Link: legacyLinkRenderer,
     ListBox: legacyListBoxRenderer,
     NumberField: legacyNumberFieldRenderer,
@@ -158,6 +163,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyDateFieldRenderer.mockClear();
     legacyFileTriggerRenderer.mockClear();
     legacyFormRenderer.mockClear();
+    legacyGridListRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyListBoxRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
@@ -906,6 +912,50 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       listbox,
     );
     expect(legacyListBoxRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders GridList canonical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "gridlist-1",
+      type: "GridList",
+      props: {
+        variant: "accent",
+        layout: "grid",
+        columns: 2,
+        selectionMode: "multiple",
+        selectedKeys: ["trail"],
+        items: [
+          {
+            id: "sunset",
+            label: "Desert Sunset",
+            textValue: "Desert Sunset",
+            description: "PNG - 2/3/2024",
+          },
+          {
+            id: "trail",
+            label: "Hiking Trail",
+            textValue: "Hiking Trail",
+            description: "JPEG - 1/10/2022",
+          },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const grid = screen.getByRole("grid", { name: "Grid List" });
+    expect(grid.getAttribute("data-variant")).toBe("accent");
+    expect(grid.getAttribute("data-layout")).toBe("grid");
+    expect(grid.getAttribute("style")).toContain("--gl-columns: 2");
+    expect(screen.getByText("Desert Sunset")).toBeTruthy();
+    expect(screen.getByText("PNG - 2/3/2024")).toBeTruthy();
+    expect(screen.getByText("Hiking Trail")).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='gridlist-1']")).toBe(
+      grid,
+    );
+    expect(legacyGridListRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

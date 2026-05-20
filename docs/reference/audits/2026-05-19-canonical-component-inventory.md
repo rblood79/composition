@@ -352,6 +352,10 @@ ListBox collections primitive pilot 은 collections family 착수 slice 로
 `ListBox.tsx` projection / Preview ListBox primitive branch / generic Skia
 container+item row fixture 를 추가했다. ListBox 는 canonical `items[]` 를 RAC ListBox
 item surface 로 투영하며 `ListBoxSpec.render.shapes()` 를 호출하지 않는 generic Skia
-fixture 로 고정했다. collections family 전체 완료 주장은 아직 하지 않는다. ADR-132
-collection 데이터 binding 과 GridList/Menu/TagGroup/ComboBox/Select/Tabs 잔여 전환이
-다음 범위다.
+fixture 로 고정했다. GridList collections primitive pilot 은 `toGridListRacProps()` /
+`gridListPrimitiveBinding` / active catalog entry / shared `GridList.tsx` projection /
+Preview GridList primitive branch / generic Skia card label+description fixture 를
+추가했다. GridList 는 canonical `items[]` 를 RAC GridList card surface 로 투영하며
+`GridListSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+collections family 전체 완료 주장은 아직 하지 않는다. ADR-132 collection 데이터 binding 과
+Menu/TagGroup/ComboBox/Select/Tabs 잔여 전환이 다음 범위다.

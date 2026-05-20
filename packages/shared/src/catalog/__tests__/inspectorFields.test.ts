@@ -6,6 +6,7 @@ import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
+import { gridListPrimitiveBinding } from "../primitives/gridList";
 import { getPrimitiveBinding } from "../registry";
 import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
@@ -22,6 +23,7 @@ import {
   toDateFieldRacProps,
   toFileTriggerRacProps,
   toFormRacProps,
+  toGridListRacProps,
   toListBoxRacProps,
   toNumberFieldRacProps,
   toRadioRacProps,
@@ -1032,6 +1034,95 @@ describe("ADR-142 inspector field contracts", () => {
           id: "item-2",
           label: "Cat",
           value: "cat",
+          isDisabled: true,
+        },
+      ],
+    });
+  });
+
+  it("groups GridList PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "GridList",
+      contracts: gridListPrimitiveBinding.props.accepts,
+      theme: {
+        variants: { GridList: ["default", "accent"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Filtering",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual(["items"]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "variant",
+      "layout",
+      "columns",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "filterText",
+      "filterFields",
+    ]);
+    expect(sections[3].fields.map((field) => field.key)).toEqual([
+      "selectionMode",
+      "selectionBehavior",
+      "disallowEmptySelection",
+      "isDisabled",
+      "autoFocus",
+      "allowsDragging",
+      "renderEmptyState",
+    ]);
+  });
+
+  it("projects GridList canonical items through the catalog boundary", () => {
+    expect(toGridListRacProps({ variant: "primary" }).variant).toBe("primary");
+
+    expect(
+      toGridListRacProps({
+        variant: "accent",
+        layout: "grid",
+        columns: 3,
+        selectionMode: "multiple",
+        selectionBehavior: "replace",
+        selectedKeys: ["trail"],
+        items: [
+          {
+            id: "sunset",
+            label: "Desert Sunset",
+            textValue: "Desert Sunset",
+            description: "PNG - 2/3/2024",
+          },
+          {
+            id: "trail",
+            label: "Hiking Trail",
+            isDisabled: true,
+          },
+          {
+            id: "ignored",
+            label: "",
+          },
+          42,
+        ],
+      }),
+    ).toMatchObject({
+      variant: "accent",
+      layout: "grid",
+      columns: 3,
+      selectionMode: "multiple",
+      selectionBehavior: "replace",
+      selectedKeys: ["trail"],
+      items: [
+        {
+          id: "sunset",
+          label: "Desert Sunset",
+          textValue: "Desert Sunset",
+          description: "PNG - 2/3/2024",
+        },
+        {
+          id: "trail",
+          label: "Hiking Trail",
           isDisabled: true,
         },
       ],

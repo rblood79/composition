@@ -9,12 +9,20 @@ import React from "react";
 import {
   Button,
   GridList as AriaGridList,
+  GridListHeader as AriaGridListHeader,
   GridListItem as AriaGridListItem,
   GridListItemProps,
   GridListProps,
+  GridListSection as AriaGridListSection,
 } from "react-aria-components";
 import { MyCheckbox } from "./Checkbox";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
+import {
+  toGridListRacProps,
+  type GridListCanonicalProps,
+  type GridListEntryDescriptor,
+  type GridListItemDescriptor,
+} from "../catalog/outputs/toRacProps";
 
 import { useCollectionData } from "../hooks";
 
@@ -26,7 +34,10 @@ import "./styles/GridList.css";
  * - data-variant, data-size 속성 사용
  */
 
-interface ExtendedGridListProps<T extends object> extends GridListProps<T> {
+interface ExtendedGridListProps<T extends object> extends Omit<
+  GridListProps<T>,
+  "renderEmptyState"
+> {
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
   // Layout
@@ -49,20 +60,44 @@ interface ExtendedGridListProps<T extends object> extends GridListProps<T> {
    * @default ['label', 'name', 'title']
    */
   filterFields?: (keyof T)[];
+  renderEmptyState?: boolean | GridListProps<T>["renderEmptyState"];
 }
 
 export function GridList<T extends object>({
   children,
   dataBinding,
   columnMapping,
+  items: inputItems,
   layout = "stack",
   columns = 2,
   variant = "primary",
   filter,
   filterText,
   filterFields = ["label", "name", "title"] as (keyof T)[],
+  renderEmptyState,
   ...props
 }: ExtendedGridListProps<T>) {
+  const projectedProps = toGridListRacProps({
+    ...props,
+    items: inputItems,
+    variant,
+    layout,
+    columns,
+    filterText,
+    filterFields,
+    renderEmptyState,
+  } as GridListCanonicalProps);
+  const projectedAriaProps = {
+    "aria-label": projectedProps["aria-label"],
+    selectionMode: projectedProps.selectionMode,
+    selectionBehavior: projectedProps.selectionBehavior,
+    disallowEmptySelection: projectedProps.disallowEmptySelection,
+    autoFocus: projectedProps.autoFocus,
+    isDisabled: projectedProps.isDisabled,
+    allowsDragging: projectedProps.allowsDragging,
+    validationBehavior: projectedProps.validationBehavior,
+    ...(typeof renderEmptyState === "function" ? { renderEmptyState } : {}),
+  };
   // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
   const {
     data: boundData,
@@ -87,10 +122,13 @@ export function GridList<T extends object>({
     }
 
     // 텍스트 필터 적용
-    if (filterText && filterText.trim()) {
-      const searchText = filterText.toLowerCase().trim();
+    if (projectedProps.filterText && projectedProps.filterText.trim()) {
+      const searchText = projectedProps.filterText.toLowerCase().trim();
+      const projectedFilterFields =
+        projectedProps.filterFields ??
+        filterFields.map((field) => String(field));
       result = result.filter((item) =>
-        filterFields.some((field) => {
+        projectedFilterFields.some((field) => {
           const value = item[field as string];
           return value && String(value).toLowerCase().includes(searchText);
         }),
@@ -98,7 +136,13 @@ export function GridList<T extends object>({
     }
 
     return result;
-  }, [boundData, filter, filterText, filterFields]);
+  }, [
+    boundData,
+    filter,
+    projectedProps.filterText,
+    projectedProps.filterFields,
+    filterFields,
+  ]);
 
   // DataBinding이 있고 데이터가 로드되었을 때 동적 아이템 생성
   // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원
@@ -116,15 +160,14 @@ export function GridList<T extends object>({
 
   // GridList className generator (reused across all conditional renders)
   // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
-  const baseClassName =
-    typeof props.className === "string" ? props.className : undefined;
+  const baseClassName = projectedProps.className;
   const gridListClassName = baseClassName
     ? `react-aria-GridList ${baseClassName}`
     : "react-aria-GridList";
   const gridListStyle = {
-    ...props.style,
-    ...(layout === "grid"
-      ? ({ "--gl-columns": columns } as React.CSSProperties)
+    ...projectedProps.style,
+    ...(projectedProps.layout === "grid"
+      ? ({ "--gl-columns": projectedProps.columns } as React.CSSProperties)
       : {}),
   };
 
@@ -146,9 +189,11 @@ export function GridList<T extends object>({
       return (
         <AriaGridList
           {...props}
+          {...projectedAriaProps}
           className={gridListClassName}
-          data-variant={variant}
-          layout={layout}
+          data-variant={projectedProps.variant}
+          data-layout={projectedProps.layout}
+          layout={projectedProps.layout}
           style={gridListStyle}
         >
           <AriaGridListItem
@@ -176,9 +221,11 @@ export function GridList<T extends object>({
       return (
         <AriaGridList
           {...props}
+          {...projectedAriaProps}
           className={gridListClassName}
-          data-variant={variant}
-          layout={layout}
+          data-variant={projectedProps.variant}
+          data-layout={projectedProps.layout}
+          layout={projectedProps.layout}
           style={gridListStyle}
         >
           <AriaGridListItem
@@ -213,9 +260,11 @@ export function GridList<T extends object>({
       return (
         <AriaGridList
           {...props}
+          {...projectedAriaProps}
           className={gridListClassName}
-          data-variant={variant}
-          layout={layout}
+          data-variant={projectedProps.variant}
+          data-layout={projectedProps.layout}
+          layout={projectedProps.layout}
           style={gridListStyle}
           items={items}
         >
@@ -228,8 +277,12 @@ export function GridList<T extends object>({
     return (
       <AriaGridList
         {...props}
+        {...projectedAriaProps}
         className={gridListClassName}
-        data-variant={variant}
+        data-variant={projectedProps.variant}
+        data-layout={projectedProps.layout}
+        layout={projectedProps.layout}
+        style={gridListStyle}
       >
         {children}
       </AriaGridList>
@@ -243,9 +296,11 @@ export function GridList<T extends object>({
       return (
         <AriaGridList
           {...props}
+          {...projectedAriaProps}
           className={gridListClassName}
-          data-variant={variant}
-          layout={layout}
+          data-variant={projectedProps.variant}
+          data-layout={projectedProps.layout}
+          layout={projectedProps.layout}
           style={gridListStyle}
         >
           <AriaGridListItem
@@ -273,9 +328,11 @@ export function GridList<T extends object>({
       return (
         <AriaGridList
           {...props}
+          {...projectedAriaProps}
           className={gridListClassName}
-          data-variant={variant}
-          layout={layout}
+          data-variant={projectedProps.variant}
+          data-layout={projectedProps.layout}
+          layout={projectedProps.layout}
           style={gridListStyle}
         >
           <AriaGridListItem
@@ -313,9 +370,11 @@ export function GridList<T extends object>({
       return (
         <AriaGridList
           {...props}
+          {...projectedAriaProps}
           className={gridListClassName}
-          data-variant={variant}
-          layout={layout}
+          data-variant={projectedProps.variant}
+          data-layout={projectedProps.layout}
+          layout={projectedProps.layout}
           style={gridListStyle}
           items={items}
         >
@@ -349,15 +408,24 @@ export function GridList<T extends object>({
   }
 
   // Static Children (기존 방식)
+  const staticChildren =
+    children ??
+    projectedProps.items?.map((entry) => renderStaticGridListEntry(entry));
+  const shouldPassInputItems =
+    inputItems !== undefined && typeof children === "function";
+
   return (
     <AriaGridList
       {...props}
+      {...projectedAriaProps}
+      {...(shouldPassInputItems ? { items: inputItems } : {})}
       className={gridListClassName}
-      data-variant={variant}
-      layout={layout}
+      data-variant={projectedProps.variant}
+      data-layout={projectedProps.layout}
+      layout={projectedProps.layout}
       style={gridListStyle}
     >
-      {children}
+      {staticChildren}
     </AriaGridList>
   );
 }
@@ -385,6 +453,50 @@ export function GridListItem({
             <MyCheckbox slot="selection" />
           )}
           {children}
+        </>
+      )}
+    </AriaGridListItem>
+  );
+}
+
+function renderStaticGridListEntry(
+  entry: GridListEntryDescriptor,
+): React.ReactNode {
+  if (entry.type === "section") {
+    return (
+      <AriaGridListSection key={entry.id} aria-label={entry.ariaLabel}>
+        <AriaGridListHeader>{entry.header}</AriaGridListHeader>
+        {entry.items.map((item) => renderStaticGridListItem(item))}
+      </AriaGridListSection>
+    );
+  }
+
+  return renderStaticGridListItem(entry);
+}
+
+function renderStaticGridListItem(
+  item: GridListItemDescriptor,
+): React.ReactNode {
+  return (
+    <AriaGridListItem
+      key={item.id}
+      id={item.id}
+      textValue={item.textValue ?? item.label}
+      isDisabled={item.isDisabled}
+      className="react-aria-GridListItem"
+    >
+      {({ selectionMode, selectionBehavior, allowsDragging }) => (
+        <>
+          {allowsDragging && <Button slot="drag">≡</Button>}
+          {selectionMode === "multiple" && selectionBehavior === "toggle" && (
+            <MyCheckbox slot="selection" />
+          )}
+          <span className="gridlist-item-label">{item.label}</span>
+          {item.description ? (
+            <span className="gridlist-item-description">
+              {item.description}
+            </span>
+          ) : null}
         </>
       )}
     </AriaGridListItem>

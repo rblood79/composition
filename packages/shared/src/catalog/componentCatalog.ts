@@ -7,6 +7,7 @@ import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
 import { formPrimitiveBinding } from "./primitives/form";
+import { gridListPrimitiveBinding } from "./primitives/gridList";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { listBoxPrimitiveBinding } from "./primitives/listBox";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
@@ -325,6 +326,19 @@ export const componentCatalog = [
       category: "collections",
       label: "list box",
       icon: "ListIcon",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "GridList",
+    family: "collections",
+    cutover: "catalog",
+    binding: gridListPrimitiveBinding,
+    panel: {
+      category: "collections",
+      label: "grid list",
+      icon: "Grid",
       placeable: true,
     },
   },

@@ -317,6 +317,41 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog GridList placement with canonical items", () => {
+    const creation = resolveCatalogElementCreation("GridList");
+
+    expect(creation).toMatchObject({
+      elementType: "GridList",
+      props: {
+        variant: "default",
+        layout: "stack",
+        columns: 2,
+        selectionMode: "none",
+        items: [
+          {
+            id: "item-1",
+            label: "Desert Sunset",
+            textValue: "Desert Sunset",
+            description: "PNG - 2/3/2024",
+          },
+          {
+            id: "item-2",
+            label: "Hiking Trail",
+            textValue: "Hiking Trail",
+            description: "JPEG - 1/10/2022",
+          },
+          {
+            id: "item-3",
+            label: "Mountain Sunrise",
+            textValue: "Mountain Sunrise",
+            description: "PNG - 3/15/2015",
+          },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

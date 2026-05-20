@@ -30,6 +30,7 @@ import {
   type DateFieldRacProps,
   type FileTriggerRacProps,
   type FormRacProps,
+  type GridListRacProps,
   type LinkRacProps,
   type ListBoxRacProps,
   type NumberFieldRacProps,
@@ -55,6 +56,7 @@ import {
   DateField,
   FileTrigger,
   Form,
+  GridList,
   Link,
   ListBox,
   NumberField,
@@ -474,6 +476,14 @@ function renderPrimitiveNode({
     ) as ListBoxRacProps;
 
     return <ListBox key={node.id} {...listBoxProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "GridList") {
+    const gridListProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as GridListRacProps;
+
+    return <GridList key={node.id} {...gridListProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

@@ -26,6 +26,7 @@ import {
   toCheckboxRacProps,
   toColorFieldRacProps,
   toDateFieldRacProps,
+  toGridListRacProps,
   toLinkRacProps,
   toListBoxRacProps,
   toNumberFieldRacProps,
@@ -44,6 +45,9 @@ import {
   type CheckboxRacProps,
   type ColorFieldRacProps,
   type DateFieldRacProps,
+  type GridListEntryDescriptor,
+  type GridListItemDescriptor,
+  type GridListRacProps,
   type LinkRacProps,
   type ListBoxEntryDescriptor,
   type ListBoxItemDescriptor,
@@ -879,6 +883,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "list-box") {
     return buildGenericListBoxNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "grid-list") {
+    return buildGenericGridListNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -2547,6 +2554,142 @@ function buildGenericListBoxNode(
   };
 }
 
+function buildGenericGridListNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toGridListRacProps(node.props ?? {}) as GridListRacProps;
+  const style = readGenericStyle(node);
+  const isDark = theme === "dark";
+  const gap = readNumber(style.gap, 12);
+  const columns = props.layout === "grid" ? props.columns : 1;
+  const padding = readNumber(style.padding, 0);
+  const itemHeight = props.layout === "grid" ? 72 : 64;
+  const availableWidth = Math.max(layout.width - padding * 2, 0);
+  const itemWidth =
+    props.layout === "grid"
+      ? Math.max((availableWidth - gap * (columns - 1)) / columns, 0)
+      : availableWidth;
+  const items = flattenGridListItems(props.items);
+  const selectedKeys = new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.selectedKey ? [props.selectedKey] : []),
+    ...(props.defaultSelectedKeys ?? []),
+    ...(props.defaultSelectedKey ? [props.defaultSelectedKey] : []),
+  ]);
+
+  const backgroundNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:background`,
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: layout.height,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(0x000000, 0),
+      borderRadius: readNumber(style.borderRadius, 0),
+    },
+  };
+
+  const itemNodes = items.flatMap((item, index): SkiaNodeData[] => {
+    const column = props.layout === "grid" ? index % columns : 0;
+    const row = props.layout === "grid" ? Math.floor(index / columns) : index;
+    const x = padding + column * (itemWidth + gap);
+    const y = padding + row * (itemHeight + gap);
+    const isSelected = selectedKeys.has(item.id);
+    const borderColor = isSelected
+      ? colorIntToFloat32(isDark ? 0x93c5fd : 0x2563eb, 1)
+      : colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1);
+    const cardFill = colorIntToFloat32(isDark ? 0x1f2937 : 0xf9fafb, 1);
+    const textColor = item.isDisabled
+      ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+      : colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+    const descriptionColor = colorIntToFloat32(
+      isDark ? 0x9ca3af : 0x6b7280,
+      item.isDisabled ? 0.6 : 1,
+    );
+
+    return [
+      {
+        type: "box",
+        elementId: `${node.id}:item:${item.id}:bg`,
+        x,
+        y,
+        width: itemWidth,
+        height: itemHeight,
+        visible: true,
+        box: {
+          fillColor: cardFill,
+          borderRadius: 8,
+          strokeColor: borderColor,
+          strokeWidth: isSelected ? 2 : 1,
+        },
+      },
+      {
+        type: "text",
+        elementId: `${node.id}:item:${item.id}:label`,
+        x: x + 16,
+        y: y + 12,
+        width: Math.max(itemWidth - 32, 0),
+        height: 22,
+        visible: true,
+        text: {
+          content: item.label,
+          fontFamilies: [fontFamily.sans],
+          fontSize: 14,
+          fontWeight: 600,
+          color: textColor,
+          align: "left",
+          lineHeight: 20,
+          paddingLeft: 0,
+          paddingTop: 0,
+          maxWidth: Math.max(itemWidth - 32, 0),
+          verticalAlign: "middle",
+        },
+      },
+      ...(item.description
+        ? [
+            {
+              type: "text" as const,
+              elementId: `${node.id}:item:${item.id}:description`,
+              x: x + 16,
+              y: y + 36,
+              width: Math.max(itemWidth - 32, 0),
+              height: 20,
+              visible: true,
+              text: {
+                content: item.description,
+                fontFamilies: [fontFamily.sans],
+                fontSize: 12,
+                fontWeight: 400,
+                color: descriptionColor,
+                align: "left" as const,
+                lineHeight: 16,
+                paddingLeft: 0,
+                paddingTop: 0,
+                maxWidth: Math.max(itemWidth - 32, 0),
+                verticalAlign: "middle" as const,
+              },
+            },
+          ]
+        : []),
+    ];
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [backgroundNode, ...itemNodes],
+  };
+}
+
 function flattenListBoxItems(
   entries: ListBoxRacProps["items"],
 ): ListBoxItemDescriptor[] {
@@ -2565,6 +2708,27 @@ function flattenListBoxItems(
 function isListBoxSectionDescriptor(
   entry: ListBoxEntryDescriptor,
 ): entry is Extract<ListBoxEntryDescriptor, { type: "section" }> {
+  return entry.type === "section";
+}
+
+function flattenGridListItems(
+  entries: GridListRacProps["items"],
+): GridListItemDescriptor[] {
+  if (!entries) return [];
+  const result: GridListItemDescriptor[] = [];
+  for (const entry of entries) {
+    if (isGridListSectionDescriptor(entry)) {
+      result.push(...entry.items);
+    } else {
+      result.push(entry);
+    }
+  }
+  return result;
+}
+
+function isGridListSectionDescriptor(
+  entry: GridListEntryDescriptor,
+): entry is Extract<GridListEntryDescriptor, { type: "section" }> {
   return entry.type === "section";
 }
 

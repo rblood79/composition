@@ -8,6 +8,7 @@ import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
+import { gridListPrimitiveBinding } from "../primitives/gridList";
 import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
@@ -411,6 +412,42 @@ describe("ADR-142 component catalog", () => {
     ]);
   });
 
+  it("registers GridList as an active collections primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("GridList");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(gridListPrimitiveBinding);
+    expect(entry.family).toBe("collections");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("GridList");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("grid-list");
+    expect(entry.panel.category).toBe("collections");
+    expect(entry.panel.label).toBe("grid list");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual([
+      {
+        id: "item-1",
+        label: "Desert Sunset",
+        textValue: "Desert Sunset",
+        description: "PNG - 2/3/2024",
+      },
+      {
+        id: "item-2",
+        label: "Hiking Trail",
+        textValue: "Hiking Trail",
+        description: "JPEG - 1/10/2022",
+      },
+      {
+        id: "item-3",
+        label: "Mountain Sunrise",
+        textValue: "Mountain Sunrise",
+        description: "PNG - 3/15/2015",
+      },
+    ]);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -469,6 +506,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).not.toContain("Radio");
     expect(activeTypes).toContain("Slider");
     expect(activeTypes).toContain("ListBox");
+    expect(activeTypes).toContain("GridList");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

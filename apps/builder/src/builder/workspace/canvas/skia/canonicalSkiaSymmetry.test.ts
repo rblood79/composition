@@ -12,6 +12,7 @@ import {
   DateFieldSpec,
   FileTriggerSpec,
   FormSpec,
+  GridListSpec,
   LinkSpec,
   ListBoxSpec,
   NumberFieldSpec,
@@ -392,6 +393,53 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("listbox-1");
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Aardvark", "Cat"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved GridList items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(GridListSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "gridlist-1",
+        type: "GridList",
+        props: {
+          variant: "accent",
+          layout: "grid",
+          columns: 2,
+          selectionMode: "multiple",
+          selectedKeys: ["trail"],
+          items: [
+            {
+              id: "sunset",
+              label: "Desert Sunset",
+              textValue: "Desert Sunset",
+              description: "PNG - 2/3/2024",
+            },
+            {
+              id: "trail",
+              label: "Hiking Trail",
+              textValue: "Hiking Trail",
+              description: "JPEG - 1/10/2022",
+            },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 320, height: 160 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("gridlist-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining([
+        "Desert Sunset",
+        "PNG - 2/3/2024",
+        "Hiking Trail",
+      ]),
     );
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();

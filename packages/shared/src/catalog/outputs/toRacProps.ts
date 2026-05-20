@@ -221,6 +221,14 @@ export const LIST_BOX_SELECTION_BEHAVIOR_VALUES = [
   "toggle",
   "replace",
 ] as const;
+export const GRID_LIST_VARIANT_VALUES = LIST_BOX_VARIANT_VALUES;
+const GRID_LIST_LEGACY_VISUAL_VARIANT_VALUES =
+  LIST_BOX_LEGACY_VISUAL_VARIANT_VALUES;
+export const GRID_LIST_LAYOUT_VALUES = ["stack", "grid"] as const;
+export const GRID_LIST_SELECTION_MODE_VALUES = LIST_BOX_SELECTION_MODE_VALUES;
+export const GRID_LIST_SELECTION_BEHAVIOR_VALUES =
+  LIST_BOX_SELECTION_BEHAVIOR_VALUES;
+export const GRID_LIST_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -335,6 +343,20 @@ const LIST_BOX_SELECTION_MODES = new Set<string>(
 );
 const LIST_BOX_SELECTION_BEHAVIORS = new Set<string>(
   LIST_BOX_SELECTION_BEHAVIOR_VALUES,
+);
+const GRID_LIST_VARIANTS = new Set<string>([
+  ...GRID_LIST_VARIANT_VALUES,
+  ...GRID_LIST_LEGACY_VISUAL_VARIANT_VALUES,
+]);
+const GRID_LIST_LAYOUTS = new Set<string>(GRID_LIST_LAYOUT_VALUES);
+const GRID_LIST_SELECTION_MODES = new Set<string>(
+  GRID_LIST_SELECTION_MODE_VALUES,
+);
+const GRID_LIST_SELECTION_BEHAVIORS = new Set<string>(
+  GRID_LIST_SELECTION_BEHAVIOR_VALUES,
+);
+const GRID_LIST_VALIDATION_BEHAVIORS = new Set<string>(
+  GRID_LIST_VALIDATION_BEHAVIOR_VALUES,
 );
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
@@ -1143,6 +1165,77 @@ export interface ListBoxRacProps extends Record<string, unknown> {
   defaultSelectedKey?: string;
   defaultSelectedKeys?: string[];
   items?: ListBoxEntryDescriptor[];
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface GridListItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  textValue?: string;
+  description?: string;
+  isDisabled?: boolean;
+  type?: "item";
+}
+
+export interface GridListSectionDescriptor extends Record<string, unknown> {
+  id: string;
+  type: "section";
+  header: string;
+  ariaLabel?: string;
+  items: GridListItemDescriptor[];
+}
+
+export type GridListEntryDescriptor =
+  | GridListItemDescriptor
+  | GridListSectionDescriptor;
+
+export interface GridListCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  variant?: unknown;
+  layout?: unknown;
+  columns?: unknown;
+  selectionMode?: unknown;
+  selectionBehavior?: unknown;
+  disallowEmptySelection?: unknown;
+  autoFocus?: unknown;
+  isDisabled?: unknown;
+  allowsDragging?: unknown;
+  renderEmptyState?: unknown;
+  validationBehavior?: unknown;
+  filterText?: unknown;
+  filterFields?: unknown;
+  selectedKey?: unknown;
+  selectedKeys?: unknown;
+  defaultSelectedKey?: unknown;
+  defaultSelectedKeys?: unknown;
+  items?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface GridListRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  variant:
+    | (typeof GRID_LIST_VARIANT_VALUES)[number]
+    | (typeof GRID_LIST_LEGACY_VISUAL_VARIANT_VALUES)[number];
+  layout: (typeof GRID_LIST_LAYOUT_VALUES)[number];
+  columns: number;
+  selectionMode: (typeof GRID_LIST_SELECTION_MODE_VALUES)[number];
+  selectionBehavior: (typeof GRID_LIST_SELECTION_BEHAVIOR_VALUES)[number];
+  disallowEmptySelection: boolean;
+  autoFocus: boolean;
+  isDisabled: boolean;
+  allowsDragging: boolean;
+  renderEmptyState: boolean;
+  validationBehavior: (typeof GRID_LIST_VALIDATION_BEHAVIOR_VALUES)[number];
+  filterText?: string;
+  filterFields?: string[];
+  selectedKey?: string;
+  selectedKeys?: string[];
+  defaultSelectedKey?: string;
+  defaultSelectedKeys?: string[];
+  items?: GridListEntryDescriptor[];
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2059,6 +2152,57 @@ export function toListBoxRacProps(
   };
 }
 
+export function toGridListRacProps(
+  props: GridListCanonicalProps,
+): GridListRacProps {
+  const items = normalizeGridListEntries(props.items);
+  return {
+    "aria-label": readString(props["aria-label"], "Grid List"),
+    variant: normalizeGridListVariant(props.variant),
+    layout: normalizeGridListLayout(props.layout),
+    columns: normalizeGridListColumns(props.columns),
+    selectionMode: normalizeGridListSelectionMode(props.selectionMode),
+    selectionBehavior: normalizeGridListSelectionBehavior(
+      props.selectionBehavior,
+    ),
+    disallowEmptySelection: props.disallowEmptySelection === true,
+    autoFocus: props.autoFocus === true,
+    isDisabled: props.isDisabled === true,
+    allowsDragging: props.allowsDragging === true,
+    renderEmptyState: props.renderEmptyState === true,
+    validationBehavior: normalizeGridListValidationBehavior(
+      props.validationBehavior,
+    ),
+    ...(typeof props.filterText === "string"
+      ? { filterText: props.filterText }
+      : {}),
+    ...(normalizeStringArray(props.filterFields)
+      ? { filterFields: normalizeStringArray(props.filterFields) }
+      : {}),
+    ...(typeof props.selectedKey === "string"
+      ? { selectedKey: props.selectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.selectedKeys)
+      ? { selectedKeys: normalizeStringValueArray(props.selectedKeys) }
+      : {}),
+    ...(typeof props.defaultSelectedKey === "string"
+      ? { defaultSelectedKey: props.defaultSelectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultSelectedKeys)
+      ? {
+          defaultSelectedKeys: normalizeStringValueArray(
+            props.defaultSelectedKeys,
+          ),
+        }
+      : {}),
+    ...(items.length > 0 ? { items } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -2781,6 +2925,97 @@ function normalizeListBoxEntry(
       ? { isDisabled: value.isDisabled }
       : {}),
     ...(typeof value.href === "string" ? { href: value.href } : {}),
+    ...(value.type === "item" ? { type: "item" as const } : {}),
+  };
+}
+
+function normalizeGridListVariant(value: unknown): GridListRacProps["variant"] {
+  return typeof value === "string" && GRID_LIST_VARIANTS.has(value)
+    ? (value as GridListRacProps["variant"])
+    : "default";
+}
+
+function normalizeGridListLayout(
+  value: unknown,
+): (typeof GRID_LIST_LAYOUT_VALUES)[number] {
+  return typeof value === "string" && GRID_LIST_LAYOUTS.has(value)
+    ? (value as (typeof GRID_LIST_LAYOUT_VALUES)[number])
+    : "stack";
+}
+
+function normalizeGridListColumns(value: unknown): number {
+  const columns = readFiniteNumber(value);
+  if (columns === undefined) return 2;
+  return Math.min(12, Math.max(1, Math.round(columns)));
+}
+
+function normalizeGridListSelectionMode(
+  value: unknown,
+): (typeof GRID_LIST_SELECTION_MODE_VALUES)[number] {
+  return typeof value === "string" && GRID_LIST_SELECTION_MODES.has(value)
+    ? (value as (typeof GRID_LIST_SELECTION_MODE_VALUES)[number])
+    : "none";
+}
+
+function normalizeGridListSelectionBehavior(
+  value: unknown,
+): (typeof GRID_LIST_SELECTION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && GRID_LIST_SELECTION_BEHAVIORS.has(value)
+    ? (value as (typeof GRID_LIST_SELECTION_BEHAVIOR_VALUES)[number])
+    : "toggle";
+}
+
+function normalizeGridListValidationBehavior(
+  value: unknown,
+): (typeof GRID_LIST_VALIDATION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && GRID_LIST_VALIDATION_BEHAVIORS.has(value)
+    ? (value as (typeof GRID_LIST_VALIDATION_BEHAVIOR_VALUES)[number])
+    : "native";
+}
+
+function normalizeGridListEntries(value: unknown): GridListEntryDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeGridListEntry(entry))
+    .filter((entry): entry is GridListEntryDescriptor => entry !== undefined);
+}
+
+function normalizeGridListEntry(
+  value: unknown,
+): GridListEntryDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+
+  if (value.type === "section") {
+    const items = normalizeGridListEntries(value.items).filter(
+      (entry): entry is GridListItemDescriptor => entry.type !== "section",
+    );
+    if (items.length === 0) return undefined;
+    return {
+      id: readString(value.id, `section-${items[0].id}`),
+      type: "section",
+      header: readString(value.header, "Section"),
+      ...(typeof value.ariaLabel === "string"
+        ? { ariaLabel: value.ariaLabel }
+        : {}),
+      items,
+    };
+  }
+
+  const label = readString(value.label, "");
+  if (!label) return undefined;
+  const id = readString(value.id, label);
+  return {
+    id,
+    label,
+    ...(typeof value.textValue === "string"
+      ? { textValue: value.textValue }
+      : {}),
+    ...(typeof value.description === "string"
+      ? { description: value.description }
+      : {}),
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
+      : {}),
     ...(value.type === "item" ? { type: "item" as const } : {}),
   };
 }
