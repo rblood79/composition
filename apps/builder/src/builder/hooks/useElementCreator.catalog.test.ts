@@ -129,6 +129,23 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog DateField placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("DateField");
+
+    expect(creation).toMatchObject({
+      elementType: "DateField",
+      props: {
+        label: "Date",
+        value: "",
+        placeholderValue: "2026-01-01",
+        granularity: "day",
+        size: "md",
+        labelPosition: "top",
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

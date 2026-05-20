@@ -273,3 +273,8 @@ SearchField primitive pilot 은 `fields` family 의 세 번째 active slice 로
 Preview primitive branch / generic Skia label-input-value+search-icon fixture 를
 추가했다. SearchField 역시 `SearchFieldSpec.render.shapes()` 를 호출하지 않는
 generic Skia fixture 로 고정했으며, fields family 전체 완료 판정은 아니다.
+DateField primitive pilot 은 `fields` family 의 네 번째 active slice 로
+`toDateFieldRacProps()` / `dateFieldPrimitiveBinding` / active catalog entry /
+Preview primitive branch / generic Skia label-input-value fixture 를 추가했다.
+DateField 역시 `DateFieldSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했으며, fields family 전체 완료 판정은 아니다.

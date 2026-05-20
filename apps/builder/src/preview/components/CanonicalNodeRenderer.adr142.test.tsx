@@ -15,6 +15,7 @@ const {
   legacyButtonRenderer,
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
+  legacyDateFieldRenderer,
   legacyLinkRenderer,
   legacyNumberFieldRenderer,
   legacySearchFieldRenderer,
@@ -32,6 +33,9 @@ const {
   )),
   legacyBreadcrumbsRenderer: vi.fn(() => (
     <nav data-legacy-renderer="Breadcrumbs">legacy</nav>
+  )),
+  legacyDateFieldRenderer: vi.fn(() => (
+    <div data-legacy-renderer="DateField">legacy</div>
   )),
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacyNumberFieldRenderer: vi.fn(() => (
@@ -62,6 +66,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Button: legacyButtonRenderer,
     Breadcrumb: legacyBreadcrumbRenderer,
     Breadcrumbs: legacyBreadcrumbsRenderer,
+    DateField: legacyDateFieldRenderer,
     Link: legacyLinkRenderer,
     NumberField: legacyNumberFieldRenderer,
     SearchField: legacySearchFieldRenderer,
@@ -92,6 +97,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyButtonRenderer.mockClear();
     legacyBreadcrumbRenderer.mockClear();
     legacyBreadcrumbsRenderer.mockClear();
+    legacyDateFieldRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
@@ -456,5 +462,29 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector(".react-aria-SearchField"),
     );
     expect(legacySearchFieldRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders DateField through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "datefield-1",
+      type: "DateField",
+      props: {
+        label: "Start date",
+        placeholderValue: "2026-01-01",
+        granularity: "day",
+        size: "lg",
+        isRequired: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    expect(screen.getByText(/Start date/)).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='datefield-1']")).toBe(
+      container.querySelector(".react-aria-DateField"),
+    );
+    expect(legacyDateFieldRenderer).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ export * from "./outputs/inspectorFields";
 export * from "./primitives/breadcrumb";
 export * from "./primitives/breadcrumbs";
 export * from "./primitives/button";
+export * from "./primitives/dateField";
 export * from "./primitives/link";
 export * from "./primitives/numberField";
 export * from "./primitives/searchField";

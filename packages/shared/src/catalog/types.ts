@@ -29,6 +29,7 @@ export interface PrimitiveSkiaDescriptor {
   kind:
     | "breadcrumb"
     | "button"
+    | "date-field"
     | "link"
     | "number-field"
     | "search-field"

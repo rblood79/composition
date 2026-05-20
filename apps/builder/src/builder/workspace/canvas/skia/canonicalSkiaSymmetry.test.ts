@@ -6,6 +6,7 @@ import {
   BreadcrumbSpec,
   BreadcrumbsSpec,
   ButtonSpec,
+  DateFieldSpec,
   LinkSpec,
   NumberFieldSpec,
   SearchFieldSpec,
@@ -290,6 +291,33 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("searchfield-1");
     expect(collectText(node)).toContain("Search docs");
     expect(collectText(node)).toContain("adr");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved DateField through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(DateFieldSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "datefield-1",
+        type: "DateField",
+        props: {
+          label: "Start date",
+          value: "2026-05-20",
+          placeholderValue: "2026-01-01",
+          granularity: "day",
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 240, height: 72 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("datefield-1");
+    expect(collectText(node)).toContain("Start date");
+    expect(collectText(node)).toContain("2026-05-20");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

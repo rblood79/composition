@@ -1,6 +1,7 @@
 import { breadcrumbPrimitiveBinding } from "./primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
+import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
@@ -157,6 +158,19 @@ export const componentCatalog = [
       category: "forms",
       label: "search field",
       icon: "Search",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "DateField",
+    family: "fields",
+    cutover: "catalog",
+    binding: dateFieldPrimitiveBinding,
+    panel: {
+      category: "dateTime",
+      label: "date field",
+      icon: "CalendarCheck",
       placeable: true,
     },
   },

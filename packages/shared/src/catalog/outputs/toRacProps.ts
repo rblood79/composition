@@ -71,6 +71,19 @@ export const SEARCH_FIELD_ENTER_KEY_HINT_VALUES = [
   "search",
   "send",
 ] as const;
+export const DATE_FIELD_GRANULARITY_VALUES = [
+  "day",
+  "hour",
+  "minute",
+  "second",
+] as const;
+export const DATE_FIELD_HOUR_CYCLE_VALUES = ["12", "24"] as const;
+export const DATE_FIELD_CALENDAR_VALUES = [
+  "gregory",
+  "buddhist",
+  "japanese",
+  "islamic-umalqura",
+] as const;
 export const NUMBER_FIELD_FORMAT_STYLE_VALUES = [
   "decimal",
   "currency",
@@ -144,6 +157,9 @@ const SEARCH_FIELD_INPUT_MODES = new Set<string>(
 const SEARCH_FIELD_ENTER_KEY_HINTS = new Set<string>(
   SEARCH_FIELD_ENTER_KEY_HINT_VALUES,
 );
+const DATE_FIELD_GRANULARITIES = new Set<string>(DATE_FIELD_GRANULARITY_VALUES);
+const DATE_FIELD_HOUR_CYCLES = new Set<string>(DATE_FIELD_HOUR_CYCLE_VALUES);
+const DATE_FIELD_CALENDARS = new Set<string>(DATE_FIELD_CALENDAR_VALUES);
 const NUMBER_FIELD_FORMAT_STYLES = new Set<string>(
   NUMBER_FIELD_FORMAT_STYLE_VALUES,
 );
@@ -400,6 +416,63 @@ export interface SearchFieldRacProps extends Record<string, unknown> {
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isInvalid?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface DateFieldCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  placeholderValue?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  granularity?: unknown;
+  hourCycle?: unknown;
+  locale?: unknown;
+  calendar?: unknown;
+  calendarSystem?: unknown;
+  timezone?: unknown;
+  minValue?: unknown;
+  maxValue?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  isQuiet?: unknown;
+  hideTimeZone?: unknown;
+  shouldForceLeadingZeros?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface DateFieldRacProps extends Record<string, unknown> {
+  label: string;
+  placeholderValue: string;
+  granularity: (typeof DATE_FIELD_GRANULARITY_VALUES)[number];
+  hourCycle: 12 | 24;
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  isQuiet: boolean;
+  value?: string;
+  defaultValue?: string;
+  description?: string;
+  errorMessage?: string;
+  locale?: string;
+  calendar?: (typeof DATE_FIELD_CALENDAR_VALUES)[number];
+  timezone?: string;
+  minValue?: string;
+  maxValue?: string;
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  hideTimeZone?: boolean;
+  shouldForceLeadingZeros?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -765,6 +838,80 @@ export function toSearchFieldRacProps(
   };
 }
 
+export function toDateFieldRacProps(
+  props: DateFieldCanonicalProps,
+): DateFieldRacProps {
+  return {
+    label: readString(props.label, "Date"),
+    placeholderValue: readString(props.placeholderValue, "2026-01-01"),
+    granularity: normalizeDateFieldGranularity(props.granularity),
+    hourCycle: normalizeDateFieldHourCycle(props.hourCycle),
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    ...(typeof props.value === "string" && props.value.length > 0
+      ? { value: props.value }
+      : {}),
+    ...(typeof props.defaultValue === "string" && props.defaultValue.length > 0
+      ? { defaultValue: props.defaultValue }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.locale === "string" && props.locale.length > 0
+      ? { locale: props.locale }
+      : {}),
+    ...(normalizeDateFieldCalendar(props.calendar ?? props.calendarSystem)
+      ? {
+          calendar: normalizeDateFieldCalendar(
+            props.calendar ?? props.calendarSystem,
+          ),
+        }
+      : {}),
+    ...(typeof props.timezone === "string" && props.timezone.length > 0
+      ? { timezone: props.timezone }
+      : {}),
+    ...(typeof props.minValue === "string" && props.minValue.length > 0
+      ? { minValue: props.minValue }
+      : {}),
+    ...(typeof props.maxValue === "string" && props.maxValue.length > 0
+      ? { maxValue: props.maxValue }
+      : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.hideTimeZone === "boolean"
+      ? { hideTimeZone: props.hideTimeZone }
+      : {}),
+    ...(typeof props.shouldForceLeadingZeros === "boolean"
+      ? { shouldForceLeadingZeros: props.shouldForceLeadingZeros }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -957,6 +1104,34 @@ function normalizeSearchFieldInputMode(
   return typeof value === "string" && SEARCH_FIELD_INPUT_MODES.has(value)
     ? (value as (typeof SEARCH_FIELD_INPUT_MODE_VALUES)[number])
     : "search";
+}
+
+function normalizeDateFieldGranularity(
+  value: unknown,
+): (typeof DATE_FIELD_GRANULARITY_VALUES)[number] {
+  return typeof value === "string" && DATE_FIELD_GRANULARITIES.has(value)
+    ? (value as (typeof DATE_FIELD_GRANULARITY_VALUES)[number])
+    : "day";
+}
+
+function normalizeDateFieldHourCycle(value: unknown): 12 | 24 {
+  if (value === 12 || value === "12") return 12;
+  if (
+    value === 24 ||
+    value === "24" ||
+    (typeof value === "string" && DATE_FIELD_HOUR_CYCLES.has(value))
+  ) {
+    return 24;
+  }
+  return 24;
+}
+
+function normalizeDateFieldCalendar(
+  value: unknown,
+): (typeof DATE_FIELD_CALENDAR_VALUES)[number] | undefined {
+  return typeof value === "string" && DATE_FIELD_CALENDARS.has(value)
+    ? (value as (typeof DATE_FIELD_CALENDAR_VALUES)[number])
+    : undefined;
 }
 
 function normalizeTextFieldSize(value: unknown): ComponentSize {

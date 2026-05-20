@@ -24,6 +24,7 @@ import {
   type BreadcrumbRacProps,
   type BreadcrumbsRacProps,
   type ButtonRacProps,
+  type DateFieldRacProps,
   type LinkRacProps,
   type NumberFieldRacProps,
   type SearchFieldRacProps,
@@ -37,6 +38,7 @@ import {
   Breadcrumb,
   Breadcrumbs,
   Button,
+  DateField,
   Link,
   NumberField,
   SearchField,
@@ -330,6 +332,14 @@ function renderPrimitiveNode({
     ) as SearchFieldRacProps;
 
     return <SearchField key={node.id} {...searchFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "DateField") {
+    const dateFieldProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as DateFieldRacProps;
+
+    return <DateField key={node.id} {...dateFieldProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

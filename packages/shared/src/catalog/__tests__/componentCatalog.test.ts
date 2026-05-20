@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { breadcrumbPrimitiveBinding } from "../primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
@@ -183,6 +184,21 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers DateField as an active fields primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("DateField");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(dateFieldPrimitiveBinding);
+    expect(entry.family).toBe("fields");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("DateField");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("date-field");
+    expect(entry.panel.category).toBe("dateTime");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -229,6 +245,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("TextField");
     expect(activeTypes).toContain("NumberField");
     expect(activeTypes).toContain("SearchField");
+    expect(activeTypes).toContain("DateField");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

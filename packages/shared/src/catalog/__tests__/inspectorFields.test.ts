@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
 import {
   toButtonRacProps,
+  toDateFieldRacProps,
   toNumberFieldRacProps,
   toSearchFieldRacProps,
   toTextFieldRacProps,
@@ -259,6 +261,64 @@ describe("ADR-142 inspector field contracts", () => {
       placeholder: "Search...",
       type: "search",
       inputMode: "search",
+      size: "lg",
+      isRequired: true,
+      labelPosition: "side",
+    });
+  });
+
+  it("groups DateField PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "DateField",
+      contracts: dateFieldPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { DateField: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Locale",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "value",
+      "placeholderValue",
+      "description",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "size",
+      "labelPosition",
+      "isQuiet",
+      "granularity",
+      "hourCycle",
+    ]);
+  });
+
+  it("projects DateField canonical props through the catalog boundary", () => {
+    expect(
+      toDateFieldRacProps({
+        label: "Start date",
+        value: "2026-05-20",
+        placeholderValue: "2026-01-01",
+        granularity: "day",
+        hourCycle: 24,
+        locale: "ko-KR",
+        calendar: "gregory",
+        size: "lg",
+        isRequired: true,
+        labelPosition: "side",
+      }),
+    ).toMatchObject({
+      label: "Start date",
+      value: "2026-05-20",
+      placeholderValue: "2026-01-01",
+      granularity: "day",
+      hourCycle: 24,
+      locale: "ko-KR",
+      calendar: "gregory",
       size: "lg",
       isRequired: true,
       labelPosition: "side",
