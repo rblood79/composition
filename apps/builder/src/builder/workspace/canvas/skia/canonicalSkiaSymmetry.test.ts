@@ -25,6 +25,8 @@ import {
   SeparatorSpec,
   SliderSpec,
   SwitchSpec,
+  TableSpec,
+  TableViewSpec,
   TabsSpec,
   TagGroupSpec,
   TextFieldSpec,
@@ -32,6 +34,7 @@ import {
   ToggleButtonSpec,
   ToggleButtonGroupSpec,
   ToolbarSpec,
+  TreeSpec,
 } from "@composition/specs";
 import {
   buildGenericResolvedSkiaNodeData,
@@ -608,6 +611,113 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("tabs-1");
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Overview", "Details", "Details content"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Tree items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TreeSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "tree-1",
+        type: "Tree",
+        props: {
+          "aria-label": "Project tree",
+          selectedKey: "weekly-report",
+          expandedKeys: ["documents"],
+          items: [
+            {
+              id: "documents",
+              label: "Documents",
+              children: [
+                { id: "weekly-report", label: "Weekly Report" },
+                { id: "project-plan", label: "Project Plan" },
+              ],
+            },
+            { id: "photos", label: "Photos" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 280, height: 160 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("tree-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Documents", "Weekly Report", "Photos"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Table rows and columns path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TableSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "table-1",
+        type: "Table",
+        props: {
+          "aria-label": "People",
+          density: "regular",
+          columns: [
+            { id: "name", label: "Name", isRowHeader: true },
+            { id: "role", label: "Role" },
+          ],
+          rows: [
+            { id: "ada", name: "Ada Lovelace", role: "Engineer" },
+            { id: "grace", name: "Grace Hopper", role: "Admiral" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 360, height: 160 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("table-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Name", "Role", "Ada Lovelace", "Engineer"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved TableView through the generic Table path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TableViewSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "table-view-1",
+        type: "TableView",
+        props: {
+          "aria-label": "Table View",
+          density: "compact",
+          allowsSorting: true,
+          columns: [
+            { id: "name", label: "Name", isRowHeader: true },
+            { id: "status", label: "Status" },
+          ],
+          rows: [
+            { id: "design", name: "Design System", status: "Active" },
+            { id: "runtime", name: "Runtime", status: "Ready" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 360, height: 144 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("table-view-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Design System", "Active", "Runtime"]),
     );
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();

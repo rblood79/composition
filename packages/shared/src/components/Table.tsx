@@ -1,6 +1,14 @@
 // src/shared/components/Table.tsx
 import React from "react";
 import {
+  Cell as AriaCell,
+  Column as AriaColumn,
+  Row as AriaRow,
+  Table as AriaTable,
+  TableBody as AriaTableBody,
+  TableHeader as AriaTableHeader,
+} from "react-aria-components/Table";
+import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
@@ -18,6 +26,13 @@ import type {
   ColumnMapping,
   DataBindingValue,
 } from "../types";
+import {
+  toTableRacProps,
+  type TableCanonicalProps,
+  type TableColumnDescriptor,
+  type TableRacProps,
+  type TableRowDescriptor,
+} from "../catalog/outputs/toRacProps";
 import { useCollectionData } from "../hooks";
 import { generateId } from "../utils";
 import "./styles/Table.css";
@@ -87,6 +102,7 @@ export interface TableProps<T extends { id: string | number }> {
   className?: string;
   /** Root div inline style — ADR-907 Phase 5 Layer C (a) O 전환 */
   style?: React.CSSProperties;
+  "data-canonical-id"?: string;
   "data-element-id"?: string;
   tableHeaderElementId?: string; // TableHeader Element ID for selection
 
@@ -100,6 +116,8 @@ export interface TableProps<T extends { id: string | number }> {
 
   // 데이터 소스: 정적 or 비동기
   data?: T[]; // 정적 데이터면 API 호출 안 함
+  rows?: TableRowDescriptor[];
+  items?: TableRowDescriptor[];
   apiUrlKey?: string; // apiConfig 키 (예: "demo")
   customApiUrl?: string; // Custom API URL (apiUrlKey가 "CUSTOM"일 때 사용)
   endpointPath?: string; // 엔드포인트 (예: "/users")
@@ -109,7 +127,7 @@ export interface TableProps<T extends { id: string | number }> {
   apiConfig?: ApiConfig; // API 설정 (DI)
 
   // 컬럼
-  columns: ColumnDefinition<T>[];
+  columns: ColumnDefinition<T>[] | TableColumnDescriptor[];
   columnGroups?: ColumnGroupDefinition[]; // Column Groups 추가
 
   // 표 옵션
@@ -125,6 +143,12 @@ export interface TableProps<T extends { id: string | number }> {
   // 정렬 초기값
   sortColumn?: keyof T | string;
   sortDirection?: "ascending" | "descending";
+  selectionMode?: "none" | "single" | "multiple";
+  selectionBehavior?: "toggle" | "replace";
+  density?: "compact" | "regular" | "spacious";
+  allowsSorting?: boolean;
+  allowsResizingColumns?: boolean;
+  isQuiet?: boolean;
 
   // 기능
   enableResize?: boolean; // default: true
@@ -152,6 +176,93 @@ const getTableClassName = (
   className?: string,
 ) => (className ? `react-aria-Table ${className}` : "react-aria-Table");
 
+function RacTableProjection<T extends { id: string | number }>(
+  props: TableProps<T> & { rows?: TableRowDescriptor[] },
+) {
+  const projected = toTableRacProps(
+    props as unknown as TableCanonicalProps,
+  ) as TableRacProps;
+  const className = projected.className
+    ? `react-aria-Table ${projected.className}`
+    : "react-aria-Table";
+  const selectedKeys = projected.selectedKeys
+    ? new Set(projected.selectedKeys)
+    : undefined;
+  const defaultSelectedKeys = projected.defaultSelectedKeys
+    ? new Set(projected.defaultSelectedKeys)
+    : undefined;
+
+  return (
+    <AriaTable
+      aria-label={projected["aria-label"]}
+      className={className}
+      data-canonical-id={props["data-canonical-id"]}
+      data-element-id={props["data-element-id"]}
+      data-density={projected.density}
+      data-size={props.size ?? "md"}
+      data-variant={props.variant ?? "primary"}
+      data-quiet={projected.isQuiet ? "true" : undefined}
+      selectionMode={projected.selectionMode}
+      selectionBehavior={projected.selectionBehavior}
+      disallowEmptySelection={projected.disallowEmptySelection}
+      selectedKeys={selectedKeys}
+      defaultSelectedKeys={defaultSelectedKeys}
+      sortDescriptor={
+        projected.sortColumn
+          ? {
+              column: projected.sortColumn,
+              direction: projected.sortDirection,
+            }
+          : undefined
+      }
+      style={projected.style as React.CSSProperties | undefined}
+    >
+      <AriaTableHeader>
+        {projected.columns.map((column) => (
+          <AriaColumn
+            key={column.id}
+            id={column.id}
+            isRowHeader={column.isRowHeader}
+            allowsSorting={projected.allowsSorting || column.allowsSorting}
+            width={column.width}
+            minWidth={column.minWidth}
+            maxWidth={column.maxWidth}
+          >
+            {column.label}
+          </AriaColumn>
+        ))}
+      </AriaTableHeader>
+      <AriaTableBody>
+        {projected.rows.map((row) => (
+          <AriaRow key={row.id} id={row.id}>
+            {projected.columns.map((column) => (
+              <AriaCell key={column.id}>
+                {readProjectedTableCell(row, column)}
+              </AriaCell>
+            ))}
+          </AriaRow>
+        ))}
+      </AriaTableBody>
+    </AriaTable>
+  );
+}
+
+function readProjectedTableCell(
+  row: TableRowDescriptor,
+  column: TableColumnDescriptor,
+): React.ReactNode {
+  const value = row[column.id];
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
+  if (value == null) return "";
+  return JSON.stringify(value);
+}
+
 export default React.memo(function Table<T extends { id: string | number }>(
   props: TableProps<T>,
 ) {
@@ -164,6 +275,8 @@ export default React.memo(function Table<T extends { id: string | number }>(
     size = "md",
 
     dataBinding,
+    rows: projectedRows,
+    items: projectedItems,
     // Note: columnMapping is available in props but not destructured until needed
 
     data: staticData,
@@ -175,8 +288,14 @@ export default React.memo(function Table<T extends { id: string | number }>(
     apiParams,
     apiConfig,
 
-    columns,
+    columns: inputColumns,
     columnGroups = [],
+    density = "regular",
+    selectionMode = "none",
+    selectionBehavior = "toggle",
+    allowsSorting = true,
+    allowsResizingColumns = false,
+    isQuiet = false,
     paginationMode = "pagination",
     itemsPerPage = 500,
     height = 400,
@@ -195,6 +314,23 @@ export default React.memo(function Table<T extends { id: string | number }>(
     isLoading: externalLoading,
     skeletonRowCount = 5,
   } = props;
+
+  if (projectedRows || projectedItems) {
+    return (
+      <RacTableProjection
+        {...props}
+        columns={inputColumns}
+        rows={projectedRows ?? projectedItems}
+        density={density}
+        selectionMode={selectionMode}
+        selectionBehavior={selectionBehavior}
+        allowsSorting={allowsSorting}
+        allowsResizingColumns={allowsResizingColumns}
+        isQuiet={isQuiet}
+      />
+    );
+  }
+  const columns = inputColumns as ColumnDefinition<T>[];
 
   // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
   const { data: boundData } = useCollectionData({

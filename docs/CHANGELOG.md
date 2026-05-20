@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Tree Table primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Tree/Table active primitive binding 추가**:
+  - `componentCatalog` 에 `Tree`, `Table`, `TableView` 를 `cutover:"catalog"` active `tree-table` primitive 로 등록했다.
+  - canonical tree `items[]`, table `columns[]`/`rows[]`, selection/density/sort props 를 RAC surface 로 투영하는 `toTreeRacProps()` / `toTableRacProps()` 와 primitive bindings 를 추가했다.
+  - `Tree.tsx` shared wrapper 는 static hierarchical items 를 RAC Tree 로 렌더하고, `Table.tsx` 는 active catalog columns/rows 에 대해 RAC Table projection 을 사용한다.
+  - `TableView` 는 별도 RAC primitive 가 없으므로 canonical tag 는 유지하되 runtime exportName 은 `Table` binding 을 사용한다.
+- **Tree/Table Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Tree/Table/TableView resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 Tree row/disclosure/text 와 Table/TableView header/row/cell 을 렌더하고 `TreeSpec.render.shapes()` / `TableSpec.render.shapes()` / `TableViewSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- Tree·Table HIGH family primitive pilot 은 완료했다. ADR-132 collection 데이터 binding 전체 전환은 아직 닫지 않았고, 다음 entrypoint 는 overlays 또는 date/color family 다.
+
 ## [ADR-142 Phase 3/5/6 — Tabs collections primitive catalog pilot] - 2026-05-20
 
 ### Architecture

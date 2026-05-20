@@ -152,7 +152,7 @@ track/indicator/arc/cell state 를 별도 draw module 로 표현할 가능성이
 | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker`                               | date cell state, range band, calendar grid                                                     |
 | `ColorArea`, `ColorSlider`, `ColorWheel`, `ColorThumb`, `ColorSwatch`, `ColorSwatchPicker` | gradient/arc/thumb/color fill                                                                  |
 | `ListBox`, `GridList`, `Menu`, `TagGroup`, `ComboBox`, `Tabs`                              | collection item state, keyboard/selection state visualization                                  |
-| `Tree`, `Table`                                                                            | collections 데이터 + row/cell/tree disclosure state. 수동 우회 구현으로 full support 주장 금지 |
+| `Tree`, `Table`, `TableView`                                                               | collections 데이터 + row/cell/tree disclosure state. 수동 우회 구현으로 full support 주장 금지 |
 
 Phase 1a 의 Button proof 는 최소 연결성 검증이고, 위 후보들의 비용/시각 대칭은
 G2b/G2c 및 family fixture 에서 별도 검증해야 한다.
@@ -387,5 +387,18 @@ generic Skia label+trigger+item row fixture 를 추가했다. Select 는 canonic
 RAC Select item surface 로 투영하며 `SelectSpec.render.shapes()` 를 호출하지 않는
 generic Skia fixture 로 고정했다. Panel category 는 기존 사용자 위치를 보존하기 위해
 `forms` 로 유지한다.
-collections family 전체 완료 주장은 아직 하지 않는다. ADR-132 collection 데이터 binding 과
-Tabs 잔여 전환이 다음 범위다.
+Tabs collections primitive pilot 은 `toTabsRacProps()` / `tabsPrimitiveBinding` /
+active catalog entry / shared `Tabs.tsx` projection / Preview Tabs primitive branch /
+generic Skia tab-list+panel fixture 를 추가했다. Tabs 는 canonical `items[]` 를 RAC
+Tabs item/panel surface 로 투영하며 `TabsSpec.render.shapes()` 를 호출하지 않는
+generic Skia fixture 로 고정했다. collections row 의 primitive pilot 은 완료됐지만
+ADR-132 collection 데이터 binding 전체 전환은 아직 닫지 않는다.
+Tree·Table primitive pilot 은 `toTreeRacProps()` / `toTableRacProps()` /
+`treePrimitiveBinding` / `tablePrimitiveBinding` / `tableViewPrimitiveBinding` /
+active catalog entry / shared `Tree.tsx`·`Table.tsx` projection / Preview Tree·Table
+primitive branch / generic Skia row-disclosure 및 header-row-cell fixture 를 추가했다.
+Tree/Table/TableView 는 `TreeSpec.render.shapes()` / `TableSpec.render.shapes()` /
+`TableViewSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+TableView 는 별도 RAC primitive 가 없으므로 canonical tag 는 `TableView` 로 유지하고
+runtime exportName 은 `Table` binding 을 사용한다. ADR-132 collection 데이터 binding
+전체 전환은 여전히 잔여이며, 다음 family entrypoint 는 overlays 또는 date/color 다.

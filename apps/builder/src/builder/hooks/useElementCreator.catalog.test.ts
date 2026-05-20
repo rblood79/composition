@@ -483,6 +483,78 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Tree placement with hierarchical canonical items", () => {
+    const creation = resolveCatalogElementCreation("Tree");
+
+    expect(creation).toMatchObject({
+      elementType: "Tree",
+      props: {
+        "aria-label": "Tree",
+        variant: "default",
+        selectionMode: "single",
+        expandedKeys: ["documents"],
+        items: [
+          {
+            id: "documents",
+            label: "Documents",
+            children: [
+              { id: "weekly-report", label: "Weekly Report" },
+              { id: "project-plan", label: "Project Plan" },
+            ],
+          },
+          { id: "photos", label: "Photos" },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
+  it("describes catalog Table placement with canonical columns and rows", () => {
+    const creation = resolveCatalogElementCreation("Table");
+
+    expect(creation).toMatchObject({
+      elementType: "Table",
+      props: {
+        "aria-label": "People",
+        density: "regular",
+        selectionMode: "none",
+        columns: [
+          { id: "name", label: "Name", isRowHeader: true },
+          { id: "role", label: "Role" },
+        ],
+        rows: [
+          { id: "ada", name: "Ada Lovelace", role: "Engineer" },
+          { id: "grace", name: "Grace Hopper", role: "Admiral" },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
+  it("describes catalog TableView placement through the Table RAC primitive", () => {
+    const creation = resolveCatalogElementCreation("TableView");
+
+    expect(creation).toMatchObject({
+      elementType: "TableView",
+      props: {
+        "aria-label": "Table View",
+        density: "regular",
+        isQuiet: false,
+        allowsSorting: true,
+        allowsResizingColumns: true,
+        columns: [
+          { id: "name", label: "Name", isRowHeader: true },
+          { id: "status", label: "Status" },
+        ],
+        rows: [
+          { id: "design", name: "Design System", status: "Active" },
+          { id: "runtime", name: "Runtime", status: "Ready" },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

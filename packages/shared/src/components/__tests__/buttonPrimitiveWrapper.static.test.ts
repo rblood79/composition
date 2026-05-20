@@ -289,6 +289,27 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the Tree prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../Tree.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toTreeRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
+  it("uses catalog toRacProps as the Table prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../Table.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toTableRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+    expect(source).toContain("react-aria-components/Table");
+  });
+
   it("documents the shared components legacy compatibility boundary", () => {
     const readmeUrl = new URL("../legacy/README.md", import.meta.url);
 

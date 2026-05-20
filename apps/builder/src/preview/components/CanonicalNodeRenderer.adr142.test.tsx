@@ -36,11 +36,14 @@ const {
   legacySwitchRenderer,
   legacyTagGroupRenderer,
   legacyTabsRenderer,
+  legacyTableRenderer,
+  legacyTableViewRenderer,
   legacyTextFieldRenderer,
   legacyTimeFieldRenderer,
   legacyToggleButtonRenderer,
   legacyToggleButtonGroupRenderer,
   legacyToolbarRenderer,
+  legacyTreeRenderer,
 } = vi.hoisted(() => ({
   legacyButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="Button">legacy</button>
@@ -112,6 +115,12 @@ const {
   legacyTabsRenderer: vi.fn(() => (
     <div data-legacy-renderer="Tabs">legacy</div>
   )),
+  legacyTableRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Table">legacy</div>
+  )),
+  legacyTableViewRenderer: vi.fn(() => (
+    <div data-legacy-renderer="TableView">legacy</div>
+  )),
   legacyTextFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="TextField">legacy</div>
   )),
@@ -126,6 +135,9 @@ const {
   )),
   legacyToolbarRenderer: vi.fn(() => (
     <div data-legacy-renderer="Toolbar">legacy</div>
+  )),
+  legacyTreeRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Tree">legacy</div>
   )),
 }));
 
@@ -155,11 +167,14 @@ vi.mock("@composition/shared/renderers", () => ({
     Switch: legacySwitchRenderer,
     TagGroup: legacyTagGroupRenderer,
     Tabs: legacyTabsRenderer,
+    Table: legacyTableRenderer,
+    TableView: legacyTableViewRenderer,
     TextField: legacyTextFieldRenderer,
     TimeField: legacyTimeFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
     ToggleButtonGroup: legacyToggleButtonGroupRenderer,
     Toolbar: legacyToolbarRenderer,
+    Tree: legacyTreeRenderer,
   },
 }));
 
@@ -203,11 +218,14 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacySwitchRenderer.mockClear();
     legacyTagGroupRenderer.mockClear();
     legacyTabsRenderer.mockClear();
+    legacyTableRenderer.mockClear();
+    legacyTableViewRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyTimeFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
     legacyToggleButtonGroupRenderer.mockClear();
     legacyToolbarRenderer.mockClear();
+    legacyTreeRenderer.mockClear();
   });
 
   it("renders Button through PrimitiveBinding before rendererMap fallback", () => {
@@ -1137,6 +1155,109 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       tabsRoot,
     );
     expect(legacyTabsRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Tree hierarchical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "tree-1",
+      type: "Tree",
+      props: {
+        "aria-label": "Project tree",
+        expandedKeys: ["documents"],
+        selectedKey: "weekly-report",
+        items: [
+          {
+            id: "documents",
+            label: "Documents",
+            children: [
+              { id: "weekly-report", label: "Weekly Report" },
+              { id: "project-plan", label: "Project Plan" },
+            ],
+          },
+          { id: "photos", label: "Photos" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const treeRoot = container.querySelector(".react-aria-Tree");
+    expect(screen.getByRole("treegrid", { name: "Project tree" })).toBeTruthy();
+    expect(screen.getByText("Documents")).toBeTruthy();
+    expect(screen.getByText("Weekly Report")).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='tree-1']")).toBe(
+      treeRoot,
+    );
+    expect(legacyTreeRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Table rows and columns through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "table-1",
+      type: "Table",
+      props: {
+        "aria-label": "People",
+        density: "regular",
+        columns: [
+          { id: "name", label: "Name", isRowHeader: true },
+          { id: "role", label: "Role" },
+        ],
+        rows: [
+          { id: "ada", name: "Ada Lovelace", role: "Engineer" },
+          { id: "grace", name: "Grace Hopper", role: "Admiral" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const tableRoot = container.querySelector(".react-aria-Table");
+    expect(screen.getByText("Name")).toBeTruthy();
+    expect(screen.getByText("Ada Lovelace")).toBeTruthy();
+    expect(screen.getByText("Engineer")).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='table-1']")).toBe(
+      tableRoot,
+    );
+    expect(legacyTableRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders TableView through the Table PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "table-view-1",
+      type: "TableView",
+      props: {
+        "aria-label": "Table View",
+        density: "compact",
+        isQuiet: false,
+        allowsSorting: true,
+        allowsResizingColumns: true,
+        columns: [
+          { id: "name", label: "Name", isRowHeader: true },
+          { id: "status", label: "Status" },
+        ],
+        rows: [
+          { id: "design", name: "Design System", status: "Active" },
+          { id: "runtime", name: "Runtime", status: "Ready" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const tableRoot = container.querySelector(".react-aria-Table");
+    expect(tableRoot?.getAttribute("data-density")).toBe("compact");
+    expect(screen.getByText("Design System")).toBeTruthy();
+    expect(screen.getByText("Active")).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='table-view-1']")).toBe(
+      tableRoot,
+    );
+    expect(legacyTableViewRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

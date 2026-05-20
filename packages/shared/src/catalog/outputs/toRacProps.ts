@@ -287,6 +287,15 @@ export const TABS_DENSITY_VALUES = ["compact", "regular"] as const;
 export const TABS_SIZE_VALUES = ["sm", "md", "lg"] as const;
 export const TABS_ORIENTATION_VALUES = ["horizontal", "vertical"] as const;
 export const TABS_KEYBOARD_ACTIVATION_VALUES = ["automatic", "manual"] as const;
+export const TREE_VARIANT_VALUES = ["default", "accent"] as const;
+export const TREE_SELECTION_MODE_VALUES = LIST_BOX_SELECTION_MODE_VALUES;
+export const TREE_SELECTION_BEHAVIOR_VALUES =
+  LIST_BOX_SELECTION_BEHAVIOR_VALUES;
+export const TABLE_DENSITY_VALUES = ["compact", "regular", "spacious"] as const;
+export const TABLE_SELECTION_MODE_VALUES = LIST_BOX_SELECTION_MODE_VALUES;
+export const TABLE_SELECTION_BEHAVIOR_VALUES =
+  LIST_BOX_SELECTION_BEHAVIOR_VALUES;
+export const TABLE_SORT_DIRECTION_VALUES = ["ascending", "descending"] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -464,6 +473,17 @@ const TABS_ORIENTATIONS = new Set<string>(TABS_ORIENTATION_VALUES);
 const TABS_KEYBOARD_ACTIVATIONS = new Set<string>(
   TABS_KEYBOARD_ACTIVATION_VALUES,
 );
+const TREE_VARIANTS = new Set<string>(TREE_VARIANT_VALUES);
+const TREE_SELECTION_MODES = new Set<string>(TREE_SELECTION_MODE_VALUES);
+const TREE_SELECTION_BEHAVIORS = new Set<string>(
+  TREE_SELECTION_BEHAVIOR_VALUES,
+);
+const TABLE_DENSITIES = new Set<string>(TABLE_DENSITY_VALUES);
+const TABLE_SELECTION_MODES = new Set<string>(TABLE_SELECTION_MODE_VALUES);
+const TABLE_SELECTION_BEHAVIORS = new Set<string>(
+  TABLE_SELECTION_BEHAVIOR_VALUES,
+);
+const TABLE_SORT_DIRECTIONS = new Set<string>(TABLE_SORT_DIRECTION_VALUES);
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -1645,6 +1665,107 @@ export interface TabsRacProps extends Record<string, unknown> {
   defaultSelectedKey?: string;
   isDisabled: boolean;
   keyboardActivation: (typeof TABS_KEYBOARD_ACTIVATION_VALUES)[number];
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface TreeItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  textValue?: string;
+  description?: string;
+  isDisabled?: boolean;
+  children?: TreeItemDescriptor[];
+}
+
+export interface TreeCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  variant?: unknown;
+  selectionMode?: unknown;
+  selectionBehavior?: unknown;
+  disallowEmptySelection?: unknown;
+  autoFocus?: unknown;
+  isDisabled?: unknown;
+  selectedKey?: unknown;
+  selectedKeys?: unknown;
+  defaultSelectedKey?: unknown;
+  defaultSelectedKeys?: unknown;
+  expandedKeys?: unknown;
+  defaultExpandedKeys?: unknown;
+  items?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface TreeRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  variant: (typeof TREE_VARIANT_VALUES)[number];
+  selectionMode: (typeof TREE_SELECTION_MODE_VALUES)[number];
+  selectionBehavior: (typeof TREE_SELECTION_BEHAVIOR_VALUES)[number];
+  disallowEmptySelection: boolean;
+  autoFocus: boolean;
+  isDisabled: boolean;
+  selectedKey?: string;
+  selectedKeys?: string[];
+  defaultSelectedKey?: string;
+  defaultSelectedKeys?: string[];
+  expandedKeys?: string[];
+  defaultExpandedKeys?: string[];
+  items?: TreeItemDescriptor[];
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface TableColumnDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  isRowHeader?: boolean;
+  allowsSorting?: boolean;
+  allowsResizing?: boolean;
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+}
+
+export interface TableRowDescriptor extends Record<string, unknown> {
+  id: string;
+}
+
+export interface TableCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  density?: unknown;
+  selectionMode?: unknown;
+  selectionBehavior?: unknown;
+  disallowEmptySelection?: unknown;
+  allowsSorting?: unknown;
+  allowsResizingColumns?: unknown;
+  isQuiet?: unknown;
+  selectedKeys?: unknown;
+  defaultSelectedKeys?: unknown;
+  sortColumn?: unknown;
+  sortDirection?: unknown;
+  columns?: unknown;
+  rows?: unknown;
+  items?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface TableRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  density: (typeof TABLE_DENSITY_VALUES)[number];
+  selectionMode: (typeof TABLE_SELECTION_MODE_VALUES)[number];
+  selectionBehavior: (typeof TABLE_SELECTION_BEHAVIOR_VALUES)[number];
+  disallowEmptySelection: boolean;
+  allowsSorting: boolean;
+  allowsResizingColumns: boolean;
+  isQuiet: boolean;
+  selectedKeys?: string[];
+  defaultSelectedKeys?: string[];
+  sortColumn?: string;
+  sortDirection: (typeof TABLE_SORT_DIRECTION_VALUES)[number];
+  columns: TableColumnDescriptor[];
+  rows: TableRowDescriptor[];
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2855,6 +2976,85 @@ export function toTabsRacProps(props: TabsCanonicalProps): TabsRacProps {
   };
 }
 
+export function toTreeRacProps(props: TreeCanonicalProps): TreeRacProps {
+  const items = normalizeTreeItems(props.items);
+  return {
+    "aria-label": readString(props["aria-label"], "Tree"),
+    variant: normalizeTreeVariant(props.variant),
+    selectionMode: normalizeTreeSelectionMode(props.selectionMode),
+    selectionBehavior: normalizeTreeSelectionBehavior(props.selectionBehavior),
+    disallowEmptySelection: props.disallowEmptySelection === true,
+    autoFocus: props.autoFocus === true,
+    isDisabled: props.isDisabled === true,
+    ...(typeof props.selectedKey === "string"
+      ? { selectedKey: props.selectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.selectedKeys)
+      ? { selectedKeys: normalizeStringValueArray(props.selectedKeys) }
+      : {}),
+    ...(typeof props.defaultSelectedKey === "string"
+      ? { defaultSelectedKey: props.defaultSelectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultSelectedKeys)
+      ? {
+          defaultSelectedKeys: normalizeStringValueArray(
+            props.defaultSelectedKeys,
+          ),
+        }
+      : {}),
+    ...(normalizeStringValueArray(props.expandedKeys)
+      ? { expandedKeys: normalizeStringValueArray(props.expandedKeys) }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultExpandedKeys)
+      ? {
+          defaultExpandedKeys: normalizeStringValueArray(
+            props.defaultExpandedKeys,
+          ),
+        }
+      : {}),
+    ...(items.length > 0 ? { items } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
+export function toTableRacProps(props: TableCanonicalProps): TableRacProps {
+  const columns = normalizeTableColumns(props.columns);
+  const rows = normalizeTableRows(props.rows ?? props.items, columns);
+  return {
+    "aria-label": readString(props["aria-label"], "Table"),
+    density: normalizeTableDensity(props.density),
+    selectionMode: normalizeTableSelectionMode(props.selectionMode),
+    selectionBehavior: normalizeTableSelectionBehavior(props.selectionBehavior),
+    disallowEmptySelection: props.disallowEmptySelection === true,
+    allowsSorting: props.allowsSorting === true,
+    allowsResizingColumns: props.allowsResizingColumns === true,
+    isQuiet: props.isQuiet === true,
+    ...(normalizeStringValueArray(props.selectedKeys)
+      ? { selectedKeys: normalizeStringValueArray(props.selectedKeys) }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultSelectedKeys)
+      ? {
+          defaultSelectedKeys: normalizeStringValueArray(
+            props.defaultSelectedKeys,
+          ),
+        }
+      : {}),
+    ...(typeof props.sortColumn === "string"
+      ? { sortColumn: props.sortColumn }
+      : {}),
+    sortDirection: normalizeTableSortDirection(props.sortDirection),
+    columns,
+    rows,
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -4043,6 +4243,165 @@ function normalizeTabsItem(value: unknown): TabsItemDescriptor | undefined {
       ? { isDisabled: value.isDisabled }
       : {}),
   };
+}
+
+function normalizeTreeVariant(
+  value: unknown,
+): (typeof TREE_VARIANT_VALUES)[number] {
+  return typeof value === "string" && TREE_VARIANTS.has(value)
+    ? (value as (typeof TREE_VARIANT_VALUES)[number])
+    : "default";
+}
+
+function normalizeTreeSelectionMode(
+  value: unknown,
+): (typeof TREE_SELECTION_MODE_VALUES)[number] {
+  return typeof value === "string" && TREE_SELECTION_MODES.has(value)
+    ? (value as (typeof TREE_SELECTION_MODE_VALUES)[number])
+    : "single";
+}
+
+function normalizeTreeSelectionBehavior(
+  value: unknown,
+): (typeof TREE_SELECTION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && TREE_SELECTION_BEHAVIORS.has(value)
+    ? (value as (typeof TREE_SELECTION_BEHAVIOR_VALUES)[number])
+    : "toggle";
+}
+
+function normalizeTreeItems(value: unknown): TreeItemDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeTreeItem(entry))
+    .filter((entry): entry is TreeItemDescriptor => entry !== undefined);
+}
+
+function normalizeTreeItem(value: unknown): TreeItemDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  const label = readString(value.label ?? value.title ?? value.name, "").trim();
+  if (!label) return undefined;
+  const id = readString(value.id ?? value.value, label);
+  const children = normalizeTreeItems(value.children);
+  return {
+    id,
+    label,
+    ...(typeof value.textValue === "string"
+      ? { textValue: value.textValue }
+      : {}),
+    ...(typeof value.description === "string"
+      ? { description: value.description }
+      : {}),
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
+      : {}),
+    ...(children.length > 0 ? { children } : {}),
+  };
+}
+
+function normalizeTableDensity(
+  value: unknown,
+): (typeof TABLE_DENSITY_VALUES)[number] {
+  return typeof value === "string" && TABLE_DENSITIES.has(value)
+    ? (value as (typeof TABLE_DENSITY_VALUES)[number])
+    : "regular";
+}
+
+function normalizeTableSelectionMode(
+  value: unknown,
+): (typeof TABLE_SELECTION_MODE_VALUES)[number] {
+  return typeof value === "string" && TABLE_SELECTION_MODES.has(value)
+    ? (value as (typeof TABLE_SELECTION_MODE_VALUES)[number])
+    : "none";
+}
+
+function normalizeTableSelectionBehavior(
+  value: unknown,
+): (typeof TABLE_SELECTION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && TABLE_SELECTION_BEHAVIORS.has(value)
+    ? (value as (typeof TABLE_SELECTION_BEHAVIOR_VALUES)[number])
+    : "toggle";
+}
+
+function normalizeTableSortDirection(
+  value: unknown,
+): (typeof TABLE_SORT_DIRECTION_VALUES)[number] {
+  return typeof value === "string" && TABLE_SORT_DIRECTIONS.has(value)
+    ? (value as (typeof TABLE_SORT_DIRECTION_VALUES)[number])
+    : "ascending";
+}
+
+function normalizeTableColumns(value: unknown): TableColumnDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeTableColumn(entry))
+    .filter((entry): entry is TableColumnDescriptor => entry !== undefined);
+}
+
+function normalizeTableColumn(
+  value: unknown,
+): TableColumnDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  const id = readString(value.id ?? value.key, "").trim();
+  if (!id) return undefined;
+  return {
+    id,
+    label: readString(value.label ?? value.children ?? value.title, id),
+    ...(typeof value.isRowHeader === "boolean"
+      ? { isRowHeader: value.isRowHeader }
+      : {}),
+    ...(typeof value.allowsSorting === "boolean"
+      ? { allowsSorting: value.allowsSorting }
+      : {}),
+    ...(typeof value.allowsResizing === "boolean"
+      ? { allowsResizing: value.allowsResizing }
+      : {}),
+    ...(readFiniteNumber(value.width) !== undefined
+      ? { width: readFiniteNumber(value.width) }
+      : {}),
+    ...(readFiniteNumber(value.minWidth) !== undefined
+      ? { minWidth: readFiniteNumber(value.minWidth) }
+      : {}),
+    ...(readFiniteNumber(value.maxWidth) !== undefined
+      ? { maxWidth: readFiniteNumber(value.maxWidth) }
+      : {}),
+  };
+}
+
+function normalizeTableRows(
+  value: unknown,
+  columns: TableColumnDescriptor[],
+): TableRowDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry, index) => normalizeTableRow(entry, columns, index))
+    .filter((entry): entry is TableRowDescriptor => entry !== undefined);
+}
+
+function normalizeTableRow(
+  value: unknown,
+  columns: TableColumnDescriptor[],
+  index: number,
+): TableRowDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  const id = readString(value.id, `row-${index + 1}`);
+  const row: TableRowDescriptor = { id };
+  for (const [key, cellValue] of Object.entries(value)) {
+    if (key === "id") continue;
+    row[key] = normalizeTableCellValue(cellValue);
+  }
+  for (const column of columns) {
+    if (row[column.id] === undefined) row[column.id] = "";
+  }
+  return row;
+}
+
+function normalizeTableCellValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (value == null) return "";
+  return JSON.stringify(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

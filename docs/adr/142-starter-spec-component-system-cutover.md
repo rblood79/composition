@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, ADR-132 collection 데이터 binding 전체 전환은 잔여)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, ADR-132 collection 데이터 binding 전체 전환은 잔여)
 
 ## Context
 
@@ -548,8 +548,36 @@ resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌
 Skia path 는 Select label + trigger + list item row/text 를 container + box/text/icon
 node 로 렌더하고 `SelectSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 단,
 collections family 전체는 아직 닫지 않았다.
-ADR-132 collection 데이터 binding 전체 전환과 Tabs 잔여 slice 가 다음
-진입점이다.
+이후 Tabs slice 로 확장했다.
+
+2026-05-20 추가 판정: Tabs collections primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/tabs.ts` 와 `toTabsRacProps()` 가 Tabs
+canonical `items[]` / selected key / density / orientation / indicator props 를 RAC
+Tabs surface 로 정규화한다. `componentCatalog` 는 Tabs 를 `cutover:"catalog"`
+active collections primitive 로 등록한다. `packages/shared/src/components/Tabs.tsx` 는
+catalog projection 과 static `items[]` 렌더를 shared wrapper surface 에서 소비한다.
+Preview `CanonicalNodeRenderer` 는 Tabs resolved node 를 legacy `rendererMap` 보다
+primitive branch 에서 먼저 렌더한다. generic Skia path 는 tab-list + selected panel 을
+container + box/text node 로 렌더하고 `TabsSpec.render.shapes()` 를 호출하지 않는
+fixture 를 가진다. collections primitive pilot 은 ListBox/GridList/TagGroup/Menu/
+ComboBox/Select/Tabs 로 닫혔다. ADR-132 collection 데이터 binding 전체 전환은 잔여다.
+
+2026-05-20 추가 판정: Tree·Table HIGH family pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/tree.ts` / `table.ts` 와 `toTreeRacProps()` /
+`toTableRacProps()` 가 Tree hierarchical `items[]`, Table columns/rows, TableView
+columns/rows 를 RAC Tree/Table surface 로 정규화한다. `componentCatalog` 는 Tree,
+Table, TableView 를 `cutover:"catalog"` active `tree-table` primitive 로 등록한다.
+TableView 는 별도 RAC primitive 가 없으므로 runtime exportName 은 RAC `Table` 로 고정하고,
+composition tag 는 `TableView` 로 유지한다. `packages/shared/src/components/Tree.tsx` 는
+catalog projection 과 static hierarchical `items[]` 렌더를 shared wrapper surface 에서
+소비한다. `packages/shared/src/components/Table.tsx` 는 active catalog columns/rows
+payload 에서 RAC Table projection 을 먼저 쓰고, 기존 TanStack Table 경로는 legacy data
+binding compatibility fallback 으로 남긴다. Preview `CanonicalNodeRenderer` 는
+Tree/Table/TableView resolved node 를 legacy `rendererMap` 보다 primitive branch 에서
+먼저 렌더한다. generic Skia path 는 Tree rows/disclosure, Table header/rows/cells,
+TableView rows/cells 를 container + box/text node 로 렌더하고 `TreeSpec.render.shapes()` /
+`TableSpec.render.shapes()` / `TableViewSpec.render.shapes()` 를 호출하지 않는 fixture 를
+가진다. ADR-132 collection 데이터 binding 전체 전환은 잔여다.
 
 ## Consequences
 

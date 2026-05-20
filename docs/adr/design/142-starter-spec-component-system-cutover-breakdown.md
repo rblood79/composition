@@ -379,8 +379,9 @@ Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar / TextField /
 NumberField / SearchField / DateField / TimeField / ColorField / Form /
 FileTrigger / Checkbox / CheckboxGroup / Radio / RadioGroup / Slider /
-ListBox / GridList / TagGroup / Menu / ComboBox / Select / Tabs
-primitive wrapper boundary slices; Button Icon PropContract parity). `packages/shared/src/components/Button.tsx` 는
+ListBox / GridList / TagGroup / Menu / ComboBox / Select / Tabs /
+Tree / Table / TableView primitive wrapper boundary slices; Button Icon
+PropContract parity). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
 `packages/shared/src/components/Link.tsx` 는 `toLinkRacProps()` 를,
@@ -403,8 +404,12 @@ primitive wrapper boundary slices; Button Icon PropContract parity). `packages/s
 `toRadioRacProps()` 를, `packages/shared/src/components/RadioGroup.tsx` 는
 `toRadioGroupRacProps()` 를, `packages/shared/src/components/Slider.tsx` 는
 `toSliderRacProps()` 를, `packages/shared/src/components/Tabs.tsx` 는
-`toTabsRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
-props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar/Form/FileTrigger 은
+`toTabsRacProps()` 를, `packages/shared/src/components/Tree.tsx` 는
+`toTreeRacProps()` 를, `packages/shared/src/components/Table.tsx` 는
+`toTableRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
+props source 로 소비한다. TableView 는 별도 RAC primitive 가 아니라 `Table`
+runtime exportName 을 쓰는 catalog entry 로 유지한다.
+Breadcrumbs/ToggleButtonGroup/Toolbar/Form/FileTrigger 은
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
 포함한다. Button 은 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 으로
 `iconName` / `iconPosition` / `iconStrokeWidth` 를 노출하고 shared Button wrapper 가
@@ -463,15 +468,19 @@ Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
 ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + CheckboxGroup label/children + Slider label/output/track/fill/thumb + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
-Skia slices + Tabs tab-list/panel generic Skia slice; Button icon_path parity). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
-`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` / `list-box` / `grid-list` / `tag-group` / `menu` / `combo-box` / `select` / `tabs` 를 추가하고, generic Skia path 가
+Skia slices + Tabs tab-list/panel + Tree row/disclosure + Table/TableView
+header/row/cell generic Skia slices; Button icon_path parity).
+`PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
+`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` / `list-box` / `grid-list` / `tag-group` / `menu` / `combo-box` / `select` / `tabs` / `tree` / `table` 를 추가하고, generic Skia path 가
 Separator resolved node 를 `line` node 로, Link resolved node 를 underline text node
 로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField/TimeField/ColorField resolved node 를
 label/input/value container/text node 로, ColorField swatch 를 box node 로, ToggleButton resolved node 를 selected/emphasized 상태의
 button-like container/text node 로, Switch resolved node 를 track/thumb/label container+box/text node 로,
 Checkbox resolved node 를 box/indicator/label container+box/text node 로,
 CheckboxGroup resolved node 를 label text node + resolved Checkbox children 으로,
-Slider resolved node 를 label/output/track/fill/thumb container+text/box node 로 렌더한다.
+Slider resolved node 를 label/output/track/fill/thumb container+text/box node 로,
+Tree resolved node 를 hierarchical row/disclosure/text node 로,
+Table/TableView resolved node 를 header/row/cell container+text node 로 렌더한다.
 ToggleButtonGroup/Toolbar/Form/FileTrigger 은 dedicated `skiaPrimitive` 없이 generic container +
 resolved children 재귀 렌더 경로로 커버한다. Button `iconName` 은 generic Skia
 Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.ts` 는
@@ -488,8 +497,10 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `CheckboxGroupSpec.render.shapes()`,
 `SliderSpec.render.shapes()`,
 `ToggleButtonGroupSpec.render.shapes()`,
-`ToolbarSpec.render.shapes()`, `TabsSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs 외
+`ToolbarSpec.render.shapes()`, `TabsSpec.render.shapes()`,
+`TreeSpec.render.shapes()`, `TableSpec.render.shapes()`,
+`TableViewSpec.render.shapes()` 미호출을 검증한다.
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
@@ -499,7 +510,7 @@ primitive 를 만나면 `getPropertyEditorSpec(type)` 호출 전 `getPrimitiveBi
 `GenericPropertyEditor.tsx` 는 `spec?: ComponentSpec` 로 legacy fallback 을 좁히고,
 catalog path 는 `componentType` → `PrimitiveBinding.props.accepts` →
 `buildInspectorFieldSections()` 만 소비한다. 따라서 현재 `cutover:"catalog"` 인
-actions/fields primitive 의 Inspector active path 는 `properties.sections` /
+actions/fields/selection/collections/Tree·Table primitive 의 Inspector active path 는 `properties.sections` /
 `SpecField` 를 통하지 않는다.
 
 2026-05-20 추가 slice: Switch selection primitive 를 `cutover:"catalog"` 로 등록했다.
@@ -586,6 +597,16 @@ Tabs primitive branch / generic Skia tab-list+panel fixture 를 추가했고,
 `collections` category 로 유지한다. ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs
 pilot 으로 §5 collections row 의 primitive pilot 은 완료됐으며, ADR-132 collection
 데이터 binding 전체 전환은 잔여다.
+
+2026-05-20 추가 slice: Tree·Table HIGH family 를 `cutover:"catalog"` 로 등록했다.
+`treePrimitiveBinding` / `tablePrimitiveBinding` / `tableViewPrimitiveBinding` /
+`toTreeRacProps()` / `toTableRacProps()` / shared `Tree.tsx` 와 `Table.tsx`
+projection / Preview Tree·Table primitive branch / generic Skia row-disclosure 및
+header-row-cell fixture 를 추가했고, `TreeSpec.render.shapes()` /
+`TableSpec.render.shapes()` / `TableViewSpec.render.shapes()` 미호출을 검증한다.
+TableView 는 별도 RAC primitive 가 없으므로 canonical tag 는 `TableView` 로 유지하되
+runtime exportName 은 `Table` binding 을 사용한다. 이 slice 는 Tree·Table row 의
+primitive pilot 완료이며, ADR-132 collection 데이터 binding 전체 전환은 잔여다.
 
 ### Phase 6 — Family-gated atomic cutover
 

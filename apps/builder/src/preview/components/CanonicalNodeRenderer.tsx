@@ -43,6 +43,7 @@ import {
   type SeparatorRacProps,
   type SliderRacProps,
   type SwitchRacProps,
+  type TableRacProps,
   type TabsRacProps,
   type TagGroupRacProps,
   type TextFieldRacProps,
@@ -50,6 +51,7 @@ import {
   type ToolbarRacProps,
   type ToggleButtonGroupRacProps,
   type ToggleButtonRacProps,
+  type TreeRacProps,
 } from "@composition/shared";
 import {
   Breadcrumb,
@@ -74,6 +76,7 @@ import {
   Separator,
   Slider,
   Switch,
+  Table,
   Tabs,
   TagGroup,
   TextField,
@@ -81,6 +84,7 @@ import {
   Toolbar,
   ToggleButton,
   ToggleButtonGroup,
+  Tree,
 } from "@composition/shared/components";
 import type { ResolvedNode } from "@composition/shared";
 import type {
@@ -538,6 +542,22 @@ function renderPrimitiveNode({
     ) as TabsRacProps;
 
     return <Tabs key={node.id} {...tabsProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Tree") {
+    const treeProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as TreeRacProps;
+
+    return <Tree key={node.id} {...treeProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Table" || adaptedEl.type === "TableView") {
+    const tableProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as TableRacProps;
+
+    return <Table key={node.id} {...tableProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

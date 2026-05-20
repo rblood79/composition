@@ -48,9 +48,11 @@ export interface PrimitiveSkiaDescriptor {
     | "switch"
     | "tabs"
     | "tag-group"
+    | "table"
     | "text-field"
     | "time-field"
-    | "toggle-button";
+    | "toggle-button"
+    | "tree";
 }
 
 export interface PrimitivePlacementChildTemplate {

@@ -20,6 +20,10 @@ import { selectPrimitiveBinding } from "./primitives/select";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import { sliderPrimitiveBinding } from "./primitives/slider";
 import { switchPrimitiveBinding } from "./primitives/switch";
+import {
+  tablePrimitiveBinding,
+  tableViewPrimitiveBinding,
+} from "./primitives/table";
 import { tabsPrimitiveBinding } from "./primitives/tabs";
 import { tagGroupPrimitiveBinding } from "./primitives/tagGroup";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
@@ -27,6 +31,7 @@ import { timeFieldPrimitiveBinding } from "./primitives/timeField";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "./primitives/toggleButtonGroup";
 import { toggleButtonPrimitiveBinding } from "./primitives/toggleButton";
+import { treePrimitiveBinding } from "./primitives/tree";
 import type { ComponentCatalogEntry } from "./types";
 import {
   getReusableCatalogDocument,
@@ -409,6 +414,45 @@ export const componentCatalog = [
       category: "collections",
       label: "tabs",
       icon: "Layers",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Tree",
+    family: "tree-table",
+    cutover: "catalog",
+    binding: treePrimitiveBinding,
+    panel: {
+      category: "collections",
+      label: "tree",
+      icon: "ListTree",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Table",
+    family: "tree-table",
+    cutover: "catalog",
+    binding: tablePrimitiveBinding,
+    panel: {
+      category: "collections",
+      label: "table",
+      icon: "TableProperties",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "TableView",
+    family: "tree-table",
+    cutover: "catalog",
+    binding: tableViewPrimitiveBinding,
+    panel: {
+      category: "collections",
+      label: "table view",
+      icon: "TableProperties",
       placeable: true,
     },
   },

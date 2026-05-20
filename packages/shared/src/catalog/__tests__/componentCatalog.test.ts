@@ -571,6 +571,42 @@ describe("ADR-142 component catalog", () => {
     ]);
   });
 
+  it("registers Tree/Table family as active RAC primitive catalog entries", () => {
+    const tree = getComponentCatalogEntry("Tree");
+    const table = getComponentCatalogEntry("Table");
+    const tableView = getComponentCatalogEntry("TableView");
+
+    expect(tree?.kind).toBe("primitive");
+    expect(table?.kind).toBe("primitive");
+    expect(tableView?.kind).toBe("primitive");
+    if (
+      tree?.kind !== "primitive" ||
+      table?.kind !== "primitive" ||
+      tableView?.kind !== "primitive"
+    ) {
+      return;
+    }
+
+    expect(tree.family).toBe("tree-table");
+    expect(table.family).toBe("tree-table");
+    expect(tableView.family).toBe("tree-table");
+    expect(tree.cutover).toBe("catalog");
+    expect(table.cutover).toBe("catalog");
+    expect(tableView.cutover).toBe("catalog");
+    expect(tree.binding.runtime.exportName).toBe("Tree");
+    expect(table.binding.runtime.exportName).toBe("Table");
+    expect(tableView.binding.runtime.exportName).toBe("Table");
+    expect(tree.binding.skiaPrimitive?.kind).toBe("tree");
+    expect(table.binding.skiaPrimitive?.kind).toBe("table");
+    expect(tableView.binding.skiaPrimitive?.kind).toBe("table");
+    expect(tree.panel.category).toBe("collections");
+    expect(table.panel.category).toBe("collections");
+    expect(tableView.panel.category).toBe("collections");
+    expect(tree.panel.placeable).toBe(true);
+    expect(table.panel.placeable).toBe(true);
+    expect(tableView.panel.placeable).toBe(true);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -635,6 +671,9 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("ComboBox");
     expect(activeTypes).toContain("Select");
     expect(activeTypes).toContain("Tabs");
+    expect(activeTypes).toContain("Tree");
+    expect(activeTypes).toContain("Table");
+    expect(activeTypes).toContain("TableView");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

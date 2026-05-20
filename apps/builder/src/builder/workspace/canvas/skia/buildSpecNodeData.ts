@@ -40,10 +40,12 @@ import {
   toSliderRacProps,
   toSwitchRacProps,
   toTagGroupRacProps,
+  toTableRacProps,
   toTabsRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
   toToggleButtonRacProps,
+  toTreeRacProps,
   type BreadcrumbRacProps,
   type ButtonRacProps,
   type CheckboxGroupRacProps,
@@ -73,11 +75,16 @@ import {
   type SwitchRacProps,
   type TagGroupItemDescriptor,
   type TagGroupRacProps,
+  type TableColumnDescriptor,
+  type TableRacProps,
+  type TableRowDescriptor,
   type TabsItemDescriptor,
   type TabsRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type ToggleButtonRacProps,
+  type TreeItemDescriptor,
+  type TreeRacProps,
 } from "@composition/shared";
 import {
   fontFamily,
@@ -916,6 +923,12 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "tabs") {
     return buildGenericTabsNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "tree") {
+    return buildGenericTreeNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "table") {
+    return buildGenericTableNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -3679,6 +3692,285 @@ function buildGenericTabsNode(
   };
 }
 
+function buildGenericTreeNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toTreeRacProps(node.props ?? {}) as TreeRacProps;
+  const style = readGenericStyle(node);
+  const isDark = theme === "dark";
+  const rows = flattenTreeItems(props.items);
+  const selectedKeys = new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.selectedKey ? [props.selectedKey] : []),
+    ...(props.defaultSelectedKeys ?? []),
+    ...(props.defaultSelectedKey ? [props.defaultSelectedKey] : []),
+  ]);
+  const expandedKeys = new Set<string>([
+    ...(props.expandedKeys ?? []),
+    ...(props.defaultExpandedKeys ?? []),
+  ]);
+  const rowHeight = 28;
+  const padding = 6;
+  const borderColor = colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1);
+  const textColor = colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+  const mutedTextColor = colorIntToFloat32(isDark ? 0x9ca3af : 0x6b7280, 1);
+  const selectedFill = colorIntToFloat32(
+    props.variant === "accent" ? (isDark ? 0x1e3a8a : 0xdbeafe) : 0xf3f4f6,
+    1,
+  );
+
+  const children: SkiaNodeData[] = [
+    {
+      type: "box",
+      elementId: `${node.id}:background`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+        borderRadius: readNumber(style.borderRadius, 8),
+        strokeColor: borderColor,
+        strokeWidth: 1,
+      },
+    },
+  ];
+
+  children.push(
+    ...rows.flatMap((row, index): SkiaNodeData[] => {
+      const y = padding + index * rowHeight;
+      const isSelected = selectedKeys.has(row.item.id);
+      const hasChildren = !!row.item.children?.length;
+      const isExpanded = expandedKeys.has(row.item.id);
+      const indent = row.depth * 16;
+      return [
+        {
+          type: "box",
+          elementId: `${node.id}:item:${row.item.id}:bg`,
+          x: padding,
+          y,
+          width: Math.max(layout.width - padding * 2, 0),
+          height: rowHeight,
+          visible: true,
+          box: {
+            fillColor: isSelected
+              ? selectedFill
+              : colorIntToFloat32(0x000000, 0),
+            borderRadius: 4,
+          },
+        },
+        {
+          type: "text",
+          elementId: `${node.id}:item:${row.item.id}:chevron`,
+          x: padding + indent,
+          y,
+          width: 16,
+          height: rowHeight,
+          visible: hasChildren,
+          text: {
+            content: isExpanded ? "v" : ">",
+            fontFamilies: [fontFamily.sans],
+            fontSize: 13,
+            fontWeight: 600,
+            color: mutedTextColor,
+            align: "center",
+            lineHeight: 18,
+            paddingLeft: 0,
+            paddingTop: 0,
+            maxWidth: 16,
+            verticalAlign: "middle",
+          },
+        },
+        {
+          type: "text",
+          elementId: `${node.id}:item:${row.item.id}:text`,
+          x: padding + indent + 20,
+          y,
+          width: Math.max(layout.width - padding * 2 - indent - 24, 0),
+          height: rowHeight,
+          visible: true,
+          text: {
+            content: row.item.label,
+            fontFamilies: [fontFamily.sans],
+            fontSize: 14,
+            fontWeight: isSelected ? 600 : 500,
+            color: row.item.isDisabled ? mutedTextColor : textColor,
+            align: "left",
+            lineHeight: 20,
+            paddingLeft: 0,
+            paddingTop: 0,
+            maxWidth: Math.max(layout.width - padding * 2 - indent - 24, 0),
+            verticalAlign: "middle",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+          },
+        },
+      ];
+    }),
+  );
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children,
+  };
+}
+
+function buildGenericTableNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toTableRacProps(node.props ?? {}) as TableRacProps;
+  const style = readGenericStyle(node);
+  const isDark = theme === "dark";
+  const columns = props.columns;
+  const rows = props.rows;
+  const density = resolveGenericTableDensity(props.density);
+  const borderColor = colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1);
+  const headerFill = colorIntToFloat32(isDark ? 0x1f2937 : 0xf3f4f6, 1);
+  const rowFill = colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1);
+  const textColor = colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+  const mutedTextColor = colorIntToFloat32(isDark ? 0xd1d5db : 0x374151, 1);
+  const selectedKeys = new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.defaultSelectedKeys ?? []),
+  ]);
+  const colWidth = Math.max(layout.width / Math.max(columns.length, 1), 48);
+  const children: SkiaNodeData[] = [
+    {
+      type: "box",
+      elementId: `${node.id}:background`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      box: {
+        fillColor: rowFill,
+        borderRadius: readNumber(style.borderRadius, 8),
+        strokeColor: props.isQuiet
+          ? colorIntToFloat32(0x000000, 0)
+          : borderColor,
+        strokeWidth: props.isQuiet ? 0 : 1,
+      },
+    },
+    {
+      type: "box",
+      elementId: `${node.id}:header:bg`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: density.headerHeight,
+      visible: true,
+      box: {
+        fillColor: headerFill,
+        borderRadius: readNumber(style.borderRadius, 8),
+      },
+    },
+  ];
+
+  children.push(
+    ...columns.map(
+      (column, index): SkiaNodeData => ({
+        type: "text",
+        elementId: `${node.id}:column:${column.id}`,
+        x: index * colWidth,
+        y: 0,
+        width: colWidth,
+        height: density.headerHeight,
+        visible: true,
+        text: {
+          content: column.label,
+          fontFamilies: [fontFamily.sans],
+          fontSize: density.fontSize,
+          fontWeight: 700,
+          color: mutedTextColor,
+          align: "left",
+          lineHeight: density.lineHeight,
+          paddingLeft: 12,
+          paddingTop: 0,
+          maxWidth: Math.max(colWidth - 24, 0),
+          verticalAlign: "middle",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        },
+      }),
+    ),
+  );
+
+  children.push(
+    ...rows.flatMap((row, rowIndex): SkiaNodeData[] => {
+      const y = density.headerHeight + rowIndex * density.rowHeight;
+      const isSelected = selectedKeys.has(row.id);
+      return [
+        {
+          type: "box",
+          elementId: `${node.id}:row:${row.id}:bg`,
+          x: 0,
+          y,
+          width: layout.width,
+          height: density.rowHeight,
+          visible: true,
+          box: {
+            fillColor: isSelected
+              ? colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1)
+              : rowIndex % 2 === 1 && !props.isQuiet
+                ? colorIntToFloat32(isDark ? 0x1f2937 : 0xf9fafb, 1)
+                : colorIntToFloat32(0x000000, 0),
+            borderRadius: 0,
+          },
+        },
+        ...columns.map(
+          (column, columnIndex): SkiaNodeData => ({
+            type: "text",
+            elementId: `${node.id}:cell:${row.id}:${column.id}`,
+            x: columnIndex * colWidth,
+            y,
+            width: colWidth,
+            height: density.rowHeight,
+            visible: true,
+            text: {
+              content: readTableCellContent(row, column),
+              fontFamilies: [fontFamily.sans],
+              fontSize: density.fontSize,
+              fontWeight: column.isRowHeader ? 600 : 500,
+              color: textColor,
+              align: "left",
+              lineHeight: density.lineHeight,
+              paddingLeft: 12,
+              paddingTop: 0,
+              maxWidth: Math.max(colWidth - 24, 0),
+              verticalAlign: "middle",
+              whiteSpace: "nowrap",
+              textOverflow: "ellipsis",
+            },
+          }),
+        ),
+      ];
+    }),
+  );
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children,
+  };
+}
+
 function flattenListBoxItems(
   entries: ListBoxRacProps["items"],
 ): ListBoxItemDescriptor[] {
@@ -3719,6 +4011,48 @@ function isGridListSectionDescriptor(
   entry: GridListEntryDescriptor,
 ): entry is Extract<GridListEntryDescriptor, { type: "section" }> {
   return entry.type === "section";
+}
+
+function flattenTreeItems(
+  items: TreeRacProps["items"],
+  depth = 0,
+): Array<{ item: TreeItemDescriptor; depth: number }> {
+  if (!items) return [];
+  return items.flatMap((item) => [
+    { item, depth },
+    ...flattenTreeItems(item.children, depth + 1),
+  ]);
+}
+
+function readTableCellContent(
+  row: TableRowDescriptor,
+  column: TableColumnDescriptor,
+): string {
+  const value = row[column.id];
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
+  if (value == null) return "";
+  return JSON.stringify(value);
+}
+
+function resolveGenericTableDensity(density: TableRacProps["density"]): {
+  headerHeight: number;
+  rowHeight: number;
+  fontSize: number;
+  lineHeight: number;
+} {
+  if (density === "compact") {
+    return { headerHeight: 30, rowHeight: 28, fontSize: 12, lineHeight: 16 };
+  }
+  if (density === "spacious") {
+    return { headerHeight: 44, rowHeight: 46, fontSize: 14, lineHeight: 20 };
+  }
+  return { headerHeight: 36, rowHeight: 38, fontSize: 13, lineHeight: 18 };
 }
 
 function resolveGenericTagGroupSize(size: TagGroupRacProps["size"]): {
