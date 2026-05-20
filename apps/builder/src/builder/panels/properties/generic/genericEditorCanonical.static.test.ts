@@ -50,9 +50,13 @@ describe("generic property editors canonical read contract", () => {
       "utf-8",
     );
 
+    expect(source).toContain("componentType?: string");
+    expect(source).toContain("const editorType = componentType ?? spec?.name");
     expect(source).toContain("getPrimitiveBinding");
+    expect(source).toContain("getPrimitiveBinding(editorType)");
     expect(source).toContain("buildInspectorFieldSections");
     expect(source).toContain("CatalogField");
     expect(source).toContain("primitiveBinding?.props.accepts");
+    expect(source).toContain("!useCatalogSections && spec");
   });
 });

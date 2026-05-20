@@ -1,5 +1,6 @@
 import { createElement, type ComponentType } from "react";
 import type { ComponentEditorProps } from "../types";
+import { getPrimitiveBinding } from "@composition/shared";
 import { componentMetadata } from "@composition/shared/components/metadata";
 import { GenericPropertyEditor } from "../../panels/properties/generic";
 import { getPropertyEditorSpec } from "../../panels/properties/specRegistry";
@@ -165,6 +166,17 @@ export async function getEditor(
       "[getEditor] pre-editor import failed, falling back to generic:",
       preEditorName,
     );
+  }
+
+  const primitiveBinding = getPrimitiveBinding(type);
+  if (primitiveBinding) {
+    const genericEditor: ComponentType<ComponentEditorProps> = (props) =>
+      createElement(GenericPropertyEditor, {
+        ...props,
+        componentType: primitiveBinding.tag,
+      });
+    editorCache.set(type, genericEditor);
+    return genericEditor;
   }
 
   const propertySpec = getPropertyEditorSpec(type);

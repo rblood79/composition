@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger generic Skia pilot 완료; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 Phase 5 CSS/Skia generic 정합 + Phase 6 family gate)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 Phase 5 CSS/Skia generic 정합 + Phase 6 family gate)
 
 ## Context
 
@@ -409,6 +409,16 @@ projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 FileTrigger res
 `fields` family 의 여덟 번째 active primitive pilot 이다. `Field` 는
 `react-aria-components` leaf primitive 가 아니라 Label/Text/Input/FieldError helper
 및 DataField surface 이므로 active primitive 로 승격하지 않는다.
+
+2026-05-20 추가 판정: active primitive Inspector entrypoint 의 legacy specRegistry
+우회를 land 했다. `getEditor()` 는 catalog primitive 에 대해
+`getPrimitiveBinding(type)` 을 `getPropertyEditorSpec(type)` 보다 먼저 평가하고,
+`GenericPropertyEditor` 는 `ComponentSpec` 없이 `componentType` 만으로
+`PropContract` 기반 section 을 생성한다. legacy `spec.properties.sections` /
+`SpecField` fallback 은 catalog binding 이 없는 legacy component 에만 남긴다. 이는
+Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar 및
+TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger active
+primitive Inspector 경로의 G6 잔여 blocker 를 제거한다.
 
 ## Consequences
 

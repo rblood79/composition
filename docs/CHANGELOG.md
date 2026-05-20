@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 6 — Primitive Inspector specRegistry bypass] - 2026-05-20
+
+### Architecture
+
+- **active primitive Inspector entrypoint 를 PrimitiveBinding 우선으로 전환**:
+  - `getEditor()` 가 catalog primitive 에 대해 `getPropertyEditorSpec(type)` 보다 먼저 `getPrimitiveBinding(type)` 을 평가한다.
+  - `GenericPropertyEditor` 는 catalog path 에서 `ComponentSpec` 없이 `componentType` 으로 `PrimitiveBinding.props.accepts` 기반 `PropContract` section 을 생성한다.
+  - legacy `spec.properties.sections` / `SpecField` fallback 은 catalog binding 이 없는 component 에만 남긴다.
+
+### Tests
+
+- `genericEditorCanonical.static.test.ts` 와 `registry.adr142.static.test.ts` 로 active primitive Inspector path 가 specRegistry 보다 catalog binding 을 먼저 소비하는 계약을 고정했다.
+
 ## [ADR-142 Phase 3/5/6 — FileTrigger primitive catalog pilot] - 2026-05-20
 
 ### Architecture

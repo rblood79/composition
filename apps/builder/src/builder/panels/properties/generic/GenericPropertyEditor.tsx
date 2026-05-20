@@ -14,7 +14,8 @@ import { SpecField } from "./SpecField";
 import { useCanonicalPropertyElementsMap } from "../hooks/useCanonicalPropertyRead";
 
 interface GenericPropertyEditorProps extends ComponentEditorProps {
-  spec: ComponentSpec<Record<string, unknown>>;
+  componentType?: string;
+  spec?: ComponentSpec<Record<string, unknown>>;
   renderAfterSections?: ComponentType<{
     elementId: string;
     currentProps: Record<string, unknown>;
@@ -26,13 +27,15 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
   elementId,
   currentProps,
   onUpdate,
+  componentType,
   spec,
   renderAfterSections,
 }: GenericPropertyEditorProps) {
   const elementsMap = useCanonicalPropertyElementsMap();
+  const editorType = componentType ?? spec?.name ?? "";
   const primitiveBinding = useMemo(
-    () => getPrimitiveBinding(spec.name),
-    [spec],
+    () => getPrimitiveBinding(editorType),
+    [editorType],
   );
 
   const customId = useMemo(() => {
@@ -64,7 +67,7 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
   }, [primitiveBinding]);
 
   const { visibleSections, firstContentIndex } = useMemo(() => {
-    const sections = (spec.properties?.sections ?? []).filter((section) =>
+    const sections = (spec?.properties?.sections ?? []).filter((section) =>
       evaluateVisibility(section.visibleWhen, currentProps, parentTag),
     );
     return {
@@ -85,7 +88,7 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
       value={customId}
       elementId={elementId}
       onChange={updateCustomId}
-      placeholder={`${spec.name.toLowerCase()}_1`}
+      placeholder={`${editorType.toLowerCase()}_1`}
     />
   );
 
@@ -95,7 +98,7 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
         <PropertySection title="Content">{renderCustomId()}</PropertySection>
       )}
 
-      {!useCatalogSections && firstContentIndex === -1 && (
+      {!useCatalogSections && spec && firstContentIndex === -1 && (
         <PropertySection title="Content">{renderCustomId()}</PropertySection>
       )}
 
@@ -119,6 +122,7 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
         ))}
 
       {!useCatalogSections &&
+        spec &&
         visibleSections.map((section, sectionIndex) => (
           <PropertySection key={section.title} title={section.title}>
             {sectionIndex === firstContentIndex && renderCustomId()}

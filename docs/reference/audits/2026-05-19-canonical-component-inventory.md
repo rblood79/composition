@@ -302,3 +302,12 @@ container+trigger-child fixture 를 추가했다. FileTrigger 는 dedicated
 `FileTriggerSpec.render.shapes()` 를 호출하지 않는다. `Field` 는 독립 RAC leaf
 primitive 가 아니라 Label/Text/Input/FieldError helper 및 DataField surface 이므로
 active primitive 승격 대상에서 제외했다.
+
+Inspector active path 보정: `getEditor()` 는 catalog primitive 에 대해 legacy
+`specRegistry` 를 조회하기 전에 `getPrimitiveBinding()` 으로 `GenericPropertyEditor`
+에 `componentType` 을 넘긴다. 따라서 Button/Separator/Link/Breadcrumbs/
+ToggleButton/ToggleButtonGroup/Toolbar 및 TextField/NumberField/SearchField/
+DateField/TimeField/ColorField/Form/FileTrigger 의 Properties Panel source 는
+`PrimitiveBinding.props.accepts` 기반 `PropContract` section 이며, legacy
+`ComponentSpec.properties.sections` / `SpecField` 는 catalog binding 이 없는 component
+fallback 으로만 남는다.

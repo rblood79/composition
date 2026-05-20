@@ -478,6 +478,16 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/ToggleButtonGroup/Toolbar 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
+2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
+분리했다. `apps/builder/src/builder/inspector/editors/registry.ts` 는 catalog
+primitive 를 만나면 `getPropertyEditorSpec(type)` 호출 전 `getPrimitiveBinding(type)`
+결과로 `GenericPropertyEditor({ componentType })` 를 만든다.
+`GenericPropertyEditor.tsx` 는 `spec?: ComponentSpec` 로 legacy fallback 을 좁히고,
+catalog path 는 `componentType` → `PrimitiveBinding.props.accepts` →
+`buildInspectorFieldSections()` 만 소비한다. 따라서 현재 `cutover:"catalog"` 인
+actions/fields primitive 의 Inspector active path 는 `properties.sections` /
+`SpecField` 를 통하지 않는다.
+
 ### Phase 6 — Family-gated atomic cutover
 
 목표: Phase 0~5 공통 기반 위에서 family 순서대로 4경로를 atomic 하게 전환한다.
@@ -542,6 +552,11 @@ cutover 후 허용되는 legacy usage:
 - Skia primary renderer
 - Inspector props source
 - `packages/shared/src/catalog/**` 가 기존 `ComponentSpec` / `ReactRenderer` / `CSSGenerator` 를 import
+
+2026-05-20 현황: Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar
+및 TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger 의
+Inspector props source 는 `getPrimitiveBinding()` 우선 경로로 진입한다. legacy
+`specRegistry` 는 catalog binding 이 없는 component fallback 으로만 남아 있다.
 
 ## 7. 완료 판정
 
