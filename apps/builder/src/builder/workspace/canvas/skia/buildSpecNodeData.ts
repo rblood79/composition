@@ -28,6 +28,8 @@ import {
   toDateFieldRacProps,
   toLinkRacProps,
   toNumberFieldRacProps,
+  toRadioGroupRacProps,
+  toRadioRacProps,
   toSearchFieldRacProps,
   toSeparatorRacProps,
   toSliderRacProps,
@@ -43,6 +45,8 @@ import {
   type DateFieldRacProps,
   type LinkRacProps,
   type NumberFieldRacProps,
+  type RadioGroupRacProps,
+  type RadioRacProps,
   type SearchFieldRacProps,
   type ResolvedNode,
   type SeparatorRacProps,
@@ -859,6 +863,12 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "checkbox-group") {
     return buildGenericCheckboxGroupNode(input, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "radio") {
+    return buildGenericRadioNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "radio-group") {
+    return buildGenericRadioGroupNode(input, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "slider") {
     return buildGenericSliderNode(input.node, layout, input.theme);
@@ -2171,6 +2181,139 @@ function buildGenericCheckboxGroupNode(
   };
 }
 
+function buildGenericRadioNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toRadioRacProps(node.props ?? {}) as RadioRacProps;
+  const size = resolveGenericRadioSize(props.size);
+  const palette = resolveGenericRadioPalette(props, theme);
+  const style = readGenericStyle(node);
+  const boxY = Math.max((layout.height - size.boxSize) / 2, 0);
+  const labelX = size.boxSize + size.gap;
+  const labelWidth = Math.max(layout.width - labelX, 0);
+
+  const ringNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:ring`,
+    x: 0,
+    y: boxY,
+    width: size.boxSize,
+    height: size.boxSize,
+    visible: true,
+    box: {
+      fillColor: palette.ringFillColor,
+      borderRadius: size.boxSize / 2,
+      strokeColor: palette.ringStrokeColor,
+      strokeWidth: palette.ringStrokeWidth,
+    },
+  };
+
+  const dotOffset = (size.boxSize - size.dotSize) / 2;
+  const dotNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:dot`,
+    x: dotOffset,
+    y: boxY + dotOffset,
+    width: size.dotSize,
+    height: size.dotSize,
+    visible: props.isSelected === true,
+    box: {
+      fillColor: palette.dotColor,
+      borderRadius: size.dotSize / 2,
+    },
+  };
+
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: labelX,
+    y: 0,
+    width: labelWidth,
+    height: layout.height,
+    visible: labelWidth > 0,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 400,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: labelWidth,
+      verticalAlign: "middle",
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [ringNode, dotNode, textNode],
+  };
+}
+
+function buildGenericRadioGroupNode(
+  input: GenericResolvedSkiaBuildInput,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toRadioGroupRacProps(
+    input.node.props ?? {},
+  ) as RadioGroupRacProps;
+  const size = resolveGenericRadioSize(props.size);
+  const style = readGenericStyle(input.node);
+  const isDark = theme === "dark";
+  const labelNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${input.node.id}:label`,
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: size.lineHeight,
+    visible: props.label.length > 0,
+    text: {
+      content: props.label,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+      align: props.labelAlign === "end" ? "right" : "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: layout.width,
+    },
+  };
+  const renderedChildren = (input.node.children ?? [])
+    .map((child) =>
+      buildGenericResolvedSkiaNodeData({
+        node: child,
+        theme,
+        layoutById: input.layoutById,
+      }),
+    )
+    .filter((child): child is SkiaNodeData => child !== null);
+
+  return {
+    type: "container",
+    elementId: input.node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [labelNode, ...renderedChildren],
+  };
+}
+
 function buildGenericSliderNode(
   node: ResolvedNode,
   layout: GenericResolvedSkiaLayout,
@@ -2709,6 +2852,38 @@ function resolveGenericCheckboxSize(size: CheckboxRacProps["size"]): {
   }
 }
 
+function resolveGenericRadioSize(size: RadioRacProps["size"]): {
+  fontSize: number;
+  lineHeight: number;
+  boxSize: number;
+  dotSize: number;
+  gap: number;
+} {
+  switch (size) {
+    case "sm":
+      return { fontSize: 12, lineHeight: 16, boxSize: 16, dotSize: 6, gap: 8 };
+    case "lg":
+      return {
+        fontSize: 16,
+        lineHeight: 24,
+        boxSize: 24,
+        dotSize: 10,
+        gap: 12,
+      };
+    case "xl":
+      return {
+        fontSize: 18,
+        lineHeight: 28,
+        boxSize: 28,
+        dotSize: 12,
+        gap: 14,
+      };
+    case "md":
+    default:
+      return { fontSize: 14, lineHeight: 20, boxSize: 20, dotSize: 8, gap: 10 };
+  }
+}
+
 function resolveGenericSliderSize(size: SliderRacProps["size"]): {
   fontSize: number;
   lineHeight: number;
@@ -2802,6 +2977,42 @@ function resolveGenericCheckboxPalette(
       props.isEmphasized || !isDark ? 0xffffff : 0x111827,
       1,
     ),
+    textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+  };
+}
+
+function resolveGenericRadioPalette(
+  props: RadioRacProps,
+  theme: "light" | "dark",
+): {
+  ringFillColor: Float32Array;
+  ringStrokeColor: Float32Array;
+  ringStrokeWidth: number;
+  dotColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const isDark = theme === "dark";
+  const selectedColor =
+    props.isEmphasized || props.variant === "accent"
+      ? 0x2563eb
+      : props.variant === "negative"
+        ? 0xdc2626
+        : props.variant === "neutral"
+          ? isDark
+            ? 0xd1d5db
+            : 0x4b5563
+          : isDark
+            ? 0xf9fafb
+            : 0x111827;
+
+  return {
+    ringFillColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+    ringStrokeColor: colorIntToFloat32(
+      props.isSelected ? selectedColor : isDark ? 0x6b7280 : 0xd1d5db,
+      1,
+    ),
+    ringStrokeWidth: 2,
+    dotColor: colorIntToFloat32(selectedColor, 1),
     textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
   };
 }

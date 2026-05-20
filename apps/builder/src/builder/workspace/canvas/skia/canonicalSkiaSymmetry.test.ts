@@ -14,6 +14,8 @@ import {
   FormSpec,
   LinkSpec,
   NumberFieldSpec,
+  RadioGroupSpec,
+  RadioSpec,
   SearchFieldSpec,
   SeparatorSpec,
   SliderSpec,
@@ -334,6 +336,95 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(renderCheckboxShapes).not.toHaveBeenCalled();
     renderCheckboxGroupShapes.mockRestore();
     renderCheckboxShapes.mockRestore();
+  });
+
+  it("renders a resolved Radio through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(RadioSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "radio-1",
+        type: "Radio",
+        props: {
+          children: "Team",
+          value: "team",
+          isSelected: true,
+          isEmphasized: true,
+          size: "lg",
+          variant: "negative",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 180, height: 36 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("radio-1");
+    expect(collectText(node)).toContain("Team");
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved RadioGroup label and children through the generic Skia path without render.shapes", () => {
+    const renderRadioGroupShapes = vi.spyOn(RadioGroupSpec.render, "shapes");
+    const renderRadioShapes = vi.spyOn(RadioSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "radio-group-1",
+        type: "RadioGroup",
+        props: {
+          label: "Plan",
+          value: "team",
+          size: "lg",
+          orientation: "vertical",
+        },
+        children: [
+          {
+            id: "radio-team",
+            type: "Radio",
+            props: {
+              children: "Team",
+              value: "team",
+              isSelected: true,
+              size: "lg",
+            },
+          },
+          {
+            id: "radio-solo",
+            type: "Radio",
+            props: {
+              children: "Solo",
+              value: "solo",
+              isSelected: false,
+              size: "lg",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["radio-group-1", { x: 24, y: 32, width: 240, height: 108 }],
+        ["radio-team", { x: 24, y: 60, width: 180, height: 28 }],
+        ["radio-solo", { x: 24, y: 92, width: 180, height: 28 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("radio-group-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Plan", "Team", "Solo"]),
+    );
+    expect(node?.children?.map((child) => child.elementId)).toEqual([
+      "radio-group-1:label",
+      "radio-team",
+      "radio-solo",
+    ]);
+    expect(renderRadioGroupShapes).not.toHaveBeenCalled();
+    expect(renderRadioShapes).not.toHaveBeenCalled();
+    renderRadioGroupShapes.mockRestore();
+    renderRadioShapes.mockRestore();
   });
 
   it("renders a resolved Slider through the generic Skia path without render.shapes", () => {

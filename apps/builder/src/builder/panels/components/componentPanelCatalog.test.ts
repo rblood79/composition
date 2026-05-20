@@ -29,6 +29,8 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     const checkboxGroup = catalogItems.find(
       (item) => item.type === "CheckboxGroup",
     );
+    const radio = catalogItems.find((item) => item.type === "Radio");
+    const radioGroup = catalogItems.find((item) => item.type === "RadioGroup");
     const slider = catalogItems.find((item) => item.type === "Slider");
 
     expect(button?.source).toBe("catalog");
@@ -62,6 +64,10 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     expect(checkboxGroup?.source).toBe("catalog");
     expect(checkboxGroup?.categoryKey).toBe("forms");
     expect(checkboxGroup?.label).toBe("checkbox group");
+    expect(radio).toBeUndefined();
+    expect(radioGroup?.source).toBe("catalog");
+    expect(radioGroup?.categoryKey).toBe("forms");
+    expect(radioGroup?.label).toBe("radio group");
     expect(slider?.source).toBe("catalog");
     expect(slider?.categoryKey).toBe("forms");
     expect(slider?.label).toBe("slider");

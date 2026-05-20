@@ -256,6 +256,31 @@ describe("ADR-142 element creator catalog bridge", () => {
     });
   });
 
+  it("describes catalog RadioGroup placement with Radio child templates", () => {
+    const creation = resolveCatalogElementCreation("RadioGroup");
+
+    expect(creation).toMatchObject({
+      elementType: "RadioGroup",
+      props: {
+        label: "Radio Group",
+        value: "option-1",
+        size: "md",
+        orientation: "vertical",
+        labelPosition: "top",
+        isEmphasized: false,
+      },
+    });
+    expect(creation?.children?.map((child) => child.elementType)).toEqual([
+      "Radio",
+      "Radio",
+    ]);
+    expect(creation?.children?.[0]?.props).toMatchObject({
+      children: "Option 1",
+      value: "option-1",
+      isSelected: true,
+    });
+  });
+
   it("describes catalog Slider placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Slider");
 

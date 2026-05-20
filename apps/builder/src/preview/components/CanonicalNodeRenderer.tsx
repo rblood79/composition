@@ -32,6 +32,8 @@ import {
   type FormRacProps,
   type LinkRacProps,
   type NumberFieldRacProps,
+  type RadioGroupRacProps,
+  type RadioRacProps,
   type SearchFieldRacProps,
   type SeparatorRacProps,
   type SliderRacProps,
@@ -54,6 +56,8 @@ import {
   Form,
   Link,
   NumberField,
+  Radio,
+  RadioGroup,
   SearchField,
   Separator,
   Slider,
@@ -88,6 +92,8 @@ interface CanonicalNodeRendererProps {
   renderContext: RenderContext;
   /** 부모 경로 (디버그 + DOM 마커용) */
   parentPath?: string;
+  /** React Aria subpart context guard용 부모 component type */
+  parentType?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,6 +114,7 @@ export function CanonicalNodeRenderer({
   node,
   renderContext,
   parentPath = "",
+  parentType,
 }: CanonicalNodeRendererProps): React.ReactElement | null {
   const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
 
@@ -157,6 +164,7 @@ export function CanonicalNodeRenderer({
       renderContext,
       parentPath: currentPath,
       markerProps,
+      parentType,
     });
     if (primitiveElement) return primitiveElement;
   }
@@ -194,6 +202,7 @@ export function CanonicalNodeRenderer({
             node={child}
             renderContext={renderContext}
             parentPath={currentPath}
+            parentType={type}
           />
         ))
       : (adaptedEl.props?.children as React.ReactNode),
@@ -232,12 +241,14 @@ function renderPrimitiveNode({
   renderContext,
   parentPath,
   markerProps,
+  parentType,
 }: {
   node: ResolvedNode;
   adaptedEl: PreviewElement;
   renderContext: RenderContext;
   parentPath: string;
   markerProps: Record<"data-canonical-id" | "data-element-id", string>;
+  parentType?: string;
 }): React.ReactElement | null {
   const binding = getPrimitiveBinding(adaptedEl.type);
   if (!binding) return null;
@@ -272,6 +283,7 @@ function renderPrimitiveNode({
         node={child}
         renderContext={renderContext}
         parentPath={parentPath}
+        parentType={adaptedEl.type}
       />
     ));
 
@@ -293,6 +305,7 @@ function renderPrimitiveNode({
             node={child}
             renderContext={renderContext}
             parentPath={parentPath}
+            parentType={adaptedEl.type}
           />
         ))
       : racChildren;
@@ -315,6 +328,7 @@ function renderPrimitiveNode({
             node={child}
             renderContext={renderContext}
             parentPath={parentPath}
+            parentType={adaptedEl.type}
           />
         ))
       : racChildren;
@@ -401,6 +415,7 @@ function renderPrimitiveNode({
         node={child}
         renderContext={renderContext}
         parentPath={parentPath}
+        parentType={adaptedEl.type}
       />
     ));
 
@@ -408,6 +423,38 @@ function renderPrimitiveNode({
       <CheckboxGroup key={node.id} {...checkboxGroupProps} {...markerProps}>
         {renderedChildren}
       </CheckboxGroup>
+    );
+  }
+
+  if (adaptedEl.type === "Radio") {
+    if (parentType !== "RadioGroup") return null;
+
+    const radioProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as RadioRacProps;
+
+    return <Radio key={node.id} {...radioProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "RadioGroup") {
+    const radioGroupProps = binding.toRacProps({
+      ...adaptedEl.props,
+      value: collectSelectedRadioValue(node),
+    } as Record<string, unknown>) as RadioGroupRacProps;
+    const renderedChildren = node.children?.map((child) => (
+      <CanonicalNodeRenderer
+        key={child.id}
+        node={child}
+        renderContext={renderContext}
+        parentPath={parentPath}
+        parentType={adaptedEl.type}
+      />
+    ));
+
+    return (
+      <RadioGroup key={node.id} {...radioGroupProps} {...markerProps}>
+        {renderedChildren}
+      </RadioGroup>
     );
   }
 
@@ -429,6 +476,7 @@ function renderPrimitiveNode({
         node={child}
         renderContext={renderContext}
         parentPath={parentPath}
+        parentType={adaptedEl.type}
       />
     ));
 
@@ -449,6 +497,7 @@ function renderPrimitiveNode({
         node={child}
         renderContext={renderContext}
         parentPath={parentPath}
+        parentType={adaptedEl.type}
       />
     ));
 
@@ -470,6 +519,7 @@ function renderPrimitiveNode({
         node={child}
         renderContext={renderContext}
         parentPath={parentPath}
+        parentType={adaptedEl.type}
       />
     ));
 
@@ -494,6 +544,7 @@ function renderPrimitiveNode({
         node={child}
         renderContext={renderContext}
         parentPath={parentPath}
+        parentType={adaptedEl.type}
       />
     ));
 
@@ -516,6 +567,7 @@ function renderPrimitiveNode({
           node={child}
           renderContext={renderContext}
           parentPath={parentPath}
+          parentType={adaptedEl.type}
         />
       ))
     : racChildren;
@@ -547,4 +599,21 @@ function collectSelectedCheckboxValues(node: ResolvedNode): string[] {
         ? String(value)
         : child.id;
     });
+}
+
+function collectSelectedRadioValue(node: ResolvedNode): string | undefined {
+  const selected = (node.children ?? []).find(
+    (child) => child.type === "Radio" && child.props?.isSelected === true,
+  );
+  if (!selected) {
+    const groupValue = node.props?.value;
+    return typeof groupValue === "string" || typeof groupValue === "number"
+      ? String(groupValue)
+      : undefined;
+  }
+
+  const value = selected.props?.value;
+  return typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : selected.id;
 }

@@ -12,6 +12,8 @@ export * from "./primitives/fileTrigger";
 export * from "./primitives/form";
 export * from "./primitives/link";
 export * from "./primitives/numberField";
+export * from "./primitives/radio";
+export * from "./primitives/radioGroup";
 export * from "./primitives/searchField";
 export * from "./primitives/separator";
 export * from "./primitives/slider";

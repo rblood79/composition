@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — RadioGroup primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Radio/RadioGroup active primitive binding 추가**:
+  - `componentCatalog` 에 `Radio` 를 non-placeable active subpart primitive 로, `RadioGroup` 을 `cutover:"catalog"` active selection primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toRadioRacProps()` / `toRadioGroupRacProps()` 와 `radioPrimitiveBinding` / `radioGroupPrimitiveBinding` 을 추가했다.
+  - `Radio.tsx` / `RadioGroup.tsx` shared wrapper 가 variant/size/state catalog projection 을 소비하도록 전환했다.
+- **RadioGroup Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 RadioGroup resolved node 와 Radio children 을 primitive branch 에서 렌더한다.
+  - React Aria `Radio` 는 `RadioGroup` context 가 필요하므로 standalone Radio Preview 는 기존 `rendererMap` fallback 을 유지한다.
+  - generic Skia path 가 Radio ring/dot/label 과 RadioGroup label + resolved Radio children 을 렌더하고 `RadioSpec.render.shapes()` / `RadioGroupSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경으로 `selection` family pilot 은 Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider 기준 완료됐다. 다음 entrypoint 는 collections family 다.
+
 ## [ADR-142 Phase 3/5/6 — CheckboxGroup primitive catalog pilot] - 2026-05-20
 
 ### Architecture

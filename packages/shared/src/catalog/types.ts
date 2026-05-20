@@ -35,6 +35,8 @@ export interface PrimitiveSkiaDescriptor {
     | "date-field"
     | "link"
     | "number-field"
+    | "radio"
+    | "radio-group"
     | "search-field"
     | "separator"
     | "slider"

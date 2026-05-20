@@ -331,6 +331,48 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers Radio as an active non-placeable selection primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Radio");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.family).toBe("selection");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Radio");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("radio");
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("radio");
+    expect(entry.panel.placeable).toBe(false);
+  });
+
+  it("registers RadioGroup as an active selection primitive catalog entry with Radio child templates", () => {
+    const entry = getComponentCatalogEntry("RadioGroup");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.family).toBe("selection");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("RadioGroup");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("radio-group");
+    const placement = entry.binding.placement;
+    expect(placement?.kind).toBe("node-with-children");
+    if (placement?.kind !== "node-with-children") return;
+    expect(placement.children.map((child) => child.type)).toEqual([
+      "Radio",
+      "Radio",
+    ]);
+    expect(placement.children[0]?.props).toMatchObject({
+      children: "Option 1",
+      value: "option-1",
+      isSelected: true,
+    });
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("radio group");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers Slider as an active selection primitive catalog entry", () => {
     const entry = getComponentCatalogEntry("Slider");
 
@@ -401,6 +443,8 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Switch");
     expect(activeTypes).toContain("Checkbox");
     expect(activeTypes).toContain("CheckboxGroup");
+    expect(activeTypes).toContain("RadioGroup");
+    expect(activeTypes).not.toContain("Radio");
     expect(activeTypes).toContain("Slider");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");

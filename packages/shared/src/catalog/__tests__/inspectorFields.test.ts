@@ -22,6 +22,7 @@ import {
   toFileTriggerRacProps,
   toFormRacProps,
   toNumberFieldRacProps,
+  toRadioRacProps,
   toSearchFieldRacProps,
   toSliderRacProps,
   toSwitchRacProps,
@@ -732,6 +733,152 @@ describe("ADR-142 inspector field contracts", () => {
       isDisabled: false,
       isReadOnly: true,
       name: "preferences",
+      form: "settings",
+    });
+  });
+
+  it("groups Radio PropContract entries by section", () => {
+    const binding = getPrimitiveBinding("Radio");
+    expect(binding).toBeDefined();
+    if (!binding) return;
+
+    const sections = buildInspectorFieldSections({
+      componentType: "Radio",
+      contracts: binding.props.accepts,
+      theme: {
+        sizes: { Radio: ["sm", "md", "lg", "xl"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "children",
+      "value",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "variant",
+      "isEmphasized",
+      "size",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "isSelected",
+      "isDisabled",
+      "isReadOnly",
+    ]);
+  });
+
+  it("projects Radio canonical props through the catalog boundary", () => {
+    expect(
+      toRadioRacProps({
+        children: "Plan",
+        value: "plan",
+        variant: "negative",
+        size: "xl",
+        isSelected: true,
+        isDisabled: false,
+        isReadOnly: true,
+        isEmphasized: true,
+      }),
+    ).toMatchObject({
+      children: "Plan",
+      value: "plan",
+      variant: "negative",
+      size: "xl",
+      isSelected: true,
+      isDisabled: false,
+      isReadOnly: true,
+      isEmphasized: true,
+    });
+  });
+
+  it("groups RadioGroup PropContract entries by section", () => {
+    const binding = getPrimitiveBinding("RadioGroup");
+    expect(binding).toBeDefined();
+    if (!binding) return;
+
+    const sections = buildInspectorFieldSections({
+      componentType: "RadioGroup",
+      contracts: binding.props.accepts,
+      theme: {
+        sizes: { RadioGroup: ["sm", "md", "lg", "xl"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "description",
+      "errorMessage",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "variant",
+      "isEmphasized",
+      "size",
+      "orientation",
+      "labelPosition",
+      "labelAlign",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "necessityIndicator",
+      "isRequired",
+      "isInvalid",
+      "isDisabled",
+      "isReadOnly",
+    ]);
+  });
+
+  it("projects RadioGroup canonical props through the catalog boundary", () => {
+    const binding = getPrimitiveBinding("RadioGroup");
+    expect(binding).toBeDefined();
+    if (!binding) return;
+
+    expect(
+      binding.toRacProps({
+        label: "Plan",
+        description: "Choose one",
+        errorMessage: "Pick one",
+        value: "team",
+        defaultValue: "solo",
+        variant: "accent",
+        size: "xl",
+        orientation: "horizontal",
+        labelPosition: "side",
+        labelAlign: "end",
+        necessityIndicator: "label",
+        isEmphasized: true,
+        isRequired: true,
+        isInvalid: true,
+        isDisabled: false,
+        isReadOnly: true,
+        name: "plan",
+        form: "settings",
+      }),
+    ).toMatchObject({
+      label: "Plan",
+      description: "Choose one",
+      errorMessage: "Pick one",
+      value: "team",
+      defaultValue: "solo",
+      variant: "accent",
+      size: "xl",
+      orientation: "horizontal",
+      labelPosition: "side",
+      labelAlign: "end",
+      necessityIndicator: "label",
+      isEmphasized: true,
+      isRequired: true,
+      isInvalid: true,
+      isDisabled: false,
+      isReadOnly: true,
+      name: "plan",
       form: "settings",
     });
   });

@@ -9,6 +9,8 @@ import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
 import { formPrimitiveBinding } from "./primitives/form";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
+import { radioGroupPrimitiveBinding } from "./primitives/radioGroup";
+import { radioPrimitiveBinding } from "./primitives/radio";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import { sliderPrimitiveBinding } from "./primitives/slider";
@@ -257,6 +259,32 @@ export const componentCatalog = [
       category: "forms",
       label: "checkbox group",
       icon: "ListChecks",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Radio",
+    family: "selection",
+    cutover: "catalog",
+    binding: radioPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "radio",
+      icon: "CircleDot",
+      placeable: false,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "RadioGroup",
+    family: "selection",
+    cutover: "catalog",
+    binding: radioGroupPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "radio group",
+      icon: "GroupIcon",
       placeable: true,
     },
   },

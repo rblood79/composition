@@ -23,6 +23,8 @@ const {
   legacyFormRenderer,
   legacyLinkRenderer,
   legacyNumberFieldRenderer,
+  legacyRadioRenderer,
+  legacyRadioGroupRenderer,
   legacySearchFieldRenderer,
   legacySeparatorRenderer,
   legacySliderRenderer,
@@ -63,6 +65,12 @@ const {
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacyNumberFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="NumberField">legacy</div>
+  )),
+  legacyRadioRenderer: vi.fn(() => (
+    <label data-legacy-renderer="Radio">legacy</label>
+  )),
+  legacyRadioGroupRenderer: vi.fn(() => (
+    <div data-legacy-renderer="RadioGroup">legacy</div>
   )),
   legacySearchFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="SearchField">legacy</div>
@@ -106,6 +114,8 @@ vi.mock("@composition/shared/renderers", () => ({
     Form: legacyFormRenderer,
     Link: legacyLinkRenderer,
     NumberField: legacyNumberFieldRenderer,
+    Radio: legacyRadioRenderer,
+    RadioGroup: legacyRadioGroupRenderer,
     SearchField: legacySearchFieldRenderer,
     Separator: legacySeparatorRenderer,
     Slider: legacySliderRenderer,
@@ -145,6 +155,8 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyFormRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
+    legacyRadioRenderer.mockClear();
+    legacyRadioGroupRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
     legacySliderRenderer.mockClear();
@@ -780,6 +792,83 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(screen.getByRole("checkbox", { name: "SMS" })).toBeTruthy();
     expect(legacyCheckboxGroupRenderer).not.toHaveBeenCalled();
     expect(legacyCheckboxRenderer).not.toHaveBeenCalled();
+  });
+
+  it("keeps standalone Radio on rendererMap fallback outside RadioGroup context", () => {
+    const node: ResolvedNode = {
+      id: "radio-1",
+      type: "Radio",
+      props: {
+        children: "Team",
+        value: "team",
+        isSelected: true,
+        isEmphasized: true,
+        size: "lg",
+        variant: "negative",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    expect(
+      container.querySelector("[data-canonical-id='radio-1']"),
+    ).toBeTruthy();
+    expect(
+      container.querySelector("[data-legacy-renderer='Radio']"),
+    ).toBeTruthy();
+    expect(legacyRadioRenderer).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders RadioGroup and children through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "radio-group-1",
+      type: "RadioGroup",
+      props: {
+        label: "Plan",
+        value: "team",
+        isEmphasized: true,
+        size: "lg",
+      },
+      children: [
+        {
+          id: "radio-team",
+          type: "Radio",
+          props: {
+            children: "Team",
+            value: "team",
+            isSelected: true,
+          },
+        },
+        {
+          id: "radio-solo",
+          type: "Radio",
+          props: {
+            children: "Solo",
+            value: "solo",
+            isSelected: false,
+          },
+        },
+      ],
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const group = screen.getByRole("radiogroup", { name: "Plan" });
+    const radioGroupRoot = container.querySelector(".react-aria-RadioGroup");
+    expect(radioGroupRoot?.getAttribute("data-radio-size")).toBe("lg");
+    expect(radioGroupRoot?.getAttribute("data-emphasized")).toBe("true");
+    expect(container.querySelector("[data-canonical-id='radio-group-1']")).toBe(
+      radioGroupRoot,
+    );
+    expect(group).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Team" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Solo" })).toBeTruthy();
+    expect(legacyRadioGroupRenderer).not.toHaveBeenCalled();
+    expect(legacyRadioRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

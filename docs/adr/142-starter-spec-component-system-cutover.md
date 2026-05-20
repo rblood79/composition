@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Slider primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Slider generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 selection family Radio/RadioGroup)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; 다음 진입점 collections family)
 
 ## Context
 
@@ -464,7 +464,23 @@ CheckboxGroup resolved node 와 Checkbox children 을 legacy `rendererMap` 보�
 branch 에서 먼저 렌더한다. generic Skia path 는 CheckboxGroup label + resolved
 Checkbox children 을 container + text/box node 로 렌더하고
 `CheckboxGroupSpec.render.shapes()` 와 child `CheckboxSpec.render.shapes()` 를 호출하지
-않는 fixture 를 가진다. selection family 잔여는 Radio/RadioGroup 계열이다.
+않는 fixture 를 가진다. 이후 Radio/RadioGroup slice 로 확장했다.
+
+2026-05-20 추가 판정: Radio/RadioGroup primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/radio.ts` / `radioGroup.ts` 와
+`toRadioRacProps()` / `toRadioGroupRacProps()` 가 Radio 계열 canonical props 를
+RAC props 로 정규화한다. `componentCatalog` 는 Radio 를 non-placeable active
+subpart primitive 로, RadioGroup 을 `cutover:"catalog"` active selection primitive 로
+등록하고 Radio child template placement 를 제공한다.
+`packages/shared/src/components/Radio.tsx` 와 `RadioGroup.tsx` 는 variant/size/state
+projection 을 shared wrapper surface 에서 소비한다. Preview `CanonicalNodeRenderer`
+는 RadioGroup resolved node 와 Radio children 을 primitive branch 에서 렌더한다.
+단, React Aria `Radio` 는 `RadioGroup` context 가 필요하므로 standalone Radio 는 기존
+`rendererMap` fallback 을 유지한다. generic Skia path 는 Radio ring/dot/label 과
+RadioGroup label + resolved Radio children 을 container + box/text node 로 렌더하고
+`RadioSpec.render.shapes()` / `RadioGroupSpec.render.shapes()` 를 호출하지 않는
+fixture 를 가진다. selection family pilot 은 Switch/Checkbox/CheckboxGroup/Radio/
+RadioGroup/Slider 로 닫혔고 다음 진입점은 collections family 다.
 
 ## Consequences
 

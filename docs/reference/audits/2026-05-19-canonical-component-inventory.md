@@ -336,4 +336,13 @@ CheckboxGroup primitive pilot 은 Slider 다음 selection slice 로
 shared wrapper / Preview primitive branch / generic Skia label+children fixture 를
 추가했다. CheckboxGroup 은 `CheckboxGroupSpec.render.shapes()` 와 child
 `CheckboxSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
-Radio/RadioGroup 은 selection family 잔여로 남아 있다.
+
+Radio/RadioGroup primitive pilot 은 selection family 마무리 slice 로
+`toRadioRacProps()` / `toRadioGroupRacProps()` / `radioPrimitiveBinding` /
+`radioGroupPrimitiveBinding` / active catalog entry / shared wrapper / Preview
+RadioGroup primitive branch / generic Skia ring-dot-label 및 group label+children
+fixture 를 추가했다. Radio 는 React Aria `RadioGroup` context 가 필요한 subpart 이므로
+non-placeable active primitive 로 등록하고 standalone Preview 는 legacy fallback 을 유지한다.
+Radio/RadioGroup 은 `RadioSpec.render.shapes()` / `RadioGroupSpec.render.shapes()` 를
+호출하지 않는 generic Skia fixture 로 고정했다. selection family pilot 은 완료됐고
+다음 잔여 family 는 collections 다.

@@ -185,6 +185,21 @@ export const CHECKBOX_GROUP_LABEL_POSITION_VALUES =
 export const CHECKBOX_GROUP_LABEL_ALIGN_VALUES = ["start", "end"] as const;
 export const CHECKBOX_GROUP_NECESSITY_INDICATOR_VALUES =
   TEXT_FIELD_NECESSITY_INDICATOR_VALUES;
+export const RADIO_VARIANT_VALUES = [
+  "default",
+  "accent",
+  "neutral",
+  "negative",
+] as const;
+export const RADIO_SIZE_VALUES = ["sm", "md", "lg", "xl"] as const;
+export const RADIO_GROUP_VARIANT_VALUES = ["default", "accent"] as const;
+export const RADIO_GROUP_SIZE_VALUES = RADIO_SIZE_VALUES;
+export const RADIO_GROUP_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
+export const RADIO_GROUP_LABEL_POSITION_VALUES =
+  TEXT_FIELD_LABEL_POSITION_VALUES;
+export const RADIO_GROUP_LABEL_ALIGN_VALUES = ["start", "end"] as const;
+export const RADIO_GROUP_NECESSITY_INDICATOR_VALUES =
+  TEXT_FIELD_NECESSITY_INDICATOR_VALUES;
 export const SLIDER_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const SLIDER_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const SWITCH_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
@@ -271,6 +286,22 @@ const CHECKBOX_GROUP_LABEL_ALIGNS = new Set<string>(
 );
 const CHECKBOX_GROUP_NECESSITY_INDICATORS = new Set<string>(
   CHECKBOX_GROUP_NECESSITY_INDICATOR_VALUES,
+);
+const RADIO_VARIANTS = new Set<string>(RADIO_VARIANT_VALUES);
+const RADIO_SIZES = new Set<string>(RADIO_SIZE_VALUES);
+const RADIO_GROUP_VARIANTS = new Set<string>(RADIO_GROUP_VARIANT_VALUES);
+const RADIO_GROUP_SIZES = new Set<string>(RADIO_GROUP_SIZE_VALUES);
+const RADIO_GROUP_ORIENTATIONS = new Set<string>(
+  RADIO_GROUP_ORIENTATION_VALUES,
+);
+const RADIO_GROUP_LABEL_POSITIONS = new Set<string>(
+  RADIO_GROUP_LABEL_POSITION_VALUES,
+);
+const RADIO_GROUP_LABEL_ALIGNS = new Set<string>(
+  RADIO_GROUP_LABEL_ALIGN_VALUES,
+);
+const RADIO_GROUP_NECESSITY_INDICATORS = new Set<string>(
+  RADIO_GROUP_NECESSITY_INDICATOR_VALUES,
 );
 const SLIDER_SIZES = new Set<ComponentSizeSubset>(SLIDER_SIZE_VALUES);
 const SLIDER_ORIENTATIONS = new Set<string>(SLIDER_ORIENTATION_VALUES);
@@ -874,6 +905,86 @@ export interface CheckboxGroupRacProps extends Record<string, unknown> {
   value?: string[];
   defaultValue?: string[];
   size: ComponentSizeSubset;
+  orientation: "horizontal" | "vertical";
+  labelPosition: "top" | "side";
+  labelAlign: "start" | "end";
+  necessityIndicator?: "icon" | "label";
+  isEmphasized: boolean;
+  isDisabled?: boolean;
+  isInvalid?: boolean;
+  isReadOnly?: boolean;
+  isRequired?: boolean;
+  name?: string;
+  form?: string;
+  validationBehavior?: "native" | "aria";
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface RadioCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  label?: unknown;
+  text?: unknown;
+  value?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  isSelected?: unknown;
+  defaultSelected?: unknown;
+  isEmphasized?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  autoFocus?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface RadioRacProps extends Record<string, unknown> {
+  children: string;
+  value?: string;
+  variant: (typeof RADIO_VARIANT_VALUES)[number];
+  size: (typeof RADIO_SIZE_VALUES)[number];
+  isEmphasized: boolean;
+  isSelected?: boolean;
+  defaultSelected?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  autoFocus?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface RadioGroupCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  orientation?: unknown;
+  labelPosition?: unknown;
+  labelAlign?: unknown;
+  necessityIndicator?: unknown;
+  isEmphasized?: unknown;
+  isDisabled?: unknown;
+  isInvalid?: unknown;
+  isReadOnly?: unknown;
+  isRequired?: unknown;
+  name?: unknown;
+  form?: unknown;
+  validationBehavior?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface RadioGroupRacProps extends Record<string, unknown> {
+  label: string;
+  description?: string;
+  errorMessage?: string;
+  value?: string;
+  defaultValue?: string;
+  variant: (typeof RADIO_GROUP_VARIANT_VALUES)[number];
+  size: (typeof RADIO_GROUP_SIZE_VALUES)[number];
   orientation: "horizontal" | "vertical";
   labelPosition: "top" | "side";
   labelAlign: "start" | "end";
@@ -1671,6 +1782,96 @@ export function toCheckboxGroupRacProps(
   };
 }
 
+export function toRadioRacProps(props: RadioCanonicalProps): RadioRacProps {
+  return {
+    children: readRadioText(props),
+    variant: normalizeRadioVariant(props.variant),
+    size: normalizeRadioSize(props.size),
+    isEmphasized: props.isEmphasized === true,
+    ...(typeof props.value === "string" || typeof props.value === "number"
+      ? { value: String(props.value) }
+      : {}),
+    ...(typeof props.isSelected === "boolean"
+      ? { isSelected: props.isSelected }
+      : {}),
+    ...(typeof props.defaultSelected === "boolean"
+      ? { defaultSelected: props.defaultSelected }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.autoFocus === "boolean"
+      ? { autoFocus: props.autoFocus }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
+export function toRadioGroupRacProps(
+  props: RadioGroupCanonicalProps,
+): RadioGroupRacProps {
+  return {
+    label: readString(props.label, "Radio Group"),
+    variant: normalizeRadioGroupVariant(props.variant),
+    size: normalizeRadioGroupSize(props.size),
+    orientation: normalizeRadioGroupOrientation(props.orientation),
+    labelPosition: normalizeRadioGroupLabelPosition(props.labelPosition),
+    labelAlign: normalizeRadioGroupLabelAlign(props.labelAlign),
+    isEmphasized: props.isEmphasized === true,
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.value === "string" || typeof props.value === "number"
+      ? { value: String(props.value) }
+      : {}),
+    ...(typeof props.defaultValue === "string" ||
+    typeof props.defaultValue === "number"
+      ? { defaultValue: String(props.defaultValue) }
+      : {}),
+    ...(normalizeRadioGroupNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeRadioGroupNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.name === "string" ? { name: props.name } : {}),
+    ...(typeof props.form === "string" ? { form: props.form } : {}),
+    ...(normalizeFormValidationBehavior(props.validationBehavior)
+      ? {
+          validationBehavior: normalizeFormValidationBehavior(
+            props.validationBehavior,
+          ),
+        }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toSliderRacProps(props: SliderCanonicalProps): SliderRacProps {
   return {
     label: readString(props.label, "Slider"),
@@ -1845,6 +2046,13 @@ function readCheckboxText(props: CheckboxCanonicalProps): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   return "Checkbox";
+}
+
+function readRadioText(props: RadioCanonicalProps): string {
+  const value = props.children ?? props.label ?? props.text;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "Radio";
 }
 
 function normalizeButtonVariant(value: unknown): ButtonVariant {
@@ -2270,6 +2478,67 @@ function normalizeCheckboxGroupNecessityIndicator(
 ): "icon" | "label" | undefined {
   return typeof value === "string" &&
     CHECKBOX_GROUP_NECESSITY_INDICATORS.has(value)
+    ? (value as "icon" | "label")
+    : undefined;
+}
+
+function normalizeRadioVariant(
+  value: unknown,
+): (typeof RADIO_VARIANT_VALUES)[number] {
+  return typeof value === "string" && RADIO_VARIANTS.has(value)
+    ? (value as (typeof RADIO_VARIANT_VALUES)[number])
+    : "default";
+}
+
+function normalizeRadioSize(
+  value: unknown,
+): (typeof RADIO_SIZE_VALUES)[number] {
+  return typeof value === "string" && RADIO_SIZES.has(value)
+    ? (value as (typeof RADIO_SIZE_VALUES)[number])
+    : "md";
+}
+
+function normalizeRadioGroupVariant(
+  value: unknown,
+): (typeof RADIO_GROUP_VARIANT_VALUES)[number] {
+  return typeof value === "string" && RADIO_GROUP_VARIANTS.has(value)
+    ? (value as (typeof RADIO_GROUP_VARIANT_VALUES)[number])
+    : "default";
+}
+
+function normalizeRadioGroupSize(
+  value: unknown,
+): (typeof RADIO_GROUP_SIZE_VALUES)[number] {
+  return typeof value === "string" && RADIO_GROUP_SIZES.has(value)
+    ? (value as (typeof RADIO_GROUP_SIZE_VALUES)[number])
+    : "md";
+}
+
+function normalizeRadioGroupOrientation(
+  value: unknown,
+): "horizontal" | "vertical" {
+  return typeof value === "string" && RADIO_GROUP_ORIENTATIONS.has(value)
+    ? (value as "horizontal" | "vertical")
+    : "vertical";
+}
+
+function normalizeRadioGroupLabelPosition(value: unknown): "top" | "side" {
+  return typeof value === "string" && RADIO_GROUP_LABEL_POSITIONS.has(value)
+    ? (value as "top" | "side")
+    : "top";
+}
+
+function normalizeRadioGroupLabelAlign(value: unknown): "start" | "end" {
+  return typeof value === "string" && RADIO_GROUP_LABEL_ALIGNS.has(value)
+    ? (value as "start" | "end")
+    : "start";
+}
+
+function normalizeRadioGroupNecessityIndicator(
+  value: unknown,
+): "icon" | "label" | undefined {
+  return typeof value === "string" &&
+    RADIO_GROUP_NECESSITY_INDICATORS.has(value)
     ? (value as "icon" | "label")
     : undefined;
 }

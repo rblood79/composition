@@ -189,6 +189,26 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the Radio prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../Radio.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toRadioRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
+  it("uses catalog toRacProps as the RadioGroup prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../RadioGroup.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toRadioGroupRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
   it("uses catalog toRacProps as the Slider prop projection source", () => {
     const source = fs.readFileSync(
       new URL("../Slider.tsx", import.meta.url),

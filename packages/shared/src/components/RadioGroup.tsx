@@ -1,10 +1,3 @@
-/**
- * RadioGroup Component
- *
- * A group of radio buttons for single selection
- * Based on React Aria Components RadioGroup
- */
-
 import {
   FieldError,
   Label,
@@ -23,51 +16,93 @@ import {
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
 import { useCollectionData } from "../hooks";
+import {
+  toRadioGroupRacProps,
+  type RadioGroupCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 
 import "./styles/generated/RadioGroup.css";
-
-/**
- * 🚀 Phase 4: data-* 패턴 전환
- * - tailwind-variants 제거
- * - data-radio-variant, data-radio-size 속성 사용
- */
 
 export interface RadioGroupProps extends Omit<AriaRadioGroupProps, "children"> {
   children?: React.ReactNode;
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
-  // 데이터 바인딩
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
-  /**
-   * Visual variant for child Radio buttons
-   * @default 'default'
-   */
-  variant?: string;
-  /**
-   * Size for child Radio buttons
-   * @default 'md'
-   */
-  size?: ComponentSizeSubset;
+  variant?: "default" | "accent";
+  size?: ComponentSizeSubset | "xl";
   necessityIndicator?: NecessityIndicator;
-  /** Label position relative to radio items @default 'top' */
   labelPosition?: "top" | "side";
+  labelAlign?: "start" | "end";
+  isEmphasized?: boolean;
 }
 
 export function RadioGroup({
-  label,
-  description,
-  errorMessage,
+  label: inputLabel,
+  description: inputDescription,
+  errorMessage: inputErrorMessage,
   children,
   dataBinding,
   columnMapping,
-  variant = "default",
-  size = "md",
-  labelPosition = "top",
+  variant: inputVariant,
+  size: inputSize,
+  necessityIndicator: inputNecessityIndicator,
+  labelPosition: inputLabelPosition,
+  labelAlign: inputLabelAlign,
+  isEmphasized: inputIsEmphasized,
+  value: inputValue,
+  defaultValue: inputDefaultValue,
+  isDisabled: inputIsDisabled,
+  isInvalid: inputIsInvalid,
+  isReadOnly: inputIsReadOnly,
+  isRequired: inputIsRequired,
+  name: inputName,
+  form,
+  validationBehavior: inputValidationBehavior,
+  className,
+  style,
   ...props
 }: RadioGroupProps) {
-  // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
+  const projectedProps = toRadioGroupRacProps({
+    ...props,
+    className,
+    defaultValue: inputDefaultValue,
+    description: inputDescription,
+    errorMessage:
+      typeof inputErrorMessage === "string" ? inputErrorMessage : undefined,
+    form,
+    isDisabled: inputIsDisabled,
+    isEmphasized: inputIsEmphasized,
+    isInvalid: inputIsInvalid,
+    isReadOnly: inputIsReadOnly,
+    isRequired: inputIsRequired,
+    label: inputLabel,
+    labelAlign: inputLabelAlign,
+    labelPosition: inputLabelPosition,
+    name: inputName,
+    necessityIndicator: inputNecessityIndicator,
+    orientation: props.orientation,
+    size: inputSize,
+    style,
+    validationBehavior: inputValidationBehavior,
+    value: inputValue,
+    variant: inputVariant,
+  } as RadioGroupCanonicalProps);
+  const label = inputLabel ?? projectedProps.label;
+  const description = inputDescription ?? projectedProps.description;
+  const errorMessage = inputErrorMessage ?? projectedProps.errorMessage;
+  const variant = inputVariant ?? projectedProps.variant;
+  const orientation = props.orientation ?? projectedProps.orientation;
+  const size = inputSize ?? projectedProps.size;
+  const labelPosition = inputLabelPosition ?? projectedProps.labelPosition;
+  const labelAlign = inputLabelAlign ?? projectedProps.labelAlign;
+  const isEmphasized =
+    inputIsEmphasized ?? projectedProps.isEmphasized ?? false;
+  const isRequired = inputIsRequired ?? projectedProps.isRequired;
+  const necessityIndicator =
+    inputNecessityIndicator ?? projectedProps.necessityIndicator;
+
   const {
     data: boundData,
     loading,
@@ -81,8 +116,6 @@ export function RadioGroup({
     ],
   });
 
-  // DataBinding이 있고 데이터가 로드되었을 때 동적 Radio 생성
-  // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원
   const isPropertyBinding =
     dataBinding &&
     "source" in dataBinding &&
@@ -95,16 +128,63 @@ export function RadioGroup({
       dataBinding.type === "collection") ||
     isPropertyBinding;
 
-  const radioGroupClassName = composeRenderProps(
-    props.className,
-    (className) =>
-      className
-        ? `react-aria-RadioGroup ${className}`
-        : "react-aria-RadioGroup",
+  const radioGroupClassName = composeRenderProps(className, (className) =>
+    className ? `react-aria-RadioGroup ${className}` : "react-aria-RadioGroup",
   );
 
-  // ColumnMapping이 있으면 각 데이터 항목마다 Radio 렌더링
-  // ListBox와 동일한 패턴
+  const renderLabel = () =>
+    label ? (
+      <Label>
+        {label}
+        {renderNecessityIndicator(necessityIndicator, isRequired)}
+      </Label>
+    ) : null;
+
+  const renderDescription = () =>
+    description ? <Text slot="description">{description}</Text> : null;
+
+  const renderShell = (
+    content: React.ReactNode,
+    options: { forceDisabled?: boolean; includeFieldError?: boolean } = {},
+  ) => {
+    const shellIsDisabled = options.forceDisabled
+      ? true
+      : (inputIsDisabled ?? projectedProps.isDisabled);
+
+    return (
+      <AriaRadioGroup
+        {...props}
+        className={radioGroupClassName}
+        style={style}
+        value={inputValue ?? projectedProps.value}
+        defaultValue={inputDefaultValue ?? projectedProps.defaultValue}
+        isDisabled={shellIsDisabled}
+        isInvalid={inputIsInvalid ?? projectedProps.isInvalid}
+        isReadOnly={inputIsReadOnly ?? projectedProps.isReadOnly}
+        isRequired={isRequired}
+        name={inputName ?? projectedProps.name}
+        validationBehavior={
+          inputValidationBehavior ?? projectedProps.validationBehavior
+        }
+        data-orientation={orientation}
+        data-size={size}
+        data-radio-size={size}
+        data-radio-variant={variant}
+        data-emphasized={isEmphasized || undefined}
+        data-radio-emphasized={isEmphasized || undefined}
+        data-label-position={labelPosition}
+        data-label-align={labelAlign}
+      >
+        {renderLabel()}
+        {content}
+        {renderDescription()}
+        {options.includeFieldError === false ? null : (
+          <FieldError>{errorMessage}</FieldError>
+        )}
+      </AriaRadioGroup>
+    );
+  };
+
   if (hasDataBinding && columnMapping) {
     console.log("🎯 RadioGroup: columnMapping 감지 - 데이터로 Radio 렌더링", {
       columnMapping,
@@ -112,167 +192,43 @@ export function RadioGroup({
       dataCount: boundData.length,
     });
 
-    // Loading 상태
     if (loading) {
-      return (
-        <AriaRadioGroup
-          {...props}
-          className={radioGroupClassName}
-          isDisabled
-          data-radio-variant={variant}
-          data-radio-size={size}
-          data-label-position={labelPosition}
-        >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
-          <Text>⏳ 데이터 로딩 중...</Text>
-          {description && <Text slot="description">{description}</Text>}
-        </AriaRadioGroup>
-      );
+      return renderShell(<Text>⏳ 데이터 로딩 중...</Text>, {
+        forceDisabled: true,
+        includeFieldError: false,
+      });
     }
 
-    // Error 상태
     if (error) {
-      return (
-        <AriaRadioGroup
-          {...props}
-          className={radioGroupClassName}
-          isDisabled
-          data-radio-variant={variant}
-          data-radio-size={size}
-          data-label-position={labelPosition}
-        >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
-          <Text>❌ 오류: {error}</Text>
-          {description && <Text slot="description">{description}</Text>}
-        </AriaRadioGroup>
-      );
+      return renderShell(<Text>❌ 오류: {error}</Text>, {
+        forceDisabled: true,
+        includeFieldError: false,
+      });
     }
 
-    // 데이터가 있을 때: children 템플릿 사용
     if (boundData.length > 0) {
       console.log("✅ RadioGroup with columnMapping - using children template");
-
-      // children은 Radio 템플릿 (Field 자식 포함 가능)
-      return (
-        <AriaRadioGroup
-          {...props}
-          className={radioGroupClassName}
-          data-radio-variant={variant}
-          data-radio-size={size}
-          data-label-position={labelPosition}
-        >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
-          <div className="radio-items">{children}</div>
-          {description && <Text slot="description">{description}</Text>}
-          <FieldError>{errorMessage}</FieldError>
-        </AriaRadioGroup>
-      );
+      return renderShell(<div className="radio-items">{children}</div>);
     }
 
-    // 데이터 없음
-    return (
-      <AriaRadioGroup
-        {...props}
-        className={radioGroupClassName}
-        data-radio-variant={variant}
-        data-radio-size={size}
-        data-label-position={labelPosition}
-      >
-        {label && (
-          <Label>
-            {label}
-            {renderNecessityIndicator(
-              props.necessityIndicator,
-              props.isRequired,
-            )}
-          </Label>
-        )}
-        <div className="radio-items">{children}</div>
-        {description && <Text slot="description">{description}</Text>}
-        <FieldError>{errorMessage}</FieldError>
-      </AriaRadioGroup>
-    );
+    return renderShell(<div className="radio-items">{children}</div>);
   }
 
-  // Dynamic Collection: 동적으로 Radio 생성 (columnMapping 없을 때)
   if (hasDataBinding) {
-    // Loading 상태
     if (loading) {
-      return (
-        <AriaRadioGroup
-          {...props}
-          className={radioGroupClassName}
-          isDisabled
-          data-radio-variant={variant}
-          data-radio-size={size}
-          data-label-position={labelPosition}
-        >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
-          <Text>⏳ 데이터 로딩 중...</Text>
-          {description && <Text slot="description">{description}</Text>}
-        </AriaRadioGroup>
-      );
+      return renderShell(<Text>⏳ 데이터 로딩 중...</Text>, {
+        forceDisabled: true,
+        includeFieldError: false,
+      });
     }
 
-    // Error 상태
     if (error) {
-      return (
-        <AriaRadioGroup
-          {...props}
-          className={radioGroupClassName}
-          isDisabled
-          data-radio-variant={variant}
-          data-radio-size={size}
-          data-label-position={labelPosition}
-        >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
-          <Text>❌ 오류: {error}</Text>
-          {description && <Text slot="description">{description}</Text>}
-        </AriaRadioGroup>
-      );
+      return renderShell(<Text>❌ 오류: {error}</Text>, {
+        forceDisabled: true,
+        includeFieldError: false,
+      });
     }
 
-    // 데이터가 로드되었을 때
     if (boundData.length > 0) {
       const radioItems = boundData.map((item, index) => ({
         id: String(item.id || index),
@@ -285,23 +241,8 @@ export function RadioGroup({
 
       console.log("✅ RadioGroup Dynamic Collection - items:", radioItems);
 
-      return (
-        <AriaRadioGroup
-          {...props}
-          className={radioGroupClassName}
-          data-radio-variant={variant}
-          data-radio-size={size}
-          data-label-position={labelPosition}
-        >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+      return renderShell(
+        <>
           {radioItems.map((item) => (
             <AriaRadio
               key={item.id}
@@ -312,31 +253,10 @@ export function RadioGroup({
               {item.label}
             </AriaRadio>
           ))}
-          {description && <Text slot="description">{description}</Text>}
-          <FieldError>{errorMessage}</FieldError>
-        </AriaRadioGroup>
+        </>,
       );
     }
   }
 
-  // Static Children (Compositional: children에 Label + radio-items 포함)
-  return (
-    <AriaRadioGroup
-      {...props}
-      className={radioGroupClassName}
-      data-radio-variant={variant}
-      data-radio-size={size}
-      data-label-position={labelPosition}
-    >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
-        </Label>
-      )}
-      {children}
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
-    </AriaRadioGroup>
-  );
+  return renderShell(<div className="radio-items">{children}</div>);
 }

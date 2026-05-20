@@ -378,7 +378,7 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar / TextField /
 NumberField / SearchField / DateField / TimeField / ColorField / Form /
-FileTrigger / Checkbox / CheckboxGroup / Slider
+FileTrigger / Checkbox / CheckboxGroup / Radio / RadioGroup / Slider
 primitive wrapper boundary slices; Button Icon PropContract parity). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
@@ -398,7 +398,9 @@ primitive wrapper boundary slices; Button Icon PropContract parity). `packages/s
 `toFormRacProps()` 를, `packages/shared/src/components/FileTrigger.tsx` 는
 `toFileTriggerRacProps()` 를, `packages/shared/src/components/Checkbox.tsx` 는
 `toCheckboxRacProps()` 를, `packages/shared/src/components/CheckboxGroup.tsx` 는
-`toCheckboxGroupRacProps()` 를, `packages/shared/src/components/Slider.tsx` 는
+`toCheckboxGroupRacProps()` 를, `packages/shared/src/components/Radio.tsx` 는
+`toRadioRacProps()` 를, `packages/shared/src/components/RadioGroup.tsx` 는
+`toRadioGroupRacProps()` 를, `packages/shared/src/components/Slider.tsx` 는
 `toSliderRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
 props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar/Form/FileTrigger 은
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
@@ -485,7 +487,7 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `SliderSpec.render.shapes()`,
 `ToggleButtonGroupSpec.render.shapes()`,
 `ToolbarSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/Checkbox/CheckboxGroup/Slider/ToggleButtonGroup/Toolbar 외
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
@@ -519,8 +521,18 @@ Preview primitive branch / generic Skia label-output-track-fill-thumb fixture �
 `checkboxGroupPrimitiveBinding` / `toCheckboxGroupRacProps()` / shared
 `CheckboxGroup.tsx` projection / Preview primitive branch / generic Skia
 label+children fixture 를 추가했고, `CheckboxGroupSpec.render.shapes()` 와 child
-`CheckboxSpec.render.shapes()` 미호출을 검증한다. selection family 잔여는
-Radio, RadioGroup 이다.
+`CheckboxSpec.render.shapes()` 미호출을 검증한다. 이후 Radio/RadioGroup slice 로
+확장했다.
+
+2026-05-20 추가 slice: Radio/RadioGroup selection primitive 를 `cutover:"catalog"` 로
+등록했다. `radioPrimitiveBinding` / `radioGroupPrimitiveBinding` /
+`toRadioRacProps()` / `toRadioGroupRacProps()` / shared `Radio.tsx` 와
+`RadioGroup.tsx` projection / Preview RadioGroup primitive branch / generic Skia
+ring-dot-label 및 group label+children fixture 를 추가했고,
+`RadioSpec.render.shapes()` / `RadioGroupSpec.render.shapes()` 미호출을 검증한다.
+Radio 는 React Aria `RadioGroup` context 가 필요한 subpart 이므로 catalog 에서는
+non-placeable active primitive 로 두고, standalone Preview 는 legacy fallback 을 유지한다.
+selection family pilot 은 이 slice 로 완료됐고 다음 entrypoint 는 collections family 다.
 
 ### Phase 6 — Family-gated atomic cutover
 
