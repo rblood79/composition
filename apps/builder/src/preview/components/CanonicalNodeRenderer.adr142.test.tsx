@@ -16,6 +16,7 @@ const {
   legacyLinkRenderer,
   legacySeparatorRenderer,
   legacyToggleButtonRenderer,
+  legacyToggleButtonGroupRenderer,
 } = vi.hoisted(() => ({
   legacyButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="Button">legacy</button>
@@ -27,6 +28,9 @@ const {
   legacyToggleButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="ToggleButton">legacy</button>
   )),
+  legacyToggleButtonGroupRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ToggleButtonGroup">legacy</div>
+  )),
 }));
 
 vi.mock("@composition/shared/renderers", () => ({
@@ -35,6 +39,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Link: legacyLinkRenderer,
     Separator: legacySeparatorRenderer,
     ToggleButton: legacyToggleButtonRenderer,
+    ToggleButtonGroup: legacyToggleButtonGroupRenderer,
   },
 }));
 
@@ -58,6 +63,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyLinkRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
+    legacyToggleButtonGroupRenderer.mockClear();
   });
 
   it("renders Button through PrimitiveBinding before rendererMap fallback", () => {
@@ -202,6 +208,45 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(
       container.querySelector("[data-canonical-id='toggle-button-1']"),
     ).toBe(toggle);
+    expect(legacyToggleButtonRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ToggleButtonGroup and children through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "toggle-group-1",
+      type: "ToggleButtonGroup",
+      props: {
+        orientation: "vertical",
+        selectionMode: "multiple",
+        isEmphasized: true,
+        size: "lg",
+      },
+      children: [
+        {
+          id: "toggle-child-1",
+          type: "ToggleButton",
+          props: {
+            children: "Grid",
+            isSelected: true,
+            size: "lg",
+          },
+        },
+      ],
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const group = screen.getByRole("toolbar");
+    const child = screen.getByRole("button", { name: "Grid" });
+    expect(group.dataset.orientation).toBe("vertical");
+    expect(group.dataset.size).toBe("lg");
+    expect(
+      container.querySelector("[data-canonical-id='toggle-group-1']"),
+    ).toBe(group);
+    expect(child.dataset.size).toBe("lg");
+    expect(legacyToggleButtonGroupRenderer).not.toHaveBeenCalled();
     expect(legacyToggleButtonRenderer).not.toHaveBeenCalled();
   });
 });

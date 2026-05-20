@@ -7,6 +7,7 @@ import {
   LinkSpec,
   SeparatorSpec,
   ToggleButtonSpec,
+  ToggleButtonGroupSpec,
 } from "@composition/specs";
 import {
   buildGenericResolvedSkiaNodeData,
@@ -167,6 +168,45 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("toggle-button-1");
     expect(collectText(node)).toContain("Pinned");
     expect(node?.box?.fillColor).toBeDefined();
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ToggleButtonGroup shell and children through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ToggleButtonGroupSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "toggle-group-1",
+        type: "ToggleButtonGroup",
+        props: {
+          orientation: "horizontal",
+          selectionMode: "multiple",
+          size: "lg",
+        },
+        children: [
+          {
+            id: "toggle-child-1",
+            type: "ToggleButton",
+            props: {
+              children: "Grid",
+              isSelected: true,
+              size: "lg",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["toggle-group-1", { x: 20, y: 24, width: 220, height: 40 }],
+        ["toggle-child-1", { x: 20, y: 24, width: 100, height: 40 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("toggle-group-1");
+    expect(collectText(node)).toContain("Grid");
+    expect(node?.children?.[0]?.elementId).toBe("toggle-child-1");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

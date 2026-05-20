@@ -13,6 +13,10 @@ import type {
 } from "../types";
 import { useCollectionData } from "../hooks";
 import {
+  toToggleButtonGroupRacProps,
+  type ToggleButtonGroupCanonicalProps,
+} from "../catalog/outputs/toRacProps";
+import {
   ToggleButtonGroupEmphasizedContext,
   ToggleButtonGroupIndicatorContext,
 } from "./ToggleButtonGroupContext";
@@ -37,18 +41,49 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
   size?: ComponentSizeSubset;
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
+  value?: unknown;
 }
 
 export function ToggleButtonGroup({
-  indicator = false,
-  isEmphasized = false,
-  isQuiet = false,
-  size = "md",
+  indicator: inputIndicator,
+  isEmphasized: inputIsEmphasized,
+  isQuiet: inputIsQuiet,
+  size: inputSize,
+  orientation: inputOrientation,
+  selectionMode: inputSelectionMode,
+  isDisabled: inputIsDisabled,
+  selectedKeys: inputSelectedKeys,
+  defaultSelectedKeys: inputDefaultSelectedKeys,
+  value: inputValue,
+  className,
+  style,
   dataBinding,
   columnMapping,
   children,
   ...props
 }: ToggleButtonGroupExtendedProps) {
+  const projectedProps = toToggleButtonGroupRacProps({
+    ...props,
+    indicator: inputIndicator,
+    isDisabled: inputIsDisabled,
+    isEmphasized: inputIsEmphasized,
+    isQuiet: inputIsQuiet,
+    size: inputSize,
+    orientation: inputOrientation,
+    selectionMode: inputSelectionMode,
+    selectedKeys: inputSelectedKeys,
+    defaultSelectedKeys: inputDefaultSelectedKeys,
+    value: inputValue,
+    className,
+    style,
+  } as ToggleButtonGroupCanonicalProps);
+  const indicator = inputIndicator ?? projectedProps.indicator;
+  const isEmphasized =
+    inputIsEmphasized ?? projectedProps.isEmphasized ?? false;
+  const isQuiet = inputIsQuiet ?? projectedProps.isQuiet ?? false;
+  const size = inputSize ?? projectedProps.size;
+  const orientation = inputOrientation ?? projectedProps.orientation;
+  const selectionMode = inputSelectionMode ?? projectedProps.selectionMode;
   const {
     data: boundData,
     loading,
@@ -74,25 +109,28 @@ export function ToggleButtonGroup({
       dataBinding.type === "collection") ||
     isPropertyBinding;
 
-  const toggleButtonGroupClassName = composeRenderProps(
-    props.className,
-    (cls) => {
-      const base = indicator
-        ? "react-aria-ToggleButtonGroup button-base"
-        : "react-aria-ToggleButtonGroup";
-      return cls ? `${base} ${cls}` : base;
-    },
-  );
+  const toggleButtonGroupClassName = composeRenderProps(className, (cls) => {
+    const base = indicator
+      ? "react-aria-ToggleButtonGroup button-base"
+      : "react-aria-ToggleButtonGroup";
+    return cls ? `${base} ${cls}` : base;
+  });
 
   const shell = (content: ReactNode, isDisabled = false) => (
     <RACToggleButtonGroup
       {...props}
+      orientation={orientation}
+      selectionMode={selectionMode}
+      selectedKeys={projectedProps.selectedKeys}
+      defaultSelectedKeys={projectedProps.defaultSelectedKeys}
       data-indicator={indicator ? "true" : "false"}
       data-emphasized={isEmphasized || undefined}
       data-quiet={isQuiet || undefined}
+      data-orientation={orientation}
       data-size={size}
       className={toggleButtonGroupClassName}
-      isDisabled={isDisabled || props.isDisabled}
+      style={style}
+      isDisabled={isDisabled || projectedProps.isDisabled}
     >
       <ToggleButtonGroupEmphasizedContext.Provider value={isEmphasized}>
         <ToggleButtonGroupIndicatorContext.Provider value={indicator}>

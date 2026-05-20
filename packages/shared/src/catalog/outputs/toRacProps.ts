@@ -61,6 +61,15 @@ export const LINK_TARGET_VALUES = [
   "_top",
 ] as const;
 export const TOGGLE_BUTTON_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const TOGGLE_BUTTON_GROUP_SIZE_VALUES = TOGGLE_BUTTON_SIZE_VALUES;
+export const TOGGLE_BUTTON_GROUP_ORIENTATION_VALUES = [
+  "horizontal",
+  "vertical",
+] as const;
+export const TOGGLE_BUTTON_GROUP_SELECTION_MODE_VALUES = [
+  "single",
+  "multiple",
+] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -75,6 +84,15 @@ const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
 const LINK_TARGETS = new Set<string>(LINK_TARGET_VALUES);
 const TOGGLE_BUTTON_SIZES = new Set<ComponentSizeSubset>(
   TOGGLE_BUTTON_SIZE_VALUES,
+);
+const TOGGLE_BUTTON_GROUP_SIZES = new Set<ComponentSizeSubset>(
+  TOGGLE_BUTTON_GROUP_SIZE_VALUES,
+);
+const TOGGLE_BUTTON_GROUP_ORIENTATIONS = new Set<string>(
+  TOGGLE_BUTTON_GROUP_ORIENTATION_VALUES,
+);
+const TOGGLE_BUTTON_GROUP_SELECTION_MODES = new Set<string>(
+  TOGGLE_BUTTON_GROUP_SELECTION_MODE_VALUES,
 );
 
 export interface ButtonCanonicalProps extends Record<string, unknown> {
@@ -179,6 +197,38 @@ export interface ToggleButtonRacProps extends Record<string, unknown> {
   style?: Record<string, unknown>;
 }
 
+export interface ToggleButtonGroupCanonicalProps extends Record<
+  string,
+  unknown
+> {
+  size?: unknown;
+  orientation?: unknown;
+  selectionMode?: unknown;
+  indicator?: unknown;
+  isEmphasized?: unknown;
+  isQuiet?: unknown;
+  isDisabled?: unknown;
+  selectedKeys?: unknown;
+  defaultSelectedKeys?: unknown;
+  value?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ToggleButtonGroupRacProps extends Record<string, unknown> {
+  size: ComponentSizeSubset;
+  orientation: "horizontal" | "vertical";
+  selectionMode: "single" | "multiple";
+  indicator: boolean;
+  isEmphasized: boolean;
+  isQuiet: boolean;
+  isDisabled?: boolean;
+  selectedKeys?: Set<string>;
+  defaultSelectedKeys?: Set<string>;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
 export function toButtonRacProps(props: ButtonCanonicalProps): ButtonRacProps {
   return {
     children: readButtonText(props),
@@ -255,6 +305,32 @@ export function toToggleButtonRacProps(
       : {}),
     ...(typeof props.isDisabled === "boolean"
       ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
+export function toToggleButtonGroupRacProps(
+  props: ToggleButtonGroupCanonicalProps,
+): ToggleButtonGroupRacProps {
+  return {
+    size: normalizeToggleButtonGroupSize(props.size),
+    orientation: normalizeToggleButtonGroupOrientation(props.orientation),
+    selectionMode: normalizeToggleButtonGroupSelectionMode(props.selectionMode),
+    indicator: props.indicator === true,
+    isEmphasized: props.isEmphasized === true,
+    isQuiet: props.isQuiet === true,
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(normalizeKeySet(props.selectedKeys ?? props.value)
+      ? { selectedKeys: normalizeKeySet(props.selectedKeys ?? props.value) }
+      : {}),
+    ...(normalizeKeySet(props.defaultSelectedKeys)
+      ? { defaultSelectedKeys: normalizeKeySet(props.defaultSelectedKeys) }
       : {}),
     ...(typeof props.className === "string"
       ? { className: props.className }
@@ -356,6 +432,41 @@ function normalizeToggleButtonSize(value: unknown): ComponentSizeSubset {
     TOGGLE_BUTTON_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
+}
+
+function normalizeToggleButtonGroupSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    TOGGLE_BUTTON_GROUP_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeToggleButtonGroupOrientation(
+  value: unknown,
+): "horizontal" | "vertical" {
+  return typeof value === "string" &&
+    TOGGLE_BUTTON_GROUP_ORIENTATIONS.has(value)
+    ? (value as "horizontal" | "vertical")
+    : "horizontal";
+}
+
+function normalizeToggleButtonGroupSelectionMode(
+  value: unknown,
+): "single" | "multiple" {
+  return typeof value === "string" &&
+    TOGGLE_BUTTON_GROUP_SELECTION_MODES.has(value)
+    ? (value as "single" | "multiple")
+    : "single";
+}
+
+function normalizeKeySet(value: unknown): Set<string> | undefined {
+  if (Array.isArray(value)) {
+    return new Set(value.map((item) => String(item)));
+  }
+  if (value instanceof Set) {
+    return new Set(Array.from(value).map((item) => String(item)));
+  }
+  return undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

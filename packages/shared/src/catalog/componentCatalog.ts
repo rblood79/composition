@@ -1,6 +1,7 @@
 import { buttonPrimitiveBinding } from "./primitives/button";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { separatorPrimitiveBinding } from "./primitives/separator";
+import { toggleButtonGroupPrimitiveBinding } from "./primitives/toggleButtonGroup";
 import { toggleButtonPrimitiveBinding } from "./primitives/toggleButton";
 import type { ComponentCatalogEntry } from "./types";
 import {
@@ -33,6 +34,19 @@ export const componentCatalog = [
       category: "buttons",
       label: "toggle button",
       icon: "ToggleLeft",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ToggleButtonGroup",
+    family: "primitives/actions",
+    cutover: "catalog",
+    binding: toggleButtonGroupPrimitiveBinding,
+    panel: {
+      category: "buttons",
+      label: "toggle button group",
+      icon: "GroupIcon",
       placeable: true,
     },
   },

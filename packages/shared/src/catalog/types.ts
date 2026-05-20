@@ -29,6 +29,19 @@ export interface PrimitiveSkiaDescriptor {
   kind: "button" | "link" | "separator" | "toggle-button";
 }
 
+export interface PrimitivePlacementChildTemplate {
+  type: ComponentTag;
+  props: Record<string, unknown>;
+  children?: PrimitivePlacementChildTemplate[];
+}
+
+export type PrimitivePlacementDescriptor =
+  | { kind: "single-node" }
+  | {
+      kind: "node-with-children";
+      children: PrimitivePlacementChildTemplate[];
+    };
+
 export type InspectorFieldKind =
   | "boolean"
   | "enum"
@@ -77,6 +90,7 @@ export interface PrimitiveBinding<
     accepts: PropContractMap;
   };
   toRacProps: (props: TCanonicalProps) => TRacProps;
+  placement?: PrimitivePlacementDescriptor;
   skiaPrimitive?: PrimitiveSkiaDescriptor;
 }
 

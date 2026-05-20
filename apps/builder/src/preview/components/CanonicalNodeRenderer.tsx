@@ -24,6 +24,7 @@ import {
   type ButtonRacProps,
   type LinkRacProps,
   type SeparatorRacProps,
+  type ToggleButtonGroupRacProps,
   type ToggleButtonRacProps,
 } from "@composition/shared";
 import {
@@ -31,6 +32,7 @@ import {
   Link,
   Separator,
   ToggleButton,
+  ToggleButtonGroup,
 } from "@composition/shared/components";
 import type { ResolvedNode } from "@composition/shared";
 import type {
@@ -262,6 +264,31 @@ function renderPrimitiveNode({
     );
   }
 
+  if (adaptedEl.type === "ToggleButtonGroup") {
+    const toggleButtonGroupProps = binding.toRacProps({
+      ...adaptedEl.props,
+      selectedKeys: collectSelectedToggleButtonKeys(node),
+    } as Record<string, unknown>) as ToggleButtonGroupRacProps;
+    const renderedChildren = node.children?.map((child) => (
+      <CanonicalNodeRenderer
+        key={child.id}
+        node={child}
+        renderContext={renderContext}
+        parentPath={parentPath}
+      />
+    ));
+
+    return (
+      <ToggleButtonGroup
+        key={node.id}
+        {...toggleButtonGroupProps}
+        {...markerProps}
+      >
+        {renderedChildren}
+      </ToggleButtonGroup>
+    );
+  }
+
   if (adaptedEl.type !== "Button") return null;
 
   const { children: racChildren, ...buttonProps } = binding.toRacProps(
@@ -283,4 +310,13 @@ function renderPrimitiveNode({
       {renderedChildren}
     </Button>
   );
+}
+
+function collectSelectedToggleButtonKeys(node: ResolvedNode): string[] {
+  return (node.children ?? [])
+    .filter(
+      (child) =>
+        child.type === "ToggleButton" && child.props?.isSelected === true,
+    )
+    .map((child) => child.id);
 }

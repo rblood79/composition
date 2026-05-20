@@ -4,6 +4,7 @@ import {
   getCatalogDefaultProps,
   getComponentCatalogEntry,
   type ComponentCatalogEntry,
+  type PrimitivePlacementChildTemplate,
 } from "@composition/shared/catalog";
 import {
   Element,
@@ -68,6 +69,7 @@ export interface CatalogElementCreationPayload {
   componentRole?: "instance";
   masterId?: string;
   componentName?: string;
+  children?: CatalogElementCreationPayload[];
 }
 
 function isCatalogEntry(value: unknown): value is ComponentCatalogEntry {
@@ -103,9 +105,17 @@ export function resolveCatalogElementCreation(
   if (!entry || entry.cutover !== "catalog") return undefined;
 
   if (entry.kind === "primitive") {
+    const placement = entry.binding.placement;
     return {
       elementType: entry.type,
       props: { ...entry.binding.defaultProps } as ComponentElementProps,
+      ...(placement?.kind === "node-with-children"
+        ? {
+            children: placement.children.map((child) =>
+              cloneCatalogPlacementChild(child),
+            ),
+          }
+        : {}),
     };
   }
 
@@ -124,6 +134,71 @@ export function resolveCatalogElementCreation(
     elementType: entry.type,
     props: {} as ComponentElementProps,
   };
+}
+
+function cloneCatalogPlacementChild(
+  child: PrimitivePlacementChildTemplate,
+): CatalogElementCreationPayload {
+  return {
+    elementType: child.type,
+    props: { ...child.props } as ComponentElementProps,
+    ...(child.children
+      ? {
+          children: child.children.map((nestedChild) =>
+            cloneCatalogPlacementChild(nestedChild),
+          ),
+        }
+      : {}),
+  };
+}
+
+function createCatalogChildElements({
+  children,
+  parentId,
+  currentPageId,
+  layoutId,
+  elements,
+  createdElements,
+}: {
+  children: CatalogElementCreationPayload[];
+  parentId: string;
+  currentPageId: string;
+  layoutId: string | null | undefined;
+  elements: Element[];
+  createdElements: Element[];
+}): Element[] {
+  const result: Element[] = [];
+  const createChildren = (
+    childPayloads: CatalogElementCreationPayload[],
+    currentParentId: string,
+  ): void => {
+    childPayloads.forEach((childPayload) => {
+      const child = withFrameElementMirrorId(
+        {
+          id: crypto.randomUUID(),
+          type: childPayload.elementType,
+          customId: generateCustomId(childPayload.elementType, [
+            ...elements,
+            ...createdElements,
+            ...result,
+          ]),
+          props: childPayload.props,
+          page_id: layoutId ? null : currentPageId,
+          parent_id: currentParentId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        layoutId || null,
+      );
+      result.push(child);
+      if (childPayload.children?.length) {
+        createChildren(childPayload.children, child.id);
+      }
+    });
+  };
+
+  createChildren(children, parentId);
+  return result;
 }
 
 export function resolveDefaultPropsForCreation(
@@ -284,9 +359,18 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 },
                 layoutId || null,
               );
+              const childElements = createCatalogChildElements({
+                children: creation.children ?? [],
+                parentId: newElement.id,
+                currentPageId,
+                layoutId,
+                elements,
+                createdElements: [newElement],
+              });
 
               // addElement 호출 (내부에서 DB 저장 처리)
               addElement(newElement);
+              childElements.forEach((child) => addElement(child));
             }
           };
 

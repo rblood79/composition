@@ -16,6 +16,27 @@ describe("ADR-142 element creator catalog bridge", () => {
     });
   });
 
+  it("describes catalog primitive group placement with default child templates", () => {
+    const creation = resolveCatalogElementCreation("ToggleButtonGroup");
+
+    expect(creation).toMatchObject({
+      elementType: "ToggleButtonGroup",
+      props: {
+        size: "md",
+        orientation: "horizontal",
+        selectionMode: "single",
+      },
+    });
+    expect(creation?.children?.map((child) => child.elementType)).toEqual([
+      "ToggleButton",
+      "ToggleButton",
+    ]);
+    expect(creation?.children?.[0]?.props).toMatchObject({
+      children: "Toggle 1",
+      isSelected: false,
+    });
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",
