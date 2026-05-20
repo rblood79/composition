@@ -20,6 +20,7 @@ import { selectPrimitiveBinding } from "./primitives/select";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import { sliderPrimitiveBinding } from "./primitives/slider";
 import { switchPrimitiveBinding } from "./primitives/switch";
+import { tabsPrimitiveBinding } from "./primitives/tabs";
 import { tagGroupPrimitiveBinding } from "./primitives/tagGroup";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { timeFieldPrimitiveBinding } from "./primitives/timeField";
@@ -395,6 +396,19 @@ export const componentCatalog = [
       category: "forms",
       label: "select",
       icon: "ChevronDown",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Tabs",
+    family: "collections",
+    cutover: "catalog",
+    binding: tabsPrimitiveBinding,
+    panel: {
+      category: "collections",
+      label: "tabs",
+      icon: "Layers",
       placeable: true,
     },
   },

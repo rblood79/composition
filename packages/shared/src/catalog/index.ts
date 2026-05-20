@@ -23,6 +23,7 @@ export * from "./primitives/select";
 export * from "./primitives/separator";
 export * from "./primitives/slider";
 export * from "./primitives/switch";
+export * from "./primitives/tabs";
 export * from "./primitives/tagGroup";
 export * from "./primitives/textField";
 export * from "./primitives/timeField";

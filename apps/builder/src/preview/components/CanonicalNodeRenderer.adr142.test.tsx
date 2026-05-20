@@ -35,6 +35,7 @@ const {
   legacySliderRenderer,
   legacySwitchRenderer,
   legacyTagGroupRenderer,
+  legacyTabsRenderer,
   legacyTextFieldRenderer,
   legacyTimeFieldRenderer,
   legacyToggleButtonRenderer,
@@ -108,6 +109,9 @@ const {
   legacyTagGroupRenderer: vi.fn(() => (
     <div data-legacy-renderer="TagGroup">legacy</div>
   )),
+  legacyTabsRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Tabs">legacy</div>
+  )),
   legacyTextFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="TextField">legacy</div>
   )),
@@ -150,6 +154,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Slider: legacySliderRenderer,
     Switch: legacySwitchRenderer,
     TagGroup: legacyTagGroupRenderer,
+    Tabs: legacyTabsRenderer,
     TextField: legacyTextFieldRenderer,
     TimeField: legacyTimeFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
@@ -197,6 +202,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacySliderRenderer.mockClear();
     legacySwitchRenderer.mockClear();
     legacyTagGroupRenderer.mockClear();
+    legacyTabsRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyTimeFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
@@ -1103,6 +1109,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     );
     expect(screen.getByText("Animals")).toBeTruthy();
     expect(legacySelectRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Tabs canonical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "tabs-1",
+      type: "Tabs",
+      props: {
+        "aria-label": "Sections",
+        selectedKey: "details",
+        items: [
+          { id: "overview", label: "Overview", content: "Overview content" },
+          { id: "details", label: "Details", content: "Details content" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const tabsRoot = container.querySelector(".react-aria-Tabs");
+    expect(screen.getByRole("tab", { name: "Overview" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Details" })).toBeTruthy();
+    expect(screen.getByText("Details content")).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='tabs-1']")).toBe(
+      tabsRoot,
+    );
+    expect(legacyTabsRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

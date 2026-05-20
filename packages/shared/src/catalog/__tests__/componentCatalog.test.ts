@@ -539,6 +539,38 @@ describe("ADR-142 component catalog", () => {
     ]);
   });
 
+  it("registers Tabs as an active collections primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Tabs");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.family).toBe("collections");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Tabs");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("tabs");
+    expect(entry.panel.category).toBe("collections");
+    expect(entry.panel.label).toBe("tabs");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual([
+      {
+        id: "overview",
+        label: "Overview",
+        content: "Overview content",
+      },
+      {
+        id: "details",
+        label: "Details",
+        content: "Details content",
+      },
+      {
+        id: "settings",
+        label: "Settings",
+        content: "Settings content",
+      },
+    ]);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -602,6 +634,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Menu");
     expect(activeTypes).toContain("ComboBox");
     expect(activeTypes).toContain("Select");
+    expect(activeTypes).toContain("Tabs");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

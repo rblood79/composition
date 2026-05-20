@@ -46,6 +46,7 @@ export interface PrimitiveSkiaDescriptor {
     | "separator"
     | "slider"
     | "switch"
+    | "tabs"
     | "tag-group"
     | "text-field"
     | "time-field"

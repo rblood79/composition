@@ -378,7 +378,8 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar / TextField /
 NumberField / SearchField / DateField / TimeField / ColorField / Form /
-FileTrigger / Checkbox / CheckboxGroup / Radio / RadioGroup / Slider
+FileTrigger / Checkbox / CheckboxGroup / Radio / RadioGroup / Slider /
+ListBox / GridList / TagGroup / Menu / ComboBox / Select / Tabs
 primitive wrapper boundary slices; Button Icon PropContract parity). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
@@ -401,7 +402,8 @@ primitive wrapper boundary slices; Button Icon PropContract parity). `packages/s
 `toCheckboxGroupRacProps()` 를, `packages/shared/src/components/Radio.tsx` 는
 `toRadioRacProps()` 를, `packages/shared/src/components/RadioGroup.tsx` 는
 `toRadioGroupRacProps()` 를, `packages/shared/src/components/Slider.tsx` 는
-`toSliderRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
+`toSliderRacProps()` 를, `packages/shared/src/components/Tabs.tsx` 는
+`toTabsRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
 props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar/Form/FileTrigger 은
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
 포함한다. Button 은 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 으로
@@ -461,8 +463,8 @@ Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
 ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + CheckboxGroup label/children + Slider label/output/track/fill/thumb + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
-Skia slices; Button icon_path parity). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
-`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` 를 추가하고, generic Skia path 가
+Skia slices + Tabs tab-list/panel generic Skia slice; Button icon_path parity). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
+`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `color-field` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` / `list-box` / `grid-list` / `tag-group` / `menu` / `combo-box` / `select` / `tabs` 를 추가하고, generic Skia path 가
 Separator resolved node 를 `line` node 로, Link resolved node 를 underline text node
 로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField/TimeField/ColorField resolved node 를
 label/input/value container/text node 로, ColorField swatch 를 box node 로, ToggleButton resolved node 를 selected/emphasized 상태의
@@ -486,8 +488,8 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `CheckboxGroupSpec.render.shapes()`,
 `SliderSpec.render.shapes()`,
 `ToggleButtonGroupSpec.render.shapes()`,
-`ToolbarSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar 외
+`ToolbarSpec.render.shapes()`, `TabsSpec.render.shapes()` 미호출을 검증한다.
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
@@ -575,7 +577,15 @@ Select/Tabs 는 잔여다.
 projection / Preview Select primitive branch / generic Skia label+trigger+item row
 fixture 를 추가했고, `SelectSpec.render.shapes()` 미호출을 검증한다. Select 는
 collections family 소속이지만 기존 Component Panel 위치는 `forms` category 로
-보존한다. ADR-132 collection 데이터 binding 전체 전환과 Tabs 는 잔여다.
+보존한다. 이후 Tabs slice 로 확장했다.
+
+2026-05-20 추가 slice: Tabs collections primitive 를 `cutover:"catalog"` 로 등록했다.
+`tabsPrimitiveBinding` / `toTabsRacProps()` / shared `Tabs.tsx` projection / Preview
+Tabs primitive branch / generic Skia tab-list+panel fixture 를 추가했고,
+`TabsSpec.render.shapes()` 미호출을 검증한다. Tabs 는 기존 Component Panel 위치를
+`collections` category 로 유지한다. ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs
+pilot 으로 §5 collections row 의 primitive pilot 은 완료됐으며, ADR-132 collection
+데이터 binding 전체 전환은 잔여다.
 
 ### Phase 6 — Family-gated atomic cutover
 
@@ -643,7 +653,8 @@ cutover 후 허용되는 legacy usage:
 - `packages/shared/src/catalog/**` 가 기존 `ComponentSpec` / `ReactRenderer` / `CSSGenerator` 를 import
 
 2026-05-20 현황: Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar
-및 TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger 의
+및 TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger,
+selection family, ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs 의
 Inspector props source 는 `getPrimitiveBinding()` 우선 경로로 진입한다. legacy
 `specRegistry` 는 catalog binding 이 없는 component fallback 으로만 남아 있다.
 

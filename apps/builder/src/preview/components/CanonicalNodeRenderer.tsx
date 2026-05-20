@@ -43,6 +43,7 @@ import {
   type SeparatorRacProps,
   type SliderRacProps,
   type SwitchRacProps,
+  type TabsRacProps,
   type TagGroupRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
@@ -73,6 +74,7 @@ import {
   Separator,
   Slider,
   Switch,
+  Tabs,
   TagGroup,
   TextField,
   TimeField,
@@ -528,6 +530,14 @@ function renderPrimitiveNode({
     ) as SelectRacProps;
 
     return <Select key={node.id} {...selectProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Tabs") {
+    const tabsProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as TabsRacProps;
+
+    return <Tabs key={node.id} {...tabsProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

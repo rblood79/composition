@@ -1418,4 +1418,70 @@ describe("ADR-142 inspector field contracts", () => {
       ],
     });
   });
+
+  it("groups Tabs PropContract entries by section", () => {
+    const binding = getPrimitiveBinding("Tabs");
+    expect(binding).toBeDefined();
+
+    const sections = buildInspectorFieldSections({
+      componentType: "Tabs",
+      contracts: binding?.props.accepts ?? {},
+      theme: {
+        sizes: { Tabs: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "items",
+      "aria-label",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "density",
+      "size",
+      "orientation",
+      "showIndicator",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "selectedKey",
+      "defaultSelectedKey",
+      "isDisabled",
+      "keyboardActivation",
+    ]);
+  });
+
+  it("projects Tabs canonical items through the catalog boundary", () => {
+    const binding = getPrimitiveBinding("Tabs");
+    const racProps = binding?.toRacProps({
+      items: [
+        { id: "overview", label: "Overview", content: "Overview content" },
+        { id: "details", label: "Details", content: "Details content" },
+        { id: "ignored", label: "" },
+        42,
+      ],
+      selectedKey: "details",
+      defaultSelectedKey: "overview",
+      size: "lg",
+      orientation: "vertical",
+      showIndicator: false,
+      keyboardActivation: "manual",
+    });
+
+    expect(racProps).toMatchObject({
+      selectedKey: "details",
+      defaultSelectedKey: "overview",
+      size: "lg",
+      orientation: "vertical",
+      showIndicator: false,
+      keyboardActivation: "manual",
+      items: [
+        { id: "overview", label: "Overview", content: "Overview content" },
+        { id: "details", label: "Details", content: "Details content" },
+      ],
+    });
+  });
 });

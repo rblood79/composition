@@ -40,6 +40,7 @@ import {
   toSliderRacProps,
   toSwitchRacProps,
   toTagGroupRacProps,
+  toTabsRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
   toToggleButtonRacProps,
@@ -72,6 +73,8 @@ import {
   type SwitchRacProps,
   type TagGroupItemDescriptor,
   type TagGroupRacProps,
+  type TabsItemDescriptor,
+  type TabsRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type ToggleButtonRacProps,
@@ -910,6 +913,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "select") {
     return buildGenericSelectNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "tabs") {
+    return buildGenericTabsNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -3492,6 +3498,187 @@ function buildGenericSelectNode(
   };
 }
 
+function buildGenericTabsNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toTabsRacProps(node.props ?? {}) as TabsRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericTabsSize(props.size);
+  const isDark = theme === "dark";
+  const items: TabsItemDescriptor[] = props.items ?? [];
+  const selectedKey =
+    props.selectedKey ?? props.defaultSelectedKey ?? items[0]?.id;
+  const selectedItem =
+    items.find((item) => item.id === selectedKey) ?? items[0];
+  const isVertical = props.orientation === "vertical";
+  const textColor = colorIntToFloat32(isDark ? 0xe5e7eb : 0x374151, 1);
+  const mutedTextColor = colorIntToFloat32(isDark ? 0x9ca3af : 0x6b7280, 1);
+  const borderColor = colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1);
+  const accentColor = colorIntToFloat32(isDark ? 0x93c5fd : 0x2563eb, 1);
+  const selectedFill = colorIntToFloat32(isDark ? 0x1f2937 : 0xf3f4f6, 1);
+  const transparent = colorIntToFloat32(0x000000, 0);
+  const tabCount = Math.max(items.length, 1);
+  const tabListWidth = isVertical
+    ? Math.min(Math.max(layout.width * 0.36, 96), 148)
+    : layout.width;
+  const tabWidth = isVertical
+    ? tabListWidth
+    : Math.max(64, Math.min(120, layout.width / tabCount));
+  const tabListHeight = isVertical
+    ? Math.min(layout.height, tabCount * size.tabHeight)
+    : size.tabHeight;
+  const panelX = isVertical ? tabListWidth + 8 : 0;
+  const panelY = isVertical ? 0 : tabListHeight + 8;
+  const panelWidth = Math.max(layout.width - panelX, 0);
+  const panelHeight = Math.max(layout.height - panelY, 0);
+  const visibleItems = items.slice(0, Math.max(1, Math.floor(360 / tabWidth)));
+  const children: SkiaNodeData[] = [
+    {
+      type: "box",
+      elementId: `${node.id}:background`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      box: {
+        fillColor: transparent,
+        borderRadius: readNumber(style.borderRadius, 0),
+      },
+    },
+    {
+      type: "box",
+      elementId: `${node.id}:tab-list-border`,
+      x: 0,
+      y: isVertical ? 0 : tabListHeight - 1,
+      width: isVertical ? 1 : tabListWidth,
+      height: isVertical ? tabListHeight : 1,
+      visible: true,
+      box: {
+        fillColor: borderColor,
+        borderRadius: 0,
+      },
+    },
+  ];
+
+  children.push(
+    ...visibleItems.flatMap((item, index): SkiaNodeData[] => {
+      const selected = item.id === selectedKey;
+      const x = isVertical ? 0 : index * tabWidth;
+      const y = isVertical ? index * size.tabHeight : 0;
+      const indicatorThickness = size.indicatorThickness;
+      return [
+        {
+          type: "box",
+          elementId: `${node.id}:tab:${item.id}:bg`,
+          x,
+          y,
+          width: tabWidth,
+          height: size.tabHeight,
+          visible: true,
+          box: {
+            fillColor: selected ? selectedFill : transparent,
+            borderRadius: readNumber(style.borderRadius, 0),
+          },
+        },
+        {
+          type: "text",
+          elementId: `${node.id}:tab:${item.id}:label`,
+          x,
+          y,
+          width: tabWidth,
+          height: size.tabHeight,
+          visible: true,
+          text: {
+            content: item.label,
+            fontFamilies: [fontFamily.sans],
+            fontSize: size.fontSize,
+            fontWeight: selected ? 600 : 500,
+            color: selected ? textColor : mutedTextColor,
+            align: "left",
+            lineHeight: size.lineHeight,
+            paddingLeft: size.paddingX,
+            paddingTop: 0,
+            maxWidth: Math.max(tabWidth - size.paddingX * 2, 0),
+            verticalAlign: "middle",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+          },
+        },
+        ...(selected && props.showIndicator
+          ? [
+              {
+                type: "box" as const,
+                elementId: `${node.id}:tab:${item.id}:indicator`,
+                x: isVertical ? x + tabWidth - indicatorThickness : x,
+                y: isVertical ? y : y + size.tabHeight - indicatorThickness,
+                width: isVertical ? indicatorThickness : tabWidth,
+                height: isVertical ? size.tabHeight : indicatorThickness,
+                visible: true,
+                box: {
+                  fillColor: accentColor,
+                  borderRadius: 0,
+                },
+              },
+            ]
+          : []),
+      ];
+    }),
+  );
+
+  children.push({
+    type: "box",
+    elementId: `${node.id}:panel:bg`,
+    x: panelX,
+    y: panelY,
+    width: panelWidth,
+    height: panelHeight,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+      borderRadius: readNumber(style.borderRadius, 6),
+      strokeColor: borderColor,
+      strokeWidth: 1,
+    },
+  });
+
+  if (selectedItem) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:panel:content`,
+      x: panelX,
+      y: panelY,
+      width: panelWidth,
+      height: panelHeight,
+      visible: true,
+      text: {
+        content: selectedItem.content ?? selectedItem.label,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.panelFontSize,
+        color: textColor,
+        align: "left",
+        lineHeight: size.panelLineHeight,
+        paddingLeft: size.panelPadding,
+        paddingTop: size.panelPadding,
+        maxWidth: Math.max(panelWidth - size.panelPadding * 2, 0),
+      },
+    });
+  }
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children,
+  };
+}
+
 function flattenListBoxItems(
   entries: ListBoxRacProps["items"],
 ): ListBoxItemDescriptor[] {
@@ -3597,6 +3784,54 @@ function resolveGenericMenuItemHeight(size: MenuRacProps["size"]): number {
     case "md":
     default:
       return 32;
+  }
+}
+
+function resolveGenericTabsSize(size: TabsRacProps["size"]): {
+  tabHeight: number;
+  paddingX: number;
+  fontSize: number;
+  lineHeight: number;
+  panelFontSize: number;
+  panelLineHeight: number;
+  panelPadding: number;
+  indicatorThickness: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        tabHeight: 24,
+        paddingX: 8,
+        fontSize: 12,
+        lineHeight: 16,
+        panelFontSize: 13,
+        panelLineHeight: 18,
+        panelPadding: 8,
+        indicatorThickness: 2,
+      };
+    case "lg":
+      return {
+        tabHeight: 42,
+        paddingX: 16,
+        fontSize: 16,
+        lineHeight: 24,
+        panelFontSize: 16,
+        panelLineHeight: 24,
+        panelPadding: 16,
+        indicatorThickness: 4,
+      };
+    case "md":
+    default:
+      return {
+        tabHeight: 32,
+        paddingX: 12,
+        fontSize: 14,
+        lineHeight: 20,
+        panelFontSize: 14,
+        panelLineHeight: 20,
+        panelPadding: 12,
+        indicatorThickness: 3,
+      };
   }
 }
 

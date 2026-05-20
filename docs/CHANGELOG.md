@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Tabs collections primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Tabs active primitive binding 추가**:
+  - `componentCatalog` 에 `Tabs` 를 `cutover:"catalog"` active collections primitive 로 등록했다.
+  - canonical `items[]` / selected key / orientation / density / indicator props 를 RAC Tabs surface 로 투영하는 `toTabsRacProps()` 와 `tabsPrimitiveBinding` 을 추가했다.
+  - `Tabs.tsx` shared wrapper 가 catalog projection 과 static `items[]` 를 소비하도록 전환했다.
+- **Tabs Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Tabs resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 Tabs tab-list + selected panel 을 렌더하고 `TabsSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 까지 완료했다. ADR-132 collection 데이터 binding 전체 전환은 아직 닫지 않았다.
+
 ## [ADR-142 Phase 3/5/6 — Select collections primitive catalog pilot] - 2026-05-20
 
 ### Architecture

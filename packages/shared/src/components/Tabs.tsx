@@ -18,6 +18,11 @@ import type {
   ColumnMapping,
   DataBindingValue,
 } from "../types";
+import {
+  toTabsRacProps,
+  type TabsCanonicalProps,
+  type TabsItemDescriptor,
+} from "../catalog/outputs/toRacProps";
 
 import { useCollectionData } from "../hooks";
 import { Skeleton } from "./Skeleton";
@@ -31,6 +36,10 @@ import "./styles/generated/Tabs.css";
  */
 
 export interface TabsExtendedProps extends TabsProps {
+  /**
+   * Static canonical tab items for catalog-created Tabs.
+   */
+  items?: Iterable<TabsItemDescriptor>;
   /**
    * S2 density — 탭 간격 제어
    * @default 'regular'
@@ -59,6 +68,11 @@ export interface TabsExtendedProps extends TabsProps {
    * @default 3
    */
   skeletonTabCount?: number;
+  /**
+   * Show selected tab indicator.
+   * @default true
+   */
+  showIndicator?: boolean;
 }
 
 export interface TabListExtendedProps<
@@ -107,15 +121,35 @@ export interface TabListExtendedProps<
  * </Tabs>
  */
 export function Tabs({
+  items,
   density = "regular",
   size = "md",
   dataBinding,
   columnMapping,
   isLoading: externalLoading,
   skeletonTabCount = 3,
+  showIndicator,
   children,
   ...props
 }: TabsExtendedProps) {
+  const projectedProps = toTabsRacProps({
+    ...props,
+    items: Array.isArray(items) ? items : items ? Array.from(items) : undefined,
+    density,
+    size,
+    showIndicator,
+  } as TabsCanonicalProps);
+  const projectedItems = projectedProps.items ?? [];
+  const effectiveAriaLabel = projectedProps["aria-label"];
+  const effectiveDensity = projectedProps.density;
+  const effectiveSize = projectedProps.size;
+  const effectiveOrientation = projectedProps.orientation;
+  const effectiveShowIndicator = projectedProps.showIndicator;
+  const effectiveSelectedKey = projectedProps.selectedKey;
+  const effectiveDefaultSelectedKey = projectedProps.defaultSelectedKey;
+  const effectiveIsDisabled = projectedProps.isDisabled;
+  const effectiveKeyboardActivation = projectedProps.keyboardActivation;
+
   // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
   const {
     data: boundData,
@@ -139,8 +173,8 @@ export function Tabs({
             ? `react-aria-Tabs ${props.className}`
             : "react-aria-Tabs"
         }
-        data-density={density}
-        data-size={size}
+        data-density={effectiveDensity}
+        data-size={effectiveSize}
         role="tablist"
         aria-busy="true"
         aria-label="Loading tabs..."
@@ -150,7 +184,12 @@ export function Tabs({
           style={{ display: "flex", gap: "4px" }}
         >
           {Array.from({ length: skeletonTabCount }).map((_, i) => (
-            <Skeleton key={i} componentVariant="tab" size={size} index={i} />
+            <Skeleton
+              key={i}
+              componentVariant="tab"
+              size={effectiveSize}
+              index={i}
+            />
           ))}
         </div>
         <div className="react-aria-TabPanel" style={{ padding: "16px" }}>
@@ -176,6 +215,14 @@ export function Tabs({
   const tabsClassName = composeRenderProps(props.className, (className) => {
     return className ? `react-aria-Tabs ${className}` : "react-aria-Tabs";
   });
+  const rootProps = {
+    selectedKey: effectiveSelectedKey,
+    defaultSelectedKey: effectiveDefaultSelectedKey,
+    orientation: effectiveOrientation,
+    isDisabled: effectiveIsDisabled,
+    keyboardActivation: effectiveKeyboardActivation,
+    "aria-label": effectiveAriaLabel,
+  };
 
   // DataBinding이 있고 columnMapping이 있으면 children 템플릿 사용
   if (hasDataBinding && columnMapping) {
@@ -183,9 +230,10 @@ export function Tabs({
       return (
         <RACTabs
           {...props}
+          {...rootProps}
           className={tabsClassName}
-          data-density={density}
-          data-size={size}
+          data-density={effectiveDensity}
+          data-size={effectiveSize}
         >
           <RACTabList className="react-aria-TabList">
             <RACTab className="react-aria-Tab">⏳ 로딩 중...</RACTab>
@@ -199,9 +247,10 @@ export function Tabs({
       return (
         <RACTabs
           {...props}
+          {...rootProps}
           className={tabsClassName}
-          data-density={density}
-          data-size={size}
+          data-density={effectiveDensity}
+          data-size={effectiveSize}
         >
           <RACTabList className="react-aria-TabList">
             <RACTab className="react-aria-Tab">❌ 오류</RACTab>
@@ -215,9 +264,10 @@ export function Tabs({
       return (
         <RACTabs
           {...props}
+          {...rootProps}
           className={tabsClassName}
-          data-density={density}
-          data-size={size}
+          data-density={effectiveDensity}
+          data-size={effectiveSize}
         >
           {children}
         </RACTabs>
@@ -231,9 +281,10 @@ export function Tabs({
       return (
         <RACTabs
           {...props}
+          {...rootProps}
           className={tabsClassName}
-          data-density={density}
-          data-size={size}
+          data-density={effectiveDensity}
+          data-size={effectiveSize}
         >
           <RACTabList className="react-aria-TabList">
             <RACTab className="react-aria-Tab">⏳ 로딩 중...</RACTab>
@@ -247,9 +298,10 @@ export function Tabs({
       return (
         <RACTabs
           {...props}
+          {...rootProps}
           className={tabsClassName}
-          data-density={density}
-          data-size={size}
+          data-density={effectiveDensity}
+          data-size={effectiveSize}
         >
           <RACTabList className="react-aria-TabList">
             <RACTab className="react-aria-Tab">❌ 오류</RACTab>
@@ -263,9 +315,10 @@ export function Tabs({
       return (
         <RACTabs
           {...props}
+          {...rootProps}
           className={tabsClassName}
-          data-density={density}
-          data-size={size}
+          data-density={effectiveDensity}
+          data-size={effectiveSize}
         >
           <RACTabList className="react-aria-TabList">
             {boundData.map((item, index) => (
@@ -299,13 +352,43 @@ export function Tabs({
     }
   }
 
+  if (!hasDataBinding && projectedItems.length > 0) {
+    return (
+      <RACTabs
+        {...props}
+        {...rootProps}
+        className={tabsClassName}
+        data-density={effectiveDensity}
+        data-size={effectiveSize}
+      >
+        <TabList<TabsItemDescriptor>
+          density={effectiveDensity}
+          size={effectiveSize}
+          showIndicator={effectiveShowIndicator}
+        >
+          {projectedItems.map((item) => (
+            <Tab key={item.id} id={item.id} isDisabled={item.isDisabled}>
+              {item.label}
+            </Tab>
+          ))}
+        </TabList>
+        {projectedItems.map((item) => (
+          <TabPanel key={item.id} id={item.id}>
+            {item.content ?? item.label}
+          </TabPanel>
+        ))}
+      </RACTabs>
+    );
+  }
+
   // Static children (기존 방식)
   return (
     <RACTabs
       {...props}
+      {...rootProps}
       className={tabsClassName}
-      data-density={density}
-      data-size={size}
+      data-density={effectiveDensity}
+      data-size={effectiveSize}
     >
       {children}
     </RACTabs>

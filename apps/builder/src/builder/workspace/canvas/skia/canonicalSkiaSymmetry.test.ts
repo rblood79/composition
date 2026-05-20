@@ -25,6 +25,7 @@ import {
   SeparatorSpec,
   SliderSpec,
   SwitchSpec,
+  TabsSpec,
   TagGroupSpec,
   TextFieldSpec,
   TimeFieldSpec,
@@ -576,6 +577,37 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("select-1");
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Animals", "Cat", "Aardvark"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Tabs items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TabsSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "tabs-1",
+        type: "Tabs",
+        props: {
+          "aria-label": "Sections",
+          selectedKey: "details",
+          size: "md",
+          items: [
+            { id: "overview", label: "Overview", content: "Overview content" },
+            { id: "details", label: "Details", content: "Details content" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 320, height: 160 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("tabs-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Overview", "Details", "Details content"]),
     );
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();

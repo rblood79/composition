@@ -283,6 +283,10 @@ export const SELECT_DIRECTION_VALUES = ["bottom", "top"] as const;
 export const SELECT_NECESSITY_INDICATOR_VALUES =
   TEXT_FIELD_NECESSITY_INDICATOR_VALUES;
 export const SELECT_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
+export const TABS_DENSITY_VALUES = ["compact", "regular"] as const;
+export const TABS_SIZE_VALUES = ["sm", "md", "lg"] as const;
+export const TABS_ORIENTATION_VALUES = ["horizontal", "vertical"] as const;
+export const TABS_KEYBOARD_ACTIVATION_VALUES = ["automatic", "manual"] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -453,6 +457,12 @@ const SELECT_NECESSITY_INDICATORS = new Set<string>(
 );
 const SELECT_VALIDATION_BEHAVIORS = new Set<string>(
   SELECT_VALIDATION_BEHAVIOR_VALUES,
+);
+const TABS_DENSITIES = new Set<string>(TABS_DENSITY_VALUES);
+const TABS_SIZES = new Set<ComponentSizeSubset>(TABS_SIZE_VALUES);
+const TABS_ORIENTATIONS = new Set<string>(TABS_ORIENTATION_VALUES);
+const TABS_KEYBOARD_ACTIVATIONS = new Set<string>(
+  TABS_KEYBOARD_ACTIVATION_VALUES,
 );
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
@@ -1597,6 +1607,44 @@ export interface SelectRacProps extends Record<string, unknown> {
   validationBehavior: (typeof SELECT_VALIDATION_BEHAVIOR_VALUES)[number];
   name?: string;
   form?: string;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface TabsItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  content?: string;
+  textValue?: string;
+  isDisabled?: boolean;
+}
+
+export interface TabsCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  items?: unknown;
+  density?: unknown;
+  size?: unknown;
+  orientation?: unknown;
+  showIndicator?: unknown;
+  selectedKey?: unknown;
+  defaultSelectedKey?: unknown;
+  isDisabled?: unknown;
+  keyboardActivation?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface TabsRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  items?: TabsItemDescriptor[];
+  density: (typeof TABS_DENSITY_VALUES)[number];
+  size: ComponentSizeSubset;
+  orientation: (typeof TABS_ORIENTATION_VALUES)[number];
+  showIndicator: boolean;
+  selectedKey?: string;
+  defaultSelectedKey?: string;
+  isDisabled: boolean;
+  keyboardActivation: (typeof TABS_KEYBOARD_ACTIVATION_VALUES)[number];
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2781,6 +2829,32 @@ export function toSelectRacProps(props: SelectCanonicalProps): SelectRacProps {
   };
 }
 
+export function toTabsRacProps(props: TabsCanonicalProps): TabsRacProps {
+  const items = normalizeTabsItems(props.items);
+  return {
+    "aria-label": readString(props["aria-label"], "Tabs"),
+    ...(items.length > 0 ? { items } : {}),
+    density: normalizeTabsDensity(props.density),
+    size: normalizeTabsSize(props.size),
+    orientation: normalizeTabsOrientation(props.orientation),
+    showIndicator: props.showIndicator !== false,
+    ...(typeof props.selectedKey === "string"
+      ? { selectedKey: props.selectedKey }
+      : {}),
+    ...(typeof props.defaultSelectedKey === "string"
+      ? { defaultSelectedKey: props.defaultSelectedKey }
+      : {}),
+    isDisabled: props.isDisabled === true,
+    keyboardActivation: normalizeTabsKeyboardActivation(
+      props.keyboardActivation,
+    ),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -3907,6 +3981,66 @@ function normalizeSelectItem(value: unknown): SelectItemDescriptor | undefined {
     ...(typeof value.icon === "string" ? { icon: value.icon } : {}),
     ...(typeof value.description === "string"
       ? { description: value.description }
+      : {}),
+  };
+}
+
+function normalizeTabsDensity(
+  value: unknown,
+): (typeof TABS_DENSITY_VALUES)[number] {
+  return typeof value === "string" && TABS_DENSITIES.has(value)
+    ? (value as (typeof TABS_DENSITY_VALUES)[number])
+    : "regular";
+}
+
+function normalizeTabsSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    TABS_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeTabsOrientation(
+  value: unknown,
+): (typeof TABS_ORIENTATION_VALUES)[number] {
+  return typeof value === "string" && TABS_ORIENTATIONS.has(value)
+    ? (value as (typeof TABS_ORIENTATION_VALUES)[number])
+    : "horizontal";
+}
+
+function normalizeTabsKeyboardActivation(
+  value: unknown,
+): (typeof TABS_KEYBOARD_ACTIVATION_VALUES)[number] {
+  return typeof value === "string" && TABS_KEYBOARD_ACTIVATIONS.has(value)
+    ? (value as (typeof TABS_KEYBOARD_ACTIVATION_VALUES)[number])
+    : "automatic";
+}
+
+function normalizeTabsItems(value: unknown): TabsItemDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeTabsItem(entry))
+    .filter((entry): entry is TabsItemDescriptor => entry !== undefined);
+}
+
+function normalizeTabsItem(value: unknown): TabsItemDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  const label = readString(value.label ?? value.title ?? value.name, "").trim();
+  if (!label) return undefined;
+  const id = readString(value.id ?? value.value, label);
+  const content = readString(
+    value.content ?? value.description ?? value.body,
+    "",
+  ).trim();
+  return {
+    id,
+    label,
+    ...(content ? { content } : {}),
+    ...(typeof value.textValue === "string"
+      ? { textValue: value.textValue }
+      : {}),
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
       : {}),
   };
 }

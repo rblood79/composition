@@ -132,6 +132,13 @@ primitive catalog pilot 으로 등록했고, parent 기본 자식은
 Breadcrumbs parent 의 non-placeable subpart binding 이다. starter 원본과 legacy 6개
 registry 신규 active 등록은 변경하지 않았다.
 
+2026-05-20 collections 구현 메모: `ListBox`, `GridList`, `TagGroup`, `Menu`,
+`ComboBox`, `Select`, `Tabs` 는 active primitive catalog pilot 으로 등록했다. 각
+항목은 `PrimitiveBinding` + `toRacProps` + shared wrapper projection + Preview
+primitive branch + generic Skia fixture 로 검증하며, starter 원본과 legacy 6개
+registry 신규 active 등록은 변경하지 않았다. ADR-132 collection 데이터 binding 전체
+전환은 별도 잔여다.
+
 ## 4. 비-DOM-trivial / `skiaPrimitive` 후보
 
 다음은 generic Skia backend 가 단순 box/text draw 로 환원하기 어렵거나,

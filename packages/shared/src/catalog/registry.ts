@@ -17,6 +17,7 @@ import { searchFieldInspectorThemeValues } from "./primitives/searchField";
 import { selectInspectorThemeValues } from "./primitives/select";
 import { sliderInspectorThemeValues } from "./primitives/slider";
 import { switchInspectorThemeValues } from "./primitives/switch";
+import { tabsInspectorThemeValues } from "./primitives/tabs";
 import { tagGroupInspectorThemeValues } from "./primitives/tagGroup";
 import { textFieldInspectorThemeValues } from "./primitives/textField";
 import { timeFieldInspectorThemeValues } from "./primitives/timeField";
@@ -52,6 +53,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "Menu") return menuInspectorThemeValues;
   if (type === "ComboBox") return comboBoxInspectorThemeValues;
   if (type === "Select") return selectInspectorThemeValues;
+  if (type === "Tabs") return tabsInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;
