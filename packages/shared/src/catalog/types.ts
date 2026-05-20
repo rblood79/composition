@@ -40,6 +40,7 @@ export interface PrimitiveSkiaDescriptor {
     | "link"
     | "list-box"
     | "menu"
+    | "modal"
     | "number-field"
     | "popover"
     | "radio"

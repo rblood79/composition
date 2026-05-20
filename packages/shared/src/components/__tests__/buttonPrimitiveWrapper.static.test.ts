@@ -199,6 +199,16 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the Modal prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../Modal.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toModalRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
   it("uses catalog toRacProps as the Switch prop projection source", () => {
     const source = fs.readFileSync(
       new URL("../Switch.tsx", import.meta.url),

@@ -168,6 +168,7 @@ export const TOOLTIP_PLACEMENT_VALUES = [
 ] as const;
 export const DIALOG_SIZE_VALUES = BUTTON_SIZE_VALUES;
 export const DIALOG_ROLE_VALUES = ["dialog", "alertdialog"] as const;
+export const MODAL_SIZE_VALUES = BUTTON_SIZE_VALUES;
 export const POPOVER_VARIANT_VALUES = ["accent", "neutral", "surface"] as const;
 export const POPOVER_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const POPOVER_PLACEMENT_VALUES = TOOLTIP_PLACEMENT_VALUES;
@@ -374,6 +375,7 @@ const TOOLTIP_SIZES = SEPARATOR_SIZES;
 const TOOLTIP_PLACEMENTS = new Set<string>(TOOLTIP_PLACEMENT_VALUES);
 const DIALOG_SIZES = BUTTON_SIZES;
 const DIALOG_ROLES = new Set<string>(DIALOG_ROLE_VALUES);
+const MODAL_SIZES = BUTTON_SIZES;
 const POPOVER_VARIANTS = new Set<string>(POPOVER_VARIANT_VALUES);
 const POPOVER_SIZES = SEPARATOR_SIZES;
 const POPOVER_PLACEMENTS = TOOLTIP_PLACEMENTS;
@@ -1060,6 +1062,36 @@ export interface PopoverRacProps extends Record<string, unknown> {
   restoreFocus: boolean;
   isOpen?: boolean;
   defaultOpen?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ModalCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  text?: unknown;
+  label?: unknown;
+  size?: unknown;
+  trapFocus?: unknown;
+  autoFocus?: unknown;
+  restoreFocus?: unknown;
+  isOpen?: unknown;
+  defaultOpen?: unknown;
+  isDismissable?: unknown;
+  isKeyboardDismissDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ModalRacProps extends Record<string, unknown> {
+  children: string;
+  size: ComponentSize;
+  trapFocus: boolean;
+  autoFocus: boolean;
+  restoreFocus: boolean;
+  isOpen?: boolean;
+  defaultOpen?: boolean;
+  isDismissable?: boolean;
+  isKeyboardDismissDisabled?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2549,6 +2581,30 @@ export function toPopoverRacProps(
   };
 }
 
+export function toModalRacProps(props: ModalCanonicalProps): ModalRacProps {
+  return {
+    children: readModalText(props),
+    size: normalizeModalSize(props.size),
+    trapFocus: props.trapFocus !== false,
+    autoFocus: props.autoFocus !== false,
+    restoreFocus: props.restoreFocus !== false,
+    ...(typeof props.isOpen === "boolean" ? { isOpen: props.isOpen } : {}),
+    ...(typeof props.defaultOpen === "boolean"
+      ? { defaultOpen: props.defaultOpen }
+      : {}),
+    ...(typeof props.isDismissable === "boolean"
+      ? { isDismissable: props.isDismissable }
+      : {}),
+    ...(typeof props.isKeyboardDismissDisabled === "boolean"
+      ? { isKeyboardDismissDisabled: props.isKeyboardDismissDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -3428,6 +3484,11 @@ function readPopoverText(props: PopoverCanonicalProps): string {
   return readString(value, "Popover content");
 }
 
+function readModalText(props: ModalCanonicalProps): string {
+  const value = props.children ?? props.text ?? props.label;
+  return readString(value, "Modal content");
+}
+
 function readRadioText(props: RadioCanonicalProps): string {
   const value = props.children ?? props.label ?? props.text;
   if (typeof value === "string") return value;
@@ -3602,6 +3663,12 @@ function normalizePopoverPlacement(
   return typeof value === "string" && POPOVER_PLACEMENTS.has(value)
     ? (value as (typeof POPOVER_PLACEMENT_VALUES)[number])
     : "bottom";
+}
+
+function normalizeModalSize(value: unknown): ComponentSize {
+  return typeof value === "string" && MODAL_SIZES.has(value as ComponentSize)
+    ? (value as ComponentSize)
+    : "md";
 }
 
 function normalizeTextFieldLabelPosition(value: unknown): "top" | "side" {

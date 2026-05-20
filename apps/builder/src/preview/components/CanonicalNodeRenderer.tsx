@@ -37,6 +37,7 @@ import {
   type LinkRacProps,
   type ListBoxRacProps,
   type MenuRacProps,
+  type ModalRacProps,
   type NumberFieldRacProps,
   type PopoverRacProps,
   type RadioGroupRacProps,
@@ -74,6 +75,7 @@ import {
   Link,
   ListBox,
   MenuButton,
+  Modal,
   NumberField,
   Popover,
   Radio,
@@ -640,6 +642,14 @@ function renderPrimitiveNode({
     ) as PopoverRacProps;
 
     return <Popover key={node.id} {...popoverProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Modal") {
+    const modalProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ModalRacProps;
+
+    return <Modal key={node.id} {...modalProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

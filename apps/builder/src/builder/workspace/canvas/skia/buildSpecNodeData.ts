@@ -33,6 +33,7 @@ import {
   toLinkRacProps,
   toListBoxRacProps,
   toMenuRacProps,
+  toModalRacProps,
   toNumberFieldRacProps,
   toPopoverRacProps,
   toRadioGroupRacProps,
@@ -69,6 +70,7 @@ import {
   type ListBoxRacProps,
   type MenuItemDescriptor,
   type MenuRacProps,
+  type ModalRacProps,
   type NumberFieldRacProps,
   type PopoverRacProps,
   type RadioGroupRacProps,
@@ -892,6 +894,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "popover") {
     return buildGenericPopoverNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "modal") {
+    return buildGenericModalNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "tooltip") {
     return buildGenericTooltipNode(input.node, layout, input.theme);
@@ -2241,6 +2246,57 @@ function buildGenericPopoverNode(
       borderRadius: readNumber(style.borderRadius, size.radius),
     },
     children,
+  };
+}
+
+function buildGenericModalNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toModalRacProps(node.props ?? {}) as ModalRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericModalSize(props.size);
+  const palette = resolveGenericModalPalette(style, theme);
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: size.paddingX,
+    y: size.paddingY,
+    width: Math.max(layout.width - size.paddingX * 2, 0),
+    height: Math.max(layout.height - size.paddingY * 2, 0),
+    visible: true,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+      whiteSpace: "normal",
+      overflowWrap: "break-word",
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: palette.fillColor,
+      strokeColor: palette.strokeColor,
+      strokeWidth: readNumber(style.borderWidth, 1),
+      borderRadius: readNumber(style.borderRadius, size.radius),
+    },
+    children: [textNode],
   };
 }
 
@@ -4931,6 +4987,92 @@ function resolveGenericPopoverPalette(
     typeof style.color === "string"
       ? style.color
       : isDark
+        ? "#f9fafb"
+        : "#111827";
+
+  return {
+    fillColor: colorIntToFloat32(cssColorToHex(background), 1),
+    strokeColor: colorIntToFloat32(cssColorToHex(border), 1),
+    textColor: colorIntToFloat32(cssColorToHex(text), 1),
+  };
+}
+
+function resolveGenericModalSize(size: ModalRacProps["size"]): {
+  paddingX: number;
+  paddingY: number;
+  fontSize: number;
+  lineHeight: number;
+  radius: number;
+} {
+  switch (size) {
+    case "xs":
+      return {
+        paddingX: 16,
+        paddingY: 16,
+        fontSize: 14,
+        lineHeight: 20,
+        radius: 12,
+      };
+    case "sm":
+      return {
+        paddingX: 20,
+        paddingY: 20,
+        fontSize: 14,
+        lineHeight: 20,
+        radius: 16,
+      };
+    case "lg":
+      return {
+        paddingX: 28,
+        paddingY: 28,
+        fontSize: 18,
+        lineHeight: 26,
+        radius: 20,
+      };
+    case "xl":
+      return {
+        paddingX: 32,
+        paddingY: 32,
+        fontSize: 20,
+        lineHeight: 28,
+        radius: 20,
+      };
+    case "md":
+    default:
+      return {
+        paddingX: 24,
+        paddingY: 24,
+        fontSize: 16,
+        lineHeight: 24,
+        radius: 20,
+      };
+  }
+}
+
+function resolveGenericModalPalette(
+  style: Record<string, unknown>,
+  theme: "light" | "dark",
+): {
+  fillColor: Float32Array;
+  strokeColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const background =
+    typeof style.backgroundColor === "string"
+      ? style.backgroundColor
+      : theme === "dark"
+        ? "#111827"
+        : "#ffffff";
+  const border =
+    typeof style.borderColor === "string"
+      ? style.borderColor
+      : theme === "dark"
+        ? "#4b5563"
+        : "#d1d5db";
+  const text =
+    typeof style.color === "string"
+      ? style.color
+      : theme === "dark"
         ? "#f9fafb"
         : "#111827";
 

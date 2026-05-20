@@ -427,5 +427,10 @@ branch / generic Skia panel+text+arrow fixture 를 추가했다. Popover 는
 `PopoverSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
 shared Popover wrapper 는 기존 DialogTrigger context 를 보존하면서 catalog/Preview
 단독 surface 에서는 controlled DialogTrigger anchor 로 DOM popover 를 생성한다.
-Modal/Toast overlays slice 는 잔여이며, 다음 family entrypoint 는 나머지 overlays
-또는 date/color 다.
+Modal overlays primitive pilot 은 `toModalRacProps()` / `modalPrimitiveBinding` /
+active catalog entry / shared `Modal.tsx` projection / Preview Modal primitive branch /
+generic Skia panel+text fixture 를 추가했다. Modal 은 `ModalSpec.render.shapes()` 를
+호출하지 않는 generic Skia fixture 로 고정했다. shared Modal wrapper 는 기존
+DialogTrigger context 를 보존하면서 catalog/Preview 단독 surface 에서는 controlled
+DialogTrigger anchor 로 DOM modal 을 생성한다.
+Toast overlays slice 는 잔여이며, 다음 family entrypoint 는 Toast 또는 date/color 다.

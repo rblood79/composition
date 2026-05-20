@@ -14,6 +14,7 @@ import { formPrimitiveBinding } from "../primitives/form";
 import { gridListPrimitiveBinding } from "../primitives/gridList";
 import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { menuPrimitiveBinding } from "../primitives/menu";
+import { modalPrimitiveBinding } from "../primitives/modal";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { popoverPrimitiveBinding } from "../primitives/popover";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
@@ -377,8 +378,31 @@ describe("ADR-142 component catalog", () => {
     });
   });
 
+  it("registers Modal as an active overlays primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Modal");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(modalPrimitiveBinding);
+    expect(entry.family).toBe("overlays");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Modal");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("modal");
+    expect(entry.panel.category).toBe("overlays");
+    expect(entry.panel.label).toBe("modal");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      children: "Modal content",
+      size: "md",
+      trapFocus: true,
+      autoFocus: true,
+      restoreFocus: true,
+      isOpen: true,
+    });
+  });
+
   it("keeps unfinished overlays outside the active catalog", () => {
-    expect(getComponentCatalogEntry("Modal")).toBeUndefined();
     expect(getComponentCatalogEntry("Toast")).toBeUndefined();
   });
 
@@ -761,6 +785,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Tooltip");
     expect(activeTypes).toContain("Dialog");
     expect(activeTypes).toContain("Popover");
+    expect(activeTypes).toContain("Modal");
     expect(activeTypes).toContain("Switch");
     expect(activeTypes).toContain("Checkbox");
     expect(activeTypes).toContain("CheckboxGroup");

@@ -269,6 +269,23 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Modal placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Modal");
+
+    expect(creation).toMatchObject({
+      elementType: "Modal",
+      props: {
+        children: "Modal content",
+        size: "md",
+        trapFocus: true,
+        autoFocus: true,
+        restoreFocus: true,
+        isOpen: true,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog Switch placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Switch");
 

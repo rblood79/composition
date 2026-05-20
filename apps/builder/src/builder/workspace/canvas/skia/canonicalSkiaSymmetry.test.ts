@@ -19,6 +19,7 @@ import {
   LinkSpec,
   ListBoxSpec,
   MenuSpec,
+  ModalSpec,
   NumberFieldSpec,
   PopoverSpec,
   RadioGroupSpec,
@@ -1174,6 +1175,32 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("popover-1");
     expect(collectText(node)).toContain("Popover body");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Modal through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ModalSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "modal-1",
+        type: "Modal",
+        props: {
+          children: "Modal body",
+          size: "md",
+          trapFocus: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["modal-1", { x: 24, y: 32, width: 320, height: 180 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("modal-1");
+    expect(collectText(node)).toContain("Modal body");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

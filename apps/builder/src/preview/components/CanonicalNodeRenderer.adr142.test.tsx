@@ -28,6 +28,7 @@ const {
   legacyLinkRenderer,
   legacyListBoxRenderer,
   legacyMenuRenderer,
+  legacyModalRenderer,
   legacyNumberFieldRenderer,
   legacyPopoverRenderer,
   legacyRadioRenderer,
@@ -94,6 +95,9 @@ const {
   )),
   legacyMenuRenderer: vi.fn(() => (
     <div data-legacy-renderer="Menu">legacy</div>
+  )),
+  legacyModalRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Modal">legacy</div>
   )),
   legacyNumberFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="NumberField">legacy</div>
@@ -175,6 +179,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Link: legacyLinkRenderer,
     ListBox: legacyListBoxRenderer,
     Menu: legacyMenuRenderer,
+    Modal: legacyModalRenderer,
     NumberField: legacyNumberFieldRenderer,
     Popover: legacyPopoverRenderer,
     Radio: legacyRadioRenderer,
@@ -230,6 +235,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyLinkRenderer.mockClear();
     legacyListBoxRenderer.mockClear();
     legacyMenuRenderer.mockClear();
+    legacyModalRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
     legacyPopoverRenderer.mockClear();
     legacyRadioRenderer.mockClear();
@@ -875,6 +881,29 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(popover?.getAttribute("data-variant")).toBe("accent");
     expect(popover?.getAttribute("data-placement")).toBe("bottom");
     expect(legacyPopoverRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Modal through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "modal-1",
+      type: "Modal",
+      props: {
+        children: "Modal body",
+        size: "md",
+        trapFocus: true,
+        isOpen: true,
+      },
+    };
+
+    render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const modal = document.body.querySelector("[data-canonical-id='modal-1']");
+    expect(modal?.className).toContain("react-aria-Modal");
+    expect(modal?.textContent).toContain("Modal body");
+    expect(modal?.getAttribute("data-size")).toBe("md");
+    expect(legacyModalRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Switch through PrimitiveBinding before rendererMap fallback", () => {

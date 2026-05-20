@@ -17,6 +17,7 @@ export * from "./primitives/gridList";
 export * from "./primitives/link";
 export * from "./primitives/listBox";
 export * from "./primitives/menu";
+export * from "./primitives/modal";
 export * from "./primitives/numberField";
 export * from "./primitives/popover";
 export * from "./primitives/radio";

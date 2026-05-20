@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Modal overlays primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Modal active primitive binding 추가**:
+  - `componentCatalog` 에 `Modal` 을 `cutover:"catalog"` active `overlays` primitive 로 등록했다.
+  - canonical text/size/focus/open/dismiss props 를 RAC Modal surface 로 투영하는 `toModalRacProps()` 와 `modalPrimitiveBinding` 을 추가했다.
+  - `Modal.tsx` shared wrapper 가 catalog projection 을 소비하고 단독 catalog surface 에서는 controlled `DialogTrigger` anchor 로 실제 Modal DOM 을 생성한다.
+- **Modal Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Modal resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 modal panel + text 를 렌더하고 `ModalSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- overlays family 는 DropZone/Tooltip/Dialog/Popover/Modal pilot 까지 진행했다. Toast overlays slice 는 아직 잔여다.
+
 ## [ADR-142 Phase 3/5/6 — Popover overlays primitive catalog pilot] - 2026-05-20
 
 ### Architecture

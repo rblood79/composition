@@ -12,6 +12,7 @@ import { gridListInspectorThemeValues } from "./primitives/gridList";
 import { linkInspectorThemeValues } from "./primitives/link";
 import { listBoxInspectorThemeValues } from "./primitives/listBox";
 import { menuInspectorThemeValues } from "./primitives/menu";
+import { modalInspectorThemeValues } from "./primitives/modal";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
 import { popoverInspectorThemeValues } from "./primitives/popover";
 import { radioGroupInspectorThemeValues } from "./primitives/radioGroup";
@@ -78,6 +79,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "Tooltip") return tooltipInspectorThemeValues;
   if (type === "Dialog") return dialogInspectorThemeValues;
   if (type === "Popover") return popoverInspectorThemeValues;
+  if (type === "Modal") return modalInspectorThemeValues;
   if (type === "Form") return formInspectorThemeValues;
   return {};
 }
