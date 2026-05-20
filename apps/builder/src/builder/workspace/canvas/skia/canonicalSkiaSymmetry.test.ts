@@ -8,6 +8,7 @@ import {
   SeparatorSpec,
   ToggleButtonSpec,
   ToggleButtonGroupSpec,
+  ToolbarSpec,
 } from "@composition/specs";
 import {
   buildGenericResolvedSkiaNodeData,
@@ -207,6 +208,56 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("toggle-group-1");
     expect(collectText(node)).toContain("Grid");
     expect(node?.children?.[0]?.elementId).toBe("toggle-child-1");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Toolbar shell and children through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ToolbarSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "toolbar-1",
+        type: "Toolbar",
+        props: {
+          "aria-label": "Actions",
+          orientation: "horizontal",
+        },
+        children: [
+          {
+            id: "toolbar-button-1",
+            type: "Button",
+            props: {
+              children: "Add",
+              variant: "secondary",
+              size: "sm",
+            },
+          },
+          {
+            id: "toolbar-separator-1",
+            type: "Separator",
+            props: {
+              orientation: "vertical",
+              size: "sm",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["toolbar-1", { x: 20, y: 24, width: 260, height: 44 }],
+        ["toolbar-button-1", { x: 28, y: 28, width: 72, height: 32 }],
+        ["toolbar-separator-1", { x: 110, y: 30, width: 1, height: 28 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("toolbar-1");
+    expect(collectText(node)).toContain("Add");
+    expect(node?.children?.map((child) => child.elementId)).toEqual([
+      "toolbar-button-1",
+      "toolbar-separator-1",
+    ]);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

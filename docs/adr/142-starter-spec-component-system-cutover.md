@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/ToggleButton/ToggleButtonGroup primitive wrapper boundary slice 완료; Separator/Link/ToggleButton/ToggleButtonGroup generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/ToggleButton/ToggleButtonGroup/Toolbar primitive wrapper boundary slice 완료; Separator/Link/ToggleButton/ToggleButtonGroup/Toolbar generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
 
 ## Context
 
@@ -263,6 +263,21 @@ ToggleButton 자식 2개를 함께 만든다. `packages/shared/src/components/To
 `ToggleButtonGroupSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 이는
 `primitives/actions` family 의 다섯 번째 active primitive pilot 이며, Icon/Badge 등
 family 잔여 완료 판정은 아니다.
+
+2026-05-20 추가 판정: Toolbar primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/toolbar.ts` 와 `toToolbarRacProps()` 가
+Toolbar canonical props 를 RAC Toolbar props 로 정규화한다. `componentCatalog` 는
+Toolbar 를 `cutover:"catalog"` active primitive 로 등록한다. toolbar placement 는
+`PrimitiveBinding.placement` child template 으로 고정해 active catalog 생성 시
+Button/Button/Separator/Button 자식을 함께 만든다.
+`packages/shared/src/components/Toolbar.tsx` 는 shared wrapper surface 에서 이
+projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 Toolbar resolved node 를
+legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더하며 child action
+primitives 를 같은 resolved-tree 경로로 재귀 렌더한다. generic Skia path 는 resolved
+children 을 재귀 렌더하고 `ToolbarSpec.render.shapes()` 를 호출하지 않는 fixture 를
+가진다. 이는 `primitives/actions` family 의 여섯 번째 active primitive pilot 이다.
+Icon/Badge 는 RAC runtime primitive 가 아닌 local visual wrapper 이므로 별도 분류
+없이는 `PrimitiveRuntimeSource: "react-aria-components"` 로 승격하지 않는다.
 
 ## Consequences
 

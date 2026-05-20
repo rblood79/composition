@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Toolbar primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Toolbar active primitive binding 추가**:
+  - `componentCatalog` 에 `Toolbar` 를 `cutover:"catalog"` active primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toToolbarRacProps()` 와 `toolbarPrimitiveBinding` 을 추가했다.
+  - toolbar placement 는 `PrimitiveBinding.placement` child template 으로 고정해 active catalog 생성 시 Button/Button/Separator/Button 자식을 함께 만든다.
+- **Toolbar shared wrapper / Preview / Skia generic 경로 연결**:
+  - `Toolbar.tsx` 가 catalog projection 을 소비하도록 전환했다.
+  - `CanonicalNodeRenderer` 가 `Toolbar` resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더하고 child action primitives 를 같은 resolved-tree 경로로 재귀 렌더한다.
+  - generic Skia path 는 resolved children 을 재귀 렌더하고 `ToolbarSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `primitives/actions` family 의 여섯 번째 active primitive pilot 이다. Icon/Badge 같은 non-RAC local visual wrapper 는 별도 분류가 필요하므로 아직 active primitive 로 승격하지 않았다.
+
 ## [ADR-142 Phase 3/5/6 — ToggleButtonGroup primitive catalog pilot] - 2026-05-20
 
 ### Architecture

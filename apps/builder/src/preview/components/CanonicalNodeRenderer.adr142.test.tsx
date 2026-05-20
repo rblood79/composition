@@ -17,6 +17,7 @@ const {
   legacySeparatorRenderer,
   legacyToggleButtonRenderer,
   legacyToggleButtonGroupRenderer,
+  legacyToolbarRenderer,
 } = vi.hoisted(() => ({
   legacyButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="Button">legacy</button>
@@ -31,6 +32,9 @@ const {
   legacyToggleButtonGroupRenderer: vi.fn(() => (
     <div data-legacy-renderer="ToggleButtonGroup">legacy</div>
   )),
+  legacyToolbarRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Toolbar">legacy</div>
+  )),
 }));
 
 vi.mock("@composition/shared/renderers", () => ({
@@ -40,6 +44,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Separator: legacySeparatorRenderer,
     ToggleButton: legacyToggleButtonRenderer,
     ToggleButtonGroup: legacyToggleButtonGroupRenderer,
+    Toolbar: legacyToolbarRenderer,
   },
 }));
 
@@ -64,6 +69,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacySeparatorRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
     legacyToggleButtonGroupRenderer.mockClear();
+    legacyToolbarRenderer.mockClear();
   });
 
   it("renders Button through PrimitiveBinding before rendererMap fallback", () => {
@@ -248,5 +254,50 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(child.dataset.size).toBe("lg");
     expect(legacyToggleButtonGroupRenderer).not.toHaveBeenCalled();
     expect(legacyToggleButtonRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Toolbar and action children through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "toolbar-1",
+      type: "Toolbar",
+      props: {
+        "aria-label": "Actions",
+        orientation: "vertical",
+      },
+      children: [
+        {
+          id: "toolbar-button-1",
+          type: "Button",
+          props: {
+            children: "Add",
+            variant: "secondary",
+            size: "sm",
+          },
+        },
+        {
+          id: "toolbar-separator-1",
+          type: "Separator",
+          props: {
+            orientation: "horizontal",
+            size: "sm",
+          },
+        },
+      ],
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const toolbar = screen.getByRole("toolbar", { name: "Actions" });
+    const button = screen.getByRole("button", { name: "Add" });
+    expect(toolbar.dataset.orientation).toBe("vertical");
+    expect(container.querySelector("[data-canonical-id='toolbar-1']")).toBe(
+      toolbar,
+    );
+    expect(button.dataset.size).toBe("sm");
+    expect(legacyToolbarRenderer).not.toHaveBeenCalled();
+    expect(legacyButtonRenderer).not.toHaveBeenCalled();
+    expect(legacySeparatorRenderer).not.toHaveBeenCalled();
   });
 });

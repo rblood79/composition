@@ -70,6 +70,9 @@ export const TOGGLE_BUTTON_GROUP_SELECTION_MODE_VALUES = [
   "single",
   "multiple",
 ] as const;
+export const TOOLBAR_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
+export const TOOLBAR_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const TOOLBAR_VARIANT_VALUES = ["default", "accent"] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -94,6 +97,9 @@ const TOGGLE_BUTTON_GROUP_ORIENTATIONS = new Set<string>(
 const TOGGLE_BUTTON_GROUP_SELECTION_MODES = new Set<string>(
   TOGGLE_BUTTON_GROUP_SELECTION_MODE_VALUES,
 );
+const TOOLBAR_ORIENTATIONS = new Set<string>(TOOLBAR_ORIENTATION_VALUES);
+const TOOLBAR_SIZES = new Set<ComponentSizeSubset>(TOOLBAR_SIZE_VALUES);
+const TOOLBAR_VARIANTS = new Set<string>(TOOLBAR_VARIANT_VALUES);
 
 export interface ButtonCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -229,6 +235,24 @@ export interface ToggleButtonGroupRacProps extends Record<string, unknown> {
   style?: Record<string, unknown>;
 }
 
+export interface ToolbarCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  orientation?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ToolbarRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  orientation: "horizontal" | "vertical";
+  variant: "default" | "accent";
+  size: ComponentSizeSubset;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
 export function toButtonRacProps(props: ButtonCanonicalProps): ButtonRacProps {
   return {
     children: readButtonText(props),
@@ -332,6 +356,21 @@ export function toToggleButtonGroupRacProps(
     ...(normalizeKeySet(props.defaultSelectedKeys)
       ? { defaultSelectedKeys: normalizeKeySet(props.defaultSelectedKeys) }
       : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
+export function toToolbarRacProps(
+  props: ToolbarCanonicalProps,
+): ToolbarRacProps {
+  return {
+    "aria-label": readToolbarLabel(props),
+    orientation: normalizeToolbarOrientation(props.orientation),
+    variant: normalizeToolbarVariant(props.variant),
+    size: normalizeToolbarSize(props.size),
     ...(typeof props.className === "string"
       ? { className: props.className }
       : {}),
@@ -467,6 +506,33 @@ function normalizeKeySet(value: unknown): Set<string> | undefined {
     return new Set(Array.from(value).map((item) => String(item)));
   }
   return undefined;
+}
+
+function readToolbarLabel(props: ToolbarCanonicalProps): string {
+  return typeof props["aria-label"] === "string"
+    ? props["aria-label"]
+    : "Toolbar";
+}
+
+function normalizeToolbarOrientation(
+  value: unknown,
+): "horizontal" | "vertical" {
+  return typeof value === "string" && TOOLBAR_ORIENTATIONS.has(value)
+    ? (value as "horizontal" | "vertical")
+    : "horizontal";
+}
+
+function normalizeToolbarSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    TOOLBAR_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeToolbarVariant(value: unknown): "default" | "accent" {
+  return typeof value === "string" && TOOLBAR_VARIANTS.has(value)
+    ? (value as "default" | "accent")
+    : "default";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

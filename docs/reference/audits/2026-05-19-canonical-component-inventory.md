@@ -126,9 +126,10 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 동일하지 않다. Phase 1b 에서 subpart/export 를 약 35개 leaf binding 으로
 정규화한다.
 
-2026-05-20 구현 메모: `ToggleButtonGroup` 은 active primitive catalog pilot 으로
-등록했고, group 기본 자식은 `PrimitiveBinding.placement` child template 에서
-생성한다. starter 원본과 legacy 6개 registry 신규 active 등록은 변경하지 않았다.
+2026-05-20 구현 메모: `ToggleButtonGroup` 과 `Toolbar` 는 active primitive
+catalog pilot 으로 등록했고, group/toolbar 기본 자식은
+`PrimitiveBinding.placement` child template 에서 생성한다. starter 원본과 legacy
+6개 registry 신규 active 등록은 변경하지 않았다.
 
 ## 4. 비-DOM-trivial / `skiaPrimitive` 후보
 

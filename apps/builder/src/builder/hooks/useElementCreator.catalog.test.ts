@@ -37,6 +37,24 @@ describe("ADR-142 element creator catalog bridge", () => {
     });
   });
 
+  it("describes catalog toolbar placement with action child templates", () => {
+    const creation = resolveCatalogElementCreation("Toolbar");
+
+    expect(creation).toMatchObject({
+      elementType: "Toolbar",
+      props: {
+        "aria-label": "Toolbar",
+        orientation: "horizontal",
+      },
+    });
+    expect(creation?.children?.map((child) => child.elementType)).toEqual([
+      "Button",
+      "Button",
+      "Separator",
+      "Button",
+    ]);
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { toolbarPrimitiveBinding } from "../primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "../primitives/toggleButtonGroup";
 import {
   componentCatalog,
@@ -83,6 +84,28 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.category).toBe("buttons");
   });
 
+  it("registers Toolbar as an active primitive catalog entry with child templates", () => {
+    const entry = getComponentCatalogEntry("Toolbar");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(toolbarPrimitiveBinding);
+    expect(entry.family).toBe("primitives/actions");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Toolbar");
+    const placement = entry.binding.placement;
+    expect(placement?.kind).toBe("node-with-children");
+    if (placement?.kind !== "node-with-children") return;
+    expect(placement.children.map((child) => child.type)).toEqual([
+      "Button",
+      "Button",
+      "Separator",
+      "Button",
+    ]);
+    expect(entry.panel.category).toBe("buttons");
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -124,6 +147,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Link");
     expect(activeTypes).toContain("ToggleButton");
     expect(activeTypes).toContain("ToggleButtonGroup");
+    expect(activeTypes).toContain("Toolbar");
     expect(activeTypes).not.toContain("Card");
   });
 });

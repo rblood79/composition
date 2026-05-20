@@ -24,6 +24,7 @@ import {
   type ButtonRacProps,
   type LinkRacProps,
   type SeparatorRacProps,
+  type ToolbarRacProps,
   type ToggleButtonGroupRacProps,
   type ToggleButtonRacProps,
 } from "@composition/shared";
@@ -31,6 +32,7 @@ import {
   Button,
   Link,
   Separator,
+  Toolbar,
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
@@ -286,6 +288,26 @@ function renderPrimitiveNode({
       >
         {renderedChildren}
       </ToggleButtonGroup>
+    );
+  }
+
+  if (adaptedEl.type === "Toolbar") {
+    const toolbarProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ToolbarRacProps;
+    const renderedChildren = node.children?.map((child) => (
+      <CanonicalNodeRenderer
+        key={child.id}
+        node={child}
+        renderContext={renderContext}
+        parentPath={parentPath}
+      />
+    ));
+
+    return (
+      <Toolbar key={node.id} {...toolbarProps} {...markerProps}>
+        {renderedChildren}
+      </Toolbar>
     );
   }
 
