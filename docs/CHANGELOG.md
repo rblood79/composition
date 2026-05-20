@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3 — Button primitive wrapper boundary] - 2026-05-20
+
+### Architecture
+
+- **Button shared wrapper 를 catalog projection 경로로 전환**:
+  - `packages/shared/src/components/Button.tsx` 가 inline default projection 대신 `toButtonRacProps()` 를 사용해 canonical props 를 RAC props 로 정규화한다.
+  - active Button primitive 의 shared wrapper / Preview / Skia 경로가 같은 Button binding projection surface 를 참조한다.
+- **shared components legacy boundary 문서화**:
+  - `packages/shared/src/components/legacy/README.md` 를 추가해 legacy 구현을 compatibility fallback 으로 한정했다.
+  - active Builder authoring, Component Panel, Factory, Preview, Publish runtime 은 legacy boundary import 금지로 명시했다.
+
+### Documentation
+
+- Phase 3 은 Button primitive wrapper + legacy boundary slice 까지만 완료했다. 전체 primitive wrapper family 이동은 아직 완료 판정하지 않는다.
+
 ## [ADR-142 G3 active catalog Panel/Factory bridge] - 2026-05-20
 
 ### Architecture

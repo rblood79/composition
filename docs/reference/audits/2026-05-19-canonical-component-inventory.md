@@ -235,4 +235,9 @@ inventory bridge 로 Button panel item 과 element creation default props 가 ca
 를 우선 소비하도록 연결하고, 기존 Component Panel 7개 카테고리 목록을 shared
 `panelInventory.ts` 로 이동했다. reusable catalog entry 는 active flip 시
 canonical `ref` insertion payload 로 해석된다. 다음 진입점은 Phase 3 shared
-primitive wrapper surface + legacy boundary 다.
+primitive wrapper surface + legacy boundary 다. 2026-05-20 Phase 3 첫 slice 로
+Button shared wrapper 가 catalog `toButtonRacProps()` 를 소비하도록 전환됐고,
+`packages/shared/src/components/legacy/README.md` 가 active Builder authoring /
+Panel / Factory / Preview / Publish runtime 에서 legacy import 금지 경계를
+문서화했다. 이 slice 는 Button proof family 의 boundary 이며 전체 primitive
+wrapper family 완료 판정은 아니다.

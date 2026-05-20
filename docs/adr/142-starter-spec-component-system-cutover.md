@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; 다음 진입점 Phase 3 shared primitive wrapper surface + legacy boundary)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button primitive wrapper + legacy boundary slice 완료; 다음 진입점 Phase 3 잔여 wrapper family 정리 + Phase 5 CSS/Skia generic 정합)
 
 ## Context
 
@@ -204,6 +204,14 @@ inventory 를 `packages/shared/src/catalog/panelInventory.ts` 로 이동해
 소비하도록 바꿨다. reusable catalog entry 는 `cutover:"catalog"` 로 전환될 때
 `type:"ref"` + `ref/masterId/componentRole:"instance"` payload 로 해석된다. 실제
 reusable active flip 은 family cutover gate 에서 수행한다.
+
+2026-05-20 추가 판정: Phase 3 Button primitive wrapper + legacy boundary slice 를
+land 했다. `packages/shared/src/components/Button.tsx` 는 inline default projection
+대신 catalog `toButtonRacProps()` 를 사용해 canonical props 를 RAC props 로
+정규화한다. `packages/shared/src/components/legacy/README.md` 는 legacy 구현을
+compatibility fallback 으로 한정하고 active Builder authoring / Panel / Factory /
+Preview / Publish runtime import 금지를 명시한다. 이는 Button proof family 의 G6
+boundary slice 이며, 약 35개 primitive wrapper 전체 완료 판정은 아니다.
 
 ## Consequences
 

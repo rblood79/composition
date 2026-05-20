@@ -375,6 +375,14 @@ src/builder/factories/__tests__/componentRegistrationContract.test.ts`,
 검증: `pnpm run codex:typecheck`
 Gate: G6 일부 (legacy 격리 경계 확립)
 
+Status: In Progress — 2026-05-20 (Button primitive wrapper + legacy boundary
+slice). `packages/shared/src/components/Button.tsx` 는 `toButtonRacProps()` 를
+사용해 catalog binding projection 을 shared wrapper 의 props source 로 소비한다.
+`packages/shared/src/components/legacy/README.md` 는 compatibility fallback 허용
+범위와 active Builder authoring import 금지 경계를 문서화했다. 이 slice 는 Button
+proof family 의 G6 boundary 를 고정하지만, 전체 primitive wrapper family 이동과
+`index.ts` barrel 정리는 아직 남아 있다.
+
 ### Phase 4 — Panel + Factory catalog 배선
 
 목표: Component Panel 과 element creation 이 `componentCatalog` 를 소비하도록 배선한다.

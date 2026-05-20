@@ -1,0 +1,23 @@
+import fs from "node:fs";
+import { describe, expect, it } from "vitest";
+
+describe("ADR-142 Button primitive wrapper boundary", () => {
+  it("uses catalog toRacProps as the Button prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../Button.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toButtonRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
+  it("documents the shared components legacy compatibility boundary", () => {
+    const readmeUrl = new URL("../legacy/README.md", import.meta.url);
+
+    expect(fs.existsSync(readmeUrl)).toBe(true);
+    expect(fs.readFileSync(readmeUrl, "utf8")).toContain(
+      "active Builder authoring",
+    );
+  });
+});

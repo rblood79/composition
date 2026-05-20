@@ -6,7 +6,11 @@ import {
 } from "react-aria-components";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
-import type { ButtonVariant, ComponentSize } from "../types";
+import {
+  toButtonRacProps,
+  type ButtonCanonicalProps,
+} from "../catalog/outputs/toRacProps";
+import type { ButtonFillStyle, ButtonVariant, ComponentSize } from "../types";
 import { Skeleton } from "./Skeleton";
 import "./styles/Button.css";
 
@@ -27,7 +31,7 @@ const SIZE_BORDER_RADIUS: Record<ComponentSize, number> = {
 export interface ButtonProps extends RACButtonProps {
   variant?: ButtonVariant;
   /** Fill style: fill (solid) or outline (S2) */
-  fillStyle?: "fill" | "outline";
+  fillStyle?: ButtonFillStyle;
   size?: ComponentSize;
   /** Show loading skeleton instead of content */
   isLoading?: boolean;
@@ -35,25 +39,34 @@ export interface ButtonProps extends RACButtonProps {
   loadingLabel?: string;
 }
 
-/**
- * 🚀 Phase 4: data-* 패턴 전환
- * - tailwind-variants 제거
- * - data-variant, data-size 속성으로 스타일 적용
- */
+/** ADR-142 primitive wrapper: canonical props are projected through catalog toRacProps. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(props, ref) {
+    const projectedProps = toButtonRacProps(props as ButtonCanonicalProps);
     const {
-      isLoading,
+      isLoading: inputIsLoading,
       loadingLabel = "Loading...",
       children,
-      variant = "primary",
-      fillStyle = "fill",
-      size = "md",
+      variant: _variant,
+      fillStyle: _fillStyle,
+      size: _size,
+      type: _type,
+      isDisabled: _isDisabled,
       className,
       style,
       ...restProps
     } = props;
     const { focusProps, isFocusVisible } = useFocusRing();
+    const {
+      fillStyle,
+      isDisabled: projectedIsDisabled,
+      isLoading: projectedIsLoading,
+      size,
+      type,
+      variant,
+    } = projectedProps;
+    const isLoading = inputIsLoading ?? projectedIsLoading ?? false;
+    const buttonChildren = children ?? projectedProps.children;
 
     // Size에 따른 border-radius 인라인 스타일 적용
     const borderRadius = SIZE_BORDER_RADIUS[size];
@@ -62,8 +75,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <RACButton
         ref={ref}
         {...mergeProps(restProps, focusProps)}
-        type={props.type}
-        isDisabled={isLoading || props.isDisabled}
+        type={type}
+        isDisabled={isLoading || projectedIsDisabled}
         data-variant={variant}
         data-fill-style={fillStyle}
         data-size={size}
@@ -90,7 +103,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             <span className="sr-only">{loadingLabel}</span>
           </>
         ) : (
-          children
+          buttonChildren
         )}
       </RACButton>
     );
