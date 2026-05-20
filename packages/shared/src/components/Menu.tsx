@@ -18,6 +18,10 @@ import type {
   DataBindingValue,
 } from "../types";
 import type { RuntimeMenuItem } from "@composition/specs";
+import {
+  toMenuRacProps,
+  type MenuCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 
 import { useCollectionData } from "../hooks";
 import "./styles/generated/Menu.css";
@@ -34,7 +38,8 @@ import "./styles/generated/Menu.css";
  */
 
 export interface MenuButtonProps<T>
-  extends Omit<
+  extends
+    Omit<
       MenuProps<T>,
       "items" | "selectionMode" | "selectedKeys" | "onSelectionChange"
     >,
@@ -47,6 +52,11 @@ export interface MenuButtonProps<T>
   // M3 props
   variant?: string;
   size?: ComponentSize;
+  align?: "start" | "end";
+  direction?: "bottom" | "top" | "left" | "right";
+  shouldFlip?: boolean;
+  isQuiet?: boolean;
+  isDisabled?: boolean;
   /** ADR-073 Task 7: selection wiring — RAC Menu selectionMode */
   selectionMode?: "none" | "single" | "multiple";
   /** ADR-073 Task 7: controlled selected keys (string[]) — passed as Set to RAC Menu */
@@ -63,21 +73,53 @@ export function MenuButton<T extends object>({
   items,
   variant = "primary",
   size = "md",
+  align = "start",
+  direction = "bottom",
+  shouldFlip = true,
+  isQuiet = false,
+  isDisabled = false,
   selectionMode,
   selectedKeys,
   onSelectionChange,
   ...props
 }: MenuButtonProps<T>) {
+  const projectedProps = toMenuRacProps({
+    ...props,
+    label,
+    children,
+    items,
+    variant,
+    size,
+    align,
+    direction,
+    shouldFlip,
+    isQuiet,
+    isDisabled,
+    selectionMode,
+    selectedKeys,
+  } as MenuCanonicalProps);
+  const effectiveChildren = projectedProps.children;
+  const effectiveVariant = projectedProps.variant;
+  const effectiveSize = projectedProps.size;
+  const effectiveSelectionMode = projectedProps.selectionMode;
+  const effectiveSelectedKeys = projectedProps.selectedKeys;
+  const effectiveItems =
+    items ?? (projectedProps.items as RuntimeMenuItem[] | undefined);
+
   // ADR-073 Task 7: selection props → RAC Menu props 변환
   // 주의: Partial<MenuProps<T>> 로 타입하면 items T 추론이 깨짐 → T-독립 타입으로 선언
   const racSelectedKeys: Set<string> | undefined =
-    selectedKeys !== undefined ? new Set(selectedKeys) : undefined;
+    effectiveSelectedKeys !== undefined
+      ? new Set(effectiveSelectedKeys)
+      : undefined;
   const selectionMenuProps: {
     selectionMode?: "none" | "single" | "multiple";
     selectedKeys?: Set<string>;
     onSelectionChange?: (keys: Selection) => void;
   } = {
-    ...(selectionMode !== undefined && { selectionMode }),
+    ...(effectiveSelectionMode !== undefined && {
+      selectionMode: effectiveSelectionMode,
+    }),
     ...(racSelectedKeys !== undefined && { selectedKeys: racSelectedKeys }),
     ...(onSelectionChange !== undefined && {
       onSelectionChange: (keys: Selection) => {
@@ -475,7 +517,7 @@ export function MenuButton<T extends object>({
   }
 
   // items SSOT 경로 (ADR-068 Phase 5): dataBinding 없고 items prop이 있을 때
-  if (!hasDataBinding && items && items.length > 0) {
+  if (!hasDataBinding && effectiveItems && effectiveItems.length > 0) {
     const renderRuntimeMenuItem = (item: RuntimeMenuItem): React.ReactNode => {
       const hasSubmenu = item.children && item.children.length > 0;
 
@@ -504,11 +546,11 @@ export function MenuButton<T extends object>({
             >
               {content}
             </AriaMenuItem>
-            <Popover data-size={size}>
+            <Popover data-size={effectiveSize}>
               <Menu
                 items={item.children}
                 className={getMenuClassName()}
-                data-size={size}
+                data-size={effectiveSize}
               >
                 {(subItem) => renderRuntimeMenuItem(subItem as RuntimeMenuItem)}
               </Menu>
@@ -535,16 +577,17 @@ export function MenuButton<T extends object>({
       <MenuTrigger {...props}>
         <Button
           className="react-aria-Button button-base"
-          data-variant={variant}
-          data-size={size}
+          data-variant={effectiveVariant}
+          data-size={effectiveSize}
+          isDisabled={projectedProps.isDisabled}
         >
-          {label}
+          {effectiveChildren}
         </Button>
         <Popover>
           <Menu
-            items={items}
+            items={effectiveItems}
             className={getMenuClassName()}
-            data-size={size}
+            data-size={effectiveSize}
             {...selectionMenuProps}
           >
             {(item) => renderRuntimeMenuItem(item as RuntimeMenuItem)}
@@ -559,13 +602,19 @@ export function MenuButton<T extends object>({
     <MenuTrigger {...props}>
       <Button
         className="react-aria-Button button-base"
-        data-variant={variant}
-        data-size={size}
+        data-variant={effectiveVariant}
+        data-size={effectiveSize}
+        isDisabled={projectedProps.isDisabled}
       >
-        {label}
+        {effectiveChildren}
       </Button>
       <Popover>
-        <Menu {...props} className={getMenuClassName()} data-size={size} {...selectionMenuProps}>
+        <Menu
+          {...props}
+          className={getMenuClassName()}
+          data-size={effectiveSize}
+          {...selectionMenuProps}
+        >
           {loading && (
             <AriaMenuItem key="loading" textValue="Loading">
               ⏳ 데이터 로딩 중...

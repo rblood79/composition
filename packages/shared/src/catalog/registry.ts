@@ -8,6 +8,7 @@ import { formInspectorThemeValues } from "./primitives/form";
 import { gridListInspectorThemeValues } from "./primitives/gridList";
 import { linkInspectorThemeValues } from "./primitives/link";
 import { listBoxInspectorThemeValues } from "./primitives/listBox";
+import { menuInspectorThemeValues } from "./primitives/menu";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
 import { radioGroupInspectorThemeValues } from "./primitives/radioGroup";
 import { radioInspectorThemeValues } from "./primitives/radio";
@@ -46,6 +47,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "GridList") return gridListInspectorThemeValues;
   if (type === "ListBox") return listBoxInspectorThemeValues;
   if (type === "TagGroup") return tagGroupInspectorThemeValues;
+  if (type === "Menu") return menuInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;

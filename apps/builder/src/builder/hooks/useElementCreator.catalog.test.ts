@@ -375,6 +375,29 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Menu placement with canonical items", () => {
+    const creation = resolveCatalogElementCreation("Menu");
+
+    expect(creation).toMatchObject({
+      elementType: "Menu",
+      props: {
+        label: "Menu",
+        children: "Menu",
+        variant: "primary",
+        size: "md",
+        align: "start",
+        direction: "bottom",
+        selectionMode: "none",
+        items: [
+          { id: "item-1", label: "Menu Item 1" },
+          { id: "item-2", label: "Menu Item 2" },
+          { id: "item-3", label: "Menu Item 3" },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

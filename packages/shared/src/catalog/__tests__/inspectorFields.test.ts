@@ -9,6 +9,7 @@ import { formPrimitiveBinding } from "../primitives/form";
 import { gridListPrimitiveBinding } from "../primitives/gridList";
 import { getPrimitiveBinding } from "../registry";
 import { listBoxPrimitiveBinding } from "../primitives/listBox";
+import { menuPrimitiveBinding } from "../primitives/menu";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { sliderPrimitiveBinding } from "../primitives/slider";
@@ -26,6 +27,7 @@ import {
   toFormRacProps,
   toGridListRacProps,
   toListBoxRacProps,
+  toMenuRacProps,
   toNumberFieldRacProps,
   toRadioRacProps,
   toSearchFieldRacProps,
@@ -1202,6 +1204,71 @@ describe("ADR-142 inspector field contracts", () => {
       items: [
         { id: "chocolate", label: "Chocolate" },
         { id: "mint", label: "Mint", allowsRemoving: true },
+      ],
+    });
+  });
+
+  it("groups Menu PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "Menu",
+      contracts: menuPrimitiveBinding.props.accepts,
+      theme: {
+        variants: { Menu: ["primary", "secondary", "negative"] },
+        sizes: { Menu: ["sm", "md", "lg", "xl"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "items",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "variant",
+      "size",
+      "align",
+      "direction",
+      "shouldFlip",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "selectionMode",
+      "isQuiet",
+      "isDisabled",
+    ]);
+  });
+
+  it("projects Menu canonical items through the catalog boundary", () => {
+    expect(
+      toMenuRacProps({
+        label: "Actions",
+        variant: "negative",
+        size: "lg",
+        align: "end",
+        direction: "top",
+        selectionMode: "single",
+        selectedKeys: ["copy"],
+        items: [
+          { id: "copy", label: "Copy", shortcut: "Cmd+C" },
+          { id: "paste", label: "Paste", isDisabled: true },
+          { id: "ignored", label: "" },
+          42,
+        ],
+      }),
+    ).toMatchObject({
+      label: "Actions",
+      variant: "negative",
+      size: "lg",
+      align: "end",
+      direction: "top",
+      selectionMode: "single",
+      selectedKeys: ["copy"],
+      items: [
+        { id: "copy", label: "Copy", shortcut: "Cmd+C" },
+        { id: "paste", label: "Paste", isDisabled: true },
       ],
     });
   });

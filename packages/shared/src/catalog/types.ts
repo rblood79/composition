@@ -36,6 +36,7 @@ export interface PrimitiveSkiaDescriptor {
     | "grid-list"
     | "link"
     | "list-box"
+    | "menu"
     | "number-field"
     | "radio"
     | "radio-group"

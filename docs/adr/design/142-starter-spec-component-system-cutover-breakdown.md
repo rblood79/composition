@@ -555,6 +555,13 @@ projection / Preview TagGroup primitive branch / generic Skia label+chip fixture
 이은 collections family 세 번째 pilot 이며, ADR-132 collection 데이터 binding 전체
 전환과 Menu/ComboBox/Select/Tabs 는 잔여다.
 
+2026-05-20 추가 slice: Menu collections primitive 를 `cutover:"catalog"` 로 등록했다.
+`menuPrimitiveBinding` / `toMenuRacProps()` / shared `Menu.tsx` projection / Preview
+Menu primitive branch / generic Skia trigger+item row fixture 를 추가했고,
+`MenuSpec.render.shapes()` 미호출을 검증한다. Menu 는 collections family 소속이지만
+기존 Component Panel 위치는 `buttons` category 로 보존한다. ADR-132 collection 데이터
+binding 전체 전환과 ComboBox/Select/Tabs 는 잔여다.
+
 ### Phase 6 — Family-gated atomic cutover
 
 목표: Phase 0~5 공통 기반 위에서 family 순서대로 4경로를 atomic 하게 전환한다.

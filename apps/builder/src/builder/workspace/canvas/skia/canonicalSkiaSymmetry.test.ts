@@ -15,6 +15,7 @@ import {
   GridListSpec,
   LinkSpec,
   ListBoxSpec,
+  MenuSpec,
   NumberFieldSpec,
   RadioGroupSpec,
   RadioSpec,
@@ -474,6 +475,40 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("tag-group-1");
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Flavors", "Chocolate", "Mint"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Menu items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(MenuSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "menu-1",
+        type: "Menu",
+        props: {
+          label: "Actions",
+          children: "Actions",
+          variant: "primary",
+          size: "md",
+          selectionMode: "single",
+          selectedKeys: ["copy"],
+          items: [
+            { id: "copy", label: "Copy", shortcut: "Cmd+C" },
+            { id: "paste", label: "Paste" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 240, height: 128 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("menu-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Actions", "Copy", "Cmd+C", "Paste"]),
     );
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();

@@ -24,6 +24,7 @@ const {
   legacyGridListRenderer,
   legacyLinkRenderer,
   legacyListBoxRenderer,
+  legacyMenuRenderer,
   legacyNumberFieldRenderer,
   legacyRadioRenderer,
   legacyRadioGroupRenderer,
@@ -71,6 +72,9 @@ const {
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacyListBoxRenderer: vi.fn(() => (
     <div data-legacy-renderer="ListBox">legacy</div>
+  )),
+  legacyMenuRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Menu">legacy</div>
   )),
   legacyNumberFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="NumberField">legacy</div>
@@ -127,6 +131,7 @@ vi.mock("@composition/shared/renderers", () => ({
     GridList: legacyGridListRenderer,
     Link: legacyLinkRenderer,
     ListBox: legacyListBoxRenderer,
+    Menu: legacyMenuRenderer,
     NumberField: legacyNumberFieldRenderer,
     Radio: legacyRadioRenderer,
     RadioGroup: legacyRadioGroupRenderer,
@@ -171,6 +176,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyGridListRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyListBoxRenderer.mockClear();
+    legacyMenuRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
     legacyRadioRenderer.mockClear();
     legacyRadioGroupRenderer.mockClear();
@@ -995,6 +1001,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(screen.getByText("Chocolate")).toBeTruthy();
     expect(screen.getByText("Mint")).toBeTruthy();
     expect(legacyTagGroupRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Menu canonical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "menu-1",
+      type: "Menu",
+      props: {
+        label: "Actions",
+        children: "Actions",
+        variant: "primary",
+        size: "md",
+        selectionMode: "none",
+        items: [
+          { id: "copy", label: "Copy" },
+          { id: "paste", label: "Paste" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    expect(screen.getByText("Actions")).toBeTruthy();
+    expect(
+      container.querySelector("[data-canonical-id='menu-1']"),
+    ).toBeTruthy();
+    expect(legacyMenuRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

@@ -13,6 +13,7 @@ export * from "./primitives/form";
 export * from "./primitives/gridList";
 export * from "./primitives/link";
 export * from "./primitives/listBox";
+export * from "./primitives/menu";
 export * from "./primitives/numberField";
 export * from "./primitives/radio";
 export * from "./primitives/radioGroup";

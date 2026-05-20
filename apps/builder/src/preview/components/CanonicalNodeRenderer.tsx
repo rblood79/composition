@@ -33,6 +33,7 @@ import {
   type GridListRacProps,
   type LinkRacProps,
   type ListBoxRacProps,
+  type MenuRacProps,
   type NumberFieldRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
@@ -60,6 +61,7 @@ import {
   GridList,
   Link,
   ListBox,
+  MenuButton,
   NumberField,
   Radio,
   RadioGroup,
@@ -494,6 +496,18 @@ function renderPrimitiveNode({
     ) as TagGroupRacProps;
 
     return <TagGroup key={node.id} {...tagGroupProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Menu") {
+    const menuProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as MenuRacProps;
+
+    return (
+      <div key={node.id} {...markerProps} style={{ display: "contents" }}>
+        <MenuButton {...menuProps} />
+      </div>
+    );
   }
 
   if (adaptedEl.type === "Form") {

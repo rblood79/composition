@@ -248,6 +248,23 @@ export const TAG_GROUP_SELECTION_BEHAVIOR_VALUES =
   LIST_BOX_SELECTION_BEHAVIOR_VALUES;
 export const TAG_GROUP_LABEL_POSITION_VALUES = TEXT_FIELD_LABEL_POSITION_VALUES;
 export const TAG_GROUP_LABEL_ALIGN_VALUES = ["start", "end"] as const;
+export const MENU_VARIANT_VALUES = [
+  "accent",
+  "primary",
+  "secondary",
+  "negative",
+  "premium",
+  "genai",
+] as const;
+export const MENU_SIZE_VALUES = ["sm", "md", "lg", "xl"] as const;
+export const MENU_ALIGN_VALUES = ["start", "end"] as const;
+export const MENU_DIRECTION_VALUES = [
+  "bottom",
+  "top",
+  "left",
+  "right",
+] as const;
+export const MENU_SELECTION_MODE_VALUES = LIST_BOX_SELECTION_MODE_VALUES;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -392,6 +409,11 @@ const TAG_GROUP_LABEL_POSITIONS = new Set<string>(
   TAG_GROUP_LABEL_POSITION_VALUES,
 );
 const TAG_GROUP_LABEL_ALIGNS = new Set<string>(TAG_GROUP_LABEL_ALIGN_VALUES);
+const MENU_VARIANTS = new Set<string>(MENU_VARIANT_VALUES);
+const MENU_SIZES = new Set<string>(MENU_SIZE_VALUES);
+const MENU_ALIGNS = new Set<string>(MENU_ALIGN_VALUES);
+const MENU_DIRECTIONS = new Set<string>(MENU_DIRECTION_VALUES);
+const MENU_SELECTION_MODES = new Set<string>(MENU_SELECTION_MODE_VALUES);
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -1339,6 +1361,55 @@ export interface TagGroupRacProps extends Record<string, unknown> {
   allowsRemoving: boolean;
   allowsCustomValue: boolean;
   items?: TagGroupItemDescriptor[];
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface MenuItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  isDisabled?: boolean;
+  icon?: string;
+  shortcut?: string;
+  description?: string;
+  value?: string;
+  textValue?: string;
+  href?: string;
+  children?: MenuItemDescriptor[];
+}
+
+export interface MenuCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  children?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  align?: unknown;
+  direction?: unknown;
+  shouldFlip?: unknown;
+  isQuiet?: unknown;
+  isDisabled?: unknown;
+  selectionMode?: unknown;
+  selectedKeys?: unknown;
+  defaultSelectedKeys?: unknown;
+  items?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface MenuRacProps extends Record<string, unknown> {
+  label: string;
+  children: string;
+  variant: (typeof MENU_VARIANT_VALUES)[number];
+  size: (typeof MENU_SIZE_VALUES)[number];
+  align: (typeof MENU_ALIGN_VALUES)[number];
+  direction: (typeof MENU_DIRECTION_VALUES)[number];
+  shouldFlip: boolean;
+  isQuiet: boolean;
+  isDisabled: boolean;
+  selectionMode: (typeof MENU_SELECTION_MODE_VALUES)[number];
+  selectedKeys?: string[];
+  defaultSelectedKeys?: string[];
+  items?: MenuItemDescriptor[];
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2370,6 +2441,38 @@ export function toTagGroupRacProps(
   };
 }
 
+export function toMenuRacProps(props: MenuCanonicalProps): MenuRacProps {
+  const items = normalizeMenuItems(props.items);
+  const label = readString(props.label ?? props.children, "Menu");
+  return {
+    label,
+    children: readString(props.children ?? props.label, label),
+    variant: normalizeMenuVariant(props.variant),
+    size: normalizeMenuSize(props.size),
+    align: normalizeMenuAlign(props.align),
+    direction: normalizeMenuDirection(props.direction),
+    shouldFlip: props.shouldFlip !== false,
+    isQuiet: props.isQuiet === true,
+    isDisabled: props.isDisabled === true,
+    selectionMode: normalizeMenuSelectionMode(props.selectionMode),
+    ...(normalizeStringValueArray(props.selectedKeys)
+      ? { selectedKeys: normalizeStringValueArray(props.selectedKeys) }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultSelectedKeys)
+      ? {
+          defaultSelectedKeys: normalizeStringValueArray(
+            props.defaultSelectedKeys,
+          ),
+        }
+      : {}),
+    ...(items.length > 0 ? { items } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -3262,6 +3365,84 @@ function normalizeTagGroupItem(
     ...(typeof value.allowsRemoving === "boolean"
       ? { allowsRemoving: value.allowsRemoving }
       : {}),
+  };
+}
+
+function normalizeMenuVariant(
+  value: unknown,
+): (typeof MENU_VARIANT_VALUES)[number] {
+  return typeof value === "string" && MENU_VARIANTS.has(value)
+    ? (value as (typeof MENU_VARIANT_VALUES)[number])
+    : "primary";
+}
+
+function normalizeMenuSize(value: unknown): (typeof MENU_SIZE_VALUES)[number] {
+  return typeof value === "string" && MENU_SIZES.has(value)
+    ? (value as (typeof MENU_SIZE_VALUES)[number])
+    : "md";
+}
+
+function normalizeMenuAlign(
+  value: unknown,
+): (typeof MENU_ALIGN_VALUES)[number] {
+  return typeof value === "string" && MENU_ALIGNS.has(value)
+    ? (value as (typeof MENU_ALIGN_VALUES)[number])
+    : "start";
+}
+
+function normalizeMenuDirection(
+  value: unknown,
+): (typeof MENU_DIRECTION_VALUES)[number] {
+  return typeof value === "string" && MENU_DIRECTIONS.has(value)
+    ? (value as (typeof MENU_DIRECTION_VALUES)[number])
+    : "bottom";
+}
+
+function normalizeMenuSelectionMode(
+  value: unknown,
+): (typeof MENU_SELECTION_MODE_VALUES)[number] {
+  return typeof value === "string" && MENU_SELECTION_MODES.has(value)
+    ? (value as (typeof MENU_SELECTION_MODE_VALUES)[number])
+    : "none";
+}
+
+function normalizeMenuItems(value: unknown): MenuItemDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeMenuItem(entry))
+    .filter((entry): entry is MenuItemDescriptor => entry !== undefined);
+}
+
+function normalizeMenuItem(value: unknown): MenuItemDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  if (value.type === "section" || value.type === "separator") {
+    return undefined;
+  }
+
+  const label = readString(value.label, "").trim();
+  if (!label) return undefined;
+  const id = readString(value.id ?? value.value, label);
+  const children = normalizeMenuItems(value.children);
+
+  return {
+    id,
+    label,
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
+      : {}),
+    ...(typeof value.icon === "string" ? { icon: value.icon } : {}),
+    ...(typeof value.shortcut === "string" ? { shortcut: value.shortcut } : {}),
+    ...(typeof value.description === "string"
+      ? { description: value.description }
+      : {}),
+    ...(typeof value.value === "string" || typeof value.value === "number"
+      ? { value: String(value.value) }
+      : {}),
+    ...(typeof value.textValue === "string"
+      ? { textValue: value.textValue }
+      : {}),
+    ...(typeof value.href === "string" ? { href: value.href } : {}),
+    ...(children.length > 0 ? { children } : {}),
   };
 }
 

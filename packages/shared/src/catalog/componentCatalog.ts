@@ -10,6 +10,7 @@ import { formPrimitiveBinding } from "./primitives/form";
 import { gridListPrimitiveBinding } from "./primitives/gridList";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { listBoxPrimitiveBinding } from "./primitives/listBox";
+import { menuPrimitiveBinding } from "./primitives/menu";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { radioGroupPrimitiveBinding } from "./primitives/radioGroup";
 import { radioPrimitiveBinding } from "./primitives/radio";
@@ -353,6 +354,19 @@ export const componentCatalog = [
       category: "collections",
       label: "tag group",
       icon: "Tags",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Menu",
+    family: "collections",
+    cutover: "catalog",
+    binding: menuPrimitiveBinding,
+    panel: {
+      category: "buttons",
+      label: "menu",
+      icon: "Menu",
       placeable: true,
     },
   },

@@ -29,6 +29,7 @@ import {
   toGridListRacProps,
   toLinkRacProps,
   toListBoxRacProps,
+  toMenuRacProps,
   toNumberFieldRacProps,
   toRadioGroupRacProps,
   toRadioRacProps,
@@ -53,6 +54,8 @@ import {
   type ListBoxEntryDescriptor,
   type ListBoxItemDescriptor,
   type ListBoxRacProps,
+  type MenuItemDescriptor,
+  type MenuRacProps,
   type NumberFieldRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
@@ -892,6 +895,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "tag-group") {
     return buildGenericTagGroupNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "menu") {
+    return buildGenericMenuNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -2847,6 +2853,182 @@ function buildGenericTagGroupNode(
   };
 }
 
+function buildGenericMenuNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toMenuRacProps(node.props ?? {}) as MenuRacProps;
+  const style = readGenericStyle(node);
+  const isDark = theme === "dark";
+  const size = resolveGenericButtonSize(props.size);
+  const items: MenuItemDescriptor[] = props.items ?? [];
+  const triggerHeight = Math.max(size.lineHeight + 12, 32);
+  const itemHeight = resolveGenericMenuItemHeight(props.size);
+  const menuY = triggerHeight + 8;
+  const menuWidth = Math.max(layout.width, 160);
+  const selectedKeys = new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.defaultSelectedKeys ?? []),
+  ]);
+  const triggerPalette = resolveGenericButtonPalette(
+    {
+      children: props.children,
+      variant: props.variant,
+      fillStyle: "fill",
+      size: props.size,
+      type: "button",
+      iconPosition: "start",
+      iconStrokeWidth: 2,
+      isDisabled: props.isDisabled,
+    },
+    theme,
+  );
+
+  const triggerNodes: SkiaNodeData[] = [
+    {
+      type: "box",
+      elementId: `${node.id}:trigger:bg`,
+      x: 0,
+      y: 0,
+      width: Math.min(layout.width, menuWidth),
+      height: triggerHeight,
+      visible: true,
+      box: {
+        fillColor: triggerPalette.fillColor,
+        borderRadius: size.radius,
+        strokeColor: triggerPalette.strokeColor,
+        strokeWidth: triggerPalette.strokeWidth,
+      },
+    },
+    {
+      type: "text",
+      elementId: `${node.id}:trigger:text`,
+      x: 12,
+      y: 0,
+      width: Math.max(Math.min(layout.width, menuWidth) - 24, 0),
+      height: triggerHeight,
+      visible: true,
+      text: {
+        content: props.children,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.fontSize,
+        fontWeight: 600,
+        color: triggerPalette.textColor,
+        align: "left",
+        lineHeight: size.lineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: Math.max(Math.min(layout.width, menuWidth) - 24, 0),
+        verticalAlign: "middle",
+      },
+    },
+  ];
+
+  const menuBackground: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:menu:bg`,
+    x: 0,
+    y: menuY,
+    width: menuWidth,
+    height: Math.max(items.length * itemHeight + 8, itemHeight + 8),
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(isDark ? 0x1f2937 : 0xffffff, 1),
+      borderRadius: readNumber(style.borderRadius, 8),
+      strokeColor: colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1),
+      strokeWidth: 1,
+    },
+  };
+
+  const itemNodes = items.flatMap((item, index): SkiaNodeData[] => {
+    const y = menuY + 4 + index * itemHeight;
+    const isSelected = selectedKeys.has(item.id);
+    const textColor = item.isDisabled
+      ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+      : colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+
+    return [
+      {
+        type: "box",
+        elementId: `${node.id}:item:${item.id}:bg`,
+        x: 4,
+        y,
+        width: Math.max(menuWidth - 8, 0),
+        height: itemHeight,
+        visible: true,
+        box: {
+          fillColor: isSelected
+            ? colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1)
+            : colorIntToFloat32(0x000000, 0),
+          borderRadius: 4,
+        },
+      },
+      {
+        type: "text",
+        elementId: `${node.id}:item:${item.id}:label`,
+        x: 16,
+        y,
+        width: item.shortcut ? Math.max(menuWidth - 92, 0) : menuWidth - 32,
+        height: itemHeight,
+        visible: true,
+        text: {
+          content: item.label,
+          fontFamilies: [fontFamily.sans],
+          fontSize: size.fontSize,
+          fontWeight: 500,
+          color: textColor,
+          align: "left",
+          lineHeight: size.lineHeight,
+          paddingLeft: 0,
+          paddingTop: 0,
+          maxWidth: item.shortcut
+            ? Math.max(menuWidth - 92, 0)
+            : menuWidth - 32,
+          verticalAlign: "middle",
+        },
+      },
+      ...(item.shortcut
+        ? [
+            {
+              type: "text" as const,
+              elementId: `${node.id}:item:${item.id}:shortcut`,
+              x: Math.max(menuWidth - 72, 16),
+              y,
+              width: 56,
+              height: itemHeight,
+              visible: true,
+              text: {
+                content: item.shortcut,
+                fontFamilies: [fontFamily.sans],
+                fontSize: Math.max(size.fontSize - 1, 10),
+                fontWeight: 500,
+                color: colorIntToFloat32(isDark ? 0x9ca3af : 0x6b7280, 1),
+                align: "right" as const,
+                lineHeight: size.lineHeight,
+                paddingLeft: 0,
+                paddingTop: 0,
+                maxWidth: 56,
+                verticalAlign: "middle" as const,
+              },
+            },
+          ]
+        : []),
+    ];
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [...triggerNodes, menuBackground, ...itemNodes],
+  };
+}
+
 function flattenListBoxItems(
   entries: ListBoxRacProps["items"],
 ): ListBoxItemDescriptor[] {
@@ -2938,6 +3120,20 @@ function resolveGenericTagGroupSize(size: TagGroupRacProps["size"]): {
         radius: 15,
         charWidth: 7.5,
       };
+  }
+}
+
+function resolveGenericMenuItemHeight(size: MenuRacProps["size"]): number {
+  switch (size) {
+    case "sm":
+      return 28;
+    case "lg":
+      return 40;
+    case "xl":
+      return 48;
+    case "md":
+    default:
+      return 32;
   }
 }
 

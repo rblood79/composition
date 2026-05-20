@@ -10,6 +10,7 @@ import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { gridListPrimitiveBinding } from "../primitives/gridList";
 import { listBoxPrimitiveBinding } from "../primitives/listBox";
+import { menuPrimitiveBinding } from "../primitives/menu";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { sliderPrimitiveBinding } from "../primitives/slider";
@@ -471,6 +472,27 @@ describe("ADR-142 component catalog", () => {
     ]);
   });
 
+  it("registers Menu as an active collections primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Menu");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(menuPrimitiveBinding);
+    expect(entry.family).toBe("collections");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Menu");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("menu");
+    expect(entry.panel.category).toBe("buttons");
+    expect(entry.panel.label).toBe("menu");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual([
+      { id: "item-1", label: "Menu Item 1" },
+      { id: "item-2", label: "Menu Item 2" },
+      { id: "item-3", label: "Menu Item 3" },
+    ]);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -531,6 +553,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("ListBox");
     expect(activeTypes).toContain("GridList");
     expect(activeTypes).toContain("TagGroup");
+    expect(activeTypes).toContain("Menu");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });
