@@ -2,15 +2,19 @@
 
 ## Status
 
-In Progress — 2026-05-21 (G0/G1, G2a~G2d, G3 완료. Phase 6 family
-cutover 는 primitives/actions, fields, selection, collections, Tree·Table,
-overlays, date/color, composition-native 까지 `componentCatalog`
+Implemented — 2026-05-21
+
+G0/G1, G2a~G2d, G3, G4~G6 family cutover, G7 final verification 을 완료했다.
+Phase 6 family cutover 는 primitives/actions, fields, selection, collections,
+Tree·Table, overlays, date/color, composition-native 까지 `componentCatalog`
 `cutover:"catalog"` 상태에 도달했다. active primitive/reusable/native Inspector
 entrypoint 는 `PrimitiveBinding.props.accepts` 또는 reusable/native
 `propsSchema` 를 `specRegistry` 보다 먼저 소비한다. Tree/Table 의 legacy static
 collection `x-composition.dataBinding` 은 resolved render props 로 투영되고
-Preview/Skia static collection fixture 로 검증된다. G7 최종 preflight, README/status
-동기화, ADR-036/907/908/140/141 재평가가 closure 잔여다.)
+Preview/Skia static collection fixture 로 검증된다. ADR-036/907/908/140/141 은
+historical implementation 으로 보존하되, active component authoring/rendering 의
+Spec D3 / `render.shapes()` 메커니즘은 ADR-142 이후 legacy compatibility boundary 로
+격리되는 것으로 재평가했다.
 
 ## Context
 
@@ -781,6 +785,6 @@ label/input/date range text/calendar icon 을 생성하고
 - 공통 기반(Phase 0~Phase 1b)이 무겁다. Gate 가 아니라 사실상 제품이다 — generic 렌더러 + Preview resolved-tree 가 먼저 동작해야 한다.
 - 조합 컴포넌트를 reusable 문서로 새로 저작해야 한다(자동 변환 불가).
 - generic 렌더러 버그는 family 격리가 되지 않는다 — G2 단계의 검증 부담이 크다.
-- 컴포넌트당 spec 파일을 D3 SSOT 로 둔 ADR-036(및 ADR-907/908/140/141)의 메커니즘이 폐기된다 — ADR-142 Implemented 시 해당 ADR status 재평가가 필요하다.
+- 컴포넌트당 spec 파일을 D3 SSOT 로 둔 ADR-036(및 ADR-907/908/140/141)의 메커니즘이 폐기된다 — ADR-142 Implemented 시점에 해당 ADR 은 historical implementation 으로 보존하되 active component path 에서는 legacy compatibility boundary 로 재분류했다.
 - 기존 124 `ComponentSpec` / `ReactRenderer` / `render.shapes` 파이프라인은 cutover 기간 동안 legacy 로 공존한다.
 - Inspector 편집 필드 생성이 컴포넌트당 `properties.sections` 선언(124 spec 중 83개 보유)에서 generic `PropContract` 기반으로 바뀐다 — 임의 컴포넌트를 받던 `CustomField` 와 `derivedUpdateFn` 류는 generic 화 비용이 있다(R9).

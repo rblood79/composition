@@ -375,7 +375,7 @@ src/builder/factories/__tests__/componentRegistrationContract.test.ts`,
 검증: `pnpm run codex:typecheck`
 Gate: G6 일부 (legacy 격리 경계 확립)
 
-Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
+Status: Implemented — 2026-05-21 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar / TextField /
 NumberField / SearchField / DateField / TimeField / ColorField / Form /
 FileTrigger / DropZone / Tooltip / Dialog / Checkbox / CheckboxGroup / Radio / RadioGroup / Slider /
@@ -418,9 +418,8 @@ Breadcrumbs/ToggleButtonGroup/Toolbar/Form/FileTrigger 은
 `iconName` / `iconPosition` / `iconStrokeWidth` 를 노출하고 shared Button wrapper 가
 이를 Icon child 로 렌더한다. `packages/shared/src/components/legacy/README.md` 는
 compatibility fallback 허용 범위와 active Builder authoring import 금지 경계를
-문서화했다. 이 slice 는 active primitive wrapper slices plus Breadcrumb subpart 의
-G6 boundary 를 고정하지만, 전체 primitive wrapper family 이동과 `index.ts` barrel
-정리는 아직 남아 있다.
+문서화했다. 이후 date/color 와 composition-native slice 까지 확장되어 active catalog
+wrapper/native/reusable path 의 G6 boundary 를 닫았다.
 
 ### Phase 4 — Panel + Factory catalog 배선
 
@@ -469,7 +468,7 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 검증: `pnpm -F @composition/specs build` / `pnpm run codex:typecheck`
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
-Status: In Progress — 2026-05-21 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
+Status: Implemented — 2026-05-21 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
 ColorSwatch fill + ColorSlider track/thumb + ColorArea plane/thumb + ColorWheel arc/thumb + ColorPicker child-recursive generic + Calendar month grid + RangeCalendar range band + DatePicker label/input/icon + DateRangePicker label/input/icon + ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + CheckboxGroup label/children + Slider label/output/track/fill/thumb + DropZone dashed container + Tooltip bubble/text/arrow + Dialog panel/text + Popover panel/text/arrow + Modal panel/text + Toast icon/title/description + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
 Skia slices + Tabs tab-list/panel + Tree row/disclosure + Table/TableView
 header/row/cell generic Skia slices; Button icon_path parity).
@@ -523,8 +522,8 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `ToolbarSpec.render.shapes()`, `TabsSpec.render.shapes()`,
 `TreeSpec.render.shapes()`, `TableSpec.render.shapes()`,
 `TableViewSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/DatePicker/DateRangePicker/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView 외
-primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/DatePicker/DateRangePicker/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView active catalog primitive 의 CSS/Skia generic 정합 slice 를 닫았다.
+legacy `render.shapes()` 경로는 compatibility fallback 으로만 남긴다.
 
 2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
 분리했다. `apps/builder/src/builder/inspector/editors/registry.ts` 는 catalog
@@ -729,6 +728,12 @@ family 순서: primitives·actions → fields → selection → collections → 
 
 검증 (family 마다): `pnpm run codex:guard` / `pnpm run codex:typecheck` / `pnpm run codex:preflight`
 Gate: G4 / G5 / G6 (family 반복), G7 (최종)
+
+Status: Implemented — 2026-05-21. 전 family 가 `cutover:"catalog"` 에 도달했고,
+`legacy` / `cutting-over` catalog entry 는 0건이다. ADR-036/907/908/140/141 은
+historical implementation 으로 보존하되 active component path 에서는 legacy
+compatibility boundary 로 재분류했다. ADR 본문은 Implemented 로 승격해
+`docs/adr/completed/` 로 이동하고 README/CHANGELOG 를 동기화했다.
 
 ## 5. Family 실행 순서 + cutover 체크리스트
 

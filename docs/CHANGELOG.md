@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Implemented — Component system catalog cutover closure] - 2026-05-21
+
+### Architecture
+
+- ADR-142 를 Implemented 로 승격하고 본문을 `docs/adr/completed/` 로 이동했다.
+- 전 family `componentCatalog` entry 가 `cutover:"catalog"` 에 도달한 상태를 G7
+  closure 로 고정했다.
+- ADR-036/907/908/140/141 은 historical implementation 으로 보존하되, active
+  component path 의 Spec D3 / `render.shapes()` 메커니즘은 ADR-142 이후 legacy
+  compatibility boundary 로 재분류했다.
+
+### Verification
+
+- `pnpm run codex:guard`
+- `pnpm run codex:typecheck`
+- `pnpm run codex:preflight`
+
 ## [ADR-142 Phase 6 — Composition-native catalog cutover + binding field bridge] - 2026-05-21
 
 ### Architecture

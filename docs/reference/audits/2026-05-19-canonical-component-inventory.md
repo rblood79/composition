@@ -223,7 +223,8 @@ ADR-142 관점에서는 여전히 다중 정본이다. Phase 2~6 에서 아래 �
 
 Phase 1a 는 G2a~G2c kill-switch 이므로, 아래 조건 없이는 진입하지 않는다.
 
-1. ADR-142 Status 가 `In Progress` 또는 `Accepted` 상태로 유지될 것.
+1. Phase 1a 착수 당시 ADR-142 Status 가 `In Progress` 또는 `Accepted` 상태로 유지될 것
+   (G7 closure 이후 현재 Status 는 `Implemented`).
 2. `packages/react-aria-starter/src/**` 는 계속 read-only reference 로 유지될 것.
 3. `design.md` 는 Phase 1~6 입력 reference 이며 runtime D3 SSOT 로 승격하지 않을 것.
 4. `ComponentSpec` / `ReactRenderer` / `CSSGenerator` / `render.shapes()` 는
@@ -496,3 +497,8 @@ Card/Section 은 reusable canonical document seed 를 `type:"ref"` creation payl
 Inspector 에서 `PropertyDataBinding` 을 통해 `x-composition.dataBinding` 으로 저장되고,
 legacy static collection binding 은 resolved render props 에서 Tree `items` 또는
 Table `rows` 로 materialize 되어 Preview/Skia fixture 로 고정됐다.
+
+G7 closure 기준(2026-05-21): 모든 `componentCatalog` entry 는 `cutover:"catalog"` 이며
+`legacy` / `cutting-over` entry 는 0건이다. ADR-142 는 Implemented 로 승격했고,
+ADR-036/907/908/140/141 의 Spec D3 / `render.shapes()` 기반 메커니즘은 active
+component path 가 아니라 legacy compatibility boundary 로 재평가됐다.

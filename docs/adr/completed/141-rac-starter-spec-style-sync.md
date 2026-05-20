@@ -14,6 +14,12 @@ Implemented — 2026-05-18
 > - 2026-05-18 Phase 5 (P1·P3) — G3 디자인 결정 surface. 사용자 결정: P1 형태(pill/원형)·P3 입체 box-shadow 모두 기각 — composition 의 사각 계열·flat 이 의도적 디자인 언어로 확정. Modal radius/max-width(H14·H15, Phase 3 defer 분)는 채택 — `ModalSpec.sizes.md.borderRadius` lg→xl + 수동 `overlays.css` radius `radius-xl`·max-width `min(500px,90vw)` starter 정합 (Risks R10, breakdown §4.5).
 > - 2026-05-18 Implemented 승격 — Phase 1~5 전수 완결. 반영분: H16 Disclosure chevron rotate / H5 Link underline / H7 DropZone drop-target / H14·H15 Modal radius·max-width. P1·P3 는 G3 디자인 결정으로 기각, P4·P5 구조분은 composition 의도적 발산 / R2·R5 로 exclude·defer. defer 잔여: DateRangePicker H10(런타임 검증) / RangeCalendar·Menu 구조(CSSGenerator 능력 확장 별도 ADR). 본문 `completed/` 이관.
 
+**ADR-142 impact — 2026-05-21**: 본 ADR 의 starter style delta 판정은
+historical design decision 으로 보존한다. active catalog component path 에서
+`react-aria-starter/src` 는 계속 reference snapshot 일 뿐이며, D3 runtime SSOT 는
+ADR-142 의 theme/tokens root collection 이다. Spec/CSSGenerator 로 starter delta 를
+반영하던 메커니즘은 legacy compatibility path 로 격리한다.
+
 ## Context
 
 composition 은 `react-aria-starter/src` 를 React Aria Components 의 스타일 참조 원본으로 삼는다. starter 가 업데이트되면서 composition Spec(D3 시각 SSOT)이 참조와 어긋났다. 본 ADR 은 그 격차를 어떤 기준으로 Spec 에 반영할지 결정한다.
