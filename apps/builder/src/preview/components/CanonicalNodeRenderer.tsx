@@ -29,6 +29,7 @@ import {
   type ColorFieldRacProps,
   type ComboBoxRacProps,
   type DateFieldRacProps,
+  type DialogRacProps,
   type DropZoneRacProps,
   type FileTriggerRacProps,
   type FormRacProps,
@@ -64,6 +65,7 @@ import {
   ColorField,
   ComboBox,
   DateField,
+  Dialog,
   DropZone,
   FileTrigger,
   Form,
@@ -620,6 +622,14 @@ function renderPrimitiveNode({
     ) as TooltipRacProps;
 
     return <Tooltip key={node.id} {...tooltipProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Dialog") {
+    const dialogProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as DialogRacProps;
+
+    return <Dialog key={node.id} {...dialogProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

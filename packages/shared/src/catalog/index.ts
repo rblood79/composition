@@ -9,6 +9,7 @@ export * from "./primitives/checkboxGroup";
 export * from "./primitives/colorField";
 export * from "./primitives/comboBox";
 export * from "./primitives/dateField";
+export * from "./primitives/dialog";
 export * from "./primitives/dropZone";
 export * from "./primitives/fileTrigger";
 export * from "./primitives/form";

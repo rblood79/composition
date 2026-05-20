@@ -20,6 +20,7 @@ const {
   legacyCheckboxGroupRenderer,
   legacyComboBoxRenderer,
   legacyDateFieldRenderer,
+  legacyDialogRenderer,
   legacyDropZoneRenderer,
   legacyFileTriggerRenderer,
   legacyFormRenderer,
@@ -70,6 +71,9 @@ const {
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
+  )),
+  legacyDialogRenderer: vi.fn(() => (
+    <section data-legacy-renderer="Dialog">legacy</section>
   )),
   legacyDropZoneRenderer: vi.fn(() => (
     <div data-legacy-renderer="DropZone">legacy</div>
@@ -159,6 +163,7 @@ vi.mock("@composition/shared/renderers", () => ({
     ComboBox: legacyComboBoxRenderer,
     ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
+    Dialog: legacyDialogRenderer,
     DropZone: legacyDropZoneRenderer,
     FileTrigger: legacyFileTriggerRenderer,
     Form: legacyFormRenderer,
@@ -212,6 +217,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyComboBoxRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
+    legacyDialogRenderer.mockClear();
     legacyDropZoneRenderer.mockClear();
     legacyFileTriggerRenderer.mockClear();
     legacyFormRenderer.mockClear();
@@ -807,6 +813,32 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       tooltip,
     );
     expect(legacyTooltipRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Dialog through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "dialog-1",
+      type: "Dialog",
+      props: {
+        children: "Dialog body",
+        size: "lg",
+        role: "alertdialog",
+        isDismissable: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const dialog = screen.getByRole("alertdialog");
+    expect(dialog.textContent).toContain("Dialog body");
+    expect(dialog.getAttribute("data-size")).toBe("lg");
+    expect(dialog.getAttribute("data-dismissible")).toBe("true");
+    expect(container.querySelector("[data-canonical-id='dialog-1']")).toBe(
+      dialog,
+    );
+    expect(legacyDialogRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Switch through PrimitiveBinding before rendererMap fallback", () => {

@@ -166,6 +166,8 @@ export const TOOLTIP_PLACEMENT_VALUES = [
   "bottom start",
   "bottom end",
 ] as const;
+export const DIALOG_SIZE_VALUES = BUTTON_SIZE_VALUES;
+export const DIALOG_ROLE_VALUES = ["dialog", "alertdialog"] as const;
 export const LINK_VARIANT_VALUES = [
   "primary",
   "secondary",
@@ -367,6 +369,8 @@ const DROP_ZONE_SIZES = SEPARATOR_SIZES;
 const TOOLTIP_VARIANTS = new Set<string>(TOOLTIP_VARIANT_VALUES);
 const TOOLTIP_SIZES = SEPARATOR_SIZES;
 const TOOLTIP_PLACEMENTS = new Set<string>(TOOLTIP_PLACEMENT_VALUES);
+const DIALOG_SIZES = BUTTON_SIZES;
+const DIALOG_ROLES = new Set<string>(DIALOG_ROLE_VALUES);
 const LINK_VARIANTS = new Set<LinkVariant>(LINK_VARIANT_VALUES);
 const LINK_SIZES = new Set<ComponentSize>(LINK_SIZE_VALUES);
 const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
@@ -990,6 +994,26 @@ export interface TooltipRacProps extends Record<string, unknown> {
   crossOffset: number;
   shouldFlip: boolean;
   showArrow: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface DialogCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  text?: unknown;
+  label?: unknown;
+  size?: unknown;
+  role?: unknown;
+  isDismissable?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface DialogRacProps extends Record<string, unknown> {
+  children: string;
+  size: ComponentSize;
+  role: (typeof DIALOG_ROLE_VALUES)[number];
+  isDismissable: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2439,6 +2463,19 @@ export function toTooltipRacProps(
   };
 }
 
+export function toDialogRacProps(props: DialogCanonicalProps): DialogRacProps {
+  return {
+    children: readDialogText(props),
+    size: normalizeDialogSize(props.size),
+    role: normalizeDialogRole(props.role),
+    isDismissable: props.isDismissable === true,
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -3308,6 +3345,11 @@ function readTooltipText(props: TooltipCanonicalProps): string {
   return readString(value, "Helpful tip");
 }
 
+function readDialogText(props: DialogCanonicalProps): string {
+  const value = props.children ?? props.text ?? props.label;
+  return readString(value, "Dialog content");
+}
+
 function readRadioText(props: RadioCanonicalProps): string {
   const value = props.children ?? props.label ?? props.text;
   if (typeof value === "string") return value;
@@ -3445,6 +3487,20 @@ function normalizeTooltipPlacement(
   return typeof value === "string" && TOOLTIP_PLACEMENTS.has(value)
     ? (value as (typeof TOOLTIP_PLACEMENT_VALUES)[number])
     : "top";
+}
+
+function normalizeDialogSize(value: unknown): ComponentSize {
+  return typeof value === "string" && DIALOG_SIZES.has(value as ComponentSize)
+    ? (value as ComponentSize)
+    : "md";
+}
+
+function normalizeDialogRole(
+  value: unknown,
+): (typeof DIALOG_ROLE_VALUES)[number] {
+  return typeof value === "string" && DIALOG_ROLES.has(value)
+    ? (value as (typeof DIALOG_ROLE_VALUES)[number])
+    : "dialog";
 }
 
 function normalizeTextFieldLabelPosition(value: unknown): "top" | "side" {

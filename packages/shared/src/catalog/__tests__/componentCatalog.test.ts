@@ -7,6 +7,7 @@ import { checkboxPrimitiveBinding } from "../primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
+import { dialogPrimitiveBinding } from "../primitives/dialog";
 import { dropZonePrimitiveBinding } from "../primitives/dropZone";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
@@ -329,8 +330,29 @@ describe("ADR-142 component catalog", () => {
     });
   });
 
+  it("registers Dialog as an active overlays primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Dialog");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(dialogPrimitiveBinding);
+    expect(entry.family).toBe("overlays");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Dialog");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("dialog");
+    expect(entry.panel.category).toBe("overlays");
+    expect(entry.panel.label).toBe("dialog");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      children: "Dialog content",
+      role: "dialog",
+      size: "md",
+      isDismissable: false,
+    });
+  });
+
   it("keeps unfinished overlays outside the active catalog", () => {
-    expect(getComponentCatalogEntry("Dialog")).toBeUndefined();
     expect(getComponentCatalogEntry("Modal")).toBeUndefined();
     expect(getComponentCatalogEntry("Popover")).toBeUndefined();
     expect(getComponentCatalogEntry("Toast")).toBeUndefined();

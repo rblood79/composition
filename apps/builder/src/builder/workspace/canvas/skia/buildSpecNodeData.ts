@@ -27,6 +27,7 @@ import {
   toColorFieldRacProps,
   toComboBoxRacProps,
   toDateFieldRacProps,
+  toDialogRacProps,
   toDropZoneRacProps,
   toGridListRacProps,
   toLinkRacProps,
@@ -56,6 +57,7 @@ import {
   type ComboBoxItemDescriptor,
   type ComboBoxRacProps,
   type DateFieldRacProps,
+  type DialogRacProps,
   type DropZoneRacProps,
   type GridListEntryDescriptor,
   type GridListItemDescriptor,
@@ -882,6 +884,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "drop-zone") {
     return buildGenericDropZoneNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "dialog") {
+    return buildGenericDialogNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "tooltip") {
     return buildGenericTooltipNode(input.node, layout, input.theme);
@@ -2118,6 +2123,57 @@ function buildGenericDropZoneNode(
       strokeStyle: "dashed",
     },
     children,
+  };
+}
+
+function buildGenericDialogNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toDialogRacProps(node.props ?? {}) as DialogRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericDialogSize(props.size);
+  const palette = resolveGenericDialogPalette(style, theme);
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: size.paddingX,
+    y: size.paddingY,
+    width: Math.max(layout.width - size.paddingX * 2, 0),
+    height: Math.max(layout.height - size.paddingY * 2, 0),
+    visible: true,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+      whiteSpace: "normal",
+      overflowWrap: "break-word",
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: palette.fillColor,
+      strokeColor: palette.strokeColor,
+      strokeWidth: readNumber(style.borderWidth, 1),
+      borderRadius: readNumber(style.borderRadius, size.radius),
+    },
+    children: [textNode],
   };
 }
 
@@ -4646,6 +4702,92 @@ function resolveGenericDropZoneSize(size: DropZoneRacProps["size"]): {
         radius: 10,
       };
   }
+}
+
+function resolveGenericDialogSize(size: DialogRacProps["size"]): {
+  paddingX: number;
+  paddingY: number;
+  fontSize: number;
+  lineHeight: number;
+  radius: number;
+} {
+  switch (size) {
+    case "xs":
+      return {
+        paddingX: 8,
+        paddingY: 8,
+        fontSize: 14,
+        lineHeight: 20,
+        radius: 8,
+      };
+    case "sm":
+      return {
+        paddingX: 12,
+        paddingY: 12,
+        fontSize: 16,
+        lineHeight: 22,
+        radius: 12,
+      };
+    case "lg":
+      return {
+        paddingX: 24,
+        paddingY: 24,
+        fontSize: 18,
+        lineHeight: 26,
+        radius: 20,
+      };
+    case "xl":
+      return {
+        paddingX: 32,
+        paddingY: 32,
+        fontSize: 20,
+        lineHeight: 28,
+        radius: 20,
+      };
+    case "md":
+    default:
+      return {
+        paddingX: 16,
+        paddingY: 16,
+        fontSize: 16,
+        lineHeight: 22,
+        radius: 16,
+      };
+  }
+}
+
+function resolveGenericDialogPalette(
+  style: Record<string, unknown>,
+  theme: "light" | "dark",
+): {
+  fillColor: Float32Array;
+  strokeColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const background =
+    typeof style.backgroundColor === "string"
+      ? style.backgroundColor
+      : theme === "dark"
+        ? "#111827"
+        : "#ffffff";
+  const border =
+    typeof style.borderColor === "string"
+      ? style.borderColor
+      : theme === "dark"
+        ? "#374151"
+        : "#e5e7eb";
+  const text =
+    typeof style.color === "string"
+      ? style.color
+      : theme === "dark"
+        ? "#f9fafb"
+        : "#111827";
+
+  return {
+    fillColor: colorIntToFloat32(cssColorToHex(background), 1),
+    strokeColor: colorIntToFloat32(cssColorToHex(border), 1),
+    textColor: colorIntToFloat32(cssColorToHex(text), 1),
+  };
 }
 
 function resolveGenericTooltipSize(size: TooltipRacProps["size"]): {

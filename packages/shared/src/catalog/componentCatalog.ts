@@ -6,6 +6,7 @@ import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { comboBoxPrimitiveBinding } from "./primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
+import { dialogPrimitiveBinding } from "./primitives/dialog";
 import { dropZonePrimitiveBinding } from "./primitives/dropZone";
 import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
 import { formPrimitiveBinding } from "./primitives/form";
@@ -273,6 +274,19 @@ export const componentCatalog = [
       category: "overlays",
       label: "tooltip",
       icon: "MessageSquare",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Dialog",
+    family: "overlays",
+    cutover: "catalog",
+    binding: dialogPrimitiveBinding,
+    panel: {
+      category: "overlays",
+      label: "dialog",
+      icon: "AppWindowMac",
       placeable: true,
     },
   },

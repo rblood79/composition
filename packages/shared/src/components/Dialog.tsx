@@ -1,5 +1,10 @@
 import { Dialog as RACDialog, DialogProps } from "react-aria-components";
+import type { ReactNode } from "react";
 import type { ComponentSize } from "../types";
+import {
+  toDialogRacProps,
+  type DialogCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 import "./styles/generated/Dialog.css";
 
 /**
@@ -39,13 +44,27 @@ export interface DialogExtendedProps extends DialogProps {
 }
 
 export function Dialog({
+  children,
   size = "md",
   isDismissable,
+  role,
   ...props
 }: DialogExtendedProps) {
+  const projectedProps = toDialogRacProps({
+    ...props,
+    children,
+    size,
+    isDismissable,
+    role,
+  } as DialogCanonicalProps);
+  const {
+    children: projectedChildren,
+    size: projectedSize,
+    isDismissable: projectedIsDismissable,
+    ...dialogProps
+  } = projectedProps;
   // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
-  const baseClassName =
-    typeof props.className === "string" ? props.className : undefined;
+  const baseClassName = dialogProps.className;
   const dialogClassName = baseClassName
     ? `react-aria-Dialog ${baseClassName}`
     : "react-aria-Dialog";
@@ -53,9 +72,12 @@ export function Dialog({
   return (
     <RACDialog
       {...props}
+      {...dialogProps}
       className={dialogClassName}
-      data-size={size}
-      data-dismissible={isDismissable || undefined}
-    />
+      data-size={projectedSize}
+      data-dismissible={projectedIsDismissable || undefined}
+    >
+      {(children ?? projectedChildren) as ReactNode}
+    </RACDialog>
   );
 }

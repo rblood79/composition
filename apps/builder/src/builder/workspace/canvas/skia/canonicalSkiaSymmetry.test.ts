@@ -11,6 +11,7 @@ import {
   ColorFieldSpec,
   ComboBoxSpec,
   DateFieldSpec,
+  DialogSpec,
   DropZoneSpec,
   FileTriggerSpec,
   FormSpec,
@@ -1117,6 +1118,33 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("tooltip-1");
     expect(collectText(node)).toContain("Helpful context");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Dialog through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(DialogSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "dialog-1",
+        type: "Dialog",
+        props: {
+          children: "Dialog body",
+          size: "lg",
+          role: "alertdialog",
+          isDismissable: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["dialog-1", { x: 24, y: 32, width: 280, height: 160 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("dialog-1");
+    expect(collectText(node)).toContain("Dialog body");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

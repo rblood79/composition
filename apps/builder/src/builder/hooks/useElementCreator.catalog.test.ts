@@ -235,6 +235,21 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Dialog placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Dialog");
+
+    expect(creation).toMatchObject({
+      elementType: "Dialog",
+      props: {
+        children: "Dialog content",
+        size: "md",
+        role: "dialog",
+        isDismissable: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog Switch placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Switch");
 
