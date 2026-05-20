@@ -28,6 +28,11 @@ import type {
   ColumnMapping,
   DataBindingValue,
 } from "../types";
+import {
+  toSelectRacProps,
+  type SelectCanonicalProps,
+  type SelectItemDescriptor,
+} from "../catalog/outputs/toRacProps";
 
 import { useCollectionData } from "../hooks";
 import {
@@ -77,7 +82,14 @@ export interface SelectProps<T extends object> extends Omit<
   isLoading?: boolean;
   necessityIndicator?: NecessityIndicator;
   labelPosition?: "top" | "side";
+  labelAlign?: "start" | "end";
+  align?: "start" | "end";
+  direction?: "bottom" | "top";
+  shouldFlip?: boolean;
+  menuWidth?: string;
   isQuiet?: boolean;
+  isReadOnly?: boolean;
+  disallowEmptySelection?: boolean;
 }
 
 export function Select<T extends object>({
@@ -97,9 +109,55 @@ export function Select<T extends object>({
   renderMultipleValue: _renderMultipleValue,
   isLoading: externalLoading,
   labelPosition = "top",
+  labelAlign,
+  align,
+  direction,
+  shouldFlip,
+  menuWidth,
   isQuiet,
+  isReadOnly,
+  disallowEmptySelection,
   ...props
 }: SelectProps<T>) {
+  const projectedProps = toSelectRacProps({
+    ...props,
+    label,
+    description,
+    errorMessage,
+    placeholder,
+    items,
+    size,
+    iconName,
+    labelPosition,
+    labelAlign,
+    align,
+    direction,
+    shouldFlip,
+    menuWidth,
+    isQuiet,
+    isReadOnly,
+    disallowEmptySelection,
+  } as SelectCanonicalProps);
+  const projectedItems = projectedProps.items ?? [];
+  const effectiveLabel = projectedProps.label ?? label;
+  const effectiveDescription = projectedProps.description ?? description;
+  const effectiveErrorMessage = projectedProps.errorMessage ?? errorMessage;
+  const effectivePlaceholder = projectedProps.placeholder;
+  const effectiveSize = projectedProps.size;
+  const effectiveIconName = projectedProps.iconName;
+  const effectiveLabelPosition = projectedProps.labelPosition;
+  const effectiveIsQuiet = projectedProps.isQuiet;
+  const effectiveIsDisabled = projectedProps.isDisabled;
+  const effectiveIsInvalid = projectedProps.isInvalid;
+  const effectiveIsReadOnly = projectedProps.isReadOnly;
+  const effectiveIsRequired = projectedProps.isRequired;
+  const effectiveNecessityIndicator = projectedProps.necessityIndicator;
+  const effectiveSelectedKey = projectedProps.selectedKey;
+  const effectiveDefaultSelectedKey = projectedProps.defaultSelectedKey;
+  const effectiveDisallowEmptySelection = projectedProps.disallowEmptySelection;
+  const effectiveAutoFocus = projectedProps.autoFocus;
+  const effectiveValidationBehavior = projectedProps.validationBehavior;
+
   const selectRef = useRef<HTMLDivElement>(null);
   const [popoverWidth, setPopoverWidth] = useState(0);
 
@@ -109,6 +167,7 @@ export function Select<T extends object>({
     const update = () =>
       setPopoverWidth(Math.round(el.getBoundingClientRect().width));
     update();
+    if (typeof ResizeObserver === "undefined") return undefined;
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
@@ -132,10 +191,10 @@ export function Select<T extends object>({
   });
 
   // Label 및 ARIA 처리
-  const hasVisibleLabel = label && String(label).trim();
+  const hasVisibleLabel = effectiveLabel && String(effectiveLabel).trim();
   const ariaLabel = hasVisibleLabel
     ? undefined
-    : props["aria-label"] || placeholder || "Select an option";
+    : props["aria-label"] || effectivePlaceholder || "Select an option";
 
   // DataBinding이 있고 데이터가 로드되었을 때 동적 아이템 생성
   // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원
@@ -153,6 +212,10 @@ export function Select<T extends object>({
 
   // Prepare items for rendering
   const selectItems = React.useMemo(() => {
+    if (!hasDataBinding && projectedItems.length > 0) {
+      return projectedItems as unknown as Iterable<T>;
+    }
+
     if (!hasDataBinding || loading || error) {
       return items;
     }
@@ -204,11 +267,30 @@ export function Select<T extends object>({
     columnMapping,
     dataBinding,
     items,
+    projectedItems,
   ]);
 
   // Render ListBox content based on state - memoized to prevent unnecessary re-renders
   const listBoxContent: React.ReactNode | ((item: T) => React.ReactNode) =
     React.useMemo(() => {
+      if (!hasDataBinding && projectedItems.length > 0) {
+        if (typeof children === "function") {
+          return children;
+        }
+
+        return ((item: SelectItemDescriptor) => (
+          <ListBoxItem
+            key={item.id}
+            id={item.id}
+            textValue={item.textValue ?? item.label}
+            isDisabled={item.isDisabled}
+            className="react-aria-ListBoxItem"
+          >
+            {item.label}
+          </ListBoxItem>
+        )) as (item: T) => React.ReactNode;
+      }
+
       // Loading state
       if (hasDataBinding && loading) {
         return (
@@ -267,14 +349,22 @@ export function Select<T extends object>({
 
       // Static children
       return children;
-    }, [hasDataBinding, loading, error, columnMapping, boundData, children]);
+    }, [
+      hasDataBinding,
+      loading,
+      error,
+      columnMapping,
+      boundData,
+      children,
+      projectedItems,
+    ]);
 
   // Single unified return structure - prevents popover remounting
   if (externalLoading) {
     return (
       <Skeleton
         componentVariant="input"
-        size={size}
+        size={effectiveSize}
         className={props.className as string}
         aria-label="Loading select..."
       />
@@ -285,25 +375,34 @@ export function Select<T extends object>({
     <AriaSelect
       {...props}
       ref={selectRef}
-      data-size={size}
-      data-label-position={labelPosition}
-      data-quiet={isQuiet ? "true" : undefined}
+      selectedKey={effectiveSelectedKey}
+      defaultSelectedKey={effectiveDefaultSelectedKey}
+      isInvalid={effectiveIsInvalid}
+      isRequired={effectiveIsRequired}
+      autoFocus={effectiveAutoFocus}
+      validationBehavior={effectiveValidationBehavior}
+      data-size={effectiveSize}
+      data-label-position={effectiveLabelPosition}
+      data-quiet={effectiveIsQuiet ? "true" : undefined}
+      data-read-only={effectiveIsReadOnly ? "true" : undefined}
       className={composeRenderProps(props.className, (cls) =>
         cls ? `react-aria-Select ${cls}` : "react-aria-Select",
       )}
       aria-label={ariaLabel}
-      placeholder={placeholder}
-      isDisabled={props.isDisabled || (hasDataBinding && (loading || !!error))}
+      placeholder={effectivePlaceholder}
+      isDisabled={
+        effectiveIsDisabled || (hasDataBinding && (loading || !!error))
+      }
       data-selection-mode={selectionMode}
     >
       {() => (
         <>
           {hasVisibleLabel && (
             <Label className="react-aria-Label">
-              {String(label)}
+              {String(effectiveLabel)}
               {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
+                effectiveNecessityIndicator,
+                effectiveIsRequired,
               )}
             </Label>
           )}
@@ -312,7 +411,9 @@ export function Select<T extends object>({
             <SelectValue />
             <span aria-hidden="true" className="select-chevron">
               {(() => {
-                const data = iconName ? getIconData(iconName) : null;
+                const data = effectiveIconName
+                  ? getIconData(effectiveIconName)
+                  : null;
                 if (data) {
                   return (
                     <svg
@@ -361,9 +462,9 @@ export function Select<T extends object>({
             </span>
           </Button>
 
-          {description && String(description).trim() && (
+          {effectiveDescription && String(effectiveDescription).trim() && (
             <Text slot="description" className="react-aria-Description">
-              {String(description)}
+              {String(effectiveDescription)}
             </Text>
           )}
 
@@ -382,11 +483,11 @@ export function Select<T extends object>({
           )}
 
           {/* Show validation error */}
-          {errorMessage && !error && (
+          {effectiveErrorMessage && !error && (
             <FieldError className="react-aria-FieldError">
-              {typeof errorMessage === "function"
-                ? errorMessage({ isInvalid: true } as ValidationResult)
-                : String(errorMessage)}
+              {typeof effectiveErrorMessage === "function"
+                ? effectiveErrorMessage({ isInvalid: true } as ValidationResult)
+                : String(effectiveErrorMessage)}
             </FieldError>
           )}
 
@@ -403,7 +504,8 @@ export function Select<T extends object>({
               items={selectItems}
               className="react-aria-ListBox"
               selectionMode={selectionMode}
-              data-size={size}
+              disallowEmptySelection={effectiveDisallowEmptySelection}
+              data-size={effectiveSize}
             >
               {listBoxContent}
             </ListBox>

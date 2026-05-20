@@ -570,6 +570,13 @@ label+input+item row fixture 를 추가했고, `ComboBoxSpec.render.shapes()` �
 `forms` category 로 보존한다. ADR-132 collection 데이터 binding 전체 전환과
 Select/Tabs 는 잔여다.
 
+2026-05-20 추가 slice: Select collections primitive 를 `cutover:"catalog"` 로
+등록했다. `selectPrimitiveBinding` / `toSelectRacProps()` / shared `Select.tsx`
+projection / Preview Select primitive branch / generic Skia label+trigger+item row
+fixture 를 추가했고, `SelectSpec.render.shapes()` 미호출을 검증한다. Select 는
+collections family 소속이지만 기존 Component Panel 위치는 `forms` category 로
+보존한다. ADR-132 collection 데이터 binding 전체 전환과 Tabs 는 잔여다.
+
 ### Phase 6 — Family-gated atomic cutover
 
 목표: Phase 0~5 공통 기반 위에서 family 순서대로 4경로를 atomic 하게 전환한다.

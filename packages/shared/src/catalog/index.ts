@@ -19,6 +19,7 @@ export * from "./primitives/numberField";
 export * from "./primitives/radio";
 export * from "./primitives/radioGroup";
 export * from "./primitives/searchField";
+export * from "./primitives/select";
 export * from "./primitives/separator";
 export * from "./primitives/slider";
 export * from "./primitives/switch";

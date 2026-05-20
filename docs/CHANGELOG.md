@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Select collections primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Select active primitive binding 추가**:
+  - `componentCatalog` 에 `Select` 를 `cutover:"catalog"` active collections primitive 로 등록했다. 사용자 패널 위치는 기존과 동일하게 `forms` category 로 유지했다.
+  - canonical `items[]` / label / placeholder / selected key / placement/state props 를 RAC Select surface 로 투영하는 `toSelectRacProps()` 와 `selectPrimitiveBinding` 을 추가했다.
+  - `Select.tsx` shared wrapper 가 catalog projection, static `items[]`, size/icon/state props 를 소비하도록 전환했다.
+- **Select Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Select resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 Select label + trigger + list item row/text/icon 을 렌더하고 `SelectSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select pilot 까지 완료했다. collection 데이터 binding(ADR-132) 전체 전환은 아직 닫지 않았고, 다음 entrypoint 는 Tabs 잔여 collections slice 다.
+
 ## [ADR-142 Phase 3/5/6 — ComboBox collections primitive catalog pilot] - 2026-05-20
 
 ### Architecture

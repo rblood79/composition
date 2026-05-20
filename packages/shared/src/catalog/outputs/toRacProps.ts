@@ -275,6 +275,14 @@ export const COMBO_BOX_MENU_TRIGGER_VALUES = [
   "manual",
 ] as const;
 export const COMBO_BOX_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
+export const SELECT_SIZE_VALUES = BUTTON_SIZE_VALUES;
+export const SELECT_LABEL_POSITION_VALUES = TEXT_FIELD_LABEL_POSITION_VALUES;
+export const SELECT_LABEL_ALIGN_VALUES = ["start", "end"] as const;
+export const SELECT_ALIGN_VALUES = ["start", "end"] as const;
+export const SELECT_DIRECTION_VALUES = ["bottom", "top"] as const;
+export const SELECT_NECESSITY_INDICATOR_VALUES =
+  TEXT_FIELD_NECESSITY_INDICATOR_VALUES;
+export const SELECT_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -434,6 +442,17 @@ const COMBO_BOX_NECESSITY_INDICATORS = new Set<string>(
 const COMBO_BOX_MENU_TRIGGERS = new Set<string>(COMBO_BOX_MENU_TRIGGER_VALUES);
 const COMBO_BOX_VALIDATION_BEHAVIORS = new Set<string>(
   COMBO_BOX_VALIDATION_BEHAVIOR_VALUES,
+);
+const SELECT_SIZES = new Set<ComponentSize>(SELECT_SIZE_VALUES);
+const SELECT_LABEL_POSITIONS = new Set<string>(SELECT_LABEL_POSITION_VALUES);
+const SELECT_LABEL_ALIGNS = new Set<string>(SELECT_LABEL_ALIGN_VALUES);
+const SELECT_ALIGNS = new Set<string>(SELECT_ALIGN_VALUES);
+const SELECT_DIRECTIONS = new Set<string>(SELECT_DIRECTION_VALUES);
+const SELECT_NECESSITY_INDICATORS = new Set<string>(
+  SELECT_NECESSITY_INDICATOR_VALUES,
+);
+const SELECT_VALIDATION_BEHAVIORS = new Set<string>(
+  SELECT_VALIDATION_BEHAVIOR_VALUES,
 );
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
@@ -1499,6 +1518,83 @@ export interface ComboBoxRacProps extends Record<string, unknown> {
   autoFocus: boolean;
   menuTrigger: (typeof COMBO_BOX_MENU_TRIGGER_VALUES)[number];
   validationBehavior: (typeof COMBO_BOX_VALIDATION_BEHAVIOR_VALUES)[number];
+  name?: string;
+  form?: string;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface SelectItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  value?: string;
+  textValue?: string;
+  isDisabled?: boolean;
+  icon?: string;
+  description?: string;
+}
+
+export interface SelectCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  contextualHelp?: unknown;
+  placeholder?: unknown;
+  selectedKey?: unknown;
+  defaultSelectedKey?: unknown;
+  value?: unknown;
+  items?: unknown;
+  size?: unknown;
+  iconName?: unknown;
+  labelPosition?: unknown;
+  labelAlign?: unknown;
+  isQuiet?: unknown;
+  isLoading?: unknown;
+  align?: unknown;
+  direction?: unknown;
+  shouldFlip?: unknown;
+  menuWidth?: unknown;
+  disallowEmptySelection?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isInvalid?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  autoFocus?: unknown;
+  validationBehavior?: unknown;
+  name?: unknown;
+  form?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface SelectRacProps extends Record<string, unknown> {
+  label?: string;
+  description?: string;
+  errorMessage?: string;
+  contextualHelp?: string;
+  placeholder: string;
+  selectedKey?: string;
+  defaultSelectedKey?: string;
+  items?: SelectItemDescriptor[];
+  size: ComponentSize;
+  iconName: string;
+  labelPosition: (typeof SELECT_LABEL_POSITION_VALUES)[number];
+  labelAlign: (typeof SELECT_LABEL_ALIGN_VALUES)[number];
+  isQuiet: boolean;
+  isLoading: boolean;
+  align: (typeof SELECT_ALIGN_VALUES)[number];
+  direction: (typeof SELECT_DIRECTION_VALUES)[number];
+  shouldFlip: boolean;
+  menuWidth?: string;
+  disallowEmptySelection: boolean;
+  necessityIndicator?: (typeof SELECT_NECESSITY_INDICATOR_VALUES)[number];
+  isRequired: boolean;
+  isInvalid: boolean;
+  isDisabled: boolean;
+  isReadOnly: boolean;
+  autoFocus: boolean;
+  validationBehavior: (typeof SELECT_VALIDATION_BEHAVIOR_VALUES)[number];
   name?: string;
   form?: string;
   className?: string;
@@ -2625,6 +2721,66 @@ export function toComboBoxRacProps(
   };
 }
 
+export function toSelectRacProps(props: SelectCanonicalProps): SelectRacProps {
+  const items = normalizeSelectItems(props.items);
+  return {
+    ...(readString(props.label, "").trim()
+      ? { label: readString(props.label, "") }
+      : {}),
+    ...(readString(props.description, "").trim()
+      ? { description: readString(props.description, "") }
+      : {}),
+    ...(readString(props.errorMessage, "").trim()
+      ? { errorMessage: readString(props.errorMessage, "") }
+      : {}),
+    ...(readString(props.contextualHelp, "").trim()
+      ? { contextualHelp: readString(props.contextualHelp, "") }
+      : {}),
+    placeholder: readString(props.placeholder, "Choose an option..."),
+    ...(typeof props.selectedKey === "string"
+      ? { selectedKey: props.selectedKey }
+      : {}),
+    ...(typeof props.defaultSelectedKey === "string"
+      ? { defaultSelectedKey: props.defaultSelectedKey }
+      : {}),
+    ...(items.length > 0 ? { items } : {}),
+    size: normalizeSelectSize(props.size),
+    iconName: readString(props.iconName, "chevron-down"),
+    labelPosition: normalizeSelectLabelPosition(props.labelPosition),
+    labelAlign: normalizeSelectLabelAlign(props.labelAlign),
+    isQuiet: props.isQuiet === true,
+    isLoading: props.isLoading === true,
+    align: normalizeSelectAlign(props.align),
+    direction: normalizeSelectDirection(props.direction),
+    shouldFlip: props.shouldFlip !== false,
+    ...(typeof props.menuWidth === "string"
+      ? { menuWidth: props.menuWidth }
+      : {}),
+    disallowEmptySelection: props.disallowEmptySelection === true,
+    ...(normalizeSelectNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeSelectNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    isRequired: props.isRequired === true,
+    isInvalid: props.isInvalid === true,
+    isDisabled: props.isDisabled === true,
+    isReadOnly: props.isReadOnly === true,
+    autoFocus: props.autoFocus === true,
+    validationBehavior: normalizeSelectValidationBehavior(
+      props.validationBehavior,
+    ),
+    ...(typeof props.name === "string" ? { name: props.name } : {}),
+    ...(typeof props.form === "string" ? { form: props.form } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -3647,6 +3803,91 @@ function normalizeComboBoxItems(value: unknown): ComboBoxItemDescriptor[] {
 function normalizeComboBoxItem(
   value: unknown,
 ): ComboBoxItemDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+  const label = readString(value.label, "").trim();
+  if (!label) return undefined;
+  const id = readString(value.id ?? value.value, label);
+  return {
+    id,
+    label,
+    ...(typeof value.value === "string" || typeof value.value === "number"
+      ? { value: String(value.value) }
+      : {}),
+    ...(typeof value.textValue === "string"
+      ? { textValue: value.textValue }
+      : {}),
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
+      : {}),
+    ...(typeof value.icon === "string" ? { icon: value.icon } : {}),
+    ...(typeof value.description === "string"
+      ? { description: value.description }
+      : {}),
+  };
+}
+
+function normalizeSelectSize(value: unknown): ComponentSize {
+  return typeof value === "string" && SELECT_SIZES.has(value as ComponentSize)
+    ? (value as ComponentSize)
+    : "md";
+}
+
+function normalizeSelectLabelPosition(
+  value: unknown,
+): (typeof SELECT_LABEL_POSITION_VALUES)[number] {
+  return typeof value === "string" && SELECT_LABEL_POSITIONS.has(value)
+    ? (value as (typeof SELECT_LABEL_POSITION_VALUES)[number])
+    : "top";
+}
+
+function normalizeSelectLabelAlign(
+  value: unknown,
+): (typeof SELECT_LABEL_ALIGN_VALUES)[number] {
+  return typeof value === "string" && SELECT_LABEL_ALIGNS.has(value)
+    ? (value as (typeof SELECT_LABEL_ALIGN_VALUES)[number])
+    : "start";
+}
+
+function normalizeSelectAlign(
+  value: unknown,
+): (typeof SELECT_ALIGN_VALUES)[number] {
+  return typeof value === "string" && SELECT_ALIGNS.has(value)
+    ? (value as (typeof SELECT_ALIGN_VALUES)[number])
+    : "start";
+}
+
+function normalizeSelectDirection(
+  value: unknown,
+): (typeof SELECT_DIRECTION_VALUES)[number] {
+  return typeof value === "string" && SELECT_DIRECTIONS.has(value)
+    ? (value as (typeof SELECT_DIRECTION_VALUES)[number])
+    : "bottom";
+}
+
+function normalizeSelectNecessityIndicator(
+  value: unknown,
+): (typeof SELECT_NECESSITY_INDICATOR_VALUES)[number] | undefined {
+  return typeof value === "string" && SELECT_NECESSITY_INDICATORS.has(value)
+    ? (value as (typeof SELECT_NECESSITY_INDICATOR_VALUES)[number])
+    : undefined;
+}
+
+function normalizeSelectValidationBehavior(
+  value: unknown,
+): (typeof SELECT_VALIDATION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && SELECT_VALIDATION_BEHAVIORS.has(value)
+    ? (value as (typeof SELECT_VALIDATION_BEHAVIOR_VALUES)[number])
+    : "native";
+}
+
+function normalizeSelectItems(value: unknown): SelectItemDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeSelectItem(entry))
+    .filter((entry): entry is SelectItemDescriptor => entry !== undefined);
+}
+
+function normalizeSelectItem(value: unknown): SelectItemDescriptor | undefined {
   if (!isRecord(value)) return undefined;
   const label = readString(value.label, "").trim();
   if (!label) return undefined;

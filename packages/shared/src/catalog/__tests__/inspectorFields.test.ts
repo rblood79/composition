@@ -13,6 +13,7 @@ import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { menuPrimitiveBinding } from "../primitives/menu";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
+import { selectPrimitiveBinding } from "../primitives/select";
 import { sliderPrimitiveBinding } from "../primitives/slider";
 import { switchPrimitiveBinding } from "../primitives/switch";
 import { tagGroupPrimitiveBinding } from "../primitives/tagGroup";
@@ -33,6 +34,7 @@ import {
   toNumberFieldRacProps,
   toRadioRacProps,
   toSearchFieldRacProps,
+  toSelectRacProps,
   toSliderRacProps,
   toSwitchRacProps,
   toTagGroupRacProps,
@@ -1338,6 +1340,78 @@ describe("ADR-142 inspector field contracts", () => {
       selectedKey: "cat",
       inputValue: "Cat",
       allowsCustomValue: true,
+      items: [
+        { id: "aardvark", label: "Aardvark", value: "aardvark" },
+        { id: "cat", label: "Cat", value: "cat", isDisabled: true },
+      ],
+    });
+  });
+
+  it("groups Select PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "Select",
+      contracts: selectPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { Select: ["xs", "sm", "md", "lg", "xl"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "items",
+      "description",
+      "errorMessage",
+      "placeholder",
+      "contextualHelp",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "size",
+      "iconName",
+      "labelPosition",
+      "labelAlign",
+      "isQuiet",
+      "align",
+      "direction",
+      "shouldFlip",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "selectedKey",
+      "defaultSelectedKey",
+      "disallowEmptySelection",
+      "necessityIndicator",
+      "isRequired",
+      "isInvalid",
+      "isDisabled",
+      "isReadOnly",
+    ]);
+  });
+
+  it("projects Select canonical items through the catalog boundary", () => {
+    expect(
+      toSelectRacProps({
+        label: "Animals",
+        placeholder: "Pick one",
+        size: "lg",
+        selectedKey: "cat",
+        defaultSelectedKey: "aardvark",
+        items: [
+          { id: "aardvark", label: "Aardvark", value: "aardvark" },
+          { id: "cat", label: "Cat", value: "cat", isDisabled: true },
+          { id: "ignored", label: "" },
+          42,
+        ],
+      }),
+    ).toMatchObject({
+      label: "Animals",
+      placeholder: "Pick one",
+      size: "lg",
+      selectedKey: "cat",
+      defaultSelectedKey: "aardvark",
       items: [
         { id: "aardvark", label: "Aardvark", value: "aardvark" },
         { id: "cat", label: "Cat", value: "cat", isDisabled: true },

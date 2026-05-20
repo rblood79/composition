@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox pilot 완료, 다음 진입점 Select/Tabs 잔여 collections slice)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select pilot 완료, 다음 진입점 Tabs 잔여 collections slice)
 
 ## Context
 
@@ -536,7 +536,19 @@ primitive branch 에서 먼저 렌더한다. generic Skia path 는 ComboBox labe
 list item row/text 를 container + box/text/icon node 로 렌더하고
 `ComboBoxSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 단, collections
 family 전체는 아직 닫지 않았다.
-ADR-132 collection 데이터 binding 전체 전환과 Select/Tabs 잔여 slice 가 다음
+2026-05-20 추가 판정: Select collections primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/select.ts` 와 `toSelectRacProps()` 가 Select
+canonical `items[]` / label / placeholder / selected key / placement / state props 를
+RAC Select surface 로 정규화한다. `componentCatalog` 는 Select 를
+`cutover:"catalog"` active collections primitive 로 등록하되, 기존 사용자 패널 위치를
+보존하기 위해 panel category 는 `forms` 로 유지한다.
+`packages/shared/src/components/Select.tsx` 는 catalog projection 과 static `items[]`
+렌더를 shared wrapper surface 에서 소비한다. Preview `CanonicalNodeRenderer` 는 Select
+resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다. generic
+Skia path 는 Select label + trigger + list item row/text 를 container + box/text/icon
+node 로 렌더하고 `SelectSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 단,
+collections family 전체는 아직 닫지 않았다.
+ADR-132 collection 데이터 binding 전체 전환과 Tabs 잔여 slice 가 다음
 진입점이다.
 
 ## Consequences

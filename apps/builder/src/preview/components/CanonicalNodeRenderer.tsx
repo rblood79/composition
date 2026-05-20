@@ -39,6 +39,7 @@ import {
   type RadioGroupRacProps,
   type RadioRacProps,
   type SearchFieldRacProps,
+  type SelectRacProps,
   type SeparatorRacProps,
   type SliderRacProps,
   type SwitchRacProps,
@@ -68,6 +69,7 @@ import {
   Radio,
   RadioGroup,
   SearchField,
+  Select,
   Separator,
   Slider,
   Switch,
@@ -518,6 +520,14 @@ function renderPrimitiveNode({
     ) as ComboBoxRacProps;
 
     return <ComboBox key={node.id} {...comboBoxProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Select") {
+    const selectProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as SelectRacProps;
+
+    return <Select key={node.id} {...selectProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

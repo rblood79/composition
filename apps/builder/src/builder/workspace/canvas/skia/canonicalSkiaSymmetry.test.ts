@@ -21,6 +21,7 @@ import {
   RadioGroupSpec,
   RadioSpec,
   SearchFieldSpec,
+  SelectSpec,
   SeparatorSpec,
   SliderSpec,
   SwitchSpec,
@@ -541,6 +542,38 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node).not.toBeNull();
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("combo-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Animals", "Cat", "Aardvark"]),
+    );
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Select items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(SelectSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "select-1",
+        type: "Select",
+        props: {
+          label: "Animals",
+          placeholder: "Pick one",
+          selectedKey: "cat",
+          size: "md",
+          items: [
+            { id: "aardvark", label: "Aardvark", value: "aardvark" },
+            { id: "cat", label: "Cat", value: "cat" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 280, height: 128 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("select-1");
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Animals", "Cat", "Aardvark"]),
     );

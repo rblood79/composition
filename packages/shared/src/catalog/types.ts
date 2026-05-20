@@ -42,6 +42,7 @@ export interface PrimitiveSkiaDescriptor {
     | "radio"
     | "radio-group"
     | "search-field"
+    | "select"
     | "separator"
     | "slider"
     | "switch"

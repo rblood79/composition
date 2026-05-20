@@ -424,6 +424,31 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Select placement with canonical items", () => {
+    const creation = resolveCatalogElementCreation("Select");
+
+    expect(creation).toMatchObject({
+      elementType: "Select",
+      props: {
+        label: "Select",
+        placeholder: "Choose an option...",
+        selectedKey: undefined,
+        labelPosition: "top",
+        isDisabled: false,
+        isInvalid: false,
+        isReadOnly: false,
+        isRequired: false,
+        items: [
+          { id: "item-1", label: "Aardvark", value: "aardvark" },
+          { id: "item-2", label: "Cat", value: "cat" },
+          { id: "item-3", label: "Dog", value: "dog" },
+          { id: "item-4", label: "Kangaroo", value: "kangaroo" },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

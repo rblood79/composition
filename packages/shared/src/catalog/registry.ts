@@ -14,6 +14,7 @@ import { numberFieldInspectorThemeValues } from "./primitives/numberField";
 import { radioGroupInspectorThemeValues } from "./primitives/radioGroup";
 import { radioInspectorThemeValues } from "./primitives/radio";
 import { searchFieldInspectorThemeValues } from "./primitives/searchField";
+import { selectInspectorThemeValues } from "./primitives/select";
 import { sliderInspectorThemeValues } from "./primitives/slider";
 import { switchInspectorThemeValues } from "./primitives/switch";
 import { tagGroupInspectorThemeValues } from "./primitives/tagGroup";
@@ -50,6 +51,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "TagGroup") return tagGroupInspectorThemeValues;
   if (type === "Menu") return menuInspectorThemeValues;
   if (type === "ComboBox") return comboBoxInspectorThemeValues;
+  if (type === "Select") return selectInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;

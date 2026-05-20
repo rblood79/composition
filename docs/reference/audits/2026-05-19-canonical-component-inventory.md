@@ -374,5 +374,11 @@ Preview ComboBox primitive branch / generic Skia label+input+item row fixture �
 추가했다. ComboBox 는 canonical `items[]` 를 RAC ComboBox item surface 로 투영하며
 `ComboBoxSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
 Panel category 는 기존 사용자 위치를 보존하기 위해 `forms` 로 유지한다.
+Select collections primitive pilot 은 `toSelectRacProps()` / `selectPrimitiveBinding` /
+active catalog entry / shared `Select.tsx` projection / Preview Select primitive branch /
+generic Skia label+trigger+item row fixture 를 추가했다. Select 는 canonical `items[]` 를
+RAC Select item surface 로 투영하며 `SelectSpec.render.shapes()` 를 호출하지 않는
+generic Skia fixture 로 고정했다. Panel category 는 기존 사용자 위치를 보존하기 위해
+`forms` 로 유지한다.
 collections family 전체 완료 주장은 아직 하지 않는다. ADR-132 collection 데이터 binding 과
-Select/Tabs 잔여 전환이 다음 범위다.
+Tabs 잔여 전환이 다음 범위다.

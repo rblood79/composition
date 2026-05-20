@@ -30,6 +30,7 @@ const {
   legacyRadioRenderer,
   legacyRadioGroupRenderer,
   legacySearchFieldRenderer,
+  legacySelectRenderer,
   legacySeparatorRenderer,
   legacySliderRenderer,
   legacySwitchRenderer,
@@ -92,6 +93,9 @@ const {
   legacySearchFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="SearchField">legacy</div>
   )),
+  legacySelectRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Select">legacy</div>
+  )),
   legacySeparatorRenderer: vi.fn(() => (
     <div data-legacy-renderer="Separator">legacy</div>
   )),
@@ -141,6 +145,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Radio: legacyRadioRenderer,
     RadioGroup: legacyRadioGroupRenderer,
     SearchField: legacySearchFieldRenderer,
+    Select: legacySelectRenderer,
     Separator: legacySeparatorRenderer,
     Slider: legacySliderRenderer,
     Switch: legacySwitchRenderer,
@@ -187,6 +192,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyRadioRenderer.mockClear();
     legacyRadioGroupRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
+    legacySelectRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
     legacySliderRenderer.mockClear();
     legacySwitchRenderer.mockClear();
@@ -1068,6 +1074,35 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       "Pick one",
     );
     expect(legacyComboBoxRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Select canonical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "select-1",
+      type: "Select",
+      props: {
+        label: "Animals",
+        placeholder: "Pick one",
+        selectedKey: "cat",
+        size: "md",
+        items: [
+          { id: "aardvark", label: "Aardvark", value: "aardvark" },
+          { id: "cat", label: "Cat", value: "cat" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const selectRoot = container.querySelector(".react-aria-Select");
+    expect(selectRoot?.getAttribute("data-size")).toBe("md");
+    expect(container.querySelector("[data-canonical-id='select-1']")).toBe(
+      selectRoot,
+    );
+    expect(screen.getByText("Animals")).toBeTruthy();
+    expect(legacySelectRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

@@ -14,6 +14,7 @@ import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { menuPrimitiveBinding } from "../primitives/menu";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
+import { selectPrimitiveBinding } from "../primitives/select";
 import { sliderPrimitiveBinding } from "../primitives/slider";
 import { switchPrimitiveBinding } from "../primitives/switch";
 import { tagGroupPrimitiveBinding } from "../primitives/tagGroup";
@@ -516,6 +517,28 @@ describe("ADR-142 component catalog", () => {
     ]);
   });
 
+  it("registers Select as an active collections primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Select");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(selectPrimitiveBinding);
+    expect(entry.family).toBe("collections");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Select");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("select");
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("select");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual([
+      { id: "item-1", label: "Aardvark", value: "aardvark" },
+      { id: "item-2", label: "Cat", value: "cat" },
+      { id: "item-3", label: "Dog", value: "dog" },
+      { id: "item-4", label: "Kangaroo", value: "kangaroo" },
+    ]);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -578,6 +601,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("TagGroup");
     expect(activeTypes).toContain("Menu");
     expect(activeTypes).toContain("ComboBox");
+    expect(activeTypes).toContain("Select");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

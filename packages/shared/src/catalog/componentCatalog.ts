@@ -16,6 +16,7 @@ import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { radioGroupPrimitiveBinding } from "./primitives/radioGroup";
 import { radioPrimitiveBinding } from "./primitives/radio";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
+import { selectPrimitiveBinding } from "./primitives/select";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import { sliderPrimitiveBinding } from "./primitives/slider";
 import { switchPrimitiveBinding } from "./primitives/switch";
@@ -380,6 +381,19 @@ export const componentCatalog = [
     panel: {
       category: "forms",
       label: "combo box",
+      icon: "ChevronDown",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Select",
+    family: "collections",
+    cutover: "catalog",
+    binding: selectPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "select",
       icon: "ChevronDown",
       placeable: true,
     },
