@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar primitive wrapper boundary slice 완료; Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar generic Skia pilot 완료; 다음 진입점 primitives/actions 잔여 wrapper + Phase 5 CSS/Skia generic 정합)
 
 ## Context
 
@@ -212,6 +212,17 @@ land 했다. `packages/shared/src/components/Button.tsx` 는 inline default proj
 compatibility fallback 으로 한정하고 active Builder authoring / Panel / Factory /
 Preview / Publish runtime import 금지를 명시한다. 이는 Button proof family 의 G6
 boundary slice 이며, 약 35개 primitive wrapper 전체 완료 판정은 아니다.
+
+2026-05-20 추가 판정: Button Icon inspector parity 를 catalog contract 경로로
+보강했다. `buttonPrimitiveBinding.props.accepts` 는 `iconName` /
+`iconPosition` / `iconStrokeWidth` 를 `Icon` section 으로 노출하고,
+`toButtonRacProps()` 는 이 canonical props 를 shared Button wrapper 로 투영한다.
+`packages/shared/src/components/Button.tsx` 는 RAC Button wrapper 를 유지하면서
+Icon child 를 렌더한다. generic Skia Button path 는 같은 `iconName` 을
+`icon_path` child 로 렌더하고 `ButtonSpec.render.shapes()` 를 호출하지 않는
+fixture 를 가진다. 이는 구 `ButtonSpec.properties` 의 Icon section 으로 되돌아간
+것이 아니라 `PrimitiveBinding` PropContract + resolved-tree generic renderer parity
+보강이다.
 
 2026-05-20 추가 판정: Separator primitive catalog pilot 을 land 했다.
 `packages/shared/src/catalog/primitives/separator.ts` 와 `toSeparatorRacProps()` 가

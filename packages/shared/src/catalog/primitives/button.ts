@@ -1,6 +1,7 @@
 import type { PrimitiveBinding } from "../types";
 import {
   BUTTON_FILL_STYLE_VALUES,
+  BUTTON_ICON_POSITION_VALUES,
   BUTTON_SIZE_VALUES,
   BUTTON_TYPE_VALUES,
   BUTTON_VARIANT_VALUES,
@@ -59,6 +60,33 @@ const buttonAccepts = {
       value,
       label: value[0]!.toUpperCase() + value.slice(1),
     })),
+  },
+  iconName: {
+    kind: "icon",
+    label: "Icon",
+    section: "icon",
+    emptyToUndefined: true,
+  },
+  iconPosition: {
+    kind: "enum",
+    label: "Position",
+    section: "icon",
+    default: "start",
+    visibleWhen: { key: "iconName", truthy: true },
+    options: BUTTON_ICON_POSITION_VALUES.map((value) => ({
+      value,
+      label: value[0]!.toUpperCase() + value.slice(1),
+    })),
+  },
+  iconStrokeWidth: {
+    kind: "number",
+    label: "Stroke Width",
+    section: "icon",
+    default: 2,
+    min: 0.5,
+    max: 4,
+    step: 0.5,
+    visibleWhen: { key: "iconName", truthy: true },
   },
   isDisabled: {
     kind: "boolean",

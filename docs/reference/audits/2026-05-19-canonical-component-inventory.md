@@ -255,4 +255,7 @@ Preview primitive branch / generic Skia `line` 렌더 fixture 를 추가했다. 
 Skia underline text fixture 를 추가했다. ToggleButton primitive pilot 도
 `toToggleButtonRacProps()` / `toggleButtonPrimitiveBinding` / active catalog entry /
 Preview primitive branch / generic Skia selected/emphasized button-like fixture 로
-확장했다.
+확장했다. Button Icon inspector parity 는 구 `ButtonSpec.properties` 로 되돌리지
+않고 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 과 `toButtonRacProps()`
+projection 으로 보강했으며, generic Skia Button path 는 `iconName` 을 `icon_path`
+child 로 렌더한다.

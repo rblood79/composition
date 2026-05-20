@@ -34,6 +34,7 @@ import {
 } from "@composition/shared";
 import {
   fontFamily,
+  getIconData,
   normalizeBreadcrumbRspSizeKey,
   parsePxValue,
   type ComponentState,
@@ -872,6 +873,32 @@ function buildGenericButtonNode(
   const size = resolveGenericButtonSize(props.size);
   const style = readGenericStyle(node);
   const textContent = props.children;
+  const iconData = props.iconName ? getIconData(props.iconName) : null;
+  const iconSize = size.fontSize + 2;
+  const iconInset = Math.max(size.gap, 8);
+  const iconNode: SkiaNodeData | null = iconData
+    ? {
+        type: "icon_path",
+        elementId: `${node.id}:icon`,
+        x:
+          props.iconPosition === "end"
+            ? Math.max(layout.width - iconInset - iconSize, 0)
+            : iconInset,
+        y: Math.max((layout.height - iconSize) / 2, 0),
+        width: iconSize,
+        height: iconSize,
+        visible: true,
+        iconPath: {
+          paths: iconData.paths,
+          circles: iconData.circles,
+          cx: iconSize / 2,
+          cy: iconSize / 2,
+          size: iconSize,
+          strokeColor: palette.textColor,
+          strokeWidth: props.iconStrokeWidth,
+        },
+      }
+    : null;
   const textNode: SkiaNodeData = {
     type: "text",
     elementId: `${node.id}:text`,
@@ -894,6 +921,12 @@ function buildGenericButtonNode(
       autoCenter: true,
     },
   };
+  const children =
+    iconNode && props.iconPosition !== "end"
+      ? [iconNode, textNode]
+      : iconNode
+        ? [textNode, iconNode]
+        : [textNode];
 
   return {
     type: "container",
@@ -909,7 +942,7 @@ function buildGenericButtonNode(
       strokeColor: palette.strokeColor,
       strokeWidth: palette.strokeWidth,
     },
-    children: [textNode],
+    children,
   };
 }
 
@@ -1155,19 +1188,20 @@ function resolveGenericButtonSize(size: ButtonRacProps["size"]): {
   fontSize: number;
   lineHeight: number;
   radius: number;
+  gap: number;
 } {
   switch (size) {
     case "xs":
-      return { fontSize: 11, lineHeight: 14, radius: 4 };
+      return { fontSize: 11, lineHeight: 14, radius: 4, gap: 4 };
     case "sm":
-      return { fontSize: 12, lineHeight: 16, radius: 4 };
+      return { fontSize: 12, lineHeight: 16, radius: 4, gap: 6 };
     case "lg":
-      return { fontSize: 16, lineHeight: 24, radius: 8 };
+      return { fontSize: 16, lineHeight: 24, radius: 8, gap: 10 };
     case "xl":
-      return { fontSize: 18, lineHeight: 28, radius: 8 };
+      return { fontSize: 18, lineHeight: 28, radius: 8, gap: 12 };
     case "md":
     default:
-      return { fontSize: 14, lineHeight: 20, radius: 6 };
+      return { fontSize: 14, lineHeight: 20, radius: 6, gap: 8 };
   }
 }
 

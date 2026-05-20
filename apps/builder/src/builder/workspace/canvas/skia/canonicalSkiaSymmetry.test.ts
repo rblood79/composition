@@ -76,6 +76,14 @@ function collectText(node: SkiaNodeData | null | undefined): string[] {
   ];
 }
 
+function collectNodeTypes(node: SkiaNodeData | null | undefined): string[] {
+  if (!node) return [];
+  return [
+    node.type,
+    ...(node.children ?? []).flatMap((child) => collectNodeTypes(child)),
+  ];
+}
+
 describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
   it("renders a resolved Button ref through the generic Skia path without render.shapes", () => {
     const renderShapes = vi.spyOn(ButtonSpec.render, "shapes");
@@ -94,6 +102,32 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectText(node)).toContain("Save 0");
     expect(node?.children?.[0]?.elementId).toBe("button-ref-0");
     expect(node?.children?.[0]?.box?.fillColor).toBeDefined();
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a Button icon through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ButtonSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "button-icon-1",
+        type: "Button",
+        props: {
+          children: "Create",
+          iconName: "plus",
+          iconPosition: "start",
+          iconStrokeWidth: 1.5,
+          size: "md",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 24, width: 140, height: 36 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(collectText(node)).toContain("Create");
+    expect(collectNodeTypes(node)).toContain("icon_path");
+    expect(node?.children?.[0]?.elementId).toBe("button-icon-1:icon");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

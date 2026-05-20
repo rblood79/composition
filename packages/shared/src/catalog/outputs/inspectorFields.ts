@@ -37,7 +37,7 @@ export interface BuildInspectorFieldSectionsInput {
   theme?: InspectorThemeLookup;
 }
 
-const SECTION_ORDER = ["content", "appearance", "state", "locale"];
+const SECTION_ORDER = ["content", "appearance", "icon", "state", "locale"];
 
 export function buildInspectorFieldSections({
   componentType,
@@ -130,6 +130,7 @@ function sectionTitle(section: string): string {
   const titles: Record<string, string> = {
     content: "Content",
     appearance: "Appearance",
+    icon: "Icon",
     state: "State",
     locale: "Locale",
   };

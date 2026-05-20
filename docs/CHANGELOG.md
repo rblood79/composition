@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5 — Button icon PropContract parity] - 2026-05-20
+
+### Architecture
+
+- **Button catalog Inspector contract 보강**:
+  - `buttonPrimitiveBinding.props.accepts` 에 `Icon` section(`iconName`, `iconPosition`, `iconStrokeWidth`)을 추가했다.
+  - `toButtonRacProps()` 가 icon canonical props 를 shared Button wrapper 로 투영한다.
+  - `Button.tsx` 는 RAC Button wrapper 경로를 유지하면서 `Icon` child 를 composition canonical props 로 렌더한다.
+- **Skia generic Button icon parity 추가**:
+  - generic Skia path 가 Button `iconName` 을 `icon_path` child 로 렌더하고 `ButtonSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 old `ComponentSpec` Icon section 복원이 아니라 ADR-142 catalog `PropContract` + generic renderer 경로의 Button parity 보강이다.
+
 ## [ADR-142 Phase 3/5/6 — Breadcrumbs primitive catalog pilot] - 2026-05-20
 
 ### Architecture

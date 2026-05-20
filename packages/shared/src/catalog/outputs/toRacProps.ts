@@ -33,6 +33,7 @@ export const BUTTON_SIZE_VALUES = [
 ] as const satisfies readonly ComponentSize[];
 
 export const BUTTON_TYPE_VALUES = ["button", "submit", "reset"] as const;
+export const BUTTON_ICON_POSITION_VALUES = ["start", "end"] as const;
 export const SEPARATOR_ORIENTATION_VALUES = ["horizontal", "vertical"] as const;
 export const SEPARATOR_VARIANT_VALUES = [
   "default",
@@ -79,6 +80,7 @@ const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
 const BUTTON_SIZES = new Set<ComponentSize>(BUTTON_SIZE_VALUES);
 const BUTTON_TYPES = new Set<string>(BUTTON_TYPE_VALUES);
+const BUTTON_ICON_POSITIONS = new Set<string>(BUTTON_ICON_POSITION_VALUES);
 const SEPARATOR_ORIENTATIONS = new Set<string>(SEPARATOR_ORIENTATION_VALUES);
 const SEPARATOR_VARIANTS = new Set<SeparatorVariant>(SEPARATOR_VARIANT_VALUES);
 const SEPARATOR_SIZES = new Set<ComponentSizeSubset>(SEPARATOR_SIZE_VALUES);
@@ -149,6 +151,9 @@ export interface ButtonCanonicalProps extends Record<string, unknown> {
   fillStyle?: unknown;
   size?: unknown;
   type?: unknown;
+  iconName?: unknown;
+  iconPosition?: unknown;
+  iconStrokeWidth?: unknown;
   isDisabled?: unknown;
   isLoading?: unknown;
   className?: unknown;
@@ -161,6 +166,9 @@ export interface ButtonRacProps extends Record<string, unknown> {
   fillStyle: ButtonFillStyle;
   size: ComponentSize;
   type: "button" | "submit" | "reset";
+  iconName?: string;
+  iconPosition: "start" | "end";
+  iconStrokeWidth: number;
   isDisabled?: boolean;
   isLoading?: boolean;
   className?: string;
@@ -338,6 +346,11 @@ export function toButtonRacProps(props: ButtonCanonicalProps): ButtonRacProps {
     fillStyle: normalizeButtonFillStyle(props.fillStyle),
     size: normalizeButtonSize(props.size),
     type: normalizeButtonType(props.type),
+    iconPosition: normalizeButtonIconPosition(props.iconPosition),
+    iconStrokeWidth: normalizeButtonIconStrokeWidth(props.iconStrokeWidth),
+    ...(typeof props.iconName === "string" && props.iconName.length > 0
+      ? { iconName: props.iconName }
+      : {}),
     ...(typeof props.isDisabled === "boolean"
       ? { isDisabled: props.isDisabled }
       : {}),
@@ -514,6 +527,16 @@ function normalizeButtonType(value: unknown): "button" | "submit" | "reset" {
   return typeof value === "string" && BUTTON_TYPES.has(value)
     ? (value as "button" | "submit" | "reset")
     : "button";
+}
+
+function normalizeButtonIconPosition(value: unknown): "start" | "end" {
+  return typeof value === "string" && BUTTON_ICON_POSITIONS.has(value)
+    ? (value as "start" | "end")
+    : "start";
+}
+
+function normalizeButtonIconStrokeWidth(value: unknown): number {
+  return typeof value === "number" && value >= 0.5 && value <= 4 ? value : 2;
 }
 
 function normalizeSeparatorOrientation(

@@ -377,7 +377,7 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 
 Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar primitive
-wrapper boundary slices). `packages/shared/src/components/Button.tsx` 는
+wrapper boundary slices; Button Icon PropContract parity). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
 `packages/shared/src/components/Link.tsx` 는 `toLinkRacProps()` 를,
@@ -389,7 +389,9 @@ wrapper boundary slices). `packages/shared/src/components/Button.tsx` 는
 `toToolbarRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
 props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar 는
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
-포함한다. `packages/shared/src/components/legacy/README.md` 는
+포함한다. Button 은 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 으로
+`iconName` / `iconPosition` / `iconStrokeWidth` 를 노출하고 shared Button wrapper 가
+이를 Icon child 로 렌더한다. `packages/shared/src/components/legacy/README.md` 는
 compatibility fallback 허용 범위와 active Builder authoring import 금지 경계를
 문서화했다. 이 slice 는 placeable seven primitive plus Breadcrumb subpart 의 G6
 boundary 를 고정하지만, 전체 primitive wrapper family 이동과 `index.ts` barrel
@@ -444,13 +446,15 @@ Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb text +
 ToggleButton button-like + ToggleButtonGroup/Toolbar child-recursive generic
-Skia slices). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
+Skia slices; Button icon_path parity). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
 `breadcrumb` / `toggle-button` 를 추가하고, generic Skia path 가 Separator resolved
 node 를 `line` node 로, Link resolved node 를 underline text node 로, Breadcrumb
 subpart 를 text node 로, ToggleButton resolved node 를 selected/emphasized 상태의
 button-like container/text node 로 렌더한다.
 ToggleButtonGroup/Toolbar 는 dedicated `skiaPrimitive` 없이 generic container +
-resolved children 재귀 렌더 경로로 커버한다. `canonicalSkiaSymmetry.test.ts` 는
+resolved children 재귀 렌더 경로로 커버한다. Button `iconName` 은 generic Skia
+Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.ts` 는
+`ButtonSpec.render.shapes()`,
 `SeparatorSpec.render.shapes()`, `LinkSpec.render.shapes()`,
 `BreadcrumbsSpec.render.shapes()`, `BreadcrumbSpec.render.shapes()`,
 `ToggleButtonSpec.render.shapes()`, `ToggleButtonGroupSpec.render.shapes()`,

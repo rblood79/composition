@@ -11,6 +11,7 @@ import {
   type ButtonCanonicalProps,
 } from "../catalog/outputs/toRacProps";
 import type { ButtonFillStyle, ButtonVariant, ComponentSize } from "../types";
+import { Icon } from "./Icon";
 import { Skeleton } from "./Skeleton";
 import "./styles/Button.css";
 
@@ -37,6 +38,9 @@ export interface ButtonProps extends RACButtonProps {
   isLoading?: boolean;
   /** Accessible label shown during loading */
   loadingLabel?: string;
+  iconName?: string;
+  iconPosition?: "start" | "end";
+  iconStrokeWidth?: number;
 }
 
 /** ADR-142 primitive wrapper: canonical props are projected through catalog toRacProps. */
@@ -51,6 +55,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       fillStyle: _fillStyle,
       size: _size,
       type: _type,
+      iconName: _iconName,
+      iconPosition: _iconPosition,
+      iconStrokeWidth: _iconStrokeWidth,
       isDisabled: _isDisabled,
       className,
       style,
@@ -61,12 +68,29 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       fillStyle,
       isDisabled: projectedIsDisabled,
       isLoading: projectedIsLoading,
+      iconName,
+      iconPosition,
+      iconStrokeWidth,
       size,
       type,
       variant,
     } = projectedProps;
     const isLoading = inputIsLoading ?? projectedIsLoading ?? false;
     const buttonChildren = children ?? projectedProps.children;
+    const hasIcon = Boolean(iconName);
+    const hasText =
+      typeof buttonChildren === "string"
+        ? buttonChildren.length > 0
+        : buttonChildren != null;
+    const iconElement = iconName ? (
+      <Icon
+        iconName={iconName}
+        size={size}
+        strokeWidth={iconStrokeWidth}
+        aria-hidden="true"
+        data-button-icon
+      />
+    ) : null;
 
     // Size에 따른 border-radius 인라인 스타일 적용
     const borderRadius = SIZE_BORDER_RADIUS[size];
@@ -80,6 +104,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         data-variant={variant}
         data-fill-style={fillStyle}
         data-size={size}
+        data-icon-only={hasIcon && !hasText ? true : undefined}
         data-focus-visible={isFocusVisible || undefined}
         data-loading={isLoading || undefined}
         aria-busy={isLoading || undefined}
@@ -103,7 +128,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             <span className="sr-only">{loadingLabel}</span>
           </>
         ) : (
-          buttonChildren
+          <>
+            {iconPosition !== "end" && iconElement}
+            {buttonChildren}
+            {iconPosition === "end" && iconElement}
+          </>
         )}
       </RACButton>
     );
