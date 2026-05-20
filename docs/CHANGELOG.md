@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — ColorArea date-color primitive catalog pilot] - 2026-05-21
+
+### Architecture
+
+- **ColorArea active primitive binding 추가**:
+  - `componentCatalog` 에 `ColorArea` 를 `cutover:"catalog"` active `date-color` primitive 로 등록했다.
+  - canonical color/xChannel/yChannel/colorSpace/size/xValue/yValue/disabled props 를 RAC ColorArea surface 로 투영하는 `toColorAreaRacProps()` 와 `colorAreaPrimitiveBinding` 을 추가했다.
+  - `ColorArea.tsx` shared wrapper 가 catalog projection 을 소비하고 `data-x-channel`/`data-y-channel`/`data-color-space`/`data-x-value`/`data-y-value` 상태를 active preview 경로에 반영한다.
+- **ColorArea Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 ColorArea resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 color area plane + thumb 를 렌더하고 `ColorAreaSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/catalog/__tests__/componentCatalog.test.ts src/components/__tests__/buttonPrimitiveWrapper.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/useElementCreator.catalog.test.ts src/preview/components/CanonicalNodeRenderer.adr142.test.tsx src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`
+
+### Documentation
+
+- date/color family pilot 은 ColorSwatch, ColorSlider, ColorArea 까지 진행했다. Calendar/RangeCalendar/DatePicker/DateRangePicker/ColorPicker/ColorWheel 계열은 후속 slice 로 남아 있다.
+
 ## [ADR-142 Phase 3/5/6 — ColorSlider date-color primitive catalog pilot] - 2026-05-21
 
 ### Architecture
@@ -26,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- date/color family pilot 은 ColorSwatch 에 이어 ColorSlider 까지 진행했다. Calendar/RangeCalendar/DatePicker/DateRangePicker/ColorPicker/ColorArea/ColorWheel 계열은 후속 slice 로 남아 있다.
+- date/color family pilot 은 ColorSwatch 에 이어 ColorSlider 까지 진행했다. ColorArea 는 2026-05-21 후속 slice 로 진행했고, Calendar/RangeCalendar/DatePicker/DateRangePicker/ColorPicker/ColorWheel 계열은 후속 slice 로 남아 있다.
 
 ## [ADR-142 Phase 3/5/6 — ColorSwatch date-color primitive catalog pilot] - 2026-05-20
 

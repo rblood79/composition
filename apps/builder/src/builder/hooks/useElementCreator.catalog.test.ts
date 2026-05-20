@@ -198,6 +198,25 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog ColorArea placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("ColorArea");
+
+    expect(creation).toMatchObject({
+      elementType: "ColorArea",
+      props: {
+        color: "#ff0000",
+        xChannel: "saturation",
+        yChannel: "brightness",
+        colorSpace: "hsb",
+        size: "md",
+        xValue: 0.75,
+        yValue: 0.25,
+        isDisabled: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog ColorSlider placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("ColorSlider");
 

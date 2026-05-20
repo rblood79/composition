@@ -70,7 +70,7 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 | `Calendar`          | primitive    | date-color         | `Calendar.css`                    | `CalendarCell`/`CalendarGrid` subpart 포함       |
 | `Checkbox`          | primitive    | selection          | `Checkbox.css`                    | indicator draw 검증 필요                         |
 | `CheckboxGroup`     | primitive    | selection          | `CheckboxGroup.css`               | group + checkbox children                        |
-| `ColorArea`         | primitive    | date-color         | `ColorArea.css`                   | `skiaPrimitive` 후보                             |
+| `ColorArea`         | primitive    | date-color         | `ColorArea.css`                   | active `skiaPrimitive` pilot                     |
 | `ColorField`        | primitive    | fields             | `ColorField.css`                  | field family                                     |
 | `ColorPicker`       | primitive    | date-color         | `ColorPicker.css`                 | picker shell + color controls                    |
 | `ColorSlider`       | primitive    | date-color         | `ColorSlider.css`                 | active `skiaPrimitive` pilot                     |
@@ -451,5 +451,9 @@ Skia fixture 로 고정했다. ColorSlider date/color primitive pilot 은
 shared `ColorSlider.tsx` projection / Preview ColorSlider primitive branch /
 generic Skia track-thumb fixture 를 추가했다. ColorSlider 는
 `ColorSliderSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
-date/color family 는 ColorSwatch 에 이어 ColorSlider 까지 진행했으며,
-ColorArea/ColorWheel 의 gradient/arc draw 는 후속 slice 로 남긴다.
+ColorArea date/color primitive pilot 은 `toColorAreaRacProps()` /
+`colorAreaPrimitiveBinding` / active catalog entry / shared `ColorArea.tsx`
+projection / Preview ColorArea primitive branch / generic Skia plane-thumb fixture 를
+추가했다. ColorArea 는 `ColorAreaSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했다. date/color family 는 ColorSwatch/ColorSlider/ColorArea 까지
+진행했으며, ColorWheel 의 arc draw 는 후속 slice 로 남긴다.

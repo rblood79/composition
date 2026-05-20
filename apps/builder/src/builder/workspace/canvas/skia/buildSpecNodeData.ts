@@ -24,6 +24,7 @@ import {
   toButtonRacProps,
   toCheckboxGroupRacProps,
   toCheckboxRacProps,
+  toColorAreaRacProps,
   toColorFieldRacProps,
   toColorSliderRacProps,
   toColorSwatchRacProps,
@@ -58,6 +59,7 @@ import {
   type ButtonRacProps,
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
+  type ColorAreaRacProps,
   type ColorFieldRacProps,
   type ColorSliderRacProps,
   type ColorSwatchRacProps,
@@ -915,6 +917,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "color-field") {
     return buildGenericColorFieldNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "color-area") {
+    return buildGenericColorAreaNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "color-slider") {
     return buildGenericColorSliderNode(input.node, layout, input.theme);
@@ -2049,6 +2054,92 @@ function buildGenericColorSwatchNode(
       borderRadius: radius,
     },
     children: [],
+  };
+}
+
+function buildGenericColorAreaNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toColorAreaRacProps(node.props ?? {}) as ColorAreaRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericColorAreaSize(props.size);
+  const isDark = theme === "dark";
+  const baseColor = cssColorToHex(props.defaultValue, 0xff0000);
+  const rows = 4;
+  const columns = 4;
+  const cellWidth = layout.width / columns;
+  const cellHeight = layout.height / rows;
+  const opacity = props.isDisabled ? 0.4 : 1;
+  const cells: SkiaNodeData[] = [];
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const x = column * cellWidth;
+      const y = row * cellHeight;
+      const xRatio = column / (columns - 1);
+      const yRatio = row / (rows - 1);
+      const mixed = mixHexColors(0xffffff, baseColor, xRatio);
+      const shaded = mixHexColors(mixed, 0x000000, yRatio);
+
+      cells.push({
+        type: "box",
+        elementId: `${node.id}:cell-${row}-${column}`,
+        x,
+        y,
+        width:
+          column === columns - 1 ? Math.max(layout.width - x, 0) : cellWidth,
+        height: row === rows - 1 ? Math.max(layout.height - y, 0) : cellHeight,
+        visible: true,
+        box: {
+          fillColor: colorIntToFloat32(shaded, opacity),
+          borderRadius: 0,
+        },
+      });
+    }
+  }
+
+  const thumbX = Math.max(
+    props.xValue * Math.max(layout.width - size.thumbSize, 0),
+    0,
+  );
+  const thumbY = Math.max(
+    props.yValue * Math.max(layout.height - size.thumbSize, 0),
+    0,
+  );
+  const thumbNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:thumb`,
+    x: thumbX,
+    y: thumbY,
+    width: size.thumbSize,
+    height: size.thumbSize,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        mixHexColors(0xffffff, baseColor, props.xValue),
+        props.isDisabled ? 0.5 : 1,
+      ),
+      borderRadius: size.thumbSize / 2,
+      strokeColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+      strokeWidth: 3,
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 0),
+      borderRadius: readNumber(style.borderRadius, size.radius),
+    },
+    children: [...cells, thumbNode],
   };
 }
 
@@ -5965,6 +6056,35 @@ function resolveGenericColorSliderSize(size: ColorSliderRacProps["size"]): {
     default:
       return { trackThickness: 18, thumbSize: 20 };
   }
+}
+
+function resolveGenericColorAreaSize(size: ColorAreaRacProps["size"]): {
+  radius: number;
+  thumbSize: number;
+} {
+  switch (size) {
+    case "sm":
+      return { radius: 6, thumbSize: 16 };
+    case "lg":
+      return { radius: 10, thumbSize: 24 };
+    case "md":
+    default:
+      return { radius: 8, thumbSize: 20 };
+  }
+}
+
+function mixHexColors(from: number, to: number, amount: number): number {
+  const t = Math.max(0, Math.min(amount, 1));
+  const fromRed = (from >> 16) & 0xff;
+  const fromGreen = (from >> 8) & 0xff;
+  const fromBlue = from & 0xff;
+  const toRed = (to >> 16) & 0xff;
+  const toGreen = (to >> 8) & 0xff;
+  const toBlue = to & 0xff;
+  const red = Math.round(fromRed + (toRed - fromRed) * t);
+  const green = Math.round(fromGreen + (toGreen - fromGreen) * t);
+  const blue = Math.round(fromBlue + (toBlue - fromBlue) * t);
+  return (red << 16) | (green << 8) | blue;
 }
 
 function getGenericColorSliderTrackColors(

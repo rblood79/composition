@@ -107,6 +107,9 @@ export const COLOR_SWATCH_ROUNDING_VALUES = [
   "none",
   "full",
 ] as const;
+export const COLOR_AREA_CHANNEL_VALUES = COLOR_FIELD_CHANNEL_VALUES;
+export const COLOR_AREA_COLOR_SPACE_VALUES = COLOR_FIELD_COLOR_SPACE_VALUES;
+export const COLOR_AREA_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
 export const COLOR_SLIDER_CHANNEL_VALUES = COLOR_FIELD_CHANNEL_VALUES;
 export const COLOR_SLIDER_COLOR_SPACE_VALUES = COLOR_FIELD_COLOR_SPACE_VALUES;
 export const COLOR_SLIDER_ORIENTATION_VALUES = [
@@ -383,6 +386,9 @@ const COLOR_FIELD_LABEL_ALIGNS = new Set<string>(
 const COLOR_SWATCH_VARIANTS = new Set<string>(COLOR_SWATCH_VARIANT_VALUES);
 const COLOR_SWATCH_SIZES = new Set<string>(COLOR_SWATCH_SIZE_VALUES);
 const COLOR_SWATCH_ROUNDINGS = new Set<string>(COLOR_SWATCH_ROUNDING_VALUES);
+const COLOR_AREA_CHANNELS = COLOR_FIELD_CHANNELS;
+const COLOR_AREA_COLOR_SPACES = COLOR_FIELD_COLOR_SPACES;
+const COLOR_AREA_SIZES = COLOR_SWATCH_SIZES;
 const COLOR_SLIDER_CHANNELS = COLOR_FIELD_CHANNELS;
 const COLOR_SLIDER_COLOR_SPACES = COLOR_FIELD_COLOR_SPACES;
 const COLOR_SLIDER_ORIENTATIONS = new Set<string>(
@@ -975,6 +981,36 @@ export interface ColorSwatchRacProps extends Record<string, unknown> {
   size: ComponentSizeSubset;
   rounding: (typeof COLOR_SWATCH_ROUNDING_VALUES)[number];
   isSelected: boolean;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ColorAreaCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  label?: unknown;
+  color?: unknown;
+  defaultValue?: unknown;
+  xChannel?: unknown;
+  yChannel?: unknown;
+  colorSpace?: unknown;
+  size?: unknown;
+  xValue?: unknown;
+  yValue?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ColorAreaRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  defaultValue: string;
+  xChannel: (typeof COLOR_AREA_CHANNEL_VALUES)[number];
+  yChannel: (typeof COLOR_AREA_CHANNEL_VALUES)[number];
+  colorSpace: (typeof COLOR_AREA_COLOR_SPACE_VALUES)[number];
+  size: ComponentSizeSubset;
+  xValue: number;
+  yValue: number;
   isDisabled?: boolean;
   className?: string;
   style?: Record<string, unknown>;
@@ -2591,6 +2627,28 @@ export function toColorSwatchRacProps(
   };
 }
 
+export function toColorAreaRacProps(
+  props: ColorAreaCanonicalProps,
+): ColorAreaRacProps {
+  return {
+    "aria-label": readString(props["aria-label"] ?? props.label, "Color area"),
+    defaultValue: readString(props.color ?? props.defaultValue, "#ff0000"),
+    xChannel: normalizeColorAreaChannel(props.xChannel, "saturation"),
+    yChannel: normalizeColorAreaChannel(props.yChannel, "brightness"),
+    colorSpace: normalizeColorAreaColorSpace(props.colorSpace),
+    size: normalizeColorAreaSize(props.size),
+    xValue: normalizeColorAreaValue(props.xValue, 0.75),
+    yValue: normalizeColorAreaValue(props.yValue, 0.25),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toColorSliderRacProps(
   props: ColorSliderCanonicalProps,
 ): ColorSliderRacProps {
@@ -3972,6 +4030,36 @@ function normalizeColorSwatchRounding(
   return typeof value === "string" && COLOR_SWATCH_ROUNDINGS.has(value)
     ? (value as (typeof COLOR_SWATCH_ROUNDING_VALUES)[number])
     : "default";
+}
+
+function normalizeColorAreaChannel(
+  value: unknown,
+  fallback: (typeof COLOR_AREA_CHANNEL_VALUES)[number],
+): (typeof COLOR_AREA_CHANNEL_VALUES)[number] {
+  return typeof value === "string" && COLOR_AREA_CHANNELS.has(value)
+    ? (value as (typeof COLOR_AREA_CHANNEL_VALUES)[number])
+    : fallback;
+}
+
+function normalizeColorAreaColorSpace(
+  value: unknown,
+): (typeof COLOR_AREA_COLOR_SPACE_VALUES)[number] {
+  return typeof value === "string" && COLOR_AREA_COLOR_SPACES.has(value)
+    ? (value as (typeof COLOR_AREA_COLOR_SPACE_VALUES)[number])
+    : "hsb";
+}
+
+function normalizeColorAreaSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    COLOR_AREA_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeColorAreaValue(value: unknown, fallback: number): number {
+  const numeric = readFiniteNumber(value);
+  if (numeric === undefined) return fallback;
+  return Math.max(0, Math.min(numeric, 1));
 }
 
 function normalizeColorSliderChannel(

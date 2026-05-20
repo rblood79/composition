@@ -26,6 +26,7 @@ import {
   type ButtonRacProps,
   type CheckboxGroupRacProps,
   type CheckboxRacProps,
+  type ColorAreaRacProps,
   type ColorFieldRacProps,
   type ColorSliderRacProps,
   type ColorSwatchRacProps,
@@ -67,6 +68,7 @@ import {
   Button,
   Checkbox,
   CheckboxGroup,
+  ColorArea,
   ColorField,
   ColorSlider,
   ColorSwatch,
@@ -420,6 +422,14 @@ function renderPrimitiveNode({
     ) as ColorFieldRacProps;
 
     return <ColorField key={node.id} {...colorFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "ColorArea") {
+    const colorAreaProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ColorAreaRacProps;
+
+    return <ColorArea key={node.id} {...colorAreaProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ColorSlider") {

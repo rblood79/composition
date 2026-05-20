@@ -2,6 +2,7 @@ import type { PrimitiveBinding } from "./types";
 import { buttonInspectorThemeValues } from "./primitives/button";
 import { checkboxGroupInspectorThemeValues } from "./primitives/checkboxGroup";
 import { checkboxInspectorThemeValues } from "./primitives/checkbox";
+import { colorAreaInspectorThemeValues } from "./primitives/colorArea";
 import { colorFieldInspectorThemeValues } from "./primitives/colorField";
 import { colorSliderInspectorThemeValues } from "./primitives/colorSlider";
 import { colorSwatchInspectorThemeValues } from "./primitives/colorSwatch";
@@ -78,6 +79,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "DateField") return dateFieldInspectorThemeValues;
   if (type === "TimeField") return timeFieldInspectorThemeValues;
   if (type === "ColorField") return colorFieldInspectorThemeValues;
+  if (type === "ColorArea") return colorAreaInspectorThemeValues;
   if (type === "ColorSlider") return colorSliderInspectorThemeValues;
   if (type === "ColorSwatch") return colorSwatchInspectorThemeValues;
   if (type === "DropZone") return dropZoneInspectorThemeValues;

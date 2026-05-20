@@ -1104,6 +1104,33 @@ export interface ColorSwatchElementProps extends BaseElementProps {
   colorSpace?: "rgb" | "hsl" | "hsb";
 }
 
+export interface ColorAreaElementProps extends BaseElementProps {
+  color?: string;
+  xValue?: number;
+  yValue?: number;
+  xChannel?:
+    | "hue"
+    | "saturation"
+    | "brightness"
+    | "lightness"
+    | "red"
+    | "green"
+    | "blue"
+    | "alpha";
+  yChannel?:
+    | "hue"
+    | "saturation"
+    | "brightness"
+    | "lightness"
+    | "red"
+    | "green"
+    | "blue"
+    | "alpha";
+  colorSpace?: "rgb" | "hsl" | "hsb";
+  size?: "sm" | "md" | "lg";
+  isDisabled?: boolean;
+}
+
 export interface ColorSliderElementProps extends BaseElementProps {
   color?: string;
   value?: number;
@@ -1191,6 +1218,7 @@ export type ComponentElementProps =
   | ColorFieldElementProps
   | ColorPickerElementProps
   | ColorSwatchElementProps
+  | ColorAreaElementProps
   | ColorSliderElementProps;
 
 // === 스토어 상태 타입 ===
@@ -1978,6 +2006,23 @@ export function createDefaultColorSwatchProps(): ColorSwatchElementProps {
   };
 }
 
+export function createDefaultColorAreaProps(): ColorAreaElementProps {
+  return {
+    color: "#ff0000",
+    xValue: 0.75,
+    yValue: 0.25,
+    xChannel: "saturation",
+    yChannel: "brightness",
+    colorSpace: "hsb",
+    size: "md",
+    isDisabled: false,
+    style: {
+      width: "200px",
+      height: "200px",
+    },
+  };
+}
+
 export function createDefaultColorSliderProps(): ColorSliderElementProps {
   return {
     color: "#ff0000",
@@ -2382,6 +2427,7 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   ColorField: createDefaultColorFieldProps,
   ColorPicker: createDefaultColorPickerProps,
   ColorSwatch: createDefaultColorSwatchProps,
+  ColorArea: createDefaultColorAreaProps,
   ColorSlider: createDefaultColorSliderProps,
   DropZone: createDefaultDropZoneProps,
   FileTrigger: createDefaultFileTriggerProps,

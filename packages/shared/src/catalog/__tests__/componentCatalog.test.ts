@@ -4,6 +4,7 @@ import { breadcrumbPrimitiveBinding } from "../primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { checkboxPrimitiveBinding } from "../primitives/checkbox";
+import { colorAreaPrimitiveBinding } from "../primitives/colorArea";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { colorSliderPrimitiveBinding } from "../primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "../primitives/colorSwatch";
@@ -270,6 +271,32 @@ describe("ADR-142 component catalog", () => {
       size: "md",
       rounding: "default",
       isSelected: false,
+      isDisabled: false,
+    });
+  });
+
+  it("registers ColorArea as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("ColorArea");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(colorAreaPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("ColorArea");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("color-area");
+    expect(entry.panel.category).toBe("color");
+    expect(entry.panel.label).toBe("color area");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      color: "#ff0000",
+      xChannel: "saturation",
+      yChannel: "brightness",
+      colorSpace: "hsb",
+      size: "md",
+      xValue: 0.75,
+      yValue: 0.25,
       isDisabled: false,
     });
   });
@@ -851,6 +878,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("DateField");
     expect(activeTypes).toContain("TimeField");
     expect(activeTypes).toContain("ColorField");
+    expect(activeTypes).toContain("ColorArea");
     expect(activeTypes).toContain("ColorSwatch");
     expect(activeTypes).toContain("ColorSlider");
     expect(activeTypes).toContain("Form");

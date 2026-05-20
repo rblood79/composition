@@ -15,6 +15,7 @@ const {
   legacyButtonRenderer,
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
+  legacyColorAreaRenderer,
   legacyColorFieldRenderer,
   legacyColorSliderRenderer,
   legacyColorSwatchRenderer,
@@ -61,6 +62,9 @@ const {
   )),
   legacyBreadcrumbsRenderer: vi.fn(() => (
     <nav data-legacy-renderer="Breadcrumbs">legacy</nav>
+  )),
+  legacyColorAreaRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ColorArea">legacy</div>
   )),
   legacyColorFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="ColorField">legacy</div>
@@ -181,6 +185,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Checkbox: legacyCheckboxRenderer,
     CheckboxGroup: legacyCheckboxGroupRenderer,
     ComboBox: legacyComboBoxRenderer,
+    ColorArea: legacyColorAreaRenderer,
     ColorField: legacyColorFieldRenderer,
     ColorSlider: legacyColorSliderRenderer,
     ColorSwatch: legacyColorSwatchRenderer,
@@ -240,6 +245,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyCheckboxRenderer.mockClear();
     legacyCheckboxGroupRenderer.mockClear();
     legacyComboBoxRenderer.mockClear();
+    legacyColorAreaRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyColorSliderRenderer.mockClear();
     legacyColorSwatchRenderer.mockClear();
@@ -734,6 +740,36 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(swatch?.getAttribute("data-variant")).toBe("selected");
     expect(swatch?.getAttribute("data-rounding")).toBe("full");
     expect(legacyColorSwatchRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ColorArea through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "color-area-1",
+      type: "ColorArea",
+      props: {
+        color: "#ff0000",
+        xChannel: "saturation",
+        yChannel: "brightness",
+        colorSpace: "hsb",
+        size: "lg",
+        xValue: 0.6,
+        yValue: 0.4,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const area = container.querySelector("[data-canonical-id='color-area-1']");
+    expect(area?.className).toContain("react-aria-ColorArea");
+    expect(area?.getAttribute("data-x-channel")).toBe("saturation");
+    expect(area?.getAttribute("data-y-channel")).toBe("brightness");
+    expect(area?.getAttribute("data-color-space")).toBe("hsb");
+    expect(area?.getAttribute("data-size")).toBe("lg");
+    expect(area?.getAttribute("data-x-value")).toBe("0.6");
+    expect(area?.getAttribute("data-y-value")).toBe("0.4");
+    expect(legacyColorAreaRenderer).not.toHaveBeenCalled();
   });
 
   it("renders ColorSlider through PrimitiveBinding before rendererMap fallback", () => {

@@ -8,6 +8,7 @@ import {
   ButtonSpec,
   CheckboxGroupSpec,
   CheckboxSpec,
+  ColorAreaSpec,
   ColorFieldSpec,
   ColorSliderSpec,
   ColorSwatchSpec,
@@ -1094,6 +1095,39 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("color-swatch-1");
     expect(node?.box).toBeDefined();
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ColorArea through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ColorAreaSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "color-area-1",
+        type: "ColorArea",
+        props: {
+          color: "#ff0000",
+          xChannel: "saturation",
+          yChannel: "brightness",
+          colorSpace: "hsb",
+          size: "lg",
+          xValue: 0.6,
+          yValue: 0.4,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["color-area-1", { x: 12, y: 16, width: 200, height: 160 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("color-area-1");
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(
+      node?.children?.some((child) => child.elementId?.endsWith(":thumb")),
+    ).toBe(true);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

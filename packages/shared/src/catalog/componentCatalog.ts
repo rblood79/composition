@@ -3,6 +3,7 @@ import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
 import { checkboxGroupPrimitiveBinding } from "./primitives/checkboxGroup";
 import { checkboxPrimitiveBinding } from "./primitives/checkbox";
+import { colorAreaPrimitiveBinding } from "./primitives/colorArea";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { colorSliderPrimitiveBinding } from "./primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "./primitives/colorSwatch";
@@ -240,6 +241,19 @@ export const componentCatalog = [
       category: "color",
       label: "color swatch",
       icon: "Palette",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ColorArea",
+    family: "date-color",
+    cutover: "catalog",
+    binding: colorAreaPrimitiveBinding,
+    panel: {
+      category: "color",
+      label: "color area",
+      icon: "Pipette",
       placeable: true,
     },
   },

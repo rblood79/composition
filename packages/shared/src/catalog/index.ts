@@ -6,6 +6,7 @@ export * from "./primitives/breadcrumbs";
 export * from "./primitives/button";
 export * from "./primitives/checkbox";
 export * from "./primitives/checkboxGroup";
+export * from "./primitives/colorArea";
 export * from "./primitives/colorField";
 export * from "./primitives/colorSlider";
 export * from "./primitives/colorSwatch";
