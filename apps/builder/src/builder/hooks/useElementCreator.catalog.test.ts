@@ -217,6 +217,24 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Tooltip placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Tooltip");
+
+    expect(creation).toMatchObject({
+      elementType: "Tooltip",
+      props: {
+        children: "Helpful tip",
+        variant: "neutral",
+        size: "md",
+        placement: "top",
+        offset: 8,
+        shouldFlip: true,
+        showArrow: true,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog Switch placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Switch");
 

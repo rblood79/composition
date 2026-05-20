@@ -53,6 +53,7 @@ export interface PrimitiveSkiaDescriptor {
     | "text-field"
     | "time-field"
     | "toggle-button"
+    | "tooltip"
     | "tree";
 }
 

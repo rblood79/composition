@@ -1,12 +1,21 @@
 import {
+  Button as AriaButton,
   OverlayArrow,
   Tooltip as AriaTooltip,
   TooltipProps as AriaTooltipProps,
+  TooltipTrigger,
+  TooltipTriggerStateContext,
   composeRenderProps,
 } from "react-aria-components";
+import { useContext } from "react";
 import type { ComponentSize } from "../types";
+import {
+  toTooltipRacProps,
+  type TooltipCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 
-import "./styles/Tooltip.css";
+import "./styles/generated/Tooltip.css";
+import "./styles/Tooltip.runtime.css";
 
 export type TooltipProps = AriaTooltipProps & {
   /**
@@ -14,6 +23,11 @@ export type TooltipProps = AriaTooltipProps & {
    * @default 'md'
    */
   size?: ComponentSize;
+  variant?: "neutral" | "info" | "positive" | "negative";
+  showArrow?: boolean;
+  text?: string;
+  "data-canonical-id"?: string;
+  "data-element-id"?: string;
 };
 
 /**
@@ -42,19 +56,76 @@ export type TooltipProps = AriaTooltipProps & {
  *   </Tooltip>
  * </TooltipTrigger>
  */
-export function Tooltip({ size = "md", children, ...props }: TooltipProps) {
+export function Tooltip({
+  children,
+  size: _size,
+  variant: _variant,
+  showArrow: _showArrow,
+  text: _text,
+  isOpen,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: TooltipProps) {
+  const triggerState = useContext(TooltipTriggerStateContext);
+  const projectedProps = toTooltipRacProps({
+    ...props,
+    children: children ?? _text,
+    size: _size,
+    variant: _variant,
+    showArrow: _showArrow,
+  } as TooltipCanonicalProps);
+  const {
+    children: projectedChildren,
+    variant,
+    size,
+    showArrow,
+    ...tooltipProps
+  } = projectedProps;
   const tooltipClassName = composeRenderProps(props.className, (className) =>
     className ? `react-aria-Tooltip ${className}` : "react-aria-Tooltip",
   );
 
-  return (
-    <AriaTooltip {...props} className={tooltipClassName} data-size={size}>
-      <OverlayArrow>
-        <svg width={8} height={8} viewBox="0 0 8 8">
-          <path d="M0 0 L4 4 L8 0" />
-        </svg>
-      </OverlayArrow>
-      {children as React.ReactNode}
+  const tooltipNode = (
+    <AriaTooltip
+      {...props}
+      {...tooltipProps}
+      className={tooltipClassName}
+      data-size={size}
+      data-variant={variant}
+      data-placement={tooltipProps.placement}
+    >
+      {showArrow && (
+        <OverlayArrow>
+          <svg width={8} height={8} viewBox="0 0 8 8">
+            <path d="M0 0 L4 4 L8 0" />
+          </svg>
+        </OverlayArrow>
+      )}
+      {(children ?? projectedChildren) as React.ReactNode}
     </AriaTooltip>
+  );
+
+  if (triggerState) {
+    return tooltipNode;
+  }
+
+  const standaloneOpenProps =
+    isOpen !== undefined
+      ? { isOpen, onOpenChange }
+      : defaultOpen !== undefined
+        ? { defaultOpen, onOpenChange }
+        : { isOpen: true, onOpenChange };
+
+  return (
+    <TooltipTrigger delay={0} closeDelay={0} {...standaloneOpenProps}>
+      <AriaButton
+        aria-hidden="true"
+        className="react-aria-TooltipAnchor"
+        isDisabled
+        type="button"
+      />
+      {tooltipNode}
+    </TooltipTrigger>
   );
 }

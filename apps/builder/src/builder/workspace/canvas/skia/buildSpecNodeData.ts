@@ -45,6 +45,7 @@ import {
   toTabsRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
+  toTooltipRacProps,
   toToggleButtonRacProps,
   toTreeRacProps,
   type BreadcrumbRacProps,
@@ -84,6 +85,7 @@ import {
   type TabsRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
+  type TooltipRacProps,
   type ToggleButtonRacProps,
   type TreeItemDescriptor,
   type TreeRacProps,
@@ -880,6 +882,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "drop-zone") {
     return buildGenericDropZoneNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "tooltip") {
+    return buildGenericTooltipNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "time-field") {
     return buildGenericTimeFieldNode(input.node, layout, input.theme);
@@ -2111,6 +2116,66 @@ function buildGenericDropZoneNode(
       strokeColor,
       strokeWidth: readNumber(style.borderWidth, 2),
       strokeStyle: "dashed",
+    },
+    children,
+  };
+}
+
+function buildGenericTooltipNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toTooltipRacProps(node.props ?? {}) as TooltipRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericTooltipSize(props.size);
+  const palette = resolveGenericTooltipPalette(props.variant, style, theme);
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: size.paddingX,
+    y: size.paddingY,
+    width: Math.max(layout.width - size.paddingX * 2, 0),
+    height: Math.max(layout.height - size.paddingY * 2, 0),
+    visible: true,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+      whiteSpace: "normal",
+      overflowWrap: "break-word",
+    },
+  };
+  const children: SkiaNodeData[] = [textNode];
+
+  if (props.showArrow) {
+    const arrow = buildGenericTooltipArrowNode(
+      node.id,
+      props.placement,
+      layout,
+      palette.fillColor,
+    );
+    if (arrow) children.push(arrow);
+  }
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: palette.fillColor,
+      borderRadius: readNumber(style.borderRadius, size.radius),
     },
     children,
   };
@@ -4581,6 +4646,171 @@ function resolveGenericDropZoneSize(size: DropZoneRacProps["size"]): {
         radius: 10,
       };
   }
+}
+
+function resolveGenericTooltipSize(size: TooltipRacProps["size"]): {
+  paddingX: number;
+  paddingY: number;
+  fontSize: number;
+  lineHeight: number;
+  radius: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        paddingX: 8,
+        paddingY: 4,
+        fontSize: 12,
+        lineHeight: 16,
+        radius: 4,
+      };
+    case "lg":
+      return {
+        paddingX: 12,
+        paddingY: 8,
+        fontSize: 14,
+        lineHeight: 20,
+        radius: 6,
+      };
+    case "md":
+    default:
+      return {
+        paddingX: 10,
+        paddingY: 6,
+        fontSize: 12,
+        lineHeight: 16,
+        radius: 4,
+      };
+  }
+}
+
+function resolveGenericTooltipPalette(
+  variant: TooltipRacProps["variant"],
+  style: Record<string, unknown>,
+  theme: "light" | "dark",
+): {
+  fillColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const isDark = theme === "dark";
+  const background =
+    typeof style.backgroundColor === "string"
+      ? style.backgroundColor
+      : (() => {
+          switch (variant) {
+            case "info":
+              return isDark ? "#172554" : "#dbeafe";
+            case "positive":
+              return isDark ? "#052e16" : "#dcfce7";
+            case "negative":
+              return isDark ? "#450a0a" : "#fee2e2";
+            case "neutral":
+            default:
+              return isDark ? "#1f2937" : "#f1f5f9";
+          }
+        })();
+  const text =
+    typeof style.color === "string"
+      ? style.color
+      : isDark
+        ? "#f9fafb"
+        : "#0f172a";
+
+  return {
+    fillColor: colorIntToFloat32(cssColorToHex(background), 1),
+    textColor: colorIntToFloat32(cssColorToHex(text), 1),
+  };
+}
+
+function buildGenericTooltipArrowNode(
+  elementId: string,
+  placement: TooltipRacProps["placement"],
+  layout: GenericResolvedSkiaLayout,
+  strokeColor: Float32Array,
+): SkiaNodeData | null {
+  const arrowSize = 6;
+  const basePlacement = placement.split(" ")[0];
+  const centerX = layout.width / 2;
+  const centerY = layout.height / 2;
+
+  if (basePlacement === "top") {
+    return {
+      type: "line",
+      elementId: `${elementId}:arrow`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      line: {
+        x1: centerX - arrowSize,
+        y1: layout.height,
+        x2: centerX,
+        y2: layout.height + arrowSize,
+        strokeColor,
+        strokeWidth: 2,
+      },
+    };
+  }
+  if (basePlacement === "bottom") {
+    return {
+      type: "line",
+      elementId: `${elementId}:arrow`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      line: {
+        x1: centerX - arrowSize,
+        y1: 0,
+        x2: centerX,
+        y2: -arrowSize,
+        strokeColor,
+        strokeWidth: 2,
+      },
+    };
+  }
+  if (basePlacement === "left") {
+    return {
+      type: "line",
+      elementId: `${elementId}:arrow`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      line: {
+        x1: layout.width,
+        y1: centerY - arrowSize,
+        x2: layout.width + arrowSize,
+        y2: centerY,
+        strokeColor,
+        strokeWidth: 2,
+      },
+    };
+  }
+  if (basePlacement === "right") {
+    return {
+      type: "line",
+      elementId: `${elementId}:arrow`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      line: {
+        x1: 0,
+        y1: centerY - arrowSize,
+        x2: -arrowSize,
+        y2: centerY,
+        strokeColor,
+        strokeWidth: 2,
+      },
+    };
+  }
+
+  return null;
 }
 
 function resolveGenericButtonPalette(

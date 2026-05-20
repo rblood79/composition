@@ -149,6 +149,23 @@ export const SEPARATOR_SIZE_VALUES = [
   "lg",
 ] as const satisfies readonly ComponentSizeSubset[];
 export const DROP_ZONE_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const TOOLTIP_VARIANT_VALUES = [
+  "neutral",
+  "info",
+  "positive",
+  "negative",
+] as const;
+export const TOOLTIP_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const TOOLTIP_PLACEMENT_VALUES = [
+  "top",
+  "bottom",
+  "left",
+  "right",
+  "top start",
+  "top end",
+  "bottom start",
+  "bottom end",
+] as const;
 export const LINK_VARIANT_VALUES = [
   "primary",
   "secondary",
@@ -347,6 +364,9 @@ const SEPARATOR_ORIENTATIONS = new Set<string>(SEPARATOR_ORIENTATION_VALUES);
 const SEPARATOR_VARIANTS = new Set<SeparatorVariant>(SEPARATOR_VARIANT_VALUES);
 const SEPARATOR_SIZES = new Set<ComponentSizeSubset>(SEPARATOR_SIZE_VALUES);
 const DROP_ZONE_SIZES = SEPARATOR_SIZES;
+const TOOLTIP_VARIANTS = new Set<string>(TOOLTIP_VARIANT_VALUES);
+const TOOLTIP_SIZES = SEPARATOR_SIZES;
+const TOOLTIP_PLACEMENTS = new Set<string>(TOOLTIP_PLACEMENT_VALUES);
 const LINK_VARIANTS = new Set<LinkVariant>(LINK_VARIANT_VALUES);
 const LINK_SIZES = new Set<ComponentSize>(LINK_SIZE_VALUES);
 const LINK_STATIC_COLORS = new Set<StaticColor>(LINK_STATIC_COLOR_VALUES);
@@ -940,6 +960,36 @@ export interface DropZoneRacProps extends Record<string, unknown> {
   size: ComponentSizeSubset;
   isDropTarget: boolean;
   isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface TooltipCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  text?: unknown;
+  label?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  placement?: unknown;
+  offset?: unknown;
+  containerPadding?: unknown;
+  crossOffset?: unknown;
+  shouldFlip?: unknown;
+  showArrow?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface TooltipRacProps extends Record<string, unknown> {
+  children: string;
+  variant: (typeof TOOLTIP_VARIANT_VALUES)[number];
+  size: ComponentSizeSubset;
+  placement: (typeof TOOLTIP_PLACEMENT_VALUES)[number];
+  offset: number;
+  containerPadding: number;
+  crossOffset: number;
+  shouldFlip: boolean;
+  showArrow: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2369,6 +2419,26 @@ export function toDropZoneRacProps(
   };
 }
 
+export function toTooltipRacProps(
+  props: TooltipCanonicalProps,
+): TooltipRacProps {
+  return {
+    children: readTooltipText(props),
+    variant: normalizeTooltipVariant(props.variant),
+    size: normalizeTooltipSize(props.size),
+    placement: normalizeTooltipPlacement(props.placement),
+    offset: readFiniteNumber(props.offset) ?? 8,
+    containerPadding: readFiniteNumber(props.containerPadding) ?? 12,
+    crossOffset: readFiniteNumber(props.crossOffset) ?? 0,
+    shouldFlip: props.shouldFlip !== false,
+    showArrow: props.showArrow !== false,
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -3233,6 +3303,11 @@ function readCheckboxText(props: CheckboxCanonicalProps): string {
   return "Checkbox";
 }
 
+function readTooltipText(props: TooltipCanonicalProps): string {
+  const value = props.children ?? props.text ?? props.label;
+  return readString(value, "Helpful tip");
+}
+
 function readRadioText(props: RadioCanonicalProps): string {
   const value = props.children ?? props.label ?? props.text;
   if (typeof value === "string") return value;
@@ -3347,6 +3422,29 @@ function normalizeDropZoneSize(value: unknown): ComponentSizeSubset {
     DROP_ZONE_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
+}
+
+function normalizeTooltipVariant(
+  value: unknown,
+): (typeof TOOLTIP_VARIANT_VALUES)[number] {
+  return typeof value === "string" && TOOLTIP_VARIANTS.has(value)
+    ? (value as (typeof TOOLTIP_VARIANT_VALUES)[number])
+    : "neutral";
+}
+
+function normalizeTooltipSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    TOOLTIP_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeTooltipPlacement(
+  value: unknown,
+): (typeof TOOLTIP_PLACEMENT_VALUES)[number] {
+  return typeof value === "string" && TOOLTIP_PLACEMENTS.has(value)
+    ? (value as (typeof TOOLTIP_PLACEMENT_VALUES)[number])
+    : "top";
 }
 
 function normalizeTextFieldLabelPosition(value: unknown): "top" | "side" {

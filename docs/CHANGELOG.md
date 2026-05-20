@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Tooltip overlays primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Tooltip active primitive binding 추가**:
+  - `componentCatalog` 에 `Tooltip` 을 `cutover:"catalog"` active `overlays` primitive 로 등록했다.
+  - canonical text/variant/size/placement/offset/flip/arrow props 를 RAC Tooltip surface 로 투영하는 `toTooltipRacProps()` 와 `tooltipPrimitiveBinding` 을 추가했다.
+  - `Tooltip.tsx` shared wrapper 가 catalog projection 을 소비하고, TooltipTrigger context 안에서는 RAC Tooltip 을 그대로 쓰며 단독 catalog surface 에서는 controlled TooltipTrigger anchor 로 실제 tooltip DOM 을 생성한다.
+- **Tooltip Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Tooltip resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 tooltip bubble + text + optional arrow 를 렌더하고 `TooltipSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- overlays family 는 DropZone/Tooltip pilot 까지 진행했다. Dialog/Modal/Popover/Toast overlays slice 는 아직 잔여다.
+
 ## [ADR-142 Phase 3/5/6 — DropZone overlays primitive catalog pilot] - 2026-05-20
 
 ### Architecture

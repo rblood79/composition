@@ -41,6 +41,7 @@ const {
   legacyTableViewRenderer,
   legacyTextFieldRenderer,
   legacyTimeFieldRenderer,
+  legacyTooltipRenderer,
   legacyToggleButtonRenderer,
   legacyToggleButtonGroupRenderer,
   legacyToolbarRenderer,
@@ -131,6 +132,9 @@ const {
   legacyTimeFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="TimeField">legacy</div>
   )),
+  legacyTooltipRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Tooltip">legacy</div>
+  )),
   legacyToggleButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="ToggleButton">legacy</button>
   )),
@@ -176,6 +180,7 @@ vi.mock("@composition/shared/renderers", () => ({
     TableView: legacyTableViewRenderer,
     TextField: legacyTextFieldRenderer,
     TimeField: legacyTimeFieldRenderer,
+    Tooltip: legacyTooltipRenderer,
     ToggleButton: legacyToggleButtonRenderer,
     ToggleButtonGroup: legacyToggleButtonGroupRenderer,
     Toolbar: legacyToolbarRenderer,
@@ -228,6 +233,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyTableViewRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyTimeFieldRenderer.mockClear();
+    legacyTooltipRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
     legacyToggleButtonGroupRenderer.mockClear();
     legacyToolbarRenderer.mockClear();
@@ -773,6 +779,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       dropZone,
     );
     expect(legacyDropZoneRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Tooltip through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "tooltip-1",
+      type: "Tooltip",
+      props: {
+        children: "Helpful context",
+        variant: "info",
+        size: "lg",
+        placement: "bottom",
+        showArrow: true,
+      },
+    };
+
+    render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.textContent).toContain("Helpful context");
+    expect(tooltip.getAttribute("data-size")).toBe("lg");
+    expect(tooltip.getAttribute("data-variant")).toBe("info");
+    expect(tooltip.getAttribute("data-placement")).toBe("bottom");
+    expect(document.body.querySelector("[data-canonical-id='tooltip-1']")).toBe(
+      tooltip,
+    );
+    expect(legacyTooltipRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Switch through PrimitiveBinding before rendererMap fallback", () => {

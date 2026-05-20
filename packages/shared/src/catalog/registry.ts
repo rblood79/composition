@@ -23,6 +23,7 @@ import { tabsInspectorThemeValues } from "./primitives/tabs";
 import { tagGroupInspectorThemeValues } from "./primitives/tagGroup";
 import { textFieldInspectorThemeValues } from "./primitives/textField";
 import { timeFieldInspectorThemeValues } from "./primitives/timeField";
+import { tooltipInspectorThemeValues } from "./primitives/tooltip";
 import { treeInspectorThemeValues } from "./primitives/tree";
 import type { InspectorThemeLookup } from "./outputs/inspectorFields";
 import { componentCatalog } from "./componentCatalog";
@@ -72,6 +73,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "TimeField") return timeFieldInspectorThemeValues;
   if (type === "ColorField") return colorFieldInspectorThemeValues;
   if (type === "DropZone") return dropZoneInspectorThemeValues;
+  if (type === "Tooltip") return tooltipInspectorThemeValues;
   if (type === "Form") return formInspectorThemeValues;
   return {};
 }

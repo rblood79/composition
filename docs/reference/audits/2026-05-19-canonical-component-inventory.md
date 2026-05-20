@@ -154,6 +154,7 @@ track/indicator/arc/cell state 를 별도 draw module 로 표현할 가능성이
 | `ListBox`, `GridList`, `Menu`, `TagGroup`, `ComboBox`, `Tabs`                              | collection item state, keyboard/selection state visualization                                  |
 | `Tree`, `Table`, `TableView`                                                               | collections 데이터 + row/cell/tree disclosure state. 수동 우회 구현으로 full support 주장 금지 |
 | `DropZone`                                                                                 | drop-target state + dashed container/icon/text. legacy render.shapes 우회 금지                 |
+| `Tooltip`                                                                                  | overlay bubble/text/arrow + trigger positioning. legacy render.shapes 우회 금지                |
 
 Phase 1a 의 Button proof 는 최소 연결성 검증이고, 위 후보들의 비용/시각 대칭은
 G2b/G2c 및 family fixture 에서 별도 검증해야 한다.
@@ -408,5 +409,12 @@ DropZone overlays primitive pilot 은 `toDropZoneRacProps()` /
 Preview DropZone primitive branch / generic Skia dashed container+upload icon+label/description
 fixture 를 추가했다. DropZone 은 `DropZoneSpec.render.shapes()` 를 호출하지 않는
 generic Skia fixture 로 고정했다. 기존 사용자 패널 위치는 `forms` category 로 보존한다.
-Dialog/Modal/Popover/Tooltip/Toast overlays slice 는 잔여이며, 다음 family entrypoint 는
+Tooltip overlays primitive pilot 은 `toTooltipRacProps()` /
+`tooltipPrimitiveBinding` / active catalog entry / shared `Tooltip.tsx` projection /
+Preview Tooltip primitive branch / generic Skia bubble+text+arrow fixture 를 추가했다.
+Tooltip 은 `TooltipSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로
+고정했다. shared Tooltip wrapper 는 기존 TooltipTrigger context 를 보존하면서
+catalog/Preview 단독 surface 에서는 controlled TooltipTrigger anchor 로 DOM tooltip 을
+생성한다.
+Dialog/Modal/Popover/Toast overlays slice 는 잔여이며, 다음 family entrypoint 는
 나머지 overlays 또는 date/color 다.

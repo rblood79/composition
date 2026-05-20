@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/DropZone/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/DropZone/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, overlays family 는 DropZone pilot 착수, ADR-132 collection 데이터 binding 전체 전환은 잔여)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/DropZone/Tooltip/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/DropZone/Tooltip/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, overlays family 는 DropZone/Tooltip pilot 착수, ADR-132 collection 데이터 binding 전체 전환은 잔여)
 
 ## Context
 
@@ -589,7 +589,21 @@ surface 에서 소비하고, Preview `CanonicalNodeRenderer` 는 DropZone resolv
 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다. generic Skia path 는
 DropZone dashed container + upload icon + label/description text 를 container +
 icon_path/text node 로 렌더하고 `DropZoneSpec.render.shapes()` 를 호출하지 않는 fixture 를
-가진다. Dialog/Modal/Popover/Tooltip/Toast overlays slice 는 잔여다.
+가진다.
+
+2026-05-20 추가 판정: Tooltip overlays primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/tooltip.ts` 와 `toTooltipRacProps()` 가
+Tooltip text/variant/size/placement/offset/flip/arrow props 를 RAC Tooltip surface 로
+정규화한다. `componentCatalog` 는 Tooltip 을 `cutover:"catalog"` active `overlays`
+primitive 로 등록하고, 패널 위치는 `overlays` category 로 둔다.
+`packages/shared/src/components/Tooltip.tsx` 는 기존 TooltipTrigger context 안에서는
+RAC Tooltip 을 그대로 소비하고, catalog/Preview 처럼 단독으로 놓인 Tooltip 은
+controlled TooltipTrigger anchor 를 붙여 실제 tooltip DOM surface 를 생성한다.
+Preview `CanonicalNodeRenderer` 는 Tooltip resolved node 를 legacy `rendererMap`
+보다 primitive branch 에서 먼저 렌더한다. generic Skia path 는 Tooltip bubble +
+text + optional arrow 를 container/text/line node 로 렌더하고
+`TooltipSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다.
+Dialog/Modal/Popover/Toast overlays slice 는 잔여다.
 
 ## Consequences
 

@@ -29,6 +29,7 @@ import { tabsPrimitiveBinding } from "./primitives/tabs";
 import { tagGroupPrimitiveBinding } from "./primitives/tagGroup";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { timeFieldPrimitiveBinding } from "./primitives/timeField";
+import { tooltipPrimitiveBinding } from "./primitives/tooltip";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "./primitives/toggleButtonGroup";
 import { toggleButtonPrimitiveBinding } from "./primitives/toggleButton";
@@ -259,6 +260,19 @@ export const componentCatalog = [
       category: "forms",
       label: "drop zone",
       icon: "Upload",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Tooltip",
+    family: "overlays",
+    cutover: "catalog",
+    binding: tooltipPrimitiveBinding,
+    panel: {
+      category: "overlays",
+      label: "tooltip",
+      icon: "MessageSquare",
       placeable: true,
     },
   },

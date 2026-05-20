@@ -32,6 +32,7 @@ import {
   TagGroupSpec,
   TextFieldSpec,
   TimeFieldSpec,
+  TooltipSpec,
   ToggleButtonSpec,
   ToggleButtonGroupSpec,
   ToolbarSpec,
@@ -1088,6 +1089,34 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectText(node)).toEqual(
       expect.arrayContaining(["Drop source files", "PNG, SVG, or PDF"]),
     );
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Tooltip through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TooltipSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "tooltip-1",
+        type: "Tooltip",
+        props: {
+          children: "Helpful context",
+          variant: "info",
+          size: "lg",
+          placement: "bottom",
+          showArrow: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["tooltip-1", { x: 24, y: 32, width: 180, height: 44 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("tooltip-1");
+    expect(collectText(node)).toContain("Helpful context");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

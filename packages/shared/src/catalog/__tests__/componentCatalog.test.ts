@@ -21,6 +21,7 @@ import { switchPrimitiveBinding } from "../primitives/switch";
 import { tagGroupPrimitiveBinding } from "../primitives/tagGroup";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { timeFieldPrimitiveBinding } from "../primitives/timeField";
+import { tooltipPrimitiveBinding } from "../primitives/tooltip";
 import { toolbarPrimitiveBinding } from "../primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "../primitives/toggleButtonGroup";
 import {
@@ -304,6 +305,35 @@ describe("ADR-142 component catalog", () => {
       size: "md",
       isDisabled: false,
     });
+  });
+
+  it("registers Tooltip as an active overlays primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Tooltip");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(tooltipPrimitiveBinding);
+    expect(entry.family).toBe("overlays");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Tooltip");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("tooltip");
+    expect(entry.panel.category).toBe("overlays");
+    expect(entry.panel.label).toBe("tooltip");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      children: "Helpful tip",
+      placement: "top",
+      size: "md",
+      showArrow: true,
+    });
+  });
+
+  it("keeps unfinished overlays outside the active catalog", () => {
+    expect(getComponentCatalogEntry("Dialog")).toBeUndefined();
+    expect(getComponentCatalogEntry("Modal")).toBeUndefined();
+    expect(getComponentCatalogEntry("Popover")).toBeUndefined();
+    expect(getComponentCatalogEntry("Toast")).toBeUndefined();
   });
 
   it("registers Switch as an active selection primitive catalog entry", () => {
@@ -682,6 +712,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Form");
     expect(activeTypes).toContain("FileTrigger");
     expect(activeTypes).toContain("DropZone");
+    expect(activeTypes).toContain("Tooltip");
     expect(activeTypes).toContain("Switch");
     expect(activeTypes).toContain("Checkbox");
     expect(activeTypes).toContain("CheckboxGroup");

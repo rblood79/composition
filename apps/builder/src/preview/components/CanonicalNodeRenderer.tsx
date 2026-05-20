@@ -49,6 +49,7 @@ import {
   type TagGroupRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
+  type TooltipRacProps,
   type ToolbarRacProps,
   type ToggleButtonGroupRacProps,
   type ToggleButtonRacProps,
@@ -83,6 +84,7 @@ import {
   TagGroup,
   TextField,
   TimeField,
+  Tooltip,
   Toolbar,
   ToggleButton,
   ToggleButtonGroup,
@@ -610,6 +612,14 @@ function renderPrimitiveNode({
     ) as DropZoneRacProps;
 
     return <DropZone key={node.id} {...dropZoneProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Tooltip") {
+    const tooltipProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as TooltipRacProps;
+
+    return <Tooltip key={node.id} {...tooltipProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {
