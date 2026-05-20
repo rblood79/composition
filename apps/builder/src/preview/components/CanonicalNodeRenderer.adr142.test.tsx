@@ -16,6 +16,7 @@ const {
   legacyBreadcrumbRenderer,
   legacyBreadcrumbsRenderer,
   legacyLinkRenderer,
+  legacyNumberFieldRenderer,
   legacySeparatorRenderer,
   legacyTextFieldRenderer,
   legacyToggleButtonRenderer,
@@ -32,6 +33,9 @@ const {
     <nav data-legacy-renderer="Breadcrumbs">legacy</nav>
   )),
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
+  legacyNumberFieldRenderer: vi.fn(() => (
+    <div data-legacy-renderer="NumberField">legacy</div>
+  )),
   legacySeparatorRenderer: vi.fn(() => (
     <div data-legacy-renderer="Separator">legacy</div>
   )),
@@ -55,6 +59,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Breadcrumb: legacyBreadcrumbRenderer,
     Breadcrumbs: legacyBreadcrumbsRenderer,
     Link: legacyLinkRenderer,
+    NumberField: legacyNumberFieldRenderer,
     Separator: legacySeparatorRenderer,
     TextField: legacyTextFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
@@ -83,6 +88,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyBreadcrumbRenderer.mockClear();
     legacyBreadcrumbsRenderer.mockClear();
     legacyLinkRenderer.mockClear();
+    legacyNumberFieldRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
@@ -387,5 +393,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector(".react-aria-TextField"),
     );
     expect(legacyTextFieldRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders NumberField through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "numberfield-1",
+      type: "NumberField",
+      props: {
+        label: "Quantity",
+        value: 42,
+        minValue: 0,
+        maxValue: 100,
+        step: 2,
+        size: "lg",
+        isRequired: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const input = screen.getByRole("textbox", { name: /Quantity/ });
+    expect((input as HTMLInputElement).value).toBe("42");
+    expect(input.getAttribute("aria-roledescription")).toBe("Number field");
+    expect(input.getAttribute("inputmode")).toBe("numeric");
+    expect(container.querySelector("[data-canonical-id='numberfield-1']")).toBe(
+      container.querySelector(".react-aria-NumberField"),
+    );
+    expect(legacyNumberFieldRenderer).not.toHaveBeenCalled();
   });
 });

@@ -30,6 +30,7 @@ export interface PrimitiveSkiaDescriptor {
     | "breadcrumb"
     | "button"
     | "link"
+    | "number-field"
     | "separator"
     | "text-field"
     | "toggle-button";

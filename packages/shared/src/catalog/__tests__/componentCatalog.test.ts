@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { breadcrumbPrimitiveBinding } from "../primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { toolbarPrimitiveBinding } from "../primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "../primitives/toggleButtonGroup";
@@ -151,6 +152,21 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers NumberField as an active fields primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("NumberField");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(numberFieldPrimitiveBinding);
+    expect(entry.family).toBe("fields");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("NumberField");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("number-field");
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -195,6 +211,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("Toolbar");
     expect(activeTypes).toContain("Breadcrumbs");
     expect(activeTypes).toContain("TextField");
+    expect(activeTypes).toContain("NumberField");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

@@ -93,6 +93,24 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog NumberField placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("NumberField");
+
+    expect(creation).toMatchObject({
+      elementType: "NumberField",
+      props: {
+        label: "Number",
+        value: 0,
+        minValue: 0,
+        maxValue: 100,
+        step: 1,
+        size: "md",
+        labelPosition: "top",
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

@@ -263,3 +263,8 @@ slice 로 `toTextFieldRacProps()` / `textFieldPrimitiveBinding` / active catalog
 entry / Preview primitive branch / generic Skia label-input-value fixture 를 추가했다.
 이 과정에서 TextField 의 `type` prop 이 component tag 로 오인되지 않도록
 `CanonicalNodeRenderer` 는 `node.type` 을 component type SSOT 로 우선한다.
+NumberField primitive pilot 은 `fields` family 의 두 번째 active slice 로
+`toNumberFieldRacProps()` / `numberFieldPrimitiveBinding` / active catalog entry /
+Preview primitive branch / generic Skia label-input-value fixture 를 추가했다.
+NumberField 역시 `NumberFieldSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했으며, fields family 전체 완료 판정은 아니다.

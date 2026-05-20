@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
-import { toButtonRacProps, toTextFieldRacProps } from "../outputs/toRacProps";
+import {
+  toButtonRacProps,
+  toNumberFieldRacProps,
+  toTextFieldRacProps,
+} from "../outputs/toRacProps";
 
 describe("ADR-142 inspector field contracts", () => {
   it("groups Button PropContract entries by section", () => {
@@ -143,6 +148,64 @@ describe("ADR-142 inspector field contracts", () => {
       value: "hello@example.com",
       placeholder: "name@example.com",
       type: "email",
+      size: "lg",
+      isRequired: true,
+      labelPosition: "side",
+    });
+  });
+
+  it("groups NumberField PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "NumberField",
+      contracts: numberFieldPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { NumberField: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Constraints",
+      "Locale",
+      "Format",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "value",
+      "placeholder",
+      "description",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "minValue",
+      "maxValue",
+      "step",
+    ]);
+  });
+
+  it("projects NumberField canonical props through the catalog boundary", () => {
+    expect(
+      toNumberFieldRacProps({
+        label: "Quantity",
+        value: 42,
+        minValue: 0,
+        maxValue: 100,
+        step: 2,
+        locale: "en-US",
+        formatOptions: { style: "decimal", notation: "standard" },
+        size: "lg",
+        isRequired: true,
+        labelPosition: "side",
+      }),
+    ).toMatchObject({
+      label: "Quantity",
+      value: 42,
+      minValue: 0,
+      maxValue: 100,
+      step: 2,
+      locale: "en-US",
+      formatOptions: { style: "decimal", notation: "standard" },
       size: "lg",
       isRequired: true,
       labelPosition: "side",

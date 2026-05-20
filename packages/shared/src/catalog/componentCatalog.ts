@@ -2,6 +2,7 @@ import { breadcrumbPrimitiveBinding } from "./primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
 import { linkPrimitiveBinding } from "./primitives/link";
+import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
@@ -129,6 +130,19 @@ export const componentCatalog = [
       category: "forms",
       label: "text field",
       icon: "RectangleEllipsis",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "NumberField",
+    family: "fields",
+    cutover: "catalog",
+    binding: numberFieldPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "number field",
+      icon: "Hash",
       placeable: true,
     },
   },

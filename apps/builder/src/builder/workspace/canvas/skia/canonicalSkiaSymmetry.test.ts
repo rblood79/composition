@@ -7,6 +7,7 @@ import {
   BreadcrumbsSpec,
   ButtonSpec,
   LinkSpec,
+  NumberFieldSpec,
   SeparatorSpec,
   TextFieldSpec,
   ToggleButtonSpec,
@@ -233,6 +234,34 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("textfield-1");
     expect(collectText(node)).toContain("Email");
     expect(collectText(node)).toContain("hello@example.com");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved NumberField through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(NumberFieldSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "numberfield-1",
+        type: "NumberField",
+        props: {
+          label: "Quantity",
+          value: 42,
+          minValue: 0,
+          maxValue: 100,
+          step: 2,
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 220, height: 72 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("numberfield-1");
+    expect(collectText(node)).toContain("Quantity");
+    expect(collectText(node)).toContain("42");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

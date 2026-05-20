@@ -45,6 +45,18 @@ export const TEXT_FIELD_TYPE_VALUES = [
 ] as const;
 export const TEXT_FIELD_LABEL_POSITION_VALUES = ["top", "side"] as const;
 export const TEXT_FIELD_NECESSITY_INDICATOR_VALUES = ["icon", "label"] as const;
+export const NUMBER_FIELD_FORMAT_STYLE_VALUES = [
+  "decimal",
+  "currency",
+  "percent",
+  "unit",
+] as const;
+export const NUMBER_FIELD_NOTATION_VALUES = [
+  "standard",
+  "scientific",
+  "engineering",
+  "compact",
+] as const;
 export const SEPARATOR_ORIENTATION_VALUES = ["horizontal", "vertical"] as const;
 export const SEPARATOR_VARIANT_VALUES = [
   "default",
@@ -99,6 +111,10 @@ const TEXT_FIELD_LABEL_POSITIONS = new Set<string>(
 const TEXT_FIELD_NECESSITY_INDICATORS = new Set<string>(
   TEXT_FIELD_NECESSITY_INDICATOR_VALUES,
 );
+const NUMBER_FIELD_FORMAT_STYLES = new Set<string>(
+  NUMBER_FIELD_FORMAT_STYLE_VALUES,
+);
+const NUMBER_FIELD_NOTATIONS = new Set<string>(NUMBER_FIELD_NOTATION_VALUES);
 const SEPARATOR_ORIENTATIONS = new Set<string>(SEPARATOR_ORIENTATION_VALUES);
 const SEPARATOR_VARIANTS = new Set<SeparatorVariant>(SEPARATOR_VARIANT_VALUES);
 const SEPARATOR_SIZES = new Set<ComponentSizeSubset>(SEPARATOR_SIZE_VALUES);
@@ -247,6 +263,56 @@ export interface TextFieldRacProps extends Record<string, unknown> {
   isReadOnly?: boolean;
   isInvalid?: boolean;
   isLoading?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface NumberFieldCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  placeholder?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  minValue?: unknown;
+  maxValue?: unknown;
+  step?: unknown;
+  locale?: unknown;
+  formatOptions?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  isQuiet?: unknown;
+  hideStepper?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface NumberFieldRacProps extends Record<string, unknown> {
+  label: string;
+  placeholder: string;
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  isQuiet: boolean;
+  hideStepper: boolean;
+  value?: number;
+  defaultValue?: number;
+  description?: string;
+  errorMessage?: string;
+  minValue?: number;
+  maxValue?: number;
+  step?: number;
+  locale?: string;
+  formatOptions?: Intl.NumberFormatOptions;
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -487,6 +553,68 @@ export function toTextFieldRacProps(
   };
 }
 
+export function toNumberFieldRacProps(
+  props: NumberFieldCanonicalProps,
+): NumberFieldRacProps {
+  const formatOptions = normalizeNumberFieldFormatOptions(props.formatOptions);
+  return {
+    label: readString(props.label, "Number"),
+    placeholder: readString(props.placeholder, "0"),
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    hideStepper: props.hideStepper === true,
+    ...(readFiniteNumber(props.value) !== undefined
+      ? { value: readFiniteNumber(props.value) }
+      : {}),
+    ...(readFiniteNumber(props.defaultValue) !== undefined
+      ? { defaultValue: readFiniteNumber(props.defaultValue) }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(readFiniteNumber(props.minValue) !== undefined
+      ? { minValue: readFiniteNumber(props.minValue) }
+      : {}),
+    ...(readFiniteNumber(props.maxValue) !== undefined
+      ? { maxValue: readFiniteNumber(props.maxValue) }
+      : {}),
+    ...(readFiniteNumber(props.step) !== undefined
+      ? { step: readFiniteNumber(props.step) }
+      : {}),
+    ...(typeof props.locale === "string" && props.locale.length > 0
+      ? { locale: props.locale }
+      : {}),
+    ...(formatOptions ? { formatOptions } : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -615,6 +743,15 @@ function readString(value: unknown, fallback: string): string {
   return fallback;
 }
 
+function readFiniteNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
 function readToggleButtonText(props: ToggleButtonCanonicalProps): string {
   const value = props.children ?? props.text ?? props.label;
   if (typeof value === "string") return value;
@@ -672,6 +809,42 @@ function normalizeTextFieldNecessityIndicator(
   return typeof value === "string" && TEXT_FIELD_NECESSITY_INDICATORS.has(value)
     ? (value as "icon" | "label")
     : undefined;
+}
+
+function normalizeNumberFieldFormatOptions(
+  value: unknown,
+): Intl.NumberFormatOptions | undefined {
+  if (!isRecord(value)) return undefined;
+
+  const options: Intl.NumberFormatOptions = {};
+  if (
+    typeof value.style === "string" &&
+    NUMBER_FIELD_FORMAT_STYLES.has(value.style)
+  ) {
+    options.style = value.style as Intl.NumberFormatOptions["style"];
+  }
+  if (
+    typeof value.notation === "string" &&
+    NUMBER_FIELD_NOTATIONS.has(value.notation)
+  ) {
+    options.notation = value.notation as Intl.NumberFormatOptions["notation"];
+  }
+  if (typeof value.currency === "string" && value.currency.length > 0) {
+    options.currency = value.currency;
+  }
+  if (typeof value.unit === "string" && value.unit.length > 0) {
+    options.unit = value.unit;
+  }
+  if (typeof value.currencyDisplay === "string") {
+    options.currencyDisplay =
+      value.currencyDisplay as Intl.NumberFormatOptions["currencyDisplay"];
+  }
+  if (typeof value.unitDisplay === "string") {
+    options.unitDisplay =
+      value.unitDisplay as Intl.NumberFormatOptions["unitDisplay"];
+  }
+
+  return Object.keys(options).length > 0 ? options : undefined;
 }
 
 function normalizeButtonIconPosition(value: unknown): "start" | "end" {

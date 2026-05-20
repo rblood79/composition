@@ -12,11 +12,17 @@ describe("ADR-142 Component Panel catalog bridge", () => {
   it("maps active componentCatalog entries into panel definitions", () => {
     const catalogItems = getCatalogPanelComponents();
     const button = catalogItems.find((item) => item.type === "Button");
+    const numberField = catalogItems.find(
+      (item) => item.type === "NumberField",
+    );
 
     expect(button?.source).toBe("catalog");
     expect(button?.categoryKey).toBe("buttons");
     expect(button?.label).toBe("button");
     expect(button?.icon).toBe(MousePointer);
+    expect(numberField?.source).toBe("catalog");
+    expect(numberField?.categoryKey).toBe("forms");
+    expect(numberField?.label).toBe("number field");
   });
 
   it("builds panel groups from shared catalog inventory", () => {

@@ -25,6 +25,7 @@ import {
   type BreadcrumbsRacProps,
   type ButtonRacProps,
   type LinkRacProps,
+  type NumberFieldRacProps,
   type SeparatorRacProps,
   type TextFieldRacProps,
   type ToolbarRacProps,
@@ -36,6 +37,7 @@ import {
   Breadcrumbs,
   Button,
   Link,
+  NumberField,
   Separator,
   TextField,
   Toolbar,
@@ -310,6 +312,14 @@ function renderPrimitiveNode({
     ) as TextFieldRacProps;
 
     return <TextField key={node.id} {...textFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "NumberField") {
+    const numberFieldProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as NumberFieldRacProps;
+
+    return <NumberField key={node.id} {...numberFieldProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

@@ -42,8 +42,10 @@ const SECTION_ORDER = [
   "appearance",
   "icon",
   "inputType",
-  "state",
+  "constraints",
   "locale",
+  "format",
+  "state",
 ];
 
 export function buildInspectorFieldSections({
@@ -139,6 +141,8 @@ function sectionTitle(section: string): string {
     appearance: "Appearance",
     icon: "Icon",
     inputType: "Input Type",
+    constraints: "Constraints",
+    format: "Format",
     state: "State",
     locale: "Locale",
   };
