@@ -6,6 +6,7 @@ import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
+import { getPrimitiveBinding } from "../registry";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { sliderPrimitiveBinding } from "../primitives/slider";
@@ -647,6 +648,91 @@ describe("ADR-142 inspector field contracts", () => {
       isDisabled: false,
       isReadOnly: true,
       value: "remember",
+    });
+  });
+
+  it("groups CheckboxGroup PropContract entries by section", () => {
+    const binding = getPrimitiveBinding("CheckboxGroup");
+    expect(binding).toBeDefined();
+    if (!binding) return;
+
+    const sections = buildInspectorFieldSections({
+      componentType: "CheckboxGroup",
+      contracts: binding.props.accepts,
+      theme: {
+        sizes: { CheckboxGroup: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "description",
+      "errorMessage",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "isEmphasized",
+      "size",
+      "orientation",
+      "labelPosition",
+      "labelAlign",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "necessityIndicator",
+      "isRequired",
+      "isInvalid",
+      "isDisabled",
+      "isReadOnly",
+    ]);
+  });
+
+  it("projects CheckboxGroup canonical props through the catalog boundary", () => {
+    const binding = getPrimitiveBinding("CheckboxGroup");
+    expect(binding).toBeDefined();
+    if (!binding) return;
+
+    expect(
+      binding.toRacProps({
+        label: "Preferences",
+        description: "Choose all that apply",
+        errorMessage: "Pick at least one",
+        value: ["email", 42],
+        defaultValue: ["sms"],
+        size: "lg",
+        orientation: "horizontal",
+        labelPosition: "side",
+        labelAlign: "end",
+        necessityIndicator: "label",
+        isEmphasized: true,
+        isRequired: true,
+        isInvalid: true,
+        isDisabled: false,
+        isReadOnly: true,
+        name: "preferences",
+        form: "settings",
+      }),
+    ).toMatchObject({
+      label: "Preferences",
+      description: "Choose all that apply",
+      errorMessage: "Pick at least one",
+      value: ["email", "42"],
+      defaultValue: ["sms"],
+      size: "lg",
+      orientation: "horizontal",
+      labelPosition: "side",
+      labelAlign: "end",
+      necessityIndicator: "label",
+      isEmphasized: true,
+      isRequired: true,
+      isInvalid: true,
+      isDisabled: false,
+      isReadOnly: true,
+      name: "preferences",
+      form: "settings",
     });
   });
 

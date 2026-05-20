@@ -179,6 +179,16 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the CheckboxGroup prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../CheckboxGroup.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toCheckboxGroupRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
   it("uses catalog toRacProps as the Slider prop projection source", () => {
     const source = fs.readFileSync(
       new URL("../Slider.tsx", import.meta.url),

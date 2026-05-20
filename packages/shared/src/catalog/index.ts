@@ -5,6 +5,7 @@ export * from "./primitives/breadcrumb";
 export * from "./primitives/breadcrumbs";
 export * from "./primitives/button";
 export * from "./primitives/checkbox";
+export * from "./primitives/checkboxGroup";
 export * from "./primitives/colorField";
 export * from "./primitives/dateField";
 export * from "./primitives/fileTrigger";

@@ -22,6 +22,7 @@ import {
   getPrimitiveBinding,
   toBreadcrumbRacProps,
   toButtonRacProps,
+  toCheckboxGroupRacProps,
   toCheckboxRacProps,
   toColorFieldRacProps,
   toDateFieldRacProps,
@@ -36,6 +37,7 @@ import {
   toToggleButtonRacProps,
   type BreadcrumbRacProps,
   type ButtonRacProps,
+  type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorFieldRacProps,
   type DateFieldRacProps,
@@ -854,6 +856,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "checkbox") {
     return buildGenericCheckboxNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "checkbox-group") {
+    return buildGenericCheckboxGroupNode(input, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "slider") {
     return buildGenericSliderNode(input.node, layout, input.theme);
@@ -2109,6 +2114,60 @@ function buildGenericCheckboxNode(
     height: layout.height,
     visible: isGenericNodeVisible(style),
     children: [boxNode, indicatorNode, textNode],
+  };
+}
+
+function buildGenericCheckboxGroupNode(
+  input: GenericResolvedSkiaBuildInput,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toCheckboxGroupRacProps(
+    input.node.props ?? {},
+  ) as CheckboxGroupRacProps;
+  const size = resolveGenericCheckboxSize(props.size);
+  const style = readGenericStyle(input.node);
+  const isDark = theme === "dark";
+  const labelNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${input.node.id}:label`,
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: size.lineHeight,
+    visible: props.label.length > 0,
+    text: {
+      content: props.label,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+      align: props.labelAlign === "end" ? "right" : "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: layout.width,
+    },
+  };
+  const renderedChildren = (input.node.children ?? [])
+    .map((child) =>
+      buildGenericResolvedSkiaNodeData({
+        node: child,
+        theme,
+        layoutById: input.layoutById,
+      }),
+    )
+    .filter((child): child is SkiaNodeData => child !== null);
+
+  return {
+    type: "container",
+    elementId: input.node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [labelNode, ...renderedChildren],
   };
 }
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/Slider primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/Slider generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 selection family CheckboxGroup/Radio/RadioGroup)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Slider primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch/Checkbox/CheckboxGroup/Slider generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 selection family Radio/RadioGroup)
 
 ## Context
 
@@ -440,7 +440,7 @@ projection 을 shared wrapper surface 에서 소비하고, Preview `CanonicalNod
 Checkbox resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
 generic Skia path 는 Checkbox box/indicator/label 을 container + box/text node 로
 렌더하고 `CheckboxSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. selection
-family 잔여는 CheckboxGroup/Radio/RadioGroup/Slider 계열이다.
+family 는 이후 Slider slice 로 확장했다.
 
 2026-05-20 추가 판정: Slider primitive catalog pilot 을 land 했다.
 `packages/shared/src/catalog/primitives/slider.ts` 와 `toSliderRacProps()` 가 Slider
@@ -450,8 +450,21 @@ canonical props 를 RAC Slider props 로 정규화한다. `componentCatalog` 는
 shared wrapper surface 에서 소비하고, Preview `CanonicalNodeRenderer` 는 Slider
 resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
 generic Skia path 는 Slider label/output/track/fill/thumb 을 container + text/box node
-로 렌더하고 `SliderSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. selection
-family 잔여는 CheckboxGroup/Radio/RadioGroup 계열이다.
+로 렌더하고 `SliderSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 이후
+CheckboxGroup slice 로 확장했다.
+
+2026-05-20 추가 판정: CheckboxGroup primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/checkboxGroup.ts` 와
+`toCheckboxGroupRacProps()` 가 CheckboxGroup canonical props 를 RAC CheckboxGroup
+props 로 정규화한다. `componentCatalog` 는 CheckboxGroup 을 `cutover:"catalog"`
+active selection primitive 로 등록하고 Checkbox child template placement 를 제공한다.
+`packages/shared/src/components/CheckboxGroup.tsx` 는 label/orientation/size/selection
+projection 을 shared wrapper surface 에서 소비하고, Preview `CanonicalNodeRenderer` 는
+CheckboxGroup resolved node 와 Checkbox children 을 legacy `rendererMap` 보다 primitive
+branch 에서 먼저 렌더한다. generic Skia path 는 CheckboxGroup label + resolved
+Checkbox children 을 container + text/box node 로 렌더하고
+`CheckboxGroupSpec.render.shapes()` 와 child `CheckboxSpec.render.shapes()` 를 호출하지
+않는 fixture 를 가진다. selection family 잔여는 Radio/RadioGroup 계열이다.
 
 ## Consequences
 

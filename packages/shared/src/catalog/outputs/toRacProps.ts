@@ -178,6 +178,13 @@ export const TOOLBAR_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const TOOLBAR_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const TOOLBAR_VARIANT_VALUES = ["default", "accent"] as const;
 export const CHECKBOX_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const CHECKBOX_GROUP_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const CHECKBOX_GROUP_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
+export const CHECKBOX_GROUP_LABEL_POSITION_VALUES =
+  TEXT_FIELD_LABEL_POSITION_VALUES;
+export const CHECKBOX_GROUP_LABEL_ALIGN_VALUES = ["start", "end"] as const;
+export const CHECKBOX_GROUP_NECESSITY_INDICATOR_VALUES =
+  TEXT_FIELD_NECESSITY_INDICATOR_VALUES;
 export const SLIDER_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const SLIDER_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const SWITCH_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
@@ -250,6 +257,21 @@ const TOOLBAR_ORIENTATIONS = new Set<string>(TOOLBAR_ORIENTATION_VALUES);
 const TOOLBAR_SIZES = new Set<ComponentSizeSubset>(TOOLBAR_SIZE_VALUES);
 const TOOLBAR_VARIANTS = new Set<string>(TOOLBAR_VARIANT_VALUES);
 const CHECKBOX_SIZES = new Set<ComponentSizeSubset>(CHECKBOX_SIZE_VALUES);
+const CHECKBOX_GROUP_SIZES = new Set<ComponentSizeSubset>(
+  CHECKBOX_GROUP_SIZE_VALUES,
+);
+const CHECKBOX_GROUP_ORIENTATIONS = new Set<string>(
+  CHECKBOX_GROUP_ORIENTATION_VALUES,
+);
+const CHECKBOX_GROUP_LABEL_POSITIONS = new Set<string>(
+  CHECKBOX_GROUP_LABEL_POSITION_VALUES,
+);
+const CHECKBOX_GROUP_LABEL_ALIGNS = new Set<string>(
+  CHECKBOX_GROUP_LABEL_ALIGN_VALUES,
+);
+const CHECKBOX_GROUP_NECESSITY_INDICATORS = new Set<string>(
+  CHECKBOX_GROUP_NECESSITY_INDICATOR_VALUES,
+);
 const SLIDER_SIZES = new Set<ComponentSizeSubset>(SLIDER_SIZE_VALUES);
 const SLIDER_ORIENTATIONS = new Set<string>(SLIDER_ORIENTATION_VALUES);
 const SWITCH_SIZES = new Set<ComponentSizeSubset>(SWITCH_SIZE_VALUES);
@@ -818,6 +840,52 @@ export interface CheckboxRacProps extends Record<string, unknown> {
   name?: string;
   value?: string;
   form?: string;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface CheckboxGroupCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  size?: unknown;
+  orientation?: unknown;
+  labelPosition?: unknown;
+  labelAlign?: unknown;
+  necessityIndicator?: unknown;
+  isEmphasized?: unknown;
+  isDisabled?: unknown;
+  isInvalid?: unknown;
+  isReadOnly?: unknown;
+  isRequired?: unknown;
+  name?: unknown;
+  form?: unknown;
+  validationBehavior?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface CheckboxGroupRacProps extends Record<string, unknown> {
+  label: string;
+  description?: string;
+  errorMessage?: string;
+  value?: string[];
+  defaultValue?: string[];
+  size: ComponentSizeSubset;
+  orientation: "horizontal" | "vertical";
+  labelPosition: "top" | "side";
+  labelAlign: "start" | "end";
+  necessityIndicator?: "icon" | "label";
+  isEmphasized: boolean;
+  isDisabled?: boolean;
+  isInvalid?: boolean;
+  isReadOnly?: boolean;
+  isRequired?: boolean;
+  name?: string;
+  form?: string;
+  validationBehavior?: "native" | "aria";
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -1546,6 +1614,63 @@ export function toCheckboxRacProps(
   };
 }
 
+export function toCheckboxGroupRacProps(
+  props: CheckboxGroupCanonicalProps,
+): CheckboxGroupRacProps {
+  return {
+    label: readString(props.label, "Checkbox Group"),
+    size: normalizeCheckboxGroupSize(props.size),
+    orientation: normalizeCheckboxGroupOrientation(props.orientation),
+    labelPosition: normalizeCheckboxGroupLabelPosition(props.labelPosition),
+    labelAlign: normalizeCheckboxGroupLabelAlign(props.labelAlign),
+    isEmphasized: props.isEmphasized === true,
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(normalizeStringValueArray(props.value)
+      ? { value: normalizeStringValueArray(props.value) }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultValue)
+      ? { defaultValue: normalizeStringValueArray(props.defaultValue) }
+      : {}),
+    ...(normalizeCheckboxGroupNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeCheckboxGroupNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.name === "string" ? { name: props.name } : {}),
+    ...(typeof props.form === "string" ? { form: props.form } : {}),
+    ...(normalizeFormValidationBehavior(props.validationBehavior)
+      ? {
+          validationBehavior: normalizeFormValidationBehavior(
+            props.validationBehavior,
+          ),
+        }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toSliderRacProps(props: SliderCanonicalProps): SliderRacProps {
   return {
     label: readString(props.label, "Slider"),
@@ -1677,6 +1802,17 @@ function normalizeStringArray(value: unknown): string[] | undefined {
   const strings = value.filter(
     (item): item is string => typeof item === "string",
   );
+  return strings.length > 0 ? strings : undefined;
+}
+
+function normalizeStringValueArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const strings = value
+    .filter(
+      (item): item is string | number =>
+        typeof item === "string" || typeof item === "number",
+    )
+    .map((item) => String(item));
   return strings.length > 0 ? strings : undefined;
 }
 
@@ -2100,6 +2236,42 @@ function normalizeCheckboxSize(value: unknown): ComponentSizeSubset {
     CHECKBOX_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
+}
+
+function normalizeCheckboxGroupSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    CHECKBOX_GROUP_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeCheckboxGroupOrientation(
+  value: unknown,
+): "horizontal" | "vertical" {
+  return typeof value === "string" && CHECKBOX_GROUP_ORIENTATIONS.has(value)
+    ? (value as "horizontal" | "vertical")
+    : "vertical";
+}
+
+function normalizeCheckboxGroupLabelPosition(value: unknown): "top" | "side" {
+  return typeof value === "string" && CHECKBOX_GROUP_LABEL_POSITIONS.has(value)
+    ? (value as "top" | "side")
+    : "top";
+}
+
+function normalizeCheckboxGroupLabelAlign(value: unknown): "start" | "end" {
+  return typeof value === "string" && CHECKBOX_GROUP_LABEL_ALIGNS.has(value)
+    ? (value as "start" | "end")
+    : "start";
+}
+
+function normalizeCheckboxGroupNecessityIndicator(
+  value: unknown,
+): "icon" | "label" | undefined {
+  return typeof value === "string" &&
+    CHECKBOX_GROUP_NECESSITY_INDICATORS.has(value)
+    ? (value as "icon" | "label")
+    : undefined;
 }
 
 function normalizeSliderSize(value: unknown): ComponentSizeSubset {

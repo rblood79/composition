@@ -1,6 +1,7 @@
 import { breadcrumbPrimitiveBinding } from "./primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
+import { checkboxGroupPrimitiveBinding } from "./primitives/checkboxGroup";
 import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
@@ -243,6 +244,19 @@ export const componentCatalog = [
       category: "forms",
       label: "checkbox",
       icon: "CheckSquare",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "CheckboxGroup",
+    family: "selection",
+    cutover: "catalog",
+    binding: checkboxGroupPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "checkbox group",
+      icon: "ListChecks",
       placeable: true,
     },
   },

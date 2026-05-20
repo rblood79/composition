@@ -232,6 +232,30 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog CheckboxGroup placement with Checkbox child templates", () => {
+    const creation = resolveCatalogElementCreation("CheckboxGroup");
+
+    expect(creation).toMatchObject({
+      elementType: "CheckboxGroup",
+      props: {
+        label: "Checkbox Group",
+        size: "md",
+        orientation: "vertical",
+        labelPosition: "top",
+        isEmphasized: false,
+      },
+    });
+    expect(creation?.children?.map((child) => child.elementType)).toEqual([
+      "Checkbox",
+      "Checkbox",
+    ]);
+    expect(creation?.children?.[0]?.props).toMatchObject({
+      children: "Option 1",
+      value: "option-1",
+      isSelected: false,
+    });
+  });
+
   it("describes catalog Slider placement with primitive default props", () => {
     const creation = resolveCatalogElementCreation("Slider");
 

@@ -24,6 +24,7 @@ import {
   type BreadcrumbRacProps,
   type BreadcrumbsRacProps,
   type ButtonRacProps,
+  type CheckboxGroupRacProps,
   type CheckboxRacProps,
   type ColorFieldRacProps,
   type DateFieldRacProps,
@@ -46,6 +47,7 @@ import {
   Breadcrumbs,
   Button,
   Checkbox,
+  CheckboxGroup,
   ColorField,
   DateField,
   FileTrigger,
@@ -388,6 +390,27 @@ function renderPrimitiveNode({
     return <Checkbox key={node.id} {...checkboxProps} {...markerProps} />;
   }
 
+  if (adaptedEl.type === "CheckboxGroup") {
+    const checkboxGroupProps = binding.toRacProps({
+      ...adaptedEl.props,
+      value: collectSelectedCheckboxValues(node),
+    } as Record<string, unknown>) as CheckboxGroupRacProps;
+    const renderedChildren = node.children?.map((child) => (
+      <CanonicalNodeRenderer
+        key={child.id}
+        node={child}
+        renderContext={renderContext}
+        parentPath={parentPath}
+      />
+    ));
+
+    return (
+      <CheckboxGroup key={node.id} {...checkboxGroupProps} {...markerProps}>
+        {renderedChildren}
+      </CheckboxGroup>
+    );
+  }
+
   if (adaptedEl.type === "Slider") {
     const sliderProps = binding.toRacProps(
       adaptedEl.props as Record<string, unknown>,
@@ -511,4 +534,17 @@ function collectSelectedToggleButtonKeys(node: ResolvedNode): string[] {
         child.type === "ToggleButton" && child.props?.isSelected === true,
     )
     .map((child) => child.id);
+}
+
+function collectSelectedCheckboxValues(node: ResolvedNode): string[] {
+  return (node.children ?? [])
+    .filter(
+      (child) => child.type === "Checkbox" && child.props?.isSelected === true,
+    )
+    .map((child) => {
+      const value = child.props?.value;
+      return typeof value === "string" || typeof value === "number"
+        ? String(value)
+        : child.id;
+    });
 }

@@ -309,6 +309,28 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers CheckboxGroup as an active selection primitive catalog entry with Checkbox child templates", () => {
+    const entry = getComponentCatalogEntry("CheckboxGroup");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.family).toBe("selection");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("CheckboxGroup");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("checkbox-group");
+    const placement = entry.binding.placement;
+    expect(placement?.kind).toBe("node-with-children");
+    if (placement?.kind !== "node-with-children") return;
+    expect(placement.children.map((child) => child.type)).toEqual([
+      "Checkbox",
+      "Checkbox",
+    ]);
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("checkbox group");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers Slider as an active selection primitive catalog entry", () => {
     const entry = getComponentCatalogEntry("Slider");
 
@@ -378,6 +400,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("FileTrigger");
     expect(activeTypes).toContain("Switch");
     expect(activeTypes).toContain("Checkbox");
+    expect(activeTypes).toContain("CheckboxGroup");
     expect(activeTypes).toContain("Slider");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");

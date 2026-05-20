@@ -329,4 +329,11 @@ Slider primitive pilot 은 Checkbox 다음 selection slice 로
 `toSliderRacProps()` / `sliderPrimitiveBinding` / active catalog entry / shared wrapper
 projection / Preview primitive branch / generic Skia label-output-track-fill-thumb fixture 를
 추가했다. Slider 는 `SliderSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로
-고정했다. CheckboxGroup/Radio/RadioGroup 은 selection family 잔여로 남아 있다.
+고정했다. 이후 CheckboxGroup slice 로 확장했다.
+
+CheckboxGroup primitive pilot 은 Slider 다음 selection slice 로
+`toCheckboxGroupRacProps()` / `checkboxGroupPrimitiveBinding` / active catalog entry /
+shared wrapper / Preview primitive branch / generic Skia label+children fixture 를
+추가했다. CheckboxGroup 은 `CheckboxGroupSpec.render.shapes()` 와 child
+`CheckboxSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+Radio/RadioGroup 은 selection family 잔여로 남아 있다.

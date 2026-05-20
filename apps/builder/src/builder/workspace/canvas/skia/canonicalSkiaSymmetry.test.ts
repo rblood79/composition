@@ -6,6 +6,7 @@ import {
   BreadcrumbSpec,
   BreadcrumbsSpec,
   ButtonSpec,
+  CheckboxGroupSpec,
   CheckboxSpec,
   ColorFieldSpec,
   DateFieldSpec,
@@ -270,6 +271,69 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
+  });
+
+  it("renders a resolved CheckboxGroup label and children through the generic Skia path without render.shapes", () => {
+    const renderCheckboxGroupShapes = vi.spyOn(
+      CheckboxGroupSpec.render,
+      "shapes",
+    );
+    const renderCheckboxShapes = vi.spyOn(CheckboxSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "checkbox-group-1",
+        type: "CheckboxGroup",
+        props: {
+          label: "Preferences",
+          size: "lg",
+          orientation: "vertical",
+        },
+        children: [
+          {
+            id: "checkbox-email",
+            type: "Checkbox",
+            props: {
+              children: "Email",
+              value: "email",
+              isSelected: true,
+              size: "lg",
+            },
+          },
+          {
+            id: "checkbox-sms",
+            type: "Checkbox",
+            props: {
+              children: "SMS",
+              value: "sms",
+              isSelected: false,
+              size: "lg",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["checkbox-group-1", { x: 24, y: 32, width: 240, height: 108 }],
+        ["checkbox-email", { x: 24, y: 60, width: 180, height: 28 }],
+        ["checkbox-sms", { x: 24, y: 92, width: 180, height: 28 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("checkbox-group-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Preferences", "Email", "SMS"]),
+    );
+    expect(node?.children?.map((child) => child.elementId)).toEqual([
+      "checkbox-group-1:label",
+      "checkbox-email",
+      "checkbox-sms",
+    ]);
+    expect(renderCheckboxGroupShapes).not.toHaveBeenCalled();
+    expect(renderCheckboxShapes).not.toHaveBeenCalled();
+    renderCheckboxGroupShapes.mockRestore();
+    renderCheckboxShapes.mockRestore();
   });
 
   it("renders a resolved Slider through the generic Skia path without render.shapes", () => {

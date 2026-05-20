@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — CheckboxGroup primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **CheckboxGroup active primitive binding 추가**:
+  - `componentCatalog` 에 `CheckboxGroup` 을 `cutover:"catalog"` active selection primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toCheckboxGroupRacProps()` 와 `checkboxGroupPrimitiveBinding` 을 추가했다.
+  - `CheckboxGroup.tsx` shared wrapper 가 label/orientation/size/selection catalog projection 을 소비하도록 전환했다.
+- **CheckboxGroup Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 CheckboxGroup resolved node 와 Checkbox children 을 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 CheckboxGroup label + resolved Checkbox children 을 렌더하고 `CheckboxGroupSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `selection` family 의 네 번째 active primitive pilot 이다. Radio/RadioGroup 은 아직 잔여다.
+
 ## [ADR-142 Phase 3/5/6 — Slider primitive catalog pilot] - 2026-05-20
 
 ### Architecture

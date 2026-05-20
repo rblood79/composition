@@ -1,5 +1,6 @@
 import type { PrimitiveBinding } from "./types";
 import { buttonInspectorThemeValues } from "./primitives/button";
+import { checkboxGroupInspectorThemeValues } from "./primitives/checkboxGroup";
 import { checkboxInspectorThemeValues } from "./primitives/checkbox";
 import { colorFieldInspectorThemeValues } from "./primitives/colorField";
 import { dateFieldInspectorThemeValues } from "./primitives/dateField";
@@ -35,6 +36,7 @@ export function getPrimitiveInspectorThemeValues(
 ): InspectorThemeLookup {
   if (type === "Button") return buttonInspectorThemeValues;
   if (type === "Checkbox") return checkboxInspectorThemeValues;
+  if (type === "CheckboxGroup") return checkboxGroupInspectorThemeValues;
   if (type === "Link") return linkInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;

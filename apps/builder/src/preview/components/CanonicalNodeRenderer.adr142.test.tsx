@@ -17,6 +17,7 @@ const {
   legacyBreadcrumbsRenderer,
   legacyColorFieldRenderer,
   legacyCheckboxRenderer,
+  legacyCheckboxGroupRenderer,
   legacyDateFieldRenderer,
   legacyFileTriggerRenderer,
   legacyFormRenderer,
@@ -46,6 +47,9 @@ const {
   )),
   legacyCheckboxRenderer: vi.fn(() => (
     <label data-legacy-renderer="Checkbox">legacy</label>
+  )),
+  legacyCheckboxGroupRenderer: vi.fn(() => (
+    <div data-legacy-renderer="CheckboxGroup">legacy</div>
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
@@ -95,6 +99,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Breadcrumb: legacyBreadcrumbRenderer,
     Breadcrumbs: legacyBreadcrumbsRenderer,
     Checkbox: legacyCheckboxRenderer,
+    CheckboxGroup: legacyCheckboxGroupRenderer,
     ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
     FileTrigger: legacyFileTriggerRenderer,
@@ -133,6 +138,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyBreadcrumbRenderer.mockClear();
     legacyBreadcrumbsRenderer.mockClear();
     legacyCheckboxRenderer.mockClear();
+    legacyCheckboxGroupRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyFileTriggerRenderer.mockClear();
@@ -719,6 +725,60 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       checkboxRoot,
     );
     expect(checkbox).toBeTruthy();
+    expect(legacyCheckboxRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders CheckboxGroup and children through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "checkbox-group-1",
+      type: "CheckboxGroup",
+      props: {
+        label: "Preferences",
+        value: ["email"],
+        isEmphasized: true,
+        size: "lg",
+      },
+      children: [
+        {
+          id: "checkbox-email",
+          type: "Checkbox",
+          props: {
+            children: "Email",
+            value: "email",
+            isSelected: true,
+          },
+        },
+        {
+          id: "checkbox-sms",
+          type: "Checkbox",
+          props: {
+            children: "SMS",
+            value: "sms",
+            isSelected: false,
+          },
+        },
+      ],
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const group = screen.getByRole("group", {
+      name: "Preferences",
+    });
+    const checkboxGroupRoot = container.querySelector(
+      ".react-aria-CheckboxGroup",
+    );
+    expect(checkboxGroupRoot?.getAttribute("data-checkbox-size")).toBe("lg");
+    expect(checkboxGroupRoot?.getAttribute("data-emphasized")).toBe("true");
+    expect(
+      container.querySelector("[data-canonical-id='checkbox-group-1']"),
+    ).toBe(checkboxGroupRoot);
+    expect(group).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Email" })).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "SMS" })).toBeTruthy();
+    expect(legacyCheckboxGroupRenderer).not.toHaveBeenCalled();
     expect(legacyCheckboxRenderer).not.toHaveBeenCalled();
   });
 
