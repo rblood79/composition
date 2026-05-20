@@ -7,6 +7,7 @@ import { formInspectorThemeValues } from "./primitives/form";
 import { linkInspectorThemeValues } from "./primitives/link";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
 import { searchFieldInspectorThemeValues } from "./primitives/searchField";
+import { sliderInspectorThemeValues } from "./primitives/slider";
 import { switchInspectorThemeValues } from "./primitives/switch";
 import { textFieldInspectorThemeValues } from "./primitives/textField";
 import { timeFieldInspectorThemeValues } from "./primitives/timeField";
@@ -38,6 +39,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;
+  if (type === "Slider") return sliderInspectorThemeValues;
   if (type === "Switch") return switchInspectorThemeValues;
   if (type === "DateField") return dateFieldInspectorThemeValues;
   if (type === "TimeField") return timeFieldInspectorThemeValues;

@@ -7,6 +7,10 @@ import {
   SliderTrack,
   composeRenderProps,
 } from "react-aria-components";
+import {
+  toSliderRacProps,
+  type SliderCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 import type { ComponentSizeSubset } from "../types";
 import { formatNumber } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";
@@ -42,6 +46,20 @@ export interface SliderProps<T> extends AriaSliderProps<T> {
    */
   customFormatter?: (value: number) => string;
   /**
+   * Show formatted current value label
+   * @default true
+   */
+  showValueLabel?: boolean;
+  /**
+   * Canonical compatibility flag. React Aria Slider does not expose readOnly.
+   */
+  isReadOnly?: boolean;
+  /**
+   * Canonical form metadata. React Aria Slider does not forward this directly.
+   */
+  name?: string;
+  form?: string;
+  /**
    * Show loading skeleton instead of slider
    * @default false
    */
@@ -61,21 +79,63 @@ export function Slider<T extends number | number[]>({
   locale = "ko-KR",
   formatOptions,
   customFormatter,
+  showValueLabel,
   isLoading,
+  value,
+  defaultValue,
+  minValue,
+  maxValue,
+  step,
+  orientation,
+  isDisabled,
+  isReadOnly,
+  name,
+  form,
+  className,
   ...props
 }: SliderProps<T>) {
-  if (isLoading) {
+  const projectedProps = toSliderRacProps({
+    ...props,
+    className,
+    defaultValue,
+    form,
+    formatOptions,
+    isDisabled,
+    isEmphasized,
+    isLoading,
+    isReadOnly,
+    label,
+    locale,
+    maxValue,
+    minValue,
+    name,
+    orientation,
+    showValueLabel,
+    size,
+    step,
+    thumbLabels,
+    value,
+  } as SliderCanonicalProps);
+  const sliderSize = size ?? projectedProps.size;
+  const sliderIsEmphasized = isEmphasized ?? projectedProps.isEmphasized;
+  const sliderIsLoading = isLoading ?? projectedProps.isLoading;
+  const sliderLabel = label ?? projectedProps.label;
+  const sliderLocale = locale ?? projectedProps.locale;
+  const sliderFormatOptions = formatOptions ?? projectedProps.formatOptions;
+  const sliderShowValueLabel = showValueLabel ?? projectedProps.showValueLabel;
+
+  if (sliderIsLoading) {
     return (
       <Skeleton
         componentVariant="slider"
-        size={size}
-        className={props.className as string}
+        size={sliderSize}
+        className={className as string}
         aria-label="Loading slider..."
       />
     );
   }
 
-  const sliderClassName = composeRenderProps(props.className, (className) =>
+  const sliderClassName = composeRenderProps(className, (className) =>
     className ? `react-aria-Slider ${className}` : "react-aria-Slider",
   );
 
@@ -85,30 +145,43 @@ export function Slider<T extends number | number[]>({
       return customFormatter(value);
     }
 
-    if (formatOptions) {
+    if (sliderFormatOptions) {
       try {
-        return new Intl.NumberFormat(locale, formatOptions).format(value);
+        return new Intl.NumberFormat(sliderLocale, sliderFormatOptions).format(
+          value,
+        );
       } catch {
-        return formatNumber(value, locale);
+        return formatNumber(value, sliderLocale);
       }
     }
 
-    return formatNumber(value, locale);
+    return formatNumber(value, sliderLocale);
   };
 
   return (
     <AriaSlider
       {...props}
+      value={(value ?? projectedProps.value) as T | undefined}
+      defaultValue={
+        (defaultValue ?? projectedProps.defaultValue) as T | undefined
+      }
+      minValue={minValue ?? projectedProps.minValue}
+      maxValue={maxValue ?? projectedProps.maxValue}
+      step={step ?? projectedProps.step}
+      orientation={orientation ?? projectedProps.orientation}
+      isDisabled={isDisabled ?? projectedProps.isDisabled}
       className={sliderClassName}
-      data-emphasized={isEmphasized || undefined}
-      data-size={size}
+      data-emphasized={sliderIsEmphasized || undefined}
+      data-size={sliderSize}
     >
-      {label && <Label>{label}</Label>}
-      <SliderOutput>
-        {({ state }) =>
-          state.values.map((value) => formatValue(value)).join(" – ")
-        }
-      </SliderOutput>
+      {sliderLabel && <Label>{sliderLabel}</Label>}
+      {sliderShowValueLabel ? (
+        <SliderOutput>
+          {({ state }) =>
+            state.values.map((value) => formatValue(value)).join(" – ")
+          }
+        </SliderOutput>
+      ) : null}
       <SliderTrack>
         {({ state, isDisabled }) => (
           <>

@@ -232,6 +232,23 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog Slider placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Slider");
+
+    expect(creation).toMatchObject({
+      elementType: "Slider",
+      props: {
+        label: "Slider",
+        value: 50,
+        minValue: 0,
+        maxValue: 100,
+        step: 1,
+        size: "md",
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

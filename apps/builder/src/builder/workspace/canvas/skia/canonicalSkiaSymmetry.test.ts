@@ -15,6 +15,7 @@ import {
   NumberFieldSpec,
   SearchFieldSpec,
   SeparatorSpec,
+  SliderSpec,
   SwitchSpec,
   TextFieldSpec,
   TimeFieldSpec,
@@ -266,6 +267,35 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("checkbox-1");
     expect(collectText(node)).toContain("Remember me");
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Slider through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(SliderSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "slider-1",
+        type: "Slider",
+        props: {
+          label: "Volume",
+          value: 75,
+          minValue: 0,
+          maxValue: 100,
+          step: 5,
+          size: "lg",
+          isEmphasized: true,
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 240, height: 64 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("slider-1");
+    expect(collectText(node)).toEqual(expect.arrayContaining(["Volume", "75"]));
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();

@@ -33,6 +33,7 @@ import {
   type NumberFieldRacProps,
   type SearchFieldRacProps,
   type SeparatorRacProps,
+  type SliderRacProps,
   type SwitchRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
@@ -53,6 +54,7 @@ import {
   NumberField,
   SearchField,
   Separator,
+  Slider,
   Switch,
   TextField,
   TimeField,
@@ -384,6 +386,14 @@ function renderPrimitiveNode({
     ) as CheckboxRacProps;
 
     return <Checkbox key={node.id} {...checkboxProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Slider") {
+    const sliderProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as SliderRacProps;
+
+    return <Slider key={node.id} {...sliderProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

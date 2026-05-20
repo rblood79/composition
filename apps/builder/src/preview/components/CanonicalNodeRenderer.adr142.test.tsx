@@ -24,6 +24,7 @@ const {
   legacyNumberFieldRenderer,
   legacySearchFieldRenderer,
   legacySeparatorRenderer,
+  legacySliderRenderer,
   legacySwitchRenderer,
   legacyTextFieldRenderer,
   legacyTimeFieldRenderer,
@@ -65,6 +66,9 @@ const {
   legacySeparatorRenderer: vi.fn(() => (
     <div data-legacy-renderer="Separator">legacy</div>
   )),
+  legacySliderRenderer: vi.fn(() => (
+    <div data-legacy-renderer="Slider">legacy</div>
+  )),
   legacySwitchRenderer: vi.fn(() => (
     <label data-legacy-renderer="Switch">legacy</label>
   )),
@@ -99,6 +103,7 @@ vi.mock("@composition/shared/renderers", () => ({
     NumberField: legacyNumberFieldRenderer,
     SearchField: legacySearchFieldRenderer,
     Separator: legacySeparatorRenderer,
+    Slider: legacySliderRenderer,
     Switch: legacySwitchRenderer,
     TextField: legacyTextFieldRenderer,
     TimeField: legacyTimeFieldRenderer,
@@ -136,6 +141,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyNumberFieldRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
+    legacySliderRenderer.mockClear();
     legacySwitchRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyTimeFieldRenderer.mockClear();
@@ -714,5 +720,38 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     );
     expect(checkbox).toBeTruthy();
     expect(legacyCheckboxRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "slider-1",
+      type: "Slider",
+      props: {
+        label: "Volume",
+        value: 75,
+        minValue: 0,
+        maxValue: 100,
+        step: 5,
+        isEmphasized: true,
+        size: "lg",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const slider = screen.getByRole("slider", {
+      name: "Volume",
+    });
+    const sliderRoot = container.querySelector(".react-aria-Slider");
+    expect(sliderRoot?.getAttribute("data-size")).toBe("lg");
+    expect(sliderRoot?.getAttribute("data-emphasized")).toBe("true");
+    expect(container.querySelector("[data-canonical-id='slider-1']")).toBe(
+      sliderRoot,
+    );
+    expect(slider).toBeTruthy();
+    expect(screen.getByText("75")).toBeTruthy();
+    expect(legacySliderRenderer).not.toHaveBeenCalled();
   });
 });

@@ -178,6 +178,8 @@ export const TOOLBAR_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const TOOLBAR_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const TOOLBAR_VARIANT_VALUES = ["default", "accent"] as const;
 export const CHECKBOX_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const SLIDER_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const SLIDER_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const SWITCH_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
@@ -248,6 +250,8 @@ const TOOLBAR_ORIENTATIONS = new Set<string>(TOOLBAR_ORIENTATION_VALUES);
 const TOOLBAR_SIZES = new Set<ComponentSizeSubset>(TOOLBAR_SIZE_VALUES);
 const TOOLBAR_VARIANTS = new Set<string>(TOOLBAR_VARIANT_VALUES);
 const CHECKBOX_SIZES = new Set<ComponentSizeSubset>(CHECKBOX_SIZE_VALUES);
+const SLIDER_SIZES = new Set<ComponentSizeSubset>(SLIDER_SIZE_VALUES);
+const SLIDER_ORIENTATIONS = new Set<string>(SLIDER_ORIENTATION_VALUES);
 const SWITCH_SIZES = new Set<ComponentSizeSubset>(SWITCH_SIZE_VALUES);
 const BREADCRUMBS_SIZES = new Set<string>(BREADCRUMBS_SIZE_VALUES);
 
@@ -813,6 +817,52 @@ export interface CheckboxRacProps extends Record<string, unknown> {
   isLoading?: boolean;
   name?: string;
   value?: string;
+  form?: string;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface SliderCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  minValue?: unknown;
+  maxValue?: unknown;
+  step?: unknown;
+  size?: unknown;
+  orientation?: unknown;
+  isEmphasized?: unknown;
+  showValueLabel?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isLoading?: unknown;
+  locale?: unknown;
+  formatOptions?: unknown;
+  thumbLabels?: unknown;
+  name?: unknown;
+  form?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface SliderRacProps extends Record<string, unknown> {
+  label: string;
+  value?: number | number[];
+  defaultValue?: number | number[];
+  minValue: number;
+  maxValue: number;
+  step: number;
+  size: ComponentSizeSubset;
+  orientation: "horizontal" | "vertical";
+  isEmphasized: boolean;
+  showValueLabel: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isLoading?: boolean;
+  locale: string;
+  formatOptions?: Intl.NumberFormatOptions;
+  thumbLabels?: string[];
+  name?: string;
   form?: string;
   className?: string;
   style?: Record<string, unknown>;
@@ -1496,6 +1546,45 @@ export function toCheckboxRacProps(
   };
 }
 
+export function toSliderRacProps(props: SliderCanonicalProps): SliderRacProps {
+  return {
+    label: readString(props.label, "Slider"),
+    value: normalizeSliderValue(props.value),
+    defaultValue: normalizeSliderValue(props.defaultValue),
+    minValue: readFiniteNumber(props.minValue) ?? 0,
+    maxValue: readFiniteNumber(props.maxValue) ?? 100,
+    step: readFiniteNumber(props.step) ?? 1,
+    size: normalizeSliderSize(props.size),
+    orientation: normalizeSliderOrientation(props.orientation),
+    isEmphasized: props.isEmphasized === true,
+    showValueLabel: props.showValueLabel !== false,
+    locale: typeof props.locale === "string" ? props.locale : "ko-KR",
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isLoading === "boolean"
+      ? { isLoading: props.isLoading }
+      : {}),
+    ...(normalizeNumberFieldFormatOptions(props.formatOptions)
+      ? {
+          formatOptions: normalizeNumberFieldFormatOptions(props.formatOptions),
+        }
+      : {}),
+    ...(normalizeStringArray(props.thumbLabels)
+      ? { thumbLabels: normalizeStringArray(props.thumbLabels) }
+      : {}),
+    ...(typeof props.name === "string" ? { name: props.name } : {}),
+    ...(typeof props.form === "string" ? { form: props.form } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -1581,6 +1670,24 @@ function readFiniteNumber(value: unknown): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
+}
+
+function normalizeStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const strings = value.filter(
+    (item): item is string => typeof item === "string",
+  );
+  return strings.length > 0 ? strings : undefined;
+}
+
+function normalizeSliderValue(value: unknown): number | number[] | undefined {
+  if (Array.isArray(value)) {
+    const numbers = value
+      .map((item) => readFiniteNumber(item))
+      .filter((item): item is number => typeof item === "number");
+    return numbers.length > 0 ? numbers : undefined;
+  }
+  return readFiniteNumber(value);
 }
 
 function readToggleButtonText(props: ToggleButtonCanonicalProps): string {
@@ -1993,6 +2100,19 @@ function normalizeCheckboxSize(value: unknown): ComponentSizeSubset {
     CHECKBOX_SIZES.has(value as ComponentSizeSubset)
     ? (value as ComponentSizeSubset)
     : "md";
+}
+
+function normalizeSliderSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    SLIDER_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function normalizeSliderOrientation(value: unknown): "horizontal" | "vertical" {
+  return typeof value === "string" && SLIDER_ORIENTATIONS.has(value)
+    ? (value as "horizontal" | "vertical")
+    : "horizontal";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

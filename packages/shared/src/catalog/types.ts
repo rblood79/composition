@@ -36,6 +36,7 @@ export interface PrimitiveSkiaDescriptor {
     | "number-field"
     | "search-field"
     | "separator"
+    | "slider"
     | "switch"
     | "text-field"
     | "time-field"

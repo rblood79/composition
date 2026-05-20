@@ -8,6 +8,7 @@ import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
+import { sliderPrimitiveBinding } from "../primitives/slider";
 import { switchPrimitiveBinding } from "../primitives/switch";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { timeFieldPrimitiveBinding } from "../primitives/timeField";
@@ -21,6 +22,7 @@ import {
   toFormRacProps,
   toNumberFieldRacProps,
   toSearchFieldRacProps,
+  toSliderRacProps,
   toSwitchRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
@@ -645,6 +647,67 @@ describe("ADR-142 inspector field contracts", () => {
       isDisabled: false,
       isReadOnly: true,
       value: "remember",
+    });
+  });
+
+  it("groups Slider PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "Slider",
+      contracts: sliderPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { Slider: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Locale",
+      "Range",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "value",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "size",
+      "orientation",
+      "isEmphasized",
+      "showValueLabel",
+    ]);
+    expect(sections[3].fields.map((field) => field.key)).toEqual([
+      "minValue",
+      "maxValue",
+      "step",
+    ]);
+  });
+
+  it("projects Slider canonical props through the catalog boundary", () => {
+    expect(
+      toSliderRacProps({
+        label: "Volume",
+        value: "75",
+        minValue: 0,
+        maxValue: 100,
+        step: 5,
+        size: "lg",
+        orientation: "horizontal",
+        isEmphasized: true,
+        showValueLabel: true,
+        locale: "ko-KR",
+      }),
+    ).toMatchObject({
+      label: "Volume",
+      value: 75,
+      minValue: 0,
+      maxValue: 100,
+      step: 5,
+      size: "lg",
+      orientation: "horizontal",
+      isEmphasized: true,
+      showValueLabel: true,
+      locale: "ko-KR",
     });
   });
 });

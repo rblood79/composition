@@ -10,6 +10,7 @@ import { linkPrimitiveBinding } from "./primitives/link";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
 import { separatorPrimitiveBinding } from "./primitives/separator";
+import { sliderPrimitiveBinding } from "./primitives/slider";
 import { switchPrimitiveBinding } from "./primitives/switch";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { timeFieldPrimitiveBinding } from "./primitives/timeField";
@@ -242,6 +243,19 @@ export const componentCatalog = [
       category: "forms",
       label: "checkbox",
       icon: "CheckSquare",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Slider",
+    family: "selection",
+    cutover: "catalog",
+    binding: sliderPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "slider",
+      icon: "SlidersHorizontal",
       placeable: true,
     },
   },

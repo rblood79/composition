@@ -29,6 +29,7 @@ import {
   toNumberFieldRacProps,
   toSearchFieldRacProps,
   toSeparatorRacProps,
+  toSliderRacProps,
   toSwitchRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
@@ -43,6 +44,7 @@ import {
   type SearchFieldRacProps,
   type ResolvedNode,
   type SeparatorRacProps,
+  type SliderRacProps,
   type SwitchRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
@@ -852,6 +854,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "checkbox") {
     return buildGenericCheckboxNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "slider") {
+    return buildGenericSliderNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -2107,6 +2112,127 @@ function buildGenericCheckboxNode(
   };
 }
 
+function buildGenericSliderNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toSliderRacProps(node.props ?? {}) as SliderRacProps;
+  const size = resolveGenericSliderSize(props.size);
+  const palette = resolveGenericSliderPalette(props, theme);
+  const style = readGenericStyle(node);
+  const value = firstSliderValue(props.value ?? props.defaultValue) ?? 0;
+  const minValue = props.minValue;
+  const maxValue = props.maxValue;
+  const percent = normalizeSliderPercent(value, minValue, maxValue);
+  const labelHeight = size.lineHeight;
+  const outputWidth = props.showValueLabel ? 56 : 0;
+  const trackY =
+    labelHeight + size.gap + size.thumbSize / 2 - size.trackHeight / 2;
+  const trackWidth = Math.max(layout.width, 0);
+  const fillWidth = Math.max(trackWidth * percent, 0);
+  const thumbX = Math.max(fillWidth - size.thumbSize / 2, 0);
+
+  const labelNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:label`,
+    x: 0,
+    y: 0,
+    width: Math.max(layout.width - outputWidth, 0),
+    height: labelHeight,
+    visible: props.label.length > 0,
+    text: {
+      content: props.label,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: Math.max(layout.width - outputWidth, 0),
+    },
+  };
+
+  const outputNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:output`,
+    x: Math.max(layout.width - outputWidth, 0),
+    y: 0,
+    width: outputWidth,
+    height: labelHeight,
+    visible: props.showValueLabel,
+    text: {
+      content: formatGenericSliderValue(value),
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 500,
+      color: palette.textColor,
+      align: "right",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: outputWidth,
+    },
+  };
+
+  const trackNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:track`,
+    x: 0,
+    y: trackY,
+    width: trackWidth,
+    height: size.trackHeight,
+    visible: true,
+    box: {
+      fillColor: palette.trackColor,
+      borderRadius: size.trackHeight / 2,
+    },
+  };
+
+  const fillNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:fill`,
+    x: 0,
+    y: trackY,
+    width: fillWidth,
+    height: size.trackHeight,
+    visible: fillWidth > 0,
+    box: {
+      fillColor: palette.fillColor,
+      borderRadius: size.trackHeight / 2,
+    },
+  };
+
+  const thumbNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:thumb`,
+    x: thumbX,
+    y: trackY - (size.thumbSize - size.trackHeight) / 2,
+    width: size.thumbSize,
+    height: size.thumbSize,
+    visible: true,
+    box: {
+      fillColor: palette.thumbColor,
+      borderRadius: size.thumbSize / 2,
+      strokeColor: palette.thumbStrokeColor,
+      strokeWidth: 1,
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [labelNode, outputNode, trackNode, fillNode, thumbNode],
+  };
+}
+
 function resolveGenericLayout(
   input: GenericResolvedSkiaBuildInput,
 ): GenericResolvedSkiaLayout {
@@ -2524,6 +2650,42 @@ function resolveGenericCheckboxSize(size: CheckboxRacProps["size"]): {
   }
 }
 
+function resolveGenericSliderSize(size: SliderRacProps["size"]): {
+  fontSize: number;
+  lineHeight: number;
+  trackHeight: number;
+  thumbSize: number;
+  gap: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        fontSize: 12,
+        lineHeight: 16,
+        trackHeight: 4,
+        thumbSize: 14,
+        gap: 6,
+      };
+    case "lg":
+      return {
+        fontSize: 16,
+        lineHeight: 24,
+        trackHeight: 12,
+        thumbSize: 22,
+        gap: 8,
+      };
+    case "md":
+    default:
+      return {
+        fontSize: 14,
+        lineHeight: 20,
+        trackHeight: 8,
+        thumbSize: 18,
+        gap: 8,
+      };
+  }
+}
+
 function resolveGenericSwitchPalette(
   props: SwitchRacProps,
   theme: "light" | "dark",
@@ -2583,6 +2745,48 @@ function resolveGenericCheckboxPalette(
     ),
     textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
   };
+}
+
+function resolveGenericSliderPalette(
+  props: SliderRacProps,
+  theme: "light" | "dark",
+): {
+  trackColor: Float32Array;
+  fillColor: Float32Array;
+  thumbColor: Float32Array;
+  thumbStrokeColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const isDark = theme === "dark";
+  return {
+    trackColor: colorIntToFloat32(isDark ? 0x374151 : 0xe5e7eb, 1),
+    fillColor: colorIntToFloat32(
+      props.isEmphasized ? 0x2563eb : isDark ? 0xf9fafb : 0x111827,
+      1,
+    ),
+    thumbColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+    thumbStrokeColor: colorIntToFloat32(isDark ? 0xf9fafb : 0xd1d5db, 1),
+    textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
+  };
+}
+
+function firstSliderValue(value: SliderRacProps["value"]): number | undefined {
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
+function normalizeSliderPercent(
+  value: number,
+  minValue: number,
+  maxValue: number,
+): number {
+  const range = maxValue - minValue;
+  if (!Number.isFinite(range) || range <= 0) return 0;
+  return Math.max(0, Math.min(1, (value - minValue) / range));
+}
+
+function formatGenericSliderValue(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
 function resolveGenericSeparatorStrokeWidth(
