@@ -153,6 +153,7 @@ track/indicator/arc/cell state 를 별도 draw module 로 표현할 가능성이
 | `ColorArea`, `ColorSlider`, `ColorWheel`, `ColorThumb`, `ColorSwatch`, `ColorSwatchPicker` | gradient/arc/thumb/color fill                                                                  |
 | `ListBox`, `GridList`, `Menu`, `TagGroup`, `ComboBox`, `Tabs`                              | collection item state, keyboard/selection state visualization                                  |
 | `Tree`, `Table`, `TableView`                                                               | collections 데이터 + row/cell/tree disclosure state. 수동 우회 구현으로 full support 주장 금지 |
+| `DropZone`                                                                                 | drop-target state + dashed container/icon/text. legacy render.shapes 우회 금지                 |
 
 Phase 1a 의 Button proof 는 최소 연결성 검증이고, 위 후보들의 비용/시각 대칭은
 G2b/G2c 및 family fixture 에서 별도 검증해야 한다.
@@ -401,4 +402,11 @@ Tree/Table/TableView 는 `TreeSpec.render.shapes()` / `TableSpec.render.shapes()
 `TableViewSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
 TableView 는 별도 RAC primitive 가 없으므로 canonical tag 는 `TableView` 로 유지하고
 runtime exportName 은 `Table` binding 을 사용한다. ADR-132 collection 데이터 binding
-전체 전환은 여전히 잔여이며, 다음 family entrypoint 는 overlays 또는 date/color 다.
+전체 전환은 여전히 잔여다.
+DropZone overlays primitive pilot 은 `toDropZoneRacProps()` /
+`dropZonePrimitiveBinding` / active catalog entry / shared `DropZone.tsx` projection /
+Preview DropZone primitive branch / generic Skia dashed container+upload icon+label/description
+fixture 를 추가했다. DropZone 은 `DropZoneSpec.render.shapes()` 를 호출하지 않는
+generic Skia fixture 로 고정했다. 기존 사용자 패널 위치는 `forms` category 로 보존한다.
+Dialog/Modal/Popover/Tooltip/Toast overlays slice 는 잔여이며, 다음 family entrypoint 는
+나머지 overlays 또는 date/color 다.

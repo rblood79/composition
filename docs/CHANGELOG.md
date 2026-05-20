@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — DropZone overlays primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **DropZone active primitive binding 추가**:
+  - `componentCatalog` 에 `DropZone` 을 `cutover:"catalog"` active `overlays` primitive 로 등록했다. 사용자 패널 위치는 기존과 동일하게 `forms` category 로 유지했다.
+  - canonical label/description/size/drop-target/disabled props 를 RAC DropZone surface 로 투영하는 `toDropZoneRacProps()` 와 `dropZonePrimitiveBinding` 을 추가했다.
+  - `DropZone.tsx` shared wrapper 가 catalog projection 을 소비하고 `data-drop-target` / `is-drop-target` 상태를 active preview 경로에 반영한다.
+- **DropZone Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 DropZone resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 dashed container + upload icon + label/description 을 렌더하고 `DropZoneSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- overlays family 는 DropZone pilot 으로 착수했다. Dialog/Modal/Popover/Tooltip/Toast overlays slice 는 아직 잔여다.
+
 ## [ADR-142 Phase 3/5/6 — Tree Table primitive catalog pilot] - 2026-05-20
 
 ### Architecture
