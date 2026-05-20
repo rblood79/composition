@@ -32,6 +32,7 @@ import {
   type NumberFieldRacProps,
   type SearchFieldRacProps,
   type SeparatorRacProps,
+  type SwitchRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type ToolbarRacProps,
@@ -50,6 +51,7 @@ import {
   NumberField,
   SearchField,
   Separator,
+  Switch,
   TextField,
   TimeField,
   Toolbar,
@@ -364,6 +366,14 @@ function renderPrimitiveNode({
     ) as ColorFieldRacProps;
 
     return <ColorField key={node.id} {...colorFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Switch") {
+    const switchProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as SwitchRacProps;
+
+    return <Switch key={node.id} {...switchProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

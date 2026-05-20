@@ -9,6 +9,7 @@ import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
+import { switchPrimitiveBinding } from "../primitives/switch";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { toolbarPrimitiveBinding } from "../primitives/toolbar";
@@ -274,6 +275,22 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers Switch as an active selection primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("Switch");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(switchPrimitiveBinding);
+    expect(entry.family).toBe("selection");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("Switch");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("switch");
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.label).toBe("switch");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -325,6 +342,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("ColorField");
     expect(activeTypes).toContain("Form");
     expect(activeTypes).toContain("FileTrigger");
+    expect(activeTypes).toContain("Switch");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

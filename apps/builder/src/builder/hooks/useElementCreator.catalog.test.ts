@@ -201,6 +201,21 @@ describe("ADR-142 element creator catalog bridge", () => {
     });
   });
 
+  it("describes catalog Switch placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("Switch");
+
+    expect(creation).toMatchObject({
+      elementType: "Switch",
+      props: {
+        children: "Switch",
+        size: "md",
+        isSelected: false,
+        isEmphasized: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

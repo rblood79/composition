@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Switch primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Switch active primitive binding 추가**:
+  - `componentCatalog` 에 `Switch` 를 `cutover:"catalog"` active selection primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toSwitchRacProps()` 와 `switchPrimitiveBinding` 을 추가했다.
+  - `Switch.tsx` shared wrapper 가 catalog projection 을 소비하도록 전환했다.
+- **Switch Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 Switch resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 Switch track/thumb/label 을 container + box/text node 로 렌더하고 `SwitchSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `selection` family 의 첫 active primitive pilot 이다. Checkbox/Radio/Slider 계열은 아직 잔여다.
+
 ## [ADR-142 Phase 6 — Primitive Inspector specRegistry bypass] - 2026-05-20
 
 ### Architecture

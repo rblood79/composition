@@ -14,6 +14,7 @@ import {
   NumberFieldSpec,
   SearchFieldSpec,
   SeparatorSpec,
+  SwitchSpec,
   TextFieldSpec,
   TimeFieldSpec,
   ToggleButtonSpec,
@@ -213,6 +214,32 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("toggle-button-1");
     expect(collectText(node)).toContain("Pinned");
     expect(node?.box?.fillColor).toBeDefined();
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Switch through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(SwitchSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "switch-1",
+        type: "Switch",
+        props: {
+          children: "Notifications",
+          isSelected: true,
+          isEmphasized: true,
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 180, height: 36 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("switch-1");
+    expect(collectText(node)).toContain("Notifications");
+    expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

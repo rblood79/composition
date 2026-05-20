@@ -311,3 +311,10 @@ DateField/TimeField/ColorField/Form/FileTrigger 의 Properties Panel source 는
 `PrimitiveBinding.props.accepts` 기반 `PropContract` section 이며, legacy
 `ComponentSpec.properties.sections` / `SpecField` 는 catalog binding 이 없는 component
 fallback 으로만 남는다.
+
+Switch primitive pilot 은 `selection` family 의 첫 active slice 로
+`toSwitchRacProps()` / `switchPrimitiveBinding` / active catalog entry / shared
+wrapper projection / Preview primitive branch / generic Skia track-thumb-label fixture 를
+추가했다. Switch 는 `SwitchSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했으며, Checkbox/CheckboxGroup/Radio/RadioGroup/Slider 는 selection
+family 잔여로 남아 있다.

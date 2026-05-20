@@ -7,6 +7,7 @@ import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
+import { switchPrimitiveBinding } from "../primitives/switch";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
@@ -18,6 +19,7 @@ import {
   toFormRacProps,
   toNumberFieldRacProps,
   toSearchFieldRacProps,
+  toSwitchRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
 } from "../outputs/toRacProps";
@@ -534,6 +536,55 @@ describe("ADR-142 inspector field contracts", () => {
       allowsMultiple: true,
       acceptDirectory: true,
       defaultCamera: "environment",
+    });
+  });
+
+  it("groups Switch PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "Switch",
+      contracts: switchPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { Switch: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual(["children"]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "isEmphasized",
+      "size",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "isSelected",
+      "isDisabled",
+      "isReadOnly",
+      "isLoading",
+    ]);
+  });
+
+  it("projects Switch canonical props through the catalog boundary", () => {
+    expect(
+      toSwitchRacProps({
+        children: "Notifications",
+        size: "lg",
+        isEmphasized: true,
+        isSelected: true,
+        isDisabled: false,
+        isReadOnly: true,
+        value: "notifications",
+      }),
+    ).toMatchObject({
+      children: "Notifications",
+      size: "lg",
+      isEmphasized: true,
+      isSelected: true,
+      isDisabled: false,
+      isReadOnly: true,
+      value: "notifications",
     });
   });
 });

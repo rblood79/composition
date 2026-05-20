@@ -12,6 +12,7 @@ export * from "./primitives/link";
 export * from "./primitives/numberField";
 export * from "./primitives/searchField";
 export * from "./primitives/separator";
+export * from "./primitives/switch";
 export * from "./primitives/textField";
 export * from "./primitives/timeField";
 export * from "./primitives/toolbar";

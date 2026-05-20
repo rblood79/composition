@@ -9,6 +9,7 @@ import { linkPrimitiveBinding } from "./primitives/link";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
 import { separatorPrimitiveBinding } from "./primitives/separator";
+import { switchPrimitiveBinding } from "./primitives/switch";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { timeFieldPrimitiveBinding } from "./primitives/timeField";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
@@ -227,6 +228,19 @@ export const componentCatalog = [
       category: "forms",
       label: "file trigger",
       icon: "Upload",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Switch",
+    family: "selection",
+    cutover: "catalog",
+    binding: switchPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "switch",
+      icon: "ToggleLeft",
       placeable: true,
     },
   },

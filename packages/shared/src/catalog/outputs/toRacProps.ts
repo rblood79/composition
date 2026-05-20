@@ -177,6 +177,7 @@ export const TOGGLE_BUTTON_GROUP_SELECTION_MODE_VALUES = [
 export const TOOLBAR_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const TOOLBAR_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const TOOLBAR_VARIANT_VALUES = ["default", "accent"] as const;
+export const SWITCH_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -245,6 +246,7 @@ const TOGGLE_BUTTON_GROUP_SELECTION_MODES = new Set<string>(
 const TOOLBAR_ORIENTATIONS = new Set<string>(TOOLBAR_ORIENTATION_VALUES);
 const TOOLBAR_SIZES = new Set<ComponentSizeSubset>(TOOLBAR_SIZE_VALUES);
 const TOOLBAR_VARIANTS = new Set<string>(TOOLBAR_VARIANT_VALUES);
+const SWITCH_SIZES = new Set<ComponentSizeSubset>(SWITCH_SIZE_VALUES);
 const BREADCRUMBS_SIZES = new Set<string>(BREADCRUMBS_SIZE_VALUES);
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
@@ -740,6 +742,37 @@ export interface ToggleButtonRacProps extends Record<string, unknown> {
   isQuiet: boolean;
   isSelected?: boolean;
   isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface SwitchCanonicalProps extends Record<string, unknown> {
+  children?: unknown;
+  label?: unknown;
+  size?: unknown;
+  isSelected?: unknown;
+  defaultSelected?: unknown;
+  isEmphasized?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isLoading?: unknown;
+  name?: unknown;
+  value?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface SwitchRacProps extends Record<string, unknown> {
+  children: string;
+  size: ComponentSizeSubset;
+  isEmphasized: boolean;
+  isSelected?: boolean;
+  defaultSelected?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isLoading?: boolean;
+  name?: string;
+  value?: string;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -1352,6 +1385,35 @@ export function toToggleButtonRacProps(
   };
 }
 
+export function toSwitchRacProps(props: SwitchCanonicalProps): SwitchRacProps {
+  return {
+    children: readSwitchText(props),
+    size: normalizeSwitchSize(props.size),
+    isEmphasized: props.isEmphasized === true,
+    ...(typeof props.isSelected === "boolean"
+      ? { isSelected: props.isSelected }
+      : {}),
+    ...(typeof props.defaultSelected === "boolean"
+      ? { defaultSelected: props.defaultSelected }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isLoading === "boolean"
+      ? { isLoading: props.isLoading }
+      : {}),
+    ...(typeof props.name === "string" ? { name: props.name } : {}),
+    ...(typeof props.value === "string" ? { value: props.value } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -1444,6 +1506,13 @@ function readToggleButtonText(props: ToggleButtonCanonicalProps): string {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   return "Toggle";
+}
+
+function readSwitchText(props: SwitchCanonicalProps): string {
+  const value = props.children ?? props.label;
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "Switch";
 }
 
 function normalizeButtonVariant(value: unknown): ButtonVariant {
@@ -1821,6 +1890,13 @@ function normalizeToolbarVariant(value: unknown): "default" | "accent" {
   return typeof value === "string" && TOOLBAR_VARIANTS.has(value)
     ? (value as "default" | "accent")
     : "default";
+}
+
+function normalizeSwitchSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    SWITCH_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

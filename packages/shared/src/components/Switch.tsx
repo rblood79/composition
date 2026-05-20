@@ -12,13 +12,17 @@ import {
 } from "react-aria-components";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
+import {
+  toSwitchRacProps,
+  type SwitchCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 import type { ComponentSizeSubset } from "../types";
 import { Skeleton } from "./Skeleton";
 
 import "./styles/Switch.css";
 
 export interface SwitchProps extends Omit<AriaSwitchProps, "children"> {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   /**
    * Emphasizes the switch with accent color when selected (S2)
    * @default false
@@ -44,18 +48,43 @@ export interface SwitchProps extends Omit<AriaSwitchProps, "children"> {
  */
 export function Switch({
   children,
-  isEmphasized = false,
-  size = "md",
+  isEmphasized,
+  size,
   isLoading,
+  isSelected,
+  defaultSelected,
+  isDisabled,
+  isReadOnly,
+  name,
+  value,
+  className,
   ...props
 }: SwitchProps) {
   const { focusProps, isFocusVisible } = useFocusRing();
+  const projectedProps = toSwitchRacProps({
+    ...props,
+    children,
+    defaultSelected,
+    isDisabled,
+    isEmphasized,
+    isLoading,
+    isReadOnly,
+    isSelected,
+    name,
+    size,
+    value,
+    className,
+  } as SwitchCanonicalProps);
+  const switchSize = size ?? projectedProps.size;
+  const switchChildren = children ?? projectedProps.children;
+  const switchIsLoading = isLoading ?? projectedProps.isLoading;
+  const switchIsEmphasized = isEmphasized ?? projectedProps.isEmphasized;
 
-  if (isLoading) {
+  if (switchIsLoading) {
     return (
       <Skeleton
         componentVariant="switch"
-        size={size}
+        size={switchSize}
         aria-label="Loading switch..."
       />
     );
@@ -64,15 +93,21 @@ export function Switch({
   return (
     <AriaSwitch
       {...mergeProps(props, focusProps)}
+      name={projectedProps.name}
+      value={projectedProps.value}
+      isSelected={isSelected ?? projectedProps.isSelected}
+      defaultSelected={defaultSelected ?? projectedProps.defaultSelected}
+      isDisabled={isDisabled ?? projectedProps.isDisabled}
+      isReadOnly={isReadOnly ?? projectedProps.isReadOnly}
       data-focus-visible={isFocusVisible || undefined}
-      data-emphasized={isEmphasized || undefined}
-      data-size={size}
-      className={composeRenderProps(props.className, (className) =>
+      data-emphasized={switchIsEmphasized || undefined}
+      data-size={switchSize}
+      className={composeRenderProps(className, (className) =>
         className ? `react-aria-Switch ${className}` : "react-aria-Switch",
       )}
     >
       <div className="indicator" />
-      {children}
+      {switchChildren}
     </AriaSwitch>
   );
 }

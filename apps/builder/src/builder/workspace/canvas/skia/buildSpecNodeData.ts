@@ -28,6 +28,7 @@ import {
   toNumberFieldRacProps,
   toSearchFieldRacProps,
   toSeparatorRacProps,
+  toSwitchRacProps,
   toTextFieldRacProps,
   toTimeFieldRacProps,
   toToggleButtonRacProps,
@@ -40,6 +41,7 @@ import {
   type SearchFieldRacProps,
   type ResolvedNode,
   type SeparatorRacProps,
+  type SwitchRacProps,
   type TextFieldRacProps,
   type TimeFieldRacProps,
   type ToggleButtonRacProps,
@@ -842,6 +844,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "toggle-button") {
     return buildGenericToggleButtonNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "switch") {
+    return buildGenericSwitchNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -1928,6 +1933,88 @@ function buildGenericToggleButtonNode(
   };
 }
 
+function buildGenericSwitchNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toSwitchRacProps(node.props ?? {}) as SwitchRacProps;
+  const size = resolveGenericSwitchSize(props.size);
+  const palette = resolveGenericSwitchPalette(props, theme);
+  const style = readGenericStyle(node);
+  const trackY = Math.max((layout.height - size.trackHeight) / 2, 0);
+  const thumbX = props.isSelected
+    ? size.trackWidth - size.thumbSize - size.thumbOffset
+    : size.thumbOffset;
+  const thumbY = trackY + Math.max((size.trackHeight - size.thumbSize) / 2, 0);
+  const labelX = size.trackWidth + size.gap;
+  const labelWidth = Math.max(layout.width - labelX, 0);
+
+  const trackNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:track`,
+    x: 0,
+    y: trackY,
+    width: size.trackWidth,
+    height: size.trackHeight,
+    visible: true,
+    box: {
+      fillColor: palette.trackColor,
+      borderRadius: size.trackHeight / 2,
+      strokeColor: palette.trackStrokeColor,
+      strokeWidth: palette.trackStrokeWidth,
+    },
+  };
+
+  const thumbNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:thumb`,
+    x: thumbX,
+    y: thumbY,
+    width: size.thumbSize,
+    height: size.thumbSize,
+    visible: true,
+    box: {
+      fillColor: palette.thumbColor,
+      borderRadius: size.thumbSize / 2,
+    },
+  };
+
+  const textNode: SkiaNodeData = {
+    type: "text",
+    elementId: `${node.id}:text`,
+    x: labelX,
+    y: 0,
+    width: labelWidth,
+    height: layout.height,
+    visible: labelWidth > 0,
+    text: {
+      content: props.children,
+      fontFamilies: [fontFamily.sans],
+      fontSize: size.fontSize,
+      fontWeight: 400,
+      color: palette.textColor,
+      align: "left",
+      lineHeight: size.lineHeight,
+      paddingLeft: 0,
+      paddingTop: 0,
+      maxWidth: labelWidth,
+      verticalAlign: "middle",
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [trackNode, thumbNode, textNode],
+  };
+}
+
 function resolveGenericLayout(
   input: GenericResolvedSkiaBuildInput,
 ): GenericResolvedSkiaLayout {
@@ -2258,6 +2345,77 @@ function resolveGenericToggleButtonPalette(
     textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
     strokeColor: colorIntToFloat32(isDark ? 0x4b5563 : 0xd1d5db, 1),
     strokeWidth: 1,
+  };
+}
+
+function resolveGenericSwitchSize(size: SwitchRacProps["size"]): {
+  fontSize: number;
+  lineHeight: number;
+  trackWidth: number;
+  trackHeight: number;
+  thumbSize: number;
+  thumbOffset: number;
+  gap: number;
+} {
+  switch (size) {
+    case "sm":
+      return {
+        fontSize: 12,
+        lineHeight: 16,
+        trackWidth: 32,
+        trackHeight: 18,
+        thumbSize: 14,
+        thumbOffset: 2,
+        gap: 8,
+      };
+    case "lg":
+      return {
+        fontSize: 16,
+        lineHeight: 24,
+        trackWidth: 44,
+        trackHeight: 24,
+        thumbSize: 20,
+        thumbOffset: 2,
+        gap: 12,
+      };
+    case "md":
+    default:
+      return {
+        fontSize: 14,
+        lineHeight: 20,
+        trackWidth: 36,
+        trackHeight: 20,
+        thumbSize: 16,
+        thumbOffset: 2,
+        gap: 10,
+      };
+  }
+}
+
+function resolveGenericSwitchPalette(
+  props: SwitchRacProps,
+  theme: "light" | "dark",
+): {
+  trackColor: Float32Array;
+  trackStrokeColor: Float32Array;
+  trackStrokeWidth: number;
+  thumbColor: Float32Array;
+  textColor: Float32Array;
+} {
+  const isDark = theme === "dark";
+  const selectedTrack = props.isEmphasized
+    ? 0x2563eb
+    : isDark
+      ? 0xf9fafb
+      : 0x111827;
+  return {
+    trackColor: props.isSelected
+      ? colorIntToFloat32(selectedTrack, 1)
+      : colorIntToFloat32(isDark ? 0x374151 : 0xe5e7eb, 1),
+    trackStrokeColor: colorIntToFloat32(isDark ? 0x4b5563 : 0xd1d5db, 1),
+    trackStrokeWidth: props.isSelected ? 0 : 1,
+    thumbColor: colorIntToFloat32(0xffffff, 1),
+    textColor: colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1),
   };
 }
 

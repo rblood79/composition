@@ -23,6 +23,7 @@ const {
   legacyNumberFieldRenderer,
   legacySearchFieldRenderer,
   legacySeparatorRenderer,
+  legacySwitchRenderer,
   legacyTextFieldRenderer,
   legacyTimeFieldRenderer,
   legacyToggleButtonRenderer,
@@ -60,6 +61,9 @@ const {
   legacySeparatorRenderer: vi.fn(() => (
     <div data-legacy-renderer="Separator">legacy</div>
   )),
+  legacySwitchRenderer: vi.fn(() => (
+    <label data-legacy-renderer="Switch">legacy</label>
+  )),
   legacyTextFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="TextField">legacy</div>
   )),
@@ -90,6 +94,7 @@ vi.mock("@composition/shared/renderers", () => ({
     NumberField: legacyNumberFieldRenderer,
     SearchField: legacySearchFieldRenderer,
     Separator: legacySeparatorRenderer,
+    Switch: legacySwitchRenderer,
     TextField: legacyTextFieldRenderer,
     TimeField: legacyTimeFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
@@ -125,6 +130,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyNumberFieldRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
+    legacySwitchRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
     legacyTimeFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
@@ -644,5 +650,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector("[data-canonical-id='file-trigger-1']"),
     ).toBeTruthy();
     expect(legacyFileTriggerRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Switch through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "switch-1",
+      type: "Switch",
+      props: {
+        children: "Notifications",
+        isSelected: true,
+        isEmphasized: true,
+        size: "lg",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const switchControl = screen.getByRole("switch", {
+      name: "Notifications",
+    });
+    const switchRoot = container.querySelector(".react-aria-Switch");
+    expect(switchRoot?.getAttribute("data-size")).toBe("lg");
+    expect(switchRoot?.getAttribute("data-emphasized")).toBe("true");
+    expect(container.querySelector("[data-canonical-id='switch-1']")).toBe(
+      switchRoot,
+    );
+    expect(switchControl).toBeTruthy();
+    expect(legacySwitchRenderer).not.toHaveBeenCalled();
   });
 });

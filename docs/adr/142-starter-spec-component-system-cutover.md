@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 Phase 5 CSS/Skia generic 정합 + Phase 6 family gate)
+In Progress — 2026-05-20 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger/Switch generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; 다음 진입점 selection family Checkbox/Radio/Slider)
 
 ## Context
 
@@ -419,6 +419,17 @@ projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 FileTrigger res
 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar 및
 TextField/NumberField/SearchField/DateField/TimeField/ColorField/Form/FileTrigger active
 primitive Inspector 경로의 G6 잔여 blocker 를 제거한다.
+
+2026-05-20 추가 판정: Switch primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/switch.ts` 와 `toSwitchRacProps()` 가 Switch
+canonical props 를 RAC Switch props 로 정규화한다. `componentCatalog` 는 Switch 를
+`cutover:"catalog"` active selection primitive 로 등록한다.
+`packages/shared/src/components/Switch.tsx` 는 shared wrapper surface 에서 이 projection
+을 소비하고, Preview `CanonicalNodeRenderer` 는 Switch resolved node 를 legacy
+`rendererMap` 보다 primitive branch 에서 먼저 렌더한다. generic Skia path 는 Switch
+track/thumb/label 을 container + box/text node 로 렌더하고
+`SwitchSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다. 이는 `selection`
+family 의 첫 active primitive pilot 이며, Checkbox/Radio/Slider 계열은 아직 남아 있다.
 
 ## Consequences
 
