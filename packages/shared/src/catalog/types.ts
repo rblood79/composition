@@ -35,6 +35,7 @@ export interface PrimitiveSkiaDescriptor {
     | "color-field"
     | "color-slider"
     | "color-swatch"
+    | "color-wheel"
     | "combo-box"
     | "date-field"
     | "dialog"

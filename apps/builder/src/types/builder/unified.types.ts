@@ -1149,6 +1149,15 @@ export interface ColorSliderElementProps extends BaseElementProps {
   isDisabled?: boolean;
 }
 
+export interface ColorWheelElementProps extends BaseElementProps {
+  color?: string;
+  hue?: number;
+  outerRadius?: number;
+  innerRadius?: number;
+  size?: "sm" | "md" | "lg";
+  isDisabled?: boolean;
+}
+
 // === 통합된 ComponentElementProps ===
 export type ComponentElementProps =
   | ButtonElementProps
@@ -1219,7 +1228,8 @@ export type ComponentElementProps =
   | ColorPickerElementProps
   | ColorSwatchElementProps
   | ColorAreaElementProps
-  | ColorSliderElementProps;
+  | ColorSliderElementProps
+  | ColorWheelElementProps;
 
 // === 스토어 상태 타입 ===
 export interface ElementsState {
@@ -2039,6 +2049,21 @@ export function createDefaultColorSliderProps(): ColorSliderElementProps {
   };
 }
 
+export function createDefaultColorWheelProps(): ColorWheelElementProps {
+  return {
+    color: "#ff0000",
+    hue: 0,
+    outerRadius: 100,
+    innerRadius: 74,
+    size: "md",
+    isDisabled: false,
+    style: {
+      width: "200px",
+      height: "200px",
+    },
+  };
+}
+
 export function createDefaultDropZoneProps(): DropZoneElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; border:2px dashed var(--outline-variant)
@@ -2429,6 +2454,7 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   ColorSwatch: createDefaultColorSwatchProps,
   ColorArea: createDefaultColorAreaProps,
   ColorSlider: createDefaultColorSliderProps,
+  ColorWheel: createDefaultColorWheelProps,
   DropZone: createDefaultDropZoneProps,
   FileTrigger: createDefaultFileTriggerProps,
   Tooltip: createDefaultTooltipProps,

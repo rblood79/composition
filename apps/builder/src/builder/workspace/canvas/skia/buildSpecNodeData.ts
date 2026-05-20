@@ -28,6 +28,7 @@ import {
   toColorFieldRacProps,
   toColorSliderRacProps,
   toColorSwatchRacProps,
+  toColorWheelRacProps,
   toComboBoxRacProps,
   toDateFieldRacProps,
   toDialogRacProps,
@@ -63,6 +64,7 @@ import {
   type ColorFieldRacProps,
   type ColorSliderRacProps,
   type ColorSwatchRacProps,
+  type ColorWheelRacProps,
   type ComboBoxItemDescriptor,
   type ComboBoxRacProps,
   type DateFieldRacProps,
@@ -209,6 +211,7 @@ const CONTAINER_DIMENSION_TAGS = new Set([
   "ListBox",
   "ColorField",
   "ColorSlider",
+  "ColorWheel",
   "DateSegment",
   "Skeleton",
   "Switcher",
@@ -926,6 +929,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "color-swatch") {
     return buildGenericColorSwatchNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "color-wheel") {
+    return buildGenericColorWheelNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "toggle-button") {
     return buildGenericToggleButtonNode(input.node, layout, input.theme);
@@ -2250,6 +2256,97 @@ function buildGenericColorSliderNode(
     height: layout.height,
     visible: isGenericNodeVisible(style),
     children: [trackBackground, ...trackSegments, thumbNode],
+  };
+}
+
+function buildGenericColorWheelNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toColorWheelRacProps(node.props ?? {}) as ColorWheelRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericColorWheelSize(props.size);
+  const isDark = theme === "dark";
+  const maxOuterRadius = Math.max(Math.min(layout.width, layout.height) / 2, 1);
+  const outerRadius = Math.min(props.outerRadius, maxOuterRadius);
+  const innerRadius = Math.min(props.innerRadius, Math.max(outerRadius - 1, 0));
+  const strokeWidth = Math.max(outerRadius - innerRadius, 1);
+  const ringRadius = innerRadius + strokeWidth / 2;
+  const cx = layout.width / 2;
+  const cy = layout.height / 2;
+  const opacity = props.isDisabled ? 0.4 : 1;
+  const arcColors = getGenericColorWheelArcColors(props);
+  const sweepAngle = 360 / arcColors.length;
+  const arcs = arcColors.map(
+    (color, index): SkiaNodeData => ({
+      type: "arc",
+      elementId: `${node.id}:arc-${index}`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      arc: {
+        cx,
+        cy,
+        radius: ringRadius,
+        startAngle: index * sweepAngle - 90,
+        sweepAngle: sweepAngle + 0.5,
+        strokeColor: colorIntToFloat32(cssColorToHex(color, 0xff0000), opacity),
+        strokeWidth,
+        strokeCap: "butt",
+      },
+    }),
+  );
+
+  const centerNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:center`,
+    x: cx - innerRadius,
+    y: cy - innerRadius,
+    width: innerRadius * 2,
+    height: innerRadius * 2,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+      borderRadius: innerRadius,
+    },
+  };
+
+  const hue = Math.max(0, Math.min(props.hue, 360));
+  const thumbAngle = (hue * Math.PI) / 180 - Math.PI / 2;
+  const thumbSize = size.thumbSize;
+  const thumbX = cx + Math.cos(thumbAngle) * ringRadius - thumbSize / 2;
+  const thumbY = cy + Math.sin(thumbAngle) * ringRadius - thumbSize / 2;
+  const thumbNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:thumb`,
+    x: thumbX,
+    y: thumbY,
+    width: thumbSize,
+    height: thumbSize,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(props.defaultValue, 0xff0000),
+        props.isDisabled ? 0.5 : 1,
+      ),
+      borderRadius: thumbSize / 2,
+      strokeColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+      strokeWidth: 3,
+    },
+  };
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [...arcs, centerNode, thumbNode],
   };
 }
 
@@ -6073,6 +6170,20 @@ function resolveGenericColorAreaSize(size: ColorAreaRacProps["size"]): {
   }
 }
 
+function resolveGenericColorWheelSize(size: ColorWheelRacProps["size"]): {
+  thumbSize: number;
+} {
+  switch (size) {
+    case "sm":
+      return { thumbSize: 16 };
+    case "lg":
+      return { thumbSize: 24 };
+    case "md":
+    default:
+      return { thumbSize: 20 };
+  }
+}
+
 function mixHexColors(from: number, to: number, amount: number): number {
   const t = Math.max(0, Math.min(amount, 1));
   const fromRed = (from >> 16) & 0xff;
@@ -6119,6 +6230,24 @@ function getGenericColorSliderTrackColors(
     default:
       return ["#ffffff", props.defaultValue];
   }
+}
+
+function getGenericColorWheelArcColors(props: ColorWheelRacProps): string[] {
+  if (props.isDisabled) return ["#9ca3af", "#6b7280", "#9ca3af", "#6b7280"];
+  return [
+    "#ff0000",
+    "#ff8000",
+    "#ffff00",
+    "#80ff00",
+    "#00ff00",
+    "#00ff80",
+    "#00ffff",
+    "#0080ff",
+    "#0000ff",
+    "#8000ff",
+    "#ff00ff",
+    "#ff0080",
+  ];
 }
 
 function resolveGenericSwitchPalette(

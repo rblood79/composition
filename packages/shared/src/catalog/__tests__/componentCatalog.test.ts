@@ -8,6 +8,7 @@ import { colorAreaPrimitiveBinding } from "../primitives/colorArea";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { colorSliderPrimitiveBinding } from "../primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "../primitives/colorSwatch";
+import { colorWheelPrimitiveBinding } from "../primitives/colorWheel";
 import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { dialogPrimitiveBinding } from "../primitives/dialog";
@@ -322,6 +323,30 @@ describe("ADR-142 component catalog", () => {
       orientation: "horizontal",
       size: "md",
       value: 0.5,
+      isDisabled: false,
+    });
+  });
+
+  it("registers ColorWheel as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("ColorWheel");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(colorWheelPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("ColorWheel");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("color-wheel");
+    expect(entry.panel.category).toBe("color");
+    expect(entry.panel.label).toBe("color wheel");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      color: "#ff0000",
+      hue: 0,
+      outerRadius: 100,
+      innerRadius: 74,
+      size: "md",
       isDisabled: false,
     });
   });

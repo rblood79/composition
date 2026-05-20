@@ -117,6 +117,7 @@ export const COLOR_SLIDER_ORIENTATION_VALUES = [
   "vertical",
 ] as const;
 export const COLOR_SLIDER_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
+export const COLOR_WHEEL_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
 export const FORM_VARIANT_VALUES = ["default", "outlined"] as const;
 export const FORM_METHOD_VALUES = ["get", "post"] as const;
 export const FORM_ENCTYPE_VALUES = [
@@ -395,6 +396,7 @@ const COLOR_SLIDER_ORIENTATIONS = new Set<string>(
   COLOR_SLIDER_ORIENTATION_VALUES,
 );
 const COLOR_SLIDER_SIZES = COLOR_SWATCH_SIZES;
+const COLOR_WHEEL_SIZES = COLOR_SWATCH_SIZES;
 const FORM_VARIANTS = new Set<string>(FORM_VARIANT_VALUES);
 const FORM_METHODS = new Set<string>(FORM_METHOD_VALUES);
 const FORM_ENCTYPES = new Set<string>(FORM_ENCTYPE_VALUES);
@@ -1038,6 +1040,33 @@ export interface ColorSliderRacProps extends Record<string, unknown> {
   channel: (typeof COLOR_SLIDER_CHANNEL_VALUES)[number];
   colorSpace: (typeof COLOR_SLIDER_COLOR_SPACE_VALUES)[number];
   orientation: (typeof COLOR_SLIDER_ORIENTATION_VALUES)[number];
+  size: ComponentSizeSubset;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ColorWheelCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  label?: unknown;
+  color?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  hue?: unknown;
+  outerRadius?: unknown;
+  innerRadius?: unknown;
+  size?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ColorWheelRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  defaultValue: string;
+  hue: number;
+  outerRadius: number;
+  innerRadius: number;
   size: ComponentSizeSubset;
   isDisabled?: boolean;
   className?: string;
@@ -2673,6 +2702,36 @@ export function toColorSliderRacProps(
   };
 }
 
+export function toColorWheelRacProps(
+  props: ColorWheelCanonicalProps,
+): ColorWheelRacProps {
+  const hue = normalizeColorWheelHue(props.hue);
+  const outerRadius = normalizeColorWheelRadius(props.outerRadius, 100);
+  const innerRadius = normalizeColorWheelInnerRadius(
+    props.innerRadius,
+    outerRadius,
+  );
+
+  return {
+    "aria-label": readString(props["aria-label"] ?? props.label, "Color wheel"),
+    defaultValue: readString(
+      props.value ?? props.color ?? props.defaultValue,
+      colorStringForHue(hue),
+    ),
+    hue,
+    outerRadius,
+    innerRadius,
+    size: normalizeColorWheelSize(props.size),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toFormRacProps(props: FormCanonicalProps): FormRacProps {
   return {
     size: normalizeTextFieldSize(props.size),
@@ -4097,6 +4156,39 @@ function normalizeColorSliderValue(value: unknown): number {
   const numeric = readFiniteNumber(value);
   if (numeric === undefined) return 0.5;
   return Math.max(0, Math.min(numeric, 1));
+}
+
+function normalizeColorWheelHue(value: unknown): number {
+  const numeric = readFiniteNumber(value);
+  if (numeric === undefined) return 0;
+  return Math.max(0, Math.min(numeric, 360));
+}
+
+function normalizeColorWheelRadius(value: unknown, fallback: number): number {
+  const numeric = readFiniteNumber(value);
+  if (numeric === undefined) return fallback;
+  return Math.max(1, numeric);
+}
+
+function normalizeColorWheelInnerRadius(
+  value: unknown,
+  outerRadius: number,
+): number {
+  const numeric = readFiniteNumber(value);
+  const fallback = Math.min(74, Math.max(outerRadius - 1, 0));
+  if (numeric === undefined) return fallback;
+  return Math.max(0, Math.min(numeric, Math.max(outerRadius - 1, 0)));
+}
+
+function normalizeColorWheelSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    COLOR_WHEEL_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
+}
+
+function colorStringForHue(hue: number): string {
+  return `hsl(${Math.round(hue)}, 100%, 50%)`;
 }
 
 function normalizeFormLabelAlign(value: unknown): "start" | "center" | "end" {

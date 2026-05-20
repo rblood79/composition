@@ -7,6 +7,7 @@ import { colorAreaPrimitiveBinding } from "./primitives/colorArea";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { colorSliderPrimitiveBinding } from "./primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "./primitives/colorSwatch";
+import { colorWheelPrimitiveBinding } from "./primitives/colorWheel";
 import { comboBoxPrimitiveBinding } from "./primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { dialogPrimitiveBinding } from "./primitives/dialog";
@@ -267,6 +268,19 @@ export const componentCatalog = [
       category: "color",
       label: "color slider",
       icon: "SlidersHorizontal",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ColorWheel",
+    family: "date-color",
+    cutover: "catalog",
+    binding: colorWheelPrimitiveBinding,
+    panel: {
+      category: "color",
+      label: "color wheel",
+      icon: "CircleDot",
       placeable: true,
     },
   },

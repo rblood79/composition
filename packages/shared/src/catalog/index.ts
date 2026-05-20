@@ -10,6 +10,7 @@ export * from "./primitives/colorArea";
 export * from "./primitives/colorField";
 export * from "./primitives/colorSlider";
 export * from "./primitives/colorSwatch";
+export * from "./primitives/colorWheel";
 export * from "./primitives/comboBox";
 export * from "./primitives/dateField";
 export * from "./primitives/dialog";

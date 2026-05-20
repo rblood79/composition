@@ -6,6 +6,7 @@ import { colorAreaInspectorThemeValues } from "./primitives/colorArea";
 import { colorFieldInspectorThemeValues } from "./primitives/colorField";
 import { colorSliderInspectorThemeValues } from "./primitives/colorSlider";
 import { colorSwatchInspectorThemeValues } from "./primitives/colorSwatch";
+import { colorWheelInspectorThemeValues } from "./primitives/colorWheel";
 import { comboBoxInspectorThemeValues } from "./primitives/comboBox";
 import { dateFieldInspectorThemeValues } from "./primitives/dateField";
 import { dialogInspectorThemeValues } from "./primitives/dialog";
@@ -82,6 +83,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "ColorArea") return colorAreaInspectorThemeValues;
   if (type === "ColorSlider") return colorSliderInspectorThemeValues;
   if (type === "ColorSwatch") return colorSwatchInspectorThemeValues;
+  if (type === "ColorWheel") return colorWheelInspectorThemeValues;
   if (type === "DropZone") return dropZoneInspectorThemeValues;
   if (type === "Tooltip") return tooltipInspectorThemeValues;
   if (type === "Dialog") return dialogInspectorThemeValues;

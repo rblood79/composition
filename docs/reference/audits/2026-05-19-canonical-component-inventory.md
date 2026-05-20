@@ -77,7 +77,7 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 | `ColorSwatch`       | primitive    | date-color         | `ColorSwatch.css`                 | color fill draw 검증 필요                        |
 | `ColorSwatchPicker` | primitive    | date-color         | `ColorSwatchPicker.css`           | collection-like picker                           |
 | `ColorThumb`        | primitive    | date-color         | `ColorThumb.css`                  | `skiaPrimitive` 후보                             |
-| `ColorWheel`        | primitive    | date-color         | `ColorWheel.css`                  | `skiaPrimitive` 후보                             |
+| `ColorWheel`        | primitive    | date-color         | `ColorWheel.css`                  | active `skiaPrimitive` pilot                     |
 | `ComboBox`          | primitive    | collections        | `ComboBox.css`                    | ListBox 재사용 경계 검증                         |
 | `CommandPalette`    | composed     | overlays           | `CommandPalette.css`              | Autocomplete + Menu + Dialog 조합                |
 | `Content`           | helper       | primitives/actions | `Content.css`                     | Heading/Text wrapper surface                     |
@@ -455,5 +455,9 @@ ColorArea date/color primitive pilot 은 `toColorAreaRacProps()` /
 `colorAreaPrimitiveBinding` / active catalog entry / shared `ColorArea.tsx`
 projection / Preview ColorArea primitive branch / generic Skia plane-thumb fixture 를
 추가했다. ColorArea 는 `ColorAreaSpec.render.shapes()` 를 호출하지 않는 generic Skia
-fixture 로 고정했다. date/color family 는 ColorSwatch/ColorSlider/ColorArea 까지
-진행했으며, ColorWheel 의 arc draw 는 후속 slice 로 남긴다.
+fixture 로 고정했다. ColorWheel date/color primitive pilot 은
+`toColorWheelRacProps()` / `colorWheelPrimitiveBinding` / active catalog entry /
+shared `ColorWheel.tsx` projection / Preview ColorWheel primitive branch /
+generic Skia arc-thumb fixture 를 추가했다. ColorWheel 은
+`ColorWheelSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+date/color family 는 ColorSwatch/ColorSlider/ColorArea/ColorWheel 까지 진행했다.

@@ -12,6 +12,7 @@ import {
   ColorFieldSpec,
   ColorSliderSpec,
   ColorSwatchSpec,
+  ColorWheelSpec,
   ComboBoxSpec,
   DateFieldSpec,
   DialogSpec,
@@ -1157,6 +1158,37 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("color-slider-1");
     expect(collectNodeTypes(node)).toContain("box");
+    expect(
+      node?.children?.some((child) => child.elementId?.endsWith(":thumb")),
+    ).toBe(true);
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ColorWheel through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ColorWheelSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "color-wheel-1",
+        type: "ColorWheel",
+        props: {
+          color: "#ff0000",
+          hue: 120,
+          outerRadius: 100,
+          innerRadius: 74,
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["color-wheel-1", { x: 12, y: 16, width: 220, height: 220 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("color-wheel-1");
+    expect(collectNodeTypes(node)).toContain("arc");
     expect(
       node?.children?.some((child) => child.elementId?.endsWith(":thumb")),
     ).toBe(true);

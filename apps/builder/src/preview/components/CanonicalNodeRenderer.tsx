@@ -30,6 +30,7 @@ import {
   type ColorFieldRacProps,
   type ColorSliderRacProps,
   type ColorSwatchRacProps,
+  type ColorWheelRacProps,
   type ComboBoxRacProps,
   type DateFieldRacProps,
   type DialogRacProps,
@@ -72,6 +73,7 @@ import {
   ColorField,
   ColorSlider,
   ColorSwatch,
+  ColorWheel,
   ComboBox,
   DateField,
   Dialog,
@@ -446,6 +448,14 @@ function renderPrimitiveNode({
     ) as ColorSwatchRacProps;
 
     return <ColorSwatch key={node.id} {...colorSwatchProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "ColorWheel") {
+    const colorWheelProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ColorWheelRacProps;
+
+    return <ColorWheel key={node.id} {...colorWheelProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Switch") {

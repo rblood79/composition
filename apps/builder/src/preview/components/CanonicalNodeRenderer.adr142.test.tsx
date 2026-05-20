@@ -19,6 +19,7 @@ const {
   legacyColorFieldRenderer,
   legacyColorSliderRenderer,
   legacyColorSwatchRenderer,
+  legacyColorWheelRenderer,
   legacyCheckboxRenderer,
   legacyCheckboxGroupRenderer,
   legacyComboBoxRenderer,
@@ -74,6 +75,9 @@ const {
   )),
   legacyColorSwatchRenderer: vi.fn(() => (
     <div data-legacy-renderer="ColorSwatch">legacy</div>
+  )),
+  legacyColorWheelRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ColorWheel">legacy</div>
   )),
   legacyCheckboxRenderer: vi.fn(() => (
     <label data-legacy-renderer="Checkbox">legacy</label>
@@ -189,6 +193,7 @@ vi.mock("@composition/shared/renderers", () => ({
     ColorField: legacyColorFieldRenderer,
     ColorSlider: legacyColorSliderRenderer,
     ColorSwatch: legacyColorSwatchRenderer,
+    ColorWheel: legacyColorWheelRenderer,
     DateField: legacyDateFieldRenderer,
     Dialog: legacyDialogRenderer,
     DropZone: legacyDropZoneRenderer,
@@ -249,6 +254,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyColorFieldRenderer.mockClear();
     legacyColorSliderRenderer.mockClear();
     legacyColorSwatchRenderer.mockClear();
+    legacyColorWheelRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyDialogRenderer.mockClear();
     legacyDropZoneRenderer.mockClear();
@@ -800,6 +806,34 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(slider?.getAttribute("data-size")).toBe("lg");
     expect(slider?.getAttribute("data-value")).toBe("0.75");
     expect(legacyColorSliderRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ColorWheel through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "color-wheel-1",
+      type: "ColorWheel",
+      props: {
+        color: "#ff0000",
+        hue: 120,
+        outerRadius: 100,
+        innerRadius: 74,
+        size: "lg",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const wheel = container.querySelector(
+      "[data-canonical-id='color-wheel-1']",
+    );
+    expect(wheel?.className).toContain("react-aria-ColorWheel");
+    expect(wheel?.getAttribute("data-hue")).toBe("120");
+    expect(wheel?.getAttribute("data-size")).toBe("lg");
+    expect(wheel?.getAttribute("data-outer-radius")).toBe("100");
+    expect(wheel?.getAttribute("data-inner-radius")).toBe("74");
+    expect(legacyColorWheelRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Form and children through PrimitiveBinding before rendererMap fallback", () => {

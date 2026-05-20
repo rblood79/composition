@@ -235,6 +235,23 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog ColorWheel placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("ColorWheel");
+
+    expect(creation).toMatchObject({
+      elementType: "ColorWheel",
+      props: {
+        color: "#ff0000",
+        hue: 0,
+        outerRadius: 100,
+        innerRadius: 74,
+        size: "md",
+        isDisabled: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog FileTrigger placement with a trigger child template", () => {
     const creation = resolveCatalogElementCreation("FileTrigger");
 
