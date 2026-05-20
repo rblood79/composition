@@ -5,6 +5,7 @@ import { checkboxGroupPrimitiveBinding } from "./primitives/checkboxGroup";
 import { checkboxPrimitiveBinding } from "./primitives/checkbox";
 import { colorAreaPrimitiveBinding } from "./primitives/colorArea";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
+import { colorPickerPrimitiveBinding } from "./primitives/colorPicker";
 import { colorSliderPrimitiveBinding } from "./primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "./primitives/colorSwatch";
 import { colorWheelPrimitiveBinding } from "./primitives/colorWheel";
@@ -281,6 +282,19 @@ export const componentCatalog = [
       category: "color",
       label: "color wheel",
       icon: "CircleDot",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ColorPicker",
+    family: "date-color",
+    cutover: "catalog",
+    binding: colorPickerPrimitiveBinding,
+    panel: {
+      category: "color",
+      label: "color picker",
+      icon: "Palette",
       placeable: true,
     },
   },

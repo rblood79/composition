@@ -39,6 +39,7 @@ import {
 import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/sprites/tagSpecMap";
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import { DEFAULT_PROPS_MAP } from "@/types/builder/unified.types";
+import { CANONICAL_PRIMITIVE_RENDERER_TYPES } from "@/preview/components/CanonicalNodeRenderer";
 
 // ── repo root + universe (spec 파일 glob) ──
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -74,6 +75,7 @@ const exceptions = readJson("componentRegistrationException.json");
 
 // ── 레지스트리 키 집합 ──
 const rendererKeys = new Set(Object.keys(rendererMap));
+const canonicalPrimitiveRendererKeys = CANONICAL_PRIMITIVE_RENDERER_TYPES;
 const tagSpecKeys = new Set(Object.keys(TAG_SPEC_MAP));
 const builderTagSpecKeys = new Set(Object.keys(BUILDER_TAG_SPEC_MAP));
 const placeable = ComponentFactory.getRegisteredTypes();
@@ -252,8 +254,13 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
     const violations: string[] = [];
 
     for (const entry of activeEntries) {
-      if (!hasCI(rendererKeys, entry.type)) {
-        violations.push(`${entry.type}: rendererMap 누락`);
+      const hasPreviewRenderer =
+        hasCI(rendererKeys, entry.type) ||
+        hasCI(canonicalPrimitiveRendererKeys, entry.type);
+      if (!hasPreviewRenderer) {
+        violations.push(
+          `${entry.type}: rendererMap/canonical primitive renderer 누락`,
+        );
       }
       if (!hasCI(builderTagSpecKeys, entry.type)) {
         violations.push(`${entry.type}: builder TAG_SPEC_MAP 누락`);

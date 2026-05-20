@@ -252,6 +252,25 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog ColorPicker placement with color control child templates", () => {
+    const creation = resolveCatalogElementCreation("ColorPicker");
+
+    expect(creation).toMatchObject({
+      elementType: "ColorPicker",
+      props: {
+        defaultValue: "#ff0000",
+        size: "md",
+        variant: "default",
+        isDisabled: false,
+      },
+    });
+    expect(creation?.children?.map((child) => child.elementType)).toEqual([
+      "ColorArea",
+      "ColorSlider",
+      "ColorField",
+    ]);
+  });
+
   it("describes catalog FileTrigger placement with a trigger child template", () => {
     const creation = resolveCatalogElementCreation("FileTrigger");
 

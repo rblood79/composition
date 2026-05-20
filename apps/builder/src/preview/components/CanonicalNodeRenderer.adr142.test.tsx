@@ -20,6 +20,7 @@ const {
   legacyColorSliderRenderer,
   legacyColorSwatchRenderer,
   legacyColorWheelRenderer,
+  legacyColorPickerRenderer,
   legacyCheckboxRenderer,
   legacyCheckboxGroupRenderer,
   legacyComboBoxRenderer,
@@ -78,6 +79,9 @@ const {
   )),
   legacyColorWheelRenderer: vi.fn(() => (
     <div data-legacy-renderer="ColorWheel">legacy</div>
+  )),
+  legacyColorPickerRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ColorPicker">legacy</div>
   )),
   legacyCheckboxRenderer: vi.fn(() => (
     <label data-legacy-renderer="Checkbox">legacy</label>
@@ -194,6 +198,7 @@ vi.mock("@composition/shared/renderers", () => ({
     ColorSlider: legacyColorSliderRenderer,
     ColorSwatch: legacyColorSwatchRenderer,
     ColorWheel: legacyColorWheelRenderer,
+    ColorPicker: legacyColorPickerRenderer,
     DateField: legacyDateFieldRenderer,
     Dialog: legacyDialogRenderer,
     DropZone: legacyDropZoneRenderer,
@@ -255,6 +260,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyColorSliderRenderer.mockClear();
     legacyColorSwatchRenderer.mockClear();
     legacyColorWheelRenderer.mockClear();
+    legacyColorPickerRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
     legacyDialogRenderer.mockClear();
     legacyDropZoneRenderer.mockClear();
@@ -834,6 +840,31 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(wheel?.getAttribute("data-outer-radius")).toBe("100");
     expect(wheel?.getAttribute("data-inner-radius")).toBe("74");
     expect(legacyColorWheelRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ColorPicker through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "color-picker-1",
+      type: "ColorPicker",
+      props: {
+        defaultValue: "#ff0000",
+        size: "lg",
+        variant: "default",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const picker = container.querySelector(
+      "[data-canonical-id='color-picker-1']",
+    );
+    expect(picker?.className).toContain("react-aria-ColorPicker");
+    expect(picker?.getAttribute("data-size")).toBe("lg");
+    expect(picker?.getAttribute("data-variant")).toBe("default");
+    expect(picker?.getAttribute("data-default-value")).toBe("#ff0000");
+    expect(legacyColorPickerRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Form and children through PrimitiveBinding before rendererMap fallback", () => {

@@ -2,7 +2,7 @@
 
 ## Status
 
-In Progress — 2026-05-21 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, overlays family 는 DropZone/Tooltip/Dialog/Popover/Modal/Toast pilot 완료, date/color family 는 ColorSwatch/ColorSlider/ColorArea/ColorWheel pilot 진행, ADR-132 collection 데이터 binding 전체 전환은 잔여)
+In Progress — 2026-05-21 (Phase 0 G0/G1 완료; Phase 1a G2a~G2c proof 완료; Phase 1b G2d 공통 기반 완료; Phase 2 catalog/library slice 완료; G3 catalog inventory + active entry bridge 완료; Phase 3 Button/Separator/Link/Breadcrumbs/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView primitive wrapper boundary slice 완료; Button Icon PropContract parity + Separator/Link/Breadcrumb/ToggleButton/ToggleButtonGroup/Toolbar/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView generic Skia pilot 완료; active primitive Inspector entrypoint 는 specRegistry 보다 `PrimitiveBinding` 을 먼저 소비하도록 전환; Field 는 RAC leaf primitive 가 아닌 helper/DataField surface 로 active primitive 승격 제외; selection family pilot 완료; collections family 는 ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs pilot 완료, Tree·Table family 는 Tree/Table/TableView pilot 완료, overlays family 는 DropZone/Tooltip/Dialog/Popover/Modal/Toast pilot 완료, date/color family 는 ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker pilot 진행, ADR-132 collection 데이터 binding 전체 전환은 잔여)
 
 ## Context
 
@@ -691,6 +691,17 @@ projection 을 소비하고, Preview `CanonicalNodeRenderer` 는 ColorWheel reso
 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다. generic Skia path 는
 ColorWheel hue arc ring/thumb 를 arc+box node 로 렌더하고
 `ColorWheelSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다.
+
+2026-05-21 추가 판정: ColorPicker date/color primitive catalog pilot 을 land 했다.
+`packages/shared/src/catalog/primitives/colorPicker.ts` 와 `toColorPickerRacProps()` 가
+ColorPicker defaultValue/variant/size/disabled props 를 RAC ColorPicker surface 로
+정규화한다. `componentCatalog` 는 ColorPicker 를 `cutover:"catalog"` active
+`date-color` primitive 로 등록하고 ColorArea/ColorSlider/ColorField child placement 를
+제공한다. shared `ColorPicker.tsx` 는 catalog projection 을 소비하고, Preview
+`CanonicalNodeRenderer` 는 ColorPicker resolved node 를 legacy `rendererMap` 보다
+primitive branch 에서 먼저 렌더한다. generic Skia path 는 dedicated ColorPicker draw
+module 없이 resolved ColorArea/ColorSlider/ColorField children 을 재귀 렌더하고
+`ColorPickerSpec.render.shapes()` 를 호출하지 않는 fixture 를 가진다.
 
 ## Consequences
 

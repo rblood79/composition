@@ -13,6 +13,7 @@ import {
   ColorSliderSpec,
   ColorSwatchSpec,
   ColorWheelSpec,
+  ColorPickerSpec,
   ComboBoxSpec,
   DateFieldSpec,
   DialogSpec,
@@ -1192,6 +1193,67 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(
       node?.children?.some((child) => child.elementId?.endsWith(":thumb")),
     ).toBe(true);
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ColorPicker through generic children without render.shapes", () => {
+    const renderShapes = vi.spyOn(ColorPickerSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "color-picker-1",
+        type: "ColorPicker",
+        props: {
+          defaultValue: "#ff0000",
+          size: "md",
+        },
+        children: [
+          {
+            id: "color-picker-area",
+            type: "ColorArea",
+            props: {
+              color: "#ff0000",
+              xChannel: "saturation",
+              yChannel: "brightness",
+            },
+          },
+          {
+            id: "color-picker-slider",
+            type: "ColorSlider",
+            props: {
+              color: "#ff0000",
+              channel: "hue",
+              value: 0.25,
+            },
+          },
+          {
+            id: "color-picker-field",
+            type: "ColorField",
+            props: {
+              label: "Hex",
+              value: "#ff0000",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["color-picker-1", { x: 12, y: 16, width: 240, height: 320 }],
+        ["color-picker-area", { x: 24, y: 28, width: 200, height: 160 }],
+        ["color-picker-slider", { x: 24, y: 204, width: 200, height: 36 }],
+        ["color-picker-field", { x: 24, y: 252, width: 200, height: 56 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("color-picker-1");
+    expect(node?.children?.map((child) => child.elementId)).toEqual([
+      "color-picker-area",
+      "color-picker-slider",
+      "color-picker-field",
+    ]);
+    expect(collectText(node)).toContain("Hex");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

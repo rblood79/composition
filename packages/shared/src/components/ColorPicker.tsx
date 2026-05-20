@@ -10,7 +10,11 @@ import { ColorSlider } from "./ColorSlider";
 import { ColorArea } from "./ColorArea";
 import { ColorField } from "./ColorField";
 import { Popover } from "./Popover";
-import type { ComponentSize } from "../types";
+import {
+  toColorPickerRacProps,
+  type ColorPickerCanonicalProps,
+  type ColorPickerRacProps,
+} from "../catalog/outputs/toRacProps";
 
 import "./styles/ColorPicker.css";
 
@@ -22,16 +26,21 @@ import "./styles/ColorPicker.css";
 
 export interface ColorPickerProps extends Omit<
   AriaColorPickerProps,
-  "children"
+  "children" | "value" | "defaultValue"
 > {
   /**
    * Size variant
    * @default 'md'
    */
-  size?: ComponentSize;
+  value?: ColorPickerRacProps["value"];
+  defaultValue?: ColorPickerRacProps["defaultValue"];
+  variant?: ColorPickerRacProps["variant"];
+  size?: ColorPickerRacProps["size"];
   label?: string;
+  isDisabled?: boolean;
   children?: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -50,22 +59,59 @@ export interface ColorPickerProps extends Omit<
  * </ColorPicker>
  */
 export function ColorPicker({
-  size = "md",
+  value,
+  defaultValue,
+  variant,
+  size,
+  label,
+  isDisabled,
   children,
   className,
+  style,
   ...props
 }: ColorPickerProps) {
-  const baseClassName = typeof className === "string" ? className : undefined;
+  const projectedProps = toColorPickerRacProps({
+    ...props,
+    value,
+    defaultValue,
+    variant,
+    size,
+    label,
+    isDisabled,
+    className,
+    style,
+  } as ColorPickerCanonicalProps);
+  const baseClassName =
+    typeof projectedProps.className === "string"
+      ? projectedProps.className
+      : undefined;
   const colorPickerClassName = baseClassName
     ? `react-aria-ColorPicker ${baseClassName}`
     : "react-aria-ColorPicker";
+  const dataAttributes = Object.fromEntries(
+    Object.entries(props).filter(([key]) => key.startsWith("data-")),
+  ) as Record<`data-${string}`, string | number | boolean | undefined>;
+  const colorValue = projectedProps.value ?? projectedProps.defaultValue;
 
   return (
-    <div className={colorPickerClassName} data-size={size}>
-      <AriaColorPicker {...props}>
+    <div
+      {...dataAttributes}
+      className={colorPickerClassName}
+      data-default-value={projectedProps.defaultValue}
+      data-disabled={projectedProps.isDisabled || undefined}
+      data-size={projectedProps.size}
+      data-value={colorValue}
+      data-variant={projectedProps.variant}
+      style={projectedProps.style as React.CSSProperties | undefined}
+    >
+      <AriaColorPicker
+        {...(projectedProps.value
+          ? { value: projectedProps.value }
+          : { defaultValue: projectedProps.defaultValue })}
+      >
         <DialogTrigger>
           <Button className="color-picker-button">
-            <ColorSwatch />
+            <ColorSwatch color={colorValue} isDisabled={isDisabled} />
           </Button>
           <Popover placement="bottom start" className="color-picker-popover">
             {children || (
@@ -74,9 +120,20 @@ export function ColorPicker({
                   colorSpace="hsb"
                   xChannel="saturation"
                   yChannel="brightness"
+                  color={colorValue}
+                  isDisabled={isDisabled}
                 />
-                <ColorSlider colorSpace="hsb" channel="hue" />
-                <ColorField label="Hex" />
+                <ColorSlider
+                  colorSpace="hsb"
+                  channel="hue"
+                  color={colorValue}
+                  isDisabled={isDisabled}
+                />
+                <ColorField
+                  label="Hex"
+                  value={colorValue}
+                  isDisabled={isDisabled}
+                />
               </>
             )}
           </Popover>

@@ -179,6 +179,16 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the ColorPicker prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../ColorPicker.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toColorPickerRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
   it("uses catalog toRacProps as the Form prop projection source", () => {
     const source = fs.readFileSync(
       new URL("../Form.tsx", import.meta.url),

@@ -118,6 +118,12 @@ export const COLOR_SLIDER_ORIENTATION_VALUES = [
 ] as const;
 export const COLOR_SLIDER_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
 export const COLOR_WHEEL_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
+export const COLOR_PICKER_VARIANT_VALUES = [
+  "default",
+  "compact",
+  "expanded",
+] as const;
+export const COLOR_PICKER_SIZE_VALUES = COLOR_SWATCH_SIZE_VALUES;
 export const FORM_VARIANT_VALUES = ["default", "outlined"] as const;
 export const FORM_METHOD_VALUES = ["get", "post"] as const;
 export const FORM_ENCTYPE_VALUES = [
@@ -397,6 +403,8 @@ const COLOR_SLIDER_ORIENTATIONS = new Set<string>(
 );
 const COLOR_SLIDER_SIZES = COLOR_SWATCH_SIZES;
 const COLOR_WHEEL_SIZES = COLOR_SWATCH_SIZES;
+const COLOR_PICKER_VARIANTS = new Set<string>(COLOR_PICKER_VARIANT_VALUES);
+const COLOR_PICKER_SIZES = COLOR_SWATCH_SIZES;
 const FORM_VARIANTS = new Set<string>(FORM_VARIANT_VALUES);
 const FORM_METHODS = new Set<string>(FORM_METHOD_VALUES);
 const FORM_ENCTYPES = new Set<string>(FORM_ENCTYPE_VALUES);
@@ -1067,6 +1075,29 @@ export interface ColorWheelRacProps extends Record<string, unknown> {
   hue: number;
   outerRadius: number;
   innerRadius: number;
+  size: ComponentSizeSubset;
+  isDisabled?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ColorPickerCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  variant?: unknown;
+  size?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ColorPickerRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  value?: string;
+  defaultValue: string;
+  variant: (typeof COLOR_PICKER_VARIANT_VALUES)[number];
   size: ComponentSizeSubset;
   isDisabled?: boolean;
   className?: string;
@@ -2732,6 +2763,30 @@ export function toColorWheelRacProps(
   };
 }
 
+export function toColorPickerRacProps(
+  props: ColorPickerCanonicalProps,
+): ColorPickerRacProps {
+  const value = typeof props.value === "string" ? props.value : undefined;
+
+  return {
+    "aria-label": readString(
+      props["aria-label"] ?? props.label,
+      "Color picker",
+    ),
+    ...(value ? { value } : {}),
+    defaultValue: readString(props.defaultValue ?? props.value, "#ff0000"),
+    variant: normalizeColorPickerVariant(props.variant),
+    size: normalizeColorPickerSize(props.size),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toFormRacProps(props: FormCanonicalProps): FormRacProps {
   return {
     size: normalizeTextFieldSize(props.size),
@@ -4189,6 +4244,21 @@ function normalizeColorWheelSize(value: unknown): ComponentSizeSubset {
 
 function colorStringForHue(hue: number): string {
   return `hsl(${Math.round(hue)}, 100%, 50%)`;
+}
+
+function normalizeColorPickerVariant(
+  value: unknown,
+): (typeof COLOR_PICKER_VARIANT_VALUES)[number] {
+  return typeof value === "string" && COLOR_PICKER_VARIANTS.has(value)
+    ? (value as (typeof COLOR_PICKER_VARIANT_VALUES)[number])
+    : "default";
+}
+
+function normalizeColorPickerSize(value: unknown): ComponentSizeSubset {
+  return typeof value === "string" &&
+    COLOR_PICKER_SIZES.has(value as ComponentSizeSubset)
+    ? (value as ComponentSizeSubset)
+    : "md";
 }
 
 function normalizeFormLabelAlign(value: unknown): "start" | "center" | "end" {

@@ -28,6 +28,7 @@ import {
   type CheckboxRacProps,
   type ColorAreaRacProps,
   type ColorFieldRacProps,
+  type ColorPickerRacProps,
   type ColorSliderRacProps,
   type ColorSwatchRacProps,
   type ColorWheelRacProps,
@@ -71,6 +72,7 @@ import {
   CheckboxGroup,
   ColorArea,
   ColorField,
+  ColorPicker,
   ColorSlider,
   ColorSwatch,
   ColorWheel,
@@ -133,6 +135,52 @@ interface CanonicalNodeRendererProps {
   /** React Aria subpart context guard용 부모 component type */
   parentType?: string;
 }
+
+export const CANONICAL_PRIMITIVE_RENDERER_TYPES = new Set([
+  "Breadcrumb",
+  "Breadcrumbs",
+  "Button",
+  "Checkbox",
+  "CheckboxGroup",
+  "ColorArea",
+  "ColorField",
+  "ColorPicker",
+  "ColorSlider",
+  "ColorSwatch",
+  "ColorWheel",
+  "ComboBox",
+  "DateField",
+  "Dialog",
+  "DropZone",
+  "FileTrigger",
+  "Form",
+  "GridList",
+  "Link",
+  "ListBox",
+  "Menu",
+  "Modal",
+  "NumberField",
+  "Popover",
+  "Radio",
+  "RadioGroup",
+  "SearchField",
+  "Select",
+  "Separator",
+  "Slider",
+  "Switch",
+  "Table",
+  "TableView",
+  "Tabs",
+  "TagGroup",
+  "TextField",
+  "TimeField",
+  "Toast",
+  "ToggleButton",
+  "ToggleButtonGroup",
+  "Toolbar",
+  "Tooltip",
+  "Tree",
+]);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CanonicalNodeRenderer
@@ -456,6 +504,29 @@ function renderPrimitiveNode({
     ) as ColorWheelRacProps;
 
     return <ColorWheel key={node.id} {...colorWheelProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "ColorPicker") {
+    const colorPickerProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ColorPickerRacProps;
+    const renderedChildren = node.children?.length
+      ? node.children.map((child) => (
+          <CanonicalNodeRenderer
+            key={child.id}
+            node={child}
+            renderContext={renderContext}
+            parentPath={parentPath}
+            parentType={adaptedEl.type}
+          />
+        ))
+      : undefined;
+
+    return (
+      <ColorPicker key={node.id} {...colorPickerProps} {...markerProps}>
+        {renderedChildren}
+      </ColorPicker>
+    );
   }
 
   if (adaptedEl.type === "Switch") {

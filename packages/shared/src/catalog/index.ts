@@ -8,6 +8,7 @@ export * from "./primitives/checkbox";
 export * from "./primitives/checkboxGroup";
 export * from "./primitives/colorArea";
 export * from "./primitives/colorField";
+export * from "./primitives/colorPicker";
 export * from "./primitives/colorSlider";
 export * from "./primitives/colorSwatch";
 export * from "./primitives/colorWheel";

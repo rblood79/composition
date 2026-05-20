@@ -9,6 +9,7 @@ import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { colorSliderPrimitiveBinding } from "../primitives/colorSlider";
 import { colorSwatchPrimitiveBinding } from "../primitives/colorSwatch";
 import { colorWheelPrimitiveBinding } from "../primitives/colorWheel";
+import { colorPickerPrimitiveBinding } from "../primitives/colorPicker";
 import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { dialogPrimitiveBinding } from "../primitives/dialog";
@@ -347,6 +348,36 @@ describe("ADR-142 component catalog", () => {
       outerRadius: 100,
       innerRadius: 74,
       size: "md",
+      isDisabled: false,
+    });
+  });
+
+  it("registers ColorPicker as an active date-color primitive catalog entry with color control child templates", () => {
+    const entry = getComponentCatalogEntry("ColorPicker");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(colorPickerPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("ColorPicker");
+    expect(entry.binding.skiaPrimitive).toBeUndefined();
+    const placement = entry.binding.placement;
+    expect(placement?.kind).toBe("node-with-children");
+    if (placement?.kind !== "node-with-children") return;
+    expect(placement.children.map((child) => child.type)).toEqual([
+      "ColorArea",
+      "ColorSlider",
+      "ColorField",
+    ]);
+    expect(entry.panel.category).toBe("color");
+    expect(entry.panel.label).toBe("color picker");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      defaultValue: "#ff0000",
+      size: "md",
+      variant: "default",
       isDisabled: false,
     });
   });

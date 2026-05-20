@@ -72,7 +72,7 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 | `CheckboxGroup`     | primitive    | selection          | `CheckboxGroup.css`               | group + checkbox children                        |
 | `ColorArea`         | primitive    | date-color         | `ColorArea.css`                   | active `skiaPrimitive` pilot                     |
 | `ColorField`        | primitive    | fields             | `ColorField.css`                  | field family                                     |
-| `ColorPicker`       | primitive    | date-color         | `ColorPicker.css`                 | picker shell + color controls                    |
+| `ColorPicker`       | primitive    | date-color         | `ColorPicker.css`                 | active composite placement pilot                 |
 | `ColorSlider`       | primitive    | date-color         | `ColorSlider.css`                 | active `skiaPrimitive` pilot                     |
 | `ColorSwatch`       | primitive    | date-color         | `ColorSwatch.css`                 | color fill draw 검증 필요                        |
 | `ColorSwatchPicker` | primitive    | date-color         | `ColorSwatchPicker.css`           | collection-like picker                           |
@@ -460,4 +460,10 @@ fixture 로 고정했다. ColorWheel date/color primitive pilot 은
 shared `ColorWheel.tsx` projection / Preview ColorWheel primitive branch /
 generic Skia arc-thumb fixture 를 추가했다. ColorWheel 은
 `ColorWheelSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
-date/color family 는 ColorSwatch/ColorSlider/ColorArea/ColorWheel 까지 진행했다.
+ColorPicker date/color primitive pilot 은 `toColorPickerRacProps()` /
+`colorPickerPrimitiveBinding` / active catalog entry / ColorArea+ColorSlider+
+ColorField placement / shared `ColorPicker.tsx` projection / Preview ColorPicker
+primitive branch / generic Skia resolved-children fixture 를 추가했다. ColorPicker 는
+`ColorPickerSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로 고정했다.
+date/color family 는 ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker 까지
+진행했다.
