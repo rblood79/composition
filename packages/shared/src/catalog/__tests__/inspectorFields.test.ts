@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
-import { toButtonRacProps } from "../outputs/toRacProps";
+import { toButtonRacProps, toTextFieldRacProps } from "../outputs/toRacProps";
 
 describe("ADR-142 inspector field contracts", () => {
   it("groups Button PropContract entries by section", () => {
@@ -99,6 +100,52 @@ describe("ADR-142 inspector field contracts", () => {
       iconName: "plus",
       iconPosition: "end",
       iconStrokeWidth: 1.5,
+    });
+  });
+
+  it("groups TextField PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "TextField",
+      contracts: textFieldPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { TextField: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Input Type",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "value",
+      "placeholder",
+      "description",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual(["type"]);
+  });
+
+  it("projects TextField canonical props through the catalog boundary", () => {
+    expect(
+      toTextFieldRacProps({
+        label: "Email",
+        value: "hello@example.com",
+        placeholder: "name@example.com",
+        type: "email",
+        size: "lg",
+        isRequired: true,
+        labelPosition: "side",
+      }),
+    ).toMatchObject({
+      label: "Email",
+      value: "hello@example.com",
+      placeholder: "name@example.com",
+      type: "email",
+      size: "lg",
+      isRequired: true,
+      labelPosition: "side",
     });
   });
 });

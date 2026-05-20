@@ -24,12 +24,14 @@ import {
   toButtonRacProps,
   toLinkRacProps,
   toSeparatorRacProps,
+  toTextFieldRacProps,
   toToggleButtonRacProps,
   type BreadcrumbRacProps,
   type ButtonRacProps,
   type LinkRacProps,
   type ResolvedNode,
   type SeparatorRacProps,
+  type TextFieldRacProps,
   type ToggleButtonRacProps,
 } from "@composition/shared";
 import {
@@ -810,6 +812,9 @@ export function buildGenericResolvedSkiaNodeData(
   if (binding?.skiaPrimitive?.kind === "separator") {
     return buildGenericSeparatorNode(input.node, layout, input.theme);
   }
+  if (binding?.skiaPrimitive?.kind === "text-field") {
+    return buildGenericTextFieldNode(input.node, layout, input.theme);
+  }
   if (binding?.skiaPrimitive?.kind === "toggle-button") {
     return buildGenericToggleButtonNode(input.node, layout, input.theme);
   }
@@ -1069,6 +1074,126 @@ function buildGenericLinkNode(
   };
 }
 
+function buildGenericTextFieldNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toTextFieldRacProps(node.props ?? {}) as TextFieldRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericTextFieldSize(props.size);
+  const isDark = theme === "dark";
+  const labelColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#e5e7eb" : "#374151"),
+    1,
+  );
+  const inputTextColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#f9fafb" : "#111827"),
+    1,
+  );
+  const strokeColor = colorIntToFloat32(
+    cssColorToHex(props.isInvalid ? "#dc2626" : isDark ? "#6b7280" : "#d1d5db"),
+    1,
+  );
+  const inputY = props.label ? size.labelHeight + size.gap : 0;
+  const inputHeight = Math.max(layout.height - inputY, size.inputHeight);
+  const valueText = props.value ?? props.defaultValue ?? props.placeholder;
+  const children: SkiaNodeData[] = [];
+
+  if (props.label) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:label`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: size.labelHeight,
+      visible: true,
+      text: {
+        content: props.label,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.labelFontSize,
+        fontWeight: 500,
+        color: labelColor,
+        align: "left",
+        lineHeight: size.labelLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: layout.width,
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+      },
+    });
+  }
+
+  children.push({
+    type: "container",
+    elementId: `${node.id}:input`,
+    x: 0,
+    y: inputY,
+    width: layout.width,
+    height: inputHeight,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(isDark ? "#111827" : "#ffffff"),
+        props.isQuiet ? 0 : 1,
+      ),
+      borderRadius: readNumber(style.borderRadius, 6),
+      strokeColor,
+      strokeWidth: props.isQuiet ? 0 : 1,
+    },
+    children: [
+      {
+        type: "text",
+        elementId: `${node.id}:value`,
+        x: 0,
+        y: 0,
+        width: layout.width,
+        height: inputHeight,
+        visible: true,
+        text: {
+          content: valueText,
+          fontFamilies: [fontFamily.sans],
+          fontSize: size.inputFontSize,
+          color:
+            props.value || props.defaultValue ? inputTextColor : labelColor,
+          align: "left",
+          lineHeight: size.inputLineHeight,
+          paddingLeft: size.paddingX,
+          paddingTop: 0,
+          maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+          verticalAlign: "middle",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        },
+      },
+    ],
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(
+          typeof style.backgroundColor === "string"
+            ? style.backgroundColor
+            : "transparent",
+        ),
+        0,
+      ),
+      borderRadius: readNumber(style.borderRadius, 0),
+    },
+    children,
+  };
+}
+
 function buildGenericToggleButtonNode(
   node: ResolvedNode,
   layout: GenericResolvedSkiaLayout,
@@ -1217,6 +1342,76 @@ function resolveGenericBreadcrumbSize(size: unknown): {
     case "M":
     default:
       return { fontSize: 14, lineHeight: 20 };
+  }
+}
+
+function resolveGenericTextFieldSize(size: TextFieldRacProps["size"]): {
+  labelFontSize: number;
+  labelLineHeight: number;
+  labelHeight: number;
+  inputFontSize: number;
+  inputLineHeight: number;
+  inputHeight: number;
+  paddingX: number;
+  gap: number;
+} {
+  switch (size) {
+    case "xs":
+      return {
+        labelFontSize: 11,
+        labelLineHeight: 14,
+        labelHeight: 14,
+        inputFontSize: 11,
+        inputLineHeight: 14,
+        inputHeight: 24,
+        paddingX: 8,
+        gap: 4,
+      };
+    case "sm":
+      return {
+        labelFontSize: 12,
+        labelLineHeight: 16,
+        labelHeight: 16,
+        inputFontSize: 12,
+        inputLineHeight: 16,
+        inputHeight: 28,
+        paddingX: 10,
+        gap: 6,
+      };
+    case "lg":
+      return {
+        labelFontSize: 14,
+        labelLineHeight: 20,
+        labelHeight: 20,
+        inputFontSize: 16,
+        inputLineHeight: 24,
+        inputHeight: 40,
+        paddingX: 14,
+        gap: 8,
+      };
+    case "xl":
+      return {
+        labelFontSize: 16,
+        labelLineHeight: 24,
+        labelHeight: 24,
+        inputFontSize: 18,
+        inputLineHeight: 28,
+        inputHeight: 48,
+        paddingX: 16,
+        gap: 10,
+      };
+    case "md":
+    default:
+      return {
+        labelFontSize: 13,
+        labelLineHeight: 18,
+        labelHeight: 18,
+        inputFontSize: 14,
+        inputLineHeight: 20,
+        inputHeight: 34,
+        paddingX: 12,
+        gap: 6,
+      };
   }
 }
 

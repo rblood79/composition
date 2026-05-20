@@ -26,6 +26,7 @@ import {
   type ButtonRacProps,
   type LinkRacProps,
   type SeparatorRacProps,
+  type TextFieldRacProps,
   type ToolbarRacProps,
   type ToggleButtonGroupRacProps,
   type ToggleButtonRacProps,
@@ -36,6 +37,7 @@ import {
   Button,
   Link,
   Separator,
+  TextField,
   Toolbar,
   ToggleButton,
   ToggleButtonGroup,
@@ -91,11 +93,11 @@ export function CanonicalNodeRenderer({
   const canonicalProps = extractCanonicalPropsFromResolved(node);
 
   // ── type 복원 ─────────────────────────────────────────────────────────────
-  // node.type 이 ComponentTag (예: "button", "text", "frame") 이므로
-  // type 은 canonical props marker → metadata.originalTag → node.type 순으로 fallback
+  // node.type 이 component tag SSOT 이다. canonical props 의 `type` 은 Button/TextField
+  // 같은 primitive 의 HTML/input type 일 수 있으므로 component tag fallback 으로
+  // 먼저 쓰면 안 된다.
   const type =
     (canonicalProps._tag as string | undefined) ??
-    (canonicalProps.type as string | undefined) ??
     ((node.metadata as Record<string, unknown> | undefined)?.originalTag as
       | string
       | undefined) ??
@@ -300,6 +302,14 @@ function renderPrimitiveNode({
         {renderedChildren}
       </ToggleButton>
     );
+  }
+
+  if (adaptedEl.type === "TextField") {
+    const textFieldProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as TextFieldRacProps;
+
+    return <TextField key={node.id} {...textFieldProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

@@ -8,6 +8,7 @@ import {
   ButtonSpec,
   LinkSpec,
   SeparatorSpec,
+  TextFieldSpec,
   ToggleButtonSpec,
   ToggleButtonGroupSpec,
   ToolbarSpec,
@@ -205,6 +206,33 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("toggle-button-1");
     expect(collectText(node)).toContain("Pinned");
     expect(node?.box?.fillColor).toBeDefined();
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved TextField through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TextFieldSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "textfield-1",
+        type: "TextField",
+        props: {
+          label: "Email",
+          value: "hello@example.com",
+          placeholder: "name@example.com",
+          type: "email",
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 220, height: 72 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("textfield-1");
+    expect(collectText(node)).toContain("Email");
+    expect(collectText(node)).toContain("hello@example.com");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

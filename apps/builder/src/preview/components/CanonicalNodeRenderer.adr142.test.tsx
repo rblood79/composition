@@ -17,6 +17,7 @@ const {
   legacyBreadcrumbsRenderer,
   legacyLinkRenderer,
   legacySeparatorRenderer,
+  legacyTextFieldRenderer,
   legacyToggleButtonRenderer,
   legacyToggleButtonGroupRenderer,
   legacyToolbarRenderer,
@@ -33,6 +34,9 @@ const {
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacySeparatorRenderer: vi.fn(() => (
     <div data-legacy-renderer="Separator">legacy</div>
+  )),
+  legacyTextFieldRenderer: vi.fn(() => (
+    <div data-legacy-renderer="TextField">legacy</div>
   )),
   legacyToggleButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="ToggleButton">legacy</button>
@@ -52,6 +56,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Breadcrumbs: legacyBreadcrumbsRenderer,
     Link: legacyLinkRenderer,
     Separator: legacySeparatorRenderer,
+    TextField: legacyTextFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
     ToggleButtonGroup: legacyToggleButtonGroupRenderer,
     Toolbar: legacyToolbarRenderer,
@@ -79,6 +84,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyBreadcrumbsRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
+    legacyTextFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
     legacyToggleButtonGroupRenderer.mockClear();
     legacyToolbarRenderer.mockClear();
@@ -354,5 +360,32 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(docs.getAttribute("href")).toBe("/docs");
     expect(legacyBreadcrumbsRenderer).not.toHaveBeenCalled();
     expect(legacyBreadcrumbRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders TextField through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "textfield-1",
+      type: "TextField",
+      props: {
+        label: "Email",
+        value: "hello@example.com",
+        placeholder: "name@example.com",
+        type: "email",
+        size: "lg",
+        isRequired: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const input = screen.getByRole("textbox", { name: /Email/ });
+    expect((input as HTMLInputElement).value).toBe("hello@example.com");
+    expect(input.getAttribute("type")).toBe("email");
+    expect(container.querySelector("[data-canonical-id='textfield-1']")).toBe(
+      container.querySelector(".react-aria-TextField"),
+    );
+    expect(legacyTextFieldRenderer).not.toHaveBeenCalled();
   });
 });

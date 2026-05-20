@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { breadcrumbPrimitiveBinding } from "../primitives/breadcrumb";
 import { breadcrumbsPrimitiveBinding } from "../primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "../primitives/button";
+import { textFieldPrimitiveBinding } from "../primitives/textField";
 import { toolbarPrimitiveBinding } from "../primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "../primitives/toggleButtonGroup";
 import {
@@ -135,6 +136,21 @@ describe("ADR-142 component catalog", () => {
     expect(breadcrumbsEntry.panel.category).toBe("layout");
   });
 
+  it("registers TextField as an active fields primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("TextField");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(textFieldPrimitiveBinding);
+    expect(entry.family).toBe("fields");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("TextField");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("text-field");
+    expect(entry.panel.category).toBe("forms");
+    expect(entry.panel.placeable).toBe(true);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -178,6 +194,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("ToggleButtonGroup");
     expect(activeTypes).toContain("Toolbar");
     expect(activeTypes).toContain("Breadcrumbs");
+    expect(activeTypes).toContain("TextField");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

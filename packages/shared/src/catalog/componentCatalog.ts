@@ -3,6 +3,7 @@ import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { separatorPrimitiveBinding } from "./primitives/separator";
+import { textFieldPrimitiveBinding } from "./primitives/textField";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "./primitives/toggleButtonGroup";
 import { toggleButtonPrimitiveBinding } from "./primitives/toggleButton";
@@ -115,6 +116,19 @@ export const componentCatalog = [
       category: "content",
       label: "separator",
       icon: "SeparatorHorizontal",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "TextField",
+    family: "fields",
+    cutover: "catalog",
+    binding: textFieldPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "text field",
+      icon: "RectangleEllipsis",
       placeable: true,
     },
   },

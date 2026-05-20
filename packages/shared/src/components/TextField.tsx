@@ -15,6 +15,10 @@ import {
   ValidationResult,
   composeRenderProps,
 } from "react-aria-components";
+import {
+  toTextFieldRacProps,
+  type TextFieldCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
@@ -55,25 +59,53 @@ export function TextField({
   label,
   description,
   errorMessage,
-  placeholder = "Enter text...",
-  type = "text",
+  placeholder,
+  type,
   value,
+  defaultValue,
   onChange,
   isRequired,
   isDisabled,
   isReadOnly,
-  size = "md",
+  isInvalid,
+  size,
   necessityIndicator,
   isLoading,
-  labelPosition = "top",
+  labelPosition,
   isQuiet,
   ...props
 }: TextFieldProps) {
-  if (isLoading) {
+  const projectedProps = toTextFieldRacProps({
+    ...props,
+    label,
+    description,
+    errorMessage,
+    placeholder,
+    type,
+    value,
+    defaultValue,
+    isRequired,
+    isDisabled,
+    isReadOnly,
+    isInvalid,
+    size,
+    necessityIndicator,
+    isLoading,
+    labelPosition,
+    isQuiet,
+  } as TextFieldCanonicalProps);
+  const fieldSize = size ?? projectedProps.size;
+  const fieldLabel = label;
+  const fieldDescription = description ?? projectedProps.description;
+  const fieldErrorMessage = errorMessage ?? projectedProps.errorMessage;
+  const fieldIsRequired = isRequired ?? projectedProps.isRequired;
+  const fieldIsLoading = isLoading ?? projectedProps.isLoading;
+
+  if (fieldIsLoading) {
     return (
       <Skeleton
         componentVariant="input"
-        size={size}
+        size={fieldSize}
         className={props.className as string}
         aria-label="Loading text field..."
       />
@@ -88,24 +120,32 @@ export function TextField({
           ? `react-aria-TextField ${className}`
           : "react-aria-TextField",
       )}
-      data-size={size}
-      data-label-position={labelPosition}
-      data-quiet={isQuiet ? "true" : undefined}
-      value={value}
+      data-size={fieldSize}
+      data-label-position={labelPosition ?? projectedProps.labelPosition}
+      data-quiet={(isQuiet ?? projectedProps.isQuiet) ? "true" : undefined}
+      value={value ?? projectedProps.value}
+      defaultValue={defaultValue ?? projectedProps.defaultValue}
       onChange={onChange}
-      isRequired={isRequired}
-      isDisabled={isDisabled}
-      isReadOnly={isReadOnly}
+      isRequired={fieldIsRequired}
+      isDisabled={isDisabled ?? projectedProps.isDisabled}
+      isReadOnly={isReadOnly ?? projectedProps.isReadOnly}
+      isInvalid={isInvalid ?? projectedProps.isInvalid}
     >
-      {label && (
+      {fieldLabel && (
         <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, isRequired)}
+          {fieldLabel}
+          {renderNecessityIndicator(
+            necessityIndicator ?? projectedProps.necessityIndicator,
+            fieldIsRequired,
+          )}
         </Label>
       )}
-      <Input type={type} placeholder={placeholder} />
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      <Input
+        type={type ?? projectedProps.type}
+        placeholder={placeholder ?? projectedProps.placeholder}
+      />
+      {fieldDescription && <Text slot="description">{fieldDescription}</Text>}
+      <FieldError>{fieldErrorMessage}</FieldError>
     </AriaTextField>
   );
 }

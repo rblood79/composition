@@ -77,6 +77,22 @@ describe("ADR-142 element creator catalog bridge", () => {
     });
   });
 
+  it("describes catalog TextField placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("TextField");
+
+    expect(creation).toMatchObject({
+      elementType: "TextField",
+      props: {
+        label: "Text Field",
+        placeholder: "Enter text...",
+        type: "text",
+        size: "md",
+        labelPosition: "top",
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

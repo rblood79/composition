@@ -258,4 +258,8 @@ Preview primitive branch / generic Skia selected/emphasized button-like fixture 
 확장했다. Button Icon inspector parity 는 구 `ButtonSpec.properties` 로 되돌리지
 않고 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 과 `toButtonRacProps()`
 projection 으로 보강했으며, generic Skia Button path 는 `iconName` 을 `icon_path`
-child 로 렌더한다.
+child 로 렌더한다. TextField primitive pilot 은 `fields` family 의 첫 active
+slice 로 `toTextFieldRacProps()` / `textFieldPrimitiveBinding` / active catalog
+entry / Preview primitive branch / generic Skia label-input-value fixture 를 추가했다.
+이 과정에서 TextField 의 `type` prop 이 component tag 로 오인되지 않도록
+`CanonicalNodeRenderer` 는 `node.type` 을 component type SSOT 로 우선한다.

@@ -34,6 +34,17 @@ export const BUTTON_SIZE_VALUES = [
 
 export const BUTTON_TYPE_VALUES = ["button", "submit", "reset"] as const;
 export const BUTTON_ICON_POSITION_VALUES = ["start", "end"] as const;
+export const TEXT_FIELD_TYPE_VALUES = [
+  "text",
+  "email",
+  "password",
+  "search",
+  "tel",
+  "url",
+  "number",
+] as const;
+export const TEXT_FIELD_LABEL_POSITION_VALUES = ["top", "side"] as const;
+export const TEXT_FIELD_NECESSITY_INDICATOR_VALUES = ["icon", "label"] as const;
 export const SEPARATOR_ORIENTATION_VALUES = ["horizontal", "vertical"] as const;
 export const SEPARATOR_VARIANT_VALUES = [
   "default",
@@ -81,6 +92,13 @@ const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
 const BUTTON_SIZES = new Set<ComponentSize>(BUTTON_SIZE_VALUES);
 const BUTTON_TYPES = new Set<string>(BUTTON_TYPE_VALUES);
 const BUTTON_ICON_POSITIONS = new Set<string>(BUTTON_ICON_POSITION_VALUES);
+const TEXT_FIELD_TYPES = new Set<string>(TEXT_FIELD_TYPE_VALUES);
+const TEXT_FIELD_LABEL_POSITIONS = new Set<string>(
+  TEXT_FIELD_LABEL_POSITION_VALUES,
+);
+const TEXT_FIELD_NECESSITY_INDICATORS = new Set<string>(
+  TEXT_FIELD_NECESSITY_INDICATOR_VALUES,
+);
 const SEPARATOR_ORIENTATIONS = new Set<string>(SEPARATOR_ORIENTATION_VALUES);
 const SEPARATOR_VARIANTS = new Set<SeparatorVariant>(SEPARATOR_VARIANT_VALUES);
 const SEPARATOR_SIZES = new Set<ComponentSizeSubset>(SEPARATOR_SIZE_VALUES);
@@ -187,6 +205,48 @@ export interface SeparatorRacProps extends Record<string, unknown> {
   orientation: "horizontal" | "vertical";
   variant: SeparatorVariant;
   size: ComponentSizeSubset;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface TextFieldCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  placeholder?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  type?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  isQuiet?: unknown;
+  isLoading?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface TextFieldRacProps extends Record<string, unknown> {
+  label: string;
+  placeholder: string;
+  type: (typeof TEXT_FIELD_TYPE_VALUES)[number];
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  isQuiet: boolean;
+  value?: string;
+  defaultValue?: string;
+  description?: string;
+  errorMessage?: string;
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  isLoading?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -378,6 +438,55 @@ export function toSeparatorRacProps(
   };
 }
 
+export function toTextFieldRacProps(
+  props: TextFieldCanonicalProps,
+): TextFieldRacProps {
+  return {
+    label: readTextFieldLabel(props),
+    placeholder: readString(props.placeholder, "Enter text..."),
+    type: normalizeTextFieldType(props.type),
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    ...(typeof props.value === "string" ? { value: props.value } : {}),
+    ...(typeof props.defaultValue === "string"
+      ? { defaultValue: props.defaultValue }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.isLoading === "boolean"
+      ? { isLoading: props.isLoading }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -496,6 +605,16 @@ function readLinkText(props: LinkCanonicalProps): string {
   return "Link";
 }
 
+function readTextFieldLabel(props: TextFieldCanonicalProps): string {
+  return readString(props.label, "Text Field");
+}
+
+function readString(value: unknown, fallback: string): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return fallback;
+}
+
 function readToggleButtonText(props: ToggleButtonCanonicalProps): string {
   const value = props.children ?? props.text ?? props.label;
   if (typeof value === "string") return value;
@@ -527,6 +646,32 @@ function normalizeButtonType(value: unknown): "button" | "submit" | "reset" {
   return typeof value === "string" && BUTTON_TYPES.has(value)
     ? (value as "button" | "submit" | "reset")
     : "button";
+}
+
+function normalizeTextFieldType(
+  value: unknown,
+): (typeof TEXT_FIELD_TYPE_VALUES)[number] {
+  return typeof value === "string" && TEXT_FIELD_TYPES.has(value)
+    ? (value as (typeof TEXT_FIELD_TYPE_VALUES)[number])
+    : "text";
+}
+
+function normalizeTextFieldSize(value: unknown): ComponentSize {
+  return normalizeButtonSize(value);
+}
+
+function normalizeTextFieldLabelPosition(value: unknown): "top" | "side" {
+  return typeof value === "string" && TEXT_FIELD_LABEL_POSITIONS.has(value)
+    ? (value as "top" | "side")
+    : "top";
+}
+
+function normalizeTextFieldNecessityIndicator(
+  value: unknown,
+): "icon" | "label" | undefined {
+  return typeof value === "string" && TEXT_FIELD_NECESSITY_INDICATORS.has(value)
+    ? (value as "icon" | "label")
+    : undefined;
 }
 
 function normalizeButtonIconPosition(value: unknown): "start" | "end" {
