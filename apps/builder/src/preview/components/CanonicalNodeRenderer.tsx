@@ -35,6 +35,8 @@ import {
   type ColorWheelRacProps,
   type ComboBoxRacProps,
   type DateFieldRacProps,
+  type DatePickerRacProps,
+  type DateRangePickerRacProps,
   type DialogRacProps,
   type DropZoneRacProps,
   type FileTriggerRacProps,
@@ -81,6 +83,8 @@ import {
   ColorWheel,
   ComboBox,
   DateField,
+  DatePicker,
+  DateRangePicker,
   Dialog,
   DropZone,
   FileTrigger,
@@ -155,6 +159,8 @@ export const CANONICAL_PRIMITIVE_RENDERER_TYPES = new Set([
   "ColorWheel",
   "ComboBox",
   "DateField",
+  "DatePicker",
+  "DateRangePicker",
   "Dialog",
   "DropZone",
   "FileTrigger",
@@ -563,6 +569,40 @@ function renderPrimitiveNode({
       <RangeCalendar
         key={node.id}
         {...rangeCalendarProps}
+        style={style as React.CSSProperties | undefined}
+        {...markerProps}
+      />
+    );
+  }
+
+  if (adaptedEl.type === "DatePicker") {
+    const {
+      value: _value,
+      style,
+      ...datePickerProps
+    } = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as DatePickerRacProps;
+
+    return (
+      <DatePicker
+        key={node.id}
+        {...datePickerProps}
+        style={style as React.CSSProperties | undefined}
+        {...markerProps}
+      />
+    );
+  }
+
+  if (adaptedEl.type === "DateRangePicker") {
+    const { style, ...dateRangePickerProps } = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as DateRangePickerRacProps;
+
+    return (
+      <DateRangePicker
+        key={node.id}
+        {...dateRangePickerProps}
         style={style as React.CSSProperties | undefined}
         {...markerProps}
       />

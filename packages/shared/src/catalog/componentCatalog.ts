@@ -12,6 +12,8 @@ import { colorSwatchPrimitiveBinding } from "./primitives/colorSwatch";
 import { colorWheelPrimitiveBinding } from "./primitives/colorWheel";
 import { comboBoxPrimitiveBinding } from "./primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
+import { datePickerPrimitiveBinding } from "./primitives/datePicker";
+import { dateRangePickerPrimitiveBinding } from "./primitives/dateRangePicker";
 import { dialogPrimitiveBinding } from "./primitives/dialog";
 import { dropZonePrimitiveBinding } from "./primitives/dropZone";
 import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
@@ -258,6 +260,32 @@ export const componentCatalog = [
       category: "dateTime",
       label: "range calendar",
       icon: "CalendarDays",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "DatePicker",
+    family: "date-color",
+    cutover: "catalog",
+    binding: datePickerPrimitiveBinding,
+    panel: {
+      category: "dateTime",
+      label: "date picker",
+      icon: "CalendarCheck",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "DateRangePicker",
+    family: "date-color",
+    cutover: "catalog",
+    binding: dateRangePickerPrimitiveBinding,
+    panel: {
+      category: "dateTime",
+      label: "date range picker",
+      icon: "CalendarCheck",
       placeable: true,
     },
   },

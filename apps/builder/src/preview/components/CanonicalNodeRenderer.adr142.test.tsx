@@ -26,6 +26,8 @@ const {
   legacyCheckboxGroupRenderer,
   legacyComboBoxRenderer,
   legacyDateFieldRenderer,
+  legacyDatePickerRenderer,
+  legacyDateRangePickerRenderer,
   legacyDialogRenderer,
   legacyDropZoneRenderer,
   legacyFileTriggerRenderer,
@@ -99,6 +101,12 @@ const {
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
+  )),
+  legacyDatePickerRenderer: vi.fn(() => (
+    <div data-legacy-renderer="DatePicker">legacy</div>
+  )),
+  legacyDateRangePickerRenderer: vi.fn(() => (
+    <div data-legacy-renderer="DateRangePicker">legacy</div>
   )),
   legacyDialogRenderer: vi.fn(() => (
     <section data-legacy-renderer="Dialog">legacy</section>
@@ -209,6 +217,8 @@ vi.mock("@composition/shared/renderers", () => ({
     ColorWheel: legacyColorWheelRenderer,
     ColorPicker: legacyColorPickerRenderer,
     DateField: legacyDateFieldRenderer,
+    DatePicker: legacyDatePickerRenderer,
+    DateRangePicker: legacyDateRangePickerRenderer,
     Dialog: legacyDialogRenderer,
     DropZone: legacyDropZoneRenderer,
     FileTrigger: legacyFileTriggerRenderer,
@@ -273,6 +283,8 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyColorWheelRenderer.mockClear();
     legacyColorPickerRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
+    legacyDatePickerRenderer.mockClear();
+    legacyDateRangePickerRenderer.mockClear();
     legacyDialogRenderer.mockClear();
     legacyDropZoneRenderer.mockClear();
     legacyFileTriggerRenderer.mockClear();
@@ -387,6 +399,61 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect((calendar as HTMLElement).dataset.size).toBe("lg");
     expect((calendar as HTMLElement).dataset.maxVisibleMonths).toBe("2");
     expect(legacyRangeCalendarRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders DatePicker through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "date-picker-1",
+      type: "DatePicker",
+      props: {
+        label: "Start date",
+        defaultValue: "2026-05-21",
+        size: "lg",
+        isQuiet: true,
+        showCalendarIcon: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const datePicker = container.querySelector(
+      "[data-canonical-id='date-picker-1']",
+    );
+    expect(datePicker).not.toBeNull();
+    expect(datePicker?.className).toContain("react-aria-DatePicker");
+    expect((datePicker as HTMLElement).dataset.size).toBe("lg");
+    expect((datePicker as HTMLElement).dataset.quiet).toBe("true");
+    expect(legacyDatePickerRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders DateRangePicker through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "date-range-picker-1",
+      type: "DateRangePicker",
+      props: {
+        label: "Booking range",
+        defaultStartValue: "2026-05-21",
+        defaultEndValue: "2026-05-27",
+        size: "lg",
+        isQuiet: true,
+        showCalendarIcon: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const dateRangePicker = container.querySelector(
+      "[data-canonical-id='date-range-picker-1']",
+    );
+    expect(dateRangePicker).not.toBeNull();
+    expect(dateRangePicker?.className).toContain("react-aria-DateRangePicker");
+    expect((dateRangePicker as HTMLElement).dataset.size).toBe("lg");
+    expect((dateRangePicker as HTMLElement).dataset.quiet).toBe("true");
+    expect(legacyDateRangePickerRenderer).not.toHaveBeenCalled();
   });
 
   it("renders a resolved reusable Button ref through the same primitive branch", () => {

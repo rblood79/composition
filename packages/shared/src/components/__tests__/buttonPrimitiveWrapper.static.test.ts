@@ -209,6 +209,26 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the DatePicker prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../DatePicker.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toDatePickerRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
+  it("uses catalog toRacProps as the DateRangePicker prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../DateRangePicker.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toDateRangePickerRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
   it("uses catalog toRacProps as the Form prop projection source", () => {
     const source = fs.readFileSync(
       new URL("../Form.tsx", import.meta.url),

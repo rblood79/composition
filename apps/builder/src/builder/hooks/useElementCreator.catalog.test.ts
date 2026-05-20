@@ -308,6 +308,49 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog DatePicker placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("DatePicker");
+
+    expect(creation).toMatchObject({
+      elementType: "DatePicker",
+      props: {
+        label: "Date",
+        defaultValue: "2026-05-21",
+        size: "md",
+        granularity: "day",
+        showCalendarIcon: true,
+        calendarIconPosition: "right",
+        maxVisibleMonths: 1,
+        isDisabled: false,
+        isReadOnly: false,
+        isInvalid: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
+  it("describes catalog DateRangePicker placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("DateRangePicker");
+
+    expect(creation).toMatchObject({
+      elementType: "DateRangePicker",
+      props: {
+        label: "Date range",
+        defaultStartValue: "2026-05-21",
+        defaultEndValue: "2026-05-27",
+        size: "md",
+        granularity: "day",
+        showCalendarIcon: true,
+        calendarIconPosition: "right",
+        maxVisibleMonths: 1,
+        isDisabled: false,
+        isReadOnly: false,
+        isInvalid: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog FileTrigger placement with a trigger child template", () => {
     const creation = resolveCatalogElementCreation("FileTrigger");
 

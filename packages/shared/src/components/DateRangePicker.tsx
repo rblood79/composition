@@ -20,6 +20,7 @@ import {
   ValidationResult,
   composeRenderProps,
 } from "react-aria-components";
+import type { CSSProperties } from "react";
 
 import {
   Calendar as CalendarIcon,
@@ -33,6 +34,11 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
+import {
+  toDateRangePickerRacProps,
+  type DateRangePickerCanonicalProps,
+  type DateRangePickerRacProps,
+} from "../catalog/outputs/toRacProps";
 
 import "./styles/generated/DateRangePicker.css";
 
@@ -63,6 +69,10 @@ export interface DateRangePickerProps<T extends DateValue> extends Omit<
   timezone?: string;
   /** @default false */
   defaultToday?: boolean;
+  /** @example "2024-06-10" */
+  defaultStartValue?: string;
+  /** @example "2024-06-16" */
+  defaultEndValue?: string;
   /** @example "2024-01-01" */
   minValue?: string | DateValue;
   /** @example "2024-12-31" */
@@ -99,6 +109,8 @@ export function DateRangePicker<T extends DateValue>({
   calendarSystem,
   timezone,
   defaultToday = false,
+  defaultStartValue,
+  defaultEndValue,
   minValue,
   maxValue,
   necessityIndicator,
@@ -113,11 +125,51 @@ export function DateRangePicker<T extends DateValue>({
   validationBehavior,
   ...props
 }: DateRangePickerProps<T>) {
-  const effectiveTimezone = timezone || getLocalTimeZone();
+  const projectedProps = toDateRangePickerRacProps({
+    ...props,
+    size,
+    label,
+    description,
+    errorMessage,
+    showCalendarIcon,
+    calendarIconPosition,
+    placeholder,
+    showWeekNumbers,
+    highlightToday,
+    allowClear,
+    includeTime,
+    timeFormat,
+    startTimeLabel,
+    endTimeLabel,
+    granularity,
+    locale,
+    calendarSystem,
+    timezone,
+    defaultToday,
+    defaultStartValue,
+    defaultEndValue,
+    minValue,
+    maxValue,
+    necessityIndicator,
+    labelPosition,
+    isQuiet,
+    hideTimeZone,
+    pageBehavior,
+    maxVisibleMonths,
+    startName,
+    endName,
+    form,
+    validationBehavior,
+  } as DateRangePickerCanonicalProps);
+  const projectedSize = projectedProps.size as DateRangePickerRacProps["size"];
+  const projectedLabelPosition =
+    projectedProps.labelPosition as DateRangePickerRacProps["labelPosition"];
+  const projectedMaxVisibleMonths = projectedProps.maxVisibleMonths;
+  const effectiveTimezone = projectedProps.timezone || getLocalTimeZone();
 
-  const effectiveGranularity = includeTime
+  const effectiveGranularity = projectedProps.includeTime
     ? granularity || "minute"
-    : granularity || "day";
+    : projectedProps.granularity;
 
   const isTimeGranularity = ["hour", "minute", "second"].includes(
     effectiveGranularity,
@@ -128,24 +180,44 @@ export function DateRangePicker<T extends DateValue>({
 
   // minValue/maxValue 문자열 자동 파싱
   const parsedMinValue =
-    typeof minValue === "string" ? safeParseDateString(minValue) : minValue;
+    typeof projectedProps.minValue === "string"
+      ? safeParseDateString(projectedProps.minValue)
+      : minValue;
 
   const parsedMaxValue =
-    typeof maxValue === "string" ? safeParseDateString(maxValue) : maxValue;
+    typeof projectedProps.maxValue === "string"
+      ? safeParseDateString(projectedProps.maxValue)
+      : maxValue;
+  const parsedDefaultStartValue =
+    typeof projectedProps.defaultStartValue === "string"
+      ? safeParseDateString(projectedProps.defaultStartValue)
+      : undefined;
+  const parsedDefaultEndValue =
+    typeof projectedProps.defaultEndValue === "string"
+      ? safeParseDateString(projectedProps.defaultEndValue)
+      : undefined;
+  const projectedDefaultValue =
+    props.defaultValue ??
+    (parsedDefaultStartValue && parsedDefaultEndValue
+      ? {
+          start: parsedDefaultStartValue as T,
+          end: parsedDefaultEndValue as T,
+        }
+      : undefined);
 
   const todayOrNow = isTimeGranularity
     ? now(effectiveTimezone)
     : today(effectiveTimezone);
   const defaultValue =
-    defaultToday && !props.value && !props.defaultValue
+    projectedProps.defaultToday && !props.value && !projectedDefaultValue
       ? {
           start: todayOrNow as T,
           end: todayOrNow as T,
         }
-      : props.defaultValue;
+      : projectedDefaultValue;
 
   const dateRangePickerClassName = composeRenderProps(
-    props.className,
+    projectedProps.className ?? props.className,
     (className) =>
       className
         ? `react-aria-DateRangePicker ${className}`
@@ -156,37 +228,47 @@ export function DateRangePicker<T extends DateValue>({
     <AriaDateRangePicker
       {...props}
       className={dateRangePickerClassName}
-      data-size={size}
-      data-label-position={labelPosition}
-      data-quiet={isQuiet ? "true" : undefined}
+      style={(projectedProps.style as CSSProperties | undefined) ?? props.style}
+      data-size={projectedSize}
+      data-label-position={projectedLabelPosition}
+      data-quiet={projectedProps.isQuiet ? "true" : undefined}
       granularity={effectiveGranularity}
       placeholderValue={placeholderValue}
       defaultValue={defaultValue}
       minValue={parsedMinValue as T | undefined}
       maxValue={parsedMaxValue as T | undefined}
-      hideTimeZone={hideTimeZone}
-      pageBehavior={pageBehavior}
-      startName={startName}
-      endName={endName}
-      form={form}
-      validationBehavior={validationBehavior}
+      hideTimeZone={projectedProps.hideTimeZone}
+      pageBehavior={projectedProps.pageBehavior}
+      startName={projectedProps.startName}
+      endName={projectedProps.endName}
+      form={projectedProps.form}
+      validationBehavior={projectedProps.validationBehavior}
+      isDisabled={projectedProps.isDisabled}
+      isReadOnly={projectedProps.isReadOnly}
+      isRequired={projectedProps.isRequired}
+      isInvalid={projectedProps.isInvalid}
+      autoFocus={projectedProps.autoFocus}
     >
-      {label && (
+      {projectedProps.label && (
         <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
+          {projectedProps.label}
+          {renderNecessityIndicator(
+            projectedProps.necessityIndicator,
+            projectedProps.isRequired,
+          )}
         </Label>
       )}
       <Group>
-        {showCalendarIcon && calendarIconPosition === "left" && (
-          <Button slot="prefix">📅</Button>
-        )}
+        {projectedProps.showCalendarIcon &&
+          projectedProps.calendarIconPosition === "left" && (
+            <Button slot="prefix">📅</Button>
+          )}
         <DateInput slot="start">
           {(segment) => (
             <DateSegment
               segment={segment}
               data-placeholder={
-                !segment.isPlaceholder ? undefined : placeholder
+                !segment.isPlaceholder ? undefined : projectedProps.placeholder
               }
             />
           )}
@@ -197,17 +279,18 @@ export function DateRangePicker<T extends DateValue>({
             <DateSegment
               segment={segment}
               data-placeholder={
-                !segment.isPlaceholder ? undefined : placeholder
+                !segment.isPlaceholder ? undefined : projectedProps.placeholder
               }
             />
           )}
         </DateInput>
-        {showCalendarIcon && calendarIconPosition === "right" && (
-          <Button>
-            <CalendarIcon size={16} />
-          </Button>
-        )}
-        {allowClear && props.value && (
+        {projectedProps.showCalendarIcon &&
+          projectedProps.calendarIconPosition === "right" && (
+            <Button>
+              <CalendarIcon size={16} />
+            </Button>
+          )}
+        {projectedProps.allowClear && props.value && (
           <Button
             onPress={() => props.onChange?.(null)}
             aria-label="Clear date range"
@@ -216,21 +299,27 @@ export function DateRangePicker<T extends DateValue>({
           </Button>
         )}
       </Group>
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {projectedProps.description && (
+        <Text slot="description">{projectedProps.description}</Text>
+      )}
+      <FieldError>
+        {typeof errorMessage === "function"
+          ? errorMessage
+          : projectedProps.errorMessage}
+      </FieldError>
       <Popover>
-        <Dialog data-size={size}>
+        <Dialog data-size={projectedSize}>
           <div className="date-picker-popup">
             <RangeCalendar
-              data-size={size}
-              data-highlight-today={highlightToday}
-              data-show-week-numbers={showWeekNumbers}
+              data-size={projectedSize}
+              data-highlight-today={projectedProps.highlightToday}
+              data-show-week-numbers={projectedProps.showWeekNumbers}
               visibleDuration={
-                maxVisibleMonths && maxVisibleMonths > 1
-                  ? { months: maxVisibleMonths }
+                projectedMaxVisibleMonths > 1
+                  ? { months: projectedMaxVisibleMonths }
                   : undefined
               }
-              pageBehavior={pageBehavior}
+              pageBehavior={projectedProps.pageBehavior}
             >
               <header>
                 <Button slot="previous">
@@ -244,10 +333,7 @@ export function DateRangePicker<T extends DateValue>({
               <div style={{ display: "flex", gap: 8 }}>
                 {Array.from(
                   {
-                    length:
-                      maxVisibleMonths && maxVisibleMonths > 1
-                        ? maxVisibleMonths
-                        : 1,
+                    length: projectedMaxVisibleMonths,
                   },
                   (_, i) => (
                     <CalendarGrid
@@ -261,18 +347,18 @@ export function DateRangePicker<T extends DateValue>({
               </div>
             </RangeCalendar>
 
-            {(includeTime || isTimeGranularity) && (
+            {(projectedProps.includeTime || isTimeGranularity) && (
               <div className="date-picker-time-section">
                 <div className="date-picker-time-fields-container">
                   <div className="date-picker-time-field-wrapper">
                     <Label className="date-picker-time-field-label">
-                      {startTimeLabel}
+                      {projectedProps.startTimeLabel}
                     </Label>
                     <TimeField
                       granularity={
                         effectiveGranularity as "hour" | "minute" | "second"
                       }
-                      hourCycle={timeFormat === "12h" ? 12 : 24}
+                      hourCycle={projectedProps.timeFormat === "12h" ? 12 : 24}
                       className="react-aria-DateRangePicker-start-time"
                     >
                       <DateInput>
@@ -282,13 +368,13 @@ export function DateRangePicker<T extends DateValue>({
                   </div>
                   <div className="date-picker-time-field-wrapper">
                     <Label className="date-picker-time-field-label">
-                      {endTimeLabel}
+                      {projectedProps.endTimeLabel}
                     </Label>
                     <TimeField
                       granularity={
                         effectiveGranularity as "hour" | "minute" | "second"
                       }
-                      hourCycle={timeFormat === "12h" ? 12 : 24}
+                      hourCycle={projectedProps.timeFormat === "12h" ? 12 : 24}
                       className="react-aria-DateRangePicker-end-time"
                     >
                       <DateInput>
@@ -306,9 +392,11 @@ export function DateRangePicker<T extends DateValue>({
   );
 
   // locale + calendarSystem → BCP 47 Unicode extension (e.g. "ko-KR-u-ca-buddhist")
-  const effectiveLocale = calendarSystem
-    ? `${locale || navigator.language}-u-ca-${calendarSystem}`
-    : locale;
+  const effectiveLocale = projectedProps.calendarSystem
+    ? `${projectedProps.locale || navigator.language}-u-ca-${
+        projectedProps.calendarSystem
+      }`
+    : projectedProps.locale;
 
   if (effectiveLocale) {
     return <I18nProvider locale={effectiveLocale}>{picker}</I18nProvider>;

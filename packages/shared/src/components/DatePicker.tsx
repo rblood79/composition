@@ -20,6 +20,7 @@ import {
   ValidationResult,
   composeRenderProps,
 } from "react-aria-components";
+import type { CSSProperties } from "react";
 
 import {
   Calendar as CalendarIcon,
@@ -33,6 +34,11 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
+import {
+  toDatePickerRacProps,
+  type DatePickerCanonicalProps,
+  type DatePickerRacProps,
+} from "../catalog/outputs/toRacProps";
 
 import "./styles/generated/DatePicker.css";
 
@@ -128,13 +134,49 @@ export function DatePicker<T extends DateValue>({
   calendarSystem,
   ...props
 }: DatePickerProps<T>) {
+  const projectedProps = toDatePickerRacProps({
+    ...props,
+    size,
+    label,
+    description,
+    errorMessage,
+    showCalendarIcon,
+    calendarIconPosition,
+    placeholder,
+    showWeekNumbers,
+    highlightToday,
+    allowClear,
+    includeTime,
+    timeFormat,
+    timeLabel,
+    granularity,
+    timezone,
+    defaultToday,
+    minValue,
+    maxValue,
+    necessityIndicator,
+    labelPosition,
+    isQuiet,
+    hideTimeZone,
+    pageBehavior,
+    maxVisibleMonths,
+    form,
+    autoComplete,
+    validationBehavior,
+    locale,
+    calendarSystem,
+  } as DatePickerCanonicalProps);
+  const projectedSize = projectedProps.size as DatePickerRacProps["size"];
+  const projectedLabelPosition =
+    projectedProps.labelPosition as DatePickerRacProps["labelPosition"];
+  const projectedMaxVisibleMonths = projectedProps.maxVisibleMonths;
   // 타임존 설정 (명시하지 않으면 로컬 타임존 사용)
-  const effectiveTimezone = timezone || getLocalTimeZone();
+  const effectiveTimezone = projectedProps.timezone || getLocalTimeZone();
 
   // includeTime이 true일 때 granularity를 자동으로 설정
-  const effectiveGranularity = includeTime
+  const effectiveGranularity = projectedProps.includeTime
     ? granularity || "minute"
-    : granularity || "day";
+    : projectedProps.granularity;
 
   // 시간 granularity 사용 시 placeholderValue를 CalendarDateTime으로 설정
   // (CalendarDate는 시간 정보가 없어 React Aria에서 에러 발생)
@@ -147,81 +189,102 @@ export function DatePicker<T extends DateValue>({
 
   // minValue/maxValue 문자열 자동 파싱
   const parsedMinValue =
-    typeof minValue === "string" ? safeParseDateString(minValue) : minValue;
+    typeof projectedProps.minValue === "string"
+      ? safeParseDateString(projectedProps.minValue)
+      : minValue;
 
   const parsedMaxValue =
-    typeof maxValue === "string" ? safeParseDateString(maxValue) : maxValue;
+    typeof projectedProps.maxValue === "string"
+      ? safeParseDateString(projectedProps.maxValue)
+      : maxValue;
 
   // defaultValue 문자열 자동 파싱
   const parsedDefaultValue =
-    typeof props.defaultValue === "string"
-      ? safeParseDateString(props.defaultValue)
+    typeof projectedProps.defaultValue === "string"
+      ? safeParseDateString(projectedProps.defaultValue)
       : props.defaultValue;
 
   // defaultToday가 true이고 value가 없으면 오늘 날짜/시간 설정
   const defaultValue =
-    defaultToday && !props.value && !parsedDefaultValue
+    projectedProps.defaultToday && !props.value && !parsedDefaultValue
       ? ((isTimeGranularity
           ? now(effectiveTimezone)
           : today(effectiveTimezone)) as T)
       : (parsedDefaultValue as T | undefined);
 
   const datePickerClassName = composeRenderProps(
-    props.className,
+    projectedProps.className ?? props.className,
     (className) =>
       className
         ? `react-aria-DatePicker ${className}`
         : "react-aria-DatePicker",
   );
 
-  const effectiveLocale = calendarSystem
-    ? `${locale || navigator.language}-u-ca-${calendarSystem}`
-    : locale;
+  const effectiveLocale = projectedProps.calendarSystem
+    ? `${projectedProps.locale || navigator.language}-u-ca-${
+        projectedProps.calendarSystem
+      }`
+    : projectedProps.locale;
+  const renderedErrorMessage =
+    typeof errorMessage === "function"
+      ? errorMessage
+      : projectedProps.errorMessage;
 
   const component = (
     <AriaDatePicker
       {...props}
       className={datePickerClassName}
-      data-size={size}
-      data-label-position={labelPosition}
-      data-quiet={isQuiet ? "true" : undefined}
+      style={(projectedProps.style as CSSProperties | undefined) ?? props.style}
+      data-size={projectedSize}
+      data-label-position={projectedLabelPosition}
+      data-quiet={projectedProps.isQuiet ? "true" : undefined}
       granularity={effectiveGranularity}
       placeholderValue={placeholderValue}
       defaultValue={defaultValue}
       minValue={parsedMinValue as T | undefined}
       maxValue={parsedMaxValue as T | undefined}
-      hideTimeZone={hideTimeZone}
-      pageBehavior={pageBehavior}
-      form={form}
-      autoComplete={autoComplete}
-      validationBehavior={validationBehavior}
+      hideTimeZone={projectedProps.hideTimeZone}
+      pageBehavior={projectedProps.pageBehavior}
+      form={projectedProps.form}
+      autoComplete={projectedProps.autoComplete}
+      validationBehavior={projectedProps.validationBehavior}
+      isDisabled={projectedProps.isDisabled}
+      isReadOnly={projectedProps.isReadOnly}
+      isRequired={projectedProps.isRequired}
+      isInvalid={projectedProps.isInvalid}
+      autoFocus={projectedProps.autoFocus}
     >
-      {label && (
+      {projectedProps.label && (
         <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
+          {projectedProps.label}
+          {renderNecessityIndicator(
+            projectedProps.necessityIndicator,
+            projectedProps.isRequired,
+          )}
         </Label>
       )}
       <Group>
-        {showCalendarIcon && calendarIconPosition === "left" && (
-          <Button slot="prefix">📅</Button>
-        )}
+        {projectedProps.showCalendarIcon &&
+          projectedProps.calendarIconPosition === "left" && (
+            <Button slot="prefix">📅</Button>
+          )}
         <DateInput>
           {(segment) => (
             <DateSegment
               segment={segment}
               data-placeholder={
-                !segment.isPlaceholder ? undefined : placeholder
+                !segment.isPlaceholder ? undefined : projectedProps.placeholder
               }
             />
           )}
         </DateInput>
-        {showCalendarIcon && calendarIconPosition === "right" && (
-          <Button>
-            <CalendarIcon size={16} />
-          </Button>
-        )}
-        {allowClear && props.value && (
+        {projectedProps.showCalendarIcon &&
+          projectedProps.calendarIconPosition === "right" && (
+            <Button>
+              <CalendarIcon size={16} />
+            </Button>
+          )}
+        {projectedProps.allowClear && props.value && (
           <Button
             onPress={() => props.onChange?.(null)}
             aria-label="Clear date"
@@ -230,21 +293,23 @@ export function DatePicker<T extends DateValue>({
           </Button>
         )}
       </Group>
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {projectedProps.description && (
+        <Text slot="description">{projectedProps.description}</Text>
+      )}
+      <FieldError>{renderedErrorMessage}</FieldError>
       <Popover>
-        <Dialog data-size={size}>
+        <Dialog data-size={projectedSize}>
           <div className="date-picker-popup">
             <Calendar
-              data-size={size}
-              data-highlight-today={highlightToday}
-              data-show-week-numbers={showWeekNumbers}
+              data-size={projectedSize}
+              data-highlight-today={projectedProps.highlightToday}
+              data-show-week-numbers={projectedProps.showWeekNumbers}
               visibleDuration={
-                maxVisibleMonths && maxVisibleMonths > 1
-                  ? { months: maxVisibleMonths }
+                projectedMaxVisibleMonths > 1
+                  ? { months: projectedMaxVisibleMonths }
                   : undefined
               }
-              pageBehavior={pageBehavior}
+              pageBehavior={projectedProps.pageBehavior}
             >
               <header>
                 <Button slot="previous">
@@ -258,10 +323,7 @@ export function DatePicker<T extends DateValue>({
               <div style={{ display: "flex", gap: 8 }}>
                 {Array.from(
                   {
-                    length:
-                      maxVisibleMonths && maxVisibleMonths > 1
-                        ? maxVisibleMonths
-                        : 1,
+                    length: projectedMaxVisibleMonths,
                   },
                   (_, i) => (
                     <CalendarGrid
@@ -275,17 +337,17 @@ export function DatePicker<T extends DateValue>({
               </div>
             </Calendar>
 
-            {(includeTime || isTimeGranularity) && (
+            {(projectedProps.includeTime || isTimeGranularity) && (
               <div className="date-picker-time-section">
                 <div className="date-picker-time-field-wrapper">
                   <Label className="date-picker-time-field-label">
-                    {timeLabel}
+                    {projectedProps.timeLabel}
                   </Label>
                   <TimeField
                     granularity={
                       effectiveGranularity as "hour" | "minute" | "second"
                     }
-                    hourCycle={timeFormat === "12h" ? 12 : 24}
+                    hourCycle={projectedProps.timeFormat === "12h" ? 12 : 24}
                     className="react-aria-DatePicker-time-field"
                   >
                     <DateInput>

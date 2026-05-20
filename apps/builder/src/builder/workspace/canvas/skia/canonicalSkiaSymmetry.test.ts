@@ -17,6 +17,8 @@ import {
   ColorPickerSpec,
   ComboBoxSpec,
   DateFieldSpec,
+  DatePickerSpec,
+  DateRangePickerSpec,
   DialogSpec,
   DropZoneSpec,
   FileTriggerSpec,
@@ -1317,6 +1319,77 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectText(node)).toContain("May 2026");
     expect(
       node?.children?.some((child) => child.elementId?.endsWith(":range-band")),
+    ).toBe(true);
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved DatePicker through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(DatePickerSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "date-picker-1",
+        type: "DatePicker",
+        props: {
+          label: "Start date",
+          defaultValue: "2026-05-21",
+          size: "md",
+          showCalendarIcon: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["date-picker-1", { x: 12, y: 16, width: 240, height: 64 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("date-picker-1");
+    expect(collectText(node)).toContain("Start date");
+    expect(collectText(node)).toContain("2026-05-21");
+    expect(
+      node?.children?.some((child) =>
+        child.children?.some((nested) =>
+          nested.elementId?.endsWith(":calendar-icon"),
+        ),
+      ),
+    ).toBe(true);
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved DateRangePicker through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(DateRangePickerSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "date-range-picker-1",
+        type: "DateRangePicker",
+        props: {
+          label: "Booking range",
+          defaultStartValue: "2026-05-21",
+          defaultEndValue: "2026-05-27",
+          size: "md",
+          showCalendarIcon: true,
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["date-range-picker-1", { x: 12, y: 16, width: 280, height: 64 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("date-range-picker-1");
+    expect(collectText(node)).toContain("Booking range");
+    expect(collectText(node)).toContain("2026-05-21 - 2026-05-27");
+    expect(
+      node?.children?.some((child) =>
+        child.children?.some((nested) =>
+          nested.elementId?.endsWith(":calendar-icon"),
+        ),
+      ),
     ).toBe(true);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();

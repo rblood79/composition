@@ -82,8 +82,8 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 | `CommandPalette`    | composed     | overlays           | `CommandPalette.css`              | Autocomplete + Menu + Dialog 조합                |
 | `Content`           | helper       | primitives/actions | `Content.css`                     | Heading/Text wrapper surface                     |
 | `DateField`         | primitive    | fields             | `DateField.css`                   | DateInput/DateSegment subpart 포함               |
-| `DatePicker`        | primitive    | date-color         | `DatePicker.css`                  | popover/calendar composition 포함                |
-| `DateRangePicker`   | primitive    | date-color         | `DateRangePicker.css`             | range calendar composition 포함                  |
+| `DatePicker`        | primitive    | date-color         | `DatePicker.css`                  | active `skiaPrimitive` pilot                     |
+| `DateRangePicker`   | primitive    | date-color         | `DateRangePicker.css`             | active `skiaPrimitive` pilot                     |
 | `Dialog`            | primitive    | overlays           | `Dialog.css`                      | DialogTrigger/Heading export 포함                |
 | `Disclosure`        | primitive    | collections        | `Disclosure.css`                  | header/panel subpart 포함                        |
 | `DisclosureGroup`   | primitive    | collections        | `DisclosureGroup.css`             | disclosure collection                            |
@@ -474,6 +474,15 @@ fixture 로 고정했다. RangeCalendar date/color primitive pilot 은
 shared `RangeCalendar.tsx` projection / Preview RangeCalendar primitive branch /
 generic Skia range-band fixture 를 추가했다. RangeCalendar 는
 `RangeCalendarSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로
+고정했다. DatePicker date/color primitive pilot 은 `toDatePickerRacProps()` /
+`datePickerPrimitiveBinding` / active catalog entry / shared `DatePicker.tsx`
+projection / Preview DatePicker primitive branch / generic Skia label-input-icon
+fixture 를 추가했다. DatePicker 는 `DatePickerSpec.render.shapes()` 를 호출하지
+않는 generic Skia fixture 로 고정했다. DateRangePicker date/color primitive pilot 은 `toDateRangePickerRacProps()` /
+`dateRangePickerPrimitiveBinding` / active catalog entry / shared
+`DateRangePicker.tsx` projection / Preview DateRangePicker primitive branch /
+generic Skia label-input-icon fixture 를 추가했다. DateRangePicker 는
+`DateRangePickerSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로
 고정했다. date/color family 는
-ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar 까지
-진행했다.
+ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/
+DatePicker/DateRangePicker 까지 진행했다.

@@ -13,6 +13,8 @@ import { colorWheelPrimitiveBinding } from "../primitives/colorWheel";
 import { colorPickerPrimitiveBinding } from "../primitives/colorPicker";
 import { comboBoxPrimitiveBinding } from "../primitives/comboBox";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
+import { datePickerPrimitiveBinding } from "../primitives/datePicker";
+import { dateRangePickerPrimitiveBinding } from "../primitives/dateRangePicker";
 import { dialogPrimitiveBinding } from "../primitives/dialog";
 import { dropZonePrimitiveBinding } from "../primitives/dropZone";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
@@ -429,6 +431,63 @@ describe("ADR-142 component catalog", () => {
       maxVisibleMonths: 1,
       defaultStartValue: "2026-05-10",
       defaultEndValue: "2026-05-16",
+      isDisabled: false,
+      isReadOnly: false,
+      isInvalid: false,
+    });
+  });
+
+  it("registers DatePicker as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("DatePicker");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(datePickerPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("DatePicker");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("date-picker");
+    expect(entry.panel.category).toBe("dateTime");
+    expect(entry.panel.label).toBe("date picker");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      label: "Date",
+      defaultValue: "2026-05-21",
+      size: "md",
+      granularity: "day",
+      showCalendarIcon: true,
+      calendarIconPosition: "right",
+      maxVisibleMonths: 1,
+      isDisabled: false,
+      isReadOnly: false,
+      isInvalid: false,
+    });
+  });
+
+  it("registers DateRangePicker as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("DateRangePicker");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(dateRangePickerPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("DateRangePicker");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("date-range-picker");
+    expect(entry.panel.category).toBe("dateTime");
+    expect(entry.panel.label).toBe("date range picker");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      label: "Date range",
+      defaultStartValue: "2026-05-21",
+      defaultEndValue: "2026-05-27",
+      size: "md",
+      granularity: "day",
+      showCalendarIcon: true,
+      calendarIconPosition: "right",
+      maxVisibleMonths: 1,
       isDisabled: false,
       isReadOnly: false,
       isInvalid: false,

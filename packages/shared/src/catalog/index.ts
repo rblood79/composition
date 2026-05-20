@@ -15,6 +15,8 @@ export * from "./primitives/colorSwatch";
 export * from "./primitives/colorWheel";
 export * from "./primitives/comboBox";
 export * from "./primitives/dateField";
+export * from "./primitives/datePicker";
+export * from "./primitives/dateRangePicker";
 export * from "./primitives/dialog";
 export * from "./primitives/dropZone";
 export * from "./primitives/fileTrigger";

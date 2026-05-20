@@ -32,6 +32,8 @@ import {
   toColorWheelRacProps,
   toComboBoxRacProps,
   toDateFieldRacProps,
+  toDatePickerRacProps,
+  toDateRangePickerRacProps,
   toDialogRacProps,
   toDropZoneRacProps,
   toGridListRacProps,
@@ -71,6 +73,8 @@ import {
   type ComboBoxItemDescriptor,
   type ComboBoxRacProps,
   type DateFieldRacProps,
+  type DatePickerRacProps,
+  type DateRangePickerRacProps,
   type DialogRacProps,
   type DropZoneRacProps,
   type GridListEntryDescriptor,
@@ -900,6 +904,12 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "date-field") {
     return buildGenericDateFieldNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "date-picker") {
+    return buildGenericDatePickerNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "date-range-picker") {
+    return buildGenericDateRangePickerNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "calendar") {
     return buildGenericCalendarNode(input.node, layout, input.theme);
@@ -1739,6 +1749,318 @@ function buildGenericDateFieldNode(
           textOverflow: "ellipsis",
         },
       },
+    ],
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(
+          typeof style.backgroundColor === "string"
+            ? style.backgroundColor
+            : "transparent",
+        ),
+        0,
+      ),
+      borderRadius: readNumber(style.borderRadius, 0),
+    },
+    children,
+  };
+}
+
+function buildGenericDatePickerNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toDatePickerRacProps(node.props ?? {}) as DatePickerRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericTextFieldSize(props.size);
+  const isDark = theme === "dark";
+  const labelColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#e5e7eb" : "#374151"),
+    1,
+  );
+  const inputTextColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#f9fafb" : "#111827"),
+    1,
+  );
+  const strokeColor = colorIntToFloat32(
+    cssColorToHex(props.isInvalid ? "#dc2626" : isDark ? "#6b7280" : "#d1d5db"),
+    1,
+  );
+  const iconColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#9ca3af" : "#6b7280"),
+    1,
+  );
+  const inputY = props.label ? size.labelHeight + size.gap : 0;
+  const inputHeight = Math.max(layout.height - inputY, size.inputHeight);
+  const valueText =
+    props.value ?? props.defaultValue ?? props.placeholder ?? "";
+  const children: SkiaNodeData[] = [];
+  const iconSize = Math.max(size.inputFontSize, 14);
+  const calendarIcon = props.showCalendarIcon ? getIconData("calendar") : null;
+  const iconSlotWidth = calendarIcon ? iconSize + size.gap : 0;
+
+  if (props.label) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:label`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: size.labelHeight,
+      visible: true,
+      text: {
+        content: props.label,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.labelFontSize,
+        fontWeight: 500,
+        color: labelColor,
+        align: "left",
+        lineHeight: size.labelLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: layout.width,
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+      },
+    });
+  }
+
+  children.push({
+    type: "container",
+    elementId: `${node.id}:input`,
+    x: 0,
+    y: inputY,
+    width: layout.width,
+    height: inputHeight,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(isDark ? "#111827" : "#ffffff"),
+        props.isQuiet ? 0 : 1,
+      ),
+      borderRadius: readNumber(style.borderRadius, 6),
+      strokeColor,
+      strokeWidth: props.isQuiet ? 0 : 1,
+    },
+    children: [
+      {
+        type: "text",
+        elementId: `${node.id}:value`,
+        x: 0,
+        y: 0,
+        width: layout.width,
+        height: inputHeight,
+        visible: true,
+        text: {
+          content: valueText,
+          fontFamilies: [fontFamily.sans],
+          fontSize: size.inputFontSize,
+          color:
+            props.value || props.defaultValue ? inputTextColor : labelColor,
+          align: "left",
+          lineHeight: size.inputLineHeight,
+          paddingLeft: size.paddingX,
+          paddingTop: 0,
+          maxWidth: Math.max(
+            layout.width - size.paddingX * 2 - iconSlotWidth,
+            0,
+          ),
+          verticalAlign: "middle",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        },
+      },
+      ...(calendarIcon
+        ? [
+            {
+              type: "icon_path" as const,
+              elementId: `${node.id}:calendar-icon`,
+              x: Math.max(layout.width - size.paddingX - iconSize, 0),
+              y: Math.max((inputHeight - iconSize) / 2, 0),
+              width: iconSize,
+              height: iconSize,
+              visible: true,
+              iconPath: {
+                paths: calendarIcon.paths,
+                circles: calendarIcon.circles,
+                cx: iconSize / 2,
+                cy: iconSize / 2,
+                size: iconSize,
+                strokeColor: iconColor,
+                strokeWidth: 2,
+              },
+            },
+          ]
+        : []),
+    ],
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(
+          typeof style.backgroundColor === "string"
+            ? style.backgroundColor
+            : "transparent",
+        ),
+        0,
+      ),
+      borderRadius: readNumber(style.borderRadius, 0),
+    },
+    children,
+  };
+}
+
+function buildGenericDateRangePickerNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toDateRangePickerRacProps(
+    node.props ?? {},
+  ) as DateRangePickerRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericTextFieldSize(props.size);
+  const isDark = theme === "dark";
+  const labelColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#e5e7eb" : "#374151"),
+    1,
+  );
+  const inputTextColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#f9fafb" : "#111827"),
+    1,
+  );
+  const strokeColor = colorIntToFloat32(
+    cssColorToHex(props.isInvalid ? "#dc2626" : isDark ? "#6b7280" : "#d1d5db"),
+    1,
+  );
+  const iconColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#9ca3af" : "#6b7280"),
+    1,
+  );
+  const inputY = props.label ? size.labelHeight + size.gap : 0;
+  const inputHeight = Math.max(layout.height - inputY, size.inputHeight);
+  const rangeText =
+    props.defaultStartValue && props.defaultEndValue
+      ? `${props.defaultStartValue} - ${props.defaultEndValue}`
+      : (props.placeholder ?? "");
+  const children: SkiaNodeData[] = [];
+  const iconSize = Math.max(size.inputFontSize, 14);
+  const calendarIcon = props.showCalendarIcon ? getIconData("calendar") : null;
+  const iconSlotWidth = calendarIcon ? iconSize + size.gap : 0;
+
+  if (props.label) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:label`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: size.labelHeight,
+      visible: true,
+      text: {
+        content: props.label,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.labelFontSize,
+        fontWeight: 500,
+        color: labelColor,
+        align: "left",
+        lineHeight: size.labelLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: layout.width,
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+      },
+    });
+  }
+
+  children.push({
+    type: "container",
+    elementId: `${node.id}:input`,
+    x: 0,
+    y: inputY,
+    width: layout.width,
+    height: inputHeight,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(isDark ? "#111827" : "#ffffff"),
+        props.isQuiet ? 0 : 1,
+      ),
+      borderRadius: readNumber(style.borderRadius, 6),
+      strokeColor,
+      strokeWidth: props.isQuiet ? 0 : 1,
+    },
+    children: [
+      {
+        type: "text",
+        elementId: `${node.id}:value`,
+        x: 0,
+        y: 0,
+        width: layout.width,
+        height: inputHeight,
+        visible: true,
+        text: {
+          content: rangeText,
+          fontFamilies: [fontFamily.sans],
+          fontSize: size.inputFontSize,
+          color:
+            props.defaultStartValue && props.defaultEndValue
+              ? inputTextColor
+              : labelColor,
+          align: "left",
+          lineHeight: size.inputLineHeight,
+          paddingLeft: size.paddingX,
+          paddingTop: 0,
+          maxWidth: Math.max(
+            layout.width - size.paddingX * 2 - iconSlotWidth,
+            0,
+          ),
+          verticalAlign: "middle",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        },
+      },
+      ...(calendarIcon
+        ? [
+            {
+              type: "icon_path" as const,
+              elementId: `${node.id}:calendar-icon`,
+              x: Math.max(layout.width - size.paddingX - iconSize, 0),
+              y: Math.max((inputHeight - iconSize) / 2, 0),
+              width: iconSize,
+              height: iconSize,
+              visible: true,
+              iconPath: {
+                paths: calendarIcon.paths,
+                circles: calendarIcon.circles,
+                cx: iconSize / 2,
+                cy: iconSize / 2,
+                size: iconSize,
+                strokeColor: iconColor,
+                strokeWidth: 2,
+              },
+            },
+          ]
+        : []),
     ],
   });
 

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — DateRangePicker date-color primitive catalog pilot] - 2026-05-21
+
+### Architecture
+
+- **DateRangePicker active primitive binding 추가**:
+  - `componentCatalog` 에 `DateRangePicker` 를 `cutover:"catalog"` active `date-color` primitive 로 등록했다.
+  - canonical label/start/end/size/granularity/calendar icon/date range state props 를 RAC DateRangePicker surface 로 투영하는 `toDateRangePickerRacProps()` 와 `dateRangePickerPrimitiveBinding` 을 추가했다.
+  - `DateRangePicker.tsx` shared wrapper 가 catalog projection 을 소비하고 `data-size`/`data-label-position`/`data-quiet` 상태를 active preview 경로에 반영한다.
+- **DateRangePicker Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 DateRangePicker resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 는 label/input/date range text/calendar icon 을 생성하고 `DateRangePickerSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/catalog/__tests__/componentCatalog.test.ts src/components/__tests__/buttonPrimitiveWrapper.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/useElementCreator.catalog.test.ts src/preview/components/CanonicalNodeRenderer.adr142.test.tsx src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`
+
+### Documentation
+
+- date/color family pilot 은 ColorSwatch, ColorSlider, ColorArea, ColorWheel, ColorPicker, Calendar, RangeCalendar, DatePicker, DateRangePicker 까지 진행했다.
+
+## [ADR-142 Phase 3/5/6 — DatePicker date-color primitive catalog pilot] - 2026-05-21
+
+### Architecture
+
+- **DatePicker active primitive binding 추가**:
+  - `componentCatalog` 에 `DatePicker` 를 `cutover:"catalog"` active `date-color` primitive 로 등록했다.
+  - canonical label/defaultValue/size/granularity/calendar icon/date state props 를 RAC DatePicker surface 로 투영하는 `toDatePickerRacProps()` 와 `datePickerPrimitiveBinding` 을 추가했다.
+  - `DatePicker.tsx` shared wrapper 가 catalog projection 을 소비하고 `data-size`/`data-label-position`/`data-quiet` 상태를 active preview 경로에 반영한다.
+- **DatePicker Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 DatePicker resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 는 label/input/date text/calendar icon 을 생성하고 `DatePickerSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Verification
+
+- `pnpm -F @composition/shared exec vitest run src/catalog/__tests__/componentCatalog.test.ts src/components/__tests__/buttonPrimitiveWrapper.static.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/hooks/useElementCreator.catalog.test.ts src/preview/components/CanonicalNodeRenderer.adr142.test.tsx src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`
+
+### Documentation
+
+- date/color family pilot 은 ColorSwatch, ColorSlider, ColorArea, ColorWheel, ColorPicker, Calendar, RangeCalendar, DatePicker 까지 진행했고, DateRangePicker 는 같은 작업 묶음에서 이어서 진행했다.
+
 ## [ADR-142 Phase 3/5/6 — RangeCalendar date-color primitive catalog pilot] - 2026-05-21
 
 ### Architecture

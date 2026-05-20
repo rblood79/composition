@@ -473,7 +473,13 @@ export interface DatePickerElementProps extends BaseElementProps {
   description?: string;
   errorMessage?: string;
   value?: Date;
-  defaultValue?: Date;
+  defaultValue?: Date | string;
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  labelPosition?: "top" | "side";
+  showCalendarIcon?: boolean;
+  calendarIconPosition?: "left" | "right";
+  includeTime?: boolean;
+  timeFormat?: "12h" | "24h";
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isRequired?: boolean;
@@ -493,6 +499,7 @@ export interface DatePickerElementProps extends BaseElementProps {
   timezone?: string;
 
   pageBehavior?: "single" | "visible";
+  maxVisibleMonths?: number;
   shouldCloseOnSelect?: boolean;
   shouldForceLeadingZeros?: boolean;
   validationBehavior?: "native" | "aria";
@@ -505,6 +512,15 @@ export interface DateRangePickerElementProps extends BaseElementProps {
   errorMessage?: string;
   value?: { start: Date; end: Date };
   defaultValue?: { start: Date; end: Date };
+  defaultStartValue?: string;
+  defaultEndValue?: string;
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  labelPosition?: "top" | "side";
+  granularity?: "day" | "hour" | "minute" | "second";
+  showCalendarIcon?: boolean;
+  calendarIconPosition?: "left" | "right";
+  includeTime?: boolean;
+  timeFormat?: "12h" | "24h";
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isRequired?: boolean;
@@ -517,6 +533,7 @@ export interface DateRangePickerElementProps extends BaseElementProps {
 
   highlightToday?: boolean;
   showWeekNumbers?: boolean;
+  maxVisibleMonths?: number;
   timezone?: string;
   onChange?: (value: { start: Date; end: Date }) => void;
 }
@@ -1554,6 +1571,17 @@ export function createDefaultCalendarGridProps(): BaseElementProps {
 
 export function createDefaultDatePickerProps(): DatePickerElementProps {
   return {
+    label: "Date",
+    defaultValue: "2026-05-21",
+    size: "md",
+    labelPosition: "top",
+    granularity: "day",
+    showCalendarIcon: true,
+    calendarIconPosition: "right",
+    maxVisibleMonths: 1,
+    includeTime: false,
+    timeFormat: "24h",
+    defaultToday: false,
     name: "",
     isDisabled: false,
     isReadOnly: false,
@@ -1563,6 +1591,18 @@ export function createDefaultDatePickerProps(): DatePickerElementProps {
 
 export function createDefaultDateRangePickerProps(): DateRangePickerElementProps {
   return {
+    label: "Date range",
+    defaultStartValue: "2026-05-21",
+    defaultEndValue: "2026-05-27",
+    size: "md",
+    labelPosition: "top",
+    granularity: "day",
+    showCalendarIcon: true,
+    calendarIconPosition: "right",
+    maxVisibleMonths: 1,
+    includeTime: false,
+    timeFormat: "24h",
+    defaultToday: false,
     isDisabled: false,
     isReadOnly: false,
     isInvalid: false,

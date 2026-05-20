@@ -78,6 +78,11 @@ export const DATE_FIELD_GRANULARITY_VALUES = [
   "second",
 ] as const;
 export const DATE_FIELD_HOUR_CYCLE_VALUES = ["12", "24"] as const;
+export const DATE_PICKER_CALENDAR_ICON_POSITION_VALUES = [
+  "left",
+  "right",
+] as const;
+export const DATE_PICKER_TIME_FORMAT_VALUES = ["12h", "24h"] as const;
 export const TIME_FIELD_GRANULARITY_VALUES = [
   "hour",
   "minute",
@@ -389,6 +394,12 @@ const SEARCH_FIELD_ENTER_KEY_HINTS = new Set<string>(
 );
 const DATE_FIELD_GRANULARITIES = new Set<string>(DATE_FIELD_GRANULARITY_VALUES);
 const DATE_FIELD_HOUR_CYCLES = new Set<string>(DATE_FIELD_HOUR_CYCLE_VALUES);
+const DATE_PICKER_CALENDAR_ICON_POSITIONS = new Set<string>(
+  DATE_PICKER_CALENDAR_ICON_POSITION_VALUES,
+);
+const DATE_PICKER_TIME_FORMATS = new Set<string>(
+  DATE_PICKER_TIME_FORMAT_VALUES,
+);
 const TIME_FIELD_GRANULARITIES = new Set<string>(TIME_FIELD_GRANULARITY_VALUES);
 const TIME_FIELD_HOUR_CYCLES = new Set<string>(TIME_FIELD_HOUR_CYCLE_VALUES);
 const COLOR_FIELD_CHANNELS = new Set<string>(COLOR_FIELD_CHANNEL_VALUES);
@@ -888,6 +899,141 @@ export interface DateFieldRacProps extends Record<string, unknown> {
   isInvalid?: boolean;
   hideTimeZone?: boolean;
   shouldForceLeadingZeros?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface DatePickerCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  placeholder?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  isQuiet?: unknown;
+  showCalendarIcon?: unknown;
+  calendarIconPosition?: unknown;
+  showWeekNumbers?: unknown;
+  highlightToday?: unknown;
+  allowClear?: unknown;
+  includeTime?: unknown;
+  timeFormat?: unknown;
+  timeLabel?: unknown;
+  granularity?: unknown;
+  timezone?: unknown;
+  defaultToday?: unknown;
+  minValue?: unknown;
+  maxValue?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  autoFocus?: unknown;
+  hideTimeZone?: unknown;
+  pageBehavior?: unknown;
+  maxVisibleMonths?: unknown;
+  form?: unknown;
+  autoComplete?: unknown;
+  validationBehavior?: unknown;
+  locale?: unknown;
+  calendarSystem?: unknown;
+  calendar?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface DatePickerRacProps extends Record<string, unknown> {
+  label?: string;
+  defaultValue?: string;
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  isQuiet: boolean;
+  showCalendarIcon: boolean;
+  calendarIconPosition: (typeof DATE_PICKER_CALENDAR_ICON_POSITION_VALUES)[number];
+  showWeekNumbers: boolean;
+  highlightToday: boolean;
+  allowClear: boolean;
+  includeTime: boolean;
+  timeFormat: (typeof DATE_PICKER_TIME_FORMAT_VALUES)[number];
+  timeLabel: string;
+  granularity: (typeof DATE_FIELD_GRANULARITY_VALUES)[number];
+  defaultToday: boolean;
+  pageBehavior: (typeof CALENDAR_PAGE_BEHAVIOR_VALUES)[number];
+  maxVisibleMonths: number;
+  validationBehavior: (typeof FORM_VALIDATION_BEHAVIOR_VALUES)[number];
+  value?: string;
+  placeholder?: string;
+  description?: string;
+  errorMessage?: string;
+  timezone?: string;
+  minValue?: string;
+  maxValue?: string;
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  autoFocus?: boolean;
+  hideTimeZone?: boolean;
+  form?: string;
+  autoComplete?: string;
+  locale?: string;
+  calendarSystem?: (typeof DATE_FIELD_CALENDAR_VALUES)[number];
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface DateRangePickerCanonicalProps extends DatePickerCanonicalProps {
+  defaultStartValue?: unknown;
+  defaultEndValue?: unknown;
+  startName?: unknown;
+  endName?: unknown;
+  startTimeLabel?: unknown;
+  endTimeLabel?: unknown;
+}
+
+export interface DateRangePickerRacProps extends Record<string, unknown> {
+  label?: string;
+  defaultStartValue?: string;
+  defaultEndValue?: string;
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  isQuiet: boolean;
+  showCalendarIcon: boolean;
+  calendarIconPosition: (typeof DATE_PICKER_CALENDAR_ICON_POSITION_VALUES)[number];
+  showWeekNumbers: boolean;
+  highlightToday: boolean;
+  allowClear: boolean;
+  includeTime: boolean;
+  timeFormat: (typeof DATE_PICKER_TIME_FORMAT_VALUES)[number];
+  startTimeLabel: string;
+  endTimeLabel: string;
+  granularity: (typeof DATE_FIELD_GRANULARITY_VALUES)[number];
+  defaultToday: boolean;
+  pageBehavior: (typeof CALENDAR_PAGE_BEHAVIOR_VALUES)[number];
+  maxVisibleMonths: number;
+  validationBehavior: (typeof FORM_VALIDATION_BEHAVIOR_VALUES)[number];
+  placeholder?: string;
+  description?: string;
+  errorMessage?: string;
+  timezone?: string;
+  minValue?: string;
+  maxValue?: string;
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  autoFocus?: boolean;
+  hideTimeZone?: boolean;
+  startName?: string;
+  endName?: string;
+  form?: string;
+  locale?: string;
+  calendarSystem?: (typeof DATE_FIELD_CALENDAR_VALUES)[number];
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -2643,6 +2789,210 @@ export function toDateFieldRacProps(
   };
 }
 
+export function toDatePickerRacProps(
+  props: DatePickerCanonicalProps,
+): DatePickerRacProps {
+  return {
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    showCalendarIcon: props.showCalendarIcon !== false,
+    calendarIconPosition: normalizeDatePickerCalendarIconPosition(
+      props.calendarIconPosition,
+    ),
+    showWeekNumbers: props.showWeekNumbers === true,
+    highlightToday: props.highlightToday !== false,
+    allowClear: props.allowClear === true,
+    includeTime: props.includeTime === true,
+    timeFormat: normalizeDatePickerTimeFormat(props.timeFormat),
+    timeLabel: readString(props.timeLabel, "Time"),
+    granularity: normalizeDateFieldGranularity(props.granularity),
+    defaultToday: props.defaultToday === true,
+    pageBehavior: normalizeCalendarPageBehavior(props.pageBehavior),
+    maxVisibleMonths: normalizeCalendarMaxVisibleMonths(props.maxVisibleMonths),
+    validationBehavior: normalizeFormValidationBehavior(
+      props.validationBehavior,
+    ),
+    ...(typeof props.value === "string" && props.value.length > 0
+      ? { value: props.value }
+      : {}),
+    ...(typeof props.label === "string" && props.label.length > 0
+      ? { label: props.label }
+      : {}),
+    ...(typeof props.defaultValue === "string" && props.defaultValue.length > 0
+      ? { defaultValue: props.defaultValue }
+      : {}),
+    ...(typeof props.placeholder === "string"
+      ? { placeholder: props.placeholder }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.timezone === "string" && props.timezone.length > 0
+      ? { timezone: props.timezone }
+      : {}),
+    ...(typeof props.minValue === "string" && props.minValue.length > 0
+      ? { minValue: props.minValue }
+      : {}),
+    ...(typeof props.maxValue === "string" && props.maxValue.length > 0
+      ? { maxValue: props.maxValue }
+      : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.autoFocus === "boolean"
+      ? { autoFocus: props.autoFocus }
+      : {}),
+    ...(typeof props.hideTimeZone === "boolean"
+      ? { hideTimeZone: props.hideTimeZone }
+      : {}),
+    ...(typeof props.form === "string" && props.form.length > 0
+      ? { form: props.form }
+      : {}),
+    ...(typeof props.autoComplete === "string" && props.autoComplete.length > 0
+      ? { autoComplete: props.autoComplete }
+      : {}),
+    ...(typeof props.locale === "string" && props.locale.length > 0
+      ? { locale: props.locale }
+      : {}),
+    ...(normalizeDateFieldCalendar(props.calendarSystem ?? props.calendar)
+      ? {
+          calendarSystem: normalizeDateFieldCalendar(
+            props.calendarSystem ?? props.calendar,
+          ),
+        }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
+export function toDateRangePickerRacProps(
+  props: DateRangePickerCanonicalProps,
+): DateRangePickerRacProps {
+  return {
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    showCalendarIcon: props.showCalendarIcon !== false,
+    calendarIconPosition: normalizeDatePickerCalendarIconPosition(
+      props.calendarIconPosition,
+    ),
+    showWeekNumbers: props.showWeekNumbers === true,
+    highlightToday: props.highlightToday !== false,
+    allowClear: props.allowClear === true,
+    includeTime: props.includeTime === true,
+    timeFormat: normalizeDatePickerTimeFormat(props.timeFormat),
+    startTimeLabel: readString(props.startTimeLabel, "Start time"),
+    endTimeLabel: readString(props.endTimeLabel, "End time"),
+    granularity: normalizeDateFieldGranularity(props.granularity),
+    defaultToday: props.defaultToday === true,
+    pageBehavior: normalizeCalendarPageBehavior(props.pageBehavior),
+    maxVisibleMonths: normalizeCalendarMaxVisibleMonths(props.maxVisibleMonths),
+    validationBehavior: normalizeFormValidationBehavior(
+      props.validationBehavior,
+    ),
+    ...(typeof props.label === "string" && props.label.length > 0
+      ? { label: props.label }
+      : {}),
+    ...(typeof props.defaultStartValue === "string" &&
+    props.defaultStartValue.length > 0
+      ? { defaultStartValue: props.defaultStartValue }
+      : {}),
+    ...(typeof props.defaultEndValue === "string" &&
+    props.defaultEndValue.length > 0
+      ? { defaultEndValue: props.defaultEndValue }
+      : {}),
+    ...(typeof props.placeholder === "string"
+      ? { placeholder: props.placeholder }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.timezone === "string" && props.timezone.length > 0
+      ? { timezone: props.timezone }
+      : {}),
+    ...(typeof props.minValue === "string" && props.minValue.length > 0
+      ? { minValue: props.minValue }
+      : {}),
+    ...(typeof props.maxValue === "string" && props.maxValue.length > 0
+      ? { maxValue: props.maxValue }
+      : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.autoFocus === "boolean"
+      ? { autoFocus: props.autoFocus }
+      : {}),
+    ...(typeof props.hideTimeZone === "boolean"
+      ? { hideTimeZone: props.hideTimeZone }
+      : {}),
+    ...(typeof props.startName === "string" && props.startName.length > 0
+      ? { startName: props.startName }
+      : {}),
+    ...(typeof props.endName === "string" && props.endName.length > 0
+      ? { endName: props.endName }
+      : {}),
+    ...(typeof props.form === "string" && props.form.length > 0
+      ? { form: props.form }
+      : {}),
+    ...(typeof props.locale === "string" && props.locale.length > 0
+      ? { locale: props.locale }
+      : {}),
+    ...(normalizeDateFieldCalendar(props.calendarSystem ?? props.calendar)
+      ? {
+          calendarSystem: normalizeDateFieldCalendar(
+            props.calendarSystem ?? props.calendar,
+          ),
+        }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toTimeFieldRacProps(
   props: TimeFieldCanonicalProps,
 ): TimeFieldRacProps {
@@ -4174,6 +4524,23 @@ function normalizeDateFieldHourCycle(value: unknown): 12 | 24 {
     return 24;
   }
   return 24;
+}
+
+function normalizeDatePickerCalendarIconPosition(
+  value: unknown,
+): (typeof DATE_PICKER_CALENDAR_ICON_POSITION_VALUES)[number] {
+  return typeof value === "string" &&
+    DATE_PICKER_CALENDAR_ICON_POSITIONS.has(value)
+    ? (value as (typeof DATE_PICKER_CALENDAR_ICON_POSITION_VALUES)[number])
+    : "right";
+}
+
+function normalizeDatePickerTimeFormat(
+  value: unknown,
+): (typeof DATE_PICKER_TIME_FORMAT_VALUES)[number] {
+  return typeof value === "string" && DATE_PICKER_TIME_FORMATS.has(value)
+    ? (value as (typeof DATE_PICKER_TIME_FORMAT_VALUES)[number])
+    : "24h";
 }
 
 function normalizeTimeFieldHourCycle(value: unknown): 12 | 24 {

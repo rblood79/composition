@@ -39,6 +39,8 @@ export interface PrimitiveSkiaDescriptor {
     | "color-wheel"
     | "combo-box"
     | "date-field"
+    | "date-picker"
+    | "date-range-picker"
     | "dialog"
     | "drop-zone"
     | "grid-list"
