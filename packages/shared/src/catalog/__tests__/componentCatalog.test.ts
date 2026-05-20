@@ -23,6 +23,7 @@ import { menuPrimitiveBinding } from "../primitives/menu";
 import { modalPrimitiveBinding } from "../primitives/modal";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { popoverPrimitiveBinding } from "../primitives/popover";
+import { rangeCalendarPrimitiveBinding } from "../primitives/rangeCalendar";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { selectPrimitiveBinding } from "../primitives/select";
 import { sliderPrimitiveBinding } from "../primitives/slider";
@@ -402,6 +403,32 @@ describe("ADR-142 component catalog", () => {
       size: "md",
       maxVisibleMonths: 1,
       defaultToday: true,
+      isDisabled: false,
+      isReadOnly: false,
+      isInvalid: false,
+    });
+  });
+
+  it("registers RangeCalendar as an active date-color primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("RangeCalendar");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(rangeCalendarPrimitiveBinding);
+    expect(entry.family).toBe("date-color");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("RangeCalendar");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("range-calendar");
+    expect(entry.panel.category).toBe("dateTime");
+    expect(entry.panel.label).toBe("range calendar");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps).toMatchObject({
+      variant: "default",
+      size: "md",
+      maxVisibleMonths: 1,
+      defaultStartValue: "2026-05-10",
+      defaultEndValue: "2026-05-16",
       isDisabled: false,
       isReadOnly: false,
       isInvalid: false,

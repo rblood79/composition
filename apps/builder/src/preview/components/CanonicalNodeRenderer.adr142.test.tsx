@@ -39,6 +39,7 @@ const {
   legacyPopoverRenderer,
   legacyRadioRenderer,
   legacyRadioGroupRenderer,
+  legacyRangeCalendarRenderer,
   legacySearchFieldRenderer,
   legacySelectRenderer,
   legacySeparatorRenderer,
@@ -136,6 +137,9 @@ const {
   legacyRadioGroupRenderer: vi.fn(() => (
     <div data-legacy-renderer="RadioGroup">legacy</div>
   )),
+  legacyRangeCalendarRenderer: vi.fn(() => (
+    <div data-legacy-renderer="RangeCalendar">legacy</div>
+  )),
   legacySearchFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="SearchField">legacy</div>
   )),
@@ -218,6 +222,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Popover: legacyPopoverRenderer,
     Radio: legacyRadioRenderer,
     RadioGroup: legacyRadioGroupRenderer,
+    RangeCalendar: legacyRangeCalendarRenderer,
     SearchField: legacySearchFieldRenderer,
     Select: legacySelectRenderer,
     Separator: legacySeparatorRenderer,
@@ -281,6 +286,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyPopoverRenderer.mockClear();
     legacyRadioRenderer.mockClear();
     legacyRadioGroupRenderer.mockClear();
+    legacyRangeCalendarRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
     legacySelectRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
@@ -352,6 +358,35 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect((calendar as HTMLElement).dataset.size).toBe("lg");
     expect((calendar as HTMLElement).dataset.maxVisibleMonths).toBe("2");
     expect(legacyCalendarRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders RangeCalendar through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "range-calendar-1",
+      type: "RangeCalendar",
+      props: {
+        "aria-label": "Booking range",
+        variant: "accent",
+        size: "lg",
+        maxVisibleMonths: 2,
+        defaultStartValue: "2026-05-10",
+        defaultEndValue: "2026-05-16",
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const calendar = container.querySelector(
+      "[data-canonical-id='range-calendar-1']",
+    );
+    expect(calendar).not.toBeNull();
+    expect(calendar?.className).toContain("react-aria-RangeCalendar");
+    expect((calendar as HTMLElement).dataset.variant).toBe("accent");
+    expect((calendar as HTMLElement).dataset.size).toBe("lg");
+    expect((calendar as HTMLElement).dataset.maxVisibleMonths).toBe("2");
+    expect(legacyRangeCalendarRenderer).not.toHaveBeenCalled();
   });
 
   it("renders a resolved reusable Button ref through the same primitive branch", () => {

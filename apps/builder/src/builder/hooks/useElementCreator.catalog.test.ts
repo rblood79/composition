@@ -289,6 +289,25 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog RangeCalendar placement with primitive default props", () => {
+    const creation = resolveCatalogElementCreation("RangeCalendar");
+
+    expect(creation).toMatchObject({
+      elementType: "RangeCalendar",
+      props: {
+        variant: "default",
+        size: "md",
+        maxVisibleMonths: 1,
+        defaultStartValue: "2026-05-10",
+        defaultEndValue: "2026-05-16",
+        isDisabled: false,
+        isReadOnly: false,
+        isInvalid: false,
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes catalog FileTrigger placement with a trigger child template", () => {
     const creation = resolveCatalogElementCreation("FileTrigger");
 

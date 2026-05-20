@@ -48,6 +48,7 @@ import {
   type PopoverRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
+  type RangeCalendarRacProps,
   type SearchFieldRacProps,
   type SelectRacProps,
   type SeparatorRacProps,
@@ -93,6 +94,7 @@ import {
   Popover,
   Radio,
   RadioGroup,
+  RangeCalendar,
   SearchField,
   Select,
   Separator,
@@ -166,6 +168,7 @@ export const CANONICAL_PRIMITIVE_RENDERER_TYPES = new Set([
   "Popover",
   "Radio",
   "RadioGroup",
+  "RangeCalendar",
   "SearchField",
   "Select",
   "Separator",
@@ -545,6 +548,21 @@ function renderPrimitiveNode({
       <Calendar
         key={node.id}
         {...calendarProps}
+        style={style as React.CSSProperties | undefined}
+        {...markerProps}
+      />
+    );
+  }
+
+  if (adaptedEl.type === "RangeCalendar") {
+    const { style, ...rangeCalendarProps } = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as RangeCalendarRacProps;
+
+    return (
+      <RangeCalendar
+        key={node.id}
+        {...rangeCalendarProps}
         style={style as React.CSSProperties | undefined}
         {...markerProps}
       />

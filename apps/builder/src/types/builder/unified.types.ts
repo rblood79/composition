@@ -1062,6 +1062,11 @@ export interface GroupElementProps extends BaseElementProps {
 
 // === RangeCalendar Element Props ===
 export interface RangeCalendarElementProps extends BaseElementProps {
+  variant?: "default" | "accent";
+  size?: "sm" | "md" | "lg";
+  maxVisibleMonths?: number;
+  defaultStartValue?: string;
+  defaultEndValue?: string;
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isInvalid?: boolean;
@@ -2311,9 +2316,12 @@ export function createDefaultRangeCalendarProps(): BaseElementProps {
   return {
     variant: "default",
     size: "md",
-    defaultToday: true,
+    maxVisibleMonths: 1,
+    defaultStartValue: "2026-05-10",
+    defaultEndValue: "2026-05-16",
     isDisabled: false,
     isReadOnly: false,
+    isInvalid: false,
   };
 }
 

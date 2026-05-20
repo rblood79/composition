@@ -101,7 +101,7 @@ collection 을 대체하는 runtime D3 SSOT 가 아니며, `PrimitiveBinding` �
 | `ProgressBar`       | primitive    | primitives/actions | `ProgressBar.css`                 | track/bar draw 검증 필요                         |
 | `ProgressCircle`    | primitive    | primitives/actions | 없음                              | SVG circle draw, `skiaPrimitive` 후보            |
 | `RadioGroup`        | primitive    | selection          | `RadioGroup.css`, `utilities.css` | Radio subpart 포함                               |
-| `RangeCalendar`     | primitive    | date-color         | `RangeCalendar.css`               | range cell draw 검증 필요                        |
+| `RangeCalendar`     | primitive    | date-color         | `RangeCalendar.css`               | active `skiaPrimitive` pilot                     |
 | `SearchField`       | primitive    | fields             | `SearchField.css`                 | field family                                     |
 | `SegmentedControl`  | helper       | selection          | `SegmentedControl.css`            | ToggleButtonGroup alias/wrapper                  |
 | `Select`            | primitive    | collections        | `Select.css`                      | ListBox 재사용 경계 검증                         |
@@ -469,5 +469,11 @@ Calendar date/color primitive pilot 은 `toCalendarRacProps()` /
 `calendarPrimitiveBinding` / active catalog entry / shared `Calendar.tsx`
 projection / Preview Calendar primitive branch / generic Skia month grid fixture 를
 추가했다. Calendar 는 `CalendarSpec.render.shapes()` 를 호출하지 않는 generic Skia
-fixture 로 고정했다. date/color family 는
-ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar 까지 진행했다.
+fixture 로 고정했다. RangeCalendar date/color primitive pilot 은
+`toRangeCalendarRacProps()` / `rangeCalendarPrimitiveBinding` / active catalog entry /
+shared `RangeCalendar.tsx` projection / Preview RangeCalendar primitive branch /
+generic Skia range-band fixture 를 추가했다. RangeCalendar 는
+`RangeCalendarSpec.render.shapes()` 를 호출하지 않는 generic Skia fixture 로
+고정했다. date/color family 는
+ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar 까지
+진행했다.

@@ -50,6 +50,7 @@ export interface PrimitiveSkiaDescriptor {
     | "popover"
     | "radio"
     | "radio-group"
+    | "range-calendar"
     | "search-field"
     | "select"
     | "separator"

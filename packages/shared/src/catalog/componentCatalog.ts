@@ -25,6 +25,7 @@ import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { popoverPrimitiveBinding } from "./primitives/popover";
 import { radioGroupPrimitiveBinding } from "./primitives/radioGroup";
 import { radioPrimitiveBinding } from "./primitives/radio";
+import { rangeCalendarPrimitiveBinding } from "./primitives/rangeCalendar";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
 import { selectPrimitiveBinding } from "./primitives/select";
 import { separatorPrimitiveBinding } from "./primitives/separator";
@@ -244,6 +245,19 @@ export const componentCatalog = [
       category: "dateTime",
       label: "calendar",
       icon: "Calendar",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "RangeCalendar",
+    family: "date-color",
+    cutover: "catalog",
+    binding: rangeCalendarPrimitiveBinding,
+    panel: {
+      category: "dateTime",
+      label: "range calendar",
+      icon: "CalendarDays",
       placeable: true,
     },
   },

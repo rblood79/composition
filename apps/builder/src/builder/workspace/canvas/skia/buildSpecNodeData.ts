@@ -43,6 +43,7 @@ import {
   toPopoverRacProps,
   toRadioGroupRacProps,
   toRadioRacProps,
+  toRangeCalendarRacProps,
   toSearchFieldRacProps,
   toSelectRacProps,
   toSeparatorRacProps,
@@ -86,6 +87,7 @@ import {
   type PopoverRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
+  type RangeCalendarRacProps,
   type SearchFieldRacProps,
   type SelectItemDescriptor,
   type SelectRacProps,
@@ -901,6 +903,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "calendar") {
     return buildGenericCalendarNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "range-calendar") {
+    return buildGenericRangeCalendarNode(input.node, layout, input.theme);
   }
   if (binding?.skiaPrimitive?.kind === "drop-zone") {
     return buildGenericDropZoneNode(input.node, layout, input.theme);
@@ -1940,6 +1945,101 @@ function buildGenericCalendarNode(
       strokeWidth: props.isInvalid ? 2 : 1,
     },
     children,
+  };
+}
+
+function buildGenericRangeCalendarNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toRangeCalendarRacProps(
+    node.props ?? {},
+  ) as RangeCalendarRacProps;
+  const calendarNode = buildGenericCalendarNode(
+    {
+      ...node,
+      props: {
+        ...node.props,
+        defaultFocusedValue:
+          props.defaultFocusedValue ?? props.defaultStartValue,
+        variant: props.variant,
+        size: props.size,
+        maxVisibleMonths: props.maxVisibleMonths,
+        isDisabled: props.isDisabled,
+        isInvalid: props.isInvalid,
+      },
+    },
+    layout,
+    theme,
+  );
+  const rangeBand = buildGenericRangeCalendarBand(node, layout, props, theme);
+
+  return {
+    ...calendarNode,
+    children: rangeBand
+      ? [rangeBand, ...(calendarNode.children ?? [])]
+      : calendarNode.children,
+  };
+}
+
+function buildGenericRangeCalendarBand(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  props: RangeCalendarRacProps,
+  theme: "light" | "dark",
+): SkiaNodeData | null {
+  const month = resolveGenericCalendarMonth({
+    ...props,
+    defaultValue: props.defaultStartValue,
+    defaultToday: false,
+    selectionAlignment: "center",
+    pageBehavior: "visible",
+  });
+  const startDay = parseDayInMonth(props.defaultStartValue, month);
+  const endDay = parseDayInMonth(props.defaultEndValue, month);
+  if (!startDay || !endDay) return null;
+
+  const size = resolveGenericCalendarSize(props.size);
+  const firstDayOffset = new Date(
+    month.getFullYear(),
+    month.getMonth(),
+    1,
+  ).getDay();
+  const padding = size.padding;
+  const contentWidth = Math.max(layout.width - padding * 2, 0);
+  const cellGap = size.cellGap;
+  const cellWidth = Math.max((contentWidth - cellGap * 6) / 7, 0);
+  const gridTop = padding + size.headerHeight + size.weekdayHeight;
+  const startPosition = firstDayOffset + Math.min(startDay, endDay) - 1;
+  const endPosition = firstDayOffset + Math.max(startDay, endDay) - 1;
+  const startRow = Math.floor(startPosition / 7);
+  const endRow = Math.floor(endPosition / 7);
+  if (startRow !== endRow) return null;
+
+  const startColumn = startPosition % 7;
+  const endColumn = endPosition % 7;
+  const x = padding + startColumn * (cellWidth + cellGap);
+  const y = gridTop + startRow * (size.cellSize + cellGap);
+  const width =
+    (endColumn - startColumn + 1) * cellWidth +
+    Math.max(endColumn - startColumn, 0) * cellGap;
+
+  return {
+    type: "box",
+    elementId: `${node.id}:range-band`,
+    x,
+    y,
+    width,
+    height: size.cellSize,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(theme === "dark" ? "#1e3a8a" : "#dbeafe"),
+        props.isDisabled ? 0.32 : 0.78,
+      ),
+      borderRadius: size.cellSize / 2,
+    },
   };
 }
 
@@ -6442,6 +6542,21 @@ function parseYearMonth(value: unknown): Date | null {
   if (!Number.isFinite(year) || !Number.isFinite(month)) return null;
   if (month < 1 || month > 12) return null;
   return new Date(year, month - 1, 1);
+}
+
+function parseDayInMonth(value: unknown, monthDate: Date): number | null {
+  if (typeof value !== "string") return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year !== monthDate.getFullYear() || month !== monthDate.getMonth() + 1) {
+    return null;
+  }
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (!Number.isFinite(day) || day < 1 || day > daysInMonth) return null;
+  return day;
 }
 
 function mixHexColors(from: number, to: number, amount: number): number {

@@ -470,16 +470,16 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 Status: In Progress — 2026-05-21 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField/ColorField text +
-ColorSwatch fill + ColorSlider track/thumb + ColorArea plane/thumb + ColorWheel arc/thumb + ColorPicker child-recursive generic + Calendar month grid + ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + CheckboxGroup label/children + Slider label/output/track/fill/thumb + DropZone dashed container + Tooltip bubble/text/arrow + Dialog panel/text + Popover panel/text/arrow + Modal panel/text + Toast icon/title/description + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
+ColorSwatch fill + ColorSlider track/thumb + ColorArea plane/thumb + ColorWheel arc/thumb + ColorPicker child-recursive generic + Calendar month grid + RangeCalendar range band + ToggleButton button-like + Switch track/thumb/label + Checkbox box/indicator/label + CheckboxGroup label/children + Slider label/output/track/fill/thumb + DropZone dashed container + Tooltip bubble/text/arrow + Dialog panel/text + Popover panel/text/arrow + Modal panel/text + Toast icon/title/description + ToggleButtonGroup/Toolbar/Form/FileTrigger child-recursive generic
 Skia slices + Tabs tab-list/panel + Tree row/disclosure + Table/TableView
 header/row/cell generic Skia slices; Button icon_path parity).
 `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
-`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `calendar` / `time-field` / `color-field` / `color-swatch` / `color-slider` / `color-area` / `color-wheel` / `drop-zone` / `tooltip` / `dialog` / `popover` / `modal` / `toast` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` / `list-box` / `grid-list` / `tag-group` / `menu` / `combo-box` / `select` / `tabs` / `tree` / `table` 를 추가하고, generic Skia path 가
+`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `calendar` / `range-calendar` / `time-field` / `color-field` / `color-swatch` / `color-slider` / `color-area` / `color-wheel` / `drop-zone` / `tooltip` / `dialog` / `popover` / `modal` / `toast` / `toggle-button` / `switch` / `checkbox` / `checkbox-group` / `slider` / `list-box` / `grid-list` / `tag-group` / `menu` / `combo-box` / `select` / `tabs` / `tree` / `table` 를 추가하고, generic Skia path 가
 Separator resolved node 를 `line` node 로, Link resolved node 를 underline text node
 로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField/TimeField/ColorField resolved node 를
 label/input/value container/text node 로, ColorField swatch 를 box node 로, ColorSwatch resolved node 를
 color fill box node 로, ColorSlider resolved node 를 track/thumb box node 로,
-ColorArea resolved node 를 plane/thumb box node 로, ColorWheel resolved node 를 arc ring/thumb node 로, ColorPicker resolved node 를 ColorArea/ColorSlider/ColorField children 재귀 경로로, Calendar resolved node 를 month heading/weekday/day cell node 로, ToggleButton resolved node 를 selected/emphasized 상태의
+ColorArea resolved node 를 plane/thumb box node 로, ColorWheel resolved node 를 arc ring/thumb node 로, ColorPicker resolved node 를 ColorArea/ColorSlider/ColorField children 재귀 경로로, Calendar resolved node 를 month heading/weekday/day cell node 로, RangeCalendar resolved node 를 month grid + range band node 로, ToggleButton resolved node 를 selected/emphasized 상태의
 button-like container/text node 로, Switch resolved node 를 track/thumb/label container+box/text node 로,
 Checkbox resolved node 를 box/indicator/label container+box/text node 로,
 CheckboxGroup resolved node 를 label text node + resolved Checkbox children 으로,
@@ -504,6 +504,7 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `ColorSwatchSpec.render.shapes()`, `ColorSliderSpec.render.shapes()`,
 `ColorAreaSpec.render.shapes()`, `ColorWheelSpec.render.shapes()`,
 `ColorPickerSpec.render.shapes()`, `CalendarSpec.render.shapes()`,
+`RangeCalendarSpec.render.shapes()`,
 `FormSpec.render.shapes()`, `FileTriggerSpec.render.shapes()`,
 `DropZoneSpec.render.shapes()`,
 `TooltipSpec.render.shapes()`,
@@ -520,7 +521,7 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `ToolbarSpec.render.shapes()`, `TabsSpec.render.shapes()`,
 `TreeSpec.render.shapes()`, `TableSpec.render.shapes()`,
 `TableViewSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView 외
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ColorField/ColorSwatch/ColorSlider/ColorArea/ColorWheel/ColorPicker/Calendar/RangeCalendar/Form/FileTrigger/DropZone/Tooltip/Dialog/Popover/Modal/Toast/ToggleButton/Switch/Checkbox/CheckboxGroup/Radio/RadioGroup/Slider/ToggleButtonGroup/Toolbar/ListBox/GridList/TagGroup/Menu/ComboBox/Select/Tabs/Tree/Table/TableView 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 2026-05-20 추가 slice: active primitive Inspector source 를 legacy specRegistry 에서
@@ -683,22 +684,25 @@ ColorArea 는 ColorSlider 다음 date/color pilot 이다.
 등록했다. `colorWheelPrimitiveBinding` / `toColorWheelRacProps()` / shared
 `ColorWheel.tsx` projection / Preview ColorWheel primitive branch / generic Skia
 arc-thumb fixture 를 추가했고, `ColorWheelSpec.render.shapes()` 미호출을 검증한다.
-ColorWheel 은 ColorArea 다음 date/color pilot 이며, RangeCalendar/
-DatePicker/DateRangePicker 계열은 후속 slice 로 남긴다.
+ColorWheel 은 ColorArea 다음 date/color pilot 이다.
 2026-05-21 추가 slice: ColorPicker date/color primitive 를 `cutover:"catalog"` 로
 등록했다. `colorPickerPrimitiveBinding` / `toColorPickerRacProps()` / shared
 `ColorPicker.tsx` projection / Preview ColorPicker primitive branch / generic Skia
 resolved-children fixture 를 추가했고, `ColorPickerSpec.render.shapes()` 미호출을
 검증한다. ADR-139 registration gate 는 legacy `rendererMap` 신규 등록 없이
 canonical primitive renderer coverage 를 인정하도록 실제 Preview cutover 경로와
-맞췄다. ColorPicker 는 ColorWheel 다음 date/color pilot 이며,
-RangeCalendar/DatePicker/DateRangePicker 계열은 후속 slice 로 남긴다.
+맞췄다. ColorPicker 는 ColorWheel 다음 date/color pilot 이다.
 2026-05-21 추가 slice: Calendar date/color primitive 를 `cutover:"catalog"` 로
 등록했다. `calendarPrimitiveBinding` / `toCalendarRacProps()` / shared
 `Calendar.tsx` projection / Preview Calendar primitive branch / generic Skia month
 grid fixture 를 추가했고, `CalendarSpec.render.shapes()` 미호출을 검증한다.
-Calendar 는 ColorPicker 다음 date/color pilot 이며,
-RangeCalendar/DatePicker/DateRangePicker 계열은 후속 slice 로 남긴다.
+Calendar 는 ColorPicker 다음 date/color pilot 이다.
+2026-05-21 추가 slice: RangeCalendar date/color primitive 를 `cutover:"catalog"` 로
+등록했다. `rangeCalendarPrimitiveBinding` / `toRangeCalendarRacProps()` /
+shared `RangeCalendar.tsx` projection / Preview RangeCalendar primitive branch /
+generic Skia range-band fixture 를 추가했고,
+`RangeCalendarSpec.render.shapes()` 미호출을 검증한다. RangeCalendar 는 Calendar
+다음 date/color pilot 이며, DatePicker/DateRangePicker 계열은 후속 slice 로 남긴다.
 
 ### Phase 6 — Family-gated atomic cutover
 

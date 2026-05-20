@@ -1170,6 +1170,35 @@ export interface CalendarRacProps extends Record<string, unknown> {
   style?: Record<string, unknown>;
 }
 
+export interface RangeCalendarCanonicalProps extends CalendarCanonicalProps {
+  defaultStartValue?: unknown;
+  defaultEndValue?: unknown;
+  allowsNonContiguousRanges?: unknown;
+}
+
+export interface RangeCalendarRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  variant: (typeof CALENDAR_VARIANT_VALUES)[number];
+  size: (typeof CALENDAR_SIZE_VALUES)[number];
+  maxVisibleMonths: number;
+  defaultStartValue: string;
+  defaultEndValue: string;
+  defaultFocusedValue?: string;
+  minValue?: string;
+  maxValue?: string;
+  locale?: string;
+  calendarSystem?: (typeof DATE_FIELD_CALENDAR_VALUES)[number];
+  errorMessage?: string;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  autoFocus?: boolean;
+  isLoading?: boolean;
+  allowsNonContiguousRanges?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
 export interface FormCanonicalProps extends Record<string, unknown> {
   "aria-label"?: unknown;
   action?: unknown;
@@ -2909,6 +2938,67 @@ export function toCalendarRacProps(
       : {}),
     ...(typeof props.isLoading === "boolean"
       ? { isLoading: props.isLoading }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
+export function toRangeCalendarRacProps(
+  props: RangeCalendarCanonicalProps,
+): RangeCalendarRacProps {
+  return {
+    "aria-label": readString(
+      props["aria-label"] ?? props.label,
+      "Range calendar",
+    ),
+    variant: normalizeCalendarVariant(props.variant),
+    size: normalizeCalendarSize(props.size),
+    maxVisibleMonths: normalizeCalendarMaxVisibleMonths(props.maxVisibleMonths),
+    defaultStartValue: readString(props.defaultStartValue, "2026-05-10"),
+    defaultEndValue: readString(props.defaultEndValue, "2026-05-16"),
+    ...(typeof props.defaultFocusedValue === "string" &&
+    props.defaultFocusedValue.length > 0
+      ? { defaultFocusedValue: props.defaultFocusedValue }
+      : {}),
+    ...(typeof props.minValue === "string" && props.minValue.length > 0
+      ? { minValue: props.minValue }
+      : {}),
+    ...(typeof props.maxValue === "string" && props.maxValue.length > 0
+      ? { maxValue: props.maxValue }
+      : {}),
+    ...(typeof props.locale === "string" && props.locale.length > 0
+      ? { locale: props.locale }
+      : {}),
+    ...(normalizeDateFieldCalendar(props.calendarSystem ?? props.calendar)
+      ? {
+          calendarSystem: normalizeDateFieldCalendar(
+            props.calendarSystem ?? props.calendar,
+          ),
+        }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.autoFocus === "boolean"
+      ? { autoFocus: props.autoFocus }
+      : {}),
+    ...(typeof props.isLoading === "boolean"
+      ? { isLoading: props.isLoading }
+      : {}),
+    ...(typeof props.allowsNonContiguousRanges === "boolean"
+      ? { allowsNonContiguousRanges: props.allowsNonContiguousRanges }
       : {}),
     ...(typeof props.className === "string"
       ? { className: props.className }

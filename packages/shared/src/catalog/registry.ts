@@ -23,6 +23,7 @@ import { numberFieldInspectorThemeValues } from "./primitives/numberField";
 import { popoverInspectorThemeValues } from "./primitives/popover";
 import { radioGroupInspectorThemeValues } from "./primitives/radioGroup";
 import { radioInspectorThemeValues } from "./primitives/radio";
+import { rangeCalendarInspectorThemeValues } from "./primitives/rangeCalendar";
 import { searchFieldInspectorThemeValues } from "./primitives/searchField";
 import { selectInspectorThemeValues } from "./primitives/select";
 import { sliderInspectorThemeValues } from "./primitives/slider";
@@ -88,6 +89,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "ColorWheel") return colorWheelInspectorThemeValues;
   if (type === "ColorPicker") return colorPickerInspectorThemeValues;
   if (type === "Calendar") return calendarInspectorThemeValues;
+  if (type === "RangeCalendar") return rangeCalendarInspectorThemeValues;
   if (type === "DropZone") return dropZoneInspectorThemeValues;
   if (type === "Tooltip") return tooltipInspectorThemeValues;
   if (type === "Dialog") return dialogInspectorThemeValues;

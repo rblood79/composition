@@ -30,6 +30,7 @@ import {
   PopoverSpec,
   RadioGroupSpec,
   RadioSpec,
+  RangeCalendarSpec,
   SearchFieldSpec,
   SelectSpec,
   SeparatorSpec,
@@ -1284,6 +1285,38 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectText(node)).toContain("May 2026");
     expect(
       node?.children?.some((child) => child.elementId?.endsWith(":day-1")),
+    ).toBe(true);
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved RangeCalendar through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(RangeCalendarSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "range-calendar-1",
+        type: "RangeCalendar",
+        props: {
+          variant: "accent",
+          size: "md",
+          maxVisibleMonths: 1,
+          defaultFocusedValue: "2026-05-01",
+          defaultStartValue: "2026-05-10",
+          defaultEndValue: "2026-05-16",
+        },
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["range-calendar-1", { x: 12, y: 16, width: 284, height: 300 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("range-calendar-1");
+    expect(collectText(node)).toContain("May 2026");
+    expect(
+      node?.children?.some((child) => child.elementId?.endsWith(":range-band")),
     ).toBe(true);
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
