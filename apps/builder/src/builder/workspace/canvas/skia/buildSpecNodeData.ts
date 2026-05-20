@@ -27,6 +27,7 @@ import {
   toColorFieldRacProps,
   toDateFieldRacProps,
   toLinkRacProps,
+  toListBoxRacProps,
   toNumberFieldRacProps,
   toRadioGroupRacProps,
   toRadioRacProps,
@@ -44,6 +45,9 @@ import {
   type ColorFieldRacProps,
   type DateFieldRacProps,
   type LinkRacProps,
+  type ListBoxEntryDescriptor,
+  type ListBoxItemDescriptor,
+  type ListBoxRacProps,
   type NumberFieldRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
@@ -872,6 +876,9 @@ export function buildGenericResolvedSkiaNodeData(
   }
   if (binding?.skiaPrimitive?.kind === "slider") {
     return buildGenericSliderNode(input.node, layout, input.theme);
+  }
+  if (binding?.skiaPrimitive?.kind === "list-box") {
+    return buildGenericListBoxNode(input.node, layout, input.theme);
   }
 
   const style = readGenericStyle(input.node);
@@ -2433,6 +2440,132 @@ function buildGenericSliderNode(
     visible: isGenericNodeVisible(style),
     children: [labelNode, outputNode, trackNode, fillNode, thumbNode],
   };
+}
+
+function buildGenericListBoxNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toListBoxRacProps(node.props ?? {}) as ListBoxRacProps;
+  const style = readGenericStyle(node);
+  const isDark = theme === "dark";
+  const borderRadius = readNumber(style.borderRadius, 8);
+  const padding = 4;
+  const itemHeight = 28;
+  const gap = 2;
+  const items = flattenListBoxItems(props.items);
+  const selectedKeys = new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.selectedKey ? [props.selectedKey] : []),
+    ...(props.defaultSelectedKeys ?? []),
+    ...(props.defaultSelectedKey ? [props.defaultSelectedKey] : []),
+  ]);
+  const effectiveSelectedKeys =
+    selectedKeys.size > 0
+      ? selectedKeys
+      : items[0]
+        ? new Set<string>([items[0].id])
+        : selectedKeys;
+
+  const backgroundNode: SkiaNodeData = {
+    type: "box",
+    elementId: `${node.id}:background`,
+    x: 0,
+    y: 0,
+    width: layout.width,
+    height: layout.height,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(isDark ? 0x1f2937 : 0xffffff, 1),
+      borderRadius,
+      strokeColor: colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1),
+      strokeWidth: 1,
+    },
+  };
+
+  const itemNodes = items.flatMap((item, index): SkiaNodeData[] => {
+    const y = padding + index * (itemHeight + gap);
+    const isSelected = effectiveSelectedKeys.has(item.id);
+    const rowFill = isSelected
+      ? props.variant === "accent"
+        ? colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1)
+        : colorIntToFloat32(isDark ? 0x374151 : 0xf3f4f6, 1)
+      : colorIntToFloat32(0x000000, 0);
+    const textColor = item.isDisabled
+      ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+      : colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+
+    return [
+      {
+        type: "box",
+        elementId: `${node.id}:item:${item.id}:bg`,
+        x: padding,
+        y,
+        width: Math.max(layout.width - padding * 2, 0),
+        height: itemHeight,
+        visible: true,
+        box: {
+          fillColor: rowFill,
+          borderRadius: 4,
+        },
+      },
+      {
+        type: "text",
+        elementId: `${node.id}:item:${item.id}:text`,
+        x: padding + 12,
+        y,
+        width: Math.max(layout.width - padding * 2 - 24, 0),
+        height: itemHeight,
+        visible: true,
+        text: {
+          content: item.label,
+          fontFamilies: [fontFamily.sans],
+          fontSize: 14,
+          fontWeight: 600,
+          color: textColor,
+          align: "left",
+          lineHeight: 20,
+          paddingLeft: 0,
+          paddingTop: 0,
+          maxWidth: Math.max(layout.width - padding * 2 - 24, 0),
+          verticalAlign: "middle",
+        },
+      },
+    ];
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    children: [backgroundNode, ...itemNodes],
+  };
+}
+
+function flattenListBoxItems(
+  entries: ListBoxRacProps["items"],
+): ListBoxItemDescriptor[] {
+  if (!entries) return [];
+  const result: ListBoxItemDescriptor[] = [];
+  for (const entry of entries) {
+    if (isListBoxSectionDescriptor(entry)) {
+      result.push(...entry.items);
+    } else {
+      result.push(entry);
+    }
+  }
+  return result;
+}
+
+function isListBoxSectionDescriptor(
+  entry: ListBoxEntryDescriptor,
+): entry is Extract<ListBoxEntryDescriptor, { type: "section" }> {
+  return entry.type === "section";
 }
 
 function resolveGenericLayout(

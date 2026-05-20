@@ -7,6 +7,7 @@ import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
 import { getPrimitiveBinding } from "../registry";
+import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { sliderPrimitiveBinding } from "../primitives/slider";
@@ -21,6 +22,7 @@ import {
   toDateFieldRacProps,
   toFileTriggerRacProps,
   toFormRacProps,
+  toListBoxRacProps,
   toNumberFieldRacProps,
   toRadioRacProps,
   toSearchFieldRacProps,
@@ -941,6 +943,98 @@ describe("ADR-142 inspector field contracts", () => {
       isEmphasized: true,
       showValueLabel: true,
       locale: "ko-KR",
+    });
+  });
+
+  it("groups ListBox PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "ListBox",
+      contracts: listBoxPrimitiveBinding.props.accepts,
+      theme: {
+        variants: { ListBox: ["default", "accent"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Filtering",
+      "Performance",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual(["items"]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "variant",
+      "orientation",
+    ]);
+    expect(sections[2].fields.map((field) => field.key)).toEqual([
+      "filterText",
+      "filterFields",
+    ]);
+    expect(sections[3].fields.map((field) => field.key)).toEqual([
+      "enableVirtualization",
+      "height",
+      "overscan",
+    ]);
+    expect(sections[4].fields.map((field) => field.key)).toEqual([
+      "selectionMode",
+      "selectionBehavior",
+      "disallowEmptySelection",
+      "isDisabled",
+      "autoFocus",
+    ]);
+  });
+
+  it("projects ListBox canonical items through the catalog boundary", () => {
+    expect(toListBoxRacProps({ variant: "primary" }).variant).toBe("primary");
+
+    expect(
+      toListBoxRacProps({
+        variant: "accent",
+        orientation: "horizontal",
+        selectionMode: "multiple",
+        selectionBehavior: "replace",
+        selectedKey: "item-2",
+        items: [
+          {
+            id: "item-1",
+            label: "Aardvark",
+            value: "aardvark",
+            description: "A nocturnal burrowing mammal",
+          },
+          {
+            id: "item-2",
+            label: "Cat",
+            value: "cat",
+            isDisabled: true,
+          },
+          {
+            id: "ignored",
+            label: "",
+          },
+          42,
+        ],
+      }),
+    ).toMatchObject({
+      variant: "accent",
+      orientation: "horizontal",
+      selectionMode: "multiple",
+      selectionBehavior: "replace",
+      selectedKey: "item-2",
+      items: [
+        {
+          id: "item-1",
+          label: "Aardvark",
+          value: "aardvark",
+          description: "A nocturnal burrowing mammal",
+        },
+        {
+          id: "item-2",
+          label: "Cat",
+          value: "cat",
+          isDisabled: true,
+        },
+      ],
     });
   });
 });

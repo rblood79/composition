@@ -8,6 +8,7 @@ import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "../primitives/fileTrigger";
 import { formPrimitiveBinding } from "../primitives/form";
+import { listBoxPrimitiveBinding } from "../primitives/listBox";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { sliderPrimitiveBinding } from "../primitives/slider";
@@ -389,6 +390,27 @@ describe("ADR-142 component catalog", () => {
     expect(entry.panel.placeable).toBe(true);
   });
 
+  it("registers ListBox as an active collections primitive catalog entry", () => {
+    const entry = getComponentCatalogEntry("ListBox");
+
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind !== "primitive") return;
+
+    expect(entry.binding).toBe(listBoxPrimitiveBinding);
+    expect(entry.family).toBe("collections");
+    expect(entry.cutover).toBe("catalog");
+    expect(entry.binding.runtime.exportName).toBe("ListBox");
+    expect(entry.binding.skiaPrimitive?.kind).toBe("list-box");
+    expect(entry.panel.category).toBe("collections");
+    expect(entry.panel.label).toBe("list box");
+    expect(entry.panel.placeable).toBe(true);
+    expect(entry.binding.defaultProps.items).toEqual([
+      { id: "item-1", label: "Aardvark", value: "aardvark" },
+      { id: "item-2", label: "Cat", value: "cat" },
+      { id: "item-3", label: "Kangaroo", value: "kangaroo" },
+    ]);
+  });
+
   it("registers reusable entries that resolve to reusable canonical documents", () => {
     const entry = getComponentCatalogEntry("Card");
 
@@ -446,6 +468,7 @@ describe("ADR-142 component catalog", () => {
     expect(activeTypes).toContain("RadioGroup");
     expect(activeTypes).not.toContain("Radio");
     expect(activeTypes).toContain("Slider");
+    expect(activeTypes).toContain("ListBox");
     expect(activeTypes).not.toContain("Breadcrumb");
     expect(activeTypes).not.toContain("Card");
   });

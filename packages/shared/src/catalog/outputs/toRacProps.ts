@@ -203,6 +203,24 @@ export const RADIO_GROUP_NECESSITY_INDICATOR_VALUES =
 export const SLIDER_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
 export const SLIDER_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
 export const SWITCH_SIZE_VALUES = SEPARATOR_SIZE_VALUES;
+export const LIST_BOX_VARIANT_VALUES = ["default", "accent"] as const;
+const LIST_BOX_LEGACY_VISUAL_VARIANT_VALUES = [
+  "primary",
+  "secondary",
+  "tertiary",
+  "error",
+  "filled",
+] as const;
+export const LIST_BOX_ORIENTATION_VALUES = SEPARATOR_ORIENTATION_VALUES;
+export const LIST_BOX_SELECTION_MODE_VALUES = [
+  "none",
+  "single",
+  "multiple",
+] as const;
+export const LIST_BOX_SELECTION_BEHAVIOR_VALUES = [
+  "toggle",
+  "replace",
+] as const;
 
 const BUTTON_VARIANTS = new Set<ButtonVariant>(BUTTON_VARIANT_VALUES);
 const BUTTON_FILL_STYLES = new Set<ButtonFillStyle>(BUTTON_FILL_STYLE_VALUES);
@@ -307,6 +325,17 @@ const SLIDER_SIZES = new Set<ComponentSizeSubset>(SLIDER_SIZE_VALUES);
 const SLIDER_ORIENTATIONS = new Set<string>(SLIDER_ORIENTATION_VALUES);
 const SWITCH_SIZES = new Set<ComponentSizeSubset>(SWITCH_SIZE_VALUES);
 const BREADCRUMBS_SIZES = new Set<string>(BREADCRUMBS_SIZE_VALUES);
+const LIST_BOX_VARIANTS = new Set<string>([
+  ...LIST_BOX_VARIANT_VALUES,
+  ...LIST_BOX_LEGACY_VISUAL_VARIANT_VALUES,
+]);
+const LIST_BOX_ORIENTATIONS = new Set<string>(LIST_BOX_ORIENTATION_VALUES);
+const LIST_BOX_SELECTION_MODES = new Set<string>(
+  LIST_BOX_SELECTION_MODE_VALUES,
+);
+const LIST_BOX_SELECTION_BEHAVIORS = new Set<string>(
+  LIST_BOX_SELECTION_BEHAVIOR_VALUES,
+);
 
 export interface BreadcrumbCanonicalProps extends Record<string, unknown> {
   children?: unknown;
@@ -1043,6 +1072,77 @@ export interface SliderRacProps extends Record<string, unknown> {
   thumbLabels?: string[];
   name?: string;
   form?: string;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface ListBoxItemDescriptor extends Record<string, unknown> {
+  id: string;
+  label: string;
+  value?: string;
+  textValue?: string;
+  description?: string;
+  isDisabled?: boolean;
+  href?: string;
+  type?: "item";
+}
+
+export interface ListBoxSectionDescriptor extends Record<string, unknown> {
+  id: string;
+  type: "section";
+  header: string;
+  ariaLabel?: string;
+  items: ListBoxItemDescriptor[];
+}
+
+export type ListBoxEntryDescriptor =
+  | ListBoxItemDescriptor
+  | ListBoxSectionDescriptor;
+
+export interface ListBoxCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  variant?: unknown;
+  orientation?: unknown;
+  selectionMode?: unknown;
+  selectionBehavior?: unknown;
+  disallowEmptySelection?: unknown;
+  autoFocus?: unknown;
+  isDisabled?: unknown;
+  enableVirtualization?: unknown;
+  height?: unknown;
+  overscan?: unknown;
+  filterText?: unknown;
+  filterFields?: unknown;
+  selectedKey?: unknown;
+  selectedKeys?: unknown;
+  defaultSelectedKey?: unknown;
+  defaultSelectedKeys?: unknown;
+  items?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface ListBoxRacProps extends Record<string, unknown> {
+  "aria-label": string;
+  variant:
+    | (typeof LIST_BOX_VARIANT_VALUES)[number]
+    | (typeof LIST_BOX_LEGACY_VISUAL_VARIANT_VALUES)[number];
+  orientation: "horizontal" | "vertical";
+  selectionMode: (typeof LIST_BOX_SELECTION_MODE_VALUES)[number];
+  selectionBehavior: (typeof LIST_BOX_SELECTION_BEHAVIOR_VALUES)[number];
+  disallowEmptySelection: boolean;
+  autoFocus: boolean;
+  isDisabled: boolean;
+  enableVirtualization: boolean;
+  height: number;
+  overscan: number;
+  filterText?: string;
+  filterFields?: string[];
+  selectedKey?: string;
+  selectedKeys?: string[];
+  defaultSelectedKey?: string;
+  defaultSelectedKeys?: string[];
+  items?: ListBoxEntryDescriptor[];
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -1911,6 +2011,54 @@ export function toSliderRacProps(props: SliderCanonicalProps): SliderRacProps {
   };
 }
 
+export function toListBoxRacProps(
+  props: ListBoxCanonicalProps,
+): ListBoxRacProps {
+  const items = normalizeListBoxEntries(props.items);
+  return {
+    "aria-label": readString(props["aria-label"], "List"),
+    variant: normalizeListBoxVariant(props.variant),
+    orientation: normalizeListBoxOrientation(props.orientation),
+    selectionMode: normalizeListBoxSelectionMode(props.selectionMode),
+    selectionBehavior: normalizeListBoxSelectionBehavior(
+      props.selectionBehavior,
+    ),
+    disallowEmptySelection: props.disallowEmptySelection === true,
+    autoFocus: props.autoFocus === true,
+    isDisabled: props.isDisabled === true,
+    enableVirtualization: props.enableVirtualization === true,
+    height: readFiniteNumber(props.height) ?? 300,
+    overscan: readFiniteNumber(props.overscan) ?? 5,
+    ...(typeof props.filterText === "string"
+      ? { filterText: props.filterText }
+      : {}),
+    ...(normalizeStringArray(props.filterFields)
+      ? { filterFields: normalizeStringArray(props.filterFields) }
+      : {}),
+    ...(typeof props.selectedKey === "string"
+      ? { selectedKey: props.selectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.selectedKeys)
+      ? { selectedKeys: normalizeStringValueArray(props.selectedKeys) }
+      : {}),
+    ...(typeof props.defaultSelectedKey === "string"
+      ? { defaultSelectedKey: props.defaultSelectedKey }
+      : {}),
+    ...(normalizeStringValueArray(props.defaultSelectedKeys)
+      ? {
+          defaultSelectedKeys: normalizeStringValueArray(
+            props.defaultSelectedKeys,
+          ),
+        }
+      : {}),
+    ...(items.length > 0 ? { items } : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toToggleButtonGroupRacProps(
   props: ToggleButtonGroupCanonicalProps,
 ): ToggleButtonGroupRacProps {
@@ -2554,6 +2702,87 @@ function normalizeSliderOrientation(value: unknown): "horizontal" | "vertical" {
   return typeof value === "string" && SLIDER_ORIENTATIONS.has(value)
     ? (value as "horizontal" | "vertical")
     : "horizontal";
+}
+
+function normalizeListBoxVariant(value: unknown): ListBoxRacProps["variant"] {
+  return typeof value === "string" && LIST_BOX_VARIANTS.has(value)
+    ? (value as ListBoxRacProps["variant"])
+    : "default";
+}
+
+function normalizeListBoxOrientation(
+  value: unknown,
+): "horizontal" | "vertical" {
+  return typeof value === "string" && LIST_BOX_ORIENTATIONS.has(value)
+    ? (value as "horizontal" | "vertical")
+    : "vertical";
+}
+
+function normalizeListBoxSelectionMode(
+  value: unknown,
+): (typeof LIST_BOX_SELECTION_MODE_VALUES)[number] {
+  return typeof value === "string" && LIST_BOX_SELECTION_MODES.has(value)
+    ? (value as (typeof LIST_BOX_SELECTION_MODE_VALUES)[number])
+    : "single";
+}
+
+function normalizeListBoxSelectionBehavior(
+  value: unknown,
+): (typeof LIST_BOX_SELECTION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && LIST_BOX_SELECTION_BEHAVIORS.has(value)
+    ? (value as (typeof LIST_BOX_SELECTION_BEHAVIOR_VALUES)[number])
+    : "toggle";
+}
+
+function normalizeListBoxEntries(value: unknown): ListBoxEntryDescriptor[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => normalizeListBoxEntry(entry))
+    .filter((entry): entry is ListBoxEntryDescriptor => entry !== undefined);
+}
+
+function normalizeListBoxEntry(
+  value: unknown,
+): ListBoxEntryDescriptor | undefined {
+  if (!isRecord(value)) return undefined;
+
+  if (value.type === "section") {
+    const items = normalizeListBoxEntries(value.items).filter(
+      (entry): entry is ListBoxItemDescriptor => entry.type !== "section",
+    );
+    if (items.length === 0) return undefined;
+    return {
+      id: readString(value.id, `section-${items[0].id}`),
+      type: "section",
+      header: readString(value.header, "Section"),
+      ...(typeof value.ariaLabel === "string"
+        ? { ariaLabel: value.ariaLabel }
+        : {}),
+      items,
+    };
+  }
+
+  const label = readString(value.label, "");
+  if (!label) return undefined;
+  const id = readString(value.id ?? value.value, label);
+  return {
+    id,
+    label,
+    ...(typeof value.value === "string" || typeof value.value === "number"
+      ? { value: String(value.value) }
+      : {}),
+    ...(typeof value.textValue === "string"
+      ? { textValue: value.textValue }
+      : {}),
+    ...(typeof value.description === "string"
+      ? { description: value.description }
+      : {}),
+    ...(typeof value.isDisabled === "boolean"
+      ? { isDisabled: value.isDisabled }
+      : {}),
+    ...(typeof value.href === "string" ? { href: value.href } : {}),
+    ...(value.type === "item" ? { type: "item" as const } : {}),
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

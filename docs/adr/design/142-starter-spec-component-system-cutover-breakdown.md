@@ -534,6 +534,13 @@ Radio 는 React Aria `RadioGroup` context 가 필요한 subpart 이므로 catalo
 non-placeable active primitive 로 두고, standalone Preview 는 legacy fallback 을 유지한다.
 selection family pilot 은 이 slice 로 완료됐고 다음 entrypoint 는 collections family 다.
 
+2026-05-20 추가 slice: ListBox collections primitive 를 `cutover:"catalog"` 로
+등록했다. `listBoxPrimitiveBinding` / `toListBoxRacProps()` / shared `ListBox.tsx`
+projection / Preview ListBox primitive branch / generic Skia container+item row fixture 를
+추가했고, `ListBoxSpec.render.shapes()` 미호출을 검증한다. 이는 collections family 의
+첫 pilot 이며, ADR-132 collection 데이터 binding 전체 전환과 GridList/Menu/TagGroup/
+ComboBox/Select/Tabs 는 잔여다.
+
 ### Phase 6 — Family-gated atomic cutover
 
 목표: Phase 0~5 공통 기반 위에서 family 순서대로 4경로를 atomic 하게 전환한다.

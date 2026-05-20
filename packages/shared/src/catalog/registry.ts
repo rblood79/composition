@@ -6,6 +6,7 @@ import { colorFieldInspectorThemeValues } from "./primitives/colorField";
 import { dateFieldInspectorThemeValues } from "./primitives/dateField";
 import { formInspectorThemeValues } from "./primitives/form";
 import { linkInspectorThemeValues } from "./primitives/link";
+import { listBoxInspectorThemeValues } from "./primitives/listBox";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
 import { radioGroupInspectorThemeValues } from "./primitives/radioGroup";
 import { radioInspectorThemeValues } from "./primitives/radio";
@@ -40,6 +41,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "Checkbox") return checkboxInspectorThemeValues;
   if (type === "CheckboxGroup") return checkboxGroupInspectorThemeValues;
   if (type === "Link") return linkInspectorThemeValues;
+  if (type === "ListBox") return listBoxInspectorThemeValues;
   if (type === "TextField") return textFieldInspectorThemeValues;
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;

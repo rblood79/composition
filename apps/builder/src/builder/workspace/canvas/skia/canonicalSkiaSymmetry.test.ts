@@ -13,6 +13,7 @@ import {
   FileTriggerSpec,
   FormSpec,
   LinkSpec,
+  ListBoxSpec,
   NumberFieldSpec,
   RadioGroupSpec,
   RadioSpec,
@@ -361,6 +362,37 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.type).toBe("container");
     expect(node?.elementId).toBe("radio-1");
     expect(collectText(node)).toContain("Team");
+    expect(collectNodeTypes(node)).toContain("box");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved ListBox items path without render.shapes", () => {
+    const renderShapes = vi.spyOn(ListBoxSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "listbox-1",
+        type: "ListBox",
+        props: {
+          variant: "accent",
+          selectionMode: "single",
+          selectedKey: "cat",
+          items: [
+            { id: "aardvark", label: "Aardvark", value: "aardvark" },
+            { id: "cat", label: "Cat", value: "cat" },
+          ],
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 240, height: 112 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("listbox-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Aardvark", "Cat"]),
+    );
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();

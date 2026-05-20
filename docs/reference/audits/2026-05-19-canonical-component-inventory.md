@@ -346,3 +346,12 @@ non-placeable active primitive 로 등록하고 standalone Preview 는 legacy fa
 Radio/RadioGroup 은 `RadioSpec.render.shapes()` / `RadioGroupSpec.render.shapes()` 를
 호출하지 않는 generic Skia fixture 로 고정했다. selection family pilot 은 완료됐고
 다음 잔여 family 는 collections 다.
+
+ListBox collections primitive pilot 은 collections family 착수 slice 로
+`toListBoxRacProps()` / `listBoxPrimitiveBinding` / active catalog entry / shared
+`ListBox.tsx` projection / Preview ListBox primitive branch / generic Skia
+container+item row fixture 를 추가했다. ListBox 는 canonical `items[]` 를 RAC ListBox
+item surface 로 투영하며 `ListBoxSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했다. collections family 전체 완료 주장은 아직 하지 않는다. ADR-132
+collection 데이터 binding 과 GridList/Menu/TagGroup/ComboBox/Select/Tabs 잔여 전환이
+다음 범위다.

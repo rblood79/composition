@@ -49,6 +49,8 @@ const SECTION_ORDER = [
   "color",
   "file",
   "submission",
+  "filtering",
+  "performance",
   "state",
 ];
 
@@ -151,6 +153,8 @@ function sectionTitle(section: string): string {
     color: "Color",
     file: "File",
     submission: "Submission",
+    filtering: "Filtering",
+    performance: "Performance",
     state: "State",
     locale: "Locale",
   };

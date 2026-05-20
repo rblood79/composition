@@ -298,6 +298,25 @@ describe("ADR-142 element creator catalog bridge", () => {
     expect(creation?.children).toBeUndefined();
   });
 
+  it("describes catalog ListBox placement with canonical items", () => {
+    const creation = resolveCatalogElementCreation("ListBox");
+
+    expect(creation).toMatchObject({
+      elementType: "ListBox",
+      props: {
+        variant: "default",
+        orientation: "vertical",
+        selectionMode: "single",
+        items: [
+          { id: "item-1", label: "Aardvark", value: "aardvark" },
+          { id: "item-2", label: "Cat", value: "cat" },
+          { id: "item-3", label: "Kangaroo", value: "kangaroo" },
+        ],
+      },
+    });
+    expect(creation?.children).toBeUndefined();
+  });
+
   it("describes reusable catalog placement as a canonical ref insertion payload", () => {
     const creation = resolveCatalogElementCreation({
       kind: "reusable",

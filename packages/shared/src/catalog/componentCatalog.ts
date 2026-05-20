@@ -8,6 +8,7 @@ import { dateFieldPrimitiveBinding } from "./primitives/dateField";
 import { fileTriggerPrimitiveBinding } from "./primitives/fileTrigger";
 import { formPrimitiveBinding } from "./primitives/form";
 import { linkPrimitiveBinding } from "./primitives/link";
+import { listBoxPrimitiveBinding } from "./primitives/listBox";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { radioGroupPrimitiveBinding } from "./primitives/radioGroup";
 import { radioPrimitiveBinding } from "./primitives/radio";
@@ -311,6 +312,19 @@ export const componentCatalog = [
       category: "forms",
       label: "switch",
       icon: "ToggleLeft",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "ListBox",
+    family: "collections",
+    cutover: "catalog",
+    binding: listBoxPrimitiveBinding,
+    panel: {
+      category: "collections",
+      label: "list box",
+      icon: "ListIcon",
       placeable: true,
     },
   },

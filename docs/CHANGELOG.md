@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — ListBox collections primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **ListBox active primitive binding 추가**:
+  - `componentCatalog` 에 `ListBox` 를 `cutover:"catalog"` active collections primitive 로 등록했다.
+  - canonical `items[]` → RAC ListBox item projection 인 `toListBoxRacProps()` 와 `listBoxPrimitiveBinding` 을 추가했다.
+  - `ListBox.tsx` shared wrapper 가 catalog projection, static `items[]`, `data-variant`, `data-orientation` 을 소비하도록 전환했다.
+- **ListBox Preview / Skia generic 경로 연결**:
+  - `CanonicalNodeRenderer` 가 ListBox resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 ListBox container + item row/text 를 렌더하고 `ListBoxSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `collections` family 의 첫 pilot 이다. collection 데이터 binding(ADR-132) 전체 전환은 아직 닫지 않았고, 다음 entrypoint 는 GridList/Menu/TagGroup/ComboBox/Select/Tabs 잔여 collections slice 다.
+
 ## [ADR-142 Phase 3/5/6 — RadioGroup primitive catalog pilot] - 2026-05-20
 
 ### Architecture

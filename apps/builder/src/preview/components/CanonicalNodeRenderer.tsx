@@ -31,6 +31,7 @@ import {
   type FileTriggerRacProps,
   type FormRacProps,
   type LinkRacProps,
+  type ListBoxRacProps,
   type NumberFieldRacProps,
   type RadioGroupRacProps,
   type RadioRacProps,
@@ -55,6 +56,7 @@ import {
   FileTrigger,
   Form,
   Link,
+  ListBox,
   NumberField,
   Radio,
   RadioGroup,
@@ -464,6 +466,14 @@ function renderPrimitiveNode({
     ) as SliderRacProps;
 
     return <Slider key={node.id} {...sliderProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "ListBox") {
+    const listBoxProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as ListBoxRacProps;
+
+    return <ListBox key={node.id} {...listBoxProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "Form") {

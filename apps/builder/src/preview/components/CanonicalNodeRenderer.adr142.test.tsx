@@ -22,6 +22,7 @@ const {
   legacyFileTriggerRenderer,
   legacyFormRenderer,
   legacyLinkRenderer,
+  legacyListBoxRenderer,
   legacyNumberFieldRenderer,
   legacyRadioRenderer,
   legacyRadioGroupRenderer,
@@ -63,6 +64,9 @@ const {
     <form data-legacy-renderer="Form">legacy</form>
   )),
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
+  legacyListBoxRenderer: vi.fn(() => (
+    <div data-legacy-renderer="ListBox">legacy</div>
+  )),
   legacyNumberFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="NumberField">legacy</div>
   )),
@@ -113,6 +117,7 @@ vi.mock("@composition/shared/renderers", () => ({
     FileTrigger: legacyFileTriggerRenderer,
     Form: legacyFormRenderer,
     Link: legacyLinkRenderer,
+    ListBox: legacyListBoxRenderer,
     NumberField: legacyNumberFieldRenderer,
     Radio: legacyRadioRenderer,
     RadioGroup: legacyRadioGroupRenderer,
@@ -154,6 +159,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyFileTriggerRenderer.mockClear();
     legacyFormRenderer.mockClear();
     legacyLinkRenderer.mockClear();
+    legacyListBoxRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
     legacyRadioRenderer.mockClear();
     legacyRadioGroupRenderer.mockClear();
@@ -869,6 +875,37 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     expect(screen.getByRole("radio", { name: "Solo" })).toBeTruthy();
     expect(legacyRadioGroupRenderer).not.toHaveBeenCalled();
     expect(legacyRadioRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders ListBox canonical items through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "listbox-1",
+      type: "ListBox",
+      props: {
+        variant: "accent",
+        orientation: "vertical",
+        selectionMode: "single",
+        selectedKey: "cat",
+        items: [
+          { id: "aardvark", label: "Aardvark", value: "aardvark" },
+          { id: "cat", label: "Cat", value: "cat" },
+        ],
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const listbox = screen.getByRole("listbox", { name: "List" });
+    expect(listbox.getAttribute("data-variant")).toBe("accent");
+    expect(listbox.getAttribute("data-orientation")).toBe("vertical");
+    expect(screen.getByRole("option", { name: "Aardvark" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Cat" })).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='listbox-1']")).toBe(
+      listbox,
+    );
+    expect(legacyListBoxRenderer).not.toHaveBeenCalled();
   });
 
   it("renders Slider through PrimitiveBinding before rendererMap fallback", () => {

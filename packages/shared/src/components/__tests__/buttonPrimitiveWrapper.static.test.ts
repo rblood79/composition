@@ -219,6 +219,16 @@ describe("ADR-142 Button primitive wrapper boundary", () => {
     expect(source).toContain("../catalog/outputs/toRacProps");
   });
 
+  it("uses catalog toRacProps as the ListBox prop projection source", () => {
+    const source = fs.readFileSync(
+      new URL("../ListBox.tsx", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("toListBoxRacProps");
+    expect(source).toContain("../catalog/outputs/toRacProps");
+  });
+
   it("documents the shared components legacy compatibility boundary", () => {
     const readmeUrl = new URL("../legacy/README.md", import.meta.url);
 
