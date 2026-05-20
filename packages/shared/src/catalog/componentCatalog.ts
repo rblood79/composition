@@ -7,6 +7,7 @@ import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
 import { separatorPrimitiveBinding } from "./primitives/separator";
 import { textFieldPrimitiveBinding } from "./primitives/textField";
+import { timeFieldPrimitiveBinding } from "./primitives/timeField";
 import { toolbarPrimitiveBinding } from "./primitives/toolbar";
 import { toggleButtonGroupPrimitiveBinding } from "./primitives/toggleButtonGroup";
 import { toggleButtonPrimitiveBinding } from "./primitives/toggleButton";
@@ -171,6 +172,19 @@ export const componentCatalog = [
       category: "dateTime",
       label: "date field",
       icon: "CalendarCheck",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "TimeField",
+    family: "fields",
+    cutover: "catalog",
+    binding: timeFieldPrimitiveBinding,
+    panel: {
+      category: "dateTime",
+      label: "time field",
+      icon: "ChevronDown",
       placeable: true,
     },
   },

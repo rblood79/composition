@@ -28,6 +28,7 @@ import {
   toSearchFieldRacProps,
   toSeparatorRacProps,
   toTextFieldRacProps,
+  toTimeFieldRacProps,
   toToggleButtonRacProps,
   type BreadcrumbRacProps,
   type ButtonRacProps,
@@ -38,6 +39,7 @@ import {
   type ResolvedNode,
   type SeparatorRacProps,
   type TextFieldRacProps,
+  type TimeFieldRacProps,
   type ToggleButtonRacProps,
 } from "@composition/shared";
 import {
@@ -830,6 +832,9 @@ export function buildGenericResolvedSkiaNodeData(
   if (binding?.skiaPrimitive?.kind === "date-field") {
     return buildGenericDateFieldNode(input.node, layout, input.theme);
   }
+  if (binding?.skiaPrimitive?.kind === "time-field") {
+    return buildGenericTimeFieldNode(input.node, layout, input.theme);
+  }
   if (binding?.skiaPrimitive?.kind === "toggle-button") {
     return buildGenericToggleButtonNode(input.node, layout, input.theme);
   }
@@ -1493,6 +1498,126 @@ function buildGenericDateFieldNode(
   theme: "light" | "dark",
 ): SkiaNodeData {
   const props = toDateFieldRacProps(node.props ?? {}) as DateFieldRacProps;
+  const style = readGenericStyle(node);
+  const size = resolveGenericTextFieldSize(props.size);
+  const isDark = theme === "dark";
+  const labelColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#e5e7eb" : "#374151"),
+    1,
+  );
+  const inputTextColor = colorIntToFloat32(
+    cssColorToHex(isDark ? "#f9fafb" : "#111827"),
+    1,
+  );
+  const strokeColor = colorIntToFloat32(
+    cssColorToHex(props.isInvalid ? "#dc2626" : isDark ? "#6b7280" : "#d1d5db"),
+    1,
+  );
+  const inputY = props.label ? size.labelHeight + size.gap : 0;
+  const inputHeight = Math.max(layout.height - inputY, size.inputHeight);
+  const valueText = props.value ?? props.defaultValue ?? props.placeholderValue;
+  const children: SkiaNodeData[] = [];
+
+  if (props.label) {
+    children.push({
+      type: "text",
+      elementId: `${node.id}:label`,
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: size.labelHeight,
+      visible: true,
+      text: {
+        content: props.label,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.labelFontSize,
+        fontWeight: 500,
+        color: labelColor,
+        align: "left",
+        lineHeight: size.labelLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: layout.width,
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+      },
+    });
+  }
+
+  children.push({
+    type: "container",
+    elementId: `${node.id}:input`,
+    x: 0,
+    y: inputY,
+    width: layout.width,
+    height: inputHeight,
+    visible: true,
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(isDark ? "#111827" : "#ffffff"),
+        props.isQuiet ? 0 : 1,
+      ),
+      borderRadius: readNumber(style.borderRadius, 6),
+      strokeColor,
+      strokeWidth: props.isQuiet ? 0 : 1,
+    },
+    children: [
+      {
+        type: "text",
+        elementId: `${node.id}:value`,
+        x: 0,
+        y: 0,
+        width: layout.width,
+        height: inputHeight,
+        visible: true,
+        text: {
+          content: valueText,
+          fontFamilies: [fontFamily.sans],
+          fontSize: size.inputFontSize,
+          color:
+            props.value || props.defaultValue ? inputTextColor : labelColor,
+          align: "left",
+          lineHeight: size.inputLineHeight,
+          paddingLeft: size.paddingX,
+          paddingTop: 0,
+          maxWidth: Math.max(layout.width - size.paddingX * 2, 0),
+          verticalAlign: "middle",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+        },
+      },
+    ],
+  });
+
+  return {
+    type: "container",
+    elementId: node.id,
+    x: layout.x,
+    y: layout.y,
+    width: layout.width,
+    height: layout.height,
+    visible: isGenericNodeVisible(style),
+    box: {
+      fillColor: colorIntToFloat32(
+        cssColorToHex(
+          typeof style.backgroundColor === "string"
+            ? style.backgroundColor
+            : "transparent",
+        ),
+        0,
+      ),
+      borderRadius: readNumber(style.borderRadius, 0),
+    },
+    children,
+  };
+}
+
+function buildGenericTimeFieldNode(
+  node: ResolvedNode,
+  layout: GenericResolvedSkiaLayout,
+  theme: "light" | "dark",
+): SkiaNodeData {
+  const props = toTimeFieldRacProps(node.props ?? {}) as TimeFieldRacProps;
   const style = readGenericStyle(node);
   const size = resolveGenericTextFieldSize(props.size);
   const isDark = theme === "dark";

@@ -5,6 +5,7 @@ import { dateFieldPrimitiveBinding } from "../primitives/dateField";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
+import { timeFieldPrimitiveBinding } from "../primitives/timeField";
 import { buildInspectorFieldSections } from "../outputs/inspectorFields";
 import {
   toButtonRacProps,
@@ -12,6 +13,7 @@ import {
   toNumberFieldRacProps,
   toSearchFieldRacProps,
   toTextFieldRacProps,
+  toTimeFieldRacProps,
 } from "../outputs/toRacProps";
 
 describe("ADR-142 inspector field contracts", () => {
@@ -319,6 +321,62 @@ describe("ADR-142 inspector field contracts", () => {
       hourCycle: 24,
       locale: "ko-KR",
       calendar: "gregory",
+      size: "lg",
+      isRequired: true,
+      labelPosition: "side",
+    });
+  });
+
+  it("groups TimeField PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "TimeField",
+      contracts: timeFieldPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { TimeField: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Content",
+      "Appearance",
+      "Locale",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "label",
+      "value",
+      "placeholderValue",
+      "description",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "size",
+      "labelPosition",
+      "isQuiet",
+      "granularity",
+      "hourCycle",
+    ]);
+  });
+
+  it("projects TimeField canonical props through the catalog boundary", () => {
+    expect(
+      toTimeFieldRacProps({
+        label: "Start time",
+        value: "09:30",
+        placeholderValue: "09:00",
+        granularity: "minute",
+        hourCycle: 24,
+        locale: "ko-KR",
+        size: "lg",
+        isRequired: true,
+        labelPosition: "side",
+      }),
+    ).toMatchObject({
+      label: "Start time",
+      value: "09:30",
+      placeholderValue: "09:00",
+      granularity: "minute",
+      hourCycle: 24,
+      locale: "ko-KR",
       size: "lg",
       isRequired: true,
       labelPosition: "side",

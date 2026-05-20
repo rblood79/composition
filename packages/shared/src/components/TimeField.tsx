@@ -18,6 +18,10 @@ import {
   composeRenderProps,
 } from "react-aria-components";
 import { Time } from "@internationalized/date";
+import {
+  toTimeFieldRacProps,
+  type TimeFieldCanonicalProps,
+} from "../catalog/outputs/toRacProps";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
@@ -34,7 +38,7 @@ import "./styles/generated/TimeField.css";
 
 export interface TimeFieldProps<T extends TimeValue> extends Omit<
   AriaTimeFieldProps<T>,
-  "placeholderValue" | "minValue" | "maxValue"
+  "defaultValue" | "maxValue" | "minValue" | "placeholderValue" | "value"
 > {
   label?: string;
   description?: string;
@@ -57,10 +61,13 @@ export interface TimeFieldProps<T extends TimeValue> extends Omit<
   isQuiet?: boolean;
   hideTimeZone?: boolean;
   shouldForceLeadingZeros?: boolean;
+  value?: string | T;
+  defaultValue?: string | T;
   /** @example "09:00" */
   placeholderValue?: string | T;
-  minValue?: T;
-  maxValue?: T;
+  minValue?: string | T;
+  maxValue?: string | T;
+  locale?: string;
   form?: string;
   validationBehavior?: "native" | "aria";
 }
@@ -69,34 +76,70 @@ export function TimeField<T extends TimeValue>({
   label,
   description,
   errorMessage,
-  hourCycle = 24,
+  hourCycle,
   placeholder,
-  size = "md",
+  size,
   necessityIndicator,
-  labelPosition = "top",
+  labelPosition,
   isQuiet,
   hideTimeZone,
   shouldForceLeadingZeros,
+  value,
+  defaultValue,
   placeholderValue,
   minValue,
   maxValue,
+  locale,
   form,
   validationBehavior,
+  isRequired,
+  isDisabled,
+  isReadOnly,
+  isInvalid,
   ...props
 }: TimeFieldProps<T>) {
-  // placeholderValue 문자열 자동 파싱 ("HH:MM" → Time)
-  const parsedPlaceholderValue = (() => {
-    if (!placeholderValue || typeof placeholderValue !== "string")
-      return placeholderValue as T | undefined;
-    const parts = placeholderValue.split(":");
-    if (parts.length >= 2) {
-      const h = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10);
-      const s = parts[2] ? parseInt(parts[2], 10) : 0;
-      if (!isNaN(h) && !isNaN(m)) return new Time(h, m, s) as T;
-    }
-    return undefined;
-  })();
+  const projectedProps = toTimeFieldRacProps({
+    ...props,
+    label,
+    description,
+    errorMessage,
+    hourCycle,
+    value,
+    defaultValue,
+    placeholderValue,
+    minValue,
+    maxValue,
+    size,
+    necessityIndicator,
+    labelPosition,
+    isQuiet,
+    hideTimeZone,
+    shouldForceLeadingZeros,
+    locale,
+    form,
+    validationBehavior,
+    isRequired,
+    isDisabled,
+    isReadOnly,
+    isInvalid,
+  } as TimeFieldCanonicalProps);
+  const parsedValue = parseTimeFieldValue<T>(value ?? projectedProps.value);
+  const parsedDefaultValue = parseTimeFieldValue<T>(
+    defaultValue ?? projectedProps.defaultValue,
+  );
+  const parsedPlaceholderValue = parseTimeFieldValue<T>(
+    placeholderValue ?? projectedProps.placeholderValue,
+  );
+  const parsedMinValue = parseTimeFieldValue<T>(
+    minValue ?? projectedProps.minValue,
+  );
+  const parsedMaxValue = parseTimeFieldValue<T>(
+    maxValue ?? projectedProps.maxValue,
+  );
+  const fieldLabel = label;
+  const fieldDescription = description ?? projectedProps.description;
+  const fieldErrorMessage = errorMessage ?? projectedProps.errorMessage;
+  const fieldIsRequired = isRequired ?? projectedProps.isRequired;
 
   return (
     <AriaTimeField
@@ -106,34 +149,70 @@ export function TimeField<T extends TimeValue>({
           ? `react-aria-TimeField ${className}`
           : "react-aria-TimeField",
       )}
-      data-size={size}
-      data-label-position={labelPosition}
-      data-quiet={isQuiet ? "true" : undefined}
-      hourCycle={hourCycle}
+      data-size={size ?? projectedProps.size}
+      data-label-position={labelPosition ?? projectedProps.labelPosition}
+      data-quiet={(isQuiet ?? projectedProps.isQuiet) ? "true" : undefined}
+      value={parsedValue}
+      defaultValue={parsedDefaultValue}
+      hourCycle={projectedProps.hourCycle}
+      granularity={projectedProps.granularity}
       placeholderValue={parsedPlaceholderValue}
-      hideTimeZone={hideTimeZone}
-      shouldForceLeadingZeros={shouldForceLeadingZeros}
-      minValue={minValue}
-      maxValue={maxValue}
+      hideTimeZone={hideTimeZone ?? projectedProps.hideTimeZone}
+      shouldForceLeadingZeros={
+        shouldForceLeadingZeros ?? projectedProps.shouldForceLeadingZeros
+      }
+      minValue={parsedMinValue}
+      maxValue={parsedMaxValue}
+      isRequired={fieldIsRequired}
+      isDisabled={isDisabled ?? projectedProps.isDisabled}
+      isReadOnly={isReadOnly ?? projectedProps.isReadOnly}
+      isInvalid={isInvalid ?? projectedProps.isInvalid}
       form={form}
       validationBehavior={validationBehavior}
     >
-      {label && (
+      {fieldLabel && (
         <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
+          {fieldLabel}
+          {renderNecessityIndicator(
+            necessityIndicator ?? projectedProps.necessityIndicator,
+            fieldIsRequired,
+          )}
         </Label>
       )}
       <DateInput className="react-aria-DateInput inset">
         {(segment) => (
           <DateSegment
             segment={segment}
-            data-placeholder={!segment.isPlaceholder ? undefined : placeholder}
+            data-placeholder={
+              !segment.isPlaceholder
+                ? undefined
+                : (placeholder ?? projectedProps.placeholderValue)
+            }
           />
         )}
       </DateInput>
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {fieldDescription && <Text slot="description">{fieldDescription}</Text>}
+      <FieldError>{fieldErrorMessage}</FieldError>
     </AriaTimeField>
   );
+}
+
+function parseTimeFieldValue<T extends TimeValue>(
+  value: string | TimeValue | undefined,
+): T | undefined {
+  if (typeof value === "string") {
+    const [hours, minutes, seconds] = value.split(":");
+    const hour = Number(hours);
+    const minute = Number(minutes);
+    const second = seconds === undefined ? 0 : Number(seconds);
+    if (
+      Number.isInteger(hour) &&
+      Number.isInteger(minute) &&
+      Number.isInteger(second)
+    ) {
+      return new Time(hour, minute, second) as T;
+    }
+    return undefined;
+  }
+  return value as T | undefined;
 }

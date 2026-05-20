@@ -12,6 +12,7 @@ import {
   SearchFieldSpec,
   SeparatorSpec,
   TextFieldSpec,
+  TimeFieldSpec,
   ToggleButtonSpec,
   ToggleButtonGroupSpec,
   ToolbarSpec,
@@ -318,6 +319,33 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("datefield-1");
     expect(collectText(node)).toContain("Start date");
     expect(collectText(node)).toContain("2026-05-20");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved TimeField through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(TimeFieldSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "timefield-1",
+        type: "TimeField",
+        props: {
+          label: "Start time",
+          value: "09:30",
+          placeholderValue: "09:00",
+          granularity: "minute",
+          size: "lg",
+        },
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 240, height: 72 },
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("timefield-1");
+    expect(collectText(node)).toContain("Start time");
+    expect(collectText(node)).toContain("09:30");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

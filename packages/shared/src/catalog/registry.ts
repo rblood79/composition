@@ -5,6 +5,7 @@ import { linkInspectorThemeValues } from "./primitives/link";
 import { numberFieldInspectorThemeValues } from "./primitives/numberField";
 import { searchFieldInspectorThemeValues } from "./primitives/searchField";
 import { textFieldInspectorThemeValues } from "./primitives/textField";
+import { timeFieldInspectorThemeValues } from "./primitives/timeField";
 import type { InspectorThemeLookup } from "./outputs/inspectorFields";
 import { componentCatalog } from "./componentCatalog";
 
@@ -33,6 +34,7 @@ export function getPrimitiveInspectorThemeValues(
   if (type === "NumberField") return numberFieldInspectorThemeValues;
   if (type === "SearchField") return searchFieldInspectorThemeValues;
   if (type === "DateField") return dateFieldInspectorThemeValues;
+  if (type === "TimeField") return timeFieldInspectorThemeValues;
   return {};
 }
 

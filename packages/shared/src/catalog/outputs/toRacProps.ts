@@ -78,6 +78,12 @@ export const DATE_FIELD_GRANULARITY_VALUES = [
   "second",
 ] as const;
 export const DATE_FIELD_HOUR_CYCLE_VALUES = ["12", "24"] as const;
+export const TIME_FIELD_GRANULARITY_VALUES = [
+  "hour",
+  "minute",
+  "second",
+] as const;
+export const TIME_FIELD_HOUR_CYCLE_VALUES = DATE_FIELD_HOUR_CYCLE_VALUES;
 export const DATE_FIELD_CALENDAR_VALUES = [
   "gregory",
   "buddhist",
@@ -159,6 +165,8 @@ const SEARCH_FIELD_ENTER_KEY_HINTS = new Set<string>(
 );
 const DATE_FIELD_GRANULARITIES = new Set<string>(DATE_FIELD_GRANULARITY_VALUES);
 const DATE_FIELD_HOUR_CYCLES = new Set<string>(DATE_FIELD_HOUR_CYCLE_VALUES);
+const TIME_FIELD_GRANULARITIES = new Set<string>(TIME_FIELD_GRANULARITY_VALUES);
+const TIME_FIELD_HOUR_CYCLES = new Set<string>(TIME_FIELD_HOUR_CYCLE_VALUES);
 const DATE_FIELD_CALENDARS = new Set<string>(DATE_FIELD_CALENDAR_VALUES);
 const NUMBER_FIELD_FORMAT_STYLES = new Set<string>(
   NUMBER_FIELD_FORMAT_STYLE_VALUES,
@@ -464,6 +472,58 @@ export interface DateFieldRacProps extends Record<string, unknown> {
   locale?: string;
   calendar?: (typeof DATE_FIELD_CALENDAR_VALUES)[number];
   timezone?: string;
+  minValue?: string;
+  maxValue?: string;
+  necessityIndicator?: "icon" | "label";
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isReadOnly?: boolean;
+  isInvalid?: boolean;
+  hideTimeZone?: boolean;
+  shouldForceLeadingZeros?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface TimeFieldCanonicalProps extends Record<string, unknown> {
+  label?: unknown;
+  value?: unknown;
+  defaultValue?: unknown;
+  placeholderValue?: unknown;
+  description?: unknown;
+  errorMessage?: unknown;
+  granularity?: unknown;
+  hourCycle?: unknown;
+  locale?: unknown;
+  minValue?: unknown;
+  maxValue?: unknown;
+  size?: unknown;
+  labelPosition?: unknown;
+  necessityIndicator?: unknown;
+  isRequired?: unknown;
+  isDisabled?: unknown;
+  isReadOnly?: unknown;
+  isInvalid?: unknown;
+  isQuiet?: unknown;
+  hideTimeZone?: unknown;
+  shouldForceLeadingZeros?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface TimeFieldRacProps extends Record<string, unknown> {
+  label: string;
+  placeholderValue: string;
+  granularity: (typeof TIME_FIELD_GRANULARITY_VALUES)[number];
+  hourCycle: 12 | 24;
+  size: ComponentSize;
+  labelPosition: "top" | "side";
+  isQuiet: boolean;
+  value?: string;
+  defaultValue?: string;
+  description?: string;
+  errorMessage?: string;
+  locale?: string;
   minValue?: string;
   maxValue?: string;
   necessityIndicator?: "icon" | "label";
@@ -912,6 +972,70 @@ export function toDateFieldRacProps(
   };
 }
 
+export function toTimeFieldRacProps(
+  props: TimeFieldCanonicalProps,
+): TimeFieldRacProps {
+  return {
+    label: readString(props.label, "Time"),
+    placeholderValue: readString(props.placeholderValue, "09:00"),
+    granularity: normalizeTimeFieldGranularity(props.granularity),
+    hourCycle: normalizeTimeFieldHourCycle(props.hourCycle),
+    size: normalizeTextFieldSize(props.size),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    isQuiet: props.isQuiet === true,
+    ...(typeof props.value === "string" && props.value.length > 0
+      ? { value: props.value }
+      : {}),
+    ...(typeof props.defaultValue === "string" && props.defaultValue.length > 0
+      ? { defaultValue: props.defaultValue }
+      : {}),
+    ...(typeof props.description === "string"
+      ? { description: props.description }
+      : {}),
+    ...(typeof props.errorMessage === "string"
+      ? { errorMessage: props.errorMessage }
+      : {}),
+    ...(typeof props.locale === "string" && props.locale.length > 0
+      ? { locale: props.locale }
+      : {}),
+    ...(typeof props.minValue === "string" && props.minValue.length > 0
+      ? { minValue: props.minValue }
+      : {}),
+    ...(typeof props.maxValue === "string" && props.maxValue.length > 0
+      ? { maxValue: props.maxValue }
+      : {}),
+    ...(normalizeTextFieldNecessityIndicator(props.necessityIndicator)
+      ? {
+          necessityIndicator: normalizeTextFieldNecessityIndicator(
+            props.necessityIndicator,
+          ),
+        }
+      : {}),
+    ...(typeof props.isRequired === "boolean"
+      ? { isRequired: props.isRequired }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.isReadOnly === "boolean"
+      ? { isReadOnly: props.isReadOnly }
+      : {}),
+    ...(typeof props.isInvalid === "boolean"
+      ? { isInvalid: props.isInvalid }
+      : {}),
+    ...(typeof props.hideTimeZone === "boolean"
+      ? { hideTimeZone: props.hideTimeZone }
+      : {}),
+    ...(typeof props.shouldForceLeadingZeros === "boolean"
+      ? { shouldForceLeadingZeros: props.shouldForceLeadingZeros }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -1114,12 +1238,32 @@ function normalizeDateFieldGranularity(
     : "day";
 }
 
+function normalizeTimeFieldGranularity(
+  value: unknown,
+): (typeof TIME_FIELD_GRANULARITY_VALUES)[number] {
+  return typeof value === "string" && TIME_FIELD_GRANULARITIES.has(value)
+    ? (value as (typeof TIME_FIELD_GRANULARITY_VALUES)[number])
+    : "minute";
+}
+
 function normalizeDateFieldHourCycle(value: unknown): 12 | 24 {
   if (value === 12 || value === "12") return 12;
   if (
     value === 24 ||
     value === "24" ||
     (typeof value === "string" && DATE_FIELD_HOUR_CYCLES.has(value))
+  ) {
+    return 24;
+  }
+  return 24;
+}
+
+function normalizeTimeFieldHourCycle(value: unknown): 12 | 24 {
+  if (value === 12 || value === "12") return 12;
+  if (
+    value === 24 ||
+    value === "24" ||
+    (typeof value === "string" && TIME_FIELD_HOUR_CYCLES.has(value))
   ) {
     return 24;
   }

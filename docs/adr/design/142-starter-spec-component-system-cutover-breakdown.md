@@ -377,7 +377,7 @@ Gate: G6 일부 (legacy 격리 경계 확립)
 
 Status: In Progress — 2026-05-20 (Button / Separator / Link / Breadcrumbs /
 Breadcrumb subpart / ToggleButton / ToggleButtonGroup / Toolbar / TextField /
-NumberField / SearchField / DateField
+NumberField / SearchField / DateField / TimeField
 primitive wrapper boundary slices; Button Icon PropContract parity). `packages/shared/src/components/Button.tsx` 는
 `toButtonRacProps()` 를,
 `packages/shared/src/components/Separator.tsx` 는 `toSeparatorRacProps()` 를,
@@ -391,14 +391,15 @@ primitive wrapper boundary slices; Button Icon PropContract parity). `packages/s
 `toTextFieldRacProps()` 를, `packages/shared/src/components/NumberField.tsx` 는
 `toNumberFieldRacProps()` 를, `packages/shared/src/components/SearchField.tsx` 는
 `toSearchFieldRacProps()` 를, `packages/shared/src/components/DateField.tsx` 는
-`toDateFieldRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
+`toDateFieldRacProps()` 를, `packages/shared/src/components/TimeField.tsx` 는
+`toTimeFieldRacProps()` 를 사용해 catalog binding projection 을 shared wrapper 의
 props source 로 소비한다. Breadcrumbs/ToggleButtonGroup/Toolbar 는
 `PrimitiveBinding.placement` child template 으로 기본 자식 생성을 catalog payload 에
 포함한다. Button 은 `buttonPrimitiveBinding.props.accepts` 의 `Icon` section 으로
 `iconName` / `iconPosition` / `iconStrokeWidth` 를 노출하고 shared Button wrapper 가
 이를 Icon child 로 렌더한다. `packages/shared/src/components/legacy/README.md` 는
 compatibility fallback 허용 범위와 active Builder authoring import 금지 경계를
-문서화했다. 이 slice 는 placeable eight primitive plus Breadcrumb subpart 의 G6
+문서화했다. 이 slice 는 placeable twelve primitive plus Breadcrumb subpart 의 G6
 boundary 를 고정하지만, 전체 primitive wrapper family 이동과 `index.ts` barrel
 정리는 아직 남아 있다.
 
@@ -449,12 +450,12 @@ Fixture: `componentPanelCatalog.test.ts`, `useElementCreator.catalog.test.ts`.
 검증: `pnpm -F @composition/specs build` / `pnpm run codex:typecheck`
 Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
-Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField text +
+Status: In Progress — 2026-05-20 (Separator line + Link/Breadcrumb/TextField/NumberField/SearchField/DateField/TimeField text +
 ToggleButton button-like + ToggleButtonGroup/Toolbar child-recursive generic
 Skia slices; Button icon_path parity). `PrimitiveSkiaDescriptor.kind` 에 `separator` / `link` /
-`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `toggle-button` 를 추가하고, generic Skia path 가
+`breadcrumb` / `text-field` / `number-field` / `search-field` / `date-field` / `time-field` / `toggle-button` 를 추가하고, generic Skia path 가
 Separator resolved node 를 `line` node 로, Link resolved node 를 underline text node
-로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField resolved node 를
+로, Breadcrumb subpart 를 text node 로, TextField/NumberField/SearchField/DateField/TimeField resolved node 를
 label/input/value container/text node 로, ToggleButton resolved node 를 selected/emphasized 상태의
 button-like container/text node 로 렌더한다.
 ToggleButtonGroup/Toolbar 는 dedicated `skiaPrimitive` 없이 generic container +
@@ -464,10 +465,11 @@ Button node 의 `icon_path` child 로 렌더된다. `canonicalSkiaSymmetry.test.
 `SeparatorSpec.render.shapes()`, `LinkSpec.render.shapes()`,
 `BreadcrumbsSpec.render.shapes()`, `BreadcrumbSpec.render.shapes()`,
 `TextFieldSpec.render.shapes()`, `NumberFieldSpec.render.shapes()`,
-`SearchFieldSpec.render.shapes()`, `DateFieldSpec.render.shapes()`, `ToggleButtonSpec.render.shapes()`,
+`SearchFieldSpec.render.shapes()`, `DateFieldSpec.render.shapes()`,
+`TimeFieldSpec.render.shapes()`, `ToggleButtonSpec.render.shapes()`,
 `ToggleButtonGroupSpec.render.shapes()`,
 `ToolbarSpec.render.shapes()` 미호출을 검증한다.
-Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/ToggleButton/ToggleButtonGroup/Toolbar 외
+Button/Separator/Link/Breadcrumbs/TextField/NumberField/SearchField/DateField/TimeField/ToggleButton/ToggleButtonGroup/Toolbar 외
 primitive 의 CSS/Skia generic 정합은 아직 남아 있다.
 
 ### Phase 6 — Family-gated atomic cutover

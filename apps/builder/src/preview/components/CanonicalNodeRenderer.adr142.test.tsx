@@ -21,6 +21,7 @@ const {
   legacySearchFieldRenderer,
   legacySeparatorRenderer,
   legacyTextFieldRenderer,
+  legacyTimeFieldRenderer,
   legacyToggleButtonRenderer,
   legacyToggleButtonGroupRenderer,
   legacyToolbarRenderer,
@@ -50,6 +51,9 @@ const {
   legacyTextFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="TextField">legacy</div>
   )),
+  legacyTimeFieldRenderer: vi.fn(() => (
+    <div data-legacy-renderer="TimeField">legacy</div>
+  )),
   legacyToggleButtonRenderer: vi.fn(() => (
     <button data-legacy-renderer="ToggleButton">legacy</button>
   )),
@@ -72,6 +76,7 @@ vi.mock("@composition/shared/renderers", () => ({
     SearchField: legacySearchFieldRenderer,
     Separator: legacySeparatorRenderer,
     TextField: legacyTextFieldRenderer,
+    TimeField: legacyTimeFieldRenderer,
     ToggleButton: legacyToggleButtonRenderer,
     ToggleButtonGroup: legacyToggleButtonGroupRenderer,
     Toolbar: legacyToolbarRenderer,
@@ -103,6 +108,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacySearchFieldRenderer.mockClear();
     legacySeparatorRenderer.mockClear();
     legacyTextFieldRenderer.mockClear();
+    legacyTimeFieldRenderer.mockClear();
     legacyToggleButtonRenderer.mockClear();
     legacyToggleButtonGroupRenderer.mockClear();
     legacyToolbarRenderer.mockClear();
@@ -486,5 +492,30 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector(".react-aria-DateField"),
     );
     expect(legacyDateFieldRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders TimeField through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "timefield-1",
+      type: "TimeField",
+      props: {
+        label: "Start time",
+        placeholderValue: "09:00",
+        granularity: "minute",
+        hourCycle: 24,
+        size: "lg",
+        isRequired: true,
+      },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    expect(screen.getByText(/Start time/)).toBeTruthy();
+    expect(container.querySelector("[data-canonical-id='timefield-1']")).toBe(
+      container.querySelector(".react-aria-TimeField"),
+    );
+    expect(legacyTimeFieldRenderer).not.toHaveBeenCalled();
   });
 });

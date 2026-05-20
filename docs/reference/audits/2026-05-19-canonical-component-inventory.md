@@ -278,3 +278,8 @@ DateField primitive pilot 은 `fields` family 의 네 번째 active slice 로
 Preview primitive branch / generic Skia label-input-value fixture 를 추가했다.
 DateField 역시 `DateFieldSpec.render.shapes()` 를 호출하지 않는 generic Skia
 fixture 로 고정했으며, fields family 전체 완료 판정은 아니다.
+TimeField primitive pilot 은 `fields` family 의 다섯 번째 active slice 로
+`toTimeFieldRacProps()` / `timeFieldPrimitiveBinding` / active catalog entry /
+Preview primitive branch / generic Skia label-input-value fixture 를 추가했다.
+TimeField 역시 `TimeFieldSpec.render.shapes()` 를 호출하지 않는 generic Skia
+fixture 로 고정했으며, fields family 전체 완료 판정은 아니다.

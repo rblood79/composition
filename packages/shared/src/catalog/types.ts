@@ -35,6 +35,7 @@ export interface PrimitiveSkiaDescriptor {
     | "search-field"
     | "separator"
     | "text-field"
+    | "time-field"
     | "toggle-button";
 }
 

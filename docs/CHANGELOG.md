@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — TimeField primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **TimeField active primitive binding 추가**:
+  - `componentCatalog` 에 `TimeField` 를 `cutover:"catalog"` active fields primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toTimeFieldRacProps()` 와 `timeFieldPrimitiveBinding` 을 추가했다.
+  - generic Inspector section 은 Content / Appearance / Locale / State 순서로 TimeField canonical props 를 노출한다.
+- **TimeField shared wrapper / Preview / Skia generic 경로 연결**:
+  - `TimeField.tsx` 가 catalog projection 을 소비하도록 전환했다.
+  - `CanonicalNodeRenderer` 가 TimeField resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더한다.
+  - generic Skia path 가 TimeField label/input/value 를 container/text node 로 렌더하고 `TimeFieldSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `fields` family 의 다섯 번째 active primitive pilot 이다. fields family 전체 cutover 완료 판정은 아니다.
+
 ## [ADR-142 Phase 3/5/6 — DateField primitive catalog pilot] - 2026-05-20
 
 ### Architecture

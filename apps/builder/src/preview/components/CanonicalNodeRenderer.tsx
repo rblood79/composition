@@ -30,6 +30,7 @@ import {
   type SearchFieldRacProps,
   type SeparatorRacProps,
   type TextFieldRacProps,
+  type TimeFieldRacProps,
   type ToolbarRacProps,
   type ToggleButtonGroupRacProps,
   type ToggleButtonRacProps,
@@ -44,6 +45,7 @@ import {
   SearchField,
   Separator,
   TextField,
+  TimeField,
   Toolbar,
   ToggleButton,
   ToggleButtonGroup,
@@ -340,6 +342,14 @@ function renderPrimitiveNode({
     ) as DateFieldRacProps;
 
     return <DateField key={node.id} {...dateFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "TimeField") {
+    const timeFieldProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as TimeFieldRacProps;
+
+    return <TimeField key={node.id} {...timeFieldProps} {...markerProps} />;
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {
