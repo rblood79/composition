@@ -6,6 +6,7 @@ export * from "./primitives/breadcrumbs";
 export * from "./primitives/button";
 export * from "./primitives/colorField";
 export * from "./primitives/dateField";
+export * from "./primitives/form";
 export * from "./primitives/link";
 export * from "./primitives/numberField";
 export * from "./primitives/searchField";

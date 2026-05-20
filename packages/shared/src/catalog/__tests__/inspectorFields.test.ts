@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buttonPrimitiveBinding } from "../primitives/button";
 import { colorFieldPrimitiveBinding } from "../primitives/colorField";
 import { dateFieldPrimitiveBinding } from "../primitives/dateField";
+import { formPrimitiveBinding } from "../primitives/form";
 import { numberFieldPrimitiveBinding } from "../primitives/numberField";
 import { searchFieldPrimitiveBinding } from "../primitives/searchField";
 import { textFieldPrimitiveBinding } from "../primitives/textField";
@@ -12,6 +13,7 @@ import {
   toButtonRacProps,
   toColorFieldRacProps,
   toDateFieldRacProps,
+  toFormRacProps,
   toNumberFieldRacProps,
   toSearchFieldRacProps,
   toTextFieldRacProps,
@@ -435,6 +437,68 @@ describe("ADR-142 inspector field contracts", () => {
       isRequired: true,
       labelPosition: "side",
       labelAlign: "end",
+    });
+  });
+
+  it("groups Form PropContract entries by section", () => {
+    const sections = buildInspectorFieldSections({
+      componentType: "Form",
+      contracts: formPrimitiveBinding.props.accepts,
+      theme: {
+        sizes: { Form: ["sm", "md", "lg"] },
+      },
+    });
+
+    expect(sections.map((section) => section.title)).toEqual([
+      "Appearance",
+      "Submission",
+      "State",
+    ]);
+    expect(sections[0].fields.map((field) => field.key)).toEqual([
+      "size",
+      "variant",
+      "labelPosition",
+      "labelAlign",
+      "necessityIndicator",
+    ]);
+    expect(sections[1].fields.map((field) => field.key)).toEqual([
+      "action",
+      "method",
+      "encType",
+      "target",
+      "validationBehavior",
+    ]);
+  });
+
+  it("projects Form canonical props through the catalog boundary", () => {
+    expect(
+      toFormRacProps({
+        action: "/api/signup",
+        method: "post",
+        encType: "multipart/form-data",
+        target: "_blank",
+        validationBehavior: "aria",
+        labelPosition: "side",
+        labelAlign: "end",
+        necessityIndicator: "label",
+        size: "lg",
+        variant: "outlined",
+        autoFocus: true,
+        restoreFocus: true,
+      }),
+    ).toMatchObject({
+      action: "/api/signup",
+      method: "post",
+      encType: "multipart/form-data",
+      target: "_blank",
+      validationBehavior: "aria",
+      labelPosition: "side",
+      labelAlign: "end",
+      necessityIndicator: "label",
+      size: "lg",
+      variant: "outlined",
+      autoFocus: true,
+      restoreFocus: true,
     });
   });
 });

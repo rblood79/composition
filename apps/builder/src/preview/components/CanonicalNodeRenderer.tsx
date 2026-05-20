@@ -26,6 +26,7 @@ import {
   type ButtonRacProps,
   type ColorFieldRacProps,
   type DateFieldRacProps,
+  type FormRacProps,
   type LinkRacProps,
   type NumberFieldRacProps,
   type SearchFieldRacProps,
@@ -42,6 +43,7 @@ import {
   Button,
   ColorField,
   DateField,
+  Form,
   Link,
   NumberField,
   SearchField,
@@ -360,6 +362,26 @@ function renderPrimitiveNode({
     ) as ColorFieldRacProps;
 
     return <ColorField key={node.id} {...colorFieldProps} {...markerProps} />;
+  }
+
+  if (adaptedEl.type === "Form") {
+    const formProps = binding.toRacProps(
+      adaptedEl.props as Record<string, unknown>,
+    ) as FormRacProps;
+    const renderedChildren = node.children?.map((child) => (
+      <CanonicalNodeRenderer
+        key={child.id}
+        node={child}
+        renderContext={renderContext}
+        parentPath={parentPath}
+      />
+    ));
+
+    return (
+      <Form key={node.id} {...formProps} {...markerProps}>
+        {renderedChildren}
+      </Form>
+    );
   }
 
   if (adaptedEl.type === "ToggleButtonGroup") {

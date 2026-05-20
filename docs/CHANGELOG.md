@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-142 Phase 3/5/6 — Form primitive catalog pilot] - 2026-05-20
+
+### Architecture
+
+- **Form active primitive binding 추가**:
+  - `componentCatalog` 에 `Form` 을 `cutover:"catalog"` active fields primitive 로 등록했다.
+  - canonical props → RAC props projection 인 `toFormRacProps()` 와 `formPrimitiveBinding` 을 추가했다.
+  - Form placement 는 `PrimitiveBinding.placement` child template 으로 TextField/TextField/Button 기본 자식을 함께 만든다.
+- **Form shared wrapper / Preview / Skia generic 경로 연결**:
+  - `Form.tsx` 가 catalog projection 을 소비하도록 전환했다.
+  - `CanonicalNodeRenderer` 가 Form resolved node 를 legacy `rendererMap` 보다 primitive branch 에서 먼저 렌더하고 child primitives 를 같은 resolved-tree 경로로 재귀 렌더한다.
+  - generic Skia path 가 Form container 와 resolved children 을 렌더하고 `FormSpec.render.shapes()` 를 호출하지 않는 fixture 를 추가했다.
+
+### Documentation
+
+- 이 변경은 `fields` family 의 일곱 번째 active primitive pilot 이다. fields family 전체 cutover 완료 판정은 아니다.
+
 ## [ADR-142 Phase 3/5/6 — ColorField primitive catalog pilot] - 2026-05-20
 
 ### Architecture

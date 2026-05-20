@@ -288,3 +288,9 @@ ColorField primitive pilot 은 `fields` family 의 여섯 번째 active slice �
 Preview primitive branch / generic Skia label-input-value+swatch fixture 를
 추가했다. ColorField 역시 `ColorFieldSpec.render.shapes()` 를 호출하지 않는
 generic Skia fixture 로 고정했으며, fields family 전체 완료 판정은 아니다.
+Form primitive pilot 은 `fields` family 의 일곱 번째 active slice 로
+`toFormRacProps()` / `formPrimitiveBinding` / active catalog entry / Form placement
+TextField/TextField/Button child template / Preview primitive branch / generic Skia
+container+children fixture 를 추가했다. Form 은 dedicated `skiaPrimitive` 없이
+generic container 재귀 경로로 고정했고 `FormSpec.render.shapes()` 를 호출하지
+않는다. fields family 전체 완료 판정은 아니다.

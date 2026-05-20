@@ -100,6 +100,20 @@ export const COLOR_FIELD_LABEL_ALIGN_VALUES = [
   "center",
   "end",
 ] as const;
+export const FORM_VARIANT_VALUES = ["default", "outlined"] as const;
+export const FORM_METHOD_VALUES = ["get", "post"] as const;
+export const FORM_ENCTYPE_VALUES = [
+  "application/x-www-form-urlencoded",
+  "multipart/form-data",
+  "text/plain",
+] as const;
+export const FORM_TARGET_VALUES = [
+  "_self",
+  "_blank",
+  "_parent",
+  "_top",
+] as const;
+export const FORM_VALIDATION_BEHAVIOR_VALUES = ["native", "aria"] as const;
 export const DATE_FIELD_CALENDAR_VALUES = [
   "gregory",
   "buddhist",
@@ -189,6 +203,13 @@ const COLOR_FIELD_COLOR_SPACES = new Set<string>(
 );
 const COLOR_FIELD_LABEL_ALIGNS = new Set<string>(
   COLOR_FIELD_LABEL_ALIGN_VALUES,
+);
+const FORM_VARIANTS = new Set<string>(FORM_VARIANT_VALUES);
+const FORM_METHODS = new Set<string>(FORM_METHOD_VALUES);
+const FORM_ENCTYPES = new Set<string>(FORM_ENCTYPE_VALUES);
+const FORM_TARGETS = new Set<string>(FORM_TARGET_VALUES);
+const FORM_VALIDATION_BEHAVIORS = new Set<string>(
+  FORM_VALIDATION_BEHAVIOR_VALUES,
 );
 const DATE_FIELD_CALENDARS = new Set<string>(DATE_FIELD_CALENDAR_VALUES);
 const NUMBER_FIELD_FORMAT_STYLES = new Set<string>(
@@ -600,6 +621,44 @@ export interface ColorFieldRacProps extends Record<string, unknown> {
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isInvalid?: boolean;
+  className?: string;
+  style?: Record<string, unknown>;
+}
+
+export interface FormCanonicalProps extends Record<string, unknown> {
+  "aria-label"?: unknown;
+  action?: unknown;
+  method?: unknown;
+  encType?: unknown;
+  target?: unknown;
+  validationBehavior?: unknown;
+  labelPosition?: unknown;
+  labelAlign?: unknown;
+  necessityIndicator?: unknown;
+  size?: unknown;
+  variant?: unknown;
+  autoFocus?: unknown;
+  restoreFocus?: unknown;
+  isDisabled?: unknown;
+  className?: unknown;
+  style?: unknown;
+}
+
+export interface FormRacProps extends Record<string, unknown> {
+  size: ComponentSize;
+  variant: (typeof FORM_VARIANT_VALUES)[number];
+  labelPosition: "top" | "side";
+  labelAlign: "start" | "center" | "end";
+  necessityIndicator: "icon" | "label";
+  validationBehavior: (typeof FORM_VALIDATION_BEHAVIOR_VALUES)[number];
+  "aria-label"?: string;
+  action?: string;
+  method?: (typeof FORM_METHOD_VALUES)[number];
+  encType?: (typeof FORM_ENCTYPE_VALUES)[number];
+  target?: (typeof FORM_TARGET_VALUES)[number];
+  autoFocus?: boolean;
+  restoreFocus?: boolean;
+  isDisabled?: boolean;
   className?: string;
   style?: Record<string, unknown>;
 }
@@ -1159,6 +1218,49 @@ export function toColorFieldRacProps(
   };
 }
 
+export function toFormRacProps(props: FormCanonicalProps): FormRacProps {
+  return {
+    size: normalizeTextFieldSize(props.size),
+    variant: normalizeFormVariant(props.variant),
+    labelPosition: normalizeTextFieldLabelPosition(props.labelPosition),
+    labelAlign: normalizeFormLabelAlign(props.labelAlign),
+    necessityIndicator: normalizeFormNecessityIndicator(
+      props.necessityIndicator,
+    ),
+    validationBehavior: normalizeFormValidationBehavior(
+      props.validationBehavior,
+    ),
+    ...(typeof props["aria-label"] === "string"
+      ? { "aria-label": props["aria-label"] }
+      : {}),
+    ...(typeof props.action === "string" && props.action.length > 0
+      ? { action: props.action }
+      : {}),
+    ...(normalizeFormMethod(props.method)
+      ? { method: normalizeFormMethod(props.method) }
+      : {}),
+    ...(normalizeFormEncType(props.encType)
+      ? { encType: normalizeFormEncType(props.encType) }
+      : {}),
+    ...(normalizeFormTarget(props.target)
+      ? { target: normalizeFormTarget(props.target) }
+      : {}),
+    ...(typeof props.autoFocus === "boolean"
+      ? { autoFocus: props.autoFocus }
+      : {}),
+    ...(typeof props.restoreFocus === "boolean"
+      ? { restoreFocus: props.restoreFocus }
+      : {}),
+    ...(typeof props.isDisabled === "boolean"
+      ? { isDisabled: props.isDisabled }
+      : {}),
+    ...(typeof props.className === "string"
+      ? { className: props.className }
+      : {}),
+    ...(isRecord(props.style) ? { style: props.style } : {}),
+  };
+}
+
 export function toLinkRacProps(props: LinkCanonicalProps): LinkRacProps {
   return {
     children: readLinkText(props),
@@ -1441,6 +1543,54 @@ function normalizeColorFieldLabelAlign(
   return typeof value === "string" && COLOR_FIELD_LABEL_ALIGNS.has(value)
     ? (value as "start" | "center" | "end")
     : undefined;
+}
+
+function normalizeFormLabelAlign(value: unknown): "start" | "center" | "end" {
+  return normalizeColorFieldLabelAlign(value) ?? "start";
+}
+
+function normalizeFormNecessityIndicator(value: unknown): "icon" | "label" {
+  return normalizeTextFieldNecessityIndicator(value) ?? "icon";
+}
+
+function normalizeFormVariant(
+  value: unknown,
+): (typeof FORM_VARIANT_VALUES)[number] {
+  return typeof value === "string" && FORM_VARIANTS.has(value)
+    ? (value as (typeof FORM_VARIANT_VALUES)[number])
+    : "default";
+}
+
+function normalizeFormMethod(
+  value: unknown,
+): (typeof FORM_METHOD_VALUES)[number] | undefined {
+  return typeof value === "string" && FORM_METHODS.has(value)
+    ? (value as (typeof FORM_METHOD_VALUES)[number])
+    : undefined;
+}
+
+function normalizeFormEncType(
+  value: unknown,
+): (typeof FORM_ENCTYPE_VALUES)[number] | undefined {
+  return typeof value === "string" && FORM_ENCTYPES.has(value)
+    ? (value as (typeof FORM_ENCTYPE_VALUES)[number])
+    : undefined;
+}
+
+function normalizeFormTarget(
+  value: unknown,
+): (typeof FORM_TARGET_VALUES)[number] | undefined {
+  return typeof value === "string" && FORM_TARGETS.has(value)
+    ? (value as (typeof FORM_TARGET_VALUES)[number])
+    : undefined;
+}
+
+function normalizeFormValidationBehavior(
+  value: unknown,
+): (typeof FORM_VALIDATION_BEHAVIOR_VALUES)[number] {
+  return typeof value === "string" && FORM_VALIDATION_BEHAVIORS.has(value)
+    ? (value as (typeof FORM_VALIDATION_BEHAVIOR_VALUES)[number])
+    : "native";
 }
 
 function normalizeNumberFieldFormatOptions(

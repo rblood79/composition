@@ -46,6 +46,7 @@ const SECTION_ORDER = [
   "locale",
   "format",
   "color",
+  "submission",
   "state",
 ];
 
@@ -145,6 +146,7 @@ function sectionTitle(section: string): string {
     constraints: "Constraints",
     format: "Format",
     color: "Color",
+    submission: "Submission",
     state: "State",
     locale: "Locale",
   };

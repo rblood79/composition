@@ -8,6 +8,7 @@ import {
   ButtonSpec,
   ColorFieldSpec,
   DateFieldSpec,
+  FormSpec,
   LinkSpec,
   NumberFieldSpec,
   SearchFieldSpec,
@@ -375,6 +376,54 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(node?.elementId).toBe("colorfield-1");
     expect(collectText(node)).toContain("Brand color");
     expect(collectText(node)).toContain("#3366ff");
+    expect(renderShapes).not.toHaveBeenCalled();
+    renderShapes.mockRestore();
+  });
+
+  it("renders a resolved Form and children through the generic Skia path without render.shapes", () => {
+    const renderShapes = vi.spyOn(FormSpec.render, "shapes");
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "form-1",
+        type: "Form",
+        props: {
+          labelPosition: "side",
+          size: "lg",
+        },
+        children: [
+          {
+            id: "form-email",
+            type: "TextField",
+            props: {
+              label: "Email",
+              value: "hello@example.com",
+              type: "email",
+            },
+          },
+          {
+            id: "form-submit",
+            type: "Button",
+            props: {
+              children: "Submit",
+              type: "submit",
+            },
+          },
+        ],
+      },
+      theme: "light",
+      layoutById: new Map([
+        ["form-1", { x: 24, y: 32, width: 320, height: 160 }],
+        ["form-email", { x: 40, y: 48, width: 240, height: 72 }],
+        ["form-submit", { x: 40, y: 128, width: 120, height: 36 }],
+      ]),
+    });
+
+    expect(node).not.toBeNull();
+    expect(node?.type).toBe("container");
+    expect(node?.elementId).toBe("form-1");
+    expect(collectText(node)).toEqual(
+      expect.arrayContaining(["Email", "hello@example.com", "Submit"]),
+    );
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
   });

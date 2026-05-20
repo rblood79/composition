@@ -17,6 +17,7 @@ const {
   legacyBreadcrumbsRenderer,
   legacyColorFieldRenderer,
   legacyDateFieldRenderer,
+  legacyFormRenderer,
   legacyLinkRenderer,
   legacyNumberFieldRenderer,
   legacySearchFieldRenderer,
@@ -41,6 +42,9 @@ const {
   )),
   legacyDateFieldRenderer: vi.fn(() => (
     <div data-legacy-renderer="DateField">legacy</div>
+  )),
+  legacyFormRenderer: vi.fn(() => (
+    <form data-legacy-renderer="Form">legacy</form>
   )),
   legacyLinkRenderer: vi.fn(() => <a data-legacy-renderer="Link">legacy</a>),
   legacyNumberFieldRenderer: vi.fn(() => (
@@ -76,6 +80,7 @@ vi.mock("@composition/shared/renderers", () => ({
     Breadcrumbs: legacyBreadcrumbsRenderer,
     ColorField: legacyColorFieldRenderer,
     DateField: legacyDateFieldRenderer,
+    Form: legacyFormRenderer,
     Link: legacyLinkRenderer,
     NumberField: legacyNumberFieldRenderer,
     SearchField: legacySearchFieldRenderer,
@@ -109,6 +114,7 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
     legacyBreadcrumbsRenderer.mockClear();
     legacyColorFieldRenderer.mockClear();
     legacyDateFieldRenderer.mockClear();
+    legacyFormRenderer.mockClear();
     legacyLinkRenderer.mockClear();
     legacyNumberFieldRenderer.mockClear();
     legacySearchFieldRenderer.mockClear();
@@ -550,5 +556,54 @@ describe("CanonicalNodeRenderer ADR-142 primitive binding proof", () => {
       container.querySelector(".react-aria-ColorField"),
     );
     expect(legacyColorFieldRenderer).not.toHaveBeenCalled();
+  });
+
+  it("renders Form and children through PrimitiveBinding before rendererMap fallback", () => {
+    const node: ResolvedNode = {
+      id: "form-1",
+      type: "Form",
+      props: {
+        action: "/api/signup",
+        method: "post",
+        validationBehavior: "aria",
+        labelPosition: "side",
+        labelAlign: "end",
+        size: "lg",
+      },
+      children: [
+        {
+          id: "form-email",
+          type: "TextField",
+          props: {
+            label: "Email",
+            value: "hello@example.com",
+            type: "email",
+          },
+        },
+        {
+          id: "form-submit",
+          type: "Button",
+          props: {
+            children: "Submit",
+            type: "submit",
+          },
+        },
+      ],
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer node={node} renderContext={makeRenderContext()} />,
+    );
+
+    const form = container.querySelector("form.react-aria-Form");
+    expect(form?.getAttribute("action")).toBe("/api/signup");
+    expect(form?.getAttribute("method")).toBe("post");
+    expect(form?.getAttribute("data-size")).toBe("lg");
+    expect(form?.getAttribute("data-label-position")).toBe("side");
+    expect(form?.getAttribute("data-label-align")).toBe("end");
+    expect(container.querySelector("[data-canonical-id='form-1']")).toBe(form);
+    expect(screen.getByRole("textbox", { name: /Email/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Submit" })).toBeTruthy();
+    expect(legacyFormRenderer).not.toHaveBeenCalled();
   });
 });

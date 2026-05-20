@@ -3,6 +3,7 @@ import { breadcrumbsPrimitiveBinding } from "./primitives/breadcrumbs";
 import { buttonPrimitiveBinding } from "./primitives/button";
 import { colorFieldPrimitiveBinding } from "./primitives/colorField";
 import { dateFieldPrimitiveBinding } from "./primitives/dateField";
+import { formPrimitiveBinding } from "./primitives/form";
 import { linkPrimitiveBinding } from "./primitives/link";
 import { numberFieldPrimitiveBinding } from "./primitives/numberField";
 import { searchFieldPrimitiveBinding } from "./primitives/searchField";
@@ -199,6 +200,19 @@ export const componentCatalog = [
       category: "forms",
       label: "color field",
       icon: "Palette",
+      placeable: true,
+    },
+  },
+  {
+    kind: "primitive",
+    type: "Form",
+    family: "fields",
+    cutover: "catalog",
+    binding: formPrimitiveBinding,
+    panel: {
+      category: "forms",
+      label: "form",
+      icon: "GroupIcon",
       placeable: true,
     },
   },
