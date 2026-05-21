@@ -663,8 +663,15 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
       `hitTestOwner: true + ownerPath` 자식 emission + Select/ComboBox
       `getCustomPreEditor` 등록 + 4 family PropertyEditor 의
       `detectInspectorInputMode` wiring.
-- [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910
-      begins or the family is explicitly held.
+- [x] Perf baseline is recorded and G7 blocking budget passes before ADR-910
+      begins or the family is explicitly held. (Phase 8 PASS — 7/7 perf test
+      land, Tabs resolved-tree p95 ≤ props-only × 1.25 + 모든 family 60fps
+      budget hold. 1000-item ListBox/Menu props-only p95 0.27~0.36ms 가
+      build-frame dominant cost — ADR-910 Phase 0 picture cache / paint pool
+      후보. Evidence: `apps/builder/src/builder/workspace/canvas/skia/__perf__/adr144Phase8FrameBudget.perf.test.ts`,
+      `144-composite-rac-resolved-tree-parity-phase8-methodology.md`,
+      `144-composite-rac-resolved-tree-parity-phase8-results.md`. Wave B
+      후 4 family resolved-tree G7-A 재측정 의무는 debt 로 명시.)
 - [ ] C3-a 데이터 source 3축 (Data Panel inline persisted / API endpoint persisted config + Zustand runtime sink + Canvas direct proxy fallback 잔존 / Properties inline `element.props[itemsKey]`) 과 C3-b 3 input mode (external dataBinding / new resolved-tree local data / legacy `props.items[]` fallback) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다. Builder execute path 와 Preview/Canvas read path 의 sink 정합 (`useCollectionData.ts:340-355` direct proxy branch) 은 G3/G6 에서 row identity / owner projection 별도 검증.
 - [x] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이며, mode 2 (resolved-tree local data) 로 동작한다.
 - [x] Phase 5 task 7 Inspector Properties UI 가 3 input mode (dataBinding picker / slot 추가·삭제 UI / ItemsManager) 로 분기되며 한 instance 에 동시 표시되지 않는다. mode 감지 순서: dataBinding → resolved-tree composite payload → legacy fallback. mode 감지는 `detectInspectorInputMode` (`apps/builder/src/builder/panels/properties/inspectorInputMode.ts`) 단일 진입점 helper 로 관리되고 ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 helper 를 호출한다 (Select/ComboBox/Table/Tree). Tabs 는 composite resolved-tree PropertyEditor 별 패턴으로 G6 phase 7 family expansion 에서 wiring.
@@ -686,5 +693,6 @@ pnpm -F @composition/builder exec vitest run src/resolvers/canonical/__tests__/c
 pnpm -F @composition/builder exec vitest run src/preview/components/CanonicalNodeRenderer.adr144.test.tsx
 pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts
 pnpm -F @composition/shared exec vitest run src/components/__tests__/Tabs.behavior.test.tsx
+pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia/__perf__/adr144Phase8FrameBudget.perf.test.ts
 pnpm run codex:typecheck
 ```

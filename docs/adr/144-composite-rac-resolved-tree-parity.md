@@ -62,6 +62,22 @@ In Progress — 2026-05-21
   부재는 본 test file 안 inline polyfill 로 처리 (RAC SharedElementTransition /
   useSelectableCollection 가 호출). Evidence:
   `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (6/6 PASS).
+- 2026-05-22 — Phase 8 G7 (perf baseline + ADR-910 handoff) 완료. methodology
+  를 1-page lockin (`144-composite-rac-resolved-tree-parity-phase8-methodology.md`)
+  으로 고정한 후 perf test harness
+  (`apps/builder/src/builder/workspace/canvas/skia/__perf__/adr144Phase8FrameBudget.perf.test.ts`,
+  warmup W=20 / measure N=100) 로 7 case 측정 7/7 PASS. Tabs N=10/N=100 dual-path
+  비교에서 resolved-tree p95 (0.010 / 0.017ms) 는 props-only p95 (0.011 / 0.016ms)
+  대비 +25% blocking budget 안 통과 (G7-A). 모든 측정 path 의 p95 가 60fps
+  budget (16.67ms) 의 1.6~2.1% 만 사용 (G7-B). family stress 1000 scale 에서
+  Tabs resolved-tree p95=0.020ms, ListBox props-only p95=0.361ms (2003 nodes),
+  Menu props-only p95=0.274ms (2005 nodes), Select/ComboBox N=200 p95 ≤ 0.023ms
+  모두 60fps 통과 (G7-C). ADR-910 Phase 0 baseline feed: 1000-item collection
+  (ListBox/Menu props-only) 가 build-frame dominant cost — picture cache /
+  paint pool 후보. **family hold 발생 없음, ADR-910 prerequisite 승격 사유
+  없음**. 4 family Wave B 미land 상태에서는 resolved-tree Skia path 가 active
+  아니므로 G7-A 비교는 Wave B 후 재측정 의무 (debt). Evidence:
+  `docs/adr/design/144-composite-rac-resolved-tree-parity-phase8-results.md`.
 - 2026-05-22 — Phase 7 G6 (family expansion matrix 1 행: Select / ComboBox /
   ListBox / Menu) 1차 land 완료. (a) `compositeRacFixtures.test.ts` 가
   `RAC-showcase.json` 의 `ListBox` / `ListBoxItem` / `Menu` / `MenuItem` /
