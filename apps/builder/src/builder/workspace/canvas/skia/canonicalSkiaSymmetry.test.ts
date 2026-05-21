@@ -142,6 +142,22 @@ function collectOwnerPaths(node: SkiaNodeData | null | undefined): string[] {
   ];
 }
 
+function collectHitTestOwnerElementIds(
+  node: SkiaNodeData | null | undefined,
+): string[] {
+  if (!node) return [];
+  const own =
+    node.hitTestOwner === true && typeof node.elementId === "string"
+      ? [node.elementId]
+      : [];
+  return [
+    ...own,
+    ...(node.children ?? []).flatMap((child) =>
+      collectHitTestOwnerElementIds(child),
+    ),
+  ];
+}
+
 describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
   it("renders a resolved Button ref through the generic Skia path without render.shapes", () => {
     const renderShapes = vi.spyOn(ButtonSpec.render, "shapes");
@@ -834,6 +850,127 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
       ]),
     );
   });
+
+  it.each([
+    {
+      label: "ListBox",
+      type: "ListBox",
+      itemType: "ListBoxItem",
+      props: { selectionMode: "single", "aria-label": "ListBox" },
+      synthPrefixes: ["listbox-resolved:item:", "listbox-resolved:background"],
+    },
+    {
+      label: "Menu",
+      type: "Menu",
+      itemType: "MenuItem",
+      props: { "aria-label": "Menu", children: "Menu", selectionMode: "none" },
+      synthPrefixes: [
+        "menu-resolved:item:",
+        "menu-resolved:trigger:",
+        "menu-resolved:menu:",
+      ],
+    },
+    {
+      label: "ComboBox",
+      type: "ComboBox",
+      itemType: "ComboBoxItem",
+      props: {
+        label: "Combo Box",
+        placeholder: "Pick one",
+        "aria-label": "Combo Box",
+      },
+      synthPrefixes: [
+        "combobox-resolved:item:",
+        "combobox-resolved:input",
+        "combobox-resolved:value",
+        "combobox-resolved:list",
+      ],
+    },
+    {
+      label: "Select",
+      type: "Select",
+      itemType: "SelectItem",
+      props: {
+        label: "Select",
+        placeholder: "Pick one",
+        "aria-label": "Select",
+      },
+      synthPrefixes: [
+        "select-resolved:item:",
+        "select-resolved:trigger",
+        "select-resolved:value",
+        "select-resolved:list",
+      ],
+    },
+  ])(
+    "$label composite resolved children: synthetic editable owner 0 hitTestOwner exposure (ADR-144 G6)",
+    ({
+      type,
+      itemType,
+      props,
+      synthPrefixes,
+    }: {
+      type: string;
+      itemType: string;
+      props: Record<string, unknown>;
+      synthPrefixes: string[];
+    }) => {
+      const rootId = `${type.toLowerCase()}-resolved`;
+      const node = buildGenericResolvedSkiaNodeData({
+        node: {
+          id: rootId,
+          type: type as CanonicalNode["type"],
+          props,
+          children: [
+            {
+              id: `${rootId}-item-1`,
+              type: itemType as CanonicalNode["type"],
+              props: {},
+              children: [
+                {
+                  id: `${rootId}-item-1-label`,
+                  type: "Text",
+                  props: { text: "Aardvark" },
+                },
+              ],
+            },
+            {
+              id: `${rootId}-item-2`,
+              type: itemType as CanonicalNode["type"],
+              props: {},
+              children: [
+                {
+                  id: `${rootId}-item-2-label`,
+                  type: "Text",
+                  props: { text: "Cat" },
+                },
+              ],
+            },
+          ],
+        },
+        theme: "light",
+        layout: { x: 0, y: 0, width: 240, height: 200 },
+      });
+
+      expect(node).not.toBeNull();
+      expect(node?.type).toBe("container");
+      // Root container always preserves the canonical instance id (top-level
+      // selection handled separately by the page element registry).
+      expect(node?.elementId).toBe(rootId);
+
+      // G6: no synthetic child node is registered as a hit-test (editable)
+      // owner. Visual draw-only ids like `${rootId}:item:X` may exist in the
+      // SkiaNodeData tree but their hitTestOwner flag must remain unset, so
+      // nothing surfaces in the renderCommands boundsMap as a selection
+      // candidate masquerading as a canonical node.
+      const hitTestOwnerIds = collectHitTestOwnerElementIds(node);
+      for (const id of hitTestOwnerIds) {
+        for (const prefix of synthPrefixes) {
+          expect(id.startsWith(prefix)).toBe(false);
+        }
+      }
+    },
+  );
 
   it("renders a resolved Tree items path without render.shapes", () => {
     const renderShapes = vi.spyOn(TreeSpec.render, "shapes");

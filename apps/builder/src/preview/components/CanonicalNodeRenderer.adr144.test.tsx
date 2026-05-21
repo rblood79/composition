@@ -164,3 +164,146 @@ describe("ADR-144 Phase 3 Tabs Preview resolved-tree projection", () => {
     ).toBe("panel-overview-body");
   });
 });
+
+function makeCollectionCompositeDocument(opts: {
+  itemType: string;
+  containerType: string;
+  containerProps?: Record<string, unknown>;
+  refLabels: [string, string, string];
+}): CompositionDocument {
+  const itemOrigin: CanonicalNode = {
+    id: "item-origin",
+    type: opts.itemType as CanonicalNode["type"],
+    reusable: true,
+    name: opts.itemType,
+    children: [
+      {
+        id: "item-label",
+        type: "Text",
+        props: { text: "Item" },
+      },
+    ],
+  };
+  const containerOrigin: CanonicalNode = {
+    id: "container-origin",
+    type: opts.containerType as CanonicalNode["type"],
+    reusable: true,
+    name: opts.containerType,
+    slot: ["item-origin"],
+    props: opts.containerProps ?? {},
+    children: opts.refLabels.map(
+      (label, index): RefNode => ({
+        id: `ref-${index}`,
+        type: "ref",
+        ref: "item-origin",
+        descendants: {
+          "item-label": { text: label },
+        },
+      }),
+    ) as unknown as CanonicalNode[],
+  };
+  return {
+    version: "composition-1.0",
+    children: [
+      itemOrigin,
+      containerOrigin,
+      {
+        id: "container-instance",
+        type: "ref",
+        ref: "container-origin",
+      } as RefNode,
+    ],
+  };
+}
+
+describe("ADR-144 Phase 7 collection Preview marker contract", () => {
+  afterEach(cleanup);
+
+  it.each([
+    {
+      label: "ListBox",
+      itemType: "ListBoxItem",
+      containerType: "ListBox",
+      containerProps: {
+        "aria-label": "ListBox",
+        selectionMode: "single",
+      },
+      refLabels: ["Aardvark", "Cat", "Kangaroo"] as [string, string, string],
+      racClass: "react-aria-ListBox",
+    },
+    {
+      label: "Menu",
+      itemType: "MenuItem",
+      containerType: "Menu",
+      containerProps: {
+        "aria-label": "Menu",
+        children: "Menu",
+        selectionMode: "none",
+      },
+      refLabels: ["Profile", "Billing", "Settings"] as [string, string, string],
+      // shared MenuButton wraps the canonical root inside a layout div, so the
+      // canonical marker stays on the wrapper instead of the RAC primitive.
+      racClass: null,
+    },
+    {
+      label: "ComboBox",
+      itemType: "ComboBoxItem",
+      containerType: "ComboBox",
+      containerProps: {
+        "aria-label": "Combo Box",
+        label: "Combo Box",
+        placeholder: "Pick one",
+      },
+      refLabels: ["Aardvark", "Cat", "Kangaroo"] as [string, string, string],
+      racClass: "react-aria-ComboBox",
+    },
+    {
+      label: "Select",
+      itemType: "SelectItem",
+      containerType: "Select",
+      containerProps: {
+        "aria-label": "Select",
+        label: "Select",
+        placeholder: "Pick one",
+      },
+      refLabels: ["Aardvark", "Cat", "Kangaroo"] as [string, string, string],
+      racClass: "react-aria-Select",
+    },
+  ])(
+    "$label root container instance exposes the canonical data-canonical-id marker",
+    ({
+      itemType,
+      containerType,
+      containerProps,
+      refLabels,
+      racClass,
+    }: {
+      itemType: string;
+      containerType: string;
+      containerProps: Record<string, unknown>;
+      refLabels: [string, string, string];
+      racClass: string | null;
+    }) => {
+      const doc = makeCollectionCompositeDocument({
+        itemType,
+        containerType,
+        containerProps,
+        refLabels,
+      });
+      const resolved = resolveCanonicalDocument(doc).find(
+        (node) => node.id === "container-instance",
+      );
+      expect(resolved).toBeDefined();
+
+      const { container } = renderResolved(resolved!);
+
+      const marker = container.querySelector(
+        "[data-canonical-id='container-instance']",
+      );
+      expect(marker).toBeTruthy();
+      if (racClass) {
+        expect(marker?.classList.contains(racClass)).toBe(true);
+      }
+    },
+  );
+});

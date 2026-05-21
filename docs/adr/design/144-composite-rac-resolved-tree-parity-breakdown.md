@@ -530,9 +530,66 @@ Files:
 
 - `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (신규)
 
-### Phase 7 — Family expansion matrix
+### Phase 7 — Family expansion matrix (Wave A partial Implemented 2026-05-22)
 
 Purpose: apply the same contract beyond Tabs.
+
+Landed implementation (Wave A — collection family matrix row, 4 step land scope):
+
+1. **Fixture contract** — `compositeRacFixtures.test.ts` expanded with 4
+   regression cases proving `RAC-showcase.json` `ListBox` / `ListBoxItem` /
+   `Menu` / `MenuItem` reusable origin + ref children + `vWhZJ` / `Cae9Z`
+   leaf shape, `Select` / `ComboBox` named child shape (`label` / `button`
+   or `field` / `description` / `error`), and `shadcn-design-system.json`
+   `Dropdown` 6-slot host pattern (8/8 PASS).
+2. **Composite factory** — `SelectionComponents.ts` exports
+   `createCollectionCompositeElements` plus 4 family-specific wrappers
+   (`createSelectCompositeElements` / `createComboBoxCompositeElements` /
+   `createListBoxCompositeElements` / `createMenuCompositeElements`).
+   Each new creation path produces 7 elements
+   (item-origin + item-label leaf + container-origin with `slot:
+[item-origin]` + 3 ref instance children with descendants overrides +
+   page-owned ref instance). legacy `createSelectDefinition` /
+   `createComboBoxDefinition` / `createListBoxDefinition` /
+   `createMenuDefinition` (`SelectionComponents.ts` /
+   `NavigationComponents.ts`) `props.items[]` factories remain as
+   adapter fallback (5/5 PASS via `collectionCompositeFactories.test.ts`).
+3. **Preview marker** — `CanonicalNodeRenderer.adr144.test.tsx` extended
+   `it.each` matrix proves the page-owned ref instance of each of the 4
+   families renders a Preview DOM element carrying
+   `data-canonical-id='container-instance'`. ListBox / ComboBox / Select
+   resolve onto the matching `react-aria-*` root class; the shared
+   `<MenuButton>` wraps the canonical marker on a layout `div` instead of
+   the RAC `Menu` primitive, which is documented in the test.
+4. **Skia synthetic 0 editable owner (G6 acceptance)** —
+   `canonicalSkiaSymmetry.test.ts` extended `it.each` matrix asserts that
+   `buildGenericResolvedSkiaNodeData` keeps the root container `elementId`
+   as the canonical instance id, and that none of the synthetic child
+   SkiaNodeData ids (`${rootId}:item:*`, `${rootId}:trigger:*`,
+   `${rootId}:menu:*`, `${rootId}:input`, `${rootId}:value`,
+   `${rootId}:list:*`, `${rootId}:background`) is registered with
+   `hitTestOwner: true`. This delivers ADR-144 Phase 7 G6 acceptance
+   (synthetic editable owner 0 件) without further mutating
+   `buildGenericListBoxNode` / `MenuNode` / `ComboBoxNode` / `SelectNode`.
+
+Deferred to a follow-up Wave (B/C — explicitly tracked in the Acceptance
+Checklist):
+
+- 4 family Skia builders Tabs-Phase-4-equivalent `hitTestOwner: true +
+ownerPath` emission for the resolved canonical child ids, enabling
+  nested-descendant Inspector edits on `ListBoxItem` / `MenuItem` /
+  `SelectItem` / `ComboBoxItem` labels.
+- `getCustomPreEditor` registration for `Select` / `ComboBox` and the
+  `detectInspectorInputMode` wiring on the four family PropertyEditors
+  (acceptance checklist row "Phase 5 task 7 ... G6 phase 7 family
+  expansion 에서 wiring").
+
+Wave A keeps the change set to (a) test expansions, (b) one new factory
+helper, (c) ADR / breakdown documentation. No `buildGenericXNode` body
+mutation, no inspector registry mutation, no synthetic id removal — the
+Skia builders already keep `hitTestOwner` off for synthetic child ids, so
+the G6 acceptance is satisfied at the canonical-resolved-tree boundary
+rather than by rewriting legacy props-only paths.
 
 Coverage matrix:
 
@@ -595,6 +652,17 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 - [x] Synthetic Skia ids are not editable owners.
 - [x] RAC behavior tests pass.
 - [x] Layout invalidation is verified for descendant content/style patch writes.
+- [x] Phase 7 Wave A — collection family expansion matrix (Select / ComboBox /
+      ListBox / Menu) 4 step land: fixture contract evidence
+      (`compositeRacFixtures.test.ts` +4 cases), composite factory 4 종
+      (`SelectionComponents.ts` `createCollectionCompositeElements` + family
+      wrappers, `collectionCompositeFactories.test.ts` 5/5), Preview marker
+      matrix (`CanonicalNodeRenderer.adr144.test.tsx` `it.each` 4 family),
+      Skia synthetic editable owner 0 件 (`canonicalSkiaSymmetry.test.ts`
+      `it.each` 4 family). Wave B/C debt 명시: 4 family Skia Tabs-Phase-4-급
+      `hitTestOwner: true + ownerPath` 자식 emission + Select/ComboBox
+      `getCustomPreEditor` 등록 + 4 family PropertyEditor 의
+      `detectInspectorInputMode` wiring.
 - [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910
       begins or the family is explicitly held.
 - [ ] C3-a 데이터 source 3축 (Data Panel inline persisted / API endpoint persisted config + Zustand runtime sink + Canvas direct proxy fallback 잔존 / Properties inline `element.props[itemsKey]`) 과 C3-b 3 input mode (external dataBinding / new resolved-tree local data / legacy `props.items[]` fallback) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다. Builder execute path 와 Preview/Canvas read path 의 sink 정합 (`useCollectionData.ts:340-355` direct proxy branch) 은 G3/G6 에서 row identity / owner projection 별도 검증.

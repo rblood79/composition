@@ -175,4 +175,121 @@ describe("ADR-144 Phase 1 composite RAC fixture contracts", () => {
       slot: ["LoAux"],
     });
   });
+
+  it("proves RAC-showcase ListBox and ListBoxItem form a reusable origin + ref children contract", () => {
+    const rac = normalizeCompositeRacExport(
+      loadFixture("RAC-showcase.json"),
+      "RAC-showcase.json",
+    );
+
+    const listBox = findNormalizedNodeByName(rac, "ListBox");
+    const listBoxItem = findNormalizedNodeByName(rac, "ListBoxItem");
+
+    expect(listBox).toMatchObject({
+      id: "w3jpb",
+      reusable: true,
+      type: "frame",
+    });
+    expect(listBoxItem).toMatchObject({
+      id: "vWhZJ",
+      reusable: true,
+      type: "frame",
+    });
+
+    expect(listBoxItem?.children?.map((child) => child.name)).toEqual([
+      "icon",
+      "label",
+      "check",
+    ]);
+
+    expect(listBox?.children?.map((child) => child.id)).toEqual([
+      "Lb78S",
+      "R4uWvR",
+      "W2JFt",
+      "NCGME",
+    ]);
+    expect(listBox?.children?.every((child) => child.type === "ref")).toBe(
+      true,
+    );
+    expect(listBox?.children?.every((child) => child.ref === "vWhZJ")).toBe(
+      true,
+    );
+  });
+
+  it("proves RAC-showcase Menu and MenuItem form a reusable origin + ref children contract", () => {
+    const rac = normalizeCompositeRacExport(
+      loadFixture("RAC-showcase.json"),
+      "RAC-showcase.json",
+    );
+
+    const menu = findNormalizedNodeByName(rac, "Menu");
+    const menuItem = findNormalizedNodeByName(rac, "MenuItem");
+
+    expect(menu).toMatchObject({
+      id: "n3kxQW",
+      reusable: true,
+      type: "frame",
+    });
+    expect(menuItem).toMatchObject({
+      id: "Cae9Z",
+      reusable: true,
+      type: "frame",
+    });
+    expect(menuItem?.children?.map((child) => child.name)).toEqual([
+      "icon",
+      "label",
+      "kbd",
+    ]);
+
+    expect(menu?.children?.every((child) => child.type === "ref")).toBe(true);
+    expect(menu?.children?.every((child) => child.ref === "Cae9Z")).toBe(true);
+    expect(menu?.children?.length).toBe(4);
+  });
+
+  it("proves RAC-showcase Select and ComboBox expose named child slots (label/button/field/description/error)", () => {
+    const rac = normalizeCompositeRacExport(
+      loadFixture("RAC-showcase.json"),
+      "RAC-showcase.json",
+    );
+
+    const select = findNormalizedNodeByName(rac, "Select");
+    const comboBox = findNormalizedNodeByName(rac, "ComboBox");
+
+    expect(select).toMatchObject({ id: "s7fHUK", reusable: true });
+    expect(comboBox).toMatchObject({ id: "z6Q2T", reusable: true });
+
+    expect(select?.children?.map((child) => child.name)).toEqual([
+      "label",
+      "button",
+      "description",
+      "error",
+    ]);
+    expect(comboBox?.children?.map((child) => child.name)).toEqual([
+      "label",
+      "field",
+      "description",
+      "error",
+    ]);
+  });
+
+  it("proves shadcn Dropdown is a reusable slot host with section/separator/item ref candidates", () => {
+    const shadcn = normalizeCompositeRacExport(
+      loadFixture("shadcn-design-system.json"),
+      "shadcn-design-system.json",
+    );
+
+    const dropdown = findNormalizedNodeByName(shadcn, "Dropdown");
+    expect(dropdown).toMatchObject({
+      reusable: true,
+      slot: ["D24KC", "j3KBf", "2JGXl", "qamCY", "O0rdg", "I9z29"],
+    });
+    const dropdownSlot = Array.isArray(dropdown?.slot) ? dropdown?.slot : [];
+    expect(dropdownSlot.length).toBe(6);
+
+    for (const slotId of dropdownSlot) {
+      const candidate = findNormalizedNodeById(shadcn, slotId);
+      expect(candidate, `slot ${slotId} must resolve`).toBeDefined();
+      expect(candidate?.reusable).toBe(true);
+    }
+  });
 });

@@ -62,6 +62,33 @@ In Progress — 2026-05-21
   부재는 본 test file 안 inline polyfill 로 처리 (RAC SharedElementTransition /
   useSelectableCollection 가 호출). Evidence:
   `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (6/6 PASS).
+- 2026-05-22 — Phase 7 G6 (family expansion matrix 1 행: Select / ComboBox /
+  ListBox / Menu) 1차 land 완료. (a) `compositeRacFixtures.test.ts` 가
+  `RAC-showcase.json` 의 `ListBox` / `ListBoxItem` / `Menu` / `MenuItem` /
+  `Select` / `ComboBox` reusable origin + ref children + descendants 패턴 과
+  `shadcn-design-system.json` `Dropdown` slot 호스트 패턴을 contract evidence
+  로 묶었다 (Phase 1 8/8 PASS). (b) 새 collection composite factory 4 종
+  (`createSelectCompositeElements` / `createComboBoxCompositeElements` /
+  `createListBoxCompositeElements` / `createMenuCompositeElements`) 가
+  `SelectionComponents.ts` 안 단일 helper (`createCollectionCompositeElements`)
+  를 공유한다. 각 family 의 새 creation path 는 `props.items[]` 대신
+  item-origin (Text label leaf) + container-origin (`slot: [item-origin]`) +
+  3 ref instance children (descendants overrides) + page-owned ref instance
+  를 만든다 (Phase 2 evidence: `collectionCompositeFactories.test.ts` 5/5
+  PASS). legacy `createSelectDefinition` 등 props.items[] factory 는 adapter
+  fallback 으로 보존. (c) `CanonicalNodeRenderer.adr144.test.tsx` 4 family
+  case 가 4 family 의 root container ref instance 가 Preview DOM 의
+  `data-canonical-id='container-instance'` marker 를 보존함을 검증
+  (Phase 3 evidence). (d) `canonicalSkiaSymmetry.test.ts` 가 4 family
+  resolved-tree composite payload 가 입력될 때 root container `elementId` 는
+  canonical id 그대로, 자식 synthetic SkiaNodeData (`${id}:item:`,
+  `${id}:trigger:`, `${id}:input`, `${id}:list:`, `${id}:menu:`,
+  `${id}:value`) 중 `hitTestOwner: true` 부여 0 건임을 확인 (Phase 4 G6
+  acceptance — synthetic editable owner 0 건). 미land 영역: 4 family Skia
+  자식 노드들의 Tabs Phase 4 수준 `hitTestOwner: true + ownerPath` 부여 (즉
+  nested descendant editability) 와 Select / ComboBox `getCustomPreEditor`
+  pre-editor 등록 / 4 family PropertyEditor 의 `detectInspectorInputMode`
+  wiring 은 후속 phase debt 로 명시한다 (Acceptance Checklist 참조).
 
 ## Context
 
