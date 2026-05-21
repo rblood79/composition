@@ -4,6 +4,15 @@
 
 In Progress — 2026-05-21
 
+진행 로그:
+
+- 2026-05-21 — Phase 0 G0 baseline/evidence freeze 완료. 현재 Tabs 는 catalog primitive
+  `defaultProps.items[]` + Preview root-only `<Tabs {...tabsProps}>` + Skia synthetic
+  `${tabsId}:tab:*`/`${tabsId}:panel:*` 경로로 확인됐다. Fixture inventory 는
+  `RAC-showcase.json` / `slot-tabs-selection.json` / `shadcn-design-system.json` 기준으로
+  reusable/ref/descendants/slot contract evidence 를 고정했다. Evidence:
+  [144-composite-rac-resolved-tree-parity-phase0-baseline.md](design/144-composite-rac-resolved-tree-parity-phase0-baseline.md).
+
 ## Context
 
 ADR-142 는 `componentCatalog` / `PrimitiveBinding` / catalog-first Panel·Factory·Preview·Skia

@@ -227,7 +227,7 @@ These tests verify `react-aria-components` integration, not Skia drawing.
 
 ## Phase Plan
 
-### Phase 0 — Baseline and evidence freeze
+### Phase 0 — Baseline and evidence freeze (Implemented 2026-05-21)
 
 Purpose: lock current gap and fixture coverage before code changes.
 
@@ -249,6 +249,10 @@ Tasks:
    - `${tabsId}:tab:*` when no canonical owner path exists.
 
 Gate: G0.
+
+Evidence:
+
+- [144-composite-rac-resolved-tree-parity-phase0-baseline.md](144-composite-rac-resolved-tree-parity-phase0-baseline.md)
 
 ### Phase 1 — Contract fixture tests
 
@@ -488,9 +492,9 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 
 ## Acceptance Checklist
 
-- [ ] ADR-144 body and breakdown exist.
-- [ ] README Proposed row and counts updated.
-- [ ] Phase 0 line evidence captured.
+- [x] ADR-144 body and breakdown exist.
+- [x] README In Progress summary updated.
+- [x] Phase 0 line evidence captured.
 - [ ] Fixture contract tests cover `RAC-showcase.json`, `slot-tabs-selection.json`,
       `shadcn-design-system.json`.
 - [ ] New Tabs creation no longer persists editable labels/panel body only in
