@@ -1,6 +1,6 @@
 # ADR (Architecture Decision Records) 관리 대시보드
 
-> **최종 업데이트**: 2026-05-21 — **ADR-144 Proposed (Composite RAC resolved-tree 정합성 및 slot-editable component contract)**.
+> **최종 업데이트**: 2026-05-21 — **ADR-144 In Progress (Composite RAC resolved-tree 정합성 및 slot-editable component contract)**.
 > ADR-142 를 대체하지 않고 `Amends ADR-142` 로 보정한다. ADR-142 의 catalog-only routing 성과는 유지하되, composite RAC component completion gate 를 "catalog route active" 에서 "Preview·Skia·selection·editing 이 같은 resolved tree identity 를 소비" 로 재정의한다.
 > 첫 vertical slice 는 Tabs 이며, `packages/RAC-showcase.json`, `packages/slot-tabs-selection.json`, `packages/shadcn-design-system.json` 을 format contract fixture 로 사용한다. `items[]`/`rows[]`/`columns[]` 는 RAC runtime projection 으로 남길 수 있지만 editable authoring SSOT 는 `children[]`/`ref`/`descendants`/`slot` 이다.
 > ADR-910 deterministic rendering optimization 은 ADR-144 parity gate 이후 적용한다. wrong tree 의 draw cost 를 줄이는 것으로 parity gate 를 대체하지 않는다. design breakdown: `design/144-composite-rac-resolved-tree-parity-breakdown.md`.
