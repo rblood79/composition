@@ -267,6 +267,62 @@ function buildInstanceDescendantPatches(
   return hasMappedChildPatch ? next : null;
 }
 
+/**
+ * ADR-144 G4 — primaryOwnerPath 를 분석해 instance descendants patch 라우팅 타겟 결정.
+ *
+ * Phase 4 의 Skia hit-test 가 ref instance 의 descendant origin child (예: tab-label) 를
+ * hit 한 경우, `useStore.primaryOwnerPath` 는 `${...ancestors}/${instanceId}/${originChildId}`
+ * 형태로 저장돼 있다. Inspector single-element edit 진입점들은 이 path 의 nearest ancestor
+ * 중 `componentRole === "instance"` 를 가진 element 를 찾아 그 instance 의
+ * `descendants[originChildId]` 에 patch 한다.
+ *
+ * 반환 값:
+ * - selectedElement 가 origin child + ownerPath nearest ancestor 가 instance 면
+ *   `{ instanceId, descendantKey }` 반환 → caller 는 instance 의 descendants mirror 갱신
+ * - selectedElement 자체가 instance / ownerPath null / nearest instance 부재 / hit elementId 와
+ *   ownerPath 끝 segment 불일치 면 `null` → caller 는 기존 origin child 직접 mutate
+ */
+/**
+ * Test-only export of {@link resolveInstanceDescendantTarget} so ADR-144 G4
+ * evidence tests can assert the routing logic without spinning up a full
+ * Zustand store + canonical document fixture.
+ */
+export const __testing_resolveInstanceDescendantTarget = (
+  ownerPath: string | null | undefined,
+  selectedElementId: string,
+  lookupElementById: (id: string) => Element | undefined,
+): { instanceId: string; descendantKey: string } | null =>
+  resolveInstanceDescendantTarget(
+    ownerPath,
+    selectedElementId,
+    lookupElementById,
+  );
+
+function resolveInstanceDescendantTarget(
+  ownerPath: string | null | undefined,
+  selectedElementId: string,
+  lookupElementById: (id: string) => Element | undefined,
+): { instanceId: string; descendantKey: string } | null {
+  if (!ownerPath) return null;
+  const segments = ownerPath.split("/");
+  if (segments.length < 2) return null;
+  const lastSegment = segments[segments.length - 1];
+  // ownerPath 끝 segment 가 selection 대상과 일치해야 — selection 이후 ownerPath 가 동기화
+  // 되기 전 stale state 라우팅을 차단.
+  if (lastSegment !== selectedElementId) return null;
+  const selected = lookupElementById(selectedElementId);
+  if (!selected) return null;
+  // selectedElement 자체가 instance 면 descendants patch 안 함 — instance props 자체를 mutate.
+  if (selected.componentRole === "instance") return null;
+  for (let i = segments.length - 2; i >= 0; i -= 1) {
+    const ancestor = lookupElementById(segments[i]);
+    if (ancestor?.componentRole === "instance") {
+      return { instanceId: ancestor.id, descendantKey: selectedElementId };
+    }
+  }
+  return null;
+}
+
 function getSelectedPropsForState(
   updatedElement: Element,
   lookupElements: Iterable<Element>,
@@ -461,6 +517,12 @@ interface RequiredState {
   layoutVersion: number;
   dirtyElementIds: Set<string>;
   currentPageId: string | null;
+  /**
+   * ADR-144 G4 — primary selection 의 canonical owner path.
+   * Inspector single-element edit 진입점이 ref instance descendants patch 라우팅 판정에 사용.
+   * SelectionState slice 에서 set (selection.ts), 본 slice 는 read-only.
+   */
+  primaryOwnerPath: string | null;
   updateElement: (
     elementId: string,
     updates: Partial<Element>,
@@ -585,6 +647,31 @@ export const createInspectorActionsSlice: StateCreator<
     const hasLayoutChange = Object.keys(propsUpdate).some((key) =>
       LAYOUT_AFFECTING_PROP_KEYS.has(key),
     );
+
+    // ADR-144 G4: instance descendants patch 안의 style / prop 중 LAYOUT_AFFECTING_PROP_KEYS
+    // 가 변경되면 layoutVersion 도 함께 증가. propsUpdate 자체는 비어 있어도 descendants
+    // 영역의 layout 변경 (예: instance.descendants["tab-label"].style.fontSize) 이 캔버스
+    // 재계산을 트리거하도록 한다.
+    const descendantsPatch = (
+      additionalUpdates as
+        | Record<typeof COMPONENT_DESCENDANTS_MIRROR_FIELD, unknown>
+        | undefined
+    )?.[COMPONENT_DESCENDANTS_MIRROR_FIELD];
+    const hasDescendantsLayoutChange = isRecord(descendantsPatch)
+      ? Object.values(descendantsPatch).some((patch) => {
+          if (!isRecord(patch)) return false;
+          const directKeys = Object.keys(patch);
+          const styleKeys = isRecord(patch.style)
+            ? Object.keys(patch.style as Record<string, unknown>)
+            : [];
+          return [...directKeys, ...styleKeys].some((key) =>
+            LAYOUT_AFFECTING_PROP_KEYS.has(key),
+          );
+        })
+      : false;
+
+    const requiresLayoutBump = hasLayoutChange || hasDescendantsLayoutChange;
+
     set((prevState) => {
       const stateUpdate: Partial<CombinedState> = {
         elements: newElements,
@@ -603,7 +690,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       // 레이아웃 영향 prop 변경 시 layoutVersion 증가 + dirtyElementIds 갱신
       // dirtyElementIds: 변경 요소 + 하위 자식 전체 등록 (delegation prop이 자식 레이아웃에 영향)
-      if (hasLayoutChange) {
+      if (requiresLayoutBump) {
         const dirtyIds = new Set(prevState.dirtyElementIds);
         collectDirtyElementSubtree(
           elementId,
@@ -658,6 +745,53 @@ export const createInspectorActionsSlice: StateCreator<
     } else {
       setTimeout(() => runDbSync(), 0);
     }
+  };
+
+  /**
+   * ADR-144 G4 — single-element edit 시 ownerPath 분석 후 instance descendants patch 분기.
+   *
+   * 반환:
+   * - `true` → instance.descendants[originChildId] 에 patch 가 적용됨. caller 는 추가 작업 없음.
+   * - `false` → ownerPath 가 ref instance descendant 가 아님. caller 가 origin child 직접 mutate.
+   */
+  const tryApplyInstanceDescendantPatch = (
+    selectedElement: Element,
+    patchProps: Record<string, unknown>,
+    prevElementOverride?: Element,
+  ): boolean => {
+    const { primaryOwnerPath, elements: elementsList } = get();
+    const lookupElements =
+      getActiveCanonicalInspectorElements() ?? elementsList;
+    const elementsMap = buildInspectorElementMap(lookupElements);
+    const target = resolveInstanceDescendantTarget(
+      primaryOwnerPath,
+      selectedElement.id,
+      (id) => elementsMap.get(id),
+    );
+    if (!target) return false;
+    const instance = elementsMap.get(target.instanceId);
+    if (!instance) return false;
+    const currentDescendants = getComponentDescendantsMirror(instance) ?? {};
+    const previousPatch = isRecord(currentDescendants[target.descendantKey])
+      ? (currentDescendants[target.descendantKey] as Record<string, unknown>)
+      : {};
+    const nextDescendantPatch = mergePropsWithStyleDeep(
+      previousPatch,
+      patchProps,
+    );
+    const nextDescendants = {
+      ...currentDescendants,
+      [target.descendantKey]: nextDescendantPatch,
+    };
+    updateAndSave(
+      target.instanceId,
+      {},
+      {
+        [COMPONENT_DESCENDANTS_MIRROR_FIELD]: nextDescendants,
+      } as Partial<Element>,
+      prevElementOverride,
+    );
+    return true;
   };
 
   return {
@@ -720,14 +854,23 @@ export const createInspectorActionsSlice: StateCreator<
 
       distributeShorthand(currentStyle as Record<string, unknown>, property);
 
-      updateAndSave(
-        element.id,
-        { style: currentStyle },
-        undefined,
+      // ADR-144 G4: ref instance descendant 의 style edit 은 instance.descendants[path].style 로 라우팅.
+      const stylePatch = { style: currentStyle };
+      const overridePrev =
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
-          : undefined,
-      );
+          : undefined;
+      if (
+        tryApplyInstanceDescendantPatch(
+          element,
+          stylePatch as Record<string, unknown>,
+          overridePrev,
+        )
+      ) {
+        return;
+      }
+
+      updateAndSave(element.id, stylePatch, undefined, overridePrev);
     },
 
     updateSelectedStylePreview: (property, value) => {
@@ -873,14 +1016,23 @@ export const createInspectorActionsSlice: StateCreator<
         distributeShorthand(currentStyle as Record<string, unknown>, property);
       });
 
-      updateAndSave(
-        element.id,
-        { style: currentStyle },
-        undefined,
+      const stylePatch = { style: currentStyle };
+      const overridePrev =
         savedPrePreview && savedPrePreview.id === element.id
           ? savedPrePreview
-          : undefined,
-      );
+          : undefined;
+      // ADR-144 G4: ref instance descendant 의 batched style edit 도 instance.descendants[path].style 로 라우팅.
+      if (
+        tryApplyInstanceDescendantPatch(
+          element,
+          stylePatch as Record<string, unknown>,
+          overridePrev,
+        )
+      ) {
+        return;
+      }
+
+      updateAndSave(element.id, stylePatch, undefined, overridePrev);
     },
 
     // ============================================
@@ -891,14 +1043,36 @@ export const createInspectorActionsSlice: StateCreator<
       const element = getSelectedElement();
       if (!element) return;
 
-      updateAndSave(element.id, sanitizeInspectorProps({ [key]: value }));
+      const sanitized = sanitizeInspectorProps({ [key]: value });
+      // ADR-144 G4: ref instance descendant 의 single-prop edit 은 instance.descendants patch 로 라우팅.
+      if (
+        tryApplyInstanceDescendantPatch(
+          element,
+          sanitized as Record<string, unknown>,
+        )
+      ) {
+        return;
+      }
+
+      updateAndSave(element.id, sanitized);
     },
 
     updateSelectedProperties: (properties) => {
       const element = getSelectedElement();
       if (!element) return;
 
-      updateAndSave(element.id, sanitizeInspectorProps(properties));
+      const sanitized = sanitizeInspectorProps(properties);
+      // ADR-144 G4: ref instance descendant 의 multi-prop edit 도 instance.descendants patch 로 라우팅.
+      if (
+        tryApplyInstanceDescendantPatch(
+          element,
+          sanitized as Record<string, unknown>,
+        )
+      ) {
+        return;
+      }
+
+      updateAndSave(element.id, sanitized);
     },
 
     updateSelectedPropertiesWithChildren: (properties, childUpdates) => {
@@ -1201,7 +1375,10 @@ export function mapElementToSelectedElement(element: Element): SelectedElement {
     computedStyle: computedStyle as Partial<React.CSSProperties> | undefined,
     semanticClasses: [],
     cssVariables: {},
-    dataBinding: getElementDataBinding(element, "legacy-only"),
+    dataBinding: getElementDataBinding(
+      element,
+      "legacy-only",
+    ) as SelectedElement["dataBinding"],
     events: (events as SelectedElement["events"]) || [],
   };
 }

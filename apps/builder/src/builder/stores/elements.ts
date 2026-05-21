@@ -3,6 +3,10 @@ import { create } from "zustand";
 // import { produce } from "immer"; // REMOVED
 import { StateCreator } from "zustand";
 import type { StoredMenuItem } from "@composition/specs";
+// ADR-144 G4: setSelectedElement / selectElementWithPageTransition 가 primaryOwnerPath 를
+// 같은 set() 배치에서 null reset 할 수 있도록 SelectionState 의 해당 필드만 type 으로 가져옴.
+// (full SelectionState import 는 slice 책임 분리 원칙상 회피 — Pick 으로 좁힘)
+import type { SelectionState } from "./selection";
 import {
   Element,
   ComponentElementProps,
@@ -442,7 +446,9 @@ function getElementForItemsAction(
   elementId: string,
 ): Element | undefined {
   const state = get();
-  return findElementById(getCanonicalOrStoreElements(state), elementId);
+  return (
+    findElementById(getCanonicalOrStoreElements(state), elementId) ?? undefined
+  );
 }
 
 function resolveCurrentPageSelectionTarget(
@@ -549,7 +555,18 @@ function hasAppliedPageActivationPatch(
   );
 }
 
-export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
+// ADR-144 G4: set() 시그니처가 SelectionState.primaryOwnerPath 도 받을 수 있도록 mutator
+// scope 를 (ElementsState & Pick<SelectionState, "primaryOwnerPath">) 으로 확장. 반환값은
+// 기존 ElementsState 유지 → slice 책임 분리 + cross-slice null reset 양립.
+type ElementsSliceMutatorScope = ElementsState &
+  Pick<SelectionState, "primaryOwnerPath">;
+
+export const createElementsSlice: StateCreator<
+  ElementsSliceMutatorScope,
+  [],
+  [],
+  ElementsState
+> = (set, get) => {
   // undo/redo/goToHistoryIndex 함수 생성
   const undo = createUndoAction(set, get);
   const redo = createRedoAction(set, get);
@@ -952,11 +969,15 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         }
 
         // Phase 1: 캔버스 하이라이트 즉시 반영 (selectedElementProps 미변경 — hydrate가 담당)
+        // ADR-144 G4: primaryOwnerPath default null. hit-test 진입점 (예 useCanvasElementSelectionHandlers)
+        // 이 setSelectedElement 직후 setPrimaryOwnerPath(ownerPath) 로 ownerPath 를 설정한다.
+        // 같은 React batch frame 내 두 set 이 일어나면 최종 primaryOwnerPath 가 ownerPath.
         set({
           selectedElementId: elementId,
           selectedElementIds,
           selectedElementIdsSet,
           multiSelectMode: false,
+          primaryOwnerPath: null,
         });
 
         // Phase 2: 인스펙터용 props를 다음 프레임에서 설정
@@ -1039,6 +1060,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         selectedElementIds,
         selectedElementIdsSet,
         multiSelectMode: false,
+        // ADR-144 G4: external-props 분기에서도 primaryOwnerPath 는 default null reset.
+        // hit-test 진입점이 setPrimaryOwnerPath(ownerPath) 호출로 동일 batch frame 에 갱신.
+        primaryOwnerPath: null,
       });
 
       const duration = performance.now() - startTime;
@@ -1307,6 +1331,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         }
 
         // Phase 1 (즉시): 캔버스 하이라이트용 상태 병합
+        // ADR-144 G4: page-transition 분기에서도 primaryOwnerPath default null reset.
+        // hit-test 진입점이 setPrimaryOwnerPath(ownerPath) 로 동일 batch frame 에 갱신.
         set({
           ...(shouldChangePage ? { currentPageId: targetPageId } : {}),
           ...(shouldSetEditingContext
@@ -1318,6 +1344,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           selectedElementIds: [elementId],
           selectedElementIdsSet: new Set([elementId]),
           multiSelectMode: false,
+          primaryOwnerPath: null,
           ...(externalProps ? { selectedElementProps: externalProps } : {}),
         });
 
@@ -1951,5 +1978,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
   };
 };
 
-// 기존 호환성을 위한 useStore export
-export const useStore = create<ElementsState>(createElementsSlice);
+// 기존 호환성을 위한 useStore export.
+// ADR-144 G4: createElementsSlice 의 mutator scope 가 SelectionState.primaryOwnerPath 까지
+// 확장됐지만, 본 legacy stub 은 ElementsState 만 expose 한다. createElementsSlice 의 set/get
+// 이 ElementsState super set 의 store 에 안전하게 attach 되므로 type cast 로 통과.
+export const useStore = create<ElementsState>(
+  createElementsSlice as unknown as StateCreator<ElementsState>,
+);

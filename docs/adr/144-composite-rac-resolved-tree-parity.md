@@ -38,6 +38,19 @@ In Progress — 2026-05-21
   legacy `props.items[]` Tabs synthetic drawing 은 adapter fallback 으로 유지했다.
   Evidence: `apps/builder/src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`,
   `apps/builder/src/builder/workspace/canvas/skia/renderCommands.test.ts`.
+- 2026-05-22 — Phase 5 G4 full 완료. Skia hit-test 가 boundsMap 옆에 canonical
+  `ownerPathMap: Map<string, string>` 도 노출하고, selection state 가 단일 선택의
+  `primaryOwnerPath` 를 캡처한다. Inspector single-element edit 진입점 4 개
+  (`updateSelectedStyle` / `updateSelectedStyles` / `updateSelectedProperty` /
+  `updateSelectedProperties`) 가 ownerPath 의 nearest ref instance ancestor 를
+  찾아 `instance.descendants[originChildId]` patch 로 라우팅한다. descendants
+  patch 의 style/prop 안 `LAYOUT_AFFECTING_PROP_KEYS` 도 layoutVersion 트리거에
+  포함되어 캔버스가 재계산된다. Inspector Properties UI 3 input mode (dataBinding
+  picker / resolved-tree slot / legacy items) 감지는 `detectInspectorInputMode`
+  helper 로 단일 진입점화했다 (`apps/builder/src/builder/panels/properties/inspectorInputMode.ts`).
+  Evidence: `apps/builder/src/builder/stores/__tests__/adr144DescendantsRouting.test.ts`,
+  `apps/builder/src/builder/panels/properties/__tests__/inspectorInputMode.test.ts`,
+  `apps/builder/src/builder/workspace/canvas/skia/renderCommands.test.ts`.
 
 ## Context
 

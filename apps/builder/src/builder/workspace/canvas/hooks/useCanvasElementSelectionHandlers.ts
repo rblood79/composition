@@ -11,7 +11,20 @@ import {
 import type { ComponentElementProps } from "../../../../types/core/store.types";
 import { getElementBoundsSimple } from "../elementRegistry";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
+import { getSceneOwnerPath } from "../skia/renderCommands";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
+
+/**
+ * ADR-144 G4 — hit-test 시점에 selected element 의 canonical owner path 캡처.
+ *
+ * setSelectedElement / selectElementWithPageTransition 직후 동일 React batch frame 안에서
+ * 호출되어야 한다. setSelectedElement 가 primaryOwnerPath: null 로 reset 한 뒤,
+ * 본 호출이 hit 한 element 의 ownerPath 로 덮어쓴다.
+ */
+function capturePrimaryOwnerPath(elementId: string): void {
+  const ownerPath = getSceneOwnerPath(elementId);
+  useStore.getState().setPrimaryOwnerPath(ownerPath ?? null);
+}
 
 interface SelectionModifiers {
   ctrlKey: boolean;
@@ -146,6 +159,8 @@ function selectResolvedTarget(
       targetElement?.props as Record<string, unknown> | undefined,
     );
   }
+  // ADR-144 G4: selection 직후 canonical owner path 캡처 (resolved-tree descendant 추적).
+  capturePrimaryOwnerPath(resolvedTarget);
 }
 
 function handleUnresolvedTarget(
@@ -169,10 +184,13 @@ function handleUnresolvedTarget(
     clickedElement.page_id !== useStore.getState().currentPageId
   ) {
     selectElementWithPageTransition(elementId, clickedElement.page_id);
+    // ADR-144 G4: body 선택도 canonical owner path 캡처 (body 는 ownerPath = elementId 자체).
+    capturePrimaryOwnerPath(elementId);
     return;
   }
 
   setSelectedElement(elementId);
+  capturePrimaryOwnerPath(elementId);
 }
 
 function selectDirectModifierTarget(
@@ -204,6 +222,8 @@ function selectDirectModifierTarget(
     editingContextId,
     props: directElement.props as ComponentElementProps | undefined,
   });
+  // ADR-144 G4: directModifier 진입점도 canonical owner path 캡처.
+  capturePrimaryOwnerPath(elementId);
 }
 
 export function useCanvasElementSelectionHandlers({

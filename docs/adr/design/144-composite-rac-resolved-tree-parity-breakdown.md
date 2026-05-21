@@ -443,7 +443,7 @@ Evidence:
 - `apps/builder/src/builder/workspace/canvas/skia/renderCommands.test.ts`
 - `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts src/builder/workspace/canvas/skia/renderCommands.test.ts src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts`
 
-### Phase 5 — Selection and editing
+### Phase 5 — Selection and editing (Implemented 2026-05-22)
 
 Purpose: make selection/edit writes land in canonical owner paths.
 
@@ -564,15 +564,15 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 - [x] New Tabs creation no longer persists editable labels/panel body only in
       `props.items[]`.
 - [x] Preview and Skia expose matching owner id/path for Tabs editable subparts.
-- [ ] TabPanel/body selection and editing work.
+- [x] TabPanel/body selection and editing work.
 - [x] Synthetic Skia ids are not editable owners.
 - [ ] RAC behavior tests pass.
-- [ ] Layout invalidation is verified for descendant content/style patch writes.
+- [x] Layout invalidation is verified for descendant content/style patch writes.
 - [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910
       begins or the family is explicitly held.
 - [ ] C3-a 데이터 source 3축 (Data Panel inline persisted / API endpoint persisted config + Zustand runtime sink + Canvas direct proxy fallback 잔존 / Properties inline `element.props[itemsKey]`) 과 C3-b 3 input mode (external dataBinding / new resolved-tree local data / legacy `props.items[]` fallback) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다. Builder execute path 와 Preview/Canvas read path 의 sink 정합 (`useCollectionData.ts:340-355` direct proxy branch) 은 G3/G6 에서 row identity / owner projection 별도 검증.
 - [x] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이며, mode 2 (resolved-tree local data) 로 동작한다.
-- [ ] Phase 5 task 7 Inspector Properties UI 가 3 input mode (dataBinding picker / slot 추가·삭제 UI / ItemsManager) 로 분기되며 한 instance 에 동시 표시되지 않는다. mode 감지 순서: dataBinding → resolved-tree composite payload → legacy fallback. ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 패턴으로 적용되며 (Select/ComboBox/Table/Tree), Tabs 는 composite resolved-tree PropertyEditor 별 패턴으로 wiring.
+- [x] Phase 5 task 7 Inspector Properties UI 가 3 input mode (dataBinding picker / slot 추가·삭제 UI / ItemsManager) 로 분기되며 한 instance 에 동시 표시되지 않는다. mode 감지 순서: dataBinding → resolved-tree composite payload → legacy fallback. mode 감지는 `detectInspectorInputMode` (`apps/builder/src/builder/panels/properties/inspectorInputMode.ts`) 단일 진입점 helper 로 관리되고 ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 helper 를 호출한다 (Select/ComboBox/Table/Tree). Tabs 는 composite resolved-tree PropertyEditor 별 패턴으로 G6 phase 7 family expansion 에서 wiring.
 
 ## Verification Commands
 
