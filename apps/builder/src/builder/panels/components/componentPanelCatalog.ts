@@ -48,14 +48,12 @@ import {
 } from "lucide-react";
 import {
   componentPanelCategoryConfig,
-  listComponentPanelInventoryEntries,
   listPlaceableCatalogEntries,
   type ComponentPanelCategory,
-  type ComponentPanelInventoryEntry,
   type ComponentCatalogEntry,
 } from "@composition/shared/catalog";
 
-export type ComponentPanelSource = "legacy" | "catalog";
+export type ComponentPanelSource = "catalog";
 
 export interface ComponentPanelDefinition {
   type: string;
@@ -134,63 +132,6 @@ export function getCatalogPanelComponents(
     }));
 }
 
-function panelInventoryIcon(entry: ComponentPanelInventoryEntry): LucideIcon {
-  return catalogIconMap[entry.icon] ?? Square;
-}
-
-export function getPanelInventoryComponents({
-  isLayoutMode,
-}: {
-  isLayoutMode: boolean;
-}): ComponentPanelDefinition[] {
-  return listComponentPanelInventoryEntries({
-    includeLayoutOnly: isLayoutMode,
-  }).map((entry) => ({
-    type: entry.type,
-    label: entry.label,
-    icon: panelInventoryIcon(entry),
-    layoutOnly: entry.layoutOnly,
-    categoryKey: entry.category,
-    source: "legacy",
-  }));
-}
-
-export function mergeCatalogPanelComponents<
-  TGroups extends Record<string, readonly ComponentPanelDefinition[]>,
->(
-  groups: TGroups,
-  catalogItems: readonly ComponentPanelDefinition[],
-): Record<keyof TGroups, ComponentPanelDefinition[]> {
-  const catalogByType = new Map(catalogItems.map((item) => [item.type, item]));
-  const replacedTypes = new Set<string>();
-  const merged = {} as Record<keyof TGroups, ComponentPanelDefinition[]>;
-
-  for (const [groupName, components] of Object.entries(groups) as Array<
-    [keyof TGroups, readonly ComponentPanelDefinition[]]
-  >) {
-    merged[groupName] = components.map((component) => {
-      const catalogItem = catalogByType.get(component.type);
-      if (catalogItem) {
-        replacedTypes.add(component.type);
-        return catalogItem;
-      }
-      return {
-        ...component,
-        source: component.source ?? "legacy",
-      };
-    });
-  }
-
-  for (const catalogItem of catalogItems) {
-    if (replacedTypes.has(catalogItem.type)) continue;
-    const categoryKey = catalogItem.categoryKey as keyof TGroups | undefined;
-    if (!categoryKey || !(categoryKey in merged)) continue;
-    merged[categoryKey].push(catalogItem);
-  }
-
-  return merged;
-}
-
 function emptyPanelGroups(): Record<
   ComponentPanelCategory,
   ComponentPanelDefinition[]
@@ -201,6 +142,7 @@ function emptyPanelGroups(): Record<
     buttons: [],
     forms: [],
     collections: [],
+    color: [],
     dateTime: [],
     overlays: [],
   };
@@ -212,16 +154,14 @@ export function getComponentPanelGroups({
   isLayoutMode: boolean;
 }): Record<ComponentPanelCategory, ComponentPanelDefinition[]> {
   const groups = emptyPanelGroups();
+  const catalogItems = getCatalogPanelComponents(
+    listPlaceableCatalogEntries({ includeLayoutOnly: isLayoutMode }),
+  );
 
-  for (const component of getPanelInventoryComponents({ isLayoutMode })) {
+  for (const component of catalogItems) {
     const categoryKey = component.categoryKey as ComponentPanelCategory;
     groups[categoryKey].push(component);
   }
 
-  return mergeCatalogPanelComponents(
-    groups,
-    getCatalogPanelComponents(
-      listPlaceableCatalogEntries({ includeLayoutOnly: isLayoutMode }),
-    ),
-  );
+  return groups;
 }

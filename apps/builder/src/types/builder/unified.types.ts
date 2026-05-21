@@ -69,9 +69,15 @@ export interface Element {
   props: Record<string, unknown>;
   parent_id?: string | null;
   page_id?: string | null; // Layout element면 null (layout_id와 상호 배타적)
+  layout_id?: string | null;
   created_at?: string;
   updated_at?: string;
   deleted?: boolean; // 삭제 여부 (UI 필터링용) ⭐
+  /**
+   * @deprecated Runtime ordering is canonical `children[]`; retained only for
+   * legacy import/export and old test fixtures.
+   */
+  order_num?: number;
   /**
    * @deprecated ADR-116 G7 Extension Boundary cleanup target.
    * canonical `x-composition.dataBinding` (`CompositionExtension.dataBinding`)
@@ -94,6 +100,21 @@ export interface Element {
    * recommended reusable component IDs for this slot.
    */
   slot?: false | string[];
+  /**
+   * Canonical mirror fields preserved on transitional Element views.
+   * The canonical document remains the SSOT; these fields exist so legacy
+   * Builder helpers can consume `visitCanonicalDocumentElements()` output
+   * without dropping reusable/ref/metadata semantics.
+   */
+  name?: string;
+  reusable?: boolean;
+  ref?: string;
+  descendants?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  overrides?: Record<string, unknown>;
+  componentRole?: "master" | "instance";
+  masterId?: string;
+  slot_name?: string | null;
 
   // --- G.1: Component-Instance System ---
   /**

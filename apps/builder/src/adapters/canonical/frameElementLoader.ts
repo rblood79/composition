@@ -8,9 +8,7 @@ import {
 } from "./frameElementScope";
 import { getFrameElementMirrorId } from "./frameMirror";
 
-export interface FrameElementLoaderDb {
-  readonly legacyDbArgument?: never;
-}
+export type FrameElementLoaderDb = object;
 
 export interface FrameElementLike extends CanonicalFrameScopedNode {
   type: string;

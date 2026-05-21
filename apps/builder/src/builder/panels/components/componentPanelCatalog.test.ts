@@ -4,8 +4,6 @@ import { Menu, MousePointer } from "lucide-react";
 import {
   getComponentPanelGroups,
   getCatalogPanelComponents,
-  mergeCatalogPanelComponents,
-  type ComponentPanelDefinition,
 } from "./componentPanelCatalog";
 
 describe("ADR-142 Component Panel catalog bridge", () => {
@@ -121,6 +119,18 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     const layoutGroups = getComponentPanelGroups({ isLayoutMode: true });
 
     expect(
+      Object.values(normalGroups)
+        .flat()
+        .filter((item) => item.source !== "catalog")
+        .map((item) => item.type),
+    ).toEqual([]);
+    expect(
+      Object.values(layoutGroups)
+        .flat()
+        .filter((item) => item.source !== "catalog")
+        .map((item) => item.type),
+    ).toEqual([]);
+    expect(
       normalGroups.buttons.find((item) => item.type === "Button")?.source,
     ).toBe("catalog");
     expect(normalGroups.layout.some((item) => item.type === "Slot")).toBe(
@@ -135,37 +145,9 @@ describe("ADR-142 Component Panel catalog bridge", () => {
     expect(
       normalGroups.layout.find((item) => item.type === "Card")?.source,
     ).toBe("catalog");
-    expect(normalGroups.content.length).toBeGreaterThan(5);
+    expect(
+      normalGroups.content.every((item) => item.source === "catalog"),
+    ).toBe(true);
     expect(normalGroups.forms.length).toBeGreaterThan(5);
-  });
-
-  it("lets catalog entries replace matching legacy panel definitions", () => {
-    const legacyButton: ComponentPanelDefinition = {
-      type: "Button",
-      label: "legacy button",
-      icon: Menu,
-      source: "legacy",
-    };
-    const catalogButton: ComponentPanelDefinition = {
-      type: "Button",
-      label: "button",
-      icon: MousePointer,
-      source: "catalog",
-      categoryKey: "buttons",
-    };
-
-    const merged = mergeCatalogPanelComponents(
-      {
-        buttons: [
-          legacyButton,
-          { type: "Menu", label: "menu", icon: Menu, source: "legacy" },
-        ],
-      },
-      [catalogButton],
-    );
-
-    expect(merged.buttons.map((item) => item.type)).toEqual(["Button", "Menu"]);
-    expect(merged.buttons[0].source).toBe("catalog");
-    expect(merged.buttons[0].label).toBe("button");
   });
 });

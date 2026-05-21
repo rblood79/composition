@@ -7,7 +7,7 @@ export type ReferenceResolvable = {
     customId?: unknown;
     [key: string]: unknown;
   };
-  name?: string;
+  name?: string | null;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -27,8 +27,7 @@ export function matchesReference(
   if (!metadata) return false;
 
   return (
-    (isNonEmptyString(metadata.customId) &&
-      metadata.customId === reference) ||
+    (isNonEmptyString(metadata.customId) && metadata.customId === reference) ||
     (isNonEmptyString(metadata.componentName) &&
       metadata.componentName === reference)
   );

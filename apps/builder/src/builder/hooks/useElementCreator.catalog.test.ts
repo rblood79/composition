@@ -16,6 +16,11 @@ describe("ADR-142 element creator catalog bridge", () => {
     });
   });
 
+  it("does not resolve legacy-only defaults for catalog creation", () => {
+    expect(resolveCatalogElementCreation("ProgressBar")).toBeUndefined();
+    expect(resolveDefaultPropsForCreation("ProgressBar")).toBeUndefined();
+  });
+
   it("describes catalog primitive group placement with default child templates", () => {
     const creation = resolveCatalogElementCreation("ToggleButtonGroup");
 

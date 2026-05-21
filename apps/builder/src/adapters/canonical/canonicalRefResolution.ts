@@ -14,7 +14,7 @@ export type CanonicalRefResolvableNode = {
   layoutId?: string | null;
   customId?: string | null;
   componentName?: string | null;
-  name?: string;
+  name?: string | null;
   reusable?: boolean;
   deleted?: boolean;
   slot?: false | string[];

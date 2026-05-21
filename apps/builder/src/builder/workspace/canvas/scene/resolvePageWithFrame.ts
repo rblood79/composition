@@ -20,7 +20,11 @@
  */
 
 import type { Page } from "../../../../types/core/store.types";
-import type { CanvasSceneNode } from "./canvasSceneNode";
+import type {
+  CanvasProjectionMetadata,
+  CanvasSceneNode,
+} from "./canvasSceneNode";
+import type { CanonicalNode } from "@composition/shared";
 import { toPageFrameElementId } from "@composition/shared";
 import { isLegacyFrameElementForFrame } from "../../../../adapters/canonical/frameElementLoader";
 import {
@@ -29,20 +33,46 @@ import {
 } from "../../../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../../../adapters/canonical/slotMirror";
 
-export interface ResolvePageWithFrameInput {
+export interface PageFrameResolvableNode {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  layout_id?: string | null;
+  parentId?: string | null;
+  pageId?: string | null;
+  deleted?: boolean;
+  slot?: false | string[];
+  ref?: string;
+  sourceNode?: Pick<CanonicalNode, "id">;
+  projection?: CanvasProjectionMetadata;
+}
+
+type ResolvedPageFrameNode<TNode extends PageFrameResolvableNode> = TNode & {
+  parentId?: string | null;
+  pageId?: string | null;
+  projection?: CanvasProjectionMetadata;
+};
+
+export interface ResolvePageWithFrameInput<
+  TNode extends PageFrameResolvableNode = CanvasSceneNode,
+> {
   /** 현재 page (frame binding 이 set 되어 있으면 frame 합성) */
   page: Page;
   /** page_id===page.id 인 element 들 (canonical/source order) */
-  pageElements: CanvasSceneNode[];
+  pageElements: TNode[];
   /** 전체 elementsMap (frame elements 검색용) */
-  elementsMap: Map<string, CanvasSceneNode>;
+  elementsMap: Map<string, TNode>;
 }
 
-export interface ResolvePageWithFrameOutput {
+export interface ResolvePageWithFrameOutput<
+  TNode extends PageFrameResolvableNode = CanvasSceneNode,
+> {
   /** root body element — frame binding 시 frame body, 미바인딩 시 page body */
-  bodyElement: CanvasSceneNode | null;
+  bodyElement: ResolvedPageFrameNode<TNode> | null;
   /** body 제외 element 들 (frame slot subtree + page slot fill 합성) */
-  pageElements: CanvasSceneNode[];
+  pageElements: ResolvedPageFrameNode<TNode>[];
   /** page frame binding 이 set + frame body 발견 시 true */
   hasFrameBinding: boolean;
 }
@@ -58,7 +88,7 @@ function isBodyType(type: string): boolean {
 }
 
 function isHydratedPageFrameElement(
-  el: CanvasSceneNode,
+  el: PageFrameResolvableNode,
   pageId: string,
   layoutId: string,
 ): boolean {
@@ -69,31 +99,31 @@ function isHydratedPageFrameElement(
   );
 }
 
-function readSlotName(el: CanvasSceneNode): string {
+function readSlotName(el: PageFrameResolvableNode): string {
   return getSlotMirrorName(el.props) ?? getSlotMirrorName(el) ?? "content";
 }
 
-function readSlotElementName(slot: CanvasSceneNode): string {
+function readSlotElementName(slot: PageFrameResolvableNode): string {
   const fromProps = (slot.props as { name?: string } | undefined)?.name;
   return fromProps ?? getSlotMirrorName(slot) ?? "content";
 }
 
-function getCanonicalSourceId(el: CanvasSceneNode): string {
+function getCanonicalSourceId(el: PageFrameResolvableNode): string {
   const sourceId = el.sourceNode?.id;
   return typeof sourceId === "string" && sourceId.length > 0 ? sourceId : el.id;
 }
 
 function getSlotDescendantPath(
-  frameBody: CanvasSceneNode,
-  slot: CanvasSceneNode,
+  frameBody: PageFrameResolvableNode,
+  slot: PageFrameResolvableNode,
 ): string {
   return `${getCanonicalSourceId(frameBody)}/${getCanonicalSourceId(slot)}`;
 }
 
-function asPageResolvedSlot(
-  slot: CanvasSceneNode,
+function asPageResolvedSlot<TNode extends PageFrameResolvableNode>(
+  slot: TNode,
   parentId: string,
-): CanvasSceneNode {
+): ResolvedPageFrameNode<TNode> {
   return {
     ...slot,
     parentId,
@@ -118,10 +148,10 @@ const PAGE_BODY_STYLE_PRESERVE_KEYS = [
   "backgroundImage",
 ] as const;
 
-function mergePageBodyWithFrameLayout(
-  pageBody: CanvasSceneNode,
-  frameBody: CanvasSceneNode,
-): CanvasSceneNode {
+function mergePageBodyWithFrameLayout<TNode extends PageFrameResolvableNode>(
+  pageBody: TNode,
+  frameBody: TNode,
+): ResolvedPageFrameNode<TNode> {
   const pageProps = (pageBody.props ?? {}) as Record<string, unknown>;
   const frameProps = (frameBody.props ?? {}) as Record<string, unknown>;
   const pageStyle = (pageProps.style ?? {}) as Record<string, unknown>;
@@ -150,8 +180,8 @@ function mergePageBodyWithFrameLayout(
 }
 
 function getPageResolvedSlotStyle(
-  slot: CanvasSceneNode,
-  frameBody: CanvasSceneNode,
+  slot: PageFrameResolvableNode,
+  frameBody: PageFrameResolvableNode,
 ): Record<string, unknown> {
   const slotProps = (slot.props ?? {}) as Record<string, unknown>;
   const slotStyle = (slotProps.style ?? {}) as Record<string, unknown>;
@@ -200,11 +230,11 @@ function getPageResolvedSlotStyle(
   return nextStyle;
 }
 
-function asPageResolvedRootSlot(
-  slot: CanvasSceneNode,
+function asPageResolvedRootSlot<TNode extends PageFrameResolvableNode>(
+  slot: ResolvedPageFrameNode<TNode>,
   parentId: string,
-  frameBody: CanvasSceneNode,
-): CanvasSceneNode {
+  frameBody: TNode,
+): ResolvedPageFrameNode<TNode> {
   const resolved = asPageResolvedSlot(slot, parentId);
   const style = getPageResolvedSlotStyle(slot, frameBody);
   return {
@@ -229,19 +259,19 @@ function asPageResolvedRootSlot(
  * 가상 merge" — frame body 자체가 아닌 frame body **의 자식들** 을 reparent.
  * page width/height/배경 등 시각 속성 보존 + slot mirror 미매칭 element orphan 방지.
  */
-export function resolvePageWithFrame(
-  input: ResolvePageWithFrameInput,
-): ResolvePageWithFrameOutput {
+export function resolvePageWithFrame<
+  TNode extends PageFrameResolvableNode = CanvasSceneNode,
+>(input: ResolvePageWithFrameInput<TNode>): ResolvePageWithFrameOutput<TNode> {
   const { page, pageElements, elementsMap } = input;
   const layoutId = getNullablePageFrameBindingId(page);
 
   const splitPageBody = (): {
-    body: CanvasSceneNode | null;
-    nonBody: CanvasSceneNode[];
+    body: TNode | null;
+    nonBody: TNode[];
   } => {
-    let body: CanvasSceneNode | null = null;
-    let boundFrameBody: CanvasSceneNode | null = null;
-    const nonBody: CanvasSceneNode[] = [];
+    let body: TNode | null = null;
+    let boundFrameBody: TNode | null = null;
+    const nonBody: TNode[] = [];
     for (const el of pageElements) {
       const frameElementId = getFrameElementMirrorId(el);
       if (frameElementId !== null) {
@@ -264,8 +294,8 @@ export function resolvePageWithFrame(
     return { bodyElement: body, pageElements: nonBody, hasFrameBinding: false };
   }
 
-  const legacyFrameElements: CanvasSceneNode[] = [];
-  const hydratedFrameElements: CanvasSceneNode[] = [];
+  const legacyFrameElements: TNode[] = [];
+  const hydratedFrameElements: TNode[] = [];
   for (const el of elementsMap.values()) {
     if (isHydratedPageFrameElement(el, page.id, layoutId)) {
       hydratedFrameElements.push(el);
@@ -281,7 +311,7 @@ export function resolvePageWithFrame(
     ? hydratedFrameElements
     : legacyFrameElements;
 
-  let frameBody: CanvasSceneNode | null = null;
+  let frameBody: TNode | null = null;
   for (const el of frameElements) {
     if (isBodyType(el.type)) {
       frameBody = el;
@@ -299,7 +329,7 @@ export function resolvePageWithFrame(
     };
   }
 
-  const slotByName = new Map<string, CanvasSceneNode>();
+  const slotByName = new Map<string, TNode>();
   for (const el of frameElements) {
     if (el.type !== "Slot") continue;
     const slotName = readSlotElementName(el);
@@ -317,7 +347,7 @@ export function resolvePageWithFrame(
     (el) => el.id !== page.id && !frameElementIds.has(el.id),
   );
 
-  const projectFrameElementId = (el: CanvasSceneNode): string => {
+  const projectFrameElementId = (el: PageFrameResolvableNode): string => {
     if (isProjectedPageFrameElementId(page.id, el.id)) return el.id;
     return toPageFrameElementId(page.id, getCanonicalSourceId(el));
   };
@@ -357,7 +387,7 @@ export function resolvePageWithFrame(
       : currentParentId;
   };
 
-  const projectFrameElement = (el: CanvasSceneNode): CanvasSceneNode => {
+  const projectFrameElement = (el: TNode): ResolvedPageFrameNode<TNode> => {
     const parentId = resolveProjectableParentId(el.parent_id);
     const slotName = el.type === "Slot" ? readSlotElementName(el) : undefined;
     return {
@@ -390,8 +420,8 @@ export function resolvePageWithFrame(
     slotNameByContentParentId.set(projectFrameElementId(el), slotName);
   }
 
-  const pageRootBySlot = new Map<string, CanvasSceneNode[]>();
-  const pageNonRoot: CanvasSceneNode[] = [];
+  const pageRootBySlot = new Map<string, TNode[]>();
+  const pageNonRoot: TNode[] = [];
   for (const el of pageContentElements) {
     const parentSlotName = el.parent_id
       ? slotNameByContentParentId.get(el.parent_id)
@@ -423,8 +453,8 @@ export function resolvePageWithFrame(
     }
   }
 
-  const result: CanvasSceneNode[] = [];
-  const projectedSlotByName = new Map<string, CanvasSceneNode>();
+  const result: ResolvedPageFrameNode<TNode>[] = [];
+  const projectedSlotByName = new Map<string, ResolvedPageFrameNode<TNode>>();
 
   for (const el of frameElements) {
     if (el.id === frameBodyId) continue;

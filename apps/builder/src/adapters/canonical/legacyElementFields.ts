@@ -11,7 +11,7 @@ export type LegacyComponentRole = "master" | "instance";
 
 export type LegacyElementMirrorFields = {
   [LEGACY_COMPONENT_ROLE_FIELD]?: LegacyComponentRole;
-  [LEGACY_DESCENDANTS_FIELD]?: Record<string, Record<string, unknown>>;
+  [LEGACY_DESCENDANTS_FIELD]?: Record<string, unknown>;
   [LEGACY_LAYOUT_ID_FIELD]?: string | null;
   [LEGACY_MASTER_ID_FIELD]?: string;
   [LEGACY_OVERRIDES_FIELD]?: Record<string, unknown>;
@@ -23,6 +23,11 @@ export type ElementWithLegacyMirror = Element & LegacyElementMirrorFields;
 
 type CanonicalRefLike = {
   ref?: unknown;
+};
+
+type LegacyRoleLike = {
+  [LEGACY_COMPONENT_ROLE_FIELD]?: unknown;
+  [LEGACY_MASTER_ID_FIELD]?: unknown;
 };
 
 export function asElementWithLegacyMirror(
@@ -42,31 +47,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-export function isLegacyMasterElement(element: Element): boolean {
+export function isLegacyMasterElement(element: LegacyRoleLike): boolean {
+  return element[LEGACY_COMPONENT_ROLE_FIELD] === "master";
+}
+
+export function isLegacyInstanceElement(element: LegacyRoleLike): boolean {
   return (
-    asElementWithLegacyMirror(element)[LEGACY_COMPONENT_ROLE_FIELD] === "master"
+    element[LEGACY_COMPONENT_ROLE_FIELD] === "instance" &&
+    typeof element[LEGACY_MASTER_ID_FIELD] === "string"
   );
 }
 
-export function isLegacyInstanceElement(element: Element): boolean {
-  return (
-    asElementWithLegacyMirror(element)[LEGACY_COMPONENT_ROLE_FIELD] ===
-      "instance" &&
-    typeof asElementWithLegacyMirror(element)[LEGACY_MASTER_ID_FIELD] ===
-      "string"
-  );
-}
-
-export function getInstanceMasterReference(
-  element: Element,
+export function getInstanceMasterReference<T extends LegacyRoleLike>(
+  element: T & Partial<CanonicalRefLike>,
 ): string | undefined {
-  const legacyMasterId =
-    asElementWithLegacyMirror(element)[LEGACY_MASTER_ID_FIELD];
+  const legacyMasterId = element[LEGACY_MASTER_ID_FIELD];
   if (typeof legacyMasterId === "string" && legacyMasterId) {
     return legacyMasterId;
   }
 
-  const canonical = element as Element & CanonicalRefLike;
+  const canonical = element as T & CanonicalRefLike;
   if (typeof canonical.ref === "string" && canonical.ref) {
     return canonical.ref;
   }

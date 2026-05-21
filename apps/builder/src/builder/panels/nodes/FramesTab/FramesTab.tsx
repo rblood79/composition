@@ -520,7 +520,7 @@ export function FramesTab({
         tree={frameElementTree}
         frameId={currentFrame?.id ?? null}
         selectedElementId={selectedElementId}
-        expandedKeys={expandedKeys}
+        expandedKeys={new Set([...expandedKeys].map(String))}
         toggleKey={toggleKey}
         onCollapseAll={collapseFrameTree}
         onElementClick={(el) => {

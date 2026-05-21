@@ -6,6 +6,7 @@ export type ComponentPanelCategory =
   | "buttons"
   | "forms"
   | "collections"
+  | "color"
   | "dateTime"
   | "overlays";
 
@@ -28,6 +29,7 @@ export const componentPanelCategoryConfig = {
   buttons: { label: "Buttons", description: "Actions and triggers" },
   forms: { label: "Forms", description: "Inputs and controls" },
   collections: { label: "Collections", description: "Lists and data display" },
+  color: { label: "Color", description: "Color controls and pickers" },
   dateTime: { label: "Date & Time", description: "Date and time pickers" },
   overlays: { label: "Overlays", description: "Dialogs and popups" },
 } as const satisfies Record<ComponentPanelCategory, ComponentPanelCategoryMeta>;

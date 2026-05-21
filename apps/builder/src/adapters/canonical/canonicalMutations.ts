@@ -43,6 +43,7 @@ import type {
   CanonicalParentId,
   CompositionDocument,
   CompositionExtension,
+  DescendantOverride,
   FrameNode,
   RefNode,
   SerializedDataBinding,
@@ -553,7 +554,7 @@ function remapLegacyDescendants(
   const remapped: RefNode["descendants"] = {};
   for (const [legacyChildId, override] of Object.entries(legacyDescendants)) {
     const childNode = findNodeById(doc.children, legacyChildId);
-    remapped[childNode?.id ?? legacyChildId] = override;
+    remapped[childNode?.id ?? legacyChildId] = override as DescendantOverride;
   }
   return remapped;
 }
