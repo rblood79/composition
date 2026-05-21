@@ -82,7 +82,10 @@ canonical children.
 
 `packages/shadcn-design-system.json`:
 
-- reusable components: 87.
+- top-level `reusableComponents` entries: 87.
+- deep `reusable:true` objects across the full export: 174. This includes
+  reusable nodes duplicated under the selected exported tree, so contract
+  coverage uses the top-level `reusableComponents` entry count.
 - refs: 119.
 - reusable refs: 41.
 - refs with descendants: 100.
