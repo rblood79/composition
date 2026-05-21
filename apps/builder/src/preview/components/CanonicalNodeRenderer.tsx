@@ -105,6 +105,9 @@ import {
   Slider,
   Switch,
   Table,
+  Tab,
+  TabList,
+  TabPanel,
   Tabs,
   TagGroup,
   TextField,
@@ -286,7 +289,7 @@ export function CanonicalNodeRenderer({
   const children = node.children ?? [];
 
   return React.createElement(
-    resolveGenericHtmlTag(adaptedEl.type),
+    resolveGenericHtmlTag(adaptedEl.type, parentType),
     {
       key: node.id,
       ...markerProps,
@@ -303,7 +306,9 @@ export function CanonicalNodeRenderer({
             parentType={type}
           />
         ))
-      : (adaptedEl.props?.children as React.ReactNode),
+      : ((adaptedEl.props?.children ?? adaptedEl.props?.text) as
+          | React.ReactNode
+          | undefined),
   );
 }
 
@@ -315,7 +320,9 @@ export function CanonicalNodeRenderer({
  * 커스텀 태그를 표준 HTML 태그로 변환한다.
  * rendererMap 미등록 태그에 대한 최소 fallback 경로.
  */
-function resolveGenericHtmlTag(type: string): string {
+function resolveGenericHtmlTag(type: string, parentType?: string): string {
+  if (type === "Text" && parentType === "Tab") return "span";
+
   const KNOWN_HTML: Record<string, string> = {
     body: "div",
     Slot: "div",
@@ -743,6 +750,21 @@ function renderPrimitiveNode({
     const tabsProps = binding.toRacProps(
       adaptedEl.props as Record<string, unknown>,
     ) as TabsRacProps;
+    const resolvedTabsChildren = renderResolvedTabsChildren({
+      node,
+      tabsProps,
+      renderContext,
+      parentPath,
+    });
+
+    if (resolvedTabsChildren) {
+      const { items: _items, ...tabsRootProps } = tabsProps;
+      return (
+        <Tabs key={node.id} {...tabsRootProps} {...markerProps}>
+          {resolvedTabsChildren}
+        </Tabs>
+      );
+    }
 
     return <Tabs key={node.id} {...tabsProps} {...markerProps} />;
   }
@@ -922,6 +944,95 @@ function renderPrimitiveNode({
       {renderedChildren}
     </Button>
   );
+}
+
+function renderResolvedTabsChildren({
+  node,
+  tabsProps,
+  renderContext,
+  parentPath,
+}: {
+  node: ResolvedNode;
+  tabsProps: TabsRacProps;
+  renderContext: RenderContext;
+  parentPath: string;
+}): React.ReactNode[] | null {
+  const tabListNode = (node.children ?? []).find(
+    (child) => child.type === "TabList",
+  );
+  if (!tabListNode) return null;
+
+  const tabNodes = (tabListNode.children ?? []).filter(
+    (child) => child.type === "Tab",
+  );
+  const panelNodes = (node.children ?? []).filter(
+    (child) => child.type === "TabPanel",
+  );
+
+  if (tabNodes.length === 0 && panelNodes.length === 0) return null;
+
+  const tabList = (
+    <TabList
+      key={tabListNode.id}
+      {...getCanonicalMarkerProps(tabListNode)}
+      showIndicator={tabsProps.showIndicator === true}
+    >
+      {tabNodes.map((tabNode) => (
+        <Tab
+          key={tabNode.id}
+          id={tabNode.id}
+          isDisabled={tabNode.props?.isDisabled === true}
+          {...getCanonicalMarkerProps(tabNode)}
+        >
+          {(tabNode.children ?? []).map((child) => (
+            <CanonicalNodeRenderer
+              key={child.id}
+              node={child}
+              renderContext={renderContext}
+              parentPath={`${parentPath}/${tabListNode.id}/${tabNode.id}`}
+              parentType="Tab"
+            />
+          ))}
+        </Tab>
+      ))}
+    </TabList>
+  );
+
+  const panels = panelNodes.map((panelNode) => (
+    <TabPanel
+      key={panelNode.id}
+      id={getPanelTargetId(panelNode)}
+      {...getCanonicalMarkerProps(panelNode)}
+    >
+      {(panelNode.children ?? []).map((child) => (
+        <CanonicalNodeRenderer
+          key={child.id}
+          node={child}
+          renderContext={renderContext}
+          parentPath={`${parentPath}/${panelNode.id}`}
+          parentType="TabPanel"
+        />
+      ))}
+    </TabPanel>
+  ));
+
+  return [tabList, ...panels];
+}
+
+function getPanelTargetId(node: ResolvedNode): string {
+  const explicitId = node.props?.id ?? node.props?.tabId;
+  return typeof explicitId === "string" && explicitId.length > 0
+    ? explicitId
+    : node.id;
+}
+
+function getCanonicalMarkerProps(
+  node: ResolvedNode,
+): Record<"data-canonical-id" | "data-element-id", string> {
+  return {
+    "data-canonical-id": node.id,
+    "data-element-id": node.id,
+  };
 }
 
 function collectSelectedToggleButtonKeys(node: ResolvedNode): string[] {

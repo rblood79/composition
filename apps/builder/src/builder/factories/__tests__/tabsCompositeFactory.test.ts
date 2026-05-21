@@ -123,7 +123,7 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
     expect(byId(allElements, "tab-label")).toMatchObject({
       parent_id: "tab-origin",
       type: "Text",
-      props: { children: "Tab" },
+      props: { text: "Tab" },
     });
     expect(byId(allElements, "tab-indicator")).toMatchObject({
       parent_id: "tab-origin",
@@ -138,8 +138,8 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
       componentRole: "instance",
       masterId: "tab-origin",
       descendants: {
-        "tab-label": { props: { children: "Overview" } },
-        "tab-indicator": { props: { enabled: true } },
+        "tab-label": { text: "Overview" },
+        "tab-indicator": { enabled: true },
       },
     });
     expect(byId(allElements, "tab-ref-settings")).toMatchObject({
@@ -147,7 +147,7 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
       type: "Tab",
       ref: "tab-origin",
       descendants: {
-        "tab-label": { props: { children: "Settings" } },
+        "tab-label": { text: "Settings" },
       },
     });
 
@@ -261,8 +261,8 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
       type: "ref",
       ref: "tab-origin",
       descendants: {
-        "tab-label": { props: { children: "Overview" } },
-        "tab-indicator": { props: { enabled: true } },
+        "tab-label": { text: "Overview" },
+        "tab-indicator": { enabled: true },
       },
     });
     expect(findNode(doc?.children ?? [], "tabs-instance")).toMatchObject({

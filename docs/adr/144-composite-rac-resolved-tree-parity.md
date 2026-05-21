@@ -25,6 +25,12 @@ In Progress — 2026-05-21
   는 기존 문서 adapter fallback 으로 유지하고, 새 creation path 는 factory-level
   composite template 으로 분리했다. Evidence:
   `apps/builder/src/builder/factories/__tests__/tabsCompositeFactory.test.ts`.
+- 2026-05-22 — Phase 3 G3 Preview half 완료. Canonical Preview 의 Tabs renderer 는
+  resolved `TabList` / `Tab` / `TabPanel` children 을 RAC static children 으로
+  projection 하며, tab label owner, panel owner, panel body owner 의
+  `data-canonical-id` / `data-element-id` marker 를 보존한다. 기존 `props.items[]`
+  Tabs 는 fallback 으로 유지했다. Evidence:
+  `apps/builder/src/preview/components/CanonicalNodeRenderer.adr144.test.tsx`.
 
 ## Context
 

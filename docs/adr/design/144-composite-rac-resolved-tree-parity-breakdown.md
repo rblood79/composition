@@ -348,7 +348,7 @@ Evidence:
 - `apps/builder/src/builder/factories/__tests__/tabsCompositeFactory.test.ts`
 - `pnpm -F @composition/builder exec vitest run src/builder/factories/__tests__/tabsCompositeFactory.test.ts`
 
-### Phase 3 — Preview resolved-tree projection
+### Phase 3 — Preview resolved-tree projection (Implemented 2026-05-22)
 
 Purpose: render Tabs from canonical children while preserving RAC behavior.
 
@@ -374,6 +374,24 @@ Likely files:
 - `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
 - `packages/shared/src/components/Tabs.tsx`
 - `packages/shared/src/catalog/primitives/tabs.ts`
+
+Implementation decision:
+
+- Preview projection is implemented in `CanonicalNodeRenderer` rather than the
+  shared `Tabs` primitive. This keeps shared `Tabs` behavior-compatible for
+  legacy `props.items[]` and dataBinding paths while letting canonical Preview
+  render resolved `TabList` / `Tab` / `TabPanel` owners directly.
+- `Text` descendants inside `Tab` use mode-A `text` patches, not `children`
+  patches, because resolver `children` is the mode-C subtree replacement
+  discriminator.
+- G3 remains incomplete until Phase 4 lands the Skia half and owner/bounds
+  parity check.
+
+Evidence:
+
+- `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
+- `apps/builder/src/preview/components/CanonicalNodeRenderer.adr144.test.tsx`
+- `pnpm -F @composition/builder exec vitest run src/preview/components/CanonicalNodeRenderer.adr144.test.tsx src/builder/factories/__tests__/tabsCompositeFactory.test.ts`
 
 ### Phase 4 — Skia resolved-tree drawing and hit-test ownership
 

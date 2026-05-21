@@ -82,7 +82,7 @@ export function createTabsCompositeElements(
   const tabLabel = createElement(
     ids.tabLabel,
     "Text",
-    { children: "Tab" } as ComponentElementProps,
+    { text: "Tab" } as ComponentElementProps,
     { parent_id: ids.tabOrigin },
   );
   const tabIndicator = createElement(
@@ -119,8 +119,8 @@ export function createTabsCompositeElements(
       componentRole: "instance",
       masterId: ids.tabOrigin,
       descendants: {
-        [ids.tabLabel]: { props: { children: "Overview" } },
-        [ids.tabIndicator]: { props: { enabled: true } },
+        [ids.tabLabel]: { text: "Overview" },
+        [ids.tabIndicator]: { enabled: true },
       },
     },
   );
@@ -134,7 +134,7 @@ export function createTabsCompositeElements(
       componentRole: "instance",
       masterId: ids.tabOrigin,
       descendants: {
-        [ids.tabLabel]: { props: { children: "Settings" } },
+        [ids.tabLabel]: { text: "Settings" },
       },
     },
   );
