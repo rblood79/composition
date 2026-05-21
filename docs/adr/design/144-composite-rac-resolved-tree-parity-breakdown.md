@@ -483,7 +483,7 @@ Likely files:
 - `apps/builder/src/builder/workspace/canvas/**`
 - `apps/builder/src/adapters/canonical/**`
 
-### Phase 6 — RAC behavior tests
+### Phase 6 — RAC behavior tests (Implemented 2026-05-22)
 
 Purpose: keep behavior under RAC, not composition-drawn imitations.
 
@@ -498,10 +498,37 @@ Tasks:
 
 Gate: G5.
 
-Likely files:
+Landed implementation:
 
-- `packages/shared/src/components/__tests__/**`
-- `apps/builder/src/preview/components/**.test.tsx`
+- File: `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (6 tests
+  passing). 두 group 으로 분리:
+  - `ADR-144 Phase 6 — Tabs RAC behavior (wrapper)`: composition `Tabs` /
+    `TabList` / `Tab` / `TabPanel` static-children path 가 RAC keyboard
+    navigation (ArrowRight `automatic` activation), `keyboardActivation="manual"`
+    contract (ArrowRight focus-only / Enter activation), `aria-controls`/
+    `aria-labelledby` 양방향 wiring 을 그대로 통과시킨다는 evidence.
+  - `ADR-144 Phase 6 — Tabs RAC behavior (canonical resolved-tree)`: ADR-144
+    의 reusable `Tab`/`TabList`/`Tabs` origin + `type:"ref"` instance +
+    `descendants` override + nested `TabPanel` body 의 resolved tree 가
+    `CanonicalNodeRenderer` 를 통과해서 동일 RAC contract (ArrowRight,
+    Home/End, RAC focus marker) 를 유지한다는 evidence. composition 의
+    `data-canonical-id` marker wiring 이 RAC selection delivery 를 가로채지
+    않는다.
+- jsdom polyfill: 본 file inline `beforeAll` 에서 `CSS.escape` (react-aria
+  `useSelectableCollection` onFocus 경로) + `Element.prototype.getAnimations`
+  (RAC `SharedElementTransition` — `showIndicator: true` 시 frame polling) 만
+  최소 stub. RAC primitive 자체는 그대로 사용.
+- Official React Aria testing pattern 참조:
+  - <https://react-spectrum.adobe.com/react-aria/testing.html>
+  - <https://react-spectrum.adobe.com/react-aria/Tabs.html#props>
+- `packages/shared/src/components/__tests__/` 는 vitest config 가 `.ts` only
+  include + jsdom/testing-library devDeps 미보유. apps/builder 의 jsdom +
+  alias 셋업을 활용해서 wrapper path 와 resolved-tree path 를 한 file 에 통합
+  (인프라 변경 회피).
+
+Files:
+
+- `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (신규)
 
 ### Phase 7 — Family expansion matrix
 
@@ -566,7 +593,7 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 - [x] Preview and Skia expose matching owner id/path for Tabs editable subparts.
 - [x] TabPanel/body selection and editing work.
 - [x] Synthetic Skia ids are not editable owners.
-- [ ] RAC behavior tests pass.
+- [x] RAC behavior tests pass.
 - [x] Layout invalidation is verified for descendant content/style patch writes.
 - [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910
       begins or the family is explicitly held.

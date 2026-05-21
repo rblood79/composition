@@ -51,6 +51,17 @@ In Progress — 2026-05-21
   Evidence: `apps/builder/src/builder/stores/__tests__/adr144DescendantsRouting.test.ts`,
   `apps/builder/src/builder/panels/properties/__tests__/inspectorInputMode.test.ts`,
   `apps/builder/src/builder/workspace/canvas/skia/renderCommands.test.ts`.
+- 2026-05-22 — Phase 6 G5 (RAC behavior tests) 완료. composition `Tabs` wrapper
+  (catalog `items[]` projection / static children) 와 canonical resolved-tree
+  projection (`Tabs`/`TabList`/`Tab`/`TabPanel` resolved children) 양쪽이
+  react-aria-components 의 keyboard navigation (Arrow/Home/End), automatic vs
+  manual `keyboardActivation`, `aria-controls`/`aria-labelledby` tab-panel
+  relation, RAC focus marker 의 contract 를 통과한다. composition 의
+  `data-canonical-id` marker wiring 이 RAC selection delivery 를 가로채지
+  않는다는 evidence (R3 MED). jsdom 환경의 `CSS.escape` / `Element.getAnimations`
+  부재는 본 test file 안 inline polyfill 로 처리 (RAC SharedElementTransition /
+  useSelectableCollection 가 호출). Evidence:
+  `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (6/6 PASS).
 
 ## Context
 
