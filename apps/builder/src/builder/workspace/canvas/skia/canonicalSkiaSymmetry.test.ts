@@ -972,6 +972,139 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     },
   );
 
+  // ADR-144 Phase 7 Wave B — positive parity. When the 4 family resolved-tree
+  // composite payload (canonical `{Item}Type` children with Text label
+  // descendants) is rendered, the canonical item ids + label ids must appear
+  // as hit-test owners with the canonical ownerPath. Tabs Phase 4 contract
+  // (`canonical owner identity over Skia synthetic ids`) is now mirrored to
+  // ListBox / Menu / ComboBox / Select. G7 perf budget is the separate gate.
+  it.each([
+    {
+      label: "ListBox",
+      type: "ListBox",
+      itemType: "ListBoxItem",
+      props: { selectionMode: "single", "aria-label": "ListBox" },
+    },
+    {
+      label: "Menu",
+      type: "Menu",
+      itemType: "MenuItem",
+      props: { "aria-label": "Menu", children: "Menu", selectionMode: "none" },
+    },
+    {
+      label: "ComboBox",
+      type: "ComboBox",
+      itemType: "ComboBoxItem",
+      props: {
+        label: "Combo Box",
+        placeholder: "Pick one",
+        "aria-label": "Combo Box",
+      },
+    },
+    {
+      label: "Select",
+      type: "Select",
+      itemType: "SelectItem",
+      props: {
+        label: "Select",
+        placeholder: "Pick one",
+        "aria-label": "Select",
+      },
+    },
+  ])(
+    "$label composite resolved children: canonical item + label owner emission (ADR-144 Wave B)",
+    ({
+      type,
+      itemType,
+      props,
+    }: {
+      type: string;
+      itemType: string;
+      props: Record<string, unknown>;
+    }) => {
+      const rootId = `${type.toLowerCase()}-resolved-b`;
+      const item1Id = `${rootId}-item-1`;
+      const item1LabelId = `${rootId}-item-1-label`;
+      const item2Id = `${rootId}-item-2`;
+      const item2LabelId = `${rootId}-item-2-label`;
+      const node = buildGenericResolvedSkiaNodeData({
+        node: {
+          id: rootId,
+          type: type as CanonicalNode["type"],
+          props,
+          children: [
+            {
+              id: item1Id,
+              type: itemType as CanonicalNode["type"],
+              props: {},
+              children: [
+                {
+                  id: item1LabelId,
+                  type: "Text",
+                  props: { text: "Aardvark" },
+                },
+              ],
+            },
+            {
+              id: item2Id,
+              type: itemType as CanonicalNode["type"],
+              props: {},
+              children: [
+                {
+                  id: item2LabelId,
+                  type: "Text",
+                  props: { text: "Cat" },
+                },
+              ],
+            },
+          ],
+        },
+        theme: "light",
+        layout: { x: 0, y: 0, width: 240, height: 200 },
+      });
+
+      expect(node).not.toBeNull();
+      expect(node?.type).toBe("container");
+      expect(node?.elementId).toBe(rootId);
+
+      // Canonical item ids appear as hit-test owners (Skia parity with Tabs
+      // Phase 4 contract — item-level + label-level canonical owner).
+      const hitTestOwnerIds = collectHitTestOwnerElementIds(node);
+      expect(hitTestOwnerIds).toEqual(
+        expect.arrayContaining([item1Id, item1LabelId, item2Id, item2LabelId]),
+      );
+
+      // ownerPath chains: `${rootId}/${itemId}` and
+      // `${rootId}/${itemId}/${labelId}` mirror Tabs panel/body owner paths.
+      const ownerPaths = collectOwnerPaths(node);
+      expect(ownerPaths).toEqual(
+        expect.arrayContaining([
+          `${rootId}/${item1Id}`,
+          `${rootId}/${item1Id}/${item1LabelId}`,
+          `${rootId}/${item2Id}`,
+          `${rootId}/${item2Id}/${item2LabelId}`,
+        ]),
+      );
+
+      // G6 acceptance still holds — synthetic visual draw ids must remain
+      // hit-test-owner-less even on the new resolved-tree path.
+      const synthPrefixes = [
+        `${rootId}:item:`,
+        `${rootId}:trigger:`,
+        `${rootId}:menu:`,
+        `${rootId}:input`,
+        `${rootId}:value`,
+        `${rootId}:list:`,
+        `${rootId}:background`,
+      ];
+      for (const id of hitTestOwnerIds) {
+        for (const prefix of synthPrefixes) {
+          expect(id.startsWith(prefix)).toBe(false);
+        }
+      }
+    },
+  );
+
   it("renders a resolved Tree items path without render.shapes", () => {
     const renderShapes = vi.spyOn(TreeSpec.render, "shapes");
     const node = buildGenericResolvedSkiaNodeData({

@@ -76,22 +76,50 @@ ADR-910 권장 우선순위:
 2. Item shape emit (bg+text per item) 의 GPU paint cost — 본 phase 는 build cost 만 측정, GPU draw 는 ADR-910 Phase 1+ 측정
 3. RAC overlay mount 비용 (popover trigger interaction) — ADR-910 별도 phase
 
-## 5. Wave B/C debt 영향 — 4 family resolved-tree 측정 deferred
+## 5. Wave B G7-A 재측정 (2026-05-22 — Wave B land 동시 closure)
 
-Phase 7 Wave A 는 4 family (Select / ComboBox / ListBox / Menu) 의 root marker
+Phase 7 Wave B 가 4 family (Select / ComboBox / ListBox / Menu) Skia
+resolved-tree path 를 land 한 시점에 G7-A `+25%` 비교를 다시 측정했다.
+원본 Phase 8 land 시 deferred 로 적었던 debt 는 본 절에서 closure.
 
-- factory + Skia symmetric `hitTestOwner: true` 부재만 land 했다. 4 family Skia
-  builder 는 여전히 `buildGenericXNode` props-only path 를 탄다 → 본 phase 의 4
-  family 측정값은 props-only baseline 이며 G7-A 비교는 Wave B 후 재평가한다.
+| Payload (Wave B)               | nodeCount | p50 (ms) | p95 (ms) | max (ms) | mean (ms) | Pass               |
+| :----------------------------- | :-------: | :------: | :------: | :------: | :-------: | :----------------- |
+| ListBox N=50 props-only        |    103    |  0.015   |  0.022   |  0.031   |   0.016   | baseline           |
+| ListBox N=50 resolved-tree     |    103    |  0.014   |  0.020   |  0.030   |   0.015   | G7-A PASS (≤0.5ms) |
+| Menu N=50 props-only           |    105    |  0.018   |  0.027   |  0.053   |   0.019   | baseline           |
+| Menu N=50 resolved-tree        |    105    |  0.016   |  0.025   |  0.036   |   0.017   | G7-A PASS (≤0.5ms) |
+| Select N=50 props-only         |    14     |  0.007   |  0.008   |  0.018   |   0.007   | baseline           |
+| Select N=50 resolved-tree      |    108    |  0.012   |  0.019   |  0.024   |   0.013   | G7-A PASS (≤0.5ms) |
+| ComboBox N=50 props-only       |    14     |  0.006   |  0.008   |  0.016   |   0.007   | baseline           |
+| ComboBox N=50 resolved-tree    |    108    |  0.011   |  0.015   |  0.309   |   0.015   | G7-A PASS (≤0.5ms) |
+| ListBox N=1000 resolved stress |   2003    |  0.210   |  0.231   |  0.615   |   0.220   | G7-B PASS (≤16.67) |
+| Menu N=1000 resolved stress    |   2005    |  0.213   |  0.234   |  0.458   |   0.216   | G7-B PASS (≤16.67) |
 
-Wave B 후 측정 추가:
+**해석**:
 
-- 4 family resolved-tree composite payload (item-origin + container-origin
-  `slot:` + N ref children) 의 builder dispatcher 분기 후 p95 측정
-- G7-A `+25%` 비교 — Wave B 미land 상태 = baseline 정의 자체 불가능
+- ListBox / Menu 는 props-only N=50 도 N=1000 propsOnly baseline 과 동일하게
+  103/105 nodeCount (visible drawing) 를 그리고 있어, resolved-tree path 와
+  props-only path 의 node tree 모양이 거의 동일. p95 차이도 sub-microsecond
+  이며 +25% 천정 안. 1000-scale resolved stress 도 60fps budget 의 1.4 % 만
+  사용 (p95 ~0.23ms / 16.67ms).
+- Select / ComboBox 는 RAC trigger + popover 구조라 props-only N=50 시 popover
+  바깥 chrome 14 nodes 만 그린다. resolved-tree path 는 dropdown listbox 안
+  108 nodes 를 그리며 build cost 가 sub-millisecond 로 늘었다 (0.019/0.015ms).
+  단 G7-A 0.5ms floor 안에서 통과 — sub-millisecond noise 가 gate 를 잡지
+  않도록 한 floor 가 의도된 trade-off.
+- ComboBox N=50 resolved-tree max 0.309ms 는 100 iteration 내 outlier 단 1
+  회. p95 0.015ms 와 함께 noise level. heap delta 음수 (-60MB) 는 GC 회수로
+  단조 누적 아님 재확인.
 
-본 phase 결과는 **Wave B/C 진입 시점에 재측정 의무**가 있으며, 본 결과는
-"Wave A landed scope" 의 perf baseline 이다.
+**Acceptance Checklist 갱신**: Wave B 후 4 family G7-A 재측정 의무 → closure.
+debt 잔존 없음 — Wave C (Inspector wiring) 는 perf gate 와 무관.
+
+## 6. (구) Wave B/C deferred 절 — 폐기
+
+원본 Phase 8 결과에 있던 "Wave B 후 4 family resolved-tree G7-A 재측정
+deferred" 문구는 §5 의 Wave B 재측정 행렬로 대체된다. Wave C 영역 (Inspector
+`getCustomPreEditor` + `detectInspectorInputMode` wiring) 은 build-frame
+budget 와 무관하므로 perf gate debt 가 아니다.
 
 ## 6. Reproduction
 

@@ -530,7 +530,7 @@ Files:
 
 - `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (신규)
 
-### Phase 7 — Family expansion matrix (Wave A partial Implemented 2026-05-22)
+### Phase 7 — Family expansion matrix (Wave A + Wave B Implemented 2026-05-22)
 
 Purpose: apply the same contract beyond Tabs.
 
@@ -572,24 +572,58 @@ Landed implementation (Wave A — collection family matrix row, 4 step land scop
    (synthetic editable owner 0 件) without further mutating
    `buildGenericListBoxNode` / `MenuNode` / `ComboBoxNode` / `SelectNode`.
 
-Deferred to a follow-up Wave (B/C — explicitly tracked in the Acceptance
-Checklist):
+Landed implementation (Wave B — 4 family Skia resolved-tree owner emission,
+2026-05-22):
 
-- 4 family Skia builders Tabs-Phase-4-equivalent `hitTestOwner: true +
-ownerPath` emission for the resolved canonical child ids, enabling
-  nested-descendant Inspector edits on `ListBoxItem` / `MenuItem` /
-  `SelectItem` / `ComboBoxItem` labels.
+1. **Shared resolver** — `findResolvedCollectionItems(node, itemType)`
+   (`apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`)
+   walks `node.children` for canonical items of the requested type and
+   discovers their optional Text label descendant via the existing
+   `findResolvedTabsTextNode` heuristic (Text / Label / Paragraph /
+   Heading). Returns `[]` when no canonical items are present — caller
+   falls back to legacy `props.items[]` synthetic drawing.
+2. **Per-family resolved-tree helpers** — `buildResolvedListBoxChildren`,
+   `buildResolvedMenuChildren`, `buildResolvedComboBoxOrSelectChildren`
+   mirror `buildResolvedTabsChildren`. Each helper emits draw-only chrome
+   (background / trigger / list bg) plus per-item canonical owner pairs:
+   - item box: `hitTestOwner: true`, `elementId = itemNode.id`,
+     `ownerPath = ${containerId}/${itemId}`
+   - label text: `hitTestOwner: true`,
+     `elementId = labelNode.id ?? itemNode.id`,
+     `ownerPath = ${containerId}/${itemId}/${labelId}`
+3. **Dispatch wiring** — `buildGenericListBoxNode` / `MenuNode` /
+   `ComboBoxNode` / `SelectNode` call their helper first; if it returns
+   children, the container short-circuits with canonical owners. Legacy
+   `props.items[]` rendering remains unchanged behind the fallback.
+4. **Positive parity test** — `canonicalSkiaSymmetry.test.ts` adds a
+   second 4-row `it.each` block (`ADR-144 Wave B`) that asserts canonical
+   item ids + label ids appear in `collectHitTestOwnerElementIds`, the
+   matching `ownerPath` strings appear in `collectOwnerPaths`, and the
+   existing G6 denylist still holds (no synthetic owner regression).
+5. **G7-A re-measurement** —
+   `apps/builder/src/builder/workspace/canvas/skia/__perf__/adr144Phase8FrameBudget.perf.test.ts`
+   adds a Wave B `it.each` matrix (N=50 dual-path) and a 1000-item stress
+   row for ListBox / Menu. Wave B p95 stays under both the props-only +
+   25 % ceiling and the 60fps budget; the 0.5ms floor catches the
+   Select / ComboBox case where the resolved payload renders 108 nodes
+   vs the props-only 14-node chrome (sub-millisecond noise must not
+   gate). Evidence: 13/13 perf test PASS.
+
+Deferred to Wave C (still tracked in the Acceptance Checklist):
+
 - `getCustomPreEditor` registration for `Select` / `ComboBox` and the
   `detectInspectorInputMode` wiring on the four family PropertyEditors
-  (acceptance checklist row "Phase 5 task 7 ... G6 phase 7 family
-  expansion 에서 wiring").
+  (Inspector Properties UI 3 mode 분기 — dataBinding picker / slot
+  add-remove UI / legacy ItemsManager). nested-descendant edit routing
+  (Skia hit-test → Inspector store mutation) is **already land** through
+  Phase 5 `ownerPath` + `apply*FromSelection` flow; Wave C only adds the
+  Properties panel mode-detection surface.
 
-Wave A keeps the change set to (a) test expansions, (b) one new factory
-helper, (c) ADR / breakdown documentation. No `buildGenericXNode` body
-mutation, no inspector registry mutation, no synthetic id removal — the
-Skia builders already keep `hitTestOwner` off for synthetic child ids, so
-the G6 acceptance is satisfied at the canonical-resolved-tree boundary
-rather than by rewriting legacy props-only paths.
+Wave A delivered the test/factory boundary; Wave B delivered the Skia
+owner emission. The change set in Wave B is bounded to (a) helper
+addition in `buildSpecNodeData.ts`, (b) dispatch hook in 4 existing
+`buildGenericXNode` bodies, (c) Skia symmetry positive parity test,
+(d) Phase 8 perf re-measurement.
 
 Coverage matrix:
 
@@ -659,19 +693,32 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
       wrappers, `collectionCompositeFactories.test.ts` 5/5), Preview marker
       matrix (`CanonicalNodeRenderer.adr144.test.tsx` `it.each` 4 family),
       Skia synthetic editable owner 0 件 (`canonicalSkiaSymmetry.test.ts`
-      `it.each` 4 family). Wave B/C debt 명시: 4 family Skia Tabs-Phase-4-급
-      `hitTestOwner: true + ownerPath` 자식 emission + Select/ComboBox
-      `getCustomPreEditor` 등록 + 4 family PropertyEditor 의
-      `detectInspectorInputMode` wiring.
+      `it.each` 4 family).
+- [x] Phase 7 Wave B — 4 family Skia resolved-tree owner emission
+      (`buildGenericListBoxNode` / `MenuNode` / `ComboBoxNode` / `SelectNode`
+      이 canonical `{Item}Type` + Text label 자식을 `hitTestOwner: true +
+ownerPath` 으로 그린다). Tabs Phase 4 패턴 일반화 — shared
+      `findResolvedCollectionItems()` + per-family `buildResolved*Children()`
+      helper 4종 추가. legacy `props.items[]` synthetic drawing 은 adapter
+      fallback (Hard Constraint 5). Positive parity test:
+      `canonicalSkiaSymmetry.test.ts` Wave B `it.each` 4/4 PASS (canonical
+      item id + label id 가 hit-test owner, `ownerPath` chain 매칭, denylist
+      0 synthetic owner 유지). G7-A 재측정 13/13 PASS. Wave C debt 잔존
+      (Select / ComboBox `getCustomPreEditor` + 4 family PropertyEditor
+      `detectInspectorInputMode` wiring).
 - [x] Perf baseline is recorded and G7 blocking budget passes before ADR-910
       begins or the family is explicitly held. (Phase 8 PASS — 7/7 perf test
       land, Tabs resolved-tree p95 ≤ props-only × 1.25 + 모든 family 60fps
       budget hold. 1000-item ListBox/Menu props-only p95 0.27~0.36ms 가
       build-frame dominant cost — ADR-910 Phase 0 picture cache / paint pool
-      후보. Evidence: `apps/builder/src/builder/workspace/canvas/skia/__perf__/adr144Phase8FrameBudget.perf.test.ts`,
+      후보. Wave B 후 4 family G7-A 재측정 6 case (N=50 dual-path + 1000
+      stress ListBox/Menu) 도 통과 — resolved-tree p95 sub-millisecond 또는
+      0.5ms floor 안. 1000-item resolved stress 도 60fps 유지 (p95
+      ~0.23ms). Evidence:
+      `apps/builder/src/builder/workspace/canvas/skia/__perf__/adr144Phase8FrameBudget.perf.test.ts`
+      (13/13 PASS),
       `144-composite-rac-resolved-tree-parity-phase8-methodology.md`,
-      `144-composite-rac-resolved-tree-parity-phase8-results.md`. Wave B
-      후 4 family resolved-tree G7-A 재측정 의무는 debt 로 명시.)
+      `144-composite-rac-resolved-tree-parity-phase8-results.md`.)
 - [ ] C3-a 데이터 source 3축 (Data Panel inline persisted / API endpoint persisted config + Zustand runtime sink + Canvas direct proxy fallback 잔존 / Properties inline `element.props[itemsKey]`) 과 C3-b 3 input mode (external dataBinding / new resolved-tree local data / legacy `props.items[]` fallback) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다. Builder execute path 와 Preview/Canvas read path 의 sink 정합 (`useCollectionData.ts:340-355` direct proxy branch) 은 G3/G6 에서 row identity / owner projection 별도 검증.
 - [x] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이며, mode 2 (resolved-tree local data) 로 동작한다.
 - [x] Phase 5 task 7 Inspector Properties UI 가 3 input mode (dataBinding picker / slot 추가·삭제 UI / ItemsManager) 로 분기되며 한 instance 에 동시 표시되지 않는다. mode 감지 순서: dataBinding → resolved-tree composite payload → legacy fallback. mode 감지는 `detectInspectorInputMode` (`apps/builder/src/builder/panels/properties/inspectorInputMode.ts`) 단일 진입점 helper 로 관리되고 ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 helper 를 호출한다 (Select/ComboBox/Table/Tree). Tabs 는 composite resolved-tree PropertyEditor 별 패턴으로 G6 phase 7 family expansion 에서 wiring.

@@ -8,9 +8,10 @@
 //   G7-C 1000+ stress — same 60fps threshold at family stress scale
 //   G7-D nodeCount + heap delta — informational, ADR-910 baseline feed
 //
-// 4 family (Select/ComboBox/ListBox/Menu) Skia path is props-only (Wave B not
-// landed). G7-A comparison for those families is therefore deferred and only
-// G7-B/C/D apply at this phase.
+// ADR-144 Wave B (2026-05-22) — 4 family (Select/ComboBox/ListBox/Menu)
+// Skia resolved-tree path landed. G7-A dual-path comparison now extends to
+// the 4 family (resolved vs props-only, +25% ceiling). props-only stress
+// (1000+ scale, 60fps) measurements remain as Wave A baseline for ADR-910.
 
 import { describe, expect, it } from "vitest";
 import type {
@@ -237,6 +238,95 @@ interface CollectionPayloadOptions {
   itemCount: number;
 }
 
+function collectionItemTypeFor(
+  containerType: CollectionPayloadOptions["containerType"],
+): "ListBoxItem" | "MenuItem" | "SelectItem" | "ComboBoxItem" {
+  switch (containerType) {
+    case "ListBox":
+      return "ListBoxItem";
+    case "Menu":
+      return "MenuItem";
+    case "Select":
+      return "SelectItem";
+    case "ComboBox":
+      return "ComboBoxItem";
+  }
+}
+
+function makeCollectionResolvedDocument({
+  containerType,
+  itemCount,
+}: CollectionPayloadOptions): CompositionDocument {
+  const itemType = collectionItemTypeFor(containerType);
+  const itemOriginId = `${containerType.toLowerCase()}-item-origin`;
+  const itemLabelId = `${containerType.toLowerCase()}-item-label`;
+  const containerOriginId = `${containerType.toLowerCase()}-origin`;
+  const containerInstanceId = `${containerType.toLowerCase()}-instance`;
+
+  const itemOrigin: CanonicalNode = {
+    id: itemOriginId,
+    type: itemType as CanonicalNode["type"],
+    reusable: true,
+    children: [{ id: itemLabelId, type: "Text", props: { text: "Item" } }],
+  };
+  const itemRefs: CanonicalNode[] = Array.from(
+    { length: itemCount },
+    (_, index): CanonicalNode =>
+      ({
+        id: `${containerType.toLowerCase()}-item-ref-${index}`,
+        type: "ref",
+        ref: itemOriginId,
+        descendants: {
+          [itemLabelId]: { text: `Item ${index}` },
+        },
+      }) as RefNode,
+  );
+
+  const containerProps: Record<string, unknown> = {
+    "aria-label": containerType,
+    style: { width: TABS_W, height: TABS_H },
+  };
+  if (containerType === "Menu") {
+    containerProps.children = "Menu";
+    containerProps.selectionMode = "none";
+  } else if (containerType === "ListBox") {
+    containerProps.selectionMode = "single";
+  } else if (containerType === "Select" || containerType === "ComboBox") {
+    containerProps.label = containerType;
+    containerProps.placeholder = "Pick one";
+  }
+
+  const containerOrigin: CanonicalNode = {
+    id: containerOriginId,
+    type: containerType,
+    reusable: true,
+    props: containerProps,
+    slot: [itemOriginId],
+    children: itemRefs,
+  };
+
+  return {
+    version: "composition-1.0",
+    children: [
+      itemOrigin,
+      containerOrigin,
+      {
+        id: PAGE_ID,
+        type: "frame",
+        metadata: { type: "page", pageId: PAGE_ID },
+        props: { style: { width: PAGE_W, height: PAGE_H } },
+        children: [
+          {
+            id: containerInstanceId,
+            type: "ref",
+            ref: containerOriginId,
+          } as RefNode,
+        ],
+      },
+    ],
+  };
+}
+
 function makeCollectionPropsOnlyDocument({
   containerType,
   itemCount,
@@ -425,4 +515,71 @@ describe("ADR-144 Phase 8 — G7-C family stress (60fps blocking)", () => {
     const result = runMeasurement("ComboBox N=200 props-only stress", input);
     expect(result.summary.p95).toBeLessThanOrEqual(FRAME_BUDGET_MS);
   });
+});
+
+// ---------------------------------------------------------------------------
+// G7-A re-measurement (Wave B) — 4 family resolved-tree vs props-only +25%
+// ---------------------------------------------------------------------------
+//
+// Wave B (2026-05-22) activates the Skia resolved-tree path for the 4
+// collection families. The Phase 8 methodology debt ("Wave B 후 4 family
+// resolved-tree G7-A 재측정 의무") is closed here: each family's resolved
+// payload (canonical `{Item}Type` refs with descendants text) is measured
+// alongside the existing props-only baseline and gated by the same +25%
+// ceiling Tabs uses.
+
+describe("ADR-144 Phase 8 — G7-A 4 family Wave B re-measurement", () => {
+  it.each([
+    { containerType: "ListBox" as const, itemCount: 50 },
+    { containerType: "Menu" as const, itemCount: 50 },
+    { containerType: "Select" as const, itemCount: 50 },
+    { containerType: "ComboBox" as const, itemCount: 50 },
+  ])(
+    "$containerType N=$itemCount: resolved-tree p95 ≤ props-only p95 × 1.25 AND ≤ 16.67ms",
+    ({ containerType, itemCount }) => {
+      const propsInput = resolvePageInput(
+        makeCollectionPropsOnlyDocument({ containerType, itemCount }),
+      );
+      const resolvedInput = resolvePageInput(
+        makeCollectionResolvedDocument({ containerType, itemCount }),
+      );
+
+      const propsResult = runMeasurement(
+        `${containerType} N=${itemCount} props-only (G7-A baseline)`,
+        propsInput,
+      );
+      const resolvedResult = runMeasurement(
+        `${containerType} N=${itemCount} resolved-tree (Wave B)`,
+        resolvedInput,
+      );
+
+      // G7-B 60fps blocking budget
+      expect(resolvedResult.summary.p95).toBeLessThanOrEqual(FRAME_BUDGET_MS);
+      expect(propsResult.summary.p95).toBeLessThanOrEqual(FRAME_BUDGET_MS);
+
+      // G7-A +25% blocking budget — same 0.5ms floor as Tabs
+      const ratioCeiling = Math.max(
+        propsResult.summary.p95 * TABS_RESOLVED_OVER_PROPS_RATIO,
+        0.5,
+      );
+      expect(resolvedResult.summary.p95).toBeLessThanOrEqual(ratioCeiling);
+    },
+  );
+
+  it.each([
+    { containerType: "ListBox" as const, itemCount: 1000 },
+    { containerType: "Menu" as const, itemCount: 1000 },
+  ])(
+    "$containerType resolved-tree N=$itemCount holds 60fps budget (Wave B stress)",
+    ({ containerType, itemCount }) => {
+      const input = resolvePageInput(
+        makeCollectionResolvedDocument({ containerType, itemCount }),
+      );
+      const result = runMeasurement(
+        `${containerType} N=${itemCount} resolved-tree stress (Wave B)`,
+        input,
+      );
+      expect(result.summary.p95).toBeLessThanOrEqual(FRAME_BUDGET_MS);
+    },
+  );
 });

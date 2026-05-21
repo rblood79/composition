@@ -3975,6 +3975,34 @@ function buildGenericListBoxNode(
   const padding = 4;
   const itemHeight = 28;
   const gap = 2;
+
+  // ADR-144 Wave B — resolved-tree path (canonical ListBoxItem refs).
+  // Legacy `props.items[]` synthetic drawing remains adapter fallback
+  // (Hard Constraint 5).
+  const resolvedChildren = buildResolvedListBoxChildren({
+    node,
+    layout,
+    isDark,
+    variant: props.variant,
+    selectedKeys: collectListBoxSelectedKeys(props),
+    borderRadius,
+    padding,
+    itemHeight,
+    gap,
+  });
+  if (resolvedChildren) {
+    return {
+      type: "container",
+      elementId: node.id,
+      x: layout.x,
+      y: layout.y,
+      width: layout.width,
+      height: layout.height,
+      visible: isGenericNodeVisible(style),
+      children: resolvedChildren,
+    };
+  }
+
   const items = flattenListBoxItems(props.items);
   const selectedKeys = new Set<string>([
     ...(props.selectedKeys ?? []),
@@ -4364,15 +4392,11 @@ function buildGenericMenuNode(
   const style = readGenericStyle(node);
   const isDark = theme === "dark";
   const size = resolveGenericButtonSize(props.size);
-  const items: MenuItemDescriptor[] = props.items ?? [];
   const triggerHeight = Math.max(size.lineHeight + 12, 32);
   const itemHeight = resolveGenericMenuItemHeight(props.size);
   const menuY = triggerHeight + 8;
   const menuWidth = Math.max(layout.width, 160);
-  const selectedKeys = new Set<string>([
-    ...(props.selectedKeys ?? []),
-    ...(props.defaultSelectedKeys ?? []),
-  ]);
+  const selectedKeys = collectMenuSelectedKeys(props);
   const triggerPalette = resolveGenericButtonPalette(
     {
       children: props.children,
@@ -4386,6 +4410,37 @@ function buildGenericMenuNode(
     },
     theme,
   );
+
+  // ADR-144 Wave B — resolved-tree path (canonical MenuItem refs).
+  // Legacy `props.items[]` synthetic drawing remains adapter fallback.
+  const resolvedChildren = buildResolvedMenuChildren({
+    node,
+    layout,
+    theme,
+    props,
+    selectedKeys,
+    size,
+    triggerHeight,
+    itemHeight,
+    menuY,
+    menuWidth,
+    triggerPalette,
+    style,
+  });
+  if (resolvedChildren) {
+    return {
+      type: "container",
+      elementId: node.id,
+      x: layout.x,
+      y: layout.y,
+      width: layout.width,
+      height: layout.height,
+      visible: isGenericNodeVisible(style),
+      children: resolvedChildren,
+    };
+  }
+
+  const items: MenuItemDescriptor[] = props.items ?? [];
 
   const triggerNodes: SkiaNodeData[] = [
     {
@@ -4569,7 +4624,8 @@ function buildGenericComboBoxNode(
   const listWidth = Math.max(layout.width, 160);
   const listHeight = Math.max(items.length * itemHeight + 8, itemHeight + 8);
   const visibleItems = items.slice(0, Math.max(1, Math.floor(96 / itemHeight)));
-  const children: SkiaNodeData[] = [
+
+  const rootChrome: SkiaNodeData[] = [
     {
       type: "box",
       elementId: `${node.id}:background`,
@@ -4586,7 +4642,7 @@ function buildGenericComboBoxNode(
   ];
 
   if (props.label) {
-    children.push({
+    rootChrome.push({
       type: "text",
       elementId: `${node.id}:label`,
       x: 0,
@@ -4612,7 +4668,7 @@ function buildGenericComboBoxNode(
   }
 
   const icon = getIconData(props.iconName || "chevron-down");
-  children.push({
+  const inputContainer: SkiaNodeData = {
     type: "container",
     elementId: `${node.id}:input`,
     x: 0,
@@ -4676,7 +4732,37 @@ function buildGenericComboBoxNode(
           ]
         : []),
     ],
+  };
+
+  // ADR-144 Wave B — resolved-tree path (canonical ComboBoxItem refs).
+  // Legacy `props.items[]` synthetic drawing remains adapter fallback.
+  const resolvedChildren = buildResolvedComboBoxOrSelectChildren({
+    node,
+    layout,
+    theme,
+    rootChrome,
+    inputContainer,
+    listY,
+    listWidth,
+    itemHeight,
+    itemType: "ComboBoxItem",
+    size,
+    selectedKey: collectComboBoxSelectedKey(props),
   });
+  if (resolvedChildren) {
+    return {
+      type: "container",
+      elementId: node.id,
+      x: layout.x,
+      y: layout.y,
+      width: layout.width,
+      height: layout.height,
+      visible: isGenericNodeVisible(style),
+      children: resolvedChildren,
+    };
+  }
+
+  const children: SkiaNodeData[] = [...rootChrome, inputContainer];
 
   if (items.length > 0) {
     children.push({
@@ -4791,7 +4877,8 @@ function buildGenericSelectNode(
   const listWidth = Math.max(layout.width, 160);
   const listHeight = Math.max(items.length * itemHeight + 8, itemHeight + 8);
   const visibleItems = items.slice(0, Math.max(1, Math.floor(96 / itemHeight)));
-  const children: SkiaNodeData[] = [
+
+  const rootChrome: SkiaNodeData[] = [
     {
       type: "box",
       elementId: `${node.id}:background`,
@@ -4808,7 +4895,7 @@ function buildGenericSelectNode(
   ];
 
   if (props.label) {
-    children.push({
+    rootChrome.push({
       type: "text",
       elementId: `${node.id}:label`,
       x: 0,
@@ -4834,7 +4921,7 @@ function buildGenericSelectNode(
   }
 
   const icon = getIconData(props.iconName || "chevron-down");
-  children.push({
+  const triggerContainer: SkiaNodeData = {
     type: "container",
     elementId: `${node.id}:trigger`,
     x: 0,
@@ -4898,7 +4985,37 @@ function buildGenericSelectNode(
           ]
         : []),
     ],
+  };
+
+  // ADR-144 Wave B — resolved-tree path (canonical SelectItem refs).
+  // Legacy `props.items[]` synthetic drawing remains adapter fallback.
+  const resolvedChildren = buildResolvedComboBoxOrSelectChildren({
+    node,
+    layout,
+    theme,
+    rootChrome,
+    inputContainer: triggerContainer,
+    listY,
+    listWidth,
+    itemHeight,
+    itemType: "SelectItem",
+    size,
+    selectedKey: collectSelectSelectedKey(props),
   });
+  if (resolvedChildren) {
+    return {
+      type: "container",
+      elementId: node.id,
+      x: layout.x,
+      y: layout.y,
+      width: layout.width,
+      height: layout.height,
+      visible: isGenericNodeVisible(style),
+      children: resolvedChildren,
+    };
+  }
+
+  const children: SkiaNodeData[] = [...rootChrome, triggerContainer];
 
   if (items.length > 0) {
     children.push({
@@ -5474,6 +5591,427 @@ function readResolvedTabsNodeEnabled(
   return typeof node.props?.enabled === "boolean"
     ? node.props.enabled
     : fallback;
+}
+
+// ── ADR-144 Wave B — 4 family resolved-tree helpers ──────────────────────
+//
+// Shared utilities + per-family `buildResolved{X}Children` for ListBox /
+// Menu / ComboBox / Select. Mirrors `buildResolvedTabsChildren()` Phase 4
+// contract: canonical resolved children (`{Item}Type` with optional Text
+// label descendant) become hit-test owners with canonical
+// `elementId + ownerPath`, while draw-only chrome (bg / trigger / list
+// background) stays synthetic-non-editable. Returns `null` when the node
+// has no canonical resolved items — caller falls back to legacy
+// `props.items[]` synthetic drawing.
+
+interface ResolvedCollectionItemNodes {
+  itemNode: ResolvedNode;
+  labelNode?: ResolvedNode;
+}
+
+function findResolvedCollectionItems(
+  node: ResolvedNode,
+  itemType: string,
+): ResolvedCollectionItemNodes[] {
+  return (node.children ?? [])
+    .filter((child) => child.type === itemType)
+    .map((itemNode) => ({
+      itemNode,
+      labelNode: findResolvedTabsTextNode(itemNode),
+    }));
+}
+
+function collectListBoxSelectedKeys(props: ListBoxRacProps): Set<string> {
+  return new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.selectedKey ? [props.selectedKey] : []),
+    ...(props.defaultSelectedKeys ?? []),
+    ...(props.defaultSelectedKey ? [props.defaultSelectedKey] : []),
+  ]);
+}
+
+function collectMenuSelectedKeys(props: MenuRacProps): Set<string> {
+  return new Set<string>([
+    ...(props.selectedKeys ?? []),
+    ...(props.defaultSelectedKeys ?? []),
+  ]);
+}
+
+function collectComboBoxSelectedKey(props: ComboBoxRacProps): string | null {
+  return props.selectedKey ?? null;
+}
+
+function collectSelectSelectedKey(props: SelectRacProps): string | null {
+  return props.selectedKey ?? null;
+}
+
+function buildResolvedListBoxChildren({
+  node,
+  layout,
+  isDark,
+  variant,
+  selectedKeys,
+  borderRadius,
+  padding,
+  itemHeight,
+  gap,
+}: {
+  node: ResolvedNode;
+  layout: GenericResolvedSkiaLayout;
+  isDark: boolean;
+  variant: ListBoxRacProps["variant"];
+  selectedKeys: Set<string>;
+  borderRadius: number;
+  padding: number;
+  itemHeight: number;
+  gap: number;
+}): SkiaNodeData[] | null {
+  const items = findResolvedCollectionItems(node, "ListBoxItem");
+  if (items.length === 0) return null;
+
+  const rootId = node.id;
+  const children: SkiaNodeData[] = [
+    {
+      type: "box",
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(isDark ? 0x1f2937 : 0xffffff, 1),
+        borderRadius,
+        strokeColor: colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1),
+        strokeWidth: 1,
+      },
+    },
+  ];
+
+  items.forEach(({ itemNode, labelNode }, index) => {
+    const y = padding + index * (itemHeight + gap);
+    const isSelected = selectedKeys.has(itemNode.id);
+    const isDisabled = itemNode.props?.isDisabled === true;
+    const rowFill = isSelected
+      ? variant === "accent"
+        ? colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1)
+        : colorIntToFloat32(isDark ? 0x374151 : 0xf3f4f6, 1)
+      : colorIntToFloat32(0x000000, 0);
+    const textColor = isDisabled
+      ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+      : colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+    const itemPath = `${rootId}/${itemNode.id}`;
+
+    children.push({
+      type: "box",
+      elementId: itemNode.id,
+      hitTestOwner: true,
+      ownerPath: itemPath,
+      x: padding,
+      y,
+      width: Math.max(layout.width - padding * 2, 0),
+      height: itemHeight,
+      visible: true,
+      box: {
+        fillColor: rowFill,
+        borderRadius: 4,
+      },
+    });
+
+    const labelText = readResolvedTabsNodeText(
+      labelNode ?? itemNode,
+      itemNode.id,
+    );
+    const labelId = labelNode?.id ?? itemNode.id;
+    children.push({
+      type: "text",
+      elementId: labelId,
+      hitTestOwner: true,
+      ownerPath: `${itemPath}/${labelId}`,
+      x: padding + 12,
+      y,
+      width: Math.max(layout.width - padding * 2 - 24, 0),
+      height: itemHeight,
+      visible: true,
+      text: {
+        content: labelText,
+        fontFamilies: [fontFamily.sans],
+        fontSize: 14,
+        fontWeight: 600,
+        color: textColor,
+        align: "left",
+        lineHeight: 20,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: Math.max(layout.width - padding * 2 - 24, 0),
+        verticalAlign: "middle",
+      },
+    });
+  });
+
+  return children;
+}
+
+function buildResolvedMenuChildren({
+  node,
+  layout,
+  theme,
+  props,
+  selectedKeys,
+  size,
+  triggerHeight,
+  itemHeight,
+  menuY,
+  menuWidth,
+  triggerPalette,
+  style,
+}: {
+  node: ResolvedNode;
+  layout: GenericResolvedSkiaLayout;
+  theme: "light" | "dark";
+  props: MenuRacProps;
+  selectedKeys: Set<string>;
+  size: ReturnType<typeof resolveGenericButtonSize>;
+  triggerHeight: number;
+  itemHeight: number;
+  menuY: number;
+  menuWidth: number;
+  triggerPalette: ReturnType<typeof resolveGenericButtonPalette>;
+  style: Record<string, unknown>;
+}): SkiaNodeData[] | null {
+  const items = findResolvedCollectionItems(node, "MenuItem");
+  if (items.length === 0) return null;
+
+  const isDark = theme === "dark";
+  const rootId = node.id;
+
+  // Trigger area + menu background remain draw-only — RAC `MenuTrigger`
+  // owner is the canonical `node.id` itself (top-level container).
+  const children: SkiaNodeData[] = [
+    {
+      type: "box",
+      x: 0,
+      y: 0,
+      width: Math.min(layout.width, menuWidth),
+      height: triggerHeight,
+      visible: true,
+      box: {
+        fillColor: triggerPalette.fillColor,
+        borderRadius: size.radius,
+        strokeColor: triggerPalette.strokeColor,
+        strokeWidth: triggerPalette.strokeWidth,
+      },
+    },
+    {
+      type: "text",
+      x: 12,
+      y: 0,
+      width: Math.max(Math.min(layout.width, menuWidth) - 24, 0),
+      height: triggerHeight,
+      visible: true,
+      text: {
+        content: props.children,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.fontSize,
+        fontWeight: 600,
+        color: triggerPalette.textColor,
+        align: "left",
+        lineHeight: size.lineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: Math.max(Math.min(layout.width, menuWidth) - 24, 0),
+        verticalAlign: "middle",
+      },
+    },
+    {
+      type: "box",
+      x: 0,
+      y: menuY,
+      width: menuWidth,
+      height: Math.max(items.length * itemHeight + 8, itemHeight + 8),
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(isDark ? 0x1f2937 : 0xffffff, 1),
+        borderRadius: readNumber(style.borderRadius, 8),
+        strokeColor: colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1),
+        strokeWidth: 1,
+      },
+    },
+  ];
+
+  items.forEach(({ itemNode, labelNode }, index) => {
+    const y = menuY + 4 + index * itemHeight;
+    const isSelected = selectedKeys.has(itemNode.id);
+    const isDisabled = itemNode.props?.isDisabled === true;
+    const textColor = isDisabled
+      ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+      : colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+    const itemPath = `${rootId}/${itemNode.id}`;
+
+    children.push({
+      type: "box",
+      elementId: itemNode.id,
+      hitTestOwner: true,
+      ownerPath: itemPath,
+      x: 4,
+      y,
+      width: Math.max(menuWidth - 8, 0),
+      height: itemHeight,
+      visible: true,
+      box: {
+        fillColor: isSelected
+          ? colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1)
+          : colorIntToFloat32(0x000000, 0),
+        borderRadius: 4,
+      },
+    });
+
+    const labelText = readResolvedTabsNodeText(
+      labelNode ?? itemNode,
+      itemNode.id,
+    );
+    const labelId = labelNode?.id ?? itemNode.id;
+    children.push({
+      type: "text",
+      elementId: labelId,
+      hitTestOwner: true,
+      ownerPath: `${itemPath}/${labelId}`,
+      x: 16,
+      y,
+      width: menuWidth - 32,
+      height: itemHeight,
+      visible: true,
+      text: {
+        content: labelText,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.fontSize,
+        fontWeight: 500,
+        color: textColor,
+        align: "left",
+        lineHeight: size.lineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: menuWidth - 32,
+        verticalAlign: "middle",
+      },
+    });
+  });
+
+  return children;
+}
+
+function buildResolvedComboBoxOrSelectChildren({
+  node,
+  layout,
+  theme,
+  rootChrome,
+  inputContainer,
+  listY,
+  listWidth,
+  itemHeight,
+  itemType,
+  size,
+  selectedKey,
+}: {
+  node: ResolvedNode;
+  layout: GenericResolvedSkiaLayout;
+  theme: "light" | "dark";
+  rootChrome: SkiaNodeData[];
+  inputContainer: SkiaNodeData;
+  listY: number;
+  listWidth: number;
+  itemHeight: number;
+  itemType: "ComboBoxItem" | "SelectItem";
+  size: ReturnType<typeof resolveGenericTextFieldSize>;
+  selectedKey: string | null;
+}): SkiaNodeData[] | null {
+  const items = findResolvedCollectionItems(node, itemType);
+  if (items.length === 0) return null;
+
+  const isDark = theme === "dark";
+  const rootId = node.id;
+  const inputTextColor = colorIntToFloat32(isDark ? 0xf9fafb : 0x111827, 1);
+  const listHeight = Math.max(items.length * itemHeight + 8, itemHeight + 8);
+
+  const children: SkiaNodeData[] = [
+    ...rootChrome,
+    inputContainer,
+    {
+      type: "box",
+      x: 0,
+      y: listY,
+      width: listWidth,
+      height: listHeight,
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(isDark ? 0x1f2937 : 0xffffff, 1),
+        borderRadius: readNumber(readGenericStyle(node).borderRadius, 8),
+        strokeColor: colorIntToFloat32(isDark ? 0x374151 : 0xd1d5db, 1),
+        strokeWidth: 1,
+      },
+    },
+  ];
+
+  items.forEach(({ itemNode, labelNode }, index) => {
+    const y = listY + 4 + index * itemHeight;
+    const isSelected = itemNode.id === selectedKey;
+    const isDisabled = itemNode.props?.isDisabled === true;
+    const textColor = isDisabled
+      ? colorIntToFloat32(isDark ? 0x6b7280 : 0x9ca3af, 1)
+      : inputTextColor;
+    const itemPath = `${rootId}/${itemNode.id}`;
+
+    children.push({
+      type: "box",
+      elementId: itemNode.id,
+      hitTestOwner: true,
+      ownerPath: itemPath,
+      x: 4,
+      y,
+      width: Math.max(listWidth - 8, 0),
+      height: itemHeight,
+      visible: true,
+      box: {
+        fillColor: isSelected
+          ? colorIntToFloat32(isDark ? 0x1e3a8a : 0xdbeafe, 1)
+          : colorIntToFloat32(0x000000, 0),
+        borderRadius: 4,
+      },
+    });
+
+    const labelText = readResolvedTabsNodeText(
+      labelNode ?? itemNode,
+      itemNode.id,
+    );
+    const labelId = labelNode?.id ?? itemNode.id;
+    children.push({
+      type: "text",
+      elementId: labelId,
+      hitTestOwner: true,
+      ownerPath: `${itemPath}/${labelId}`,
+      x: 12,
+      y,
+      width: Math.max(listWidth - 24, 0),
+      height: itemHeight,
+      visible: true,
+      text: {
+        content: labelText,
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.inputFontSize,
+        fontWeight: isSelected ? 600 : 500,
+        color: textColor,
+        align: "left",
+        lineHeight: size.inputLineHeight,
+        paddingLeft: 0,
+        paddingTop: 0,
+        maxWidth: Math.max(listWidth - 24, 0),
+        verticalAlign: "middle",
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+      },
+    });
+  });
+
+  return children;
 }
 
 function readStaticCollectionDataBinding(

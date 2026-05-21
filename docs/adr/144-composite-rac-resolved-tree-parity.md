@@ -6,6 +6,32 @@ In Progress — 2026-05-21
 
 진행 로그:
 
+- 2026-05-22 — Phase 7 G6 Wave B (4 family Skia resolved-tree owner emission)
+  완료. `buildGenericListBoxNode` / `MenuNode` / `ComboBoxNode` / `SelectNode`
+  가 canonical 자식 (`ListBoxItem` / `MenuItem` / `ComboBoxItem` / `SelectItem`
+  - Text label) 을 발견하면 Tabs Phase 4 와 동일한 `hitTestOwner: true +
+ownerPath` 자식 SkiaNodeData 로 그린다. legacy `props.items[]` synthetic
+    drawing 은 adapter fallback 으로 유지 (Hard Constraint 5). 신규 helper 4종
+    (`buildResolvedListBoxChildren`/`MenuChildren`/`ComboBoxOrSelectChildren` +
+    `findResolvedCollectionItems`) 가 `buildResolvedTabsChildren` 패턴을 4
+    family 에 일반화한다. denylist 0 hitTestOwner 노출 (G6 acceptance) 가 정
+    ownership 부여 (canonical item id + label id) 와 함께 같은 test 안에서
+    성립. G7-A Wave B 재측정 — 4 family N=50 resolved-tree p95 가
+    props-only p95 × 1.25 또는 0.5ms floor 이하 통과 (ListBox 0.020 ≤ 0.5,
+    Menu 0.025 ≤ 0.5, Select 0.019 ≤ 0.5, ComboBox 0.015 ≤ 0.5), ListBox /
+    Menu N=1000 resolved-tree stress 도 60fps budget hold (p95 0.23ms).
+    Evidence:
+    `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
+    (helpers + 4 family dispatch),
+    `apps/builder/src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`
+    (Wave B positive parity it.each — 4/4 PASS),
+    `apps/builder/src/builder/workspace/canvas/skia/__perf__/adr144Phase8FrameBudget.perf.test.ts`
+    (Wave B G7-A + stress it.each — 6/6 PASS, 전체 13/13 PASS). 잔존 debt:
+    Wave C — Select / ComboBox `getCustomPreEditor` pre-editor 등록 + 4
+    family PropertyEditor `detectInspectorInputMode` wiring (Inspector
+    Properties UI 3 mode 분기). Tab label/panel body 같이 nested descendant
+    Inspector edit 라우팅은 ownerPath/boundsMap 측면에서 이미 land 됨 (Phase
+    5), Wave C 는 Properties 패널의 mode 분기 UI 만 남음.
 - 2026-05-21 — Phase 0 G0 baseline/evidence freeze 완료. 현재 Tabs 는 catalog primitive
   `defaultProps.items[]` + Preview root-only `<Tabs {...tabsProps}>` + Skia synthetic
   `${tabsId}:tab:*`/`${tabsId}:panel:*` 경로로 확인됐다. Fixture inventory 는
