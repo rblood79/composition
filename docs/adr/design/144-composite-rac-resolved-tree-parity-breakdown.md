@@ -393,7 +393,7 @@ Evidence:
 - `apps/builder/src/preview/components/CanonicalNodeRenderer.adr144.test.tsx`
 - `pnpm -F @composition/builder exec vitest run src/preview/components/CanonicalNodeRenderer.adr144.test.tsx src/builder/factories/__tests__/tabsCompositeFactory.test.ts`
 
-### Phase 4 — Skia resolved-tree drawing and hit-test ownership
+### Phase 4 — Skia resolved-tree drawing and hit-test ownership (Implemented 2026-05-22)
 
 Purpose: stop Skia from inventing editable Tabs parts.
 
@@ -419,6 +419,29 @@ Likely files:
 - `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
 - `apps/builder/src/builder/workspace/canvas/skia/**`
 - `apps/builder/src/builder/workspace/canvas/selection/**`
+
+Implementation decision:
+
+- `buildGenericTabsNode()` now prefers resolved `TabList` / `Tab` / `TabPanel`
+  children when present and keeps legacy `props.items[]` synthetic drawing only
+  as the adapter fallback for existing payloads.
+- Resolved Tabs subparts use canonical `elementId`, `ownerPath`, and
+  `hitTestOwner: true`; draw-only background/border nodes have no editable
+  owner id.
+- `buildRenderCommandStream()` records bounds for internal Skia children only
+  when `hitTestOwner` is set, so `${tabsId}:tab:*` and `${tabsId}:panel:*`
+  remain non-editable draw internals.
+- Full TabPanel/body edit writes remain Phase 5 scope; Phase 4 closes the Skia
+  owner/bounds prerequisite.
+
+Evidence:
+
+- `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
+- `apps/builder/src/builder/workspace/canvas/skia/nodeRendererTypes.ts`
+- `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts`
+- `apps/builder/src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`
+- `apps/builder/src/builder/workspace/canvas/skia/renderCommands.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts src/builder/workspace/canvas/skia/renderCommands.test.ts src/builder/workspace/canvas/skia/buildSpecNodeData.test.ts`
 
 ### Phase 5 — Selection and editing
 
@@ -540,9 +563,9 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
       `shadcn-design-system.json`.
 - [x] New Tabs creation no longer persists editable labels/panel body only in
       `props.items[]`.
-- [ ] Preview and Skia expose matching owner id/path for Tabs editable subparts.
+- [x] Preview and Skia expose matching owner id/path for Tabs editable subparts.
 - [ ] TabPanel/body selection and editing work.
-- [ ] Synthetic Skia ids are not editable owners.
+- [x] Synthetic Skia ids are not editable owners.
 - [ ] RAC behavior tests pass.
 - [ ] Layout invalidation is verified for descendant content/style patch writes.
 - [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910

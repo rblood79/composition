@@ -510,6 +510,12 @@ function visitElement(
     width,
     height,
   );
+  collectInternalHitTestOwnerBounds(
+    updatedInternalChildren,
+    absX,
+    absY,
+    boundsMap,
+  );
   emitDrawCommands(skiaData, updatedInternalChildren, width, height, commands);
 
   // 외부 자식 (element children) → CHILDREN_BEGIN/END + 재귀
@@ -650,22 +656,22 @@ function emitDrawCommands(
 
 /**
  * 내부 자식 (SkiaNodeData.children)을 재귀적으로 DRAW로 변환.
- * 이들은 element가 아닌 spec shapes 등의 렌더 노드.
+ * 기본적으로는 draw-only 렌더 노드이며, hitTestOwner 로 표시된 resolved
+ * composite subpart 만 canonical owner id 를 command stream 에 남긴다.
  */
 function emitInternalChildDraw(
   node: SkiaNodeData,
   commands: RenderCommand[],
 ): void {
-  // 내부 자식은 element가 아니므로 ELEMENT_BEGIN/END 없이
-  // 부모의 save/restore 컨텍스트 안에서 DRAW만 발행.
-  // 단, 이들이 독립적인 위치를 가질 수 있으므로 별도 ELEMENT_BEGIN/END로 감싸야 한다.
+  // 독립 좌표/transform/effect 처리를 위해 내부 자식도 ELEMENT_BEGIN/END로
+  // 감싼다. 일반 draw-only child 는 빈 id, canonical hit-test owner 만 실제 id.
   commands.push({
     type: CMD_ELEMENT_BEGIN,
     x: node.x,
     y: node.y,
     width: node.width,
     height: node.height,
-    elementId: "", // 내부 자식은 elementId 없음
+    elementId: node.hitTestOwner && node.elementId ? node.elementId : "",
     visible: node.visible ?? true,
     transform: node.transform,
     clipPath: node.clipPath,
@@ -701,6 +707,38 @@ function emitInternalChildDraw(
     hasBlend: !!(node.blendMode && node.blendMode !== "normal"),
     effectLayerCount: effectCount,
   });
+}
+
+function collectInternalHitTestOwnerBounds(
+  nodes: SkiaNodeData[] | undefined,
+  parentAbsX: number,
+  parentAbsY: number,
+  boundsMap: Map<string, BoundingBox>,
+): void {
+  if (!nodes) return;
+
+  for (const node of nodes) {
+    const absX = parentAbsX + node.x;
+    const absY = parentAbsY + node.y;
+
+    if (node.hitTestOwner && node.elementId) {
+      boundsMap.set(node.elementId, {
+        x: absX,
+        y: absY,
+        width: node.width,
+        height: node.height,
+      });
+    }
+
+    const scrollX = node.scrollOffset?.scrollLeft ?? 0;
+    const scrollY = node.scrollOffset?.scrollTop ?? 0;
+    collectInternalHitTestOwnerBounds(
+      node.children,
+      absX - scrollX,
+      absY - scrollY,
+      boundsMap,
+    );
+  }
 }
 
 // ── executeRenderCommands ─────────────────────────────────────────────

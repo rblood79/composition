@@ -5003,6 +5003,34 @@ function buildGenericTabsNode(
   const accentColor = colorIntToFloat32(isDark ? 0x93c5fd : 0x2563eb, 1);
   const selectedFill = colorIntToFloat32(isDark ? 0x1f2937 : 0xf3f4f6, 1);
   const transparent = colorIntToFloat32(0x000000, 0);
+
+  const resolvedChildren = buildResolvedTabsChildren({
+    node,
+    props,
+    layout,
+    style,
+    size,
+    textColor,
+    mutedTextColor,
+    borderColor,
+    accentColor,
+    selectedFill,
+    transparent,
+    isDark,
+  });
+  if (resolvedChildren) {
+    return {
+      type: "container",
+      elementId: node.id,
+      x: layout.x,
+      y: layout.y,
+      width: layout.width,
+      height: layout.height,
+      visible: isGenericNodeVisible(style),
+      children: resolvedChildren,
+    };
+  }
+
   const tabCount = Math.max(items.length, 1);
   const tabListWidth = isVertical
     ? Math.min(Math.max(layout.width * 0.36, 96), 148)
@@ -5161,6 +5189,291 @@ function buildGenericTabsNode(
     visible: isGenericNodeVisible(style),
     children,
   };
+}
+
+function buildResolvedTabsChildren({
+  node,
+  props,
+  layout,
+  style,
+  size,
+  textColor,
+  mutedTextColor,
+  borderColor,
+  accentColor,
+  selectedFill,
+  transparent,
+  isDark,
+}: {
+  node: ResolvedNode;
+  props: TabsRacProps;
+  layout: GenericResolvedSkiaLayout;
+  style: Record<string, unknown>;
+  size: ReturnType<typeof resolveGenericTabsSize>;
+  textColor: Float32Array;
+  mutedTextColor: Float32Array;
+  borderColor: Float32Array;
+  accentColor: Float32Array;
+  selectedFill: Float32Array;
+  transparent: Float32Array;
+  isDark: boolean;
+}): SkiaNodeData[] | null {
+  const tabListNode = (node.children ?? []).find(
+    (child) => child.type === "TabList",
+  );
+  if (!tabListNode) return null;
+
+  const tabNodes = (tabListNode.children ?? []).filter(
+    (child) => child.type === "Tab",
+  );
+  const panelNodes = (node.children ?? []).filter(
+    (child) => child.type === "TabPanel",
+  );
+
+  if (tabNodes.length === 0 && panelNodes.length === 0) return null;
+
+  const selectedKey =
+    props.selectedKey ?? props.defaultSelectedKey ?? tabNodes[0]?.id;
+  const selectedPanel =
+    panelNodes.find(
+      (panel) => getResolvedTabsPanelTargetId(panel) === selectedKey,
+    ) ?? panelNodes[0];
+  const isVertical = props.orientation === "vertical";
+  const tabCount = Math.max(tabNodes.length, 1);
+  const tabListWidth = isVertical
+    ? Math.min(Math.max(layout.width * 0.36, 96), 148)
+    : layout.width;
+  const tabWidth = isVertical
+    ? tabListWidth
+    : Math.max(64, Math.min(120, layout.width / tabCount));
+  const tabListHeight = isVertical
+    ? Math.min(layout.height, tabCount * size.tabHeight)
+    : size.tabHeight;
+  const panelX = isVertical ? tabListWidth + 8 : 0;
+  const panelY = isVertical ? 0 : tabListHeight + 8;
+  const panelWidth = Math.max(layout.width - panelX, 0);
+  const panelHeight = Math.max(layout.height - panelY, 0);
+  const visibleTabs = tabNodes.slice(
+    0,
+    Math.max(1, Math.floor(360 / tabWidth)),
+  );
+  const tabListPath = `${node.id}/${tabListNode.id}`;
+
+  const children: SkiaNodeData[] = [
+    {
+      type: "box",
+      x: 0,
+      y: 0,
+      width: layout.width,
+      height: layout.height,
+      visible: true,
+      box: {
+        fillColor: transparent,
+        borderRadius: readNumber(style.borderRadius, 0),
+      },
+    },
+    {
+      type: "box",
+      elementId: tabListNode.id,
+      hitTestOwner: true,
+      ownerPath: tabListPath,
+      x: 0,
+      y: 0,
+      width: tabListWidth,
+      height: tabListHeight,
+      visible: true,
+      box: {
+        fillColor: transparent,
+        borderRadius: readNumber(style.borderRadius, 0),
+      },
+    },
+    {
+      type: "box",
+      x: 0,
+      y: isVertical ? 0 : tabListHeight - 1,
+      width: isVertical ? 1 : tabListWidth,
+      height: isVertical ? tabListHeight : 1,
+      visible: true,
+      box: {
+        fillColor: borderColor,
+        borderRadius: 0,
+      },
+    },
+  ];
+
+  children.push(
+    ...visibleTabs.flatMap((tabNode, index): SkiaNodeData[] => {
+      const selected = tabNode.id === selectedKey;
+      const x = isVertical ? 0 : index * tabWidth;
+      const y = isVertical ? index * size.tabHeight : 0;
+      const labelNode = findResolvedTabsTextNode(tabNode);
+      const indicatorNode = findResolvedTabsIndicatorNode(tabNode);
+      const indicatorThickness = size.indicatorThickness;
+      const tabPath = `${tabListPath}/${tabNode.id}`;
+
+      return [
+        {
+          type: "box",
+          elementId: tabNode.id,
+          hitTestOwner: true,
+          ownerPath: tabPath,
+          x,
+          y,
+          width: tabWidth,
+          height: size.tabHeight,
+          visible: true,
+          box: {
+            fillColor: selected ? selectedFill : transparent,
+            borderRadius: readNumber(style.borderRadius, 0),
+          },
+        },
+        {
+          type: "text",
+          elementId: labelNode?.id ?? tabNode.id,
+          hitTestOwner: true,
+          ownerPath: `${tabPath}/${labelNode?.id ?? tabNode.id}`,
+          x,
+          y,
+          width: tabWidth,
+          height: size.tabHeight,
+          visible: true,
+          text: {
+            content: readResolvedTabsNodeText(labelNode ?? tabNode, tabNode.id),
+            fontFamilies: [fontFamily.sans],
+            fontSize: size.fontSize,
+            fontWeight: selected ? 600 : 500,
+            color: selected ? textColor : mutedTextColor,
+            align: "left",
+            lineHeight: size.lineHeight,
+            paddingLeft: size.paddingX,
+            paddingTop: 0,
+            maxWidth: Math.max(tabWidth - size.paddingX * 2, 0),
+            verticalAlign: "middle",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+            autoCenter: false,
+          },
+        },
+        ...(selected && props.showIndicator
+          ? [
+              {
+                type: "box" as const,
+                elementId: indicatorNode?.id ?? tabNode.id,
+                hitTestOwner: true,
+                ownerPath: `${tabPath}/${indicatorNode?.id ?? tabNode.id}`,
+                x: isVertical ? x + tabWidth - indicatorThickness : x,
+                y: isVertical ? y : y + size.tabHeight - indicatorThickness,
+                width: isVertical ? indicatorThickness : tabWidth,
+                height: isVertical ? size.tabHeight : indicatorThickness,
+                visible: indicatorNode
+                  ? readResolvedTabsNodeEnabled(indicatorNode, true)
+                  : true,
+                box: {
+                  fillColor: accentColor,
+                  borderRadius: 0,
+                },
+              },
+            ]
+          : []),
+      ];
+    }),
+  );
+
+  if (selectedPanel) {
+    const bodyNode = findResolvedTabsTextNode(selectedPanel);
+    const panelPath = `${node.id}/${selectedPanel.id}`;
+    children.push({
+      type: "box",
+      elementId: selectedPanel.id,
+      hitTestOwner: true,
+      ownerPath: panelPath,
+      x: panelX,
+      y: panelY,
+      width: panelWidth,
+      height: panelHeight,
+      visible: true,
+      box: {
+        fillColor: colorIntToFloat32(isDark ? 0x111827 : 0xffffff, 1),
+        borderRadius: readNumber(style.borderRadius, 6),
+        strokeColor: borderColor,
+        strokeWidth: 1,
+      },
+    });
+    children.push({
+      type: "text",
+      elementId: bodyNode?.id ?? selectedPanel.id,
+      hitTestOwner: true,
+      ownerPath: `${panelPath}/${bodyNode?.id ?? selectedPanel.id}`,
+      x: panelX,
+      y: panelY,
+      width: panelWidth,
+      height: panelHeight,
+      visible: true,
+      text: {
+        content: readResolvedTabsNodeText(bodyNode ?? selectedPanel, ""),
+        fontFamilies: [fontFamily.sans],
+        fontSize: size.panelFontSize,
+        color: textColor,
+        align: "left",
+        lineHeight: size.panelLineHeight,
+        paddingLeft: size.panelPadding,
+        paddingTop: size.panelPadding,
+        maxWidth: Math.max(panelWidth - size.panelPadding * 2, 0),
+        autoCenter: false,
+      },
+    });
+  }
+
+  return children;
+}
+
+function getResolvedTabsPanelTargetId(node: ResolvedNode): string {
+  const explicitId = node.props?.id ?? node.props?.tabId;
+  return typeof explicitId === "string" && explicitId.length > 0
+    ? explicitId
+    : node.id;
+}
+
+function findResolvedTabsTextNode(
+  node: ResolvedNode,
+): ResolvedNode | undefined {
+  const children = node.children ?? [];
+  return children.find((child) =>
+    ["Text", "Label", "Paragraph", "Heading"].includes(String(child.type)),
+  );
+}
+
+function findResolvedTabsIndicatorNode(
+  node: ResolvedNode,
+): ResolvedNode | undefined {
+  return (node.children ?? []).find((child) => {
+    const name = typeof child.name === "string" ? child.name : "";
+    return (
+      name === "indicator" ||
+      child.id.toLowerCase().includes("indicator") ||
+      child.props?.role === "indicator"
+    );
+  });
+}
+
+function readResolvedTabsNodeText(
+  node: ResolvedNode,
+  fallback: string,
+): string {
+  const props = node.props ?? {};
+  return readStringValue(
+    props.children ?? props.text ?? props.content ?? props.label ?? node.name,
+    fallback,
+  );
+}
+
+function readResolvedTabsNodeEnabled(
+  node: ResolvedNode,
+  fallback: boolean,
+): boolean {
+  return typeof node.props?.enabled === "boolean"
+    ? node.props.enabled
+    : fallback;
 }
 
 function readStaticCollectionDataBinding(

@@ -31,6 +31,13 @@ In Progress — 2026-05-21
   `data-canonical-id` / `data-element-id` marker 를 보존한다. 기존 `props.items[]`
   Tabs 는 fallback 으로 유지했다. Evidence:
   `apps/builder/src/preview/components/CanonicalNodeRenderer.adr144.test.tsx`.
+- 2026-05-22 — Phase 4 G3 Skia half + G4 denylist half 완료. Skia Tabs renderer 는
+  resolved `TabList` / `Tab` / `TabPanel` children 이 있으면 canonical owner
+  id/path 를 가진 internal hit-test owner 로 그리며, command stream boundsMap 에는
+  `hitTestOwner` 로 표시된 canonical subpart 만 selection 후보로 노출한다. 기존
+  legacy `props.items[]` Tabs synthetic drawing 은 adapter fallback 으로 유지했다.
+  Evidence: `apps/builder/src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts`,
+  `apps/builder/src/builder/workspace/canvas/skia/renderCommands.test.ts`.
 
 ## Context
 

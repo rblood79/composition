@@ -85,4 +85,57 @@ describe("buildRenderCommandStream drag top layer", () => {
       source.id,
     ]);
   });
+
+  it("exposes only marked internal Skia children as hit-test owners", () => {
+    registerNode("tabs", {
+      width: 240,
+      height: 120,
+      children: [
+        {
+          type: "box",
+          elementId: "panel-overview",
+          hitTestOwner: true,
+          x: 12,
+          y: 44,
+          width: 180,
+          height: 60,
+          visible: true,
+          box: {
+            fillColor: Float32Array.of(1, 1, 1, 1),
+            borderRadius: 0,
+          },
+        },
+        {
+          type: "box",
+          elementId: "tabs:panel:bg",
+          x: 12,
+          y: 44,
+          width: 180,
+          height: 60,
+          visible: true,
+          box: {
+            fillColor: Float32Array.of(1, 1, 1, 1),
+            borderRadius: 0,
+          },
+        },
+      ],
+    });
+
+    const stream = buildRenderCommandStream(
+      ["tabs"],
+      new Map(),
+      new Map([
+        ["tabs", { elementId: "tabs", x: 20, y: 30, width: 240, height: 120 }],
+      ]),
+      {},
+    );
+
+    expect(stream.boundsMap.get("panel-overview")).toEqual({
+      x: 32,
+      y: 74,
+      width: 180,
+      height: 60,
+    });
+    expect(stream.boundsMap.has("tabs:panel:bg")).toBe(false);
+  });
 });

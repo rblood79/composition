@@ -31,6 +31,14 @@ export interface SkiaNodeData {
     | "icon_path"
     | "partial_border";
   elementId?: string;
+  /**
+   * Internal Skia child nodes are usually draw-only. Set this only when an
+   * internal child represents a canonical editable owner that selection/hit-test
+   * must expose.
+   */
+  hitTestOwner?: boolean;
+  /** Stable canonical owner path for resolved composite subparts. */
+  ownerPath?: string;
   x: number;
   y: number;
   width: number;

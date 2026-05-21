@@ -126,6 +126,22 @@ function collectNodeTypes(node: SkiaNodeData | null | undefined): string[] {
   ];
 }
 
+function collectElementIds(node: SkiaNodeData | null | undefined): string[] {
+  if (!node) return [];
+  return [
+    ...(node.elementId ? [node.elementId] : []),
+    ...(node.children ?? []).flatMap((child) => collectElementIds(child)),
+  ];
+}
+
+function collectOwnerPaths(node: SkiaNodeData | null | undefined): string[] {
+  if (!node) return [];
+  return [
+    ...(node.ownerPath ? [node.ownerPath] : []),
+    ...(node.children ?? []).flatMap((child) => collectOwnerPaths(child)),
+  ];
+}
+
 describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
   it("renders a resolved Button ref through the generic Skia path without render.shapes", () => {
     const renderShapes = vi.spyOn(ButtonSpec.render, "shapes");
@@ -706,6 +722,117 @@ describe("ADR-142 canonicalSkiaSymmetry proof slice", () => {
     expect(collectNodeTypes(node)).toContain("box");
     expect(renderShapes).not.toHaveBeenCalled();
     renderShapes.mockRestore();
+  });
+
+  it("uses resolved Tabs children as Skia editable owners", () => {
+    const node = buildGenericResolvedSkiaNodeData({
+      node: {
+        id: "tabs-resolved-1",
+        type: "Tabs",
+        props: {
+          "aria-label": "Sections",
+          defaultSelectedKey: "tab-overview",
+          orientation: "horizontal",
+          showIndicator: true,
+        },
+        children: [
+          {
+            id: "tab-list-ref",
+            type: "TabList",
+            props: {},
+            children: [
+              {
+                id: "tab-overview",
+                type: "Tab",
+                props: {},
+                children: [
+                  {
+                    id: "tab-overview-label",
+                    type: "Text",
+                    props: { children: "Overview" },
+                  },
+                  {
+                    id: "tab-overview-indicator",
+                    type: "frame",
+                    props: { enabled: true },
+                  },
+                ],
+              },
+              {
+                id: "tab-settings",
+                type: "Tab",
+                props: {},
+                children: [
+                  {
+                    id: "tab-settings-label",
+                    type: "Text",
+                    props: { children: "Settings" },
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "panel-overview",
+            type: "TabPanel",
+            props: { id: "tab-overview" },
+            children: [
+              {
+                id: "panel-overview-body",
+                type: "Text",
+                props: { children: "Overview panel content" },
+              },
+            ],
+          },
+          {
+            id: "panel-settings",
+            type: "TabPanel",
+            props: { id: "tab-settings" },
+            children: [
+              {
+                id: "panel-settings-body",
+                type: "Text",
+                props: { children: "Settings panel content" },
+              },
+            ],
+          },
+        ],
+      },
+      theme: "light",
+      layout: { x: 24, y: 32, width: 360, height: 180 },
+    });
+
+    const text = collectText(node);
+    const elementIds = collectElementIds(node);
+    const ownerPaths = collectOwnerPaths(node);
+
+    expect(text).toEqual(
+      expect.arrayContaining(["Overview", "Overview panel content"]),
+    );
+    expect(elementIds).toEqual(
+      expect.arrayContaining([
+        "tabs-resolved-1",
+        "tab-list-ref",
+        "tab-overview",
+        "tab-overview-label",
+        "tab-overview-indicator",
+        "panel-overview",
+        "panel-overview-body",
+      ]),
+    );
+    expect(elementIds).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^tabs-resolved-1:tab:/),
+        expect.stringMatching(/^tabs-resolved-1:panel:/),
+      ]),
+    );
+    expect(ownerPaths).toEqual(
+      expect.arrayContaining([
+        "tabs-resolved-1/tab-list-ref/tab-overview/tab-overview-label",
+        "tabs-resolved-1/tab-list-ref/tab-overview/tab-overview-indicator",
+        "tabs-resolved-1/panel-overview/panel-overview-body",
+      ]),
+    );
   });
 
   it("renders a resolved Tree items path without render.shapes", () => {
