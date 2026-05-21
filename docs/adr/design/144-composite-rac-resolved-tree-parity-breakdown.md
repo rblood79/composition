@@ -145,18 +145,31 @@ Not allowed as new authoring SSOT:
 
 Composite component 의 data source 는 다음 3축으로 들어온다.
 
-1. **Data 패널 inline collection** — ADR-132 `collections` IndexedDB store (`packages/shared/src/types/composition-document.types.ts:439-440` 주석 — ADR-131 Phase 8 framing revert 로 `data` root field 추가 미수행, store 분리 유지) 의 entry 로 수동 생성한 정적 데이터.
-2. **API endpoint** — `endpoint.targetCollection -> collections.runtimeData` sink (ADR-132 `useAsyncList` 정합) 로 들어온 외부 데이터. data 자체는 `collections` IndexedDB store 의 runtime entry 로 동일 sink 에 저장.
-3. **Properties 패널 inline editor** — ADR-076 정적 모드 ItemsManager 섹션 류 UI 로 작가가 직접 항목을 추가/삭제하는 inline payload. element 의 `props.items[]` 에 저장 (canonical document 안).
+1. **Data Panel inline collection (persisted)** — ADR-132 `collections` IndexedDB store 의 entry (`schema` + `mockData`, `apps/builder/src/types/builder/data.types.ts:52-67`) 를 작가가 수동 생성. IndexedDB 에 persist 되는 정적 데이터. ADR-131 Phase 8 사용자 framing revert 로 `CompositionDocument.data` root field 는 추가되지 않음 — `collections` 는 store 분리 유지 (`packages/shared/src/types/composition-document.types.ts:439-440`).
+2. **API endpoint (persisted config + runtime sink)** — `api_endpoints` IndexedDB store 의 config (target = `endpoint.targetCollection`, `apps/builder/src/types/builder/data.types.ts:205-215`) 가 persist 됨. 실행 시 `executeApiEndpoint` (`apps/builder/src/builder/stores/utils/dataActions.ts:645-660`) 가 응답을 `collections[id].runtimeData` 로 **Zustand store 의 메모리 sink** 에 set — **DB 저장 안 함** (`data.types.ts:68` 주석: "메모리에만 존재, DB에 저장 안함"). Preview/Canvas read path 는 postMessage 동기화 또는 `/api/proxy` direct fetch fallback (`apps/builder/src/builder/hooks/useCollectionData.ts:340-355` `isCanvasContext` branch) 잔존 — Builder execute path 와 Preview/Canvas read path 의 sink 정합 완성은 ADR-132 후속 영역으로 lock-in 됨 (`docs/adr/design/132-usecollectiondata-useasynclist-alignment-breakdown.md:241`). 본 ADR G3/G6 에서 두 경로의 row identity / owner projection 을 별도 검증한다.
+3. **Properties 패널 inline editor** — ADR-076 정적 모드 ItemsManager (`apps/builder/src/builder/panels/properties/generic/ItemsManager.tsx:342`) 가 element `props[itemsKey]` (예: `props.items[]`) 를 직접 read/write — IndexedDB 미경유, canonical document 의 element props 로 직렬화. 새 creation path 는 §C3-b mode 3 (legacy fallback) 으로만 사용.
 
-3축 모두 RAC runtime projection 입력 (`items[]`, `rows[]`, `columns[]`) 으로 합류한다. 외부 source (1, 2) 가 사용될 때 composite template 의 children/ref 는 row template 역할만 하고 데이터 자체는 `useCollectionData({ datatableId | dataBinding })` (`packages/shared/src/hooks/useCollectionData.tsx:220-228` 단일 진입점) 가 제공한다. inline source (3) 는 ADR-076 정적 모드 호환 경로로만 유지된다.
+3축 모두 RAC runtime projection 입력 (`items[]`, `rows[]`, `columns[]`) 으로 합류한다. mode 1, 2 가 사용될 때 composite template 의 children/ref 는 row template 역할만 하고 데이터 자체는 `useCollectionData({ datatableId | dataBinding })` (`packages/shared/src/hooks/useCollectionData.tsx:220-228` RAC read entry point) 가 제공한다.
 
-#### C3-b. Boundary 와 우선순위
+#### C3-b. Data SSOT 정의 + 3 input mode
 
-- Composite **reusable origin / ref / descendants / slot** = authoring SSOT (사용자 편집 대상, `CompositionDocument.children[]` 안).
-- ADR-132 **`collections` IndexedDB store + `useCollectionData`** = data SSOT (외부 source 1, 2 의 단일 sink). ADR-131 Phase 8 사용자 framing revert 로 `CompositionDocument` root field 가 아니라 store 로 분리 유지 (`composition-document.types.ts:439-440`).
-- 한 instance 는 둘 중 하나의 data source 만 활성. `dataBinding` 이 설정된 instance 는 ADR-132 data SSOT 를 사용하고, composite children/ref 는 row template 으로만 동작. `dataBinding` 미설정 instance 는 composite children/ref 자체가 data.
-- `PrimitiveBinding.defaultProps.items[]` (현재 `listBoxPrimitiveBinding` 등 9 family 에 inline 박힌 Aardvark/Cat/Kangaroo … 류 고정값, `packages/shared/src/catalog/primitives/listBox.ts:168-177`) 은 authoring SSOT 도 data SSOT 도 아니다. ADR-076 정적 모드 legacy payload 호환을 위한 adapter fallback 으로만 남기고, 새 composite creation path 는 §C3-a (1) 또는 (3) 을 사용한다.
+**Data SSOT 분해**:
+
+- `collections[id]` persisted `schema` + `mockData` + `api_endpoints[id]` config = **persisted data source** (IndexedDB).
+- `collections[id].runtimeData` = **runtime sink/cache** (Zustand store 메모리, DB 미저장).
+- `useCollectionData({ datatableId | dataBinding })` = **RAC read entry point** (Builder/Preview/Canvas 통합 진입점, Canvas direct proxy fallback 잔존).
+
+**Authoring SSOT 분해**:
+
+- Composite **reusable origin / ref / descendants / slot** = authoring SSOT (사용자 편집 대상, canonical `CompositionDocument.children[]` 안).
+
+**한 instance 는 다음 3 input mode 중 하나의 active 상태**:
+
+1. **External dataBinding** — `element.props.dataBinding` 설정. ADR-132 persisted data source 또는 runtime sink 를 `useCollectionData` 로 read. composite children/ref 는 row template 으로만 동작. data 자체의 mutation 은 Data Panel / API endpoint UI 에서.
+2. **New resolved-tree local data (ADR-144 신규)** — `dataBinding` 미설정 + composite reusable origin + ref + `descendants` / `slot` patch. authoring SSOT = canonical `children[]` 자체. data 자체의 mutation 은 Phase 5 task 7 slot 추가/삭제 UI.
+3. **Legacy `props.items[]` fallback** — `dataBinding` 미설정 + ADR-076 정적 모드 ItemsManager (`props[itemsKey]` 직접 편집). `PrimitiveBinding.defaultProps.items[]` (예: `apps/builder/src/builder/...` 류; 또는 `packages/shared/src/catalog/primitives/listBox.ts:168-177` Aardvark/Cat/Kangaroo 등 9 family inline) 의 adapter fallback. 새 creation path 는 본 mode 미사용.
+
+세 mode 가 한 instance 에 동시 active 될 수 없다. Phase 5 task 7 Inspector Properties UI 는 instance 의 mode 를 감지하여 Editor UI 를 분기한다 (mode 1 = dataBinding picker, mode 2 = slot 추가/삭제 UI, mode 3 = legacy ItemsManager).
 
 ### C4. Slot semantics
 
@@ -384,13 +397,14 @@ Tasks:
      `LAYOUT_AFFECTING_PROP_KEYS`.
    - new non-layout or inherited layout style props are checked against
      `NON_LAYOUT_PROPS_UPDATE` and `INHERITED_LAYOUT_PROPS_UPDATE`.
-7. Inspector Properties UI integration (ADR-076 듀얼 모드 ↔ ADR-144 slot 모델 매핑):
-   - ADR-076 `ListBoxPropertyEditor` 의 듀얼 모드 (정적 / 템플릿) 는 ADR-144 의 두 payload shape 와 대응한다.
-     - **정적 모드** (`props.label/value` 또는 Text/Description 자식, Field 자식 없음) = legacy props-only payload. **ItemsManager 섹션** = inline items[] editor. C3-a (3) 의 inline source. C3-b adapter boundary 안에서만 표시.
-     - **템플릿 모드** (ListBoxItem > Field 자식) = ADR-076 Hard Constraint #1 로 element tree 영구 보존된 사전 형태. ADR-144 의 composite reusable origin + ref + `descendants` patch 모델로 통합. ItemsManager 섹션 비활성, ListBoxItemEditor 가 Field 자식 편집 담당.
-   - 새 composite payload (Phase 2 task 5 default child set) 로 생성된 instance 의 Properties UI 는 **slot 추가/삭제 UI** 를 노출한다. 이는 RAC dynamic collections 가이드의 `<Button onPress={addItem}>Add item</Button>` 위치에 대응하는 builder 측 entry point 이다.
-   - 한 instance 의 Properties 패널에는 legacy ItemsManager 와 새 slot editor 가 동시에 표시되지 않는다. payload shape (legacy props-only vs new resolved-tree) 로 분기한다.
-   - ADR-076 `getCustomPreEditor` pre-generic hook 패턴 (`apps/builder/src/builder/inspector/editors/registry.ts:38-60`) 은 이미 **4 family land** 완료: ListBox (ADR-076 P6, line 40-41) / TagGroup (ADR-097 P3, line 42-46) / Menu (ADR-099 Phase 4, line 47-51) / GridList (ADR-099 Phase 4, line 52-56). 남은 5 family 중 **Tabs 는 별 패턴** (`getHybridAfterSections`, `registry.ts:19-28` line 21-22 case) 으로 wiring 됨. Phase 7 family expansion 시 **Select / ComboBox / Table / Tree 4 family** 가 `getCustomPreEditor` 확장 대상 (payload shape 감지 + Editor UI 분기). Tabs 는 본 ADR 의 composite resolved-tree payload 와 정합한 새 PropertyEditor 패턴 (resolved-tree node selection + descendants patch editor) 으로 wiring — `getHybridAfterSections` 는 legacy props-only payload 호환 path 로 유지.
+7. Inspector Properties UI integration (3 input mode 별 Editor 분기):
+   - C3-b 의 3 input mode 각각이 Properties 패널에서 별도 Editor UI 를 활성화한다.
+     - **Mode 1 (external dataBinding)**: dataBinding picker (Data Panel collection 선택 또는 API endpoint 선택). data 자체의 mutation 은 Data Panel / API endpoint UI 에서.
+     - **Mode 2 (new resolved-tree local data, ADR-144 신규)**: **slot 추가/삭제 UI** — Phase 2 task 5 default child set 으로 생성된 composite instance 에 ref 를 추가/제거. RAC dynamic collections 가이드의 `<Button onPress={addItem}>Add item</Button>` 위치에 대응. canonical `children[]` mutation.
+     - **Mode 3 (legacy `props.items[]` fallback)**: **ItemsManager 섹션** (`apps/builder/src/builder/panels/properties/generic/ItemsManager.tsx:342`) — ADR-076 정적 모드 호환 path. element `props[itemsKey]` 직접 편집.
+   - ADR-076 `ListBoxPropertyEditor` 의 듀얼 모드 (정적 / 템플릿) 는 mode 3 (정적) + mode 2 (템플릿, Field 자식 보유 ↔ composite reusable origin + ref + descendants 의 prior art) 에 대응. ListBoxItemEditor 가 템플릿 모드의 Field 자식 편집 담당.
+   - 한 instance 의 Properties 패널에는 3 mode 의 Editor UI 가 **상호 배타** 로 표시된다. instance 의 mode 감지는 (`dataBinding` 설정 여부 → mode 1) → (resolved-tree composite payload 여부 → mode 2) → (else → mode 3 fallback) 순서.
+   - ADR-076 `getCustomPreEditor` pre-generic hook 패턴 (`apps/builder/src/builder/inspector/editors/registry.ts:38-60`) 은 이미 **4 family land** 완료: ListBox (ADR-076 P6, line 40-41) / TagGroup (ADR-097 P3, line 42-46) / Menu (ADR-099 Phase 4, line 47-51) / GridList (ADR-099 Phase 4, line 52-56). 남은 5 family 중 **Tabs 는 별 패턴** (`getHybridAfterSections`, `registry.ts:19-28` line 21-22 case) 으로 wiring 됨. Phase 7 family expansion 시 **Select / ComboBox / Table / Tree 4 family** 가 `getCustomPreEditor` 확장 대상 (3 mode 감지 + Editor UI 분기). Tabs 는 본 ADR 의 composite resolved-tree payload 와 정합한 새 PropertyEditor 패턴 (resolved-tree node selection + descendants patch editor) 으로 wiring — `getHybridAfterSections` 는 mode 3 legacy 호환 path 로 유지.
 
 Gate: G4.
 
@@ -488,9 +502,9 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 - [ ] Layout invalidation is verified for descendant content/style patch writes.
 - [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910
       begins or the family is explicitly held.
-- [ ] C3-a 데이터 source 3축 (Data 패널 inline / API endpoint / Properties inline editor) 과 C3-b boundary (composite authoring SSOT ↔ collections data SSOT, `defaultProps.items[]` 의 adapter fallback 격하) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다.
-- [ ] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이다.
-- [ ] Phase 5 task 7 Inspector Properties UI 가 payload shape (legacy props-only vs resolved-tree) 로 분기되며 한 instance 에 ItemsManager 와 새 slot editor 가 동시 표시되지 않는다. ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 패턴으로 적용된다.
+- [ ] C3-a 데이터 source 3축 (Data Panel inline persisted / API endpoint persisted config + Zustand runtime sink + Canvas direct proxy fallback 잔존 / Properties inline `element.props[itemsKey]`) 과 C3-b 3 input mode (external dataBinding / new resolved-tree local data / legacy `props.items[]` fallback) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다. Builder execute path 와 Preview/Canvas read path 의 sink 정합 (`useCollectionData.ts:340-355` direct proxy branch) 은 G3/G6 에서 row identity / owner projection 별도 검증.
+- [ ] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이며, mode 2 (resolved-tree local data) 로 동작한다.
+- [ ] Phase 5 task 7 Inspector Properties UI 가 3 input mode (dataBinding picker / slot 추가·삭제 UI / ItemsManager) 로 분기되며 한 instance 에 동시 표시되지 않는다. mode 감지 순서: dataBinding → resolved-tree composite payload → legacy fallback. ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 패턴으로 적용되며 (Select/ComboBox/Table/Tree), Tabs 는 composite resolved-tree PropertyEditor 별 패턴으로 wiring.
 
 ## Verification Commands
 
