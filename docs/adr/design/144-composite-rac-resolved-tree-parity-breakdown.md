@@ -145,18 +145,18 @@ Not allowed as new authoring SSOT:
 
 Composite component 의 data source 는 다음 3축으로 들어온다.
 
-1. **Data 패널 inline collection** — `CompositionDocument.collections` (ADR-132 canonical root collection) 의 entry 로 수동 생성한 정적 데이터.
-2. **API endpoint** — `endpoint.targetCollection -> collections.runtimeData` sink (ADR-132 `useAsyncList` 정합) 로 들어온 외부 데이터.
-3. **Properties 패널 inline editor** — ADR-076 정적 모드 ItemsManager 섹션 류 UI 로 작가가 직접 항목을 추가/삭제하는 inline payload.
+1. **Data 패널 inline collection** — ADR-132 `collections` IndexedDB store (`packages/shared/src/types/composition-document.types.ts:439-440` 주석 — ADR-131 Phase 8 framing revert 로 `data` root field 추가 미수행, store 분리 유지) 의 entry 로 수동 생성한 정적 데이터.
+2. **API endpoint** — `endpoint.targetCollection -> collections.runtimeData` sink (ADR-132 `useAsyncList` 정합) 로 들어온 외부 데이터. data 자체는 `collections` IndexedDB store 의 runtime entry 로 동일 sink 에 저장.
+3. **Properties 패널 inline editor** — ADR-076 정적 모드 ItemsManager 섹션 류 UI 로 작가가 직접 항목을 추가/삭제하는 inline payload. element 의 `props.items[]` 에 저장 (canonical document 안).
 
-3축 모두 RAC runtime projection 입력 (`items[]`, `rows[]`, `columns[]`) 으로 합류한다. 외부 source (1, 2) 가 사용될 때 composite template 의 children/ref 는 row template 역할만 하고 데이터 자체는 `useCollectionData({ datatableId | dataBinding })` (ADR-132 단일 진입점) 가 제공한다. inline source (3) 는 ADR-076 정적 모드 호환 경로로만 유지된다.
+3축 모두 RAC runtime projection 입력 (`items[]`, `rows[]`, `columns[]`) 으로 합류한다. 외부 source (1, 2) 가 사용될 때 composite template 의 children/ref 는 row template 역할만 하고 데이터 자체는 `useCollectionData({ datatableId | dataBinding })` (`packages/shared/src/hooks/useCollectionData.tsx:220-228` 단일 진입점) 가 제공한다. inline source (3) 는 ADR-076 정적 모드 호환 경로로만 유지된다.
 
 #### C3-b. Boundary 와 우선순위
 
-- Composite **reusable origin / ref / descendants / slot** = authoring SSOT (사용자 편집 대상).
-- **`collections` root collection + `useCollectionData`** = data SSOT (외부 source 1, 2 의 단일 sink).
-- 한 instance 는 둘 중 하나의 data source 만 활성. `dataBinding` 이 설정된 instance 는 외부 data SSOT 를 사용하고, composite children/ref 는 row template 으로만 동작. `dataBinding` 미설정 instance 는 composite children/ref 자체가 data.
-- `PrimitiveBinding.defaultProps.items[]` (현재 `listBoxPrimitiveBinding` 등 9 family 에 inline 박힌 Aardvark/Cat/Kangaroo … 류 고정값) 은 authoring SSOT 도 data SSOT 도 아니다. ADR-076 정적 모드 legacy payload 호환을 위한 adapter fallback 으로만 남기고, 새 composite creation path 는 §C3-a (1) 또는 (3) 을 사용한다.
+- Composite **reusable origin / ref / descendants / slot** = authoring SSOT (사용자 편집 대상, `CompositionDocument.children[]` 안).
+- ADR-132 **`collections` IndexedDB store + `useCollectionData`** = data SSOT (외부 source 1, 2 의 단일 sink). ADR-131 Phase 8 사용자 framing revert 로 `CompositionDocument` root field 가 아니라 store 로 분리 유지 (`composition-document.types.ts:439-440`).
+- 한 instance 는 둘 중 하나의 data source 만 활성. `dataBinding` 이 설정된 instance 는 ADR-132 data SSOT 를 사용하고, composite children/ref 는 row template 으로만 동작. `dataBinding` 미설정 instance 는 composite children/ref 자체가 data.
+- `PrimitiveBinding.defaultProps.items[]` (현재 `listBoxPrimitiveBinding` 등 9 family 에 inline 박힌 Aardvark/Cat/Kangaroo … 류 고정값, `packages/shared/src/catalog/primitives/listBox.ts:168-177`) 은 authoring SSOT 도 data SSOT 도 아니다. ADR-076 정적 모드 legacy payload 호환을 위한 adapter fallback 으로만 남기고, 새 composite creation path 는 §C3-a (1) 또는 (3) 을 사용한다.
 
 ### C4. Slot semantics
 
@@ -389,7 +389,7 @@ Tasks:
      - **템플릿 모드** (ListBoxItem > Field 자식) = ADR-076 Hard Constraint #1 로 element tree 영구 보존된 사전 형태. ADR-144 의 composite reusable origin + ref + `descendants` patch 모델로 통합. ItemsManager 섹션 비활성, ListBoxItemEditor 가 Field 자식 편집 담당.
    - 새 composite payload (Phase 2 task 5 default child set) 로 생성된 instance 의 Properties UI 는 **slot 추가/삭제 UI** 를 노출한다. 이는 RAC dynamic collections 가이드의 `<Button onPress={addItem}>Add item</Button>` 위치에 대응하는 builder 측 entry point 이다.
    - 한 instance 의 Properties 패널에는 legacy ItemsManager 와 새 slot editor 가 동시에 표시되지 않는다. payload shape (legacy props-only vs new resolved-tree) 로 분기한다.
-   - ADR-076 `registry.ts.getCustomPreEditor("ListBox")` pre-generic hook 패턴은 Phase 7 family expansion 의 다른 7 family (GridList/Menu/Select/ComboBox/TagGroup/Tabs/Table/Tree) 에 동일 패턴으로 확장 후보다 — family 별 PropertyEditor 가 payload shape 를 감지하여 Editor UI 를 분기한다.
+   - ADR-076 `getCustomPreEditor` pre-generic hook 패턴 (`apps/builder/src/builder/inspector/editors/registry.ts:38-60`) 은 이미 **4 family land** 완료: ListBox (ADR-076 P6, line 40-41) / TagGroup (ADR-097 P3, line 42-46) / Menu (ADR-099 Phase 4, line 47-51) / GridList (ADR-099 Phase 4, line 52-56). 남은 5 family 중 **Tabs 는 별 패턴** (`getHybridAfterSections`, `registry.ts:19-28` line 21-22 case) 으로 wiring 됨. Phase 7 family expansion 시 **Select / ComboBox / Table / Tree 4 family** 가 `getCustomPreEditor` 확장 대상 (payload shape 감지 + Editor UI 분기). Tabs 는 본 ADR 의 composite resolved-tree payload 와 정합한 새 PropertyEditor 패턴 (resolved-tree node selection + descendants patch editor) 으로 wiring — `getHybridAfterSections` 는 legacy props-only payload 호환 path 로 유지.
 
 Gate: G4.
 
