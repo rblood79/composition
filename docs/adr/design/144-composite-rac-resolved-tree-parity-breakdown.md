@@ -297,6 +297,7 @@ Tasks:
    - 예 Tabs: `TabList` reusable origin + 2 Tab ref + 2 TabPanel frame (RAC dynamic collections 가이드의 `useState` 초기값 위치에 대응).
    - 예 collection family (ListBox/GridList/Menu/Select/ComboBox/TagGroup/Table/Tree): item origin + 0~1 sample ref. 0 ref 로 시작할지 1 sample ref 로 시작할지는 family 별 G2/G6 evidence 단계에서 결정한다 (작가가 빌더에서 곧바로 Properties UI 로 항목을 추가하는 시나리오를 기본 entry point 로 둔다).
    - 기존 `PrimitiveBinding.defaultProps.items[]` 의 inline 데이터는 catalog primitive 에서 제거하지 않는다. C3-b 에 따라 legacy props-only payload 의 adapter fallback 으로만 의미를 유지한다. 새 creation path 는 본 task 5 의 composite template 을 사용한다.
+   - **Cross-link**: 본 default child set 으로 생성된 instance 의 사용자 entry point (작가가 빌더에서 항목 추가/삭제) 는 **Phase 5 task 7 의 slot 추가/삭제 UI** 가 cover. "0 ref 시작" 시 Phase 5 task 7 UI 의 Add 동작이 첫 ref 를 생성 (RAC dynamic collections 가이드의 `onPress={addItem}` 흐름과 정합). "1 sample ref 시작" 시 Phase 5 task 7 UI 는 Add/Remove 양방향 진입점.
 
 Gate: G2.
 
