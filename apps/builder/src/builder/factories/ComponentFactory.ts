@@ -44,7 +44,7 @@ import {
 } from "./definitions/GroupComponents";
 import {
   createCardDefinition,
-  createTabsDefinition,
+  createTabsCompositeElements,
   createTreeDefinition,
 } from "./definitions/LayoutComponents";
 import {
@@ -380,7 +380,28 @@ export class ComponentFactory {
   private static async createTabs(
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
-    return this.createComponent(createTabsDefinition, context);
+    const { parentElement, pageId, elements, layoutId, doc } = context;
+    let parentId = parentElement?.id || null;
+
+    if (!parentId) {
+      parentId = ElementUtils.findBodyByContext(
+        elements,
+        pageId || null,
+        layoutId || null,
+        doc,
+      );
+    }
+
+    const { parent, children } = createTabsCompositeElements(context, {
+      parentId,
+    });
+    addElementsToStore(parent, children);
+
+    return {
+      parent,
+      children,
+      allElements: [parent, ...children],
+    };
   }
 
   private static async createTree(

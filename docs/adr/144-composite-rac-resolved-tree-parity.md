@@ -18,6 +18,13 @@ In Progress — 2026-05-21
   reusable origin/ref/descendants/slot allow-list/slot-filled children/nested slot
   discovery 를 regression test 로 묶었다. Evidence:
   `apps/builder/src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts`.
+- 2026-05-22 — Phase 2 G2 Tabs authoring model 완료. 새 Tabs factory path 는
+  legacy `props.items[]` authoring 대신 `Tab`/`TabList`/`Tabs` reusable origins,
+  tab refs, `descendants` label/indicator patches, editable `TabPanel`/body nodes,
+  page-owned Tabs ref instance 를 생성한다. Catalog primitive `defaultProps.items[]`
+  는 기존 문서 adapter fallback 으로 유지하고, 새 creation path 는 factory-level
+  composite template 으로 분리했다. Evidence:
+  `apps/builder/src/builder/factories/__tests__/tabsCompositeFactory.test.ts`.
 
 ## Context
 

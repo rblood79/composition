@@ -286,7 +286,7 @@ Evidence:
 - `apps/builder/src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts`
 - `pnpm -F @composition/builder exec vitest run src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts`
 
-### Phase 2 — Tabs authoring model
+### Phase 2 — Tabs authoring model (Implemented 2026-05-22)
 
 Purpose: make new Tabs creation produce editable canonical structure.
 
@@ -327,6 +327,26 @@ Likely files:
 - `apps/builder/src/builder/panels/components/**`
 - `apps/builder/src/builder/factories/**`
 - `apps/builder/src/adapters/canonical/**`
+
+Implementation decision:
+
+- Composite catalog entry type was not needed for the first Tabs slice. The
+  shared Tabs primitive binding keeps `defaultProps.items[]` as legacy adapter
+  fallback, while the Builder factory uses a factory-level composite template for
+  new authoring.
+- New Tabs creation emits `Tab` / `TabList` / `Tabs` reusable origins, tab refs,
+  descendants patches for label/indicator overrides, two editable `TabPanel`
+  frames with body text, and a page-owned Tabs ref instance.
+- C3-b input mode split is now explicit for Tabs: new local authoring uses
+  resolved-tree composite payload; existing `props.items[]` stays fallback only;
+  external `dataBinding` remains untouched for later G3/G6 projection checks.
+
+Evidence:
+
+- `apps/builder/src/builder/factories/definitions/LayoutComponents.ts`
+- `apps/builder/src/builder/factories/ComponentFactory.ts`
+- `apps/builder/src/builder/factories/__tests__/tabsCompositeFactory.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/builder/factories/__tests__/tabsCompositeFactory.test.ts`
 
 ### Phase 3 — Preview resolved-tree projection
 
@@ -500,7 +520,7 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 - [x] Phase 0 line evidence captured.
 - [x] Fixture contract tests cover `RAC-showcase.json`, `slot-tabs-selection.json`,
       `shadcn-design-system.json`.
-- [ ] New Tabs creation no longer persists editable labels/panel body only in
+- [x] New Tabs creation no longer persists editable labels/panel body only in
       `props.items[]`.
 - [ ] Preview and Skia expose matching owner id/path for Tabs editable subparts.
 - [ ] TabPanel/body selection and editing work.
@@ -510,7 +530,7 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 - [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910
       begins or the family is explicitly held.
 - [ ] C3-a 데이터 source 3축 (Data Panel inline persisted / API endpoint persisted config + Zustand runtime sink + Canvas direct proxy fallback 잔존 / Properties inline `element.props[itemsKey]`) 과 C3-b 3 input mode (external dataBinding / new resolved-tree local data / legacy `props.items[]` fallback) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다. Builder execute path 와 Preview/Canvas read path 의 sink 정합 (`useCollectionData.ts:340-355` direct proxy branch) 은 G3/G6 에서 row identity / owner projection 별도 검증.
-- [ ] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이며, mode 2 (resolved-tree local data) 로 동작한다.
+- [x] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이며, mode 2 (resolved-tree local data) 로 동작한다.
 - [ ] Phase 5 task 7 Inspector Properties UI 가 3 input mode (dataBinding picker / slot 추가·삭제 UI / ItemsManager) 로 분기되며 한 instance 에 동시 표시되지 않는다. mode 감지 순서: dataBinding → resolved-tree composite payload → legacy fallback. ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 패턴으로 적용되며 (Select/ComboBox/Table/Tree), Tabs 는 composite resolved-tree PropertyEditor 별 패턴으로 wiring.
 
 ## Verification Commands
