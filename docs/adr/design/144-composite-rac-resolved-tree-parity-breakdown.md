@@ -254,7 +254,7 @@ Evidence:
 
 - [144-composite-rac-resolved-tree-parity-phase0-baseline.md](144-composite-rac-resolved-tree-parity-phase0-baseline.md)
 
-### Phase 1 — Contract fixture tests
+### Phase 1 — Contract fixture tests (Implemented 2026-05-21)
 
 Purpose: prove current canonical format can express the target structure without
 schema changes.
@@ -262,7 +262,7 @@ schema changes.
 Tasks:
 
 1. Add fixture parser/normalizer for JSON export shape differences:
-   - `children` root shape from RAC showcase.
+   - `reusableComponents` root shape from RAC showcase.
    - `nodes` root shape from slot fixture.
    - `selection` + `reusableComponents` shape from shadcn fixture.
 2. Add contract tests:
@@ -279,9 +279,12 @@ Gate: G1.
 Candidate test files:
 
 - `apps/builder/src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts`
-- `apps/builder/src/resolvers/canonical/__fixtures__/rac-showcase.tabs.json`
-- `apps/builder/src/resolvers/canonical/__fixtures__/slot-tabs-selection.json`
-- `apps/builder/src/resolvers/canonical/__fixtures__/shadcn-slots.json`
+
+Evidence:
+
+- `apps/builder/src/resolvers/canonical/compositeRacFixtureContracts.ts`
+- `apps/builder/src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts`
+- `pnpm -F @composition/builder exec vitest run src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts`
 
 ### Phase 2 — Tabs authoring model
 
@@ -495,7 +498,7 @@ Gate: G7. This is a fail gate, not a measurement-only handoff.
 - [x] ADR-144 body and breakdown exist.
 - [x] README In Progress summary updated.
 - [x] Phase 0 line evidence captured.
-- [ ] Fixture contract tests cover `RAC-showcase.json`, `slot-tabs-selection.json`,
+- [x] Fixture contract tests cover `RAC-showcase.json`, `slot-tabs-selection.json`,
       `shadcn-design-system.json`.
 - [ ] New Tabs creation no longer persists editable labels/panel body only in
       `props.items[]`.

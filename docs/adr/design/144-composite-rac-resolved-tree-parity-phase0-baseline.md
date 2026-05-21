@@ -56,11 +56,11 @@ G3/G4 에서는 위 id 가 selection/editable owner 로 노출되면 실패로 �
 
 ## 5. Fixture inventory
 
-| Fixture                              | Shape                                     | Measured inventory                                                       | Contract evidence                                                                                                                              |
-| ------------------------------------ | ----------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/RAC-showcase.json`         | root `children[]` export                  | `reusable=67`, `refs=263`, `refs_with_descendants=199`, `slot_hosts=0`   | `Tab`/`TabList`/`Tabs` reusable pattern: `packages/RAC-showcase.json:8136-8245`.                                                               |
-| `packages/slot-tabs-selection.json`  | root `nodes[]` + `selectedNodeIds` export | `reusable=3`, `refs=6`, `refs_with_descendants=5`, `slot_hosts=1`        | selected real nodes/refs, slot allow-list, slot-filled instance children: `packages/slot-tabs-selection.json:1-115`.                           |
-| `packages/shadcn-design-system.json` | larger design-system export               | `reusable=174`, `refs=119`, `refs_with_descendants=100`, `slot_hosts=22` | slot/ref/descendants repeats across Tabs, Dropdown, Table Row/Table: `packages/shadcn-design-system.json:3214-3230`, `3408-3422`, `4830-4925`. |
+| Fixture                              | Shape                                            | Measured inventory                                                       | Contract evidence                                                                                                                              |
+| ------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/RAC-showcase.json`         | root `reusableComponents[]` export               | `reusable=67`, `refs=263`, `refs_with_descendants=199`, `slot_hosts=0`   | `Tab`/`TabList`/`Tabs` reusable pattern: `packages/RAC-showcase.json:8136-8245`.                                                               |
+| `packages/slot-tabs-selection.json`  | root `nodes[]` + `selectedNodeIds` export        | `reusable=3`, `refs=6`, `refs_with_descendants=5`, `slot_hosts=1`        | selected real nodes/refs, slot allow-list, slot-filled instance children: `packages/slot-tabs-selection.json:1-115`.                           |
+| `packages/shadcn-design-system.json` | root `selection` + `reusableComponents[]` export | `reusable=174`, `refs=119`, `refs_with_descendants=100`, `slot_hosts=22` | slot/ref/descendants repeats across Tabs, Dropdown, Table Row/Table: `packages/shadcn-design-system.json:3214-3230`, `3408-3422`, `4830-4925`. |
 
 Measurement command:
 

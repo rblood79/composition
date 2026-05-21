@@ -12,6 +12,12 @@ In Progress — 2026-05-21
   `RAC-showcase.json` / `slot-tabs-selection.json` / `shadcn-design-system.json` 기준으로
   reusable/ref/descendants/slot contract evidence 를 고정했다. Evidence:
   [144-composite-rac-resolved-tree-parity-phase0-baseline.md](design/144-composite-rac-resolved-tree-parity-phase0-baseline.md).
+- 2026-05-21 — Phase 1 G1 fixture contract test 완료. `RAC-showcase.json`,
+  `slot-tabs-selection.json`, `shadcn-design-system.json` 의 root shape 차이
+  (`reusableComponents`, `nodes`, `selection`) 를 normalizer 로 고정하고,
+  reusable origin/ref/descendants/slot allow-list/slot-filled children/nested slot
+  discovery 를 regression test 로 묶었다. Evidence:
+  `apps/builder/src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts`.
 
 ## Context
 
