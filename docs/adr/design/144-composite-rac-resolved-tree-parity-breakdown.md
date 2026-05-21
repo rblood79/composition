@@ -141,6 +141,23 @@ Not allowed as new authoring SSOT:
 - persisted `Tabs.props.items[]` as the only location of tab labels and panel body.
 - Skia-only `${id}:panel:*` nodes as edit owners.
 
+#### C3-a. Data source 축
+
+Composite component 의 data source 는 다음 3축으로 들어온다.
+
+1. **Data 패널 inline collection** — `CompositionDocument.collections` (ADR-132 canonical root collection) 의 entry 로 수동 생성한 정적 데이터.
+2. **API endpoint** — `endpoint.targetCollection -> collections.runtimeData` sink (ADR-132 `useAsyncList` 정합) 로 들어온 외부 데이터.
+3. **Properties 패널 inline editor** — ADR-076 정적 모드 ItemsManager 섹션 류 UI 로 작가가 직접 항목을 추가/삭제하는 inline payload.
+
+3축 모두 RAC runtime projection 입력 (`items[]`, `rows[]`, `columns[]`) 으로 합류한다. 외부 source (1, 2) 가 사용될 때 composite template 의 children/ref 는 row template 역할만 하고 데이터 자체는 `useCollectionData({ datatableId | dataBinding })` (ADR-132 단일 진입점) 가 제공한다. inline source (3) 는 ADR-076 정적 모드 호환 경로로만 유지된다.
+
+#### C3-b. Boundary 와 우선순위
+
+- Composite **reusable origin / ref / descendants / slot** = authoring SSOT (사용자 편집 대상).
+- **`collections` root collection + `useCollectionData`** = data SSOT (외부 source 1, 2 의 단일 sink).
+- 한 instance 는 둘 중 하나의 data source 만 활성. `dataBinding` 이 설정된 instance 는 외부 data SSOT 를 사용하고, composite children/ref 는 row template 으로만 동작. `dataBinding` 미설정 instance 는 composite children/ref 자체가 data.
+- `PrimitiveBinding.defaultProps.items[]` (현재 `listBoxPrimitiveBinding` 등 9 family 에 inline 박힌 Aardvark/Cat/Kangaroo … 류 고정값) 은 authoring SSOT 도 data SSOT 도 아니다. ADR-076 정적 모드 legacy payload 호환을 위한 adapter fallback 으로만 남기고, 새 composite creation path 는 §C3-a (1) 또는 (3) 을 사용한다.
+
 ### C4. Slot semantics
 
 `slot?: false | string[]` is an allow-list of reusable component ids.
@@ -275,6 +292,11 @@ Tasks:
    - indicator rectangle id.
    - panel frame id.
    - panel body text id.
+5. Composite template default child set:
+   - 새 instance 생성 시 default content 는 composite template origin 의 children 으로 정의한다. 데이터 inline 박힌 `defaultProps.items[]` (Aardvark/Cat/Kangaroo 류) 는 사용하지 않는다.
+   - 예 Tabs: `TabList` reusable origin + 2 Tab ref + 2 TabPanel frame (RAC dynamic collections 가이드의 `useState` 초기값 위치에 대응).
+   - 예 collection family (ListBox/GridList/Menu/Select/ComboBox/TagGroup/Table/Tree): item origin + 0~1 sample ref. 0 ref 로 시작할지 1 sample ref 로 시작할지는 family 별 G2/G6 evidence 단계에서 결정한다 (작가가 빌더에서 곧바로 Properties UI 로 항목을 추가하는 시나리오를 기본 entry point 로 둔다).
+   - 기존 `PrimitiveBinding.defaultProps.items[]` 의 inline 데이터는 catalog primitive 에서 제거하지 않는다. C3-b 에 따라 legacy props-only payload 의 adapter fallback 으로만 의미를 유지한다. 새 creation path 는 본 task 5 의 composite template 을 사용한다.
 
 Gate: G2.
 
@@ -354,6 +376,20 @@ Tasks:
    - origin child style when editing origin.
    - instance `descendants[path]` style patch when editing ref instance child.
 5. Undo/redo and IndexedDB hydration preserve changes.
+6. Layout invalidation is explicit:
+   - descendant content/style patch that can affect layout increments
+     `layoutVersion` and marks the edited owner subtree dirty.
+   - new top-level layout-affecting props are registered in
+     `LAYOUT_AFFECTING_PROP_KEYS`.
+   - new non-layout or inherited layout style props are checked against
+     `NON_LAYOUT_PROPS_UPDATE` and `INHERITED_LAYOUT_PROPS_UPDATE`.
+7. Inspector Properties UI integration (ADR-076 듀얼 모드 ↔ ADR-144 slot 모델 매핑):
+   - ADR-076 `ListBoxPropertyEditor` 의 듀얼 모드 (정적 / 템플릿) 는 ADR-144 의 두 payload shape 와 대응한다.
+     - **정적 모드** (`props.label/value` 또는 Text/Description 자식, Field 자식 없음) = legacy props-only payload. **ItemsManager 섹션** = inline items[] editor. C3-a (3) 의 inline source. C3-b adapter boundary 안에서만 표시.
+     - **템플릿 모드** (ListBoxItem > Field 자식) = ADR-076 Hard Constraint #1 로 element tree 영구 보존된 사전 형태. ADR-144 의 composite reusable origin + ref + `descendants` patch 모델로 통합. ItemsManager 섹션 비활성, ListBoxItemEditor 가 Field 자식 편집 담당.
+   - 새 composite payload (Phase 2 task 5 default child set) 로 생성된 instance 의 Properties UI 는 **slot 추가/삭제 UI** 를 노출한다. 이는 RAC dynamic collections 가이드의 `<Button onPress={addItem}>Add item</Button>` 위치에 대응하는 builder 측 entry point 이다.
+   - 한 instance 의 Properties 패널에는 legacy ItemsManager 와 새 slot editor 가 동시에 표시되지 않는다. payload shape (legacy props-only vs new resolved-tree) 로 분기한다.
+   - ADR-076 `registry.ts.getCustomPreEditor("ListBox")` pre-generic hook 패턴은 Phase 7 family expansion 의 다른 7 family (GridList/Menu/Select/ComboBox/TagGroup/Tabs/Table/Tree) 에 동일 패턴으로 확장 후보다 — family 별 PropertyEditor 가 payload shape 를 감지하여 Editor UI 를 분기한다.
 
 Gate: G4.
 
@@ -418,14 +454,22 @@ Purpose: measure correct tree before optimizing it.
 Tasks:
 
 1. Measure Tabs resolved-tree Skia frame cost vs current props-only path.
-2. Measure family matrix worst-case:
-   - many tabs.
-   - table rows/cells.
-   - nested dropdown/menu sections.
-3. Record memory and node-count growth.
-4. Feed results into ADR-910 Phase 0 baseline measurement.
+2. Gate Tabs slice on a blocking budget:
+   - p95 Skia frame cost must be no more than 25% above the current
+     props-only path.
+   - 60fps interaction budget must hold in the target builder viewport.
+   - if either fails, Tabs parity work can merge only as an adapter-only hold;
+     ADR-910 becomes a prerequisite before enabling the new authoring path.
+3. Measure family matrix worst-case:
+   - 1000+ tabs/items where the component allows that scale.
+   - 1000+ table rows/cells.
+   - nested dropdown/menu sections with slot-filled descendants.
+4. Record memory and node-count growth per family.
+5. If a family misses the blocking budget, mark that family `hold` and feed the
+   measurement into ADR-910 Phase 0 before expanding beyond Tabs.
+6. Feed passing baseline results into ADR-910 Phase 0 baseline measurement.
 
-Gate: G7.
+Gate: G7. This is a fail gate, not a measurement-only handoff.
 
 ## Acceptance Checklist
 
@@ -440,7 +484,12 @@ Gate: G7.
 - [ ] TabPanel/body selection and editing work.
 - [ ] Synthetic Skia ids are not editable owners.
 - [ ] RAC behavior tests pass.
-- [ ] Perf baseline is recorded before ADR-910 begins.
+- [ ] Layout invalidation is verified for descendant content/style patch writes.
+- [ ] Perf baseline is recorded and G7 blocking budget passes before ADR-910
+      begins or the family is explicitly held.
+- [ ] C3-a 데이터 source 3축 (Data 패널 inline / API endpoint / Properties inline editor) 과 C3-b boundary (composite authoring SSOT ↔ collections data SSOT, `defaultProps.items[]` 의 adapter fallback 격하) 가 Phase 1 fixture / Phase 2 creation evidence 에 기록된다.
+- [ ] Phase 2 task 5 composite template default child set 이 적용된 family 의 새 creation 은 `PrimitiveBinding.defaultProps.items[]` inline 데이터 (Aardvark/Cat/Kangaroo 류) 0건 의존이다.
+- [ ] Phase 5 task 7 Inspector Properties UI 가 payload shape (legacy props-only vs resolved-tree) 로 분기되며 한 instance 에 ItemsManager 와 새 slot editor 가 동시 표시되지 않는다. ADR-076 `getCustomPreEditor` 패턴이 G6 family 확장 시 동일 패턴으로 적용된다.
 
 ## Verification Commands
 
@@ -456,7 +505,7 @@ Expected starting set:
 
 ```bash
 pnpm -F @composition/builder exec vitest run src/resolvers/canonical/__tests__/compositeRacFixtures.test.ts
-pnpm -F @composition/builder exec vitest run src/preview/components/CanonicalNodeRenderer.adr912.test.tsx
+pnpm -F @composition/builder exec vitest run src/preview/components/CanonicalNodeRenderer.adr144.test.tsx
 pnpm -F @composition/builder exec vitest run src/builder/workspace/canvas/skia/canonicalSkiaSymmetry.test.ts
 pnpm -F @composition/shared exec vitest run src/components/__tests__/Tabs.behavior.test.tsx
 pnpm run codex:typecheck
