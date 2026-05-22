@@ -451,6 +451,27 @@ export interface CompositionDocument {
    * ADR-116 §3 `x-composition.actions` 는 본 필드로 partial supersede 됨.
    */
   actions?: SerializedAction[];
+
+  /**
+   * Composite RAC master 노드 root collection — ADR-144 Wave D (amend 2026-05-22).
+   *
+   * pencil "design system export" format (`RAC-showcase.json`,
+   * `shadcn-design-system.json`) 의 `reusableComponents[]` 정합. 4 composite
+   * family factory (`createTabsCompositeElements` /
+   * `createSelectCompositeElements` / `createListBoxCompositeElements` /
+   * `createMenuCompositeElements`) 가 `{ master, instance }` 분할 반환하여
+   * master 만 본 collection 에 저장한다. page tree (`children[]`) 에는
+   * `type: "ref"` instance 만 배치.
+   *
+   * master 는 composition multi-page/frame infinite canvas 인프라
+   * (`visiblePageRoots.ts` / `skiaOverlayBuilder.ts`) 를 재사용하여 page frame
+   * 옆 공간 배치로 canvas 위 visible 한 origin 요소로 표시된다.
+   *
+   * fixture normalizer (`compositeRacFixtureContracts.ts`) 의
+   * `rootKind: "reusableComponents"` 처리가 runtime CompositionDocument 와
+   * 동일 single source 로 수렴.
+   */
+  reusableComponents?: CanonicalNode[];
 }
 
 // ─────────────────────────────────────────────
