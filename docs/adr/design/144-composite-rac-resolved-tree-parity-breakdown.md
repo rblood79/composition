@@ -783,6 +783,16 @@ Layer B — Runtime routing:
    `addToReusableComponents(master)`, `syncReusableComponentsToCanonical()`
    추가. 호출 순서 (`set` → canonical update → `_rebuildIndexes` → persist)
    엄수 — `instance-sync-order-race` 회귀 차단.
+   - **Scope inflation 확인 (2026-05-22, 사용자 confirm: atomic 전수 확장)**:
+     단순 sync 함수 신설이 아닌 canonical mutation primitives 6 종 전수
+     `doc.children + doc.reusableComponents` 양쪽 traverse 확장 동반:
+     `findNodeById` / `appendChildToNode` / `removeNodeById` /
+     `replaceNodeById` / `findCanonicalParentContext` / `findSlotPathInNode`.
+     `upsertElementIntoDocument` 의 `legacy.componentRole === "master" &&
+!parent_id && !page_id && !layout_id` 분기 (canonicalMutations.ts:1064)
+     redirect target 을 `doc.children` 에서 `doc.reusableComponents` 로 변경.
+     master 자식들 (parent_id=master.id) 의 `appendChildToNode` 도 양쪽
+     검색해야 master 를 찾음. ADR-116 G7 boundary allowlist 확장 동반.
 8. `deriveProjectRenderModelFromDocument()` — `type: "ref"` instance 의 ref
    를 `reusableComponents` lookup 으로 resolve (fixture normalizer 동일 로직
    재사용).
