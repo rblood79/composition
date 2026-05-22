@@ -94,13 +94,15 @@ export function buildSceneStructureSnapshot(
 ): SceneStructureSnapshot {
   // ADR-144 Wave D Phase 1 — reusableComponentRoots 를 가상 page 로 변환하여
   // page 와 동일 multi-frame infinite canvas 메커니즘 통해 canvas spatial
-  // 표시. pencil/Figma 패턴. 좌표 자동 할당 = 마지막 page 우측 + GAP.
+  // 표시. pencil/Figma 패턴. 좌표 자동 할당 = page 바로 옆 (viewport 안).
   const MASTER_PAGE_GAP = 80;
   const reusableRoots = input.reusableComponentRoots ?? [];
   const pageCount = input.pages.length;
+  // Phase 1.5: baseOffsetX 를 page 바로 옆으로 (이전 (pageCount+1)*... 는
+  // viewport 밖이라 buildVisiblePageSet 가 invisible 판정 → render skip).
   const baseOffsetX =
     pageCount > 0
-      ? (pageCount + 1) * (input.pageWidth + MASTER_PAGE_GAP)
+      ? pageCount * (input.pageWidth + MASTER_PAGE_GAP)
       : MASTER_PAGE_GAP;
   const virtualMasterPages: Page[] = reusableRoots.map((root, index) => ({
     id: root.id,
