@@ -4991,25 +4991,7 @@ function buildGenericTabsNode(
   const style = readGenericStyle(node);
   const size = resolveGenericTabsSize(props.size);
   const isDark = theme === "dark";
-
-  // ADR-066 폐기 — canonical tree 의 Tab/TabList 자식 element 우선 사용.
-  // children Tab element 없으면 items[] fallback (dataBinding / legacy 호환).
-  const tabListChild = (node.children ?? []).find(
-    (child) => child.type === "TabList",
-  );
-  const nestedTabChildren = tabListChild
-    ? (tabListChild.children ?? []).filter((child) => child.type === "Tab")
-    : [];
-  const items: TabsItemDescriptor[] =
-    nestedTabChildren.length > 0
-      ? nestedTabChildren.map((tab) => {
-          const tabProps = (tab.props ?? {}) as Record<string, unknown>;
-          const tabId = String(tabProps.id ?? tab.id);
-          const tabLabel =
-            typeof tabProps.children === "string" ? tabProps.children : tabId;
-          return { id: tabId, label: tabLabel };
-        })
-      : (props.items ?? []);
+  const items: TabsItemDescriptor[] = props.items ?? [];
   const selectedKey =
     props.selectedKey ?? props.defaultSelectedKey ?? items[0]?.id;
   const selectedItem =
@@ -5682,11 +5664,9 @@ function resolveGenericTabsSize(size: TabsRacProps["size"]): {
   indicatorThickness: number;
 } {
   switch (size) {
-    // ADR-105-b TABS_SIZE_CONFIG 정합 — spec 의 height/paddingX 와 동일.
-    // height 공식: paddingY × 2 + lineHeight + borderWidth × 1
     case "sm":
       return {
-        tabHeight: 21, // 2*2 + 16 + 1
+        tabHeight: 24,
         paddingX: 8,
         fontSize: 12,
         lineHeight: 16,
@@ -5697,7 +5677,7 @@ function resolveGenericTabsSize(size: TabsRacProps["size"]): {
       };
     case "lg":
       return {
-        tabHeight: 41, // 8*2 + 24 + 1
+        tabHeight: 42,
         paddingX: 16,
         fontSize: 16,
         lineHeight: 24,
@@ -5709,7 +5689,7 @@ function resolveGenericTabsSize(size: TabsRacProps["size"]): {
     case "md":
     default:
       return {
-        tabHeight: 29, // 4*2 + 20 + 1
+        tabHeight: 32,
         paddingX: 12,
         fontSize: 14,
         lineHeight: 20,

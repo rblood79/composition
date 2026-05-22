@@ -138,29 +138,6 @@ export const tabsPrimitiveBinding: PrimitiveBinding<
     accepts: tabsAccepts,
   },
   toRacProps: toTabsRacProps,
-  placement: {
-    kind: "node-with-children",
-    children: [
-      {
-        type: "TabList",
-        props: {},
-        children: [
-          { type: "Tab", props: { id: "overview", children: "Overview" } },
-          { type: "Tab", props: { id: "details", children: "Details" } },
-          { type: "Tab", props: { id: "settings", children: "Settings" } },
-        ],
-      },
-      {
-        type: "TabPanels",
-        props: {},
-        children: [
-          { type: "TabPanel", props: { itemId: "overview" } },
-          { type: "TabPanel", props: { itemId: "details" } },
-          { type: "TabPanel", props: { itemId: "settings" } },
-        ],
-      },
-    ],
-  },
   skiaPrimitive: { kind: "tabs" },
 };
 
