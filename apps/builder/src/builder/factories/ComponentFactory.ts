@@ -372,15 +372,15 @@ export class ComponentFactory {
       );
     }
 
-    const { parent, children } = createSelectCompositeElements(context, {
+    const { masters, instance } = createSelectCompositeElements(context, {
       parentId,
     });
-    addElementsToStore(parent, children);
+    addElementsToStore(instance, masters);
 
     return {
-      parent,
-      children,
-      allElements: [parent, ...children],
+      parent: instance,
+      children: masters,
+      allElements: [instance, ...masters],
     };
   }
 
@@ -399,15 +399,15 @@ export class ComponentFactory {
       );
     }
 
-    const { parent, children } = createComboBoxCompositeElements(context, {
+    const { masters, instance } = createComboBoxCompositeElements(context, {
       parentId,
     });
-    addElementsToStore(parent, children);
+    addElementsToStore(instance, masters);
 
     return {
-      parent,
-      children,
-      allElements: [parent, ...children],
+      parent: instance,
+      children: masters,
+      allElements: [instance, ...masters],
     };
   }
 
@@ -438,15 +438,15 @@ export class ComponentFactory {
       );
     }
 
-    const { parent, children } = createTabsCompositeElements(context, {
+    const { masters, instance } = createTabsCompositeElements(context, {
       parentId,
     });
-    addElementsToStore(parent, children);
+    addElementsToStore(instance, masters);
 
     return {
-      parent,
-      children,
-      allElements: [parent, ...children],
+      parent: instance,
+      children: masters,
+      allElements: [instance, ...masters],
     };
   }
 
@@ -483,15 +483,15 @@ export class ComponentFactory {
       );
     }
 
-    const { parent, children } = createListBoxCompositeElements(context, {
+    const { masters, instance } = createListBoxCompositeElements(context, {
       parentId,
     });
-    addElementsToStore(parent, children);
+    addElementsToStore(instance, masters);
 
     return {
-      parent,
-      children,
-      allElements: [parent, ...children],
+      parent: instance,
+      children: masters,
+      allElements: [instance, ...masters],
     };
   }
 
@@ -524,15 +524,15 @@ export class ComponentFactory {
       );
     }
 
-    const { parent, children } = createMenuCompositeElements(context, {
+    const { masters, instance } = createMenuCompositeElements(context, {
       parentId,
     });
-    addElementsToStore(parent, children);
+    addElementsToStore(instance, masters);
 
     return {
-      parent,
-      children,
-      allElements: [parent, ...children],
+      parent: instance,
+      children: masters,
+      allElements: [instance, ...masters],
     };
   }
 

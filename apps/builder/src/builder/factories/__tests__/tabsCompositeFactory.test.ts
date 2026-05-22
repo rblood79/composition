@@ -83,14 +83,14 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
       "tabs-instance",
     ];
 
-    const { parent, children } = createTabsCompositeElements(makeContext(), {
+    const { masters, instance } = createTabsCompositeElements(makeContext(), {
       parentId: "page-body",
       idFactory: makeIdFactory(ids),
       now: () => "2026-05-22T00:00:00.000Z",
     });
-    const allElements = [parent, ...children];
+    const allElements = [instance, ...masters];
 
-    expect(parent).toMatchObject({
+    expect(instance).toMatchObject({
       id: "tabs-instance",
       type: "Tabs",
       parent_id: "page-body",
@@ -99,8 +99,8 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
       componentRole: "instance",
       masterId: "tabs-origin",
     });
-    expect(parent.props).not.toHaveProperty("items");
-    expect(parent.props).toMatchObject({
+    expect(instance.props).not.toHaveProperty("items");
+    expect(instance.props).toMatchObject({
       "aria-label": "Tabs",
       defaultSelectedKey: "tab-ref-overview",
       orientation: "horizontal",
@@ -200,7 +200,7 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
       "panel-settings-body",
       "tabs-instance",
     ];
-    const { parent, children } = createTabsCompositeElements(makeContext(), {
+    const { masters, instance } = createTabsCompositeElements(makeContext(), {
       parentId: "page-body",
       idFactory: makeIdFactory(ids),
       now: () => "2026-05-22T00:00:00.000Z",
@@ -234,10 +234,15 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
       getCurrentProjectId: () => "project-1",
     });
 
-    mergeElementsCanonicalPrimary([parent, ...children]);
+    mergeElementsCanonicalPrimary([instance, ...masters]);
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
-    expect(findNode(doc?.children ?? [], "tabs-origin")).toMatchObject({
+    // ADR-144 Wave D — masters 는 doc.reusableComponents 로 라우팅,
+    // instance 는 doc.children (page tree) 에 유지.
+    const reusableRoots = doc?.reusableComponents ?? [];
+    const pageRoots = doc?.children ?? [];
+
+    expect(findNode(reusableRoots, "tabs-origin")).toMatchObject({
       id: "tabs-origin",
       type: "Tabs",
       reusable: true,
@@ -257,7 +262,7 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
         }),
       ],
     });
-    expect(findNode(doc?.children ?? [], "tab-ref-overview")).toMatchObject({
+    expect(findNode(reusableRoots, "tab-ref-overview")).toMatchObject({
       type: "ref",
       ref: "tab-origin",
       descendants: {
@@ -265,7 +270,7 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
         "tab-indicator": { enabled: true },
       },
     });
-    expect(findNode(doc?.children ?? [], "tabs-instance")).toMatchObject({
+    expect(findNode(pageRoots, "tabs-instance")).toMatchObject({
       id: "tabs-instance",
       type: "ref",
       ref: "tabs-origin",
@@ -273,8 +278,8 @@ describe("ADR-144 Phase 2 Tabs composite factory", () => {
         defaultSelectedKey: "tab-ref-overview",
       },
     });
-    expect(
-      findNode(doc?.children ?? [], "tabs-instance").props,
-    ).not.toHaveProperty("items");
+    expect(findNode(pageRoots, "tabs-instance").props).not.toHaveProperty(
+      "items",
+    );
   });
 });

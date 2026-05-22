@@ -527,6 +527,100 @@ function appendChildToDescendants(
     : { node: refNode, inserted: false };
 }
 
+// ─────────────────────────────────────────────
+// ADR-144 Wave D — doc-level mutation wrapper (2026-05-22).
+// reusableComponents root collection 도입 후 mutation primitives 6 종을 doc
+// 단위로 `children + reusableComponents` 양쪽 traverse 한다. 단일 primitive
+// signature 는 그대로 유지 — wrapper 만 신설.
+// ─────────────────────────────────────────────
+
+function findNodeInDocument(
+  doc: CompositionDocument,
+  elementId: string | null | undefined,
+): CanonicalNode | null {
+  return (
+    findNodeById(doc.children, elementId) ??
+    findNodeById(doc.reusableComponents ?? [], elementId)
+  );
+}
+
+function removeNodeFromDocument(
+  doc: CompositionDocument,
+  elementId: string,
+): { doc: CompositionDocument; removed: CanonicalNode | null } {
+  const fromChildren = removeNodeById(doc.children, elementId);
+  if (fromChildren.removed) {
+    return {
+      doc: { ...doc, children: fromChildren.nodes },
+      removed: fromChildren.removed,
+    };
+  }
+  const reusable = doc.reusableComponents ?? [];
+  const fromReusable = removeNodeById(reusable, elementId);
+  if (fromReusable.removed) {
+    return {
+      doc: { ...doc, reusableComponents: fromReusable.nodes },
+      removed: fromReusable.removed,
+    };
+  }
+  return { doc, removed: null };
+}
+
+function replaceNodeInDocument(
+  doc: CompositionDocument,
+  elementId: string,
+  replacement: CanonicalNode,
+): { doc: CompositionDocument; replaced: boolean } {
+  const inChildren = replaceNodeById(doc.children, elementId, replacement);
+  if (inChildren.replaced) {
+    return { doc: { ...doc, children: inChildren.nodes }, replaced: true };
+  }
+  const reusable = doc.reusableComponents ?? [];
+  const inReusable = replaceNodeById(reusable, elementId, replacement);
+  if (inReusable.replaced) {
+    return {
+      doc: { ...doc, reusableComponents: inReusable.nodes },
+      replaced: true,
+    };
+  }
+  return { doc, replaced: false };
+}
+
+function appendChildInDocument(
+  doc: CompositionDocument,
+  parentElementId: string,
+  child: CanonicalNode,
+): { doc: CompositionDocument; inserted: boolean } {
+  const inChildren = appendChildToNode(doc.children, parentElementId, child);
+  if (inChildren.inserted) {
+    return { doc: { ...doc, children: inChildren.nodes }, inserted: true };
+  }
+  const reusable = doc.reusableComponents ?? [];
+  const inReusable = appendChildToNode(reusable, parentElementId, child);
+  if (inReusable.inserted) {
+    return {
+      doc: { ...doc, reusableComponents: inReusable.nodes },
+      inserted: true,
+    };
+  }
+  return { doc, inserted: false };
+}
+
+/**
+ * Reusable master node 를 `doc.reusableComponents` 에 upsert.
+ * ADR-144 Wave D — master 분기 redirect target.
+ */
+function upsertReusableComponent(
+  doc: CompositionDocument,
+  node: CanonicalNode,
+): CompositionDocument {
+  const existing = doc.reusableComponents ?? [];
+  return {
+    ...doc,
+    reusableComponents: upsertChild(existing, node),
+  };
+}
+
 function buildCompositionExtensionField(element: Element): {
   "x-composition"?: CompositionExtension;
 } {
@@ -553,7 +647,7 @@ function remapLegacyDescendants(
 
   const remapped: RefNode["descendants"] = {};
   for (const [legacyChildId, override] of Object.entries(legacyDescendants)) {
-    const childNode = findNodeById(doc.children, legacyChildId);
+    const childNode = findNodeInDocument(doc, legacyChildId);
     remapped[childNode?.id ?? legacyChildId] = override as DescendantOverride;
   }
   return remapped;
@@ -699,7 +793,7 @@ function legacyElementToCanonicalNode(
   }
 
   if (refTarget) {
-    const masterNode = findNodeById(doc.children, refTarget);
+    const masterNode = findNodeInDocument(doc, refTarget);
     const descendants = remapLegacyDescendants(element, doc);
     const refProps = legacy.overrides
       ? legacy.overrides
@@ -742,7 +836,7 @@ export function createCanonicalHistoryNodeFromElement(
   element: Element,
 ): CanonicalNode {
   const doc = getCurrentDocumentForHistory();
-  const previousNode = findNodeById(doc.children, element.id);
+  const previousNode = findNodeInDocument(doc, element.id);
   return cloneCanonicalNodeForHistory(
     legacyElementToCanonicalNode(element, doc, previousNode),
   );
@@ -752,7 +846,7 @@ export function getCanonicalHistoryNodeSnapshot(
   element: Element,
 ): CanonicalNode {
   const doc = getCurrentDocumentForHistory();
-  const node = findNodeById(doc.children, element.id);
+  const node = findNodeInDocument(doc, element.id);
   if (node) return cloneCanonicalNodeForHistory(node);
   return createCanonicalHistoryNodeFromElement(element);
 }
@@ -1038,49 +1132,45 @@ function upsertElementIntoDocument(
   snapshot: LegacySnapshot,
 ): CompositionDocument {
   const legacy = asElementWithLegacyMirror(element);
-  const previousNode = findNodeById(doc.children, element.id);
+  const previousNode = findNodeInDocument(doc, element.id);
   if (
     previousNode &&
     shouldPreserveExistingCanonicalPosition(previousNode, element)
   ) {
     const node = legacyElementToCanonicalNode(element, doc, previousNode);
-    const replaced = replaceNodeById(doc.children, element.id, node);
+    const replaced = replaceNodeInDocument(doc, element.id, node);
     if (replaced.replaced) {
-      return { ...doc, children: replaced.nodes };
+      return replaced.doc;
     }
   }
 
-  const removed = removeNodeById(doc.children, element.id);
-  const docWithoutExisting: CompositionDocument = {
-    ...doc,
-    children: removed.nodes,
-  };
+  const removed = removeNodeFromDocument(doc, element.id);
+  const docWithoutExisting: CompositionDocument = removed.doc;
   const node = legacyElementToCanonicalNode(
     element,
     docWithoutExisting,
     previousNode,
   );
 
+  // ADR-144 Wave D — master 분기 redirect target 변경
+  // (doc.children → doc.reusableComponents). pencil format 정합.
   if (
     legacy.componentRole === "master" &&
     !element.parent_id &&
     !element.page_id &&
     !legacy.layout_id
   ) {
-    return {
-      ...docWithoutExisting,
-      children: upsertChild(docWithoutExisting.children, node),
-    };
+    return upsertReusableComponent(docWithoutExisting, node);
   }
 
   if (element.parent_id) {
-    const result = appendChildToNode(
-      docWithoutExisting.children,
+    const result = appendChildInDocument(
+      docWithoutExisting,
       element.parent_id,
       node,
     );
     if (result.inserted) {
-      return { ...docWithoutExisting, children: result.nodes };
+      return result.doc;
     }
   }
 
@@ -1363,7 +1453,7 @@ function hasCanonicalPositionChange(
   previousDoc: CompositionDocument,
   element: Element,
 ): boolean {
-  const previousNode = findNodeById(previousDoc.children, element.id);
+  const previousNode = findNodeInDocument(previousDoc, element.id);
   return previousNode ? !legacyPositionMatches(previousNode, element) : true;
 }
 

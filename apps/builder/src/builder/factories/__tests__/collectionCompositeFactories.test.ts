@@ -114,15 +114,15 @@ describe("ADR-144 Phase 7 collection composite factories", () => {
   ])(
     "%s creation uses reusable origin + ref/descendants/slot instead of props.items[]",
     ({ factory, itemType, containerType, ariaLabel, refLabels }) => {
-      const { parent, children } = factory(makeContext(), {
+      const { masters, instance } = factory(makeContext(), {
         parentId: "page-body",
         idFactory: makeIdFactory([...COMPOSITE_IDS]),
         now: () => "2026-05-22T00:00:00.000Z",
       });
-      const allElements = [parent, ...children];
+      const allElements = [instance, ...masters];
 
-      // 1) parent = page-owned ref instance to the container origin.
-      expect(parent).toMatchObject({
+      // 1) instance = page-owned ref instance to the container origin.
+      expect(instance).toMatchObject({
         id: "instance",
         type: containerType,
         parent_id: "page-body",
@@ -131,8 +131,8 @@ describe("ADR-144 Phase 7 collection composite factories", () => {
         componentRole: "instance",
         masterId: "container-origin",
       });
-      expect(parent.props).not.toHaveProperty("items");
-      expect(parent.props).toMatchObject({ "aria-label": ariaLabel });
+      expect(instance.props).not.toHaveProperty("items");
+      expect(instance.props).toMatchObject({ "aria-label": ariaLabel });
 
       // 2) reusable origins = exactly { item-origin, container-origin }
       expect(
@@ -181,11 +181,14 @@ describe("ADR-144 Phase 7 collection composite factories", () => {
   );
 
   it("merges the ListBox composite payload into canonical reusable roots and a page ref", () => {
-    const { parent, children } = createListBoxCompositeElements(makeContext(), {
-      parentId: "page-body",
-      idFactory: makeIdFactory([...COMPOSITE_IDS]),
-      now: () => "2026-05-22T00:00:00.000Z",
-    });
+    const { masters, instance } = createListBoxCompositeElements(
+      makeContext(),
+      {
+        parentId: "page-body",
+        idFactory: makeIdFactory([...COMPOSITE_IDS]),
+        now: () => "2026-05-22T00:00:00.000Z",
+      },
+    );
 
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", {
@@ -215,11 +218,12 @@ describe("ADR-144 Phase 7 collection composite factories", () => {
       getCurrentProjectId: () => "project-1",
     });
 
-    mergeElementsCanonicalPrimary([parent, ...children]);
+    mergeElementsCanonicalPrimary([instance, ...masters]);
 
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
-    const reusableRoots =
-      doc?.children?.filter((child) => child.reusable === true) ?? [];
+    // ADR-144 Wave D — masters 는 doc.reusableComponents root collection 으로
+    // 라우팅 (pencil format 정합), instance 는 doc.children (page tree) 유지.
+    const reusableRoots = doc?.reusableComponents ?? [];
     const reusableIds = reusableRoots.map((child) => child.id);
     expect(reusableIds).toEqual(
       expect.arrayContaining(["item-origin", "container-origin"]),

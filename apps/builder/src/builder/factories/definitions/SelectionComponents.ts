@@ -78,7 +78,7 @@ function createCollectionCompositeElements(
   context: ComponentCreationContext,
   options: CollectionCompositeElementOptions,
   blueprint: CollectionCompositeBlueprint,
-): { parent: Element; children: Element[] } {
+): { masters: Element[]; instance: Element } {
   const idFactory = options.idFactory ?? ElementUtils.generateId;
   const now = options.now ?? (() => new Date().toISOString());
   const ids = createCollectionCompositeIds(idFactory);
@@ -168,15 +168,15 @@ function createCollectionCompositeElements(
   );
 
   return {
-    parent: instance,
-    children: [itemOrigin, itemLabel, containerOrigin, ...refInstances],
+    masters: [itemOrigin, itemLabel, containerOrigin, ...refInstances],
+    instance,
   };
 }
 
 export function createSelectCompositeElements(
   context: ComponentCreationContext,
   options: CollectionCompositeElementOptions,
-): { parent: Element; children: Element[] } {
+): { masters: Element[]; instance: Element } {
   return createCollectionCompositeElements(context, options, {
     itemType: "SelectItem",
     containerType: "Select",
@@ -197,7 +197,7 @@ export function createSelectCompositeElements(
 export function createComboBoxCompositeElements(
   context: ComponentCreationContext,
   options: CollectionCompositeElementOptions,
-): { parent: Element; children: Element[] } {
+): { masters: Element[]; instance: Element } {
   return createCollectionCompositeElements(context, options, {
     itemType: "ComboBoxItem",
     containerType: "ComboBox",
@@ -219,7 +219,7 @@ export function createComboBoxCompositeElements(
 export function createListBoxCompositeElements(
   context: ComponentCreationContext,
   options: CollectionCompositeElementOptions,
-): { parent: Element; children: Element[] } {
+): { masters: Element[]; instance: Element } {
   return createCollectionCompositeElements(context, options, {
     itemType: "ListBoxItem",
     containerType: "ListBox",
@@ -239,7 +239,7 @@ export function createListBoxCompositeElements(
 export function createMenuCompositeElements(
   context: ComponentCreationContext,
   options: CollectionCompositeElementOptions,
-): { parent: Element; children: Element[] } {
+): { masters: Element[]; instance: Element } {
   return createCollectionCompositeElements(context, options, {
     itemType: "MenuItem",
     containerType: "Menu",

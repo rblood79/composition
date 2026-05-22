@@ -27,15 +27,20 @@ interface TabsCompositeIds {
 }
 
 /**
- * ADR-144 Phase 2: 새 Tabs authoring payload.
+ * ADR-144 Phase 2 + Wave D (2026-05-22 amend): 새 Tabs authoring payload.
  *
  * Legacy `props.items[]` 는 adapter fallback 으로만 남기고, 새 생성 경로는
  * canonical reusable/ref/descendants/slot mirror 를 만든다.
+ *
+ * Wave D: return shape `{ masters: Element[]; instance: Element }` 로 의도
+ * 명료화 — masters 는 `CompositionDocument.reusableComponents` root collection
+ * 으로 라우팅, instance 는 page tree 로 라우팅. mutation 분기는
+ * `upsertElementIntoDocument` (canonicalMutations.ts) 가 자동 처리.
  */
 export function createTabsCompositeElements(
   context: ComponentCreationContext,
   options: TabsCompositeElementOptions,
-): { parent: Element; children: Element[] } {
+): { masters: Element[]; instance: Element } {
   const idFactory = options.idFactory ?? ElementUtils.generateId;
   const now = options.now ?? (() => new Date().toISOString());
   const ids = createTabsCompositeIds(idFactory);
@@ -217,8 +222,7 @@ export function createTabsCompositeElements(
   );
 
   return {
-    parent: tabsInstance,
-    children: [
+    masters: [
       tabOrigin,
       tabLabel,
       tabIndicator,
@@ -232,6 +236,7 @@ export function createTabsCompositeElements(
       panelSettings,
       panelSettingsBody,
     ],
+    instance: tabsInstance,
   };
 }
 
