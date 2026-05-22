@@ -741,6 +741,109 @@ Tasks:
 
 Gate: G7. This is a fail gate, not a measurement-only handoff.
 
+### Phase 9 — reusableComponents root collection + composite master/instance routing + canvas visible + Layers/Properties UI (Wave D, amend 2026-05-22)
+
+Purpose: Phase 7 Wave A/B 진행 중 실측 발견 — composite RAC creation path 가
+master node 를 page tree (`children[]`) 의 sibling 으로 misroute 한다. 본 phase
+는 master 를 root collection `CompositionDocument.reusableComponents` 로
+분리하여 pencil "design system export" 형식과 정합한다. master 는 composition
+multi-page/frame infinite canvas 위 visible origin 요소로 표시된다. **단일
+phase, sub-phase 분할 없음** (4 layer 동시 작업 + 통합 1 commit).
+
+본 phase scope 외 (다른 결정으로 분리):
+
+- theme 영역 canvas 공간 배치 표시 (ADR-110 이어서 진행)
+- master canvas isolation mode (단독 표시 mode, pencil edit-symbol UX)
+- master detach (Cmd+Opt+X, instance → raw tree 변환)
+- raw tree → reusable 양방향 변환 단축키 (Cmd+Opt+K)
+- master 이름 / variant / props schema 사용자 편집 UX
+- instance override UI (Properties Component section 확장)
+
+Layer A — Schema:
+
+1. `packages/shared/src/types/composition-document.types.ts` —
+   `CompositionDocument.reusableComponents?: CanonicalNode[]` 추가
+   (ADR-110/131 root collection 패턴 정합).
+2. `apps/builder/src/resolvers/canonical/compositeRacFixtureContracts.ts` —
+   runtime CompositionDocument 도 `rootKind: "reusableComponents"` 처리
+   helper 를 동일 single source 로 사용.
+
+Layer B — Runtime routing:
+
+3. `apps/builder/src/builder/factories/definitions/LayoutComponents.ts` —
+   `createTabsCompositeElements()` 반환 `{ master, instance }` 분할.
+4. `apps/builder/src/builder/factories/definitions/SelectionComponents.ts` —
+   `createSelectCompositeElements` / `createListBoxCompositeElements` /
+   `createMenuCompositeElements` 동일 패턴.
+5. `apps/builder/src/builder/factories/ComponentFactory.ts` —
+   `addElementsToStore` 진입점에서 `{ master, instance }` 분리 routing.
+6. `apps/builder/src/builder/store/elements.ts::_rebuildIndexes` — canonical
+   `children` + `reusableComponents` 양쪽 traverse 하여 elementsMap derive.
+7. `apps/builder/src/builder/store/canonicalDocument.ts` — 신규
+   `addToReusableComponents(master)`, `syncReusableComponentsToCanonical()`
+   추가. 호출 순서 (`set` → canonical update → `_rebuildIndexes` → persist)
+   엄수 — `instance-sync-order-race` 회귀 차단.
+8. `deriveProjectRenderModelFromDocument()` — `type: "ref"` instance 의 ref
+   를 `reusableComponents` lookup 으로 resolve (fixture normalizer 동일 로직
+   재사용).
+
+Layer C — Canvas (multi-frame infinite canvas 인프라 재사용):
+
+9. `apps/builder/src/builder/workspace/canvas/skia/visiblePageRoots.ts` —
+   master frame 도 visible root 등록 (page frame 메커니즘 재사용).
+10. `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayBuilder.ts` —
+    master frame label 표시 (pencil-style frame label, type tag "Component"
+    구분).
+11. master 좌표 자동 할당 — 신규 master 생성 시 page 들 옆 공간 배치 (현
+    page 등록 좌표 할당 로직 재사용, infinite canvas 자연 흡수).
+
+Layer D — Panel UI:
+
+12. `apps/builder/src/builder/panels/nodes/LayersSection.tsx` — Pages 섹션
+    (children[]) + Components 섹션 (reusableComponents[]) 2 분할.
+13. `apps/builder/src/builder/panels/nodes/tree/LayerTree/LayerTree.tsx` —
+    변경 0, 양 섹션에서 tree render 위임.
+14. Properties 패널 신규 `SlotSection.tsx` — master 선택 시 ##Slot section##
+    표시 (collection binding `dataBinding: { collectionId }` + slot meta).
+    ADR-132 `useCollectionData({ datatableId | dataBinding })` 와 자연 정합.
+
+Clean break:
+
+15. `apps/builder/src/builder/db/indexeddb-canonical-store.ts` — DB_VERSION
+    bump. migration 코드 0 (개발 단계, 기존 데이터 폐기 가능).
+
+Tests:
+
+16. `apps/builder/src/builder/factories/__tests__/tabsCompositeFactory.test.ts`
+    — `{ master, instance }` 반환 assertion 갱신.
+17. `apps/builder/src/builder/factories/__tests__/collectionCompositeFactories.test.ts`
+    — Select/ListBox/Menu 동일.
+18. 신규
+    `apps/builder/src/builder/store/__tests__/reusableComponentsRouting.test.ts`
+    — schema + routing contract (4 composite family drop → master 가
+    reusableComponents 에 / instance 가 children 에).
+19. 신규
+    `apps/builder/src/builder/panels/nodes/__tests__/LayersSection.componentsSection.test.tsx`
+    — Pages/Components 분리 렌더 + 빈 Components 섹션 placeholder.
+20. 신규
+    `apps/builder/src/builder/workspace/canvas/skia/__tests__/visiblePageRoots.masterFrame.test.ts`
+    — master frame 도 visible root 등록 검증.
+
+Acceptance (G8):
+
+- pnpm type-check PASS (apps/builder + packages/shared).
+- pnpm test 회귀 PASS — 4 composite factory + LayersSection +
+  reusableComponentsRouting + visiblePageRoots.masterFrame.
+- Chrome MCP runtime 검증 — composite drop 시 (a) master 가 Components 섹션
+  표시 + canvas 위 spatial 배치 visible / (b) instance 가 page tree /
+  (c) Properties Slot section 표시 / (d) IndexedDB 검증 (master 가
+  reusableComponents root, page tree 에 ref instance 만).
+- fixture normalizer 와 runtime routing 이 동일 single source 사용 (코드 grep
+  evidence — `rootKind: "reusableComponents"` 처리 helper 1 곳).
+- clean break — DB_VERSION bump 적용, migration 코드 0건 grep 통과.
+
+Gate: G8.
+
 ## Acceptance Checklist
 
 - [x] ADR-144 body and breakdown exist.

@@ -15,6 +15,22 @@ ComponentFactory 호출 wiring 은 미검증. 본질 결함 fix 후 closure 재�
 
 진행 로그:
 
+- 2026-05-22 — Hard Constraint 1 amend + Phase 9 (Wave D) 추가 결정. 사용자
+  raise — 빌더 등록 후 사용자 실측 ADR 본문/Layers/IndexedDB 검증 결과
+  composite RAC creation path 가 master node 를 page tree (`children[]`) 의
+  sibling 으로 misroute (1 page frame 옆 7 master 동등 배치). 사용자 framing
+  정정 — composition canonical schema 의 원래 설계 의도 = pencil format (API
+  → collection → child item 반복/변형 → origin+instance+slot → Skia 렌더
+  최적화). 본 amend 는 master 를 root collection `reusableComponents` 로
+  분리하여 pencil "design system export" 형식 (`RAC-showcase.json`,
+  `shadcn-design-system.json`) 과 정합한다. ADR-110 themes/variables 및
+  ADR-131 events/actions root collection 패턴 정합. master 는 composition 의
+  multi-page/frame infinite canvas 인프라 (`visiblePageRoots.ts` /
+  `skiaOverlayBuilder.ts`) 를 재사용하여 canvas 위 visible 한 origin 요소로
+  표시된다. 기존 IndexedDB 데이터는 clean break (개발 단계). 본 phase scope
+  외 — theme 영역 canvas 공간 배치, master canvas isolation mode, master
+  detach, raw tree ↔ reusable 양방향 변환 단축키, master 이름/variant/props
+  schema 사용자 편집 UX, instance override UI — 모두 다른 결정으로 분리.
 - 2026-05-22 — Wave A wiring 보강 + closure rollback. 사용자가 "Tabs/4 family
   등록해도 변화 없다" 로 raise → 조사 결과, `ComponentFactory.ts` 에서
   `createTabs` (line 380-405) 만 `createTabsCompositeElements` 호출, 4 family
@@ -218,6 +234,16 @@ shadcn fixture 는 동일 slot/ref/descendants pattern 을 `Dropdown`, `Table Ro
 canonical reusable origin + `type:"ref"` instance + `descendants` override +
 `slot` fill 로 표현되어야 한다.
 
+Phase 7 Wave A/B 진행 중 추가 발견 (2026-05-22) — composite RAC creation path
+가 master node 를 page tree (`children[]`) 의 sibling 으로 misroute 한다
+(실측: 1 page frame 옆 7 master 가 동등 배치). pencil "design system export"
+형식 (`RAC-showcase.json`, `shadcn-design-system.json`) 은 master 를 root
+collection `reusableComponents[]` 로 분리한다. Hard Constraint 1 의 "schema
+변경 없음" 전제는 본 misroute 의 근본 원인이며, 본 amend 로 schema 에 root
+collection 을 추가하여 fixture import (`compositeRacFixtureContracts.ts` 의
+`rootKind: "reusableComponents"`) 와 runtime authoring 이 동일 single source 로
+수렴한다.
+
 ADR-144 는 ADR-142 를 대체하지 않는다. ADR-142 의 leaf RAC `PrimitiveBinding` 과
 catalog entrypoint 를 유지하되, composite RAC component 의 completion gate 를
 "catalog route active" 에서 "Preview·Skia·selection·editing 이 같은 resolved tree 를
@@ -225,8 +251,17 @@ catalog entrypoint 를 유지하되, composite RAC component 의 completion gate
 
 **Hard Constraints**:
 
-1. `CompositionDocument` schema 는 변경하지 않는다. 기존 `children[]`, `props`,
-   `reusable`, `type:"ref"`, `ref`, `descendants`, `slot` shape 를 사용한다.
+1. `CompositionDocument` schema 는 pencil format 정합을 위해 root collection
+   `reusableComponents?: CanonicalNode[]` 를 추가한다 (amend 2026-05-22). 기존
+   `children[]`, `props`, `reusable`, `type:"ref"`, `ref`, `descendants`, `slot`
+   shape 는 유지한다. 본 추가는 ADR-110 themes/variables 와 ADR-131
+   events/actions root collection 패턴 정합이며, fixture normalizer
+   (`compositeRacFixtureContracts.ts`) 의 `rootKind: "reusableComponents"` 처리가
+   runtime CompositionDocument 와 동일 single source 로 수렴한다. master 는
+   composition 의 multi-page/frame infinite canvas 인프라
+   (`visiblePageRoots.ts` / `skiaOverlayBuilder.ts`) 를 재사용하여 page frame
+   옆 공간 배치로 canvas 위 visible 한 origin 요소로 표시된다. 기존 IndexedDB
+   데이터는 clean break (DB_VERSION bump, migration 코드 0).
 2. 사용자 선택·편집 가능한 composite subpart 는 canonical node 또는 resolved
    canonical node 여야 한다. Skia/Preview private synthetic node 를 editable owner 로
    만들지 않는다.
@@ -352,6 +387,17 @@ DOM measurement 에 묶는다.
    `descendants` stable id path patch 로 기록한다.
 8. ADR-910 은 ADR-144 parity gate 이후 적용한다. ADR-144 는 correct tree 와 owner
    identity 를 먼저 고정하고, ADR-910 은 그 tree 의 draw cost 를 줄인다.
+9. Composite RAC master 는 `CompositionDocument.reusableComponents[]` 에 저장한다
+   (amend 2026-05-22). Page tree (`children[]`) 에는 ref instance 만 배치한다. 4
+   composite family factory (`createTabsCompositeElements` /
+   `createSelectCompositeElements` / `createListBoxCompositeElements` /
+   `createMenuCompositeElements`) 는 `{ master, instance }` 분할 반환을 한다.
+   master node 는 composition 의 multi-page/frame infinite canvas 인프라
+   (`visiblePageRoots.ts` / `skiaOverlayBuilder.ts`) 를 재사용하여 page frame
+   옆 공간 배치로 canvas 위 visible 한 origin 요소로 표시된다. Layers 패널은
+   Pages (children[]) + Components (reusableComponents[]) 두 섹션으로 분리되고,
+   Properties 패널은 master 선택 시 신규 `Slot section` (collection binding +
+   slot meta) 을 노출한다.
 
 기각 사유:
 
@@ -375,21 +421,23 @@ DOM measurement 에 묶는다.
 | R4  | real resolved children 수 증가로 Skia frame cost 가 늘 수 있다.                                                                           |  MED   | G7 을 blocking perf gate 로 둔다. Tabs p95 frame cost 가 current props-only baseline 대비 +25% 초과하거나 60fps budget 을 깨면 해당 slice/family 는 hold 하고 ADR-910 을 land prerequisite 으로 승격한다. |
 | R5  | 기존 props-only `Tabs.items[]` payload 와 새 resolved-tree payload 가 공존하는 migration period 에 Inspector/edit path 가 혼동될 수 있다. |  MED   | legacy props payload 는 adapter/projection boundary 로 분류하고 new authoring path 는 reusable/ref tree 로만 생성한다.                                                                                    |
 | R6  | JSON fixtures 가 Pencil app export format change 로 drift 할 수 있다.                                                                     |  LOW   | fixtures 는 repo-local contract evidence 로 고정하고, `.pen` 원본은 직접 읽지 않는다.                                                                                                                     |
+| R7  | reusableComponents root field 추가로 인한 IndexedDB 직렬화 schema 변경 — 기존 프로젝트 read-back 시 master misroute 잔존                  |  MED   | clean break (DB_VERSION bump). 개발 단계, 기존 데이터 폐기 가능. migration 코드 0. amend 2026-05-22 결정.                                                                                                 |
 
 잔존 HIGH 위험: R1 1건. G3/G4 가 통과하기 전에는 Tabs slice 를 완료로 보지 않는다.
 
 ## Gates
 
-| Gate | 시점                     | 통과 조건                                                                                                                                                                                                                 | 실패 시 대안                              |
-| ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| G0   | Phase 0                  | ADR-142 current route, Tabs props-only implementation, fixture inventory 를 line evidence 로 freeze                                                                                                                       | ADR-144 scope 재작성                      |
-| G1   | Phase 1                  | `RAC-showcase.json`, `slot-tabs-selection.json`, `shadcn-design-system.json` fixture 가 reusable/ref/descendants/slot contract test 로 통과                                                                               | contract 축소 또는 fixture 분리           |
-| G2   | Tabs creation            | Component Panel/Factory 가 새 Tabs 를 reusable origin + ref/slot children 구조로 생성                                                                                                                                     | creation path 중단, adapter-only 유지     |
-| G3   | Tabs Preview/Skia parity | TabList/Tab/TabPanel/body owner id/path 와 bounds 가 Preview marker, Skia node, selection overlay 에서 매칭                                                                                                               | Skia/Preview consumer 재설계              |
-| G4   | Tabs editability         | Tab label, active indicator, panel body 선택/편집이 root props 또는 descendants patch 로 저장되고 undo/redo/hydration 후 유지                                                                                             | phase rollback                            |
-| G5   | RAC behavior             | Tabs keyboard navigation/focus/selection behavior 가 RAC contract test 를 통과                                                                                                                                            | behavior projection 수정                  |
-| G6   | Family expansion         | collections/table/tree/overlay/date-color family 별 coverage matrix 에서 synthetic editable owner 0건                                                                                                                     | family hold                               |
-| G7   | Perf handoff             | parity 통과 tree 에 대해 baseline frame/memory 측정 완료 + fail budget 통과. Tabs 는 current props-only p95 frame cost 대비 +25% 이하이고 60fps budget 을 유지해야 하며, family stress 는 node/memory growth 를 기록한다. | budget miss 시 family hold + ADR-910 선행 |
+| Gate | 시점                     | 통과 조건                                                                                                                                                                                                                                                                                                                                                 | 실패 시 대안                              |
+| ---- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| G0   | Phase 0                  | ADR-142 current route, Tabs props-only implementation, fixture inventory 를 line evidence 로 freeze                                                                                                                                                                                                                                                       | ADR-144 scope 재작성                      |
+| G1   | Phase 1                  | `RAC-showcase.json`, `slot-tabs-selection.json`, `shadcn-design-system.json` fixture 가 reusable/ref/descendants/slot contract test 로 통과                                                                                                                                                                                                               | contract 축소 또는 fixture 분리           |
+| G2   | Tabs creation            | Component Panel/Factory 가 새 Tabs 를 reusable origin + ref/slot children 구조로 생성                                                                                                                                                                                                                                                                     | creation path 중단, adapter-only 유지     |
+| G3   | Tabs Preview/Skia parity | TabList/Tab/TabPanel/body owner id/path 와 bounds 가 Preview marker, Skia node, selection overlay 에서 매칭                                                                                                                                                                                                                                               | Skia/Preview consumer 재설계              |
+| G4   | Tabs editability         | Tab label, active indicator, panel body 선택/편집이 root props 또는 descendants patch 로 저장되고 undo/redo/hydration 후 유지                                                                                                                                                                                                                             | phase rollback                            |
+| G5   | RAC behavior             | Tabs keyboard navigation/focus/selection behavior 가 RAC contract test 를 통과                                                                                                                                                                                                                                                                            | behavior projection 수정                  |
+| G6   | Family expansion         | collections/table/tree/overlay/date-color family 별 coverage matrix 에서 synthetic editable owner 0건                                                                                                                                                                                                                                                     | family hold                               |
+| G7   | Perf handoff             | parity 통과 tree 에 대해 baseline frame/memory 측정 완료 + fail budget 통과. Tabs 는 current props-only p95 frame cost 대비 +25% 이하이고 60fps budget 을 유지해야 하며, family stress 는 node/memory growth 를 기록한다.                                                                                                                                 | budget miss 시 family hold + ADR-910 선행 |
+| G8   | Wave D                   | `CompositionDocument.reusableComponents` 등록 + 4 composite factory `{ master, instance }` 반환 + master frame canvas visible (multi-frame infra 재사용) + Layers Pages/Components 섹션 분리 + Properties Slot section 추가. fixture normalizer 와 runtime routing 이 동일 single source 사용. clean break (기존 IndexedDB 데이터 폐기, DB_VERSION bump). | Wave D rollback, schema field 추가만 유지 |
 
 ## Consequences
 
@@ -401,6 +449,9 @@ DOM measurement 에 묶는다.
 - Pencil app 의 `reusable` / `ref` / `descendants` / `slot` format 과 composition
   canonical format 이 같은 방향으로 수렴한다.
 - ADR-910 은 correct resolved tree 를 대상으로 최적화할 수 있다.
+- canonical document SSOT 가 pencil "design system export" format
+  (`reusableComponents` root collection) 과 정합하여 fixture import 와 runtime
+  authoring 이 동일 single source 로 수렴한다 (amend 2026-05-22).
 
 ### Negative
 
