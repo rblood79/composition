@@ -14,7 +14,36 @@ import { useErrorHandler, type ErrorInfo } from "./useErrorHandler";
 import { generateCustomId } from "../utils/idGeneration";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import { withFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
+import { createTabsCompositeElements } from "../factories/definitions/LayoutComponents";
+import {
+  createSelectCompositeElements,
+  createComboBoxCompositeElements,
+  createListBoxCompositeElements,
+  createMenuCompositeElements,
+} from "../factories/definitions/SelectionComponents";
+import type { ComponentCreationContext } from "../factories/types";
 //import { useStore } from '../stores';
+
+/**
+ * ADR-144 Wave D — catalog 진입점 (resolveCatalogElementCreation /
+ * useElementCreator.handleAddElement) 가 composite RAC 5 family
+ * (Tabs / Select / ComboBox / ListBox / Menu) 의 경우 PrimitiveBinding
+ * defaultProps (props.items[] legacy payload) 대신 composite factory
+ * (createXxxCompositeElements) 를 호출하여 reusable origin + ref +
+ * descendants + slot canonical tree 를 생성한다. ADR-142 catalog cutover
+ * 와 ADR-144 composite contract 의 정합 진입점.
+ */
+const COMPOSITE_RAC_TYPES = new Set([
+  "Tabs",
+  "Select",
+  "ComboBox",
+  "ListBox",
+  "Menu",
+]);
+
+function isCompositeRacType(type: string): boolean {
+  return COMPOSITE_RAC_TYPES.has(type);
+}
 
 export interface UseElementCreatorReturn {
   getDefaultProps: (type: string) => ComponentElementProps | undefined;
@@ -67,6 +96,13 @@ export interface CatalogElementCreationPayload {
   masterId?: string;
   componentName?: string;
   children?: CatalogElementCreationPayload[];
+  /**
+   * ADR-144 Wave D — composite RAC 5 family (Tabs/Select/ComboBox/ListBox/
+   * Menu) sentinel. true 이면 caller (handleAddElement) 가
+   * createXxxCompositeElements factory 호출 분기로 진입하여 masters +
+   * instance 를 생성. 본 payload 의 elementType/props 는 fallback 표시용.
+   */
+  composite?: true;
 }
 
 function isCatalogEntry(value: unknown): value is ComponentCatalogEntry {
@@ -102,6 +138,18 @@ export function resolveCatalogElementCreation(
   if (!entry || entry.cutover !== "catalog") return undefined;
 
   if (entry.kind === "primitive") {
+    // ADR-144 Wave D — composite RAC 5 family 진입점 분리.
+    // PrimitiveBinding.defaultProps (props.items[] legacy payload) 대신
+    // composite factory (createXxxCompositeElements) 가 reusable origin
+    // + ref + descendants + slot canonical tree 생성. caller 가
+    // payload.composite 감지 후 분기.
+    if (isCompositeRacType(entry.type)) {
+      return {
+        elementType: entry.type,
+        props: { ...entry.binding.defaultProps } as ComponentElementProps,
+        composite: true,
+      };
+    }
     const placement = entry.binding.placement;
     return {
       elementType: entry.type,
@@ -321,6 +369,63 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                   );
                 }
               }
+            }
+
+            // ADR-144 Wave D — composite RAC 5 family 분기 (catalog 정합 진입점)
+            if (catalogCreation.composite) {
+              const compositeContext: ComponentCreationContext = {
+                parentElement: parentEl ?? null,
+                pageId: currentPageId || "",
+                elements,
+                layoutId,
+                doc,
+              };
+              const compositeOptions = { parentId: parentId ?? null };
+
+              let result: { masters: Element[]; instance: Element };
+              switch (type) {
+                case "Tabs":
+                  result = createTabsCompositeElements(
+                    compositeContext,
+                    compositeOptions,
+                  );
+                  break;
+                case "Select":
+                  result = createSelectCompositeElements(
+                    compositeContext,
+                    compositeOptions,
+                  );
+                  break;
+                case "ComboBox":
+                  result = createComboBoxCompositeElements(
+                    compositeContext,
+                    compositeOptions,
+                  );
+                  break;
+                case "ListBox":
+                  result = createListBoxCompositeElements(
+                    compositeContext,
+                    compositeOptions,
+                  );
+                  break;
+                case "Menu":
+                  result = createMenuCompositeElements(
+                    compositeContext,
+                    compositeOptions,
+                  );
+                  break;
+                default:
+                  throw new Error(
+                    `ADR-144 Wave D: composite RAC type 미등록 — ${type}. COMPOSITE_RAC_TYPES Set 와 switch 분기 동기화 필요`,
+                  );
+              }
+
+              // masters + instance 양쪽 addElement — mergeElementsCanonicalPrimary
+              // 의 upsertElementIntoDocument 가 masters 는 reusableComponents
+              // 로, instance 는 page tree 로 라우팅.
+              result.masters.forEach((master) => addElement(master));
+              addElement(result.instance);
+              return;
             }
 
             const newElement: Element = withFrameElementMirrorId(
