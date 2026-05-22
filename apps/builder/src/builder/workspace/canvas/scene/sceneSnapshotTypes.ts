@@ -94,6 +94,20 @@ export interface BuildSceneStructureInput {
   panOffset: { x: number; y: number };
   source: SceneInputSource;
   zoom: number;
+  /**
+   * ADR-144 Wave D Phase 1 — `CompositionDocument.reusableComponents`
+   * root collection 의 master node ids. 본 ids 는 가상 page 형태로
+   * `pages` 옆 spatial 배치되어 pencil/Figma 패턴처럼 canvas 에 직접
+   * 표시된다 (page 와 동일 multi-frame infinite canvas 메커니즘).
+   *
+   * 구성: caller (BuilderCanvas) 가 `doc.reusableComponents` 의 root id +
+   * title (name ?? type) 만 전달. 실제 master sub-tree 는 elementsMap 에
+   * 이미 포함 (canonicalElementsView 양쪽 traverse — Wave D Task 7).
+   */
+  reusableComponentRoots?: ReadonlyArray<{
+    id: string;
+    title: string;
+  }>;
 }
 
 /**

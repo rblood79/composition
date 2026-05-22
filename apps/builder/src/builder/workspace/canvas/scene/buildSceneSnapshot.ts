@@ -1,3 +1,4 @@
+import type { Page } from "../../../../types/builder/unified.types";
 import type { CanvasSceneNode } from "./canvasSceneNode";
 import {
   buildPageDataMap,
@@ -91,17 +92,51 @@ function createResolvedProjectionSignature(input: {
 export function buildSceneStructureSnapshot(
   input: BuildSceneStructureInput,
 ): SceneStructureSnapshot {
+  // ADR-144 Wave D Phase 1 — reusableComponentRoots 를 가상 page 로 변환하여
+  // page 와 동일 multi-frame infinite canvas 메커니즘 통해 canvas spatial
+  // 표시. pencil/Figma 패턴. 좌표 자동 할당 = 마지막 page 우측 + GAP.
+  const MASTER_PAGE_GAP = 80;
+  const reusableRoots = input.reusableComponentRoots ?? [];
+  const pageCount = input.pages.length;
+  const baseOffsetX =
+    pageCount > 0
+      ? (pageCount + 1) * (input.pageWidth + MASTER_PAGE_GAP)
+      : MASTER_PAGE_GAP;
+  const virtualMasterPages: Page[] = reusableRoots.map((root, index) => ({
+    id: root.id,
+    title: root.title,
+    project_id: "",
+    slug: `/__reusable_${root.id}`,
+    parent_id: null,
+  }));
+  const masterPagePositions: Record<
+    string,
+    { x: number; y: number } | undefined
+  > = {};
+  reusableRoots.forEach((root, index) => {
+    if (input.pagePositions[root.id]) return; // 사용자 명시 좌표 우선
+    masterPagePositions[root.id] = {
+      x: baseOffsetX + index * (input.pageWidth + MASTER_PAGE_GAP),
+      y: 0,
+    };
+  });
+  const mergedPages: Page[] = [...input.pages, ...virtualMasterPages];
+  const mergedPagePositions = {
+    ...input.pagePositions,
+    ...masterPagePositions,
+  };
+
   const depthMap = buildDepthMap(input.elements, input.elementsMap);
   const pageDataMap = buildPageDataMap(
-    input.pages,
+    mergedPages,
     input.pageIndex,
     input.elementsMap,
   );
   const allPageFrames = buildPageFrames(
-    input.pages,
+    mergedPages,
     input.pageIndex,
     input.elementsMap,
-    input.pagePositions,
+    mergedPagePositions,
     input.pageWidth,
     input.pageHeight,
   );
@@ -127,7 +162,7 @@ export function buildSceneStructureSnapshot(
   );
   const pageSnapshots = new Map<string, ScenePageSnapshot>();
 
-  for (const page of input.pages) {
+  for (const page of mergedPages) {
     const pageData = pageDataMap.get(page.id) ?? {
       bodyElement: null,
       pageElements: [],
@@ -195,7 +230,7 @@ export function buildSceneStructureSnapshot(
       allPageFrameVersion,
       currentPageId: input.currentPageId,
       currentPageSnapshot,
-      pageCount: input.pages.length,
+      pageCount: mergedPages.length,
       visibleContentVersion,
       visiblePageFrames,
       visiblePageIds,
@@ -208,7 +243,7 @@ export function buildSceneStructureSnapshot(
         input.layoutVersion,
         input.pagePositionsVersion,
         input.elements.length,
-        input.pages.length,
+        mergedPages.length,
         visibleContentVersion,
         visiblePagePositionVersion,
         projectionContentSignature,

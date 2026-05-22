@@ -343,6 +343,18 @@ export function BuilderCanvas({
   // ADR-074 Phase 2: structure(selection-invariant) / selection 분리.
   // selection-only 변화 시 structure useMemo identity 유지 → 하위 useMemo
   // (skiaRendererInput / layoutPublisherInputs) 의 deps 변동 차단.
+  // ADR-144 Wave D Phase 1 — reusableComponentRoots 를 canvas 에 page
+  // 처럼 spatial 표시. canonicalDocument.reusableComponents root id +
+  // title 을 sceneSnapshot 으로 전달.
+  const reusableComponentRoots = useMemo(() => {
+    const roots = activeCanonicalDocument?.reusableComponents ?? [];
+    if (roots.length === 0) return undefined;
+    return roots.map((root) => ({
+      id: root.id,
+      title: root.name ?? root.type ?? "Component",
+    }));
+  }, [activeCanonicalDocument]);
+
   const sceneStructureSnapshot = useMemo(() => {
     const scenePages = isFrameEditMode ? [] : pages;
     return buildSceneStructureSnapshot({
@@ -358,6 +370,9 @@ export function BuilderCanvas({
       pageWidth,
       pages: scenePages,
       panOffset,
+      reusableComponentRoots: isFrameEditMode
+        ? undefined
+        : reusableComponentRoots,
       source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
       zoom,
     });
@@ -374,6 +389,7 @@ export function BuilderCanvas({
     pageWidth,
     pages,
     panOffset,
+    reusableComponentRoots,
     sceneNodes,
     sceneNodesMap,
     zoom,
