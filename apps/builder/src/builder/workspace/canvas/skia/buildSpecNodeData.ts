@@ -5682,9 +5682,11 @@ function resolveGenericTabsSize(size: TabsRacProps["size"]): {
   indicatorThickness: number;
 } {
   switch (size) {
+    // ADR-105-b TABS_SIZE_CONFIG 정합 — spec 의 height/paddingX 와 동일.
+    // height 공식: paddingY × 2 + lineHeight + borderWidth × 1
     case "sm":
       return {
-        tabHeight: 24,
+        tabHeight: 21, // 2*2 + 16 + 1
         paddingX: 8,
         fontSize: 12,
         lineHeight: 16,
@@ -5695,7 +5697,7 @@ function resolveGenericTabsSize(size: TabsRacProps["size"]): {
       };
     case "lg":
       return {
-        tabHeight: 42,
+        tabHeight: 41, // 8*2 + 24 + 1
         paddingX: 16,
         fontSize: 16,
         lineHeight: 24,
@@ -5707,7 +5709,7 @@ function resolveGenericTabsSize(size: TabsRacProps["size"]): {
     case "md":
     default:
       return {
-        tabHeight: 32,
+        tabHeight: 29, // 4*2 + 20 + 1
         paddingX: 12,
         fontSize: 14,
         lineHeight: 20,
