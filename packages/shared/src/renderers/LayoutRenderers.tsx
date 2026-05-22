@@ -113,11 +113,16 @@ export const renderTabs = (
     "name" in (dataBinding as object) &&
     !("type" in (dataBinding as object));
 
-  // ADR-066: items SSOT 기반 렌더. Tab element 없음.
-  const items =
-    (element.props.items as Array<{ id: string; title: string }>) ?? [];
-
-  // TabPanel element는 TabPanels 아래에 존재, itemId로 items와 페어링.
+  // ADR-066 폐기 — Tab element 부활. canonical tree 의 Tab/TabPanel 자식 element
+  // 우선 사용. children 없으면 items[] 자동 생성 fallback (dataBinding 호환).
+  const tabListElement = childrenByParent
+    .get(element.id)
+    ?.find((child) => child.type === "TabList");
+  const tabChildren = tabListElement
+    ? (childrenByParent
+        .get(tabListElement.id)
+        ?.filter((child) => child.type === "Tab") ?? [])
+    : [];
   const tabPanelsElement = childrenByParent
     .get(element.id)
     ?.find((child) => child.type === "TabPanels");
@@ -126,9 +131,24 @@ export const renderTabs = (
         .get(tabPanelsElement.id)
         ?.filter((child) => child.type === "TabPanel") ?? [])
     : [];
+
+  // children Tab element 가 있으면 nested children 우선 — ADR-066 폐기 핵심 경로.
+  const hasNestedTabChildren = tabChildren.length > 0;
+
+  // fallback: items[] 자동 생성 (dataBinding / legacy migration 호환).
+  const items =
+    (element.props.items as Array<{
+      id: string;
+      title?: string;
+      label?: string;
+    }>) ?? [];
   const findPanelForItem = (itemId: string) =>
     panelChildren.find(
       (p) => (p.props as { itemId?: string }).itemId === itemId,
+    );
+  const findPanelForTab = (tabId: string) =>
+    panelChildren.find(
+      (p) => (p.props as { itemId?: string }).itemId === tabId,
     );
 
   return (
@@ -169,31 +189,69 @@ export const renderTabs = (
         }
         size={(element.props.size as ComponentSize) || "md"}
         showIndicator={element.props.showIndicator !== false}
-        items={items}
+        {...(hasNestedTabChildren ? {} : { items })}
       >
-        {(item) => <Tab id={item.id}>{item.title}</Tab>}
+        {hasNestedTabChildren
+          ? tabChildren.map((tab) => {
+              const tabPropId = (tab.props as { id?: string }).id;
+              const tabChildren = (tab.props as { children?: unknown })
+                .children;
+              return (
+                <Tab
+                  key={tab.id}
+                  id={String(tabPropId ?? tab.id)}
+                  data-element-id={tab.id}
+                >
+                  {typeof tabChildren === "string"
+                    ? tabChildren
+                    : String(tabPropId ?? "Tab")}
+                </Tab>
+              );
+            })
+          : (item) => <Tab id={item.id}>{item.title ?? item.label ?? ""}</Tab>}
       </TabList>
 
-      {items.map((item) => {
-        const panel = findPanelForItem(item.id);
-        if (!panel) {
-          console.warn(`No TabPanel element found for item ${item.id}`);
-          return null;
-        }
-        return (
-          <TabPanel
-            key={panel.id}
-            id={item.id}
-            data-element-id={panel.id}
-            style={panel.props.style}
-            className={panel.props.className}
-          >
-            {(context.childrenByParent.get(panel.id) ?? []).map((child) =>
-              renderElement(child, child.id),
-            )}
-          </TabPanel>
-        );
-      })}
+      {hasNestedTabChildren
+        ? tabChildren.map((tab) => {
+            const tabPropId = String(
+              (tab.props as { id?: string }).id ?? tab.id,
+            );
+            const panel = findPanelForTab(tabPropId);
+            if (!panel) return null;
+            return (
+              <TabPanel
+                key={panel.id}
+                id={tabPropId}
+                data-element-id={panel.id}
+                style={panel.props.style}
+                className={panel.props.className}
+              >
+                {(context.childrenByParent.get(panel.id) ?? []).map((child) =>
+                  renderElement(child, child.id),
+                )}
+              </TabPanel>
+            );
+          })
+        : items.map((item) => {
+            const panel = findPanelForItem(item.id);
+            if (!panel) {
+              console.warn(`No TabPanel element found for item ${item.id}`);
+              return null;
+            }
+            return (
+              <TabPanel
+                key={panel.id}
+                id={item.id}
+                data-element-id={panel.id}
+                style={panel.props.style}
+                className={panel.props.className}
+              >
+                {(context.childrenByParent.get(panel.id) ?? []).map((child) =>
+                  renderElement(child, child.id),
+                )}
+              </TabPanel>
+            );
+          })}
     </Tabs>
   );
 };
