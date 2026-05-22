@@ -108,14 +108,6 @@ type RenderCommand =
 export interface RenderCommandStream {
   commands: RenderCommand[];
   boundsMap: Map<string, BoundingBox>;
-  /**
-   * canonical owner path per hit-test owner id (ADR-144 G4).
-   *
-   * ref instance descendant 의 경우 ownerPath = `${...ancestors}/${instanceId}/${originChildId}` 형태로
-   * encode 되어 instance.descendants[originChildId] write 라우팅에 쓰인다.
-   * 일반 root element 는 ownerPath = elementId.
-   */
-  ownerPathMap: Map<string, string>;
 }
 
 interface DeferredDragRootVisit {
@@ -134,25 +126,9 @@ interface VisitOptions {
 /** 최신 boundsMap 캐시 (씬 좌표 — TextEditOverlay 위치 계산용) */
 let _lastBoundsMap: Map<string, BoundingBox> = new Map();
 
-/** 최신 ownerPathMap 캐시 (ADR-144 G4 — selection/edit 라우팅용) */
-let _lastOwnerPathMap: Map<string, string> = new Map();
-
 /** 씬 좌표 기반 요소 bounds 조회 (카메라 변환 미포함) */
 export function getSceneBounds(elementId: string): BoundingBox | undefined {
   return _lastBoundsMap.get(elementId);
-}
-
-/**
- * canonical owner path 조회 (ADR-144 G4).
- *
- * hit-test 시 노출되는 elementId 가 ref instance 의 descendant origin child 인 경우,
- * 어떤 instance "in scope" 인지 ownerPath 로 추적한다. 형식:
- *   `${...ancestors}/${instanceId}/${originChildId}` — 마지막 segment 가 origin child.
- *
- * 일반 element 는 ownerPath = elementId 자체로 fallback.
- */
-export function getSceneOwnerPath(elementId: string): string | undefined {
-  return _lastOwnerPathMap.get(elementId);
 }
 
 // ── Bounds 구독 (TextEditOverlay 이벤트 기반 위치 추적) ──────────────
@@ -308,7 +284,6 @@ export function buildRenderCommandStream(
 ): RenderCommandStream {
   const commands: RenderCommand[] = [];
   const boundsMap = new Map<string, BoundingBox>();
-  const ownerPathMap = new Map<string, string>();
   const dragRootId = getDragVisualOffset()?.elementId ?? null;
   const deferredDragRoot = { current: null as DeferredDragRootVisit | null };
   const visitOptions: VisitOptions = {
@@ -327,7 +302,6 @@ export function buildRenderCommandStream(
       offsetY,
       commands,
       boundsMap,
-      ownerPathMap,
       childrenMap,
       layoutMap,
       offsetX,
@@ -345,7 +319,6 @@ export function buildRenderCommandStream(
       deferred.parentAbsY,
       commands,
       boundsMap,
-      ownerPathMap,
       childrenMap,
       layoutMap,
       0,
@@ -362,10 +335,9 @@ export function buildRenderCommandStream(
 
   // 최신 boundsMap 캐시 (TextEditOverlay 등 외부 접근용)
   _lastBoundsMap = boundsMap;
-  _lastOwnerPathMap = ownerPathMap;
   _notifyBoundsListeners(boundsMap);
 
-  return { commands, boundsMap, ownerPathMap };
+  return { commands, boundsMap };
 }
 
 /**
@@ -410,7 +382,6 @@ function visitElement(
   parentAbsY: number,
   commands: RenderCommand[],
   boundsMap: Map<string, BoundingBox>,
-  ownerPathMap: Map<string, string>,
   childrenMap: Map<string, CanvasSceneNode[]>,
   layoutMap: Map<string, ComputedLayout>,
   cmdOffsetX: number = 0,
@@ -453,10 +424,6 @@ function visitElement(
 
   // boundsMap에 절대 좌표 기록
   boundsMap.set(elementId, { x: absX, y: absY, width, height });
-  // ADR-144 G4: root element 의 ownerPath = elementId 자체 (canonical owner).
-  // resolved-tree internal hit-test owner 는 collectInternalHitTestOwnerBounds 에서
-  // skiaData.ownerPath (buildSpecNodeData 가 설정한 path) 로 별도 등록한다.
-  ownerPathMap.set(elementId, elementId);
 
   // position: sticky/fixed — 렌더 좌표 보정
   // layoutMap의 y/x는 정적 레이아웃 기준이므로 스크롤 후 post-layout 보정 필요
@@ -543,13 +510,6 @@ function visitElement(
     width,
     height,
   );
-  collectInternalHitTestOwnerBounds(
-    updatedInternalChildren,
-    absX,
-    absY,
-    boundsMap,
-    ownerPathMap,
-  );
   emitDrawCommands(skiaData, updatedInternalChildren, width, height, commands);
 
   // 외부 자식 (element children) → CHILDREN_BEGIN/END + 재귀
@@ -590,7 +550,6 @@ function visitElement(
         absY - scrollY,
         commands,
         boundsMap,
-        ownerPathMap,
         childrenMap,
         layoutMap,
         0,
@@ -691,22 +650,22 @@ function emitDrawCommands(
 
 /**
  * 내부 자식 (SkiaNodeData.children)을 재귀적으로 DRAW로 변환.
- * 기본적으로는 draw-only 렌더 노드이며, hitTestOwner 로 표시된 resolved
- * composite subpart 만 canonical owner id 를 command stream 에 남긴다.
+ * 이들은 element가 아닌 spec shapes 등의 렌더 노드.
  */
 function emitInternalChildDraw(
   node: SkiaNodeData,
   commands: RenderCommand[],
 ): void {
-  // 독립 좌표/transform/effect 처리를 위해 내부 자식도 ELEMENT_BEGIN/END로
-  // 감싼다. 일반 draw-only child 는 빈 id, canonical hit-test owner 만 실제 id.
+  // 내부 자식은 element가 아니므로 ELEMENT_BEGIN/END 없이
+  // 부모의 save/restore 컨텍스트 안에서 DRAW만 발행.
+  // 단, 이들이 독립적인 위치를 가질 수 있으므로 별도 ELEMENT_BEGIN/END로 감싸야 한다.
   commands.push({
     type: CMD_ELEMENT_BEGIN,
     x: node.x,
     y: node.y,
     width: node.width,
     height: node.height,
-    elementId: node.hitTestOwner && node.elementId ? node.elementId : "",
+    elementId: "", // 내부 자식은 elementId 없음
     visible: node.visible ?? true,
     transform: node.transform,
     clipPath: node.clipPath,
@@ -742,45 +701,6 @@ function emitInternalChildDraw(
     hasBlend: !!(node.blendMode && node.blendMode !== "normal"),
     effectLayerCount: effectCount,
   });
-}
-
-function collectInternalHitTestOwnerBounds(
-  nodes: SkiaNodeData[] | undefined,
-  parentAbsX: number,
-  parentAbsY: number,
-  boundsMap: Map<string, BoundingBox>,
-  ownerPathMap: Map<string, string>,
-): void {
-  if (!nodes) return;
-
-  for (const node of nodes) {
-    const absX = parentAbsX + node.x;
-    const absY = parentAbsY + node.y;
-
-    if (node.hitTestOwner && node.elementId) {
-      boundsMap.set(node.elementId, {
-        x: absX,
-        y: absY,
-        width: node.width,
-        height: node.height,
-      });
-      // ADR-144 G4: hit-test owner 가 ref instance 의 descendant origin child 인 경우,
-      // ownerPath 가 ancestor instance id 까지 포함한 path 로 set. selection/edit 라우팅이
-      // ownerPath 의 nearest instance segment 를 보고 instance.descendants[origin] write.
-      // ownerPath 미설정이면 elementId 자체로 fallback (단일 origin child case).
-      ownerPathMap.set(node.elementId, node.ownerPath ?? node.elementId);
-    }
-
-    const scrollX = node.scrollOffset?.scrollLeft ?? 0;
-    const scrollY = node.scrollOffset?.scrollTop ?? 0;
-    collectInternalHitTestOwnerBounds(
-      node.children,
-      absX - scrollX,
-      absY - scrollY,
-      boundsMap,
-      ownerPathMap,
-    );
-  }
 }
 
 // ── executeRenderCommands ─────────────────────────────────────────────

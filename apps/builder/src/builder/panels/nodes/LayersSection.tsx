@@ -9,10 +9,7 @@ import type { Key } from "react-stately";
 import { Button } from "react-aria-components";
 import { Minimize } from "lucide-react";
 import { useStore } from "../../stores";
-import {
-  useCanonicalPanelElements,
-  useReusableComponentsPanelElements,
-} from "./useCanonicalPanelElements";
+import { useCanonicalPanelElements } from "./useCanonicalPanelElements";
 import { PanelHeader } from "../../components";
 import { LayerTree } from "./tree/LayerTree";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -213,130 +210,40 @@ export const LayersSection = memo(function LayersSection({
   );
 
   return (
-    <>
-      <div className="section">
-        <PanelHeader
-          title="Pages"
-          actions={
-            <Button
-              className="iconButton"
-              aria-label="Collapse All"
-              onPress={handleCollapseAll}
-            >
-              <Minimize
-                color={iconProps.color}
-                strokeWidth={iconProps.strokeWidth}
-                size={iconProps.size}
-              />
-            </Button>
-          }
-        />
-        <div className="section-content">
-          {isTreeVisible ? (
-            <LayerTree
-              elements={currentPageElements}
-              selectedElementId={selectedElementId}
-              expandedKeys={expandedKeys}
-              onExpandedChange={handleExpandedChange}
-              onItemClick={handleItemClick}
-              onItemDelete={handleItemDelete}
-            />
-          ) : (
-            <div
-              className="layer-tree-placeholder"
-              aria-hidden="true"
-              style={{ minHeight: 32 }}
-            />
-          )}
-        </div>
-      </div>
-      <ComponentsSection />
-    </>
-  );
-});
-
-/**
- * ADR-144 Wave D — Components 섹션 (pencil/Figma 패턴).
- *
- * `CompositionDocument.reusableComponents` root collection 의 master + 그
- * sub-tree 를 표시. Pages 섹션과 분리되어 page tree 와 독립.
- */
-const ComponentsSection = memo(function ComponentsSection() {
-  const reusableElements = useReusableComponentsPanelElements();
-  const selectedElementId = useStore((state) => state.selectedElementId);
-  const setSelectedElement = useStore((state) => state.setSelectedElement);
-  const removeElement = useStore((state) => state.removeElement);
-
-  const reusableElementsMap = useMemo(() => {
-    const map = new Map<string, PanelNode>();
-    for (const el of reusableElements) {
-      map.set(el.id, el);
-    }
-    return map;
-  }, [reusableElements]);
-
-  const handleItemClick = useCallback(
-    (element: PanelNode) => {
-      const state = useStore.getState();
-      const newContextId = resolveLayerTreeEditingContext(
-        element,
-        reusableElementsMap,
-      );
-      if (newContextId !== state.editingContextId) {
-        state.setEditingContext(newContextId);
-      }
-      setSelectedElement(element.id);
-    },
-    [reusableElementsMap, setSelectedElement],
-  );
-
-  const handleItemDelete = useCallback(
-    async (element: { id: string }) => {
-      await removeElement(element.id);
-    },
-    [removeElement],
-  );
-
-  // 선택된 master/master 자식의 부모 체인 자동 expand
-  const autoExpandedParents = useMemo(() => {
-    if (!selectedElementId) return new Set<Key>();
-    const selectedElement = reusableElementsMap.get(selectedElementId);
-    if (!selectedElement) return new Set<Key>();
-
-    const parents = new Set<Key>();
-    const visited = new Set<string>();
-    let currentParentId = selectedElement.parent_id;
-    while (currentParentId && !visited.has(currentParentId)) {
-      visited.add(currentParentId);
-      parents.add(currentParentId);
-      const parentElement = reusableElementsMap.get(currentParentId);
-      currentParentId = parentElement?.parent_id ?? null;
-    }
-    return parents;
-  }, [selectedElementId, reusableElementsMap]);
-
-  const [userExpandedKeys, setUserExpandedKeys] = useState<Set<Key>>(new Set());
-
-  const expandedKeys = useMemo(() => {
-    const merged = new Set(userExpandedKeys);
-    autoExpandedParents.forEach((key) => merged.add(key));
-    return merged;
-  }, [userExpandedKeys, autoExpandedParents]);
-
-  if (reusableElements.length === 0) return null;
-
-  return (
     <div className="section">
-      <PanelHeader title="Components" />
+      <PanelHeader
+        title="Layers"
+        actions={
+          <Button
+            className="iconButton"
+            aria-label="Collapse All"
+            onPress={handleCollapseAll}
+          >
+            <Minimize
+              color={iconProps.color}
+              strokeWidth={iconProps.strokeWidth}
+              size={iconProps.size}
+            />
+          </Button>
+        }
+      />
       <div className="section-content">
-        <LayerTree
-          elements={reusableElements}
-          selectedElementId={selectedElementId}
-          expandedKeys={expandedKeys}
-          onExpandedChange={setUserExpandedKeys}
-          onItemClick={handleItemClick}
-          onItemDelete={handleItemDelete}
-        />
+        {isTreeVisible ? (
+          <LayerTree
+            elements={currentPageElements}
+            selectedElementId={selectedElementId}
+            expandedKeys={expandedKeys}
+            onExpandedChange={handleExpandedChange}
+            onItemClick={handleItemClick}
+            onItemDelete={handleItemDelete}
+          />
+        ) : (
+          <div
+            className="layer-tree-placeholder"
+            aria-hidden="true"
+            style={{ minHeight: 32 }}
+          />
+        )}
       </div>
     </div>
   );

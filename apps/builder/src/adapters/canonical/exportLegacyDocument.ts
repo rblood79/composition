@@ -58,14 +58,6 @@ export function exportLegacyDocument(doc: CompositionDocument): Element[] {
     walkAndCollect(root, elements, null, rootContext);
   });
 
-  // ADR-144 Wave D — reusableComponents root collection 도 export 대상.
-  // pencil format 의 design system masters 는 page tree 와 동일한 legacy
-  // element[] payload 로 복원되어야 Inspector / Properties / Layers 가
-  // 일관 표시.
-  (doc.reusableComponents ?? []).forEach((root) => {
-    walkAndCollect(root, elements, null, rootContext);
-  });
-
   return elements;
 }
 

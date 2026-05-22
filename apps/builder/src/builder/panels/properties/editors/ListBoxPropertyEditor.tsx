@@ -3,33 +3,20 @@ import type { ComponentSpec } from "@composition/specs";
 import { GenericPropertyEditor } from "../generic";
 import { getPropertyEditorSpec } from "../specRegistry";
 import type { ComponentEditorProps } from "../../../inspector/types";
-import {
-  useCanonicalPropertyChildrenMap,
-  useCanonicalPropertyElement,
-} from "../hooks/useCanonicalPropertyRead";
-import {
-  detectInspectorInputMode,
-  type InspectorInputMode,
-} from "../inspectorInputMode";
-import ResolvedTreeSlotEditor from "./ResolvedTreeSlotEditor";
-import type { Element } from "../../../../types/core/store.types";
+import { useCanonicalPropertyChildrenMap } from "../hooks/useCanonicalPropertyRead";
 
 /**
- * ADR-076 P6 + ADR-144 Wave C — ListBox 의 3 input mode 분기 진입점.
+ * ADR-076 P6 — ListBox 듀얼 모드 프로퍼티 에디터.
  *
  * `registry.ts.getCustomPreEditor("ListBox")` pre-generic hook 이 진입점으로 선택.
+ * 내부에서 현재 ListBox 의 자식 중 Field element 가 있는 ListBoxItem 이 존재하는지
+ * 감지하여 편집 UI 를 분기한다:
  *
- * 3 input mode (Wave C 도입 — `detectInspectorInputMode` 단일 진입점):
- *   - "external-databinding" (mode 1): GenericPropertyEditor 전체 (ItemsManager 가
- *     자체적으로 dataBinding picker UI 로 표시)
- *   - "resolved-tree"        (mode 2): ResolvedTreeSlotEditor + GenericPropertyEditor
- *     filtered (ItemsManager 섹션 제외) — composite resolved-tree authoring path
- *   - "legacy-items"         (mode 3): 기존 ADR-076 hasTemplateMode 분기 보존 —
- *     Field 자식 보유 시 ItemsManager 섹션 필터, 미보유 시 전체 spec 주입
- *
- * 한 instance 에 두 mode 가 동시 표시되지 않도록 상호 배타 (ADR-144 task 7
- * acceptance). ListBox 의 hasTemplateMode 휴리스틱은 mode === "legacy-items"
- * 분기 안에서만 평가된다.
+ *   - 템플릿 모드 (Field 자식 보유): ListBoxSpec "Item Management" 섹션 filter 한
+ *     사본을 GenericPropertyEditor 에 주입. 실제 컬럼 관리는 ListBoxItemEditor 가
+ *     Field 자식 편집 UI 로 담당.
+ *   - 정적 모드 (Field 자식 없음): GenericPropertyEditor 에 ListBoxSpec 전체 주입 →
+ *     ItemsManager 섹션으로 items[] 편집.
  *
  * ADR-076 Hard Constraint #3 — 부모 단위 원자성: 마이그레이션 + Factory 가 혼합 부모
  * 생성을 원천 봉쇄하므로, 본 컴포넌트는 "어느 한쪽이 참"인 상태만 처리한다.
@@ -45,20 +32,10 @@ const ListBoxPropertyEditor = memo(function ListBoxPropertyEditor(
   props: ComponentEditorProps,
 ) {
   const { elementId } = props;
-  const element = useCanonicalPropertyElement(elementId);
   const childrenByParent = useCanonicalPropertyChildrenMap();
 
-  const mode: InspectorInputMode = useMemo(() => {
-    if (!element) return "legacy-items";
-    return detectInspectorInputMode(element as unknown as Element, {
-      ownerPath: null,
-      lookupElement: () => undefined,
-    });
-  }, [element]);
-
-  // mode 3 (legacy-items) 안에서만 평가되는 ADR-076 휴리스틱.
+  // 자식 ListBoxItem 중 하나라도 Field 자식 보유 → 템플릿 모드
   const hasTemplateMode = useMemo(() => {
-    if (mode !== "legacy-items") return false;
     const children = childrenByParent.get(elementId) ?? [];
     const listBoxItems = children.filter((c) => c.type === "ListBoxItem");
     if (listBoxItems.length === 0) return false;
@@ -67,30 +44,14 @@ const ListBoxPropertyEditor = memo(function ListBoxPropertyEditor(
       if (subs.some((s) => s.type === "Field")) return true;
     }
     return false;
-  }, [childrenByParent, elementId, mode]);
+  }, [childrenByParent, elementId]);
 
   const spec = getPropertyEditorSpec("ListBox");
   if (!spec) return null;
 
-  if (mode === "resolved-tree") {
-    const filteredSpec = filterOutItemManagementSection(spec);
-    return (
-      <>
-        <ResolvedTreeSlotEditor elementId={elementId} />
-        {createElement(GenericPropertyEditor, {
-          ...props,
-          spec: filteredSpec,
-        })}
-      </>
-    );
-  }
-
-  // mode === "external-databinding" (mode 1) — ItemsManager 가 dataBinding picker 로 표시
-  // mode === "legacy-items"         (mode 3) — hasTemplateMode 분기로 ItemsManager 섹션 제어
-  const renderSpec =
-    mode === "legacy-items" && hasTemplateMode
-      ? filterOutItemManagementSection(spec)
-      : spec;
+  const renderSpec = hasTemplateMode
+    ? filterOutItemManagementSection(spec)
+    : spec;
 
   return createElement(GenericPropertyEditor, {
     ...props,

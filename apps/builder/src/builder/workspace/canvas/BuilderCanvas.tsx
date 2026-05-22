@@ -343,18 +343,6 @@ export function BuilderCanvas({
   // ADR-074 Phase 2: structure(selection-invariant) / selection 분리.
   // selection-only 변화 시 structure useMemo identity 유지 → 하위 useMemo
   // (skiaRendererInput / layoutPublisherInputs) 의 deps 변동 차단.
-  // ADR-144 Wave D Phase 1 — reusableComponentRoots 를 canvas 에 page
-  // 처럼 spatial 표시. canonicalDocument.reusableComponents root id +
-  // title 을 sceneSnapshot 으로 전달.
-  const reusableComponentRoots = useMemo(() => {
-    const roots = activeCanonicalDocument?.reusableComponents ?? [];
-    if (roots.length === 0) return undefined;
-    return roots.map((root) => ({
-      id: root.id,
-      title: root.name ?? root.type ?? "Component",
-    }));
-  }, [activeCanonicalDocument]);
-
   const sceneStructureSnapshot = useMemo(() => {
     const scenePages = isFrameEditMode ? [] : pages;
     return buildSceneStructureSnapshot({
@@ -370,9 +358,6 @@ export function BuilderCanvas({
       pageWidth,
       pages: scenePages,
       panOffset,
-      reusableComponentRoots: isFrameEditMode
-        ? undefined
-        : reusableComponentRoots,
       source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
       zoom,
     });
@@ -389,7 +374,6 @@ export function BuilderCanvas({
     pageWidth,
     pages,
     panOffset,
-    reusableComponentRoots,
     sceneNodes,
     sceneNodesMap,
     zoom,
@@ -400,57 +384,6 @@ export function BuilderCanvas({
   // 이므로 selection state 생성 자체가 불필요. 하위 consumer 는 이제
   // sceneStructureSnapshot 을 직접 소비.
   const sceneSnapshot = sceneStructureSnapshot;
-
-  // ADR-144 Wave D Phase 1 — TEMP debug (commit `1b8264ecf` fix 검증용).
-  // master frame 이 sceneSnapshot 안 통합 + visiblePageFrames 안 포함 + 좌표
-  // 정상인지 확인 후 본 dev hook 은 제거.
-  useEffect(() => {
-    console.log(
-      "[WaveD-debug] reusableComponentRoots input:",
-      JSON.stringify(reusableComponentRoots ?? []),
-    );
-    console.log(
-      "[WaveD-debug] all frames:",
-      JSON.stringify(
-        sceneStructureSnapshot.document.allPageFrames.map((f) => ({
-          id: f.id.slice(0, 8),
-          x: f.x,
-          y: f.y,
-          w: f.width,
-          h: f.height,
-          title: f.title,
-        })),
-      ),
-    );
-    console.log(
-      "[WaveD-debug] visible frames:",
-      JSON.stringify(
-        sceneStructureSnapshot.document.visiblePageFrames.map((f) => ({
-          id: f.id.slice(0, 8),
-          x: f.x,
-          y: f.y,
-        })),
-      ),
-    );
-    console.log(
-      "[WaveD-debug] visible ids count:",
-      sceneStructureSnapshot.document.visiblePageIds.size,
-    );
-    console.log(
-      "[WaveD-debug] containerSize:",
-      JSON.stringify(containerSize),
-      "panOffset:",
-      JSON.stringify(panOffset),
-      "zoom:",
-      zoom,
-    );
-  }, [
-    reusableComponentRoots,
-    sceneStructureSnapshot,
-    containerSize,
-    panOffset,
-    zoom,
-  ]);
 
   const visiblePageIds = sceneStructureSnapshot.document.visiblePageIds;
   const visiblePages = useMemo(() => {

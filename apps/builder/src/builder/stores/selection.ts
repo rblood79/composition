@@ -23,21 +23,6 @@ export interface SelectionState {
   /** 호버 중인 요소 ID (레이어 트리 동기화용) */
   hoveredElementId: string | null;
 
-  /**
-   * ADR-144 G4 — primary selection 의 canonical owner path.
-   *
-   * Skia hit-test 가 resolved-tree 의 ref instance descendant origin child 를 hit 한 경우,
-   * `${...ancestors}/${instanceId}/${originChildId}` 형태로 ancestor instance chain 을 기록한다.
-   * Inspector text/style edit 이 이 path 를 보고 `instance.descendants[originChildId]` patch
-   * vs origin child 직접 mutate 를 분기한다.
-   *
-   * - single-select + canonical owner path 발견 시: path 문자열
-   * - single-select + ownerPath 미발견 시 (legacy synthetic 등): null
-   * - multi-select 시: null (정확한 instance scope 단일 추정 불가)
-   * - selection clear / editingContext 전환 시: null
-   */
-  primaryOwnerPath: string | null;
-
   // 액션들
   setMultiSelectMode: (enabled: boolean) => void;
   addToSelection: (elementId: string) => void;
@@ -57,9 +42,6 @@ export interface SelectionState {
   enterEditingContext: (elementId: string) => void;
   exitEditingContext: () => void;
   setHoveredElementId: (elementId: string | null) => void;
-
-  /** primary selection 의 canonical owner path 설정 (ADR-144 G4). */
-  setPrimaryOwnerPath: (ownerPath: string | null) => void;
 }
 
 interface SelectionElement {
@@ -114,8 +96,6 @@ export const createSelectionSlice: StateCreator<
   selectionBounds: null,
   editingContextId: null,
   hoveredElementId: null,
-  // ADR-144 G4 — primary selection 의 canonical owner path
-  primaryOwnerPath: null,
 
   // 🚀 Phase 1: Immer → 함수형 업데이트
   setMultiSelectMode: (enabled) => {
@@ -128,8 +108,6 @@ export const createSelectionSlice: StateCreator<
       // 단일 선택 모드로 전환 시 선택된 요소가 1개만 남도록
       selectedElementIds: newIds,
       selectedElementIdsSet: new Set(newIds),
-      // ADR-144 G4: 다중 → 단일 전환 시에도 ownerPath 는 hit-test 시점에 재설정 필요
-      primaryOwnerPath: enabled ? null : get().primaryOwnerPath,
     });
   },
 
@@ -173,8 +151,6 @@ export const createSelectionSlice: StateCreator<
       selectedElementIds: [],
       selectedElementIdsSet: new Set<string>(),
       selectionBounds: null,
-      // ADR-144 G4: selection clear 시 primary owner path 도 reset
-      primaryOwnerPath: null,
     }),
 
   // 🚀 Phase 1: Immer → 함수형 업데이트
@@ -206,8 +182,6 @@ export const createSelectionSlice: StateCreator<
       selectedElementIds: [],
       selectedElementIdsSet: new Set<string>(),
       selectionBounds: null,
-      // ADR-144 G4: editingContext 전환 시 primary owner path reset
-      primaryOwnerPath: null,
     });
   },
 
@@ -222,8 +196,6 @@ export const createSelectionSlice: StateCreator<
       selectedElementIds: [],
       selectedElementIdsSet: new Set<string>(),
       selectionBounds: null,
-      // ADR-144 G4: editing context 진입 시 primary owner path reset
-      primaryOwnerPath: null,
     });
   },
 
@@ -256,13 +228,8 @@ export const createSelectionSlice: StateCreator<
       selectedElementIds: [editingContextId],
       selectedElementIdsSet: new Set([editingContextId]),
       selectionBounds: null,
-      // ADR-144 G4: editing context 탈출 시 primary owner path reset
-      // (선택은 컨테이너 자체로 옮겨가므로 새 ownerPath 가 필요하면 hit-test 시점에 재설정)
-      primaryOwnerPath: null,
     });
   },
 
   setHoveredElementId: (elementId) => set({ hoveredElementId: elementId }),
-
-  setPrimaryOwnerPath: (ownerPath) => set({ primaryOwnerPath: ownerPath }),
 });

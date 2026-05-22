@@ -1,81 +1,31 @@
-import { createElement, memo, useMemo } from "react";
-import type { ComponentSpec } from "@composition/specs";
+import { createElement, memo } from "react";
 import { GenericPropertyEditor } from "../generic";
 import { getPropertyEditorSpec } from "../specRegistry";
 import type { ComponentEditorProps } from "../../../inspector/types";
-import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
-import {
-  detectInspectorInputMode,
-  type InspectorInputMode,
-} from "../inspectorInputMode";
-import ResolvedTreeSlotEditor from "./ResolvedTreeSlotEditor";
-import type { Element } from "../../../../types/core/store.types";
 
 /**
- * ADR-099 Phase 4 + ADR-144 Wave C — Menu 의 3 input mode 분기 진입점.
+ * ADR-099 Phase 4 — Menu items-manager 프로퍼티 에디터.
  *
- * `registry.ts.getCustomPreEditor("Menu")` pre-generic hook 이 선택.
+ * `registry.ts.getCustomPreEditor("Menu")` pre-generic hook 이 진입점으로 선택.
  *
  * MenuSpec 에는 `items-manager` 타입 필드가 있으며,
  * `allowSections: true`, `allowSeparators: true`, `sectionHasSelection: true`
  * 플래그가 설정되어 있어 ItemsManager 가 Section/Separator 추가 UI 를 포함한다.
  *
- * 3 input mode (Wave C 도입):
- *   - "external-databinding" (mode 1): GenericPropertyEditor 전체
- *   - "resolved-tree"        (mode 2): ResolvedTreeSlotEditor + GenericPropertyEditor
- *     filtered (ItemsManager 섹션 제외)
- *   - "legacy-items"         (mode 3): GenericPropertyEditor 전체 (ItemsManager 가
- *     Section/Separator 포함 items[] 편집 UI 로 표시) — fallback
+ * ADR-076 TagGroupPropertyEditor / ListBoxPropertyEditor 와 같은 패턴:
+ *   - spec-first 경로가 `metadata.editorName` 을 bypass 하므로 명시 진입점 필수
+ *   - MenuSpec 전체를 GenericPropertyEditor 에 주입 (섹션 필터링 없음)
  */
 const MenuPropertyEditor = memo(function MenuPropertyEditor(
   props: ComponentEditorProps,
 ) {
-  const { elementId } = props;
-  const element = useCanonicalPropertyElement(elementId);
-
-  const mode: InspectorInputMode = useMemo(() => {
-    if (!element) return "legacy-items";
-    return detectInspectorInputMode(element as unknown as Element, {
-      ownerPath: null,
-      lookupElement: () => undefined,
-    });
-  }, [element]);
-
   const spec = getPropertyEditorSpec("Menu");
   if (!spec) return null;
 
-  if (mode === "resolved-tree") {
-    const filteredSpec = filterOutItemManagementSection(spec);
-    return (
-      <>
-        <ResolvedTreeSlotEditor elementId={elementId} />
-        {createElement(GenericPropertyEditor, {
-          ...props,
-          spec: filteredSpec,
-        })}
-      </>
-    );
-  }
-
-  // mode === "external-databinding" (mode 1) or "legacy-items" (mode 3)
   return createElement(GenericPropertyEditor, {
     ...props,
     spec,
   });
 });
-
-function filterOutItemManagementSection(
-  spec: ComponentSpec<Record<string, unknown>>,
-): ComponentSpec<Record<string, unknown>> {
-  const sections = spec.properties?.sections ?? [];
-  const filtered = sections.filter((s) => s.title !== "Item Management");
-  return {
-    ...spec,
-    properties: {
-      ...(spec.properties ?? {}),
-      sections: filtered,
-    },
-  } as ComponentSpec<Record<string, unknown>>;
-}
 
 export default MenuPropertyEditor;
