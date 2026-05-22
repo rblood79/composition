@@ -281,6 +281,13 @@ export function visitCanonicalDocumentElements(
   doc.children.forEach((child) => {
     visit(child, null, ROOT_SCOPE);
   });
+
+  // ADR-144 Wave D — reusableComponents root collection 도 elementsMap
+  // derive 대상. masters / master sub-tree 가 Inspector / Properties /
+  // Layers / Skia visit 모두에 노출되어야 ref instance lookup 가능.
+  (doc.reusableComponents ?? []).forEach((child) => {
+    visit(child, null, ROOT_SCOPE);
+  });
 }
 
 function getNodeScope(

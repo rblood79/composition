@@ -264,6 +264,21 @@ function findNodeById(
   return null;
 }
 
+/**
+ * ADR-144 Wave D — doc-level master lookup. ref instance 의 master 가
+ * `doc.children` (legacy reusable origin) 또는 `doc.reusableComponents`
+ * (Wave D 신규 root collection) 어느 쪽에 있어도 찾음.
+ */
+function findNodeInDocument(
+  document: CompositionDocument,
+  id: string,
+): CanonicalNode | null {
+  return (
+    findNodeById(document.children, id) ??
+    findNodeById(document.reusableComponents ?? [], id)
+  );
+}
+
 function resolveRenderableNode(
   document: CompositionDocument,
   node: CanonicalNode,
@@ -271,7 +286,7 @@ function resolveRenderableNode(
   const ref = (node as CanonicalNodeWithRef).ref;
   if (!ref) return node;
 
-  const master = findNodeById(document.children, ref);
+  const master = findNodeInDocument(document, ref);
   if (!master) return node;
 
   return {
@@ -290,7 +305,7 @@ function resolvePageRenderableChildren(
   if (pageNode.type === "ref") {
     const ref = (pageNode as CanonicalNodeWithRef)[CANONICAL_REF_FIELD];
     if (typeof ref === "string" && ref.length > 0) {
-      const target = findNodeById(document.children, ref);
+      const target = findNodeInDocument(document, ref);
       if (target?.children) return target.children;
     }
   }
@@ -628,7 +643,7 @@ function collectPageFrameProjectionRuntimeElements(
   const ref = (pageNode as CanonicalNodeWithRef)[CANONICAL_REF_FIELD];
   if (typeof ref !== "string" || ref.length === 0) return;
 
-  const target = findNodeById(document.children, ref);
+  const target = findNodeInDocument(document, ref);
   if (!target?.children) return;
 
   collectRuntimeElements(

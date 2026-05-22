@@ -799,13 +799,22 @@ Layer B — Runtime routing:
 
 Layer C — Canvas (multi-frame infinite canvas 인프라 재사용):
 
-9. `apps/builder/src/builder/workspace/canvas/skia/visiblePageRoots.ts` —
+> **Wave D scope 분리 결정 (2026-05-22 사용자 confirm)**:
+> Canvas spatial master visible 은 ADR-100 Unified Skia Engine 의
+> sceneSnapshot / pageSnapshots / pagePositions 인프라 확장이 동반됨
+> (visible master id 등록 / master snapshot 등록 / 좌표 자동 할당).
+> ADR-100 core 영역 cross-cutting 으로, Wave D 안에서 진행 시 scope
+> 2x+ inflation. **별도 후속 phase 로 분리**. Wave D 의 master 접근은
+> Layers panel (Components 섹션) + Properties SlotSection 으로 충분.
+> 본 task 9-11 는 후속 별도 작업 영역으로 보존.
+
+9. (deferred) `apps/builder/src/builder/workspace/canvas/skia/visiblePageRoots.ts` —
    master frame 도 visible root 등록 (page frame 메커니즘 재사용).
-10. `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayBuilder.ts` —
+10. (deferred) `apps/builder/src/builder/workspace/canvas/skia/skiaOverlayBuilder.ts` —
     master frame label 표시 (pencil-style frame label, type tag "Component"
     구분).
-11. master 좌표 자동 할당 — 신규 master 생성 시 page 들 옆 공간 배치 (현
-    page 등록 좌표 할당 로직 재사용, infinite canvas 자연 흡수).
+11. (deferred) master 좌표 자동 할당 — 신규 master 생성 시 page 들 옆 공간
+    배치 (현 page 등록 좌표 할당 로직 재사용, infinite canvas 자연 흡수).
 
 Layer D — Panel UI:
 
