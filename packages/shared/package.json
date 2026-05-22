@@ -33,10 +33,6 @@
       "types": "./src/components/metadata.ts",
       "default": "./src/components/metadata.ts"
     },
-    "./catalog": {
-      "types": "./src/catalog/index.ts",
-      "default": "./src/catalog/index.ts"
-    },
     "./components/styles/*": {
       "default": "./src/components/styles/*"
     },

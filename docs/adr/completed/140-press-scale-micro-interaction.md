@@ -6,11 +6,6 @@ Implemented — 2026-05-17
 
 Proposed → Implemented (2026-05-17): Codex 리뷰(GO-WITH-FIXES) 4건 반영 + 설계 결정 DD1/DD2/DD3 확정 후 Phase 1~5 구현·검증 완료. `pnpm type-check` baseline 547 무증가, `@composition/specs` 326/326 PASS, CSSGenerator snapshot 20개 갱신. 구현 상세·검증 결과는 [breakdown §2·§4](../design/140-press-scale-micro-interaction-breakdown.md) 참조.
 
-**ADR-142 impact — 2026-05-21**: 본 ADR 의 press-scale decision 은 historical
-style decision 으로 보존한다. active catalog component path 에서는 press/interaction
-state 를 `PrimitiveBinding` / RAC data attributes / theme token rules 로 투영하며,
-`Spec.states` + CSSGenerator 경로는 legacy compatibility boundary 로만 남긴다.
-
 ## Context
 
 composition의 D3(시각 스타일) Spec은 Adobe 공식 React Aria starter(`/Users/admin/work/react-aria-starter`, Storybook `localhost:6006`)의 디자인을 참조 원천으로 삼아 ADR-022(S2 하이브리드 토큰)·ADR-036(Spec-First)으로 의도적으로 분기·발전시켜 왔다. 2026-05-17 사용자 지시로 starter 대비 composition이 받아들여야 할 스타일 업데이트를 전수 점검(체크/설계 문서: `docs/reference/audits/2026-05-17-rac-starter-style-update-*.md`)한 결과, **starter에 있고 composition이 일관되게 결여한 유일한 디자인 언어**는 **press-scale micro-interaction** — `[data-pressed]` 시 요소를 `scale: 0.9~0.98`로 축소하는 촉각 눌림 피드백 — 으로 확인됐다.

@@ -69,15 +69,9 @@ export interface Element {
   props: Record<string, unknown>;
   parent_id?: string | null;
   page_id?: string | null; // Layout element면 null (layout_id와 상호 배타적)
-  layout_id?: string | null;
   created_at?: string;
   updated_at?: string;
   deleted?: boolean; // 삭제 여부 (UI 필터링용) ⭐
-  /**
-   * @deprecated Runtime ordering is canonical `children[]`; retained only for
-   * legacy import/export and old test fixtures.
-   */
-  order_num?: number;
   /**
    * @deprecated ADR-116 G7 Extension Boundary cleanup target.
    * canonical `x-composition.dataBinding` (`CompositionExtension.dataBinding`)
@@ -100,21 +94,6 @@ export interface Element {
    * recommended reusable component IDs for this slot.
    */
   slot?: false | string[];
-  /**
-   * Canonical mirror fields preserved on transitional Element views.
-   * The canonical document remains the SSOT; these fields exist so legacy
-   * Builder helpers can consume `visitCanonicalDocumentElements()` output
-   * without dropping reusable/ref/metadata semantics.
-   */
-  name?: string;
-  reusable?: boolean;
-  ref?: string;
-  descendants?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-  overrides?: Record<string, unknown>;
-  componentRole?: "master" | "instance";
-  masterId?: string;
-  slot_name?: string | null;
 
   // --- G.1: Component-Instance System ---
   /**
@@ -473,8 +452,6 @@ export interface TreeItemElementProps extends BaseElementProps {
 export interface CalendarElementProps extends BaseElementProps {
   value?: unknown;
   defaultValue?: unknown;
-  variant?: "default" | "accent";
-  size?: "sm" | "md" | "lg";
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isInvalid?: boolean;
@@ -484,7 +461,6 @@ export interface CalendarElementProps extends BaseElementProps {
   defaultToday?: boolean;
 
   pageBehavior?: "single" | "visible";
-  maxVisibleMonths?: number;
   errorMessage?: string;
   onChange?: (value: unknown) => void;
 }
@@ -494,13 +470,7 @@ export interface DatePickerElementProps extends BaseElementProps {
   description?: string;
   errorMessage?: string;
   value?: Date;
-  defaultValue?: Date | string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
-  labelPosition?: "top" | "side";
-  showCalendarIcon?: boolean;
-  calendarIconPosition?: "left" | "right";
-  includeTime?: boolean;
-  timeFormat?: "12h" | "24h";
+  defaultValue?: Date;
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isRequired?: boolean;
@@ -520,7 +490,6 @@ export interface DatePickerElementProps extends BaseElementProps {
   timezone?: string;
 
   pageBehavior?: "single" | "visible";
-  maxVisibleMonths?: number;
   shouldCloseOnSelect?: boolean;
   shouldForceLeadingZeros?: boolean;
   validationBehavior?: "native" | "aria";
@@ -533,15 +502,6 @@ export interface DateRangePickerElementProps extends BaseElementProps {
   errorMessage?: string;
   value?: { start: Date; end: Date };
   defaultValue?: { start: Date; end: Date };
-  defaultStartValue?: string;
-  defaultEndValue?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
-  labelPosition?: "top" | "side";
-  granularity?: "day" | "hour" | "minute" | "second";
-  showCalendarIcon?: boolean;
-  calendarIconPosition?: "left" | "right";
-  includeTime?: boolean;
-  timeFormat?: "12h" | "24h";
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isRequired?: boolean;
@@ -554,7 +514,6 @@ export interface DateRangePickerElementProps extends BaseElementProps {
 
   highlightToday?: boolean;
   showWeekNumbers?: boolean;
-  maxVisibleMonths?: number;
   timezone?: string;
   onChange?: (value: { start: Date; end: Date }) => void;
 }
@@ -1100,11 +1059,6 @@ export interface GroupElementProps extends BaseElementProps {
 
 // === RangeCalendar Element Props ===
 export interface RangeCalendarElementProps extends BaseElementProps {
-  variant?: "default" | "accent";
-  size?: "sm" | "md" | "lg";
-  maxVisibleMonths?: number;
-  defaultStartValue?: string;
-  defaultEndValue?: string;
   isDisabled?: boolean;
   isReadOnly?: boolean;
   isInvalid?: boolean;
@@ -1148,60 +1102,6 @@ export interface ColorPickerElementProps extends BaseElementProps {
 export interface ColorSwatchElementProps extends BaseElementProps {
   value?: string;
   colorSpace?: "rgb" | "hsl" | "hsb";
-}
-
-export interface ColorAreaElementProps extends BaseElementProps {
-  color?: string;
-  xValue?: number;
-  yValue?: number;
-  xChannel?:
-    | "hue"
-    | "saturation"
-    | "brightness"
-    | "lightness"
-    | "red"
-    | "green"
-    | "blue"
-    | "alpha";
-  yChannel?:
-    | "hue"
-    | "saturation"
-    | "brightness"
-    | "lightness"
-    | "red"
-    | "green"
-    | "blue"
-    | "alpha";
-  colorSpace?: "rgb" | "hsl" | "hsb";
-  size?: "sm" | "md" | "lg";
-  isDisabled?: boolean;
-}
-
-export interface ColorSliderElementProps extends BaseElementProps {
-  color?: string;
-  value?: number;
-  channel?:
-    | "hue"
-    | "saturation"
-    | "brightness"
-    | "lightness"
-    | "red"
-    | "green"
-    | "blue"
-    | "alpha";
-  colorSpace?: "rgb" | "hsl" | "hsb";
-  orientation?: "horizontal" | "vertical";
-  size?: "sm" | "md" | "lg";
-  isDisabled?: boolean;
-}
-
-export interface ColorWheelElementProps extends BaseElementProps {
-  color?: string;
-  hue?: number;
-  outerRadius?: number;
-  innerRadius?: number;
-  size?: "sm" | "md" | "lg";
-  isDisabled?: boolean;
 }
 
 // === 통합된 ComponentElementProps ===
@@ -1272,10 +1172,7 @@ export type ComponentElementProps =
   | RangeCalendarElementProps
   | ColorFieldElementProps
   | ColorPickerElementProps
-  | ColorSwatchElementProps
-  | ColorAreaElementProps
-  | ColorSliderElementProps
-  | ColorWheelElementProps;
+  | ColorSwatchElementProps;
 
 // === 스토어 상태 타입 ===
 export interface ElementsState {
@@ -1572,13 +1469,8 @@ export function createDefaultTreeItemProps(): TreeItemElementProps {
 
 export function createDefaultCalendarProps(): CalendarElementProps {
   return {
-    variant: "default",
-    size: "md",
-    maxVisibleMonths: 1,
-    defaultToday: true,
     isDisabled: false,
     isReadOnly: false,
-    isInvalid: false,
   };
 }
 
@@ -1592,17 +1484,6 @@ export function createDefaultCalendarGridProps(): BaseElementProps {
 
 export function createDefaultDatePickerProps(): DatePickerElementProps {
   return {
-    label: "Date",
-    defaultValue: "2026-05-21",
-    size: "md",
-    labelPosition: "top",
-    granularity: "day",
-    showCalendarIcon: true,
-    calendarIconPosition: "right",
-    maxVisibleMonths: 1,
-    includeTime: false,
-    timeFormat: "24h",
-    defaultToday: false,
     name: "",
     isDisabled: false,
     isReadOnly: false,
@@ -1612,18 +1493,6 @@ export function createDefaultDatePickerProps(): DatePickerElementProps {
 
 export function createDefaultDateRangePickerProps(): DateRangePickerElementProps {
   return {
-    label: "Date range",
-    defaultStartValue: "2026-05-21",
-    defaultEndValue: "2026-05-27",
-    size: "md",
-    labelPosition: "top",
-    granularity: "day",
-    showCalendarIcon: true,
-    calendarIconPosition: "right",
-    maxVisibleMonths: 1,
-    includeTime: false,
-    timeFormat: "24h",
-    defaultToday: false,
     isDisabled: false,
     isReadOnly: false,
     isInvalid: false,
@@ -2090,54 +1959,6 @@ export function createDefaultColorSwatchProps(): ColorSwatchElementProps {
   };
 }
 
-export function createDefaultColorAreaProps(): ColorAreaElementProps {
-  return {
-    color: "#ff0000",
-    xValue: 0.75,
-    yValue: 0.25,
-    xChannel: "saturation",
-    yChannel: "brightness",
-    colorSpace: "hsb",
-    size: "md",
-    isDisabled: false,
-    style: {
-      width: "200px",
-      height: "200px",
-    },
-  };
-}
-
-export function createDefaultColorSliderProps(): ColorSliderElementProps {
-  return {
-    color: "#ff0000",
-    value: 0.5,
-    channel: "hue",
-    colorSpace: "hsb",
-    orientation: "horizontal",
-    size: "md",
-    isDisabled: false,
-    style: {
-      display: "block",
-      width: "100%",
-    },
-  };
-}
-
-export function createDefaultColorWheelProps(): ColorWheelElementProps {
-  return {
-    color: "#ff0000",
-    hue: 0,
-    outerRadius: 100,
-    innerRadius: 74,
-    size: "md",
-    isDisabled: false,
-    style: {
-      width: "200px",
-      height: "200px",
-    },
-  };
-}
-
 export function createDefaultDropZoneProps(): DropZoneElementProps {
   return {
     // CSS base: display:flex; flex-direction:column; border:2px dashed var(--outline-variant)
@@ -2377,12 +2198,9 @@ export function createDefaultRangeCalendarProps(): BaseElementProps {
   return {
     variant: "default",
     size: "md",
-    maxVisibleMonths: 1,
-    defaultStartValue: "2026-05-10",
-    defaultEndValue: "2026-05-16",
+    defaultToday: true,
     isDisabled: false,
     isReadOnly: false,
-    isInvalid: false,
   };
 }
 
@@ -2529,9 +2347,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   ColorField: createDefaultColorFieldProps,
   ColorPicker: createDefaultColorPickerProps,
   ColorSwatch: createDefaultColorSwatchProps,
-  ColorArea: createDefaultColorAreaProps,
-  ColorSlider: createDefaultColorSliderProps,
-  ColorWheel: createDefaultColorWheelProps,
   DropZone: createDefaultDropZoneProps,
   FileTrigger: createDefaultFileTriggerProps,
   Tooltip: createDefaultTooltipProps,

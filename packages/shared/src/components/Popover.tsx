@@ -1,34 +1,22 @@
 import {
-  Button as AriaButton,
   Dialog,
-  DialogTrigger,
   OverlayArrow,
-  OverlayTriggerStateContext,
   Popover as AriaPopover,
   PopoverProps as AriaPopoverProps,
   composeRenderProps,
 } from "react-aria-components";
 import { FocusScope } from "@react-aria/focus";
-import { useContext, type ReactNode } from "react";
 import type { ComponentSize } from "../types";
-import {
-  toPopoverRacProps,
-  type PopoverCanonicalProps,
-} from "../catalog/outputs/toRacProps";
 
-import "./styles/generated/Popover.css";
 import "./styles/Popover.css";
 
 export interface PopoverProps extends Omit<AriaPopoverProps, "children"> {
-  children?: ReactNode;
+  children: React.ReactNode;
   /**
    * Size variant
    * @default 'md'
    */
   size?: ComponentSize;
-  variant?: "accent" | "neutral" | "surface";
-  text?: string;
-  showArrow?: boolean;
   /**
    * 화살표 숨김 여부
    * @default false
@@ -52,8 +40,6 @@ export interface PopoverProps extends Omit<AriaPopoverProps, "children"> {
    * @default true
    */
   restoreFocus?: boolean;
-  "data-canonical-id"?: string;
-  "data-element-id"?: string;
 }
 
 /**
@@ -85,58 +71,20 @@ export interface PopoverProps extends Omit<AriaPopoverProps, "children"> {
  */
 export function Popover({
   children,
-  size: _size,
-  variant: _variant,
-  text: _text,
-  showArrow: _showArrow,
-  hideArrow: _hideArrow,
-  containFocus: _containFocus,
-  autoFocus: _autoFocus,
-  restoreFocus: _restoreFocus,
-  isOpen,
-  defaultOpen,
-  onOpenChange,
+  size = "md",
+  hideArrow = false,
+  containFocus = false,
+  autoFocus = true,
+  restoreFocus = true,
   ...props
 }: PopoverProps) {
-  const triggerState = useContext(OverlayTriggerStateContext);
-  const projectedProps = toPopoverRacProps({
-    ...props,
-    children: children ?? _text,
-    size: _size,
-    variant: _variant,
-    showArrow: _showArrow ?? (_hideArrow === true ? false : undefined),
-    containFocus: _containFocus,
-    autoFocus: _autoFocus,
-    restoreFocus: _restoreFocus,
-    isOpen,
-    defaultOpen,
-  } as PopoverCanonicalProps);
-  const {
-    children: projectedChildren,
-    variant,
-    size,
-    showArrow,
-    containFocus,
-    autoFocus,
-    restoreFocus,
-    isOpen: _projectedIsOpen,
-    defaultOpen: _projectedDefaultOpen,
-    ...popoverProps
-  } = projectedProps;
   const popoverClassName = composeRenderProps(props.className, (className) =>
     className ? `react-aria-Popover ${className}` : "react-aria-Popover",
   );
 
-  const popoverNode = (
-    <AriaPopover
-      {...props}
-      {...popoverProps}
-      className={popoverClassName}
-      data-size={size}
-      data-variant={variant}
-      data-placement={popoverProps.placement}
-    >
-      {showArrow && (
+  return (
+    <AriaPopover {...props} className={popoverClassName} data-size={size}>
+      {!hideArrow && (
         <OverlayArrow>
           <svg width={12} height={12} viewBox="0 0 12 12">
             <path d="M0 0 L6 6 L12 0" />
@@ -149,32 +97,9 @@ export function Popover({
           autoFocus={autoFocus}
           restoreFocus={restoreFocus}
         >
-          {(children ?? projectedChildren) as ReactNode}
+          {children}
         </FocusScope>
       </Dialog>
     </AriaPopover>
-  );
-
-  if (triggerState) {
-    return popoverNode;
-  }
-
-  const standaloneOpenProps =
-    isOpen !== undefined
-      ? { isOpen, onOpenChange }
-      : defaultOpen !== undefined
-        ? { defaultOpen, onOpenChange }
-        : { isOpen: true, onOpenChange };
-
-  return (
-    <DialogTrigger {...standaloneOpenProps}>
-      <AriaButton
-        aria-hidden="true"
-        className="react-aria-PopoverAnchor"
-        isDisabled
-        type="button"
-      />
-      {popoverNode}
-    </DialogTrigger>
   );
 }

@@ -8,12 +8,6 @@ Phase 전원 land (Phase 1/2/3/5/4 순서). Gate G1-G8 충족 — 구현 상세 
 
 **Supersedes**: [ADR-906 Collection spacing 런타임 계약](906-collection-spacing-runtime-contract.md) — 906 은 GridList 1건 + per-component resolver 방식이었으나, 9+ 동일 패턴 컴포넌트의 누적 scope 재계산 결과 본 ADR 로 승격한다. GridList 증상은 본 ADR Phase 3 pilot 으로 흡수.
 
-**ADR-142 impact — 2026-05-21**: 본 ADR 의 implemented pipeline 은 legacy
-`ComponentSpec` / `render.shapes()` compatibility path 에서 historical contract 로
-보존한다. active catalog component path 의 collection/self-render 시각·spacing
-정합은 [ADR-142](142-starter-spec-component-system-cutover.md) 의 resolved canonical
-tree + `PrimitiveBinding` + generic renderer 경로가 우선한다.
-
 ## Context
 
 ADR-906 작성/리뷰 과정에서 **같은 유형의 drift 가 9+ 컴포넌트에 반복 가능**하다는 것이 식별됐다.

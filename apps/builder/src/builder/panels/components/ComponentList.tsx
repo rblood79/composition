@@ -1,6 +1,54 @@
 import { useMemo, useCallback, memo, useState, useEffect } from "react";
 import { translations } from "../../../i18n";
-import { Box, ChevronsDownUp, Search, Trash2 } from "lucide-react";
+import {
+  AppWindowMac,
+  SeparatorHorizontal,
+  Square,
+  Text,
+  ToggleLeft,
+  AppWindow,
+  InspectionPanel,
+  SlidersHorizontal,
+  MousePointer,
+  Tag,
+  CalendarCheck,
+  CalendarDays,
+  RectangleEllipsis,
+  Calendar,
+  ListTree,
+  Menu,
+  GroupIcon,
+  ListIcon,
+  Grid,
+  TableProperties,
+  SquareCheck,
+  ChevronDown,
+  Search,
+  ToggleRight,
+  Hash,
+  MessageSquare,
+  Settings,
+  BarChart3,
+  ChevronRight,
+  Star,
+  Trash2,
+  Link,
+  Paintbrush,
+  Layers,
+  Box,
+  Smile,
+  Frame,
+  Loader,
+  Upload,
+  FileUp,
+  CircleUser,
+  Users,
+  CircleDot,
+  AlertTriangle,
+  CircleDashed,
+  ImageIcon,
+  ChevronsDownUp,
+} from "lucide-react";
 import { PanelHeader, Section } from "../../components";
 import { ActionIconButton } from "../../components/ui/ActionIconButton";
 import { useEditModeStore } from "../../stores/editMode";
@@ -11,17 +59,106 @@ import { useFavoriteComponents } from "../../hooks/useFavoriteComponents";
 import { useSectionCollapse } from "../styles/hooks/useSectionCollapse";
 import "@composition/shared/components/styles/ComponentList.css";
 import { Badge } from "@composition/shared/components/Badge";
-import {
-  categoryConfig,
-  getComponentPanelGroups,
-  type ComponentPanelDefinition,
-} from "./componentPanelCatalog";
 // import { ToggleButton, ToggleButtonGroup, Button, TextField, Label, Input, Description, FieldError, Checkbox, CheckboxGroup } from '../components/list';
 
 interface ComponentListProps {
   handleAddElement: (type: string, parentId?: string) => void;
   selectedElementId?: string | null;
 }
+
+// 컴포넌트 정의 (React Aria / Spectrum 공식 분류 기준, 실용적 병합)
+const contentComp = [
+  { type: "Text", label: "text", icon: Text },
+  { type: "Icon", label: "icon", icon: Smile },
+  { type: "Separator", label: "separator", icon: SeparatorHorizontal },
+  { type: "Badge", label: "badge", icon: Star },
+  { type: "ProgressBar", label: "progress bar", icon: BarChart3 },
+  { type: "Skeleton", label: "skeleton", icon: Loader },
+  { type: "Avatar", label: "avatar", icon: CircleUser },
+  { type: "AvatarGroup", label: "avatar group", icon: Users },
+  { type: "StatusLight", label: "status light", icon: CircleDot },
+  { type: "InlineAlert", label: "inline alert", icon: AlertTriangle },
+  { type: "ProgressCircle", label: "progress circle", icon: CircleDashed },
+  { type: "Image", label: "image", icon: ImageIcon },
+  { type: "IllustratedMessage", label: "illustrated message", icon: ImageIcon },
+] as const;
+
+const layoutComp = [
+  { type: "Card", label: "card", icon: AppWindowMac },
+  { type: "frame", label: "frame", icon: GroupIcon },
+  { type: "Tabs", label: "tabs", icon: AppWindow },
+  { type: "Breadcrumbs", label: "breadcrumbs", icon: ChevronRight },
+  { type: "Link", label: "link", icon: Link },
+  { type: "Nav", label: "navigation", icon: Menu },
+  { type: "MaskedFrame", label: "masked frame", icon: Frame },
+  { type: "Accordion", label: "accordion", icon: ChevronDown },
+  { type: "Disclosure", label: "disclosure", icon: ChevronDown },
+  { type: "CardView", label: "card view", icon: Grid },
+  { type: "Slot", label: "slot", icon: Layers, layoutOnly: true },
+] as const;
+
+const buttonsComp = [
+  { type: "Button", label: "button", icon: MousePointer },
+  { type: "ToggleButton", label: "toggle button", icon: ToggleLeft },
+  { type: "ToggleButtonGroup", label: "toggle button group", icon: GroupIcon },
+  { type: "Toolbar", label: "toolbar", icon: Settings },
+  { type: "ButtonGroup", label: "button group", icon: GroupIcon },
+  { type: "Menu", label: "menu", icon: Menu },
+] as const;
+
+const formsComp = [
+  { type: "TextField", label: "text field", icon: RectangleEllipsis },
+  { type: "NumberField", label: "number field", icon: Hash },
+  { type: "SearchField", label: "search field", icon: Search },
+  { type: "Checkbox", label: "checkbox", icon: SquareCheck },
+  { type: "CheckboxGroup", label: "checkbox group", icon: GroupIcon },
+  { type: "RadioGroup", label: "radio group", icon: GroupIcon },
+  { type: "Select", label: "select", icon: ChevronDown },
+  { type: "ComboBox", label: "combo box", icon: ChevronDown },
+  { type: "Switch", label: "switch", icon: ToggleRight },
+  { type: "Slider", label: "slider", icon: SlidersHorizontal },
+  { type: "TailSwatch", label: "color picker", icon: Paintbrush },
+  { type: "DropZone", label: "drop zone", icon: Upload },
+  { type: "FileTrigger", label: "file trigger", icon: FileUp },
+  { type: "Form", label: "form", icon: GroupIcon },
+] as const;
+
+const collectionsComp = [
+  { type: "Table", label: "table", icon: TableProperties },
+  { type: "ListBox", label: "list box", icon: ListIcon },
+  { type: "GridList", label: "grid list", icon: Grid },
+  { type: "Tree", label: "tree", icon: ListTree },
+  { type: "TagGroup", label: "type group", icon: Tag },
+  { type: "Section", label: "section", icon: Square },
+  { type: "TableView", label: "table view", icon: TableProperties },
+] as const;
+
+const dateTimeComp = [
+  { type: "Calendar", label: "calendar", icon: Calendar },
+  { type: "DatePicker", label: "date picker", icon: CalendarCheck },
+  { type: "DateRangePicker", label: "date range picker", icon: CalendarDays },
+  { type: "DateField", label: "date field", icon: CalendarCheck },
+  { type: "TimeField", label: "time field", icon: ChevronDown },
+  { type: "RangeCalendar", label: "range calendar", icon: CalendarDays },
+] as const;
+
+const overlaysComp = [
+  { type: "Dialog", label: "dialog", icon: AppWindowMac },
+  { type: "Modal", label: "modal", icon: InspectionPanel },
+  { type: "Popover", label: "popover", icon: AppWindowMac },
+  { type: "Tooltip", label: "tooltip", icon: MessageSquare },
+] as const;
+
+// 카테고리 설정 (레이블 및 설명)
+const categoryConfig = {
+  content: { label: "Content", description: "Display and indicators" },
+  layout: { label: "Layout", description: "Containers and navigation" },
+  buttons: { label: "Buttons", description: "Actions and triggers" },
+  forms: { label: "Forms", description: "Inputs and controls" },
+  collections: { label: "Collections", description: "Lists and data display" },
+  dateTime: { label: "Date & Time", description: "Date and time pickers" },
+  overlays: { label: "Overlays", description: "Dialogs and popups" },
+} as const;
 
 // 개별 컴포넌트 아이템을 메모이제이션
 const ComponentItem = ({
@@ -100,8 +237,22 @@ const ComponentList = memo(
       [handleAddElement, addRecentComponent],
     );
 
+    // 컴포넌트 그룹을 메모이제이션 (7개 카테고리)
+    // Layout 모드가 아닐 때는 layoutOnly 컴포넌트(Slot)를 필터링
     const componentGroups = useMemo(
-      () => getComponentPanelGroups({ isLayoutMode }),
+      () => ({
+        content: contentComp,
+        layout: isLayoutMode
+          ? layoutComp
+          : layoutComp.filter(
+              (comp) => !("layoutOnly" in comp && comp.layoutOnly),
+            ),
+        buttons: buttonsComp,
+        forms: formsComp,
+        collections: collectionsComp,
+        dateTime: dateTimeComp,
+        overlays: overlaysComp,
+      }),
       [isLayoutMode],
     );
 

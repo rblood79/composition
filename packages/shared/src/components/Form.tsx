@@ -1,10 +1,5 @@
 import { Form as RACForm, FormProps } from "react-aria-components";
 import { FocusScope } from "@react-aria/focus";
-import {
-  toFormRacProps,
-  type FormCanonicalProps,
-} from "../catalog/outputs/toRacProps";
-import type { ComponentSize } from "../types";
 import "./styles/generated/Form.css";
 
 export interface ExtendedFormProps extends FormProps {
@@ -23,9 +18,6 @@ export interface ExtendedFormProps extends FormProps {
   labelPosition?: "top" | "side";
   labelAlign?: "start" | "center" | "end";
   necessityIndicator?: "icon" | "label";
-  size?: ComponentSize;
-  variant?: "default" | "outlined";
-  isDisabled?: boolean;
 }
 
 /**
@@ -47,67 +39,19 @@ export interface ExtendedFormProps extends FormProps {
 export function Form({
   autoFocus = false,
   restoreFocus = false,
-  labelPosition: inputLabelPosition,
-  labelAlign: inputLabelAlign,
-  necessityIndicator: inputNecessityIndicator,
-  size: inputSize,
-  variant: inputVariant,
-  isDisabled: inputIsDisabled,
+  labelPosition,
+  labelAlign,
+  necessityIndicator,
   children,
-  className,
-  style,
   ...props
 }: ExtendedFormProps) {
-  const projectedProps = toFormRacProps({
-    ...props,
-    autoFocus,
-    restoreFocus,
-    labelPosition: inputLabelPosition,
-    labelAlign: inputLabelAlign,
-    necessityIndicator: inputNecessityIndicator,
-    size: inputSize,
-    variant: inputVariant,
-    isDisabled: inputIsDisabled,
-  } as FormCanonicalProps);
-  const {
-    action,
-    method,
-    encType,
-    target,
-    validationBehavior,
-    labelPosition,
-    labelAlign,
-    necessityIndicator,
-    size,
-    variant,
-    isDisabled,
-    autoFocus: _projectedAutoFocus,
-    restoreFocus: _projectedRestoreFocus,
-    ...restProjectedProps
-  } = projectedProps;
-
   return (
     <RACForm
       {...props}
-      {...restProjectedProps}
-      action={action}
-      method={method}
-      encType={encType}
-      target={target}
-      validationBehavior={validationBehavior}
-      aria-disabled={isDisabled || undefined}
-      data-disabled={isDisabled || undefined}
-      data-size={size}
-      data-variant={variant}
+      className="react-aria-Form"
       data-label-position={labelPosition}
       data-label-align={labelAlign}
       data-necessity-indicator={necessityIndicator}
-      className={
-        typeof className === "string" && className.length > 0
-          ? `react-aria-Form ${className}`
-          : "react-aria-Form"
-      }
-      style={style}
     >
       <FocusScope autoFocus={autoFocus} restoreFocus={restoreFocus}>
         {children}

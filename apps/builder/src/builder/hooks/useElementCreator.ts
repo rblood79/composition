@@ -1,15 +1,12 @@
 import { useCallback, useRef, useEffect } from "react";
 import type { CompositionDocument } from "@composition/shared";
 import {
-  getCatalogDefaultProps,
-  getComponentCatalogEntry,
-  type ComponentCatalogEntry,
-  type PrimitivePlacementChildTemplate,
-} from "@composition/shared/catalog";
-import {
   Element,
   ComponentElementProps,
+  getDefaultProps as getCentralDefaultProps,
 } from "../../types/builder/unified.types";
+import { ComponentFactory } from "../factories/ComponentFactory";
+import { COMPLEX_COMPONENT_TAGS } from "../factories/constants";
 import { useErrorHandler, type ErrorInfo } from "./useErrorHandler";
 import { generateCustomId } from "../utils/idGeneration";
 import { ElementUtils } from "../../utils/element/elementUtils";
@@ -17,7 +14,7 @@ import { withFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
 //import { useStore } from '../stores';
 
 export interface UseElementCreatorReturn {
-  getDefaultProps: (type: string) => ComponentElementProps | undefined;
+  getDefaultProps: (type: string) => ComponentElementProps;
   handleAddElement: (
     type: string,
     currentPageId: string,
@@ -59,20 +56,6 @@ interface ResolveCreationParentIdInput {
   doc: CompositionDocument;
 }
 
-export interface CatalogElementCreationPayload {
-  elementType: string;
-  props: ComponentElementProps;
-  ref?: string;
-  componentRole?: "instance";
-  masterId?: string;
-  componentName?: string;
-  children?: CatalogElementCreationPayload[];
-}
-
-function isCatalogEntry(value: unknown): value is ComponentCatalogEntry {
-  return value !== null && typeof value === "object" && "cutover" in value;
-}
-
 export function resolveCreationParentId({
   selectedElementId,
   elements,
@@ -93,115 +76,6 @@ export function resolveCreationParentId({
     layoutId || null,
     doc,
   );
-}
-
-export function resolveCatalogElementCreation(
-  input: string | ComponentCatalogEntry,
-): CatalogElementCreationPayload | undefined {
-  const entry = isCatalogEntry(input) ? input : getComponentCatalogEntry(input);
-  if (!entry || entry.cutover !== "catalog") return undefined;
-
-  if (entry.kind === "primitive") {
-    const placement = entry.binding.placement;
-    return {
-      elementType: entry.type,
-      props: { ...entry.binding.defaultProps } as ComponentElementProps,
-      ...(placement?.kind === "node-with-children"
-        ? {
-            children: placement.children.map((child) =>
-              cloneCatalogPlacementChild(child),
-            ),
-          }
-        : {}),
-    };
-  }
-
-  if (entry.kind === "reusable") {
-    return {
-      elementType: "ref",
-      props: {} as ComponentElementProps,
-      ref: entry.reusableId,
-      componentRole: "instance",
-      masterId: entry.reusableId,
-      componentName: entry.type,
-    };
-  }
-
-  return {
-    elementType: entry.type,
-    props: { ...(entry.defaultProps ?? {}) } as ComponentElementProps,
-  };
-}
-
-function cloneCatalogPlacementChild(
-  child: PrimitivePlacementChildTemplate,
-): CatalogElementCreationPayload {
-  return {
-    elementType: child.type,
-    props: { ...child.props } as ComponentElementProps,
-    ...(child.children
-      ? {
-          children: child.children.map((nestedChild) =>
-            cloneCatalogPlacementChild(nestedChild),
-          ),
-        }
-      : {}),
-  };
-}
-
-function createCatalogChildElements({
-  children,
-  parentId,
-  currentPageId,
-  layoutId,
-  elements,
-  createdElements,
-}: {
-  children: CatalogElementCreationPayload[];
-  parentId: string;
-  currentPageId: string;
-  layoutId: string | null | undefined;
-  elements: Element[];
-  createdElements: Element[];
-}): Element[] {
-  const result: Element[] = [];
-  const createChildren = (
-    childPayloads: CatalogElementCreationPayload[],
-    currentParentId: string,
-  ): void => {
-    childPayloads.forEach((childPayload) => {
-      const child = withFrameElementMirrorId(
-        {
-          id: crypto.randomUUID(),
-          type: childPayload.elementType,
-          customId: generateCustomId(childPayload.elementType, [
-            ...elements,
-            ...createdElements,
-            ...result,
-          ]),
-          props: childPayload.props,
-          page_id: layoutId ? null : currentPageId,
-          parent_id: currentParentId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        layoutId || null,
-      );
-      result.push(child);
-      if (childPayload.children?.length) {
-        createChildren(childPayload.children, child.id);
-      }
-    });
-  };
-
-  createChildren(children, parentId);
-  return result;
-}
-
-export function resolveDefaultPropsForCreation(
-  type: string,
-): ComponentElementProps | undefined {
-  return getCatalogDefaultProps(type) as ComponentElementProps | undefined;
 }
 
 export const useElementCreator = (): UseElementCreatorReturn => {
@@ -225,11 +99,9 @@ export const useElementCreator = (): UseElementCreatorReturn => {
     }
   }, []); // 빈 의존성 배열로 한 번만 실행
 
-  const getDefaultProps = useCallback(
-    (type: string): ComponentElementProps | undefined =>
-      resolveDefaultPropsForCreation(type),
-    [],
-  );
+  const getDefaultProps = useCallback((type: string): ComponentElementProps => {
+    return getCentralDefaultProps(type);
+  }, []);
 
   const handleAddElement = useCallback(
     async (
@@ -261,20 +133,9 @@ export const useElementCreator = (): UseElementCreatorReturn => {
           // 요소 배열 참조 업데이트
           elementsRef.current = elements;
 
-          const catalogCreation = resolveCatalogElementCreation(type);
-          if (!catalogCreation) {
-            handleError(
-              new Error(`Catalog entry not found for component type: ${type}`),
-              `요소 생성 실패: ${type}`,
-              {
-                type: "validation",
-                severity: "high",
-                operation: "create",
-                recoverable: false,
-              },
-            );
-            return;
-          }
+          const selectedElement = selectedElementId
+            ? elements.find((el) => el.id === selectedElementId)
+            : null;
 
           // 롤백 포인트 추가
           addRollbackPoint({
@@ -284,77 +145,78 @@ export const useElementCreator = (): UseElementCreatorReturn => {
             timestamp: new Date(),
           });
 
-          const operation = async () => {
-            // selectedElementId 는 page-level selection id 일 수 있으므로
-            // 실제 element id 로 확인된 경우에만 parent_id 로 사용한다.
-            let parentId = resolveCreationParentId({
-              selectedElementId,
-              elements,
-              currentPageId: currentPageId || null,
-              layoutId,
-              doc,
-            });
+          // 복합 컴포넌트인지 확인 (공유 상수 사용)
 
-            // Card + action component → CardFooter 자동 라우팅
-            const parentEl = parentId
-              ? elements.find((el) => el.id === parentId)
-              : null;
-            if (parentEl?.type === "Card") {
-              const ACTION_TAGS = new Set([
-                "Button",
-                "ToggleButton",
-                "Link",
-                "ActionButtonGroup",
-                "ButtonGroup",
-              ]);
-              if (ACTION_TAGS.has(type)) {
-                const cardFooter = elements.find(
-                  (el) =>
-                    el.parent_id === parentId &&
-                    el.type === "CardFooter" &&
-                    !el.deleted,
-                );
-                if (cardFooter) {
-                  parentId = cardFooter.id;
-                  console.log(
-                    `📎 Card action routing: ${type} → CardFooter (${cardFooter.id})`,
+          const operation = async () => {
+            if (COMPLEX_COMPONENT_TAGS.has(type)) {
+              // ComponentFactory를 사용하여 복합 컴포넌트 생성
+              const result = await ComponentFactory.createComplexComponent(
+                type,
+                selectedElement ?? null,
+                currentPageId,
+                elements,
+                layoutId, // ⭐ Layout/Slot System: layoutId 전달
+                doc,
+              );
+              void result;
+            } else {
+              // 단순 컴포넌트 생성 (캐시 활용)
+              // selectedElementId 는 page-level selection id 일 수 있으므로
+              // 실제 element id 로 확인된 경우에만 parent_id 로 사용한다.
+              let parentId = resolveCreationParentId({
+                selectedElementId,
+                elements,
+                currentPageId: currentPageId || null,
+                layoutId,
+                doc,
+              });
+
+              // Card + action component → CardFooter 자동 라우팅
+              const parentEl = parentId
+                ? elements.find((el) => el.id === parentId)
+                : null;
+              if (parentEl?.type === "Card") {
+                const ACTION_TAGS = new Set([
+                  "Button",
+                  "ToggleButton",
+                  "Link",
+                  "ActionButtonGroup",
+                  "ButtonGroup",
+                ]);
+                if (ACTION_TAGS.has(type)) {
+                  const cardFooter = elements.find(
+                    (el) =>
+                      el.parent_id === parentId &&
+                      el.type === "CardFooter" &&
+                      !el.deleted,
                   );
+                  if (cardFooter) {
+                    parentId = cardFooter.id;
+                    console.log(
+                      `📎 Card action routing: ${type} → CardFooter (${cardFooter.id})`,
+                    );
+                  }
                 }
               }
+
+              const newElement: Element = withFrameElementMirrorId(
+                {
+                  id: crypto.randomUUID(), // UUID 생성
+                  type,
+                  customId: generateCustomId(type, elements),
+                  props: getDefaultProps(type),
+                  // Layout 모드면 legacy layout binding 사용, 아니면 page_id 사용
+                  page_id: layoutId ? null : currentPageId,
+                  parent_id: parentId,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                },
+                layoutId || null,
+              );
+
+              // addElement 호출 (내부에서 DB 저장 처리)
+              addElement(newElement);
             }
-
-            const newElement: Element = withFrameElementMirrorId(
-              {
-                id: crypto.randomUUID(),
-                type: catalogCreation.elementType,
-                customId: generateCustomId(type, elements),
-                props: catalogCreation.props,
-                ...(catalogCreation.ref
-                  ? {
-                      ref: catalogCreation.ref,
-                      componentRole: catalogCreation.componentRole,
-                      masterId: catalogCreation.masterId,
-                      componentName: catalogCreation.componentName,
-                    }
-                  : {}),
-                page_id: layoutId ? null : currentPageId,
-                parent_id: parentId,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              },
-              layoutId || null,
-            );
-            const childElements = createCatalogChildElements({
-              children: catalogCreation.children ?? [],
-              parentId: newElement.id,
-              currentPageId,
-              layoutId,
-              elements,
-              createdElements: [newElement],
-            });
-
-            addElement(newElement);
-            childElements.forEach((child) => addElement(child));
           };
 
           // 마지막 작업 저장 (재시도용)

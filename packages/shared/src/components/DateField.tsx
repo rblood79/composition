@@ -17,10 +17,6 @@ import {
   ValidationResult,
   composeRenderProps,
 } from "react-aria-components";
-import {
-  toDateFieldRacProps,
-  type DateFieldCanonicalProps,
-} from "../catalog/outputs/toRacProps";
 import type { ComponentSize } from "../types";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { safeParseDateString } from "../utils/core/dateUtils";
@@ -39,7 +35,7 @@ import "./styles/generated/DateField.css";
 
 export interface DateFieldProps<T extends DateValue> extends Omit<
   AriaDateFieldProps<T>,
-  "defaultValue" | "maxValue" | "minValue" | "placeholderValue" | "value"
+  "minValue" | "maxValue" | "placeholderValue"
 > {
   label?: string;
   description?: string;
@@ -64,8 +60,6 @@ export interface DateFieldProps<T extends DateValue> extends Omit<
    * @example "2024-12-31"
    */
   maxValue?: string | DateValue;
-  value?: string | T;
-  defaultValue?: string | T;
   // S2 props
   size?: ComponentSize;
   necessityIndicator?: NecessityIndicator;
@@ -73,9 +67,8 @@ export interface DateFieldProps<T extends DateValue> extends Omit<
   isQuiet?: boolean;
   hideTimeZone?: boolean;
   shouldForceLeadingZeros?: boolean;
-  placeholderValue?: string | T;
+  placeholderValue?: string;
   locale?: string;
-  calendar?: string;
   calendarSystem?: string;
   form?: string;
   autoComplete?: string;
@@ -88,88 +81,43 @@ export function DateField<T extends DateValue>({
   errorMessage,
   timezone,
   defaultToday = false,
-  value,
-  defaultValue: defaultValueProp,
   minValue,
   maxValue,
-  size,
+  size = "md",
   necessityIndicator,
-  labelPosition,
+  labelPosition = "top",
   isQuiet,
   hideTimeZone,
   shouldForceLeadingZeros,
   placeholderValue,
   locale,
-  calendar,
   calendarSystem,
   form,
   autoComplete,
   validationBehavior,
-  isRequired,
-  isDisabled,
-  isReadOnly,
-  isInvalid,
   ...props
 }: DateFieldProps<T>) {
-  const projectedProps = toDateFieldRacProps({
-    ...props,
-    label,
-    description,
-    errorMessage,
-    timezone,
-    value,
-    defaultValue: defaultValueProp,
-    minValue,
-    maxValue,
-    size,
-    necessityIndicator,
-    labelPosition,
-    isQuiet,
-    hideTimeZone,
-    shouldForceLeadingZeros,
-    placeholderValue,
-    locale,
-    calendar: calendar ?? calendarSystem,
-    form,
-    autoComplete,
-    validationBehavior,
-    isRequired,
-    isDisabled,
-    isReadOnly,
-    isInvalid,
-  } as DateFieldCanonicalProps);
   // 타임존 설정
-  const effectiveTimezone =
-    timezone || projectedProps.timezone || getLocalTimeZone();
+  const effectiveTimezone = timezone || getLocalTimeZone();
 
   // minValue/maxValue 문자열 자동 파싱
-  const parsedMinValue = parseDateFieldValue<T>(
-    minValue ?? projectedProps.minValue,
-  );
+  const parsedMinValue =
+    typeof minValue === "string" ? safeParseDateString(minValue) : minValue;
 
-  const parsedMaxValue = parseDateFieldValue<T>(
-    maxValue ?? projectedProps.maxValue,
-  );
+  const parsedMaxValue =
+    typeof maxValue === "string" ? safeParseDateString(maxValue) : maxValue;
 
   // placeholderValue 문자열 자동 파싱
-  const parsedPlaceholderValue = parseDateFieldValue<T>(
-    placeholderValue ?? projectedProps.placeholderValue,
-  );
-  const parsedValue = parseDateFieldValue<T>(value ?? projectedProps.value);
-  const parsedDefaultValue = parseDateFieldValue<T>(
-    defaultValueProp ?? projectedProps.defaultValue,
-  );
+  const parsedPlaceholderValue =
+    typeof placeholderValue === "string"
+      ? safeParseDateString(placeholderValue)
+      : undefined;
 
   // defaultToday가 true이고 value가 없으면 오늘 날짜 설정
   const defaultValue =
-    defaultToday && !parsedValue && !parsedDefaultValue
+    defaultToday && !props.value && !props.defaultValue
       ? (today(effectiveTimezone) as T)
-      : parsedDefaultValue;
-  const fieldSize = size ?? projectedProps.size;
-  const fieldLabel = label;
-  const fieldDescription = description ?? projectedProps.description;
-  const fieldErrorMessage = errorMessage ?? projectedProps.errorMessage;
-  const fieldIsRequired = isRequired ?? projectedProps.isRequired;
+      : props.defaultValue;
 
   return (
     <AriaDateField
@@ -179,51 +127,30 @@ export function DateField<T extends DateValue>({
           ? `react-aria-DateField ${className}`
           : "react-aria-DateField",
       )}
-      data-size={fieldSize}
-      data-label-position={labelPosition ?? projectedProps.labelPosition}
-      data-quiet={(isQuiet ?? projectedProps.isQuiet) ? "true" : undefined}
-      value={parsedValue}
+      data-size={size}
+      data-label-position={labelPosition}
+      data-quiet={isQuiet ? "true" : undefined}
       defaultValue={defaultValue}
       placeholderValue={parsedPlaceholderValue as T | undefined}
       minValue={parsedMinValue as T | undefined}
       maxValue={parsedMaxValue as T | undefined}
-      granularity={projectedProps.granularity}
-      hourCycle={projectedProps.hourCycle}
-      hideTimeZone={hideTimeZone ?? projectedProps.hideTimeZone}
-      shouldForceLeadingZeros={
-        shouldForceLeadingZeros ?? projectedProps.shouldForceLeadingZeros
-      }
-      isRequired={fieldIsRequired}
-      isDisabled={isDisabled ?? projectedProps.isDisabled}
-      isReadOnly={isReadOnly ?? projectedProps.isReadOnly}
-      isInvalid={isInvalid ?? projectedProps.isInvalid}
+      hideTimeZone={hideTimeZone}
+      shouldForceLeadingZeros={shouldForceLeadingZeros}
       form={form}
       autoComplete={autoComplete}
       validationBehavior={validationBehavior}
     >
-      {fieldLabel && (
+      {label && (
         <Label>
-          {fieldLabel}
-          {renderNecessityIndicator(
-            necessityIndicator ?? projectedProps.necessityIndicator,
-            fieldIsRequired,
-          )}
+          {label}
+          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
         </Label>
       )}
       <DateInput className="react-aria-DateInput inset">
         {(segment) => <DateSegment segment={segment} />}
       </DateInput>
-      {fieldDescription && <Text slot="description">{fieldDescription}</Text>}
-      <FieldError>{fieldErrorMessage}</FieldError>
+      {description && <Text slot="description">{description}</Text>}
+      <FieldError>{errorMessage}</FieldError>
     </AriaDateField>
   );
-}
-
-function parseDateFieldValue<T extends DateValue>(
-  value: string | DateValue | undefined,
-): T | undefined {
-  if (typeof value === "string") {
-    return (safeParseDateString(value) ?? undefined) as T | undefined;
-  }
-  return value as T | undefined;
 }

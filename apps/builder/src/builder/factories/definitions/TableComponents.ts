@@ -78,7 +78,7 @@ export async function createTable(
  * ColumnGroup 컴포넌트 생성
  */
 export async function createColumnGroup(
-  context: Pick<ComponentCreationContext, "parentElement" | "elements">,
+  context: ComponentCreationContext,
 ): Promise<ComponentCreationResult> {
   const { parentElement, elements } = context;
 

@@ -1,26 +1,22 @@
-import type { Element } from "../../types/core/store.types";
+import type { DescendantOverride } from "@composition/shared";
 
-export interface PanelNode extends Element {
+export interface PanelNode {
   id: string;
   type: string;
   props: Record<string, unknown>;
-  dataBinding?: Element["dataBinding"];
   parent_id?: string | null;
   page_id?: string | null;
   layout_id?: string | null;
-  customId?: string;
-  componentName?: string;
-  name?: string;
+  customId?: string | null;
+  componentName?: string | null;
+  name?: string | null;
   deleted?: boolean;
   reusable?: boolean;
   slot?: false | string[];
   ref?: string;
-  descendants?: Record<string, unknown>;
+  descendants?: Record<string, DescendantOverride>;
   metadata?: Record<string, unknown>;
-  componentRole?: "master" | "instance";
-  masterId?: string;
-  overrides?: Record<string, unknown>;
-  "x-composition"?: {
-    dataBinding?: Element["dataBinding"];
-  };
+  componentRole?: unknown;
+  masterId?: unknown;
+  overrides?: unknown;
 }

@@ -95,7 +95,6 @@ import {
 } from "./hooks/useCanonicalPropertyRead";
 import { isComponentInstanceMirrorElement } from "../../../adapters/canonical/componentSemanticsMirror";
 import type { PanelNode } from "../panelNode";
-import type { Element } from "../../../types/core/store.types";
 
 /**
  * PropertyEditorWrapper - Editor 컴포넌트를 분리하여 불필요한 리렌더링 방지
@@ -237,12 +236,7 @@ const PropertyEditorWrapper = memo(
 
         // ADR-048: propagation 규칙 중 변경된 prop과 매칭되는 것이 있으면 자식도 업데이트
         const rules = getPropagationRules(propagationElement.type);
-        if (
-          rules &&
-          rules.some(
-            (r) => r.parentProp !== undefined && r.parentProp in changedProps,
-          )
-        ) {
+        if (rules && rules.some((r) => r.parentProp in changedProps)) {
           const childUpdates = buildPropagationUpdates(
             propagationElement,
             changedProps,

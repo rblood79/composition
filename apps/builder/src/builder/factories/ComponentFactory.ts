@@ -652,7 +652,7 @@ export class ComponentFactory {
     pageId: string,
     elements: Element[] = [],
   ): Promise<ComponentCreationResult> {
-    const context = {
+    const context: ComponentCreationContext = {
       parentElement,
       pageId,
       elements,

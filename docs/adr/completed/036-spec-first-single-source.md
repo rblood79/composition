@@ -6,13 +6,6 @@
 
 Implemented (후속 ADR-057/058/059/060/061/062로 D3 SSOT 적용 범위 확장 — 2026-04-14 완결)
 
-**ADR-142 impact — 2026-05-21**: 본 ADR 의 historical 구현은 보존한다. 다만
-active component authoring/rendering path 에서 컴포넌트당 `ComponentSpec` 을 D3
-SSOT 로 두는 메커니즘은 [ADR-142](142-starter-spec-component-system-cutover.md) 로
-superseded in part 되었다. ADR-142 이후 active 컴포넌트의 D3 시각 SSOT 는
-theme/tokens root collection 이며, legacy `ComponentSpec` / `render.shapes()` 는
-compatibility boundary 로 격리한다.
-
 ## Date
 
 2026-03-13 (2026-03-14 재검토, 2026-03-15 구현 완성도 보강, 2026-03-16 구현 완료, 2026-04-14 후속 ADR 체인 완결 기록 추가)

@@ -1,24 +1,14 @@
 import { createElement, memo, useMemo, type ComponentType } from "react";
 import type { ComponentSpec } from "@composition/specs";
-import {
-  buildInspectorFieldSections,
-  getElementDataBinding,
-  getPrimitiveInspectorThemeValues,
-  getPrimitiveBinding,
-  type PropContractMap,
-} from "@composition/shared";
 import { PropertyCustomId, PropertySection } from "../../../components";
 import { useStore } from "../../../stores";
 import type { ComponentEditorProps } from "../../../inspector/types";
-import { CatalogField } from "./CatalogField";
 import { evaluateVisibility } from "./evaluateVisibility";
 import { SpecField } from "./SpecField";
 import { useCanonicalPropertyElementsMap } from "../hooks/useCanonicalPropertyRead";
 
 interface GenericPropertyEditorProps extends ComponentEditorProps {
-  componentType?: string;
-  catalogContracts?: PropContractMap;
-  spec?: ComponentSpec<Record<string, unknown>>;
+  spec: ComponentSpec<Record<string, unknown>>;
   renderAfterSections?: ComponentType<{
     elementId: string;
     currentProps: Record<string, unknown>;
@@ -30,17 +20,10 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
   elementId,
   currentProps,
   onUpdate,
-  componentType,
-  catalogContracts,
   spec,
   renderAfterSections,
 }: GenericPropertyEditorProps) {
   const elementsMap = useCanonicalPropertyElementsMap();
-  const editorType = componentType ?? spec?.name ?? "";
-  const primitiveBinding = useMemo(
-    () => getPrimitiveBinding(editorType),
-    [editorType],
-  );
 
   const customId = useMemo(() => {
     const element = elementsMap.get(elementId);
@@ -54,13 +37,6 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
     return parent?.type;
   }, [elementsMap, elementId]);
 
-  const dataBinding = useMemo(() => {
-    const element = elementsMap.get(elementId);
-    return element
-      ? getElementDataBinding(element, "extension-first")
-      : undefined;
-  }, [elementsMap, elementId]);
-
   const updateCustomId = (newCustomId: string) => {
     const updateElement = useStore.getState().updateElement;
     if (updateElement && elementId) {
@@ -68,28 +44,8 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
     }
   };
 
-  const updateDataBinding = (nextDataBinding: unknown | undefined) => {
-    const updateSelectedDataBinding =
-      useStore.getState().updateSelectedDataBinding;
-    updateSelectedDataBinding(
-      nextDataBinding as Parameters<typeof updateSelectedDataBinding>[0],
-    );
-  };
-
-  const catalogSections = useMemo(() => {
-    const contracts = primitiveBinding?.props.accepts ?? catalogContracts;
-    if (!contracts) return [];
-    return buildInspectorFieldSections({
-      componentType: primitiveBinding?.tag ?? editorType,
-      contracts,
-      theme: primitiveBinding
-        ? getPrimitiveInspectorThemeValues(primitiveBinding.tag)
-        : {},
-    });
-  }, [catalogContracts, editorType, primitiveBinding]);
-
   const { visibleSections, firstContentIndex } = useMemo(() => {
-    const sections = (spec?.properties?.sections ?? []).filter((section) =>
+    const sections = (spec.properties?.sections ?? []).filter((section) =>
       evaluateVisibility(section.visibleWhen, currentProps, parentTag),
     );
     return {
@@ -98,74 +54,41 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
     };
   }, [spec, currentProps, parentTag]);
 
-  const firstCatalogContentIndex = useMemo(
-    () => catalogSections.findIndex((s) => s.title === "Content"),
-    [catalogSections],
-  );
-  const useCatalogSections = catalogSections.length > 0;
-
   const renderCustomId = () => (
     <PropertyCustomId
       label="ID"
       value={customId}
       elementId={elementId}
       onChange={updateCustomId}
-      placeholder={`${editorType.toLowerCase()}_1`}
+      placeholder={`${spec.name.toLowerCase()}_1`}
     />
   );
 
   return (
     <>
-      {useCatalogSections && firstCatalogContentIndex === -1 && (
+      {firstContentIndex === -1 && (
         <PropertySection title="Content">{renderCustomId()}</PropertySection>
       )}
 
-      {!useCatalogSections && spec && firstContentIndex === -1 && (
-        <PropertySection title="Content">{renderCustomId()}</PropertySection>
-      )}
-
-      {useCatalogSections &&
-        catalogSections.map((section, sectionIndex) => (
-          <PropertySection key={section.title} title={section.title}>
-            {sectionIndex === firstCatalogContentIndex && renderCustomId()}
-            {section.fields
-              .filter((field) =>
-                evaluateVisibility(field.visibleWhen, currentProps, parentTag),
-              )
-              .map((field) => (
-                <CatalogField
-                  key={`${section.title}:${field.key}:${field.kind}`}
-                  field={field}
-                  currentProps={currentProps}
-                  onUpdate={onUpdate}
-                  dataBinding={dataBinding}
-                  onDataBindingUpdate={updateDataBinding}
-                />
-              ))}
-          </PropertySection>
-        ))}
-
-      {!useCatalogSections &&
-        spec &&
-        visibleSections.map((section, sectionIndex) => (
-          <PropertySection key={section.title} title={section.title}>
-            {sectionIndex === firstContentIndex && renderCustomId()}
-            {section.fields
-              .filter((field) =>
-                evaluateVisibility(field.visibleWhen, currentProps, parentTag),
-              )
-              .map((field, index) => (
-                <SpecField
-                  key={`${section.title}:${"key" in field ? (field.key ?? field.type) : field.type}:${index}`}
-                  field={field}
-                  spec={spec}
-                  currentProps={currentProps}
-                  onUpdate={onUpdate}
-                  elementId={elementId}
-                />
-              ))}
-          </PropertySection>
-        ))}
+      {visibleSections.map((section, sectionIndex) => (
+        <PropertySection key={section.title} title={section.title}>
+          {sectionIndex === firstContentIndex && renderCustomId()}
+          {section.fields
+            .filter((field) =>
+              evaluateVisibility(field.visibleWhen, currentProps, parentTag),
+            )
+            .map((field, index) => (
+              <SpecField
+                key={`${section.title}:${"key" in field ? (field.key ?? field.type) : field.type}:${index}`}
+                field={field}
+                spec={spec}
+                currentProps={currentProps}
+                onUpdate={onUpdate}
+                elementId={elementId}
+              />
+            ))}
+        </PropertySection>
+      ))}
 
       {renderAfterSections != null &&
         createElement(renderAfterSections, {

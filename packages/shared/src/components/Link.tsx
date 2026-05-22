@@ -3,13 +3,8 @@ import {
   Link as RACLink,
   LinkProps as RACLinkProps,
 } from "react-aria-components";
-import type { ReactElement, ReactNode } from "react";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
-import {
-  toLinkRacProps,
-  type LinkCanonicalProps,
-} from "../catalog/outputs/toRacProps";
 import type { LinkVariant, ComponentSize, StaticColor } from "../types";
 import { Skeleton } from "./Skeleton";
 import "./styles/Link.css";
@@ -67,35 +62,17 @@ export interface LinkProps extends RACLinkProps {
  * <Link variant="secondary" isExternal href="https://example.com">External Link</Link>
  */
 export function Link(props: LinkProps) {
-  const projectedProps = toLinkRacProps(props as LinkCanonicalProps);
   const { focusProps, isFocusVisible } = useFocusRing();
   const {
-    variant: _variant,
-    size: _size,
-    isQuiet: _isQuiet,
-    staticColor: _staticColor,
-    isExternal: _isExternal,
-    showExternalIcon: _showExternalIcon,
-    isLoading: inputIsLoading,
-    href: _href,
-    target: _target,
-    rel: _rel,
-    children,
+    variant = "primary",
+    size = "md",
+    isQuiet = false,
+    staticColor = "auto",
+    isExternal,
+    showExternalIcon = true,
+    isLoading,
     ...restProps
   } = props;
-  const {
-    href,
-    isExternal,
-    isLoading: projectedIsLoading,
-    isQuiet,
-    rel,
-    showExternalIcon,
-    size,
-    staticColor,
-    target,
-    variant,
-  } = projectedProps;
-  const isLoading = inputIsLoading ?? projectedIsLoading ?? false;
 
   // Show skeleton when loading
   if (isLoading) {
@@ -114,75 +91,46 @@ export function Link(props: LinkProps) {
         target: "_blank",
         rel: "noopener noreferrer",
       }
-    : {
-        ...(target ? { target } : {}),
-        ...(rel ? { rel } : {}),
-      };
+    : {};
 
-  const allProps = mergeProps(
-    restProps as object,
-    focusProps as object,
-    externalProps,
-  );
-  const inputChildren = props.children;
-  const renderedChildren: RACLinkProps["children"] =
-    typeof inputChildren === "function"
-      ? (values) =>
-          renderLinkContent(
-            inputChildren(values) ?? null,
-            isExternal,
-            showExternalIcon,
-          )
-      : renderLinkContent(
-          inputChildren ?? projectedProps.children,
-          isExternal,
-          showExternalIcon,
-        );
+  const allProps = mergeProps(restProps as object, focusProps as object, externalProps);
 
   return (
     <RACLink
       {...(allProps as RACLinkProps)}
-      href={href}
       data-variant={variant}
       data-size={size}
       data-quiet={isQuiet || undefined}
       data-static-color={staticColor}
       data-focus-visible={isFocusVisible || undefined}
       data-external={isExternal || undefined}
-      className={composeRenderProps(props.className, (cls) =>
-        cls ? `react-aria-Link ${cls}` : "react-aria-Link",
+      className={composeRenderProps(
+        props.className,
+        (cls) => cls ? `react-aria-Link ${cls}` : "react-aria-Link"
       )}
     >
-      {renderedChildren}
+      {composeRenderProps(props.children, (children) => (
+        <>
+          {children}
+          {isExternal && showExternalIcon && (
+            <svg
+              className="link-external-icon"
+              width="1em"
+              height="1em"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          )}
+        </>
+      ))}
     </RACLink>
-  );
-}
-
-function renderLinkContent(
-  children: ReactNode,
-  isExternal: boolean | undefined,
-  showExternalIcon: boolean,
-): ReactElement {
-  return (
-    <>
-      {children}
-      {isExternal && showExternalIcon && (
-        <svg
-          className="link-external-icon"
-          width="1em"
-          height="1em"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-          <polyline points="15 3 21 3 21 9" />
-          <line x1="10" y1="14" x2="21" y2="3" />
-        </svg>
-      )}
-    </>
   );
 }

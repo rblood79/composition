@@ -23,11 +23,6 @@ import {
 import { getIconData } from "@composition/specs";
 import type { ComponentSize } from "../types";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
-import {
-  toComboBoxRacProps,
-  type ComboBoxCanonicalProps,
-  type ComboBoxItemDescriptor,
-} from "../catalog/outputs/toRacProps";
 
 import { useCollectionData } from "../hooks";
 import {
@@ -75,7 +70,6 @@ export function ComboBox<T extends object>({
   description,
   errorMessage,
   children,
-  items,
   placeholder,
   inputValue,
   onInputChange,
@@ -89,42 +83,6 @@ export function ComboBox<T extends object>({
   isQuiet,
   ...props
 }: ComboBoxProps<T>) {
-  const projectedProps = toComboBoxRacProps({
-    ...props,
-    label,
-    description,
-    errorMessage,
-    placeholder,
-    inputValue,
-    items,
-    size,
-    iconName,
-    labelPosition,
-    isQuiet,
-  } as ComboBoxCanonicalProps);
-  const projectedItems = projectedProps.items ?? [];
-  const effectiveLabel = projectedProps.label ?? label;
-  const effectiveDescription = projectedProps.description ?? description;
-  const effectiveErrorMessage = projectedProps.errorMessage ?? errorMessage;
-  const effectivePlaceholder = projectedProps.placeholder;
-  const effectiveInputValue = projectedProps.inputValue ?? inputValue;
-  const effectiveSize = projectedProps.size;
-  const effectiveIconName = projectedProps.iconName;
-  const effectiveLabelPosition = projectedProps.labelPosition;
-  const effectiveIsQuiet = projectedProps.isQuiet;
-  const effectiveIsDisabled = projectedProps.isDisabled;
-  const effectiveIsInvalid = projectedProps.isInvalid;
-  const effectiveIsReadOnly = projectedProps.isReadOnly;
-  const effectiveIsRequired = projectedProps.isRequired;
-  const effectiveAllowsCustomValue = projectedProps.allowsCustomValue;
-  const effectiveNecessityIndicator = projectedProps.necessityIndicator;
-  const effectiveSelectedKey = projectedProps.selectedKey;
-  const effectiveDefaultSelectedKey = projectedProps.defaultSelectedKey;
-  const effectiveDefaultInputValue = projectedProps.defaultInputValue;
-  const effectiveAutoFocus = projectedProps.autoFocus;
-  const effectiveMenuTrigger = projectedProps.menuTrigger;
-  const effectiveValidationBehavior = projectedProps.validationBehavior;
-
   // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
   const {
     data: boundData,
@@ -150,17 +108,16 @@ export function ComboBox<T extends object>({
       setPopoverWidth((prev) => (prev === nextWidth ? prev : nextWidth));
     };
     update();
-    if (typeof ResizeObserver === "undefined") return undefined;
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
   // Label 처리
-  const hasVisibleLabel = effectiveLabel && String(effectiveLabel).trim();
+  const hasVisibleLabel = label && String(label).trim();
   const ariaLabel = hasVisibleLabel
     ? undefined
-    : props["aria-label"] || effectivePlaceholder || "Select an option";
+    : props["aria-label"] || placeholder || "Select an option";
 
   // DataBinding이 있고 데이터가 로드되었을 때 동적 아이템 생성
   // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원
@@ -189,16 +146,11 @@ export function ComboBox<T extends object>({
   const isErrorState = hasDataBinding && !!error;
   const isTemplateMode = hasDataBinding && !!columnMapping;
   const hasBoundItems = hasDataBinding && boundData.length > 0;
-  const hasProjectedStaticItems = !hasDataBinding && projectedItems.length > 0;
   const shouldRenderPopover = !isLoadingState && !isErrorState;
   const comboBoxDisabled =
-    effectiveIsDisabled || isLoadingState || isErrorState;
+    Boolean(props.isDisabled) || isLoadingState || isErrorState;
 
   const comboBoxItems = React.useMemo(() => {
-    if (hasProjectedStaticItems) {
-      return projectedItems as unknown as T[];
-    }
-
     if (!hasBoundItems) {
       return undefined;
     }
@@ -244,34 +196,10 @@ export function ComboBox<T extends object>({
 
     console.log("✅ ComboBox Dynamic Collection - items:", items);
     return items;
-  }, [
-    boundData,
-    dataBinding,
-    hasBoundItems,
-    hasProjectedStaticItems,
-    isTemplateMode,
-    projectedItems,
-  ]);
+  }, [boundData, dataBinding, hasBoundItems, isTemplateMode]);
 
   const listBoxChildren: React.ReactNode | ((item: T) => React.ReactNode) =
     React.useMemo(() => {
-      if (hasProjectedStaticItems) {
-        if (typeof children === "function") {
-          return children;
-        }
-
-        return ((item: ComboBoxItemDescriptor) => (
-          <ListBoxItem
-            key={item.id}
-            id={item.id}
-            textValue={item.textValue ?? item.label}
-            isDisabled={item.isDisabled}
-          >
-            {item.label}
-          </ListBoxItem>
-        )) as (item: T) => React.ReactNode;
-      }
-
       if (isTemplateMode) {
         console.log(
           "🎯 ComboBox: columnMapping 감지 - 데이터로 아이템 렌더링",
@@ -307,7 +235,6 @@ export function ComboBox<T extends object>({
       children,
       columnMapping,
       hasBoundItems,
-      hasProjectedStaticItems,
       isTemplateMode,
     ]);
 
@@ -317,7 +244,7 @@ export function ComboBox<T extends object>({
     return (
       <Skeleton
         componentVariant="input"
-        size={effectiveSize}
+        size={size}
         className={props.className as string}
         aria-label="Loading combobox..."
       />
@@ -328,39 +255,26 @@ export function ComboBox<T extends object>({
     <AriaComboBox
       {...props}
       ref={comboBoxRef}
-      inputValue={effectiveInputValue}
-      defaultInputValue={effectiveDefaultInputValue}
+      inputValue={inputValue}
       onInputChange={onInputChange}
-      selectedKey={effectiveSelectedKey}
-      defaultSelectedKey={effectiveDefaultSelectedKey}
-      allowsCustomValue={effectiveAllowsCustomValue}
-      isInvalid={effectiveIsInvalid}
-      isReadOnly={effectiveIsReadOnly}
-      isRequired={effectiveIsRequired}
-      autoFocus={effectiveAutoFocus}
-      menuTrigger={effectiveMenuTrigger}
-      validationBehavior={effectiveValidationBehavior}
       className={comboBoxClassName}
-      data-size={effectiveSize}
-      data-label-position={effectiveLabelPosition}
-      data-quiet={effectiveIsQuiet ? "true" : undefined}
+      data-size={size}
+      data-label-position={labelPosition}
+      data-quiet={isQuiet ? "true" : undefined}
       aria-label={ariaLabel}
       isDisabled={comboBoxDisabled}
     >
       {hasVisibleLabel && (
         <Label>
-          {String(effectiveLabel)}
-          {renderNecessityIndicator(
-            effectiveNecessityIndicator,
-            effectiveIsRequired,
-          )}
+          {String(label)}
+          {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
         </Label>
       )}
       <div className="combobox-container">
-        <Input placeholder={effectivePlaceholder} />
+        <Input placeholder={placeholder} />
         <Button>
           {(() => {
-            const name = effectiveIconName || "chevron-down";
+            const name = iconName || "chevron-down";
             const data = getIconData(name);
             if (!data) return null;
             return (
@@ -387,14 +301,10 @@ export function ComboBox<T extends object>({
           })()}
         </Button>
       </div>
-      {effectiveDescription && (
-        <Text slot="description">{effectiveDescription}</Text>
-      )}
+      {description && <Text slot="description">{description}</Text>}
       {isLoadingState && <Text slot="description">⏳ 데이터 로딩 중...</Text>}
       {isErrorState && <FieldError>❌ 오류: {error}</FieldError>}
-      {effectiveErrorMessage && !isErrorState && (
-        <FieldError>{effectiveErrorMessage}</FieldError>
-      )}
+      {errorMessage && !isErrorState && <FieldError>{errorMessage}</FieldError>}
       {shouldRenderPopover && (
         <Popover
           className={popoverClassName}
@@ -406,7 +316,7 @@ export function ComboBox<T extends object>({
           <ListBox
             className="react-aria-ListBox"
             items={comboBoxItems}
-            data-size={effectiveSize}
+            data-size={size}
           >
             {listBoxChildren}
           </ListBox>

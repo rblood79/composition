@@ -8,10 +8,6 @@ import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useCollectionData } from "../hooks";
 import { Skeleton } from "./Skeleton";
-import {
-  toBreadcrumbsRacProps,
-  type BreadcrumbsCanonicalProps,
-} from "../catalog/outputs/toRacProps";
 import "./styles/Breadcrumbs.css";
 
 /**
@@ -58,10 +54,7 @@ export interface BreadcrumbsExtendedProps<
  * </Breadcrumbs>
  */
 export function Breadcrumbs<T extends object>({
-  size: inputSize,
-  isDisabled: inputIsDisabled,
-  className,
-  style,
+  size = "M",
   dataBinding,
   columnMapping,
   isLoading: externalLoading,
@@ -69,16 +62,6 @@ export function Breadcrumbs<T extends object>({
   children,
   ...props
 }: BreadcrumbsExtendedProps<T>) {
-  const projectedProps = toBreadcrumbsRacProps({
-    ...props,
-    size: inputSize,
-    isDisabled: inputIsDisabled,
-    className,
-    style,
-  } as BreadcrumbsCanonicalProps);
-  const size = inputSize ?? projectedProps.size;
-  const isDisabled = inputIsDisabled ?? projectedProps.isDisabled;
-
   // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
   const {
     data: boundData,
@@ -99,8 +82,8 @@ export function Breadcrumbs<T extends object>({
     return (
       <nav
         className={
-          className
-            ? `react-aria-Breadcrumbs ${className}`
+          props.className
+            ? `react-aria-Breadcrumbs ${props.className}`
             : "react-aria-Breadcrumbs"
         }
         data-size={size}
@@ -147,7 +130,8 @@ export function Breadcrumbs<T extends object>({
     isPropertyBinding;
 
   // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
-  const baseClassName = typeof className === "string" ? className : undefined;
+  const baseClassName =
+    typeof props.className === "string" ? props.className : undefined;
   const breadcrumbsClassName = baseClassName
     ? `react-aria-Breadcrumbs ${baseClassName}`
     : "react-aria-Breadcrumbs";
@@ -160,9 +144,6 @@ export function Breadcrumbs<T extends object>({
           {...props}
           className={breadcrumbsClassName}
           data-size={size}
-          aria-label={projectedProps["aria-label"]}
-          isDisabled={isDisabled}
-          style={style}
         >
           <Breadcrumb>
             <Link>⏳ 로딩 중...</Link>
@@ -177,9 +158,6 @@ export function Breadcrumbs<T extends object>({
           {...props}
           className={breadcrumbsClassName}
           data-size={size}
-          aria-label={projectedProps["aria-label"]}
-          isDisabled={isDisabled}
-          style={style}
         >
           <Breadcrumb>
             <Link>❌ 오류</Link>
@@ -194,9 +172,6 @@ export function Breadcrumbs<T extends object>({
           {...props}
           className={breadcrumbsClassName}
           data-size={size}
-          aria-label={projectedProps["aria-label"]}
-          isDisabled={isDisabled}
-          style={style}
         >
           {children}
         </RACBreadcrumbs>
@@ -212,9 +187,6 @@ export function Breadcrumbs<T extends object>({
           {...props}
           className={breadcrumbsClassName}
           data-size={size}
-          aria-label={projectedProps["aria-label"]}
-          isDisabled={isDisabled}
-          style={style}
         >
           <Breadcrumb>
             <Link>⏳ 로딩 중...</Link>
@@ -229,9 +201,6 @@ export function Breadcrumbs<T extends object>({
           {...props}
           className={breadcrumbsClassName}
           data-size={size}
-          aria-label={projectedProps["aria-label"]}
-          isDisabled={isDisabled}
-          style={style}
         >
           <Breadcrumb>
             <Link>❌ 오류</Link>
@@ -246,9 +215,6 @@ export function Breadcrumbs<T extends object>({
           {...props}
           className={breadcrumbsClassName}
           data-size={size}
-          aria-label={projectedProps["aria-label"]}
-          isDisabled={isDisabled}
-          style={style}
         >
           {boundData.map((item, index) => (
             <Breadcrumb key={String(item.id || index)}>
@@ -270,9 +236,6 @@ export function Breadcrumbs<T extends object>({
       {...props}
       className={breadcrumbsClassName}
       data-size={size}
-      aria-label={projectedProps["aria-label"]}
-      isDisabled={isDisabled}
-      style={style}
     >
       {children}
     </RACBreadcrumbs>

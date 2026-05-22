@@ -22,22 +22,14 @@ import React, {
   useState,
 } from "react";
 import {
-  Header as AriaHeader,
   ListBox as AriaListBox,
   ListBoxItem as AriaListBoxItem,
   ListBoxItemProps,
   ListBoxProps,
-  ListBoxSection as AriaListBoxSection,
   composeRenderProps,
 } from "react-aria-components";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
-import {
-  toListBoxRacProps,
-  type ListBoxCanonicalProps,
-  type ListBoxEntryDescriptor,
-  type ListBoxItemDescriptor,
-} from "../catalog/outputs/toRacProps";
 
 import { useCollectionData } from "../hooks";
 import {
@@ -98,7 +90,6 @@ export function ListBox<T extends object>({
   children,
   dataBinding,
   columnMapping,
-  items: inputItems,
   variant = "primary",
   enableVirtualization = false,
   height = 300,
@@ -115,24 +106,6 @@ export function ListBox<T extends object>({
   // ================================================================
 
   const { onSelectionChange, selectedKeys } = props;
-  const projectedProps = toListBoxRacProps({
-    ...props,
-    items: inputItems,
-    variant,
-    enableVirtualization,
-    height,
-    overscan,
-    filterText,
-    filterFields,
-  } as ListBoxCanonicalProps);
-  const projectedAriaProps = {
-    "aria-label": projectedProps["aria-label"],
-    selectionMode: projectedProps.selectionMode,
-    selectionBehavior: projectedProps.selectionBehavior,
-    disallowEmptySelection: projectedProps.disallowEmptySelection,
-    autoFocus: projectedProps.autoFocus,
-    isDisabled: projectedProps.isDisabled,
-  };
 
   // Refs for virtualization
   const parentRef = useRef<HTMLDivElement>(null);
@@ -304,12 +277,10 @@ export function ListBox<T extends object>({
   if (externalLoading) {
     return (
       <div
-        className={`react-aria-ListBox ${projectedProps.variant}`}
+        className={`react-aria-ListBox ${variant}`}
         role="listbox"
         aria-busy="true"
         aria-label="Loading list..."
-        data-variant={projectedProps.variant}
-        data-orientation={projectedProps.orientation}
       >
         {Array.from({ length: skeletonCount }).map((_, i) => (
           <Skeleton key={i} componentVariant="list-item" size="md" index={i} />
@@ -325,8 +296,6 @@ export function ListBox<T extends object>({
       return (
         <div
           className={`react-aria-ListBox virtualized ${variant}`}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
           style={{ height }}
         >
           <CollectionLoadingState size="md" height={height} />
@@ -339,8 +308,6 @@ export function ListBox<T extends object>({
       return (
         <div
           className={`react-aria-ListBox virtualized ${variant}`}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
           style={{ height }}
         >
           <CollectionErrorDisplay
@@ -363,8 +330,6 @@ export function ListBox<T extends object>({
         tabIndex={0}
         onKeyDown={handleKeyDown}
         className={`react-aria-ListBox virtualized ${variant}`}
-        data-variant={projectedProps.variant}
-        data-orientation={projectedProps.orientation}
         style={{
           height,
           overflow: "auto",
@@ -435,10 +400,8 @@ export function ListBox<T extends object>({
       return (
         <AriaListBox
           {...props}
-          {...projectedAriaProps}
           className={getListBoxClassName(props.className)}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
+          data-variant={variant}
         >
           <AriaListBoxItem
             key="loading"
@@ -457,10 +420,8 @@ export function ListBox<T extends object>({
       return (
         <AriaListBox
           {...props}
-          {...projectedAriaProps}
           className={getListBoxClassName(props.className)}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
+          data-variant={variant}
         >
           <AriaListBoxItem
             key="error"
@@ -484,10 +445,8 @@ export function ListBox<T extends object>({
       return (
         <AriaListBox
           {...props}
-          {...projectedAriaProps}
           className={getListBoxClassName(props.className)}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
+          data-variant={variant}
           items={items}
         >
           {children}
@@ -499,10 +458,8 @@ export function ListBox<T extends object>({
     return (
       <AriaListBox
         {...props}
-        {...projectedAriaProps}
         className={getListBoxClassName(props.className)}
-        data-variant={projectedProps.variant}
-        data-orientation={projectedProps.orientation}
+        data-variant={variant}
       >
         {children}
       </AriaListBox>
@@ -516,10 +473,8 @@ export function ListBox<T extends object>({
       return (
         <AriaListBox
           {...props}
-          {...projectedAriaProps}
           className={getListBoxClassName(props.className)}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
+          data-variant={variant}
         >
           <AriaListBoxItem
             key="loading"
@@ -538,10 +493,8 @@ export function ListBox<T extends object>({
       return (
         <AriaListBox
           {...props}
-          {...projectedAriaProps}
           className={getListBoxClassName(props.className)}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
+          data-variant={variant}
         >
           <AriaListBoxItem
             key="error"
@@ -571,10 +524,8 @@ export function ListBox<T extends object>({
         return (
           <AriaListBox
             {...props}
-            {...projectedAriaProps}
             className={getListBoxClassName(props.className)}
-            data-variant={projectedProps.variant}
-            data-orientation={projectedProps.orientation}
+            data-variant={variant}
             items={items}
           >
             {children}
@@ -586,10 +537,8 @@ export function ListBox<T extends object>({
       return (
         <AriaListBox
           {...props}
-          {...projectedAriaProps}
           className={getListBoxClassName(props.className)}
-          data-variant={projectedProps.variant}
-          data-orientation={projectedProps.orientation}
+          data-variant={variant}
           items={items}
         >
           {(item) => {
@@ -611,59 +560,17 @@ export function ListBox<T extends object>({
   }
 
   // Static Children (기존 방식)
-  const staticChildren =
-    children ??
-    projectedProps.items?.map((entry) => renderStaticListBoxEntry(entry));
-  const shouldPassInputItems =
-    inputItems !== undefined && typeof children === "function";
-
   return (
     <AriaListBox
       {...props}
-      {...projectedAriaProps}
-      {...(shouldPassInputItems ? { items: inputItems } : {})}
       className={getListBoxClassName(props.className)}
-      data-variant={projectedProps.variant}
-      data-orientation={projectedProps.orientation}
+      data-variant={variant}
     >
-      {staticChildren}
+      {children}
     </AriaListBox>
   );
 }
 
 export function ListBoxItem(props: ListBoxItemProps) {
   return <AriaListBoxItem {...props} className="react-aria-ListBoxItem" />;
-}
-
-function renderStaticListBoxEntry(
-  entry: ListBoxEntryDescriptor,
-): React.ReactNode {
-  if (entry.type === "section") {
-    return (
-      <AriaListBoxSection key={entry.id} aria-label={entry.ariaLabel}>
-        <AriaHeader>{entry.header}</AriaHeader>
-        {entry.items.map((item) => renderStaticListBoxItem(item))}
-      </AriaListBoxSection>
-    );
-  }
-
-  return renderStaticListBoxItem(entry);
-}
-
-function renderStaticListBoxItem(item: ListBoxItemDescriptor): React.ReactNode {
-  return (
-    <AriaListBoxItem
-      key={item.id}
-      id={item.id}
-      textValue={item.textValue ?? item.label}
-      isDisabled={item.isDisabled}
-      href={item.href}
-      className="react-aria-ListBoxItem"
-    >
-      <span slot="label">{item.label}</span>
-      {item.description ? (
-        <span slot="description">{item.description}</span>
-      ) : null}
-    </AriaListBoxItem>
-  );
 }

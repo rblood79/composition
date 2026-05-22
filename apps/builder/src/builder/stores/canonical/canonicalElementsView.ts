@@ -55,7 +55,7 @@ type CanonicalScopeMetadata = {
 const CANONICAL_REF_CHILD_PATCHES_FIELD = "descendants" as const;
 
 type CanonicalComponentMirrorFields = {
-  [CANONICAL_REF_CHILD_PATCHES_FIELD]?: Record<string, unknown>;
+  [CANONICAL_REF_CHILD_PATCHES_FIELD]?: unknown;
   metadata?: CanonicalNode["metadata"];
   ref?: string;
   reusable?: true;

@@ -16,17 +16,10 @@ import type { DataBinding } from "../types";
 import type { ComponentSize } from "../types";
 import { useCollectionData } from "../hooks";
 import { Skeleton } from "./Skeleton";
-import {
-  toTreeRacProps,
-  type TreeCanonicalProps,
-  type TreeItemDescriptor,
-} from "../catalog/outputs/toRacProps";
 
 import "./styles/Tree.css";
 
 export interface MyTreeProps<T extends object> extends TreeProps<T> {
-  "data-canonical-id"?: string;
-  "data-element-id"?: string;
   /**
    * M3 variant
    * @default 'primary'
@@ -89,7 +82,6 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
     isLoading: externalLoading,
     skeletonNodeCount = 3,
     children,
-    items: inputItems,
     ...restProps
   } = props;
 
@@ -135,42 +127,6 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
   const treeClassName = composeRenderProps(restProps.className, (cls) =>
     cls ? `react-aria-Tree ${cls}` : "react-aria-Tree",
   );
-  const projectedProps = toTreeRacProps({
-    ...restProps,
-    items: inputItems,
-    variant,
-  } as TreeCanonicalProps);
-
-  if (projectedProps.items && projectedProps.items.length > 0) {
-    const selectedKeys =
-      projectedProps.selectedKeys ??
-      (projectedProps.selectedKey ? [projectedProps.selectedKey] : undefined);
-    const defaultSelectedKeys =
-      projectedProps.defaultSelectedKeys ??
-      (projectedProps.defaultSelectedKey
-        ? [projectedProps.defaultSelectedKey]
-        : undefined);
-
-    return (
-      <AriaTree
-        {...restProps}
-        aria-label={projectedProps["aria-label"]}
-        className={treeClassName}
-        data-variant={projectedProps.variant}
-        data-size={size}
-        selectionMode={projectedProps.selectionMode}
-        selectionBehavior={projectedProps.selectionBehavior}
-        disallowEmptySelection={projectedProps.disallowEmptySelection}
-        autoFocus={projectedProps.autoFocus}
-        selectedKeys={selectedKeys}
-        defaultSelectedKeys={defaultSelectedKeys}
-        expandedKeys={projectedProps.expandedKeys}
-        defaultExpandedKeys={projectedProps.defaultExpandedKeys}
-      >
-        {renderCanonicalTreeItems(projectedProps.items)}
-      </AriaTree>
-    );
-  }
 
   // DataBinding이 있고 데이터가 로드된 경우
   if (dataBinding && treeData.length > 0) {
@@ -237,28 +193,6 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
       {children}
     </AriaTree>
   );
-}
-
-function renderCanonicalTreeItems(
-  items: TreeItemDescriptor[],
-): React.ReactNode {
-  return items.map((item) => {
-    const childItems = item.children
-      ? renderCanonicalTreeItems(item.children)
-      : undefined;
-    return (
-      <TreeItem
-        key={item.id}
-        id={item.id}
-        title={item.label}
-        textValue={item.textValue ?? item.label}
-        isDisabled={item.isDisabled}
-        hasChildren={!!childItems}
-        showInfoButton={false}
-        childItems={childItems}
-      />
-    );
-  });
 }
 
 export function TreeItemContent(

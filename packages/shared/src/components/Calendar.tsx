@@ -10,17 +10,10 @@ import {
   Text,
   composeRenderProps,
 } from "react-aria-components";
-import type { CSSProperties } from "react";
-import { getLocalTimeZone, today } from "@internationalized/date";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { safeParseDateString } from "../utils/core/dateUtils";
 import type { ComponentSize } from "../types";
 import { Skeleton } from "./Skeleton";
-import {
-  toCalendarRacProps,
-  type CalendarCanonicalProps,
-  type CalendarRacProps,
-} from "../catalog/outputs/toRacProps";
 
 import "./styles/Calendar.css";
 
@@ -72,33 +65,12 @@ export function Calendar<T extends DateValue>({
   isLoading,
   ...props
 }: CalendarProps<T>) {
-  const projectedProps = toCalendarRacProps({
-    ...props,
-    variant,
-    size,
-    errorMessage,
-    locale,
-    calendarSystem,
-    defaultToday: _defaultToday,
-    minValue,
-    maxValue,
-    defaultValue: props.defaultValue,
-    defaultFocusedValue: props.defaultFocusedValue,
-    selectionAlignment,
-    pageBehavior,
-    maxVisibleMonths,
-    isLoading,
-  } as CalendarCanonicalProps);
-
-  const projectedSize = projectedProps.size as CalendarRacProps["size"];
-  const projectedMaxVisibleMonths = projectedProps.maxVisibleMonths;
-
-  if (projectedProps.isLoading) {
+  if (isLoading) {
     return (
       <Skeleton
         componentVariant="calendar"
-        size={projectedSize}
-        className={projectedProps.className}
+        size={size}
+        className={props.className as string}
         aria-label="Loading calendar..."
       />
     );
@@ -111,48 +83,32 @@ export function Calendar<T extends DateValue>({
     typeof maxValue === "string" ? safeParseDateString(maxValue) : maxValue;
 
   const parsedDefaultValue =
-    typeof projectedProps.defaultValue === "string"
-      ? safeParseDateString(projectedProps.defaultValue)
+    typeof props.defaultValue === "string"
+      ? safeParseDateString(props.defaultValue)
       : props.defaultValue;
 
   const parsedDefaultFocusedValue =
-    typeof projectedProps.defaultFocusedValue === "string"
-      ? safeParseDateString(projectedProps.defaultFocusedValue)
+    typeof props.defaultFocusedValue === "string"
+      ? safeParseDateString(props.defaultFocusedValue)
       : props.defaultFocusedValue;
 
-  const defaultValue =
-    projectedProps.defaultToday && !props.value && !parsedDefaultValue
-      ? (today(getLocalTimeZone()) as T)
-      : (parsedDefaultValue as T | undefined);
-
-  const calendarClassName = composeRenderProps(
-    projectedProps.className,
-    (className) =>
-      className ? `react-aria-Calendar ${className}` : "react-aria-Calendar",
+  const calendarClassName = composeRenderProps(props.className, (className) =>
+    className ? `react-aria-Calendar ${className}` : "react-aria-Calendar",
   );
 
   const calendar = (
     <AriaCalendar
       {...props}
       className={calendarClassName}
-      style={projectedProps.style as CSSProperties | undefined}
-      data-variant={projectedProps.variant}
-      data-size={projectedSize}
-      data-max-visible-months={projectedMaxVisibleMonths}
-      data-disabled={projectedProps.isDisabled ? "true" : undefined}
-      data-invalid={projectedProps.isInvalid ? "true" : undefined}
-      aria-label={projectedProps["aria-label"]}
-      defaultValue={defaultValue}
+      data-variant={variant}
+      data-size={size}
+      defaultValue={parsedDefaultValue as T | undefined}
       defaultFocusedValue={parsedDefaultFocusedValue as T | undefined}
       minValue={parsedMinValue as T | undefined}
       maxValue={parsedMaxValue as T | undefined}
-      selectionAlignment={projectedProps.selectionAlignment}
-      pageBehavior={projectedProps.pageBehavior}
-      visibleDuration={{ months: projectedMaxVisibleMonths }}
-      isDisabled={projectedProps.isDisabled}
-      isReadOnly={projectedProps.isReadOnly}
-      isInvalid={projectedProps.isInvalid}
-      autoFocus={projectedProps.autoFocus}
+      selectionAlignment={selectionAlignment}
+      pageBehavior={pageBehavior}
+      visibleDuration={{ months: maxVisibleMonths }}
     >
       <header>
         <Button slot="previous">
@@ -164,22 +120,20 @@ export function Calendar<T extends DateValue>({
         </Button>
       </header>
       <div className="calendar-grids">
-        {Array.from({ length: projectedMaxVisibleMonths }, (_, i) => (
+        {Array.from({ length: maxVisibleMonths }, (_, i) => (
           <CalendarGrid key={i} offset={{ months: i }}>
             {(date) => <CalendarCell date={date} />}
           </CalendarGrid>
         ))}
       </div>
-      {projectedProps.errorMessage && (
-        <Text slot="errorMessage">{projectedProps.errorMessage}</Text>
-      )}
+      {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
     </AriaCalendar>
   );
 
   // locale + calendarSystem → BCP 47 Unicode extension (e.g. "ko-KR-u-ca-buddhist")
-  const effectiveLocale = projectedProps.calendarSystem
-    ? `${projectedProps.locale || navigator.language}-u-ca-${projectedProps.calendarSystem}`
-    : projectedProps.locale;
+  const effectiveLocale = calendarSystem
+    ? `${locale || navigator.language}-u-ca-${calendarSystem}`
+    : locale;
 
   if (effectiveLocale) {
     return <I18nProvider locale={effectiveLocale}>{calendar}</I18nProvider>;

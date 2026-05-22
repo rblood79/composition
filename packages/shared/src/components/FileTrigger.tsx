@@ -2,10 +2,6 @@ import {
   FileTrigger as AriaFileTrigger,
   FileTriggerProps as AriaFileTriggerProps,
 } from "react-aria-components";
-import {
-  toFileTriggerRacProps,
-  type FileTriggerCanonicalProps,
-} from "../catalog/outputs/toRacProps";
 
 import "./styles/generated/FileTrigger.css";
 
@@ -68,20 +64,13 @@ export function FileTrigger({
   children,
   ...props
 }: FileTriggerProps) {
-  const projectedProps = toFileTriggerRacProps({
-    acceptedFileTypes,
-    allowsMultiple,
-    acceptDirectory,
-    defaultCamera,
-  } as FileTriggerCanonicalProps);
-
   return (
     <AriaFileTrigger
       {...props}
-      acceptedFileTypes={projectedProps.acceptedFileTypes}
-      allowsMultiple={projectedProps.allowsMultiple}
-      acceptDirectory={projectedProps.acceptDirectory}
-      defaultCamera={projectedProps.defaultCamera}
+      acceptedFileTypes={acceptedFileTypes}
+      allowsMultiple={allowsMultiple}
+      acceptDirectory={acceptDirectory}
+      defaultCamera={defaultCamera}
     >
       {children}
     </AriaFileTrigger>

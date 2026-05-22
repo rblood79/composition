@@ -25,7 +25,6 @@ import { buildSkiaNodeData, type BuildContext } from "./buildSkiaNodeData";
 import { buildBoxNodeData } from "./buildBoxNodeData";
 import { buildImageNodeData } from "./buildImageNodeData";
 import {
-  buildGenericResolvedSkiaNodeData,
   buildSpecNodeData,
   SYNTHETIC_CHILD_PROP_MERGE_TAGS,
 } from "./buildSpecNodeData";
@@ -36,8 +35,7 @@ import { onLayoutPublished } from "../layout";
 import { getSyntheticElementsMap } from "../layout/engines/fullTreeLayout";
 import type { TransitionManager } from "./transitionManager";
 import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
-import type { CanonicalNode, ResolvedNode } from "@composition/shared";
-import { getComponentCatalogEntry } from "@composition/shared/catalog";
+import type { CanonicalNode } from "@composition/shared";
 import { InlineAlertSpec, parsePxValue } from "@composition/specs";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
 import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
@@ -126,23 +124,6 @@ export function parseTransitionShorthand(value: string): TransitionDef[] {
  */
 function isSpecPath(element: CanvasSceneNode): boolean {
   return !!getSpecForTag(element.type);
-}
-
-function isCatalogSkiaPath(element: CanvasSceneNode): boolean {
-  return getComponentCatalogEntry(element.type)?.cutover === "catalog";
-}
-
-function toResolvedSkiaNode(element: CanvasSceneNode): ResolvedNode {
-  const node: ResolvedNode = {
-    id: element.id,
-    type: element.type as ResolvedNode["type"],
-    props: element.props,
-  };
-  if (element.name !== undefined) node.name = element.name;
-  if (element.metadata !== undefined) node.metadata = element.metadata;
-  if (element.reusable === true) node.reusable = true;
-  if (element.slot !== undefined) node.slot = element.slot;
-  return node;
 }
 
 // ---------------------------------------------------------------------------
@@ -546,20 +527,6 @@ export class StoreRenderBridge {
           },
         };
       }
-    }
-
-    if (isCatalogSkiaPath(effectiveElement)) {
-      const nodeData = buildGenericResolvedSkiaNodeData({
-        node: toResolvedSkiaNode(effectiveElement),
-        theme: ctx.theme,
-        layout,
-        layoutById: ctx.layoutMap,
-      });
-      if (nodeData) return nodeData;
-      return (
-        buildBoxNodeData({ element: effectiveElement, layout }) ??
-        buildSkiaNodeData(effectiveElement, ctx)
-      );
     }
 
     if (isSpecPath(effectiveElement)) {

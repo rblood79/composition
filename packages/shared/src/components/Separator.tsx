@@ -1,20 +1,20 @@
-import {
-  Separator as AriaSeparator,
-  type SeparatorProps as AriaSeparatorProps,
-} from "react-aria-components";
-import {
-  toSeparatorRacProps,
-  type SeparatorCanonicalProps,
-} from "../catalog/outputs/toRacProps";
-import type { ComponentSizeSubset, SeparatorVariant } from "../types";
-import "./styles/Separator.css";
+/**
+ * Separator Component
+ *
+ * A visual divider for separating content sections
+ * Based on React Aria Components Separator
+ */
+
+import { Separator as AriaSeparator, SeparatorProps as AriaSeparatorProps } from 'react-aria-components';
+import type { SeparatorVariant, ComponentSizeSubset } from '../types';
+import './styles/Separator.css';
 
 export interface SeparatorProps extends AriaSeparatorProps {
   /**
    * The orientation of the separator
    * @default 'horizontal'
    */
-  orientation?: "horizontal" | "vertical";
+  orientation?: 'horizontal' | 'vertical';
 
   /**
    * Visual variant
@@ -29,26 +29,19 @@ export interface SeparatorProps extends AriaSeparatorProps {
   size?: ComponentSizeSubset;
 }
 
-/** ADR-142 primitive wrapper: canonical props are projected through catalog toRacProps. */
+/**
+ * 🚀 Phase 4: data-* 패턴 전환
+ * - tailwind-variants 제거
+ * - data-variant, data-size 속성 사용
+ */
 export function Separator(props: SeparatorProps) {
-  const projectedProps = toSeparatorRacProps(props as SeparatorCanonicalProps);
-  const {
-    orientation: _orientation,
-    variant: _variant,
-    size: _size,
-    className,
-    ...restProps
-  } = props;
-  const { orientation, variant, size } = projectedProps;
+  const { orientation = 'horizontal', variant = 'default', size = 'md', className, ...restProps } = props;
 
   return (
     <AriaSeparator
       {...restProps}
       orientation={orientation}
-      className={
-        className ? `react-aria-Separator ${className}` : "react-aria-Separator"
-      }
-      data-orientation={orientation}
+      className={className ? `react-aria-Separator ${className}` : 'react-aria-Separator'}
       data-variant={variant}
       data-size={size}
     />

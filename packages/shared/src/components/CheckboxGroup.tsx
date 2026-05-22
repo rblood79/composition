@@ -17,10 +17,6 @@ import {
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
 import { useCollectionData } from "../hooks";
-import {
-  toCheckboxGroupRacProps,
-  type CheckboxGroupCanonicalProps,
-} from "../catalog/outputs/toRacProps";
 
 import "./styles/generated/CheckboxGroup.css";
 
@@ -49,72 +45,20 @@ export interface CheckboxGroupProps extends Omit<
   size?: ComponentSizeSubset;
   necessityIndicator?: NecessityIndicator;
   labelPosition?: "top" | "side";
-  labelAlign?: "start" | "end";
-  isEmphasized?: boolean;
 }
 
 export function CheckboxGroup({
-  label: inputLabel,
-  description: inputDescription,
-  errorMessage: inputErrorMessage,
+  label,
+  description,
+  errorMessage,
   children,
-  orientation: inputOrientation,
+  orientation = "vertical",
   dataBinding,
   columnMapping,
-  size: inputSize,
-  necessityIndicator: inputNecessityIndicator,
-  labelPosition: inputLabelPosition,
-  labelAlign: inputLabelAlign,
-  isEmphasized: inputIsEmphasized,
-  value: inputValue,
-  defaultValue: inputDefaultValue,
-  isDisabled: inputIsDisabled,
-  isInvalid: inputIsInvalid,
-  isReadOnly: inputIsReadOnly,
-  isRequired: inputIsRequired,
-  name: inputName,
-  form,
-  validationBehavior: inputValidationBehavior,
-  className,
-  style,
+  size = "md",
+  labelPosition = "top",
   ...props
 }: CheckboxGroupProps) {
-  const projectedProps = toCheckboxGroupRacProps({
-    ...props,
-    className,
-    defaultValue: inputDefaultValue,
-    description: inputDescription,
-    errorMessage:
-      typeof inputErrorMessage === "string" ? inputErrorMessage : undefined,
-    form,
-    isDisabled: inputIsDisabled,
-    isEmphasized: inputIsEmphasized,
-    isInvalid: inputIsInvalid,
-    isReadOnly: inputIsReadOnly,
-    isRequired: inputIsRequired,
-    label: inputLabel,
-    labelAlign: inputLabelAlign,
-    labelPosition: inputLabelPosition,
-    name: inputName,
-    necessityIndicator: inputNecessityIndicator,
-    orientation: inputOrientation,
-    size: inputSize,
-    style,
-    validationBehavior: inputValidationBehavior,
-    value: inputValue,
-  } as CheckboxGroupCanonicalProps);
-  const label = inputLabel ?? projectedProps.label;
-  const description = inputDescription ?? projectedProps.description;
-  const errorMessage = inputErrorMessage ?? projectedProps.errorMessage;
-  const orientation = inputOrientation ?? projectedProps.orientation;
-  const size = inputSize ?? projectedProps.size;
-  const labelPosition = inputLabelPosition ?? projectedProps.labelPosition;
-  const labelAlign = inputLabelAlign ?? projectedProps.labelAlign;
-  const isEmphasized =
-    inputIsEmphasized ?? projectedProps.isEmphasized ?? false;
-  const isRequired = inputIsRequired ?? projectedProps.isRequired;
-  const necessityIndicator =
-    inputNecessityIndicator ?? projectedProps.necessityIndicator;
   // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
   const {
     data: boundData,
@@ -143,63 +87,13 @@ export function CheckboxGroup({
       dataBinding.type === "collection") ||
     isPropertyBinding;
 
-  const checkboxGroupClassName = composeRenderProps(className, (className) =>
-    className
-      ? `react-aria-CheckboxGroup ${className}`
-      : "react-aria-CheckboxGroup",
+  const checkboxGroupClassName = composeRenderProps(
+    props.className,
+    (className) =>
+      className
+        ? `react-aria-CheckboxGroup ${className}`
+        : "react-aria-CheckboxGroup",
   );
-
-  const renderLabel = () =>
-    label ? (
-      <Label>
-        {label}
-        {renderNecessityIndicator(necessityIndicator, isRequired)}
-      </Label>
-    ) : null;
-
-  const renderDescription = () =>
-    description ? <Text slot="description">{description}</Text> : null;
-
-  const renderShell = (
-    content: React.ReactNode,
-    options: { forceDisabled?: boolean; includeFieldError?: boolean } = {},
-  ) => {
-    const shellIsDisabled = options.forceDisabled
-      ? true
-      : (inputIsDisabled ?? projectedProps.isDisabled);
-
-    return (
-      <AriaCheckboxGroup
-        {...props}
-        className={checkboxGroupClassName}
-        style={style}
-        value={inputValue ?? projectedProps.value}
-        defaultValue={inputDefaultValue ?? projectedProps.defaultValue}
-        isDisabled={shellIsDisabled}
-        isInvalid={inputIsInvalid ?? projectedProps.isInvalid}
-        isReadOnly={inputIsReadOnly ?? projectedProps.isReadOnly}
-        isRequired={isRequired}
-        name={inputName ?? projectedProps.name}
-        validationBehavior={
-          inputValidationBehavior ?? projectedProps.validationBehavior
-        }
-        data-orientation={orientation}
-        data-size={size}
-        data-checkbox-size={size}
-        data-emphasized={isEmphasized || undefined}
-        data-checkbox-emphasized={isEmphasized || undefined}
-        data-label-position={labelPosition}
-        data-label-align={labelAlign}
-      >
-        {renderLabel()}
-        {content}
-        {renderDescription()}
-        {options.includeFieldError === false ? null : (
-          <FieldError>{errorMessage}</FieldError>
-        )}
-      </AriaCheckboxGroup>
-    );
-  };
 
   // ColumnMapping이 있으면 각 데이터 항목마다 Checkbox 렌더링
   // ListBox와 동일한 패턴
@@ -215,18 +109,54 @@ export function CheckboxGroup({
 
     // Loading 상태
     if (loading) {
-      return renderShell(<Text>⏳ 데이터 로딩 중...</Text>, {
-        forceDisabled: true,
-        includeFieldError: false,
-      });
+      return (
+        <AriaCheckboxGroup
+          {...props}
+          className={checkboxGroupClassName}
+          data-orientation={orientation}
+          data-checkbox-size={size}
+          data-label-position={labelPosition}
+          isDisabled
+        >
+          {label && (
+            <Label>
+              {label}
+              {renderNecessityIndicator(
+                props.necessityIndicator,
+                props.isRequired,
+              )}
+            </Label>
+          )}
+          <Text>⏳ 데이터 로딩 중...</Text>
+          {description && <Text slot="description">{description}</Text>}
+        </AriaCheckboxGroup>
+      );
     }
 
     // Error 상태
     if (error) {
-      return renderShell(<Text>❌ 오류: {error}</Text>, {
-        forceDisabled: true,
-        includeFieldError: false,
-      });
+      return (
+        <AriaCheckboxGroup
+          {...props}
+          className={checkboxGroupClassName}
+          data-orientation={orientation}
+          data-checkbox-size={size}
+          data-label-position={labelPosition}
+          isDisabled
+        >
+          {label && (
+            <Label>
+              {label}
+              {renderNecessityIndicator(
+                props.necessityIndicator,
+                props.isRequired,
+              )}
+            </Label>
+          )}
+          <Text>❌ 오류: {error}</Text>
+          {description && <Text slot="description">{description}</Text>}
+        </AriaCheckboxGroup>
+      );
     }
 
     // 데이터가 있을 때: children 템플릿 사용
@@ -236,29 +166,107 @@ export function CheckboxGroup({
       );
 
       // children은 Checkbox 템플릿 (Field 자식 포함 가능)
-      return renderShell(children);
+      return (
+        <AriaCheckboxGroup
+          {...props}
+          className={checkboxGroupClassName}
+          data-orientation={orientation}
+          data-checkbox-size={size}
+          data-label-position={labelPosition}
+        >
+          {label && (
+            <Label>
+              {label}
+              {renderNecessityIndicator(
+                props.necessityIndicator,
+                props.isRequired,
+              )}
+            </Label>
+          )}
+          {children}
+          {description && <Text slot="description">{description}</Text>}
+          <FieldError>{errorMessage}</FieldError>
+        </AriaCheckboxGroup>
+      );
     }
 
     // 데이터 없음
-    return renderShell(children);
+    return (
+      <AriaCheckboxGroup
+        {...props}
+        className={checkboxGroupClassName}
+        data-orientation={orientation}
+        data-checkbox-size={size}
+        data-label-position={labelPosition}
+      >
+        {label && (
+          <Label>
+            {label}
+            {renderNecessityIndicator(
+              props.necessityIndicator,
+              props.isRequired,
+            )}
+          </Label>
+        )}
+        {children}
+        {description && <Text slot="description">{description}</Text>}
+        <FieldError>{errorMessage}</FieldError>
+      </AriaCheckboxGroup>
+    );
   }
 
   // Dynamic Collection: 동적으로 Checkbox 생성 (columnMapping 없을 때)
   if (hasDataBinding) {
     // Loading 상태
     if (loading) {
-      return renderShell(<Text>⏳ 데이터 로딩 중...</Text>, {
-        forceDisabled: true,
-        includeFieldError: false,
-      });
+      return (
+        <AriaCheckboxGroup
+          {...props}
+          className={checkboxGroupClassName}
+          data-orientation={orientation}
+          data-checkbox-size={size}
+          data-label-position={labelPosition}
+          isDisabled
+        >
+          {label && (
+            <Label>
+              {label}
+              {renderNecessityIndicator(
+                props.necessityIndicator,
+                props.isRequired,
+              )}
+            </Label>
+          )}
+          <Text>⏳ 데이터 로딩 중...</Text>
+          {description && <Text slot="description">{description}</Text>}
+        </AriaCheckboxGroup>
+      );
     }
 
     // Error 상태
     if (error) {
-      return renderShell(<Text>❌ 오류: {error}</Text>, {
-        forceDisabled: true,
-        includeFieldError: false,
-      });
+      return (
+        <AriaCheckboxGroup
+          {...props}
+          className={checkboxGroupClassName}
+          data-orientation={orientation}
+          data-checkbox-size={size}
+          data-label-position={labelPosition}
+          isDisabled
+        >
+          {label && (
+            <Label>
+              {label}
+              {renderNecessityIndicator(
+                props.necessityIndicator,
+                props.isRequired,
+              )}
+            </Label>
+          )}
+          <Text>❌ 오류: {error}</Text>
+          {description && <Text slot="description">{description}</Text>}
+        </AriaCheckboxGroup>
+      );
     }
 
     // 데이터가 로드되었을 때
@@ -277,8 +285,23 @@ export function CheckboxGroup({
         checkboxItems,
       );
 
-      return renderShell(
-        <>
+      return (
+        <AriaCheckboxGroup
+          {...props}
+          className={checkboxGroupClassName}
+          data-orientation={orientation}
+          data-checkbox-size={size}
+          data-label-position={labelPosition}
+        >
+          {label && (
+            <Label>
+              {label}
+              {renderNecessityIndicator(
+                props.necessityIndicator,
+                props.isRequired,
+              )}
+            </Label>
+          )}
           {checkboxItems.map((item) => (
             <AriaCheckbox
               key={item.id}
@@ -300,13 +323,33 @@ export function CheckboxGroup({
               )}
             </AriaCheckbox>
           ))}
-        </>,
+          {description && <Text slot="description">{description}</Text>}
+          <FieldError>{errorMessage}</FieldError>
+        </AriaCheckboxGroup>
       );
     }
   }
 
   // Static Children (기존 방식)
-  return renderShell(children);
+  return (
+    <AriaCheckboxGroup
+      {...props}
+      className={checkboxGroupClassName}
+      data-orientation={orientation}
+      data-checkbox-size={size}
+      data-label-position={labelPosition}
+    >
+      {label && (
+        <Label>
+          {label}
+          {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
+        </Label>
+      )}
+      {children}
+      {description && <Text slot="description">{description}</Text>}
+      <FieldError>{errorMessage}</FieldError>
+    </AriaCheckboxGroup>
+  );
 }
 
 export { CheckboxGroup as MyCheckboxGroup };

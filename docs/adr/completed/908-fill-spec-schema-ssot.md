@@ -4,12 +4,6 @@
 
 Implemented — 2026-04-24 (동일 세션 Phase 0 → Phase 4 완결, 9 commits)
 
-**ADR-142 impact — 2026-05-21**: 본 ADR 의 `FillTokenSpec` 구현은 legacy
-`ComponentSpec` compatibility path 의 historical D3 contract 로 보존한다. active
-catalog component path 의 시각 SSOT 는 [ADR-142](142-starter-spec-component-system-cutover.md)
-에 따라 theme/tokens root collection + resolved canonical tree 이며, component spec
-fill schema 는 신규 active component 정의의 source 로 확장하지 않는다.
-
 ## Context
 
 ADR-904와 ADR-905로 저장/런타임 정본은 top-level `fills`로 정리됐고, Preview/Publish는 `fills -> CSS background*` adapter를 통해 소비하도록 수렴했다. 그러나 component spec 계층은 아직 `background`, `backgroundHover`, `backgroundPressed`, `props.style?.backgroundColor` override를 중심으로 유지된다. 즉 runtime/storage SSOT는 `fills`인데, spec default visual contract는 여전히 background token 기반이다.

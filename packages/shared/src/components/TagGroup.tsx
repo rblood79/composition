@@ -15,11 +15,6 @@ import {
 } from "react-aria-components";
 import { X } from "lucide-react";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
-import {
-  toTagGroupRacProps,
-  type TagGroupCanonicalProps,
-  type TagGroupItemDescriptor,
-} from "../catalog/outputs/toRacProps";
 
 import { useCollectionData } from "../hooks";
 import "./styles/TagGroup.css";
@@ -52,12 +47,6 @@ export interface TagGroupProps<T>
   // Tag 스타일 제어
   variant?: string;
   size?: "sm" | "md" | "lg";
-  contextualHelp?: string;
-  labelAlign?: "start" | "end";
-  isEmphasized?: boolean;
-  isReadOnly?: boolean;
-  isInvalid?: boolean;
-  allowsCustomValue?: boolean;
   /**
    * React Aria 1.13.0: 커스텀 필터 함수
    * @example filter={(item) => item.status === 'active'}
@@ -103,12 +92,6 @@ export function TagGroup<T extends object>({
   removedItemIds = [],
   variant = "default",
   size = "md",
-  contextualHelp,
-  labelAlign = "start",
-  isEmphasized = false,
-  isReadOnly = false,
-  isInvalid = false,
-  allowsCustomValue = false,
   maxRows,
   filter,
   filterText,
@@ -118,50 +101,6 @@ export function TagGroup<T extends object>({
 }: TagGroupProps<T>): JSX.Element {
   // Build className with variant and size (재사용을 위해 최상위에 선언)
   const tagGroupClassName = "react-aria-TagGroup";
-  const projectedProps = toTagGroupRacProps({
-    ...props,
-    label,
-    description,
-    errorMessage,
-    contextualHelp,
-    variant,
-    size,
-    labelPosition,
-    labelAlign,
-    isEmphasized,
-    isReadOnly,
-    isInvalid,
-    allowsCustomValue,
-    maxRows,
-    filterText,
-    filterFields,
-    items,
-    allowsRemoving,
-    selectionMode,
-    selectionBehavior,
-    selectedKeys,
-    defaultSelectedKeys,
-    disallowEmptySelection,
-    style,
-  } as TagGroupCanonicalProps);
-  const projectedItems = projectedProps.items ?? [];
-  const effectiveLabel = projectedProps.label ?? label;
-  const effectiveDescription = projectedProps.description ?? description;
-  const effectiveErrorMessage = projectedProps.errorMessage ?? errorMessage;
-  const effectiveVariant = projectedProps.variant;
-  const effectiveSize = projectedProps.size;
-  const effectiveLabelPosition = projectedProps.labelPosition;
-  const effectiveMaxRows = projectedProps.maxRows ?? maxRows;
-  const effectiveAllowsRemoving = projectedProps.allowsRemoving;
-  const effectiveSelectionMode = projectedProps.selectionMode;
-  const effectiveSelectionBehavior = projectedProps.selectionBehavior;
-  const effectiveSelectedKeys = projectedProps.selectedKeys ?? selectedKeys;
-  const effectiveDefaultSelectedKeys =
-    projectedProps.defaultSelectedKeys ?? defaultSelectedKeys;
-  const effectiveDisallowEmptySelection = projectedProps.disallowEmptySelection;
-  const effectiveIsDisabled = projectedProps.isDisabled;
-  const effectiveIsReadOnly = projectedProps.isReadOnly;
-  const effectiveIsInvalid = projectedProps.isInvalid;
 
   // maxRows: S2 패턴 — 숨겨진 미러 DOM에서 측정, 실제 DOM에서 슬라이스
   // 핵심: 미러 DOM은 항상 전체 태그 렌더 (상태 무관) → 무한 루프 방지
@@ -169,11 +108,11 @@ export function TagGroup<T extends object>({
   const hiddenRef = useRef<HTMLDivElement>(null);
   const [visibleTagCount, setVisibleTagCount] = useState<number>(Infinity);
 
-  const hasMaxRows = effectiveMaxRows != null && effectiveMaxRows > 0;
+  const hasMaxRows = maxRows != null && maxRows > 0;
   const showCollapsed = hasMaxRows && isCollapsed;
 
   const computeVisibleTagCount = useCallback(() => {
-    if (!hiddenRef.current || !effectiveMaxRows) return;
+    if (!hiddenRef.current || !maxRows) return;
     const items = hiddenRef.current.children;
     if (items.length === 0) return;
 
@@ -186,14 +125,14 @@ export function TagGroup<T extends object>({
         currY = y;
         rowCount++;
       }
-      if (rowCount > effectiveMaxRows) break;
+      if (rowCount > maxRows) break;
       index++;
     }
 
     flushSync(() => {
       setVisibleTagCount(index);
     });
-  }, [effectiveMaxRows]);
+  }, [maxRows]);
 
   // 초기 측정 + 컬렉션 변경 시 재측정
   useEffect(() => {
@@ -220,7 +159,7 @@ export function TagGroup<T extends object>({
       setIsCollapsed(true);
       setVisibleTagCount(Infinity);
     });
-  }, [effectiveMaxRows]);
+  }, [maxRows]);
 
   // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
   const {
@@ -303,42 +242,15 @@ export function TagGroup<T extends object>({
           );
         });
 
-  const renderProjectedTag = useCallback(
-    (item: TagGroupItemDescriptor) => (
-      <AriaTag
-        key={item.id}
-        id={item.id}
-        textValue={item.label}
-        isDisabled={item.isDisabled}
-        className="react-aria-Tag"
-      >
-        {({ allowsRemoving: removing }) => (
-          <>
-            {item.label}
-            {(removing || item.allowsRemoving) && (
-              <Button slot="remove" className="tag-remove-btn">
-                <X size={14} />
-              </Button>
-            )}
-          </>
-        )}
-      </AriaTag>
-    ),
-    [],
-  );
-
   // children에서 텍스트 추출 (미러 DOM용, data-binding 경로에서는 빈 배열)
   const tagTexts = React.useMemo(() => {
-    if (!hasDataBinding && projectedItems.length > 0 && !children) {
-      return projectedItems.map((item) => item.label);
-    }
     if (hasDataBinding || !Array.isArray(allMappedChildren)) return [];
     return allMappedChildren.map((child) => {
       if (!React.isValidElement(child)) return "";
       const p = child.props as { textValue?: string; children?: unknown };
       return p.textValue || String(p.children || "");
     });
-  }, [hasDataBinding, projectedItems, children, allMappedChildren]);
+  }, [hasDataBinding, allMappedChildren]);
 
   // children이 render function인지 확인 (Field children 렌더링 모드)
   const isRenderFunction = typeof children === "function";
@@ -560,29 +472,13 @@ export function TagGroup<T extends object>({
     }
   }
 
-  const hasProjectedStaticItems =
-    !hasDataBinding && projectedItems.length > 0 && !children;
-  const totalChildCount = hasProjectedStaticItems
-    ? projectedItems.length
-    : tagTexts.length;
+  const totalChildCount = tagTexts.length;
 
   // 실제 렌더링할 children: collapsed 시 visibleTagCount만큼 슬라이스
   const displayChildren =
-    !hasProjectedStaticItems &&
-    showCollapsed &&
-    Array.isArray(allMappedChildren)
+    showCollapsed && Array.isArray(allMappedChildren)
       ? allMappedChildren.slice(0, visibleTagCount)
       : allMappedChildren;
-  const displayProjectedItems =
-    showCollapsed && hasProjectedStaticItems
-      ? projectedItems.slice(0, visibleTagCount)
-      : projectedItems;
-  const tagListItems = hasProjectedStaticItems
-    ? (displayProjectedItems as unknown as Iterable<T>)
-    : items;
-  const tagListChildren = hasProjectedStaticItems
-    ? (renderProjectedTag as unknown as TagListProps<T>["children"])
-    : displayChildren;
 
   const showAllButton = showCollapsed && visibleTagCount < totalChildCount;
 
@@ -595,8 +491,8 @@ export function TagGroup<T extends object>({
           inert
           aria-hidden="true"
           className="react-aria-TagList"
-          data-type-size={effectiveSize}
-          data-label-position={effectiveLabelPosition}
+          data-type-size={size}
+          data-label-position={labelPosition}
           style={{
             display: "flex",
             flexWrap: "wrap",
@@ -618,31 +514,26 @@ export function TagGroup<T extends object>({
       )}
       <AriaTagGroup
         {...props}
-        selectionMode={effectiveSelectionMode}
-        selectionBehavior={effectiveSelectionBehavior}
-        selectedKeys={effectiveSelectedKeys}
-        defaultSelectedKeys={effectiveDefaultSelectedKeys}
+        selectionMode={selectionMode}
+        selectionBehavior={selectionBehavior}
+        selectedKeys={selectedKeys}
+        defaultSelectedKeys={defaultSelectedKeys}
         onSelectionChange={onSelectionChange}
-        disallowEmptySelection={effectiveDisallowEmptySelection}
-        onRemove={effectiveAllowsRemoving ? onRemove : undefined}
+        disallowEmptySelection={disallowEmptySelection}
+        onRemove={allowsRemoving ? onRemove : undefined}
         className={tagGroupClassName}
-        data-type-variant={effectiveVariant}
-        data-type-size={effectiveSize}
-        data-label-position={effectiveLabelPosition}
-        data-tag-variant={effectiveVariant}
-        data-tag-size={effectiveSize}
-        data-disabled={effectiveIsDisabled || undefined}
-        data-readonly={effectiveIsReadOnly || undefined}
-        data-invalid={effectiveIsInvalid || undefined}
+        data-type-variant={variant}
+        data-type-size={size}
+        data-label-position={labelPosition}
       >
-        {effectiveLabel && <Label>{effectiveLabel}</Label>}
+        {label && <Label>{label}</Label>}
         <div className="tag-list-wrapper">
           <TagList
-            items={tagListItems}
+            items={items}
             renderEmptyState={renderEmptyState}
             className="react-aria-TagList"
           >
-            {tagListChildren}
+            {displayChildren}
           </TagList>
           {showAllButton && (
             <button
@@ -663,12 +554,8 @@ export function TagGroup<T extends object>({
             </button>
           )}
         </div>
-        {effectiveDescription && (
-          <Text slot="description">{effectiveDescription}</Text>
-        )}
-        {effectiveErrorMessage && (
-          <Text slot="errorMessage">{effectiveErrorMessage}</Text>
-        )}
+        {description && <Text slot="description">{description}</Text>}
+        {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
       </AriaTagGroup>
     </div>
   );

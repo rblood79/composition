@@ -30,7 +30,6 @@
 import type { DataBinding } from "../types/element.types";
 
 export type ExtensionReadPriority =
-  | "extension-first"
   | "legacy-first"
   | "props-first"
   | "legacy-only";
@@ -44,10 +43,6 @@ interface LegacyElementWithExtension {
   props?: Record<string, unknown> | unknown;
   events?: unknown;
   dataBinding?: unknown;
-  "x-composition"?: {
-    events?: unknown;
-    dataBinding?: unknown;
-  };
 }
 
 /**
@@ -90,10 +85,6 @@ export function getElementDataBinding(
   element: LegacyElementWithExtension,
   priority: ExtensionReadPriority = "legacy-first",
 ): DataBinding | undefined {
-  const extensionBinding = element["x-composition"]?.dataBinding;
-  if (priority === "extension-first") {
-    if (extensionBinding !== undefined) return extensionBinding as DataBinding;
-  }
   if (priority === "legacy-only") {
     if (element.dataBinding !== undefined)
       return element.dataBinding as DataBinding;

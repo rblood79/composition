@@ -28,22 +28,6 @@ describe("StoreRenderBridge layout publish contract", () => {
     expect(source).not.toMatch(/const resolvedTree = resolveCanonicalRefTree/);
   });
 
-  it("routes active catalog components through generic Skia before spec shapes", async () => {
-    const source = await readFile(
-      resolve(__dirname, "StoreRenderBridge.ts"),
-      "utf-8",
-    );
-
-    expect(source).toContain("buildGenericResolvedSkiaNodeData");
-    expect(source).toContain("toResolvedSkiaNode");
-
-    const genericIndex = source.indexOf("buildGenericResolvedSkiaNodeData");
-    const specIndex = source.indexOf("buildSpecNodeData({");
-    expect(genericIndex).toBeGreaterThanOrEqual(0);
-    expect(specIndex).toBeGreaterThanOrEqual(0);
-    expect(genericIndex).toBeLessThan(specIndex);
-  });
-
   it("tracks projectionVersion instead of inferring projection changes from map identity", async () => {
     const source = await readFile(
       resolve(__dirname, "StoreRenderBridge.ts"),

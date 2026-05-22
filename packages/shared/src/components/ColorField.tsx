@@ -13,10 +13,6 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
-import {
-  toColorFieldRacProps,
-  type ColorFieldCanonicalProps,
-} from "../catalog/outputs/toRacProps";
 
 import "./styles/generated/ColorField.css";
 
@@ -39,7 +35,6 @@ export interface ColorFieldProps extends AriaColorFieldProps {
   labelPosition?: "top" | "side";
   labelAlign?: "start" | "center" | "end";
   isQuiet?: boolean;
-  placeholder?: string;
 }
 
 /**
@@ -56,87 +51,42 @@ export interface ColorFieldProps extends AriaColorFieldProps {
  * <ColorField isInvalid errorMessage="Invalid color" />
  */
 export function ColorField({
-  size,
+  size = "md",
   label,
   description,
   errorMessage,
   necessityIndicator,
-  labelPosition,
+  labelPosition = "top",
   labelAlign,
   isQuiet,
-  placeholder,
-  value,
-  defaultValue,
-  channel,
-  colorSpace,
-  isRequired,
-  isDisabled,
-  isReadOnly,
-  isInvalid,
   ...props
 }: ColorFieldProps) {
-  const projectedProps = toColorFieldRacProps({
-    ...props,
-    label,
-    description,
-    errorMessage,
-    necessityIndicator,
-    labelPosition,
-    labelAlign,
-    isQuiet,
-    placeholder,
-    value,
-    defaultValue,
-    channel,
-    colorSpace,
-    isRequired,
-    isDisabled,
-    isReadOnly,
-    isInvalid,
-  } as ColorFieldCanonicalProps);
   const colorFieldClassName = composeRenderProps(
-    props.className ?? projectedProps.className,
+    props.className,
     (className) =>
       className
         ? `react-aria-ColorField ${className}`
         : "react-aria-ColorField",
   );
-  const fieldLabel = label;
-  const fieldDescription = description ?? projectedProps.description;
-  const fieldErrorMessage = errorMessage ?? projectedProps.errorMessage;
-  const fieldIsRequired = isRequired ?? projectedProps.isRequired;
 
   return (
     <AriaColorField
       {...props}
       className={colorFieldClassName}
-      data-size={size ?? projectedProps.size}
-      data-label-position={labelPosition ?? projectedProps.labelPosition}
-      data-label-align={labelAlign ?? projectedProps.labelAlign}
-      data-quiet={(isQuiet ?? projectedProps.isQuiet) ? "true" : undefined}
-      value={value === undefined ? projectedProps.value : value}
-      defaultValue={
-        defaultValue === undefined ? projectedProps.defaultValue : defaultValue
-      }
-      channel={channel ?? projectedProps.channel}
-      colorSpace={colorSpace ?? projectedProps.colorSpace}
-      isRequired={fieldIsRequired}
-      isDisabled={isDisabled ?? projectedProps.isDisabled}
-      isReadOnly={isReadOnly ?? projectedProps.isReadOnly}
-      isInvalid={isInvalid ?? projectedProps.isInvalid}
+      data-size={size}
+      data-label-position={labelPosition}
+      data-label-align={labelAlign}
+      data-quiet={isQuiet ? "true" : undefined}
     >
-      {fieldLabel && (
+      {label && (
         <Label>
-          {fieldLabel}
-          {renderNecessityIndicator(
-            necessityIndicator ?? projectedProps.necessityIndicator,
-            fieldIsRequired,
-          )}
+          {label}
+          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
         </Label>
       )}
-      <Input placeholder={placeholder ?? projectedProps.placeholder} />
-      {fieldDescription && <Text slot="description">{fieldDescription}</Text>}
-      <FieldError>{fieldErrorMessage}</FieldError>
+      <Input />
+      {description && <Text slot="description">{description}</Text>}
+      <FieldError>{errorMessage}</FieldError>
     </AriaColorField>
   );
 }

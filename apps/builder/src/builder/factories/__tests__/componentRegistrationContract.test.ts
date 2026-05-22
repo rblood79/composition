@@ -31,17 +31,9 @@ import { describe, it, expect } from "vitest";
 
 import { rendererMap } from "@composition/shared/renderers";
 import { TAG_SPEC_MAP } from "@composition/specs";
-import {
-  componentCatalog,
-  getPrimitiveBinding,
-  listComponentCatalogEntries,
-  listPlaceableCatalogEntries,
-} from "@composition/shared/catalog";
 import { TAG_SPEC_MAP as BUILDER_TAG_SPEC_MAP } from "@/builder/workspace/canvas/sprites/tagSpecMap";
 import { ComponentFactory } from "@/builder/factories/ComponentFactory";
 import { DEFAULT_PROPS_MAP } from "@/types/builder/unified.types";
-import { CANONICAL_PRIMITIVE_RENDERER_TYPES } from "@/preview/components/CanonicalNodeRenderer";
-import { resolveCatalogElementCreation } from "@/builder/hooks/useElementCreator";
 
 // ── repo root + universe (spec 파일 glob) ──
 const TEST_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -77,7 +69,6 @@ const exceptions = readJson("componentRegistrationException.json");
 
 // ── 레지스트리 키 집합 ──
 const rendererKeys = new Set(Object.keys(rendererMap));
-const canonicalPrimitiveRendererKeys = CANONICAL_PRIMITIVE_RENDERER_TYPES;
 const tagSpecKeys = new Set(Object.keys(TAG_SPEC_MAP));
 const builderTagSpecKeys = new Set(Object.keys(BUILDER_TAG_SPEC_MAP));
 const placeable = ComponentFactory.getRegisteredTypes();
@@ -249,81 +240,5 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
     expect(ratchetVerdict(6, 5)).toBe("append");
     expect(ratchetVerdict(4, 5)).toBe("shrink");
     expect(ratchetVerdict(5, 5)).toBe("ok");
-  });
-
-  it("ADR-142 불변식 C — active catalog placeable 은 Panel/Factory/generic 렌더러 coverage 를 가진다", () => {
-    const activeEntries = listPlaceableCatalogEntries({
-      includeLayoutOnly: true,
-    });
-    const violations: string[] = [];
-
-    for (const entry of activeEntries) {
-      if (entry.kind === "primitive") {
-        const hasPreviewRenderer =
-          hasCI(rendererKeys, entry.type) ||
-          hasCI(canonicalPrimitiveRendererKeys, entry.type);
-        if (!hasPreviewRenderer) {
-          violations.push(
-            `${entry.type}: rendererMap/canonical primitive renderer 누락`,
-          );
-        }
-      }
-      if (!hasCI(builderTagSpecKeys, entry.type)) {
-        violations.push(`${entry.type}: builder TAG_SPEC_MAP 누락`);
-      }
-      if (!hasCI(defaultPropsKeys, entry.type)) {
-        violations.push(`${entry.type}: getDefaultProps 누락`);
-      }
-      if (entry.kind === "primitive" && !getPrimitiveBinding(entry.type)) {
-        violations.push(`${entry.type}: PrimitiveBinding lookup 누락`);
-      }
-      if (entry.kind === "reusable") {
-        const creation = resolveCatalogElementCreation(entry);
-        if (
-          creation?.elementType !== "ref" ||
-          creation.ref !== entry.reusableId ||
-          creation.componentRole !== "instance"
-        ) {
-          violations.push(`${entry.type}: reusable catalog ref creation 누락`);
-        }
-      }
-      if (entry.kind === "native") {
-        const creation = resolveCatalogElementCreation(entry);
-        if (creation?.elementType !== entry.type) {
-          violations.push(`${entry.type}: native catalog creation 누락`);
-        }
-      }
-    }
-
-    expect(violations, violations.join("\n")).toEqual([]);
-  });
-
-  it("ADR-142 불변식 D — catalog family cutover 값은 family 안에서 섞이지 않는다", () => {
-    const byFamily = new Map<string, Set<string>>();
-
-    for (const entry of componentCatalog) {
-      const states = byFamily.get(entry.family) ?? new Set<string>();
-      states.add(entry.cutover);
-      byFamily.set(entry.family, states);
-    }
-
-    const mixedFamilies = [...byFamily.entries()]
-      .filter(([, states]) => states.size > 1)
-      .map(([family, states]) => `${family}: ${[...states].join(",")}`);
-
-    expect(mixedFamilies, mixedFamilies.join("\n")).toEqual([]);
-  });
-
-  it("ADR-142 불변식 E — legacy catalog entry 는 active placeable catalog 에 노출되지 않는다", () => {
-    const activeTypes = new Set(
-      listPlaceableCatalogEntries().map((entry) => entry.type),
-    );
-    const legacyExposed = listComponentCatalogEntries()
-      .filter(
-        (entry) => entry.cutover === "legacy" && activeTypes.has(entry.type),
-      )
-      .map((entry) => entry.type);
-
-    expect(legacyExposed).toEqual([]);
   });
 });

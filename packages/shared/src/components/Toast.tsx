@@ -1,37 +1,15 @@
-import {
-  useCallback,
-  useMemo,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
-import {
-  UNSTABLE_Toast as AriaToast,
-  UNSTABLE_ToastContent as AriaToastContent,
-  UNSTABLE_ToastQueue as ToastQueue,
-  UNSTABLE_ToastRegion as AriaToastRegion,
-  Text as AriaText,
-  type ToastProps as AriaToastProps,
-} from "react-aria-components/Toast";
-import { AlertCircle, AlertTriangle, CheckCircle, Info, X } from "lucide-react";
+import { useCallback, useState, ReactNode } from "react";
 import { Button } from "./Button";
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { ToastContext } from "./ToastContext";
-import {
-  toToastRacProps,
-  type ToastCanonicalProps,
-  type ToastRacProps,
-} from "../catalog/outputs/toRacProps";
 
-import "./styles/generated/Toast.css";
 import "./styles/Toast.css";
 
-export type ToastVariant =
-  | ToastRacProps["variant"]
-  | "success"
-  | "warning"
-  | "error";
+/**
+ * Toast types and interfaces
+ */
+export type ToastVariant = "info" | "success" | "warning" | "error";
 export type ToastPosition =
-  | ToastRacProps["position"]
   | "top-right"
   | "top-left"
   | "bottom-right"
@@ -51,18 +29,9 @@ export interface ToastItem extends ToastOptions {
   id: string;
 }
 
-interface ToastContentData {
-  title: string;
-  description?: string;
-  variant: ToastRacProps["variant"];
-  size: ToastRacProps["size"];
-  className?: string;
-  style?: Record<string, unknown>;
-  markerProps?: Record<"data-canonical-id" | "data-element-id", string>;
-}
-
-type QueuedToast = AriaToastProps<ToastContentData>["toast"];
-
+/**
+ * ToastProvider - Provides toast context to children
+ */
 interface ToastProviderProps {
   children: ReactNode;
   position?: ToastPosition;
@@ -75,47 +44,40 @@ export function ToastProvider({
   maxToasts = 5,
 }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const queue = useMemo(
-    () =>
-      new ToastQueue<ToastContentData>({
-        maxVisibleToasts: maxToasts,
-      }),
-    [maxToasts],
-  );
 
-  const removeToast = useCallback(
-    (id: string) => {
-      queue.close(id);
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    },
-    [queue],
-  );
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
 
   const removeAllToasts = useCallback(() => {
-    queue.clear();
     setToasts([]);
-  }, [queue]);
+  }, []);
 
   const addToast = useCallback(
     (options: ToastOptions): string => {
-      let id = "";
-      const projectedProps = toToastRacProps({ ...options });
-      id = queue.add(toToastContent(projectedProps), {
-        timeout: projectedProps.timeout,
-        onClose: () => {
-          setToasts((prev) => prev.filter((toast) => toast.id !== id));
-          options.onClose?.();
-        },
-      });
+      const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const timeout = options.timeout ?? 5000;
 
       setToasts((prev) => {
-        const next = [...prev, { ...options, id }];
-        return next.length > maxToasts ? next.slice(-maxToasts) : next;
+        const newToasts = [...prev, { ...options, id }];
+        // Limit max toasts
+        if (newToasts.length > maxToasts) {
+          return newToasts.slice(-maxToasts);
+        }
+        return newToasts;
       });
+
+      // Auto dismiss
+      if (timeout > 0) {
+        setTimeout(() => {
+          removeToast(id);
+          options.onClose?.();
+        }, timeout);
+      }
 
       return id;
     },
-    [maxToasts, queue],
+    [maxToasts, removeToast],
   );
 
   return (
@@ -123,165 +85,89 @@ export function ToastProvider({
       value={{ toasts, addToast, removeToast, removeAllToasts }}
     >
       {children}
-      <ToastRegion queue={queue} position={position} />
+      <ToastRegion
+        toasts={toasts}
+        position={position}
+        onDismiss={removeToast}
+      />
     </ToastContext.Provider>
   );
 }
 
-export interface ToastRegionProps {
-  queue?: ToastQueue<ToastContentData>;
-  toasts?: ToastItem[];
-  position?: ToastPosition;
-  onDismiss?: (id: string) => void;
+/**
+ * ToastRegion - Container for displaying toasts
+ */
+interface ToastRegionProps {
+  toasts: ToastItem[];
+  position: ToastPosition;
+  onDismiss: (id: string) => void;
 }
 
-export function ToastRegion({
-  queue,
-  toasts = [],
-  position = "bottom",
-  onDismiss: _onDismiss,
-}: ToastRegionProps) {
-  const fallbackQueue = useMemo(() => {
-    const nextQueue = new ToastQueue<ToastContentData>({
-      maxVisibleToasts: Math.max(toasts.length, 1),
-    });
-    for (const toast of toasts) {
-      const projectedProps = toToastRacProps({ ...toast });
-      nextQueue.add(toToastContent(projectedProps));
-    }
-    return nextQueue;
-  }, [toasts]);
+function ToastRegion({ toasts, position, onDismiss }: ToastRegionProps) {
+  if (toasts.length === 0) return null;
 
   return (
-    <AriaToastRegion
+    <div
+      className="react-aria-ToastRegion"
+      data-position={position}
+      role="region"
       aria-label="Notifications"
-      data-position={normalizeToastPositionAttribute(position)}
-      queue={queue ?? fallbackQueue}
+      aria-live="polite"
     >
-      {({ toast }) => <ToastView toast={toast} />}
-    </AriaToastRegion>
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          toast={toast}
+          onDismiss={() => onDismiss(toast.id)}
+        />
+      ))}
+    </div>
   );
 }
 
-export interface ToastProps extends ToastCanonicalProps {
-  toast?: QueuedToast;
-  "data-canonical-id"?: string;
-  "data-element-id"?: string;
+/**
+ * Toast - Individual toast notification
+ */
+interface ToastProps {
+  toast: ToastItem;
+  onDismiss: () => void;
 }
 
-export function Toast(props: ToastProps) {
-  if (props.toast) {
-    return <ToastView toast={props.toast} />;
-  }
+function Toast({ toast, onDismiss }: ToastProps) {
+  const { title, description, variant = "info" } = toast;
 
-  return <StandaloneToast {...props} />;
-}
-
-function StandaloneToast(props: ToastProps) {
-  const projectedProps = toToastRacProps(props);
-  const queue = useMemo(() => {
-    const nextQueue = new ToastQueue<ToastContentData>({
-      maxVisibleToasts: 1,
-    });
-    nextQueue.add(
-      toToastContent(projectedProps, {
-        "data-canonical-id": props["data-canonical-id"] ?? "",
-        "data-element-id": props["data-element-id"] ?? "",
-      }),
-    );
-    return nextQueue;
-  }, [
-    projectedProps.title,
-    projectedProps.description,
-    projectedProps.variant,
-    projectedProps.size,
-    projectedProps.className,
-    projectedProps.style,
-    props["data-canonical-id"],
-    props["data-element-id"],
-  ]);
-
-  return <ToastRegion queue={queue} position={projectedProps.position} />;
-}
-
-function ToastView({ toast }: { toast: QueuedToast }) {
-  const { title, description, variant, size, className, style, markerProps } =
-    toast.content;
-  const Icon = getToastIcon(variant);
-  const domMarkerProps =
-    markerProps?.["data-canonical-id"] && markerProps["data-element-id"]
-      ? markerProps
-      : {};
+  const Icon = {
+    info: Info,
+    success: CheckCircle,
+    warning: AlertTriangle,
+    error: AlertCircle,
+  }[variant];
 
   return (
-    <AriaToast
-      toast={toast}
-      {...domMarkerProps}
-      className={
-        className ? `react-aria-Toast ${className}` : "react-aria-Toast"
-      }
-      data-size={size}
+    <div
+      className="react-aria-Toast"
       data-variant={variant}
-      style={style as CSSProperties | undefined}
+      role="alert"
+      aria-atomic="true"
     >
-      <AriaToastContent>
-        <span className="toast-icon" aria-hidden="true">
-          <Icon size={20} />
-        </span>
-        <div className="toast-content">
-          <AriaText slot="title" className="toast-title">
-            {title}
-          </AriaText>
-          {description ? (
-            <AriaText slot="description" className="toast-description">
-              {description}
-            </AriaText>
-          ) : null}
-        </div>
-      </AriaToastContent>
+      <div className="toast-icon">
+        <Icon size={20} />
+      </div>
+      <div className="toast-content">
+        <div className="toast-title">{title}</div>
+        {description && <div className="toast-description">{description}</div>}
+      </div>
       <Button
-        slot="close"
         className="toast-close"
         aria-label="Dismiss"
+        onPress={onDismiss}
         variant="secondary"
         size="sm"
       >
         <X size={16} />
       </Button>
-    </AriaToast>
+    </div>
   );
 }
 
-function toToastContent(
-  props: ToastRacProps,
-  markerProps?: Record<"data-canonical-id" | "data-element-id", string>,
-): ToastContentData {
-  return {
-    title: props.title,
-    ...(props.description ? { description: props.description } : {}),
-    variant: props.variant,
-    size: props.size,
-    ...(typeof props.className === "string"
-      ? { className: props.className }
-      : {}),
-    ...(props.style ? { style: props.style } : {}),
-    ...(markerProps ? { markerProps } : {}),
-  };
-}
-
-function normalizeToastPositionAttribute(position: ToastPosition): string {
-  if (position === "top end") return "top-right";
-  if (position === "top start") return "top-left";
-  if (position === "top") return "top-center";
-  if (position === "bottom end") return "bottom-right";
-  if (position === "bottom start") return "bottom-left";
-  if (position === "bottom") return "bottom-center";
-  return position;
-}
-
-function getToastIcon(variant: ToastRacProps["variant"]) {
-  if (variant === "positive") return CheckCircle;
-  if (variant === "negative") return AlertCircle;
-  if (variant === "neutral") return AlertTriangle;
-  return Info;
-}
+export { Toast, ToastRegion };
