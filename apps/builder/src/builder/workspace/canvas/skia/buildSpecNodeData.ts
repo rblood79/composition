@@ -4991,7 +4991,25 @@ function buildGenericTabsNode(
   const style = readGenericStyle(node);
   const size = resolveGenericTabsSize(props.size);
   const isDark = theme === "dark";
-  const items: TabsItemDescriptor[] = props.items ?? [];
+
+  // ADR-066 폐기 — canonical tree 의 Tab/TabList 자식 element 우선 사용.
+  // children Tab element 없으면 items[] fallback (dataBinding / legacy 호환).
+  const tabListChild = (node.children ?? []).find(
+    (child) => child.type === "TabList",
+  );
+  const nestedTabChildren = tabListChild
+    ? (tabListChild.children ?? []).filter((child) => child.type === "Tab")
+    : [];
+  const items: TabsItemDescriptor[] =
+    nestedTabChildren.length > 0
+      ? nestedTabChildren.map((tab) => {
+          const tabProps = (tab.props ?? {}) as Record<string, unknown>;
+          const tabId = String(tabProps.id ?? tab.id);
+          const tabLabel =
+            typeof tabProps.children === "string" ? tabProps.children : tabId;
+          return { id: tabId, label: tabLabel };
+        })
+      : (props.items ?? []);
   const selectedKey =
     props.selectedKey ?? props.defaultSelectedKey ?? items[0]?.id;
   const selectedItem =
