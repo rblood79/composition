@@ -32,7 +32,15 @@ const SLOT_HOST_TYPES = new Set([
 ]);
 
 function isSlotHostElement(element: PanelNode | undefined): boolean {
-  return Boolean(element && SLOT_HOST_TYPES.has(element.type.toLowerCase()));
+  if (!element) return false;
+  if (SLOT_HOST_TYPES.has(element.type.toLowerCase())) return true;
+  // ADR-144 Wave D — reusable=true 인 composite master (Tabs / ListBox /
+  // Menu / Select / ComboBox 등) 도 slot host 로 인정. master 의 slot field
+  // 가 sub-tree 안의 reusable child master 를 가리킴.
+  if ((element as PanelNode & { reusable?: boolean }).reusable === true) {
+    return true;
+  }
+  return false;
 }
 
 function getElementLabel(element: PanelNode): string {

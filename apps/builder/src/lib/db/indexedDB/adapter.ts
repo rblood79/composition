@@ -23,7 +23,7 @@ import type {
 import { LRUCache } from "./LRUCache";
 
 const DB_NAME = "composition";
-const DB_VERSION = 19; // ADR-143 Phase 4: design_tokens / design_themes store 폐기 (ThemeStudio dead code 제거).
+const DB_VERSION = 20; // ADR-144 Wave D: CompositionDocument.reusableComponents root collection 도입 (clean break, 개발 단계 — migration 코드 없음, 기존 데이터 폐기 가능).
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
