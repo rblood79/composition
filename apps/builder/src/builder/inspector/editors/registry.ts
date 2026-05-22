@@ -54,6 +54,14 @@ function getCustomPreEditor(type: string): string | undefined {
       //   Section 추가 UI 포함 (GridList는 children-manager이므로 별도 처리 필요 없음,
       //   단순 spec-first bypass 회피 목적).
       return "GridListPropertyEditor";
+    case "Select":
+      // ADR-144 Wave C: SelectPropertyEditor — 3 input mode 분기 (external-databinding /
+      //   resolved-tree composite slot / legacy ItemsManager). `detectInspectorInputMode`
+      //   helper 단일 진입점.
+      return "SelectPropertyEditor";
+    case "ComboBox":
+      // ADR-144 Wave C: ComboBoxPropertyEditor — Select 와 같은 mode 분기 패턴.
+      return "ComboBoxPropertyEditor";
     default:
       return undefined;
   }

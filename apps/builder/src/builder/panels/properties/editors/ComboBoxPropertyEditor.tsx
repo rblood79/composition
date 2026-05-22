@@ -12,22 +12,13 @@ import ResolvedTreeSlotEditor from "./ResolvedTreeSlotEditor";
 import type { Element } from "../../../../types/core/store.types";
 
 /**
- * ADR-099 Phase 4 + ADR-144 Wave C — Menu 의 3 input mode 분기 진입점.
+ * ADR-144 Phase 7 Wave C — ComboBox 의 3 input mode 분기 진입점.
  *
- * `registry.ts.getCustomPreEditor("Menu")` pre-generic hook 이 선택.
- *
- * MenuSpec 에는 `items-manager` 타입 필드가 있으며,
- * `allowSections: true`, `allowSeparators: true`, `sectionHasSelection: true`
- * 플래그가 설정되어 있어 ItemsManager 가 Section/Separator 추가 UI 를 포함한다.
- *
- * 3 input mode (Wave C 도입):
- *   - "external-databinding" (mode 1): GenericPropertyEditor 전체
- *   - "resolved-tree"        (mode 2): ResolvedTreeSlotEditor + GenericPropertyEditor
- *     filtered (ItemsManager 섹션 제외)
- *   - "legacy-items"         (mode 3): GenericPropertyEditor 전체 (ItemsManager 가
- *     Section/Separator 포함 items[] 편집 UI 로 표시) — fallback
+ * `registry.ts.getCustomPreEditor("ComboBox")` pre-generic hook 이 선택.
+ * SelectPropertyEditor 와 같은 분기 패턴 (mode 1/2/3 상호 배타). resolved-tree
+ * mode 2 시 slot 추가/삭제 UI 는 공통 `ResolvedTreeSlotEditor` 로 위임한다.
  */
-const MenuPropertyEditor = memo(function MenuPropertyEditor(
+const ComboBoxPropertyEditor = memo(function ComboBoxPropertyEditor(
   props: ComponentEditorProps,
 ) {
   const { elementId } = props;
@@ -41,7 +32,7 @@ const MenuPropertyEditor = memo(function MenuPropertyEditor(
     });
   }, [element]);
 
-  const spec = getPropertyEditorSpec("Menu");
+  const spec = getPropertyEditorSpec("ComboBox");
   if (!spec) return null;
 
   if (mode === "resolved-tree") {
@@ -78,4 +69,4 @@ function filterOutItemManagementSection(
   } as ComponentSpec<Record<string, unknown>>;
 }
 
-export default MenuPropertyEditor;
+export default ComboBoxPropertyEditor;

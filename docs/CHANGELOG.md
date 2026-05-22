@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-144 Implemented — Composite RAC resolved-tree parity + slot-editable component contract closure] - 2026-05-22
+
+### Architecture
+
+- **Phase 7 G6 Wave C 완결 — Inspector Properties UI 3 input mode 분기**:
+  - `apps/builder/src/builder/inspector/editors/registry.ts` 의 `getCustomPreEditor`
+    switch 에 `case "Select"` → `"SelectPropertyEditor"`, `case "ComboBox"` →
+    `"ComboBoxPropertyEditor"` 추가 (기존 ListBox / TagGroup / Menu / GridList 4
+    case 유지). spec-first early return 이전 평가되는 ADR-076 P6 pre-generic
+    hook 패턴.
+  - 신규 `SelectPropertyEditor.tsx` / `ComboBoxPropertyEditor.tsx` +
+    `ListBoxPropertyEditor.tsx` / `MenuPropertyEditor.tsx` 가 동일
+    `detectInspectorInputMode` 단일 진입점 helper 를 호출하여 mode 1
+    (external-databinding) / mode 2 (resolved-tree composite) / mode 3
+    (legacy-items) 분기. ListBox 의 기존 `hasTemplateMode` 휴리스틱은 mode 3
+    분기 안에서만 평가된다.
+  - mode 2 공통 `ResolvedTreeSlotEditor.tsx` 가 containerOrigin 자식 ref 리스트를
+    시각화하고 Add/Remove 동작을 `useStore.addElement` / `removeElement` 액션으로
+    위임. Memory→Index→History→DB→Preview→Rebalance 순서 보존은 액션 내부
+    contract 가 담당.
+  - **Why**: legacy `props.items[]` ItemsManager 단일 path 는 ADR-144 의 composite
+    resolved-tree authoring SSOT (`children[]`/`ref`/`descendants`/`slot`) 와 mode
+    혼동 위험. 상호 배타 분기 helper 단일 진입점으로 mode collision 0건 보장.
+  - 위치: `apps/builder/src/builder/inspector/editors/registry.ts`,
+    `apps/builder/src/builder/panels/properties/editors/{Select,ComboBox,ListBox,Menu}PropertyEditor.tsx`,
+    `apps/builder/src/builder/panels/properties/editors/ResolvedTreeSlotEditor.tsx`.
+- **ADR-144 Status `In Progress → Implemented` 승격** (closure 5단계 적용):
+  - Status header 갱신, 진행 로그 entry 추가, README 카운트 갱신 (완료 127→128 /
+    진행 중 8→7), 본문 `docs/adr/completed/` archive 이동, design path
+    `design/...` → `../design/...` 정합화, CHANGELOG entry (본 entry) 추가.
+  - 잔존 debt: C3-a 데이터 source 3축 sink 정합 (`useCollectionData.ts:340-355`
+    direct proxy branch) 은 ADR-132 collection sink 영역으로 deferred. ADR-144
+    본질적 결정사항 (composite RAC resolved-tree parity + slot-editable
+    component contract) 은 Wave A/B/C 로 land 완결.
+
+### Verification
+
+- `pnpm -F @composition/builder exec vitest run src/builder/panels/properties/__tests__/inspectorInputMode.test.ts src/builder/inspector/editors/registry.adr142.static.test.ts src/builder/inspector/editors/registry.adr144.static.test.ts src/builder/panels/properties/editors/__tests__/SelectPropertyEditor.test.tsx src/builder/panels/properties/editors/__tests__/ComboBoxPropertyEditor.test.tsx src/builder/panels/properties/editors/ListBoxPropertyEditor.test.tsx src/builder/panels/properties/editors/MenuPropertyEditor.test.tsx src/builder/factories/__tests__/componentRegistrationContract.test.ts src/builder/panels/properties/editors/canonicalPropertyEditors.static.test.ts`
+  (50/50 PASS — 9 test files)
+- `pnpm run codex:format`
+- `pnpm run codex:typecheck` (547 baseline + 0 new violations)
+- `pnpm run codex:preflight` (registration-contract 13/13 PASS)
+- `git diff --check`
+
 ## [ADR-142 Implemented — Component system catalog cutover closure] - 2026-05-21
 
 ### Architecture

@@ -2,10 +2,44 @@
 
 ## Status
 
-In Progress — 2026-05-21
+Implemented — 2026-05-22 (Phase 0~8 + Wave A/B/C 모두 land. C3-a 데이터 source
+sink 정합은 ADR-132 collection sink 영역으로 deferred — ADR-144 본질적 결정
+사항인 composite RAC resolved-tree parity + slot-editable component contract
+은 완결).
 
 진행 로그:
 
+- 2026-05-22 — Phase 7 G6 Wave C (Inspector Properties UI 3 input mode 분기)
+  완료. `registry.ts.getCustomPreEditor` switch 에 `case "Select"` →
+  `"SelectPropertyEditor"` / `case "ComboBox"` → `"ComboBoxPropertyEditor"`
+  추가 (기존 ListBox / TagGroup / Menu / GridList 4 case 유지). 신규
+  `SelectPropertyEditor.tsx` / `ComboBoxPropertyEditor.tsx` +
+  `ListBoxPropertyEditor.tsx` / `MenuPropertyEditor.tsx` 가 동일
+  `detectInspectorInputMode` 단일 진입점 helper 를 호출하여 mode 1
+  (external-databinding) / mode 2 (resolved-tree composite) / mode 3
+  (legacy-items) 분기. mode 2 시 공통 `ResolvedTreeSlotEditor.tsx` 가
+  containerOrigin 자식 ref 리스트를 시각화하고 Add/Remove 동작을
+  `useStore.addElement` / `removeElement` 액션으로 위임 (Memory→Index→
+  History→DB→Preview→Rebalance 순서 보존). ListBox 의 기존
+  `hasTemplateMode` (Field 자식 보유 시 ItemsManager 섹션 필터)
+  휴리스틱은 mode 3 분기 안에서만 평가 — mode 2 진입 시 무시.
+  Static contract test 22 case 신규 + 기존 28 case = 50/50 PASS. Evidence:
+  `apps/builder/src/builder/inspector/editors/registry.ts`
+  (getCustomPreEditor expansion),
+  `apps/builder/src/builder/panels/properties/editors/ResolvedTreeSlotEditor.tsx`
+  (mode 2 공통 UI),
+  `apps/builder/src/builder/panels/properties/editors/{Select,ComboBox,ListBox,Menu}PropertyEditor.tsx`
+  (4 family mode 분기),
+  `apps/builder/src/builder/inspector/editors/registry.adr144.static.test.ts`
+  (3/3),
+  `apps/builder/src/builder/panels/properties/editors/__tests__/{Select,ComboBox}PropertyEditor.test.tsx`
+  (6+6/12),
+  `apps/builder/src/builder/panels/properties/editors/{ListBox,Menu}PropertyEditor.test.tsx`
+  (4+3/7). 잔존 debt: C3-a 데이터 source 3축 sink 정합
+  (`useCollectionData.ts:340-355` direct proxy branch) — ADR-132
+  collection sink 정합 영역으로 deferred. ADR-144 본질적 결정사항
+  (composite RAC resolved-tree parity + slot-editable component contract)
+  은 Wave C 로 land 완결.
 - 2026-05-22 — Phase 7 G6 Wave B (4 family Skia resolved-tree owner emission)
   완료. `buildGenericListBoxNode` / `MenuNode` / `ComboBoxNode` / `SelectNode`
   가 canonical 자식 (`ListBoxItem` / `MenuItem` / `ComboBoxItem` / `SelectItem`
@@ -37,7 +71,7 @@ ownerPath` 자식 SkiaNodeData 로 그린다. legacy `props.items[]` synthetic
   `${tabsId}:tab:*`/`${tabsId}:panel:*` 경로로 확인됐다. Fixture inventory 는
   `RAC-showcase.json` / `slot-tabs-selection.json` / `shadcn-design-system.json` 기준으로
   reusable/ref/descendants/slot contract evidence 를 고정했다. Evidence:
-  [144-composite-rac-resolved-tree-parity-phase0-baseline.md](design/144-composite-rac-resolved-tree-parity-phase0-baseline.md).
+  [144-composite-rac-resolved-tree-parity-phase0-baseline.md](../design/144-composite-rac-resolved-tree-parity-phase0-baseline.md).
 - 2026-05-21 — Phase 1 G1 fixture contract test 완료. `RAC-showcase.json`,
   `slot-tabs-selection.json`, `shadcn-design-system.json` 의 root shape 차이
   (`reusableComponents`, `nodes`, `selection`) 를 normalizer 로 고정하고,
@@ -103,7 +137,7 @@ ownerPath` 자식 SkiaNodeData 로 그린다. legacy `props.items[]` synthetic
   paint pool 후보. **family hold 발생 없음, ADR-910 prerequisite 승격 사유
   없음**. 4 family Wave B 미land 상태에서는 resolved-tree Skia path 가 active
   아니므로 G7-A 비교는 Wave B 후 재측정 의무 (debt). Evidence:
-  `docs/adr/design/144-composite-rac-resolved-tree-parity-phase8-results.md`.
+  `docs/adr/../design/144-composite-rac-resolved-tree-parity-phase8-results.md`.
 - 2026-05-22 — Phase 7 G6 (family expansion matrix 1 행: Select / ComboBox /
   ListBox / Menu) 1차 land 완료. (a) `compositeRacFixtures.test.ts` 가
   `RAC-showcase.json` 의 `ListBox` / `ListBoxItem` / `Menu` / `MenuItem` /
@@ -301,7 +335,7 @@ DOM measurement 에 묶는다.
   lifecycle coupling 과 performance risk 가 크다. composition 은 canonical resolved
   tree SSOT 를 먼저 고정해야 한다.
 
-> 구현 상세: [144-composite-rac-resolved-tree-parity-breakdown.md](design/144-composite-rac-resolved-tree-parity-breakdown.md)
+> 구현 상세: [144-composite-rac-resolved-tree-parity-breakdown.md](../design/144-composite-rac-resolved-tree-parity-breakdown.md)
 
 ## Risks
 

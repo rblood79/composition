@@ -530,7 +530,7 @@ Files:
 
 - `apps/builder/src/preview/components/Tabs.behavior.test.tsx` (신규)
 
-### Phase 7 — Family expansion matrix (Wave A + Wave B Implemented 2026-05-22)
+### Phase 7 — Family expansion matrix (Wave A + Wave B + Wave C Implemented 2026-05-22)
 
 Purpose: apply the same contract beyond Tabs.
 
@@ -609,15 +609,57 @@ Landed implementation (Wave B — 4 family Skia resolved-tree owner emission,
    vs the props-only 14-node chrome (sub-millisecond noise must not
    gate). Evidence: 13/13 perf test PASS.
 
-Deferred to Wave C (still tracked in the Acceptance Checklist):
+Landed implementation (Wave C — Inspector Properties UI 3 input mode 분기,
+2026-05-22):
 
-- `getCustomPreEditor` registration for `Select` / `ComboBox` and the
-  `detectInspectorInputMode` wiring on the four family PropertyEditors
-  (Inspector Properties UI 3 mode 분기 — dataBinding picker / slot
-  add-remove UI / legacy ItemsManager). nested-descendant edit routing
-  (Skia hit-test → Inspector store mutation) is **already land** through
-  Phase 5 `ownerPath` + `apply*FromSelection` flow; Wave C only adds the
-  Properties panel mode-detection surface.
+1. **`getCustomPreEditor` expansion** —
+   `apps/builder/src/builder/inspector/editors/registry.ts` switch 에
+   `case "Select"` → `"SelectPropertyEditor"`, `case "ComboBox"` →
+   `"ComboBoxPropertyEditor"` 추가. 기존 ListBox / TagGroup / Menu /
+   GridList 4 case 유지. spec-first early return 이전 평가되는 ADR-076 P6
+   pre-generic hook 패턴.
+2. **신규 PropertyEditor 2 종** —
+   `apps/builder/src/builder/panels/properties/editors/SelectPropertyEditor.tsx` +
+   `ComboBoxPropertyEditor.tsx`. 진입 시 `detectInspectorInputMode` 결과로
+   mode 1 (external-databinding) / mode 2 (resolved-tree) / mode 3
+   (legacy-items) 분기. mode 2 에서는 `ResolvedTreeSlotEditor` +
+   `GenericPropertyEditor` filtered (`Item Management` 섹션 제외) 동시
+   렌더. mode 1 / mode 3 은 `GenericPropertyEditor` 전체 주입 (ItemsManager
+   가 dataBinding picker 또는 items[] 편집 UI 로 자체 분기).
+3. **ListBox / Menu PropertyEditor mode 분기 통합** —
+   `ListBoxPropertyEditor.tsx` / `MenuPropertyEditor.tsx` 가 동일
+   `detectInspectorInputMode` 호출. ListBox 의 기존 `hasTemplateMode`
+   (Field 자식 보유 시 ItemsManager 섹션 필터) 휴리스틱은 mode 3
+   (legacy-items) 분기 안에서만 평가 — mode 2 진입 시 무시.
+4. **공통 add/remove UI** —
+   `ResolvedTreeSlotEditor.tsx` 가 4 family 공유. 현재 instance/origin 의
+   containerOrigin 자식 ref 리스트 시각화, "Add item" → 새 ref instance
+   생성 (descendants 에 `Item N` 기본 label), "Remove" → ref instance 삭제.
+   `useStore.addElement` / `removeElement` 액션 단일 진입점 —
+   Memory→Index→History→DB→Preview→Rebalance 순서는 액션 내부 contract 가
+   보존.
+5. **Static contract tests** —
+   `registry.adr144.static.test.ts` (registry expansion 3 case) +
+   `SelectPropertyEditor.test.tsx` / `ComboBoxPropertyEditor.test.tsx`
+   (`__tests__/`, 6 case 각) + `ListBoxPropertyEditor.test.tsx` /
+   `MenuPropertyEditor.test.tsx` (mode wiring 4 / 3 case). source-string
+   검증 패턴 (canonicalPropertyEditors.static.test.ts 와 일관). 신규 22
+   case + 기존 28 case 합쳐서 50/50 PASS.
+
+Wave C 후 잔존 debt (별도 ADR scope):
+
+- C3-a 데이터 source 3축 정합 (Data Panel inline persisted / API endpoint
+  - Zustand runtime sink / Properties inline `element.props[itemsKey]`) —
+    Builder execute path 와 Preview/Canvas read path 의 sink 정합
+    (`useCollectionData.ts:340-355` direct proxy branch) 은 ADR-132
+    collection sink 정합 영역으로 deferred. ADR-144 본질적 결정사항
+    (composite RAC resolved-tree parity + slot-editable component
+    contract) 은 Wave C 로 land 완결.
+
+nested-descendant edit routing (Skia hit-test → Inspector store mutation)
+is **already land** through Phase 5 `ownerPath` + `apply*FromSelection`
+flow; Wave C only adds the
+Properties panel mode-detection surface.
 
 Wave A delivered the test/factory boundary; Wave B delivered the Skia
 owner emission. The change set in Wave B is bounded to (a) helper
@@ -706,6 +748,24 @@ ownerPath` 으로 그린다). Tabs Phase 4 패턴 일반화 — shared
       0 synthetic owner 유지). G7-A 재측정 13/13 PASS. Wave C debt 잔존
       (Select / ComboBox `getCustomPreEditor` + 4 family PropertyEditor
       `detectInspectorInputMode` wiring).
+- [x] Phase 7 Wave C — Inspector Properties UI 3 input mode 분기 (2026-05-22).
+      `getCustomPreEditor` 가 Select / ComboBox 까지 expansion (`registry.ts`
+      switch). 신규 `SelectPropertyEditor.tsx` / `ComboBoxPropertyEditor.tsx` +
+      mode 2 공통 `ResolvedTreeSlotEditor.tsx` (Add/Remove → canonical
+      `addElement`/`removeElement` 액션 — Memory→Index→History→DB→Preview→
+      Rebalance 순서 보존). `ListBoxPropertyEditor` / `MenuPropertyEditor` 가
+      동일 `detectInspectorInputMode` 호출 — ListBox 의 기존 `hasTemplateMode`
+      는 mode 3 분기 안에서만 평가. Evidence:
+      `apps/builder/src/builder/inspector/editors/registry.adr144.static.test.ts`
+      (3/3 PASS),
+      `apps/builder/src/builder/panels/properties/editors/__tests__/SelectPropertyEditor.test.tsx`
+      (6/6 PASS),
+      `apps/builder/src/builder/panels/properties/editors/__tests__/ComboBoxPropertyEditor.test.tsx`
+      (6/6 PASS),
+      `apps/builder/src/builder/panels/properties/editors/ListBoxPropertyEditor.test.tsx`
+      (4/4 PASS),
+      `apps/builder/src/builder/panels/properties/editors/MenuPropertyEditor.test.tsx`
+      (3/3 PASS) — 50/50 PASS 전체 기준 테스트.
 - [x] Perf baseline is recorded and G7 blocking budget passes before ADR-910
       begins or the family is explicitly held. (Phase 8 PASS — 7/7 perf test
       land, Tabs resolved-tree p95 ≤ props-only × 1.25 + 모든 family 60fps

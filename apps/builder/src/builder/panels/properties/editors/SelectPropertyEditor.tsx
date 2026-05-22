@@ -12,22 +12,22 @@ import ResolvedTreeSlotEditor from "./ResolvedTreeSlotEditor";
 import type { Element } from "../../../../types/core/store.types";
 
 /**
- * ADR-099 Phase 4 + ADR-144 Wave C — Menu 의 3 input mode 분기 진입점.
+ * ADR-144 Phase 7 Wave C — Select 의 3 input mode 분기 진입점.
  *
- * `registry.ts.getCustomPreEditor("Menu")` pre-generic hook 이 선택.
+ * `registry.ts.getCustomPreEditor("Select")` pre-generic hook 이 선택.
+ * `detectInspectorInputMode` 의 반환값에 따라 한 번에 한 mode UI 만 노출한다
+ * (상호 배타). 시각 prop 편집은 모든 mode 에서 GenericPropertyEditor 가 담당
+ * — mode 2 에서는 ItemsManager 섹션이 제거된 spec 사본을 주입한다.
  *
- * MenuSpec 에는 `items-manager` 타입 필드가 있으며,
- * `allowSections: true`, `allowSeparators: true`, `sectionHasSelection: true`
- * 플래그가 설정되어 있어 ItemsManager 가 Section/Separator 추가 UI 를 포함한다.
- *
- * 3 input mode (Wave C 도입):
- *   - "external-databinding" (mode 1): GenericPropertyEditor 전체
+ * 분기:
+ *   - "external-databinding" (mode 1): GenericPropertyEditor 전체 (ItemsManager
+ *     가 자체적으로 dataBinding picker UI 로 표시)
  *   - "resolved-tree"        (mode 2): ResolvedTreeSlotEditor + GenericPropertyEditor
  *     filtered (ItemsManager 섹션 제외)
  *   - "legacy-items"         (mode 3): GenericPropertyEditor 전체 (ItemsManager 가
- *     Section/Separator 포함 items[] 편집 UI 로 표시) — fallback
+ *     items[] 편집 UI 로 표시) — fallback
  */
-const MenuPropertyEditor = memo(function MenuPropertyEditor(
+const SelectPropertyEditor = memo(function SelectPropertyEditor(
   props: ComponentEditorProps,
 ) {
   const { elementId } = props;
@@ -41,7 +41,7 @@ const MenuPropertyEditor = memo(function MenuPropertyEditor(
     });
   }, [element]);
 
-  const spec = getPropertyEditorSpec("Menu");
+  const spec = getPropertyEditorSpec("Select");
   if (!spec) return null;
 
   if (mode === "resolved-tree") {
@@ -78,4 +78,4 @@ function filterOutItemManagementSection(
   } as ComponentSpec<Record<string, unknown>>;
 }
 
-export default MenuPropertyEditor;
+export default SelectPropertyEditor;
