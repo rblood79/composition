@@ -263,3 +263,25 @@ function readString(value: unknown, label: string): string {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
+
+/**
+ * Runtime CompositionDocument 의 reusableComponents 를 normalize — ADR-144 Wave D.
+ *
+ * fixture import path (`normalizeCompositeRacExport` 의 rootKind:"reusableComponents")
+ * 와 runtime authoring path (`CompositionDocument.reusableComponents`) 가 동일
+ * single source 로 수렴하는 진입점.
+ *
+ * 양 입력 형식 모두 허용:
+ * - `CanonicalNode[]` — runtime CompositionDocument 의 표준 형식 (Task 1)
+ * - `Record<string, CanonicalNode>` — fixture (`shadcn-design-system.json`) 의
+ *   key-value 형식 호환
+ */
+export function normalizeRuntimeReusableComponents<TNode>(document: {
+  reusableComponents?: TNode[] | Record<string, TNode>;
+}): TNode[] {
+  const r = document.reusableComponents;
+  if (!r) return [];
+  if (Array.isArray(r)) return r;
+  if (typeof r === "object") return Object.values(r);
+  return [];
+}
