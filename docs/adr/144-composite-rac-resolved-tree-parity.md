@@ -2,13 +2,41 @@
 
 ## Status
 
-Implemented — 2026-05-22 (Phase 0~8 + Wave A/B/C 모두 land. C3-a 데이터 source
-sink 정합은 ADR-132 collection sink 영역으로 deferred — ADR-144 본질적 결정
-사항인 composite RAC resolved-tree parity + slot-editable component contract
-은 완결).
+In Progress — 2026-05-22 (closure rollback). 사용자가 빌더 등록 후 변화 없음
+을 raise: Tabs 만 composite factory 가 wired in 됐고, 4 family (Select /
+ComboBox / ListBox / Menu) 는 `ComponentFactory` 가 여전히 legacy
+`createSelectDefinition` 등 `props.items[]` factory 를 호출 — 따라서 빌더에서
+4 family 등록 시 `slot-tabs-selection.json` 식 composite resolved-tree
+(reusable origin + ref + descendants + slot) 가 생성되지 않고 단일 legacy
+element 만 생성됨. ADR-144 본질적 결정사항 (composite resolved-tree 가
+authoring SSOT) 이 4 family 빌더 등록 path 에 wired in 안 된 상태에서 Wave A
+의 collectionCompositeFactories.test.ts (5/5 PASS) 는 함수 export 만 검증했고
+ComponentFactory 호출 wiring 은 미검증. 본질 결함 fix 후 closure 재시도.
 
 진행 로그:
 
+- 2026-05-22 — Wave A wiring 보강 + closure rollback. 사용자가 "Tabs/4 family
+  등록해도 변화 없다" 로 raise → 조사 결과, `ComponentFactory.ts` 에서
+  `createTabs` (line 380-405) 만 `createTabsCompositeElements` 호출, 4 family
+  (`createSelect / createComboBox / createListBox / createMenu`) 는 여전히
+  legacy `createSelectDefinition / createComboBoxDefinition /
+createListBoxDefinition / createMenuDefinition` 단일 element factory 호출 →
+  빌더 등록 시 composite resolved-tree (`slot-tabs-selection.json` 식 reusable
+  origin + ref + descendants + slot) 미생성, 사용자 가시 동작에서 ADR-144 본질
+  미달성. Wave A 의 `collectionCompositeFactories.test.ts` (5/5 PASS) 는 함수
+  export 와 payload shape 만 검증, `ComponentFactory` 호출 wiring 미검증 (test
+  gap). Fix: (1) `ComponentFactory.createSelect / createComboBox /
+createListBox / createMenu` body 를 Tabs pattern (parentId 확보 →
+  `createXxxCompositeElements(context, { parentId })` → `addElementsToStore` →
+  `{ parent, children, allElements }` 반환) 으로 전환. (2) SelectionComponents
+  import 에 4 종 composite helper 추가. (3) 신규 wiring contract test
+  `componentFactoryCompositeWiring.test.ts` (6/6 PASS) — source-string 으로
+  ComponentFactory body 의 composite 호출 + `addElementsToStore` 호출 + legacy
+  `this.createComponent(createXxxDefinition, ...)` 0건 검증. Evidence:
+  `apps/builder/src/builder/factories/ComponentFactory.ts` (4 family wiring 전환),
+  `apps/builder/src/builder/factories/__tests__/componentFactoryCompositeWiring.test.ts`
+  (6/6 PASS). ADR-144 closure 는 사용자 빌더 등록 검증 후 재시도. 잔존 작업:
+  Tabs Wave C (PropertyEditor mode 분기 wiring) 는 별 phase 로 분리.
 - 2026-05-22 — Phase 7 G6 Wave C (Inspector Properties UI 3 input mode 분기)
   완료. `registry.ts.getCustomPreEditor` switch 에 `case "Select"` →
   `"SelectPropertyEditor"` / `case "ComboBox"` → `"ComboBoxPropertyEditor"`
@@ -71,7 +99,7 @@ ownerPath` 자식 SkiaNodeData 로 그린다. legacy `props.items[]` synthetic
   `${tabsId}:tab:*`/`${tabsId}:panel:*` 경로로 확인됐다. Fixture inventory 는
   `RAC-showcase.json` / `slot-tabs-selection.json` / `shadcn-design-system.json` 기준으로
   reusable/ref/descendants/slot contract evidence 를 고정했다. Evidence:
-  [144-composite-rac-resolved-tree-parity-phase0-baseline.md](../design/144-composite-rac-resolved-tree-parity-phase0-baseline.md).
+  [144-composite-rac-resolved-tree-parity-phase0-baseline.md](design/144-composite-rac-resolved-tree-parity-phase0-baseline.md).
 - 2026-05-21 — Phase 1 G1 fixture contract test 완료. `RAC-showcase.json`,
   `slot-tabs-selection.json`, `shadcn-design-system.json` 의 root shape 차이
   (`reusableComponents`, `nodes`, `selection`) 를 normalizer 로 고정하고,
@@ -137,7 +165,7 @@ ownerPath` 자식 SkiaNodeData 로 그린다. legacy `props.items[]` synthetic
   paint pool 후보. **family hold 발생 없음, ADR-910 prerequisite 승격 사유
   없음**. 4 family Wave B 미land 상태에서는 resolved-tree Skia path 가 active
   아니므로 G7-A 비교는 Wave B 후 재측정 의무 (debt). Evidence:
-  `docs/adr/../design/144-composite-rac-resolved-tree-parity-phase8-results.md`.
+  `docs/adr/design/144-composite-rac-resolved-tree-parity-phase8-results.md`.
 - 2026-05-22 — Phase 7 G6 (family expansion matrix 1 행: Select / ComboBox /
   ListBox / Menu) 1차 land 완료. (a) `compositeRacFixtures.test.ts` 가
   `RAC-showcase.json` 의 `ListBox` / `ListBoxItem` / `Menu` / `MenuItem` /
@@ -335,7 +363,7 @@ DOM measurement 에 묶는다.
   lifecycle coupling 과 performance risk 가 크다. composition 은 canonical resolved
   tree SSOT 를 먼저 고정해야 한다.
 
-> 구현 상세: [144-composite-rac-resolved-tree-parity-breakdown.md](../design/144-composite-rac-resolved-tree-parity-breakdown.md)
+> 구현 상세: [144-composite-rac-resolved-tree-parity-breakdown.md](design/144-composite-rac-resolved-tree-parity-breakdown.md)
 
 ## Risks
 

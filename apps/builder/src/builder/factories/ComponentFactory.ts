@@ -29,6 +29,10 @@ import {
   createListBoxDefinition,
   createGridListDefinition,
   createListDefinition,
+  createSelectCompositeElements,
+  createComboBoxCompositeElements,
+  createListBoxCompositeElements,
+  createMenuCompositeElements,
 } from "./definitions/SelectionComponents";
 import {
   createFrameLayoutDefinition,
@@ -356,13 +360,55 @@ export class ComponentFactory {
   private static async createSelect(
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
-    return this.createComponent(createSelectDefinition, context);
+    const { parentElement, pageId, elements, layoutId, doc } = context;
+    let parentId = parentElement?.id || null;
+
+    if (!parentId) {
+      parentId = ElementUtils.findBodyByContext(
+        elements,
+        pageId || null,
+        layoutId || null,
+        doc,
+      );
+    }
+
+    const { parent, children } = createSelectCompositeElements(context, {
+      parentId,
+    });
+    addElementsToStore(parent, children);
+
+    return {
+      parent,
+      children,
+      allElements: [parent, ...children],
+    };
   }
 
   private static async createComboBox(
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
-    return this.createComponent(createComboBoxDefinition, context);
+    const { parentElement, pageId, elements, layoutId, doc } = context;
+    let parentId = parentElement?.id || null;
+
+    if (!parentId) {
+      parentId = ElementUtils.findBodyByContext(
+        elements,
+        pageId || null,
+        layoutId || null,
+        doc,
+      );
+    }
+
+    const { parent, children } = createComboBoxCompositeElements(context, {
+      parentId,
+    });
+    addElementsToStore(parent, children);
+
+    return {
+      parent,
+      children,
+      allElements: [parent, ...children],
+    };
   }
 
   private static async createSlider(
@@ -425,7 +471,28 @@ export class ComponentFactory {
   private static async createListBox(
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
-    return this.createComponent(createListBoxDefinition, context);
+    const { parentElement, pageId, elements, layoutId, doc } = context;
+    let parentId = parentElement?.id || null;
+
+    if (!parentId) {
+      parentId = ElementUtils.findBodyByContext(
+        elements,
+        pageId || null,
+        layoutId || null,
+        doc,
+      );
+    }
+
+    const { parent, children } = createListBoxCompositeElements(context, {
+      parentId,
+    });
+    addElementsToStore(parent, children);
+
+    return {
+      parent,
+      children,
+      allElements: [parent, ...children],
+    };
   }
 
   private static async createGridList(
@@ -445,7 +512,28 @@ export class ComponentFactory {
   private static async createMenu(
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
-    return this.createComponent(createMenuDefinition, context);
+    const { parentElement, pageId, elements, layoutId, doc } = context;
+    let parentId = parentElement?.id || null;
+
+    if (!parentId) {
+      parentId = ElementUtils.findBodyByContext(
+        elements,
+        pageId || null,
+        layoutId || null,
+        doc,
+      );
+    }
+
+    const { parent, children } = createMenuCompositeElements(context, {
+      parentId,
+    });
+    addElementsToStore(parent, children);
+
+    return {
+      parent,
+      children,
+      allElements: [parent, ...children],
+    };
   }
 
   private static async createNav(

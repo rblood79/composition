@@ -667,6 +667,33 @@ addition in `buildSpecNodeData.ts`, (b) dispatch hook in 4 existing
 `buildGenericXNode` bodies, (c) Skia symmetry positive parity test,
 (d) Phase 8 perf re-measurement.
 
+**Wave A wiring 보강 (2026-05-22 사용자 raise — closure rollback 후 fix)**:
+사용자가 "Tabs/4 family 등록해도 변화 없다" 로 raise. 조사 결과,
+`ComponentFactory.createTabs` (LayoutComponents) 만 `createTabsCompositeElements`
+호출, 4 family `createSelect / createComboBox / createListBox / createMenu` 는
+여전히 legacy `createSelectDefinition / createComboBoxDefinition /
+createListBoxDefinition / createMenuDefinition` (props.items[] payload) factory
+호출 — 빌더 등록 시 composite resolved-tree 미생성. Wave A 의
+`collectionCompositeFactories.test.ts` (5/5 PASS) 는 함수 export 와 payload
+shape 만 검증, `ComponentFactory` 호출 wiring 미검증 (test gap).
+
+Fix:
+
+1. `ComponentFactory.createSelect / createComboBox / createListBox / createMenu`
+   를 Tabs pattern (`parentId` 확보 → `createXxxCompositeElements(context,
+{ parentId })` 호출 → `addElementsToStore(parent, children)` → `{ parent,
+children, allElements }` 반환) 으로 전환.
+2. SelectionComponents import 에 `createSelectCompositeElements /
+createComboBoxCompositeElements / createListBoxCompositeElements /
+createMenuCompositeElements` 추가 (이미 export 됨, 호출만 누락).
+3. 신규 wiring contract test:
+   `apps/builder/src/builder/factories/__tests__/componentFactoryCompositeWiring.test.ts`
+   — source-string 으로 `ComponentFactory.createXxx` body 안에
+   `createXxxCompositeElements` 호출 + `addElementsToStore` 호출이 있는지 +
+   legacy `this.createComponent(createXxxDefinition, ...)` 호출이 0건임을
+   검증 (6/6 PASS). Wave A `collectionCompositeFactories.test.ts` 의 함수
+   export shape 검증과 dual-layer 로 contract 보장.
+
 Coverage matrix:
 
 | Family                             | Contract focus                                                          | Primary fixtures      | Gate  |

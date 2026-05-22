@@ -7,7 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-144 closure rollback — 본질 결함 발견 (4 family ComponentFactory wiring 누락)] - 2026-05-22
+
+### Architecture
+
+- **Closure rollback 사유**: 사용자가 빌더에서 Tabs/4 family 등록 후 "달라진 것 없다"
+  로 raise. 조사 결과 — `ComponentFactory.ts` 에서 `createTabs` (line 380-405) 만
+  `createTabsCompositeElements` 를 호출하고, `createSelect` (line 357-361) /
+  `createComboBox` (line 363-367) / `createListBox` (line 426-430) / `createMenu`
+  (line 446-450) 는 여전히 legacy `createSelectDefinition` / `createComboBoxDefinition`
+  / `createListBoxDefinition` / `createMenuDefinition` (props.items[] payload)
+  factory 를 호출. 따라서 4 family 빌더 등록 시 `slot-tabs-selection.json` 식
+  composite resolved-tree (reusable origin + ref + descendants + slot) 가 생성되지
+  않고 단일 legacy element 만 생성됨 — ADR-144 본질적 결정사항 미달성.
+- **결함 범위**:
+  - Wave A `collectionCompositeFactories.test.ts` (5/5 PASS) 는 함수 export 와
+    payload shape 만 검증, `ComponentFactory` 호출 wiring 미검증.
+  - Wave C 의 `detectInspectorInputMode` 가 항상 `"legacy-items"` 를 반환하므로
+    `ResolvedTreeSlotEditor` 가 표시되지 않음 (mode 2 fallthrough).
+- **Status 변경**: Implemented → In Progress 복귀. README 카운트 복귀 (완료
+  128→127 / 진행 중 7→8). 본문 archive 위치 `docs/adr/completed/` → root
+  복귀. design path `../design/...` → `design/...` 복귀.
+- **다음 작업** (별 commit): (1) `ComponentFactory.createSelect/createComboBox/`
+  `createListBox/createMenu` 를 Tabs pattern (`createXxxCompositeElements`
+  호출) 으로 전환, (2) wiring contract test 추가 (`ComponentFactory` 계층 검증
+  — `collectionCompositeFactories.test.ts` 가 함수 export 만 본 갭 보강),
+  (3) Tabs Wave C 적용 (별 phase 로 분리 가능 — Tabs PropertyEditor 의 mode
+  분기 wiring).
+- 본 CHANGELOG entry 의 이전 버전 (`ADR-144 Implemented — Composite RAC
+resolved-tree parity + slot-editable component contract closure`) 은 형식적
+  PASS (50/50 unit test + type-check + codex gate) 만 보고 진정 reverse
+  (빌더 등록 시 composite tree 가 실제 생성되는지) 미검증 → 본 rollback entry
+  로 정정.
+
+### Verification
+
+- `git mv docs/adr/completed/144-composite-rac-resolved-tree-parity.md
+docs/adr/144-composite-rac-resolved-tree-parity.md`
+- `pnpm run codex:typecheck` (547 baseline + 0 new violations 유지)
+- Wave C 의 50/50 unit test 는 그대로 PASS — 본질 검증은 다음 commit 의
+  wiring contract test 가 담당
+
 ## [ADR-144 Implemented — Composite RAC resolved-tree parity + slot-editable component contract closure] - 2026-05-22
+
+> **2026-05-22 정정 — 본 entry 는 동일 일자 closure rollback 으로 supersede 됨.
+> 위 "ADR-144 closure rollback — 본질 결함 발견" entry 참고.**
 
 ### Architecture
 
