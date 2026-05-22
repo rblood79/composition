@@ -401,6 +401,57 @@ export function BuilderCanvas({
   // sceneStructureSnapshot 을 직접 소비.
   const sceneSnapshot = sceneStructureSnapshot;
 
+  // ADR-144 Wave D Phase 1 — TEMP debug (commit `1b8264ecf` fix 검증용).
+  // master frame 이 sceneSnapshot 안 통합 + visiblePageFrames 안 포함 + 좌표
+  // 정상인지 확인 후 본 dev hook 은 제거.
+  useEffect(() => {
+    console.log(
+      "[WaveD-debug] reusableComponentRoots input:",
+      JSON.stringify(reusableComponentRoots ?? []),
+    );
+    console.log(
+      "[WaveD-debug] all frames:",
+      JSON.stringify(
+        sceneStructureSnapshot.document.allPageFrames.map((f) => ({
+          id: f.id.slice(0, 8),
+          x: f.x,
+          y: f.y,
+          w: f.width,
+          h: f.height,
+          title: f.title,
+        })),
+      ),
+    );
+    console.log(
+      "[WaveD-debug] visible frames:",
+      JSON.stringify(
+        sceneStructureSnapshot.document.visiblePageFrames.map((f) => ({
+          id: f.id.slice(0, 8),
+          x: f.x,
+          y: f.y,
+        })),
+      ),
+    );
+    console.log(
+      "[WaveD-debug] visible ids count:",
+      sceneStructureSnapshot.document.visiblePageIds.size,
+    );
+    console.log(
+      "[WaveD-debug] containerSize:",
+      JSON.stringify(containerSize),
+      "panOffset:",
+      JSON.stringify(panOffset),
+      "zoom:",
+      zoom,
+    );
+  }, [
+    reusableComponentRoots,
+    sceneStructureSnapshot,
+    containerSize,
+    panOffset,
+    zoom,
+  ]);
+
   const visiblePageIds = sceneStructureSnapshot.document.visiblePageIds;
   const visiblePages = useMemo(() => {
     if (isFrameEditMode) return [];
