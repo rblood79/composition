@@ -7,6 +7,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-144 Wave D — reusableComponents root collection 도입 + composite master 분리] - 2026-05-22
+
+### Architecture
+
+- **ADR-144 Hard Constraint 1 amend**: 원본 HC1 "CompositionDocument schema 는
+  변경하지 않는다" 가 pencil format 정합 측면에서 본질적 결함으로 판정 — 사용자
+  framing 발견 (composite RAC master 7 개가 1 page frame 옆에 sibling 으로 배치된
+  실측 evidence). HC1 reword: pencil format 정합을 위해 root collection
+  `reusableComponents?: CanonicalNode[]` 추가.
+- **schema 확장 (Task 1)**: `packages/shared/src/types/composition-document.types.ts`
+  에 `reusableComponents?: CanonicalNode[]` field 추가. fixture (`shadcn-design-
+system.json`) 와 runtime CompositionDocument 동일 single source 로 수렴 —
+  `compositeRacFixtureContracts.ts::normalizeRuntimeReusableComponents()` runtime
+  helper 가 `CanonicalNode[]` / `Record<string, CanonicalNode>` 양 형식 호환.
+- **factory shape 명료화 (Task 3+4)**: `createTabsCompositeElements` /
+  `createSelectCompositeElements` / `createComboBoxCompositeElements` /
+  `createListBoxCompositeElements` / `createMenuCompositeElements` 5 composite
+  factory 반환 shape `{ masters: Element[]; instance: Element }` 로 분할 — masters
+  는 reusable=true 인 master + sub-tree, instance 는 page tree 의 단일 ref
+  instance. ComponentFactory 5 caller 변환 (`addElementsToStore(instance, masters)`)
+  - ComponentCreationResult 외부 contract 호환 유지.
+- **canonical mutation library 양쪽 traversal (Task 6 scope inflation, 사용자
+  confirm)**: `findNodeInDocument` / `removeNodeFromDocument` /
+  `replaceNodeInDocument` / `appendChildInDocument` 4 doc-level wrapper 신설 +
+  `upsertReusableComponent` helper 신설. `upsertElementIntoDocument` 의 master
+  분기 redirect target 변경 (`doc.children` → `doc.reusableComponents`). 5 caller
+  (`remapLegacyDescendants` / `legacyElementToCanonicalNode` /
+  `createCanonicalHistoryNodeFromElement` / `getCanonicalHistoryNodeSnapshot` /
+  `hasCanonicalPositionChange`) `findNodeById(doc.children, ...)` →
+  `findNodeInDocument(doc, ...)` 양쪽 search 로 전환.
+- **canonical-only runtime 양쪽 traverse (Task 7+8)**:
+  `visitCanonicalDocumentElements` (canonicalElementsView.ts) 가 `doc.children`
+  - `doc.reusableComponents` 양쪽 visit. `exportLegacyDocument` 도 양쪽 walk —
+    masters / master sub-tree 가 elementsMap / Inspector / Properties / Layers /
+    Skia derive 모두에 노출. `deriveProjectRenderModelFromDocument` 경로 3 ref
+    lookup (`resolveRenderableNode` / `resolvePageRenderableChildren` /
+    `collectPageFrameProjectionRuntimeElements`) → `findNodeInDocument` 으로 전환.
+
+### Features
+
+- **Layers panel Pages + Components 분리 (Task 12)**: `LayersSection.tsx` 에
+  `ComponentsSection` sub-component inline 통합 — Pages 섹션 (page tree) +
+  Components 섹션 (reusable masters sub-tree) 2 분할 표시 (pencil/Figma 패턴).
+  `useReusableComponentsPanelElements()` hook 신설 — canonical.reusableComponents
+  의 master + sub-tree 만 PanelNode[] 로 추출. reusableElements 비어있으면 섹션
+  숨김.
+- **Properties FrameSlotSection master 인정 (Task 13+14 최소 viable)**:
+  `isSlotHostElement` 가 SLOT_HOST_TYPES (frame/group/section/box/card\*) 외에도
+  `element.reusable === true` 인 master 도 host 로 인정. Tabs / ListBox / Menu /
+  Select / ComboBox 등 composite master 선택 시 기존 FrameSlotSection UI 에서
+  slot meta 편집 가능. 별도 SlotSection 신설 회피.
+
+### Breaking Changes
+
+- **IndexedDB DB_VERSION 19 → 20 clean break (Task 15)**: `apps/builder/src/lib/
+db/indexedDB/adapter.ts` DB_VERSION 20 + migration 코드 없음 (개발 단계, 기존
+  데이터 폐기 가능 — 사용자 명시). `metaStore.test.ts` assertion 18 → 20 갱신
+  (ADR-132 시점 baseline 으로 19 도입 시점부터 stale).
+
+### Deferred
+
+- **Canvas spatial master visible (Task 9-11, 사용자 confirm 분리)**: master 가
+  Skia canvas 위에 page 옆 spatial 배치되는 영역은 ADR-100 Unified Skia Engine 의
+  sceneSnapshot / pageSnapshots / pagePositions 인프라 확장 동반 (cross-cutting
+  scope inflation 2x+). Wave D 안에서 Layers panel + Properties slot section
+  까지 land + 회귀, Canvas 영역은 별도 후속 phase 보존. design breakdown Layer C
+  영역 (deferred) 표시.
+
+### Verification
+
+- `pnpm -F builder type-check` PASS (baseline 547, 282 baseline error resolved)
+- `pnpm -F @composition/shared type-check` PASS
+- composite factory 7/7 + canonicalMutations 24/24 + metaStore 7/7 PASS
+- 영향 영역 vitest 회귀 (factories + canonical adapter + canonicalElementsView +
+  panels/nodes + panels/properties + lib/db) PASS 제외 7 FAIL — 7 모두
+  pre-existing stale baseline (g5LegacyFieldGrepGate 5 / adr113DescendantsGrepGate
+  1 / factoryOwnership Form 1), `git stash` 후 main HEAD 단독 실행으로 동일 FAIL
+  확인 — Wave D 변경 신규 FAIL 0건.
+- ADR-144 본문 + design breakdown amend (HC1 reword + R7 / G8 / Layer C deferred)
+  - plan 작성 (`docs/superpowers/plans/2026-05-22-...`).
+
 ## [ADR-144 closure rollback — 본질 결함 발견 (4 family ComponentFactory wiring 누락)] - 2026-05-22
 
 ### Architecture
