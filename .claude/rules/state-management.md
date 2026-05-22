@@ -49,18 +49,34 @@ globs:
 
 ## Canonical sync 호출 순서 (CRITICAL)
 
-ADR-116/122 canonical-only-runtime 후 `_rebuildIndexes` 는 `getCanonicalOrStoreElements()` → canonical 우선 derive (elements.ts:430). 신규 mutation 함수 추가 시 다음 순서 엄수:
+ADR-116/122 canonical-only-runtime 후 `_rebuildIndexes` 는 `getCanonicalOrStoreElements()` → canonical 우선 derive (elements.ts:430). ADR-122 HC #2 ("runtime mutation 은 canonical document 를 먼저 갱신") 정합 패턴 (`createAddElementAction` 기준, `elementCreation.ts:186-244`):
 
 ```ts
-set({ elements: ... });            // 1. legacy array 갱신
-syncXxxToCanonical([...]);          // 2. canonical document update 먼저
-get()._rebuildIndexes();            // 3. 최신 canonical 기반 derive
-persistXxxAfterMutation([...]);    // 4. IndexedDB persist (백그라운드)
+mergeXxxIntoCanonicalDocument([...]);              // 1. canonical document 1차 갱신
+set((prev) => ({ elements: [...prev.elements, ...newItems] })); // 2. legacy array derive 갱신
+get()._rebuildIndexes();                             // 3. canonical 기반 index 재구축
+await persistActiveCanonicalDocument(db);            // 4. IndexedDB persist (백그라운드)
 ```
 
-**금지 패턴**: `set` → `_rebuildIndexes` → canonical update — `_rebuildIndexes` 가 **stale canonical** 로 elementsMap mirror 빌드하여 `reusable` / `componentRole` / mirror field 누락 race 발생. 사용자 가시 영향: 신규 프로젝트 생성 직후 origin → copy → paste 시 instance 가 일반 element 로 생성. 새로고침 후 IndexedDB → canonical hydrate 정합화로 영구 회복.
+신규 mutation 함수 추가 시 위 순서 의무. wrapper 는 항상 `canonicalMutations.ts` (`mergeElementsCanonicalPrimary` / `setElementsCanonicalPrimary` 등) 직접 호출.
 
-회귀 이력: instanceActions.ts 3곳 fix — commits `a859f8b97` (applyElementSnapshotBatch) + `ee91020c4` (createInstance / resetInstanceOverrideField).
+**금지 패턴**:
+
+- ❌ `set` → `_rebuildIndexes` → canonical update — `_rebuildIndexes` 가 **stale canonical** 로 elementsMap mirror 빌드하여 `reusable` / `componentRole` / mirror field 누락 race 발생. 사용자 가시 영향: 신규 프로젝트 생성 직후 origin → copy → paste 시 instance 가 일반 element 로 생성. 새로고침 후 IndexedDB → canonical hydrate 정합화로 영구 회복.
+- ❌ `set` 1차 → `syncXxxToCanonical` 2차 — ADR-122 HC #2 위반. wrapper 호출 시점이 set 뒤로 밀리면 canonical document 가 set 의 mutation 보다 1 tick 늦게 갱신되어 동기 read consumer (Skia bridge / canonical selector) 가 stale canonical 노출. 잔존 영역 (아래) 에서 회귀 패턴 반복.
+
+**잔존 영역 (ADR-122 post-Implemented residual, 2026-05-23 amend)**:
+
+ADR-122 본문 G1 ("mutation mirror 제거") 는 wrapper 가 단일 진입점이 되었음을 검증했지만 **wrapper 호출 순서 (canonical 1차 vs set 1차) 일관성** 은 검증하지 않았다. 6 entry path (`palette drop / paste / duplicate / createInstance / pencil import / canonical hydration`) 중 다음 2 곳이 `set` 1차 패턴 잔존:
+
+| 경로 | 위치 | 잔존 패턴 |
+| ---- | ---- | -------- |
+| `createInstance` / `resetInstanceOverrideField` / instance snapshot batch | `apps/builder/src/builder/stores/utils/instanceActions.ts:573-630` (`applyElementSnapshotBatch`) | `set` 1차 (line 598-620) → `syncInstanceElementsToCanonical` 2차 (line 622, JSDoc `canonical-first sync invariant` 코멘트와 실제 동작 불일치) |
+| history Undo / Redo (`!appliedCanonicalEvents` 분기) | `apps/builder/src/builder/stores/history/historyActions.ts:653-660` | `set` 1차 (line 653) → `syncHistoryElementsToCanonical` 2차 (line 660) |
+
+본 잔존은 ADR-122 본문 § Residual 에 추가됐다 ([docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md)). 코드 정정 (호출 순서 reverse) 은 회귀 위험 HIGH (history undo/redo + instance master/snapshot 영역 광범위) 로 후속 작업 분리.
+
+**회귀 이력**: `instanceActions.ts` 3곳 fix — commits `a859f8b97` (applyElementSnapshotBatch) + `ee91020c4` (createInstance / resetInstanceOverrideField). 위 잔존 패턴 자체 정정 대신 그로 인한 stale derive race 만 우회 해소.
 
 ## Root Collection SSOT (ADR-131 Implemented 2026-05-13)
 

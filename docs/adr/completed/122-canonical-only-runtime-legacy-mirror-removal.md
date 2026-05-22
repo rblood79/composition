@@ -740,6 +740,42 @@ Main closure commit은 `d72b85441`이며, 커밋 직전 `pnpm run codex:prefligh
 `.claude/stats/.last-drift-snapshot-sha`는 커밋에서 제외했다.
 관련 문서 동기화 commit은 `470b616ed`로 기록한다.
 
+## Residual: Wrapper 호출 순서 일관성 결함 (2026-05-23 amend)
+
+### 결함 진단
+
+ADR-122 G1 (Phase 1 종료 조건, "mutation mirror 제거") 는 `canonicalMutations` wrapper 가 단일 진입점으로 수렴했음을 검증했다. 6 entry path (`palette drop / paste / duplicate / createInstance / pencil import / canonical hydration`) 가 모두 `canonicalMutations.ts` 의 `mergeElementsCanonicalPrimary` / `setElementsCanonicalPrimary` 등을 import 한다.
+
+그러나 **wrapper 호출 순서 (HC #2 "canonical 먼저 갱신") 일관성** 은 G1 검증 범위에 포함되지 않았다. 그 결과 본 ADR Implemented 시점에 다음 2 mutation 경로가 `set` 1차 → wrapper 2차 패턴으로 잔존한다.
+
+| 경로                                                                      | 위치                                                                                             | 잔존 패턴                                                                           | HC #2 정합 |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- | :--------: |
+| `createAddElementAction` (palette drop / paste / duplicate 공유 wrapper)  | `apps/builder/src/builder/stores/utils/elementCreation.ts:186-244`                               | `mergeCreatedElementsIntoCanonicalDocument` 1차 → `set` 2차 → `_rebuildIndexes` 3차 |     ✅     |
+| `createAddComplexElementAction` (palette drop 복합)                       | `apps/builder/src/builder/stores/utils/elementCreation.ts:258`                                   | 동일                                                                                |     ✅     |
+| `createInstance` / `resetInstanceOverrideField` / instance snapshot batch | `apps/builder/src/builder/stores/utils/instanceActions.ts:573-630` (`applyElementSnapshotBatch`) | `set` 1차 (line 598-620) → `syncInstanceElementsToCanonical` 2차 (line 622)         |     ❌     |
+| history Undo / Redo (`!appliedCanonicalEvents` 분기)                      | `apps/builder/src/builder/stores/history/historyActions.ts:653-660`                              | `set` 1차 (line 653) → `syncHistoryElementsToCanonical` 2차 (line 660)              |     ❌     |
+
+`instanceActions.applyElementSnapshotBatch` 의 JSDoc 코멘트 "canonical-first sync invariant" 는 의도 선언일 뿐 실제 코드 동작과 불일치하며, 관련 회귀 fix 이력 (`a859f8b97`, `ee91020c4`) 도 잔존 패턴 자체 대신 그로 인한 stale derive race 만 우회 해소했다.
+
+### 결함의 SSOT 문서화 파급
+
+`.claude/rules/state-management.md` §"Canonical sync 호출 순서" 가 본 amend 이전까지 `set` 1차 → `syncXxxToCanonical` 2차 패턴을 신규 mutation 작성 시의 정상 순서로 명시했다. 잔존 영역의 호출 순서를 SSOT 패턴처럼 인용한 결과로, 새로운 mutation 함수가 추가될 때 동일 패턴 (HC #2 위반) 이 의도된 표준으로 복제될 위험이 있었다.
+
+본 amend 시점에 `.claude/rules/state-management.md` 동시 정정이 의도됐으나 hook 보호 차단으로 사용자 직접 적용 영역으로 남는다. 정정 내용:
+
+- 정상 패턴 = `createAddElementAction` 기준 canonical 1차 → set/derive 2차 → persist
+- 잔존 영역 = 위 표의 ❌ 행 2 곳 (instanceActions / historyActions)
+- 신규 mutation 추가 시 잔존 패턴 인용 금지, createAddElementAction 패턴 의무
+
+### Amend 범위 결정 (2026-05-23)
+
+| 옵션                                                                    |   채택 여부    | 이유                                                                                                                                |
+| ----------------------------------------------------------------------- | :------------: | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 본문 + state-management.md 문서 정정만                                  |       ✅       | 회귀 위험 0, 신규 mutation 의 잔존 패턴 인용 차단이 즉시 효과                                                                       |
+| 코드 reverse 동반 (`instanceActions` / `historyActions` 호출 순서 정정) | ❌ (후속 분리) | history undo/redo + instance master/snapshot 영역 회귀 위험 HIGH. state-management.md §"Canonical sync 호출 순서" 의 회귀 이력 참조 |
+
+코드 reverse 는 본 ADR Status 를 변경하지 않으면서 별도 후속 작업으로 분리한다. 그 작업의 의존 방향은 본 amend 의 § Residual 인용으로 정렬된다.
+
 ## Consequences
 
 ### Positive

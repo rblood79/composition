@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Catch-up 2026-05-19 ~ 2026-05-23 — ADR-142/144 사이클 + rollback + ADR-122 amend] - 2026-05-23
+
+> 본 entry 는 `rules/changelog.md` §2 catch-up 절차로 작성. 마지막 entry (2026-05-19 ADR-143 closure) 와 본 시점 사이 132 commits 를 주제별 bundle 로 요약. 개별 commit 나열 회피.
+
+### Bug Fixes
+
+- **Tabs Skia/Preview rendering 시도 후 전체 rollback** (2026-05-23, 5 commits → `1221ae548`):
+  - ADR-144 진행 중 catalog placement (TabList > Tab × 3 + TabPanels > TabPanel × 3 nested 자식) + Preview/Skia nested children 우선 + `resolveGenericTabsSize` spec 정합 시도.
+  - **Why**: ADR-066 "Tab element 소멸, items SSOT" 설계와 Tab spec 의 자식 element 생성 모순 — 단일 fix 가 전 chain 정합 미달. 사용자 정정 ("하나씩 해서는 답없다. 전체적인 문제다") 후 전체 rollback.
+
+### Architecture
+
+- **ADR-143 — Canonical 시각 토큰 필드 정명 + theme/token SSOT 재정렬** (Implemented 2026-05-19, 현 baseline):
+  - Phase 0~6 단일 세션 완결 — `variables` → `tokens` 정명, 토큰 델타 저장 (`buildTokensSnapshot` + `mergeTokensSnapshot`), `design_tokens` / `design_themes` objectStore 폐기 (`DB_VERSION` 18→19), dead ThemeStudio chain 제거 (-1528 LOC), 런타임 variables 도메인 경계 주석.
+  - Status 승격 commits: `8751fdc23` (Proposed→Accepted), `6e64d9543` (Accepted→Implemented closure)
+  - 본 ADR 의 closure 시점이 후속 rollback 의 복귀 baseline 으로 작용.
+- **ADR-142 — Component System Cutover catalog primitive pilots** (Implemented 2026-05-21 후 rollback 2026-05-23):
+  - Phase 0 inventory → Phase 1a/1b proof slice → Phase 2 catalog foundation → Phase 3 button wrapper boundary → 약 40 종 catalog primitive pilot 추가 (button / link / separator / toggle / breadcrumbs / toolbar / textfield 류 7종 / form / file trigger / switch / checkbox 류 2종 / slider / radio group / listbox / gridlist / taggroup / menu / combobox / select / tabs / tree / dropzone / tooltip / dialog / popover / modal / toast / color 계열 6종 / calendar 계열 4종 / time picker).
+  - Implemented 승격: `b54680006` + `5d7b83c26`.
+  - **rollback 사유**: ADR-144 의 catalog binding 의존 — ADR-144 설계 결함 발견 후 baseline 복귀 결정 시 동시 무효화. 113 commits revert (`dbd8c1cf4`).
+- **ADR-144 — Composite RAC resolved-tree parity + Wave A/B/C/D** (Implemented 2026-05-22 후 전체 rollback):
+  - Phase 0 baseline → Phase 1 contract fixture → Phase 5 G4 selection ownerPath → Phase 6 G5 Tabs RAC behavior tests → Phase 7 Wave A (Select/ComboBox/ListBox/Menu G6) → Wave B (Skia resolved-tree owner emission) → Wave C (Inspector Properties 3 input mode) → Phase 8 G7 perf baseline → Wave D (reusableComponents root collection + master/instance 분리 + Layers/Properties UI + DB clean break, Task 1~15).
+  - Implemented commit: `b65b8e2ac` (Wave C closure). Wave D HC1 amend: `432d14ac2`.
+  - **rollback 사유**: 사용자 의도 ("트리 구조 / canvas spatial / 단순함") 와 본 ADR 의 master/instance 분리 설계 모델 차이. Wave D 진행 중 진정 entry path 단일화 (catalog composite 5 family 분기) 시도 (`1fea6af54`) + Phase 1.5 viewport 안 배치 (`44550bc70`, `1b8264ecf`) 시도해도 본질 정합 미달. 34 commits revert (`9aa232f51`).
+  - 후속: ADR-144 재설계 brainstorming pending (task #26).
+- **ADR-122 amend — wrapper 호출 순서 일관성 결함 정정** (2026-05-23):
+  - 본문 § Residual 추가 — `canonicalMutations.ts` 단일 wrapper 가 6 entry path 진입점이 됐음에도 wrapper 호출 순서 (canonical 1차 vs set 1차) 일관성 검증 누락. 잔존 영역 표 (`instanceActions.applyElementSnapshotBatch` line 598-622 + `historyActions` Undo/Redo line 653-660) 명시.
+  - `.claude/rules/state-management.md` §"Canonical sync 호출 순서" 정정 — `createAddElementAction` (canonical 1차 → set 2차) 가 정합 패턴, 기존 문서화 (set 1차 → sync 2차) 가 잔존 영역 패턴 인용 결과로 신규 mutation 추가 시 동일 위반 복제 위험.
+  - 코드 정정 (호출 순서 reverse) 은 회귀 위험 HIGH (history undo/redo + instance master/snapshot 영역 광범위) 로 후속 작업 분리.
+  - 사용자 발견 진단 — "entry path 6 곳 분산 단일화" 가 본질, ADR-122 본문 의도 (canonical 1차 단일 wrapper) 는 이미 적용 완료, 잔존은 호출 순서 일관성만.
+
+### Infrastructure
+
+- **chore**: vitest 4.1.7 + tsx 4.22.3 dependency 업데이트 (`e0c51b374` / `92696e07e`).
+- **chore**: Storybook references 제거 + workspace 에서 `react-aria-starter` 제외 (`828a716e5` / `15375fb81` / `da5b2492f`).
+- **chore**: Codex CLI approval policy + sandbox mode settings 조정 (`9ca63e477`).
+
 ## [Canonical 시각 토큰 필드 정명 + theme/token SSOT 재정렬 — ADR-143] - 2026-05-19
 
 ### Breaking Changes
