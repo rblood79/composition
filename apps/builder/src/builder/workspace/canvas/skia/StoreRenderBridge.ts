@@ -132,7 +132,10 @@ function isCatalogSkiaPath(element: CanvasSceneNode): boolean {
   return getComponentCatalogEntry(element.type)?.cutover === "catalog";
 }
 
-function toResolvedSkiaNode(element: CanvasSceneNode): ResolvedNode {
+function toResolvedSkiaNode(
+  element: CanvasSceneNode,
+  childrenMap?: Map<string, CanvasSceneNode[]>,
+): ResolvedNode {
   const node: ResolvedNode = {
     id: element.id,
     type: element.type as ResolvedNode["type"],
@@ -142,6 +145,15 @@ function toResolvedSkiaNode(element: CanvasSceneNode): ResolvedNode {
   if (element.metadata !== undefined) node.metadata = element.metadata;
   if (element.reusable === true) node.reusable = true;
   if (element.slot !== undefined) node.slot = element.slot;
+  // ADR-066 폐기 — canonical tree 의 자식 element 를 ResolvedNode.children 으로
+  // 변환. catalog Skia path (buildGenericResolvedSkiaNodeData) 가 nested 자식
+  // 기반 render 가능하도록.
+  if (childrenMap) {
+    const children = childrenMap.get(element.id);
+    if (children && children.length > 0) {
+      node.children = children.map((c) => toResolvedSkiaNode(c, childrenMap));
+    }
+  }
   return node;
 }
 
@@ -550,7 +562,7 @@ export class StoreRenderBridge {
 
     if (isCatalogSkiaPath(effectiveElement)) {
       const nodeData = buildGenericResolvedSkiaNodeData({
-        node: toResolvedSkiaNode(effectiveElement),
+        node: toResolvedSkiaNode(effectiveElement, childrenMap ?? undefined),
         theme: ctx.theme,
         layout,
         layoutById: ctx.layoutMap,
