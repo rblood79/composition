@@ -128,10 +128,26 @@ function pickNumeric<T extends object>(
   //   TokenRef 문자열을 저장 (Badge/InlineAlert/Button/...). `typeof v === "number"` 로만
   //   필터하면 전부 skip 되어 Panel 이 0 표시. `resolveToNumber` 로 TokenRef/CSS var 양쪽
   //   해석 후 숫자 추출. 기존 숫자 케이스는 그대로 통과 (회귀 0).
+  // ADR-145 fix: `height === 0` / `width === 0` 는 컴포넌트 spec 에서 "intrinsic 결정"
+  //   marker (Body.spec line 59 "auto — 페이지/컨테이너 크기가 결정" / ListBox·ListBoxItem·
+  //   Accordion·Badge·ButtonGroup 등 다수). Style Panel `TransformSection` 의 toStr 가
+  //   inline 없으면 specDefault 표시 → 0px 로 잘못 표시되는 회귀. dimension 축 (width/height/
+  //   min/max) 의 0 은 specDefault 에서 제외 → fallback "auto" 표시 + inline 편집 정상.
+  //   padding/gap/margin 의 0 은 valid (LAYOUT_KEYS 별도 호출, 영향 없음).
+  const DIMENSION_KEYS_SKIP_ZERO = new Set([
+    "width",
+    "height",
+    "minWidth",
+    "maxWidth",
+    "minHeight",
+    "maxHeight",
+  ]);
   const out: Record<string, number> = {};
   for (const k of keys) {
     const resolved = resolveToNumber(sizeEntry[k]);
-    if (resolved !== undefined) out[k] = resolved;
+    if (resolved === undefined) continue;
+    if (resolved === 0 && DIMENSION_KEYS_SKIP_ZERO.has(k)) continue;
+    out[k] = resolved;
   }
   return out as unknown as T;
 }
