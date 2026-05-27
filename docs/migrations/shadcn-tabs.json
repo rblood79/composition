@@ -1,0 +1,138 @@
+{
+  "source": "design system components",
+  "file": "/Users/admin/Desktop/untitled.pen",
+  "exportedAt": "2026-05-26",
+  "selection": ["coMmv", "QY0Ka", "PbofX", "omDwd"],
+  "nodes": [
+    {
+      "id": "coMmv",
+      "name": "Tab Item/Active",
+      "type": "frame",
+      "reusable": true,
+      "x": 199,
+      "y": 2404,
+      "padding": [6, 12],
+      "gap": 8,
+      "cornerRadius": 2,
+      "fill": "$--background",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1
+      },
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "blur": 1.75,
+        "color": "#0000000d",
+        "offset": { "x": 0, "y": 1 }
+      },
+      "children": [
+        {
+          "id": "qYQHc",
+          "name": "Label Selected",
+          "type": "text",
+          "content": "Tab Item",
+          "fontFamily": "Inter",
+          "fontSize": 14,
+          "fontWeight": "500",
+          "lineHeight": 1.4285714285714286,
+          "fill": "$--foreground"
+        }
+      ]
+    },
+    {
+      "id": "QY0Ka",
+      "name": "Tab Item/Inactive",
+      "type": "ref",
+      "ref": "coMmv",
+      "reusable": true,
+      "x": 199,
+      "y": 2456,
+      "fill": [],
+      "effect": [],
+      "descendants": {
+        "qYQHc": {
+          "fill": "$--muted-foreground"
+        }
+      }
+    },
+    {
+      "id": "PbofX",
+      "name": "Tabs",
+      "type": "frame",
+      "reusable": true,
+      "x": 199,
+      "y": 2508,
+      "width": 80,
+      "height": 40,
+      "padding": 4,
+      "gap": 8,
+      "cornerRadius": 6,
+      "clip": true,
+      "alignItems": "center",
+      "fill": "$--secondary",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1
+      },
+      "slot": ["coMmv", "QY0Ka"]
+    },
+    {
+      "id": "omDwd",
+      "name": "Tabs",
+      "type": "ref",
+      "ref": "PbofX",
+      "x": 199,
+      "y": 2588,
+      "width": "fit_content",
+      "children": [
+        {
+          "id": "WdXPr",
+          "type": "ref",
+          "ref": "coMmv",
+          "x": 4,
+          "y": 4,
+          "descendants": {
+            "qYQHc": { "content": "Integrations" }
+          }
+        },
+        {
+          "id": "n1AXl",
+          "type": "ref",
+          "ref": "QY0Ka",
+          "x": 116,
+          "y": 4,
+          "descendants": {
+            "qYQHc": { "content": "Billing" }
+          }
+        },
+        {
+          "id": "lGHqQ",
+          "type": "ref",
+          "ref": "QY0Ka",
+          "x": 189,
+          "y": 4,
+          "descendants": {
+            "qYQHc": { "content": "Profile" }
+          }
+        },
+        {
+          "id": "3YaMP",
+          "type": "ref",
+          "ref": "QY0Ka",
+          "x": 265,
+          "y": 4,
+          "descendants": {
+            "qYQHc": { "content": "Advanced" }
+          }
+        }
+      ]
+    }
+  ],
+  "designTokens": {
+    "$--background": "#fafafa (light) / #0a0a0a (dark)",
+    "$--foreground": "#0a0a0a (light) / #fafafa (dark)",
+    "$--secondary": "#f5f5f5 (light) / #262626 (dark)",
+    "$--muted-foreground": "#737373 (light) / #a3a3a3 (dark)"
+  }
+}

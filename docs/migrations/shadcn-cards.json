@@ -1,0 +1,294 @@
+{
+  "source": "shadcn: design system components",
+  "file": "/Users/admin/Desktop/untitled.pen",
+  "exportedAt": "2026-05-26",
+  "selection": ["JENPq", "fpgbn", "PiMGI", "pcGlv"],
+  "nodes": [
+    {
+      "id": "pcGlv",
+      "name": "Card",
+      "type": "frame",
+      "reusable": true,
+      "x": 481,
+      "y": 2959,
+      "width": 360,
+      "layout": "vertical",
+      "cornerRadius": 8,
+      "fill": "$--card",
+      "stroke": {
+        "align": "inside",
+        "fill": "$--border",
+        "thickness": 1
+      },
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "blur": 1.75,
+        "color": "#0000000d",
+        "offset": { "x": 0, "y": 1 }
+      },
+      "children": [
+        {
+          "id": "CgJv7",
+          "name": "Card Header",
+          "type": "frame",
+          "layout": "vertical",
+          "width": "fill_container",
+          "height": 68,
+          "padding": 24,
+          "gap": 8,
+          "justifyContent": "center",
+          "slot": []
+        },
+        {
+          "id": "frWPV",
+          "name": "Card Content",
+          "type": "frame",
+          "layout": "vertical",
+          "width": "fill_container",
+          "height": 68,
+          "padding": 24,
+          "gap": 8,
+          "justifyContent": "center",
+          "slot": []
+        },
+        {
+          "id": "bvhSM",
+          "name": "Card Actions",
+          "type": "frame",
+          "width": "fill_container",
+          "height": 68,
+          "padding": 24,
+          "gap": 8,
+          "alignItems": "center",
+          "slot": []
+        }
+      ]
+    },
+    {
+      "id": "PiMGI",
+      "name": "Card Action",
+      "type": "ref",
+      "ref": "pcGlv",
+      "reusable": true,
+      "x": 900,
+      "y": 2957,
+      "width": 320,
+      "height": "fit_content",
+      "descendants": {
+        "CgJv7": {
+          "height": "fit_content",
+          "children": [
+            {
+              "id": "vSU0z",
+              "name": "title",
+              "type": "text",
+              "content": "Solar Efficiency Pack",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "500",
+              "lineHeight": 1.5,
+              "fill": "$--card-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container"
+            }
+          ]
+        },
+        "frWPV": {
+          "height": "fit_content",
+          "children": [
+            {
+              "id": "02zLC",
+              "name": "text",
+              "type": "text",
+              "content": "Boosts rover endurance by optimizing solar panel alignment.",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal",
+              "lineHeight": 1.5,
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container"
+            }
+          ]
+        },
+        "bvhSM": {
+          "height": "fit_content",
+          "children": [
+            {
+              "id": "C8MFo",
+              "type": "ref",
+              "ref": "C10zH",
+              "x": 24,
+              "y": 24,
+              "descendants": {
+                "poRwU": { "content": "Request" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fpgbn",
+      "name": "Card Plain",
+      "type": "ref",
+      "ref": "pcGlv",
+      "reusable": true,
+      "x": 1252,
+      "y": 2959,
+      "width": 320,
+      "descendants": {
+        "CgJv7": {
+          "height": "fit_content",
+          "children": [
+            {
+              "id": "XRwAR",
+              "name": "title",
+              "type": "text",
+              "content": "Active Rovers",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "500",
+              "lineHeight": 1.5,
+              "fill": "$--card-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container"
+            }
+          ]
+        },
+        "frWPV": {
+          "height": "fit_content",
+          "children": [
+            {
+              "id": "ip4M9",
+              "name": "number",
+              "type": "text",
+              "content": "1,280",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "500",
+              "lineHeight": 1.5,
+              "fill": "$--card-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container"
+            },
+            {
+              "id": "58bG0",
+              "type": "ref",
+              "ref": "UjXug",
+              "x": 24,
+              "y": 68,
+              "descendants": {
+                "zHpCv": { "content": "-12%" }
+              }
+            }
+          ]
+        },
+        "bvhSM": {
+          "enabled": false,
+          "children": []
+        }
+      }
+    },
+    {
+      "id": "JENPq",
+      "name": "Card Image",
+      "type": "ref",
+      "ref": "pcGlv",
+      "reusable": true,
+      "x": 1604,
+      "y": 2959,
+      "width": 320,
+      "height": "fit_content",
+      "descendants": {
+        "CgJv7": {
+          "height": "fit_content",
+          "children": [
+            {
+              "id": "Jbgz8",
+              "name": "image-placeholder",
+              "type": "frame",
+              "layout": "none",
+              "width": "fill_container",
+              "height": 160,
+              "cornerRadius": 4,
+              "fill": "$--accent",
+              "stroke": {
+                "align": "inside",
+                "thickness": { "bottom": 1 }
+              }
+            }
+          ]
+        },
+        "frWPV": {
+          "height": "fit_content",
+          "children": [
+            {
+              "id": "FFlaK",
+              "name": "title",
+              "type": "text",
+              "content": "Aurora Scout",
+              "fontFamily": "Inter",
+              "fontSize": 20,
+              "fontWeight": "500",
+              "lineHeight": 1.5,
+              "fill": "$--card-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container"
+            },
+            {
+              "id": "4MqKz",
+              "name": "title",
+              "type": "text",
+              "content": "SKU: LS-2029",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "normal",
+              "lineHeight": 1.5,
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container"
+            }
+          ]
+        },
+        "bvhSM": {
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "id": "Jt3oM",
+              "type": "ref",
+              "ref": "UjXug",
+              "x": 24,
+              "y": 24,
+              "descendants": {
+                "zHpCv": { "content": "$45.00" }
+              }
+            },
+            {
+              "id": "FNWmv",
+              "type": "ref",
+              "ref": "C10zH",
+              "x": 131,
+              "y": 16,
+              "descendants": {
+                "poRwU": { "content": "Add to favorites" }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "designTokens": {
+    "$--card": "#fafafa (light) / #171717 (dark)",
+    "$--card-foreground": "#0a0a0a (light) / #fafafa (dark)",
+    "$--border": "#e5e5e5 (light) / #ffffff1a (dark)",
+    "$--muted-foreground": "#737373 (light) / #a3a3a3 (dark)",
+    "$--accent": "#f5f5f5 (light) / #262626 (dark)"
+  },
+  "referencedComponents": {
+    "C10zH": "Button/Outline",
+    "UjXug": "Badge/Default"
+  }
+}
