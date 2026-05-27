@@ -246,7 +246,11 @@ function resolveListBoxItemTemplateStyle(
   const template = childElements.find((child) => child.type === "ListBoxItem");
   if (!template) return undefined;
   const style = getProps(template).style as Record<string, unknown> | undefined;
-  if (!style || Object.keys(style).length === 0) return undefined;
+  if (!style) return undefined;
+  // `display: none` 은 template element 의 layout 차단용 marker — row 시각 source 아님.
+  // display 키만 존재하면 빈 style 로 간주 → ListBox container style → spec size default fallback.
+  const visualKeys = Object.keys(style).filter((k) => k !== "display");
+  if (visualKeys.length === 0) return undefined;
   return style;
 }
 

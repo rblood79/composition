@@ -175,7 +175,11 @@ export function legacyToCanonical(
       canonicalChildren.push({
         id: templateSegId,
         type: "ListBoxItem",
-        props: { style: {} },
+        // ADR-145 Phase A — template element 의 layout 영향 명시 차단. factory 와 정합:
+        //   spec render.shapes 가 `_listBoxItemTemplateStyle` 로 본 style 을 받아 row 시각 paint,
+        //   `calculateContentHeight` (utils.ts:1484) 는 display:none 시 0 반환 → 부모 ListBox
+        //   layout 분기 (listbox 1523) 가 props.items 기반 intrinsic height 계산 유지.
+        props: { style: { display: "none" } },
         children: [],
       });
     }

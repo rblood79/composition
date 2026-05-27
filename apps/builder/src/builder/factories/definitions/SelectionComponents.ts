@@ -240,12 +240,16 @@ export function createListBoxDefinition(
     //   Phase B 의 spec render.shapes 가 본 template element 의 style 을 소비하여
     //   props.items data 와 결합 paint. 사용자가 descendants override 로 padding/lineHeight 등을
     //   조정하면 row 전체에 반영됨.
+    //   `display: none` — template element 는 시각 style 의 메타데이터 carrier (Layers Panel
+    //   에서 선택/편집 가능) 일 뿐, ListBox 의 자체 layout 영향에서 제외 (`calculateContentHeight`
+    //   line 1484 `display === "none" → return 0`). 시각은 부모 ListBox `render.shapes` 가
+    //   `_listBoxItemTemplateStyle` 로 받아 row 단위 paint.
     children: [
       {
         type: "ListBoxItem",
         props: {
           // template element — 시각 style 정의만 담당, label/value 는 props.items 에서 공급
-          style: {},
+          style: { display: "none" },
         } as ComponentElementProps,
       },
     ],
