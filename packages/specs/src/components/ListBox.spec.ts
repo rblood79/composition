@@ -72,6 +72,19 @@ export interface ListBoxProps {
   _containerWidth?: number;
   /** ElementSprite 주입: 자식 Element 존재 시 spec shapes 아이템 렌더링 스킵 */
   _hasChildren?: boolean;
+  /**
+   * ADR-145 Phase B: ListBoxItem template element 의 style 주입 (buildSpecNodeData 가 SYNTHETIC
+   * merge 시점에 전달). `render.shapes` 가 row 시각 (fontSize / paddingX / itemHeight / color)
+   * 의 우선 source 로 소비 — ListBox container `props.style` 보다 우선. template style 미정의
+   * 키는 ListBox container style → spec size default 순으로 fallback.
+   */
+  _listBoxItemTemplateStyle?: Record<string, unknown>;
+  /**
+   * ADR-145 Phase B: Skia 측 viewport intersection — visible row y-range (px) 만 paint.
+   * undefined 시 모든 row paint (legacy). figma WebGPU tile-based + Retool react-window 와
+   * 동등한 industry-standard culling pattern.
+   */
+  _viewport?: { top: number; bottom: number };
   style?: Record<string, string | number | undefined>;
 }
 
@@ -311,14 +324,29 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
         size.borderRadius,
       );
 
-      const textColor = props.style?.color ?? variant.text;
+      // ADR-145 Phase B: row 시각 SSOT 분리 — ListBoxItem template element 의 style 우선,
+      //   없으면 ListBox container style → spec size default 순으로 fallback.
+      //   container 시각 (background / border / padding / gap) 은 ListBox `props.style` 유지.
+      const templateStyle = (props as Record<string, unknown>)
+        ._listBoxItemTemplateStyle as Record<string, unknown> | undefined;
+      const pickRowStyle = (key: string): unknown =>
+        templateStyle?.[key] ??
+        (props.style as Record<string, unknown> | undefined)?.[key];
+
+      const textColor = (pickRowStyle("color") ?? variant.text) as
+        | string
+        | TokenRef;
       const fontSize = resolveSpecFontSize(
-        props.style?.fontSize ?? size.fontSize,
+        (pickRowStyle("fontSize") ?? size.fontSize) as
+          | string
+          | number
+          | TokenRef
+          | undefined,
         14,
       );
-      const ff = (props.style?.fontFamily as string) || fontFamily.sans;
+      const ff = (pickRowStyle("fontFamily") as string) || fontFamily.sans;
       const textAlign =
-        (props.style?.textAlign as "left" | "center" | "right") || "left";
+        (pickRowStyle("textAlign") as "left" | "center" | "right") || "left";
 
       const shapes: Shape[] = [];
 
@@ -383,8 +411,14 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
         }
       }
 
-      const ITEM_PADDING_X = metric.itemPaddingX;
-      const itemH = metric.itemHeight;
+      // ADR-145 Phase B: row metric — template element 의 paddingX / height 직접 override 우선.
+      //   fontSize 기반 계산 (metric.itemPaddingX / metric.itemHeight) 은 이미 위에서 template
+      //   fontSize 가 적용됐기 때문에 자동 정합. paddingX/height 만 추가 layer.
+      const ITEM_PADDING_X = parsePxValue(
+        templateStyle?.paddingX ?? templateStyle?.paddingLeft,
+        metric.itemPaddingX,
+      );
+      const itemH = parsePxValue(templateStyle?.height, metric.itemHeight);
       const gap = metric.rowGap;
       const innerPaddingX = metric.paddingLeft + borderWidth;
       const innerPaddingY = metric.paddingTop + borderWidth;
@@ -413,8 +447,20 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
       const HEADER_FONT_SIZE = metric.headerFontSize;
       const SECTION_TOP_PAD = metric.sectionTopPad;
 
+      // ADR-145 Phase B: Skia viewport intersection — visible row 만 paint.
+      //   figma WebGPU tile-based + Retool react-window + composition Preview `@tanstack/react-virtual`
+      //   와 동등 industry-standard culling pattern. `_viewport` 미주입 시 모든 row paint (legacy).
+      const viewport = (props as Record<string, unknown>)._viewport as
+        | { top: number; bottom: number }
+        | undefined;
+      const isRowVisible = (y: number, h: number): boolean => {
+        if (!viewport) return true;
+        return y + h >= viewport.top && y <= viewport.bottom;
+      };
+
       // ADR-099 Phase 2: item 렌더 헬퍼 — 기존 인라인 로직을 entries 순회 내부에서 재사용.
       const renderOneItem = (item: StoredListBoxItem, y: number) => {
+        if (!isRowVisible(y, itemH)) return;
         const isSelected = selectedIdSet.has(item.id);
         const isItemDisabled = Boolean(item.isDisabled);
 
@@ -474,18 +520,21 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
         if (isListBoxSectionEntry(entry)) {
           if (hasRenderedEntry) itemY += SECTION_TOP_PAD;
           // Section Header — text shape (Phase 3 에서 HeaderSpec childSpecs + CSS emit 추가)
-          shapes.push({
-            type: "text" as const,
-            x: innerPaddingX + ITEM_PADDING_X,
-            y: itemY + HEADER_HEIGHT / 2,
-            text: entry.header,
-            fontSize: HEADER_FONT_SIZE,
-            fontFamily: ff,
-            fontWeight: 700,
-            fill: "{color.neutral-subdued}" as TokenRef,
-            align: "left" as const,
-            baseline: "middle" as const,
-          });
+          //   ADR-145 Phase B: viewport intersection culling 동일 적용.
+          if (isRowVisible(itemY, HEADER_HEIGHT)) {
+            shapes.push({
+              type: "text" as const,
+              x: innerPaddingX + ITEM_PADDING_X,
+              y: itemY + HEADER_HEIGHT / 2,
+              text: entry.header,
+              fontSize: HEADER_FONT_SIZE,
+              fontFamily: ff,
+              fontWeight: 700,
+              fill: "{color.neutral-subdued}" as TokenRef,
+              align: "left" as const,
+              baseline: "middle" as const,
+            });
+          }
           itemY += HEADER_HEIGHT + gap;
           for (const item of entry.items) {
             renderOneItem(item, itemY);

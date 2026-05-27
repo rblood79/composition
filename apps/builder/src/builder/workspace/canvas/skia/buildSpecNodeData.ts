@@ -68,6 +68,12 @@ interface SpecBuildInput {
   elementsMap: Map<string, CanvasSceneNode>;
   /** 형제 조회용 — resolveBreadcrumbItemContext, resolveToggleGroupPosition */
   childrenMap?: Map<string, CanvasSceneNode[]>;
+  /**
+   * ADR-145 Phase B: ListBox viewport intersection — overflow:auto 컨테이너의 scroll state.
+   *   key = element.id, value = { scrollTop, scrollLeft }. ListBox 분기에서 layout.height 와
+   *   결합해 `_viewport: { top, bottom }` 으로 spec props 에 주입한다.
+   */
+  scrollMap?: Map<string, { scrollTop: number; scrollLeft: number }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -222,6 +228,26 @@ const DATE_INPUT_PARENT_TAGS = new Set([
 
 function getProps(element: CanvasSceneNode): Record<string, unknown> {
   return (element.props ?? {}) as Record<string, unknown>;
+}
+
+/**
+ * ADR-145 Phase B: ListBox 자식들 중 첫 번째 `ListBoxItem` template element 의 style 추출.
+ *
+ * Phase A factory 또는 hydration migration 이 ListBox 에 ListBoxItem template child 1개를
+ * 동반시킨다 (`SYNTHETIC_CHILD_PROP_MERGE_TAGS` ListBox 멤버 contract). 본 helper 는 그
+ * template element 의 `props.style` 만 추출하여 ListBox spec render.shapes 가 row 시각 (fontSize
+ * / padding / height / color) 우선 source 로 사용하게 한다. template element 가 없거나 style
+ * 이 빈 객체면 undefined 반환 → ListBox container style → spec size default fallback.
+ */
+function resolveListBoxItemTemplateStyle(
+  childElements: CanvasSceneNode[] | undefined,
+): Record<string, unknown> | undefined {
+  if (!childElements || childElements.length === 0) return undefined;
+  const template = childElements.find((child) => child.type === "ListBoxItem");
+  if (!template) return undefined;
+  const style = getProps(template).style as Record<string, unknown> | undefined;
+  if (!style || Object.keys(style).length === 0) return undefined;
+  return style;
 }
 
 function resolveParentLabelText(
@@ -1000,6 +1026,31 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       _containerWidth: w,
       _containerHeight: h,
     };
+  }
+
+  // ADR-145 Phase B: ListBox template style passthrough + viewport intersection
+  //   - template style: `ListBoxItem` template child (Phase A factory / hydration migration)
+  //     의 style 을 spec render.shapes 의 row 시각 우선 source 로 전달.
+  //   - viewport: ListBox 자체 scroll state (overflow:auto 컨테이너) 를 spec 의 row culling
+  //     진입점 (`_viewport`) 으로 변환. visible row 만 paint — figma/Retool/Preview 동등 패턴.
+  if (type === "ListBox") {
+    const templateStyle = resolveListBoxItemTemplateStyle(childElements);
+    if (templateStyle) {
+      specProps = {
+        ...specProps,
+        _listBoxItemTemplateStyle: templateStyle,
+      };
+    }
+    const scrollState = input.scrollMap?.get(element.id);
+    if (scrollState && h > 0) {
+      specProps = {
+        ...specProps,
+        _viewport: {
+          top: scrollState.scrollTop,
+          bottom: scrollState.scrollTop + h,
+        },
+      };
+    }
   }
 
   // ---------- component state ----------
