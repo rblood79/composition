@@ -164,6 +164,10 @@ export const SYNTHETIC_CHILD_PROP_MERGE_TAGS = new Set([
   "Breadcrumbs",
   "ComboBox",
   "GridList",
+  // ADR-145 Phase A: ListBox 자식은 `ListBoxItem` template element 1개 (Phase A factory 또는
+  //   hydration migration 으로 자동 주입). data row 자식이 아니라 시각 SSOT 용 — spec
+  //   `render.shapes` 가 template element style 을 소비. SYNTHETIC contract 유지 → _hasChildren
+  //   주입 차단 (standalone shapes 분기로 paint).
   "ListBox",
   // ADR-068: Menu는 items SSOT 전환 — _hasChildren 분기 제거, 더 이상 EXCLUDE 대상 아님
   // ADR-072 Phase 3: TabPanel/TabPanels는 shapes=[]로 자식 props를 사용하지 않아
@@ -975,6 +979,9 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   으로 돌아가지 않도록 한다.
   // Synthetic-merge: 자식 props를 spec shapes에 통합하므로 주입 차단
   //   (주입 시 shell만 남고 내용이 사라짐).
+  //   ADR-145 (ListBox): SYNTHETIC 멤버 중 ListBox 는 `ListBoxItem` template element 1개를
+  //     동반하되 data row 자식은 갖지 않는다. _hasChildren 주입은 계속 차단 — spec
+  //     `render.shapes` 가 standalone 분기 안에서 template element style 을 소비하여 row paint.
   // 그 외 일반 컨테이너: 자식이 있을 때만 주입.
   if (SHELL_ONLY_CONTAINER_TAGS.has(type)) {
     specProps = { ...specProps, _hasChildren: true };

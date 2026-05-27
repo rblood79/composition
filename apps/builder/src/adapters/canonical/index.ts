@@ -44,6 +44,7 @@ import {
   isLegacySlotTag,
   tagToType,
 } from "./tagRename";
+import { isLegacyListBoxWithoutTemplate } from "./legacyListBoxTemplateMigration";
 import { buildIdPathContext, segId } from "./idPath";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
 import {
@@ -164,6 +165,20 @@ export function legacyToCanonical(
       ...sortElementsBySource(childElements),
     );
     const canonicalChildren = childElements.map(buildNode);
+
+    // ADR-145 Phase A: legacy ListBox hydration migration —
+    //   ListBoxItem template element 가 자식에 없는 경우 canonical 변환 시점에 1회 synthetic 주입.
+    //   factory 가 Phase A 이후 template element 를 자동 생성하므로 신규 프로젝트는 영향 없음.
+    //   기존 프로젝트만 hydration 시 template element 자연 주입.
+    if (isLegacyListBoxWithoutTemplate(element.type, childElements)) {
+      const templateSegId = `${segId(element.id, idPathCtx.idSegmentMap)}::template::listboxitem`;
+      canonicalChildren.push({
+        id: templateSegId,
+        type: "ListBoxItem",
+        props: { style: {} },
+        children: [],
+      });
+    }
 
     // Slot type 특수 처리: container의 slot 메타로 변환되어야 하지만,
     // standalone Slot element는 부모 컨테이너 slot 메타로 흡수되어야 한다.

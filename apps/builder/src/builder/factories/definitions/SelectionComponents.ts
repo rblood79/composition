@@ -175,10 +175,16 @@ export function createComboBoxDefinition(
 }
 
 /**
- * ListBox 컴포넌트 정의 (ADR-076 P6)
+ * ListBox 컴포넌트 정의 (ADR-076 P6 → ADR-145 Phase A)
  *
  * items prop 으로 ListBoxItem 데이터를 직렬화 가능한 StoredListBoxItem[] 형태로 관리.
- * 정적 모드 ListBoxItem 자식 element 는 더 이상 생성하지 않는다 (부모 단위 원자성).
+ *
+ * ADR-145 Phase A: ListBoxItem template element 1개 자동 자식 생성.
+ *   - template element 는 row 시각 SSOT — Phase B 에서 `ListBoxSpec.render.shapes` 가
+ *     template style 우선 소비. props.items 는 data row 만 제공.
+ *   - canonical descendants[path] override 로 template style 사용자 수정 가능.
+ *   - reusable master 등록 시 template 도 canonical 메커니즘으로 자동 흡수.
+ *
  * 템플릿 모드(columnMapping/PropertyDataBinding + Field 자식) 는 별도 워크플로 —
  * APICollectionEditor 등이 명시적으로 ListBoxItem + Field 자식을 생성.
  */
@@ -230,7 +236,19 @@ export function createListBoxDefinition(
       } as ComponentElementProps,
       parent_id: parentId,
     },
-    children: [],
+    // ADR-145 Phase A: ListBoxItem template child 1개 자동 생성.
+    //   Phase B 의 spec render.shapes 가 본 template element 의 style 을 소비하여
+    //   props.items data 와 결합 paint. 사용자가 descendants override 로 padding/lineHeight 등을
+    //   조정하면 row 전체에 반영됨.
+    children: [
+      {
+        type: "ListBoxItem",
+        props: {
+          // template element — 시각 style 정의만 담당, label/value 는 props.items 에서 공급
+          style: {},
+        } as ComponentElementProps,
+      },
+    ],
   };
 }
 
