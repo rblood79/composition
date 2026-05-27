@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Catch-up 2026-05-24 ~ 2026-05-27 — ADR-144/145 사이클 + Round 3 Lite framing 정정] - 2026-05-27
+
+> 본 entry 는 `rules/changelog.md` §5 catch-up 절차로 작성. 이전 catch-up (2026-05-23) 이후 4일 / commit 1건 (framing 정정) — drift 임계 (14일/100 commits) 미달이지만 사용자 명시 신호 ("catch-up block 작성해") 로 ADR fork 사이클 기록 보존.
+
+### Architecture
+
+- **ADR-144 → ADR-145 fork 사이클 — Codex Round 1~6 review fatigue + Round 3 framing 정정 land** (2026-05-27, `01542c0e5`):
+  - **ADR-144 (Collection 컴포넌트 Template Element SSOT) Superseded by ADR-145** — Codex Round 4 독립 리뷰가 단일 Family axis (template element 존재 여부) 본질 결함 발견. `SYNTHETIC_CHILD_PROP_MERGE_TAGS` 멤버십 ↔ child element 자동 생성 ↔ items SSOT 강도 3 axis 직교 — Tabs hybrid / Toolbar items 없음 / Menu Skia trigger only 등 11 컴포넌트 단일 일괄 처리 본질 정밀도 부족.
+  - **ADR-145 (ListBox Template Element SSOT — Single-Component Proof) Proposed** — 사용자 결정 "adr-144 폐기후 ListBox 단일 에 집중" 후 ListBox 단일 시범 ADR 로 scope 축소.
+  - **Round 3 Lite framing 정정**: 사용자 framing question "이미 다른 컴포넌트들도 트리구조화 된 것이 많다. ListBox 를 정상적으로 하려는데 왜 문제가 존재한다고 판단? pencil/figma 도 트리구조" + 옵션 1 선택 "작업도중 이상해질수있으니" → Gate G3 (4 fixture canonical SSOT verification) + Gate G4 (1000/10000/100000 row perf proof + `computeDescendantsFingerprint` stub 해제 비용 측정) 폐기. 4 Phase (Phase 0/A/B/E) + G0~G3 로 압축.
+  - **폐기 사유**: figma WebGPU tile-based + Retool react-window + Frame ADR-130 (reusable/slot/ref/descendants 4 메커니즘 Implemented 2026-05-13) + composition Preview `@tanstack/react-virtual` 가 이미 production 검증한 industry-standard tree+가상화 패턴 → ListBox 도 동등 적용 = already-known-good 패턴 재증명 over-engineering.
+  - **Why**: Codex Round 1~6 review 사이클이 본문 정합 layer (Family A/B → ListBox 단일 fork → Preview claim 정합) 만 반복, framing layer (over-engineering 여부) 미검증. 사용자 framing question 으로 본질 layer 통과.
+  - 작업량: ~1-2 주 → ~3-5 일 (perf proof / 4 fixture 부담 제거).
+  - 본문 `docs/adr/145-listbox-template-element-single-component-proof.md`, design breakdown `docs/adr/design/145-listbox-template-element-single-component-proof-breakdown.md`.
+  - 진행 단계: Phase 0 inventory 부터, 사용자 별도 신호 후 실행.
+
+### Documentation
+
+- **README + ADR-144 Layer 0 review log historical reference 보존** (commit: `01542c0e5`):
+  - `docs/adr/README.md` 최상단 entry + ADR-145 row + `Superseded / Deprecated` section header 일관화.
+  - `docs/adr/reviews/144.md` Layer 0 영속화 (review-adr skill Phase 4.5 자동 저장 — Round 1 9-taxonomy 기록).
+  - ADR-144 본문 + breakdown historical reference 유지 — fork 결정 자료 보존.
+
+### Infrastructure
+
+- **stats snapshot 갱신** (`8e5e247e8`, 면제 대상): SessionStart hook 자동 갱신 — daily-log.jsonl + `.last-drift-snapshot-sha`.
+
 ## [Catch-up 2026-05-19 ~ 2026-05-23 — ADR-142/144 사이클 + rollback + ADR-122 amend] - 2026-05-23
 
 > 본 entry 는 `rules/changelog.md` §2 catch-up 절차로 작성. 마지막 entry (2026-05-19 ADR-143 closure) 와 본 시점 사이 132 commits 를 주제별 bundle 로 요약. 개별 commit 나열 회피.
