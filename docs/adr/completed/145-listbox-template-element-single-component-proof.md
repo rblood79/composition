@@ -2,7 +2,16 @@
 
 ## Status
 
-Proposed — 2026-05-27 (Round 3, 2026-05-27 — Lite framing 정정. Gate G3/G4 (4 fixture + perf proof) 폐기. figma + Retool + Frame ADR-130 + composition Preview 이미 검증한 industry-standard tree+가상화 패턴을 ListBox 에도 정상 적용)
+Implemented — 2026-05-27 (Phase 0 / A / B / E 전수 완결. Round 3, 2026-05-27 — Lite framing 정정. Gate G3/G4 (4 fixture + perf proof) 폐기. figma + Retool + Frame ADR-130 + composition Preview 이미 검증한 industry-standard tree+가상화 패턴을 ListBox 에도 정상 적용)
+
+### Phase 진행 요약
+
+| Phase   | commit      | 산출물                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | `c91a673a2` | `apps/builder/src/adapters/canonical/legacyListBoxTemplateMigration.ts` (hydration migration helper `isLegacyListBoxWithoutTemplate`) + unit test 6/6 PASS. Gate G0 통과                                                                                                                                                                                                                                         |
+| Phase A | `1db2a6ac6` | `SelectionComponents.ts` ListBox factory `children: [{ type: "ListBoxItem", props: { style: {} } }]` 자동 생성 + `canonical/index.ts` `buildNode` 안 hydration migration synthetic `<seg>::template::listboxitem` 자동 주입 + `buildSpecNodeData.ts` SYNTHETIC contract 주석 정밀화 + round-trip test 5/5 PASS (TC1 factory / TC2 hydration / TC3 mixed / TC4 reusable master / TC5 GridList 격리). Gate G1 통과 |
+| Phase B | `606200bce` | `ListBox.spec.ts` render.shapes 가 `_listBoxItemTemplateStyle` 우선 소비 (row 시각 SSOT 분리) + `_viewport: { top, bottom }` row/section header culling + `buildSpecNodeData.ts` template style passthrough + viewport 주입 + `StoreRenderBridge.ts` useScrollState.scrollMap 전달. Gate G2 통과                                                                                                                 |
+| Phase E | (본 commit) | ADR-145 Status Implemented 승격 + ADR-076 본문 patch 참조 + CHANGELOG / README 동기화. Gate G3 통과                                                                                                                                                                                                                                                                                                              |
 
 ## Scope 정의 (Round 3 정정 — framing layer)
 

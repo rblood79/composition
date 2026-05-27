@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-145 ListBox Template Element SSOT — Single-Component Proof Implemented] - 2026-05-27
+
+### Architecture
+
+- **ADR-145 Phase 0 / A / B / E 전수 완결 — ListBox 단일 시범 ADR Implemented** (Phase 0 `c91a673a2` / Phase A `1db2a6ac6` / Phase B `606200bce` / Phase E 본 commit):
+  - **Phase 0 (Inventory + hydration helper)**: ListBox 현재 구조 freeze + `apps/builder/src/adapters/canonical/legacyListBoxTemplateMigration.ts` 신규 — `isLegacyListBoxWithoutTemplate(legacyType, children)` predicate (Frame ADR-130 `isLegacyGroupForFrameMigration` 패턴). 기존 프로젝트의 ListBox element 1회 `ListBoxItem` template child 자동 주입. unit test 6/6 PASS. Gate G0 통과.
+  - **Phase A (factory + canonical 직렬화 + `_hasChildren` 정밀화)**: `SelectionComponents.ts` ListBox factory 가 `children: [{ type: "ListBoxItem", props: { style: {} } }]` template child 1개 자동 생성. `canonical/index.ts` `buildNode` 안 hydration migration synthetic `<seg>::template::listboxitem` 자동 주입. `buildSpecNodeData.ts` SYNTHETIC contract 주석 정밀화 (ListBox 멤버는 template element 동반하되 `_hasChildren` 주입 차단 유지). round-trip test 5/5 PASS (TC1 factory / TC2 hydration / TC3 mixed / TC4 reusable master / TC5 GridList 격리). Gate G1 통과.
+  - **Phase B (render.shapes template-aware + Skia viewport intersection)**:
+    - `ListBox.spec.ts` row 시각 SSOT 분리 — `_listBoxItemTemplateStyle` (ListBoxItem template element 의 `props.style`) 우선 소비, ListBox container `props.style` → spec size default 순으로 fallback. row 시각 (fontSize / textColor / fontFamily / textAlign / paddingX / itemHeight) 전부 적용. container 시각 (background / border / padding / gap) 은 container style 유지.
+    - Skia viewport intersection 진입점 추가 — `_viewport: { top, bottom }` row + section header culling. figma WebGPU tile-based + Retool react-window + composition Preview `@tanstack/react-virtual` 와 동등 industry-standard pattern.
+    - `buildSpecNodeData.ts` ListBox 분기에서 template style 추출 (`resolveListBoxItemTemplateStyle`) + scroll state → viewport 변환 (`SpecBuildInput.scrollMap`). `StoreRenderBridge.ts` 가 `useScrollState.scrollMap` 을 전달. Gate G2 통과.
+  - **Phase E**: ADR-145 Status Implemented 승격 + ADR-076 본문 patch 참조 추가 + CHANGELOG / README 동기화. Gate G3 통과.
+  - **Why**: ListBox composite paint 가 canonical document SSOT (ADR-116/122) + Editing Semantics (ADR-112) + Frame canonical (ADR-130) 의 reusable/slot/ref/descendants 4 메커니즘과 incompatible. Frame ADR-130 이 이미 4 메커니즘 검증 완료한 industry-standard pattern 을 ListBox 에도 동등 적용 — perf proof / 4 fixture 입증은 already-known-good 패턴 재증명 over-engineering 으로 폐기.
+  - **Round 3 Lite framing 효과**: Gate G3 (4 fixture) + Gate G4 (1000/10000/100000 row perf proof) 폐기로 작업량 ~1-2 주 → ~3-5 일 압축. codex review fatigue 사이클 차단 + over-engineering 회피.
+  - **Round 4 보강**: Gate G1/G2 통과 조건에 reusable master 등록 round-trip + reusable instance descendants override Preview↔Skia 정합 1줄 추가 (component-agnostic 메커니즘 자동 흡수 확인).
+  - 본문: `docs/adr/completed/145-listbox-template-element-single-component-proof.md` (이관 완료). design breakdown: `docs/adr/design/145-listbox-template-element-single-component-proof-breakdown.md`.
+  - 검증: type-check baseline 547 무증가 / specs build PASS / specs ListBox 19/19 PASS / ADR-145 Phase A round-trip 11/11 PASS / buildSpecNodeData 17/17 PASS. cross-check / 60fps 사용자 실측 / reusable instance override 시각 정합은 사용자 시점에서.
+
+### Documentation
+
+- **ADR-076 본문 patch 참조 추가** — `docs/adr/completed/076-listbox-items-ssot-hybrid.md` Status 줄에 "Patch by ADR-145 (Implemented 2026-05-27)" 추가. row 시각 source 가 ListBox container style 단독 → ListBoxItem template element style 우선 + container fallback 으로 정밀화됨 명시.
+
 ## [Catch-up 2026-05-24 ~ 2026-05-27 — ADR-144/145 사이클 + Round 3 Lite framing 정정] - 2026-05-27
 
 > 본 entry 는 `rules/changelog.md` §5 catch-up 절차로 작성. 이전 catch-up (2026-05-23) 이후 4일 / commit 1건 (framing 정정) — drift 임계 (14일/100 commits) 미달이지만 사용자 명시 신호 ("catch-up block 작성해") 로 ADR fork 사이클 기록 보존.
