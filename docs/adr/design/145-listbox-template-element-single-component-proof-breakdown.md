@@ -57,10 +57,11 @@ Frame (ADR-130) 이 이미 reusable/slot/ref/descendants 4 메커니즘 검증 �
 - type-check baseline 무증가
 - cross-check ListBox 1 회 (Phase B 와 함께) — Frame 검증된 메커니즘 재사용 확인
 
-### Gate G1 통과 조건
+### Gate G1 통과 조건 (Round 4 정정 — reusable 검증 1줄 보강)
 
 - ListBox factory 자동 `ListBoxItem` template 생성 + canonical document 직렬화 round-trip PASS
 - hydration migration 으로 기존 프로젝트 ListBox element 에 template element 주입 round-trip PASS
+- **ListBox reusable master 등록 → canonical document 직렬화 round-trip PASS** (component-agnostic 메커니즘 자동 흡수 확인 — `canonicalMutations.ts:623-625` / `componentRoleAdapter.ts:26,31` / `instanceResolver.ts:60-98` 일반 메커니즘 type 무관)
 
 ## §B. Phase B — ListBoxSpec render.shapes Patch + Skia viewport intersection 통합
 
@@ -87,12 +88,13 @@ figma + Retool + composition Preview 가 이미 industry-standard pattern produc
 
 **별도 1000/10000/100000 row fixture 측정 불요** — already-known-good 패턴 재증명 over-engineering.
 
-### Gate G2 통과 조건
+### Gate G2 통과 조건 (Round 4 정정 — reusable 검증 1줄 보강)
 
 - cross-check ListBox CSS↔Skia 정합 PASS
 - D3 SSOT 위반 0 (`render.shapes` 가 `props.items` style 직접 hardcode 안 함)
 - Skia viewport intersection 정상 동작 (사용자 실측)
 - type-check baseline 무증가
+- **reusable instance descendants override 시 Preview ↔ Skia 시각 결과 정합** (cross-check 시 reusable master 1개 + instance N개 시나리오 — `ListBoxItem` template style override 가 Preview path `SelectionRenderers.tsx` materialize + Skia path `render.shapes` 양쪽에 동일 반영)
 
 ## §E. Phase E — Implemented 승격 + 문서 동기화
 
