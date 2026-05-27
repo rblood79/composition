@@ -694,10 +694,12 @@ export function applyImplicitStyles(
 
   // ── ListBoxItem ───────────────────────────────────────────────
   // Composition 패턴: CSS .react-aria-ListBoxItem { padding: 4px 12px } 동기화
+  // ADR-145 fix: parentStyle.display 가 명시되면 그것을 우선 (template element 의
+  //   `display: none` marker 가 implicit `display: "flex"` 에 override 당하지 않도록).
   if (containerTag === "listboxitem") {
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      display: "flex",
+      display: parentStyle.display ?? "flex",
       flexDirection: "column",
       gap: parentStyle.gap ?? 2,
       paddingTop: parentStyle.paddingTop ?? 4,
