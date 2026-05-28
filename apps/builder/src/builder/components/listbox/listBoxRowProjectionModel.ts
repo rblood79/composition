@@ -1,5 +1,13 @@
 export const LISTBOX_ROW_PROJECTION_WINDOW_LIMIT = 100;
 
+export type ListBoxCollectionDataSource = {
+  id?: string;
+  mockData?: Record<string, unknown>[];
+  name?: string;
+  runtimeData?: Record<string, unknown>[];
+  useMockData?: boolean;
+};
+
 export type ListBoxProjectionRow = {
   description: string | null;
   isDisabled: boolean;
@@ -10,12 +18,63 @@ export type ListBoxProjectionRow = {
   value: string | null;
 };
 
+type ListBoxProjectionRowsInput = {
+  collections?: readonly ListBoxCollectionDataSource[];
+  dataBinding?: unknown;
+  props?: Record<string, unknown>;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function readItems(props: Record<string, unknown> | undefined): unknown[] {
   return Array.isArray(props?.items) ? props.items : [];
+}
+
+function readArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function isProjectionRowsInput(
+  value: Record<string, unknown> | ListBoxProjectionRowsInput | undefined,
+): value is ListBoxProjectionRowsInput {
+  if (!isRecord(value)) return false;
+  return "props" in value || "dataBinding" in value || "collections" in value;
+}
+
+function readDataBindingRows(
+  dataBinding: unknown,
+  collections: readonly ListBoxCollectionDataSource[] = [],
+): unknown[] {
+  if (!isRecord(dataBinding)) return [];
+
+  if (
+    dataBinding.source === "dataTable" &&
+    typeof dataBinding.name === "string"
+  ) {
+    const table = collections.find(
+      (collection) =>
+        collection.name === dataBinding.name ||
+        collection.id === dataBinding.name,
+    );
+    if (!table) return [];
+    if (table.useMockData === true) return readArray(table.mockData);
+    const runtimeData = readArray(table.runtimeData);
+    return runtimeData.length > 0 ? runtimeData : readArray(table.mockData);
+  }
+
+  if (dataBinding.type === "collection") {
+    const config = isRecord(dataBinding.config) ? dataBinding.config : {};
+    if (dataBinding.source === "static") {
+      const data = readArray(config.data);
+      return data.length > 0 ? data : readArray(config.items);
+    }
+    const runtimeData = readArray(config.runtimeData);
+    if (runtimeData.length > 0) return runtimeData;
+  }
+
+  return [];
 }
 
 function readStringField(
@@ -70,21 +129,26 @@ function getItemDisabled(item: unknown): boolean {
 }
 
 export function getListBoxProjectionRows(
-  props: Record<string, unknown> | undefined,
+  input: Record<string, unknown> | ListBoxProjectionRowsInput | undefined,
   windowLimit = LISTBOX_ROW_PROJECTION_WINDOW_LIMIT,
 ): ListBoxProjectionRow[] {
-  return readItems(props)
-    .slice(0, windowLimit)
-    .map((item, rowIndex) => {
-      const itemKey = getItemKey(item, rowIndex);
-      return {
-        description: getItemDescription(item),
-        isDisabled: getItemDisabled(item),
-        item,
-        itemKey,
-        label: getItemLabel(item, itemKey, rowIndex),
-        rowIndex,
-        value: getItemValue(item),
-      };
-    });
+  const props = isProjectionRowsInput(input) ? input.props : input;
+  const dataBindingRows = isProjectionRowsInput(input)
+    ? readDataBindingRows(input.dataBinding, input.collections)
+    : [];
+  const sourceRows =
+    dataBindingRows.length > 0 ? dataBindingRows : readItems(props);
+
+  return sourceRows.slice(0, windowLimit).map((item, rowIndex) => {
+    const itemKey = getItemKey(item, rowIndex);
+    return {
+      description: getItemDescription(item),
+      isDisabled: getItemDisabled(item),
+      item,
+      itemKey,
+      label: getItemLabel(item, itemKey, rowIndex),
+      rowIndex,
+      value: getItemValue(item),
+    };
+  });
 }

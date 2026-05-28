@@ -85,18 +85,20 @@ Components / Template Page  // Builder-only, Preview/Publish 제외
 
 이 page는 source graph 보관소이면서 동시에 Builder가 선택하면 Skia canvas에 page처럼 렌더링되는 editor page다.
 
-### Content page
+### Content page canonical
 
 ```text
 Page A
-└─ ListBox
-   ├─ ListBoxItem           // reusable ref instance, template anchor, 삭제 불가
+└─ ref -> ListBox           // reusable ref instance, originRef=ListBox
+   ├─ ref -> ListBoxItem    // reusable ref instance, template anchor, 삭제 불가
    └─ Rows                  // Layer Tree projection
       ├─ Aardvark
       ├─ Cat
       └─ Kangaroo
 ```
 
+Layer Tree와 Skia/Preview resolved display에서는 root가 `ListBox`로 보인다. 저장
+형식은 Components page의 `ListBox` origin을 참조하는 `type:"ref"` instance다.
 `Rows` 아래 항목은 collection projection이다. Layer Tree와 selection overlay에는 보이지만 canonical document에는 row마다 저장하지 않는다.
 
 ### Static mode
@@ -187,7 +189,7 @@ Page A
 3. `Components` page는 Preview/Publish/runtime export에서는 제외한다.
 4. `Components` page에는 `ListBoxItem/Default` reusable origin, optional `ListBoxItem/Selected` variant, `ListBox` reusable origin을 둔다.
 5. `ListBox` origin의 slot allow-list는 `ListBoxItem` template variants로 제한한다.
-6. content page에 배치된 `ListBox`는 locked `ListBoxItem` ref template anchor를 가진다. 이 anchor는 삭제 불가이며 row 1개가 아니라 row render template이다.
+6. content page에 배치된 `ListBox`는 Components page의 `ListBox` origin을 참조하는 `type:"ref"` instance다. 이 instance는 locked `ListBoxItem` ref template anchor를 가진다. 이 anchor는 삭제 불가이며 row 1개가 아니라 row render template이다.
 7. Layer Tree는 `ListBox` 아래에 `Rows` projection group을 만든다. row projection은 collection item id를 기반으로 stable projection id를 가진다.
 8. row projection을 선택하면 Inspector는 collection item data binding 또는 row template override 가능한 surface를 표시한다. row projection 자체를 canonical child로 저장하지 않는다.
 9. Skia renderer는 visible row마다 `ListBoxItem` ref template을 resolve해 렌더한다. `ListBox` parent composite row paint는 production active path에서 제거한다. 비교용 legacy code가 필요하면 test/migration fixture allowlist에만 둔다.
@@ -196,7 +198,7 @@ Page A
 12. `ListBoxItem` 내부 slot은 text/description/icon/indicator 등 non-interactive visual slot으로 제한한다.
 13. slot allow-list 구현은 `FrameSlotSection.tsx`의 local `SLOT_HOST_TYPES` 확장이 아니라 shared slot host policy registry로 분리한다. `FrameSlotSection`, slot fill UI, insert guard, resolver warning path가 같은 policy를 소비해야 한다. `ListBox` policy는 `Components` page origin/template authoring에서만 활성화하고 허용 origin type을 `ListBoxItem` variants로 제한한다.
 14. `Components` page system metadata는 canonical page node `metadata`에 저장한다. `Page` legacy mirror/interface에는 persisted schema를 추가하지 않는다. `x-composition.editor`는 selection/runtime editor state 용도이므로 page identity/source exclusion에는 사용하지 않는다. 따라서 IndexedDB `DB_VERSION` 증가는 요구하지 않는다.
-15. content page 또는 `ListBox` duplicate는 system origins를 복제하지 않는다. 새 content instance는 같은 `Components` page origin을 참조하는 새 locked template anchor id만 생성한다.
+15. content page 또는 `ListBox` duplicate는 system origins를 복제하지 않는다. 새 content instance는 같은 `Components` page의 `ListBox` origin과 `ListBoxItem` origin을 참조하는 새 `ref` ids만 생성한다.
 16. runtime/export exclusion은 metadata 선언만으로 완료하지 않는다. Builder page list는 editor page derivation으로 `Components` page를 포함해야 하고, runtime render model/export/Preview/Publish는 runtime page derivation으로 `Components` page를 제외해야 한다. 이 경계는 별도 helper(`deriveProjectEditorPageModelFromDocument` + runtime helper) 또는 명시적 audience option으로 분리한다. page creation number 계산도 system page를 제외한다.
 17. projection id guard는 canonical move target만 막지 않는다. `projection:listbox-row:` prefix를 shared render projection id로 등록하고 `canonicalMutations`, `updateElement`, `removeElement`, drag/drop mutation route가 canonical mutation 전에 차단해야 한다.
 

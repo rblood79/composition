@@ -11,12 +11,17 @@ import { normalizeFrameLayoutId } from "../../../../adapters/canonical/frameMirr
 import {
   detectListBoxAuthoringMode,
   isListBoxTemplateAnchor,
+  LISTBOX_ORIGIN_ID,
 } from "../../../components/listbox/listBoxTemplateOrigins";
-import { getListBoxProjectionRows } from "../../../components/listbox/listBoxRowProjectionModel";
+import {
+  getListBoxProjectionRows,
+  type ListBoxCollectionDataSource,
+} from "../../../components/listbox/listBoxRowProjectionModel";
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
 } from "../../../projection/renderProjectionIds";
+import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
 
 type SceneScopeContext = {
   pageId: string | null;
@@ -109,6 +114,7 @@ export interface CanvasSceneNode {
 }
 
 interface BuildCanvasSceneGraphOptions {
+  collections?: readonly ListBoxCollectionDataSource[];
   includeReusableFrames?: boolean;
 }
 
@@ -327,6 +333,21 @@ function getTemplateOriginId(anchor: CanonicalNode | null): string | null {
   return typeof metadata?.originRef === "string" ? metadata.originRef : null;
 }
 
+function isListBoxSceneSource(
+  listBoxSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+): boolean {
+  if (listBoxSceneNode.type === "ListBox") return true;
+  if (sourceNode.type !== "ref") return false;
+  const refNode = sourceNode as RefNode;
+  return (
+    refNode.ref === LISTBOX_ORIGIN_ID ||
+    listBoxSceneNode.ref === LISTBOX_ORIGIN_ID ||
+    listBoxSceneNode.componentName === "ListBox" ||
+    listBoxSceneNode.name === "ListBox"
+  );
+}
+
 function isListBoxRowSelected(
   props: Record<string, unknown>,
   itemKey: string,
@@ -352,23 +373,28 @@ function appendListBoxRowProjection(
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
+  options: BuildCanvasSceneGraphOptions,
 ): void {
-  if (listBoxSceneNode.type !== "ListBox") return;
+  if (!isListBoxSceneSource(listBoxSceneNode, sourceNode)) return;
 
   const props = listBoxSceneNode.props;
+  const dataBinding = getElementDataBinding(sourceNode);
   const mode = detectListBoxAuthoringMode({
     children: sourceNode.children?.map((child) => ({
       id: child.id,
       ref: child.type === "ref" ? (child as RefNode).ref : undefined,
       type: child.type,
     })),
-    dataBinding: (sourceNode as CanonicalNode & { dataBinding?: unknown })
-      .dataBinding,
+    dataBinding,
     props,
   });
   if (mode.mode !== "data-bound") return;
 
-  const rows = getListBoxProjectionRows(props);
+  const rows = getListBoxProjectionRows({
+    collections: options.collections,
+    dataBinding,
+    props,
+  });
   if (rows.length === 0) return;
 
   const templateAnchor = getListBoxTemplateAnchor(sourceNode.children);
@@ -409,11 +435,11 @@ function appendListBoxRowProjection(
     );
     const rowProps: Record<string, unknown> = {
       children: row.label,
+      description: row.description ?? "",
       textValue: row.label,
       style: { width: "100%" },
       _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
     };
-    if (row.description) rowProps.description = row.description;
     if (row.value) rowProps.value = row.value;
     if (row.isDisabled) rowProps.isDisabled = true;
 
@@ -482,7 +508,7 @@ export function buildCanvasSceneGraph(
       });
     });
     if (sceneNode) {
-      appendListBoxRowProjection(sceneNode, node, nextScope, graph);
+      appendListBoxRowProjection(sceneNode, node, nextScope, graph, options);
     }
   }
 

@@ -10,35 +10,34 @@ import {
 import { useStore } from "../../../stores";
 import type { Element } from "../../../../types/core/store.types";
 
+function setTestElements(elements: Element[]): void {
+  useStore.setState({
+    elements,
+    elementsMap: new Map(elements.map((element) => [element.id, element])),
+  } as never);
+}
+
 describe("useTransformAuxiliary", () => {
   beforeEach(() => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-1",
-          {
-            id: "el-1",
-            type: "Button",
-            parent_id: "p-1",
-            props: {
-              style: {
-                width: "180px",
-                alignSelf: "center",
-                justifySelf: "center",
-              },
-            },
-          } as Element,
-        ],
-        [
-          "p-1",
-          {
-            id: "p-1",
-            type: "Frame",
-            props: { style: { display: "flex", flexDirection: "row" } },
-          } as Element,
-        ],
-      ]),
-    });
+    setTestElements([
+      {
+        id: "el-1",
+        type: "Button",
+        parent_id: "p-1",
+        props: {
+          style: {
+            width: "180px",
+            alignSelf: "center",
+            justifySelf: "center",
+          },
+        },
+      } as Element,
+      {
+        id: "p-1",
+        type: "Frame",
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
   });
 
   it("useParentDisplay returns parent display", () => {
@@ -71,11 +70,17 @@ describe("useTransformAuxiliary", () => {
     useStore.setState((s) => {
       const map = new Map<string, Element>(s.elementsMap);
       const existing = map.get("p-1") ?? {};
-      map.set("p-1", {
+      const parent = {
         ...existing,
         props: { style: { display: "block" } },
-      });
-      return { elementsMap: map };
+      } as unknown as Element;
+      map.set("p-1", parent);
+      return {
+        elements: (s.elements ?? []).map((element) =>
+          element.id === "p-1" ? parent : element,
+        ),
+        elementsMap: map,
+      };
     });
     const { result } = renderHook(() => useSelfAlignmentKeys("el-1"));
     expect(result.current).toEqual([]);
@@ -87,28 +92,20 @@ describe("useTransformAuxiliary", () => {
 // 소비해야 SelfAlignment 9-grid 가 활성화됨. 기존 코드는 inline only 로 Spec 기본값 무시.
 describe("useTransformAuxiliary — ADR-082 A1 부모 Spec fallback", () => {
   beforeEach(() => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "item-1",
-          {
-            id: "item-1",
-            type: "ListBoxItem",
-            parent_id: "lb-1",
-            props: { style: { alignSelf: "center", justifySelf: "center" } },
-          } as Element,
-        ],
-        [
-          "lb-1",
-          {
-            id: "lb-1",
-            type: "ListBox",
-            // inline style 없음 — ListBoxSpec.containerStyles.display="flex" 가 유일 source
-            props: {},
-          } as Element,
-        ],
-      ]),
-    });
+    setTestElements([
+      {
+        id: "item-1",
+        type: "ListBoxItem",
+        parent_id: "lb-1",
+        props: { style: { alignSelf: "center", justifySelf: "center" } },
+      } as Element,
+      {
+        id: "lb-1",
+        type: "ListBox",
+        // inline style 없음 — ListBoxSpec.containerStyles.display="flex" 가 유일 source
+        props: {},
+      } as Element,
+    ]);
   });
 
   it("useParentDisplay reads ListBoxSpec.containerStyles.display='flex' when parent lacks inline", () => {
@@ -133,38 +130,36 @@ describe("useTransformAuxiliary — ADR-082 A1 부모 Spec fallback", () => {
     useStore.setState((s) => {
       const map = new Map<string, Element>(s.elementsMap);
       const existing = map.get("lb-1") ?? {};
-      map.set("lb-1", {
+      const parent = {
         ...existing,
         props: { style: { display: "block" } },
-      });
-      return { elementsMap: map };
+      } as unknown as Element;
+      map.set("lb-1", parent);
+      return {
+        elements: (s.elements ?? []).map((element) =>
+          element.id === "lb-1" ? parent : element,
+        ),
+        elementsMap: map,
+      };
     });
     const { result } = renderHook(() => useParentDisplay("item-1"));
     expect(result.current).toBe("block");
   });
 
   it("부모 tag 가 containerStyles 미보유 Spec 이면 기본값 'block'/'row' 반환", () => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "child-x",
-          {
-            id: "child-x",
-            type: "Button",
-            parent_id: "dlg-1",
-            props: {},
-          } as Element,
-        ],
-        [
-          "dlg-1",
-          {
-            id: "dlg-1",
-            type: "Dialog", // Dialog 는 containerStyles 미보유 (overlay archetype)
-            props: {},
-          } as Element,
-        ],
-      ]),
-    });
+    setTestElements([
+      {
+        id: "child-x",
+        type: "Button",
+        parent_id: "dlg-1",
+        props: {},
+      } as Element,
+      {
+        id: "dlg-1",
+        type: "Dialog", // Dialog 는 containerStyles 미보유 (overlay archetype)
+        props: {},
+      } as Element,
+    ]);
     const { result: display } = renderHook(() => useParentDisplay("child-x"));
     expect(display.current).toBe("block");
     const { result: dir } = renderHook(() => useParentFlexDirection("child-x"));

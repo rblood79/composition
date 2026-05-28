@@ -32,4 +32,19 @@ describe("ListBoxItemSpec render.shapes ADR-146", () => {
 
     expect(shapes.map((shape) => shape.type)).toEqual(["roundRect", "text"]);
   });
+
+  it("does not render unresolved row template placeholders as visible text", () => {
+    const size = ListBoxItemSpec.sizes![ListBoxItemSpec.defaultSize!]!;
+    const shapes = ListBoxItemSpec.render!.shapes!(
+      { children: "Aardvark", description: "{description}" },
+      size,
+      "default",
+    );
+
+    expect(
+      shapes.some(
+        (shape) => shape.type === "text" && shape.text === "{description}",
+      ),
+    ).toBe(false);
+  });
 });

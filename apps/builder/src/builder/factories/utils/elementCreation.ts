@@ -32,6 +32,16 @@ export interface ElementCreationContext {
   layoutId: string | null | undefined;
 }
 
+function getCustomIdType(
+  elementDef: Pick<Element, "type" | "componentName">,
+): string {
+  return elementDef.type === "ref" &&
+    typeof elementDef.componentName === "string" &&
+    elementDef.componentName.length > 0
+    ? elementDef.componentName
+    : elementDef.type;
+}
+
 /**
  * 컴포넌트 정의로부터 실제 Element 데이터 생성
  * 재귀적 중첩 children 지원 (TagGroup → TagList → Tag 등 3레벨 이상)
@@ -56,7 +66,10 @@ export function createElementsFromDefinition(
     {
       ...definition.parent,
       id: ElementUtils.generateId(),
-      customId: generateCustomId(definition.parent.type, currentElements),
+      customId: generateCustomId(
+        getCustomIdType(definition.parent),
+        currentElements,
+      ),
       page_id: resolvedPageId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -78,7 +91,10 @@ export function createElementsFromDefinition(
         {
           ...elementDef,
           id: ElementUtils.generateId(),
-          customId: generateCustomId(elementDef.type, allElementsSoFar),
+          customId: generateCustomId(
+            getCustomIdType(elementDef),
+            allElementsSoFar,
+          ),
           parent_id: parentId,
           page_id: resolvedPageId,
           created_at: new Date().toISOString(),

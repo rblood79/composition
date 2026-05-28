@@ -31,10 +31,16 @@ describe("ADR-146 shared slot host policy", () => {
       type: "ListBoxItem",
       reusable: true,
     };
+    const genericItem = {
+      id: "local-listbox-item",
+      type: "ListBoxItem",
+      reusable: true,
+    };
     const button = { id: "button-origin", type: "Button", reusable: true };
 
     expect(isSlotCandidateAllowed(host, defaultItem)).toBe(true);
     expect(isSlotCandidateAllowed(host, selectedItem)).toBe(true);
+    expect(isSlotCandidateAllowed(host, genericItem)).toBe(false);
     expect(isSlotCandidateAllowed(host, button)).toBe(false);
     expect(
       filterSlotCandidates(host, [button, selectedItem, defaultItem]),

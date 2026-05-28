@@ -153,10 +153,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
           y: 0,
           width: "auto",
           height: "auto",
-          radius: parsePxValue(
-            style.borderRadius,
-            size.borderRadius,
-          ) as unknown as number,
+          radius: parsePxValue(style.borderRadius, 4),
           fill: props._isSelected
             ? ("{color.accent-subtle}" as TokenRef)
             : ("{color.layer-1}" as TokenRef),
@@ -218,7 +215,9 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
 };
 
 function readText(value: unknown): string | null {
-  if (typeof value === "string" && value.length > 0) return value;
+  if (typeof value === "string" && value.length > 0) {
+    return /^\{[^}]+\}$/.test(value) ? null : value;
+  }
   if (typeof value === "number") return String(value);
   return null;
 }

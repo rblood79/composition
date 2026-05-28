@@ -37,6 +37,24 @@ import {
 } from "@composition/specs";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 
+function readCollectionItemLabel(item: Record<string, unknown>): string {
+  return String(item.name || item.title || item.label || item.id || "");
+}
+
+function resolveTemplateText(
+  value: unknown,
+  item: Record<string, unknown>,
+): string | null {
+  if (typeof value === "number") return String(value);
+  if (typeof value !== "string" || value.length === 0) return null;
+  return value.replace(/\{([^}]+)\}/g, (_match, key: string) => {
+    const replacement = item[key.trim()];
+    return replacement === null || replacement === undefined
+      ? ""
+      : String(replacement);
+  });
+}
+
 /**
  * Selection 관련 컴포넌트 렌더러
  * - ListBox, ListBoxItem
@@ -70,9 +88,9 @@ export const renderListBox = (
   const { updateElementProps } = context;
 
   // 실제 ListBoxItem 자식 요소들을 찾기
-  const listBoxChildren = (
+  const listBoxTemplateChildren = (
     context.childrenByParent.get(element.id) ?? []
-  ).filter((child) => child.type === "ListBoxItem");
+  ).filter((child) => child.type === "ListBoxItem" || child.type === "ref");
 
   // ColumnMapping이 있고 visible columns가 있으면 Field Elements 자동 생성
   const columnMapping = (element.props as { columnMapping?: ColumnMapping })
@@ -89,18 +107,18 @@ export const renderListBox = (
 
   // ADR-076: Path 1 (템플릿, 영구 유지) — columnMapping 또는 PropertyDataBinding + ListBoxItem 자식 존재
   const hasValidTemplate =
-    (columnMapping || isPropertyBinding) && listBoxChildren.length > 0;
+    (columnMapping || isPropertyBinding || dataBinding) &&
+    listBoxTemplateChildren.length > 0;
 
   // ADR-076: Path 2 (items canonical) — props.items 배열 존재
   const storedItems = (element.props as { items?: StoredListBoxItem[] }).items;
   const hasItemsArray = Array.isArray(storedItems) && storedItems.length > 0;
 
-  // ADR-076 혼합 감지 — 부모 단위 원자성 위배. Path 1 우선 (BC 보수적)
+  // ADR-146 혼합 감지 — data-bound template 우선, props.items 는 seed/fallback 으로만 유지.
   if (hasValidTemplate && hasItemsArray) {
     console.warn(
-      `[ADR-076] ListBox ${element.id}: columnMapping/dataBinding 템플릿과 props.items 가 동시 존재. ` +
-        `부모 단위 원자성 위배 — Path 1 템플릿 우선, items 무시. ` +
-        `applyCollectionItemsMigration 재실행 또는 수동 분리 필요.`,
+      `[ADR-146] ListBox ${element.id}: columnMapping/dataBinding 템플릿과 props.items 가 동시 존재. ` +
+        `data-bound 템플릿 경로를 우선하고 props.items 는 seed/fallback 으로만 사용합니다.`,
     );
   }
 
@@ -158,7 +176,7 @@ export const renderListBox = (
 
   // Path 1: 템플릿 모드 — 영구 유지 (BC 보수)
   if (hasValidTemplate) {
-    const listBoxItemTemplate = listBoxChildren[0];
+    const listBoxItemTemplate = listBoxTemplateChildren[0];
 
     // Field 자식들 찾기 - context.childrenByParent O(1) lookup
     const fieldChildren = (
@@ -166,14 +184,28 @@ export const renderListBox = (
     ).filter((child) => child.type === "Field");
 
     const renderItemFunction = (item: Record<string, unknown>) => {
+      const label = readCollectionItemLabel(item);
+      const templateLabel =
+        resolveTemplateText(
+          listBoxItemTemplate.props.children ??
+            listBoxItemTemplate.props.label ??
+            listBoxItemTemplate.props.textValue,
+          item,
+        ) ?? label;
+      const templateDescription = resolveTemplateText(
+        listBoxItemTemplate.props.description,
+        item,
+      );
+
       return (
         <ListBoxItem
           key={String(item.id)}
+          id={String(item.id ?? label)}
           data-element-id={listBoxItemTemplate.id}
           value={item}
           isDisabled={Boolean(listBoxItemTemplate.props.isDisabled)}
           className={listBoxItemTemplate.props.className}
-          textValue={String(item.name || item.label || item.id || "")}
+          textValue={label}
         >
           {fieldChildren.length > 0
             ? fieldChildren.map((field) => {
@@ -204,7 +236,14 @@ export const renderListBox = (
                   />
                 );
               })
-            : String(listBoxItemTemplate.props.label || "")}
+            : templateDescription
+              ? React.createElement(
+                  React.Fragment,
+                  null,
+                  React.createElement("span", null, templateLabel),
+                  React.createElement("span", null, templateDescription),
+                )
+              : templateLabel}
         </ListBoxItem>
       );
     };
@@ -288,7 +327,9 @@ export const renderListBox = (
     });
   } else {
     // Path 3: legacy 정적 children fallback — migration 미적용 프로젝트 대비
-    renderChildren = listBoxChildren.map((item) => context.renderElement(item));
+    renderChildren = listBoxTemplateChildren.map((item) =>
+      context.renderElement(item),
+    );
   }
 
   return (

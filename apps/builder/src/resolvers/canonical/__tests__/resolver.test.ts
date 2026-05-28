@@ -305,6 +305,49 @@ describe("resolveCanonicalDocument", () => {
     expect(resolvedIcon._resolvedFrom).toBe("icon");
   });
 
+  it("TC8b: ref instance 의 직접 children 을 origin children 과 함께 resolve 한다", () => {
+    const itemOrigin = makeReusable(
+      "component-listbox-item-default",
+      "ListBoxItem",
+    );
+    const listBoxOrigin = {
+      ...makeReusable("component-listbox", "ListBox"),
+      slot: ["component-listbox-item-default"],
+    } as CanonicalNode;
+    const listBoxRef = makeRef("listbox-instance", "component-listbox", {
+      children: [
+        makeRef("template-anchor", "component-listbox-item-default", {
+          metadata: {
+            type: "legacy-element-props",
+            templateRole: "listbox-item-template-anchor",
+            originRef: "component-listbox-item-default",
+          },
+        }),
+      ],
+      props: {
+        items: [{ id: "aardvark", label: "Aardvark" }],
+      },
+    });
+    const doc = makeDoc([itemOrigin, listBoxOrigin, listBoxRef]);
+
+    const result = resolveCanonicalDocument(doc);
+
+    const resolvedListBox = result.find(
+      (node) => node.id === "listbox-instance",
+    ) as ResolvedNode;
+    expect(resolvedListBox).toMatchObject({
+      id: "listbox-instance",
+      type: "ListBox",
+      _resolvedFrom: "component-listbox",
+    });
+    expect(resolvedListBox.children?.[0]).toMatchObject({
+      id: "template-anchor",
+      type: "ListBoxItem",
+      _resolvedFrom: "component-listbox-item-default",
+    });
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   // ────────────────────────────────────────────
   // TC9: slot contract validate — warning + 계속 진행
   // ────────────────────────────────────────────

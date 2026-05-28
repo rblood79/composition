@@ -8,6 +8,7 @@ import { getPageElements } from "../../../stores/utils/elementIndexer";
 import { buildPageDataMap } from "./buildSceneIndex";
 import { buildCanonicalSceneModel } from "./canonicalSceneModel";
 import { toPageFrameElementId } from "./resolvePageWithFrame";
+import { toListBoxRowProjectionId } from "../../../projection/renderProjectionIds";
 
 describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () => {
   it("builds canonical-native node maps from canonical children source order", () => {
@@ -353,5 +354,86 @@ describe("buildCanonicalSceneModel — ADR-127 Phase 2 (canonical-native)", () =
     expect(instanceButton?.parent_id).toBe(projectedSlotId);
     expect(pageButton?.parentId).toBe(projectedSlotId);
     expect(instanceButton?.parentId).toBe(projectedSlotId);
+  });
+
+  it("projects rows for a ListBox ref instance of the Components origin", () => {
+    const document: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "component-listbox-item-default",
+          type: "ListBoxItem",
+          reusable: true,
+          props: { children: "{label}", description: "{description}" },
+        },
+        {
+          id: "component-listbox",
+          type: "ListBox",
+          reusable: true,
+          props: {
+            orientation: "vertical",
+            selectionMode: "single",
+            items: [],
+          },
+          slot: ["component-listbox-item-default"],
+        },
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ref",
+                  ref: "component-listbox",
+                  name: "ListBox",
+                  props: {
+                    items: [{ id: "aardvark", label: "Aardvark" }],
+                  },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                        originRef: "component-listbox-item-default",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const model = buildCanonicalSceneModel(document);
+    const listBox = model.sceneNodesMap.get("listbox-1");
+    const row = model.sceneNodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "aardvark"),
+    );
+
+    expect(listBox).toMatchObject({
+      id: "listbox-1",
+      type: "ListBox",
+      ref: "component-listbox",
+    });
+    expect(row).toMatchObject({
+      type: "ListBoxItem",
+      parentId: "projection:listbox-rows:listbox-1",
+      props: {
+        children: "Aardvark",
+        textValue: "Aardvark",
+      },
+    });
   });
 });

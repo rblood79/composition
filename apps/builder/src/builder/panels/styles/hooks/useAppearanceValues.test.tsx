@@ -6,46 +6,42 @@ import { useStore } from "../../../stores";
 import * as preset from "../utils/specPresetResolver";
 import type { Element } from "../../../../types/core/store.types";
 
+function setTestElements(elements: Element[]): void {
+  useStore.setState({
+    elements,
+    elementsMap: new Map(elements.map((element) => [element.id, element])),
+  } as never);
+}
+
 describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/borderColor)", () => {
   beforeEach(() => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-spec-only",
+    setTestElements([
+      {
+        id: "el-spec-only",
+        type: "ListBox",
+        props: { size: "md", style: {} },
+      } as Element,
+      {
+        id: "el-inline-wins",
+        type: "ListBox",
+        props: {
+          size: "md",
+          style: { backgroundColor: "#ABCDEF", borderRadius: "12px" },
+        },
+      } as Element,
+      {
+        id: "el-fills-color",
+        type: "ListBox",
+        fills: [
           {
-            id: "el-spec-only",
-            type: "ListBox",
-            props: { size: "md", style: {} },
-          } as Element,
+            type: "color",
+            enabled: true,
+            color: "#123456FF",
+          },
         ],
-        [
-          "el-inline-wins",
-          {
-            id: "el-inline-wins",
-            type: "ListBox",
-            props: {
-              size: "md",
-              style: { backgroundColor: "#ABCDEF", borderRadius: "12px" },
-            },
-          } as Element,
-        ],
-        [
-          "el-fills-color",
-          {
-            id: "el-fills-color",
-            type: "ListBox",
-            fills: [
-              {
-                type: "color",
-                enabled: true,
-                color: "#123456FF",
-              },
-            ],
-            props: { size: "md", style: {} },
-          } as Element,
-        ],
-      ]),
-    });
+        props: { size: "md", style: {} },
+      } as unknown as Element,
+    ]);
     vi.spyOn(preset, "resolveAppearanceSpecPreset").mockReturnValue({
       borderRadius: 8,
       borderWidth: 1,

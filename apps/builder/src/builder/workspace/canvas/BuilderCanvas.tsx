@@ -23,6 +23,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { useStore } from "../../stores";
+import { useDataStore } from "../../stores/data";
 import type { PageLayoutDirection } from "../../stores/canvasSettings";
 import { useEditModeStore } from "../../stores/editMode";
 import {
@@ -98,7 +99,7 @@ export interface BuilderCanvasProps {
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 const PAGE_STACK_GAP = 80;
-const EMPTY_ELEMENTS = [];
+const EMPTY_ELEMENTS: never[] = [];
 
 function computeStackedCanvasPosition(
   index: number,
@@ -188,10 +189,15 @@ export function BuilderCanvas({
 
   const layouts = useCanonicalReusableFrameLayouts();
   const activeCanonicalDocument = useActiveCanonicalDocument();
+  const collectionsMap = useDataStore((state) => state.collections);
+  const collections = useMemo(
+    () => Array.from(collectionsMap.values()),
+    [collectionsMap],
+  );
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;
-    return buildCanonicalSceneModel(activeCanonicalDocument);
-  }, [activeCanonicalDocument]);
+    return buildCanonicalSceneModel(activeCanonicalDocument, { collections });
+  }, [activeCanonicalDocument, collections]);
 
   // Store state
   const storeElements = useStore((state) => {

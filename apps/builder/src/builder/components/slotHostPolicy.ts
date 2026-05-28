@@ -4,6 +4,7 @@ import {
 } from "./listbox/listBoxTemplateOrigins";
 
 export type SlotPolicyElement = {
+  _resolvedFrom?: string;
   componentName?: string | null;
   customId?: string | null;
   id: string;
@@ -57,7 +58,12 @@ function isListBoxItemTemplateVariant(
   if (!candidate) return false;
   if (LISTBOX_ITEM_ORIGIN_IDS.has(candidate.id)) return true;
   if (candidate.ref && LISTBOX_ITEM_ORIGIN_IDS.has(candidate.ref)) return true;
-  if (normalizeType(candidate.type) === "listboxitem") return true;
+  if (
+    candidate._resolvedFrom &&
+    LISTBOX_ITEM_ORIGIN_IDS.has(candidate._resolvedFrom)
+  ) {
+    return true;
+  }
 
   const label = getElementLabel(candidate).toLowerCase();
   return label.startsWith("listboxitem/");

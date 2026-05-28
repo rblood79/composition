@@ -38,6 +38,7 @@ import {
   computeSlotBindingFingerprint,
 } from "./cache";
 import { parseCompositionImportReference } from "./importNamespace";
+import { isSlotCandidateAllowed } from "../../builder/components/slotHostPolicy";
 
 export type { ImportResolverContext } from "@composition/shared";
 
@@ -174,7 +175,7 @@ function _resolveRefNodeUncached(
   };
 
   // ── Step 2: descendants 3-mode apply ──────────────────────────────────────
-  const resolvedChildren = applyDescendantsToTree(
+  const resolvedOriginChildren = applyDescendantsToTree(
     master.children ?? [],
     refNode.descendants,
     doc,
@@ -182,6 +183,13 @@ function _resolveRefNodeUncached(
     imports,
     "",
   );
+  const resolvedInstanceChildren = (refNode.children ?? []).map((child) =>
+    resolveNode(child, doc, cache, imports),
+  );
+  const resolvedChildren = [
+    ...resolvedOriginChildren,
+    ...resolvedInstanceChildren,
+  ];
 
   // ── Step 4: ResolvedNode 산출 (메타 필드 주입) ────────────────────────────
   const overrideFields = collectOverrideFields(refNode);
@@ -191,6 +199,9 @@ function _resolveRefNodeUncached(
     _resolvedFrom: master.id,
     ...(overrideFields.length > 0 ? { _overrides: overrideFields } : {}),
   };
+  if (hasSlotContract(resolvedBase)) {
+    validateSlotContract(resolvedBase, resolved, doc, imports);
+  }
 
   return resolved;
 }
@@ -377,11 +388,11 @@ function validateSlotContract(
 
   for (const child of children) {
     const refId = child._resolvedFrom ?? child.id;
-    if (
-      !frame.slot.some((reference) =>
-        matchesResolvedSlotChildReference(child, reference, doc, imports),
-      )
-    ) {
+    const matchesDeclaredSlot = frame.slot.some((reference) =>
+      matchesResolvedSlotChildReference(child, reference, doc, imports),
+    );
+    const matchesSharedPolicy = isSlotCandidateAllowed(frame, child);
+    if (!matchesDeclaredSlot || !matchesSharedPolicy) {
       console.warn(
         `[ADR-903] slot contract: host "${frame.id}" slot=${JSON.stringify(frame.slot)} — child "${refId}" is outside recommended slot range (non-blocking)`,
       );

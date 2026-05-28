@@ -9,7 +9,8 @@ describe("style hooks canonical read contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain('useCanonicalPropertyElement(id ?? "")');
+    expect(source).toContain("useCanonicalPropertyElementsMap");
+    expect(source).toContain("elementsMap.get(id)");
     expect(source).not.toContain("useStore");
     expect(source).not.toContain("useCanonicalElements");
     expect(source).not.toContain("canonicalElements?.find(");

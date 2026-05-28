@@ -6,6 +6,7 @@ import {
 } from "../types";
 import {
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  LISTBOX_ORIGIN_ID,
   LISTBOX_TEMPLATE_ANCHOR_ROLE,
 } from "../../components/listbox/listBoxTemplateOrigins";
 import type {
@@ -225,7 +226,9 @@ export function createListBoxDefinition(
   return {
     type: "ListBox",
     parent: {
-      type: "ListBox",
+      type: "ref",
+      ref: LISTBOX_ORIGIN_ID,
+      componentName: "ListBox",
       props: {
         orientation: "vertical",
         selectionMode: "single",
@@ -240,6 +243,9 @@ export function createListBoxDefinition(
         },
       } as ComponentElementProps,
       parent_id: parentId,
+    } as ComponentDefinition["parent"] & {
+      componentName: string;
+      ref: string;
     },
     children: [
       {

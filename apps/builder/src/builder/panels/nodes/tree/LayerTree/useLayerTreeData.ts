@@ -10,6 +10,7 @@ import { resolvePageWithFrame } from "../../../../workspace/canvas/scene/resolve
 import { getPageFrameBindingId } from "../../../../../adapters/canonical/frameMirror";
 import { getElementLayoutId } from "../../../../../adapters/canonical/legacyElementFields";
 import { buildListBoxRowProjectionGroup } from "../../../../layers/listBoxRowProjection";
+import { useDataStore } from "../../../../stores/data";
 import {
   childrenAs,
   type ButtonItem,
@@ -29,6 +30,11 @@ function asElementLike(element: PanelNode): Element {
 export function useLayerTreeData(elements: PanelNode[]) {
   const currentPageId = useStore((state) => state.currentPageId);
   const pages = useStore((state) => state.pages);
+  const collectionsMap = useDataStore((state) => state.collections);
+  const collections = useMemo(
+    () => Array.from(collectionsMap.values()),
+    [collectionsMap],
+  );
 
   // ADR-116 direct cutover — canonical store 의 active document 에서 derived
   // panel read model 을 사용. 초기 hydration 전에는 caller elements[] fallback.
@@ -122,8 +128,9 @@ export function useLayerTreeData(elements: PanelNode[]) {
         elementTree,
         projectedElements,
         resolutionElementsMap,
+        collections,
       ),
-    [elementTree, projectedElements, resolutionElementsMap],
+    [elementTree, projectedElements, resolutionElementsMap, collections],
   );
 
   // nodeMap: treeNodes 기반 O(1) 조회용 맵
@@ -237,6 +244,9 @@ function convertToLayerTreeNodes(
   tree: ElementTreeItem[],
   elements: PanelNode[],
   persistedElementsMap: Map<string, PanelNode>,
+  collections: Parameters<
+    typeof buildListBoxRowProjectionGroup
+  >[0]["collections"],
   depth = 0,
 ): LayerTreeNode[] {
   const elementsMap = new Map(elements.map((el) => [el.id, el]));
@@ -251,10 +261,16 @@ function convertToLayerTreeNodes(
           item.children,
           elements,
           persistedElementsMap,
+          collections,
           depth + 1,
         )
       : [];
-    const virtualChildren = getVirtualChildren(item, depth + 1, element);
+    const virtualChildren = getVirtualChildren(
+      item,
+      depth + 1,
+      element,
+      collections,
+    );
     const children = [...childNodes, ...virtualChildren];
 
     const baseNode: LayerTreeNode = {
@@ -297,6 +313,9 @@ function getVirtualChildren(
   item: ElementTreeItem,
   depth: number,
   element: PanelNode,
+  collections: Parameters<
+    typeof buildListBoxRowProjectionGroup
+  >[0]["collections"],
 ): LayerTreeNode[] {
   const props = item.props as ElementProps | undefined;
   if (!props) return [];
@@ -357,6 +376,7 @@ function getVirtualChildren(
     const projectionGroup = buildListBoxRowProjectionGroup({
       depth,
       listBoxElement: element,
+      collections,
       treeChildren: (item.children ?? []) as Array<{
         id: string;
         ref?: unknown;

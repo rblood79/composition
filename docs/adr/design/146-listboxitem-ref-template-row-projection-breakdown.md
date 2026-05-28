@@ -5,7 +5,7 @@
 ListBox authoring 구조를 다음 4개 권위로 분리한다.
 
 - `Components` system page: reusable origin 보관 및 편집 source.
-- content page `ListBox`: locked `ListBoxItem` ref template anchor 보유.
+- content page `ListBox`: Components page `ListBox` origin의 ref instance이며 locked `ListBoxItem` ref template anchor 보유.
 - collection data: `dataBinding`/ADR-132 `collections.runtimeData` 또는 `ListBox.props.items`에서 단일 resolved collection items read model로 row data 제공.
 - row projection: Layer Tree, selection, Skia visible row 렌더를 위한 render-only projection.
 
@@ -270,7 +270,7 @@ Components
 └─ ListBox             // reusable origin, slot allow-list 포함
 
 Page A
-└─ ListBox
+└─ ListBox ref      // locked host instance, originRef=ListBox
    └─ ListBoxItem ref  // locked template anchor, originRef=ListBoxItem/Default
 ```
 
@@ -313,7 +313,7 @@ Page A
 - `ListBox` origin slot allow-list 설정.
 - mode detection fixture 추가: `dataBinding` 또는 non-empty `props.items`는 data-bound mode, ref children only는 static authoring mode, `dataBinding + props.items` 혼합은 dataBinding 우선 + props fallback/seed.
 - shared slot host policy registry 도입. `FrameSlotSection` / slot fill UI / insert guard / resolver warning path가 같은 `ListBox` allow-list를 소비.
-- content page `ListBox` factory가 locked ref template anchor 생성.
+- content page `ListBox` factory가 `ListBox` origin ref instance와 locked `ListBoxItem` ref template anchor 생성.
 - existing ADR-145 local template migration helper 보강.
 - G2 통과.
 

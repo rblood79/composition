@@ -70,11 +70,7 @@ export function isListBoxTemplateAnchor(value: unknown): boolean {
   if (!isRecord(value)) return false;
   const metadata = value.metadata;
   if (!isRecord(metadata)) return false;
-  return (
-    metadata.templateRole === LISTBOX_TEMPLATE_ANCHOR_ROLE ||
-    metadata.deleteDisabled === true ||
-    metadata.locked === true
-  );
+  return metadata.templateRole === LISTBOX_TEMPLATE_ANCHOR_ROLE;
 }
 
 function createListBoxItemDefaultOrigin(): CanonicalNode {

@@ -209,4 +209,74 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
       },
     });
   });
+
+  it("projects ListBox rows from dataBinding before props.items seed data", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  dataBinding: {
+                    type: "collection",
+                    source: "static",
+                    config: {
+                      data: [
+                        {
+                          id: "runtime-aardvark",
+                          label: "Runtime Aardvark",
+                        },
+                      ],
+                    },
+                  },
+                  props: {
+                    items: [{ id: "seed-cat", label: "Seed Cat" }],
+                  },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+
+    expect(
+      graph.nodesMap.get(
+        toListBoxRowProjectionId("listbox-1", "runtime-aardvark"),
+      ),
+    ).toMatchObject({
+      type: "ListBoxItem",
+      props: {
+        children: "Runtime Aardvark",
+        textValue: "Runtime Aardvark",
+      },
+    });
+    expect(
+      graph.nodesMap.has(toListBoxRowProjectionId("listbox-1", "seed-cat")),
+    ).toBe(false);
+  });
 });

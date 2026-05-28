@@ -20,7 +20,7 @@ describe("ListBox row projection model", () => {
             { id: "cat", label: "Cat" },
           ],
         },
-      },
+      } as never,
       treeChildren: [{ id: "anchor", type: "ref" }],
     });
 
@@ -68,6 +68,36 @@ describe("ListBox row projection model", () => {
     });
 
     expect(group?.children).toHaveLength(LISTBOX_ROW_PROJECTION_WINDOW_LIMIT);
+  });
+
+  it("uses dataBinding row data before props.items seed data", () => {
+    const group = buildListBoxRowProjectionGroup({
+      depth: 0,
+      listBoxElement: {
+        id: "listbox",
+        type: "ListBox",
+        parent_id: null,
+        page_id: "page-1",
+        dataBinding: {
+          type: "collection",
+          source: "static",
+          config: {
+            data: [{ id: "runtime-aardvark", label: "Runtime Aardvark" }],
+          },
+        },
+        props: {
+          items: [{ id: "seed-cat", label: "Seed Cat" }],
+        },
+      } as never,
+      treeChildren: [{ id: "anchor", type: "ref" }],
+    });
+
+    expect(group?.children?.map((node) => node.id)).toEqual([
+      "projection:listbox-row:listbox:runtime-aardvark",
+    ]);
+    expect(group?.children?.map((node) => node.name)).toEqual([
+      "Runtime Aardvark",
+    ]);
   });
 
   it("does not create a projection group for static ref children only", () => {

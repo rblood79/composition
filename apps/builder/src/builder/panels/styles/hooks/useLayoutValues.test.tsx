@@ -14,24 +14,26 @@ function makeElement(
   return { id, type, props };
 }
 
+function setTestElements(elements: Element[]): void {
+  useStore.setState({
+    elements,
+    elementsMap: new Map(elements.map((element) => [element.id, element])),
+  } as never);
+}
+
 describe("useLayoutValues", () => {
   beforeEach(() => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-1",
-          makeElement("el-1", "Button", {
-            size: "md",
-            style: {
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-              paddingLeft: "8px",
-            },
-          }),
-        ],
-      ]),
-    });
+    setTestElements([
+      makeElement("el-1", "Button", {
+        size: "md",
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          paddingLeft: "8px",
+        },
+      }),
+    ]);
     vi.spyOn(preset, "resolveLayoutSpecPreset").mockReturnValue({
       gap: 4,
       paddingTop: 6,
@@ -78,21 +80,13 @@ describe("useLayoutValues", () => {
 
 describe("useLayoutValues — ADR-082 P3 spec fallback (display/flex keys)", () => {
   beforeEach(() => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-spec-only",
-          makeElement("el-spec-only", "ListBox", { size: "md", style: {} }),
-        ],
-        [
-          "el-inline-wins",
-          makeElement("el-inline-wins", "ListBox", {
-            size: "md",
-            style: { display: "grid", alignItems: "center" },
-          }),
-        ],
-      ]),
-    });
+    setTestElements([
+      makeElement("el-spec-only", "ListBox", { size: "md", style: {} }),
+      makeElement("el-inline-wins", "ListBox", {
+        size: "md",
+        style: { display: "grid", alignItems: "center" },
+      }),
+    ]);
     vi.spyOn(preset, "resolveLayoutSpecPreset").mockReturnValue({
       display: "flex",
       flexDirection: "column",
@@ -125,49 +119,32 @@ describe("useLayoutValues — ADR-082 P3 spec fallback (display/flex keys)", () 
 // 사용자가 Panel 첫 진입에서 실제 적용된 padding/margin 을 인지 가능.
 describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way uniform fallback", () => {
   beforeEach(() => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-uniform",
-          makeElement("el-uniform", "ListBox", { size: "md", style: {} }),
-        ],
-        [
-          "el-nonuniform",
-          makeElement("el-nonuniform", "Menu", { size: "md", style: {} }),
-        ],
-        [
-          "el-inline-pad",
-          makeElement("el-inline-pad", "ListBox", {
-            size: "md",
-            style: { padding: "16px" },
-          }),
-        ],
-        [
-          "el-inline-uniform-pad",
-          makeElement("el-inline-uniform-pad", "ListBox", {
-            size: "md",
-            style: {
-              paddingTop: 12,
-              paddingRight: 12,
-              paddingBottom: 12,
-              paddingLeft: 12,
-            },
-          }),
-        ],
-        [
-          "el-inline-uniform-margin",
-          makeElement("el-inline-uniform-margin", "ListBox", {
-            size: "md",
-            style: {
-              marginTop: 10,
-              marginRight: 10,
-              marginBottom: 10,
-              marginLeft: 10,
-            },
-          }),
-        ],
-      ]),
-    });
+    setTestElements([
+      makeElement("el-uniform", "ListBox", { size: "md", style: {} }),
+      makeElement("el-nonuniform", "Menu", { size: "md", style: {} }),
+      makeElement("el-inline-pad", "ListBox", {
+        size: "md",
+        style: { padding: "16px" },
+      }),
+      makeElement("el-inline-uniform-pad", "ListBox", {
+        size: "md",
+        style: {
+          paddingTop: 12,
+          paddingRight: 12,
+          paddingBottom: 12,
+          paddingLeft: 12,
+        },
+      }),
+      makeElement("el-inline-uniform-margin", "ListBox", {
+        size: "md",
+        style: {
+          marginTop: 10,
+          marginRight: 10,
+          marginBottom: 10,
+          marginLeft: 10,
+        },
+      }),
+    ]);
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -217,7 +194,9 @@ describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way unifor
 
   it("inline padding longhand 4-way uniform 도 shorthand 에 복원된다", () => {
     vi.spyOn(preset, "resolveLayoutSpecPreset").mockReturnValue({});
-    const { result } = renderHook(() => useLayoutValues("el-inline-uniform-pad"));
+    const { result } = renderHook(() =>
+      useLayoutValues("el-inline-uniform-pad"),
+    );
     expect(result.current?.padding).toBe("12px");
     expect(result.current?.paddingTop).toBe("12");
   });
@@ -246,18 +225,13 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("TextField.labelPosition=side variant 를 Panel layout 값으로 반영", () => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-side-textfield",
-          makeElement("el-side-textfield", "TextField", {
-            size: "md",
-            labelPosition: "side",
-            style: {},
-          }),
-        ],
-      ]),
-    });
+    setTestElements([
+      makeElement("el-side-textfield", "TextField", {
+        size: "md",
+        labelPosition: "side",
+        style: {},
+      }),
+    ]);
 
     const { result } = renderHook(() => useLayoutValues("el-side-textfield"));
     expect(result.current?.display).toBe("grid");
@@ -266,22 +240,17 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   });
 
   it("inline layout 값은 variant fallback 보다 우선", () => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-side-textfield-inline",
-          makeElement("el-side-textfield-inline", "TextField", {
-            size: "md",
-            labelPosition: "side",
-            style: {
-              display: "flex",
-              alignItems: "center",
-              rowGap: "24px",
-            },
-          }),
-        ],
-      ]),
-    });
+    setTestElements([
+      makeElement("el-side-textfield-inline", "TextField", {
+        size: "md",
+        labelPosition: "side",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          rowGap: "24px",
+        },
+      }),
+    ]);
 
     const { result } = renderHook(() =>
       useLayoutValues("el-side-textfield-inline"),
@@ -292,18 +261,13 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   });
 
   it("TagGroup 기본 방향은 수동 CSS와 동일하게 column으로 표시", () => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-taggroup",
-          makeElement("el-taggroup", "TagGroup", {
-            size: "md",
-            labelPosition: "top",
-            style: {},
-          }),
-        ],
-      ]),
-    });
+    setTestElements([
+      makeElement("el-taggroup", "TagGroup", {
+        size: "md",
+        labelPosition: "top",
+        style: {},
+      }),
+    ]);
 
     const { result } = renderHook(() => useLayoutValues("el-taggroup"));
     expect(result.current?.display).toBe("flex");
@@ -311,18 +275,13 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   });
 
   it("TagGroup.labelPosition=side variant 는 Direction 을 row로 표시", () => {
-    useStore.setState({
-      elementsMap: new Map([
-        [
-          "el-taggroup-side",
-          makeElement("el-taggroup-side", "TagGroup", {
-            size: "md",
-            labelPosition: "side",
-            style: {},
-          }),
-        ],
-      ]),
-    });
+    setTestElements([
+      makeElement("el-taggroup-side", "TagGroup", {
+        size: "md",
+        labelPosition: "side",
+        style: {},
+      }),
+    ]);
 
     const { result } = renderHook(() => useLayoutValues("el-taggroup-side"));
     expect(result.current?.display).toBe("flex");

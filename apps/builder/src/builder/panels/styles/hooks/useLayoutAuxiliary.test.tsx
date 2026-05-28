@@ -77,9 +77,11 @@ function setElement(
   tag = "Div",
   extraProps: Record<string, unknown> = {},
 ) {
+  const element = makeElement(id, tag, { ...extraProps, style });
   useStore.setState({
-    elementsMap: new Map([[id, makeElement(id, tag, { ...extraProps, style })]]),
-  });
+    elements: [element],
+    elementsMap: new Map([[id, element]]),
+  } as never);
 }
 
 describe("useFlexDirectionKeys", () => {
@@ -219,12 +221,9 @@ describe("useLayoutAuxiliary — ADR-108 P3 variant-aware fallback", () => {
   });
 
   it("inline 값은 variant fallback 보다 우선", () => {
-    setElement(
-      "e",
-      { alignItems: "center" },
-      "VariantFlexSpec",
-      { labelPosition: "side" },
-    );
+    setElement("e", { alignItems: "center" }, "VariantFlexSpec", {
+      labelPosition: "side",
+    });
     const { result } = renderHook(() => useFlexAlignmentKeys("e"));
     expect(result.current).toEqual(["rightCenter"]);
   });

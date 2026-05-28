@@ -9,6 +9,7 @@ import {
   buildCanvasScenePageIndex,
   type CanvasSceneNode,
 } from "./canvasSceneNode";
+import type { ListBoxCollectionDataSource } from "../../../components/listbox/listBoxRowProjectionModel";
 
 /**
  * `CanonicalSceneModel` — canonical document 에서 derived 된 scene snapshot.
@@ -55,6 +56,10 @@ export interface CanonicalSceneModel {
   frameElementScopes: ReturnType<typeof canonicalDocumentToFrameElementScopes>;
   pageIndex: PageElementIndex;
 }
+
+type BuildCanonicalSceneModelOptions = {
+  collections?: readonly ListBoxCollectionDataSource[];
+};
 
 function buildSceneParentById(
   childrenByParent: Map<string, CanvasSceneNode[]>,
@@ -154,12 +159,16 @@ export function buildSceneChildrenByParent(
  */
 export function buildCanonicalSceneModel(
   doc: CompositionDocument,
+  options: BuildCanonicalSceneModelOptions = {},
 ): CanonicalSceneModel {
   const nodes = flattenCanonicalDocumentNodes(doc);
   const nodesMap = buildSceneNodeMap(nodes);
   const childrenByParent = buildSceneChildrenByParent(nodes, doc);
   const sceneGraph = resolveSceneGraph(
-    buildCanvasSceneGraph(doc, { includeReusableFrames: true }),
+    buildCanvasSceneGraph(doc, {
+      collections: options.collections,
+      includeReusableFrames: true,
+    }),
   );
 
   return {

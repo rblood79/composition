@@ -14,7 +14,7 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).not.toContain("useCanonicalElements");
     expect(source).not.toContain("canonicalDocumentToElements");
     expect(source).toContain(
-      "return buildCanonicalSceneModel(activeCanonicalDocument);",
+      "return buildCanonicalSceneModel(activeCanonicalDocument, { collections });",
     );
     expect(source).toContain("buildLegacyCanvasSceneGraph");
     expect(source).not.toContain("getSceneModelElementsLegacy");

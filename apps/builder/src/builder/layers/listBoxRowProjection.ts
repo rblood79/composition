@@ -2,7 +2,9 @@ import { detectListBoxAuthoringMode } from "../components/listbox/listBoxTemplat
 import {
   getListBoxProjectionRows,
   LISTBOX_ROW_PROJECTION_WINDOW_LIMIT,
+  type ListBoxCollectionDataSource,
 } from "../components/listbox/listBoxRowProjectionModel";
+import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
@@ -19,6 +21,7 @@ type TreeChildInput = {
 };
 
 type BuildListBoxRowProjectionInput = {
+  collections?: readonly ListBoxCollectionDataSource[];
   depth: number;
   listBoxElement: PanelNode;
   treeChildren?: readonly TreeChildInput[];
@@ -41,21 +44,26 @@ function findTemplateAnchorId(
 }
 
 export function buildListBoxRowProjectionGroup({
+  collections,
   depth,
   listBoxElement,
   treeChildren = [],
 }: BuildListBoxRowProjectionInput): LayerTreeNode | null {
   if (listBoxElement.type !== "ListBox") return null;
+  const dataBinding = getElementDataBinding(listBoxElement);
 
   const mode = detectListBoxAuthoringMode({
     children: [...treeChildren],
-    dataBinding: (listBoxElement as PanelNode & { dataBinding?: unknown })
-      .dataBinding,
+    dataBinding,
     props: listBoxElement.props,
   });
   if (mode.mode !== "data-bound") return null;
 
-  const rows = getListBoxProjectionRows(listBoxElement.props);
+  const rows = getListBoxProjectionRows({
+    collections,
+    dataBinding,
+    props: listBoxElement.props,
+  });
   if (rows.length === 0) return null;
 
   const groupId = toListBoxRowsGroupProjectionId(listBoxElement.id);
