@@ -4,6 +4,8 @@
 
 Implemented — 2026-05-27 (Phase 0 / A / B / E 전수 완결. Round 3, 2026-05-27 — Lite framing 정정. Gate G3/G4 (4 fixture + perf proof) 폐기. figma + Retool + Frame ADR-130 + composition Preview 이미 검증한 industry-standard tree+가상화 패턴을 ListBox 에도 정상 적용)
 
+> **Amendment notice (2026-05-28)**: ADR-146 Proposed는 본 ADR의 Phase 0/A 성과(`ListBoxItem` template child, factory/hydration repair, reusable master round-trip, `items` data SSOT)를 유지한다. 다만 Phase B의 `ListBoxSpec.render.shapes` template-data 결합 paint 및 `ListBox` parent composite row paint active path는 ADR-146의 `ListBoxItem` ref template row projection 구현으로 후속 보정 대상이다. ADR-146이 Implemented로 승격되기 전까지 현재 런타임 기준은 본 ADR Implemented 상태다.
+
 ### Phase 진행 요약
 
 | Phase   | commit      | 산출물                                                                                                                                                                                                                                                                                                                                                                                                           |

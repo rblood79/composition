@@ -15,6 +15,14 @@ Proposed - 2026-05-28
   - 좌측 패널 1/2 분리 UX는 ADR-142/143 시도와 rollback 경험상 혼동을 주므로 사용하지 않는다.
   - `Components` page를 프로젝트 생성 시 자동 생성하고, 일반 page처럼 선택하면 Skia canvas와 Layers Tree에 구조가 그대로 나타나야 한다. 단 Preview/Publish에는 제외한다.
 
+### ADR-145 amendment boundary
+
+ADR-146은 ADR-145 전체를 되돌리지 않는다.
+
+- 유지: ADR-145 Phase 0/A의 `ListBoxItem` template child 도입, factory/hydration repair, reusable master round-trip, `items` data SSOT.
+- 보정: ADR-145 Phase B의 `ListBoxSpec.render.shapes` template-data 결합 paint와 `ListBox` parent composite row paint active path.
+- 상태: ADR-146은 Proposed이므로 현재 런타임은 ADR-145 Implemented 상태를 유지한다. ADR-146이 Implemented로 승격될 때 ADR-145 Phase B는 "partially superseded by ADR-146"으로 닫는다.
+
 ## Context
 
 ADR-145는 ListBox에 `ListBoxItem` template child를 도입하고 `props.items` 기반 data SSOT를 유지했다. 하지만 ADR-145의 Skia Phase B는 여전히 `ListBoxSpec.render.shapes`가 `items`와 template style을 결합해 row를 parent 안에서 한 번에 paint하는 방향을 허용했다.
@@ -34,25 +42,21 @@ Pencil/shadcn fixture는 다음을 증명한다.
 ### 3-domain 분류
 
 - **D1 DOM/접근성/상호작용**: React Aria Components `ListBox`/`ListBoxItem`가 권위다. selection, keyboard, ARIA 동작은 RAC 경로를 따른다.
-- **D2 Props/API**: `ListBox.props.items` 또는 ADR-132 `collections.runtimeData`가 반복 data SSOT다. row id/text/description/selection props는 collection item에서 온다.
+- **D2 Props/API**: row data는 단일 resolved collection items read model로 본다. 명시적 `dataBinding`/ADR-132 `collections.runtimeData`가 있으면 `useCollectionData` 경로가 우선이고, 없으면 `ListBox.props.items`가 static items fallback이다. row id/text/description/selection props는 resolved collection item에서 온다.
 - **D3 시각/구조**: `ListBoxItem` reusable origin과 그 descendants/slot 구조가 row template의 시각 SSOT다. Skia는 이 template을 row projection마다 resolve해 visible row 단위로 렌더한다.
 
 ### Hard Constraints
 
 1. `Components` page는 프로젝트 생성 시 자동 생성되는 system page다. `Home` 왼쪽/앞에 표시하고 일반 page와 동일하게 선택한다.
-2. `Components` page는 Builder Skia canvas에 일반 page처럼 렌더링된다. Layers Tree도 일반 page와 같은 경로로 표시한다.
-3. `Components` page는 Preview/Publish/runtime page list/export에서는 제외한다. `page-n` 자동 이름 카운트에도 포함하지 않는다.
-4. `Components` page 자체와 그 안의 system-owned origin template은 삭제 불가다. 필요하면 user-owned component origin과 system-owned component origin을 구분한다.
-5. Component Panel에 `ListBoxItem`을 일반 placeable 컴포넌트로 중복 노출하지 않는다. `ListBoxItem`은 `Components` page의 reusable origin과 `ListBox` 내부 template anchor로만 다룬다.
-6. 실제 content page의 `ListBox`는 삭제 불가 `ListBoxItem` ref template anchor를 가진다.
-7. Layer Tree는 `ListBox` 아래에 template anchor와 row projection을 모두 표시한다.
-8. Row projection은 canonical 저장 노드가 아니다. collection data에서 파생한 render/interaction projection이며, id 안정성과 selection hit-test만 제공한다.
-9. Skia는 `ListBox` parent가 모든 row를 한 번에 그리는 composite paint를 사용하지 않는다. visible row마다 `ListBoxItem` template/ref renderer를 통과한다.
-10. Static authoring mode는 `ListBox` children에 실제 `ListBoxItem` ref children을 저장할 수 있다. Data-bound/large collection mode는 locked template anchor 1개와 row projection을 사용한다.
-11. `ListBoxItem` slot은 text, description, icon, indicator 같은 visual/content slot으로 제한한다. row 안의 nested interactive child는 허용하지 않는다. interactive row content는 GridList/Table 후속 ADR 범위다.
-12. `ListBox`의 slot allow-list는 `ListBoxItem/Default`, optional `ListBoxItem/Selected` 같은 item template variants로 제한한다.
-13. `descendants` override는 template instance의 content/text/style override에 사용한다. collection row data는 origin이나 ref node에 저장하지 않는다.
-14. ADR-145의 factory/hydration migration 성과는 유지하되, ADR-145 Phase B의 parent composite row paint는 본 ADR이 후속 보정한다.
+2. `Components` page는 Builder Skia canvas와 Layers Tree에 일반 page처럼 표시하되, Preview/Publish/runtime page list/export와 `page-n` 자동 이름 카운트에서는 제외한다.
+3. `Components` page 자체와 그 안의 system-owned origin template은 삭제/duplicate 불가다.
+4. Component Panel에 `ListBoxItem`을 일반 placeable 컴포넌트로 중복 노출하지 않는다. `ListBoxItem`은 `Components` page의 reusable origin과 `ListBox` 내부 template anchor로만 다룬다.
+5. 실제 content page의 `ListBox`는 삭제 불가 `ListBoxItem` ref template anchor를 가진다.
+6. Layer Tree는 `ListBox` 아래에 template anchor와 row projection을 모두 표시한다.
+7. Row projection은 canonical 저장 노드가 아니다. collection data에서 파생한 render/interaction projection이며, id 안정성과 selection hit-test만 제공한다.
+8. Skia는 `ListBox` parent가 모든 row를 한 번에 그리는 composite paint를 active production path에서 사용하지 않는다. visible row마다 `ListBoxItem` template/ref renderer를 통과한다.
+9. `ListBoxItem` slot은 text, description, icon, indicator 같은 visual/content slot으로 제한한다. row 안의 nested interactive child는 허용하지 않는다. interactive row content는 GridList/Table 후속 ADR 범위다.
+10. ADR-145의 factory/hydration migration 성과는 유지하되, ADR-145 Phase B의 parent composite row paint는 본 ADR이 후속 보정한다.
 
 ### Soft Constraints
 
@@ -111,7 +115,7 @@ Page A
   - Layer Tree는 template anchor와 data-bound row projection을 구분해 표시한다.
   - Skia는 visible row projection마다 template/ref renderer를 사용한다.
 - 위험:
-  - 기술 MED - Layer Tree projection, selection hit-test, Skia renderer 경계가 필요하다.
+  - 기술 HIGH - Components page runtime exclusion, projection id와 canonical id 분리, mutation routing, Skia row renderer 경계가 모두 필요하다. ADR-135 동종 projection/id boundary 경험을 Gate G3에 재사용한다.
   - 성능 MED - row projection은 visible range/virtualization과 결합해야 한다.
   - 유지보수 MED - Components page system semantics와 content page projection semantics가 추가된다.
   - 마이그레이션 MED - 기존 ADR-145 local template child를 origin/ref anchor로 전환해야 한다.
@@ -159,12 +163,12 @@ Page A
 
 | 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
 | ---- | :--: | :--: | :------: | :----------: | :--------: |
-| A    |  M   |  M   |    M     |      M       |     0      |
+| A    |  H   |  M   |    M     |      M       |     1      |
 | B    |  L   |  L   |    H     |      L       |     1      |
 | C    |  M   |  H   |    M     |      H       |     2      |
 | D    |  L   |  M   |    H     |      M       |     1      |
 
-대안 A는 구현 범위가 가장 크지만 HIGH+ 위험이 없다. 대안 B는 단기 구현이 가장 작지만 사용자 lock-in과 Skia authoring 모델을 깨뜨린다. 대안 C는 data-bound collection의 크기 특성을 무시한다. 대안 D는 source visibility를 숨겨 UX와 유지보수 위험을 만든다.
+대안 A에는 HIGH 기술 위험 1건이 있다. 다만 이 위험은 ADR-135와 같은 종류의 render projection/canonical identity boundary이며, projected id를 canonical mutation target으로 쓰지 않는 typed resolver와 negative fixture로 Gate G3에서 1:1 관리할 수 있다. 대안 B는 단기 구현이 가장 작지만 사용자 lock-in과 Skia authoring 모델을 깨뜨린다. 대안 C는 data-bound collection의 크기 특성을 무시한다. 대안 D는 source visibility를 숨겨 UX와 유지보수 위험을 만든다.
 
 ## Decision
 
@@ -180,38 +184,43 @@ Page A
 6. content page에 배치된 `ListBox`는 locked `ListBoxItem` ref template anchor를 가진다. 이 anchor는 삭제 불가이며 row 1개가 아니라 row render template이다.
 7. Layer Tree는 `ListBox` 아래에 `Rows` projection group을 만든다. row projection은 collection item id를 기반으로 stable projection id를 가진다.
 8. row projection을 선택하면 Inspector는 collection item data binding 또는 row template override 가능한 surface를 표시한다. row projection 자체를 canonical child로 저장하지 않는다.
-9. Skia renderer는 visible row마다 `ListBoxItem` ref template을 resolve해 렌더한다. `ListBox` parent composite row paint는 제거하거나 compatibility fallback으로만 격리한다.
+9. Skia renderer는 visible row마다 `ListBoxItem` ref template을 resolve해 렌더한다. `ListBox` parent composite row paint는 production active path에서 제거한다. 비교용 legacy code가 필요하면 test/migration fixture allowlist에만 둔다.
 10. Preview/Publish DOM 경로는 RAC dynamic collection 패턴을 유지한다. 다만 Builder canonical authoring source는 template ref anchor와 `items` data를 분리해 표현한다.
-11. static authoring mode는 실제 `ListBoxItem` ref child 저장을 허용한다. data-bound/large collection mode는 locked template anchor + projection model을 사용한다.
+11. mode detection은 구현자 임의 판단에 맡기지 않는다. `dataBinding` 또는 non-empty `ListBox.props.items`가 있으면 data-bound mode로 보고 locked template anchor + projection model을 사용한다. 둘 다 없고 실제 `ListBoxItem` ref children이 있으면 static authoring mode로 보고 실제 ref child 저장을 허용한다. `dataBinding`과 `props.items`가 동시에 있으면 `dataBinding`/`collections.runtimeData`가 row data source로 우선하고 `props.items`는 fallback/seed로만 둔다. row count threshold는 mode를 바꾸지 않는다.
 12. `ListBoxItem` 내부 slot은 text/description/icon/indicator 등 non-interactive visual slot으로 제한한다.
+13. slot allow-list 구현은 `FrameSlotSection.tsx`의 local `SLOT_HOST_TYPES` 확장이 아니라 shared slot host policy registry로 분리한다. `FrameSlotSection`, slot fill UI, insert guard, resolver warning path가 같은 policy를 소비해야 한다. `ListBox` policy는 `Components` page origin/template authoring에서만 활성화하고 허용 origin type을 `ListBoxItem` variants로 제한한다.
+14. `Components` page system metadata는 canonical page node `metadata`에 저장한다. `Page` legacy mirror/interface에는 persisted schema를 추가하지 않는다. `x-composition.editor`는 selection/runtime editor state 용도이므로 page identity/source exclusion에는 사용하지 않는다. 따라서 IndexedDB `DB_VERSION` 증가는 요구하지 않는다.
+15. content page 또는 `ListBox` duplicate는 system origins를 복제하지 않는다. 새 content instance는 같은 `Components` page origin을 참조하는 새 locked template anchor id만 생성한다.
+16. runtime/export exclusion은 metadata 선언만으로 완료하지 않는다. Builder page list는 editor page derivation으로 `Components` page를 포함해야 하고, runtime render model/export/Preview/Publish는 runtime page derivation으로 `Components` page를 제외해야 한다. 이 경계는 별도 helper(`deriveProjectEditorPageModelFromDocument` + runtime helper) 또는 명시적 audience option으로 분리한다. page creation number 계산도 system page를 제외한다.
+17. projection id guard는 canonical move target만 막지 않는다. `projection:listbox-row:` prefix를 shared render projection id로 등록하고 `canonicalMutations`, `updateElement`, `removeElement`, drag/drop mutation route가 canonical mutation 전에 차단해야 한다.
 
 > 구현 상세: [146-listboxitem-ref-template-row-projection-breakdown.md](design/146-listboxitem-ref-template-row-projection-breakdown.md)
 
 ## Risks
 
-| ID  | 위험                                                                                            | 심각도 | 대응                                                                                                                     |
-| --- | ----------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------ |
-| R1  | Components page가 일반 page처럼 보이면서도 preview/publish에서 제외되어야 한다.                 |  MED   | page metadata/system flag와 page list/export allowlist를 Gate G1에서 동시에 검증한다.                                    |
-| R2  | row projection id와 canonical node id가 섞이면 selection, hover, drag/drop mutation이 깨진다.   |  MED   | projection id namespace와 canonical target resolver를 분리하고 Gate G3에 mutation no-op/route fixture를 둔다.            |
-| R3  | Skia가 parent composite paint와 row template renderer를 혼용하면 CSS/Preview drift가 남는다.    |  MED   | Gate G4에서 ListBox parent row paint direct path 0건 또는 compatibility-only 격리를 검증한다.                            |
-| R4  | data-bound collection이 큰 경우 Layer Tree row projection이 UI를 느리게 만들 수 있다.           |  MED   | Layer Tree도 visible/expanded range projection을 사용한다. 전체 rows materialization은 금지한다.                         |
-| R5  | `ListBoxItem` slot에 interactive child를 허용하면 RAC ListBox semantics가 깨진다.               |  MED   | Slot allow-list와 insert guard를 둔다. interactive child는 GridList/Table ADR로 보낸다.                                  |
-| R6  | 기존 ADR-145 프로젝트의 local template child migration이 origin/ref 구조로 바뀌며 깨질 수 있다. |  MED   | migration helper와 round-trip fixture를 추가한다. 기존 local template style은 `ListBoxItem/Default` origin으로 승격한다. |
-| R7  | `Components` page 삭제/rename/duplicate 동작이 일반 page 조작과 충돌할 수 있다.                 |  LOW   | system page delete guard, rename policy, duplicate policy를 명시하고 UI affordance를 제한한다.                           |
+| ID  | 위험                                                                                                                                                                                                                                                                  | 심각도 | 대응                                                                                                                                                                                                          |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Components page가 Builder authoring page로 보이면서 runtime/export/Preview/Publish/page count에 누수되거나, 반대로 runtime exclusion helper를 Builder page list가 소비해 editor에서 사라질 수 있다. 현재 page derivation/filter가 page metadata type만 보면 포함된다. |  HIGH  | editor page derivation과 runtime render model derivation을 분리하고, `usePageManager`/PageTree/Preview/Publish/export/page-number 계산을 Gate G1에서 동시에 검증한다.                                         |
+| R2  | row projection id와 canonical node id가 섞이면 selection, hover, drag/drop mutation이 canonical document를 오염시킬 수 있다. ADR-135의 projected id boundary와 같은 종류다.                                                                                           |  HIGH  | shared `isRenderProjectionId` guard를 두고 canonical/store mutation boundary 전체에 projected id negative fixture를 둔다.                                                                                     |
+| R3  | Skia가 parent composite paint와 row template renderer를 혼용하면 CSS/Preview drift가 남는다.                                                                                                                                                                          |  MED   | Gate G4에서 ListBox parent row paint production active path grep 0건을 검증한다.                                                                                                                              |
+| R4  | data-bound collection이 큰 경우 Layer Tree row projection이 UI를 느리게 만들 수 있다.                                                                                                                                                                                 |  MED   | Layer Tree도 visible/expanded range projection을 사용한다. 10k rows fixture에서 projection window만 생성하는 것을 검증한다.                                                                                   |
+| R5  | `ListBoxItem` slot에 interactive child를 허용하면 RAC ListBox semantics가 깨진다.                                                                                                                                                                                     |  MED   | Slot allow-list와 insert guard를 둔다. interactive child는 GridList/Table ADR로 보낸다.                                                                                                                       |
+| R6  | 기존 ADR-145 프로젝트의 local template child migration이 origin/ref 구조로 바뀌며 깨질 수 있다. 다중 ListBox가 서로 다른 local template style을 갖는 경우 origin 승격 순서가 불안정해질 수 있다.                                                                      |  MED   | Components bootstrap을 migration보다 먼저 실행하고, document order 기준 첫 legacy template을 `ListBoxItem/Default` origin으로 승격한다. 나머지는 anchor `descendants` override로 보존하는 fixture를 추가한다. |
+| R7  | `Components` page 삭제/rename/duplicate 동작이 일반 page 조작과 충돌할 수 있다.                                                                                                                                                                                       |  LOW   | system page delete guard, rename policy, duplicate policy를 명시하고 UI affordance를 제한한다.                                                                                                                |
 
-잔존 HIGH 위험: 0건.
+잔존 HIGH 위험: R1/R2 2건 - R1은 Gate G1, R2는 Gate G3와 1:1 대응.
 
 ## Gates
 
-| Gate | 시점                      | 통과 조건                                                                                                                                                                       | 실패 시 대안                              |
-| ---- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| G0   | Fixture/inventory freeze  | `shadcn-tabs`, `shadcn-cards`, `shadcn-design-system`의 reusable/ref/descendants/slot evidence를 문서화. ADR-145와 충돌하는 Skia parent paint surface inventory 완료.           | ADR-146 구현 착수 보류                    |
-| G1   | Components page bootstrap | 신규 프로젝트에 `Components` system page 자동 생성. `Home` 앞 표시. 일반 page 선택/Skia/Layers 표시 PASS. Preview/Publish/runtime list/export 제외 PASS. `page-n` 카운트 제외.  | system page semantics 먼저 고정           |
-| G2   | Origin/ref/slot model     | `Components` page에 `ListBoxItem/Default`, optional selected variant, `ListBox` origin 생성. content page `ListBox`가 locked ref template anchor를 참조. 삭제 guard PASS.       | local template child fallback 유지        |
-| G3   | Layer Tree row projection | `ListBox > ListBoxItem(template anchor) > Rows > row labels` 표시. row projection id 안정성, selection, hover, Inspector read path, mutation no-op/route fixture PASS.          | row projection UI 숨김 후 재설계          |
-| G4   | Skia/Preview parity       | Skia visible row가 `ListBoxItem` template/ref renderer를 통과. parent composite row paint direct path 0건 또는 compatibility-only 격리. DOM Preview RAC collection parity PASS. | Skia path rollback, ADR-145 fallback 유지 |
-| G5   | Migration/compat          | ADR-145 local template child가 Components page origin/ref anchor로 무손실 migration. reusable master round-trip, import/export, hydration refresh PASS.                         | migration gate 보류                       |
-| G6   | Verification/closure      | targeted Vitest + ListBox cross-check + `pnpm run codex:typecheck` + 필요한 browser sanity PASS. README/CHANGELOG/ADR status sync.                                              | Proposed 유지, Implemented 승격 금지      |
+| Gate | 시점                      | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                           | 실패 시 대안                              |
+| ---- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| G0   | Fixture/inventory freeze  | `shadcn-tabs`, `shadcn-cards`, `shadcn-design-system`의 reusable/ref/descendants/slot evidence를 문서화. ADR-145와 충돌하는 Skia parent paint surface inventory 완료.                                                                                                                                                                                                                                                               | ADR-146 구현 착수 보류                    |
+| G1   | Components page bootstrap | 신규 프로젝트에 `Components` system page 자동 생성. `Home` 앞 표시. Builder page list/PageTree/usePageManager editor derivation에는 포함되어 일반 page 선택/Skia/Layers 표시 PASS. runtime render model/export/Preview canonical page filter/Publish shared render model/page-number 계산에서는 `Components` page 제외 PASS. PageTree delete/duplicate/drag guard가 system page를 불변 처리 PASS.                                   | system page semantics 먼저 고정           |
+| G2   | Origin/ref/slot model     | `Components` page에 `ListBoxItem/Default`, optional selected variant, `ListBox` origin 생성. content page `ListBox`가 locked ref template anchor를 참조. mode detection fixture가 `dataBinding`/`props.items`를 data-bound mode로, ref children only를 static mode로 분기 PASS. shared slot host policy가 `ListBox` allow-list를 정의하고 `FrameSlotSection`/slot fill/insert guard/resolver가 같은 policy를 소비. 삭제 guard PASS. | local template child fallback 유지        |
+| G3   | Layer Tree row projection | `ListBox > ListBoxItem(template anchor) > Rows > row labels` 표시. row projection id 안정성, selection, hover, Inspector read path PASS. `projection:listbox-row:` id가 `canonicalMutations` / `updateElement` / `removeElement` / drag-drop mutation route로 들어가면 차단되는 negative fixture PASS. 10k rows data-bound case에서 Layer Tree projection window만 생성 PASS.                                                       | row projection UI 숨김 후 재설계          |
+| G4   | Skia/Preview parity       | Skia visible row가 `ListBoxItem` template/ref renderer를 통과. `ListBox` parent composite row paint production active path grep 0건. legacy comparison code가 필요하면 test/migration fixture allowlist에만 둔다. DOM Preview RAC collection parity PASS.                                                                                                                                                                           | Skia path rollback, ADR-145 fallback 유지 |
+| G5   | Migration/compat          | Components page bootstrap이 먼저 완료된 뒤 ADR-145 local template child가 Components page origin/ref anchor로 무손실 migration. 다중 ListBox case에서 첫 legacy template은 origin으로 승격하고 이후 차이는 anchor `descendants` override로 보존. reusable master round-trip, import/export, hydration refresh PASS.                                                                                                                 | migration gate 보류                       |
+| G6   | Verification/closure      | targeted Vitest + ListBox cross-check + `pnpm run codex:typecheck` PASS. Browser sanity는 10k data-bound ListBox에서 Layer Tree projection rows ≤ 200, expand/select/hover가 console/page error 없이 동작, interaction rAF target 60fps 또는 local baseline 대비 >10% regress 없음 PASS. README/CHANGELOG/ADR status sync.                                                                                                          | Proposed 유지, Implemented 승격 금지      |
 
 ## Consequences
 
