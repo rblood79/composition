@@ -17,7 +17,7 @@ import { CanvasRouter, setGlobalNavigate } from "./router";
 import { MessageHandler, messageSender } from "./messaging";
 import { useNavigate } from "react-router-dom";
 import { rendererMap } from "@composition/shared/renderers";
-import { adaptElementFillStyle } from "@composition/shared";
+import { adaptElementFillStyle, isRuntimePageNode } from "@composition/shared";
 import {
   getElementForTag,
   hasSpec,
@@ -856,13 +856,11 @@ function CanvasContent() {
         );
 
         // 현재 page 에 해당하는 top-level 노드 필터링.
-        // page 식별: metadata.type === "page" (P3-1 결정) 또는 "legacy-page" (P1 adapter 결과).
-        // master / layout shell (reusable: true) / 일반 컨테이너는 metadata.type 다름 → skip.
+        // page 식별은 runtime audience helper를 사용한다.
         // currentPageId 없으면 (layout-edit 모드) 모든 page 노드 통과.
         const pageNodes = resolved.filter((node) => {
+          if (!isRuntimePageNode(node)) return false;
           const meta = node.metadata as Record<string, unknown> | undefined;
-          const isPage = meta?.type === "page" || meta?.type === "legacy-page";
-          if (!isPage) return false;
           if (!currentPageId) return true;
 
           const resolvedPageId =

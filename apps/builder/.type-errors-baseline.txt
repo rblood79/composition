@@ -63,13 +63,6 @@ src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(850,9): error 
 src/adapters/canonical/__tests__/legacyExtensionRoundtrip.test.ts(886,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/adapters/canonical/__tests__/themes.test.ts(131,7): error TS2739: Type 'Record<string, string[]>' is missing the following properties from type 'ThemeSnapshot': tint, darkMode, neutral, radiusScale
 src/adapters/canonical/canonicalMutations.ts(40,21): error TS2305: Module '"@/types/builder/unified.types"' has no exported member 'Layout'.
-src/adapters/canonical/index.ts(189,63): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(197,30): error TS2339: Property 'slot_name' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(220,13): error TS1360: Type '{ descendants?: Record<string, unknown> | undefined; ref: string; }' does not satisfy the expected type 'Partial<RefNode>'.
-src/adapters/canonical/index.ts(241,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
-src/adapters/canonical/index.ts(252,30): error TS2339: Property 'layout_id' does not exist on type 'Page'.
-src/adapters/canonical/index.ts(253,38): error TS2339: Property 'layout_id' does not exist on type 'Page'.
-src/adapters/canonical/index.ts(292,53): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(64,59): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(84,26): error TS2339: Property 'layout_id' does not exist on type 'Element'.
 src/adapters/canonical/legacyElementSanitizer.ts(85,26): error TS2339: Property 'slot_name' does not exist on type 'Element'.
@@ -84,14 +77,20 @@ src/adapters/canonical/slotAndLayoutAdapter.ts(322,57): error TS2871: This expre
 src/adapters/canonical/slotAndLayoutAdapter.ts(79,31): error TS2339: Property 'slot_name' does not exist on type 'Element'.
 src/adapters/canonical/slotAndLayoutAdapter.ts(79,44): error TS2871: This expression is always nullish.
 src/builder/components/dialog/AddPageDialog.tsx(151,13): error TS2322: Type '{ id: string; name: string; project_id: string; slug: string | undefined; } | null' is not assignable to type 'UrlLayout | null | undefined'.
+src/builder/factories/ComponentFactory.ts(655,11): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: Element[]; }' but required in type 'ComponentCreationContext'.
 src/builder/factories/__tests__/factoryOwnership.test.ts(393,24): error TS2352: Conversion of type 'ChildDefinition' to type '{ order_num: unknown; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/factories/__tests__/factoryOwnership.test.ts(76,3): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: never[]; layoutId: null; }' but required in type 'ComponentCreationContext'.
-src/builder/factories/ComponentFactory.ts(655,11): error TS2741: Property 'doc' is missing in type '{ parentElement: Element | null; pageId: string; elements: Element[]; }' but required in type 'ComponentCreationContext'.
 src/builder/inspector/utils/elementMapper.ts(22,5): error TS2322: Type 'import("/Users/admin/work/composition/packages/shared/src/types/element.types").DataBinding | undefined' is not assignable to type 'import("/Users/admin/work/composition/apps/builder/src/builder/inspector/types").DataBinding | undefined'.
 src/builder/panels/ai/hooks/useAgentLoop.ts(200,5): error TS18047: 'agent' is possibly 'null'.
 src/builder/panels/components/ComponentsPanel.tsx(109,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/components/ComponentsPanel.tsx(130,9): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/monitor/hooks/useComponentMemory.ts(161,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+src/builder/panels/nodes/FramesTab/FramesTab.tsx(174,11): error TS2345: Argument of type 'DatabaseAdapter' is not assignable to parameter of type 'string | FrameElementLoaderDb'.
+src/builder/panels/nodes/FramesTab/FramesTab.tsx(238,47): error TS2345: Argument of type 'DatabaseAdapter' is not assignable to parameter of type 'string | FrameElementLoaderDb'.
+src/builder/panels/nodes/FramesTab/FramesTab.tsx(298,34): error TS2345: Argument of type '(Element | PanelNode)[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/nodes/FramesTab/FramesTab.tsx(309,5): error TS2322: Type '(Element | PanelNode)[]' is not assignable to type 'Element[]'.
+src/builder/panels/nodes/FramesTab/FramesTab.tsx(406,55): error TS2345: Argument of type 'DatabaseAdapter' is not assignable to parameter of type 'string | FrameElementLoaderDb'.
+src/builder/panels/nodes/FramesTab/FramesTab.tsx(523,9): error TS2322: Type 'Set<Key>' is not assignable to type 'ReadonlySet<string>'.
 src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx(354,9): error TS2322: Type 'Map<string, { readonly version: "composition-1.0"; readonly children: readonly [{ readonly id: "layout-f-1"; readonly type: "frame"; readonly reusable: true; readonly name: "Header Frame"; readonly metadata: { readonly type: "legacy-layout"; readonly layoutId: "f-1"; readonly project_id: "test-project"; }; readonly ...' is not assignable to type 'Map<string, CompositionDocument>'.
 src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx(390,9): error TS2345: Argument of type '(elements: Element[]) => ElementTreeItem[]' is not assignable to parameter of type '() => never[]'.
 src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx(395,32): error TS2339: Property 'order_num' does not exist on type 'Element'.
@@ -101,44 +100,8 @@ src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx(523,9): error TS
 src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx(528,32): error TS2339: Property 'order_num' does not exist on type 'Element'.
 src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx(710,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/builder/panels/nodes/FramesTab/__tests__/FramesTab.test.tsx(716,70): error TS2493: Tuple type '[]' of length '0' has no element at index '0'.
-src/builder/panels/nodes/FramesTab/FramesTab.tsx(174,11): error TS2345: Argument of type 'DatabaseAdapter' is not assignable to parameter of type 'string | FrameElementLoaderDb'.
-src/builder/panels/nodes/FramesTab/FramesTab.tsx(238,47): error TS2345: Argument of type 'DatabaseAdapter' is not assignable to parameter of type 'string | FrameElementLoaderDb'.
-src/builder/panels/nodes/FramesTab/FramesTab.tsx(298,34): error TS2345: Argument of type '(Element | PanelNode)[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/nodes/FramesTab/FramesTab.tsx(309,5): error TS2322: Type '(Element | PanelNode)[]' is not assignable to type 'Element[]'.
-src/builder/panels/nodes/FramesTab/FramesTab.tsx(406,55): error TS2345: Argument of type 'DatabaseAdapter' is not assignable to parameter of type 'string | FrameElementLoaderDb'.
-src/builder/panels/nodes/FramesTab/FramesTab.tsx(523,9): error TS2322: Type 'Set<Key>' is not assignable to type 'ReadonlySet<string>'.
 src/builder/panels/nodes/PagesSection.test.tsx(164,60): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/PagesSection.tsx(290,9): error TS2345: Argument of type 'Element[] | PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(134,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(147,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(159,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(186,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(199,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(211,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(387,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(430,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(436,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(488,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(515,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(599,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(605,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(64,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(648,38): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(654,38): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(660,38): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(697,15): error TS2820: Type '"body"' is not assignable to type 'ComponentTag'. Did you mean '"Body"'?
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(77,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.test.tsx(84,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts(102,33): error TS2345: Argument of type 'CanvasSceneNode[] | PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts(50,50): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts(66,28): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts(70,7): error TS2322: Type 'PanelNode[]' is not assignable to type 'CanvasSceneNode[]'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts(71,7): error TS2322: Type 'Map<string, Element | PanelNode>' is not assignable to type 'Map<string, CanvasSceneNode>'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts(94,7): error TS2322: Type 'CanvasSceneNode[] | PanelNode[]' is not assignable to type 'CanvasSceneNode[]'.
-src/builder/panels/nodes/tree/LayerTree/useLayerTreeData.ts(95,7): error TS2322: Type 'Map<string, Element | PanelNode>' is not assignable to type 'Map<string, CanvasSceneNode>'.
 src/builder/panels/nodes/tree/LayerTree/validation.test.ts(24,5): error TS2353: Object literal may only specify known properties, and 'orderNum' does not exist in type 'LayerTreeNode'.
-src/builder/panels/nodes/tree/PageTree/usePageTreeData.test.ts(66,12): error TS2532: Object is possibly 'undefined'.
-src/builder/panels/nodes/tree/PageTree/usePageTreeData.ts(296,5): error TS2345: Argument of type '(CanonicalNode | { name: string; metadata: PageNodeMetadata; id: string; type: ComponentTag; props?: Record<string, unknown> | undefined; reusable?: boolean | undefined; children?: CanonicalNode[] | undefined; slot?: false | ... 1 more ... | undefined; theme?: { ...; } | undefined; })[]' is not assignable to parameter of type 'CanonicalNode[]'.
 src/builder/panels/properties/ComponentSemanticsSection.test.tsx(178,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/ComponentSemanticsSection.test.tsx(199,63): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/ComponentSemanticsSection.test.tsx(225,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
@@ -155,53 +118,12 @@ src/builder/panels/properties/ComponentSlotFillSection.test.tsx(113,7): error TS
 src/builder/panels/properties/ComponentSlotFillSection.test.tsx(161,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/ComponentSlotFillSection.test.tsx(46,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/ComponentSlotFillSection.test.tsx(57,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(102,3): error TS2322: Type '{ label: string; value: string | undefined; }[]' is not assignable to type '{ label: string; value: string; }[]'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(104,30): error TS2345: Argument of type 'ReferenceResolvable | PanelNode | undefined' is not assignable to parameter of type 'PanelNode'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(105,14): error TS18048: 'candidate' is possibly 'undefined'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(117,31): error TS2345: Argument of type 'MapIterator<PanelNode>' is not assignable to parameter of type 'Iterable<ReferenceResolvable>'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(119,43): error TS2345: Argument of type 'ReferenceResolvable' is not assignable to parameter of type 'PanelNode'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(164,44): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(167,40): error TS2345: Argument of type 'MapIterator<PanelNode>' is not assignable to parameter of type 'Iterable<CanonicalRefResolvableNode>'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(172,38): error TS2345: Argument of type 'CanonicalRefResolvableNode' is not assignable to parameter of type 'PanelNode'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(187,46): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(210,42): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(222,37): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(239,36): error TS2345: Argument of type 'Partial<PanelNode>' is not assignable to parameter of type 'Partial<Element>'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(250,63): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(255,36): error TS2345: Argument of type 'Partial<PanelNode>' is not assignable to parameter of type 'Partial<Element>'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(55,50): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(56,45): error TS2339: Property 'children' does not exist on type '{}'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(56,66): error TS2339: Property 'children' does not exist on type '{}'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(91,53): error TS2345: Argument of type 'MapIterator<PanelNode>' is not assignable to parameter of type 'Iterable<ReferenceResolvable>'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(92,39): error TS2677: A type predicate's type must be assignable to its parameter's type.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(93,28): error TS18048: 'candidate' is possibly 'undefined'.
-src/builder/panels/properties/ComponentSlotFillSection.tsx(93,38): error TS2339: Property 'reusable' does not exist on type 'ReferenceResolvable'.
-src/builder/panels/properties/editors/ElementSlotSelector.test.tsx(86,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element> & { frameId?: string | null | undefined; propsSlotMirrorName?: string | null | undefined; }'.
-src/builder/panels/properties/editors/ElementSlotSelector.test.tsx(93,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element> & { frameId?: string | null | undefined; propsSlotMirrorName?: string | null | undefined; }'.
-src/builder/panels/properties/editors/ListBoxItemEditor.tsx(123,21): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/ListBoxItemEditor.tsx(248,53): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TableEditor.tsx(129,45): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TableEditor.tsx(150,48): error TS2345: Argument of type '(PanelNode | TableEditorElementPayload)[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TableEditor.tsx(194,13): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TableHeaderEditor.tsx(102,46): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TableHeaderEditor.tsx(144,48): error TS2345: Argument of type '(PanelNode | TableHeaderElementPayload)[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TagEditor.tsx(120,21): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TagEditor.tsx(242,53): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/editors/TreeItemEditor.tsx(75,48): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/FrameSlotSection.test.tsx(124,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/FrameSlotSection.test.tsx(164,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/FrameSlotSection.test.tsx(169,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/FrameSlotSection.test.tsx(200,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/FrameSlotSection.test.tsx(237,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/panels/properties/FrameSlotSection.test.tsx(283,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
-src/builder/panels/properties/FrameSlotSection.tsx(101,56): error TS2345: Argument of type 'MapIterator<PanelNode>' is not assignable to parameter of type 'Iterable<ReferenceResolvable>'.
-src/builder/panels/properties/FrameSlotSection.tsx(104,46): error TS2345: Argument of type 'ReferenceResolvable | PanelNode' is not assignable to parameter of type 'PanelNode'.
-src/builder/panels/properties/FrameSlotSection.tsx(144,26): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'ReferenceResolvable'.
-src/builder/panels/properties/FrameSlotSection.tsx(161,52): error TS2345: Argument of type 'MapIterator<PanelNode>' is not assignable to parameter of type 'Iterable<ReferenceResolvable>'.
-src/builder/panels/properties/FrameSlotSection.tsx(165,7): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/properties/FrameSlotSection.tsx(170,42): error TS2345: Argument of type 'ReferenceResolvable | PanelNode' is not assignable to parameter of type 'PanelNode'.
-src/builder/panels/properties/FrameSlotSection.tsx(87,30): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'ReferenceResolvable'.
-src/builder/panels/properties/generic/ChildItemManager.tsx(59,44): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/PropertiesPanel.tsx(1146,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
 src/builder/panels/properties/PropertiesPanel.tsx(1168,40): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/PropertiesPanel.tsx(1210,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
@@ -237,6 +159,19 @@ src/builder/panels/properties/PropertiesPanel.tsx(924,9): error TS2345: Argument
 src/builder/panels/properties/PropertiesPanel.tsx(929,13): error TS2322: Type 'MapIterator<PanelNode>' is not assignable to type 'Iterable<Element>'.
 src/builder/panels/properties/PropertiesPanel.tsx(980,67): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'Map<string, Element>'.
 src/builder/panels/properties/PropertiesPanel.tsx(990,9): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/ElementSlotSelector.test.tsx(86,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element> & { frameId?: string | null | undefined; propsSlotMirrorName?: string | null | undefined; }'.
+src/builder/panels/properties/editors/ElementSlotSelector.test.tsx(93,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element> & { frameId?: string | null | undefined; propsSlotMirrorName?: string | null | undefined; }'.
+src/builder/panels/properties/editors/ListBoxItemEditor.tsx(123,21): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/ListBoxItemEditor.tsx(248,53): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TableEditor.tsx(129,45): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TableEditor.tsx(150,48): error TS2345: Argument of type '(PanelNode | TableEditorElementPayload)[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TableEditor.tsx(194,13): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TableHeaderEditor.tsx(102,46): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TableHeaderEditor.tsx(144,48): error TS2345: Argument of type '(PanelNode | TableHeaderElementPayload)[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TagEditor.tsx(120,21): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TagEditor.tsx(242,53): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/editors/TreeItemEditor.tsx(75,48): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
+src/builder/panels/properties/generic/ChildItemManager.tsx(59,44): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/styles/hooks/useAppearanceValues.test.tsx(34,11): error TS2352: Conversion of type '{ id: string; type: string; fills: { type: "color"; enabled: true; color: string; }[]; props: { size: string; style: {}; }; }' to type 'Element' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/panels/styles/hooks/useElementStyleContext.ts(21,26): error TS2339: Property 'fills' does not exist on type 'PanelNode'.
 src/builder/panels/styles/hooks/useResetStyles.test.tsx(207,7): error TS2322: Type 'null' is not assignable to type 'ComponentElementProps | undefined'.
@@ -259,8 +194,8 @@ src/builder/panels/styles/utils/fillExternalIngress.test.ts(74,23): error TS2339
 src/builder/panels/styles/utils/fillExternalIngress.test.ts(75,23): error TS2339: Property 'fills' does not exist on type '{ id: string; type: string; props: { style: { backgroundImage: string; paddingLeft: string; }; }; }'.
 src/builder/panels/styles/utils/fillExternalIngress.test.ts(93,23): error TS2339: Property 'fills' does not exist on type '{ id: string; type: string; props: { style: { backgroundImage: string; paddingRight: string; }; }; }'.
 src/builder/panels/styles/utils/fillExternalIngress.test.ts(94,23): error TS2339: Property 'fills' does not exist on type '{ id: string; type: string; props: { style: { backgroundImage: string; paddingRight: string; }; }; }'.
-src/builder/panels/styles/utils/specPresetResolver.ts(426,20): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ readonly display: "display"; readonly "flex-direction": "flexDirection"; readonly flexDirection: "flexDirection"; readonly "align-items": "alignItems"; readonly alignItems: "alignItems"; ... 26 more ...; readonly marginLeft: "marginLeft"; }'.
-src/builder/panels/styles/utils/specPresetResolver.ts(428,5): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'LayoutSpecPreset'.
+src/builder/panels/styles/utils/specPresetResolver.ts(442,20): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ readonly display: "display"; readonly "flex-direction": "flexDirection"; readonly flexDirection: "flexDirection"; readonly "align-items": "alignItems"; readonly alignItems: "alignItems"; ... 26 more ...; readonly marginLeft: "marginLeft"; }'.
+src/builder/panels/styles/utils/specPresetResolver.ts(444,5): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'LayoutSpecPreset'.
 src/builder/stores/__tests__/elementMove.test.ts(130,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/builder/stores/__tests__/elementMove.test.ts(134,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/builder/stores/__tests__/elementMove.test.ts(138,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
@@ -420,8 +355,6 @@ src/builder/stores/utils/__tests__/instanceActions.test.ts(861,7): error TS2353:
 src/builder/stores/utils/__tests__/instanceActions.test.ts(872,7): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Partial<Element>'.
 src/builder/stores/utils/__tests__/instanceActions.test.ts(91,9): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Partial<Element>'.
 src/builder/stores/utils/__tests__/instanceActions.test.ts(949,54): error TS2339: Property 'reusable' does not exist on type 'Readonly<Element>'.
-src/builder/stores/utils/elementUpdate.ts(276,15): error TS2339: Property 'style' does not exist on type 'T'.
-src/builder/stores/utils/elementUpdate.ts(277,7): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'Record<string, string>'.
 src/builder/stores/utils/historyHelpers.ts(55,5): error TS4104: The type 'readonly string[]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
 src/builder/stores/utils/instanceActions.ts(258,5): error TS2353: Object literal may only specify known properties, and 'reusable' does not exist in type 'Element'.
 src/builder/stores/utils/instanceActions.ts(409,13): error TS2345: Argument of type 'Element | { id: string; parent_id: string; page_id: string | null; props: Record<string, unknown>; reusable: undefined; componentRole: undefined; masterId: undefined; overrides: undefined; ... 12 more ...; border?: BorderConfig | undefined; }' is not assignable to parameter of type 'Element'.
@@ -471,8 +404,8 @@ src/builder/workspace/canvas/layout/engines/__tests__/textFieldImplicitStyles.te
 src/builder/workspace/canvas/layout/engines/calendar-symmetry.test.ts(20,5): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/builder/workspace/canvas/layout/engines/calendar-symmetry.test.ts(36,5): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
 src/builder/workspace/canvas/layout/engines/calendar-symmetry.test.ts(46,5): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'Element'.
-src/builder/workspace/canvas/layout/engines/implicitStyles.ts(923,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
-src/builder/workspace/canvas/layout/engines/implicitStyles.ts(957,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
+src/builder/workspace/canvas/layout/engines/implicitStyles.ts(925,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
+src/builder/workspace/canvas/layout/engines/implicitStyles.ts(959,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
 src/builder/workspace/canvas/scene/layoutCache.static.test.ts(47,19): error TS2352: Conversion of type '{ id: string; type: string; page_id: string; parent_id: string; order_num: number; props: {}; }' to type 'CanvasSceneNode' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/workspace/canvas/scene/layoutCache.static.test.ts(55,20): error TS2352: Conversion of type '{ id: string; type: string; page_id: string; parent_id: string; order_num: number; props: {}; }' to type 'CanvasSceneNode' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
 src/builder/workspace/canvas/scene/resolvePageWithFrame.test.ts(101,7): error TS2353: Object literal may only specify known properties, and 'order_num' does not exist in type 'TestElementPartial'.

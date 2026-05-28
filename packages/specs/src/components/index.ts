@@ -292,7 +292,7 @@ export type { MenuProps } from "./Menu.spec";
 export { MenuItemSpec } from "./MenuItem.spec";
 export type { MenuItemProps } from "./MenuItem.spec";
 
-// ListBoxItem (ADR-078 — CSS 자동 생성 전용, Builder Skia 미등록 Q5=i)
+// ListBoxItem (ADR-146 — Skia row projection renderer + generated CSS source)
 export { ListBoxItemSpec, resolveListBoxItemMetric } from "./ListBoxItem.spec";
 export type { ListBoxItemProps } from "./ListBoxItem.spec";
 

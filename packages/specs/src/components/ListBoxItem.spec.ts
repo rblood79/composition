@@ -2,30 +2,39 @@
  * ListBoxItem Component Spec
  *
  * ADR-078 Phase 1 — ListBoxItem 의 item metric(padding/lineHeight/borderRadius/minHeight) SSOT.
- * CSS 자동 생성 전용 (Builder Skia 미등록 — Q5=i). ListBox.render.shapes 가 본 Spec 의
- * sizes 를 참조하여 Skia 경로 metric 을 공급하고, CSSGenerator 자식 selector emit 확장
- * (ADR-078 Phase 2) 을 통해 `.react-aria-ListBoxItem` 블록이 `generated/ListBox.css` 에 emit 된다.
+ * ADR-146 이후 Builder Skia row projection도 본 Spec 의 render.shapes 를 직접 통과한다.
+ * CSSGenerator 자식 selector emit 확장(ADR-078 Phase 2)을 통해
+ * `.react-aria-ListBoxItem` 블록은 `generated/ListBox.css` 에 emit 된다.
  *
  * Menu/MenuItem 분리 구조(ADR-068/071) 를 ListBox/ListBoxItem 에 1:1 재적용.
  *
  * @packageDocumentation
  */
 
-import type { ComponentSpec, TokenRef } from "../types";
+import type { ComponentSpec, Shape, TokenRef } from "../types";
+import { parsePxValue } from "../primitives";
+import { fontFamily } from "../primitives/typography";
+import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
 
 /**
  * ListBoxItem Props (CSS 생성 전용)
  */
 export interface ListBoxItemProps {
   size?: "md";
+  children?: unknown;
+  description?: unknown;
+  isDisabled?: boolean;
+  textValue?: unknown;
+  value?: unknown;
+  _isSelected?: boolean;
+  style?: Record<string, string | number | undefined>;
 }
 
 /**
  * ListBoxItem Component Spec
  *
  * skipCSSGeneration: false — CSS 자동 생성 활성화 (Phase 2 Generator 확장 연동)
- * render.shapes: () => [] — Skia shapes 없음 (Q5=i, Builder Skia 미등록)
- *   item 시각은 부모 ListBox.render.shapes 가 본 Spec.sizes 를 참조하여 그린다 (Phase 3)
+ * ADR-146: Skia row projection이 ListBoxItem renderer를 직접 통과한다.
  *
  * ADR-078 Phase 3 (종결): `ListBox.spec.render.shapes` / layout `calculateContentHeight`
  *   가 `resolveListBoxItemMetric(fontSize)` 를 공유 소비 — 기존 하드코딩 상수 해체 완료.
@@ -36,7 +45,8 @@ export interface ListBoxItemProps {
  */
 export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
   name: "ListBoxItem",
-  description: "ListBox item — CSS 자동 생성 전용 (Builder Skia 미등록, Q5=i)",
+  description:
+    "ListBox item — row projection renderer and generated CSS source",
   archetype: "simple",
   element: "div",
   // ADR-078 Phase 2: 독립 CSS 파일 emit 중단.
@@ -103,20 +113,123 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
   },
 
   render: {
-    // Skia 미사용 — CSS 메타데이터 전용 (Q5=i)
-    //   item 시각은 부모 ListBox.render.shapes 가 본 Spec.sizes 를 참조 (Phase 3)
-    shapes: () => [],
+    shapes: (props, size, state = "default") => {
+      const style = props.style ?? {};
+      const fontSize = resolveSpecFontSize(style.fontSize ?? size.fontSize, 14);
+      const metric = resolveListBoxItemMetric(fontSize);
+      const paddingX = parsePxValue(
+        style.paddingX ?? style.paddingLeft,
+        metric.paddingX,
+      );
+      const paddingY = parsePxValue(
+        style.paddingY ?? style.paddingTop,
+        metric.paddingY,
+      );
+      const rowHeight = parsePxValue(
+        style.height,
+        Math.max(metric.itemHeight, parsePxValue(style.minHeight, 20)),
+      );
+      const width =
+        typeof style.width === "number" && style.width > 0 ? style.width : 200;
+      const label =
+        readText(props.children) ??
+        readText(props.textValue) ??
+        readText(props.value) ??
+        "";
+      const description = readText(props.description);
+      const textColor = props.isDisabled
+        ? ("{color.neutral-subdued}" as TokenRef)
+        : ((style.color as string | undefined) ??
+          ("{color.neutral}" as TokenRef));
+      const textX = paddingX;
+      const maxWidth = Math.max(1, width - paddingX * 2);
+      const shapes: Shape[] = [];
+
+      if (props._isSelected || state === "hover" || state === "pressed") {
+        shapes.push({
+          id: "row-bg",
+          type: "roundRect",
+          x: 0,
+          y: 0,
+          width: "auto",
+          height: "auto",
+          radius: parsePxValue(
+            style.borderRadius,
+            size.borderRadius,
+          ) as unknown as number,
+          fill: props._isSelected
+            ? ("{color.accent-subtle}" as TokenRef)
+            : ("{color.layer-1}" as TokenRef),
+        });
+      }
+
+      if (description) {
+        shapes.push({
+          type: "text",
+          x: textX,
+          y: paddingY + metric.lineHeight / 2,
+          text: label,
+          fontSize,
+          fontFamily:
+            (style.fontFamily as string | undefined) ?? fontFamily.sans,
+          fontWeight: (style.fontWeight as string | number | undefined) ?? 600,
+          fill: textColor,
+          align: "left",
+          baseline: "middle",
+          maxWidth,
+          overflow: "ellipsis",
+        });
+        shapes.push({
+          type: "text",
+          x: textX,
+          y: paddingY + metric.lineHeight + metric.lineHeight / 2,
+          text: description,
+          fontSize: Math.max(11, fontSize - 1),
+          fontFamily:
+            (style.fontFamily as string | undefined) ?? fontFamily.sans,
+          fontWeight: 400,
+          fill: "{color.neutral-subdued}" as TokenRef,
+          align: "left",
+          baseline: "middle",
+          maxWidth,
+          overflow: "ellipsis",
+        });
+        return shapes;
+      }
+
+      shapes.push({
+        type: "text",
+        x: textX,
+        y: rowHeight / 2,
+        text: label,
+        fontSize,
+        fontFamily: (style.fontFamily as string | undefined) ?? fontFamily.sans,
+        fontWeight: (style.fontWeight as string | number | undefined) ?? 600,
+        fill: textColor,
+        align: "left",
+        baseline: "middle",
+        maxWidth,
+        overflow: "ellipsis",
+      });
+      return shapes;
+    },
     react: () => ({}),
   },
 };
 
+function readText(value: unknown): string | null {
+  if (typeof value === "string" && value.length > 0) return value;
+  if (typeof value === "number") return String(value);
+  return null;
+}
+
 /**
  * ADR-078 Phase 3: ListBox/ListBoxItem metric 단일 소스 resolver.
  *
- * 부모 `ListBoxSpec.render.shapes` 와 layout `calculateContentHeight` ListBox 분기가
- * 동일 공식을 사용하도록 공급. `paddingX/paddingY/gap/minHeight` 는 `ListBoxItemSpec.sizes.md`
- * 에서 직접 참조하며, `lineHeight` 은 CSS TokenRef(`{typography.text-sm--line-height}`)
- * 와 정합되는 typography 매핑값을 반환한다 (fontSize → CSS var 기본 px).
+ * ListBoxItem renderer와 layout `calculateContentHeight` ListBox 분기가 동일 공식을
+ * 사용하도록 공급. `paddingX/paddingY/gap/minHeight` 는 `ListBoxItemSpec.sizes.md` 에서
+ * 직접 참조하며, `lineHeight` 은 CSS TokenRef(`{typography.text-sm--line-height}`)와
+ * 정합되는 typography 매핑값을 반환한다 (fontSize → CSS var 기본 px).
  *
  * 매핑: xs (≤12) → 16 / sm (≤14) → 20 / base (≤16) → 24 / lg (>16) → 28
  *   → CSS `var(--text-{size}--line-height)` 기본값과 동일 (테마 표준 metric)

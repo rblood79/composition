@@ -3,8 +3,12 @@ import { Layers, Plus, X } from "lucide-react";
 import {
   resolveCanonicalRefMaster,
   isCanonicalRefElement,
+  type CanonicalRefResolvableNode,
 } from "../../utils/canonicalRefResolution";
-import { resolveReference } from "../../../utils/component/referenceResolution";
+import {
+  resolveReference,
+  type ReferenceResolvable,
+} from "../../../utils/component/referenceResolution";
 import { PropertySection, PropertySelect } from "../../components";
 import { useStore } from "../../stores";
 import {
@@ -16,6 +20,11 @@ import {
   COMPONENT_DESCENDANTS_MIRROR_FIELD,
   getComponentDescendantsMirror,
 } from "../../../adapters/canonical/componentSemanticsMirror";
+import {
+  filterSlotCandidates,
+  isSlotCandidateAllowed,
+} from "../../components/slotHostPolicy";
+import type { Element } from "../../../types/core/store.types";
 import type { PanelNode } from "../panelNode";
 
 type SlotHostElement = PanelNode & {
@@ -24,6 +33,7 @@ type SlotHostElement = PanelNode & {
 };
 
 type SlotHostInfo = {
+  host: PanelNode;
   label: string;
   path: string;
   recommendedIds: string[];
@@ -35,6 +45,39 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function getElementLabel(element: PanelNode): string {
   return element.componentName ?? element.customId ?? element.type;
+}
+
+function asElementLike(node: PanelNode): Element {
+  return node as unknown as Element;
+}
+
+function asCanonicalRefNode(
+  node: PanelNode | undefined,
+): (PanelNode & CanonicalRefResolvableNode) | undefined {
+  return node as unknown as PanelNode & CanonicalRefResolvableNode;
+}
+
+function asCanonicalRefTargets(
+  elementsById: ReadonlyMap<string, PanelNode>,
+): Iterable<PanelNode & CanonicalRefResolvableNode> {
+  return elementsById.values() as unknown as Iterable<
+    PanelNode & CanonicalRefResolvableNode
+  >;
+}
+
+function resolvePanelReference(
+  reference: string,
+  elementsById: ReadonlyMap<string, PanelNode>,
+): PanelNode | undefined {
+  return (
+    elementsById.get(reference) ??
+    resolveReference(
+      reference,
+      elementsById.values() as unknown as Iterable<
+        PanelNode & ReferenceResolvable
+      >,
+    )
+  );
 }
 
 function getStableSegment(element: PanelNode): string {
@@ -52,8 +95,14 @@ function getSlotValue(element: PanelNode): string[] | null {
 }
 
 function getSlotFillChildren(instance: PanelNode, path: string): unknown[] {
-  const override = getComponentDescendantsMirror(instance)?.[path];
-  return override && Array.isArray(override.children) ? override.children : [];
+  const override = getComponentDescendantsMirror(asElementLike(instance))?.[
+    path
+  ];
+  if (!override || typeof override !== "object" || Array.isArray(override)) {
+    return [];
+  }
+  const children = (override as { children?: unknown }).children;
+  return Array.isArray(children) ? children : [];
 }
 
 function collectSlotHosts(
@@ -70,6 +119,7 @@ function collectSlotHosts(
     const slot = getSlotValue(child);
     if (slot) {
       slots.push({
+        host: child,
         label: getElementLabel(child),
         path,
         recommendedIds: slot,
@@ -88,16 +138,14 @@ function getFillCandidateOptions(
   if (!slot) return [];
 
   const recommended = slot.recommendedIds
-    .map((reference) => resolveReference(reference, elementsById.values()))
+    .map((reference) => resolvePanelReference(reference, elementsById))
     .filter((candidate): candidate is PanelNode => Boolean(candidate))
     .filter((candidate) => candidate.reusable === true);
 
   const candidates =
     recommended.length > 0
-      ? recommended
-      : [...elementsById.values()].filter(
-          (candidate) => candidate.reusable === true,
-        );
+      ? filterSlotCandidates(slot.host, recommended)
+      : filterSlotCandidates(slot.host, [...elementsById.values()]);
 
   return candidates
     .map((candidate) => ({
@@ -114,7 +162,7 @@ function getFilledLabel(
   const labels = children.filter(isRecord).map((child) => {
     const ref = typeof child.ref === "string" ? child.ref : undefined;
     const candidate = ref
-      ? resolveReference(ref, elementsById.values())
+      ? resolvePanelReference(ref, elementsById)
       : undefined;
     if (candidate) return getElementLabel(candidate);
     return typeof child.type === "string" ? child.type : "Unknown";
@@ -161,10 +209,12 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
   const pendingChildrenByPathRef = useRef<Record<string, unknown[]>>({});
 
   const master = useMemo(() => {
-    if (!element || !isCanonicalRefElement(element)) return undefined;
+    if (!element || !isCanonicalRefElement(asCanonicalRefNode(element))) {
+      return undefined;
+    }
     const ref = element.ref;
     return typeof ref === "string"
-      ? resolveCanonicalRefMaster(ref, elementsById.values())
+      ? resolveCanonicalRefMaster(ref, asCanonicalRefTargets(elementsById))
       : undefined;
   }, [element, elementsById]);
 
@@ -184,7 +234,9 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
   );
 
   const legacyOverrideKey = JSON.stringify(
-    element ? (getComponentDescendantsMirror(element) ?? {}) : {},
+    element
+      ? (getComponentDescendantsMirror(asElementLike(element)) ?? {})
+      : {},
   );
 
   useEffect(() => {
@@ -207,7 +259,13 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
     setSelectedCandidateId(candidateOptions[0]?.value ?? "");
   }, [candidateOptions, selectedCandidateId]);
 
-  if (!element || !isCanonicalRefElement(element) || !selectedSlot) return null;
+  if (
+    !element ||
+    !isCanonicalRefElement(asCanonicalRefNode(element)) ||
+    !selectedSlot
+  ) {
+    return null;
+  }
 
   const instance = element;
   const filledChildren = getSlotFillChildren(instance, selectedSlot.path);
@@ -216,10 +274,11 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
   const handleFillSlot = () => {
     const candidate = elementsById.get(selectedCandidateId);
     if (!candidate || !selectedSlot) return;
+    if (!isSlotCandidateAllowed(selectedSlot.host, candidate)) return;
 
     const latestInstance = elementsById.get(element.id) ?? instance;
     const legacyDescendantMap =
-      getComponentDescendantsMirror(latestInstance) ?? {};
+      getComponentDescendantsMirror(asElementLike(latestInstance)) ?? {};
     const currentChildren = getSlotFillChildren(
       latestInstance,
       selectedSlot.path,
@@ -243,18 +302,19 @@ export const ComponentSlotFillSection = memo(function ComponentSlotFillSection({
           children: nextChildren,
         },
       },
-    } as Partial<PanelNode>);
+    } as Partial<Element>);
   };
 
   const handleClearSlot = () => {
-    const legacyDescendantMap = getComponentDescendantsMirror(instance) ?? {};
+    const legacyDescendantMap =
+      getComponentDescendantsMirror(asElementLike(instance)) ?? {};
     const nextLegacyDescendantMap = { ...legacyDescendantMap };
     delete nextLegacyDescendantMap[selectedSlot.path];
     delete pendingChildrenByPathRef.current[selectedSlot.path];
 
     void updateElement(element.id, {
       [COMPONENT_DESCENDANTS_MIRROR_FIELD]: nextLegacyDescendantMap,
-    } as Partial<PanelNode>);
+    } as Partial<Element>);
   };
 
   return (

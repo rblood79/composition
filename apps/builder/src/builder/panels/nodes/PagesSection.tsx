@@ -22,8 +22,9 @@ import { useIframeMessenger, usePageManager } from "@/builder/hooks";
 import { PanelHeader } from "../../components";
 import { PageTree } from "./tree/PageTree";
 import { getDB } from "../../../lib/db";
-import type { Page } from "../../../types/builder/unified.types";
+import type { Element, Page } from "../../../types/builder/unified.types";
 import { panToPage } from "../../workspace/canvas/viewport/panToPage";
+import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
@@ -47,7 +48,7 @@ function findPageBodyElement(elements: readonly PanelNode[] | undefined) {
   );
 }
 
-function getActiveCanonicalPageElements(): PanelNode[] | null {
+function getActiveCanonicalPageElements(): Element[] | null {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
   if (!projectId) return null;
@@ -55,7 +56,7 @@ function getActiveCanonicalPageElements(): PanelNode[] | null {
   const doc = canonical.documents.get(projectId);
   if (!doc) return null;
 
-  const elements: PanelNode[] = [];
+  const elements: Element[] = [];
   visitCanonicalDocumentElements(doc, (element) => {
     elements.push(element);
   });
@@ -198,6 +199,8 @@ export const PagesSection = memo(function PagesSection({
   // 페이지 삭제 핸들러
   const handlePageDelete = useCallback(
     async (page: Page) => {
+      if (isComponentsPageMirror(page)) return;
+
       const currentState = useStore.getState();
       const deletingCurrentPage = currentState.currentPageId === page.id;
       const pageIndex = pages.findIndex(

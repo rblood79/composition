@@ -1,4 +1,5 @@
 import type { CompositionDocument } from "@composition/shared";
+import { ensureListBoxTemplateOrigins } from "../builder/components/listbox/listBoxTemplateOrigins";
 
 type PageSeed = {
   id: string;
@@ -23,7 +24,7 @@ export function createInitialProjectDocument(
   page: PageSeed,
   body: BodySeed,
 ): CompositionDocument {
-  return {
+  return ensureListBoxTemplateOrigins({
     version: "composition-1.0",
     children: [
       {
@@ -45,5 +46,5 @@ export function createInitialProjectDocument(
         ],
       },
     ],
-  };
+  });
 }

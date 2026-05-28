@@ -3,6 +3,7 @@ import { Layers, Minus, Plus, X } from "lucide-react";
 import {
   matchesReference,
   resolveReference,
+  type ReferenceResolvable,
 } from "../../../utils/component/referenceResolution";
 import { PropertySection, PropertySelect } from "../../components";
 import { useStore } from "../../stores";
@@ -14,6 +15,12 @@ import {
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
+import {
+  filterSlotCandidates,
+  isSlotCandidateAllowed,
+  isSlotHostElement,
+} from "../../components/slotHostPolicy";
+import type { Element } from "../../../types/core/store.types";
 import type { PanelNode } from "../panelNode";
 
 type SlotElement = PanelNode & {
@@ -21,22 +28,29 @@ type SlotElement = PanelNode & {
   slot?: false | string[];
 };
 
-const SLOT_HOST_TYPES = new Set([
-  "box",
-  "cardcontent",
-  "cardfooter",
-  "cardheader",
-  "frame",
-  "group",
-  "section",
-]);
-
-function isSlotHostElement(element: PanelNode | undefined): boolean {
-  return Boolean(element && SLOT_HOST_TYPES.has(element.type.toLowerCase()));
-}
-
 function getElementLabel(element: PanelNode): string {
   return element.componentName ?? element.customId ?? element.type;
+}
+
+function asReferenceTarget(
+  element: PanelNode,
+): PanelNode & ReferenceResolvable {
+  return element as unknown as PanelNode & ReferenceResolvable;
+}
+
+function resolvePanelReference(
+  reference: string,
+  elementsById: ReadonlyMap<string, PanelNode>,
+): PanelNode | undefined {
+  return (
+    elementsById.get(reference) ??
+    resolveReference(
+      reference,
+      elementsById.values() as unknown as Iterable<
+        PanelNode & ReferenceResolvable
+      >,
+    )
+  );
 }
 
 function getSlotValue(element: SlotElement): false | string[] {
@@ -78,13 +92,13 @@ export const FrameSlotSection = memo(function FrameSlotSection({
 
   const reusableCandidates = useMemo(() => {
     const recommended = recommendedIds;
-    return [...elementsById.values()]
+    if (!element) return [];
+    return filterSlotCandidates(element, [...elementsById.values()])
       .filter(
         (candidate) =>
           candidate.id !== elementId &&
-          candidate.reusable === true &&
           !recommended.some((reference) =>
-            matchesReference(candidate, reference),
+            matchesReference(asReferenceTarget(candidate), reference),
           ),
       )
       .map((candidate) => ({
@@ -92,13 +106,12 @@ export const FrameSlotSection = memo(function FrameSlotSection({
         value: candidate.id,
       }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [elementId, elementsById, recommendedIds]);
+  }, [element, elementId, elementsById, recommendedIds]);
 
   const recommendedItems = useMemo(
     () =>
       recommendedIds.map((id) => {
-        const candidate =
-          elementsById.get(id) ?? resolveReference(id, elementsById.values());
+        const candidate = resolvePanelReference(id, elementsById);
         return {
           id,
           label: candidate ? getElementLabel(candidate) : id,
@@ -140,8 +153,14 @@ export const FrameSlotSection = memo(function FrameSlotSection({
     const selectedCandidate = elementsById.get(selectedCandidateId);
     if (
       selectedCandidate &&
+      !isSlotCandidateAllowed(element, selectedCandidate)
+    ) {
+      return;
+    }
+    if (
+      selectedCandidate &&
       recommendedIds.some((reference) =>
-        matchesReference(selectedCandidate, reference),
+        matchesReference(asReferenceTarget(selectedCandidate), reference),
       )
     ) {
       return;
@@ -157,9 +176,9 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   const handleInsertDefault = (id: string) => {
     const latestElement = elementsById.get(element.id) ?? element;
     if (!latestElement) return;
-    const candidate =
-      elementsById.get(id) ?? resolveReference(id, elementsById.values());
+    const candidate = resolvePanelReference(id, elementsById);
     if (!candidate) return;
+    if (!isSlotCandidateAllowed(latestElement, candidate)) return;
 
     void addElement(
       withFrameElementMirrorId(
@@ -171,7 +190,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
           parent_id: latestElement.id,
           page_id: latestElement.page_id ?? null,
           props: {},
-        } as PanelNode,
+        } as Element,
         getFrameElementMirrorId(latestElement),
       ),
     );

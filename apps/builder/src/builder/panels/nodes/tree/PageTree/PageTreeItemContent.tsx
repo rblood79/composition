@@ -33,8 +33,9 @@ export function PageTreeItemContent({
   onSettings,
   onReselect,
 }: PageTreeItemContentProps) {
-  const { depth, hasChildren, isRoot, page, name } = node;
+  const { depth, hasChildren, isRoot, isSystemPage, page, name } = node;
   const { isSelected, isExpanded, isFocusVisible } = state;
+  const isImmutablePage = isRoot || isSystemPage;
 
   return (
     <div
@@ -88,11 +89,11 @@ export function PageTreeItemContent({
         <Button
           slot="drag"
           className={`iconButton layer-drag-handle${
-            isRoot ? " layer-drag-handle--hidden" : ""
+            isImmutablePage ? " layer-drag-handle--hidden" : ""
           }`}
-          aria-label={`Drag ${name}`}
-          aria-hidden={isRoot}
-          isDisabled={isRoot}
+          aria-label={isImmutablePage ? undefined : `Drag ${name}`}
+          aria-hidden={isImmutablePage}
+          isDisabled={isImmutablePage}
         >
           <GripVertical
             color={ICON_EDIT_PROPS.color}
@@ -113,7 +114,7 @@ export function PageTreeItemContent({
             />
           </Button>
         )}
-        {!isRoot && (
+        {!isImmutablePage && (
           <Button
             className="iconButton"
             aria-label={`Delete ${name}`}

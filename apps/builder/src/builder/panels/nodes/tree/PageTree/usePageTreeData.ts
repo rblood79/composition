@@ -6,6 +6,7 @@ import type { PageTreeNode } from "./types";
 import { useStore } from "../../../../stores";
 import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { enqueuePagePersistence } from "../../../../utils/pagePersistenceQueue";
+import { isComponentsPageMirror } from "../../../../pages/systemComponentsPage";
 
 export type PageTreeUpdate = {
   id: string;
@@ -288,7 +289,7 @@ export function syncCanonicalPageTreeMetadata(
     return {
       ...node,
       name: page.title,
-      metadata: nextMetadata,
+      metadata: nextMetadata as CanonicalNode["metadata"],
     };
   });
 
@@ -414,6 +415,7 @@ export function buildPageTree(pages: Page[]): {
     return siblings.map((page) => {
       const children = buildChildren(page.id, depth + 1);
       const isRoot = page.id === homePageId;
+      const isSystemPage = isComponentsPageMirror(page);
 
       const node: PageTreeNode = {
         id: page.id,
@@ -426,7 +428,8 @@ export function buildPageTree(pages: Page[]): {
         children,
         page,
         isRoot,
-        isDraggable: !isRoot,
+        isSystemPage,
+        isDraggable: !isRoot && !isSystemPage,
         isDroppable: true,
       };
 

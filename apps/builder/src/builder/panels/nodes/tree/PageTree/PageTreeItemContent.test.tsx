@@ -29,6 +29,7 @@ function makeNode(page = makePage()): PageTreeNode {
     children: [],
     page,
     isRoot: true,
+    isSystemPage: false,
     isDraggable: false,
     isDroppable: true,
   };
@@ -108,5 +109,40 @@ describe("PageTreeItemContent", () => {
     expect(
       screen.getByRole("button", { name: "Drag Home" }).style.pointerEvents,
     ).not.toBe("auto");
+  });
+
+  it("Components system page hides delete and drag actions", () => {
+    const page = {
+      ...makePage(),
+      id: "page-components",
+      title: "Components",
+      slug: "/__components",
+    };
+    const node = {
+      ...makeNode(page),
+      isRoot: false,
+      isSystemPage: true,
+      isDraggable: false,
+    };
+
+    render(
+      <PageTreeItemContent
+        node={node}
+        state={{
+          isSelected: false,
+          isExpanded: false,
+          isDisabled: false,
+          isFocusVisible: false,
+        }}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Delete Components" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Drag Components" }),
+    ).toBeNull();
   });
 });

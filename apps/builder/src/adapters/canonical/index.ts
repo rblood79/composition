@@ -32,7 +32,7 @@ import type {
   SerializedDataBinding,
   SerializedEventHandler,
 } from "@composition/shared";
-import type { Element } from "@/types/builder/unified.types";
+import type { Element, Page } from "@/types/builder/unified.types";
 import type { Layout } from "@/types/builder/layout.types";
 import type {
   ConvertComponentRoleFn,
@@ -44,7 +44,7 @@ import {
   isLegacySlotTag,
   tagToType,
 } from "./tagRename";
-import { isLegacyListBoxWithoutTemplate } from "./legacyListBoxTemplateMigration";
+import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
 import { buildIdPathContext, segId } from "./idPath";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
 import {
@@ -110,6 +110,28 @@ export type CanonicalPageRef = RefNode & {
   };
 };
 
+type LegacyElementAliases = Element & {
+  layout_id?: string | null;
+  slot_name?: string | null;
+};
+
+type LegacyPageAliases = Page & {
+  layout_id?: string | null;
+  parent_id?: string | null;
+};
+
+function getLegacyElementLayoutId(element: Element): string | null {
+  return (element as LegacyElementAliases).layout_id ?? null;
+}
+
+function getLegacyElementSlotName(element: Element): string | null {
+  return (element as LegacyElementAliases).slot_name ?? null;
+}
+
+function getLegacyPageParentId(page: Page): string | null {
+  return (page as LegacyPageAliases).parent_id ?? null;
+}
+
 export interface LegacyAdapterDeps {
   convertComponentRole: ConvertComponentRoleFn;
   convertPageLayout: ConvertPageLayoutFn;
@@ -166,31 +188,14 @@ export function legacyToCanonical(
     );
     const canonicalChildren = childElements.map(buildNode);
 
-    // ADR-145 Phase A: legacy ListBox hydration migration —
-    //   ListBoxItem template element 가 자식에 없는 경우 canonical 변환 시점에 1회 synthetic 주입.
-    //   factory 가 Phase A 이후 template element 를 자동 생성하므로 신규 프로젝트는 영향 없음.
-    //   기존 프로젝트만 hydration 시 template element 자연 주입.
-    if (isLegacyListBoxWithoutTemplate(element.type, childElements)) {
-      const templateSegId = `${segId(element.id, idPathCtx.idSegmentMap)}::template::listboxitem`;
-      canonicalChildren.push({
-        id: templateSegId,
-        type: "ListBoxItem",
-        // ADR-145 Phase A — template element 의 layout 영향 명시 차단. factory 와 정합:
-        //   spec render.shapes 가 `_listBoxItemTemplateStyle` 로 본 style 을 받아 row 시각 paint,
-        //   `calculateContentHeight` (utils.ts:1484) 는 display:none 시 0 반환 → 부모 ListBox
-        //   layout 분기 (listbox 1523) 가 props.items 기반 intrinsic height 계산 유지.
-        props: { style: { display: "none" } },
-        children: [],
-      });
-    }
-
     // Slot type 특수 처리: container의 slot 메타로 변환되어야 하지만,
     // standalone Slot element는 부모 컨테이너 slot 메타로 흡수되어야 한다.
     // P1 단계에서는 Slot element를 일반 frame으로 변환 + metadata 보존.
     // (실제 흡수는 Stream 3이 page composition 단계에서 처리)
     if (isLegacySlotTag(element.type)) {
       const slotName =
-        (element.props.name as string | undefined) ?? element.slot_name ?? null;
+        (element.props.name as string | undefined) ??
+        getLegacyElementSlotName(element);
       return {
         id: segId(element.id, idPathCtx.idSegmentMap),
         type: "frame",
@@ -198,7 +203,7 @@ export function legacyToCanonical(
         props: { ...element.props },
         metadata: {
           type: "legacy-slot",
-          slot_name: element.slot_name,
+          slot_name: getLegacyElementSlotName(element),
           ...(slotName ? { slotName } : {}),
         },
         children: canonicalChildren,
@@ -219,7 +224,10 @@ export function legacyToCanonical(
         ? ({
             ref: roleResult.ref,
             ...(roleResult.descendantsRemapped
-              ? { descendants: roleResult.descendantsRemapped }
+              ? {
+                  descendants:
+                    roleResult.descendantsRemapped as RefNode["descendants"],
+                }
               : {}),
           } satisfies Partial<RefNode>)
         : {}),
@@ -242,7 +250,9 @@ export function legacyToCanonical(
   // resolver mode C 매칭은 stable id path 기준 (P2 contract).
   const layoutSlotPathMaps = new Map<string, Map<string, string>>();
   for (const layout of layouts) {
-    const layoutElements = elements.filter((e) => e.layout_id === layout.id);
+    const layoutElements = elements.filter(
+      (e) => getLegacyElementLayoutId(e) === layout.id,
+    );
     const layoutIdPathMap = buildIdPathContext(layoutElements).idPathMap;
     layoutSlotPathMaps.set(
       layout.id,
@@ -253,8 +263,9 @@ export function legacyToCanonical(
   const pageNodes: CanonicalNode[] = [];
   for (const page of pages) {
     const pageElements = elements.filter((e) => e.page_id === page.id);
-    const slotPathMap = page.layout_id
-      ? (layoutSlotPathMaps.get(page.layout_id) ?? new Map())
+    const pageLayoutId = getLegacyPageLayoutId(page);
+    const slotPathMap = pageLayoutId
+      ? (layoutSlotPathMaps.get(pageLayoutId) ?? new Map())
       : new Map();
     const pageRef = convertPageLayout(page, layouts, pageElements, slotPathMap);
     if (pageRef) {
@@ -273,7 +284,7 @@ export function legacyToCanonical(
           type: "legacy-page",
           pageId: page.id,
           slug: page.slug,
-          parent_id: page.parent_id ?? null,
+          parent_id: getLegacyPageParentId(page),
         },
         children: pageRootElements.map(buildNode),
       });
@@ -293,7 +304,9 @@ export function legacyToCanonical(
   // page refs (Stream 3 convertPageLayout)가 ref: "layout-<id>"로 참조하므로
   // layout frames가 먼저 정의되어야 ref 해석 시 선행 정의 보장.
   const layoutFrames: CanonicalNode[] = layouts.map((layout) => {
-    const layoutElements = elements.filter((e) => e.layout_id === layout.id);
+    const layoutElements = elements.filter(
+      (e) => getLegacyElementLayoutId(e) === layout.id,
+    );
     return convertLayoutToReusableFrame(layout, layoutElements);
   });
 
@@ -309,12 +322,12 @@ export function legacyToCanonical(
     ? snapshotTokensFromResolved(getTokens())
     : undefined;
 
-  return {
+  return migrateLegacyListBoxTemplatesToOrigins({
     version: "composition-1.0",
     ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
     ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
     children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-  };
+  });
 }
 
 /**

@@ -9,7 +9,7 @@ export function isValidPageDrop(
   draggedId: string,
   targetId: string,
   dropPosition: "before" | "after" | "on",
-  tree: TreeDataLike
+  tree: TreeDataLike,
 ): { valid: boolean; reason?: string } {
   const draggedNode = tree.getItem(draggedId)?.value;
   const targetNode = tree.getItem(targetId)?.value;
@@ -34,7 +34,12 @@ export function isValidPageDrop(
     return { valid: false, reason: "home-immutable" };
   }
 
-  // 5. Home 페이지 앞(before)에 배치 금지 (Home은 항상 첫 번째)
+  // 5. System page는 위치/부모 변경 대상이 아니다.
+  if (draggedNode.isSystemPage || targetNode.isSystemPage) {
+    return { valid: false, reason: "system-page-immutable" };
+  }
+
+  // 6. Home 페이지 앞(before)에 배치 금지 (Home은 항상 첫 번째)
   //    단, Home 뒤(after)나 Home 안(on)에는 드롭 허용
   if (targetNode.isRoot && dropPosition === "before") {
     return { valid: false, reason: "before-home-denied" };
@@ -46,7 +51,7 @@ export function isValidPageDrop(
 function isDescendant(
   ancestorId: string,
   descendantId: string,
-  tree: TreeDataLike
+  tree: TreeDataLike,
 ): boolean {
   let current = tree.getItem(descendantId);
   while (current) {

@@ -2,11 +2,15 @@
 
 ## Status
 
-Proposed - 2026-05-28
+Implemented - 2026-05-28
 
 진행 로그:
 
 - 2026-05-28 - ADR 본문 + design breakdown 발의.
+- 2026-05-28 - Review log 기준 잔존 HIGH/MED 해소 후 Accepted 승격. Phase 0 진입 가능.
+- 2026-05-28 - Phase 0~6 구현 완료. Components system page, ListBoxItem origin/ref
+  anchor, Layer Tree row projection, Skia ListBoxItem row renderer, ADR-145 local
+  template migration, targeted tests, type-check, docs sync 완료.
 - 사용자 lock-in:
   - Layer Tree에는 반복 row가 표시되어야 한다.
   - `ListBoxItem` template anchor는 삭제 불가가 맞다.
@@ -21,7 +25,9 @@ ADR-146은 ADR-145 전체를 되돌리지 않는다.
 
 - 유지: ADR-145 Phase 0/A의 `ListBoxItem` template child 도입, factory/hydration repair, reusable master round-trip, `items` data SSOT.
 - 보정: ADR-145 Phase B의 `ListBoxSpec.render.shapes` template-data 결합 paint와 `ListBox` parent composite row paint active path.
-- 상태: ADR-146은 Proposed이므로 현재 런타임은 ADR-145 Implemented 상태를 유지한다. ADR-146이 Implemented로 승격될 때 ADR-145 Phase B는 "partially superseded by ADR-146"으로 닫는다.
+- 상태: ADR-146 Implemented 이후 ADR-145 Phase B의 `ListBox` parent composite row paint는
+  "partially superseded by ADR-146"으로 닫는다. ADR-145 Phase 0/A의 template child
+  도입, factory/hydration repair, reusable master round-trip, `items` data SSOT는 유지한다.
 
 ## Context
 
@@ -194,7 +200,7 @@ Page A
 16. runtime/export exclusion은 metadata 선언만으로 완료하지 않는다. Builder page list는 editor page derivation으로 `Components` page를 포함해야 하고, runtime render model/export/Preview/Publish는 runtime page derivation으로 `Components` page를 제외해야 한다. 이 경계는 별도 helper(`deriveProjectEditorPageModelFromDocument` + runtime helper) 또는 명시적 audience option으로 분리한다. page creation number 계산도 system page를 제외한다.
 17. projection id guard는 canonical move target만 막지 않는다. `projection:listbox-row:` prefix를 shared render projection id로 등록하고 `canonicalMutations`, `updateElement`, `removeElement`, drag/drop mutation route가 canonical mutation 전에 차단해야 한다.
 
-> 구현 상세: [146-listboxitem-ref-template-row-projection-breakdown.md](design/146-listboxitem-ref-template-row-projection-breakdown.md)
+> 구현 상세: [146-listboxitem-ref-template-row-projection-breakdown.md](../design/146-listboxitem-ref-template-row-projection-breakdown.md)
 
 ## Risks
 
@@ -246,7 +252,7 @@ Page A
 - `docs/migrations/shadcn-tabs.json`
 - `docs/migrations/shadcn-cards.json`
 - `docs/migrations/shadcn-design-system.json`
-- [ADR-145](completed/145-listbox-template-element-single-component-proof.md)
+- [ADR-145](145-listbox-template-element-single-component-proof.md)
 - [ADR-142](142-starter-spec-component-system-cutover.md)
 - [ADR-132](completed/132-usecollectiondata-useasynclist-alignment.md)
 - [ADR-130](completed/130-layer3-canonical-vocabulary-alignment.md)

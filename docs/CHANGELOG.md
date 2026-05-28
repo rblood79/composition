@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ADR-146 ListBoxItem Ref Template and Row Projection Implemented] - 2026-05-28
+
+### Architecture
+
+- **ADR-146 Phase 0~6 전수 완결 — ListBoxItem reusable/ref row projection 전환**:
+  - `Components` system page를 신규/legacy document에 자동 보정하고 Builder editor page에는 포함, Preview/Publish/runtime/export/page-number 계산에서는 제외.
+  - `ListBoxItem/Default`, selected variant, `ListBox` origin을 Components page에 1회 seed하고 content `ListBox`는 locked `ref` template anchor를 사용.
+  - Layer Tree에 `Rows` projection group과 windowed row projection을 표시하고, projected id는 canonical mutation/update/remove/drop 경계에서 차단.
+  - Skia active path에서 `ListBox` parent composite row paint를 제거하고 `ListBoxItem` renderer가 projected row text/selection background를 렌더.
+  - ADR-145 local `ListBoxItem` template child는 Components bootstrap 선행 후 shared origin/ref anchor 구조로 idempotent migration.
+  - 검증: targeted builder 26 files / 133 tests PASS, specs 3 files / 22 tests PASS, `pnpm run codex:typecheck` PASS(baseline 480).
+
+### Documentation
+
+- ADR-146 Status를 `Implemented`로 승격하고 본문을 `docs/adr/completed/`로 이관. ADR-145 Phase B는 ADR-146에 의해 partially superseded.
+
 ## [ADR-145 ListBox Template Element SSOT — Single-Component Proof Implemented] - 2026-05-27
 
 ### Architecture

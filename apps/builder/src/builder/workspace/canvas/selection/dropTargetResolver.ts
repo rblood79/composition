@@ -18,6 +18,7 @@
 
 import { isLegacyInstanceElement } from "../../../../adapters/canonical/legacyElementFields";
 import { parseGapValue, parsePadding4Way } from "@composition/specs";
+import { isSlotCandidateAllowed } from "../../../components/slotHostPolicy";
 import type { ElementBounds } from "../elementRegistry";
 import { getSceneBounds } from "../skia/renderCommands";
 import { getSpecForTag } from "../sprites/tagSpecMap";
@@ -349,6 +350,7 @@ function resolveCrossContainerDrop(
     if (!isBody && !hitEl.parent_id) continue; // body 외 root 제외
 
     if (!acceptsDraggedElement(hitEl, store)) continue;
+    if (!isSlotCandidateAllowed(hitEl, dragged)) continue;
 
     // depth 계산 (부모 체인 길이)
     let depth = 0;
@@ -435,6 +437,7 @@ export function resolveDropTarget(
 
   const parent = store.elementsById.get(parentId);
   if (!parent) return null;
+  if (!isSlotCandidateAllowed(parent, dragged)) return null;
 
   // 3. 컨테이너 bounds 조회 (body 등 bounds 미등록 컨테이너는 자식 bounds로 대체)
   let containerBounds = getSceneBounds(parentId);

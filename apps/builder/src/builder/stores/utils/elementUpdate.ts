@@ -23,6 +23,7 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import { isRenderProjectionId } from "../../projection/renderProjectionIds";
 
 type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 type ElementUpdateLookup<TElement extends Element = Element> = Map<
@@ -273,10 +274,8 @@ function sanitizePropsPatch<T extends Record<string, unknown>>(props: T): T {
   const nextProps = { ...props };
   const rawStyle = nextProps.style;
   if (rawStyle && typeof rawStyle === "object" && !Array.isArray(rawStyle)) {
-    nextProps.style = sanitizeFillDerivedStylePatch(
-      rawStyle as Record<string, unknown>,
-      true,
-    );
+    (nextProps as Record<string, unknown>).style =
+      sanitizeFillDerivedStylePatch(rawStyle as Record<string, string>, true);
   }
   return nextProps as T;
 }
@@ -363,6 +362,7 @@ async function confirmOriginImpactIfNeeded(
 export const createUpdateElementPropsAction =
   (set: SetState, get: GetState) =>
   async (elementId: string, props: ComponentElementProps) => {
+    if (isRenderProjectionId(elementId)) return;
     const sanitizedProps = sanitizePropsPatch(
       (props ?? {}) as Record<string, unknown>,
     ) as ComponentElementProps;
@@ -516,6 +516,7 @@ export const createUpdateElementAction =
     elementId: string,
     updates: Partial<import("../../../types/core/store.types").Element>,
   ) => {
+    if (isRenderProjectionId(elementId)) return;
     const sanitizedUpdates = sanitizeElementUpdate(updates as Partial<Element>);
     if (Object.keys(sanitizedUpdates).length === 0) return;
 
@@ -661,11 +662,14 @@ export const createUpdateElementAction =
  */
 export const createBatchUpdateElementPropsAction =
   (set: SetState, get: GetState) => async (updates: BatchPropsUpdate[]) => {
-    if (updates.length === 0) return;
+    const canonicalUpdates = updates.filter(
+      (update) => !isRenderProjectionId(update.elementId),
+    );
+    if (canonicalUpdates.length === 0) return;
 
     const state = get();
     const sourceElements = getElementUpdateSourceElements(state);
-    const normalizedUpdates = updates.map((update) => ({
+    const normalizedUpdates = canonicalUpdates.map((update) => ({
       ...update,
       props: sanitizePropsPatch(
         update.props as Record<string, unknown>,
@@ -820,11 +824,14 @@ export const createBatchUpdateElementPropsAction =
  */
 export const createBatchUpdateElementsAction =
   (set: SetState, get: GetState) => async (updates: BatchElementUpdate[]) => {
-    if (updates.length === 0) return;
+    const canonicalUpdates = updates.filter(
+      (update) => !isRenderProjectionId(update.elementId),
+    );
+    if (canonicalUpdates.length === 0) return;
 
     const state = get();
     const sourceElements = getElementUpdateSourceElements(state);
-    const normalizedUpdates = updates.map((update) => ({
+    const normalizedUpdates = canonicalUpdates.map((update) => ({
       ...update,
       updates: sanitizeElementUpdate(update.updates),
     }));

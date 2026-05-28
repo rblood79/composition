@@ -211,13 +211,33 @@ export interface ProjectRenderModel {
   currentPageId: string | null;
 }
 
-function isPageNode(node: CanonicalNode): boolean {
+export const COMPONENTS_PAGE_ROLE = "components";
+export const COMPONENTS_PAGE_SLUG = "/__components";
+
+export type ProjectRenderAudience = "editor" | "runtime";
+
+export interface DeriveProjectRenderModelOptions {
+  audience?: ProjectRenderAudience;
+}
+
+export function isComponentsPageMetadata(
+  metadata: CanonicalNode["metadata"] | undefined,
+): boolean {
+  return metadata?.pageRole === COMPONENTS_PAGE_ROLE;
+}
+
+export function isEditorPageNode(node: CanonicalNode): boolean {
   const metadata = node.metadata as CanonicalMetadata | undefined;
   return (
     metadata?.type === "page" ||
     metadata?.type === "legacy-page" ||
     (node.type === "frame" && node.reusable !== true)
   );
+}
+
+export function isRuntimePageNode(node: CanonicalNode): boolean {
+  if (!isEditorPageNode(node)) return false;
+  return !isComponentsPageMetadata(node.metadata);
 }
 
 function extractPageLayoutBinding(node: CanonicalNode): string | null {
@@ -675,11 +695,15 @@ export function deriveProjectRenderModelFromDocument(
   document: CompositionDocument,
   projectId: string,
   currentPageId?: string | null,
+  options: DeriveProjectRenderModelOptions = {},
 ): ProjectRenderModel {
-  const explicitPageNodes = document.children.filter(isPageNode);
+  const audience = options.audience ?? "runtime";
+  const explicitEditorPageNodes = document.children.filter(isEditorPageNode);
   const pageNodes =
-    explicitPageNodes.length > 0
-      ? explicitPageNodes
+    explicitEditorPageNodes.length > 0
+      ? audience === "editor"
+        ? explicitEditorPageNodes
+        : explicitEditorPageNodes.filter(isRuntimePageNode)
       : [
           {
             id: "page-root",
@@ -716,8 +740,26 @@ export function deriveProjectRenderModelFromDocument(
   return {
     pages,
     elements,
-    currentPageId: currentPageId ?? pages[0]?.id ?? null,
+    currentPageId:
+      currentPageId && pages.some((page) => page.id === currentPageId)
+        ? currentPageId
+        : (pages[0]?.id ?? null),
   };
+}
+
+export function deriveProjectEditorPageModelFromDocument(
+  document: CompositionDocument,
+  projectId: string,
+  currentPageId?: string | null,
+): ProjectRenderModel {
+  return deriveProjectRenderModelFromDocument(
+    document,
+    projectId,
+    currentPageId,
+    {
+      audience: "editor",
+    },
+  );
 }
 
 // ============================================
@@ -1035,7 +1077,8 @@ export function generateStaticHtml(
 
       function isPageNode(node) {
         const metadata = node.metadata || {};
-        return metadata.type === 'page' || node.type === 'page' || (node.type === 'frame' && node.reusable !== true);
+        const isPage = metadata.type === 'page' || metadata.type === 'legacy-page' || node.type === 'page' || (node.type === 'frame' && node.reusable !== true);
+        return isPage && metadata.pageRole !== 'components';
       }
 
       function makeSlug(index, node) {

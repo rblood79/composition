@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { CompositionDocument } from "../../types/composition-document.types";
 import {
+  deriveProjectEditorPageModelFromDocument,
   deriveProjectRenderModelFromDocument,
   parseProjectData,
   serializeProjectData,
@@ -164,6 +165,74 @@ describe("project export canonical CompositionDocument payload", () => {
       null,
       null,
     ]);
+  });
+
+  it("splits editor and runtime page derivation for Components system page", () => {
+    const documentWithComponentsPage: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-components",
+          type: "frame",
+          name: "Components",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-components",
+            slug: "/__components",
+            pageRole: "components",
+            systemOwned: true,
+            previewExcluded: true,
+            publishExcluded: true,
+            excludeFromAutoNameCount: true,
+          },
+          children: [],
+        },
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home", slug: "/" },
+          children: [],
+        },
+        {
+          id: "page-two",
+          type: "frame",
+          name: "Page 2",
+          metadata: {
+            type: "legacy-page",
+            pageId: "page-two",
+            slug: "/page-2",
+          },
+          children: [],
+        },
+      ],
+    };
+
+    const editorModel = deriveProjectEditorPageModelFromDocument(
+      documentWithComponentsPage,
+      projectId,
+      "page-components",
+    );
+    const runtimeModel = deriveProjectRenderModelFromDocument(
+      documentWithComponentsPage,
+      projectId,
+      "page-components",
+    );
+
+    expect(editorModel.pages.map((page) => page.id)).toEqual([
+      "page-components",
+      "page-home",
+      "page-two",
+    ]);
+    expect(editorModel.currentPageId).toBe("page-components");
+    expect(runtimeModel.pages.map((page) => page.id)).toEqual([
+      "page-home",
+      "page-two",
+    ]);
+    expect(runtimeModel.currentPageId).toBe("page-home");
+    expect(
+      runtimeModel.elements.every((el) => el.page_id !== "page-components"),
+    ).toBe(true);
   });
 
   it("hydrates page-frame binding RefNode with a page-owned body and frame projection", () => {

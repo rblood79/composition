@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from "react";
 import { buildTreeFromElements } from "../../../../utils/treeUtils";
+import type { Element } from "../../../../../types/core/store.types";
 import type { ElementTreeItem } from "../../../../../types/builder/stately.types";
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 import { useStore } from "../../../../stores";
@@ -8,6 +9,7 @@ import { useCanonicalPanelElements } from "../../useCanonicalPanelElements";
 import { resolvePageWithFrame } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
 import { getPageFrameBindingId } from "../../../../../adapters/canonical/frameMirror";
 import { getElementLayoutId } from "../../../../../adapters/canonical/legacyElementFields";
+import { buildListBoxRowProjectionGroup } from "../../../../layers/listBoxRowProjection";
 import {
   childrenAs,
   type ButtonItem,
@@ -19,6 +21,10 @@ import type { LayerTreeNode, VirtualChildType } from "./types";
 import type { PanelNode } from "../../../panelNode";
 
 const EMPTY_ELEMENTS: PanelNode[] = [];
+
+function asElementLike(element: PanelNode): Element {
+  return element as unknown as Element;
+}
 
 export function useLayerTreeData(elements: PanelNode[]) {
   const currentPageId = useStore((state) => state.currentPageId);
@@ -47,7 +53,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
     const currentPage = pages.find((page) => page.id === currentPageId);
     const boundFrameId = currentPage ? getPageFrameBindingId(currentPage) : "";
     const legacyLayerSource = baseElements.filter((element) => {
-      const elementLayoutId = getElementLayoutId(element);
+      const elementLayoutId = getElementLayoutId(asElementLike(element));
       const isCurrentPageOwnedElement =
         element.page_id === currentPageId && elementLayoutId === null;
       const isBoundFrameElement =
@@ -63,12 +69,16 @@ export function useLayerTreeData(elements: PanelNode[]) {
     const pageOwnedElements = baseElements.filter(
       (element) =>
         element.page_id === currentPageId &&
-        getElementLayoutId(element) === null,
+        getElementLayoutId(asElementLike(element)) === null,
     );
     const resolvedPage = resolvePageWithFrame({
       page: currentPage,
-      pageElements: pageOwnedElements,
-      elementsMap: resolutionElementsMap,
+      pageElements: pageOwnedElements as unknown as Parameters<
+        typeof resolvePageWithFrame
+      >[0]["pageElements"],
+      elementsMap: resolutionElementsMap as unknown as Parameters<
+        typeof resolvePageWithFrame
+      >[0]["elementsMap"],
     });
 
     if (!resolvedPage.hasFrameBinding || !resolvedPage.bodyElement) {
@@ -79,7 +89,10 @@ export function useLayerTreeData(elements: PanelNode[]) {
       (element) => element.type.toLowerCase() !== "body",
     );
 
-    return [resolvedPage.bodyElement, ...resolvedPageElements];
+    return [
+      resolvedPage.bodyElement,
+      ...resolvedPageElements,
+    ] as unknown as PanelNode[];
   }, [
     elements,
     canonicalElements,
@@ -91,15 +104,15 @@ export function useLayerTreeData(elements: PanelNode[]) {
   const projectedElements = useMemo(() => {
     if (sourceElements.length === 0) return sourceElements;
     const resolvedElements = resolveCanonicalRefTree({
-      elements: sourceElements,
-      elementsMap: resolutionElementsMap,
+      elements: sourceElements as unknown as Element[],
+      elementsMap: resolutionElementsMap as unknown as Map<string, Element>,
     }).elements;
 
-    return dedupeLayerElementsById(resolvedElements);
+    return dedupeLayerElementsById(resolvedElements as unknown as PanelNode[]);
   }, [resolutionElementsMap, sourceElements]);
 
   const elementTree = useMemo(
-    () => buildTreeFromElements(projectedElements),
+    () => buildTreeFromElements(projectedElements as unknown as Element[]),
     [projectedElements],
   );
 
@@ -338,6 +351,19 @@ function getVirtualChildren(
     return children.map((child, index) =>
       makeNode("tree", index, child.title || `Item ${index + 1}`, child),
     );
+  }
+
+  if (item.type === "ListBox") {
+    const projectionGroup = buildListBoxRowProjectionGroup({
+      depth,
+      listBoxElement: element,
+      treeChildren: (item.children ?? []) as Array<{
+        id: string;
+        ref?: unknown;
+        type: string;
+      }>,
+    });
+    return projectionGroup ? [projectionGroup] : [];
   }
 
   return [];

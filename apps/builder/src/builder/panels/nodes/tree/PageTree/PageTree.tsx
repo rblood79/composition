@@ -114,9 +114,9 @@ export function PageTree({
     [tree, treeNodes, syncToStore, handleAfterMove],
   );
 
-  // 드래그 가능 여부 (Home 페이지는 드래그 불가)
+  // 드래그 가능 여부 (Home/system page는 드래그 불가)
   const canDrag = useCallback((node: PageTreeNode) => {
-    return !node.isRoot;
+    return node.isDraggable;
   }, []);
 
   // 렌더링

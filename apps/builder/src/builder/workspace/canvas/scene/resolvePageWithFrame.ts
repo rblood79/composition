@@ -459,8 +459,12 @@ export function resolvePageWithFrame(
       result.push(...elements);
       continue;
     }
+    const targetSlotProjection = targetSlot.projection;
     const descendantPath =
-      targetSlot.projection?.descendantPath ??
+      (targetSlotProjection?.kind === "page-frame-element" ||
+      targetSlotProjection?.kind === "page-slot-fill"
+        ? targetSlotProjection.descendantPath
+        : undefined) ??
       `${getCanonicalSourceId(frameBody)}/${getCanonicalSourceId(targetSlot)}`;
     for (const el of elements) {
       result.push({

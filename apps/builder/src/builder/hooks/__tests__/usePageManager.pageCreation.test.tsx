@@ -81,6 +81,34 @@ describe("usePageManager page creation activation", () => {
     expect(state.selectedElementIds).toEqual([createdBody?.id]);
   });
 
+  it("addPage page number excludes the Components system page", async () => {
+    const components = {
+      ...makePage("page-components"),
+      title: "Components",
+      slug: "/__components",
+    };
+    const home = { ...makePage("page-1"), title: "Home", slug: "/" };
+    useStore
+      .getState()
+      .appendPageShell(components, makeBody("body-components", components.id), {
+        x: 0,
+        y: 0,
+      });
+    useStore.getState().appendPageShell(home, makeBody("body-1", home.id), {
+      x: 100,
+      y: 0,
+    });
+
+    const { result } = renderHook(() => usePageManager());
+
+    await act(async () => {
+      const addResult = await result.current.addPage("project-1");
+      expect(addResult.success).toBe(true);
+      expect(addResult.data?.title).toBe("Page 2");
+      expect(addResult.data?.slug).toBe("/page-2");
+    });
+  });
+
   it("layout-bound addPageWithParams도 appendPageShell activation 외 activatePage를 중복 호출하지 않는다", async () => {
     const home = makePage("page-1");
     const homeBody = makeBody("body-1", home.id);

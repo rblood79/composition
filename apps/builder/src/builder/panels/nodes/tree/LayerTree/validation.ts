@@ -1,5 +1,6 @@
 import type { Key } from "react-stately";
 import { getFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
+import { isRenderProjectionId } from "../../../../projection/renderProjectionIds";
 import type { LayerTreeNode } from "./types";
 
 type TreeDataLike = {
@@ -21,6 +22,10 @@ export function isValidDrop(
 
   if (draggedId === targetId) {
     return { valid: false, reason: "self-drop" };
+  }
+
+  if (isRenderProjectionId(draggedId) || isRenderProjectionId(targetId)) {
+    return { valid: false, reason: "render-projection" };
   }
 
   if (isDescendant(draggedId, targetId, tree)) {

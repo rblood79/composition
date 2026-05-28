@@ -8,18 +8,10 @@
  */
 
 import type { ComponentSpec, Shape, TokenRef } from "../types";
-import type {
-  StoredListBoxItem,
-  StoredListBoxEntry,
-} from "../types/listbox-items";
-import { isListBoxSectionEntry } from "../types/listbox-items";
-// ADR-908 Phase 3-A-2: Fill token dual-read seam
-import { resolveFillTokens } from "../utils/fillTokens";
+import type { StoredListBoxEntry } from "../types/listbox-items";
 import { parsePxValue } from "../primitives";
 import { resolveContainerSpacing } from "../primitives/containerSpacing";
-import { fontFamily } from "../primitives/typography";
 import { resolveStateColors } from "../utils/stateEffect";
-import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
 // ADR-078 Phase 2: 자식 Spec inline emit — `.react-aria-ListBoxItem` 블록이 본 Spec
 // 의 `generated/ListBox.css` 같은 @layer 에 삽입된다.
 // ADR-078 Phase 3: `resolveListBoxItemMetric` 로 Skia/layout 양쪽 item metric 단일 소스화.
@@ -72,19 +64,6 @@ export interface ListBoxProps {
   _containerWidth?: number;
   /** ElementSprite 주입: 자식 Element 존재 시 spec shapes 아이템 렌더링 스킵 */
   _hasChildren?: boolean;
-  /**
-   * ADR-145 Phase B: ListBoxItem template element 의 style 주입 (buildSpecNodeData 가 SYNTHETIC
-   * merge 시점에 전달). `render.shapes` 가 row 시각 (fontSize / paddingX / itemHeight / color)
-   * 의 우선 source 로 소비 — ListBox container `props.style` 보다 우선. template style 미정의
-   * 키는 ListBox container style → spec size default 순으로 fallback.
-   */
-  _listBoxItemTemplateStyle?: Record<string, unknown>;
-  /**
-   * ADR-145 Phase B: Skia 측 viewport intersection — visible row y-range (px) 만 paint.
-   * undefined 시 모든 row paint (legacy). figma WebGPU tile-based + Retool react-window 와
-   * 동등한 industry-standard culling pattern.
-   */
-  _viewport?: { top: number; bottom: number };
   style?: Record<string, string | number | undefined>;
 }
 
@@ -307,8 +286,6 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
         (requestedVariant
           ? ListBoxSpec.variants![requestedVariant]
           : undefined) ?? ListBoxSpec.variants![ListBoxSpec.defaultVariant!]!;
-      // ADR-908 Phase 3-A-2: fill token dual-read seam
-      const fill = resolveFillTokens(variant);
       const width =
         typeof props._containerWidth === "number" && props._containerWidth > 0
           ? props._containerWidth
@@ -324,30 +301,6 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
         size.borderRadius,
       );
 
-      // ADR-145 Phase B: row 시각 SSOT 분리 — ListBoxItem template element 의 style 우선,
-      //   없으면 ListBox container style → spec size default 순으로 fallback.
-      //   container 시각 (background / border / padding / gap) 은 ListBox `props.style` 유지.
-      const templateStyle = (props as Record<string, unknown>)
-        ._listBoxItemTemplateStyle as Record<string, unknown> | undefined;
-      const pickRowStyle = (key: string): unknown =>
-        templateStyle?.[key] ??
-        (props.style as Record<string, unknown> | undefined)?.[key];
-
-      const textColor = (pickRowStyle("color") ?? variant.text) as
-        | string
-        | TokenRef;
-      const fontSize = resolveSpecFontSize(
-        (pickRowStyle("fontSize") ?? size.fontSize) as
-          | string
-          | number
-          | TokenRef
-          | undefined,
-        14,
-      );
-      const ff = (pickRowStyle("fontFamily") as string) || fontFamily.sans;
-      const textAlign =
-        (pickRowStyle("textAlign") as "left" | "center" | "right") || "left";
-
       const shapes: Shape[] = [];
 
       // 리스트 컨테이너 배경
@@ -362,12 +315,11 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
         fill: bgColor,
       });
 
-      // ADR-907 Layer D: style padding/gap/borderWidth/fontSize + item/header metric
-      // 을 `resolveListBoxSpacingMetric` 단일 심볼로 소비 — utils.ts ListBox 분기와 공유.
+      // ADR-907 Layer D: borderWidth는 layout ListBox 분기와 같은 spacing resolver를 소비.
       const metric = resolveListBoxSpacingMetric({
         style: props.style as Record<string, unknown> | undefined,
         defaultGap: (size.gap as unknown as number) ?? 2,
-        defaultFontSize: fontSize,
+        defaultFontSize: 14,
         defaultPaddingX: (size.paddingX as unknown as number) ?? 4,
         defaultPaddingY: (size.paddingY as unknown as number) ?? 4,
       });
@@ -385,168 +337,8 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
         });
       }
 
-      // Child Composition: 자식 Element가 있으면 spec shapes에서 아이템 렌더링 스킵
-      const hasChildren = !!(props as Record<string, unknown>)._hasChildren;
-      if (hasChildren) return shapes;
-
-      // 리스트 아이템 생성 (ADR-076: StoredListBoxItem[] SSOT / ADR-099 Phase 2: Entry[] 확장)
-      // fallback placeholder — items 부재 시 3개 샘플 (Select 선례)
-      const entries: StoredListBoxEntry[] =
-        props.items && props.items.length > 0
-          ? props.items
-          : [
-              { id: "item-1", label: "Item 1" },
-              { id: "item-2", label: "Item 2" },
-              { id: "item-3", label: "Item 3" },
-            ];
-
-      // ADR-099 Phase 2: flatItems — section 내부 items 를 flat 전개 (selection index 검색용).
-      //   RAC 공식 ListBoxSection 은 단일 level (nested section 미지원) — flat 전개 안전.
-      const flatItems: StoredListBoxItem[] = [];
-      for (const entry of entries) {
-        if (isListBoxSectionEntry(entry)) {
-          flatItems.push(...entry.items);
-        } else {
-          flatItems.push(entry);
-        }
-      }
-
-      // ADR-145 Phase B: row metric — template element 의 paddingX / height 직접 override 우선.
-      //   fontSize 기반 계산 (metric.itemPaddingX / metric.itemHeight) 은 이미 위에서 template
-      //   fontSize 가 적용됐기 때문에 자동 정합. paddingX/height 만 추가 layer.
-      const ITEM_PADDING_X = parsePxValue(
-        templateStyle?.paddingX ?? templateStyle?.paddingLeft,
-        metric.itemPaddingX,
-      );
-      const itemH = parsePxValue(templateStyle?.height, metric.itemHeight);
-      const gap = metric.rowGap;
-      const innerPaddingX = metric.paddingLeft + borderWidth;
-      const innerPaddingY = metric.paddingTop + borderWidth;
-      let itemY = innerPaddingY;
-
-      // 선택 상태 계산 — canonical(selectedKey/selectedKeys) 우선, legacy index fallback
-      // ADR-099 Phase 2: flatItems 기준 id Set — section 내부 items 포함하여 검색
-      const selectedIdSet = new Set<string>();
-      if (props.selectedKeys && props.selectedKeys.length > 0) {
-        for (const key of props.selectedKeys) selectedIdSet.add(key);
-      } else if (props.selectedKey != null) {
-        selectedIdSet.add(props.selectedKey);
-      } else if (props.selectedIndices && props.selectedIndices.length > 0) {
-        for (const idx of props.selectedIndices) {
-          const flat = flatItems[idx];
-          if (flat) selectedIdSet.add(flat.id);
-        }
-      } else if (props.selectedIndex != null) {
-        const flat = flatItems[props.selectedIndex];
-        if (flat) selectedIdSet.add(flat.id);
-      } else if (flatItems[0]) {
-        selectedIdSet.add(flatItems[0].id);
-      }
-
-      const HEADER_HEIGHT = metric.headerHeight;
-      const HEADER_FONT_SIZE = metric.headerFontSize;
-      const SECTION_TOP_PAD = metric.sectionTopPad;
-
-      // ADR-145 Phase B: Skia viewport intersection — visible row 만 paint.
-      //   figma WebGPU tile-based + Retool react-window + composition Preview `@tanstack/react-virtual`
-      //   와 동등 industry-standard culling pattern. `_viewport` 미주입 시 모든 row paint (legacy).
-      const viewport = (props as Record<string, unknown>)._viewport as
-        | { top: number; bottom: number }
-        | undefined;
-      const isRowVisible = (y: number, h: number): boolean => {
-        if (!viewport) return true;
-        return y + h >= viewport.top && y <= viewport.bottom;
-      };
-
-      // ADR-099 Phase 2: item 렌더 헬퍼 — 기존 인라인 로직을 entries 순회 내부에서 재사용.
-      const renderOneItem = (item: StoredListBoxItem, y: number) => {
-        if (!isRowVisible(y, itemH)) return;
-        const isSelected = selectedIdSet.has(item.id);
-        const isItemDisabled = Boolean(item.isDisabled);
-
-        shapes.push({
-          type: "roundRect" as const,
-          x: innerPaddingX,
-          y,
-          width: width - innerPaddingX * 2,
-          height: itemH,
-          radius: borderRadius as unknown as number,
-          fill: isSelected
-            ? (fill.default.hover ?? fill.default.base)
-            : bgColor,
-        });
-
-        if (props.selectionMode === "multiple") {
-          shapes.push({
-            type: "icon_font" as const,
-            iconName: isSelected ? "check-square" : "square",
-            x: innerPaddingX + ITEM_PADDING_X,
-            y: y + itemH / 2,
-            fontSize,
-            fill: isSelected
-              ? ("{color.accent}" as TokenRef)
-              : ("{color.neutral-subdued}" as TokenRef),
-            strokeWidth: 2,
-          });
-        }
-
-        const textX =
-          props.selectionMode === "multiple"
-            ? innerPaddingX + ITEM_PADDING_X + fontSize + 6
-            : innerPaddingX + ITEM_PADDING_X;
-        const itemTextFill = isItemDisabled
-          ? ("{color.neutral-subdued}" as TokenRef)
-          : isSelected
-            ? ("{color.neutral}" as TokenRef)
-            : textColor;
-        shapes.push({
-          type: "text" as const,
-          x: textX,
-          y: y + itemH / 2,
-          text: item.label,
-          fontSize,
-          fontFamily: ff,
-          fontWeight: 600,
-          fill: itemTextFill,
-          align: textAlign,
-          baseline: "middle" as const,
-        });
-      };
-
-      // ADR-099 Phase 2: entries 순회 — section 분기 + item 렌더.
-      //   Header 는 첫 section 외 앞에 SECTION_TOP_PAD 추가 (섹션 간 시각 구분).
-      let hasRenderedEntry = false;
-      for (const entry of entries) {
-        if (isListBoxSectionEntry(entry)) {
-          if (hasRenderedEntry) itemY += SECTION_TOP_PAD;
-          // Section Header — text shape (Phase 3 에서 HeaderSpec childSpecs + CSS emit 추가)
-          //   ADR-145 Phase B: viewport intersection culling 동일 적용.
-          if (isRowVisible(itemY, HEADER_HEIGHT)) {
-            shapes.push({
-              type: "text" as const,
-              x: innerPaddingX + ITEM_PADDING_X,
-              y: itemY + HEADER_HEIGHT / 2,
-              text: entry.header,
-              fontSize: HEADER_FONT_SIZE,
-              fontFamily: ff,
-              fontWeight: 700,
-              fill: "{color.neutral-subdued}" as TokenRef,
-              align: "left" as const,
-              baseline: "middle" as const,
-            });
-          }
-          itemY += HEADER_HEIGHT + gap;
-          for (const item of entry.items) {
-            renderOneItem(item, itemY);
-            itemY += itemH + gap;
-          }
-        } else {
-          renderOneItem(entry, itemY);
-          itemY += itemH + gap;
-        }
-        hasRenderedEntry = true;
-      }
-
+      // ADR-146: data row paint는 ListBoxItem row projection renderer가 담당한다.
+      // ListBox parent spec은 container shell(background/border)만 반환한다.
       return shapes;
     },
 

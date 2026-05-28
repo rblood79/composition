@@ -26,6 +26,8 @@ import {
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 import { buildCanonicalRemoveEvents } from "../history/canonicalHistoryEvents";
+import { isListBoxTemplateAnchor } from "../../components/listbox/listBoxTemplateOrigins";
+import { isRenderProjectionId } from "../../projection/renderProjectionIds";
 
 type SetState = Parameters<StateCreator<ElementsState>>[0];
 type GetState = Parameters<StateCreator<ElementsState>>[1];
@@ -87,6 +89,7 @@ function collectElementsToRemove<TElement extends Element>(
   const element = elementsById.get(elementId);
   if (!element) return null;
   if (element.type.toLowerCase() === "body") return null;
+  if (isListBoxTemplateAnchor(element)) return null;
 
   // 자식 요소들 찾기 (재귀적으로)
   const findChildren = (parentId: string): TElement[] => {
@@ -382,6 +385,7 @@ async function executeRemoval(
 export const createRemoveElementAction =
   (set: SetState, get: GetState) =>
   async (elementId: string, options?: { skipHistory?: boolean }) => {
+    if (isRenderProjectionId(elementId)) return;
     const state = get();
     const sourceElements = getElementRemovalSourceElements(state);
     const result = collectElementsToRemove(elementId, sourceElements);
@@ -409,12 +413,15 @@ export const createRemoveElementAction =
 export const createRemoveElementsAction =
   (set: SetState, get: GetState) =>
   async (elementIds: string[], options?: { skipHistory?: boolean }) => {
-    if (elementIds.length === 0) return;
+    const canonicalElementIds = elementIds.filter(
+      (elementId) => !isRenderProjectionId(elementId),
+    );
+    if (canonicalElementIds.length === 0) return;
 
     // 단일 요소면 기존 경로 사용
-    if (elementIds.length === 1) {
+    if (canonicalElementIds.length === 1) {
       const removeElement = createRemoveElementAction(set, get);
-      return removeElement(elementIds[0], options);
+      return removeElement(canonicalElementIds[0], options);
     }
 
     const state = get();
@@ -423,7 +430,7 @@ export const createRemoveElementsAction =
     const allElementsMap: ElementRemovalLookup = new Map();
 
     // 각 요소에 대해 삭제 대상 수집
-    for (const id of elementIds) {
+    for (const id of canonicalElementIds) {
       const result = collectElementsToRemove(id, sourceElements);
       if (!result) continue;
 

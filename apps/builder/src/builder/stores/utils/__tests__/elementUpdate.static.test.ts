@@ -86,10 +86,10 @@ describe("elementUpdate canonical read fallback contract", () => {
     expect(propsSyncIndex).toBeLessThan(propsStoreIndex);
 
     const elementSyncIndex = source.indexOf(
-      "syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);",
+      "syncUpdatedElementToCanonical(latestUpdatedElement, sanitizedUpdates);",
     );
     const elementStoreIndex = source.indexOf(
-      "elements: updatedElements,\n        selectedElementProps,",
+      "elements: latestUpdatedElements,\n          selectedElementProps: latestSelectedElementProps,",
       elementSyncIndex,
     );
     expect(elementSyncIndex).toBeGreaterThanOrEqual(0);

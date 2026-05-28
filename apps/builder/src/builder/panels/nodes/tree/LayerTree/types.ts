@@ -1,7 +1,13 @@
 import type { ElementProps } from "../../../../../types/integrations/supabase.types";
 import type { PanelNode } from "../../../panelNode";
 
-export type VirtualChildType = "toggle" | "checkbox" | "radio" | "tree";
+export type VirtualChildType =
+  | "toggle"
+  | "checkbox"
+  | "radio"
+  | "tree"
+  | "listbox-rows"
+  | "listbox-row";
 
 export interface LayerTreeNode {
   id: string;

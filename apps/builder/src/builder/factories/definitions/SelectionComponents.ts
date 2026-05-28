@@ -1,5 +1,13 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { ComponentDefinition, ComponentCreationContext } from "../types";
+import {
+  ComponentDefinition,
+  ComponentCreationContext,
+  ChildDefinition,
+} from "../types";
+import {
+  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  LISTBOX_TEMPLATE_ANCHOR_ROLE,
+} from "../../components/listbox/listBoxTemplateOrigins";
 import type {
   StoredSelectItem,
   StoredComboBoxItem,
@@ -175,15 +183,12 @@ export function createComboBoxDefinition(
 }
 
 /**
- * ListBox 컴포넌트 정의 (ADR-076 P6 → ADR-145 Phase A)
+ * ListBox 컴포넌트 정의 (ADR-076 P6 → ADR-145 Phase A → ADR-146 Phase 2)
  *
  * items prop 으로 ListBoxItem 데이터를 직렬화 가능한 StoredListBoxItem[] 형태로 관리.
  *
- * ADR-145 Phase A: ListBoxItem template element 1개 자동 자식 생성.
- *   - template element 는 row 시각 SSOT — Phase B 에서 `ListBoxSpec.render.shapes` 가
- *     template style 우선 소비. props.items 는 data row 만 제공.
- *   - canonical descendants[path] override 로 template style 사용자 수정 가능.
- *   - reusable master 등록 시 template 도 canonical 메커니즘으로 자동 흡수.
+ * ADR-146 Phase 2: local hidden template child 대신 Components page 의
+ * `ListBoxItem/Default` origin 을 참조하는 locked ref template anchor 를 생성.
  *
  * 템플릿 모드(columnMapping/PropertyDataBinding + Field 자식) 는 별도 워크플로 —
  * APICollectionEditor 등이 명시적으로 ListBoxItem + Field 자식을 생성.
@@ -236,21 +241,22 @@ export function createListBoxDefinition(
       } as ComponentElementProps,
       parent_id: parentId,
     },
-    // ADR-145 Phase A: ListBoxItem template child 1개 자동 생성.
-    //   Phase B 의 spec render.shapes 가 본 template element 의 style 을 소비하여
-    //   props.items data 와 결합 paint. 사용자가 descendants override 로 padding/lineHeight 등을
-    //   조정하면 row 전체에 반영됨.
-    //   `display: none` — template element 는 시각 style 의 메타데이터 carrier (Layers Panel
-    //   에서 선택/편집 가능) 일 뿐, ListBox 의 자체 layout 영향에서 제외 (`calculateContentHeight`
-    //   line 1484 `display === "none" → return 0`). 시각은 부모 ListBox `render.shapes` 가
-    //   `_listBoxItemTemplateStyle` 로 받아 row 단위 paint.
     children: [
       {
-        type: "ListBoxItem",
-        props: {
-          // template element — 시각 style 정의만 담당, label/value 는 props.items 에서 공급
-          style: { display: "none" },
-        } as ComponentElementProps,
+        type: "ref",
+        ref: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+        componentName: "ListBoxItem",
+        props: {} as ComponentElementProps,
+        metadata: {
+          templateRole: LISTBOX_TEMPLATE_ANCHOR_ROLE,
+          originRef: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+          locked: true,
+          deleteDisabled: true,
+          rowProjectionSource: "items",
+        },
+      } as ChildDefinition & {
+        metadata: Record<string, unknown>;
+        ref: string;
       },
     ],
   };

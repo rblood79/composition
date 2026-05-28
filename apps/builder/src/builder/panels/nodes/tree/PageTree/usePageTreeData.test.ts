@@ -49,6 +49,27 @@ describe("buildPageTree", () => {
     expect(nodeMap.get("page-latest")?.isDraggable).toBe(true);
   });
 
+  it("marks the Components page as an immutable system page before Home", () => {
+    const { treeNodes, nodeMap } = buildPageTree([
+      makePage("page-components", "Components", "/__components"),
+      makePage("page-home", "Home", "/"),
+      makePage("page-one", "Page 1", "/page-1"),
+    ]);
+
+    const componentsNode = nodeMap.get("page-components");
+
+    expect(treeNodes.map((node) => node.id)).toEqual([
+      "page-components",
+      "page-home",
+      "page-one",
+    ]);
+    expect(componentsNode?.isSystemPage).toBe(true);
+    expect(componentsNode?.isRoot).toBe(false);
+    expect(componentsNode?.isDraggable).toBe(false);
+    expect(nodeMap.get("page-home")?.isRoot).toBe(true);
+    expect(nodeMap.get("page-home")?.isDraggable).toBe(false);
+  });
+
   it("applies page drag/drop updates to the tree source pages", () => {
     const pages = [
       makePage("page-home", "Home", "/"),
@@ -63,7 +84,7 @@ describe("buildPageTree", () => {
 
     expect(updatedPages).not.toBe(pages);
     expect(nodeMap.get("page-two")?.parentId).toBe("page-one");
-    expect(nodeMap.get("page-one")?.children.map((node) => node.id)).toEqual([
+    expect(nodeMap.get("page-one")?.children?.map((node) => node.id)).toEqual([
       "page-two",
     ]);
   });

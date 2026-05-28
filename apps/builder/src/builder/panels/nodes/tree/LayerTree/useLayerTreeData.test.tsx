@@ -8,10 +8,14 @@ import { useStore } from "../../../../stores";
 import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { getEditingSemanticsRole } from "../../../../utils/editingSemantics";
 import { toPageFrameElementId } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
+import { LISTBOX_ITEM_DEFAULT_ORIGIN_ID } from "../../../../components/listbox/listBoxTemplateOrigins";
 import { LayerTree } from "./LayerTree";
 import { useLayerTreeData } from "./useLayerTreeData";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+function makeElement(
+  id: string,
+  overrides: Partial<Element> & Record<string, unknown> = {},
+): Element {
   return {
     id,
     type: "Box",
@@ -177,6 +181,76 @@ describe("useLayerTreeData", () => {
         text: "Persisted amount",
       },
     );
+  });
+
+  it("projects ListBox data rows under a Rows virtual group after the template anchor", () => {
+    const body = makeElement("body", {
+      type: "body",
+      parent_id: null,
+      order_num: 0,
+    });
+    const listBox = makeElement("listbox", {
+      type: "ListBox",
+      parent_id: "body",
+      order_num: 0,
+      props: {
+        items: [
+          { id: "aardvark", label: "Aardvark" },
+          { id: "cat", label: "Cat" },
+        ],
+      },
+    });
+    const templateAnchor = makeElement("template-anchor", {
+      type: "ref",
+      ref: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+      parent_id: "listbox",
+      order_num: 0,
+      props: {},
+      metadata: {
+        templateRole: "listbox-item-template-anchor",
+        deleteDisabled: true,
+      },
+    } as never);
+    const elements = [body, listBox, templateAnchor];
+
+    useStore.setState({
+      elements,
+      elementsMap: new Map(elements.map((element) => [element.id, element])),
+    } as never);
+
+    const { result } = renderHook(() => useLayerTreeData(elements));
+    const listBoxChildren =
+      result.current.nodeMap.get("listbox")?.children?.map((node) => node.id) ??
+      [];
+
+    expect(listBoxChildren).toEqual([
+      "template-anchor",
+      "projection:listbox-rows:listbox",
+    ]);
+    expect(
+      result.current.nodeMap.get("projection:listbox-rows:listbox"),
+    ).toMatchObject({
+      name: "Rows",
+      virtualChildType: "listbox-rows",
+      children: [
+        expect.objectContaining({
+          id: "projection:listbox-row:listbox:aardvark",
+          name: "Aardvark",
+          virtualChildType: "listbox-row",
+        }),
+        expect.objectContaining({
+          id: "projection:listbox-row:listbox:cat",
+          name: "Cat",
+          virtualChildType: "listbox-row",
+        }),
+      ],
+    });
+    expect(
+      result.current.disabledKeys.has("projection:listbox-rows:listbox"),
+    ).toBe(true);
+    expect(
+      result.current.disabledKeys.has("projection:listbox-row:listbox:cat"),
+    ).toBe(true);
   });
 
   it("renders a tree with persisted ref mirrors without corrupting React Aria collection", () => {
@@ -645,19 +719,19 @@ describe("useLayerTreeData", () => {
           id: "page-1",
           type: "frame",
           metadata: { type: "legacy-page", pageId: "page-1" },
-          children: [{ id: "body-1", type: "body", props: {} }],
+          children: [{ id: "body-1", type: "body" as never, props: {} }],
         },
         {
           id: "page-2",
           type: "frame",
           metadata: { type: "legacy-page", pageId: "page-2" },
-          children: [{ id: "body-2", type: "body", props: {} }],
+          children: [{ id: "body-2", type: "body" as never, props: {} }],
         },
         {
           id: "page-3",
           type: "frame",
           metadata: { type: "legacy-page", pageId: "page-3" },
-          children: [{ id: "body-3", type: "body", props: {} }],
+          children: [{ id: "body-3", type: "body" as never, props: {} }],
         },
       ],
     };
@@ -694,7 +768,7 @@ describe("useLayerTreeData", () => {
           children: [
             {
               id: "body",
-              type: "body",
+              type: "body" as never,
               props: { style: { display: "grid" } },
             },
           ],

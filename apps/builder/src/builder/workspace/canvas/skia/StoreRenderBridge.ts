@@ -33,7 +33,6 @@ import { getSkImage, loadSkImage, releaseSkImage } from "./imageCache";
 import { getSpecForTag, IMAGE_TAGS } from "../sprites/tagSpecMap";
 import { onLayoutPublished } from "../layout";
 import { getSyntheticElementsMap } from "../layout/engines/fullTreeLayout";
-import { useScrollState } from "../../../stores/scrollState";
 import type { TransitionManager } from "./transitionManager";
 import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
 import type { CanonicalNode } from "@composition/shared";
@@ -547,8 +546,6 @@ export class StoreRenderBridge {
         childElements,
         elementsMap,
         childrenMap: childrenMap ?? undefined,
-        // ADR-145 Phase B: ListBox viewport intersection — overflow:auto 컨테이너의 scroll state 전달
-        scrollMap: useScrollState.getState().scrollMap,
       });
       if (nodeData) return nodeData;
       return (

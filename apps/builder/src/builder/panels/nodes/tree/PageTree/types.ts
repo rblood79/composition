@@ -14,6 +14,7 @@ export interface PageTreeNode {
 
   // 제약 조건
   isRoot: boolean; // Home 페이지 여부
+  isSystemPage: boolean; // Components 등 editor-only system page 여부
   isDraggable: boolean; // !isRoot
   isDroppable: boolean; // 항상 true (페이지는 virtual child 없음)
 }

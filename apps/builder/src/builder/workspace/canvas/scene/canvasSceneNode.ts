@@ -8,6 +8,15 @@ import type {
 import { readLegacyMetadataCustomId } from "../../../../adapters/canonical/legacyMetadata";
 import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { normalizeFrameLayoutId } from "../../../../adapters/canonical/frameMirror";
+import {
+  detectListBoxAuthoringMode,
+  isListBoxTemplateAnchor,
+} from "../../../components/listbox/listBoxTemplateOrigins";
+import { getListBoxProjectionRows } from "../../../components/listbox/listBoxRowProjectionModel";
+import {
+  toListBoxRowProjectionId,
+  toListBoxRowsGroupProjectionId,
+} from "../../../projection/renderProjectionIds";
 
 type SceneScopeContext = {
   pageId: string | null;
@@ -20,6 +29,8 @@ type SceneScopeMetadata = {
   pageId?: unknown;
   layoutId?: unknown;
   slotName?: unknown;
+  originRef?: unknown;
+  templateRole?: unknown;
 };
 
 export type CanvasProjectionMetadata =
@@ -42,6 +53,20 @@ export type CanvasProjectionMetadata =
       canonicalParentId: string | null;
       slotName: string;
       descendantPath: string;
+    }
+  | {
+      kind: "listbox-rows";
+      listBoxId: string;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
+    }
+  | {
+      kind: "listbox-row";
+      listBoxId: string;
+      itemKey: string;
+      rowIndex: number;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
     };
 
 export interface CanvasSceneNode {
@@ -107,6 +132,19 @@ function isCanonicalNode(value: unknown): value is CanonicalNode {
   if (!value || typeof value !== "object") return false;
   const candidate = value as { id?: unknown; type?: unknown };
   return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
+function withDisplayNoneStyle(
+  props: Record<string, unknown>,
+): Record<string, unknown> {
+  const style = isRecord(props.style) ? props.style : {};
+  return {
+    ...props,
+    style: {
+      ...style,
+      display: "none",
+    },
+  };
 }
 
 function readDescendantChildren(override: unknown): CanonicalNode[] {
@@ -213,9 +251,12 @@ function toCanvasSceneNode(
     return null;
   }
 
-  const props = { ...(node.props ?? {}) };
+  let props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {
     props.name ??= metadata.slotName;
+  }
+  if (isListBoxTemplateAnchor(node)) {
+    props = withDisplayNoneStyle(props);
   }
 
   const customId = readLegacyMetadataCustomId(metadata);
@@ -251,6 +292,158 @@ function toCanvasSceneNode(
   return sceneNode;
 }
 
+function addSceneNode(
+  node: CanvasSceneNode,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  graph.nodes.push(node);
+  graph.nodesMap.set(node.id, node);
+  if (!node.parentId) return;
+
+  graph.parentById.set(node.id, node.parentId);
+  const children = graph.childrenByParent.get(node.parentId);
+  if (children) {
+    children.push(node);
+  } else {
+    graph.childrenByParent.set(node.parentId, [node]);
+  }
+}
+
+function getListBoxTemplateAnchor(
+  children: readonly CanonicalNode[] | undefined,
+): CanonicalNode | null {
+  const anchor = children?.find(
+    (child) => isListBoxTemplateAnchor(child) || child.type === "ref",
+  );
+  return anchor ?? null;
+}
+
+function getTemplateOriginId(anchor: CanonicalNode | null): string | null {
+  if (!anchor) return null;
+  if (anchor.type === "ref") return (anchor as RefNode).ref;
+  const metadata = anchor.metadata as SceneScopeMetadata | undefined;
+  return typeof metadata?.originRef === "string" ? metadata.originRef : null;
+}
+
+function isListBoxRowSelected(
+  props: Record<string, unknown>,
+  itemKey: string,
+  rowIndex: number,
+): boolean {
+  const selectedKeys = props.selectedKeys;
+  if (Array.isArray(selectedKeys)) {
+    return selectedKeys.includes(itemKey);
+  }
+  if (props.selectedKey === itemKey) return true;
+
+  const selectedIndices = props.selectedIndices;
+  if (Array.isArray(selectedIndices)) {
+    return selectedIndices.includes(rowIndex);
+  }
+  return props.selectedIndex === rowIndex;
+}
+
+function appendListBoxRowProjection(
+  listBoxSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  if (listBoxSceneNode.type !== "ListBox") return;
+
+  const props = listBoxSceneNode.props;
+  const mode = detectListBoxAuthoringMode({
+    children: sourceNode.children?.map((child) => ({
+      id: child.id,
+      ref: child.type === "ref" ? (child as RefNode).ref : undefined,
+      type: child.type,
+    })),
+    dataBinding: (sourceNode as CanonicalNode & { dataBinding?: unknown })
+      .dataBinding,
+    props,
+  });
+  if (mode.mode !== "data-bound") return;
+
+  const rows = getListBoxProjectionRows(props);
+  if (rows.length === 0) return;
+
+  const templateAnchor = getListBoxTemplateAnchor(sourceNode.children);
+  const templateAnchorId = templateAnchor?.id ?? null;
+  const templateOriginId = getTemplateOriginId(templateAnchor);
+  const rowsGroupId = toListBoxRowsGroupProjectionId(listBoxSceneNode.id);
+  const rowsGroup: CanvasSceneNode = {
+    id: rowsGroupId,
+    type: "Rows",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        gap: 0,
+        width: "100%",
+      },
+    },
+    parentId: listBoxSceneNode.id,
+    pageId: scope.pageId,
+    layoutId: scope.layoutId,
+    parent_id: listBoxSceneNode.id,
+    page_id: scope.pageId,
+    layout_id: scope.layoutId,
+    projection: {
+      kind: "listbox-rows",
+      listBoxId: listBoxSceneNode.id,
+      templateAnchorId,
+      templateOriginId,
+    },
+    sourceNode: templateAnchor ?? sourceNode,
+  };
+  addSceneNode(rowsGroup, graph);
+
+  for (const row of rows) {
+    const projectionId = toListBoxRowProjectionId(
+      listBoxSceneNode.id,
+      row.itemKey,
+    );
+    const rowProps: Record<string, unknown> = {
+      children: row.label,
+      textValue: row.label,
+      style: { width: "100%" },
+      _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
+    };
+    if (row.description) rowProps.description = row.description;
+    if (row.value) rowProps.value = row.value;
+    if (row.isDisabled) rowProps.isDisabled = true;
+
+    addSceneNode(
+      {
+        id: projectionId,
+        type: "ListBoxItem",
+        props: rowProps,
+        parentId: rowsGroupId,
+        pageId: scope.pageId,
+        layoutId: scope.layoutId,
+        parent_id: rowsGroupId,
+        page_id: scope.pageId,
+        layout_id: scope.layoutId,
+        projection: {
+          kind: "listbox-row",
+          listBoxId: listBoxSceneNode.id,
+          itemKey: row.itemKey,
+          rowIndex: row.rowIndex,
+          templateAnchorId,
+          templateOriginId,
+        },
+        ref: templateOriginId ?? undefined,
+        sourceNode: templateAnchor ?? sourceNode,
+      },
+      graph,
+    );
+  }
+}
+
 export function buildCanvasSceneGraph(
   doc: CompositionDocument,
   options: BuildCanvasSceneGraphOptions = {},
@@ -260,6 +453,7 @@ export function buildCanvasSceneGraph(
   const childrenByParent = new Map<string, CanvasSceneNode[]>();
   const parentById = new Map<string, string>();
   const { includeReusableFrames = false } = options;
+  const graph = { childrenByParent, nodes, nodesMap, parentById };
 
   function visit(
     node: CanonicalNode,
@@ -276,17 +470,7 @@ export function buildCanvasSceneGraph(
     const nextParentId = sceneNode?.id ?? parentSceneId;
 
     if (sceneNode) {
-      nodes.push(sceneNode);
-      nodesMap.set(sceneNode.id, sceneNode);
-      if (sceneNode.parentId) {
-        parentById.set(sceneNode.id, sceneNode.parentId);
-        const children = childrenByParent.get(sceneNode.parentId);
-        if (children) {
-          children.push(sceneNode);
-        } else {
-          childrenByParent.set(sceneNode.parentId, [sceneNode]);
-        }
-      }
+      addSceneNode(sceneNode, graph);
     }
 
     node.children?.forEach((child) => {
@@ -297,6 +481,9 @@ export function buildCanvasSceneGraph(
         visit(child, nextParentId, nextScope);
       });
     });
+    if (sceneNode) {
+      appendListBoxRowProjection(sceneNode, node, nextScope, graph);
+    }
   }
 
   doc.children.forEach((child) => {

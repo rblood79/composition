@@ -23,10 +23,12 @@ import { useViewportSyncStore } from "../workspace/canvas/stores";
 import type { ElementProps } from "../../types/integrations/supabase.types";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import {
-  deriveProjectRenderModelFromDocument,
+  deriveProjectEditorPageModelFromDocument,
   type CompositionDocument,
 } from "@composition/shared";
 import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
+import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
+import { ensureListBoxTemplateOrigins } from "../components/listbox/listBoxTemplateOrigins";
 
 const PAGE_STACK_GAP = 80;
 
@@ -207,7 +209,7 @@ export const usePageManager = ({
     return runWithPageCreationLock(async () => {
       try {
         const currentPages = useStore.getState().pages;
-        const nextPageNumber = currentPages.length + 1;
+        const nextPageNumber = countUserPagesForAutoName(currentPages) + 1;
 
         const newPageData: Page = {
           id: ElementUtils.generateId(),
@@ -353,16 +355,20 @@ export const usePageManager = ({
           pageLayoutDirection,
         } = useStore.getState();
 
-        const document =
+        const baseDocument =
           persistedDocument ??
           ({
             version: "composition-1.0",
             children: [],
           } satisfies CompositionDocument);
+        const document = ensureListBoxTemplateOrigins(baseDocument);
+        if (document !== persistedDocument) {
+          await db.documents.put(projectId, document);
+        }
 
         useCanonicalDocumentStore.getState().setDocument(projectId, document);
 
-        const renderModel = deriveProjectRenderModelFromDocument(
+        const renderModel = deriveProjectEditorPageModelFromDocument(
           document,
           projectId,
         );

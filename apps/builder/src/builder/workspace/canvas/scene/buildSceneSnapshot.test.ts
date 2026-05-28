@@ -180,9 +180,14 @@ describe("ADR-136 buildSceneStructureSnapshot projection version", () => {
       .get("page-1")
       ?.pageElements.find((element) => element.type === "Slot");
 
-    expect(baseSlot?.projection?.kind).toBe("page-frame-element");
-    expect(baseSlot?.projection?.slotName).toBe("content");
-    expect(changedSlot?.projection?.slotName).toBe("hero");
+    if (baseSlot?.projection?.kind !== "page-frame-element") {
+      throw new Error("expected base slot page-frame projection");
+    }
+    if (changedSlot?.projection?.kind !== "page-frame-element") {
+      throw new Error("expected changed slot page-frame projection");
+    }
+    expect(baseSlot.projection.slotName).toBe("content");
+    expect(changedSlot.projection.slotName).toBe("hero");
     expect(changedSnapshot.sceneVersion).not.toBe(baseSnapshot.sceneVersion);
   });
 });

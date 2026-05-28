@@ -66,6 +66,7 @@ import {
   compareElementsBySource,
   createElementSourceIndex,
 } from "../../builder/utils/elementOrdering";
+import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
 
 type CanonicalRefElementFields = {
   ref?: unknown;
@@ -116,20 +117,16 @@ export type CanonicalMoveTarget =
       insertionIndex: number;
     };
 
-function hasProjectedPageFrameId(id: string | null | undefined): boolean {
-  return typeof id === "string" && id.includes("::page-frame::");
-}
-
 function assertCanonicalMoveTarget(
   elementId: string,
   target: CanonicalMoveTarget,
 ): void {
-  if (hasProjectedPageFrameId(elementId)) {
+  if (isRenderProjectionId(elementId)) {
     throw new Error(`Projected render id cannot be moved: ${elementId}`);
   }
   if (
     target.kind === "node-children" &&
-    hasProjectedPageFrameId(target.parentId)
+    isRenderProjectionId(target.parentId)
   ) {
     throw new Error(
       `Projected render id cannot be used as canonical parent: ${target.parentId}`,
@@ -137,7 +134,7 @@ function assertCanonicalMoveTarget(
   }
   if (
     target.kind === "ref-descendants" &&
-    hasProjectedPageFrameId(target.refNodeId)
+    isRenderProjectionId(target.refNodeId)
   ) {
     throw new Error(
       `Projected render id cannot be used as canonical ref target: ${target.refNodeId}`,
@@ -567,6 +564,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function getIncomingCanonicalMetadata(
+  element: Element,
+): Record<string, unknown> {
+  const metadata = (element as Element & { metadata?: unknown }).metadata;
+  return isRecord(metadata) ? metadata : {};
+}
+
+function buildCanonicalMutationMetadata(
+  element: Element,
+): ReturnType<typeof buildLegacyElementMetadata> & Record<string, unknown> {
+  const legacyMetadata = buildLegacyElementMetadata(element);
+  const incomingMetadata = getIncomingCanonicalMetadata(element);
+  return {
+    ...legacyMetadata,
+    ...incomingMetadata,
+    legacyProps: legacyMetadata.legacyProps,
+  };
+}
+
 function canonicalPropValueEquals(left: unknown, right: unknown): boolean {
   if (left === right) return true;
   return JSON.stringify(left) === JSON.stringify(right);
@@ -686,7 +702,7 @@ function legacyElementToCanonicalNode(
     props: element.props as Record<string, unknown>,
     ...(previousNode?.children ? { children: previousNode.children } : {}),
     ...getCanonicalSlotDeclaration(element),
-    metadata: buildLegacyElementMetadata(metadataElement),
+    metadata: buildCanonicalMutationMetadata(metadataElement),
     ...buildCompositionExtensionField(element),
   };
 
@@ -711,7 +727,7 @@ function legacyElementToCanonicalNode(
       type: "ref",
       ref: masterNode?.id ?? refTarget,
       props: refProps,
-      metadata: buildLegacyElementMetadata({
+      metadata: buildCanonicalMutationMetadata({
         ...metadataElement,
         overrides: refProps,
       } as Element),

@@ -26,7 +26,8 @@ describe("usePageManager.initializeProject canonical-only hydrate", () => {
 
     expect(initFnSource).toMatch(/db\.documents\.get\(projectId\)/);
     expect(initFnSource).toContain("useCanonicalDocumentStore");
-    expect(initFnSource).toContain("deriveProjectRenderModelFromDocument");
+    expect(initFnSource).toContain("ensureListBoxTemplateOrigins");
+    expect(initFnSource).toContain("deriveProjectEditorPageModelFromDocument");
     expect(initFnSource).not.toMatch(/db\.pages\./);
     expect(initFnSource).not.toMatch(/db\.elements\./);
     expect(initFnSource).not.toMatch(/db\.layouts\./);

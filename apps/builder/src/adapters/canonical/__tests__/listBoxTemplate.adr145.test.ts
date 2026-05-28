@@ -13,6 +13,10 @@ import { legacyToCanonical } from "..";
 import { convertComponentRole } from "../componentRoleAdapter";
 import { withComponentOriginMirror } from "../componentSemanticsMirror";
 import { convertPageLayout } from "../slotAndLayoutAdapter";
+import {
+  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+  LISTBOX_TEMPLATE_ANCHOR_ROLE,
+} from "../../../builder/components/listbox/listBoxTemplateOrigins";
 
 const deps = { convertComponentRole, convertPageLayout };
 
@@ -45,16 +49,37 @@ function findFirstByType(
   return undefined;
 }
 
-function findReusableByType(
+function findNode(
   nodes: readonly CanonicalNode[],
-  type: string,
+  predicate: (node: CanonicalNode) => boolean,
 ): CanonicalNode | undefined {
   for (const node of nodes) {
-    if (node.type === type && node.reusable === true) return node;
-    const found = findReusableByType(node.children ?? [], type);
+    if (predicate(node)) return node;
+    const found = findNode(node.children ?? [], predicate);
     if (found) return found;
   }
   return undefined;
+}
+
+function findContentListBox(
+  nodes: readonly CanonicalNode[],
+): CanonicalNode | undefined {
+  return findNode(
+    nodes,
+    (node) => node.type === "ListBox" && node.reusable !== true,
+  );
+}
+
+function expectTemplateAnchor(node: CanonicalNode | undefined): void {
+  expect(node).toMatchObject({
+    type: "ref",
+    ref: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
+    metadata: {
+      templateRole: LISTBOX_TEMPLATE_ANCHOR_ROLE,
+      locked: true,
+      deleteDisabled: true,
+    },
+  });
 }
 
 describe("ADR-145 Phase A — ListBox template element round-trip", () => {
@@ -92,16 +117,19 @@ describe("ADR-145 Phase A — ListBox template element round-trip", () => {
 
     const doc = legacyToCanonical({ elements, pages, layouts: [] }, deps);
 
-    const lbNode = findFirstByType(doc.children ?? [], "ListBox");
+    const lbNode = findContentListBox(doc.children ?? []);
     expect(lbNode).toBeDefined();
     expect(lbNode!.children).toHaveLength(1);
-    expect(lbNode!.children![0].type).toBe("ListBoxItem");
+    expectTemplateAnchor(lbNode!.children![0]);
 
-    // hydration migration 이 추가로 발동되지 않음 (이미 template 있음)
-    const allListBoxItems = (lbNode!.children ?? []).filter(
-      (c) => c.type === "ListBoxItem",
+    // hydration migration 이 local template child 를 중복 보존하지 않음
+    const allTemplateAnchors = (lbNode!.children ?? []).filter(
+      (c) =>
+        c.type === "ref" &&
+        "ref" in c &&
+        c.ref === LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
     );
-    expect(allListBoxItems).toHaveLength(1);
+    expect(allTemplateAnchors).toHaveLength(1);
   });
 
   // ────────────────────────────────────────────
@@ -121,12 +149,12 @@ describe("ADR-145 Phase A — ListBox template element round-trip", () => {
 
     const doc = legacyToCanonical({ elements, pages, layouts: [] }, deps);
 
-    const lbNode = findFirstByType(doc.children ?? [], "ListBox");
+    const lbNode = findContentListBox(doc.children ?? []);
     expect(lbNode).toBeDefined();
     expect(lbNode!.children).toHaveLength(1);
-    expect(lbNode!.children![0].type).toBe("ListBoxItem");
+    expectTemplateAnchor(lbNode!.children![0]);
 
-    // synthetic template id 검증 — `<lb id seg>::template::listboxitem`
+    // synthetic template anchor id 검증 — `<lb id seg>::template::listboxitem`
     expect(lbNode!.children![0].id).toContain("::template::listboxitem");
   });
 
@@ -153,13 +181,16 @@ describe("ADR-145 Phase A — ListBox template element round-trip", () => {
 
     const doc = legacyToCanonical({ elements, pages, layouts: [] }, deps);
 
-    const lbNode = findFirstByType(doc.children ?? [], "ListBox");
+    const lbNode = findContentListBox(doc.children ?? []);
     expect(lbNode).toBeDefined();
     expect(lbNode!.children).toHaveLength(2);
 
     const itemTypes = (lbNode!.children ?? []).map((c) => c.type);
     expect(itemTypes).toContain("Text");
-    expect(itemTypes).toContain("ListBoxItem");
+    expect(itemTypes).toContain("ref");
+    expectTemplateAnchor(
+      (lbNode!.children ?? []).find((c) => c.type === "ref"),
+    );
   });
 
   // ────────────────────────────────────────────
@@ -190,11 +221,14 @@ describe("ADR-145 Phase A — ListBox template element round-trip", () => {
 
     const doc = legacyToCanonical({ elements, pages, layouts: [] }, deps);
 
-    const masterNode = findReusableByType(doc.children ?? [], "ListBox");
+    const masterNode = findNode(
+      doc.children ?? [],
+      (node) => node.type === "ListBox" && node.name === "Country List",
+    );
     expect(masterNode).toBeDefined();
     expect(masterNode!.reusable).toBe(true);
     expect(masterNode!.children).toHaveLength(1);
-    expect(masterNode!.children![0].type).toBe("ListBoxItem");
+    expectTemplateAnchor(masterNode!.children![0]);
   });
 
   // ────────────────────────────────────────────
