@@ -19,6 +19,7 @@
 import React from "react";
 import { rendererMap } from "@composition/shared/renderers";
 import { adaptElementFillStyle } from "@composition/shared";
+import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 import type { ResolvedNode } from "@composition/shared";
 import type { RenderContext as SharedRenderContext } from "@composition/shared/types";
 import { extractCanonicalPropsFromResolved } from "../../resolvers/canonical/storeBridge";
@@ -116,13 +117,31 @@ export function CanonicalNodeRenderer({
   // ── generic 렌더링 (rendererMap 미등록 태그) ─────────────────────────────
   const children = node.children ?? [];
 
+  // spec-backed 컴포넌트(Text/Heading/Paragraph/Description 등 rendererMap 미등록 leaf)는
+  // legacy App.tsx fallback 과 동일하게 `react-aria-{Type}` className + data-size/variant 를
+  // 주입해야 한다. 누락 시 generated CSS selector(`.react-aria-Text[data-size="lg"]`)가
+  // 매칭되지 않아 Preview 가 size/variant 변화를 전혀 반영하지 못한다(브라우저 기본 폰트 고정).
+  const specBacked = hasSpec(type);
+  const specClassName = specBacked ? `react-aria-${type}` : undefined;
+  const userClassName = adaptedEl.props?.className as string | undefined;
+  const mergedClassName =
+    [specClassName, userClassName].filter(Boolean).join(" ") || undefined;
+  const specDataAttrs: Record<string, string> = {};
+  if (specBacked) {
+    const sizeProp = adaptedEl.props?.size as string | undefined;
+    specDataAttrs["data-size"] = sizeProp ?? getDefaultSizeForTag(type) ?? "md";
+    const variantProp = adaptedEl.props?.variant as string | undefined;
+    if (variantProp) specDataAttrs["data-variant"] = variantProp;
+  }
+
   return React.createElement(
     resolveGenericHtmlTag(adaptedEl.type),
     {
       key: node.id,
       ...markerProps,
       style: adaptedEl.props?.style as React.CSSProperties | undefined,
-      className: adaptedEl.props?.className as string | undefined,
+      className: mergedClassName,
+      ...specDataAttrs,
     },
     children.length > 0
       ? children.map((child) => (

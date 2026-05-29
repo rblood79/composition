@@ -2803,6 +2803,19 @@ export function calculateContentHeight(
   // TEXT_LEAF_TAGS 요소는 텍스트만 포함하는 리프 노드이므로
   // availableWidth가 있으면 줄바꿈을 고려한 실제 높이를 반환
   // whiteSpace: "nowrap"이면 줄바꿈 없으므로 스킵
+  //
+  // text leaf 의 size→fontSize/lineHeight 는 Skia 와 동일하게 spec render.shapes
+  // 경로(extractSpecTextStyle)로 resolve 한다. Button/Input 과 달리 text leaf 는
+  // 전용 size 분기가 없어, style.fontSize 미주입(factory) + size propagation
+  // (props.size 만 변경, style.fontSize 미갱신) 환경에서 fontSize 16 fallback →
+  // height 가 16*1.5=24px 로 고정되던 버그를 해소. (Description 처럼 lineHeight 를
+  // emit 하지 않는 spec 은 lineHeight=undefined → fontSize*1.5 fallback)
+  const textLeafSpec = TEXT_LEAF_TAGS.has(type)
+    ? extractSpecTextStyle(
+        type,
+        element.props as Record<string, unknown> | undefined,
+      )
+    : null;
   const ws49 = style?.whiteSpace as string | undefined;
   if (
     TEXT_LEAF_TAGS.has(type) &&
@@ -2817,8 +2830,12 @@ export function calculateContentHeight(
     );
     if (textContent) {
       // ADR-058 Phase 1: Text가 Spec 경로로 전환되면서 5-point patch 분기 제거.
+      // textLeafSpec 우선: render.shapes 와 동일 우선순위(props.size 시 size.fontSize).
       const fs0 =
-        parseNumericValue(style?.fontSize) ?? computedStyle?.fontSize ?? 16;
+        textLeafSpec?.fontSize ??
+        parseNumericValue(style?.fontSize) ??
+        computedStyle?.fontSize ??
+        16;
       const fw0 =
         parseNumericValue(style?.fontWeight) ??
         computedStyle?.fontWeight ??
@@ -2831,7 +2848,9 @@ export function calculateContentHeight(
       const maxTextWidth = availableWidth - pad.left - pad.right;
       if (maxTextWidth > 0) {
         // Tailwind CSS v4 기본 line-height: 1.5 → fontSize * 1.5
-        const resolvedLH = parseLineHeight(style, fs0) ?? fs0 * 1.5;
+        // style.lineHeight 명시 우선 → spec size lineHeight → fontSize*1.5 fallback
+        const resolvedLH =
+          parseLineHeight(style, fs0) ?? textLeafSpec?.lineHeight ?? fs0 * 1.5;
         const wb1 = style?.wordBreak as string as
           | "normal"
           | "break-all"
@@ -2861,9 +2880,13 @@ export function calculateContentHeight(
   }
 
   // 5. lineHeight가 명시적으로 지정되어 있으면 최소 높이로 사용
+  // text leaf 는 spec size 기준 fontSize/lineHeight 를 우선 적용 (Skia 정합)
   const fontSize =
-    parseNumericValue(style?.fontSize) ?? computedStyle?.fontSize;
-  const resolvedLineHeight = parseLineHeight(style, fontSize);
+    textLeafSpec?.fontSize ??
+    parseNumericValue(style?.fontSize) ??
+    computedStyle?.fontSize;
+  const resolvedLineHeight =
+    parseLineHeight(style, fontSize) ?? textLeafSpec?.lineHeight;
   if (resolvedLineHeight !== undefined) {
     // float 정밀도 유지: Math.round 제거 → 소수점 절사로 인한 줄바꿈 방지
     return resolvedLineHeight;
@@ -2893,7 +2916,7 @@ export function calculateContentHeight(
   // Text 컴포넌트에 상속되므로 fontSize * 1.5를 명시적으로 전달
   // (Button 등 UI 컴포넌트는 line-height: normal → step 2에서 fontBoundingBox 기반 처리)
   const fs = fontSize ?? 16;
-  return estimateTextHeight(fs, fs * 1.5);
+  return estimateTextHeight(fs, textLeafSpec?.lineHeight ?? fs * 1.5);
 }
 
 /**

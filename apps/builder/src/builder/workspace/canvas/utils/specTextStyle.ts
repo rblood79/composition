@@ -8,7 +8,7 @@
  * Spec을 단일 소스(Single Source of Truth)로 사용.
  */
 
-import type { ComponentSpec, TextShape } from "@composition/specs";
+import type { ComponentSpec, TextShape, TokenRef } from "@composition/specs";
 import {
   ButtonSpec,
   BadgeSpec,
@@ -27,6 +27,13 @@ import {
   MeterValueSpec,
   SliderOutputSpec,
   TabSpec,
+  TextSpec,
+  HeadingSpec,
+  ParagraphSpec,
+  DescriptionSpec,
+  KbdSpec,
+  CodeSpec,
+  resolveToken,
 } from "@composition/specs";
 
 /** Spec shapes에서 추출한 텍스트 스타일 */
@@ -35,6 +42,15 @@ export interface SpecTextStyle {
   fontWeight: number;
   fontFamily: string;
   letterSpacing?: number;
+  /**
+   * px 로 resolve 된 line-height.
+   *
+   * render.shapes 가 emit 하는 TextShape.lineHeight 는 size preset 의 TokenRef
+   * 문자열(`"{typography.text-base--line-height}"`)이 `as unknown as number` 로
+   * 전달되므로, 여기서 `resolveToken` 으로 px number 로 변환해 둔다.
+   * spec 이 lineHeight 를 emit 하지 않으면(예: Description) undefined.
+   */
+  lineHeight?: number;
 }
 
 /** type → Spec + 기본 size 매핑 (텍스트 폭 측정이 필요한 inline 컴포넌트만) */
@@ -78,6 +94,33 @@ const TEXT_BEARING_SPECS: Record<
   },
   slideroutput: {
     spec: SliderOutputSpec as ComponentSpec<Record<string, unknown>>,
+    defaultSize: "md",
+  },
+  // TEXT_LEAF_TAGS: layout height 가 size→fontSize/lineHeight 를 Skia 와 동일한
+  // render.shapes 경로로 resolve 하도록 등록. (label 은 fullTreeLayout DFS injection
+  // 으로 별도 처리되므로 제외)
+  text: {
+    spec: TextSpec as ComponentSpec<Record<string, unknown>>,
+    defaultSize: "md",
+  },
+  heading: {
+    spec: HeadingSpec as ComponentSpec<Record<string, unknown>>,
+    defaultSize: "md",
+  },
+  paragraph: {
+    spec: ParagraphSpec as ComponentSpec<Record<string, unknown>>,
+    defaultSize: "md",
+  },
+  description: {
+    spec: DescriptionSpec as ComponentSpec<Record<string, unknown>>,
+    defaultSize: "md",
+  },
+  kbd: {
+    spec: KbdSpec as ComponentSpec<Record<string, unknown>>,
+    defaultSize: "md",
+  },
+  code: {
+    spec: CodeSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
   },
 };
@@ -139,5 +182,25 @@ export function extractSpecTextStyle(
           : 400,
     fontFamily: textShape.fontFamily,
     letterSpacing: textShape.letterSpacing,
+    lineHeight: resolveShapeLineHeight(textShape.lineHeight),
   };
+}
+
+/**
+ * TextShape.lineHeight 를 px number 로 정규화한다.
+ *
+ * render.shapes 는 size preset 의 lineHeight TokenRef 문자열을
+ * `as unknown as number` 로 전달하므로(specShapeConverter 가 Skia 경로에서 resolve),
+ * layout 경로에서는 동일한 `resolveToken` 으로 px 로 변환한다.
+ * - number → 그대로
+ * - TokenRef 문자열(`"{...}"`) → resolveToken
+ * - 그 외/미emit → undefined (caller 가 fontSize*1.5 fallback)
+ */
+function resolveShapeLineHeight(lh: unknown): number | undefined {
+  if (typeof lh === "number") return lh;
+  if (typeof lh === "string" && lh.startsWith("{")) {
+    const resolved = resolveToken(lh as TokenRef);
+    return typeof resolved === "number" ? resolved : undefined;
+  }
+  return undefined;
 }

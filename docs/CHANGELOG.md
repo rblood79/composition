@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Text size 변경 시 fontSize/height 미반영 수정 — TEXT_LEAF layout + CSS preview 정합] - 2026-05-29
+
+### Bug Fixes
+
+- **Text(및 TEXT_LEAF) size 변경 시 layout height 가 24px 로 고정**:
+  - `calculateContentHeight` 의 text leaf 경로가 spec size 를 참조하지 않고 `style.fontSize`(factory 미주입) / `computedStyle.fontSize`(상속 없음) 에만 의존 → `?? 16` fallback → `estimateTextHeight(16, 16*1.5)` = 24px 영구 고정
+  - **Why**: Button/Input 과 달리 TEXT_LEAF_TAGS(text/heading/paragraph/description/kbd/code) 는 size→spec fontSize/lineHeight 를 resolve 하는 전용 분기가 없었음. Skia 는 `render.shapes` 로 size 를 반영(글자 크기 변경)했으나 layout box 높이만 고정 → 시각 비대칭
+  - 수정: `extractSpecTextStyle` 에 TEXT_LEAF spec(Text/Heading/Paragraph/Description/Kbd/Code) 등록 + `lineHeight`(TokenRef→px resolve) 반환 추가, `calculateContentHeight` text leaf 3 지점이 spec size 를 우선 소비 (Skia 와 동일한 `render.shapes` 경로 공유)
+  - 위치: `apps/builder/src/builder/workspace/canvas/utils/specTextStyle.ts`, `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+
+- **CSS preview(canonical renderer)에서 Text size 변화 전무**:
+  - 기본 경로인 `CanonicalNodeRenderer` 의 generic 분기가 spec-backed 컴포넌트에 `react-aria-{type}` className + `data-size` 를 주입하지 않아 generated CSS selector(`.react-aria-Text[data-size]`) 미매칭 → 브라우저 기본 `<p>` 폰트로 고정
+  - **Why**: legacy `App.tsx` fallback 은 주입했으나 canonical generic 경로(ADR-116, 현재 기본 활성)는 누락 → Skia(정상) ↔ CSS preview(무반응) 비대칭
+  - 수정: canonical generic 에 legacy 와 동일한 specBacked className + `data-size`/`data-variant` 주입. Chrome MCP 로 `data-size="3xl"` → 30px/36px 적용 + Skia↔CSS 시각 대칭 확증
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`
+
 ## [ADR-146 ListBoxItem Ref Template and Row Projection Implemented] - 2026-05-28
 
 ### Architecture
