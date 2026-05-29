@@ -56,7 +56,7 @@ ADR 분리 결정을 commit 하기 **전에** 다음 4 질문을 ADR 본문 또�
 3. **baseline framing reverse 검증**: baseline ADR 의 의존 방향을 그대로 옮기는 것이 fork 후에도 valid 한가? grep + 사용자 1회 confirm. baseline framing 자동 승계 금지.
 4. **codex 3차 review 까지 미루지 말 것**: 1차 (표면 이슈) / 2차 (gate 정합) 후 3차에 가서야 framing 잡히는 패턴 회피. fork 시점에 위 1-3 질문 통과 후 codex 1차 진입.
 
-### Extended thinking 진입 의무
+### 깊은 사고(adaptive thinking) 진입 의무
 
 framing 검증은 표면 사고로 처리 금지. ADR fork 결정 시 명시적으로 깊은 사고 모드 진입 후 4 질문 통과. token 효율 학습 압력 (짧은 답변 / plan→execute→done 사이클) 회피 — Anthropic 자체 가이드 정렬.
 

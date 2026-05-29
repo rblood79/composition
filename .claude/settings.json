@@ -8,7 +8,7 @@
       "Bash(rm -fR:*)"
     ]
   },
-  "alwaysThinkingEnabled": true,
+  "alwaysThinkingEnabled": false,
   "autoDreamEnabled": true,
   "statusLine": {
     "type": "command",

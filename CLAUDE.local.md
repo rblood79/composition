@@ -2,9 +2,10 @@
 
 ## 개인 설정
 
-- 선호 모델: Opus 4.6 (1M context)
+- 선호 모델: Opus 4.8 (1M context)
 - 응답 언어: 한국어 (코드/기술 용어 영어 유지)
-- Effort: max
+- Effort: xhigh (코딩·에이전트 기본 권장; max 는 토큰 대비 diminishing returns + overthinking 경향이라 실험용)
+- Thinking: adaptive (settings `alwaysThinkingEnabled=false`) — 단순 턴은 직접 응답, 복잡 framing 작업은 effort=xhigh 로 깊은 reasoning 확보. 레퍼런스 "adaptive thinking reliably drives better performance than extended thinking"
 
 ## 병렬 세션 패턴
 
@@ -59,16 +60,16 @@ pnpm type-check             # 타입 체크
 
 ### 세션 시작 플래그
 
-| 플래그                     | 용도                                  | 언제 쓰는가                    |
-| -------------------------- | ------------------------------------- | ------------------------------ |
-| `--effort max`             | 최고 품질 추론                        | 복잡한 설계/리팩토링           |
-| `--fork-session`           | 세션 복제 후 분기                     | 실험적 경로 테스트             |
-| `--from-pr <NNN>`          | PR 연동 세션                          | PR 리뷰/수정 재개              |
-| `--worktree <name>`        | git worktree 격리                     | 대규모 변경                    |
-| `--tmux`                   | iTerm2/tmux 네이티브 패널             | 병렬 세션 `--worktree` 조합 시 |
-| `--max-budget-usd <N>`     | 세션당 예산 상한                      | `-p` 스크립트 실행 시 보호     |
-| `--bare`                   | 최소 모드 (hooks/MCP/auto-memory OFF) | 빠른 일회성 질문               |
-| `--chrome` / `--no-chrome` | Chrome 통합 on/off                    | evaluator agent UI 검증 시 on  |
+| 플래그                     | 용도                                  | 언제 쓰는가                                 |
+| -------------------------- | ------------------------------------- | ------------------------------------------- |
+| `--effort xhigh`           | 코딩·에이전트 기본 추론 (권장)        | 대부분의 복잡 설계/리팩토링 (max 는 실험용) |
+| `--fork-session`           | 세션 복제 후 분기                     | 실험적 경로 테스트                          |
+| `--from-pr <NNN>`          | PR 연동 세션                          | PR 리뷰/수정 재개                           |
+| `--worktree <name>`        | git worktree 격리                     | 대규모 변경                                 |
+| `--tmux`                   | iTerm2/tmux 네이티브 패널             | 병렬 세션 `--worktree` 조합 시              |
+| `--max-budget-usd <N>`     | 세션당 예산 상한                      | `-p` 스크립트 실행 시 보호                  |
+| `--bare`                   | 최소 모드 (hooks/MCP/auto-memory OFF) | 빠른 일회성 질문                            |
+| `--chrome` / `--no-chrome` | Chrome 통합 on/off                    | evaluator agent UI 검증 시 on               |
 
 ### Prompt Cache 최적화 (lean system prompt 기본화)
 

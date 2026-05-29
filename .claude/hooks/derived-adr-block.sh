@@ -94,7 +94,7 @@ REASON_TEXT=$(cat <<INNER_EOF
 [정책 근거]
 - ~/.claude/projects/-Users-admin-work-composition/memory/feedback-no-derived-adr-mid-execution.md
 - ~/.claude/projects/-Users-admin-work-composition/memory/feedback-adr-dependency-direction-stale-baseline.md
-- composition CLAUDE.md §"본질 사고 작업은 extended thinking 명시 진입"
+- composition CLAUDE.md §"본질 사고 작업은 깊은 사고(adaptive thinking) 명시 진입"
 
 [해결 방법]
 1. 사용자에게 명시 ADR 발의 confirm 요청

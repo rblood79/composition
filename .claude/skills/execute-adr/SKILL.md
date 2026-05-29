@@ -116,7 +116,7 @@ git commit -m "$(cat <<'COMMIT_EOF'
 
 {detailed body — 3-7 lines, why 중심}
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 COMMIT_EOF
 )"
 

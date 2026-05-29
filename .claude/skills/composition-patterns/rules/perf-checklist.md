@@ -134,7 +134,7 @@ Chrome DevTools → Performance 탭
 ## 참조
 
 > 이 체크리스트는 아래 개별 규칙의 **통합 진입점**입니다.
-> Opus 4.6에서 범용 패턴(barrel import, Promise.all, 동적 import)은 자연스럽게 준수되므로,
+> Opus 4.8에서 범용 패턴(barrel import, Promise.all, 동적 import)은 자연스럽게 준수되므로,
 > 도메인 특화 항목(Canvas/PIXI, elementsMap)에 집중하세요.
 
 - `perf-barrel-imports.md` - Barrel import 상세 (범용 — 레퍼런스용)
