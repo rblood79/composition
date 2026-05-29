@@ -70,9 +70,9 @@ pnpm type-check             # 타입 체크
 | `--bare`                   | 최소 모드 (hooks/MCP/auto-memory OFF) | 빠른 일회성 질문               |
 | `--chrome` / `--no-chrome` | Chrome 통합 on/off                    | evaluator agent UI 검증 시 on  |
 
-### Prompt Cache 최적화
+### Prompt Cache 최적화 (lean system prompt 기본화)
 
-`.claude/settings.json`에 `excludeDynamicSystemPromptSections: true` 설정됨 — cwd/env/git status를 시스템 프롬프트에서 분리해 cross-user cache 재사용률↑. 효과 확인: 장기 세션 토큰 비용 감소.
+Claude Code **2.1.154+ 부터 lean system prompt 가 기본 적용** (Opus 4.8 포함; Haiku/Sonnet/Opus 4.7 이하 제외) — cwd/env/git status 등 동적 섹션 분리가 기본 동작으로 흡수됨. 과거 `.claude/settings.json` 의 `excludeDynamicSystemPromptSections: true` 는 **2.1.156 settings 스키마에서 제거** (root `additionalProperties` 로 에러 없이 무시되던 no-op) 되어 삭제함. cross-user cache 재사용률은 lean prompt 기본화로 유지.
 
 ### 출력 스타일
 
