@@ -208,6 +208,161 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
         templateAnchorId: "template-anchor",
       },
     });
+    // ADR-147 (이중 렌더 방지): projected 행은 render.shapes 로 자체 렌더하므로
+    //   canonical `ref` 를 갖지 않는다(가지면 resolveCanonicalRefTree 가 origin 의
+    //   composed children placeholder 를 행마다 확장 → 데이터 위 {label}/{description} 겹침).
+    //   origin 참조는 projection.templateOriginId 로 보존된다.
+    expect(aardvark?.ref).toBeUndefined();
+  });
+
+  it("propagates the template anchor layout style onto projected rows (ADR-147)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: { items: [{ id: "aardvark", label: "Aardvark" }] },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {
+                        style: {
+                          paddingLeft: 24,
+                          paddingTop: 8,
+                          rowGap: 8,
+                        },
+                      },
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const aardvark = graph.nodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "aardvark"),
+    );
+
+    // anchor 의 layout style 이 행에 전파되되, width 는 항상 100% 로 고정된다.
+    expect(aardvark?.props.style).toMatchObject({
+      paddingLeft: 24,
+      paddingTop: 8,
+      rowGap: 8,
+      width: "100%",
+    });
+  });
+
+  it("suppresses the template anchor from the visible scene when data-bound (ADR-147 이중 렌더 방지)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: { items: [{ id: "aardvark", label: "Aardvark" }] },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+
+    // 데이터 바인딩 행 projection 은 존재해야 한다.
+    expect(
+      graph.nodesMap.get(toListBoxRowProjectionId("listbox-1", "aardvark")),
+    ).toBeDefined();
+    // template anchor 자체는 가시 scene 에서 제외(projection 이 단일 렌더러).
+    expect(graph.nodesMap.get("template-anchor")).toBeUndefined();
+  });
+
+  it("keeps the template anchor visible when the ListBox is not data-bound", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-empty",
+                  type: "ListBox",
+                  props: {},
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+
+    // projection 행이 없으므로(데이터 없음) anchor 는 가시 scene 에 유지된다.
+    expect(graph.nodesMap.get("template-anchor")).toBeDefined();
   });
 
   it("projects ListBox rows from dataBinding before props.items seed data", () => {

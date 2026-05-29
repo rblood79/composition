@@ -119,26 +119,49 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
       const style = props.style ?? {};
       const fontSize = resolveSpecFontSize(style.fontSize ?? size.fontSize, 14);
       const metric = resolveListBoxItemMetric(fontSize);
-      const paddingX = parsePxValue(
-        style.paddingX ?? style.paddingLeft,
+      // ADR-147 (layout edit): padding 4-way + gap 를 longhand 우선 소비 (style-ssot.md).
+      //   store 는 longhand 저장 → paddingTop/Left 우선, shorthand `padding` fallback, 없으면 spec 기본.
+      const paddingLeft = parsePxValue(
+        style.paddingLeft ?? style.padding,
         metric.paddingX,
       );
-      const paddingY = parsePxValue(
-        style.paddingY ?? style.paddingTop,
+      const paddingRight = parsePxValue(
+        style.paddingRight ?? style.padding,
+        metric.paddingX,
+      );
+      const paddingTop = parsePxValue(
+        style.paddingTop ?? style.padding,
         metric.paddingY,
       );
-      const rowHeight = parsePxValue(
-        style.height,
-        Math.max(metric.itemHeight, parsePxValue(style.minHeight, 20)),
+      const paddingBottom = parsePxValue(
+        style.paddingBottom ?? style.padding,
+        metric.paddingY,
       );
-      const width =
-        typeof style.width === "number" && style.width > 0 ? style.width : 200;
+      // label↔description 수직 간격. rowGap/columnGap/gap longhand 우선, 없으면 size.gap.
+      const rowGap = parsePxValue(
+        style.rowGap ?? style.columnGap ?? style.gap,
+        typeof size.gap === "number" ? size.gap : 0,
+      );
+      const lineHeight = metric.lineHeight;
       const label =
         readText(props.children) ??
         readText(props.textValue) ??
         readText(props.value) ??
         "";
       const description = readText(props.description);
+      // 콘텐츠 높이 = label 단독 또는 label + gap + description. rowHeight 는 padding box 포함.
+      const contentHeight = description
+        ? lineHeight + rowGap + lineHeight
+        : lineHeight;
+      const rowHeight = parsePxValue(
+        style.height,
+        Math.max(
+          paddingTop + paddingBottom + contentHeight,
+          parsePxValue(style.minHeight, 20),
+        ),
+      );
+      const width =
+        typeof style.width === "number" && style.width > 0 ? style.width : 200;
       const textColor = props.isDisabled
         ? ("{color.neutral-subdued}" as TokenRef)
         : ((style.color as string | undefined) ??
@@ -149,9 +172,16 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
       const slotGap = 6;
       const showCheck = Boolean(props._isSelected);
       const checkSize = 16;
-      const textX = paddingX + (iconName ? iconSize + slotGap : 0);
+      // D3 대칭(ADR-147): icon/check 는 CSS `[slot=icon]{left:var(--spacing-md)}` /
+      //   `.listbox-item-check{right:var(--spacing-md)}` 와 동일한 고정 inset(=metric.paddingX).
+      //   text 만 편집된 padding 을 반영(= DOM flex content 의 padding-left). icon 존재 시
+      //   text 는 icon slot 폭 만큼 최소 offset 보장(= CSS `:has([slot=icon])` calc 기본값).
+      const slotInset = metric.paddingX;
+      const textX = iconName
+        ? Math.max(paddingLeft, slotInset + iconSize + slotGap)
+        : paddingLeft;
       const rightReserve = showCheck ? checkSize + slotGap : 0;
-      const maxWidth = Math.max(1, width - textX - paddingX - rightReserve);
+      const maxWidth = Math.max(1, width - textX - paddingRight - rightReserve);
       const labelFontFamily =
         (style.fontFamily as string | undefined) ?? fontFamily.sans;
       const labelFontWeight =
@@ -178,7 +208,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         shapes.push({
           type: "icon_font",
           iconName,
-          x: paddingX + iconSize / 2,
+          x: slotInset + iconSize / 2,
           y: rowHeight / 2,
           fontSize: iconSize,
           fill: textColor,
@@ -192,7 +222,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         shapes.push({
           type: "icon_font",
           iconName: "check",
-          x: width - paddingX - checkSize / 2,
+          x: width - slotInset - checkSize / 2,
           y: rowHeight / 2,
           fontSize: checkSize,
           fill: "{color.accent}" as TokenRef,
@@ -204,7 +234,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         shapes.push({
           type: "text",
           x: textX,
-          y: paddingY + metric.lineHeight / 2,
+          y: paddingTop + lineHeight / 2,
           text: label,
           fontSize,
           fontFamily: labelFontFamily,
@@ -218,7 +248,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         shapes.push({
           type: "text",
           x: textX,
-          y: paddingY + metric.lineHeight + metric.lineHeight / 2,
+          y: paddingTop + lineHeight + rowGap + lineHeight / 2,
           text: description,
           fontSize: Math.max(11, fontSize - 1),
           fontFamily: labelFontFamily,

@@ -275,6 +275,11 @@ export const renderListBox = (
           value={item}
           isDisabled={Boolean(listBoxItemTemplate.props.isDisabled)}
           className={listBoxItemTemplate.props.className}
+          // ADR-147 (layout edit): template anchor 의 layout style 을 각 행에 적용.
+          //   CSS 가 flex/gap/align 을 처리 → Skia render.shapes 와 D3 대칭.
+          style={
+            listBoxItemTemplate.props.style as React.CSSProperties | undefined
+          }
           textValue={label}
         >
           {({ isSelected }) =>

@@ -16,6 +16,7 @@ import {
 import {
   getListBoxProjectionRows,
   type ListBoxCollectionDataSource,
+  type ListBoxProjectionRow,
 } from "../../../components/listbox/listBoxRowProjectionModel";
 import {
   toListBoxRowProjectionId,
@@ -366,18 +367,24 @@ function isListBoxRowSelected(
   return props.selectedIndex === rowIndex;
 }
 
-function appendListBoxRowProjection(
+/**
+ * data-bound ListBox 의 projection 결정(gating)을 단일 소스로 계산.
+ *
+ * visit 의 anchor suppression 과 appendListBoxRowProjection 이 **동일 판정**을 공유해야
+ * (data-bound + rows>0) anchor 제외와 행 projection 이 lockstep 으로 동작한다. 두 곳이
+ * 따로 판정하면 anchor 만 사라지고 행은 안 그려지는(빈 ListBox) drift 가 생긴다.
+ */
+function resolveDataBoundListBoxProjection(
   listBoxSceneNode: CanvasSceneNode,
   sourceNode: CanonicalNode,
-  scope: SceneScopeContext,
-  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
-    parentById: Map<string, string>;
-  },
   options: BuildCanvasSceneGraphOptions,
-): void {
-  if (!isListBoxSceneSource(listBoxSceneNode, sourceNode)) return;
+): {
+  rows: ListBoxProjectionRow[];
+  templateAnchor: CanonicalNode | null;
+  sourceNode: CanonicalNode;
+} | null {
+  if (!isListBoxSceneSource(listBoxSceneNode, sourceNode)) return null;
 
-  const props = listBoxSceneNode.props;
   const dataBinding = getElementDataBinding(sourceNode);
   const mode = detectListBoxAuthoringMode({
     children: sourceNode.children?.map((child) => ({
@@ -386,20 +393,45 @@ function appendListBoxRowProjection(
       type: child.type,
     })),
     dataBinding,
-    props,
+    props: listBoxSceneNode.props,
   });
-  if (mode.mode !== "data-bound") return;
+  if (mode.mode !== "data-bound") return null;
 
   const rows = getListBoxProjectionRows({
     collections: options.collections,
     dataBinding,
-    props,
+    props: listBoxSceneNode.props,
   });
-  if (rows.length === 0) return;
+  if (rows.length === 0) return null;
 
-  const templateAnchor = getListBoxTemplateAnchor(sourceNode.children);
+  return {
+    rows,
+    templateAnchor: getListBoxTemplateAnchor(sourceNode.children),
+    sourceNode,
+  };
+}
+
+function appendListBoxRowProjection(
+  listBoxSceneNode: CanvasSceneNode,
+  projection: {
+    rows: ListBoxProjectionRow[];
+    templateAnchor: CanonicalNode | null;
+    sourceNode: CanonicalNode;
+  },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  const props = listBoxSceneNode.props;
+  const { rows, templateAnchor, sourceNode } = projection;
   const templateAnchorId = templateAnchor?.id ?? null;
   const templateOriginId = getTemplateOriginId(templateAnchor);
+  // ADR-147 (layout edit): template anchor 의 layout style 을 각 projected 행에 전파.
+  //   사용자가 행(= anchor)을 선택해 layout 을 편집하면 모든 행에 반영된다. 미설정 prop 은
+  //   ListBoxItem render.shapes 기본값(containerStyles/metric)이 커버하므로 origin ref 해석 불필요.
+  const templateAnchorStyle =
+    (templateAnchor?.props?.style as Record<string, unknown> | undefined) ?? {};
   const rowsGroupId = toListBoxRowsGroupProjectionId(listBoxSceneNode.id);
   const rowsGroup: CanvasSceneNode = {
     id: rowsGroupId,
@@ -437,7 +469,8 @@ function appendListBoxRowProjection(
       children: row.label,
       description: row.description ?? "",
       textValue: row.label,
-      style: { width: "100%" },
+      // ADR-147: anchor layout style overlay. width 는 항상 100% (list 행 폭 고정).
+      style: { ...templateAnchorStyle, width: "100%" },
       _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
     };
     if (row.value) rowProps.value = row.value;
@@ -463,7 +496,10 @@ function appendListBoxRowProjection(
           templateAnchorId,
           templateOriginId,
         },
-        ref: templateOriginId ?? undefined,
+        // ADR-147 (이중 렌더 방지): projection 행은 render.shapes 로 데이터를 자체 렌더한다.
+        //   canonical `ref` 를 두면 resolveCanonicalRefTree 가 origin(component-listbox-item-*)
+        //   의 composed children({label}/{description} placeholder)을 행마다 확장하여
+        //   데이터 위에 겹쳐 그린다. origin 참조는 projection.templateOriginId 로 보존.
         sourceNode: templateAnchor ?? sourceNode,
       },
       graph,
@@ -500,7 +536,16 @@ export function buildCanvasSceneGraph(
       addSceneNode(sceneNode, graph);
     }
 
+    // ADR-147 (이중 렌더 방지): data-bound ListBox 는 projection 이 행을 렌더하므로
+    //   template anchor(및 origin composed children placeholder)는 가시 scene 에서 제외.
+    //   동일 projection 판정을 suppression 과 append 가 공유한다.
+    const listBoxProjection = sceneNode
+      ? resolveDataBoundListBoxProjection(sceneNode, node, options)
+      : null;
+    const suppressedAnchorId = listBoxProjection?.templateAnchor?.id ?? null;
+
     node.children?.forEach((child) => {
+      if (suppressedAnchorId && child.id === suppressedAnchorId) return;
       visit(child, nextParentId, nextScope);
     });
     getRefDescendantChildren(node).forEach((children) => {
@@ -508,8 +553,13 @@ export function buildCanvasSceneGraph(
         visit(child, nextParentId, nextScope);
       });
     });
-    if (sceneNode) {
-      appendListBoxRowProjection(sceneNode, node, nextScope, graph, options);
+    if (sceneNode && listBoxProjection) {
+      appendListBoxRowProjection(
+        sceneNode,
+        listBoxProjection,
+        nextScope,
+        graph,
+      );
     }
   }
 

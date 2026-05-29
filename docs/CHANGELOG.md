@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem layout 편집 + 데이터 바인딩 행 이중 렌더 수정 — ADR-147 (Proposed) 방향 A] - 2026-05-29
+
+### Bug Fixes
+
+- **데이터 바인딩 ListBox 행 이중 렌더** (ADR-147):
+  - projected 행과 template anchor 가 origin(`component-listbox-item-*`)의 composed children(`{label}`/`{description}` 미해석 placeholder)을 render.shapes 데이터 위에 겹쳐 렌더
+  - **Why**: ADR-147 이 ListBoxItem origin 에 composed children 을 추가한 뒤, `resolveCanonicalRefTree` 가 `ref` 보유 노드(projected 행 + template anchor)를 origin composed children 으로 확장 → 데이터 행마다 placeholder 중복
+  - 수정: data-bound 시 template anchor 를 가시 scene 에서 제외 + projected 행 노드의 canonical `ref` 제거(render.shapes 단일 렌더러). origin 참조는 `projection.templateOriginId` 메타로 보존. suppression 과 row projection 은 `resolveDataBoundListBoxProjection` 단일 판정 공유(lockstep)
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`
+
+### Features
+
+- **ListBoxItem layout 편집 가능화 (방향 A)** (ADR-147):
+  - Style Panel 에서 template anchor 의 padding/gap 편집 → 모든 projected 행에 반영 (Builder Skia ↔ Preview DOM 시각 대칭)
+  - 캔버스에서 projected 행 클릭 시 canonical template anchor 로 selection redirect (§9 render-space boundary 준수, projected ID 는 store 미진입). 기존 `page-slot-fill` 패턴 재사용
+  - `ListBoxItem.spec.ts` `render.shapes` 가 padding 4-way + rowGap 을 longhand 우선 소비(style-ssot.md), rowHeight 를 padding+content 에서 도출. icon/check 는 CSS `var(--spacing-md)` 와 동일 고정 inset
+  - anchor layout style 을 projection 행에 overlay(`canvasSceneNode`) + Preview `<ListBoxItem style>` passthrough(`SelectionRenderers`)
+  - 위치: `apps/builder/src/builder/workspace/canvas/interaction/resolveCanvasInteractionTarget.ts`, `.../scene/canvasSceneNode.ts`, `packages/specs/src/components/ListBoxItem.spec.ts`, `packages/shared/src/renderers/SelectionRenderers.tsx`
+
 ## [Text size 변경 시 fontSize/height 미반영 수정 — TEXT_LEAF layout + CSS preview 정합] - 2026-05-29
 
 ### Bug Fixes

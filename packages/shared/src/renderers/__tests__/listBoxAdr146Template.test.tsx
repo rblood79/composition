@@ -102,4 +102,38 @@ describe("ADR-146 ListBox Preview ref template rendering", () => {
     expect(label?.props.children).toBe("Aardvark");
     expect(description?.props.children).toBe("Burrowing mammal");
   });
+
+  it("passes the template anchor layout style to each ListBoxItem (ADR-147 layout edit)", () => {
+    const listBox: PreviewElement = {
+      id: "listbox",
+      type: "ListBox",
+      dataBinding: {
+        type: "collection",
+        source: "static",
+        config: { data: [{ id: "aardvark", label: "Aardvark" }] },
+      },
+      props: {},
+    };
+    const template: PreviewElement = {
+      id: "template-anchor",
+      type: "ListBoxItem",
+      props: {
+        children: "{label}",
+        description: "{description}",
+        style: { flexDirection: "row", rowGap: 8, paddingLeft: 20 },
+      },
+      parent_id: "listbox",
+    };
+
+    const rendered = renderListBox(listBox, makeContext(template));
+    const renderItem = (rendered as { props: { children?: unknown } }).props
+      .children as (item: Record<string, unknown>) => unknown;
+    const row = renderItem({ id: "aardvark", label: "Aardvark" });
+
+    expect((row as { props: { style?: unknown } }).props.style).toMatchObject({
+      flexDirection: "row",
+      rowGap: 8,
+      paddingLeft: 20,
+    });
+  });
 });

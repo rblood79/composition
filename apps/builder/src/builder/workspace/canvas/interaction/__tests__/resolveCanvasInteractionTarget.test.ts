@@ -114,4 +114,69 @@ describe("resolveCanvasInteractionTarget", () => {
       }),
     ).toEqual({ kind: "none" });
   });
+
+  // ADR-147 (layout edit): listbox 행/그룹 projection → canonical template anchor 선택.
+  it("redirects a clicked listbox-row projection to its canonical template anchor", () => {
+    const row = makeNode("projection:listbox-row:listbox-1:row-1", {
+      type: "ListBoxItem",
+      projection: {
+        kind: "listbox-row",
+        listBoxId: "listbox-1",
+        itemKey: "row-1",
+        rowIndex: 0,
+        templateAnchorId: "anchor-1",
+        templateOriginId: "origin-1",
+      },
+    });
+
+    expect(
+      resolveCanvasInteractionTarget({
+        candidateIds: [row.id],
+        elementsMap: new Map([[row.id, row]]),
+        childrenMap: new Map(),
+      }),
+    ).toEqual({ kind: "select", elementId: "anchor-1", pageId: "page-1" });
+  });
+
+  it("redirects a listbox-rows group projection to the template anchor", () => {
+    const group = makeNode("projection:listbox-rows:listbox-1", {
+      type: "Rows",
+      projection: {
+        kind: "listbox-rows",
+        listBoxId: "listbox-1",
+        templateAnchorId: "anchor-1",
+        templateOriginId: "origin-1",
+      },
+    });
+
+    expect(
+      resolveCanvasInteractionTarget({
+        candidateIds: [group.id],
+        elementsMap: new Map([[group.id, group]]),
+        childrenMap: new Map(),
+      }),
+    ).toEqual({ kind: "select", elementId: "anchor-1", pageId: "page-1" });
+  });
+
+  it("falls back to the ListBox when no template anchor exists", () => {
+    const row = makeNode("projection:listbox-row:listbox-1:row-1", {
+      type: "ListBoxItem",
+      projection: {
+        kind: "listbox-row",
+        listBoxId: "listbox-1",
+        itemKey: "row-1",
+        rowIndex: 0,
+        templateAnchorId: null,
+        templateOriginId: null,
+      },
+    });
+
+    expect(
+      resolveCanvasInteractionTarget({
+        candidateIds: [row.id],
+        elementsMap: new Map([[row.id, row]]),
+        childrenMap: new Map(),
+      }),
+    ).toEqual({ kind: "select", elementId: "listbox-1", pageId: "page-1" });
+  });
 });

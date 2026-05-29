@@ -36,6 +36,24 @@ type ProjectionLike =
       canonicalParentId: string | null;
       slotName: string;
       descendantPath: string;
+    }
+  // ADR-147 (layout edit): ListBox row/rows projection 은 비영속 render-space 노드다.
+  // 클릭 시 canonical template anchor(없으면 ListBox)로 redirect 하여
+  // 사용자가 행 layout 을 편집하면 모든 행에 반영되도록 한다. projected ID 는 selection 에 진입하지 않는다(§9).
+  // (discriminated narrowing 을 위해 kind 별 멤버 분리.)
+  | {
+      kind: "listbox-row";
+      listBoxId: string;
+      templateAnchorId?: string | null;
+      templateOriginId?: string | null;
+      itemKey?: string;
+      rowIndex?: number;
+    }
+  | {
+      kind: "listbox-rows";
+      listBoxId: string;
+      templateAnchorId?: string | null;
+      templateOriginId?: string | null;
     };
 
 type ProjectedInteractionNode = CanvasInteractionNode & {
@@ -80,6 +98,18 @@ export function resolveCanvasInteractionTarget(input: {
         kind: "select",
         elementId: projection.sourceElementId,
         pageId: projection.pageId,
+      };
+    }
+
+    // ADR-147 (layout edit): listbox 행/그룹 projection → canonical template anchor 선택.
+    if (
+      projection.kind === "listbox-row" ||
+      projection.kind === "listbox-rows"
+    ) {
+      return {
+        kind: "select",
+        elementId: projection.templateAnchorId ?? projection.listBoxId,
+        pageId: readPageId(hitNode),
       };
     }
 

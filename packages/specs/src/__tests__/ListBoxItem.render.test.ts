@@ -84,3 +84,87 @@ describe("ListBoxItemSpec render.shapes ADR-146", () => {
     ).toBe(false);
   });
 });
+
+describe("ListBoxItemSpec render.shapes layout consumption (ADR-147 방향 A)", () => {
+  const size = ListBoxItemSpec.sizes![ListBoxItemSpec.defaultSize!]!;
+  const firstTextX = (
+    shapes: ReturnType<NonNullable<typeof ListBoxItemSpec.render>["shapes"]>,
+  ) => shapes.find((s) => s.type === "text")?.x;
+  const firstTextY = (
+    shapes: ReturnType<NonNullable<typeof ListBoxItemSpec.render>["shapes"]>,
+  ) => shapes.find((s) => s.type === "text")?.y;
+
+  it("honors paddingLeft for the label x offset", () => {
+    const shapes = ListBoxItemSpec.render!.shapes!(
+      {
+        children: "A",
+        style: {
+          paddingLeft: 40,
+          paddingRight: 12,
+          paddingTop: 4,
+          paddingBottom: 4,
+        },
+      },
+      size,
+      "default",
+    );
+    expect(firstTextX(shapes)).toBe(40);
+  });
+
+  it("derives row height from vertical padding (label re-centers)", () => {
+    const base = ListBoxItemSpec.render!.shapes!(
+      {
+        children: "A",
+        style: {
+          paddingTop: 4,
+          paddingBottom: 4,
+          paddingLeft: 12,
+          paddingRight: 12,
+        },
+      },
+      size,
+      "default",
+    );
+    const tall = ListBoxItemSpec.render!.shapes!(
+      {
+        children: "A",
+        style: {
+          paddingTop: 20,
+          paddingBottom: 20,
+          paddingLeft: 12,
+          paddingRight: 12,
+        },
+      },
+      size,
+      "default",
+    );
+    // 수직 패딩이 +16px (4→20) 이면 single-line label 중심도 +16px 내려간다.
+    expect(firstTextY(tall)! - firstTextY(base)!).toBe(16);
+  });
+
+  it("honors rowGap for label↔description spacing", () => {
+    const padding = {
+      paddingTop: 4,
+      paddingBottom: 4,
+      paddingLeft: 12,
+      paddingRight: 12,
+    };
+    const descGap = (
+      shapes: ReturnType<NonNullable<typeof ListBoxItemSpec.render>["shapes"]>,
+    ) => {
+      const texts = shapes.filter((s) => s.type === "text");
+      return (texts[1]!.y as number) - (texts[0]!.y as number);
+    };
+    const base = ListBoxItemSpec.render!.shapes!(
+      { children: "A", description: "B", style: { ...padding, rowGap: 0 } },
+      size,
+      "default",
+    );
+    const wide = ListBoxItemSpec.render!.shapes!(
+      { children: "A", description: "B", style: { ...padding, rowGap: 10 } },
+      size,
+      "default",
+    );
+    expect(descGap(wide) - descGap(base)).toBe(10);
+  });
+});
