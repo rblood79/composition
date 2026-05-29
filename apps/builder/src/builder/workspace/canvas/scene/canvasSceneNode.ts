@@ -441,6 +441,7 @@ function appendListBoxRowProjection(
       _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
     };
     if (row.value) rowProps.value = row.value;
+    if (row.icon) rowProps.icon = row.icon; // ADR-147: icon slot
     if (row.isDisabled) rowProps.isDisabled = true;
 
     addSceneNode(

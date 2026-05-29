@@ -44,8 +44,9 @@ describe("canonical-first property editors", () => {
       ".",
     );
 
+    // ADR-147: ListBoxItemEditor 는 slot 기반 편집으로 전환되어 더 이상 child-aware 가 아니다
+    // (레거시 Field 자식 읽기 제거). useCanonicalPropertyElement 사용은 EDITORS 목록에서 검증.
     for (const filename of [
-      "ListBoxItemEditor.tsx",
       "RowEditor.tsx",
       "TableEditor.tsx",
       "TableBodyEditor.tsx",

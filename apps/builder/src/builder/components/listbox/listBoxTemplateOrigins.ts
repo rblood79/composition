@@ -10,6 +10,83 @@ export const LISTBOX_ITEM_SELECTED_ORIGIN_ID =
 export const LISTBOX_ORIGIN_ID = "component-listbox";
 export const LISTBOX_TEMPLATE_ANCHOR_ROLE = "listbox-item-template-anchor";
 
+/**
+ * ADR-147: ListBoxItem 내부 slot role (조합 자식 식별자).
+ *
+ * React Aria `ListBoxItem` 의 `<Text slot="label">`/`<Text slot="description">` + decorative
+ * `Icon` 에 대응. SelectionIndicator 는 선택 상태 기반 동적 렌더(Skia 체크마크 / DOM Check)이므로
+ * 조합 자식 노드가 아니라 render-time concern 으로 처리한다(ComponentTag 에 `SelectionIndicator` 부재).
+ *
+ * 식별은 `CanonicalNode.slot`(reusable id allow-list) 가 아니라 child `metadata.slotRole` 로 한다 —
+ * pencil 의 child `name` + `descendants[childId]` 패턴 정합.
+ */
+export const LISTBOX_ITEM_SLOT_ROLES = [
+  "icon",
+  "label",
+  "description",
+] as const;
+export type ListBoxItemSlotRole = (typeof LISTBOX_ITEM_SLOT_ROLES)[number];
+
+/** child 노드에서 ADR-147 slotRole 을 읽는다(없으면 null). */
+export function getListBoxItemSlotRole(
+  node: unknown,
+): ListBoxItemSlotRole | null {
+  if (!isRecord(node)) return null;
+  const metadata = node.metadata;
+  if (!isRecord(metadata)) return null;
+  const role = metadata.slotRole;
+  return (LISTBOX_ITEM_SLOT_ROLES as readonly string[]).includes(role as string)
+    ? (role as ListBoxItemSlotRole)
+    : null;
+}
+
+/**
+ * ADR-147: ListBoxItem reusable origin 의 조합 자식(Icon / Text(label) / Text(description)).
+ *
+ * 템플릿 바인딩 `{icon}`/`{label}`/`{description}` 은 row projection(columnMapping/dataBinding)
+ * 또는 static item 이 채운다. origin flat props(`children`/`textValue`/`description`)는 BC 및
+ * render.shapes/row projection 데이터 경로 유지를 위해 보존한다(자식은 authoring 구조 + slot 스타일 SSOT).
+ */
+function listBoxItemSlotChildren(originId: string): CanonicalNode[] {
+  return [
+    {
+      id: `${originId}__icon`,
+      type: "Icon",
+      name: "Icon",
+      props: { slot: "icon", iconName: "{icon}" },
+      metadata: {
+        type: "listbox-item-slot",
+        systemOwned: true,
+        slotRole: "icon",
+        optional: true,
+      },
+    },
+    {
+      id: `${originId}__label`,
+      type: "Text",
+      name: "Label",
+      props: { slot: "label", children: "{label}" },
+      metadata: {
+        type: "listbox-item-slot",
+        systemOwned: true,
+        slotRole: "label",
+      },
+    },
+    {
+      id: `${originId}__description`,
+      type: "Text",
+      name: "Description",
+      props: { slot: "description", children: "{description}" },
+      metadata: {
+        type: "listbox-item-slot",
+        systemOwned: true,
+        slotRole: "description",
+        optional: true,
+      },
+    },
+  ];
+}
+
 const LISTBOX_SYSTEM_ORIGIN_IDS = new Set([
   LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
   LISTBOX_ITEM_SELECTED_ORIGIN_ID,
@@ -84,6 +161,8 @@ function createListBoxItemDefaultOrigin(): CanonicalNode {
       textValue: "{label}",
       description: "{description}",
     },
+    // ADR-147: label/description/icon slot 조합 자식. flat props 와 병존(데이터 경로 BC).
+    children: listBoxItemSlotChildren(LISTBOX_ITEM_DEFAULT_ORIGIN_ID),
     metadata: {
       type: "listbox-template-origin",
       systemOwned: true,
@@ -107,6 +186,8 @@ function createListBoxItemSelectedOrigin(): CanonicalNode {
         backgroundColor: "var(--color-accent-subtle)",
       },
     },
+    // ADR-147: selected variant 도 동일 slot 조합 자식. 차이는 origin props.style(배경).
+    children: listBoxItemSlotChildren(LISTBOX_ITEM_SELECTED_ORIGIN_ID),
     metadata: {
       type: "listbox-template-origin",
       systemOwned: true,

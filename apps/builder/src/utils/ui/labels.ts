@@ -6,6 +6,7 @@ export const PROPERTY_LABELS = {
   // Common properties
   LABEL: "Label",
   DESCRIPTION: "Description",
+  ICON: "Icon",
   ERROR_MESSAGE: "Error Message",
   PLACEHOLDER: "Placeholder",
   VALUE: "Value",

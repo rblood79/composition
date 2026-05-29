@@ -9,12 +9,14 @@ import {
   ComboBox,
   ComboBoxItem,
   Slider,
+  Icon,
 } from "../components/list";
 import {
   ListBoxSection as AriaListBoxSection,
   Header as AriaHeader,
   GridListSection as AriaGridListSection,
   GridListHeader as AriaGridListHeader,
+  Text as AriaText,
 } from "react-aria-components";
 import { DataField } from "../components/Field";
 import type {
@@ -53,6 +55,41 @@ function resolveTemplateText(
       ? ""
       : String(replacement);
   });
+}
+
+/**
+ * ADR-147: ListBoxItem slot 콘텐츠 — RAC `<Text slot="label">`/`<Text slot="description">`
+ * + decorative icon + selection 체크마크. Builder Skia `ListBoxItem.spec.render.shapes` 의
+ * icon/label/description/check 와 D3 시각 대칭. 체크마크는 `isSelected` 일 때만(Skia 와 동일).
+ */
+function renderListBoxItemSlotContent(opts: {
+  label: React.ReactNode;
+  description: string | null;
+  iconName: string | null;
+  isSelected: boolean;
+}): React.ReactNode {
+  const { label, description, iconName, isSelected } = opts;
+  return (
+    <>
+      {iconName ? (
+        <span slot="icon" aria-hidden="true">
+          <Icon iconName={iconName} style={{ fontSize: 16 }} />
+        </span>
+      ) : null}
+      <AriaText slot="label">{label}</AriaText>
+      {description ? (
+        <AriaText slot="description">{description}</AriaText>
+      ) : null}
+      {isSelected ? (
+        <Icon
+          iconName="check"
+          aria-hidden="true"
+          className="listbox-item-check"
+          style={{ fontSize: 16 }}
+        />
+      ) : null}
+    </>
+  );
 }
 
 /**
@@ -196,6 +233,39 @@ export const renderListBox = (
         listBoxItemTemplate.props.description,
         item,
       );
+      // ADR-147: icon slot — template binding({icon}) 또는 columnMapping(Phase 4) 결과.
+      const templateIcon = resolveTemplateText(
+        listBoxItemTemplate.props.icon,
+        item,
+      );
+
+      const renderFieldChildren = () =>
+        fieldChildren.map((field) => {
+          const fieldKey = (field.props as { key?: string }).key;
+          const fieldValue = fieldKey ? item[fieldKey] : undefined;
+
+          return (
+            <DataField
+              key={field.id}
+              fieldKey={fieldKey || ""}
+              label={(field.props as { label?: string }).label}
+              type={
+                (field.props as { type?: string }).type as
+                  | "string"
+                  | "number"
+                  | "boolean"
+                  | "date"
+                  | "image"
+                  | "url"
+                  | "email"
+              }
+              value={fieldValue}
+              visible={(field.props as { visible?: boolean }).visible !== false}
+              style={field.props.style}
+              className={field.props.className}
+            />
+          );
+        });
 
       return (
         <ListBoxItem
@@ -207,43 +277,19 @@ export const renderListBox = (
           className={listBoxItemTemplate.props.className}
           textValue={label}
         >
-          {fieldChildren.length > 0
-            ? fieldChildren.map((field) => {
-                const fieldKey = (field.props as { key?: string }).key;
-                const fieldValue = fieldKey ? item[fieldKey] : undefined;
-
-                return (
-                  <DataField
-                    key={field.id}
-                    fieldKey={fieldKey || ""}
-                    label={(field.props as { label?: string }).label}
-                    type={
-                      (field.props as { type?: string }).type as
-                        | "string"
-                        | "number"
-                        | "boolean"
-                        | "date"
-                        | "image"
-                        | "url"
-                        | "email"
-                    }
-                    value={fieldValue}
-                    visible={
-                      (field.props as { visible?: boolean }).visible !== false
-                    }
-                    style={field.props.style}
-                    className={field.props.className}
-                  />
-                );
+          {({ isSelected }) =>
+            // 레거시 Field 자식(ADR-147 Phase 6 마이그레이션 대상)은 보존, 그 외는 slot 콘텐츠.
+            fieldChildren.length > 0 ? (
+              <>{renderFieldChildren()}</>
+            ) : (
+              renderListBoxItemSlotContent({
+                label: templateLabel,
+                description: templateDescription,
+                iconName: templateIcon,
+                isSelected,
               })
-            : templateDescription
-              ? React.createElement(
-                  React.Fragment,
-                  null,
-                  React.createElement("span", null, templateLabel),
-                  React.createElement("span", null, templateDescription),
-                )
-              : templateLabel}
+            )
+          }
         </ListBoxItem>
       );
     };
@@ -307,7 +353,15 @@ export const renderListBox = (
       isDisabled={Boolean(item.isDisabled)}
       href={item.href}
     >
-      {item.label}
+      {({ isSelected }) =>
+        // ADR-147: items[] 경로도 label/description/icon slot emit (기존 description 미렌더 버그 수정).
+        renderListBoxItemSlotContent({
+          label: item.label,
+          description: item.description ?? null,
+          iconName: (item as { icon?: string }).icon ?? null,
+          isSelected,
+        })
+      }
     </ListBoxItem>
   );
 

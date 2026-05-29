@@ -23,6 +23,8 @@ export interface ListBoxItemProps {
   size?: "md";
   children?: unknown;
   description?: unknown;
+  /** ADR-147: icon slot — lucide icon name (row projection columnMapping 또는 static). */
+  icon?: unknown;
   isDisabled?: boolean;
   textValue?: unknown;
   value?: unknown;
@@ -141,8 +143,19 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         ? ("{color.neutral-subdued}" as TokenRef)
         : ((style.color as string | undefined) ??
           ("{color.neutral}" as TokenRef));
-      const textX = paddingX;
-      const maxWidth = Math.max(1, width - paddingX * 2);
+      // ADR-147: slot 레이아웃 — icon(좌측) | label/description(수직 스택) | selection 체크마크(우측)
+      const iconName = readIconName(props.icon);
+      const iconSize = 16;
+      const slotGap = 6;
+      const showCheck = Boolean(props._isSelected);
+      const checkSize = 16;
+      const textX = paddingX + (iconName ? iconSize + slotGap : 0);
+      const rightReserve = showCheck ? checkSize + slotGap : 0;
+      const maxWidth = Math.max(1, width - textX - paddingX - rightReserve);
+      const labelFontFamily =
+        (style.fontFamily as string | undefined) ?? fontFamily.sans;
+      const labelFontWeight =
+        (style.fontWeight as string | number | undefined) ?? 600;
       const shapes: Shape[] = [];
 
       if (props._isSelected || state === "hover" || state === "pressed") {
@@ -160,6 +173,33 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         });
       }
 
+      // icon slot (좌측, 수직 중앙)
+      if (iconName) {
+        shapes.push({
+          type: "icon_font",
+          iconName,
+          x: paddingX + iconSize / 2,
+          y: rowHeight / 2,
+          fontSize: iconSize,
+          fill: textColor,
+          baseline: "middle",
+        });
+      }
+
+      // selection-indicator slot (우측 체크마크)
+      const pushSelectionIndicator = () => {
+        if (!showCheck) return;
+        shapes.push({
+          type: "icon_font",
+          iconName: "check",
+          x: width - paddingX - checkSize / 2,
+          y: rowHeight / 2,
+          fontSize: checkSize,
+          fill: "{color.accent}" as TokenRef,
+          baseline: "middle",
+        });
+      };
+
       if (description) {
         shapes.push({
           type: "text",
@@ -167,9 +207,8 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
           y: paddingY + metric.lineHeight / 2,
           text: label,
           fontSize,
-          fontFamily:
-            (style.fontFamily as string | undefined) ?? fontFamily.sans,
-          fontWeight: (style.fontWeight as string | number | undefined) ?? 600,
+          fontFamily: labelFontFamily,
+          fontWeight: labelFontWeight,
           fill: textColor,
           align: "left",
           baseline: "middle",
@@ -182,8 +221,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
           y: paddingY + metric.lineHeight + metric.lineHeight / 2,
           text: description,
           fontSize: Math.max(11, fontSize - 1),
-          fontFamily:
-            (style.fontFamily as string | undefined) ?? fontFamily.sans,
+          fontFamily: labelFontFamily,
           fontWeight: 400,
           fill: "{color.neutral-subdued}" as TokenRef,
           align: "left",
@@ -191,6 +229,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
           maxWidth,
           overflow: "ellipsis",
         });
+        pushSelectionIndicator();
         return shapes;
       }
 
@@ -200,14 +239,15 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         y: rowHeight / 2,
         text: label,
         fontSize,
-        fontFamily: (style.fontFamily as string | undefined) ?? fontFamily.sans,
-        fontWeight: (style.fontWeight as string | number | undefined) ?? 600,
+        fontFamily: labelFontFamily,
+        fontWeight: labelFontWeight,
         fill: textColor,
         align: "left",
         baseline: "middle",
         maxWidth,
         overflow: "ellipsis",
       });
+      pushSelectionIndicator();
       return shapes;
     },
     react: () => ({}),
@@ -220,6 +260,15 @@ function readText(value: unknown): string | null {
   }
   if (typeof value === "number") return String(value);
   return null;
+}
+
+/**
+ * ADR-147: icon slot 값 정규화 — lucide icon name 문자열만 허용.
+ * 빈 문자열 / 미해석 template placeholder(`{icon}`)는 null → icon 미렌더.
+ */
+function readIconName(value: unknown): string | null {
+  if (typeof value !== "string" || value.length === 0) return null;
+  return /^\{[^}]+\}$/.test(value) ? null : value;
 }
 
 /**

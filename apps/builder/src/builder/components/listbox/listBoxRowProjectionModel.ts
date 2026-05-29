@@ -10,6 +10,8 @@ export type ListBoxCollectionDataSource = {
 
 export type ListBoxProjectionRow = {
   description: string | null;
+  /** ADR-147: icon slot — lucide icon name (data row field) 또는 null. */
+  icon: string | null;
   isDisabled: boolean;
   item: unknown;
   itemKey: string;
@@ -118,6 +120,16 @@ function getItemDescription(item: unknown): string | null {
   return readStringField(item, ["description", "subtitle", "detail"]);
 }
 
+/**
+ * ADR-147: icon slot 값 — data row field 에서 lucide icon name 추출.
+ * label/description 와 동일한 fixed-field 휴리스틱. columnMapping 우선 매핑은 DOM 템플릿
+ * (`resolveTemplateText` `{icon}` 바인딩) 레벨에서 처리한다.
+ */
+function getItemIcon(item: unknown): string | null {
+  if (!isRecord(item)) return null;
+  return readStringField(item, ["icon", "iconName", "avatar", "image"]);
+}
+
 function getItemValue(item: unknown): string | null {
   if (!isRecord(item)) return null;
   return readStringField(item, ["value", "id", "key"]);
@@ -143,6 +155,7 @@ export function getListBoxProjectionRows(
     const itemKey = getItemKey(item, rowIndex);
     return {
       description: getItemDescription(item),
+      icon: getItemIcon(item),
       isDisabled: getItemDisabled(item),
       item,
       itemKey,
