@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBox anchor-less 전환 — origin/instance 구조 통일 (ADR-146 Addendum 1)] - 2026-05-30
+
+### Bug Fixes
+
+- **ListBox instance 의 행(slot) 선택 불가 / 빈 사선 미표시 / add-path 구조 불일치 동시 해소** (ADR-146 Addendum 1, Option B):
+  - 컴포넌트 패널로 추가한 ListBox 의 row(ListBoxItem slot) 영역을 클릭해도 ListBox 컴포넌트가 선택되지 않던 버그 — bare ref 전환으로 해소 (padding 클릭만 되던 문제)
+  - 행이 없는(빈) instance 가 origin 과 달리 slot 사선(hatch)을 표시하지 않던 버그 — in-instance anchor 제거로 origin 과 동일하게 사선 표시
+  - 컴포넌트 패널 추가 시에만 layer 트리에 `ListBoxItem` 가 생성되고 origin copy-paste 는 생성되지 않던 구조 불일치 — 두 경로 모두 bare `ref` 로 통일
+  - **Why**: content page ListBox instance 가 보유하던 in-instance locked `ListBoxItem` template anchor 가 selection 공간 / slot content 판정 / layer 트리에 누수되어 레이어별 special-case 를 유발 (anchor 없는 copy-paste 산물은 3건 모두 자연 해소됨이 확인됨)
+
+### Architecture
+
+- **ListBox in-instance template anchor → component-slot 해석 전환** (ADR-146 Decision #6 supersede):
+  - data-bound 행 template 을 in-instance anchor 가 아니라 component 정의의 origin slot(`ListBox` origin `slot[0]` = `ListBoxItem/Default`)에서 해석 — `canvasSceneNode.resolveListBoxTemplateOriginId` 단일 진입점 신설
+  - factory(`createListBoxDefinition`)의 anchor 자식 주입 제거 → panel-add 가 copy-paste 와 동일한 bare ref 생성
+  - migration(`migrateLegacyListBoxTemplatesToOrigins`)을 anchor 주입 → **anchor strip** 으로 재작성. `type:"ListBox"` 및 canonical `ref(component-listbox)` instance 의 `metadata.templateRole` anchor 만 제거(정적 자식 보존, 멱등)
+  - `usePageManager` hydration 시 migration 적용 + persist-back → 기존 anchor 보유 instance 가 새로고침 시 자동 정리
+  - row projection(Rows group) / Skia row renderer / mode detection / projection id guard 는 ADR-146 본문 그대로 유지
+  - **Trade-off**: anchor 가 제공하던 per-instance row template style override 제거 → 모든 instance 가 단일 origin SSOT 공유 (per-slot 스타일 authoring 은 후속 범위)
+  - 위치: `apps/builder/src/builder/factories/definitions/SelectionComponents.ts`, `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `apps/builder/src/adapters/canonical/legacyListBoxTemplateMigration.ts`, `apps/builder/src/builder/hooks/usePageManager.ts`
+
 ## [ListBoxItem RAC 표준 정합 — origin ↔ instance 높이/레이아웃 대칭 (ADR-147 Proposed)] - 2026-05-30
 
 ### Bug Fixes

@@ -1,9 +1,15 @@
 /**
- * @fileoverview ADR-146 — legacy ADR-145 local ListBoxItem template migration.
+ * @fileoverview ListBox instance anchor-less 정합 migration (Option B).
  *
- * ADR-145 introduced a local `ListBoxItem` template child. ADR-146 supersedes
- * that storage shape: `ListBoxItem/Default` lives once on the Components system
- * page, while content `ListBox` nodes keep a locked ref template anchor.
+ * ADR-145 는 local `ListBoxItem` template child 를, ADR-146 은 locked ref template anchor 를
+ * 도입했다. Option B(anchor-less)는 in-tree template 을 instance 에서 제거하고, data-bound 행
+ * template 을 Components 페이지의 origin(`component-listbox-item-default`)에서 해석한다
+ * (`canvasSceneNode.resolveListBoxTemplateOriginId`).
+ *
+ * 따라서 본 migration 은 hydration 시점에 ListBox instance 의 in-instance template anchor
+ * (metadata.templateRole === "listbox-item-template-anchor")를 strip 하여, 컴포넌트 패널 추가와
+ * origin copy-paste 가 동일한 bare ref 구조 + layer 트리를 갖도록 정합한다. Components 페이지의
+ * origin 노드는 보존하고, templateRole 없는 정적 자식은 건드리지 않는다(오인 strip 금지).
  */
 
 import type {
@@ -13,17 +19,13 @@ import type {
 } from "@composition/shared";
 import {
   ensureListBoxTemplateOrigins,
+  isListBoxTemplateAnchor,
   LISTBOX_ORIGIN_ID,
-  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
-  LISTBOX_TEMPLATE_ANCHOR_ROLE,
 } from "../../builder/components/listbox/listBoxTemplateOrigins";
 
 /**
  * ListBox element 가 `ListBoxItem` template child 없이 hydrate 된 legacy state 인지 판정.
- *
- * - `legacyType !== "ListBox"` → false (변환 대상 아님)
- * - children 에 type === "ListBoxItem" 인 element 1개 이상 존재 → false (이미 template 있음)
- * - 그 외 → true (template child 자동 주입 대상)
+ * (ADR-145 Phase 0 guard — 외부 테스트 호환을 위해 유지.)
  */
 export function isLegacyListBoxWithoutTemplate(
   legacyType: string,
@@ -37,33 +39,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function sanitizeTemplateProps(
-  props: CanonicalNode["props"] | undefined,
-): Record<string, unknown> {
-  const next = { ...(props ?? {}) };
-  if (isRecord(next.style)) {
-    const style = { ...next.style };
-    delete style.display;
-    if (Object.keys(style).length > 0) {
-      next.style = style;
-    } else {
-      delete next.style;
-    }
-  }
-  return next;
-}
-
-function isDefaultTemplateAnchor(node: CanonicalNode): boolean {
-  return (
-    node.type === "ref" &&
-    (node as RefNode).ref === LISTBOX_ITEM_DEFAULT_ORIGIN_ID
-  );
-}
-
-function isLocalListBoxTemplate(node: CanonicalNode): boolean {
-  return node.type === "ListBoxItem";
-}
-
 function isSystemListBoxOrigin(node: CanonicalNode): boolean {
   return (
     node.id === LISTBOX_ORIGIN_ID ||
@@ -73,153 +48,55 @@ function isSystemListBoxOrigin(node: CanonicalNode): boolean {
   );
 }
 
-function hasOwnKeys(value: Record<string, unknown>): boolean {
-  return Object.keys(value).length > 0;
+/**
+ * 페이지에 배치된 ListBox instance 판정.
+ *
+ * - legacy / 직접 노드: `type === "ListBox"` (단, Components 시스템 origin 제외)
+ * - canonical runtime instance: `type === "ref"` + `ref === "component-listbox"`
+ *   (factory parent = { type:"ref", ref: LISTBOX_ORIGIN_ID }).
+ *
+ * **Why**: ADR-122 canonical-only runtime 에서 instance 는 ref 노드다. `type === "ListBox"`
+ *   만 검사하면 기존 프로젝트의 ref instance anchor 가 strip 되지 않는다.
+ */
+function isPageListBoxInstance(node: CanonicalNode): boolean {
+  if (node.type === "ListBox") return !isSystemListBoxOrigin(node);
+  return node.type === "ref" && (node as RefNode).ref === LISTBOX_ORIGIN_ID;
 }
 
-function getDescendantKey(node: CanonicalNode, index: number): string {
-  return node.name ?? node.id ?? `child-${index + 1}`;
-}
-
-function buildDescendantOverrides(
-  template: CanonicalNode,
-): RefNode["descendants"] | undefined {
-  const children = template.children ?? [];
-  if (children.length === 0) return undefined;
-
-  const descendants: NonNullable<RefNode["descendants"]> = {};
-  children.forEach((child, index) => {
-    descendants[getDescendantKey(child, index)] = {
-      props: child.props ?? {},
-    };
-  });
-  return descendants;
-}
-
-function createTemplateAnchor(
-  id: string,
-  template: CanonicalNode | null,
-  includeOverrides: boolean,
-): RefNode {
-  const props = includeOverrides ? sanitizeTemplateProps(template?.props) : {};
-  const descendants =
-    includeOverrides && template
-      ? buildDescendantOverrides(template)
-      : undefined;
-  return {
-    id,
-    type: "ref",
-    ref: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
-    name: template?.name ?? "ListBoxItem",
-    props,
-    metadata: {
-      type: "legacy-element-props",
-      templateRole: LISTBOX_TEMPLATE_ANCHOR_ROLE,
-      originRef: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
-      locked: true,
-      deleteDisabled: true,
-      migratedFrom: template
-        ? "adr145-local-template"
-        : "adr145-missing-template",
-      rowProjectionSource: "items",
-    },
-    ...(descendants ? { descendants } : {}),
-  };
-}
-
-function updateDefaultOrigin(
-  node: CanonicalNode,
-  promotedTemplate: CanonicalNode | null,
-): CanonicalNode {
-  if (node.id !== LISTBOX_ITEM_DEFAULT_ORIGIN_ID || !promotedTemplate) {
-    return node.children
-      ? {
-          ...node,
-          children: node.children.map((child) =>
-            updateDefaultOrigin(child, promotedTemplate),
-          ),
-        }
-      : node;
-  }
-
-  return {
-    ...node,
-    props: sanitizeTemplateProps(promotedTemplate.props),
-    children: promotedTemplate.children ?? node.children,
-    metadata: {
-      ...(node.metadata ?? {}),
-      type:
-        typeof node.metadata?.type === "string"
-          ? node.metadata.type
-          : "listbox-template-origin",
-      promotedFrom: promotedTemplate.id,
-    },
-  };
-}
-
+/**
+ * Option B: 모든 ListBox instance 에서 in-instance template anchor 를 strip 한다.
+ *
+ * - origin(Components 시스템 노드)은 보존한다 (`isSystemListBoxOrigin`).
+ * - `metadata.templateRole === "listbox-item-template-anchor"` 인 anchor 만 제거하므로
+ *   정적 ListBoxItem / collection item 자식(templateRole 없음)은 오인 strip 되지 않는다.
+ * - 멱등: anchor 가 이미 없으면 동일 참조를 반환한다.
+ */
 export function migrateLegacyListBoxTemplatesToOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
   const bootstrapped = ensureListBoxTemplateOrigins(document);
-  let promotedTemplate: CanonicalNode | null = null;
 
   function migrateNode(node: CanonicalNode): CanonicalNode {
     const migratedChildren = (node.children ?? []).map(migrateNode);
-    if (node.type !== "ListBox" || isSystemListBoxOrigin(node)) {
-      return node.children ? { ...node, children: migratedChildren } : node;
-    }
 
-    if (migratedChildren.some(isDefaultTemplateAnchor)) {
-      return { ...node, children: migratedChildren };
-    }
-
-    const localTemplates = migratedChildren.filter(isLocalListBoxTemplate);
-    if (localTemplates.length === 0) {
-      if (!isLegacyListBoxWithoutTemplate(node.type, migratedChildren)) {
-        return { ...node, children: migratedChildren };
+    if (isPageListBoxInstance(node)) {
+      const strippedChildren = migratedChildren.filter(
+        (child) => !isListBoxTemplateAnchor(child),
+      );
+      if (strippedChildren.length !== migratedChildren.length) {
+        return { ...node, children: strippedChildren };
       }
-      return {
-        ...node,
-        children: [
-          ...migratedChildren,
-          createTemplateAnchor(
-            `${node.id}::template::listboxitem`,
-            null,
-            false,
-          ),
-        ],
-      };
     }
 
-    const firstTemplate = localTemplates[0];
-    const shouldPromote = promotedTemplate === null;
-    if (shouldPromote) promotedTemplate = firstTemplate;
-
-    const nonTemplateChildren = migratedChildren.filter(
-      (child) => !isLocalListBoxTemplate(child),
-    );
-    const anchor = createTemplateAnchor(
-      firstTemplate.id,
-      firstTemplate,
-      !shouldPromote,
-    );
-    return {
-      ...node,
-      children: [...nonTemplateChildren, anchor],
-    };
+    return node.children ? { ...node, children: migratedChildren } : node;
   }
 
-  const migratedChildren = bootstrapped.children.map(migrateNode);
-  const withMigratedListBoxes: CompositionDocument = {
+  const next: CompositionDocument = {
     ...bootstrapped,
-    children: migratedChildren,
+    children: bootstrapped.children.map(migrateNode),
   };
 
-  if (!promotedTemplate) return withMigratedListBoxes;
-  return {
-    ...withMigratedListBoxes,
-    children: withMigratedListBoxes.children.map((child) =>
-      updateDefaultOrigin(child, promotedTemplate),
-    ),
-  };
+  return JSON.stringify(bootstrapped) === JSON.stringify(next)
+    ? bootstrapped
+    : next;
 }

@@ -12,6 +12,7 @@ import {
   detectListBoxAuthoringMode,
   getListBoxItemSlotRole,
   isListBoxTemplateAnchor,
+  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
   LISTBOX_ORIGIN_ID,
 } from "../../../components/listbox/listBoxTemplateOrigins";
 import {
@@ -350,6 +351,35 @@ function getTemplateOriginId(anchor: CanonicalNode | null): string | null {
   return typeof metadata?.originRef === "string" ? metadata.originRef : null;
 }
 
+/**
+ * 행 projection 의 template origin id 를 해석한다 (Option B — anchor-less 정합).
+ *
+ * 우선순위:
+ *   1. in-instance template anchor (아직 migration 되지 않은 legacy instance) — 그 ref/originRef.
+ *   2. anchor-less: ListBox instance 가 ref(component-listbox) 면 master component 의
+ *      slot[0] = default ListBoxItem origin 에서 해석 (component 정의의 slot 에서 행 template 해석).
+ *   3. 안전망: 표준 default origin 상수.
+ *
+ * **Why**: ADR-146 in-instance anchor 를 제거(Option B)해도 data-bound 행이 Components 페이지의
+ *   origin ListBoxItem style(height/padding 등)을 동일하게 상속하도록 단일 진입점을 유지한다.
+ */
+function resolveListBoxTemplateOriginId(
+  sourceNode: CanonicalNode,
+  templateAnchor: CanonicalNode | null,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+): string | null {
+  const anchorOriginId = getTemplateOriginId(templateAnchor);
+  if (anchorOriginId) return anchorOriginId;
+
+  if (sourceNode.type === "ref") {
+    const masterId = (sourceNode as RefNode).ref;
+    const slot = getDocumentNodesById().get(masterId)?.slot;
+    if (Array.isArray(slot) && typeof slot[0] === "string") return slot[0];
+  }
+
+  return LISTBOX_ITEM_DEFAULT_ORIGIN_ID;
+}
+
 function isListBoxSceneSource(
   listBoxSceneNode: CanvasSceneNode,
   sourceNode: CanonicalNode,
@@ -443,7 +473,11 @@ function appendListBoxRowProjection(
   const props = listBoxSceneNode.props;
   const { rows, templateAnchor, sourceNode } = projection;
   const templateAnchorId = templateAnchor?.id ?? null;
-  const templateOriginId = getTemplateOriginId(templateAnchor);
+  const templateOriginId = resolveListBoxTemplateOriginId(
+    sourceNode,
+    templateAnchor,
+    getDocumentNodesById,
+  );
   // ADR-147 Layer 3: projected 행 style = resolved origin(template ref master) style ◁ anchor override.
   //   사용자가 Components 페이지의 origin ListBoxItem 에 준 style(height/padding 등)이 instance 행에
   //   반영되어야 한다. anchor 는 raw ref(style 없음)일 수 있으므로 origin master 의 props.style 을 base 로,

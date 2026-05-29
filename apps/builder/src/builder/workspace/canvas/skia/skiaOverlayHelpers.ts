@@ -4,6 +4,7 @@ import {
 } from "@composition/specs";
 import { measureWorkspacePanelInsets } from "../../utils/panelLayoutRuntime";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import { isListBoxTemplateAnchor } from "../../../components/listbox/listBoxTemplateOrigins";
 import {
   getEditingSlotMarkerRole,
   getEditingSemanticsRole,
@@ -235,14 +236,24 @@ function hasVisibleSlotContent(
   elementsMap: Map<string, CanvasSceneNode>,
   childrenMap: Map<string, CanvasSceneNode[]>,
 ): boolean {
+  // ListBox template anchor 는 실제 data row 가 아니라 템플릿(rowProjectionSource)이다.
+  //   빈 instance 는 itemsLen 0 이어도 항상 이 anchor child 를 가지므로, 이를 content 로
+  //   카운트하면 origin(자식 0개) 과 달리 영영 "filled" 로 판정되어 hatch 가 안 나온다.
+  //   → template anchor 는 content 에서 제외해 빈 instance 도 origin 처럼 사선을 표시한다.
+  //   (복사-붙여넣기로 만든 ListBox 는 anchor 구조가 달라 이미 정상 표시됨 — 그 동작과 일치시킨다.)
   const renderChildren = childrenMap.get(slotHostId);
-  if (renderChildren?.some((child) => !child.deleted)) {
+  if (
+    renderChildren?.some(
+      (child) => !child.deleted && !isListBoxTemplateAnchor(child),
+    )
+  ) {
     return true;
   }
 
   for (const element of elementsMap.values()) {
     if (element.parent_id !== slotHostId) continue;
     if (element.deleted) continue;
+    if (isListBoxTemplateAnchor(element)) continue;
     return true;
   }
 

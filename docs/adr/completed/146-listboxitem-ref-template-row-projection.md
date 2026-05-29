@@ -11,6 +11,11 @@ Implemented - 2026-05-28
 - 2026-05-28 - Phase 0~6 구현 완료. Components system page, ListBoxItem origin/ref
   anchor, Layer Tree row projection, Skia ListBoxItem row renderer, ADR-145 local
   template migration, targeted tests, type-check, docs sync 완료.
+- 2026-05-30 - Decision #6 (content page ListBox instance 의 in-instance locked
+  `ListBoxItem` ref template anchor) 를 **Option B (anchor-less)** 로 revised. 상세는
+  하단 Addendum 1. Decision #4(origin) / #7~#9(Rows projection + Skia row renderer) /
+  #11(mode detection) / #17(projection id guard) 은 유지. 사용자 lock-in
+  "`ListBoxItem` template anchor 는 삭제 불가" 는 anchor 부재로 superseded.
 - 사용자 lock-in:
   - Layer Tree에는 반복 row가 표시되어야 한다.
   - `ListBoxItem` template anchor는 삭제 불가가 맞다.
@@ -246,6 +251,40 @@ Page A
 - Layer Tree에 canonical node와 projection node가 공존하므로 id namespace와 mutation routing을 엄격히 분리해야 한다.
 - Skia renderer가 `ListBoxItem` template/ref를 row 단위로 resolve해야 하므로 ADR-145 parent paint보다 구현량이 크다.
 - ListBox 단일 proof라서 다른 collection family에는 자동 적용되지 않는다.
+
+## Addendum 1 (2026-05-30): Option B — anchor-less 전환
+
+### 배경
+
+Decision #6 의 in-instance locked `ListBoxItem` ref template anchor 가 content page `ListBox` instance 의 자식으로 존재하면서 3개의 연쇄 버그를 만들었다 (각각 레이어별 special-case 를 요구 — altitude smell):
+
+1. **행 선택 불가**: row(slot) 클릭 시 anchor 가 `suppressedAnchorId` 로 scene/interaction map 에서 제외된 non-scene 노드라 selection redirect 가 no-op. ListBox padding 클릭만 동작.
+2. **빈 instance 사선 미표시**: anchor 가 자식 수와 무관하게 항상 존재 → 빈 instance 도 "filled slot" 으로 판정되어 origin 과 달리 slot 사선(hatch) 미표시.
+3. **add-path 구조 불일치**: 컴포넌트 패널 추가만 anchor(`ListBoxItem` ref)를 layer 트리에 생성, origin copy-paste 는 bare ref → 동일 컴포넌트인데 layer 트리 구조가 달랐다.
+
+반면 anchor 없는 bare ref(origin copy-paste 산물)는 위 3건이 모두 자연 해소됨이 사용자 관찰로 확인됐다.
+
+### 결정 (Decision #6 supersede)
+
+content page `ListBox` instance 는 **in-instance template anchor 를 보유하지 않는다** (bare `ref(component-listbox)`). data-bound 행 template 은 in-instance anchor 가 아니라 **component 정의의 origin slot** (`ListBox` origin 의 `slot[0]` = `ListBoxItem/Default`) 에서 해석한다.
+
+유지되는 결정: #4(Components page origin), #7~#9(Rows projection group + Skia row renderer), #11(mode detection — `dataBinding`/non-empty `props.items` → data-bound), #17(projection id guard). Status 의 사용자 lock-in "`ListBoxItem` template anchor 는 삭제 불가" 는 anchor 부재로 무의미화(superseded).
+
+### Trade-off
+
+anchor 가 제공하던 per-instance row template style override 는 제거된다. 모든 instance 가 **단일 origin SSOT** 를 공유한다. per-slot / per-instance 스타일 authoring 은 본 Addendum scope 밖(후속).
+
+### 구현
+
+- **Factory**: `createListBoxDefinition` 가 anchor 자식 주입 제거 → bare ref (panel-add == copy-paste).
+- **Projection 해석**: `canvasSceneNode.resolveListBoxTemplateOriginId` — anchor 없으면 ListBox master 의 `slot[0]`(또는 default origin 상수)에서 행 template origin 해석. 기존 anchor 가 있으면(미-migration instance) 그 originRef 우선.
+- **Migration**: `migrateLegacyListBoxTemplatesToOrigins` 를 anchor 주입 → **anchor strip** 으로 재작성. `type:"ListBox"` 및 canonical `ref(component-listbox)` instance 의 `metadata.templateRole === "listbox-item-template-anchor"` 자식만 제거(정적 자식 / collection item 보존, 멱등).
+- **Hydration wiring**: `usePageManager` 가 IndexedDB 문서 hydration 시 migration 적용 + persist-back → 기존 anchor 보유 instance 자동 정리.
+
+### 검증
+
+- targeted Vitest 48/48 PASS (canvasSceneNode / SelectionComponents.listbox / legacyListBoxTemplateMigration adr145·adr146 / interaction / skiaOverlay / listBoxRowProjection), type-check baseline 무증가.
+- 라이브 cross-check(사용자 프로젝트): panel-add(`42de8bfc`)·copy-paste(`4350d44b`) instance 모두 bare ref(childCount 0, canonical 0) + 빈 상태 violet hatch 동일 표시 + items 주입 시 origin 스타일 행 3개 렌더 확인(검증 후 복구).
 
 ## References
 

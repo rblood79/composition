@@ -358,6 +358,73 @@ describe("buildSlotMarkerTargets", () => {
     ]);
   });
 
+  it("treats a slot whose only child is a ListBox template anchor as empty (instance shows hatch like origin)", () => {
+    // 빈 ListBox instance 는 itemsLen 0 이어도 항상 template anchor child 를 가진다.
+    // template anchor 는 실제 data row 가 아니라 템플릿이므로 content 로 카운트하면 안 된다 →
+    // origin(자식 0개) 과 동일하게 빈 slot 으로 간주되어 hatch+border 어포던스를 emit 해야 한다.
+    const targets = buildSlotMarkerTargets(
+      new Map([["instance-listbox", { x: 0, y: 0, width: 200, height: 40 }]]),
+      new Map([
+        [
+          "instance-listbox",
+          makeElement("instance-listbox", {
+            type: "ListBox",
+            ref: "component-listbox",
+            slot: ["items"],
+          }),
+        ],
+        [
+          "template-anchor",
+          makeElement("template-anchor", {
+            parent_id: "instance-listbox",
+            type: "ListBoxItem",
+            ref: "component-listbox-item-default",
+            metadata: {
+              type: "ref",
+              templateRole: "listbox-item-template-anchor",
+            },
+          }),
+        ],
+      ]),
+      new Map(),
+    );
+
+    // bounds 는 ListBox 기본 padding(spec containerStyles fallback, 4px) 만큼 inset 된다.
+    expect(targets).toEqual([
+      {
+        bounds: { x: 4, y: 4, width: 192, height: 32 },
+        showHatch: true,
+        slotMarkerRole: "instance",
+      },
+    ]);
+  });
+
+  it("still treats a slot with a real (non-template) child as filled (no marker)", () => {
+    const targets = buildSlotMarkerTargets(
+      new Map([["instance-listbox", { x: 0, y: 0, width: 200, height: 40 }]]),
+      new Map([
+        [
+          "instance-listbox",
+          makeElement("instance-listbox", {
+            type: "ListBox",
+            ref: "component-listbox",
+            slot: ["items"],
+          }),
+        ],
+        [
+          "real-row",
+          makeElement("real-row", {
+            parent_id: "instance-listbox",
+            type: "ListBoxItem",
+          }),
+        ],
+      ]),
+      new Map(),
+    );
+
+    expect(targets).toEqual([]);
+  });
+
   it("insets slot marker bounds by element padding so hatch + border stay in the content-box", () => {
     const targets = buildSlotMarkerTargets(
       new Map([

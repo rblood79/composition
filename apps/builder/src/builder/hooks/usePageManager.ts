@@ -28,7 +28,7 @@ import {
 } from "@composition/shared";
 import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
-import { ensureListBoxTemplateOrigins } from "../components/listbox/listBoxTemplateOrigins";
+import { migrateLegacyListBoxTemplatesToOrigins } from "../../adapters/canonical/legacyListBoxTemplateMigration";
 
 const PAGE_STACK_GAP = 80;
 
@@ -361,7 +361,10 @@ export const usePageManager = ({
             version: "composition-1.0",
             children: [],
           } satisfies CompositionDocument);
-        const document = ensureListBoxTemplateOrigins(baseDocument);
+        // Option B (anchor-less): origin bootstrap + 기존 instance 의 in-tree template
+        //   anchor strip 을 hydration 시점에 함께 수행. anchor 가 제거되면 document 참조가
+        //   바뀌어 아래 persist-back 으로 IndexedDB 가 정리된다(멱등 — anchor 없으면 no-op).
+        const document = migrateLegacyListBoxTemplatesToOrigins(baseDocument);
         if (document !== persistedDocument) {
           await db.documents.put(projectId, document);
         }

@@ -1,14 +1,6 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import {
-  ComponentDefinition,
-  ComponentCreationContext,
-  ChildDefinition,
-} from "../types";
-import {
-  LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
-  LISTBOX_ORIGIN_ID,
-  LISTBOX_TEMPLATE_ANCHOR_ROLE,
-} from "../../components/listbox/listBoxTemplateOrigins";
+import { ComponentDefinition, ComponentCreationContext } from "../types";
+import { LISTBOX_ORIGIN_ID } from "../../components/listbox/listBoxTemplateOrigins";
 import type {
   StoredSelectItem,
   StoredComboBoxItem,
@@ -247,24 +239,12 @@ export function createListBoxDefinition(
       componentName: string;
       ref: string;
     },
-    children: [
-      {
-        type: "ref",
-        ref: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
-        componentName: "ListBoxItem",
-        props: {} as ComponentElementProps,
-        metadata: {
-          templateRole: LISTBOX_TEMPLATE_ANCHOR_ROLE,
-          originRef: LISTBOX_ITEM_DEFAULT_ORIGIN_ID,
-          locked: true,
-          deleteDisabled: true,
-          rowProjectionSource: "items",
-        },
-      } as ChildDefinition & {
-        metadata: Record<string, unknown>;
-        ref: string;
-      },
-    ],
+    // Option B (anchor-less): in-tree template anchor 를 주입하지 않는다.
+    //   panel-add 와 origin copy-paste 가 동일한 bare ref 구조 + layer 트리를 갖는다.
+    //   data-bound 행 template 은 projection 이 component 정의의 origin slot 에서 해석한다
+    //   (canvasSceneNode.resolveListBoxTemplateOriginId). 기존 anchor 보유 instance 는
+    //   migrateLegacyListBoxTemplatesToOrigins(hydration)가 strip 한다.
+    children: [],
   };
 }
 

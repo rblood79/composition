@@ -365,6 +365,110 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(graph.nodesMap.get("template-anchor")).toBeDefined();
   });
 
+  // Option B (anchor-less): in-instance template anchor 가 없어도 projected 행은
+  //   component 정의의 origin(component-listbox-item-default) style 을 상속해야 한다.
+  //   anchor 가 없으면 templateOriginId 를 default origin 상수(또는 master.slot[0])로 해석한다.
+  it("resolves projected row style from the component origin when there is no in-instance anchor (Option B)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: { items: [{ id: "aardvark", label: "Aardvark" }] },
+                  // anchor-less: 자식 없음 (Option B)
+                },
+              ],
+            },
+            // Components 시스템 origin — 행 template style 의 SSOT.
+            {
+              id: "component-listbox-item-default",
+              type: "ListBoxItem",
+              reusable: true,
+              props: { style: { paddingLeft: 24, paddingTop: 8, rowGap: 8 } },
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const aardvark = graph.nodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "aardvark"),
+    );
+
+    expect(aardvark).toBeDefined();
+    expect(aardvark?.props.style).toMatchObject({
+      paddingLeft: 24,
+      paddingTop: 8,
+      rowGap: 8,
+      width: "100%",
+    });
+  });
+
+  // Option B: 실제 instance 는 ref(component-listbox) bare ref 다. anchor 없이도
+  //   master component 의 slot[0] = default ListBoxItem origin 에서 행 template 을 해석한다.
+  it("resolves the row template from the ListBox master component slot for a bare ref instance (Option B)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  // bare ref instance — 자식 없음 (Option B 통일 구조)
+                  id: "listbox-1",
+                  type: "ref",
+                  ref: "component-listbox",
+                  props: { items: [{ id: "cat", label: "Cat" }] },
+                },
+              ],
+            },
+            // master component + slot 정의
+            {
+              id: "component-listbox",
+              type: "ListBox",
+              reusable: true,
+              slot: ["component-listbox-item-default"],
+              props: { items: [] },
+            },
+            {
+              id: "component-listbox-item-default",
+              type: "ListBoxItem",
+              reusable: true,
+              props: { style: { paddingLeft: 16 } },
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const cat = graph.nodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "cat"),
+    );
+
+    expect(cat).toBeDefined();
+    expect(cat?.props.style).toMatchObject({ paddingLeft: 16, width: "100%" });
+  });
+
   it("projects ListBox rows from dataBinding before props.items seed data", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",
