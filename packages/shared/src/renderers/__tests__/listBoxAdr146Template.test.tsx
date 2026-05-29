@@ -57,4 +57,49 @@ describe("ADR-146 ListBox Preview ref template rendering", () => {
       "Aardvark",
     );
   });
+
+  it("emits label/description as RAC Text slots (ADR-147)", () => {
+    const listBox: PreviewElement = {
+      id: "listbox",
+      type: "ListBox",
+      dataBinding: {
+        type: "collection",
+        source: "static",
+        config: { data: [{ id: "aardvark", label: "Aardvark" }] },
+      },
+      props: {},
+    };
+    const template: PreviewElement = {
+      id: "template-anchor",
+      type: "ListBoxItem",
+      props: { children: "{label}", description: "{description}" },
+      parent_id: "listbox",
+    };
+
+    const rendered = renderListBox(listBox, makeContext(template));
+    const renderItem = (rendered as { props: { children?: unknown } }).props
+      .children as (item: Record<string, unknown>) => unknown;
+    const row = renderItem({
+      id: "aardvark",
+      label: "Aardvark",
+      description: "Burrowing mammal",
+    });
+
+    // ADR-147: ListBoxItem children 은 render-function (isSelected 기반 selection indicator).
+    const slotFn = (row as { props: { children?: unknown } }).props.children;
+    expect(typeof slotFn).toBe("function");
+
+    const content = (slotFn as (rp: { isSelected: boolean }) => unknown)({
+      isSelected: false,
+    });
+    const kids = (content as { props: { children?: unknown } }).props.children;
+    const elements = (Array.isArray(kids) ? kids : [kids]).filter(
+      isValidElement,
+    ) as Array<{ props: Record<string, unknown> }>;
+
+    const label = elements.find((el) => el.props.slot === "label");
+    const description = elements.find((el) => el.props.slot === "description");
+    expect(label?.props.children).toBe("Aardvark");
+    expect(description?.props.children).toBe("Burrowing mammal");
+  });
 });

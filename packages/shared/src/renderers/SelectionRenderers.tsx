@@ -358,7 +358,7 @@ export const renderListBox = (
         renderListBoxItemSlotContent({
           label: item.label,
           description: item.description ?? null,
-          iconName: (item as { icon?: string }).icon ?? null,
+          iconName: item.icon ?? null,
           isSelected,
         })
       }

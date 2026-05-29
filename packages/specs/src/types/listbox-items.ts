@@ -25,6 +25,8 @@ export interface StoredListBoxItem {
   isDisabled?: boolean;
   /** 항목 부가 설명 (Text slot="description" 대응) */
   description?: string;
+  /** ADR-147: icon slot — lucide icon name (RAC decorative icon child 대응). */
+  icon?: string;
   /** 링크 항목용 (RAC `<ListBoxItem href>`) */
   href?: string;
   /**
