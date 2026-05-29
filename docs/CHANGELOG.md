@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [ListBoxItem RAC 표준 정합 — origin ↔ instance 높이/레이아웃 대칭 (ADR-147 Proposed)] - 2026-05-30
+
+### Bug Fixes
+
+- **Components origin ListBoxItem 이 84px 세로 스택으로 렌더** (ADR-147):
+  - Components 시스템 페이지의 `component-listbox-item-default` origin 이 아이콘-위 + label + description 세로 스택(~84px)으로 표시되어 RAC/Spectrum 표준(아이콘 좌측 컴팩트)과 불일치. Home 페이지 instance(render.shapes 컴팩트 행)와 높이가 어긋남
+  - **Why**: ADR-147 이 origin 에 조합 자식(Icon/Label/Description)을 추가했는데, ListBoxItem `containerStyles` 가 `flex column` 이라 flat 자식 3개가 세로로 쌓임. Skia `render.shapes` 는 아이콘-좌측(표준)으로 그리지만 origin 에선 placeholder 필터로 빈 렌더 → 보이는 건 stacked 조합 자식뿐
+  - 수정: 조합 자식을 가시 Skia scene 에서 제외(`render.shapes` 단일 렌더러), placeholder label 일 때 sample("Label"/"Description") 렌더. origin 과 instance 가 동일 RAC 표준 컴팩트 행으로 일치
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`, `packages/specs/src/components/ListBoxItem.spec.ts`
+- **데이터 바인딩 ListBox 의 description 행 하단 잘림** (ADR-147):
+  - 3개 항목(label+description) ListBox 의 마지막 행 description 이 컨테이너 하단 경계에 잘림
+  - **Why**: `calculateContentHeight` ListBox 분기가 label-only `itemHeight`(=28)로만 행을 할당했으나 실제 render.shapes description 행 높이는 50px → 컨테이너가 콘텐츠보다 짧음
+  - 수정: `resolveListBoxItemMetric` 에 `itemHeightWithDescription` 추가, ListBox 컨테이너/standalone ListBoxItem 높이를 description 유무로 행마다 산출
+  - 위치: `apps/builder/.../layout/engines/utils.ts`, `packages/specs/src/components/{ListBox,ListBoxItem}.spec.ts`
+
+### Architecture
+
+- **ListBoxItem 시각 정본 = `render.shapes` 단일 렌더러로 통일** (ADR-147):
+  - origin·static·data-bound 모든 경로의 ListBoxItem 가시 렌더를 `render.shapes` 로 통일. 조합 자식(Icon/Label/Description slot child)은 canonical/layer-tree/DOM(RAC slot)에는 보존하되 가시 Skia scene 에서만 제외(§9 render-space boundary 준수)
+  - data-bound projection 행 style 을 raw ref anchor 가 아니라 **resolved origin master** 에서 읽도록 전환(`flattenDocumentNodes` lookup) → Components origin 에 준 style(height/padding 등)이 Home instance 행에 전달
+  - 위치: `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts` (`flattenDocumentNodes` / `appendListBoxRowProjection`)
+
 ## [ListBoxItem layout 편집 + 데이터 바인딩 행 이중 렌더 수정 — ADR-147 (Proposed) 방향 A] - 2026-05-29
 
 ### Bug Fixes

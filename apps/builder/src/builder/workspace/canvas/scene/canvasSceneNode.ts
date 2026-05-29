@@ -10,6 +10,7 @@ import type { PageElementIndex } from "../../../stores/utils/elementIndexer";
 import { normalizeFrameLayoutId } from "../../../../adapters/canonical/frameMirror";
 import {
   detectListBoxAuthoringMode,
+  getListBoxItemSlotRole,
   isListBoxTemplateAnchor,
   LISTBOX_ORIGIN_ID,
 } from "../../../components/listbox/listBoxTemplateOrigins";
@@ -172,6 +173,21 @@ function getRefDescendantChildren(node: CanonicalNode): CanonicalNode[][] {
   return Object.values(descendants)
     .map(readDescendantChildren)
     .filter((children) => children.length > 0);
+}
+
+/**
+ * ADR-147 Layer 3: 문서 전체를 id→node 로 평탄화. data-bound projection 행이
+ * resolved origin(template ref 의 master) style 을 참조하기 위한 lookup.
+ */
+function flattenDocumentNodes(
+  nodes: readonly CanonicalNode[],
+  map: Map<string, CanonicalNode> = new Map(),
+): Map<string, CanonicalNode> {
+  for (const node of nodes) {
+    map.set(node.id, node);
+    if (Array.isArray(node.children)) flattenDocumentNodes(node.children, map);
+  }
+  return map;
 }
 
 function isPagePlaceholderNode(node: CanonicalNode): boolean {
@@ -422,16 +438,24 @@ function appendListBoxRowProjection(
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
+  documentNodesById: Map<string, CanonicalNode>,
 ): void {
   const props = listBoxSceneNode.props;
   const { rows, templateAnchor, sourceNode } = projection;
   const templateAnchorId = templateAnchor?.id ?? null;
   const templateOriginId = getTemplateOriginId(templateAnchor);
-  // ADR-147 (layout edit): template anchor 의 layout style 을 각 projected 행에 전파.
-  //   사용자가 행(= anchor)을 선택해 layout 을 편집하면 모든 행에 반영된다. 미설정 prop 은
-  //   ListBoxItem render.shapes 기본값(containerStyles/metric)이 커버하므로 origin ref 해석 불필요.
-  const templateAnchorStyle =
+  // ADR-147 Layer 3: projected 행 style = resolved origin(template ref master) style ◁ anchor override.
+  //   사용자가 Components 페이지의 origin ListBoxItem 에 준 style(height/padding 등)이 instance 행에
+  //   반영되어야 한다. anchor 는 raw ref(style 없음)일 수 있으므로 origin master 의 props.style 을 base 로,
+  //   anchor 자체 override(있으면)를 위에 merge 한다. width 는 항상 100% (행 폭 고정).
+  const originStyle = templateOriginId
+    ? ((documentNodesById.get(templateOriginId)?.props?.style as
+        | Record<string, unknown>
+        | undefined) ?? {})
+    : {};
+  const anchorStyle =
     (templateAnchor?.props?.style as Record<string, unknown> | undefined) ?? {};
+  const templateAnchorStyle = { ...originStyle, ...anchorStyle };
   const rowsGroupId = toListBoxRowsGroupProjectionId(listBoxSceneNode.id);
   const rowsGroup: CanvasSceneNode = {
     id: rowsGroupId,
@@ -517,6 +541,8 @@ export function buildCanvasSceneGraph(
   const parentById = new Map<string, string>();
   const { includeReusableFrames = false } = options;
   const graph = { childrenByParent, nodes, nodesMap, parentById };
+  // ADR-147 Layer 3: origin(template ref master) style lookup 용 문서 평탄화 (1회).
+  const documentNodesById = flattenDocumentNodes(doc.children);
 
   function visit(
     node: CanonicalNode,
@@ -546,6 +572,14 @@ export function buildCanvasSceneGraph(
 
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
+      // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
+      //   render.shapes 가 단일 렌더러로 그리므로 가시 scene 에서 제외(세로 stacked 중복 방지).
+      if (
+        node.type === "ListBoxItem" &&
+        getListBoxItemSlotRole(child) != null
+      ) {
+        return;
+      }
       visit(child, nextParentId, nextScope);
     });
     getRefDescendantChildren(node).forEach((children) => {
@@ -559,6 +593,7 @@ export function buildCanvasSceneGraph(
         listBoxProjection,
         nextScope,
         graph,
+        documentNodesById,
       );
     }
   }

@@ -31,6 +31,7 @@ import {
   METER_DIMENSIONS,
   STATUSLIGHT_DIMENSIONS,
   resolveListBoxSpacingMetric,
+  resolveListBoxItemMetric,
   isListBoxSectionEntry,
   resolveGridListSpacingMetric,
   isGridListSectionEntry,
@@ -1537,6 +1538,20 @@ export function calculateContentHeight(
             { id: "item-2", label: "Item 2" },
             { id: "item-3", label: "Item 3" },
           ];
+    // ADR-147: description 행은 render.shapes 에서 더 높음(itemHeightWithDescription).
+    //   행마다 description 유무로 높이를 합산해야 description 항목이 잘리지 않는다.
+    const itemHeightOf = (item: unknown): number => {
+      const hasDesc =
+        item != null &&
+        typeof item === "object" &&
+        [
+          (item as Record<string, unknown>).description,
+          (item as Record<string, unknown>).subtitle,
+          (item as Record<string, unknown>).detail,
+        ].some((v) => typeof v === "string" && v.length > 0);
+      return hasDesc ? metric.itemHeightWithDescription : metric.itemHeight;
+    };
+    let itemsHeight = 0;
     let totalItems = 0;
     let sectionCount = 0;
     let nonFirstSectionCount = 0;
@@ -1544,15 +1559,19 @@ export function calculateContentHeight(
       const entry = entries[i];
       if (isListBoxSectionEntry(entry)) {
         sectionCount++;
-        totalItems += entry.items.length;
+        for (const item of entry.items) {
+          itemsHeight += itemHeightOf(item);
+          totalItems += 1;
+        }
         if (i > 0) nonFirstSectionCount++;
       } else {
+        itemsHeight += itemHeightOf(entry);
         totalItems += 1;
       }
     }
     const entryCount = totalItems + sectionCount;
     const innerHeight =
-      totalItems * metric.itemHeight +
+      itemsHeight +
       sectionCount * metric.headerHeight +
       Math.max(0, entryCount - 1) * metric.rowGap +
       nonFirstSectionCount * metric.sectionTopPad;
@@ -1562,6 +1581,29 @@ export function calculateContentHeight(
       innerHeight +
       metric.borderWidth * 2
     );
+  }
+
+  // 1.55b-2. ListBoxItem: 조합 자식 suppress 후 render.shapes 가 단일 렌더러이므로,
+  //   intrinsic height 도 render.shapes 의 rowHeight 공식과 동일하게 계산한다.
+  //   (명시적 style.height 는 위 §1 에서 이미 우선 반환)
+  if (tag1 === "listboxitem") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+    const m = resolveListBoxItemMetric(fontSize);
+    const paddingTop =
+      parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY;
+    const paddingBottom =
+      parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY;
+    const rowGap =
+      parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
+      m.gap;
+    const desc = props?.description;
+    const hasDesc = typeof desc === "string" && desc.length > 0;
+    const contentHeight = hasDesc
+      ? m.lineHeight + rowGap + m.lineHeight
+      : m.lineHeight;
+    const minHeight = parseNumericValue(style?.minHeight) ?? 20;
+    return Math.max(paddingTop + paddingBottom + contentHeight, minHeight);
   }
 
   // 1.55c. GridList (ADR-099 Phase 5): items SSOT 기반 intrinsic border-box height.

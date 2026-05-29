@@ -376,6 +376,8 @@ export interface ListBoxSpacingMetric {
   fontSize: number;
   itemPaddingX: number;
   itemHeight: number;
+  /** description(label+desc) 행 높이 — render.shapes 와 정합. 잘림 방지용. */
+  itemHeightWithDescription: number;
   headerHeight: number;
   headerFontSize: number;
   sectionTopPad: number;
@@ -417,6 +419,7 @@ export function resolveListBoxSpacingMetric(
     ...base,
     itemPaddingX: itemMetric.paddingX,
     itemHeight: itemMetric.itemHeight,
+    itemHeightWithDescription: itemMetric.itemHeightWithDescription,
     headerHeight: Math.round(base.fontSize * 1.75),
     headerFontSize: Math.round(base.fontSize * 0.85),
     sectionTopPad: Math.round(base.fontSize * 0.5),

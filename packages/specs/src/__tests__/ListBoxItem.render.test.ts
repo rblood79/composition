@@ -168,3 +168,46 @@ describe("ListBoxItemSpec render.shapes layout consumption (ADR-147 방향 A)", 
     expect(descGap(wide) - descGap(base)).toBe(10);
   });
 });
+
+describe("ListBoxItemSpec render.shapes template preview (RAC 표준 origin)", () => {
+  const size = ListBoxItemSpec.sizes![ListBoxItemSpec.defaultSize!]!;
+  const texts = (
+    shapes: ReturnType<NonNullable<typeof ListBoxItemSpec.render>["shapes"]>,
+  ) => shapes.filter((s) => s.type === "text").map((s) => s.text);
+
+  // origin(component-listbox-item-default) 은 children/description 가 `{label}`/`{description}`
+  // template placeholder. 조합 자식 suppress 후 render.shapes 가 단일 렌더러이므로,
+  // placeholder label 일 때 sample 콘텐츠로 RAC-표준 미리보기를 보여야 한다(빈 화면 방지).
+  it("renders sample label/description when label is a template placeholder", () => {
+    const shapes = ListBoxItemSpec.render!.shapes!(
+      {
+        children: "{label}",
+        textValue: "{label}",
+        description: "{description}",
+      },
+      size,
+      "default",
+    );
+    expect(texts(shapes)).toContain("Label");
+    expect(texts(shapes)).toContain("Description");
+  });
+
+  it("renders only the sample label when the template has no description", () => {
+    const shapes = ListBoxItemSpec.render!.shapes!(
+      { children: "{label}", textValue: "{label}" },
+      size,
+      "default",
+    );
+    expect(texts(shapes)).toEqual(["Label"]);
+  });
+
+  // 데이터 행(실 label)은 sample 로 새지 않고 placeholder description/icon 필터 유지(회귀 방지).
+  it("does NOT inject sample content for real data rows", () => {
+    const shapes = ListBoxItemSpec.render!.shapes!(
+      { children: "Aardvark", description: "{description}" },
+      size,
+      "default",
+    );
+    expect(texts(shapes)).toEqual(["Aardvark"]);
+  });
+});

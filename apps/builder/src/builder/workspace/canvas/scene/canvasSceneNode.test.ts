@@ -434,4 +434,129 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
       graph.nodesMap.has(toListBoxRowProjectionId("listbox-1", "seed-cat")),
     ).toBe(false);
   });
+
+  it("suppresses ListBoxItem slot composed children from the visible scene (ADR-147 render.shapes 단일 렌더러)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "lbi-origin",
+                  type: "ListBoxItem",
+                  reusable: true,
+                  props: { children: "{label}", description: "{description}" },
+                  children: [
+                    {
+                      id: "lbi-origin__icon",
+                      type: "Icon",
+                      props: { slot: "icon", iconName: "{icon}" },
+                      metadata: { type: "listbox-item-slot", slotRole: "icon" },
+                    },
+                    {
+                      id: "lbi-origin__label",
+                      type: "Text",
+                      props: { slot: "label", children: "{label}" },
+                      metadata: {
+                        type: "listbox-item-slot",
+                        slotRole: "label",
+                      },
+                    },
+                    {
+                      id: "lbi-origin__description",
+                      type: "Text",
+                      props: { slot: "description", children: "{description}" },
+                      metadata: {
+                        type: "listbox-item-slot",
+                        slotRole: "description",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
+
+    // ListBoxItem 자체는 scene 에 존재(render.shapes 가 렌더)
+    expect(graph.nodesMap.get("lbi-origin")).toBeDefined();
+    // slot 조합 자식(Icon/Label/Description)은 가시 scene 에서 제외 — stacked 중복 렌더 방지
+    expect(graph.nodesMap.has("lbi-origin__icon")).toBe(false);
+    expect(graph.nodesMap.has("lbi-origin__label")).toBe(false);
+    expect(graph.nodesMap.has("lbi-origin__description")).toBe(false);
+  });
+
+  it("propagates the resolved origin ListBoxItem style onto projected rows (ADR-147 Layer 3)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "listbox-1",
+                  type: "ListBox",
+                  props: { items: [{ id: "aardvark", label: "Aardvark" }] },
+                  children: [
+                    {
+                      id: "template-anchor",
+                      type: "ref",
+                      ref: "component-listbox-item-default",
+                      props: {},
+                      metadata: {
+                        type: "legacy-element-props",
+                        templateRole: "listbox-item-template-anchor",
+                      },
+                    },
+                  ],
+                },
+                // origin 정의(스타일 보유) — anchor 가 raw ref(style 없음)여도 행에 전파되어야 함
+                {
+                  id: "component-listbox-item-default",
+                  type: "ListBoxItem",
+                  reusable: true,
+                  props: {
+                    children: "{label}",
+                    description: "{description}",
+                    style: { paddingTop: 12, paddingBottom: 12 },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, { includeReusableFrames: true });
+    const aardvark = graph.nodesMap.get(
+      toListBoxRowProjectionId("listbox-1", "aardvark"),
+    );
+
+    // origin 의 style(paddingTop/Bottom 12) 이 행에 전파, width 는 100% 고정.
+    expect(aardvark?.props.style).toMatchObject({
+      paddingTop: 12,
+      paddingBottom: 12,
+      width: "100%",
+    });
+  });
 });

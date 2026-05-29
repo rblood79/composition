@@ -145,6 +145,21 @@ describe("resolveListBoxSpacingMetric — fontSize 분기", () => {
   });
 });
 
+describe("resolveListBoxSpacingMetric — description-aware item height (ADR-147)", () => {
+  // render.shapes description 행 높이 = paddingY*2 + lineHeight + gap + lineHeight.
+  //   ListBox 컨테이너가 description 항목을 잘리지 않게 수용하려면 동일 공식 필요.
+  it("fontSize 14 → itemHeightWithDescription = 4*2 + 20 + 2 + 20 = 50", () => {
+    const m = resolveListBoxSpacingMetric({});
+    expect(m.itemHeightWithDescription).toBe(50);
+    expect(m.itemHeight).toBe(28); // label-only (회귀 확인)
+  });
+
+  it("fontSize 16 → itemHeightWithDescription = 4*2 + 24 + 2 + 24 = 58", () => {
+    const m = resolveListBoxSpacingMetric({ defaultFontSize: 16 });
+    expect(m.itemHeightWithDescription).toBe(58);
+  });
+});
+
 describe("resolveListBoxSpacingMetric — borderWidth", () => {
   it("default borderWidth 1", () => {
     const m = resolveListBoxSpacingMetric({});

@@ -143,12 +143,22 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
         typeof size.gap === "number" ? size.gap : 0,
       );
       const lineHeight = metric.lineHeight;
-      const label =
-        readText(props.children) ??
-        readText(props.textValue) ??
-        readText(props.value) ??
-        "";
-      const description = readText(props.description);
+      // ADR-147 (RAC 표준 origin): label 이 template placeholder(`{label}`) 면 origin/template
+      //   미리보기로 간주 → sample 콘텐츠 렌더. render.shapes 가 단일 렌더러(조합 자식 suppress)
+      //   이므로 빈 화면 방지. 실 데이터 행(label 실값)은 현행 placeholder 필터 유지(회귀 방지).
+      const labelRaw = props.children ?? props.textValue ?? props.value;
+      const isTemplatePreview = isTemplatePlaceholder(labelRaw);
+      const label = isTemplatePreview
+        ? "Label"
+        : (readText(props.children) ??
+          readText(props.textValue) ??
+          readText(props.value) ??
+          "");
+      const description = isTemplatePreview
+        ? props.description != null && props.description !== ""
+          ? "Description"
+          : null
+        : readText(props.description);
       // 콘텐츠 높이 = label 단독 또는 label + gap + description. rowHeight 는 padding box 포함.
       const contentHeight = description
         ? lineHeight + rowGap + lineHeight
@@ -292,6 +302,11 @@ function readText(value: unknown): string | null {
   return null;
 }
 
+/** `{label}` 류 미해석 template placeholder 여부 (origin/template 미리보기 판정). */
+function isTemplatePlaceholder(value: unknown): boolean {
+  return typeof value === "string" && /^\{[^}]+\}$/.test(value);
+}
+
 /**
  * ADR-147: icon slot 값 정규화 — lucide icon name 문자열만 허용.
  * 빈 문자열 / 미해석 template placeholder(`{icon}`)는 null → icon 미렌더.
@@ -316,8 +331,16 @@ export function resolveListBoxItemMetric(fontSize: number): {
   paddingX: number;
   paddingY: number;
   lineHeight: number;
+  /** label↔description 수직 간격 (ListBoxItemSpec.sizes.md.gap). render.shapes rowGap 기본값. */
+  gap: number;
   /** `paddingY * 2 + lineHeight` — Skia shapes/layout 양쪽이 동일 공식으로 소비하는 item height */
   itemHeight: number;
+  /**
+   * `paddingY * 2 + lineHeight + gap + lineHeight` — description(label+desc) 행 높이.
+   * render.shapes 의 `contentHeight = lineHeight + rowGap + lineHeight` 와 정합.
+   * ListBox 컨테이너가 description 항목을 잘리지 않게 수용하기 위한 단일 공식.
+   */
+  itemHeightWithDescription: number;
 } {
   const sz = ListBoxItemSpec.sizes.md;
   // fontSize 기반 lineHeight 분기: CSS `var(--text-{size}--line-height)` 기본값 매핑.
@@ -327,10 +350,13 @@ export function resolveListBoxItemMetric(fontSize: number): {
   // ADR-105-c: @sync 제거 + 현황 문서화. 완전한 Spec 소비는 별도 ADR 대기.
   const lineHeight =
     fontSize <= 12 ? 16 : fontSize <= 14 ? 20 : fontSize <= 16 ? 24 : 28;
+  const gap = typeof sz.gap === "number" ? sz.gap : 0;
   return {
     paddingX: sz.paddingX,
     paddingY: sz.paddingY,
     lineHeight,
+    gap,
     itemHeight: sz.paddingY * 2 + lineHeight,
+    itemHeightWithDescription: sz.paddingY * 2 + lineHeight + gap + lineHeight,
   };
 }
