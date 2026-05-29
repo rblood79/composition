@@ -293,7 +293,11 @@ export { MenuItemSpec } from "./MenuItem.spec";
 export type { MenuItemProps } from "./MenuItem.spec";
 
 // ListBoxItem (ADR-146 — Skia row projection renderer + generated CSS source)
-export { ListBoxItemSpec, resolveListBoxItemMetric } from "./ListBoxItem.spec";
+export {
+  ListBoxItemSpec,
+  resolveListBoxItemMetric,
+  resolveListBoxItemRowHeight,
+} from "./ListBoxItem.spec";
 export type { ListBoxItemProps } from "./ListBoxItem.spec";
 
 // Breadcrumbs

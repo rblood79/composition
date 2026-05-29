@@ -101,14 +101,18 @@ export function resolveCanvasInteractionTarget(input: {
       };
     }
 
-    // ADR-147 (layout edit): listbox 행/그룹 projection → canonical template anchor 선택.
+    // listbox 행/그룹 projection 클릭 → ListBox 컴포넌트 선택.
+    //   template anchor 는 suppressedAnchorId 로 scene/interaction map 에서 제외되는
+    //   canonical ref(비-scene) 노드라 선택 대상이 될 수 없다 → templateAnchorId 반환은 no-op
+    //   (selection 실패)였다. ListBox 의 padding 영역 클릭은 동작하지만 행 클릭은 선택이 안 되던 버그.
+    //   행 layout 편집은 origin ListBoxItem(Components page) 편집 → projection 행 style 전파 경로 사용.
     if (
       projection.kind === "listbox-row" ||
       projection.kind === "listbox-rows"
     ) {
       return {
         kind: "select",
-        elementId: projection.templateAnchorId ?? projection.listBoxId,
+        elementId: projection.listBoxId,
         pageId: readPageId(hitNode),
       };
     }

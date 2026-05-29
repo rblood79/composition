@@ -115,8 +115,11 @@ describe("resolveCanvasInteractionTarget", () => {
     ).toEqual({ kind: "none" });
   });
 
-  // ADR-147 (layout edit): listbox 행/그룹 projection → canonical template anchor 선택.
-  it("redirects a clicked listbox-row projection to its canonical template anchor", () => {
+  // 버그 수정: listbox 행/그룹 projection 클릭 → ListBox 컴포넌트 선택.
+  //   template anchor 는 suppressedAnchorId 로 scene/interaction map 에서 제외(canonical ref,
+  //   비-scene)되어 선택 대상이 될 수 없다 → 과거 templateAnchorId 반환은 no-op(선택 실패)였다.
+  //   행 layout 편집은 origin ListBoxItem(Components page) 편집 → projection 행 style 전파 경로 사용.
+  it("selects the ListBox component when a listbox-row projection is clicked", () => {
     const row = makeNode("projection:listbox-row:listbox-1:row-1", {
       type: "ListBoxItem",
       projection: {
@@ -135,10 +138,10 @@ describe("resolveCanvasInteractionTarget", () => {
         elementsMap: new Map([[row.id, row]]),
         childrenMap: new Map(),
       }),
-    ).toEqual({ kind: "select", elementId: "anchor-1", pageId: "page-1" });
+    ).toEqual({ kind: "select", elementId: "listbox-1", pageId: "page-1" });
   });
 
-  it("redirects a listbox-rows group projection to the template anchor", () => {
+  it("selects the ListBox component when a listbox-rows group projection is clicked", () => {
     const group = makeNode("projection:listbox-rows:listbox-1", {
       type: "Rows",
       projection: {
@@ -155,10 +158,10 @@ describe("resolveCanvasInteractionTarget", () => {
         elementsMap: new Map([[group.id, group]]),
         childrenMap: new Map(),
       }),
-    ).toEqual({ kind: "select", elementId: "anchor-1", pageId: "page-1" });
+    ).toEqual({ kind: "select", elementId: "listbox-1", pageId: "page-1" });
   });
 
-  it("falls back to the ListBox when no template anchor exists", () => {
+  it("selects the ListBox when no template anchor exists", () => {
     const row = makeNode("projection:listbox-row:listbox-1:row-1", {
       type: "ListBoxItem",
       projection: {

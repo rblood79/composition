@@ -1,4 +1,7 @@
-import { parsePadding4Way } from "@composition/specs";
+import {
+  parsePadding4Way,
+  resolveContainerStylesFallback,
+} from "@composition/specs";
 import { measureWorkspacePanelInsets } from "../../utils/panelLayoutRuntime";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
@@ -175,23 +178,43 @@ export function buildSlotMarkerTargets(
  * 그림)이되, inset 값은 pencil 의 고정 10px 이 아니라 요소의 실제
  * padding(top/right/bottom/left).
  *
- * padding 이 없으면 bounds 원본을 그대로 반환한다.
- * Why: style longhand(paddingTop 등) 우선 + shorthand(padding) fallback 은
+ * 실제 적용 padding = spec containerStyles fallback + 사용자 style override.
+ * ListBox 등 collection 컨테이너는 padding 이 spec containerStyles
+ * (예: `{spacing.xs}` = 4) 에만 정의되고 `element.props.style` 에는 없다 —
+ * `element.props.style` 만 읽으면 0 으로 보여 전체에 사선이 그려진다(버그).
+ * `resolveContainerStylesFallback` 은 layout(Taffy)이 컨테이너 padding 을
+ * 주입할 때 쓰는 바로 그 SSOT 경로(implicitStyles 와 동일)이며, parentStyle 에
+ * 이미 명시된 키는 건드리지 않으므로 사용자 padding 이 항상 우선한다.
+ *
+ * padding 이 0 이면 bounds 원본을 그대로 반환한다.
+ * Why: longhand(paddingTop 등) 우선 + shorthand(padding) fallback 은
  *      parsePadding4Way 가 처리 — style-ssot.md store longhand 정책 정합.
  */
 function insetBoundsByPadding(
   bounds: BoundingBox,
   element: CanvasSceneNode | undefined,
 ): BoundingBox {
-  const style =
-    element && typeof element.props === "object" && element.props !== null
+  if (!element) return bounds;
+
+  const rawStyle =
+    typeof element.props === "object" && element.props !== null
       ? (element.props as { style?: unknown }).style
       : undefined;
-  if (!style || typeof style !== "object") return bounds;
+  const userStyle: Record<string, unknown> =
+    rawStyle && typeof rawStyle === "object"
+      ? (rawStyle as Record<string, unknown>)
+      : {};
 
-  const { top, right, bottom, left } = parsePadding4Way(
-    style as Record<string, unknown>,
-  );
+  const type =
+    typeof element.type === "string" ? element.type.toLowerCase() : "";
+  const specFallback = type
+    ? resolveContainerStylesFallback(type, userStyle)
+    : {};
+
+  const { top, right, bottom, left } = parsePadding4Way({
+    ...specFallback,
+    ...userStyle,
+  });
   if (top === 0 && right === 0 && bottom === 0 && left === 0) return bounds;
 
   return {

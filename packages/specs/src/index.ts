@@ -338,6 +338,7 @@ export type {
 export {
   ListBoxItemSpec,
   resolveListBoxItemMetric,
+  resolveListBoxItemRowHeight,
 } from "./components/ListBoxItem.spec";
 export type { ListBoxItemProps } from "./components/ListBoxItem.spec";
 

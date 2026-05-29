@@ -159,16 +159,17 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
           ? "Description"
           : null
         : readText(props.description);
-      // 콘텐츠 높이 = label 단독 또는 label + gap + description. rowHeight 는 padding box 포함.
-      const contentHeight = description
-        ? lineHeight + rowGap + lineHeight
-        : lineHeight;
+      // rowHeight 는 padding box 포함. 공식은 resolveListBoxItemRowHeight 단일 소스(§2.6 Layer D).
       const rowHeight = parsePxValue(
         style.height,
-        Math.max(
-          paddingTop + paddingBottom + contentHeight,
-          parsePxValue(style.minHeight, 20),
-        ),
+        resolveListBoxItemRowHeight({
+          lineHeight,
+          rowGap,
+          paddingTop,
+          paddingBottom,
+          hasDescription: description != null,
+          minHeight: parsePxValue(style.minHeight, 20),
+        }),
       );
       const width =
         typeof style.width === "number" && style.width > 0 ? style.width : 200;
@@ -296,7 +297,7 @@ export const ListBoxItemSpec: ComponentSpec<ListBoxItemProps> = {
 
 function readText(value: unknown): string | null {
   if (typeof value === "string" && value.length > 0) {
-    return /^\{[^}]+\}$/.test(value) ? null : value;
+    return isTemplatePlaceholder(value) ? null : value;
   }
   if (typeof value === "number") return String(value);
   return null;
@@ -313,7 +314,7 @@ function isTemplatePlaceholder(value: unknown): boolean {
  */
 function readIconName(value: unknown): string | null {
   if (typeof value !== "string" || value.length === 0) return null;
-  return /^\{[^}]+\}$/.test(value) ? null : value;
+  return isTemplatePlaceholder(value) ? null : value;
 }
 
 /**
@@ -359,4 +360,28 @@ export function resolveListBoxItemMetric(fontSize: number): {
     itemHeight: sz.paddingY * 2 + lineHeight,
     itemHeightWithDescription: sz.paddingY * 2 + lineHeight + gap + lineHeight,
   };
+}
+
+/**
+ * ADR-147 Layer D (§2.6): ListBoxItem padding-box 행 높이 단일 공식.
+ * render.shapes(rowHeight 기본값) 와 layout `calculateContentHeight` listboxitem 분기가
+ * 동일 심볼을 호출하도록 보장 — per-element override(padding/rowGap/minHeight)를 보존하면서
+ * 공식 중복(drift) 차단. resolveListBoxItemMetric 은 spec 기본값(md, override 무)을 반환하고,
+ * 본 함수는 호출자가 resolve 한 override 값으로 최종 높이를 산출한다.
+ */
+export function resolveListBoxItemRowHeight(input: {
+  lineHeight: number;
+  rowGap: number;
+  paddingTop: number;
+  paddingBottom: number;
+  hasDescription: boolean;
+  minHeight?: number;
+}): number {
+  const contentHeight = input.hasDescription
+    ? input.lineHeight + input.rowGap + input.lineHeight
+    : input.lineHeight;
+  return Math.max(
+    input.paddingTop + input.paddingBottom + contentHeight,
+    input.minHeight ?? 20,
+  );
 }

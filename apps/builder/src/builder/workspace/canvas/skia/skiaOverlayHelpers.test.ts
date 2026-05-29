@@ -450,6 +450,63 @@ describe("buildSlotMarkerTargets", () => {
       },
     ]);
   });
+
+  it("falls back to spec containerStyles padding for collection containers without explicit style padding (ListBox origin)", () => {
+    // ListBox origin (createInitialProjectDocument → ensureListBoxTemplateOrigins):
+    // reusable + slot 배열 → slot marker target. padding 은 element.props.style 이
+    // 아니라 ListBoxSpec.containerStyles.padding = {spacing.xs} = 4 에만 존재.
+    // resolveContainerStylesFallback 으로 layout 과 동일하게 4 를 resolve → 4-way inset.
+    const targets = buildSlotMarkerTargets(
+      new Map([["listbox-origin", { x: 0, y: 0, width: 100, height: 40 }]]),
+      new Map([
+        [
+          "listbox-origin",
+          makeElement("listbox-origin", {
+            props: {},
+            reusable: true,
+            slot: ["listbox-item/default", "listbox-item/selected"],
+            type: "ListBox",
+          }),
+        ],
+      ]),
+      new Map(),
+    );
+
+    expect(targets).toEqual([
+      {
+        bounds: { x: 4, y: 4, width: 92, height: 32 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
+
+  it("keeps explicit style padding priority over spec containerStyles fallback (ListBox)", () => {
+    // 사용자가 inspector 에서 padding 을 명시하면 spec fallback 보다 우선.
+    const targets = buildSlotMarkerTargets(
+      new Map([["listbox-origin", { x: 0, y: 0, width: 100, height: 40 }]]),
+      new Map([
+        [
+          "listbox-origin",
+          makeElement("listbox-origin", {
+            props: { style: { padding: 10 } },
+            reusable: true,
+            slot: ["listbox-item/default"],
+            type: "ListBox",
+          }),
+        ],
+      ]),
+      new Map(),
+    );
+
+    expect(targets).toEqual([
+      {
+        bounds: { x: 10, y: 10, width: 80, height: 20 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
 });
 
 describe("buildFrameTitleRenderItems", () => {

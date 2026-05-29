@@ -438,7 +438,7 @@ function appendListBoxRowProjection(
   graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
     parentById: Map<string, string>;
   },
-  documentNodesById: Map<string, CanonicalNode>,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
 ): void {
   const props = listBoxSceneNode.props;
   const { rows, templateAnchor, sourceNode } = projection;
@@ -449,7 +449,7 @@ function appendListBoxRowProjection(
   //   반영되어야 한다. anchor 는 raw ref(style 없음)일 수 있으므로 origin master 의 props.style 을 base 로,
   //   anchor 자체 override(있으면)를 위에 merge 한다. width 는 항상 100% (행 폭 고정).
   const originStyle = templateOriginId
-    ? ((documentNodesById.get(templateOriginId)?.props?.style as
+    ? ((getDocumentNodesById().get(templateOriginId)?.props?.style as
         | Record<string, unknown>
         | undefined) ?? {})
     : {};
@@ -541,8 +541,16 @@ export function buildCanvasSceneGraph(
   const parentById = new Map<string, string>();
   const { includeReusableFrames = false } = options;
   const graph = { childrenByParent, nodes, nodesMap, parentById };
-  // ADR-147 Layer 3: origin(template ref master) style lookup 용 문서 평탄화 (1회).
-  const documentNodesById = flattenDocumentNodes(doc.children);
+  // ADR-147 Layer 3: origin(template ref master) style lookup 용 문서 평탄화.
+  //   data-bound ListBox(+origin id) 가 실제 projection 될 때만 1회 build (lazy) —
+  //   data-bound ListBox 없는 페이지는 전체 트리 walk 자체를 skip.
+  let documentNodesById: Map<string, CanonicalNode> | null = null;
+  const getDocumentNodesById = (): Map<string, CanonicalNode> => {
+    if (documentNodesById === null) {
+      documentNodesById = flattenDocumentNodes(doc.children);
+    }
+    return documentNodesById;
+  };
 
   function visit(
     node: CanonicalNode,
@@ -593,7 +601,7 @@ export function buildCanvasSceneGraph(
         listBoxProjection,
         nextScope,
         graph,
-        documentNodesById,
+        getDocumentNodesById,
       );
     }
   }

@@ -32,6 +32,7 @@ import {
   STATUSLIGHT_DIMENSIONS,
   resolveListBoxSpacingMetric,
   resolveListBoxItemMetric,
+  resolveListBoxItemRowHeight,
   isListBoxSectionEntry,
   resolveGridListSpacingMetric,
   isGridListSectionEntry,
@@ -1590,20 +1591,20 @@ export function calculateContentHeight(
     const props = element.props as Record<string, unknown> | undefined;
     const fontSize = parseNumericValue(style?.fontSize) ?? 14;
     const m = resolveListBoxItemMetric(fontSize);
-    const paddingTop =
-      parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY;
-    const paddingBottom =
-      parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY;
-    const rowGap =
-      parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
-      m.gap;
     const desc = props?.description;
-    const hasDesc = typeof desc === "string" && desc.length > 0;
-    const contentHeight = hasDesc
-      ? m.lineHeight + rowGap + m.lineHeight
-      : m.lineHeight;
-    const minHeight = parseNumericValue(style?.minHeight) ?? 20;
-    return Math.max(paddingTop + paddingBottom + contentHeight, minHeight);
+    // §2.6 Layer D: render.shapes 와 동일 resolver 로 row height 산출 (공식 중복 차단).
+    return resolveListBoxItemRowHeight({
+      lineHeight: m.lineHeight,
+      rowGap:
+        parseNumericValue(style?.rowGap ?? style?.columnGap ?? style?.gap) ??
+        m.gap,
+      paddingTop:
+        parseNumericValue(style?.paddingTop ?? style?.padding) ?? m.paddingY,
+      paddingBottom:
+        parseNumericValue(style?.paddingBottom ?? style?.padding) ?? m.paddingY,
+      hasDescription: typeof desc === "string" && desc.length > 0,
+      minHeight: parseNumericValue(style?.minHeight) ?? 20,
+    });
   }
 
   // 1.55c. GridList (ADR-099 Phase 5): items SSOT 기반 intrinsic border-box height.
