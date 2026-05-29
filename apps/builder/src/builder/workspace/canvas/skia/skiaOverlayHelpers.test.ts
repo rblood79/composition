@@ -181,7 +181,7 @@ describe("buildHoverHighlightTargets editing semantics", () => {
 });
 
 describe("buildSlotMarkerTargets", () => {
-  it("collects visible slot authoring bounds, hatching only empty slots and keeping filled slot borders", () => {
+  it("emits authoring chrome only for empty slots; filled slots get no marker (hatch nor border)", () => {
     const targets = buildSlotMarkerTargets(
       new Map([
         ["slot-header", { x: 0, y: 0, width: 100, height: 40 }],
@@ -330,15 +330,14 @@ describe("buildSlotMarkerTargets", () => {
       ]),
     );
 
+    // 빈 slot 만 authoring chrome(hatch+border) 을 emit 한다. content(자식/projection row)이
+    // 있는 slot 은 marker target 자체가 생성되지 않는다 → row child 위에 사선/테두리 중복 표시 방지.
+    // 제거 대상(이전 showHatch:false 들): slot-filled(y60) / card-content-filled(y240) /
+    //   page-slot-filled(y300) / page-slot-hidden-visible-filled(y480).
     expect(targets).toEqual([
       {
         bounds: { x: 0, y: 0, width: 100, height: 40 },
         showHatch: true,
-        slotMarkerRole: "origin",
-      },
-      {
-        bounds: { x: 0, y: 60, width: 100, height: 40 },
-        showHatch: false,
         slotMarkerRole: "origin",
       },
       {
@@ -352,23 +351,8 @@ describe("buildSlotMarkerTargets", () => {
         slotMarkerRole: "origin",
       },
       {
-        bounds: { x: 0, y: 240, width: 100, height: 40 },
-        showHatch: false,
-        slotMarkerRole: "origin",
-      },
-      {
-        bounds: { x: 0, y: 300, width: 100, height: 40 },
-        showHatch: false,
-        slotMarkerRole: "origin",
-      },
-      {
         bounds: { x: 0, y: 420, width: 100, height: 40 },
         showHatch: true,
-        slotMarkerRole: "origin",
-      },
-      {
-        bounds: { x: 0, y: 480, width: 100, height: 40 },
-        showHatch: false,
         slotMarkerRole: "origin",
       },
     ]);

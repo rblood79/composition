@@ -155,14 +155,19 @@ export function buildSlotMarkerTargets(
   for (const [id, bounds] of treeBoundsMap) {
     const element = elementsMap.get(id);
     if (!hasEditingSlotMarker(element)) continue;
-    const showHatch = !hasVisibleSlotContent(id, elementsMap, childrenMap);
+    // 빈 slot 일 때만 authoring chrome(사선 + 테두리) 을 표시한다. row child(또는 projection row)
+    // 등 visible content 가 있으면 marker 자체를 생성하지 않는다.
+    //   Why: 과거에는 content 가 있으면 hatch 만 숨기고(showHatch=false) 테두리는
+    //   renderSlotHatchPattern 이 무조건 그려, ListBox 처럼 행이 채워진 slot 위에도
+    //   border line 이 남았다(사용자 보고). 채워진 slot 은 chrome 전체를 숨긴다.
+    if (hasVisibleSlotContent(id, elementsMap, childrenMap)) continue;
 
     const slotMarkerRole = getEditingSlotMarkerRole(element, elementsMap);
     if (!slotMarkerRole) continue;
 
     targets.push({
       bounds: insetBoundsByPadding(bounds, element),
-      showHatch,
+      showHatch: true,
       slotMarkerRole,
     });
   }
