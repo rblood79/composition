@@ -1,3 +1,4 @@
+import { parsePadding4Way } from "@composition/specs";
 import { measureWorkspacePanelInsets } from "../../utils/panelLayoutRuntime";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import {
@@ -156,10 +157,49 @@ export function buildSlotMarkerTargets(
     const slotMarkerRole = getEditingSlotMarkerRole(element, elementsMap);
     if (!slotMarkerRole) continue;
 
-    targets.push({ bounds, showHatch, slotMarkerRole });
+    targets.push({
+      bounds: insetBoundsByPadding(bounds, element),
+      showHatch,
+      slotMarkerRole,
+    });
   }
 
   return targets;
+}
+
+/**
+ * slot marker chrome(사선 + 테두리)을 요소의 padding 안쪽 content-box 에만
+ * 그리도록 bounds 를 padding 만큼 inset 한다.
+ *
+ * pencil 의 빈 slot path 와 동일한 시각 패턴(사선 + 테두리 모두 안쪽으로 들여
+ * 그림)이되, inset 값은 pencil 의 고정 10px 이 아니라 요소의 실제
+ * padding(top/right/bottom/left).
+ *
+ * padding 이 없으면 bounds 원본을 그대로 반환한다.
+ * Why: style longhand(paddingTop 등) 우선 + shorthand(padding) fallback 은
+ *      parsePadding4Way 가 처리 — style-ssot.md store longhand 정책 정합.
+ */
+function insetBoundsByPadding(
+  bounds: BoundingBox,
+  element: CanvasSceneNode | undefined,
+): BoundingBox {
+  const style =
+    element && typeof element.props === "object" && element.props !== null
+      ? (element.props as { style?: unknown }).style
+      : undefined;
+  if (!style || typeof style !== "object") return bounds;
+
+  const { top, right, bottom, left } = parsePadding4Way(
+    style as Record<string, unknown>,
+  );
+  if (top === 0 && right === 0 && bottom === 0 && left === 0) return bounds;
+
+  return {
+    x: bounds.x + left,
+    y: bounds.y + top,
+    width: Math.max(0, bounds.width - left - right),
+    height: Math.max(0, bounds.height - top - bottom),
+  };
 }
 
 function hasVisibleSlotContent(

@@ -373,6 +373,83 @@ describe("buildSlotMarkerTargets", () => {
       },
     ]);
   });
+
+  it("insets slot marker bounds by element padding so hatch + border stay in the content-box", () => {
+    const targets = buildSlotMarkerTargets(
+      new Map([
+        ["slot-shorthand", { x: 0, y: 0, width: 100, height: 40 }],
+        ["slot-longhand", { x: 0, y: 60, width: 100, height: 40 }],
+        ["slot-longhand-override", { x: 0, y: 120, width: 100, height: 40 }],
+        ["slot-no-padding", { x: 0, y: 180, width: 100, height: 40 }],
+      ]),
+      new Map([
+        [
+          "slot-shorthand",
+          makeElement("slot-shorthand", {
+            props: { name: "content", style: { padding: 12 } },
+            type: "Slot",
+          }),
+        ],
+        [
+          "slot-longhand",
+          makeElement("slot-longhand", {
+            props: {
+              name: "content",
+              style: {
+                paddingTop: 5,
+                paddingRight: 10,
+                paddingBottom: 15,
+                paddingLeft: 20,
+              },
+            },
+            type: "Slot",
+          }),
+        ],
+        [
+          "slot-longhand-override",
+          makeElement("slot-longhand-override", {
+            // padding shorthand 8px + paddingLeft longhand 30 override
+            props: {
+              name: "content",
+              style: { padding: "8px", paddingLeft: 30 },
+            },
+            type: "Slot",
+          }),
+        ],
+        [
+          "slot-no-padding",
+          makeElement("slot-no-padding", {
+            props: { name: "content" },
+            type: "Slot",
+          }),
+        ],
+      ]),
+      new Map(),
+    );
+
+    expect(targets).toEqual([
+      {
+        bounds: { x: 12, y: 12, width: 76, height: 16 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+      {
+        bounds: { x: 20, y: 65, width: 70, height: 20 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+      {
+        bounds: { x: 30, y: 128, width: 62, height: 24 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+      {
+        bounds: { x: 0, y: 180, width: 100, height: 40 },
+        showHatch: true,
+        slotMarkerRole: "origin",
+      },
+    ]);
+  });
 });
 
 describe("buildFrameTitleRenderItems", () => {
