@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  RefNode,
+} from "@composition/shared";
 import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
@@ -57,7 +61,7 @@ function makePageDocument(
         children: [
           {
             id: bodyOne.id,
-            type: bodyOne.type,
+            type: bodyOne.type as CanonicalNode["type"],
             props: bodyOne.props as Record<string, unknown>,
             children: [
               {
@@ -65,7 +69,7 @@ function makePageDocument(
                 type: "ref",
                 ref: origin.id,
                 props: instance.props as Record<string, unknown>,
-              },
+              } as RefNode,
             ],
           },
         ],
@@ -77,19 +81,19 @@ function makePageDocument(
         children: [
           {
             id: bodyTwo.id,
-            type: bodyTwo.type,
+            type: bodyTwo.type as CanonicalNode["type"],
             props: bodyTwo.props as Record<string, unknown>,
             children: [
               {
                 id: origin.id,
-                type: origin.type,
+                type: origin.type as CanonicalNode["type"],
                 name: origin.componentName,
                 reusable: true,
                 props: origin.props as Record<string, unknown>,
                 children: [
                   {
                     id: originLabel.id,
-                    type: originLabel.type,
+                    type: originLabel.type as CanonicalNode["type"],
                     props: originLabel.props as Record<string, unknown>,
                   },
                 ],

@@ -128,7 +128,9 @@ describe("readCanonicalThemes (ADR-110 Phase 1)", () => {
     // 기존 stub 형태 (Record<string, string[]>) 가 ThemeSnapshot 필드를 갖지 않으면 undefined
     const doc: CompositionDocument = {
       version: "composition-1.0",
-      themes: { mode: ["light", "dark"] } as Record<string, string[]>,
+      // 의도적으로 ThemeSnapshot 이 아닌 stub 형태 (Record<string, string[]>) 주입 —
+      // themes 필드 타입이 ThemeSnapshot 으로 좁혀져 unknown 경유 cast 필요.
+      themes: { mode: ["light", "dark"] } as unknown as ThemeSnapshot,
       children: [],
     };
     // mode 필드만 있고 tint/darkMode/neutral/radiusScale 없음 → undefined

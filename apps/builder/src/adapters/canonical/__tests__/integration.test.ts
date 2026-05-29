@@ -36,7 +36,23 @@ import { resolveToken } from "@composition/specs";
 
 const deps = { convertComponentRole, convertPageLayout };
 
-function el(partial: Partial<Element> & Pick<Element, "id" | "type">): Element {
+// legacy fixture 필드: canonical 전환으로 Element 타입에서 제거(`order_num`)되거나
+// canonical node 필드(`layout_id`/`slot_name`/`reusable`/`ref`)로 이전됐다. runtime
+// adapter 가 element 객체에서 직접 읽으므로 fixture 는 값을 유지하고 타입만 허용.
+type LegacyElementFixture = Partial<Element> &
+  Pick<Element, "id" | "type"> & {
+    order_num?: number;
+    layout_id?: string | null;
+    slot_name?: string;
+    reusable?: boolean;
+    ref?: string;
+    componentRole?: string;
+    masterId?: string;
+    overrides?: Record<string, unknown>;
+    descendants?: Record<string, unknown>;
+  };
+
+function el(partial: LegacyElementFixture): Element {
   return {
     props: {},
     parent_id: null,
@@ -45,7 +61,10 @@ function el(partial: Partial<Element> & Pick<Element, "id" | "type">): Element {
   } as Element;
 }
 
-function page(partial: Partial<Page> & Pick<Page, "id" | "title">): Page {
+function page(
+  partial: Partial<Page> &
+    Pick<Page, "id" | "title"> & { layout_id?: string | null },
+): Page {
   return {
     project_id: "proj-1",
     slug: "/",

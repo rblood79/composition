@@ -15,13 +15,25 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { convertComponentRole } from "../componentRoleAdapter";
 import type { Element } from "@/types/builder/unified.types";
+import type { ElementWithLegacyMirror } from "../legacyElementFields";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** 최소 필드를 가진 테스트용 Element 생성 헬퍼 */
-function makeEl(overrides: Partial<Element> & { id: string }): Element {
+/**
+ * 최소 필드를 가진 테스트용 Element 생성 헬퍼.
+ *
+ * `componentRole`/`masterId`/`overrides`/`descendants` 는 canonical schema 로
+ * 이전된 legacy mirror 필드 (`ElementWithLegacyMirror`). runtime adapter 가
+ * 객체에서 읽으므로 fixture 값은 유지하고 param 타입만 mirror 로 확장한다.
+ * `order_num` 은 ADR-125 에서 제거됐으나 동일하게 값만 보존.
+ */
+type LegacyMirrorOverrides = Partial<ElementWithLegacyMirror> & {
+  id: string;
+  order_num?: number;
+};
+function makeEl(overrides: LegacyMirrorOverrides): Element {
   return {
     type: "Button",
     props: {},

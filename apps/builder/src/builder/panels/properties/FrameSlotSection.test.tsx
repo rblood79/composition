@@ -15,7 +15,19 @@ import { FrameSlotSection } from "./FrameSlotSection";
 
 const defaultAddElement = useStore.getState().addElement;
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+// Canonical migration: `reusable` / `ref` / `componentRole` are CanonicalNode fields,
+// not legacy Element fields, but runtime reads them off the object. Widen the overrides
+// param so fixtures keep these values while satisfying the type checker.
+type LegacyElementOverrides = Partial<Element> & {
+  reusable?: boolean;
+  ref?: string;
+  componentRole?: string;
+};
+
+function makeElement(
+  id: string,
+  overrides: LegacyElementOverrides = {},
+): Element {
   return {
     id,
     type: "frame",

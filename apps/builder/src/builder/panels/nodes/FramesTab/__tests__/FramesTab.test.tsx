@@ -27,6 +27,7 @@ import {
 } from "@testing-library/react";
 import type { Element } from "@/types/core/store.types";
 import type { ElementTreeItem } from "@/types/builder/stately.types";
+import type { CompositionDocument } from "@composition/shared";
 import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 
 // ─── mock state holders ─────────────────────────────────────────────────────
@@ -50,7 +51,11 @@ const mockEditModeState = {
   setCurrentLayoutId: vi.fn(),
 };
 
-const mockBuildTreeFromElements = vi.hoisted(() => vi.fn(() => []));
+const mockBuildTreeFromElements = vi.hoisted(() =>
+  vi.fn<(elements: Element[], parentId?: string | null) => ElementTreeItem[]>(
+    () => [],
+  ),
+);
 const mockCollapseAll = vi.hoisted(() => vi.fn());
 const mockExpandKey = vi.hoisted(() => vi.fn());
 const mockGetAllElements = vi.fn(async () => [] as Element[]);
@@ -185,7 +190,19 @@ function makeProps(): React.ComponentProps<typeof FramesTab> {
   };
 }
 
-function makeFrameElement(frameId: string | null, element: Element): Element {
+type LegacyElementInput = Element & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+  layout_id?: string | null;
+  layoutId?: string | null;
+  slot_name?: string | null;
+};
+
+function makeFrameElement(
+  frameId: string | null,
+  element: LegacyElementInput,
+): Element {
   return withFrameElementMirrorId(element, frameId);
 }
 
@@ -351,7 +368,9 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       } as const;
       mockActiveCanonicalDocument.mockReturnValue(doc);
       useCanonicalDocumentStore.setState({
-        documents: new Map([["test-project", doc]]),
+        documents: new Map([
+          ["test-project", doc as unknown as CompositionDocument],
+        ]),
         currentProjectId: "test-project",
         documentVersion: 1,
       });
@@ -392,7 +411,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
             id: element.id,
             type: element.type,
             parent_id: element.parent_id,
-            order_num: element.order_num,
+            order_num: (element as { order_num?: number }).order_num,
             props: element.props as Record<string, unknown>,
             deleted: element.deleted,
             children: [],
@@ -431,7 +450,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
             id: element.id,
             type: element.type,
             parent_id: element.parent_id,
-            order_num: element.order_num,
+            order_num: (element as { order_num?: number }).order_num,
             props: element.props as Record<string, unknown>,
             deleted: element.deleted,
             children: [],
@@ -525,7 +544,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
             id: element.id,
             type: element.type,
             parent_id: element.parent_id,
-            order_num: element.order_num,
+            order_num: (element as { order_num?: number }).order_num,
             props: element.props as Record<string, unknown>,
             deleted: element.deleted,
             children: [],

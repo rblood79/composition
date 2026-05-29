@@ -58,7 +58,10 @@ function applyTF(
   return applyImplicitStyles(
     container,
     children,
-    (id) => byId.get(id)?.childrenIds.map((cid) => byId.get(cid)!) ?? [],
+    (id) =>
+      (
+        byId.get(id) as { childrenIds?: string[] } | undefined
+      )?.childrenIds?.map((cid: string) => byId.get(cid)!) ?? [],
     byId,
   );
 }
@@ -142,7 +145,10 @@ describe("TextField applyImplicitStyles — ADR-108 P2 helper 소비", () => {
     const { filteredChildren } = applyImplicitStyles(
       container,
       [label, input],
-      (id) => byId.get(id)?.childrenIds.map((cid) => byId.get(cid)!) ?? [],
+      (id) =>
+        (
+          byId.get(id) as { childrenIds?: string[] } | undefined
+        )?.childrenIds?.map((cid: string) => byId.get(cid)!) ?? [],
       byId,
     );
     expect(filteredChildren.find((c) => c.type === "Label")).toBeUndefined();

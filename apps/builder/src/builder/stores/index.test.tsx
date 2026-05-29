@@ -14,7 +14,25 @@ import {
 } from "./index";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+type LegacyElementOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+};
+
+// canonical document fixtures retain the legacy top-level `schemaVersion`
+// marker and omit the newer required `version` field; the runtime tolerates
+// both (tests are green), so keep the literal values intact and only widen
+// the annotation. Still validated against CompositionDocument's `children`.
+type LegacyCompositionDocument = Omit<CompositionDocument, "version"> & {
+  version?: string;
+  schemaVersion?: string;
+};
+
+function makeElement(
+  id: string,
+  overrides: LegacyElementOverrides = {},
+): Element {
   return {
     id,
     type: "Text",
@@ -116,7 +134,7 @@ describe("useSelectedElementData", () => {
   });
 
   it("keeps canonical-store ref instances origin-shaped when raw selected props are hydrated", () => {
-    const doc: CompositionDocument = {
+    const doc: LegacyCompositionDocument = {
       schemaVersion: "1.0",
       children: [
         {
@@ -136,7 +154,7 @@ describe("useSelectedElementData", () => {
 
     act(() => {
       const state = useCanonicalDocumentStore.getState();
-      state.setDocument("proj-a", doc);
+      state.setDocument("proj-a", doc as CompositionDocument);
       state.setCurrentProject("proj-a");
     });
 
@@ -162,7 +180,7 @@ describe("useSelectedElementData", () => {
   });
 
   it("uses canonical ref override props as the source for origin-shaped selected data", () => {
-    const doc: CompositionDocument = {
+    const doc: LegacyCompositionDocument = {
       schemaVersion: "1.0",
       children: [
         {
@@ -189,7 +207,7 @@ describe("useSelectedElementData", () => {
 
     act(() => {
       const state = useCanonicalDocumentStore.getState();
-      state.setDocument("proj-a", doc);
+      state.setDocument("proj-a", doc as CompositionDocument);
       state.setCurrentProject("proj-a");
     });
 
@@ -218,7 +236,7 @@ describe("useSelectedElementData", () => {
   });
 
   it("does not let stale selected props reapply a reset canonical ref override", () => {
-    const initialDoc: CompositionDocument = {
+    const initialDoc: LegacyCompositionDocument = {
       schemaVersion: "1.0",
       children: [
         {
@@ -235,7 +253,7 @@ describe("useSelectedElementData", () => {
         } as CanonicalNode,
       ],
     };
-    const resetDoc: CompositionDocument = {
+    const resetDoc: LegacyCompositionDocument = {
       ...initialDoc,
       children: [
         initialDoc.children[0],
@@ -248,7 +266,7 @@ describe("useSelectedElementData", () => {
 
     act(() => {
       const state = useCanonicalDocumentStore.getState();
-      state.setDocument("proj-a", initialDoc);
+      state.setDocument("proj-a", initialDoc as CompositionDocument);
       state.setCurrentProject("proj-a");
     });
 
@@ -264,7 +282,9 @@ describe("useSelectedElementData", () => {
     expect(result.current?.properties.label).toBe("Instance amount");
 
     act(() => {
-      useCanonicalDocumentStore.getState().setDocument("proj-a", resetDoc);
+      useCanonicalDocumentStore
+        .getState()
+        .setDocument("proj-a", resetDoc as CompositionDocument);
     });
 
     expect(result.current).toMatchObject({
@@ -278,7 +298,7 @@ describe("useSelectedElementData", () => {
   });
 
   it("uses active canonical elements for exported lookup selectors", () => {
-    const doc: CompositionDocument = {
+    const doc: LegacyCompositionDocument = {
       schemaVersion: "1.0",
       children: [
         {
@@ -298,7 +318,7 @@ describe("useSelectedElementData", () => {
 
     act(() => {
       const state = useCanonicalDocumentStore.getState();
-      state.setDocument("proj-a", doc);
+      state.setDocument("proj-a", doc as CompositionDocument);
       state.setCurrentProject("proj-a");
     });
 
@@ -319,7 +339,7 @@ describe("useSelectedElementData", () => {
   });
 
   it("uses active canonical elements for current page selectors", () => {
-    const doc: CompositionDocument = {
+    const doc: LegacyCompositionDocument = {
       schemaVersion: "1.0",
       children: [
         {
@@ -351,7 +371,7 @@ describe("useSelectedElementData", () => {
 
     act(() => {
       const state = useCanonicalDocumentStore.getState();
-      state.setDocument("proj-a", doc);
+      state.setDocument("proj-a", doc as CompositionDocument);
       state.setCurrentProject("proj-a");
     });
 

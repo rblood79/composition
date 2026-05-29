@@ -2,7 +2,19 @@ import { describe, expect, it } from "vitest";
 import type { Element } from "../../types/core/store.types";
 import { includeCanonicalRefDependencies } from "./canonicalRefDependencies";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+type LegacyOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+  componentRole?: string;
+  layout_id?: string | null;
+  layoutId?: string | null;
+  slot_name?: string | null;
+  placeholder?: boolean;
+  schemaVersion?: string;
+};
+
+function makeElement(id: string, overrides: LegacyOverrides = {}): Element {
   return {
     id,
     type: "Button",

@@ -51,7 +51,9 @@ describe("layoutCache filtered children republish contract", () => {
       parent_id: body.id,
       order_num: 10,
       props: {},
-    } as CanvasSceneNode;
+      // order_num 은 canonical 에서 제거됨 — 본 테스트는 source order 우선을 검증하려고
+      // 의도적 decoy(10)를 둔다. 값 보존 위해 unknown 경유 cast.
+    } as unknown as CanvasSceneNode;
     const second = {
       id: "second",
       type: "Box",
@@ -59,7 +61,7 @@ describe("layoutCache filtered children republish contract", () => {
       parent_id: body.id,
       order_num: 0,
       props: {},
-    } as CanvasSceneNode;
+    } as unknown as CanvasSceneNode;
 
     const childrenMap = buildPageChildrenMap({
       bodyElement: body,

@@ -94,7 +94,7 @@ describe("frameActions canonical reusable frame API", () => {
     it("active canonical document 에 reusable FrameNode 를 추가하고 document store 를 저장한다", async () => {
       const randomUUIDSpy = vi
         .spyOn(crypto, "randomUUID")
-        .mockReturnValue("frame-x");
+        .mockReturnValue("frame-x" as ReturnType<typeof crypto.randomUUID>);
 
       const result = await createReusableFrame({
         name: "My Frame",
@@ -137,7 +137,7 @@ describe("frameActions canonical reusable frame API", () => {
     it("description 미지정 시 canonical metadata 에 빈 문자열을 저장한다", async () => {
       const randomUUIDSpy = vi
         .spyOn(crypto, "randomUUID")
-        .mockReturnValue("frame-y");
+        .mockReturnValue("frame-y" as ReturnType<typeof crypto.randomUUID>);
 
       await createReusableFrame({ name: "F", projectId: "p" });
 

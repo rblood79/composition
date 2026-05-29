@@ -176,7 +176,7 @@ describe("buildCanonicalUpdateEvent + apply", () => {
     );
     expect(
       (
-        afterRedo.children[0].children![0].children![0] as {
+        afterRedo.children[0].children![0].children![0] as unknown as {
           props: { label: string };
         }
       ).props.label,
@@ -190,7 +190,7 @@ describe("buildCanonicalUpdateEvent + apply", () => {
     );
     expect(
       (
-        afterUndo.children[0].children![0].children![0] as {
+        afterUndo.children[0].children![0].children![0] as unknown as {
           props: { label: string };
         }
       ).props.label,

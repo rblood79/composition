@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import type { CompositionDocument } from "@composition/shared";
+import type { CompositionDocument, RefNode } from "@composition/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   COMPONENT_MASTER_ID_MIRROR_FIELD,
@@ -23,7 +23,19 @@ import { useStore } from "../../stores";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+// Canonical migration: `reusable` / `ref` / `componentRole` are CanonicalNode (RefNode)
+// fields, not legacy Element fields, but runtime reads them off the object. Widen the
+// overrides param so fixtures keep these values while satisfying the type checker.
+type LegacyElementOverrides = Partial<Element> & {
+  reusable?: boolean;
+  ref?: string;
+  componentRole?: string;
+};
+
+function makeElement(
+  id: string,
+  overrides: LegacyElementOverrides = {},
+): Element {
   return {
     id,
     type: "Button",
@@ -388,7 +400,7 @@ describe("ComponentSemanticsSection", () => {
               type: "ref",
               ref: "origin",
               props: { label: "Instance override" },
-            },
+            } as RefNode,
           ],
         },
       ],
@@ -574,7 +586,7 @@ describe("ComponentSemanticsSection", () => {
             heading: { label: "Custom title", tone: "accent" },
           },
           metadata: { type: "legacy-element-props" },
-        },
+        } as RefNode,
       ],
     } satisfies CompositionDocument;
     const nextDoc = {
@@ -582,11 +594,11 @@ describe("ComponentSemanticsSection", () => {
       children: [
         initialDoc.children[0],
         {
-          ...initialDoc.children[1],
+          ...(initialDoc.children[1] as RefNode),
           descendants: {
             heading: { tone: "accent" },
           },
-        },
+        } as RefNode,
       ],
     } satisfies CompositionDocument;
 

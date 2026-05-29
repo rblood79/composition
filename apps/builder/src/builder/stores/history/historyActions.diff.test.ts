@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
+import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import {
   registerCanonicalMutationStoreActions,
@@ -46,7 +46,7 @@ function makeDocument(elements: Element[]): CompositionDocument {
     version: "composition-1.0",
     children: elements.map((element) => ({
       id: element.id,
-      type: element.type,
+      type: element.type as CanonicalNode["type"],
       props: element.props as Record<string, unknown>,
       children: [],
     })),
@@ -176,7 +176,7 @@ describe("historyActions canonical diff/event application", () => {
       type: "Button",
       props: { children: "Save" },
       children: [],
-    };
+    } satisfies CanonicalNode;
 
     useCanonicalDocumentStore.getState().setDocument("history-project", {
       version: "composition-1.0",
@@ -265,19 +265,19 @@ describe("historyActions canonical diff/event application", () => {
       type: "Button",
       props: { children: "A" },
       children: [],
-    };
+    } satisfies CanonicalNode;
     const childB = {
       id: "child-b",
       type: "Button",
       props: { children: "B" },
       children: [],
-    };
+    } satisfies CanonicalNode;
     const group = {
       id: "group-1",
       type: "Group",
       props: { label: "Group" },
       children: [],
-    };
+    } satisfies CanonicalNode;
 
     historyManager.addEntry({
       type: "group",

@@ -12,9 +12,12 @@ import { ElementSlotSelector } from "./ElementSlotSelector";
 
 function makeElement(
   id: string,
+  // Canonical migration: `order_num` was removed from Element (ADR-125) but runtime
+  // fixtures still carry the value. Keep it as an optional override field.
   overrides: Partial<Element> & {
     frameId?: string | null;
     propsSlotMirrorName?: string | null;
+    order_num?: number;
   } = {},
 ): Element {
   const { frameId, propsSlotMirrorName, ...elementOverrides } = overrides;

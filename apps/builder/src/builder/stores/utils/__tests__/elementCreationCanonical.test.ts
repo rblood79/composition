@@ -34,10 +34,17 @@ import {
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+type LegacyElementOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+  layout_id?: string;
+};
+
 function makeElement(
   id: string,
   type: string,
-  opts: Partial<Element> = {},
+  opts: LegacyElementOverrides = {},
 ): Element {
   return {
     id,
@@ -165,7 +172,15 @@ function setupStateMocks(opts: MockStateOpts = {}) {
 
   mockGetActiveCanonicalDocument.mockReturnValue(opts.doc ?? null);
 
-  return { state, getMock, setMock };
+  // The mock `state` is a partial of the runtime ElementsState; the action
+  // factories only read the fields present here. Cast the mock fns to the
+  // factory parameter types so callers stay type-clean without altering the
+  // mock shape (runtime behavior unchanged).
+  return {
+    state,
+    getMock: getMock as unknown as Parameters<typeof createAddElementAction>[1],
+    setMock: setMock as unknown as Parameters<typeof createAddElementAction>[0],
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,7 +231,7 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
           name: "Home",
           metadata: { type: "legacy-page", pageId: "page-1" },
           children: [{ id: "body-page-1", type: "body", props: {} }],
-        } as FrameNode,
+        } as unknown as FrameNode,
       ]);
       const element = makeElement("el-body-child", "Button", {
         parent_id: "body-page-1",
@@ -552,7 +567,12 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
       });
 
       const dbModule = await import("../../../../lib/db");
-      const db = await (dbModule.getDB as ReturnType<typeof vi.fn>)();
+      const db = await (
+        dbModule.getDB as unknown as () => Promise<{
+          elements: Record<string, ReturnType<typeof vi.fn>>;
+          documents: Record<string, ReturnType<typeof vi.fn>>;
+        }>
+      )();
       useCanonicalDocumentStore.getState().setCurrentProject("project-1");
       useCanonicalDocumentStore.getState().setDocument("project-1", doc);
 
@@ -601,7 +621,7 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
           name: "Home",
           metadata: { type: "legacy-page", pageId: "page-1" },
           children: [{ id: "body-page-1", type: "body", props: {} }],
-        } as FrameNode,
+        } as unknown as FrameNode,
       ]);
       const element = makeElement("button-1", "Button", {
         page_id: "page-1",
@@ -624,7 +644,12 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
       expect(pageBody?.children?.map((node) => node.id)).toContain("button-1");
 
       const dbModule = await import("../../../../lib/db");
-      const db = await (dbModule.getDB as ReturnType<typeof vi.fn>)();
+      const db = await (
+        dbModule.getDB as unknown as () => Promise<{
+          elements: Record<string, ReturnType<typeof vi.fn>>;
+          documents: Record<string, ReturnType<typeof vi.fn>>;
+        }>
+      )();
       expect(db.documents.put).toHaveBeenCalledWith(
         "project-1",
         expect.objectContaining({ version: "composition-1.0" }),
@@ -640,7 +665,7 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
           name: "Frame 1",
           metadata: { type: "legacy-layout", layoutId: "frame-1" },
           children: [{ id: "body-frame-1", type: "body", props: {} }],
-        } as FrameNode,
+        } as unknown as FrameNode,
       ]);
       const slot = makeElement("slot-1", "Slot", {
         layout_id: "frame-1",

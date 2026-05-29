@@ -4,15 +4,30 @@ vi.mock("../../../../utils/featureFlags", () => ({
   isFillV2Enabled: () => true,
 }));
 
+import type { FillItem } from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
 import {
   normalizeExternalFillIngress,
   normalizeExternalFillIngressBatch,
 } from "./fillExternalIngress";
 
+// Canonical migration: the source helper is generic <T extends ExternalFillIngressNode>(el: T): T,
+// so the returned type is inferred from the literal passed in. Fixtures that omit `fills`
+// (legacy-style payloads) lose `.fills` from the inferred type. Typing the argument with this
+// non-generic alias keeps `.fills` readable on the result without altering fixture values.
+type FillIngressInput = {
+  id: string;
+  type: string;
+  fills?: FillItem[];
+  props: {
+    style?: Record<string, string | undefined>;
+    [key: string]: unknown;
+  };
+};
+
 describe("normalizeExternalFillIngress", () => {
   it("fills 가 이미 있으면 derived background style 을 제거하고 fills 는 유지한다", () => {
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-1",
       type: "Box",
       fills: [
@@ -43,7 +58,7 @@ describe("normalizeExternalFillIngress", () => {
   });
 
   it("legacy solid backgroundColor 는 fills 로 승격한다", () => {
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-2",
       type: "Box",
       props: {
@@ -60,7 +75,7 @@ describe("normalizeExternalFillIngress", () => {
   });
 
   it("legacy linear-gradient backgroundImage 는 gradient fill 로 승격한다", () => {
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-3",
       type: "Box",
       props: {
@@ -78,7 +93,7 @@ describe("normalizeExternalFillIngress", () => {
   });
 
   it("legacy radial-gradient backgroundImage 는 radial fill 로 승격한다", () => {
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-3b",
       type: "Box",
       props: {
@@ -97,7 +112,7 @@ describe("normalizeExternalFillIngress", () => {
   });
 
   it("legacy conic-gradient backgroundImage 는 angular fill 로 승격한다", () => {
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-3c",
       type: "Box",
       props: {
@@ -116,7 +131,7 @@ describe("normalizeExternalFillIngress", () => {
   });
 
   it("legacy image backgroundImage 는 image fill 로 승격한다", () => {
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-4",
       type: "Box",
       props: {
@@ -148,7 +163,7 @@ describe("normalizeExternalFillIngress", () => {
       "</svg>",
     ].join("");
 
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-5",
       type: "Box",
       props: {
@@ -166,7 +181,7 @@ describe("normalizeExternalFillIngress", () => {
   });
 
   it("allowlist 밖 payload 는 임의 canonicalize 하지 않고 pass-through 한다", () => {
-    const normalized = normalizeExternalFillIngress({
+    const normalized: FillIngressInput = normalizeExternalFillIngress({
       id: "el-5b",
       type: "Box",
       props: {
@@ -189,7 +204,7 @@ describe("normalizeExternalFillIngress", () => {
   });
 
   it("batch normalizer 는 preview-generated payload 도 canonical fills 로 정규화한다", () => {
-    const normalized = normalizeExternalFillIngressBatch([
+    const normalized: FillIngressInput[] = normalizeExternalFillIngressBatch([
       {
         id: "el-6",
         type: "Box",

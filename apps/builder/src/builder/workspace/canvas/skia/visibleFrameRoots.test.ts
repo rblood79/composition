@@ -43,8 +43,10 @@ const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => {
   return {
     childrenMap: new Map(),
     elements,
-    elementsMap,
+    interactionChildrenMap: partial.interactionChildrenMap ?? new Map(),
+    interactionNodesMap: partial.interactionNodesMap ?? renderNodesMap,
     renderNodesMap,
+    projectionVersion: 0,
     sceneChildrenByParent: partial.sceneChildrenByParent ?? new Map(),
     sceneNodes,
     sceneNodesMap,

@@ -11,7 +11,7 @@ function makePage(id: string): Page {
     project_id: "project-1",
     slug: `/${id}`,
     order_num: 0,
-  };
+  } as Page;
 }
 
 describe("getLiveElementsState", () => {

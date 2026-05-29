@@ -29,7 +29,7 @@ const mocks = vi.hoisted(() => ({
     elements: {
       deleteMany: vi.fn(async () => {}),
       insertMany: vi.fn(async () => {}),
-      update: vi.fn(async () => {}),
+      update: vi.fn(async (_id: string) => {}),
     },
     documents: {
       put: vi.fn(async () => {}),
@@ -241,7 +241,7 @@ describe("element mutations keep canonical document primary", () => {
       makeFrameDocument([
         {
           id: "frame-body",
-          type: "body",
+          type: "body" as CanonicalNode["type"],
           props: body.props as Record<string, unknown>,
           children: [
             {
@@ -254,7 +254,7 @@ describe("element mutations keep canonical document primary", () => {
                 slotName: "header",
               },
               children: [],
-            },
+            } as FrameNode,
             {
               id: "slot-content",
               type: "frame",
@@ -265,14 +265,14 @@ describe("element mutations keep canonical document primary", () => {
                 slotName: "content",
               },
               children: [],
-            },
+            } as FrameNode,
           ],
         },
       ]),
     );
 
     await createRemoveElementsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )(["slot-header", "slot-content"]);
 
@@ -323,7 +323,7 @@ describe("element mutations keep canonical document primary", () => {
           children: [
             {
               id: body.id,
-              type: "body",
+              type: "body" as CanonicalNode["type"],
               props: body.props as Record<string, unknown>,
               children: [
                 {
@@ -344,7 +344,7 @@ describe("element mutations keep canonical document primary", () => {
                   type: "ref",
                   ref: "origin",
                   props: instance.props as Record<string, unknown>,
-                } satisfies RefNode,
+                } as RefNode,
               ],
             },
           ],
@@ -353,7 +353,7 @@ describe("element mutations keep canonical document primary", () => {
     });
 
     await createRemoveElementsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )(["origin"]);
 
@@ -386,7 +386,7 @@ describe("element mutations keep canonical document primary", () => {
       makeFrameDocument([
         {
           id: "frame-body",
-          type: "body",
+          type: "body" as CanonicalNode["type"],
           props: body.props as Record<string, unknown>,
           children: [],
         },
@@ -394,7 +394,7 @@ describe("element mutations keep canonical document primary", () => {
     );
 
     await createUpdateElementPropsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )("frame-body", {
       style: { display: "grid", gridTemplateRows: "auto 1fr" },
@@ -451,7 +451,7 @@ describe("element mutations keep canonical document primary", () => {
     });
 
     await createBatchUpdateElementPropsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )([
       { elementId: "origin", props: { size: "lg" } },
@@ -606,7 +606,10 @@ describe("element mutations keep canonical document primary", () => {
               ...makeCanonicalElementNode(body),
               children: [
                 makeCanonicalElementNode(buttonOne),
-                makeCanonicalElementNode({ ...buttonTwo, order_num: 0 }),
+                makeCanonicalElementNode({
+                  ...buttonTwo,
+                  order_num: 0,
+                } as Element),
                 makeCanonicalElementNode(buttonThree),
                 makeCanonicalElementNode(buttonFour),
               ],
@@ -676,7 +679,7 @@ describe("element mutations keep canonical document primary", () => {
           type: "ref",
           ref: "origin",
           props: {},
-        } satisfies RefNode,
+        } as RefNode,
       ],
     });
     mocks.db.elements.update.mockImplementation(async (id: string) => {
@@ -809,7 +812,7 @@ describe("element mutations keep canonical document primary", () => {
               "origin",
             ),
           ),
-        } satisfies RefNode,
+        } as RefNode,
       ],
     });
 
@@ -869,7 +872,7 @@ describe("element mutations keep canonical document primary", () => {
           type: "ref",
           ref: "origin",
           props: {},
-        } satisfies RefNode,
+        } as RefNode,
       ],
     });
 
@@ -929,7 +932,7 @@ describe("element mutations keep canonical document primary", () => {
           type: "ref",
           ref: "origin",
           props: {},
-        } satisfies RefNode,
+        } as RefNode,
       ],
     });
 
@@ -1057,7 +1060,7 @@ describe("element mutations keep canonical document primary", () => {
           type: "ref",
           ref: "card-origin",
           props: {},
-        } satisfies RefNode,
+        } as RefNode,
       ],
     });
 
@@ -1143,7 +1146,7 @@ describe("element mutations keep canonical document primary", () => {
       makeFrameDocument([
         {
           id: "frame-body",
-          type: "body",
+          type: "body" as CanonicalNode["type"],
           props: body.props as Record<string, unknown>,
           children: [
             {
@@ -1156,7 +1159,7 @@ describe("element mutations keep canonical document primary", () => {
                 slotName: "content",
               },
               children: [],
-            },
+            } as FrameNode,
           ],
         },
       ]),
@@ -1254,7 +1257,7 @@ describe("element mutations keep canonical document primary", () => {
     setElementsCanonicalPrimary(state.elements);
 
     await createUpdateElementPropsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )("slot-content", {
       style: { padding: 8 },
@@ -1299,7 +1302,7 @@ describe("element mutations keep canonical document primary", () => {
     setElementsCanonicalPrimary(state.elements);
 
     await createUpdateElementPropsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )("page-card-a", {
       label: "A edited",
@@ -1371,7 +1374,7 @@ describe("element mutations keep canonical document primary", () => {
     });
 
     await createUpdateElementPropsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )("page-card-a", {
       label: "A edited",
@@ -1422,7 +1425,7 @@ describe("element mutations keep canonical document primary", () => {
           children: [
             {
               id: "frame-body",
-              type: "body",
+              type: "body" as CanonicalNode["type"],
               props: {},
               children: [
                 {
@@ -1435,7 +1438,7 @@ describe("element mutations keep canonical document primary", () => {
                     slotName: "content",
                   },
                   children: [],
-                },
+                } as FrameNode,
               ],
             },
           ],
@@ -1458,12 +1461,12 @@ describe("element mutations keep canonical document primary", () => {
               ],
             },
           },
-        } satisfies RefNode,
+        } as RefNode,
       ],
     });
 
     await createUpdateElementPropsAction(
-      createSetMock(state),
+      createSetMock(state) as never,
       () => state as never,
     )("page-card-a", {
       label: "A edited",

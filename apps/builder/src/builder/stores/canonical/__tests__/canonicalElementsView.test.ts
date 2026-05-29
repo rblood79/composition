@@ -9,16 +9,19 @@ import type {
   CompositionExtension,
 } from "@composition/shared";
 import { ButtonSpec, SectionSpec, TextFieldSpec } from "@composition/specs";
+import type { SizeSpec } from "@composition/specs";
 
 import { canonicalDocumentToElements } from "../canonicalElementsView";
 
 function makeDoc(
   children: CompositionDocument["children"],
 ): CompositionDocument {
+  // `schemaVersion` 은 canonical 에서 doc top-level 이 아닌 `_meta.schemaVersion`
+  // 으로 이전됐다. fixture 값은 보존하고 unknown 경유 cast 로 타입만 흡수한다.
   return {
     schemaVersion: "1.0",
     children,
-  };
+  } as unknown as CompositionDocument;
 }
 
 describe("canonicalDocumentToElements", () => {
@@ -120,7 +123,9 @@ describe("canonicalDocumentToElements", () => {
         children: [
           {
             id: "body-1",
-            type: "body",
+            // canonical body 는 runtime 에서 lowercase "body" 로 판정 (strict ===).
+            // ComponentTag 는 "Body" 만 선언 → 값은 유지하고 토큰 cast 로 타입만 맞춤.
+            type: "body" as CanonicalNode["type"],
             props: { className: "react-aria-Body" },
           },
         ],
@@ -132,7 +137,7 @@ describe("canonicalDocumentToElements", () => {
         children: [
           {
             id: "body-2",
-            type: "body",
+            type: "body" as CanonicalNode["type"],
             props: { className: "react-aria-Body" },
           },
         ],
@@ -255,7 +260,7 @@ describe("canonicalDocumentToElements", () => {
         children: [
           {
             id: "body-frame-a",
-            type: "body",
+            type: "body" as CanonicalNode["type"],
             props: { className: "react-aria-Body" },
           },
         ],
@@ -268,7 +273,7 @@ describe("canonicalDocumentToElements", () => {
         children: [
           {
             id: "body-frame-b",
-            type: "body",
+            type: "body" as CanonicalNode["type"],
             props: { className: "react-aria-Body" },
           },
         ],
@@ -294,7 +299,13 @@ describe("canonicalDocumentToElements", () => {
   it("restores composition extension fields", () => {
     const extension: CompositionExtension = {
       events: [{ kind: "click", actionRef: "action-1" }],
-      dataBinding: { type: "value", value: "hello" },
+      // SerializedDataBinding 이 source/config 를 required 로 좁혔으나, 본 테스트는
+      // legacy 바인딩 payload 의 roundtrip 보존을 검증한다. 값은 유지하고 unknown
+      // 경유 cast 로 타입만 흡수.
+      dataBinding: {
+        type: "value",
+        value: "hello",
+      } as unknown as CompositionExtension["dataBinding"],
     };
     const doc = makeDoc([
       {
@@ -424,7 +435,14 @@ describe("canonicalDocumentToElements", () => {
 });
 
 describe("canonicalDocumentToElements — spec consumer parity", () => {
-  const sizeContext = { width: 120, height: 32, fontSize: 14 };
+  // render.shapes() 의 size param 은 SizeSpec (paddingX/paddingY/borderRadius
+  // required) 으로 좁혀졌으나, 본 parity 테스트는 spec consumer 호출만 검증한다.
+  // 최소 size context 값은 유지하고 unknown 경유 cast 로 타입만 흡수.
+  const sizeContext = {
+    width: 120,
+    height: 32,
+    fontSize: 14,
+  } as unknown as SizeSpec;
 
   it("ButtonSpec.render.shapes() consumes canonical props", () => {
     const [element] = canonicalDocumentToElements(

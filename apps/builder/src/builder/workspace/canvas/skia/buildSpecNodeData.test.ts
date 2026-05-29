@@ -3,6 +3,13 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { resolveCanonicalRefTree } from "../../../utils/canonicalRefResolution";
 import { buildSpecNodeData } from "./buildSpecNodeData";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import type { ComputedLayout } from "../layout/engines/LayoutEngine";
+
+function makeLayout(
+  partial: Pick<ComputedLayout, "x" | "y" | "width" | "height">,
+): ComputedLayout {
+  return partial as ComputedLayout;
+}
 
 function makeElement(
   id: string,
@@ -39,7 +46,7 @@ describe("buildSpecNodeData", () => {
 
     const node = buildSpecNodeData({
       element: slot,
-      layout: { x: 0, y: 0, width: 240, height: 80 },
+      layout: makeLayout({ x: 0, y: 0, width: 240, height: 80 }),
       theme: "light",
       elementsMap: new Map([[slot.id, slot]]),
     });
@@ -60,7 +67,7 @@ describe("buildSpecNodeData", () => {
 
     const node = buildSpecNodeData({
       element: slot,
-      layout: { x: 0, y: 0, width: 240, height: 80 },
+      layout: makeLayout({ x: 0, y: 0, width: 240, height: 80 }),
       theme: "light",
       elementsMap: new Map([[slot.id, slot]]),
     });
@@ -87,7 +94,7 @@ describe("buildSpecNodeData", () => {
 
     const node = buildSpecNodeData({
       element: label,
-      layout: { x: 0, y: 0, width: 120, height: 24 },
+      layout: makeLayout({ x: 0, y: 0, width: 120, height: 24 }),
       theme: "light",
       elementsMap,
     });
@@ -126,7 +133,7 @@ describe("buildSpecNodeData", () => {
 
     const node = buildSpecNodeData({
       element: label!,
-      layout: { x: 0, y: 0, width: 120, height: 24 },
+      layout: makeLayout({ x: 0, y: 0, width: 120, height: 24 }),
       theme: "light",
       elementsMap: tree.elementsMap,
     });
@@ -165,7 +172,7 @@ describe("buildSpecNodeData", () => {
 
     const node = buildSpecNodeData({
       element: label!,
-      layout: { x: 0, y: 0, width: 120, height: 24 },
+      layout: makeLayout({ x: 0, y: 0, width: 120, height: 24 }),
       theme: "light",
       elementsMap: tree.elementsMap,
     });
@@ -217,7 +224,7 @@ describe("buildSpecNodeData", () => {
 
       const node = buildSpecNodeData({
         element: label!,
-        layout: { x: 0, y: 0, width: 120, height: 24 },
+        layout: makeLayout({ x: 0, y: 0, width: 120, height: 24 }),
         theme: "light",
         elementsMap: tree.elementsMap,
       });
@@ -263,7 +270,7 @@ describe("buildSpecNodeData", () => {
 
     const node = buildSpecNodeData({
       element: searchInput!,
-      layout: { x: 0, y: 0, width: 160, height: 24 },
+      layout: makeLayout({ x: 0, y: 0, width: 160, height: 24 }),
       theme: "light",
       elementsMap: tree.elementsMap,
     });
@@ -294,7 +301,7 @@ describe("buildSpecNodeData", () => {
     expect(() =>
       buildSpecNodeData({
         element: tagList,
-        layout: { x: 0, y: 0, width: 160, height: 32 },
+        layout: makeLayout({ x: 0, y: 0, width: 160, height: 32 }),
         theme: "light",
         elementsMap,
       }),

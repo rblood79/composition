@@ -125,7 +125,9 @@ function makePage(id: string, title: string, orderNum = 0): Page {
 function makeElement(
   id: string,
   pageId: string,
-  overrides: Partial<Element> = {},
+  // Canonical migration: `order_num` was removed from Element (ADR-125) but runtime
+  // fixtures still carry the value. Keep it as an optional override field.
+  overrides: Partial<Element> & { order_num?: number } = {},
 ): Element {
   return {
     id,

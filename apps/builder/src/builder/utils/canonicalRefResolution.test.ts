@@ -9,7 +9,21 @@ import {
   resolveCanonicalRefTree,
 } from "./canonicalRefResolution";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+type LegacyOverrides = Omit<Partial<Element>, "fills"> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+  componentRole?: string;
+  layout_id?: string | null;
+  layoutId?: string | null;
+  slot_name?: string | null;
+  placeholder?: boolean;
+  schemaVersion?: string;
+  descendants?: Record<string, unknown>;
+  fills?: unknown[];
+};
+
+function makeElement(id: string, overrides: LegacyOverrides = {}): Element {
   return {
     id,
     type: "Text",

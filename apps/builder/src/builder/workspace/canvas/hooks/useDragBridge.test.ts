@@ -8,7 +8,20 @@ import {
 } from "./useDragBridge";
 import type { BoundingBox } from "../selection/types";
 
-function makeElement(overrides: Partial<Element>): Element {
+type LegacyOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+  componentName?: string;
+  componentRole?: string;
+  layout_id?: string | null;
+  layoutId?: string | null;
+  slot_name?: string | null;
+  placeholder?: boolean;
+  schemaVersion?: string;
+};
+
+function makeElement(overrides: LegacyOverrides): Element {
   return {
     id: "element",
     type: "Box",

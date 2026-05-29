@@ -14,9 +14,11 @@ function makeElement(id: string): Element {
   } as Element;
 }
 
+type LegacyLayerTreeNode = LayerTreeNode & { orderNum?: number };
+
 function makeNode(overrides: Partial<LayerTreeNode> = {}): LayerTreeNode {
   const id = overrides.id ?? "node";
-  return {
+  const node: LegacyLayerTreeNode = {
     id,
     name: id,
     type: "Button",
@@ -28,6 +30,7 @@ function makeNode(overrides: Partial<LayerTreeNode> = {}): LayerTreeNode {
     element: makeElement(id),
     ...overrides,
   };
+  return node;
 }
 
 function makeTree(nodes: LayerTreeNode[]) {

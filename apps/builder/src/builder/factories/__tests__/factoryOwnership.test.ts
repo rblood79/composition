@@ -78,6 +78,9 @@ function makeContext(
     pageId: "page-abc",
     elements: [],
     layoutId: null,
+    // ADR-903 P3-E: ComponentCreationContext 에 doc(CompositionDocument) 필수 추가됨
+    // (findBodyByContext frame node 매칭용). 테스트는 빈 canonical document stub 사용.
+    doc: { version: "composition-1.0", children: [] },
   };
 }
 
@@ -390,9 +393,9 @@ describe("P3-D-1: factory ownership 제거", () => {
       // Assert — children 이 order_num 을 보유하고 있어야 함
       expect(def.children.length).toBeGreaterThan(0);
       def.children.forEach((child) => {
-        expect(typeof (child as { order_num: unknown }).order_num).toBe(
-          "number",
-        );
+        expect(
+          typeof (child as unknown as { order_num: unknown }).order_num,
+        ).toBe("number");
       });
     });
   });

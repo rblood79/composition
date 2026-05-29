@@ -18,6 +18,7 @@ import { useTransformValues } from "./useTransformValues";
 import { useHasDirtyStyles, useResetStyles } from "./useResetStyles";
 import * as preset from "../utils/specPresetResolver";
 import { getDefaultProps } from "../../../../types/builder/unified.types";
+import type { ComponentElementProps } from "../../../../types/builder/unified.types";
 import type { Element } from "../../../../types/core/store.types";
 
 const LAYOUT_DIRTY_PROPS = ["display", "flexDirection", "gap"];
@@ -204,7 +205,9 @@ describe("useResetStyles — default props false dirty audit", () => {
   beforeEach(() => {
     useStore.setState({
       selectedElementId: null,
-      selectedElementProps: null,
+      // Canonical migration: store type tightened selectedElementProps to
+      // ComponentElementProps (non-null); runtime still resets it to null.
+      selectedElementProps: null as unknown as ComponentElementProps,
       currentPageId: null,
       elements: [],
       elementsMap: new Map(),
@@ -239,7 +242,9 @@ describe("useResetStyles — default props false dirty audit", () => {
         layoutVersion: 0,
       });
 
-      const { result: dirty } = renderHook(() => useHasDirtyStyles(properties));
+      const { result: dirty } = renderHook(() =>
+        useHasDirtyStyles([...properties]),
+      );
       expect(dirty.current).toBe(false);
     },
   );

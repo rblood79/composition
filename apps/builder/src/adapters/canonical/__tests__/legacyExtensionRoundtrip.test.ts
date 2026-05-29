@@ -35,8 +35,18 @@ import type { LegacyAdapterInput } from "../types";
 import type { Element } from "@/types/builder/unified.types";
 import type { DataBinding } from "@/types/builder/unified.types";
 
+// legacy fixture: canonical 전환으로 Element 에서 제거된 `order_num` 등을 fixture 가
+// 유지(runtime adapter 가 객체에서 읽음) → 타입만 허용. 값/구조 불변.
+type LegacyEl = Element & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+};
+
 function makeCanonicalDoc(children: CanonicalNode[]): CompositionDocument {
-  return { schemaVersion: "1.0", children };
+  // canonical document 의 필수 필드는 `version`(접두사 `composition-`) — 구 schema 의
+  // `schemaVersion: "1.0"` 은 제거됨(ADR-903 HC#10). 올바른 필드명으로 정합.
+  return { version: "composition-1.0", children };
 }
 
 /**
@@ -46,7 +56,9 @@ function makeCanonicalDoc(children: CanonicalNode[]): CompositionDocument {
 const noopDeps = {
   convertComponentRole: () => ({
     reusable: false,
-    ref: null,
+    // ConvertComponentRoleFn 반환의 ref 는 `string | undefined` (null 아님) — no-op
+    // stub 이므로 undefined (reusable:false 라 runtime 에서 ref 미사용).
+    ref: undefined,
     descendantsRemapped: undefined,
     rootOverrides: undefined,
   }),
@@ -101,7 +113,7 @@ function firstElementNode(
 
 describe("legacyToCanonical — G7 cutover events/dataBinding → x-composition extension", () => {
   it("element.events 정의 → 해당 노드 'x-composition'.events 로 분리", () => {
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-1",
       type: "Button",
       props: { variant: "primary" },
@@ -127,7 +139,7 @@ describe("legacyToCanonical — G7 cutover events/dataBinding → x-composition 
       source: "supabase",
       config: { table: "users" },
     };
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-2",
       type: "ListBox",
       props: { variant: "default" },
@@ -145,7 +157,7 @@ describe("legacyToCanonical — G7 cutover events/dataBinding → x-composition 
   });
 
   it("events / dataBinding 양쪽 동시 정의 → extension 동시 분리", () => {
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-3",
       type: "Button",
       props: {},
@@ -173,7 +185,7 @@ describe("legacyToCanonical — G7 cutover events/dataBinding → x-composition 
   });
 
   it("events / dataBinding 미정의 → 'x-composition' field 자체 노출 안 함", () => {
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-4",
       type: "Button",
       props: {},
@@ -188,7 +200,7 @@ describe("legacyToCanonical — G7 cutover events/dataBinding → x-composition 
   });
 
   it("빈 배열 events 는 extension 미노출 (length === 0 skip)", () => {
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-5",
       type: "Button",
       props: {},
@@ -210,7 +222,7 @@ describe("legacyToCanonical — G7 cutover events/dataBinding → x-composition 
 
 describe("buildLegacyElementMetadata — G7 cutover dual-storage 종결", () => {
   it("element.events 정의해도 metadata.legacyProps 에 events 키 미노출", () => {
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-1",
       type: "Button",
       props: { variant: "primary" },
@@ -222,7 +234,7 @@ describe("buildLegacyElementMetadata — G7 cutover dual-storage 종결", () => 
   });
 
   it("element.dataBinding 정의해도 metadata.legacyProps 에 dataBinding 키 미노출", () => {
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-2",
       type: "ListBox",
       props: {},
@@ -238,7 +250,7 @@ describe("buildLegacyElementMetadata — G7 cutover dual-storage 종결", () => 
   });
 
   it("element.props 의 events/dataBinding 키는 spread 그대로 보존 (top-level 만 분리)", () => {
-    const element: Element = {
+    const element: LegacyEl = {
       id: "el-3",
       type: "Button",
       props: {
@@ -448,7 +460,7 @@ describe("exportLegacyDocument — G7 cutover extension reverse", () => {
 
 describe("Round-trip — legacy → canonical (extension) → legacy 동등", () => {
   it("Button + events round-trip preserves canonical props and extension", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-rt-1",
       customId: "el-rt-1",
       type: "Button",
@@ -473,7 +485,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
   });
 
   it("ListBox + dataBinding round-trip 동등", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-rt-2",
       customId: "el-rt-2",
       type: "ListBox",
@@ -495,7 +507,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
   });
 
   it("events + dataBinding 동시 round-trip 동등", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-rt-3",
       customId: "el-rt-3",
       type: "Button",
@@ -522,7 +534,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
   });
 
   it("events/dataBinding 미정의 element round-trip — restored 도 미정의", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-rt-4",
       customId: "el-rt-4",
       type: "Box",
@@ -539,7 +551,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
   });
 
   it("element.props.events 와 top-level events 공존 — props.events 보존 + top-level 우선 분리", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-rt-5",
       customId: "el-rt-5",
       type: "Button",
@@ -584,7 +596,7 @@ describe("Round-trip — legacy → canonical (extension) → legacy 동등", ()
  */
 describe("G7 closure marker — canonical document 직렬화 형태 contract", () => {
   it("legacyToCanonical 결과의 모든 metadata.legacyProps 에 events/dataBinding 키 0건", () => {
-    const elements: Element[] = [
+    const elements: LegacyEl[] = [
       {
         id: "el-c-1",
         type: "Button",
@@ -628,7 +640,7 @@ describe("G7 closure marker — canonical document 직렬화 형태 contract", (
   });
 
   it("legacyToCanonical 결과 — events 정의 element 가 있으면 해당 노드의 'x-composition'.events 단일 위치에만 존재", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-c-events",
       type: "Button",
       props: {},
@@ -651,7 +663,7 @@ describe("G7 closure marker — canonical document 직렬화 형태 contract", (
   });
 
   it("legacyToCanonical 결과 — dataBinding 정의 element 가 있으면 해당 노드의 'x-composition'.dataBinding 단일 위치에만 존재", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-c-db",
       type: "ListBox",
       props: {},
@@ -680,7 +692,7 @@ describe("G7 closure marker — canonical document 직렬화 형태 contract", (
   });
 
   it("legacyToCanonical 결과 — events/dataBinding 미정의 element 는 'x-composition' 자체 노출 안 함", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-c-none",
       type: "Box",
       props: { name: "container" },
@@ -720,7 +732,7 @@ describe("G7 closure marker — canonical document 직렬화 형태 contract", (
  */
 describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSync 회로)", () => {
   it("forward mutation (events 추가) → legacyToCanonical → x-composition.events 직렬화", () => {
-    const baseline: Element = {
+    const baseline: LegacyEl = {
       id: "el-h-1",
       type: "Button",
       props: { variant: "primary" },
@@ -731,7 +743,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
     };
 
     // mutation: events 추가
-    const mutated: Element = {
+    const mutated: LegacyEl = {
       ...baseline,
       events: [{ id: "evt-h", kind: "onPress" }],
     };
@@ -746,7 +758,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
   });
 
   it("reverse mutation (events 제거 = history.undo) → x-composition.events 미노출", () => {
-    const withEvents: Element = {
+    const withEvents: LegacyEl = {
       id: "el-h-2",
       type: "Button",
       props: {},
@@ -757,7 +769,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
     };
 
     // history.undo() simulation: events 제거
-    const undone: Element = {
+    const undone: LegacyEl = {
       ...withEvents,
       events: undefined,
     };
@@ -772,7 +784,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
   });
 
   it("re-mutation (events 재추가 = history.redo) → x-composition.events 재직렬화", () => {
-    const undone: Element = {
+    const undone: LegacyEl = {
       id: "el-h-3",
       type: "Button",
       props: {},
@@ -783,7 +795,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
     };
 
     // history.redo() simulation: events 재추가
-    const redone: Element = {
+    const redone: LegacyEl = {
       ...undone,
       events: [{ id: "evt-r", kind: "onPress" }],
     };
@@ -798,7 +810,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
   });
 
   it("dataBinding mutation forward/reverse 회로 — undo/redo 동일 cover", () => {
-    const baseline: Element = {
+    const baseline: LegacyEl = {
       id: "el-h-4",
       type: "ListBox",
       props: { variant: "default" },
@@ -806,7 +818,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
       page_id: null,
       order_num: 0,
     };
-    const withDb: Element = {
+    const withDb: LegacyEl = {
       ...baseline,
       dataBinding: {
         type: "collection",
@@ -814,7 +826,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
         config: { table: "items" },
       },
     };
-    const undone: Element = { ...withDb, dataBinding: undefined };
+    const undone: LegacyEl = { ...withDb, dataBinding: undefined };
 
     const docInitial = buildCanonicalFromElements([baseline]);
     const docMutated = buildCanonicalFromElements([withDb]);
@@ -831,7 +843,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
   });
 
   it("multi-element mutation (events + dataBinding 동시 변경) 회로 정합", () => {
-    const elements: Element[] = [
+    const elements: LegacyEl[] = [
       {
         id: "el-m-1",
         type: "Button",
@@ -877,7 +889,7 @@ describe("G6-2 second slice — history parity 자동 cover (canonicalDocumentSy
   });
 
   it("round-trip 보장 — mutation forward → legacyToCanonical → exportLegacyDocument → element 동등 (history.undo 후 재mutation 도 동등)", () => {
-    const original: Element = {
+    const original: LegacyEl = {
       id: "el-rt-h",
       type: "Button",
       props: { variant: "primary" },

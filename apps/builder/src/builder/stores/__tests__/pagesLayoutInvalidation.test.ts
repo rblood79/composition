@@ -7,7 +7,9 @@ import {
 import type { Page } from "../../../types/builder/unified.types";
 import { useStore } from "../elements";
 
-function makePage(id: string, opts: Partial<Page> = {}): Page {
+type LegacyPageOverrides = Partial<Page> & { order_num?: number };
+
+function makePage(id: string, opts: LegacyPageOverrides = {}): Page {
   return {
     id,
     title: id,
@@ -15,7 +17,7 @@ function makePage(id: string, opts: Partial<Page> = {}): Page {
     slug: `/${id}`,
     order_num: 0,
     ...opts,
-  };
+  } as Page;
 }
 
 describe("setPages layout invalidation", () => {

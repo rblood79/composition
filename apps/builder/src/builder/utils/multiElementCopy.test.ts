@@ -9,7 +9,20 @@ import {
   serializeCopiedElements,
 } from "./multiElementCopy";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+type LegacyOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+  componentName?: string;
+  componentRole?: string;
+  layout_id?: string | null;
+  layoutId?: string | null;
+  slot_name?: string | null;
+  placeholder?: boolean;
+  schemaVersion?: string;
+};
+
+function makeElement(id: string, overrides: LegacyOverrides = {}): Element {
   return {
     id,
     type: "Button",

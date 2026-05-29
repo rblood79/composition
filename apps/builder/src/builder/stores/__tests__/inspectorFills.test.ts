@@ -16,6 +16,7 @@ vi.mock("../../../utils/featureFlags", () => ({
 }));
 
 import { FillType } from "../../../types/builder/fill.types";
+import type { Element } from "../../../types/core/store.types";
 import { saveService } from "../../../services/save";
 import { useStore } from "../index";
 
@@ -103,7 +104,9 @@ describe("inspectorActions fill write-through", () => {
     ]);
 
     const element = useStore.getState().elementsMap.get("fill-target");
-    const style = element?.props?.style as { backgroundColor?: string } | undefined;
+    const style = element?.props?.style as
+      | { backgroundColor?: string }
+      | undefined;
 
     expect(element?.fills).toHaveLength(1);
     expect(style?.backgroundColor).toBe("#ffffff");
@@ -224,15 +227,14 @@ describe("inspectorActions fill write-through", () => {
       type: "Box",
       props: {
         style: {
-          backgroundImage:
-            "linear-gradient(90deg, #FF0000 0%, #00FF00 100%)",
+          backgroundImage: "linear-gradient(90deg, #FF0000 0%, #00FF00 100%)",
           backgroundSize: "cover",
         },
       },
       parent_id: null,
       page_id: null,
       order_num: 0,
-    });
+    } as Element);
 
     const element = useStore.getState().elementsMap.get("added-fill-target");
     expect(element?.fills).toHaveLength(1);
@@ -257,7 +259,7 @@ describe("inspectorActions fill write-through", () => {
         parent_id: null,
         page_id: null,
         order_num: 0,
-      },
+      } as Element,
     ]);
 
     const element = useStore.getState().elementsMap.get("merged-fill-target");
@@ -282,7 +284,7 @@ describe("inspectorActions fill write-through", () => {
         parent_id: null,
         page_id: null,
         order_num: 1,
-      },
+      } as Element,
       [
         {
           id: "complex-child",
@@ -296,7 +298,7 @@ describe("inspectorActions fill write-through", () => {
           parent_id: "complex-parent",
           page_id: null,
           order_num: 0,
-        },
+        } as Element,
       ],
     );
 
@@ -330,7 +332,7 @@ describe("inspectorActions fill write-through", () => {
         parent_id: null,
         page_id: null,
         order_num: 0,
-      },
+      } as Element,
     ]);
 
     const element = useStore.getState().elementsMap.get("snapshot-fill-target");

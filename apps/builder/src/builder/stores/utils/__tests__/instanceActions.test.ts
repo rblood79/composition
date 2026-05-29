@@ -22,12 +22,27 @@ import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStor
 import {
   resolveEditingSemanticsImpactConfirmation,
   subscribeEditingSemanticsImpactConfirmation,
-  type EditingSemanticsImpactConfirmationRequest,
+  type EditingSemanticsConfirmationRequest,
 } from "../../../utils/editingSemanticsImpactConfirmation";
 import { useStore } from "../../elements";
 import { historyManager } from "../../history";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+/**
+ * Legacy-shaped element fixture overrides. canonical 모델은 `order_num` 을 제거했고
+ * `reusable` / `ref` 는 canonical node 필드(CanonicalNode/RefNode)지만, instance
+ * mutation 의 legacy↔canonical bridge 가 runtime 에서 이 필드들을 element 객체에서
+ * 읽으므로 (Element 타입엔 미선언) fixture 가 top-level 로 주입한다. 타입만 허용.
+ */
+type LegacyElementOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+};
+
+function makeElement(
+  id: string,
+  overrides: LegacyElementOverrides = {},
+): Element {
   return {
     id,
     type: "Button",
@@ -187,7 +202,10 @@ describe("instance store actions", () => {
           children: [
             {
               id: "body",
-              type: "body",
+              // canonical body 는 runtime 에서 lowercase "body" 로 판정되지만
+              // (elementUtils 의 strict `=== "body"`), ComponentTag 타입은 "Body" 만
+              // 선언 → 소스(pageFrameBinding.ts) 와 동일하게 token cast 로 정합.
+              type: "body" as CanonicalNode["type"],
               props: {},
               metadata: {
                 type: "legacy-element-props",
@@ -492,7 +510,8 @@ describe("instance store actions", () => {
           children: [
             {
               id: "body",
-              type: "body",
+              // canonical lowercase "body" ↔ ComponentTag "Body" 정합 (위 동일 사유).
+              type: "body" as CanonicalNode["type"],
               props: {},
               metadata: { type: "legacy-element-props" },
               children: [
@@ -523,7 +542,11 @@ describe("instance store actions", () => {
                     heading: { children: "Instance title", tone: "accent" },
                   },
                   metadata: { type: "legacy-element-props" },
-                },
+                  // RefNode 전용 필드(ref/descendants)는 base CanonicalNode 에 없어
+                  // children 배열(CanonicalNode[]) 검사 시 excess → RefNode 로 명시.
+                  // descendants override 값은 minimal fixture 라 RefNode 와 부분 overlap
+                  // → unknown 경유 (runtime 이 구조 처리, 본 테스트 green).
+                } as unknown as RefNode,
               ],
             },
           ],
@@ -946,7 +969,13 @@ describe("instance store actions", () => {
 
     await useStore.getState().undo();
     expect(
-      useStore.getState().elementsMap.get("button")?.reusable,
+      // `reusable` 은 canonical 전용 필드(Element 타입 미선언) — runtime element 에서
+      // accessor cast 로 읽는다. undo 후 instance→일반 element 복귀를 검증.
+      (
+        useStore.getState().elementsMap.get("button") as
+          | { reusable?: boolean }
+          | undefined
+      )?.reusable,
     ).toBeUndefined();
   });
 
@@ -1286,7 +1315,9 @@ describe("instance store actions", () => {
     } as never);
     useStore.getState()._rebuildIndexes();
 
-    const requests: EditingSemanticsImpactConfirmationRequest[] = [];
+    // subscribe listener 는 union(Impact | Detach)을 emit → 배열도 union 으로.
+    // (impact-specific 필드 단언은 toMatchObject 런타임 구조 검사로 수행)
+    const requests: EditingSemanticsConfirmationRequest[] = [];
     const unsubscribe = subscribeEditingSemanticsImpactConfirmation(
       (request) => {
         if (request) {

@@ -15,7 +15,7 @@ function el(
     parent_id: parentId,
     page_id: "p1",
     order_num: 0,
-  } as CanvasSceneNode;
+  } as unknown as CanvasSceneNode;
 }
 
 describe("findAncestorByTag", () => {

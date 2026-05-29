@@ -17,12 +17,12 @@ describe("componentSemanticsMirror adapter helpers", () => {
     const origin = {
       id: "origin",
       [COMPONENT_ROLE_MIRROR_FIELD]: "master",
-    } as Element;
+    } as unknown as Element;
     const instance = {
       id: "instance",
       [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
       [COMPONENT_MASTER_ID_MIRROR_FIELD]: "origin",
-    } as Element;
+    } as unknown as Element;
 
     expect(isComponentOriginMirrorElement(origin)).toBe(true);
     expect(isComponentInstanceMirrorElement(instance)).toBe(true);

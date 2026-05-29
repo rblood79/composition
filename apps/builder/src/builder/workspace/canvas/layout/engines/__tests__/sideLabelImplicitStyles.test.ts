@@ -40,7 +40,9 @@ function applyContainer(
     container,
     normalizedChildren,
     (id) =>
-      byId.get(id)?.childrenIds.map((childId) => byId.get(childId)!) ?? [],
+      (
+        byId.get(id) as { childrenIds?: string[] } | undefined
+      )?.childrenIds?.map((childId: string) => byId.get(childId)!) ?? [],
     byId,
   );
 }
@@ -73,7 +75,9 @@ function applyNestedContainer(
     child,
     [],
     (id) =>
-      byId.get(id)?.childrenIds.map((childId) => byId.get(childId)!) ?? [],
+      (
+        byId.get(id) as { childrenIds?: string[] } | undefined
+      )?.childrenIds?.map((childId: string) => byId.get(childId)!) ?? [],
     byId,
   );
 }

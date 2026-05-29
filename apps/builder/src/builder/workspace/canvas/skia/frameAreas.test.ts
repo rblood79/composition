@@ -52,7 +52,7 @@ describe("ADR-111 P3-β computeFrameAreas", () => {
     const doc = makeDoc([
       makeFrame({ id: "frame-A", reusable: true, name: "Reusable A" }),
       makeFrame({ id: "frame-B", reusable: false, name: "Inline frame" }),
-      { id: "page-1", type: "page", name: "Home" } as CanonicalNode,
+      { id: "page-1", type: "page", name: "Home" } as unknown as CanonicalNode,
     ]);
 
     const result = computeFrameAreas(

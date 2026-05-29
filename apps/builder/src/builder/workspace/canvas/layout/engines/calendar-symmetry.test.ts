@@ -18,7 +18,7 @@ function makeHeader(parentId: string): Element {
     props: { size: "md", children: "2026년 4월" },
     parent_id: parentId,
     order_num: 1,
-  };
+  } as Element;
 }
 
 function makeGrid(parentId: string): Element {
@@ -34,7 +34,7 @@ function makeGrid(parentId: string): Element {
     },
     parent_id: parentId,
     order_num: 2,
-  };
+  } as Element;
 }
 
 function makeCalendarLike(type: "Calendar" | "RangeCalendar"): Element {
@@ -44,7 +44,7 @@ function makeCalendarLike(type: "Calendar" | "RangeCalendar"): Element {
     props: { size: "md", variant: "default" },
     parent_id: null,
     order_num: 0,
-  };
+  } as Element;
 }
 
 describe("Calendar ↔ RangeCalendar layout symmetry", () => {

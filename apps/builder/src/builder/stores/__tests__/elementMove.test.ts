@@ -7,7 +7,13 @@ import { useStore } from "../index";
 function makeElement(
   id: string,
   pageId: string,
-  overrides: Partial<Element> = {},
+  // `order_num` 은 canonical 에서 제거됐으나 본 테스트는 legacy ordering 시맨틱을
+  // fixture/assertion 으로 검증한다 → 로컬 타입에서만 허용 (값 보존).
+  overrides: Partial<Element> & {
+    order_num?: number;
+    reusable?: boolean;
+    ref?: string;
+  } = {},
 ): Element {
   return {
     id,
@@ -145,12 +151,24 @@ describe("moveElementToContainer", () => {
     useStore.getState().moveElementToContainer(source.id, page2Body.id, 1);
 
     const state = useStore.getState();
-    expect(state.elementsMap.get(targetFirst.id)?.order_num).toBe(0);
+    expect(
+      (
+        state.elementsMap.get(targetFirst.id) as
+          | { order_num?: number }
+          | undefined
+      )?.order_num,
+    ).toBe(0);
     expect(state.elementsMap.get(source.id)).toMatchObject({
       page_id: page2Body.page_id,
       parent_id: page2Body.id,
       order_num: 1,
     });
-    expect(state.elementsMap.get(targetSecond.id)?.order_num).toBe(2);
+    expect(
+      (
+        state.elementsMap.get(targetSecond.id) as
+          | { order_num?: number }
+          | undefined
+      )?.order_num,
+    ).toBe(2);
   });
 });

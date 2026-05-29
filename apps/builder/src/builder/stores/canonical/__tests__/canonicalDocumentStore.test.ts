@@ -36,14 +36,20 @@ function makeDoc(
   };
 }
 
+/**
+ * `"Frame"` 은 canonical `CanonicalNode["type"]` (ComponentTag) 의 lowercase
+ * `"frame"` 으로 정규화됐으나, 본 store 는 type-agnostic 한 generic document
+ * store 이고 fixture/assertion 이 uppercase `"Frame"` 값을 그대로 검증한다.
+ * 값은 보존하고 param 타입만 legacy tag 를 흡수하도록 확장한다.
+ */
 function makeNode(
   id: string,
-  type: CanonicalNode["type"] = "Frame",
+  type: CanonicalNode["type"] | "Frame" = "Frame",
   overrides?: Partial<CanonicalNode>,
 ): CanonicalNode {
   return {
     id,
-    type,
+    type: type as CanonicalNode["type"],
     ...overrides,
   };
 }

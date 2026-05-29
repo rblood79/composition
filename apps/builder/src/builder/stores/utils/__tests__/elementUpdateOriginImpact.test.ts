@@ -6,7 +6,16 @@ import { useStore } from "../../elements";
 import { historyManager } from "../../history";
 import { clearOriginImpactConfirmationCacheForTests } from "../elementUpdate";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+type LegacyElementOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+};
+
+function makeElement(
+  id: string,
+  overrides: LegacyElementOverrides = {},
+): Element {
   return {
     id,
     type: "Button",

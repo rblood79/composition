@@ -28,7 +28,10 @@ const makePage = (id = "page-1"): Page =>
 const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => ({
   childrenMap: new Map(),
   elements: [],
-  elementsMap: new Map(),
+  interactionChildrenMap: new Map(),
+  interactionNodesMap: new Map(),
+  renderNodesMap: new Map(),
+  projectionVersion: 0,
   sceneChildrenByParent: new Map(),
   sceneNodes: [],
   sceneNodesMap: new Map(),

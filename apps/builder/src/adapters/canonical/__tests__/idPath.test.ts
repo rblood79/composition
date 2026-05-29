@@ -14,10 +14,18 @@ import { describe, it, expect } from "vitest";
 import { buildIdPathContext } from "../idPath";
 import type { Element } from "@/types/builder/unified.types";
 
-/** 최소 필드만 가진 테스트용 Element 생성 헬퍼 */
-function makeEl(
-  overrides: Partial<Element> & { id: string; tag: string },
-): Element {
+/**
+ * 최소 필드만 가진 테스트용 Element 생성 헬퍼.
+ *
+ * `order_num` 은 canonical schema 에서 제거됐으나 (ADR-125) legacy fixture/runtime
+ * 이 객체에서 읽으므로 값은 유지하고 타입만 옵션 확장으로 흡수한다.
+ */
+type LegacyElOverrides = Partial<Element> & {
+  id: string;
+  type: string;
+  order_num?: number;
+};
+function makeEl(overrides: LegacyElOverrides): Element {
   return {
     props: {},
     parent_id: null,

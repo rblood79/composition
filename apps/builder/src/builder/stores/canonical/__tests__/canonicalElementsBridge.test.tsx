@@ -30,22 +30,27 @@ function makeNode(
   id: string,
   overrides?: Partial<CanonicalNode>,
 ): CanonicalNode {
+  // 본 bridge store 는 type-agnostic (read/subscribe API). fixture 의 generic
+  // "element" type + legacy componentRef 값은 유지하고 unknown 경유 cast 로
+  // 타입만 흡수 (componentRef 는 canonical CanonicalNode 에서 제거됨).
   return {
     id,
     type: "element",
     componentRef: "Box",
     ...overrides,
-  };
+  } as unknown as CanonicalNode;
 }
 
 function makeDoc(
   overrides?: Partial<CompositionDocument>,
 ): CompositionDocument {
+  // schemaVersion 은 canonical 에서 doc top-level 이 아닌 _meta.schemaVersion 으로
+  // 이전됐다. fixture 값은 보존하고 unknown 경유 cast 로 타입만 흡수.
   return {
     schemaVersion: "1.0",
     children: [],
     ...overrides,
-  };
+  } as unknown as CompositionDocument;
 }
 
 function resetStore(): void {

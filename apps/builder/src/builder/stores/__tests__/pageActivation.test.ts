@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
+import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 
 import type { Page } from "../../../types/builder/unified.types";
 import type { Element } from "../../../types/core/store.types";
@@ -33,10 +33,16 @@ vi.mock("../../../env/supabase.client", () => ({
   },
 }));
 
+type LegacyElementOverrides = Partial<Element> & {
+  order_num?: number;
+  reusable?: boolean;
+  ref?: string;
+};
+
 function makeElement(
   id: string,
   pageId: string,
-  overrides: Partial<Element> = {},
+  overrides: LegacyElementOverrides = {},
 ): Element {
   return {
     id,
@@ -340,7 +346,7 @@ describe("page activation selection invariant", () => {
               children: [
                 {
                   id: button.id,
-                  type: button.type,
+                  type: button.type as CanonicalNode["type"],
                   props: button.props as Record<string, unknown>,
                 },
               ],

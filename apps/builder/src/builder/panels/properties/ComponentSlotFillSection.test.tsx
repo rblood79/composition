@@ -12,7 +12,19 @@ import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
+// Canonical migration: `reusable` / `ref` / `componentRole` are CanonicalNode fields,
+// not legacy Element fields, but runtime reads them off the object. Widen the overrides
+// param so fixtures keep these values while satisfying the type checker.
+type LegacyElementOverrides = Partial<Element> & {
+  reusable?: boolean;
+  ref?: string;
+  componentRole?: string;
+};
+
+function makeElement(
+  id: string,
+  overrides: LegacyElementOverrides = {},
+): Element {
   return {
     id,
     type: "Card",
@@ -81,7 +93,9 @@ describe("ComponentSlotFillSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fill slot" }));
 
     await waitFor(() => {
-      expect(useStore.getState().elementsMap.get("card-instance")).toMatchObject({
+      expect(
+        useStore.getState().elementsMap.get("card-instance"),
+      ).toMatchObject({
         descendants: {
           footer: {
             children: [
@@ -135,7 +149,9 @@ describe("ComponentSlotFillSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fill slot" }));
 
     await waitFor(() => {
-      expect(useStore.getState().elementsMap.get("card-instance")).toMatchObject({
+      expect(
+        useStore.getState().elementsMap.get("card-instance"),
+      ).toMatchObject({
         descendants: {
           footer: {
             children: [

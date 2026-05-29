@@ -4,6 +4,7 @@ import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
 import { setDragVisualOffset } from "./nodeRendererTree";
 import { buildRenderCommandStream } from "./renderCommands";
 import type { SkiaNodeData } from "./nodeRenderers";
+import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 
 function makeElement(
   id: string,
@@ -72,7 +73,12 @@ describe("buildRenderCommandStream drag top layer", () => {
     const stream = buildRenderCommandStream(
       [page1Body.id, page2Body.id],
       new Map([[page1Body.id, [source]]]),
-      new Map([[source.id, { x: 24, y: 32, width: 160, height: 120 }]]),
+      new Map([
+        [
+          source.id,
+          { x: 24, y: 32, width: 160, height: 120 } as ComputedLayout,
+        ],
+      ]),
       {
         [page1Body.id]: { x: 0, y: 0 },
         [page2Body.id]: { x: 900, y: 0 },

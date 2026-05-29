@@ -20,6 +20,12 @@ type TestElementPartial = Partial<CanvasSceneNode> & {
   propsSlotMirrorName?: string | null;
   slotMirrorName?: string | null;
   type: string;
+  /**
+   * Legacy ordering field. canonical 모델은 source/array 순서를 사용하므로
+   * runtime 은 이 값을 무시한다 ("preserves source order instead of legacy
+   * order_num" 회귀 테스트가 의도적 decoy 로 주입). 타입만 허용.
+   */
+  order_num?: number;
 };
 
 const makeEl = (partial: TestElementPartial): CanvasSceneNode => {
@@ -42,7 +48,16 @@ const makeEl = (partial: TestElementPartial): CanvasSceneNode => {
   return frameId === undefined ? row : withFrameElementMirrorId(row, frameId);
 };
 
-const makePage = (partial: Partial<Page> & { id: string }): Page => ({
+const makePage = (
+  partial: Partial<Page> & {
+    id: string;
+    // Page frame binding 의 raw 표현. getNullablePageFrameBindingId 가 런타임에서
+    // page.layoutId / page.layout_id 를 읽으므로 (타입엔 미선언) fixture 가 두 형태를
+    // 의도적으로 주입한다.
+    layoutId?: string;
+    layout_id?: string;
+  },
+): Page => ({
   title: "Home",
   project_id: "proj-1",
   slug: "home",
@@ -146,7 +161,7 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     });
 
     const result = resolvePageWithFrame({
-      page: { ...makePage({ id: "page-1" }), layout_id: "layout-frame-1" },
+      page: makePage({ id: "page-1", layout_id: "layout-frame-1" }),
       pageElements: [pageBody],
       elementsMap: buildElementsMap([pageBody, frameBody, frameText]),
     });

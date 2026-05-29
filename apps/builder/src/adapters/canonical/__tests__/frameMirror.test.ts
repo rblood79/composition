@@ -13,7 +13,7 @@ import {
 
 describe("frameMirror adapter helpers", () => {
   it("reads and writes page frame binding mirror payloads", () => {
-    const page = { id: "page-1", layout_id: "frame-1" } as Page;
+    const page = { id: "page-1", layout_id: "frame-1" } as unknown as Page;
 
     expect(getNullablePageFrameBindingId(page)).toBe("frame-1");
     expect(getPageFrameBindingId(page)).toBe("frame-1");
@@ -22,7 +22,7 @@ describe("frameMirror adapter helpers", () => {
       getNullablePageFrameBindingId({
         id: "page-2",
         layoutId: "frame-2",
-      } as Page),
+      } as unknown as Page),
     ).toBe("frame-2");
     expect(withPageFrameBinding({ id: "page-2" }, null)).toEqual({
       id: "page-2",
@@ -44,7 +44,7 @@ describe("frameMirror adapter helpers", () => {
         type: "frame",
         reusable: true,
         metadata: { layoutId: "frame-2" },
-      } as FrameNode),
+      } as unknown as FrameNode),
     ).toBe("frame-2");
     expect(
       getReusableFrameMirrorId({
@@ -57,10 +57,16 @@ describe("frameMirror adapter helpers", () => {
 
   it("reads frame element mirror id", () => {
     expect(
-      getFrameElementMirrorId({ id: "body", layout_id: "frame-1" } as Element),
+      getFrameElementMirrorId({
+        id: "body",
+        layout_id: "frame-1",
+      } as unknown as Element),
     ).toBe("frame-1");
     expect(
-      getFrameElementMirrorId({ id: "body", layoutId: "frame-3" } as Element),
+      getFrameElementMirrorId({
+        id: "body",
+        layoutId: "frame-3",
+      } as unknown as Element),
     ).toBe("frame-3");
     expect(hasFrameElementMirrorId({ id: "body", layout_id: "frame-1" })).toBe(
       true,
@@ -81,13 +87,13 @@ describe("frameMirror adapter helpers", () => {
       getFrameElementMirrorId({
         id: "body",
         layout_id: "layout-frame-1",
-      } as Element),
+      } as unknown as Element),
     ).toBe("frame-1");
     expect(
       getNullablePageFrameBindingId({
         id: "page-3",
         layout_id: "layout-frame-7",
-      } as Page),
+      } as unknown as Page),
     ).toBe("frame-7");
   });
 });
