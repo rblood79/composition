@@ -112,6 +112,43 @@ export function buildCatalogShapes(
     (props.text as string | undefined) ||
     (props.label as string | undefined);
 
+  // ── icon leaf (icon_font 단일 shape) generic 분기 ───────────────────────
+  // size.iconSize 가 있고 props.iconName 이 있는 leaf(Icon) = Lucide icon_font.
+  // box/text 가 아니므로 일반 경로 진입 전에 단일 icon_font shape 반환(Icon.spec parity).
+  if (size.iconSize != null && props.iconName != null && !text) {
+    const iconSize = size.iconSize ?? 24;
+    const effectiveSize =
+      style?.fontSize != null
+        ? resolveSpecFontSize(style.fontSize as string | number, iconSize)
+        : iconSize;
+    return [
+      {
+        type: "icon_font",
+        iconName: (props.iconName as string) ?? "circle",
+        x: effectiveSize / 2,
+        y: effectiveSize / 2,
+        fontSize: effectiveSize,
+        fill: (style?.color as string | undefined) ?? variant?.text,
+        strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
+      },
+    ];
+  }
+
+  // ── dot indicator (circle) generic 분기 ─────────────────────────────────
+  // props.isDot(Badge dot 모드) = 텍스트 없는 원형 점. bgColor 로 채운 circle 단일 shape.
+  if (props.isDot) {
+    const dotSize = size.height === 20 ? 8 : size.height === 24 ? 10 : 12;
+    return [
+      {
+        type: "circle",
+        x: dotSize / 2,
+        y: dotSize / 2,
+        radius: dotSize / 2,
+        fill: bgColor,
+      },
+    ];
+  }
+
   // ── divider(선 자체가 채워진 얇은 box) generic 분기 ──────────────────────
   // 배경 투명(fill.alpha===0) + 텍스트/자식 없음 + 선색 있음 = divider/separator 패턴.
   // generic "bg roundRect(alpha 0) + border(테두리)" 모델은 1px 박스의 *테두리* 를 그려
