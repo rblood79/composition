@@ -88,6 +88,32 @@ export function buildCatalogShapes(
         ? variant.borderHover
         : variant?.border);
 
+  const text =
+    (props.children as string | undefined) ||
+    (props.text as string | undefined) ||
+    (props.label as string | undefined);
+
+  // ── divider(선 자체가 채워진 얇은 box) generic 분기 ──────────────────────
+  // 배경 투명(fill.alpha===0) + 텍스트/자식 없음 + 선색 있음 = divider/separator 패턴.
+  // generic "bg roundRect(alpha 0) + border(테두리)" 모델은 1px 박스의 *테두리* 를 그려
+  // legacy 의 "선색으로 채운 얇은 box"(rect{fill=선색, height=size.height})와 시각이 다르다.
+  // 이 패턴은 단일 rect 로 선을 그린다 — orientation(vertical) 시 두께/길이 축 전환.
+  // (outline 버튼은 텍스트가 있어 이 분기에 들지 않는다 — 아래 일반 경로.)
+  if ((fill?.alpha ?? 1) === 0 && !text && !props._hasChildren && borderColor) {
+    const isVertical = (props.orientation as string | undefined) === "vertical";
+    const thickness = size.height;
+    return [
+      {
+        type: "rect",
+        x: 0,
+        y: 0,
+        width: isVertical ? thickness : ("auto" as unknown as number),
+        height: isVertical ? ("auto" as unknown as number) : thickness,
+        fill: borderColor,
+      },
+    ];
+  }
+
   const shapes: Shape[] = [
     {
       id: "bg",
@@ -114,11 +140,6 @@ export function buildCatalogShapes(
 
   // Child Composition: 자식 Element 가 있으면 shell(box) 만 반환
   if (props._hasChildren) return shapes;
-
-  const text =
-    (props.children as string | undefined) ||
-    (props.text as string | undefined) ||
-    (props.label as string | undefined);
 
   if (text) {
     const paddingX = parsePxValue(

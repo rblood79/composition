@@ -5,9 +5,11 @@
 import type { PrimitiveBinding } from "../types";
 import { buttonBinding } from "./Button.binding";
 import { iconBinding } from "./Icon.binding";
+import { separatorBinding } from "./Separator.binding";
 
 export * from "./Button.binding";
 export * from "./Icon.binding";
+export * from "./Separator.binding";
 
 /**
  * component type → leaf PrimitiveBinding 조회.
@@ -17,6 +19,7 @@ export * from "./Icon.binding";
 const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Button: buttonBinding,
   Icon: iconBinding,
+  Separator: separatorBinding,
 };
 
 export function getPrimitiveBinding(
