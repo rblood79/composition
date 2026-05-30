@@ -5,11 +5,19 @@
 import type { PrimitiveBinding } from "../types";
 import { buttonBinding } from "./Button.binding";
 import { iconBinding } from "./Icon.binding";
+import { linkBinding } from "./Link.binding";
 import { separatorBinding } from "./Separator.binding";
+import { toggleButtonBinding } from "./ToggleButton.binding";
+import { toggleButtonGroupBinding } from "./ToggleButtonGroup.binding";
+import { toolbarBinding } from "./Toolbar.binding";
 
 export * from "./Button.binding";
 export * from "./Icon.binding";
+export * from "./Link.binding";
 export * from "./Separator.binding";
+export * from "./ToggleButton.binding";
+export * from "./ToggleButtonGroup.binding";
+export * from "./Toolbar.binding";
 
 /**
  * component type → leaf PrimitiveBinding 조회.
@@ -19,7 +27,11 @@ export * from "./Separator.binding";
 const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Button: buttonBinding,
   Icon: iconBinding,
+  Link: linkBinding,
   Separator: separatorBinding,
+  ToggleButton: toggleButtonBinding,
+  ToggleButtonGroup: toggleButtonGroupBinding,
+  Toolbar: toolbarBinding,
 };
 
 export function getPrimitiveBinding(
