@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pencil 생태계 3-앱 렌더링 최적화 심도 비교</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --radius: 0.625rem;
+        --background: hsl(0 0% 100%);
+        --foreground: hsl(240 10% 3.9%);
+        --card: hsl(0 0% 100%);
+        --card-foreground: hsl(240 10% 3.9%);
+        --popover: hsl(0 0% 100%);
+        --primary: hsl(240 5.9% 10%);
+        --primary-foreground: hsl(0 0% 98%);
+        --secondary: hsl(240 4.8% 95.9%);
+        --secondary-foreground: hsl(240 5.9% 10%);
+        --muted: hsl(240 4.8% 95.9%);
+        --muted-foreground: hsl(240 3.8% 46.1%);
+        --accent: hsl(240 4.8% 95.9%);
+        --accent-foreground: hsl(240 5.9% 10%);
+        --destructive: hsl(0 72% 51%);
+        --border: hsl(240 5.9% 90%);
+        --input: hsl(240 5.9% 90%);
+        --ring: hsl(240 5% 64.9%);
+        --code-bg: hsl(240 6% 97%);
+        --code-fg: hsl(240 10% 12%);
+        --kw: hsl(280 60% 50%);
+        --str: hsl(140 45% 38%);
+        --num: hsl(25 80% 48%);
+        --com: hsl(240 4% 56%);
+        --shadow-sm: 0 1px 2px 0 hsl(240 5% 10% / 0.05);
+        --shadow-md: 0 4px 12px -2px hsl(240 5% 10% / 0.08);
+      }
+
+      [data-theme="dark"] {
+        --background: hsl(240 10% 3.9%);
+        --foreground: hsl(0 0% 98%);
+        --card: hsl(240 10% 5.5%);
+        --card-foreground: hsl(0 0% 98%);
+        --popover: hsl(240 10% 5.5%);
+        --primary: hsl(0 0% 98%);
+        --primary-foreground: hsl(240 5.9% 10%);
+        --secondary: hsl(240 3.7% 15.9%);
+        --secondary-foreground: hsl(0 0% 98%);
+        --muted: hsl(240 3.7% 15.9%);
+        --muted-foreground: hsl(240 5% 64.9%);
+        --accent: hsl(240 3.7% 15.9%);
+        --accent-foreground: hsl(0 0% 98%);
+        --destructive: hsl(0 62.8% 55%);
+        --border: hsl(240 3.7% 16%);
+        --input: hsl(240 3.7% 16%);
+        --ring: hsl(240 4.9% 40%);
+        --code-bg: hsl(240 8% 9%);
+        --code-fg: hsl(0 0% 90%);
+        --kw: hsl(280 70% 72%);
+        --str: hsl(140 45% 62%);
+        --num: hsl(25 85% 65%);
+        --com: hsl(240 4% 50%);
+        --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+        --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 5rem;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: var(--background);
+        color: var(--foreground);
+        line-height: 1.7;
+        font-size: 15px;
+        -webkit-font-smoothing: antialiased;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+
+      code,
+      pre {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+          monospace;
+      }
+
+      /* ---------- Header ---------- */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: hsl(0 0% 100% / 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+      }
+      [data-theme="dark"] header {
+        background: hsl(240 10% 3.9% / 0.8);
+      }
+      .header-inner {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 0.875rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .brand .logo {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.5rem;
+        background: var(--primary);
+        color: var(--primary-foreground);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+      .brand .sub {
+        color: var(--muted-foreground);
+        font-weight: 400;
+        font-size: 0.8rem;
+      }
+
+      .theme-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: calc(var(--radius) - 2px);
+        border: 1px solid var(--border);
+        background: var(--background);
+        color: var(--foreground);
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+      .theme-toggle:hover {
+        background: var(--accent);
+      }
+      .theme-toggle svg {
+        width: 1.1rem;
+        height: 1.1rem;
+      }
+      [data-theme="light"] .icon-moon {
+        display: none;
+      }
+      [data-theme="dark"] .icon-sun {
+        display: none;
+      }
+
+      /* ---------- Layout ---------- */
+      .layout {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        gap: 2.5rem;
+        padding: 0 1.5rem;
+      }
+
+      nav.toc {
+        position: sticky;
+        top: 5rem;
+        align-self: start;
+        height: calc(100vh - 6rem);
+        overflow-y: auto;
+        padding: 1.5rem 0;
+        font-size: 0.82rem;
+      }
+      nav.toc h4 {
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.7rem;
+        color: var(--muted-foreground);
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+      }
+      nav.toc a {
+        display: block;
+        padding: 0.3rem 0.75rem;
+        color: var(--muted-foreground);
+        text-decoration: none;
+        border-left: 2px solid transparent;
+        border-radius: 0 4px 4px 0;
+        transition: color 0.15s, background 0.15s, border-color 0.15s;
+      }
+      nav.toc a:hover {
+        color: var(--foreground);
+        background: var(--accent);
+      }
+      nav.toc a.active {
+        color: var(--foreground);
+        border-left-color: var(--primary);
+        font-weight: 500;
+      }
+      nav.toc a.indent {
+        padding-left: 1.5rem;
+        font-size: 0.78rem;
+      }
+
+      main {
+        padding: 2.5rem 0 6rem;
+        min-width: 0;
+      }
+
+      /* ---------- Hero ---------- */
+      .hero {
+        margin-bottom: 2.5rem;
+      }
+      .hero h1 {
+        font-size: 2.1rem;
+        line-height: 1.2;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin-bottom: 1rem;
+      }
+      .meta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.65rem;
+        border-radius: 9999px;
+        font-size: 0.74rem;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+        white-space: nowrap;
+      }
+      .badge.solid {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+      }
+
+      /* ---------- Callout / blockquote ---------- */
+      .callout {
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--primary);
+        background: var(--muted);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        margin: 1.5rem 0;
+        font-size: 0.9rem;
+      }
+      .callout p + p {
+        margin-top: 0.5rem;
+      }
+      .callout strong {
+        color: var(--foreground);
+      }
+      .callout a {
+        color: var(--foreground);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .conclusion {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--card);
+        box-shadow: var(--shadow-md);
+        padding: 1.5rem;
+        margin: 1.5rem 0 0;
+      }
+      .conclusion .label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted-foreground);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      /* ---------- Headings ---------- */
+      section {
+        scroll-margin-top: 5rem;
+      }
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+        margin: 3rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+      h3 {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 2rem 0 0.75rem;
+      }
+      h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 1.5rem 0 0.5rem;
+        color: var(--foreground);
+      }
+      p {
+        margin: 0.85rem 0;
+      }
+      a {
+        color: var(--foreground);
+      }
+      strong {
+        font-weight: 600;
+      }
+
+      .loc {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+        color: var(--muted-foreground);
+        background: var(--muted);
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+      }
+
+      /* ---------- Lists ---------- */
+      ul,
+      ol {
+        margin: 0.85rem 0;
+        padding-left: 1.4rem;
+      }
+      li {
+        margin: 0.35rem 0;
+      }
+      li::marker {
+        color: var(--muted-foreground);
+      }
+      ul ul,
+      ol ol {
+        margin: 0.3rem 0;
+      }
+
+      /* ---------- Inline code ---------- */
+      :not(pre) > code {
+        background: var(--code-bg);
+        color: var(--code-fg);
+        padding: 0.1rem 0.4rem;
+        border-radius: 5px;
+        font-size: 0.84em;
+        border: 1px solid var(--border);
+      }
+
+      /* ---------- Code block ---------- */
+      .code-block {
+        position: relative;
+        margin: 1.25rem 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--code-bg);
+        box-shadow: var(--shadow-sm);
+      }
+      .code-block .code-head {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.9rem;
+        background: var(--muted);
+        border-bottom: 1px solid var(--border);
+        font-size: 0.72rem;
+        color: var(--muted-foreground);
+        font-family: "JetBrains Mono", monospace;
+      }
+      .code-block .dots {
+        display: flex;
+        gap: 0.3rem;
+      }
+      .code-block .dots span {
+        width: 0.6rem;
+        height: 0.6rem;
+        border-radius: 50%;
+        background: var(--border);
+      }
+      pre {
+        margin: 0;
+        padding: 1rem 1.1rem;
+        overflow-x: auto;
+        font-size: 0.82rem;
+        line-height: 1.65;
+        color: var(--code-fg);
+      }
+      pre code {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: inherit;
+      }
+      .tok-kw {
+        color: var(--kw);
+        font-weight: 500;
+      }
+      .tok-str {
+        color: var(--str);
+      }
+      .tok-num {
+        color: var(--num);
+      }
+      .tok-com {
+        color: var(--com);
+        font-style: italic;
+      }
+
+      /* ---------- Tables ---------- */
+      .table-wrap {
+        margin: 1.25rem 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      thead {
+        background: var(--muted);
+      }
+      th {
+        text-align: left;
+        font-weight: 600;
+        padding: 0.65rem 0.9rem;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--border);
+        color: var(--foreground);
+      }
+      td {
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr:hover {
+        background: var(--accent);
+      }
+      td code,
+      th code {
+        white-space: nowrap;
+      }
+      .yes {
+        color: hsl(142 60% 40%);
+        font-weight: 600;
+      }
+      [data-theme="dark"] .yes {
+        color: hsl(142 55% 58%);
+      }
+      .no {
+        color: var(--destructive);
+        font-weight: 600;
+      }
+
+      /* ---------- Footer ---------- */
+      footer {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+        border-top: 1px solid var(--border);
+        color: var(--muted-foreground);
+        font-size: 0.8rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: space-between;
+      }
+
+      hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 2.5rem 0;
+      }
+
+      /* ---------- Responsive ---------- */
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+        nav.toc {
+          display: none;
+        }
+        .hero h1 {
+          font-size: 1.7rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <div class="brand">
+          <span class="logo">P</span>
+          <span>
+            Rendering Optimization
+            <span class="sub">research / pencil ecosystem</span>
+          </span>
+        </div>
+        <button
+          class="theme-toggle"
+          id="themeToggle"
+          aria-label="테마 전환"
+          title="라이트/다크 전환"
+        >
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="toc" id="toc">
+        <h4>목차</h4>
+        <a href="#conclusion">결론 우선</a>
+        <a href="#sec1">1. open-pencil — 3-tier</a>
+        <a href="#sec1-1" class="indent">1-1. 캐시 3 계층</a>
+        <a href="#sec1-2" class="indent">1-2. RenderLayer 분리</a>
+        <a href="#sec1-3" class="indent">1-3. 측정 인프라</a>
+        <a href="#sec1-4" class="indent">1-4. Paint pool</a>
+        <a href="#sec1-5" class="indent">1-5. 자원 lifecycle</a>
+        <a href="#sec1-6" class="indent">1-6. textPicture 캐시</a>
+        <a href="#sec2">2. openpencil — 라이트</a>
+        <a href="#sec3">3. Pencil.app — native</a>
+        <a href="#sec4">4. composition 정합 평가</a>
+        <a href="#sec5">5. ultrathink 종합</a>
+        <a href="#sec6">6. 후속 조사 후보</a>
+        <a href="#sources">출처 / 메서드</a>
+        <a href="#memories">관련 메모리</a>
+      </nav>
+
+      <main>
+        <div class="hero">
+          <h1>Pencil 생태계 3-앱 렌더링 최적화 심도 비교</h1>
+          <div class="meta-row">
+            <span class="badge solid">작성일 2026-05-28</span>
+            <span class="badge">research</span>
+            <span class="badge">rendering pipeline</span>
+            <span class="badge">cache · profiler · paint pool</span>
+          </div>
+
+          <div class="callout">
+            <p>
+              <strong>선행 문서</strong>:
+              <a href="PENCIL_ECOSYSTEM_ANALYSIS.md">PENCIL_ECOSYSTEM_ANALYSIS.md</a>
+              — 3개 디렉토리 정체 / 기술 스택 / 사용자 framing 정정
+            </p>
+            <p>
+              <strong>범위</strong>: 렌더링 파이프라인, 캐시 계층, 측정 인프라,
+              paint pool, viewport 처리만. UX / 데이터 모델 / AI 통합은 선행 문서.
+            </p>
+            <p>
+              <strong>방법</strong>: openpencil + open-pencil 소스 직접 read (각
+              1,500-3,000 LOC 이내 핵심 파일 read), Pencil.app 은 binary 메타데이터
+              + node_modules 만 (asar 본체 접근 불가).
+            </p>
+          </div>
+        </div>
+
+        <section id="conclusion">
+          <h2>결론 우선</h2>
+          <div class="conclusion">
+            <div class="label">Executive summary</div>
+            <p>
+              <strong><code>open-pencil</code> 만 production-grade 다층 캐시 + 측정
+              인프라.</strong> <code>openpencil</code> 은 단순 단일-pass + RBush
+              hit-test. <code>Pencil.app</code> 은 binary 분석 한계로 native Skia +
+              4-process Electron 분리까지만 확정. composition 의 현재 1-tier
+              비-측정 렌더와 가장 격차 큰 reference 는
+              <strong><code>open-pencil/canvas/renderer/</code> +
+              <code>profiler/</code></strong>.
+            </p>
+          </div>
+        </section>
+
+        <section id="sec1">
+          <h2>1. open-pencil — 3-tier Retained Backing + Phase Profiler</h2>
+
+          <h3 id="sec1-1">1-1. 캐시 3 계층</h3>
+          <p>
+            위치:
+            <span class="loc">open-pencil/packages/core/src/canvas/renderer/retained-backing.ts</span>
+            (428 LOC) + <span class="loc">pipeline.ts</span> (347 LOC)
+          </p>
+
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tier</th>
+                    <th>객체</th>
+                    <th>scope</th>
+                    <th>invalidate 조건</th>
+                    <th>비용 회수</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>T1</strong> <code>scenePicture</code></td>
+                    <td><code>PictureRecorder</code> 전체 페이지 1개</td>
+                    <td>page-level</td>
+                    <td>
+                      <code>sceneVersion</code> /
+                      <code>positionPreviewVersion</code> / <code>pageId</code> /
+                      volatile overlay 부재
+                    </td>
+                    <td><code>drawPicture(pic)</code> = 거의 zero CPU</td>
+                  </tr>
+                  <tr>
+                    <td><strong>T2</strong> <code>sceneBacking</code></td>
+                    <td>bitmap surface, <strong>viewport × 3배</strong> 영역</td>
+                    <td>viewport 근방</td>
+                    <td>
+                      <code>panX·panY·zoom</code> 변화 후 idle 시점,
+                      <code>sceneVersion</code> 일치
+                    </td>
+                    <td>
+                      pan/zoom 중 stale 이미지 scale-blit → blur 처리 후 fresh
+                      image swap
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>T3</strong> <code>subtreePictureCache</code></td>
+                    <td>childId 별 <code>Picture</code></td>
+                    <td>page child</td>
+                    <td>같은 invalidate 키</td>
+                    <td>T2 재구축 시 자식 picture 재사용</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <h4>T2 의 두 핵심 메커니즘</h4>
+          <p>
+            <strong>(a) Incremental build budget</strong> —
+            <span class="loc">retained-backing.ts:351-380</span>
+          </p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>retained-backing.ts · TypeScript</span>
+            </div>
+            <pre><code><span class="tok-kw">const</span> SCENE_BACKING_BUILD_BUDGET_MS = <span class="tok-num">6</span>  <span class="tok-com">// 60Hz 의 1/3</span>
+
+<span class="tok-kw">function</span> stepSceneBackingBuild(r, sceneVersion): <span class="tok-kw">boolean</span> {
+  <span class="tok-kw">const</span> startedAt = now()
+  <span class="tok-kw">do</span> {
+    <span class="tok-kw">const</span> childId = build.childIds[build.index]
+    <span class="tok-kw">if</span> (!childId) <span class="tok-kw">break</span>
+    renderBackingChild(r, build.graph, build.surface, childId, backing, ...)
+    build.index++
+  } <span class="tok-kw">while</span> (build.index &lt; build.childIds.length &amp;&amp; now() - startedAt &lt; BUILD_BUDGET_MS)
+  <span class="tok-com">// 6ms 안에 다 못 끝내면 다음 frame 으로 이월</span>
+}</code></pre>
+          </div>
+          <p>
+            자식 N개 중 6ms 안에 가능한 만큼만 record. <code>build.index</code>
+            cursor 가 frame 간 진행 보존.
+          </p>
+
+          <p>
+            <strong>(b) Stale-zoom 허용</strong> —
+            <span class="loc">retained-backing.ts:26-66, 87-111</span>
+          </p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>retained-backing.ts · TypeScript</span>
+            </div>
+            <pre><code><span class="tok-kw">function</span> sceneBackingPreviewIdleMs(r): <span class="tok-kw">number</span> {
+  <span class="tok-com">// viewport event interval 측정 (sceneBackingAverageViewportIntervalMs)</span>
+  <span class="tok-com">// → 사용자가 활발히 pan/zoom 중이면 짧은 idle, 잠시 멈추면 긴 idle</span>
+  <span class="tok-kw">const</span> expectedEventsDuringRender = renderMs / inputIntervalMs;
+  <span class="tok-kw">return</span> clamp(renderMs * quietInputIntervals, minDelay, maxDelay);
+}
+
+<span class="tok-com">// pan/zoom 중에는 sceneBackingPreviewUntil 이내 동안 stale image 사용 허용</span>
+<span class="tok-kw">const</span> allowStaleZoom = now() &lt; r.sceneBackingPreviewUntil;</code></pre>
+          </div>
+          <p>
+            → 사용자가 zoom 휠 돌리는 동안에는 backing 의 기존 image 를 scale 변환해
+            임시로 그려 frame drop 회피. 멈추면 crisp 복원.
+          </p>
+
+          <h3 id="sec1-2">1-2. RenderLayer 분리 — architecture 결정</h3>
+          <p><span class="loc">pipeline.ts:27, 174-239</span>:</p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>pipeline.ts · TypeScript</span>
+            </div>
+            <pre><code><span class="tok-kw">export type</span> RenderLayer = <span class="tok-str">"full"</span> | <span class="tok-str">"scene"</span> | <span class="tok-str">"overlays"</span>;</code></pre>
+          </div>
+          <ul>
+            <li>
+              <code>overlays</code> 만 재요청 가능 → selection / marquee / snap
+              guide 변경 시 scene 캐시 유지
+            </li>
+            <li>
+              <code>hasVolatileOverlay()</code> = dropTarget / rotation / textEdit
+              / nodeEdit → cache skip
+            </li>
+            <li>
+              <code>scenePictureMissReason()</code> 반환 7가지:
+              <code>'position-preview' | 'volatile-overlay' | 'missing-picture' |
+              'position-preview-version' | 'scene-version' | 'page' |
+              'unknown'</code> — cache miss 원인이 1급 신호
+            </li>
+          </ul>
+
+          <h3 id="sec1-3">1-3. 측정 인프라</h3>
+          <p>
+            위치:
+            <span class="loc">open-pencil/packages/core/src/profiler/</span> (723
+            LOC 9 파일)
+          </p>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>측정 영역</th>
+                    <th>메커니즘</th>
+                    <th>파일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>GPU 시간</td>
+                    <td>
+                      <code>EXT_disjoint_timer_query_webgl2</code> non-blocking
+                      pollResults
+                    </td>
+                    <td><code>gpu-timer.ts</code> (92 LOC)</td>
+                  </tr>
+                  <tr>
+                    <td>Draw call</td>
+                    <td><code>gl.drawArrays/drawElements</code> wrap counter</td>
+                    <td><code>draw-call-counter.ts</code> (55 LOC)</td>
+                  </tr>
+                  <tr>
+                    <td>Phase</td>
+                    <td>
+                      <code>render:scene</code>, <code>render:drawPicture</code>,
+                      <code>render:recordPicture</code>,
+                      <code>render:volatile</code>, <code>render:selection</code>,
+                      <code>render:rulers</code>, <code>render:flush</code>
+                    </td>
+                    <td><code>phase-timer.ts</code> (59 LOC)</td>
+                  </tr>
+                  <tr>
+                    <td>Node-level</td>
+                    <td>
+                      <code>captureSession.stack.begin/end(nodeId,
+                      drawCallsDelta)</code>
+                    </td>
+                    <td><code>capture-session.ts</code> (39 LOC)</td>
+                  </tr>
+                  <tr>
+                    <td>HUD</td>
+                    <td>화면 내 overlay</td>
+                    <td><code>hud-renderer.ts</code> (261 LOC)</td>
+                  </tr>
+                  <tr>
+                    <td>Export</td>
+                    <td>
+                      speedscope.app JSON — flamechart (Firefox Profiler 호환)
+                    </td>
+                    <td><code>speedscope-export.ts</code> (6 LOC entry)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p>
+            <span class="loc">render-profiler.ts:90-94</span> 의
+            <code>setScenePictureMode(mode, reason)</code> 으로 frame 단위 cache
+            hit/miss 모드 + 미스 사유 동시 기록.
+          </p>
+
+          <h3 id="sec1-4">1-4. Paint pool — <span class="loc">paints.ts:13-111</span> (111 LOC)</h3>
+          <p>35+ Paint 객체 init 시 한 번 생성:</p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>paints.ts</span>
+            </div>
+            <pre><code>fillPaint, strokePaint, selectionPaint, parentOutlinePaint, snapPaint,
+auxFill, auxStroke, opacityPaint, effectLayerPaint,
+rulerBgPaint, rulerTickPaint, rulerTextPaint, rulerHlPaint, rulerBadgePaint, rulerLabelPaint,
+penPathPaint, penLiveStrokePaint, penHandlePaint, penVertexFill, penVertexStroke</code></pre>
+          </div>
+          <p>
+            ad-hoc <code>new Paint()</code> per draw 없음. <code>setColor /
+            setAlphaf</code> 로 reuse. <span class="loc">lifecycle.ts:31-58</span> 에서
+            모두 명시적 <code>.delete()</code>.
+          </p>
+
+          <h3 id="sec1-5">1-5. 자원 lifecycle — 9 캐시 통합 해제</h3>
+          <p><span class="loc">lifecycle.ts:17-66</span>:</p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>lifecycle.ts</span>
+            </div>
+            <pre><code>imageCache, vectorPathCache, vectorStrokePathCache, vectorStrokeOutlineCache,
+fillGeometryCache, strokeGeometryCache,
+imageFilterCache, maskFilterCache, nodePictureCache</code></pre>
+          </div>
+          <p>
+            9개 캐시 모두 단일 <code>destroyRenderer()</code> 경로.
+            <code>destroyed</code> flag 로 idempotent. WASM 메모리 누수 회피.
+          </p>
+
+          <h3 id="sec1-6">1-6. 노드 단위 textPicture 캐시</h3>
+          <p><span class="loc">scene-graph/index.ts:402</span>:</p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>scene-graph/index.ts · TypeScript</span>
+            </div>
+            <pre><code><span class="tok-kw">if</span> (node.textPicture &amp;&amp; textChanged) node.textPicture = <span class="tok-kw">null</span>;</code></pre>
+          </div>
+          <p>
+            각 텍스트 노드가 자기 <code>Picture</code> 보유 — 텍스트 변경 없으면
+            record 비용 회피.
+          </p>
+        </section>
+
+        <section id="sec2">
+          <h2>2. openpencil — 평면화 + RBush + dirty-flag (라이트)</h2>
+
+          <h3>2-1. 단일-pass 매 frame 전체 그리기</h3>
+          <p>
+            위치:
+            <span class="loc">openpencil/packages/pen-renderer/src/renderer.ts</span>
+            (395 LOC)
+          </p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>renderer.ts · TypeScript</span>
+            </div>
+            <pre><code><span class="tok-kw">private</span> startRenderLoop() {
+  <span class="tok-kw">const</span> loop = () =&gt; {
+    <span class="tok-kw">this</span>.animFrameId = requestAnimationFrame(loop);
+    <span class="tok-kw">if</span> (!<span class="tok-kw">this</span>.dirty || !<span class="tok-kw">this</span>.surface) <span class="tok-kw">return</span>;   <span class="tok-com">// dirty flag 만 차단</span>
+    <span class="tok-kw">this</span>.dirty = <span class="tok-kw">false</span>;
+    <span class="tok-kw">this</span>.render();
+  };
+}</code></pre>
+          </div>
+          <ul>
+            <li>
+              <strong>picture cache 없음, backing 없음</strong>. 매 frame 전부
+              그리기
+            </li>
+            <li><code>markDirty()</code> 가 변경 트리거 → RAF 안 <code>dirty=false</code> 면 skip</li>
+            <li>
+              <code>renderNodes</code> 배열 단순 for-loop →
+              <code>nodeRenderer.drawNode()</code>
+            </li>
+          </ul>
+
+          <h3>2-2. Document → flatten RenderNode 한 번</h3>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>renderer.ts · TypeScript</span>
+            </div>
+            <pre><code><span class="tok-kw">private</span> syncFromDocument() {
+  <span class="tok-kw">const</span> resolved = resolveRefs(pageChildren, allNodes);              <span class="tok-com">// ref 해소</span>
+  <span class="tok-kw">const</span> variableResolved = resolved.map(n =&gt;
+    resolveNodeForCanvas(n, vars, theme));                            <span class="tok-com">// 변수 치환</span>
+  <span class="tok-kw">const</span> measured = premeasureTextHeights(variableResolved);           <span class="tok-com">// 텍스트 측정</span>
+  <span class="tok-kw">this</span>.renderNodes = flattenToRenderNodes(measured);                  <span class="tok-com">// tree → flat</span>
+  <span class="tok-kw">this</span>.spatialIndex.rebuild(<span class="tok-kw">this</span>.renderNodes);                        <span class="tok-com">// R-tree</span>
+  <span class="tok-kw">this</span>.markDirty();
+}</code></pre>
+          </div>
+          <p>
+            tree DFS 는 setDocument / setPage / setThemeVariant 시 1회. 매 frame
+            회피. <code>RenderNode { absX, absY, absW, absH, clipRect, node }</code>
+            — 절대 좌표 사전 계산.
+          </p>
+
+          <h3>2-3. RBush (R-tree) spatial index</h3>
+          <p>
+            위치:
+            <span class="loc">openpencil/packages/pen-renderer/src/spatial-index.ts</span>
+            (201 LOC)
+          </p>
+          <ul>
+            <li>
+              외부 lib <code>rbush</code> (Vladimir Agafonkin, mapbox/leaflet 산하 —
+              검증된 R-tree)
+            </li>
+            <li>
+              <code>tree.search({minX, minY, maxX, maxY})</code> → bbox 교차 후보 →
+              <code>zIndex</code> desc 정렬
+            </li>
+            <li>
+              <code>hitTest(x, y)</code> O(log n) + 보이지 않는 노드 자동 제외:
+              <ul>
+                <li><code>opacity ≤ 0</code></li>
+                <li>fill/stroke 둘 다 없는 frame/group</li>
+                <li><code>resolveColorAlpha</code> 으로 hex/rgba alpha 확인</li>
+              </ul>
+            </li>
+            <li><code>searchRect()</code> 로 marquee 선택도 처리</li>
+          </ul>
+
+          <h3>2-4. premeasureTextHeights — fixed-width + auto-height 1회 보정</h3>
+          <p><span class="loc">document-flattener.ts:41-119</span>:</p>
+          <ul>
+            <li><code>_measureCtx</code> Canvas 2D context 모듈-수준 lazy 재사용</li>
+            <li>
+              trigger 조건: <code>textGrowth === 'fixed-width'</code> +
+              <code>height !== 'fill_container'/'fit_content'</code>
+            </li>
+            <li>
+              <code>wrapLine()</code> 의 CJK 문자별 줄바꿈 vs 라틴 단어별 줄바꿈 분기
+              (<span class="loc">paint-utils.ts:120-176</span>)
+            </li>
+          </ul>
+
+          <h3>2-5. Viewport culling primitive — <strong>정의되어 있으나 미사용</strong></h3>
+          <p><span class="loc">viewport.ts:74-101</span>:</p>
+          <div class="code-block">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>viewport.ts · TypeScript</span>
+            </div>
+            <pre><code><span class="tok-kw">export function</span> isRectInViewport(rect, vpBounds): <span class="tok-kw">boolean</span> {
+  <span class="tok-kw">return</span> !(
+    rect.x + rect.w &lt; vpBounds.left ||
+    rect.x &gt; vpBounds.right ||
+    rect.y + rect.h &lt; vpBounds.top ||
+    rect.y &gt; vpBounds.bottom
+  );
+}</code></pre>
+          </div>
+          <p>
+            primitive 있으나 <span class="loc">renderer.ts:325-328</span> 의 main
+            loop 에서 사용 안 함. read-only viewer 라 viewport 외에도 전부 그림
+            (<code>zoomToFit()</code> UX 가 핵심).
+          </p>
+
+          <h3>2-6. 정리</h3>
+          <ul>
+            <li>
+              <strong>개념</strong>: viewer 수준 (Figma → SVG export viewer 비슷).
+              편집 budget 압박 없음
+            </li>
+            <li>
+              <strong>장점</strong>: 코드 단순 (pen-renderer 전체 3,048 LOC),
+              R-tree hit-test 만 견고
+            </li>
+            <li>
+              <strong>격차</strong>: 캐시 0, GPU/draw-call 측정 0, paint pool 부재
+              (각 노드가 <code>new Paint()</code> 가능성)
+            </li>
+          </ul>
+        </section>
+
+        <section id="sec3">
+          <h2>3. Pencil.app — koffi native Skia + 4-process Electron (binary 분석)</h2>
+
+          <h3>3-1. 확정 사항</h3>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>영역</th>
+                    <th>단서</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>renderer = native Skia (not WASM)</strong></td>
+                    <td>
+                      <code>node_modules/koffi/</code> — C FFI binding. CanvasKit
+                      WASM 미사용
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>process 분리</strong></td>
+                    <td>
+                      <code>Frameworks/Pencil Helper (GPU).app</code>, <code>Helper
+                      (Plugin).app</code>, <code>Helper (Renderer).app</code>,
+                      <code>Helper.app</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>AI dual embed</strong></td>
+                    <td>
+                      <code>@openai/codex</code> + <code>codex-darwin-arm64</code> +
+                      <code>@anthropic-ai/claude-agent-sdk</code> + native binary
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>MCP 서버</strong></td>
+                    <td>
+                      <code>out/mcp-server-darwin-arm64</code> — 외부 도구가 Pencil
+                      조작 가능
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>clipboard native</strong></td>
+                    <td>
+                      <code>@mariozechner/clipboard-darwin-universal</code> —
+                      Electron clipboard API 우회
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>CFBundleIdentifier</strong></td>
+                    <td>
+                      <code>dev.pencil.desktop</code>, v1.1.57, macOS SDK 15.5
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <h3>3-2. 추정 (asar 본체 접근 불가)</h3>
+          <ul>
+            <li>
+              렌더 전략 미확정. koffi C FFI = WASM marshaling 비용 회피 → 더 공격적
+              캐시 가능
+            </li>
+            <li>
+              macOS Metal 직접 호출 시 → <code>MTKView</code> + <code>MTLBuffer</code>
+              retained mode 가능
+            </li>
+            <li>WebGL2 timer query 보다 정밀한 GPU profiling 가능</li>
+          </ul>
+
+          <h3>3-3. 외부 관찰된 UX 단서 (memory: pencil-component-visual-markers)</h3>
+          <ul>
+            <li>origin: magenta + solid outline / instance: violet + dotted</li>
+            <li><code>Cmd+Opt+K</code> 토글 / <code>Cmd+Opt+X</code> detach</li>
+            <li>
+              Properties 패널 <code>##Component section##</code> + <code>##Slot
+              section##</code> 헤더 구조
+            </li>
+          </ul>
+          <p>→ 렌더 최적화보다 edit-time 응답성에 집중한 흔적.</p>
+        </section>
+
+        <section id="sec4">
+          <h2>4. composition 현재 패턴과 정합 평가</h2>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>영역</th>
+                    <th>composition 현재</th>
+                    <th>open-pencil</th>
+                    <th>openpencil</th>
+                    <th>Pencil.app</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>렌더러</strong></td>
+                    <td>Skia WASM 단일 (ADR-100)</td>
+                    <td>Skia WASM</td>
+                    <td>Skia WASM</td>
+                    <td><strong>Skia native (koffi C FFI)</strong></td>
+                  </tr>
+                  <tr>
+                    <td><strong>picture cache</strong></td>
+                    <td><span class="no">✕</span> 없음 (매 frame 전체)</td>
+                    <td><span class="yes">✓</span> 3-tier (scene/backing/subtree)</td>
+                    <td><span class="no">✕</span> 없음</td>
+                    <td>추정 <span class="yes">✓</span> (asar 미공개)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>viewport culling</strong></td>
+                    <td>부분적 (treeBounds 순회)</td>
+                    <td><span class="yes">✓</span> worldViewport + 3x backing</td>
+                    <td>primitive 있으나 미사용</td>
+                    <td>추정 <span class="yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>spatial index</strong></td>
+                    <td>linear 순회 (buildTreeBoundsMap)</td>
+                    <td>scene-graph absPosCache</td>
+                    <td><span class="yes">✓</span> RBush R-tree</td>
+                    <td>미확정</td>
+                  </tr>
+                  <tr>
+                    <td><strong>paint pool</strong></td>
+                    <td>ad-hoc 잔존 가능</td>
+                    <td><span class="yes">✓</span> 35+ paint singleton</td>
+                    <td>부분적</td>
+                    <td>추정 <span class="yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>dirty flag</strong></td>
+                    <td>
+                      <span class="yes">✓</span> sceneVersion + layoutVersion
+                      (ADR-136)
+                    </td>
+                    <td>sceneVersion + positionPreviewVersion</td>
+                    <td>단순 boolean</td>
+                    <td>미확정</td>
+                  </tr>
+                  <tr>
+                    <td><strong>profiler/HUD</strong></td>
+                    <td>longtask gate (ADR-069) 뿐</td>
+                    <td>
+                      <span class="yes">✓</span> phase + GPU + draw-call +
+                      speedscope
+                    </td>
+                    <td><span class="no">✕</span> 없음</td>
+                    <td>추정 <span class="yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>node-level Picture cache</strong></td>
+                    <td><span class="no">✕</span></td>
+                    <td>
+                      <span class="yes">✓</span> subtreePictureCache + textPicture
+                    </td>
+                    <td><span class="no">✕</span></td>
+                    <td>미확정</td>
+                  </tr>
+                  <tr>
+                    <td><strong>stale-zoom preview</strong></td>
+                    <td><span class="no">✕</span></td>
+                    <td>
+                      <span class="yes">✓</span> allowStaleZoom + idle interval 측정
+                    </td>
+                    <td><span class="no">✕</span></td>
+                    <td>추정 <span class="yes">✓</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>incremental build budget</strong></td>
+                    <td><span class="no">✕</span></td>
+                    <td><span class="yes">✓</span> 6ms cursor 패턴</td>
+                    <td><span class="no">✕</span></td>
+                    <td>미확정</td>
+                  </tr>
+                  <tr>
+                    <td><strong>layer 분리 (scene/overlays)</strong></td>
+                    <td><span class="no">✕</span> 단일 layer</td>
+                    <td>
+                      <span class="yes">✓</span> <code>'full' / 'scene' /
+                      'overlays'</code>
+                    </td>
+                    <td><span class="no">✕</span></td>
+                    <td>미확정</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec5">
+          <h2>5. ultrathink 종합 — 5개 본질적 시사</h2>
+
+          <h3>5-1. composition 의 가장 큰 격차는 "cache hierarchy" 가 아니라 <strong>측정 인프라</strong></h3>
+          <p>
+            3-tier cache 도입은 큰 ADR. 그러나 <strong>무엇이 느린지 모르면</strong>
+            cache 설계 자체가 추측. open-pencil 의
+            <code>scenePictureMissReason</code> (7가지 분류) + <code>phase</code> 측정
+            + draw-call count + speedscope export 가 <strong>선결 단계</strong>.
+            composition 의 ADR-069 longtask gate 는 전체 응답성만 측정, 노드/단계
+            breakdown 안 함.
+          </p>
+
+          <h3>5-2. retained backing 의 두 축 — <strong>incremental budget + stale-zoom 허용</strong></h3>
+          <p>
+            open-pencil 의 핵심 통찰: 6ms 안에 못 끝나는 backing build 를 cursor 로 N
+            frame 에 걸쳐 진행하면서, 그 사이 <strong>stale image 를 scale 변환해
+            보여줌</strong>. 사용자는 "blur 잠시 → crisp 복원" UX 를 받고 60fps 끊김
+            없음. composition 의 ADR-100 Unified Skia 와 직각으로 결합 가능 (Unified
+            Skia = 단일 렌더러 결정, retained backing = 그 위 캐싱 전략).
+          </p>
+
+          <h3>5-3. RenderLayer 분리는 <strong>architecture 결정</strong>, 단순 최적화 아님</h3>
+          <p>
+            <code>'full' | 'scene' | 'overlays'</code> 3-layer 는 selection 변경 시
+            scene 캐시 유지 + overlay 만 다시 그리기. composition 은 현재 selection
+            변경 시 전체 재그리기 (추정). 이 분리는 <strong>렌더 호출자(builder
+            UI)</strong> 가 어느 layer 를 재요청할지 알아야 함 → store-bridge 계약
+            변경 필요.
+          </p>
+
+          <h3>5-4. openpencil 의 RBush 는 <strong>즉시 도입 가능 단일 변경</strong></h3>
+          <p>
+            composition 의 <code>buildTreeBoundsMap</code> 이 매 hit-test 마다 linear
+            순회. RBush 외부 lib (npm <code>rbush</code>, 4.6kB minified) 도입은 ADR
+            1개 / 1주 영역. open-pencil 의 3-tier cache 보다 ROI 우선순위 높음 (영향
+            면적 작음 + 확정 효과).
+          </p>
+
+          <h3>5-5. Pencil.app 의 native Skia 는 <strong>이번 사이클 비-목표</strong></h3>
+          <p>
+            koffi C FFI native binding = Electron Builder + node-gyp 빌드 체계 +
+            macOS/Windows/Linux 3-binary 유지. composition 의 Vite + Tauri 부재
+            환경에서 이 영역 진입은 ADR 5+ 개. <strong>단</strong>, Pencil.app 의 dual
+            AI SDK (Codex + Claude Agent) 임베드 + MCP server 는 ADR-134 (이미
+            Proposed) 의 reference 로 즉시 활용 가능.
+          </p>
+        </section>
+
+        <section id="sec6">
+          <h2>6. 후속 조사 후보 (사용자 결정 영역)</h2>
+          <p>각 항목은 별도 ADR 또는 조사 task. 본 문서는 현황 보고만, 처방 아님.</p>
+          <ol>
+            <li>
+              <strong>profiler 인프라</strong> — open-pencil
+              <code>profiler/render-profiler.ts</code> 패턴을 composition 에 차용.
+              ADR-069 확장 또는 신규 ADR.
+            </li>
+            <li>
+              <strong>RBush spatial index</strong> — <code>buildTreeBoundsMap</code>
+              linear 순회 → R-tree 교체. 단일 ADR 영역.
+            </li>
+            <li>
+              <strong>node-level Picture cache (T3)</strong> — composition 의
+              ElementSprite/StoreRenderBridge 위 textPicture 류 추가. T1/T2 보다 부분
+              도입 쉬움.
+            </li>
+            <li>
+              <strong>RenderLayer 분리</strong> — store-bridge 계약 재설계 영향 큼.
+              조사 phase 필요.
+            </li>
+            <li>
+              <strong>scenePicture (T1)</strong> — <code>PictureRecorder</code> 전체
+              페이지 캐시. composition 의 sceneVersion (ADR-136) 와 invalidate 키
+              정합 검증 필요.
+            </li>
+            <li>
+              <strong>sceneBacking (T2) — 가장 큰 영역</strong>. incremental budget +
+              stale-zoom + 3x viewport — 3-4 phase ADR.
+            </li>
+            <li>
+              <strong>Paint pool audit</strong> — composition 의 ad-hoc <code>new
+              Paint()</code> 사용 grep 후 SSOT 통합. 단일 ADR.
+            </li>
+          </ol>
+        </section>
+
+        <hr />
+
+        <section id="sources">
+          <h2>출처 / 메서드</h2>
+
+          <h3>소스 직접 read</h3>
+          <ul>
+            <li>
+              <code>/Users/admin/work/open-pencil/packages/core/src/canvas/renderer/{retained-backing,pipeline,paints,lifecycle}.ts</code>
+              (4 파일, 1,036 LOC)
+            </li>
+            <li>
+              <code>/Users/admin/work/open-pencil/packages/core/src/profiler/render-profiler.ts</code>
+              (173 LOC)
+            </li>
+            <li>
+              <code>/Users/admin/work/openpencil/packages/pen-renderer/src/{renderer,spatial-index,viewport,paint-utils,document-flattener}.ts</code>
+              (5 파일, 1,284 LOC)
+            </li>
+          </ul>
+
+          <h3>보조 grep</h3>
+          <ul>
+            <li>
+              <code>open-pencil/packages/core/src/scene-graph/index.ts</code>
+              (absPosCache + textPicture 패턴)
+            </li>
+            <li>
+              <code>openpencil/packages/pen-renderer/src/</code> 의 wc -l 전수
+            </li>
+          </ul>
+
+          <h3>Pencil.app — binary 메타만</h3>
+          <ul>
+            <li>
+              <code>Info.plist</code>, <code>Frameworks/</code>,
+              <code>Resources/app.asar.unpacked/{node_modules,out}/</code> (선행 문서
+              <code>PENCIL_ECOSYSTEM_ANALYSIS.md</code> Section 2 와 동일)
+            </li>
+            <li>
+              app.asar (165MB) 본체 read 미수행 — closed-source binary 접근 한계 명시
+            </li>
+          </ul>
+
+          <h3>미수행 영역 (한계)</h3>
+          <ul>
+            <li>
+              open-pencil 의 <code>node-renderer.ts</code> 1,170 LOC 본체 read — 시간
+              ROI 판단으로 skip. 노드별 그리기 디테일이 본 분석 결론에 영향 없음
+            </li>
+            <li>open-pencil 의 <code>frame/</code> 디렉토리 frame profiler 세부</li>
+            <li>
+              openpencil 의 <code>pen-engine</code> (browser/ + core/) — pen-renderer
+              와 분리된 별 패키지, 메모리/이벤트 영역 가능성
+            </li>
+            <li>
+              Pencil.app asar 본체 — 별도 추출 도구 (<code>asar extract</code>) 필요.
+              사용자 명시 요청 시 진행
+            </li>
+          </ul>
+        </section>
+
+        <hr />
+
+        <section id="memories">
+          <h2>관련 메모리</h2>
+          <ul>
+            <li>
+              <strong>project-autonomy-maturity-model</strong> — Wave A/A* 패턴 (본
+              분석 결과의 처방 단계에 적용 가능)
+            </li>
+            <li>
+              <strong>feedback-composition-enterprise-target</strong> — composition =
+              엔터프라이즈급 빌더. open-pencil 의 retained backing 은 <strong>차용
+              후보 / Must</strong>
+            </li>
+            <li>
+              <strong>feedback-no-fallback-thinking</strong> — open-pencil 의
+              <code>MakeSWCanvasSurface</code> fallback 은 composition target 차용
+              후보에서 제외
+            </li>
+            <li>
+              <strong>feedback-describe-vs-prescribe-separation</strong> — 본 문서는
+              현황 보고 layer, 처방 layer 아님
+            </li>
+          </ul>
+        </section>
+      </main>
+    </div>
+
+    <footer>
+      <span>Pencil 생태계 3-앱 렌더링 최적화 심도 비교 · 2026-05-28</span>
+      <span>composition / docs / explanation / research</span>
+    </footer>
+
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var toggle = document.getElementById("themeToggle");
+        var stored = null;
+        try {
+          stored = localStorage.getItem("pencil-doc-theme");
+        } catch (e) {}
+        if (
+          stored === "dark" ||
+          (!stored &&
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches)
+        ) {
+          root.setAttribute("data-theme", "dark");
+        }
+        toggle.addEventListener("click", function () {
+          var next =
+            root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem("pencil-doc-theme", next);
+          } catch (e) {}
+        });
+
+        // Scrollspy
+        var links = Array.prototype.slice.call(
+          document.querySelectorAll("nav.toc a")
+        );
+        var targets = links
+          .map(function (a) {
+            return document.getElementById(a.getAttribute("href").slice(1));
+          })
+          .filter(Boolean);
+
+        var observer = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                links.forEach(function (l) {
+                  l.classList.toggle(
+                    "active",
+                    l.getAttribute("href") === "#" + entry.target.id
+                  );
+                });
+              }
+            });
+          },
+          { rootMargin: "-10% 0px -75% 0px", threshold: 0 }
+        );
+        targets.forEach(function (t) {
+          observer.observe(t);
+        });
+      })();
+    </script>
+  </body>
+</html>
