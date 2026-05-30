@@ -114,7 +114,7 @@ Spec이 어디까지 관여하는지의 판정:
 
 | 위반 유형                     | 감지                                      | 대응                                    |
 | ----------------------------- | ----------------------------------------- | --------------------------------------- |
-| 수동 CSS가 Spec에서 파생 아님 | `skipCSSGeneration: true` + 수동 CSS 존재 | ADR 발의 → 해체 계획                    |
+| 수동 CSS가 Spec에서 파생 아님 | `skipCSSGeneration: true` + 수동 CSS 존재 | ADR 작성 → 해체 계획                    |
 | consumer-to-consumer 참조     | `@sync` 주석                              | Spec 경유로 재작성                      |
 | Spec이 D1/D2 침범             | 코드 리뷰                                 | 위반 코드 즉시 거부                     |
 | 시각 비대칭 (CSS≠Skia)        | `/cross-check` 실패                       | 어느 쪽이 Spec 맞는지 조사 후 양쪽 정렬 |
@@ -126,7 +126,7 @@ Spec이 어디까지 관여하는지의 판정:
 
 ## 5. 주요 ADR과의 관계
 
-- **ADR-036 (Spec-First)**: 본 규칙의 **D3 내부 구체화** — Spec이 시각 domain SSOT임을 선언. 재승격 시 "시각 domain 한정"이라는 framing 필수
+- **ADR-036 (Spec-First)**: 본 규칙의 **D3 내부 구체화** — Spec이 시각 domain SSOT임을 선언. 재승격 시 "시각 domain 한정"이라는 전제 명시 필수
 - **ADR-057/058 (Text Spec-First Phase 1~4)**: D3 내부 정리. Phase 5 Deferred = D1(DOM 구조)을 RAC에 맡긴 결정 — 본 규칙에 완전 정합
 - **ADR-059 (skipCSSGeneration 해체)**: D3 내부 정리. "CSS가 Spec에서 파생되어야" = D3 symmetric consumer 복원
 - **ADR-062 (Field variant 제거)**: D2 정리. RSP 미규정 prop 제거 + RSP 규정 prop(isQuiet) 보강

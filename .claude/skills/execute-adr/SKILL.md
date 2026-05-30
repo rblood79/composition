@@ -89,9 +89,11 @@ phase 종료 marking 전 모두 통과:
 
 - [ ] `pnpm type-check` 0 error
 - [ ] vitest 관련 테스트 PASS (있는 경우)
-- [ ] `cross-check` skill 실행 — 렌더링 영향 phase 면 필수
+- [ ] `cross-check` skill 실행 — **렌더링 또는 registration/wiring/schema 영향 phase 면 필수**
   - Phase 5.0 dist 신선도 게이트 통과
   - 5-레이어 정합성 0 CRITICAL/HIGH
+  - **Why (ADR-144 사례)**: "렌더링 영향 phase 만 필수" 로 좁히면 Inspector/registration/wiring 변경이 게이트를 빠져나간다. ADR-144 Wave C 가 test/type-check PASS 로 Implemented 승격됐으나 live builder 에서 composite registration 이 동작 안 함 → closure rollback → 34 commit revert. **비-렌더 wiring 변경도 live 검증 대상.**
+- [ ] **live behavior 확인 (CRITICAL — test/type-check PASS 단독으로 phase 종료 금지)**: 사용자-가시 동작이 실제 builder 에서 작동하는지 확인. registration / resolved-tree wiring / schema 변경은 unit-test 가 통과해도 live 에서 깨질 수 있음. Chrome MCP (builder 탭 조작) 또는 사용자 confirm 으로 실동작 1회 exercise. **무엇을 실제로 exercise 했는지 commit 검증 블록에 명시.**
 - [ ] design breakdown 의 phase Gate 조건 충족 (Gate 표가 있으면)
 - [ ] ADR Risks 섹션의 해당 phase 관련 위험 R{ID} 잔존 평가 — 새 위험 발견 시 ADR 본문 update
 

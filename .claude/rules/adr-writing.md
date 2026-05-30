@@ -32,14 +32,16 @@ ADR의 목적은 **미래의 개발자가 "왜 이렇게 결정했는가"를 이
 
 대화 맥락에 분석 데이터가 이미 있어도 ADR 본문에 직접 삽입 금지. 구현 상세(Phase, 파일 목록, 체크리스트, 코드 예시)는 반드시 `docs/adr/design/*-breakdown.md`에 분리.
 
-## ADR Fork / 분리 결정 시 framing checkpoint (CRITICAL)
+## ADR Fork / 분리 결정 시 전제·관점 점검 (CRITICAL)
 
-> **배경**: 2026-04-26~28 ADR-111/112 사례 — baseline (ADR-903 P4) framing 을 자동 승계하여 응용 ADR (ADR-111 frame preset) 을 base ADR (ADR-112 component 추상) 의 선행 ADR 로 잘못 framing. 24+ commits / sub-phase α/β/γ/δ/θ 진행 후 codex 3차 review 에서야 reverse 정정. 본 절차는 동일 손실 재발 차단 contract.
+> 용어 주의: 과거 "framing/발의/land" 표현을 한국어 대체어("관점·전제·문제 정의 / 작성·제안 / 반영·적용·추가·커밋")로 통일한다. 규칙 본문 자체가 금지 어휘 source 가 되지 않게 유지. 대체 매핑 정본: `CLAUDE.md` §"응답·문서 어휘 규칙".
+
+> **배경**: 2026-04-26~28 ADR-111/112 사례 — 선행 ADR (ADR-903 P4) 의 전제를 자동 승계하여 응용 ADR (ADR-111 frame preset) 을 base ADR (ADR-112 component 추상) 의 선행 ADR 로 잘못 분류. 24+ commits / sub-phase α/β/γ/δ/θ 진행 후 codex 3차 review 에서야 reverse 정정. 본 절차는 동일 손실 재발 차단 contract.
 
 ### 적용 시점 — fork / 분리 결정의 모든 시점
 
 - 기존 ADR 의 잔여 영역을 신규 ADR 로 분리할 때
-- baseline ADR 에 흡수 미가능한 영역을 신규 ADR 로 발의할 때
+- 선행 ADR 에 흡수 미가능한 영역을 신규 ADR 로 제안할 때
 - ADR 한 개를 base / 응용 두 개로 split 할 때
 - 두 ADR 의 의존 방향이 의심될 때 (사용자가 "이거 거꾸로 아닌가" 트리거 시)
 
@@ -53,34 +55,34 @@ ADR 분리 결정을 commit 하기 **전에** 다음 4 질문을 ADR 본문 또�
 
 1. **base / 응용 분류**: 두 ADR 중 하나가 추상 (component / format / SSOT) 이고 다른 하나가 응용 (frame / page / preset 같은 구체 적용) 인가? 그렇다면 base 가 응용의 prerequisite. 본 분류를 본문 §Context 또는 §Decision 에 1줄 명시.
 2. **schema 직교성**: 두 ADR 의 schema 가 직교인가, 한쪽이 다른 쪽의 specialization 인가? specialization 쪽이 base 의 후속.
-3. **baseline framing reverse 검증**: baseline ADR 의 의존 방향을 그대로 옮기는 것이 fork 후에도 valid 한가? grep + 사용자 1회 confirm. baseline framing 자동 승계 금지.
-4. **codex 3차 review 까지 미루지 말 것**: 1차 (표면 이슈) / 2차 (gate 정합) 후 3차에 가서야 framing 잡히는 패턴 회피. fork 시점에 위 1-3 질문 통과 후 codex 1차 진입.
+3. **선행 ADR 전제 reverse 검증**: 선행 ADR 의 의존 방향을 그대로 옮기는 것이 fork 후에도 valid 한가? grep + 사용자 1회 confirm. 선행 ADR 의 전제 자동 승계 금지.
+4. **codex 3차 review 까지 미루지 말 것**: 1차 (표면 이슈) / 2차 (gate 정합) 후 3차에 가서야 전제 결함이 잡히는 패턴 회피. fork 시점에 위 1-3 질문 통과 후 codex 1차 진입.
 
 ### 깊은 사고(adaptive thinking) 진입 의무
 
-framing 검증은 표면 사고로 처리 금지. ADR fork 결정 시 명시적으로 깊은 사고 모드 진입 후 4 질문 통과. token 효율 학습 압력 (짧은 답변 / plan→execute→done 사이클) 회피 — Anthropic 자체 가이드 정렬.
+전제·관점 검증은 표면 사고로 처리 금지. ADR fork 결정 시 명시적으로 깊은 사고 모드 진입 후 4 질문 통과. token 효율 학습 압력 (짧은 답변 / plan→execute→done 사이클) 회피 — Anthropic 자체 가이드 정렬.
 
 ### sub-phase 분해 진입 차단 게이트
 
-본 4 질문이 ADR 본문 또는 design §1 에 lock-in 되지 않았으면 design breakdown 의 sub-phase α/β/γ/δ 분해 자체 차단. 분해된 sub-phase 가 많을수록 framing 위반 인지 비용이 piecewise 분산 누적되어 본질 검증 trigger 못 걸림.
+본 4 질문이 ADR 본문 또는 design §1 에 lock-in 되지 않았으면 design breakdown 의 sub-phase α/β/γ/δ 분해 자체 차단. 분해된 sub-phase 가 많을수록 전제·관점 위반 인지 비용이 piecewise 분산 누적되어 본질 검증 trigger 못 걸림.
 
 ### Phase scope inflation / sub-group N≥3 시 사용자 confirm 의무 (M4 — 2026-05-11 추가)
 
 design breakdown 의 phase 실행 중 다음 조건 발견 시 **AskUserQuestion 의무** (의문문 형식, statement 금지):
 
-- **scope inflation 1.5x 이상**: design 추정 작업량 (예: ~28 file) 대비 실측 (예: 70 file) 이 1.5배 이상. 사용자 question 예시: "design 추정 vs 실측 gap 발견 — 이게 framing trigger 인가, design Phase 0 inventory 절차 결함인가?"
+- **scope inflation 1.5x 이상**: design 추정 작업량 (예: ~28 file) 대비 실측 (예: 70 file) 이 1.5배 이상. 사용자 question 예시: "design 추정 vs 실측 gap 발견 — 이게 전제 재검토 trigger 인가, design Phase 0 inventory 절차 결함인가?"
 - **sub-group N≥3 분할**: 단일 phase 를 Phase 2-A/B/C/D/E 같이 3 개 이상 sub-group 으로 분할 시도. 사용자 question 예시: "Phase 2 를 5 sub-group 으로 분할 vs 단일 phase 안 진행 vs design 재freeze, 어느 쪽?"
-- **commit 단위 sliver 분해**: `narrow ADR-NNN ...` / `Phase X-α/β/γ` 형식 commit 이 5 개 이상 누적 예상. 사용자 question 예시: "본 phase 가 5+ commit 으로 분해 예상 — 단일 commit 통합 land 가능?"
+- **commit 단위 sliver 분해**: `narrow ADR-NNN ...` / `Phase X-α/β/γ` 형식 commit 이 5 개 이상 누적 예상. 사용자 question 예시: "본 phase 가 5+ commit 으로 분해 예상 — 단일 commit 통합 반영 가능?"
 
 confirm 받지 못하면 분할/inflation 차단, 단일 phase 안 진행 또는 design 재freeze 사용자 결정. ADR-126 Phase 2 sub-group 5 분할 + 22+ "narrow ..." commit 패턴 재발 차단 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md M4).
 
 ### 금지 패턴
 
-- ❌ baseline ADR 의 framing 을 자동 승계 (fork 시점 의존 방향 별도 검증 안 함)
+- ❌ 선행 ADR 의 전제를 자동 승계 (fork 시점 의존 방향 별도 검증 안 함)
 - ❌ "이미 ADR 본문 작성됐으니 분해 진입" — 본 4 질문 미통과 시 분해 차단
-- ❌ codex 1차 / 2차 review 가 framing 검증을 한다고 가정 (codex review 는 본문 정합 layer, framing layer 아님)
-- ❌ revision 사이클 (1→2→3) 이 framing 검증을 cover 한다고 가정 (revision 은 표면 변경 layer)
-- ❌ design breakdown 에 추가 결정 (옵션 D1/D2/D3 / 결정 분기 등) 이 흘러 들어가서 ADR 본문 framing 위반에 침묵
+- ❌ codex 1차 / 2차 review 가 전제·관점 검증을 한다고 가정 (codex review 는 본문 정합 layer, 전제·관점 layer 아님)
+- ❌ revision 사이클 (1→2→3) 이 전제·관점 검증을 cover 한다고 가정 (revision 은 표면 변경 layer)
+- ❌ design breakdown 에 추가 결정 (옵션 D1/D2/D3 / 결정 분기 등) 이 흘러 들어가서 ADR 본문 전제·관점 위반에 침묵
 
 ## 섹션별 요구사항
 
@@ -236,7 +238,7 @@ ADR 작성 후 아래를 자가 검증한다. 하나라도 실패하면 해당 �
 - [ ] Spec/Generator 확장 ADR이면 **"Generator가 자식 selector/variant emit을 지원하는가?"** 를 Context에 선언했는가? (#2, 3/10 — SSOT debt 영구화 선차단)
 - [ ] BC 훼손 가능성이 있으면 **"X% 사용자 영향 / 평균 Y 파일 재직렬화"** 같이 수식화했는가? (#3, 3/10 — "기존 프로젝트 호환" 암묵화 차단)
 - [ ] HIGH+ threshold 초과 시 **"이 Phase를 별도 ADR로 분리 가능한가?"** 질문을 거쳤는가? (부차, 누적 착시 방지)
-- [ ] **추정 vs 실측 gap** (예: 추정 28 file vs 실측 70 file, 2.5배) 이 ADR fork 정당화 사유로 인용되었는가? **gap 은 절차 결함 (Phase 0 inventory freeze 부실), framing trigger 아님**. 본 ADR 안 Phase 0 inventory 보강 commit 으로 흡수, 새 ADR fork 사유 금지 (M3 — 2026-05-11, ADR-127 우회 사례)
+- [ ] **추정 vs 실측 gap** (예: 추정 28 file vs 실측 70 file, 2.5배) 이 ADR fork 정당화 사유로 인용되었는가? **gap 은 절차 결함 (Phase 0 inventory freeze 부실), 전제 재검토 trigger 아님**. 본 ADR 안 Phase 0 inventory 보강 commit 으로 흡수, 새 ADR fork 사유 금지 (M3 — 2026-05-11, ADR-127 우회 사례)
 
 ## 금지 패턴
 

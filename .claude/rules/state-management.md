@@ -69,10 +69,10 @@ await persistActiveCanonicalDocument(db);            // 4. IndexedDB persist (�
 
 ADR-122 본문 G1 ("mutation mirror 제거") 는 wrapper 가 단일 진입점이 되었음을 검증했지만 **wrapper 호출 순서 (canonical 1차 vs set 1차) 일관성** 은 검증하지 않았다. 6 entry path (`palette drop / paste / duplicate / createInstance / pencil import / canonical hydration`) 중 다음 2 곳이 `set` 1차 패턴 잔존:
 
-| 경로 | 위치 | 잔존 패턴 |
-| ---- | ---- | -------- |
+| 경로                                                                      | 위치                                                                                             | 잔존 패턴                                                                                                                                     |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `createInstance` / `resetInstanceOverrideField` / instance snapshot batch | `apps/builder/src/builder/stores/utils/instanceActions.ts:573-630` (`applyElementSnapshotBatch`) | `set` 1차 (line 598-620) → `syncInstanceElementsToCanonical` 2차 (line 622, JSDoc `canonical-first sync invariant` 코멘트와 실제 동작 불일치) |
-| history Undo / Redo (`!appliedCanonicalEvents` 분기) | `apps/builder/src/builder/stores/history/historyActions.ts:653-660` | `set` 1차 (line 653) → `syncHistoryElementsToCanonical` 2차 (line 660) |
+| history Undo / Redo (`!appliedCanonicalEvents` 분기)                      | `apps/builder/src/builder/stores/history/historyActions.ts:653-660`                              | `set` 1차 (line 653) → `syncHistoryElementsToCanonical` 2차 (line 660)                                                                        |
 
 본 잔존은 ADR-122 본문 § Residual 에 추가됐다 ([docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md)). 코드 정정 (호출 순서 reverse) 은 회귀 위험 HIGH (history undo/redo + instance master/snapshot 영역 광범위) 로 후속 작업 분리.
 
@@ -83,7 +83,7 @@ ADR-122 본문 G1 ("mutation mirror 제거") 는 wrapper 가 단일 진입점이
 - `CompositionDocument.events` / `actions` 가 일급 root collection. 각 entry 는 flat node 구조 (ADR-110 `themes`/`variables` 패턴과 동일) → 향후 behavior 카테고리 확장 시 동일 패턴 적용
 - mutation 은 `syncXxxToCanonical()` 경유 (root collection 전용 sync). UI node 는 `props.onPress: "ev1"` 같은 **string id** 로 root collection entry 를 참조 — static type guard 필수
 - ADR-116 §3 `x-composition.events|actions` extension field 는 본 root field 로 partial supersede 됨
-- **data 영역 제외**: ADR-131 Phase 8 사용자 framing revert — `data_tables` (→ `collections`) 가 데이터 SSOT 유지, `CompositionDocument.data` root field 미도입
+- **data 영역 제외**: ADR-131 Phase 8 사용자 관점 revert — `data_tables` (→ `collections`) 가 데이터 SSOT 유지, `CompositionDocument.data` root field 미도입
 
 ## Collections read 진입점 (ADR-132 Implemented 2026-05-13)
 
