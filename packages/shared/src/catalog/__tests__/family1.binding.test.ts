@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  badgeBinding,
   getPrimitiveBinding,
   linkBinding,
   toggleButtonBinding,
@@ -112,8 +113,35 @@ describe("Toolbar binding → toRacProps (컨테이너)", () => {
   });
 });
 
-describe("getPrimitiveBinding — family ① 7 primitive", () => {
+describe("Badge binding → toRacProps (internal source leaf)", () => {
+  it("routes variant/size/fillStyle to data-* (internal span)", () => {
+    const result = toRacProps(
+      {
+        id: "bd1",
+        type: "Badge",
+        props: { children: "New", variant: "positive", fillStyle: "subtle" },
+      },
+      badgeBinding,
+    );
+    expect(result).toMatchObject({
+      children: "New",
+      "data-variant": "positive",
+      "data-size": "sm",
+      "data-fill-style": "subtle",
+    });
+  });
+
+  it("Badge is an internal source primitive (no RAC controller)", () => {
+    expect(badgeBinding.source.kind).toBe("internal");
+    if (badgeBinding.source.kind === "internal") {
+      expect(badgeBinding.source.renderer).toBe("badge");
+    }
+  });
+});
+
+describe("getPrimitiveBinding — family ① 8 primitive", () => {
   it.each([
+    ["Badge"],
     ["Button"],
     ["Icon"],
     ["Link"],

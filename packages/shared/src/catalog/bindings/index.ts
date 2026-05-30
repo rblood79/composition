@@ -3,6 +3,7 @@
  * family cutover(Phase 6) 진행 시 약 35개 binding 이 여기 누적된다.
  */
 import type { PrimitiveBinding } from "../types";
+import { badgeBinding } from "./Badge.binding";
 import { buttonBinding } from "./Button.binding";
 import { iconBinding } from "./Icon.binding";
 import { linkBinding } from "./Link.binding";
@@ -11,6 +12,7 @@ import { toggleButtonBinding } from "./ToggleButton.binding";
 import { toggleButtonGroupBinding } from "./ToggleButtonGroup.binding";
 import { toolbarBinding } from "./Toolbar.binding";
 
+export * from "./Badge.binding";
 export * from "./Button.binding";
 export * from "./Icon.binding";
 export * from "./Link.binding";
@@ -25,6 +27,7 @@ export * from "./Toolbar.binding";
  * generic 렌더러가 "이 type 이 catalog primitive 인가" 를 판정하는 단일 진입점.
  */
 const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
+  Badge: badgeBinding,
   Button: buttonBinding,
   Icon: iconBinding,
   Link: linkBinding,
