@@ -20,7 +20,7 @@ interface SpecFieldProps {
   elementId?: string;
 }
 
-const SIZE_DISPLAY_LABELS: Record<string, string> = {
+export const SIZE_DISPLAY_LABELS: Record<string, string> = {
   xs: "XS",
   sm: "S",
   md: "M",

@@ -1,10 +1,17 @@
 import { createElement, memo, useMemo, type ComponentType } from "react";
 import type { ComponentSpec } from "@composition/specs";
+import {
+  getPrimitiveBinding,
+  isCatalogCutover,
+  type InspectorFieldTheme,
+} from "@composition/shared";
 import { PropertyCustomId, PropertySection } from "../../../components";
 import { useStore } from "../../../stores";
 import type { ComponentEditorProps } from "../../../inspector/types";
+import { CatalogInspectorFields } from "./CatalogInspectorFields";
 import { evaluateVisibility } from "./evaluateVisibility";
-import { SpecField } from "./SpecField";
+import { inferLabel } from "./inferLabel";
+import { SIZE_DISPLAY_LABELS, SpecField } from "./SpecField";
 import { useCanonicalPropertyElementsMap } from "../hooks/useCanonicalPropertyRead";
 
 interface GenericPropertyEditorProps extends ComponentEditorProps {
@@ -37,6 +44,42 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
     return parent?.type;
   }, [elementsMap, elementId]);
 
+  // ── ADR-142: catalog generic Inspector 게이트 ──────────────────────────────
+  // cutover 된 component type 은 spec.properties.sections 대신 PrimitiveBinding 의
+  // accepts(PropContract) + theme 로 generic 편집 필드를 생성한다. isCatalogCutover 가
+  // 비어있는 동안에는 이 분기를 타지 않음 → legacy 경로 보존 (live 회귀 0).
+  const componentType = useMemo(
+    () => elementsMap.get(elementId)?.type,
+    [elementsMap, elementId],
+  );
+  const catalogBinding = componentType
+    ? getPrimitiveBinding(componentType)
+    : undefined;
+  const useCatalog =
+    componentType != null &&
+    catalogBinding != null &&
+    isCatalogCutover(componentType);
+
+  // 전환기 theme adapter: variant/size 값 집합을 spec.variants/sizes keys 에서 조회
+  // (목표는 theme/tokens data-* rules — Phase 5).
+  const specInspectorTheme = useMemo<InspectorFieldTheme>(
+    () => ({
+      resolveDimensionOptions(_type, _key, kind) {
+        if (kind === "variant") {
+          return Object.keys(spec.variants ?? {}).map((value) => ({
+            value,
+            label: inferLabel(value),
+          }));
+        }
+        return Object.keys(spec.sizes ?? {}).map((value) => ({
+          value,
+          label: SIZE_DISPLAY_LABELS[value] ?? value.toUpperCase(),
+        }));
+      },
+    }),
+    [spec],
+  );
+
   const updateCustomId = (newCustomId: string) => {
     const updateElement = useStore.getState().updateElement;
     if (updateElement && elementId) {
@@ -63,6 +106,29 @@ export const GenericPropertyEditor = memo(function GenericPropertyEditor({
       placeholder={`${spec.name.toLowerCase()}_1`}
     />
   );
+
+  // ── ADR-142: cutover 된 컴포넌트 → catalog generic 경로 ──────────────────────
+  if (useCatalog && catalogBinding && componentType) {
+    return (
+      <>
+        <CatalogInspectorFields
+          componentType={componentType}
+          contracts={catalogBinding.props.accepts}
+          theme={specInspectorTheme}
+          currentProps={currentProps}
+          onUpdate={onUpdate}
+          parentTag={parentTag}
+          customIdControl={renderCustomId()}
+        />
+        {renderAfterSections != null &&
+          createElement(renderAfterSections, {
+            elementId,
+            currentProps,
+            onUpdate,
+          })}
+      </>
+    );
+  }
 
   return (
     <>
