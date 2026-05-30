@@ -15,7 +15,17 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3 (`skiaPrimitive`)
  */
 
-import type { Shape, SizeSpec, VariantSpec } from "../types";
+import {
+  CHECKBOX_BOX_BORDER,
+  CHECKBOX_CHECKED_COLORS,
+} from "../components/Checkbox.spec";
+import {
+  RADIO_RING_BORDER,
+  RADIO_SELECTED_COLORS,
+} from "../components/Radio.spec";
+import { SWITCH_SELECTED_TRACK_COLORS } from "../components/Switch.spec";
+import { parseBorderWidth, parsePxValue } from "../primitives";
+import type { Shape, SizeSpec, TokenRef, VariantSpec } from "../types";
 import { resolveFillTokens } from "../utils/fillTokens";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 
@@ -98,11 +108,219 @@ const divider: SkiaPrimitiveDrawFn = ({ props, size, variant, style }) => {
   ];
 };
 
+/**
+ * `checkbox` — 체크박스 indicator: box(roundRect, size.indicator.boxSize) + border +
+ * checkmark(2 line)/indeterminate(1 line, isChecked·isSelected 시). label 은 자식 Label
+ * Element 가 담당하므로 여기서 안 그린다(정본 — indicator 만). isChecked 시 bg/border
+ * variant별 CHECKBOX_CHECKED_COLORS 로 전환. (Checkbox primitive)
+ */
+const checkbox: SkiaPrimitiveDrawFn = ({ props, size, variant, style }) => {
+  const variantName = (props.variant as string | undefined) ?? "default";
+  const boxSize = size.indicator?.boxSize ?? 20;
+  const isChecked = props.isSelected === true;
+  const checkedColors =
+    CHECKBOX_CHECKED_COLORS[variantName] ?? CHECKBOX_CHECKED_COLORS.default;
+
+  const borderRadius = parsePxValue(
+    style?.borderRadius,
+    size.indicator?.boxRadius ?? 4,
+  );
+  const borderWidth = parseBorderWidth(style?.borderWidth, 2);
+
+  const fill = variant ? resolveFillTokens(variant) : undefined;
+  const bgColor =
+    (style?.backgroundColor as string | undefined) ??
+    (isChecked ? checkedColors.bg : fill?.default.base);
+
+  const boxBorder =
+    CHECKBOX_BOX_BORDER[variantName] ?? CHECKBOX_BOX_BORDER.default;
+  const borderColor =
+    (style?.borderColor as string | undefined) ??
+    (isChecked ? checkedColors.border : boxBorder);
+
+  const shapes: Shape[] = [
+    {
+      id: "box",
+      type: "roundRect",
+      x: 0,
+      y: 0,
+      width: boxSize,
+      height: boxSize,
+      radius: borderRadius as unknown as number,
+      fill: bgColor,
+    },
+    {
+      type: "border",
+      target: "box",
+      borderWidth,
+      color: borderColor,
+      radius: borderRadius as unknown as number,
+    },
+  ];
+
+  if (isChecked && !props.isIndeterminate) {
+    const pad = boxSize * 0.2;
+    shapes.push(
+      {
+        type: "line",
+        x1: pad,
+        y1: boxSize * 0.5,
+        x2: boxSize * 0.4,
+        y2: boxSize - pad,
+        stroke: "{color.white}" as TokenRef,
+        strokeWidth: 2.5,
+      },
+      {
+        type: "line",
+        x1: boxSize * 0.4,
+        y1: boxSize - pad,
+        x2: boxSize - pad,
+        y2: pad,
+        stroke: "{color.white}" as TokenRef,
+        strokeWidth: 2.5,
+      },
+    );
+  } else if (props.isIndeterminate) {
+    const pad = boxSize * 0.25;
+    shapes.push({
+      type: "line",
+      x1: pad,
+      y1: boxSize / 2,
+      x2: boxSize - pad,
+      y2: boxSize / 2,
+      stroke: "{color.white}" as TokenRef,
+      strokeWidth: 2.5,
+    });
+  }
+
+  return shapes;
+};
+
+/**
+ * `radio` — 라디오 indicator: outer ring(circle, fillAlpha 0) + border + inner dot(circle,
+ * isSelected 시). label 은 자식 Label Element 담당. isSelected 시 ring/dot 색은 variant별
+ * RADIO_SELECTED_COLORS. (Radio primitive)
+ */
+const radio: SkiaPrimitiveDrawFn = ({ props, size, variant, style }) => {
+  const variantName = (props.variant as string | undefined) ?? "default";
+  const outer = size.indicator?.boxSize ?? 20;
+  const inner = size.indicator?.dotSize ?? 8;
+  const selectedColors =
+    RADIO_SELECTED_COLORS[variantName] ?? RADIO_SELECTED_COLORS.default;
+  const outerRadius = outer / 2;
+  const isSelected = props.isSelected === true;
+
+  const borderWidth = parseBorderWidth(style?.borderWidth, 2);
+  const ringBorder =
+    RADIO_RING_BORDER[variantName] ?? RADIO_RING_BORDER.default;
+  const borderColor =
+    (style?.borderColor as string | undefined) ??
+    (isSelected ? selectedColors.ring : ringBorder);
+
+  // ring 배경은 투명(fillAlpha 0) — 색은 시각상 무의미하나 legacy parity 위해
+  // variant default fill base 사용(legacy resolveStateColors(variant,"default").background).
+  const ringFill = variant
+    ? resolveFillTokens(variant).default.base
+    : undefined;
+
+  const shapes: Shape[] = [
+    {
+      id: "ring",
+      type: "circle",
+      x: outerRadius,
+      y: outerRadius,
+      radius: outerRadius,
+      fill: ringFill,
+      fillAlpha: 0,
+    },
+    {
+      type: "border",
+      target: "ring",
+      borderWidth,
+      color: borderColor,
+      radius: outerRadius,
+    },
+  ];
+
+  if (isSelected) {
+    shapes.push({
+      type: "circle",
+      x: outerRadius,
+      y: outerRadius,
+      radius: inner / 2,
+      fill: selectedColors.dot,
+    });
+  }
+
+  return shapes;
+};
+
+/**
+ * `switch_toggle` — 스위치 indicator: track(roundRect) + border(비선택) + thumb(circle,
+ * thumbX=isChecked? 우:좌). label 은 자식 Label Element 담당. track 색은 isChecked 시
+ * variant별 SWITCH_SELECTED_TRACK_COLORS, 비선택 시 accent-subtle. (Switch primitive)
+ */
+const switchToggle: SkiaPrimitiveDrawFn = ({ props, size }) => {
+  const variantName = (props.variant as string | undefined) ?? "default";
+  const trackWidth = size.indicator?.trackWidth ?? 36;
+  const trackHeight = size.indicator?.trackHeight ?? 20;
+  const thumbSize = size.indicator?.thumbSize ?? 16;
+  const thumbOffset = size.indicator?.thumbOffset ?? 2;
+
+  const isChecked = props.isSelected === true;
+  const trackColor = isChecked
+    ? (SWITCH_SELECTED_TRACK_COLORS[variantName] ??
+      SWITCH_SELECTED_TRACK_COLORS.default)
+    : ("{color.accent-subtle}" as TokenRef);
+
+  const thumbX = isChecked ? trackWidth - thumbSize - thumbOffset : thumbOffset;
+  const trackRadius = trackHeight / 2;
+
+  const shapes: Shape[] = [
+    {
+      id: "track",
+      type: "roundRect",
+      x: 0,
+      y: 0,
+      width: trackWidth,
+      height: trackHeight,
+      radius: trackRadius,
+      fill: trackColor,
+    },
+  ];
+
+  if (!isChecked) {
+    shapes.push({
+      type: "border",
+      target: "track",
+      borderWidth: 2,
+      color: "{color.border-hover}" as TokenRef,
+      radius: trackRadius,
+    });
+  }
+
+  shapes.push({
+    id: "thumb",
+    type: "circle",
+    x: thumbX + thumbSize / 2,
+    y: trackHeight / 2,
+    radius: thumbSize / 2,
+    fill: isChecked
+      ? ("{color.white}" as TokenRef)
+      : ("{color.neutral-subtle}" as TokenRef),
+  });
+
+  return shapes;
+};
+
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
   dot,
   divider,
+  checkbox,
+  radio,
+  switch_toggle: switchToggle,
 };
 
 export function getSkiaPrimitive(

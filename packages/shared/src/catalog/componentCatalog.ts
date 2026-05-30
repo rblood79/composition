@@ -138,12 +138,54 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
+ * ADR-142 family ③(selection) cutover 상태. Checkbox/Radio/Switch/Slider + Group 6개.
+ * Checkbox/Radio/Switch 는 indicator(box/circle/track+thumb)를 `skiaPrimitive` draw module 로
+ * 그린다(box+text 표현 불가). Slider 는 track/thumb 을 자식 SliderTrack/Thumb sub-part 가
+ * 그리므로 skiaPrimitive 불필요. Group 은 자식 옵션 컨테이너(_hasChildren 빈 box shell).
+ */
+const FAMILY_3_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+
+const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry("Checkbox", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "checkbox",
+    icon: "SquareCheck",
+  }),
+  primitiveEntry("CheckboxGroup", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "checkbox group",
+    icon: "GroupIcon",
+  }),
+  primitiveEntry("Radio", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "radio",
+    icon: "Circle",
+  }),
+  primitiveEntry("RadioGroup", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "radio group",
+    icon: "GroupIcon",
+  }),
+  primitiveEntry("Switch", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "switch",
+    icon: "ToggleRight",
+  }),
+  primitiveEntry("Slider", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider",
+    icon: "SlidersHorizontal",
+  }),
+];
+
+/**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①(primitives/actions) + family ②(fields) 등록 — 나머지 family 는 후속 cutover.
+ * 현재 family ①(primitives/actions) + ②(fields) + ③(selection) 등록 — 나머지 후속 cutover.
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
   ...FAMILY_2_ENTRIES,
+  ...FAMILY_3_ENTRIES,
 ];
 
 /** type → catalog entry 조회 (O(1)). */

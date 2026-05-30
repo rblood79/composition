@@ -122,12 +122,16 @@ export function buildCatalogShapes(
   // draw module 로, 없으면 본 함수(box+text 보편 frame)로 보낸다. 컴포넌트 식별 분기(isDot/
   // divider/iconName)를 본 함수 안에 인라인하지 않는다(정본: 데이터 분기, ADR-142 §3 skiaPrimitive).
 
-  // 보이지 않는 배경 생략 (Link 류 text-only leaf):
-  //   배경 투명(fill.alpha===0) + 사용자 backgroundColor 없음 + 테두리 없음 →
-  //   그릴 배경 box 가 없으므로 bg roundRect 를 만들지 않는다 (legacy Link = text shape 만).
-  // backgroundColor 가 명시되면 alpha 무시하고 box 를 그린다(사용자 의도).
+  // 보이지 않는 배경 생략 (Link 류 text-only leaf / variant 없는 컨테이너 shell):
+  //   채울 배경색(bgColor)도 테두리(borderColor)도 없으면 그릴 box 가 없으므로 생략한다.
+  //   - Link: fill.alpha===0 → bgColor 가 transparent 가 아니어도 alpha 0 이면 투명 box 무의미.
+  //   - field/Slider 등 variant 없는 컨테이너: variant 없음 → fill/bgColor undefined →
+  //     `_hasChildren` 자식이 배경 담당, 부모는 빈 shell(legacy render.shapes 빈 배열 parity).
+  //   backgroundColor 가 명시되면 사용자 의도이므로 box 를 그린다.
   const hasVisibleBg =
-    style?.backgroundColor != null || (fill?.alpha ?? 1) !== 0 || !!borderColor;
+    style?.backgroundColor != null ||
+    (bgColor != null && (fill?.alpha ?? 1) !== 0) ||
+    !!borderColor;
 
   const shapes: Shape[] = [];
   if (hasVisibleBg) {
