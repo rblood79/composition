@@ -17,13 +17,20 @@ import { CanvasRouter, setGlobalNavigate } from "./router";
 import { MessageHandler, messageSender } from "./messaging";
 import { useNavigate } from "react-router-dom";
 import { rendererMap } from "@composition/shared/renderers";
-import { adaptElementFillStyle, isRuntimePageNode } from "@composition/shared";
+import {
+  adaptElementFillStyle,
+  getCatalogCutoverTypes,
+  isRuntimePageNode,
+} from "@composition/shared";
 import {
   getElementForTag,
   hasSpec,
   getDefaultSizeForTag,
 } from "@composition/specs";
-import type { RenderContext as SharedRenderContext } from "@composition/shared/types";
+import type {
+  RenderContext as SharedRenderContext,
+  PreviewElement as SharedPreviewElement,
+} from "@composition/shared/types";
 import type { PreviewElement, RenderContext } from "./types";
 import type { RuntimeElement } from "./store/types";
 import { EventEngine } from "../utils/events/eventEngine";
@@ -39,6 +46,14 @@ import { resolveCanonicalRefTree } from "../builder/utils/canonicalRefResolution
 import { isLegacyFrameElementForFrame } from "../adapters/canonical/frameElementLoader";
 import { hasFrameElementMirrorId } from "../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../adapters/canonical/slotMirror";
+
+/**
+ * ADR-142 — catalog generic 렌더로 cutover 된 primitive type 집합 (componentCatalog 파생).
+ * 모듈 로드 1회 계산(componentCatalog 불변). family flip 시 componentCatalog cutover 값이
+ * "catalog" 가 되면 자동 반영 — CanonicalNodeRenderer 가 per-component rendererMap 대신
+ * generic toRacProps→primitive 경로로 렌더.
+ */
+const CATALOG_CUTOVER_TYPES = getCatalogCutoverTypes();
 
 /**
  * Canonical renderer 경로 활성화 결정.
@@ -402,7 +417,9 @@ function CanvasContent() {
 
       // Computed style 전송 (RAF로 지연)
       requestAnimationFrame(() => {
-        const computedStyle = collectComputedStyle(elementWithId!);
+        const computedStyle = collectComputedStyle(
+          elementWithId as HTMLElement,
+        );
         messageSender.sendComputedStyle(elementId, computedStyle);
       });
     },
@@ -534,7 +551,7 @@ function CanvasContent() {
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
         return renderer(
-          adaptedElement,
+          adaptedElement as unknown as SharedPreviewElement,
           renderContext as unknown as SharedRenderContext,
         );
       }
@@ -761,7 +778,7 @@ function CanvasContent() {
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
         return renderer(
-          adaptedElement,
+          adaptedElement as unknown as SharedPreviewElement,
           renderContext as unknown as SharedRenderContext,
         );
       }
@@ -804,7 +821,7 @@ function CanvasContent() {
       const renderer = rendererMap[adaptedElement.type];
       if (renderer) {
         return renderer(
-          adaptedElement,
+          adaptedElement as unknown as SharedPreviewElement,
           renderContext as unknown as SharedRenderContext,
         );
       }
@@ -884,6 +901,7 @@ function CanvasContent() {
                   key={node.id}
                   node={node}
                   renderContext={renderContext}
+                  cutoverPrimitives={CATALOG_CUTOVER_TYPES}
                 />
               ))}
             </>

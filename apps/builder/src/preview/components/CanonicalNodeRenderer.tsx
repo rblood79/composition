@@ -24,9 +24,14 @@ import {
   getPrimitiveBinding,
   toRacProps,
 } from "@composition/shared";
+import { Badge } from "@composition/shared/components/Badge";
+import { Icon } from "@composition/shared/components/Icon";
 import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 import type { ResolvedNode } from "@composition/shared";
-import type { RenderContext as SharedRenderContext } from "@composition/shared/types";
+import type {
+  RenderContext as SharedRenderContext,
+  PreviewElement as SharedPreviewElement,
+} from "@composition/shared/types";
 import { extractCanonicalPropsFromResolved } from "../../resolvers/canonical/storeBridge";
 import type { RenderContext } from "../types/index";
 import type { PreviewElement } from "../types/index";
@@ -54,6 +59,18 @@ interface CanonicalNodeRendererProps {
    */
   cutoverPrimitives?: ReadonlySet<string>;
 }
+
+/**
+ * ADR-142 — internal source primitive(RAC 아닌 composition 내부 leaf)의 DOM 렌더러.
+ * `PrimitiveBinding.source.renderer` 식별자 → shared 컴포넌트. RAC controller 가 없는
+ * leaf(Icon=Lucide SVG, Badge=styled span)의 D1 탈출구(types.ts PrimitiveSource "internal").
+ */
+const INTERNAL_RENDERERS: Readonly<
+  Record<string, React.ElementType | undefined>
+> = {
+  icon: Icon,
+  badge: Badge,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CanonicalNodeRenderer
@@ -116,23 +133,23 @@ export function CanonicalNodeRenderer({
   };
 
   // ── ADR-142: catalog generic 렌더 경로 (cutover 된 primitive 한정) ────────
-  // per-component rendererMap 대신 generic toRacProps → RAC primitive 로 렌더.
+  // per-component rendererMap 대신 generic toRacProps → primitive 로 렌더.
   // cutoverPrimitives 에 포함된 type 만 해당 — 미지정 시 아래 legacy 경로 보존(회귀 0).
+  // source.kind 분기: rac → RAC[component] / internal → INTERNAL_RENDERERS[renderer].
   if (cutoverPrimitives?.has(type)) {
     const binding = getPrimitiveBinding(type);
-    // rac source 만 generic RAC 경로. internal source(Icon 등)는 전용 렌더러가 필요 —
-    // 해당 분기 도입(family ① flip) 전까지 RacComponent undefined → 아래 legacy fall through.
-    const RacComponent =
-      binding && binding.source.kind === "rac"
+    const PrimitiveComponent: React.ElementType | undefined = !binding
+      ? undefined
+      : binding.source.kind === "rac"
         ? (RAC as unknown as Record<string, React.ElementType | undefined>)[
             binding.source.component
           ]
-        : undefined;
-    if (binding && RacComponent) {
+        : INTERNAL_RENDERERS[binding.source.renderer];
+    if (binding && PrimitiveComponent) {
       const { children: racChildren, ...racRest } = toRacProps(node, binding);
       const childNodes = node.children ?? [];
       return (
-        <RacComponent key={node.id} {...markerProps} {...racRest}>
+        <PrimitiveComponent key={node.id} {...markerProps} {...racRest}>
           {childNodes.length > 0
             ? childNodes.map((child) => (
                 <CanonicalNodeRenderer
@@ -144,7 +161,7 @@ export function CanonicalNodeRenderer({
                 />
               ))
             : (racChildren as React.ReactNode)}
-        </RacComponent>
+        </PrimitiveComponent>
       );
     }
   }
@@ -156,7 +173,10 @@ export function CanonicalNodeRenderer({
     // 여기서는 rendererMap 에 그대로 위임. DOM 마커는 wrapper div 로 감쌈.
     return (
       <div key={node.id} {...markerProps} style={{ display: "contents" }}>
-        {renderer(adaptedEl, renderContext as unknown as SharedRenderContext)}
+        {renderer(
+          adaptedEl as unknown as SharedPreviewElement,
+          renderContext as unknown as SharedRenderContext,
+        )}
       </div>
     );
   }
