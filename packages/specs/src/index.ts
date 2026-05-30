@@ -210,6 +210,9 @@ export {
   resolveSpecFontSize,
   // ADR-142 #5 — generic shape-descriptor 생성기
   buildCatalogShapes,
+  // ADR-142 §3 — skiaPrimitive draw module (원/선/아이콘 등 비-trivial)
+  getSkiaPrimitive,
+  SKIA_PRIMITIVES,
 } from "./renderers";
 
 export type { ReactRenderResult } from "./renderers";
@@ -217,6 +220,7 @@ export type {
   ResolvedContainerVariants,
   NestedSelectorChild,
 } from "./renderers";
+export type { SkiaPrimitiveDrawFn } from "./renderers";
 
 // ─── Components ──────────────────────────────────────────────────────────────
 export { ButtonSpec } from "./components/Button.spec";

@@ -2,15 +2,29 @@ import { describe, expect, it } from "vitest";
 
 import { BadgeSpec } from "../../components/Badge.spec";
 import { IconSpec } from "../../components/Icon.spec";
+import type { VariantSpec } from "../../types";
 import { buildCatalogShapes } from "../buildCatalogShapes";
+import { getSkiaPrimitive } from "../skiaPrimitives";
 
 /**
- * ADR-142 family ① — Icon(icon_font) / Badge(roundRect+text / isDot circle) 가
- * generic buildCatalogShapes 로 legacy render.shapes 와 parity 인지 실측.
- * 특수 shape(icon_font / circle)도 spec 데이터(iconName / isDot) 기반 generic 분기 — type 분기 없음.
+ * ADR-142 family ① — Icon / Badge 시각 parity 실측.
+ *
+ * **정본 (2026-05-31 정정)**: 비-DOM-trivial primitive(아이콘=icon_font / dot=circle)는
+ * `skiaPrimitive` draw module 이 그린다. box+text(Badge text 모드)만 buildCatalogShapes.
+ * Icon=`skiaPrimitive:"icon_font"` / Badge dot=`skiaPrimitive:"dot"`(isDot 아니면 null→box+text).
+ * buildCatalogShapes 안에 icon/dot 컴포넌트 식별 분기를 두지 않는다(N++ 복제 방지).
  */
 
-describe("buildCatalogShapes — Icon icon_font parity", () => {
+const variantSpecOf = (
+  spec: typeof IconSpec | typeof BadgeSpec,
+  variant: string,
+): VariantSpec | undefined =>
+  (spec.variants?.[variant as keyof typeof spec.variants] ?? undefined) as
+    | VariantSpec
+    | undefined;
+
+describe("skiaPrimitive 'icon_font' — Icon parity", () => {
+  const draw = getSkiaPrimitive("icon_font")!;
   const sizes = ["xs", "sm", "md", "lg", "xl"] as const;
 
   for (const size of sizes) {
@@ -25,25 +39,30 @@ describe("buildCatalogShapes — Icon icon_font parity", () => {
         sizeSpec,
         "default",
       );
-      const catalog = buildCatalogShapes(IconSpec, props, sizeSpec, "default");
-      expect(catalog).toEqual(legacy);
+      const primitive = draw({
+        props,
+        size: sizeSpec,
+        variant: variantSpecOf(IconSpec, "default"),
+        style: undefined,
+      });
+      expect(primitive).toEqual(legacy);
     });
   }
 
   it("Icon 은 단일 icon_font shape (box/text 없음)", () => {
-    const catalog = buildCatalogShapes(
-      IconSpec,
-      { iconName: "check" },
-      IconSpec.sizes.md,
-      "default",
-    );
-    expect(catalog).toHaveLength(1);
-    expect(catalog[0].type).toBe("icon_font");
-    expect(catalog[0].iconName).toBe("check");
+    const shapes = draw({
+      props: { iconName: "check" },
+      size: IconSpec.sizes.md,
+      variant: variantSpecOf(IconSpec, "default"),
+      style: undefined,
+    })!;
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].type).toBe("icon_font");
+    expect(shapes[0].iconName).toBe("check");
   });
 });
 
-describe("buildCatalogShapes — Badge parity (roundRect+text / isDot circle)", () => {
+describe("Badge — text 모드(box+text) buildCatalogShapes parity", () => {
   const sizes = ["sm", "md", "lg"] as const;
   const variants = ["accent", "positive", "negative", "neutral"] as const;
 
@@ -73,16 +92,21 @@ describe("buildCatalogShapes — Badge parity (roundRect+text / isDot circle)", 
       });
     }
   }
+});
+
+describe("skiaPrimitive 'dot' — Badge dot 모드 parity", () => {
+  const draw = getSkiaPrimitive("dot")!;
+  const sizes = ["sm", "md", "lg"] as const;
 
   it("isDot — circle 단일 shape", () => {
-    const catalog = buildCatalogShapes(
-      BadgeSpec,
-      { variant: "accent", isDot: true },
-      BadgeSpec.sizes.md,
-      "default",
-    );
-    expect(catalog).toHaveLength(1);
-    expect(catalog[0].type).toBe("circle");
+    const shapes = draw({
+      props: { variant: "accent", isDot: true },
+      size: BadgeSpec.sizes.md,
+      variant: variantSpecOf(BadgeSpec, "accent"),
+      style: undefined,
+    })!;
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].type).toBe("circle");
   });
 
   it("isDot circle — legacy parity", () => {
@@ -97,8 +121,23 @@ describe("buildCatalogShapes — Badge parity (roundRect+text / isDot circle)", 
         sizeSpec,
         "default",
       );
-      const catalog = buildCatalogShapes(BadgeSpec, props, sizeSpec, "default");
-      expect(catalog).toEqual(legacy);
+      const primitive = draw({
+        props,
+        size: sizeSpec,
+        variant: variantSpecOf(BadgeSpec, "negative"),
+        style: undefined,
+      });
+      expect(primitive).toEqual(legacy);
     }
+  });
+
+  it("non-dot — null 반환 (box+text 로 fallback)", () => {
+    const shapes = draw({
+      props: { children: "5", variant: "accent" },
+      size: BadgeSpec.sizes.md,
+      variant: variantSpecOf(BadgeSpec, "accent"),
+      style: undefined,
+    });
+    expect(shapes).toBeNull();
   });
 });

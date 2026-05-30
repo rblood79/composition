@@ -20,11 +20,16 @@ import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   buildCatalogShapes,
+  getSkiaPrimitive,
   normalizeBreadcrumbRspSizeKey,
   type ComponentState,
+  type ComponentSpec,
   type PropagationRule,
+  type Shape,
+  type SizeSpec,
+  type VariantSpec,
 } from "@composition/specs";
-import { isCatalogCutover } from "@composition/shared";
+import { isCatalogCutover, getPrimitiveBinding } from "@composition/shared";
 import { getSpecForTag } from "../sprites/tagSpecMap";
 import { specShapesToSkia } from "./specShapeConverter";
 import {
@@ -751,6 +756,43 @@ function resolveAccentColor(
   return undefined;
 }
 
+/**
+ * ADR-142 §3 — catalog cutover 된 type 의 shape 생성 dispatch.
+ *
+ * 정본(데이터 분기): 해당 type 의 `PrimitiveBinding.skiaPrimitive` 가 있으면(원/선/아이콘 등
+ * 비-DOM-trivial primitive) 그 draw module 이 shape 를 만들고, 없으면 `buildCatalogShapes`
+ * (모든 frame 공유 보편 box+text 시각)가 만든다. 컴포넌트 식별 분기를 buildCatalogShapes
+ * 안에 인라인하지 않는다 — N++ 복제 방지. skiaPrimitive draw fn 은 spec.variants 에서 뽑은
+ * variant + style 을 받는다(전환기엔 spec 데이터 직접 소비, 목표는 theme/tokens).
+ */
+function buildCatalogShapesOrPrimitive(
+  spec: ComponentSpec<Record<string, unknown>>,
+  type: string,
+  specProps: Record<string, unknown>,
+  sizeSpec: SizeSpec,
+  componentState: ComponentState,
+): Shape[] {
+  const skiaPrimitiveKey = getPrimitiveBinding(type)?.skiaPrimitive;
+  const drawPrimitive = getSkiaPrimitive(skiaPrimitiveKey);
+  if (drawPrimitive) {
+    const variantName =
+      (specProps.variant as string | undefined) ?? spec.defaultVariant;
+    const variant =
+      variantName && spec.variants
+        ? (spec.variants[variantName] as VariantSpec | undefined)
+        : undefined;
+    const primitiveShapes = drawPrimitive({
+      props: specProps,
+      size: sizeSpec,
+      variant,
+      style: specProps.style as Record<string, unknown> | undefined,
+    });
+    // null = primitive 미적용(예: Badge non-dot) → 보편 box+text fallback.
+    if (primitiveShapes) return primitiveShapes;
+  }
+  return buildCatalogShapes(spec, specProps, sizeSpec, componentState);
+}
+
 // ---------------------------------------------------------------------------
 // Main Builder
 // ---------------------------------------------------------------------------
@@ -1023,11 +1065,20 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
 
   // ---------- shapes 생성 ----------
-  // ADR-142 #5(b): catalog cutover 된 type 은 generic buildCatalogShapes 경로.
+  // ADR-142 #5(b): catalog cutover 된 type 은 generic 경로.
   // gate(isCatalogCutover) 가 비어 있는 동안 항상 spec.render.shapes — 무행동 변화.
-  // cutover flip 시 per-component render.shapes 대신 generic shape 생성기로 전환.
+  // cutover 된 type 은 binding.skiaPrimitive 유무로 갈린다(정본 — 데이터 분기, ADR-142 §3):
+  //   - skiaPrimitive 있음(원/선/아이콘 등 비-DOM-trivial) → 그 draw module 이 shape 생성.
+  //   - 없음 → buildCatalogShapes(모든 frame 공유 보편 box+text 시각).
+  // 컴포넌트 식별 분기(isDot/divider/iconName)를 buildCatalogShapes 안에 인라인하지 않는다.
   const shapes = isCatalogCutover(type)
-    ? buildCatalogShapes(spec, specProps, sizeSpec, componentState)
+    ? buildCatalogShapesOrPrimitive(
+        spec,
+        type,
+        specProps,
+        sizeSpec,
+        componentState,
+      )
     : spec.render.shapes(specProps, sizeSpec, componentState);
   if (type === "Slot" && specProps._slotChrome === "hidden") {
     shapes.length = 0;

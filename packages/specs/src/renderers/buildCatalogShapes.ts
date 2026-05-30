@@ -1,17 +1,21 @@
 /**
- * ADR-142 #5 increment (a) — generic shape-descriptor 생성기.
+ * ADR-142 #5 — generic box+text 시각 생성기 (component-agnostic).
  *
- * per-component `spec.render.shapes()` 를 대체하는 **component-agnostic** 생성기.
- * box+text leaf primitive 의 공통 시각(bg roundRect + border + text)을 spec 의
- * `variants[variant].fill`(ADR-908 `resolveFillTokens`) + `sizes[size]` + props 에서
- * generic 하게 만든다. 출력은 기존 `specShapesToSkia` 가 그대로 소비(theme 토큰 해결).
+ * **정본 범위 (사용자 정정 2026-05-31)**: 모든 frame 이 공유하는 **보편 box+text 시각**만
+ * generic 처리한다 — bg roundRect + border + text. 색/크기/형태는 `variants[variant].fill`
+ * (ADR-908 `resolveFillTokens`) + `sizes[size]` + `props.style` 에서 읽되, **컴포넌트 식별
+ * 분기를 두지 않는다**. fill/outline/subtle/selected 축은 모든 frame 이 가질 수 있는 보편
+ * 상태축(CSS data-* 와 동형)이라 여기서 fill 색 결정에 쓴다.
+ *
+ * **비-DOM-trivial primitive(원/선/아이콘 등)는 본 함수가 그리지 않는다** —
+ * `PrimitiveBinding.skiaPrimitive` draw module(`renderers/skiaPrimitives.ts`)이 담당하고,
+ * dispatch(buildSpecNodeData)가 `binding.skiaPrimitive` 유무로 갈린다. `if (isDot)/if (divider)/
+ * if (iconName)` 같은 컴포넌트 식별 분기를 본 함수에 인라인하면 컴포넌트 N++ 복제가 된다(금지).
  *
  * **전환기**: spec 의 ADR-908 FillTokenSpec 을 직접 읽음(#8 theme adapter 와 동일 패턴,
- * 목표는 theme/tokens data-* rules). **범위**: non-outline non-icon box+text leaf
- * (cutover leaf binding 의 accepts 범위 — #7 finding: icon=reusable, fillStyle deferred).
- * arc/track/wheel/indicator(특수 shape) 는 `PrimitiveBinding.skiaPrimitive` 분기(후속).
+ * 목표는 theme/tokens data-* rules). 출력은 기존 `specShapesToSkia` 가 그대로 소비.
  *
- * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §"#5 Skia backend"
+ * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §"#5 Skia backend" + §3 skiaPrimitive
  */
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
@@ -112,63 +116,11 @@ export function buildCatalogShapes(
     (props.text as string | undefined) ||
     (props.label as string | undefined);
 
-  // ── icon leaf (icon_font 단일 shape) generic 분기 ───────────────────────
-  // size.iconSize 가 있고 props.iconName 이 있는 leaf(Icon) = Lucide icon_font.
-  // box/text 가 아니므로 일반 경로 진입 전에 단일 icon_font shape 반환(Icon.spec parity).
-  if (size.iconSize != null && props.iconName != null && !text) {
-    const iconSize = size.iconSize ?? 24;
-    const effectiveSize =
-      style?.fontSize != null
-        ? resolveSpecFontSize(style.fontSize as string | number, iconSize)
-        : iconSize;
-    return [
-      {
-        type: "icon_font",
-        iconName: (props.iconName as string) ?? "circle",
-        x: effectiveSize / 2,
-        y: effectiveSize / 2,
-        fontSize: effectiveSize,
-        fill: (style?.color as string | undefined) ?? variant?.text,
-        strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
-      },
-    ];
-  }
-
-  // ── dot indicator (circle) generic 분기 ─────────────────────────────────
-  // props.isDot(Badge dot 모드) = 텍스트 없는 원형 점. bgColor 로 채운 circle 단일 shape.
-  if (props.isDot) {
-    const dotSize = size.height === 20 ? 8 : size.height === 24 ? 10 : 12;
-    return [
-      {
-        type: "circle",
-        x: dotSize / 2,
-        y: dotSize / 2,
-        radius: dotSize / 2,
-        fill: bgColor,
-      },
-    ];
-  }
-
-  // ── divider(선 자체가 채워진 얇은 box) generic 분기 ──────────────────────
-  // 배경 투명(fill.alpha===0) + 텍스트/자식 없음 + 선색 있음 = divider/separator 패턴.
-  // generic "bg roundRect(alpha 0) + border(테두리)" 모델은 1px 박스의 *테두리* 를 그려
-  // legacy 의 "선색으로 채운 얇은 box"(rect{fill=선색, height=size.height})와 시각이 다르다.
-  // 이 패턴은 단일 rect 로 선을 그린다 — orientation(vertical) 시 두께/길이 축 전환.
-  // (outline 버튼은 텍스트가 있어 이 분기에 들지 않는다 — 아래 일반 경로.)
-  if ((fill?.alpha ?? 1) === 0 && !text && !props._hasChildren && borderColor) {
-    const isVertical = (props.orientation as string | undefined) === "vertical";
-    const thickness = size.height;
-    return [
-      {
-        type: "rect",
-        x: 0,
-        y: 0,
-        width: isVertical ? thickness : ("auto" as unknown as number),
-        height: isVertical ? ("auto" as unknown as number) : thickness,
-        fill: borderColor,
-      },
-    ];
-  }
+  // 비-DOM-trivial primitive(원/선/아이콘 등 box+text 로 표현 안 되는 도형)는 여기서
+  // 그리지 않는다 — `PrimitiveBinding.skiaPrimitive` draw module(renderers/skiaPrimitives.ts)이
+  // 담당한다. dispatch(buildSpecNodeData)가 binding.skiaPrimitive 유무로 갈라, 있으면 그
+  // draw module 로, 없으면 본 함수(box+text 보편 frame)로 보낸다. 컴포넌트 식별 분기(isDot/
+  // divider/iconName)를 본 함수 안에 인라인하지 않는다(정본: 데이터 분기, ADR-142 §3 skiaPrimitive).
 
   // 보이지 않는 배경 생략 (Link 류 text-only leaf):
   //   배경 투명(fill.alpha===0) + 사용자 backgroundColor 없음 + 테두리 없음 →

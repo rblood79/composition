@@ -8,7 +8,8 @@
  *     prop → aria-orientation 자동, RAC 권위). 본 binding 은 orientation 을 RAC props 로 통과.
  * D2: variant(7종)/size(sm·md·lg)/orientation 이 편집 surface.
  * D3: 시각(선 색/두께)은 theme/tokens data-* rules — variant/size 는 data-* 라우팅(toRacProps).
- *     선 자체는 fill.alpha:0 + border 색의 얇은 box 로, Skia 는 buildCatalogShapes 가 그린다.
+ *     선은 box+text 가 아닌 비-DOM-trivial primitive → Skia 는 `skiaPrimitive: "divider"`
+ *     draw module(renderers/skiaPrimitives.ts)이 선색으로 채운 얇은 rect 로 그린다.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -57,4 +58,6 @@ export const separatorBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
+  // Separator 는 선(line) primitive — box+text 가 아니라 선색으로 채운 얇은 rect.
+  skiaPrimitive: "divider",
 };

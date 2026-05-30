@@ -8,9 +8,8 @@
  * family ①(primitives/actions)의 leaf 이며, "아이콘이 붙은 Button" 같은 조합에서
  * child 노드로 합성된다(설계 §3 — icon=reusable 조합). 시각(크기/색)은 theme/tokens.
  *
- * 현재 dormant — Icon 은 아직 cutover 아님(CUTOVER_TYPES 미포함). 본 binding 은
- * 타입 갭 해소 + 투영(toRacProps) 검증용이며, internal source 전용 렌더 분기는
- * family ① flip 시 도입된다.
+ * Icon 은 box+text 가 아닌 비-DOM-trivial primitive → Skia 는 `skiaPrimitive: "icon_font"`
+ * draw module(renderers/skiaPrimitives.ts)이 Lucide glyph 단일 shape 로 그린다.
  */
 import type { PrimitiveBinding } from "../types";
 
@@ -47,4 +46,6 @@ export const iconBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
+  // Icon 은 Lucide glyph(icon_font) primitive — box+text 가 아님.
+  skiaPrimitive: "icon_font",
 };

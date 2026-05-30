@@ -45,3 +45,7 @@ export { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 
 // ADR-142 #5 — generic shape-descriptor 생성기 (render.shapes 대체)
 export { buildCatalogShapes } from "./buildCatalogShapes";
+
+// ADR-142 §3 — 비-DOM-trivial primitive(원/선/아이콘) skiaPrimitive draw module
+export { getSkiaPrimitive, SKIA_PRIMITIVES } from "./skiaPrimitives";
+export type { SkiaPrimitiveDrawFn } from "./skiaPrimitives";

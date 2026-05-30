@@ -51,4 +51,6 @@ export const badgeBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
+  // isDot 모드는 비-DOM-trivial 원(circle) → skiaPrimitive "dot"(isDot 아니면 box+text fallback).
+  skiaPrimitive: "dot",
 };

@@ -1,21 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { SeparatorSpec } from "../../components/Separator.spec";
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { getSkiaPrimitive } from "../skiaPrimitives";
 
 /**
- * ADR-142 family ① de-risk — Separator(box leaf divider)가 generic buildCatalogShapes
- * 로 정확히 그려지는지 실측.
+ * ADR-142 family ① — Separator(divider) 시각 parity 실측.
  *
- * **발견**: legacy SeparatorSpec.render.shapes 는 단일 `rect{fill=선색, height=size.height}`
- * (선 자체가 채워진 얇은 box)인 반면, buildCatalogShapes 의 일반 box+text 모델은
- * "bg roundRect(alpha 0) + border(테두리)" → 1px 박스의 *테두리* 를 그려 시각이 **다르다**.
- *
- * **해결**: buildCatalogShapes 에 generic divider 분기 추가 — 배경 투명(fill.alpha===0) +
- * 텍스트/자식 없음 + 선색 있음 = divider 패턴 → legacy 와 동일한 단일 rect. 이 테스트는
- * Separator 의 모든 variant/orientation 에서 legacy 와 **완전 parity** 임을 보장한다.
+ * **정본 (2026-05-31 정정)**: Separator 는 box+text 가 아닌 비-DOM-trivial primitive →
+ * `skiaPrimitive: "divider"` draw module 이 그린다(buildCatalogShapes 가 아님). buildCatalogShapes
+ * 안에 divider 컴포넌트 식별 분기를 두지 않는다(N++ 복제 방지). 본 테스트는 `divider` draw fn 이
+ * legacy SeparatorSpec.render.shapes(단일 `rect{fill=선색, height=size.height}`)와 모든
+ * variant/orientation 에서 **완전 parity** 임을 보장한다.
  */
-describe("buildCatalogShapes — Separator divider parity (ADR-142 family ①)", () => {
+describe("skiaPrimitive 'divider' — Separator parity (ADR-142 family ①)", () => {
+  const draw = getSkiaPrimitive("divider")!;
   const variants = [
     "default",
     "solid",
@@ -28,6 +26,9 @@ describe("buildCatalogShapes — Separator divider parity (ADR-142 family ①)",
   const sizes = ["sm", "md", "lg"] as const;
   const orientations = ["horizontal", "vertical"] as const;
 
+  const variantSpec = (variant: string) =>
+    SeparatorSpec.variants?.[variant as keyof typeof SeparatorSpec.variants];
+
   for (const variant of variants) {
     for (const size of sizes) {
       for (const orientation of orientations) {
@@ -39,30 +40,30 @@ describe("buildCatalogShapes — Separator divider parity (ADR-142 family ①)",
             sizeSpec,
             "default",
           );
-          const catalog = buildCatalogShapes(
-            SeparatorSpec,
+          const primitive = draw({
             props,
-            sizeSpec,
-            "default",
-          );
-          expect(catalog).toEqual(legacy);
+            size: sizeSpec,
+            variant: variantSpec(variant),
+            style: undefined,
+          });
+          expect(primitive).toEqual(legacy);
         });
       }
     }
   }
 
   it("선은 단일 rect(fill=선색) — bg/border 모델 아님", () => {
-    const catalog = buildCatalogShapes(
-      SeparatorSpec,
-      { variant: "default", orientation: "horizontal" },
-      SeparatorSpec.sizes.md,
-      "default",
-    );
-    expect(catalog).toHaveLength(1);
-    expect(catalog[0].type).toBe("rect");
-    expect(catalog[0].fill).toBe("{color.border}");
-    // generic bg roundRect / border 모델 미사용 — divider 분기 확증
-    expect(catalog.some((s) => s.type === "roundRect")).toBe(false);
-    expect(catalog.some((s) => s.type === "border")).toBe(false);
+    const shapes = draw({
+      props: { variant: "default", orientation: "horizontal" },
+      size: SeparatorSpec.sizes.md,
+      variant: variantSpec("default"),
+      style: undefined,
+    })!;
+    expect(shapes).toHaveLength(1);
+    expect(shapes[0].type).toBe("rect");
+    expect(shapes[0].fill).toBe("{color.border}");
+    // generic bg roundRect / border 모델 미사용 — divider primitive 확증
+    expect(shapes.some((s) => s.type === "roundRect")).toBe(false);
+    expect(shapes.some((s) => s.type === "border")).toBe(false);
   });
 });
