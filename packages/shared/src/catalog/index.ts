@@ -5,4 +5,5 @@
  */
 export * from "./types";
 export * from "./outputs/toRacProps";
+export * from "./outputs/inspectorFields";
 export * from "./bindings";
