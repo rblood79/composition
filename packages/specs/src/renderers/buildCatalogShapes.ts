@@ -105,7 +105,10 @@ export function buildCatalogShapes(
       style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
       size.paddingX,
     );
-    const fontSize = resolveSpecFontSize(style?.fontSize ?? size.fontSize, 16);
+    const fontSize = resolveSpecFontSize(
+      (style?.fontSize as string | number | undefined) ?? size.fontSize,
+      16,
+    );
     const fwRaw = style?.fontWeight;
     const fw =
       fwRaw != null
