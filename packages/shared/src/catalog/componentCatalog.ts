@@ -28,6 +28,7 @@ import type { ComponentCatalogEntry, PrimitiveBinding } from "./types";
 function primitiveEntry(
   type: string,
   family: ComponentCatalogEntry["family"],
+  cutover: ComponentCatalogEntry["cutover"],
   panel: { category: string; label: string; icon: string },
 ): Extract<ComponentCatalogEntry, { kind: "primitive" }> {
   const binding = getPrimitiveBinding(type) as PrimitiveBinding;
@@ -35,49 +36,56 @@ function primitiveEntry(
     kind: "primitive",
     type,
     family,
-    cutover: "legacy",
+    cutover,
     binding,
     panel: { ...panel, placeable: true },
   };
 }
 
+/**
+ * ADR-142 family ① cutover 상태. **flip 발효 지점** — "catalog" 로 전환하면 8 type 이
+ * CATALOG_CUTOVER_TYPES 에 들어가 DOM/Skia/Inspector 가 catalog generic 경로로 동시 발효
+ * (불변식 D atomic). cross-check 통과 후 flip.
+ */
+const FAMILY_1_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+
 const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
-  primitiveEntry("Button", "primitives", {
+  primitiveEntry("Button", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "button",
     icon: "MousePointer",
   }),
-  primitiveEntry("ToggleButton", "primitives", {
+  primitiveEntry("ToggleButton", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "toggle button",
     icon: "ToggleLeft",
   }),
-  primitiveEntry("ToggleButtonGroup", "primitives", {
+  primitiveEntry("ToggleButtonGroup", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "toggle button group",
     icon: "GroupIcon",
   }),
-  primitiveEntry("Toolbar", "primitives", {
+  primitiveEntry("Toolbar", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "toolbar",
     icon: "Settings",
   }),
-  primitiveEntry("Link", "primitives", {
+  primitiveEntry("Link", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
     label: "link",
     icon: "Link",
   }),
-  primitiveEntry("Separator", "primitives", {
+  primitiveEntry("Separator", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "separator",
     icon: "SeparatorHorizontal",
   }),
-  primitiveEntry("Icon", "primitives", {
+  primitiveEntry("Icon", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "icon",
     icon: "Smile",
   }),
-  primitiveEntry("Badge", "primitives", {
+  primitiveEntry("Badge", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "badge",
     icon: "Star",
