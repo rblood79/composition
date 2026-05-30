@@ -5,3 +5,4 @@
  */
 export * from "./types";
 export * from "./outputs/toRacProps";
+export * from "./bindings";
