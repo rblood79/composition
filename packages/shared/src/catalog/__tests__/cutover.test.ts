@@ -67,10 +67,16 @@ describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", ()
     }
   });
 
+  it("family ⑤ Tree·Table 은 DOM catalog cutover (gate 열림)", () => {
+    for (const type of ["Tree", "Table"]) {
+      expect(isCatalogCutover(type)).toBe(true);
+    }
+  });
+
   it("아직 cutover 안 된 family 는 legacy 경로 (gate 닫힘)", () => {
-    // family ⑤ Tree·Table (아직 legacy)
-    expect(isCatalogCutover("Tree")).toBe(false);
-    expect(isCatalogCutover("Table")).toBe(false);
+    // family ⑥ overlays (아직 legacy)
+    expect(isCatalogCutover("Dialog")).toBe(false);
+    expect(isCatalogCutover("Popover")).toBe(false);
     // family ⑧ composition-native
     expect(isCatalogCutover("frame")).toBe(false);
   });
@@ -83,8 +89,9 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
     }
   });
 
-  it("family ④ collection(skiaLegacy:true)은 Skia cutover 제외 (legacy render.shapes 유지)", () => {
+  it("family ④/⑤ collection(skiaLegacy:true)은 Skia cutover 제외 (legacy render.shapes 유지)", () => {
     for (const type of [
+      // family ④ collections
       "ListBox",
       "Menu",
       "Select",
@@ -92,6 +99,9 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
       "Tabs",
       "TagGroup",
       "GridList",
+      // family ⑤ Tree·Table
+      "Tree",
+      "Table",
     ]) {
       // DOM 은 catalog(isCatalogCutover=true), Skia 만 legacy(isCatalogSkiaCutover=false)
       expect(isCatalogCutover(type)).toBe(true);

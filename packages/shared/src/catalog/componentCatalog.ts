@@ -241,14 +241,40 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
+ * ADR-142 family ⑤(Tree·Table) cutover 상태. Tree/Table 2개. **skiaLegacy: true** — family ④와
+ * 동일 패턴(internal source wrapper + useCollectionData), 재귀(Tree)/2D(Table) collection 렌더는
+ * RAC 담당. Skia 만 legacy render.shapes 유지(재귀/2D Skia generic 미지원, 전 family 후 일괄).
+ * TableView 는 inventory §2-1 primitive 49 에 없음(LayoutRenderer 전용 layout helper) → 제외.
+ */
+const FAMILY_5_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+
+const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry(
+    "Tree",
+    "tree-table",
+    FAMILY_5_CUTOVER,
+    { category: "collections", label: "tree", icon: "ListTree" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "Table",
+    "tree-table",
+    FAMILY_5_CUTOVER,
+    { category: "collections", label: "table", icon: "TableProperties" },
+    { skiaLegacy: true },
+  ),
+];
+
+/**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①~④ 등록 — 나머지(⑤ Tree·Table / ⑥ overlays / ⑦ date·color / ⑧ native) 후속.
+ * 현재 family ①~⑤ 등록 — 나머지(⑥ overlays / ⑦ date·color / ⑧ native) 후속.
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
   ...FAMILY_2_ENTRIES,
   ...FAMILY_3_ENTRIES,
   ...FAMILY_4_ENTRIES,
+  ...FAMILY_5_ENTRIES,
 ];
 
 /** type → catalog entry 조회 (O(1)). */

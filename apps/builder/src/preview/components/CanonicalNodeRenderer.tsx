@@ -31,8 +31,10 @@ import { Icon } from "@composition/shared/components/Icon";
 import { ListBox } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
 import { Select } from "@composition/shared/components/Select";
+import Table from "@composition/shared/components/Table";
 import { Tabs } from "@composition/shared/components/Tabs";
 import { TagGroup } from "@composition/shared/components/TagGroup";
+import { Tree } from "@composition/shared/components/Tree";
 import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 import type { ResolvedNode } from "@composition/shared";
 import type {
@@ -91,6 +93,9 @@ const INTERNAL_RENDERERS: Readonly<
   tabs: Tabs,
   taggroup: TagGroup,
   gridlist: GridList,
+  // family ⑤ Tree·Table — composition wrapper (재귀/2D collection, useCollectionData)
+  tree: Tree,
+  table: Table,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
