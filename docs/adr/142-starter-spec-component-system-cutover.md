@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-05-19 (개정 — 컴포넌트당 contract 모델에서 canonical 문서 모델로)
+Accepted — 2026-05-30
+
+> Proposed 2026-05-19 (컴포넌트당 contract 모델 → canonical 문서 모델 개정). Round 2 review "승인 가능"([reviews/142.md](reviews/142.md)) + Phase 0 inventory 실측 recalibration([§Phase 0 Inventory Recalibration](#phase-0-inventory-recalibration-2026-05-30)) 후 대안 E 결정 승인 → **Accepted**. 실행(Phase 1/G2)은 미착수 — Accepted 는 결정 승인이며 G0~G7 은 Accepted→Implemented 실행 게이트.
 
 ## Context
 
