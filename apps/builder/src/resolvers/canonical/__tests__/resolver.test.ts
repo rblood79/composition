@@ -293,11 +293,9 @@ describe("resolveCanonicalDocument", () => {
     const resolvedOuter = result.find((n) => n.id === "btn-i1") as ResolvedNode;
     expect(resolvedOuter._resolvedFrom).toBe("btn");
 
-    // 내부 icon ref 도 resolve 됨
-    // ⚠️ STREAM A BUG: applyDescendantsToTree 가 non-matching child 를
-    // resolveFrameOrPlain 으로 라우팅 (resolveNode 우회). ref type child 가
-    // resolveRefNode 경로로 들어가지 않아 _resolvedFrom 미주입됨.
-    // 수정 위치: index.ts resolveFrameOrPlain 내 자식 처리 → resolveNode 사용.
+    // 내부 icon ref 도 재귀 resolve 됨 (ADR-903 STREAM A 수정 완료 / ADR-142 #6 확인):
+    // applyDescendantsToTree 가 non-matching child 중 type==="ref" 를 resolveRefNode
+    // 로 dispatch (index.ts:251-253) → 모든 depth 의 nested ref 에 _resolvedFrom 주입.
     const resolvedIcon = resolvedOuter.children?.find(
       (c) => c.id === "icon-instance",
     ) as ResolvedNode;
@@ -375,11 +373,9 @@ describe("resolveCanonicalDocument", () => {
       result = resolveCanonicalDocument(doc);
     }).not.toThrow();
 
-    // Assert: warn 1회
-    // ⚠️ STREAM A BUG: applyOverrideToNode mode C 경로에서 validateSlotContract
-    // 가 호출되지 않음. mode C 로 children 교체 후 frame 타입 검사 + validate 누락.
-    // 수정 위치: index.ts applyOverrideToNode hasChildren 분기에 frame 타입 시
-    // validateSlotContract 호출 추가.
+    // Assert: warn 1회 (ADR-903 STREAM A 수정 완료 / ADR-142 #6 확인):
+    // applyOverrideToNode mode C(hasChildren) 분기가 hasSlotContract(child) →
+    // validateSlotContract 호출 (index.ts:306-308) → slot 범위 밖 자식 경고.
     expect(warnSpy).toHaveBeenCalledTimes(1);
     expect(warnSpy.mock.calls[0][0]).toMatch(/slot contract/);
 
