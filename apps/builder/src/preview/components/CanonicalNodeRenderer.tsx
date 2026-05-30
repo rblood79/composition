@@ -25,7 +25,14 @@ import {
   toRacProps,
 } from "@composition/shared";
 import { Badge } from "@composition/shared/components/Badge";
+import { ComboBox } from "@composition/shared/components/ComboBox";
+import { GridList } from "@composition/shared/components/GridList";
 import { Icon } from "@composition/shared/components/Icon";
+import { ListBox } from "@composition/shared/components/ListBox";
+import { MenuButton } from "@composition/shared/components/Menu";
+import { Select } from "@composition/shared/components/Select";
+import { Tabs } from "@composition/shared/components/Tabs";
+import { TagGroup } from "@composition/shared/components/TagGroup";
 import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 import type { ResolvedNode } from "@composition/shared";
 import type {
@@ -61,15 +68,29 @@ interface CanonicalNodeRendererProps {
 }
 
 /**
- * ADR-142 — internal source primitive(RAC 아닌 composition 내부 leaf)의 DOM 렌더러.
- * `PrimitiveBinding.source.renderer` 식별자 → shared 컴포넌트. RAC controller 가 없는
- * leaf(Icon=Lucide SVG, Badge=styled span)의 D1 탈출구(types.ts PrimitiveSource "internal").
+ * ADR-142 — internal source primitive(RAC raw 가 아닌 composition wrapper)의 DOM 렌더러.
+ * `PrimitiveBinding.source.renderer` 식별자 → shared 컴포넌트.
+ *
+ * - leaf(Icon=Lucide SVG, Badge=styled span): RAC controller 없는 D1 탈출구.
+ * - collection(ListBox/Menu/Select/ComboBox/Tabs/TagGroup/GridList, family ④): RAC raw 가 아니라
+ *   composition wrapper 가 D1 담당 — wrapper 가 `useCollectionData`(dataBinding → items, ADR-132)로
+ *   데이터를 채우고 RAC collection + Item 을 자체 합성한다. cutover DOM 경로가 `toRacProps` 로
+ *   dataBinding 등 wrapper props 를 통과시키면 wrapper 가 items 를 렌더(자식 재귀 불필요). Skia 는
+ *   skiaLegacy(render.shapes 유지) — items 순회 Skia generic 미지원(전 family 후 일괄).
  */
 const INTERNAL_RENDERERS: Readonly<
   Record<string, React.ElementType | undefined>
 > = {
   icon: Icon,
   badge: Badge,
+  // family ④ collections — composition wrapper (useCollectionData 포함)
+  listbox: ListBox,
+  menu: MenuButton,
+  select: Select,
+  combobox: ComboBox,
+  tabs: Tabs,
+  taggroup: TagGroup,
+  gridlist: GridList,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

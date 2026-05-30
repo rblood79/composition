@@ -29,7 +29,7 @@ import {
   type SizeSpec,
   type VariantSpec,
 } from "@composition/specs";
-import { isCatalogCutover, getPrimitiveBinding } from "@composition/shared";
+import { isCatalogSkiaCutover, getPrimitiveBinding } from "@composition/shared";
 import { getSpecForTag } from "../sprites/tagSpecMap";
 import { specShapesToSkia } from "./specShapeConverter";
 import {
@@ -1065,13 +1065,16 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
 
   // ---------- shapes 생성 ----------
-  // ADR-142 #5(b): catalog cutover 된 type 은 generic 경로.
-  // gate(isCatalogCutover) 가 비어 있는 동안 항상 spec.render.shapes — 무행동 변화.
-  // cutover 된 type 은 binding.skiaPrimitive 유무로 갈린다(정본 — 데이터 분기, ADR-142 §3):
+  // ADR-142 #5(b): catalog cutover 된 type 은 Skia generic 경로.
+  // **Skia 게이트는 `isCatalogSkiaCutover`** (DOM/Inspector `isCatalogCutover` 와 분리).
+  // collection(skiaLegacy:true — ListBox/Select/Table 등)은 Skia 만 legacy render.shapes 유지:
+  // items 배열 순회 multi-item 렌더를 generic 렌더러가 아직 못 그린다(DOM 은 RAC items 자동 합성으로
+  // catalog 발효, Skia 만 부분 cutover, items generic 메커니즘은 전 family 후 일괄).
+  // Skia cutover 된 type 은 binding.skiaPrimitive 유무로 갈린다(정본 — 데이터 분기, ADR-142 §3):
   //   - skiaPrimitive 있음(원/선/아이콘 등 비-DOM-trivial) → 그 draw module 이 shape 생성.
   //   - 없음 → buildCatalogShapes(모든 frame 공유 보편 box+text 시각).
   // 컴포넌트 식별 분기(isDot/divider/iconName)를 buildCatalogShapes 안에 인라인하지 않는다.
-  const shapes = isCatalogCutover(type)
+  const shapes = isCatalogSkiaCutover(type)
     ? buildCatalogShapesOrPrimitive(
         spec,
         type,

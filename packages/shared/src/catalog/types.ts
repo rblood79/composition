@@ -162,6 +162,12 @@ export interface PanelMeta {
  * - `reusable`: 조합 컴포넌트. `reusableId` 가 canonical reusable 문서를 가리킴 — 코드 정의 없음.
  * composition-native(Frame/Slot/reusable tooling)는 RAC primitive 없이
  * `family: "composition-native"` 로 등록한다.
+ *
+ * `skiaLegacy` (ADR-142 family ④/⑤): cutover 됐어도 **Skia 렌더만 legacy `render.shapes` 유지**.
+ * collection 컴포넌트(ListBox/Select/Table 등)는 items 배열을 순회해 multi-item 리스트를 그리는데
+ * Skia generic 렌더러(buildCatalogShapes box+text)가 아직 이를 못 그린다. DOM(RAC items 자동 합성)
+ * /Inspector 는 catalog generic, Skia 만 legacy fallback(부분 cutover). items generic 메커니즘은
+ * 전 family 후 일괄(design recalibration "Skia-rewrite 통과 전까지 Skia legacy fallback 유지").
  */
 export type ComponentCatalogEntry =
   | {
@@ -171,6 +177,8 @@ export type ComponentCatalogEntry =
       cutover: CutoverState;
       binding: PrimitiveBinding;
       panel: PanelMeta;
+      /** true 면 Skia 만 legacy render.shapes 유지(DOM/Inspector 는 catalog). collection 용. */
+      skiaLegacy?: boolean;
     }
   | {
       kind: "reusable";
@@ -180,4 +188,5 @@ export type ComponentCatalogEntry =
       /** catalog/library 의 canonical reusable frame id. */
       reusableId: string;
       panel: PanelMeta;
+      skiaLegacy?: boolean;
     };

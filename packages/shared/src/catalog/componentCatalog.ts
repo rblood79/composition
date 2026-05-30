@@ -30,6 +30,7 @@ function primitiveEntry(
   family: ComponentCatalogEntry["family"],
   cutover: ComponentCatalogEntry["cutover"],
   panel: { category: string; label: string; icon: string },
+  opts?: { skiaLegacy?: boolean },
 ): Extract<ComponentCatalogEntry, { kind: "primitive" }> {
   const binding = getPrimitiveBinding(type) as PrimitiveBinding;
   return {
@@ -39,6 +40,7 @@ function primitiveEntry(
     cutover,
     binding,
     panel: { ...panel, placeable: true },
+    ...(opts?.skiaLegacy ? { skiaLegacy: true } : {}),
   };
 }
 
@@ -179,13 +181,74 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
+ * ADR-142 family ④(collections) cutover 상태. 7 collection(ListBox/Menu/Select/ComboBox/
+ * Tabs/TagGroup/GridList). **skiaLegacy: true** — DOM(Preview)/Inspector 는 catalog generic
+ * (composition wrapper + useCollectionData), Skia 만 legacy render.shapes 유지(items 배열 순회
+ * multi-item 렌더는 Skia generic 미지원, 전 family 후 일괄). 사용자 결정 "DOM-only cutover".
+ */
+const FAMILY_4_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+
+const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry(
+    "ListBox",
+    "collections",
+    FAMILY_4_CUTOVER,
+    { category: "collections", label: "list box", icon: "ListIcon" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "Menu",
+    "collections",
+    FAMILY_4_CUTOVER,
+    { category: "collections", label: "menu", icon: "Menu" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "Select",
+    "collections",
+    FAMILY_4_CUTOVER,
+    { category: "forms", label: "select", icon: "ChevronDown" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "ComboBox",
+    "collections",
+    FAMILY_4_CUTOVER,
+    { category: "forms", label: "combo box", icon: "ChevronDown" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "Tabs",
+    "collections",
+    FAMILY_4_CUTOVER,
+    { category: "layout", label: "tabs", icon: "AppWindow" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "TagGroup",
+    "collections",
+    FAMILY_4_CUTOVER,
+    { category: "collections", label: "tag group", icon: "Tag" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "GridList",
+    "collections",
+    FAMILY_4_CUTOVER,
+    { category: "collections", label: "grid list", icon: "Grid" },
+    { skiaLegacy: true },
+  ),
+];
+
+/**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①(primitives/actions) + ②(fields) + ③(selection) 등록 — 나머지 후속 cutover.
+ * 현재 family ①~④ 등록 — 나머지(⑤ Tree·Table / ⑥ overlays / ⑦ date·color / ⑧ native) 후속.
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
   ...FAMILY_2_ENTRIES,
   ...FAMILY_3_ENTRIES,
+  ...FAMILY_4_ENTRIES,
 ];
 
 /** type → catalog entry 조회 (O(1)). */
@@ -199,9 +262,25 @@ export function getCatalogEntry(
   return CATALOG_BY_TYPE.get(type);
 }
 
-/** `cutover === "catalog"` 인 type 집합 — cutover 게이트의 파생 source. */
+/**
+ * `cutover === "catalog"` 인 type 집합 — DOM(Preview)/Inspector cutover 게이트의 파생 source.
+ * collection(skiaLegacy) 도 포함 — DOM 은 RAC 가 items 자동 합성하므로 generic 경로 발효.
+ */
 export function getCatalogCutoverTypes(): ReadonlySet<string> {
   return new Set(
     componentCatalog.filter((e) => e.cutover === "catalog").map((e) => e.type),
+  );
+}
+
+/**
+ * Skia generic 렌더(buildCatalogShapes) 발효 type 집합 — `cutover === "catalog" && !skiaLegacy`.
+ * collection 컴포넌트(skiaLegacy:true)는 제외 → Skia 만 legacy render.shapes 유지(items 순회 렌더).
+ * ADR-142 family ④/⑤ DOM-only cutover 의 Skia 측 게이트(부분 cutover).
+ */
+export function getCatalogSkiaCutoverTypes(): ReadonlySet<string> {
+  return new Set(
+    componentCatalog
+      .filter((e) => e.cutover === "catalog" && e.skiaLegacy !== true)
+      .map((e) => e.type),
   );
 }

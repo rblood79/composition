@@ -8,17 +8,24 @@ import { buttonBinding } from "./Button.binding";
 import { checkboxBinding } from "./Checkbox.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
 import { colorFieldBinding } from "./ColorField.binding";
+import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
 import { formBinding } from "./Form.binding";
+import { gridListBinding } from "./GridList.binding";
 import { iconBinding } from "./Icon.binding";
 import { linkBinding } from "./Link.binding";
+import { listBoxBinding } from "./ListBox.binding";
+import { menuBinding } from "./Menu.binding";
 import { numberFieldBinding } from "./NumberField.binding";
 import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
 import { searchFieldBinding } from "./SearchField.binding";
+import { selectBinding } from "./Select.binding";
 import { separatorBinding } from "./Separator.binding";
 import { sliderBinding } from "./Slider.binding";
 import { switchBinding } from "./Switch.binding";
+import { tabsBinding } from "./Tabs.binding";
+import { tagGroupBinding } from "./TagGroup.binding";
 import { textFieldBinding } from "./TextField.binding";
 import { timeFieldBinding } from "./TimeField.binding";
 import { toggleButtonBinding } from "./ToggleButton.binding";
@@ -30,17 +37,24 @@ export * from "./Button.binding";
 export * from "./Checkbox.binding";
 export * from "./CheckboxGroup.binding";
 export * from "./ColorField.binding";
+export * from "./ComboBox.binding";
 export * from "./DateField.binding";
 export * from "./Form.binding";
+export * from "./GridList.binding";
 export * from "./Icon.binding";
 export * from "./Link.binding";
+export * from "./ListBox.binding";
+export * from "./Menu.binding";
 export * from "./NumberField.binding";
 export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
 export * from "./SearchField.binding";
+export * from "./Select.binding";
 export * from "./Separator.binding";
 export * from "./Slider.binding";
 export * from "./Switch.binding";
+export * from "./Tabs.binding";
+export * from "./TagGroup.binding";
 export * from "./TextField.binding";
 export * from "./TimeField.binding";
 export * from "./ToggleButton.binding";
@@ -77,6 +91,14 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   RadioGroup: radioGroupBinding,
   Switch: switchBinding,
   Slider: sliderBinding,
+  // family ④ collections (internal source — composition wrapper + useCollectionData)
+  ListBox: listBoxBinding,
+  Menu: menuBinding,
+  Select: selectBinding,
+  ComboBox: comboBoxBinding,
+  Tabs: tabsBinding,
+  TagGroup: tagGroupBinding,
+  GridList: gridListBinding,
 };
 
 export function getPrimitiveBinding(
