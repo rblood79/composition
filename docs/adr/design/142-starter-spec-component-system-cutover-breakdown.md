@@ -254,6 +254,8 @@ Gate: G0, G1
 검증: `pnpm -F @composition/builder test canonicalPreviewRefSlot` / `pnpm -F @composition/builder test resolver` / `pnpm -F @composition/shared test inspectorFields` / `pnpm run codex:typecheck`
 Gate: **G2 (공통 기반 gate — R1 1:1)**
 
+> **2026-05-30 Phase 0 inventory recalibration** ([audit](../../reference/audits/2026-05-30-canonical-component-inventory.md)): 작업 #5(Skia backend 재작성)의 실측 scope 가 추정보다 큼 — text 측정 64 spec + 특수 shape 38 + ADR-907 spacing 4 + ADR-908 fill 30 resolver 를 generic Skia backend 가 재현해야 함(ADR R4 → **HIGH**). **G2 를 2 단계로 분해 권장**: (a) **DOM-first** — 작업 #1·#3·#4·#7·#9(F1~F4 + Inspector), `resolveCanonicalDocument`/`CanonicalNodeRenderer` 기존 자산 활용 (저위험) / (b) **Skia-rewrite** — 작업 #5(buildSpecNodeData 재작성 + ADR-907/908 resolver re-home + skiaPrimitive), G2 최대 무게. (b) 통과 전까지 Preview `?canonical` opt-in + Skia legacy fallback 유지하여 primary 렌더 경로 회귀를 막는다.
+
 ### Phase 2 — Reusable 컴포넌트 저작 + componentCatalog
 
 목표: 조합 컴포넌트를 reusable canonical 문서로 저작하고, 단일 `componentCatalog` 를 구성한다.

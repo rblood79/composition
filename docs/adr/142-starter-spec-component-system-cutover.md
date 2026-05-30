@@ -149,6 +149,8 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 
 잔존 HIGH 위험: R1 1건 — Gate G2 와 1:1 대응. R9 는 MED — Phase 0 inventory 매핑으로 관리.
 
+> **2026-05-30 갱신**: Phase 0 inventory 실측으로 본 Risk 표가 일부 supersede 됨 — **R4 가 MED→HIGH 로 격상**(Skia generic scope 가 추정보다 큼), 잔존 HIGH = **R1 + R4 (2건)**, 둘 다 Gate G2. 상세는 본문 말미 [§Phase 0 Inventory Recalibration](#phase-0-inventory-recalibration-2026-05-30).
+
 ## Gates
 
 공통 기반 Gate(G0~G3)는 family cutover 착수 전 1회 통과한다. family cutover Gate(G4~G6)는 family 마다 반복 적용하며 한 family 의 4경로를 동시에 검증한다. G7 은 전 family 가 `cutover:"catalog"` 에 도달했을 때 1회 통과한다.
@@ -183,3 +185,21 @@ ADR-063 과의 관계: ADR-063 은 D3 시각 SSOT 를 "Spec" 으로 불렀다. �
 - 컴포넌트당 spec 파일을 D3 SSOT 로 둔 ADR-036(및 ADR-907/908)의 메커니즘이 폐기된다 — ADR-142 Implemented 시 해당 ADR status 재평가가 필요하다.
 - 기존 124 `ComponentSpec` / `ReactRenderer` / `render.shapes` 파이프라인은 cutover 기간 동안 legacy 로 공존한다.
 - Inspector 편집 필드 생성이 컴포넌트당 `properties.sections` 선언(124 spec 중 83개 보유)에서 generic `PropContract` 기반으로 바뀐다 — 임의 컴포넌트를 받던 `CustomField` 와 `derivedUpdateFn` 류는 generic 화 비용이 있다(R9).
+
+## Phase 0 Inventory Recalibration (2026-05-30)
+
+> Phase 0 inventory(Gate G1) 실측으로 본문 추정 3개를 교정한다. **결정(대안 E)·Hard Constraints·Alternatives 는 불변** — 위험 calibration + 카운트 정정만 한다. 근거 데이터: [`docs/reference/audits/2026-05-30-canonical-component-inventory.md`](../reference/audits/2026-05-30-canonical-component-inventory.md). review: [`docs/adr/reviews/142.md`](reviews/142.md) Round 2.
+
+| 항목                                | 본문 추정                          | 실측 교정                                                                                                               | 근거 (inventory §)                                                                          |
+| ----------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| leaf binding 수 (HC#3 / Decision#3) | ~35                                | **~40-49** (variant/sub-part folding 정책에 의존)                                                                       | §2: starter 49 RAC-controller-backed + 6 composed                                           |
+| **R4 — Skia generic scope**         | MED, "arc/track/indicator 등 소수" | **HIGH** — render.shapes 대부분 재현 필요                                                                               | §4: text 측정 **64** spec + 특수 shape **38** + ADR-907 spacing **4** + ADR-908 fill **30** |
+| R8 — ADR-907/908 처분               | "status 재평가"                    | "**resolver 로직**(`resolveContainerSpacing`/`resolveFillTokens`/CanvasKit 측정)을 generic Skia backend 에 **re-home**" | §4 — status 재평가만으론 부족                                                               |
+| R2 — composite 재저작               | "~89 composite"                    | **~15 reusable** 재저작 (~40 sub-part 는 부모 binding `parts`/`slots` 로 흡수 → 별도 재저작 아님)                       | §3                                                                                          |
+| R9 — FieldDef 매핑 난항             | `CustomField` + `derivedUpdateFn`  | `CustomField` **0개(dead, 미사용)** / `ChildrenManagerField` **5개(누락)** / `derivedUpdateFn` **19개(실제 주 위험)**   | §6                                                                                          |
+
+**잔존 HIGH 위험 갱신: R1 + R4 (2건).** R4 → Gate **G2** 에 흡수(공통 기반의 Skia backend 부분, R1 과 동일 gate). adr-writing.md "각 HIGH Risk ≥1 Gate" 충족.
+
+**G2 분해 권장 (review #1, 사용자 confirm 2026-05-30)**: G2 를 ① **DOM-first**(`resolveCanonicalDocument`/`CanonicalNodeRenderer` 기존 자산 활용, 저위험) → ② **Skia-rewrite**(64 text 측정 + 38 특수 shape + 34 spacing/fill resolver re-home, R4 의 실체이자 G2 최대 무게) 2 단계로 분리. Skia-rewrite 통과 전까지 Preview `?canonical` opt-in + Skia legacy fallback 유지(primary 렌더 경로 회귀 방지). breakdown §4 Phase 1 참조.
+
+**R2 < R4 (실측 결론)**: 당초 composite 재저작(R2)이 주노동으로 보였으나, 실측상 sub-part 흡수로 R2 는 ~15건으로 작고 **R4(Skia generic 재구현)가 진짜 병목**이다. M1/G2 commit 전 이 점을 전제로 일정·위험을 산정한다.
