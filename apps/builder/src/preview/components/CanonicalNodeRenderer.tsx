@@ -120,11 +120,14 @@ export function CanonicalNodeRenderer({
   // cutoverPrimitives 에 포함된 type 만 해당 — 미지정 시 아래 legacy 경로 보존(회귀 0).
   if (cutoverPrimitives?.has(type)) {
     const binding = getPrimitiveBinding(type);
-    const RacComponent = binding
-      ? (RAC as unknown as Record<string, React.ElementType | undefined>)[
-          binding.source.component
-        ]
-      : undefined;
+    // rac source 만 generic RAC 경로. internal source(Icon 등)는 전용 렌더러가 필요 —
+    // 해당 분기 도입(family ① flip) 전까지 RacComponent undefined → 아래 legacy fall through.
+    const RacComponent =
+      binding && binding.source.kind === "rac"
+        ? (RAC as unknown as Record<string, React.ElementType | undefined>)[
+            binding.source.component
+          ]
+        : undefined;
     if (binding && RacComponent) {
       const { children: racChildren, ...racRest } = toRacProps(node, binding);
       const childNodes = node.children ?? [];

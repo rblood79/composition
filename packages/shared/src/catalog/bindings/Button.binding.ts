@@ -17,6 +17,7 @@ import type { PrimitiveBinding } from "../types";
 
 export const buttonBinding: PrimitiveBinding = {
   source: {
+    kind: "rac",
     package: "react-aria-components",
     importPath: "react-aria-components",
     component: "Button",

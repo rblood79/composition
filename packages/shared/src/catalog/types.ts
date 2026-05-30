@@ -37,17 +37,42 @@ export type CutoverState = "legacy" | "cutting-over" | "catalog";
 // ── PrimitiveBinding ─────────────────────────────────────────────────
 
 /**
- * leaf RAC primitive 1개당 1개. 약 35개(Phase 0 inventory 실측 49 RAC-backed 중
+ * leaf primitive 의 D1 source. 두 종류:
+ * - `rac`: react-aria-components 의 RAC primitive (대부분).
+ * - `internal`: RAC 아닌 composition 내부 leaf 렌더러 (예: Icon = Lucide SVG).
+ *
+ * D1 권위(RAC)는 rac source 에 한정되고, internal source 는 RAC 으로 환원 불가능한
+ * leaf(SVG 아이콘 등)를 위한 탈출구다. discriminant `kind` 로 렌더러가 분기한다.
+ */
+export type PrimitiveSource =
+  | {
+      kind: "rac";
+      /** D1 runtime primitive 패키지 (npm). */
+      package: "react-aria-components";
+      importPath: string;
+      /** RAC export 이름 (렌더러가 `RAC[component]` 로 조회). */
+      component: string;
+    }
+  | {
+      kind: "internal";
+      /**
+       * composition 내부 leaf 렌더러 식별자 (RAC primitive 아님).
+       * DOM/Skia 렌더러가 이 키로 전용 렌더를 dispatch. 예: Icon = "icon"(Lucide SVG, getIconData).
+       */
+      renderer: string;
+    };
+
+/**
+ * leaf primitive 1개당 1개. 약 35개(Phase 0 inventory 실측 49 RAC-backed 중
  * 환원 불가 leaf). 시각/변형/구조 필드 없음 — 시각은 theme/tokens, 변형은 `data-*`.
  */
 export interface PrimitiveBinding {
-  source: {
-    /** D1 runtime primitive 패키지 (npm). */
-    package: "react-aria-components";
-    importPath: string;
-    component: string;
-  };
-  rac: {
+  source: PrimitiveSource;
+  /**
+   * RAC primitive 의 part/slot/state 메타데이터. **rac source 전용** —
+   * internal source(Icon 등)는 RAC part/slot 개념이 없어 생략한다.
+   */
+  rac?: {
     primitive: string;
     parts: string[];
     slots: string[];
