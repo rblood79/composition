@@ -96,10 +96,12 @@ describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", ()
     expect(isCatalogCutover("ColorWheel")).toBe(false);
   });
 
-  it("아직 cutover 안 된 family 는 legacy 경로 (gate 닫힘)", () => {
-    // family ⑧ composition-native (아직 legacy)
+  it("composition-native(frame/Slot)는 cutover 게이트 제외 (native — metadata-only)", () => {
+    // family ⑧ native 는 cutover 개념 없음(canonical-native 렌더 유지) → 게이트 false.
+    // 상세 검증은 nativeEntries.test.ts.
     expect(isCatalogCutover("frame")).toBe(false);
     expect(isCatalogCutover("Slot")).toBe(false);
+    expect(isCatalogCutover("MaskedFrame")).toBe(false);
   });
 });
 

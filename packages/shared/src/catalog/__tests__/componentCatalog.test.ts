@@ -42,9 +42,11 @@ describe("componentCatalog — entry 무결성", () => {
 });
 
 describe("componentCatalog — family atomicity (불변식 D)", () => {
-  it("같은 family 의 모든 entry 는 cutover 값이 동일", () => {
+  it("같은 family 의 모든 entry 는 cutover 값이 동일 (native 제외 — cutover 개념 없음)", () => {
     const byFamily = new Map<string, Set<string>>();
     for (const e of componentCatalog) {
+      // composition-native(frame/Slot)는 cutover 필드 없음(metadata-only) → 불변식 D 무관.
+      if (e.kind === "native") continue;
       if (!byFamily.has(e.family)) byFamily.set(e.family, new Set());
       byFamily.get(e.family)!.add(e.cutover);
     }
@@ -83,10 +85,11 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
 });
 
 describe("getCatalogCutoverTypes — cutover 게이트 파생", () => {
-  it("cutover==='catalog' entry 만 반환 (family ① flip 전엔 비어있음)", () => {
+  it("cutover==='catalog' entry 만 반환 (native 제외)", () => {
     const cutoverTypes = getCatalogCutoverTypes();
+    // native(frame/Slot)는 cutover 개념 없음 → 게이트 제외(metadata-only).
     const expectedCatalog = componentCatalog
-      .filter((e) => e.cutover === "catalog")
+      .filter((e) => e.kind !== "native" && e.cutover === "catalog")
       .map((e) => e.type);
     expect([...cutoverTypes].sort()).toEqual(expectedCatalog.sort());
   });

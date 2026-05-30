@@ -160,8 +160,11 @@ export interface PanelMeta {
  * 컴포넌트 카탈로그 entry.
  * - `primitive`: `react-aria-components` 에 leaf RAC primitive 가 있는 항목. `binding` 으로 정의.
  * - `reusable`: 조합 컴포넌트. `reusableId` 가 canonical reusable 문서를 가리킴 — 코드 정의 없음.
- * composition-native(Frame/Slot/reusable tooling)는 RAC primitive 없이
- * `family: "composition-native"` 로 등록한다.
+ * - `native`: composition-native(frame/Slot/MaskedFrame). RAC primitive 도 reusable 문서도
+ *   아닌 canonical 일급 노드(FrameNode 등, ADR-130). binding/reusableId 둘 다 없고, **cutover
+ *   개념이 없다** — 이미 canonical-native 로 렌더(frame→div / Slot renderer). catalog 등록은
+ *   팔레트/factory metadata SSOT 통합 목적(렌더 전환 아님, 사용자 결정 2026-05-31 metadata-only).
+ *   따라서 cutover 게이트(isCatalogCutover/isCatalogSkiaCutover) 파생에서 제외된다.
  *
  * `skiaLegacy` (ADR-142 family ④/⑤): cutover 됐어도 **Skia 렌더만 legacy `render.shapes` 유지**.
  * collection 컴포넌트(ListBox/Select/Table 등)는 items 배열을 순회해 multi-item 리스트를 그리는데
@@ -189,4 +192,11 @@ export type ComponentCatalogEntry =
       reusableId: string;
       panel: PanelMeta;
       skiaLegacy?: boolean;
+    }
+  | {
+      kind: "native";
+      type: string;
+      family: ComponentFamily;
+      /** composition-native 는 RAC binding / reusable 문서 없음. cutover 개념 없음(metadata-only). */
+      panel: PanelMeta;
     };

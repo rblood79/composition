@@ -31,7 +31,7 @@ describe("family ⑦ date — catalog 등록 + DOM-only cutover", () => {
       expect(entry, `${type} catalog entry`).toBeDefined();
       expect(entry?.kind).toBe("primitive");
       expect(entry?.family).toBe("date-color");
-      expect(entry?.cutover).toBe("catalog");
+      expect((entry as { cutover?: string } | undefined)?.cutover).toBe("catalog");
       expect(
         (entry as { skiaLegacy?: boolean })?.skiaLegacy,
         `${type} skiaLegacy`,

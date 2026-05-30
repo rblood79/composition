@@ -15,7 +15,11 @@
  */
 
 import { getPrimitiveBinding } from "./bindings";
-import type { ComponentCatalogEntry, PrimitiveBinding } from "./types";
+import type {
+  ComponentCatalogEntry,
+  CutoverState,
+  PrimitiveBinding,
+} from "./types";
 
 /**
  * family ①(primitives/actions) 8 primitive entry.
@@ -28,7 +32,7 @@ import type { ComponentCatalogEntry, PrimitiveBinding } from "./types";
 function primitiveEntry(
   type: string,
   family: ComponentCatalogEntry["family"],
-  cutover: ComponentCatalogEntry["cutover"],
+  cutover: CutoverState,
   panel: { category: string; label: string; icon: string },
   opts?: { skiaLegacy?: boolean },
 ): Extract<ComponentCatalogEntry, { kind: "primitive" }> {
@@ -49,7 +53,7 @@ function primitiveEntry(
  * CATALOG_CUTOVER_TYPES 에 들어가 DOM/Skia/Inspector 가 catalog generic 경로로 동시 발효
  * (불변식 D atomic). cross-check 통과 후 flip.
  */
-const FAMILY_1_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+const FAMILY_1_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("Button", "primitives", FAMILY_1_CUTOVER, {
@@ -99,7 +103,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
  * field 는 RAC 가 Label/Input slot 을 합성하는 leaf primitive — 자식 Element(Label/Input)는
  * canonical children 트리, Skia 는 `buildCatalogShapes` 의 `_hasChildren` 빈 box shell 로 흡수.
  */
-const FAMILY_2_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+const FAMILY_2_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("TextField", "fields", FAMILY_2_CUTOVER, {
@@ -145,7 +149,7 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
  * 그린다(box+text 표현 불가). Slider 는 track/thumb 을 자식 SliderTrack/Thumb sub-part 가
  * 그리므로 skiaPrimitive 불필요. Group 은 자식 옵션 컨테이너(_hasChildren 빈 box shell).
  */
-const FAMILY_3_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+const FAMILY_3_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("Checkbox", "selection", FAMILY_3_CUTOVER, {
@@ -186,7 +190,7 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
  * (composition wrapper + useCollectionData), Skia 만 legacy render.shapes 유지(items 배열 순회
  * multi-item 렌더는 Skia generic 미지원, 전 family 후 일괄). 사용자 결정 "DOM-only cutover".
  */
-const FAMILY_4_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+const FAMILY_4_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry(
@@ -246,7 +250,7 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
  * RAC 담당. Skia 만 legacy render.shapes 유지(재귀/2D Skia generic 미지원, 전 family 후 일괄).
  * TableView 는 inventory §2-1 primitive 49 에 없음(LayoutRenderer 전용 layout helper) → 제외.
  */
-const FAMILY_5_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+const FAMILY_5_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry(
@@ -272,7 +276,7 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
  * render.shapes 유지(전 family 후 일괄). Toast 는 imperative API(useToast/ToastProvider —
  * placeable 노드 아님, ComponentList/factory 미등록) → catalog 제외.
  */
-const FAMILY_6_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+const FAMILY_6_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry(
@@ -321,7 +325,7 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
  * + ColorArea/ColorWheel/ColorSlider/ColorSwatch(ColorPicker 내부 part)는 family ⑦ cutover
  * 대상 제외 — 별도 처리. arc/wheel/gradient 시각이라 skiaPrimitive 설계가 필요한 영역.
  */
-const FAMILY_7_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+const FAMILY_7_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry(
@@ -355,8 +359,44 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
+ * ADR-142 family ⑧(composition-native) native entry 헬퍼. frame/Slot/MaskedFrame 은 RAC
+ * primitive 도 reusable 문서도 아닌 canonical 일급 노드 → binding/reusableId/cutover 없음.
+ */
+function nativeEntry(
+  type: string,
+  panel: { category: string; label: string; icon: string },
+): Extract<ComponentCatalogEntry, { kind: "native" }> {
+  return {
+    kind: "native",
+    type,
+    family: "composition-native",
+    panel: { ...panel, placeable: true },
+  };
+}
+
+/**
+ * ADR-142 family ⑧(composition-native). frame/MaskedFrame/Slot. **metadata-only 등록**
+ * (사용자 결정 2026-05-31) — cutover 게이트 미포함, 렌더는 기존 canonical-native 유지
+ * (frame→div generic / Slot renderer). catalog 등록은 팔레트/factory metadata SSOT 통합 목적.
+ */
+const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
+  nativeEntry("frame", {
+    category: "layout",
+    label: "frame",
+    icon: "GroupIcon",
+  }),
+  nativeEntry("MaskedFrame", {
+    category: "layout",
+    label: "masked frame",
+    icon: "Frame",
+  }),
+  nativeEntry("Slot", { category: "layout", label: "slot", icon: "Layers" }),
+];
+
+/**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①~⑦(date 만, color 제외) 등록 — 나머지(⑧ native) + color 후속.
+ * 현재 family ①~⑧ 등록 — ⑦ color(TailSwatch) 는 사용자 지시로 제외(별도 처리).
+ * ⑧ native(frame/Slot)는 metadata-only(cutover 게이트 미포함, canonical-native 렌더 유지).
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
@@ -366,6 +406,7 @@ export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_5_ENTRIES,
   ...FAMILY_6_ENTRIES,
   ...FAMILY_7_ENTRIES,
+  ...FAMILY_8_ENTRIES,
 ];
 
 /** type → catalog entry 조회 (O(1)). */
@@ -385,7 +426,10 @@ export function getCatalogEntry(
  */
 export function getCatalogCutoverTypes(): ReadonlySet<string> {
   return new Set(
-    componentCatalog.filter((e) => e.cutover === "catalog").map((e) => e.type),
+    componentCatalog
+      // native(frame/Slot)는 cutover 개념 없음 — metadata-only, canonical-native 렌더 유지.
+      .filter((e) => e.kind !== "native" && e.cutover === "catalog")
+      .map((e) => e.type),
   );
 }
 
@@ -397,7 +441,12 @@ export function getCatalogCutoverTypes(): ReadonlySet<string> {
 export function getCatalogSkiaCutoverTypes(): ReadonlySet<string> {
   return new Set(
     componentCatalog
-      .filter((e) => e.cutover === "catalog" && e.skiaLegacy !== true)
+      .filter(
+        (e) =>
+          e.kind !== "native" &&
+          e.cutover === "catalog" &&
+          e.skiaLegacy !== true,
+      )
       .map((e) => e.type),
   );
 }
