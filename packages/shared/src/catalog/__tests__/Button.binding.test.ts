@@ -25,26 +25,44 @@ describe("Button binding → toRacProps", () => {
       isDisabled: true,
       "data-variant": "secondary",
       "data-size": "lg",
+      // fillStyle default "fill" → 항상 emit (base style, [data-fill-style="outline"] 미매칭)
+      "data-fill-style": "fill",
     });
   });
 
-  it("fills variant/size defaults and drops non-accepted props (icon→reusable, fillStyle deferred)", () => {
+  it("fills variant/size defaults and drops non-accepted props (icon→reusable)", () => {
     const result = toRacProps(
       {
         id: "btn2",
         type: "Button",
-        // iconName(아이콘 합성은 reusable), fillStyle(visual-enum 라우팅 정립 전) → accepts 에 없음 → drop
-        props: { children: "OK", iconName: "check", fillStyle: "outline" },
+        // iconName(아이콘 합성은 reusable) → accepts 에 없음 → drop. fillStyle 은 accepts 됨(아래 별도 검증).
+        props: { children: "OK", iconName: "check" },
       },
       buttonBinding,
     );
-    // type 은 default "button" → emit. iconName/fillStyle 은 accepts 에 없음 → drop.
+    // type 은 default "button" → emit. iconName 은 accepts 에 없음 → drop. fillStyle default "fill" → data-fill-style.
     expect(result).toEqual({
       children: "OK",
       type: "button",
       "data-variant": "primary",
       "data-size": "md",
+      "data-fill-style": "fill",
     });
+  });
+
+  it("routes fillStyle (visual-enum) to data-fill-style — camelCase→kebab", () => {
+    const result = toRacProps(
+      {
+        id: "btn3",
+        type: "Button",
+        props: { children: "Outlined", fillStyle: "outline" },
+      },
+      buttonBinding,
+    );
+    // fillStyle 은 visual-enum → data-{kebab(key)} = data-fill-style (NOT data-fillStyle)
+    expect(result["data-fill-style"]).toBe("outline");
+    expect(result).not.toHaveProperty("fillStyle");
+    expect(result).not.toHaveProperty("data-fillStyle");
   });
 });
 

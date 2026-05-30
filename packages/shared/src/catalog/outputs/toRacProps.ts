@@ -6,8 +6,9 @@
  *
  * 규칙:
  * - `accepts` 에 선언된 prop 만 투영 — 미선언 prop(event handler 등)은 drop.
- * - `kind: "variant" | "size"` → RAC props 가 아니라 `data-{key}` 속성으로 라우팅
- *   (RAC primitive 는 unstyled — 변형/사이즈는 theme 규칙이 `data-*` 로 적용, D3).
+ * - visual-enum kind(`variant` | `size` | `fillStyle`) → RAC props 가 아니라
+ *   `data-{kebab(key)}` 속성으로 라우팅 (RAC primitive 는 unstyled — 변형/사이즈/
+ *   fillStyle 은 theme 규칙이 `data-*` 로 적용, D3). 예: `fillStyle` → `data-fill-style`.
  * - 노드가 prop 을 생략하고 계약에 `default` 가 있으면 default 적용
  *   (특히 variant/size 는 theme 의 `[data-variant=...]` 매칭을 위해 항상 emit 필요).
  *
@@ -18,8 +19,17 @@ import type { ResolvedNode } from "../../types/canonical-resolver.types";
 import type { CanonicalNode } from "../../types/composition-document.types";
 import type { PrimitiveBinding } from "../types";
 
-/** `data-{key}` 속성으로 라우팅되는 prop kind (RAC props 아님). */
-const DATA_ATTR_KINDS: ReadonlySet<string> = new Set(["variant", "size"]);
+/** `data-{kebab(key)}` 속성으로 라우팅되는 visual-enum prop kind (RAC props 아님). */
+const DATA_ATTR_KINDS: ReadonlySet<string> = new Set([
+  "variant",
+  "size",
+  "fillStyle",
+]);
+
+/** camelCase → kebab-case. data-* 속성명 변환용. 예: `fillStyle` → `fill-style`. */
+function toDataAttrName(key: string): string {
+  return key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
 
 export function toRacProps(
   node: CanonicalNode | ResolvedNode,
@@ -35,7 +45,7 @@ export function toRacProps(
     if (value === undefined) continue;
 
     if (DATA_ATTR_KINDS.has(contract.kind)) {
-      out[`data-${key}`] = String(value);
+      out[`data-${toDataAttrName(key)}`] = String(value);
     } else {
       out[key] = value;
     }

@@ -97,7 +97,8 @@ function resolveOptions(
   if (contract.kind === "variant" || contract.kind === "size") {
     return theme.resolveDimensionOptions(componentType, key, contract.kind);
   }
-  if (contract.kind === "enum") {
+  // enum/fillStyle 은 고정 옵션을 contract 가 직접 제공 (theme 미경유).
+  if (contract.kind === "enum" || contract.kind === "fillStyle") {
     return contract.options;
   }
   return undefined;

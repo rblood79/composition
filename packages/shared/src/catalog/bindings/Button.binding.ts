@@ -6,9 +6,10 @@
  *   를 번들했으나, ADR-142 모델에서 "아이콘이 붙은 Button" 은 **reusable 조합 문서**
  *   (설계 §3 line 193). leaf Button primitive 의 `accepts` 는 RAC Button D2 surface
  *   로만 한정 → 조합은 데이터(reusable)로 분리된다는 논지를 검증.
- * - **fillStyle 분리**: `fillStyle` 은 D3 visual 차원(`data-fill-style`, ADR-908)으로,
- *   variant/size 외 visual-enum 의 data-* 라우팅 규칙 정립(theme 통합 / Phase 6) 후 추가.
- *   현재 toRacProps 는 `kind:"variant"|"size"` 만 data-* 로 라우팅한다.
+ * - **fillStyle (foundation #2 추가)**: `fillStyle` 은 D3 visual 차원으로, visual-enum
+ *   data-* 라우팅 규칙(`kind:"fillStyle"` → `data-fill-style`, camelCase→kebab) 위에서
+ *   accepts 에 포함. theme CSS `[data-fill-style="outline"]` 가 styling, Skia 는
+ *   `buildCatalogShapes` 가 `fill.outline`/`subtle` 소비.
  *
  * 시각(variant/size 값 집합, 색상)은 theme/tokens 가 `data-*` 규칙으로 적용 — 본 binding 에 없음.
  */
@@ -66,6 +67,17 @@ export const buttonBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "md",
+      },
+      // visual-enum (fixed options) → data-fill-style 라우팅 (theme/Skia 가 시각 적용)
+      fillStyle: {
+        kind: "fillStyle",
+        label: "Fill Style",
+        section: "appearance",
+        default: "fill",
+        options: [
+          { value: "fill", label: "Fill" },
+          { value: "outline", label: "Outline" },
+        ],
       },
       // RAC Button props
       type: {

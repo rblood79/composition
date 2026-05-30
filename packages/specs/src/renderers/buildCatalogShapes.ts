@@ -45,28 +45,48 @@ export function buildCatalogShapes(
   const borderRadius = parsePxValue(style?.borderRadius, size.borderRadius);
   const borderWidth = parseBorderWidth(style?.borderWidth, 1);
 
-  // 상태별 배경색 (사용자 스타일 우선) — non-outline 경로
+  // fillStyle 별 fill state subset — outline/subtle 은 Partial(미정의 시 fallback).
+  const fillStyleProp = (props.fillStyle as string | undefined) ?? "fill";
+  const isOutline = fillStyleProp === "outline";
+  const isSubtle = fillStyleProp === "subtle";
+  const fillStates = isOutline
+    ? fill?.outline
+    : isSubtle
+      ? fill?.subtle
+      : fill?.default;
+
+  const stateBg =
+    state === "hover"
+      ? (fillStates?.hover ?? fillStates?.base)
+      : state === "pressed"
+        ? (fillStates?.pressed ?? fillStates?.base)
+        : fillStates?.base;
+
+  // 상태별 배경색 (사용자 스타일 우선). outline 은 base 미정의 시 transparent.
   const bgColor =
     (style?.backgroundColor as string | undefined) ??
-    (fill
-      ? state === "hover"
-        ? (fill.default.hover ?? fill.default.base)
-        : state === "pressed"
-          ? (fill.default.pressed ?? fill.default.base)
-          : fill.default.base
-      : undefined);
+    stateBg ??
+    (isOutline ? ("{color.transparent}" as unknown as string) : undefined);
 
+  // 텍스트색: outline→outlineText, subtle→subtleText, 그 외 hover textHover / text.
   const textColor =
     (style?.color as string | undefined) ??
-    (state === "hover" && variant?.textHover
-      ? variant.textHover
-      : variant?.text);
+    (isOutline
+      ? (variant?.outlineText ?? variant?.text)
+      : isSubtle
+        ? (variant?.subtleText ?? variant?.text)
+        : state === "hover" && variant?.textHover
+          ? variant.textHover
+          : variant?.text);
 
+  // 테두리색: outline→outlineBorder, 그 외 hover borderHover / border.
   const borderColor =
     (style?.borderColor as string | undefined) ??
-    (state === "hover" && variant?.borderHover
-      ? variant.borderHover
-      : variant?.border);
+    (isOutline
+      ? (variant?.outlineBorder ?? variant?.border)
+      : state === "hover" && variant?.borderHover
+        ? variant.borderHover
+        : variant?.border);
 
   const shapes: Shape[] = [
     {

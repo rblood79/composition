@@ -110,6 +110,7 @@ export type InspectorFieldKind =
   | "icon"
   | "variant"
   | "size"
+  | "fillStyle"
   | "binding";
 
 /** 필드 가시성 조건 — 다른 prop 값에 따라 조건부 노출. */

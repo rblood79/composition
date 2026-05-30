@@ -1,7 +1,39 @@
 import { describe, expect, it } from "vitest";
 
 import { ButtonSpec } from "../../components/Button.spec";
+import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
 import { buildCatalogShapes } from "../buildCatalogShapes";
+
+/**
+ * fillStyle(outline/subtle) generic 소비 검증용 fixture.
+ * ButtonSpec 의 outline 은 Button-specific 하드코딩(outlineTextMap)이라 parity oracle 로
+ * 못 쓴다 — generic 메커니즘은 spec DATA(fill.outline/subtle + variant.outlineText/
+ * outlineBorder/subtleText)에서 읽는다. (ButtonSpec outline 데이터 마이그레이션은 flip-time.)
+ */
+const fillFixtureSpec = {
+  defaultVariant: "primary",
+  variants: {
+    primary: {
+      fill: {
+        default: { base: "{color.accent}" as TokenRef },
+        outline: { base: "{color.transparent}" as TokenRef },
+        subtle: { base: "{color.accent-subtle}" as TokenRef },
+      },
+      text: "{color.on-accent}" as TokenRef,
+      outlineText: "{color.accent}" as TokenRef,
+      subtleText: "{color.accent}" as TokenRef,
+      border: "{color.accent}" as TokenRef,
+      outlineBorder: "{color.border-hover}" as TokenRef,
+    },
+  },
+} as unknown as ComponentSpec<Record<string, unknown>>;
+
+const fixtureSize = {
+  borderRadius: 6,
+  paddingX: 12,
+  fontSize: 14,
+  gap: 8,
+} as unknown as SizeSpec;
 
 /**
  * ADR-142 #5 increment (a) — generic shape-descriptor 생성기 parity.
@@ -65,5 +97,50 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
     );
     const actual = buildCatalogShapes(ButtonSpec, props, md, "default");
     expect(actual).toEqual(expected);
+  });
+});
+
+describe("buildCatalogShapes — fillStyle(outline/subtle) generic 소비 (foundation #2)", () => {
+  it("fillStyle=outline — bg=fill.outline.base, text=variant.outlineText, border=variant.outlineBorder", () => {
+    const shapes = buildCatalogShapes(
+      fillFixtureSpec,
+      { children: "X", variant: "primary", fillStyle: "outline" },
+      fixtureSize,
+      "default",
+    );
+    expect(shapes.find((s) => s.type === "roundRect")?.fill).toBe("{color.transparent}");
+    expect(shapes.find((s) => s.type === "border")?.color).toBe(
+      "{color.border-hover}",
+    );
+    expect(shapes.find((s) => s.type === "text")?.fill).toBe("{color.accent}");
+  });
+
+  it("fillStyle=subtle — bg=fill.subtle.base, text=variant.subtleText", () => {
+    const shapes = buildCatalogShapes(
+      fillFixtureSpec,
+      { children: "X", variant: "primary", fillStyle: "subtle" },
+      fixtureSize,
+      "default",
+    );
+    expect(shapes.find((s) => s.type === "roundRect")?.fill).toBe(
+      "{color.accent-subtle}",
+    );
+    expect(shapes.find((s) => s.type === "text")?.fill).toBe("{color.accent}");
+  });
+
+  it("fillStyle 미지정(fill) — fill.default.base / variant.text / variant.border (회귀 0)", () => {
+    const shapes = buildCatalogShapes(
+      fillFixtureSpec,
+      { children: "X", variant: "primary" },
+      fixtureSize,
+      "default",
+    );
+    expect(shapes.find((s) => s.type === "roundRect")?.fill).toBe("{color.accent}");
+    expect(shapes.find((s) => s.type === "text")?.fill).toBe(
+      "{color.on-accent}",
+    );
+    expect(shapes.find((s) => s.type === "border")?.color).toBe(
+      "{color.accent}",
+    );
   });
 });
