@@ -19,10 +19,12 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
+  buildCatalogShapes,
   normalizeBreadcrumbRspSizeKey,
   type ComponentState,
   type PropagationRule,
 } from "@composition/specs";
+import { isCatalogCutover } from "@composition/shared";
 import { getSpecForTag } from "../sprites/tagSpecMap";
 import { specShapesToSkia } from "./specShapeConverter";
 import {
@@ -1021,7 +1023,12 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
 
   // ---------- shapes 생성 ----------
-  const shapes = spec.render.shapes(specProps, sizeSpec, componentState);
+  // ADR-142 #5(b): catalog cutover 된 type 은 generic buildCatalogShapes 경로.
+  // gate(isCatalogCutover) 가 비어 있는 동안 항상 spec.render.shapes — 무행동 변화.
+  // cutover flip 시 per-component render.shapes 대신 generic shape 생성기로 전환.
+  const shapes = isCatalogCutover(type)
+    ? buildCatalogShapes(spec, specProps, sizeSpec, componentState)
+    : spec.render.shapes(specProps, sizeSpec, componentState);
   if (type === "Slot" && specProps._slotChrome === "hidden") {
     shapes.length = 0;
   }
