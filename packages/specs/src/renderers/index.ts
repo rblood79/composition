@@ -42,3 +42,6 @@ export {
 
 // FontSize resolver
 export { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+
+// ADR-142 #5 — generic shape-descriptor 생성기 (render.shapes 대체)
+export { buildCatalogShapes } from "./buildCatalogShapes";

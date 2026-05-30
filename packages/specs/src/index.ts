@@ -208,6 +208,8 @@ export {
   hexStringToNumber,
   // FontSize resolver
   resolveSpecFontSize,
+  // ADR-142 #5 — generic shape-descriptor 생성기
+  buildCatalogShapes,
 } from "./renderers";
 
 export type { ReactRenderResult } from "./renderers";
