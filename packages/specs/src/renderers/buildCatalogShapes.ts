@@ -55,8 +55,17 @@ export function buildCatalogShapes(
       ? fill?.subtle
       : fill?.default;
 
-  const stateBg =
-    state === "hover"
+  // selected 축 (ToggleButton 류) — props.isSelected + isEmphasized.
+  // state(default/hover/pressed)와 직교하는 selection 차원. spec.variant.fill.default.
+  // selected/emphasizedSelected + variant.selectedText/selectedBorder 데이터에서 읽는다.
+  const isSelected = props.isSelected === true;
+  const isEmphasized = props.isEmphasized === true;
+
+  const stateBg = isSelected
+    ? isEmphasized
+      ? (fill?.default.emphasizedSelected ?? fill?.default.selected)
+      : fill?.default.selected
+    : state === "hover"
       ? (fillStates?.hover ?? fillStates?.base)
       : state === "pressed"
         ? (fillStates?.pressed ?? fillStates?.base)
@@ -68,25 +77,35 @@ export function buildCatalogShapes(
     stateBg ??
     (isOutline ? ("{color.transparent}" as unknown as string) : undefined);
 
-  // 텍스트색: outline→outlineText, subtle→subtleText, 그 외 hover textHover / text.
+  // 텍스트색: selected→selectedText/emphasizedSelectedText, outline→outlineText,
+  // subtle→subtleText, 그 외 hover textHover / text.
   const textColor =
     (style?.color as string | undefined) ??
-    (isOutline
-      ? (variant?.outlineText ?? variant?.text)
-      : isSubtle
-        ? (variant?.subtleText ?? variant?.text)
-        : state === "hover" && variant?.textHover
-          ? variant.textHover
-          : variant?.text);
+    (isSelected
+      ? isEmphasized
+        ? (variant?.emphasizedSelectedText ?? variant?.selectedText)
+        : variant?.selectedText
+      : isOutline
+        ? (variant?.outlineText ?? variant?.text)
+        : isSubtle
+          ? (variant?.subtleText ?? variant?.text)
+          : state === "hover" && variant?.textHover
+            ? variant.textHover
+            : variant?.text);
 
-  // 테두리색: outline→outlineBorder, 그 외 hover borderHover / border.
+  // 테두리색: selected→selectedBorder/emphasizedSelectedBorder, outline→outlineBorder,
+  // 그 외 hover borderHover / border.
   const borderColor =
     (style?.borderColor as string | undefined) ??
-    (isOutline
-      ? (variant?.outlineBorder ?? variant?.border)
-      : state === "hover" && variant?.borderHover
-        ? variant.borderHover
-        : variant?.border);
+    (isSelected
+      ? isEmphasized
+        ? (variant?.emphasizedSelectedBorder ?? variant?.selectedBorder)
+        : variant?.selectedBorder
+      : isOutline
+        ? (variant?.outlineBorder ?? variant?.border)
+        : state === "hover" && variant?.borderHover
+          ? variant.borderHover
+          : variant?.border);
 
   const text =
     (props.children as string | undefined) ||
@@ -114,8 +133,16 @@ export function buildCatalogShapes(
     ];
   }
 
-  const shapes: Shape[] = [
-    {
+  // 보이지 않는 배경 생략 (Link 류 text-only leaf):
+  //   배경 투명(fill.alpha===0) + 사용자 backgroundColor 없음 + 테두리 없음 →
+  //   그릴 배경 box 가 없으므로 bg roundRect 를 만들지 않는다 (legacy Link = text shape 만).
+  // backgroundColor 가 명시되면 alpha 무시하고 box 를 그린다(사용자 의도).
+  const hasVisibleBg =
+    style?.backgroundColor != null || (fill?.alpha ?? 1) !== 0 || !!borderColor;
+
+  const shapes: Shape[] = [];
+  if (hasVisibleBg) {
+    shapes.push({
       id: "bg",
       type: "roundRect",
       x: 0,
@@ -125,17 +152,16 @@ export function buildCatalogShapes(
       radius: borderRadius as unknown as number,
       fill: bgColor,
       fillAlpha: fill?.alpha ?? 1,
-    },
-  ];
-
-  if (borderColor) {
-    shapes.push({
-      type: "border",
-      target: "bg",
-      borderWidth,
-      color: borderColor,
-      radius: borderRadius as unknown as number,
     });
+    if (borderColor) {
+      shapes.push({
+        type: "border",
+        target: "bg",
+        borderWidth,
+        color: borderColor,
+        radius: borderRadius as unknown as number,
+      });
+    }
   }
 
   // Child Composition: 자식 Element 가 있으면 shell(box) 만 반환
@@ -158,8 +184,18 @@ export function buildCatalogShapes(
           : parseInt(String(fwRaw), 10) || 500
         : 500;
     const ff = (style?.fontFamily as string) || fontFamily.sans;
+
+    // inline text leaf (size.height===0, 예: Link) 는 top/left, box 는 middle/center.
+    // height 0 컨테이너에서 align/baseline 은 시각상 무의미하나 legacy render.shapes parity 유지.
+    const isInlineText = size.height === 0 && !hasVisibleBg;
     const textAlign =
-      (style?.textAlign as "left" | "center" | "right") || "center";
+      (style?.textAlign as "left" | "center" | "right") ||
+      (isInlineText ? "left" : "center");
+
+    // underline 등 text-decoration 은 spec.composition.rootSelectors["&"] 의 D3 데이터에서 읽는다
+    // (render.shapes 하드코딩의 거울 — Link.spec composition rootSelectors text-decoration).
+    const textDecoration =
+      spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
 
     shapes.push({
       type: "text",
@@ -171,7 +207,8 @@ export function buildCatalogShapes(
       fontWeight: fw,
       fill: textColor,
       align: textAlign,
-      baseline: "middle",
+      baseline: isInlineText ? "top" : "middle",
+      ...(textDecoration ? { textDecoration } : {}),
     });
   }
 
