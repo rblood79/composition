@@ -79,12 +79,27 @@ describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", ()
     }
   });
 
-  it("아직 cutover 안 된 family 는 legacy 경로 (gate 닫힘)", () => {
-    // family ⑦ date·color (아직 legacy)
-    expect(isCatalogCutover("Calendar")).toBe(false);
+  it("family ⑦ date 4 는 DOM catalog cutover (gate 열림)", () => {
+    for (const type of [
+      "Calendar",
+      "RangeCalendar",
+      "DatePicker",
+      "DateRangePicker",
+    ]) {
+      expect(isCatalogCutover(type)).toBe(true);
+    }
+  });
+
+  it("color(TailSwatch/ColorPicker 등)는 cutover 제외 (사용자 지시 — 별도 처리)", () => {
+    expect(isCatalogCutover("TailSwatch")).toBe(false);
+    expect(isCatalogCutover("ColorPicker")).toBe(false);
     expect(isCatalogCutover("ColorWheel")).toBe(false);
-    // family ⑧ composition-native
+  });
+
+  it("아직 cutover 안 된 family 는 legacy 경로 (gate 닫힘)", () => {
+    // family ⑧ composition-native (아직 legacy)
     expect(isCatalogCutover("frame")).toBe(false);
+    expect(isCatalogCutover("Slot")).toBe(false);
   });
 });
 
@@ -114,6 +129,11 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
       "Popover",
       "Tooltip",
       "DropZone",
+      // family ⑦ date
+      "Calendar",
+      "RangeCalendar",
+      "DatePicker",
+      "DateRangePicker",
     ]) {
       // DOM 은 catalog(isCatalogCutover=true), Skia 만 legacy(isCatalogSkiaCutover=false)
       expect(isCatalogCutover(type)).toBe(true);

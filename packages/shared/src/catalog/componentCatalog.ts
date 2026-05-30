@@ -313,8 +313,50 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
+ * ADR-142 family ⑦(date) cutover 상태. date 4개(Calendar/RangeCalendar/DatePicker/
+ * DateRangePicker). **skiaLegacy: true** — 날짜 grid(6주×7일 cell) / Popover portal 은 Skia
+ * generic 미확정 → DOM(wrapper)/Inspector 는 catalog generic, Skia 만 legacy render.shapes 유지.
+ *
+ * **color 제외 (사용자 지시 2026-05-31 "TailSwatch 는 패스해")**: TailSwatch(=ColorPicker alias)
+ * + ColorArea/ColorWheel/ColorSlider/ColorSwatch(ColorPicker 내부 part)는 family ⑦ cutover
+ * 대상 제외 — 별도 처리. arc/wheel/gradient 시각이라 skiaPrimitive 설계가 필요한 영역.
+ */
+const FAMILY_7_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+
+const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry(
+    "Calendar",
+    "date-color",
+    FAMILY_7_CUTOVER,
+    { category: "date", label: "calendar", icon: "Calendar" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "RangeCalendar",
+    "date-color",
+    FAMILY_7_CUTOVER,
+    { category: "date", label: "range calendar", icon: "CalendarDays" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "DatePicker",
+    "date-color",
+    FAMILY_7_CUTOVER,
+    { category: "date", label: "date picker", icon: "CalendarCheck" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "DateRangePicker",
+    "date-color",
+    FAMILY_7_CUTOVER,
+    { category: "date", label: "date range picker", icon: "CalendarDays" },
+    { skiaLegacy: true },
+  ),
+];
+
+/**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①~⑥ 등록 — 나머지(⑦ date·color / ⑧ native) 후속.
+ * 현재 family ①~⑦(date 만, color 제외) 등록 — 나머지(⑧ native) + color 후속.
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
@@ -323,6 +365,7 @@ export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_4_ENTRIES,
   ...FAMILY_5_ENTRIES,
   ...FAMILY_6_ENTRIES,
+  ...FAMILY_7_ENTRIES,
 ];
 
 /** type → catalog entry 조회 (O(1)). */

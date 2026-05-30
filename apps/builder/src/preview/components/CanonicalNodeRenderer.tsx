@@ -25,7 +25,10 @@ import {
   toRacProps,
 } from "@composition/shared";
 import { Badge } from "@composition/shared/components/Badge";
+import { Calendar } from "@composition/shared/components/Calendar";
 import { ComboBox } from "@composition/shared/components/ComboBox";
+import { DatePicker } from "@composition/shared/components/DatePicker";
+import { DateRangePicker } from "@composition/shared/components/DateRangePicker";
 import { Dialog } from "@composition/shared/components/Dialog";
 import { DropZone } from "@composition/shared/components/DropZone";
 import { GridList } from "@composition/shared/components/GridList";
@@ -34,6 +37,7 @@ import { ListBox } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
 import { Modal } from "@composition/shared/components/Modal";
 import { Popover } from "@composition/shared/components/Popover";
+import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
 import { Select } from "@composition/shared/components/Select";
 import Table from "@composition/shared/components/Table";
 import { Tabs } from "@composition/shared/components/Tabs";
@@ -107,6 +111,11 @@ const INTERNAL_RENDERERS: Readonly<
   popover: Popover,
   tooltip: Tooltip,
   dropzone: DropZone,
+  // family ⑦ date — composition wrapper (날짜 grid/portal, skiaLegacy). color 는 사용자 지시 제외.
+  calendar: Calendar,
+  rangecalendar: RangeCalendar,
+  datepicker: DatePicker,
+  daterangepicker: DateRangePicker,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

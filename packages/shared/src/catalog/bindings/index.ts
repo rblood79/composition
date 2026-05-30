@@ -5,11 +5,14 @@
 import type { PrimitiveBinding } from "../types";
 import { badgeBinding } from "./Badge.binding";
 import { buttonBinding } from "./Button.binding";
+import { calendarBinding } from "./Calendar.binding";
 import { checkboxBinding } from "./Checkbox.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
 import { colorFieldBinding } from "./ColorField.binding";
 import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
+import { datePickerBinding } from "./DatePicker.binding";
+import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { dialogBinding } from "./Dialog.binding";
 import { dropZoneBinding } from "./DropZone.binding";
 import { formBinding } from "./Form.binding";
@@ -23,6 +26,7 @@ import { numberFieldBinding } from "./NumberField.binding";
 import { popoverBinding } from "./Popover.binding";
 import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
+import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
 import { selectBinding } from "./Select.binding";
 import { separatorBinding } from "./Separator.binding";
@@ -41,11 +45,14 @@ import { treeBinding } from "./Tree.binding";
 
 export * from "./Badge.binding";
 export * from "./Button.binding";
+export * from "./Calendar.binding";
 export * from "./Checkbox.binding";
 export * from "./CheckboxGroup.binding";
 export * from "./ColorField.binding";
 export * from "./ComboBox.binding";
 export * from "./DateField.binding";
+export * from "./DatePicker.binding";
+export * from "./DateRangePicker.binding";
 export * from "./Dialog.binding";
 export * from "./DropZone.binding";
 export * from "./Form.binding";
@@ -59,6 +66,7 @@ export * from "./NumberField.binding";
 export * from "./Popover.binding";
 export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
+export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
 export * from "./Select.binding";
 export * from "./Separator.binding";
@@ -122,6 +130,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Popover: popoverBinding,
   Tooltip: tooltipBinding,
   DropZone: dropZoneBinding,
+  // family ⑦ date (internal source — composition wrapper, 날짜 grid/portal, skiaLegacy).
+  // color(TailSwatch/ColorPicker 등)는 사용자 지시로 제외.
+  Calendar: calendarBinding,
+  RangeCalendar: rangeCalendarBinding,
+  DatePicker: datePickerBinding,
+  DateRangePicker: dateRangePickerBinding,
 };
 
 export function getPrimitiveBinding(
