@@ -17,8 +17,13 @@
  */
 
 import React from "react";
+import * as RAC from "react-aria-components";
 import { rendererMap } from "@composition/shared/renderers";
-import { adaptElementFillStyle } from "@composition/shared";
+import {
+  adaptElementFillStyle,
+  getPrimitiveBinding,
+  toRacProps,
+} from "@composition/shared";
 import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 import type { ResolvedNode } from "@composition/shared";
 import type { RenderContext as SharedRenderContext } from "@composition/shared/types";
@@ -41,6 +46,13 @@ interface CanonicalNodeRendererProps {
   renderContext: RenderContext;
   /** 부모 경로 (디버그 + DOM 마커용) */
   parentPath?: string;
+  /**
+   * ADR-142 — catalog generic 렌더 경로로 cutover 된 component type 집합.
+   * 포함된 type 은 per-component `rendererMap` 대신 `toRacProps`→RAC primitive 로 렌더.
+   * 기본 미지정(undefined) → 전부 legacy `rendererMap` 경로 (live 회귀 0, G2 fallback 규율).
+   * family cutover(Phase 6) 가 type 을 catalog 로 옮기면 caller 가 이 집합에 추가한다.
+   */
+  cutoverPrimitives?: ReadonlySet<string>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,6 +73,7 @@ export function CanonicalNodeRenderer({
   node,
   renderContext,
   parentPath = "",
+  cutoverPrimitives,
 }: CanonicalNodeRendererProps): React.ReactElement | null {
   const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
 
@@ -101,6 +114,37 @@ export function CanonicalNodeRenderer({
     "data-canonical-id": node.id,
     "data-element-id": elementId,
   };
+
+  // ── ADR-142: catalog generic 렌더 경로 (cutover 된 primitive 한정) ────────
+  // per-component rendererMap 대신 generic toRacProps → RAC primitive 로 렌더.
+  // cutoverPrimitives 에 포함된 type 만 해당 — 미지정 시 아래 legacy 경로 보존(회귀 0).
+  if (cutoverPrimitives?.has(type)) {
+    const binding = getPrimitiveBinding(type);
+    const RacComponent = binding
+      ? (RAC as unknown as Record<string, React.ElementType | undefined>)[
+          binding.source.component
+        ]
+      : undefined;
+    if (binding && RacComponent) {
+      const { children: racChildren, ...racRest } = toRacProps(node, binding);
+      const childNodes = node.children ?? [];
+      return (
+        <RacComponent key={node.id} {...markerProps} {...racRest}>
+          {childNodes.length > 0
+            ? childNodes.map((child) => (
+                <CanonicalNodeRenderer
+                  key={child.id}
+                  node={child}
+                  renderContext={renderContext}
+                  parentPath={currentPath}
+                  cutoverPrimitives={cutoverPrimitives}
+                />
+              ))
+            : (racChildren as React.ReactNode)}
+        </RacComponent>
+      );
+    }
+  }
 
   // ── rendererMap 위임 ──────────────────────────────────────────────────────
   const renderer = rendererMap[adaptedEl.type];
@@ -150,6 +194,7 @@ export function CanonicalNodeRenderer({
             node={child}
             renderContext={renderContext}
             parentPath={currentPath}
+            cutoverPrimitives={cutoverPrimitives}
           />
         ))
       : (adaptedEl.props?.children as React.ReactNode),

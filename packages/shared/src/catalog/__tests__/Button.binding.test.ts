@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buttonBinding } from "../bindings/Button.binding";
+import { buttonBinding, getPrimitiveBinding } from "../bindings";
 import { toRacProps } from "../outputs/toRacProps";
 
 describe("Button binding → toRacProps", () => {
@@ -45,5 +45,15 @@ describe("Button binding → toRacProps", () => {
       "data-variant": "primary",
       "data-size": "md",
     });
+  });
+});
+
+describe("getPrimitiveBinding", () => {
+  it("returns the Button binding for type 'Button'", () => {
+    expect(getPrimitiveBinding("Button")).toBe(buttonBinding);
+  });
+
+  it("returns undefined for a non-cataloged type", () => {
+    expect(getPrimitiveBinding("ListBoxItem")).toBeUndefined();
   });
 });
