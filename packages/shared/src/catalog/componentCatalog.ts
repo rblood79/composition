@@ -266,8 +266,55 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
+ * ADR-142 family ⑥(overlays) cutover 상태. Dialog/Modal/Popover/Tooltip/DropZone 5개.
+ * **skiaLegacy: true** — portal/overlay 렌더(OverlayArrow svg / dashed drop 영역 등 비-box
+ * 시각)는 Skia generic 미확정 → DOM(wrapper)/Inspector 는 catalog generic, Skia 만 legacy
+ * render.shapes 유지(전 family 후 일괄). Toast 는 imperative API(useToast/ToastProvider —
+ * placeable 노드 아님, ComponentList/factory 미등록) → catalog 제외.
+ */
+const FAMILY_6_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+
+const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry(
+    "Dialog",
+    "overlays",
+    FAMILY_6_CUTOVER,
+    { category: "overlays", label: "dialog", icon: "AppWindowMac" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "Modal",
+    "overlays",
+    FAMILY_6_CUTOVER,
+    { category: "overlays", label: "modal", icon: "InspectionPanel" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "Popover",
+    "overlays",
+    FAMILY_6_CUTOVER,
+    { category: "overlays", label: "popover", icon: "AppWindowMac" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "Tooltip",
+    "overlays",
+    FAMILY_6_CUTOVER,
+    { category: "overlays", label: "tooltip", icon: "MessageSquare" },
+    { skiaLegacy: true },
+  ),
+  primitiveEntry(
+    "DropZone",
+    "overlays",
+    FAMILY_6_CUTOVER,
+    { category: "forms", label: "drop zone", icon: "Upload" },
+    { skiaLegacy: true },
+  ),
+];
+
+/**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①~⑤ 등록 — 나머지(⑥ overlays / ⑦ date·color / ⑧ native) 후속.
+ * 현재 family ①~⑥ 등록 — 나머지(⑦ date·color / ⑧ native) 후속.
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
@@ -275,6 +322,7 @@ export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_3_ENTRIES,
   ...FAMILY_4_ENTRIES,
   ...FAMILY_5_ENTRIES,
+  ...FAMILY_6_ENTRIES,
 ];
 
 /** type → catalog entry 조회 (O(1)). */

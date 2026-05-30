@@ -10,13 +10,17 @@ import { checkboxGroupBinding } from "./CheckboxGroup.binding";
 import { colorFieldBinding } from "./ColorField.binding";
 import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
+import { dialogBinding } from "./Dialog.binding";
+import { dropZoneBinding } from "./DropZone.binding";
 import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
 import { iconBinding } from "./Icon.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
 import { menuBinding } from "./Menu.binding";
+import { modalBinding } from "./Modal.binding";
 import { numberFieldBinding } from "./NumberField.binding";
+import { popoverBinding } from "./Popover.binding";
 import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
 import { searchFieldBinding } from "./SearchField.binding";
@@ -28,11 +32,12 @@ import { tableBinding } from "./Table.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
 import { textFieldBinding } from "./TextField.binding";
-import { treeBinding } from "./Tree.binding";
 import { timeFieldBinding } from "./TimeField.binding";
 import { toggleButtonBinding } from "./ToggleButton.binding";
 import { toggleButtonGroupBinding } from "./ToggleButtonGroup.binding";
 import { toolbarBinding } from "./Toolbar.binding";
+import { tooltipBinding } from "./Tooltip.binding";
+import { treeBinding } from "./Tree.binding";
 
 export * from "./Badge.binding";
 export * from "./Button.binding";
@@ -41,13 +46,17 @@ export * from "./CheckboxGroup.binding";
 export * from "./ColorField.binding";
 export * from "./ComboBox.binding";
 export * from "./DateField.binding";
+export * from "./Dialog.binding";
+export * from "./DropZone.binding";
 export * from "./Form.binding";
 export * from "./GridList.binding";
 export * from "./Icon.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
 export * from "./Menu.binding";
+export * from "./Modal.binding";
 export * from "./NumberField.binding";
+export * from "./Popover.binding";
 export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
 export * from "./SearchField.binding";
@@ -64,6 +73,7 @@ export * from "./TimeField.binding";
 export * from "./ToggleButton.binding";
 export * from "./ToggleButtonGroup.binding";
 export * from "./Toolbar.binding";
+export * from "./Tooltip.binding";
 
 /**
  * component type → leaf PrimitiveBinding 조회.
@@ -106,6 +116,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // family ⑤ Tree·Table (internal source — composition wrapper + useCollectionData, 재귀/2D)
   Tree: treeBinding,
   Table: tableBinding,
+  // family ⑥ overlays (internal source — composition wrapper, portal/overlay, skiaLegacy)
+  Dialog: dialogBinding,
+  Modal: modalBinding,
+  Popover: popoverBinding,
+  Tooltip: tooltipBinding,
+  DropZone: dropZoneBinding,
 };
 
 export function getPrimitiveBinding(

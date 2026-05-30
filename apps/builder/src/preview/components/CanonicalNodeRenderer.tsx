@@ -26,14 +26,19 @@ import {
 } from "@composition/shared";
 import { Badge } from "@composition/shared/components/Badge";
 import { ComboBox } from "@composition/shared/components/ComboBox";
+import { Dialog } from "@composition/shared/components/Dialog";
+import { DropZone } from "@composition/shared/components/DropZone";
 import { GridList } from "@composition/shared/components/GridList";
 import { Icon } from "@composition/shared/components/Icon";
 import { ListBox } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
+import { Modal } from "@composition/shared/components/Modal";
+import { Popover } from "@composition/shared/components/Popover";
 import { Select } from "@composition/shared/components/Select";
 import Table from "@composition/shared/components/Table";
 import { Tabs } from "@composition/shared/components/Tabs";
 import { TagGroup } from "@composition/shared/components/TagGroup";
+import { Tooltip } from "@composition/shared/components/Tooltip";
 import { Tree } from "@composition/shared/components/Tree";
 import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 import type { ResolvedNode } from "@composition/shared";
@@ -96,6 +101,12 @@ const INTERNAL_RENDERERS: Readonly<
   // family ⑤ Tree·Table — composition wrapper (재귀/2D collection, useCollectionData)
   tree: Tree,
   table: Table,
+  // family ⑥ overlays — composition wrapper (portal/overlay, skiaLegacy)
+  dialog: Dialog,
+  modal: Modal,
+  popover: Popover,
+  tooltip: Tooltip,
+  dropzone: DropZone,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

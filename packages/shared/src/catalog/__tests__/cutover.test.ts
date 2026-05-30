@@ -73,10 +73,16 @@ describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", ()
     }
   });
 
+  it("family ⑥ 5 overlay 는 DOM catalog cutover (gate 열림)", () => {
+    for (const type of ["Dialog", "Modal", "Popover", "Tooltip", "DropZone"]) {
+      expect(isCatalogCutover(type)).toBe(true);
+    }
+  });
+
   it("아직 cutover 안 된 family 는 legacy 경로 (gate 닫힘)", () => {
-    // family ⑥ overlays (아직 legacy)
-    expect(isCatalogCutover("Dialog")).toBe(false);
-    expect(isCatalogCutover("Popover")).toBe(false);
+    // family ⑦ date·color (아직 legacy)
+    expect(isCatalogCutover("Calendar")).toBe(false);
+    expect(isCatalogCutover("ColorWheel")).toBe(false);
     // family ⑧ composition-native
     expect(isCatalogCutover("frame")).toBe(false);
   });
@@ -102,6 +108,12 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
       // family ⑤ Tree·Table
       "Tree",
       "Table",
+      // family ⑥ overlays
+      "Dialog",
+      "Modal",
+      "Popover",
+      "Tooltip",
+      "DropZone",
     ]) {
       // DOM 은 catalog(isCatalogCutover=true), Skia 만 legacy(isCatalogSkiaCutover=false)
       expect(isCatalogCutover(type)).toBe(true);
