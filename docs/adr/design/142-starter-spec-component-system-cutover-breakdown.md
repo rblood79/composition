@@ -260,6 +260,14 @@ Gate: **G2 (공통 기반 gate — R1 1:1)**
 
 > **2026-05-30 실측 recalibration #3 — #6 resolver 버그는 ADR-903 STREAM A 로 이미 수정 (fork 없음, M3 흡수)**: breakdown #6(nested ref `_resolvedFrom` 미주입 / descendants mode C `validateSlotContract` 누락)은 설계 시점 기준이었으나 **실측상 두 버그 모두 ADR-903 STREAM A 구현에서 이미 수정**됐다. (1) **nested ref**: `resolveNode`(index.ts:81-84)가 ref→`resolveRefNode`(`_resolvedFrom: master.id` 주입, :199), 비-ref→`resolveFrameOrPlain`→`applyDescendantsToTree`(:251-253, `type==="ref"` child 를 `resolveRefNode` 로 dispatch) → 모든 depth nested ref 에 `_resolvedFrom` 주입. (2) **mode C**: `applyOverrideToNode` hasChildren 분기(:294-309)가 `hasSlotContract(child)` → `validateSlotContract`(:306-308). **검증**: `resolver.test.ts` TC8(:305 `resolvedIcon._resolvedFrom==="icon"`) + TC9(:384 `/slot contract/` warn), 26/26 PASS. ADR-142 코드 변경 없음 — stale "⚠️ STREAM A BUG" 주석 2건만 정정. **#3/#4 에 이은 3번째 stale breakdown 항목** — Phase 1 의 상당 부분(canonical 데이터 파이프라인 / 단일 렌더 진입점 / resolver 정확성)이 ADR-903/116 으로 이미 구현됨. Phase 0 inventory freeze 부실의 결과이며 새 ADR fork 사유 아님(M3).
 
+> **2026-05-30 #5 Skia backend 설계 확정 (seam 분석)**: 코드 정독 결과 #5 의 seam 이 추정보다 좁게 확정됨. **핵심 통찰 — `specShapesToSkia`(specShapeConverter.ts)는 이미 generic** shape→Skia 변환기(theme 토큰 해결 + arc/track/text shape 처리 포함). per-component 인 부분은 오직 `spec.render.shapes()`(shape **descriptor** 생성, buildSpecNodeData.ts:1024)뿐. 따라서 **#5 = `render.shapes()` 를 generic shape-descriptor 생성기(`buildCatalogShapes`)로 교체** → 동일 `specShapesToSkia` 재사용. buildSpecNodeData 전체 재작성 불필요.
+>
+> **왜 HIGH(R4)인가**: DOM backend(#3)는 Button 시각을 CSS 가 무료로 해결(data-variant → 생성 CSS → computed style). Skia 엔 CSS 엔진이 없어 theme 규칙을 명시 resolve 해 fill/border/radius/textColor/font 를 shape descriptor 로 만들어야 함 — `render.shapes` 가 per-component 로 하던 것(ButtonSpec 예: `resolveFillTokens(variant)` → state별 bgColor/textColor → roundRect+border+text shape, ~60 줄).
+>
+> **`buildCatalogShapes` 설계**: box+text leaf primitive(다수)는 generic 처리 — `spec.variants[variant].fill`(`resolveFillTokens`) → state별 fill + `spec.sizes[size]` → radius/padding/fontSize + `props.children` → text shape. 전환기엔 spec 의 ADR-908 FillTokenSpec 을 직접 읽음(#8 theme adapter 와 동일 전환 패턴, 목표는 theme/tokens). 비-DOM-trivial(arc/track/wheel/indicator — inventory §4 의 특수 shape 38)은 `PrimitiveBinding.skiaPrimitive` draw module 로 분기.
+>
+> **구현 increment 순서**: (a) `buildCatalogShapes`(generic box+text descriptor, TDD — ButtonSpec.render.shapes 출력과 parity) → (b) cutover-gated dispatch (StoreRenderBridge `isSpecPath` 위 또는 buildSpecNodeData 진입에서 `isCatalogCutover(type)` → buildCatalogShapes → 기존 specShapesToSkia) → (c) `/cross-check` Skia↔DOM parity (cutover Button, 2 target × 5 layer) → (d) `skiaPrimitive` 분기(arc/wheel). 게이트는 `isCatalogCutover`(#3/#8 공유) — 검증 전까지 live 회귀 0, render.shapes legacy fallback 유지.
+
 ### Phase 2 — Reusable 컴포넌트 저작 + componentCatalog
 
 목표: 조합 컴포넌트를 reusable canonical 문서로 저작하고, 단일 `componentCatalog` 를 구성한다.
