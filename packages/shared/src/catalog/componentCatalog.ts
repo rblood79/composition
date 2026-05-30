@@ -93,11 +93,57 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
+ * ADR-142 family ②(fields) cutover 상태. 7 RAC-backed primitive(inventory §2-1).
+ * field 는 RAC 가 Label/Input slot 을 합성하는 leaf primitive — 자식 Element(Label/Input)는
+ * canonical children 트리, Skia 는 `buildCatalogShapes` 의 `_hasChildren` 빈 box shell 로 흡수.
+ */
+const FAMILY_2_CUTOVER: ComponentCatalogEntry["cutover"] = "catalog";
+
+const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
+  primitiveEntry("TextField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "text field",
+    icon: "RectangleEllipsis",
+  }),
+  primitiveEntry("NumberField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "number field",
+    icon: "Hash",
+  }),
+  primitiveEntry("SearchField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "search field",
+    icon: "Search",
+  }),
+  primitiveEntry("DateField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "date field",
+    icon: "CalendarCheck",
+  }),
+  primitiveEntry("TimeField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "time field",
+    icon: "ChevronDown",
+  }),
+  primitiveEntry("ColorField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "color field",
+    icon: "Palette",
+  }),
+  primitiveEntry("Form", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "form",
+    icon: "GroupIcon",
+  }),
+];
+
+/**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①(primitives/actions)만 등록 — 나머지 family 는 후속 cutover 에서 추가.
+ * 현재 family ①(primitives/actions) + family ②(fields) 등록 — 나머지 family 는 후속 cutover.
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,
+  ...FAMILY_2_ENTRIES,
 ];
 
 /** type → catalog entry 조회 (O(1)). */

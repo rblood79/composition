@@ -5,18 +5,32 @@
 import type { PrimitiveBinding } from "../types";
 import { badgeBinding } from "./Badge.binding";
 import { buttonBinding } from "./Button.binding";
+import { colorFieldBinding } from "./ColorField.binding";
+import { dateFieldBinding } from "./DateField.binding";
+import { formBinding } from "./Form.binding";
 import { iconBinding } from "./Icon.binding";
 import { linkBinding } from "./Link.binding";
+import { numberFieldBinding } from "./NumberField.binding";
+import { searchFieldBinding } from "./SearchField.binding";
 import { separatorBinding } from "./Separator.binding";
+import { textFieldBinding } from "./TextField.binding";
+import { timeFieldBinding } from "./TimeField.binding";
 import { toggleButtonBinding } from "./ToggleButton.binding";
 import { toggleButtonGroupBinding } from "./ToggleButtonGroup.binding";
 import { toolbarBinding } from "./Toolbar.binding";
 
 export * from "./Badge.binding";
 export * from "./Button.binding";
+export * from "./ColorField.binding";
+export * from "./DateField.binding";
+export * from "./Form.binding";
 export * from "./Icon.binding";
 export * from "./Link.binding";
+export * from "./NumberField.binding";
+export * from "./SearchField.binding";
 export * from "./Separator.binding";
+export * from "./TextField.binding";
+export * from "./TimeField.binding";
 export * from "./ToggleButton.binding";
 export * from "./ToggleButtonGroup.binding";
 export * from "./Toolbar.binding";
@@ -27,6 +41,7 @@ export * from "./Toolbar.binding";
  * generic 렌더러가 "이 type 이 catalog primitive 인가" 를 판정하는 단일 진입점.
  */
 const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
+  // family ① primitives/actions
   Badge: badgeBinding,
   Button: buttonBinding,
   Icon: iconBinding,
@@ -35,6 +50,14 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,
+  // family ② fields
+  TextField: textFieldBinding,
+  NumberField: numberFieldBinding,
+  SearchField: searchFieldBinding,
+  DateField: dateFieldBinding,
+  TimeField: timeFieldBinding,
+  ColorField: colorFieldBinding,
+  Form: formBinding,
 };
 
 export function getPrimitiveBinding(
