@@ -1916,8 +1916,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     }
   },
   "Dialog": {
+    "defaultVariant": "default",
     "defaultSize": "md",
-    "variants": {},
+    "variants": {
+      "default": {
+        "fill": {
+          "default": {
+            "base": "{color.layer-1}",
+            "hover": "{color.layer-1}",
+            "pressed": "{color.layer-1}"
+          }
+        },
+        "colors": {
+          "text": "{color.neutral}"
+        }
+      }
+    },
     "sizes": {
       "xs": {
         "fontSize": "{typography.text-sm}",

@@ -286,13 +286,14 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
 const FAMILY_6_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
-  primitiveEntry(
-    "Dialog",
-    "overlays",
-    FAMILY_6_CUTOVER,
-    { category: "overlays", label: "dialog", icon: "AppWindowMac" },
-    { skiaLegacy: true },
-  ),
+  // Dialog — Skia generic 발효 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg 는
+  //   buildCatalogShapes(variant fill {color.layer-1}), backdrop + shadow 는 skiaPrimitive
+  //   (overlay_backdrop / dialog_shadow, prepend) 합성. render.shapes 와 parity.
+  primitiveEntry("Dialog", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "dialog",
+    icon: "AppWindowMac",
+  }),
   primitiveEntry(
     "Modal",
     "overlays",

@@ -28,14 +28,9 @@ const OVERLAY_TYPES = [
 ] as const;
 
 /** Skia generic 발효된 overlay (skiaLegacy 제거됨). */
-const SKIA_CUTOVER_OVERLAYS = ["Popover"] as const;
+const SKIA_CUTOVER_OVERLAYS = ["Popover", "Dialog"] as const;
 /** Skia 미발효(skiaLegacy:true) — 보강 대기. */
-const SKIA_LEGACY_OVERLAYS = [
-  "Dialog",
-  "Modal",
-  "Tooltip",
-  "DropZone",
-] as const;
+const SKIA_LEGACY_OVERLAYS = ["Modal", "Tooltip", "DropZone"] as const;
 
 describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
   it("5 overlay 가 catalog primitive entry (family=overlays, cutover=catalog)", () => {
@@ -92,10 +87,14 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
         `${type} no skiaPrimitive`,
       ).toBeUndefined();
     }
-    // Popover 는 shadow/arrow 패턴 키 배열 보유.
+    // 발효 overlay 는 패턴 키 배열 보유.
     expect(getPrimitiveBinding("Popover")?.skiaPrimitive).toEqual([
       "popover_shadow",
       "popover_arrow",
+    ]);
+    expect(getPrimitiveBinding("Dialog")?.skiaPrimitive).toEqual([
+      "overlay_backdrop",
+      "dialog_shadow",
     ]);
   });
 

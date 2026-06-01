@@ -37,6 +37,23 @@ export const DialogSpec: ComponentSpec<DialogProps> = {
   element: "div",
   skipCSSGeneration: false,
 
+  // ADR-142 Inc3 — Skia generic 발효용 variant. bg/text 는 buildCatalogShapes 가 그리고
+  //   (render.shapes DIALOG_DEFAULTS 와 동일), backdrop/shadow 는 skiaPrimitive 합성.
+  //   Modal 패턴 동형. border 미지정 — render.shapes 도 Dialog border 미렌더(parity).
+  defaultVariant: "default",
+  variants: {
+    default: {
+      fill: {
+        default: {
+          base: "{color.layer-1}" as TokenRef,
+          hover: "{color.layer-1}" as TokenRef,
+          pressed: "{color.layer-1}" as TokenRef,
+        },
+      },
+      text: "{color.neutral}" as TokenRef,
+    },
+  },
+
   defaultSize: "md",
 
   properties: {

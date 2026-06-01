@@ -5,9 +5,9 @@
  * Dialog + Heading/dismiss 등을 합성(internal source). overlay 는 portal 렌더라 자식 Heading/
  * Description 은 canonical children 트리(SHELL_ONLY).
  *
- * **DOM-only cutover (skiaLegacy:true)**: DOM/Inspector 는 catalog generic(wrapper), Skia 만
- * legacy render.shapes 유지 — portal/overlay 시각(dismiss/arrow 등)은 Skia generic 미확정,
- * 전 family 후 일괄. (family ④/⑤ DOM-only 패턴 재사용.)
+ * **Skia generic 발효 (ADR-142 Inc3, 2026-06-01)**: bg 는 buildCatalogShapes(variant fill
+ * `{color.layer-1}`), backdrop(반투명 전체화면 rect) + drop shadow 는 skiaPrimitive draw module
+ * (`overlay_backdrop` / `dialog_shadow`, 둘 다 prepend=base 앞) 합성. render.shapes 와 parity.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -33,4 +33,6 @@ export const dialogBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
+  // backdrop + shadow (둘 다 base 앞 prepend). box 는 buildCatalogShapes 가 담당.
+  skiaPrimitive: ["overlay_backdrop", "dialog_shadow"],
 };

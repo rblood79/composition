@@ -68,9 +68,8 @@ function primitivesOf(
 }
 
 describe("composeCatalogShapes — Dialog (backdrop+shadow prepend, box) parity", () => {
-  // 보강 대기: Dialog variants:{} → buildCatalogShapes base=[] (bg 소실). Dialog.spec 에
-  // variant.default(fill={color.layer-1}) 보강 후 발효 (사용자 confirm 2026-06-01 — Popover 먼저).
-  it.skip("[backdrop, shadow, bg] 순서로 legacy 와 동일", () => {
+  // Dialog.spec variant.default(fill={color.layer-1}) 보강 후 발효 (Inc3 2026-06-01).
+  it("[backdrop, shadow, bg] 순서로 legacy 와 동일", () => {
     const sizeSpec = DialogSpec.sizes.md;
     const props = {} as Record<string, unknown>;
     const visual = resolveComponentVisual(

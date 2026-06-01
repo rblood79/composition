@@ -11,12 +11,30 @@
     position: fixed;
     box-sizing: border-box;
 
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: none;
+
   /* Default size */
   height: auto;
   padding: 8px 8px;
   font-size: var(--text-base);
   border-radius: var(--radius-xl);
   gap: 12px;
+}
+
+.react-aria-Dialog[data-variant="default"] {
+  background: var(--bg-overlay);
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: var(--bg-overlay);
+  }
+
+  &[data-pressed] {
+    background: var(--bg-overlay);
+  }
 }
 
 .react-aria-Dialog[data-size="xs"] {
