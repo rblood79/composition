@@ -2191,6 +2191,21 @@ ADR-920(RAC Format Interactive Projected Tree, Codex 독립 설계)은 본 ADR �
 
 > **capability 흡수는 개념만**: 920 의 `FormatCapabilityRegistry` 를 **새 레지스트리로 도입하지 않는다.** "property 의미·Panel section·Skia 지원·layout 분류를 한 곳에 선언"은 910 의 theme rule 테이블(`componentRulesTable`) + `PropContract` + ADR-909 longhand 정책에 이미 정합한다. 별도 레지스트리는 canonical 문서와 평행한 **두 번째 SSOT** 가 되어 910 대안 C 기각 사유(drift 재발)를 재현하므로 금지한다.
 
+### schema / registry 단일화 — 병렬 schema 금지 (충돌 제거)
+
+920 의 schema/registry 타입은 910 의 단일 schema/registry 로 **흡수·통합**된다. 두 설계의 타입을 **병렬로 두지 않는다** — `CanonicalNode`/`FormatNode`, `PrimitiveBinding`/`RacFormatDefinition` 을 동시에 살려 두면 같은 노드·같은 leaf 정의가 두 schema 로 갈라져 정합 비용이 재발하기 때문이다(910 대안 C 기각 사유 = 두 번째 SSOT). 따라서 920 타입은 910 의 대응 타입으로 **수렴(별칭이 아니라 흡수)** 하며, 본 ADR 어디에도 920 schema 타입을 정의·import 하지 않는다.
+
+| 920 schema/registry 타입           | 910 단일 타입 (정본)                                                              | 통합 방식                                                                                                                                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FormatNode` / `FrameFormatNode`   | **`CanonicalNode`** (§② — 의미 props + `props.style` override layer)              | 동일 역할(문서 노드). 910 `CanonicalNode` 로 단일화 — `FormatNode` 별도 정의 없음. frame 은 `type:"frame"` canonical 노드(ADR-130) 로 이미 표현                           |
+| `RacFormatDefinition`              | **`PrimitiveBinding`** (§③ — `rac` + `props.accepts` + `internal`)                | 동일 역할(leaf 의 RAC prop/state/slot vocabulary + part binding). 910 `PrimitiveBinding` 으로 단일화 — `RacFormatDefinition` 별도 registry 없음                           |
+| `FormatCapabilityRegistry`         | **`ComponentRule`/`componentRulesTable` + `PropContract`** (§②.8.5 / §⑤)          | 개념만 흡수(위 단락). property 의미·Panel section·Skia 지원·layout 분류 = theme rule + `PropContract.section` + ADR-909 longhand 정책. 별도 capability registry 도입 금지 |
+| `ResolvedFormatRuntime` / resolver | **`resolveEditContract` + `toReactStyle`/`toSkiaStyle` + `resolveComponentRule`** | resolver 함수 군으로 분해 흡수 — 단일 "format runtime" 객체를 두지 않고 910 의 기존 단일 진입점 함수들이 동일 역할 수행                                                   |
+| `ProjectedNodeRef` (render-space)  | **`ProjectedNodeRef`** (§4.12 — 910 이 흡수해 신설)                               | 920 고유 기여. 910 §4.12 로 그대로 흡수(render-space 전용, canonical 미저장). 이것만 920 → 910 신규 타입 — canonical schema 와 직교(병렬 SSOT 아님)                       |
+| `componentCatalog` / 6 registry    | **`componentCatalog`** (§②.8.4 — 단일 등록)                                       | 양 설계 동명·동개념. 6 레지스트리(spec/TAG_SPEC_MAP/specRegistry/factory/panel/renderer) → 단일 `ComponentCatalogEntry` 로 대체                                           |
+
+**검증 불변식**: 910 본문·breakdown 에 `FormatNode`·`RacFormatDefinition` 정의/import 0건(흡수 매핑 인용 제외). `ProjectedNodeRef` 만 920 에서 신규 흡수되며, 이는 canonical schema 와 직교하는 render-space 전용 타입이라 두 번째 SSOT 가 아니다(ADR-135/136 Render-Space Boundary 정합).
+
 ### 위임(bridge 참조만) — 이미 다른 ADR 이 관할(Implemented)
 
 다음 3축은 920 이 재기술했으나 **이미 land 된 ADR 이 관할**한다. 910 은 generic 렌더러/edit route 가 그 결과에 연결되는 **bridge 참조 1줄만** 두고, 해당 위험·Gate 는 **910 Risks/Gates 에 추가하지 않는다**(관할 중복 방지).
