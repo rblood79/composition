@@ -511,6 +511,8 @@ interface RenderCommandStream {
 
 ## 4.2 toSkiaStyle(node) — 단일 어댑터
 
+> **신규 도입 심볼** (Proposed): `toSkiaStyle` / `toReactStyle`(§③) / `resolveEditContract`(§"편집 계약")는 본 ADR 이 도입할 신규 심볼이다(현재 코드 0건). theme rule base resolve 는 이미 실재하는 `resolveComponentRule` / `resolveToken`, Skia box+text 그리기는 실재하는 `buildCatalogShapes`, D1 prop 투영은 실재하는 `toRacProps` 를 재사용·확장한다 — 어댑터는 이들 위에 base⊕override 병합 한 겹을 더한 얇은 신규 layer 다.
+
 `toSkiaStyle(node)` 는 base(theme rule) ⊕ override(`node.props.style` 의 `fill` / `cornerRadius` / `borderWidth` / `padding` / `gap` / `fontSize`)를 병합한 resolved 시각값을 Skia `Shape[]` 로 투영하는 단일 어댑터다. override 우선 병합(`props.style[k] ?? rule.resolve(k)`), shorthand↔longhand 정규화, Taffy 결과 좌표 reader, token 해소가 모두 이 한 곳에 수렴한다. DOM backend 의 `toReactStyle(node)` 와 대칭 — 같은 base⊕override 를 읽어 다른 표현(Shape vs CSSProperties)으로 내보내되, 시각 결과는 동일하다.
 
 override reader 는 store longhand 정책을 따른다(`props.style.rowGap ?? props.style.columnGap ?? props.style.gap`, `props.style.paddingTop ?? props.style.padding`, ADR-909). px 파싱은 `parsePxValue` / `parseBorderWidth` 단일 진입점만 사용하고 `parseFloat(String(x))` ad-hoc 파싱을 두지 않는다 — DOM/Skia/Layout 세 경로가 같은 reader 를 거쳐야 drift 가 없다.
