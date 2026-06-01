@@ -11,36 +11,48 @@ import { toRacProps } from "../outputs/toRacProps";
 /**
  * ADR-142 family ⑤(Tree·Table) — Tree/Table 계약 검증.
  *
- * family ④와 동일 패턴 — composition wrapper(useCollectionData, ADR-132)가 D1 담당
- * (internal source), 재귀(Tree)/2D(Table) collection 렌더는 RAC. DOM-only cutover(skiaLegacy:true):
- * DOM/Inspector 는 catalog generic, Skia 만 legacy render.shapes 유지.
+ * composition wrapper(useCollectionData, ADR-132)가 D1 담당(internal source).
+ *
+ * **Tree — Skia generic 발효 (G2(a) 2026-06-01)**: render.shapes 가 shell-only 이고 TreeItem 이
+ *   canonical 자식 element(factory 생성) → 독립 Skia 노드로 행 렌더. buildCatalogShapes 가 동일
+ *   shell 을 그려 items 소실 없음. DOM·Skia 게이트 모두 열림(skiaLegacy 없음).
+ * **Table — DOM-only cutover (skiaLegacy:true)**: render.shapes 가 props.rows/columns 2D grid 를
+ *   직접 cell shape 로 렌더(데이터-시각 결합형) → buildCatalogShapes 로 대체 불가. Skia 만 legacy.
  * TableView 는 inventory §2-1 primitive 에 없음(LayoutRenderer 전용) → catalog 미등록.
  */
 
 const TREE_TABLE_TYPES = ["Tree", "Table"] as const;
 
-describe("family ⑤ Tree·Table — catalog 등록 + DOM-only cutover", () => {
-  it("Tree/Table 이 catalog primitive entry (family=tree-table, cutover=catalog, skiaLegacy)", () => {
+describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
+  it("Tree/Table 이 catalog primitive entry (family=tree-table, cutover=catalog)", () => {
     for (const type of TREE_TABLE_TYPES) {
       const entry = getCatalogEntry(type);
       expect(entry, `${type} catalog entry`).toBeDefined();
       expect(entry?.kind).toBe("primitive");
       expect(entry?.family).toBe("tree-table");
-      expect((entry as { cutover?: string } | undefined)?.cutover).toBe("catalog");
-      expect(
-        (entry as { skiaLegacy?: boolean })?.skiaLegacy,
-        `${type} skiaLegacy`,
-      ).toBe(true);
+      expect((entry as { cutover?: string } | undefined)?.cutover).toBe(
+        "catalog",
+      );
     }
   });
 
-  it("DOM 게이트는 Tree/Table 포함, Skia 게이트는 제외", () => {
+  it("Tree 는 skiaLegacy 없음(Skia generic), Table 은 skiaLegacy:true(2D grid legacy)", () => {
+    expect(
+      (getCatalogEntry("Tree") as { skiaLegacy?: boolean })?.skiaLegacy,
+    ).toBeUndefined();
+    expect(
+      (getCatalogEntry("Table") as { skiaLegacy?: boolean })?.skiaLegacy,
+    ).toBe(true);
+  });
+
+  it("DOM 게이트는 Tree/Table 포함, Skia 게이트는 Tree 만 포함(Table 제외)", () => {
     const domGate = getCatalogCutoverTypes();
     const skiaGate = getCatalogSkiaCutoverTypes();
     for (const type of TREE_TABLE_TYPES) {
       expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
-      expect(skiaGate.has(type), `${type} NOT in Skia gate`).toBe(false);
     }
+    expect(skiaGate.has("Tree"), "Tree in Skia gate").toBe(true);
+    expect(skiaGate.has("Table"), "Table NOT in Skia gate").toBe(false);
   });
 
   it("Tree/Table binding 은 internal source (composition wrapper) + skiaPrimitive 없음", () => {

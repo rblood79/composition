@@ -112,9 +112,16 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
     }
   });
 
-  it("family ④/⑤ collection(skiaLegacy:true)은 Skia cutover 제외 (legacy render.shapes 유지)", () => {
+  it("Tree 는 Skia generic 발효 (G2(a) 2026-06-01 — TreeItem child element 자동 순회)", () => {
+    // Tree render.shapes 는 shell-only(자식 TreeItem 이 독립 Skia 노드로 행 렌더) →
+    // buildCatalogShapes 가 동일 shell 을 그려 items 소실 없음. DOM·Skia 게이트 모두 열림.
+    expect(isCatalogCutover("Tree")).toBe(true);
+    expect(isCatalogSkiaCutover("Tree")).toBe(true);
+  });
+
+  it("collection items/2D 결합형(skiaLegacy:true)은 Skia cutover 제외 (legacy render.shapes 유지)", () => {
     for (const type of [
-      // family ④ collections
+      // family ④ collections — props.items 직접 순회(items→element 전환 선행 필요)
       "ListBox",
       "Menu",
       "Select",
@@ -122,16 +129,15 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
       "Tabs",
       "TagGroup",
       "GridList",
-      // family ⑤ Tree·Table
-      "Tree",
+      // family ⑤ Table — props.rows/columns 2D grid 직접 렌더
       "Table",
-      // family ⑥ overlays
+      // family ⑥ overlays — shadow/backdrop/dashed 보편 속성 미구현(R4 theme 데이터 모델)
       "Dialog",
       "Modal",
       "Popover",
       "Tooltip",
       "DropZone",
-      // family ⑦ date
+      // family ⑦ date — 날짜 grid 데이터-시각 결합형
       "Calendar",
       "RangeCalendar",
       "DatePicker",

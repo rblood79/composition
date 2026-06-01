@@ -245,21 +245,28 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
- * ADR-142 family ⑤(Tree·Table) cutover 상태. Tree/Table 2개. **skiaLegacy: true** — family ④와
- * 동일 패턴(internal source wrapper + useCollectionData), 재귀(Tree)/2D(Table) collection 렌더는
- * RAC 담당. Skia 만 legacy render.shapes 유지(재귀/2D Skia generic 미지원, 전 family 후 일괄).
+ * ADR-142 family ⑤(Tree·Table) cutover 상태. Tree/Table 2개.
+ *
+ * **Tree — Skia generic 발효 (skiaLegacy 제거, 2026-06-01 G2(a))**: Tree render.shapes 는 이미
+ * shell(bg `{color.base}` + border) 만 그리고(ADR 2026-05-18 더미 트리 제거), TreeItem 은 factory
+ * 가 canonical 자식 element 로 생성(`createTreeDefinition`) → 각 TreeItem 이 독립 Skia 노드로
+ * 행을 렌더한다. 즉 재귀 collection 이 아니라 child element 자동 순회 구조. buildCatalogShapes 가
+ * variant fill base(= `resolveStateColors(...).background`) + border 로 동일 shell 을 그리고,
+ * Tree factory props 에 label/text 없음 → text 미렌더로 legacy parity. items 소실 위험 0.
+ *
+ * **Table — skiaLegacy: true 유지**: render.shapes 가 props.rows/columns 2D grid 를 직접 cell
+ * shape 로 계산·렌더(데이터-시각 결합형). buildCatalogShapes(보편 box) 로 대체 불가 → R4 HIGH
+ * Skia generic backend(items→element 또는 2D grid 생성기) 선행 필요. 별도.
  * TableView 는 inventory §2-1 primitive 49 에 없음(LayoutRenderer 전용 layout helper) → 제외.
  */
 const FAMILY_5_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
-  primitiveEntry(
-    "Tree",
-    "tree-table",
-    FAMILY_5_CUTOVER,
-    { category: "collections", label: "tree", icon: "ListTree" },
-    { skiaLegacy: true },
-  ),
+  primitiveEntry("Tree", "tree-table", FAMILY_5_CUTOVER, {
+    category: "collections",
+    label: "tree",
+    icon: "ListTree",
+  }),
   primitiveEntry(
     "Table",
     "tree-table",
