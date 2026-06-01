@@ -51,19 +51,37 @@ projected tree로 존재해야 한다.
    `FormatCapabilityRegistry`에서 온다. `rac.listbox.item`, `rac.tabs`, `rac.button`,
    `rac.table.cell`, `text`는 같은 style property vocabulary를 공유하고, component
    definition은 capability allow-list와 part binding만 선언한다.
-5. `frame`은 semantic-free layout/container primitive로 first-class node다. RAC component는
+5. `props.size` 같은 semantic prop은 default preset이다. `style.fontSize` 같은 style field는
+   사용자가 명시 수정한 override다. Resolver는 preset default를 먼저 만들고, explicit
+   `style.*` override가 있으면 해당 field는 override 값을 우선한다.
+6. `frame`은 semantic-free layout/container primitive로 first-class node다. RAC component는
    접근성/interaction semantics를 담당하고, layout container 역할은 frame contract를
    재사용하거나 명시적 `frame` child에 위임한다.
-6. Pencil App처럼 structure tree가 보존되어야 한다. collection도 template subtree를
+7. Pencil App처럼 structure tree가 보존되어야 한다. collection도 template subtree를
    가져야 하며, size/layout 계산은 `items`가 아니라 template tree를 기준으로 한다.
-7. Skia는 반복 collection의 보이는 viewport window만 렌더링한다. 1,000/10,000 rows를
+8. Skia는 반복 collection의 보이는 viewport window만 렌더링한다. 1,000/10,000 rows를
    canonical tree나 Skia scene에 전부 생성하지 않는다.
-8. Skia Builder는 projected 하위 노드를 hit-test 가능하게 만들어 클릭/더블클릭 drill-in,
+9. Skia Builder는 projected 하위 노드를 hit-test 가능하게 만들어 클릭/더블클릭 drill-in,
    text/data edit, template style edit을 지원해야 한다.
-9. projected row/cell id는 canonical mutation target으로 직접 사용하지 않는다. write는
-   template edit, data edit, item override edit 중 하나로 명시 route한다.
-10. Button, ListBox, Table 첫 proof는 text까지 Skia에서 정상 렌더링되어야 한다. DOM fallback
+10. projected row/cell id는 canonical mutation target으로 직접 사용하지 않는다. write는
+    template edit, data edit, item override edit 중 하나로 명시 route한다.
+11. Button, ListBox, Table 첫 proof는 text까지 Skia에서 정상 렌더링되어야 한다. DOM fallback
     또는 hidden HTML overlay에 의존하지 않는다.
+12. collection data의 저장 권위는 기존 Builder data surface와 충돌하면 안 된다. node-local
+    static data는 detached seed/example에만 허용하고, runtime data는 root
+    `collections`/`apiEndpoints`/`variables`와 element-level binding reference를 통해 resolve한다.
+13. `frame` contract는 Pencil식 layout primitive뿐 아니라 현재 Builder의 page frame binding,
+    Slot fill, projected Slot DnD/mutation route와 연결되어야 한다. render-space projected id와
+    canonical-space write target을 분리한다.
+14. ADR-920 resolver는 별도 layout engine을 만들지 않는다. 기존 layout publish, synthetic element,
+    projection version, dirty tracking boundary와 연결되어 Skia/Layer Tree/Preview가 같은 layout
+    invalidation signal을 소비해야 한다.
+15. events/actions/dataBinding은 RAC/Pencil core schema에 섞지 않는다. composition-only behavior는
+    `x-composition`/root behavior collection extension으로 유지하고, Preview/Publish adapter가
+    `onPress`, `onSelectionChange`, `onAction` 같은 RAC callback으로 bridge한다.
+16. `Icon`/`icon_font`는 RAC primitive가 아니라 composition internal primitive다. clean-source schema의
+    예외로 명시하고, ListBoxItem/Button/Table cell slot tree에서 text와 같은 first-class child target으로
+    다룬다.
 
 **Soft Constraints**:
 
@@ -111,7 +129,7 @@ projected tree로 존재해야 한다.
 
 - 설명:
   - format document는 Pencil처럼 `children[]` template tree를 보존한다.
-  - 반복 데이터는 `data.items`/`data.rows`가 SSOT다.
+  - 반복 데이터는 `collection` binding/static seed contract로 resolve하되 root data store와 중복하지 않는다.
   - Skia/Layer Tree/selection은 `template tree x visible data window`로 projected tree를 만든다.
   - projected node는 hit-test와 drill-in 대상이지만 canonical 저장 노드가 아니다.
   - write는 template, data, item override route 중 하나로 명시 변환한다.
@@ -164,17 +182,22 @@ HIGH가 남는다. D의 HIGH는 구현 복잡도이며, Gate를 통해 phase별�
 
 ## Gates
 
-| Gate                              | 시점    | 통과 조건                                                                                                                                   | 실패 시 대안                                       |
-| --------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| G1 Format resolver                | Phase 1 | Button `size="sm"` 같은 값이 Panel/Preview/Publish/Skia에서 같은 resolved style value를 사용                                                | resolver 범위를 Button leaf로 축소 후 재설계       |
-| G2 Template tree layout           | Phase 2 | ListBoxItem template subtree의 padding/gap/font/lineHeight가 Skia row height와 Preview DOM height에 같은 입력으로 반영                      | items-only fallback 금지, layout resolver부터 보정 |
-| G3 Interactive projected hit tree | Phase 3 | Skia에서 row 내부 Text/Icon을 클릭해 deepest projected node selection, 더블클릭 drill-in/text edit route 검증                               | flat row selection만 허용하지 말고 phase hold      |
-| G4 Visible-only performance       | Phase 4 | 10,000 row ListBox/Table에서 Skia draw/hit node 수가 viewport window + overscan 이하                                                        | row windowing 우선 구현 후 Table 확장 보류         |
-| G5 Mutation boundary              | Phase 4 | projected id가 canonical update/remove/move API에 직접 유입되는 negative fixture PASS                                                       | write route registry 도입 전 진행 중단             |
-| G6 Preview/Publish parity         | Phase 5 | RAC Preview/Publish가 같은 format tree와 data source로 Button/ListBox/Table을 렌더                                                          | Skia-only path merge 금지                          |
-| G7 Clean-source cross-check       | Phase 5 | Button/ListBox/Table에 대해 Format/Factory/Panel/Preview/Skia가 capability/definition registry만 read source로 사용하는지 검증              | spec-derived schema 유입 시 phase hold             |
-| G8 Shared style capability        | Phase 5 | Button/ListBoxItem/Tabs/Table cell이 `layout`/`gap`/`padding`/fill/typography/size를 같은 capability registry에서 resolve                   | component별 style schema 반복 발견 시 phase hold   |
-| G9 Pencil frame contract          | Phase 5 | Button/ListBoxItem/Tabs/Table cell이 `frame` layout contract(`layout`/`gap`/`padding`/slot/reusable)를 유지하고 CSS는 adapter 산출로만 생성 | CSS-style canonical field가 schema에 남으면 hold   |
+| Gate                              | 시점    | 통과 조건                                                                                                                                     | 실패 시 대안                                       |
+| --------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| G1 Format resolver                | Phase 1 | Button `props.size="sm"` 기본값과 `style.fontSize` override precedence가 Panel/Preview/Publish/Skia에서 동일                                  | resolver 범위를 Button leaf로 축소 후 재설계       |
+| G2 Template tree layout           | Phase 2 | ListBoxItem template subtree의 padding/gap/font/lineHeight가 Skia row height와 Preview DOM height에 같은 입력으로 반영                        | items-only fallback 금지, layout resolver부터 보정 |
+| G3 Interactive projected hit tree | Phase 3 | Skia에서 row 내부 Text/Icon을 클릭해 deepest projected node selection, 더블클릭 drill-in/text edit route 검증                                 | flat row selection만 허용하지 말고 phase hold      |
+| G4 Visible-only performance       | Phase 4 | 10,000 row ListBox/Table에서 Skia draw/hit node 수가 viewport window + overscan 이하                                                          | row windowing 우선 구현 후 Table 확장 보류         |
+| G5 Mutation boundary              | Phase 4 | projected id가 canonical update/remove/move API에 직접 유입되는 negative fixture PASS                                                         | write route registry 도입 전 진행 중단             |
+| G6 Preview/Publish parity         | Phase 5 | RAC Preview/Publish가 같은 format tree와 data source로 Button/ListBox/Table을 렌더                                                            | Skia-only path merge 금지                          |
+| G7 Clean-source cross-check       | Phase 5 | Button/ListBox/Table에 대해 Format/Factory/Panel/Preview/Skia가 capability/definition registry만 read source로 사용하는지 검증                | spec-derived schema 유입 시 phase hold             |
+| G8 Shared style capability        | Phase 5 | Button/ListBoxItem/Tabs/Table cell이 `layout`/`gap`/`padding`/fill/typography/size를 같은 capability registry에서 resolve                     | component별 style schema 반복 발견 시 phase hold   |
+| G9 Pencil frame contract          | Phase 5 | Button/ListBoxItem/Tabs/Table cell이 `frame` layout contract(`layout`/`gap`/`padding`/slot/reusable)를 유지하고 CSS는 adapter 산출로만 생성   | CSS-style canonical field가 schema에 남으면 hold   |
+| G10 Data SSOT bridge              | Phase 2 | ListBox/Table static seed, DataTable binding, API endpoint binding이 기존 root data store와 `useCollectionData` semantics를 중복 없이 resolve | node-local API/data SSOT 생성 시 phase hold        |
+| G11 Page frame/Slot projection    | Phase 3 | page-applied frame Slot projection에서 click, DnD, canonical mutation target이 render id가 아니라 ref descendant route로 변환됨               | generic frame만 구현하고 page frame은 phase hold   |
+| G12 Layout publication bridge     | Phase 4 | `resolveTemplateLayout()` 결과가 layout publish/projection version/synthetic element invalidation과 같은 신호로 Skia rebuild를 유도           | 독립 layout cache가 stale render를 만들면 중단     |
+| G13 Behavior bridge               | Phase 5 | Button `onPress`, ListBox `onSelectionChange`/`onAction`, Table `onSelectionChange`가 root events/actions와 Preview/Publish에서 연결됨        | visual-only proof로 승격 금지                      |
+| G14 Table parity matrix           | Phase 5 | column mapping, column groups, sorting, resizing, pagination/infinite, height mode, API data mapping의 지원/deferral이 명시된 fixture PASS    | Table proof 범위를 ListBox 이후로 재절단           |
 
 ## Consequences
 
@@ -202,3 +225,7 @@ HIGH가 남는다. D의 HIGH는 구현 복잡도이며, Gate를 통해 phase별�
 - Table은 2D row/column culling과 cell hit-test가 필요해 ListBox보다 proof 난도가 높다.
 - pre-ADR-920 renderer/spec consumer는 compatibility boundary로 격리해야 하며, 중간 단계에서
   dual consumer path가 발생할 수 있다.
+- 기존 data store, page frame Slot projection, behavior extension을 누락하면 새 format SSOT가
+  기존 Builder SSOT와 병렬로 생겨 migration drift가 발생한다.
+- `Icon` 같은 internal primitive 예외를 과도하게 열면 clean-source boundary가 흐려질 수 있으므로
+  예외 목록과 source kind를 고정해야 한다.
