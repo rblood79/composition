@@ -20,7 +20,9 @@ import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
   buildCatalogShapes,
+  composeCatalogShapes,
   getSkiaPrimitive,
+  getSkiaPrimitiveMode,
   normalizeBreadcrumbRspSizeKey,
   type ComponentState,
   type ComponentSpec,
@@ -784,25 +786,48 @@ function buildCatalogShapesOrPrimitive(
   const visual = resolveSkiaVisualRule(type, variantName);
   const textDecoration = rule?.textDecoration;
 
-  const skiaPrimitiveKey = getPrimitiveBinding(type)?.skiaPrimitive;
-  const drawPrimitive = getSkiaPrimitive(skiaPrimitiveKey);
-  if (drawPrimitive) {
-    const primitiveShapes = drawPrimitive({
-      props: specProps,
-      size: sizeSpec,
-      visual,
-      style: specProps.style as Record<string, unknown> | undefined,
-    });
-    // null = primitive 미적용(예: Badge non-dot) → 보편 box+text fallback.
-    if (primitiveShapes) return primitiveShapes;
+  // binding.skiaPrimitive 는 단일 키 또는 키 배열(overlays 는 shadow/arrow 등 복수 패턴 합성).
+  const primitiveBinding = getPrimitiveBinding(type)?.skiaPrimitive;
+  const primitiveKeys: string[] = primitiveBinding
+    ? Array.isArray(primitiveBinding)
+      ? primitiveBinding
+      : [primitiveBinding]
+    : [];
+
+  const ctx = {
+    props: specProps,
+    size: sizeSpec,
+    visual,
+    style: specProps.style as Record<string, unknown> | undefined,
+  };
+
+  // replace 우선: 하나라도 replace 결과(non-null)를 내면 box+text 를 대체한다(기존 6 leaf
+  // primitive — indicator 만 렌더). null = primitive 미적용(예: Badge non-dot) → 다음 단계.
+  for (const key of primitiveKeys) {
+    if (getSkiaPrimitiveMode(key) !== "replace") continue;
+    const replaceShapes = getSkiaPrimitive(key)?.(ctx);
+    if (replaceShapes) return replaceShapes;
   }
-  return buildCatalogShapes(
+
+  // base box+text + prepend/append 패턴(backdrop/shadow/arrow) 합성 (ADR-142 Inc3 overlays).
+  const base = buildCatalogShapes(
     visual,
     specProps,
     sizeSpec,
     componentState,
     textDecoration,
   );
+  const prepend: Shape[] = [];
+  const append: Shape[] = [];
+  for (const key of primitiveKeys) {
+    const mode = getSkiaPrimitiveMode(key);
+    if (mode === "replace") continue;
+    const shapes = getSkiaPrimitive(key)?.(ctx);
+    if (!shapes) continue;
+    if (mode === "prepend") prepend.push(...shapes);
+    else append.push(...shapes);
+  }
+  return composeCatalogShapes(base, prepend, append);
 }
 
 // ---------------------------------------------------------------------------

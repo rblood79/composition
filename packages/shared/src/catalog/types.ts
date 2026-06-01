@@ -89,8 +89,12 @@ export interface PrimitiveBinding {
   /**
    * 비-DOM-trivial primitive(arc/track/indicator/wheel 등)의 Skia draw module 키.
    * 대부분 미사용 — 순수 DOM box 로 표현 가능한 primitive 는 생략한다.
+   *
+   * **배열 (ADR-142 Inc3 overlays)**: 한 type 이 여러 패턴을 합성할 때 키 배열. 예: Popover =
+   * `["popover_shadow", "popover_arrow"]`. dispatch 가 각 키의 mode(replace/prepend/append)로
+   * buildCatalogShapes(box+text) 출력에 합성한다(`getSkiaPrimitiveMode`).
    */
-  skiaPrimitive?: string;
+  skiaPrimitive?: string | string[];
 }
 
 // ── Inspector 편집 계약 (PropContract) ───────────────────────────────

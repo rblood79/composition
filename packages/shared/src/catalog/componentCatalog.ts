@@ -300,13 +300,14 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     { category: "overlays", label: "modal", icon: "InspectionPanel" },
     { skiaLegacy: true },
   ),
-  primitiveEntry(
-    "Popover",
-    "overlays",
-    FAMILY_6_CUTOVER,
-    { category: "overlays", label: "popover", icon: "AppWindowMac" },
-    { skiaLegacy: true },
-  ),
+  // Popover — Skia generic 발효 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg/border 는
+  //   buildCatalogShapes(variant fill {color.layer-2}), drop shadow + V-arrow 는 skiaPrimitive
+  //   (popover_shadow prepend / popover_arrow append) 합성. render.shapes 와 완전 parity.
+  primitiveEntry("Popover", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "popover",
+    icon: "AppWindowMac",
+  }),
   primitiveEntry(
     "Tooltip",
     "overlays",

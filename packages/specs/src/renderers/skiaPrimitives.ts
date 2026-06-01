@@ -16,6 +16,7 @@
  */
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
+import { TOOLTIP_MAX_WIDTH } from "../components/Tooltip.spec";
 import type { Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
@@ -304,6 +305,280 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
   return shapes;
 };
 
+// ===========================================================================
+// ADR-142 Inc3 family ⑥(overlays) — overlay 시각 패턴 draw module (append 모드).
+//
+// portal/overlay 의 비-box+text 시각(shadow / V-arrow / backdrop)을 그린다. 값은 module 내부
+// 상수(현 render.shapes 하드코딩 1:1 이식) — spec runtime 참조 0(#8), ComponentRule 스키마
+// 확장 불필요(ADR-142 R4/HC#11 정본: 비-DOM-trivial = skiaPrimitive). dashed border 는 보편
+// box 속성이라 buildCatalogShapes 가 직접 emit(별도 module 아님).
+//
+// **append 모드**: 이 draw fn 의 출력은 buildCatalogShapes(box+text) 출력에 **합성**된다
+// (dispatch 가 SKIA_PRIMITIVE_MODES 로 판정). 기존 6 primitive 는 replace(box+text 대체).
+// ===========================================================================
+
+/**
+ * `tooltip_arrow` — Tooltip V-arrow(placement 기반 2-line). showArrow===true 일 때만 적용.
+ * 좌표식은 TooltipSpec.render.shapes(L300-398) 1:1 이식(회귀 0). 색 = bg fill(style/visual).
+ */
+const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
+  if (props.showArrow !== true) return null;
+  const arrowSize = 6;
+  const placement = (props.placement as string | undefined) ?? "top";
+  const sizeName = (props.size as string | undefined) ?? "md";
+  const maxWidth = TOOLTIP_MAX_WIDTH[sizeName] ?? 150;
+  const approxHeight = 24;
+  const centerX = maxWidth / 2;
+  // bg 색: style.backgroundColor → variant fill base (= legacy bgColor). dispatch 에서 visual
+  // 항상 주입되므로 transparent fallback 은 타입 만족용(도달 안 함).
+  const stroke: TokenRef = ((style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    "{color.transparent}") as TokenRef;
+
+  if (placement === "top") {
+    return [
+      {
+        type: "line",
+        x1: centerX - arrowSize,
+        y1: approxHeight,
+        x2: centerX,
+        y2: approxHeight + arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: centerX + arrowSize,
+        y1: approxHeight,
+        x2: centerX,
+        y2: approxHeight + arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+    ];
+  }
+  if (placement === "bottom") {
+    return [
+      {
+        type: "line",
+        x1: centerX - arrowSize,
+        y1: 0,
+        x2: centerX,
+        y2: -arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: centerX + arrowSize,
+        y1: 0,
+        x2: centerX,
+        y2: -arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+    ];
+  }
+  if (placement === "right") {
+    const midY = approxHeight / 2;
+    return [
+      {
+        type: "line",
+        x1: 0,
+        y1: midY - arrowSize,
+        x2: -arrowSize,
+        y2: midY,
+        stroke,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: 0,
+        y1: midY + arrowSize,
+        x2: -arrowSize,
+        y2: midY,
+        stroke,
+        strokeWidth: 2,
+      },
+    ];
+  }
+  // left
+  const midY = approxHeight / 2;
+  return [
+    {
+      type: "line",
+      x1: maxWidth,
+      y1: midY - arrowSize,
+      x2: maxWidth + arrowSize,
+      y2: midY,
+      stroke,
+      strokeWidth: 2,
+    },
+    {
+      type: "line",
+      x1: maxWidth,
+      y1: midY + arrowSize,
+      x2: maxWidth + arrowSize,
+      y2: midY,
+      stroke,
+      strokeWidth: 2,
+    },
+  ];
+};
+
+/**
+ * `popover_arrow` — Popover V-arrow(placement 기반 2-line). !showArrow 일 때(기본 표시).
+ * 좌표식은 PopoverSpec.render.shapes(L267-365) 1:1 이식(cx=cy=80 고정, arrowSize=8). 색 = bg fill.
+ */
+const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
+  if (props.showArrow) return null;
+  const arrowSize = 8;
+  const placement = (props.placement as string | undefined) ?? "bottom";
+  const cx = 80;
+  const cy = 80;
+  const stroke: TokenRef = ((style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    "{color.transparent}") as TokenRef;
+
+  if (placement === "bottom") {
+    return [
+      {
+        type: "line",
+        x1: cx - arrowSize,
+        y1: 0,
+        x2: cx,
+        y2: -arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: cx + arrowSize,
+        y1: 0,
+        x2: cx,
+        y2: -arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+    ];
+  }
+  if (placement === "top") {
+    return [
+      {
+        type: "line",
+        x1: cx - arrowSize,
+        y1: cy,
+        x2: cx,
+        y2: cy + arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: cx + arrowSize,
+        y1: cy,
+        x2: cx,
+        y2: cy + arrowSize,
+        stroke,
+        strokeWidth: 2,
+      },
+    ];
+  }
+  if (placement === "right") {
+    return [
+      {
+        type: "line",
+        x1: 0,
+        y1: cy - arrowSize,
+        x2: -arrowSize,
+        y2: cy,
+        stroke,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: 0,
+        y1: cy + arrowSize,
+        x2: -arrowSize,
+        y2: cy,
+        stroke,
+        strokeWidth: 2,
+      },
+    ];
+  }
+  // left
+  return [
+    {
+      type: "line",
+      x1: cx,
+      y1: cy - arrowSize,
+      x2: cx + arrowSize,
+      y2: cy,
+      stroke,
+      strokeWidth: 2,
+    },
+    {
+      type: "line",
+      x1: cx,
+      y1: cy + arrowSize,
+      x2: cx + arrowSize,
+      y2: cy,
+      stroke,
+      strokeWidth: 2,
+    },
+  ];
+};
+
+/**
+ * `dialog_shadow` — Dialog drop shadow(offsetY:8 blur:24 alpha:0.2). target=bg.
+ * 값은 DialogSpec.render.shapes 하드코딩 1:1 이식. 보편 box-shadow 의 elevation 종류.
+ */
+const dialogShadow: SkiaPrimitiveDrawFn = () => [
+  {
+    type: "shadow",
+    target: "bg",
+    offsetX: 0,
+    offsetY: 8,
+    blur: 24,
+    spread: 0,
+    color: "rgba(0, 0, 0, 0.2)",
+    alpha: 0.2,
+  },
+];
+
+/**
+ * `popover_shadow` — Popover drop shadow(offsetY:4 blur:12 alpha:0.15). target=bg.
+ * 값은 PopoverSpec.render.shapes 하드코딩 1:1 이식. dialog 보다 약한 elevation.
+ */
+const popoverShadow: SkiaPrimitiveDrawFn = () => [
+  {
+    type: "shadow",
+    target: "bg",
+    offsetX: 0,
+    offsetY: 4,
+    blur: 12,
+    spread: 0,
+    color: "rgba(0, 0, 0, 0.15)",
+    alpha: 0.15,
+  },
+];
+
+/**
+ * `overlay_backdrop` — Dialog 반투명 backdrop(전체 화면 rect, rgba(0,0,0,0.5)).
+ * 값은 DialogSpec.render.shapes 하드코딩 1:1 이식. modal overlay 패턴.
+ */
+const overlayBackdrop: SkiaPrimitiveDrawFn = () => [
+  {
+    type: "rect",
+    x: -9999,
+    y: -9999,
+    width: 99999,
+    height: 99999,
+    fill: "rgba(0, 0, 0, 0.5)" as unknown as TokenRef,
+    fillAlpha: 0.5,
+  },
+];
+
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
@@ -312,10 +587,43 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   checkbox,
   radio,
   switch_toggle: switchToggle,
+  // ADR-142 Inc3 overlays (append 모드 — SKIA_PRIMITIVE_MODES 참조)
+  tooltip_arrow: tooltipArrow,
+  popover_arrow: popoverArrow,
+  dialog_shadow: dialogShadow,
+  popover_shadow: popoverShadow,
+  overlay_backdrop: overlayBackdrop,
+};
+
+/** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
+export type SkiaPrimitiveMode = "replace" | "prepend" | "append";
+
+/**
+ * draw module 의 합성 모드.
+ * - `"replace"`(기본): 출력이 box+text 를 **대체**한다(기존 6 leaf primitive — indicator 만 렌더).
+ * - `"prepend"`: 출력이 buildCatalogShapes(box+text) 출력 **앞**(아래 레이어)에 합성된다 —
+ *   backdrop(전체화면 rect) / shadow(target=bg). legacy 순서 [backdrop, shadow, bg, ...] 재현.
+ * - `"append"`: 출력이 box+text 출력 **뒤**(위 레이어)에 합성된다 — arrow(line).
+ *
+ * 미등록 키는 `"replace"` 로 간주(기존 호환).
+ */
+const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
+  overlay_backdrop: "prepend",
+  dialog_shadow: "prepend",
+  popover_shadow: "prepend",
+  tooltip_arrow: "append",
+  popover_arrow: "append",
 };
 
 export function getSkiaPrimitive(
   key: string | undefined,
 ): SkiaPrimitiveDrawFn | undefined {
   return key ? SKIA_PRIMITIVES[key] : undefined;
+}
+
+/** draw module 합성 모드. 미등록/미지정 키는 "replace"(box+text 대체, 기존 호환). */
+export function getSkiaPrimitiveMode(
+  key: string | undefined,
+): SkiaPrimitiveMode {
+  return (key && SKIA_PRIMITIVE_MODES[key]) || "replace";
 }

@@ -215,7 +215,10 @@ export {
   variantToVisual,
   // ADR-142 §3 — skiaPrimitive draw module (원/선/아이콘 등 비-trivial)
   getSkiaPrimitive,
+  getSkiaPrimitiveMode,
   SKIA_PRIMITIVES,
+  // ADR-142 Inc3 — overlay 패턴 z-order 합성
+  composeCatalogShapes,
 } from "./renderers";
 
 export type { ReactRenderResult } from "./renderers";
