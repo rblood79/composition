@@ -15,7 +15,12 @@ export const dropZoneBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      label: { kind: "string", label: "Label", section: "content" },
+      label: {
+        kind: "string",
+        label: "Label",
+        section: "content",
+        default: "Drop files here",
+      },
       description: {
         kind: "string",
         label: "Description",

@@ -129,6 +129,8 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
     expect(isCatalogSkiaCutover("Dialog")).toBe(true);
     expect(isCatalogCutover("Modal")).toBe(true);
     expect(isCatalogSkiaCutover("Modal")).toBe(true);
+    expect(isCatalogCutover("DropZone")).toBe(true);
+    expect(isCatalogSkiaCutover("DropZone")).toBe(true);
   });
 
   it("collection items/2D 결합형 + 미발효 overlay/date(skiaLegacy:true)은 Skia cutover 제외", () => {
@@ -145,7 +147,6 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
       "Table",
       // family ⑥ overlays 미발효 — DropZone variant+dashed / Tooltip text source 대기
       "Tooltip",
-      "DropZone",
       // family ⑦ date — 날짜 grid 데이터-시각 결합형
       "Calendar",
       "RangeCalendar",

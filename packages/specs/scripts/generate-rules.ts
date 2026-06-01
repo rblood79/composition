@@ -106,6 +106,10 @@ function projectSpec(spec: ComponentSpec<unknown>): ComponentRule {
       const v: ComponentRuleVariant = { fill: projectFill(variant) };
       const colors = projectColors(variant);
       if (colors) v.colors = colors;
+      // border-style (DropZone dashed 등 보편 D3 속성) — undefined 시 생략(consumer solid fallback).
+      if (variant.borderStyle) v.borderStyle = variant.borderStyle;
+      // text-weight (DropZone 400 등 보편 D3 속성) — undefined 시 생략(consumer 기본 굵기 fallback).
+      if (variant.textWeight !== undefined) v.textWeight = variant.textWeight;
       rule.variants[name] = v;
     }
   }

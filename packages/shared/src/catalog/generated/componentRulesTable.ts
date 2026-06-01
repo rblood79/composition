@@ -2129,24 +2129,45 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     }
   },
   "DropZone": {
+    "defaultVariant": "default",
     "defaultSize": "md",
-    "variants": {},
+    "variants": {
+      "default": {
+        "fill": {
+          "default": {
+            "base": "{color.base}",
+            "hover": "{color.layer-2}"
+          }
+        },
+        "colors": {
+          "text": "{color.neutral-subdued}",
+          "textHover": "{color.accent}",
+          "border": "{color.border}",
+          "borderHover": "{color.accent}"
+        },
+        "borderStyle": "dashed",
+        "textWeight": 400
+      }
+    },
     "sizes": {
       "sm": {
         "fontSize": "{typography.text-sm}",
         "borderRadius": "{radius.md}",
+        "borderWidth": 2,
         "height": 80,
         "iconSize": 24
       },
       "md": {
         "fontSize": "{typography.text-sm}",
         "borderRadius": "{radius.lg}",
+        "borderWidth": 2,
         "height": 120,
         "iconSize": 32
       },
       "lg": {
         "fontSize": "{typography.text-lg}",
         "borderRadius": "{radius.xl}",
+        "borderWidth": 2,
         "height": 160,
         "iconSize": 40
       }

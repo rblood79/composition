@@ -317,13 +317,11 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     { category: "overlays", label: "tooltip", icon: "MessageSquare" },
     { skiaLegacy: true },
   ),
-  primitiveEntry(
-    "DropZone",
-    "overlays",
-    FAMILY_6_CUTOVER,
-    { category: "forms", label: "drop zone", icon: "Upload" },
-    { skiaLegacy: true },
-  ),
+  primitiveEntry("DropZone", "overlays", FAMILY_6_CUTOVER, {
+    category: "forms",
+    label: "drop zone",
+    icon: "Upload",
+  }),
 ];
 
 /**

@@ -751,11 +751,29 @@ export interface VariantSpec {
   /** 텍스트 색상 hover (optional, 미지정 시 text 사용) */
   textHover?: TokenRef;
 
+  /**
+   * 텍스트 굵기 (CSS `font-weight` 동형 — 보편 D3 속성, optional).
+   *
+   * 미지정 시 consumer 가 기본 굵기(buildCatalogShapes 500) fallback. DropZone(안내 라벨 400)
+   * 처럼 variant 의 본질 텍스트 굵기가 기본과 다른 컴포넌트가 사용. buildCatalogShapes text emit +
+   * CSSGenerator font-weight 양 consumer 가 ComponentVisualRule.textWeight 경유로 소비.
+   */
+  textWeight?: number;
+
   /** 테두리 색상 (optional) */
   border?: TokenRef;
 
   /** 테두리 색상 hover (optional) */
   borderHover?: TokenRef;
+
+  /**
+   * 테두리 선 스타일 (CSS `border-style` 동형 — 보편 D3 속성, optional).
+   *
+   * 미지정 시 consumer 가 `"solid"` fallback. DropZone(drop 영역 dashed) 처럼
+   * variant 의 본질 시각이 점선/점인 컴포넌트가 사용. buildCatalogShapes border emit +
+   * CSSGenerator border-style 양 consumer 가 ComponentVisualRule.borderStyle 경유로 소비.
+   */
+  borderStyle?: "solid" | "dashed" | "dotted";
 
   // ─── ADR-036 Phase 2b: fillStyle 확장 (non-background 색상) ───
 

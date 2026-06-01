@@ -28,9 +28,14 @@ const OVERLAY_TYPES = [
 ] as const;
 
 /** Skia generic 발효된 overlay (skiaLegacy 제거됨). */
-const SKIA_CUTOVER_OVERLAYS = ["Popover", "Dialog", "Modal"] as const;
+const SKIA_CUTOVER_OVERLAYS = [
+  "Popover",
+  "Dialog",
+  "Modal",
+  "DropZone",
+] as const;
 /** Skia 미발효(skiaLegacy:true) — 보강 대기. */
-const SKIA_LEGACY_OVERLAYS = ["Tooltip", "DropZone"] as const;
+const SKIA_LEGACY_OVERLAYS = ["Tooltip"] as const;
 
 describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
   it("5 overlay 가 catalog primitive entry (family=overlays, cutover=catalog)", () => {
@@ -82,7 +87,7 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
       expect(binding?.source.kind, `${type} source`).toBe("internal");
     }
     // 미발효(Tooltip/DropZone) + Modal(발효이나 shadow/arrow 없음 — transparent shell) 은 미보유.
-    for (const type of [...SKIA_LEGACY_OVERLAYS, "Modal"]) {
+    for (const type of [...SKIA_LEGACY_OVERLAYS, "Modal", "DropZone"]) {
       expect(
         getPrimitiveBinding(type)?.skiaPrimitive,
         `${type} no skiaPrimitive`,

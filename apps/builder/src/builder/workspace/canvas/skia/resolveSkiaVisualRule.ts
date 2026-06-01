@@ -25,12 +25,15 @@ export function ruleVariantToVisual(
 ): ComponentVisualRule {
   const c = v.colors ?? {};
   // fill 은 ComponentRuleFill(string) 과 FillTokenSpec(TokenRef) 가 동형 — 구조 그대로 캐스팅.
+  // borderStyle/textWeight 는 ComponentRuleVariant 본문 정식 필드(DropZone dashed/400 등 보편 D3).
   return {
     fill: v.fill as unknown as ComponentVisualRule["fill"],
     text: c.text as ComponentVisualRule["text"],
     textHover: c.textHover as ComponentVisualRule["textHover"],
+    textWeight: v.textWeight,
     border: c.border as ComponentVisualRule["border"],
     borderHover: c.borderHover as ComponentVisualRule["borderHover"],
+    borderStyle: v.borderStyle,
     outlineText: c.outlineText as ComponentVisualRule["outlineText"],
     outlineBorder: c.outlineBorder as ComponentVisualRule["outlineBorder"],
     subtleText: c.subtleText as ComponentVisualRule["subtleText"],

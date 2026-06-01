@@ -37,10 +37,14 @@ export interface ComponentVisualRule {
   text: TokenRef | undefined;
   /** hover 텍스트 색 (미지정 시 consumer 가 text fallback) */
   textHover: TokenRef | undefined;
+  /** 텍스트 굵기 (CSS font-weight 동형, 미지정 시 consumer 가 기본 굵기 fallback) */
+  textWeight: number | undefined;
   /** 기본 테두리 색 */
   border: TokenRef | undefined;
   /** hover 테두리 색 */
   borderHover: TokenRef | undefined;
+  /** 테두리 선 스타일 (CSS border-style 동형, 미지정 시 consumer 가 "solid" fallback) */
+  borderStyle: "solid" | "dashed" | "dotted" | undefined;
   /** outline fillStyle 텍스트 색 */
   outlineText: TokenRef | undefined;
   /** outline fillStyle 테두리 색 */
@@ -83,8 +87,10 @@ export function variantToVisual(variant: VariantSpec): ComponentVisualRule {
     fill: resolveFillTokens(variant),
     text: variant.text,
     textHover: variant.textHover,
+    textWeight: variant.textWeight,
     border: variant.border,
     borderHover: variant.borderHover,
+    borderStyle: variant.borderStyle,
     outlineText: variant.outlineText,
     outlineBorder: variant.outlineBorder,
     subtleText: variant.subtleText,

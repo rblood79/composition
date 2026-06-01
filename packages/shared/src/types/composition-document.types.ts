@@ -140,10 +140,14 @@ export interface ComponentRuleVariantColors {
   emphasizedSelectedBorder?: string;
 }
 
-/** 단일 variant 규칙 = fill 2축 + 비-fill 색상. */
+/** 단일 variant 규칙 = fill 2축 + 비-fill 색상 + border-style. */
 export interface ComponentRuleVariant {
   fill: ComponentRuleFill;
   colors?: ComponentRuleVariantColors;
+  /** 테두리 선 스타일 (CSS border-style 동형 — DropZone dashed 등 보편 D3 속성). */
+  borderStyle?: "solid" | "dashed" | "dotted";
+  /** 텍스트 굵기 (CSS font-weight 동형 — DropZone 400 등 보편 D3 속성). */
+  textWeight?: number;
 }
 
 /**

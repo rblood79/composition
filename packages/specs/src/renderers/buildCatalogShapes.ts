@@ -47,7 +47,11 @@ export function buildCatalogShapes(
   const fill = visual?.fill;
 
   const borderRadius = parsePxValue(style?.borderRadius, size.borderRadius);
-  const borderWidth = parseBorderWidth(style?.borderWidth, 1);
+  // border-width: 사용자 style 우선, 없으면 size.borderWidth(보편 D3 속성), 최종 fallback 1.
+  const borderWidth = parseBorderWidth(
+    style?.borderWidth,
+    size.borderWidth ?? 1,
+  );
 
   // fillStyle 별 fill state subset — outline/subtle 은 Partial(미정의 시 fallback).
   const fillStyleProp = (props.fillStyle as string | undefined) ?? "fill";
@@ -147,12 +151,16 @@ export function buildCatalogShapes(
       fillAlpha: fill?.alpha ?? 1,
     });
     if (borderColor) {
+      // border-style 은 보편 D3 속성(CSS border-style 동형). visual.borderStyle 우선,
+      // 없으면 specShapeConverter 가 "solid" fallback(미지정 시 style 키 생략 → solid).
+      const borderStyle = visual?.borderStyle;
       shapes.push({
         type: "border",
         target: "bg",
         borderWidth,
         color: borderColor,
         radius: borderRadius as unknown as number,
+        ...(borderStyle ? { style: borderStyle } : {}),
       });
     }
   }
@@ -169,13 +177,15 @@ export function buildCatalogShapes(
       (style?.fontSize as string | number | undefined) ?? size.fontSize,
       16,
     );
+    // font-weight: 사용자 style 우선, 없으면 visual.textWeight(variant 시각 — DropZone 400 등),
+    // 최종 fallback 500. textWeight 는 보편 D3 속성(CSS font-weight 동형).
     const fwRaw = style?.fontWeight;
     const fw =
       fwRaw != null
         ? typeof fwRaw === "number"
           ? fwRaw
           : parseInt(String(fwRaw), 10) || 500
-        : 500;
+        : (visual?.textWeight ?? 500);
     const ff = (style?.fontFamily as string) || fontFamily.sans;
 
     // inline text leaf (size.height===0, 예: Link) 는 top/left, box 는 middle/center.

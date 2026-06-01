@@ -43,6 +43,30 @@ export const DropZoneSpec: ComponentSpec<DropZoneProps> = {
 
   defaultSize: "md",
 
+  // ADR-142 Inc3 (2026-06-01): Skia generic 발효를 위한 variant.default 보강.
+  //   legacy render.shapes 의 DROPZONE_DEFAULTS 상수(background/text/border)를 ComponentVisualRule
+  //   소스로 이전 — buildCatalogShapes 가 fill/border/borderStyle/text 를 variant 에서 읽는다.
+  //   fill.default.base={color.base}(idle) / .hover={color.layer-2}(isDropTarget·hover active).
+  //   border={color.border}(idle) / borderHover={color.accent}(active). borderStyle=dashed(drop 영역).
+  //   text={color.neutral-subdued}(idle) / textHover={color.accent}(active).
+  defaultVariant: "default",
+  variants: {
+    default: {
+      fill: {
+        default: {
+          base: "{color.base}" as TokenRef,
+          hover: "{color.layer-2}" as TokenRef,
+        },
+      },
+      text: "{color.neutral-subdued}" as TokenRef,
+      textHover: "{color.accent}" as TokenRef,
+      textWeight: 400,
+      border: "{color.border}" as TokenRef,
+      borderHover: "{color.accent}" as TokenRef,
+      borderStyle: "dashed",
+    },
+  },
+
   sizes: {
     sm: {
       height: 80,
@@ -50,6 +74,7 @@ export const DropZoneSpec: ComponentSpec<DropZoneProps> = {
       paddingY: 16,
       fontSize: "{typography.text-sm}" as TokenRef,
       borderRadius: "{radius.md}" as TokenRef,
+      borderWidth: 2,
       iconSize: 24,
       gap: 8,
     },
@@ -59,6 +84,7 @@ export const DropZoneSpec: ComponentSpec<DropZoneProps> = {
       paddingY: 24,
       fontSize: "{typography.text-sm}" as TokenRef,
       borderRadius: "{radius.lg}" as TokenRef,
+      borderWidth: 2,
       iconSize: 32,
       gap: 12,
     },
@@ -68,6 +94,7 @@ export const DropZoneSpec: ComponentSpec<DropZoneProps> = {
       paddingY: 32,
       fontSize: "{typography.text-lg}" as TokenRef,
       borderRadius: "{radius.xl}" as TokenRef,
+      borderWidth: 2,
       iconSize: 40,
       gap: 16,
     },
