@@ -399,7 +399,24 @@ cutover 후 허용되는 legacy usage:
 
 ## 7. 완료 판정
 
-ADR-142 를 Implemented 로 승격하려면 전 family 가 `cutover:"catalog"` 에 도달하고 아래가 모두 참이어야 한다.
+> **2026-06-02 — scope 축소 종결 (사용자 결정)**. 아래 원판정(1~10)은 "전 family Skia generic 발효 + active 경로 render.shapes 0건"을 기준으로 작성됐다. **실제 종결은 collections·Table·date·Tooltip·Slider 의 Skia generic backend 를 후속 ADR 로 분리한 축소 scope 다.** 따라서 5·7·8 항은 **DOM 전 family + Skia 발효 가능 family** 경계로 충족된다(나머지는 `skiaLegacy:true` 로 render.shapes 를 의도적으로 유지). 축소 종결 기준:
+>
+> | 원판정                                      | 축소 종결 상태                                                                                                                                        |
+> | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | 1 (inventory + catalog + legacy 처분)       | ✅ 충족 — `componentCatalog` 가 official set SSOT, inventory audit 산출                                                                               |
+> | 2 (조합=reusable / leaf=binding)            | ✅ 충족 — primitive binding land                                                                                                                      |
+> | 3 (Panel/Factory catalog 만 소비)           | ✅ 충족                                                                                                                                               |
+> | 4 (Preview resolved tree 단일 source)       | ✅ 충족 — ADR-116 canonical 기본 ON                                                                                                                   |
+> | 5 (Skia generic, render.shapes 미사용)      | **부분 — DOM 전 family + Skia 발효 family 한정**. collections/Table/date/Tooltip/Slider 는 `skiaLegacy:true` 로 render.shapes 유지 → ADR-146/920 이관 |
+> | 6 (Properties generic 편집)                 | ✅ 충족                                                                                                                                               |
+> | 7 (Tree/Table Skia·Preview 동작)            | **부분 — Tree ✅ / Table skiaLegacy** (2D grid → ADR-920)                                                                                             |
+> | 8 (render.shapes active 참조 0건)           | **부분 — DOM 0건 / Skia 는 skiaLegacy family 만 유지** (의도된 후속 영역)                                                                             |
+> | 9 (`codex:preflight`)                       | type-check 5/5 + 관련 vitest PASS 로 갈음                                                                                                             |
+> | 10 (status 동기화 + ADR-036/907/908 재평가) | ✅ — 본 종결 커밋에서 README/ADR status 동기화. ADR-036/907/908 재평가는 Skia 완전 발효(ADR-920) 시점으로 이연                                        |
+>
+> **Skia 잔여 이관처**: collections(7) + Table = [ADR-920](../920-rac-format-interactive-projected-tree.md) Interactive Projected Tree(projected draw/hit tree, virtualization). ListBox 단일 proof = [ADR-146](../completed/146-listboxitem-ref-template-row-projection.md)(Implemented). date(4) Skia 날짜 grid / Tooltip / Slider track 도 동일 generic backend 선행 필요(ADR-920 범위). color 는 사용자 지시로 본 ADR 외.
+
+원판정(전체 Skia 발효 시 적용):
 
 1. inventory + `componentCatalog` 가 현재 official component set 을 설명하고, 124 `ComponentSpec` 의 legacy 처분이 명시된다.
 2. 조합 컴포넌트가 canonical reusable 문서로 정의되어 있고, 코드 정의가 leaf primitive 약 35개의 `PrimitiveBinding` 으로 한정된다.

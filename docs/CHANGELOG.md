@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [RAC primitive binding 컴포넌트 시스템 — ADR-142 scope 축소 종결] - 2026-06-02
+
+### Architecture
+
+- **ADR-142 Implemented (scope 축소 종결)** — 컴포넌트를 코드 정의 파일이 아니라 canonical 문서로 통합하는 시스템의 공통 기반 + family 단위 cutover 완료:
+  - **DOM/Inspector 7 family 전부 catalog generic 발효** (primitives/fields/selection/collections/Tree·Table/overlays/date·color/composition-native, `cutover:"catalog"`). 등록은 단일 `componentCatalog` 가 SSOT — 기존 6개 분산 목록(Panel/Factory/`rendererMap`/`getDefaultProps`/`BASE_TAG_SPEC_MAP`/builder `TAG_SPEC_MAP`) 대체
+  - **Skia generic 발효 = box+text+skiaPrimitive 합성으로 재현 가능한 family 까지** — primitives / fields / selection(Slider 제외) / Tree / overlays(Dialog·Modal·Popover·DropZone). `buildCatalogShapes`(generic shape-descriptor) + `composeCatalogShapes`(skiaPrimitive prepend/append z-order 합성)가 `render.shapes()` 를 대체
+  - **DropZone Skia 발효** (Inc3, commit `79abf9a79`): `VariantSpec`/`ComponentRuleVariant` 에 `textWeight`(font-weight 동형) + `borderStyle`(border-style 동형) 보편 D3 속성 추가 → drop 영역 dashed border + 안내 라벨 400 weight 를 Skia generic 으로 재현. `resolveComponentVisual`/`resolveSkiaVisualRule` 양 경로가 `ComponentVisualRule` 경유 emit
+  - **Skia 잔여는 후속 ADR 로 명시 이관**: collections 7종(ListBox/Menu/Select/ComboBox/Tabs/TagGroup/GridList) + Table + date 4종(Calendar/RangeCalendar/DatePicker/DateRangePicker) + Tooltip + Slider 의 데이터-결합형 Skia backend(items 순회 / 2D grid / 날짜 grid 생성기)는 `skiaLegacy:true` 로 render.shapes 유지 → ADR-146(ListBox 단일 proof, Implemented) + ADR-920(Interactive Projected Tree — collection/Table Skia 하위 노드 직접 접근 + virtualization, Proposed)
+  - **Why**: collections 의 Skia generic backend 는 R4(HIGH)가 가리키는 대규모 영역(데이터-시각 결합형 multi-item / 2D grid 렌더)으로, ADR-142 의 family loop 안에서 atomic 처리하기에 무게가 과하다. DOM cutover 와 box+text 재현 가능 Skia 는 본 ADR 에서 종결하고, 데이터-결합형 Skia 는 ADR-920 의 projected-tree 메커니즘으로 분리(사용자 결정 2026-06-02)
+  - color(TailSwatch/ColorPicker arc·wheel·gradient)는 사용자 지시(2026-05-31)로 scope 외. ADR-036/907/908 status 재평가는 Skia 완전 발효(ADR-920) 시점 이연
+  - 검증: 7 family cutover 커밋(`94d3833d9`..`79abf9a79`) + family 단위 Chrome MCP cross-check + type-check 5/5 PASS(builder baseline 110) + composeCatalogShapes/cutover/overlayBindings/CSSGenerator.snapshot vitest PASS
+  - 위치: `packages/shared/src/catalog/`(componentCatalog/bindings/cutover) + `packages/specs/src/renderers/buildCatalogShapes.ts` + `apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts`
+
 ## [ListBox anchor-less 전환 — origin/instance 구조 통일 (ADR-146 Addendum 1)] - 2026-05-30
 
 ### Bug Fixes
