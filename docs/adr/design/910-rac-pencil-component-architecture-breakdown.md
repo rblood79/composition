@@ -689,7 +689,7 @@ DOM backend 는 같은 traversal 출력을 `toReactStyle(node)` 로 받아 React
 
 ## 4.11 RAC 시각 재현 범위 — 원본 RAC → SSOT → Skia 정합성 계층
 
-원본 RAC 시각(vendored starter CSS)은 SSOT(theme `ComponentRule` + `props.style` override)로 추출되어 Skia generic 렌더(`buildCatalogShapes`)로 투영된다. 이 경로에서 **모든 RAC 시각이 동일 정합으로 재현되는 것은 아니다** — 시각 속성은 재현 난이도별로 4계층으로 나뉘고, generic 정합이 닿는 영역과 컴포넌트별 수작업 합성에 맡기는 영역, 정적 Skia 특성상 재현하지 않는 영역의 경계가 다르다. 본 절은 그 경계를 명시한다(설계 한계의 정직한 기록 — "RAC 시각 100% Skia 재현"은 본 설계의 목표가 아니다).
+원본 RAC 시각(vendored starter CSS)은 `packages/design.md`(starter CSS token/패턴을 중복제거해 정규화한 reference baseline)를 선행 입력으로 거쳐 SSOT(theme `ComponentRule` + `props.style` override)로 추출되고, Skia generic 렌더(`buildCatalogShapes`)로 투영된다. 입력 체인: `react-aria-starter/src` CSS → `design.md` 정규화 reference → theme/tokens SSOT → Skia/DOM generic. `design.md` 는 저작 입력이지 런타임 계약이 아니며(런타임 시각 SSOT 는 theme/tokens root collection), 컴포넌트별 design.md 추가는 금지(중복 SSOT)다. 이 경로에서 **모든 RAC 시각이 동일 정합으로 재현되는 것은 아니다** — 시각 속성은 재현 난이도별로 4계층으로 나뉘고, generic 정합이 닿는 영역과 컴포넌트별 수작업 합성에 맡기는 영역, 정적 Skia 특성상 재현하지 않는 영역의 경계가 다르다. 본 절은 그 경계를 명시한다(설계 한계의 정직한 기록 — "RAC 시각 100% Skia 재현"은 본 설계의 목표가 아니다).
 
 **실측 근거**: 원본 RAC CSS 시각 속성 전수 집계(`packages/react-aria-starter/**/*.css`), SSOT 추출 범위(`ComponentRuleSize` 6필드 + `ComponentRuleVariantColors` 11색상축), Skia generic 출력(`buildCatalogShapes` = `border` + `text` 2 shape), 수작업 합성(`skiaPrimitives.ts` 의 `overlay_backdrop` / `popover_shadow` / `popover_arrow` draw module).
 
