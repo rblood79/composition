@@ -56,28 +56,28 @@
     "react-dom": "catalog:"
   },
   "dependencies": {
-    "@internationalized/date": "^3.12.1",
-    "@internationalized/number": "^3.6.6",
-    "@react-aria/focus": "^3.22.0",
-    "@react-aria/utils": "^3.34.0",
+    "@composition/specs": "workspace:*",
+    "@internationalized/date": "^3.12.2",
+    "@internationalized/number": "^3.6.7",
+    "@react-aria/focus": "^3.22.1",
+    "@react-aria/utils": "^3.34.1",
     "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-virtual": "^3.13.24",
+    "@tanstack/react-virtual": "^3.13.26",
     "@types/node": "catalog:",
     "clsx": "^2.1.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.575.0",
     "react-aria-components": "catalog:",
-    "react-stately": "^3.46.0",
-    "tailwind-merge": "^3.5.0",
-    "@composition/specs": "workspace:*"
+    "react-stately": "^3.47.0",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@composition/config": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@composition/config": "workspace:*",
-    "eslint": "^10.0.2",
+    "eslint": "^10.4.1",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   }
 }

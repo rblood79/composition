@@ -2,26 +2,26 @@ packages:
   - apps/*
   - packages/*
   # react-aria-starter 는 읽기 전용 D3 시각 참조 스냅샷 — 설치 그래프 제외 (ADR-142)
-  - "!packages/react-aria-starter"
+  - '!packages/react-aria-starter'
 
 catalogs:
   default:
     '@types/node': 24.10.4
-    '@types/react': ^19.2.14
+    '@types/react': ^19.2.15
     '@types/react-dom': ^19.2.3
-    '@vitejs/plugin-react-swc': ^4.3.0
+    '@vitejs/plugin-react-swc': ^4.3.1
     cross-env: ^10.1.0
-    immer: ^11.1.4
+    immer: ^11.1.8
     jotai: ^2.18.0
-    react: ^19.2.5
-    react-aria-components: ^1.17.0
-    react-dom: ^19.2.5
-    react-router: ^7.14.2
-    react-router-dom: ^7.14.2
+    react: ^19.2.6
+    react-aria-components: ^1.18.0
+    react-dom: ^19.2.6
+    react-router: ^7.16.0
+    react-router-dom: ^7.16.0
     typescript: ~5.9.3
-    vite: ^7.3.1
-    vitest: ^4.1.5
-    zustand: ^5.0.12
+    vite: ^7.3.3
+    vitest: ^4.1.7
+    zustand: ^5.0.14
 
 onlyBuiltDependencies:
   - '@swc/core'
