@@ -12,7 +12,6 @@
 import type {
   ComponentSpec,
   ArchetypeId,
-  VariantSpec,
   SizeSpec,
   ContainerStylesSchema,
 } from "../types";
@@ -21,6 +20,12 @@ import { tokenToCSSVar, resolveFocusRingToken } from "./utils/tokenResolver";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
 // ADR-908 Phase 3-A + 3-B: Fill token dual-read seam — VariantSpec + IndicatorModeSpec
 import { resolveFillTokens, resolveIndicatorFill } from "../utils/fillTokens";
+// ADR-142 G2(b) A: variant 색상 단일 어댑터 — spec.variants 직접 접근을 본 seam 으로 수렴.
+//   B 단계에서 variantToVisual 의 source 만 rule 테이블로 swap → CSSGenerator 호출부 불변.
+import {
+  variantToVisual,
+  type ComponentVisualRule,
+} from "./utils/resolveComponentVisual";
 
 // ─── ADR-059 B5: cssEmitMode helper ─────────────────────────────────────────
 
@@ -217,10 +222,12 @@ export function generateCSS<Props>(
     !spec.skipVariantCss
   )
     for (const [variantName, variantSpec] of Object.entries(spec.variants)) {
-      // ADR-908 Phase 3-A: legacy background 필드 대신 fill token dual-read seam 소비
-      const fill = resolveFillTokens(variantSpec);
+      // ADR-142 G2(b) A: variant 색상은 variantToVisual 단일 어댑터 경유 (spec.variants 직접
+      //   필드 접근 제거). B 단계에서 source 만 rule 테이블로 swap → 본 블록 불변.
+      const visual = variantToVisual(variantSpec);
+      const fill = visual.fill!;
       lines.push(`.react-aria-${spec.name}[data-variant="${variantName}"] {`);
-      lines.push(...generateVariantStyles(variantSpec, variantMode));
+      lines.push(...generateVariantStyles(visual, variantMode));
       lines.push("");
 
       // hover/pressed — button-base 모드에서는 .button-base utility가 color-mix로 자동 파생
@@ -230,13 +237,11 @@ export function generateCSS<Props>(
         if (fill.default.hover) {
           lines.push(`    background: ${tokenToCSSVar(fill.default.hover)};`);
         }
-        if (variantSpec.textHover) {
-          lines.push(`    color: ${tokenToCSSVar(variantSpec.textHover)};`);
+        if (visual.textHover) {
+          lines.push(`    color: ${tokenToCSSVar(visual.textHover)};`);
         }
-        if (variantSpec.borderHover) {
-          lines.push(
-            `    border-color: ${tokenToCSSVar(variantSpec.borderHover)};`,
-          );
+        if (visual.borderHover) {
+          lines.push(`    border-color: ${tokenToCSSVar(visual.borderHover)};`);
         }
         lines.push("  }");
         lines.push("");
@@ -261,21 +266,21 @@ export function generateCSS<Props>(
             "    ",
           ),
         );
-        if (variantSpec.selectedText) {
+        if (visual.selectedText) {
           lines.push(
             emitColorLine(
               "text",
-              tokenToCSSVar(variantSpec.selectedText),
+              tokenToCSSVar(visual.selectedText),
               variantMode,
               "    ",
             ),
           );
         }
-        if (variantSpec.selectedBorder) {
+        if (visual.selectedBorder) {
           lines.push(
             emitColorLine(
               "border",
-              tokenToCSSVar(variantSpec.selectedBorder),
+              tokenToCSSVar(visual.selectedBorder),
               variantMode,
               "    ",
             ),
@@ -315,21 +320,21 @@ export function generateCSS<Props>(
             "    ",
           ),
         );
-        if (variantSpec.emphasizedSelectedText) {
+        if (visual.emphasizedSelectedText) {
           lines.push(
             emitColorLine(
               "text",
-              tokenToCSSVar(variantSpec.emphasizedSelectedText),
+              tokenToCSSVar(visual.emphasizedSelectedText),
               variantMode,
               "    ",
             ),
           );
         }
-        if (variantSpec.emphasizedSelectedBorder) {
+        if (visual.emphasizedSelectedBorder) {
           lines.push(
             emitColorLine(
               "border",
-              tokenToCSSVar(variantSpec.emphasizedSelectedBorder),
+              tokenToCSSVar(visual.emphasizedSelectedBorder),
               variantMode,
               "    ",
             ),
@@ -342,7 +347,7 @@ export function generateCSS<Props>(
       lines.push("");
 
       // ─── Phase 2b: fillStyle outline 변형 ───
-      if (fill.outline?.base || variantSpec.outlineBorder) {
+      if (fill.outline?.base || visual.outlineBorder) {
         lines.push(
           `.react-aria-${spec.name}[data-variant="${variantName}"][data-fill-style="outline"] {`,
         );
@@ -355,20 +360,20 @@ export function generateCSS<Props>(
             variantMode,
           ),
         );
-        if (variantSpec.outlineText) {
+        if (visual.outlineText) {
           lines.push(
             emitColorLine(
               "text",
-              tokenToCSSVar(variantSpec.outlineText),
+              tokenToCSSVar(visual.outlineText),
               variantMode,
             ),
           );
         }
-        if (variantSpec.outlineBorder) {
+        if (visual.outlineBorder) {
           lines.push(
             emitColorLine(
               "border",
-              tokenToCSSVar(variantSpec.outlineBorder),
+              tokenToCSSVar(visual.outlineBorder),
               variantMode,
             ),
           );
@@ -389,11 +394,11 @@ export function generateCSS<Props>(
             variantMode,
           ),
         );
-        if (variantSpec.subtleText) {
+        if (visual.subtleText) {
           lines.push(
             emitColorLine(
               "text",
-              tokenToCSSVar(variantSpec.subtleText),
+              tokenToCSSVar(visual.subtleText),
               variantMode,
             ),
           );
@@ -740,18 +745,19 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
 // ─── Variant Styles ─────────────────────────────────────────────────────────
 
 function generateVariantStyles(
-  variant: VariantSpec,
+  visual: ComponentVisualRule,
   mode: "direct" | "button-base" = "direct",
 ): string[] {
-  // ADR-908 Phase 3-A: fill token dual-read seam — default.base / alpha 소비
-  const fill = resolveFillTokens(variant);
+  // ADR-142 G2(b) A: variant 색상은 ComponentVisualRule 어댑터 경유 (spec.variants 직접 접근 제거)
+  const fill = visual.fill!;
+  // visual.text 는 VariantSpec.text(required) 투영 — variant 존재 호출 경로라 항상 존재.
   const lines = [
     emitColorLine("background", tokenToCSSVar(fill.default.base), mode),
-    emitColorLine("text", tokenToCSSVar(variant.text), mode),
+    emitColorLine("text", tokenToCSSVar(visual.text!), mode),
   ];
 
-  if (variant.border) {
-    lines.push(emitColorLine("border", tokenToCSSVar(variant.border), mode));
+  if (visual.border) {
+    lines.push(emitColorLine("border", tokenToCSSVar(visual.border), mode));
   }
 
   if (fill.alpha !== undefined && fill.alpha < 1) {

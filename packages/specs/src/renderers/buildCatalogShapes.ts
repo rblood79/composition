@@ -20,15 +20,9 @@
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
-import type {
-  ComponentSpec,
-  ComponentState,
-  Shape,
-  SizeSpec,
-  VariantSpec,
-} from "../types";
-import { resolveFillTokens } from "../utils/fillTokens";
+import type { ComponentSpec, ComponentState, Shape, SizeSpec } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import { resolveComponentVisual } from "./utils/resolveComponentVisual";
 
 export function buildCatalogShapes(
   spec: ComponentSpec<Record<string, unknown>>,
@@ -38,13 +32,12 @@ export function buildCatalogShapes(
 ): Shape[] {
   const style = props.style as Record<string, unknown> | undefined;
 
+  // ADR-142 G2(b) A: variant 색상은 resolveComponentVisual 단일 어댑터 경유 (spec.variants
+  // 직접 접근 제거). B 단계에서 어댑터 내부 data-source 만 rule 테이블로 swap → 본 호출부 불변.
   const variantName =
     (props.variant as string | undefined) ?? spec.defaultVariant;
-  const variant =
-    variantName && spec.variants
-      ? (spec.variants[variantName] as VariantSpec | undefined)
-      : undefined;
-  const fill = variant ? resolveFillTokens(variant) : undefined;
+  const visual = resolveComponentVisual(spec, variantName);
+  const fill = visual?.fill;
 
   const borderRadius = parsePxValue(style?.borderRadius, size.borderRadius);
   const borderWidth = parseBorderWidth(style?.borderWidth, 1);
@@ -82,20 +75,20 @@ export function buildCatalogShapes(
     (isOutline ? ("{color.transparent}" as unknown as string) : undefined);
 
   // 텍스트색: selected→selectedText/emphasizedSelectedText, outline→outlineText,
-  // subtle→subtleText, 그 외 hover textHover / text.
+  // subtle→subtleText, 그 외 hover textHover / text. (visual = resolveComponentVisual 어댑터)
   const textColor =
     (style?.color as string | undefined) ??
     (isSelected
       ? isEmphasized
-        ? (variant?.emphasizedSelectedText ?? variant?.selectedText)
-        : variant?.selectedText
+        ? (visual?.emphasizedSelectedText ?? visual?.selectedText)
+        : visual?.selectedText
       : isOutline
-        ? (variant?.outlineText ?? variant?.text)
+        ? (visual?.outlineText ?? visual?.text)
         : isSubtle
-          ? (variant?.subtleText ?? variant?.text)
-          : state === "hover" && variant?.textHover
-            ? variant.textHover
-            : variant?.text);
+          ? (visual?.subtleText ?? visual?.text)
+          : state === "hover" && visual?.textHover
+            ? visual.textHover
+            : visual?.text);
 
   // 테두리색: selected→selectedBorder/emphasizedSelectedBorder, outline→outlineBorder,
   // 그 외 hover borderHover / border.
@@ -103,13 +96,13 @@ export function buildCatalogShapes(
     (style?.borderColor as string | undefined) ??
     (isSelected
       ? isEmphasized
-        ? (variant?.emphasizedSelectedBorder ?? variant?.selectedBorder)
-        : variant?.selectedBorder
+        ? (visual?.emphasizedSelectedBorder ?? visual?.selectedBorder)
+        : visual?.selectedBorder
       : isOutline
-        ? (variant?.outlineBorder ?? variant?.border)
-        : state === "hover" && variant?.borderHover
-          ? variant.borderHover
-          : variant?.border);
+        ? (visual?.outlineBorder ?? visual?.border)
+        : state === "hover" && visual?.borderHover
+          ? visual.borderHover
+          : visual?.border);
 
   const text =
     (props.children as string | undefined) ||
