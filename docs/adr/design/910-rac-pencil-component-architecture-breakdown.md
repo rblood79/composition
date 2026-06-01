@@ -28,6 +28,7 @@
 - [⑦ 대표 컴포넌트 Format 예시](#영역-7)
 - [⑧ TypeScript 타입 정의](#영역-8)
 - [⑨ 장단점 및 트레이드오프 + ⑩ 구현 우선순위 / Roadmap](#영역-9-10)
+- ⑪ ADR-920 흡수 경계 (흡수 vs bridge 위임)
 
 ---
 
@@ -633,6 +634,29 @@ Table/ListBox/GridList 같은 collection frame 은 보이는 row 만 그린다. 
 - **content height 동기화**: 화면에 그리는 row 는 일부지만, scroll 영역의 content height 는 전체 항목 기준이어야 한다. virtualization 이 줄인 것은 draw call 이지 논리적 content box 가 아니다 — `calculateContentHeight()` 는 전체 항목 기준 높이를 반환하고, 같은 spacing resolver(`resolveContainerSpacing`)를 `buildCatalogShapes` 와 공유해 Layout/DOM/Skia 세 경로가 같은 높이를 본다.
 - **scrollOffset 차감**: row 의 절대 좌표에서 부모 collection 의 scrollOffset 을 차감해 viewport-local 좌표로 그린다. traversal 의 `CMD_ELEMENT_BEGIN` translate 와 boundsMap 좌표가 같은 차감을 적용해야 hover/selection outline 이 스크롤된 row 와 정렬된다.
 
+#### `slice(0, N)` 은 culling 이 아니다 (정밀화)
+
+현재 Skia ListBox row projection 의 source 는 `slice(0, windowLimit)`(기본 limit 100, `listBoxRowProjectionModel.ts`)이고 Table Skia 는 `rows` 전체를 순회한다. 이는 **고정 cap 일 뿐 viewport culling 이 아니다** — 101 번째 row 부터는 화면에 있어도 누락되고, 100 row 가 전부 화면 밖이어도 100개를 materialize 한다. 진정한 windowing 은 cap 이 아니라 **scrollOffset + measured row size 로 계산한 [startIndex, endIndex] + overscan** 이다.
+
+```ts
+interface CollectionWindow {
+  startIndex: number;
+  endIndex: number; // scrollOffset + viewport height / estimatedSize 로 산출 (cap 아님)
+  overscanStart: number; // 스크롤 방향 버퍼 (깜빡임 방지)
+  overscanEnd: number;
+  totalCount: number; // content height 는 이 값 기준 (draw 가 줄어도 논리 box 불변)
+  estimatedSize: number; // 미측정 row 의 추정 높이
+}
+```
+
+- **draw tree 와 hit tree 가 같은 window 를 공유**: 보이는 것만 그리되, hit-test 노드 집합도 같은 [startIndex, endIndex]+overscan 으로 제한. 둘이 어긋나면 화면에 없는 row 가 hit 되거나 보이는 row 가 hit 안 됨.
+- **sticky header 는 별도 layer**: body row window 와 독립. Table 은 row window + column culling(2D).
+- G7 의 List/Table 1000+ row FPS fixture 는 `draw/hit 노드 수 ≤ viewport window + overscan` 을 통과 조건으로 둔다(`slice` cap 통과 금지).
+
+#### template subtree 기반 row height (정밀화)
+
+row height 는 `items` 가 아니라 **template subtree 의 layout 계산**에서 나온다. ListBoxItem 이 `icon + label + description` 처럼 중첩 frame 을 가지면, row 높이는 그 template tree 의 padding/gap/fontSize/lineHeight 를 Taffy 로 계산한 intrinsic size 다 — row 마다 근사값으로 대체하지 않는다. 깊은 template 일수록 근사 오차가 누적되므로, **template 1회 layout → 모든 visible row 가 같은 height 재사용**(데이터만 다른 row 는 같은 template metric)이 정합과 성능을 동시에 지키는 지점이다. 이 template layout 결과는 `TemplateLayoutCacheKey`(templateHash + size + variant + width + themeKey)로 캐싱하되, 캐시는 기존 layout publish / projection version 신호에 연결되어야 stale 렌더를 만들지 않는다(Risks **T-TPL**, Gate G7).
+
 ## 4.8 Text Rendering
 
 텍스트는 CanvasKit `Paragraph` API 로 그리며, Pencil 수준(다국어 줄바꿈/strut/half-leading)을 목표로 한다. 측정과 렌더는 같은 `ParagraphStyle` / `fontFamilies` 배열을 공유한다 — 측정기와 렌더러가 다른 폰트 체인을 쓰면 줄바꿈 위치가 어긋난다.
@@ -695,6 +719,66 @@ Skia generic(`buildCatalogShapes`)이 그리는 것은 **① box + 텍스트 골
 - 계층 ⑤(고급 시각)의 컴포넌트별 합성은 generic 단일 정합 대상이 아니므로, family fixture 의 `/cross-check`(G5)가 합성 결과의 시각 대칭만 확인한다.
 
 **한 줄 요약**: 정적 골격(box/text/색상/레이아웃)은 generic 단일 경로로 **70~90% 정합**, 상태 인터랙션(T-7)과 shadow류 고급 시각은 정합이 낮거나 컴포넌트별 수작업, transition/transform 애니메이션은 정적 Skia 특성상 미재현이다. 본 설계의 정합 목표는 **box+text 로 환원 가능한 시각 영역에 한정**한다.
+
+## 4.12 Interactive Projected Tree — collection 깊은 노드의 Skia 편집 surface
+
+> **흡수 출처 + 정정**: ADR-920(Codex 독립 설계)의 핵심 가치. 910 의 ④.7 virtualization 은 "보이는 row 만 그린다"까지였고 collection 깊은 노드(row 내부 Text/Icon, Table cell)를 **클릭·드릴인·편집 가능한 노드**로 만드는 모델이 없었다. 910 의 이전 개정안은 collection 을 `skiaLegacy:true`(legacy flattened-shape row)로 cutover 하고 projected tree 를 후순위로 미뤘으나, **이는 사용자 요구(Skia 화면 = 직접 조작 editor)를 충족하지 못해 폐기됐다.** 본 절(projected tree)이 collection 의 **정상 도달 상태**이며, `skiaLegacy` 는 ADR-142 전환기 출발 상태일 뿐이다 — collection family cutover 가 본 절을 구현하는 것이 `cutover:"catalog"` 의 조건이다(projected-first, ⑩ roadmap).
+
+빌더의 Skia 화면은 단순 미리보기가 아니라 **직접 조작 가능한 editor surface** 다. 사용자는 ListBox row 안의 Text 를 클릭해 선택하고, 더블클릭으로 drill-in 하거나 텍스트를 편집할 수 있어야 한다. 그러나 1,000/10,000 row 의 모든 하위 노드를 canonical 문서에 materialize 하면 document/history/IndexedDB/Skia scene 이 폭증한다(920 대안 B = CRITICAL). 해법은 **canonical 저장 노드와 projected 렌더/hit 노드를 분리**하는 것이다.
+
+### projected node 모델
+
+```ts
+// render-space 전용 — canonical 문서에 저장되지 않는다
+interface ProjectedNodeRef {
+  kind: "projected";
+  projectionId: string; // render-space id (canonical mutation target 아님)
+  ownerNodeId: string; // collection canonical 노드 (ListBox/Table)
+  templateNodeId: string; // template subtree 안의 원본 노드 (label/description/cell)
+  itemKey?: string; // 어느 data item 의 투영인가
+  columnKey?: string; // Table cell 의 column
+  canonicalPath: string; // template subtree 안 경로
+  role: "row" | "cell" | "container" | "text" | "icon" | "pseudo-part";
+  editTarget: "template" | "data" | "override" | "origin" | "instance";
+}
+
+interface ProjectedTreeNode {
+  ref: ProjectedNodeRef;
+  bounds: Rect; // viewport-local (scrollOffset 차감 적용)
+  children: ProjectedTreeNode[]; // 깊은 하위 노드 (flattened 아님)
+  // 그리기는 buildCatalogShapes / SkiaPrimitiveDrawFn 그대로 재사용
+}
+```
+
+projected tree 는 **`template subtree × visible data window`** 의 곱이다. template 1개를 visible window 의 각 data item 에 투영해 row 를 만들되, 각 row 는 flattened shape 가 아니라 **하위 Text/Icon/Cell 을 children 으로 가진 tree** 다. ④.7 의 window(`CollectionWindow`)가 어느 item 을 투영할지 결정하고, ④.11 의 generic 렌더(`buildCatalogShapes`)가 각 projected 노드를 그린다 — projected tree 는 새 그리기 경로가 아니라 **기존 generic 렌더의 입력 트리를 collection 에 대해 확장**한 것이다.
+
+### hit-test · drill-in
+
+```ts
+interface SkiaSelection {
+  kind: "canonical" | "projected";
+  nodeId?: string; // canonical 선택
+  projected?: ProjectedNodeRef; // projected 선택
+  drillStack: string[]; // drill-in 경로 (Esc/breadcrumb 으로 pop)
+}
+```
+
+| Gesture          | Target                    | Result                           |
+| ---------------- | ------------------------- | -------------------------------- |
+| click            | collection 배경           | canonical collection 선택        |
+| click            | projected row             | row projection 선택              |
+| click            | projected child Text/Icon | **deepest projected child 선택** |
+| double-click     | projected row             | row subtree drill-in             |
+| double-click     | bound projected Text      | data edit route(§5.11)           |
+| Esc / breadcrumb | —                         | drill stack pop                  |
+
+hit-test 노드 집합은 draw tree 와 **같은 window** 만 가진다(④.7). 화면 밖 row 의 하위 노드는 hit tree 에 진입조차 안 한다 — 10k row 에서도 hit 노드 수가 viewport window + overscan 에 비례(Gate G9).
+
+### render-space id ↔ canonical write target 분리 (CRITICAL)
+
+`projectionId` 는 **render-space 전용**이다. canonical mutation / history payload / IndexedDB 에 저장하면 데이터 corruption 이다 — 이는 **새 규칙이 아니라 ADR-135/136(`.claude/rules/canvas-rendering.md §9`) Render-Space Interaction Boundary 의 collection 적용**이다. projected 노드 편집은 §5.11 의 edit route 를 거쳐 canonical write target(template / data / item override / origin / instance)으로 명시 변환되며, projected id 가 canonical API 에 직접 유입되면 negative fixture 가 FAIL 한다(Gate G8). refresh 후 `elementsMap` 에 synthetic projectionId 는 0건이어야 한다.
+
+> 본 절의 위험: **T-PROJECT**(projected/canonical boundary 위반 → corruption, Gate G8) + **T-DEEP**(깊은 노드 편집 UX 미달, Gate G9). ⑨.2 위험표 참조.
 
 <a id="영역-5"></a>
 
@@ -1025,6 +1109,49 @@ updateNode(node.id, patch); // 단일 공급원(노드) mutate
 | 저장            | 의미값 `props` + 사용자 override `props.style` (base=theme rule) |
 | base/override   | base=theme rule, override=`props.style` 키 (노드 간 분리)        |
 | 컴포넌트당 코드 | 0                                                                |
+
+## 11. Projected child 편집 route — collection 깊은 노드의 write 변환 (ADR-920 흡수)
+
+§4.12 의 projected 노드는 **저장 노드가 아니므로 직접 편집할 수 없다.** projected 노드 편집은 어느 canonical write target 으로 갈지 명시 변환된다. 기존 §6(instance ref root override + descendants)이 **저장된 instance** 를 다뤘다면, 본 절은 **projected(render-space) 노드 편집**을 canonical write 로 라우팅하는 계약이다.
+
+```ts
+type EditRoute =
+  // 기존 910 §6 영역 — 저장 노드 대상
+  | { kind: "origin"; originNodeId: string; patch: Patch } // reusable origin (+ impact 확인)
+  | { kind: "instance"; refNodeId: string; patch: Patch } // ref descendants[path] override
+  // ADR-920 흡수 — projected(render-space) 노드 대상
+  | { kind: "template"; nodeId: string; patch: Patch } // template subtree 편집 → 모든 visible row 반영
+  | {
+      kind: "data";
+      ownerNodeId: string;
+      itemKey: string;
+      field: string;
+      value: unknown;
+    } // 텍스트 내용
+  | {
+      kind: "override";
+      ownerNodeId: string;
+      itemKey: string;
+      templateNodeId: string;
+      patch: Patch;
+    }; // 이 row 만
+```
+
+### 기본 write policy
+
+| 편집 행위                                   | route              | 효과                                                      |
+| ------------------------------------------- | ------------------ | --------------------------------------------------------- |
+| projected Text 내용 편집 (더블클릭)         | **data**           | data item 의 field 갱신 — 모든 consumer 가 같은 data 소비 |
+| projected child 의 style/layout 편집        | **template**(기본) | template subtree 편집 → visible row 전체 반영             |
+| 특정 row 만 시각 변경 ("Override this row") | **override**       | 해당 item projection 에만 patch (item override)           |
+| ref instance 선택 후 편집                   | **instance**       | §6 descendants[path] (변경 없음)                          |
+| reusable origin 편집                        | **origin**         | §6 origin + impacted instance 확인 (변경 없음)            |
+
+style edit 의 **기본값이 template route** 인 것이 핵심이다 — collection 편집의 자연스러운 mental model 은 "이 컬렉션의 모든 행을 이렇게"이고, "이 행만"은 명시적 override 선택이다. 이는 920 의 write policy 를 910 의 base/override 2층 schema(HC#3)에 정합시킨 것이다: template = base layer 편집, override = 특정 projection 의 override layer 편집.
+
+### render-space id 분리 유지
+
+모든 route 는 `ProjectedNodeRef.projectionId`(render-space) 를 `ownerNodeId` + `templateNodeId` + `itemKey`(canonical-space)로 변환한 뒤에만 mutation 을 발행한다. projectionId 가 mutation payload 에 그대로 실리면 Gate G8 negative fixture FAIL. 이 변환은 ADR-135/136 의 `resolveCanonicalMoveTarget` 패턴과 동형이며, page frame Slot 편집은 그 자체가 ADR-135/136 관할이므로 본 절은 collection projected 노드에 한정한다.
 
 <a id="영역-6"></a>
 
@@ -1486,9 +1613,11 @@ items 는 canonical children 트리가 아니라 collections root(`useCollection
 | `size`                                 | size               | appearance | **Style**                              |
 | `gap`/`padding`/`fill` (컨테이너 시각) | (시각 override 키) | appearance | **Style**                              |
 
-#### (c) Skia 렌더
+#### (c) Skia 렌더 — projected tree 가 도달 상태 (skiaLegacy 는 전환기일 뿐)
 
-ListBox 는 catalog entry 에 `skiaLegacy: true` 가 있어 DOM(Preview)/Inspector 는 catalog generic(wrapper + `useCollectionData`)으로, Skia 만 legacy `render.shapes` 로 items 배열을 순회해 multi-item 리스트를 그린다. 컨테이너 frame box 는 `buildCatalogShapes` 가 빈 box shell 로 그리고, item row 들은 legacy fallback 이 그린다. cutover 게이트는 단일 SSOT 다 — `getCatalogSkiaCutoverTypes()` 가 `skiaLegacy:true` entry 를 제외해 Skia 만 부분 발효 상태를 표현한다. items generic traversal 메커니즘은 전 family 발효 후 일괄 흡수된다.
+**ADR-142 전환기 현재 상태(2026-06-01)**: ListBox catalog entry 에 `skiaLegacy: true` 가 있어 DOM(Preview)/Inspector 는 catalog generic(wrapper + `useCollectionData`)이고, Skia 만 legacy `render.shapes` 로 items 배열을 순회해 flattened row shape 를 그린다(row 하위 Text/Icon 이 독립 노드가 아님). 이 상태에서는 row 내부 Text 를 클릭·편집할 수 없다.
+
+**본 ADR 의 도달 상태(`cutover:"catalog"`) = Interactive Projected Tree(§4.12)**: ListBox cutover 는 `skiaLegacy` 제거를 포함한다 — Skia 가 `template subtree × visible window` 를 projected tree 로 materialize 하고, generic 렌더(`buildCatalogShapes`)가 각 projected 노드를 그린다. row 내부 Text/Icon 이 hit-test/drill-in/edit-route(§5.11) 가능해진다. **legacy `render.shapes` flattened row 는 도달 상태가 아니다** — ListBox 가 이미 Pencil format(ref/reusable/origin/instance, ADR-147)을 적극 도입한 케이스이므로 projected tree 가 그 모델의 자연 귀결이다. windowing 은 ④.7(`slice(0,N)` cap 아님), 정합 검증은 G5/G8/G9/G-parity.
 
 ---
 
@@ -1545,9 +1674,27 @@ rows 는 `dataBinding`(collections root), columns 는 columnMapping 데이터다
 | `size`                                    | size               | appearance | **Style**      |
 | `padding`/`gap`/`fill` (셀/컨테이너 시각) | (시각 override 키) | appearance | **Style**      |
 
-#### (c) Skia 렌더
+#### (c) Skia 렌더 — legacy → projected tree 전환 (ADR-920 흡수)
 
-Table 역시 `skiaLegacy: true` — DOM/Inspector 는 catalog generic, Skia 는 legacy `render.shapes` 가 props.rows/columns 2D row/cell 격자를 직접 cell shape 로 그린다(데이터-시각 결합형이라 보편 box 로 대체 불가). 컨테이너 frame 은 `buildCatalogShapes` box shell, 셀 텍스트는 `nodeRendererText`. frame culling(`collectVisibleFrameRoots` / `visiblePageRoots`)이 viewport 밖 frame 을 RenderCommand 스트림에서 배제해 대규모 테이블에서도 60fps 를 유지한다.
+**ADR-142 전환기 현재 상태(도달 상태 아님)**: Table 은 `skiaLegacy: true` — DOM/Inspector 는 catalog generic, Skia 는 legacy `render.shapes` 가 props.rows/columns 2D row/cell 격자를 직접 cell shape 로 그린다(데이터-시각 결합형, row 하위 노드 독립 아님). 컨테이너 frame 은 `buildCatalogShapes` box shell, 셀 텍스트는 `nodeRendererText`. frame culling(`collectVisibleFrameRoots` / `visiblePageRoots`)이 viewport 밖 frame 을 배제해 60fps 유지. **이 단계는 cell 내부 편집·drill-in 미지원 — 본 ADR 의 cutover 도달 상태가 아니다**(아래 전환 단계 = projected tree 가 도달 상태).
+
+**전환 단계(§4.12 적용)**: legacy `rows.forEach × columns.forEach` shape loop 는 **row/column culling + cell/text projected tree** 로 대체된다. row window(vertical) + column culling(horizontal)으로 보이는 cell 만 projected 노드로 만들고, cell 안 Text 는 deepest projected child 로 hit-test 가능해진다(클릭 → cell Text 선택, 더블클릭 → data edit). Table 은 2D culling + cell hit-test 라 ListBox 보다 proof 난도가 높으므로 **ListBox projected tree(G9) 통과 후**에 착수한다(roadmap ⑩).
+
+#### (d) Table parity matrix — 기능 동등 검증 (G-parity 흡수)
+
+Table 의 legacy → projected 전환은 **시각 정합(G5)만으로 발효 금지** — 기존 Table 이 제공하던 기능이 전환 후에도 동등해야 한다(본문 T-PARITY/G-parity). 각 기능은 supported/deferred 를 명시 fixture 로 고정한다:
+
+| 기능                     | 전환 후 요구                                                       | 판정        |
+| ------------------------ | ------------------------------------------------------------------ | ----------- |
+| column mapping           | columnMapping 데이터 → projected cell 열 정렬                      | supported   |
+| column groups            | 다단 헤더 → sticky header layer 분리                               | supported   |
+| sorting                  | RAC `useTableOptions` 정렬(D1 소유) → projected row 순서 반영      | supported   |
+| column resizing          | 열 폭 변경 → template layout cache 무효화 + re-window              | supported   |
+| pagination / infinite    | `useCollectionData` + `useAsyncList`(ADR-132 관할) → window 재계산 | supported   |
+| height mode (auto/fixed) | row height = template subtree 계산(④.7)                            | supported   |
+| API data mapping         | endpoint → collections runtimeData(ADR-132) → rows                 | bridge 참조 |
+
+이 matrix 통과는 G-parity 의 collection 검증 항목이다 — "기존 Table 동작이 projected tree 전환 후 회귀 0"이 cutover 발효 조건이다.
 
 ---
 
@@ -1614,11 +1761,11 @@ closed 상태에서 trigger 는 `buildCatalogShapes` box+text(label + 선택값 
 | -------- | -------- | ------------------------------ | ------------------- | ------- | ----------------------------------------------- |
 | Button   | rac      | leaf (아이콘 = reusable frame) | —                   | —       | `buildCatalogShapes` box+text                   |
 | Checkbox | rac      | leaf (indicator slot)          | —                   | —       | `skiaPrimitive: "checkbox"` + child label text  |
-| ListBox  | internal | collection                     | `useCollectionData` | —       | `skiaLegacy` (items 순회)                       |
-| Table    | internal | collection (2D)                | `useCollectionData` | —       | `skiaLegacy` (2D 격자)                          |
+| ListBox  | internal | collection                     | `useCollectionData` | —       | **projected tree**(§4.12, 도달 상태)            |
+| Table    | internal | collection (2D)                | `useCollectionData` | —       | **projected tree**(§4.12, 2D culling)           |
 | Select   | internal | overlay 합성                   | `useCollectionData` | Popover | box+text trigger + `skiaPrimitive` shadow/arrow |
 
-다섯 모두 노드 하나(의미 `props` + 시각 override `props.style`) + theme rule base 를 공급원으로, `resolveEditContract` 단일 편집 진입점에서 `section` 태그로 두 view 를 필터링하고, `toReactStyle`/`toSkiaStyle` 단일 어댑터로 base⊕override 를 두 backend 에 병합 투영한다. 컴포넌트별로 갈리는 것은 binding 의 `accepts` 한 줄과 `source.kind`, 그리고 `skiaPrimitive`/`skiaLegacy` 유무뿐이다 — 시각 base 는 theme/tokens(`resolveComponentRule` + `resolveToken`)가, ARIA/키보드/포커스는 RAC 가 소유하고, composition 은 `toRacProps` 투영만 한다.
+다섯 모두 노드 하나(의미 `props` + 시각 override `props.style`) + theme rule base 를 공급원으로, `resolveEditContract` 단일 편집 진입점에서 `section` 태그로 두 view 를 필터링하고, `toReactStyle`/`toSkiaStyle` 단일 어댑터로 base⊕override 를 두 backend 에 병합 투영한다. 컴포넌트별로 갈리는 것은 binding 의 `accepts` 한 줄과 `source.kind`, `skiaPrimitive` 유무, 그리고 collection 의 projected tree(§4.12) 여부뿐이다 — 시각 base 는 theme/tokens(`resolveComponentRule` + `resolveToken`)가, ARIA/키보드/포커스는 RAC 가 소유하고, composition 은 `toRacProps` 투영만 한다. (도달 상태에서 `skiaLegacy` 는 0건 — ADR-142 전환기 플래그일 뿐 목표 모델 아님)
 
 <a id="영역-8"></a>
 
@@ -1823,7 +1970,7 @@ export type ComponentCatalogEntry =
       cutover: CutoverState;
       binding: PrimitiveBinding;
       panel: PanelMeta;
-      skiaLegacy?: boolean;
+      skiaLegacy?: boolean; // ADR-142 전환기 플래그 — 본 ADR 도달 상태에서 collection 은 projected tree(§4.12)로 0건
     }
   | {
       kind: "reusable";
@@ -1832,7 +1979,7 @@ export type ComponentCatalogEntry =
       cutover: CutoverState;
       reusableId: string;
       panel: PanelMeta;
-      skiaLegacy?: boolean;
+      skiaLegacy?: boolean; // 동일 — 도달 상태에서 제거
     }
   | { kind: "native"; type: string; family: ComponentFamily; panel: PanelMeta };
 
@@ -1840,8 +1987,10 @@ export function getCatalogEntry(
   type: string,
 ): ComponentCatalogEntry | undefined;
 export function getCatalogCutoverTypes(): ReadonlySet<string>; // cutover==="catalog"
-export function getCatalogSkiaCutoverTypes(): ReadonlySet<string>; // catalog && !skiaLegacy
+export function getCatalogSkiaCutoverTypes(): ReadonlySet<string>; // catalog && !skiaLegacy — 도달 상태에서 catalog 전체와 일치(skiaLegacy 0건)
 ```
+
+> **skiaLegacy 의 위상**: `skiaLegacy` 필드는 ADR-142 가 도입한 **전환기 기제**(collection/Table 이 Skia 만 legacy `render.shapes` 유지)다. 본 ADR 의 도달 상태에서 collection 은 projected tree(§4.12)로 Skia 까지 catalog 발효하므로 `skiaLegacy` 는 **0건**이 된다 — 타입 필드는 전환 기간 호환을 위해 보존하되, 최종 cleanup(Phase 10)에서 플래그 자체를 제거한다. collection 의 정상 도달 상태는 `skiaLegacy:true` 가 아니라 projected tree 다(projected-first 원칙).
 
 `getCatalogCutoverTypes` / `getCatalogSkiaCutoverTypes` 가 family 단위 atomic cutover 게이트의 파생 함수다. `kind:"native"` 는 cutover 개념이 없어(이미 canonical-native 렌더) 게이트에서 제외된다.
 
@@ -1947,13 +2096,16 @@ export function toRacProps(
 
 ### 9.2 위험과 대응
 
-| ID              | 위험                                                                                                                                                            | 심각도 | 대응                                                                                                                                                                                                                                                 |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **T-1**         | generic 공통기반(traversal 1개 + 어댑터 한 쌍 + `resolveEditContract`)이 모든 컴포넌트의 공유 무게중심 — 여기 결함은 전 family 동시 회귀                        |  HIGH  | Button vertical slice(G1)로 공통기반을 단일 컴포넌트에서 완성·검증 후에만 family cutover 시작. 공통기반 변경은 항상 G1 회귀 fixture 통과를 전제                                                                                                      |
-| **T-2**         | `props`/`props.style` 가 자유 payload(`Record<string, unknown>`) — 잘못된 키/타입이 compile-time 에 안 잡힘                                                     |  MED   | `PropContract.kind` 가 런타임 편집 게이트. 어댑터(`toReactStyle`/`toSkiaStyle`)가 미지원 키를 무시(silent passthrough 금지)하고, G1 fixture 가 Button 의 의미 props + `props.style` override 키 전수를 DOM↔Skia 대칭으로 고정                        |
-| **T-ADAPT/T-3** | base(theme rule) ⊕ override(`props.style`) 병합 + shorthand↔longhand·Taffy reader·token 해소가 backend 어댑터 한 곳에 집중 — 어댑터 버그가 양 backend 동시 오염 |  HIGH  | DOM↔Skia 시각 대칭을 `/cross-check`로 family 단위 검증. 어댑터는 token 해소를 `resolveToken` 다축 해소기에 위임(어댑터 내부 token 분기 금지)하여 책임 표면 축소. reset-to-default(`delete props.style[k]` → base 복귀) round-trip 을 fixture 로 고정 |
-| **T-4**         | collection(ListBox/Select/Table 등)은 items 배열 순회로 multi-item 리스트를 그림 — generic box+text 어댑터가 아직 못 그림                                       |  HIGH  | family cutover 시 `skiaLegacy:true`로 **Skia 만 legacy render.shapes 유지**(DOM/Inspector 는 catalog generic). items generic 메커니즘은 전 family cutover 후 collection virtualization 일괄 단계에서 도입                                            |
-| **T-7**         | Skia 는 hover/pressed/selected state 가 caller 결정 단일 값 — DOM 의 `:hover`/`data-*` 자동 state 와 매체가 다름                                                |  MED   | state→variant 선택은 caller(builder)가 수행하고 렌더러는 단일 variant projection 만 받음. `buildCatalogShapes(visual, props, size, state)` 의 `state` 인자가 단일 진입점. DOM 은 `data-*` attribute(`toRacProps`)로 동일 규칙을 CSS 에 위임          |
+| ID              | 위험                                                                                                                                                                                            | 심각도 | 대응                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **T-1**         | generic 공통기반(traversal 1개 + 어댑터 한 쌍 + `resolveEditContract`)이 모든 컴포넌트의 공유 무게중심 — 여기 결함은 전 family 동시 회귀                                                        |  HIGH  | Button vertical slice(G1)로 공통기반을 단일 컴포넌트에서 완성·검증 후에만 family cutover 시작. 공통기반 변경은 항상 G1 회귀 fixture 통과를 전제                                                                                                                                                                                       |
+| **T-2**         | `props`/`props.style` 가 자유 payload(`Record<string, unknown>`) — 잘못된 키/타입이 compile-time 에 안 잡힘                                                                                     |  MED   | `PropContract.kind` 가 런타임 편집 게이트. 어댑터(`toReactStyle`/`toSkiaStyle`)가 미지원 키를 무시(silent passthrough 금지)하고, G1 fixture 가 Button 의 의미 props + `props.style` override 키 전수를 DOM↔Skia 대칭으로 고정                                                                                                         |
+| **T-ADAPT/T-3** | base(theme rule) ⊕ override(`props.style`) 병합 + shorthand↔longhand·Taffy reader·token 해소가 backend 어댑터 한 곳에 집중 — 어댑터 버그가 양 backend 동시 오염                                 |  HIGH  | DOM↔Skia 시각 대칭을 `/cross-check`로 family 단위 검증. 어댑터는 token 해소를 `resolveToken` 다축 해소기에 위임(어댑터 내부 token 분기 금지)하여 책임 표면 축소. reset-to-default(`delete props.style[k]` → base 복귀) round-trip 을 fixture 로 고정                                                                                  |
+| **T-4**         | collection(ListBox/Select/Table 등)은 items 배열 순회로 multi-item 리스트를 그림 — projected tree windowing(④.7) ↔ Taffy layout 연계 복잡도                                                     |  HIGH  | collection family cutover 가 **projected tree(§4.12) 구현을 포함**(projected-first) — Skia 도 generic 렌더로 catalog 발효, legacy render.shapes 경유 아님. List/Table 1000+ row FPS fixture. 실패 시 해당 family `cutover:"cutting-over"` 보류(skiaLegacy 영구 유지 금지 — ADR-142 전환기 출발 상태일 뿐)                             |
+| **T-7**         | Skia 는 hover/pressed/selected state 가 caller 결정 단일 값 — DOM 의 `:hover`/`data-*` 자동 state 와 매체가 다름                                                                                |  MED   | state→variant 선택은 caller(builder)가 수행하고 렌더러는 단일 variant projection 만 받음. `buildCatalogShapes(visual, props, size, state)` 의 `state` 인자가 단일 진입점. DOM 은 `data-*` attribute(`toRacProps`)로 동일 규칙을 CSS 에 위임                                                                                           |
+| **T-PROJECT**   | (ADR-920 흡수) projected tree(§4.12) 의 render-space `projectionId` 가 canonical mutation/history/IndexedDB 에 유입되면 데이터 corruption — selection/hover/edit/mutation 4 경로마다 guard 필요 |  HIGH  | Gate G8 negative fixture(projected id → canonical API 직접 유입 시 FAIL) + refresh 후 `elementsMap` synthetic projectionId 0건. ADR-135/136 Render-Space Interaction Boundary 의 collection 적용 — §5.11 edit route 가 canonical write target 으로 명시 변환. 실패 시 해당 collection family `cutover:"cutting-over"` 보류(발효 금지) |
+| **T-DEEP**      | (ADR-920 흡수) collection 깊은 노드(row 내부 Text/Icon, Table cell) 편집 UX 미달 — flattened row 만 선택 가능하면 920 핵심 사용자 요구(Skia editor surface drill-in) 미충족이자 기능 미달       |  HIGH  | Gate G9 — Skia row 내부 Text/Icon 클릭 → deepest 선택, 더블클릭 → drill-in/data edit, style edit → template route(§5.11). 10k row 에서 draw/hit 노드 ≤ window+overscan(④.7). 실패 시 flat row selection 만 + phase hold                                                                                                               |
+| **T-TPL**       | (ADR-920 흡수) template subtree layout cache(④.7) ↔ 기존 layout publish/projection version 연계 — 별도 cache 가 stale Skia/Layer Tree 유발 가능                                                 |  MED   | `TemplateLayoutCacheKey`(templateHash+size+variant+width+themeKey) 무효화를 기존 layout publish/projectionVersion/synthetic element invalidation 신호에 연결(독립 cache 금지). T-4 collection virtualization 의 인접 정밀화 — Gate G7 에 흡수                                                                                         |
 
 ### 9.3 family 격리
 
@@ -1963,7 +2115,9 @@ cutover 는 family 단위 atomic 이다. 한 family 의 모든 entry 가 `legacy
 
 ## ⑩ 구현 우선순위 및 Roadmap
 
-전체 순서는 **공통기반 선행 → family 단위 atomic cutover(8 family) → collection virtualization 일괄 → final** 이다. 공통기반이 모든 family 의 공유 무게중심(T-1)이므로, 단일 컴포넌트에서 완성·검증한 뒤에만 family 확장으로 넘어간다.
+전체 순서는 **공통기반 선행 → family 단위 atomic cutover(8 family) → final** 이다. 공통기반이 모든 family 의 공유 무게중심(T-1)이므로, 단일 컴포넌트에서 완성·검증한 뒤에만 family 확장으로 넘어간다.
+
+> **projected-first 원칙 (skiaLegacy 는 최종안이 아니다)**: collection/tree-table family 의 **정상 도달 상태(cutover === "catalog")는 Interactive Projected Tree(§4.12)** 다 — legacy `render.shapes` 경유 fallback 이 아니다. `skiaLegacy:true` 는 **ADR-142 전환기의 현재 코드 상태**(2026-06-01 기준 collection 18 type 이 Skia 만 legacy 유지)일 뿐, 본 ADR 의 목표 모델이 아니다. 사용자 요구(Skia 화면 = 직접 조작 editor, row 내부 Text/Icon 클릭·드릴인·편집)는 projected tree 로만 충족되며 legacy flattened-shape row 로는 미충족이다. 따라서 collection family cutover 는 **projected tree 구현을 cutover 조건으로 포함**하고, 실패 시 대안은 `skiaLegacy 영구 유지`가 아니라 **해당 family cutover 미발효(보류) — `cutover:"cutting-over"` 정체** 다. 본 ADR 완결 시 `skiaLegacy` 메커니즘은 collection 에서 0건이어야 한다(legacy render.shapes 경로 물리 제거).
 
 ### Phase 0 — 공통기반 (generic 렌더러 + base⊕override 어댑터 + resolveEditContract)
 
@@ -1989,24 +2143,65 @@ family 순서는 위험 낮은 순으로 진행한다. 각 family 는 `legacy �
 1. **primitives** — Button/Icon/Separator/Link/ToggleButton/ToggleButtonGroup/Toolbar/Badge. box+text generic 으로 완전 표현, skiaLegacy 불필요.
 2. **fields** — TextField/NumberField/SearchField/DateField/TimeField/ColorField. RAC field controller + props.style override 시각.
 3. **selection** — Checkbox/Radio/Switch/CheckboxGroup/RadioGroup. indicator 는 `skiaPrimitive`.
-4. **collections** — ListBox/GridList/ComboBox/Select/Menu/TagGroup. items 순회 → cutover 시 `skiaLegacy:true`(DOM/Inspector 만 catalog, Skia 는 legacy 유지).
-5. **tree-table** — Tree/Table. 데이터-시각 결합형 → `skiaLegacy:true`.
+4. **collections** — ListBox/GridList/ComboBox/Select/Menu/TagGroup. **projected-first cutover** — cutover 도달 상태 = Interactive Projected Tree(§4.12)이며 Skia 도 catalog 발효(legacy render.shapes 경유 아님). row 내부 Text/Icon 이 hit-test/drill-in/edit-route 가능. (ADR-142 전환기 현재 `skiaLegacy:true` 상태 → 본 family cutover 가 projected tree 로 그것을 대체)
+5. **tree-table** — Tree/Table. **projected-first cutover** — Table 은 2D row/column culling + cell projected tree(7-4). collections family projected tree(G9) 통과 후 착수. (전환기 현재 `skiaLegacy:true` → projected tree 로 대체)
 6. **overlays** — Popover/Dialog/Modal/Tooltip. bg/border 는 generic box, shadow/backdrop/arrow 는 `skiaPrimitive` 합성(`getSkiaPrimitiveMode`).
 7. **date-color** — Calendar/RangeCalendar/DatePicker/DateRangePicker/ColorPicker/Slider. 복합 leaf — `skiaPrimitive` draw module.
 8. **composition-native** — frame/Slot/MaskedFrame. cutover 개념 없음(metadata-only) — 이미 canonical-native 렌더, 팔레트/factory metadata 통합만.
 
 각 family cutover 마다: type-check + family `/cross-check` 대칭 PASS + cutover 게이트(`getCatalogCutoverTypes` family 전수 포함) + live 1회 exercise.
 
-### Phase 9 — collection virtualization 일괄
+### collections / tree-table family 의 cutover 정의 — Interactive Projected Tree (ADR-920 흡수, projected-first)
 
-전 family cutover 후, `skiaLegacy:true` 로 남겨둔 collection/tree-table 의 Skia items generic 메커니즘을 일괄 도입한다.
+> 이전 개정안은 collection 을 `skiaLegacy:true` 로 cutover 한 뒤 projected tree 를 "전 family 후 Phase 9 일괄"로 후순위 분리했다. **이는 사용자 요구(Skia 직접 조작 editor)를 미루는 모델이라 폐기한다.** collection/tree-table family 의 cutover(Phase 1~8 의 4·5번)는 **그 자체로 Interactive Projected Tree 구현을 포함**한다 — 별도 후순위 단계가 아니라 해당 family 의 `cutover:"catalog"` 도달 조건이다.
 
-- items 배열 순회를 generic 렌더러가 흡수하는 multi-item 메커니즘 도입.
-- virtualization(visiblePageRoots/visibleFrameRoots culling 정합)을 collection 에 적용.
-- 해당 entry 의 `skiaLegacy` 제거 → `getCatalogSkiaCutoverTypes` 에 편입 → legacy render.shapes 경로 제거.
+collection family cutover 가 충족해야 할 projected tree 구성:
+
+- **windowing(④.7 정밀화)**: `slice(0, N)` cap 제거 → scrollOffset + measured row size 기반 `CollectionWindow`([startIndex,endIndex]+overscan). draw tree 와 hit tree 가 같은 window 공유.
+- **projected tree(§4.12)**: visible window 의 각 item 을 template subtree × data 로 투영해 row 내부 Text/Icon/Cell 을 children 가진 projected tree 로 materialize. `ProjectedNodeRef`(render-space id, canonical 미저장). **Skia 도 catalog 발효** — legacy `render.shapes` flattened row 가 아니라 generic 렌더(`buildCatalogShapes`)가 projected 노드를 그린다.
+- **hit-test/drill-in(§4.12)**: click → deepest projected child, double-click → drill-in/data edit. drill stack(Esc/breadcrumb pop).
+- **edit route(§5.11)**: projected 노드 편집 → template/data/override route 명시 변환. render-space id ↔ canonical write target 분리(Gate G8).
+- **Table 2D(7-4)**: collections family projected tree(G9) 통과 후 row/column culling + cell projected tree 로 확장. parity matrix(7-4 d) = G-parity collection 검증.
+- **gate**: G5(시각 정합) + G8(projected/canonical boundary) + G9(interactive projected tree) + G-parity collection + G7(template layout cache ↔ layout publish, T-TPL) 통과 시 해당 family `cutover:"catalog"`. **legacy `render.shapes` 경로 물리 제거** — `skiaLegacy` 플래그가 collection 에서 0건. 미통과 시 `cutover:"cutting-over"` 정체(legacy 영구 유지 아님).
+
+> **bridge 참조**: 본 단계의 data 결과 read(`useCollectionData`)는 ADR-132, behavior(onSelectionChange/onAction)는 ADR-131, page frame Slot projection 은 ADR-135/136 관할이다. 910 은 그 결과를 generic 렌더러/edit route 에 연결만 하고 해당 위험·Gate 는 보유하지 않는다(§"ADR-920 흡수 경계" 참조).
 
 ### Phase 10 — final
 
-- 8 family 전수 `cutover === "catalog"` + collection `skiaLegacy` 0건 확인.
+- 8 family 전수 `cutover === "catalog"`. **collection/tree-table 도 projected tree 로 Skia catalog 발효 — `skiaLegacy` 플래그 0건, legacy `render.shapes` 경로 물리 제거.**
+- `getCatalogSkiaCutoverTypes()`(= catalog && !skiaLegacy)가 전 type 을 포함 — Skia 부분 발효(skiaLegacy 제외) 상태가 해소됨. ADR-142 전환기 기제(`skiaLegacy` 플래그 자체)도 제거.
 - 6 레지스트리(spec/TAG_SPEC_MAP/specRegistry/factory/panel/renderer) 물리 제거 — `componentCatalog` 단일 등록만 잔존.
 - 컴포넌트당 정의 파일(`ComponentSpec`) 폐기, 시각은 theme/tokens(`componentRulesTable`)·조합은 reusable 노드 문서로 완전 수렴.
+
+---
+
+## ⑪ ADR-920 흡수 경계 — 무엇을 흡수하고 무엇을 위임하는가
+
+ADR-920(RAC Format Interactive Projected Tree, Codex 독립 설계)은 본 ADR 과 **같은 외부 입력**(`react-aria-starter` + Pencil `shadcn-design-system.json`)에서 출발한 수렴 설계다. 두 설계의 base/override 원리는 동일하다(910 HC#3 ≡ 920 HC#5). 사용자 결정에 따라 910 을 상위 아키텍처로 두고 920 의 가치를 흡수했으며, 920 은 본 ADR 로 supersede 된다.
+
+### 흡수(910 본질 영역) — 920 이 채운 910 미설계 영역
+
+| 920 축                                                                      | 910 흡수 위치                                |
+| --------------------------------------------------------------------------- | -------------------------------------------- |
+| Interactive Projected Tree (hit-test/drill-in)                              | §4.12 신설                                   |
+| windowing 정밀화 (`slice(0,N)`≠culling, template-tree row height)           | §4.7 정밀화                                  |
+| edit-route registry (template/data/override)                                | §5.11 신설                                   |
+| Table 2D parity matrix                                                      | §7-4 (c)(d)                                  |
+| capability **개념** (component별 layout/style 중복 금지, shared size scale) | 기존 §② `ComponentRule`/theme rule 로 단일화 |
+
+> **capability 흡수는 개념만**: 920 의 `FormatCapabilityRegistry` 를 **새 레지스트리로 도입하지 않는다.** "property 의미·Panel section·Skia 지원·layout 분류를 한 곳에 선언"은 910 의 theme rule 테이블(`componentRulesTable`) + `PropContract` + ADR-909 longhand 정책에 이미 정합한다. 별도 레지스트리는 canonical 문서와 평행한 **두 번째 SSOT** 가 되어 910 대안 C 기각 사유(drift 재발)를 재현하므로 금지한다.
+
+### 위임(bridge 참조만) — 이미 다른 ADR 이 관할(Implemented)
+
+다음 3축은 920 이 재기술했으나 **이미 land 된 ADR 이 관할**한다. 910 은 generic 렌더러/edit route 가 그 결과에 연결되는 **bridge 참조 1줄만** 두고, 해당 위험·Gate 는 **910 Risks/Gates 에 추가하지 않는다**(관할 중복 방지).
+
+| 920 축                                                       | 관할 ADR                                                                                                      | 910 의 연결점                                                                                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| behavior bridge (onPress/onSelectionChange → events/actions) | **ADR-131** (root collection, `props.onPress:"ev1"` string id)                                                | `toRacProps` 가 callback string id 투영 (⑥.3). 이벤트 실행은 ADR-131 관할                                            |
+| page frame Slot projection (render id ↔ canonical write)     | **ADR-135/136** (Render-Space Boundary, `resolveCanonicalMoveTarget`, `.claude/rules/canvas-rendering.md §9`) | §4.12/§5.11 의 render-space id 분리가 ADR-135/136 패턴 동형. page frame 자체는 ADR-135/136                           |
+| data SSOT bridge (collection binding-ref)                    | **ADR-132** (`useCollectionData` 단일 경유) + ADR-131 Phase 8 (`collections` 데이터 SSOT)                     | collection rows read 가 `useCollectionData({ datatableId \| dataBinding })`. node-local data 금지는 ADR-131/132 강제 |
+
+### 920 의 두 구조 결함을 흡수 시 차단
+
+1. **920 엔 별도 Risks 섹션이 없다**(adr-writing.md 위반 — Gates 14개를 바로 나열). 910 은 정상 Risks 섹션을 보유하므로, 흡수한 위험을 920 Gate 평면 복사가 아니라 **T-PROJECT/T-DEEP/T-TPL 로 Risks 표에 등록 후 G8/G9 와 1:1 연결**했다. 920 G6~G14 대부분은 bridge 영역(④⑤⑥)이라 910 Gate 로 들이지 않았다.
+2. **920 엔 T-PARITY 류 기능 퇴보 방어가 없다**(Button→ListBox→Table proof 만). 흡수한 collection/Table 도 910 의 **G-parity 적용 대상**에 포함했다(7-4 d parity matrix = G-parity collection 검증). "정합성 통과 ≠ 기능 동등"이 cutover 발효 조건이다.

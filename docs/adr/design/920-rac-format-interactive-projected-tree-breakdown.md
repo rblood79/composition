@@ -1,5 +1,7 @@
 # ADR-920 Breakdown: RAC Format Interactive Projected Tree
 
+> **Superseded by [ADR-910](../910-rac-pencil-component-architecture.md)** (2026-06-02). 본 breakdown 의 핵심 가치(Interactive Projected Tree §7, windowing §8, edit route §7.2, Table parity §5.4)는 ADR-910 breakdown(§4.12 / §4.7 정밀화 / §5.11 / §7-4 / ⑪)으로 흡수됐다. behavior(§ behavior bridge)/page frame Slot/data SSOT 축은 ADR-131/132/135/136 관할로 위임됐다. 본 문서는 설계 근거 기록으로 보존한다.
+
 ## 1. 목표
 
 RAC starter 기반 컴포넌트를 Builder의 Skia editor에서 Pencil App 방식으로 사용할 수
