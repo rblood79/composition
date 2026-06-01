@@ -83,15 +83,21 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
   defaultSize: "md",
 
   variants: {
+    // selected/selectedBorder: indicator ring/dot 의 selected 상태 색(보편 상태축).
+    //   이전 RADIO_SELECTED_COLORS/RADIO_RING_BORDER 상수를 variant 로 흡수(ADR-142 B2).
+    //   border = 미선택 ring 테두리, fill.default.selected = selected dot, selectedBorder = selected ring.
     default: {
       fill: {
         default: {
           base: "{color.base}" as TokenRef,
           hover: "{color.layer-2}" as TokenRef,
           pressed: "{color.layer-1}" as TokenRef,
+          selected: "{color.accent}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
+      border: "{color.border-hover}" as TokenRef,
+      selectedBorder: "{color.accent}" as TokenRef,
     },
     accent: {
       fill: {
@@ -99,9 +105,12 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
           base: "{color.base}" as TokenRef,
           hover: "{color.layer-2}" as TokenRef,
           pressed: "{color.layer-1}" as TokenRef,
+          selected: "{color.accent}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
+      border: "{color.border-hover}" as TokenRef,
+      selectedBorder: "{color.accent}" as TokenRef,
     },
     neutral: {
       fill: {
@@ -109,9 +118,12 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
           base: "{color.base}" as TokenRef,
           hover: "{color.layer-2}" as TokenRef,
           pressed: "{color.layer-1}" as TokenRef,
+          selected: "{color.neutral-subtle}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
+      border: "{color.border-hover}" as TokenRef,
+      selectedBorder: "{color.neutral-subtle}" as TokenRef,
     },
     negative: {
       fill: {
@@ -119,9 +131,12 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
           base: "{color.base}" as TokenRef,
           hover: "{color.negative-subtle}" as TokenRef,
           pressed: "{color.negative-subtle}" as TokenRef,
+          selected: "{color.negative}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
+      border: "{color.negative}" as TokenRef,
+      selectedBorder: "{color.negative}" as TokenRef,
     },
   },
 

@@ -1121,11 +1121,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.base}",
             "hover": "{color.layer-2}",
-            "pressed": "{color.layer-1}"
+            "pressed": "{color.layer-1}",
+            "selected": "{color.neutral}"
           }
         },
         "colors": {
-          "text": "{color.neutral}"
+          "text": "{color.neutral}",
+          "border": "{color.border}",
+          "selectedBorder": "{color.neutral}"
         }
       },
       "emphasized": {
@@ -1133,11 +1136,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.base}",
             "hover": "{color.accent-subtle}",
-            "pressed": "{color.accent-subtle}"
+            "pressed": "{color.accent-subtle}",
+            "selected": "{color.accent}"
           }
         },
         "colors": {
-          "text": "{color.neutral}"
+          "text": "{color.neutral}",
+          "border": "{color.border}",
+          "selectedBorder": "{color.accent}"
         }
       }
     },
@@ -3957,11 +3963,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.base}",
             "hover": "{color.layer-2}",
-            "pressed": "{color.layer-1}"
+            "pressed": "{color.layer-1}",
+            "selected": "{color.accent}"
           }
         },
         "colors": {
-          "text": "{color.neutral}"
+          "text": "{color.neutral}",
+          "border": "{color.border-hover}",
+          "selectedBorder": "{color.accent}"
         }
       },
       "accent": {
@@ -3969,11 +3978,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.base}",
             "hover": "{color.layer-2}",
-            "pressed": "{color.layer-1}"
+            "pressed": "{color.layer-1}",
+            "selected": "{color.accent}"
           }
         },
         "colors": {
-          "text": "{color.neutral}"
+          "text": "{color.neutral}",
+          "border": "{color.border-hover}",
+          "selectedBorder": "{color.accent}"
         }
       },
       "neutral": {
@@ -3981,11 +3993,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.base}",
             "hover": "{color.layer-2}",
-            "pressed": "{color.layer-1}"
+            "pressed": "{color.layer-1}",
+            "selected": "{color.neutral-subtle}"
           }
         },
         "colors": {
-          "text": "{color.neutral}"
+          "text": "{color.neutral}",
+          "border": "{color.border-hover}",
+          "selectedBorder": "{color.neutral-subtle}"
         }
       },
       "negative": {
@@ -3993,11 +4008,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.base}",
             "hover": "{color.negative-subtle}",
-            "pressed": "{color.negative-subtle}"
+            "pressed": "{color.negative-subtle}",
+            "selected": "{color.negative}"
           }
         },
         "colors": {
-          "text": "{color.neutral}"
+          "text": "{color.neutral}",
+          "border": "{color.negative}",
+          "selectedBorder": "{color.negative}"
         }
       }
     },
@@ -5048,7 +5066,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.transparent}",
             "hover": "{color.transparent}",
-            "pressed": "{color.transparent}"
+            "pressed": "{color.transparent}",
+            "selected": "{color.neutral}"
           }
         },
         "colors": {
@@ -5060,7 +5079,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "default": {
             "base": "{color.transparent}",
             "hover": "{color.transparent}",
-            "pressed": "{color.transparent}"
+            "pressed": "{color.transparent}",
+            "selected": "{color.accent}"
           }
         },
         "colors": {

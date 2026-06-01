@@ -4,8 +4,8 @@ import { CheckboxSpec } from "../../components/Checkbox.spec";
 import { RadioSpec } from "../../components/Radio.spec";
 import { SliderSpec } from "../../components/Slider.spec";
 import { SwitchSpec } from "../../components/Switch.spec";
-import type { VariantSpec } from "../../types";
 import { getSkiaPrimitive } from "../skiaPrimitives";
+import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
 
 /**
@@ -20,13 +20,12 @@ import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
  * buildCatalogShapes 안에 isCheckbox/isRadio 컴포넌트 식별 분기를 두지 않는다(N++ 복제 방지).
  */
 
-const variantSpecOf = (
+// ADR-142 B2: skiaPrimitive draw fn 은 ComponentVisualRule 을 받는다(spec-free). 테스트는
+// specs 내부 어댑터 resolveComponentVisual(spec, name) 로 visual 을 만들어 전달.
+const visualOf = (
   spec: typeof CheckboxSpec | typeof RadioSpec | typeof SwitchSpec,
   variant: string,
-): VariantSpec | undefined =>
-  (spec.variants?.[variant as keyof typeof spec.variants] ?? undefined) as
-    | VariantSpec
-    | undefined;
+) => resolveComponentVisual(spec as never, variant);
 
 describe("skiaPrimitive 'checkbox' — Checkbox indicator parity", () => {
   const draw = getSkiaPrimitive("checkbox")!;
@@ -51,7 +50,7 @@ describe("skiaPrimitive 'checkbox' — Checkbox indicator parity", () => {
           const primitive = draw({
             props,
             size: sizeSpec,
-            variant: variantSpecOf(CheckboxSpec, variant),
+            visual: visualOf(CheckboxSpec, variant),
             style: undefined,
           });
           expect(primitive).toEqual(legacy);
@@ -75,7 +74,7 @@ describe("skiaPrimitive 'checkbox' — Checkbox indicator parity", () => {
     const primitive = draw({
       props,
       size: CheckboxSpec.sizes.md,
-      variant: variantSpecOf(CheckboxSpec, "default"),
+      visual: visualOf(CheckboxSpec, "default"),
       style: undefined,
     });
     expect(primitive).toEqual(legacy);
@@ -105,7 +104,7 @@ describe("skiaPrimitive 'radio' — Radio indicator parity", () => {
           const primitive = draw({
             props,
             size: sizeSpec,
-            variant: variantSpecOf(RadioSpec, variant),
+            visual: visualOf(RadioSpec, variant),
             style: undefined,
           });
           expect(primitive).toEqual(legacy);
@@ -161,7 +160,7 @@ describe("skiaPrimitive 'switch_toggle' — Switch indicator parity", () => {
           const primitive = draw({
             props,
             size: sizeSpec,
-            variant: variantSpecOf(SwitchSpec, variant),
+            visual: visualOf(SwitchSpec, variant),
             style: undefined,
           });
           expect(primitive).toEqual(legacy);

@@ -210,6 +210,11 @@ export function generateCSS<Props>(
   // ADR-083 Phase 1: Layout primitive only containerStyles(display/flex/width 등)는
   //   variants 색상을 여전히 emit — InlineAlert 5-variant 케이스 지원.
   const variantMode = spec.cssEmitMode ?? "direct";
+  // toggle-indicator(Checkbox/Radio/Switch): variant 의 border/selected/selectedBorder 는
+  // **indicator box 전용 시각**(Skia skiaPrimitive 가 소비). DOM 에선 indicator 색을 RAC/별도
+  // CSS 가 담당하므로 컨테이너 root(.react-aria-X)에 emit 하면 label 전체 오염(checked 시 label
+  // 배경/테두리 변경). → 컨테이너 variant CSS 에서 border/selected 계열 생략(ADR-142 B2).
+  const isIndicatorArchetype = spec.archetype === "toggle-indicator";
   const containerHasColors = !!(
     spec.containerStyles?.background ||
     spec.containerStyles?.text ||
@@ -227,7 +232,9 @@ export function generateCSS<Props>(
       const visual = variantToVisual(variantSpec);
       const fill = visual.fill!;
       lines.push(`.react-aria-${spec.name}[data-variant="${variantName}"] {`);
-      lines.push(...generateVariantStyles(visual, variantMode));
+      lines.push(
+        ...generateVariantStyles(visual, variantMode, isIndicatorArchetype),
+      );
       lines.push("");
 
       // hover/pressed — button-base 모드에서는 .button-base utility가 color-mix로 자동 파생
@@ -255,7 +262,8 @@ export function generateCSS<Props>(
       }
 
       // ─── ADR-059 B5: selected 상태 ───
-      if (fill.default.selected) {
+      // toggle-indicator 는 selected 색이 indicator box 전용(Skia) → 컨테이너 emit 생략(B2).
+      if (fill.default.selected && !isIndicatorArchetype) {
         lines.push("");
         lines.push("  &[data-selected] {");
         lines.push(
@@ -627,7 +635,9 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
       ),
     );
     lines.push(emitColorLine("text", tokenToCSSVar(defaultVariant.text), mode));
-    if (defaultVariant.border) {
+    // toggle-indicator: border 는 indicator box 전용(Skia) → 컨테이너는 border: none(ADR-142 B2).
+    const omitContainerBorder = spec.archetype === "toggle-indicator";
+    if (defaultVariant.border && !omitContainerBorder) {
       const bw = defaultSize?.borderWidth ?? 1;
       if (mode === "button-base") {
         lines.push(
@@ -747,6 +757,8 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
 function generateVariantStyles(
   visual: ComponentVisualRule,
   mode: "direct" | "button-base" = "direct",
+  // toggle-indicator: border 는 indicator box 전용(Skia) → 컨테이너 emit 생략(ADR-142 B2).
+  omitBorder = false,
 ): string[] {
   // ADR-142 G2(b) A: variant 색상은 ComponentVisualRule 어댑터 경유 (spec.variants 직접 접근 제거)
   const fill = visual.fill!;
@@ -756,7 +768,7 @@ function generateVariantStyles(
     emitColorLine("text", tokenToCSSVar(visual.text!), mode),
   ];
 
-  if (visual.border) {
+  if (visual.border && !omitBorder) {
     lines.push(emitColorLine("border", tokenToCSSVar(visual.border), mode));
   }
 

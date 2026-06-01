@@ -27,7 +27,6 @@ import {
   type PropagationRule,
   type Shape,
   type SizeSpec,
-  type VariantSpec,
 } from "@composition/specs";
 import { isCatalogSkiaCutover, getPrimitiveBinding } from "@composition/shared";
 import {
@@ -770,14 +769,15 @@ function resolveAccentColor(
  * variant + style 을 받는다(전환기엔 spec 데이터 직접 소비, 목표는 theme/tokens).
  */
 function buildCatalogShapesOrPrimitive(
-  spec: ComponentSpec<Record<string, unknown>>,
   type: string,
   specProps: Record<string, unknown>,
   sizeSpec: SizeSpec,
   componentState: ComponentState,
 ): Shape[] {
-  // ADR-142 G2(b) B1: variant 색상은 rule 테이블(resolveSkiaVisualRule)에서 해소해 주입한다
-  // (buildCatalogShapes 는 spec 미참조). variant 이름은 props 우선, 없으면 rule.defaultVariant.
+  // ADR-142 G2(b) B: variant 색상은 rule 테이블(resolveSkiaVisualRule)에서 해소해 주입한다
+  // (buildCatalogShapes / skiaPrimitive 모두 spec 미참조). variant 이름은 props 우선, 없으면
+  // rule.defaultVariant. skiaPrimitive(checkbox/radio/switch)의 selected 시각도 보편 상태축
+  // (visual.fill.default.selected / selectedBorder)에서 읽는다(이전 *_COLORS 상수 흡수).
   const rule = resolveSkiaRule(type);
   const variantName =
     (specProps.variant as string | undefined) ?? rule?.defaultVariant;
@@ -787,18 +787,10 @@ function buildCatalogShapesOrPrimitive(
   const skiaPrimitiveKey = getPrimitiveBinding(type)?.skiaPrimitive;
   const drawPrimitive = getSkiaPrimitive(skiaPrimitiveKey);
   if (drawPrimitive) {
-    // B2 예정: skiaPrimitive draw fn 의 variant 읽기를 rule 기반으로 swap. 현재는 spec.variants
-    // (Checkbox/Radio/Switch 추가 색상 상수 의존)를 유지 — B1 은 box+text leaf 만 rule 화.
-    const primVariantName =
-      (specProps.variant as string | undefined) ?? spec.defaultVariant;
-    const variant =
-      primVariantName && spec.variants
-        ? (spec.variants[primVariantName] as VariantSpec | undefined)
-        : undefined;
     const primitiveShapes = drawPrimitive({
       props: specProps,
       size: sizeSpec,
-      variant,
+      visual,
       style: specProps.style as Record<string, unknown> | undefined,
     });
     // null = primitive 미적용(예: Badge non-dot) → 보편 box+text fallback.
@@ -1095,13 +1087,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   - 없음 → buildCatalogShapes(모든 frame 공유 보편 box+text 시각).
   // 컴포넌트 식별 분기(isDot/divider/iconName)를 buildCatalogShapes 안에 인라인하지 않는다.
   const shapes = isCatalogSkiaCutover(type)
-    ? buildCatalogShapesOrPrimitive(
-        spec,
-        type,
-        specProps,
-        sizeSpec,
-        componentState,
-      )
+    ? buildCatalogShapesOrPrimitive(type, specProps, sizeSpec, componentState)
     : spec.render.shapes(specProps, sizeSpec, componentState);
   if (type === "Slot" && specProps._slotChrome === "hidden") {
     shapes.length = 0;

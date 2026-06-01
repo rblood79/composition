@@ -89,15 +89,21 @@ export const CheckboxSpec: ComponentSpec<CheckboxProps> = {
   defaultSize: "md",
 
   variants: {
+    // selected/selectedBorder: indicator box 의 checked 상태 색(보편 상태축).
+    //   이전 CHECKBOX_CHECKED_COLORS/CHECKBOX_BOX_BORDER 상수를 variant 로 흡수(ADR-142 B2).
+    //   border = 미선택 box 테두리, fill.default.selected = checked bg, selectedBorder = checked border.
     default: {
       fill: {
         default: {
           base: "{color.base}" as TokenRef,
           hover: "{color.layer-2}" as TokenRef,
           pressed: "{color.layer-1}" as TokenRef,
+          selected: "{color.neutral}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
+      border: "{color.border}" as TokenRef,
+      selectedBorder: "{color.neutral}" as TokenRef,
     },
     emphasized: {
       fill: {
@@ -105,9 +111,12 @@ export const CheckboxSpec: ComponentSpec<CheckboxProps> = {
           base: "{color.base}" as TokenRef,
           hover: "{color.accent-subtle}" as TokenRef,
           pressed: "{color.accent-subtle}" as TokenRef,
+          selected: "{color.accent}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
+      border: "{color.border}" as TokenRef,
+      selectedBorder: "{color.accent}" as TokenRef,
     },
   },
 

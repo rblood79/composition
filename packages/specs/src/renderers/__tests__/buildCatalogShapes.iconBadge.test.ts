@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { BadgeSpec } from "../../components/Badge.spec";
 import { IconSpec } from "../../components/Icon.spec";
-import type { VariantSpec } from "../../types";
 import { getSkiaPrimitive } from "../skiaPrimitives";
+import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
 
 /**
@@ -13,15 +13,12 @@ import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
  * `skiaPrimitive` draw module 이 그린다. box+text(Badge text 모드)만 buildCatalogShapes.
  * Icon=`skiaPrimitive:"icon_font"` / Badge dot=`skiaPrimitive:"dot"`(isDot 아니면 null→box+text).
  * buildCatalogShapes 안에 icon/dot 컴포넌트 식별 분기를 두지 않는다(N++ 복제 방지).
+ *
+ * ADR-142 B2: draw fn 은 ComponentVisualRule 수신(spec-free). 테스트는 specs 어댑터로 변환.
  */
 
-const variantSpecOf = (
-  spec: typeof IconSpec | typeof BadgeSpec,
-  variant: string,
-): VariantSpec | undefined =>
-  (spec.variants?.[variant as keyof typeof spec.variants] ?? undefined) as
-    | VariantSpec
-    | undefined;
+const visualOf = (spec: typeof IconSpec | typeof BadgeSpec, variant: string) =>
+  resolveComponentVisual(spec as never, variant);
 
 describe("skiaPrimitive 'icon_font' — Icon parity", () => {
   const draw = getSkiaPrimitive("icon_font")!;
@@ -42,7 +39,7 @@ describe("skiaPrimitive 'icon_font' — Icon parity", () => {
       const primitive = draw({
         props,
         size: sizeSpec,
-        variant: variantSpecOf(IconSpec, "default"),
+        visual: visualOf(IconSpec, "default"),
         style: undefined,
       });
       expect(primitive).toEqual(legacy);
@@ -53,7 +50,7 @@ describe("skiaPrimitive 'icon_font' — Icon parity", () => {
     const shapes = draw({
       props: { iconName: "check" },
       size: IconSpec.sizes.md,
-      variant: variantSpecOf(IconSpec, "default"),
+      visual: visualOf(IconSpec, "default"),
       style: undefined,
     })!;
     expect(shapes).toHaveLength(1);
@@ -102,7 +99,7 @@ describe("skiaPrimitive 'dot' — Badge dot 모드 parity", () => {
     const shapes = draw({
       props: { variant: "accent", isDot: true },
       size: BadgeSpec.sizes.md,
-      variant: variantSpecOf(BadgeSpec, "accent"),
+      visual: visualOf(BadgeSpec, "accent"),
       style: undefined,
     })!;
     expect(shapes).toHaveLength(1);
@@ -124,7 +121,7 @@ describe("skiaPrimitive 'dot' — Badge dot 모드 parity", () => {
       const primitive = draw({
         props,
         size: sizeSpec,
-        variant: variantSpecOf(BadgeSpec, "negative"),
+        visual: visualOf(BadgeSpec, "negative"),
         style: undefined,
       });
       expect(primitive).toEqual(legacy);
@@ -135,7 +132,7 @@ describe("skiaPrimitive 'dot' — Badge dot 모드 parity", () => {
     const shapes = draw({
       props: { children: "5", variant: "accent" },
       size: BadgeSpec.sizes.md,
-      variant: variantSpecOf(BadgeSpec, "accent"),
+      visual: visualOf(BadgeSpec, "accent"),
       style: undefined,
     });
     expect(shapes).toBeNull();

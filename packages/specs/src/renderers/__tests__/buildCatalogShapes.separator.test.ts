@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { SeparatorSpec } from "../../components/Separator.spec";
 import { getSkiaPrimitive } from "../skiaPrimitives";
+import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 
 /**
  * ADR-142 family ① — Separator(divider) 시각 parity 실측.
@@ -26,8 +27,9 @@ describe("skiaPrimitive 'divider' — Separator parity (ADR-142 family ①)", ()
   const sizes = ["sm", "md", "lg"] as const;
   const orientations = ["horizontal", "vertical"] as const;
 
-  const variantSpec = (variant: string) =>
-    SeparatorSpec.variants?.[variant as keyof typeof SeparatorSpec.variants];
+  // ADR-142 B2: draw fn 은 ComponentVisualRule 수신(spec-free).
+  const visualOf = (variant: string) =>
+    resolveComponentVisual(SeparatorSpec as never, variant);
 
   for (const variant of variants) {
     for (const size of sizes) {
@@ -43,7 +45,7 @@ describe("skiaPrimitive 'divider' — Separator parity (ADR-142 family ①)", ()
           const primitive = draw({
             props,
             size: sizeSpec,
-            variant: variantSpec(variant),
+            visual: visualOf(variant),
             style: undefined,
           });
           expect(primitive).toEqual(legacy);
@@ -56,7 +58,7 @@ describe("skiaPrimitive 'divider' — Separator parity (ADR-142 family ①)", ()
     const shapes = draw({
       props: { variant: "default", orientation: "horizontal" },
       size: SeparatorSpec.sizes.md,
-      variant: variantSpec("default"),
+      visual: visualOf("default"),
       style: undefined,
     })!;
     expect(shapes).toHaveLength(1);

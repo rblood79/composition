@@ -60,12 +60,16 @@ export const SwitchSpec: ComponentSpec<SwitchProps> = {
   defaultSize: "md",
 
   variants: {
+    // fill.default.selected: indicator track 의 selected(on) 상태 색(보편 상태축).
+    //   이전 SWITCH_SELECTED_TRACK_COLORS 상수를 variant 로 흡수(ADR-142 B2). base=transparent 는
+    //   컨테이너 배경(track 아님) — 미선택 track 색은 모든 variant 공통이라 skiaPrimitive 잔존.
     default: {
       fill: {
         default: {
           base: "{color.transparent}" as TokenRef,
           hover: "{color.transparent}" as TokenRef,
           pressed: "{color.transparent}" as TokenRef,
+          selected: "{color.neutral}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
@@ -76,6 +80,7 @@ export const SwitchSpec: ComponentSpec<SwitchProps> = {
           base: "{color.transparent}" as TokenRef,
           hover: "{color.transparent}" as TokenRef,
           pressed: "{color.transparent}" as TokenRef,
+          selected: "{color.accent}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
