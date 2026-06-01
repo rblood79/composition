@@ -275,8 +275,8 @@ Menu·Tree item / ToggleButton / SegmentedControl item 등에 적용.
 
 ## Motion
 
-- 표준 transition **200ms** — 컴포넌트 CSS 에 36회. **토큰화되어 있지 않음**(리터럴
-  반복) — de-facto 표준값.
+- 표준 transition **200ms** — 전체 CSS 에 36회(컴포넌트 CSS 34회 + `utilities.css` 2회).
+  **토큰화되어 있지 않음**(리터럴 반복) — de-facto 표준값.
 - 그 외: 300ms(5) / 400ms(4) / 250ms(1) / 150ms(1).
 - `@keyframes`: `modal-fade` / `modal-zoom` / `sheet-slide` / `sheet-blur` /
   `progress-fill` / `slide-in` / `slide-out`.

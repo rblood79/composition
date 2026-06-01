@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DialogSpec } from "../../components/Dialog.spec";
+import { ModalSpec } from "../../components/Modal.spec";
 import { PopoverSpec } from "../../components/Popover.spec";
 import { TooltipSpec } from "../../components/Tooltip.spec";
 import { buildCatalogShapes } from "../buildCatalogShapes";
@@ -23,13 +24,22 @@ import type { Shape } from "../../types";
  */
 
 /**
- * 시각 동등성 정규화 — container 제외 + `fillAlpha:1`(=alpha 미지정과 시각 동일) 제거.
- * specShapesToSkia 가 `fillAlpha ?? 1` 로 처리하므로 `fillAlpha:1` 과 미지정은 같은 렌더 결과.
- * 대칭 정의(ssot-hierarchy): "구현 방법 자유, 시각 결과 동일".
+ * 시각 동등성 정규화 — 같은 렌더 결과인 표현 차이를 제거(대칭 정의 ssot-hierarchy:
+ * "구현 방법 자유, 시각 결과 동일").
+ *  - container 제외 (자식 Element 담당).
+ *  - `fillAlpha:1` 제거 (specShapesToSkia 가 `fillAlpha ?? 1` 처리 → 미지정과 동일).
+ *  - transparent fill roundRect 제외 (안 보이는 box — Modal 류 빈 shell. legacy `[]` 와 시각 동일).
  */
 function normalize(shapes: Shape[]): Shape[] {
   return shapes
     .filter((s) => s.type !== "container")
+    .filter(
+      (s) =>
+        !(
+          s.type === "roundRect" &&
+          (s as { fill?: unknown }).fill === "{color.transparent}"
+        ),
+    )
     .map((s) => {
       if (
         s.type === "roundRect" &&
@@ -147,6 +157,32 @@ describe("composeCatalogShapes — Tooltip (box, arrow append) parity", () => {
     const legacy = withoutContainer(
       TooltipSpec.render.shapes(
         props as Parameters<typeof TooltipSpec.render.shapes>[0],
+        sizeSpec,
+        "default",
+      ),
+    );
+    expect(normalize(composed)).toEqual(legacy);
+  });
+});
+
+describe("composeCatalogShapes — Modal (transparent shell, no primitive) parity", () => {
+  // Modal render.shapes=[] (portal 시각 없음, 자식 Element 컨테이너). buildCatalogShapes 는
+  // variant fill transparent → transparent box 생성하나 시각 무해(normalize 제외) → legacy [] 와
+  // 시각 동일. skiaPrimitive 없음(backdrop 은 ModalOverlay 별도 담당).
+  it("_hasChildren shell — transparent box(무해) 외 legacy [] 와 시각 동일", () => {
+    const sizeSpec = ModalSpec.sizes.md;
+    const props = { _hasChildren: true } as Record<string, unknown>;
+    const visual = resolveComponentVisual(
+      ModalSpec as never,
+      ModalSpec.defaultVariant ?? "default",
+    );
+    const base = buildCatalogShapes(visual, props, sizeSpec, "default");
+    // Modal 은 skiaPrimitive 없음 → prepend/append 빈 배열.
+    const composed = composeCatalogShapes(base, [], []);
+
+    const legacy = withoutContainer(
+      ModalSpec.render.shapes(
+        props as Parameters<typeof ModalSpec.render.shapes>[0],
         sizeSpec,
         "default",
       ),

@@ -65,13 +65,34 @@ if [ -z "$TRANSCRIPT" ] || [ ! -f "$TRANSCRIPT" ]; then
   exit 0
 fi
 
-# 직전 사용자 메시지 (userType=external + content=string) 최근 5개
+# 직전 사용자 메시지 (userType=external + content=string) 최근 8개
+#
+# 2026-06-01 버그 수정 (사용자 ADR-910 생성 차단 사례):
+#   jq 필터가 system 주입 메시지(<task-notification> / slash command / local-command
+#   stdout / 자율 loop tick / bash-input 등)도 userType=external + content=string 으로
+#   통과시켜, 이것들이 tail 윈도우를 잠식 → 진짜 사용자 발화가 밀려남 → 사용자 명시 발의
+#   ("adr-910 생성해")가 윈도우 밖으로 사라져 deny. 동시 세션/자율 loop 환경에서 악화.
+#   → system 주입 패턴을 사용자 발화에서 제외한 뒤 tail -8 (마진 확대) 로 진짜 발화만 검사.
 RECENT_USER_MSG=$(jq -r '
   select(.type == "user"
     and (.userType // "") == "external"
     and ((.message.content // "") | type) == "string")
   | .message.content
-' "$TRANSCRIPT" 2>/dev/null | tail -5)
+  | select(
+      (startswith("<task-notification") | not)
+      and (startswith("<command-") | not)
+      and (startswith("<local-command") | not)
+      and (startswith("<bash-input>") | not)
+      and (startswith("<bash-stdout>") | not)
+      and (startswith("<bash-stderr>") | not)
+      and (startswith("Caveat:") | not)
+      and (contains("autonomous-loop") | not)
+      and (startswith("# Autonomous loop") | not)
+      and (startswith("You scheduled this tick") | not)
+      and (startswith("Use PushNotification") | not)
+      and ((. | gsub("^[[:space:]]+";"")) != "")
+    )
+' "$TRANSCRIPT" 2>/dev/null | tail -8)
 
 # 발의 의도 키워드 매칭 (case-insensitive)
 # 2026-05-11 정밀화 (~/.claude/plans/adr-123-124-125-126-sunny-crescent.md E1):
@@ -84,28 +105,25 @@ if echo "$RECENT_USER_MSG" | grep -qiE '(새|신규|new|create|propose|draft)[[:
   exit 0
 fi
 
-# evidence 없음 → deny
+# evidence 없음 → ask (deny 아님)
+#
+# 2026-06-01 버그 수정: 과거 deny 는 윈도우 오염(system 메시지 잠식)으로 사용자 명시
+# 발의를 못 잡았을 때 사용자에게 선택권조차 주지 않아, 사용자 ADR 생성을 막는 버그가 됐다.
+# ask 로 완화 — hook 본래 의도(claude 자가 발의 무한 생산 차단)는 유지된다:
+#   - claude 자가 발의 (사용자 미요청) → 사용자가 거부 → 차단 효과 그대로
+#   - 사용자 명시 발의인데 윈도우 오염으로 키워드 못 잡음 → 사용자가 승인 → 정상 통과
+# 즉 "자가 발의 차단" 과 "사용자 발의 허용" 둘 다 사용자 판단 1회로 정확히 분리된다.
 REASON_TEXT=$(cat <<INNER_EOF
-자동 ADR 발의 차단: $FILE_PATH
+ADR 신규 파일 생성 확인: $FILE_PATH
 
-직전 5개 사용자 메시지에 ADR 발의 의도 키워드가 없습니다.
-필요 키워드: ADR / new-adr / create-adr / /new-adr (case-insensitive)
+직전 사용자 발화에서 ADR 발의 키워드를 못 찾았습니다.
+(키워드: 새/신규 ADR, ADR 생성/작성/발의/분리, create-adr 등)
 
-[정책 근거]
-- ~/.claude/projects/-Users-admin-work-composition/memory/feedback-no-derived-adr-mid-execution.md
-- ~/.claude/projects/-Users-admin-work-composition/memory/feedback-adr-dependency-direction-stale-baseline.md
-- composition CLAUDE.md §"본질 사고 작업은 깊은 사고(adaptive thinking) 명시 진입"
+판단 기준:
+- 사용자가 이 ADR 생성을 명시 요청했다면 → 승인 (정상)
+- claude 가 사용자 요청 없이 자가 발의 중이면 → 거부
 
-[해결 방법]
-1. 사용자에게 명시 ADR 발의 confirm 요청
-   - 예: "이 변경을 ADR 로 정리할까요? (네/아니오)"
-2. 사용자가 명시 발의 응답 후 다시 시도
-   - 예: "네, ADR 작성해주세요" / "ADR-NNN 발의해주세요"
-3. design breakdown 으로 분리 가능한 sub-phase 인지 재검토
-
-[Edge case 우회]
-- 사용자가 직전에 "ADR" 키워드 없이 의도 전달한 경우 사용자에게 명시 요청
-- 절대 우회 금지 — claude 자체 판단으로 ADR 발의 = 사용자 신뢰 손실 + 진행 흐름 차단
+[정책 근거] feedback-no-derived-adr-mid-execution.md / CLAUDE.md §전제·관점 의문 처리
 INNER_EOF
 )
 
@@ -113,7 +131,7 @@ if command -v jq >/dev/null 2>&1; then
   jq -n --arg r "$REASON_TEXT" '{
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
-      permissionDecision: "deny",
+      permissionDecision: "ask",
       permissionDecisionReason: $r
     }
   }'

@@ -294,13 +294,14 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     label: "dialog",
     icon: "AppWindowMac",
   }),
-  primitiveEntry(
-    "Modal",
-    "overlays",
-    FAMILY_6_CUTOVER,
-    { category: "overlays", label: "modal", icon: "InspectionPanel" },
-    { skiaLegacy: true },
-  ),
+  // Modal — Skia generic 발효 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): render.shapes=[],
+  //   buildCatalogShapes 가 variant fill transparent shell(무해) → legacy [] 와 시각 동일.
+  //   backdrop 은 ModalOverlay 별도 담당 → skiaPrimitive 불필요.
+  primitiveEntry("Modal", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "modal",
+    icon: "InspectionPanel",
+  }),
   // Popover — Skia generic 발효 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg/border 는
   //   buildCatalogShapes(variant fill {color.layer-2}), drop shadow + V-arrow 는 skiaPrimitive
   //   (popover_shadow prepend / popover_arrow append) 합성. render.shapes 와 완전 parity.

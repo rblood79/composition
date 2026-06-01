@@ -119,13 +119,16 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
     expect(isCatalogSkiaCutover("Tree")).toBe(true);
   });
 
-  it("Popover/Dialog 는 Skia generic 발효 (Inc3 2026-06-01 — buildCatalogShapes box+text + skiaPrimitive 합성)", () => {
+  it("Popover/Dialog/Modal 는 Skia generic 발효 (Inc3 2026-06-01 — buildCatalogShapes box+text + skiaPrimitive 합성)", () => {
     // Popover: bg/border buildCatalogShapes(fill {color.layer-2}) + shadow/V-arrow skiaPrimitive.
     // Dialog: bg buildCatalogShapes(fill {color.layer-1}) + backdrop/shadow skiaPrimitive(prepend).
+    // Modal: buildCatalogShapes transparent shell(무해) — render.shapes=[] 와 시각 동일, primitive 없음.
     expect(isCatalogCutover("Popover")).toBe(true);
     expect(isCatalogSkiaCutover("Popover")).toBe(true);
     expect(isCatalogCutover("Dialog")).toBe(true);
     expect(isCatalogSkiaCutover("Dialog")).toBe(true);
+    expect(isCatalogCutover("Modal")).toBe(true);
+    expect(isCatalogSkiaCutover("Modal")).toBe(true);
   });
 
   it("collection items/2D 결합형 + 미발효 overlay/date(skiaLegacy:true)은 Skia cutover 제외", () => {
@@ -140,8 +143,7 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
       "GridList",
       // family ⑤ Table — props.rows/columns 2D grid 직접 렌더
       "Table",
-      // family ⑥ overlays 미발효 — DropZone variant+dashed / Tooltip text source / Modal 대기
-      "Modal",
+      // family ⑥ overlays 미발효 — DropZone variant+dashed / Tooltip text source 대기
       "Tooltip",
       "DropZone",
       // family ⑦ date — 날짜 grid 데이터-시각 결합형
