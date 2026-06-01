@@ -663,6 +663,39 @@ Table/ListBox/GridList 같은 collection frame 은 보이는 row 만 그린다. 
 
 DOM backend 는 같은 traversal 출력을 `toReactStyle(node)` 로 받아 React element 로 실행한다. 두 backend 가 같은 노드 base⊕override 를 공급원으로 삼고 같은 reader/spacing resolver 를 거치므로, Builder Skia 와 Preview/Publish DOM 의 시각 결과가 동일하다.
 
+## 4.11 RAC 시각 재현 범위 — 원본 RAC → SSOT → Skia 정합성 계층
+
+원본 RAC 시각(vendored starter CSS)은 SSOT(theme `ComponentRule` + `props.style` override)로 추출되어 Skia generic 렌더(`buildCatalogShapes`)로 투영된다. 이 경로에서 **모든 RAC 시각이 동일 정합으로 재현되는 것은 아니다** — 시각 속성은 재현 난이도별로 4계층으로 나뉘고, generic 정합이 닿는 영역과 컴포넌트별 수작업 합성에 맡기는 영역, 정적 Skia 특성상 재현하지 않는 영역의 경계가 다르다. 본 절은 그 경계를 명시한다(설계 한계의 정직한 기록 — "RAC 시각 100% Skia 재현"은 본 설계의 목표가 아니다).
+
+**실측 근거**: 원본 RAC CSS 시각 속성 전수 집계(`packages/react-aria-starter/**/*.css`), SSOT 추출 범위(`ComponentRuleSize` 6필드 + `ComponentRuleVariantColors` 11색상축), Skia generic 출력(`buildCatalogShapes` = `border` + `text` 2 shape), 수작업 합성(`skiaPrimitives.ts` 의 `overlay_backdrop` / `popover_shadow` / `popover_arrow` draw module).
+
+| 계층                  | 원본 RAC 시각 (빈도)                                                      | SSOT 추출                                                              | Skia 재현                                                       |       정합성        |
+| --------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------- | :-----------------: |
+| **① box 골격**        | border-radius · height · padding · gap · border · font-size · font-weight | `ComponentRuleSize` + `props.style` override                           | `buildCatalogShapes` roundRect + border + text                  |      **~90%**       |
+| **② 색상**            | color · background · border-color                                         | `ComponentRuleVariantColors`(fill×state) + ADR-908 `resolveFillTokens` | fillStyle × selection × interaction 축 합성                     |      **~85%**       |
+| **③ 레이아웃 (flex)** | display · flex-direction · align-items · justify-content                  | `props.style` longhand(ADR-909)                                        | Taffy 결과 좌표 reader (generic)                                |      **~70%**       |
+| **④ 상태 시각**       | outline(focus) · scale(pressed) · transition · cursor                     | hover/pressed = fill 만, focus-ring 부분                               | default/hover/pressed 만, **hit-test wiring 없음(T-7)**         |      **~40%**       |
+| **⑤ 고급 시각**       | box-shadow · transform · opacity · z-index                                | SSOT 미추출                                                            | 컴포넌트별 `skiaPrimitive` 수작업 합성(overlay shadow/arrow 등) | **컴포넌트별 ~60%** |
+| **⑥ 애니메이션**      | transition · transform · scale(0.95)                                      | 미추출                                                                 | 정적 렌더 — 미재현                                              |   **~0%** (의도)    |
+
+### generic 정합 vs 수작업 합성의 경계 (결정적)
+
+Skia generic(`buildCatalogShapes`)이 그리는 것은 **① box + 텍스트 골격뿐**(실측: `type:"border"` + `type:"text"` 2종). 따라서:
+
+- **box+text 로 환원되는 시각(①②③, 약 70%)** → generic 단일 함수로 **높은 정합**. Button / TextField / Badge 류가 여기 해당하며, 같은 노드 base⊕override 와 같은 theme rule 을 DOM/Skia 가 공유해 시각 대칭이 성립한다.
+- **box+text 로 환원 안 되는 시각(④⑤, 약 30%)**:
+  - **shadow / arrow / backdrop** → `skiaPrimitives.ts` 의 컴포넌트별 수작업 draw module(`skiaPrimitive` 배열 + `getSkiaPrimitiveMode` replace/prepend/append)로 box+text 출력에 합성. 이는 generic 정합이 아니라 **의도적으로 남긴 per-component escape hatch** 다(④4.4 / 7-5 Select 예시).
+  - **focus outline / pressed scale / `:has(>svg:only-child)` 구조 셀렉터(아이콘 전용 → 원형)** → SSOT 에 추출되지 않으며 generic 으로 재현되지 않는다.
+- **transition / transform 애니메이션(⑥)** → Skia 가 정적 프레임을 그리므로 원리적으로 미재현. 빌더 캔버스는 정적 미리보기이므로 이는 **scope 밖(의도된 비목표)** 이지 결함이 아니다.
+
+### 위험 연계
+
+- 계층 ④(상태 시각)의 미흡은 본 ADR Risks **T-7(HIGH)** 로 등록돼 있다 — "현재 `default`/`disabled` 2개만 derive, hover/pressed hit-test wiring 없음 → Builder 화면 hover/pressed 시각 부재". `racStateAttrs` 도입 + `ComponentState` enum derived 가 대응.
+- 계층 ①②(box+색상)의 정합은 Gate **G2**(base⊕override backend 어댑터 + `/cross-check` 시각 대칭)가 검증한다.
+- 계층 ⑤(고급 시각)의 컴포넌트별 합성은 generic 단일 정합 대상이 아니므로, family fixture 의 `/cross-check`(G5)가 합성 결과의 시각 대칭만 확인한다.
+
+**한 줄 요약**: 정적 골격(box/text/색상/레이아웃)은 generic 단일 경로로 **70~90% 정합**, 상태 인터랙션(T-7)과 shadow류 고급 시각은 정합이 낮거나 컴포넌트별 수작업, transition/transform 애니메이션은 정적 Skia 특성상 미재현이다. 본 설계의 정합 목표는 **box+text 로 환원 가능한 시각 영역에 한정**한다.
+
 <a id="영역-5"></a>
 
 # ⑤ Style & Properties Panel 연동 — 단일 공급원 generic Inspector
