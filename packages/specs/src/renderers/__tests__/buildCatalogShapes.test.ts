@@ -3,6 +3,32 @@ import { describe, expect, it } from "vitest";
 import { ButtonSpec } from "../../components/Button.spec";
 import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
 import { buildCatalogShapes } from "../buildCatalogShapes";
+import { resolveComponentVisual } from "../utils/resolveComponentVisual";
+
+/**
+ * ADR-142 G2(b) B — buildCatalogShapes 는 spec-free(visual rule 주입형). 테스트는 specs 내부
+ * 어댑터 resolveComponentVisual(spec, name) 로 visual 을 만들어 전달한다(builder 는 rule 테이블,
+ * specs 테스트는 spec 어댑터 — 동일 ComponentVisualRule 형태).
+ */
+function callCatalog(
+  spec: ComponentSpec<Record<string, unknown>>,
+  props: Record<string, unknown>,
+  size: SizeSpec,
+  state: Parameters<typeof buildCatalogShapes>[3],
+) {
+  const variantName =
+    (props.variant as string | undefined) ?? spec.defaultVariant;
+  const visual = resolveComponentVisual(spec, variantName);
+  const textDecoration =
+    spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
+  return buildCatalogShapes(
+    visual,
+    props,
+    size,
+    state,
+    textDecoration && textDecoration !== "none" ? textDecoration : undefined,
+  );
+}
 
 /**
  * fillStyle(outline/subtle) generic 소비 검증용 fixture.
@@ -55,7 +81,7 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       md,
       "default",
     );
-    const actual = buildCatalogShapes(ButtonSpec, props, md, "default");
+    const actual = callCatalog(ButtonSpec, props, md, "default");
     expect(actual).toEqual(expected);
   });
 
@@ -66,7 +92,7 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       md,
       "hover",
     );
-    const actual = buildCatalogShapes(ButtonSpec, props, md, "hover");
+    const actual = callCatalog(ButtonSpec, props, md, "hover");
     expect(actual).toEqual(expected);
   });
 
@@ -80,7 +106,7 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       md,
       "default",
     );
-    const actual = buildCatalogShapes(ButtonSpec, props, md, "default");
+    const actual = callCatalog(ButtonSpec, props, md, "default");
     expect(actual).toEqual(expected);
     expect(actual.some((s) => s.type === "text")).toBe(false);
   });
@@ -95,20 +121,22 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       md,
       "default",
     );
-    const actual = buildCatalogShapes(ButtonSpec, props, md, "default");
+    const actual = callCatalog(ButtonSpec, props, md, "default");
     expect(actual).toEqual(expected);
   });
 });
 
 describe("buildCatalogShapes — fillStyle(outline/subtle) generic 소비 (foundation #2)", () => {
   it("fillStyle=outline — bg=fill.outline.base, text=variant.outlineText, border=variant.outlineBorder", () => {
-    const shapes = buildCatalogShapes(
+    const shapes = callCatalog(
       fillFixtureSpec,
       { children: "X", variant: "primary", fillStyle: "outline" },
       fixtureSize,
       "default",
     );
-    expect(shapes.find((s) => s.type === "roundRect")?.fill).toBe("{color.transparent}");
+    expect(shapes.find((s) => s.type === "roundRect")?.fill).toBe(
+      "{color.transparent}",
+    );
     expect(shapes.find((s) => s.type === "border")?.color).toBe(
       "{color.border-hover}",
     );
@@ -116,7 +144,7 @@ describe("buildCatalogShapes — fillStyle(outline/subtle) generic 소비 (found
   });
 
   it("fillStyle=subtle — bg=fill.subtle.base, text=variant.subtleText", () => {
-    const shapes = buildCatalogShapes(
+    const shapes = callCatalog(
       fillFixtureSpec,
       { children: "X", variant: "primary", fillStyle: "subtle" },
       fixtureSize,
@@ -129,13 +157,15 @@ describe("buildCatalogShapes — fillStyle(outline/subtle) generic 소비 (found
   });
 
   it("fillStyle 미지정(fill) — fill.default.base / variant.text / variant.border (회귀 0)", () => {
-    const shapes = buildCatalogShapes(
+    const shapes = callCatalog(
       fillFixtureSpec,
       { children: "X", variant: "primary" },
       fixtureSize,
       "default",
     );
-    expect(shapes.find((s) => s.type === "roundRect")?.fill).toBe("{color.accent}");
+    expect(shapes.find((s) => s.type === "roundRect")?.fill).toBe(
+      "{color.accent}",
+    );
     expect(shapes.find((s) => s.type === "text")?.fill).toBe(
       "{color.on-accent}",
     );

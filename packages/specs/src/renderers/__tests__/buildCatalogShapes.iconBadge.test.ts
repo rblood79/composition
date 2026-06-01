@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { BadgeSpec } from "../../components/Badge.spec";
 import { IconSpec } from "../../components/Icon.spec";
 import type { VariantSpec } from "../../types";
-import { buildCatalogShapes } from "../buildCatalogShapes";
 import { getSkiaPrimitive } from "../skiaPrimitives";
+import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
 
 /**
  * ADR-142 family ① — Icon / Badge 시각 parity 실측.

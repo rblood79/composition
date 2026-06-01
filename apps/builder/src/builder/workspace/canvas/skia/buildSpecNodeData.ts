@@ -30,6 +30,10 @@ import {
   type VariantSpec,
 } from "@composition/specs";
 import { isCatalogSkiaCutover, getPrimitiveBinding } from "@composition/shared";
+import {
+  resolveSkiaVisualRule,
+  resolveSkiaRule,
+} from "./resolveSkiaVisualRule";
 import { getSpecForTag } from "../sprites/tagSpecMap";
 import { specShapesToSkia } from "./specShapeConverter";
 import {
@@ -772,14 +776,24 @@ function buildCatalogShapesOrPrimitive(
   sizeSpec: SizeSpec,
   componentState: ComponentState,
 ): Shape[] {
+  // ADR-142 G2(b) B1: variant 색상은 rule 테이블(resolveSkiaVisualRule)에서 해소해 주입한다
+  // (buildCatalogShapes 는 spec 미참조). variant 이름은 props 우선, 없으면 rule.defaultVariant.
+  const rule = resolveSkiaRule(type);
+  const variantName =
+    (specProps.variant as string | undefined) ?? rule?.defaultVariant;
+  const visual = resolveSkiaVisualRule(type, variantName);
+  const textDecoration = rule?.textDecoration;
+
   const skiaPrimitiveKey = getPrimitiveBinding(type)?.skiaPrimitive;
   const drawPrimitive = getSkiaPrimitive(skiaPrimitiveKey);
   if (drawPrimitive) {
-    const variantName =
+    // B2 예정: skiaPrimitive draw fn 의 variant 읽기를 rule 기반으로 swap. 현재는 spec.variants
+    // (Checkbox/Radio/Switch 추가 색상 상수 의존)를 유지 — B1 은 box+text leaf 만 rule 화.
+    const primVariantName =
       (specProps.variant as string | undefined) ?? spec.defaultVariant;
     const variant =
-      variantName && spec.variants
-        ? (spec.variants[variantName] as VariantSpec | undefined)
+      primVariantName && spec.variants
+        ? (spec.variants[primVariantName] as VariantSpec | undefined)
         : undefined;
     const primitiveShapes = drawPrimitive({
       props: specProps,
@@ -790,7 +804,13 @@ function buildCatalogShapesOrPrimitive(
     // null = primitive 미적용(예: Badge non-dot) → 보편 box+text fallback.
     if (primitiveShapes) return primitiveShapes;
   }
-  return buildCatalogShapes(spec, specProps, sizeSpec, componentState);
+  return buildCatalogShapes(
+    visual,
+    specProps,
+    sizeSpec,
+    componentState,
+    textDecoration,
+  );
 }
 
 // ---------------------------------------------------------------------------

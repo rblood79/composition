@@ -5,8 +5,8 @@ import { RadioSpec } from "../../components/Radio.spec";
 import { SliderSpec } from "../../components/Slider.spec";
 import { SwitchSpec } from "../../components/Switch.spec";
 import type { VariantSpec } from "../../types";
-import { buildCatalogShapes } from "../buildCatalogShapes";
 import { getSkiaPrimitive } from "../skiaPrimitives";
+import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
 
 /**
  * ADR-142 family ③(selection) — Checkbox/Radio/Switch indicator skiaPrimitive parity.

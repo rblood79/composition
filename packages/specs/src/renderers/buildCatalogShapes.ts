@@ -20,23 +20,30 @@
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
-import type { ComponentSpec, ComponentState, Shape, SizeSpec } from "../types";
+import type { ComponentState, Shape, SizeSpec } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
-import { resolveComponentVisual } from "./utils/resolveComponentVisual";
+import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
+/**
+ * generic box+text 시각 생성기 (ADR-142 G2(b) B — spec-free).
+ *
+ * **데이터 소스 (B swap)**: 더 이상 `spec` 을 읽지 않는다. variant 색상(`visual`) + size(`size`)
+ * + text-decoration(`textDecoration`)을 caller(builder buildSpecNodeData)가 rule 테이블
+ * (`resolveComponentRule`)에서 해소해 주입한다. 패키지 경계(`specs ← shared`)상 본 함수(specs)는
+ * shared rule 테이블을 import 못 하므로 builder 가 주입 책임을 진다. spec runtime 참조 0(#8).
+ *
+ * @param visual variant 시각 규칙(rule.variants[v] 투영). variant 없는 컨테이너 shell 은 undefined.
+ * @param textDecoration underline 등 D3 text-decoration 메타(Link). 미지정 시 미적용.
+ */
 export function buildCatalogShapes(
-  spec: ComponentSpec<Record<string, unknown>>,
+  visual: ComponentVisualRule | undefined,
   props: Record<string, unknown>,
   size: SizeSpec,
   state: ComponentState = "default",
+  textDecoration?: string,
 ): Shape[] {
   const style = props.style as Record<string, unknown> | undefined;
 
-  // ADR-142 G2(b) A: variant 색상은 resolveComponentVisual 단일 어댑터 경유 (spec.variants
-  // 직접 접근 제거). B 단계에서 어댑터 내부 data-source 만 rule 테이블로 swap → 본 호출부 불변.
-  const variantName =
-    (props.variant as string | undefined) ?? spec.defaultVariant;
-  const visual = resolveComponentVisual(spec, variantName);
   const fill = visual?.fill;
 
   const borderRadius = parsePxValue(style?.borderRadius, size.borderRadius);
@@ -178,10 +185,8 @@ export function buildCatalogShapes(
       (style?.textAlign as "left" | "center" | "right") ||
       (isInlineText ? "left" : "center");
 
-    // underline 등 text-decoration 은 spec.composition.rootSelectors["&"] 의 D3 데이터에서 읽는다
-    // (render.shapes 하드코딩의 거울 — Link.spec composition rootSelectors text-decoration).
-    const textDecoration =
-      spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
+    // underline 등 text-decoration 은 caller 가 rule 메타로 주입(Link.spec composition
+    // rootSelectors text-decoration 의 거울). spec 직접 읽기 제거(#8).
 
     shapes.push({
       type: "text",

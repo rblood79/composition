@@ -95,6 +95,96 @@ export interface TokensSnapshotEntry {
 export type TokensSnapshot = Record<string, TokensSnapshotEntry>;
 
 // ─────────────────────────────────────────────
+// ComponentRulesTable — ADR-142 G2(b) B: 컴포넌트 시각 규칙 SSOT
+// ─────────────────────────────────────────────
+
+/**
+ * 단일 variant 의 fillStyle 별 state 배경 토큰 (ADR-908 FillStateTokens 투영).
+ *
+ * value 는 TokenRef 문자열(`{color.accent}`) — runtime 에서 `resolveCanonicalToken` /
+ * `resolveToken` 으로 실수 값 변환(dark mode 자동 반전 보존). shared 는 specs FillTokenSpec 을
+ * import 하지 않으므로(`specs ← shared` 의존 방향) 동형 구조를 string 으로 독립 선언한다.
+ */
+export interface ComponentRuleFillState {
+  /** 해당 fillStyle 의 default state (required) */
+  base: string;
+  hover?: string;
+  pressed?: string;
+  selected?: string;
+  selectedHover?: string;
+  selectedPressed?: string;
+  emphasizedSelected?: string;
+}
+
+/** fillStyle(fill/outline/subtle) × state 2축 — ADR-908 FillTokenSpec 투영. */
+export interface ComponentRuleFill {
+  default: ComponentRuleFillState;
+  outline?: Partial<ComponentRuleFillState>;
+  subtle?: Partial<ComponentRuleFillState>;
+  /** 배경 투명도 0-1 */
+  alpha?: number;
+}
+
+/** 비-fill 색상 (text/border 계열) — VariantSpec 직접 필드 투영. */
+export interface ComponentRuleVariantColors {
+  text?: string;
+  textHover?: string;
+  border?: string;
+  borderHover?: string;
+  outlineText?: string;
+  outlineBorder?: string;
+  subtleText?: string;
+  selectedText?: string;
+  selectedBorder?: string;
+  emphasizedSelectedText?: string;
+  emphasizedSelectedBorder?: string;
+}
+
+/** 단일 variant 규칙 = fill 2축 + 비-fill 색상. */
+export interface ComponentRuleVariant {
+  fill: ComponentRuleFill;
+  colors?: ComponentRuleVariantColors;
+}
+
+/**
+ * 단일 size 규칙 — SizeSpec 의 시각 관련 필드만 추출.
+ * layout(padding/gap)은 제외 — element.props.style 경로 유지(ADR-907 Layer B 보존).
+ */
+export interface ComponentRuleSize {
+  // SizeSpec 실데이터는 TokenRef(`{radius.md}`) / "auto" / 숫자 혼재 → number | string 수용.
+  fontSize?: number | string;
+  lineHeight?: number | string;
+  borderRadius?: number | string;
+  borderWidth?: number | string;
+  height?: number | string;
+  iconSize?: number | string;
+}
+
+/** 단일 컴포넌트의 시각 규칙. */
+export interface ComponentRule {
+  defaultVariant?: string;
+  defaultSize?: string;
+  variants: Record<string, ComponentRuleVariant>;
+  sizes: Record<string, ComponentRuleSize>;
+  /**
+   * root text-decoration (예: Link underline). spec.composition.rootSelectors["&"] 의 D3 메타 투영.
+   * underline 등 시각상 의미 있는 값만 — "none"(기본값 동일)은 생성기에서 생략.
+   */
+  textDecoration?: string;
+}
+
+/**
+ * 컴포넌트×variant×state 시각 규칙 테이블 (ADR-142 G2(b) B — D3 시각 SSOT).
+ *
+ * key = component type (예: "Button"). 124 spec 의 variants/sizes/fill 을 build-time 생성
+ * (`packages/specs/scripts/generate-rules.ts` → `generated/componentRulesTable.ts`).
+ * generic 렌더러(buildCatalogShapes / CSSGenerator)는 spec 참조 0 으로 본 테이블만 소비한다.
+ * 문서별 커스텀 규칙(향후 Phase 2)은 `CompositionDocument.componentRules` 로 build-time 기본을
+ * override 한다.
+ */
+export type ComponentRulesTable = Record<string, ComponentRule>;
+
+// ─────────────────────────────────────────────
 // Token Reference Primitives
 // ─────────────────────────────────────────────
 
@@ -400,6 +490,16 @@ export interface CompositionDocument {
    * `.pen` wire 포맷은 `variables` — 직렬화 경계에서 매핑 (ADR-143 §3-4).
    */
   tokens?: TokensSnapshot;
+
+  /**
+   * 컴포넌트 시각 규칙 테이블 — ADR-142 G2(b) B (D3 시각 SSOT).
+   *
+   * spec.variants/sizes/fill 을 대체하는 generic 렌더러의 시각 source. 124 spec 에서 build-time
+   * 생성된 기본 테이블(`generated/componentRulesTable.ts`)을 generic 렌더러가 소비하며, 본 필드는
+   * 문서별 커스텀 override(향후 Phase 2)용. Phase 1 에선 undefined — build-time 상수 fallback.
+   * IndexedDB 직렬화 부담 방지를 위해 기본값은 문서에 저장하지 않는다.
+   */
+  componentRules?: ComponentRulesTable;
 
   /**
    * 참조형 import hook — 외부 `.pen` 또는 canonical 문서 파일을 URL/path 로 참조.

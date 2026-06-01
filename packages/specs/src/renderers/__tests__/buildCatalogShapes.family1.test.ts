@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { LinkSpec } from "../../components/Link.spec";
 import { ToggleButtonSpec } from "../../components/ToggleButton.spec";
-import { buildCatalogShapes } from "../buildCatalogShapes";
+import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
 
 /**
  * ADR-142 family ① — Link / ToggleButton 가 generic buildCatalogShapes 로 legacy
