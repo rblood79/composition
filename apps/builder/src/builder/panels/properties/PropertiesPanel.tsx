@@ -12,21 +12,13 @@
  */
 
 import { useEffect, useState, useCallback, useMemo, memo } from "react";
-import type { ComponentType } from "react";
 import type { PanelProps } from "../core/types";
-import {
-  getEditor,
-  type EditorContext,
-} from "../../inspector/editors/registry";
-import { useEditModeStore } from "../../stores/editMode";
 import { useDebouncedSelectedElementData } from "../../stores";
-import type {
-  ComponentEditorProps,
-  SelectedElement,
-} from "../../inspector/types";
+import type { SelectedElement } from "../../inspector/types";
+import { useEditContract } from "./hooks/useEditContract";
+import { GenericFieldRenderer } from "./generic/GenericFieldRenderer";
 import {
   EmptyState,
-  LoadingSpinner,
   PanelHeader,
   MultiSelectStatusIndicator,
   BatchPropertyEditor,
@@ -53,7 +45,6 @@ import {
   SLOT_NAME_MIRROR_FIELD,
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
-import { getFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 import { getPropagationRules } from "../../utils/propagationRegistry";
 import { buildPropagationUpdates } from "../../utils/propagationEngine";
 import type { BatchPropsUpdate } from "../../stores/utils/elementUpdate";
@@ -85,6 +76,7 @@ import {
 import { requestEditingSemanticsDetachConfirmation } from "../../utils/editingSemanticsImpactConfirmation";
 import {
   isCanonicalRefElement,
+  type CanonicalRefResolvableNode,
   resolveCanonicalRefElement,
   resolveCanonicalRefTree,
 } from "../../utils/canonicalRefResolution";
@@ -95,26 +87,70 @@ import {
 } from "./hooks/useCanonicalPropertyRead";
 import { isComponentInstanceMirrorElement } from "../../../adapters/canonical/componentSemanticsMirror";
 import type { PanelNode } from "../panelNode";
+import type { Element } from "../../../types/core/store.types";
+
+type PanelCanonicalRefNode = CanonicalRefResolvableNode & {
+  props: Record<string, unknown>;
+};
+
+function panelNodeToElement(node: PanelNode): Element {
+  const {
+    componentName,
+    customId,
+    metadata: _metadata,
+    name: _name,
+    ...rest
+  } = node;
+  return {
+    ...rest,
+    ...(customId != null ? { customId } : {}),
+    ...(componentName != null ? { componentName } : {}),
+  };
+}
+
+function panelNodeToCanonicalRefNode(node: PanelNode): PanelCanonicalRefNode {
+  const { componentName, customId, metadata, name, ...rest } = node;
+  return {
+    ...rest,
+    props: node.props,
+    ...(customId != null ? { customId } : {}),
+    ...(componentName != null ? { componentName } : {}),
+    ...(metadata ? { metadata } : {}),
+    ...(name != null ? { name } : {}),
+  };
+}
+
+function panelNodeMapToElementMap(
+  nodesById: ReadonlyMap<string, PanelNode>,
+): Map<string, Element> {
+  return new Map(
+    Array.from(nodesById.entries()).map(([id, node]) => [
+      id,
+      panelNodeToElement(node),
+    ]),
+  );
+}
 
 /**
- * PropertyEditorWrapper - Editor 컴포넌트를 분리하여 불필요한 리렌더링 방지
+ * CatalogEditContractEditor - ADR-912 단계 2 generic Properties view.
  *
- * PropertiesPanel이 리렌더링되어도 실제 props가 변경되지 않으면 Editor는 리렌더링되지 않음
+ * getEditor(per-type 동적 에디터) 다중 등록 대신 `useEditContract` 단일 진입점 + generic
+ * `GenericFieldRenderer` 로 semantic 필드(node.props, D2 의미층)를 편집한다. 컴포넌트별
+ * editor 분기 0 — catalog entry(binding.accepts) + theme rule 단일 source 파생(HC#1/#2).
+ *
+ * **단계 2 scope (사용자 결정 2026-06-03 "Properties view만 단계 2")**: Properties view =
+ * `origin:"semantic"` 필드만 렌더. Style view(origin:"style") 전면 전환은 후속 단계.
+ *
+ * **보존 동작**: semantic write 는 ADR-048 propagation(부모 prop 변경 → 자식 전파) +
+ * canonical ref instance 해소를 그대로 유지(legacy PropertyEditorWrapper.handleUpdate 동일 로직 +
+ * 동일 `as Map<...>` cast — PanelNode/Element 경계 우회 보존).
  */
-const PropertyEditorWrapper = memo(
-  function PropertyEditorWrapper({
+const CatalogEditContractEditor = memo(
+  function CatalogEditContractEditor({
     selectedElement,
   }: {
     selectedElement: SelectedElement;
   }) {
-    const [Editor, setEditor] =
-      useState<ComponentType<ComponentEditorProps> | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    // ⭐ Phase 6 Fix: body 타입의 경우 현재 편집 모드(editMode)에 따라 다른 Editor 로드
-    // - Page 모드: PageBodyEditor
-    // - Layout 모드: LayoutBodyEditor
-    const editMode = useEditModeStore((state) => state.mode);
     const selectedCanonicalElement = useCanonicalPropertyElement(
       selectedElement.id,
     );
@@ -124,111 +160,58 @@ const PropertyEditorWrapper = memo(
       () => Array.from(elementsById.values()),
       [elementsById],
     );
-    const elementContext = useMemo((): EditorContext => {
-      const element =
-        elementsById.get(selectedElement.id) ?? selectedCanonicalElement;
-      return {
-        layoutId: element ? getFrameElementMirrorId(element) : null,
-        pageId: element?.page_id || null,
-        editMode, // ⭐ 현재 편집 모드 전달
-      };
-    }, [editMode, elementsById, selectedCanonicalElement, selectedElement.id]);
+    const lookupRefElementList = useMemo(
+      () => lookupElementList.map(panelNodeToCanonicalRefNode),
+      [lookupElementList],
+    );
 
-    // 요소 타입에 맞는 에디터 동적 로드
-    useEffect(() => {
-      let isMounted = true;
+    // 편집 계약 단일 진입점 — semantic ∪ style 필드를 origin 태그와 함께 산출.
+    const contract = useEditContract(selectedElement.id);
+    // Properties view = semantic origin (node.props / D2). style origin 은 Style view(후속).
+    const semanticFields = useMemo(
+      () => contract.fields.filter((f) => f.origin === "semantic"),
+      [contract],
+    );
 
-      if (!selectedElement) {
-        Promise.resolve().then(() => {
-          if (isMounted) {
-            setEditor(null);
-            setLoading(false);
-          }
-        });
-        return;
-      }
-
-      Promise.resolve().then(() => {
-        if (!isMounted) return;
-
-        setLoading(true);
-
-        // ⭐ Phase 6: context 전달 (body 타입의 경우 layoutId로 Editor 결정)
-        getEditor(selectedElement.type, elementContext)
-          .then((editor) => {
-            if (isMounted) {
-              setEditor(() => editor);
-              setLoading(false);
-            }
-          })
-          .catch((error) => {
-            if (isMounted) {
-              if (import.meta.env.DEV) {
-                console.error(
-                  "[PropertyEditorWrapper] Failed to load editor:",
-                  selectedElement.type,
-                  error,
-                );
-              }
-              setEditor(null);
-              setLoading(false);
-            }
-          });
-      });
-
-      return () => {
-        isMounted = false;
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedElement.type, elementContext.editMode]);
-
-    // handleUpdate는 항상 안정적인 함수 (getState 사용)
-    // ⚠️ 에디터들이 { ...currentProps, [key]: value } 패턴으로 전체 props를 보내는데,
-    // useDeferredValue로 인해 currentProps가 stale할 수 있음.
-    // 최신 element.props와 비교하여 실제 변경된 prop만 전달하여 stale 값 덮어쓰기 방지.
-    const handleUpdate = useCallback(
-      (updatedProps: Record<string, unknown>) => {
+    // semantic write — ADR-048 propagation + canonical ref 해소 보존 (legacy handleUpdate 동일).
+    const handleSemanticUpdate = useCallback(
+      (key: string, value: unknown) => {
         const state = useStore.getState();
         const element =
           elementsById.get(selectedElement.id) ?? selectedCanonicalElement;
         if (!element) return;
 
-        const effectiveElement = isCanonicalRefElement(element)
-          ? resolveCanonicalRefElement(element, lookupElementList)
-          : element;
+        const refElement = panelNodeToCanonicalRefNode(element);
+        const effectiveElement = isCanonicalRefElement(refElement)
+          ? resolveCanonicalRefElement(refElement, lookupRefElementList)
+          : refElement;
         const baselineProps = (effectiveElement.props ?? {}) as Record<
           string,
           unknown
         >;
-        const changedProps: Record<string, unknown> = {};
-        let changedCount = 0;
-        for (const [key, value] of Object.entries(updatedProps)) {
-          if (key === "style" || key === "computedStyle" || key === "events")
-            continue;
-          if (baselineProps[key] !== value) {
-            changedProps[key] = value;
-            changedCount++;
-          }
-        }
-
-        if (changedCount === 0) return;
+        // 실제 변경된 경우만 — stale 덮어쓰기 방지(legacy handleUpdate 동일).
+        if (baselineProps[key] === value) return;
+        const changedProps: Record<string, unknown> = { [key]: value };
 
         const isComponentInstanceSelection =
-          isCanonicalRefElement(element) ||
-          isComponentInstanceMirrorElement(element);
+          isCanonicalRefElement(refElement) ||
+          isComponentInstanceMirrorElement(panelNodeToElement(element));
         const propagationSource = isComponentInstanceSelection
           ? (() => {
               const lookupElementsMap = new Map(
-                lookupElementList.map((candidate) => [candidate.id, candidate]),
+                lookupRefElementList.map((candidate) => [
+                  candidate.id,
+                  candidate,
+                ]),
               );
               return resolveCanonicalRefTree({
-                elements: lookupElementList,
+                elements: lookupRefElementList,
                 elementsMap: lookupElementsMap,
               });
             })()
           : null;
         const propagationElement =
-          propagationSource?.elementsMap.get(element.id) ?? effectiveElement;
+          propagationSource?.elementsMap.get(refElement.id) ?? effectiveElement;
         const propagationChildrenMap =
           propagationSource?.childrenMap ?? childrenByParent;
         const propagationElementsMap =
@@ -236,7 +219,13 @@ const PropertyEditorWrapper = memo(
 
         // ADR-048: propagation 규칙 중 변경된 prop과 매칭되는 것이 있으면 자식도 업데이트
         const rules = getPropagationRules(propagationElement.type);
-        if (rules && rules.some((r) => r.parentProp in changedProps)) {
+        if (
+          rules &&
+          rules.some(
+            (r) =>
+              typeof r.parentProp === "string" && r.parentProp in changedProps,
+          )
+        ) {
           const childUpdates = buildPropagationUpdates(
             propagationElement,
             changedProps,
@@ -271,35 +260,32 @@ const PropertyEditorWrapper = memo(
       [
         childrenByParent,
         elementsById,
-        lookupElementList,
+        lookupRefElementList,
         selectedCanonicalElement,
         selectedElement.id,
       ],
     );
 
-    if (loading) {
-      return (
-        <LoadingSpinner
-          message="에디터를 불러오는 중..."
-          description={`${selectedElement.type} 속성 에디터 로드`}
-        />
-      );
-    }
+    // style write — Style view 전환(후속)까지는 미사용. updateSelectedStyle 단일 prop + distributeShorthand.
+    const handleStyleUpdate = useCallback((key: string, value: unknown) => {
+      const state = useStore.getState();
+      state.updateSelectedStyle(key, value == null ? "" : String(value));
+    }, []);
 
-    if (!Editor) {
+    if (semanticFields.length === 0) {
       return (
         <EmptyState
-          message="사용 가능한 속성 에디터가 없습니다"
-          description={`'${selectedElement.type}' 컴포넌트의 에디터를 찾을 수 없습니다.`}
+          message="편집 가능한 속성이 없습니다"
+          description={`'${selectedElement.type}' 컴포넌트의 편집 계약이 비어 있습니다.`}
         />
       );
     }
 
     return (
-      <Editor
-        elementId={selectedElement.id}
-        currentProps={selectedElement.properties}
-        onUpdate={handleUpdate}
+      <GenericFieldRenderer
+        fields={semanticFields}
+        onSemanticUpdate={handleSemanticUpdate}
+        onStyleUpdate={handleStyleUpdate}
       />
     );
   },
@@ -461,6 +447,10 @@ const MultiSelectContent = memo(function MultiSelectContent({
     () => new Map(elementsById),
     [elementsById],
   );
+  const getLegacyElementsMap = useCallback(
+    () => panelNodeMapToElementMap(elementsById),
+    [elementsById],
+  );
 
   // Get current page elements
   const currentPageElements = useMemo(
@@ -472,6 +462,10 @@ const MultiSelectContent = memo(function MultiSelectContent({
         : [],
     [currentPageId, elementsById],
   );
+  const legacyCurrentPageElements = useMemo(
+    () => currentPageElements.map(panelNodeToElement),
+    [currentPageElements],
+  );
 
   // Get selected elements array for BatchPropertyEditor
   const selectedElements = useMemo(() => {
@@ -482,11 +476,11 @@ const MultiSelectContent = memo(function MultiSelectContent({
     )
       return [];
     const elementsMap = getElementsMap();
-    const resolved: PanelNode[] = [];
+    const resolved: Element[] = [];
     for (const id of selectedElementIds) {
       const el = elementsMap.get(id);
       if (el && el.page_id === currentPageId) {
-        resolved.push(el);
+        resolved.push(panelNodeToElement(el));
       }
     }
     return resolved;
@@ -507,7 +501,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
   const handleCopyAll = async () => {
     if (selectedElementIds.length === 0) return;
     try {
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
       const jsonData = serializeCopiedElements(copiedData);
       await copyText(jsonData);
@@ -524,7 +518,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
       if (!clipboardText) return;
       const copiedData = deserializeCopiedElements(clipboardText);
       if (!copiedData) return;
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const newElements = pasteMultipleElements(
         copiedData,
         currentPageId,
@@ -556,7 +550,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
     )
       return;
     try {
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const elementsToDelete = selectedElementIds
         .map((id: string) => elementsMap.get(id))
         .filter((el): el is NonNullable<typeof el> => el !== undefined);
@@ -577,7 +571,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
 
   const handleBatchUpdate = async (updates: Record<string, unknown>) => {
     try {
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       trackBatchUpdate(selectedElementIds, updates, elementsMap);
       const batchUpdateElementProps =
         useStore.getState().batchUpdateElementProps;
@@ -609,7 +603,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
   const handleGroupSelection = async () => {
     if (selectedElementIds.length < 2 || !currentPageId) return;
     try {
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const previousChildren = selectedElementIds
         .map((id: string) => elementsMap.get(id))
         .filter((el): el is NonNullable<typeof el> => el !== undefined);
@@ -639,7 +633,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
   const handleAlign = async (type: AlignmentType) => {
     if (selectedElementIds.length < 2) return;
     try {
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const updates = alignElements(selectedElementIds, elementsMap, type);
       if (updates.length === 0) return;
       const styleUpdates: Record<string, Record<string, unknown>> = {};
@@ -677,7 +671,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
   const handleDistribute = async (type: DistributionType) => {
     if (selectedElementIds.length < 3) return;
     try {
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const updates = distributeElements(selectedElementIds, elementsMap, type);
       if (updates.length === 0) return;
       const styleUpdates: Record<string, Record<string, unknown>> = {};
@@ -713,7 +707,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
   };
 
   // Get actual Element from store for SmartSelection
-  const actualElement = currentPageElements.find(
+  const actualElement = legacyCurrentPageElements.find(
     (el) => el.id === selectedElement.id,
   );
 
@@ -736,19 +730,19 @@ const MultiSelectContent = memo(function MultiSelectContent({
         onBatchUpdate={handleBatchUpdate}
       />
       <SelectionFilter
-        allElements={currentPageElements}
+        allElements={legacyCurrentPageElements}
         onFilteredElements={handleFilteredElements}
       />
       {actualElement && (
         <SmartSelection
           referenceElement={actualElement}
-          allElements={currentPageElements}
+          allElements={legacyCurrentPageElements}
           onSelect={(elementIds) => {
             onSetSelectedElements(elementIds);
             if (currentPageId) {
               selectionMemory.addSelection(
                 elementIds,
-                currentPageElements,
+                legacyCurrentPageElements,
                 currentPageId,
               );
             }
@@ -791,6 +785,10 @@ function PropertiesPanelContent() {
   // 🚀 Performance: getState() 패턴 - 구독 없이 최신 상태 조회
   const getElementsMap = useCallback(
     () => new Map(elementsById),
+    [elementsById],
+  );
+  const getLegacyElementsMap = useCallback(
+    () => panelNodeMapToElementMap(elementsById),
     [elementsById],
   );
   const getCurrentPageId = useCallback(
@@ -845,7 +843,7 @@ function PropertiesPanelContent() {
     try {
       // Copy elements with relationship preservation
       console.log("[Copy] Calling copyMultipleElements...");
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
       console.log("[Copy] Copied data:", {
         elementCount: copiedData.elements.length,
@@ -871,7 +869,7 @@ function PropertiesPanelContent() {
       console.error("❌ [Copy] Failed to copy elements:", error);
       // TODO: Show error toast
     }
-  }, [getSelectedElementIds, getElementsMap]);
+  }, [getSelectedElementIds, getLegacyElementsMap]);
 
   const handlePasteAll = useCallback(async () => {
     const currentPageId = getCurrentPageId();
@@ -913,7 +911,7 @@ function PropertiesPanelContent() {
 
       // Paste with offset
       console.log("[Paste] Creating new elements with offset...");
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const newElements = pasteMultipleElements(
         copiedData,
         currentPageId,
@@ -957,7 +955,12 @@ function PropertiesPanelContent() {
       console.error("❌ [Paste] Failed to paste elements:", error);
       // TODO: Show error toast
     }
-  }, [getCurrentPageId, getSelectedElementId, addElement]);
+  }, [
+    getCurrentPageId,
+    getSelectedElementId,
+    getLegacyElementsMap,
+    addElement,
+  ]);
 
   // ⭐ Phase 6: Duplicate handler (Cmd+D)
   const handleDuplicate = useCallback(async () => {
@@ -976,7 +979,7 @@ function PropertiesPanelContent() {
       );
 
       // Copy current selection
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const copiedData = copyMultipleElements(selectedElementIds, elementsMap);
 
       // Paste with 10px offset (standard offset for duplicate)
@@ -1017,7 +1020,7 @@ function PropertiesPanelContent() {
     getMultiSelectMode,
     getSelectedElementIds,
     getCurrentPageId,
-    getElementsMap,
+    getLegacyElementsMap,
     addElement,
     setSelectedElements,
   ]);
@@ -1133,7 +1136,7 @@ function PropertiesPanelContent() {
     try {
       console.log("[Group] Grouping", selectedElementIds.length, "elements");
 
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
       const previousChildren = selectedElementIds
         .map((id: string) => elementsMap.get(id))
         .filter((el): el is NonNullable<typeof el> => el !== undefined);
@@ -1180,7 +1183,7 @@ function PropertiesPanelContent() {
     getMultiSelectMode,
     getSelectedElementIds,
     getCurrentPageId,
-    getElementsMap,
+    getLegacyElementsMap,
     addElement,
     updateElement,
     setSelectedElement,
@@ -1196,7 +1199,7 @@ function PropertiesPanelContent() {
     try {
       console.log("[Ungroup] Ungrouping element", selectedElement.id);
 
-      const elementsMap = getElementsMap();
+      const elementsMap = getLegacyElementsMap();
 
       // Store group element before deletion for history
       const groupElementForHistory = elementsMap.get(selectedElement.id);
@@ -1245,7 +1248,7 @@ function PropertiesPanelContent() {
     }
   }, [
     selectedElement,
-    getElementsMap,
+    getLegacyElementsMap,
     updateElement,
     removeElement,
     setSelectedElement,
@@ -1267,7 +1270,7 @@ function PropertiesPanelContent() {
           `[Alignment] Aligning ${selectedElementIds.length} elements to ${type}`,
         );
 
-        const elementsMap = getElementsMap();
+        const elementsMap = getLegacyElementsMap();
 
         // Calculate alignment updates
         const updates = alignElements(selectedElementIds, elementsMap, type);
@@ -1311,7 +1314,7 @@ function PropertiesPanelContent() {
     [
       getMultiSelectMode,
       getSelectedElementIds,
-      getElementsMap,
+      getLegacyElementsMap,
       updateElementProps,
     ],
   );
@@ -1332,7 +1335,7 @@ function PropertiesPanelContent() {
           `[Distribution] Distributing ${selectedElementIds.length} elements ${type}ly`,
         );
 
-        const elementsMap = getElementsMap();
+        const elementsMap = getLegacyElementsMap();
 
         // Calculate distribution updates
         const updates = distributeElements(
@@ -1380,7 +1383,7 @@ function PropertiesPanelContent() {
     [
       getMultiSelectMode,
       getSelectedElementIds,
-      getElementsMap,
+      getLegacyElementsMap,
       updateElementProps,
     ],
   );
@@ -1625,8 +1628,7 @@ function PropertiesPanelContent() {
 
         <ComponentSlotFillSection elementId={selectedElement.id} />
 
-        {/* ⭐ 최적화: PropertyEditorWrapper로 Editor 렌더링 분리 */}
-        <PropertyEditorWrapper selectedElement={selectedElement} />
+        <CatalogEditContractEditor selectedElement={selectedElement} />
 
         {/* ⭐ Layout/Slot System: Element가 들어갈 Slot 선택 */}
         <ElementSlotSelector
@@ -1642,10 +1644,12 @@ function PropertiesPanelContent() {
               >,
               slotName,
             );
-            void updateElement(selectedElement.id, {
+            const patch: Partial<Element> = {
               props: props as Element["props"],
-              [SLOT_NAME_MIRROR_FIELD]: slotName,
-            });
+            };
+            (patch as Record<string, unknown>)[SLOT_NAME_MIRROR_FIELD] =
+              slotName;
+            void updateElement(selectedElement.id, patch);
           }}
         />
 

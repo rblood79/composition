@@ -1,0 +1,196 @@
+/**
+ * ADR-912 단계 2 — generic field renderer (HC#1/#2).
+ *
+ * `resolveEditContract` 의 `ResolvedField[]` 를 `field.kind` 9종 switch 로 렌더하고,
+ * `field.origin` 으로 write 를 라우팅한다. 컴포넌트별 분기 0 — 모든 노드가 동일 generic 경로.
+ *
+ * **origin 라우팅(write 단일 진실)**:
+ * - `semantic` → `onSemanticUpdate(key, value)` (node.props, updateSelectedProperties)
+ * - `style`    → `onStyleUpdate(key, value)` (node.props.style, updateSelectedStyle + distributeShorthand)
+ *
+ * **section 그룹핑**: 같은 `section` 필드를 `PropertySection` 으로 묶는다. caller 가
+ * `fields` 를 origin 으로 필터(Properties view = semantic / Style view = style)해 넘긴다 —
+ * 본 컴포넌트는 넘어온 필드 전부를 section 그룹으로 렌더(view 필터는 caller 책임).
+ *
+ * **kind dispatch**: `CatalogInspectorFields.CatalogField` 와 동일 9종(variant/enum/fillStyle/
+ * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
+ * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
+ */
+import { memo } from "react";
+
+import type { ResolvedField } from "@composition/shared";
+
+import {
+  PropertyIconPicker,
+  PropertyInput,
+  PropertyNumberInput,
+  PropertySection,
+  PropertySelect,
+  PropertySizeToggle,
+  PropertySwitch,
+} from "../../../components";
+
+/** field.origin 별 write 경로. */
+export interface GenericFieldRouting {
+  /** origin:"semantic" → node.props[key] = value. */
+  onSemanticUpdate: (key: string, value: unknown) => void;
+  /** origin:"style" → node.props.style[key] = value (override-only). */
+  onStyleUpdate: (key: string, value: unknown) => void;
+}
+
+interface GenericFieldRendererProps extends GenericFieldRouting {
+  /** caller 가 origin 으로 필터한 필드 (Properties view = semantic / Style view = style). */
+  fields: ResolvedField[];
+}
+
+function capitalize(s: string): string {
+  return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+/** 단일 필드 — kind switch + origin 라우팅. */
+const GenericField = memo(function GenericField({
+  field,
+  onSemanticUpdate,
+  onStyleUpdate,
+}: { field: ResolvedField } & GenericFieldRouting) {
+  const value = field.currentValue;
+  // origin 단일 진실로 write 분기 (semantic → props / style → props.style).
+  const update = (v: unknown) => {
+    if (field.origin === "style") onStyleUpdate(field.key, v);
+    else onSemanticUpdate(field.key, v);
+  };
+
+  switch (field.kind) {
+    case "variant":
+    case "enum":
+    // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
+    case "fillStyle":
+      return (
+        <PropertySelect
+          label={field.label}
+          value={String(value ?? field.baseValue ?? "")}
+          onChange={(v) => update(v)}
+          options={field.options ?? []}
+        />
+      );
+
+    case "size":
+      return (
+        <PropertySizeToggle
+          label={field.label}
+          value={String(value ?? field.baseValue ?? "")}
+          onChange={(v) => update(v)}
+          options={(field.options ?? []).map((o) => ({
+            id: o.value,
+            label: o.label,
+          }))}
+        />
+      );
+
+    case "boolean":
+      return (
+        <PropertySwitch
+          label={field.label}
+          isSelected={Boolean(value ?? field.baseValue)}
+          onChange={(checked) => update(checked)}
+        />
+      );
+
+    case "string":
+      return (
+        <PropertyInput
+          label={field.label}
+          value={String(value ?? "")}
+          onChange={(v) => update(v === "" ? undefined : v)}
+        />
+      );
+
+    case "string-array": {
+      const display = Array.isArray(value) ? value.join(", ") : "";
+      return (
+        <PropertyInput
+          label={field.label}
+          value={display}
+          onChange={(v) => {
+            const parts = v
+              .split(",")
+              .map((s) => s.trim())
+              .filter((s) => s.length > 0);
+            update(parts.length > 0 ? parts : undefined);
+          }}
+        />
+      );
+    }
+
+    case "number":
+      return (
+        <PropertyNumberInput
+          label={field.label}
+          value={
+            value != null
+              ? Number(value)
+              : field.baseValue != null
+                ? Number(field.baseValue)
+                : undefined
+          }
+          onChange={(val) => update(val)}
+          min={field.min}
+          max={field.max}
+          step={field.step}
+        />
+      );
+
+    case "icon":
+      return (
+        <PropertyIconPicker
+          label={field.label}
+          value={value as string | undefined}
+          onChange={(name) => update(name)}
+          onClear={() => update(undefined)}
+        />
+      );
+
+    // "binding" — collection data binding 은 collections family(단계 4)에서 처리.
+    default:
+      return null;
+  }
+});
+
+/**
+ * ResolvedField[] → section 그룹 + kind dispatch 렌더.
+ *
+ * 같은 `section` 을 `PropertySection` 으로 묶되, 입력 순서(계약 순서)를 보존한다.
+ */
+export const GenericFieldRenderer = memo(function GenericFieldRenderer({
+  fields,
+  onSemanticUpdate,
+  onStyleUpdate,
+}: GenericFieldRendererProps) {
+  if (fields.length === 0) return null;
+
+  // section 순서 보존 그룹핑 (Map 삽입 순서 = 계약 순서).
+  const groups = new Map<string, ResolvedField[]>();
+  for (const field of fields) {
+    const section = field.section || "content";
+    const bucket = groups.get(section);
+    if (bucket) bucket.push(field);
+    else groups.set(section, [field]);
+  }
+
+  return (
+    <>
+      {Array.from(groups.entries()).map(([section, sectionFields]) => (
+        <PropertySection key={section} title={capitalize(section)}>
+          {sectionFields.map((field) => (
+            <GenericField
+              key={`${field.origin}:${field.key}`}
+              field={field}
+              onSemanticUpdate={onSemanticUpdate}
+              onStyleUpdate={onStyleUpdate}
+            />
+          ))}
+        </PropertySection>
+      ))}
+    </>
+  );
+});
