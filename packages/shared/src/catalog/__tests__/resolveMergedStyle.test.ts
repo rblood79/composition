@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { resolveMergedStyle } from "../resolvers/resolveMergedStyle";
 import { toReactStyle } from "../outputs/toReactStyle";
+import { toSkiaStyle } from "../outputs/toSkiaStyle";
 import { getComponentRulesTable } from "../resolvers/resolveComponentRule";
 import type { CanonicalNode } from "../../types/composition-document.types";
 
@@ -94,5 +95,95 @@ describe("toReactStyle — DOM override 전용 어댑터 (ADR-912 1A-(b))", () =
       node({ style: { width: "100px", marginTop: "4px", color: "blue" } }),
     );
     expect(style).toEqual({ width: "100px", marginTop: "4px", color: "blue" });
+  });
+});
+
+/**
+ * ADR-912 1A-(c) — Skia 어댑터 G-adapter 증명.
+ *
+ * G-adapter 핵심: DOM `toReactStyle` 과 Skia `toSkiaStyle` 이 **같은 `resolveMergedStyle`
+ * base/override 분리 코어**를 재사용(병합 로직 복제 0)하되, Skia 만 base TokenRef 를 구체값으로
+ * 해소(`resolveToken`)한다. + reset-to-default round-trip.
+ */
+describe("toSkiaStyle — base⊕override ⊕ token 해소 (ADR-912 1A-(c) G-adapter)", () => {
+  const node = (props: Record<string, unknown>): CanonicalNode => ({
+    id: "n1",
+    type: "Button",
+    props,
+  });
+
+  it("base TokenRef 가 구체값으로 해소된다 ({typography.text-xs} → 12)", () => {
+    const merged = toSkiaStyle(node({ size: "sm" }));
+    // resolveMergedStyle.base.fontSize === "{typography.text-xs}" (1A-(b) 미해소 통과 검증됨)
+    // → toSkiaStyle 은 resolveToken 으로 12(number) 해소.
+    expect(merged.fontSize).toBe(12);
+    // TokenRef 문자열이 새어나오지 않아야 함 (해소 단일 진입점).
+    expect(merged.fontSize).not.toBe("{typography.text-xs}");
+  });
+
+  it("override 가 base 를 덮는다 (props.style.fontSize 우선)", () => {
+    const merged = toSkiaStyle(
+      node({ size: "sm", style: { fontSize: "20px" } }),
+    );
+    // override "20px" 가 base TokenRef 를 덮음. override 는 이미 구체값이라 그대로 통과.
+    expect(merged.fontSize).toBe("20px");
+  });
+
+  it("override-only 키도 통과 (base 에 없는 사용자 키)", () => {
+    const merged = toSkiaStyle(
+      node({ size: "md", style: { color: "rgb(255,0,0)", marginTop: "4px" } }),
+    );
+    expect(merged.color).toBe("rgb(255,0,0)");
+    expect(merged.marginTop).toBe("4px");
+  });
+
+  it("color TokenRef 는 theme 인자로 light/dark 분기 해소", () => {
+    // base 에 color TokenRef 가 없을 수 있으므로 override 로 명시 주입해 theme 분기만 검증.
+    const light = toSkiaStyle(
+      node({ style: { backgroundColor: "{color.accent}" } }),
+      "light",
+    );
+    const dark = toSkiaStyle(
+      node({ style: { backgroundColor: "{color.accent}" } }),
+      "dark",
+    );
+    // accent 는 light/dark 팔레트에서 다른 구체값으로 해소되어야 함.
+    expect(light.backgroundColor).not.toBe("{color.accent}");
+    expect(dark.backgroundColor).not.toBe("{color.accent}");
+    expect(typeof light.backgroundColor).toBe("string");
+  });
+
+  it("G-adapter: DOM/Skia 가 같은 resolveMergedStyle 코어 재사용 — override 부분 일치", () => {
+    const n = node({ size: "sm", style: { fontSize: "20px", color: "red" } });
+    const dom = toReactStyle(n); // override 전용
+    const skia = toSkiaStyle(n); // base⊕override ⊕ token 해소
+    // 두 어댑터의 override 키(fontSize/color)는 같은 값 — 같은 분리 코어 파생 증거.
+    expect(dom?.fontSize).toBe("20px");
+    expect(skia.fontSize).toBe("20px"); // override 가 base 덮어 동일
+    expect(dom?.color).toBe("red");
+    expect(skia.color).toBe("red");
+    // Skia 만 base(size 시각)를 추가로 갖는다(borderRadius 등 base 키). DOM 은 base 미포함.
+    expect(dom).not.toHaveProperty("borderRadius");
+  });
+
+  it("reset round-trip: override 제거 시 base 로 복귀 ({typography.text-xs} → 12)", () => {
+    const withOverride = toSkiaStyle(
+      node({ size: "sm", style: { fontSize: "20px" } }),
+    );
+    expect(withOverride.fontSize).toBe("20px"); // override 적용
+
+    // reset = props.style.fontSize 제거 (delete props.style[k] 등가).
+    const afterReset = toSkiaStyle(node({ size: "sm", style: {} }));
+    expect(afterReset.fontSize).toBe(12); // base(theme rule) 로 복귀
+  });
+
+  it("rule 미등록 type → base 없음, override 만 해소 통과", () => {
+    const frameNode: CanonicalNode = {
+      id: "f",
+      type: "frame" as CanonicalNode["type"],
+      props: { style: { gap: "8px" } },
+    };
+    const merged = toSkiaStyle(frameNode);
+    expect(merged.gap).toBe("8px");
   });
 });

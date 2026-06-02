@@ -96,17 +96,17 @@ ADR-142 가 점진 전환을 위해 만든 seam·타협. **현재 구현 방식 
 
 ### 2-4. 신규 도입 (NEW) — 1차 원리의 직접 구현
 
-| 신규                                                                                   | 역할                                                                                                         | HC         |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------- |
-| `ComponentNode` schema 확정 (props.style = override-only, props.variant/size = 의미값) | 의미 props + 시각 override layer                                                                             | HC#1, HC#3 |
-| `resolveMergedStyle(node, doc)`                                                        | 두 backend 공유 병합 코어 `style[k] ?? resolveComponentRule(...).resolve(k)`. spec 미경유                    | HC#3       |
-| `toReactStyle(node, doc)`                                                              | merged style → `React.CSSProperties` (DOM). 보편 속성 직접                                                   | HC#3       |
-| `toSkiaStyle(node, doc)`                                                               | merged style → `Shape[]` (보편 속성 → box+text+비-box primitive 직접). spec/`buildCatalogShapes` seam 미경유 | HC#3, HC#4 |
-| `resolveEditContract(node, doc)`                                                       | accepts(D1 투영) ∪ 의미 props(variant/size) ∪ 보편 시각 속성. origin 태그                                    | HC#1, HC#2 |
-| `racStateAttrs(node, interaction)`                                                     | RAC `data-*` → state derive                                                                                  | HC#6       |
-| generic `collectionProjector`                                                          | template subtree × visible window → projected cell tree                                                      | HC#4, HC#7 |
-| `resolveCollectionWriteTarget(projectionId)`                                           | projected id → template/data/override 3-route                                                                | HC#7       |
-| 단일 등록 entry (cutover/skiaLegacy 없는 catalog)                                      | leaf=RAC 투영 / 조합=reusable ref / native=frame                                                             | HC#5       |
+| 신규                                                                                     | 역할                                                                                                                                                                                  | HC         |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `ComponentNode` schema 확정 (props.style = override-only, props.variant/size = 의미값)   | 의미 props + 시각 override layer                                                                                                                                                      | HC#1, HC#3 |
+| `resolveMergedStyle(node, doc)`                                                          | 두 backend 공유 병합 코어 `style[k] ?? resolveComponentRule(...).resolve(k)`. spec 미경유                                                                                             | HC#3       |
+| `toReactStyle(node, doc)`                                                                | merged style → `React.CSSProperties` (DOM). 보편 속성 직접                                                                                                                            | HC#3       |
+| `toSkiaStyle(node, theme)` (shared/outputs — `@composition/specs` `resolveToken` import) | merged style **map** 산출(Shape[] 아님): shared `resolveMergedStyle` base⊕override ⊕ token 해소. `buildCatalogShapes`(KEEP generic 생성기)가 이 map 소비 — 산재 13키 ad-hoc 병합 수렴 | HC#3, HC#4 |
+| `resolveEditContract(node, doc)`                                                         | accepts(D1 투영) ∪ 의미 props(variant/size) ∪ 보편 시각 속성. origin 태그                                                                                                             | HC#1, HC#2 |
+| `racStateAttrs(node, interaction)`                                                       | RAC `data-*` → state derive                                                                                                                                                           | HC#6       |
+| generic `collectionProjector`                                                            | template subtree × visible window → projected cell tree                                                                                                                               | HC#4, HC#7 |
+| `resolveCollectionWriteTarget(projectionId)`                                             | projected id → template/data/override 3-route                                                                                                                                         | HC#7       |
+| 단일 등록 entry (cutover/skiaLegacy 없는 catalog)                                        | leaf=RAC 투영 / 조합=reusable ref / native=frame                                                                                                                                      | HC#5       |
 
 ### 2-5. 6 레지스트리 → 단일 등록 collapse — "1 컴포넌트 = 1 등록" (사용자 1순위 목표)
 
@@ -260,28 +260,39 @@ renderNode(node, doc, backend):       // backend ∈ {DOM, Skia}
 
 **핵심 (1A 실측 정합)**: DOM 과 Skia 는 base 시각 적용 **메커니즘이 다르다**(DOM=build-time generated CSS+data-attr / Skia=runtime rule resolve). "단일 진실"은 **같은 런타임 inline object** 가 아니라 **둘 다 같은 정본 table(②-6-A `componentRulesTable.ts`)의 같은 theme rule 을 base 로 쓴다**는 것이다. `resolveMergedStyle` 은 이 공통 base 위에 `props.style` override 를 얹는 병합 코어이고, 각 backend 어댑터는 그 결과를 자기 출력 형태로 투영한다.
 
+> **1A-(c) 진입 실측 정정 (2026-06-03)**: 1A-(c) 코드 매핑에서 본 절의 직전 슈도코드가 실측과 어긋남이 드러났다. (1) `toSkiaStyle` 의 **패키지 위치**가 미명시였다. **의존 그래프 실측**: `shared → specs` (shared `package.json` 이 `@composition/specs` 의존, specs 는 shared 의존 0 — specs 가 더 하위 레이어). 따라서 `resolveToken`(`packages/specs/src/renderers/utils/tokenResolver.ts`, specs)과 분리 코어 `resolveMergedStyle`(`packages/shared/src/catalog/resolvers/`, shared)을 **둘 다 접근 가능한 곳은 shared** 다 (shared 가 specs 를 import 가능). `toSkiaStyle` 을 specs 에 두면 resolveMergedStyle(shared) 재사용 불가(역방향). 따라서 `toSkiaStyle` 은 **shared 측**(`packages/shared/src/catalog/outputs/toSkiaStyle.ts`, `toReactStyle` 과 같은 폴더)에 두고 shared-local `resolveMergedStyle` 재사용 + `@composition/specs` 의 `resolveToken` import. (2) `buildCatalogShapes` 는 "제거할 seam" 이 **아니다** — ADR-142 가 land 한 **generic box+text 시각 생성기(spec-free, 컴포넌트 식별 분기 0)** 로 §2-2 KEEP 자산이다(`buildCatalogShapes.ts:38-217`). 실제로 buildCatalogShapes 는 **이미** `props.style` 13키(backgroundColor/borderColor/borderRadius/borderWidth/color/fontSize/fontFamily/fontWeight/padding/paddingLeft/paddingRight/paddingX/textAlign)를 base(`visual`/`size`) 위에 `style?.X ?? base` 패턴으로 인라인 병합 중이다 — 즉 **"Skia override 상실 seam" 은 존재하지 않는다**. (3) 따라서 `toSkiaStyle` 의 1차 책임은 "Shape[] 통째 생성으로 buildCatalogShapes 를 대체" 가 **아니라**, **산재된 13키 `style?.X ?? base` ad-hoc 병합을 단일 코어(`resolveMergedStyle`)로 수렴 + token 해소 단일 진입점화** 다. 출력은 token-해소된 **merged style map**(Shape[] 아님) — 그 map 을 `buildCatalogShapes`/`skiaPrimitives` 가 소비(13키 ad-hoc 읽기 → 단일 map 소비로 정리).
+
 ```ts
 // ★ base = 같은 generated theme rule, override = props.style. 두 backend 가 같은 base source.
+//   resolveMergedStyle 위치: packages/shared/src/catalog/resolvers/resolveMergedStyle.ts (1A-(b) land)
 resolveMergedStyle(node, doc):
-  rule = resolveComponentRule(node.type, doc)            // 정본 table (②-6-A componentRulesTable.ts), VisualRule seam 없음
-  base = rule.resolve({ variant: node.props.variant, size: node.props.size })   // variant·size → 시각값 직접
+  rule = resolveComponentRule(node.type, doc)            // 정본 table (②-6-A componentRulesTable.ts), shared 자급
+  base = (size != null ? rule.sizes[size] : undefined)   // ComponentRuleSize (TokenRef 미해소 통과 — 1A-(b) scope)
   override = node.props.style ?? {}                      // override-only (키 존재 = override)
-  return { base, override, merged: mergeByKey(override, base, (k,v) => resolveToken(v, doc)) }
+  return { base, override }                              // 분리만. token 해소·merge 는 backend 어댑터 책임
 
 // DOM: base 색/size 는 generated CSS + data-attr 가 담당(런타임 인라인 색 주입 아님).
 //      toReactStyle 은 props.style override 만 React.CSSProperties 로 — RAC 정통 + override layer.
-toReactStyle(node, doc) = cssPropsFrom(resolveMergedStyle(node, doc).override)
-// (DOM base 시각은 reactAriaGenerated.css + <RAC> className/data-* 가 적용 — 같은 generated rule 파생)
+//      위치: packages/shared/src/catalog/outputs/toReactStyle.ts (1A-(b) land)
+toReactStyle(node) = resolveMergedStyle(node).override   // override-only, token 해소 불요(generated CSS 가 base)
 
-// Skia: 런타임에 같은 generated rule base ⊕ override 를 shape 로 합성.
-toSkiaStyle(node, doc):
-  m = resolveMergedStyle(node, doc)
-  // box(fill/border/radius) + text(font/color) + 비-box primitive(arc/track/indicator)
-  // spec.render.shapes / resolveComponentVisual(spec 읽는 seam) 미경유 — generated rule + override 만으로 합성
-  return composeSkiaShapes(m.merged)   // node type 별 비-box 분기(ellipse/line/icon/arc)만, 컴포넌트별 분기 0
+// Skia: 런타임에 같은 generated rule base ⊕ override 를 token-해소된 merged map 으로 산출.
+//       위치: packages/shared/src/catalog/outputs/toSkiaStyle.ts (1A-(c) 신규, shared 측 — toReactStyle 과 같은 폴더)
+//       shared 가 specs 를 import(shared→specs) → resolveMergedStyle(shared 내부) + resolveToken(@composition/specs) 둘 다 접근
+//   ★ merged map 범위 (1A scope): base = ComponentRuleSize (size 시각값 — fontSize/borderRadius/
+//     borderWidth/height/lineHeight/iconSize) + override = props.style. **variant 색상은 제외** —
+//     색은 1A-(a) 에서 DOM=generated CSS / Skia=runtime `visual`(caller resolveComponentRule 주입)
+//     이 same-source 로 처리 완료(resolveMergedStyle.base 에 미포함, MergedStyle 주석). 색의 단일
+//     어댑터 흡수는 단계 5(VisualRule seam 제거)에서.
+toSkiaStyle(node, theme):
+  { base, override } = resolveMergedStyle(node)          // ★ shared 단일 코어 재사용 (병합 로직 복제 0)
+  merged = { ...base, ...override }                      // override ?? base (override 키가 base 덮음)
+  return mapValues(merged, v => isTokenRef(v) ? resolveToken(v, theme) : v)   // token 해소 단일 진입점
+// buildCatalogShapes / skiaPrimitives 는 이 merged map 을 소비 — 산재 13키 ad-hoc `style?.X ?? base` 읽기 수렴
+// (색상은 buildCatalogShapes 가 visual 에서 계속 읽음 — 단계 5 전까지 색/구조는 transitional 이중 입력)
 ```
 
-책임 수렴: base 해소(같은 generated theme rule)/override 병합/token 해소/spacing·padding/shorthand↔longhand 가 `resolveMergedStyle` 한 곳. `applyInlineBorderOverlay` 같은 사후 override 우회로는 `override.borderColor ?? base` 로 흡수 소멸. `resolveComponentVisual` VisualRule seam·`buildCatalogShapes` spec seam 제거. **시각 대칭 보장 = DOM generated CSS 와 Skia runtime rule 이 같은 generated source 파생**(`/cross-check` G-adapter 가 이를 검증 — "같은 inline object" 아님).
+책임 수렴: base 분리/override/token 해소가 **shared `catalog` 단일 위치 집중** — 분리 코어 `resolveMergedStyle`(shared/resolvers) + backend 어댑터 `toReactStyle`/`toSkiaStyle`(shared/outputs) 모두 shared. `toSkiaStyle` 만 `@composition/specs` 의 `resolveToken` 을 추가 import(shared→specs 의존 정합). `buildCatalogShapes`(specs) 13키 `style?.X ?? base` ad-hoc 병합과 `applyInlineBorderOverlay`(`buildSpecNodeData.ts:1155`) 사후 border 우회로는 merged map 소비로 흡수 수렴(buildCatalogShapes **삭제 아님 — 입력을 merged map 으로 정리**). `resolveComponentVisual` VisualRule seam 은 단계 5 에서 제거(1A-(c) 범위 밖). **시각 대칭 보장 = DOM generated CSS 와 Skia runtime rule 이 같은 generated source 파생**(`/cross-check` G-adapter 가 이를 검증 — "같은 inline object" 아님).
 
 > `toRacProps`(D1 ARIA 투영)는 `toReactStyle`(D3 override)과 별도 채널 — RAC 절대 권위(HC#6). DOM base 시각은 generated CSS/data-attr 채널(또 별도).
 
