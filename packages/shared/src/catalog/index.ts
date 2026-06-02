@@ -17,3 +17,5 @@ export * from "./bindings";
 export * from "./resolvers/resolveComponentRule";
 // ADR-912 1A-(b) — base/override 2층 분리 코어 (HC#3)
 export * from "./resolvers/resolveMergedStyle";
+// ADR-912 1A-(4) — 편집 계약 단일 진입점 (semantic ∪ universal style, origin 태그, HC#1/#2)
+export * from "./resolvers/resolveEditContract";
