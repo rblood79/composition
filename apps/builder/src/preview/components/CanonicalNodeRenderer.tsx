@@ -23,6 +23,7 @@ import {
   adaptElementFillStyle,
   getPrimitiveBinding,
   toRacProps,
+  toReactStyle,
 } from "@composition/shared";
 import { Badge } from "@composition/shared/components/Badge";
 import { Calendar } from "@composition/shared/components/Calendar";
@@ -194,8 +195,19 @@ export function CanonicalNodeRenderer({
     if (binding && PrimitiveComponent) {
       const { children: racChildren, ...racRest } = toRacProps(node, binding);
       const childNodes = node.children ?? [];
+      // ADR-912 1A-(b): catalog generic(cutover) 경로의 props.style override 상실 seam 닫기.
+      // base 색/size 는 generated CSS(react-aria-{Type}[data-*])가 적용 — toReactStyle 은
+      // override(props.style) 전용. data-* 변형/사이즈는 racRest(toRacProps)가 emit.
+      const overrideStyle = toReactStyle(node) as
+        | React.CSSProperties
+        | undefined;
       return (
-        <PrimitiveComponent key={node.id} {...markerProps} {...racRest}>
+        <PrimitiveComponent
+          key={node.id}
+          {...markerProps}
+          {...racRest}
+          style={overrideStyle}
+        >
           {childNodes.length > 0
             ? childNodes.map((child) => (
                 <CanonicalNodeRenderer
