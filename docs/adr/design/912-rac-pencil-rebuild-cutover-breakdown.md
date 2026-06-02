@@ -420,13 +420,20 @@ reset=`delete props.style[k]`(longhand 그룹). size 변경 → baseValue 재res
 
 > sketch. 실제 phase 분해 + sub-group 결정은 사용자 confirm 후 (adr-writing.md fork checkpoint / M4).
 
-1. **공통 기반 (family 무관)**: `ComponentNode` schema + `resolveMergedStyle`(theme rule 직접, VisualRule seam 제거)/`toReactStyle`/`toSkiaStyle`(보편속성 직접, buildCatalogShapes spec seam 제거) + `resolveEditContract`(variant·size 의미 props 분리) + generic traversal. → **G-slice(Button)** + **G-adapter**.
-2. **편집 계약 발효**: `useEditContract` + 패널 section 필터 + generic field renderer. `getEditor`/4 섹션 삭제.
+1. **공통 기반 (family 무관) + Button slice 첫 증명** — 3 sub-step 으로 분해, **early-kill 시점은 1A 직후(7~10h)**. (전체 단계 1 예상 20~28h, 보수적 3일 / 복잡도 터지면 4일)
+   - **1A — common spine (7~10h)**: `ComponentNode` schema + `resolveMergedStyle`(theme rule 직접) + `toReactStyle` + `toSkiaStyle`(보편속성 직접) + `resolveEditContract`(variant·size 의미 props 분리) — Button proof 최소.
+     - 권장 sub-순서 (R-2 격리): (a) `resolveMergedStyle` + `toReactStyle` → DOM 에서 Button `size` 편집 동일 확인 → (b) `toSkiaStyle` 추가. DOM 먼저 닫고 Skia 붙이면 R-2(Skia 대칭) 깨지는 지점 격리.
+     - **🔴 1차 kill 판단 (1A 끝, 7~10h)**: Button 하나에서 `resolveMergedStyle`/`toSkiaStyle`/`resolveEditContract` 가 지저분하거나 **legacy seam 호출이 필요하면** → 1B/1C 로 계속 가지 말고 **③ 영역 A 설계 재보정**. 20~28h 끝이 아니라 여기서 1차 판단 — 깨끗하지 않은 spine 위에 1B(5 consumer wiring) + 1C(검증)를 쌓는 헛수고 차단. R-1 전역 회귀 방지.
+   - **1B — Button 5 consumer wiring (5~8h)**: DOM / Skia / Properties Panel / Style Panel / Publish 가 1A spine(같은 노드 + theme rule + style source)을 소비하도록 wiring. _(1A kill gate 통과 후에만 진입)_
+   - **1C — fallback 차단 + G-slice/G-adapter 검증 (4~6h)**: Button 경로 legacy seam(`resolveComponentVisual` / `render.shapes()` / buildCatalogShapes spec 읽기) **실제 제거** + `/cross-check` 5곳 대칭 + reset round-trip. **성공 = seam 제거하고도 작동** ("작동하지만 fallback 유지" = 실패, dual-SSOT 재현). **2차 kill**: 여기서 대칭/제거 미달이면 어댑터 책임 분해 재설계.
+   - **버퍼/재작업 (4~8h)**: R-2 Skia 대칭 디버깅(CanvasKit↔Canvas 2D sub-pixel) 등.
+
+2. **편집 계약 발효**: `useEditContract` + 패널 section 필터 + generic field renderer. `getEditor`/4 섹션 삭제. _(단계 1 전체 통과 후에만 진입)_
 3. **Skia state**: `racStateAttrs` + interaction threading + scene invalidation. → **G-state**.
 4. **collection projected tree**: `isRenderProjectionId` 일반화 → generic `collectionProjector`(ListBox proof) → window → `resolveCollectionWriteTarget` 3-route + negative fixture. → **G-projected** + **G-boundary**.
-5. **구 정본 + seam 부채 제거**: 124 spec + 59 render.shapes active 호출 + cutover/skiaLegacy + `buildCatalogShapes`/`resolveComponentVisual` seam + 5 레지스트리 + buildSpecNodeData 30+ 분기 삭제. 조합 family Components page reusable 저작(Table 2D column culling 분기).
+5. **구 정본 + 전체 seam 제거**: 124 spec + 59 render.shapes active 호출 + cutover/skiaLegacy + `buildCatalogShapes`/`resolveComponentVisual` seam(전 family) + 5 레지스트리 + buildSpecNodeData 30+ 분기 삭제. 조합 family Components page reusable 저작(Table 2D column culling 분기).
 
-단계 1 을 Button vertical slice 로 증명하고 구 정본·seam 제거(단계 5)를 generic 발효 검증 후로 미루면 회귀 표면이 단계별로 닫힌다.
+**단계 게이트 원칙**: (1) **1A 직후(7~10h) 1차 kill** — Button spine 이 지저분하거나 seam 호출 필요 시 1B/1C 진입 금지, 설계 재보정. (2) **1C 후 2차 kill** — seam 제거+대칭 미달 시 어댑터 재설계. (3) 단계 1 전체 통과해야 단계 2~5(family 전면 확장) 진입. Button 경로 seam 은 1C 에서 제거(proof), 나머지 family seam 은 단계 5 일괄 제거 — 회귀 표면이 단계별로 닫힌다. "작동하지만 fallback 유지" 상태로 다음 단계 진입 금지(dual-SSOT 재현). [[feedback-proof-gate-seam-removal-kill-criteria]]
 
 ---
 
@@ -449,8 +456,8 @@ reset=`delete props.style[k]`(longhand 그룹). size 변경 → baseValue 재res
 
 ## 검증 (Verification — 코드 단계)
 
-1. **G-slice**: Button `size="md"→"sm"` → DOM/Skia/Properties/Style/Publish 5곳 `fontSize:14` 동일 + `/cross-check`.
-2. **G-adapter**: `resolveMergedStyle`(spec/VisualRule seam 미경유) reset round-trip + DOM/Skia 대칭.
+1. **G-slice**: Button `size="md"→"sm"` → DOM/Skia/Properties/Style/Publish 5곳 `fontSize:14` 동일 + `/cross-check`. **성공 = Button 경로 legacy seam(resolveComponentVisual/render.shapes/buildCatalogShapes spec 읽기) 제거하고도 5곳 작동**. "작동하지만 seam fallback 유지" = 실패. **kill: 깨끗하게 안 나오면 단계 2~5 진입 금지, ③ 설계 재보정**.
+2. **G-adapter**: `resolveMergedStyle`(spec/VisualRule seam 미경유) reset round-trip + DOM/Skia 대칭. **성공 = fallback 0**(applyInlineBorderOverlay 류 사후 우회 없이 단일 어댑터). **kill: text 측정/spacing/fill 이 한 어댑터로 대칭 안 나오면 어댑터 책임 분해 재설계**(전면 확장 금지).
 3. **G-projected**: 10k row 노드 ≤ window+overscan, deep hit/drill-in, refresh 후 `projection:` 0건.
 4. **G-state**: selection family Builder Skia hover/pressed/selected = Preview DOM `data-*` parity.
 5. `pnpm type-check` + `pnpm run codex:preflight`.
