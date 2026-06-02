@@ -116,13 +116,13 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 
 > 본 섹션은 대안 B 이행 중 관리할 잔존 운영 위험이다. ID 는 breakdown 영역별 설계와 대응하며, ADR-911 R-1~R-4 를 계승한다(목표 구조 미증명 영역).
 
-| ID  | 위험                                                                                                                                     |  심각도  | 대응                                                                                                                                 |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | :------: | ------------------------------------------------------------------------------------------------------------------------------------ |
-| R-1 | generic 공통 기반(resolve + generic DOM/Skia + 단일 어댑터 + theme resolve) 1 버그가 family 격리 없이 전 컴포넌트 동시 회귀              | **HIGH** | Gate G-slice — Button vertical slice 로 공통 기반 증명. 구 정본 제거(단계 5)를 generic 발효 검증 후로 지연. 실패 시 공통 기반 재설계 |
-| R-2 | `resolveMergedStyle` 단일 어댑터가 DOM/Skia 동일 시각 결과를 내는지 미증명 — text 측정/특수 shape/spacing/token 해소가 한 곳 집중        | **HIGH** | Gate G-adapter — `/cross-check` 시각 대칭 + reset-to-default round-trip. 어댑터 한 곳 검증(컴포넌트마다 아님)                        |
-| R-3 | collection Interactive Projected Tree 가 60fps + 깊은 노드 편집 동시 성립하는지 미증명 — projected id ↔ canonical write target 분리 정합 | **HIGH** | Gate G-projected — 10k row draw/hit ≤ window+overscan + 깊은 노드 클릭/drill-in/edit route + projected id 의 canonical 비유입        |
-| R-4 | Skia 상태 모델(hover/pressed/selected)이 RAC data-attribute parity 로 derive 되는지 미증명                                               | **HIGH** | Gate G-state — selection fixture 가 Builder Skia ↔ Preview DOM 상태 시각 parity                                                      |
-| R-5 | 243 factory creator → reusable 문서 수작업 저작(자동 변환 금지, HC#5). 갈아엎기라 family 격리 없이 일괄 저작 부담                        |   MED    | Builder 안에서 저작 후 Components page reusable 승격. 단계 5 에서 family 분할 저작                                                   |
+| ID  | 위험                                                                                                                                                                                                                                                      |  심각도  | 대응                                                                                                                                 |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: | ------------------------------------------------------------------------------------------------------------------------------------ |
+| R-1 | generic 공통 기반(resolve + generic DOM/Skia + 단일 어댑터 + theme resolve) 1 버그가 family 격리 없이 전 컴포넌트 동시 회귀                                                                                                                               | **HIGH** | Gate G-slice — Button vertical slice 로 공통 기반 증명. 구 정본 제거(단계 5)를 generic 발효 검증 후로 지연. 실패 시 공통 기반 재설계 |
+| R-2 | `resolveMergedStyle` 단일 어댑터가 DOM/Skia 동일 시각 결과를 내는지 미증명 — text 측정/특수 shape/spacing/token 해소가 한 곳 집중                                                                                                                         | **HIGH** | Gate G-adapter — `/cross-check` 시각 대칭 + reset-to-default round-trip. 어댑터 한 곳 검증(컴포넌트마다 아님)                        |
+| R-3 | collection Interactive Projected Tree 가 60fps + 깊은 노드 편집 동시 성립하는지 미증명 — projected id ↔ canonical write target 분리 정합                                                                                                                  | **HIGH** | Gate G-projected — 10k row draw/hit ≤ window+overscan + 깊은 노드 클릭/drill-in/edit route + projected id 의 canonical 비유입        |
+| R-4 | Skia 상태 모델(hover/pressed/selected)이 RAC data-attribute parity 로 derive 되는지 미증명                                                                                                                                                                | **HIGH** | Gate G-state — selection fixture 가 Builder Skia ↔ Preview DOM 상태 시각 parity                                                      |
+| R-5 | **조합(composite) 컴포넌트** 를 Components page reusable 문서로 수작업 저작(자동 변환 금지, HC#5). leaf(RAC primitive ~39 binding)는 entry 1개라 해당 없음 — 저작 부담은 조합 컴포넌트(60 creator − leaf)에만. 갈아엎기라 family 격리 없이 일괄 저작 부담 |   MED    | Builder 안에서 조합 저작 후 Components page reusable 승격. 단계 5 에서 family 분할 저작                                              |
 
 잔존 HIGH 위험: R-1 / R-2 / R-3 / R-4 (4건). 모두 목표 구조 미증명 영역이며 각각 증명 Gate 와 1:1 대응한다. 대안 B 는 family 격리(ADR-910)를 포기하므로 R-1 의 전역 영향이 대안 A 보다 크나, Button vertical slice 우선 증명 + 구 정본 제거 지연으로 회귀 표면을 단계별로 닫는다.
 
@@ -153,7 +153,7 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 ### Negative
 
 - generic 공통 기반 버그는 family 격리가 안 된다(R-1) — 대안 A 대비 전역 영향이 크다. Button vertical slice 증명 + 구 정본 제거 지연으로 완화하나 부담 존재.
-- 243 factory creator 를 Components page reusable 문서로 수작업 저작해야 한다(자동 변환 불가, R-5).
+- **조합(composite) 컴포넌트** 를 Components page reusable 문서로 수작업 저작해야 한다(자동 변환 불가, R-5). leaf(RAC primitive ~39 binding)는 entry 1개로 등록되며 reusable 문서화 대상 아님 — 둘의 경계가 다르다(leaf=entry / 조합=reusable 문서).
 - 단일 어댑터(`resolveMergedStyle`)가 무겁다(R-2) — text 측정/특수 shape/spacing/token 해소가 한 곳에 모인다.
 - collection projected tree(R-3)와 Skia 상태 모델(R-4)이 가장 미증명된 영역.
 - 컴포넌트당 `render.shapes()` Skia source 가 폐기 방향(theme rule 대체) — 단 ADR-907 Layer B/908 fill/909 longhand 는 보존(override layer 유지). ADR-036 status 재평가 필요.

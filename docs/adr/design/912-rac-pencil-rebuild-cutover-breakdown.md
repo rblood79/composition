@@ -402,15 +402,15 @@ reset=`delete props.style[k]`(longhand 그룹). size 변경 → baseValue 재res
 
 ## ⑥ HC ↔ 구조 1:1 증명
 
-| HC                     | 충족 구조                                                                                        | proof Gate       |
-| ---------------------- | ------------------------------------------------------------------------------------------------ | ---------------- |
-| HC#1 단일 공급원       | ②③ `ComponentNode` + `resolveMergedStyle`(theme rule 직접) + 6 레지스트리→단일, type-name 분기 0 | G-slice          |
-| HC#2 패널 두 view      | ⑤ `resolveEditContract` 단일 + section 필터                                                      | G-slice          |
-| HC#3 base/override 2층 | ③ `resolveMergedStyle` `??`(VisualRule seam 없음), reset=delete                                  | G-adapter        |
-| HC#4 Skia 성능         | ④ window(하드 100 제거) + cell generic + sceneVersion cache                                      | G-projected      |
-| HC#5 조합=데이터       | ② 60 factory creator→Components page reusable 문서, `resolveReusable` 재귀                       | reusable fixture |
-| HC#6 RAC 절대권위      | ③ `toRacProps` D1 채널 + ⑤ `racStateAttrs` data-\* 미러                                          | G-state          |
-| HC#7 projected tree    | ④ template subtree 행마다 cell + deep hit + 3-route + boundary guard                             | G-projected      |
+| HC                     | 충족 구조                                                                                             | proof Gate       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | ---------------- |
+| HC#1 단일 공급원       | ②③ `ComponentNode` + `resolveMergedStyle`(theme rule 직접) + 6 레지스트리→단일, type-name 분기 0      | G-slice          |
+| HC#2 패널 두 view      | ⑤ `resolveEditContract` 단일 + section 필터                                                           | G-slice          |
+| HC#3 base/override 2층 | ③ `resolveMergedStyle` `??`(VisualRule seam 없음), reset=delete                                       | G-adapter        |
+| HC#4 Skia 성능         | ④ window(하드 100 제거) + cell generic + sceneVersion cache                                           | G-projected      |
+| HC#5 조합=데이터       | ② 조합(composite)→Components page reusable 문서 / leaf(~39 binding)→entry 1개, `resolveReusable` 재귀 | reusable fixture |
+| HC#6 RAC 절대권위      | ③ `toRacProps` D1 채널 + ⑤ `racStateAttrs` data-\* 미러                                               | G-state          |
+| HC#7 projected tree    | ④ template subtree 행마다 cell + deep hit + 3-route + boundary guard                                  | G-projected      |
 
 ---
 

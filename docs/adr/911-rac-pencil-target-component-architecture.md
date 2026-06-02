@@ -4,7 +4,7 @@
 
 Proposed — 2026-06-02
 
-> **문서 위상: 비실행 목표 참조(Target Reference)**. 본 ADR 은 `execute-adr` 착수 문서가 아니다. Phase land / family cutover / migration / legacy 제거 / preflight 는 [ADR-910](910-rac-pencil-component-architecture.md) 만이 소유한다. 본 ADR 의 Gate 는 구현 phase gate 가 아니라 목표 구조가 성립하는지 검증하는 **proof gate** 이며, 실패 시 직접 land 를 보류하는 것이 아니라 목표 구조 또는 ADR-910 실행 설계를 재검토한다.
+> **문서 위상: 비실행 목표 참조(Target Reference)**. 본 ADR 은 `execute-adr` 착수 문서가 아니다. **실행 owner(Phase land / 레거시 제거 / 등록 collapse)는 [ADR-912](912-rac-pencil-rebuild-cutover.md)(백지 직행, 유일 착수) 다** — 사용자 옵션 B 결정(2026-06-02)으로 점진 cutover([ADR-910](910-rac-pencil-component-architecture.md))은 착수하지 않고 점진 전략 비교 기록으로 남는다(codex review 2026-06-02 라우팅 동기화). 본 ADR 의 Gate 는 구현 phase gate 가 아니라 목표 구조가 성립하는지 검증하는 **proof gate** 이며, 실패 시 직접 land 를 보류하는 것이 아니라 목표 구조 또는 ADR-912 실행 설계를 재검토한다.
 
 > 본 ADR 은 **백지 목표 아키텍처 설계서** 다. 현재 composition 코드(누적된 `*.spec.ts`, 레지스트리, 전환기 adapter)를 출발점으로 삼지 않고, 두 외부 검증 자산(RAC core + Pencil canonical document format)을 1차 원리로 하여 **"아래 조건을 만족하는 컴포넌트 시스템은 정적으로 어떤 구조인가"** 만 유도한다. 현재 코드에서 이 목표로 가는 전환 경로(마이그레이션 / cutover / family 순서 / 레거시 제거 / 성능 회귀 방어)는 본 ADR 범위가 **아니다** — 그 전환 설계는 [ADR-910](910-rac-pencil-component-architecture.md)(cutover 실행 설계서)가 담당한다. 두 문서는 같은 1차 원리에서 출발하므로 목표 구조가 수렴하며, 본 ADR 은 "목표가 무엇인가"를, ADR-910 은 "현재에서 거기로 어떻게 가는가"를 분담한다.
 
@@ -128,7 +128,7 @@ composition 은 노코드 웹 빌더다. 빌더 화면은 Skia 로 그려지는 
 
 > 목표 상세: [911-rac-pencil-target-component-architecture-breakdown.md](design/911-rac-pencil-target-component-architecture-breakdown.md) — 목표 아키텍처 정적 정의(아키텍처 개요 / Component Schema / RAC binding / Generic 렌더 + Interactive Projected Tree / 편집 계약 + edit route / 시각 SSOT / 컴포넌트 예시 / 핵심 타입 / HC↔구조 1:1 증명). 현재 코드에 도입하는 실행 순서와 파일 mutation scope 는 ADR-910 breakdown 이 소유한다.
 
-> **ADR-910 과의 관계**: 본 ADR(목표 설계)과 ADR-910(cutover 실행 설계)은 같은 1차 원리에서 출발하므로 목표 구조가 동일하다. 차이는 관점이다 — 본 ADR 은 현재 코드를 참조하지 않고 "조건을 만족하는 목표 구조"만 규정하고, ADR-910 은 현재 124 spec / 6 레지스트리 / family cutover / 레거시 제거를 다루는 전환 설계다. 본 ADR 의 Risks/Gates 는 **목표 구조의 성립성** 만 평가하며, 전환 위험(기존 프로젝트 마이그레이션 / 정합성 회귀 / cutover 격리)은 ADR-910 이 보유한다. 따라서 착수 ADR 은 911 이 아니라 910 이며, 911 은 910 의 실행 중 목표 구조 drift 를 판정하는 reference 로만 사용한다.
+> **ADR-910/912 와의 관계**: 본 ADR(목표 설계)과 ADR-910(점진 cutover 비교 기록)·ADR-912(백지 직행 착수)는 같은 1차 원리에서 출발하므로 목표 구조가 동일하다. 차이는 전략·관점이다 — 본 ADR 은 현재 코드를 참조하지 않고 "조건을 만족하는 목표 구조"만 규정하고, ADR-910 은 점진 cutover(legacy 격리), ADR-912 는 백지 직행(레거시 미보존)이다. 본 ADR 의 Risks/Gates 는 **목표 구조의 성립성** 만 평가하며, 실행 위험(레거시 제거 / 정합성 회귀 / 등록 collapse)은 ADR-912 가 보유한다. **따라서 착수(execute-adr) ADR 은 911 도 910 도 아니라 ADR-912** 이며(사용자 옵션 B 2026-06-02), 911 은 912 의 실행 중 목표 구조 drift 를 판정하는 reference 로만 사용한다.
 
 ## Risks
 
@@ -147,7 +147,7 @@ composition 은 노코드 웹 빌더다. 빌더 화면은 Skia 로 그려지는 
 
 ## Gates
 
-> 본 ADR 의 Gate 는 **proof gate(비실행)** 다 — "목표 구조가 조건(HC)을 만족함을 증명"하는 검증이지 `execute-adr` 가 land 하는 phase gate 가 아니다. 실패 시 직접 land 를 보류하는 것이 아니라 목표 구조 E 또는 ADR-910 실행 설계를 재검토한다. cutover 발효 / family 격리 / 레거시 제거 / preflight 같은 전환·실행 게이트는 ADR-910 의 영역이며 본 표에 없다.
+> 본 ADR 의 Gate 는 **proof gate(비실행)** 다 — "목표 구조가 조건(HC)을 만족함을 증명"하는 검증이지 `execute-adr` 가 land 하는 phase gate 가 아니다. 실패 시 직접 land 를 보류하는 것이 아니라 목표 구조 E 또는 ADR-912 실행 설계를 재검토한다. 레거시 제거 / 등록 collapse / G-slice·G-adapter·G-state·G-projected 같은 실행 게이트는 **ADR-912** 의 영역이며 본 표에 없다(착수 owner=912, 사용자 옵션 B 2026-06-02).
 
 | Gate        | 시점                             | 통과 조건                                                                                                                                                                                                                                             | 실패 시 대안                      |
 | ----------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
