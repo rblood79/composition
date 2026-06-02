@@ -168,6 +168,14 @@ export function generateCSS<Props>(
    * - `skipCSSGeneration: true` 자식도 embed 는 허용 (독립 파일 emit 만 차단).
    */
   _embedMode = false,
+  /**
+   * ADR-912 ②-6-A (1A-(a)): variant 색상 base source 주입 (build script 가 정본 table 에서 변환해 전달).
+   * `variantName → ComponentVisualRule`. 제공 시 해당 variant 색상은 spec 이 아니라 본 맵(=table 파생)에서
+   * 읽혀 DOM CSS 와 Skia runtime rule 이 같은 정본 table 파생이 된다. 미제공(undefined) 시 기존
+   * `variantToVisual(spec.variants)` fallback (전환기 — embed/test 호출부 불변). variant 색상 채널 한정 —
+   * size/구조 CSS 는 여전히 spec.
+   */
+  _variantSource?: Record<string, ComponentVisualRule>,
 ): string | null {
   // Container/Composite 컴포넌트: 수동 CSS가 구조 담당, Spec은 Skia용.
   // embedMode 에서는 skipCSSGeneration 우회 — 독립 파일 emit 이 아닌 부모 내부 inline emit 은 허용.
@@ -227,9 +235,11 @@ export function generateCSS<Props>(
     !spec.skipVariantCss
   )
     for (const [variantName, variantSpec] of Object.entries(spec.variants)) {
-      // ADR-142 G2(b) A: variant 색상은 variantToVisual 단일 어댑터 경유 (spec.variants 직접
-      //   필드 접근 제거). B 단계에서 source 만 rule 테이블로 swap → 본 블록 불변.
-      const visual = variantToVisual(variantSpec);
+      // ADR-912 ②-6-A (1A-(a)): variant 색상 source swap — 주입된 정본 table 파생(_variantSource) 우선,
+      //   미주입 시 기존 spec.variants→variantToVisual fallback (전환기). 순회 키는 spec.variants 유지
+      //   (table 누락 variant 안전). 이로써 DOM generated CSS 가 Skia runtime rule 과 같은 table 파생.
+      const visual =
+        _variantSource?.[variantName] ?? variantToVisual(variantSpec);
       const fill = visual.fill!;
       lines.push(`.react-aria-${spec.name}[data-variant="${variantName}"] {`);
       lines.push(
@@ -1586,16 +1596,23 @@ function generateAnimationAtRules<Props>(spec: ComponentSpec<Props>): string[] {
 
 /**
  * 모든 스펙에서 CSS 파일 생성
+ *
+ * ADR-912 ②-6-A (1A-(a)): `variantSourceFor` 콜백이 주어지면 각 spec 의 variant 색상을 정본 table 에서
+ * 변환한 `ComponentVisualRule` 맵으로 주입(build script 가 shared table import 후 전달). 미제공 시 기존
+ * spec.variants fallback. 이로써 DOM CSS variant 색상이 Skia runtime rule 과 같은 정본 table 파생.
  */
 export async function generateAllCSS(
   specs: ComponentSpec<unknown>[],
   outputDir: string,
+  variantSourceFor?: (
+    specName: string,
+  ) => Record<string, ComponentVisualRule> | undefined,
 ): Promise<void> {
   const fs = await import("fs/promises");
   const path = await import("path");
 
   for (const spec of specs) {
-    const css = generateCSS(spec);
+    const css = generateCSS(spec, false, variantSourceFor?.(spec.name));
     if (css === null) {
       console.log(`  ⏭ Skipped: ${spec.name} (skipCSSGeneration)`);
       continue;

@@ -1,17 +1,14 @@
 /**
  * Component Rules Table Generation Script (ADR-142 G2(b) B)
  *
- * 124 spec 의 variants/sizes/fill 을 build-time 에 ComponentRulesTable 로 변환 →
- * `packages/shared/src/catalog/generated/componentRulesTable.ts` 생성.
+ * ⚠️ DEPRECATED (ADR-912 1A-(a), 2026-06-03) — build chain 에서 제거됨, 우발 실행 금지.
+ *   `componentRulesTable.ts` 는 ②-6-A 로 **직접 편집 정본**으로 승격됐다(이 생성기의 1회 출력을
+ *   freeze). 본 스크립트를 다시 실행하면 정본 table 을 spec 기반 출력으로 **덮어써** 손 편집 내용이
+ *   소실된다. 단계 5(spec 124 물리 삭제)에서 본 파일도 함께 삭제 예정. 그때까지 보존만 — 실행 금지.
  *
- * generic 렌더러(buildCatalogShapes / CSSGenerator)가 spec 참조 0 으로 본 테이블만 소비하게
- * 만드는 D3 시각 SSOT(ADR-142 #5/#8). spec 은 본 생성기의 build-time source 로만 잔류.
- *
- * **패키지 경계 (RB5)**: 생성물을 shared 에 출력 → resolver(shared/catalog)가 specs 직접 import
- * 없이 같은 패키지 generated 파일을 읽는다. TokenRef(`{color.X}`)는 string 그대로 보존(runtime
- * resolveCanonicalToken/resolveToken 이 dark mode 반전 포함 실수 값 변환).
- *
- * Usage: pnpm generate:rules (build:specs 에 포함)
+ * (역사) 124 spec 의 variants/sizes/fill 을 build-time 에 ComponentRulesTable 로 변환 →
+ * `packages/shared/src/catalog/generated/componentRulesTable.ts` 생성. generic 렌더러가 spec 참조 0
+ * 으로 본 테이블만 소비하게 만드는 D3 시각 SSOT(ADR-142 #5/#8). TokenRef(`{color.X}`)는 string 그대로.
  */
 
 import * as fs from "fs/promises";
@@ -127,6 +124,17 @@ function projectSpec(spec: ComponentSpec<unknown>): ComponentRule {
 }
 
 async function main(): Promise<void> {
+  // ADR-912 1A-(a): componentRulesTable.ts 가 직접 편집 정본으로 승격됨 → 우발 실행 시 손 편집 소실
+  // 방지. 명시적 override flag 없으면 abort.
+  if (!process.argv.includes("--force-overwrite-canonical")) {
+    console.error(
+      "❌ generate-rules 는 ADR-912 1A-(a) 로 DEPRECATED 되었습니다.\n" +
+        "   componentRulesTable.ts 는 직접 편집 정본입니다 — 본 스크립트 재실행은 손 편집을 덮어씁니다.\n" +
+        "   (정말 spec 기반으로 재생성하려면 --force-overwrite-canonical 플래그를 명시하세요. 단계 5 에서 본 파일 삭제 예정.)",
+    );
+    process.exit(1);
+  }
+
   console.log("🔄 Starting component rules table generation...\n");
 
   await fs.mkdir(OUTPUT_DIR, { recursive: true });

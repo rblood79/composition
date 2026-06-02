@@ -31,7 +31,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts && pnpm generate:css && pnpm generate:rules",
+    "build": "tsup src/index.ts --format esm,cjs --dts && pnpm generate:css",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "test": "vitest",
     "test:coverage": "vitest --coverage",

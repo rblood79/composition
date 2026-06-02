@@ -12,19 +12,22 @@ import {
 } from "./resolveSkiaVisualRule";
 
 /**
- * ADR-142 G2(b) B — rule 테이블 기반 시각 해소(resolveSkiaVisualRule)가 spec 기반
- * (resolveComponentVisual)과 **동일 ComponentVisualRule** 을 내는지 parity 검증 (RB1 HIGH).
+ * ADR-912 1A-(a) — 방향 반전: rule 테이블이 **정본**, spec 이 그것을 추종하는지 검증 (drift 검출).
  *
- * Skia generic 렌더러(buildCatalogShapes)는 더 이상 spec 을 안 읽고 rule 테이블만 소비한다(#8).
- * 따라서 rule→visual 변환이 기존 spec→visual 과 byte-동일해야 시각 회귀 0 이 보장된다.
- * TokenRef(`{color.X}`)는 양쪽 모두 string 그대로 — runtime resolveToken 이 dark mode 반전 처리.
+ * **위상 전환 (2026-06-03)**: ADR-142 시절 본 test 는 "rule(table)이 spec(정본)과 동일한가" 였다.
+ * ADR-912 ②-6-A 로 `componentRulesTable.ts` 가 직접 정본으로 승격되면서, 검증 방향이 뒤집힌다 —
+ * 이제 **table 이 기준(정본), spec 은 table 을 추종해야 하는 검증 대상**이다. assert 는 동일성(toEqual)
+ * 이지만 의미는 "정본 table 을 손 편집했을 때 아직 살아있는 spec 이 그 변경을 따라왔는지(drift 검출)".
+ * **단계 5(spec 124 물리 삭제) 시 본 test 도 함께 제거** — spec 이 사라지면 추종 대상이 없어 검증 무의미.
+ * 그때까지는 전환기 drift guardrail(정본 변경이 spec 과 갈라지면 의도적 drift 임을 가시화). TokenRef
+ * (`{color.X}`)는 양쪽 모두 string — runtime resolveToken 이 dark mode 반전 처리.
  */
-describe("resolveSkiaVisualRule — rule↔spec parity (RB1)", () => {
+describe("resolveSkiaVisualRule — table(정본) ← spec(추종) drift 검출 (ADR-912 1A-(a))", () => {
   const rulesTable = getComponentRulesTable();
-  // catalog Skia cutover 된 type 만 generic 렌더 경로 → parity 대상.
+  // catalog Skia cutover 된 type 만 generic 렌더 경로 → drift 검출 대상.
   const cutoverTypes = Object.keys(rulesTable).filter(isCatalogSkiaCutover);
 
-  it("parity 대상 type 이 1개 이상 존재 (게이트 sanity)", () => {
+  it("검출 대상 type 이 1개 이상 존재 (게이트 sanity)", () => {
     expect(cutoverTypes.length).toBeGreaterThan(0);
   });
 
@@ -34,16 +37,17 @@ describe("resolveSkiaVisualRule — rule↔spec parity (RB1)", () => {
     const variantNames = Object.keys(spec.variants);
 
     for (const variantName of variantNames) {
-      it(`${type}/${variantName} — rule→visual ≡ spec→visual`, () => {
-        const fromRule = resolveSkiaVisualRule(type, variantName);
-        const fromSpec = resolveComponentVisual(spec, variantName);
-        expect(fromRule).toEqual(fromSpec);
+      it(`${type}/${variantName} — spec→visual 이 정본 table→visual 을 추종`, () => {
+        const fromRuleCanonical = resolveSkiaVisualRule(type, variantName); // 정본(table)
+        const fromSpecFollower = resolveComponentVisual(spec, variantName); // 추종(spec)
+        // 정본을 기준으로 spec 이 일치하는지 — 불일치 = spec 이 정본 table 을 안 따라옴(의도적 drift 가시화).
+        expect(fromSpecFollower).toEqual(fromRuleCanonical);
       });
     }
 
-    it(`${type} — defaultVariant(rule) ≡ spec.defaultVariant`, () => {
-      const rule = resolveSkiaRule(type);
-      expect(rule?.defaultVariant).toBe(spec.defaultVariant);
+    it(`${type} — spec.defaultVariant 가 정본 table.defaultVariant 를 추종`, () => {
+      const rule = resolveSkiaRule(type); // 정본
+      expect(spec.defaultVariant).toBe(rule?.defaultVariant);
     });
   }
 });

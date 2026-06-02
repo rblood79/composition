@@ -12,7 +12,13 @@
  */
 
 import { generateCSS } from "../src/renderers/CSSGenerator";
+import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
 import type { ComponentSpec } from "../src/types";
+// ADR-912 ②-6-A (1A-(a)): drift 검증을 정본 table 기준으로 — generate-css 와 동일 source 주입.
+import {
+  getComponentRulesTable,
+  type ComponentRuleVariant,
+} from "../../shared/src/index";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -25,6 +31,41 @@ const GENERATED_DIR = path.join(
   __dirname,
   "../../shared/src/components/styles/generated",
 );
+
+/** ADR-912 ②-6-A: shared ComponentRuleVariant → specs ComponentVisualRule (generate-css 와 동일 로직). */
+function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
+  const c = v.colors ?? {};
+  return {
+    fill: v.fill as unknown as ComponentVisualRule["fill"],
+    text: c.text as ComponentVisualRule["text"],
+    textHover: c.textHover as ComponentVisualRule["textHover"],
+    textWeight: v.textWeight,
+    border: c.border as ComponentVisualRule["border"],
+    borderHover: c.borderHover as ComponentVisualRule["borderHover"],
+    borderStyle: v.borderStyle,
+    outlineText: c.outlineText as ComponentVisualRule["outlineText"],
+    outlineBorder: c.outlineBorder as ComponentVisualRule["outlineBorder"],
+    subtleText: c.subtleText as ComponentVisualRule["subtleText"],
+    selectedText: c.selectedText as ComponentVisualRule["selectedText"],
+    selectedBorder: c.selectedBorder as ComponentVisualRule["selectedBorder"],
+    emphasizedSelectedText:
+      c.emphasizedSelectedText as ComponentVisualRule["emphasizedSelectedText"],
+    emphasizedSelectedBorder:
+      c.emphasizedSelectedBorder as ComponentVisualRule["emphasizedSelectedBorder"],
+  };
+}
+
+function variantSourceFor(
+  specName: string,
+): Record<string, ComponentVisualRule> | undefined {
+  const rule = getComponentRulesTable()[specName];
+  if (!rule || !rule.variants) return undefined;
+  const map: Record<string, ComponentVisualRule> = {};
+  for (const [name, variant] of Object.entries(rule.variants)) {
+    map[name] = ruleVariantToVisual(variant);
+  }
+  return map;
+}
 
 interface ValidationResult {
   component: string;
@@ -82,7 +123,7 @@ async function main(): Promise<void> {
   );
 
   for (const { name, spec } of specs) {
-    const expectedCSS = generateCSS(spec);
+    const expectedCSS = generateCSS(spec, false, variantSourceFor(name));
     const cssPath = path.join(GENERATED_DIR, `${name}.css`);
 
     try {

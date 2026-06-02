@@ -1,19 +1,19 @@
 /**
  * ADR-142 G2(b) A 단계 — 컴포넌트 시각 규칙 단일 어댑터 seam.
  *
- * **목적**: buildCatalogShapes(Skia)와 CSSGenerator(DOM)가 `spec.variants[name]` 의 색상 필드를
- * **각자 직접** 읽던 것을 본 어댑터 1개로 수렴한다. ADR-142 근본 목적(spec 폐기 → theme/tokens
- * SSOT 이전)의 회귀 안전 계단 — B 단계에서 본 어댑터 **내부**의 data-source 만 `spec.variants` →
- * `resolveComponentRule(type, doc)` rule 테이블로 swap 하면 호출부(2 consumer)는 불변이다.
+ * ⚠️ **production-dead (ADR-912 1A-(a), 2026-06-03)**: 아래 `resolveComponentVisual` / `variantToVisual`
+ *   함수는 더 이상 production 경로에서 호출되지 않는다. 마지막 production 소비자였던 `CSSGenerator.ts:232`
+ *   가 ②-6-A 로 정본 table 주입(`_variantSource`)으로 전환했고, Skia 는 이미 별도 `ruleVariantToVisual`
+ *   (builder)을 쓴다. 현재 유일 사용처는 **test fixture**(resolveSkiaVisualRule.test.ts 의 spec 추종 검증 +
+ *   buildCatalogShapes/composeCatalogShapes/skiaPrimitives test 의 visual 생성). **단계 5 에서 spec 124 +
+ *   본 함수 물리 삭제** 예정. `ComponentVisualRule` *타입* 은 buildCatalogShapes/skiaPrimitives 가 계속
+ *   import 하므로 **유지**(살아있는 시각 규칙 인터페이스 — 함수만 dead).
  *
- * **전환기 (A 단계)**: 내부는 아직 `spec.variants[name]` + `resolveFillTokens(variant)` 를 읽는다.
- * 이는 CSS Preview consumer 가 이미 CSSGenerator(build-time) 뒤에서 spec 을 읽는 것과 동급 —
- * runtime consumer(Skia/Panel)의 spec 직접 접근만 본 어댑터 뒤로 격리하는 것이 A 의 기여.
+ * (역사) ADR-142: buildCatalogShapes(Skia)와 CSSGenerator(DOM)가 `spec.variants[name]` 색상을 각자 직접
+ *   읽던 것을 본 어댑터 1개로 수렴. ADR-912 ②-6-A 에서 DOM 이 정본 table 주입으로 전환하며 함수 dead 화.
  *
- * **불변식 (B swap 후에도 유지)**: `ComponentVisualRule` 의 필드 집합 = VariantSpec 의 색상 필드
- * 전수. 필드 추가 시 본 인터페이스 + 매핑 1곳만 수정 → 2 consumer 자동 반영(DOM↔Skia 대칭).
- *
- * 설계: ~/.claude/plans/zippy-wibbling-origami.md §"A 단계"
+ * **불변식**: `ComponentVisualRule` 의 필드 집합 = VariantSpec 의 색상 필드 전수. (table 정본의
+ *   `ruleVariantToVisual`[builder/generate-css] 도 동일 필드 매핑 — DOM↔Skia 대칭 유지.)
  */
 
 import type {
