@@ -4,7 +4,9 @@
 
 Proposed — 2026-06-01
 
-> 사용자 요청(2026-06-01): "기존 SSOT spec 방식은 무시하고, Adobe React Aria Components(RAC) core 개발 방법론 + Claude Code/Pencil app 개발 방법론으로 컴포넌트 시스템을 새로 설계하라." 본 ADR 은 composition 내부 누적 부채(현행 `*.spec.ts`, 전환기 adapter)를 출발점으로 삼지 않고, 두 외부 검증 자산(RAC + Pencil canonical document format)을 1차 원리로 백지 재유도한 결과다.
+> 사용자 요청(2026-06-01): "기존 SSOT spec 방식은 무시하고, Adobe React Aria Components(RAC) core 개발 방법론 + Claude Code/Pencil app 개발 방법론으로 컴포넌트 시스템을 새로 설계하라." 본 ADR 은 composition 내부 누적 부채(현행 `*.spec.ts`, 전환기 adapter)를 출발점으로 삼지 않고, 두 외부 검증 자산(RAC + Pencil canonical document format)을 1차 원리로 재유도한 결과다.
+
+> **문서 위상: 전환(cutover) 실행 설계서 — 유일 착수 ADR**. 본 ADR 은 현재 코드(124 spec / 6 레지스트리 / 전환기 adapter)를 출발점으로 삼아 family 단위 cutover / 레거시 제거 / preflight / phase land 를 소유한다. 같은 목표 구조를 현재 코드 비참조로 규정한 **비실행 목표 참조(Target Reference)** 는 [ADR-911](911-rac-pencil-target-component-architecture.md) 이며, 두 문서는 같은 대안 E·같은 1차 원리라 목표 구조가 수렴하되 관점이 분리된다(910=현재→목표 전환 / 911=목표 자체). `execute-adr` 착수는 본 ADR(910) 이고, ADR-911 은 본 ADR 실행 중 목표 구조 drift 를 판정하는 reference 다. 본 ADR 의 Risks/Gates 가 전환 위험(마이그레이션 / 정합성 회귀 / cutover 격리)을 보유하고, ADR-911 의 proof gate 는 목표 성립만 검증한다.
 
 ## Context
 
