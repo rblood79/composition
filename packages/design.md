@@ -144,8 +144,15 @@ reference 다. composition 의 시각 정본이 아니라, 시각 정본을 저�
 | `--font-size-sm` | 0.75rem (12px)  | 15px    | 설명·에러·kbd |
 | `--font-size-lg` | 1rem (16px)     | 20px    | 강조          |
 
-font-family `system-ui` 고정, font-weight 본문 normal · Label/Button 등 `500`,
-line-height `1.5`.
+font-family `system-ui` 고정, line-height `1.5`. font-weight 3단계:
+
+- `normal`(400) — 본문 기본.
+- `500`(medium, 12곳) — Button / ToggleButton / SegmentedControl item / Form Label /
+  Menu·ListBox·GridList·Tree 의 item.
+- `600`(semibold, 6곳) — 강조 텍스트: Breadcrumbs `[data-current]`(현재 페이지) ·
+  Disclosure 헤더 · ListBox·Menu section header · Table 컬럼 헤더 · Toast `[slot=title]`.
+
+> letter-spacing 은 컴포넌트 CSS 에 0건 — starter 는 자간을 조정하지 않는다.
 
 ## Layout
 
@@ -297,27 +304,37 @@ starter 의 token/패턴을 composition 시맨틱으로 번역하고 ADR-142 의
 반영되는지 기록한다. **composition 시맨틱 측 정의는 `.claude/rules/css-tokens.md` 가
 정본** — 본 표는 그것을 참조하며 재정의하지 않는다.
 
-| starter rule (DESIGN.md section set)      | composition 시맨틱 (css-tokens.md)         | ADR-142 반영 대상                                        |
-| ----------------------------------------- | ------------------------------------------ | -------------------------------------------------------- |
-| `--text-color` / `-hover` / `-disabled`   | `--fg` / `--fg-emphasis` / `--fg-disabled` | theme/tokens root collection                             |
-| `--background-color`                      | `--bg`                                     | theme/tokens root collection                             |
-| `--overlay-background`                    | `--bg-overlay`                             | theme/tokens root collection                             |
-| `--field-background`                      | `--bg-inset`                               | theme/tokens root collection                             |
-| `--border-color` / `-hover` / `-disabled` | `--border` / `-hover` / `-disabled`        | theme/tokens root collection                             |
-| `--highlight-background` (accent)         | `--accent`                                 | theme/tokens root collection                             |
-| `--focus-ring-color`                      | `--focus-ring`                             | theme/tokens root collection                             |
-| radius 스케일                             | radius 토큰                                | theme/tokens root collection                             |
-| spacing 스케일                            | spacing 토큰                               | theme/tokens root collection                             |
-| typography                                | typography 토큰                            | theme/tokens root collection                             |
-| focus-visible 전역 규칙                   | focus 상태 규칙                            | theme/tokens (generic 렌더러 상태 CSS)                   |
-| `.button-base` 유틸                       | 버튼 시각 패턴                             | theme/tokens + `PrimitiveBinding`(Button)                |
-| `.indicator` 유틸                         | 인디케이터 패턴                            | theme/tokens + `PrimitiveBinding`(Checkbox/Radio/Switch) |
-| `.inset` 유틸                             | 입력 inset 패턴                            | theme/tokens + `PrimitiveBinding`(field 계열)            |
-| pill (`9999px`)                           | radius full/pill 단계                      | theme/tokens root collection                             |
-| group-seam                                | 그룹 컨테이너 구조 규칙                    | reusable canonical 문서 (그룹 컴포넌트)                  |
-| field-height (`--spacing-8`)              | control-height 규칙                        | theme/tokens + `PrimitiveBinding`                        |
-| overlay-size                              | (판정 보류 — Do's and Don'ts)              | 별도 판정                                                |
-| motion: transition/keyframes/enter-exit   | motion 규칙                                | theme/tokens + generic 렌더러 상태 CSS                   |
+| starter rule (DESIGN.md section set)        | composition 시맨틱 (css-tokens.md)         | ADR-142 반영 대상                                        |
+| ------------------------------------------- | ------------------------------------------ | -------------------------------------------------------- |
+| `--text-color` / `-hover` / `-disabled`     | `--fg` / `--fg-emphasis` / `--fg-disabled` | theme/tokens root collection                             |
+| `--background-color`                        | `--bg`                                     | theme/tokens root collection                             |
+| `--overlay-background`                      | `--bg-overlay`                             | theme/tokens root collection                             |
+| `--field-background`                        | `--bg-inset`                               | theme/tokens root collection                             |
+| `--border-color` / `-hover` / `-disabled`   | `--border` / `-hover` / `-disabled`        | theme/tokens root collection                             |
+| `--highlight-background` (accent)           | `--accent`                                 | theme/tokens root collection                             |
+| `--focus-ring-color`                        | `--focus-ring`                             | theme/tokens root collection                             |
+| radius 스케일                               | radius 토큰                                | theme/tokens root collection                             |
+| spacing 스케일                              | spacing 토큰                               | theme/tokens root collection                             |
+| typography                                  | typography 토큰                            | theme/tokens root collection                             |
+| focus-visible 전역 규칙                     | focus 상태 규칙                            | theme/tokens (generic 렌더러 상태 CSS)                   |
+| `.button-base` 유틸                         | 버튼 시각 패턴                             | theme/tokens + `PrimitiveBinding`(Button)                |
+| `.indicator` 유틸                           | 인디케이터 패턴                            | theme/tokens + `PrimitiveBinding`(Checkbox/Radio/Switch) |
+| `.inset` 유틸                               | 입력 inset 패턴                            | theme/tokens + `PrimitiveBinding`(field 계열)            |
+| pill (`9999px`)                             | radius full/pill 단계                      | theme/tokens root collection                             |
+| group-seam                                  | 그룹 컨테이너 구조 규칙                    | reusable canonical 문서 (그룹 컴포넌트)                  |
+| field-height (`--spacing-8`)                | control-height 규칙                        | theme/tokens + `PrimitiveBinding`                        |
+| overlay-size                                | (판정 보류 — Do's and Don'ts)              | 별도 판정                                                |
+| motion: transition/keyframes/enter-exit     | motion 규칙                                | theme/tokens + generic 렌더러 상태 CSS                   |
+| `--popover-shadow` (overlay drop-shadow)    | elevation shadow 스케일                    | theme/tokens root collection                             |
+| `.button-base`/`.indicator`/`.inset` 레시피 | (유틸 패턴 내 inset/specular)              | theme/tokens + `PrimitiveBinding`(해당 유틸)             |
+
+> ⚠️ **elevation 매핑 비대칭**: starter 는 shadow 를 토큰화하지 않고 `--popover-shadow`
+> 단일 값 + utility inset 레시피로만 표현한다(Elevation & Depth 참조). composition spec
+> (`packages/specs/src/primitives/shadows.ts`)은 `none/sm/md/lg/xl/inset/focus-ring`
+> **6단계 elevation 토큰 체계**를 이미 보유 — starter 의 단일 `--popover-shadow` 는 spec
+> 의 `lg`/`xl` 단계에 대응하고, inset/specular 레시피는 spec elevation 스케일에 직접
+> 대응값이 없다(유틸 내재 표현). theme/tokens 저작 시 6단계 척도를 정본으로 두고 starter
+> 레시피를 그 안으로 흡수할지 별도 판정(Do's and Don'ts).
 
 > "반영 대상" 열은 theme/tokens 항목 / `PrimitiveBinding` / reusable canonical 문서 중
 > 하나 — ADR-142 의 "결과 반영은 `componentCatalog` / `PrimitiveBinding` / reusable
