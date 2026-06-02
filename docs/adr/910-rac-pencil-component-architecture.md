@@ -6,7 +6,9 @@ Proposed — 2026-06-01
 
 > 사용자 요청(2026-06-01): "기존 SSOT spec 방식은 무시하고, Adobe React Aria Components(RAC) core 개발 방법론 + Claude Code/Pencil app 개발 방법론으로 컴포넌트 시스템을 새로 설계하라." 본 ADR 은 composition 내부 누적 부채(현행 `*.spec.ts`, 전환기 adapter)를 출발점으로 삼지 않고, 두 외부 검증 자산(RAC + Pencil canonical document format)을 1차 원리로 재유도한 결과다.
 
-> **문서 위상: 전환(cutover) 실행 설계서 — 유일 착수 ADR**. 본 ADR 은 현재 코드(124 spec / 6 레지스트리 / 전환기 adapter)를 출발점으로 삼아 family 단위 cutover / 레거시 제거 / preflight / phase land 를 소유한다. 같은 목표 구조를 현재 코드 비참조로 규정한 **비실행 목표 참조(Target Reference)** 는 [ADR-911](911-rac-pencil-target-component-architecture.md) 이며, 두 문서는 같은 대안 E·같은 1차 원리라 목표 구조가 수렴하되 관점이 분리된다(910=현재→목표 전환 / 911=목표 자체). `execute-adr` 착수는 본 ADR(910) 이고, ADR-911 은 본 ADR 실행 중 목표 구조 drift 를 판정하는 reference 다. 본 ADR 의 Risks/Gates 가 전환 위험(마이그레이션 / 정합성 회귀 / cutover 격리)을 보유하고, ADR-911 의 proof gate 는 목표 성립만 검증한다.
+> **문서 위상: 점진 cutover 전략의 비교 기록 (비착수)**. 본 ADR 은 현재 코드(124 spec / 6 레지스트리 / 전환기 adapter)를 출발점으로 삼아 family 단위 cutover / 레거시 격리·제거 / preflight / phase land 를 규정한 **점진 전환 실행 설계서**였다. 같은 목표 구조를 현재 코드 비참조로 규정한 **비실행 목표 참조(Target Reference)** 는 [ADR-911](911-rac-pencil-target-component-architecture.md) 이다.
+>
+> **착수 ADR 이관 (사용자 옵션 B 결정 2026-06-02 / codex review 결함 1 정정)**: 사용자가 "레거시 미보존 + 갈아엎기"를 결정함에 따라, 점진 cutover(legacy 격리 유지)는 사용자 지시와 충돌하여 **착수하지 않는다**. 실제 `execute-adr` 착수 대상은 [ADR-912](912-rac-pencil-rebuild-cutover.md)(백지 직행) 단독이다. 본 ADR(910)은 supersede 되지 않고 **점진 전략의 비교 기록**으로 유지되며(세 전략 — 910 점진 / 911 목표 / 912 직행 — 의 관점 차이 보존), ADR-911 은 목표 구조 drift 판정 reference 로 유지된다. 본 ADR 의 Risks/Gates(전환 위험 — 마이그레이션 / cutover 격리)는 점진 전략을 택했을 경우의 위험 기록이며, 직행 전략의 착수 게이트는 ADR-912 가 소유한다.
 
 ## Context
 

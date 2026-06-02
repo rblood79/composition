@@ -34,15 +34,15 @@
 
 ## ① 진단 확정 (실측)
 
-| 측정                                                | 수치                                                                                                                     | 위치                                                                          |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `*.spec.ts` (구 정본)                               | 124                                                                                                                      | `packages/specs/src/components/`                                              |
-| `render.shapes()` active 호출 (test/spec 정의 제외) | 59                                                                                                                       | dispatch `buildSpecNodeData.ts:1116` + active 경로                            |
-| `*.binding.ts`                                      | 39                                                                                                                       | `packages/shared/src/catalog/bindings/`                                       |
-| `cutover`/`skiaLegacy` 필드                         | entry union 전부                                                                                                         | `types.ts`                                                                    |
-| 6 레지스트리                                        | Factory creators 243 / rendererMap 95 / getDefaultProps / BASE_TAG_SPEC_MAP 124 / builder TAG_SPEC_MAP / Component Panel | 다수                                                                          |
-| `buildSpecNodeData.ts` 컴포넌트별 if 분기           | 30+ (1416줄 중 ~1100줄)                                                                                                  | `resolveProgressProps`/`SHELL_ONLY_CONTAINER_TAGS`/`COLUMN_REARRANGE_TAGS` 등 |
-| `resolveEditContract`/`toReactStyle`/`toSkiaStyle`  | 0                                                                                                                        | 미존재                                                                        |
+| 측정                                                | 수치                                                                                                                                          | 위치                                                                          |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `*.spec.ts` (구 정본)                               | 124                                                                                                                                           | `packages/specs/src/components/`                                              |
+| `render.shapes()` active 호출 (test/spec 정의 제외) | 59                                                                                                                                            | dispatch `buildSpecNodeData.ts:1116` + active 경로                            |
+| `*.binding.ts`                                      | 39                                                                                                                                            | `packages/shared/src/catalog/bindings/`                                       |
+| `cutover`/`skiaLegacy` 필드                         | entry union 전부                                                                                                                              | `types.ts`                                                                    |
+| 6 레지스트리                                        | Factory creators 60 / rendererMap 95 / getDefaultProps(DEFAULT_PROPS_MAP 96) / BASE_TAG_SPEC_MAP 111 / builder TAG_SPEC_MAP / Component Panel | 다수                                                                          |
+| `buildSpecNodeData.ts` 컴포넌트별 if 분기           | 30+ (1416줄 중 ~1100줄)                                                                                                                       | `resolveProgressProps`/`SHELL_ONLY_CONTAINER_TAGS`/`COLUMN_REARRANGE_TAGS` 등 |
+| `resolveEditContract`/`toReactStyle`/`toSkiaStyle`  | 0                                                                                                                                             | 미존재                                                                        |
 
 **근본 진단**: ADR-142 가 catalog/binding 신구조를 _추가_ 했으나 구 정본을 _제거하지 않아_ 신·구 두 정본이 동시에 사는 **dual-SSOT 전환기**. ADR-910 의 cutover 전략(병치 + 게이트)은 이 병치를 _유지_ 하므로 사용자 지시("레거시 남기지 마라")와 충돌, "문제 반복". **그리고 catalog/binding 신구조 자체도 spec 을 읽는 seam(`buildCatalogShapes`)·variant→VisualRule seam(`resolveComponentVisual`)·variant·size 를 accepts 로 두는 전환기 타협을 품고 있어 — 단순 KEEP 이 답습이다.**
 
@@ -81,16 +81,17 @@ ADR-142 가 점진 전환을 위해 만든 seam·타협. **현재 구현 방식 
 
 ### 2-3. 제거 (DELETE) — 구 정본 + 점진 전환 구조물
 
-| 대상                                                                       | 위치                                                              | 근거                                                      |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
-| `*.spec.ts` 124개 + `render.shapes()` active 59                            | `packages/specs/src/components/`                                  | 컴포넌트당 코드 정의 = HC#5 위반. theme rule 이 시각 흡수 |
-| `cutover.ts` 게이트 전체                                                   | `catalog/cutover.ts` + `componentCatalog.ts:435-460`              | 게이트 = 두 경로 병치 증거                                |
-| `buildCatalogShapesOrPrimitive` 병치 dispatch                              | `buildSpecNodeData.ts`                                            | generic↔legacy 게이트                                     |
-| 6 레지스트리 중 5개                                                        | Factory 243 / rendererMap 95 / getDefaultProps / TAG_SPEC_MAP 2종 | 단일 등록 collapse                                        |
-| `CanonicalNodeRenderer` legacy `rendererMap` 위임                          | `CanonicalNodeRenderer.tsx:216-228`                               | generic 경로만                                            |
-| 패널 `getEditor`/`registry.ts`/`GenericPropertyEditor`/per-type pre-editor | `inspector/editors/`                                              | 컴포넌트별 동적 에디터 분기                               |
-| `StylesPanel` 4 하드코딩 섹션                                              | `StylesPanel.tsx:37-46`                                           | section 필터로 대체                                       |
-| (금지) Paper.js boolean ops 류 fallback 우회                               | —                                                                 | `feedback-no-fallback-thinking`                           |
+| 대상                                                                       | 위치                                                                                                          | 근거                                                                                                                                                                  |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*.spec.ts` 124개 + `render.shapes()` active 59                            | `packages/specs/src/components/`                                                                              | 컴포넌트당 코드 정의 = HC#5 위반. theme rule 이 시각 흡수 — **단, 삭제 전 theme rule source 를 ②-6 대로 `componentRulesTable.ts` 직접 SSOT 로 먼저 전환** (선행 의존) |
+| `generate-rules.ts` 변환기 + `pnpm generate:rules` step                    | `packages/specs/scripts/generate-rules.ts` + `package.json:34,40`                                             | spec→rule 변환기. spec 삭제 시 입력 소멸 → ②-6 으로 source 자체를 직접 SSOT 로 승격하므로 변환기 자체 제거                                                            |
+| `cutover.ts` 게이트 전체                                                   | `catalog/cutover.ts` + `componentCatalog.ts:435-460`                                                          | 게이트 = 두 경로 병치 증거                                                                                                                                            |
+| `buildCatalogShapesOrPrimitive` 병치 dispatch                              | `buildSpecNodeData.ts`                                                                                        | generic↔legacy 게이트                                                                                                                                                 |
+| 6 레지스트리 중 5개                                                        | Factory 60 / rendererMap 95 / getDefaultProps(DEFAULT_PROPS_MAP 96) / TAG_SPEC_MAP(BASE_TAG_SPEC_MAP 111) 2종 | 단일 등록 collapse                                                                                                                                                    |
+| `CanonicalNodeRenderer` legacy `rendererMap` 위임                          | `CanonicalNodeRenderer.tsx:216-228`                                                                           | generic 경로만                                                                                                                                                        |
+| 패널 `getEditor`/`registry.ts`/`GenericPropertyEditor`/per-type pre-editor | `inspector/editors/`                                                                                          | 컴포넌트별 동적 에디터 분기                                                                                                                                           |
+| `StylesPanel` 4 하드코딩 섹션                                              | `StylesPanel.tsx:37-46`                                                                                       | section 필터로 대체                                                                                                                                                   |
+| (금지) Paper.js boolean ops 류 fallback 우회                               | —                                                                                                             | `feedback-no-fallback-thinking`                                                                                                                                       |
 
 ### 2-4. 신규 도입 (NEW) — 1차 원리의 직접 구현
 
@@ -112,14 +113,14 @@ ADR-142 가 점진 전환을 위해 만든 seam·타협. **현재 구현 방식 
 
 **현재 (6중복 등록)** — 새 컴포넌트 1개 추가 시 6곳에 손으로 등록, 어긋나면 등록 누락 + CSS/Skia drift:
 
-| #   | registry                              | 위치                            | entry 수 |
-| --- | ------------------------------------- | ------------------------------- | -------- |
-| 1   | ComponentFactory `creators`           | `ComponentFactory.ts:103`       | 243      |
-| 2   | `rendererMap`                         | `shared/renderers/index.ts:19`  | 95       |
-| 3   | `DEFAULT_PROPS_MAP` (getDefaultProps) | `unified.types.ts:2278`         | 94       |
-| 4   | `BASE_TAG_SPEC_MAP`                   | `specs/runtime/tagToElement.ts` | 124      |
-| 5   | builder `TAG_SPEC_MAP`                | `sprites/tagSpecMap.ts`         | (merged) |
-| 6   | Component Panel list                  | panel                           | -        |
+| #   | registry                              | 위치                                | entry 수 |
+| --- | ------------------------------------- | ----------------------------------- | -------- |
+| 1   | ComponentFactory `creators`           | `ComponentFactory.ts:103`           | 60       |
+| 2   | `rendererMap`                         | `shared/renderers/index.ts:19`      | 95       |
+| 3   | `DEFAULT_PROPS_MAP` (getDefaultProps) | `unified.types.ts:2278`             | 96       |
+| 4   | `BASE_TAG_SPEC_MAP`                   | `specs/runtime/tagToElement.ts:136` | 111      |
+| 5   | builder `TAG_SPEC_MAP`                | `sprites/tagSpecMap.ts`             | (merged) |
+| 6   | Component Panel list                  | panel                               | -        |
 
 > ADR-139 의 `componentRegistrationContract.test.ts` 는 이 6중복을 **강제 동기화**(누락 시 FAIL)하는 보조 게이트다 — 6중복 _자체_ 는 못 없앤다. ADR-912 는 6중복을 소멸시켜 **이 게이트를 졸업**시킨다.
 
@@ -142,6 +143,29 @@ ADR-142 가 점진 전환을 위해 만든 seam·타협. **현재 구현 방식 
 **drift 구조적 불가능 증명**: 6 소비처가 모두 `lookupEntry(type)` + `resolveComponentRule(type)` + `resolveEditContract(node)` 단일 source 에서 파생하므로, 한 컴포넌트의 정의가 두 곳에 따로 존재하지 않는다 → "한쪽만 갱신해서 어긋나는" drift 가 발생할 평행 위치가 없다. ADR-139 게이트(6중복 강제 동기화)는 **불필요해져 제거**(졸업)된다 — 대신 "entry universe = 렌더·Inspector·palette 가 모두 같은 entry set 을 소비"라는 단일 contract test 로 대체(누락 자체가 컴파일·런타임에 불가능하면 게이트도 최소).
 
 > 경계 원칙: collapse 후 렌더 dispatch 는 `(entry.kind, source.kind)` 2축만 가른다. **type 이름 분기 코드 0**.
+
+### 2-6. theme rule base 층 source 전환 — spec 삭제의 선행 의존 (codex review 2026-06-02 결함 2)
+
+> **결함**: ②-3 은 `*.spec.ts` 124 삭제를 말하지만, 현재 base 층(`COMPONENT_RULES_TABLE`)은 `generate-rules.ts` 가 124 spec 의 variants/sizes/fill 을 build-time 변환해 생성한다(`generate-rules.ts:4` 주석 "spec 은 본 생성기의 build-time source 로만 잔류" + `package.json:34,40` `build:specs`→`generate:rules`). spec 을 그냥 삭제하면 변환기 입력이 사라져 **base 층(HC#3 의 base)이 통째로 정의되지 않는다** → base/override 2층 schema 의 base 가 붕괴.
+
+**결정 (사용자 confirm 2026-06-02)**: theme rule base 를 **`componentRulesTable.ts` 직접 SSOT** 로 둔다.
+
+| 항목                   | 현재 (전환기)                                            | ADR-912 (직행)                                                         |
+| ---------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------- |
+| base 층 source         | `*.spec.ts` 124 (variants/sizes/fill)                    | **`componentRulesTable.ts` 1차 SSOT** (사람 저작/편집)                 |
+| 생성 단계              | `generate-rules.ts` 변환 (`pnpm generate:rules`)         | **없음** (변환기·step 삭제)                                            |
+| 생성물 위치            | `shared/catalog/generated/componentRulesTable.ts` (자동) | `shared/catalog/componentRulesTable.ts` (`generated/` 접두 제거, 수동) |
+| `resolveComponentRule` | 이 테이블 read                                           | 위치·시그니처 무변경, 이 테이블 read                                   |
+
+**왜 직접 SSOT 인가** (대안 비교):
+
+- 대안 ②-6-A (componentRulesTable 직접 SSOT, **채택**): 중간 변환 0, base 층이 단일 파일에 직접 존재 → "갈아엎기 + 레거시 미보존" 정합. spec 124 + 변환기 동시 삭제.
+- 대안 ②-6-B (per-component rule 파일 N개): 컴포넌트당 파일 1개 유지 → 사실상 spec 리네이밍, HC#5("컴포넌트당 정의 파일 폐기")와 충돌. 기각.
+- 대안 ②-6-C (generate-rules 유지 + spec 축소): spec 완전 삭제 아님 → "레거시 남기지 마라" 부분 충돌. 기각.
+
+**삭제 순서 (선행 의존)**: ②-3 의 spec 124 삭제는 **②-6 의 직접 SSOT 전환 완료 후** 수행한다. 순서 — (1) `generated/componentRulesTable.ts` 현 생성 결과를 `catalog/componentRulesTable.ts` 로 동결(snapshot)·승격 → (2) `resolveComponentRule` import 경로 갱신 → (3) `generate-rules.ts` + `pnpm generate:rules` step 삭제 → (4) `*.spec.ts` 124 + `render.shapes()` 삭제. base 층이 한 순간도 정의되지 않는 구간이 없도록 한다.
+
+**보존 구조**: ADR-907 Layer B(spacing) / 908 fill / 909 longhand 의 시각 값은 이 테이블의 필드(`sizes`/`variants.fill`/spacing)로 직접 표현된다 — fill/spacing/longhand override layer 는 유지.
 
 ---
 
@@ -374,7 +398,7 @@ reset=`delete props.style[k]`(longhand 그룹). size 변경 → baseValue 재res
 | HC#2 패널 두 view      | ⑤ `resolveEditContract` 단일 + section 필터                                                      | G-slice          |
 | HC#3 base/override 2층 | ③ `resolveMergedStyle` `??`(VisualRule seam 없음), reset=delete                                  | G-adapter        |
 | HC#4 Skia 성능         | ④ window(하드 100 제거) + cell generic + sceneVersion cache                                      | G-projected      |
-| HC#5 조합=데이터       | ② 243 factory→Components page reusable 문서, `resolveReusable` 재귀                              | reusable fixture |
+| HC#5 조합=데이터       | ② 60 factory creator→Components page reusable 문서, `resolveReusable` 재귀                       | reusable fixture |
 | HC#6 RAC 절대권위      | ③ `toRacProps` D1 채널 + ⑤ `racStateAttrs` data-\* 미러                                          | G-state          |
 | HC#7 projected tree    | ④ template subtree 행마다 cell + deep hit + 3-route + boundary guard                             | G-projected      |
 
@@ -405,7 +429,7 @@ reset=`delete props.style[k]`(longhand 그룹). size 변경 → baseValue 재res
 | schema/어댑터  | `packages/shared/src/catalog/types.ts` (cutover/skiaLegacy 제거 + ComponentNode + variant·size accepts 분리 + PropContract.section 확장), 신규 `resolvers/resolveMergedStyle.ts`(theme rule 직접)/`outputs/toReactStyle.ts`/`toSkiaStyle.ts`(보편속성 직접)                                                    |
 | seam 제거      | `renderers/buildCatalogShapes.ts`(spec seam — toSkiaStyle 로 대체), `renderers/utils/resolveComponentVisual.ts`(VisualRule seam — theme rule 직접으로 대체)                                                                                                                                                    |
 | 등록           | `componentCatalog.ts`(6 레지스트리 collapse, cutover/skiaLegacy 제거), `cutover.ts` 삭제                                                                                                                                                                                                                       |
-| base 층        | `resolvers/resolveComponentRule.ts` + `generated/componentRulesTable.ts`(variant·size → 시각값 직접 resolve)                                                                                                                                                                                                   |
+| base 층        | `resolvers/resolveComponentRule.ts`(위치 무변경, 테이블 read) + `catalog/componentRulesTable.ts`(②-6: 생성물→사람 저작 1차 SSOT 승격, `generated/` 접두 제거, variant·size → 시각값 직접 resolve). 삭제: `specs/scripts/generate-rules.ts` + `pnpm generate:rules`                                             |
 | 렌더 dispatch  | `apps/builder/.../skia/buildSpecNodeData.ts`(generic, 30+ 분기 제거), `preview/components/CanonicalNodeRenderer.tsx`(legacy rendererMap 제거)                                                                                                                                                                  |
 | projected tree | 신규 `projection/collectionProjector.ts`, `scene/canvasSceneNode.ts`(union 확장), `rendererInput.ts`(windowed 주입), `projection/renderProjectionIds.ts`(prefix 일반화), 신규 `interaction/resolveCollectionWriteTarget.ts`, `pages/systemComponentsPage.ts` + `listBoxTemplateOrigins.ts`(family 무관 일반화) |
 | 편집 계약      | 신규 `resolvers/resolveEditContract.ts`, `panels/properties/generic/` field renderer, `StylesPanel.tsx`/`PropertiesPanel.tsx`(section 필터), `getEditor`/`registry.ts` 삭제                                                                                                                                    |
@@ -419,4 +443,5 @@ reset=`delete props.style[k]`(longhand 그룹). size 변경 → baseValue 재res
 2. **G-adapter**: `resolveMergedStyle`(spec/VisualRule seam 미경유) reset round-trip + DOM/Skia 대칭.
 3. **G-projected**: 10k row 노드 ≤ window+overscan, deep hit/drill-in, refresh 후 `projection:` 0건.
 4. **G-state**: selection family Builder Skia hover/pressed/selected = Preview DOM `data-*` parity.
-5. `pnpm type-check` + `pnpm run codex:preflight` + `componentRegistrationContract.test.ts`.
+5. `pnpm type-check` + `pnpm run codex:preflight`.
+6. **등록 게이트 교체** (②-5 졸업, codex review 2026-06-02 결함 4 정정): ADR-139 의 `componentRegistrationContract.test.ts`(spec/TAG_SPEC_MAP/rendererMap/getDefaultProps 6중복 병치 검증)는 6중복 소멸 시점에 **삭제**된다 — 단일 등록 collapse 후엔 검증할 평행 병치가 없어 이 테스트는 의미가 사라진다. 대신 신규 `entryUniverseContract.test.ts`(렌더·Inspector·palette 가 모두 같은 entry set = `componentCatalog` 을 소비하는지 검증)로 대체. **타이밍**: 6중복 소멸(②-5 collapse + 5 레지스트리 제거) land 까지는 기존 `componentRegistrationContract.test.ts` 가 유효(점진 제거 중 누락 방지), collapse 완료 커밋에서 졸업·교체. 즉 본 ADR land 과정 중에는 기존 게이트 통과 필수, land 완료 후에 졸업.

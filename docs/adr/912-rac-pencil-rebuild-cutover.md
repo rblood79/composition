@@ -4,13 +4,15 @@
 
 Proposed — 2026-06-02
 
-> **문서 위상: 착수(rebuild) 실행 설계서**. 본 ADR 은 ADR-911 목표 구조(대안 E)를 **현재 코드를 직접 갈아엎어** 도달하는 실행 설계다. ADR-910(점진 cutover 실행 설계서)과 ADR-911(비실행 목표 참조)을 **둘 다 supersede 하지 않고 유지**한다(사용자 결정 2026-06-02 옵션 B). 세 문서는 같은 대안 E·같은 1차 원리라 목표 구조가 수렴하되 관점·전략이 분리된다 — 910=점진 cutover(legacy 격리 유지) / 911=목표 자체(전환 비참조) / **912=백지 직행(레거시 미보존, 갈아엎기)**. `execute-adr` 착수는 본 ADR(912)이며, ADR-911 은 목표 구조 drift 판정 reference, ADR-910 은 점진 전략의 비교 기록으로 남는다.
+> **문서 위상: 유일 착수(rebuild) 실행 설계서**. 본 ADR 은 ADR-911 목표 구조(대안 E)를 **현재 코드를 직접 갈아엎어** 도달하는 실행 설계다. ADR-910(점진 cutover 실행 설계서)과 ADR-911(비실행 목표 참조)을 **둘 다 supersede 하지 않고 유지**한다(사용자 결정 2026-06-02 옵션 B). 세 문서는 같은 대안 E·같은 1차 원리라 목표 구조가 수렴하되 관점·전략이 분리된다 — 910=점진 cutover(legacy 격리 유지) / 911=목표 자체(전환 비참조) / **912=백지 직행(레거시 미보존, 갈아엎기)**.
+>
+> **execute-adr 라우팅 단일화 (codex review 2026-06-02 결함 1 정정)**: 사용자 옵션 B 결정으로 **착수 대상은 ADR-912 단독**이다. ADR-910 은 더 이상 착수 ADR 이 아니라 **점진 전략의 비교 기록(비착수)** 으로 격하된다 — ADR-910 본문 §Status 와 `docs/adr/README.md` 의 "유일 착수 ADR" 표기는 912 로 이관됐다(같은 커밋에서 정정). ADR-911 은 목표 구조 drift 판정 reference 로 유지한다. 실행자는 ADR-912 만 기준으로 land 한다.
 
 ## Context
 
 composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catalog/binding 신구조를 **추가** 했으나 구 정본(`*.spec.ts` 124 / `render.shapes()` active 호출 59(test/spec 정의 제외) / 6 레지스트리)을 **제거하지 않아**, 신·구 두 정본이 동시에 사는 **dual-SSOT 전환기**에 멈춰 있다. `skiaLegacy:true` collection family 는 한 컴포넌트의 DOM=신경로·Skia=구경로라 — 같은 컴포넌트 안에서 정본이 갈린다. 이것이 ADR-910/911 이 없애려던 drift 의 현재 형태다.
 
-**6중복 등록 문제 (사용자 1순위 목표 2026-06-02)**: 새 컴포넌트 1개를 추가하려면 6개 독립 registry — ComponentFactory `creators`(243) / `rendererMap`(95) / `DEFAULT_PROPS_MAP`(94) / `BASE_TAG_SPEC_MAP`(124) / builder `TAG_SPEC_MAP` / Component Panel list — 에 각각 손으로 등록해야 한다. 이 목록들이 어긋나며 등록 누락 + CSS/Skia drift 가 반복된다. ADR-139 의 `componentRegistrationContract.test.ts` 는 이 6중복을 강제 동기화(누락 시 FAIL)하는 보조 게이트일 뿐 6중복 자체를 없애지 못한다. 사용자 명시: "새 컴포넌트마다 6개 registry 동시 등록 → 누락/drift 반복되는 문제는 해소되길 바란다." 본 ADR 은 6 registry 를 단일 등록 entry 의 파생 view 로 collapse 해 **"1 컴포넌트 = 1 등록"** 을 달성하고, drift 가 발생할 평행 위치를 구조적으로 0 으로 만든다(breakdown ②-5).
+**6중복 등록 문제 (사용자 1순위 목표 2026-06-02)**: 새 컴포넌트 1개를 추가하려면 6개 독립 registry — ComponentFactory `creators`(60) / `rendererMap`(95) / `DEFAULT_PROPS_MAP`(96) / `BASE_TAG_SPEC_MAP`(111) / builder `TAG_SPEC_MAP` / Component Panel list — 에 각각 손으로 등록해야 한다. 이 목록들이 어긋나며 등록 누락 + CSS/Skia drift 가 반복된다. ADR-139 의 `componentRegistrationContract.test.ts` 는 이 6중복을 강제 동기화(누락 시 FAIL)하는 보조 게이트일 뿐 6중복 자체를 없애지 못한다. 사용자 명시: "새 컴포넌트마다 6개 registry 동시 등록 → 누락/drift 반복되는 문제는 해소되길 바란다." 본 ADR 은 6 registry 를 단일 등록 entry 의 파생 view 로 collapse 해 **"1 컴포넌트 = 1 등록"** 을 달성하고, drift 가 발생할 평행 위치를 구조적으로 0 으로 만든다(breakdown ②-5).
 
 **1차 원리 기준선 (사용자 framing 2026-06-02)**: "참고내용이 또다시 결정에 이전 현재 구현 시스템을 답습하게 하는 것 아닌가" + "현재의 구현 방식을 따르지 않아도 된다 — 문제점을 다시 반복하게 될 수가 있다." 따라서 ADR-142 가 만든 현재 구현 자산(`buildCatalogShapes` 의 spec 읽는 seam / `resolveComponentVisual` 의 variant→VisualRule seam / variant·size 를 `binding.accepts` 에 둔 구조)은 **자동 재사용 대상이 아니라** "1차 원리(RAC core + Pencil format + canonical schema + theme/tokens)의 직접 구현인가 vs 전환기 seam 부채인가" 로 재판정한다(breakdown ②). 메모리 [[project-rac-pencil-redesign-converges-adr142]] 가 이 seam 들을 전환기 부채로 명시. 외부 리서치(`docs/explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md`)는 **schema 외부 검증**(openpencil `PenDocument` 의 RefNode/reusable/slot 1:1 정합 = 업계 표준)에만 인용하고, "ADR-142 구현이 맞다"는 구현-레벨 정합 주장은 인용하지 않는다.
 
@@ -44,7 +46,8 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 ### Soft Constraints
 
 - 공통 기반(노드 resolve + generic DOM/Skia 렌더러 + 단일 Inspector field renderer + theme resolve)은 family-무관 단일 코드.
-- **1차 원리 직결 자산만 토대로 유지** (현재 구현 시스템 아니라 원리 자체): `react-aria-components` / canonical schema(RefNode/reusable/slot/descendants) / theme/tokens / `resolveComponentRule` / `resolveToken` / `toRacProps`(D1 투영) / Components page reusable origin 위치(ADR-146) / ADR-135·136 projected 인프라. **전환기 seam 부채는 재설계** (`buildCatalogShapes` spec seam / `resolveComponentVisual` VisualRule seam / variant·size 의 accepts 혼입 / `cutover`·`skiaLegacy`) — 단순 재사용 금지(현재 구현 답습 회피, breakdown ②-1/②-2). 본 ADR 의 신규 코드 표면은 단일 어댑터 2 + 병합 코어 1 + 편집 계약 1 + state derive 1 + collection projector 1.
+- **1차 원리 직결 자산만 토대로 유지** (현재 구현 시스템 아니라 원리 자체): `react-aria-components` / canonical schema(RefNode/reusable/slot/descendants) / theme/tokens / `resolveComponentRule` + `resolveToken` / `toRacProps`(D1 투영) / Components page reusable origin 위치(ADR-146) / ADR-135·136 projected 인프라. **전환기 seam 부채는 재설계** (`buildCatalogShapes` spec seam / `resolveComponentVisual` VisualRule seam / variant·size 의 accepts 혼입 / `cutover`·`skiaLegacy`) — 단순 재사용 금지(현재 구현 답습 회피, breakdown ②-1/②-2). 본 ADR 의 신규 코드 표면은 단일 어댑터 2 + 병합 코어 1 + 편집 계약 1 + state derive 1 + collection projector 1.
+- **theme rule base 층 = `componentRulesTable.ts` 직접 SSOT** (codex review 2026-06-02 결함 2 정정, 사용자 confirm): 현재 `COMPONENT_RULES_TABLE` 은 `generate-rules.ts` 가 124 spec 의 variants/sizes/fill 을 build-time 변환해 생성한다(`packages/specs/package.json` `build:specs` → `generate:rules`). spec 124 를 삭제하면 이 변환기의 입력이 사라져 base 층(HC#3 의 base)이 통째로 정의되지 않는다. 따라서 본 ADR 은 **생성물이던 `packages/shared/src/catalog/generated/componentRulesTable.ts` 를 사람이 직접 저작/편집하는 1차 SSOT 로 승격**하고, `*.spec.ts` 124 + `generate-rules.ts`(변환기) + `pnpm generate:rules` step 을 **동시 삭제**한다. base 층이 단일 파일에 직접 존재해 중간 변환 0 — "갈아엎기 + 레거시 미보존" 지시 정합. `resolveComponentRule` 은 위치 무변경(이 테이블을 read).
 
 ## Alternatives Considered
 
@@ -138,7 +141,7 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 
 ### Positive
 
-- **"1 컴포넌트 = 1 등록" (사용자 1순위 목표 달성)** — 6 registry(Factory 243 / rendererMap 95 / DEFAULT_PROPS_MAP 94 / BASE_TAG_SPEC_MAP 124 / builder TAG_SPEC_MAP / Component Panel)가 단일 등록 entry 의 파생 view 로 collapse 된다. 새 컴포넌트 추가 = leaf entry 1개 또는 reusable 문서 1개. 6 소비처가 손 등록이 아니라 단일 source(`lookupEntry`/`resolveComponentRule`/`resolveEditContract`)에서 파생하므로 **등록 누락/drift 가 발생할 평행 위치가 구조적으로 0**. ADR-139 의 6중복 강제 동기화 게이트가 졸업(제거)된다.
+- **"1 컴포넌트 = 1 등록" (사용자 1순위 목표 달성)** — 6 registry(Factory 60 / rendererMap 95 / DEFAULT_PROPS_MAP 96 / BASE_TAG_SPEC_MAP 111 / builder TAG_SPEC_MAP / Component Panel)가 단일 등록 entry 의 파생 view 로 collapse 된다. 새 컴포넌트 추가 = leaf entry 1개 또는 reusable 문서 1개. 6 소비처가 손 등록이 아니라 단일 source(`lookupEntry`/`resolveComponentRule`/`resolveEditContract`)에서 파생하므로 **등록 누락/drift 가 발생할 평행 위치가 구조적으로 0**. ADR-139 의 6중복 강제 동기화 게이트가 졸업(제거)된다.
 - dual-SSOT 병치가 소멸한다 — 신·구 두 정본 + cutover 게이트가 코드에서 사라지고 단일 generic 경로만 남는다.
 - 전환기 seam 부채도 1차 원리로 재설계된다 — `buildCatalogShapes` 의 spec seam·`resolveComponentVisual` VisualRule seam 제거, variant·size 가 accepts 가 아니라 의미 props 로 분리. 현재 구현 답습이 아니라 RAC+Pencil format 직접 구현.
 - 정본이 단일 노드(의미값 + `props.style` override) + theme rule 로 통합된다. 조합 컴포넌트는 (이미 실재하는) Components page reusable 문서로 표현된다.
@@ -154,3 +157,4 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 - 단일 어댑터(`resolveMergedStyle`)가 무겁다(R-2) — text 측정/특수 shape/spacing/token 해소가 한 곳에 모인다.
 - collection projected tree(R-3)와 Skia 상태 모델(R-4)이 가장 미증명된 영역.
 - 컴포넌트당 `render.shapes()` Skia source 가 폐기 방향(theme rule 대체) — 단 ADR-907 Layer B/908 fill/909 longhand 는 보존(override layer 유지). ADR-036 status 재평가 필요.
+- theme rule base 층이 생성물(`generate-rules.ts` 자동 변환)에서 사람 저작 SSOT(`componentRulesTable.ts`)로 바뀐다 — spec 삭제 후엔 base 시각 값을 이 테이블에서 직접 관리해야 한다(중간 변환 부재의 대가). 단 dual-SSOT 소멸 + base 단일 위치라는 이득이 이 저작 부담을 상회. ADR-907/908/909 의 fill/spacing/longhand 구조는 이 테이블의 필드로 직접 표현된다.
