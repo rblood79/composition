@@ -699,6 +699,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: 1,
         height: 0,
         iconSize: 12,
+        paddingX: 4,
       },
       sm: {
         fontSize: "{typography.text-xs}",
@@ -707,6 +708,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: 1,
         height: 0,
         iconSize: 14,
+        paddingX: 8,
       },
       md: {
         fontSize: "{typography.text-sm}",
@@ -715,6 +717,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: 1,
         height: 0,
         iconSize: 16,
+        paddingX: 12,
       },
       lg: {
         fontSize: "{typography.text-base}",
@@ -723,6 +726,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: 1,
         height: 0,
         iconSize: 20,
+        paddingX: 16,
       },
       xl: {
         fontSize: "{typography.text-lg}",
@@ -731,6 +735,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: 1,
         height: 0,
         iconSize: 24,
+        paddingX: 24,
       },
     },
   },

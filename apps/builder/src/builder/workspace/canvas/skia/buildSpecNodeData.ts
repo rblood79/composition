@@ -38,6 +38,7 @@ import {
 import {
   resolveSkiaVisualRule,
   resolveSkiaRule,
+  ruleSizeToSizeSpec,
 } from "./resolveSkiaVisualRule";
 import { getSpecForTag } from "../sprites/tagSpecMap";
 import { specShapesToSkia } from "./specShapeConverter";
@@ -889,14 +890,34 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   const props = getProps(element);
   const style = (props.style || {}) as Record<string, unknown>;
 
+  // ---------- size source: catalog cutover 는 theme rule table, 그 외 spec.sizes ----------
+  // ADR-912 1C — Button 등 catalog Skia cutover type 은 size 시각값을 **theme rule table**
+  //   (resolveSkiaRule = resolveComponentRule, shared COMPONENT_RULES_TABLE)에서 가져온다.
+  //   → ButtonSpec.sizes(spec seam) 의존 제거: Button 이 ButtonSpec 없이도 size 정상. paddingX
+  //   포함(1C 에서 table 에 이전). 비-cutover family 는 단계 5 까지 spec.sizes 경로 유지.
+  //   defaultSize 도 catalog 우선(spec.defaultSize fallback) — size 해석 전체가 table 파생.
+  const catalogRule = isCatalogSkiaCutover(type)
+    ? resolveSkiaRule(type)
+    : undefined;
+  const defaultSize = catalogRule?.defaultSize ?? spec.defaultSize;
+
   // Parent-delegated size
   const delegatedSize = resolveParentDelegatedSize(element, elementsMap);
-  const rawSize = (props.size as string) ?? delegatedSize ?? spec.defaultSize;
+  const rawSize = (props.size as string) ?? delegatedSize ?? defaultSize;
   const size =
     element.type === "Breadcrumb"
       ? normalizeBreadcrumbRspSizeKey(rawSize)
       : rawSize;
-  const sizeSpec = spec.sizes[size] ?? spec.sizes[spec.defaultSize];
+
+  // catalog cutover: theme rule table size → SizeSpec 투영(ruleSizeToSizeSpec). 미존재 시
+  //   spec.sizes fallback(전환 누락 안전망). 비-cutover: 기존 spec.sizes 경로.
+  const catalogSize =
+    catalogRule?.sizes[size] ?? catalogRule?.sizes[defaultSize];
+  const sizeSpec = (
+    catalogSize
+      ? ruleSizeToSizeSpec(catalogSize)
+      : (spec.sizes[size] ?? spec.sizes[spec.defaultSize])
+  ) as SizeSpec | undefined;
   if (!sizeSpec) return null;
 
   // ---------- flexDirection → column detection ----------

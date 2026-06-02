@@ -153,6 +153,13 @@ export interface ComponentRuleVariant {
 /**
  * 단일 size 규칙 — SizeSpec 의 시각 관련 필드만 추출.
  * layout(padding/gap)은 제외 — element.props.style 경로 유지(ADR-907 Layer B 보존).
+ *
+ * **paddingX 예외 (ADR-912 1C)**: leaf primitive(Button 등)의 텍스트 x offset 은
+ * buildCatalogShapes 가 `style?.paddingLeft ?? size.paddingX` 로 size base fallback 을
+ * 쓴다(ADR-907 은 element-level padding 우선이고 size fallback 은 허용 범위). Button 이
+ * ButtonSpec(spec.sizes.paddingX) 의존 없이 catalog table 만으로 렌더되려면(seam 제거)
+ * paddingX 도 theme rule base 여야 한다 → optional 로 수용. container 의 padding(props.style
+ * 경로, ADR-907 Layer B)과는 별개 — 본 필드는 leaf 의 size 별 텍스트 inset base 다.
  */
 export interface ComponentRuleSize {
   // SizeSpec 실데이터는 TokenRef(`{radius.md}`) / "auto" / 숫자 혼재 → number | string 수용.
@@ -162,6 +169,8 @@ export interface ComponentRuleSize {
   borderWidth?: number | string;
   height?: number | string;
   iconSize?: number | string;
+  /** leaf 텍스트 x offset base (ADR-912 1C — Button 등 spec.sizes.paddingX 이전). */
+  paddingX?: number | string;
 }
 
 /** 단일 컴포넌트의 시각 규칙. */
