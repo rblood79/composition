@@ -30,7 +30,11 @@ import {
   type Shape,
   type SizeSpec,
 } from "@composition/specs";
-import { isCatalogSkiaCutover, getPrimitiveBinding } from "@composition/shared";
+import {
+  isCatalogSkiaCutover,
+  getPrimitiveBinding,
+  toSkiaStyle,
+} from "@composition/shared";
 import {
   resolveSkiaVisualRule,
   resolveSkiaRule,
@@ -775,6 +779,7 @@ function buildCatalogShapesOrPrimitive(
   specProps: Record<string, unknown>,
   sizeSpec: SizeSpec,
   componentState: ComponentState,
+  theme: "light" | "dark",
 ): Shape[] {
   // ADR-142 G2(b) B: variant 색상은 rule 테이블(resolveSkiaVisualRule)에서 해소해 주입한다
   // (buildCatalogShapes / skiaPrimitive 모두 spec 미참조). variant 이름은 props 우선, 없으면
@@ -794,11 +799,33 @@ function buildCatalogShapesOrPrimitive(
       : [primitiveBinding]
     : [];
 
+  // ADR-912 1B — size 시각 채널 단일 진입점 수렴: toSkiaStyle(node) 가 theme rule base
+  //   (ComponentRuleSize: fontSize/borderRadius/borderWidth/height 등, token 해소됨) ⊕
+  //   override(props.style) 를 merged map 으로 산출한다. 이 map 을 ctx.style 로 넘기면
+  //   buildCatalogShapes 의 `style?.X ?? size.X` 산재 병합 중 **size 채널이 toSkiaStyle 단일
+  //   진입점으로 수렴**한다(이전엔 size.X[sizeSpec] / style.X[override] 가 갈렸다).
+  //   - **same-source**: toSkiaStyle 의 base = resolveComponentRule(type)(shared COMPONENT_RULES_TABLE),
+  //     resolveSkiaRule(visual) 도 동일 table → size base 일관.
+  //   - **token 이중 해소 0**: merged map 은 이미 구체값(숫자). 하류 parsePxValue/resolveSpecFontSize
+  //     는 숫자 idempotent passthrough(`isFiniteNumber→return value`) → specShapesToSkia 재해소 무영향.
+  //   - **색상 채널 미수렴(사용자 결정 2026-06-03)**: backgroundColor/color/borderColor 의 base 는
+  //     state/selected/outline 조건 로직(stateBg/visual) — toSkiaStyle merged map 미포함(1A scope:
+  //     색상 same-source 는 1A-(a) visual 경로가 이미 담당). 색상 override 만 merged map 에 들어오고,
+  //     없으면 buildCatalogShapes 의 visual 조건 로직이 그대로 base 제공.
+  // toSkiaStyle 은 node.type(string 으로 resolveComponentRule/getCatalogEntry 소비) + node.props
+  //   만 읽는다 → CanvasSceneNode 의 type/props 를 그대로 minimal proxy 로 넘긴다. type 은
+  //   CanonicalNode.type(ComponentTag literal union)과 런타임 동형 → narrow 캐스팅
+  //   (resolveSkiaVisualRule.ts 의 spec↔shared TokenRef 동형 캐스팅과 같은 경계 패턴).
+  const fauxNode = { id: type, type, props: specProps } as Parameters<
+    typeof toSkiaStyle
+  >[0];
+  const mergedStyle = toSkiaStyle(fauxNode, theme);
+
   const ctx = {
     props: specProps,
     size: sizeSpec,
     visual,
-    style: specProps.style as Record<string, unknown> | undefined,
+    style: mergedStyle,
   };
 
   // replace 우선: 하나라도 replace 결과(non-null)를 내면 box+text 를 대체한다(기존 6 leaf
@@ -1112,7 +1139,13 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //   - 없음 → buildCatalogShapes(모든 frame 공유 보편 box+text 시각).
   // 컴포넌트 식별 분기(isDot/divider/iconName)를 buildCatalogShapes 안에 인라인하지 않는다.
   const shapes = isCatalogSkiaCutover(type)
-    ? buildCatalogShapesOrPrimitive(type, specProps, sizeSpec, componentState)
+    ? buildCatalogShapesOrPrimitive(
+        type,
+        specProps,
+        sizeSpec,
+        componentState,
+        theme,
+      )
     : spec.render.shapes(specProps, sizeSpec, componentState);
   if (type === "Slot" && specProps._slotChrome === "hidden") {
     shapes.length = 0;
