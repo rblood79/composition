@@ -96,6 +96,36 @@ export type CanvasProjectionMetadata =
       rowIndex: number;
       templateAnchorId: string | null;
       templateOriginId: string | null;
+    }
+  // ADR-912 단계 4 C1 (Table 2D projection): RowsGroup → Row[i] → Cell[i][j] 2D.
+  //   listbox/gridlist 의 row 1단 대비 cell 차원이 추가됨(table-cell). `listBoxId` 는
+  //   collection owner(Table node id)로 의미 일반화. table-rows/row 는 downstream generic
+  //   helper(isCollectionRow(sGroup)ProjectionKind) 가 listbox/gridlist 와 같은 handler 로
+  //   처리, table-cell 은 columnId write-target 라우팅을 위해 별도 kind.
+  | {
+      kind: "table-rows";
+      listBoxId: string;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
+    }
+  | {
+      kind: "table-row";
+      listBoxId: string;
+      itemKey: string;
+      rowIndex: number;
+      isHeader: boolean;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
+    }
+  | {
+      kind: "table-cell";
+      listBoxId: string;
+      itemKey: string;
+      rowIndex: number;
+      columnId: string;
+      isHeader: boolean;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
     };
 
 export interface CanvasSceneNode {

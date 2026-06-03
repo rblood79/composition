@@ -19,6 +19,7 @@
 import {
   isRenderProjectionId,
   isCollectionRowProjectionKind,
+  isCollectionCellProjectionKind,
 } from "./renderProjectionIds";
 import type { CanvasProjectionMetadata } from "../workspace/canvas/scene/canvasSceneNode";
 
@@ -42,6 +43,11 @@ export interface CollectionDataWriteTarget {
   collectionNodeId: string;
   /** 편집 대상 행 key. */
   itemKey: string;
+  /**
+   * 2D collection(Table) 셀 편집 시 대상 컬럼 id. row 1단 family(listbox/gridlist)는 undefined.
+   * 있으면 `row.cells[columnId]` 단위 write, 없으면 행 전체(label 등) write.
+   */
+  columnId?: string;
 }
 
 /** override route — per-row 시각/값 override (RefNode.descendants). */
@@ -59,19 +65,30 @@ export type CollectionWriteTarget =
   | CollectionOverrideWriteTarget;
 
 /**
- * 본 함수가 인식하는 collection row projection metadata 부분집합.
- * listbox-row / gridlist-row 동형 메타(listBoxId/itemKey/templateOriginId) — 신규 family 는
- * `isCollectionRowProjectionKind`(renderProjectionIds 단일 진입점)에 kind 추가만으로 동일 변환.
+ * 본 함수가 인식하는 collection row/cell projection metadata 부분집합.
+ * listbox-row / gridlist-row / table-row 동형 메타(listBoxId/itemKey/templateOriginId) +
+ * table-cell(columnId 추가). 신규 row family 는 `isCollectionRowProjectionKind` 단일 진입점에
+ * kind 추가만으로 동일 변환, cell 은 `isCollectionCellProjectionKind` 로 columnId 라우팅.
  */
 type CollectionRowProjection = Extract<
   CanvasProjectionMetadata,
-  { kind: "listbox-row" | "gridlist-row" }
+  { kind: "listbox-row" | "gridlist-row" | "table-row" }
+>;
+type CollectionCellProjection = Extract<
+  CanvasProjectionMetadata,
+  { kind: "table-cell" }
 >;
 
 function isCollectionRowProjection(
   meta: CanvasProjectionMetadata | undefined | null,
 ): meta is CollectionRowProjection {
   return isCollectionRowProjectionKind(meta?.kind);
+}
+
+function isCollectionCellProjection(
+  meta: CanvasProjectionMetadata | undefined | null,
+): meta is CollectionCellProjection {
+  return isCollectionCellProjectionKind(meta?.kind);
 }
 
 /**
@@ -84,6 +101,10 @@ export function resolveCollectionWriteTarget(
   projection: CanvasProjectionMetadata | undefined | null,
   intent: CollectionWriteIntent,
 ): CollectionWriteTarget | null {
+  // table-cell 은 row 동형 메타 + columnId — content route 에 columnId 부착, 나머지 동일.
+  if (isCollectionCellProjection(projection)) {
+    return resolveCellWriteTarget(projection, intent);
+  }
   if (!isCollectionRowProjection(projection)) return null;
 
   const { listBoxId, itemKey, templateOriginId } = projection;
@@ -98,6 +119,45 @@ export function resolveCollectionWriteTarget(
       break;
     case "content":
       target = { route: "data", collectionNodeId: listBoxId, itemKey };
+      break;
+    case "override":
+      target = {
+        route: "override",
+        refNodeId: listBoxId,
+        descendantPath: itemKey,
+      };
+      break;
+  }
+
+  if (target) assertCanonicalWriteTarget(target);
+  return target;
+}
+
+/**
+ * 2D collection(Table) 셀 편집 → write target. row 변환과 동형이되 content route 에
+ * `columnId` 를 부착해 `row.cells[columnId]` 단위 write 가 되게 한다. header 셀(isHeader)은
+ * 컬럼 정의(label) 편집이므로 content route 로 같은 columnId 를 전달(데이터 행 아님은 caller 판정).
+ */
+function resolveCellWriteTarget(
+  projection: CollectionCellProjection,
+  intent: CollectionWriteIntent,
+): CollectionWriteTarget | null {
+  const { listBoxId, itemKey, columnId, templateOriginId } = projection;
+
+  let target: CollectionWriteTarget | null;
+  switch (intent.kind) {
+    case "style":
+      target = templateOriginId
+        ? { route: "template", originNodeId: templateOriginId }
+        : null;
+      break;
+    case "content":
+      target = {
+        route: "data",
+        collectionNodeId: listBoxId,
+        itemKey,
+        columnId,
+      };
       break;
     case "override":
       target = {

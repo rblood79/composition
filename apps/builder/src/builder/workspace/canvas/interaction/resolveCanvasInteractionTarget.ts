@@ -42,7 +42,7 @@ type ProjectionLike =
   // 사용자가 행 layout 을 편집하면 모든 행에 반영되도록 한다. projected ID 는 selection 에 진입하지 않는다(§9).
   // (discriminated narrowing 을 위해 kind 별 멤버 분리.)
   | {
-      kind: "listbox-row" | "gridlist-row";
+      kind: "listbox-row" | "gridlist-row" | "table-row";
       listBoxId: string;
       templateAnchorId?: string | null;
       templateOriginId?: string | null;
@@ -50,8 +50,19 @@ type ProjectionLike =
       rowIndex?: number;
     }
   | {
-      kind: "listbox-rows" | "gridlist-rows";
+      kind: "listbox-rows" | "gridlist-rows" | "table-rows";
       listBoxId: string;
+      templateAnchorId?: string | null;
+      templateOriginId?: string | null;
+    }
+  // ADR-912 단계 4 C1 (Table 2D): cell 은 columnId 차원 추가. 단일클릭은 owner Table 선택
+  //   (row/rows 동형), columnId 는 write-target(resolveCollectionWriteTarget) 라우팅 전용.
+  | {
+      kind: "table-cell";
+      listBoxId: string;
+      itemKey?: string;
+      rowIndex?: number;
+      columnId?: string;
       templateAnchorId?: string | null;
       templateOriginId?: string | null;
     };
@@ -113,7 +124,10 @@ export function resolveCanvasInteractionTarget(input: {
       projection.kind === "listbox-row" ||
       projection.kind === "listbox-rows" ||
       projection.kind === "gridlist-row" ||
-      projection.kind === "gridlist-rows"
+      projection.kind === "gridlist-rows" ||
+      projection.kind === "table-row" ||
+      projection.kind === "table-rows" ||
+      projection.kind === "table-cell"
     ) {
       return {
         kind: "select",

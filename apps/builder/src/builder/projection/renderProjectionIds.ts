@@ -41,6 +41,21 @@ export function toCollectionRowsGroupProjectionId(
   return `${RENDER_PROJECTION_PREFIX}${family}-rows:${ownerId}`;
 }
 
+/**
+ * collection **cell** projection id 생성기 (ADR-912 단계 4 C1 — Table 2D).
+ *
+ * 2D collection(Table)의 셀 1개 식별 — row(itemKey) × column(columnId) 좌표.
+ * `projection:` prefix 하위라 isRenderProjectionId / boundary guard 자동 적용.
+ */
+export function toCollectionCellProjectionId(
+  family: string,
+  ownerId: string,
+  itemKey: string,
+  columnId: string,
+): string {
+  return `${RENDER_PROJECTION_PREFIX}${family}-cell:${ownerId}:${itemKey}:${columnId}`;
+}
+
 /** collection row projection namespace (한 행 = template subtree 1벌 전개의 root). */
 export const LISTBOX_ROW_PROJECTION_PREFIX = "projection:listbox-row:";
 /** collection rows-group projection namespace (행 컨테이너). */
@@ -82,12 +97,28 @@ export function isRenderProjectionId(id: string | null | undefined): boolean {
 export function isCollectionRowProjectionKind(
   kind: string | undefined | null,
 ): boolean {
-  return kind === "listbox-row" || kind === "gridlist-row";
+  return (
+    kind === "listbox-row" || kind === "gridlist-row" || kind === "table-row"
+  );
 }
 
 /** collection **rows-group**(행 컨테이너) projection kind 판정. */
 export function isCollectionRowsGroupProjectionKind(
   kind: string | undefined | null,
 ): boolean {
-  return kind === "listbox-rows" || kind === "gridlist-rows";
+  return (
+    kind === "listbox-rows" || kind === "gridlist-rows" || kind === "table-rows"
+  );
+}
+
+/**
+ * collection **cell** projection kind 판정 (ADR-912 단계 4 C1 — Table 2D 전용).
+ *
+ * cell 은 columnId write-target 라우팅이 필요해 row 와 별도 kind. row 1단 family(listbox/
+ * gridlist)에는 없고 Table 만 가진다 — family 가 늘어도 본 helper 1곳만 갱신(no-classification).
+ */
+export function isCollectionCellProjectionKind(
+  kind: string | undefined | null,
+): boolean {
+  return kind === "table-cell";
 }
