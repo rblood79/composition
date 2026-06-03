@@ -5,10 +5,13 @@
  * wrapper 가 `useCollectionData`(dataBinding → items, ADR-132)로 데이터를 채우고 RAC ListBox +
  * ListBoxItem 을 합성한다. 따라서 `source.kind: "internal"`(RAC raw 우회, wrapper 직접 렌더).
  *
- * **DOM-only cutover (skiaLegacy:true, 사용자 결정 2026-05-31)**: DOM(Preview)/Inspector 는
- * catalog generic(wrapper 렌더 + useCollectionData), **Skia 만 legacy render.shapes 유지** —
- * Skia generic 렌더러가 items 배열 순회 multi-item 렌더를 아직 못 그린다(items generic 메커니즘은
- * 전 family 후 일괄). componentCatalog 의 skiaLegacy:true 로 Skia 게이트(isCatalogSkiaCutover) 제외.
+ * **Skia generic 발효 (skiaLegacy 미설정, ADR-912 선행 2026-06-03)**: DOM(Preview)/Inspector 는
+ * catalog generic(wrapper 렌더 + useCollectionData), Skia 도 generic 발효 — ListBox render.shapes 는
+ * container shell(bg+border)만 반환(ADR-146)하고 data row 는 row projection
+ * (canvasSceneNode.appendListBoxRowProjection)이 독립 Skia 노드로 그린다. buildCatalogShapes 가
+ * 동일 정본 table(componentRulesTable ListBox rule)의 variant fill + border 로 같은 shell 을 그려
+ * 시각 동등. items 배열 순회가 render.shapes 안에 없어 generic 발효 가능(나머지 6 collection 은
+ * items 순회 render.shapes 라 skiaLegacy:true 유지, ListBox proof 검증 후 동형 확장).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -49,5 +52,5 @@ export const listBoxBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
-  // collection items 순회 렌더 — Skia generic 미지원, skiaLegacy(render.shapes 유지).
+  // shell 은 Skia generic(buildCatalogShapes), data row 는 row projection 별도 경로(ADR-912 선행).
 };

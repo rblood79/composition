@@ -133,10 +133,18 @@ describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채�
     expect(isCatalogSkiaCutover("DropZone")).toBe(true);
   });
 
+  it("ListBox 는 Skia generic 발효 (ADR-912 선행 2026-06-03 — shell buildCatalogShapes + data row projection)", () => {
+    // ListBox render.shapes 는 container shell(bg+border)만 반환(ADR-146) → buildCatalogShapes 가
+    // 동일 정본 table variant fill + border 로 같은 shell 을 그림. data row 는 row projection
+    // (canvasSceneNode.appendListBoxRowProjection)이 독립 Skia 노드로 그리는 별도 경로(직교).
+    expect(isCatalogCutover("ListBox")).toBe(true);
+    expect(isCatalogSkiaCutover("ListBox")).toBe(true);
+  });
+
   it("collection items/2D 결합형 + 미발효 overlay/date(skiaLegacy:true)은 Skia cutover 제외", () => {
     for (const type of [
       // family ④ collections — props.items 직접 순회(items→element 전환 선행 필요)
-      "ListBox",
+      //   ※ ListBox 는 row projection 으로 Skia 발효(위 테스트), 나머지 6 은 미발효 유지
       "Menu",
       "Select",
       "ComboBox",

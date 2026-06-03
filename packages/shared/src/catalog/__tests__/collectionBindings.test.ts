@@ -12,10 +12,16 @@ import { toRacProps } from "../outputs/toRacProps";
  * ADR-142 family ④(collections) — ListBox/Menu/Select/ComboBox/Tabs/TagGroup/GridList 계약 검증.
  *
  * collection 은 composition wrapper(useCollectionData, ADR-132)가 D1 담당 → `source.kind:"internal"`.
- * **DOM-only cutover (skiaLegacy:true)**: DOM/Inspector 는 catalog generic(wrapper + items),
- * Skia 만 legacy render.shapes 유지(items 순회 generic 미지원, 전 family 후 일괄).
+ * **DOM cutover (catalog generic)**: DOM/Inspector 는 catalog generic(wrapper + items) 전부 발효.
+ *
+ * **Skia 채널 분기 (ADR-912 선행 2026-06-03)**:
+ * - **ListBox — Skia generic 발효 (skiaLegacy 미설정)**: shell 은 buildCatalogShapes, data row 는
+ *   row projection(canvasSceneNode) 별도 경로. collection proof.
+ * - **나머지 6 (Menu/Select/ComboBox/Tabs/TagGroup/GridList) — skiaLegacy:true 유지**: Skia 만
+ *   legacy render.shapes(items 순회 generic 미발효, ListBox proof 검증 후 동형 확장).
  */
 
+/** family ④ 전체 — DOM cutover + internal source 공통 검증. */
 const COLLECTION_TYPES = [
   "ListBox",
   "Menu",
@@ -26,17 +32,37 @@ const COLLECTION_TYPES = [
   "GridList",
 ] as const;
 
-describe("family ④ collections — catalog 등록 + DOM-only cutover", () => {
-  it("7 collection 이 모두 catalog primitive entry (family=collections, cutover=catalog, skiaLegacy)", () => {
+/** Skia legacy 유지(skiaLegacy:true) — ListBox 제외 6 collection. */
+const SKIA_LEGACY_COLLECTION_TYPES = [
+  "Menu",
+  "Select",
+  "ComboBox",
+  "Tabs",
+  "TagGroup",
+  "GridList",
+] as const;
+
+describe("family ④ collections — catalog 등록 + DOM cutover", () => {
+  it("7 collection 이 모두 catalog primitive entry (family=collections, cutover=catalog)", () => {
     for (const type of COLLECTION_TYPES) {
       const entry = getCatalogEntry(type);
       expect(entry, `${type} catalog entry`).toBeDefined();
       expect(entry?.kind).toBe("primitive");
       expect(entry?.family).toBe("collections");
-      expect((entry as { cutover?: string } | undefined)?.cutover).toBe("catalog");
-      // DOM-only cutover — Skia 만 legacy 유지
+      expect((entry as { cutover?: string } | undefined)?.cutover).toBe(
+        "catalog",
+      );
+    }
+  });
+
+  it("ListBox 는 skiaLegacy 미설정(Skia generic 발효), 나머지 6 은 skiaLegacy:true", () => {
+    expect(
+      (getCatalogEntry("ListBox") as { skiaLegacy?: boolean })?.skiaLegacy,
+      "ListBox skiaLegacy 미설정",
+    ).toBeUndefined();
+    for (const type of SKIA_LEGACY_COLLECTION_TYPES) {
       expect(
-        (entry as { skiaLegacy?: boolean })?.skiaLegacy,
+        (getCatalogEntry(type) as { skiaLegacy?: boolean })?.skiaLegacy,
         `${type} skiaLegacy`,
       ).toBe(true);
     }
@@ -49,9 +75,10 @@ describe("family ④ collections — catalog 등록 + DOM-only cutover", () => {
     }
   });
 
-  it("Skia 게이트(getCatalogSkiaCutoverTypes)는 7 collection 제외 (legacy render.shapes 유지)", () => {
+  it("Skia 게이트: ListBox 포함(발효), 나머지 6 제외(legacy render.shapes 유지)", () => {
     const skiaGate = getCatalogSkiaCutoverTypes();
-    for (const type of COLLECTION_TYPES) {
+    expect(skiaGate.has("ListBox"), "ListBox in Skia gate").toBe(true);
+    for (const type of SKIA_LEGACY_COLLECTION_TYPES) {
       expect(skiaGate.has(type), `${type} NOT in Skia gate`).toBe(false);
     }
   });

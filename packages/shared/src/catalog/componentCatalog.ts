@@ -186,20 +186,31 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
 
 /**
  * ADR-142 family ④(collections) cutover 상태. 7 collection(ListBox/Menu/Select/ComboBox/
- * Tabs/TagGroup/GridList). **skiaLegacy: true** — DOM(Preview)/Inspector 는 catalog generic
- * (composition wrapper + useCollectionData), Skia 만 legacy render.shapes 유지(items 배열 순회
- * multi-item 렌더는 Skia generic 미지원, 전 family 후 일괄). 사용자 결정 "DOM-only cutover".
+ * Tabs/TagGroup/GridList).
+ *
+ * **ListBox — Skia generic 발효 (skiaLegacy 제거, ADR-912 선행 작업 2026-06-03)**: ListBox
+ *   render.shapes 는 이미 container shell(bg roundRect + border)만 반환하고(ADR-146,
+ *   ListBox.spec.ts:340-342), data row paint 는 ADR-146/147 row projection renderer
+ *   (canvasSceneNode.ts:appendListBoxRowProjection)가 각 행을 독립 Skia 노드로 그린다 — 즉
+ *   items 배열 순회가 render.shapes 안에 없다. buildCatalogShapes 가 동일 정본 table
+ *   (componentRulesTable ListBox rule)의 variant fill + border 로 같은 shell 을 그려 시각 동등
+ *   (text 없음 → text 미렌더). row projection 경로는 컨테이너 cutover 와 직교(불변).
+ *
+ * **나머지 6 collection(Menu/Select/ComboBox/Tabs/TagGroup/GridList) — skiaLegacy: true 유지**:
+ *   DOM(Preview)/Inspector 는 catalog generic(composition wrapper + useCollectionData), Skia 만
+ *   legacy render.shapes 유지(items 배열 순회 multi-item 렌더 generic backend 미발효, ListBox
+ *   projection proof 검증 후 동형 확장). 사용자 결정 "DOM-only cutover".
  */
 const FAMILY_4_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
-  primitiveEntry(
-    "ListBox",
-    "collections",
-    FAMILY_4_CUTOVER,
-    { category: "collections", label: "list box", icon: "ListIcon" },
-    { skiaLegacy: true },
-  ),
+  // ListBox — Skia generic 발효(skiaLegacy 미설정): shell 은 buildCatalogShapes, data row 는
+  //   row projection(canvasSceneNode) 별도 경로. ADR-912 선행 collection proof.
+  primitiveEntry("ListBox", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "list box",
+    icon: "ListIcon",
+  }),
   primitiveEntry(
     "Menu",
     "collections",
