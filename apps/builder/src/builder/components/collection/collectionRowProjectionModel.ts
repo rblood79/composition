@@ -216,3 +216,137 @@ export function getFlatProjectionRows(
     .slice(0, windowLimit)
     .map((item, rowIndex) => toItemProjectionRow(item, rowIndex));
 }
+
+// ── 2D collection (Table) — ADR-912 단계 4 C1 ──────────────────────────────
+//
+// Table 은 flat row(label/description) 가 아니라 columns × rows 2D grid 다. flat 모델과
+// **직교**(같은 readDataBindingRows source 를 공유하되 cell 차원만 추가) → BC 0.
+// 차이는 본 getTableProjectionRows 가 흡수, 공통 primitive(readDataBindingRows)는 재사용.
+
+/** Table column 정의 (Table.spec TableColumn 동형 — id/label/width). */
+export type TableColumnDef = {
+  id: string;
+  label: string;
+  width: number;
+};
+
+/**
+ * Table projected row(2D). flat row 와 달리 `cells`(columnId→string 값) + `isHeader` 차원을 가진다.
+ *
+ * `kind:'header'`=컬럼 헤더 행(데이터 무관, label 사용) / `kind:'data'`=데이터 행(cells 사용).
+ * `rowIndex` 는 data 행 인덱스(header 는 -1) — striped(짝수/홀수) + selected 시각의 SSOT.
+ */
+export type TableProjectionRow = {
+  kind: "header" | "data";
+  /** columnId → 셀 텍스트. header 행은 빈 객체(컬럼 label 은 column.label 에서). */
+  cells: Record<string, string>;
+  isSelected: boolean;
+  rowIndex: number;
+  rowKey: string;
+};
+
+const TABLE_DEFAULT_COLUMNS: TableColumnDef[] = [
+  { id: "name", label: "Name", width: 120 },
+  { id: "email", label: "Email", width: 160 },
+  { id: "role", label: "Role", width: 80 },
+];
+
+const TABLE_DEFAULT_ROWS: Record<string, unknown>[] = [
+  { id: "r1", name: "John Doe", email: "john@example.com", role: "Admin" },
+  { id: "r2", name: "Jane Smith", email: "jane@example.com", role: "Editor" },
+  { id: "r3", name: "Bob Lee", email: "bob@example.com", role: "Viewer" },
+];
+
+/** props.columns(TableColumn[]) → TableColumnDef[]. 없으면 spec fallback 동형 샘플. */
+export function readTableColumns(
+  props: Record<string, unknown> | undefined,
+): TableColumnDef[] {
+  const raw = props?.columns;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw.map((col, index) => {
+      const record = isRecord(col) ? col : {};
+      const id =
+        typeof record.id === "string" && record.id.length > 0
+          ? record.id
+          : `col-${index + 1}`;
+      const label =
+        typeof record.label === "string" && record.label.length > 0
+          ? record.label
+          : id;
+      const width =
+        typeof record.width === "number" && record.width > 0
+          ? record.width
+          : 100;
+      return { id, label, width };
+    });
+  }
+  return TABLE_DEFAULT_COLUMNS;
+}
+
+/**
+ * 데이터 행 1개에서 컬럼별 셀 값 추출. row.cells(Table.spec 구조) 우선, 없으면 row 자체를
+ * flat record 로 취급(dataBinding/collections 의 평탄 row 와 호환).
+ */
+function readRowCells(
+  item: unknown,
+  columns: readonly TableColumnDef[],
+): Record<string, string> {
+  const record = isRecord(item) ? item : {};
+  const cellsSource = isRecord(record.cells) ? record.cells : record;
+  const cells: Record<string, string> = {};
+  for (const col of columns) {
+    const value = cellsSource[col.id];
+    cells[col.id] =
+      value == null ? "" : typeof value === "string" ? value : String(value);
+  }
+  return cells;
+}
+
+/**
+ * collections/dataBinding/props.rows → TableProjectionRow[](header 1행 + data N행).
+ *
+ * data source: readDataBindingRows(flat 와 동일) → cells 차원 부착. props.columns 가 컬럼 차원.
+ * window: data 행만 windowLimit 적용(header 행은 항상 1개 포함, limit 무관).
+ */
+export function getTableProjectionRows(
+  input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
+  windowLimit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+): { columns: TableColumnDef[]; rows: TableProjectionRow[] } {
+  const props = isProjectionRowsInput(input) ? input.props : input;
+  const columns = readTableColumns(props);
+
+  const dataBindingRows = isProjectionRowsInput(input)
+    ? readDataBindingRows(input.dataBinding, input.collections)
+    : [];
+  const propRows = Array.isArray(props?.rows) ? props.rows : [];
+  const sourceRows =
+    dataBindingRows.length > 0
+      ? dataBindingRows
+      : propRows.length > 0
+        ? propRows
+        : TABLE_DEFAULT_ROWS;
+
+  const headerRow: TableProjectionRow = {
+    kind: "header",
+    cells: {},
+    isSelected: false,
+    rowIndex: -1,
+    rowKey: "__header__",
+  };
+
+  const dataRows = sourceRows
+    .slice(0, windowLimit)
+    .map((item, rowIndex): TableProjectionRow => {
+      const record = isRecord(item) ? item : {};
+      const rowKey = getItemKey(item, rowIndex);
+      return {
+        kind: "data",
+        cells: readRowCells(item, columns),
+        isSelected: record.isSelected === true,
+        rowIndex,
+        rowKey,
+      };
+    });
+
+  return { columns, rows: [headerRow, ...dataRows] };
+}

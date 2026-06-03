@@ -398,6 +398,13 @@ export type {
   TableRow,
 } from "./components/Table.spec";
 
+// ADR-912 단계 4 C1 — Table 2D projected row/cell self-render spec
+export { TableRowSpec, TableCellSpec } from "./components/TableCell.spec";
+export type {
+  TableRowProps,
+  TableCellProps,
+} from "./components/TableCell.spec";
+
 export { TreeSpec } from "./components/Tree.spec";
 export type { TreeProps } from "./components/Tree.spec";
 export { TreeItemSpec } from "./components/TreeItem.spec";

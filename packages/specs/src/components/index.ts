@@ -268,6 +268,10 @@ export type { SwitcherProps } from "./Switcher.spec";
 export { TableSpec } from "./Table.spec";
 export type { TableProps, TableColumn, TableRow } from "./Table.spec";
 
+// TableRow/TableCell (ADR-912 단계 4 C1 — Table 2D projected row/cell self-render)
+export { TableRowSpec, TableCellSpec } from "./TableCell.spec";
+export type { TableRowProps, TableCellProps } from "./TableCell.spec";
+
 // Tree
 export { TreeSpec } from "./Tree.spec";
 export type { TreeProps } from "./Tree.spec";
