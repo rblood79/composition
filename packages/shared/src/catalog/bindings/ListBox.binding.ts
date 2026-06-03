@@ -10,8 +10,8 @@
  * container shell(bg+border)만 반환(ADR-146)하고 data row 는 row projection
  * (canvasSceneNode.appendListBoxRowProjection)이 독립 Skia 노드로 그린다. buildCatalogShapes 가
  * 동일 정본 table(componentRulesTable ListBox rule)의 variant fill + border 로 같은 shell 을 그려
- * 시각 동등. items 배열 순회가 render.shapes 안에 없어 generic 발효 가능(나머지 6 collection 은
- * items 순회 render.shapes 라 skiaLegacy:true 유지, ListBox proof 검증 후 동형 확장).
+ * 시각 동등. items 배열 순회가 render.shapes 안에 없어 generic 발효. ListBox proof 검증 후
+ * 나머지 collection 6 + Table 도 동형 projection 으로 발효 완료(ADR-912 단계 4, skiaLegacy 0건).
  */
 
 import type { PrimitiveBinding } from "../types";

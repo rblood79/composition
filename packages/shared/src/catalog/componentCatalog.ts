@@ -34,7 +34,6 @@ function primitiveEntry(
   family: ComponentCatalogEntry["family"],
   cutover: CutoverState,
   panel: { category: string; label: string; icon: string },
-  opts?: { skiaLegacy?: boolean },
 ): Extract<ComponentCatalogEntry, { kind: "primitive" }> {
   const binding = getPrimitiveBinding(type) as PrimitiveBinding;
   return {
@@ -44,7 +43,6 @@ function primitiveEntry(
     cutover,
     binding,
     panel: { ...panel, placeable: true },
-    ...(opts?.skiaLegacy ? { skiaLegacy: true } : {}),
   };
 }
 
@@ -458,8 +456,9 @@ export function getCatalogEntry(
 }
 
 /**
- * `cutover === "catalog"` 인 type 집합 — DOM(Preview)/Inspector cutover 게이트의 파생 source.
- * collection(skiaLegacy) 도 포함 — DOM 은 RAC 가 items 자동 합성하므로 generic 경로 발효.
+ * `cutover === "catalog"` 인 type 집합 — DOM(Preview)/Inspector/Skia catalog 게이트의 파생 source.
+ * **ADR-912 단계 5 step 1 (2026-06-04)**: skiaLegacy 0건 도달 → 본 집합이 DOM/Skia 공통 발효
+ * 집합. native(frame/Slot)는 cutover 개념 없음(metadata-only)으로 제외.
  */
 export function getCatalogCutoverTypes(): ReadonlySet<string> {
   return new Set(
@@ -471,20 +470,11 @@ export function getCatalogCutoverTypes(): ReadonlySet<string> {
 }
 
 /**
- * Skia generic 렌더(buildCatalogShapes) 발효 type 집합 — `cutover === "catalog" && !skiaLegacy`.
- * **ADR-912 단계 5 (1b) 2026-06-04**: skiaLegacy 0건 도달 → 현재 catalog 전체가 Skia generic
- * 발효 (date 4 + Tooltip 은 skiaPrimitive escape — calendar_grid / datefield_trigger / tooltip_arrow).
- * `skiaLegacy !== true` 필터는 잔존(향후 미발효 entry 추가 시 자동 제외 안전망)이나 현재 제외 0건.
+ * @deprecated ADR-912 단계 5 step 1 (2026-06-04) — `skiaLegacy` 게이트 의미 소멸.
+ * 단계 5 (1b) 에서 skiaLegacy 0건 도달 → Skia generic 발효 집합이 DOM/Inspector 집합
+ * (`getCatalogCutoverTypes`) 과 항상 동일. 본 함수는 `getCatalogCutoverTypes` 위임으로
+ * collapse 됐고, 호출처 정리(step 2 — buildSpecNodeData fallback 제거) 후 삭제 예정.
  */
 export function getCatalogSkiaCutoverTypes(): ReadonlySet<string> {
-  return new Set(
-    componentCatalog
-      .filter(
-        (e) =>
-          e.kind !== "native" &&
-          e.cutover === "catalog" &&
-          e.skiaLegacy !== true,
-      )
-      .map((e) => e.type),
-  );
+  return getCatalogCutoverTypes();
 }

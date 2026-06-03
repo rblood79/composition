@@ -168,13 +168,13 @@ export interface PanelMeta {
  *   아닌 canonical 일급 노드(FrameNode 등, ADR-130). binding/reusableId 둘 다 없고, **cutover
  *   개념이 없다** — 이미 canonical-native 로 렌더(frame→div / Slot renderer). catalog 등록은
  *   팔레트/factory metadata SSOT 통합 목적(렌더 전환 아님, 사용자 결정 2026-05-31 metadata-only).
- *   따라서 cutover 게이트(isCatalogCutover/isCatalogSkiaCutover) 파생에서 제외된다.
+ *   따라서 cutover 게이트(isCatalogCutover) 파생에서 제외된다.
  *
- * `skiaLegacy` (ADR-142 family ④/⑤): cutover 됐어도 **Skia 렌더만 legacy `render.shapes` 유지**.
- * collection 컴포넌트(ListBox/Select/Table 등)는 items 배열을 순회해 multi-item 리스트를 그리는데
- * Skia generic 렌더러(buildCatalogShapes box+text)가 아직 이를 못 그린다. DOM(RAC items 자동 합성)
- * /Inspector 는 catalog generic, Skia 만 legacy fallback(부분 cutover). items generic 메커니즘은
- * 전 family 후 일괄(design recalibration "Skia-rewrite 통과 전까지 Skia legacy fallback 유지").
+ * **ADR-912 단계 5 step 1 (2026-06-04) — `skiaLegacy` 필드 제거 (dead gate)**: 단계 5 (1b)
+ * 에서 skiaLegacy 0건 도달 → Skia generic 렌더가 전 catalog entry 발효(collection 7종 +
+ * date 4 + Tooltip 은 skiaPrimitive escape). DOM/Skia 채널이 더 이상 갈리지 않으므로 entry
+ * union 의 `skiaLegacy?: boolean` 필드와 `isCatalogSkiaCutover` 게이트는 의미 소멸 →
+ * `isCatalogCutover` 단일 게이트로 collapse.
  */
 export type ComponentCatalogEntry =
   | {
@@ -184,8 +184,6 @@ export type ComponentCatalogEntry =
       cutover: CutoverState;
       binding: PrimitiveBinding;
       panel: PanelMeta;
-      /** true 면 Skia 만 legacy render.shapes 유지(DOM/Inspector 는 catalog). collection 용. */
-      skiaLegacy?: boolean;
     }
   | {
       kind: "reusable";
@@ -195,7 +193,6 @@ export type ComponentCatalogEntry =
       /** catalog/library 의 canonical reusable frame id. */
       reusableId: string;
       panel: PanelMeta;
-      skiaLegacy?: boolean;
     }
   | {
       kind: "native";

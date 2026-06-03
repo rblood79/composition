@@ -5,8 +5,8 @@
  * useCollectionData(dataBinding → tree nodes, ADR-132)로 채우고 RAC Tree + TreeItem 재귀 합성
  * (internal source). 재귀 2D collection 렌더는 RAC 담당.
  *
- * **DOM-only cutover (skiaLegacy:true)**: DOM/Inspector 는 catalog generic(wrapper + nodes),
- * Skia 만 legacy render.shapes 유지(재귀 tree 렌더 Skia generic 미지원, 전 family 후 일괄).
+ * **Skia generic 발효 (skiaLegacy 제거, 2026-06-01 G2(a))**: DOM/Inspector·Skia 모두 catalog
+ * generic. Tree render.shapes 는 shell-only(자식 TreeItem 이 독립 Skia 노드로 행 렌더).
  */
 
 import type { PrimitiveBinding } from "../types";

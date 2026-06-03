@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
+import { componentCatalog } from "../componentCatalog";
 
 /**
  * ADR-142 — cutover 게이트는 componentCatalog 의 cutover==="catalog" entry 에서 파생.
- * family ①~④ flip 완료 → catalog 경로. 나머지(⑤~⑧)는 게이트 닫힘 → legacy 경로(회귀 0).
  *
- * **채널 분리 (family ④ DOM-only cutover)**:
- * - isCatalogCutover — DOM(Preview)/Inspector. cutover==="catalog" 전부(collection 포함).
- * - isCatalogSkiaCutover — Skia. cutover==="catalog" && !skiaLegacy. collection 제외.
+ * **ADR-912 단계 5 step 1 (2026-06-04) — 채널 통합 (dead gate)**: 단계 5 (1b) 에서 skiaLegacy
+ * 0건 도달 → Skia generic 렌더가 전 catalog entry 발효. DOM/Skia 채널이 더 이상 갈리지 않음.
+ * `isCatalogSkiaCutover` 는 `isCatalogCutover` 위임으로 collapse. 본 테스트는 그 invariant
+ * (모든 non-native entry catalog cutover + skiaLegacy 0건 + 두 게이트 동치)를 잠근다.
  */
 describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", () => {
   it("family ① 8 primitive 는 catalog cutover (gate 열림)", () => {
@@ -105,65 +106,64 @@ describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", ()
   });
 });
 
-describe("isCatalogSkiaCutover (Skia generic gate) — family ④ DOM-only 채널 분리", () => {
-  it("family ①~③(skiaLegacy 아님)은 Skia cutover (Skia generic 발효)", () => {
-    for (const type of ["Button", "TextField", "Checkbox", "Switch"]) {
-      expect(isCatalogSkiaCutover(type)).toBe(true);
+describe("ADR-912 단계 5 step 1 — dead gate invariant (channel 통합 잠금)", () => {
+  const nonNativeEntries = componentCatalog.filter((e) => e.kind !== "native");
+
+  it("invariant 1 — 모든 non-native catalog entry 의 cutover === 'catalog' (legacy/cutting-over 0건)", () => {
+    // 단계 5 본체(구 정본 제거)의 전제: 전환 중 상태가 없어야 spec.render.shapes fallback 을
+    // 안전하게 제거할 수 있다. cutting-over/legacy entry 가 1건이라도 있으면 fallback 필요.
+    const nonCatalog = nonNativeEntries.filter(
+      (e) => "cutover" in e && e.cutover !== "catalog",
+    );
+    expect(nonCatalog.map((e) => e.type)).toEqual([]);
+  });
+
+  it("invariant 2 — entry 에 skiaLegacy 속성 0건 (필드 dead 제거)", () => {
+    // skiaLegacy 필드는 단계 5 step 1 에서 type union 에서 제거됨. runtime entry 에도 0건이어야
+    // isCatalogSkiaCutover === isCatalogCutover collapse 가 성립한다.
+    const withSkiaLegacy = componentCatalog.filter(
+      (e) => (e as Record<string, unknown>).skiaLegacy !== undefined,
+    );
+    expect(withSkiaLegacy.map((e) => e.type)).toEqual([]);
+  });
+
+  it("invariant 3 — isCatalogSkiaCutover 는 모든 type 에서 isCatalogCutover 와 동치 (게이트 collapse)", () => {
+    // 채널 분리가 의미 소멸했음을 잠근다. 향후 skiaLegacy 류 재도입 시 본 테스트 FAIL.
+    const types = [
+      ...componentCatalog.map((e) => e.type),
+      // native + color (게이트 false) — 동치성은 false===false 로도 성립해야 함
+      "frame",
+      "Slot",
+      "MaskedFrame",
+      "TailSwatch",
+      "ColorPicker",
+      "UnknownType",
+    ];
+    for (const type of types) {
+      expect(isCatalogSkiaCutover(type)).toBe(isCatalogCutover(type));
     }
   });
 
-  it("Tree 는 Skia generic 발효 (G2(a) 2026-06-01 — TreeItem child element 자동 순회)", () => {
-    // Tree render.shapes 는 shell-only(자식 TreeItem 이 독립 Skia 노드로 행 렌더) →
-    // buildCatalogShapes 가 동일 shell 을 그려 items 소실 없음. DOM·Skia 게이트 모두 열림.
-    expect(isCatalogCutover("Tree")).toBe(true);
-    expect(isCatalogSkiaCutover("Tree")).toBe(true);
-  });
-
-  it("Popover/Dialog/Modal 는 Skia generic 발효 (Inc3 2026-06-01 — buildCatalogShapes box+text + skiaPrimitive 합성)", () => {
-    // Popover: bg/border buildCatalogShapes(fill {color.layer-2}) + shadow/V-arrow skiaPrimitive.
-    // Dialog: bg buildCatalogShapes(fill {color.layer-1}) + backdrop/shadow skiaPrimitive(prepend).
-    // Modal: buildCatalogShapes transparent shell(무해) — render.shapes=[] 와 시각 동일, primitive 없음.
-    expect(isCatalogCutover("Popover")).toBe(true);
-    expect(isCatalogSkiaCutover("Popover")).toBe(true);
-    expect(isCatalogCutover("Dialog")).toBe(true);
-    expect(isCatalogSkiaCutover("Dialog")).toBe(true);
-    expect(isCatalogCutover("Modal")).toBe(true);
-    expect(isCatalogSkiaCutover("Modal")).toBe(true);
-    expect(isCatalogCutover("DropZone")).toBe(true);
-    expect(isCatalogSkiaCutover("DropZone")).toBe(true);
-  });
-
-  it("ListBox 는 Skia generic 발효 (ADR-912 선행 2026-06-03 — shell buildCatalogShapes + data row projection)", () => {
-    // ListBox render.shapes 는 container shell(bg+border)만 반환(ADR-146) → buildCatalogShapes 가
-    // 동일 정본 table variant fill + border 로 같은 shell 을 그림. data row 는 row projection
-    // (canvasSceneNode.appendListBoxRowProjection)이 독립 Skia 노드로 그리는 별도 경로(직교).
-    expect(isCatalogCutover("ListBox")).toBe(true);
-    expect(isCatalogSkiaCutover("ListBox")).toBe(true);
-  });
-
-  it("collection items/2D 결합형 + 미발효 overlay/date(skiaLegacy:true)은 Skia cutover 제외", () => {
+  it("invariant 4 — Skia generic 발효 = 전 cutover catalog entry (date 4 + Tooltip 은 skiaPrimitive escape)", () => {
+    // 단계 4 + 5(1b) 발효 결과: 과거 skiaLegacy:true 였던 collection 7 + Table + date 4 + Tooltip 이
+    // 전부 Skia generic 게이트 통과. (date/Tooltip 은 binding.skiaPrimitive escape 로 시각 재현)
     for (const type of [
-      // family ④ collections — props.items 직접 순회(items→element 전환 선행 필요)
-      //   ※ ListBox 는 row projection 으로 Skia 발효(위 테스트), 나머지 6 은 미발효 유지
+      "ListBox",
       "Menu",
       "Select",
       "ComboBox",
       "Tabs",
       "TagGroup",
       "GridList",
-      // family ⑤ Table — props.rows/columns 2D grid 직접 렌더
+      "Tree",
       "Table",
-      // family ⑥ overlays 미발효 — DropZone variant+dashed / Tooltip text source 대기
       "Tooltip",
-      // family ⑦ date — 날짜 grid 데이터-시각 결합형
       "Calendar",
       "RangeCalendar",
       "DatePicker",
       "DateRangePicker",
     ]) {
-      // DOM 은 catalog(isCatalogCutover=true), Skia 만 legacy(isCatalogSkiaCutover=false)
-      expect(isCatalogCutover(type)).toBe(true);
-      expect(isCatalogSkiaCutover(type)).toBe(false);
+      expect(isCatalogSkiaCutover(type)).toBe(true);
     }
   });
 });

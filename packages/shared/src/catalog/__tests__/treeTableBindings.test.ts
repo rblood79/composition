@@ -15,9 +15,10 @@ import { toRacProps } from "../outputs/toRacProps";
  *
  * **Tree — Skia generic 발효 (G2(a) 2026-06-01)**: render.shapes 가 shell-only 이고 TreeItem 이
  *   canonical 자식 element(factory 생성) → 독립 Skia 노드로 행 렌더. buildCatalogShapes 가 동일
- *   shell 을 그려 items 소실 없음. DOM·Skia 게이트 모두 열림(skiaLegacy 없음).
- * **Table — DOM-only cutover (skiaLegacy:true)**: render.shapes 가 props.rows/columns 2D grid 를
- *   직접 cell shape 로 렌더(데이터-시각 결합형) → buildCatalogShapes 로 대체 불가. Skia 만 legacy.
+ *   shell 을 그려 items 소실 없음.
+ * **Table — Skia generic 발효 (ADR-912 단계 4 C1 2026-06-03)**: 2D grid 를 Table 2D projection
+ *   (RowsGroup → Row[i] → Cell[i][j])으로 Skia 렌더. shell 은 buildCatalogShapes.
+ * **단계 5 step 1 (2026-06-04)**: skiaLegacy 필드 제거 → DOM·Skia 게이트 모두 Tree/Table 포함.
  * TableView 는 inventory §2-1 primitive 에 없음(LayoutRenderer 전용) → catalog 미등록.
  */
 
@@ -36,23 +37,22 @@ describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
     }
   });
 
-  it("Tree 는 skiaLegacy 없음(Skia generic), Table 은 skiaLegacy:true(2D grid legacy)", () => {
-    expect(
-      (getCatalogEntry("Tree") as { skiaLegacy?: boolean })?.skiaLegacy,
-    ).toBeUndefined();
-    expect(
-      (getCatalogEntry("Table") as { skiaLegacy?: boolean })?.skiaLegacy,
-    ).toBe(true);
+  it("Tree/Table entry 에 skiaLegacy 속성 0건 (단계 5 step 1 — 필드 제거)", () => {
+    for (const type of TREE_TABLE_TYPES) {
+      expect(
+        (getCatalogEntry(type) as { skiaLegacy?: boolean })?.skiaLegacy,
+        `${type} skiaLegacy undefined`,
+      ).toBeUndefined();
+    }
   });
 
-  it("DOM 게이트는 Tree/Table 포함, Skia 게이트는 Tree 만 포함(Table 제외)", () => {
+  it("DOM·Skia 게이트 모두 Tree/Table 포함 (단계 4 C1 + step 1)", () => {
     const domGate = getCatalogCutoverTypes();
     const skiaGate = getCatalogSkiaCutoverTypes();
     for (const type of TREE_TABLE_TYPES) {
       expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
+      expect(skiaGate.has(type), `${type} in Skia gate`).toBe(true);
     }
-    expect(skiaGate.has("Tree"), "Tree in Skia gate").toBe(true);
-    expect(skiaGate.has("Table"), "Table NOT in Skia gate").toBe(false);
   });
 
   it("Tree/Table binding 은 internal source (composition wrapper) + skiaPrimitive 없음", () => {

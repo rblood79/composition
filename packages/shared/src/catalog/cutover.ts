@@ -6,31 +6,28 @@
  * `cutover === "catalog"` entry 에서 파생된다. family flip(Phase 6) 은 componentCatalog 의
  * 해당 family entry `cutover` 를 `"catalog"` 로 바꾸는 것으로 발효.
  *
- * **채널 분리 (ADR-142 family ④/⑤ DOM-only cutover)**:
- * - `isCatalogCutover` — DOM(Preview)/Inspector 게이트. cutover==="catalog" 전부.
- * - `isCatalogSkiaCutover` — Skia generic 렌더 게이트. cutover==="catalog" && !skiaLegacy.
- *   collection(skiaLegacy:true)은 Skia 만 legacy render.shapes 유지(items 순회 렌더) →
- *   DOM 은 RAC items 자동 합성으로 generic 발효, Skia 는 부분 cutover.
+ * **ADR-912 단계 5 step 1 (2026-06-04) — 채널 통합 (dead gate 제거)**:
+ * 단계 5 (1b) 에서 skiaLegacy 0건 도달 → Skia generic 렌더가 전 catalog entry 발효.
+ * DOM/Skia 채널이 더 이상 갈리지 않으므로 `isCatalogCutover` 단일 게이트만 의미가 있다.
+ * `isCatalogSkiaCutover` 는 `isCatalogCutover` 위임으로 collapse (호출처 정리 — step 2
+ * buildSpecNodeData fallback 제거 — 후 삭제 예정).
  *
  * componentCatalog 는 모듈 상수라 파생 Set 을 모듈 로드 시 1회 계산한다.
  */
-import {
-  getCatalogCutoverTypes,
-  getCatalogSkiaCutoverTypes,
-} from "./componentCatalog";
+import { getCatalogCutoverTypes } from "./componentCatalog";
 
 const CUTOVER_TYPES: ReadonlySet<string> = getCatalogCutoverTypes();
-const SKIA_CUTOVER_TYPES: ReadonlySet<string> = getCatalogSkiaCutoverTypes();
 
-/** DOM(Preview)/Inspector catalog generic 경로 발효 여부. */
+/** DOM(Preview)/Inspector/Skia catalog generic 경로 발효 여부 (단일 게이트). */
 export function isCatalogCutover(type: string): boolean {
   return CUTOVER_TYPES.has(type);
 }
 
 /**
- * Skia generic 렌더(buildCatalogShapes) 발효 여부. collection(skiaLegacy)은 false →
- * Skia 만 legacy render.shapes 유지. DOM/Inspector 는 `isCatalogCutover` 로 catalog.
+ * @deprecated ADR-912 단계 5 step 1 (2026-06-04) — `isCatalogCutover` 로 collapse.
+ * skiaLegacy 0건 도달로 Skia 발효 집합 = DOM 발효 집합. 호출처(buildSpecNodeData /
+ * specTextStyle) 정리(step 2) 후 본 export 삭제.
  */
 export function isCatalogSkiaCutover(type: string): boolean {
-  return SKIA_CUTOVER_TYPES.has(type);
+  return isCatalogCutover(type);
 }

@@ -13,10 +13,11 @@ import { toRacProps } from "../outputs/toRacProps";
  *
  * overlay 는 composition wrapper(OverlayArrow / focus trap / drop 영역 합성, internal source).
  *
- * **Skia 발효 진행 (ADR-142 Inc3, 2026-06-01)**: Popover 는 Skia generic 발효됨 — bg/border 는
- * buildCatalogShapes(box+text), shadow/V-arrow 는 skiaPrimitive(popover_shadow/popover_arrow)
- * 합성. 나머지 4 overlay(Dialog/Modal/Tooltip/DropZone)는 보강 대기로 skiaLegacy:true 유지
- * (Dialog/DropZone variant 보강 / Tooltip text source / Modal). Toast 는 imperative API → 제외.
+ * **ADR-912 단계 5 (1b) + step 1 (2026-06-04) — 5 overlay 전부 Skia generic 발효 (skiaLegacy 0건)**:
+ * Popover bg/border buildCatalogShapes + shadow/V-arrow skiaPrimitive(popover_shadow/popover_arrow),
+ * Dialog bg + backdrop/shadow(overlay_backdrop/dialog_shadow), Modal transparent shell(primitive 없음),
+ * DropZone variant+dashed border 보편 D3 속성, Tooltip bg+text generic + arrow(tooltip_arrow, append).
+ * Toast 는 imperative API → 제외.
  */
 
 const OVERLAY_TYPES = [
@@ -27,15 +28,14 @@ const OVERLAY_TYPES = [
   "DropZone",
 ] as const;
 
-/** Skia generic 발효된 overlay (skiaLegacy 제거됨). */
+/** Skia generic 발효된 overlay (skiaLegacy 0건 — 5 전부). */
 const SKIA_CUTOVER_OVERLAYS = [
   "Popover",
   "Dialog",
   "Modal",
   "DropZone",
+  "Tooltip",
 ] as const;
-/** Skia 미발효(skiaLegacy:true) — 보강 대기. */
-const SKIA_LEGACY_OVERLAYS = ["Tooltip"] as const;
 
 describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
   it("5 overlay 가 catalog primitive entry (family=overlays, cutover=catalog)", () => {
@@ -50,34 +50,22 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
     }
   });
 
-  it("Skia 미발효 4 overlay 는 skiaLegacy:true, 발효된 Popover 는 미설정", () => {
-    for (const type of SKIA_LEGACY_OVERLAYS) {
+  it("5 overlay entry 에 skiaLegacy 속성 0건 (단계 5 step 1 — 필드 제거)", () => {
+    for (const type of OVERLAY_TYPES) {
       const entry = getCatalogEntry(type);
       expect(
         (entry as { skiaLegacy?: boolean })?.skiaLegacy,
-        `${type} skiaLegacy`,
-      ).toBe(true);
-    }
-    for (const type of SKIA_CUTOVER_OVERLAYS) {
-      const entry = getCatalogEntry(type);
-      expect(
-        (entry as { skiaLegacy?: boolean })?.skiaLegacy,
-        `${type} skiaLegacy 제거됨`,
+        `${type} skiaLegacy undefined`,
       ).toBeUndefined();
     }
   });
 
-  it("DOM 게이트는 5 overlay 전부, Skia 게이트는 발효된 Popover 만", () => {
+  it("DOM·Skia 게이트 모두 5 overlay 전부 포함 (skiaLegacy 0건)", () => {
     const domGate = getCatalogCutoverTypes();
     const skiaGate = getCatalogSkiaCutoverTypes();
     for (const type of OVERLAY_TYPES) {
       expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
-    }
-    for (const type of SKIA_CUTOVER_OVERLAYS) {
       expect(skiaGate.has(type), `${type} in Skia gate`).toBe(true);
-    }
-    for (const type of SKIA_LEGACY_OVERLAYS) {
-      expect(skiaGate.has(type), `${type} NOT in Skia gate`).toBe(false);
     }
   });
 
@@ -86,14 +74,14 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
       const binding = getPrimitiveBinding(type);
       expect(binding?.source.kind, `${type} source`).toBe("internal");
     }
-    // 미발효(Tooltip/DropZone) + Modal(발효이나 shadow/arrow 없음 — transparent shell) 은 미보유.
-    for (const type of [...SKIA_LEGACY_OVERLAYS, "Modal", "DropZone"]) {
+    // Modal(발효이나 shadow/arrow 없음 — transparent shell) + DropZone(variant 보편 속성) 은 미보유.
+    for (const type of ["Modal", "DropZone"]) {
       expect(
         getPrimitiveBinding(type)?.skiaPrimitive,
         `${type} no skiaPrimitive`,
       ).toBeUndefined();
     }
-    // shadow/arrow 패턴 보유 발효 overlay.
+    // shadow/arrow/V-arrow 패턴 보유 발효 overlay.
     expect(getPrimitiveBinding("Popover")?.skiaPrimitive).toEqual([
       "popover_shadow",
       "popover_arrow",
@@ -102,6 +90,8 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
       "overlay_backdrop",
       "dialog_shadow",
     ]);
+    // Tooltip — V-arrow(showArrow=true 한정) append escape (단계 5 (1b)).
+    expect(getPrimitiveBinding("Tooltip")?.skiaPrimitive).toBe("tooltip_arrow");
   });
 
   it("Toast 는 catalog 미등록 (imperative API, placeable 아님)", () => {

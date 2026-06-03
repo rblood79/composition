@@ -5,8 +5,8 @@
  * export)가 useCollectionData(dataBinding → rows, ADR-132) + columns 로 채우고 RAC Table +
  * TableHeader/Column/Row/Cell 2D 합성(internal source). 2D collection 렌더는 RAC 담당.
  *
- * **DOM-only cutover (skiaLegacy:true)**: DOM/Inspector 는 catalog generic(wrapper + rows/columns),
- * Skia 만 legacy render.shapes 유지(2D table 렌더 Skia generic 미지원, 전 family 후 일괄).
+ * **Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 C1 2026-06-03)**: DOM/Inspector·Skia 모두
+ * catalog generic. 2D grid 는 Table 2D projection(RowsGroup → Row[i] → Cell[i][j])으로 Skia 렌더.
  * columns 는 columnMapping/binding 데이터라 generic Inspector kind:"binding" 로 표현.
  */
 

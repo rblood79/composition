@@ -11,8 +11,10 @@ import { toRacProps } from "../outputs/toRacProps";
 /**
  * ADR-142 family ⑦(date) — Calendar/RangeCalendar/DatePicker/DateRangePicker 계약 검증.
  *
- * composition wrapper(날짜 grid / Popover 합성, internal source). 날짜 grid(6주×7일)/portal 은
- * Skia generic 미확정 → DOM-only cutover(skiaLegacy:true).
+ * composition wrapper(날짜 grid / Popover 합성, internal source).
+ * **ADR-912 단계 5 (1b) + step 1 (2026-06-04) — Skia generic 발효 (skiaLegacy 0건)**: 날짜
+ * grid(6주×7일)/trigger field 는 skiaPrimitive escape 로 재현(Calendar/RangeCalendar=calendar_grid,
+ * DatePicker/DateRangePicker=datefield_trigger). DOM·Skia 게이트 모두 발효.
  * **color(TailSwatch/ColorPicker/ColorArea 등) 제외**: 사용자 지시("TailSwatch 는 패스해") —
  * arc/wheel/gradient skiaPrimitive 설계 필요 영역, 별도 처리.
  */
@@ -24,38 +26,47 @@ const DATE_TYPES = [
   "DateRangePicker",
 ] as const;
 
-describe("family ⑦ date — catalog 등록 + DOM-only cutover", () => {
-  it("date 4 가 catalog primitive entry (family=date-color, cutover=catalog, skiaLegacy)", () => {
+/** date 4 의 skiaPrimitive escape key (단계 5 (1b)). */
+const DATE_SKIA_PRIMITIVE: Record<string, string> = {
+  Calendar: "calendar_grid",
+  RangeCalendar: "calendar_grid",
+  DatePicker: "datefield_trigger",
+  DateRangePicker: "datefield_trigger",
+};
+
+describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
+  it("date 4 가 catalog primitive entry (family=date-color, cutover=catalog, skiaLegacy 0건)", () => {
     for (const type of DATE_TYPES) {
       const entry = getCatalogEntry(type);
       expect(entry, `${type} catalog entry`).toBeDefined();
       expect(entry?.kind).toBe("primitive");
       expect(entry?.family).toBe("date-color");
-      expect((entry as { cutover?: string } | undefined)?.cutover).toBe("catalog");
+      expect((entry as { cutover?: string } | undefined)?.cutover).toBe(
+        "catalog",
+      );
       expect(
         (entry as { skiaLegacy?: boolean })?.skiaLegacy,
-        `${type} skiaLegacy`,
-      ).toBe(true);
+        `${type} skiaLegacy undefined`,
+      ).toBeUndefined();
     }
   });
 
-  it("DOM 게이트는 date 4 포함, Skia 게이트는 제외", () => {
+  it("DOM·Skia 게이트 모두 date 4 포함 (단계 5 (1b) escape 발효)", () => {
     const domGate = getCatalogCutoverTypes();
     const skiaGate = getCatalogSkiaCutoverTypes();
     for (const type of DATE_TYPES) {
       expect(domGate.has(type), `${type} in DOM gate`).toBe(true);
-      expect(skiaGate.has(type), `${type} NOT in Skia gate`).toBe(false);
+      expect(skiaGate.has(type), `${type} in Skia gate`).toBe(true);
     }
   });
 
-  it("date binding 은 internal source (composition wrapper) + skiaPrimitive 없음", () => {
+  it("date binding 은 internal source + skiaPrimitive escape (calendar_grid / datefield_trigger)", () => {
     for (const type of DATE_TYPES) {
       const binding = getPrimitiveBinding(type);
       expect(binding?.source.kind, `${type} source`).toBe("internal");
-      expect(
-        binding?.skiaPrimitive,
-        `${type} no skiaPrimitive`,
-      ).toBeUndefined();
+      expect(binding?.skiaPrimitive, `${type} skiaPrimitive escape`).toBe(
+        DATE_SKIA_PRIMITIVE[type],
+      );
     }
   });
 
