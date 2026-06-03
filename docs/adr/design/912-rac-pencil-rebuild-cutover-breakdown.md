@@ -305,6 +305,8 @@ toSkiaStyle(node, theme):
 
 ## ④ 영역 B — Collection Interactive Projected Tree (HC#4/#7)
 
+> **진행 상태 (2026-06-03)**: 단계 4 를 발효 난이도별로 2 묶음으로 분리 실행(사용자 결정). **묶음 1 — 비-data-bound 4종 발효 완료(`0e9c501d4`)**: Select/ComboBox(trigger-overlay) + Tabs/TagGroup(factory-child)는 row 순회가 render.shapes 에 없어 **C1 generic projector 불필요**, C2(4-2.5)+C3(4-2.6)만으로 발효 안전. skiaLegacy 제거 → buildCatalogShapes 경로. 검증: vitest 회귀 0(+7)·drift 102/102·generated CSS diff 0·live console 0. **묶음 2 — 미착수**: GridList/Table(data-bound row 순회 → C1 4-2 필요) + Menu(popup↔trigger 본질 미확정, 사용자 보류 — `.react-aria-Menu` 는 popup 리스트인데 rule 은 trigger 버튼, Menu.css 정본 경계 별도 결정 필요).
+>
 > **단계 4 = 3계약 묶음 (2026-06-03 재설계)**. collection family 의 Skia generic 발효(skiaLegacy 제거)는 ListBox 만 안전했고, 나머지 6 collection(Menu/Select/ComboBox/Tabs/TagGroup/GridList)+Table 은 발효 시 전부 시각 변화가 났다(kill criteria 미통과 — `feedback-proof-gate-seam-removal-kill-criteria`). 단순 skiaLegacy 제거로는 대칭이 깨지므로, 단계 4 는 다음 **3계약을 한 묶음**으로 발효한다.
 >
 > | #   | 계약                                                                              | 절          | 해결 대상                                                                 |
