@@ -1,0 +1,1726 @@
+<!doctype html>
+<html lang="ko" class="">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Design System — react-aria-starter reference</title>
+    <meta
+      name="description"
+      content="packages/design.md 의 OKLCH 토큰 / 패턴 reference 를 shadcn 스타일로 시각화한 디자인 시스템 문서"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+         shadcn/ui design tokens (page chrome) — Tailwind v4 / new-york
+         라이트/다크 두 테마. 문서가 다루는 starter 토큰과는 분리된,
+         이 페이지 자체의 UI 토큰이다.
+         ============================================================ */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --card: oklch(1 0 0);
+        --card-foreground: oklch(0.145 0 0);
+        --popover: oklch(1 0 0);
+        --popover-foreground: oklch(0.145 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --secondary: oklch(0.97 0 0);
+        --secondary-foreground: oklch(0.205 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --accent: oklch(0.97 0 0);
+        --accent-foreground: oklch(0.205 0 0);
+        --destructive: oklch(0.577 0.245 27.325);
+        --border: oklch(0.922 0 0);
+        --input: oklch(0.922 0 0);
+        --ring: oklch(0.708 0 0);
+        --radius: 0.625rem;
+        --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-pop: 0 8px 30px rgb(0 0 0 / 0.12);
+      }
+
+      html.dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --card: oklch(0.205 0 0);
+        --card-foreground: oklch(0.985 0 0);
+        --popover: oklch(0.205 0 0);
+        --popover-foreground: oklch(0.985 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --secondary: oklch(0.269 0 0);
+        --secondary-foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --accent: oklch(0.269 0 0);
+        --accent-foreground: oklch(0.985 0 0);
+        --destructive: oklch(0.704 0.191 22.216);
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --ring: oklch(0.556 0 0);
+        --shadow-pop: 0 8px 30px rgb(0 0 0 / 0.5);
+      }
+
+      /* ============================================================
+         starter design tokens (문서 대상) — OKLCH relative-color 스케일
+         base hue 11종 + 16단계 lightness × chroma 조합.
+         이 페이지는 runtime 계약이 아니라 reference 시각화다.
+         ============================================================ */
+      :root {
+        /* base hue 11종 (design.md §Colors) */
+        --gray: oklch(0.5 0 0);
+        --red: oklch(0.6 0.181 27);
+        --orange: oklch(0.7 0.15 54);
+        --yellow: oklch(0.8 0.129 74);
+        --turquoise: oklch(0.5 0.081 205);
+        --cyan: oklch(0.4 0.142 244);
+        --green: oklch(0.5 0.121 155);
+        --blue: oklch(0.5 0.22 266);
+        --indigo: oklch(1 0.25 284);
+        --purple: oklch(0.7 0.223 302);
+        --pink: oklch(0.6 0.178 348);
+
+        /* 기본 tint — 하나만 바꾸면 전 강조색 전환 (design.md §Colors) */
+        --tint: var(--indigo);
+
+        /* chroma 배수: 100~500 ramp, 600~1600 = full (design.md §Colors) */
+        --cf-50: 0.4;
+        --cf-100: 0.5;
+        --cf-200: 0.6;
+        --cf-300: 0.7;
+        --cf-400: 0.8;
+        --cf-500: 0.9;
+        --cf-600: 1;
+        --cf-700: 1;
+        --cf-800: 1;
+        --cf-900: 1;
+        --cf-1000: 1;
+        --cf-1100: 1;
+        --cf-1200: 1;
+        --cf-1300: 1;
+        --cf-1400: 1;
+        --cf-1500: 1;
+        --cf-1600: 1;
+
+        /* lightness 스케일 (LIGHT) — anchor: 100/500/1000/1600 from design.md,
+           나머지는 단조 보간 (reference 근사) */
+        --l-50: 100%;
+        --l-100: 98.1%;
+        --l-200: 95.7%;
+        --l-300: 91.5%;
+        --l-400: 86.5%;
+        --l-500: 79.2%;
+        --l-600: 73.8%;
+        --l-700: 68.3%;
+        --l-800: 62.8%;
+        --l-900: 57.3%;
+        --l-1000: 51.9%;
+        --l-1100: 45.8%;
+        --l-1200: 39.5%;
+        --l-1300: 33.2%;
+        --l-1400: 27%;
+        --l-1500: 21.5%;
+        --l-1600: 16.7%;
+
+        /* 텍스트/면 추출용 semantic (현재 테마 스케일 참조) */
+        --ds-radius-sm: 6px;
+        --ds-radius: 8px;
+        --ds-radius-lg: 10px;
+        --ds-radius-xl: 16px;
+        --ds-spacing: 0.25rem;
+      }
+
+      html.dark {
+        /* lightness 반전 (DARK) — anchor: 100=29.7 / 500=51.9 / 1000=67 / 1600=100 */
+        --l-50: 22%;
+        --l-100: 29.7%;
+        --l-200: 34.6%;
+        --l-300: 39.5%;
+        --l-400: 44.4%;
+        --l-500: 51.9%;
+        --l-600: 54.9%;
+        --l-700: 57.9%;
+        --l-800: 61%;
+        --l-900: 64%;
+        --l-1000: 67%;
+        --l-1100: 72.5%;
+        --l-1200: 78%;
+        --l-1300: 83.5%;
+        --l-1400: 89%;
+        --l-1500: 94.5%;
+        --l-1600: 100%;
+      }
+
+      /* ---- reset / base ---- */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 5rem;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      code,
+      .mono {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+      }
+      a {
+        color: inherit;
+      }
+
+      /* ---- layout ---- */
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        height: 3.75rem;
+        padding: 0 1.5rem;
+        background: color-mix(in oklab, var(--background) 80%, transparent);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+      }
+      .header__brand {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .header__logo {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        background: var(--primary);
+        display: grid;
+        place-items: center;
+        color: var(--primary-foreground);
+        font-weight: 700;
+      }
+      .header__spacer {
+        flex: 1;
+      }
+      .header__meta {
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        max-width: 1200px;
+        margin: 0 auto;
+        gap: 2.5rem;
+        padding: 2rem 1.5rem 6rem;
+      }
+      .nav {
+        position: sticky;
+        top: 5rem;
+        align-self: start;
+        max-height: calc(100vh - 6rem);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        font-size: 13px;
+      }
+      .nav a {
+        text-decoration: none;
+        color: var(--muted-foreground);
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        transition: background 0.15s, color 0.15s;
+      }
+      .nav a:hover {
+        background: var(--accent);
+        color: var(--foreground);
+      }
+      .nav a.active {
+        background: var(--accent);
+        color: var(--foreground);
+        font-weight: 500;
+      }
+      .nav__group {
+        margin: 0.75rem 0 0.25rem;
+        padding: 0 0.75rem;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted-foreground);
+        opacity: 0.7;
+      }
+
+      main {
+        min-width: 0;
+      }
+
+      /* ---- hero ---- */
+      .hero {
+        margin-bottom: 2.5rem;
+      }
+      .hero h1 {
+        font-size: 2.25rem;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.5rem;
+        font-weight: 700;
+      }
+      .hero p {
+        color: var(--muted-foreground);
+        max-width: 60ch;
+        font-size: 15px;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 0.2rem 0.6rem;
+        border-radius: 9999px;
+        border: 1px solid var(--border);
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+      }
+
+      /* ---- section / card ---- */
+      section {
+        margin-bottom: 3.5rem;
+        scroll-margin-top: 5rem;
+      }
+      .section__head {
+        margin-bottom: 1.25rem;
+      }
+      .section__head h2 {
+        font-size: 1.5rem;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.35rem;
+        font-weight: 650;
+      }
+      .section__head p {
+        margin: 0;
+        color: var(--muted-foreground);
+        max-width: 70ch;
+      }
+      h3.sub {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin: 1.75rem 0 0.75rem;
+        letter-spacing: -0.01em;
+      }
+
+      .card {
+        background: var(--card);
+        color: var(--card-foreground);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-card);
+      }
+      .card__pad {
+        padding: 1.25rem;
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+      .cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      @media (max-width: 860px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .nav {
+          display: none;
+        }
+        .cols-2,
+        .cols-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ---- color swatches ---- */
+      .scale {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 0.5rem;
+      }
+      .swatch {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: var(--card);
+      }
+      .swatch__chip {
+        height: 48px;
+      }
+      .swatch__label {
+        font-size: 10.5px;
+        padding: 0.3rem 0.4rem;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+      }
+      .hues {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+      .hue {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: inherit;
+        font: inherit;
+        padding: 0;
+      }
+      .hue__dot {
+        width: 40px;
+        height: 40px;
+        border-radius: 9999px;
+        border: 2px solid var(--border);
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .hue:hover .hue__dot {
+        transform: scale(1.08);
+      }
+      .hue[aria-pressed="true"] .hue__dot {
+        box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--foreground);
+      }
+      .hue__name {
+        font-size: 11px;
+        color: var(--muted-foreground);
+      }
+
+      /* semantic token rows */
+      .tokens {
+        display: grid;
+        gap: 0;
+      }
+      .token-row {
+        display: grid;
+        grid-template-columns: 28px 1fr auto;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 0.25rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .token-row:last-child {
+        border-bottom: none;
+      }
+      .token-row .preview {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        border: 1px solid var(--border);
+      }
+      .token-row .name {
+        font-size: 12.5px;
+      }
+      .token-row .val {
+        font-size: 11.5px;
+        color: var(--muted-foreground);
+      }
+
+      /* ---- typography demo ---- */
+      .type-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .type-row:last-child {
+        border-bottom: none;
+      }
+      .type-row .meta {
+        color: var(--muted-foreground);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      /* ---- spacing demo ---- */
+      .space-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.4rem 0;
+      }
+      .space-row .bar {
+        height: 14px;
+        border-radius: 4px;
+        background: oklch(from var(--tint) var(--l-900) calc(l * c) h);
+      }
+      .space-row .lbl {
+        font-size: 12px;
+        color: var(--muted-foreground);
+        width: 9rem;
+      }
+
+      /* ---- radius demo ---- */
+      .radius-demo {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+      }
+      .radius-demo figure {
+        margin: 0;
+        text-align: center;
+      }
+      .radius-demo .box {
+        width: 90px;
+        height: 64px;
+        background: var(--secondary);
+        border: 1px solid var(--border);
+      }
+      .radius-demo figcaption {
+        margin-top: 0.5rem;
+        font-size: 12px;
+        color: var(--muted-foreground);
+      }
+
+      /* ---- elevation demo ---- */
+      .elev {
+        height: 90px;
+        border-radius: var(--radius);
+        background: var(--card);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        color: var(--muted-foreground);
+      }
+      .elev.sm {
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+      }
+      .elev.md {
+        box-shadow: 0 4px 10px rgb(0 0 0 / 0.1);
+      }
+      .elev.lg {
+        box-shadow: 0 8px 20px rgb(0 0 0 / 0.12);
+      }
+      html.dark .elev.lg {
+        box-shadow: 0 8px 20px rgb(0 0 0 / 0.5);
+      }
+      .elev.xl {
+        box-shadow: 0 16px 40px rgb(0 0 0 / 0.16);
+      }
+
+      /* ============================================================
+         starter utility 패턴 데모 (.button-base / .indicator / .inset)
+         design.md §Components 의 의미를 단순 재현
+         ============================================================ */
+      .demo-surface {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .rab {
+        --button-color: var(--tint);
+        appearance: none;
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        color: #fff;
+        border: 1px solid oklch(from var(--button-color) var(--l-1100) calc(l * c) h);
+        background: oklch(from var(--button-color) var(--l-1000) calc(l * c) h);
+        border-radius: var(--ds-radius);
+        padding: 0 0.9rem;
+        height: 32px;
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18),
+          0 1px 2px rgb(0 0 0 / 0.15);
+        transition: background 0.2s, box-shadow 0.2s, scale 0.2s;
+      }
+      .rab:hover {
+        background: oklch(from var(--button-color) var(--l-900) calc(l * c) h);
+      }
+      .rab:active {
+        scale: 0.97;
+        background: oklch(from var(--button-color) var(--l-1100) calc(l * c) h);
+      }
+      .rab:focus-visible {
+        outline: 2px solid oklch(from var(--tint) var(--l-1000) calc(l * c) h);
+        outline-offset: 2px;
+      }
+      .rab.secondary {
+        --button-color: var(--gray);
+      }
+      .rab.quiet {
+        background: transparent;
+        color: var(--foreground);
+        border-color: transparent;
+        box-shadow: none;
+      }
+      .rab.quiet:hover {
+        background: var(--accent);
+      }
+      .rab.icon {
+        border-radius: 9999px;
+        width: 32px;
+        padding: 0;
+      }
+
+      .indicator-demo {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+      }
+      .ind {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 13px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .ind .box {
+        width: 18px;
+        height: 18px;
+        border-radius: var(--ds-radius-sm);
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);
+        display: grid;
+        place-items: center;
+        transition: background 0.2s, border-color 0.2s, scale 0.15s;
+      }
+      .ind.round .box {
+        border-radius: 9999px;
+      }
+      .ind input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .ind input:checked + .box {
+        background: oklch(from var(--tint) var(--l-1000) calc(l * c) h);
+        border-color: oklch(from var(--tint) var(--l-1000) calc(l * c) h);
+      }
+      .ind input:checked + .box::after {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: inherit;
+        background: #fff;
+      }
+      .ind.check input:checked + .box::after {
+        width: 5px;
+        height: 9px;
+        border-radius: 0;
+        background: transparent;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: translateY(-1px) rotate(45deg);
+      }
+      .ind:active .box {
+        scale: 0.9;
+      }
+
+      .field {
+        --inset-background: var(--card);
+        appearance: none;
+        font: inherit;
+        width: 100%;
+        max-width: 280px;
+        height: 32px;
+        padding: 0 0.7rem;
+        color: var(--foreground);
+        background: var(--inset-background);
+        border: 1px solid var(--border);
+        border-radius: var(--ds-radius);
+        box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .field::placeholder {
+        color: var(--muted-foreground);
+      }
+      .field:hover {
+        border-color: oklch(from var(--gray) var(--l-500) 0 h);
+      }
+      .field:focus-visible {
+        outline: 2px solid oklch(from var(--tint) var(--l-1000) calc(l * c) h);
+        outline-offset: -1px;
+        border-color: oklch(from var(--tint) var(--l-1000) calc(l * c) h);
+      }
+
+      /* segmented / group-seam demo */
+      .segmented {
+        position: relative;
+        display: inline-flex;
+        padding: 3px;
+        gap: 2px;
+        border-radius: 9999px;
+        background: var(--secondary);
+        border: 1px solid var(--border);
+      }
+      .segmented button {
+        position: relative;
+        z-index: 1;
+        appearance: none;
+        border: none;
+        background: none;
+        font: inherit;
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--muted-foreground);
+        padding: 0.3rem 0.9rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      .segmented button[aria-pressed="true"] {
+        color: var(--foreground);
+      }
+      .segmented .seg-indicator {
+        position: absolute;
+        z-index: 0;
+        top: 3px;
+        bottom: 3px;
+        border-radius: 9999px;
+        background: var(--card);
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+        transition: transform 0.2s, width 0.2s;
+      }
+
+      /* data-state attribute frequency */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .chip {
+        font-size: 12px;
+        padding: 0.25rem 0.6rem;
+        border-radius: 8px;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        border: 1px solid var(--border);
+      }
+      .chip b {
+        color: var(--foreground);
+        font-weight: 600;
+      }
+
+      /* ---- table ---- */
+      .tbl-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.6rem 0.85rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      thead th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted-foreground);
+        background: var(--muted);
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      td code {
+        font-size: 12px;
+        background: var(--muted);
+        padding: 0.1rem 0.35rem;
+        border-radius: 5px;
+      }
+
+      /* ---- do / don't ---- */
+      .dd {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr 1fr;
+      }
+      @media (max-width: 860px) {
+        .dd {
+          grid-template-columns: 1fr;
+        }
+      }
+      .dd__col {
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        padding: 1.1rem 1.25rem;
+      }
+      .dd__col.do {
+        background: oklch(from var(--green) 95% calc(l * c * 0.4) h);
+        border-color: oklch(from var(--green) 80% calc(l * c) h);
+      }
+      .dd__col.dont {
+        background: oklch(from var(--red) 95% calc(l * c * 0.4) h);
+        border-color: oklch(from var(--red) 80% calc(l * c) h);
+      }
+      html.dark .dd__col.do {
+        background: oklch(from var(--green) 28% calc(l * c * 0.5) h);
+      }
+      html.dark .dd__col.dont {
+        background: oklch(from var(--red) 28% calc(l * c * 0.5) h);
+      }
+      .dd__col h4 {
+        margin: 0 0 0.6rem;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .dd__col ul {
+        margin: 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.45rem;
+        font-size: 13px;
+      }
+      .dd__col li {
+        color: var(--foreground);
+      }
+
+      /* note callout */
+      .note {
+        border-left: 3px solid oklch(from var(--tint) var(--l-1000) calc(l * c) h);
+        background: var(--muted);
+        padding: 0.8rem 1rem;
+        border-radius: 0 8px 8px 0;
+        font-size: 13px;
+        color: var(--muted-foreground);
+      }
+      .note b {
+        color: var(--foreground);
+      }
+
+      /* segmented control for theme/tint toolbar buttons */
+      .toolbtn {
+        appearance: none;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        height: 34px;
+        padding: 0 0.75rem;
+        color: var(--foreground);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        transition: background 0.15s;
+      }
+      .toolbtn:hover {
+        background: var(--accent);
+      }
+      .footer {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+        border-top: 1px solid var(--border);
+        color: var(--muted-foreground);
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header__brand">
+        <span class="header__logo">D</span>
+        <span>Design System</span>
+      </div>
+      <span class="header__meta mono">packages/design.md · reference</span>
+      <span class="header__spacer"></span>
+      <button class="toolbtn" id="tintBtn" title="강조 tint 전환">
+        <span
+          id="tintDot"
+          style="
+            width: 14px;
+            height: 14px;
+            border-radius: 9999px;
+            background: oklch(from var(--tint) var(--l-1000) calc(l * c) h);
+          "
+        ></span>
+        <span id="tintName">indigo</span>
+      </button>
+      <button class="toolbtn" id="themeBtn" title="라이트/다크 전환">
+        <span id="themeIcon">☾</span>
+        <span id="themeName">Dark</span>
+      </button>
+    </header>
+
+    <div class="shell">
+      <nav class="nav" id="nav">
+        <span class="nav__group">개요</span>
+        <a href="#overview">Overview</a>
+        <span class="nav__group">Foundations</span>
+        <a href="#colors">Colors</a>
+        <a href="#typography">Typography</a>
+        <a href="#layout">Layout</a>
+        <a href="#elevation">Elevation &amp; Depth</a>
+        <a href="#shapes">Shapes</a>
+        <span class="nav__group">Patterns</span>
+        <a href="#components">Components</a>
+        <a href="#motion">Motion</a>
+        <a href="#mapping">Mapping</a>
+        <span class="nav__group">규칙</span>
+        <a href="#dosdonts">Do's &amp; Don'ts</a>
+        <a href="#appendix">Appendix</a>
+      </nav>
+
+      <main>
+        <div class="hero">
+          <h1>react-aria-starter Design System</h1>
+          <p>
+            <code>packages/design.md</code> 에서 추출한 단일 공통 token / 패턴
+            reference 를 시각화한 문서입니다. OKLCH relative-color 모델과
+            light/dark adaptation 을 기반으로 하며,
+            <b>시각 정본(runtime SSOT)이 아니라 정본을 저작할 때 참조하는 입력
+            가이드</b>입니다 (ADR-142).
+          </p>
+          <div class="badges">
+            <span class="badge">OKLCH relative color</span>
+            <span class="badge">11 base hues · 16-step scale</span>
+            <span class="badge">light / dark adaptation</span>
+            <span class="badge">React Aria <code>[data-*]</code> states</span>
+            <span class="badge">56 CSS · 2 token + 54 component</span>
+          </div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <section id="overview">
+          <div class="section__head">
+            <h2>Overview</h2>
+            <p>
+              starter 56개 CSS 의 token/패턴을 중복 제거해 한 곳에 정규화한
+              reference. 모든 컴포넌트는 <code>.react-aria-{Component}</code>
+              단일 루트 클래스로 시작하고, 상태는 클래스 토글이 아닌
+              <code>[data-*]</code> 속성으로 표현됩니다.
+            </p>
+          </div>
+          <div class="grid cols-2">
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">스타일링 원칙</h3>
+              <ul style="margin: 0; padding-left: 1.1rem; display: grid; gap: 0.4rem">
+                <li>단일 루트 클래스 <code>.react-aria-{ComponentName}</code></li>
+                <li>상태 = <code>[data-*]</code> 속성 (RAC 가 DOM 주입)</li>
+                <li>색상 하드코딩 0건 — 전부 <code>var(--*)</code> 토큰</li>
+                <li>CSS Nesting <code>&amp;[data-*]</code> 적극 사용</li>
+              </ul>
+            </div>
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">token vs 런타임 주입 변수</h3>
+              <p style="margin: 0 0 0.5rem; color: var(--muted-foreground)">
+                일부 <code>var(--*)</code> 는 token 이 아니라 RAC 가 런타임에
+                주입하는 레이아웃 변수입니다 (token 표에서 제외).
+              </p>
+              <div class="chips">
+                <span class="chip">--trigger-width</span>
+                <span class="chip">--origin</span>
+                <span class="chip">--percent</span>
+                <span class="chip">--tree-item-level</span>
+                <span class="chip">--disclosure-panel-height</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- COLORS -->
+        <section id="colors">
+          <div class="section__head">
+            <h2>Colors</h2>
+            <p>
+              모든 색상은 OKLCH 색공간의 <code>oklch(from … l c h)</code> relative
+              color 로 파생됩니다. 한 base hue → 16단계 스케일
+              <code>oklch(from {base} {lightness-N} {chroma-N} h)</code>.
+            </p>
+          </div>
+
+          <h3 class="sub" style="margin-top: 0">Base hue 11종</h3>
+          <p style="color: var(--muted-foreground); margin-top: 0">
+            <code>--tint</code> 하나만 바꾸면 전 컴포넌트 강조색이 전환됩니다
+            (기본 <code>--indigo</code>). 칩을 눌러 tint 를 바꿔보세요.
+          </p>
+          <div class="card card__pad">
+            <div class="hues" id="hues"></div>
+          </div>
+
+          <h3 class="sub">16단계 스케일 — 현재 tint (<span id="tintLabel">indigo</span>)</h3>
+          <div class="scale" id="tintScale"></div>
+
+          <h3 class="sub">16단계 스케일 — gray (중립)</h3>
+          <div class="scale" id="grayScale"></div>
+
+          <div class="note" style="margin-top: 1rem">
+            <b>lightness 반전:</b> <code>--gray-100</code> 은 라이트에서 "거의
+            흰색", 다크에서 "거의 검정". 시맨틱 토큰
+            (<code>--text-color: var(--gray-1200)</code>)이 코드 변경 없이 양
+            테마에서 대비를 유지합니다. 우상단 <b>Dark</b> 토글로 반전을
+            확인하세요.
+          </div>
+
+          <h3 class="sub">Semantic tokens</h3>
+          <p style="color: var(--muted-foreground); margin-top: 0">
+            컴포넌트 CSS 는 원시 스케일 대신 시맨틱 토큰을 우선 사용합니다.
+          </p>
+          <div class="card card__pad">
+            <div class="tokens" id="semanticTokens"></div>
+          </div>
+
+          <h3 class="sub">State token naming</h3>
+          <div class="chips">
+            <span class="chip"><b>{prop}</b></span>
+            <span class="chip"><b>{prop}</b>-hover</span>
+            <span class="chip"><b>{prop}</b>-pressed</span>
+            <span class="chip"><b>{prop}</b>-disabled</span>
+            <span class="chip"><b>{prop}</b>-placeholder</span>
+          </div>
+          <div class="note" style="margin-top: 1rem">
+            ⚠️ <b>발견:</b> <code>--border-color-pressed</code> 는
+            <code>forced-colors</code> 블록에서만 정의되고 컴포넌트 참조 0건 —
+            고대비 전용 미사용 토큰 (채택 보류 후보).
+          </div>
+        </section>
+
+        <!-- TYPOGRAPHY -->
+        <section id="typography">
+          <div class="section__head">
+            <h2>Typography</h2>
+            <p>
+              <code>system-ui</code> 고정, line-height <code>1.5</code>.
+              font-weight 3단계. letter-spacing 은 컴포넌트 CSS 에 0건.
+            </p>
+          </div>
+          <div class="card card__pad">
+            <div class="type-row">
+              <span style="font-size: 1rem">강조 텍스트 — Largest body</span>
+              <span class="meta mono">--font-size-lg · 1rem (16px) · 200dpi 20px</span>
+            </div>
+            <div class="type-row">
+              <span style="font-size: 0.875rem">본문 기본 — Default body text</span>
+              <span class="meta mono">--font-size · 0.875rem (14px) · 200dpi 17px</span>
+            </div>
+            <div class="type-row">
+              <span style="font-size: 0.75rem">설명 · 에러 · kbd — Small</span>
+              <span class="meta mono">--font-size-sm · 0.75rem (12px) · 200dpi 15px</span>
+            </div>
+          </div>
+          <div class="grid cols-3" style="margin-top: 1rem">
+            <div class="card card__pad">
+              <div style="font-weight: 400; font-size: 1.1rem">Aa</div>
+              <div class="meta" style="color: var(--muted-foreground); margin-top: 0.5rem; font-size: 12px">
+                <b style="color: var(--foreground)">normal (400)</b><br />본문 기본
+              </div>
+            </div>
+            <div class="card card__pad">
+              <div style="font-weight: 500; font-size: 1.1rem">Aa</div>
+              <div class="meta" style="color: var(--muted-foreground); margin-top: 0.5rem; font-size: 12px">
+                <b style="color: var(--foreground)">medium (500) · 12곳</b><br />Button · item · Label
+              </div>
+            </div>
+            <div class="card card__pad">
+              <div style="font-weight: 600; font-size: 1.1rem">Aa</div>
+              <div class="meta" style="color: var(--muted-foreground); margin-top: 0.5rem; font-size: 12px">
+                <b style="color: var(--foreground)">semibold (600) · 6곳</b><br />section header · current
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LAYOUT -->
+        <section id="layout">
+          <div class="section__head">
+            <h2>Layout</h2>
+            <p>
+              <code>--spacing: 0.25rem</code> (4px) 기준,
+              <code>--spacing-1</code>~<code>--spacing-10</code> =
+              <code>N × --spacing</code>. 컨트롤 높이 표준 = <code>--spacing-8</code> (32px).
+            </p>
+          </div>
+
+          <h3 class="sub" style="margin-top: 0">Spacing system</h3>
+          <div class="card card__pad" id="spacingDemo"></div>
+
+          <div class="grid cols-2" style="margin-top: 1rem">
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">group-seam — 그룹 컨트롤 이음</h3>
+              <p style="color: var(--muted-foreground); margin-top: 0; font-size: 13px">
+                바깥 컨테이너가 border/radius/overflow 를 소유하고, 안쪽 항목은
+                테두리 없이 flush 배치됩니다.
+              </p>
+              <div class="demo-surface" style="margin-top: 0.5rem">
+                <div class="segmented" id="segmented">
+                  <span class="seg-indicator" id="segIndicator"></span>
+                  <button aria-pressed="true">Day</button>
+                  <button aria-pressed="false">Week</button>
+                  <button aria-pressed="false">Month</button>
+                </div>
+              </div>
+              <p class="meta" style="color: var(--muted-foreground); font-size: 12px; margin-top: 0.75rem">
+                SegmentedControl · InputGroup · ToggleButtonGroup
+              </p>
+            </div>
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">field-height — 컨트롤 높이 표준</h3>
+              <p style="color: var(--muted-foreground); margin-top: 0; font-size: 13px">
+                표준 컨트롤 높이 = <code>--spacing-8</code> (32px). Button / Input
+                / ComboBox / item 등에 적용.
+              </p>
+              <div class="demo-surface" style="margin-top: 0.5rem">
+                <button class="rab">Button</button>
+                <input class="field" style="max-width: 160px" placeholder="Input" />
+              </div>
+              <div class="note" style="margin-top: 0.85rem">
+                ⚠️ <code>InputGroup.css</code> · <code>Separator.css</code> ·
+                <code>Table.css</code> 는 <code>var(--spacing-8)</code> 대신 리터럴
+                <code>32px</code> 하드코딩 (비일관 표현).
+              </div>
+            </div>
+          </div>
+
+          <div class="note" style="margin-top: 1rem">
+            <b>overlay-size:</b> Popover / Modal / ColorArea 등 표면은 고정 px
+            치수(100·150·200·250·300·500px)를 쓰는 <b>토큰화되지 않은 영역</b> —
+            theme/tokens 저작 시 별도 판정.
+          </div>
+        </section>
+
+        <!-- ELEVATION -->
+        <section id="elevation">
+          <div class="section__head">
+            <h2>Elevation &amp; Depth</h2>
+            <p>
+              라이트/다크에서 서로 다른 box-shadow 레시피를 쓰는 물리적 입체
+              표현. <code>--popover-shadow</code> 는 라이트
+              <code>0 8px 20px rgba(0 0 0/.12)</code>, 다크
+              <code>… /.5</code>.
+            </p>
+          </div>
+          <div class="grid cols-2">
+            <div class="card card__pad" style="background: var(--muted)">
+              <div class="grid cols-2">
+                <div class="elev sm">sm</div>
+                <div class="elev md">md</div>
+                <div class="elev lg">lg · popover</div>
+                <div class="elev xl">xl</div>
+              </div>
+            </div>
+            <div class="card card__pad">
+              <p style="margin-top: 0; color: var(--muted-foreground); font-size: 13px">
+                <code>.button-base</code> / <code>.indicator</code> /
+                <code>.inset</code> 는 다중 inset shadow 레시피를 쓰고,
+                라이트/다크에서 하이라이트·그림자 방향이 반전됩니다.
+              </p>
+              <div class="note">
+                composition spec(<code>shadows.ts</code>)은
+                <code>none/sm/md/lg/xl/inset/focus-ring</code> 6단계 elevation
+                토큰을 이미 보유 — starter 의 단일 <code>--popover-shadow</code>
+                는 <code>lg</code>/<code>xl</code> 단계에 대응. (Mapping 참조)
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SHAPES -->
+        <section id="shapes">
+          <div class="section__head">
+            <h2>Shapes</h2>
+            <p>
+              border-radius 4단계 스케일. 완전 둥근 형태(<code>9999px</code>)는
+              토큰이 아니라 반복 리터럴 — <b>pill 패턴</b> (18곳).
+            </p>
+          </div>
+          <div class="card card__pad">
+            <div class="radius-demo">
+              <figure>
+                <div class="box" style="border-radius: 6px"></div>
+                <figcaption><code>--radius-sm</code> · 6px</figcaption>
+              </figure>
+              <figure>
+                <div class="box" style="border-radius: 8px"></div>
+                <figcaption><code>--radius</code> · 8px (기본)</figcaption>
+              </figure>
+              <figure>
+                <div class="box" style="border-radius: 10px"></div>
+                <figcaption><code>--radius-lg</code> · 10px</figcaption>
+              </figure>
+              <figure>
+                <div class="box" style="border-radius: 16px"></div>
+                <figcaption><code>--radius-xl</code> · 16px</figcaption>
+              </figure>
+              <figure>
+                <div class="box" style="border-radius: 9999px; width: 64px"></div>
+                <figcaption>pill · 9999px</figcaption>
+              </figure>
+            </div>
+          </div>
+        </section>
+
+        <!-- COMPONENTS -->
+        <section id="components">
+          <div class="section__head">
+            <h2>Components</h2>
+            <p>
+              상태는 클래스가 아니라 RAC 가 주입하는 <code>[data-*]</code> 속성으로
+              트리거됩니다. <code>utilities.css</code> 의 3개 공통 시각 패턴이
+              로컬 진입점 변수를 노출해 1줄 오버라이드로 변형됩니다.
+            </p>
+          </div>
+
+          <h3 class="sub" style="margin-top: 0">
+            <code>.button-base</code> — 볼록한 버튼형 표면
+          </h3>
+          <div class="card card__pad">
+            <div class="demo-surface">
+              <button class="rab">Primary</button>
+              <button class="rab secondary">Secondary</button>
+              <button class="rab quiet">Quiet</button>
+              <button class="rab icon" aria-label="icon">+</button>
+            </div>
+            <p class="meta" style="color: var(--muted-foreground); font-size: 12px; margin-bottom: 0">
+              진입점 <code>--button-color</code> (기본 <code>--tint</code>) ·
+              <code>[data-pressed]</code> scale + 배경 1단계 ·
+              <code>[data-variant=secondary|quiet]</code> · transition 200ms
+            </p>
+          </div>
+
+          <div class="grid cols-2" style="margin-top: 1rem">
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">
+                <code>.indicator</code> — 작은 컨트롤 인디케이터
+              </h3>
+              <div class="indicator-demo">
+                <label class="ind check">
+                  <input type="checkbox" checked />
+                  <span class="box"></span> Checkbox
+                </label>
+                <label class="ind round">
+                  <input type="radio" name="r" checked />
+                  <span class="box"></span> Radio
+                </label>
+              </div>
+              <p class="meta" style="color: var(--muted-foreground); font-size: 12px; margin: 0.75rem 0 0">
+                진입점 <code>--indicator-color</code> (기본 <code>--gray</code>) ·
+                <code>[data-selected]</code> → <code>--highlight-background</code>
+                · <code>[data-pressed]</code> scale 0.9
+              </p>
+            </div>
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">
+                <code>.inset</code> — 오목한 입력 영역
+              </h3>
+              <div class="demo-surface" style="flex-direction: column; align-items: stretch">
+                <input class="field" placeholder="텍스트 입력 (focus 시 inset outline)" />
+              </div>
+              <p class="meta" style="color: var(--muted-foreground); font-size: 12px; margin: 0.75rem 0 0">
+                진입점 <code>--inset-background</code> /
+                <code>--inset-border</code> · <code>.inset.track</code> 변형 ·
+                focus outline-offset <code>-1px</code>
+              </p>
+            </div>
+          </div>
+
+          <h3 class="sub">focus-visible</h3>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr><th>컨텍스트</th><th>offset</th><th>비고</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>기본</td><td><code>2px</code></td><td>버튼 · 인디케이터 등</td></tr>
+                <tr><td>입력 필드 (<code>.inset</code>)</td><td><code>-1px</code></td><td>안으로 들어간 영역 — inset outline</td></tr>
+                <tr><td>SegmentedControl item</td><td><code>4px</code></td><td>pill 컨테이너 외곽 여유</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 class="sub"><code>[data-*]</code> 상태 속성 (빈도순)</h3>
+          <div class="chips">
+            <span class="chip"><b>[data-selected]</b> 41</span>
+            <span class="chip"><b>[data-focus-visible]</b> 41</span>
+            <span class="chip"><b>[data-pressed]</b> 36</span>
+            <span class="chip"><b>[data-disabled]</b> 33</span>
+            <span class="chip"><b>[data-drop-target]</b> 15</span>
+            <span class="chip"><b>[data-hovered]</b> 11</span>
+            <span class="chip"><b>[data-empty]</b> 9</span>
+            <span class="chip"><b>[data-invalid]</b> 8</span>
+            <span class="chip"><b>[data-entering]/[data-exiting]</b> 7/7</span>
+            <span class="chip"><b>[data-focus-within]</b> 5</span>
+            <span class="chip"><b>[data-dragging]</b> 5</span>
+          </div>
+        </section>
+
+        <!-- MOTION -->
+        <section id="motion">
+          <div class="section__head">
+            <h2>Motion</h2>
+            <p>
+              표준 transition <b>200ms</b> — 전체 CSS 36회. 토큰화되어 있지 않은
+              de-facto 표준값입니다.
+            </p>
+          </div>
+          <div class="grid cols-2">
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">duration 분포</h3>
+              <div class="chips">
+                <span class="chip"><b>200ms</b> · 36</span>
+                <span class="chip">300ms · 5</span>
+                <span class="chip">400ms · 4</span>
+                <span class="chip">250ms · 1</span>
+                <span class="chip">150ms · 1</span>
+              </div>
+              <h3 class="sub"><code>@keyframes</code></h3>
+              <div class="chips">
+                <span class="chip">modal-fade</span>
+                <span class="chip">modal-zoom</span>
+                <span class="chip">sheet-slide</span>
+                <span class="chip">sheet-blur</span>
+                <span class="chip">progress-fill</span>
+                <span class="chip">slide-in / slide-out</span>
+              </div>
+            </div>
+            <div class="card card__pad">
+              <h3 class="sub" style="margin-top: 0">De-facto standards</h3>
+              <ul style="margin: 0; padding-left: 1.1rem; display: grid; gap: 0.45rem; font-size: 13px">
+                <li>transition duration <code>200ms</code> (36회)</li>
+                <li>border-width <code>1px</code> / focus-outline <code>2px</code></li>
+                <li>흰색/검정 alpha 오버레이 (specular highlight · inner shadow)</li>
+              </ul>
+              <p class="meta" style="color: var(--muted-foreground); font-size: 12px; margin: 0.9rem 0 0">
+                오버레이 진입/이탈은 <code>[data-entering]</code> /
+                <code>[data-exiting]</code> + 런타임 주입 <code>--origin</code>
+                방향 transform.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- MAPPING -->
+        <section id="mapping">
+          <div class="section__head">
+            <h2>Mapping</h2>
+            <p>
+              starter token/패턴을 composition 시맨틱으로 번역하고 ADR-142 의 어느
+              SSOT 로 반영되는지 기록합니다. composition 시맨틱 정의는
+              <code>.claude/rules/css-tokens.md</code> 가 정본입니다.
+            </p>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>starter rule</th>
+                  <th>composition 시맨틱</th>
+                  <th>ADR-142 반영 대상</th>
+                </tr>
+              </thead>
+              <tbody id="mappingBody"></tbody>
+            </table>
+          </div>
+          <div class="note" style="margin-top: 1rem">
+            ⚠️ <b>elevation 매핑 비대칭:</b> starter 는 shadow 를 토큰화하지 않고
+            <code>--popover-shadow</code> 단일 값 + utility inset 레시피로만
+            표현합니다. composition spec 의 6단계 elevation 척도를 정본으로 두고
+            starter 레시피 흡수 여부는 별도 판정 대상입니다.
+          </div>
+        </section>
+
+        <!-- DO / DON'T -->
+        <section id="dosdonts">
+          <div class="section__head">
+            <h2>Do's and Don'ts</h2>
+          </div>
+          <div class="dd">
+            <div class="dd__col do">
+              <h4>✓ Do</h4>
+              <ul>
+                <li>starter 업데이트로 다시 들어올 항목은 theme/tokens 가 starter 에서 가져온다.</li>
+                <li>OKLCH 모델 / 시맨틱 색상 / 상태 색상 네이밍을 채택한다.</li>
+                <li>Typography / Layout / Elevation / Shapes 의 token scale 을 채택한다.</li>
+                <li>utility 패턴(button-base / indicator / inset), focus-visible, <code>[data-*]</code> 상태를 채택한다.</li>
+                <li>Motion / Mapping / Appendix 는 top-level 확장 섹션으로 유지한다.</li>
+              </ul>
+            </div>
+            <div class="dd__col dont">
+              <h4>✕ Don't</h4>
+              <ul>
+                <li>composition 시맨틱(<code>--bg-*</code>/<code>--fg-*</code>/<code>--accent-*</code>)을 starter upstream 명칭으로 대체하지 않는다.</li>
+                <li>S2 TokenRef 체계, tint preset system 을 starter 명칭으로 덮지 않는다.</li>
+                <li>금지된 M3 토큰은 채택하지 않는다.</li>
+                <li>design.md 를 runtime D3 SSOT / 런타임 계약으로 승격하지 않는다.</li>
+                <li><code>react-aria-starter/src</code> 하위에 컴포넌트별 design.md 를 추가하지 않는다.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- APPENDIX -->
+        <section id="appendix">
+          <div class="section__head">
+            <h2>Appendix — Source Inventory</h2>
+            <p>
+              <code>packages/react-aria-starter/src</code> 의 CSS 총
+              <b>56개</b> = 토큰/유틸 2 + 컴포넌트 54.
+            </p>
+          </div>
+          <div class="grid cols-3">
+            <div class="card card__pad">
+              <div style="font-size: 1.8rem; font-weight: 700">2</div>
+              <div class="meta" style="color: var(--muted-foreground); font-size: 12px; margin-top: 0.3rem">
+                토큰/유틸 — <code>theme.css</code> · <code>utilities.css</code>
+              </div>
+            </div>
+            <div class="card card__pad">
+              <div style="font-size: 1.8rem; font-weight: 700">54</div>
+              <div class="meta" style="color: var(--muted-foreground); font-size: 12px; margin-top: 0.3rem">
+                컴포넌트 CSS — 대형: ListBox · Table · GridList · Tree
+              </div>
+            </div>
+            <div class="card card__pad">
+              <div style="font-size: 1.8rem; font-weight: 700">2</div>
+              <div class="meta" style="color: var(--muted-foreground); font-size: 12px; margin-top: 0.3rem">
+                스토리 전용 (디자인 시스템 아님)
+              </div>
+            </div>
+          </div>
+          <div class="note" style="margin-top: 1rem">
+            <b>upstream 갱신 시:</b> 본 문서는 <code>UPSTREAM.md</code> §Update Flow
+            에 맞춰 재생성합니다. 그 시점 외에는 freeze 상태 (ADR-142 Phase 0
+            산출물).
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="footer">
+      생성 출처 <code>packages/design.md</code> · OKLCH lightness 스케일은
+      anchor 단계(100/500/1000/1600)를 제외하고 단조 보간한 reference 근사값입니다.
+      이 문서는 runtime 계약이 아닙니다 (ADR-142).
+    </footer>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var STEPS = [
+          50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200,
+          1300, 1400, 1500, 1600,
+        ];
+        var HUES = [
+          "gray", "red", "orange", "yellow", "turquoise", "cyan", "green",
+          "blue", "indigo", "purple", "pink",
+        ];
+
+        function swatchColor(baseVar, step) {
+          // oklch relative color: lightness=--l-N, chroma=l*c*cf, hue=base h
+          return (
+            "oklch(from var(--" +
+            baseVar +
+            ") var(--l-" +
+            step +
+            ") calc(l * c * var(--cf-" +
+            step +
+            ")) h)"
+          );
+        }
+
+        function buildScale(containerId, baseVar) {
+          var el = document.getElementById(containerId);
+          if (!el) return;
+          el.innerHTML = "";
+          STEPS.forEach(function (step) {
+            var s = document.createElement("div");
+            s.className = "swatch";
+            var chip = document.createElement("div");
+            chip.className = "swatch__chip";
+            chip.style.background = swatchColor(baseVar, step);
+            var label = document.createElement("div");
+            label.className = "swatch__label mono";
+            label.textContent = "-" + step;
+            s.appendChild(chip);
+            s.appendChild(label);
+            el.appendChild(s);
+          });
+        }
+
+        // base hue chips ------------------------------------------------
+        var huesEl = document.getElementById("hues");
+        HUES.forEach(function (name) {
+          var btn = document.createElement("button");
+          btn.className = "hue";
+          btn.type = "button";
+          btn.setAttribute("aria-pressed", name === "indigo" ? "true" : "false");
+          btn.dataset.hue = name;
+          var dot = document.createElement("span");
+          dot.className = "hue__dot";
+          dot.style.background = swatchColor(name, 1000);
+          var label = document.createElement("span");
+          label.className = "hue__name mono";
+          label.textContent = name;
+          btn.appendChild(dot);
+          btn.appendChild(label);
+          btn.addEventListener("click", function () {
+            setTint(name);
+          });
+          huesEl.appendChild(btn);
+        });
+
+        // semantic tokens ----------------------------------------------
+        var SEMANTIC = [
+          ["--focus-ring-color", "--tint-1000", "tint", 1000],
+          ["--text-color", "--gray-1200", "gray", 1200],
+          ["--text-color-hover", "--gray-1300", "gray", 1300],
+          ["--text-color-disabled", "--gray-600", "gray", 600],
+          ["--text-color-placeholder", "--gray-1000", "gray", 1000],
+          ["--border-color", "--gray-400", "gray", 400],
+          ["--border-color-hover", "--gray-500", "gray", 500],
+          ["--border-color-disabled", "--gray-300", "gray", 300],
+          ["--field-background", "--gray-50", "gray", 50],
+          ["--field-text-color", "--gray-1400", "gray", 1400],
+          ["--link-color", "--tint-1200", "tint", 1200],
+          ["--button-background", "--tint-100", "tint", 100],
+          ["--button-background-pressed", "--tint-200", "tint", 200],
+          ["--highlight-background", "oklch(from --tint 55% c h)", "tint", 1000],
+          ["--invalid-color", "oklch(from --red …)", "red", 1000],
+        ];
+        var semEl = document.getElementById("semanticTokens");
+        SEMANTIC.forEach(function (row) {
+          var div = document.createElement("div");
+          div.className = "token-row";
+          var prev = document.createElement("div");
+          prev.className = "preview";
+          prev.style.background = swatchColor(row[2], row[3]);
+          var name = document.createElement("div");
+          name.className = "name mono";
+          name.textContent = row[0];
+          var val = document.createElement("div");
+          val.className = "val mono";
+          val.textContent = row[1];
+          div.appendChild(prev);
+          div.appendChild(name);
+          div.appendChild(val);
+          semEl.appendChild(div);
+        });
+
+        // spacing demo --------------------------------------------------
+        var SPACING = [
+          [1, "--spacing-1 · 4px"],
+          [2, "--spacing-2 · 8px"],
+          [3, "--spacing-3 · 12px (수평 패딩)"],
+          [4, "--spacing-4 · 16px (아이콘)"],
+          [6, "--spacing-6 · 24px"],
+          [8, "--spacing-8 · 32px (컨트롤 높이)"],
+          [10, "--spacing-10 · 40px"],
+        ];
+        var spaceEl = document.getElementById("spacingDemo");
+        SPACING.forEach(function (row) {
+          var line = document.createElement("div");
+          line.className = "space-row";
+          var lbl = document.createElement("span");
+          lbl.className = "lbl mono";
+          lbl.textContent = row[1];
+          var bar = document.createElement("span");
+          bar.className = "bar";
+          bar.style.width = row[0] * 4 + "px";
+          line.appendChild(lbl);
+          line.appendChild(bar);
+          spaceEl.appendChild(line);
+        });
+
+        // mapping table -------------------------------------------------
+        var MAPPING = [
+          ["--text-color / -hover / -disabled", "--fg / --fg-emphasis / --fg-disabled", "theme/tokens root collection"],
+          ["--background-color", "--bg", "theme/tokens root collection"],
+          ["--overlay-background", "--bg-overlay", "theme/tokens root collection"],
+          ["--field-background", "--bg-inset", "theme/tokens root collection"],
+          ["--border-color / -hover / -disabled", "--border / -hover / -disabled", "theme/tokens root collection"],
+          ["--highlight-background (accent)", "--accent", "theme/tokens root collection"],
+          ["--focus-ring-color", "--focus-ring", "theme/tokens root collection"],
+          ["radius 스케일", "radius 토큰", "theme/tokens root collection"],
+          ["spacing 스케일", "spacing 토큰", "theme/tokens root collection"],
+          ["typography", "typography 토큰", "theme/tokens root collection"],
+          ["focus-visible 전역 규칙", "focus 상태 규칙", "theme/tokens (generic 렌더러 상태 CSS)"],
+          [".button-base 유틸", "버튼 시각 패턴", "theme/tokens + PrimitiveBinding(Button)"],
+          [".indicator 유틸", "인디케이터 패턴", "theme/tokens + PrimitiveBinding(Checkbox/Radio/Switch)"],
+          [".inset 유틸", "입력 inset 패턴", "theme/tokens + PrimitiveBinding(field 계열)"],
+          ["pill (9999px)", "radius full/pill 단계", "theme/tokens root collection"],
+          ["group-seam", "그룹 컨테이너 구조 규칙", "reusable canonical 문서 (그룹 컴포넌트)"],
+          ["field-height (--spacing-8)", "control-height 규칙", "theme/tokens + PrimitiveBinding"],
+          ["overlay-size", "(판정 보류 — Do's and Don'ts)", "별도 판정"],
+          ["motion: transition/keyframes/enter-exit", "motion 규칙", "theme/tokens + generic 렌더러 상태 CSS"],
+          ["--popover-shadow (overlay drop-shadow)", "elevation shadow 스케일", "theme/tokens root collection"],
+        ];
+        var mapEl = document.getElementById("mappingBody");
+        MAPPING.forEach(function (row) {
+          var tr = document.createElement("tr");
+          row.forEach(function (cell, i) {
+            var td = document.createElement("td");
+            if (i < 2) {
+              var c = document.createElement("code");
+              c.textContent = cell;
+              td.appendChild(c);
+            } else {
+              td.textContent = cell;
+              td.style.color = "var(--muted-foreground)";
+              td.style.fontSize = "12px";
+            }
+            tr.appendChild(td);
+          });
+          mapEl.appendChild(tr);
+        });
+
+        // tint switching ------------------------------------------------
+        var tintNameEl = document.getElementById("tintName");
+        var tintLabelEl = document.getElementById("tintLabel");
+        function setTint(name) {
+          document.documentElement.style.setProperty("--tint", "var(--" + name + ")");
+          tintNameEl.textContent = name;
+          if (tintLabelEl) tintLabelEl.textContent = name;
+          Array.prototype.forEach.call(
+            document.querySelectorAll(".hue"),
+            function (h) {
+              h.setAttribute("aria-pressed", h.dataset.hue === name ? "true" : "false");
+            }
+          );
+          buildScale("tintScale", name);
+          // rebuild semantic previews that reference tint
+          var semRows = document.querySelectorAll("#semanticTokens .token-row");
+          SEMANTIC.forEach(function (row, i) {
+            if (row[2] === "tint" && semRows[i]) {
+              semRows[i].querySelector(".preview").style.background = swatchColor(name, row[3]);
+            }
+          });
+        }
+        var currentTint = "indigo";
+        document.getElementById("tintBtn").addEventListener("click", function () {
+          var idx = HUES.indexOf(currentTint);
+          // cycle through colorful hues (skip gray for accent)
+          do {
+            idx = (idx + 1) % HUES.length;
+          } while (HUES[idx] === "gray");
+          currentTint = HUES[idx];
+          setTint(currentTint);
+        });
+        // wrap setTint to track currentTint when called from hue chips
+        var _setTint = setTint;
+        setTint = function (name) {
+          currentTint = name;
+          _setTint(name);
+        };
+
+        // theme toggle --------------------------------------------------
+        var root = document.documentElement;
+        var themeBtn = document.getElementById("themeBtn");
+        var themeIcon = document.getElementById("themeIcon");
+        var themeName = document.getElementById("themeName");
+        function applyTheme(dark) {
+          root.classList.toggle("dark", dark);
+          themeIcon.textContent = dark ? "☀" : "☾";
+          themeName.textContent = dark ? "Light" : "Dark";
+        }
+        var prefersDark =
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        applyTheme(prefersDark);
+        themeBtn.addEventListener("click", function () {
+          applyTheme(!root.classList.contains("dark"));
+        });
+
+        // initial scales ------------------------------------------------
+        buildScale("tintScale", "indigo");
+        buildScale("grayScale", "gray");
+
+        // segmented indicator -------------------------------------------
+        var seg = document.getElementById("segmented");
+        var segIndicator = document.getElementById("segIndicator");
+        function moveIndicator(btn) {
+          segIndicator.style.width = btn.offsetWidth + "px";
+          segIndicator.style.transform = "translateX(" + (btn.offsetLeft - 3) + "px)";
+        }
+        if (seg) {
+          var segBtns = seg.querySelectorAll("button");
+          moveIndicator(seg.querySelector('[aria-pressed="true"]'));
+          Array.prototype.forEach.call(segBtns, function (b) {
+            b.addEventListener("click", function () {
+              Array.prototype.forEach.call(segBtns, function (x) {
+                x.setAttribute("aria-pressed", "false");
+              });
+              b.setAttribute("aria-pressed", "true");
+              moveIndicator(b);
+            });
+          });
+          window.addEventListener("resize", function () {
+            moveIndicator(seg.querySelector('[aria-pressed="true"]'));
+          });
+        }
+
+        // scrollspy -----------------------------------------------------
+        var navLinks = Array.prototype.slice.call(
+          document.querySelectorAll(".nav a")
+        );
+        var sections = navLinks
+          .map(function (a) {
+            return document.querySelector(a.getAttribute("href"));
+          })
+          .filter(Boolean);
+        if ("IntersectionObserver" in window) {
+          var obs = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (e) {
+                if (e.isIntersecting) {
+                  var id = e.target.id;
+                  navLinks.forEach(function (a) {
+                    a.classList.toggle(
+                      "active",
+                      a.getAttribute("href") === "#" + id
+                    );
+                  });
+                }
+              });
+            },
+            { rootMargin: "-40% 0px -55% 0px" }
+          );
+          sections.forEach(function (s) {
+            obs.observe(s);
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
