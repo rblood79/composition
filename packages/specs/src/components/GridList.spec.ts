@@ -13,10 +13,9 @@ import type {
   StoredGridListItem,
   StoredGridListEntry,
 } from "../types/gridlist-items";
-import { isGridListSectionEntry } from "../types/gridlist-items";
-import { fontFamily } from "../primitives/typography";
+// ADR-912 C1: render.shapes shell-only 전환으로 isGridListSectionEntry / fontFamily /
+//   resolveSpecFontSize 미사용(카드/section 렌더 GridListItem projection 이관). 제거.
 import { resolveContainerSpacing } from "../primitives/containerSpacing";
-import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
 import { Grid, Binary, Rows, SquareX, PointerOff, Square } from "lucide-react";
 import { FILTERING_SECTION } from "../utils/sharedSections";
 import {
@@ -239,213 +238,52 @@ export const GridListSpec: ComponentSpec<GridListProps> = {
   },
 
   render: {
+    // ADR-912 단계 4 C1 (2026-06-03): shell-only 전환. data card paint 는 GridListItem row
+    //   projection renderer(canvasSceneNode appendGridListRowProjection → GridListItem.spec.
+    //   render.shapes)가 담당한다(ListBox.spec:340-342 동형). GridList parent spec 은 container
+    //   shell(bg + border)만 반환. items/section 순회 제거 — 발효(skiaLegacy 제거) 후 GridList 는
+    //   isCatalogSkiaCutover 경로(buildCatalogShapes 컨테이너 shell)라 본 render.shapes 는 Skia
+    //   미경유이나, layout/legacy consumer 회귀 0 위해 shell parity 유지(ListBox 패턴).
     shapes: (props, size, _state = "default") => {
       const variant =
         GridListSpec.variants![
           (props as { variant?: keyof typeof GridListSpec.variants }).variant ??
             GridListSpec.defaultVariant!
         ];
-      const DEFAULT_ENTRIES: StoredGridListEntry[] = [
-        { id: "i1", label: "Item 1", description: "Description" },
-        { id: "i2", label: "Item 2", description: "Description" },
-        { id: "i3", label: "Item 3", description: "Description" },
-        { id: "i4", label: "Item 4", description: "Description" },
-      ];
-
-      const layout = props.layout ?? "stack";
-      // ADR-099 Phase 5: StoredGridListEntry[] SSOT — section + item 혼합 지원
-      const entries: StoredGridListEntry[] =
-        props.items && props.items.length > 0 ? props.items : DEFAULT_ENTRIES;
-
-      // ADR-907 Phase 3 Wave B: Layer D resolver 단일 경로.
-      //   style.gap / style.fontSize / style.padding* / style.borderWidth 우선 소비.
-      //   size.gap / size.fontSize (spec defaults) 는 defaultGap/defaultFontSize 로 전달.
-      //   Phase 0 (b) X (style.gap 미소비) 구조적 해소.
-      const metric = resolveGridListSpacingMetric({
-        style: props.style as Record<string, unknown> | undefined,
-        layout,
-        columns: props.columns ?? 2,
-        defaultGap: (size.gap as unknown as number) ?? 12,
-        defaultFontSize: resolveSpecFontSize(size.fontSize, 14),
-      });
-      const {
-        rowGap: gap,
-        numCols,
-        fontSize,
-        cardPaddingX,
-        cardPaddingY,
-        cardBorderRadius,
-        descGap,
-      } = metric;
-      // description font size: CSS 정합성 — sm:text-2xs(10), md:text-xs(12), lg:text-sm(14)
-      const descFontSize = fontSize - 2;
-      const ff = (props.style?.fontFamily as string) || fontFamily.sans;
-      const textColor = props.style?.color ?? variant.text;
-
-      // 컨테이너 전체 너비
-      const totalWidth =
+      const borderRadius = (props.style?.borderRadius ??
+        size.borderRadius) as unknown as number;
+      const width =
         typeof props._containerWidth === "number" && props._containerWidth > 0
           ? props._containerWidth
           : (props.style?.width as number) || 280;
-      const cellWidth =
-        layout === "grid"
-          ? (totalWidth - gap * (numCols - 1)) / numCols
-          : totalWidth;
-
-      // ADR-099 Phase 5: Section Header metric (ListBox 와 동일 공식 — 독립 계산)
-      const HEADER_HEIGHT = Math.round(fontSize * 1.75);
-      const HEADER_FONT_SIZE = Math.round(fontSize * 0.85);
-      const SECTION_TOP_PAD = Math.round(fontSize * 0.5);
-
-      // 카드 높이 계산
-      const cardContentHeight = (item: StoredGridListItem) => {
-        const labelH = fontSize;
-        const descH = item.description ? descFontSize + descGap : 0;
-        return cardPaddingY * 2 + labelH + descH;
-      };
 
       const shapes: Shape[] = [];
 
-      // Child Composition: 자식 Element가 있으면 spec shapes에서 아이템 렌더링 스킵
-      const hasChildren = !!(props as Record<string, unknown>)._hasChildren;
-      if (hasChildren) return shapes;
+      // 컨테이너 배경 (GridList rule fill = {color.transparent} 정합).
+      const bgColor =
+        (props.style?.backgroundColor as string | undefined) ??
+        (variant.fill?.default?.base as string | undefined);
+      shapes.push({
+        id: "bg",
+        type: "roundRect" as const,
+        x: 0,
+        y: 0,
+        width,
+        height: "auto" as unknown as number,
+        radius: borderRadius,
+        fill: bgColor ?? ("{color.transparent}" as TokenRef),
+      });
 
-      // ADR-099 Phase 5: entries 순회 — section 분기 + 카드형 item 렌더.
-      //   stack 모드: 세로 1열로 section header + 카드 순서대로 쌓기.
-      //   grid 모드: section header 는 전체 컨테이너 폭으로 렌더 (columns span),
-      //              내부 items 는 grid 레이아웃 재개.
-      let currentY = 0;
-      let globalCardIdx = 0; // grid 모드 col/row 계산용 전역 카드 인덱스
-      let hasRenderedEntry = false;
-
-      // ADR-099 Phase 5: 카드 렌더 헬퍼 — stack/grid 모드 공통
-      const renderOneCard = (item: StoredGridListItem, cardIdx: number) => {
-        const col = cardIdx % numCols;
-        const row = Math.floor(cardIdx / numCols);
-        const cellH = cardContentHeight(item);
-
-        let cellX: number;
-        let cellY: number;
-
-        if (layout === "grid") {
-          cellX = col * (cellWidth + gap);
-          if (col === 0 && cardIdx > 0) {
-            // 이전 행의 최대 높이를 계산
-            const prevRowStart = (row - 1) * numCols;
-            // grid 모드에서 이전 행 items 를 알기 위해 flatItems 필요하지만
-            // 단순화: 이전 행의 첫 카드와 같은 높이로 추정 (동일 descFontSize 공식)
-            const prevRowEnd = Math.min(prevRowStart + numCols, globalCardIdx);
-            let maxH = 0;
-            for (let i = prevRowStart; i < prevRowEnd; i++) {
-              // 높이 재계산: description 있는 카드 기준 최대값
-              const h = cardPaddingY * 2 + fontSize + descFontSize + descGap;
-              maxH = Math.max(maxH, h);
-            }
-            // fallback: 최소 카드 높이
-            if (maxH === 0) maxH = cardPaddingY * 2 + fontSize;
-            currentY += maxH + gap;
-          }
-          cellY = currentY;
-        } else {
-          cellX = 0;
-          cellY = currentY;
-        }
-
-        const shapeId = `card-${cardIdx}`;
-
-        shapes.push({
-          id: shapeId,
-          type: "roundRect" as const,
-          x: cellX,
-          y: cellY,
-          width: cellWidth,
-          height: cellH,
-          radius: cardBorderRadius,
-          fill: "{color.layer-1}" as TokenRef,
-        });
-
+      // 테두리 (GridList default variant 는 border 없음 — style override 시에만).
+      const borderColor = props.style?.borderColor ?? variant.border;
+      if (borderColor) {
         shapes.push({
           type: "border" as const,
-          target: shapeId,
+          target: "bg",
           borderWidth: 1,
-          color: "{color.border}" as TokenRef,
-          radius: cardBorderRadius,
+          color: borderColor as TokenRef,
+          radius: borderRadius,
         });
-
-        shapes.push({
-          type: "text" as const,
-          x: cellX + cardPaddingX,
-          y: cellY + cardPaddingY,
-          text: item.label,
-          fontSize,
-          fontFamily: ff,
-          fontWeight: 600,
-          fill: textColor,
-        });
-
-        if (item.description) {
-          shapes.push({
-            type: "text" as const,
-            x: cellX + cardPaddingX,
-            y: cellY + cardPaddingY + fontSize + descGap,
-            text: item.description,
-            fontSize: descFontSize,
-            fontFamily: ff,
-            fill: "{color.neutral-subdued}" as TokenRef,
-          });
-        }
-
-        if (layout === "stack") {
-          currentY = cellY + cellH + gap;
-        }
-      };
-
-      for (const entry of entries) {
-        if (isGridListSectionEntry(entry)) {
-          // Section header 전 간격 (첫 section 제외)
-          if (hasRenderedEntry) currentY += SECTION_TOP_PAD;
-
-          // Section Header — grid 모드: 전체 컨테이너 폭 span
-          shapes.push({
-            type: "text" as const,
-            x: cardPaddingX,
-            y: currentY + HEADER_HEIGHT / 2,
-            text: entry.header,
-            fontSize: HEADER_FONT_SIZE,
-            fontFamily: ff,
-            fontWeight: 700,
-            fill: "{color.neutral-subdued}" as TokenRef,
-            align: "left" as const,
-            baseline: "middle" as const,
-          });
-          currentY += HEADER_HEIGHT + gap;
-
-          // Section 내부 items 렌더 — grid 모드에서 section 시작 시 새 행으로
-          if (layout === "grid" && hasRenderedEntry) {
-            // 새 section 은 새 행에서 시작 (col 리셋)
-            const remainder = globalCardIdx % numCols;
-            if (remainder !== 0) {
-              globalCardIdx += numCols - remainder;
-            }
-          }
-
-          for (const item of entry.items) {
-            renderOneCard(item, globalCardIdx);
-            globalCardIdx++;
-          }
-
-          // grid 모드: section 끝 후 새 행으로 초기화
-          if (layout === "grid") {
-            const remainder = globalCardIdx % numCols;
-            if (remainder !== 0) {
-              globalCardIdx += numCols - remainder;
-            }
-          }
-        } else {
-          renderOneCard(entry, globalCardIdx);
-          globalCardIdx++;
-        }
-        hasRenderedEntry = true;
       }
 
       return shapes;
@@ -454,10 +292,6 @@ export const GridListSpec: ComponentSpec<GridListProps> = {
     react: (props) => ({
       role: "grid",
       "aria-multiselectable": props.selectionMode === "multiple" || undefined,
-    }),
-
-    pixi: () => ({
-      eventMode: "static" as const,
     }),
   },
 };

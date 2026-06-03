@@ -23,6 +23,8 @@ import {
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
+  toCollectionRowProjectionId,
+  toCollectionRowsGroupProjectionId,
 } from "../../../projection/renderProjectionIds";
 import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
 
@@ -584,6 +586,155 @@ function appendListBoxRowProjection(
   }
 }
 
+// ---------------------------------------------------------------------------
+// ADR-912 단계 4 C1 — GridList projection (origin/anchor 없는 단순 경로)
+// ---------------------------------------------------------------------------
+
+/**
+ * GridList scene node 판정 — GridList 컴포넌트(또는 그 ref instance).
+ * GridList 는 origin 인프라(ensureGridListTemplateOrigins) 부재 + factory children:[] 이므로
+ * ListBox 보다 단순(authoring mode / template anchor 개념 없음).
+ */
+function isGridListSceneSource(
+  gridListSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+): boolean {
+  if (gridListSceneNode.type === "GridList") return true;
+  if (sourceNode.type === "ref") return false;
+  return (
+    gridListSceneNode.componentName === "GridList" ||
+    gridListSceneNode.name === "GridList"
+  );
+}
+
+/**
+ * data-bound GridList 의 projection rows 계산 (gating). GridList 는 section 지원(props.items
+ * StoredGridListEntry[] = section + item 혼합)이나 1차 C1 발효는 **flat item row** 만 projection
+ * 한다(section header projected node 는 후행 — getFlatProjectionRows kind:'item' 만). rows 0개면
+ * null → 발효 전 standalone render.shapes 유지(회귀 0).
+ */
+function resolveDataBoundGridListProjection(
+  gridListSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+  options: BuildCanvasSceneGraphOptions,
+): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
+  if (!isGridListSceneSource(gridListSceneNode, sourceNode)) return null;
+
+  const dataBinding = getElementDataBinding(sourceNode);
+  const rows = getListBoxProjectionRows({
+    collections: options.collections,
+    dataBinding,
+    props: gridListSceneNode.props,
+  });
+  if (rows.length === 0) return null;
+
+  return { rows, sourceNode };
+}
+
+/**
+ * GridList projected rows-group + 카드(GridListItem) projected node 생성.
+ *
+ * ListBox 대비 단순: origin/anchor 인프라 없음(templateAnchorId/templateOriginId = null) →
+ * projected GridListItem 은 row 데이터(label/description/value)만 props 로 받아 GridListItem.spec.
+ * render.shapes 가 카드를 자체 렌더(step1). rowsGroup 은 GridList 의 layout(grid/stack) + columns
+ * 를 flex 로 반영하여 카드가 grid 배치되게 한다(배치는 Taffy layout 담당).
+ */
+function appendGridListRowProjection(
+  gridListSceneNode: CanvasSceneNode,
+  projection: { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  const props = gridListSceneNode.props;
+  const { rows, sourceNode } = projection;
+  const layout = (props.layout as string) ?? "stack";
+  const numCols =
+    layout === "grid" ? Math.max(1, Number(props.columns) || 2) : 1;
+  const gap = typeof props.gap === "number" ? (props.gap as number) : 12;
+
+  const rowsGroupId = toCollectionRowsGroupProjectionId(
+    "gridlist",
+    gridListSceneNode.id,
+  );
+  const rowsGroup: CanvasSceneNode = {
+    id: rowsGroupId,
+    type: "Rows",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: layout === "grid" ? "row" : "column",
+        flexWrap: layout === "grid" ? "wrap" : "nowrap",
+        rowGap: gap,
+        columnGap: gap,
+        width: "100%",
+      },
+    },
+    parentId: gridListSceneNode.id,
+    pageId: scope.pageId,
+    layoutId: scope.layoutId,
+    parent_id: gridListSceneNode.id,
+    page_id: scope.pageId,
+    layout_id: scope.layoutId,
+    projection: {
+      kind: "gridlist-rows",
+      listBoxId: gridListSceneNode.id,
+      templateAnchorId: null,
+      templateOriginId: null,
+    },
+    sourceNode,
+  };
+  addSceneNode(rowsGroup, graph);
+
+  // grid 모드 카드 폭: (100% - gap*(numCols-1)) / numCols. stack 은 100%.
+  const cardWidthStyle =
+    layout === "grid" && numCols > 1
+      ? `calc((100% - ${gap * (numCols - 1)}px) / ${numCols})`
+      : "100%";
+
+  for (const row of rows) {
+    const projectionId = toCollectionRowProjectionId(
+      "gridlist",
+      gridListSceneNode.id,
+      row.itemKey,
+    );
+    const rowProps: Record<string, unknown> = {
+      children: row.label,
+      description: row.description ?? "",
+      textValue: row.label,
+      style: { width: cardWidthStyle },
+      _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
+    };
+    if (row.value) rowProps.value = row.value;
+    if (row.isDisabled) rowProps.isDisabled = true;
+
+    addSceneNode(
+      {
+        id: projectionId,
+        type: "GridListItem",
+        props: rowProps,
+        parentId: rowsGroupId,
+        pageId: scope.pageId,
+        layoutId: scope.layoutId,
+        parent_id: rowsGroupId,
+        page_id: scope.pageId,
+        layout_id: scope.layoutId,
+        projection: {
+          kind: "gridlist-row",
+          listBoxId: gridListSceneNode.id,
+          itemKey: row.itemKey,
+          rowIndex: row.rowIndex,
+          templateAnchorId: null,
+          templateOriginId: null,
+        },
+        sourceNode,
+      },
+      graph,
+    );
+  }
+}
+
 export function buildCanvasSceneGraph(
   doc: CompositionDocument,
   options: BuildCanvasSceneGraphOptions = {},
@@ -631,6 +782,12 @@ export function buildCanvasSceneGraph(
       : null;
     const suppressedAnchorId = listBoxProjection?.templateAnchor?.id ?? null;
 
+    // ADR-912 단계 4 C1: data-bound GridList projection (origin/anchor 없음 → suppression no-op).
+    //   GridList factory children:[] 이라 가시 scene 에서 제외할 자식 없음 — append 만.
+    const gridListProjection = sceneNode
+      ? resolveDataBoundGridListProjection(sceneNode, node, options)
+      : null;
+
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
       // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
@@ -655,6 +812,14 @@ export function buildCanvasSceneGraph(
         nextScope,
         graph,
         getDocumentNodesById,
+      );
+    }
+    if (sceneNode && gridListProjection) {
+      appendGridListRowProjection(
+        sceneNode,
+        gridListProjection,
+        nextScope,
+        graph,
       );
     }
   }

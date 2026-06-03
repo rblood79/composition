@@ -239,20 +239,21 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "tag group",
     icon: "Tag",
   }),
-  // Menu/GridList — skiaLegacy 유지(다음 묶음). Menu: popup↔trigger 본질 미확정(사용자 보류
-  //   2026-06-03). GridList: data-bound row 순회 → C1 generic collectionProjector 필요.
+  // GridList — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 C1 2026-06-03): data card 는
+  //   GridListItem row projection(canvasSceneNode appendGridListRowProjection → GridListItem.spec
+  //   render.shapes)이 각 카드를 독립 Skia 노드로 그림. GridList.render.shapes 는 container shell only
+  //   (ADR-146 ListBox 동형). C2(rule transparent 정합) + C3(SYNTHETIC text 차단). Table 2D 보류.
+  primitiveEntry("GridList", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "grid list",
+    icon: "Grid",
+  }),
+  // Menu — skiaLegacy 유지(다음 묶음). popup↔trigger 본질 미확정(사용자 보류 2026-06-03).
   primitiveEntry(
     "Menu",
     "collections",
     FAMILY_4_CUTOVER,
     { category: "collections", label: "menu", icon: "Menu" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "GridList",
-    "collections",
-    FAMILY_4_CUTOVER,
-    { category: "collections", label: "grid list", icon: "Grid" },
     { skiaLegacy: true },
   ),
 ];

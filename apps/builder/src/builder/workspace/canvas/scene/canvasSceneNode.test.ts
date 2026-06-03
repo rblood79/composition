@@ -9,6 +9,8 @@ import {
 import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
+  toCollectionRowProjectionId,
+  toCollectionRowsGroupProjectionId,
 } from "../../../projection/renderProjectionIds";
 
 /**
@@ -213,6 +215,129 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     //   composed children placeholder 를 행마다 확장 → 데이터 위 {label}/{description} 겹침).
     //   origin 참조는 projection.templateOriginId 로 보존된다.
     expect(aardvark?.ref).toBeUndefined();
+  });
+
+  // ADR-912 단계 4 C1: GridList projection (ListBox 동형, origin/anchor 없음).
+  it("projects data-bound GridList items as GridListItem scene nodes", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "gridlist-1",
+                  type: "GridList",
+                  props: {
+                    layout: "grid",
+                    columns: 2,
+                    items: [
+                      {
+                        id: "desert",
+                        label: "Desert Sunset",
+                        description: "PNG",
+                      },
+                      {
+                        id: "hiking",
+                        label: "Hiking Trail",
+                        description: "JPEG",
+                      },
+                    ],
+                  },
+                  // GridList factory children:[] — origin/anchor 인프라 없음.
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const rowsGroup = graph.nodesMap.get(
+      toCollectionRowsGroupProjectionId("gridlist", "gridlist-1"),
+    );
+    const desert = graph.nodesMap.get(
+      toCollectionRowProjectionId("gridlist", "gridlist-1", "desert"),
+    );
+
+    expect(rowsGroup).toMatchObject({
+      type: "Rows",
+      parentId: "gridlist-1",
+      projection: {
+        kind: "gridlist-rows",
+        listBoxId: "gridlist-1",
+        // GridList 은 origin/anchor 없음 → null.
+        templateAnchorId: null,
+        templateOriginId: null,
+      },
+    });
+    expect(desert).toMatchObject({
+      type: "GridListItem",
+      parentId: rowsGroup?.id,
+      props: {
+        children: "Desert Sunset",
+        description: "PNG",
+        textValue: "Desert Sunset",
+      },
+      projection: {
+        kind: "gridlist-row",
+        listBoxId: "gridlist-1",
+        itemKey: "desert",
+        templateAnchorId: null,
+        templateOriginId: null,
+      },
+    });
+    // 이중 렌더 방지: projected 카드는 GridListItem.spec.render.shapes 로 자체 렌더 → canonical ref 없음.
+    expect(desert?.ref).toBeUndefined();
+  });
+
+  it("windows large data-bound GridList collections (hard 100 limit, ADR-912 C1)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "gridlist-1",
+                  type: "GridList",
+                  props: {
+                    items: Array.from({ length: 10_000 }, (_, index) => ({
+                      id: `card-${index}`,
+                      label: `Card ${index}`,
+                    })),
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const projectedCards = [...graph.nodesMap.values()].filter(
+      (node) => node.projection?.kind === "gridlist-row",
+    );
+    // window limit 100 — 10k 카드 중 100개만 projected (60fps 보호).
+    expect(projectedCards).toHaveLength(100);
   });
 
   it("propagates the template anchor layout style onto projected rows (ADR-147)", () => {
