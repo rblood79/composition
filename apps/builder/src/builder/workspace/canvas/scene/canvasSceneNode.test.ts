@@ -11,6 +11,7 @@ import {
   toListBoxRowsGroupProjectionId,
   toCollectionRowProjectionId,
   toCollectionRowsGroupProjectionId,
+  toCollectionCellProjectionId,
 } from "../../../projection/renderProjectionIds";
 
 /**
@@ -787,5 +788,148 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
       paddingBottom: 12,
       width: "100%",
     });
+  });
+
+  it("projects a data-bound Table into 2D RowsGroup → Row → Cell tree (ADR-912 C1)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "table-1",
+                  type: "Table",
+                  props: {
+                    columns: [
+                      { id: "name", label: "Name", width: 120 },
+                      { id: "role", label: "Role", width: 80 },
+                    ],
+                    rows: [
+                      { id: "r1", cells: { name: "John", role: "Admin" } },
+                      { id: "r2", cells: { name: "Jane", role: "Editor" } },
+                    ],
+                  },
+                  // Table factory 는 빈 TableHeader/TableBody(spec 없음 → Skia 미렌더) 자식 생성.
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+
+    const rowsGroup = graph.nodesMap.get(
+      toCollectionRowsGroupProjectionId("table", "table-1"),
+    );
+    expect(rowsGroup).toMatchObject({
+      type: "Rows",
+      parentId: "table-1",
+      projection: { kind: "table-rows", listBoxId: "table-1" },
+    });
+
+    // header 행 (rowKey __header__) + data 행 r1 — TableRow 노드.
+    const headerRow = graph.nodesMap.get(
+      toCollectionRowProjectionId("table", "table-1", "__header__"),
+    );
+    expect(headerRow).toMatchObject({
+      type: "TableRow",
+      parentId: rowsGroup?.id,
+      props: { _isHeader: true },
+      projection: { kind: "table-row", listBoxId: "table-1", isHeader: true },
+    });
+
+    const dataRow = graph.nodesMap.get(
+      toCollectionRowProjectionId("table", "table-1", "r1"),
+    );
+    expect(dataRow).toMatchObject({
+      type: "TableRow",
+      props: { _isHeader: false },
+      projection: { kind: "table-row", itemKey: "r1", isHeader: false },
+    });
+
+    // header 셀: label = column.label, cell: row.cells[columnId].
+    const headerNameCell = graph.nodesMap.get(
+      toCollectionCellProjectionId("table", "table-1", "__header__", "name"),
+    );
+    expect(headerNameCell).toMatchObject({
+      type: "TableCell",
+      parentId: headerRow?.id,
+      props: { children: "Name", _isHeader: true, _columnWidth: 120 },
+      projection: { kind: "table-cell", columnId: "name", isHeader: true },
+    });
+
+    const dataRoleCell = graph.nodesMap.get(
+      toCollectionCellProjectionId("table", "table-1", "r1", "role"),
+    );
+    expect(dataRoleCell).toMatchObject({
+      type: "TableCell",
+      parentId: dataRow?.id,
+      props: { children: "Admin", _isHeader: false, _columnWidth: 80 },
+      projection: { kind: "table-cell", columnId: "role", itemKey: "r1" },
+    });
+
+    // projected 노드는 자체 렌더 → canonical ref 없음 (비영속).
+    expect(dataRoleCell?.ref).toBeUndefined();
+  });
+
+  it("windows large data-bound Table data rows (100 limit, header 별도, ADR-912 C1)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "table-1",
+                  type: "Table",
+                  props: {
+                    columns: [{ id: "name", label: "Name", width: 120 }],
+                    rows: Array.from({ length: 10_000 }, (_, index) => ({
+                      id: `r${index}`,
+                      cells: { name: `Name ${index}` },
+                    })),
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc);
+    const projectedRows = [...graph.nodesMap.values()].filter(
+      (node) => node.projection?.kind === "table-row",
+    );
+    const dataRows = projectedRows.filter(
+      (node) =>
+        node.projection?.kind === "table-row" && !node.projection.isHeader,
+    );
+    const headerRows = projectedRows.filter(
+      (node) =>
+        node.projection?.kind === "table-row" && node.projection.isHeader,
+    );
+    // data 행 window limit 100 (60fps 보호) + header 행 1개.
+    expect(dataRows).toHaveLength(100);
+    expect(headerRows).toHaveLength(1);
   });
 });

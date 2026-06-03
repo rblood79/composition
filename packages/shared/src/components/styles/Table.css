@@ -4,7 +4,8 @@
     padding: 0;
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
-    background: var(--bg-raised);
+    /* ADR-912 C2: Skia rule fill {color.base}=--bg 와 정합 (기존 --bg-raised drift 해소). */
+    background: var(--bg);
     color: var(--fg);
     outline: none;
     border-spacing: 0;
@@ -292,11 +293,7 @@
 
   .react-aria-Row[data-drop-target] {
     outline: 2px solid var(--accent);
-    background: color-mix(
-      in srgb,
-      var(--accent) 12%,
-      transparent
-    );
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   /* ========== Cell Images ========== */
@@ -365,11 +362,7 @@
     justify-content: center;
 
     &:hover:not(:disabled) {
-      background-color: color-mix(
-        in srgb,
-        var(--accent) 12%,
-        transparent
-      );
+      background-color: color-mix(in srgb, var(--accent) 12%, transparent);
     }
 
     &:disabled {
@@ -416,11 +409,7 @@
   }
 
   .react-aria-GoToPageButton:hover:not(:disabled) {
-    background-color: color-mix(
-      in srgb,
-      var(--accent) 12%,
-      transparent
-    );
+    background-color: color-mix(in srgb, var(--accent) 12%, transparent);
   }
 
   .react-aria-GoToPageButton:disabled {

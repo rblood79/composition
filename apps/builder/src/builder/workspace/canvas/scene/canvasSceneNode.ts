@@ -21,10 +21,16 @@ import {
   type ListBoxProjectionRow,
 } from "../../../components/listbox/listBoxRowProjectionModel";
 import {
+  getTableProjectionRows,
+  type TableColumnDef,
+  type TableProjectionRow,
+} from "../../../components/collection/collectionRowProjectionModel";
+import {
   toListBoxRowProjectionId,
   toListBoxRowsGroupProjectionId,
   toCollectionRowProjectionId,
   toCollectionRowsGroupProjectionId,
+  toCollectionCellProjectionId,
 } from "../../../projection/renderProjectionIds";
 import { getElementDataBinding } from "../../../../adapters/canonical/compositionExtensionFields";
 
@@ -765,6 +771,200 @@ function appendGridListRowProjection(
   }
 }
 
+// ── Table 2D projection (ADR-912 단계 4 C1, 사용자 결정 "행 단위 셀 노드") ──────────────
+//
+// GridList(row 1단) 대비 cell 차원 추가: RowsGroup → Row[i] → Cell[i][j]. header 행 1개 +
+// data 행 N개(window). Row 는 bg(striped/selected)+divider self-render(TableRow.spec), Cell 은
+// text-only(TableCell.spec). 배치(컬럼 폭 누적)는 Taffy flex row 가 담당.
+
+function isTableSceneSource(
+  tableSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+): boolean {
+  if (tableSceneNode.type === "Table") return true;
+  if (sourceNode.type === "ref") return false;
+  return (
+    tableSceneNode.componentName === "Table" || tableSceneNode.name === "Table"
+  );
+}
+
+/**
+ * data-bound Table 의 projection rows + columns 계산 (gating).
+ *
+ * getTableProjectionRows(collections/dataBinding/props.rows) → header 1행 + data N행(cells 차원).
+ * data 행이 0개여도 header + sample fallback 으로 항상 행이 있으므로(spec 동형), rows 가 비면
+ * (이론상 없음) null → standalone render.shapes 유지.
+ */
+function resolveDataBoundTableProjection(
+  tableSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+  options: BuildCanvasSceneGraphOptions,
+): {
+  columns: TableColumnDef[];
+  rows: TableProjectionRow[];
+  sourceNode: CanonicalNode;
+} | null {
+  if (!isTableSceneSource(tableSceneNode, sourceNode)) return null;
+
+  const dataBinding = getElementDataBinding(sourceNode);
+  const { columns, rows } = getTableProjectionRows({
+    collections: options.collections,
+    dataBinding,
+    props: tableSceneNode.props,
+  });
+  // data 행(header 제외)이 하나도 없으면 projection 의미 없음 → standalone 유지.
+  if (rows.filter((r) => r.kind === "data").length === 0) return null;
+
+  return { columns, rows, sourceNode };
+}
+
+/** Table size prop → TableRow/TableCell size (sm/md/lg). 기본 md. */
+function readTableSize(props: Record<string, unknown>): "sm" | "md" | "lg" {
+  const size = props.size;
+  return size === "sm" || size === "lg" ? size : "md";
+}
+
+/**
+ * Table projected 2D tree 생성: RowsGroup → Row[i] → Cell[i][j].
+ *
+ * - rowsGroup: 세로 stack(flex column) — header 행 + data 행을 위→아래로.
+ * - Row: 가로 flex row(TableRow.spec containerStyles) — bg/divider self-render + 셀 자식 배치.
+ * - Cell: text-only(TableCell.spec) — 컬럼 폭 고정(flex-basis). striped 는 row 의 _striped 로 전파.
+ */
+function appendTableRowProjection(
+  tableSceneNode: CanvasSceneNode,
+  projection: {
+    columns: TableColumnDef[];
+    rows: TableProjectionRow[];
+    sourceNode: CanonicalNode;
+  },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  const { columns, rows, sourceNode } = projection;
+  const props = tableSceneNode.props;
+  const size = readTableSize(props);
+  const totalWidth = columns.reduce((sum, col) => sum + col.width, 0) || 360;
+  const variant = props.variant;
+  const isStripedVariant = variant === "striped";
+
+  const rowsGroupId = toCollectionRowsGroupProjectionId(
+    "table",
+    tableSceneNode.id,
+  );
+  const rowsGroup: CanvasSceneNode = {
+    id: rowsGroupId,
+    type: "Rows",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        width: totalWidth,
+      },
+    },
+    parentId: tableSceneNode.id,
+    pageId: scope.pageId,
+    layoutId: scope.layoutId,
+    parent_id: tableSceneNode.id,
+    page_id: scope.pageId,
+    layout_id: scope.layoutId,
+    projection: {
+      kind: "table-rows",
+      listBoxId: tableSceneNode.id,
+      templateAnchorId: null,
+      templateOriginId: null,
+    },
+    sourceNode,
+  };
+  addSceneNode(rowsGroup, graph);
+
+  for (const row of rows) {
+    const isHeader = row.kind === "header";
+    // striped: data 행 중 홀수(rowIndex 1,3,...)에 _striped (Table.spec: !isEven → rowIndex%2!==0).
+    const striped = isStripedVariant && !isHeader && row.rowIndex % 2 !== 0;
+
+    const rowId = toCollectionRowProjectionId(
+      "table",
+      tableSceneNode.id,
+      row.rowKey,
+    );
+    addSceneNode(
+      {
+        id: rowId,
+        type: "TableRow",
+        props: {
+          size,
+          _isHeader: isHeader,
+          _striped: striped,
+          _isSelected: row.isSelected,
+          _rowWidth: totalWidth,
+          style: { width: totalWidth },
+        },
+        parentId: rowsGroupId,
+        pageId: scope.pageId,
+        layoutId: scope.layoutId,
+        parent_id: rowsGroupId,
+        page_id: scope.pageId,
+        layout_id: scope.layoutId,
+        projection: {
+          kind: "table-row",
+          listBoxId: tableSceneNode.id,
+          itemKey: row.rowKey,
+          rowIndex: row.rowIndex,
+          isHeader,
+          templateAnchorId: null,
+          templateOriginId: null,
+        },
+        sourceNode,
+      },
+      graph,
+    );
+
+    for (const col of columns) {
+      const cellText = isHeader ? col.label : (row.cells[col.id] ?? "");
+      const cellId = toCollectionCellProjectionId(
+        "table",
+        tableSceneNode.id,
+        row.rowKey,
+        col.id,
+      );
+      addSceneNode(
+        {
+          id: cellId,
+          type: "TableCell",
+          props: {
+            size,
+            children: cellText,
+            _isHeader: isHeader,
+            _columnWidth: col.width,
+            style: { width: col.width, flexGrow: 0, flexShrink: 0 },
+          },
+          parentId: rowId,
+          pageId: scope.pageId,
+          layoutId: scope.layoutId,
+          parent_id: rowId,
+          page_id: scope.pageId,
+          layout_id: scope.layoutId,
+          projection: {
+            kind: "table-cell",
+            listBoxId: tableSceneNode.id,
+            itemKey: row.rowKey,
+            rowIndex: row.rowIndex,
+            columnId: col.id,
+            isHeader,
+            templateAnchorId: null,
+            templateOriginId: null,
+          },
+          sourceNode,
+        },
+        graph,
+      );
+    }
+  }
+}
+
 export function buildCanvasSceneGraph(
   doc: CompositionDocument,
   options: BuildCanvasSceneGraphOptions = {},
@@ -818,6 +1018,12 @@ export function buildCanvasSceneGraph(
       ? resolveDataBoundGridListProjection(sceneNode, node, options)
       : null;
 
+    // ADR-912 단계 4 C1: data-bound Table 2D projection (RowsGroup→Row→Cell).
+    //   Table factory children:[] (GridList 동형) → suppression 불필요, append 만.
+    const tableProjection = sceneNode
+      ? resolveDataBoundTableProjection(sceneNode, node, options)
+      : null;
+
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
       // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
@@ -851,6 +1057,9 @@ export function buildCanvasSceneGraph(
         nextScope,
         graph,
       );
+    }
+    if (sceneNode && tableProjection) {
+      appendTableRowProjection(sceneNode, tableProjection, nextScope, graph);
     }
   }
 

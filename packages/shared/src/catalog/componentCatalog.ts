@@ -268,9 +268,11 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
  * variant fill base(= `resolveStateColors(...).background`) + border 로 동일 shell 을 그리고,
  * Tree factory props 에 label/text 없음 → text 미렌더로 legacy parity. items 소실 위험 0.
  *
- * **Table — skiaLegacy: true 유지**: render.shapes 가 props.rows/columns 2D grid 를 직접 cell
- * shape 로 계산·렌더(데이터-시각 결합형). buildCatalogShapes(보편 box) 로 대체 불가 → R4 HIGH
- * Skia generic backend(items→element 또는 2D grid 생성기) 선행 필요. 별도.
+ * **Table — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 C1 2026-06-03)**: render.shapes
+ * 가 그리던 props.rows/columns 2D grid(header/row/cell)는 Table projected tree
+ * (canvasSceneNode appendTableRowProjection → TableRow/TableCell.spec.render.shapes)로 이전.
+ * 컨테이너 shell 은 buildCatalogShapes(rule fill {color.base} + border {color.border})가 렌더.
+ * 사용자 결정 "행 단위 셀 노드"(RowsGroup→Row[i]→Cell[i][j]) — cell 단위 hit-test + window 가상화.
  * TableView 는 inventory §2-1 primitive 49 에 없음(LayoutRenderer 전용 layout helper) → 제외.
  */
 const FAMILY_5_CUTOVER: CutoverState = "catalog";
@@ -281,13 +283,15 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     label: "tree",
     icon: "ListTree",
   }),
-  primitiveEntry(
-    "Table",
-    "tree-table",
-    FAMILY_5_CUTOVER,
-    { category: "collections", label: "table", icon: "TableProperties" },
-    { skiaLegacy: true },
-  ),
+  // ADR-912 단계 4 C1 (2026-06-03): Table Skia generic 발효 (skiaLegacy 제거). 2D grid
+  //   (header/row/cell)는 Table projected tree(appendTableRowProjection → TableRow/TableCell.
+  //   spec.render.shapes)가 렌더, 컨테이너 shell 은 buildCatalogShapes(rule fill {color.base} +
+  //   border {color.border}). 사용자 결정 "행 단위 셀 노드" (RowsGroup→Row[i]→Cell[i][j]).
+  primitiveEntry("Table", "tree-table", FAMILY_5_CUTOVER, {
+    category: "collections",
+    label: "table",
+    icon: "TableProperties",
+  }),
 ];
 
 /**
