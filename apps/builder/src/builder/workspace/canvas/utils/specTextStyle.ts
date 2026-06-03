@@ -41,9 +41,9 @@ import {
   resolveToken,
   buildCatalogShapes,
   resolveComponentVisual,
-  getSkiaPrimitiveMode,
 } from "@composition/specs";
-import { isCatalogSkiaCutover, getPrimitiveBinding } from "@composition/shared";
+import { isCatalogSkiaCutover } from "@composition/shared";
+import { resolveSkiaVisualRule } from "../skia/resolveSkiaVisualRule";
 
 /** Spec shapes에서 추출한 텍스트 스타일 */
 export interface SpecTextStyle {
@@ -190,39 +190,30 @@ export function extractSpecTextStyle(
         ? { ...props, size: sizeName }
         : { ...(props ?? {}) };
 
-  // ADR-912 선행 — 측정 source generic 전환: Skia generic 발효 type 은 그리기와 동일한
-  //   buildCatalogShapes 로 TextShape 를 산출(측정·그리기 SSOT 일치). 비-발효(skiaLegacy /
-  //   catalog 미등록 sub-part / TEXT_LEAF)는 기존 render.shapes 측정 유지.
-  //   visual 은 spec 어댑터(resolveComponentVisual)로 만들어 전달 — builder dispatch 의
-  //   resolveSkiaVisualRule(rule table)과 동일 ComponentVisualRule 형태(specs 테스트와 같은 경계).
+  // ADR-912 단계 5 step 2 — 측정 source 의 spec 의존 끊기 (사용자 결정 2026-06-04):
+  //   catalog 발효 type(catalogType + isCatalogSkiaCutover)은 측정도 **rule 기반**
+  //   buildCatalogShapes 로 산출한다. visual source 를 `resolveComponentVisual(spec)` →
+  //   `resolveSkiaVisualRule(type)`(componentRulesTable rule 파생)으로 전환 — builder
+  //   dispatch(buildSpecNodeData) 와 동일 rule SSOT 를 읽어 측정·그리기 정합 + spec 참조 0.
   //
-  // **replace-mode skiaPrimitive 제외 (checkbox/radio/switch)**: 이들은 그리기 dispatch
-  //   (buildCatalogShapesOrPrimitive)에서 skiaPrimitive replace 로 box+text 를 **대체**하여
-  //   indicator 만 그린다 — buildCatalogShapes 의 text(fontWeight fallback 500)는 실제 렌더에
-  //   안 쓰인다. label 폭 측정은 spec.render.shapes 가 emit 하는 text(fontWeight 미emit→400)를
-  //   따라야 정합하므로, replace primitive 보유 type 은 측정도 render.shapes 유지(buildCatalogShapes
-  //   text 측정 시 fontWeight drift). text-bearing replace 가 아닌 box+text 발효 type
-  //   (Button/Badge/ToggleButton/Link)만 측정 전환.
-  const skiaPrimitive = entry.catalogType
-    ? getPrimitiveBinding(entry.catalogType)?.skiaPrimitive
-    : undefined;
-  const primitiveKeys = skiaPrimitive
-    ? Array.isArray(skiaPrimitive)
-      ? skiaPrimitive
-      : [skiaPrimitive]
-    : [];
-  const hasReplacePrimitive = primitiveKeys.some(
-    (k) => getSkiaPrimitiveMode(k) === "replace",
-  );
+  // **replace-mode 포함 (checkbox/radio/switch)**: 과거엔 buildCatalogShapes 의 fontWeight
+  //   fallback 500 과 spec label(미emit→400) drift 회피로 render.shapes 측정을 유지했으나,
+  //   단계 5 step 2 에서 Checkbox/Radio/Switch rule variant 에 `textWeight: 400` 을 명시
+  //   (componentRulesTable)하여 rule 측정도 400 산출 → drift 0. hasReplacePrimitive 분기 제거.
+  //   (Badge 는 spec/generic 둘 다 fallback 500 이라 textWeight 불필요 — 기존부터 정합.)
+  //
+  // 비-발효(catalog 미등록 sub-part / TEXT_LEAF)는 catalogType 미설정 또는 isCatalogSkiaCutover
+  //   false → 기존 render.shapes 측정 유지 (catalog 미등록 전용 임시 경로, 단계 5 후속 inventory).
   const useCatalog =
-    entry.catalogType != null &&
-    isCatalogSkiaCutover(entry.catalogType) &&
-    !hasReplacePrimitive;
+    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
   let shapes: Shape[];
   if (useCatalog) {
     const variantName =
       (propsForShapes.variant as string | undefined) ?? spec.defaultVariant;
-    const visual = resolveComponentVisual(spec, variantName);
+    // rule 기반 visual (spec 미참조) — 미존재 시 spec 어댑터로 fallback(variant 없는 type 안전망).
+    const visual =
+      resolveSkiaVisualRule(entry.catalogType!, variantName) ??
+      resolveComponentVisual(spec, variantName);
     const textDecoration =
       spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
     shapes = buildCatalogShapes(

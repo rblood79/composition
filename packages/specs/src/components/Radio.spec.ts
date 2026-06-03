@@ -86,6 +86,8 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
     // selected/selectedBorder: indicator ring/dot 의 selected 상태 색(보편 상태축).
     //   이전 RADIO_SELECTED_COLORS/RADIO_RING_BORDER 상수를 variant 로 흡수(ADR-142 B2).
     //   border = 미선택 ring 테두리, fill.default.selected = selected dot, selectedBorder = selected ring.
+    // ADR-912 단계 5 step 2: 각 variant 에 textWeight:400 명시 (rule 정본 정합 — measurement
+    //   generic 전환 drift 0, spec 추종 guardrail 통과). spec 삭제(step 4) 시 함께 제거.
     default: {
       fill: {
         default: {
@@ -98,6 +100,7 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
       text: "{color.neutral}" as TokenRef,
       border: "{color.border-hover}" as TokenRef,
       selectedBorder: "{color.accent}" as TokenRef,
+      textWeight: 400,
     },
     accent: {
       fill: {
@@ -111,6 +114,7 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
       text: "{color.neutral}" as TokenRef,
       border: "{color.border-hover}" as TokenRef,
       selectedBorder: "{color.accent}" as TokenRef,
+      textWeight: 400,
     },
     neutral: {
       fill: {
@@ -124,6 +128,7 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
       text: "{color.neutral}" as TokenRef,
       border: "{color.border-hover}" as TokenRef,
       selectedBorder: "{color.neutral-subtle}" as TokenRef,
+      textWeight: 400,
     },
     negative: {
       fill: {
@@ -137,6 +142,7 @@ export const RadioSpec: ComponentSpec<RadioProps> = {
       text: "{color.neutral}" as TokenRef,
       border: "{color.negative}" as TokenRef,
       selectedBorder: "{color.negative}" as TokenRef,
+      textWeight: 400,
     },
   },
 

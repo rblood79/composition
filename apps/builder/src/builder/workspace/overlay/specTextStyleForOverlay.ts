@@ -18,24 +18,37 @@ import {
   SwitchSpec,
   InputSpec,
   resolveColor,
+  buildCatalogShapes,
+  resolveComponentVisual,
 } from "@composition/specs";
+import { isCatalogSkiaCutover } from "@composition/shared";
+import { resolveSkiaVisualRule } from "../canvas/skia/resolveSkiaVisualRule";
 import type { TextStyleConfig } from "./TextEditOverlay";
 
 const TEXT_BEARING_SPECS: Record<
   string,
-  { spec: ComponentSpec<Record<string, unknown>>; defaultSize: string }
+  {
+    spec: ComponentSpec<Record<string, unknown>>;
+    defaultSize: string;
+    /** componentCatalog type (Skia generic 발효 판정). 미설정 = render.shapes 측정 고정. */
+    catalogType?: string;
+  }
 > = {
-  button: { spec: ButtonSpec, defaultSize: "md" },
-  submitbutton: { spec: ButtonSpec, defaultSize: "md" },
-  fancybutton: { spec: ButtonSpec, defaultSize: "md" },
-  badge: { spec: BadgeSpec, defaultSize: "sm" },
-  type: { spec: BadgeSpec, defaultSize: "sm" },
-  chip: { spec: BadgeSpec, defaultSize: "sm" },
-  togglebutton: { spec: ToggleButtonSpec, defaultSize: "md" },
-  a: { spec: LinkSpec, defaultSize: "md" },
-  checkbox: { spec: CheckboxSpec, defaultSize: "md" },
-  radio: { spec: RadioSpec, defaultSize: "md" },
-  switch: { spec: SwitchSpec, defaultSize: "md" },
+  button: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
+  submitbutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
+  fancybutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
+  badge: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  type: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  chip: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  togglebutton: {
+    spec: ToggleButtonSpec,
+    defaultSize: "md",
+    catalogType: "ToggleButton",
+  },
+  a: { spec: LinkSpec, defaultSize: "md", catalogType: "Link" },
+  checkbox: { spec: CheckboxSpec, defaultSize: "md", catalogType: "Checkbox" },
+  radio: { spec: RadioSpec, defaultSize: "md", catalogType: "Radio" },
+  switch: { spec: SwitchSpec, defaultSize: "md", catalogType: "Switch" },
   input: { spec: InputSpec, defaultSize: "sm" },
 };
 
@@ -58,7 +71,31 @@ export function extractFullSpecTextStyle(
   const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
   if (!size) return null;
 
-  const shapes = spec.render.shapes(props ?? {}, size, "default");
+  // ADR-912 단계 5 step 2 — overlay 폰트 추출의 spec 의존 끊기: catalog 발효 type 은 rule 기반
+  //   buildCatalogShapes(resolveSkiaVisualRule)로 산출(measurement 와 동일 SSOT). catalog
+  //   미등록(input 등) 또는 비-발효는 기존 render.shapes 유지(미등록 전용 임시 경로).
+  const propsForShapes = props ?? {};
+  const useCatalog =
+    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
+  let shapes: Shape[];
+  if (useCatalog) {
+    const variantName =
+      (propsForShapes.variant as string | undefined) ?? spec.defaultVariant;
+    const visual =
+      resolveSkiaVisualRule(entry.catalogType!, variantName) ??
+      resolveComponentVisual(spec, variantName);
+    const textDecoration =
+      spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
+    shapes = buildCatalogShapes(
+      visual,
+      propsForShapes,
+      size,
+      "default",
+      textDecoration && textDecoration !== "none" ? textDecoration : undefined,
+    );
+  } else {
+    shapes = spec.render.shapes(propsForShapes, size, "default");
+  }
 
   const textShape = shapes.find(
     (s): s is TextShape & { type: "text" } => s.type === "text",

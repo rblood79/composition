@@ -63,6 +63,8 @@ export const SwitchSpec: ComponentSpec<SwitchProps> = {
     // fill.default.selected: indicator track 의 selected(on) 상태 색(보편 상태축).
     //   이전 SWITCH_SELECTED_TRACK_COLORS 상수를 variant 로 흡수(ADR-142 B2). base=transparent 는
     //   컨테이너 배경(track 아님) — 미선택 track 색은 모든 variant 공통이라 skiaPrimitive 잔존.
+    // ADR-912 단계 5 step 2: textWeight:400 명시 (rule 정본 정합 — measurement generic 전환
+    //   drift 0, spec 추종 guardrail 통과). spec 삭제(step 4) 시 함께 제거.
     default: {
       fill: {
         default: {
@@ -73,6 +75,7 @@ export const SwitchSpec: ComponentSpec<SwitchProps> = {
         },
       },
       text: "{color.neutral}" as TokenRef,
+      textWeight: 400,
     },
     emphasized: {
       fill: {
@@ -84,6 +87,7 @@ export const SwitchSpec: ComponentSpec<SwitchProps> = {
         },
       },
       text: "{color.neutral}" as TokenRef,
+      textWeight: 400,
     },
   },
 

@@ -104,6 +104,9 @@ export const CheckboxSpec: ComponentSpec<CheckboxProps> = {
       text: "{color.neutral}" as TokenRef,
       border: "{color.border}" as TokenRef,
       selectedBorder: "{color.neutral}" as TokenRef,
+      // ADR-912 단계 5 step 2: label fontWeight 명시 (rule 정본 textWeight:400 과 정합 —
+      //   measurement generic 전환 시 drift 0, spec 추종 guardrail 통과). spec 삭제(step 4) 시 함께 제거.
+      textWeight: 400,
     },
     emphasized: {
       fill: {
@@ -117,6 +120,7 @@ export const CheckboxSpec: ComponentSpec<CheckboxProps> = {
       text: "{color.neutral}" as TokenRef,
       border: "{color.border}" as TokenRef,
       selectedBorder: "{color.accent}" as TokenRef,
+      textWeight: 400,
     },
   },
 

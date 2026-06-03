@@ -33,6 +33,7 @@ import {
 } from "@composition/specs";
 import {
   isCatalogSkiaCutover,
+  isCatalogCutover,
   getPrimitiveBinding,
   toSkiaStyle,
 } from "@composition/shared";
@@ -1177,15 +1178,29 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
 
   // ---------- shapes 생성 ----------
   // ADR-142 #5(b): catalog cutover 된 type 은 Skia generic 경로.
-  // **Skia 게이트는 `isCatalogSkiaCutover`** (DOM/Inspector `isCatalogCutover` 와 분리).
-  // collection(skiaLegacy:true — ListBox/Select/Table 등)은 Skia 만 legacy render.shapes 유지:
-  // items 배열 순회 multi-item 렌더를 generic 렌더러가 아직 못 그린다(DOM 은 RAC items 자동 합성으로
-  // catalog 발효, Skia 만 부분 cutover, items generic 메커니즘은 전 family 후 일괄).
-  // Skia cutover 된 type 은 binding.skiaPrimitive 유무로 갈린다(정본 — 데이터 분기, ADR-142 §3):
+  // **ADR-912 단계 5 step 1/2 — 게이트 통합 (skiaLegacy 0건)**: skiaLegacy 제거로
+  //   `isCatalogSkiaCutover === isCatalogCutover` (collapse). catalog cutover entry 는 전부
+  //   buildCatalogShapesOrPrimitive(generic) 경로로 그려진다. Skia cutover 된 type 은
+  //   binding.skiaPrimitive 유무로 갈린다(정본 — 데이터 분기, ADR-142 §3):
   //   - skiaPrimitive 있음(원/선/아이콘 등 비-DOM-trivial) → 그 draw module 이 shape 생성.
   //   - 없음 → buildCatalogShapes(모든 frame 공유 보편 box+text 시각).
-  // 컴포넌트 식별 분기(isDot/divider/iconName)를 buildCatalogShapes 안에 인라인하지 않는다.
-  const shapes = isCatalogSkiaCutover(type)
+  //   컴포넌트 식별 분기(isDot/divider/iconName)를 buildCatalogShapes 안에 인라인하지 않는다.
+  //
+  // **fallback = catalog 미등록 type 전용 임시 경로 (단계 5 step 2, 사용자 결정 2026-06-04)**:
+  //   `: spec.render.shapes(...)` 는 더 이상 "skiaLegacy collection fallback" 이 아니다 —
+  //   catalog 미등록 71 type(color scope 외 / sub-part / 미발효 leaf / legacy)의 **유일한**
+  //   Skia 렌더 경로다. catalog registered runtime 은 항상 첫 분기로 가야 한다(spec.render.shapes
+  //   도달 0건). catalog 등록 type 이 이 fallback 으로 새면 게이트 비동치 회귀이므로 dev 에서 검출.
+  //   미등록 type 의 generic 전환/catalog 등록은 단계 5 후속 inventory (color 는 사용자 scope 외).
+  const usesGeneric = isCatalogSkiaCutover(type);
+  if (import.meta.env.DEV && !usesGeneric && isCatalogCutover(type)) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[ADR-912 단계5] catalog 등록 type "${type}" 이 spec.render.shapes fallback 으로 샘 ` +
+        `— isCatalogSkiaCutover/isCatalogCutover 게이트 비동치 회귀 (skiaLegacy 재도입?).`,
+    );
+  }
+  const shapes = usesGeneric
     ? buildCatalogShapesOrPrimitive(
         type,
         specProps,

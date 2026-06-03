@@ -49,16 +49,22 @@ describe("extractSpecTextStyle — TEXT_LEAF_TAGS size→fontSize/lineHeight (A�
 });
 
 /**
- * ADR-912 선행(2번) — text measurement generic 전환 parity.
+ * ADR-912 단계 5 step 2 — text measurement spec 의존 끊기 parity.
  *
  * generic 발효 type(isCatalogSkiaCutover=true: Button/Badge/ToggleButton/Link/
- * Checkbox/Radio/Switch)의 extractSpecTextStyle 은 측정 source 를 render.shapes →
- * buildCatalogShapes 로 전환한다(그리기와 같은 source = 측정·그리기 SSOT 일치).
+ * Checkbox/Radio/Switch)의 extractSpecTextStyle 은 측정 source 를 **rule 기반**
+ * buildCatalogShapes(resolveSkiaVisualRule)로 산출한다 — spec.render.shapes /
+ * resolveComponentVisual(spec) 미참조(measurement 의 spec 의존 0, 그리기 dispatch 와 동일
+ * rule SSOT).
  *
- * parity oracle: 전환 후 extractSpecTextStyle 결과의 fontSize/fontWeight/fontFamily 가
- * **render.shapes 가 emit 하는 TextShape 와 동일**해야 한다(시각 대칭 단일 진실).
- * buildCatalogShapes ↔ render.shapes 의 shape 레벨 parity 는 buildCatalogShapes.test.ts
- * 가 보장하므로, 여기서는 측정 추출 결과가 render.shapes oracle 과 일치함을 확인한다.
+ * **replace-mode 포함 (step 2)**: 과거 checkbox/radio/switch 는 generic 측정의 fontWeight
+ * fallback 500 ↔ spec label 미emit(400) drift 회피로 render.shapes 측정을 유지했으나,
+ * Checkbox/Radio/Switch rule variant 에 textWeight:400 명시(componentRulesTable)로 rule 측정도
+ * 400 산출 → drift 0. 따라서 replace 도 rule 기반 측정으로 전환.
+ *
+ * parity oracle: extractSpecTextStyle 결과의 fontSize/fontWeight/fontFamily 가
+ * **render.shapes 가 emit 하는 TextShape 와 동일**해야 한다(시각 대칭 단일 진실). replace type 은
+ * spec label fontWeight 미emit→400 이고 rule textWeight=400 이라 oracle(render.shapes)과 일치.
  */
 describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 선행)", () => {
   /** render.shapes 가 emit 하는 TextShape 에서 측정 필드를 직접 뽑는 oracle. */
@@ -108,8 +114,8 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
   ];
 
   /**
-   * replace-mode skiaPrimitive type — 측정은 render.shapes 유지(전환 제외).
-   * buildCatalogShapes box+text 가 그리기에서 indicator 로 대체되므로 측정도 render.shapes 정합.
+   * replace-mode skiaPrimitive type — step 2 에서 rule 기반 측정으로 전환됨.
+   * rule variant textWeight:400 명시로 generic 측정도 spec label(미emit→400)과 일치(drift 0).
    */
   const replacePrimitiveCases: Array<{
     tag: string;

@@ -1126,6 +1126,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Checkbox: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-912 단계 5 step 2: replace-primitive(checkbox indicator) measurement 를 generic
+    //   (buildCatalogShapes) 으로 전환하기 위해 label fontWeight 를 rule variant 에 명시한다.
+    //   Checkbox.spec.render.shapes 의 label text 는 fontWeight 미emit(→ 측정 fallback 400)
+    //   이고 실제 label(자식 Label element)도 400 이므로, generic 측정의 fallback 500 과의
+    //   drift 를 차단하려면 variant.textWeight=400 이 필요하다 (Badge 는 spec/generic 둘 다 500
+    //   이라 불필요 — Checkbox/Radio/Switch 만 명시). textWeight 는 ComponentRuleVariant 필드.
     variants: {
       default: {
         fill: {
@@ -1141,6 +1147,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
           selectedBorder: "{color.neutral}",
         },
+        textWeight: 400,
       },
       emphasized: {
         fill: {
@@ -1156,6 +1163,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
           selectedBorder: "{color.accent}",
         },
+        textWeight: 400,
       },
     },
     sizes: {
@@ -4003,6 +4011,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Radio: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
+    //   (Radio.spec label fontWeight 미emit → 측정 fallback 400 정합). [[Checkbox 참조]]
     variants: {
       default: {
         fill: {
@@ -4018,6 +4028,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border-hover}",
           selectedBorder: "{color.accent}",
         },
+        textWeight: 400,
       },
       accent: {
         fill: {
@@ -4033,6 +4044,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border-hover}",
           selectedBorder: "{color.accent}",
         },
+        textWeight: 400,
       },
       neutral: {
         fill: {
@@ -4048,6 +4060,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border-hover}",
           selectedBorder: "{color.neutral-subtle}",
         },
+        textWeight: 400,
       },
       negative: {
         fill: {
@@ -4063,6 +4076,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.negative}",
           selectedBorder: "{color.negative}",
         },
+        textWeight: 400,
       },
     },
     sizes: {
@@ -5106,6 +5120,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Switch: {
     defaultVariant: "default",
     defaultSize: "md",
+    // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
+    //   (Switch.spec label fontWeight 미emit → 측정 fallback 400 정합). [[Checkbox 참조]]
     variants: {
       default: {
         fill: {
@@ -5119,6 +5135,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        textWeight: 400,
       },
       emphasized: {
         fill: {
@@ -5132,6 +5149,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        textWeight: 400,
       },
     },
     sizes: {
