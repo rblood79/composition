@@ -97,6 +97,8 @@ ADR-142 가 점진 전환을 위해 만든 seam·타협. **현재 구현 방식 
 
 ### 2-4. 신규 도입 (NEW) — 1차 원리의 직접 구현
 
+> **land 상태 (2026-06-03 실측 — review-adr round 7)**: 아래 "신규" 중 6개가 이미 land 됨. `ComponentNode` schema / `resolveMergedStyle`(`1762d7653`) / `toReactStyle`(`1762d7653`) / `toSkiaStyle`(`7022b8d84`) / `resolveEditContract`(`5d402d804`) / `racStateAttrs`(`5eebef96a`) **= 완료**. `collectionProjector`(generic) = **미land**(ListBox 인라인 `appendListBoxRowProjection` 만 — 단계 4 일반화 대상). `resolveCollectionWriteTarget` = **land**(`d5da74c72`, ListBox 경로 / family generic discriminator 는 단계 4 확장). 즉 본 표는 "남은 신규" 가 아니라 "1차 원리 신규 산출물 명세" — 진행은 ⑦ 구현 순서 참조.
+
 | 신규                                                                                     | 역할                                                                                                                                                                                  | HC         |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
 | `ComponentNode` schema 확정 (props.style = override-only, props.variant/size = 의미값)   | 의미 props + 시각 override layer                                                                                                                                                      | HC#1, HC#3 |
@@ -533,6 +535,18 @@ reset=`delete props.style[k]`(longhand 그룹). size 변경 → baseValue 재res
 ## ⑦ 구현 순서 (proof surface 단계 축소)
 
 > sketch. 실제 phase 분해 + sub-group 결정은 사용자 confirm 후 (adr-writing.md fork checkpoint / M4).
+>
+> **진행 상태 (2026-06-03 실측 — review-adr round 7)**: 아래 단계는 일부 미래시제로 서술돼 있으나 실제 land 진행은 다음과 같다 (본문 §Status 진행 주석과 동일).
+>
+> | 단계                         | 상태                                                                                                                                  | 커밋                                                                                                    |
+> | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+> | 1 (공통 기반 1A/1B/1C)       | ✅ **완료**                                                                                                                           | `53f59930f`(1A-a) `1762d7653`(1A-b) `7022b8d84`(1A-c) `5d402d804`(1A-4) `b94fff418`(1B) `d7be36b53`(1C) |
+> | 2 (편집 계약 발효)           | ✅ **완료**                                                                                                                           | `5b89e707e` (`getEditor`→`resolveEditContract`)                                                         |
+> | 3 (Skia state)               | ✅ **완료** (disabled 실효, hover/pressed threading 후속)                                                                             | `5eebef96a` (`racStateAttrs`)                                                                           |
+> | 4 (collection 발효 C1/C2/C3) | ◐ **부분** — ListBox proof land(`d5da74c72`/`173765201`/`831079766`), 나머지 6 collection+Table 3계약 발효 미착수(설계만 `5dae6811b`) | —                                                                                                       |
+> | 5 (구 정본 제거)             | ✗ **미착수** — 선행 의존 실측만(`06ddfc44d`)                                                                                          | —                                                                                                       |
+>
+> 따라서 아래 1A "1차 kill 판단" / "단계 1 전체 통과해야 단계 2 진입" 류 미래시제는 단계 1~3 한정으로는 **이미 통과·진행**된 상태의 사후 기록으로 읽는다. 미완은 단계 4(collection 전체)/5.
 
 1. **공통 기반 (family 무관) + Button slice 첫 증명** — 3 sub-step 으로 분해, **early-kill 시점은 1A 직후(7~10h)**. (전체 단계 1 예상 20~28h, 보수적 3일 / 복잡도 터지면 4일)
    - **1A — common spine (7~10h)**: `ComponentNode` schema + `resolveMergedStyle`(theme rule 직접) + `toReactStyle`(override 전용) + `toSkiaStyle`(보편속성 직접) + `resolveEditContract`(variant·size 의미 props 분리) — Button proof 최소.
