@@ -100,6 +100,12 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "file trigger",
     icon: "Upload",
   }),
+  // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
+  primitiveEntry("Skeleton", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "skeleton",
+    icon: "Loader",
+  }),
 ];
 
 /**

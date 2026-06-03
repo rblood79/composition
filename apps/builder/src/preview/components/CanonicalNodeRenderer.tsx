@@ -40,6 +40,7 @@ import { Modal } from "@composition/shared/components/Modal";
 import { Popover } from "@composition/shared/components/Popover";
 import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
 import { Select } from "@composition/shared/components/Select";
+import { Skeleton } from "@composition/shared/components/Skeleton";
 import Table from "@composition/shared/components/Table";
 import { Tabs } from "@composition/shared/components/Tabs";
 import { TagGroup } from "@composition/shared/components/TagGroup";
@@ -95,6 +96,8 @@ const INTERNAL_RENDERERS: Readonly<
 > = {
   icon: Icon,
   badge: Badge,
+  // ADR-912 단계 5 선행-1: loading placeholder internal leaf
+  skeleton: Skeleton,
   // family ④ collections — composition wrapper (useCollectionData 포함)
   listbox: ListBox,
   menu: MenuButton,

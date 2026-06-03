@@ -31,6 +31,7 @@ import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
 import { selectBinding } from "./Select.binding";
 import { separatorBinding } from "./Separator.binding";
+import { skeletonBinding } from "./Skeleton.binding";
 import { sliderBinding } from "./Slider.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
@@ -73,6 +74,7 @@ export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
 export * from "./Select.binding";
 export * from "./Separator.binding";
+export * from "./Skeleton.binding";
 export * from "./Slider.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
@@ -104,6 +106,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Toolbar: toolbarBinding,
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic)
   FileTrigger: fileTriggerBinding,
+  // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
+  Skeleton: skeletonBinding,
   // family ② fields
   TextField: textFieldBinding,
   // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)

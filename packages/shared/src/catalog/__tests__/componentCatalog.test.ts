@@ -60,16 +60,20 @@ describe("componentCatalog — family atomicity (불변식 D)", () => {
 });
 
 describe("componentCatalog — family ① (primitives) 구성", () => {
-  it("family ① 8 primitive 전부 등록 (reusable 없음)", () => {
+  it("family ① primitive 전부 등록 (reusable 없음)", () => {
     const fam1 = componentCatalog.filter((e) => e.family === "primitives");
     const types = fam1.map((e) => e.type).sort();
     expect(types).toEqual(
       [
         "Badge",
         "Button",
+        // ADR-912 단계 5 선행-1: catalog 미등록 leaf 등록
+        "FileTrigger",
         "Icon",
         "Link",
         "Separator",
+        // ADR-912 단계 5 선행-1: loading placeholder internal leaf
+        "Skeleton",
         "ToggleButton",
         "ToggleButtonGroup",
         "Toolbar",
