@@ -135,6 +135,8 @@ export type { LucideIconData } from "./icons/lucideIcons";
 export { resolveStateColors } from "./utils/stateEffect";
 // ADR-908 Phase 4: Fill token SSOT accessor (legacy seam 제거)
 export { resolveFillTokens, resolveIndicatorFill } from "./utils/fillTokens";
+// ADR-912 단계 3: RAC data-* → ComponentState derive (Skia state parity)
+export { racStateAttrs, type RacStateInput } from "./utils/racStateAttrs";
 
 // ─── Primitives ──────────────────────────────────────────────────────────────
 export {

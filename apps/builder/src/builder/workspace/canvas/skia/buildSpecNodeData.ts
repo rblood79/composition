@@ -24,6 +24,7 @@ import {
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
   normalizeBreadcrumbRspSizeKey,
+  racStateAttrs,
   type ComponentState,
   type ComponentSpec,
   type PropagationRule,
@@ -1123,14 +1124,23 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     };
   }
 
-  // ---------- component state ----------
-  // Breadcrumb 마지막 항목: Preview CSS와 동일 — isDisabled·부모 isDisabled와 무관하게 비활성 opacity/톤 미적용
-  const componentState: ComponentState = (() => {
-    if (breadcrumbCtx?._isLast) return "default";
-    if (specProps.isDisabled || specProps.disabled) return "disabled";
-    if (breadcrumbCtx?._parentIsDisabled) return "disabled";
-    return "default";
-  })();
+  // ---------- component state (ADR-912 단계 3: racStateAttrs) ----------
+  // RAC data-* vocabulary → ComponentState 단일 변환점(DOM/Skia state parity).
+  // Breadcrumb 마지막 항목: Preview CSS와 동일 — isDisabled·부모 isDisabled와 무관하게
+  //   비활성 opacity/톤 미적용 → isDisabled=false 로 평탄화(breadcrumb 예외는 builder 측 선판정).
+  // 단계 3 scope: disabled 만 실효. hover/pressed/focusVisible 는 interaction threading 후속
+  //   (매 pointermove 가 sceneVersion signature 유발하는 ADR-136 §9 충돌 + 60fps 정밀화 필요).
+  //   selection(props.isSelected)은 buildCatalogShapes 직교 차원 — racStateAttrs 밖.
+  const isNodeDisabled = breadcrumbCtx?._isLast
+    ? false
+    : Boolean(
+        specProps.isDisabled ||
+        specProps.disabled ||
+        breadcrumbCtx?._parentIsDisabled,
+      );
+  const componentState: ComponentState = racStateAttrs({
+    isDisabled: isNodeDisabled,
+  });
 
   // ---------- width/height injection ----------
   let specHeight = h;
