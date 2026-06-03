@@ -16,7 +16,13 @@
  */
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
+import { fontFamily } from "../primitives/typography";
 import { TOOLTIP_MAX_WIDTH } from "../components/Tooltip.spec";
+import {
+  buildDatePickerShapes,
+  buildDatePlaceholder,
+  DATE_PICKER_SIZES,
+} from "../components/DatePicker.spec";
 import type { Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
@@ -579,6 +585,250 @@ const overlayBackdrop: SkiaPrimitiveDrawFn = () => [
   },
 ];
 
+/**
+ * `calendar_grid` — 월 단위 날짜 grid(nav + month/year text + 7 weekday + 최대 31 date cell +
+ * today dot). box+text 로 표현 불가한 복합 primitive → `"replace"` 모드(box+text 대체).
+ *
+ * 값/좌표식은 `CalendarSpec.render.shapes`(Calendar.spec.ts) 1:1 이식 — 단, spec VariantSpec
+ * (`variant.text`/`variant.border`/`resolveStateColors`) 대신 보편 rule 테이블에서 해소된
+ * `ctx.visual`(text/border/fill.default[state]) + `ctx.size`(fontSize/borderRadius/iconSize)를
+ * 읽는다(ADR-912 ②-6-A theme rule base SSOT 정합 — spec-free). RangeCalendar 도 동일 primitive
+ * 사용(RangeCalendar.spec = `...CalendarSpec`, 시각 동형). 자식이 있으면(`_hasChildren`)
+ * shell(bg+border)만, standalone 이면 full grid.
+ */
+const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const borderRadius = parsePxValue(
+    style?.borderRadius,
+    size.borderRadius as unknown as number,
+  );
+  const cellSize = (size.iconSize ?? 28) + 4;
+  const gap = (size.gap as unknown as number) || 6;
+  const paddingX = (size.paddingX as unknown as number) || 8;
+  const paddingY = (size.paddingY as unknown as number) || 8;
+  const fontSize = resolveSpecFontSize(size.fontSize as string | number, 14);
+  const calendarWidth = cellSize * 7 + gap * 6 + paddingX * 2;
+  const ff = (style?.fontFamily as string) || fontFamily.sans;
+
+  const textColor =
+    (style?.color as string | undefined) ??
+    visual?.text ??
+    ("{color.neutral}" as TokenRef);
+  const borderColor = visual?.border ?? ("{color.border}" as TokenRef);
+  const bgColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    ("{color.base}" as TokenRef);
+
+  const headerHeight = cellSize;
+  const navRowY = paddingY;
+  const weekdayY = navRowY + headerHeight + gap;
+  const gridStartY = weekdayY + cellSize;
+
+  // January 2024: starts on Monday(dayOffset=1), 31 days. today=15(선택/today 표시 예시).
+  const dayOffset = 1;
+  const totalDays = 31;
+  const today = 15;
+  const totalRows = Math.ceil((totalDays + dayOffset) / 7);
+  const totalHeight =
+    gridStartY + totalRows * (cellSize + gap) - gap + paddingY;
+
+  const hasChildren = !!(props as Record<string, unknown>)._hasChildren;
+
+  const shapes: Shape[] = [
+    {
+      id: "bg",
+      type: "roundRect" as const,
+      x: 0,
+      y: 0,
+      width: hasChildren ? ("auto" as unknown as number) : calendarWidth,
+      height: hasChildren ? ("auto" as unknown as number) : totalHeight,
+      radius: borderRadius,
+      fill: bgColor,
+    },
+    {
+      type: "border" as const,
+      target: "bg",
+      borderWidth: 1,
+      color: borderColor,
+      radius: borderRadius,
+    },
+  ];
+
+  if (hasChildren) return shapes;
+
+  shapes.push(
+    {
+      type: "icon_font" as const,
+      iconName: "chevron-left",
+      x: paddingX + cellSize / 2,
+      y: navRowY + headerHeight / 2,
+      fontSize: fontSize + 2,
+      fill: textColor,
+      strokeWidth: 2,
+    },
+    {
+      type: "text" as const,
+      x: paddingX + cellSize,
+      y: navRowY + headerHeight / 2,
+      text: (() => {
+        const loc = props.calendarSystem
+          ? `${props.locale || "en-US"}-u-ca-${props.calendarSystem}`
+          : (props.locale as string) || "ko-KR";
+        try {
+          return new Intl.DateTimeFormat(loc, {
+            year: "numeric",
+            month: "long",
+          }).format(new Date());
+        } catch {
+          return "2024년 1월";
+        }
+      })(),
+      fontSize,
+      fontFamily: ff,
+      fontWeight: 700,
+      fill: textColor,
+      align: "center" as const,
+      baseline: "middle" as const,
+      maxWidth: calendarWidth - (paddingX + cellSize) * 2,
+    },
+    {
+      type: "icon_font" as const,
+      iconName: "chevron-right",
+      x: calendarWidth - paddingX - cellSize / 2,
+      y: navRowY + headerHeight / 2,
+      fontSize: fontSize + 2,
+      fill: textColor,
+      strokeWidth: 2,
+    },
+  );
+
+  const effectiveLocale = props.calendarSystem
+    ? `${props.locale || "en-US"}-u-ca-${props.calendarSystem}`
+    : (props.locale as string) || "en-US";
+  const weekdays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(2024, 0, 7 + i); // 2024-01-07 = Sunday
+    try {
+      return new Intl.DateTimeFormat(effectiveLocale, {
+        weekday: "short",
+      }).format(d);
+    } catch {
+      return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][i];
+    }
+  });
+  for (let col = 0; col < 7; col++) {
+    const cellLeft = paddingX + col * (cellSize + gap);
+    shapes.push({
+      type: "text" as const,
+      x: cellLeft,
+      y: weekdayY + cellSize / 2,
+      text: weekdays[col],
+      fontSize: fontSize - 2,
+      fontFamily: ff,
+      fontWeight: 700,
+      fill: "{color.neutral-subdued}" as TokenRef,
+      align: "center" as const,
+      baseline: "middle" as const,
+      maxWidth: cellSize,
+      whiteSpace: "nowrap" as const,
+    });
+  }
+
+  for (let day = 1; day <= totalDays; day++) {
+    const idx = day - 1 + dayOffset;
+    const row = Math.floor(idx / 7);
+    const col = idx % 7;
+    const cellLeft = paddingX + col * (cellSize + gap);
+    const cx = cellLeft + cellSize / 2;
+    const cy = gridStartY + row * (cellSize + gap) + cellSize / 2;
+
+    shapes.push({
+      type: "text" as const,
+      x: cellLeft,
+      y: cy,
+      text: String(day),
+      fontSize,
+      fontFamily: ff,
+      fontWeight: day === today ? 700 : 400,
+      fill: textColor,
+      align: "center" as const,
+      baseline: "middle" as const,
+      maxWidth: cellSize,
+      whiteSpace: "nowrap" as const,
+    });
+
+    if (day === today) {
+      shapes.push({
+        type: "circle" as const,
+        x: cx,
+        y: cy + cellSize / 2 - 4,
+        radius: 3,
+        fill: "{color.accent}" as TokenRef,
+      });
+    }
+  }
+
+  return shapes;
+};
+
+/**
+ * `datefield_trigger` — DatePicker/DateRangePicker 의 입력 trigger field(input box + display
+ * text + 후행 calendar icon). box+text+icon 복합 → `"replace"` 모드(box+text 대체).
+ *
+ * 값/좌표식은 `buildDatePickerShapes`(DatePicker.spec.ts) 재사용 — display text 는 props 의
+ * value/startDate·endDate/placeholder 에서 조립(DatePicker = value, DateRangePicker = range).
+ * 자식이 있으면(`_hasChildren`) 투명 컨테이너(빈 배열). DateRangePicker 는 기본 폭 320.
+ * spec-free: buildDatePickerShapes 는 props.style/sizeEntry(size) 만 읽어 spec VariantSpec 미참조.
+ */
+const datefieldTrigger: SkiaPrimitiveDrawFn = ({ props, size }) => {
+  if ((props as Record<string, unknown>)._hasChildren) return [];
+
+  const locale = (props.locale as string) || "en-US";
+  const isRange =
+    props.startDate !== undefined ||
+    props.endDate !== undefined ||
+    props._dateRange === true;
+
+  let displayText: string;
+  let hasValue: boolean;
+  let defaultContainerWidth: number;
+  if (isRange) {
+    if (props.startDate && props.endDate) {
+      displayText = `${props.startDate} – ${props.endDate}`;
+      hasValue = true;
+    } else {
+      // range placeholder = "single – single" (DateRangePicker.spec buildRangePlaceholder 동형,
+      // 파일-로컬 helper 재export 대신 공개 buildDatePlaceholder 로 인라인 조립).
+      const single = buildDatePlaceholder(locale);
+      displayText = (props.placeholder as string) || `${single} – ${single}`;
+      hasValue = false;
+    }
+    defaultContainerWidth = 320;
+  } else {
+    displayText =
+      (props.value as string) ||
+      (props.placeholder as string) ||
+      buildDatePlaceholder(locale);
+    hasValue = !!props.value;
+    defaultContainerWidth = 200;
+  }
+
+  // sizeEntry 는 DATE_PICKER_SIZES(spec 공유 sizes) 에서 size 이름으로 조회 — ctx.size 의
+  // calendar 류 base 가 아니라 date-picker 전용 height/padding/iconSize 가 필요하기 때문.
+  const sizeName = (props.size as string) || "md";
+  const sizeEntry =
+    (DATE_PICKER_SIZES as Record<string, Record<string, unknown>>)[sizeName] ??
+    (DATE_PICKER_SIZES as Record<string, Record<string, unknown>>).md ??
+    (size as unknown as Record<string, unknown>);
+
+  return buildDatePickerShapes({
+    props: props as unknown as Record<string, unknown>,
+    sizeEntry,
+    displayText,
+    hasValue,
+    defaultContainerWidth,
+  });
+};
+
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
@@ -593,6 +843,9 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   dialog_shadow: dialogShadow,
   popover_shadow: popoverShadow,
   overlay_backdrop: overlayBackdrop,
+  // ADR-912 단계 5 (1b) date escape (replace 모드 — box+text 대체)
+  calendar_grid: calendarGrid,
+  datefield_trigger: datefieldTrigger,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */

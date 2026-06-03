@@ -3,8 +3,8 @@
  *
  * inventory(§2-1) RAC-controller-backed primitive. composition wrapper(`Calendar.tsx`)가 RAC
  * Calendar + CalendarGrid/CalendarHeader/CalendarCell 합성(internal source). 날짜 grid 는
- * 비-box 시각(6주 × 7일 cell + 헤더) → DOM-only cutover(skiaLegacy:true). DOM 은 RAC 가 grid
- * 자동 합성, Skia 만 legacy render.shapes 유지(날짜 grid Skia generic 미확정, 전 family 후 일괄).
+ * 비-box 시각(6주 × 7일 cell + 헤더) → DOM 은 RAC 가 grid 자동 합성, Skia 는 `calendar_grid`
+ * skiaPrimitive(replace) escape 로 grid 시각 재현(ADR-912 단계 5 (1b) — skiaLegacy 제거).
  *
  * color(TailSwatch/ColorPicker/ColorArea 등)는 사용자 지시로 family ⑦ 제외(별도 처리).
  */
@@ -16,6 +16,9 @@ export const calendarBinding: PrimitiveBinding = {
     kind: "internal",
     renderer: "calendar",
   },
+  // ADR-912 단계 5 (1b): 날짜 grid(6주×7일) Skia 시각을 `calendar_grid` skiaPrimitive(replace)로
+  // 이전(spec.render.shapes → escape hatch). skiaLegacy 제거 → isCatalogSkiaCutover=true 경로.
+  skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
       variant: {

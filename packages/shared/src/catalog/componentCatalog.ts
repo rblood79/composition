@@ -306,10 +306,11 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
 
 /**
  * ADR-142 family ⑥(overlays) cutover 상태. Dialog/Modal/Popover/Tooltip/DropZone 5개.
- * **skiaLegacy: true** — portal/overlay 렌더(OverlayArrow svg / dashed drop 영역 등 비-box
- * 시각)는 Skia generic 미확정 → DOM(wrapper)/Inspector 는 catalog generic, Skia 만 legacy
- * render.shapes 유지(전 family 후 일괄). Toast 는 imperative API(useToast/ToastProvider —
- * placeable 노드 아님, ComponentList/factory 미등록) → catalog 제외.
+ * **전부 Skia generic 발효 완료 (skiaLegacy 0건)**: Dialog/Modal/Popover/Tooltip 는
+ * buildCatalogShapes(box+text) + skiaPrimitive(backdrop/shadow/arrow 합성), DropZone 는 box.
+ * Tooltip 은 ADR-912 단계 5 (1b) 에서 마지막 발효(bg+text generic + tooltip_arrow append).
+ * Toast 는 imperative API(useToast/ToastProvider — placeable 노드 아님, ComponentList/factory
+ * 미등록) → catalog 제외.
  */
 const FAMILY_6_CUTOVER: CutoverState = "catalog";
 
@@ -338,13 +339,15 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     label: "popover",
     icon: "AppWindowMac",
   }),
-  primitiveEntry(
-    "Tooltip",
-    "overlays",
-    FAMILY_6_CUTOVER,
-    { category: "overlays", label: "tooltip", icon: "MessageSquare" },
-    { skiaLegacy: true },
-  ),
+  // Tooltip — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 5 (1b) 2026-06-04): bg(roundRect)
+  //   + text 는 buildCatalogShapes(variant fill {color.neutral-subtle}, text {color.neutral} —
+  //   rule table 과 spec 일치), arrow 는 skiaPrimitive(tooltip_arrow, append) 합성. Tooltip 은
+  //   SYNTHETIC 아님(text content 가 본문) → buildCatalogShapes 가 text 자연 렌더(Menu 동형).
+  primitiveEntry("Tooltip", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "tooltip",
+    icon: "MessageSquare",
+  }),
   primitiveEntry("DropZone", "overlays", FAMILY_6_CUTOVER, {
     category: "forms",
     label: "drop zone",
@@ -354,8 +357,12 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
 
 /**
  * ADR-142 family ⑦(date) cutover 상태. date 4개(Calendar/RangeCalendar/DatePicker/
- * DateRangePicker). **skiaLegacy: true** — 날짜 grid(6주×7일 cell) / Popover portal 은 Skia
- * generic 미확정 → DOM(wrapper)/Inspector 는 catalog generic, Skia 만 legacy render.shapes 유지.
+ * DateRangePicker). **Skia generic 발효 완료 (skiaLegacy 제거, ADR-912 단계 5 (1b) 2026-06-04)**:
+ * 날짜 grid(6주×7일 cell)는 `calendar_grid` skiaPrimitive(replace, Calendar/RangeCalendar 공유),
+ * trigger field(input box + display text + calendar icon)는 `datefield_trigger` skiaPrimitive
+ * (replace, DatePicker/DateRangePicker 공유)로 이전 — spec.render.shapes → escape hatch. DOM 은
+ * RAC 가 grid/field 자동 합성. nested 시 child CalendarGrid(non-catalog) 가 grid 담당, parent 는
+ * shell/transparent. Popover 는 클릭 시 열리는 portal(정적 캔버스 미표시) → 정적 노드 무관.
  *
  * **color 제외 (사용자 지시 2026-05-31 "TailSwatch 는 패스해")**: TailSwatch(=ColorPicker alias)
  * + ColorArea/ColorWheel/ColorSlider/ColorSwatch(ColorPicker 내부 part)는 family ⑦ cutover
@@ -364,34 +371,28 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
 const FAMILY_7_CUTOVER: CutoverState = "catalog";
 
 const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
-  primitiveEntry(
-    "Calendar",
-    "date-color",
-    FAMILY_7_CUTOVER,
-    { category: "date", label: "calendar", icon: "Calendar" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "RangeCalendar",
-    "date-color",
-    FAMILY_7_CUTOVER,
-    { category: "date", label: "range calendar", icon: "CalendarDays" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "DatePicker",
-    "date-color",
-    FAMILY_7_CUTOVER,
-    { category: "date", label: "date picker", icon: "CalendarCheck" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "DateRangePicker",
-    "date-color",
-    FAMILY_7_CUTOVER,
-    { category: "date", label: "date range picker", icon: "CalendarDays" },
-    { skiaLegacy: true },
-  ),
+  // Calendar/RangeCalendar — calendar_grid skiaPrimitive(replace), binding 이 키 지정.
+  primitiveEntry("Calendar", "date-color", FAMILY_7_CUTOVER, {
+    category: "date",
+    label: "calendar",
+    icon: "Calendar",
+  }),
+  primitiveEntry("RangeCalendar", "date-color", FAMILY_7_CUTOVER, {
+    category: "date",
+    label: "range calendar",
+    icon: "CalendarDays",
+  }),
+  // DatePicker/DateRangePicker — datefield_trigger skiaPrimitive(replace), binding 이 키 지정.
+  primitiveEntry("DatePicker", "date-color", FAMILY_7_CUTOVER, {
+    category: "date",
+    label: "date picker",
+    icon: "CalendarCheck",
+  }),
+  primitiveEntry("DateRangePicker", "date-color", FAMILY_7_CUTOVER, {
+    category: "date",
+    label: "date range picker",
+    icon: "CalendarDays",
+  }),
 ];
 
 /**
@@ -471,8 +472,9 @@ export function getCatalogCutoverTypes(): ReadonlySet<string> {
 
 /**
  * Skia generic 렌더(buildCatalogShapes) 발효 type 집합 — `cutover === "catalog" && !skiaLegacy`.
- * collection 컴포넌트(skiaLegacy:true)는 제외 → Skia 만 legacy render.shapes 유지(items 순회 렌더).
- * ADR-142 family ④/⑤ DOM-only cutover 의 Skia 측 게이트(부분 cutover).
+ * **ADR-912 단계 5 (1b) 2026-06-04**: skiaLegacy 0건 도달 → 현재 catalog 전체가 Skia generic
+ * 발효 (date 4 + Tooltip 은 skiaPrimitive escape — calendar_grid / datefield_trigger / tooltip_arrow).
+ * `skiaLegacy !== true` 필터는 잔존(향후 미발효 entry 추가 시 자동 제외 안전망)이나 현재 제외 0건.
  */
 export function getCatalogSkiaCutoverTypes(): ReadonlySet<string> {
   return new Set(
