@@ -196,10 +196,14 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
  *   (componentRulesTable ListBox rule)의 variant fill + border 로 같은 shell 을 그려 시각 동등
  *   (text 없음 → text 미렌더). row projection 경로는 컨테이너 cutover 와 직교(불변).
  *
- * **나머지 6 collection(Menu/Select/ComboBox/Tabs/TagGroup/GridList) — skiaLegacy: true 유지**:
- *   DOM(Preview)/Inspector 는 catalog generic(composition wrapper + useCollectionData), Skia 만
- *   legacy render.shapes 유지(items 배열 순회 multi-item 렌더 generic backend 미발효, ListBox
- *   projection proof 검증 후 동형 확장). 사용자 결정 "DOM-only cutover".
+ * **7 collection 전부 Skia generic 발효 완료 (ADR-912 단계 4, 2026-06-03~04)**:
+ *   - data-bound row 순회형(GridList/Table) → row projection(canvasSceneNode appendXxxRowProjection)이
+ *     각 행/셀을 독립 Skia 노드로 그림. 컨테이너 shell 은 buildCatalogShapes.
+ *   - trigger-overlay(Select/ComboBox) + factory-child(Tabs/TagGroup) → C2(rule fill 정렬) +
+ *     C3(SYNTHETIC text 차단)만으로 발효(row 순회 없음).
+ *   - Menu(2026-06-04) → 캔버스에서 trigger Button 동형(SYNTHETIC 아님, items SSOT). C3·projector
+ *     불필요. RAC 표준 MenuTrigger>Button+Popover>Menu — Skia 초기 시각 = trigger Button = Preview 초기.
+ *   DOM(Preview)/Inspector 는 RAC items 자동 합성으로 이미 catalog generic. skiaLegacy 0건.
  */
 const FAMILY_4_CUTOVER: CutoverState = "catalog";
 
@@ -248,14 +252,20 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "grid list",
     icon: "Grid",
   }),
-  // Menu — skiaLegacy 유지(다음 묶음). popup↔trigger 본질 미확정(사용자 보류 2026-06-03).
-  primitiveEntry(
-    "Menu",
-    "collections",
-    FAMILY_4_CUTOVER,
-    { category: "collections", label: "menu", icon: "Menu" },
-    { skiaLegacy: true },
-  ),
+  // Menu — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 2026-06-04): Menu 는 캔버스에서
+  //   trigger Button 과 동일한 시각 요소(RAC 표준 MenuTrigger>Button+Popover>Menu — 초기 화면에
+  //   보이는 것은 trigger Button, 메뉴 리스트는 Popover 안에 숨김). Skia 정적 캔버스는 popover 를
+  //   열지 않으므로 trigger 버튼만 그리면 Preview 초기와 일치. 직전 "popup↔trigger 본질 모순"
+  //   framing 은 popup 드롭다운(.react-aria-Menu, Popover 전용 CSS)을 Menu 요소의 초기 시각으로
+  //   오인한 것(정정 2026-06-04). Menu 는 SYNTHETIC 아님(factory children:[], items SSOT) →
+  //   buildCatalogShapes 가 text "Menu" 그림(C3 차단 미적용, Button 동형). rule fill base
+  //   `{color.neutral}` == Button `{color.neutral}`. legacy render.shapes(bg+border+text"Menu")와
+  //   parity, 유일 차이 text align(legacy left → catalog center)는 Button center 정합(정렬 정정).
+  primitiveEntry("Menu", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "menu",
+    icon: "Menu",
+  }),
 ];
 
 /**

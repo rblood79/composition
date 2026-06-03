@@ -848,7 +848,8 @@ function buildCatalogShapesOrPrimitive(
   //     이 set 은 "자식 props 통합 또는 자식 element 가 내용 담당" = 컨테이너 text 금지 type.
   //   - buildCatalogShapes 자체는 변경 0 — text 가 undefined 면 `:171 if(text)` false → 자연히
   //     shell-only(`:169 _hasChildren` early return 과 직교, 둘 중 하나만 성립해도 shell-only).
-  //   - Menu 는 보류(popup↔trigger 본질 미확정, skiaLegacy 유지 — 본 경로 미진입).
+  //   - Menu 는 발효(2026-06-04)됐으나 SYNTHETIC 아님(items SSOT, factory children:[]) → 본 차단
+  //     미적용. trigger 버튼이라 text "Menu" 를 그려야 정상(Button 동형) → shellOnlyProps 제외 정합.
   const shellOnlyProps = SYNTHETIC_CHILD_PROP_MERGE_TAGS.has(type)
     ? { ...specProps, children: undefined, text: undefined, label: undefined }
     : specProps;
