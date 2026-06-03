@@ -308,15 +308,19 @@ export const TagGroupSpec: ComponentSpec<TagGroupProps> = {
 
   variants: {
     default: {
+      // ADR-912 단계 4 C2 (2026-06-03): 정본 table 추종 — 컨테이너 fill base→transparent +
+      //   `border` 제거. `.react-aria-TagGroup` 컨테이너는 transparent(skipCSSGeneration:true,
+      //   수동 CSS transparent) — 배경/border 는 Tag 자식 칩(별도 Tag spec: fill `{color.layer-1}`
+      //   + border)이 담당. buildCatalogShapes 가 컨테이너에 불투명 `{color.layer-2}`+border 를
+      //   그리면 legacy `[]` 불일치(kill: "TagGroup 배경+border 추가"). accent/neutral/negative 유지.
       fill: {
         default: {
-          base: "{color.layer-2}" as TokenRef,
-          hover: "{color.layer-1}" as TokenRef,
-          pressed: "{color.neutral-subtle}" as TokenRef,
+          base: "{color.transparent}" as TokenRef,
+          hover: "{color.transparent}" as TokenRef,
+          pressed: "{color.transparent}" as TokenRef,
         },
       },
       text: "{color.neutral}" as TokenRef,
-      border: "{color.border}" as TokenRef,
     },
     accent: {
       fill: {

@@ -838,10 +838,25 @@ function buildCatalogShapesOrPrimitive(
     if (replaceShapes) return replaceShapes;
   }
 
+  // ADR-912 단계 4 C3 (text 중복 방지, shell-only 강제, 2026-06-03): SYNTHETIC 컨테이너
+  //   (Select/ComboBox/Tabs/TagGroup 등 — 자식 element/projection 이 내용 담당)는 발효 시
+  //   `_hasChildren` 주입이 차단(line 1110-1116)되므로 buildCatalogShapes 의 text 분기
+  //   (`:171 if(text)`)가 컨테이너 노드의 value/label 을 그린다. 동시에 자식 trigger element
+  //   (SelectValue/ComboBoxInput)도 같은 value text 를 그려 **중복**된다. 컨테이너는 shell
+  //   (bg+border)만 그리도록 text 입력(children/text/label)을 차단한 propsView 로 호출한다.
+  //   - 판정 = `SYNTHETIC_CHILD_PROP_MERGE_TAGS` 멤버십(데이터 분기 — 컴포넌트별 if 아님).
+  //     이 set 은 "자식 props 통합 또는 자식 element 가 내용 담당" = 컨테이너 text 금지 type.
+  //   - buildCatalogShapes 자체는 변경 0 — text 가 undefined 면 `:171 if(text)` false → 자연히
+  //     shell-only(`:169 _hasChildren` early return 과 직교, 둘 중 하나만 성립해도 shell-only).
+  //   - Menu 는 보류(popup↔trigger 본질 미확정, skiaLegacy 유지 — 본 경로 미진입).
+  const shellOnlyProps = SYNTHETIC_CHILD_PROP_MERGE_TAGS.has(type)
+    ? { ...specProps, children: undefined, text: undefined, label: undefined }
+    : specProps;
+
   // base box+text + prepend/append 패턴(backdrop/shadow/arrow) 합성 (ADR-142 Inc3 overlays).
   const base = buildCatalogShapes(
     visual,
-    specProps,
+    shellOnlyProps,
     sizeSpec,
     componentState,
     textDecoration,

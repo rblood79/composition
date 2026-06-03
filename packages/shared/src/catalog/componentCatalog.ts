@@ -211,39 +211,41 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "list box",
     icon: "ListIcon",
   }),
+  // ADR-912 단계 4 (비-data-bound 4종 Skia generic 발효, 2026-06-03): Select/ComboBox/Tabs/
+  //   TagGroup 의 skiaLegacy 제거 → isCatalogSkiaCutover=true → buildCatalogShapes 경로.
+  //   안전 3계약 동반 land: C2(rule fill 정렬 — Tabs/TagGroup default variant 컨테이너 shell
+  //   transparent+border 제거, componentRulesTable.ts) + C3(text 중복 방지 — SYNTHETIC 컨테이너
+  //   shell-only propsView, buildSpecNodeData buildCatalogShapesOrPrimitive). 이들은
+  //   trigger-overlay(Select/ComboBox) / factory-child(Tabs/TagGroup)라 row 순회 없음 → C1
+  //   projector 불필요. Select/ComboBox 컨테이너 rule variants:{} 빈값(의도된 transparent, 자식
+  //   trigger 가 bg/border 담당) → C2 변경 0.
+  primitiveEntry("Select", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "select",
+    icon: "ChevronDown",
+  }),
+  primitiveEntry("ComboBox", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "combo box",
+    icon: "ChevronDown",
+  }),
+  primitiveEntry("Tabs", "collections", FAMILY_4_CUTOVER, {
+    category: "layout",
+    label: "tabs",
+    icon: "AppWindow",
+  }),
+  primitiveEntry("TagGroup", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "tag group",
+    icon: "Tag",
+  }),
+  // Menu/GridList — skiaLegacy 유지(다음 묶음). Menu: popup↔trigger 본질 미확정(사용자 보류
+  //   2026-06-03). GridList: data-bound row 순회 → C1 generic collectionProjector 필요.
   primitiveEntry(
     "Menu",
     "collections",
     FAMILY_4_CUTOVER,
     { category: "collections", label: "menu", icon: "Menu" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "Select",
-    "collections",
-    FAMILY_4_CUTOVER,
-    { category: "forms", label: "select", icon: "ChevronDown" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "ComboBox",
-    "collections",
-    FAMILY_4_CUTOVER,
-    { category: "forms", label: "combo box", icon: "ChevronDown" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "Tabs",
-    "collections",
-    FAMILY_4_CUTOVER,
-    { category: "layout", label: "tabs", icon: "AppWindow" },
-    { skiaLegacy: true },
-  ),
-  primitiveEntry(
-    "TagGroup",
-    "collections",
-    FAMILY_4_CUTOVER,
-    { category: "collections", label: "tag group", icon: "Tag" },
     { skiaLegacy: true },
   ),
   primitiveEntry(

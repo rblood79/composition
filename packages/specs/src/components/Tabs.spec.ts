@@ -137,7 +137,10 @@ export const TabsSpec: ComponentSpec<TabsProps> = {
       },
       text: "{color.neutral-subdued}" as TokenRef,
       textHover: "{color.neutral}" as TokenRef,
-      border: "{color.border}" as TokenRef,
+      // ADR-912 단계 4 C2 (2026-06-03): 정본 table 추종 — 컨테이너 `border` 제거.
+      //   `.react-aria-Tabs` 컨테이너는 박스 border 없음(generated CSS line 9-22 에도 없음).
+      //   탭 하단 선(border-bottom)은 Tab 자식/indicator `::before` 가 그린다(컨테이너 박스 아님).
+      //   buildCatalogShapes 가 `visual.border` 를 컨테이너 박스 border 로 그리면 legacy `[]` 불일치.
     },
   },
 

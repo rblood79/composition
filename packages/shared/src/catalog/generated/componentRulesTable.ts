@@ -5439,6 +5439,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {
       default: {
+        // ADR-912 단계 4 C2 (rule fill 정렬, 2026-06-03): 컨테이너 `colors.border` 제거.
+        //   `.react-aria-Tabs` 는 배경/박스 border 없음 — tab indicator `::before` 선만 있다(컨테이너
+        //   border 아님). buildCatalogShapes 가 `visual.border`(=colors.border)를 컨테이너 박스 border 로
+        //   그리면 legacy render.shapes `[]` 와 불일치(kill: "Tabs border 추가"). text/textHover 는 유지.
         fill: {
           default: {
             base: "{color.transparent}",
@@ -5449,7 +5453,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral-subdued}",
           textHover: "{color.neutral}",
-          border: "{color.border}",
         },
       },
     },
@@ -5540,16 +5543,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {
       default: {
+        // ADR-912 단계 4 C2 (rule fill 정렬, 2026-06-03): 컨테이너 fill base→transparent + `colors.border`
+        //   제거. `.react-aria-TagGroup` 컨테이너는 transparent — 배경/border 는 Tag 자식 칩(별도 `Tag`
+        //   entry: fill `{color.layer-1}` + border)이 담당한다. 발효 시 buildCatalogShapes 가 default
+        //   variant 의 불투명 `{color.layer-2}` + border 를 컨테이너 박스로 그리면 legacy `[]` 와 불일치
+        //   (kill: "TagGroup 배경+border 추가"). accent/neutral/negative variant(사용자 명시 강조)는 유지.
         fill: {
           default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.neutral-subtle}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
         },
       },
       accent: {
