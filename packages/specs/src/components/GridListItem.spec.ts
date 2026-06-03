@@ -15,13 +15,38 @@
  * @packageDocumentation
  */
 
-import type { ComponentSpec, TokenRef } from "../types";
+import type { ComponentSpec, Shape, TokenRef } from "../types";
+import { fontFamily } from "../primitives/typography";
+import { parsePxValue } from "../primitives";
+import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
 
 /**
- * GridListItem Props (Spec metadata 전용)
+ * GridListItem Props (Spec metadata + ADR-912 C1 카드 렌더 데이터).
+ *
+ * ADR-912 단계 4 C1: projected GridListItem node 가 카드를 자체 렌더하므로 row projection 이
+ * 주입하는 데이터 필드(children/description/textValue/value/style)를 받는다 (ListBoxItemProps 동형).
  */
 export interface GridListItemProps {
   size?: "md";
+  children?: unknown;
+  description?: unknown;
+  textValue?: unknown;
+  value?: unknown;
+  isDisabled?: boolean;
+  _isSelected?: boolean;
+  style?: Record<string, string | number | undefined>;
+}
+
+/** props.children/textValue/value 에서 카드 label 텍스트 추출 (ListBoxItem 패턴). */
+function readText(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return null;
+}
+
+/** template placeholder(`{label}` 등) 판정 — origin/template 미리보기 시 sample 표시. */
+function isTemplatePlaceholder(value: unknown): boolean {
+  return typeof value === "string" && /^\{.+\}$/.test(value);
 }
 
 /**
@@ -90,9 +115,106 @@ export const GridListItemSpec: ComponentSpec<GridListItemProps> = {
   },
 
   render: {
-    // Skia 미사용 — Spec metadata 전용.
-    //   card 시각은 부모 GridList.render.shapes 가 resolveGridListItemMetric(fontSize) 를 참조.
-    shapes: () => [],
+    // ADR-912 단계 4 C1 (2026-06-03): 카드 시각을 부모 GridList.render.shapes 에서 본 spec 으로 이전.
+    //   projected GridListItem node(canvasSceneNode collectionProjection)가 카드 1개를 자체 렌더한다
+    //   (ListBoxItem.spec.render.shapes 동형 — 부모는 shell, item spec 이 행/카드 렌더). 배치(grid/stack
+    //   numCols)는 Taffy layout 이 담당하므로 카드는 (0,0) origin 단일 박스로 그린다.
+    //   시각 정본: 기존 GridList.render.shapes renderOneCard(roundRect {color.layer-1} + border
+    //   {color.border} + label fw600 + description {color.neutral-subdued}).
+    shapes: (props, size, _state = "default") => {
+      const style = (props.style ?? {}) as Record<string, unknown>;
+      const fontSize = resolveSpecFontSize(
+        (style.fontSize as string | number | undefined) ?? size.fontSize,
+        14,
+      );
+      const metric = resolveGridListItemMetric(fontSize);
+      const cardPaddingX = parsePxValue(
+        style.paddingLeft ?? style.padding,
+        metric.cardPaddingX,
+      );
+      const cardPaddingY = parsePxValue(
+        style.paddingTop ?? style.padding,
+        metric.cardPaddingY,
+      );
+      const cardBorderRadius = parsePxValue(
+        style.borderRadius,
+        metric.cardBorderRadius,
+      );
+      const descFontSize = fontSize - 2;
+      const ff = (style.fontFamily as string) || fontFamily.sans;
+      const textColor =
+        (style.color as string | undefined) ?? ("{color.neutral}" as TokenRef);
+
+      // template placeholder(`{label}`) → sample 미리보기 (빈 화면 방지, ListBoxItem 패턴).
+      const labelRaw = props.children ?? props.textValue ?? props.value;
+      const isTemplatePreview = isTemplatePlaceholder(labelRaw);
+      const label = isTemplatePreview
+        ? "Label"
+        : (readText(props.children) ??
+          readText(props.textValue) ??
+          readText(props.value) ??
+          "");
+      const description = isTemplatePreview
+        ? props.description != null && props.description !== ""
+          ? "Description"
+          : null
+        : readText(props.description);
+
+      const labelH = fontSize;
+      const descH = description ? descFontSize + metric.descGap : 0;
+      const cardHeight = parsePxValue(
+        style.height,
+        cardPaddingY * 2 + labelH + descH,
+      );
+
+      const shapes: Shape[] = [];
+
+      // 카드 박스 (bg + border) — GridList.render.shapes renderOneCard 정본.
+      shapes.push({
+        id: "card-bg",
+        type: "roundRect",
+        x: 0,
+        y: 0,
+        width: "auto",
+        height: cardHeight,
+        radius: cardBorderRadius,
+        fill: "{color.layer-1}" as TokenRef,
+      });
+      shapes.push({
+        type: "border",
+        target: "card-bg",
+        borderWidth: parsePxValue(style.borderWidth, 1),
+        color: "{color.border}" as TokenRef,
+        radius: cardBorderRadius,
+      });
+
+      // label
+      shapes.push({
+        type: "text",
+        x: cardPaddingX,
+        y: cardPaddingY,
+        text: label,
+        fontSize,
+        fontFamily: ff,
+        fontWeight: (style.fontWeight as string | number | undefined) ?? 600,
+        fill: textColor,
+      });
+
+      // description (optional)
+      if (description) {
+        shapes.push({
+          type: "text",
+          x: cardPaddingX,
+          y: cardPaddingY + fontSize + metric.descGap,
+          text: description,
+          fontSize: descFontSize,
+          fontFamily: ff,
+          fill: "{color.neutral-subdued}" as TokenRef,
+        });
+      }
+
+      return shapes;
+    },
     react: () => ({}),
   },
 };
