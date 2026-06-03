@@ -8,7 +8,12 @@
  * Spec을 단일 소스(Single Source of Truth)로 사용.
  */
 
-import type { ComponentSpec, TextShape, TokenRef } from "@composition/specs";
+import type {
+  ComponentSpec,
+  Shape,
+  TextShape,
+  TokenRef,
+} from "@composition/specs";
 import {
   ButtonSpec,
   BadgeSpec,
@@ -34,7 +39,11 @@ import {
   KbdSpec,
   CodeSpec,
   resolveToken,
+  buildCatalogShapes,
+  resolveComponentVisual,
+  getSkiaPrimitiveMode,
 } from "@composition/specs";
+import { isCatalogSkiaCutover, getPrimitiveBinding } from "@composition/shared";
 
 /** Spec shapes에서 추출한 텍스트 스타일 */
 export interface SpecTextStyle {
@@ -53,28 +62,45 @@ export interface SpecTextStyle {
   lineHeight?: number;
 }
 
-/** type → Spec + 기본 size 매핑 (텍스트 폭 측정이 필요한 inline 컴포넌트만) */
+/**
+ * type → Spec + 기본 size 매핑 (텍스트 폭 측정이 필요한 inline 컴포넌트만).
+ *
+ * **catalogType (ADR-912 선행 — 측정 source generic 전환)**: 해당 mapKey 가 가리키는
+ * componentCatalog type 이름. `isCatalogSkiaCutover(catalogType)===true` 이면 측정 source 가
+ * render.shapes → **buildCatalogShapes**(그리기와 같은 source = 측정·그리기 SSOT 일치)로
+ * 전환된다. catalogType 미설정 또는 비-발효(false)면 기존 render.shapes 측정 유지
+ * (skiaLegacy collection / catalog 미등록 sub-part / TEXT_LEAF — 모두 render.shapes 측정 잔류).
+ */
 const TEXT_BEARING_SPECS: Record<
   string,
-  { spec: ComponentSpec<Record<string, unknown>>; defaultSize: string }
+  {
+    spec: ComponentSpec<Record<string, unknown>>;
+    defaultSize: string;
+    /** componentCatalog type (Skia generic 발효 판정용). 미설정 = render.shapes 측정 고정. */
+    catalogType?: string;
+  }
 > = {
-  button: { spec: ButtonSpec, defaultSize: "md" },
-  submitbutton: { spec: ButtonSpec, defaultSize: "md" },
-  fancybutton: { spec: ButtonSpec, defaultSize: "md" },
-  badge: { spec: BadgeSpec, defaultSize: "sm" },
-  type: { spec: BadgeSpec, defaultSize: "sm" },
-  chip: { spec: BadgeSpec, defaultSize: "sm" },
-  togglebutton: { spec: ToggleButtonSpec, defaultSize: "md" },
+  button: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
+  submitbutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
+  fancybutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
+  badge: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  type: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  chip: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  togglebutton: {
+    spec: ToggleButtonSpec,
+    defaultSize: "md",
+    catalogType: "ToggleButton",
+  },
   tab: {
     spec: TabSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
   },
-  link: { spec: LinkSpec, defaultSize: "md" },
-  a: { spec: LinkSpec, defaultSize: "md" },
-  linkbutton: { spec: LinkSpec, defaultSize: "md" },
-  checkbox: { spec: CheckboxSpec, defaultSize: "md" },
-  radio: { spec: RadioSpec, defaultSize: "md" },
-  switch: { spec: SwitchSpec, defaultSize: "md" },
+  link: { spec: LinkSpec, defaultSize: "md", catalogType: "Link" },
+  a: { spec: LinkSpec, defaultSize: "md", catalogType: "Link" },
+  linkbutton: { spec: LinkSpec, defaultSize: "md", catalogType: "Link" },
+  checkbox: { spec: CheckboxSpec, defaultSize: "md", catalogType: "Checkbox" },
+  radio: { spec: RadioSpec, defaultSize: "md", catalogType: "Radio" },
+  switch: { spec: SwitchSpec, defaultSize: "md", catalogType: "Switch" },
   input: { spec: InputSpec, defaultSize: "sm" },
   /** `breadcrumbs` 태그는 extractSpecTextStyle 내부에서 BreadcrumbSpec으로 처리 */
   breadcrumb: { spec: BreadcrumbSpec, defaultSize: "M" },
@@ -164,7 +190,51 @@ export function extractSpecTextStyle(
         ? { ...props, size: sizeName }
         : { ...(props ?? {}) };
 
-  const shapes = spec.render.shapes(propsForShapes, size, "default");
+  // ADR-912 선행 — 측정 source generic 전환: Skia generic 발효 type 은 그리기와 동일한
+  //   buildCatalogShapes 로 TextShape 를 산출(측정·그리기 SSOT 일치). 비-발효(skiaLegacy /
+  //   catalog 미등록 sub-part / TEXT_LEAF)는 기존 render.shapes 측정 유지.
+  //   visual 은 spec 어댑터(resolveComponentVisual)로 만들어 전달 — builder dispatch 의
+  //   resolveSkiaVisualRule(rule table)과 동일 ComponentVisualRule 형태(specs 테스트와 같은 경계).
+  //
+  // **replace-mode skiaPrimitive 제외 (checkbox/radio/switch)**: 이들은 그리기 dispatch
+  //   (buildCatalogShapesOrPrimitive)에서 skiaPrimitive replace 로 box+text 를 **대체**하여
+  //   indicator 만 그린다 — buildCatalogShapes 의 text(fontWeight fallback 500)는 실제 렌더에
+  //   안 쓰인다. label 폭 측정은 spec.render.shapes 가 emit 하는 text(fontWeight 미emit→400)를
+  //   따라야 정합하므로, replace primitive 보유 type 은 측정도 render.shapes 유지(buildCatalogShapes
+  //   text 측정 시 fontWeight drift). text-bearing replace 가 아닌 box+text 발효 type
+  //   (Button/Badge/ToggleButton/Link)만 측정 전환.
+  const skiaPrimitive = entry.catalogType
+    ? getPrimitiveBinding(entry.catalogType)?.skiaPrimitive
+    : undefined;
+  const primitiveKeys = skiaPrimitive
+    ? Array.isArray(skiaPrimitive)
+      ? skiaPrimitive
+      : [skiaPrimitive]
+    : [];
+  const hasReplacePrimitive = primitiveKeys.some(
+    (k) => getSkiaPrimitiveMode(k) === "replace",
+  );
+  const useCatalog =
+    entry.catalogType != null &&
+    isCatalogSkiaCutover(entry.catalogType) &&
+    !hasReplacePrimitive;
+  let shapes: Shape[];
+  if (useCatalog) {
+    const variantName =
+      (propsForShapes.variant as string | undefined) ?? spec.defaultVariant;
+    const visual = resolveComponentVisual(spec, variantName);
+    const textDecoration =
+      spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
+    shapes = buildCatalogShapes(
+      visual,
+      propsForShapes,
+      size,
+      "default",
+      textDecoration && textDecoration !== "none" ? textDecoration : undefined,
+    );
+  } else {
+    shapes = spec.render.shapes(propsForShapes, size, "default");
+  }
 
   const textShape = shapes.find(
     (s): s is TextShape & { type: "text" } => s.type === "text",

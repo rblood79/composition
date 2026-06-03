@@ -1,4 +1,15 @@
 import { describe, expect, test } from "vitest";
+import {
+  ButtonSpec,
+  BadgeSpec,
+  ToggleButtonSpec,
+  LinkSpec,
+  CheckboxSpec,
+  RadioSpec,
+  SwitchSpec,
+  type ComponentSpec,
+  type TextShape,
+} from "@composition/specs";
 import { extractSpecTextStyle } from "../specTextStyle";
 
 /**
@@ -33,6 +44,109 @@ describe("extractSpecTextStyle — TEXT_LEAF_TAGS size→fontSize/lineHeight (A�
       const md = extractSpecTextStyle(tag, { size: "md", children: "x" });
       expect(md, tag).not.toBeNull();
       expect(typeof md!.lineHeight, tag).toBe("number");
+    }
+  });
+});
+
+/**
+ * ADR-912 선행(2번) — text measurement generic 전환 parity.
+ *
+ * generic 발효 type(isCatalogSkiaCutover=true: Button/Badge/ToggleButton/Link/
+ * Checkbox/Radio/Switch)의 extractSpecTextStyle 은 측정 source 를 render.shapes →
+ * buildCatalogShapes 로 전환한다(그리기와 같은 source = 측정·그리기 SSOT 일치).
+ *
+ * parity oracle: 전환 후 extractSpecTextStyle 결과의 fontSize/fontWeight/fontFamily 가
+ * **render.shapes 가 emit 하는 TextShape 와 동일**해야 한다(시각 대칭 단일 진실).
+ * buildCatalogShapes ↔ render.shapes 의 shape 레벨 parity 는 buildCatalogShapes.test.ts
+ * 가 보장하므로, 여기서는 측정 추출 결과가 render.shapes oracle 과 일치함을 확인한다.
+ */
+describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 선행)", () => {
+  /** render.shapes 가 emit 하는 TextShape 에서 측정 필드를 직접 뽑는 oracle. */
+  function shapesTextOracle(
+    spec: ComponentSpec<Record<string, unknown>>,
+    sizeName: string,
+    props: Record<string, unknown>,
+  ): { fontSize: number; fontWeight: number; fontFamily: string } | null {
+    const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
+    if (!size) return null;
+    const shapes = spec.render.shapes(props, size, "default");
+    const t = shapes.find(
+      (s): s is TextShape & { type: "text" } => s.type === "text",
+    );
+    if (!t) return null;
+    const fw = t.fontWeight;
+    return {
+      fontSize: t.fontSize,
+      fontWeight:
+        typeof fw === "number"
+          ? fw
+          : typeof fw === "string"
+            ? parseInt(fw, 10) || 400
+            : 400,
+      fontFamily: t.fontFamily,
+    };
+  }
+
+  /**
+   * box+text 발효 type — 측정 source 가 buildCatalogShapes 로 전환됨.
+   * buildCatalogShapes 가 그리는 text 와 render.shapes 의 text 가 폰트 속성 동일해야 함
+   * (그리기·측정 SSOT 일치 = 시각 대칭).
+   */
+  const boxTextCutoverCases: Array<{
+    tag: string;
+    spec: ComponentSpec<Record<string, unknown>>;
+    size: string;
+  }> = [
+    { tag: "button", spec: ButtonSpec, size: "md" },
+    { tag: "badge", spec: BadgeSpec, size: "sm" },
+    {
+      tag: "togglebutton",
+      spec: ToggleButtonSpec as ComponentSpec<Record<string, unknown>>,
+      size: "md",
+    },
+    { tag: "link", spec: LinkSpec, size: "md" },
+  ];
+
+  /**
+   * replace-mode skiaPrimitive type — 측정은 render.shapes 유지(전환 제외).
+   * buildCatalogShapes box+text 가 그리기에서 indicator 로 대체되므로 측정도 render.shapes 정합.
+   */
+  const replacePrimitiveCases: Array<{
+    tag: string;
+    spec: ComponentSpec<Record<string, unknown>>;
+    size: string;
+  }> = [
+    { tag: "checkbox", spec: CheckboxSpec, size: "md" },
+    { tag: "radio", spec: RadioSpec, size: "md" },
+    { tag: "switch", spec: SwitchSpec, size: "md" },
+  ];
+
+  for (const { tag, spec, size } of [
+    ...boxTextCutoverCases,
+    ...replacePrimitiveCases,
+  ]) {
+    test(`${tag}: 측정 결과가 render.shapes oracle 과 fontSize/fontWeight/fontFamily 일치`, () => {
+      const props = { size, children: "Sample" };
+      const measured = extractSpecTextStyle(tag, props);
+      const oracle = shapesTextOracle(spec, size, props);
+
+      expect(measured, `${tag} measured`).not.toBeNull();
+      expect(oracle, `${tag} oracle`).not.toBeNull();
+      expect(measured!.fontSize, `${tag} fontSize`).toBe(oracle!.fontSize);
+      expect(measured!.fontWeight, `${tag} fontWeight`).toBe(
+        oracle!.fontWeight,
+      );
+      expect(measured!.fontFamily, `${tag} fontFamily`).toBe(
+        oracle!.fontFamily,
+      );
+    });
+  }
+
+  test("box+text 발효 type 은 텍스트 측정이 비어있지 않다(fontSize > 0)", () => {
+    for (const { tag } of [...boxTextCutoverCases, ...replacePrimitiveCases]) {
+      const m = extractSpecTextStyle(tag, { size: "md", children: "x" });
+      expect(m, tag).not.toBeNull();
+      expect(m!.fontSize, tag).toBeGreaterThan(0);
     }
   });
 });
