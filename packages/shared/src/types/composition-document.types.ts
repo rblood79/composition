@@ -189,8 +189,9 @@ export interface ComponentRule {
 /**
  * 컴포넌트×variant×state 시각 규칙 테이블 (ADR-142 G2(b) B — D3 시각 SSOT).
  *
- * key = component type (예: "Button"). 124 spec 의 variants/sizes/fill 을 build-time 생성
- * (`packages/specs/scripts/generate-rules.ts` → `generated/componentRulesTable.ts`).
+ * key = component type (예: "Button"). 구현체 `generated/componentRulesTable.ts` 는 직접 편집 정본
+ * (ADR-912 ②-6-A 1A-(a) — 과거 spec→table 생성기 `generate-rules.ts` 가 1회 생성한 결과를 freeze
+ * 후 손 편집 정본으로 승격, 생성기는 단계 5 step 3 에서 삭제됨).
  * generic 렌더러(buildCatalogShapes / CSSGenerator)는 spec 참조 0 으로 본 테이블만 소비한다.
  * 문서별 커스텀 규칙(향후 Phase 2)은 `CompositionDocument.componentRules` 로 build-time 기본을
  * override 한다.
