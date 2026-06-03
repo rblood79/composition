@@ -19,6 +19,28 @@ export const RENDER_PROJECTION_PREFIX = "projection:";
 /** ADR-135 page-frame projection 의 infix (prefix 가 아닌 중간 토큰). */
 export const PAGE_FRAME_PROJECTION_INFIX = "::page-frame::";
 
+/**
+ * collection projection id 의 generic 생성기 (ADR-912 단계 4 C1).
+ *
+ * family namespace 는 prefix(`projection:<family>-row:`)에만 둔다 — metadata kind 는 단일
+ * generic(`collection-row`/`collection-rows`)이라 downstream switch 가 family 수만큼 늘지
+ * 않는다(no-classification). family 차이는 projectionId 문자열에만 반영.
+ */
+export function toCollectionRowProjectionId(
+  family: string,
+  ownerId: string,
+  itemKey: string,
+): string {
+  return `${RENDER_PROJECTION_PREFIX}${family}-row:${ownerId}:${itemKey}`;
+}
+
+export function toCollectionRowsGroupProjectionId(
+  family: string,
+  ownerId: string,
+): string {
+  return `${RENDER_PROJECTION_PREFIX}${family}-rows:${ownerId}`;
+}
+
 /** collection row projection namespace (한 행 = template subtree 1벌 전개의 root). */
 export const LISTBOX_ROW_PROJECTION_PREFIX = "projection:listbox-row:";
 /** collection rows-group projection namespace (행 컨테이너). */
@@ -28,11 +50,11 @@ export function toListBoxRowProjectionId(
   listBoxId: string,
   itemKey: string,
 ): string {
-  return `${LISTBOX_ROW_PROJECTION_PREFIX}${listBoxId}:${itemKey}`;
+  return toCollectionRowProjectionId("listbox", listBoxId, itemKey);
 }
 
 export function toListBoxRowsGroupProjectionId(listBoxId: string): string {
-  return `${LISTBOX_ROWS_GROUP_PROJECTION_PREFIX}${listBoxId}`;
+  return toCollectionRowsGroupProjectionId("listbox", listBoxId);
 }
 
 /**
@@ -48,4 +70,24 @@ export function isRenderProjectionId(id: string | null | undefined): boolean {
     (id.startsWith(RENDER_PROJECTION_PREFIX) ||
       id.includes(PAGE_FRAME_PROJECTION_INFIX))
   );
+}
+
+/**
+ * collection **row** projection kind 판정 (단일 진입점, ADR-912 단계 4 C1).
+ *
+ * listbox/gridlist 등 family 가 늘어도 downstream(write-target/interaction)은 본 helper 1곳만
+ * 갱신하면 같은 handler 로 처리된다(본문 복제 0 — no-classification). family 차이는 projectionId
+ * prefix + node.type 에 있고, metadata 변환 로직은 동형(listBoxId/itemKey/templateOriginId).
+ */
+export function isCollectionRowProjectionKind(
+  kind: string | undefined | null,
+): boolean {
+  return kind === "listbox-row" || kind === "gridlist-row";
+}
+
+/** collection **rows-group**(행 컨테이너) projection kind 판정. */
+export function isCollectionRowsGroupProjectionKind(
+  kind: string | undefined | null,
+): boolean {
+  return kind === "listbox-rows" || kind === "gridlist-rows";
 }

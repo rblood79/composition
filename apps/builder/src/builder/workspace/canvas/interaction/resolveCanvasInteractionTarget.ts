@@ -42,7 +42,7 @@ type ProjectionLike =
   // 사용자가 행 layout 을 편집하면 모든 행에 반영되도록 한다. projected ID 는 selection 에 진입하지 않는다(§9).
   // (discriminated narrowing 을 위해 kind 별 멤버 분리.)
   | {
-      kind: "listbox-row";
+      kind: "listbox-row" | "gridlist-row";
       listBoxId: string;
       templateAnchorId?: string | null;
       templateOriginId?: string | null;
@@ -50,7 +50,7 @@ type ProjectionLike =
       rowIndex?: number;
     }
   | {
-      kind: "listbox-rows";
+      kind: "listbox-rows" | "gridlist-rows";
       listBoxId: string;
       templateAnchorId?: string | null;
       templateOriginId?: string | null;
@@ -106,9 +106,14 @@ export function resolveCanvasInteractionTarget(input: {
     //   canonical ref(비-scene) 노드라 선택 대상이 될 수 없다 → templateAnchorId 반환은 no-op
     //   (selection 실패)였다. ListBox 의 padding 영역 클릭은 동작하지만 행 클릭은 선택이 안 되던 버그.
     //   행 layout 편집은 origin ListBoxItem(Components page) 편집 → projection 행 style 전파 경로 사용.
+    // collection row/rows projection 클릭 → collection 컴포넌트 선택. listbox/gridlist 동형
+    //   (discriminated narrowing 보존 위해 kind 직접 비교 — helper 는 boolean 이라 narrow 못 함).
+    //   신규 family 추가 시 본 OR + ProjectionLike union 동시 갱신.
     if (
       projection.kind === "listbox-row" ||
-      projection.kind === "listbox-rows"
+      projection.kind === "listbox-rows" ||
+      projection.kind === "gridlist-row" ||
+      projection.kind === "gridlist-rows"
     ) {
       return {
         kind: "select",
@@ -117,7 +122,11 @@ export function resolveCanvasInteractionTarget(input: {
       };
     }
 
+    // slot-guard 는 page-frame-element projection 한정(page-slot-fill 은 위에서 이미 return).
+    //   명시 kind narrowing — collection row/rows kind 추가로 union 이 커져도 slotName/descendantPath
+    //   접근이 page-frame-element 로 정확히 좁혀지게 한다.
     if (
+      projection.kind === "page-frame-element" &&
       hitNode.type === "Slot" &&
       projection.slotName &&
       projection.descendantPath

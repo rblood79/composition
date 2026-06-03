@@ -7,7 +7,10 @@ export type VirtualChildType =
   | "radio"
   | "tree"
   | "listbox-rows"
-  | "listbox-row";
+  | "listbox-row"
+  // ADR-912 단계 4 C1: GridList projected row/rows virtual child.
+  | "gridlist-rows"
+  | "gridlist-row";
 
 export interface LayerTreeNode {
   id: string;

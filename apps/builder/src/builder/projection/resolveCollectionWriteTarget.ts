@@ -16,7 +16,10 @@
  * 로 출력 self-check). 이로써 `assertCanonicalMoveTarget`/canonical mutation 차단과 정합.
  */
 
-import { isRenderProjectionId } from "./renderProjectionIds";
+import {
+  isRenderProjectionId,
+  isCollectionRowProjectionKind,
+} from "./renderProjectionIds";
 import type { CanvasProjectionMetadata } from "../workspace/canvas/scene/canvasSceneNode";
 
 /** 편집 의도 — 어느 패널/view 에서의 편집인지로 caller 가 결정. */
@@ -56,19 +59,19 @@ export type CollectionWriteTarget =
   | CollectionOverrideWriteTarget;
 
 /**
- * 본 함수가 인식하는 collection projection metadata 부분집합.
- * 현재 listbox-row 만 — 신규 family 는 동형 메타(listBoxId/itemKey/templateOriginId)를
- * 추가하면 동일 변환 경로를 탄다.
+ * 본 함수가 인식하는 collection row projection metadata 부분집합.
+ * listbox-row / gridlist-row 동형 메타(listBoxId/itemKey/templateOriginId) — 신규 family 는
+ * `isCollectionRowProjectionKind`(renderProjectionIds 단일 진입점)에 kind 추가만으로 동일 변환.
  */
 type CollectionRowProjection = Extract<
   CanvasProjectionMetadata,
-  { kind: "listbox-row" }
+  { kind: "listbox-row" | "gridlist-row" }
 >;
 
 function isCollectionRowProjection(
   meta: CanvasProjectionMetadata | undefined | null,
 ): meta is CollectionRowProjection {
-  return meta?.kind === "listbox-row";
+  return isCollectionRowProjectionKind(meta?.kind);
 }
 
 /**
