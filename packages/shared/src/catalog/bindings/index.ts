@@ -15,6 +15,7 @@ import { datePickerBinding } from "./DatePicker.binding";
 import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { dialogBinding } from "./Dialog.binding";
 import { dropZoneBinding } from "./DropZone.binding";
+import { fileTriggerBinding } from "./FileTrigger.binding";
 import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
 import { iconBinding } from "./Icon.binding";
@@ -35,6 +36,7 @@ import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
+import { textAreaBinding } from "./TextArea.binding";
 import { textFieldBinding } from "./TextField.binding";
 import { timeFieldBinding } from "./TimeField.binding";
 import { toggleButtonBinding } from "./ToggleButton.binding";
@@ -55,6 +57,7 @@ export * from "./DatePicker.binding";
 export * from "./DateRangePicker.binding";
 export * from "./Dialog.binding";
 export * from "./DropZone.binding";
+export * from "./FileTrigger.binding";
 export * from "./Form.binding";
 export * from "./GridList.binding";
 export * from "./Icon.binding";
@@ -75,6 +78,7 @@ export * from "./Switch.binding";
 export * from "./Table.binding";
 export * from "./Tabs.binding";
 export * from "./TagGroup.binding";
+export * from "./TextArea.binding";
 export * from "./TextField.binding";
 export * from "./Tree.binding";
 export * from "./TimeField.binding";
@@ -98,8 +102,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,
+  // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic)
+  FileTrigger: fileTriggerBinding,
   // family ② fields
   TextField: textFieldBinding,
+  // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)
+  TextArea: textAreaBinding,
   NumberField: numberFieldBinding,
   SearchField: searchFieldBinding,
   DateField: dateFieldBinding,

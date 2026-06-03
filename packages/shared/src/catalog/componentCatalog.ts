@@ -94,6 +94,12 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "badge",
     icon: "Star",
   }),
+  // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic, value-dependent 시각 없음)
+  primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
+    category: "forms",
+    label: "file trigger",
+    icon: "Upload",
+  }),
 ];
 
 /**
@@ -107,6 +113,12 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("TextField", "fields", FAMILY_2_CUTOVER, {
     category: "forms",
     label: "text field",
+    icon: "RectangleEllipsis",
+  }),
+  // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)
+  primitiveEntry("TextArea", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "text area",
     icon: "RectangleEllipsis",
   }),
   primitiveEntry("NumberField", "fields", FAMILY_2_CUTOVER, {
