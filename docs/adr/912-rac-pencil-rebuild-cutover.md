@@ -10,7 +10,7 @@ Proposed — 2026-06-02
 
 ## Context
 
-composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catalog/binding 신구조를 **추가** 했으나 구 정본(`*.spec.ts` 124 / `render.shapes()` active 호출 59(test/spec 정의 제외) / 6 레지스트리)을 **제거하지 않아**, 신·구 두 정본이 동시에 사는 **dual-SSOT 전환기**에 멈춰 있다. `skiaLegacy:true` collection family 는 한 컴포넌트의 DOM=신경로·Skia=구경로라 — 같은 컴포넌트 안에서 정본이 갈린다. 이것이 ADR-910/911 이 없애려던 drift 의 현재 형태다.
+composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catalog/binding 신구조를 **추가** 했으나 구 정본(`*.spec.ts` 124 / `render.shapes()` 3 call site — 그리기 1 + 측정 2, spec 내 `shapes:` 정의 123 / 6 레지스트리)을 **제거하지 않아**, 신·구 두 정본이 동시에 사는 **dual-SSOT 전환기**에 멈춰 있다. `skiaLegacy:true` collection family 는 한 컴포넌트의 DOM=신경로·Skia=구경로라 — 같은 컴포넌트 안에서 정본이 갈린다. 이것이 ADR-910/911 이 없애려던 drift 의 현재 형태다.
 
 **6중복 등록 문제 (사용자 1순위 목표 2026-06-02)**: 새 컴포넌트 1개를 추가하려면 6개 독립 registry — ComponentFactory `creators`(60) / `rendererMap`(95) / `DEFAULT_PROPS_MAP`(96) / `BASE_TAG_SPEC_MAP`(111) / builder `TAG_SPEC_MAP` / Component Panel list — 에 각각 손으로 등록해야 한다. 이 목록들이 어긋나며 등록 누락 + CSS/Skia drift 가 반복된다. ADR-139 의 `componentRegistrationContract.test.ts` 는 이 6중복을 강제 동기화(누락 시 FAIL)하는 보조 게이트일 뿐 6중복 자체를 없애지 못한다. 사용자 명시: "새 컴포넌트마다 6개 registry 동시 등록 → 누락/drift 반복되는 문제는 해소되길 바란다." 본 ADR 은 6 registry 를 단일 등록 entry 의 파생 view 로 collapse 해 **"1 컴포넌트 = 1 등록"** 을 달성하고, drift 가 발생할 평행 위치를 구조적으로 0 으로 만든다(breakdown ②-5).
 
@@ -65,7 +65,7 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 
 ### 대안 B: 백지 직행 (레거시 미보존, 갈아엎기)
 
-- 설명: 1차 원리(RAC core + Pencil format + canonical schema + theme/tokens)만 기준으로 두고, ADR-910 의 cutover 3-상태/`skiaLegacy`/family atomic + 구 정본(124 spec + 59 render.shapes active 호출 + 6 레지스트리 + buildSpecNodeData 30+ 분기)을 제거하며, ADR-142 전환기 seam 부채(`buildCatalogShapes` spec seam / `resolveComponentVisual` VisualRule seam / variant·size 의 accepts 혼입)도 1차 원리로 재설계해 generic 단일 경로만 남긴다. 6 registry 는 단일 등록 entry 의 파생 view 로 collapse("1 컴포넌트 = 1 등록").
+- 설명: 1차 원리(RAC core + Pencil format + canonical schema + theme/tokens)만 기준으로 두고, ADR-910 의 cutover 3-상태/`skiaLegacy`/family atomic + 구 정본(124 spec + 3 render.shapes call site(그리기 1 + 측정 2) + 6 레지스트리 + buildSpecNodeData 30+ 분기)을 제거하며, ADR-142 전환기 seam 부채(`buildCatalogShapes` spec seam / `resolveComponentVisual` VisualRule seam / variant·size 의 accepts 혼입)도 1차 원리로 재설계해 generic 단일 경로만 남긴다. 6 registry 는 단일 등록 entry 의 파생 view 로 collapse("1 컴포넌트 = 1 등록").
 - 근거: 사용자 결정(개발 단계, 완성도 최우선, 레거시 미보존, 현재 구현 답습 금지). dual-SSOT 병치 + 6중복 등록을 구조적으로 소멸. 1차 원리 직결 자산(`react-aria-components` / canonical schema / theme/tokens / Components page / ADR-135·136 projected 인프라)만 토대로 유지(현재 구현 시스템이 아니라 원리 자체).
 - 위험:
   - 기술: **H** — generic 공통 기반(resolve + generic DOM/Skia + 단일 어댑터 + projected tree)이 family 격리 없이 전 컴포넌트 동시 영향. 단 Button vertical slice 로 목표 단계 증명 가능.
@@ -156,5 +156,5 @@ composition(노코드 웹 빌더)의 컴포넌트 시스템은 ADR-142 가 catal
 - **조합(composite) 컴포넌트** 를 Components page reusable 문서로 수작업 저작해야 한다(자동 변환 불가, R-5). leaf(RAC primitive ~39 binding)는 entry 1개로 등록되며 reusable 문서화 대상 아님 — 둘의 경계가 다르다(leaf=entry / 조합=reusable 문서).
 - 단일 어댑터(`resolveMergedStyle`)가 무겁다(R-2) — text 측정/특수 shape/spacing/token 해소가 한 곳에 모인다.
 - collection projected tree(R-3)와 Skia 상태 모델(R-4)이 가장 미증명된 영역.
-- 컴포넌트당 `render.shapes()` Skia source 가 폐기 방향(theme rule 대체) — 단 ADR-907 Layer B/908 fill/909 longhand 는 보존(override layer 유지). ADR-036 status 재평가 필요.
+- 컴포넌트당 `render.shapes()` Skia source 가 폐기 방향(theme rule 대체) — 단 ADR-907 Layer B/908 fill/909 longhand 는 보존(override layer 유지). ADR-036 status 재평가 필요. **단계 5 선행 의존(실측 2026-06-03)**: `render.shapes()` 는 단일 그리기가 아니라 3 call site — (1) Skia 그리기(`buildSpecNodeData.ts:1180`, 18 skiaLegacy entry 가 의존 → ADR-920 Projected Tree 후 제거) + (2/3) 텍스트 측정(`specTextStyle.ts:167` + `specTextStyleForOverlay.ts:61`, 29 TEXT_BEARING_SPECS type → generic 측정 전환 후 제거). 따라서 단계 5 의 `render.shapes` 제거는 ADR-920 + 텍스트 측정 generic 전환 이후로 순서 재정의(breakdown ⑦ 단계 5 선행 의존 표). 현 상태에서 "의존 0" 안전 제거 spec 교집합은 거의 비어있음.
 - theme rule base 층의 정본이 spec(전환기 부채, `generate-rules` 경유)에서 `componentRulesTable.ts` 자체(손 편집 정본)로 바뀐다 — `generate-rules.ts` 가 1회 생성한 결과를 freeze 후 직접 편집. 생성기 신뢰성이라는 새 부담 없음(이미 생성된 결과 동결). `design.md` + starter CSS 는 토큰 팔레트 audit 으로만 유지(variant→token 매핑이 거기 없음 — 실측). DOM 경로는 build script(`generate-css`)가 같은 table 의 variant 색상을 주입해 Skia 와 same-source(1A 색상 채널 한정; size/구조 CSS 는 단계 5 까지 spec 이중 입력). spec dual-SSOT 소멸 + base 단일 source 가 이득. ADR-907/908/909 의 fill/spacing/longhand 구조는 정본 테이블의 필드로 직접 표현된다.
