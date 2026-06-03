@@ -1,0 +1,83 @@
+# ADR-912 단계 5 step 4 선행 — catalog 미등록 type inventory + 경로 대체 분류
+
+> **위상**: ADR-912 단계 5 step 4 (구 정본 `*.spec.ts` 124+ 물리 삭제) **진입 차단 게이트 해소를 위한 별도 후속 작업 문서**. step 4 는 본 inventory 의 [fallback 의존] 그룹 경로 대체가 완료돼야 진입 가능(no-go 해소). step 1~3(dead gate / runtime spec 의존 끊기 / source generator 제거)은 land 완료(`d346a80ad`/`1721cf940`).
+>
+> **사용자 결정 (2026-06-04)**: "71 type inventory 는 별도 후속" + 순서 "(1) step 5 문서/status 정합 → (2) 71 type 선행 분리 → (3) step 4 spec 삭제".
+
+## 실측 (2026-06-04)
+
+| 측정                                         | 수치                             |
+| -------------------------------------------- | -------------------------------- |
+| spec map (`BASE_TAG_SPEC_MAP`)               | **111**                          |
+| catalog 등록 (`componentCatalog` entry.type) | **42** (primitive 39 + native 3) |
+| **미등록 (spec map − catalog)**              | **69**                           |
+
+> 추정 71 ≈ 실측 69 (color 7 + sub-part 29 + legacy/native 11 + 미발효 leaf 22). 본 문서가 정확 inventory 정본.
+
+## 4분류 + step 4 차단 판정
+
+### A. color (7) — scope 외 (touch 안 함)
+
+`ColorArea` / `ColorPicker` / `ColorSlider` / `ColorSwatch` / `ColorSwatchPicker` / `ColorWheel` / `TailSwatch`
+
+- **판정**: 사용자 scope 외 ("color 는 패스해", 2026-06-04). ADR-912 catalog 발효 대상 아님.
+- **step 4 영향**: color spec 은 단계 5 본체 삭제 대상에서 **제외**. 별도 ADR/작업 영역. step 4 spec 삭제 시 `*.spec.ts` glob 에서 color 7 은 보존.
+
+### B. sub-part (29) — 부모 경로 흡수 분류
+
+부모 컴포넌트의 내부 구성요소(단독 배치 불가). 부모가 catalog 발효 generic 경로(buildCatalogShapes / projector / skiaPrimitive escape)로 그리면 자식 spec.render.shapes 흡수되어 삭제 안전.
+
+| 그룹                                  | type                                                                                                                                                                                                                      | 판정                                                                                                                                                                                                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[빈 shapes]** (3)                   | `SliderThumb` / `TabPanel` / `TabPanels` (render.shapes = `() => []`)                                                                                                                                                     | 삭제 즉시 안전 (shapes 자체 빈 배열)                                                                                                                                                                                                                        |
+| **[흡수됨]** (~17)                    | `Breadcrumb` `DateSegment` `TimeSegment` `Description` `DisclosureHeader` `FieldError` `Label` `MeterValue` `ProgressBarValue` `SelectIcon` `SelectTrigger` `SelectValue` `SliderOutput` `Tab` `TabList` `Tag` `TreeItem` | 부모 catalog/factory/projector 경로가 그림 → spec 삭제 시 시각 손실 0 (단, buildCatalogShapes 정합 검증 후)                                                                                                                                                 |
+| **[fallback 의존 — escape 발효]** (3) | `CalendarGrid` `CalendarHeader` `DateInput`                                                                                                                                                                               | 부모(Calendar/RangeCalendar/DatePicker/DateRangePicker)가 (1b) `calendar_grid`/`datefield_trigger` escape 발효 완료 → escape 가 6주×7일 grid + trigger field 를 그림 → **자식 spec 삭제 가능**(escape 가 이식 커버). 단, factory 자식 생성 경로 확인 필요   |
+| **[fallback 의존 — 미해소]** (~6)     | `MeterTrack` `ProgressBarTrack` `SliderTrack` `ProgressCircle` `DisclosureContent` (+ value-dependent 계산)                                                                                                               | **step 4 차단 핵심**. value/range → bar fill / arc sweep / thumb position 계산이 spec.render.shapes 에만 존재. skiaPrimitive escape 또는 부모 catalog 등록(C 그룹 Meter/ProgressBar) 으로 대체 필요. `DisclosureContent` 는 `_hasChildren` 조건부 렌더 분기 |
+
+### C. legacy / native (11) — 유지·제거 정책 결정
+
+`Body` / `Code` / `Field` / `Group` / `Heading` / `Kbd` / `List` / `Nav` / `Paragraph` / `Section` / `Text`
+
+- **성격**: HTML 의미 태그(Body/Section/Nav/List/Heading/Paragraph/Code/Kbd) + RAC semantic(Group/Field) + TEXT_LEAF(Text).
+- **판정**: 대부분 TEXT_LEAF 또는 container shell. `Text`/`Heading`/`Paragraph`/`Code`/`Kbd` 는 텍스트 측정 source(extractSpecTextStyle fallback) — step 2 의 "catalog 미등록 TEXT_LEAF render.shapes 측정 유지" 영역. `Body`/`Section`/`Nav`/`List`/`Group`/`Field` 는 container shell.
+- **step 4 정책**: native 등록(div-like) 또는 TEXT_LEAF generic 전환 후 삭제. 현재는 fallback 유지. **별도 결정 필요** — 의미 태그는 ADR-130 frame canonical vocabulary 와 경계 점검(Group 은 D1 ARIA semantic 보존 영역).
+
+### D. 미발효 leaf (22) — catalog 등록 / shell / dead
+
+| 그룹                         | type                                                                                                                            | step 4 전 조치                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **[catalog 등록 후보]** (~9) | `Avatar` `ProgressBar` `Meter` `Skeleton` `StatusLight` `InlineAlert` `IllustratedMessage` `TextArea` `FileTrigger`             | 실제 단독 배치 leaf 시각 → `PrimitiveBinding` 작성 + componentCatalog 등록 + generic 전환 (step 4 전 선행)                        |
+| **[재분류 필요]** (1)        | `Switcher`                                                                                                                      | factory/childSpecs 구조 확인 후 leaf(등록) vs container(shell) 판정                                                               |
+| **[container shell]** (~10)  | `Card` `CardView` `ButtonGroup` `AvatarGroup` `Disclosure` `DisclosureGroup` `Accordion` `Pagination` `TableView` `Breadcrumbs` | catalog 불필요(자식 담는 shell, buildCatalogShapes box 커버). SHELL_ONLY/SYNTHETIC 태그 재점검. spec 존치 또는 frame-like generic |
+| **[dead 확인 필요]** (2)     | `Toast` (imperative, placeable 아님) / `Autocomplete` (shapes:[], 추상)                                                         | Component Panel 미등록 → 단독 배치 불가. 용도 재확인 후 삭제 또는 보수 유지                                                       |
+
+## step 4 진입 차단 게이트 (no-go 해소 조건)
+
+step 4 (spec 124+ 물리 삭제) 진입 전 다음 **모두 충족** 필요:
+
+1. **[fallback 의존 — 미해소] ~6 type 경로 대체**: MeterTrack/ProgressBarTrack/SliderTrack/ProgressCircle/DisclosureContent 의 value-dependent 계산을 skiaPrimitive escape 또는 부모 catalog 등록(D그룹 Meter/ProgressBar 등록 시 동반)으로 이전. 가장 큰 차단.
+2. **[catalog 등록 후보] ~9 type 등록**: D그룹 A(Avatar 등) PrimitiveBinding 작성 + 등록 → fallback 탈출.
+3. **[흡수됨] ~17 + [escape 발효] 3 buildCatalogShapes 정합 검증**: 부모 경로가 실제로 그리는지 live 확인 후 삭제.
+4. **Switcher 재분류 + Toast/Autocomplete dead 확정**.
+5. **color 7 보존 처리**: spec 삭제 glob 에서 color 제외 명시.
+6. **legacy/native 11 정책 결정**: TEXT_LEAF generic 전환 vs native 등록 vs 보존(Group D1 경계).
+7. **import graph 0 확인** + **사용자 명시 삭제 승인** + **type-check/cross-check**.
+
+## 작업 분해 (별도 후속, step 4 이전)
+
+| 작업                          | 대상                       | 산출                                                             |
+| ----------------------------- | -------------------------- | ---------------------------------------------------------------- |
+| **선행-1 leaf 등록**          | D그룹 A 9 + Switcher 판정  | PrimitiveBinding + componentCatalog entry + generic 발효         |
+| **선행-2 value-part escape**  | B [fallback 미해소] 6      | skiaPrimitive escape 또는 부모(Meter/ProgressBar) 등록 동반 흡수 |
+| **선행-3 흡수 검증**          | B [흡수됨] 17 + [escape] 3 | buildCatalogShapes 정합 live 확인 (삭제 안전 확증)               |
+| **선행-4 legacy/native 정책** | C 11                       | TEXT_LEAF generic / native / 보존 결정 (Group D1 경계 점검)      |
+| **선행-5 color 보존 + dead**  | A color 7 + D dead 2       | spec 삭제 glob 제외 명시 + Toast/Autocomplete 용도 확정          |
+
+선행-1~5 완료 → step 4 진입 (사용자 명시 삭제 승인 별도).
+
+## 관련
+
+- ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (step 4 no-go)
+- breakdown: [912-rac-pencil-rebuild-cutover-breakdown.md](912-rac-pencil-rebuild-cutover-breakdown.md) 단계 5 분해표 step 4
+- `_hasChildren` 컨벤션: [.claude/rules/canvas-rendering.md](../../../.claude/rules/canvas-rendering.md) §2.5
+- ADR-130 frame canonical vocabulary (Group D1 경계): [130-\*.md](../completed/)
