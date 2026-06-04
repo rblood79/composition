@@ -55,7 +55,7 @@
 
 step 4 (spec 124+ 물리 삭제) 진입 전 다음 **모두 충족** 필요:
 
-1. **[fallback 의존 — 미해소] ~6 type 경로 대체**: MeterTrack/ProgressBarTrack/SliderTrack/ProgressCircle/DisclosureContent 의 value-dependent 계산을 skiaPrimitive escape 또는 부모 catalog 등록(D그룹 Meter/ProgressBar 등록 시 동반)으로 이전. 가장 큰 차단.
+1. **[fallback 의존 — 미해소] value-fill 5 type 경로 대체**: MeterTrack/ProgressBarTrack/SliderTrack/ProgressBar/Meter(부모 standalone) + ProgressCircle 의 value-dependent 계산을 skiaPrimitive escape 로 이전. **escape 키 2개 (사용자 결정 2026-06-04)**: `value_fill_bar`(수평 막대 — Progress/Meter/Slider, range·thumb 는 isRange/thumbCount 파라미터로 흡수) + `value_fill_arc`(원호 — ProgressCircle, sweep=value%×360). append 모드(track box 위 덧그림). 컴포넌트 분기 0(no-classification). 가장 큰 차단. **DisclosureContent 는 본 게이트에서 제외(2026-06-04 실측 = value 없는 text leaf → 게이트 #3 흡수 검증으로 이동).**
 2. **[catalog 등록 후보] ~9 type 등록**: D그룹 A(Avatar 등) PrimitiveBinding 작성 + 등록 → fallback 탈출.
 3. **[흡수됨] ~17 + [escape 발효] 3 buildCatalogShapes 정합 검증**: 부모 경로가 실제로 그리는지 live 확인 후 삭제.
 4. **Switcher 재분류[완료 2026-06-04 = container shell] + Toast/Autocomplete dead 확정**. Switcher 처리는 [container shell] 정책(spec 존치 또는 frame-like generic)에 흡수.

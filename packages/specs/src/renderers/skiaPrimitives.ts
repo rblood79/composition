@@ -829,6 +829,183 @@ const datefieldTrigger: SkiaPrimitiveDrawFn = ({ props, size }) => {
   });
 };
 
+/**
+ * `value_fill_bar` — 진행/미터/슬라이더의 value 비례 수평 채움 막대 (append 모드).
+ *
+ * track box(buildCatalogShapes 가 그림) **위에** 덧그리는 fill rect. 컴포넌트 식별 없이
+ * props 데이터로만 분기(no-classification):
+ * - `props.value` 가 배열 → range 채움(`v0%~v1%`), 단일 숫자 → `0~v%` 채움.
+ * - `props.minValue`/`maxValue` → 정규화(slider). 없으면 0~100(progress/meter).
+ * - `props.isIndeterminate` → 정적 20%~50% 막대(애니메이션은 CSS, Skia 는 정적 표현).
+ * - `props._hasChildren` → 부모(ProgressBar/Meter)는 자식 Track 이 fill 담당 → `[]` (위임).
+ *   Track 노드는 자식 없음 → 직접 그림. thumb 은 SliderThumb 자식 element 가 담당(여기 미생성).
+ *
+ * 색: `style.color`(사용자 override) → `visual.fillBar`(variant 별 rule 색) → `{color.accent}`.
+ */
+const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  // 부모(ProgressBar/Meter) standalone 이 아니면(자식 Track 보유) fill 은 자식이 담당.
+  if ((props as Record<string, unknown>)._hasChildren) return [];
+
+  const width =
+    typeof props._containerWidth === "number" &&
+    (props._containerWidth as number) > 0
+      ? (props._containerWidth as number)
+      : (typeof style?.width === "number" ? (style.width as number) : 0) || 240;
+  const height = size.height ?? 8;
+
+  const barRadius = parsePxValue(
+    style?.borderRadius as string | number | undefined,
+    typeof size.borderRadius === "number" ? size.borderRadius : height / 2,
+  );
+
+  const barColor =
+    (style?.color as string | undefined) ??
+    visual?.fillBar ??
+    ("{color.accent}" as TokenRef);
+
+  // indeterminate: 정적 20%~50% 위치 막대 (progress 류만 — isIndeterminate 데이터)
+  if (props.isIndeterminate) {
+    return [
+      {
+        type: "roundRect",
+        x: width * 0.2,
+        y: 0,
+        width: width * 0.3,
+        height,
+        radius: barRadius,
+        fill: barColor,
+      },
+    ];
+  }
+
+  const min = typeof props.minValue === "number" ? props.minValue : 0;
+  const max = typeof props.maxValue === "number" ? props.maxValue : 100;
+  const span = max - min || 1;
+  const raw = props.value ?? 0;
+  const values = Array.isArray(raw) ? (raw as number[]) : [raw as number];
+  const percents = values.map((v) =>
+    Math.max(0, Math.min(100, ((v - min) / span) * 100)),
+  );
+
+  const shapes: Shape[] = [];
+  if (percents.length >= 2) {
+    // range: value[0]~value[1] 구간 채움
+    const x0 = (width * percents[0]) / 100;
+    const x1 = (width * percents[1]) / 100;
+    const w = x1 - x0;
+    if (w > 0) {
+      shapes.push({
+        type: "roundRect",
+        x: x0,
+        y: 0,
+        width: w,
+        height,
+        radius: barRadius,
+        fill: barColor,
+      });
+    }
+  } else {
+    // single: 0~value 채움
+    const w = (width * percents[0]) / 100;
+    if (w > 0) {
+      shapes.push({
+        type: "roundRect",
+        x: 0,
+        y: 0,
+        width: w,
+        height,
+        radius: barRadius,
+        fill: barColor,
+      });
+    }
+  }
+  return shapes;
+};
+
+/**
+ * `value_fill_arc` — 원형 진행률의 value 비례 호 (append 모드, ProgressCircle).
+ *
+ * track arc(buildCatalogShapes box 위 — 단, ProgressCircle 은 box 대신 arc track 을
+ * 별도 그려야 함 → 본 primitive 가 track + indicator 둘 다 그린다, replace 가 아니라
+ * append 지만 track box 가 무의미하므로 자체 track arc 포함).
+ * - `props.value`(0~100) → `sweepAngle = value%×360` indicator arc.
+ * - `props.isIndeterminate` → 270° 정적 호.
+ * - `props._hasChildren` → 자식이 담당 → `[]`.
+ *
+ * 색: track = `visual.fill.default.base`(neutral-subtle) / indicator = `style.color` →
+ * `visual.fillBar` → `{color.accent}`.
+ */
+const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  if ((props as Record<string, unknown>)._hasChildren) return [];
+
+  const diameter =
+    (typeof size.width === "number" ? size.width : 0) ||
+    (typeof size.height === "number" ? size.height : 0) ||
+    32;
+  const strokeWidth =
+    typeof size.strokeWidth === "number" ? size.strokeWidth : 3;
+  const outerRadius = diameter / 2;
+  const cx = outerRadius;
+  const cy = outerRadius;
+  const trackRadius = outerRadius - strokeWidth / 2;
+
+  const trackColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    ("{color.neutral-subtle}" as TokenRef);
+  const indicatorColor =
+    (style?.color as string | undefined) ??
+    visual?.fillBar ??
+    ("{color.accent}" as TokenRef);
+
+  const shapes: Shape[] = [
+    {
+      type: "arc",
+      x: cx,
+      y: cy,
+      radius: trackRadius,
+      startAngle: 0,
+      sweepAngle: 360,
+      strokeWidth,
+      stroke: trackColor,
+      strokeCap: "butt",
+    },
+  ];
+
+  if (props.isIndeterminate) {
+    shapes.push({
+      type: "arc",
+      x: cx,
+      y: cy,
+      radius: trackRadius,
+      startAngle: -90,
+      sweepAngle: 270,
+      strokeWidth,
+      stroke: indicatorColor,
+      strokeCap: "round",
+    });
+  } else {
+    const value = Math.max(
+      0,
+      Math.min(100, typeof props.value === "number" ? props.value : 0),
+    );
+    if (value > 0) {
+      shapes.push({
+        type: "arc",
+        x: cx,
+        y: cy,
+        radius: trackRadius,
+        startAngle: -90,
+        sweepAngle: (value / 100) * 360,
+        strokeWidth,
+        stroke: indicatorColor,
+        strokeCap: "round",
+      });
+    }
+  }
+  return shapes;
+};
+
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
@@ -846,6 +1023,11 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   // ADR-912 단계 5 (1b) date escape (replace 모드 — box+text 대체)
   calendar_grid: calendarGrid,
   datefield_trigger: datefieldTrigger,
+  // ADR-912 선행-2 value-fill escape:
+  //   value_fill_bar = append (track box 위 value 막대 — Progress/Meter/Slider)
+  //   value_fill_arc = replace (자체 track arc + indicator arc — ProgressCircle, box 무의미)
+  value_fill_bar: valueFillBar,
+  value_fill_arc: valueFillArc,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
@@ -866,6 +1048,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   popover_shadow: "prepend",
   tooltip_arrow: "append",
   popover_arrow: "append",
+  // ADR-912 선행-2: value_fill_bar 는 track box 위 막대 → append.
+  //   value_fill_arc 는 자체 track+indicator arc 라 box+text 대체 → replace(기본, 미등록).
+  value_fill_bar: "append",
 };
 
 export function getSkiaPrimitive(

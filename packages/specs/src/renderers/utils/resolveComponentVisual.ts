@@ -45,6 +45,11 @@ export interface ComponentVisualRule {
   borderHover: TokenRef | undefined;
   /** 테두리 선 스타일 (CSS border-style 동형, 미지정 시 consumer 가 "solid" fallback) */
   borderStyle: "solid" | "dashed" | "dotted" | undefined;
+  /**
+   * value 채움 색 (progress/meter/slider 의 value_fill_bar/value_fill_arc primitive 색).
+   * 미지정 시 escape 가 "{color.accent}" fallback (ADR-912 선행-2).
+   */
+  fillBar: TokenRef | undefined;
   /** outline fillStyle 텍스트 색 */
   outlineText: TokenRef | undefined;
   /** outline fillStyle 테두리 색 */
@@ -91,6 +96,9 @@ export function variantToVisual(variant: VariantSpec): ComponentVisualRule {
     border: variant.border,
     borderHover: variant.borderHover,
     borderStyle: variant.borderStyle,
+    // production-dead(test fixture 전용) — value-fill 색은 production 의 ruleVariantToVisual 만
+    //   rule.fillBar 에서 채운다. VariantSpec 에는 fillBar 필드 없음(spec 삭제 예정) → undefined.
+    fillBar: undefined,
     outlineText: variant.outlineText,
     outlineBorder: variant.outlineBorder,
     subtleText: variant.subtleText,

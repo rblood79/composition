@@ -198,6 +198,14 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "slider",
     icon: "SlidersHorizontal",
   }),
+  // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part).
+  //   palette 미노출(ComponentList 가 ProgressBar 부모만 등록) — catalog 등록은 Skia
+  //   generic 경로(value_fill_bar escape) 진입용. DOM 은 부모 RAC ProgressBar 가 track 담당.
+  primitiveEntry("ProgressBarTrack", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "progress bar track",
+    icon: "BarChart3",
+  }),
 ];
 
 /**

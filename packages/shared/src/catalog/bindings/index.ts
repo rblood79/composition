@@ -25,6 +25,7 @@ import { menuBinding } from "./Menu.binding";
 import { modalBinding } from "./Modal.binding";
 import { numberFieldBinding } from "./NumberField.binding";
 import { popoverBinding } from "./Popover.binding";
+import { progressBarTrackBinding } from "./ProgressBarTrack.binding";
 import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
@@ -68,6 +69,7 @@ export * from "./Menu.binding";
 export * from "./Modal.binding";
 export * from "./NumberField.binding";
 export * from "./Popover.binding";
+export * from "./ProgressBarTrack.binding";
 export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
 export * from "./RangeCalendar.binding";
@@ -125,6 +127,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   RadioGroup: radioGroupBinding,
   Switch: switchBinding,
   Slider: sliderBinding,
+  // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape)
+  ProgressBarTrack: progressBarTrackBinding,
   // family ④ collections (internal source — composition wrapper + useCollectionData)
   ListBox: listBoxBinding,
   Menu: menuBinding,

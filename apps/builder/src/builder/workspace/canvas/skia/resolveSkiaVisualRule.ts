@@ -34,6 +34,8 @@ export function ruleVariantToVisual(
     border: c.border as ComponentVisualRule["border"],
     borderHover: c.borderHover as ComponentVisualRule["borderHover"],
     borderStyle: v.borderStyle,
+    // value 채움 색 (ADR-912 선행-2) — ComponentRuleVariant.fillBar 정식 필드.
+    fillBar: v.fillBar as ComponentVisualRule["fillBar"],
     outlineText: c.outlineText as ComponentVisualRule["outlineText"],
     outlineBorder: c.outlineBorder as ComponentVisualRule["outlineBorder"],
     subtleText: c.subtleText as ComponentVisualRule["subtleText"],

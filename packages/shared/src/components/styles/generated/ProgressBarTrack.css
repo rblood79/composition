@@ -32,15 +32,15 @@
 }
 
 .react-aria-ProgressBarTrack[data-variant="default"] {
-  background: transparent;
+  background: var(--bg-muted);
   color: var(--fg);
 
   &[data-hovered] {
-    background: transparent;
+    background: var(--bg-muted);
   }
 
   &[data-pressed] {
-    background: transparent;
+    background: var(--bg-muted);
   }
 }
 

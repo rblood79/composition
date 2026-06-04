@@ -3897,14 +3897,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         fill: {
           default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+            base: "{color.neutral-subtle}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
           },
         },
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 선행-2: value 채움 막대 색 (value_fill_bar escape 가 읽음).
+        //   track 배경(fill.base = neutral-subtle) 위에 덧그리는 진행 막대.
+        fillBar: "{color.accent}",
       },
     },
     sizes: {

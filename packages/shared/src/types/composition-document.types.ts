@@ -148,6 +148,15 @@ export interface ComponentRuleVariant {
   borderStyle?: "solid" | "dashed" | "dotted";
   /** 텍스트 굵기 (CSS font-weight 동형 — DropZone 400 등 보편 D3 속성). */
   textWeight?: number;
+  /**
+   * value 채움 색 (progress/meter/slider 의 진행 막대·호 색). track 의 `fill.default.base`
+   * 는 트랙 배경(transparent/neutral-subtle)이고, 본 필드는 그 위에 덧그리는 value-fill
+   * (`value_fill_bar`/`value_fill_arc` skiaPrimitive)의 색이다. ADR-912 선행-2 — variant 별
+   * 색(ProgressBar=accent / Meter=informative·positive·notice·negative)이 D3 SSOT(rule)에
+   * 귀속된다(이전엔 spec 상수 PROGRESSBAR/METER/SLIDER_FILL_COLORS 에만 존재).
+   * TokenRef 문자열(`{color.accent}`) — shared 에선 plain string(fill 필드와 동일 표현).
+   */
+  fillBar?: string;
 }
 
 /**
