@@ -267,6 +267,12 @@ export function CanonicalNodeRenderer({
       sizeProp ?? resolveBackedDefaultSize(type) ?? "md";
     const variantProp = adaptedEl.props?.variant as string | undefined;
     if (variantProp) specDataAttrs["data-variant"] = variantProp;
+    // ADR-912 InlineAlert slice (2026-06-04): catalog leaf binding 의 D1 static attr
+    //   (role/aria-live 등)을 generic fallback 경로에서 부여. 컴포넌트별 if 가 아니라 binding
+    //   데이터(no-classification) — RAC source 는 RAC primitive 가 role 자체 부여하지만,
+    //   internal/native source(단순 styled div)는 부여처가 없어 spec.react() 의 role 이 누락된다.
+    const staticAttrs = getPrimitiveBinding(type)?.staticAttrs;
+    if (staticAttrs) Object.assign(specDataAttrs, staticAttrs);
   }
 
   return React.createElement(

@@ -169,9 +169,16 @@ export function buildCatalogShapes(
   if (props._hasChildren) return shapes;
 
   if (text) {
+    // ADR-912 paddingX 데이터 갭 (2026-06-05): `size.paddingX ?? 0` — text-bearing box type
+    //   (Button/ToggleButton/Badge 등)은 componentRulesTable.sizes.paddingX 가 의도된 x 를 제공하고,
+    //   inline text leaf(Text/Heading/Label/Description, paddingX 의미상 0)는 rule 에 paddingX 미정의 →
+    //   `?? 0` 으로 left 정렬 x=0 확정. **Why**: 미정의 시 parsePxValue 가 undefined 반환 → 하류
+    //   nodeRendererText `paddingLeft + textIndent` 가 NaN 전파 → drawX=NaN → 텍스트 미표시.
+    //   본 `?? 0` 은 NaN 방지 안전장치이며 데이터 보강(rule paddingX)을 대체하지 않는다 — box type 의
+    //   비-0 paddingX 는 rule 데이터가 제공하고, 0 fallback 은 inline text 의 올바른 값일 뿐.
     const paddingX = parsePxValue(
       style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
-      size.paddingX,
+      size.paddingX ?? 0,
     );
     const fontSize = resolveSpecFontSize(
       (style?.fontSize as string | number | undefined) ?? size.fontSize,

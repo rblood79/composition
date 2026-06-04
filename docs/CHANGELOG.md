@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [catalog 발효 컴포넌트 Skia 텍스트 미표시 회복 — paddingX 데이터 갭] - 2026-06-05
+
+### Bug Fixes
+
+- **catalog 발효 box 형 컴포넌트의 Skia 텍스트가 빈 box 로 사라지던 버그** (ADR-912 paddingX 데이터 갭):
+  - ToggleButton / Badge / Code / Kbd / InlineAlert 자식(Heading·Description) 등 catalog 발효 text-bearing type 이 Builder Skia 캔버스에서 텍스트 없이 빈 box 로만 렌더되던 문제. DOM Preview(CSS)는 정상이라 Skia 한쪽만 깨지는 비대칭
+  - **Why**: ADR-912 정본 승격(1A-a) 시 `spec.sizes` → `COMPONENT_RULES_TABLE.sizes` 이전 과정에서 **Button 만 `paddingX` 를 옮기고 나머지 28 발효 type 의 `paddingX` 를 누락**. `buildCatalogShapes` 의 `parsePxValue(style, size.paddingX)` 가 undefined 반환 → text shape `x:undefined` → `specShapeConverter`(`paddingLeft = shape.x`) → `nodeRendererText`(`paddingLeft + textIndent`)에서 NaN 전파 → `drawX=NaN` → CanvasKit 미렌더. G-slice(Button 단독 검증)는 Button 에 우연히 paddingX 가 있어 갭을 못 잡음
+  - 수정: 28 발효 type 의 `COMPONENT_RULES_TABLE.sizes` 에 size 별 `paddingX` 를 legacy spec 정본에서 역추적 삽입(Button parity 보존). `buildCatalogShapes` 에 `size.paddingX ?? 0` source guard(inline text 의 올바른 0 값 + 미정의 NaN 차단), `specShapeConverter` text case 에 `shape.x` 유한수 guard(2중 방어, 데이터 보강 대체 아님)
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` / `packages/specs/src/renderers/buildCatalogShapes.ts` / `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`. 회귀 방지: `packages/shared/src/catalog/__tests__/componentRulesPaddingX.test.ts`
+
 ## [RAC primitive binding 컴포넌트 시스템 — ADR-142 scope 축소 종결] - 2026-06-02
 
 ### Architecture

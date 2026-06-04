@@ -473,6 +473,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.full}",
@@ -480,6 +481,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.full}",
@@ -487,6 +489,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.full}",
@@ -494,6 +497,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.full}",
@@ -501,6 +505,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.full}",
@@ -824,18 +829,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 4,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 0,
         iconSize: 20,
       },
       md: {
+        paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
         iconSize: 26,
       },
       lg: {
+        paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -1282,24 +1290,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.xs}",
         height: 18,
       },
       sm: {
+        paddingX: 6,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
         height: 22,
       },
       md: {
+        paddingX: 8,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.sm}",
         height: 26,
       },
       lg: {
+        paddingX: 10,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
@@ -1364,30 +1376,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       xs: {
+        paddingX: 6,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 28,
         iconSize: 18,
       },
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 32,
         iconSize: 20,
       },
       md: {
+        paddingX: 10,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 40,
         iconSize: 26,
       },
       lg: {
+        paddingX: 12,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 48,
         iconSize: 32,
       },
       xl: {
+        paddingX: 14,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 56,
@@ -1641,30 +1658,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
       },
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 18,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 22,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
@@ -1975,26 +1997,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       xs: {
+        paddingX: 2,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       sm: {
+        paddingX: 4,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
       md: {
+        paddingX: 8,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
       },
       lg: {
+        paddingX: 12,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.2xl}",
         height: 0,
       },
       xl: {
+        paddingX: 16,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.2xl}",
         height: 0,
@@ -2192,6 +2219,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 16,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         borderWidth: 2,
@@ -2199,6 +2227,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 24,
       },
       md: {
+        paddingX: 24,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         borderWidth: 2,
@@ -2206,6 +2235,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 32,
       },
       lg: {
+        paddingX: 32,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         borderWidth: 2,
@@ -2325,18 +2355,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 32,
         iconSize: 14,
       },
       md: {
+        paddingX: 24,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 40,
         iconSize: 16,
       },
       lg: {
+        paddingX: 32,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 48,
@@ -2376,21 +2409,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       md: {
+        paddingX: 20,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
       lg: {
+        paddingX: 28,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,
       },
       xl: {
+        paddingX: 36,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.2xl}",
         height: 0,
@@ -2813,16 +2850,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: "auto",
       },
       md: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: "auto",
       },
       lg: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: "auto",
@@ -2929,6 +2969,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.xs}",
@@ -2936,6 +2977,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 18,
       },
       sm: {
+        paddingX: 6,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
@@ -2943,6 +2985,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 22,
       },
       md: {
+        paddingX: 8,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.sm}",
@@ -2950,6 +2993,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 26,
       },
       lg: {
+        paddingX: 10,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
@@ -3160,6 +3204,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       md: {
+        paddingX: 4,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -3317,6 +3362,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
@@ -3324,6 +3370,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
@@ -3331,6 +3378,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
@@ -3338,6 +3386,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
@@ -3637,6 +3686,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       md: {
+        paddingX: 24,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -3674,16 +3724,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 48,
       },
       md: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 56,
       },
       lg: {
+        paddingX: 20,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 64,
@@ -3695,30 +3748,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
       },
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 18,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 22,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
@@ -3886,16 +3944,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       md: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
       lg: {
+        paddingX: 20,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -4422,16 +4483,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
       md: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       lg: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -4443,30 +4507,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
       },
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 18,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 22,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
@@ -5481,16 +5550,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 36,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 44,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
         height: 52,
@@ -5560,16 +5632,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 21,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 29,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 41,
@@ -5703,16 +5778,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 24,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 32,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 40,
@@ -5880,21 +5958,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       sm: {
+        paddingX: 10,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 64,
       },
       md: {
+        paddingX: 14,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 80,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
         height: 120,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.lg}",
         height: 160,
@@ -5906,26 +5988,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.sm}",
         height: 18,
       },
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
@@ -6062,6 +6149,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       xs: {
+        paddingX: 4,
         fontSize: "{typography.text-2xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
@@ -6069,6 +6157,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
@@ -6076,6 +6165,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         borderRadius: "{radius.md}",
@@ -6083,6 +6173,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         borderRadius: "{radius.lg}",
@@ -6090,6 +6181,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
       xl: {
+        paddingX: 24,
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         borderRadius: "{radius.lg}",
@@ -6177,16 +6269,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -6248,16 +6343,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
       md: {
+        paddingX: 10,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
       lg: {
+        paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
@@ -6297,18 +6395,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       sm: {
+        paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 28,
         iconSize: 14,
       },
       md: {
+        paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 36,
         iconSize: 16,
       },
       lg: {
+        paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
         height: 44,

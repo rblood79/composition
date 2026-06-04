@@ -24,6 +24,7 @@ import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
 import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
+import { inlineAlertBinding } from "./InlineAlert.binding";
 import { kbdBinding } from "./Kbd.binding";
 import { labelBinding } from "./Label.binding";
 import { linkBinding } from "./Link.binding";
@@ -80,6 +81,7 @@ export * from "./Form.binding";
 export * from "./GridList.binding";
 export * from "./Heading.binding";
 export * from "./Icon.binding";
+export * from "./InlineAlert.binding";
 export * from "./Kbd.binding";
 export * from "./Label.binding";
 export * from "./Link.binding";
@@ -151,6 +153,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   body: bodyBinding,
   Section: sectionBinding,
   Nav: navBinding,
+  // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source, generic box+border
+  //   시각, staticAttrs role="alert"). render.shapes shell-only → buildCatalogShapes box+border parity.
+  InlineAlert: inlineAlertBinding,
   // family ② fields
   TextField: textFieldBinding,
   // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)

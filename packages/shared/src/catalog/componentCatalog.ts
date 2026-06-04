@@ -181,6 +181,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "nav",
     icon: "Menu",
   }),
+  // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source). catalog 등록으로
+  //   spec.render.shapes Skia fallback 제거 — 시각은 rule(COMPONENT_RULES_TABLE.InlineAlert, 5 variant)
+  //   + buildCatalogShapes generic box+border(shell, render.shapes 가 text 0 → 자식 Element 가
+  //   heading/desc 담당). DOM 은 generic fallback(rendererMap 제거) + staticAttrs role="alert".
+  primitiveEntry("InlineAlert", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "inline alert",
+    icon: "AlertCircle",
+  }),
 ];
 
 /**

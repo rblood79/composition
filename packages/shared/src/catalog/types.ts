@@ -95,6 +95,17 @@ export interface PrimitiveBinding {
    * buildCatalogShapes(box+text) 출력에 합성한다(`getSkiaPrimitiveMode`).
    */
   skiaPrimitive?: string | string[];
+  /**
+   * D1 정적 DOM 속성 (role / aria-live 등). generic fallback 렌더 경로가 그대로 부여한다 —
+   * 컴포넌트별 if 분기가 아니라 binding 데이터(no-classification 정합).
+   *
+   * **Why (ADR-912 InlineAlert slice, 2026-06-04)**: catalog 등록 시 spec.react() 가 부여하던
+   * D1 metadata(role="alert"/aria-live="polite")가 generic fallback 경로에서 누락된다. RAC source
+   * 는 RAC primitive 가 role 을 자체 부여하지만, internal/native source(단순 styled div)는 부여처가
+   * 없다. 이 필드가 그 공백을 데이터로 메운다 — Nav(navigation)/Section(region) 등 role 누락 leaf 도
+   * 동일 메커니즘으로 소급 복원 가능.
+   */
+  staticAttrs?: Readonly<Record<string, string>>;
 }
 
 // ── Inspector 편집 계약 (PropContract) ───────────────────────────────

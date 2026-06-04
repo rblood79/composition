@@ -683,6 +683,12 @@ export function specShapesToSkia(
       case "text": {
         if (!shape.text) break;
 
+        // ADR-912 paddingX 데이터 갭 (2026-06-05): NaN 방지 안전장치. shape.x 가 undefined/NaN 이면
+        //   하류 `node.text.paddingLeft + textIndent`(nodeRendererText:295/622)가 NaN → drawX=NaN →
+        //   텍스트 미표시. 정상 경로는 buildCatalogShapes 가 size.paddingX(rule 데이터) 또는 0 으로
+        //   항상 number 를 보내므로 본 guard 는 발동 안 함 — 데이터 보강을 대체하지 않는 방어선.
+        if (!Number.isFinite(shape.x)) shape.x = 0;
+
         const fillColor = shape.fill
           ? colorValueToFloat32(shape.fill, theme)
           : Float32Array.of(0, 0, 0, 1); // default black
