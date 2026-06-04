@@ -3389,53 +3389,59 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "informative",
     defaultSize: "md",
     variants: {
+      // ADR-912 선행-2: track 배경(fill.base = neutral-subtle) 위에 value_fill_bar escape 가
+      //   variant 별 fillBar 색으로 진행 막대를 덧그린다(Meter 상태 색 — METER_FILL_COLORS 정합).
       informative: {
         fill: {
           default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+            base: "{color.neutral-subtle}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
           },
         },
         colors: {
           text: "{color.neutral}",
         },
+        fillBar: "{color.informative}",
       },
       positive: {
         fill: {
           default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+            base: "{color.neutral-subtle}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
           },
         },
         colors: {
           text: "{color.neutral}",
         },
+        fillBar: "{color.positive}",
       },
       warning: {
         fill: {
           default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+            base: "{color.neutral-subtle}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
           },
         },
         colors: {
           text: "{color.neutral}",
         },
+        fillBar: "{color.notice}",
       },
       critical: {
         fill: {
           default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
+            base: "{color.neutral-subtle}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
           },
         },
         colors: {
           text: "{color.neutral}",
         },
+        fillBar: "{color.negative}",
       },
     },
     sizes: {

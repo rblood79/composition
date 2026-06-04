@@ -22,6 +22,7 @@ import { iconBinding } from "./Icon.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
 import { menuBinding } from "./Menu.binding";
+import { meterTrackBinding } from "./MeterTrack.binding";
 import { modalBinding } from "./Modal.binding";
 import { numberFieldBinding } from "./NumberField.binding";
 import { popoverBinding } from "./Popover.binding";
@@ -66,6 +67,7 @@ export * from "./Icon.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
 export * from "./Menu.binding";
+export * from "./MeterTrack.binding";
 export * from "./Modal.binding";
 export * from "./NumberField.binding";
 export * from "./Popover.binding";
@@ -129,6 +131,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Slider: sliderBinding,
   // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape)
   ProgressBarTrack: progressBarTrackBinding,
+  // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape, variant 4색)
+  MeterTrack: meterTrackBinding,
   // family ④ collections (internal source — composition wrapper + useCollectionData)
   ListBox: listBoxBinding,
   Menu: menuBinding,

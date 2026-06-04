@@ -206,6 +206,15 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "progress bar track",
     icon: "BarChart3",
   }),
+  // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part).
+  //   palette 미노출(ComponentList 가 Meter 부모만 등록) — catalog 등록은 Skia generic
+  //   경로(value_fill_bar escape) 진입용. DOM 은 부모 RAC Meter 가 track 담당.
+  //   ProgressBarTrack 동형, 차이는 variant 4종(informative/positive/warning/critical) fillBar 색.
+  primitiveEntry("MeterTrack", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "meter track",
+    icon: "BarChart3",
+  }),
 ];
 
 /**
