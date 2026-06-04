@@ -31,7 +31,9 @@ import type { CompositionDocument } from "../../types/composition-document.types
 import type { ResolvedNode } from "../../types/canonical-resolver.types";
 import type { InspectorFieldKind, PropContract } from "../types";
 import { getCatalogEntry } from "../componentCatalog";
+import { resolveComponentRule } from "./resolveComponentRule";
 import { resolveMergedStyle } from "./resolveMergedStyle";
+import type { ComponentRule } from "../../types/composition-document.types";
 
 /** 편집 필드 그룹 태그 — Properties view(content/appearance/state/locale) / Style view(typography/appearance/transform/layout). */
 export type EditSection =
@@ -141,6 +143,59 @@ function readStyle(props: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
+ * size 키 → 표시 라벨 (xs→XS / sm→S / md→M / lg→L / xl→XL).
+ * shared 자급 — builder 의 `SIZE_DISPLAY_LABELS`(SpecField.tsx) 와 동일 매핑을 패키지 경계 보존을
+ * 위해 복제(specs ← shared, builder 미import). 미정의 키는 `value.toUpperCase()` fallback.
+ */
+const SIZE_DISPLAY_LABELS: Record<string, string> = {
+  xs: "XS",
+  sm: "S",
+  md: "M",
+  lg: "L",
+  xl: "XL",
+};
+
+/** variant 키 → 표시 라벨 (default→Default). 첫 글자만 대문자. */
+function variantLabel(value: string): string {
+  return value.length > 0
+    ? value.charAt(0).toUpperCase() + value.slice(1)
+    : value;
+}
+
+/**
+ * size / variant 옵션을 theme rule 에서 파생 (ADR-912 단계 2 회귀 수정).
+ *
+ * **Why**: `kind:"size"`/`"variant"` PropContract 는 `options` 를 두지 않는다(선택 값 집합은
+ *   theme rule 의 `data-*` 값 집합 = source of truth). 구 경로(`inspectorFields.ts` →
+ *   `theme.resolveDimensionOptions`)는 이를 파생했으나 단계 2 패널 교체 시 본 함수로 미이식 →
+ *   `options=undefined` → GenericFieldRenderer `?? []` → PropertySizeToggle `?? fallback` 에서
+ *   `[]` 가 truthy 라 fallback 미실행 → 발효 컴포넌트 전체 빈 드롭다운.
+ * - `kind:"size"`   → `Object.keys(rule.sizes)` (xs~xl), 라벨 = `SIZE_DISPLAY_LABELS`.
+ * - `kind:"variant"`→ `Object.keys(rule.variants)`, 라벨 = `variantLabel`.
+ * - enum 등 `contract.options` 직접 보유 → 그대로 통과 (theme 미경유).
+ * - rule 미등록 / sizes·variants 부재 → undefined (override-only, 기존 동작 보존).
+ */
+function deriveOptions(
+  contract: PropContract,
+  rule: ComponentRule | undefined,
+): PropContract["options"] {
+  if (contract.options) return contract.options;
+  if (contract.kind === "size" && rule?.sizes) {
+    return Object.keys(rule.sizes).map((value) => ({
+      value,
+      label: SIZE_DISPLAY_LABELS[value] ?? value.toUpperCase(),
+    }));
+  }
+  if (contract.kind === "variant" && rule?.variants) {
+    return Object.keys(rule.variants).map((value) => ({
+      value,
+      label: variantLabel(value),
+    }));
+  }
+  return undefined;
+}
+
+/**
  * 노드 → 편집 계약 (semantic ∪ universal style).
  *
  * @param node 선택 노드 (canonical 또는 resolved instance).
@@ -153,6 +208,8 @@ export function resolveEditContract(
   const props = readProps(node);
   const style = readStyle(props);
   const fields: ResolvedField[] = [];
+  // size / variant 옵션 파생 source (theme rule). 1회 조회 후 두 분기 공유. 미등록 type 은 undefined.
+  const rule = resolveComponentRule(node.type, doc);
 
   // (A) semantic — getCatalogEntry(type).binding.props.accepts (primitive). origin:"semantic".
   const entry = getCatalogEntry(node.type);
@@ -173,7 +230,7 @@ export function resolveEditContract(
         min: contract.min,
         max: contract.max,
         step: contract.step,
-        options: contract.options,
+        options: deriveOptions(contract, rule),
       });
     }
   }
@@ -199,7 +256,7 @@ export function resolveEditContract(
       min: contract.min,
       max: contract.max,
       step: contract.step,
-      options: contract.options,
+      options: deriveOptions(contract, rule),
     });
   }
 

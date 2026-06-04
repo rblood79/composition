@@ -127,6 +127,88 @@ describe("resolveEditContract — semantic ∪ universal style (ADR-912 1A-(4))"
     expect(after?.currentValue).toBe("{typography.text-xs}"); // base 복귀
   });
 
+  // ── ADR-912 단계 2 회귀: size/variant 옵션 theme rule 파생 (버그2) ──
+  // Why: kind:"size"/"variant" PropContract 는 options 미선언(theme rule = source).
+  // 구 경로(inspectorFields.ts → theme.resolveDimensionOptions)의 파생을 신 경로로 미이식하면
+  // options=undefined → GenericFieldRenderer ?? [] → PropertySizeToggle 빈 드롭다운.
+  describe("size/variant 옵션 파생 (ADR-912 단계 2 회귀 — 버그2)", () => {
+    it("kind:'size' field 의 options 가 theme rule.sizes 키에서 파생 (비어있지 않음)", () => {
+      const size = resolveEditContract(node({})).fields.find(
+        (f) => f.key === "size" && f.origin === "semantic",
+      );
+      expect(size?.kind).toBe("size");
+      // 발효 type 의 size 드롭다운이 빈 배열이면 안 됨 (버그2 회귀 가드).
+      expect(size?.options).toBeDefined();
+      expect(size?.options?.length ?? 0).toBeGreaterThan(0);
+      // Button rule.sizes = xs~xl. value 집합 정합.
+      const values = (size?.options ?? []).map((o) => o.value);
+      expect(values).toContain("md");
+      expect(values).toContain("xs");
+      expect(values).toContain("xl");
+      // 라벨: md→M / sm→S / xl→XL (SIZE_DISPLAY_LABELS 동형).
+      const md = (size?.options ?? []).find((o) => o.value === "md");
+      expect(md?.label).toBe("M");
+    });
+
+    it("kind:'variant' field 의 options 가 theme rule.variants 키에서 파생", () => {
+      const variant = resolveEditContract(node({})).fields.find(
+        (f) => f.key === "variant" && f.origin === "semantic",
+      );
+      expect(variant?.kind).toBe("variant");
+      expect(variant?.options?.length ?? 0).toBeGreaterThan(0);
+      const values = (variant?.options ?? []).map((o) => o.value);
+      // Button rule.variants 에 primary 포함 (defaultVariant).
+      expect(values).toContain("primary");
+      // 라벨: 첫 글자 대문자 (primary→Primary).
+      const primary = (variant?.options ?? []).find(
+        (o) => o.value === "primary",
+      );
+      expect(primary?.label).toBe("Primary");
+    });
+
+    it("enum kind 는 contract.options 를 그대로 통과 (theme 미경유)", () => {
+      // Button.binding 의 type(enum) accepts → 고정 options 보존.
+      const accepts =
+        getCatalogEntry("Button")?.kind === "primitive"
+          ? (
+              getCatalogEntry("Button") as {
+                binding: {
+                  props: { accepts: Record<string, { kind: string }> };
+                };
+              }
+            ).binding.props.accepts
+          : {};
+      const enumKey = Object.entries(accepts).find(
+        ([, c]) => c.kind === "enum",
+      )?.[0];
+      if (enumKey) {
+        const enumField = resolveEditContract(node({})).fields.find(
+          (f) => f.key === enumKey,
+        );
+        // enum 은 contract 가 직접 제공 → 파생 거치지 않고 그대로.
+        expect(enumField?.options).toBeDefined();
+      }
+    });
+
+    it("rule 미등록 type 의 size/variant 는 options undefined (override-only 보존)", () => {
+      // frame 은 rule 없음 → universal style 에 size/variant kind 가 있어도 파생 source 없음.
+      const frameNode: CanonicalNode = {
+        id: "f2",
+        type: "frame" as CanonicalNode["type"],
+        props: {},
+      };
+      const { fields } = resolveEditContract(frameNode);
+      const sizeVariantStyle = fields.filter(
+        (f) =>
+          f.origin === "style" && (f.kind === "size" || f.kind === "variant"),
+      );
+      // rule 미등록 → 파생 불가 → undefined (예외 없이 graceful).
+      for (const f of sizeVariantStyle) {
+        expect(f.options).toBeUndefined();
+      }
+    });
+  });
+
   it("rule 미등록 type (frame) → semantic 없음, universal style base undefined", () => {
     const frameNode: CanonicalNode = {
       id: "f",

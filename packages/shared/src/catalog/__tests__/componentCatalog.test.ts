@@ -87,6 +87,10 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Label",
         "Description",
         "FieldError",
+        // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source)
+        "InlineAlert",
+        // ADR-912 선행-6 (2026-06-05): field 입력 영역 자식 leaf (rac source)
+        "Input",
         // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source)
         "body",
         "Section",
