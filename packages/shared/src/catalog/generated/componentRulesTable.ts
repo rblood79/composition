@@ -1268,6 +1268,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 위험군 해소(2026-06-04): Code catalog 측정/렌더 drift 차단. spec render.shapes
+        //   fontFamily.mono + fontWeight 400 ↔ buildCatalogShapes fallback sans/500.
+        //   rule fontFamily(mono) + textWeight(400) 명시(buildCatalogShapes visual.fontFamily 읽음).
+        fontFamily: "JetBrains Mono, Consolas, monospace",
+        textWeight: 400,
       },
     },
     sizes: {
@@ -2881,6 +2886,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           border: "{color.border}",
         },
+        // ADR-912 위험군 해소(2026-06-04): Kbd catalog 측정/렌더 drift 차단. spec render.shapes
+        //   fontFamily.mono + fontWeight 500(키 표시 약간 굵게, Kbd.spec L153) ↔ buildCatalogShapes
+        //   fallback sans/500. fontFamily(mono) 명시 + textWeight 500(spec 일치).
+        fontFamily: "JetBrains Mono, Consolas, monospace",
+        textWeight: 500,
       },
     },
     sizes: {

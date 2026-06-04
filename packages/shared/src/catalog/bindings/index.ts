@@ -8,6 +8,7 @@ import { buttonBinding } from "./Button.binding";
 import { calendarBinding } from "./Calendar.binding";
 import { checkboxBinding } from "./Checkbox.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
+import { codeBinding } from "./Code.binding";
 import { colorFieldBinding } from "./ColorField.binding";
 import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
@@ -20,6 +21,7 @@ import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
 import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
+import { kbdBinding } from "./Kbd.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
 import { menuBinding } from "./Menu.binding";
@@ -56,6 +58,7 @@ export * from "./Button.binding";
 export * from "./Calendar.binding";
 export * from "./Checkbox.binding";
 export * from "./CheckboxGroup.binding";
+export * from "./Code.binding";
 export * from "./ColorField.binding";
 export * from "./ComboBox.binding";
 export * from "./DateField.binding";
@@ -68,6 +71,7 @@ export * from "./Form.binding";
 export * from "./GridList.binding";
 export * from "./Heading.binding";
 export * from "./Icon.binding";
+export * from "./Kbd.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
 export * from "./Menu.binding";
@@ -115,6 +119,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Text: textBinding,
   Heading: headingBinding,
   Paragraph: paragraphBinding,
+  // ADR-912 위험군 해소: TEXT_LEAF box형 mono (fontFamily generic 보강 후 등록)
+  Code: codeBinding,
+  Kbd: kbdBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,

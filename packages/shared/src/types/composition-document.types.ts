@@ -149,6 +149,13 @@ export interface ComponentRuleVariant {
   /** 텍스트 굵기 (CSS font-weight 동형 — DropZone 400 등 보편 D3 속성). */
   textWeight?: number;
   /**
+   * 폰트 패밀리 (CSS font-family 동형 — Code/Kbd 의 monospace 등 보편 D3 속성).
+   * 미지정 시 consumer(buildCatalogShapes)가 sans fallback. ADR-912 위험군 해소 —
+   * TEXT_LEAF box형(Code/Kbd) 의 mono 가 D3 SSOT(rule)에 귀속(이전엔 spec render.shapes
+   * fontFamily.mono 에만 존재). CSS 체인 문자열(`"Menlo, Monaco, ..."`) 또는 토큰.
+   */
+  fontFamily?: string;
+  /**
    * value 채움 색 (progress/meter/slider 의 진행 막대·호 색). track 의 `fill.default.base`
    * 는 트랙 배경(transparent/neutral-subtle)이고, 본 필드는 그 위에 덧그리는 value-fill
    * (`value_fill_bar`/`value_fill_arc` skiaPrimitive)의 색이다. ADR-912 선행-2 — variant 별

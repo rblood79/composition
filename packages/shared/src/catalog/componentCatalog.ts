@@ -113,6 +113,17 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "paragraph",
     icon: "Pilcrow",
   }),
+  // ADR-912 위험군 해소(선행-4): TEXT_LEAF box형 mono. rule fontFamily(mono) + textWeight 400.
+  primitiveEntry("Code", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "code",
+    icon: "Code",
+  }),
+  primitiveEntry("Kbd", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "keyboard key",
+    icon: "Keyboard",
+  }),
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic, value-dependent 시각 없음)
   primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",

@@ -152,10 +152,14 @@ const TEXT_BEARING_SPECS: Record<
   kbd: {
     spec: KbdSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    // ADR-912 위험군 해소(2026-06-04): Kbd catalog 등록 → rule 기반 측정(fontFamily mono + textWeight 400).
+    catalogType: "Kbd",
   },
   code: {
     spec: CodeSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    // ADR-912 위험군 해소(2026-06-04): Code catalog 등록 → rule 기반 측정(fontFamily mono + textWeight 400).
+    catalogType: "Code",
   },
 };
 

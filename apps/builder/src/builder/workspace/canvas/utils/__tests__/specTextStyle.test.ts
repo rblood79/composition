@@ -10,6 +10,8 @@ import {
   TextSpec,
   HeadingSpec,
   ParagraphSpec,
+  CodeSpec,
+  KbdSpec,
   resolveToken,
   type ComponentSpec,
   type TextShape,
@@ -180,7 +182,12 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
   function textLeafOracle(
     spec: ComponentSpec<Record<string, unknown>>,
     sizeName: string,
-  ): { lineHeight: number; fontWeight: number; fontSize: number } | null {
+  ): {
+    lineHeight: number;
+    fontWeight: number;
+    fontSize: number;
+    fontFamily: string;
+  } | null {
     const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
     if (!size) return null;
     const shapes = spec.render.shapes(
@@ -204,6 +211,7 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
       lineHeight: lh!,
       fontWeight: typeof fw === "number" ? fw : parseInt(String(fw), 10) || 400,
       fontSize: t.fontSize,
+      fontFamily: t.fontFamily,
     };
   }
 
@@ -220,6 +228,9 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
       tag: "paragraph",
       spec: ParagraphSpec as ComponentSpec<Record<string, unknown>>,
     },
+    // box형 mono — fontFamily generic 보강 검증 포함
+    { tag: "code", spec: CodeSpec as ComponentSpec<Record<string, unknown>> },
+    { tag: "kbd", spec: KbdSpec as ComponentSpec<Record<string, unknown>> },
   ];
   const TEXT_SIZES = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"];
 
@@ -248,6 +259,10 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
         // fontSize: typography 토큰값
         expect(measured!.fontSize, `${tag} ${size} fontSize drift`).toBe(
           oracle!.fontSize,
+        );
+        // fontFamily: rule fontFamily 값 (sans fallback 아님 — Code/Kbd mono 검증)
+        expect(measured!.fontFamily, `${tag} ${size} fontFamily drift`).toBe(
+          oracle!.fontFamily,
         );
       });
     }

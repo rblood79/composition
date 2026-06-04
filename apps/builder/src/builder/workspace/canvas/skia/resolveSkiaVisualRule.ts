@@ -31,6 +31,8 @@ export function ruleVariantToVisual(
     text: c.text as ComponentVisualRule["text"],
     textHover: c.textHover as ComponentVisualRule["textHover"],
     textWeight: v.textWeight,
+    // fontFamily 는 ComponentRuleVariant 본문 정식 필드(Code/Kbd mono 등 보편 D3).
+    fontFamily: v.fontFamily,
     border: c.border as ComponentVisualRule["border"],
     borderHover: c.borderHover as ComponentVisualRule["borderHover"],
     borderStyle: v.borderStyle,

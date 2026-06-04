@@ -186,7 +186,10 @@ export function buildCatalogShapes(
           ? fwRaw
           : parseInt(String(fwRaw), 10) || 500
         : (visual?.textWeight ?? 500);
-    const ff = (style?.fontFamily as string) || fontFamily.sans;
+    // font-family: 사용자 style 우선, 없으면 visual.fontFamily(variant 시각 — Code/Kbd mono),
+    // 최종 fallback sans. fontFamily 는 보편 D3 속성(CSS font-family 동형, textWeight 와 동형 패턴).
+    const ff =
+      (style?.fontFamily as string) || visual?.fontFamily || fontFamily.sans;
 
     // inline text leaf (size.height===0, 예: Link) 는 top/left, box 는 middle/center.
     // height 0 컨테이너에서 align/baseline 은 시각상 무의미하나 legacy render.shapes parity 유지.

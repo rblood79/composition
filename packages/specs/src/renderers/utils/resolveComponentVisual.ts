@@ -39,6 +39,8 @@ export interface ComponentVisualRule {
   textHover: TokenRef | undefined;
   /** 텍스트 굵기 (CSS font-weight 동형, 미지정 시 consumer 가 기본 굵기 fallback) */
   textWeight: number | undefined;
+  /** 폰트 패밀리 (CSS font-family 동형 — Code/Kbd mono, 미지정 시 consumer 가 sans fallback) */
+  fontFamily: string | undefined;
   /** 기본 테두리 색 */
   border: TokenRef | undefined;
   /** hover 테두리 색 */
@@ -93,6 +95,9 @@ export function variantToVisual(variant: VariantSpec): ComponentVisualRule {
     text: variant.text,
     textHover: variant.textHover,
     textWeight: variant.textWeight,
+    // transition adapter(spec variant)는 fontFamily 정보 없음 — production 은 rule 경로
+    // (ruleVariantToVisual)에서 v.fontFamily 투영. 본 adapter 는 test fixture/CSSGenerator 용.
+    fontFamily: undefined,
     border: variant.border,
     borderHover: variant.borderHover,
     borderStyle: variant.borderStyle,
