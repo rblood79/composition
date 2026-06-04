@@ -128,6 +128,10 @@ const TEXT_BEARING_SPECS: Record<
   text: {
     spec: TextSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    // ADR-912 위험군 해소(2026-06-04): Text catalog 등록 → 측정도 rule 기반
+    //   buildCatalogShapes 경로. lineHeight push 보강(buildCatalogShapes)으로 height=0
+    //   TEXT_LEAF 의 fontSize*1.5 fallback drift 해소. spec.render.shapes 측정 의존 끊기.
+    catalogType: "Text",
   },
   heading: {
     spec: HeadingSpec as ComponentSpec<Record<string, unknown>>,

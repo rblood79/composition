@@ -94,6 +94,14 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "badge",
     icon: "Star",
   }),
+  // ADR-912 위험군 해소(선행-3/4 deletion-risk → catalog 등록, 2026-06-04): TEXT_LEAF 순수 텍스트.
+  //   rule(COMPONENT_RULES_TABLE.Text, fontSize+lineHeight 완비) + buildCatalogShapes generic 으로
+  //   시각·측정 이전 → spec.render.shapes 의존 끊기. DOM 은 generic fallthrough(<p> + react-aria-Text).
+  primitiveEntry("Text", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "text",
+    icon: "Type",
+  }),
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic, value-dependent 시각 없음)
   primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",

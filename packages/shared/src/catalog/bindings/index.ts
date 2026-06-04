@@ -40,6 +40,7 @@ import { tableBinding } from "./Table.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
 import { textAreaBinding } from "./TextArea.binding";
+import { textBinding } from "./Text.binding";
 import { textFieldBinding } from "./TextField.binding";
 import { timeFieldBinding } from "./TimeField.binding";
 import { toggleButtonBinding } from "./ToggleButton.binding";
@@ -85,6 +86,7 @@ export * from "./Table.binding";
 export * from "./Tabs.binding";
 export * from "./TagGroup.binding";
 export * from "./TextArea.binding";
+export * from "./Text.binding";
 export * from "./TextField.binding";
 export * from "./Tree.binding";
 export * from "./TimeField.binding";
@@ -105,6 +107,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Icon: iconBinding,
   Link: linkBinding,
   Separator: separatorBinding,
+  // ADR-912 위험군 해소(선행-3/4): TEXT_LEAF 순수 텍스트 leaf (internal source, DOM generic, Skia box+text)
+  Text: textBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,

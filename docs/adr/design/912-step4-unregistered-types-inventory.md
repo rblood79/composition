@@ -52,12 +52,12 @@
 
 - **step 4 정책**: deletion-risk 9 는 삭제 전 해소 필요 — TEXT_LEAF 5 는 catalog TEXT_LEAF generic 등록(시각+측정 양쪽 이전), container shell 4 는 native 등록 또는 부모 흡수. `Group` 은 D1 보존(삭제 금지). `Field` 만 safe-delete.
 
-#### 위험군 해소 시도 — TEXT_LEAF catalog 등록 Text slice (2026-06-04, kill-criteria 발동)
+#### 위험군 해소 — TEXT_LEAF Text catalog 등록 ✅ 완료 (2026-06-04, generic lineHeight 보강으로 해소)
 
-사용자 결정 순서("field/form/text leaf 먼저 catalog 등록" → "Text 1개 slice 먼저 증명 후 확장")에 따라 Text 1개로 3-step 등록 slice 를 분석한 결과 **측정 drift 발견 → 확장 중단**.
+사용자 결정 순서("field/form/text leaf 먼저 catalog 등록" → "Text 1개 slice 먼저 증명 후 확장" → kill-criteria 발견 후 "buildCatalogShapes lineHeight 보강")에 따라 Text 1개 slice 진행. **kill-criteria(lineHeight drift) 발견 → generic 인프라 보강으로 해소 → Text 등록 완료 → drift 0 검증 PASS**.
 
-- **3-step 등록 구조**: (1) componentCatalog PrimitiveBinding + (2) componentRulesTable rule(variants/sizes) + (3) `TEXT_BEARING_SPECS[type].catalogType` 설정(측정 catalog 전환, specTextStyle L207-208 `useCatalog` 분기).
-- 🔴 **kill-criteria — buildCatalogShapes lineHeight 미생성 갭**: `buildCatalogShapes`(packages/specs/src/renderers/buildCatalogShapes.ts) text 분기(L171-214)에 **lineHeight push 가 전혀 없음**(grep 0건). catalog 측정 경로(`useCatalog=true`)는 textShape 에 lineHeight 부재 → `resolveShapeLineHeight(undefined)`(specTextStyle L246/L260) → undefined → caller `fontSize*1.5` fallback. **TEXT_LEAF 는 height=0 순수 텍스트라 lineHeight 가 layout height 직접 결정**(measureSpecTextMinHeight buildSpecNodeData L1230 + TEXT_LEAF_TAGS utils L3202-3211) → drift:
+- **전제 정정**: 당초 "3-step 등록, 10개 rule 0건" 으로 추정했으나 **Text rule 은 이미 완비**("rule 0건" 은 grep `"Text":` vs 실제 `Text:` false negative). 실제 = **2-step**(PrimitiveBinding + componentCatalog entry / `TEXT_BEARING_SPECS.text.catalogType="Text"`). DOM 은 generic fallthrough(`<p>`+`react-aria-Text`)라 렌더러 신설 불요. source.kind=internal(RAC standalone Text 없음).
+- 🔴→✅ **kill-criteria 발견 후 해소 — buildCatalogShapes lineHeight 미생성 갭**: `buildCatalogShapes`(packages/specs/src/renderers/buildCatalogShapes.ts) text 분기에 **lineHeight push 가 없었음**(grep 0건). catalog 측정 경로(`useCatalog=true`)는 textShape 에 lineHeight 부재 → `resolveShapeLineHeight(undefined)`(specTextStyle L246/L260) → undefined → caller `fontSize*1.5` fallback. **TEXT_LEAF 는 height=0 순수 텍스트라 lineHeight 가 layout height 직접 결정**(measureSpecTextMinHeight buildSpecNodeData L1230 + extractSpecTextStyle utils L2856 + TEXT_LEAF_TAGS utils L3202-3211) → drift:
 
   | size | fontSize | spec lineHeight(typography.ts L30-42) | fontSize×1.5(catalog fallback) | drift  |
   | ---- | -------- | ------------------------------------- | ------------------------------ | ------ |
@@ -68,8 +68,11 @@
 
   md 만 우연히 일치, 나머지 size 전부 drift. 기존 catalog text type(Badge/Button)은 box형(height>0)이라 lineHeight 가 height 로 흡수되어 무영향이었으나, TEXT_LEAF(height=0)는 lineHeight 가 측정 본질.
 
-- **근본 원인**: catalog 등록 자체가 아니라 **buildCatalogShapes 의 generic 인프라 갭**(lineHeight 미생성). 해소하려면 buildCatalogShapes text 분기에 lineHeight 생성 추가 — **모든 catalog text type 영향** generic 보강이라 사용자 판단 필요.
-- **slice 결론**: Text 1개에서 drift 발견 → 나머지 9개(TEXT_LEAF 4 + field/form 5) 확장 **중단**(사용자 "중간에 깨지면 거기서 멈춤" 패턴). 코드 변경 0(분석만).
+- **근본 원인**: catalog 등록 자체가 아니라 **buildCatalogShapes 의 generic 인프라 갭**(lineHeight 미생성).
+- ✅ **해소 (사용자 결정 "buildCatalogShapes lineHeight 보강")**: buildCatalogShapes text 분기에 `size.lineHeight` push 추가. **box형 무영향 구조적 확정** — specShapeConverter 가 lineHeight 부재 시 `getLabelLineHeight(fontSize)`(typography.ts FONT_SIZE_TO_LINE_HEIGHT) fallback 을 쓰는데, 이 값이 rule `size.lineHeight`(같은 typography 토큰)와 **완전 동일** → push 전후 box형 paddingTop 불변. box형은 TEXT_LEAF_TAGS 비멤버라 measure 경로(utils L2856)도 비진입. → 모든 catalog text 정확도만 향상, 회귀 0.
+- ✅ **Text 2-step 등록 완료**: Text.binding.ts(internal source) + PRIMITIVE_BINDINGS.Text + componentCatalog primitiveEntry("Text", cutover:"catalog") + `TEXT_BEARING_SPECS.text.catalogType="Text"`.
+- ✅ **검증 (live + 단위)**: (1) `specTextStyle.test.ts` drift 0 테스트 18 PASS — catalog 측정 lineHeight 가 모든 size(xs~3xl)에서 spec.render.shapes oracle 과 정확 일치(보강 효과 결정적 증명). (2) type-check PASS(110 baseline, 신규 0) + spec build 통과. (3) live builder: 콘솔 에러 0 + **ADR-912 gate 비동치 경고 0**(catalog 등록 Text 가 fallback 으로 안 샘) + Text size md→xs exercise 시에도 gate 경고 0 + canvas 렌더 유지.
+- **slice 결론**: Text 1개 slice 증명 완료 → **나머지 9개(TEXT_LEAF 4: Heading/Paragraph/Code/Kbd + field/form 5: Label/DateSegment/Description/DisclosureHeader/FieldError) 확장 가능**. 단 field/form 5 는 `_hasChildren` shell 구조 차이라 별도 검증 필요(다음 단계).
 
 ### D. 미발효 leaf (22) — catalog 등록 / shell / dead
 

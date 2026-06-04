@@ -7,8 +7,11 @@ import {
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
+  TextSpec,
+  resolveToken,
   type ComponentSpec,
   type TextShape,
+  type TokenRef,
 } from "@composition/specs";
 import { extractSpecTextStyle } from "../specTextStyle";
 
@@ -154,5 +157,66 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
       expect(m, tag).not.toBeNull();
       expect(m!.fontSize, tag).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * ADR-912 위험군 해소 — Text catalog 등록 후 측정 drift 0 (2026-06-04).
+ *
+ * Text 는 catalog 등록(`cutover:"catalog"` + `catalogType:"Text"`)으로 측정 source 가
+ * spec.render.shapes → buildCatalogShapes(rule 기반)로 전환됐다. **height=0 순수 TEXT_LEAF**
+ * 라 lineHeight 가 layout height 본질이므로, buildCatalogShapes lineHeight push 보강이
+ * 없으면 catalog 측정이 fontSize*1.5 fallback 으로 떨어져 size 별 typography lineHeight 와
+ * drift 한다(text-xs 16 vs 18 등).
+ *
+ * oracle: spec.render.shapes 가 emit 하는 lineHeight(typography 토큰 px) = catalog 측정 lineHeight.
+ * **모든 size(xs~3xl)에서 일치해야 drift 0** — 보강 + 등록의 결정적 증명.
+ */
+describe("extractSpecTextStyle — Text catalog 측정 drift 0 (ADR-912 위험군 해소)", () => {
+  /** spec.render.shapes 의 lineHeight(TokenRef)를 px 로 resolve 한 oracle. */
+  function textShapeLineHeightOracle(sizeName: string): number | null {
+    const size = TextSpec.sizes[sizeName];
+    if (!size) return null;
+    const lh = (size as { lineHeight?: unknown }).lineHeight;
+    if (typeof lh === "number") return lh;
+    if (typeof lh === "string" && lh.startsWith("{")) {
+      const r = resolveToken(lh as TokenRef);
+      return typeof r === "number" ? r : null;
+    }
+    return null;
+  }
+
+  const TEXT_SIZES = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"];
+
+  for (const size of TEXT_SIZES) {
+    test(`text size=${size}: catalog 측정 lineHeight 가 spec.render.shapes oracle 과 일치(drift 0)`, () => {
+      const measured = extractSpecTextStyle("text", {
+        size,
+        children: "Sample",
+      });
+      const oracleLh = textShapeLineHeightOracle(size);
+
+      expect(measured, `text ${size} measured`).not.toBeNull();
+      expect(oracleLh, `text ${size} oracle`).not.toBeNull();
+      // lineHeight 는 px number 로 resolve (TokenRef 문자열 금지)
+      expect(typeof measured!.lineHeight, `text ${size} lineHeight type`).toBe(
+        "number",
+      );
+      // 핵심: catalog 측정 lineHeight = typography 토큰 px (fontSize*1.5 fallback 아님)
+      expect(measured!.lineHeight, `text ${size} drift`).toBe(oracleLh);
+    });
+  }
+
+  test("text catalog 측정 fontSize 도 size 별 typography 토큰과 일치", () => {
+    // xs=12, md=16, 3xl=30 (typography text-xs/text-base/text-3xl)
+    expect(
+      extractSpecTextStyle("text", { size: "xs", children: "x" })!.fontSize,
+    ).toBe(12);
+    expect(
+      extractSpecTextStyle("text", { size: "md", children: "x" })!.fontSize,
+    ).toBe(16);
+    expect(
+      extractSpecTextStyle("text", { size: "3xl", children: "x" })!.fontSize,
+    ).toBe(30);
   });
 });

@@ -198,6 +198,14 @@ export function buildCatalogShapes(
     // underline 등 text-decoration 은 caller 가 rule 메타로 주입(Link.spec composition
     // rootSelectors text-decoration 의 거울). spec 직접 읽기 제거(#8).
 
+    // line-height: rule size.lineHeight(TokenRef 또는 px) 를 그대로 전달 — Skia 경로는
+    //   specShapeConverter, layout 측정 경로는 resolveShapeLineHeight 가 resolve.
+    //   **TEXT_LEAF(height=0) catalog 전환 필수**: 미전달 시 measure 가 fontSize*1.5 fallback
+    //   으로 떨어져 size 별 typography lineHeight 와 drift(예: text-base 24 vs 16*1.5=24 우연
+    //   일치, text-xs 16 vs 18 drift). render.shapes 의 `lineHeight: size.lineHeight` 와 동형.
+    //   box형(height>0)은 TEXT_LEAF_TAGS 비멤버라 measure 경로 비진입 → 측정 무영향(Skia 정렬만 동일).
+    const lineHeightVal = (size as { lineHeight?: unknown }).lineHeight;
+
     shapes.push({
       type: "text",
       x: paddingX,
@@ -209,6 +217,9 @@ export function buildCatalogShapes(
       fill: textColor,
       align: textAlign,
       baseline: isInlineText ? "top" : "middle",
+      ...(lineHeightVal != null
+        ? { lineHeight: lineHeightVal as unknown as number }
+        : {}),
       ...(textDecoration ? { textDecoration } : {}),
     });
   }
