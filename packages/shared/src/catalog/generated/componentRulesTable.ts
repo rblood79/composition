@@ -509,7 +509,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  Body: {
+  // ADR-912 container shell 3 (2026-06-04): 키를 PascalCase "Body" → lowercase "body" 로 정합.
+  //   canonical element.type 은 일관되게 lowercase "body"(elementUtils/pageFrameBinding/App.tsx)
+  //   이고 resolveComponentRule 은 type 직접 조회(정규화 없음) → catalog generic 경로의 게이트
+  //   type("body")와 일치해야 visual 해소. frame(L2426 lowercase) 선례와 동일 정합. PascalCase
+  //   "Body" 키 참조 코드 0건(BodySpec 심볼만 PascalCase, element.type 미사용).
+  body: {
     defaultVariant: "default",
     defaultSize: "md",
     variants: {

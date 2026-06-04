@@ -77,6 +77,20 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "ToggleButton",
         "ToggleButtonGroup",
         "Toolbar",
+        // ADR-912 위험군 해소(선행-1/6): TEXT_LEAF + field/form/text leaf catalog 등록
+        //   (HEAD 시점 본 배열에 누락된 stale — container shell 3 추가와 함께 actual 21 로 정합)
+        "Text",
+        "Heading",
+        "Paragraph",
+        "Code",
+        "Kbd",
+        "Label",
+        "Description",
+        "FieldError",
+        // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source)
+        "body",
+        "Section",
+        "Nav",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

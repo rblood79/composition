@@ -4,6 +4,7 @@
  */
 import type { PrimitiveBinding } from "../types";
 import { badgeBinding } from "./Badge.binding";
+import { bodyBinding } from "./Body.binding";
 import { buttonBinding } from "./Button.binding";
 import { calendarBinding } from "./Calendar.binding";
 import { checkboxBinding } from "./Checkbox.binding";
@@ -30,6 +31,7 @@ import { listBoxBinding } from "./ListBox.binding";
 import { menuBinding } from "./Menu.binding";
 import { meterTrackBinding } from "./MeterTrack.binding";
 import { modalBinding } from "./Modal.binding";
+import { navBinding } from "./Nav.binding";
 import { numberFieldBinding } from "./NumberField.binding";
 import { paragraphBinding } from "./Paragraph.binding";
 import { popoverBinding } from "./Popover.binding";
@@ -38,6 +40,7 @@ import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
+import { sectionBinding } from "./Section.binding";
 import { selectBinding } from "./Select.binding";
 import { separatorBinding } from "./Separator.binding";
 import { skeletonBinding } from "./Skeleton.binding";
@@ -57,6 +60,7 @@ import { tooltipBinding } from "./Tooltip.binding";
 import { treeBinding } from "./Tree.binding";
 
 export * from "./Badge.binding";
+export * from "./Body.binding";
 export * from "./Button.binding";
 export * from "./Calendar.binding";
 export * from "./Checkbox.binding";
@@ -83,6 +87,7 @@ export * from "./ListBox.binding";
 export * from "./Menu.binding";
 export * from "./MeterTrack.binding";
 export * from "./Modal.binding";
+export * from "./Nav.binding";
 export * from "./NumberField.binding";
 export * from "./Paragraph.binding";
 export * from "./Popover.binding";
@@ -91,6 +96,7 @@ export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
 export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
+export * from "./Section.binding";
 export * from "./Select.binding";
 export * from "./Separator.binding";
 export * from "./Skeleton.binding";
@@ -139,6 +145,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   FileTrigger: fileTriggerBinding,
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
   Skeleton: skeletonBinding,
+  // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source, generic
+  //   box 시각). spec.render.shapes Skia fallback 제거. SHELL_ONLY(Body/Section) 또는 자식 무관
+  //   bg(Nav) → buildCatalogShapes box 만으로 spec parity. List 는 샘플 text 때문에 별도 보류.
+  body: bodyBinding,
+  Section: sectionBinding,
+  Nav: navBinding,
   // family ② fields
   TextField: textFieldBinding,
   // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)

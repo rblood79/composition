@@ -162,6 +162,25 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "skeleton",
     icon: "Loader",
   }),
+  // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source).
+  //   catalog 등록으로 spec.render.shapes Skia fallback 제거 — 시각은 rule(COMPONENT_RULES_TABLE)
+  //   + buildCatalogShapes generic box. DOM 은 generic fallback 경로(INTERNAL_RENDERERS 미등록)
+  //   유지라 generated CSS diff 0. List 는 샘플 text 3줄 때문에 별도 보류(후속 판정).
+  primitiveEntry("body", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "body",
+    icon: "Layout",
+  }),
+  primitiveEntry("Section", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "section",
+    icon: "RectangleHorizontal",
+  }),
+  primitiveEntry("Nav", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "nav",
+    icon: "Menu",
+  }),
 ];
 
 /**
