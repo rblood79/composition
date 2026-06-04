@@ -150,6 +150,14 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "field error",
     icon: "AlertCircle",
   }),
+  // ADR-912 위험군 해소(선행-6): field 입력 영역 자식 leaf. rac source(RAC <Input> 이 부모 TextField
+  //   controller slot 소비) → catalog cutover 후에도 DOM 은 <RAC.Input> 유지, Skia 는 buildCatalogShapes
+  //   box+text. createInput 단독 factory 없음(field 자식 sub-part 전용). rule paddingX 보강(NaN/drift 방지).
+  primitiveEntry("Input", "primitives", FAMILY_1_CUTOVER, {
+    category: "forms",
+    label: "input",
+    icon: "TextCursorInput",
+  }),
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic, value-dependent 시각 없음)
   primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",

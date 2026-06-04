@@ -25,6 +25,7 @@ import { gridListBinding } from "./GridList.binding";
 import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
 import { inlineAlertBinding } from "./InlineAlert.binding";
+import { inputBinding } from "./Input.binding";
 import { kbdBinding } from "./Kbd.binding";
 import { labelBinding } from "./Label.binding";
 import { linkBinding } from "./Link.binding";
@@ -169,6 +170,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 위험군 해소(선행-6): field/form validation 에러 메시지 leaf (TEXT_LEAF 동형, 부모 데이터
   //   의존 0, weight 400 negative 색, measure 는 부모 height 분기로 catalog 직교)
   FieldError: fieldErrorBinding,
+  // ADR-912 위험군 해소(선행-6): field 입력 영역 자식 leaf (rac source — RAC <Input> 이 부모 TextField
+  //   controller slot 소비, generic box+text 시각). createInput 단독 factory 없음(자식 sub-part 전용).
+  Input: inputBinding,
   // family ③ selection
   Checkbox: checkboxBinding,
   CheckboxGroup: checkboxGroupBinding,
