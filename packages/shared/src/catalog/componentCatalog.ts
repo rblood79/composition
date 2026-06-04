@@ -141,6 +141,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "description",
     icon: "AlignLeft",
   }),
+  // ADR-912 위험군 해소(선행-6): field/form validation 에러 메시지 leaf. TEXT_LEAF 동형(box+text
+  //   generic), spec render.shapes 가 props 만 읽어 부모 데이터(invalid 상태) 의존 0 (Description 동형).
+  //   rule textWeight 400 + negative 색 + height:0(isInlineText top/left) + lineHeight 완비로 drift 0.
+  //   measure 는 부모 height 분기(utils.ts:2298)로 처리(TEXT_LEAF_TAGS 비멤버, catalog 직교).
+  primitiveEntry("FieldError", "primitives", FAMILY_1_CUTOVER, {
+    category: "forms",
+    label: "field error",
+    icon: "AlertCircle",
+  }),
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic, value-dependent 시각 없음)
   primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",

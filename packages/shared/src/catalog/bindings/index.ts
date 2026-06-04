@@ -17,6 +17,7 @@ import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { descriptionBinding } from "./Description.binding";
 import { dialogBinding } from "./Dialog.binding";
 import { dropZoneBinding } from "./DropZone.binding";
+import { fieldErrorBinding } from "./FieldError.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
 import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
@@ -69,6 +70,7 @@ export * from "./DateRangePicker.binding";
 export * from "./Description.binding";
 export * from "./Dialog.binding";
 export * from "./DropZone.binding";
+export * from "./FieldError.binding";
 export * from "./FileTrigger.binding";
 export * from "./Form.binding";
 export * from "./GridList.binding";
@@ -147,6 +149,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   TimeField: timeFieldBinding,
   ColorField: colorFieldBinding,
   Form: formBinding,
+  // ADR-912 위험군 해소(선행-6): field/form validation 에러 메시지 leaf (TEXT_LEAF 동형, 부모 데이터
+  //   의존 0, weight 400 negative 색, measure 는 부모 height 분기로 catalog 직교)
+  FieldError: fieldErrorBinding,
   // family ③ selection
   Checkbox: checkboxBinding,
   CheckboxGroup: checkboxGroupBinding,
