@@ -1920,21 +1920,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral-subdued}",
         },
+        // ADR-912 위험군 해소 (선행-6 field/form Description catalog 등록, 2026-06-04):
+        //   spec render.shapes 기본 fontWeight=400(Description.spec.ts:111-116, fwRaw 미지정 시 400)
+        //   → variant.textWeight=400 명시. 누락 시 catalog 가 default weight 로 drift. Label(600) 과 달리
+        //   Description 은 보조 설명 텍스트라 normal weight 400 이 정본.
+        textWeight: 400,
       },
     },
     sizes: {
+      // lineHeight 보강: catalog generic 의 getLabelLineHeight(fontSize) fallback 과 동일 typography
+      //   토큰을 명시 → drift 0 (sm/md: text-xs=12 → text-xs--line-height=16, lg: text-sm=14 →
+      //   text-sm--line-height=20). 실측 2026-06-04 (typography.ts:89-90 FONT_SIZE_TO_LINE_HEIGHT).
       sm: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       md: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       lg: {
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },

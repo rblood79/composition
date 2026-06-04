@@ -132,6 +132,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "label",
     icon: "Tag",
   }),
+  // ADR-912 위험군 해소(선행-6): compound 보조 설명 leaf. TEXT_LEAF 동형(box+text generic),
+  //   spec render.shapes 가 props 만 읽어 부모 변형 0 (Label 보다 단순). rule textWeight 400(보조
+  //   텍스트 normal weight) + lineHeight 완비로 drift 0. 측정 결합(implicitStyles/ADR-147)은 측정
+  //   layer 라 catalog 등록과 직교.
+  primitiveEntry("Description", "primitives", FAMILY_1_CUTOVER, {
+    category: "forms",
+    label: "description",
+    icon: "AlignLeft",
+  }),
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic, value-dependent 시각 없음)
   primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",

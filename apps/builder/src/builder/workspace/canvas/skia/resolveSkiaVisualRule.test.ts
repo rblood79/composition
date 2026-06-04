@@ -44,6 +44,9 @@ const ALLOW_RULE_CANONICAL_DRIFT: Record<string, readonly string[]> = {
   Code: ["textWeight", "fontFamily"],
   Kbd: ["textWeight", "fontFamily"],
   Label: ["textWeight"],
+  // Description catalog 등록(선행-6) — rule variants.default.textWeight=400 신규 정본 (spec
+  //   render.shapes 런타임 기본값 400 과 동일하나 spec.variants 엔 필드 없어 spec→visual undefined).
+  Description: ["textWeight"],
   // value-fill escape (선행-2) — rule fillBar 신규 정본 (spec 미보유) + Track 배경 fill 정본 이전:
   //   선행-2 가 rule fill.base 를 {color.neutral-subtle}(보이는 회색 트랙) 로 정본화하고 그 위에
   //   fillBar(value_fill escape) 를 덧그린다. spec fill.base 는 {color.transparent}(구버전 폐기 대상)
