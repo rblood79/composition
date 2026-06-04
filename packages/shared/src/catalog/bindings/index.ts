@@ -18,6 +18,7 @@ import { dropZoneBinding } from "./DropZone.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
 import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
+import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
@@ -25,6 +26,7 @@ import { menuBinding } from "./Menu.binding";
 import { meterTrackBinding } from "./MeterTrack.binding";
 import { modalBinding } from "./Modal.binding";
 import { numberFieldBinding } from "./NumberField.binding";
+import { paragraphBinding } from "./Paragraph.binding";
 import { popoverBinding } from "./Popover.binding";
 import { progressBarTrackBinding } from "./ProgressBarTrack.binding";
 import { radioBinding } from "./Radio.binding";
@@ -64,6 +66,7 @@ export * from "./DropZone.binding";
 export * from "./FileTrigger.binding";
 export * from "./Form.binding";
 export * from "./GridList.binding";
+export * from "./Heading.binding";
 export * from "./Icon.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
@@ -71,6 +74,7 @@ export * from "./Menu.binding";
 export * from "./MeterTrack.binding";
 export * from "./Modal.binding";
 export * from "./NumberField.binding";
+export * from "./Paragraph.binding";
 export * from "./Popover.binding";
 export * from "./ProgressBarTrack.binding";
 export * from "./Radio.binding";
@@ -109,6 +113,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Separator: separatorBinding,
   // ADR-912 위험군 해소(선행-3/4): TEXT_LEAF 순수 텍스트 leaf (internal source, DOM generic, Skia box+text)
   Text: textBinding,
+  Heading: headingBinding,
+  Paragraph: paragraphBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,

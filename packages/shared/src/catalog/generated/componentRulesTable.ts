@@ -2532,6 +2532,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 위험군 해소(2026-06-04): Heading spec render.shapes fontWeight 700 ↔
+        //   buildCatalogShapes fallback 500 drift 차단. variant.textWeight=700 명시.
+        textWeight: 700,
       },
     },
     sizes: {
@@ -3719,6 +3722,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 위험군 해소(2026-06-04): Paragraph spec render.shapes fontWeight 400 ↔
+        //   buildCatalogShapes fallback 500 drift 차단. variant.textWeight=400 명시.
+        textWeight: 400,
       },
     },
     sizes: {
@@ -5750,6 +5756,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 위험군 해소(2026-06-04): TEXT_LEAF catalog 측정/렌더 fontWeight drift 차단.
+        //   buildCatalogShapes fallback 500 ↔ Text spec render.shapes 400 → variant.textWeight=400
+        //   명시(Checkbox/Radio step 2 선례 동형). 누락 시 catalog 전환으로 Text 가 400→500 굵어짐.
+        textWeight: 400,
       },
     },
     sizes: {

@@ -136,10 +136,14 @@ const TEXT_BEARING_SPECS: Record<
   heading: {
     spec: HeadingSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    // ADR-912 위험군 해소(2026-06-04): Heading catalog 등록 → rule 기반 측정(textWeight 700 포함).
+    catalogType: "Heading",
   },
   paragraph: {
     spec: ParagraphSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    // ADR-912 위험군 해소(2026-06-04): Paragraph catalog 등록 → rule 기반 측정(textWeight 400 포함).
+    catalogType: "Paragraph",
   },
   description: {
     spec: DescriptionSpec as ComponentSpec<Record<string, unknown>>,

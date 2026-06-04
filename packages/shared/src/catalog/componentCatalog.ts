@@ -102,6 +102,17 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "text",
     icon: "Type",
   }),
+  // ADR-912 위험군 해소(선행-4): TEXT_LEAF 동형(Text). rule textWeight 700(제목) / 400(본문) 완비.
+  primitiveEntry("Heading", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "heading",
+    icon: "Heading",
+  }),
+  primitiveEntry("Paragraph", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "paragraph",
+    icon: "Pilcrow",
+  }),
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic, value-dependent 시각 없음)
   primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",
