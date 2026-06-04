@@ -204,6 +204,61 @@ field/form 5 + collection 8 + date 3 = 16 전수 실측 완료. catalog 등록 �
 - `feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization` — 본 설계서까지만(코드 변경 0). 메커니즘별 proof slice 진입은 사용자 별도 승인. sub-phase 분해 진입 차단(설계서 lock-in 만으로 confirm 자동 처리 금지).
 - `feedback-proof-gate-seam-removal-kill-criteria` — 각 메커니즘 proof slice 는 "신규 경로 작동"으로 끝내지 않고 **대상 type 의 spec.render.shapes fallback seam 제거 + DOM/Skia 대칭** 까지 통과해야 다음 type 확장(kill criteria).
 
+### (A) parent projector proof slice #1 — Tag chip projection 설계 비교 (2026-06-05 — 사용자 confirm "개별 chip projection 노드화", 코드 변경 0)
+
+> 사용자 결정(2026-06-05): Tag proof slice 목표 = **개별 chip projection 노드화 (ListBox 선례 직접 동형)**. TagList self-render seam 제거 + 각 chip 을 render-space 노드로 분리. wrap/maxRows 좌표는 projector(또는 Taffy 위임)에서 재구현. kill criteria = TagList.spec.ts self-render seam 제거 + DOM/Skia 대칭 + selection/remove 상태 보존.
+
+#### 실측 — Tag 가 ListBox 선례와 같은 점 / 다른 점
+
+| 축                    | ListBox 선례 (실측 file:line)                                                                                                                                                       | TagList/Tag 현황 (실측 file:line)                                                                                                                                                                  | 동형 여부                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| **데이터 모델**       | items SSOT — `getListBoxProjectionRows` → `getFlatProjectionRows`(`collectionRowProjectionModel.ts:200-218`), `readDataBindingRows` collection/dataBinding/props.items 우선순위     | items SSOT — `TagGroup.props.items`(4개 StoredTagItem factory 기본, `GroupComponents.ts:350-357`) → TagGroup→TagList propagation(`TagGroup.spec.ts:419-420`) → `TagList.spec.ts:232` `props.items` | ✅ 동형 (재사용)                    |
+| **container spec**    | shell-only bg+border (`ListBox.spec.ts:276-343`), item paint 0 (ADR-146 주석)                                                                                                       | shell-only `return []` (`TagGroup.spec.ts:441`), TagList 도 `skipCSSGeneration`(`TagList.spec.ts:176`)                                                                                             | ✅ 동형                             |
+| **item 렌더 구조**    | **render-space projection 노드 분리** — `appendListBoxRowProjection`(`canvasSceneNode.ts:517-616`) 가 행마다 ListBoxItem 노드 생성 + `renderNodesMap` 진입                          | **TagList spec 내부 self-render** — `TagList.spec.ts:299-333` items 순회 Phase 1 wrap 시뮬 + Phase 2 chip shape 배열 emit. **개별 노드 없음** (단일 TagList 노드 안 shape 배열)                    | 🔴 **비대칭 (전환 대상)**           |
+| **projection 게이트** | `resolveDataBoundListBoxProjection`(`canvasSceneNode.ts:1010-1011`) → `appendListBoxRowProjection` 호출(`:1044-1052`)                                                               | **게이트 부재** — `canvasSceneNode.ts:1010/1017/1023` = ListBox/GridList/Table 만. TagGroup/TagList 진입 없음                                                                                      | 🔴 **신규 게이트 필요**             |
+| **좌표 layout**       | **Taffy 위임** — rowsGroup `display:flex flexDirection:column`(`canvasSceneNode.ts:554-559`), 각 row `width:100%` 만(`:588`), 좌표 0 계산                                           | **수동 wrap 시뮬** — `TagList.spec.ts:312` `currentRowWidth + chipWidth > containerWidth` 판정 + `:329` `y: rowIndex*(tagHeight+rowGap)` 직접 계산                                                 | 🔶 **Taffy flex-wrap 로 대체 가능** |
+| **selection**         | `isListBoxRowSelected`(`canvasSceneNode.ts:455-471`) → `props.selectedKeys`/`selectedKey` 읽어 `_isSelected` 주입 → ListBoxItem.spec `props._isSelected`(`ListBoxItem.spec.ts:117`) | Tag `props.isSelected` → variant 전환(`Tag.spec.ts:163-175`), TagGroup `selectionMode`/`selectedKeys`(`TagGroup.spec.ts:36`) RAC 관리                                                              | 🔶 **단일 handler 확장**            |
+| **remove**            | 개념 없음                                                                                                                                                                           | `allowsRemoving` → X icon_font(`TagList.spec.ts:386-401` / `Tag.spec.ts:249-291`), DOM `<Button slot="remove">`(`TagGroup.tsx:325` `onRemove`)                                                     | 🔴 **신규 어댑터**                  |
+| **boundary guard**    | `isRenderProjectionId`(`renderProjectionIds.ts:82-88`) → `assertCanonicalMoveTarget`/`elementUpdate`/`elementRemoval` 자동 차단                                                     | 동일 helper — `projection:tag-row` prefix 추가 시 자동 적용                                                                                                                                        | ✅ 동형 (재사용)                    |
+
+#### 핵심 통찰 — "데이터 동형, 렌더 구조 비대칭"
+
+Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary guard 는 직접 동형**이나, **item 렌더 구조가 다르다**: ListBox 는 처음부터 projection 노드였고, TagList 는 spec 내부 self-render(이미 작동 중). 따라서 Tag proof slice 는 단순 어댑터 추가가 아니라 **작동 중인 TagList self-render seam 을 제거하고 projection 으로 교체**하는 작업 — kill criteria 의 "seam 제거"에 정확히 해당.
+
+**좌표 재계산 난점 해소 (Taffy 위임)**: 사용자 경고("wrap/maxRows 좌표를 projector에서 재계산")는 ListBox 선례의 좌표 처리 방식을 보면 회피 가능하다. ListBox projector 는 좌표를 **직접 계산하지 않고** rowsGroup `flexDirection:column` + row `width:100%` 로 Taffy 에 위임(`canvasSceneNode.ts:554-588`). Tag 의 wrap-flow(가로 흐름 + 행 줄바꿈)는 **rowsGroup `display:flex flexWrap:"wrap" flexDirection:"row"` + chip `width:fit-content`** 로 Taffy flex-wrap 위임 가능 → `TagList.spec.ts:299-333` 의 수동 Phase 1 wrap 시뮬레이션 전량 제거. `maxRows` 만 window limit 동형으로 projector 에서 별도 처리(`getFlatProjectionRows` windowLimit 패턴 재사용, "Show all" chip 은 후속).
+
+#### 골격 재사용 vs 신규 어댑터 (Tag 한정)
+
+**직접 재사용 (선례 그대로)**:
+
+- `getFlatProjectionRows`(`collectionRowProjectionModel.ts:200-218`) — `TagGroup.props.items` 를 같은 fixed-field 휴리스틱(itemKey/label/icon/isDisabled)으로 처리. items 가 `{ id, label, isDisabled? }` StoredTagItem 이라 readDataBindingRows item 매핑 직접 적용. 신규 `getTagProjectionRows` 는 `getFlatProjectionRows` 위임(ListBox `listBoxRowProjectionModel.ts:31-36` 패턴 동일).
+- `isRenderProjectionId`/`assertCanonicalMoveTarget`/`elementUpdate`/`elementRemoval` boundary guard — `projection:tag-row` prefix 추가만으로 자동 적용(게이트 변경 0).
+- `resolveCollectionWriteTarget`(`resolveCollectionWriteTarget.ts:100-134`) 3-route + `assertCanonicalWriteTarget` — `isCollectionRowProjectionKind`(`renderProjectionIds.ts:97-103`)에 `"tag-row"` 추가 시 단일 handler 자동 흡수(no-classification 정합).
+- selection 읽기 — `isListBoxRowSelected`(`canvasSceneNode.ts:455-471`) 를 generic `isCollectionRowSelected` 로 일반화(이름 변경) 또는 동형 함수로 `selectedKeys` 읽어 `_isSelected` 주입.
+
+**신규 어댑터 (Tag 고유)**:
+
+- `appendTagRowProjection`(또는 generic `appendWrapRowProjection`) — rowsGroup `flexWrap:"wrap" flexDirection:"row"` + chip `width:fit-content`(ListBox 의 column/100% 와 유일한 차이). 나머지(projection id / metadata / `addSceneNode` / parent-chain)는 `appendListBoxRowProjection` 골격 그대로.
+- `resolveDataBoundTagProjection`(`canvasSceneNode.ts:1010` 동형) + `appendTagRowProjection` 호출 게이트(`:1044` 동형). TagGroup(또는 TagList) type 진입.
+- **remove route** — `resolveCollectionWriteTarget` 의 `content` intent 에 remove 의도 추가(itemKey 삭제 → canonical mutation `removeDescendant`/items 배열 splice). ListBox 에 없던 신규 — content route 의 변형(데이터 행 삭제 = history 기록).
+- **chip leaf spec** — cell 그리기는 catalog 미등록 `Tag` type 의 `Tag.spec.ts:143-295` render.shapes 재사용(ListBoxItem 동형). `_isSelected`/`allowsRemoving` prop 소비. TagList self-render(`TagList.spec.ts:299-455`)는 **제거 대상** — chip 시각 책임이 TagList spec → Tag spec(per-chip projection 노드)으로 이동.
+
+#### Tag proof slice kill criteria (seam-removal — 사용자 명시)
+
+1. **seam 제거**: `TagList.spec.ts:230-455` self-render(items 순회 chip 배열 emit) **제거** → TagList container = shell-only(또는 `[]`). chip 시각은 projection 노드(Tag.spec.render.shapes)가 유일 source. self-render 와 projection **공존 금지**(이중 렌더).
+2. **DOM/Skia 대칭**: RAC TagGroup(`TagGroup.tsx` chip map + `<Button slot="remove">`) ↔ Skia chip projection 노드 시각 일치. `/cross-check` 대칭 PASS — chip 개수/wrap 위치/selection 표시/remove icon 위치.
+3. **selection/remove 상태 보존**: chip 클릭 → selection toggle(canonical `selectedKeys` write, `style` 아닌 `data` route), refresh 후 selection 유지. remove → items 배열에서 itemKey 삭제(canonical mutation, history 기록), refresh 후 삭제 유지. projected id 는 IndexedDB/canonical document 0건(`projection:tag-row` 비영속).
+4. **deep hit + per-chip**: 개별 chip 클릭 → 해당 chip 선택(deepest, `pickTopmostHitElementId` depth), TagGroup 단일 선택과 구분. per-chip style 편집 → `template` route(origin Tag, 전 chip 반영) / per-chip override → `override` route(`descendants[itemKey]`).
+
+**kill 판정**: 위 4 중 하나라도 실패 → Tag slice revert(코드 변경 0 복귀), 설계 재보정. 통과해야 projected-tree 8(Tab/TabList/TreeItem/Breadcrumb/SelectIcon/SelectTrigger/SelectValue) 확장(feedback-proof-gate-seam-removal-kill-criteria).
+
+#### 차단 메모리 자기-인용 (Tag proof slice 설계 단계)
+
+- `feedback-container-generic-box-no-classification`(ADR-142) — `appendTagRowProjection` 의 wrap 차이(flexWrap)는 buildSpecNodeData 컴포넌트별 if 분기 아니라 **projector rowsGroup style 파라미터 차이**. metadata handler(`isCollectionRowProjectionKind` 에 tag-row 추가)·3-route·boundary guard 는 단일 진입점 유지.
+- `feedback-tree-equals-reusable-enable-framing` — Tag chip 트리화 = canonical projection 메커니즘(컴포넌트별 처리 금지). reusable enable 별도 phase 분리 금지 — chip 이 render-space 노드 멤버 되면 reusable 흡수 자동.
+- `feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization` — 본 설계 비교까지만(코드 변경 0). `appendTagRowProjection` 실제 구현(코드) 진입은 사용자 별도 승인. 설계 lock-in 만으로 confirm 자동 처리 금지.
+- `feedback-analysis-precision-patterns` — 위 실측 표는 이름·주석 신뢰 금지, 전부 file:line code grep evidence(Explore agent 2 + main 직접 확증).
+
 ---
 
 선행-1~6 완료 → step 4 진입 (사용자 명시 삭제 승인 별도).
