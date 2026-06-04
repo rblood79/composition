@@ -5,6 +5,7 @@ import { IconSpec } from "../../components/Icon.spec";
 import { getSkiaPrimitive } from "../skiaPrimitives";
 import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
+import { normalizeParityShapes } from "./normalizeParityShapes";
 
 /**
  * ADR-142 family ① — Icon / Badge 시각 parity 실측.
@@ -65,7 +66,7 @@ describe("Badge — text 모드(box+text) buildCatalogShapes parity", () => {
 
   for (const size of sizes) {
     for (const variant of variants) {
-      it(`${variant}/${size} 일반 모드 — legacy parity (fillAlpha 정규화)`, () => {
+      it(`${variant}/${size} 일반 모드 — legacy parity (fillAlpha+lineHeight 정규화)`, () => {
         const props = { children: "5", variant } as Record<string, unknown>;
         const sizeSpec = BadgeSpec.sizes[size];
         const legacy = BadgeSpec.render.shapes(
@@ -79,13 +80,12 @@ describe("Badge — text 모드(box+text) buildCatalogShapes parity", () => {
           sizeSpec,
           "default",
         );
-        // Badge legacy bg 는 fillAlpha 생략(undefined) → 시각 동등성 정규화(specShapeConverter ?? 1)
-        const normalized = legacy.map((s) =>
-          s.type === "roundRect" && s.fillAlpha == null
-            ? { ...s, fillAlpha: 1 }
-            : s,
+        // 시각 동등성 정규화(fillAlpha + box leaf text lineHeight) — normalizeParityShapes 공유 헬퍼.
+        //   Badge legacy bg fillAlpha 생략(specShapeConverter ?? 1) + legacy text lineHeight 생략
+        //   (getLabelLineHeight fallback = generic size.lineHeight 동일 토큰, box 시각 무영향).
+        expect(normalizeParityShapes(catalog)).toEqual(
+          normalizeParityShapes(legacy),
         );
-        expect(catalog).toEqual(normalized);
       });
     }
   }

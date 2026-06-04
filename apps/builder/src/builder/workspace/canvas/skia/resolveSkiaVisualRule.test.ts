@@ -23,6 +23,48 @@ import {
  * 그때까지는 전환기 drift guardrail(정본 변경이 spec 과 갈라지면 의도적 drift 임을 가시화). TokenRef
  * (`{color.X}`)는 양쪽 모두 string — runtime resolveToken 이 dark mode 반전 처리.
  */
+/**
+ * ADR-912 전환기 의도적 drift allowlist (선행-6, 2026-06-04).
+ *
+ * rule 테이블이 정본으로 승격되며 **rule 에만 존재하는 신규 채널**(spec.variants 가 구조상
+ * 가지지 못하는 D3 필드)을 추가했다 — TEXT_LEAF/Label 의 textWeight·fontFamily(위험군 해소
+ * catalog 등록), Track 의 fillBar(value-fill escape). spec→visual(추종)은 이 채널을 못 따라오므로
+ * **의도적 drift**(spec 은 곧 단계 5 에서 삭제될 폐기 대상). 곧 삭제될 spec 에 정본 데이터를
+ * 역주입하면 dual-SSOT 부활 + ADR-912 방향 역행이므로, 해당 type/channel 만 drift 비교에서 제외한다.
+ *
+ * **유지 의무**: rule-only 신규 채널만 entry. fill/색상/기타 채널 drift 는 계속 검출(guardrail 보존).
+ * 단계 5(spec 124 삭제) 시 본 allowlist + 전체 drift describe 동시 제거(추종 대상 소멸).
+ */
+const ALLOW_RULE_CANONICAL_DRIFT: Record<string, readonly string[]> = {
+  // TEXT_LEAF/Label catalog 등록 — rule variants.default.textWeight 신규 정본 (spec render.shapes
+  //   기본값과 동일하나 spec.variants 엔 없어 spec→visual undefined).
+  Text: ["textWeight"],
+  Heading: ["textWeight"],
+  Paragraph: ["textWeight"],
+  Code: ["textWeight", "fontFamily"],
+  Kbd: ["textWeight", "fontFamily"],
+  Label: ["textWeight"],
+  // value-fill escape (선행-2) — rule fillBar 신규 정본 (spec 미보유) + Track 배경 fill 정본 이전:
+  //   선행-2 가 rule fill.base 를 {color.neutral-subtle}(보이는 회색 트랙) 로 정본화하고 그 위에
+  //   fillBar(value_fill escape) 를 덧그린다. spec fill.base 는 {color.transparent}(구버전 폐기 대상)
+  //   → 의도적 drift. fill 전체가 rule 로 이전됐으므로 fill 채널도 allowlist (spec 폐기 예정).
+  ProgressBarTrack: ["fillBar", "fill"],
+  MeterTrack: ["fillBar", "fill"],
+};
+
+/** allowlist 채널을 양쪽 visual 에서 제거(의도적 drift 무시) 후 비교. */
+function stripAllowedDrift(
+  visual: Record<string, unknown> | undefined,
+  type: string,
+): Record<string, unknown> | undefined {
+  if (!visual) return visual;
+  const allowed = ALLOW_RULE_CANONICAL_DRIFT[type];
+  if (!allowed || allowed.length === 0) return visual;
+  const out = { ...visual };
+  for (const ch of allowed) delete out[ch];
+  return out;
+}
+
 describe("resolveSkiaVisualRule — table(정본) ← spec(추종) drift 검출 (ADR-912 1A-(a))", () => {
   const rulesTable = getComponentRulesTable();
   // catalog Skia cutover 된 type 만 generic 렌더 경로 → drift 검출 대상.
@@ -42,7 +84,19 @@ describe("resolveSkiaVisualRule — table(정본) ← spec(추종) drift 검출 
         const fromRuleCanonical = resolveSkiaVisualRule(type, variantName); // 정본(table)
         const fromSpecFollower = resolveComponentVisual(spec, variantName); // 추종(spec)
         // 정본을 기준으로 spec 이 일치하는지 — 불일치 = spec 이 정본 table 을 안 따라옴(의도적 drift 가시화).
-        expect(fromSpecFollower).toEqual(fromRuleCanonical);
+        // ADR-912 전환기: rule-only 신규 채널(textWeight/fontFamily/fillBar)은 의도적 drift 로
+        //   allowlist 제외(spec 폐기 예정, 역주입 금지). 나머지 채널은 계속 검출(guardrail 보존).
+        expect(
+          stripAllowedDrift(
+            fromSpecFollower as Record<string, unknown> | undefined,
+            type,
+          ),
+        ).toEqual(
+          stripAllowedDrift(
+            fromRuleCanonical as Record<string, unknown> | undefined,
+            type,
+          ),
+        );
       });
     }
 

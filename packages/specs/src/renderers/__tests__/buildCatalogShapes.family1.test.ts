@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { LinkSpec } from "../../components/Link.spec";
 import { ToggleButtonSpec } from "../../components/ToggleButton.spec";
 import { callCatalogShapes as buildCatalogShapes } from "./callCatalogShapes";
+import { normalizeParityShapes } from "./normalizeParityShapes";
 
 /**
  * ADR-142 family ① — Link / ToggleButton 가 generic buildCatalogShapes 로 legacy
@@ -35,7 +36,9 @@ describe("buildCatalogShapes — Link parity (text-only + underline)", () => {
           sizeSpec,
           "default",
         );
-        expect(catalog).toEqual(legacy);
+        expect(normalizeParityShapes(catalog)).toEqual(
+          normalizeParityShapes(legacy),
+        );
       });
     }
   }
@@ -62,23 +65,13 @@ describe("buildCatalogShapes — ToggleButton parity (selected 축)", () => {
     { isSelected: true, isEmphasized: true },
   ];
 
-  /**
-   * 시각 동등성 정규화: ToggleButton legacy render.shapes 는 bg roundRect 에 `fillAlpha` 를
-   * 생략(undefined)하나, Button legacy 는 `fillAlpha: fill.alpha ?? 1` 로 항상 1 을 emit 한다 —
-   * legacy spec 간 비일관. specShapeConverter 는 `shape.fillAlpha ?? 1` 로 둘을 동일 처리하므로
-   * 시각 결과는 같다. generic buildCatalogShapes 는 Button 방식(항상 emit)을 택하므로,
-   * 비교 전 legacy bg 의 누락된 fillAlpha 를 1 로 보강해 시각 동등성으로 parity 한다.
-   */
-  const normalizeFillAlpha = (shapes: ReturnType<typeof buildCatalogShapes>) =>
-    shapes.map((s) =>
-      s.type === "roundRect" && s.fillAlpha == null
-        ? { ...s, fillAlpha: 1 }
-        : s,
-    );
-
+  // 시각 동등성 정규화(fillAlpha + box leaf text lineHeight)는 normalizeParityShapes 공유 헬퍼.
+  //   fillAlpha: legacy ToggleButton bg roundRect 생략 ↔ generic 항상 1(specShapeConverter ?? 1 동일).
+  //   lineHeight: legacy box leaf text 생략 ↔ generic size.lineHeight push(getLabelLineHeight fallback
+  //   = 동일 typography 토큰 → paddingTop 불변, 시각 무영향). normalizeParityShapes.ts 참조.
   for (const size of sizes) {
     for (const c of cases) {
-      it(`${size} sel=${c.isSelected} emp=${c.isEmphasized} — legacy parity (fillAlpha 정규화)`, () => {
+      it(`${size} sel=${c.isSelected} emp=${c.isEmphasized} — legacy parity (fillAlpha+lineHeight 정규화)`, () => {
         const props = { children: "B", ...c } as Record<string, unknown>;
         const sizeSpec = ToggleButtonSpec.sizes[size];
         const legacy = ToggleButtonSpec.render.shapes(
@@ -92,7 +85,9 @@ describe("buildCatalogShapes — ToggleButton parity (selected 축)", () => {
           sizeSpec,
           "default",
         );
-        expect(catalog).toEqual(normalizeFillAlpha(legacy));
+        expect(normalizeParityShapes(catalog)).toEqual(
+          normalizeParityShapes(legacy),
+        );
       });
     }
   }

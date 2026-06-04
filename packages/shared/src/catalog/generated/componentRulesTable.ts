@@ -2925,31 +2925,55 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Label: {
+    defaultVariant: "default",
     defaultSize: "md",
-    variants: {},
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+        // ADR-912 위험군 해소(선행-6, 2026-06-04): Label catalog 측정/렌더 fontWeight drift 차단.
+        //   buildCatalogShapes fallback 500 ↔ Label spec render.shapes 600(Label.spec L130-134
+        //   기본값) → variant.textWeight=600 명시(TEXT_LEAF Text 선례 동형). 누락 시 catalog
+        //   전환으로 Label 이 600→500 가늘어짐.
+        textWeight: 600,
+      },
+    },
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
+        lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       sm: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       xl: {
         fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },

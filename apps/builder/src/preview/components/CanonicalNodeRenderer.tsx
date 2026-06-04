@@ -46,7 +46,10 @@ import { Tabs } from "@composition/shared/components/Tabs";
 import { TagGroup } from "@composition/shared/components/TagGroup";
 import { Tooltip } from "@composition/shared/components/Tooltip";
 import { Tree } from "@composition/shared/components/Tree";
-import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
+import {
+  isSpecOrCatalogBacked,
+  resolveBackedDefaultSize,
+} from "../utils/specCatalogBacked";
 import type { ResolvedNode } from "@composition/shared";
 import type {
   RenderContext as SharedRenderContext,
@@ -249,7 +252,10 @@ export function CanonicalNodeRenderer({
   // legacy App.tsx fallback 과 동일하게 `react-aria-{Type}` className + data-size/variant 를
   // 주입해야 한다. 누락 시 generated CSS selector(`.react-aria-Text[data-size="lg"]`)가
   // 매칭되지 않아 Preview 가 size/variant 변화를 전혀 반영하지 못한다(브라우저 기본 폰트 고정).
-  const specBacked = hasSpec(type);
+  // ADR-912 선행-6(2026-06-04): catalog 등록 type 도 spec-backed 로 간주(isSpecOrCatalogBacked).
+  //   spec 삭제(step 4) 후에도 className/data-size 가 catalog 기준으로 유지되어 컴포넌트 CSS
+  //   selector(generated 또는 수동 .react-aria-Label) 매칭 보존.
+  const specBacked = isSpecOrCatalogBacked(type);
   const specClassName = specBacked ? `react-aria-${type}` : undefined;
   const userClassName = adaptedEl.props?.className as string | undefined;
   const mergedClassName =
@@ -257,7 +263,8 @@ export function CanonicalNodeRenderer({
   const specDataAttrs: Record<string, string> = {};
   if (specBacked) {
     const sizeProp = adaptedEl.props?.size as string | undefined;
-    specDataAttrs["data-size"] = sizeProp ?? getDefaultSizeForTag(type) ?? "md";
+    specDataAttrs["data-size"] =
+      sizeProp ?? resolveBackedDefaultSize(type) ?? "md";
     const variantProp = adaptedEl.props?.variant as string | undefined;
     if (variantProp) specDataAttrs["data-variant"] = variantProp;
   }

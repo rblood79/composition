@@ -4,6 +4,7 @@ import { ButtonSpec } from "../../components/Button.spec";
 import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
 import { buildCatalogShapes } from "../buildCatalogShapes";
 import { resolveComponentVisual } from "../utils/resolveComponentVisual";
+import { normalizeParityShapes } from "./normalizeParityShapes";
 
 /**
  * ADR-142 G2(b) B — buildCatalogShapes 는 spec-free(visual rule 주입형). 테스트는 specs 내부
@@ -82,7 +83,9 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       "default",
     );
     const actual = callCatalog(ButtonSpec, props, md, "default");
-    expect(actual).toEqual(expected);
+    expect(normalizeParityShapes(actual)).toEqual(
+      normalizeParityShapes(expected),
+    );
   });
 
   it("hover state — render.shapes 와 parity (state별 fill)", () => {
@@ -93,7 +96,9 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       "hover",
     );
     const actual = callCatalog(ButtonSpec, props, md, "hover");
-    expect(actual).toEqual(expected);
+    expect(normalizeParityShapes(actual)).toEqual(
+      normalizeParityShapes(expected),
+    );
   });
 
   it("_hasChildren shell — text 없이 bg(+border)만 반환", () => {
@@ -122,7 +127,9 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       "default",
     );
     const actual = callCatalog(ButtonSpec, props, md, "default");
-    expect(actual).toEqual(expected);
+    expect(normalizeParityShapes(actual)).toEqual(
+      normalizeParityShapes(expected),
+    );
   });
 });
 

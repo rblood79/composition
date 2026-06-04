@@ -22,11 +22,11 @@ import {
   getCatalogCutoverTypes,
   isRuntimePageNode,
 } from "@composition/shared";
+import { getElementForTag } from "@composition/specs";
 import {
-  getElementForTag,
-  hasSpec,
-  getDefaultSizeForTag,
-} from "@composition/specs";
+  isSpecOrCatalogBacked,
+  resolveBackedDefaultSize,
+} from "./utils/specCatalogBacked";
 import type {
   RenderContext as SharedRenderContext,
   PreviewElement as SharedPreviewElement,
@@ -568,7 +568,9 @@ function CanvasContent() {
       // data-size/variant를 자동 주입 — 이전에 rendererMap 함수가 수동 주입하던 것을
       // fallback 경로에서도 동일하게 보장. Auto-generated CSS selector
       // (.react-aria-Text[data-size="md"] 등)가 매칭되어야 하므로 필수.
-      const specBacked = hasSpec(adaptedElement.type);
+      // ADR-912 선행-6(2026-06-04): catalog 등록 type 도 spec-backed 로 간주(CanonicalNodeRenderer
+      //   와 동일 헬퍼). spec 삭제(step 4) 후에도 className/data-size 보존.
+      const specBacked = isSpecOrCatalogBacked(adaptedElement.type);
       const tagProps = adaptedElement.props as
         | { size?: string; variant?: string; className?: string }
         | undefined;
@@ -586,7 +588,9 @@ function CanvasContent() {
       };
       if (specBacked) {
         const sizeValue =
-          tagProps?.size ?? getDefaultSizeForTag(adaptedElement.type) ?? "md";
+          tagProps?.size ??
+          resolveBackedDefaultSize(adaptedElement.type) ??
+          "md";
         cleanProps["data-size"] = sizeValue;
         if (tagProps?.variant) cleanProps["data-variant"] = tagProps.variant;
       }

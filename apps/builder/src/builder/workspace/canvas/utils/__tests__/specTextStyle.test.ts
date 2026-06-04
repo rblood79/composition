@@ -12,12 +12,20 @@ import {
   ParagraphSpec,
   CodeSpec,
   KbdSpec,
+  LabelSpec,
+  buildCatalogShapes,
   resolveToken,
   type ComponentSpec,
   type TextShape,
   type TokenRef,
+  type SizeSpec,
 } from "@composition/specs";
 import { extractSpecTextStyle } from "../specTextStyle";
+import {
+  resolveSkiaVisualRule,
+  resolveSkiaRule,
+  ruleSizeToSizeSpec,
+} from "../../skia/resolveSkiaVisualRule";
 
 /**
  * A안 회귀 가드: TEXT_LEAF_TAGS(text/heading/paragraph/...) 의 size 변경이
@@ -281,4 +289,179 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
         .fontWeight,
     ).toBe(400);
   });
+});
+
+/**
+ * ADR-912 위험군 해소 — Label catalog 렌더 drift 0 (선행-6, 2026-06-04).
+ *
+ * Label 은 TEXT_LEAF(Text/Heading) 와 시각 source 동형이지만 measure 경로가 다르다 —
+ * size/lineHeight 는 fullTreeLayout DFS injection(LABEL_SIZE_STYLE, spec/extractSpecTextStyle
+ * 미경유)으로 처리되므로 위 TEXT_LEAF 측정 drift 테스트 대상이 아니다. 대신 **Skia 렌더 경로**
+ * (catalog 전환 후 buildCatalogShapes) 가 그리는 Label text shape 가 LabelSpec.render.shapes 와
+ * fontWeight(600)/lineHeight/fontSize drift 0 인지 검증한다 — 그리기 SSOT 일치.
+ *
+ * **catalog 전환 안전 근거**: Label rule(variants.default.textWeight=600 +
+ * sizes[*].lineHeight={typography.*--line-height}) 보강으로 buildCatalogShapes generic 이
+ * spec render.shapes 기본값(fontWeight 600 + getLabelLineHeight=동일 typography 토큰)과 일치.
+ * 부모 의존 4단계 변형(label/necessity/align)은 dispatch 이전 specProps 단이라 catalog 직교(보존).
+ */
+describe("buildCatalogShapes — Label catalog 렌더 drift 0 (ADR-912 선행-6)", () => {
+  /** LabelSpec.render.shapes 의 text shape 에서 oracle(fontWeight/lineHeight px/fontSize/align) 추출. */
+  function labelSpecOracle(sizeName: string): {
+    fontWeight: number;
+    lineHeight: number | null;
+    fontSize: number;
+    align: string | undefined;
+  } | null {
+    const size =
+      LabelSpec.sizes[sizeName] ?? LabelSpec.sizes[LabelSpec.defaultSize];
+    if (!size) return null;
+    const shapes = LabelSpec.render.shapes(
+      { size: sizeName, children: "Sample" } as Record<string, unknown>,
+      size,
+      "default",
+    );
+    const t = shapes.find(
+      (s): s is TextShape & { type: "text" } => s.type === "text",
+    );
+    if (!t) return null;
+    let lh: number | null = null;
+    const rawLh = t.lineHeight;
+    if (typeof rawLh === "number") lh = rawLh;
+    else if (typeof rawLh === "string") {
+      // Label spec lineHeight 는 getLabelLineHeight → number. string("20px") 케이스 방어.
+      const n = parseInt(rawLh as string, 10);
+      lh = Number.isNaN(n) ? null : n;
+    }
+    const fw = t.fontWeight;
+    return {
+      fontWeight: typeof fw === "number" ? fw : parseInt(String(fw), 10) || 400,
+      lineHeight: lh,
+      fontSize: t.fontSize,
+      align: t.align,
+    };
+  }
+
+  /** catalog 경로: resolveSkiaVisualRule + buildCatalogShapes 가 그리는 Label text shape. */
+  function labelCatalogText(sizeName: string): {
+    fontWeight: number;
+    lineHeight: number | null;
+    fontSize: number;
+    align: string | undefined;
+  } | null {
+    const visual = resolveSkiaVisualRule("Label", undefined);
+    const rule = resolveSkiaRule("Label");
+    const ruleSize = rule?.sizes[sizeName];
+    if (!ruleSize) return null;
+    const sizeSpec = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
+    const shapes = buildCatalogShapes(
+      visual,
+      { size: sizeName, children: "Sample" },
+      sizeSpec,
+      "default",
+    );
+    const t = shapes.find(
+      (s): s is TextShape & { type: "text" } => s.type === "text",
+    );
+    if (!t) return null;
+    let lh: number | null = null;
+    const rawLh = t.lineHeight;
+    if (typeof rawLh === "number") lh = rawLh;
+    else if (typeof rawLh === "string" && (rawLh as string).startsWith("{")) {
+      const r = resolveToken(rawLh as unknown as TokenRef);
+      lh = typeof r === "number" ? r : null;
+    } else if (typeof rawLh === "string") {
+      const n = parseInt(rawLh as string, 10);
+      lh = Number.isNaN(n) ? null : n;
+    }
+    const fw = t.fontWeight;
+    return {
+      fontWeight: typeof fw === "number" ? fw : parseInt(String(fw), 10) || 400,
+      lineHeight: lh,
+      fontSize: t.fontSize,
+      align: t.align,
+    };
+  }
+
+  const LABEL_SIZES = ["xs", "sm", "md", "lg", "xl"];
+
+  for (const size of LABEL_SIZES) {
+    test(`Label size=${size}: catalog 렌더(fontWeight/lineHeight/fontSize)가 spec oracle 과 일치(drift 0)`, () => {
+      const oracle = labelSpecOracle(size);
+      const catalog = labelCatalogText(size);
+      expect(oracle, `${size} oracle`).not.toBeNull();
+      expect(catalog, `${size} catalog`).not.toBeNull();
+      // fontWeight: rule textWeight 600 (buildCatalogShapes 500 fallback 아님)
+      expect(catalog!.fontWeight, `Label ${size} fontWeight drift`).toBe(
+        oracle!.fontWeight,
+      );
+      expect(catalog!.fontWeight, `Label ${size} fontWeight=600`).toBe(600);
+      // lineHeight: typography 토큰 px (fontSize*1.5 fallback 아님)
+      expect(catalog!.lineHeight, `Label ${size} lineHeight drift`).toBe(
+        oracle!.lineHeight,
+      );
+      // fontSize: 동일 typography 토큰
+      expect(catalog!.fontSize, `Label ${size} fontSize drift`).toBe(
+        oracle!.fontSize,
+      );
+      // align: height=0 transparent inline → "left" (hasOpaqueBg 보강으로 center drift 정정).
+      //   spec render.shapes 도 left. transparent fill 이 box align(center)로 오판되던 것 해소.
+      expect(catalog!.align, `Label ${size} align drift`).toBe(oracle!.align);
+      expect(catalog!.align, `Label ${size} align=left`).toBe("left");
+    });
+  }
+});
+
+/**
+ * ADR-912 위험군 해소 — TEXT_LEAF/box leaf align/baseline drift 0 (선행-6 hasOpaqueBg 보강).
+ *
+ * buildCatalogShapes 의 `isInlineText` 판정이 `{color.transparent}` fill 을 box(center/middle)로
+ * 오판하던 것을 `hasOpaqueBg`(보이는 배경) 기준으로 보강. height=0 transparent inline leaf
+ * (Text/Heading/Paragraph/Label)는 left/top, height>0 box(Code/Kbd)는 center/middle 로 spec
+ * render.shapes 와 align/baseline 정합. box 그리기(hasVisibleBg)는 미변경 → transparent 컨테이너
+ * (ToggleButtonGroup/Switch/GridList/Modal) roundRect 보존(회귀 0, live 검증).
+ */
+describe("buildCatalogShapes — TEXT_LEAF/box align·baseline drift 0 (ADR-912 선행-6)", () => {
+  function catalogTextAlign(type: string): {
+    align: string | undefined;
+    baseline: string | undefined;
+  } | null {
+    const visual = resolveSkiaVisualRule(type, undefined);
+    const rule = resolveSkiaRule(type);
+    const ruleSize = rule?.sizes.md;
+    if (!ruleSize) return null;
+    const sizeSpec = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
+    const shapes = buildCatalogShapes(
+      visual,
+      { size: "md", children: "Sample" },
+      sizeSpec,
+      "default",
+    );
+    const t = shapes.find(
+      (s): s is TextShape & { type: "text" } => s.type === "text",
+    );
+    if (!t) return null;
+    return { align: t.align, baseline: t.baseline };
+  }
+
+  // height=0 transparent inline → left (Label baseline 은 height=0 무영향이라 top 허용)
+  const INLINE_LEAF = ["Text", "Heading", "Paragraph", "Label"];
+  for (const type of INLINE_LEAF) {
+    test(`${type}: height=0 transparent inline → align=left (center drift 정정)`, () => {
+      const r = catalogTextAlign(type);
+      expect(r, `${type} text shape`).not.toBeNull();
+      expect(r!.align, `${type} align`).toBe("left");
+    });
+  }
+
+  // height>0 box → center/middle (Code/Kbd spec render.shapes 와 일치)
+  const BOX_LEAF = ["Code", "Kbd"];
+  for (const type of BOX_LEAF) {
+    test(`${type}: height>0 box → align=center/baseline=middle (box 유지)`, () => {
+      const r = catalogTextAlign(type);
+      expect(r, `${type} text shape`).not.toBeNull();
+      expect(r!.align, `${type} align`).toBe("center");
+      expect(r!.baseline, `${type} baseline`).toBe("middle");
+    });
+  }
 });

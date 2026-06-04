@@ -191,9 +191,20 @@ export function buildCatalogShapes(
     const ff =
       (style?.fontFamily as string) || visual?.fontFamily || fontFamily.sans;
 
-    // inline text leaf (size.height===0, 예: Link) 는 top/left, box 는 middle/center.
-    // height 0 컨테이너에서 align/baseline 은 시각상 무의미하나 legacy render.shapes parity 유지.
-    const isInlineText = size.height === 0 && !hasVisibleBg;
+    // inline text leaf (size.height===0, 예: Link/TEXT_LEAF/Label) 는 top/left, box 는 middle/center.
+    // ADR-912 선행-6(2026-06-04): align/baseline 판정은 **보이는(opaque) 배경** 기준이어야 한다.
+    //   `hasVisibleBg`(box 그리기 게이트)는 `{color.transparent}` fill 도 true(레이아웃 box 보존)
+    //   라서, 그대로 쓰면 transparent-fill inline text leaf(TEXT_LEAF/Label)가 box 로 오판되어
+    //   align center/baseline middle drift(spec render.shapes 는 left/top|middle). bgColor 가
+    //   transparent 토큰이거나 fill.alpha===0 이면 시각상 배경 없음 → inline 으로 간주.
+    //   box 그리기 자체(L141 hasVisibleBg)는 미변경 → transparent 레이아웃 box(컨테이너) 회귀 0.
+    const hasOpaqueBg =
+      style?.backgroundColor != null ||
+      (bgColor != null &&
+        bgColor !== "{color.transparent}" &&
+        (fill?.alpha ?? 1) !== 0) ||
+      !!borderColor;
+    const isInlineText = size.height === 0 && !hasOpaqueBg;
     const textAlign =
       (style?.textAlign as "left" | "center" | "right") ||
       (isInlineText ? "left" : "center");

@@ -22,6 +22,7 @@ import { gridListBinding } from "./GridList.binding";
 import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
 import { kbdBinding } from "./Kbd.binding";
+import { labelBinding } from "./Label.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
 import { menuBinding } from "./Menu.binding";
@@ -72,6 +73,7 @@ export * from "./GridList.binding";
 export * from "./Heading.binding";
 export * from "./Icon.binding";
 export * from "./Kbd.binding";
+export * from "./Label.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
 export * from "./Menu.binding";
@@ -122,6 +124,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 위험군 해소: TEXT_LEAF box형 mono (fontFamily generic 보강 후 등록)
   Code: codeBinding,
   Kbd: kbdBinding,
+  // ADR-912 위험군 해소(선행-6): field/form 라벨 leaf (부모 의존 4단계 변형은 dispatch 직교)
+  Label: labelBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,
