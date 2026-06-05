@@ -116,9 +116,9 @@ export function buildCatalogShapes(
           : visual?.border);
 
   const text =
-    (props.children as string | undefined) ||
+    (props.label as string | undefined) ||
     (props.text as string | undefined) ||
-    (props.label as string | undefined);
+    (props.children as string | undefined);
 
   // 비-DOM-trivial primitive(원/선/아이콘 등 box+text 로 표현 안 되는 도형)는 여기서
   // 그리지 않는다 — `PrimitiveBinding.skiaPrimitive` draw module(renderers/skiaPrimitives.ts)이

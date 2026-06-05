@@ -28,6 +28,7 @@ export function createMenuDefinition(
       type: "Menu",
       props: {
         "aria-label": "Menu",
+        label: "Menu",
         children: "Menu",
         variant: "primary",
         size: "md",

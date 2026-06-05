@@ -143,6 +143,7 @@ export function MenuButton<T extends object>({
     composeRenderProps(baseClassName, (className) =>
       className ? `react-aria-Menu ${className}` : "react-aria-Menu",
     );
+  const triggerLabel = label || "Menu";
 
   // ColumnMapping이 있으면 각 데이터 항목마다 MenuItem 렌더링
   // ListBox와 동일한 패턴: Element tree의 MenuItem 템플릿 + Field 자식 사용
@@ -156,7 +157,7 @@ export function MenuButton<T extends object>({
             data-variant={variant}
             data-size={size}
           >
-            {label}
+            {triggerLabel}
           </Button>
           <Popover data-size={size}>
             <Menu className={getMenuClassName()} data-size={size}>
@@ -178,7 +179,7 @@ export function MenuButton<T extends object>({
             data-variant={variant}
             data-size={size}
           >
-            {label}
+            {triggerLabel}
           </Button>
           <Popover data-size={size}>
             <Menu className={getMenuClassName()} data-size={size}>
@@ -290,7 +291,7 @@ export function MenuButton<T extends object>({
             data-variant={variant}
             data-size={size}
           >
-            {label}
+            {triggerLabel}
           </Button>
           <Popover data-size={size}>
             <Menu
@@ -313,7 +314,7 @@ export function MenuButton<T extends object>({
           data-variant={variant}
           data-size={size}
         >
-          {label}
+          {triggerLabel}
         </Button>
         <Popover data-size={size}>
           <Menu className={getMenuClassName()} data-size={size}>
@@ -403,7 +404,7 @@ export function MenuButton<T extends object>({
           data-variant={variant}
           data-size={size}
         >
-          {label}
+          {triggerLabel}
         </Button>
         <Popover>
           <Menu
@@ -427,7 +428,7 @@ export function MenuButton<T extends object>({
         data-variant={variant}
         data-size={size}
       >
-        {label}
+        {triggerLabel}
       </Button>
       <Popover>
         <Menu

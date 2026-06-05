@@ -58,3 +58,19 @@ describe("MenuSpec Layer D — style paddingLeft 우선", () => {
     expect(text!.x).toBe(20);
   });
 });
+
+describe("MenuSpec trigger label source", () => {
+  it("label 을 trigger text 정본으로 사용한다", () => {
+    const shapes = renderShapes({ label: "Actions", children: "Legacy" });
+    const text = findText(shapes);
+    expect(text).toBeDefined();
+    expect(text!.text).toBe("Actions");
+  });
+
+  it("legacy children 값을 fallback 으로 보존한다", () => {
+    const shapes = renderShapes({ children: "Legacy" });
+    const text = findText(shapes);
+    expect(text).toBeDefined();
+    expect(text!.text).toBe("Legacy");
+  });
+});

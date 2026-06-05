@@ -131,6 +131,16 @@ describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", (
       normalizeParityShapes(expected),
     );
   });
+
+  it("label 이 legacy children 보다 우선한다", () => {
+    const shapes = callCatalog(
+      ButtonSpec,
+      { label: "Actions", children: "Legacy" },
+      md,
+      "default",
+    );
+    expect(shapes.find((s) => s.type === "text")?.text).toBe("Actions");
+  });
 });
 
 describe("buildCatalogShapes — fillStyle(outline/subtle) generic 소비 (foundation #2)", () => {

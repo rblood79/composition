@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정: 28 발효 type 의 `COMPONENT_RULES_TABLE.sizes` 에 size 별 `paddingX` 를 legacy spec 정본에서 역추적 삽입(Button parity 보존). `buildCatalogShapes` 에 `size.paddingX ?? 0` source guard(inline text 의 올바른 0 값 + 미정의 NaN 차단), `specShapeConverter` text case 에 `shape.x` 유한수 guard(2중 방어, 데이터 보강 대체 아님)
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` / `packages/specs/src/renderers/buildCatalogShapes.ts` / `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`. 회귀 방지: `packages/shared/src/catalog/__tests__/componentRulesPaddingX.test.ts`
 
+- **Menu Trigger Label 편집값이 Preview 에만 반영되고 Skia 는 기존 "Menu" 로 고정되던 버그** (ADR-912 영역 B Task 3 후속):
+  - catalog 발효 Menu 를 추가하면 Preview/Skia 모두 기본 `"Menu"` 로 보이나, Properties 패널의 `Trigger Label` 을 바꾸면 Preview DOM 은 변경값을 표시하고 Skia 캔버스는 새로고침 후에도 기존 `"Menu"` 를 유지하던 비대칭
+  - **Why**: Preview DOM/Menu binding 은 trigger text source 를 `props.label` 로 읽지만, catalog Skia 는 `Menu.spec.render.shapes` 가 아니라 `buildCatalogShapes` generic 경로를 타며 text source 우선순위가 `children → text → label` 이었다. factory 가 legacy `children:"Menu"` 를 계속 보유해, 편집된 `label` 값이 Skia 에서 가려짐
+  - 수정: Menu trigger 의 canonical source 를 `label` 로 정렬(factory 기본 `label:"Menu"` 주입, DOM trigger fallback `label || "Menu"`, legacy `children` 은 Skia/spec fallback 으로만 보존)하고, `buildCatalogShapes` generic text source 를 `label → text → children` 순서로 변경. 회귀 방지: `Menu.spacing.test.ts` + `buildCatalogShapes.test.ts`
+  - 검증: Preview/Skia runtime import live — binding accepts `label`, spec property `label`, `specText:"Actions"`, `catalogText:"Actions"`, console error 0
+
 - **catalog 발효 TagGroup 의 정적 items chip 이 Preview DOM 에서 빈 placeholder 로 사라지던 버그** (ADR-912 영역 B (A) 후속, collection cutover items 누락):
   - 정적 `props.items`(4개) SSOT 를 가진 TagGroup 이 Builder Skia 캔버스에서는 chip 4개로 정상 렌더되지만, Preview DOM(CSS)에서는 빈 chip 2개로만 보이던 비대칭. Compare 모드(화면분할)에서 Skia↔DOM chip 수 불일치로 노출
   - **Why**: catalog cutover DOM 경로(`CanonicalNodeRenderer` → `toRacProps` → `INTERNAL_RENDERERS["taggroup"]`)는 binding `accepts` 선언 prop 만 통과시키는데, `TagGroup.binding.ts` accepts 에 `items` 가 없어 `props.items`(4개)가 drop → TagGroup wrapper 가 `items=undefined` 로 받음. 추가로 wrapper 의 `hasDataBinding=false` 경로에 정적 items 분기가 없어, catalog canonical children(Label/TagList)을 RAC `<TagList>` 의 static children 으로 넘김 → RAC 가 static children 우선 → 빈 placeholder. Skia 는 `appendTagRowProjection` 이 canonical `props.items` 를 직접 읽어 무관(한쪽만 깨지는 대칭 손실)

@@ -49,6 +49,7 @@ export interface MenuProps {
   shouldFlip?: boolean;
   isQuiet?: boolean;
   isDisabled?: boolean;
+  label?: string;
   children?: string;
   /** Q6=b 풀 인터페이스 — specs SSOT (ADR-068 P2) */
   items?: StoredMenuItem[];
@@ -246,9 +247,9 @@ export const MenuSpec: ComponentSpec<MenuProps> = {
         title: "Content",
         fields: [
           {
-            key: "children",
+            key: "label",
             type: "string",
-            label: "Text",
+            label: "Trigger Label",
             icon: Tag,
             placeholder: "Menu",
           },
@@ -408,7 +409,7 @@ export const MenuSpec: ComponentSpec<MenuProps> = {
       }
 
       // Menu는 트리거 버튼이므로 자식(MenuItem) 유무와 무관하게 항상 텍스트 렌더링
-      const text = props.children || "Menu";
+      const text = props.label || props.children || "Menu";
 
       const fontSize = resolveSpecFontSize(
         props.size ? size.fontSize : (props.style?.fontSize ?? size.fontSize),
