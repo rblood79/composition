@@ -318,7 +318,13 @@ toSkiaStyle(node, theme):
 > | Select   | 6    | 이중 source 단일화(popover 2단, items first-class) | 추가          | `801d97e9e`   |
 > | ComboBox | 7    | items prop 신설(additive) + popover 복구           | 추가          | `d1314ff8e`   |
 >
-> - **잔여 발견 — Breadcrumbs(2026-06-05 정찰)**: `Breadcrumbs.tsx:9,67-79` 가 `useCollectionData` **직접 호출** + `dataBinding`/`columnMapping` 경로(`:219-230` boundData.map) 보유 — 즉 축 ① 되감기 대상인데 5+1군에서 누락. "전 대상 완료" 단정은 부정확. **단 되감기 선행 조건이 5+1군과 다름**: (a) Breadcrumbs 정적 source 는 factory-child(`Breadcrumbs.spec.ts:140-150` `children-manager`/`childTag:"Breadcrumb"`)로 `StoredBreadcrumbItem` 타입 미정의 → items SSOT 부재. (b) `Breadcrumbs.binding.ts` items accepts 존재 여부 미확인. → 되감기 recon 에서 items SSOT 유무 판정 후 slice 가능/설계 보류 결정(축 ① 되감기 recon 으로 분리, 아래).
+> - **잔여 발견 — Breadcrumbs(2026-06-05 정찰) → 되감기 recon 결과 = 설계 보류**: `Breadcrumbs.tsx:9,67-79` 가 `useCollectionData` **직접 호출**(dataBinding 경로만 `:160-161` boundData.map collection source) 보유 — 즉 축 ① 되감기 대상인데 5+1군에서 누락. "전 대상 완료" 단정은 부정확. **단 되감기가 ComboBox Task 7(additive items prop 1개)처럼 작게 닫히지 않음** — 5개 항목 recon(2026-06-05) 확정:
+>   1. **items SSOT 없음** — 정적 경로(`Breadcrumbs.tsx:181`)는 `{children}` JSX(factory-child) 그대로. 정적 items prop source 부재.
+>   2. **`StoredBreadcrumbItem` 타입 없음** — `packages/specs/src/types/` 의 items 타입 6개(combobox/gridlist/listbox/menu/select/taggroup)에 Breadcrumb 미포함.
+>   3. **`Breadcrumbs.binding.ts` 없음** — items pass-through 불가(toRacProps accepts 부재).
+>   4. **Breadcrumbs catalog 미등록** — `componentCatalog.ts` grep 0건. 축 ① 되감기 전 catalog 발효 여부부터 갈림.
+>   5. separator(`Breadcrumbs.css:20-22` `::after content:"\203A"`)는 DOM 전용 — source 단일화와 **직교**(미관여).
+>      → **판정: 설계 보류**(code fix 아님). 되감기 = `StoredBreadcrumbItem` 타입 + `Breadcrumbs.binding.ts` items accepts + 정적 items 기반 children 렌더 경로(factory-child→items SSOT 전환) **신설 3종** 선행. 단일 patch 미충족. **다음 (A) 후보 = Tab/TabList(items 기반, Tag 선례 적합) 우선** — Breadcrumbs 는 items SSOT 신설 결정이 별도로 날 때 재개.
 > - **예외군 Tabs/Tree/Table = flat contract 밖** — items SSOT 가 다르거나(Tabs=factory child / Tree=계층) 2D(Table)라 본 flat items 단일 계약 미적용. 유지.
 > - **id=`row.itemKey` 보존**이 selected value/selectedKey/custom value 무회귀의 핵심(모든 Stored\*Item.id 필수 string → `getItemKey` 가 `["id","key","value"]` 우선순위로 legacy `String(item.id)` 와 동일 값 산출).
 > - **section guard(flat 한정)**: ListBox/GridList 는 section discriminant(`type:"section"`)가 섞일 수 있어 `hasSectionEntry` guard 로 정적 children 경로 보존. Select/ComboBox 는 flat-only(StoredSelectItem/StoredComboBoxItem 에 section 없음)라 guard 불필요.
