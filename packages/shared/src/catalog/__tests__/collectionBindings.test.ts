@@ -129,6 +129,25 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     expect(result.placeholder).toBe("Pick");
   });
 
+  it("ComboBox: 정적 items[](StoredComboBoxItem[]) pass-through (ADR-912 Task 7)", () => {
+    // items 미선언 시 toRacProps 가 props.items 를 drop → wrapper 가 정적 source 못 봄.
+    // ComboBox.binding.ts items accepts 추가로 Select/GridList/ListBox 와 동형 통과 검증.
+    const items = [
+      { id: "x", label: "X" },
+      { id: "y", label: "Y" },
+    ];
+    const result = toRacProps(
+      {
+        id: "cb1",
+        type: "ComboBox",
+        props: { items, placeholder: "Search" },
+      },
+      getPrimitiveBinding("ComboBox")!,
+    );
+    expect(result.items).toEqual(items);
+    expect(result.placeholder).toBe("Search");
+  });
+
   it("Tabs: orientation/variant data-* 라우팅", () => {
     const result = toRacProps(
       {

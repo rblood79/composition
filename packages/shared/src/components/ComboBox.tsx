@@ -24,7 +24,7 @@ import { getIconData } from "@composition/specs";
 import type { ComponentSize } from "../types";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
@@ -40,11 +40,19 @@ import "./styles/generated/ComboBox.css";
 
 export interface ComboBoxProps<T extends object> extends Omit<
   AriaComboBoxProps<T>,
-  "children"
+  "children" | "items"
 > {
   label?: string;
   description?: string | null;
   errorMessage?: string | ((validation: ValidationResult) => string);
+  /**
+   * ADR-912 영역 B Task 7: 정적 items[] SSOT (StoredComboBoxItem[] 직렬화 형태).
+   *   RAC `AriaComboBoxProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
+   *   Select Task 6 과 달리 ComboBox 는 기존 interface 에 items prop 이 없었으므로 신설(additive).
+   *   useResolvedCollectionItems 가 dataBinding 과 동일 normalizer(toItemProjectionRow)로 흡수하고,
+   *   comboBoxItems 가 정규화 rows 를 RAC ListBox 가 받는 형태(id=itemKey 보존)로 재구성한다.
+   */
+  items?: unknown[];
   placeholder?: string;
   inputValue?: string;
   onInputChange?: (value: string) => void;
@@ -70,6 +78,7 @@ export function ComboBox<T extends object>({
   description,
   errorMessage,
   children,
+  items,
   placeholder,
   inputValue,
   onInputChange,
@@ -83,13 +92,18 @@ export function ComboBox<T extends object>({
   isQuiet,
   ...props
 }: ComboBoxProps<T>) {
-  // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
+  // ADR-912 영역 B Task 7: collection source acquisition 단일화.
+  //   useCollectionData 직접 호출(이중 source)을 제거하고 useResolvedCollectionItems 단일 진입점으로 통일.
+  //   dataBinding(async/dataTable/API)과 정적 props.items 가 같은 toItemProjectionRow normalizer 를
+  //   통과 → DOM wrapper 와 Skia projector(getFlatProjectionRows)가 동일 row 형태(CollectionProjectionRow).
+  //   StoredComboBoxItem 은 section discriminant 가 없어(flat-only) section guard 불필요.
   const {
-    data: boundData,
+    rows: resolvedRows,
     loading,
     error,
-  } = useCollectionData({
+  } = useResolvedCollectionItems({
     dataBinding: dataBinding as DataBinding,
+    items,
     componentName: "ComboBox",
     fallbackData: [
       { id: 1, name: "Option 1", value: "option-1" },
@@ -145,79 +159,51 @@ export function ComboBox<T extends object>({
   const isLoadingState = hasDataBinding && loading;
   const isErrorState = hasDataBinding && !!error;
   const isTemplateMode = hasDataBinding && !!columnMapping;
-  const hasBoundItems = hasDataBinding && boundData.length > 0;
   const shouldRenderPopover = !isLoadingState && !isErrorState;
   const comboBoxDisabled =
     Boolean(props.isDisabled) || isLoadingState || isErrorState;
 
+  // ADR-912 영역 B Task 7: 정규화 rows source 가 있으면 dynamic/static 공통 render 경로를 탄다.
+  //   dataBinding(boundData) 또는 정적 props.items 모두 resolvedRows 로 흡수됐으므로,
+  //   기존 boundData.length 기반 hasBoundItems 를 hasResolvedRows 로 일반화 — 정적 items 도
+  //   popover 내부에 role=option 으로 렌더(catalog Preview DOM items 누락 seam 닫기).
+  const hasResolvedRows = resolvedRows.length > 0;
+
+  // ADR-912 영역 B Task 7: 내부 RAC ListBox 가 받는 items 를 정규화 rows 에서 파생.
+  //   dataBinding(boundData) 과 정적 props.items 가 모두 resolvedRows(toItemProjectionRow)로
+  //   흡수됐으므로, 수동 comboBoxItems useMemo(이중 source map + config 휴리스틱)을 단일 파생으로 통일.
+  //   raw item(...row.item) 을 보존해 description/icon/value 등 기존 field 유지하고,
+  //   id=row.itemKey / label=row.label 을 강제 — RAC defaultSelectedKey 해석은 ListBoxItem id 기준이므로
+  //   itemKey 보존이 selected value/custom value 무회귀의 핵심(legacy String(item.id) 와 동일 값).
+  //   loading/error 중에는 popover 가 닫혀 있으므로 items 는 빈 배열로 둔다.
   const comboBoxItems = React.useMemo(() => {
-    if (!hasBoundItems) {
+    if (hasDataBinding && (loading || error)) {
       return undefined;
     }
-
-    if (isTemplateMode) {
-      const items = boundData.map((item, index) => ({
-        id: String(item.id || index),
-        ...item,
-      })) as T[];
-
-      console.log("✅ ComboBox with columnMapping - items:", items);
-      return items;
+    if (!hasResolvedRows) {
+      return undefined;
     }
-
-    const config = (dataBinding as { config?: Record<string, unknown> })
-      ?.config as
-      | {
-          columnMapping?: {
-            id: string;
-            label: string;
-          };
-          dataMapping?: {
-            idField: string;
-            labelField: string;
-          };
-        }
-      | undefined;
-
-    const idField =
-      config?.columnMapping?.id || config?.dataMapping?.idField || "id";
-    const labelField =
-      config?.columnMapping?.label ||
-      config?.dataMapping?.labelField ||
-      "label";
-
-    const items = boundData.map((item, index) => ({
-      id: String(item[idField] || item.id || index),
-      label: String(
-        item[labelField] || item.label || item.name || `Item ${index + 1}`,
-      ),
-      ...item,
-    })) as T[];
-
-    console.log("✅ ComboBox Dynamic Collection - items:", items);
-    return items;
-  }, [boundData, dataBinding, hasBoundItems, isTemplateMode]);
+    return resolvedRows.map((row) => ({
+      ...(row.item as Record<string, unknown>),
+      id: row.itemKey,
+      label: row.label,
+    })) as unknown as T[];
+  }, [hasDataBinding, loading, error, hasResolvedRows, resolvedRows]);
 
   const listBoxChildren: React.ReactNode | ((item: T) => React.ReactNode) =
     React.useMemo(() => {
-      if (isTemplateMode) {
-        console.log(
-          "🎯 ComboBox: columnMapping 감지 - 데이터로 아이템 렌더링",
-          {
-            columnMapping,
-            hasChildren: !!children,
-            dataCount: boundData.length,
-          },
-        );
-
-        if (!hasBoundItems) {
-          return children;
-        }
-
+      // ColumnMapping mode with children (Field-based template rendering — 자식이 row 소비)
+      if (isTemplateMode && hasResolvedRows) {
         return children;
       }
 
-      if (hasBoundItems) {
+      // 사용자 정의 render function(children) 우선 — comboBoxItems(id/label 정규화)를 받아 렌더
+      if (typeof children === "function") {
+        return children as (item: T) => React.ReactNode;
+      }
+
+      // 정규화 rows 기반 기본 render function (정적 items / columnMapping 없는 dynamic 공통)
+      if (hasResolvedRows) {
         return ((item: Record<string, unknown>) => (
           <ListBoxItem
             key={String(item.id)}
@@ -229,14 +215,9 @@ export function ComboBox<T extends object>({
         )) as (item: T) => React.ReactNode;
       }
 
+      // Static children (정규화 rows 없음 — JSX children 그대로)
       return children;
-    }, [
-      boundData.length,
-      children,
-      columnMapping,
-      hasBoundItems,
-      isTemplateMode,
-    ]);
+    }, [children, columnMapping, hasResolvedRows, isTemplateMode]);
 
   // External loading state (from isLoading prop) - show skeleton
   // NOTE: early return은 모든 훅 호출 이후에 위치해야 함 (Rules of Hooks)
