@@ -13,6 +13,7 @@
 
 import type { ComponentSpec, Shape, TokenRef } from "../types";
 import { Ratio, PointerOff, MousePointer2 } from "lucide-react";
+import { TabListSpec } from "./TabList.spec";
 
 /**
  * Tabs Props
@@ -208,6 +209,32 @@ export const TabsSpec: ComponentSpec<TabsProps> = {
     focusVisible: {
       focusRing: "{focus.ring.inset}",
     },
+  },
+
+  // ADR-094 인프라 경유 자식 spec 등록 (TagGroup→TagList 선례 동형).
+  childSpecs: [TabListSpec],
+
+  // ADR-912 영역 B (A): Tabs.props.items → TabList 전파.
+  //   chip projection(appendTabRowProjection)이 owner=TabList scene node 에 붙고,
+  //   resolveDataBoundTabProjection 이 TabList.props.items 를 읽어 tab-row 노드 전개.
+  //   기존 collection projection invariant("projection 대상 노드가 자기 props.items 를 읽음")를
+  //   TagGroup→TagList 와 동일 propagation 으로 충족 (owner-lookup ad-hoc 패턴 회피).
+  //   selectedKey/showIndicator/variant/size 도 chip 시각(_isSelected/indicator/토큰)용 전파.
+  //   selectedKey 는 단일 선택(Tab) — TagList 의 selectedKeys(복수)와 prop 명칭 다름.
+  propagation: {
+    rules: [
+      { parentProp: "items", childPath: "TabList", override: true },
+      { parentProp: "selectedKey", childPath: "TabList", override: true },
+      {
+        parentProp: "defaultSelectedKey",
+        childPath: "TabList",
+        override: true,
+      },
+      { parentProp: "showIndicator", childPath: "TabList", override: true },
+      { parentProp: "variant", childPath: "TabList", override: true },
+      { parentProp: "size", childPath: "TabList", override: true },
+      { parentProp: "orientation", childPath: "TabList", override: true },
+    ],
   },
 
   render: {

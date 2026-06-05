@@ -8,9 +8,28 @@
  */
 
 import type { ComponentSpec, Shape, TokenRef } from "../types";
+import type { TabItem } from "./Tabs.spec";
 
 export interface TabListProps {
   orientation?: "horizontal" | "vertical";
+  /**
+   * ADR-912 영역 B (A): Tab items — Tabs.props.items 가 propagation 으로 전파됨.
+   *   chip projection(appendTabRowProjection)이 owner=TabList scene node 에 붙으므로,
+   *   TabList.props.items 를 읽어 tab-row 노드를 전개한다(ListBox/GridList/TagList 동형 —
+   *   projection 대상 노드가 자기 props.items 를 읽는 projector invariant 유지).
+   *   factory 시점 applyFactoryPropagation 이 store/canonical 에 영속, Inspector edit 은
+   *   buildPropagationUpdates 가 갱신 → scene graph(toCanvasSceneNode) 가 그대로 읽음.
+   */
+  items?: TabItem[];
+  /** ADR-912 영역 B (A): selected tab 시각용 — Tabs.props.selectedKey propagation. */
+  selectedKey?: string;
+  defaultSelectedKey?: string;
+  /** ADR-912 영역 B (A): indicator 표시 여부 — Tabs.props.showIndicator propagation. */
+  showIndicator?: boolean;
+  /** ADR-912 영역 B (A): Tabs.props.size propagation (chip 크기 토큰). */
+  size?: "sm" | "md" | "lg";
+  /** ADR-912 영역 B (A): Tabs.props.variant propagation. */
+  variant?: "default";
   /** 컨테이너 시스템 주입 */
   _containerWidth?: number;
   _containerHeight?: number;

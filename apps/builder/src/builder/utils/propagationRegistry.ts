@@ -38,6 +38,7 @@ import {
   GridListSpec,
   ListBoxSpec,
   ToggleButtonGroupSpec,
+  TabsSpec,
 } from "@composition/specs";
 
 // ─── Collection Item propagation-only specs ─────────────────────────────────
@@ -191,6 +192,9 @@ registerPropagationSpec("CardContent", CardContentSpec);
 registerPropagationSpec("GridList", GridListSpec);
 registerPropagationSpec("ListBox", ListBoxSpec);
 registerPropagationSpec("ToggleButtonGroup", ToggleButtonGroupSpec);
+// ADR-912 영역 B (A): Tabs → TabList items/selectedKey/variant/size/showIndicator 전파.
+//   chip projection(appendTabRowProjection)이 TabList.props.items 를 읽는 invariant 충족.
+registerPropagationSpec("Tabs", TabsSpec);
 // Collection Item → 자식 Text/Description 전파
 registerPropagationSpec(
   "GridListItem",
