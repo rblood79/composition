@@ -11,6 +11,12 @@ export {
   normalizeApiResponse,
 } from "./useCollectionData";
 export type { PropertyDataBindingShape } from "./useCollectionData";
+// ADR-912 영역 B — collection items 단일 계약 DOM hook adapter
+export { useResolvedCollectionItems } from "./useResolvedCollectionItems";
+export type {
+  UseResolvedCollectionItemsOptions,
+  UseResolvedCollectionItemsResult,
+} from "./useResolvedCollectionItems";
 export { CollectionDataProvider } from "./CollectionDataProvider";
 export { useCollectionDataServices } from "./collectionDataContext";
 export { collectionDataCache, createCacheKey } from "./useCollectionDataCache";

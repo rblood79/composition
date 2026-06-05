@@ -24,6 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: Compare 모드 live — builder items=4 / iframe React fiber items=4 / iframe DOM chip 4(`Chocolate/Mint/Strawberry/Vanilla`) / Skia projection chip 4 유지 / dataBinding 경로 회귀 0 / Tag projection slice(`a49e63541`) 독립. X(remove) 버튼 DOM 부재는 catalog cutover 의 event handler(`onRemove`) drop 으로 items 복구와 독립된 별개 사안(후속)
   - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts` / `packages/shared/src/components/TagGroup.tsx`. 동형 결함(정적 items SSOT 를 쓰는 8 collection: ListBox/GridList/Select/ComboBox/Menu/Table/Tabs/Tree 의 binding accepts 에 items 누락)은 TagGroup proof 패턴으로 별도 batch 영역
 
+### Architecture
+
+- **collection items 단일 계약(`resolveCollectionItems`) 도입 + TagGroup source acquisition 단일화** (ADR-912 영역 B 연장):
+  - collection items 의 source(정적 `props.items` / `dataBinding` / collections / fallback)가 DOM wrapper(컴포넌트별 `useCollectionData` + ad-hoc 정적 items 분기)와 Skia projector(`getFlatProjectionRows`)에서 분산 처리되어, 같은 데이터가 두 경로에서 다르게 흐르던 구조(TagGroup 정적 items 누락 버그의 근원)를 단일 계약으로 통합
+  - **Task 1 (shared hoist)**: builder `collectionRowProjectionModel.ts`(import 0 순수 함수)를 `packages/shared/src/collections/resolveCollectionItems.ts` 로 hoist. `resolveCollectionItems(input)` 단일 진입점 신설 — raw source → `CollectionProjectionRow[]`(label/icon/description/value/itemKey/isDisabled 휴리스틱) 정규화 + `sourceKind` 판정. builder 경로는 named re-export alias 유지(BC 0, 호출처 5개 unchanged)
+  - **Task 2-A (DOM adapter)**: `useResolvedCollectionItems` hook 신설 — 순수 계약이 못 하는 async/dataTable/API source 를 `useCollectionData`(DI 경유)로 해소한 뒤 동일 `toItemProjectionRow` normalizer 로 정규화. DOM wrapper 와 Skia projector 가 **같은 row 형태**(`CollectionProjectionRow`) 산출 = 시각 대칭 SSOT
+  - **Task 2-B (TagGroup 되감기 proof)**: `9e84c2707` 의 정적 items 전용 분기(`if (!hasDataBinding && items)`)와 `useCollectionData` 직접 호출(이중 source)을 제거하고 `useResolvedCollectionItems` 단일 소비로 전환. source acquisition 만 단일화하고 render 모드(dataBinding/columnMapping/render function/static children)는 보존 — raw item 은 `row.item` 에 보존되어 columnMapping/render function 소비처 회귀 0
+  - **Why**: wrapper 별 `if (!hasDataBinding && items)` 분기 복제는 ADR-142 no-classification 원칙 역행(small patch 8회 = 같은 결함 재발). RAC Collections 공식 패턴(static=JSX children / dynamic=items+render fn / async=`useAsyncList`)과 정합하는 단일 계약으로 source 통합만 담당하고 render adapt 는 wrapper 가 유지
+  - 검증(proof, kill criteria): `useCollectionData` 직접 호출 0 / 정적 items 분기 0 / collections store 직접 import 0 (grep) + static items Compare 모드 live (iframe DOM chip 4 + Skia chip 4) + dataBinding 경로 로직 보존(`filteredRows` 동형) + type-check 3/3(shared/builder/publish) + shared 245/245 + `resolveCollectionItems.test.ts` 11 PASS
+  - 위치: `packages/shared/src/collections/resolveCollectionItems.ts`(신규) / `packages/shared/src/hooks/useResolvedCollectionItems.tsx`(신규) / `packages/shared/src/components/TagGroup.tsx` / `apps/builder/src/builder/components/collection/collectionRowProjectionModel.ts`(re-export alias). 5군 나머지(Menu/ListBox/GridList/Select) 전환은 본 proof 통과 후 별도 slice
+
 ## [RAC primitive binding 컴포넌트 시스템 — ADR-142 scope 축소 종결] - 2026-06-02
 
 ### Architecture
