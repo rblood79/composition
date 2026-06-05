@@ -1436,7 +1436,10 @@ function traversePostOrder(
         childStoreWidth === "min-content"
       ) {
         const childText = String(
-          (filteredChild.props as Record<string, unknown>)?.children ?? "",
+          (filteredChild.props as Record<string, unknown>)?.label ??
+            (filteredChild.props as Record<string, unknown>)?.text ??
+            (filteredChild.props as Record<string, unknown>)?.children ??
+            "",
         );
         if (childText) {
           // ADR-912 영역 B (A): 순수 measureTextWidth 는 type-specific 부속(Tag remove X /

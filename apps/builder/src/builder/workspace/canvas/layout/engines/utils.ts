@@ -751,7 +751,7 @@ export function measureTextWidth(
  * 텍스트 콘텐츠 추출
  *
  * 다양한 prop에서 텍스트 문자열 추출
- * 우선순위: children > text > label > title > placeholder > value
+ * 우선순위: label > text > children > title > placeholder > value
  */
 function extractTextContent(
   props: Record<string, unknown> | undefined,
@@ -760,9 +760,9 @@ function extractTextContent(
 
   // 우선순위에 따라 텍스트 소스 확인
   const textSources = [
-    props.children,
-    props.text,
     props.label,
+    props.text,
+    props.children,
     props.title,
     props.placeholder,
     props.value,

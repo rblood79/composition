@@ -18,10 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` / `packages/specs/src/renderers/buildCatalogShapes.ts` / `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`. 회귀 방지: `packages/shared/src/catalog/__tests__/componentRulesPaddingX.test.ts`
 
 - **Menu Trigger Label 편집값이 Preview 에만 반영되고 Skia 는 기존 "Menu" 로 고정되던 버그** (ADR-912 영역 B Task 3 후속):
-  - catalog 발효 Menu 를 추가하면 Preview/Skia 모두 기본 `"Menu"` 로 보이나, Properties 패널의 `Trigger Label` 을 바꾸면 Preview DOM 은 변경값을 표시하고 Skia 캔버스는 새로고침 후에도 기존 `"Menu"` 를 유지하던 비대칭
-  - **Why**: Preview DOM/Menu binding 은 trigger text source 를 `props.label` 로 읽지만, catalog Skia 는 `Menu.spec.render.shapes` 가 아니라 `buildCatalogShapes` generic 경로를 타며 text source 우선순위가 `children → text → label` 이었다. factory 가 legacy `children:"Menu"` 를 계속 보유해, 편집된 `label` 값이 Skia 에서 가려짐
-  - 수정: Menu trigger 의 canonical source 를 `label` 로 정렬(factory 기본 `label:"Menu"` 주입, DOM trigger fallback `label || "Menu"`, legacy `children` 은 Skia/spec fallback 으로만 보존)하고, `buildCatalogShapes` generic text source 를 `label → text → children` 순서로 변경. 회귀 방지: `Menu.spacing.test.ts` + `buildCatalogShapes.test.ts`
-  - 검증: Preview/Skia runtime import live — binding accepts `label`, spec property `label`, `specText:"Actions"`, `catalogText:"Actions"`, console error 0
+  - catalog 발효 Menu 를 추가하면 Preview/Skia 모두 기본 `"Menu"` 로 보이나, Properties 패널의 `Trigger Label` 을 바꾸면 Preview DOM 은 변경값을 표시하고 Skia 캔버스는 텍스트와 intrinsic width 가 새로고침 후에도 기존 `"Menu"` 기준으로 유지되던 비대칭
+  - **Why**: Preview DOM/Menu binding 은 trigger text source 를 `props.label` 로 읽지만, catalog Skia 는 `Menu.spec.render.shapes` 가 아니라 `buildCatalogShapes` generic 경로를 타며 text source 우선순위가 `children → text → label` 이었다. 또한 Skia layout intrinsic width 도 `calculateContentWidth` 의 `extractTextContent` 에서 `children → text → label` 을 읽어 factory 의 legacy `children:"Menu"` 폭으로 고정됐다
+  - 수정: Menu trigger 의 canonical source 를 `label` 로 정렬(factory 기본 `label:"Menu"` 주입, DOM trigger fallback `label || "Menu"`, legacy `children` 은 Skia/spec fallback 으로만 보존). `buildCatalogShapes` generic text source 와 layout `extractTextContent` 를 `label → text → children` 순서로 변경하고, `fit-content` font-size 재계산 guard 도 label/text source 를 인식하도록 보강
+  - 회귀 방지: `Menu.spacing.test.ts` + `buildCatalogShapes.test.ts` + `menuIntrinsicWidth.test.ts`
+  - 검증: Preview/Skia runtime import live — binding accepts `label`, spec property `label`, `specText:"Actions"`, `catalogText:"Actions"`, Skia layout `legacyWidth=36.7 → labelWidth=179.1`, console error 0
 
 - **catalog 발효 TagGroup 의 정적 items chip 이 Preview DOM 에서 빈 placeholder 로 사라지던 버그** (ADR-912 영역 B (A) 후속, collection cutover items 누락):
   - 정적 `props.items`(4개) SSOT 를 가진 TagGroup 이 Builder Skia 캔버스에서는 chip 4개로 정상 렌더되지만, Preview DOM(CSS)에서는 빈 chip 2개로만 보이던 비대칭. Compare 모드(화면분할)에서 Skia↔DOM chip 수 불일치로 노출
