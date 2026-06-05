@@ -301,7 +301,9 @@ export const GradientEditor = memo(function GradientEditor({
           items={GRADIENT_SUB_TYPE_OPTIONS}
           className="gradient-type-select"
         >
-          {(item) => <SelectItem>{item.name}</SelectItem>}
+          {(item: { id: GradientSubType; name: string }) => (
+            <SelectItem>{item.name}</SelectItem>
+          )}
         </Select>
       </div>
       <GradientBar

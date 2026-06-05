@@ -9,19 +9,19 @@
  * @since 2026-02-11 Phase 4
  */
 
-import { memo, useState, useCallback } from 'react';
-import type { Key } from 'react-aria-components';
-import { Select, SelectItem } from '@composition/shared/components';
+import { memo, useState, useCallback } from "react";
+import type { Key } from "react-aria-components";
+import { Select, SelectItem } from "@composition/shared/components";
 import type {
   FillItem,
   MeshGradientFillItem,
   MeshPoint,
-} from '../../../../types/builder/fill.types';
-import { FillType } from '../../../../types/builder/fill.types';
-import { ColorPickerPanel } from './ColorPickerPanel';
-import { ScrubInput } from './ScrubInput';
+} from "../../../../types/builder/fill.types";
+import { FillType } from "../../../../types/builder/fill.types";
+import { ColorPickerPanel } from "./ColorPickerPanel";
+import { ScrubInput } from "./ScrubInput";
 
-import './MeshGradientEditor.css';
+import "./MeshGradientEditor.css";
 
 type GradientSubType =
   | FillType.LinearGradient
@@ -41,10 +41,10 @@ interface MeshGradientEditorProps {
 // ============================================
 
 const GRADIENT_SUB_TYPE_OPTIONS: { id: GradientSubType; name: string }[] = [
-  { id: FillType.LinearGradient, name: 'Linear' },
-  { id: FillType.RadialGradient, name: 'Radial' },
-  { id: FillType.AngularGradient, name: 'Angular' },
-  { id: FillType.MeshGradient, name: 'Mesh' },
+  { id: FillType.LinearGradient, name: "Linear" },
+  { id: FillType.RadialGradient, name: "Radial" },
+  { id: FillType.AngularGradient, name: "Angular" },
+  { id: FillType.MeshGradient, name: "Mesh" },
 ];
 
 // ============================================
@@ -52,9 +52,15 @@ const GRADIENT_SUB_TYPE_OPTIONS: { id: GradientSubType; name: string }[] = [
 // ============================================
 
 const DEFAULT_COLORS = [
-  '#FF0000FF', '#FFFF00FF', '#00FF00FF',
-  '#FF00FFFF', '#888888FF', '#00FFFFFF',
-  '#0000FFFF', '#FF8800FF', '#FFFFFFFF',
+  "#FF0000FF",
+  "#FFFF00FF",
+  "#00FF00FF",
+  "#FF00FFFF",
+  "#888888FF",
+  "#00FFFFFF",
+  "#0000FFFF",
+  "#FF8800FF",
+  "#FFFFFFFF",
 ];
 
 function generateDefaultGrid(rows: number, columns: number): MeshPoint[] {
@@ -87,7 +93,8 @@ export const MeshGradientEditor = memo(function MeshGradientEditor({
   const activePoint = points[activePointIndex] ?? points[0];
 
   // 포인트가 비어 있으면 기본 그리드 생성
-  const effectivePoints = points.length > 0 ? points : generateDefaultGrid(rows, columns);
+  const effectivePoints =
+    points.length > 0 ? points : generateDefaultGrid(rows, columns);
 
   const handleSubTypeChange = useCallback(
     (key: Key | null) => {
@@ -146,16 +153,18 @@ export const MeshGradientEditor = memo(function MeshGradientEditor({
   return (
     <div className="mesh-gradient-editor">
       <div className="react-aria-control react-aria-Group">
-      <Select
-        aria-label="Gradient type"
-        size="sm"
-        selectedKey={FillType.MeshGradient}
-        onSelectionChange={handleSubTypeChange}
-        items={GRADIENT_SUB_TYPE_OPTIONS}
-        className="gradient-type-select"
-      >
-        {(item) => <SelectItem>{item.name}</SelectItem>}
-      </Select>
+        <Select
+          aria-label="Gradient type"
+          size="sm"
+          selectedKey={FillType.MeshGradient}
+          onSelectionChange={handleSubTypeChange}
+          items={GRADIENT_SUB_TYPE_OPTIONS}
+          className="gradient-type-select"
+        >
+          {(item: { id: GradientSubType; name: string }) => (
+            <SelectItem>{item.name}</SelectItem>
+          )}
+        </Select>
       </div>
       {/* Grid size controls */}
       <div className="mesh-gradient-editor__grid-controls">
@@ -207,7 +216,11 @@ export const MeshGradientEditor = memo(function MeshGradientEditor({
         <>
           <div className="mesh-gradient-editor__divider" />
           <ColorPickerPanel
-            value={activePoint.color ?? effectivePoints[activePointIndex]?.color ?? '#000000FF'}
+            value={
+              activePoint.color ??
+              effectivePoints[activePointIndex]?.color ??
+              "#000000FF"
+            }
             resetKey={`${fill.id}:${activePointIndex}:${rows}x${columns}`}
             onChange={handlePointColorChange}
             onChangeEnd={handlePointColorChangeEnd}

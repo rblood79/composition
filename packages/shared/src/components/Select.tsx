@@ -29,7 +29,7 @@ import type {
   DataBindingValue,
 } from "../types";
 
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
@@ -39,12 +39,18 @@ import "./styles/generated/Select.css";
 
 export interface SelectProps<T extends object> extends Omit<
   AriaSelectProps<T>,
-  "children" | "selectionMode"
+  "children" | "selectionMode" | "items"
 > {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
-  items?: Iterable<T>;
+  /**
+   * ADR-912 영역 B Task 6: 정적 items[] SSOT (StoredSelectItem[] 직렬화 형태).
+   *   RAC `AriaSelectProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
+   *   useResolvedCollectionItems 가 dataBinding 과 동일 normalizer(toItemProjectionRow)로 흡수하고,
+   *   selectItems 가 정규화 rows 를 RAC ListBox 가 받는 형태(id=itemKey 보존)로 재구성한다.
+   */
+  items?: unknown[];
   children?: React.ReactNode | ((item: T) => React.ReactNode);
   placeholder?: string;
   itemKey?: keyof T | ((item: T) => React.Key);
@@ -117,13 +123,18 @@ export function Select<T extends object>({
   // 다중 선택 기능 구현 예정 (현재는 미사용)
   void _multipleDisplayMode;
   void _renderMultipleValue;
-  // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
+  // ADR-912 영역 B Task 6: collection source acquisition 단일화.
+  //   useCollectionData 직접 호출(이중 source)을 제거하고 useResolvedCollectionItems 단일 진입점으로 통일.
+  //   dataBinding(async/dataTable/API)과 정적 props.items 가 같은 toItemProjectionRow normalizer 를
+  //   통과 → DOM wrapper 와 Skia projector(getFlatProjectionRows)가 동일 row 형태(CollectionProjectionRow).
+  //   StoredSelectItem 은 section discriminant 가 없어(flat-only) section guard 불필요.
   const {
-    data: boundData,
+    rows: resolvedRows,
     loading,
     error,
-  } = useCollectionData({
+  } = useResolvedCollectionItems({
     dataBinding: dataBinding as DataBinding,
+    items,
     componentName: "Select",
     fallbackData: [
       { id: 1, name: "Option 1", value: "option-1" },
@@ -151,65 +162,34 @@ export function Select<T extends object>({
       dataBinding.type === "collection") ||
     isPropertyBinding;
 
-  // Prepare items for rendering
+  // ADR-912 영역 B Task 6: 내부 RAC ListBox 가 받는 items 를 정규화 rows 에서 파생.
+  //   dataBinding(boundData) 과 정적 props.items 가 모두 resolvedRows(toItemProjectionRow)로
+  //   흡수됐으므로, 수동 selectItems useMemo(이중 source map)을 단일 파생으로 통일.
+  //   raw item(...row.item) 을 보존해 description/icon/value 등 기존 field 유지하고,
+  //   id=row.itemKey / label=row.label 을 강제 — RAC selectedKey 해석은 ListBoxItem id 기준이므로
+  //   itemKey 보존이 selected value 표시 무회귀의 핵심(legacy String(item.id) 와 동일 값).
+  //   loading/error 중에는 listBoxContent 가 상태 메시지를 렌더하므로 items 는 빈 배열로 둔다.
   const selectItems = React.useMemo(() => {
-    if (!hasDataBinding || loading || error) {
-      return items;
+    if (hasDataBinding && (loading || error)) {
+      return [] as unknown as Iterable<T>;
     }
+    return resolvedRows.map((row) => ({
+      ...(row.item as Record<string, unknown>),
+      id: row.itemKey,
+      label: row.label,
+    })) as unknown as Iterable<T>;
+  }, [hasDataBinding, loading, error, resolvedRows]);
 
-    if (columnMapping && boundData.length > 0) {
-      return boundData.map((item, index) => ({
-        id: String(item.id || index),
-        ...item,
-      })) as Iterable<T>;
-    }
-
-    if (boundData.length > 0) {
-      const config = (dataBinding as { config?: Record<string, unknown> })
-        ?.config as
-        | {
-            columnMapping?: {
-              id: string;
-              label: string;
-            };
-            dataMapping?: {
-              idField: string;
-              labelField: string;
-            };
-          }
-        | undefined;
-
-      const idField =
-        config?.columnMapping?.id || config?.dataMapping?.idField || "id";
-      const labelField =
-        config?.columnMapping?.label ||
-        config?.dataMapping?.labelField ||
-        "label";
-
-      return boundData.map((item, index) => ({
-        id: String(item[idField] || item.id || index),
-        label: String(
-          item[labelField] || item.label || item.name || `Item ${index + 1}`,
-        ),
-        ...item,
-      })) as Iterable<T>;
-    }
-
-    return items;
-  }, [
-    hasDataBinding,
-    loading,
-    error,
-    boundData,
-    columnMapping,
-    dataBinding,
-    items,
-  ]);
+  // ADR-912 영역 B Task 6: 정규화 rows source 가 있으면 dynamic/static 공통 render 경로를 탄다.
+  //   dataBinding(boundData) 또는 정적 props.items 모두 resolvedRows 로 흡수됐으므로,
+  //   기존 boundData.length 분기를 hasResolvedRows 로 일반화 — 정적 items 도 popover 내부에
+  //   role=option 으로 렌더(catalog Preview DOM items 누락 seam 닫기).
+  const hasResolvedRows = resolvedRows.length > 0;
 
   // Render ListBox content based on state - memoized to prevent unnecessary re-renders
   const listBoxContent: React.ReactNode | ((item: T) => React.ReactNode) =
     React.useMemo(() => {
-      // Loading state
+      // Loading state (dataBinding 비동기 해소 중 — 정적 items 는 loading=false 즉시 통과)
       if (hasDataBinding && loading) {
         return (
           <ListBoxItem
@@ -235,13 +215,18 @@ export function Select<T extends object>({
         );
       }
 
-      // ColumnMapping mode with children (Field-based rendering)
-      if (hasDataBinding && columnMapping && boundData.length > 0) {
+      // ColumnMapping mode with children (Field-based template rendering — 자식이 row 소비)
+      if (hasDataBinding && columnMapping && hasResolvedRows) {
         return children;
       }
 
-      // Dynamic collection without columnMapping
-      if (hasDataBinding && !columnMapping && boundData.length > 0) {
+      // 사용자 정의 render function(children) 우선 — selectItems(id/label 정규화)를 받아 렌더
+      if (typeof children === "function") {
+        return children as (item: T) => React.ReactNode;
+      }
+
+      // 정규화 rows 기반 기본 render function (정적 items / columnMapping 없는 dynamic 공통)
+      if (hasResolvedRows) {
         return ((item: Record<string, unknown>) => {
           const itemId =
             item.id !== undefined && item.id !== null
@@ -265,9 +250,16 @@ export function Select<T extends object>({
         }) as (item: T) => React.ReactNode;
       }
 
-      // Static children
+      // Static children (정규화 rows 없음 — JSX children 그대로)
       return children;
-    }, [hasDataBinding, loading, error, columnMapping, boundData, children]);
+    }, [
+      hasDataBinding,
+      loading,
+      error,
+      columnMapping,
+      hasResolvedRows,
+      children,
+    ]);
 
   // Single unified return structure - prevents popover remounting
   if (externalLoading) {

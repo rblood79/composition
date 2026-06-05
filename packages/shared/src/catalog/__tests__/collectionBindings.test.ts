@@ -110,6 +110,25 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     expect(result.dataBinding).toEqual({ source: "c", name: "countries" });
   });
 
+  it("Select: 정적 items[](StoredSelectItem[]) pass-through (ADR-912 Task 6)", () => {
+    // items 미선언 시 toRacProps 가 props.items 를 drop → wrapper 가 정적 source 못 봄.
+    // Select.binding.ts items accepts 추가로 GridList/ListBox 와 동형 통과 검증.
+    const items = [
+      { id: "a", label: "A" },
+      { id: "b", label: "B" },
+    ];
+    const result = toRacProps(
+      {
+        id: "sel2",
+        type: "Select",
+        props: { items, placeholder: "Pick" },
+      },
+      getPrimitiveBinding("Select")!,
+    );
+    expect(result.items).toEqual(items);
+    expect(result.placeholder).toBe("Pick");
+  });
+
   it("Tabs: orientation/variant data-* 라우팅", () => {
     const result = toRacProps(
       {

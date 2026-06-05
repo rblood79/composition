@@ -1788,7 +1788,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                       { value: 100, label: "100" },
                     ]}
                   >
-                    {(item) => (
+                    {(item: { value: number; label: string }) => (
                       <SelectItem key={item.value} id={item.value.toString()}>
                         {item.label}
                       </SelectItem>
@@ -1948,7 +1948,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                       { value: 100, label: "100" },
                     ]}
                   >
-                    {(item) => (
+                    {(item: { value: number; label: string }) => (
                       <SelectItem key={item.value} id={item.value.toString()}>
                         {item.label}
                       </SelectItem>
