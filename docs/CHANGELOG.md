@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정: 28 발효 type 의 `COMPONENT_RULES_TABLE.sizes` 에 size 별 `paddingX` 를 legacy spec 정본에서 역추적 삽입(Button parity 보존). `buildCatalogShapes` 에 `size.paddingX ?? 0` source guard(inline text 의 올바른 0 값 + 미정의 NaN 차단), `specShapeConverter` text case 에 `shape.x` 유한수 guard(2중 방어, 데이터 보강 대체 아님)
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` / `packages/specs/src/renderers/buildCatalogShapes.ts` / `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`. 회귀 방지: `packages/shared/src/catalog/__tests__/componentRulesPaddingX.test.ts`
 
+- **catalog 발효 TagGroup 의 정적 items chip 이 Preview DOM 에서 빈 placeholder 로 사라지던 버그** (ADR-912 영역 B (A) 후속, collection cutover items 누락):
+  - 정적 `props.items`(4개) SSOT 를 가진 TagGroup 이 Builder Skia 캔버스에서는 chip 4개로 정상 렌더되지만, Preview DOM(CSS)에서는 빈 chip 2개로만 보이던 비대칭. Compare 모드(화면분할)에서 Skia↔DOM chip 수 불일치로 노출
+  - **Why**: catalog cutover DOM 경로(`CanonicalNodeRenderer` → `toRacProps` → `INTERNAL_RENDERERS["taggroup"]`)는 binding `accepts` 선언 prop 만 통과시키는데, `TagGroup.binding.ts` accepts 에 `items` 가 없어 `props.items`(4개)가 drop → TagGroup wrapper 가 `items=undefined` 로 받음. 추가로 wrapper 의 `hasDataBinding=false` 경로에 정적 items 분기가 없어, catalog canonical children(Label/TagList)을 RAC `<TagList>` 의 static children 으로 넘김 → RAC 가 static children 우선 → 빈 placeholder. Skia 는 `appendTagRowProjection` 이 canonical `props.items` 를 직접 읽어 무관(한쪽만 깨지는 대칭 손실)
+  - 수정: (1) `TagGroup.binding.ts` accepts 에 `items`(`kind:"binding"` — Inspector no-op, toRacProps 통과 전용, D2 의미 props 미오염) 추가. (2) `TagGroup.tsx` 에 `hasDataBinding=false && props.items` 정적 items 우선 분기 추가 — dataBinding 경로와 동형으로 items → render function chip 생성(static canonical children 대신). `CanonicalNodeRenderer` 공통 children skip 대신 wrapper 가 items source 우선(proof 범위)
+  - 검증: Compare 모드 live — builder items=4 / iframe React fiber items=4 / iframe DOM chip 4(`Chocolate/Mint/Strawberry/Vanilla`) / Skia projection chip 4 유지 / dataBinding 경로 회귀 0 / Tag projection slice(`a49e63541`) 독립. X(remove) 버튼 DOM 부재는 catalog cutover 의 event handler(`onRemove`) drop 으로 items 복구와 독립된 별개 사안(후속)
+  - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts` / `packages/shared/src/components/TagGroup.tsx`. 동형 결함(정적 items SSOT 를 쓰는 8 collection: ListBox/GridList/Select/ComboBox/Menu/Table/Tabs/Tree 의 binding accepts 에 items 누락)은 TagGroup proof 패턴으로 별도 batch 영역
+
 ## [RAC primitive binding 컴포넌트 시스템 — ADR-142 scope 축소 종결] - 2026-06-02
 
 ### Architecture

@@ -15,6 +15,7 @@ import {
 } from "react-aria-components";
 import { X } from "lucide-react";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
+import type { StoredTagItem } from "@composition/specs";
 
 import { useCollectionData } from "../hooks";
 import "./styles/TagGroup.css";
@@ -470,6 +471,74 @@ export function TagGroup<T extends object>({
         </AriaTagGroup>
       );
     }
+  }
+
+  // ADR-912 영역 B (A 후속, 2026-06-05): 정적 items[] SSOT 우선 분기.
+  //   catalog cutover DOM 경로(CanonicalNodeRenderer → INTERNAL_RENDERERS["taggroup"])는
+  //   wrapper 에 canonical children(Label/TagList)을 넘긴다. RAC <TagList> 는 static children
+  //   이 있으면 items prop 을 무시 → props.items(4개)가 있어도 빈 children placeholder(2개)
+  //   렌더. dataBinding 경로(line 376~)는 이미 items → render function 으로 chip 을 그리지만,
+  //   정적 items(dataBinding 없음) 는 분기가 없어 default 경로의 static children 으로 떨어졌다.
+  //   여기서 dataBinding 경로와 동형으로 items → render function chip 을 생성해 DOM 대칭 복구.
+  //   (CanonicalNodeRenderer 공통 children skip 대신 wrapper 가 items source 우선 — proof 범위.)
+  //   Skia 경로는 appendTagRowProjection 이 canonical props.items 를 직접 읽어 무관(회귀 0).
+  const hasStaticItems =
+    !hasDataBinding && Array.isArray(items) && items.length > 0;
+  if (hasStaticItems) {
+    const staticTagItems = (items as unknown as StoredTagItem[])
+      .filter((item) => !removedItemIds.includes(String(item.id)))
+      .map((item) => ({
+        id: String(item.id),
+        label: String(item.label ?? ""),
+        isDisabled: Boolean(item.isDisabled),
+      }));
+
+    return (
+      <AriaTagGroup
+        {...props}
+        selectionMode={selectionMode}
+        selectionBehavior={selectionBehavior}
+        selectedKeys={selectedKeys}
+        defaultSelectedKeys={defaultSelectedKeys}
+        onSelectionChange={onSelectionChange}
+        disallowEmptySelection={disallowEmptySelection}
+        onRemove={allowsRemoving ? onRemove : undefined}
+        className={tagGroupClassName}
+        data-type-variant={variant}
+        data-type-size={size}
+        data-label-position={labelPosition}
+      >
+        {label && <Label>{label}</Label>}
+        <TagList
+          items={staticTagItems}
+          renderEmptyState={renderEmptyState}
+          className="react-aria-TagList"
+        >
+          {(item) => (
+            <AriaTag
+              key={item.id}
+              id={item.id}
+              textValue={item.label}
+              isDisabled={item.isDisabled}
+              className="react-aria-Tag"
+            >
+              {({ allowsRemoving: removing }) => (
+                <>
+                  {item.label}
+                  {removing && (
+                    <Button slot="remove" className="tag-remove-btn">
+                      <X size={14} />
+                    </Button>
+                  )}
+                </>
+              )}
+            </AriaTag>
+          )}
+        </TagList>
+        {description && <Text slot="description">{description}</Text>}
+        {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
+      </AriaTagGroup>
+    );
   }
 
   const totalChildCount = tagTexts.length;
