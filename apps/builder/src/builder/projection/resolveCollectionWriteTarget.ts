@@ -72,7 +72,7 @@ export type CollectionWriteTarget =
  */
 type CollectionRowProjection = Extract<
   CanvasProjectionMetadata,
-  { kind: "listbox-row" | "gridlist-row" | "table-row" }
+  { kind: "listbox-row" | "gridlist-row" | "table-row" | "tag-row" }
 >;
 type CollectionCellProjection = Extract<
   CanvasProjectionMetadata,

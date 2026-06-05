@@ -98,7 +98,12 @@ export function isCollectionRowProjectionKind(
   kind: string | undefined | null,
 ): boolean {
   return (
-    kind === "listbox-row" || kind === "gridlist-row" || kind === "table-row"
+    kind === "listbox-row" ||
+    kind === "gridlist-row" ||
+    kind === "table-row" ||
+    // ADR-912 영역 B (A): TagGroup chip = collection row 동형(items SSOT, owner=TagList).
+    //   chip 1개 = tag-row 노드(1단 row family, listbox/gridlist 동형 메타).
+    kind === "tag-row"
   );
 }
 
@@ -107,7 +112,11 @@ export function isCollectionRowsGroupProjectionKind(
   kind: string | undefined | null,
 ): boolean {
   return (
-    kind === "listbox-rows" || kind === "gridlist-rows" || kind === "table-rows"
+    kind === "listbox-rows" ||
+    kind === "gridlist-rows" ||
+    kind === "table-rows" ||
+    // ADR-912 영역 B (A): TagGroup chip 컨테이너(flexWrap row → wrap-flow).
+    kind === "tag-rows"
   );
 }
 
@@ -115,7 +124,8 @@ export function isCollectionRowsGroupProjectionKind(
  * collection **cell** projection kind 판정 (ADR-912 단계 4 C1 — Table 2D 전용).
  *
  * cell 은 columnId write-target 라우팅이 필요해 row 와 별도 kind. row 1단 family(listbox/
- * gridlist)에는 없고 Table 만 가진다 — family 가 늘어도 본 helper 1곳만 갱신(no-classification).
+ * gridlist/tag)에는 없고 Table 만 가진다 — family 가 늘어도 본 helper 1곳만 갱신
+ * (no-classification).
  */
 export function isCollectionCellProjectionKind(
   kind: string | undefined | null,

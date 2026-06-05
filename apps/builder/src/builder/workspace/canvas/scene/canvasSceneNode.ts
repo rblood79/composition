@@ -132,6 +132,25 @@ export type CanvasProjectionMetadata =
       isHeader: boolean;
       templateAnchorId: string | null;
       templateOriginId: string | null;
+    }
+  // ADR-912 영역 B (A) — TagGroup chip projection: chip = collection row 동형(1단 row).
+  //   listbox/gridlist row 와 동형 메타(listBoxId=collection owner=TagList scene node id /
+  //   itemKey / rowIndex). origin/anchor 인프라 부재(TagGroup factory TagList children:[],
+  //   items propagation) → templateAnchorId/templateOriginId 항상 null(GridList 동형).
+  //   chip 본체(tag-row)는 deep hit 시 owner(TagGroup) select redirect.
+  | {
+      kind: "tag-rows";
+      listBoxId: string;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
+    }
+  | {
+      kind: "tag-row";
+      listBoxId: string;
+      itemKey: string;
+      rowIndex: number;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
     };
 
 export interface CanvasSceneNode {
@@ -965,6 +984,163 @@ function appendTableRowProjection(
   }
 }
 
+// ---------------------------------------------------------------------------
+// ADR-912 영역 B (A) — TagGroup chip projection (wrap-flow row family)
+// ---------------------------------------------------------------------------
+//
+// GridList(1단 row, origin/anchor 없음, factory children:[]) 와 동형이되 2점 차이:
+//   1) **owner = TagList scene node** (TagGroup 이 아님). TagGroup factory 가 Label + TagList
+//      중간 컨테이너를 만들고 items/variant/size/allowsRemoving/maxRows 를 TagList 로 propagate
+//      (TagGroup.spec propagation). chip 좌표계 = TagList node — projection 을 TagList 에 붙인다.
+//   2) **rowsGroup = flexWrap:"wrap" row** (세로 stack 아닌 가로 wrap-flow). 수동 wrap 시뮬레이션
+//      (구 TagList.spec render.shapes 라인 299-333) 폐기 — chip width:fit-content + Taffy
+//      flex-wrap 이 행 배치를 담당(GridList grid 모드의 flexWrap 패턴과 동형).
+//   3) chip 의 remove(X)는 별도 tag-cell sub-node(deep hit). chip 본체(Tag)는 X 시각 미포함
+//      (allowsRemoving 을 chip 에 전달하지 않음) → X 는 cell 이 단독 렌더.
+
+function isTagListSceneSource(
+  tagListSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+): boolean {
+  if (tagListSceneNode.type === "TagList") return true;
+  if (sourceNode.type === "ref") return false;
+  return (
+    tagListSceneNode.componentName === "TagList" ||
+    tagListSceneNode.name === "TagList"
+  );
+}
+
+/**
+ * data-bound TagList 의 projection rows 계산 (gating). items 는 TagGroup.props.items 가
+ * propagation 경유로 TagList.props.items 에 전파되어 있다(TagGroup.spec propagation). dataBinding
+ * (api/collection) 도 동일 getFlatProjectionRows 3경로로 흡수. rows 0개면 null → 발효 전
+ * standalone render.shapes 유지(회귀 0). chip 1개 = 1 row.
+ */
+function resolveDataBoundTagProjection(
+  tagListSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+  options: BuildCanvasSceneGraphOptions,
+): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
+  if (!isTagListSceneSource(tagListSceneNode, sourceNode)) return null;
+
+  const dataBinding = getElementDataBinding(sourceNode);
+  const rows = getListBoxProjectionRows({
+    collections: options.collections,
+    dataBinding,
+    props: tagListSceneNode.props,
+  });
+  if (rows.length === 0) return null;
+
+  return { rows, sourceNode };
+}
+
+/**
+ * TagGroup chip projected tree 생성: RowsGroup(flex wrap row) → Tag chip[i] (+ remove cell).
+ *
+ * - rowsGroup: 가로 flex row + flexWrap:wrap → chip 들이 컨테이너 폭에서 자동 줄바꿈(Taffy 위임,
+ *   수동 wrap 계산 없음). gap = chip 간격(size 토큰 gap, propagation 으로 TagList 좌표계).
+ * - chip(Tag): width:fit-content → 라벨 폭 + padding 만큼만. Tag.spec.render.shapes 가 bg/border/
+ *   text 자체 렌더(_isSelected → selected variant). allowsRemoving 은 chip 에 전달하지 않음
+ *   (X 는 cell 단독 렌더 → chip 본체는 X 미포함, 좌표 단순).
+ * - remove cell(tag-cell, role:"remove"): allowsRemoving 시에만. chip 의 자식으로 X(icon_font)만
+ *   그리는 별도 hit 노드. 단일클릭은 owner(TagGroup) select redirect, mutation 은 후속(proof scope).
+ */
+function appendTagRowProjection(
+  tagListSceneNode: CanvasSceneNode,
+  projection: { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  const props = tagListSceneNode.props;
+  const { rows, sourceNode } = projection;
+  const allowsRemoving = Boolean(props.allowsRemoving);
+  const variant = props.variant;
+  const size = props.size;
+  const gap = typeof props.gap === "number" ? (props.gap as number) : 4;
+
+  const rowsGroupId = toCollectionRowsGroupProjectionId(
+    "tag",
+    tagListSceneNode.id,
+  );
+  const rowsGroup: CanvasSceneNode = {
+    id: rowsGroupId,
+    type: "Rows",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        rowGap: gap,
+        columnGap: gap,
+        width: "100%",
+        alignItems: "flex-start",
+      },
+    },
+    parentId: tagListSceneNode.id,
+    pageId: scope.pageId,
+    layoutId: scope.layoutId,
+    parent_id: tagListSceneNode.id,
+    page_id: scope.pageId,
+    layout_id: scope.layoutId,
+    projection: {
+      kind: "tag-rows",
+      listBoxId: tagListSceneNode.id,
+      templateAnchorId: null,
+      templateOriginId: null,
+    },
+    sourceNode,
+  };
+  addSceneNode(rowsGroup, graph);
+
+  for (const row of rows) {
+    const chipId = toCollectionRowProjectionId(
+      "tag",
+      tagListSceneNode.id,
+      row.itemKey,
+    );
+    const chipProps: Record<string, unknown> = {
+      children: row.label,
+      // chip 폭 = 라벨 + padding (+ allowsRemoving 시 X) — Tag.spec containerStyles inline-flex.
+      //   wrap-flow 에서 각 chip 이 fit-content 로 자연 폭을 갖고 Taffy flexWrap 이 행 배치.
+      style: { width: "fit-content" },
+      _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
+    };
+    if (variant) chipProps.variant = variant;
+    if (size) chipProps.size = size;
+    if (row.isDisabled) chipProps.isDisabled = true;
+    // ADR-912 영역 B (A) proof: X(remove)는 chip 본체(Tag.spec)가 시각으로 그린다(bg+text+X).
+    //   독립 hit/remove mutation 은 layout overlay + interaction kind 계약이 필요해 후속 보류
+    //   (사용자 결정 2026-06-05). 현 slice 는 chip 1노드 = owner(TagGroup) select redirect 까지.
+    if (allowsRemoving) chipProps.allowsRemoving = true;
+
+    addSceneNode(
+      {
+        id: chipId,
+        type: "Tag",
+        props: chipProps,
+        parentId: rowsGroupId,
+        pageId: scope.pageId,
+        layoutId: scope.layoutId,
+        parent_id: rowsGroupId,
+        page_id: scope.pageId,
+        layout_id: scope.layoutId,
+        projection: {
+          kind: "tag-row",
+          listBoxId: tagListSceneNode.id,
+          itemKey: row.itemKey,
+          rowIndex: row.rowIndex,
+          templateAnchorId: null,
+          templateOriginId: null,
+        },
+        sourceNode,
+      },
+      graph,
+    );
+  }
+}
+
 export function buildCanvasSceneGraph(
   doc: CompositionDocument,
   options: BuildCanvasSceneGraphOptions = {},
@@ -1024,6 +1200,12 @@ export function buildCanvasSceneGraph(
       ? resolveDataBoundTableProjection(sceneNode, node, options)
       : null;
 
+    // ADR-912 영역 B (A): TagGroup chip projection (owner=TagList scene node, wrap-flow row).
+    //   TagList factory children:[] (items propagation) → suppression 불필요, append 만.
+    const tagProjection = sceneNode
+      ? resolveDataBoundTagProjection(sceneNode, node, options)
+      : null;
+
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
       // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
@@ -1060,6 +1242,9 @@ export function buildCanvasSceneGraph(
     }
     if (sceneNode && tableProjection) {
       appendTableRowProjection(sceneNode, tableProjection, nextScope, graph);
+    }
+    if (sceneNode && tagProjection) {
+      appendTagRowProjection(sceneNode, tagProjection, nextScope, graph);
     }
   }
 

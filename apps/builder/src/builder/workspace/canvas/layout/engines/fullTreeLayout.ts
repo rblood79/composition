@@ -25,6 +25,7 @@ import {
   parsePadding,
   parseBorder,
   calculateContentHeight,
+  calculateContentWidth,
   parseBoxModel,
   parseCSSPropWithContext,
   measureTextWidth,
@@ -1438,16 +1439,25 @@ function traversePostOrder(
           (filteredChild.props as Record<string, unknown>)?.children ?? "",
         );
         if (childText) {
-          const childFw =
-            parseFloat(
-              String(modStyle.fontWeight ?? origStyle.fontWeight ?? 400),
-            ) || 400;
-          const childFf =
-            (modStyle.fontFamily as string) ??
-            (origStyle.fontFamily as string) ??
-            specFontFamily.sans;
+          // ADR-912 영역 B (A): 순수 measureTextWidth 는 type-specific 부속(Tag remove X /
+          //   Button icon 등) 폭을 누락한다. calculateContentWidth(type 분기 포함)로 교체해
+          //   fit-content 재계산이 content-width 를 generic 하게 산출하게 한다 — Tag chip 의 X
+          //   공간이 fit-content 에 포함되어 Tag.spec X 우측정렬이 라벨과 겹치지 않는다.
+          //   주입된 fontSize 를 element.props.style 에 반영해 type 분기가 올바른 fontSize 로 계산.
+          const childForWidth: CanvasLayoutNode = {
+            ...filteredChild,
+            props: {
+              ...filteredChild.props,
+              style: {
+                ...(filteredChild.props?.style as
+                  | Record<string, unknown>
+                  | undefined),
+                fontSize: childFs,
+              },
+            },
+          };
           const correctedWidth = Math.ceil(
-            measureTextWidth(childText, childFs, childFf, childFw),
+            calculateContentWidth(childForWidth),
           );
           batch[batchIdx].style.width = `${correctedWidth}px`;
         }

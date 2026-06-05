@@ -423,6 +423,13 @@ export const TagGroupSpec: ComponentSpec<TagGroupProps> = {
       //   wrap 시뮬레이션 시 "Show all" chip + 행 수 제한을 적용. 전파 누락 시
       //   TagGroup 에서 maxRows 를 편집해도 Skia/layout 모두 무반응.
       { parentProp: "maxRows", childPath: "TagList", override: true },
+      // ADR-912 영역 B (A): selectedKeys/selectionMode → TagList 전파.
+      //   chip projection(appendTagRowProjection)이 owner=TagList scene node 에 붙으므로,
+      //   chip 의 _isSelected(isListBoxRowSelected) 가 TagList.props.selectedKeys 를 읽는다.
+      //   selection 은 TagGroup.props 에만 저장되므로 propagation 으로 TagList 좌표계에 전달
+      //   (items/variant/maxRows 와 동일 패턴). 누락 시 Skia chip selection 시각 무반응.
+      { parentProp: "selectedKeys", childPath: "TagList", override: true },
+      { parentProp: "selectionMode", childPath: "TagList", override: true },
     ],
   },
 

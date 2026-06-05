@@ -583,7 +583,12 @@ const INLINE_UI_SIZE_CONFIGS: Record<
   >
 > = {
   badge: BADGE_SIZE_CONFIG,
-  type: TAG_SIZE_CONFIG,
+  // ADR-913 P1+P2 rename 회귀 정정 (2026-06-05): commit 99e4e7c96 의 `Element.tag →
+  //   Element.type` mechanical rename 이 본 object **키**(컴포넌트 type 명 "tag")를
+  //   변수명으로 오인해 `tag:` → `type:` 으로 잘못 바꿨다. 결과: INLINE_UI_SIZE_CONFIGS["tag"]
+  //   = undefined → Tag 가 calculateContentWidth inline 분기(removeExtra X 공간 가산)를 못 타
+  //   allowsRemoving chip 의 X 가 라벨과 겹침. 키는 lowercase 컴포넌트 type "tag" 가 정답.
+  tag: TAG_SIZE_CONFIG,
   chip: BADGE_SIZE_CONFIG,
   togglebutton: TOGGLEBUTTON_SIZE_CONFIG,
   tab: TAB_SIZE_CONFIG,
@@ -1712,16 +1717,13 @@ export function calculateContentHeight(
     return paddingTop + paddingBottom + innerHeight + borderWidth * 2;
   }
 
-  // 1.55d. TagList (ADR-097 Phase 4B): items SSOT + row-wrap 기반 intrinsic height.
-  // Migration 후 Tag element 가 orphan 처리된 상태 (childElements=0) 에서 TagList
-  // 자신은 자식 없는 컨테이너로 취급되지만, TagGroup.propagation 으로 items 를 수신한
-  // TagList spec shapes 가 wrap 시뮬레이션으로 chips 를 self-render 한다.
-  // layout 도 동일 공식 (availableWidth 기반 행 시뮬레이션) 으로 rows × chipHeight +
-  // (rows-1) × rowGap 반환.
-  // (ADR-105-d — formerly @sync F5-8 annotation)
-  // TagList.spec.ts shapes() 의 wrap 시뮬레이션(availableWidth 기반 행 계산) 을 미러링.
-  // TAG_CHIP_SIZES 상수는 ADR-105-a 에서 primitives 로 이관 완료.
-  // TagList.spec.ts shapes() wrap 알고리즘 변경 시 이 레이아웃 계산도 동시 갱신 필요.
+  // 1.55d. TagList: items SSOT + row-wrap 기반 intrinsic height (ListBox/GridList items 분기 동형).
+  // ADR-912 영역 B (A, 2026-06-05): chip self-render seam 제거 후에도 본 분기는 유지된다.
+  //   chip 시각은 chip projection(`appendTagRowProjection` → `type:"Tag"`)이 그리지만, TagList
+  //   **컨테이너 높이**는 items × chip 치수 wrap 으로 직접 산출해야 Taffy 가 projection rowsGroup
+  //   (flexWrap:"wrap")의 행 수에 맞는 컨테이너 높이를 갖는다(ListBox=tag1:listbox / GridList=
+  //   tag1:gridlist 의 items 기반 height 분기와 동형 — self-render 의존 아님, items SSOT 직접 계산).
+  //   wrap 공식은 chip 의 Taffy flex-wrap 배치와 정합해야 한다(rows × chipHeight + (rows-1)×rowGap).
   if (tag1 === "taglist") {
     const props = element.props as Record<string, unknown> | undefined;
     const items = props?.items as Array<{ label?: string }> | undefined;

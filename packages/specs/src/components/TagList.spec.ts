@@ -28,12 +28,8 @@
  * @packageDocumentation
  */
 
-import type { ComponentSpec, Shape, TokenRef } from "../types";
+import type { ComponentSpec, TokenRef } from "../types";
 import type { StoredTagItem } from "../types/taggroup-items";
-import { fontFamily } from "../primitives/typography";
-import { resolveStateColors } from "../utils/stateEffect";
-import { resolveToken } from "../renderers/utils/tokenResolver";
-import { measureSpecTextWidth } from "../renderers/utils/measureText";
 
 /**
  * TagList Props
@@ -72,10 +68,10 @@ export interface TagListProps {
  *   `LOWERCASE_TAG_SPEC_MAP` 자동 주입.
  */
 /**
- * ADR-097 Phase 4A — TagList variants 복제 (TagGroupSpec.variants 1:1).
- *
- * 본래 TagGroupSpec 이 단일 소스이지만 순환 import 회피를 위해 복제.
- * Phase 4B 이후 공유 primitive 로 추출 고려 (variant SSOT 통합).
+ * TagList variants — spec schema 필드(`variants`)용. TagGroupSpec.variants 1:1 복제
+ *   (순환 import 회피). ADR-912 영역 B (A, 2026-06-05): chip self-render 제거 후 본 상수의
+ *   시각 소비처(render.shapes)는 사라졌으나, ComponentSpec.variants 는 schema 필수 필드라
+ *   유지. chip 색상은 chip projection(Tag.spec.variants)이 단독 결정한다.
  */
 const TAG_LIST_VARIANTS = {
   default: {
@@ -125,16 +121,16 @@ const TAG_LIST_VARIANTS = {
 } as const;
 
 /**
- * ADR-097 Phase 4A — size 별 chip 치수 (TagSpec.sizes sm/md/lg 와 1:1 정합).
+ * size 별 chip 치수 (TagSpec.sizes sm/md/lg 와 1:1 정합).
  *
- * TagList 는 size prop 을 직접 수신하지 않지만 TagGroup.propagation 으로 size 를
- * 전파받는다. shapes 함수의 `size` 매개변수는 TagList 본인 sizes (md only) 이므로
- * 부모 TagGroup size 를 별도로 해석하기 위해 본 상수 사용.
+ * ADR-912 영역 B (A, 2026-06-05): TagList self-render 제거 후에도 본 상수는
+ *   layout 의 `calculateContentHeight` taglist 분기(utils.ts)가 import 하여 chip wrap
+ *   기반 컨테이너 높이를 items SSOT 로 계산한다(ListBox/GridList 의 items 기반 height 분기와
+ *   동형). chip 시각 자체는 chip projection(Tag.spec)이 그리지만, TagList 컨테이너 높이는
+ *   여전히 items × chip 치수 wrap 으로 산출되어야 Taffy 가 행 수를 맞춘다.
  *
  * 치수 공식 (TagSpec 참조):
  *   `height = lineHeight + paddingY * 2`
- *   텍스트 렌더 시 `y = chip.y + paddingY`, 세로 공간 = lineHeight
- *   → top-baseline + lineHeight 수직 중앙 정렬 보장.
  *
  * TagSpec sm/md/lg 값과 완전 동일 (chip=button sizing 의도).
  */
@@ -215,243 +211,24 @@ export const TagListSpec: ComponentSpec<TagListProps> = {
 
   render: {
     /**
-     * ADR-097 Phase 4A/4B — items 기반 chip self-render (ListBox 선례 대칭).
+     * ADR-912 영역 B (A) — chip self-render seam 제거 (shell only, 2026-06-05).
      *
-     * Taffy 자식 0개 상태 (migration 후 Tag element orphan 처리됨) 에서도 TagGroup.
-     * items → TagList.items propagation 경로로 chip 시각이 보존된다.
+     * **이전 (ADR-097 Phase 4A/4B)**: TagList.spec 이 items 를 직접 순회하여 chip bg/border/
+     *   text/X + 수동 wrap 시뮬레이션 + maxRows "Show all" 까지 self-render 했다(ListBox 선례
+     *   대칭). 이는 "TagList 노드 1개가 모든 chip 을 그리는" dual-render seam — chip 이 독립
+     *   render-space 노드가 아니라 hit/per-chip 편집 불가.
      *
-     * Phase 4B 기능 (이식됨):
-     *   - Row-wrap 시뮬레이션 (_containerWidth 기반 각 chip 폭 누적 → row 판정)
-     *   - maxRows > 0 시 초과 chip skip + "Show all" chip (투명 배경, accent 텍스트)
-     *   - allowsRemoving 시 각 chip 오른쪽에 X icon_font shape
-     *   - per-item isDisabled 시각: fill.default.base/variant.text → neutral-subtle/neutral-subdued
-     *     (ShapeBase opacity 미지원 → 색상 fallback 방식)
+     * **현재**: chip 은 `appendTagRowProjection`(canvasSceneNode.ts)이 chip 1개 = projection
+     *   node(`type:"Tag"`, `projection:tag-row:`)로 전개한다. 각 chip 시각은 Tag.spec.render.
+     *   shapes 가 단독 렌더(bg+text+X). TagList 는 chip 컨테이너 shell 만 담당 → 시각 없음.
+     *   wrap 은 projection rowsGroup 의 flexWrap:"wrap" 으로 Taffy 가 배치(수동 시뮬 폐기).
+     *
+     * **Why shell**: dual-SSOT(TagList self-render ↔ Tag.spec) 제거 = ADR-912 단일 공급원.
+     *   self-render 와 projection 공존 시 chip 이 2벌 그려진다 → seam 0 이 kill criteria.
      */
-    shapes: (props, _size, state = "default") => {
-      const shapes: Shape[] = [];
-      const items = props.items;
-      if (!items || items.length === 0) return shapes;
-
-      // 부모 TagGroup 으로부터 propagation 수신한 size/variant 해석
-      const sizeName = (props.size as keyof typeof TAG_CHIP_SIZES) ?? "md";
-      const chipSize = TAG_CHIP_SIZES[sizeName] ?? TAG_CHIP_SIZES.md;
-      const variantKey =
-        (props.variant as keyof typeof TAG_LIST_VARIANTS) ?? "default";
-      const variant =
-        TAG_LIST_VARIANTS[variantKey] ?? TAG_LIST_VARIANTS.default;
-
-      // fontSize: props.style.fontSize override 지원, 없으면 chipSize.fontSize
-      const styleFs = props.style?.fontSize;
-      const rawFs =
-        typeof styleFs === "number"
-          ? styleFs
-          : typeof styleFs === "string" && styleFs.startsWith("{")
-            ? resolveToken(styleFs as TokenRef)
-            : chipSize.fontSize;
-      const fontSize = typeof rawFs === "number" ? rawFs : chipSize.fontSize;
-
-      const tagPaddingX = chipSize.paddingX;
-      const tagPaddingY = chipSize.paddingY;
-      // Tag spec 정식 치수 공식: height = lineHeight + paddingY*2.
-      // fontSize 가 style 로 override 되어도 lineHeight 는 size 토큰 기준을 유지
-      // (CSS line-height 와 Canvas chip 높이 정합성 보장).
-      const lineHeight = chipSize.lineHeight;
-      const tagHeight = lineHeight + tagPaddingY * 2;
-      const borderRadius = chipSize.borderRadius;
-      const gap = chipSize.gap;
-      const rowGap = gap;
-
-      // CONTAINER_DIMENSION 주입. 컨테이너 폭 미지정 시 350 fallback
-      // (implicitStyles 기존 로직 availableWidth fallback 과 동일).
-      const containerWidth =
-        typeof props._containerWidth === "number" && props._containerWidth > 0
-          ? props._containerWidth
-          : 350;
-
-      const allowsRemoving = Boolean(props.allowsRemoving);
-      // Tag.spec.ts 관례: allowsRemoving 시 우측 padding 을 paddingY 로 축소
-      //   → text 와 X 아이콘 모두 수용하면서 chip 폭을 과도하게 키우지 않음.
-      const tagPaddingRight = allowsRemoving ? tagPaddingY : tagPaddingX;
-      // X 아이콘 예약 폭: text ↔ icon gap(4) + icon 폭(fontSize)
-      //   chip layout: [paddingX][text][gap=4][icon=fontSize][paddingRight]
-      const iconGap = 4;
-      const removeExtraWidth = allowsRemoving ? iconGap + fontSize : 0;
-
-      const maxRowsRaw = (props as Record<string, unknown>).maxRows;
-      const maxRows = typeof maxRowsRaw === "number" ? maxRowsRaw : 0;
-
-      const stateColors = resolveStateColors(variant, state);
-
-      // Phase 1: wrap/maxRows 시뮬레이션 — 각 chip 폭 계산 + 행 배치 결정
-      interface ChipLayout {
-        label: string;
-        textWidth: number;
-        chipWidth: number;
-        x: number;
-        y: number;
-        isDisabled: boolean;
-      }
-      const placed: ChipLayout[] = [];
-      let currentRowWidth = 0;
-      let rowIndex = 0;
-      let shouldShowAll = false;
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const label = item.label || `Tag ${i + 1}`;
-        const textWidth = measureSpecTextWidth(
-          label,
-          fontSize,
-          fontFamily.sans,
-        );
-        const chipWidth =
-          textWidth + tagPaddingX + tagPaddingRight + removeExtraWidth;
-        const gapBefore = i > 0 && currentRowWidth > 0 ? gap : 0;
-
-        // 행 넘침 판정 (i > 0 만 wrap — 첫 chip 은 무조건 row 0)
-        if (i > 0 && currentRowWidth + gapBefore + chipWidth > containerWidth) {
-          rowIndex++;
-          currentRowWidth = 0;
-        }
-
-        // maxRows 초과 — Show all chip 표시 후 순회 종료
-        if (maxRows > 0 && rowIndex >= maxRows) {
-          shouldShowAll = true;
-          break;
-        }
-
-        const x = currentRowWidth === 0 ? 0 : currentRowWidth + gap;
-        placed.push({
-          label,
-          textWidth,
-          chipWidth,
-          x,
-          y: rowIndex * (tagHeight + rowGap),
-          isDisabled: Boolean(item.isDisabled),
-        });
-        currentRowWidth = x + chipWidth;
-      }
-
-      // Phase 2: placed chip shapes emit
-      const DISABLED_BG = "{color.neutral-subtle}" as TokenRef;
-      const DISABLED_TEXT = "{color.neutral-subdued}" as TokenRef;
-      const DISABLED_BORDER = "{color.neutral-subtle}" as TokenRef;
-
-      for (let i = 0; i < placed.length; i++) {
-        const chip = placed[i];
-        const bgId = `tag-bg-${i}`;
-        const chipBg = chip.isDisabled ? DISABLED_BG : stateColors.background;
-        const chipBorder = chip.isDisabled
-          ? DISABLED_BORDER
-          : variant.border || variant.text;
-        const chipTextColor = chip.isDisabled ? DISABLED_TEXT : variant.text;
-
-        shapes.push({
-          id: bgId,
-          type: "roundRect" as const,
-          x: chip.x,
-          y: chip.y,
-          width: chip.chipWidth,
-          height: tagHeight,
-          radius: borderRadius,
-          fill: chipBg,
-        });
-
-        shapes.push({
-          type: "border" as const,
-          target: bgId,
-          borderWidth: 1,
-          color: chipBorder,
-          radius: borderRadius,
-        });
-
-        shapes.push({
-          type: "text" as const,
-          x: chip.x + tagPaddingX,
-          y: chip.y + tagHeight / 2,
-          text: chip.label,
-          fontSize,
-          // lineHeight 명시: specShapeConverter 의 paddingTop 계산 (lineHeightPx 기준)
-          // 과 CanvasKit Paragraph 내부 line-height 를 동일 값(chipSize.lineHeight)
-          // 으로 맞춰 수직 중앙 정렬의 위·아래 여백 대칭 보장.
-          lineHeight,
-          fontFamily: fontFamily.sans,
-          fontWeight: 400,
-          fill: chipTextColor,
-          align: "left" as const,
-          baseline: "middle" as const,
-          maxWidth: chip.textWidth + fontSize,
-        });
-
-        if (allowsRemoving) {
-          // X 아이콘 — chip 오른쪽 안쪽에 중앙 배치.
-          // specShapeConverter.ts:446-452 에서 icon_font 의 shape.x 는 icon 중심
-          // 좌표(cx)로 해석되므로, 우측 padding(tagPaddingRight) 안쪽에서
-          // iconSize/2 만큼 당긴 위치를 center 로 지정.
-          //   layout: [paddingX][text][gap=4][icon=fontSize][paddingRight=paddingY]
-          shapes.push({
-            type: "icon_font" as const,
-            iconName: "x",
-            x: chip.x + chip.chipWidth - tagPaddingRight - fontSize / 2,
-            y: chip.y + tagHeight / 2,
-            fontSize,
-            fill: chipTextColor,
-            strokeWidth: 2,
-          });
-        }
-      }
-
-      // Phase 3: Show all chip (maxRows 초과 시)
-      //
-      // 배치 규칙 (flex-wrap semantics):
-      //   1) 마지막 chip 우측 여유 공간에 들어가면 같은 행(lastChip.y) 유지
-      //   2) 들어가지 않으면 다음 행(lastChip.y + tagHeight + rowGap, x=0) 으로 wrap
-      //
-      // 동일 판정이 layout 측 `calculateContentHeight` taglist 분기에도 들어가
-      // chip 행 합계 + (wrap 시 +1) 로 컨테이너 높이가 일관되게 계산됨.
-      // 두 경로가 어긋나면 Show all 이 컨테이너 밖으로 돌출하거나 하단 여백 과다.
-      if (shouldShowAll && placed.length > 0) {
-        const lastChip = placed[placed.length - 1];
-        const showAllLabel = "Show all";
-        const showAllWidth =
-          measureSpecTextWidth(showAllLabel, fontSize, fontFamily.sans) +
-          tagPaddingX * 2;
-
-        const lastRowEnd = lastChip.x + lastChip.chipWidth;
-        const fitsOnSameRow = lastRowEnd + gap + showAllWidth <= containerWidth;
-        const showAllX = fitsOnSameRow ? lastRowEnd + gap : 0;
-        const showAllY = fitsOnSameRow
-          ? lastChip.y
-          : lastChip.y + tagHeight + rowGap;
-
-        shapes.push({
-          id: "tag-show-all-bg",
-          type: "roundRect" as const,
-          x: showAllX,
-          y: showAllY,
-          width: showAllWidth,
-          height: tagHeight,
-          radius: borderRadius,
-          fill: "{color.transparent}" as TokenRef,
-        });
-
-        shapes.push({
-          type: "text" as const,
-          x: showAllX + tagPaddingX,
-          y: showAllY + tagHeight / 2,
-          text: showAllLabel,
-          fontSize,
-          lineHeight,
-          fontFamily: fontFamily.sans,
-          fontWeight: 400,
-          fill: "{color.accent}" as TokenRef,
-          align: "left" as const,
-          baseline: "middle" as const,
-          maxWidth: showAllWidth,
-        });
-      }
-
-      return shapes;
+    shapes: () => {
+      // chip 시각은 chip projection(Tag.spec)이 단독 담당. TagList 는 컨테이너 shell.
+      return [];
     },
     react: () => ({}),
   },
