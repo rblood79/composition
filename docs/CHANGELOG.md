@@ -50,6 +50,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증(kill criteria): `useCollectionData` 직접 호출 0 / `!hasDataBinding && items` 정적 분기 0 / `console.log` 0 (grep) + static items live(Menu trigger 클릭 → popover MenuItem 3개 `Menu Item 1/2/3`) + dataBinding/columnMapping 경로 로직 보존 + type-check 3/3 + shared 245/245 + registration-contract 10/10 PASS
   - 위치: `packages/shared/src/components/Menu.tsx` / `packages/shared/src/catalog/bindings/Menu.binding.ts`. 다음 slice: ListBox → GridList → Select(popover 2단)
 
+- **ListBox source acquisition 단일화 + 정적 items Preview DOM 렌더 복구** (ADR-912 영역 B Task 4):
+  - `ListBox.tsx` wrapper 의 `useCollectionData` 직접 호출(이중 source)을 제거하고 `useResolvedCollectionItems` 단일 소비로 전환. TagGroup/Menu 와 달리 ListBox 는 정적 items SSOT 가 wrapper 가 아니라 `SelectionRenderers.tsx::renderListBox`(legacy renderer) 에 있었고 wrapper 자체엔 정적 items 데이터 prop 이 없었다. 그러나 catalog cutover 후 DOM 은 `CanonicalNodeRenderer` → `INTERNAL_RENDERERS["listbox"]` = `ListBox.tsx` wrapper 를 타므로, 정적 `props.items` 가 wrapper 에 도달해도 기존엔 모든 데이터 경로가 `hasDataBinding` 가드 아래라 정적 items 가 Static Children 으로만 떨어져 **Preview DOM 에서 row 누락**됐다
+  - 수정: `items?: unknown[]` prop 수신(RAC `ListBoxProps.items` 재의미화) + `hasResolvedRows`(정적/dataBinding 통합) 기반으로 columnMapping/dynamic 경로 진입 조건을 `hasDataBinding` → `hasResolvedRows` 로 확장 → 정적 items 가 실제 `.react-aria-ListBoxItem` row 로 렌더. raw item 은 `row.item` 에 보존(columnMapping/render function 회귀 0), virtualItems 는 `filteredRows` 파생(dataBinding 가상화 보존)
+  - **section guard(flat 한정)**: `useResolvedCollectionItems`(`toItemProjectionRow`)는 항상 `kind:"item"` 으로 section 을 모르므로, 정적 items 에 `type:"section"` entry 가 섞이면 hook source 로 넘기지 않고(`hasSectionEntry`) 정적 children 경로로 보존 — section 통합은 별도 slice 로 명시 보류(flat row proof 한정)
+  - `ListBox.binding.ts` accepts 에 `items`(`kind:"binding"`) 추가 — catalog cutover DOM 경로(`toRacProps`)가 정적 `props.items`(`StoredListBoxItem[]`)를 wrapper 까지 통과. `useResolvedCollectionItems` 반환에 `reload`(error retry UX) additive 노출
+  - 검증(kill criteria): `useCollectionData` 직접 호출 0 (grep) / binding items toRacProps 통과 / 단일 source / **정적 items live**(non-ref ListBox Apple/Banana/Cherry → Preview DOM `role=listbox` 1 + `role=option` 3 + Skia Canvas 3 row+description 대칭) / columnMapping·render function·virtualization 로직 보존 / type-check PASS(builder baseline 110) + shared collection 32/32 PASS
+  - **잔존(별도 영역, Task 4 직교)**: reusable origin 을 가리키는 ref instance ListBox 는 `resolveCanonicalDocument` 의 `findReusableMaster` 가 `doc.children` top-level 만 검색 → page-body 하위 중첩 origin 미발견 → `[ADR-903] broken ref` 로 빈 div(ListBox wrapper 미호출). canonical resolver 의 nested reusable master lookup 문제로, 정적 items source 단일화와 무관 — non-ref ListBox 로 우회 live 검증(사용자 결정)
+  - 위치: `packages/shared/src/components/ListBox.tsx` / `packages/shared/src/catalog/bindings/ListBox.binding.ts` / `packages/shared/src/hooks/useResolvedCollectionItems.tsx`. 다음 slice: GridList → Select(popover 2단)
+
 ## [RAC primitive binding 컴포넌트 시스템 — ADR-142 scope 축소 종결] - 2026-06-02
 
 ### Architecture

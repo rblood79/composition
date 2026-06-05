@@ -51,6 +51,8 @@ export interface UseResolvedCollectionItemsResult extends ResolvedCollectionItem
   loading: boolean;
   /** 에러 메시지 (없으면 null). */
   error: string | null;
+  /** dataBinding 재로드 (useCollectionData 경유 — error retry UX). */
+  reload: () => void;
 }
 
 /**
@@ -77,6 +79,7 @@ export function useResolvedCollectionItems(
     data: boundData,
     loading,
     error,
+    reload,
   } = useCollectionData({
     dataBinding,
     componentName,
@@ -108,7 +111,7 @@ export function useResolvedCollectionItems(
       .slice(0, windowLimit)
       .map((item, rowIndex) => toItemProjectionRow(item, rowIndex));
 
-    return { rows, sourceKind, loading, error };
+    return { rows, sourceKind, loading, error, reload };
     // boundData/items 참조 동일성 + 길이 기반 — hasBoundRows/hasStaticItems 가 deps 대표.
   }, [
     boundData,
@@ -118,5 +121,6 @@ export function useResolvedCollectionItems(
     windowLimit,
     loading,
     error,
+    reload,
   ]);
 }

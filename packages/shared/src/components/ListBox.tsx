@@ -31,7 +31,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
 import {
   CollectionLoadingState,
   CollectionErrorDisplay,
@@ -43,9 +43,19 @@ import "./styles/ListBox.css";
 // 아이템 높이 고정값 (가상화용)
 const ITEM_HEIGHT = 40;
 
-interface ExtendedListBoxProps<T extends object> extends ListBoxProps<T> {
+interface ExtendedListBoxProps<T extends object> extends Omit<
+  ListBoxProps<T>,
+  "items"
+> {
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
+  /**
+   * ADR-912 영역 B Task 4: 정적 items[] SSOT (StoredListBoxItem[] 직렬화 형태).
+   *   RAC `ListBoxProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
+   *   useResolvedCollectionItems 가 dataBinding 과 동일 normalizer 로 흡수한다.
+   *   section entry(`type:"section"`)가 섞이면 정적 children 경로로 보존(flat guard).
+   */
+  items?: unknown[];
   // M3 props
   variant?: string;
   // Virtualization props
@@ -90,6 +100,7 @@ export function ListBox<T extends object>({
   children,
   dataBinding,
   columnMapping,
+  items,
   variant = "primary",
   enableVirtualization = false,
   height = 300,
@@ -111,46 +122,73 @@ export function ListBox<T extends object>({
   const parentRef = useRef<HTMLDivElement>(null);
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 
-  // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
+  // ADR-912 영역 B Task 4: flat guard — 정적 items 에 section entry(`type:"section"`)가
+  //   섞이면 useResolvedCollectionItems(toItemProjectionRow)는 section 을 모르고 flat item 으로
+  //   잘못 펴므로(header 소실), 이번 slice 에서 강제 normalize 하지 않고 정적 children 경로로
+  //   보존한다. section 통합은 별도 slice 로 남긴다(설계 §Task 4 보류).
+  const hasSectionEntry = useMemo(
+    () =>
+      Array.isArray(items) &&
+      items.some(
+        (entry) =>
+          entry != null &&
+          typeof entry === "object" &&
+          (entry as { type?: string }).type === "section",
+      ),
+    [items],
+  );
+
+  // ADR-912 영역 B Task 4: collection source acquisition 단일화.
+  //   useCollectionData 직접 호출(이중 source)을 제거하고 useResolvedCollectionItems 단일 진입점으로 통일.
+  //   dataBinding(async/dataTable/API)과 정적 props.items 가 같은 toItemProjectionRow normalizer 를
+  //   통과 → DOM wrapper 와 Skia projector(getFlatProjectionRows)가 동일 row 형태(CollectionProjectionRow).
+  //   section entry 가 섞인 경우(flat guard)는 정적 source 를 hook 에 넘기지 않아 children 경로로 보존.
   const {
-    data: boundData,
+    rows: resolvedRows,
     loading,
     error,
     reload,
-  } = useCollectionData({
+  } = useResolvedCollectionItems({
     dataBinding: dataBinding as DataBinding,
+    items: hasSectionEntry ? undefined : items,
     componentName: "ListBox",
     fallbackData: [
       { id: 1, name: "User 1", email: "user1@example.com", role: "Admin" },
       { id: 2, name: "User 2", email: "user2@example.com", role: "User" },
     ],
+    windowLimit: enableVirtualization ? Number.MAX_SAFE_INTEGER : undefined,
   });
 
   // 아이템 높이 고정값
   const itemHeight = ITEM_HEIGHT;
 
-  // React Aria 1.13.0: 필터링 로직
-  const filteredData = React.useMemo(() => {
-    let result = [...boundData];
+  // React Aria 1.13.0: 필터링 로직 (raw item 기반 — row.item 에 원본 보존).
+  //   filter/filterText 는 raw item 시그니처(T)를 받으므로 정규화 rows 의 row.item 으로 적용.
+  const filteredRows = React.useMemo(() => {
+    let result = resolvedRows;
 
     // 커스텀 필터 적용
     if (filter) {
-      result = result.filter((item) => filter(item as unknown as T));
+      result = result.filter((row) => filter(row.item as unknown as T));
     }
 
     // 텍스트 필터 적용
     if (filterText && filterText.trim()) {
       const searchText = filterText.toLowerCase().trim();
-      result = result.filter((item) =>
-        filterFields.some((field) => {
+      result = result.filter((row) => {
+        const item = row.item as Record<string, unknown>;
+        if (!item || typeof item !== "object") {
+          return row.label.toLowerCase().includes(searchText);
+        }
+        return filterFields.some((field) => {
           const value = item[field as string];
           return value && String(value).toLowerCase().includes(searchText);
-        }),
-      );
+        });
+      });
     }
 
     return result;
-  }, [boundData, filter, filterText, filterFields]);
+  }, [resolvedRows, filter, filterText, filterFields]);
 
   // DataBinding이 있고 데이터가 로드되었을 때 동적 아이템 생성
   // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원
@@ -174,17 +212,17 @@ export function ListBox<T extends object>({
         : "react-aria-ListBox";
     });
 
-  // 가상화용 아이템 배열 (메모이제이션) - filteredData 사용
+  // 가상화용 아이템 배열 (메모이제이션) - filteredRows 사용
+  //   기존 동작 보존: dataBinding 모드에서만 가상화(정적 items 가상화는 별도 영역).
+  //   row.itemKey/label 은 정규화 값, ...row.item 으로 원본 필드(render function 용) 보존.
   const virtualItems = useMemo(() => {
-    if (!hasDataBinding || filteredData.length === 0) return [];
-    return filteredData.map((item, index) => ({
-      id: String(item.id || index),
-      label: String(
-        item.name || item.title || item.label || `Item ${index + 1}`,
-      ),
-      ...item,
+    if (!hasDataBinding || filteredRows.length === 0) return [];
+    return filteredRows.map((row) => ({
+      ...(row.item as Record<string, unknown>),
+      id: row.itemKey,
+      label: row.label,
     }));
-  }, [hasDataBinding, filteredData]);
+  }, [hasDataBinding, filteredRows]);
 
   // useVirtualizer 설정
   // eslint-disable-next-line react-hooks/incompatible-library -- useVirtualizer()는 React Compiler에서 memoize 불가
@@ -392,6 +430,13 @@ export function ListBox<T extends object>({
     );
   }
 
+  // ADR-912 영역 B Task 4: 정규화 rows source 가 있으면 columnMapping/dynamic 경로를 탄다.
+  //   dataBinding(boundData) 또는 정적 props.items 모두 resolvedRows 로 흡수됐으므로,
+  //   hasDataBinding 단독이 아니라 hasResolvedRows 로 정적 items 도 실제 row 로 렌더된다
+  //   (catalog Preview DOM items 누락 seam 닫기). section guard 적용된 경우 resolvedRows 는
+  //   정적 source 를 제외하므로 자연히 Static Children 경로로 떨어진다.
+  const hasResolvedRows = filteredRows.length > 0;
+
   // ColumnMapping이 있으면 각 데이터 항목마다 ListBoxItem 렌더링
   // Table과 동일한 패턴: Element tree의 ListBoxItem 템플릿 + Field 자식 사용
   if (hasDataBinding && columnMapping) {
@@ -435,11 +480,11 @@ export function ListBox<T extends object>({
       );
     }
 
-    // 데이터가 있을 때: items prop 사용
-    if (filteredData.length > 0) {
-      const items = filteredData.map((item, index) => ({
-        id: String(item.id || index),
-        ...item,
+    // 데이터가 있을 때: items prop 사용 (raw item 은 row.item 에 보존 → Field/template 소비).
+    if (hasResolvedRows) {
+      const items = filteredRows.map((row) => ({
+        ...(row.item as Record<string, unknown>),
+        id: row.itemKey,
       })) as T[];
 
       return (
@@ -466,9 +511,10 @@ export function ListBox<T extends object>({
     );
   }
 
-  // Dynamic Collection: items prop 사용 (columnMapping 없을 때)
-  if (hasDataBinding) {
-    // Loading 상태
+  // Dynamic Collection + 정적 items: items prop 사용 (columnMapping 없을 때).
+  //   ADR-912 Task 4: hasDataBinding 단독이 아니라 hasResolvedRows 로 정적 props.items 도 흡수.
+  if (hasResolvedRows) {
+    // Loading 상태 (dataBinding 비동기 해소 중 — 정적 items 는 loading=false 즉시 통과)
     if (loading) {
       return (
         <AriaListBox
@@ -508,32 +554,16 @@ export function ListBox<T extends object>({
       );
     }
 
-    // 데이터가 로드되었을 때
-    if (filteredData.length > 0) {
-      const items = filteredData.map((item, index) => ({
-        id: String(item.id || index),
-        label: String(
-          item.name || item.title || item.label || `Item ${index + 1}`,
-        ),
-        ...item,
-      })) as T[];
+    // 데이터가 로드되었을 때 (정규화 rows — label/itemKey 보존 + raw item spread)
+    const items = filteredRows.map((row) => ({
+      ...(row.item as Record<string, unknown>),
+      id: row.itemKey,
+      label: row.label,
+    })) as T[];
 
-      // children이 함수(render function)이면 그것을 사용
-      // 이는 renderListBox에서 Field 자식들을 포함한 템플릿 렌더 함수를 전달받는 경우
-      if (typeof children === "function") {
-        return (
-          <AriaListBox
-            {...props}
-            className={getListBoxClassName(props.className)}
-            data-variant={variant}
-            items={items}
-          >
-            {children}
-          </AriaListBox>
-        );
-      }
-
-      // 기본 렌더링 (children이 없거나 정적 children일 때)
+    // children이 함수(render function)이면 그것을 사용
+    // 이는 renderListBox에서 Field 자식들을 포함한 템플릿 렌더 함수를 전달받는 경우
+    if (typeof children === "function") {
       return (
         <AriaListBox
           {...props}
@@ -541,22 +571,34 @@ export function ListBox<T extends object>({
           data-variant={variant}
           items={items}
         >
-          {(item) => {
-            const itemWithLabel = item as T & { id: string; label: string };
-            return (
-              <AriaListBoxItem
-                key={itemWithLabel.id}
-                id={itemWithLabel.id}
-                textValue={itemWithLabel.label}
-                className="react-aria-ListBoxItem"
-              >
-                {itemWithLabel.label}
-              </AriaListBoxItem>
-            );
-          }}
+          {children}
         </AriaListBox>
       );
     }
+
+    // 기본 렌더링 (children이 없거나 정적 children일 때)
+    return (
+      <AriaListBox
+        {...props}
+        className={getListBoxClassName(props.className)}
+        data-variant={variant}
+        items={items}
+      >
+        {(item) => {
+          const itemWithLabel = item as T & { id: string; label: string };
+          return (
+            <AriaListBoxItem
+              key={itemWithLabel.id}
+              id={itemWithLabel.id}
+              textValue={itemWithLabel.label}
+              className="react-aria-ListBoxItem"
+            >
+              {itemWithLabel.label}
+            </AriaListBoxItem>
+          );
+        }}
+      </AriaListBox>
+    );
   }
 
   // Static Children (기존 방식)
