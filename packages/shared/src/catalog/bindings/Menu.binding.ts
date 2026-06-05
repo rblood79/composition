@@ -15,6 +15,12 @@ export const menuBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
+      // ADR-912 영역 B Task 3: 정적 items[] SSOT(RuntimeMenuItem[]) pass-through.
+      //   collection cutover DOM 경로(toRacProps)는 accepts 선언 prop 만 통과시키므로,
+      //   items 미선언 시 props.items 가 drop → MenuButton 이 items=undefined 로 받아
+      //   static children placeholder 렌더. dataBinding 과 동일 collection data source 라
+      //   kind:"binding"(Inspector no-op, toRacProps 통과 전용)로 선언 — D2 의미 props 미오염.
+      items: { kind: "binding", label: "Items", section: "content" },
       label: { kind: "string", label: "Trigger Label", section: "content" },
       variant: {
         kind: "variant",

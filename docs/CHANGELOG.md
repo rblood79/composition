@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증(proof, kill criteria): `useCollectionData` 직접 호출 0 / 정적 items 분기 0 / collections store 직접 import 0 (grep) + static items Compare 모드 live (iframe DOM chip 4 + Skia chip 4) + dataBinding 경로 로직 보존(`filteredRows` 동형) + type-check 3/3(shared/builder/publish) + shared 245/245 + `resolveCollectionItems.test.ts` 11 PASS
   - 위치: `packages/shared/src/collections/resolveCollectionItems.ts`(신규) / `packages/shared/src/hooks/useResolvedCollectionItems.tsx`(신규) / `packages/shared/src/components/TagGroup.tsx` / `apps/builder/src/builder/components/collection/collectionRowProjectionModel.ts`(re-export alias). 5군 나머지(Menu/ListBox/GridList/Select) 전환은 본 proof 통과 후 별도 slice
 
+- **Menu source acquisition 단일화 + dataBinding/정적 items 경로 통합** (ADR-912 영역 B Task 3):
+  - Menu(MenuButton) wrapper 의 `useCollectionData` 직접 호출(이중 source)과 정적 items 전용 분기(`if (!hasDataBinding && items)`)를 제거하고 `useResolvedCollectionItems` 단일 소비로 전환. 거의 동일했던 dynamic(boundData) 경로와 정적 items 경로의 submenu 재귀 render 를 `resolvedRows` 단일 source + `renderRuntimeMenuItem`(onAction/href 지원 일반형) 단일 render 로 통합
+  - Menu 는 submenu(`children`)/icon/shortcut/onAction/href 차원이 있어, normalizer 가 추출하는 fixed-field 대신 `row.item`(raw `RuntimeMenuItem` 보존)에서 직접 읽어 기존 render 로직 유지 — flat 계약에 submenu 욱여넣지 않음(no-classification). columnMapping 경로는 `boundData = resolvedRows.map(r => r.item)` derive 로 기존 소비 코드 보존
+  - `Menu.binding.ts` accepts 에 `items`(`kind:"binding"`) 추가 — catalog cutover DOM 경로(`toRacProps`)가 정적 `props.items`(`RuntimeMenuItem[]`)를 wrapper 까지 통과
+  - 부수: 디버그 `console.log` 13개 제거(전환 영역과 겹쳐 함께 정리, 기능 변경 없음)
+  - 검증(kill criteria): `useCollectionData` 직접 호출 0 / `!hasDataBinding && items` 정적 분기 0 / `console.log` 0 (grep) + static items live(Menu trigger 클릭 → popover MenuItem 3개 `Menu Item 1/2/3`) + dataBinding/columnMapping 경로 로직 보존 + type-check 3/3 + shared 245/245 + registration-contract 10/10 PASS
+  - 위치: `packages/shared/src/components/Menu.tsx` / `packages/shared/src/catalog/bindings/Menu.binding.ts`. 다음 slice: ListBox → GridList → Select(popover 2단)
+
 ## [RAC primitive binding 컴포넌트 시스템 — ADR-142 scope 축소 종결] - 2026-06-02
 
 ### Architecture

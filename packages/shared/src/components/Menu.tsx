@@ -19,7 +19,7 @@ import type {
 } from "../types";
 import type { RuntimeMenuItem } from "@composition/specs";
 
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
 import "./styles/generated/Menu.css";
 
 /**
@@ -34,7 +34,8 @@ import "./styles/generated/Menu.css";
  */
 
 export interface MenuButtonProps<T>
-  extends Omit<
+  extends
+    Omit<
       MenuProps<T>,
       "items" | "selectionMode" | "selectedKeys" | "onSelectionChange"
     >,
@@ -87,13 +88,19 @@ export function MenuButton<T extends object>({
       },
     }),
   };
-  // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
+  // ADR-912 영역 B Task 3: collection source acquisition 단일화.
+  //   useCollectionData 직접 호출(이중 source)을 useResolvedCollectionItems 단일 진입점으로 통일.
+  //   dataBinding(async/dataTable/API)과 정적 props.items 가 같은 toItemProjectionRow normalizer 통과.
+  //   Menu 는 submenu(children)/icon/shortcut/onAction/href 차원이 있어, normalizer 가 추출하는
+  //   fixed-field 대신 row.item(raw 보존)에서 직접 읽어 기존 render 로직(renderMenuItem)을 유지한다.
+  //   boundData(raw 배열)는 rows.map(r => r.item) 으로 derive — 기존 dataBinding 경로 소비 코드 보존.
   const {
-    data: boundData,
+    rows: resolvedRows,
     loading,
     error,
-  } = useCollectionData({
+  } = useResolvedCollectionItems({
     dataBinding: dataBinding as DataBinding,
+    items: items as unknown[] | undefined,
     componentName: "Menu",
     fallbackData: [
       {
@@ -122,15 +129,11 @@ export function MenuButton<T extends object>({
       dataBinding.type === "collection") ||
     isPropertyBinding;
 
-  console.log("🎯 Menu 렌더링:", {
-    hasDataBinding,
-    loading,
-    error,
-    boundDataLength: boundData.length,
-    boundData,
-    childrenExists: !!children,
-    hasColumnMapping: !!columnMapping,
-  });
+  // dataBinding 경로 소비용 raw 배열 — normalizer 가 보존한 row.item.
+  //   dataBinding 이 있을 때만 rows 가 dataBinding source(정적 items 경로는 별도 분기에서 items 직접).
+  const boundData = hasDataBinding
+    ? resolvedRows.map((row) => row.item as Record<string, unknown>)
+    : [];
 
   // Menu className generator (reused across all conditional renders)
   // props.className can be string or function, so we extract string value if available
@@ -144,12 +147,6 @@ export function MenuButton<T extends object>({
   // ColumnMapping이 있으면 각 데이터 항목마다 MenuItem 렌더링
   // ListBox와 동일한 패턴: Element tree의 MenuItem 템플릿 + Field 자식 사용
   if (hasDataBinding && columnMapping) {
-    console.log("🎯 Menu: columnMapping 감지 - 데이터로 아이템 렌더링", {
-      columnMapping,
-      hasChildren: !!children,
-      dataCount: boundData.length,
-    });
-
     // Loading 상태
     if (loading) {
       return (
@@ -211,8 +208,6 @@ export function MenuButton<T extends object>({
           ...item,
         };
       });
-
-      console.log("✅ Menu with columnMapping - items:", menuItems);
 
       // Recursive render function for menu items with submenus
       const renderMenuItem = (item: RuntimeMenuItem) => {
@@ -329,153 +324,23 @@ export function MenuButton<T extends object>({
     );
   }
 
-  // Dynamic Collection: items prop 사용 (columnMapping 없을 때)
-  if (hasDataBinding && !loading && !error && boundData.length > 0) {
-    const menuItems = boundData.map((item, index) => {
-      const itemId = String(item.id !== undefined ? item.id : index);
-      const processedItem = {
-        id: itemId, // 고유 ID
-        label: String(
-          item.label || item.text || item.name || `Item ${index + 1}`,
-        ),
-        isDisabled: Boolean(item.isDisabled),
-        icon: item.icon as string | undefined,
-        shortcut: item.shortcut as string | undefined,
-        description: item.description as string | undefined,
-        children: Array.isArray(item.children) ? item.children : undefined, // 원본 children 유지
-      };
-      console.log("🔸 메뉴 아이템 변환:", {
-        index,
-        originalItem: item,
-        processedItem,
-      });
-      return processedItem;
+  // ADR-912 영역 B Task 3: dataBinding 경로 + 정적 items 경로를 resolvedRows 단일 source 로 통합.
+  //   기존 dynamic(boundData) 경로와 정적 items 경로가 거의 동일한 submenu 재귀 render 를 중복 보유했다.
+  //   useResolvedCollectionItems 가 두 source 를 같은 row 로 정규화하므로, row.item(raw RuntimeMenuItem
+  //   호환)을 renderRuntimeMenuItem(onAction/href 지원 일반형) 단일 render 로 통일한다.
+  //   (정적 items 의 `if (!hasDataBinding && items)` 분기 제거 = seam 0.)
+  if (!loading && !error && resolvedRows.length > 0) {
+    // row.item(raw) → RuntimeMenuItem. 정규화 itemKey/label 을 id/label 로 주입(누락 시 fallback).
+    const menuItems: RuntimeMenuItem[] = resolvedRows.map((row) => {
+      const raw = (row.item ?? {}) as Record<string, unknown>;
+      return {
+        ...(raw as object),
+        id: row.itemKey,
+        label: row.label,
+        isDisabled: row.isDisabled,
+      } as RuntimeMenuItem;
     });
 
-    console.log("✅ Menu Dynamic Collection - items:", menuItems);
-    console.log("✅ Menu items 개수:", menuItems.length);
-    console.log(
-      "✅ Menu items 상세:",
-      menuItems.map((item) => ({
-        id: item.id,
-        label: item.label,
-        hasChildren: !!item.children,
-      })),
-    );
-
-    // Recursive render function for menu items with submenus
-    const renderMenuItem = (item: (typeof menuItems)[0]) => {
-      console.log("🔹 renderMenuItem 호출:", {
-        id: item.id,
-        label: item.label,
-        hasChildren: !!item.children,
-      });
-
-      const hasSubmenu = item.children && item.children.length > 0;
-
-      const content = (
-        <>
-          <span className="menu-item-content">
-            {item.icon && <span className="menu-item-icon">{item.icon}</span>}
-            <span className="menu-item-label">{item.label}</span>
-            {item.shortcut && (
-              <kbd className="menu-item-shortcut">{item.shortcut}</kbd>
-            )}
-          </span>
-          {item.description && (
-            <span className="menu-item-description">{item.description}</span>
-          )}
-        </>
-      );
-
-      if (hasSubmenu) {
-        // Convert children to same format as parent items
-        const submenuItems = item.children!.map(
-          (child: Record<string, unknown>, childIndex: number) => ({
-            id: String(child.id || `${item.id}-${childIndex}`),
-            label: String(
-              child.label ||
-                child.text ||
-                child.name ||
-                `Item ${childIndex + 1}`,
-            ),
-            isDisabled: Boolean(child.isDisabled),
-            icon: child.icon as string | undefined,
-            shortcut: child.shortcut as string | undefined,
-            description: child.description as string | undefined,
-            children: Array.isArray(child.children)
-              ? child.children
-              : undefined,
-            ...child,
-          }),
-        );
-
-        console.log("🔹 서브메뉴 생성:", {
-          parentId: item.id,
-          submenuItemsCount: submenuItems.length,
-        });
-
-        return (
-          <SubmenuTrigger>
-            <AriaMenuItem textValue={item.label} isDisabled={item.isDisabled}>
-              {content}
-            </AriaMenuItem>
-            <Popover>
-              <Menu
-                items={submenuItems}
-                onAction={(key) => {
-                  console.log("Submenu item selected:", key);
-                }}
-                className={getMenuClassName()}
-                data-size={size}
-              >
-                {(subItem) => renderMenuItem(subItem)}
-              </Menu>
-            </Popover>
-          </SubmenuTrigger>
-        );
-      }
-
-      console.log("🔹 일반 메뉴 아이템 생성:", item.id);
-
-      return (
-        <AriaMenuItem textValue={item.label} isDisabled={item.isDisabled}>
-          {content}
-        </AriaMenuItem>
-      );
-    };
-
-    return (
-      <MenuTrigger {...props}>
-        <Button
-          className="react-aria-Button button-base"
-          data-variant={variant}
-          data-size={size}
-        >
-          {label}
-        </Button>
-        <Popover>
-          <Menu
-            items={menuItems}
-            onAction={(key) => {
-              console.log("Menu item selected:", key);
-              const selectedItem = menuItems.find((item) => item.id === key);
-              console.log("Selected item data:", selectedItem);
-              // 이벤트 핸들러 실행 가능
-            }}
-            className={getMenuClassName()}
-            data-size={size}
-            {...selectionMenuProps}
-          >
-            {(item) => renderMenuItem(item)}
-          </Menu>
-        </Popover>
-      </MenuTrigger>
-    );
-  }
-
-  // items SSOT 경로 (ADR-068 Phase 5): dataBinding 없고 items prop이 있을 때
-  if (!hasDataBinding && items && items.length > 0) {
     const renderRuntimeMenuItem = (item: RuntimeMenuItem): React.ReactNode => {
       const hasSubmenu = item.children && item.children.length > 0;
 
@@ -542,7 +407,7 @@ export function MenuButton<T extends object>({
         </Button>
         <Popover>
           <Menu
-            items={items}
+            items={menuItems}
             className={getMenuClassName()}
             data-size={size}
             {...selectionMenuProps}
@@ -565,7 +430,12 @@ export function MenuButton<T extends object>({
         {label}
       </Button>
       <Popover>
-        <Menu {...props} className={getMenuClassName()} data-size={size} {...selectionMenuProps}>
+        <Menu
+          {...props}
+          className={getMenuClassName()}
+          data-size={size}
+          {...selectionMenuProps}
+        >
           {loading && (
             <AriaMenuItem key="loading" textValue="Loading">
               ⏳ 데이터 로딩 중...
