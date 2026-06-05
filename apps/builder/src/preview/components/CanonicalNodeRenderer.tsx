@@ -125,6 +125,55 @@ const INTERNAL_RENDERERS: Readonly<
   daterangepicker: DateRangePicker,
 };
 
+/**
+ * ResolvedNode 의 복원 type 추출 (CanonicalNodeRenderer 본문 type 복원과 동일 규칙).
+ */
+function resolveNodeType(node: ResolvedNode): string {
+  const cp = extractCanonicalPropsFromResolved(node);
+  return (
+    (cp._tag as string | undefined) ??
+    (cp.type as string | undefined) ??
+    ((node.metadata as Record<string, unknown> | undefined)?.originalTag as
+      | string
+      | undefined) ??
+    String(node.type)
+  );
+}
+
+/**
+ * ADR-912 영역 B (Tabs 축 ① DOM): canonical node 서브트리를 `Map<parentId, PreviewElement[]>`
+ * 로 평탄화. canonical 렌더 경로에서 renderContext.childrenByParent(preview elements state
+ * 기반)가 비어 있어, renderTabs 가 TabPanels→TabPanel itemId 페어링을 찾도록 node 트리에서
+ * 직접 childrenByParent 를 구성한다. 각 child 는 type 복원 + canonical props 추출로 PreviewElement
+ * 화(renderTabs 가 읽는 id/type/props.itemId/props.style/props.className 보존).
+ */
+function flattenNodeChildrenByParent(
+  root: ResolvedNode,
+): Map<string, PreviewElement[]> {
+  const map = new Map<string, PreviewElement[]>();
+  const visit = (node: ResolvedNode): void => {
+    const children = node.children ?? [];
+    if (children.length > 0) {
+      map.set(
+        node.id,
+        children.map((child) => ({
+          id: child.id,
+          type: resolveNodeType(child),
+          props: extractCanonicalPropsFromResolved(
+            child,
+          ) as PreviewElement["props"],
+          parent_id: node.id,
+          page_id: null,
+          fills: [],
+        })),
+      );
+    }
+    for (const child of children) visit(child);
+  };
+  visit(root);
+  return map;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CanonicalNodeRenderer
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,6 +240,41 @@ export function CanonicalNodeRenderer({
   // source.kind 분기: rac → RAC[component] / internal → INTERNAL_RENDERERS[renderer].
   if (cutoverPrimitives?.has(type)) {
     const binding = getPrimitiveBinding(type);
+
+    // ADR-912 영역 B (Tabs 축 ① DOM): Tabs 는 INTERNAL_RENDERERS.tabs(Tabs.tsx wrapper)가
+    //   items 미소비(static children만) → cutover generic 경로에서 빈 TabList/TabPanels 만 렌더.
+    //   rendererMap.renderTabs(LayoutRenderers)는 childrenByParent 로 TabPanels→TabPanel itemId
+    //   페어링 + Tabs.props.items 로 RACTab/RACTabPanel 합성을 이미 완비 — element-tree context 가
+    //   필요한 정본 소비자다. INTERNAL_RENDERERS(React.ElementType, (node,binding)) 계약과 달리
+    //   renderTabs 는 (element, context) 계약이므로 전용 adapter 로 위임(generic child 재귀 skip,
+    //   renderTabs 가 TabList/TabPanels 자체 처리 → 중복 DOM 0). marker 는 wrapper div 보존.
+    if (
+      binding?.source.kind === "internal" &&
+      binding.source.renderer === "tabs"
+    ) {
+      const tabsRenderer = rendererMap[adaptedEl.type];
+      if (tabsRenderer) {
+        // canonical 렌더 경로(USE_CANONICAL_RENDER)에서 renderContext.childrenByParent 는
+        //   preview elements state(resolvedElements) 기반이라 canonical node 트리와 분리되어
+        //   비어있다(size 0). renderTabs 는 childrenByParent 로 TabPanels→TabPanel itemId
+        //   페어링 + child content(renderElement)를 찾으므로, canonical node 서브트리를
+        //   평탄화한 childrenByParent 로 renderContext 를 보강해 전달한다.
+        const tabsChildrenByParent = flattenNodeChildrenByParent(node);
+        const tabsRenderContext = {
+          ...(renderContext as unknown as SharedRenderContext),
+          childrenByParent: tabsChildrenByParent,
+        } as SharedRenderContext;
+        return (
+          <div key={node.id} {...markerProps} style={{ display: "contents" }}>
+            {tabsRenderer(
+              adaptedEl as unknown as SharedPreviewElement,
+              tabsRenderContext,
+            )}
+          </div>
+        );
+      }
+    }
+
     const PrimitiveComponent: React.ElementType | undefined = !binding
       ? undefined
       : binding.source.kind === "rac"
