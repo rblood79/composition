@@ -72,6 +72,7 @@ import {
   normalizeMiddleBaselineTextLineHeight,
 } from "./specBuildHelpers";
 import { findAncestorByTag } from "./ancestorLookup";
+import { isRenderProjectionId } from "../../../projection/renderProjectionIds";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1082,7 +1083,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   }
 
   // Tab/TabList: 조상 Tabs 1회 조회 → _isSelected, _showIndicator, orientation 주입
-  if (element.type === "Tab" || element.type === "TabList") {
+  //
+  // ADR-912 영역 B (A): render-space projection Tab(appendTabRowProjection)은 이미
+  //   _isSelected/_showIndicator/(orientation 은 rowsGroup 가 담당)를 projection props 로
+  //   주입받았다 → projection props 가 SSOT. 여기서 재주입(중복)을 skip 하여 단일 진입점 유지.
+  //   non-projection Tab/TabList(혹시 잔존)만 ancestor lookup 으로 보강.
+  if (
+    (element.type === "Tab" || element.type === "TabList") &&
+    !isRenderProjectionId(element.id)
+  ) {
     const tabsAncestor = element.parent_id
       ? findAncestorByTag(element, "Tabs", elementsMap, 3)
       : undefined;

@@ -151,6 +151,25 @@ export type CanvasProjectionMetadata =
       rowIndex: number;
       templateAnchorId: string | null;
       templateOriginId: string | null;
+    }
+  // ADR-912 영역 B (A) — TabList tab projection: tab = collection row 동형(1단 row).
+  //   tag-row 와 동형 메타(listBoxId=collection owner=TabList scene node id / itemKey / rowIndex).
+  //   items SSOT(Tabs.props.items → propagation → TabList.props.items) → templateAnchorId/
+  //   templateOriginId 항상 null(GridList/Tag 동형). tab 본체(tab-row)는 deep hit 시 owner(Tabs)
+  //   select redirect. 이전 implicitStyles virtual Tab(layout-synthetic)을 render-space 로 이전.
+  | {
+      kind: "tab-rows";
+      listBoxId: string;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
+    }
+  | {
+      kind: "tab-row";
+      listBoxId: string;
+      itemKey: string;
+      rowIndex: number;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
     };
 
 export interface CanvasSceneNode {
@@ -1141,6 +1160,217 @@ function appendTagRowProjection(
   }
 }
 
+// ---------------------------------------------------------------------------
+// ADR-912 영역 B (A) — Tab row projection (TabList 1단 row family)
+// ---------------------------------------------------------------------------
+//
+// TagGroup chip 선례와 동형이되 3점 차이:
+//   1) **owner = TabList scene node**. Tabs factory 가 TabList 중간 컨테이너를 만들고
+//      items/selectedKey/showIndicator/variant/size 를 TabList 로 propagate (Tabs.spec
+//      propagation, ADR-912 단계 1-2). tab 좌표계 = TabList node — projection 을 TabList 에 붙인다.
+//   2) **rowsGroup = 한 줄 flex row** (Tag 의 wrap-flow 아님). orientation="vertical" 이면 column.
+//      이전 구현(implicitStyles virtual Tab, layout-synthetic 경로)을 render-space projection 으로
+//      이전 — TabList.spec.render.shapes 의 구분선(line)은 유지, tab 본체만 projection.
+//   3) chip(Tab) 본체는 Tab.spec.render.shapes 가 text + (selected && showIndicator 시) indicator
+//      rect 를 그린다. _isSelected(isListBoxRowSelected, selectedKey 단일) + _showIndicator 전달.
+
+function isTabListSceneSource(
+  tabListSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+): boolean {
+  if (tabListSceneNode.type === "TabList") return true;
+  if (sourceNode.type === "ref") return false;
+  return (
+    tabListSceneNode.componentName === "TabList" ||
+    tabListSceneNode.name === "TabList"
+  );
+}
+
+/**
+ * pre-propagation 기존 문서 호환 fallback — owner Tabs 의 props 를 찾는다.
+ *
+ * Tabs.spec propagation(ADR-912 단계 1-2) 도입 **전** 생성된 기존 문서는 factory 시점
+ * applyFactoryPropagation 을 못 받아 TabList.props.items 가 비어있다(신규 Tabs 는 채워짐).
+ * 그 경우 owner Tabs(TabList 를 자식으로 갖는 노드)의 props 를 document map 에서 1회 역추적해
+ * items/selectedKey/showIndicator/variant/size 를 보충한다. **primary 는 어디까지나 TabList.props**
+ * (projector invariant) — 본 함수는 props.items 가 빈 fallback 경로에서만 호출(owner-lookup primary
+ * 패턴 확산 아님, 사용자 결정 2026-06-06).
+ */
+function findOwnerTabsProps(
+  tabListSourceId: string,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+): Record<string, unknown> | null {
+  for (const node of getDocumentNodesById().values()) {
+    if (node.type !== "Tabs") continue;
+    const children = node.children;
+    if (
+      Array.isArray(children) &&
+      children.some((c) => c.id === tabListSourceId)
+    ) {
+      return (node.props ?? null) as Record<string, unknown> | null;
+    }
+  }
+  return null;
+}
+
+/**
+ * data-bound TabList 의 projection rows 계산 (gating). items 는 Tabs.props.items 가
+ * propagation 경유로 TabList.props.items 에 전파되어 있다(Tabs.spec propagation, ADR-912
+ * 단계 1-2). Tag/ListBox 와 동일 getListBoxProjectionRows 로 흡수 ({id,title} → {itemKey,label}).
+ * rows 0개면 null → 발효 전 standalone(빈 TabList) 유지(회귀 0). tab 1개 = 1 row.
+ *
+ * **호환 fallback**: TabList.props.items 가 비면(pre-propagation 기존 문서) owner Tabs.props 를
+ * 역추적해 합성 props(TabList.props 우선 + owner Tabs props 보충)로 rows/selected 를 계산한다.
+ * 둘 다 있으면 TabList.props 만 사용(duplicate 방지) — propagation 이 정상 동작한 신규 문서.
+ */
+function resolveDataBoundTabProjection(
+  tabListSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+  getDocumentNodesById: () => Map<string, CanonicalNode>,
+): {
+  rows: ListBoxProjectionRow[];
+  sourceNode: CanonicalNode;
+  resolvedProps: Record<string, unknown>;
+} | null {
+  if (!isTabListSceneSource(tabListSceneNode, sourceNode)) return null;
+
+  // Tab 은 dataBinding 없이 items SSOT 만 (Tabs.props.items → propagation → TabList.props.items).
+  const tabListProps = tabListSceneNode.props;
+  let resolvedProps = tabListProps;
+
+  // 호환 fallback: propagation 전 문서는 TabList.props.items 가 비어있음 → owner Tabs 보충.
+  const hasItems =
+    Array.isArray(tabListProps.items) && tabListProps.items.length > 0;
+  if (!hasItems) {
+    const ownerProps = findOwnerTabsProps(sourceNode.id, getDocumentNodesById);
+    if (ownerProps) {
+      // TabList.props 우선 + owner Tabs props 보충(items/selectedKey/showIndicator/variant/size).
+      resolvedProps = { ...ownerProps, ...tabListProps };
+    }
+  }
+
+  const rows = getListBoxProjectionRows({ props: resolvedProps });
+  if (rows.length === 0) return null;
+
+  return { rows, sourceNode, resolvedProps };
+}
+
+/**
+ * TabList tab projected tree 생성: RowsGroup(flex row) → Tab[i].
+ *
+ * - rowsGroup: orientation 에 따라 flex row(horizontal) 또는 column(vertical). gap=0(Tabs.spec gap).
+ * - tab(Tab): width:fit-content → 라벨 폭 + padding. Tab.spec.render.shapes 가 text + indicator
+ *   self-render (_isSelected → selected variant + _showIndicator → indicator rect).
+ * - 단일클릭은 owner(Tabs) select redirect (resolveCanvasInteractionTarget), selection update 는
+ *   후속(proof scope — Tag 선례와 동일). projection id 는 비영속.
+ */
+function appendTabRowProjection(
+  tabListSceneNode: CanvasSceneNode,
+  projection: {
+    rows: ListBoxProjectionRow[];
+    sourceNode: CanonicalNode;
+    resolvedProps: Record<string, unknown>;
+  },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  // resolvedProps = TabList.props 우선 + (pre-propagation 문서면) owner Tabs props 보충.
+  //   orientation/variant/size/showIndicator/selectedKey 모두 동일 소스에서 읽어 일관성 유지.
+  const { rows, sourceNode, resolvedProps: props } = projection;
+  const isVertical = props.orientation === "vertical";
+  const variant = props.variant;
+  const size = props.size;
+  const showIndicator = props.showIndicator !== false;
+  // ADR-912 영역 B (A): Tab selected 판정은 selectedKey ?? defaultSelectedKey (단일 선택).
+  //   isListBoxRowSelected 는 selectedKey 만 보고 defaultSelectedKey 를 모르므로(ListBox/Tag 공용),
+  //   Tab 전용으로 defaultSelectedKey fallback 을 추가한다(이전 buildSpecNodeData:1095 virtual Tab
+  //   로직 동형). 미적용 시 defaultSelectedKey 만 있는 Tabs 의 selected indicator 가 사라진다.
+  const selectedKey =
+    (props.selectedKey as string | undefined) ??
+    (props.defaultSelectedKey as string | undefined);
+
+  const rowsGroupId = toCollectionRowsGroupProjectionId(
+    "tab",
+    tabListSceneNode.id,
+  );
+  const rowsGroup: CanvasSceneNode = {
+    id: rowsGroupId,
+    type: "Rows",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: isVertical ? "column" : "row",
+        width: "100%",
+        alignItems: isVertical ? "flex-start" : "stretch",
+      },
+    },
+    parentId: tabListSceneNode.id,
+    pageId: scope.pageId,
+    layoutId: scope.layoutId,
+    parent_id: tabListSceneNode.id,
+    page_id: scope.pageId,
+    layout_id: scope.layoutId,
+    projection: {
+      kind: "tab-rows",
+      listBoxId: tabListSceneNode.id,
+      templateAnchorId: null,
+      templateOriginId: null,
+    },
+    sourceNode,
+  };
+  addSceneNode(rowsGroup, graph);
+
+  for (const row of rows) {
+    const tabId = toCollectionRowProjectionId(
+      "tab",
+      tabListSceneNode.id,
+      row.itemKey,
+    );
+    const tabProps: Record<string, unknown> = {
+      // Tab.spec.render.shapes 는 props.title 을 텍스트 소스로 읽는다(children 아님) —
+      //   virtual Tab(이전 layout-synthetic)도 title 을 넣었다. children 은 호환용 동시 제공.
+      title: row.label,
+      children: row.label,
+      // tab 폭 = 라벨 + padding — Tab.spec containerStyles. 한 줄 row 에서 각 tab fit-content.
+      style: { width: "fit-content" },
+      // ADR-912 영역 B (A): Tab 단일 선택 — selectedKey ?? defaultSelectedKey === itemKey.
+      _isSelected: selectedKey != null && selectedKey === row.itemKey,
+      _showIndicator: showIndicator,
+      // tab 본체가 owner Tabs 의 item 식별 (선택 redirect / write-target 라우팅용).
+      tabId: row.itemKey,
+    };
+    if (variant) tabProps.variant = variant;
+    if (size) tabProps.size = size;
+    if (row.isDisabled) tabProps.isDisabled = true;
+
+    addSceneNode(
+      {
+        id: tabId,
+        type: "Tab",
+        props: tabProps,
+        parentId: rowsGroupId,
+        pageId: scope.pageId,
+        layoutId: scope.layoutId,
+        parent_id: rowsGroupId,
+        page_id: scope.pageId,
+        layout_id: scope.layoutId,
+        projection: {
+          kind: "tab-row",
+          listBoxId: tabListSceneNode.id,
+          itemKey: row.itemKey,
+          rowIndex: row.rowIndex,
+          templateAnchorId: null,
+          templateOriginId: null,
+        },
+        sourceNode,
+      },
+      graph,
+    );
+  }
+}
+
 export function buildCanvasSceneGraph(
   doc: CompositionDocument,
   options: BuildCanvasSceneGraphOptions = {},
@@ -1206,6 +1436,14 @@ export function buildCanvasSceneGraph(
       ? resolveDataBoundTagProjection(sceneNode, node, options)
       : null;
 
+    // ADR-912 영역 B (A): TabList tab projection (owner=TabList scene node, 한 줄 flex row).
+    //   TabList factory props:{} (items propagation) → suppression 불필요, append 만.
+    //   이전 implicitStyles virtual Tab(layout-synthetic) 을 render-space projection 으로 이전.
+    //   getDocumentNodesById 는 pre-propagation 기존 문서 호환 fallback(owner Tabs lookup) 용.
+    const tabProjection = sceneNode
+      ? resolveDataBoundTabProjection(sceneNode, node, getDocumentNodesById)
+      : null;
+
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
       // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
@@ -1245,6 +1483,9 @@ export function buildCanvasSceneGraph(
     }
     if (sceneNode && tagProjection) {
       appendTagRowProjection(sceneNode, tagProjection, nextScope, graph);
+    }
+    if (sceneNode && tabProjection) {
+      appendTabRowProjection(sceneNode, tabProjection, nextScope, graph);
     }
   }
 

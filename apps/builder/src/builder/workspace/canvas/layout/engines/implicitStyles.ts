@@ -955,34 +955,19 @@ export function applyImplicitStyles(
 
   // ── TabList ─────────────────────────────────────────────────────────
   if (containerTag === "tablist") {
-    // ADR-066: Tab element는 존재하지 않음. Tabs.props.items에서 가상 Tab 생성.
+    // ADR-912 영역 B (A): tab 본체는 render-space projection(appendTabRowProjection,
+    //   canvasSceneNode.ts)이 scene graph 에 tab-rows/tab-row 노드로 전개한다. 이전
+    //   layout-synthetic virtual Tab(items.map → type:"Tab" _virtual) 생성은 제거됨 —
+    //   scene projection 과 동시 존재 시 이중 렌더(kill criteria 위반)가 되므로.
+    //   layout-engine 은 더 이상 Tab 노드를 만들지 않고, TabList 컨테이너 자체 style 만 잔존.
     const tabsParent = findAncestorByTag(containerEl, "Tabs", elementById, 3);
     const tabsProps = tabsParent?.props as Record<string, unknown> | undefined;
     const sizeName = (tabsProps?.size as string) ?? "md";
     const tabBarHeight = specSizeField("tabs", sizeName, "height") ?? 30;
-    const items =
-      (tabsProps?.items as Array<{ id: string; title: string }> | undefined) ??
-      [];
-
-    // items 기반 가상 Tab element 생성 (store row 아님, 렌더 전용 ephemeral)
-    filteredChildren = items.map((item, i) => ({
-      id: `${tabsParent?.id ?? containerEl.id}:virtualTab:${item.id}`,
-      type: "Tab",
-      props: {
-        title: item.title,
-        tabId: item.id,
-        _virtual: true,
-        style: {
-          height: tabBarHeight,
-          minHeight: tabBarHeight,
-        },
-      },
-      parent_id: containerEl.id,
-      page_id: containerEl.page_id,
-    })) as CanvasLayoutNode[];
 
     // ADR-087 SP2: display/flexDirection 은 TabList.spec containerStyles 로 리프팅됨.
-    //   height/width 는 size-based tabBarHeight 주입 (runtime 잔존).
+    //   height/width 는 size-based tabBarHeight 주입 (runtime 잔존). filteredChildren 은
+    //   원본 그대로 — TabList 의 canonical 자식(없음) + scene projection 이 별도로 tab 전개.
     effectiveParent = withParentStyle(containerEl, {
       ...(containerEl.props?.style as Record<string, unknown> | undefined),
       height: tabBarHeight,

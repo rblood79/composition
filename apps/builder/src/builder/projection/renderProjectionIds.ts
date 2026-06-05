@@ -103,7 +103,10 @@ export function isCollectionRowProjectionKind(
     kind === "table-row" ||
     // ADR-912 영역 B (A): TagGroup chip = collection row 동형(items SSOT, owner=TagList).
     //   chip 1개 = tag-row 노드(1단 row family, listbox/gridlist 동형 메타).
-    kind === "tag-row"
+    kind === "tag-row" ||
+    // ADR-912 영역 B (A): TabList tab = collection row 동형(items SSOT, owner=TabList).
+    //   tab 1개 = tab-row 노드(1단 row family, tag 동형 메타). owner=Tabs select redirect.
+    kind === "tab-row"
   );
 }
 
@@ -116,7 +119,9 @@ export function isCollectionRowsGroupProjectionKind(
     kind === "gridlist-rows" ||
     kind === "table-rows" ||
     // ADR-912 영역 B (A): TagGroup chip 컨테이너(flexWrap row → wrap-flow).
-    kind === "tag-rows"
+    kind === "tag-rows" ||
+    // ADR-912 영역 B (A): TabList tab 컨테이너(한 줄 flex row, vertical 시 column).
+    kind === "tab-rows"
   );
 }
 
