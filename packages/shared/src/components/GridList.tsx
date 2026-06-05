@@ -16,7 +16,7 @@ import {
 import { MyCheckbox } from "./Checkbox";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
 
 import "./styles/GridList.css";
 
@@ -26,9 +26,19 @@ import "./styles/GridList.css";
  * - data-variant, data-size 속성 사용
  */
 
-interface ExtendedGridListProps<T extends object> extends GridListProps<T> {
+interface ExtendedGridListProps<T extends object> extends Omit<
+  GridListProps<T>,
+  "items"
+> {
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
+  /**
+   * ADR-912 영역 B Task 5: 정적 items[] SSOT (StoredGridListItem[] 직렬화 형태).
+   *   RAC `GridListProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
+   *   useResolvedCollectionItems 가 dataBinding 과 동일 normalizer 로 흡수한다.
+   *   section entry(`type:"section"`)가 섞이면 정적 children 경로로 보존(flat guard).
+   */
+  items?: unknown[];
   // Layout
   layout?: "stack" | "grid";
   columns?: number;
@@ -55,6 +65,7 @@ export function GridList<T extends object>({
   children,
   dataBinding,
   columnMapping,
+  items,
   layout = "stack",
   columns = 2,
   variant = "primary",
@@ -63,13 +74,34 @@ export function GridList<T extends object>({
   filterFields = ["label", "name", "title"] as (keyof T)[],
   ...props
 }: ExtendedGridListProps<T>) {
-  // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
+  // ADR-912 영역 B Task 5: flat guard — 정적 items 에 section entry(`type:"section"`)가
+  //   섞이면 useResolvedCollectionItems(toItemProjectionRow)는 section 을 모르고 flat item 으로
+  //   잘못 펴므로(header 소실), 이번 slice 에서 강제 normalize 하지 않고 정적 children 경로로
+  //   보존한다. section 통합은 legacy renderGridList / Skia section projector 에 격리(설계 §Task 5 보류).
+  const hasSectionEntry = React.useMemo(
+    () =>
+      Array.isArray(items) &&
+      items.some(
+        (entry) =>
+          entry != null &&
+          typeof entry === "object" &&
+          (entry as { type?: string }).type === "section",
+      ),
+    [items],
+  );
+
+  // ADR-912 영역 B Task 5: collection source acquisition 단일화.
+  //   useCollectionData 직접 호출(이중 source)을 제거하고 useResolvedCollectionItems 단일 진입점으로 통일.
+  //   dataBinding(async/dataTable/API)과 정적 props.items 가 같은 toItemProjectionRow normalizer 를
+  //   통과 → DOM wrapper 와 Skia projector(getFlatProjectionRows)가 동일 row 형태(CollectionProjectionRow).
+  //   section entry 가 섞인 경우(flat guard)는 정적 source 를 hook 에 넘기지 않아 children 경로로 보존.
   const {
-    data: boundData,
+    rows: resolvedRows,
     loading,
     error,
-  } = useCollectionData({
+  } = useResolvedCollectionItems({
     dataBinding: dataBinding as DataBinding,
+    items: hasSectionEntry ? undefined : items,
     componentName: "GridList",
     fallbackData: [
       { id: 1, name: "Item 1", description: "Description 1" },
@@ -77,28 +109,33 @@ export function GridList<T extends object>({
     ],
   });
 
-  // React Aria 1.13.0: 필터링 로직
-  const filteredData = React.useMemo(() => {
-    let result = [...boundData];
+  // React Aria 1.13.0: 필터링 로직 (raw item 기반 — row.item 에 원본 보존).
+  //   filter/filterText 는 raw item 시그니처(T)를 받으므로 정규화 rows 의 row.item 으로 적용.
+  const filteredRows = React.useMemo(() => {
+    let result = resolvedRows;
 
     // 커스텀 필터 적용
     if (filter) {
-      result = result.filter((item) => filter(item as unknown as T));
+      result = result.filter((row) => filter(row.item as unknown as T));
     }
 
     // 텍스트 필터 적용
     if (filterText && filterText.trim()) {
       const searchText = filterText.toLowerCase().trim();
-      result = result.filter((item) =>
-        filterFields.some((field) => {
+      result = result.filter((row) => {
+        const item = row.item as Record<string, unknown>;
+        if (!item || typeof item !== "object") {
+          return row.label.toLowerCase().includes(searchText);
+        }
+        return filterFields.some((field) => {
           const value = item[field as string];
           return value && String(value).toLowerCase().includes(searchText);
-        }),
-      );
+        });
+      });
     }
 
     return result;
-  }, [boundData, filter, filterText, filterFields]);
+  }, [resolvedRows, filter, filterText, filterFields]);
 
   // DataBinding이 있고 데이터가 로드되었을 때 동적 아이템 생성
   // PropertyDataBinding 형식 (source, name) 또는 DataBinding 형식 (type: "collection") 둘 다 지원
@@ -113,6 +150,13 @@ export function GridList<T extends object>({
       "type" in dataBinding &&
       dataBinding.type === "collection") ||
     isPropertyBinding;
+
+  // ADR-912 영역 B Task 5: dataBinding 유무와 무관하게 해소된 row 가 있으면 카드 렌더.
+  //   정적 flat items(props.items)도 useResolvedCollectionItems 가 resolvedRows 로 채우므로
+  //   기존 `if (hasDataBinding)` 분기를 `hasResolvedRows` 로 확장 → 정적 items 가 Static Children
+  //   으로 떨어지지 않고 실제 카드로 렌더(catalog DOM seam 해소). dataBinding 전용 columnMapping
+  //   분기는 hasDataBinding 게이트 유지(템플릿 모드는 dataBinding 계약).
+  const hasResolvedRows = filteredRows.length > 0;
 
   // GridList className generator (reused across all conditional renders)
   // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
@@ -136,7 +180,7 @@ export function GridList<T extends object>({
       hasChildren: !!children,
       childrenType: typeof children,
       isChildrenFunction: typeof children === "function",
-      dataCount: filteredData.length,
+      dataCount: filteredRows.length,
       loading,
       error,
     });
@@ -201,11 +245,11 @@ export function GridList<T extends object>({
       );
     }
 
-    // 데이터가 있을 때: items prop 사용
-    if (filteredData.length > 0) {
-      const items = filteredData.map((item, index) => ({
-        id: String(item.id || index),
-        ...item,
+    // 데이터가 있을 때: items prop 사용 (resolvedRows 의 원본 item 보존)
+    if (hasResolvedRows) {
+      const items = filteredRows.map((row) => ({
+        ...(row.item as Record<string, unknown>),
+        id: row.itemKey,
       })) as T[];
 
       console.log("✅ GridList with columnMapping - items:", items);
@@ -237,7 +281,9 @@ export function GridList<T extends object>({
   }
 
   // Dynamic Collection: items prop 사용 (columnMapping 없을 때)
-  if (hasDataBinding) {
+  //   ADR-912 Task 5: hasResolvedRows 게이트 — 정적 flat items 도 여기서 카드 렌더
+  //   (기존 hasDataBinding 게이트는 정적 items 를 Static Children 으로 떨어뜨려 카드 미렌더).
+  if (hasResolvedRows) {
     // Loading 상태
     if (loading) {
       return (
@@ -298,14 +344,12 @@ export function GridList<T extends object>({
       );
     }
 
-    // 데이터가 로드되었을 때
-    if (filteredData.length > 0) {
-      const items = filteredData.map((item, index) => ({
-        id: String(item.id || index),
-        label: String(
-          item.name || item.title || item.label || `Item ${index + 1}`,
-        ),
-        ...item,
+    // 데이터가 로드되었을 때 (resolvedRows 의 정규화 label/itemKey + 원본 item 필드 보존)
+    if (hasResolvedRows) {
+      const items = filteredRows.map((row) => ({
+        ...(row.item as Record<string, unknown>),
+        id: row.itemKey,
+        label: row.label,
       }));
 
       console.log("✅ GridList Dynamic Collection - items:", items);

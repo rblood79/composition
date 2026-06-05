@@ -59,6 +59,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **잔존(별도 영역, Task 4 직교)**: reusable origin 을 가리키는 ref instance ListBox 는 `resolveCanonicalDocument` 의 `findReusableMaster` 가 `doc.children` top-level 만 검색 → page-body 하위 중첩 origin 미발견 → `[ADR-903] broken ref` 로 빈 div(ListBox wrapper 미호출). canonical resolver 의 nested reusable master lookup 문제로, 정적 items source 단일화와 무관 — non-ref ListBox 로 우회 live 검증(사용자 결정)
   - 위치: `packages/shared/src/components/ListBox.tsx` / `packages/shared/src/catalog/bindings/ListBox.binding.ts` / `packages/shared/src/hooks/useResolvedCollectionItems.tsx`. 다음 slice: GridList → Select(popover 2단)
 
+- **GridList source acquisition 단일화 + 정적 items Preview DOM 카드 렌더 복구** (ADR-912 영역 B Task 5):
+  - `GridList.tsx` wrapper 의 `useCollectionData` 직접 호출(이중 source)을 제거하고 `useResolvedCollectionItems` 단일 소비로 전환. ListBox 와 source-acquisition 계약상 동형 — catalog cutover 후 DOM 은 `CanonicalNodeRenderer` → `INTERNAL_RENDERERS["gridlist"]` = `GridList.tsx` wrapper 를 타지만, 기존엔 모든 데이터 경로가 `hasDataBinding` 가드 아래라 정적 `props.items` 가 wrapper 에 도달해도 Static Children 으로만 떨어져 **Preview DOM 에서 카드 누락**됐다
+  - 수정: `items?: unknown[]` prop 수신(RAC `GridListProps.items` 재의미화) + `hasResolvedRows`(정적/dataBinding 통합) 기반으로 columnMapping/dynamic 경로 진입 조건을 `hasDataBinding` → `hasResolvedRows` 로 확장 → 정적 items 가 실제 `.react-aria-GridListItem` 카드로 렌더. raw item 은 `row.item` 에 보존(columnMapping render function 회귀 0), `layout`/`columns`(--gl-columns) arrangement props 보존
+  - **section guard(flat 한정)**: `useResolvedCollectionItems`(`toItemProjectionRow`)는 항상 `kind:"item"` 으로 section 을 모르므로, 정적 items 에 `type:"section"` entry(`StoredGridListSection`)가 섞이면 hook source 로 넘기지 않고(`hasSectionEntry`) 정적 children 경로로 보존. GridList section 은 이미 legacy `SelectionRenderers.tsx::renderGridList` Path 2(`isGridListSectionEntry`) + Skia `getGridListProjectionRows`(kind:"section" emit) 에 격리되어 있어 이번 flat slice 와 직교 — 미수정
+  - `GridList.binding.ts` accepts 에 `items`(`kind:"binding"`) 추가 — catalog cutover DOM 경로(`toRacProps`)가 정적 `props.items`(`StoredGridListItem[]`)를 wrapper 까지 통과
+  - 검증(kill criteria): `GridList.tsx` `useCollectionData` 직접 호출 0 (grep) / binding items toRacProps 통과 / 단일 source / **정적 flat items live**(non-ref GridList Apple/Banana/Cherry → Preview DOM iframe `role=grid` 1 + `role=row` 3 + `.react-aria-GridListItem` 3 + label/description 일치 + Skia Canvas 3 카드 대칭, Compare 모드 양 패널 동일) / columnMapping·render function·layout 회귀 0 / section entry flat guard 보류 / type-check PASS(builder baseline 110) + shared collection 44/44 PASS(`gridListDataLayoutContract` 포함 — data-layout RAC 위임 회귀 0)
+  - 위치: `packages/shared/src/components/GridList.tsx` / `packages/shared/src/catalog/bindings/GridList.binding.ts`. 다음 slice: Select(popover 2단, 마지막)
+
 ## [RAC primitive binding 컴포넌트 시스템 — ADR-142 scope 축소 종결] - 2026-06-02
 
 ### Architecture
