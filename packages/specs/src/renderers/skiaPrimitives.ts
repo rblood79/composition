@@ -1173,6 +1173,94 @@ const statusLight: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   return shapes;
 };
 
+/**
+ * `avatar` — 사용자 아바타 circle bg + (image | initials text). escape(replace 모드).
+ *
+ * **ADR-912 진로 1번 Avatar proof slice (2026-06-06)**: catalog 등록 시 buildCatalogShapes 는
+ *   roundRect+border+text 만 그린다 — circle 은 roundRect(full)로 근사 가능하나 **image fill 미지원**
+ *   → spec.render.shapes(Avatar.spec.ts:142-214)의 circle bg + image|initials 로직을 escape 로 이전
+ *   (spec 의존 0 — seam 제거). circle 이 전체 shape 라 base box 무의미 → **replace** 모드(append 아님).
+ *
+ *   circle bg 색 = style.backgroundColor → visual.fill.default.base(rule "default" variant), text 색 =
+ *   style.color → visual.text. 지름 = size.height(rule sizes). image shape 는 specShapeConverter.ts:1006
+ *   가 렌더(fit "cover"). DOM(Avatar.tsx) 인라인 style 과 시각 대칭.
+ */
+const avatar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const diameter = typeof size.height === "number" ? size.height : 32;
+  const radius = diameter / 2;
+
+  const bgColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    ("{color.neutral-subtle}" as TokenRef);
+
+  const shapes: Shape[] = [
+    // 원형 배경 (circle 전체가 아바타 외형)
+    {
+      id: "bg",
+      type: "circle" as const,
+      x: radius,
+      y: radius,
+      radius,
+      fill: bgColor,
+    },
+  ];
+
+  // 자식 보유(미래 확장) 시 shell(circle bg)만 — 내용은 자식이 담당.
+  if ((props as Record<string, unknown>)._hasChildren) return shapes;
+
+  // 이미지가 있으면 image shape (specShapeConverter 가 fit cover 로 원 안에 채움)
+  if (props.src) {
+    shapes.push({
+      type: "image" as const,
+      x: 0,
+      y: 0,
+      width: diameter,
+      height: diameter,
+      src: props.src as string,
+      radius,
+    });
+    return shapes;
+  }
+
+  // 이니셜 텍스트 (src 없을 때) — initials || alt 첫 2글자 || "?"
+  const text =
+    (props.initials as string | undefined) ||
+    (props.alt as string | undefined)?.slice(0, 2).toUpperCase() ||
+    "?";
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  const fwRaw = style?.fontWeight;
+  const fw =
+    fwRaw != null
+      ? typeof fwRaw === "number"
+        ? fwRaw
+        : parseInt(String(fwRaw), 10) || 500
+      : 500;
+  const ff = (style?.fontFamily as string) || fontFamily.sans;
+  const textColor =
+    (style?.color as string | undefined) ??
+    visual?.text ??
+    ("{color.neutral}" as TokenRef);
+
+  shapes.push({
+    type: "text" as const,
+    x: radius,
+    y: radius,
+    text,
+    fontSize,
+    fontFamily: ff,
+    fontWeight: fw,
+    fill: textColor,
+    align: "center" as const,
+    baseline: "middle" as const,
+  });
+
+  return shapes;
+};
+
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
@@ -1199,6 +1287,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   illustrated_message: illustratedMessage,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — dot circle + label text)
   status_light: statusLight,
+  // ADR-912 진로 1번 internal leaf escape (replace 모드 — circle bg + image|initials)
+  avatar,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
@@ -1228,6 +1318,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   //   rule fill base 는 dot 색(variant status). base box 로 칠하면 box 전체가 status 색 →
   //   DOM(dot 만 색) 과 비대칭. replace 로 base box 미생성, escape 가 dot circle + text 만 그림.
   status_light: "replace",
+  // ADR-912 진로 1번: avatar 는 circle bg + image|initials 자체 생성, base roundRect box 무의미
+  //   (circle 이 전체 외형) → replace. 미등록=replace 지만 의도 명시.
+  avatar: "replace",
 };
 
 export function getSkiaPrimitive(

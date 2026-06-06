@@ -3,6 +3,7 @@
  * family cutover(Phase 6) 진행 시 약 35개 binding 이 여기 누적된다.
  */
 import type { PrimitiveBinding } from "../types";
+import { avatarBinding } from "./Avatar.binding";
 import { badgeBinding } from "./Badge.binding";
 import { bodyBinding } from "./Body.binding";
 import { buttonBinding } from "./Button.binding";
@@ -63,6 +64,7 @@ import { toolbarBinding } from "./Toolbar.binding";
 import { tooltipBinding } from "./Tooltip.binding";
 import { treeBinding } from "./Tree.binding";
 
+export * from "./Avatar.binding";
 export * from "./Badge.binding";
 export * from "./Body.binding";
 export * from "./Button.binding";
@@ -155,6 +157,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Skeleton: skeletonBinding,
   // ADR-912 진로 1번: 상태 표시 dot+label internal leaf (status_light escape, replace)
   StatusLight: statusLightBinding,
+  // ADR-912 진로 1번: 사용자 아바타 circle+image internal leaf (avatar escape, replace — image 미generic)
+  Avatar: avatarBinding,
   // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source, generic
   //   box 시각). spec.render.shapes Skia fallback 제거. SHELL_ONLY(Body/Section) 또는 자식 무관
   //   bg(Nav) → buildCatalogShapes box 만으로 spec parity. List 는 샘플 text 때문에 별도 보류.

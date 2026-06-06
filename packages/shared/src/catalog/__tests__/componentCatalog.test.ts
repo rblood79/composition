@@ -93,6 +93,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "IllustratedMessage",
         // ADR-912 진로 1번 (2026-06-06): 상태 표시 dot+label internal leaf (status_light escape)
         "StatusLight",
+        // ADR-912 진로 1번 (2026-06-06): 사용자 아바타 circle+image internal leaf (avatar escape)
+        "Avatar",
         // ADR-912 선행-6 (2026-06-05): field 입력 영역 자식 leaf (rac source)
         "Input",
         // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source)

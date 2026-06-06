@@ -101,6 +101,7 @@ export { Meter } from "./Meter";
 export { Skeleton } from "./Skeleton";
 export { IllustratedMessage } from "./IllustratedMessage";
 export { StatusLight } from "./StatusLight";
+export { Avatar } from "./Avatar";
 export { Toast, ToastProvider, ToastRegion } from "./Toast";
 export { useToast } from "./ToastContext";
 export {

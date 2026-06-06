@@ -217,6 +217,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "status light",
     icon: "Circle",
   }),
+  // ADR-912 진로 1번 Avatar proof slice (2026-06-06): 사용자 아바타 circle+image internal leaf.
+  //   Skia 는 skiaPrimitive "avatar" escape(circle bg + image|initials, replace — buildCatalogShapes
+  //   image 미지원), DOM 은 INTERNAL_RENDERERS["avatar"](Avatar.tsx, props.src/initials/size 소비).
+  //   src/initials 가 자식 Element 아닌 props(factory children:[]) → generic fallback 미적용, 어댑터 필수.
+  primitiveEntry("Avatar", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "avatar",
+    icon: "User",
+  }),
 ];
 
 /**
