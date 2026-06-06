@@ -24,6 +24,7 @@ import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
 import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
+import { illustratedMessageBinding } from "./IllustratedMessage.binding";
 import { inlineAlertBinding } from "./InlineAlert.binding";
 import { inputBinding } from "./Input.binding";
 import { kbdBinding } from "./Kbd.binding";
@@ -82,6 +83,7 @@ export * from "./Form.binding";
 export * from "./GridList.binding";
 export * from "./Heading.binding";
 export * from "./Icon.binding";
+export * from "./IllustratedMessage.binding";
 export * from "./InlineAlert.binding";
 export * from "./Kbd.binding";
 export * from "./Label.binding";
@@ -128,6 +130,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Badge: badgeBinding,
   Button: buttonBinding,
   Icon: iconBinding,
+  IllustratedMessage: illustratedMessageBinding,
   Link: linkBinding,
   Separator: separatorBinding,
   // ADR-912 위험군 해소(선행-3/4): TEXT_LEAF 순수 텍스트 leaf (internal source, DOM generic, Skia box+text)

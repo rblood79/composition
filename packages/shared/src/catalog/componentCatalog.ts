@@ -198,6 +198,16 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "inline alert",
     icon: "AlertCircle",
   }),
+  // ADR-912 진로 1번 IllustratedMessage proof slice (2026-06-06): 빈 상태(empty state) internal leaf.
+  //   catalog 등록으로 spec.render.shapes Skia fallback 제거 — Skia 는 skiaPrimitive
+  //   "illustrated_message" escape(placeholder+heading+description, append), DOM 은 INTERNAL_RENDERERS
+  //   ["illustrated"](IllustratedMessage.tsx, props.heading/description 직접 소비). heading/description
+  //   이 자식 Element 아닌 props(factory children:[]) → generic fallback 미적용, 어댑터 필수.
+  primitiveEntry("IllustratedMessage", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "illustrated message",
+    icon: "ImageOff",
+  }),
 ];
 
 /**

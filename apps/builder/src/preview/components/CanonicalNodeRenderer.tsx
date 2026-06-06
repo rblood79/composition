@@ -34,6 +34,7 @@ import { Dialog } from "@composition/shared/components/Dialog";
 import { DropZone } from "@composition/shared/components/DropZone";
 import { GridList } from "@composition/shared/components/GridList";
 import { Icon } from "@composition/shared/components/Icon";
+import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { ListBox } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
 import { Modal } from "@composition/shared/components/Modal";
@@ -101,6 +102,8 @@ const INTERNAL_RENDERERS: Readonly<
   badge: Badge,
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf
   skeleton: Skeleton,
+  // ADR-912 진로 1번: 빈 상태(empty state) internal leaf (heading/description props 직접 소비)
+  illustrated: IllustratedMessage,
   // family ④ collections — composition wrapper (useCollectionData 포함)
   listbox: ListBox,
   menu: MenuButton,

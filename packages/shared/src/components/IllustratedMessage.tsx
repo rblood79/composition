@@ -1,0 +1,92 @@
+/**
+ * IllustratedMessage Component — 빈 상태 표시 (일러스트 placeholder + Heading + Description).
+ *
+ * **ADR-912 진로 1번 IllustratedMessage proof slice (internal leaf catalog 발효, 2026-06-06)**:
+ *   IllustratedMessage 은 catalog 미등록 상태에서 spec.render.shapes(IllustratedMessage.spec.ts:104-187)
+ *   가 Skia 시각 source 였고, DOM 은 rendererMap.renderIllustratedMessage(LayoutRenderers.tsx:1890)
+ *   가 담당했다. catalog 등록 시 DOM cutover 경로(CanonicalNodeRenderer:241)가
+ *   `INTERNAL_RENDERERS["illustrated"]` 를 React 컴포넌트로 렌더 — `(element, context)` 계약의
+ *   renderIllustratedMessage 는 그 계약에 안 맞으므로(Tabs 선례), props 직접 소비 React 컴포넌트로 신설.
+ *   heading/description 은 자식 Element 가 아닌 props(factory `children: []`) → generic fallback 으로는
+ *   안 그려진다. INTERNAL_RENDERERS 어댑터가 필수.
+ *
+ *   Skia 는 `skiaPrimitive: "illustrated_message"` escape(skiaPrimitives.ts, append 모드)가 placeholder
+ *   roundRect + heading text + description text 를 그린다 — buildCatalogShapes box+text 는 단일 box +
+ *   단일 text 만 가능해 nested placeholder+2text 표현 불가.
+ *
+ * D1: composition `<div role="status">` (internal source, INTERNAL_RENDERERS 어댑터).
+ * D2: heading + description + variant(default) + size(sm/md/lg) 편집.
+ * D3: 시각(placeholder dim/text 색)은 인라인 style + 부모 CSS 변수(--bg-muted/--fg/--fg-muted).
+ *     spec.render.shapes 의 Skia escape 와 시각 대칭.
+ */
+
+import React from "react";
+
+export interface IllustratedMessageProps {
+  /** 헤딩 텍스트 */
+  heading?: string;
+  /** 설명 텍스트 */
+  description?: string;
+  /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
+  style?: React.CSSProperties;
+  /** 추가 className */
+  className?: string;
+}
+
+/**
+ * IllustratedMessage — 빈 상태(empty state) 표시 컴포넌트.
+ *
+ * cutover DOM 경로(CanonicalNodeRenderer)가 marker props/style 을 주입하므로,
+ * 본 컴포넌트는 heading/description + style/className 만 소비한다.
+ */
+export function IllustratedMessage({
+  heading,
+  description,
+  style,
+  className,
+}: IllustratedMessageProps): React.ReactElement {
+  const headingText = heading || "No content";
+  const descriptionText = description || "There is nothing to display.";
+
+  return (
+    <div
+      role="status"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        padding: 24,
+        textAlign: "center",
+        ...style,
+      }}
+      className={className}
+    >
+      {/* 일러스트 placeholder */}
+      <div
+        style={{
+          width: 120,
+          height: 120,
+          borderRadius: 12,
+          backgroundColor: "var(--bg-muted, #f3f4f6)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "var(--fg-muted, #9ca3af)",
+          fontSize: 48,
+        }}
+      >
+        &#9675;
+      </div>
+      <div
+        style={{ fontSize: 18, fontWeight: 600, color: "var(--fg, #1f2937)" }}
+      >
+        {headingText}
+      </div>
+      <div style={{ fontSize: 14, color: "var(--fg-muted, #6b7280)" }}>
+        {descriptionText}
+      </div>
+    </div>
+  );
+}

@@ -99,6 +99,7 @@ export { Badge } from "./Badge";
 export { ProgressBar } from "./ProgressBar";
 export { Meter } from "./Meter";
 export { Skeleton } from "./Skeleton";
+export { IllustratedMessage } from "./IllustratedMessage";
 export { Toast, ToastProvider, ToastRegion } from "./Toast";
 export { useToast } from "./ToastContext";
 export {

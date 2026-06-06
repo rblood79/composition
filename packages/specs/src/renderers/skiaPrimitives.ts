@@ -1006,6 +1006,99 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   return shapes;
 };
 
+/**
+ * `illustrated_message` — 빈 상태(empty state) escape. placeholder roundRect + heading text +
+ * description text 3 shape 를 자체 생성한다(append 모드 — rule fill transparent base box 위).
+ *
+ * **ADR-912 진로 1번 IllustratedMessage proof slice (2026-06-06)**: catalog 등록 시 buildCatalogShapes
+ *   box+text 는 단일 box + 단일 text 만 가능 → nested placeholder + 2-text 표현 불가. spec.render.shapes
+ *   (IllustratedMessage.spec.ts:104-187) 의 시각 로직을 escape 로 이전(spec 의존 0 — seam 제거).
+ *   heading/description 은 props(자식 Element 아님, factory children:[]). DOM(IllustratedMessage.tsx)
+ *   인라인 style 과 시각 대칭.
+ *
+ *   size-key 별 dims/headingFontSize/gap 은 자체 인라인 매핑(rule table 미보유 — escape 자기 완결).
+ *   fontSize 는 ctx.size.fontSize(rule TokenRef → resolveSpecFontSize), text 색은 visual.text.
+ */
+const ILLUSTRATION_ESCAPE_DIMS: Readonly<
+  Record<string, { box: number; headingFs: number; gap: number }>
+> = {
+  sm: { box: 80, headingFs: 16, gap: 8 },
+  md: { box: 120, headingFs: 18, gap: 12 },
+  lg: { box: 160, headingFs: 20, gap: 16 },
+};
+
+const illustratedMessage: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  style,
+}) => {
+  // 자식 보유 시(미래 확장) escape skip — props 기반 단독 leaf 만 그린다.
+  if ((props as Record<string, unknown>)._hasChildren) return [];
+
+  const sizeName = (props.size as string) ?? "md";
+  const dims =
+    ILLUSTRATION_ESCAPE_DIMS[sizeName] ?? ILLUSTRATION_ESCAPE_DIMS.md;
+
+  const descFs = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  const ff = (style?.fontFamily as string) || fontFamily.sans;
+  const textColor =
+    (style?.color as string | undefined) ??
+    visual?.text ??
+    ("{color.neutral}" as TokenRef);
+
+  const heading = (props.heading as string) ?? "No content";
+  const description =
+    (props.description as string) ?? "There is nothing to display.";
+
+  const shapes: Shape[] = [];
+
+  // 일러스트 placeholder 영역
+  shapes.push({
+    id: "illustration",
+    type: "roundRect" as const,
+    x: 0,
+    y: 0,
+    width: dims.box,
+    height: dims.box,
+    radius: 12,
+    fill: "{color.neutral-subtle}" as TokenRef,
+    fillAlpha: 0.5,
+  });
+
+  // Heading 텍스트
+  shapes.push({
+    id: "heading",
+    type: "text" as const,
+    x: 0,
+    y: dims.box + dims.gap,
+    text: heading,
+    fontSize: dims.headingFs,
+    fontFamily: ff,
+    fontWeight: 600,
+    fill: textColor,
+    align: "center" as const,
+  });
+
+  // Description 텍스트
+  shapes.push({
+    id: "description",
+    type: "text" as const,
+    x: 0,
+    y: dims.box + dims.gap + dims.headingFs + 8,
+    text: description,
+    fontSize: descFs,
+    fontFamily: ff,
+    fill: "{color.neutral-subdued}" as TokenRef,
+    align: "center" as const,
+  });
+
+  return shapes;
+};
+
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
@@ -1028,6 +1121,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   //   value_fill_arc = replace (자체 track arc + indicator arc — ProgressCircle, box 무의미)
   value_fill_bar: valueFillBar,
   value_fill_arc: valueFillArc,
+  // ADR-912 진로 1번 internal leaf escape (append 모드 — placeholder+heading+description)
+  illustrated_message: illustratedMessage,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
@@ -1051,6 +1146,8 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 선행-2: value_fill_bar 는 track box 위 막대 → append.
   //   value_fill_arc 는 자체 track+indicator arc 라 box+text 대체 → replace(기본, 미등록).
   value_fill_bar: "append",
+  // ADR-912 진로 1번: illustrated_message 는 rule fill transparent base box 위 placeholder+text → append.
+  illustrated_message: "append",
 };
 
 export function getSkiaPrimitive(
