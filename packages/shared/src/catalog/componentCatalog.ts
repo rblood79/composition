@@ -226,6 +226,16 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "avatar",
     icon: "User",
   }),
+  // ADR-912 진로 1번 ProgressCircle proof slice (value-fill, 2026-06-06): 원형 진행률 internal leaf.
+  //   Skia 는 skiaPrimitive "value_fill_arc" escape(track arc 360° + value 비례 indicator arc, replace —
+  //   buildCatalogShapes arc 미지원), DOM 은 INTERNAL_RENDERERS["progresscircle"](ProgressCircle.tsx,
+  //   props.value/size/isIndeterminate 소비, SVG circle stroke-dasharray). value/size 가 자식 Element 아닌
+  //   props(factory children:[]) → generic fallback 미적용, 어댑터 필수(Avatar circle escape 동형).
+  primitiveEntry("ProgressCircle", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "progress circle",
+    icon: "Loader",
+  }),
 ];
 
 /**

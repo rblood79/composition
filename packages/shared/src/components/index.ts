@@ -102,6 +102,7 @@ export { Skeleton } from "./Skeleton";
 export { IllustratedMessage } from "./IllustratedMessage";
 export { StatusLight } from "./StatusLight";
 export { Avatar } from "./Avatar";
+export { ProgressCircle } from "./ProgressCircle";
 export { Toast, ToastProvider, ToastRegion } from "./Toast";
 export { useToast } from "./ToastContext";
 export {

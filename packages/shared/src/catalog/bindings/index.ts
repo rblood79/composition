@@ -40,6 +40,7 @@ import { numberFieldBinding } from "./NumberField.binding";
 import { paragraphBinding } from "./Paragraph.binding";
 import { popoverBinding } from "./Popover.binding";
 import { progressBarTrackBinding } from "./ProgressBarTrack.binding";
+import { progressCircleBinding } from "./ProgressCircle.binding";
 import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
@@ -100,6 +101,7 @@ export * from "./NumberField.binding";
 export * from "./Paragraph.binding";
 export * from "./Popover.binding";
 export * from "./ProgressBarTrack.binding";
+export * from "./ProgressCircle.binding";
 export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
 export * from "./RangeCalendar.binding";
@@ -195,6 +197,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   ProgressBarTrack: progressBarTrackBinding,
   // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape, variant 4색)
   MeterTrack: meterTrackBinding,
+  // ADR-912 진로 1번: 원형 진행률 internal leaf (value_fill_arc escape, replace — arc 미generic).
+  //   leaf(children:[]) + value/size props → DOM=INTERNAL_RENDERERS["progresscircle"](SVG ring).
+  ProgressCircle: progressCircleBinding,
   // family ④ collections (internal source — composition wrapper + useCollectionData)
   ListBox: listBoxBinding,
   Menu: menuBinding,

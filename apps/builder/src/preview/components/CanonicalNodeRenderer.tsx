@@ -37,6 +37,7 @@ import { Icon } from "@composition/shared/components/Icon";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { StatusLight } from "@composition/shared/components/StatusLight";
 import { Avatar } from "@composition/shared/components/Avatar";
+import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
 import { ListBox } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
 import { Modal } from "@composition/shared/components/Modal";
@@ -110,6 +111,8 @@ const INTERNAL_RENDERERS: Readonly<
   statuslight: StatusLight,
   // ADR-912 진로 1번: 사용자 아바타 internal leaf (src/initials/size props 직접 소비, image generic 불가)
   avatar: Avatar,
+  // ADR-912 진로 1번: 원형 진행률 internal leaf (value/size/isIndeterminate props 직접 소비, SVG ring generic 불가)
+  progresscircle: ProgressCircle,
   // family ④ collections — composition wrapper (useCollectionData 포함)
   listbox: ListBox,
   menu: MenuButton,
