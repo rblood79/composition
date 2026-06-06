@@ -1099,6 +1099,80 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
   return shapes;
 };
 
+/**
+ * `status_light` — 상태 표시 dot(circle) + 라벨 text. escape(append 모드).
+ *
+ * **ADR-912 진로 1번 StatusLight proof slice (2026-06-06)**: catalog 등록 시 buildCatalogShapes
+ *   box+text 는 circle 미지원 → spec.render.shapes(StatusLight.spec.ts:362-425)의 dot circle +
+ *   text 로직을 escape 로 이전(spec 의존 0 — seam 제거). 기존 `dot` primitive(`props.isDot` gate,
+ *   Checkbox/Radio 전용 + text 미렌더)와 별개 — 회귀 위험 0.
+ *
+ *   dot 색 = visual.fill.default.base(variant status 색), text 색 = visual.text. dotSize/gap/height
+ *   는 ctx.size(rule sizes). DOM(StatusLight.tsx) 인라인 style 과 시각 대칭.
+ */
+const statusLight: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const dotSize = typeof size.dotSize === "number" ? size.dotSize : 10;
+  const dotRadius = dotSize / 2;
+  const gap = typeof size.gap === "number" ? size.gap : 8;
+  const h = typeof size.height === "number" ? size.height : 24;
+  const centerY = h / 2;
+
+  const dotColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    ("{color.neutral-subdued}" as TokenRef);
+  const textColor =
+    (style?.color as string | undefined) ??
+    visual?.text ??
+    ("{color.neutral}" as TokenRef);
+
+  const shapes: Shape[] = [
+    // 상태 표시 dot (수직 중앙 정렬)
+    {
+      id: "dot",
+      type: "circle" as const,
+      x: dotRadius,
+      y: centerY,
+      radius: dotRadius,
+      fill: dotColor,
+    },
+  ];
+
+  // 자식 보유(미래 확장) 시 dot 만 — 라벨은 자식이 담당.
+  if ((props as Record<string, unknown>)._hasChildren) return shapes;
+
+  const text = props.children;
+  if (text) {
+    const fontSize = resolveSpecFontSize(
+      (style?.fontSize as string | number | undefined) ?? size.fontSize,
+      14,
+    );
+    const fwRaw = style?.fontWeight;
+    const fw =
+      fwRaw != null
+        ? typeof fwRaw === "number"
+          ? fwRaw
+          : parseInt(String(fwRaw), 10) || 400
+        : 400;
+    const ff = (style?.fontFamily as string) || fontFamily.sans;
+
+    shapes.push({
+      type: "text" as const,
+      x: dotSize + gap,
+      y: centerY,
+      text: text as string,
+      fontSize,
+      fontFamily: ff,
+      fontWeight: fw,
+      fill: textColor,
+      align: "left" as const,
+      baseline: "middle" as const,
+    });
+  }
+
+  return shapes;
+};
+
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
@@ -1123,6 +1197,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   value_fill_arc: valueFillArc,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — placeholder+heading+description)
   illustrated_message: illustratedMessage,
+  // ADR-912 진로 1번 internal leaf escape (append 모드 — dot circle + label text)
+  status_light: statusLight,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
@@ -1148,6 +1224,10 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   value_fill_bar: "append",
   // ADR-912 진로 1번: illustrated_message 는 rule fill transparent base box 위 placeholder+text → append.
   illustrated_message: "append",
+  // ADR-912 진로 1번: status_light 는 dot+text 자체 생성, box 무의미 → replace.
+  //   rule fill base 는 dot 색(variant status). base box 로 칠하면 box 전체가 status 색 →
+  //   DOM(dot 만 색) 과 비대칭. replace 로 base box 미생성, escape 가 dot circle + text 만 그림.
+  status_light: "replace",
 };
 
 export function getSkiaPrimitive(

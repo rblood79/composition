@@ -85,6 +85,20 @@ export interface PrimitiveBinding {
     accepts: Record<string, PropContract>;
     /** canonical props → RAC component props 투영기 식별자. 구현은 `outputs/toRacProps.ts`. */
     toRacProps: string;
+    /**
+     * visual-enum kind(variant/size/fillStyle)라도 `data-*` 속성이 아니라 React **prop** 으로
+     * 통과시킬 키 목록. `toRacProps` 의 generic data-attr 라우팅을 이 키에 한해 우회한다.
+     *
+     * **Why (ADR-912 StatusLight slice, 2026-06-06)**: 기본 라우팅은 visual-enum 을 `data-variant`
+     * 등으로 보내고 generated CSS(`[data-variant]{background}`)가 색을 적용한다(RAC source 40 의
+     * 정상 동작). 그러나 internal source leaf 중 variant 가 CSS selector 부가속성이 아니라 색 계산의
+     * **semantic input** 인 outlier(StatusLight = dot indicator, generated CSS 컨테이너 칠 불가)는
+     * 컴포넌트가 variant 를 prop 으로 받아 runtime rule 색을 계산해야 한다. data-attr 만 오면 prop 이
+     * undefined → default 고정(Skia 는 rule 직접 → 비대칭). 이 필드로 그 키만 prop 통과시켜 격리한다.
+     *
+     * 미설정(대부분) → 기존 data-attr 라우팅 유지(회귀 0). RAC source 에는 사용하지 않는다.
+     */
+    propPassthrough?: readonly string[];
   };
   /**
    * 비-DOM-trivial primitive(arc/track/indicator/wheel 등)의 Skia draw module 키.

@@ -48,6 +48,7 @@ import { selectBinding } from "./Select.binding";
 import { separatorBinding } from "./Separator.binding";
 import { skeletonBinding } from "./Skeleton.binding";
 import { sliderBinding } from "./Slider.binding";
+import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
 import { tabsBinding } from "./Tabs.binding";
@@ -106,6 +107,7 @@ export * from "./Select.binding";
 export * from "./Separator.binding";
 export * from "./Skeleton.binding";
 export * from "./Slider.binding";
+export * from "./StatusLight.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
 export * from "./Tabs.binding";
@@ -151,6 +153,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   FileTrigger: fileTriggerBinding,
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
   Skeleton: skeletonBinding,
+  // ADR-912 진로 1번: 상태 표시 dot+label internal leaf (status_light escape, replace)
+  StatusLight: statusLightBinding,
   // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source, generic
   //   box 시각). spec.render.shapes Skia fallback 제거. SHELL_ONLY(Body/Section) 또는 자식 무관
   //   bg(Nav) → buildCatalogShapes box 만으로 spec parity. List 는 샘플 text 때문에 별도 보류.

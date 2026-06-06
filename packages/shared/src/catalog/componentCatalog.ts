@@ -208,6 +208,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "illustrated message",
     icon: "ImageOff",
   }),
+  // ADR-912 진로 1번 StatusLight proof slice (2026-06-06): 상태 표시 dot+label internal leaf.
+  //   Skia 는 skiaPrimitive "status_light" escape(dot circle + text, replace — box 무의미),
+  //   DOM 은 INTERNAL_RENDERERS["statuslight"](StatusLight.tsx, props.variant/size/children 소비).
+  //   기존 dot primitive(isDot gate, Checkbox/Radio)와 별개 escape.
+  primitiveEntry("StatusLight", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "status light",
+    icon: "Circle",
+  }),
 ];
 
 /**

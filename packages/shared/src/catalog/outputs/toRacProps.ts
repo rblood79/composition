@@ -37,6 +37,7 @@ export function toRacProps(
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const props = node.props;
+  const passthrough = binding.props.propPassthrough;
 
   for (const [key, contract] of Object.entries(binding.props.accepts)) {
     const hasValue =
@@ -44,7 +45,13 @@ export function toRacProps(
     const value = hasValue ? props[key] : contract.default;
     if (value === undefined) continue;
 
-    if (DATA_ATTR_KINDS.has(contract.kind)) {
+    if (DATA_ATTR_KINDS.has(contract.kind) && passthrough?.includes(key)) {
+      // propPassthrough 키: visual-enum 이라도 React prop 으로 통과 + data-* 도 함께 emit
+      // (CSS/debug marker 보존). internal source leaf 의 semantic prop 전용.
+      // (ADR-912 StatusLight slice — variant 가 dot 색 계산 input 인 outlier)
+      out[key] = value;
+      out[`data-${toDataAttrName(key)}`] = String(value);
+    } else if (DATA_ATTR_KINDS.has(contract.kind)) {
       out[`data-${toDataAttrName(key)}`] = String(value);
     } else {
       out[key] = value;
