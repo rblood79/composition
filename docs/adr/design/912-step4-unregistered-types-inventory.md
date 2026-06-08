@@ -1126,6 +1126,54 @@ DateSegment(수요 측 공백, canonical 미생성) / Autocomplete(공급 측 �
 
 - Tag metadata `editorName:"TagEditor"`(metadata.ts:939) ✓ / Field metadata `hasCustomEditor:false`(metadata.ts:1035-1038, orphan) ✓ / `renderTag` `child.type==="Field"` 필터(CollectionRenderers.tsx:555-560) ✓ — 3건 직접 재확인, synthesis 판정 일치. 적대적 verify 가 양축(G-factory/G-consumer) FAIL 유지 + G-registry 만 PARTIAL→PASS 정정.
 
+## 다른 true-dead 후보 전수 recon (2026-06-09, DateSegment 식 "수요 측 공백" 잠재 후보 set-difference + 적대적 cross-check, 코드 변경 0)
+
+> **사용자 권장 순서 2번**: Field no-go 확정으로 "Autocomplete/DateSegment 처럼 진입점 제거만으로 끝나는 즉시-폐기 proof 라인" 이 끊긴 뒤, **다른 true-dead 후보가 남았는지 전수 확인**. DateSegment 의 전제 반전 양방향 교훈("render.shapes 실체 있어도 canonical element 미생성이면 4 gate PASS")이 다른 type 에도 숨어 있는지가 핵심 질문. 본 섹션은 recon-only. **물리 삭제 미착수.**
+
+### 결론 — 🔴 DateSegment 식 true-dead 후보 0건 (즉시-폐기 proof 라인 종료 확정)
+
+P3 표(line 920)의 "모두 최소 1 gate FAIL = true-dead 0건" 은 DateSegment 발견(수요 측 공백) 후에도 **잔여 전체에 대해 유효**함을 set-difference + 적대적 cross-check 로 재확인. true-dead 가 됐던 2 type(Autocomplete=공급 측 공백 / DateSegment+TimeSegment=수요 측 공백)은 모두 폐기 완료. **남은 type 은 전부 1+ gate 가 active = 보존 또는 마이그레이션 선행(no-go).**
+
+### recon 방법 — "factory 0 = 수요 측 공백 후보" set-difference (DateSegment 판별식)
+
+DateSegment 가 true-dead 였던 결정적 조건 = **canonical element 미생성**(factory 0 + runtime 0 + projection 0). 이를 판별식으로 전 spec 파일(123개)에 적용 → factory>0 / projection 발효 / runtime 생성 중 하나라도 있으면 즉시 보존 제외, 셋 다 0 인 것만 잠재 true-dead 후보로 추출.
+
+**1차 set-difference 결과** (factory=0 인 spec 24개 중 projection/runtime 도 0 인 잠재 후보 **8개**): `Code / ColorWheel / GridListItem / Header / Kbd / MenuItem / Paragraph / TableCell`.
+
+(나머지 16개는 즉시 보존 — Breadcrumb/Tab/Tag = projection 발효 / Badge/Body/DropZone/Field/FileTrigger/Frame/Group/Icon/ListBoxItem/MaskedFrame/Modal/Skeleton/TailSwatch/Text = runtime 생성.)
+
+### 8 후보 적대적 cross-check — 전부 보존 (true-dead 0)
+
+| type                                    | render.shapes | 실제 사인(死因 아님) — 왜 보존인가 (file:line)                                                                                                                                                                                                                                                                                                                                                                                                                                                         | gate 판정       |
+| --------------------------------------- | :-----------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
+| **Code / Kbd / Paragraph**              |    body 有    | `binding=1 + primitiveEntry=1` — **catalog 발효 완료**(TEXT_LEAF, line 753). render.shapes 는 buildCatalogShapes generic 으로 대체됨. "① 발효 spec" 이라 step4 의 발효-군 spec 삭제 대상이지 true-dead 폐기 대상 아님 (Skia=generic, DOM=generated CSS active)                                                                                                                                                                                                                                         | G-render 발효   |
+| **GridListItem / TableCell / MenuItem** |    body 有    | catalog/binding 0 이나 **parent projection cell leaf** — GridList/Table/Menu projection 이 자식 render.shapes 를 호출(line 757 "GridListItem/TableCell 선례 동형"). render.shapes 가 **active Skia source** → 삭제 시 cell 시각 소실. G-render **active**                                                                                                                                                                                                                                              | G-render FAIL   |
+| **ColorWheel**                          |    body 有    | color 7 ⑤ 보존(scope 외, glob 제외, line 762/776). 사용자 scope 밖 — touch 안 함                                                                                                                                                                                                                                                                                                                                                                                                                       | scope 외        |
+| **Header**                              |  `() => []`   | **RAC `slot="section-header"` 구조 leaf**(Header.spec.ts:18-19/25). factory 0 + render.shapes 빈 배열은 DateSegment 와 동일하나, **`containerStyles` 가 `.react-aria-Header` CSS 를 부모 ListBox/GridList/Menu CSS 에 inline emit**(generated/ListBox.css:123+) → RAC `<AriaMenuHeader>`(CollectionRenderers.tsx:811) / `<AriaHeader>`(SelectionRenderers.tsx:380) / `<AriaGridListHeader>`(:700) 가 Preview 에서 **active 렌더**. Autocomplete.css(orphan, 소비 DOM 0)와 정반대 — **CSS 소비 active** | G-consumer FAIL |
+
+### Header — "가장 DateSegment 닮은 보존" (전제 반전 재발 방지 기록)
+
+Header 는 factory 0 + `render.shapes: () => []` 빈 배열이라 **DateSegment 식 true-dead 로 오인하기 쉬운 outlier**. 그러나 결정적 차이:
+
+- **DateSegment**: RAC 가 `<DateInput>{(seg)=><DateSegment/>}` 로 render-time 합성 + DateInput escape 가 placeholder text 자체 렌더 → segment 의 시각 기여 0(수요·공급 양측 공백) = true-dead.
+- **Header**: RAC `<Header slot="section-header">` 도 render-time 합성이나, **HeaderSpec 의 `containerStyles` 가 그 `<Header>` 의 CSS source** (sticky + muted + semibold, ADR-099 Phase 3). 폐기 시 collection section header 스타일 소실 = G-consumer FAIL. **시각 기여 active** → 보존.
+
+판별 교훈: "factory 0 + render.shapes 빈 배열" 만으로 true-dead 판정 금지 — **DOM CSS emit consumer(containerStyles → 부모 CSS inline)** 도 G-consumer 축. 4 gate 전부(G-render·G-factory·G-registry·**G-consumer**) PASS 확인 필수.
+
+### 즉시-폐기 proof 라인 종료 — 잔여 = 마이그레이션 선행(no-go) 또는 영역 B/별도 ADR
+
+true-dead 0 확정으로, 잔여 미등록 type 의 폐기는 전부 **선행 작업 동반**:
+
+- **무손실 7**(SliderThumb/TabPanel/TabPanels/MeterValue/ProgressBarValue/SliderOutput/Field): 전부 **parent factory 가 canonical element 생성**(factory ≥1 실측: LayoutComponents.ts:45/49/55, FormComponents.ts:574/580/588/630, DisplayComponents.ts:382/471) → G-factory FAIL. Field 와 동급 no-go(부모 factory child-생성 제거 + hydration migration 선행).
+- **영역 B 14 + List**: projection/controller/leadingIcon 메커니즘 신설 동반(별도 설계축).
+- **container shell 9**: step4 일괄 정책 결정(spec 존치 vs frame-like generic).
+
+### main cross-check (set-difference + 8 후보 판정 직접 확증)
+
+- factory 생성 라인 = JSDoc 아닌 실제 child-element 생성 재확인: TabPanels/TabPanel(LayoutComponents.ts:45/49/55) / SliderThumb·SliderOutput(FormComponents.ts:574/580/588/630) / ProgressBarValue(DisplayComponents.ts:382) / MeterValue(DisplayComponents.ts:471) ✓
+- Header CSS 소비 active = `AriaMenuHeader`(CollectionRenderers.tsx:15/811) + `AriaHeader`/`AriaGridListHeader`(SelectionRenderers.tsx:16/18/380/700) RAC 렌더 ✓ / `.react-aria-Header` 규칙 generated/ListBox.css:123+ ✓ / Header.css 파일 부재(skipCSSGeneration, 부모 CSS inline emit) ✓
+- `feedback-analysis-precision-patterns` §1(이름/주석 신뢰 금지 + agent 주장도 검증) + DateSegment 전제 반전 교훈 적용 — "빈 render.shapes = dead" 직관 차단, G-consumer(CSS emit) 축 누락 방지.
+
 ## 관련
 
 - ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (step 4 no-go)
