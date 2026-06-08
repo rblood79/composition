@@ -182,6 +182,21 @@ value-fill 군 4 + 자식 sub-part(SliderThumb 빈 shapes 는 안전, SliderOutp
 
 **차단 메모리 자기-인용 (recon = 코드 변경 0 정합)**: `feedback-container-generic-box-no-classification`(ADR-142) — 옵션 B 는 컴포넌트명 if 가 아니라 visual 데이터(leadingIcon/trailingIcon) 유무 + textAlign 분기 → CalendarHeader 전용 buildSpecNodeData if 미생성, 위반 아님. `feedback-no-derived-adr-mid-execution`/`feedback-execute-adr-surface-minimization` — recon 은 옵션 surface 까지, module 신설 / CONTAINER_DIMENSION·INLINE_BLOCK 등록은 사용자 별도 승인 전 자동 확장 금지.
 
+#### ✅ CalendarHeader (B+icon) 발효 완료 (2026-06-08 — commit `302fd9e14`, 옵션 B inline_icon_text replace)
+
+사용자 승인 후 옵션 B 발효 slice 전수 land. 5 작업 + 회귀 게이트 + live 검증 완료:
+
+- **① inline_icon_text replace DrawFn 신설**(`skiaPrimitives.ts`): visual.leadingIcon(chevron-left) + center text(props.children) + visual.trailingIcon(chevron-right) 3-shape 자기 생성. cellSize=iconSize+4 / 좌 cellSize/2 / text cellSize center maxWidth=width-cellSize\*2 / 우 width-cellSize/2 (CalendarHeader.spec.ts:149-200 1:1). width=`_containerWidth`(CONTAINER_DIMENSION) ?? style.width ?? cellSize\*7+gap\*6. SKIA_PRIMITIVE_MODES replace 등록.
+- **② visual rule 채널 확장**: `ComponentRuleVariant.trailingIcon` + `textAlign` (composition-document.types.ts) + `ComponentRuleSize.gap` + ComponentVisualRule trailingIcon/textAlign + variantToVisual/ruleVariantToVisual 투영.
+- **③ CalendarHeader rule**(componentRulesTable.ts): variants.{default,accent}.leadingIcon{chevron-left}/trailingIcon{chevron-right}/textAlign:center + sizes iconSize/gap/paddingX(spec CALENDAR_HEADER_DIMS 동형 sm{20,4}/md{26,6}/lg{32,8}).
+- **④ binding + catalog**: CalendarHeader.binding.ts 신설(internal/calendarheader + inline_icon_text + children/locale/calendarSystem/size accepts) + index 3곳 + primitiveEntry FAMILY_1.
+- **⑤ width/layout 등록**: CONTAINER_DIMENSION_TAGS + INLINE_BLOCK_TAGS calendarheader + calculateContentWidth(기존 1.2a calendargrid||calendarheader 분기 cellSize\*7+gap\*6 활용) + calculateContentHeight spec(CalendarHeaderSpec) → rule 인라인 미러 전환(spec fallback 0). CalendarHeaderSpec import 제거.
+- **회귀 게이트**: `calendarHeaderIntrinsicSize.test.ts` 7 + disclosureHeader 6 + resolveSkiaVisualRule drift allowlist(DisclosureHeader leadingIcon 누락 갭 동반 해소, CalendarHeader leadingIcon/trailingIcon/textAlign) → 218 PASS + registration-contract 10 + leadingIcon 8.
+
+**kill criteria 전수 통과 (live 검증 commit 직후 builder exercise)**: (1) 좌/우 chevron + 중앙 "2026년 6월" Skia 렌더 = CSS Preview `‹ 2026년 6월 ›` 시각 대칭(zoom 확인) / (2) DOM 부모 Calendar self-compose, `exactCalHeaderNodes:0`(`react-aria-CalendarHeaderCell` 요일 th 7개는 RAC weekday, CalendarHeader 컴포넌트 노드 아님), `<header>` 1개 / (3) width 0 회귀 없음(selection box "374 × 30") / (4) spec fallback 0(FAMILY_1_CUTOVER="catalog" cutover 경로) / (5) 현재월 DOM↔Skia "2026년 6월" 동일 / (6) type-check baseline 110 신규 0.
+
+**DisclosureHeader 보다 1단계 무거움 확증**: 우측 chevron containerWidth 의존 → CONTAINER_DIMENSION 등록 + center textAlign 충돌 → leading_icon append(box+text 위) 아닌 inline_icon_text replace(전체 자기 생성). (B+icon) 채널 = DisclosureHeader(leading_icon append) + CalendarHeader(inline_icon_text replace) 2 module 로 정리 완결.
+
 ### 선행-6 위험군 16 종합 분류 (2026-06-04 완성)
 
 field/form 5 + collection 8 + date 3 = 16 전수 실측 완료. catalog 등록 군 ↔ 보류 군 결산:
