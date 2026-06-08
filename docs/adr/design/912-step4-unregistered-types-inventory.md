@@ -261,6 +261,44 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 - `feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization` — 본 설계 비교까지만(코드 변경 0). `appendTagRowProjection` 실제 구현(코드) 진입은 사용자 별도 승인. 설계 lock-in 만으로 confirm 자동 처리 금지.
 - `feedback-analysis-precision-patterns` — 위 실측 표는 이름·주석 신뢰 금지, 전부 file:line code grep evidence(Explore agent 2 + main 직접 확증).
 
+### (A) 잔여 5 type 4축 recon 종합 (2026-06-08 — Workflow wcbuumqn1, 5 Explore + 종합, 코드 변경 0)
+
+> 사용자 권장 "영역 B(A) 잔여 5 recon" 실행. 5 type(TreeItem/Breadcrumb/SelectIcon/SelectTrigger/SelectValue) 4축(부모 propagation / DOM 흡수 vs child catalog / Skia projection source / write-target·hit-test) file:line 정찰. **핵심 결과 = (A) parent projector 적격은 Breadcrumb 1개뿐, 나머지 4는 다른 메커니즘으로 재분류**. 사용자 가설("SelectIcon=정적 chevron→(B+icon), SelectValue=controller render-prop→(C)") 증거 확정.
+
+#### 4축 매트릭스
+
+| type              | 축1 부모 propagation                                                                                      | 축2 DOM 흡수 vs catalog child                                                                                         | 축3 Skia projection source                                                                                                        | 축4 write-target / hit-test                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Breadcrumb**    | items SSOT 부재(정적 children-manager, propagationRegistry 0건). buildSpecNodeData:405-440 ad-hoc context | **부모 미흡수** — 자식 독립 DOM(Breadcrumbs.tsx:219-226 boundData.map→RACBreadcrumb, .react-aria-Breadcrumb selector) | 자식 spec self-render(Breadcrumb.spec.ts:125-194 text+separator), 부모 shell-only. appendBreadcrumbRowProjection 0건              | href navigation(선택 없음). breadcrumb-row write-target 미등록                        |
+| **TreeItem**      | 없음(Tree.spec propagation 0건). factory static children(LayoutComponents.ts:213-226)                     | 부모 완전 흡수(renderTree 재귀, Tree.tsx:277 Collection). catalog child 불가                                          | spec self-render(TreeItem.spec.ts:87-142 chevron+text). appendTreeRowProjection 0건. **재귀 계층**                                | owner Tree redirect. tree-row kind 0건(renderProjectionIds:97-111)                    |
+| **SelectIcon**    | 없음 — size 만 전파(Select.spec.ts:678-680), items 아님. iconName optional 정적 chevron                   | DOM 흡수(Select.tsx:303-354 RAC Button inline SVG). catalog binding 부재                                              | spec self-render 정적 icon_font(SelectIcon.spec.ts:144-151), archetype "simple". eventMode:"none"(:159-161)                       | write property 0개. owner Select toggle. per-item 무관                                |
+| **SelectTrigger** | size/placeholder 전파(Select.spec.ts:668-695). childSpecs 없음                                            | DOM 흡수 완전(RAC Button 직접). catalog 등록 불가                                                                     | spec self-render box+border(SelectTrigger.spec.ts:178-247). items iteration 불가 단일 노드                                        | owner Select toggle(isOpen). write-target 미정의                                      |
+| **SelectValue**   | placeholder+size 전파(Select.spec.ts:673-674,689-693). items 부모 잔류                                    | 독립 DOM span(Select.tsx:304 `<Button><SelectValue/></Button>`). SYNTHETIC 이나 text-merge 아님                       | **RAC controller render-prop 바인딩** — 정적 text leaf(SelectValue.spec.ts:114 children\|\|placeholder). selectvalue-row kind 0건 | write-target 0개(kind 미등록→null). owner Select 선택(SelectionRenderers.tsx:881-898) |
+
+#### (A) 적격 판정 + 재분류
+
+| type              | (A) parent projector?  | 재분류 → 메커니즘                                   | Tag/Tab 복제 적합도                                                                                                                                      |
+| ----------------- | ---------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Breadcrumb**    | ✅ **YES (유일 적격)** | (A) 유지                                            | **높음 (1위)** — children-manager + 자식 독립 DOM + 자식 spec 유일 source + flat 1단 row(ListBoxProjectionRow depth=0 직접). Tag/Tab 발효 코드 복제 적합 |
+| **TreeItem**      | ❌ (현 모델)           | **(A) 변종 — 재귀 row family(별도 schema 선행)**    | 낮음 — depth×itemKey 튜플 → flat row(depth=0 가정) 직접 복제 불가. depth=N projection metadata 신규 설계 필요                                            |
+| **SelectIcon**    | ❌                     | **(B+icon) leadingIcon/trailingIcon generic 채널**  | 낮음(직교) — items closure 0, 정적 chevron, eventMode none. ListBoxItem icon field 동형 generic 상속                                                     |
+| **SelectValue**   | ❌                     | **(C) controller-bound text leaf(RAC render-prop)** | 낮음(불일치) — projection 도입은 RAC binding model 위배. non-projectable leaf 유지가 RAC-idiomatic                                                       |
+| **SelectTrigger** | ❌                     | **(C) / box leaf 단순 등록(self-render box)**       | 낮음 — DOM 병합 + items iteration 없음 + per-row write-target 없음. proof = propagation 정합 + box/border parity                                         |
+
+**핵심 통찰 — Select 3-자식 전부 (A) 비대상**: SelectIcon((B+icon)) / SelectValue((C)) / SelectTrigger((C)/box)는 모두 (A) parent projector 가 아니다. **Select 자신이 collection owner 이고 props.items SSOT 를 단독 보유**하므로 자식들은 projector 가 아닌 정적 affordance(icon/box/controller-text). 사용자가 "잔여 5 (A)"로 묶었으나, 실측상 (A) 메커니즘 대상은 Breadcrumb 1개로 축소된다.
+
+#### 최소 proof 후보 (목적별 분기)
+
+- **(A) parent projector 실행 proof = Breadcrumb** (5 type 중 (A) 유일 적격, Tag/Tab 선례 복제 적합도 1위, flat 1단 row). 단 **blockers = step4 차단(catalog 미등록 자식 spec fallback 유일 source) + propagation 미등록 + appendBreadcrumbRowProjection 미구현 + projection metadata union(breadcrumb-row) 미정의 + ad-hoc resolveBreadcrumbItemContext → projection 전환** — 전부 Tag/Tab 발효 시 해소된 항목이라 선례 복제 가능(신규 schema 불요, TreeItem 과 결정적 차이). **단 separator(crumb 사이, Breadcrumbs.css:20-27 ::after / Skia 별도 shape)는 Tag X(chip 내부)와 비대칭** — 2026-06-05 정찰의 "축 ① 되감기(items SSOT 신설) 선행" 판정은 본 recon 에서 재확인(items SSOT 부재 = `StoredBreadcrumbItem` 미정의). → Breadcrumb (A) 진입 = items SSOT 신설(축 ①) + projection 발효(축 ②) 2축 동반, Tag/Tab(이미 items SSOT 보유) 보다 큼.
+- **메커니즘 분류 확정 작업 = SelectIcon** (spec inspection 만으로 (B+icon) 확정, 코드 변경 거의 0, 5 중 최소 작업량). 단 분류 확정일 뿐 발효 아님 — (B+icon) leadingIcon generic 채널 자체는 DisclosureHeader/CalendarHeader 와 묶는 별도 메커니즘.
+- **TreeItem 은 뒤** (사용자 감각 일치) — 재귀 depth schema 신규 설계 선행.
+
+#### 차단 메모리 자기-인용
+
+- `feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization` — 본 recon 종합까지만(코드 변경 0). 다음 proof slice 진입(Breadcrumb (A) / SelectIcon (B+icon) 분류 / 다른 후보)은 사용자 별도 승인. recon 결과 surface 만으로 자동 확장 금지.
+- `feedback-analysis-precision-patterns` — 위 4축·재분류 표는 전부 file:line code grep evidence(Workflow wcbuumqn1 5 Explore agent). 이름·주석 신뢰 금지.
+- `feedback-container-generic-box-no-classification`(ADR-142) — Select 3-자식 재분류((B+icon)/(C)/box)는 메커니즘 데이터 소스 분류일 뿐 buildSpecNodeData 컴포넌트별 if 분기 아님. (B+icon)은 rule leadingIcon generic 채널, (C)는 controller 어댑터 단일 handler.
+
 ---
 
 선행-1~6 완료 → step 4 진입 (사용자 명시 삭제 승인 별도).
