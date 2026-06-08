@@ -9,6 +9,7 @@ import { bodyBinding } from "./Body.binding";
 import { breadcrumbsBinding } from "./Breadcrumbs.binding";
 import { buttonBinding } from "./Button.binding";
 import { calendarBinding } from "./Calendar.binding";
+import { calendarGridBinding } from "./CalendarGrid.binding";
 import { calendarHeaderBinding } from "./CalendarHeader.binding";
 import { checkboxBinding } from "./Checkbox.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
@@ -77,6 +78,7 @@ export * from "./Body.binding";
 export * from "./Breadcrumbs.binding";
 export * from "./Button.binding";
 export * from "./Calendar.binding";
+export * from "./CalendarGrid.binding";
 export * from "./CalendarHeader.binding";
 export * from "./Checkbox.binding";
 export * from "./CheckboxGroup.binding";
@@ -248,6 +250,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 (B+icon): CalendarHeader leaf (inline_icon_text replace — 좌 chevron + center text + 우 chevron).
   //   DOM 은 부모 Calendar self-compose(독립 노드 0), Skia 만 자기 노드 발효.
   CalendarHeader: calendarHeaderBinding,
+  // ADR-912 (A/2D): CalendarGrid leaf (calendar_month_grid replace — 요일 헤더 + 날짜 셀 + today circle).
+  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Skia 만 자기 노드 발효. nav 는 CalendarHeader 담당.
+  CalendarGrid: calendarGridBinding,
   RangeCalendar: rangeCalendarBinding,
   DatePicker: datePickerBinding,
   DateRangePicker: dateRangePickerBinding,

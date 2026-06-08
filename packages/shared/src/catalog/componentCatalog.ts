@@ -264,6 +264,19 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "calendar header",
     icon: "ChevronsLeftRight",
   }),
+  // ADR-912 (A/2D): CalendarGrid leaf (calendar_month_grid replace — 요일 헤더 + 날짜 셀 + today circle).
+  //   recon(6축) 으로 즉시 차단 absent(day cell self-render, List ListItem NO_SPEC 같은 차단 없음) +
+  //   date state static props 자기충족 확정. CalendarHeader 동형 standalone replace escape. nav 는 없음
+  //   (nav = CalendarHeader 담당) → 부모 calendar_grid(nav 포함)와 별개 키. DOM 은 부모 Calendar/
+  //   RangeCalendar(Calendar.tsx:122 self-compose `<CalendarGrid>`)가 흡수, children 미렌더 →
+  //   CalendarGrid DOM 독립 노드 0(catalog 등록 후에도 DOM 변화 없음, Skia spec.render.shapes fallback
+  //   제거가 목적). Calendar calendar_grid escape 는 _hasChildren=true 시 shell 만 → 자식 CalendarGrid
+  //   가 grid 렌더(이중 렌더 아님). palette 비노출(Calendar 자식, 단독 배치 안 함).
+  primitiveEntry("CalendarGrid", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar grid",
+    icon: "CalendarDays",
+  }),
 ];
 
 /**

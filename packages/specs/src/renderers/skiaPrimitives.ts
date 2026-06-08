@@ -771,6 +771,128 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 };
 
 /**
+ * `calendar_month_grid` — Calendar compound 의 **CalendarGrid 자식** leaf(요일 헤더 7 + 날짜 셀 +
+ * today dot circle). nav(월/년 + chevron)는 **CalendarHeader 자식**(`inline_icon_text`)이 담당하므로
+ * 본 escape 는 nav 없이 grid 부분만 self-render — 부모 `calendar_grid`(Calendar 전체, nav 포함)와 별개.
+ *
+ * **ADR-912 (A/2D) CalendarGrid 발효 (replace, 2026-06-08)**: recon(6축) 으로 즉시 차단 absent 확정 —
+ *   day cell 을 spec self-render(자식 NO_SPEC 차단 없음), date state = static props 자기충족
+ *   (dayOffset/totalDays/todayDate, RAC CalendarState 비의존 — SliderTrack controller-free 동형).
+ *   CalendarHeader 동형 standalone replace escape. circle(today dot) + 2D 절대좌표 self-positioning →
+ *   generic buildCatalogShapes box+text 로 재현 불가 → replace 모드(자체 grid box 생성).
+ *
+ * 좌표 = CalendarGrid.spec.ts render.shapes 1:1: cellSize=iconSize+4, weekdayY=cellSize/2,
+ *   gridStartY=cellSize(요일 행 바로 아래, nav 없음). day x=cellLeft(col*(cellSize+gap)),
+ *   y=gridStartY+row*(cellSize+gap)+cellSize/2. today circle x=cellCenter, y=cy+cellSize/2-4, radius:3.
+ * spec-free: visual rule(text/transparent fill) + props(dayOffset/totalDays/todayDate/locale) 만 읽음.
+ *
+ * **DOM = 부모 Calendar/RangeCalendar self-compose(독립 노드 0)**: Calendar.tsx:122-128 의
+ *   `<div className="calendar-grids"><CalendarGrid offset>{(date)=><CalendarCell/>}</CalendarGrid>`
+ *   가 RAC self-compose → canonical CalendarGrid 자식은 DOM drop. 발효 가치 = Skia 대칭 한정.
+ */
+const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
+  const iconSize = (size.iconSize as unknown as number) ?? 26;
+  const cellSize = iconSize + 4;
+  const gap = (size.gap as unknown as number) || 6;
+  const fontSize = resolveSpecFontSize(size.fontSize as string | number, 14);
+  const ff =
+    ((props.style as Record<string, unknown> | undefined)
+      ?.fontFamily as string) || fontFamily.sans;
+
+  const textColor =
+    ((props.style as Record<string, unknown> | undefined)?.color as
+      | string
+      | undefined) ??
+    visual?.text ??
+    ("{color.neutral}" as TokenRef);
+
+  // 요일 헤더 행 바로 아래에서 날짜 그리드 시작 (nav 없음 — CalendarGrid.spec.ts:147-148 동형).
+  const weekdayY = cellSize / 2;
+  const gridStartY = cellSize;
+
+  const now = new Date();
+  const dayOffset =
+    (props.dayOffset as number | undefined) ??
+    new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+  const totalDays =
+    (props.totalDays as number | undefined) ??
+    new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const showToday = props.defaultToday === true;
+  const today = showToday
+    ? ((props.todayDate as number | undefined) ?? now.getDate())
+    : -1;
+
+  const shapes: Shape[] = [];
+
+  const effectiveLocale = props.calendarSystem
+    ? `${props.locale || "en-US"}-u-ca-${props.calendarSystem}`
+    : (props.locale as string) || "en-US";
+  const weekdays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(2024, 0, 7 + i); // 2024-01-07 = Sunday
+    try {
+      return new Intl.DateTimeFormat(effectiveLocale, {
+        weekday: "short",
+      }).format(d);
+    } catch {
+      return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][i];
+    }
+  });
+  for (let col = 0; col < 7; col++) {
+    const cellLeft = col * (cellSize + gap);
+    shapes.push({
+      type: "text" as const,
+      x: cellLeft,
+      y: weekdayY,
+      text: weekdays[col],
+      fontSize,
+      fontFamily: ff,
+      fontWeight: 700,
+      fill: "{color.neutral-subdued}" as TokenRef,
+      align: "center" as const,
+      baseline: "middle" as const,
+      maxWidth: cellSize,
+      whiteSpace: "nowrap" as const,
+    });
+  }
+
+  for (let day = 1; day <= totalDays; day++) {
+    const idx = day - 1 + dayOffset;
+    const row = Math.floor(idx / 7);
+    const col = idx % 7;
+    const cellLeft = col * (cellSize + gap);
+    const cx = cellLeft + cellSize / 2;
+    const cy = gridStartY + row * (cellSize + gap) + cellSize / 2;
+
+    shapes.push({
+      type: "text" as const,
+      x: cellLeft,
+      y: cy,
+      text: String(day),
+      fontSize,
+      fontFamily: ff,
+      fontWeight: day === today ? 700 : 400,
+      fill: textColor,
+      align: "center" as const,
+      baseline: "middle" as const,
+      maxWidth: cellSize,
+      whiteSpace: "nowrap" as const,
+    });
+
+    if (day === today) {
+      shapes.push({
+        type: "circle" as const,
+        x: cx,
+        y: cy + cellSize / 2 - 4,
+        radius: 3,
+        fill: "{color.accent}" as TokenRef,
+      });
+    }
+  }
+
+  return shapes;
+};
+
+/**
  * `datefield_trigger` — DatePicker/DateRangePicker 의 입력 trigger field(input box + display
  * text + 후행 calendar icon). box+text+icon 복합 → `"replace"` 모드(box+text 대체).
  *
@@ -1562,6 +1684,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   overlay_backdrop: overlayBackdrop,
   // ADR-912 단계 5 (1b) date escape (replace 모드 — box+text 대체)
   calendar_grid: calendarGrid,
+  // ADR-912 (A/2D) CalendarGrid 자식 발효 (replace — nav 없는 grid + today circle, calendar_grid 부모와 별개)
+  calendar_month_grid: calendarMonthGrid,
   datefield_trigger: datefieldTrigger,
   // ADR-912 선행-2 value-fill escape:
   //   value_fill_bar = append (track box 위 value 막대 — Progress/Meter)
@@ -1622,6 +1746,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 (B+icon): inline_icon_text 는 좌 icon + center text + 우 icon 자체 생성, box+text 대체
   //   → replace. center text 가 buildCatalogShapes 의 좌측/center 단일 text 와 충돌하므로 base 미생성.
   inline_icon_text: "replace",
+  // ADR-912 (A/2D): calendar_month_grid 는 weekday + day cell 2D self-positioning + today circle 자체 생성,
+  //   box+text 대체 → replace. 절대 좌표 grid 라 buildCatalogShapes box(y:0,height:auto)와 어긋남.
+  calendar_month_grid: "replace",
 };
 
 export function getSkiaPrimitive(
