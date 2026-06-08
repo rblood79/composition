@@ -55,6 +55,7 @@ import { selectBinding } from "./Select.binding";
 import { separatorBinding } from "./Separator.binding";
 import { skeletonBinding } from "./Skeleton.binding";
 import { sliderBinding } from "./Slider.binding";
+import { sliderTrackBinding } from "./SliderTrack.binding";
 import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
@@ -121,6 +122,7 @@ export * from "./Select.binding";
 export * from "./Separator.binding";
 export * from "./Skeleton.binding";
 export * from "./Slider.binding";
+export * from "./SliderTrack.binding";
 export * from "./StatusLight.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
@@ -207,6 +209,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   RadioGroup: radioGroupBinding,
   Switch: switchBinding,
   Slider: sliderBinding,
+  // ADR-912 SliderTrack: Slider compound 의 트랙 (배경 + value 막대 + thumb, Skia-전용 sub-part,
+  //   slider_fill_bar escape, replace — thumb 컨테이너 box). DOM=RAC Slider self-compose (DOM no-op).
+  SliderTrack: sliderTrackBinding,
   // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape)
   ProgressBarTrack: progressBarTrackBinding,
   // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape, variant 4색)

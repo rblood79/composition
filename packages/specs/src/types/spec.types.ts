@@ -911,6 +911,14 @@ export interface SizeSpec {
   /** 아이콘 크기 (optional) */
   iconSize?: number;
 
+  /**
+   * 슬라이더 thumb(핸들) 지름 (optional, px) — ADR-912 SliderTrack value-fill.
+   *
+   * slider_fill_bar escape 가 thumb 원 반지름(`thumbSize/2`) + track 세로 중앙
+   * 오프셋(`(thumbSize - trackHeight)/2`) 계산에 사용. Slider.spec.sizes.*.indicator.thumbSize SSOT 미러.
+   */
+  thumbSize?: number;
+
   /** 간격 (optional) */
   gap?: number;
 

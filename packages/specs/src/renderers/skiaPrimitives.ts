@@ -923,6 +923,131 @@ const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 };
 
 /**
+ * `slider_fill_bar` — 슬라이더 트랙 (track 배경 + value 채움 + thumb 핸들, replace 모드).
+ *
+ * `value_fill_bar`(Progress/Meter, append)와 다른 점:
+ * - **thumb(핸들 원 + border)** 를 percent 위치에 그린다 — single 1개 / range 2개.
+ * - thumb 지름(`size.thumbSize`)이 trackHeight 보다 커서 layout box 가 thumbSize(implicitStyles
+ *   ADR-086 P2) 라 box 좌표계(y:0, height:auto)와 spec track(y=trackY 세로 중앙)이 어긋난다 →
+ *   **replace 모드**(track box 도 자체 생성, buildCatalogShapes box 대체). `value_fill_bar`(leaf,
+ *   box=trackHeight 정확)는 append 였지만 SliderTrack 은 thumb 컨테이너라 replace.
+ * - SliderThumb 자식 element 의 spec.render.shapes 는 `[]`(hitbox 만) → thumb 를 여기서 그려도
+ *   이중 렌더 0 (calendar_grid escape 동형). `_hasChildren` 체크 없음(SliderThumb 자식이라 항상
+ *   true → value_fill_bar 의 `_hasChildren` early-return 에 걸리는 dead 분기를 본 primitive 가 우회).
+ *
+ * 좌표 = SliderTrack.spec.render.shapes 1:1 미러:
+ *   trackY=(thumbSize-trackHeight)/2 / trackRadius=trackHeight/2 / thumb x=width*p/100, y=thumbSize/2.
+ * 색: track 배경 = `style.backgroundColor` → `visual.fill.default.base`(neutral-subtle).
+ *     fill = `style.color` → `visual.fillBar` → `{color.accent}`. thumb = fill 과 동색(handle=accent).
+ *     thumb border = `{color.base}` 2px(spec 정합).
+ */
+const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const width =
+    typeof props._containerWidth === "number" &&
+    (props._containerWidth as number) > 0
+      ? (props._containerWidth as number)
+      : (typeof style?.width === "number" ? (style.width as number) : 0) || 200;
+
+  const trackHeight =
+    typeof size.height === "number" && size.height > 0 ? size.height : 8;
+  const thumbSize =
+    typeof size.thumbSize === "number" && size.thumbSize > 0
+      ? size.thumbSize
+      : 18;
+  const trackY = (thumbSize - trackHeight) / 2;
+  const trackRadius = trackHeight / 2;
+
+  const trackBgColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    ("{color.neutral-subtle}" as TokenRef);
+  const fillColor =
+    (style?.color as string | undefined) ??
+    visual?.fillBar ??
+    ("{color.accent}" as TokenRef);
+
+  const min = typeof props.minValue === "number" ? props.minValue : 0;
+  const max = typeof props.maxValue === "number" ? props.maxValue : 100;
+  const span = max - min || 1;
+  const raw = props.value ?? 50;
+  const values = Array.isArray(raw) ? (raw as number[]) : [raw as number];
+  const percents = values.map((v) =>
+    Math.max(0, Math.min(100, ((v - min) / span) * 100)),
+  );
+  const isRange = percents.length >= 2;
+
+  const shapes: Shape[] = [
+    // track 배경 (세로 중앙)
+    {
+      id: "track",
+      type: "roundRect",
+      x: 0,
+      y: trackY,
+      width,
+      height: trackHeight,
+      radius: trackRadius,
+      fill: trackBgColor,
+    },
+  ];
+
+  // value 채움 (single: 0~value / range: value[0]~value[1])
+  if (isRange) {
+    const x0 = (width * percents[0]) / 100;
+    const x1 = (width * percents[1]) / 100;
+    const w = x1 - x0;
+    if (w > 0) {
+      shapes.push({
+        id: "fill",
+        type: "roundRect",
+        x: x0,
+        y: trackY,
+        width: w,
+        height: trackHeight,
+        radius: trackRadius,
+        fill: fillColor,
+      });
+    }
+  } else {
+    const w = (width * percents[0]) / 100;
+    if (w > 0) {
+      shapes.push({
+        id: "fill",
+        type: "roundRect",
+        x: 0,
+        y: trackY,
+        width: w,
+        height: trackHeight,
+        radius: trackRadius,
+        fill: fillColor,
+      });
+    }
+  }
+
+  // thumb (핸들) — single 1개 / range 2개. SliderThumb 자식 spec 은 [] 라 이중 렌더 0.
+  for (let i = 0; i < percents.length; i++) {
+    const thumbX = (width * percents[i]) / 100;
+    const thumbId = percents.length === 1 ? "thumb" : `thumb-${i}`;
+    shapes.push({
+      id: thumbId,
+      type: "circle",
+      x: thumbX,
+      y: thumbSize / 2,
+      radius: thumbSize / 2,
+      fill: fillColor,
+    });
+    shapes.push({
+      type: "border",
+      target: thumbId,
+      borderWidth: 2,
+      color: "{color.base}" as TokenRef,
+      radius: thumbSize / 2,
+    });
+  }
+
+  return shapes;
+};
+
+/**
  * `value_fill_arc` — 원형 진행률의 value 비례 호 (append 모드, ProgressCircle).
  *
  * track arc(buildCatalogShapes box 위 — 단, ProgressCircle 은 box 대신 arc track 을
@@ -1439,10 +1564,12 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   calendar_grid: calendarGrid,
   datefield_trigger: datefieldTrigger,
   // ADR-912 선행-2 value-fill escape:
-  //   value_fill_bar = append (track box 위 value 막대 — Progress/Meter/Slider)
+  //   value_fill_bar = append (track box 위 value 막대 — Progress/Meter)
   //   value_fill_arc = replace (자체 track arc + indicator arc — ProgressCircle, box 무의미)
+  //   slider_fill_bar = replace (자체 track + value 막대 + thumb — SliderTrack, thumb 컨테이너 box)
   value_fill_bar: valueFillBar,
   value_fill_arc: valueFillArc,
+  slider_fill_bar: sliderFillBar,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — placeholder+heading+description)
   illustrated_message: illustratedMessage,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — dot circle + label text)
@@ -1476,6 +1603,10 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 선행-2: value_fill_bar 는 track box 위 막대 → append.
   //   value_fill_arc 는 자체 track+indicator arc 라 box+text 대체 → replace(기본, 미등록).
   value_fill_bar: "append",
+  // ADR-912 SliderTrack: slider_fill_bar 는 track + value 막대 + thumb 자체 생성, box+text 대체
+  //   → replace. layout box=thumbSize(thumb 컨테이너)라 buildCatalogShapes box(y:0,height:auto)와
+  //   spec track(y=trackY 세로 중앙)이 어긋남 → 자체 track box 생성. 미등록=replace 지만 의도 명시.
+  slider_fill_bar: "replace",
   // ADR-912 진로 1번: illustrated_message 는 rule fill transparent base box 위 placeholder+text → append.
   illustrated_message: "append",
   // ADR-912 진로 1번: status_light 는 dot+text 자체 생성, box 무의미 → replace.

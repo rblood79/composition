@@ -392,6 +392,15 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "meter track",
     icon: "BarChart3",
   }),
+  // ADR-912 SliderTrack value-fill (value-fill 4 완결, 2026-06-08): Slider compound 의 트랙.
+  //   palette 미노출(ComponentList 가 Slider 부모만 등록) — catalog 등록은 Skia generic 경로
+  //   (slider_fill_bar escape, replace) 진입용. DOM 은 부모 RAC Slider 가 track self-compose.
+  //   ProgressBarTrack 동형 + thumb 채널(단일 1 / range 2). layout box=thumbSize(thumb 컨테이너).
+  primitiveEntry("SliderTrack", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider track",
+    icon: "SlidersHorizontal",
+  }),
 ];
 
 /**

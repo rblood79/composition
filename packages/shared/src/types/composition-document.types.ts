@@ -211,6 +211,12 @@ export interface ComponentRuleSize {
   borderWidth?: number | string;
   height?: number | string;
   iconSize?: number | string;
+  /**
+   * 슬라이더 thumb(핸들) 지름 base (ADR-912 SliderTrack value-fill).
+   * `slider_fill_bar` escape 가 thumb 반지름 + track 세로 중앙 오프셋 계산에 사용.
+   * Slider.spec.sizes.*.indicator.thumbSize SSOT 미러.
+   */
+  thumbSize?: number | string;
   /** leaf 텍스트 x offset base (ADR-912 1C — Button 등 spec.sizes.paddingX 이전). */
   paddingX?: number | string;
   /**

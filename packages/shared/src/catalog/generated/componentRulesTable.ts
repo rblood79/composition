@@ -5015,28 +5015,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   SliderTrack: {
+    defaultVariant: "default",
     defaultSize: "md",
-    variants: {},
+    variants: {
+      // ADR-912 SliderTrack value-fill: track 배경(fill.base = neutral-subtle) 위에
+      //   slider_fill_bar escape 가 value 채움 막대(fillBar) + thumb 핸들을 그린다.
+      //   thumb 색 = fillBar(accent, SLIDER_FILL_COLORS.default.handle 정합). thumb border 는
+      //   escape 가 {color.base} 하드코딩(spec 정합). ProgressBarTrack 동형 + thumb 채널.
+      default: {
+        fill: {
+          default: {
+            base: "{color.neutral-subtle}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+        fillBar: "{color.accent}",
+      },
+    },
+    // height = trackHeight (visual 트랙 두께) / thumbSize = 핸들 지름 (layout box 높이, thumb 수용).
+    //   Slider.spec.sizes.*.indicator SSOT 미러 (trackHeight 4/8/12/16, thumbSize 14/18/22/26).
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 4,
+        thumbSize: 14,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 8,
+        thumbSize: 18,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 12,
+        thumbSize: 22,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 16,
+        thumbSize: 26,
       },
     },
   },
