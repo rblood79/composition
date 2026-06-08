@@ -33,6 +33,7 @@ import { labelBinding } from "./Label.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
 import { menuBinding } from "./Menu.binding";
+import { meterBinding } from "./Meter.binding";
 import { meterTrackBinding } from "./MeterTrack.binding";
 import { modalBinding } from "./Modal.binding";
 import { navBinding } from "./Nav.binding";
@@ -95,6 +96,7 @@ export * from "./Label.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
 export * from "./Menu.binding";
+export * from "./Meter.binding";
 export * from "./MeterTrack.binding";
 export * from "./Modal.binding";
 export * from "./Nav.binding";
@@ -205,6 +207,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 진로 1번: 진행률 compound (factory 3자식) — DOM=rendererMap.renderProgressBar 위임
   //   (DELEGATING_INTERNAL_RENDERERS, Tabs 선례). Skia=shell-only + 자식 ProgressBarTrack value_fill_bar.
   ProgressBar: progressBarBinding,
+  // ADR-912 진로 1번: 측정값 compound (factory 3자식, ProgressBar 동형) — DOM=rendererMap.renderMeter
+  //   위임. Skia=shell-only + 자식 MeterTrack value_fill_bar(variant 4색). isIndeterminate 부재.
+  Meter: meterBinding,
   // family ④ collections (internal source — composition wrapper + useCollectionData)
   ListBox: listBoxBinding,
   Menu: menuBinding,

@@ -145,10 +145,12 @@ const INTERNAL_RENDERERS: Readonly<
  * cutover DOM 경로가 rendererMap[type](LayoutRenderers)로 위임하고 generic 자식 재귀는 skip한다.
  * - tabs: renderTabs (TabPanels→TabPanel itemId 페어링)
  * - progressbar: renderProgressBar (자식 Label children 추출 → 자기완결 RAC ProgressBar)
+ * - meter: renderMeter (ProgressBar 동형 — 자식 Label children 추출 → 자기완결 RAC Meter)
  */
 const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "tabs",
   "progressbar",
+  "meter",
 ]);
 
 /**
