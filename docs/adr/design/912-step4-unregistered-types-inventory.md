@@ -921,15 +921,15 @@ Autocomplete 는 4 gate 중 **G-render / G-factory / G-consumer 3 PASS + G-regis
 
 4 gate 측정 결과를 폐기 비용으로 정렬. **모두 최소 1 gate FAIL = true-dead 0건** 재확인:
 
-| 순위 | type                                                                | FAIL gate                       | 폐기 묶음 (rm 외 동반 작업)                                                                        |
-| :--: | ------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- |
-|  1   | **Autocomplete**                                                    | G-registry                      | registry 3 + barrel + 생성 CSS (migration 0)                                                       |
-|  2   | DateSegment                                                         | G-registry + (catalog rule)     | registry 2(alias) + componentRulesTable rule + DateInput projector segment 그리기 유지 확인        |
-|  3   | Field                                                               | G-registry + G-factory(런타임)  | registry 2 + TagEditor `type==='Field'` filter + canonical migration(TagEditor.tsx:123 addElement) |
-| 4~10 | Tag/Tab/TabList/Breadcrumb/MeterValue/ProgressBarValue/SliderOutput | G-render(skia-source-active)    | spec 이 유일 Skia source — value text/구분선/crumb projector 이관 또는 보존                        |
-|  11  | TabPanels                                                           | G-render + G-consumer(paddingX) | paddingX 이관(implicitStyles.ts:41 + utils.ts:2705) + factory Frame 대체 + migration               |
-|  12  | TabPanel                                                            | G-factory                       | factory(LayoutComponents.ts:49) + migration                                                        |
-|  13  | SliderThumb                                                         | G-factory + 인터랙션/접근성     | Slider 인터랙션/접근성/migration 전면 (HIGH)                                                       |
+| 순위 | type                                                                | FAIL gate                       | 폐기 묶음 (rm 외 동반 작업)                                                                                                                                                                                                         |
+| :--: | ------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | **Autocomplete**                                                    | G-registry (단, 9 참조처 분산)  | 9 참조처 + 생성 CSS atomic 묶음 (migration 0). **정정**: scope 검증(↓ "Autocomplete 폐기 proof 계획")으로 "registry 3" 과소집계 → vocabulary union/rule/metadata/DOM 컴포넌트 포함 9개. type-check 는 #2/#4 만 cascade, 나머지 수동 |
+|  2   | DateSegment                                                         | G-registry + (catalog rule)     | registry 2(alias) + componentRulesTable rule + DateInput projector segment 그리기 유지 확인                                                                                                                                         |
+|  3   | Field                                                               | G-registry + G-factory(런타임)  | registry 2 + TagEditor `type==='Field'` filter + canonical migration(TagEditor.tsx:123 addElement)                                                                                                                                  |
+| 4~10 | Tag/Tab/TabList/Breadcrumb/MeterValue/ProgressBarValue/SliderOutput | G-render(skia-source-active)    | spec 이 유일 Skia source — value text/구분선/crumb projector 이관 또는 보존                                                                                                                                                         |
+|  11  | TabPanels                                                           | G-render + G-consumer(paddingX) | paddingX 이관(implicitStyles.ts:41 + utils.ts:2705) + factory Frame 대체 + migration                                                                                                                                                |
+|  12  | TabPanel                                                            | G-factory                       | factory(LayoutComponents.ts:49) + migration                                                                                                                                                                                         |
+|  13  | SliderThumb                                                         | G-factory + 인터랙션/접근성     | Slider 인터랙션/접근성/migration 전면 (HIGH)                                                                                                                                                                                        |
 
 (deletion-risk 7 = TreeItem/SelectIcon/SelectValue/SelectTrigger/DateSegment/TimeSegment/DateInput 중 DateInput 발효 완료·DateSegment dead — 잔여 차단 5 는 위 표 4~10 의 G-render FAIL 또는 별도 ADR(재귀 projector). color 7 + Group + List + Toast + container shell 11 은 미등록 40 분류 참조.)
 
@@ -947,6 +947,63 @@ Autocomplete 는 4 gate 중 **G-render / G-factory / G-consumer 3 PASS + G-regis
 **정책 권고 (gate 기반, 사용자 decision 전 자동 착수 금지)**: Autocomplete 는 G-registry 단독 FAIL + cascade 0(canonical element 부재) 이라 **옵션 B(element 폐기 phase 의 첫 proof)** 적격. 단 사용자 지시대로 **"폐기 정책 문서화 뒤 proof 진입"** 이므로 본 문서가 그 선행이고, proof(Autocomplete 폐기) 착수 자체는 별도 명시 승인 대기. 옵션 C(별도 ADR)는 Field/TabPanels/SliderThumb 같이 migration 이 묶이는 type 으로 확장될 때 재검토.
 
 > **물리 삭제·element 폐기 미착수 (CLAUDE.md §"마이그레이션/리네임/삭제" 정책)**: 본 정책은 "왜 폐기 가능한가" 의 기준(4 gate)과 비용(P3)을 명문화할 뿐, 폐기 실행을 승인하지 않는다. 일반 동의("ok"/"진행해")는 삭제 승인이 아니며, 각 type 폐기마다 "element type X 를 폐기(spec+registry 제거)해도 되나요?" 별도 확인.
+
+## Autocomplete 폐기 proof 계획 고정 (2026-06-08, 사용자 옵션 B 2단계, Workflow wrpx30c5w 6 probe + 적대적 verify)
+
+> **사용자 옵션 B 2단계**: "Autocomplete proof 계획 고정 — 삭제 대상 Autocomplete.spec.ts / 동반 정리 tagToElement·specRegistry·barrel·generated CSS / 확인 factory 0·palette 0·render path 0·layout·text consumer 0". scope 검증 Workflow 가 **전제 부분 반전**을 확정 → 계획을 실측 기준으로 고정.
+
+### 🔴 전제 반전 — inventory "registry-only (3곳)" 은 과소집계, 실제 9개+ 비-test source 분산
+
+이전 P2/P3 의 "Autocomplete = G-registry 단독 FAIL, registry 3곳 + 생성 CSS" 는 **spec 직접 import 만 추적한 과소집계**. element type "Autocomplete" 를 묶는 참조처는 6 probe + 적대적 verify 로 **9개 비-test source** 확정 (적대적 verify 가 모든 probe 의 카운트 오류 적발 — `feedback-analysis-precision-patterns` 이름/주석 신뢰 금지 + agent 주장도 검증 대상):
+
+| #   | 참조처                                                                                              | type-check cascade 잡히나?                            | 정리 방식                                            |
+| --- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| 1   | `packages/specs/src/components/Autocomplete.spec.ts` (본체, render.shapes ()=>[])                   | —                                                     | 파일 삭제                                            |
+| 2   | `packages/specs/src/runtime/tagToElement.ts:65` import                                              | ✅ (noUnusedLocals:true)                              | 자동 (entry 동반)                                    |
+| 3   | `packages/specs/src/runtime/tagToElement.ts:189` BASE_TAG_SPEC_MAP entry                            | ❌ (Record string-key)                                | 수동                                                 |
+| 4   | `packages/specs/src/index.ts:677` barrel re-export                                                  | ✅ (제거 시 builder import break)                     | 자동 감지                                            |
+| 5   | `apps/builder/.../specRegistry.ts:4` import + `:95` entry                                           | ❌ (builder noUnusedLocals:false)                     | 수동                                                 |
+| 6   | `packages/shared/src/types/composition-vocabulary.ts:25` ComponentTag union 멤버                    | ❌ (narrowing discriminant 아님)                      | 수동 + **카운트 주석 정정** (118→117, line 16/20/23) |
+| 7   | `packages/shared/src/catalog/generated/componentRulesTable.ts:43` rule 블록                         | ❌ (손-편집 정본, 재생성 source 없음)                 | 수동 (resolveComponentRule null-safe)                |
+| 8   | `packages/shared/src/components/metadata.ts:390` palette/Inspector metadata                         | ❌ (ComponentMeta.type:string)                        | 수동 (.find/getComponentMeta undefined graceful)     |
+| 9   | `packages/shared/src/components/Autocomplete.tsx` RAC wrapper + `components/index.ts:31` barrel     | ✅ (barrel dangling)                                  | 파일 삭제 (dead 확정, 소비 0)                        |
+| +   | `packages/shared/src/components/styles/generated/Autocomplete.css` + `styles/index.css:141` @import | ❌ (generate-css add-or-overwrite, orphan 자동삭제 0) | 수동 삭제 + @import 제거                             |
+
+**핵심**: type-check cascade 는 #2/#4(specs noUnusedLocals)만 커버. #3/#5/#6/#7/#8 은 전부 string-key/literal 접근이라 **type-error 안전망 없음 → 수동 정리 필수**. "registry 3 entry 만 지우면 끝" 이 아니라 **element type 전역 묶음**.
+
+### proof scope 확정 = (B) element-type 전체 폐기 (atomic 묶음)
+
+- **(A) spec-only 로 좁히면 안 됨**: vocabulary union 멤버 / rule / metadata 가 "등록된 element type" 으로 잔존 → **dangling element-type(spec 없는 type)** 이라는 새 불일치 발생 = orphan 정리 proof 목적에 역행.
+- **(B) element-type 전체 폐기**: 9개 참조처 + 생성 CSS 를 atomic 단일 묶음으로 제거. DOM 컴포넌트 `.tsx` 는 rendererMap/INTERNAL_RENDERERS/binding 전부 미등록 + 소비처 index.ts:31 단 1곳 → **dead 확정, 동반 삭제 removalImpact none**.
+
+### 확인 항목 (사용자 4 확인 — 직접 코드 grep 확증, 2026-06-08)
+
+| 확인               | 결과 | 근거 (file:line)                                                                                                                             |
+| ------------------ | :--: | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **render path 0**  |  ✅  | `Autocomplete.spec.ts:154 shapes: () => []` — Skia 그리기 0                                                                                  |
+| **factory 0**      |  ✅  | `ComponentFactory.ts` Autocomplete 0건 — 캔버스 인스턴스 생성 불가 (placeable 아님)                                                          |
+| **palette**        |  🟡  | `metadata.ts:390` 에 entry 존재 (category "Forms") — 단 ComponentFactory 0 라 palette 노출돼도 인스턴스화 도달 불가. metadata 동반 제거 대상 |
+| **consumer 0**     |  ✅  | utils.ts deriveSizeConfig 0 / specTextStyle TEXT_BEARING 0 / cross-spec import 0                                                             |
+| **publish 소비 0** |  ✅  | `apps/publish/src` Autocomplete 0건 — transitive break 없음                                                                                  |
+
+### 검증 게이트 (type-check 단독 불가 — 5종 필수)
+
+폐기 시 type-check 만으로 불충분 (#3/#5/#6/#7/#8 이 string-key 라 안 잡힘). 폐기 proof 의 검증 게이트:
+
+1. **`pnpm type-check`** — #2/#4 cascade (specs noUnusedLocals) 통과
+2. **`pnpm build:specs`** + **생성 CSS 수동 삭제 확인** — generate-css 는 add-or-overwrite 전용(orphan 자동삭제 0), Autocomplete.css 수동 rm 후 잔존 0
+3. **dist 재빌드 후 `pnpm test:registration-contract`** — 불변식 A(spec 파일 ⟺ TAG_SPEC_MAP 등록 동기성) 10/10 PASS. **🔴 stale-dist masking 함정**: `@composition/specs` 가 dist resolve 라 spec 삭제 후 dist 재빌드 안 하면 contract test 가 stale dist 의 TAG_SPEC_MAP 읽어 **false PASS** → dist 재빌드 선행 필수
+4. **ComponentTag 카운트 주석 정합** — composition-vocabulary.ts 의 "118개 + 3 = 121 literal"(line 16/20/23) → "117개 + 3 = 120" 정정
+5. **live behavior** — 폐기 후 builder 콘솔 에러 0 + 기존 프로젝트 로드 정상(canonical element 부재라 깨짐 0)
+
+### 동반 정리 자동/수동 구분 (착수 시 체크리스트)
+
+- **[자동: type-check cascade]** tagToElement.ts:65 import / index.ts:677 barrel (제거 시 builder import break 연쇄 감지)
+- **[수동: string-key/literal, type-error 미발생]** tagToElement.ts:189 entry / specRegistry.ts:4+95 / composition-vocabulary.ts:25 멤버+카운트 / componentRulesTable.ts:43 rule / metadata.ts:390 entry
+- **[수동: 파일 삭제]** Autocomplete.spec.ts / Autocomplete.tsx + components/index.ts:31 barrel / generated/Autocomplete.css + styles/index.css:141 @import
+- **[검증 게이트]** dist 재빌드 → test:registration-contract 10/10 (stale-dist masking 주의) + publish 소비 0 확인됨
+
+> **물리 삭제 미착수 — 명시 삭제 승인 대기**: 본 계획은 "무엇을 어떻게 폐기하는가" 고정일 뿐. 폐기 실행은 사용자 명시 승인("Autocomplete element type 폐기 및 spec 파일 삭제 승인" 류) 필요. 일반 동의는 삭제 승인 아님(CLAUDE.md §"마이그레이션/리네임/삭제").
 
 ## 관련
 
