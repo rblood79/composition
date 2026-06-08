@@ -1104,6 +1104,25 @@ Autocomplete 의 전제 반전은 "registry-only 과소집계 → 9 참조처"(s
 
 DateSegment(수요 측 공백, canonical 미생성) / Autocomplete(공급 측 공백, dead)와 **질적으로 다름**: Field 는 **활성 데이터 필드 sub-element**. TagEditor UI 가 런타임에 `addElement(type:"Field")` 로 실제 생성하고, 5개 collection-item DOM 렌더러가 `DataField` 로 소비한다. 전자는 진입점 제거만으로 끝나지만 Field 는 소비처 마이그레이션이 선행돼야 한다.
 
+### 🔒 order-4 결정 — Field proof 여부 = no-go 유지 (사용자 confirm 2026-06-09)
+
+> **사용자 권장 순서 4번**: Field 폐기 recon(order-3) 결과 확인 후 Field proof 여부 결정. main cross-check 로 gate evidence 재확증(G-factory FAIL: TagEditor.tsx:123/139/244/260 런타임 `addElement(type:"Field")` / G-consumer FAIL: 7곳 `child.type==="Field"` → DataField, CollectionRenderers 258/294/556 + SelectionRenderers 221/613/914/1159) → recon 판정 불변.
+
+**결정**: Field 는 **no-go 유지** (proof slice 미착수). 근거 — Field 폐기는 TagEditor slot 마이그레이션 + 5 renderer DataField 대체 + hydration migration 4단계 선행이 필요한 **별도 설계축**으로, Autocomplete/DateSegment 처럼 "진입점 제거만으로 끝나는 proof" 가 아니다 → step4 element 폐기 phase 의 **즉시-폐기 proof 라인에 미적격**.
+
+**차단 메모리 우선 평가 (선행)**: `feedback-no-derived-adr-mid-execution`(실행 중 파생 ADR/단계 분할 금지) + `feedback-execute-adr-surface-minimization`(자동 확장 금지) 가 정당화 카테고리보다 선행 적용 → Field 마이그레이션을 step4 안에서 즉석 proof 로 흡수하면 phase 경계가 흐려지고 scope inflation. 사용자가 "큰 설계 축 자동 착수 시 phase 경계가 흐려진다" 명시.
+
+### 🔒 step4 element 폐기 phase 종료 — 즉시-폐기 라인 종결 확정 (2026-06-09)
+
+본 order-2 전수 recon(↑ "다른 true-dead 후보 전수 recon", true-dead 0) + order-4 결정(Field no-go)으로 **step4 의 즉시-폐기 proof 라인 종결**:
+
+- **proof land 2건**: Autocomplete(공급 측 공백) + DateSegment+TimeSegment(수요 측 공백, `c77ff8619`) — 둘 다 게이트 5종 PASS(live behavior 포함).
+- **true-dead 후보 0**: 잠재 후보 8 전수 cross-check → 전부 보존(catalog 발효 / projection cell / scope 외 / G-consumer CSS active).
+- **no-go 잔류**: Field(활성 데이터 sub-element) + 무손실 7(SliderThumb/TabPanel/TabPanels/MeterValue/ProgressBarValue/SliderOutput — 전부 parent factory canonical element 생성, G-factory FAIL).
+- **별도 영역**: 영역 B 14 + List(projection/controller/leadingIcon 메커니즘) + container shell 9(일괄 정책).
+
+→ step4 = **즉시-폐기 라인 종료** 로 고정, 코드 변경 0. 잔여 type 폐기는 각각 마이그레이션 선행 + 별도 명시 승인 필요. 다음 갈래(order-1 Field 마이그레이션 설계 recon)는 별도 설계축이라 사용자 별도 신호 대기.
+
 ### 4축 gate 판정 (probe → 적대적 verify)
 
 | Gate       | probe   | verify(적대적) | 최종    | 근거 (file:line, main cross-check)                                                                                                                                                                                                                                                                                                                  |
