@@ -416,6 +416,45 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 
 **메모리**: `feedback-analysis-precision-patterns` §9(collection projection 발효 — suppression 비대칭 + 4 진입점 cascade) 적재.
 
+#### (B+icon) leadingIcon append 설계 recon (2026-06-08 — 3 Explore + main file:line cross-check, 코드 변경 0)
+
+> 사용자 선택 "DisclosureHeader/CalendarHeader leadingIcon append 설계 recon — 잔여 (A) 보다 작고, 이전 recon(§318)이 이미 'append 합성 필요'까지 좁힘". §318 mini recon 이 "(B+icon) 3 type 비동형 — SelectIcon=replace 단독 / Disclosure·Calendar=append 합성"으로 분류했고(SelectIcon 은 §347 에서 parent-delegation 보류 분리), 본 recon 이 **DisclosureHeader/CalendarHeader 2 type 의 실제 append 채널 설계 가능성**을 사용자 4단계로 닫음. verdict = **icon_font primitive 재사용 불가(중앙 고정 단일 glyph) → 신규 generic leading/trailing icon append draw module 필요. 단일 채널 불가 — DisclosureHeader=leading 1, CalendarHeader=leading+trailing 2, 같은 module 의 파라미터 차이로 흡수**.
+
+**1. 현 구조 재확인 (spec render.shapes — file:line)**:
+
+| type                 | shape 구성                                                                                                                                                                             | layout                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **DisclosureHeader** | `icon_font(chevron-right, x=paddingX+chevronSize/2, y=cy)` + `text(x=paddingX+chevronSize+6, align:left)` (DisclosureHeader.spec.ts:113/125) — **box/border 0**                        | leading icon + text (2-shape)              |
+| **CalendarHeader**   | `icon_font(chevron-left, x=cellSize/2)` + `text(중앙 align:center, maxWidth)` + `icon_font(chevron-right, x=width-cellSize/2)` (CalendarHeader.spec.ts:152/162/192) — **box/border 0** | leading + center text + trailing (3-shape) |
+
+- **DOM 흡수 확인**: 둘 다 독립 DOM 노드 0 — 부모가 self-compose. Disclosure = `<Heading><Button slot="trigger"><svg chevron>{title}` 직접 생성(Disclosure.tsx:72-82) / Calendar = `<header><Button slot="previous"><ChevronLeft/></Button><Heading/><Button slot="next"><ChevronRight/>` 직접 생성(Calendar.tsx:113-121). 부모 멤버십 = 둘 다 SHELL_ONLY(buildSpecNodeData.ts:145 Calendar / :165 Disclosure). factory 가 자식 자동 생성(NavigationComponents.ts:215 / DateColorComponents.ts:228). **함의 = (B+icon) 발효 가치 = Skia 대칭 한정**(DOM 은 부모가 그림, 자식 DOM 노드 0). §318 동일 결론 재확인.
+- **catalog 미등록**: 둘 다 binding 부재(componentCatalog 미등록), BASE_TAG_SPEC_MAP 만 등록(tagToElement.ts:195/214). step4 게이트(buildSpecNodeData.ts:1206 `usesGeneric=isCatalogSkiaCutover`)에서 `false` → spec.render.shapes fallback(L1222) 경로 → **spec 삭제 시 Skia icon+text 소실**(step4 차단 유지).
+
+**2. leadingIcon append 채널이 buildCatalogShapes 공통 모듈로 가능한가 — 부분 YES (신규 draw module 필요)**:
+
+- **buildCatalogShapes 자체는 box+text 만**(buildCatalogShapes.ts:8-13 정본 주석 "비-DOM-trivial primitive(원/선/아이콘)는 본 함수가 그리지 않는다 — skiaPrimitive draw module 담당. `if(iconName)` 컴포넌트 식별 분기 인라인 금지"). → icon 은 buildCatalogShapes 에 못 넣음(ADR-142 §3 위반).
+- **dispatch 3-mode 합성은 이미 완성**(buildSpecNodeData.ts:838 replace / 867-877 prepend·append + composeCatalogShapes). append 모드면 base box+text **위에** 합성. value_fill_bar(skiaPrimitives.ts:1314 `:"append"`) / tooltip_arrow / popover_arrow 가 append 선례.
+- **단 기존 `icon_font` primitive 는 (B+icon)에 그대로 못 씀** (핵심 제약): (a) draw fn 이 `x=y=effectiveSize/2` **중앙 고정**(skiaPrimitives.ts:62-64) — leading 위치(좌측 paddingX) 지정 불가. (b) `iconName` 단일(skiaPrimitives.ts:61) — CalendarHeader 좌/우 2 chevron 불가. (c) SKIA_PRIMITIVE_MODES 미등록 → `replace` 기본(skiaPrimitives.ts:1336) — text 동반 시 base text 소실. → **icon_font replace 재사용 = §318 "text 소실" 재확인**.
+- **결론**: leading/trailing icon 을 base box+text **옆**에 배치하는 **신규 generic append draw module**(예: `leading_icon` / `header_chevrons`) 필요. icon offset(leading 좌측 / trailing 우측) + iconName(좌/우) + text shift 를 **rule metadata 로** 받아야 ADR-142 §3 정합(컴포넌트별 if 분기 금지). 현 rule 에 `iconSize` 필드는 존재(composition-document.types.ts:187)하나 **DisclosureHeader/CalendarHeader rule sizes 에 미기록**(componentRulesTable.ts:903-948 / 2174-2197 — fontSize/borderRadius/height 만) = data gap, iconName/iconOffset/text-shift 신규 rule 필드도 미존재.
+
+**3. CalendarHeader 양끝 chevron — 단일 채널 vs 2채널 판정 = 같은 module 파라미터 차이로 흡수(별도 if 분기 불요)**:
+
+- CalendarHeader = leading(chevron-left) + center text + trailing(chevron-right). DisclosureHeader = leading(chevron-right) + left text. **2 type 의 차이 = (a) trailing icon 유무 (b) text align(center vs left) (c) leading icon offset**.
+- **단일 draw module + rule param 으로 흡수 가능**: `leadingIconName?` / `trailingIconName?` / `iconSize` / text align 을 rule 에서 받으면, DisclosureHeader = `{leadingIconName:"chevron-right", textAlign:"left"}` (trailing 없음) / CalendarHeader = `{leadingIconName:"chevron-left", trailingIconName:"chevron-right", textAlign:"center"}`. draw fn 이 trailing param 유무로 우측 icon emit — **컴포넌트 이름 if 분기 0**(param 분기만, ADR-142 정합). → "단일 채널이냐 2채널이냐"는 잘못된 질문 — **하나의 generic append module, rule param 으로 leading-only / leading+trailing 분기**.
+- **trailing chevron 인터랙션**: CalendarHeader 의 좌/우 chevron 은 **순수 시각**(Skia). 실제 prev/next 클릭은 부모 Calendar 의 `<Button slot="previous/next">`(Calendar.tsx:114-120)가 담당 — Skia generic 은 시각만 재현하면 됨(hit-test/onPress 불요). DisclosureHeader chevron 도 동일(클릭은 부모 Button slot="trigger").
+
+**4. proof slice 후보 = DisclosureHeader 단독 우선 (leading-only 최소 단위) → CalendarHeader 확장**:
+
+- **DisclosureHeader 단독**이 최소 — leading icon 1 + left text. 신규 append draw module 의 leading-only 경로만 증명. **단 leading-icon catalog 발효 선례 0**(3 agent 확증 — Button 은 catalog 발효됐으나 spec.render.shapes 미호출, icon 은 reusable 조합 문서 분리 / Icon.binding.ts:50 은 icon_font replace 단독, leading+text 아님). → DisclosureHeader = **(B+icon) leading append 채널의 첫 proof**(선례 없는 신규 메커니즘).
+- **CalendarHeader 확장** = 같은 module 에 trailing param + center text 추가. DisclosureHeader proof 가 leading append + text shift 를 증명하면, CalendarHeader 는 trailing icon param + align:center 만 추가(module 복제 아닌 param). 단 CalendarHeader 는 width 의존(`maxWidth: width - cellSize*2`, CalendarHeader.spec.ts:188) — container dimension 주입 필요(CONTAINER_DIMENSION_TAGS), DisclosureHeader 보다 1축 큼.
+- **권장 = DisclosureHeader 단독 proof slice 먼저**(leading-only generic append draw module + rule iconName/iconSize/iconOffset 필드 + DisclosureHeader binding/catalog 등록). 성공 시 CalendarHeader 를 같은 module trailing param 확장으로 흡수.
+
+**작업 단위 = Breadcrumb 보다 큼(신규 메커니즘, 선례 0)**: Breadcrumb 은 Tag/Tab 선례 복제였으나, (B+icon) leading append draw module 은 **선례 없는 신규**(value_fill_bar append 패턴은 참고하나 icon+text+offset 은 다른 도형). 신규 = (a) skiaPrimitives `leading_icon` draw fn + SKIA_PRIMITIVE_MODES `:"append"` (b) rule schema 에 leadingIconName/trailingIconName/iconOffset 필드 (c) buildCatalogShapes text x-offset 이 leading icon 폭만큼 우측 shift (d) DisclosureHeader binding/catalog 등록. CalendarHeader 는 +trailing param +center align +container width.
+
+**kill criteria (feedback-proof-gate-seam-removal)**: (B+icon) proof 성공 = (1) DisclosureHeader catalog 등록 후 spec.render.shapes 미호출(usesGeneric=true) + spec 삭제 안전 (2) generic append module 이 leading chevron + title 을 Skia 에서 spec 과 동일 위치 재현(DOM 은 부모 흡수라 Skia 단독 대칭 — Compare 시 좌측 chevron + title 위치/색/크기 일치) (3) **"icon_font replace 로 우회(text 소실)" 또는 "buildCatalogShapes 에 iconName if 분기" 금지** — 신규 generic append draw module + rule param 으로만. live exercise: DisclosureHeader 펼침/접힘 chevron 방향 + title 정렬, refresh 후 spec fallback 0.
+
+**차단 메모리 자기-인용**: 본 recon 까지만(코드 변경 0). leading_icon append draw module / rule schema 필드 / binding·catalog 등록 진입은 사용자 별도 승인(`feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization`). `feedback-container-generic-box-no-classification`(ADR-142 §3) — icon offset/iconName 은 buildCatalogShapes 의 컴포넌트별 if 분기 금지, **rule metadata generic 채널 + skiaPrimitive append module** 로만. `feedback-proof-gate-seam-removal-kill-criteria` — icon_font replace 우회(text 소실)는 "작동하지만 fallback" = 실패, 신규 append module 이 깨끗이 들어가야 발효. 3 agent verdict ↔ main 5 claim cross-check 일치(buildCatalogShapes icon 미지원 주석:8-13 / icon_font 중앙고정:62-64 + replace 기본:1336 / dispatch append 완성:867-877 / iconSize 필드 존재:187 but rule 미기록:903-948,2174-2197 / chevron 순수시각 Calendar.tsx:114-120) file:line evidence(`feedback-analysis-precision-patterns`).
+
 ---
 
 선행-1~6 완료 → step 4 진입 (사용자 명시 삭제 승인 별도).
