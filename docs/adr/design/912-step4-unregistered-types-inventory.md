@@ -152,6 +152,39 @@
 
 > **물리 삭제 미착수 (사용자 명시 승인 정책)**: 본 분류는 가능/불가 subset surface 일 뿐. spec 파일 삭제는 일반 동의("ok"/"진행해")가 아닌 **별도 명시 삭제 승인** 필요(CLAUDE.md §"마이그레이션/리네임/삭제"). 삭제 안전 subset 도 alias/CSS/factory 동반 검증을 거친 뒤 phase 분리 삭제.
 
+### 삭제 안전 14 영향 전수 — 전제 부분 반전 (2026-06-08, Workflow wf67t45ek 13 agent + main file:line 재확증)
+
+> 사용자 7단계 절차 中 절차 2-3(import graph + registry/test 참조) 실행. **"삭제 안전 14"는 Skia source(spec.render.shapes) 관점만 본 분류였고, registry/consumer/factory 의존을 누락** → 전제 부분 반전. `feedback-analysis-precision-patterns`(cross-cutting cascade audit + 이름 신뢰 금지) 적용. **실제 삭제 대상 = 물리 파일 13** (TimeSegment 는 DateSegment alias, 물리 파일 없음).
+
+**🔴 핵심 반전 — safe-isolated 0건, 단순 dead-spec 삭제는 없다**:
+
+- 13 파일 전부 **safe-with-cleanup 이상** — registry(index.ts root barrel + components barrel + tagToElement BASE_TAG_SPEC_MAP + specRegistry TAG_SPEC_MAP) / consumer(specTextStyle TEXT_BEARING / utils deriveSizeConfig) / test(CSSGenerator snapshot + shell-only-tags) 동반 정리 필요. 깨끗한 단독 삭제 0.
+
+**🔴 blocked 3 — 코드 수정 선행 없이 삭제 시 type-check FAIL (main 실측 확증)**:
+
+| type        | blocker                                                                                                            | 선행 작업                                    |
+| ----------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| **TabList** | `Tabs.spec.ts:16` `import {TabListSpec}` + `:215` `childSpecs:[TabListSpec]` + `:226-236` propagation (cross-spec) | Tabs↔TabList 자식 컨테이너 관계 해체 선행    |
+| **Tag**     | `utils.ts:22/551` `deriveSizeConfig(TagSpec.sizes)` + `:591` TAG_SIZE_CONFIG (런타임 layout hard 의존)             | 대체 size source(rule 인라인 미러) 전환 선행 |
+| **Tab**     | `utils.ts:24/557` `deriveSizeConfig(TabSpec.sizes)` + `specTextStyle.ts:34/95` TEXT_BEARING['tab'] (텍스트 측정)   | size source + 텍스트 측정 entry 제거 선행    |
+
+**🔴 런타임 element 폐기 문제 — "isolated dead-spec 삭제" 아님 (main 실측: FormComponents.ts:574/580/588 `type:"SliderThumb"` factory 활성)**:
+
+- `SliderThumb` `SliderOutput` `MeterValue` `ProgressBarValue` `TabPanels` 등은 BASE_TAG_SPEC_MAP entry 제거 시 **factory 로 여전히 생성되는 element type 의 Skia spec resolve 가 끊김**. spec 삭제 = **element type 전체 폐기 작업** → step4 가 이 element type 폐기를 의도하는지 먼저 확정 필요. "빈 shapes / 흡수 / dead" 분류는 Skia 시각 소실 0 을 뜻하나, **registry resolve 끊김 ≠ 시각 소실 0** (별개 축 — type-check / 런타임 spec lookup 영향).
+
+**삭제 영향 정합 분류 (13 파일)**:
+
+| verdict                | type                                                                                                                                                    | 동반 정리 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------------------------------------------- |
+| safe-with-cleanup      | SliderThumb / TabPanel / TabPanels / Field / Autocomplete / MeterValue / ProgressBarValue / SliderOutput / Breadcrumb / DateSegment(+TimeSegment alias) | 10        | registry 2-4곳 + (일부) specTextStyle TEXT_BEARING + snapshot 재생성 |
+| 🔴 blocked (코드 선행) | TabList / Tag / Tab                                                                                                                                     | 3         | cross-spec 해체 / deriveSizeConfig 대체 / TEXT_BEARING 제거 선행     |
+
+**동반 정리 집계** (synthesis): index.ts root barrel ~20 export / components barrel 9곳 / tagToElement 13 import+map(+TimeSegment alias) / specRegistry 6곳 / specTextStyle TEXT_BEARING 5곳(미제거 시 type-check FAIL) / utils deriveSizeConfig 3곳(blocked 원인) / **tests** snapshot(`pnpm -F @composition/specs test -u` 재생성) + shell-only-tags.test 코드.
+
+**build:specs 필요**: 예 — barrel export 제거 → dist(.js/.d.ts) + generated CSS 재생성. builder 는 @composition/specs dist serve(vite alias 없음) → 삭제 후 `pnpm build:specs` + dev 재시작 필수(`feedback-specs-dist-dev-restart-gate`). generate:css 가 componentRulesTable.ts + generated/\*.css 재생성하므로 ADR-139 registration baseline 충돌 여부 별도 확인.
+
+> **결론 — "즉시 깨끗 삭제 가능 14" 전제는 부정확**. 13 파일 모두 동반 정리 필요, 그중 3(TabList/Tag/Tab)은 코드 수정 선행, 5+(SliderThumb 등)는 런타임 element 폐기 의도 확정 선행. **단순 spec 파일 삭제 task 가 아니라 "spec + registry + consumer + factory element 동시 폐기" 작업** → 사용자 판단 필요(아래 surface 옵션). 물리 삭제 미착수.
+
 ## recon #108 deletion-risk 7 세부 재판정 (2026-06-08, Workflow `wf_fbceb9d8-c7e` 4 agent 병렬 + main file:line 재확증)
 
 > **방법**: 7 type 을 3 메커니즘 그룹(TreeItem 재귀 / Select 3 / Date 3)으로 병렬 recon — 각 type 의 DOM source / Skia source / controller 의존 / parent absorption 4축 + 4분류 + proof slice + ADR scope. **전제 반전 1건 발견** → main 코드 grep 재확증 (`feedback-analysis-precision-patterns` 이름/주석 신뢰 금지, agent 주장도 검증 대상).
