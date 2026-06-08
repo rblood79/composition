@@ -315,6 +315,33 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 
 **차단 메모리 자기-인용**: 본 recon 까지만(코드 변경 0). icon_font 를 위해 buildCatalogShapes 에 SelectIcon 전용 if 분기 추가는 `feedback-container-generic-box-no-classification`(ADR-142) 위반 — leadingIcon generic 채널로만. (B+icon) 채널 도입 / 자식 catalog 등록 진입은 사용자 별도 승인(`feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization`). verdict 는 2 Explore + main 3 claim cross-check(buildCatalogShapes icon_font 0 / Select.tsx chevron 직접 생성 / Select SYNTHETIC 멤버십) file:line evidence(`feedback-analysis-precision-patterns`).
 
+#### (B+icon) leadingIcon generic 채널 mini recon (2026-06-08 — Workflow 5 Explore + main file:line cross-check, 코드 변경 0)
+
+> 사용자 권장 "(B+icon) 채널 mini recon — SelectIcon + DisclosureHeader + CalendarHeader 3 type 을 흡수할 leadingIcon generic 채널이 컴포넌트별 분기 0 으로 들어갈 수 있는지". 직전 recon(§ 위)이 "가장 작은 진입 = (B+icon) 채널 1개(3 type 동시 흡수)"로 재정의했고, 본 recon 이 그 **단일 채널 가설을 검증**. 결과 = **3 type 비동형 — 단일 채널 가설 부분 반증**.
+
+**4축 file:line 결과**:
+
+- **축 1 — icon_font escape 재사용 범위**: `icon_font` 는 `SKIA_PRIMITIVES`(skiaPrimitives.ts:1266)에 node-type별 escape 로 이미 등록(컴포넌트 분기 0). `SKIA_PRIMITIVE_MODES` 미등록 → **replace 모드**(box+text 통째 대체, dispatch buildSpecNodeData.ts:837-841 `return replaceShapes`). 입력 = `props.iconName`(default "circle") + `size.iconSize` + `style.fontSize/color`(skiaPrimitives.ts:53-70). **단일 glyph 전용, text 동반 0**.
+- **축 2 — 3 type spec icon shape source 동형성**: 셋 모두 `render.shapes()` 가 `type:"icon_font"` shape 를 직접 emit(iconName 하드코딩). **단 text 동반이 갈림** — SelectIcon = `roundRect(bg)+icon_font` **icon-only**(SelectIcon.spec.ts:144, text 없음) / DisclosureHeader = `icon_font(chevron-right)+text(label)` **leading icon + text 복합**(DisclosureHeader.spec.ts:115/125, text x 가 chevron 폭+6px 만큼 우측 시프트) / CalendarHeader = `icon_font(chevron-left)+text(month-year)+icon_font(chevron-right)` **좌·우 chevron + 중앙 text 3-shape**(CalendarHeader.spec.ts:153/162/193).
+- **축 3 — escape vs buildCatalogShapes 내장 메커니즘**: dispatch(buildSpecNodeData.ts:835-877)는 이미 replace/prepend/append 3-mode 합성 지원. replace = base box+text 대체 / append = base box+text **위에** 합성(value_fill_bar 선례 skiaPrimitives.ts:1314). icon_font 는 현재 replace 단일 키 → **한 키로 replace+append 동시 불가**.
+- **축 4 — rule iconName source**: `ComponentRuleSize.iconSize` 필드 **존재**(composition-document.types.ts:187), 3 type 모두 rule table 에 iconSize 보유(componentRulesTable.ts:903/2174/4551). 단 **iconName 은 rule 아닌 props.accepts**(Icon.binding.ts:23 `kind:"icon"`). 3 type 모두 binding/catalog 미등록(SelectIcon.binding.ts 등 부재).
+
+**핵심 결론 — "3 type 단일 채널" 가설 부분 반증**: 셋은 동형이 아니라 **3중 layout 차이**:
+
+| type                 | layout                   |  replace icon_font 단독?   | 필요 메커니즘                                                                                                                                         |
+| -------------------- | ------------------------ | :------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SelectIcon**       | icon-only(text 0)        |          ✅ 가능           | `skiaPrimitive:"icon_font"` replace — Icon 선례 그대로(N+0). 작게 닫힘                                                                                |
+| **DisclosureHeader** | leading icon + text      |        ❌ text 소실        | base box+text(buildCatalogShapes) + leading icon **append** 합성. icon_font replace 단일키 충돌 → leadingIcon 전용 append draw module 또는 새 mode 키 |
+| **CalendarHeader**   | 좌 icon + text + 우 icon | ❌ text 소실 + 2 icon 양끝 | 단일 leadingIcon 채널로 불가 — leading+trailing 2 icon + 중앙 text. 별도 합성 패턴                                                                    |
+
+→ **SelectIcon 만 icon_font replace 로 작게 닫힘**(rule-dispatch agent verdict 적격). DisclosureHeader/CalendarHeader 는 text 동반이라 replace 가 text 를 잃음(spec recon agent verdict 적격) — leading/trailing icon layout 도 서로 달라 **단일 (B+icon) 채널이 아니라 각각 다른 append 합성**. 두 Explore agent verdict 충돌(`icon_font_escape_reuse` vs `box_text_plus_icon_append`)은 **각자 다른 type 을 본 결과** — main cross-check 로 type별 분리 확정.
+
+**DOM 흡수 — 3 type 모두 부모 완전 흡수(자식 독립 DOM 노드 0)**: SelectIcon = 부모 Button(Select.tsx:303) `<span.select-chevron><svg>` 직접 생성 / DisclosureHeader = 부모 Disclosure(Disclosure.tsx:72-79) Heading+Button+SVG 자체 생성, title 은 props / CalendarHeader = 부모 Calendar(Calendar.tsx:113-121) header+prev/next Button+Heading 자체 생성. 셋 다 builder factory tree(metadata)에만 존재, DOM 투영 불가. 부모 멤버십 = Select SYNTHETIC(buildSpecNodeData.ts:191) / Disclosure·Calendar SHELL_ONLY(:165/:145). **함의**: catalog 발효해도 DOM 자식 노드 0 이므로 발효 가치는 **Skia 대칭 한정**(DOM 은 이미 부모가 그림) — 즉 이 3 type 의 (B+icon) 작업은 "DOM/Skia 대칭 복구"가 아니라 "Skia spec.render.shapes 제거 후 generic 재현"이 목적.
+
+**최소 진입 재-재평가**: 직전 recon 의 "(B+icon) 채널 1개 = 3 type 동시 흡수"는 **과대평가**. 실측상 (a) SelectIcon = icon_font replace 단독(가장 작음, Icon 선례 N+0) (b) Disclosure/Calendar = 각각 다른 append 합성(leadingIcon draw module 신규 + mode 키). 셋을 한 채널로 묶으려면 leading/trailing icon offset + text shift 를 rule metadata 로 받는 **generic leadingIcon draw module**(buildCatalogShapes append) 설계 필요 — SelectIcon replace 와는 별개 메커니즘. → "가장 작은 진입"은 SelectIcon 단독(icon_font replace, Icon 선례 복제) 이거나, generic leadingIcon append 채널(Disclosure+Calendar, SelectIcon 은 replace 라 이 채널 비대상).
+
+**차단 메모리 자기-인용**: 본 recon 까지만(코드 변경 0). icon_font append/leadingIcon draw module 도입 / binding·catalog 등록 진입은 사용자 별도 승인(`feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization`). buildCatalogShapes 에 type별 if 분기 금지 — leadingIcon offset 은 rule metadata 채널로만(`feedback-container-generic-box-no-classification` ADR-142 §3). 2 agent verdict 충돌은 type별 분리로 해소(main 5 claim cross-check: SKIA_PRIMITIVE_MODES icon_font 미등록=replace / dispatch 835-877 3-mode / ComponentRuleSize.iconSize:187 / iconName props 아닌 rule / 3 type DOM 부모 흡수) file:line evidence(`feedback-analysis-precision-patterns`).
+
 ---
 
 선행-1~6 완료 → step 4 진입 (사용자 명시 삭제 승인 별도).
