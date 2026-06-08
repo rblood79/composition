@@ -881,6 +881,38 @@ export function calculateContentWidth(
     return Math.ceil(dims.dotSize + dims.gap + textWidth);
   }
 
+  // 1.12. DisclosureHeader: leading icon(chevron) + gap + text + 좌우 paddingX
+  //   (ADR-912 (B+icon)). buildCatalogShapes 의 Skia 시각 공식과 1:1 대칭:
+  //     textX = paddingX + (iconSize + gap), text 는 left-align → 우측 paddingX 까지 포함.
+  //   rule 값 인라인 미러(componentRulesTable.DisclosureHeader.sizes.md): paddingX 12 /
+  //   iconSize 15 / gap 6 / fontSize text-sm(14) / weight 500(rule variant textWeight 미정의
+  //   → buildCatalogShapes fallback 500 동형). spec 의존 없음(단계5 runtime spec 끊기 정합).
+  //   style override(fontSize/paddingX)는 buildCatalogShapes 와 동일 우선순위로 반영.
+  if (type === "disclosureheader") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const text = String(props?.children ?? props?.title ?? "Section");
+    if (!text) return 0;
+    const paddingX =
+      parseNumericValue(
+        style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
+      ) ?? 12;
+    const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+    // iconSize: rule 15(>0) 우선, style fontSize override 시 round(fontSize*1.1) — leading_icon
+    //   module 과 동형. 본 분기는 rule 고정 size(md)이므로 15 기본, fontSize override 시만 비례.
+    const iconSize =
+      parseNumericValue(style?.fontSize) != null
+        ? Math.round(fontSize * 1.1)
+        : 15;
+    const gap = 6;
+    const textWidth = measureTextWidth(
+      text,
+      fontSize,
+      specFontFamily.sans,
+      500,
+    );
+    return Math.ceil(paddingX + iconSize + gap + textWidth + paddingX);
+  }
+
   // 1.15. Link: padding/border 없는 텍스트 전용 인라인 요소
   if (type === "link") {
     const props = element.props as Record<string, unknown> | undefined;
@@ -1512,6 +1544,16 @@ export function calculateContentHeight(
     const sizeName = String(props?.size ?? "md");
     const dims = STATUSLIGHT_DIMENSIONS[sizeName] ?? STATUSLIGHT_DIMENSIONS.md;
     return dims.height;
+  }
+
+  // 1.52. DisclosureHeader: rule 고정 box height (ADR-912 (B+icon)).
+  //   componentRulesTable.DisclosureHeader.sizes.md.height = 30 인라인 미러
+  //   (= spec rowHeight: fontSize 14 + paddingY 8*2). leading icon y=height/2 정렬 기준이라
+  //   layout height 와 Skia rule height(buildSpecNodeData ruleSizeToSizeSpec)가 30 으로 일치해야
+  //   selection box(layout) ↔ Skia 렌더 대칭. 명시적 style.height override 는 §1(L1527)이 우선.
+  //   StatusLight `dims.height` 고정 height 패턴 동형. spec 의존 없음(단계5 정합).
+  if (tag1 === "disclosureheader") {
+    return 30;
   }
 
   // 1.55. Link: padding/border 없는 텍스트 전용 인라인 요소 — fontSize 기반 높이
@@ -3195,6 +3237,12 @@ export const INLINE_BLOCK_TAGS = new Set([
   "icon",
   "menu",
   "tab",
+  // ADR-912 (B+icon): DisclosureHeader catalog 발효 후 chevron(leading icon) + text
+  //   합성 inline-block leaf. enrichWithIntrinsicSize 가 calculateContentWidth 의
+  //   disclosureheader 분기로 intrinsic 폭(paddingX + iconSize + gap + text + paddingX)을
+  //   산출해야 Skia 시각(leading_icon append + text x-shift)과 폭 대칭이 유지된다.
+  //   미등록 시 needsWidth=false → width 0 (selection "0×24" 버그).
+  "disclosureheader",
 ]);
 
 /**
