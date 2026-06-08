@@ -28,7 +28,6 @@ export { Switch } from "./Switch";
 export { Slider } from "./Slider";
 export { Select, SelectItem } from "./Select";
 export { ComboBox, ComboBoxItem } from "./ComboBox";
-export { Autocomplete } from "./Autocomplete";
 export { Form } from "./Form";
 export {
   Label,

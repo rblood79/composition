@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Autocomplete element type 폐기 — ADR-912 step4 element 폐기 phase 첫 proof] - 2026-06-09
+
+### Breaking Changes
+
+- **`Autocomplete` element type 제거** (ADR-912 단계 5 step4 — element type 폐기 phase 첫 proof):
+  - `ComponentTag` union 에서 `"Autocomplete"` 멤버 제거 (composition Component 118→117개). canonical document / element.type 값 공간에서 폐기.
+  - **사용자 영향 0**: Autocomplete 는 factory creator 미등록(canonical element 생성 불가) + ComponentList palette 미노출(metadata 제거) 상태였음 → 기존 프로젝트에 Autocomplete element 0건, 깨짐 없음. RAC `AriaAutocomplete` / `CommandPalette` 는 별개 심볼이라 무관.
+  - **Why**: ADR-912 step4 가 "spec 파일 물리 삭제"에서 **"element type 폐기 decision"**(4축 gate G-render/G-factory/G-registry/G-consumer 통과 type 만 폐기)로 재정의됨. Autocomplete 는 render.shapes `() => []`(Skia 출력 0) + factory 0 + layout/text consumer 0 으로 폐기 비용 최소(G-registry 단독 FAIL).
+
+### Architecture
+
+- **Autocomplete 9 참조처 atomic 제거** (ADR-912 step4 첫 proof):
+  - 파일 삭제: `packages/specs/src/components/Autocomplete.spec.ts` / `packages/shared/src/components/Autocomplete.tsx`(dead RAC wrapper, 소비 0) / `packages/shared/src/components/styles/generated/Autocomplete.css`
+  - entry/멤버 제거: `tagToElement.ts`(import+BASE_TAG_SPEC_MAP) / `specRegistry.ts`(import+PROPERTY_EDITOR_SPEC_MAP) / `specs/index.ts` barrel / `shared/components/index.ts` barrel / `composition-vocabulary.ts` union+카운트 주석 / `componentRulesTable.ts` rule / `metadata.ts` entry / `styles/index.css` @import
+  - **전제 반전**: scope 검증(6 probe + 적대적 verify)으로 기존 inventory "registry-only(3곳)" 과소집계 판명 → 실제 9개 비-test source 분산(vocabulary union / rule / metadata / DOM 컴포넌트 포함). type-check cascade 는 specs noUnusedLocals 경로(import/barrel)만 커버, 나머지는 string-key/literal 이라 수동 정리.
+  - 위치: `docs/adr/design/912-step4-unregistered-types-inventory.md` §"Autocomplete element type 폐기 실행 완료"
+
+### Infrastructure
+
+- **검증 게이트 5종 PASS** (ADR-912 step4 첫 proof):
+  - type-check 신규 violation 0(baseline 110 중 37개 자연 해소, mid-task baseline 미갱신) / build:specs 124 CSS(Autocomplete 빠짐)·generated CSS orphan 0 / specs dist fresh(stale-dist masking 함정 회피) / `pnpm test:registration-contract` 10/10(불변식 A spec⟺TAG_SPEC_MAP 동기성) / live builder(Chrome MCP) element 11 정상·canonical Autocomplete element 0·palette 미노출·콘솔 에러 0
+  - **Why**: element type 폐기는 type-check 단독으로 불충분 — string-key registry/vocabulary/rule/metadata 잔존을 잡으려면 build:specs + registration-contract + live behavior 동반 필수. dist resolve 라 contract test 전 dist 재빌드 선행(stale-dist false PASS 방지).
+
 ## [catalog 발효 컴포넌트 Skia 텍스트 미표시 회복 — paddingX 데이터 갭] - 2026-06-05
 
 ### Bug Fixes

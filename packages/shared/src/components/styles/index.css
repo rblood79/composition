@@ -138,7 +138,6 @@
 /* Menu Components */
 @import "./generated/Menu.css";
 @import "./generated/MenuItem.css";
-@import "./generated/Autocomplete.css";
 
 /* Selection Components — skipCSSGeneration, 수동 CSS */
 @import "./generated/Select.css";

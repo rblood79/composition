@@ -1005,6 +1005,40 @@ Autocomplete 는 4 gate 중 **G-render / G-factory / G-consumer 3 PASS + G-regis
 
 > **물리 삭제 미착수 — 명시 삭제 승인 대기**: 본 계획은 "무엇을 어떻게 폐기하는가" 고정일 뿐. 폐기 실행은 사용자 명시 승인("Autocomplete element type 폐기 및 spec 파일 삭제 승인" 류) 필요. 일반 동의는 삭제 승인 아님(CLAUDE.md §"마이그레이션/리네임/삭제").
 
+### ✅ Autocomplete element type 폐기 실행 완료 (2026-06-09, 사용자 명시 삭제 승인, commit 미정)
+
+> 사용자 명시 승인(2026-06-09, "진행 범위는 [11 대상 나열] + 검증은 [build:specs/dist·CSS 정리/type-check/registration-contract/live behavior]")으로 step4 element 폐기 phase 의 **첫 proof 실행 완료**. ADR-912 step4 가 "no-go(이론)"에서 "첫 element type 폐기 land"로 전환.
+
+**제거 완료 (atomic 11 + 생성 CSS)**:
+
+| #   | 대상                                                               | 처리                                                    |
+| --- | ------------------------------------------------------------------ | ------------------------------------------------------- |
+| 1   | `packages/specs/src/components/Autocomplete.spec.ts`               | 파일 삭제 (render.shapes ()=>[])                        |
+| 2   | `packages/shared/src/components/Autocomplete.tsx`                  | 파일 삭제 (dead RAC wrapper)                            |
+| 3   | `packages/shared/src/components/styles/generated/Autocomplete.css` | 파일 삭제 (수동, orphan 0 확인)                         |
+| 4   | `packages/specs/src/runtime/tagToElement.ts:65/189`                | import + BASE_TAG_SPEC_MAP entry                        |
+| 5   | `apps/builder/.../specRegistry.ts:4/95`                            | import + PROPERTY_EDITOR_SPEC_MAP                       |
+| 6   | `packages/specs/src/index.ts:677`                                  | barrel re-export                                        |
+| 7   | `packages/shared/src/components/index.ts:31`                       | shared components barrel                                |
+| 8   | `packages/shared/src/types/composition-vocabulary.ts:25`           | ComponentTag union 멤버 + 카운트 주석 118→117 / 121→120 |
+| 9   | `packages/shared/src/catalog/generated/componentRulesTable.ts:43`  | Autocomplete rule 블록(43~77)                           |
+| 10  | `packages/shared/src/components/metadata.ts:390`                   | componentMetadata entry                                 |
+| 11  | `packages/shared/src/components/styles/index.css:141`              | @import 제거                                            |
+
+**검증 게이트 5종 전부 PASS**:
+
+1. ✅ **type-check** — 신규 violation 0 (3/3 successful). baseline 110 중 **37개 해소**(Autocomplete 제거로 자연 감소) — 단 `CLAUDE.local.md` "Do NOT refresh baseline mid-task" 정책으로 baseline 미갱신(상한선이라 해소는 PASS 무영향).
+2. ✅ **build:specs** — 124 CSS 생성(이전 125 → Autocomplete 1개 빠짐). **generated/Autocomplete.css orphan 0건**(수동 삭제 후 generate-css add-or-overwrite 가 재생성 안 함).
+3. ✅ **dist fresh** — `packages/specs/dist/index.js`/`index.d.ts` 에 Autocomplete 0건 → **stale-dist masking 함정 회피**(registration-contract 가 dist resolve 라 dist 재빌드 선행 필수였음).
+4. ✅ **registration-contract 10/10 PASS** — 불변식 A(spec 파일 ⟺ TAG_SPEC_MAP 동기성). spec 삭제 + TAG_SPEC_MAP entry 제거 동시 수행으로 정합. baseline ratchet 우회 0.
+5. ✅ **live behavior** (Chrome MCP, localhost:5173/builder) — `__composition_STORE__` 정상 로드 + element 11 정상(기존 프로젝트 깨짐 0) + Skia canvas 렌더 정상 + **autocompleteElements 0**(canonical element 부재 재확증) + **palette 에 Autocomplete 미노출**(metadata 제거) + **콘솔 에러 0**(로드 시점 포함, gate 비동치 경고 0).
+
+**잔존 참조 0건 확인**: 비-test source grep 0(vocabulary 폐기 기록 주석만 의도적 잔존) + test 참조 0 + CommandPalette/AriaAutocomplete 는 별개 RAC 심볼(미관여).
+
+**전제 반전 검증 효용**: scope 검증 Workflow(wrpx30c5w 6 probe + 적대적 verify)가 "registry-only(3곳)" 과소집계를 잡지 못했다면 #6/#7/#8/#9(vocabulary/rule/metadata/DOM 컴포넌트)가 dangling element-type 으로 잔존했을 것. 적대적 verify 가 모든 probe 카운트 오류 적발 → 9 참조처 atomic 묶음으로 완결.
+
+**step4 결과**: element type 폐기 phase 의 **첫 proof land**. "rm 만으로 폐기 가능한 true-dead 0건" 정책이 실증됨 — Autocomplete 도 9 참조처 atomic 묶음 필요(type-check 는 #2/#4 만 cascade, 나머지 수동). 다음 폐기 후보 = DateSegment(registry+rule) < Field(registry+runtime) (P3 비용 오름차순). **각 후보 폐기는 별도 명시 승인 필요**.
+
 ## 관련
 
 - ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (step 4 no-go)

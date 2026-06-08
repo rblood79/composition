@@ -40,41 +40,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  Autocomplete: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-    },
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.md}",
-        height: 28,
-      },
-      md: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 32,
-      },
-      lg: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.md}",
-        height: 40,
-      },
-    },
-  },
   Avatar: {
     defaultVariant: "default",
     defaultSize: "md",

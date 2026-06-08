@@ -387,23 +387,6 @@ export const componentMetadata: ComponentMeta[] = [
     },
   },
   {
-    type: "Autocomplete",
-    label: "Autocomplete",
-    category: "Forms",
-    icon: "🔍",
-    inspector: {
-      hasCustomEditor: false,
-      dataBindingType: "collection",
-      // React Aria: onInputChange, onSelectionChange, onFocus, onBlur
-      supportedEvents: [
-        "onInputChange",
-        "onSelectionChange",
-        "onFocus",
-        "onBlur",
-      ],
-    },
-  },
-  {
     type: "ColorPicker",
     label: "Color Picker",
     category: "Color",
