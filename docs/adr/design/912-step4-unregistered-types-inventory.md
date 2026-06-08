@@ -340,7 +340,30 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 
 **최소 진입 재-재평가**: 직전 recon 의 "(B+icon) 채널 1개 = 3 type 동시 흡수"는 **과대평가**. 실측상 (a) SelectIcon = icon_font replace 단독(가장 작음, Icon 선례 N+0) (b) Disclosure/Calendar = 각각 다른 append 합성(leadingIcon draw module 신규 + mode 키). 셋을 한 채널로 묶으려면 leading/trailing icon offset + text shift 를 rule metadata 로 받는 **generic leadingIcon draw module**(buildCatalogShapes append) 설계 필요 — SelectIcon replace 와는 별개 메커니즘. → "가장 작은 진입"은 SelectIcon 단독(icon_font replace, Icon 선례 복제) 이거나, generic leadingIcon append 채널(Disclosure+Calendar, SelectIcon 은 replace 라 이 채널 비대상).
 
+> ⚠️ **본 "SelectIcon 단독이 가장 작은 진입" 결론은 다음 서브섹션(2026-06-08 SelectIcon 발효 시도 철회)에서 뒤집힘**: SelectIcon 의 Skia replace 는 깨끗하나, DOM cutover 경로(Select 가 비-delegating cutover internal → 자식을 listBoxContent 로 재귀)가 SelectIcon child 를 dropdown 으로 오배치 → 단독 발효 불가. 본 recon 은 Skia 채널만 봤고 DOM cutover child 재귀를 누락. ↓ 다음 서브섹션 참조.
+
 **차단 메모리 자기-인용**: 본 recon 까지만(코드 변경 0). icon_font append/leadingIcon draw module 도입 / binding·catalog 등록 진입은 사용자 별도 승인(`feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization`). buildCatalogShapes 에 type별 if 분기 금지 — leadingIcon offset 은 rule metadata 채널로만(`feedback-container-generic-box-no-classification` ADR-142 §3). 2 agent verdict 충돌은 type별 분리로 해소(main 5 claim cross-check: SKIA_PRIMITIVE_MODES icon_font 미등록=replace / dispatch 835-877 3-mode / ComponentRuleSize.iconSize:187 / iconName props 아닌 rule / 3 type DOM 부모 흡수) file:line evidence(`feedback-analysis-precision-patterns`).
+
+#### Select 3-자식 = parent-absorbed synthetic child, 단독 catalog 발효 불가 (2026-06-08 — SelectIcon 발효 시도 철회, 사용자 file:line 정정)
+
+> 직전 (B+icon) recon 이 "SelectIcon = icon_font replace 단독, 가장 작은 진입"으로 분류했고 그에 따라 SelectIcon 단독 발효를 착수했으나, **DOM cutover 충돌을 놓친 판정**이었음(사용자 정정). 결과 = **SelectIcon 단독 발효 철회, Select 3-자식 전부 parent-delegation 설계로 보류**.
+
+**철회 근거 (file:line, 사용자 + main cross-check)**:
+
+- **Select 는 이미 catalog cutover internal renderer**: componentCatalog.ts:390(`FAMILY_4_CUTOVER="catalog"`) + :408(`primitiveEntry("Select","collections",...)`) + Select.binding.ts:10-14(`source.kind:"internal", renderer:"select"`).
+- **Select 는 DELEGATING skip 대상 아님**: CanonicalNodeRenderer.tsx:150 `DELEGATING_INTERNAL_RENDERERS = {tabs, progressbar, meter}` — select 부재. 따라서 cutover generic 경로(CanonicalNodeRenderer.tsx:313-341)가 **Select 자식을 무조건 재귀 렌더**(L329-339 `childNodes.map(CanonicalNodeRenderer)`).
+- **전달 children 은 trigger 가 아니라 listBoxContent(dropdown) 경로로 라우팅**: Select.tsx:291 `<AriaSelect>{() => (...)}` render-prop 이 trigger(Button+SelectValue+chevron span, :303-353)를 **고정 자체 합성**하고, 외부 children 은 `listBoxContent` useMemo(Select.tsx:218 `return children` / :253-254 `return children`)가 소비 → **popover ListBox 항목으로 들어감**. 즉 SelectIcon 을 catalog child 로 발효하면 chevron 이 trigger 가 아니라 **dropdown 옵션으로 오배치**(단순 중복을 넘어선 구조적 오류).
+
+**정정 — 직전 recon 의 "SelectIcon 가장 작은 진입" 판정 결함**: 직전 (B+icon) recon 은 "DOM 은 부모 흡수라 자식 노드 0 → Skia 한정 발효" 까지만 봤고, **Select 가 cutover internal + 비-delegating 이라 cutover generic 이 자식을 listBoxContent 로 재귀**하는 단계를 누락했다. SelectIcon 의 `roundRect+icon_font` 가 Skia 에서 깨끗이 replace 되더라도, DOM cutover 경로가 SelectIcon child 를 dropdown 으로 오배치하므로 **단독 발효의 신규 진입점이 깨끗하지 않음**(kill criteria 불통과).
+
+**분류 확정 — Select 3-자식 = parent-absorbed synthetic child**: SelectIcon / SelectValue / SelectTrigger 는 (a) DOM 에서 부모 Select 가 trigger 를 self-compose(Select.tsx:291-353) 하므로 독립 노드 불가 + (b) Select 가 비-delegating cutover internal 이라 catalog child 재귀가 listBoxContent 오염 → **개별 leaf catalog 발효 불가**. Select 가 **delegating/self-compose parent** 이므로 자식 발효는 Select 단위 parent-delegation 설계로만 가능.
+
+**다음 안전 방향 (둘 중 하나, 사용자 결정)**:
+
+1. **Select 3-자식 보류 + 본 분류 확정** (현 작업, 코드 0) — parent-absorbed synthetic child, child catalog 발효 불가 조건 명시.
+2. **Select delegating parent 경로 설계** (별도, 더 큼) — Select 를 `DELEGATING_INTERNAL_RENDERERS` 류로 옮겨 child recursion skip + renderSelect/wrapper 정본 재검증 후 SelectIcon 발효 재판정. 사용자 "별도 parent-delegation 설계로 묶음" 결정.
+
+**차단 메모리 자기-인용**: `feedback-proof-gate-seam-removal-kill-criteria` — SelectIcon 단독 발효의 신규 진입점(DOM cutover child)이 깨끗하게(오배치 0) 안 나옴 → 전면 확장 금지, 보류가 정합("작동하지만 fallback 유지" 회피와 동일 렌즈). `feedback-analysis-precision-patterns` — 이름/요약 신뢰 금지: 직전 recon verdict("가장 작은 진입")를 그대로 승계하지 않고 DOM cutover 재귀 경로(CanonicalNodeRenderer.tsx:313 → Select.tsx:218/253) cross-cutting cascade audit 로 결함 발견. agent verdict(`dom_no_render_safe`)도 evidence #10(generic div 가능성)과 자기모순이었음 — 사용자 file:line 정정이 main verdict 승계 오류를 잡음.
 
 ---
 
