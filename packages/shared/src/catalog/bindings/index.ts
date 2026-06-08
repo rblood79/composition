@@ -19,6 +19,7 @@ import { datePickerBinding } from "./DatePicker.binding";
 import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { descriptionBinding } from "./Description.binding";
 import { dialogBinding } from "./Dialog.binding";
+import { disclosureHeaderBinding } from "./DisclosureHeader.binding";
 import { dropZoneBinding } from "./DropZone.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
@@ -84,6 +85,7 @@ export * from "./DatePicker.binding";
 export * from "./DateRangePicker.binding";
 export * from "./Description.binding";
 export * from "./Dialog.binding";
+export * from "./DisclosureHeader.binding";
 export * from "./DropZone.binding";
 export * from "./FieldError.binding";
 export * from "./FileTrigger.binding";
@@ -157,6 +159,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Label: labelBinding,
   // ADR-912 위험군 해소(선행-6): compound 보조 설명 leaf (TEXT_LEAF 동형, 부모 변형 0, weight 400)
   Description: descriptionBinding,
+  // ADR-912 (B+icon): Disclosure 헤더 leaf (leading chevron + title, leading_icon append escape).
+  //   DOM 은 부모 Disclosure self-compose(독립 노드 0), Skia generic box+text + leading_icon.
+  DisclosureHeader: disclosureHeaderBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,

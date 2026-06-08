@@ -2186,13 +2186,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 (B+icon): leading chevron (DisclosureHeader.spec render.shapes 의 chevron-right
+        //   이전). color 는 spec 의 {color.neutral-subdued} 보존. gap 6 = spec text x offset(+6).
+        leadingIcon: {
+          name: "chevron-right",
+          gap: 6,
+          color: "{color.neutral-subdued}",
+        },
       },
     },
     sizes: {
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
-        height: 0,
+        // height 30 = spec rowHeight(fontSize 14 + paddingY 8*2). box(height>0)로 판정 →
+        //   text baseline:middle + leading icon y=height/2 정렬(spec parity). 이전 height:0(inline)
+        //   은 leading icon 동반 시 baseline drift → 30 보강.
+        height: 30,
+        // paddingX 12 = spec chevron/text x base. iconSize 15 = spec chevronSize(round(14*1.1)).
+        paddingX: 12,
+        iconSize: 15,
       },
     },
   },

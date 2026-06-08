@@ -164,6 +164,18 @@ export interface ComponentRuleVariant {
    * TokenRef 문자열(`{color.accent}`) — shared 에선 plain string(fill 필드와 동일 표현).
    */
   fillBar?: string;
+  /**
+   * leading icon (텍스트 좌측 아이콘 — DisclosureHeader chevron 등 보편 D3 속성, ADR-912 (B+icon)).
+   * box+text generic 경로에서 `leading_icon` skiaPrimitive(append 모드)가 본 필드로 chevron 을
+   * 그리고, buildCatalogShapes 가 `size.iconSize` 존재 시 text x 를 `iconSize + gap` 만큼 우측
+   * shift 한다(컴포넌트별 if 없이 데이터 분기 — ADR-142 §3). icon glyph 크기는 size 별로 다를 수
+   * 있어 `ComponentRuleSize.iconSize` 에 둔다(본 필드는 size 무관 name/gap/color 만).
+   * - `name`: lucide icon 이름(예: "chevron-right"). DOM 은 부모 컴포넌트가 self-compose 하므로
+   *   본 필드는 Skia generic 재현 전용(DOM 대칭은 부모 RAC 가 담당).
+   * - `gap`: icon ↔ text 간격(px, 기본 6).
+   * - `color`: icon fill(TokenRef 문자열). 미지정 시 variant `colors.text` fallback.
+   */
+  leadingIcon?: { name: string; gap?: number; color?: string };
 }
 
 /**

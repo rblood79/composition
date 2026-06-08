@@ -47,6 +47,9 @@ export function ruleVariantToVisual(
       c.emphasizedSelectedText as ComponentVisualRule["emphasizedSelectedText"],
     emphasizedSelectedBorder:
       c.emphasizedSelectedBorder as ComponentVisualRule["emphasizedSelectedBorder"],
+    // leading icon (ADR-912 (B+icon)) — ComponentRuleVariant.leadingIcon 정식 필드.
+    //   name/gap/color 동형 캐스팅(color 만 string→TokenRef 런타임 동형).
+    leadingIcon: v.leadingIcon as ComponentVisualRule["leadingIcon"],
   };
 }
 

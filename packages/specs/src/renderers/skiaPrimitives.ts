@@ -1007,6 +1007,63 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 };
 
 /**
+ * `leading_icon` — 텍스트 좌측 아이콘 (DisclosureHeader chevron 등, ADR-912 (B+icon), append 모드).
+ *
+ * base box+text(buildCatalogShapes 가 그림) **위에** 좌측 leading icon glyph 를 덧그린다. text 는
+ * buildCatalogShapes 가 `size.iconSize` 존재 시 `iconSize + gap` 만큼 우측 shift 하므로 본 module 은
+ * icon 만 그린다(text 미생성 — 중복 방지). icon_font(중앙 고정 단일 glyph)와 달리 **좌측 paddingX
+ * 기준 배치** — generic leading-icon 채널.
+ *
+ * 데이터 분기(컴포넌트 식별 없음 — ADR-142 §3):
+ * - `visual.leadingIcon` 미정의 → `[]`(leading icon 없는 일반 box+text 는 본 module 미적용).
+ * - icon glyph 크기 = `size.iconSize`(rule, size 별). 미정의 시 fontSize 기반 fallback.
+ * - x = paddingX(buildCatalogShapes 와 동일 기준: style.paddingLeft ?? size.paddingX ?? 0) + iconSize/2.
+ * - y = size.height/2(box 수직 중앙 — base text baseline:"middle" 과 정렬). height 0 이면 fontSize 기반.
+ * - color = visual.leadingIcon.color → visual.text fallback.
+ */
+const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const li = visual?.leadingIcon;
+  if (!li) return [];
+
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  const iconSize =
+    typeof size.iconSize === "number" && size.iconSize > 0
+      ? size.iconSize
+      : Math.round(fontSize * 1.1);
+  const paddingX = parsePxValue(
+    (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
+      | string
+      | number
+      | undefined,
+    size.paddingX ?? 0,
+  );
+  const height =
+    typeof size.height === "number" && size.height > 0
+      ? size.height
+      : fontSize + 16; // height 미지정 시 fontSize + paddingY*2(8*2) 가정
+  const iconColor =
+    (style?.color as string | undefined) ??
+    li.color ??
+    visual?.text ??
+    ("{color.neutral-subdued}" as TokenRef);
+
+  return [
+    {
+      type: "icon_font",
+      iconName: li.name,
+      x: paddingX + iconSize / 2,
+      y: height / 2,
+      fontSize: iconSize,
+      fill: iconColor,
+      strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
+    },
+  ];
+};
+
+/**
  * `illustrated_message` — 빈 상태(empty state) escape. placeholder roundRect + heading text +
  * description text 3 shape 를 자체 생성한다(append 모드 — rule fill transparent base box 위).
  *
@@ -1289,6 +1346,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   status_light: statusLight,
   // ADR-912 진로 1번 internal leaf escape (replace 모드 — circle bg + image|initials)
   avatar,
+  // ADR-912 (B+icon) leading icon escape (append 모드 — 좌측 chevron, base text 위)
+  leading_icon: leadingIcon,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
@@ -1321,6 +1380,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 진로 1번: avatar 는 circle bg + image|initials 자체 생성, base roundRect box 무의미
   //   (circle 이 전체 외형) → replace. 미등록=replace 지만 의도 명시.
   avatar: "replace",
+  // ADR-912 (B+icon): leading_icon 은 base box+text 위 좌측 chevron → append.
+  //   text 는 buildCatalogShapes 가 iconSize 만큼 우측 shift, 본 module 은 icon 만 그림.
+  leading_icon: "append",
 };
 
 export function getSkiaPrimitive(

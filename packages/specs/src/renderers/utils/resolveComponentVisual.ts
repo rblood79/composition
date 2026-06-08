@@ -66,6 +66,13 @@ export interface ComponentVisualRule {
   emphasizedSelectedText: TokenRef | undefined;
   /** data-emphasized + data-selected 테두리 색 */
   emphasizedSelectedBorder: TokenRef | undefined;
+  /**
+   * leading icon (텍스트 좌측 아이콘 — DisclosureHeader chevron 등, ADR-912 (B+icon)).
+   * `leading_icon` skiaPrimitive(append 모드)가 본 필드 name/color 로 chevron 을 그리고,
+   * buildCatalogShapes 가 `size.iconSize` 존재 시 text x 를 `iconSize + gap` 만큼 우측 shift.
+   * DOM 은 부모 컴포넌트가 self-compose → Skia generic 재현 전용.
+   */
+  leadingIcon: { name: string; gap?: number; color?: TokenRef } | undefined;
 }
 
 /**
@@ -111,5 +118,8 @@ export function variantToVisual(variant: VariantSpec): ComponentVisualRule {
     selectedBorder: variant.selectedBorder,
     emphasizedSelectedText: variant.emphasizedSelectedText,
     emphasizedSelectedBorder: variant.emphasizedSelectedBorder,
+    // production-dead(test fixture 전용) — leadingIcon 은 production 의 ruleVariantToVisual 만
+    //   rule.leadingIcon 에서 채운다. VariantSpec 에는 leadingIcon 필드 없음(spec 삭제 예정).
+    leadingIcon: undefined,
   };
 }

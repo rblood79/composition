@@ -236,6 +236,19 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "progress circle",
     icon: "Loader",
   }),
+  // ADR-912 (B+icon) DisclosureHeader proof slice (leadingIcon append, 2026-06-08): Disclosure
+  //   헤더 leaf(leading chevron + title). Skia 는 buildCatalogShapes box+text + skiaPrimitive
+  //   "leading_icon" escape(append — base text 위 좌측 chevron, text 는 iconSize 만큼 우측 shift),
+  //   DOM 은 부모 Disclosure(catalog 미등록 legacy rendererMap)가 self-compose(renderDisclosure
+  //   가 title 흡수 + contentChildren 제외) → DisclosureHeader DOM 독립 노드 0(catalog 등록 후에도
+  //   DOM 변화 없음, Skia spec.render.shapes fallback 제거가 목적). palette 비노출(ComponentList
+  //   별도 목록 — Disclosure 자식, 단독 배치 안 함). leading_icon 채널은 후속 CalendarHeader 가
+  //   trailing param 으로 확장.
+  primitiveEntry("DisclosureHeader", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "disclosure header",
+    icon: "ChevronRight",
+  }),
 ];
 
 /**

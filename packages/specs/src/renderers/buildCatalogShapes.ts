@@ -184,6 +184,16 @@ export function buildCatalogShapes(
       (style?.fontSize as string | number | undefined) ?? size.fontSize,
       16,
     );
+    // leading icon (ADR-912 (B+icon)): visual.leadingIcon 존재 시 text 를 icon 폭 + gap 만큼
+    //   우측 shift (icon 은 leading_icon skiaPrimitive 가 좌측 paddingX 에 그림 — text 중복 없음).
+    //   컴포넌트별 if 아님 — visual.leadingIcon 데이터 유무로만 분기(ADR-142 §3). icon glyph 크기 =
+    //   size.iconSize(rule, size 별). 미정의 시 fontSize*1.1 fallback(leading_icon module 과 동형).
+    const leadingIconWidth = visual?.leadingIcon
+      ? (typeof size.iconSize === "number" && size.iconSize > 0
+          ? size.iconSize
+          : Math.round(fontSize * 1.1)) + (visual.leadingIcon.gap ?? 6)
+      : 0;
+    const textX = paddingX + leadingIconWidth;
     // font-weight: 사용자 style 우선, 없으면 visual.textWeight(variant 시각 — DropZone 400 등),
     // 최종 fallback 500. textWeight 는 보편 D3 속성(CSS font-weight 동형).
     const fwRaw = style?.fontWeight;
@@ -212,9 +222,12 @@ export function buildCatalogShapes(
         (fill?.alpha ?? 1) !== 0) ||
       !!borderColor;
     const isInlineText = size.height === 0 && !hasOpaqueBg;
+    // leading icon (ADR-912 (B+icon)): icon 옆 text 는 항상 left-align(box 기본 center 가 아님).
+    //   사용자 명시 style.textAlign > leadingIcon left > inline/box 기본. DisclosureHeader 처럼
+    //   transparent box(height>0) 라도 leading icon 동반 text 는 좌측 정렬이 spec parity.
     const textAlign =
       (style?.textAlign as "left" | "center" | "right") ||
-      (isInlineText ? "left" : "center");
+      (visual?.leadingIcon ? "left" : isInlineText ? "left" : "center");
 
     // underline 등 text-decoration 은 caller 가 rule 메타로 주입(Link.spec composition
     // rootSelectors text-decoration 의 거울). spec 직접 읽기 제거(#8).
@@ -229,7 +242,7 @@ export function buildCatalogShapes(
 
     shapes.push({
       type: "text",
-      x: paddingX,
+      x: textX,
       y: 0,
       text,
       fontSize,
