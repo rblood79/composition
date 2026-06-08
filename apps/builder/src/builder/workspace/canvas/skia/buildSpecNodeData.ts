@@ -986,11 +986,13 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     specProps = { ...specProps, ...dateProps };
   }
 
-  const breadcrumbCtx = resolveBreadcrumbItemContext(
-    element,
-    elementsMap,
-    input.childrenMap,
-  );
+  // ADR-912 영역 B (A): render-space projection crumb(appendBreadcrumbRowProjection)은 이미
+  //   _isLast/_separator 를 projection props 로 주입받았다 → projection props 가 SSOT.
+  //   여기서 element-tree sibling 기반 재주입(중복)을 skip 하여 단일 진입점 유지(Tab 패턴 동형).
+  //   non-projection Breadcrumb(pre-migration 기존 문서의 자식 element)만 ancestor lookup 보강.
+  const breadcrumbCtx = isRenderProjectionId(element.id)
+    ? null
+    : resolveBreadcrumbItemContext(element, elementsMap, input.childrenMap);
   if (breadcrumbCtx) {
     specProps = {
       ...specProps,

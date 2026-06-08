@@ -116,6 +116,13 @@ export { toRuntimeListBoxItem, isListBoxSectionEntry } from "./listbox-items";
 export type { StoredTagItem, RuntimeTagItem } from "./taggroup-items";
 export { toRuntimeTagItem } from "./taggroup-items";
 
+// Breadcrumb Items Types (ADR-912 영역 B (A))
+export type {
+  StoredBreadcrumbItem,
+  RuntimeBreadcrumbItem,
+} from "./breadcrumb-items";
+export { toRuntimeBreadcrumbItem } from "./breadcrumb-items";
+
 // GridList Items Types (ADR-099 Phase 5 Section union)
 export type {
   StoredGridListItem,

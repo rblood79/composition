@@ -10,6 +10,7 @@
  */
 
 import type { ComponentSpec, TokenRef } from "../types";
+import type { StoredBreadcrumbItem } from "../types/breadcrumb-items";
 import { PointerOff } from "lucide-react";
 
 /**
@@ -28,6 +29,14 @@ export interface BreadcrumbsProps {
   autoFocusCurrent?: boolean;
   /** Separator character (composition extension) */
   separator?: string;
+  /**
+   * 아이템 목록 (ADR-912 영역 B (A): StoredBreadcrumbItem[] SSOT).
+   *
+   * Builder(Skia)는 appendBreadcrumbRowProjection 이 Breadcrumbs.props.items 를 직접 읽어
+   * crumb projection 노드를 전개한다 (중간 컨테이너 없음 — TagGroup→TagList 2단과 다름,
+   * Breadcrumbs→Breadcrumb 1단 직접). Preview(DOM)는 useResolvedCollectionItems 가 흡수.
+   */
+  items?: StoredBreadcrumbItem[];
   /** ElementSprite 주입: 엔진 계산 최종 폭 */
   _containerWidth?: number;
   style?: Record<string, string | number | undefined>;
@@ -137,16 +146,27 @@ export const BreadcrumbsSpec: ComponentSpec<BreadcrumbsProps> = {
       {
         title: "Breadcrumb Management",
         fields: [
+          // ADR-912 영역 B (A): children-manager → items-manager 전환.
+          //   ADR-097 TagGroup 선례 동일 패턴. Breadcrumb element tree →
+          //   Breadcrumbs.props.items[] (StoredBreadcrumbItem) 로 이관.
           {
             key: "items",
-            type: "children-manager",
+            type: "items-manager",
             label: "Breadcrumbs",
-            childTag: "Breadcrumb",
-            defaultChildProps: {
-              children: "Breadcrumb",
+            itemsKey: "items",
+            itemTypeName: "Breadcrumb",
+            defaultItem: {
+              id: "", // runtime에서 crypto.randomUUID() 주입
+              label: "Breadcrumb",
               href: "/",
             },
-            labelProp: "children",
+            itemSchema: [
+              { key: "label", type: "string", label: "Label" },
+              { key: "href", type: "string", label: "Href" },
+              { key: "isDisabled", type: "boolean", label: "Disabled" },
+            ],
+            labelKey: "label",
+            allowNested: false,
           },
         ],
       },

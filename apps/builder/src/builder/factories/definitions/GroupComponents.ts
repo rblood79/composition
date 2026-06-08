@@ -1,6 +1,6 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
 import { ComponentDefinition, ComponentCreationContext } from "../types";
-import type { StoredTagItem } from "@composition/specs";
+import type { StoredTagItem, StoredBreadcrumbItem } from "@composition/specs";
 
 /**
  * Frame layout container 정의 (ADR-130 Phase 2).
@@ -404,7 +404,16 @@ export function createBreadcrumbsDefinition(
   const { parentElement, elements } = context;
   const parentId = parentElement?.id || null;
 
-  // ⭐ Layout/Slot System
+  // ADR-912 영역 B (A): children-manager → items-manager 전환 (TagGroup 선례 동형).
+  //   기존 factory 3 Breadcrumb element 배열 → 3 StoredBreadcrumbItem 으로 축소.
+  //   crumb 시각은 appendBreadcrumbRowProjection 이 Breadcrumbs.props.items 를 직접 읽어
+  //   crumb projection 노드를 전개(중간 컨테이너 없음 — Breadcrumbs→Breadcrumb 1단 직접).
+  //   마지막 item 은 href 없음(현재 페이지) — Breadcrumb.spec._isLast 강조 + separator 미생성.
+  const items: StoredBreadcrumbItem[] = [
+    { id: crypto.randomUUID(), label: "Home", href: "/" },
+    { id: crypto.randomUUID(), label: "Category", href: "/category" },
+    { id: crypto.randomUUID(), label: "Page" },
+  ];
 
   return {
     type: "Breadcrumbs",
@@ -414,32 +423,12 @@ export function createBreadcrumbsDefinition(
         "aria-label": "Breadcrumbs",
         size: "M",
         isDisabled: false,
+        items,
       } as ComponentElementProps,
       parent_id: parentId,
     },
-    children: [
-      {
-        type: "Breadcrumb",
-        props: {
-          children: "Home",
-          href: "/",
-        } as ComponentElementProps,
-      },
-      {
-        type: "Breadcrumb",
-        props: {
-          children: "Category",
-          href: "/category",
-        } as ComponentElementProps,
-      },
-      {
-        type: "Breadcrumb",
-        props: {
-          children: "Page",
-          href: "/category/page",
-        } as ComponentElementProps,
-      },
-    ],
+    // ADR-912 영역 B (A): Breadcrumb element 자식 생성 중단 (items projection 으로 대체).
+    children: [],
   };
 }
 

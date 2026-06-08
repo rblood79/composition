@@ -41,6 +41,7 @@ import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
 import { ListBox } from "@composition/shared/components/ListBox";
 import { MenuButton } from "@composition/shared/components/Menu";
 import { Modal } from "@composition/shared/components/Modal";
+import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
 import { Popover } from "@composition/shared/components/Popover";
 import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
 import { Select } from "@composition/shared/components/Select";
@@ -121,6 +122,8 @@ const INTERNAL_RENDERERS: Readonly<
   tabs: Tabs,
   taggroup: TagGroup,
   gridlist: GridList,
+  // ADR-912 영역 B (A): Breadcrumbs — items SSOT + crumb projection (delegating renderBreadcrumbs)
+  breadcrumbs: Breadcrumbs,
   // family ⑤ Tree·Table — composition wrapper (재귀/2D collection, useCollectionData)
   tree: Tree,
   table: Table,
@@ -151,6 +154,10 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "tabs",
   "progressbar",
   "meter",
+  // ADR-912 영역 B (A): breadcrumbs — renderBreadcrumbs 가 items 를 useResolvedCollectionItems
+  //   로 RAC Breadcrumb/Link 합성. generic 자식 재귀(`<Breadcrumbs>{children}`)로는 빈 nav 만
+  //   렌더되므로 rendererMap 위임(자식 재귀 skip). Skia 는 appendBreadcrumbRowProjection.
+  "breadcrumbs",
 ]);
 
 /**

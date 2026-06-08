@@ -170,6 +170,20 @@ export type CanvasProjectionMetadata =
       rowIndex: number;
       templateAnchorId: string | null;
       templateOriginId: string | null;
+    }
+  | {
+      kind: "breadcrumb-rows";
+      listBoxId: string;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
+    }
+  | {
+      kind: "breadcrumb-row";
+      listBoxId: string;
+      itemKey: string;
+      rowIndex: number;
+      templateAnchorId: string | null;
+      templateOriginId: string | null;
     };
 
 export interface CanvasSceneNode {
@@ -1371,6 +1385,159 @@ function appendTabRowProjection(
   }
 }
 
+// ---------------------------------------------------------------------------
+// ADR-912 영역 B (A) — Breadcrumb row projection (Breadcrumbs 1단 직접 family)
+// ---------------------------------------------------------------------------
+//
+// Tag/Tab chip 선례와 동형이되 3점 차이:
+//   1) **owner = Breadcrumbs scene node 자체** (중간 컨테이너 없음). Tag/Tab 은 TagList/TabList
+//      중간 컨테이너로 propagation 했지만, Breadcrumbs→Breadcrumb 은 1단 직접 구조라 propagation
+//      불요 — projection 이 Breadcrumbs.props.items 를 직접 읽는다.
+//   2) **rowsGroup = 한 줄 flex row nowrap** (Tag 의 wrap-flow 아님, Breadcrumbs.spec:54 nowrap).
+//   3) crumb(Breadcrumb) 본체는 **Breadcrumb.spec.render.shapes** 가 그린다 (generic box+text 아님)
+//      — separator(!isLast 시 emit) + isLast 강조(weight 600 + accent) 로직 보존. projection 은
+//      crumb 노드에 children/_isLast/_separator 만 주입하고, spec 이 시각 책임.
+
+function isBreadcrumbsSceneSource(
+  breadcrumbsSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+): boolean {
+  if (breadcrumbsSceneNode.type === "Breadcrumbs") return true;
+  if (sourceNode.type === "ref") return false;
+  return (
+    breadcrumbsSceneNode.componentName === "Breadcrumbs" ||
+    breadcrumbsSceneNode.name === "Breadcrumbs"
+  );
+}
+
+/**
+ * data-bound Breadcrumbs 의 projection rows 계산 (gating). items 는 Breadcrumbs.props.items
+ * (StoredBreadcrumbItem[]) SSOT — 중간 컨테이너 없이 직접. dataBinding(api/collection)도 동일
+ * getFlatProjectionRows 3경로로 흡수. rows 0개면 null → 발효 전 standalone(빈 nav) 유지(회귀 0).
+ * crumb 1개 = 1 row.
+ */
+function resolveDataBoundBreadcrumbProjection(
+  breadcrumbsSceneNode: CanvasSceneNode,
+  sourceNode: CanonicalNode,
+  options: BuildCanvasSceneGraphOptions,
+): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
+  if (!isBreadcrumbsSceneSource(breadcrumbsSceneNode, sourceNode)) return null;
+
+  const dataBinding = getElementDataBinding(sourceNode);
+  const rows = getListBoxProjectionRows({
+    collections: options.collections,
+    dataBinding,
+    props: breadcrumbsSceneNode.props,
+  });
+  if (rows.length === 0) return null;
+
+  return { rows, sourceNode };
+}
+
+/**
+ * Breadcrumbs crumb projected tree 생성: RowsGroup(flex row nowrap) → Breadcrumb crumb[i].
+ *
+ * - rowsGroup: 가로 flex row nowrap (Breadcrumbs.spec:54). gap=0 (separator 가 crumb 노드 내부에
+ *   afterPadX 로 흡수되므로 row gap 불요).
+ * - crumb(Breadcrumb): width:fit-content → 라벨 폭 + separator 폭. Breadcrumb.spec.render.shapes
+ *   가 crumb text + (!isLast 시) separator text self-render. children(라벨) + _isLast(마지막만 true,
+ *   weight 600 + accent 강조) + _separator(부모 separator prop, 기본 "›") 주입.
+ * - 단일클릭은 owner(Breadcrumbs) select redirect (resolveCanvasInteractionTarget), projection id 는
+ *   비영속 (Tag/Tab 선례 동일).
+ */
+function appendBreadcrumbRowProjection(
+  breadcrumbsSceneNode: CanvasSceneNode,
+  projection: { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode },
+  scope: SceneScopeContext,
+  graph: Pick<CanvasSceneGraph, "childrenByParent" | "nodes" | "nodesMap"> & {
+    parentById: Map<string, string>;
+  },
+): void {
+  const props = breadcrumbsSceneNode.props;
+  const { rows, sourceNode } = projection;
+  const size = props.size;
+  const separator = typeof props.separator === "string" ? props.separator : "›";
+  const lastIndex = rows.length - 1;
+
+  const rowsGroupId = toCollectionRowsGroupProjectionId(
+    "breadcrumb",
+    breadcrumbsSceneNode.id,
+  );
+  const rowsGroup: CanvasSceneNode = {
+    id: rowsGroupId,
+    type: "Rows",
+    props: {
+      style: {
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "nowrap",
+        alignItems: "center",
+        width: "100%",
+      },
+    },
+    parentId: breadcrumbsSceneNode.id,
+    pageId: scope.pageId,
+    layoutId: scope.layoutId,
+    parent_id: breadcrumbsSceneNode.id,
+    page_id: scope.pageId,
+    layout_id: scope.layoutId,
+    projection: {
+      kind: "breadcrumb-rows",
+      listBoxId: breadcrumbsSceneNode.id,
+      templateAnchorId: null,
+      templateOriginId: null,
+    },
+    sourceNode,
+  };
+  addSceneNode(rowsGroup, graph);
+
+  for (const row of rows) {
+    const crumbId = toCollectionRowProjectionId(
+      "breadcrumb",
+      breadcrumbsSceneNode.id,
+      row.itemKey,
+    );
+    const isLast = row.rowIndex === lastIndex;
+    const crumbProps: Record<string, unknown> = {
+      // Breadcrumb.spec.render.shapes 는 props.children(또는 label/title)을 텍스트 소스로 읽는다.
+      children: row.label,
+      // crumb 폭 = 라벨 + separator(separator 는 Breadcrumb.spec 이 crumb 노드 내부에 그림).
+      style: { width: "fit-content" },
+      // 마지막 crumb 만 강조(weight 600 + accent) + separator 미생성 (Breadcrumb.spec:131/175).
+      _isLast: isLast,
+      _separator: separator,
+      // owner(Breadcrumbs) 의 item 식별 (선택 redirect / write-target 라우팅용).
+      breadcrumbItemKey: row.itemKey,
+    };
+    if (size) crumbProps.size = size;
+    if (row.isDisabled) crumbProps.isDisabled = true;
+
+    addSceneNode(
+      {
+        id: crumbId,
+        type: "Breadcrumb",
+        props: crumbProps,
+        parentId: rowsGroupId,
+        pageId: scope.pageId,
+        layoutId: scope.layoutId,
+        parent_id: rowsGroupId,
+        page_id: scope.pageId,
+        layout_id: scope.layoutId,
+        projection: {
+          kind: "breadcrumb-row",
+          listBoxId: breadcrumbsSceneNode.id,
+          itemKey: row.itemKey,
+          rowIndex: row.rowIndex,
+          templateAnchorId: null,
+          templateOriginId: null,
+        },
+        sourceNode,
+      },
+      graph,
+    );
+  }
+}
+
 export function buildCanvasSceneGraph(
   doc: CompositionDocument,
   options: BuildCanvasSceneGraphOptions = {},
@@ -1444,6 +1611,14 @@ export function buildCanvasSceneGraph(
       ? resolveDataBoundTabProjection(sceneNode, node, getDocumentNodesById)
       : null;
 
+    // ADR-912 영역 B (A): Breadcrumbs crumb projection (owner=Breadcrumbs scene node 자체,
+    //   중간 컨테이너 없음 — 1단 직접). Breadcrumbs factory children:[] (items SSOT) →
+    //   suppression 불필요, append 만. crumb 은 Breadcrumb.spec.render.shapes 로 그려짐
+    //   (separator/isLast 강조 로직 보존, generic box+text 아님).
+    const breadcrumbProjection = sceneNode
+      ? resolveDataBoundBreadcrumbProjection(sceneNode, node, options)
+      : null;
+
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
       // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
@@ -1486,6 +1661,14 @@ export function buildCanvasSceneGraph(
     }
     if (sceneNode && tabProjection) {
       appendTabRowProjection(sceneNode, tabProjection, nextScope, graph);
+    }
+    if (sceneNode && breadcrumbProjection) {
+      appendBreadcrumbRowProjection(
+        sceneNode,
+        breadcrumbProjection,
+        nextScope,
+        graph,
+      );
     }
   }
 

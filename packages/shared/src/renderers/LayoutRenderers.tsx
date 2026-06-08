@@ -937,9 +937,14 @@ export const renderBreadcrumbs = (
     "name" in (dataBinding as object) &&
     !("type" in (dataBinding as object));
 
+  // ADR-912 영역 B (A): items SSOT 전환 후 crumb 은 Breadcrumbs.props.items 가 정본
+  //   (Breadcrumbs wrapper 가 useResolvedCollectionItems 로 렌더). pre-migration 기존 문서의
+  //   자식 Breadcrumb element 는 BC fallback 으로 유지 (items 가 비고 자식이 있으면 자식 렌더).
   const breadcrumbChildren = (
     context.childrenByParent.get(element.id) ?? []
   ).filter((child) => child.type === "Breadcrumb");
+  const items = element.props.items as unknown[] | undefined;
+  const hasItems = Array.isArray(items) && items.length > 0;
 
   return (
     <Breadcrumbs
@@ -955,6 +960,8 @@ export const renderBreadcrumbs = (
       }
       size={element.props.size as "S" | "M" | "L" | undefined}
       isDisabled={Boolean(element.props.isDisabled)}
+      separator={element.props.separator as string | undefined}
+      items={items}
       style={element.props.style}
       className={element.props.className}
       dataBinding={
@@ -965,7 +972,9 @@ export const renderBreadcrumbs = (
       columnMapping={element.props.columnMapping as ColumnMapping | undefined}
       {...eventHandlers}
     >
-      {breadcrumbChildren.map((child) => renderElement(child, child.id))}
+      {hasItems
+        ? null
+        : breadcrumbChildren.map((child) => renderElement(child, child.id))}
     </Breadcrumbs>
   );
 };

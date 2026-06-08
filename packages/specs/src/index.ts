@@ -92,6 +92,9 @@ export type {
   // TagGroup Items Types (ADR-097)
   StoredTagItem,
   RuntimeTagItem,
+  // Breadcrumb Items Types (ADR-912 영역 B (A))
+  StoredBreadcrumbItem,
+  RuntimeBreadcrumbItem,
   // GridList Items Types (ADR-099 Phase 5)
   StoredGridListItem,
   StoredGridListSection,

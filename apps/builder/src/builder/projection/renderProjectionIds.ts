@@ -106,7 +106,11 @@ export function isCollectionRowProjectionKind(
     kind === "tag-row" ||
     // ADR-912 영역 B (A): TabList tab = collection row 동형(items SSOT, owner=TabList).
     //   tab 1개 = tab-row 노드(1단 row family, tag 동형 메타). owner=Tabs select redirect.
-    kind === "tab-row"
+    kind === "tab-row" ||
+    // ADR-912 영역 B (A): Breadcrumbs crumb = collection row 동형(items SSOT, owner=Breadcrumbs).
+    //   crumb 1개 = breadcrumb-row 노드(1단 row family, 중간 컨테이너 없는 직접). owner=Breadcrumbs
+    //   select redirect. crumb 시각은 Breadcrumb.spec(separator/isLast) — generic box 아님.
+    kind === "breadcrumb-row"
   );
 }
 
@@ -121,7 +125,9 @@ export function isCollectionRowsGroupProjectionKind(
     // ADR-912 영역 B (A): TagGroup chip 컨테이너(flexWrap row → wrap-flow).
     kind === "tag-rows" ||
     // ADR-912 영역 B (A): TabList tab 컨테이너(한 줄 flex row, vertical 시 column).
-    kind === "tab-rows"
+    kind === "tab-rows" ||
+    // ADR-912 영역 B (A): Breadcrumbs crumb 컨테이너(한 줄 flex row nowrap).
+    kind === "breadcrumb-rows"
   );
 }
 

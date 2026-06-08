@@ -6,6 +6,7 @@ import type { PrimitiveBinding } from "../types";
 import { avatarBinding } from "./Avatar.binding";
 import { badgeBinding } from "./Badge.binding";
 import { bodyBinding } from "./Body.binding";
+import { breadcrumbsBinding } from "./Breadcrumbs.binding";
 import { buttonBinding } from "./Button.binding";
 import { calendarBinding } from "./Calendar.binding";
 import { checkboxBinding } from "./Checkbox.binding";
@@ -70,6 +71,7 @@ import { treeBinding } from "./Tree.binding";
 export * from "./Avatar.binding";
 export * from "./Badge.binding";
 export * from "./Body.binding";
+export * from "./Breadcrumbs.binding";
 export * from "./Button.binding";
 export * from "./Calendar.binding";
 export * from "./Checkbox.binding";
@@ -138,6 +140,7 @@ export * from "./Tooltip.binding";
 const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // family ① primitives/actions
   Badge: badgeBinding,
+  Breadcrumbs: breadcrumbsBinding,
   Button: buttonBinding,
   Icon: iconBinding,
   IllustratedMessage: illustratedMessageBinding,

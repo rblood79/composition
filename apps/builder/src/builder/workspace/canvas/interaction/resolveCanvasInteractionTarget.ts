@@ -41,9 +41,16 @@ type ProjectionLike =
   // 클릭 시 canonical template anchor(없으면 ListBox)로 redirect 하여
   // 사용자가 행 layout 을 편집하면 모든 행에 반영되도록 한다. projected ID 는 selection 에 진입하지 않는다(§9).
   // (discriminated narrowing 을 위해 kind 별 멤버 분리.)
-  // ADR-912 영역 B (A): tag-row(chip) 도 1단 row family 동형(owner=TagGroup select redirect).
+  // ADR-912 영역 B (A): tag-row(chip)/tab-row/breadcrumb-row 도 1단 row family 동형
+  //   (owner=collection 컴포넌트 select redirect).
   | {
-      kind: "listbox-row" | "gridlist-row" | "table-row" | "tag-row";
+      kind:
+        | "listbox-row"
+        | "gridlist-row"
+        | "table-row"
+        | "tag-row"
+        | "tab-row"
+        | "breadcrumb-row";
       listBoxId: string;
       templateAnchorId?: string | null;
       templateOriginId?: string | null;
@@ -51,7 +58,13 @@ type ProjectionLike =
       rowIndex?: number;
     }
   | {
-      kind: "listbox-rows" | "gridlist-rows" | "table-rows" | "tag-rows";
+      kind:
+        | "listbox-rows"
+        | "gridlist-rows"
+        | "table-rows"
+        | "tag-rows"
+        | "tab-rows"
+        | "breadcrumb-rows";
       listBoxId: string;
       templateAnchorId?: string | null;
       templateOriginId?: string | null;
@@ -134,7 +147,18 @@ export function resolveCanvasInteractionTarget(input: {
       //   chip 1노드 = self-render seam 제거 + Taffy flexWrap parity + selection 보존이 본 slice
       //   증명 대상. X 독립 hit/remove mutation 은 후속(layout overlay + interaction kind 계약).
       projection.kind === "tag-row" ||
-      projection.kind === "tag-rows"
+      projection.kind === "tag-rows" ||
+      // ADR-912 영역 B (A): Tab(tab-row/tab-rows) 클릭 → owner Tabs select redirect.
+      //   listBoxId = TabList scene node id. (Tab slice 4-6 dc9617da0 에서 이 분기 추가가
+      //   누락되어 tab projection id 가 selection 으로 유입될 수 있던 갭을 Breadcrumb slice 와
+      //   함께 동형 보강 — 같은 owner-redirect 진입점.)
+      projection.kind === "tab-row" ||
+      projection.kind === "tab-rows" ||
+      // ADR-912 영역 B (A): Breadcrumbs crumb(breadcrumb-row/breadcrumb-rows) 클릭 → owner
+      //   Breadcrumbs select redirect. listBoxId = Breadcrumbs scene node id (중간 컨테이너
+      //   없는 직접). crumb 1노드 = spec render.shapes seam 유지 + selection 보존이 증명 대상.
+      projection.kind === "breadcrumb-row" ||
+      projection.kind === "breadcrumb-rows"
     ) {
       return {
         kind: "select",

@@ -6,7 +6,7 @@ import {
 } from "react-aria-components";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
 import { Skeleton } from "./Skeleton";
 import "./styles/Breadcrumbs.css";
 
@@ -17,7 +17,9 @@ import "./styles/Breadcrumbs.css";
 
 export interface BreadcrumbsExtendedProps<
   T extends object,
-> extends BreadcrumbsProps<T> {
+  // ADR-912 영역 B (A): RAC items(Iterable<T>) 를 Omit 하고 StoredBreadcrumbItem[](unknown[])
+  //   로 재선언 — collection items 단일 계약(useResolvedCollectionItems) 이 정규화 source.
+> extends Omit<BreadcrumbsProps<T>, "items"> {
   /**
    * Controls spacing and layout size. RSP API: 'S' | 'M' | 'L'
    * @default 'M'
@@ -41,6 +43,13 @@ export interface BreadcrumbsExtendedProps<
    * @default 3
    */
   skeletonCount?: number;
+  /**
+   * 정적 items SSOT (ADR-912 영역 B (A): StoredBreadcrumbItem[]).
+   * dataBinding 없을 때 source. useResolvedCollectionItems 가 dataBinding 과 동일 normalizer 로 흡수.
+   */
+  items?: unknown[];
+  /** Separator character (composition extension) */
+  separator?: string;
 }
 
 /**
@@ -56,26 +65,35 @@ export interface BreadcrumbsExtendedProps<
 export function Breadcrumbs<T extends object>({
   size = "M",
   dataBinding,
-  columnMapping,
+  columnMapping: _columnMapping,
   isLoading: externalLoading,
   skeletonCount = 3,
+  items,
+  separator: _separator,
   children,
   ...props
 }: BreadcrumbsExtendedProps<T>) {
-  // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
-  const {
-    data: boundData,
-    loading,
-    error,
-  } = useCollectionData({
-    dataBinding: dataBinding as DataBinding,
+  // ADR-912 영역 B (A): collection items 단일 계약 — dataBinding(async/dataTable) 과 정적
+  //   props.items(StoredBreadcrumbItem[])를 같은 toItemProjectionRow normalizer 로 흡수.
+  //   Skia appendBreadcrumbRowProjection(getFlatProjectionRows) 와 동일 row 형태 = 시각 대칭 SSOT.
+  //   row.item 에 raw 보존 → href 접근. label 은 휴리스틱(label/name/title) 추출.
+  const { rows, loading, error } = useResolvedCollectionItems({
+    dataBinding: dataBinding as DataBinding | undefined,
+    items,
     componentName: "Breadcrumbs",
     fallbackData: [
-      { id: 1, name: "Home", href: "/" },
-      { id: 2, name: "Products", href: "/products" },
-      { id: 3, name: "Current", href: "" },
+      { id: "bc-home", label: "Home", href: "/" },
+      { id: "bc-products", label: "Products", href: "/products" },
+      { id: "bc-current", label: "Current" },
     ],
   });
+
+  // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
+  const baseClassName =
+    typeof props.className === "string" ? props.className : undefined;
+  const breadcrumbsClassName = baseClassName
+    ? `react-aria-Breadcrumbs ${baseClassName}`
+    : "react-aria-Breadcrumbs";
 
   // External loading state - show skeleton breadcrumbs
   if (externalLoading) {
@@ -116,121 +134,66 @@ export function Breadcrumbs<T extends object>({
     );
   }
 
-  // PropertyDataBinding 형식 감지
-  const isPropertyBinding =
-    dataBinding &&
-    "source" in dataBinding &&
-    "name" in dataBinding &&
-    !("type" in dataBinding);
-  const hasDataBinding =
-    (!isPropertyBinding &&
-      dataBinding &&
-      "type" in dataBinding &&
-      dataBinding.type === "collection") ||
-    isPropertyBinding;
-
-  // 🚀 ClassNameOrFunction 타입 지원 - 문자열로 단순화
-  const baseClassName =
-    typeof props.className === "string" ? props.className : undefined;
-  const breadcrumbsClassName = baseClassName
-    ? `react-aria-Breadcrumbs ${baseClassName}`
-    : "react-aria-Breadcrumbs";
-
-  // DataBinding이 있고 columnMapping이 있으면 children 템플릿 사용
-  if (hasDataBinding && columnMapping) {
-    if (loading) {
-      return (
-        <RACBreadcrumbs
-          {...props}
-          className={breadcrumbsClassName}
-          data-size={size}
-        >
-          <Breadcrumb>
-            <Link>⏳ 로딩 중...</Link>
-          </Breadcrumb>
-        </RACBreadcrumbs>
-      );
-    }
-
-    if (error) {
-      return (
-        <RACBreadcrumbs
-          {...props}
-          className={breadcrumbsClassName}
-          data-size={size}
-        >
-          <Breadcrumb>
-            <Link>❌ 오류</Link>
-          </Breadcrumb>
-        </RACBreadcrumbs>
-      );
-    }
-
-    if (boundData.length > 0) {
-      return (
-        <RACBreadcrumbs
-          {...props}
-          className={breadcrumbsClassName}
-          data-size={size}
-        >
-          {children}
-        </RACBreadcrumbs>
-      );
-    }
+  // dataBinding async 로딩/에러 — 단일 placeholder crumb.
+  if (loading) {
+    return (
+      <RACBreadcrumbs
+        {...props}
+        className={breadcrumbsClassName}
+        data-size={size}
+      >
+        <Breadcrumb>
+          <Link>⏳ 로딩 중...</Link>
+        </Breadcrumb>
+      </RACBreadcrumbs>
+    );
+  }
+  if (error) {
+    return (
+      <RACBreadcrumbs
+        {...props}
+        className={breadcrumbsClassName}
+        data-size={size}
+      >
+        <Breadcrumb>
+          <Link>❌ 오류</Link>
+        </Breadcrumb>
+      </RACBreadcrumbs>
+    );
   }
 
-  // DataBinding이 있고 columnMapping이 없으면 동적 Breadcrumb 생성
-  if (hasDataBinding && !columnMapping) {
-    if (loading) {
-      return (
-        <RACBreadcrumbs
-          {...props}
-          className={breadcrumbsClassName}
-          data-size={size}
-        >
-          <Breadcrumb>
-            <Link>⏳ 로딩 중...</Link>
-          </Breadcrumb>
-        </RACBreadcrumbs>
-      );
-    }
-
-    if (error) {
-      return (
-        <RACBreadcrumbs
-          {...props}
-          className={breadcrumbsClassName}
-          data-size={size}
-        >
-          <Breadcrumb>
-            <Link>❌ 오류</Link>
-          </Breadcrumb>
-        </RACBreadcrumbs>
-      );
-    }
-
-    if (boundData.length > 0) {
-      return (
-        <RACBreadcrumbs
-          {...props}
-          className={breadcrumbsClassName}
-          data-size={size}
-        >
-          {boundData.map((item, index) => (
-            <Breadcrumb key={String(item.id || index)}>
-              <Link href={String(item.href || item.url || "")}>
-                {String(
-                  item.name || item.title || item.label || `Item ${index + 1}`,
-                )}
-              </Link>
+  // rows(정규화된 items/dataBinding) 가 있으면 crumb 렌더. RAC <Breadcrumbs> 는 static children
+  //   이 있으면 우선하므로, rows 가 있으면 children 대신 rows 기반 Breadcrumb/Link 를 그린다.
+  //   rows 가 비면 외부 static JSX children = RAC static collection (직접 사용 호환).
+  if (rows.length > 0) {
+    return (
+      <RACBreadcrumbs
+        {...props}
+        className={breadcrumbsClassName}
+        data-size={size}
+      >
+        {rows.map((row) => {
+          const raw =
+            row.item && typeof row.item === "object"
+              ? (row.item as Record<string, unknown>)
+              : null;
+          const href =
+            raw && typeof raw.href === "string"
+              ? raw.href
+              : raw && typeof raw.url === "string"
+                ? raw.url
+                : undefined;
+          return (
+            <Breadcrumb key={row.itemKey}>
+              <Link href={href}>{row.label}</Link>
             </Breadcrumb>
-          ))}
-        </RACBreadcrumbs>
-      );
-    }
+          );
+        })}
+      </RACBreadcrumbs>
+    );
   }
 
-  // Static children (기존 방식)
+  // Static children (직접 사용 `<Breadcrumbs><Breadcrumb>...` 호환)
   return (
     <RACBreadcrumbs
       {...props}

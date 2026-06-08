@@ -434,6 +434,16 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "grid list",
     icon: "Grid",
   }),
+  // Breadcrumbs — Skia generic 발효 (ADR-912 영역 B (A) 2026-06-08): crumb 은 items SSOT
+  //   (StoredBreadcrumbItem) → appendBreadcrumbRowProjection 이 Breadcrumbs.props.items 를 직접
+  //   읽어 crumb projection 노드 전개(중간 컨테이너 없음 — Tag/Tab 2단과 다른 1단 직접). crumb 시각은
+  //   generic box+text 아니라 Breadcrumb.spec.render.shapes 유지(separator/isLast 강조 로직 보존).
+  //   DOM 은 delegating renderBreadcrumbs(useResolvedCollectionItems). container shell only(GridList 동형).
+  primitiveEntry("Breadcrumbs", "collections", FAMILY_4_CUTOVER, {
+    category: "navigation",
+    label: "breadcrumbs",
+    icon: "ChevronRight",
+  }),
   // Menu — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 2026-06-04): Menu 는 캔버스에서
   //   trigger Button 과 동일한 시각 요소(RAC 표준 MenuTrigger>Button+Popover>Menu — 초기 화면에
   //   보이는 것은 trigger Button, 메뉴 리스트는 Popover 안에 숨김). Skia 정적 캔버스는 popover 를
