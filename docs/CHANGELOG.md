@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Autocomplete element type 폐기 — ADR-912 step4 element 폐기 phase 첫 proof] - 2026-06-09
+## [element type 폐기 — ADR-912 step4 element 폐기 phase 2 proof (Autocomplete + DateSegment/TimeSegment)] - 2026-06-09
 
 ### Breaking Changes
 
@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ComponentTag` union 에서 `"Autocomplete"` 멤버 제거 (composition Component 118→117개). canonical document / element.type 값 공간에서 폐기.
   - **사용자 영향 0**: Autocomplete 는 factory creator 미등록(canonical element 생성 불가) + ComponentList palette 미노출(metadata 제거) 상태였음 → 기존 프로젝트에 Autocomplete element 0건, 깨짐 없음. RAC `AriaAutocomplete` / `CommandPalette` 는 별개 심볼이라 무관.
   - **Why**: ADR-912 step4 가 "spec 파일 물리 삭제"에서 **"element type 폐기 decision"**(4축 gate G-render/G-factory/G-registry/G-consumer 통과 type 만 폐기)로 재정의됨. Autocomplete 는 render.shapes `() => []`(Skia 출력 0) + factory 0 + layout/text consumer 0 으로 폐기 비용 최소(G-registry 단독 FAIL).
+
+- **`DateSegment` + `TimeSegment` element type 제거** (ADR-912 단계 5 step4 — element type 폐기 phase 두 번째 proof, commit `c77ff8619`):
+  - `ComponentTag` union 에서 `"DateSegment"` 멤버 제거 (composition Component 117→116개). `TimeSegment` 는 union 비멤버였던 undeclared alias(`tagToElement.ts` 만 매핑)로 동시 청산.
+  - **사용자 영향 0**: factory 가 DateField/TimeField 자식으로 `DateInput` element 만 생성(개별 segment element 미생성) + ComponentList palette 미노출 → 기존 프로젝트에 DateSegment/TimeSegment element 0건. 입력 box 시각은 `DateInput` escape hatch(`datefield_segments: "replace"`)가 `MM / DD / YYYY` · `HH : MM` placeholder text 를 자체 렌더하여 CSS↔Skia 대칭 유지.
+  - **D1 보존**: RAC `<DateInput>{(segment) => <DateSegment segment={segment} />}` self-compose(shared/components 4 — DateField/DatePicker/DateRangePicker/TimeField)는 render-time 합성·store element 아님 → 키보드 네비게이션/ARIA 권위 보존. 4 spec 의 `childSelector: ".react-aria-DateSegment"`(D1 CSS selector)도 보존.
+  - **Why**: 전제 반전(역방향) — `DateSegment.spec.render.shapes` 가 실체 있어 초기 직관은 "G-render FAIL"(폐기 불가)였으나, canonical element 미생성(수요 측 진입점 0)이라 적대적 재검증 결과 4축 gate 전부 PASS = true-dead. Autocomplete(공급 측 공백, shapes 빈 배열)와 반대 사인.
 
 ### Architecture
 
@@ -24,11 +30,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **전제 반전**: scope 검증(6 probe + 적대적 verify)으로 기존 inventory "registry-only(3곳)" 과소집계 판명 → 실제 9개 비-test source 분산(vocabulary union / rule / metadata / DOM 컴포넌트 포함). type-check cascade 는 specs noUnusedLocals 경로(import/barrel)만 커버, 나머지는 string-key/literal 이라 수동 정리.
   - 위치: `docs/adr/design/912-step4-unregistered-types-inventory.md` §"Autocomplete element type 폐기 실행 완료"
 
+- **DateSegment + TimeSegment 9 참조처 atomic 제거** (ADR-912 step4 두 번째 proof, `c77ff8619`):
+  - 파일 삭제: `packages/specs/src/components/DateSegment.spec.ts`(render.shapes 살아있었으나 canonical element 미생성 = 수요 측 공백)
+  - entry/멤버 제거: `tagToElement.ts`(import + DateSegment/TimeSegment 2 entry) / `specs/index.ts` barrel / `shared/components/index.ts` barrel / `composition-vocabulary.ts` union+카운트(117→116) / `componentRulesTable.ts` rule block / `preview/App.tsx` case 2 / `buildSpecNodeData.ts` CONTAINER_DIMENSION_TAGS / `DateField.spec.ts`+`TimeField.spec.ts` propagation rule 2(dead, silent skip)
+  - **보존**: shared/components 4 RAC self-compose + 4 spec childSelector(D1). `DateColorComponents.ts` JSDoc 트리는 실제 factory children(Label + DateInput)으로 정정.
+  - 위치: `docs/adr/design/912-step4-unregistered-types-inventory.md` §"DateSegment + TimeSegment 폐기 recon"
+
 ### Infrastructure
 
-- **검증 게이트 5종 PASS** (ADR-912 step4 첫 proof):
+- **검증 게이트 5종 PASS** (ADR-912 step4 첫 proof — Autocomplete):
   - type-check 신규 violation 0(baseline 110 중 37개 자연 해소, mid-task baseline 미갱신) / build:specs 124 CSS(Autocomplete 빠짐)·generated CSS orphan 0 / specs dist fresh(stale-dist masking 함정 회피) / `pnpm test:registration-contract` 10/10(불변식 A spec⟺TAG_SPEC_MAP 동기성) / live builder(Chrome MCP) element 11 정상·canonical Autocomplete element 0·palette 미노출·콘솔 에러 0
   - **Why**: element type 폐기는 type-check 단독으로 불충분 — string-key registry/vocabulary/rule/metadata 잔존을 잡으려면 build:specs + registration-contract + live behavior 동반 필수. dist resolve 라 contract test 전 dist 재빌드 선행(stale-dist false PASS 방지).
+
+- **검증 게이트 5종 PASS** (ADR-912 step4 두 번째 proof — DateSegment/TimeSegment):
+  - type-check 신규 violation 0 / build:specs 123 CSS·dist DateSegmentSpec 참조 0(childSelector 4건만 컴파일 보존) / specs dist fresh / `pnpm test:registration-contract` 10/10 / live builder(Chrome MCP) factory 경로 DateField/TimeField 정상 렌더·자식 Label+DateInput+FieldError·DateSegment/TimeSegment element 0·DateInput 의 자식 0(RAC render-time self-compose)·DateInput escape 가 MM/DD/YYYY·HH:MM box 자체 렌더·CSS Preview↔Skia Canvas 시각 대칭·콘솔 에러 0(테스트 element 6개 추가→removeElements 원복, totalElements 36→42→36 오염 0)
+  - **Note**: specs vitest 의 Tabs CSSGenerator snapshot 1건 mismatch 는 본 작업 무관 — git stash 격리로 사전 존재 drift(Tabs projection 작업 산물) 확인, DateSegment 폐기 범위 미포함.
 
 ## [catalog 발효 컴포넌트 Skia 텍스트 미표시 회복 — paddingX 데이터 갭] - 2026-06-05
 
