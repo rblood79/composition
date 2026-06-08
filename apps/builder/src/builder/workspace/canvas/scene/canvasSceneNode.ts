@@ -1612,15 +1612,24 @@ export function buildCanvasSceneGraph(
       : null;
 
     // ADR-912 영역 B (A): Breadcrumbs crumb projection (owner=Breadcrumbs scene node 자체,
-    //   중간 컨테이너 없음 — 1단 직접). Breadcrumbs factory children:[] (items SSOT) →
-    //   suppression 불필요, append 만. crumb 은 Breadcrumb.spec.render.shapes 로 그려짐
-    //   (separator/isLast 강조 로직 보존, generic box+text 아님).
+    //   중간 컨테이너 없음 — 1단 직접). 신규 Breadcrumbs factory 는 children:[] (items SSOT)
+    //   지만, **pre-migration 기존 문서는 자식 Breadcrumb element 를 보유**한다. items 가 있어
+    //   projection 이 active 면 legacy 자식 Breadcrumb element 를 visit 에서 제외해야 이중 렌더
+    //   (legacy 자식 + projection crumb)를 막는다. DOM(renderBreadcrumbs `hasItems ? null
+    //   : children`)과 대칭.
     const breadcrumbProjection = sceneNode
       ? resolveDataBoundBreadcrumbProjection(sceneNode, node, options)
       : null;
+    const suppressBreadcrumbChildren =
+      breadcrumbProjection != null && node.type === "Breadcrumbs";
 
     node.children?.forEach((child) => {
       if (suppressedAnchorId && child.id === suppressedAnchorId) return;
+      // ADR-912 영역 B (A): items projection active 면 legacy 자식 Breadcrumb element 제외
+      //   (이중 렌더 차단). non-Breadcrumb 자식(혹시 잔존)은 보존.
+      if (suppressBreadcrumbChildren && child.type === "Breadcrumb") {
+        return;
+      }
       // ADR-147 (RAC 표준): ListBoxItem 의 slot 조합 자식(Icon/Label/Description)은
       //   render.shapes 가 단일 렌더러로 그리므로 가시 scene 에서 제외(세로 stacked 중복 방지).
       if (
