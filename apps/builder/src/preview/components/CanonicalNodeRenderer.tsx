@@ -138,6 +138,20 @@ const INTERNAL_RENDERERS: Readonly<
 };
 
 /**
+ * ADR-912 — rendererMap(element, context) 함수에 위임하는 internal renderer 키 집합.
+ *
+ * 이 집합의 renderer 는 자식 element-tree context(childrenByParent)가 필요한 self-compose
+ * 컴포넌트라, INTERNAL_RENDERERS 의 React.ElementType + generic 자식 재귀로는 표현 불가하다.
+ * cutover DOM 경로가 rendererMap[type](LayoutRenderers)로 위임하고 generic 자식 재귀는 skip한다.
+ * - tabs: renderTabs (TabPanels→TabPanel itemId 페어링)
+ * - progressbar: renderProgressBar (자식 Label children 추출 → 자기완결 RAC ProgressBar)
+ */
+const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
+  "tabs",
+  "progressbar",
+]);
+
+/**
  * ResolvedNode 의 복원 type 추출 (CanonicalNodeRenderer 본문 type 복원과 동일 규칙).
  */
 function resolveNodeType(node: ResolvedNode): string {
@@ -253,34 +267,34 @@ export function CanonicalNodeRenderer({
   if (cutoverPrimitives?.has(type)) {
     const binding = getPrimitiveBinding(type);
 
-    // ADR-912 영역 B (Tabs 축 ① DOM): Tabs 는 INTERNAL_RENDERERS.tabs(Tabs.tsx wrapper)가
-    //   items 미소비(static children만) → cutover generic 경로에서 빈 TabList/TabPanels 만 렌더.
-    //   rendererMap.renderTabs(LayoutRenderers)는 childrenByParent 로 TabPanels→TabPanel itemId
-    //   페어링 + Tabs.props.items 로 RACTab/RACTabPanel 합성을 이미 완비 — element-tree context 가
-    //   필요한 정본 소비자다. INTERNAL_RENDERERS(React.ElementType, (node,binding)) 계약과 달리
-    //   renderTabs 는 (element, context) 계약이므로 전용 adapter 로 위임(generic child 재귀 skip,
-    //   renderTabs 가 TabList/TabPanels 자체 처리 → 중복 DOM 0). marker 는 wrapper div 보존.
+    // ADR-912 — rendererMap 위임 internal renderer 집합(child element-tree context 가 필요한
+    //   self-compose 컴포넌트). generic 자식 재귀(`<RAC.X>{children}`) 로는 표현 불가 →
+    //   rendererMap 의 (element, context) 계약 함수에 위임한다(generic child 재귀 skip).
+    //   - tabs(영역 B Tabs 축 ① DOM): renderTabs 가 childrenByParent 로 TabPanels→TabPanel itemId
+    //     페어링 + Tabs.props.items 로 RACTab/RACTabPanel 합성. items 미소비 wrapper 라 generic 으로는
+    //     빈 TabList 만 렌더됨.
+    //   - progressbar(value-fill compound): renderProgressBar 가 childrenByParent 에서 자식 Label
+    //     children 문자열만 추출 → 자기완결 RAC `<ProgressBar label value min max>` 렌더(render-prop
+    //     내부 self-compose). 자식 Value/Track 은 DOM 미렌더(RAC 자체 bar). Skia 는 shell-only +
+    //     자식 ProgressBarTrack value_fill_bar escape(선행-2 발효) — 시각 결과 대칭(구현 비대칭 의도).
+    //   marker 는 wrapper div 보존. canonical 렌더 경로의 renderContext.childrenByParent 는
+    //   preview elements state 기반이라 비어있어, canonical node 서브트리 평탄화로 보강해 전달.
     if (
       binding?.source.kind === "internal" &&
-      binding.source.renderer === "tabs"
+      DELEGATING_INTERNAL_RENDERERS.has(binding.source.renderer)
     ) {
-      const tabsRenderer = rendererMap[adaptedEl.type];
-      if (tabsRenderer) {
-        // canonical 렌더 경로(USE_CANONICAL_RENDER)에서 renderContext.childrenByParent 는
-        //   preview elements state(resolvedElements) 기반이라 canonical node 트리와 분리되어
-        //   비어있다(size 0). renderTabs 는 childrenByParent 로 TabPanels→TabPanel itemId
-        //   페어링 + child content(renderElement)를 찾으므로, canonical node 서브트리를
-        //   평탄화한 childrenByParent 로 renderContext 를 보강해 전달한다.
-        const tabsChildrenByParent = flattenNodeChildrenByParent(node);
-        const tabsRenderContext = {
+      const delegatedRenderer = rendererMap[adaptedEl.type];
+      if (delegatedRenderer) {
+        const delegatedChildrenByParent = flattenNodeChildrenByParent(node);
+        const delegatedRenderContext = {
           ...(renderContext as unknown as SharedRenderContext),
-          childrenByParent: tabsChildrenByParent,
+          childrenByParent: delegatedChildrenByParent,
         } as SharedRenderContext;
         return (
           <div key={node.id} {...markerProps} style={{ display: "contents" }}>
-            {tabsRenderer(
+            {delegatedRenderer(
               adaptedEl as unknown as SharedPreviewElement,
-              tabsRenderContext,
+              delegatedRenderContext,
             )}
           </div>
         );

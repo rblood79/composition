@@ -39,6 +39,7 @@ import { navBinding } from "./Nav.binding";
 import { numberFieldBinding } from "./NumberField.binding";
 import { paragraphBinding } from "./Paragraph.binding";
 import { popoverBinding } from "./Popover.binding";
+import { progressBarBinding } from "./ProgressBar.binding";
 import { progressBarTrackBinding } from "./ProgressBarTrack.binding";
 import { progressCircleBinding } from "./ProgressCircle.binding";
 import { radioBinding } from "./Radio.binding";
@@ -100,6 +101,7 @@ export * from "./Nav.binding";
 export * from "./NumberField.binding";
 export * from "./Paragraph.binding";
 export * from "./Popover.binding";
+export * from "./ProgressBar.binding";
 export * from "./ProgressBarTrack.binding";
 export * from "./ProgressCircle.binding";
 export * from "./Radio.binding";
@@ -200,6 +202,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 진로 1번: 원형 진행률 internal leaf (value_fill_arc escape, replace — arc 미generic).
   //   leaf(children:[]) + value/size props → DOM=INTERNAL_RENDERERS["progresscircle"](SVG ring).
   ProgressCircle: progressCircleBinding,
+  // ADR-912 진로 1번: 진행률 compound (factory 3자식) — DOM=rendererMap.renderProgressBar 위임
+  //   (DELEGATING_INTERNAL_RENDERERS, Tabs 선례). Skia=shell-only + 자식 ProgressBarTrack value_fill_bar.
+  ProgressBar: progressBarBinding,
   // family ④ collections (internal source — composition wrapper + useCollectionData)
   ListBox: listBoxBinding,
   Menu: menuBinding,

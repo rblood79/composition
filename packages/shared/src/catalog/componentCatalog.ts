@@ -328,6 +328,16 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "slider",
     icon: "SlidersHorizontal",
   }),
+  // ADR-912 진로 1번 ProgressBar proof slice (value-fill compound, 2026-06-07): 진행률 표시.
+  //   factory 3자식(Label/ProgressBarValue/ProgressBarTrack) → _hasChildren=true. DOM 은
+  //   rendererMap.renderProgressBar 위임(DELEGATING_INTERNAL_RENDERERS, Tabs 선례 — 자식 Label
+  //   children 추출 → 자기완결 RAC ProgressBar). Skia 는 shell-only + 자식 ProgressBarTrack
+  //   value_fill_bar escape(선행-2 발효). DOM/Skia 비대칭이나 시각 결과(value 비례 막대) 대칭.
+  primitiveEntry("ProgressBar", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "progress bar",
+    icon: "BarChart3",
+  }),
   // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part).
   //   palette 미노출(ComponentList 가 ProgressBar 부모만 등록) — catalog 등록은 Skia
   //   generic 경로(value_fill_bar escape) 진입용. DOM 은 부모 RAC ProgressBar 가 track 담당.
