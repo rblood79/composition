@@ -921,15 +921,15 @@ Autocomplete 는 4 gate 중 **G-render / G-factory / G-consumer 3 PASS + G-regis
 
 4 gate 측정 결과를 폐기 비용으로 정렬. **모두 최소 1 gate FAIL = true-dead 0건** 재확인:
 
-| 순위 | type                                                                | FAIL gate                       | 폐기 묶음 (rm 외 동반 작업)                                                                                                                                                                                                         |
-| :--: | ------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | **Autocomplete**                                                    | G-registry (단, 9 참조처 분산)  | 9 참조처 + 생성 CSS atomic 묶음 (migration 0). **정정**: scope 검증(↓ "Autocomplete 폐기 proof 계획")으로 "registry 3" 과소집계 → vocabulary union/rule/metadata/DOM 컴포넌트 포함 9개. type-check 는 #2/#4 만 cascade, 나머지 수동 |
-|  2   | DateSegment                                                         | G-registry + (catalog rule)     | registry 2(alias) + componentRulesTable rule + DateInput projector segment 그리기 유지 확인                                                                                                                                         |
-|  3   | Field                                                               | G-registry + G-factory(런타임)  | registry 2 + TagEditor `type==='Field'` filter + canonical migration(TagEditor.tsx:123 addElement)                                                                                                                                  |
-| 4~10 | Tag/Tab/TabList/Breadcrumb/MeterValue/ProgressBarValue/SliderOutput | G-render(skia-source-active)    | spec 이 유일 Skia source — value text/구분선/crumb projector 이관 또는 보존                                                                                                                                                         |
-|  11  | TabPanels                                                           | G-render + G-consumer(paddingX) | paddingX 이관(implicitStyles.ts:41 + utils.ts:2705) + factory Frame 대체 + migration                                                                                                                                                |
-|  12  | TabPanel                                                            | G-factory                       | factory(LayoutComponents.ts:49) + migration                                                                                                                                                                                         |
-|  13  | SliderThumb                                                         | G-factory + 인터랙션/접근성     | Slider 인터랙션/접근성/migration 전면 (HIGH)                                                                                                                                                                                        |
+| 순위 | type                                                                | FAIL gate                        | 폐기 묶음 (rm 외 동반 작업)                                                                                                                                                                                                                                                                                                           |
+| :--: | ------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | **Autocomplete**                                                    | G-registry (단, 9 참조처 분산)   | 9 참조처 + 생성 CSS atomic 묶음 (migration 0). **정정**: scope 검증(↓ "Autocomplete 폐기 proof 계획")으로 "registry 3" 과소집계 → vocabulary union/rule/metadata/DOM 컴포넌트 포함 9개. type-check 는 #2/#4 만 cascade, 나머지 수동                                                                                                   |
+|  2   | DateSegment (+TimeSegment alias)                                    | **4 gate 전부 PASS** (true-dead) | **정정 (↓ "DateSegment 폐기 recon"): 4 gate 전부 PASS — 폐기 가능. registry 2 entry + componentRulesTable rule + propagation rule 2건 + dead consumer 2(preview span / CONTAINER_DIM) atomic 9곳. Skia 시각은 DateInput escape 전담(개별 segment element 미생성), catalog binding 0(미등록). TimeSegment undeclared alias 동시 청산** |
+|  3   | Field                                                               | G-registry + G-factory(런타임)   | registry 2 + TagEditor `type==='Field'` filter + canonical migration(TagEditor.tsx:123 addElement)                                                                                                                                                                                                                                    |
+| 4~10 | Tag/Tab/TabList/Breadcrumb/MeterValue/ProgressBarValue/SliderOutput | G-render(skia-source-active)     | spec 이 유일 Skia source — value text/구분선/crumb projector 이관 또는 보존                                                                                                                                                                                                                                                           |
+|  11  | TabPanels                                                           | G-render + G-consumer(paddingX)  | paddingX 이관(implicitStyles.ts:41 + utils.ts:2705) + factory Frame 대체 + migration                                                                                                                                                                                                                                                  |
+|  12  | TabPanel                                                            | G-factory                        | factory(LayoutComponents.ts:49) + migration                                                                                                                                                                                                                                                                                           |
+|  13  | SliderThumb                                                         | G-factory + 인터랙션/접근성      | Slider 인터랙션/접근성/migration 전면 (HIGH)                                                                                                                                                                                                                                                                                          |
 
 (deletion-risk 7 = TreeItem/SelectIcon/SelectValue/SelectTrigger/DateSegment/TimeSegment/DateInput 중 DateInput 발효 완료·DateSegment dead — 잔여 차단 5 는 위 표 4~10 의 G-render FAIL 또는 별도 ADR(재귀 projector). color 7 + Group + List + Toast + container shell 11 은 미등록 40 분류 참조.)
 
@@ -1038,6 +1038,57 @@ Autocomplete 는 4 gate 중 **G-render / G-factory / G-consumer 3 PASS + G-regis
 **전제 반전 검증 효용**: scope 검증 Workflow(wrpx30c5w 6 probe + 적대적 verify)가 "registry-only(3곳)" 과소집계를 잡지 못했다면 #6/#7/#8/#9(vocabulary/rule/metadata/DOM 컴포넌트)가 dangling element-type 으로 잔존했을 것. 적대적 verify 가 모든 probe 카운트 오류 적발 → 9 참조처 atomic 묶음으로 완결.
 
 **step4 결과**: element type 폐기 phase 의 **첫 proof land**. "rm 만으로 폐기 가능한 true-dead 0건" 정책이 실증됨 — Autocomplete 도 9 참조처 atomic 묶음 필요(type-check 는 #2/#4 만 cascade, 나머지 수동). 다음 폐기 후보 = DateSegment(registry+rule) < Field(registry+runtime) (P3 비용 오름차순). **각 후보 폐기는 별도 명시 승인 필요**.
+
+## DateSegment + TimeSegment 폐기 recon (2026-06-09, 4축 gate 적대적 재검증, Workflow wf82vcvmp 4 probe + 4 적대적 verify + 종합, 코드 변경 0)
+
+> **사용자 지시**: "다음 방향은 DateSegment 폐기 proof 계획 고정. 단, 바로 삭제가 아니라 먼저 4축 gate 를 다시 고정 (G-render: DateInput 발효 후 segment spec 이 실제 traversal 미도달인지 / G-factory: canonical factory 가 DateSegment element 미생성인지 / G-registry: 제거 범위 / G-consumer: dangling 여부). 즉 다음 액션은 scope 검증 recon + proof 계획 문서화이고, 실제 삭제는 그 다음에 별도 문장으로 명시 승인." → 본 섹션은 recon + 계획 고정. **물리 삭제 미착수**.
+
+### 🔴 전제 반전 (역방향) — "render.shapes 실체 있으니 G-render FAIL" 직관이 틀림 (실제 4 gate 전부 PASS)
+
+Autocomplete 의 전제 반전은 "registry-only 과소집계 → 9 참조처"(scope 확대)였다. DateSegment 는 **반대 방향** — 초기 단일 grep 직관("`DateSegment.spec.render.shapes` line 247~278 실체 + `case "DateSegment"` + factory 자식 주석 → G-render/factory FAIL, registry-only proof 후보 아님")이 **과대평가**였다. 적대적 verify 가 probe 2건 오판정 + 그 정정의 순환 논증까지 재반증하여 **4 gate 전부 PASS = true-dead** 확정 (`feedback-analysis-precision-patterns` §1 이름/주석 신뢰 금지 + agent 주장도 검증 대상 — 종합 자신이 G-factory probe 를 반증했듯, 종합 주장도 main 이 5 file:line cross-check).
+
+| 축             |             probe              |          적대적 verify          |   최종   | 핵심 근거 (main cross-check 완료)                                                                                                                                                                                                                                                                                      |
+| -------------- | :----------------------------: | :-----------------------------: | :------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **G-render**   |              PASS              |          무효화 안 됨           | **PASS** | canonical tree 에 `type:"DateSegment"` 노드 미생성 → `render.shapes` 실호출 경로 0. Skia 입력 영역은 DateInput self-render(`datefield_segments: "replace"` escape, `skiaPrimitives.ts:1922`)가 전담. `DateInput.spec.ts:281-331` 이 box+border+placeholder text 일괄 그림 (개별 segment shapes 0)                      |
+| **G-factory**  | PASS(→probe 가 FAIL 로 오정정) |  **순환 논증 적발, 반증 무효**  | **PASS** | `createDateFieldDefinition`/`createTimeFieldDefinition` children = `[Label, DateInput, FieldError]` 만 (`DateColorComponents.ts:281-306/346-371`). `type:"DateSegment"` 생성 코드 grep 0건(주석 252-254/316-318 만). probe 의 `corrected:FAIL` 은 "G-registry 도 FAIL" 을 동시 가정한 순환 논증 — 실측 G-registry=PASS |
+| **G-registry** |  FAIL("binding 부재=미등록")   |  **전제 오류 적발, 반증 무효**  | **PASS** | catalog binding 부재 = "팔레트 미노출" 일 뿐 "타입계 제거 불가" 아님. `metadata.ts` 0건(palette 미노출 cross-check ✅) + `specRegistry.ts` 0건 ✅. atomic 9곳 동시 제거 가능                                                                                                                                           |
+| **G-consumer** |              FAIL              | **dead orphan 적발, 반증 무효** | **PASS** | 모든 consumer 가 dead: propagation rule 은 `resolveChildPath` 가 `[]` → `targets.length===0` silent skip / `CONTAINER_DIMENSION_TAGS` entry 도달 불가(canonical element 0) / preview `case "DateSegment"` span 은 default fallback-safe. layout/text Set 직접 참조 0                                                   |
+
+### Autocomplete 와의 결정적 차이 — 사인(死因)이 다른 같은 true-dead
+
+| 항목                | Autocomplete (첫 proof)                 | DateSegment/TimeSegment                                                                                                                                                                  |
+| ------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `render.shapes`     | `() => []` (시각 산출 0)                | **실체 있음** (box+border+text shapes 정의)                                                                                                                                              |
+| 시각이 render 도달? | 도달 불필요(빈 배열)                    | **도달 안 함** — canonical element 미생성 + DateInput escape 흡수                                                                                                                        |
+| RAC wrapper         | dead wrapper(`Autocomplete.tsx` 소비 0) | **RAC render-prop self-compose** — `DateField.tsx:149-151` `<DateInput>{(segment)=><DateSegment/>}` 는 render-time 합성, store element 아님. D1 RAC 사용 ↔ D3 element type 폐기 **분리** |
+| alias               | 없음                                    | **TimeSegment undeclared alias**(`tagToElement.ts:234`, vocab union 비멤버 — `composition-vocabulary.ts:57` 에 DateSegment 만) 동시 청산                                                 |
+| **본질**            | **공급 측 공백** (shapes 비어서 죽음)   | **수요 측 공백** (shapes 살아있지만 소비 진입점=factory/hydration 0)                                                                                                                     |
+
+### 제거 atomic 묶음 (계획 고정 — 삭제 미착수) — 9곳 + TimeSegment alias 청산
+
+| #   | 위치                                                                          | 내용                                                      | type-check cascade?                 |
+| --- | ----------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------- |
+| 1   | `packages/specs/src/components/DateSegment.spec.ts`                           | 파일 삭제 (render.shapes 실체 있으나 호출 경로 0)         | —                                   |
+| 2   | `packages/specs/src/runtime/tagToElement.ts:104` import + `:233-234` 2 entry  | import + BASE_TAG_SPEC_MAP (DateSegment + TimeSegment)    | ✅ import / ❌ entry                |
+| 3   | `packages/specs/src/index.ts:611-615` barrel                                  | re-export(Spec/Props/Type)                                | ✅                                  |
+| 4   | `packages/specs/src/components/index.ts:436-438` barrel                       | re-export                                                 | ✅                                  |
+| 5   | `packages/shared/src/types/composition-vocabulary.ts:57` union + 카운트 주석  | ComponentTag 멤버(117→116) + line 16/20/23 카운트         | ❌                                  |
+| 6   | `packages/shared/src/catalog/generated/componentRulesTable.ts:1870` rule 블록 | 손-편집 rule(defaultVariant/Size/variants/sizes)          | ❌ (resolveComponentRule null-safe) |
+| 7   | `apps/builder/src/preview/App.tsx:665-666` case 2건                           | DateSegment + TimeSegment → "span"(default fallback 안전) | ❌                                  |
+| 8   | `apps/builder/.../skia/buildSpecNodeData.ts:123`                              | CONTAINER_DIMENSION_TAGS entry                            | ❌                                  |
+| 9   | `DateField.spec.ts:282` + `TimeField.spec.ts:280` propagation rule            | dead `childPath:"DateSegment"` 2건(silent skip)           | ❌                                  |
+
+**보존 (D1 RAC 권위, 폐기 무관)**: `packages/react-aria-starter/**` + `packages/shared/src/components/{DateField,DatePicker,DateRangePicker,TimeField}.tsx` 의 RAC `DateSegment` import/render-prop self-compose — D1 DOM/ARIA(키보드 네비게이션) 권위, element type 폐기와 직교. `childSelector: ".react-aria-DateSegment"`(DateField.spec:207 / TimeField.spec:206)는 D1 CSS selector(RAC DOM class)이지 element type 아님 — 보존.
+
+**Autocomplete 대비 정정**: `metadata.ts` 0건 + `specRegistry.ts` 0건이라 Autocomplete(9 참조처)보다 깔끔. componentRulesTable rule(#6)은 종합 agent 가 "catalog rule 0" 이라 했으나 main cross-check 결과 **손-편집 rule 블록 실재**(line 1870) — Autocomplete #9 와 동일 패턴, 제거 대상. 종합의 "catalog rule 0" 은 catalog **binding** 0(별개)를 지칭한 것.
+
+### proof 후보 적격 판정 — 적격 (별도 명시 승인 대기)
+
+4 gate 전부 PASS + 반증 시도 2건 무효(순환 논증) + cascade 가 타입계 9곳으로 닫힘(factory/hydration/CSS 변경 0) + TimeSegment alias 청산 보너스. **다음 폐기 proof 후보로 적격**. 선행 동반 작업 불필요(catalog 미등록이 오히려 제거 단순화).
+
+**검증 게이트 5종** (착수 시 — Autocomplete 와 동일): type-check(신규 violation 0) / build:specs(orphan 0, DateSegment 손-편집 rule 이라 CSS 생성 영향 확인) / dist fresh(stale-dist masking 회피) / registration-contract 10/10(불변식 A) / live behavior(DateField/TimeField/DatePicker/DateRangePicker Skia↔DOM 시각 **제거 전후 불변** + 기존 프로젝트 깨짐 0 + 콘솔 에러 0).
+
+> **물리 삭제 미착수 (CLAUDE.md §"마이그레이션/리네임/삭제" 정책)**: 본 recon 은 계획 고정까지만. 일반 동의("ok"/"진행해")는 삭제 승인 아님. "DateSegment + TimeSegment element type 을 폐기(spec+registry 9곳 제거)해도 되나요?" 별도 명시 승인 후 착수.
 
 ## 관련
 
