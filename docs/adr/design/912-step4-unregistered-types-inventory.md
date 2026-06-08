@@ -709,6 +709,50 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 
 > **차단 메모리 우선 평가 (재확인)**: 위 우선순위 / "별도 구조 결정" 은 분류 surface 일 뿐 다음 단계 자동 진입 아님. value-fill 군의 "DOM/Skia cutover 분리를 ADR-912 안에서 다룰지 별도 설계할지" 는 ADR 구조/fork 결정이라 **사용자 confirm 필요**(`feedback-no-derived-adr-mid-execution` — review 끝난 phase 실행 중 파생 ADR/단계 분할 금지 / `feedback-execute-adr-surface-minimization` — 자동 확장 금지). 본 문서는 차단 본질·범위·선택지만 기록하고 결정은 사용자 대기.
 
+### G1 Select parent-delegation 설계 recon (2026-06-08 — Workflow wmwujlryn, 4 probe + 종합, 코드 변경 0)
+
+> 사용자 권장 "G1 Select parent-delegation 설계 recon" 실행. 5 항목(cutover DOM 경로 / renderSelect vs Select.tsx 정본 / 3자식 독립 발효 / Skia 흡수 + spec fallback 제거 / proof 후보) file:line 정찰. **핵심 = task #88 정본 진단(child 단독 발효 불가, parent-absorbed synthetic child) 전수 재확증 + delegation 인프라가 이미 준비됐다는 신규 사실 + 삭제 가능 subset 0건 확정.**
+
+**[항목 1] cutover DOM 경로 — child recursion 차단 메커니즘 (task #88 재확증)**:
+
+- `DELEGATING_INTERNAL_RENDERERS`(CanonicalNodeRenderer.tsx:153) = {tabs, progressbar, meter, breadcrumbs}, **select 미포함**. `INTERNAL_RENDERERS["select"]=Select`(:120, Select.tsx wrapper).
+- Select cutover generic 경로(:276 `cutoverPrimitives.has("Select")` 진입 → :313-348 generic 분기): `PrimitiveComponent=INTERNAL_RENDERERS["select"]` 존재 → `<PrimitiveComponent>{childNodes.map(재귀)}</PrimitiveComponent>`(:330-347), `childNodes=node.children`(:322).
+- factory 가 자식 element 4개 **항상 생성**(SelectionComponents.ts:52-88): `children=[{Label}(54), {SelectTrigger}(65) → children:[{SelectValue}(73), {SelectIcon}(80)]]`. items 는 `props.items`(StoredSelectItem[], :24-29/45)로만 보관, SelectItem element 미생성.
+- Select.tsx self-compose(:291-354 render-prop): Button+SelectValue+chevron 을 wrapper 자체가 그림(:303-354 `<Button><SelectValue/><span.select-chevron><svg/></span></Button>`). 사용자 children/items → popover ListBox(:394-401, listBoxContent :190-262)로만 라우팅.
+- **차단 root**: cutover generic 이 node.children(Label/SelectTrigger/...)을 AriaSelect children 자리에 주입 → AriaSelect 가 collection items 로 해석 → SelectTrigger/SelectIcon(chevron 의도)이 dropdown 항목으로 오배치. **child 단독 발효 불가**(task #88 정합).
+
+**[항목 2] renderSelect vs Select.tsx 정본 — delegation 인프라 준비 완료 (신규 발견)**:
+
+- `rendererMap.Select=renderSelect`(index.ts:46, SelectionRenderers.tsx:829-1046)가 DELEGATING 위임 대상으로 **이미 등록**.
+- renderSelect 는 `context.childrenByParent` 에서 Label/SelectTrigger/SelectValue child element props 를 **능동 추출**(:868-886: `triggerEl=find("SelectTrigger")`(870), `triggerChildren=childrenByParent.get(triggerEl.id)`(872), `selectValueEl=triggerChildren.find("SelectValue")`(874)) → `<Select>` wrapper 에 label/placeholder/iconName props 위임(:992-1030). **renderSelect 는 chevron/SelectValue DOM 을 자체 안 그림** — wrapper self-compose 가 그림.
+- 따라서 Select 를 DELEGATING 편입(:153 Set 에 `"select"` 추가) 시 delegating 분기(:291-311) 진입 → generic 자식 재귀 skip + child props 를 trigger 로 흡수 → **chevron 이 dropdown 으로 새지 않음**(breadcrumbs 동형, LayoutRenderers.tsx:923-980).
+- **잔여 검증 포인트**: `flattenNodeChildrenByParent`(:185-210)가 SelectTrigger→SelectValue/SelectIcon 1-depth nesting 까지 평탄화하여 renderSelect 의 triggerChildren 읽기(:871-872)가 동작하는지. Select 는 breadcrumbs 보다 child props 추출 의존도 높음.
+
+**[항목 3] 3자식 분류 (task #88 정합 — 재판정 아님)**:
+
+| 자식              | 분류                   | 근거(file:line)                                                                                                                                                                                              |
+| ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **SelectTrigger** | parent delegation 필요 | DOM 독립 노드 부재(Select.tsx:303 Button self-compose). Skia=SelectTrigger.spec.ts:178-247 roundRect+border 활성 source. 단독 발효 불가.                                                                     |
+| **SelectValue**   | parent delegation 필요 | spec 정적 props(SelectValue.spec.ts:107-161 children/placeholder)지만 cutover generic 이 children 을 listBoxContent(popover)로만 소비 → value 가 dropdown 항목 오배치. controller-bound 아님, 비대칭이 root. |
+| **SelectIcon**    | parent delegation 필요 | spec=SelectIcon.spec.ts:108-155 icon-bg roundRect+icon_font chevron. DOM chevron=Select.tsx:305 span.select-chevron wrapper inline(canonical SelectIcon 무시). 단독 발효 시 dropdown 오배치.                 |
+
+**[항목 4] Skia source — 삭제 가능 subset 0건 (DateSegment 선례와 정반대)**:
+
+- 3자식 spec 은 **active spec source = step4 차단**(dead source 아님, 삭제 불가). DOM 에선 self-compose 흡수로 dead 처럼 보여도 **Skia 에선 active** — Select 가 `SYNTHETIC_CHILD_PROP_MERGE_TAGS`(buildSpecNodeData.ts:194) 멤버라 shell-only, 자식 시각 미흡수 → 자식 element 가 각자 독립 CanvasSceneNode 로 제자리 렌더(:846-860/1141-1147). catalog 미등록(grep 0) → :1217 usesGeneric=false → :1225 spec.render.shapes 가 유일 Skia 렌더 경로.
+- **삭제 차단 가중**: 3 spec 은 `builderAliasMap.ts:54-60` 으로 ComboBox(catalog cutover)·SearchField(catalog)의 trigger 시각 **7 alias 공유**(getSpecForTag→TAG_SPEC_MAP spread). Select 만 고려한 삭제도 두 family Skia 동반 파손. → **삭제 가능 subset 0건**.
+- DateSegment/TimeSegment(dead source, 삭제 가능, deletion-risk 7→5)와 정반대: 그쪽은 RAC controller 가 segment 를 runtime 생성해 canonical element 부재 = dead. Select 자식은 factory 가 element 실재 생성 = active.
+
+**[proof slice] Select parent-delegation 단일 변경 = 3자식 동시 해소 (부분 발효 불가)**:
+
+- 세 자식 차단 root 가 **동일한 단일 비대칭**(Select.tsx self-compose 가 canonical children 무시 + popover 라우팅)이라 한 자식만 풀어도 나머지 generic 오배치 잔존. SelectTrigger box 만 분리 발효도 불가 — Skia/DOM 분리 발효가 게이트 동치(`isCatalogSkiaCutover===isCatalogCutover`, buildSpecNodeData.ts:1210-1216).
+- 최소 변경 단위: (1) `DELEGATING_INTERNAL_RENDERERS` 에 `"select"` 추가(:153-161) → delegating 진입 + 자식 재귀 skip. (2) DOM 위임 인프라(renderSelect childrenByParent 추출 + rendererMap.Select)는 **준비 완료**. (3) 잔여 = flattenNodeChildrenByParent 1-depth 평탄화 live 검증 + breadcrumbs 동형 회귀 fixture.
+
+**[ADR scope] step4 inventory 잔류가 아니라 별도 설계 판단 필요**:
+
+- ADR-912 단계4(parent 컴포넌트 Skia generic 발효, componentCatalog.ts:442/461 "7 collection 전부 발효 완료")는 **종료된 범위** — Select 부모 자체는 catalog cutover active(FAMILY_4_CUTOVER, :469).
+- child 발효/미등록 type 전환은 코드가 "단계 5 후속 inventory"로 명시 분리(buildSpecNodeData.ts:1208) → step4 잔류 아님.
+- delegation 은 DELEGATING 편입 + trigger 합성 재배선 + DOM/Skia 대칭 재검증을 포함하는 **동작 변경(behavior change)** → ADR-912 기존 step 정의로 흡수 시 scope inflation. **단 child 단독 발효 불가는 task #88 정본 확정**이라 새 base ADR 아님 → "ADR-912 단계5 inventory 항목으로 surface 후 사용자 confirm" 경로가 비용 최소. 어느 경로든 사용자 결정 전 착수 금지.
+
 ## 관련
 
 - ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (step 4 no-go)
