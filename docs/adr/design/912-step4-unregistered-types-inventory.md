@@ -365,6 +365,36 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 
 **차단 메모리 자기-인용**: `feedback-proof-gate-seam-removal-kill-criteria` — SelectIcon 단독 발효의 신규 진입점(DOM cutover child)이 깨끗하게(오배치 0) 안 나옴 → 전면 확장 금지, 보류가 정합("작동하지만 fallback 유지" 회피와 동일 렌즈). `feedback-analysis-precision-patterns` — 이름/요약 신뢰 금지: 직전 recon verdict("가장 작은 진입")를 그대로 승계하지 않고 DOM cutover 재귀 경로(CanonicalNodeRenderer.tsx:313 → Select.tsx:218/253) cross-cutting cascade audit 로 결함 발견. agent verdict(`dom_no_render_safe`)도 evidence #10(generic div 가능성)과 자기모순이었음 — 사용자 file:line 정정이 main verdict 승계 오류를 잡음.
 
+#### Breadcrumb (A) projection 설계 recon (2026-06-08 — Workflow 2 Explore + main file:line cross-check, 코드 변경 0)
+
+> 사용자 선택 "Breadcrumb (A) 설계 recon — 유일 직접 (A) 적격, items SSOT 신설 + projection + separator". §264 가 Breadcrumb 을 (A) 유일 적격으로 분류했고(2026-06-05 정찰), 본 recon 이 **실제 (A) 설계 3요소 + 작업 단위**를 구체화. verdict = **Tag/Tab 선례 복제 + 3 신규(items SSOT / separator 분기 / nowrap flow)**, Tag 보다 큰 slice.
+
+**3요소 설계 (file:line)**:
+
+1. **items SSOT 신설** (blocker, Tag 선례 복제 — verdict `items_ssot_new_then_tag_clone`):
+   - 현재 = children-manager (Breadcrumbs.spec.ts:140-150), propagationRegistry 0건, props.items 부재. Tag(StoredTagItem)/Select(StoredSelectItem) 선례 있으나 Breadcrumb 전용 schema 없음.
+   - 신설: `StoredBreadcrumbItem`(id/label/href?, packages/specs/src/types/breadcrumb-items.ts 신규 — taggroup-items.ts:17-22 / select-items.ts:17-27 동형) + `Breadcrumbs.props.items` + propagation `{parentProp:"items", childPath:"Breadcrumb"}` (단 **중간 컨테이너 없이 직접** — Tag 의 2단 TagGroup→TagList 과 다름, GroupComponents.ts:400-444 가 Breadcrumb 자식 직접 생성) + propagationRegistry.ts 등록(TagGroupSpec:19 / TabsSpec:42 패턴) + DOM `useResolvedCollectionItems` 적용(Breadcrumbs.tsx:18-44 BreadcrumbsExtendedProps 에 items 추가 — ListBox.tsx:58 선례). onActionId 불요(crumb=label+href only).
+
+2. **projection** (Tag 복제 + separator/flow 분기):
+   - `appendBreadcrumbRowProjection` 신규(canvasSceneNode.ts, appendTagRowProjection:1067 복제) — Rows group(flexDirection row **nowrap**, Tag 는 wrap:1093) + crumb 노드 N개(`toCollectionRowProjectionId("breadcrumb")` + `children:row.label` + `_isLast:rowIndex===lastIndex` + `_separator`).
+   - `breadcrumb-rows`/`breadcrumb-row` kind 추가(renderProjectionIds.ts:97-126) + isCollectionRowProjectionKind handler + buildCanvasSceneGraph 호출(canvasSceneNode.ts:1485 Tag/Tab 패턴) + implicitStyles.ts:837 breadcrumbs ad-hoc → rowsGroup style 이전.
+
+3. **separator** (핵심 설계 결정 — OptionB 정합):
+   - separator 메커니즘 = crumb 노드 시각에 흡수(별도 노드 아님). DOM = `.react-aria-Breadcrumb:not(:last-child)::after { content:"›" }`(Breadcrumbs.css:20-27). Skia = Breadcrumb.spec.ts:175-191 이 `!isLast` 분기로 separator text shape 를 crumb 노드 안에 emit(L132 `_separator` + L131 `_isLast`).
+   - **OptionA(별도 breadcrumb-separator 노드) vs OptionB(spec.shapes flat, crumb 노드가 separator 흡수)** 중 **OptionB 정합** — Breadcrumb.spec render.shapes 가 이미 `_isLast` 분기로 separator 를 흡수하므로, projection 이 `_isLast`/`_separator` 만 주입하면 crumb 노드가 spec 경로로 그림. 단 **crumb 노드는 catalog generic(buildCatalogShapes) 이 아니라 Breadcrumb spec render.shapes 로 그려져야** separator/isLast 시각 로직 보존 — Tag chip(generic box+text 충분)과 근본 차이.
+
+**Tag/Tab 선례 대비 차이 3축** (Tag 복제 불가 부분 = 신규):
+
+- 축1 flow: Tag flexWrap:wrap(Breadcrumbs.spec:54 nowrap) — rowsGroup style 1줄 차이.
+- 축2 separator: Tag chip 0 separator vs Breadcrumb (N-1) separator(crumb 노드 `_isLast` 흡수) — projection 이 rowIndex/lastIndex 계산 + `_isLast` 주입 신규.
+- 축3 crumb 렌더 source: Tag chip = generic box+text vs Breadcrumb crumb = spec render.shapes(separator/isLast 로직) — crumb 노드가 spec 경로 유지(catalog 미발효) 필요.
+
+**작업 단위 = Tag 보다 큼**: items SSOT 신설(축①, ~4 파일: type + spec + propagation + DOM) + appendBreadcrumbRowProjection(~2 파일: canvasSceneNode + renderProjectionIds) + implicitStyles 이전. Tag slice(propagation 1 + projection 1)보다 items SSOT 신설만큼 큼. 사용자 "크긴 하지만 방향 명확" 정합.
+
+**kill criteria (feedback-proof-gate-seam-removal)**: (A) proof 성공 3축 — (1) implicitStyles.ts:837-850 breadcrumbs ad-hoc 제거 → appendBreadcrumbRowProjection rowsGroup style 로 이전 (2) Breadcrumb.spec fallback gate(buildSpecNodeData L1195/L1211) 제거 — projection 노드가 fallback 대체, step4 삭제 안전 (3) DOM↔Skia 대칭(Breadcrumbs.css::after vs Breadcrumb.spec:175-191 separator 위치 + crumb 텍스트 정렬). live exercise: 정적 items + data-bound 양쪽, separator 정렬, breadcrumb-row projection routing, refresh 후 canonical/IndexedDB projection id 0건.
+
+**차단 메모리 자기-인용**: 본 recon 까지만(코드 변경 0). items SSOT 신설 / appendBreadcrumbRowProjection / separator OptionB 구현 진입은 사용자 별도 승인(`feedback-no-derived-adr-mid-execution` / `feedback-execute-adr-surface-minimization`). `feedback-tree-equals-reusable-enable-framing` — Breadcrumb projection 이 element tree 멤버 되면 reusable 자동 흡수, 별도 reusable phase 금지(G1 reusable round-trip + G2 instance override 정합 1줄씩만 검증 조건 보강). `feedback-proof-gate-seam-removal-kill-criteria` — (A) proof 성공 = implicitStyles ad-hoc + spec fallback 실제 제거 + DOM/Skia 대칭, "projection 작동하지만 ad-hoc 유지" = 실패. agent verdict ↔ main cross-check 일치(breadcrumbSpecShapes / separatorMechanism / OptionB) file:line evidence(`feedback-analysis-precision-patterns`).
+
 ---
 
 선행-1~6 완료 → step 4 진입 (사용자 명시 삭제 승인 별도).
