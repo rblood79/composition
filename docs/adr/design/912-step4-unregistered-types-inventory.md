@@ -185,6 +185,52 @@
 
 > **결론 — "즉시 깨끗 삭제 가능 14" 전제는 부정확**. 13 파일 모두 동반 정리 필요, 그중 3(TabList/Tag/Tab)은 코드 수정 선행, 5+(SliderThumb 등)는 런타임 element 폐기 의도 확정 선행. **단순 spec 파일 삭제 task 가 아니라 "spec + registry + consumer + factory element 동시 폐기" 작업** → 사용자 판단 필요(아래 surface 옵션). 물리 삭제 미착수.
 
+### step4 정의 보강 — 5축 재분류 + runtime element 폐기 + 4조건 최소 subset (2026-06-08, 사용자 옵션 4, Workflow wogp4g1fv 13 agent + main 실측)
+
+> 사용자 옵션 4: "삭제 보류, runtime element 폐기 의도부터 step4 정의 확정". 13 type 을 5축(Skia source dead / registry consumer / factory-generated runtime element / layout·text consumer / render path) 정밀 판정 + 4조건(type-check cascade 0 / factory 0 / registry 0 / render path 0) 게이트. **핵심 결과 = 4조건 전부 0 만족(true-dead) 0건** — "spec 파일만 지우면 끝나는" 대상이 13 중 하나도 없음. step4 본질이 "spec 파일 삭제"가 아니라 "element type 폐기 decision" 임이 실측 확정.
+
+**🔴 빈 shapes `()=>[]` ≠ dead source (오판 차단)**: 이전 "빈 shapes 즉시 안전" 분류가 틀린 이유 — `()=>[]` 는 그리기 0 이나, factory 가 canonical element 를 생성하면 노드가 traversal active(getSpecForTag→buildSpecNodeData) 이고 spec 삭제 시 NULL spec 도달 → 렌더 파손. SliderThumb(hitbox-active 빈 노드, FormComponents.ts:574) / TabPanel(LayoutComponents.ts:49 factory) / TabPanels(layout paddingX consumer) 가 반례.
+
+**5축 재분류표 (13 type)**:
+
+| type             | category                 | render path                | factory | 4조건 |
+| ---------------- | ------------------------ | -------------------------- | :-----: | :---: |
+| SliderThumb      | factory-runtime-element  | 0(부모 SliderTrack 흡수)   |   3+1   |  ❌   |
+| TabPanel         | factory-runtime-element  | spec 도달, 빈 shape        |    2    |  ❌   |
+| TabPanels        | factory-runtime-element  | spec 도달, 빈 shape        |    1    |  ❌   |
+| MeterValue       | skia-source-active       | spec 직접 그림(text)       |    1    |  ❌   |
+| ProgressBarValue | skia-source-active       | spec 직접 그림(text)       |    1    |  ❌   |
+| SliderOutput     | skia-source-active       | spec 직접 그림(text)       |    1    |  ❌   |
+| Tag              | skia-source-active       | spec 직접(bg/border/text)  |    0    |  ❌   |
+| Tab              | skia-source-active       | spec 직접(label/accent)    |    0    |  ❌   |
+| TabList          | skia-source-active       | spec 직접(구분선 line)     |    1    |  ❌   |
+| Breadcrumb       | skia-source-active       | spec 직접(crumb/separator) |    0    |  ❌   |
+| Field            | registry-consumer-active | reachable, 빈 source       |  0(\*)  |  ❌   |
+| Autocomplete     | registry-consumer-active | 0(노드 미도달)             |    0    |  ❌   |
+| DateSegment      | registry-consumer-active | 0(부모 DateInput 흡수)     |    0    |  ❌   |
+
+(\*) Field 는 factories/ 0 이나 TagEditor.tsx:123 addElement 로 data-config 자식 생성(런타임 active).
+
+**🔴 projector/흡수 발효 ≠ skia-source dead 정정**: 이전 "projector 발효(Tag/Tab/TabList/Breadcrumb)" 를 "삭제 안전"으로 분류했으나 실측상 **projector 가 spec.render.shapes 를 우회하지 않음** — appendTagRowProjection/appendTabRowProjection 은 노드 생성 + props 주입만 하고 시각은 spec 이 직접 그림(canvasSceneNode.ts:1346 주석 "시각은 spec 직접"). 따라서 Tag/Tab/TabList/Breadcrumb 는 skia-source-active(삭제 불가). MeterValue/ProgressBarValue/SliderOutput 도 "흡수 안전"이 아니라 Skia 는 spec 직접 그림 / DOM 만 부모 흡수(비대칭) → skia-source-active.
+
+**runtime element 폐기 판정 (5 type)**:
+
+| type             | 권고            | 폐기 시 동반 작업 / 보존 사유                                                                                                            |
+| ---------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| SliderThumb      | 보존(삭제 제외) | 폐기=Slider 인터랙션/접근성/migration 전면(HIGH). hitbox 빈 노드라도 getSpecForTag 요구                                                  |
+| SliderOutput     | 보존(삭제 제외) | spec 이 value text 유일 Skia source. 폐기=Slider projector 이관 + factory/migration/TEXT_BEARING                                         |
+| MeterValue       | 보존(삭제 제외) | Skia value text 직접 그림(DOM 만 흡수 비대칭). 폐기=Meter projector 재작성                                                               |
+| ProgressBarValue | 보존(삭제 제외) | spec 이 value text 직접. 부모 ProgressBar 는 propagate 만(흡수 아님). 폐기=projector 이관                                                |
+| TabPanels        | 판단 필요       | 빈 shape 이나 paddingX layout consumer active(implicitStyles.ts:41 + utils.ts:2705). 폐기=paddingX 이관 + factory Frame 대체 + migration |
+
+**진짜 최소 삭제 subset (4조건 전부 0)**: **0건** — true-dead 분류 0. 모든 13 type 이 최소 1축 active. 조건부 후보(일부 axis만 0, 선행 정리 필요) 폐기 비용 오름차순:
+
+1. **Autocomplete** (registry-only) — skia DEAD + factory 0 + layout/text 0 + render 0, registry 2(tagToElement.ts:189 + specRegistry.ts:95)만. canonical element 미생성 → migration 불요. **13 중 폐기 비용 최소**.
+2. **DateSegment** (registry + catalog rule) — skia DEAD(projector 흡수) + factory 0, registry 2(tagToElement.ts:235/236 alias) + componentRulesTable.ts:1905 catalog rule 수동 제거 + DateInput projector segment 그리기 유지 확인.
+3. **Field** (registry + runtime 소비처) — 빈 source + factories/ 0 이나 TagEditor addElement 생성. registry 2 + TagEditor/ListBoxPropertyEditor `type==='Field'` filter 정리 + canonical migration.
+
+> **step4 정의 재정의 (본질)**: step4 단위는 "파일"이 아니라 **"element type 폐기 decision"**. 각 type 폐기 = spec 삭제 + (factory 제거 + canonical migration) + (registry entry 제거) + (layout/text consumer 이관) **4-axis 동반 작업 묶음**. "spec 파일만 rm" 으로 끝나는 type = 0건. 폐기 비용 오름차순: Autocomplete(registry-only) < DateSegment(registry+rule) < Field(registry+runtime 소비처) < skia-source-active 7종(value text/구분선 projector 이관) < TabPanels(layout metric) < SliderThumb(인터랙션/접근성/migration 전면). **물리 삭제 미착수** — 어느 type 을 폐기할지는 사용자 decision.
+
 ## recon #108 deletion-risk 7 세부 재판정 (2026-06-08, Workflow `wf_fbceb9d8-c7e` 4 agent 병렬 + main file:line 재확증)
 
 > **방법**: 7 type 을 3 메커니즘 그룹(TreeItem 재귀 / Select 3 / Date 3)으로 병렬 recon — 각 type 의 DOM source / Skia source / controller 의존 / parent absorption 4축 + 4분류 + proof slice + ADR scope. **전제 반전 1건 발견** → main 코드 grep 재확증 (`feedback-analysis-precision-patterns` 이름/주석 신뢰 금지, agent 주장도 검증 대상).
