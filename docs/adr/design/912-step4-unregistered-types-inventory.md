@@ -165,6 +165,23 @@ value-fill 군 4 + 자식 sub-part(SliderThumb 빈 shapes 는 안전, SliderOutp
 | **blocker?** | ❌ **ADR-912 발효 slice blocker 아님** — DisclosureHeader/TagGroup 의 catalog/leading_icon/projection/width/test 전부 충족. step 4 spec 삭제 게이트와도 직교.                                      |
 | **분리**     | **별도 sync infra task** — builder→Compare iframe sync 의 child/items 전달 경로 수정. Disclosure 단독이 아니라 TagGroup 류 collection child 누락을 같은 패턴으로 함께 본다 (#61 사용자 결정 계승). |
 
+#### CalendarHeader (B+icon) 확장 recon — 옵션 B 채택(별도 `inline_icon_text` module) (2026-06-08 — Workflow wvsbxr9nt, 4 Explore + 종합, 코드 변경 0)
+
+> **위상**: ⑫ date slice(2026-06-04)의 CalendarHeader="compound chevron leaf 군(DisclosureHeader 동형)" 분류를 4축 file:line 실측으로 정밀화. **DisclosureHeader 보다 1단계 무거움** — 별도 generic draw module 이 prerequisite. 사용자 결정 "옵션 B 채택 + inventory 기록 먼저, 발효 slice 는 별도 승인"(2026-06-08). 코드 변경 0.
+
+**4축 실측 (file:line)**:
+
+- **A. spec.render.shapes 구조** (`CalendarHeader.spec.ts:149-200`): 3 독립 shape 명시 좌표 — 좌 chevron `x=cellSize/2`(`:154`, `cellSize=iconSize+4`) / 중앙 text `x=cellSize`+`align='center'`+`maxWidth=width-cellSize*2`(`:163`,`:185`,`:187`) / 우 chevron `x=width-cellSize/2`(`:194`). width 출처=`props.style?.width`(폴백 `cellSize*7+gap*6` md 174px), `_containerWidth` **미사용**(`:137-144`). height=`size.height||30`. **우측 chevron 만 width 종속** = generic 화 유일 난점.
+- **B. DOM 구조** — **DisclosureHeader 동형, Skia-only 발효 후보 확정**: Calendar/RangeCalendar 가 `<header>` 자체 생성(`Calendar.tsx:113-121` / `RangeCalendar.tsx:92-100` / starter `Calendar.tsx:26-31`), `renderCalendar` 는 자식 Element DOM 미전달(`DateRenderers.tsx:70-128`). **child DOM 발효 시 RAC 자동 header 와 이중 렌더 위험 → DOM 독립 노드 생성 금지**. `skipCSSGeneration=true`(`CalendarHeader.spec.ts:51`), 독립 renderer 미등록(`renderers/index.ts`).
+- **C. generic channel — agent verdict 분기 보존**: **축3 agent=옵션 C**(leadingIcon module 내 mode flag 분기, trailingIcon 필드 + center override — data-driven code-dup 회피) ↔ **종합 agent=옵션 B**(`inline_icon_text` 별도 module 신설). **B 채택 근거**: `buildCatalogShapes.ts:228-230` 가 `visual.leadingIcon` 존재 시 text 를 **무조건 left-align 강제**(주석 `:225-227` "아이콘 옆 text 는 항상 left-align") → CalendarHeader `align:'center'`(`:185`) 와 충돌. leadingIcon DrawFn 에 mode flag 로 끼우면 하나의 DrawFn 이 "좌측 icon+left text"(leading_icon, `skiaPrimitives.ts:1024-1064`/`:1383-1385`) 와 "좌+우 icon+center text"(CalendarHeader) **상반된 정렬 모델 2개**를 떠안아 단일 책임 붕괴 → 이후 DisclosureHeader 회귀 / 옵션 증가 위험. **옵션 A(단순 leading_icon 확장) 양 agent 일치 기각**: leading_icon 은 좌측 only + left-align 강제 + containerWidth 미수신(우측 배치 로직 자체 없음). **옵션 C-projector 불필요 일치**: text `align:'center'` 는 이미 기존 필드.
+- **D. kill criteria 5**: (1) DOM↔Skia 대칭=조건부(DOM RAC controller / Skia 정적 Intl `:165-180` → 현재월 정합 게이트 필요) / (2) left+right chevron=✅ / (3) center month·year=조건부(#1 흡수) / (4) **width 0 회귀=고위험**(`INLINE_BLOCK_TAGS` 미등록 → `enrichWithIntrinsicSize` needsWidth=false → selection "0×W" = **DisclosureHeader 동일 회귀 경로** `073751610`, `disclosureHeaderIntrinsicSize.test.ts:32-39` 동형 게이트 필수) / (5) spec fallback 0=조건부(catalog cutover 등록 또는 `shapes=[]` fallback 명시).
+
+**발효 판정**: **가능 — DisclosureHeader 보다 1단계 무거움(별도 module prerequisite), projector 이관 불필요**. Skia-only 발효(DOM 부모 흡수 확정) + width 게이트 방향은 DisclosureHeader 동형.
+
+**발효 slice sketch (사용자 별도 승인 후 — surface 만, 분해 금지)**: ① `inline_icon_text` generic draw module 신설(left icon + center text + right icon, containerWidth 기반 우측 배치 + center maxWidth) ② `visual.trailingIcon` 데이터 채널 + size `trailingIconSize` 필드 + CalendarHeader rule `leadingIconName`/`trailingIconName`/`textAlign:center`/`iconSize`/`gap`(cellSize) param ③ `CONTAINER_DIMENSION_TAGS` + `INLINE_BLOCK_TAGS` 에 calendarheader 등록(Tab/DisclosureHeader 패턴 재사용) ④ `calendarHeaderIntrinsicSize.test.ts` 회귀 게이트(disclosureHeaderIntrinsicSize 복제) + DOM↔Skia 현재월 cross-check ⑤ catalog cutover 등록 또는 `shapes=[]` fallback.
+
+**차단 메모리 자기-인용 (recon = 코드 변경 0 정합)**: `feedback-container-generic-box-no-classification`(ADR-142) — 옵션 B 는 컴포넌트명 if 가 아니라 visual 데이터(leadingIcon/trailingIcon) 유무 + textAlign 분기 → CalendarHeader 전용 buildSpecNodeData if 미생성, 위반 아님. `feedback-no-derived-adr-mid-execution`/`feedback-execute-adr-surface-minimization` — recon 은 옵션 surface 까지, module 신설 / CONTAINER_DIMENSION·INLINE_BLOCK 등록은 사용자 별도 승인 전 자동 확장 금지.
+
 ### 선행-6 위험군 16 종합 분류 (2026-06-04 완성)
 
 field/form 5 + collection 8 + date 3 = 16 전수 실측 완료. catalog 등록 군 ↔ 보류 군 결산:
