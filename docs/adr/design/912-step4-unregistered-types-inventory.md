@@ -197,6 +197,31 @@ value-fill 군 4 + 자식 sub-part(SliderThumb 빈 shapes 는 안전, SliderOutp
 
 **DisclosureHeader 보다 1단계 무거움 확증**: 우측 chevron containerWidth 의존 → CONTAINER_DIMENSION 등록 + center textAlign 충돌 → leading_icon append(box+text 위) 아닌 inline_icon_text replace(전체 자기 생성). (B+icon) 채널 = DisclosureHeader(leading_icon append) + CalendarHeader(inline_icon_text replace) 2 module 로 정리 완결.
 
+#### SliderTrack value-fill recon — controller-bound 전제 정정 (2026-06-08 — 3 Explore + main file:line cross-check, 코드 변경 0)
+
+value-fill 군 4 중 ProgressCircle(`3e6e144d5`)/ProgressBar(`51adcb184`)/Meter(`02f0a5b12`) 발효 후 **잔여 SliderTrack 1**(line 525/539 ④). 발효 전 4축 recon. 3 Explore agent(DOM / Skia value-fill source / controller-bound+family) + main 이 `Slider.tsx`/`SliderTrack.spec.ts` 직접 cross-check.
+
+**4축 매트릭스** (사용자 정리 그대로, 코드 file:line):
+
+| 축                       | 판정                                                                           | 근거 (코드 직접 확인)                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ① DOM 구조               | RAC `<Slider>` self-compose (render-prop)                                      | `Slider.tsx:112-145` — `<SliderTrack>{({state})=>...}` render-prop 으로 track-bg/fill/thumb 를 RAC 가 내부 합성. CalendarHeader(`<header>` plain JSX) 와 **다름** — RAC 컴포넌트 경로 |
+| ② Skia value-fill source | **static props**(`value/minValue/maxValue`) — RAC state 0                      | `SliderTrack.spec.ts:120-127` percents=`((v-min)/(max-min))*100`, fill 폭=`(width*percent)/100`. controller 미사용. `value_fill_bar`(skiaPrimitives.ts) 와 fill 계산 **동형**         |
+| ③ controller-bound       | **value-fill 계산은 controller-free / DOM 구현만 controller 경유**             | DOM=`state.getThumbPercent()`(Slider.tsx:125,133) 이나 입력값은 static value/min/max. Skia=static props 직접. 즉 controller 는 % 변환 helper, 시각 입력은 static                      |
+| ④ proof 가능성           | Slider parent delegation + 별도 escape(slider_fill_bar 또는 internal renderer) | factory(FormComponents.ts)가 SliderTrack+SliderThumb(range 시 2개) 자동 생성 → `_hasChildren=true` → `value_fill_bar` `[]` 반환 + thumb 은 escape 에 없음                             |
+
+**전제 1건 정정 (agent 상충 해소)**: inventory line 130/151/525 + 축1/축3 agent 는 SliderTrack 을 "controller-bound 보류 L(getThumbPercent state 의존)" 로 분류했으나, **코드 직접 확인 결과 value-fill 계산 자체는 controller-bound 아님**. Skia(`SliderTrack.spec.ts:120-127`)는 static props 로 완전 자기충족(RAC state 0). DOM(`Slider.tsx:125`)이 `getThumbPercent()` 를 쓰지만 그 입력은 static `value/min/max` — controller 는 % 변환 helper 일 뿐. 진짜 차단 = **(a) `_hasChildren=true` monolithic dead 분기 + (b) thumb(range 시 2개)가 `value_fill_bar` escape 에 없음 + (c) `cutover:"catalog"` DOM/Skia 단일 source** (line 151 (c) 와 동일). ProgressBar/Meter 동형(controller 아님)이며, SliderTrack 만 thumb 좌표 추가 부담.
+
+**종합 proof 판정**: ProgressCircle/ProgressBar/Meter 3 발효 경로(internal source + INTERNAL_RENDERERS DOM wrapper)와 **같은 패턴으로 발효 가능**. 단 추가 작업 3:
+
+1. **thumb 처리** — `value_fill_bar`(fill 만)에 thumb 없음 → `slider_fill_bar`(fill + thumb 원+border, range 2 thumb) 별도 escape, 또는 internal renderer 가 RAC `<Slider>` 위임으로 thumb 흡수.
+2. **rule entry 보강** — `componentRulesTable.ts:5017` SliderTrack 에 `fillBar`/`variants` 없음(ProgressBarTrack/MeterTrack 과 차이) → fillBar 채널 추가.
+3. **DOM 중복 방지** — RAC `<Slider>` 가 부모라 SliderTrack 단독 DOM 발효는 중복 위험 → Slider INTERNAL_RENDERERS wrapper(ProgressBar 동형) 경유 또는 factory 에서 SliderTrack 자식 제거.
+
+**분류 갱신**: SliderTrack = ~~controller-bound 보류 L~~ → **internal wrapper 발효 후보 M**(ProgressBar 패턴 + thumb 1 추가 작업). value-fill 군 = ProgressCircle/ProgressBar/Meter(완료) + SliderTrack(발효 후보, thumb escape 신설 필요) — 4 전수 internal wrapper 경로 수렴.
+
+**차단 메모리 자기-인용**(recon 단계): `feedback-no-derived-adr-mid-execution`(실행 중 파생 ADR/단계 분할 금지 — 본 블록은 현황 조사 기록만, 발효 결정 아님) + `feedback-describe-vs-prescribe-separation`(현황 파악, 처방 보류 — proof 판정은 "가능하다" 까지, 실행은 사용자 별도 승인) + `feedback-no-fallback-thinking`(controller fallback 우회 금지 — value-fill 이 controller-free 임을 확인했으므로 fallback 불필요, static props 정상 경로). 코드 변경 0.
+
 ### 선행-6 위험군 16 종합 분류 (2026-06-04 완성)
 
 field/form 5 + collection 8 + date 3 = 16 전수 실측 완료. catalog 등록 군 ↔ 보류 군 결산:
