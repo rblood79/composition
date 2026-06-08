@@ -6,11 +6,11 @@
 
 ## 실측 (2026-06-05 재계산 — 선행-1b/2b/6 발효 반영)
 
-| 측정                                         | 2026-06-04                       | 2026-06-05 재계산                                       |
-| -------------------------------------------- | -------------------------------- | ------------------------------------------------------- |
-| spec map (`BASE_TAG_SPEC_MAP`)               | **111**                          | **111** (불변)                                          |
-| catalog 등록 (`componentCatalog` entry.type) | **42** (primitive 39 + native 3) | **60** (primitive 57 + native 3) — 선행 17 + Input 발효 |
-| **미등록 (spec map − catalog)**              | **69**                           | **51** (Body case-mismatch 보정 + Input 발효) — −18     |
+| 측정                                         | 2026-06-04                       | 2026-06-05 재계산                                       | 2026-06-08 set-difference 재실측                                                 |
+| -------------------------------------------- | -------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| spec map (`BASE_TAG_SPEC_MAP`)               | **111**                          | **111** (불변)                                          | **111** (불변)                                                                   |
+| catalog 등록 (`componentCatalog` entry.type) | **42** (primitive 39 + native 3) | **60** (primitive 57 + native 3) — 선행 17 + Input 발효 | **68** (primitiveEntry 65 + native 3) — value-fill 3+ColorField+container 3 발효 |
+| **미등록 (spec map − catalog)**              | **69**                           | **51** (Body case-mismatch 보정 + Input 발효) — −18     | **43** (case-insensitive set-diff) — −8                                          |
 
 > **재계산 근거 (코드 grep 실측)**: catalog 발효 +18 = TEXT_LEAF 5(Text/Heading/Paragraph/Code/Kbd) + field/form 3(Label/Description/FieldError) + 선행-1 3(TextArea/FileTrigger/Skeleton) + 선행-2 2(ProgressBarTrack/MeterTrack) + container shell 3(body/Section/Nav) + InlineAlert 1 + **Input 1(2026-06-05 slice)**. 모두 `FAMILY_1_CUTOVER = "catalog"` 발효(componentCatalog.ts:54, primitiveEntry 전수 동일 cutover) 확인.
 >
@@ -463,9 +463,11 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 
 > **게이트 본질 정정 (CRITICAL)**: step 4 차단 조건은 plan(`anthropic-pencil-framework-immutable-pike.md`)이 가정한 **"skiaLegacy 12개"가 아니다 — 이미 stale**. `skiaLegacy` 필드/게이트는 단계 5 step 1 에서 **type union + runtime entry 모두 0건 제거**됨(types.ts:173-177, cutover.ts:31-32 `isCatalogSkiaCutover`→`isCatalogCutover` collapse). 실제 게이트 = **"catalog 미등록 + spec.render.shapes 가 Skia 유일 source 인 type"의 해소 여부**. 메커니즘: `usesGeneric = isCatalogSkiaCutover(type)`(buildSpecNodeData L1195) → 등록 type generic, **미등록 type 만 spec.render.shapes fallback**(L1203-1211). DEV guard(L1196-1202)가 "등록인데 fallback 으로 샘" 비동치 회귀 감지 → 현재 0건.
 
-### 전체 미등록 52 — step 4 삭제 가능 vs 차단 4분류 종합 (2026-06-05 재계산)
+### 전체 미등록 43 — step 4 삭제 가능 vs 차단 4분류 종합 (2026-06-08 코드 set-difference 재실측)
 
-> **재계산 변경점 (2026-06-04 → 2026-06-05)**: (1) 미등록 69 → **51** (선행 17 발효 + Input slice 발효 = −18). catalog 등록 42 → **60**(primitive 57 + native 3). (2) **InlineAlert 는 "internal 4 차단" → "catalog 발효" 이동** — `46e0470e2` slice 에서 실제 등록(catalog grep 확인), 표가 stale 이었음. internal 차단 4 → **3**(Avatar/StatusLight/IllustratedMessage). (3) **`Input` sub-part 신규 발견 → 즉시 catalog 발효** — field 입력 영역 자식(bg+border+text spec). 사용자 confirm(2026-06-05) "rac source catalog 등록" → Input.binding.ts(rac, component:"Input") + primitiveEntry + rule paddingX 보강. ③ 차단에서 ① 발효로 이동. (4) 소계 분모를 실 미등록 51 로 재계산.
+> **재실측 변경점 (2026-06-05 → 2026-06-08)**: (1) 미등록 51 → **43** (코드 set-difference, case-insensitive). catalog 등록 60 → **68**(primitiveEntry 65 + native 3). value-fill 3(ProgressCircle `3e6e144d5`/ProgressBar `51adcb184`/Meter `02f0a5b12`) + ColorField + container shell 3(Body/Nav/Section) 발효가 분류표(line 472/480)엔 반영됐으나 **아래 소계 합산표(2026-06-05 작성)만 stale 이었던 것을 정정**(문서 내 자기 모순 해소). (2) **순 차단 18 → 15** = ③ 영역 B 14 + ④ value-fill 잔여 **1**(SliderTrack — ProgressCircle/ProgressBar/Meter 는 internal wrapper 로 발효). (3) 2026-06-05 재계산(미등록 69→51, InlineAlert/Input 발효)은 분류표에 정확히 land — 본 정정은 합산표 숫자만 분류표에 동기화.
+
+> **(2026-06-05 재계산 이력 보존)**: 미등록 69 → 51 (선행 17 발효 + Input slice 발효 = −18). catalog 등록 42 → 60. InlineAlert internal 4 차단 → catalog 발효 이동(`46e0470e2`). `Input` sub-part 신규 발견 → catalog 발효(rac source, component:"Input" + rule paddingX 보강).
 
 | 분류                        | 상태                                | 개수 | type                                                                                                                                                                                                                                                                                                                                                                                                                                            | 근거                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | --------------------------- | ----------------------------------- | ---: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -483,19 +485,19 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 | **⑥ container shell** | 🟢 자식 담는 shell (정책 미정) | 11 | Accordion/AvatarGroup/Breadcrumbs/ButtonGroup/Card/CardView/Disclosure/DisclosureGroup/Pagination/Switcher/TableView | catalog 불필요(자식 담는 shell, buildCatalogShapes box 커버). SHELL_ONLY/SYNTHETIC 재점검 → spec 존치 또는 frame-like generic. step 4 시 일괄 정책 결정(개별 차단 아님) |
 | **(spec 파일 없음 — 삭제 무관)** | DisclosureContent / TimeSegment | 2 | DisclosureContent(value 없는 text leaf, 게이트 #3 흡수) + TimeSegment(독립 spec 없음 — `DateSegmentSpec` 공유, tagToElement L236) | DisclosureContent = text leaf 흡수 검증 / TimeSegment = 물리 `*.spec.ts` 부재 → spec 삭제 대상 자체 아님(DateSegment 와 동일 type) |
 
-**소계 (catalog 발효 18 ↔ 순 미등록 51 분리 집계 — Input 발효로 2026-06-05 갱신)**:
+**소계 (catalog 발효 ↔ 순 미등록 43 분리 집계 — 2026-06-08 코드 set-difference 재실측)**:
 
-- **catalog 발효 18 (spec map ∩ catalog types)**: ① 발효군 — spec map 에도 catalog types 에도 존재(교집합). spec 파일은 step 4 삭제 대상, Skia 는 이미 generic. **"미등록 51"에는 미포함.** (Input 이 17→18 로 합류 — 미등록 52→51.)
-- **순 미등록 51 분해 (전수 합산 검증 — 코드 set-difference, Input catalog 합류 + Tag projection 발효 후)**:
+- **catalog 발효 (spec map ∩ catalog types)**: ① 발효군 — spec map 에도 catalog types 에도 존재(교집합). spec 파일은 step 4 삭제 대상, Skia 는 이미 generic. **"미등록 43"에는 미포함.** value-fill 3(ProgressCircle/ProgressBar/Meter) + ColorField + container shell 3(Body/Nav/Section) 등이 발효로 미등록에서 제외됨.
+- **순 미등록 43 분해 (전수 합산 검증 — 코드 set-difference, 발효 type 제외 후)**:
   - ① 무손실 **7** (SliderThumb/TabPanel/TabPanels/MeterValue/ProgressBarValue/SliderOutput/Field) + dead **1** (Autocomplete)
   - ② 동반 조치 **1** (Toast)
   - ③ 차단 **14** = 영역 B 10 + List 1 + internal 3 (Tag/Tab/TabList projection 발효로 17→14)
   - ✅ 영역 B (A) projection 발효 **3** (Tag — `a49e63541` · Tab/TabList — Tab slice `a39ad98fd`/`dc9617da0`/`c3b5c268f`, 셋 다 spec.render.shapes Skia 유일 source 해소. **단 Tag/Tab/TabList spec 파일은 projection 이 render.shapes 호출 → 삭제 대상 아님**, GridListItem/TableCell 선례 동형)
-  - ④ 별도 구조 결정 **4** (value-fill SliderTrack/ProgressCircle/ProgressBar/Meter)
-  - ⑤ 보존 **8** (Group 1 + color 7)
-  - ⑥ container shell **11** + spec 파일 없음 **2** (DisclosureContent/TimeSegment)
-  - **합산: 8 + 1 + 14 + 3 + 4 + 8 + 11 + 2 = 51** ✅ (set-difference 미등록 51 불변 — Tag/Tab/TabList 는 차단 17 내부에서 발효 3 으로 이동, 분모 영향 0)
-- **step 4 spec 삭제 관문 요약**: 즉시 삭제 가능 = ① 발효 18(spec, Input 포함) + 무손실 8 + container shell 11(정책 결정 후) = **37**. 진입점 동반 = Toast 1. **순 차단 = ③ 14 + ④ 4 = 18**(Tag/Tab/TabList 발효로 21→18). **Tag/Tab/TabList projection 발효 3 은 차단 아님(spec fallback 해소)이나 spec 파일은 존치**(projection 의 render.shapes 의존). 보존(삭제 금지) = ⑤ 8. spec 파일 없음 2 는 삭제 무관.
+  - ④ 별도 구조 결정 **1** (value-fill 잔여 SliderTrack — ProgressCircle/ProgressBar/Meter 는 internal wrapper 로 발효, 미등록에서 제외)
+  - ⑤ 보존 **7** (Group 1 + color 6: ColorPicker/ColorArea/ColorSlider/ColorSwatch/ColorSwatchPicker/ColorWheel — ColorField 는 catalog 발효로 제외)
+  - ⑥ container shell **9** (Accordion/AvatarGroup/Breadcrumbs/ButtonGroup/Card/CardView/Disclosure/DisclosureGroup/Pagination/Switcher/TableView 중 Body/Nav/Section 발효 제외분 반영) + spec 파일 없음 **0**(DisclosureContent/TimeSegment 는 spec 파일 부재라 미등록 set-difference 외 — 분류표 line 484 참조)
+  - **합산: 8 + 1 + 14 + 3 + 1 + 7 + 9 = 43** ✅ (코드 set-difference 미등록 43 — Tag/Tab/TabList 는 차단 17 내부에서 발효 3 으로 이동, 분모 포함 / value-fill 3·ColorField·Body/Nav/Section 발효로 분모 −8)
+- **step 4 spec 삭제 관문 요약**: 즉시 삭제 가능 = ① 발효(spec, value-fill 3 포함) + 무손실 8 + container shell 9(정책 결정 후). 진입점 동반 = Toast 1. **순 차단 = ③ 14 + ④ value-fill 잔여 1(SliderTrack) = 15**(2026-06-05 "순 차단 18" 은 value-fill 4 전수 차단 가정 stale — 3 발효로 정정). **Tag/Tab/TabList projection 발효 3 은 차단 아님(spec fallback 해소)이나 spec 파일은 존치**(projection 의 render.shapes 의존). 보존(삭제 금지) = ⑤ 7. spec 파일 없음 2(DisclosureContent/TimeSegment)는 삭제 무관.
 
 ### 미등록 type 작업량 recon — "등록만 하면 끝" type = 0 (2026-06-06, Workflow wu3t2cyy9, 8 Explore file:line)
 
