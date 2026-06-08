@@ -868,6 +868,86 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 - child 발효/미등록 type 전환은 코드가 "단계 5 후속 inventory"로 명시 분리(buildSpecNodeData.ts:1208) → step4 잔류 아님.
 - delegation 은 DELEGATING 편입 + trigger 합성 재배선 + DOM/Skia 대칭 재검증을 포함하는 **동작 변경(behavior change)** → ADR-912 기존 step 정의로 흡수 시 scope inflation. **단 child 단독 발효 불가는 task #88 정본 확정**이라 새 base ADR 아님 → "ADR-912 단계5 inventory 항목으로 surface 후 사용자 confirm" 경로가 비용 최소. 어느 경로든 사용자 결정 전 착수 금지.
 
+## step4 element 폐기 정책 (Disposal Policy) — 4축 gate 고정 + step4 재정의 (2026-06-08, 사용자 지시)
+
+> **사용자 지시**: "1번 Autocomplete는 다음 proof 후보로 좋아 보이지만, 먼저 '왜 Autocomplete는 폐기 가능한가'라는 폐기 정책을 문서화한 뒤 들어가는 게 맞습니다. 즉 다음 액션은 step4 폐기 정책 설계 정리입니다. 물리 삭제는 아직 아닙니다."
+>
+> **위상**: step4 정의 보강(task #112, 5축 재분류 + 4조건 측정)이 "4조건 true-dead 0건" 을 실측했다. 본 정책은 그 측정 결과를 **(a) step4 재정의 확정 (b) 폐기 기준 4축 gate 명문화 (c) 폐기 가능 판정 절차** 로 정책화한다. 물리 삭제·element 폐기 착수는 본 정책으로 정당화되는 것이 아니라, **각 type 폐기마다 별도 명시 승인**을 요구한다.
+
+### P0. step4 재정의 확정 — "spec 파일 삭제" → "element type 폐기 decision"
+
+step4 정의 보강(task #112)에서 실측된 본질을 정책으로 고정한다:
+
+| 항목                 | 구 정의 (stale)                   | 신 정의 (확정)                                                                                               |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **단위**             | `*.spec.ts` 파일 1개              | **element type 1개의 폐기 decision**                                                                         |
+| **작업 범위**        | `rm packages/specs/.../X.spec.ts` | spec 삭제 + factory 제거 + canonical migration + registry entry 제거 + layout/text consumer 이관 (해당 축만) |
+| **"즉시 안전" 대상** | 빈 shapes / 흡수 / dead 14        | **0건** (4조건 true-dead 0)                                                                                  |
+| **차단 판정 축**     | Skia source(render.shapes) 1축    | **4축 (render path / factory / registry / layout·text consumer)**                                            |
+
+**Why 재정의가 필요했나**: "빈 shapes `()=>[]` = 즉시 삭제 안전" 이 1축(Skia 시각) 관점이라 틀렸다. `()=>[]` 는 그리기 0 이나 factory 가 canonical element 를 생성하면 노드가 traversal active → spec 삭제 시 `getSpecForTag` NULL → `buildSpecNodeData.ts:902-903 if(!spec) return null` 파손. SliderThumb(FormComponents.ts:574 factory active) / TabPanels(implicitStyles.ts:41 paddingX consumer) 가 반례. **시각 소실 0 ≠ 폐기 안전.**
+
+### P1. 폐기 기준 4축 gate (고정) — 전부 PASS 해야 "rm 만으로 폐기 가능"
+
+각 element type 은 아래 4 gate 를 통과해야 **추가 작업 없이 spec 파일 삭제(rm)만으로 폐기** 가능하다. 1개라도 FAIL 이면 해당 축의 선행 작업이 폐기 묶음에 포함된다.
+
+| Gate           | 통과 조건 (PASS = 0)                                                                      | 측정 방법 (grep/실측)                                                                                                        | FAIL 시 폐기 묶음에 추가되는 선행 작업                                                        |
+| -------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **G-render**   | render path 0 — Skia source(render.shapes) 가 시각/측정에 미도달                          | `render.shapes` 빈 배열 확인 + catalog 미등록 시 `buildSpecNodeData.ts:1225` fallback 도달 여부 + parent 흡수/projector 여부 | 자식 escape / parent projector / catalog 발효 (시각 source 대체)                              |
+| **G-factory**  | factory 생성 0 — canonical element 미생성                                                 | `grep "type:[[:space:]]*['\"]X['\"]" apps/builder/src/builder/factories/` = 0                                                | factory creator 제거 + canonical migration (기존 문서 element 재작성)                         |
+| **G-registry** | registry consumer 0 또는 동시 제거 가능                                                   | tagToElement(BASE_TAG_SPEC_MAP) / specRegistry(TAG_SPEC_MAP) / index.ts barrel / builderAliasMap / componentRulesTable rule  | registry entry 동시 제거 (type-check cascade 0 으로 떨어지면 OK)                              |
+| **G-consumer** | layout·text consumer 0 — deriveSizeConfig / TEXT_BEARING / paddingX / cross-spec import 0 | `grep "XSpec" utils.ts specTextStyle.ts` + cross-spec `import {XSpec}` + `componentRulesTable` paddingX 소비                 | size source rule 인라인 미러 / TEXT_BEARING entry 제거 / paddingX 이관 / cross-spec 관계 해체 |
+
+**gate 우선순위 (폐기 비용 결정)**: G-render(시각 소실) > G-factory(element 폐기 + migration) > G-consumer(layout/text 이관) > G-registry(동시 제거 cascade). G-render FAIL = HIGH 위험(시각 비대칭), G-factory FAIL = element type 전체 재작성, G-registry FAIL 단독 = 가장 가벼움(동시 제거로 type-check 0).
+
+**4 gate 전부 PASS 인 type = 폐기 비용 최소 = "rm 만으로 폐기 가능" = true-dead.** 현재 실측 **0건** (모든 미등록 type 이 최소 1 gate FAIL).
+
+### P2. 폐기 가능 판정 — Autocomplete 가 "왜 폐기 가능한가"
+
+Autocomplete 는 4 gate 중 **G-render / G-factory / G-consumer 3 PASS + G-registry 만 FAIL** → "rm + registry 동시 제거" 의 최소 폐기 묶음. 13 미등록 type 중 폐기 비용 최소. 코드 실측(2026-06-08):
+
+| Gate           | 판정 | 근거 (file:line, 실측)                                                                                                                                                                                |
+| -------------- | :--: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **G-render**   |  ✅  | `Autocomplete.spec.ts:154 shapes: () => []` — 빈 배열, Skia 그리기 0. catalog 미등록이나 render path 가 빈 배열이라 시각 소실 0                                                                       |
+| **G-factory**  |  ✅  | `grep "type:'Autocomplete'" apps/builder/src/builder/factories/` = 0 — canonical element 미생성 → migration 불요                                                                                      |
+| **G-consumer** |  ✅  | utils.ts deriveSizeConfig 0 / specTextStyle TEXT_BEARING 0 / cross-spec import 0 / componentRulesTable paddingX 0 — layout/text 소비 없음                                                             |
+| **G-registry** |  🟡  | `tagToElement.ts:189 Autocomplete: AutocompleteSpec` + `specRegistry.ts:95` + `index.ts:677 barrel export` 3곳 + **생성 CSS** `generated/Autocomplete.css`(skipCSSGeneration 미명시) — 동시 제거 필요 |
+
+**판정**: Autocomplete 폐기 = `rm Autocomplete.spec.ts` + registry 3 entry 제거 + barrel export 제거 + 생성 CSS 제거 + `build:specs`. **factory/migration/consumer 이관 0** → 폐기 묶음이 registry 정리에 국한. canonical document 에 Autocomplete element 가 존재하지 않으므로(factory 0 + palette 0) 기존 사용자 프로젝트 깨짐 0.
+
+**주의 — G-registry FAIL 의 type-check cascade**: barrel export 제거 → dist(.js/.d.ts) + generated CSS 재생성(`build:specs`). ADR-139 registration baseline(componentRulesTable + generated/\*.css) 충돌 여부는 폐기 착수 시 별도 확인. dead 자체는 유효하나 "import graph 정리만" 이 아니라 "import graph + 생성 CSS + dist 재생성" 임 (선행-5 정정 정합).
+
+### P3. 폐기 비용 오름차순 (정책 적용 결과) — 13 미등록 type
+
+4 gate 측정 결과를 폐기 비용으로 정렬. **모두 최소 1 gate FAIL = true-dead 0건** 재확인:
+
+| 순위 | type                                                                | FAIL gate                       | 폐기 묶음 (rm 외 동반 작업)                                                                        |
+| :--: | ------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+|  1   | **Autocomplete**                                                    | G-registry                      | registry 3 + barrel + 생성 CSS (migration 0)                                                       |
+|  2   | DateSegment                                                         | G-registry + (catalog rule)     | registry 2(alias) + componentRulesTable rule + DateInput projector segment 그리기 유지 확인        |
+|  3   | Field                                                               | G-registry + G-factory(런타임)  | registry 2 + TagEditor `type==='Field'` filter + canonical migration(TagEditor.tsx:123 addElement) |
+| 4~10 | Tag/Tab/TabList/Breadcrumb/MeterValue/ProgressBarValue/SliderOutput | G-render(skia-source-active)    | spec 이 유일 Skia source — value text/구분선/crumb projector 이관 또는 보존                        |
+|  11  | TabPanels                                                           | G-render + G-consumer(paddingX) | paddingX 이관(implicitStyles.ts:41 + utils.ts:2705) + factory Frame 대체 + migration               |
+|  12  | TabPanel                                                            | G-factory                       | factory(LayoutComponents.ts:49) + migration                                                        |
+|  13  | SliderThumb                                                         | G-factory + 인터랙션/접근성     | Slider 인터랙션/접근성/migration 전면 (HIGH)                                                       |
+
+(deletion-risk 7 = TreeItem/SelectIcon/SelectValue/SelectTrigger/DateSegment/TimeSegment/DateInput 중 DateInput 발효 완료·DateSegment dead — 잔여 차단 5 는 위 표 4~10 의 G-render FAIL 또는 별도 ADR(재귀 projector). color 7 + Group + List + Toast + container shell 11 은 미등록 40 분류 참조.)
+
+### P4. step4 처리 옵션 (정책 결과로 도출된 사용자 decision 후보)
+
+본 정책은 step4 를 **(a) no-go 유지 + (b) element 폐기 phase/ADR 재정의 결정** 의 두 갈래로 surface 한다. 어느 갈래든 **물리 삭제·element 폐기는 별도 명시 승인** 필요.
+
+| 옵션  | 내용                                                                                                           | 정책 정합                                                                                                                       |
+| :---: | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **A** | step4 = no-go 유지. catalog 발효分만 유지, 미등록 spec 물리 삭제는 미래로 보류                                 | 가장 보수적. true-dead 0 이므로 어느 type 도 "rm 만" 으로 안 끝남 → 보류가 위험 최소                                            |
+| **B** | step4 를 **"element 폐기 phase"** 로 재정의 (ADR-912 단계5 내 잔류). Autocomplete(폐기 비용 1) 부터 phase 분리 | 4 gate 가 phase 진입 게이트. Autocomplete = G-registry 만 FAIL 이라 cascade 0 으로 안전. proof 성격                             |
+| **C** | step4 를 **별도 "element 폐기 ADR"** 로 승격 (4-axis 동반 작업이 spec 삭제 task 범위 초과)                     | factory/migration/consumer 이관이 묶이는 type(Field/TabPanels/SliderThumb)은 ADR scope 가 맞음. 단 Autocomplete 단독은 ADR 과도 |
+| **D** | step4 = no-go 유지 + 정책만 고정(본 문서). 다음 decision 까지 코드 변경 0                                      | **현 상태** — 본 정책 문서화로 종료, 폐기 착수는 별도 turn 사용자 명시 신호 대기                                                |
+
+**정책 권고 (gate 기반, 사용자 decision 전 자동 착수 금지)**: Autocomplete 는 G-registry 단독 FAIL + cascade 0(canonical element 부재) 이라 **옵션 B(element 폐기 phase 의 첫 proof)** 적격. 단 사용자 지시대로 **"폐기 정책 문서화 뒤 proof 진입"** 이므로 본 문서가 그 선행이고, proof(Autocomplete 폐기) 착수 자체는 별도 명시 승인 대기. 옵션 C(별도 ADR)는 Field/TabPanels/SliderThumb 같이 migration 이 묶이는 type 으로 확장될 때 재검토.
+
+> **물리 삭제·element 폐기 미착수 (CLAUDE.md §"마이그레이션/리네임/삭제" 정책)**: 본 정책은 "왜 폐기 가능한가" 의 기준(4 gate)과 비용(P3)을 명문화할 뿐, 폐기 실행을 승인하지 않는다. 일반 동의("ok"/"진행해")는 삭제 승인이 아니며, 각 type 폐기마다 "element type X 를 폐기(spec+registry 제거)해도 되나요?" 별도 확인.
+
 ## 관련
 
 - ADR 본문: [912-rac-pencil-rebuild-cutover.md](../912-rac-pencil-rebuild-cutover.md) §Status (step 4 no-go)
