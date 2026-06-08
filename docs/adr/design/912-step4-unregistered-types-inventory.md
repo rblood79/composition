@@ -116,6 +116,51 @@
 
 **순 차단(deletion-risk) 종합**: 🔴 **7 type** (TreeItem / SelectIcon / SelectValue / SelectTrigger / DateSegment / TimeSegment / DateInput) — 이들의 spec.render.shapes 가 유일 Skia source 라 catalog 등록 또는 부모 escape/projector 흡수 없이는 step 4 삭제 시 Skia 시각 소실. 나머지 33 분기: 삭제 안전 12(빈 shapes 5[Field 포함] + 흡수 3 + projector 4) / scope 외 보존 7(color) / shell 존치 11(D container) / D1 보존 1(Group) / 보류 1(List) / factory 동시제거 1(Toast). **영역 B 후보 분류 전수 종결** — 잔여 미해소 차단 = 위 7 deletion-risk + (List 보류 + Toast factory 정리) + step 4 물리 삭제 사용자 명시 승인.
 
+## recon #108 deletion-risk 7 세부 재판정 (2026-06-08, Workflow `wf_fbceb9d8-c7e` 4 agent 병렬 + main file:line 재확증)
+
+> **방법**: 7 type 을 3 메커니즘 그룹(TreeItem 재귀 / Select 3 / Date 3)으로 병렬 recon — 각 type 의 DOM source / Skia source / controller 의존 / parent absorption 4축 + 4분류 + proof slice + ADR scope. **전제 반전 1건 발견** → main 코드 grep 재확증 (`feedback-analysis-precision-patterns` 이름/주석 신뢰 금지, agent 주장도 검증 대상).
+
+### 🔴 전제 반전 — DateSegment/TimeSegment 는 step 4 차단 **아님** (dead source, deletion-risk 7→5)
+
+이전 inventory C/B 카테고리는 DateSegment(=TimeSegment 공유)를 "🔴 deletion-risk: 자식 spec=유일 Skia source" 로 판정했으나 **canonical factory 가 DateSegment/TimeSegment 를 element 로 생성하지 않음** (전수 grep 0건):
+
+- `DateColorComponents.ts` 의 DateField/TimeField factory 실 `type:` 엔트리는 `DateInput` 1개만 (line 294). DateSegment/TimeSegment 는 **JSDoc 주석 트리 다이어그램**(line 252-254 `* ├─ DateSegment...` / 316-318 `* ├─ TimeSegment...`)에만 등장 — `*` prefix 주석, 실 코드 아님.
+- `grep 'type:\s*"DateSegment"\|"TimeSegment"' apps/ packages/ --include=*.ts(x)` (주석 제외) = **0건**.
+- DOM = `DateField.tsx` render-time RAC iteration `{(segment)=>...}` (canonical element 아님). Skia = `DateSegment.spec.ts` render.shapes 는 **노드 미도달** (factory 미생성 → buildSpecNodeData traversal 진입 0).
+- ∴ DateSegment.spec / TimeSegment(공유) 삭제해도 Skia 노드 미도달 = **시각 소실 0**. ADR-912 "spec.render.shapes 가 유일 Skia source 인 미등록 type" 정의 미충족(source 가 dead). → step 4 차단 게이트에서 **제외**.
+
+**순 차단 정정: deletion-risk 7 → 5** (TreeItem / SelectIcon / SelectValue / SelectTrigger / DateInput). DateSegment/TimeSegment 는 ADR 외 scope(dead source, 즉시 정리 가능 — 단 삭제 glob 진입 시 import graph 0 확인).
+
+### 7 type 4분류 + proof slice + ADR scope
+
+| type              | 4분류                                 | proof slice                                                         | ADR scope                           | 핵심 근거 (file:line)                                                                                                                                                                     |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SelectIcon**    | 즉시 catalog 가능                     | ✅ **1순위** (icon_font escape, 가장 작음)                          | step 4 차단 잔류 → 발효로 즉시 해소 | `SelectIcon.spec.ts:144` icon_font(`iconName ?? "chevron-down"`) 정적 단일 입력, RAC state 0. DOM 은 spec 미사용(`Select.tsx:307` SVG inline) → spec 삭제 DOM 무영향, Skia 만 escape 보존 |
+| **DateInput**     | parent delegation 필요                | ✅ **2순위** (`datefield_trigger` escape 확장 or DateField binding) | 별도 ADR(920/910) 분리              | `DateInput.spec.ts:218-270` box+text self-render(`_parentTag`/`_granularity`/`_locale` 정적, controller 0). 부모 DateField shell-only(`buildCatalogShapes.ts:169`)                        |
+| **SelectTrigger** | controller-bound 보류                 | ❌ (SelectValue 선행 미충족)                                        | step 4 차단 잔류                    | `SelectTrigger.spec.ts` roundRect+border, container 역(SelectValue flex parent). RAC Button 네이티브(`Select.tsx:303`)                                                                    |
+| **SelectValue**   | controller-bound 보류                 | ❌ (RAC SelectState 동적)                                           | step 4 차단 잔류                    | `SelectValue.spec.ts:114` `children\|\|placeholder` = selected value = RAC SelectState 소유, 정적 주입 불가 → Skia 는 placeholder 만                                                      |
+| **TreeItem**      | parent delegation + depth schema 선행 | ❌ (재귀 projector 신규)                                            | 별도 ADR(920/910) 분리              | `TreeItem.spec.ts:88-142` render.shapes 에 depth/indent/expanded/selected param 부재, hardcoded padding. projector 0(`canvasSceneNode.ts` 에 tree-row 없음, flat/2D 6종과 직교)           |
+| **DateSegment**   | ADR 외 scope (dead)                   | — (불요)                                                            | step 4 차단 아님                    | canonical 미생성(위 전제 반전), `tagToElement.ts:236` 공유                                                                                                                                |
+| **TimeSegment**   | ADR 외 scope (dead)                   | — (불요)                                                            | step 4 차단 아님                    | 동일, 자체 spec 파일 없음(DateSegment.spec 공유)                                                                                                                                          |
+
+### 묶음 가능 그룹 (같은 escape/projector 메커니즘)
+
+- **G1. Select internal-source 자식** (SelectIcon/SelectValue/SelectTrigger): 부모 Select FAMILY_4_CUTOVER(`componentCatalog.ts:458`) 종속, appendSelectRowProjection **부재**(`canvasSceneNode.ts` 6 projector 에 Select 없음). SelectIcon icon_font escape 발효 → trigger/value 분리 판정.
+- **G2. DateField/TimeField parent-cutover 자식** (DateInput; DateSegment/TimeSegment 는 dead): 부모 FAMILY_2_CUTOVER → shell-only(`buildCatalogShapes.ts:169`) → DateInput spec fallback. escape = `datefield_trigger`(`skiaPrimitives.ts:904`, 현 DatePicker/DateRangePicker 용) 확장.
+- **G3. Tree hierarchical (단독)**: TreeItem — flat/2D projector 6종과 직교, depth schema + tree-row projector 신규 필요. 단독 ADR.
+- **escape 재사용성**: G1(SelectIcon)·G2(DateInput) 은 기존 escape 패턴(`leading_icon`/`icon_font`, `datefield_trigger`) 확장으로 발효 — 신규 projector 불요. G3(TreeItem) 만 신규 projector + depth schema 선행.
+
+### step 4 잔류 vs 별도 ADR 종합
+
+| 판정                                                | type                                                | 비고                                                                         |
+| --------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **즉시 발효로 해소 가능 (proof slice 후보)**        | SelectIcon(1순위) / DateInput(2순위)                | escape 확장 1 step, 신규 projector 불요                                      |
+| **step 4 차단 잔류 (controller-binding 설계 필요)** | SelectTrigger / SelectValue                         | SelectValue 의 RAC SelectState 동적 의존 해소 선행                           |
+| **별도 ADR(920/910) 분리**                          | TreeItem(재귀 depth) / DateInput(parent delegation) | TreeItem=projected-tree scope, DateInput=발효 작업이 step 4 물리 삭제와 별개 |
+| **ADR 외 scope (dead source)**                      | DateSegment / TimeSegment                           | canonical 미생성 → 삭제 시 시각 소실 0, step 4 차단 아님                     |
+
+**recon only 명시**: 코드 변경/발효/spec 삭제 일절 미수행. 발효(SelectIcon/DateInput) 또는 step 4 물리 삭제는 후속 사용자 결정/별도 ADR 단계.
+
 ## step 4 진입 차단 게이트 (no-go 해소 조건)
 
 step 4 (spec 124+ 물리 삭제) 진입 전 다음 **모두 충족** 필요:
