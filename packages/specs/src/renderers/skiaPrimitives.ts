@@ -952,6 +952,175 @@ const datefieldTrigger: SkiaPrimitiveDrawFn = ({ props, size }) => {
 };
 
 /**
+ * `datefield_segments` — DateField/TimeField/DatePicker/DateRangePicker 의 **입력 영역 자식**
+ * (DateInput leaf): input box + border + 세그먼트 placeholder text(+picker 일 때 후행 calendar
+ * icon). box+border+text(+icon) 복합 → `"replace"` 모드(box+text 대체).
+ *
+ * **datefield_trigger 와 구분**: datefield_trigger 는 **부모 DatePicker/DateRangePicker 가 그리는
+ * trigger field 전체** (자식 없을 때, buildDatePickerShapes 재사용). datefield_segments 는 **자식
+ * DateInput element 자신** 이 그리는 입력 box+segment placeholder. 부모가 `_hasChildren` 으로 자식
+ * DateInput 에 위임하면(datefield_trigger 가 `[]` 반환) DateInput 자식이 본 escape 로 그린다.
+ *
+ * spec-free: DateInput.spec.ts:218-331 render.shapes 의 4-parent 분기(`_parentTag`) 를 이식.
+ * props 의 `_parentTag`/`_granularity`/`_hourCycle`/`_locale`/`_containerWidth` + visual rule
+ * (variant text/border/fill) 만 읽음 — spec VariantSpec 미참조. controller(RAC DateFieldState) 비의존
+ * (static placeholder text, CalendarGrid 동형).
+ */
+const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
+  const p = props as Record<string, unknown>;
+  const style = (p.style as Record<string, unknown> | undefined) ?? undefined;
+
+  const sizeName = (p.size as string) || "md";
+  const parentTag = (p._parentTag as string) || "DateField";
+  const granularity =
+    (p._granularity as string) ||
+    (parentTag === "TimeField" ? "minute" : "day");
+  const hourCycle = p._hourCycle as number | undefined;
+  const locale = (p._locale as string) || "en-US";
+
+  const DF_HEIGHT: Record<string, number> = {
+    xs: 20,
+    sm: 22,
+    md: 30,
+    lg: 42,
+    xl: 54,
+  };
+  const DF_PADDING_X: Record<string, number> = {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+  };
+  const DF_PADDING_Y: Record<string, number> = {
+    xs: 1,
+    sm: 2,
+    md: 4,
+    lg: 8,
+    xl: 12,
+  };
+  const DF_RADIUS: Record<string, number> = {
+    xs: 4,
+    sm: 6,
+    md: 8,
+    lg: 10,
+    xl: 12,
+  };
+
+  const inputHeight = DF_HEIGHT[sizeName] ?? DF_HEIGHT.md;
+  const paddingX = DF_PADDING_X[sizeName] ?? DF_PADDING_X.md;
+  const borderRadius = DF_RADIUS[sizeName] ?? DF_RADIUS.md;
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ??
+      (size.fontSize as string | number | undefined),
+    14,
+  );
+  const containerWidth =
+    (typeof p._containerWidth === "number" && (p._containerWidth as number)) ||
+    (typeof style?.width === "number" && (style.width as number)) ||
+    200;
+
+  const borderColor =
+    (style?.borderColor as string | undefined) ??
+    visual?.border ??
+    ("{color.border}" as TokenRef);
+  const bgColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default?.base ??
+    ("{color.layer-2}" as TokenRef);
+  const textColor =
+    (style?.color as string | undefined) ??
+    visual?.text ??
+    ("{color.neutral}" as TokenRef);
+  const ff = (style?.fontFamily as string | undefined) || fontFamily.sans;
+
+  // 세그먼트 placeholder text (locale 분기 — DateInput.spec buildDateText/buildTimeText 이식).
+  const isAsian = /^(ko|ja|zh)/.test(locale);
+  const isEuropean = /^(de|fr|es|it|pt|ru)/.test(locale);
+  let dateText: string;
+  if (isAsian) dateText = "YYYY / MM / DD";
+  else if (isEuropean) dateText = "DD / MM / YYYY";
+  else dateText = "MM / DD / YYYY";
+  const hasTime =
+    granularity === "hour" ||
+    granularity === "minute" ||
+    granularity === "second";
+  const timeSeg = (() => {
+    let t = "HH : MM";
+    if (granularity === "second") t += " : SS";
+    if (hourCycle === 12) t += "  AM";
+    return t;
+  })();
+  const displayText =
+    parentTag === "TimeField"
+      ? timeSeg
+      : parentTag === "DateRangePicker"
+        ? `${dateText} – ${dateText}`
+        : hasTime
+          ? `${dateText}  ${timeSeg}`
+          : dateText;
+
+  const isPickerInput =
+    parentTag === "DatePicker" || parentTag === "DateRangePicker";
+  const padRight = isPickerInput
+    ? (DF_PADDING_Y[sizeName] ?? DF_PADDING_Y.md)
+    : paddingX;
+  const iconSz = isPickerInput
+    ? ({ xs: 10, sm: 14, md: 16, lg: 20, xl: 22 }[sizeName] ?? 16)
+    : 0;
+  const gap = isPickerInput ? 4 : 0;
+
+  const shapes: Shape[] = [
+    {
+      id: "input-bg",
+      type: "roundRect" as const,
+      x: 0,
+      y: 0,
+      width: containerWidth,
+      height: inputHeight,
+      radius: borderRadius,
+      fill: bgColor,
+    },
+    {
+      type: "border" as const,
+      target: "input-bg",
+      borderWidth: 1,
+      color: borderColor,
+      radius: borderRadius,
+    },
+    {
+      type: "text" as const,
+      x: paddingX,
+      y: 0,
+      text: displayText,
+      fontSize,
+      fontFamily: ff,
+      fontWeight: 400,
+      fill: textColor,
+      align: "left" as const,
+      baseline: "middle" as const,
+      maxWidth: isPickerInput
+        ? containerWidth - paddingX - iconSz - gap - padRight
+        : undefined,
+    },
+  ];
+
+  if (isPickerInput) {
+    shapes.push({
+      type: "icon_font" as const,
+      iconName: "calendar",
+      x: containerWidth - padRight - iconSz / 2 - 4,
+      y: inputHeight / 2,
+      fontSize: iconSz,
+      fill: "{color.neutral-subdued}" as TokenRef,
+      strokeWidth: 2,
+    });
+  }
+
+  return shapes;
+};
+
+/**
  * `value_fill_bar` — 진행/미터/슬라이더의 value 비례 수평 채움 막대 (append 모드).
  *
  * track box(buildCatalogShapes 가 그림) **위에** 덧그리는 fill rect. 컴포넌트 식별 없이
@@ -1687,6 +1856,7 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   // ADR-912 (A/2D) CalendarGrid 자식 발효 (replace — nav 없는 grid + today circle, calendar_grid 부모와 별개)
   calendar_month_grid: calendarMonthGrid,
   datefield_trigger: datefieldTrigger,
+  datefield_segments: datefieldSegments,
   // ADR-912 선행-2 value-fill escape:
   //   value_fill_bar = append (track box 위 value 막대 — Progress/Meter)
   //   value_fill_arc = replace (자체 track arc + indicator arc — ProgressCircle, box 무의미)
@@ -1749,6 +1919,11 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 (A/2D): calendar_month_grid 는 weekday + day cell 2D self-positioning + today circle 자체 생성,
   //   box+text 대체 → replace. 절대 좌표 grid 라 buildCatalogShapes box(y:0,height:auto)와 어긋남.
   calendar_month_grid: "replace",
+  // ADR-912 deletion-risk(date): datefield_segments 는 input box + border + 세그먼트 placeholder text
+  //   (+picker icon) 자체 생성, box+text 대체 → replace. DateInput.spec render.shapes 의 4-parent 분기
+  //   이식. datefield_trigger(부모 picker 가 그리는 trigger field, 자식 없을 때)와 별개 — 자식 DateInput
+  //   element 자신이 그림.
+  datefield_segments: "replace",
 };
 
 export function getSkiaPrimitive(

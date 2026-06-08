@@ -277,6 +277,17 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "calendar grid",
     icon: "CalendarDays",
   }),
+  // ADR-912 deletion-risk(date): DateInput leaf (datefield_segments replace — input box + border +
+  //   세그먼트 placeholder text + picker icon). DateInput.spec render.shapes 가 유일 Skia source 였던
+  //   차단 해소 — escape 로 이전. DOM 은 부모 DateField/TimeField/DatePicker/DateRangePicker self-compose
+  //   (`<DateInput>{(segment)=>...}`)가 흡수, children 미렌더 → DateInput DOM 독립 노드 0(catalog 등록
+  //   후에도 DOM 변화 없음, INTERNAL_RENDERERS 미등록 → cutover generic 320 PrimitiveComponent=undefined
+  //   → 블록 skip). controller 0 self-render(static placeholder, CalendarGrid 동형).
+  primitiveEntry("DateInput", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "date input",
+    icon: "Calendar",
+  }),
 ];
 
 /**
