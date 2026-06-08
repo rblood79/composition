@@ -279,7 +279,6 @@ export const DateFieldSpec: ComponentSpec<DateFieldProps> = {
     rules: [
       { parentProp: "size", childPath: "Label", override: true },
       { parentProp: "size", childPath: "DateInput", override: true },
-      { parentProp: "size", childPath: "DateSegment", override: true },
       {
         parentProp: "label",
         childPath: "Label",

@@ -13,14 +13,14 @@ import type { CanonicalNode } from "./composition-document.types";
  * Canonical Component Tag — composition 컴포넌트 vocabulary.
  *
  * 값 공간 정책 (ADR-903 §type vocabulary policy):
- * - **허용**: composition Component 117개 + pencil 공용 구조 타입 3개 (`ref` | `frame` | `group`) = 120 literal
+ * - **허용**: composition Component 116개 + pencil 공용 구조 타입 3개 (`ref` | `frame` | `group`) = 119 literal
  * - **제외**: pencil primitive 10종 (`rectangle` / `ellipse` / `line` / `polygon` / `path` /
  *   `text` / `note` / `prompt` / `context` / `icon_font`) — import/export adapter 경유만 등장
  *
- * 실측: 본 `ComponentTag` union 멤버 117 component + 구조 타입 3개 = 120 (Autocomplete 폐기 2026-06-09, ADR-912 step4 element 폐기 phase 첫 proof). 주의: `*.spec.ts` 파일 수(124)와는 별개 — properties-only / child sub-part spec 은 union 비멤버.
+ * 실측: 본 `ComponentTag` union 멤버 116 component + 구조 타입 3개 = 119 (Autocomplete 폐기 2026-06-09 / DateSegment+TimeSegment 폐기 2026-06-09, ADR-912 step4 element 폐기 phase). 주의: `*.spec.ts` 파일 수(123)와는 별개 — properties-only / child sub-part spec 은 union 비멤버. TimeSegment 는 vocab union 비멤버였던 undeclared alias (tagToElement 동시 청산).
  */
 export type ComponentTag =
-  // ── composition Component Tags (117개, 알파벳 순) ──
+  // ── composition Component Tags (116개, 알파벳 순) ──
   | "Accordion"
   | "Avatar"
   | "AvatarGroup"
@@ -54,7 +54,6 @@ export type ComponentTag =
   | "DateInput"
   | "DatePicker"
   | "DateRangePicker"
-  | "DateSegment"
   | "Description"
   | "Dialog"
   | "Disclosure"

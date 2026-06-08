@@ -608,12 +608,6 @@ export type { SliderThumbProps } from "./components/SliderThumb.spec";
 export { SliderOutputSpec } from "./components/SliderOutput.spec";
 export type { SliderOutputProps } from "./components/SliderOutput.spec";
 
-export { DateSegmentSpec } from "./components/DateSegment.spec";
-export type {
-  DateSegmentProps,
-  DateSegmentType,
-} from "./components/DateSegment.spec";
-
 export { IconSpec } from "./components/Icon.spec";
 export type { IconProps } from "./components/Icon.spec";
 

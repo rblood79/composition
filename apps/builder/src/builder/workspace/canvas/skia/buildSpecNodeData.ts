@@ -120,7 +120,6 @@ const CONTAINER_DIMENSION_TAGS = new Set([
   "ListBox",
   "ColorField",
   "ColorSlider",
-  "DateSegment",
   "Skeleton",
   "Switcher",
   // ADR-097 Phase 4A: TagList spec shapes 가 props.items 기반 chip 렌더 시 컨테이너

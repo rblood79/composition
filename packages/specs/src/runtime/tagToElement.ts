@@ -101,7 +101,6 @@ import { DisclosureHeaderSpec } from "../components/DisclosureHeader.spec";
 import { DisclosureContentSpec } from "../components/DisclosureContent.spec";
 import { DescriptionSpec } from "../components/Description.spec";
 import { SliderOutputSpec } from "../components/SliderOutput.spec";
-import { DateSegmentSpec } from "../components/DateSegment.spec";
 import { IconSpec } from "../components/Icon.spec";
 import { SelectTriggerSpec } from "../components/SelectTrigger.spec";
 import { SelectValueSpec } from "../components/SelectValue.spec";
@@ -230,8 +229,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Kbd: KbdSpec,
   Code: CodeSpec,
   Description: DescriptionSpec,
-  DateSegment: DateSegmentSpec,
-  TimeSegment: DateSegmentSpec,
   Icon: IconSpec,
   SelectTrigger: SelectTriggerSpec,
   SelectValue: SelectValueSpec,

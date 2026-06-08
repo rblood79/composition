@@ -433,10 +433,6 @@ export type { SliderThumbProps } from "./SliderThumb.spec";
 export { SliderOutputSpec } from "./SliderOutput.spec";
 export type { SliderOutputProps } from "./SliderOutput.spec";
 
-// DateSegment (DateField, TimeField 공용)
-export { DateSegmentSpec } from "./DateSegment.spec";
-export type { DateSegmentProps, DateSegmentType } from "./DateSegment.spec";
-
 // Icon (ADR-019)
 export { IconSpec } from "./Icon.spec";
 export type { IconProps } from "./Icon.spec";

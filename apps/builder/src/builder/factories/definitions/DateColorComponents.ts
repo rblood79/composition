@@ -246,12 +246,10 @@ export function createCalendarDefinition(
 /**
  * DateField 복합 컴포넌트 정의
  *
- * CSS DOM 구조:
+ * Element 구조 (factory children):
  *   DateField (parent)
- *     ├─ Label      (type="Label", children="Date")
- *     ├─ DateSegment (type="DateSegment", segment="month")
- *     ├─ DateSegment (type="DateSegment", segment="day")
- *     └─ DateSegment (type="DateSegment", segment="year")
+ *     ├─ Label    (type="Label", children="Date")
+ *     └─ DateInput (type="DateInput")  — segment 합성은 RAC `<DateInput>{(segment)=><DateSegment/>}` 가 render-time 담당 (D1, store element 아님)
  */
 export function createDateFieldDefinition(
   context: ComponentCreationContext,
@@ -310,12 +308,10 @@ export function createDateFieldDefinition(
 /**
  * TimeField 복합 컴포넌트 정의
  *
- * CSS DOM 구조:
+ * Element 구조 (factory children):
  *   TimeField (parent)
- *     ├─ Label       (type="Label", children="Time")
- *     ├─ TimeSegment (type="TimeSegment", segment="hour")
- *     ├─ TimeSegment (type="TimeSegment", segment="minute")
- *     └─ TimeSegment (type="TimeSegment", segment="second")
+ *     ├─ Label    (type="Label", children="Time")
+ *     └─ DateInput (type="DateInput")  — segment 합성은 RAC `<DateInput>{(segment)=><DateSegment/>}` 가 render-time 담당 (D1, store element 아님)
  */
 export function createTimeFieldDefinition(
   context: ComponentCreationContext,

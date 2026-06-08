@@ -661,10 +661,6 @@ function CanvasContent() {
             return "div";
           case "CalendarGrid":
             return "div";
-          // Date/Time 자식 태그
-          case "DateSegment":
-          case "TimeSegment":
-            return "span";
           // Icon 컴포넌트
           case "Icon":
             return "span";
