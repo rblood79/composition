@@ -116,6 +116,42 @@
 
 **순 차단(deletion-risk) 종합**: 🔴 **7 type** (TreeItem / SelectIcon / SelectValue / SelectTrigger / DateSegment / TimeSegment / DateInput) — 이들의 spec.render.shapes 가 유일 Skia source 라 catalog 등록 또는 부모 escape/projector 흡수 없이는 step 4 삭제 시 Skia 시각 소실. 나머지 33 분기: 삭제 안전 12(빈 shapes 5[Field 포함] + 흡수 3 + projector 4) / scope 외 보존 7(color) / shell 존치 11(D container) / D1 보존 1(Group) / 보류 1(List) / factory 동시제거 1(Toast). **영역 B 후보 분류 전수 종결** — 잔여 미해소 차단 = 위 7 deletion-risk + (List 보류 + Toast factory 정리) + step 4 물리 삭제 사용자 명시 승인.
 
+## spec 삭제 가능/불가 subset 분리 + 잔류 항목 고정 (2026-06-08, 사용자 3단계 지시)
+
+> 사용자 지시: (1) G1 Select parent-delegation = 단계5 후속 항목 고정 (2) TreeItem = 별도 ADR/재귀 projector 항목 고정 (3) spec 삭제 subset 논의 — 삭제 안전군만 분리, deletion-risk 4 삭제 제외. **"삭제 진행 아님, 가능/불가 subset 정확히 나누는 논의"** — 물리 삭제는 별도 명시 승인 대기. 본 분류는 recon #107(미등록 40 4분류)/#108(deletion-risk 7→4) 실측 종합.
+
+### 1. G1 Select 3자식 = 단계5 후속 항목 고정 (step4 parent 발효 범위 밖)
+
+- `SelectIcon` / `SelectValue` / `SelectTrigger` = deletion-risk 잔류이나 **step4(parent Skia generic 발효, componentCatalog.ts:442/461 "7 collection 발효 완료") 범위 밖**. Select 부모 자체는 catalog cutover active(FAMILY_4_CUTOVER, :469), 자식 발효는 코드가 "단계5 후속 inventory"로 명시 분리(buildSpecNodeData.ts:1208).
+- **proof slice 별도 confirm 필요**: parent-delegation 단일 변경(DELEGATING `"select"` 편입) = 3자식 동시 해소(부분 발효 불가, G1 recon §). 동작 변경(behavior change)이라 fork checkpoint 4질문 또는 단계5 inventory confirm 경로. **삭제 제외 고정**.
+
+### 2. TreeItem = 별도 ADR/재귀 projector 항목 고정
+
+- `TreeItem` = deletion-risk 잔류, **재귀 depth schema + recursive projector 선행**. flat parent projector(Tag/Breadcrumb)로 복제 불가 — depth×itemKey 가변 hierarchical(renderProjectionIds.ts `tree-row`/depth kind 0건). ADR-920/910 projected-tree scope 이관.
+- Tree 부모 자체는 catalog 등록 + Skia generic 발효 완료(FAMILY_5). 미해소는 TreeItem 자식뿐. **삭제 제외 고정**.
+
+### 3. spec 삭제 가능/불가 subset (실측 종합, 124 spec 기준)
+
+| subset                      | type                                                                                                                                             | 개수 | 판정                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | :--: | ------------------------------------------------------------------------------ |
+| ✅ **catalog 등록(발효)**   | 69 (case-insensitive 등록 — Button/Text/Input/Tabs/ListBox/Select/... + 발효 완료 leaf 전수)                                                     |  69  | **삭제 안전** — isCatalogSkiaCutover=true → generic 경로, spec fallback 미도달 |
+| ✅ **빈 shapes**            | `SliderThumb` `TabPanel` `TabPanels` `Field` `Autocomplete`                                                                                      |  5   | **삭제 안전** — render.shapes `[]`, Skia 손실 0                                |
+| ✅ **흡수 안전**            | `MeterValue` `ProgressBarValue` `SliderOutput`                                                                                                   |  3   | **삭제 안전** — 부모 children 주입 → buildCatalogShapes text 흡수              |
+| ✅ **projector 발효**       | `Tag` `Tab` `TabList` `Breadcrumb`                                                                                                               |  4   | **삭제 안전** — 부모 projector 시각 source 인수                                |
+| ✅ **dead source**          | `DateSegment` (=`TimeSegment` 공유)                                                                                                              |  2   | **삭제 안전** — factory 미생성(JSDoc 주석만), Skia 노드 미도달                 |
+| 🔴 **deletion-risk (제외)** | `TreeItem` `SelectIcon` `SelectValue` `SelectTrigger`                                                                                            |  4   | **삭제 불가** — active spec source(유일 Skia). 위 1/2 항목 선행                |
+| 🔵 **color scope 외**       | `ColorArea` `ColorPicker` `ColorSlider` `ColorSwatch` `ColorSwatchPicker` `ColorWheel` `TailSwatch`                                              |  7   | **보존** — 사용자 scope 외, 삭제 glob 제외(touch 안 함)                        |
+| 🔵 **D1 보존**              | `Group`                                                                                                                                          |  1   | **삭제 금지** — D1 ARIA(ADR-130 frame 분리)                                    |
+| 🟡 **보류**                 | `List`                                                                                                                                           |  1   | **보류** — ListItem NO_SPEC 미완성 collection(영역 B (A))                      |
+| 🟡 **factory-active**       | `Toast`                                                                                                                                          |  1   | **삭제 전 factory 동시 제거** — createToast 경로 활성 시 spec=유일 source      |
+| 🟡 **container shell**      | `Card` `CardView` `ButtonGroup` `AvatarGroup` `Disclosure` `DisclosureGroup` `Accordion` `Pagination` `TableView` `Switcher` `DisclosureContent` |  11  | **존치 vs generic 일괄 정책 결정 선행** — 개별 차단 아님                       |
+
+**삭제 안전 즉시 subset = 14 type** (빈 shapes 5 + 흡수 3 + projector 4 + dead source 2). catalog 등록 69 의 spec 파일은 cutover 게이트상 generic 경로라 삭제해도 Skia 안전하나, **alias 공유(builderAliasMap)·DOM CSS 생성·factory 참조 동반 검증 필요** — 단순 14 보다 광범위.
+
+**삭제 제외 = deletion-risk 4 (Select 3 + TreeItem)** + color 7(scope 외) + Group 1(D1) + List 1(보류) + Toast 1(factory 선행) + container shell 11(정책 선행).
+
+> **물리 삭제 미착수 (사용자 명시 승인 정책)**: 본 분류는 가능/불가 subset surface 일 뿐. spec 파일 삭제는 일반 동의("ok"/"진행해")가 아닌 **별도 명시 삭제 승인** 필요(CLAUDE.md §"마이그레이션/리네임/삭제"). 삭제 안전 subset 도 alias/CSS/factory 동반 검증을 거친 뒤 phase 분리 삭제.
+
 ## recon #108 deletion-risk 7 세부 재판정 (2026-06-08, Workflow `wf_fbceb9d8-c7e` 4 agent 병렬 + main file:line 재확증)
 
 > **방법**: 7 type 을 3 메커니즘 그룹(TreeItem 재귀 / Select 3 / Date 3)으로 병렬 recon — 각 type 의 DOM source / Skia source / controller 의존 / parent absorption 4축 + 4분류 + proof slice + ADR scope. **전제 반전 1건 발견** → main 코드 grep 재확증 (`feedback-analysis-precision-patterns` 이름/주석 신뢰 금지, agent 주장도 검증 대상).
