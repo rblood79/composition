@@ -1201,7 +1201,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   //
   // **fallback = catalog 미등록 type 전용 임시 경로 (단계 5 step 2, 사용자 결정 2026-06-04)**:
   //   `: spec.render.shapes(...)` 는 더 이상 "skiaLegacy collection fallback" 이 아니다 —
-  //   catalog 미등록 71 type(color scope 외 / sub-part / 미발효 leaf / legacy)의 **유일한**
+  //   catalog 미등록 36 type(2026-06-09 카운트 SSOT 동기화 set-difference 실측: BASE_TAG_SPEC_MAP 108 − catalog 72; color scope 외 6 / sub-part / 미발효 leaf / legacy)의 **유일한**
   //   Skia 렌더 경로다. catalog registered runtime 은 항상 첫 분기로 가야 한다(spec.render.shapes
   //   도달 0건). catalog 등록 type 이 이 fallback 으로 새면 게이트 비동치 회귀이므로 dev 에서 검출.
   //   미등록 type 의 generic 전환/catalog 등록은 단계 5 후속 inventory (color 는 사용자 scope 외).

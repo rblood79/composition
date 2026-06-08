@@ -1,24 +1,41 @@
 # ADR-912 단계 5 step 4 선행 — catalog 미등록 type inventory + 경로 대체 분류
 
-> **위상**: ADR-912 단계 5 step 4 (구 정본 `*.spec.ts` 124+ 물리 삭제) **진입 차단 게이트 해소를 위한 별도 후속 작업 문서**. step 4 는 본 inventory 의 [fallback 의존] 그룹 경로 대체가 완료돼야 진입 가능(no-go 해소). step 1~3(dead gate / runtime spec 의존 끊기 / source generator 제거)은 land 완료(`d346a80ad`/`1721cf940`).
+> **위상**: ADR-912 단계 5 step 4 (구 정본 `*.spec.ts` 123 파일 물리 삭제 = element type 폐기 phase) **진입 차단 게이트 해소를 위한 별도 후속 작업 문서**. step 4 는 본 inventory 의 [fallback 의존] 그룹 경로 대체가 완료돼야 진입 가능(no-go 해소). step 1~3(dead gate / runtime spec 의존 끊기 / source generator 제거)은 land 완료(`d346a80ad`/`1721cf940`).
 >
-> **사용자 결정 (2026-06-04)**: "71 type inventory 는 별도 후속" + 순서 "(1) step 5 문서/status 정합 → (2) 71 type 선행 분리 → (3) step 4 spec 삭제". (당시 "71 type" 은 2026-06-04 기준 미등록 count 표현 — 2026-06-05 재계산으로 **미등록 51 / 순 차단 18**, 아래 실측 표 참조.)
+> **사용자 결정 (2026-06-04)**: "미등록 type inventory 는 별도 후속" + 순서 "(1) step 5 문서/status 정합 → (2) 미등록 type 선행 분리 → (3) step 4 spec 삭제". (당시 "71 type" 은 2026-06-04 기준 미등록 count 표현 — 2026-06-09 카운트 SSOT 동기화로 **미등록 36 / 순 차단 15**, 아래 실측 표가 유일 정본.)
 
-## 실측 (2026-06-05 재계산 — 선행-1b/2b/6 발효 반영)
+## 실측 (2026-06-09 카운트 SSOT 동기화 — 코드 set-difference 단일 실측 고정)
 
-| 측정                                         | 2026-06-04                       | 2026-06-05 재계산                                       | 2026-06-08 set-difference 재실측                                                              | 2026-06-08 recon #107 재검증                                                                      |
-| -------------------------------------------- | -------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| spec map (`BASE_TAG_SPEC_MAP`)               | **111**                          | **111** (불변)                                          | **111** (불변)                                                                                | **111** (불변, awk 추출 실측)                                                                     |
-| catalog 등록 (`componentCatalog` entry.type) | **42** (primitive 39 + native 3) | **60** (primitive 57 + native 3) — 선행 17 + Input 발효 | **69** (primitiveEntry 66 + native 3) — value-fill 3+ColorField+container 3+CalendarGrid 발효 | **71** entry (grep `(primitive\|native)Entry("X"`) — frame/MaskedFrame/Slot canonical-native 포함 |
-| **미등록 (spec map − catalog)**              | **69**                           | **51** (Body case-mismatch 보정 + Input 발효) — −18     | **42** (case-insensitive set-diff, CalendarGrid 발효) — −9                                    | **40** (case-insensitive `comm -23` 실측) — **표기 42 는 stale, −2**                              |
+> **카운트 SSOT (CRITICAL — 선행 1 고정, 2026-06-09)**: 본 표가 ADR-912 미등록 type count 의 **유일 정본**. 본문 line 7/23 진행 주석 + `buildSpecNodeData.ts` fallback 주석 + 본 표가 같은 값(미등록 36)으로 동기화됨. 이전 "spec map 111 / catalog 68~71 / 미등록 40~43~51" 표기는 전부 stale(측정 시점 catalog 가 적었던 값) — 미등록은 catalog 발효 누적으로 **69→51→43→40→36 단조 감소**(= dual-SSOT 수렴 방향). 재실측 절차는 본 표 하단 "재실측 명령" 참조.
 
-> **recon #107 정정 (2026-06-08, 코드 grep 실측 — `feedback-analysis-precision-patterns` §"이름/주석 신뢰 금지" + 코드 grep evidence 적용)**: 이전 "미등록 42" 는 추정치였고, `comm -23 <(spec map lc) <(catalog lc)` set-difference 실측 = **40**. catalog entry 는 71 개(grep `(primitive|native)Entry("..."`)이나 그중 `frame`/`MaskedFrame`/`Slot` 3 은 spec map 에 없는 canonical-native type → spec map 과 교집합되는 등록은 68. spec map 111 − 등록 교집합 71(중 spec map 멤버 ≈71−3=68... 실제 case-insensitive 교집합) = **미등록 40**. **stale 정정**: 미등록 목록 중 `Label`/`Description`/`FieldError`/`DisclosureHeader`(B 카테고리 흔적) 는 실제 **등록 완료** — set-diff 에서 미등록 아님(catalog primitiveEntry 확인). 미등록 40 전수 4분류는 ↓ "recon #107 미등록 40 최종 분류" 참조.
+| 측정                                         | 실측 (2026-06-09 SSOT 고정)                | 비고                                                                                |
+| -------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------- |
+| spec map (`BASE_TAG_SPEC_MAP`)               | **108**                                    | tagToElement.ts:134-245 awk 최상위 키 (frame/Slot/MaskedFrame 포함)                 |
+| catalog 등록 (`componentCatalog` entry.type) | **72** (primitiveEntry 69 + nativeEntry 3) | nativeEntry 3 = `frame`/`MaskedFrame`/`Slot` — **셋 다 BASE 멤버라 catalog ⊆ BASE** |
+| 교집합 (등록 완료, case-insensitive)         | **72**                                     | catalog 전체가 BASE 의 부분집합 (catalog-only = 0)                                  |
+| **미등록 (spec map − catalog 교집합)**       | **36** (case-insensitive, Body/body 정합)  | 108 − 72 = 36                                                                       |
+| `*.spec.ts` 파일                             | **123**                                    | `render.shapes` 정의 보유 122                                                       |
 
-> **재계산 근거 (코드 grep 실측)**: catalog 발효 +18 = TEXT_LEAF 5(Text/Heading/Paragraph/Code/Kbd) + field/form 3(Label/Description/FieldError) + 선행-1 3(TextArea/FileTrigger/Skeleton) + 선행-2 2(ProgressBarTrack/MeterTrack) + container shell 3(body/Section/Nav) + InlineAlert 1 + **Input 1(2026-06-05 slice)**. 모두 `FAMILY_1_CUTOVER = "catalog"` 발효(componentCatalog.ts:54, primitiveEntry 전수 동일 cutover) 확인.
+> **이전 표기 정정 (2026-06-09)**: (1) "spec map 111" 은 추출 기준 오차(또는 옛 시점) — 현 BASE_TAG_SPEC_MAP 최상위 키는 **108**. (2) "frame/MaskedFrame/Slot 은 spec map 에 없는 canonical-native" 라는 이전 설명은 **틀림** — 셋 다 tagToElement.ts:199/200/204 에 `frame`/`Slot`/`MaskedFrame` 으로 BASE 에 존재. 따라서 catalog 72 entry 전부가 BASE 의 부분집합이고 catalog-only(BASE 에 없는 등록) = 0. (3) 미등록은 case-insensitive 기준 **36**(Body/body 1쌍 정합). case-sensitive 로 세면 37(Body↔body 미스매치 1 추가 계상)이나 런타임 element.type 은 lowercase `body` 로 흘러 catalog `body` 로 발효되므로 case-insensitive 36 이 실제 미발효 수. **stale 정정 유지**: 미등록 목록 중 `Label`/`Description`/`FieldError`/`DisclosureHeader` 는 실제 **등록 완료**(catalog primitiveEntry 확인) — set-diff 미등록 아님. 미등록 36 전수 분류는 ↓ "미등록 36 최종 분류" 참조.
+
+> **재실측 명령 (count drift 재발 시)**:
 >
-> **Body case-mismatch 함정 (재계산 시 발견)**: `BASE_TAG_SPEC_MAP` 키는 `Body`(Pascal, tagToElement.ts)인데 catalog 는 `body`(lowercase, componentCatalog.ts) — set-difference 시 미등록으로 오집계. 런타임 element.type 은 lowercase `body` 로 흐르고 catalog `body` 로 발효되므로 **실제 발효** (inventory line 50 "body parity fix" 와 정합). 미등록 53 − Body 1 − Input 1 = **51**.
+> ```bash
+> # BASE_TAG_SPEC_MAP 키 (lowercase)
+> awk 'NR>=134 && NR<=245' packages/specs/src/runtime/tagToElement.ts \
+>   | grep -oE "^  [A-Za-z][A-Za-z0-9]*:" | tr -d ' :' | tr A-Z a-z | sort -u > /tmp/base_lc.txt
+> # catalog entry 키 (lowercase)
+> grep -oE "(primitiveEntry|nativeEntry)\(\s*[\"'][A-Za-z][A-Za-z0-9]*[\"']" packages/shared/src/catalog/componentCatalog.ts \
+>   | grep -oE "[\"'][A-Za-z][A-Za-z0-9]*[\"']" | tr -d "\"'" | tr A-Z a-z | sort -u > /tmp/catalog_lc.txt
+> # 미등록 = BASE − catalog
+> comm -23 /tmp/base_lc.txt /tmp/catalog_lc.txt | wc -l
+> ```
+
+> **catalog 발효 누적 근거 (historical, 코드 grep 실측)**: catalog 72 = ADR-142 초기 + 선행-1~6 (TEXT*LEAF 5 Text/Heading/Paragraph/Code/Kbd + field/form 3 Label/Description/FieldError + 선행-1 3 TextArea/FileTrigger/Skeleton + 선행-2 2 ProgressBarTrack/MeterTrack + container shell 3 body/Section/Nav + InlineAlert) + Input + value-fill 4(ProgressCircle/ProgressBar/Meter/SliderTrack) + ColorField + CalendarGrid/CalendarHeader/DateInput + Avatar/StatusLight/IllustratedMessage 등. 모두 `FAMILY*\*\_CUTOVER = "catalog"` 발효(componentCatalog.ts) 확인.
 >
-> **`Input` sub-part 신규 발견 → 즉시 catalog 발효 (2026-06-05 slice)**: `InputSpec`(Input.spec.ts, render.shapes bg+border+text)이 BASE_TAG_SPEC_MAP key 로 존재하나 기존 69 목록에 명시 누락. 단독 factory(`createInput`) 없음 — TextField/NumberField/SearchField/DateField 가 자동 생성하는 입력 영역 자식 sub-part(DateColorComponents.ts:420 / FormComponents.ts:58·134). **실측 결과**: DOM = RAC `<Input>` 이 부모 `<TextField>` controller slot 자동 소비(renderInput FormRenderers.tsx:349 / catalog cutover 시 CanonicalNodeRenderer L216-228 자식 재귀). 시각 source 는 자기 props(bg/border/text). 사용자 confirm(2026-06-05) "rac source catalog 등록" → Input.binding.ts(rac, component:"Input") + primitiveEntry + rule paddingX 보강. ③ 차단 → ① 발효.
+> **Body case-mismatch 함정 (historical)**: `BASE_TAG_SPEC_MAP` 키는 `Body`(Pascal, tagToElement.ts)인데 catalog 는 `body`(lowercase, componentCatalog.ts) — case-sensitive set-difference 시 미등록 1 추가 오집계. 런타임 element.type 은 lowercase `body` 로 흐르고 catalog `body` 로 발효되므로 **실제 발효**. SSOT 표는 case-insensitive 기준이라 정합(미등록 36).
+>
+> **`Input` sub-part (historical, 2026-06-05 slice)**: `InputSpec`(Input.spec.ts, render.shapes bg+border+text)이 BASE_TAG_SPEC_MAP key 로 존재. 단독 factory(`createInput`) 없음 — TextField/NumberField/SearchField/DateField 가 자동 생성하는 입력 영역 자식 sub-part(DateColorComponents.ts:420 / FormComponents.ts:58·134). **실측 결과**: DOM = RAC `<Input>` 이 부모 `<TextField>` controller slot 자동 소비. 시각 source 는 자기 props(bg/border/text). 사용자 confirm(2026-06-05) "rac source catalog 등록" → Input.binding.ts(rac, component:"Input") + primitiveEntry + rule paddingX 보강. ③ 차단 → ① 발효 (catalog 72 에 포함).
 
 ## 4분류 + step 4 차단 판정
 
@@ -95,7 +112,9 @@
 | **[container shell]** (~11)             | `Card` `CardView` `ButtonGroup` `AvatarGroup` `Disclosure` `DisclosureGroup` `Accordion` `Pagination` `TableView` `Breadcrumbs` `Switcher` | catalog 불필요(자식 담는 shell, buildCatalogShapes box 커버). SHELL_ONLY/SYNTHETIC 태그 재점검. spec 존치 또는 frame-like generic. `Switcher` 는 자식 ToggleButton 자동 생성 composite(2026-06-04 재분류) — ADR-912 "243 factory → reusable 문서" 영역과 연계(step 4 이후).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **[dead 검증 완료]** (2)                | `Toast` / `Autocomplete`                                                                                                                   | **선행-5 검증 완료 (2026-06-04, main file:line 확증) — 분기**: ✅ **Autocomplete = dead, 삭제 안전(CSS 정리 동반)**: `render.shapes:()=>[]`(Autocomplete.spec.ts:154) + factory 0건 + ComponentList palette 0건 + 실사용 0(tagToElement/specRegistry/index 정적 import 만). 삭제 시 Skia 손실 0. 🔴 **단 step 4 gate 재점검에서 누락 발견(2026-06-04)**: `skipCSSGeneration` **미명시**(Autocomplete.spec.ts grep 0건, 기본값 false) → `packages/shared/src/components/styles/generated/Autocomplete.css`(1785B, "AUTO-GENERATED from AutocompleteSpec") **실제 생성됨**. spec 삭제 시 source 가 사라져 build:specs 시 자연 정리되나, **stale CSS import/참조 0건 확인 + 생성 CSS 동시 제거**를 삭제 조건에 추가(dead 자체는 유효, "import graph 정리만" → "import graph + 생성 CSS 정리"). 🟡 **Toast = palette-less but factory-active(용어 정정)**: inventory 당초 "Toast=dead" 추정이 **전제 반전** — render.shapes 가 실제 shape(Toast.spec.ts:268-306 shadow+roundRect+border+text, `_hasChildren` 분기 L308) + `ComponentFactory.componentMap.Toast=createToast`(ComponentFactory L108) + `createToastDefinition` 자식(Heading/Description) 복합 생성(FormComponents L319-342) + `CONTAINER_DIMENSION_TAGS` 멤버(buildSpecNodeData L102) 모두 **코드상 활성**. **"orphan/dead" 용어는 오도** — 정확히는 "palette-less(디자인 UI 진입점 부재) but factory-active(프로그래매틱 생성 가능)". factory 경로로 Toast 노드 생성 시 spec.render.shapes 가 Skia 유일 source(선행-3 구조) → spec 삭제 시 깨짐. **삭제 전 factory 경로(createToast/createToastDefinition) + CONTAINER_DIMENSION 등록 동시 제거 필요**. (참고: builder 내부 `ToastContainer` 알림 UI 는 BuilderCore L1189/MonitorPanel L160 의 builder 자체 기능 — 캔버스 배치 컴포넌트와 무관, spec 과 별개). |
 
-## recon #107 미등록 40 최종 분류 (2026-06-08, set-diff 실측 + 4축 file:line 확증)
+## recon #107 미등록 분류 (2026-06-08, set-diff 실측 + 4축 file:line 확증) — 분류 시점 40, 현 SSOT 36
+
+> **⚠️ 카운트 SSOT (2026-06-09)**: 본 제목의 "40" 은 recon #107 작성 시점(2026-06-08) 값. 현 set-difference 실측 = **36**(상단 "실측 SSOT 표"가 유일 정본). 차이 4 = Autocomplete/DateSegment 폐기 + 분류 후 catalog 발효 누적. 본 분류는 작성 시점 스냅샷으로 보존하되 카운트 정본은 상단 표 참조.
 
 > **방법**: `comm -23 <(BASE_TAG_SPEC_MAP lc) <(componentCatalog entry lc)` set-difference → 미등록 40. 각 항목을 4분류 + step 4 차단/해소로 종합. CalendarGrid 발효(`856ad387a`) + ListBox proof K1~K6 검증(`cd394ed18`) 반영. **stale 정정**: 이전 inventory 흔적의 `Label`/`Description`/`FieldError`/`DisclosureHeader`/`Body`/`Code`/`Heading`/`Kbd`/`Nav`/`Paragraph`/`Section`/`Text`/`Avatar`/`ProgressBar`/`Meter`/`Skeleton`/`StatusLight`/`InlineAlert`/`IllustratedMessage`/`TextArea`/`FileTrigger`/`Breadcrumbs` 는 모두 **등록 완료(해소)** — 미등록 40 에 없음.
 
@@ -118,7 +137,7 @@
 
 ## spec 삭제 가능/불가 subset 분리 + 잔류 항목 고정 (2026-06-08, 사용자 3단계 지시)
 
-> 사용자 지시: (1) G1 Select parent-delegation = 단계5 후속 항목 고정 (2) TreeItem = 별도 ADR/재귀 projector 항목 고정 (3) spec 삭제 subset 논의 — 삭제 안전군만 분리, deletion-risk 4 삭제 제외. **"삭제 진행 아님, 가능/불가 subset 정확히 나누는 논의"** — 물리 삭제는 별도 명시 승인 대기. 본 분류는 recon #107(미등록 40 4분류)/#108(deletion-risk 7→4) 실측 종합.
+> 사용자 지시: (1) G1 Select parent-delegation = 단계5 후속 항목 고정 (2) TreeItem = 별도 ADR/재귀 projector 항목 고정 (3) spec 삭제 subset 논의 — 삭제 안전군만 분리, deletion-risk 4 삭제 제외. **"삭제 진행 아님, 가능/불가 subset 정확히 나누는 논의"** — 물리 삭제는 별도 명시 승인 대기. 본 분류는 recon #107(분류 시점 미등록 40 4분류, 현 SSOT 36)/#108(deletion-risk 7→4) 실측 종합.
 
 ### 1. G1 Select 3자식 = 단계5 후속 항목 고정 (step4 parent 발효 범위 밖)
 
@@ -742,9 +761,11 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 
 > **게이트 본질 정정 (CRITICAL)**: step 4 차단 조건은 plan(`anthropic-pencil-framework-immutable-pike.md`)이 가정한 **"skiaLegacy 12개"가 아니다 — 이미 stale**. `skiaLegacy` 필드/게이트는 단계 5 step 1 에서 **type union + runtime entry 모두 0건 제거**됨(types.ts:173-177, cutover.ts:31-32 `isCatalogSkiaCutover`→`isCatalogCutover` collapse). 실제 게이트 = **"catalog 미등록 + spec.render.shapes 가 Skia 유일 source 인 type"의 해소 여부**. 메커니즘: `usesGeneric = isCatalogSkiaCutover(type)`(buildSpecNodeData L1195) → 등록 type generic, **미등록 type 만 spec.render.shapes fallback**(L1203-1211). DEV guard(L1196-1202)가 "등록인데 fallback 으로 샘" 비동치 회귀 감지 → 현재 0건.
 
-### 전체 미등록 43 — step 4 삭제 가능 vs 차단 4분류 종합 (2026-06-08 코드 set-difference 재실측)
+### 전체 미등록 — step 4 삭제 가능 vs 차단 4분류 종합
 
-> **재실측 변경점 (2026-06-05 → 2026-06-08)**: (1) 미등록 51 → **42** (코드 set-difference, case-insensitive — SliderTrack 발효로 43→42). catalog 등록 60 → **69**(primitiveEntry 66 + native 3). value-fill **4 전수**(ProgressCircle `3e6e144d5`/ProgressBar `51adcb184`/Meter `02f0a5b12`/**SliderTrack `431d341cf`**) + ColorField + container shell 3(Body/Nav/Section) 발효가 분류표(line 472/480)엔 반영됐으나 **아래 소계 합산표(2026-06-05 작성)만 stale 이었던 것을 정정**(문서 내 자기 모순 해소). (2) **순 차단 18 → 14** = ③ 영역 B 14 + ④ value-fill 잔여 **0**(SliderTrack 발효로 value-fill 4 전수 완결). (3) 2026-06-05 재계산(미등록 69→51, InlineAlert/Input 발효)은 분류표에 정확히 land — 본 정정은 합산표 숫자만 분류표에 동기화.
+> **⚠️ 카운트 SSOT (2026-06-09 선행 1)**: 미등록 type **유일 정본 = 본 문서 상단 "실측 SSOT 표" (미등록 36)**. 본 4분류 종합의 소계 합산(아래 "42")은 **분류 작성 시점(2026-06-08)의 값**으로, 그 후 (a) Autocomplete element type 폐기(`c77ff8619` 계열, 2026-06-09 — BASE_TAG_SPEC_MAP 제거 → 미등록 set 에서 −1, dead 1 항목 소멸) + (b) catalog 추가 발효 누적으로 현 set-difference 실측은 **36**(상단 표). 분류표 합산 42 ↔ SSOT 36 차이 6 = Autocomplete 폐기(−1) + 측정 시점 catalog 발효 분모 변동(−5, value-fill/ColorField/container 발효가 분류 작성 후 분모에 추가 반영). **분류 항목별 재검증(어느 6항목이 발효로 빠졌는지 1:1 추적)은 step 4 element 폐기 phase 작업** — 선행 1(카운트 텍스트 동기화)은 SSOT 표를 정본으로 고정하고 본 분류표를 "분류 시점 스냅샷"으로 명시하는 데서 멈춘다. 순 차단 = **③ 영역 B 14 + ④ value-fill 잔여 0 = 14**(SSOT 표와 정합, 발효 누적과 무관하게 차단군은 불변).
+
+> **재실측 변경점 이력 (historical, 2026-06-05 → 2026-06-08 → 2026-06-09)**: 미등록 51 → 42 → **36**(코드 set-difference, case-insensitive). catalog 등록 60 → 69 → **72**. value-fill **4 전수**(ProgressCircle `3e6e144d5`/ProgressBar `51adcb184`/Meter `02f0a5b12`/SliderTrack `431d341cf`) + ColorField + container shell 3(Body/Nav/Section) + CalendarGrid/CalendarHeader/DateInput + Autocomplete 폐기 누적 반영. **순 차단 18 → 14** = ③ 영역 B 14 + ④ value-fill 잔여 **0**.
 
 > **(2026-06-05 재계산 이력 보존)**: 미등록 69 → 51 (선행 17 발효 + Input slice 발효 = −18). catalog 등록 42 → 60. InlineAlert internal 4 차단 → catalog 발효 이동(`46e0470e2`). `Input` sub-part 신규 발견 → catalog 발효(rac source, component:"Input" + rule paddingX 보강).
 
@@ -764,10 +785,10 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
 | **⑥ container shell** | 🟢 자식 담는 shell (정책 미정) | 11 | Accordion/AvatarGroup/Breadcrumbs/ButtonGroup/Card/CardView/Disclosure/DisclosureGroup/Pagination/Switcher/TableView | catalog 불필요(자식 담는 shell, buildCatalogShapes box 커버). SHELL_ONLY/SYNTHETIC 재점검 → spec 존치 또는 frame-like generic. step 4 시 일괄 정책 결정(개별 차단 아님) |
 | **(spec 파일 없음 — 삭제 무관)** | DisclosureContent / TimeSegment | 2 | DisclosureContent(value 없는 text leaf, 게이트 #3 흡수) + TimeSegment(독립 spec 없음 — `DateSegmentSpec` 공유, tagToElement L236) | DisclosureContent = text leaf 흡수 검증 / TimeSegment = 물리 `*.spec.ts` 부재 → spec 삭제 대상 자체 아님(DateSegment 와 동일 type) |
 
-**소계 (catalog 발효 ↔ 순 미등록 43 분리 집계 — 2026-06-08 코드 set-difference 재실측)**:
+**소계 (catalog 발효 ↔ 순 미등록 분리 집계 — 2026-06-08 분류 시점 스냅샷, 현 SSOT 36 은 상단 표)**:
 
-- **catalog 발효 (spec map ∩ catalog types)**: ① 발효군 — spec map 에도 catalog types 에도 존재(교집합). spec 파일은 step 4 삭제 대상, Skia 는 이미 generic. **"미등록 43"에는 미포함.** value-fill 3(ProgressCircle/ProgressBar/Meter) + ColorField + container shell 3(Body/Nav/Section) 등이 발효로 미등록에서 제외됨.
-- **순 미등록 43 분해 (전수 합산 검증 — 코드 set-difference, 발효 type 제외 후)**:
+- **catalog 발효 (spec map ∩ catalog types)**: ① 발효군 — spec map 에도 catalog types 에도 존재(교집합). spec 파일은 step 4 삭제 대상, Skia 는 이미 generic. **순 미등록에는 미포함.** value-fill 4(ProgressCircle/ProgressBar/Meter/SliderTrack) + ColorField + container shell 3(Body/Nav/Section) + CalendarGrid/CalendarHeader/DateInput 등이 발효로 미등록에서 제외됨.
+- **순 미등록 분해 (분류 시점 합산 검증 — 2026-06-08 코드 set-difference, 발효 type 제외 후 / 현 SSOT = 36, 상단 표)**:
   - ① 무손실 **7** (SliderThumb/TabPanel/TabPanels/MeterValue/ProgressBarValue/SliderOutput/Field) + dead **1** (Autocomplete)
   - ② 동반 조치 **1** (Toast)
   - ③ 차단 **14** = 영역 B 10 + List 1 + internal 3 (Tag/Tab/TabList projection 발효로 17→14)
@@ -775,7 +796,7 @@ Tag 는 ListBox 와 **데이터 모델(items SSOT)·container shell·boundary gu
   - ④ 별도 구조 결정 **0** (value-fill 4 전수 발효 — ProgressCircle/ProgressBar/Meter/SliderTrack 모두 internal/escape 로 발효, 미등록에서 제외)
   - ⑤ 보존 **7** (Group 1 + color 6: ColorPicker/ColorArea/ColorSlider/ColorSwatch/ColorSwatchPicker/ColorWheel — ColorField 는 catalog 발효로 제외)
   - ⑥ container shell **9** (Accordion/AvatarGroup/Breadcrumbs/ButtonGroup/Card/CardView/Disclosure/DisclosureGroup/Pagination/Switcher/TableView 중 Body/Nav/Section 발효 제외분 반영) + spec 파일 없음 **0**(DisclosureContent/TimeSegment 는 spec 파일 부재라 미등록 set-difference 외 — 분류표 line 484 참조)
-  - **합산: 8 + 1 + 14 + 3 + 0 + 7 + 9 = 42** ✅ (코드 set-difference 미등록 42 — Tag/Tab/TabList 는 차단 17 내부에서 발효 3 으로 이동, 분모 포함 / value-fill 4·ColorField·Body/Nav/Section 발효로 분모 −9. SliderTrack 발효로 43→42)
+  - **합산: 8 + 1 + 14 + 3 + 0 + 7 + 9 = 42** (분류 작성 시점 2026-06-08 스냅샷 — Tag/Tab/TabList 는 차단 17 내부에서 발효 3 으로 이동, 분모 포함 / value-fill 4·ColorField·Body/Nav/Section 발효로 분모 −9). **⚠️ 현 SSOT = 36**(상단 실측 표) — 본 42 와 차이 6 = Autocomplete 폐기(−1, dead 1 소멸) + 분류 작성 후 catalog 발효 분모 변동(−5). 항목별 1:1 추적은 step 4 작업, 본 소계는 분류 시점 보존.
 - **step 4 spec 삭제 관문 요약**: 즉시 삭제 가능 = ① 발효(spec, value-fill 4 포함) + 무손실 8 + container shell 9(정책 결정 후). 진입점 동반 = Toast 1. **순 차단 = ③ 14 + ④ value-fill 잔여 0 = 14**(2026-06-05 "순 차단 18" 은 value-fill 4 전수 차단 가정 stale — 4 전수 발효로 ④ 0). **Tag/Tab/TabList projection 발효 3 은 차단 아님(spec fallback 해소)이나 spec 파일은 존치**(projection 의 render.shapes 의존). 보존(삭제 금지) = ⑤ 7. spec 파일 없음 2(DisclosureContent/TimeSegment)는 삭제 무관.
 
 ### 미등록 type 작업량 recon — "등록만 하면 끝" type = 0 (2026-06-06, Workflow wu3t2cyy9, 8 Explore file:line)
@@ -931,7 +952,7 @@ Autocomplete 는 4 gate 중 **G-render / G-factory / G-consumer 3 PASS + G-regis
 |  12  | TabPanel                                                            | G-factory                       | factory(LayoutComponents.ts:49) + migration                                                                                                                                                                                                                                                                                                                                                                |
 |  13  | SliderThumb                                                         | G-factory + 인터랙션/접근성     | Slider 인터랙션/접근성/migration 전면 (HIGH)                                                                                                                                                                                                                                                                                                                                                               |
 
-(deletion-risk 7 = TreeItem/SelectIcon/SelectValue/SelectTrigger/DateSegment/TimeSegment/DateInput 중 DateInput 발효 완료·DateSegment dead — 잔여 차단 5 는 위 표 4~10 의 G-render FAIL 또는 별도 ADR(재귀 projector). color 7 + Group + List + Toast + container shell 11 은 미등록 40 분류 참조.)
+(deletion-risk 7 = TreeItem/SelectIcon/SelectValue/SelectTrigger/DateSegment/TimeSegment/DateInput 중 DateInput 발효 완료·DateSegment 폐기 — 잔여 차단 은 위 표 4~10 의 G-render FAIL 또는 별도 ADR(재귀 projector). color 6 + Group + List + Toast + container shell 등은 미등록 분류 참조 — 현 SSOT 36, 상단 표.)
 
 ### P4. step4 처리 옵션 (정책 결과로 도출된 사용자 decision 후보)
 
