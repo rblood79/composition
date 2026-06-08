@@ -9,6 +9,7 @@ import { bodyBinding } from "./Body.binding";
 import { breadcrumbsBinding } from "./Breadcrumbs.binding";
 import { buttonBinding } from "./Button.binding";
 import { calendarBinding } from "./Calendar.binding";
+import { calendarHeaderBinding } from "./CalendarHeader.binding";
 import { checkboxBinding } from "./Checkbox.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
 import { codeBinding } from "./Code.binding";
@@ -75,6 +76,7 @@ export * from "./Body.binding";
 export * from "./Breadcrumbs.binding";
 export * from "./Button.binding";
 export * from "./Calendar.binding";
+export * from "./CalendarHeader.binding";
 export * from "./Checkbox.binding";
 export * from "./CheckboxGroup.binding";
 export * from "./Code.binding";
@@ -238,6 +240,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // family ⑦ date (internal source — composition wrapper, 날짜 grid/portal, skiaLegacy).
   // color(TailSwatch/ColorPicker 등)는 사용자 지시로 제외.
   Calendar: calendarBinding,
+  // ADR-912 (B+icon): CalendarHeader leaf (inline_icon_text replace — 좌 chevron + center text + 우 chevron).
+  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Skia 만 자기 노드 발효.
+  CalendarHeader: calendarHeaderBinding,
   RangeCalendar: rangeCalendarBinding,
   DatePicker: datePickerBinding,
   DateRangePicker: dateRangePickerBinding,

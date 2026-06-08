@@ -904,6 +904,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "md",
     variants: {
+      // ADR-912 (B+icon): inline_icon_text replace — 좌 chevron + center text + 우 chevron.
+      //   leadingIcon/trailingIcon name 은 spec render.shapes 의 chevron-left/right 보존, color 는
+      //   spec 의 variant.text({color.neutral}) 동형. textAlign center 는 spec text align:"center".
+      //   gap(icon↔text)은 spec 의 cellSize(iconSize+4) 흡수라 leadingIcon.gap 은 width 폴백용 0.
       default: {
         fill: {
           default: {
@@ -915,6 +919,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        leadingIcon: { name: "chevron-left", gap: 0, color: "{color.neutral}" },
+        trailingIcon: {
+          name: "chevron-right",
+          gap: 0,
+          color: "{color.neutral}",
+        },
+        textAlign: "center",
       },
       accent: {
         fill: {
@@ -927,23 +938,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        leadingIcon: { name: "chevron-left", gap: 0, color: "{color.neutral}" },
+        trailingIcon: {
+          name: "chevron-right",
+          gap: 0,
+          color: "{color.neutral}",
+        },
+        textAlign: "center",
       },
     },
     sizes: {
+      // ADR-912 (B+icon): iconSize/gap 은 spec CALENDAR_HEADER_DIMS(sm{20,4}/md{26,6}/lg{32,8}) 동형.
+      //   cellSize = iconSize + 4 (inline_icon_text 좌표 base). gap 은 width 폴백(cellSize*7+gap*6)용.
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 24,
+        iconSize: 20,
+        gap: 4,
+        paddingX: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 30,
+        iconSize: 26,
+        gap: 6,
+        paddingX: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 36,
+        iconSize: 32,
+        gap: 8,
+        paddingX: 0,
       },
     },
   },

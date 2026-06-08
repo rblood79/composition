@@ -128,6 +128,9 @@ const CONTAINER_DIMENSION_TAGS = new Set([
   //   TagList Skia node 좌표계에서 chip self-render. Label 은 TagGroup 의 형제 자식
   //   element 로 독립 렌더되므로 간섭 없음.
   "TagList",
+  // ADR-912 (B+icon): CalendarHeader inline_icon_text replace 의 우측 chevron(x=width-cellSize/2)
+  //   + center text(maxWidth=width-cellSize*2)가 컨테이너 폭 의존 → `_containerWidth` 주입 필요.
+  "CalendarHeader",
 ]);
 
 /**

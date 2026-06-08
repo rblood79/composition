@@ -1064,6 +1064,109 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 };
 
 /**
+ * `inline_icon_text` — 좌측 icon + 중앙 text + 우측 icon (CalendarHeader 등, ADR-912 (B+icon), replace 모드).
+ *
+ * leading_icon(좌측 단일 icon + left-align text, append)과 **다른 레이아웃 가정** — 좌·우 icon 양측 +
+ * center text 라 buildCatalogShapes 의 box+text(좌측/center 단일 text)로 표현 불가 → 별도 module 로
+ * **전체 3-shape 자기 생성(replace)**. CalendarHeader.spec.ts render.shapes 의 좌표 공식과 1:1 대칭.
+ *
+ * 데이터 분기(컴포넌트 식별 없음 — ADR-142 §3):
+ * - `visual.leadingIcon` && `visual.trailingIcon` 둘 다 존재해야 적용 → 미충족 시 `[]`(leading_icon
+ *   단일 또는 일반 box+text 가 처리).
+ * - cellSize = `size.iconSize + 4`(spec dims.iconSize + 4 과 동형). 좌 icon x = cellSize/2,
+ *   text x = cellSize(align=center, maxWidth=width-cellSize*2), 우 icon x = width - cellSize/2.
+ * - width = `_containerWidth`(CONTAINER_DIMENSION_TAGS 주입) ?? `style.width` ?? `cellSize*7 + gap*6` 폴백.
+ * - text = props.locale/calendarSystem Intl(year long month) → props.children → "2024년 1월" fallback
+ *   (spec render.shapes 동형).
+ * - color = visual.text(좌우 icon 동일), textAlign = visual.textAlign ?? "center".
+ */
+const inlineIconText: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  style,
+}) => {
+  const li = visual?.leadingIcon;
+  const ti = visual?.trailingIcon;
+  // 좌·우 icon 둘 다 있어야 inline_icon_text 모델 — 아니면 leading_icon/box+text 가 처리.
+  if (!li || !ti) return null;
+
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  const iconSize =
+    typeof size.iconSize === "number" && size.iconSize > 0
+      ? size.iconSize
+      : Math.round(fontSize * 1.1) + 12; // CalendarHeader dims.iconSize(md 26) 근사
+  const cellSize = iconSize + 4;
+  const gap = typeof size.gap === "number" && size.gap > 0 ? size.gap : 6;
+  const height =
+    typeof size.height === "number" && size.height > 0 ? size.height : 30;
+  const cy = height / 2;
+
+  // width: _containerWidth(CONTAINER_DIMENSION 주입) > style.width > 폴백(cellSize*7 + gap*6).
+  const containerWidth = (props._containerWidth as number | undefined) ?? 0;
+  const rawStyleWidth = style?.width;
+  const styleWidth =
+    typeof rawStyleWidth === "number"
+      ? rawStyleWidth
+      : typeof rawStyleWidth === "string"
+        ? parseFloat(rawStyleWidth)
+        : 0;
+  const width =
+    containerWidth > 0
+      ? containerWidth
+      : styleWidth > 0
+        ? styleWidth
+        : cellSize * 7 + gap * 6;
+
+  const textColor =
+    (style?.color as string | undefined) ?? visual?.text ?? undefined;
+  const iconColor = li.color ?? ti.color ?? textColor;
+  const textAlign = visual?.textAlign ?? "center";
+  const text =
+    typeof props.children === "string" && props.children
+      ? props.children
+      : "2024년 1월";
+
+  return [
+    {
+      type: "icon_font",
+      iconName: li.name,
+      x: cellSize / 2,
+      y: cy,
+      fontSize: fontSize + 2,
+      fill: iconColor,
+      strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
+    },
+    {
+      type: "text",
+      x: cellSize,
+      y: cy,
+      text,
+      fontSize,
+      fontFamily: fontFamily.sans,
+      fontWeight: 700,
+      fill: textColor,
+      align: textAlign,
+      baseline: "middle",
+      maxWidth: width - cellSize * 2,
+      whiteSpace: "nowrap",
+    },
+    {
+      type: "icon_font",
+      iconName: ti.name,
+      x: width - cellSize / 2,
+      y: cy,
+      fontSize: fontSize + 2,
+      fill: iconColor,
+      strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
+    },
+  ];
+};
+
+/**
  * `illustrated_message` — 빈 상태(empty state) escape. placeholder roundRect + heading text +
  * description text 3 shape 를 자체 생성한다(append 모드 — rule fill transparent base box 위).
  *
@@ -1348,6 +1451,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   avatar,
   // ADR-912 (B+icon) leading icon escape (append 모드 — 좌측 chevron, base text 위)
   leading_icon: leadingIcon,
+  // ADR-912 (B+icon) inline icon text escape (replace 모드 — 좌 icon + center text + 우 icon, CalendarHeader)
+  inline_icon_text: inlineIconText,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
@@ -1383,6 +1488,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 (B+icon): leading_icon 은 base box+text 위 좌측 chevron → append.
   //   text 는 buildCatalogShapes 가 iconSize 만큼 우측 shift, 본 module 은 icon 만 그림.
   leading_icon: "append",
+  // ADR-912 (B+icon): inline_icon_text 는 좌 icon + center text + 우 icon 자체 생성, box+text 대체
+  //   → replace. center text 가 buildCatalogShapes 의 좌측/center 단일 text 와 충돌하므로 base 미생성.
+  inline_icon_text: "replace",
 };
 
 export function getSkiaPrimitive(

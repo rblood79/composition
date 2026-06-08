@@ -73,6 +73,20 @@ export interface ComponentVisualRule {
    * DOM 은 부모 컴포넌트가 self-compose → Skia generic 재현 전용.
    */
   leadingIcon: { name: string; gap?: number; color?: TokenRef } | undefined;
+  /**
+   * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등, ADR-912 (B+icon)).
+   * `inline_icon_text` skiaPrimitive(replace 모드)가 본 필드와 leadingIcon + center text 를
+   * 함께 그린다(좌 icon + center text + 우 icon = leading_icon 의 좌측 단일 모델과 다른
+   * 레이아웃 가정 → 별도 module). 우측 배치는 containerWidth 의존(CONTAINER_DIMENSION_TAGS).
+   * DOM 은 부모 컴포넌트가 self-compose(Calendar/RangeCalendar `<header>`) → Skia generic 재현 전용.
+   */
+  trailingIcon: { name: string; gap?: number; color?: TokenRef } | undefined;
+  /**
+   * 텍스트 정렬 (CSS text-align 동형, ADR-912 (B+icon)). `inline_icon_text` 가 center text
+   * 배치에 사용. 미지정 시 consumer 기본(box=center / inline=left / leading_icon=left).
+   * leading+trailing icon 동반 center text(CalendarHeader)는 본 필드 "center" 필수.
+   */
+  textAlign: "left" | "center" | "right" | undefined;
 }
 
 /**
@@ -118,8 +132,10 @@ export function variantToVisual(variant: VariantSpec): ComponentVisualRule {
     selectedBorder: variant.selectedBorder,
     emphasizedSelectedText: variant.emphasizedSelectedText,
     emphasizedSelectedBorder: variant.emphasizedSelectedBorder,
-    // production-dead(test fixture 전용) — leadingIcon 은 production 의 ruleVariantToVisual 만
-    //   rule.leadingIcon 에서 채운다. VariantSpec 에는 leadingIcon 필드 없음(spec 삭제 예정).
+    // production-dead(test fixture 전용) — leadingIcon/trailingIcon/textAlign 은 production 의
+    //   ruleVariantToVisual 만 rule 에서 채운다. VariantSpec 에는 해당 필드 없음(spec 삭제 예정).
     leadingIcon: undefined,
+    trailingIcon: undefined,
+    textAlign: undefined,
   };
 }

@@ -45,7 +45,7 @@ import {
   TabPanelsSpec,
   // ADR-091 Phase 3: Class A spec.sizes 직접 참조 — Record 해체 대응.
   IconSpec,
-  CalendarHeaderSpec,
+  // ADR-912 (B+icon): CalendarHeaderSpec import 제거 — height 분기 rule 인라인 미러로 전환(spec 끊기).
   DateInputSpec,
   ComboBoxSpec,
   SelectTriggerSpec,
@@ -912,6 +912,11 @@ export function calculateContentWidth(
     );
     return Math.ceil(paddingX + iconSize + gap + textWidth + paddingX);
   }
+
+  // ADR-912 (B+icon): CalendarHeader intrinsic width 는 아래 1.2a 분기(calendargrid ||
+  //   calendarheader = cellSize*7 + gap*6)가 처리한다. CalendarHeader 는 항상 Calendar 자식이라
+  //   grid 폭과 동일해야 헤더가 grid 위에 정렬됨(좌우 chevron + center text 는 그 폭 안에서 배치).
+  //   inline_icon_text skiaPrimitive 의 우측 chevron(x=width-cellSize/2)도 동일 폭 가정.
 
   // 1.15. Link: padding/border 없는 텍스트 전용 인라인 요소
   if (type === "link") {
@@ -2221,11 +2226,14 @@ export function calculateContentHeight(
   }
 
   // CalendarHeader: intrinsic height = 버튼 높이 (sm:24, md:30, lg:36)
-  // ADR-091 Phase 3: headerHeights Record → CalendarHeaderSpec.sizes.height 직접 참조.
+  // ADR-912 (B+icon): spec(CalendarHeaderSpec.sizes.height) 직접 참조 제거 → rule 인라인 미러
+  //   (componentRulesTable.CalendarHeader.sizes.height 동형). 단계5 runtime spec 끊기 정합
+  //   (catalog 발효 후 spec 삭제 안전). width 분기(calDims)와 동일 인라인 미러 패턴.
   if (type === "calendarheader") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = (props?.size as string) ?? "md";
-    return CalendarHeaderSpec.sizes[sizeName]?.height ?? 30;
+    const headerHeights: Record<string, number> = { sm: 24, md: 30, lg: 36 };
+    return headerHeights[sizeName] ?? 30;
   }
 
   // DateInput: intrinsic height — DateInputSpec.sizes.height 직접 참조 (ADR-091 Phase 3).
@@ -3243,6 +3251,11 @@ export const INLINE_BLOCK_TAGS = new Set([
   //   산출해야 Skia 시각(leading_icon append + text x-shift)과 폭 대칭이 유지된다.
   //   미등록 시 needsWidth=false → width 0 (selection "0×24" 버그).
   "disclosureheader",
+  // ADR-912 (B+icon): CalendarHeader catalog 발효 후 좌 chevron + center text + 우 chevron
+  //   합성 inline-block leaf. calculateContentWidth 의 calendarheader 분기로 intrinsic 폭
+  //   (cellSize + text + cellSize)을 산출해야 Skia 시각(inline_icon_text replace)과 폭 대칭
+  //   유지. 미등록 시 needsWidth=false → width 0 (DisclosureHeader 동일 회귀 경로).
+  "calendarheader",
 ]);
 
 /**

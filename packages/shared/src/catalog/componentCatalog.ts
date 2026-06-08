@@ -249,6 +249,21 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "disclosure header",
     icon: "ChevronRight",
   }),
+  // ADR-912 (B+icon) CalendarHeader 발효 (inline_icon_text replace, 2026-06-08): Calendar 네비게이션
+  //   헤더 leaf(좌 chevron + 중앙 월/년 text + 우 chevron). DisclosureHeader 의 leading_icon(append)
+  //   확장 — "좌 icon + center text + 우 icon" 은 다른 레이아웃 가정이라 별도 `inline_icon_text`
+  //   skiaPrimitive(replace, skiaPrimitives.ts)가 전체 3-shape 자기 생성(buildCatalogShapes box+text
+  //   대체 — center text 충돌). 우측 chevron containerWidth 의존 → CONTAINER_DIMENSION_TAGS 등록.
+  //   DOM 은 부모 Calendar/RangeCalendar(Calendar.tsx:113 self-compose `<header>`)가 흡수, children
+  //   미렌더 → CalendarHeader DOM 독립 노드 0(catalog 등록 후에도 DOM 변화 없음, Skia spec.render.shapes
+  //   fallback 제거가 목적). Calendar 의 calendar_grid escape 는 _hasChildren=true 시 bg shell 만
+  //   (line 657 return) → 자식 CalendarHeader/CalendarGrid 가 각자 렌더(이중 렌더 아님). palette
+  //   비노출(Calendar 자식, 단독 배치 안 함).
+  primitiveEntry("CalendarHeader", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar header",
+    icon: "ChevronsLeftRight",
+  }),
 ];
 
 /**

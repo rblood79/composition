@@ -50,6 +50,10 @@ export function ruleVariantToVisual(
     // leading icon (ADR-912 (B+icon)) — ComponentRuleVariant.leadingIcon 정식 필드.
     //   name/gap/color 동형 캐스팅(color 만 string→TokenRef 런타임 동형).
     leadingIcon: v.leadingIcon as ComponentVisualRule["leadingIcon"],
+    // trailing icon + textAlign (ADR-912 (B+icon) CalendarHeader) — inline_icon_text replace
+    //   module 이 leading+center text+trailing 을 함께 그릴 때 사용. 동형 캐스팅.
+    trailingIcon: v.trailingIcon as ComponentVisualRule["trailingIcon"],
+    textAlign: v.textAlign,
   };
 }
 

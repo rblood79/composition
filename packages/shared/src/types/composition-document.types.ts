@@ -176,6 +176,20 @@ export interface ComponentRuleVariant {
    * - `color`: icon fill(TokenRef 문자열). 미지정 시 variant `colors.text` fallback.
    */
   leadingIcon?: { name: string; gap?: number; color?: string };
+  /**
+   * trailing icon (텍스트 우측 아이콘 — CalendarHeader 다음달 chevron 등 보편 D3 속성, ADR-912 (B+icon)).
+   * `inline_icon_text` skiaPrimitive(replace 모드)가 leadingIcon + center text + 본 필드를 함께
+   * 그린다(좌 icon + center text + 우 icon — leading_icon 의 좌측 단일 모델과 다른 레이아웃 가정 →
+   * 별도 module). 우측 배치는 containerWidth 의존(CONTAINER_DIMENSION_TAGS). DOM 은 부모 컴포넌트가
+   * self-compose(Calendar/RangeCalendar `<header>`) → Skia generic 재현 전용.
+   */
+  trailingIcon?: { name: string; gap?: number; color?: string };
+  /**
+   * 텍스트 정렬 (CSS text-align 동형 — CalendarHeader center 등 보편 D3 속성, ADR-912 (B+icon)).
+   * `inline_icon_text` 가 center text 배치에 사용. 미지정 시 consumer 기본
+   * (box=center / inline=left / leading_icon=left). leading+trailing 동반 center text 는 "center" 필수.
+   */
+  textAlign?: "left" | "center" | "right";
 }
 
 /**
@@ -199,6 +213,12 @@ export interface ComponentRuleSize {
   iconSize?: number | string;
   /** leaf 텍스트 x offset base (ADR-912 1C — Button 등 spec.sizes.paddingX 이전). */
   paddingX?: number | string;
+  /**
+   * icon ↔ 컨텐츠 간격 base (ADR-912 (B+icon) CalendarHeader — spec.sizes.gap 이전).
+   * `inline_icon_text` 의 width 폴백 계산(`cellSize*7 + gap*6`)에 사용. leading_icon 의
+   * variant-level gap(icon↔text)과 별개 — 본 필드는 size-level layout gap.
+   */
+  gap?: number | string;
 }
 
 /** 단일 컴포넌트의 시각 규칙. */

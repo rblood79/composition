@@ -58,6 +58,14 @@ const ALLOW_RULE_CANONICAL_DRIFT: Record<string, readonly string[]> = {
   //   → 의도적 drift. fill 전체가 rule 로 이전됐으므로 fill 채널도 allowlist (spec 폐기 예정).
   ProgressBarTrack: ["fillBar", "fill"],
   MeterTrack: ["fillBar", "fill"],
+  // DisclosureHeader catalog 발효 (B+icon) — rule variants.default.leadingIcon{chevron-right} 신규 정본
+  //   (spec render.shapes 가 chevron 을 직접 그리나 spec.variants 엔 leadingIcon 필드 없어 spec→visual
+  //   undefined). leading_icon skiaPrimitive append 채널.
+  DisclosureHeader: ["leadingIcon"],
+  // CalendarHeader catalog 발효 (B+icon) — rule variants.{default,accent}.leadingIcon{chevron-left} +
+  //   trailingIcon{chevron-right} + textAlign:center 신규 정본 (spec render.shapes 가 좌우 chevron + center
+  //   text 를 직접 그리나 spec.variants 엔 해당 필드 없어 spec→visual undefined). inline_icon_text replace 채널.
+  CalendarHeader: ["leadingIcon", "trailingIcon", "textAlign"],
 };
 
 /** allowlist 채널을 양쪽 visual 에서 제거(의도적 drift 무시) 후 비교. */
