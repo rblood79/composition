@@ -193,23 +193,23 @@
 
 **5축 재분류표 (13 type)**:
 
-| type             | category                 | render path                | factory | 4조건 |
-| ---------------- | ------------------------ | -------------------------- | :-----: | :---: |
-| SliderThumb      | factory-runtime-element  | 0(부모 SliderTrack 흡수)   |   3+1   |  ❌   |
-| TabPanel         | factory-runtime-element  | spec 도달, 빈 shape        |    2    |  ❌   |
-| TabPanels        | factory-runtime-element  | spec 도달, 빈 shape        |    1    |  ❌   |
-| MeterValue       | skia-source-active       | spec 직접 그림(text)       |    1    |  ❌   |
-| ProgressBarValue | skia-source-active       | spec 직접 그림(text)       |    1    |  ❌   |
-| SliderOutput     | skia-source-active       | spec 직접 그림(text)       |    1    |  ❌   |
-| Tag              | skia-source-active       | spec 직접(bg/border/text)  |    0    |  ❌   |
-| Tab              | skia-source-active       | spec 직접(label/accent)    |    0    |  ❌   |
-| TabList          | skia-source-active       | spec 직접(구분선 line)     |    1    |  ❌   |
-| Breadcrumb       | skia-source-active       | spec 직접(crumb/separator) |    0    |  ❌   |
-| Field            | registry-consumer-active | reachable, 빈 source       |  0(\*)  |  ❌   |
-| Autocomplete     | registry-consumer-active | 0(노드 미도달)             |    0    |  ❌   |
-| DateSegment      | registry-consumer-active | 0(부모 DateInput 흡수)     |    0    |  ❌   |
+| type             | category                                                 | render path                | factory | 4조건 |
+| ---------------- | -------------------------------------------------------- | -------------------------- | :-----: | :---: |
+| SliderThumb      | factory-runtime-element                                  | 0(부모 SliderTrack 흡수)   |   3+1   |  ❌   |
+| TabPanel         | factory-runtime-element                                  | spec 도달, 빈 shape        |    2    |  ❌   |
+| TabPanels        | factory-runtime-element                                  | spec 도달, 빈 shape        |    1    |  ❌   |
+| MeterValue       | skia-source-active                                       | spec 직접 그림(text)       |    1    |  ❌   |
+| ProgressBarValue | skia-source-active                                       | spec 직접 그림(text)       |    1    |  ❌   |
+| SliderOutput     | skia-source-active                                       | spec 직접 그림(text)       |    1    |  ❌   |
+| Tag              | skia-source-active                                       | spec 직접(bg/border/text)  |    0    |  ❌   |
+| Tab              | skia-source-active                                       | spec 직접(label/accent)    |    0    |  ❌   |
+| TabList          | skia-source-active                                       | spec 직접(구분선 line)     |    1    |  ❌   |
+| Breadcrumb       | skia-source-active                                       | spec 직접(crumb/separator) |    0    |  ❌   |
+| Field            | **❌ 폐기 불가** (4축 gate: G-factory + G-consumer FAIL) | reachable, 빈 source       |  0(\*)  |  ❌   |
+| Autocomplete     | ✅ **폐기 완료** (2026-06-09)                            | 0(노드 미도달)             |    0    |  ✅   |
+| DateSegment      | ✅ **폐기 완료** (c77ff8619, 2026-06-09)                 | 0(부모 DateInput 흡수)     |    0    |  ✅   |
 
-(\*) Field 는 factories/ 0 이나 TagEditor.tsx:123 addElement 로 data-config 자식 생성(런타임 active).
+(\*) Field 는 factories/ 0 이나 TagEditor.tsx:119/123/242/244 `addElement(type:"Field")` 로 data-config 자식 **런타임 생성**(G-factory FAIL) + 5 DOM 렌더러(`renderTag` CollectionRenderers.tsx:555 + SelectionRenderers.tsx 4곳 221/613/914/1159)가 `child.type==="Field"` → `DataField` **활성 소비**(G-consumer FAIL). DateSegment/Autocomplete 와 질적 차이 = **활성 데이터 필드 sub-element** (collection item 의 데이터 컬럼 매핑). 폐기 불가 상세 = ↓ "Field 폐기 recon" 섹션.
 
 **🔴 projector/흡수 발효 ≠ skia-source dead 정정**: 이전 "projector 발효(Tag/Tab/TabList/Breadcrumb)" 를 "삭제 안전"으로 분류했으나 실측상 **projector 가 spec.render.shapes 를 우회하지 않음** — appendTagRowProjection/appendTabRowProjection 은 노드 생성 + props 주입만 하고 시각은 spec 이 직접 그림(canvasSceneNode.ts:1346 주석 "시각은 spec 직접"). 따라서 Tag/Tab/TabList/Breadcrumb 는 skia-source-active(삭제 불가). MeterValue/ProgressBarValue/SliderOutput 도 "흡수 안전"이 아니라 Skia 는 spec 직접 그림 / DOM 만 부모 흡수(비대칭) → skia-source-active.
 
@@ -225,9 +225,9 @@
 
 **진짜 최소 삭제 subset (4조건 전부 0)**: **0건** — true-dead 분류 0. 모든 13 type 이 최소 1축 active. 조건부 후보(일부 axis만 0, 선행 정리 필요) 폐기 비용 오름차순:
 
-1. **Autocomplete** (registry-only) — skia DEAD + factory 0 + layout/text 0 + render 0, registry 2(tagToElement.ts:189 + specRegistry.ts:95)만. canonical element 미생성 → migration 불요. **13 중 폐기 비용 최소**.
-2. **DateSegment** (registry + catalog rule) — skia DEAD(projector 흡수) + factory 0, registry 2(tagToElement.ts:235/236 alias) + componentRulesTable.ts:1905 catalog rule 수동 제거 + DateInput projector segment 그리기 유지 확인.
-3. **Field** (registry + runtime 소비처) — 빈 source + factories/ 0 이나 TagEditor addElement 생성. registry 2 + TagEditor/ListBoxPropertyEditor `type==='Field'` filter 정리 + canonical migration.
+1. ✅ **Autocomplete** (registry-only) — **폐기 완료 (2026-06-09)**. skia DEAD + factory 0 + layout/text 0 + render 0, 9 참조처 atomic.
+2. ✅ **DateSegment** (registry + catalog rule) — **폐기 완료 (c77ff8619, 2026-06-09)**. skia DEAD(projector 흡수) + factory 0, atomic 9곳(TimeSegment undeclared alias 동시 청산).
+3. ❌ **Field** (registry + runtime 소비처) — **폐기 불가 확정 (4축 gate recon 2026-06-09, Workflow wf_3d2db265)**. G-render PASS(빈 source) + G-registry PASS(8 진입점 atomic 가능)이나 **G-factory FAIL**(TagEditor `addElement(type:"Field")` 런타임 생성) + **G-consumer FAIL**(5 DOM 렌더러 `child.type==="Field"` → DataField 활성 소비). Field = collection item 데이터 컬럼 매핑 sub-element. 폐기 선행 작업 = TagEditor Field 생성 UI slot 마이그레이션 + 5 렌더러 DataField 소비 경로 대체 + hydration migration. 상세 = ↓ "Field 폐기 recon".
 
 > **step4 정의 재정의 (본질)**: step4 단위는 "파일"이 아니라 **"element type 폐기 decision"**. 각 type 폐기 = spec 삭제 + (factory 제거 + canonical migration) + (registry entry 제거) + (layout/text consumer 이관) **4-axis 동반 작업 묶음**. "spec 파일만 rm" 으로 끝나는 type = 0건. 폐기 비용 오름차순: Autocomplete(registry-only) < DateSegment(registry+rule) < Field(registry+runtime 소비처) < skia-source-active 7종(value text/구분선 projector 이관) < TabPanels(layout metric) < SliderThumb(인터랙션/접근성/migration 전면). **물리 삭제 미착수** — 어느 type 을 폐기할지는 사용자 decision.
 
@@ -1095,6 +1095,36 @@ Autocomplete 의 전제 반전은 "registry-only 과소집계 → 9 참조처"(s
 - ✅ **live behavior** (Chrome MCP, builder `d84a7c9a`): factory 경로 DateField/TimeField 정상 렌더, 자식 = Label + DateInput + FieldError (DateSegment/TimeSegment element 0건, DateInput 의 자식 0건 = RAC render-time self-compose). DateInput escape hatch 가 `MM / DD / YYYY` · `HH : MM` box 자체 렌더 → CSS Preview ↔ Skia Canvas 시각 대칭. console error 0. 테스트 element 6개 추가→`removeElements` 원복(totalElements 36→42→36, 오염 0).
 
 **제거 atomic 9곳** (전부 완료): DateSegment.spec.ts 파일 / tagToElement import+2 entry(TimeSegment undeclared alias 동시 청산) / specs+components barrel 2 / vocab union+count(117→116) / componentRulesTable rule block / preview case 2 / buildSpecNodeData CONTAINER_DIMENSION_TAGS / DateField+TimeField propagation rule 2. **보존**: shared/components 4 RAC self-compose + 4 spec childSelector(D1). DateColorComponents JSDoc 트리는 실제 factory children(Label + DateInput) 으로 정정.
+
+## Field 폐기 recon (2026-06-09, 4축 gate 적대적 재검증, Workflow `wf_3d2db265` 4 probe + 4 적대적 verify + 종합, 코드 변경 0)
+
+> **사용자 권장 순서 3번**: DateSegment 폐기(1) + 문서 정합화(2) 후 Field 폐기 recon. "Field 는 runtime 소비처가 붙어 있어 범위가 더 큽니다 → 바로 삭제가 아니라 4축 gate 재검증부터". 본 섹션은 recon-only. **물리 삭제 미착수 — 폐기 불가 판정으로 삭제 대상 아님**.
+
+### 결론 — ❌ 폐기 불가 (step4 no-go 잔류). 차단 축 = G-factory + G-consumer
+
+DateSegment(수요 측 공백, canonical 미생성) / Autocomplete(공급 측 공백, dead)와 **질적으로 다름**: Field 는 **활성 데이터 필드 sub-element**. TagEditor UI 가 런타임에 `addElement(type:"Field")` 로 실제 생성하고, 5개 collection-item DOM 렌더러가 `DataField` 로 소비한다. 전자는 진입점 제거만으로 끝나지만 Field 는 소비처 마이그레이션이 선행돼야 한다.
+
+### 4축 gate 판정 (probe → 적대적 verify)
+
+| Gate       | probe   | verify(적대적) | 최종    | 근거 (file:line, main cross-check)                                                                                                                                                                                                                                                                                                                  |
+| ---------- | ------- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G-render   | PASS    | PASS (동의)    | ✅ PASS | `Field.spec.ts:124` `render.shapes = () => []` — Skia 시각 출력 0. 단 "Canvas 미렌더"일 뿐 "소비처 0" 아님 — 실제 시각은 DOM `DataField` 경로(Skia-silent + DOM-active 데이터 sub-element).                                                                                                                                                         |
+| G-factory  | FAIL    | FAIL (동의)    | ❌ FAIL | factories/ 0 이나 **TagEditor 가 live runtime path**. Tag 선택 → `getEditor("Tag")` → specRegistry 미등록 → metadata fallback → Tag metadata `hasCustomEditor:true, editorName:"TagEditor"`(metadata.ts:939) → TagEditor 동적 로드 → 두 "Add Field" 버튼(TagEditor.tsx:119/123/242/244) `addElement(type:"Field")` 실행. dead code 아님(reachable). |
+| G-registry | PARTIAL | PASS (반박)    | ✅ PASS | probe 의 "palette 노출(category=Collections)" 전제 **오류** — `ComponentList.collectionsComp`(ComponentList.tsx:126-134) Field 미포함 → 팔레트 직접 추가 불가(metadata category 는 표시 분류일 뿐). 8 registry 진입점 atomic 가능. **단 PASS 가 폐기 가능 의미 아님** — G-factory/G-consumer 마이그레이션 선행 필요.                                |
+| G-consumer | FAIL    | FAIL (동의)    | ❌ FAIL | `renderTag`(CollectionRenderers.tsx:555)가 Field 자식을 `DataField` 로 렌더(Preview/DOM) + SelectionRenderers.tsx 4곳(221/613/914/1159)이 ListBoxItem/GridListItem/SelectItem/ComboBoxItem 자식 `type==="Field"` → `DataField`. 활성 소비 경로 5곳.                                                                                                 |
+
+### Field 의 정체 + 폐기 선행 작업
+
+- **Field 가 하는 일**: collection item(Tag / ListBoxItem / GridListItem / SelectItem / ComboBoxItem)의 **데이터 컬럼/필드 매핑 정의**. props = `fieldKey`(데이터 키) / `label` / `type`(string·number·email·url·date·boolean·image) / `visible` / `showLabel`(Field.spec.ts:7-14). DataTable 의 한 컬럼을 collection item 내부에서 동적 바인딩 렌더할 때 쓰는 데이터 sub-element. `renderTag` 가 `value={`{${fieldKey}}`}`(템플릿 모드) 표시.
+- **폐기 선행 작업** (4단계):
+  1. **TagEditor 의 Field 생성 UI 제거/대체** — 두 "Add Field" 버튼 + Field 관리 UI(TagEditor.tsx:53-169). ADR-147 가 ListBoxItemEditor 를 slot 기반 전환(legacy Field 자식 읽기 제거)한 것과 동형으로 TagEditor 도 slot/items SSOT 마이그레이션.
+  2. **5개 DOM 렌더러의 `DataField` 소비 경로 대체** — `renderTag`(CollectionRenderers) + SelectionRenderers 4곳. Field 데이터-컬럼 매핑을 후속 SSOT(collections/data binding 또는 slot 기반 item 렌더)로 이관.
+  3. **hydration migration** — 기존 프로젝트 `type:"Field"` 자식 노드를 새 표현으로 1회 변환(레거시 호환, ADR-130 Group→frame 선례).
+  4. 위 1~3 완료 후 8 registry 진입점 atomic 제거 → G-factory/G-consumer PASS 전환 시 step4 물리 삭제 진입.
+
+### main cross-check (synthesis 주장 확증)
+
+- Tag metadata `editorName:"TagEditor"`(metadata.ts:939) ✓ / Field metadata `hasCustomEditor:false`(metadata.ts:1035-1038, orphan) ✓ / `renderTag` `child.type==="Field"` 필터(CollectionRenderers.tsx:555-560) ✓ — 3건 직접 재확인, synthesis 판정 일치. 적대적 verify 가 양축(G-factory/G-consumer) FAIL 유지 + G-registry 만 PARTIAL→PASS 정정.
 
 ## 관련
 
