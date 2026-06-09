@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: thumb 지름이 3곳에 분산되어 전부 달랐음 — (1) implicitStyles 로컬 `dims={sm:14,md:18,lg:22}` (**XL 누락** → 18 fallback 고정), (2) SliderThumb.spec.sizes.height `{16,20,24}` (정본과 다름 + XL 없음), (3) 정본 `Slider.spec.sizes[size].indicator.thumbSize` / `SliderTrack rule.thumbSize` = `14/18/22/26`. implicitStyles 주입 box 와 spec 렌더 size 가 어긋나 크기/위치/선택영역 모두 틀림
   - 수정: 두 경로를 정본 단일 참조로 통일 — implicitStyles 는 `specSizeField("slider", sizeName, "indicator")?.thumbSize`(XL 포함), SliderThumb.spec.sizes.height 를 정본값(14/18/22/26)으로 정정 + XL 추가. SliderThumb element box·렌더 diameter·selection 이 모두 정본 thumbSize 일치
   - 위치: `implicitStyles.ts` (dims → indicator.thumbSize), `SliderThumb.spec.ts` (sizes), generated `SliderThumb.css`
+
+- **Skia thumb 이 size 변경 시 여전히 고정 크기 (selection 만 정상)**:
+  - 위 SSOT 통일 후에도 Skia thumb 그리기가 md(18px)에 고정. selection bounds 는 size별 정상(layout 주입 width 기반)이라 비대칭
+  - **Why**: SliderThumb.spec.render.shapes 의 `diameter = props.style?.width ?? size.height` 가 **props.style.width 우선**인데, props.style.width 는 factory 초기값(md 18)이 store 에 고정되어 size 변경 시 갱신 안 됨. selection 은 layout(implicitStyles 주입 width=정본)을 쓰지만 render 는 store props 를 받는 경로 차이. live 계측: xl 일 때 `sizeHeight:26, styleWidth:18, diameter:18`
+  - 수정: `diameter = size.height ?? 18` (정본 thumbSize 우선). size.height 는 buildSpecNodeData 가 size 변경마다 rule/spec sizes 로 재계산하므로 신뢰 가능
+  - 위치: `SliderThumb.spec.ts::render.shapes`
   - 위치: `SliderThumb.spec.ts` (render.shapes), `skiaPrimitives.ts::sliderFillBar` (thumb 제거), `implicitStyles.ts` (thumb top)
 
 ## [Slider 드래그 복원 + size text 동기화 — Preview/Publish] - 2026-06-09

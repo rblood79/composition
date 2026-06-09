@@ -99,10 +99,13 @@ export const SliderThumbSpec: ComponentSpec<SliderThumbProps> = {
     //   DOM(RAC SliderThumb 자체 렌더)과 아키텍처 대칭 — SliderThumb 삭제 시 thumb 사라짐.
     //   (이전: SliderTrack 의 slider_fill_bar 가 thumb 까지 그려 SliderThumb 삭제해도 잔존했음.)
     shapes: (props, size) => {
-      const diameter =
-        typeof props.style?.width === "number"
-          ? (props.style.width as number)
-          : (size.height ?? 18);
+      // 2026-06-10: diameter = size.height(정본 thumbSize 14/18/22/26) 우선.
+      //   props.style.width 는 factory 초기값(md 18)이 store 에 고정되어 size 변경 시 갱신 안 됨
+      //   → Skia thumb 고정 크기 회귀(selection 은 layout 주입 width 라 정상, render 는 store
+      //   props 라 고정 — 경로 차이). size.height 는 buildSpecNodeData 가 size 변경마다 정본
+      //   rule/spec sizes 로 재계산하므로 신뢰 가능. 사용자 명시 width(style.width ≠ factory
+      //   기본)만 override 허용은 별도 — 현재는 size SSOT 우선으로 size 변경 정확 반영.
+      const diameter = (size.height as number | undefined) ?? 18;
       const r = diameter / 2;
       const fillColor =
         (props.style?.backgroundColor as string | undefined) ??
