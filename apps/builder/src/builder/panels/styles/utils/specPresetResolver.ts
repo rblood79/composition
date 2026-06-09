@@ -60,6 +60,7 @@ export interface TypographySpecPreset {
 /** ADR-082: 3-tier fallback chain 을 위한 확장된 spec shape. */
 type SpecShape =
   | {
+      archetype?: string;
       sizes?: Record<string, Record<string, unknown>>;
       containerStyles?: Record<string, unknown>;
       composition?: {
@@ -68,7 +69,10 @@ type SpecShape =
       };
     }
   | undefined;
-type PresetExtractor<T> = (sizeEntry: Record<string, unknown>) => T;
+type PresetExtractor<T> = (
+  sizeEntry: Record<string, unknown>,
+  spec?: SpecShape,
+) => T;
 type ContainerExtractor<T> = (cs: Record<string, unknown>) => T;
 type CompositionExtractor<T> = (comp: {
   gap?: string;
@@ -102,7 +106,7 @@ function createResolver<T extends object>(
     const spec = TAG_SPEC_MAP[type] as unknown as SpecShape;
 
     const sizeEntry = spec?.sizes?.[size ?? "md"];
-    const sizesPreset = sizeEntry ? sizesExtractor(sizeEntry) : ({} as T);
+    const sizesPreset = sizeEntry ? sizesExtractor(sizeEntry, spec) : ({} as T);
 
     const cs = spec?.containerStyles;
     const csPreset =
@@ -198,6 +202,21 @@ const TRANSFORM_KEYS = [
   "maxHeight",
   "aspectRatio",
 ] as const;
+
+// Style Panel Transform Height 에서 spec.sizes.height 를 preset 으로 노출하면 안 되는 archetype.
+//   progress(ProgressBar/Meter) / slider 의 `sizes[size].height` 는 "트랙 행 높이"(barHeight/
+//   trackHeight) 이지 grid 컨테이너 전체 높이가 아니다. 컨테이너 height = auto (label 행 + gap +
+//   track 행 합). preset 으로 트랙 높이(8 등)를 표시하면 selection bounds(32/24)와 불일치 →
+//   height 축(height/minHeight/maxHeight)을 preset 에서 제외하여 "auto" 표시.
+const TRACK_HEIGHT_ARCHETYPES: ReadonlySet<string> = new Set([
+  "progress",
+  "slider",
+]);
+const HEIGHT_AXIS_KEYS: ReadonlySet<string> = new Set([
+  "height",
+  "minHeight",
+  "maxHeight",
+]);
 
 const APPEARANCE_KEYS = ["borderRadius", "borderWidth"] as const;
 
@@ -398,7 +417,14 @@ function layoutFromComposition(comp: {
 // ─── Resolver exports ──────────────────────────────────────────────────
 
 export const resolveSpecPreset = createResolver<TransformSpecPreset>(
-  (sizeEntry) => pickNumeric(sizeEntry, TRANSFORM_KEYS),
+  (sizeEntry, spec) => {
+    // progress/slider archetype 은 sizes.height 가 트랙 높이 → height 축 preset 제외(auto 표시).
+    const keys =
+      spec?.archetype && TRACK_HEIGHT_ARCHETYPES.has(spec.archetype)
+        ? TRANSFORM_KEYS.filter((k) => !HEIGHT_AXIS_KEYS.has(k))
+        : TRANSFORM_KEYS;
+    return pickNumeric(sizeEntry, keys);
+  },
   // ADR-082 A2: containerStyles 의 "100%" / "300px" / "fit-content" 같은 string 값 통과
   transformFromContainerStyles,
   transformFromComposition,

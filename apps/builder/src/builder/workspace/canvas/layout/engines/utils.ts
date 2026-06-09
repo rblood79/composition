@@ -91,6 +91,17 @@ const PROGRESSCIRCLE_DIAMETER: Record<string, number> = {
   lg: 64,
 };
 
+// Slider track 행 layout 높이 = thumbSize (thumb 수용, trackHeight 보다 큼).
+//   Slider.spec.sizes.{size}.indicator.thumbSize SSOT 미러 (sm:14/md:18/lg:22/xl:26).
+//   calculateContentHeight slider 분기에서 grid track 행 높이로 사용 (implicitStyles 의
+//   SliderTrack height=thumbSize 와 일치). xl 은 spec 에만 존재(layout fallback md).
+const SLIDER_THUMB_SIZE: Record<string, number> = {
+  sm: 14,
+  md: 18,
+  lg: 22,
+  xl: 26,
+};
+
 // ─── Phantom Indicator 설정 (단일 소스) ─────────────────────────────────
 // Switch/Checkbox/Radio: Preview DOM에는 [indicator + label] 구조이지만
 // WebGL element tree에는 label 자식만 존재.
@@ -2067,6 +2078,47 @@ export function calculateContentHeight(
       return textH + gap + barHeight;
     }
     return barHeight;
+  }
+
+  // 2.6b. Slider: grid 컨테이너 전체 높이 (ProgressBar 동형). label/value 행 + rowGap + track 행.
+  //   track 행 높이 = thumbSize (thumb 수용, SliderTrack layout height 와 일치). ADR-912 후속
+  //   (2026-06-09): Slider flex→grid 전환 후 calculateContentHeight slider 분기 부재로 track 행이
+  //   합산 안 되어 selection bounds 가 label 행만(24px) 잡히던 회귀 수정.
+  if (type === "slider") {
+    const props = element.props as Record<string, unknown> | undefined;
+    const sizeName = String(props?.size ?? "md");
+    const trackRow = SLIDER_THUMB_SIZE[sizeName] ?? SLIDER_THUMB_SIZE.md;
+
+    const hasLabel = !!props?.label;
+    const hasValue = props?.showValueLabel !== false; // Slider 기본 true
+    if (hasLabel || hasValue) {
+      const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+      const gap = 4; // Slider row-gap (SLIDER_ROW_GAP)
+      const labelText = String(props?.label ?? "");
+      const fontWeight =
+        parseNumericValue(style?.fontWeight) ??
+        computedStyle?.fontWeight ??
+        400;
+      const ff =
+        (style?.fontFamily as string) ??
+        computedStyle?.fontFamily ??
+        specFontFamily.sans;
+      const resolvedLH = parseLineHeight(style, fontSize) ?? fontSize * 1.5;
+      let textH = Math.ceil(resolvedLH);
+      if (labelText && availableWidth != null && availableWidth > 0) {
+        textH = measureWrappedTextHeight(
+          labelText,
+          fontSize,
+          fontWeight,
+          ff,
+          availableWidth,
+          resolvedLH,
+        );
+        textH = Math.max(textH, Math.ceil(resolvedLH));
+      }
+      return textH + gap + trackRow;
+    }
+    return trackRow;
   }
 
   // 3. SelectTrigger/ComboBoxWrapper: content-box 높이 반환
