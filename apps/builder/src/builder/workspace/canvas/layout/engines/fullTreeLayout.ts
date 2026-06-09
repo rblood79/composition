@@ -478,23 +478,22 @@ const IMPLICIT_DIM_PROPS = new Set([
  */
 function patchBatchStyleFromImplicit(
   batchStyle: Record<string, unknown>,
-  origStyle: Record<string, unknown>,
   modStyle: Record<string, unknown>,
 ): void {
+  // 각 modStyle key 를 Taffy 형식 (targetKey, coercedVal) 로 정규화한 뒤
+  // batchStyle 의 현재 값과 비교해 달라진 경우에만 패치한다.
+  //
+  // batchStyle (= 실제 패치 대상) 기준 비교가 핵심: origStyle (DB 원본) 기준으로
+  // skip 하면 size 변경 시 2회 fullRebuild 에서 batchStyle 이 직전 pass 값으로 stale 된다.
+  // 예) SliderThumb width 가 sm pass 에서 "14px" 로 patch → md pass 에서
+  // modStyle.width(18) === origStyle.width(18, factory baked) 로 skip → batchStyle 은
+  // "14px" 유지 → position:absolute/left 상호작용으로 box 가 block(x=0,w=100%,h=0) degrade.
+  // batchStyle 기준 비교는 그 stale 을 잡으면서 (14px ≠ 18px → patch) 동일 값 재설정도 피한다.
   for (const key of Object.keys(modStyle)) {
-    // origStyle 과의 비교로 skip 하지 않는다 (2026-06-10 SliderThumb S→M 버그).
-    //   Why: batchStyle 은 직전 layout pass 에서 이미 이 함수로 패치됐을 수 있어
-    //   (size 변경 시 fullRebuild 2회), `modStyle[key] === origStyle[key]` 라도
-    //   batchStyle[key] 에는 이전 pass 의 다른 값이 stale 하게 남는다. 예: SliderThumb
-    //   width 가 sm pass 에서 14 로 patch → md pass 에서 modStyle.width(18) ===
-    //   origStyle.width(18, factory baked) 로 skip → batchStyle.width 가 14 stale →
-    //   position:absolute/left 와의 상호작용으로 box 가 block(x=0,w=100%,h=0) degrade.
-    //   modStyle 은 implicit 적용 후 최종값이므로 origStyle 비교 없이 batchStyle 에
-    //   무조건 반영해야 매 pass 의 batch 가 정확하다 (동일 값 재설정은 무해).
     const val = modStyle[key];
     if (val === undefined) continue;
 
-    // flex shorthand → flexGrow/flexShrink/flexBasis 분해
+    // flex shorthand → flexGrow/flexShrink/flexBasis 분해 (multi-key, 별도 처리)
     if (key === "flex") {
       const n = Number(val);
       if (!isNaN(n)) {
@@ -505,57 +504,45 @@ function patchBatchStyleFromImplicit(
       continue;
     }
 
-    // dimension 속성: number → "Npx", string → 그대로
+    // key 정규화 + 값 강제 변환 → (targetKey, coercedVal)
+    let targetKey = key;
+    let coercedVal: unknown;
     if (IMPLICIT_DIM_PROPS.has(key)) {
-      batchStyle[key] = typeof val === "number" ? `${val}px` : val;
-      continue;
-    }
-
-    // numeric 속성
-    if (key === "flexGrow" || key === "flexShrink" || key === "order") {
-      batchStyle[key] = Number(val);
-      continue;
-    }
-
-    // position + inset 속성: CSS left/top/right/bottom → Taffy insetLeft/Top/Right/Bottom
-    if (key === "position") {
-      batchStyle.position =
-        val === "absolute" || val === "fixed" ? "absolute" : val;
-      continue;
-    }
-    if (
+      coercedVal = typeof val === "number" ? `${val}px` : val;
+    } else if (key === "flexGrow" || key === "flexShrink" || key === "order") {
+      coercedVal = Number(val);
+    } else if (key === "position") {
+      coercedVal = val === "absolute" || val === "fixed" ? "absolute" : val;
+    } else if (
       key === "left" ||
       key === "top" ||
       key === "right" ||
       key === "bottom"
     ) {
-      const insetKey = `inset${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-      batchStyle[insetKey] = typeof val === "number" ? `${val}px` : String(val);
-      continue;
-    }
-
-    // Grid track 속성: CSS string ("1fr auto") → WASM 이 기대하는 array 로 정규화
-    if (
+      // CSS left/top/right/bottom → Taffy insetLeft/Top/Right/Bottom
+      targetKey = `inset${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+      coercedVal = typeof val === "number" ? `${val}px` : String(val);
+    } else if (
       key === "gridTemplateColumns" ||
       key === "gridTemplateRows" ||
       key === "gridAutoColumns" ||
       key === "gridAutoRows"
     ) {
-      batchStyle[key] = coerceGridTrack(val);
-      continue;
+      // CSS string ("1fr auto") → WASM 이 기대하는 array 로 정규화
+      coercedVal = coerceGridTrack(val);
+    } else if (typeof val === "string") {
+      coercedVal = val; // display, flexDirection, alignItems 등
+    } else if (Array.isArray(val)) {
+      coercedVal = val; // gridTemplateAreas 등
+    } else {
+      continue; // 지원하지 않는 타입
     }
 
-    // string 속성 (display, flexDirection, alignItems 등)
-    if (typeof val === "string") {
-      batchStyle[key] = val;
+    // batchStyle 이 이미 정확한 값을 가지면 skip (array 는 참조 비교라 항상 patch)
+    if (!Array.isArray(coercedVal) && batchStyle[targetKey] === coercedVal) {
       continue;
     }
-
-    // 배열 속성 (gridTemplateAreas 등)
-    if (Array.isArray(val)) {
-      batchStyle[key] = val;
-      continue;
-    }
+    batchStyle[targetKey] = coercedVal;
   }
 }
 
@@ -1418,7 +1405,7 @@ function traversePostOrder(
       string,
       unknown
     >;
-    patchBatchStyleFromImplicit(batch[batchIdx].style, origStyle, modStyle);
+    patchBatchStyleFromImplicit(batch[batchIdx].style, modStyle);
 
     // DFS post-order: 자식이 부모보다 먼저 enrichment → fontSize 미주입 상태로 계산됨
     // implicitStyles가 fontSize를 주입하면 height(lineHeight 기반) + fit-content width 재계산
@@ -2220,11 +2207,7 @@ export function calculateFullTreeLayout(
             string,
             unknown
           >;
-          const origStyle = (childEl.props?.style ?? {}) as Record<
-            string,
-            unknown
-          >;
-          patchBatchStyleFromImplicit(node.style, origStyle, reStyle);
+          patchBatchStyleFromImplicit(node.style, reStyle);
           const styleChanged = persistentTree.updateNodeStyle(
             node.elementId,
             node.style,

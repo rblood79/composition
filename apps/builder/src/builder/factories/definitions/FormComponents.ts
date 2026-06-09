@@ -568,31 +568,15 @@ export function createSliderDefinition(
   const parentId = parentElement?.id || null;
   const isRange = options?.isRange ?? false;
 
-  // SliderThumb 의 size(지름)는 implicitStyles 가 부모 Slider.size 로부터 thumbSize
-  //   (sm14/md18/lg22/xl26)를 매 size 변경마다 주입한다. factory 가 width/height 를
-  //   하드코딩하면 그 값이 element.props.style 에 영구 baked 되어:
-  //   patchBatchStyleFromImplicit 의 `modStyle[key] === origStyle[key] → skip` 조건이
-  //   md(=baked 18) 일 때만 성립 → SliderThumb box style 패치 skip → Skia thumb 의
-  //   position/left/width 가 stale 하게 block 으로 degrade(x=0,w=100%,h=0) → thumb 이
-  //   트랙 좌측(0%)으로 어긋남(S→M 에서만, lg/xl 은 18≠22/26 이라 패치 정상). borderRadius
-  //   는 spec.sizes[*].borderRadius({radius.full})로 별도 주입되므로 factory 불필요.
-  const thumbChildren = isRange
-    ? [
-        {
-          type: "SliderThumb" as const,
-          props: {} as ComponentElementProps,
-        },
-        {
-          type: "SliderThumb" as const,
-          props: {} as ComponentElementProps,
-        },
-      ]
-    : [
-        {
-          type: "SliderThumb" as const,
-          props: {} as ComponentElementProps,
-        },
-      ];
+  // SliderThumb 의 size(지름)·borderRadius 는 implicitStyles + spec.sizes 가 부모
+  //   Slider.size 로부터 주입한다. factory 가 width/height 를 baked 하면
+  //   patchBatchStyleFromImplicit 의 stale 패치를 유발하므로 빈 props 로 둔다.
+  //   (상세: fullTreeLayout.patchBatchStyleFromImplicit 주석)
+  const thumbChild = {
+    type: "SliderThumb" as const,
+    props: {} as ComponentElementProps,
+  };
+  const thumbChildren = isRange ? [thumbChild, thumbChild] : [thumbChild];
 
   return {
     type: "Slider",
