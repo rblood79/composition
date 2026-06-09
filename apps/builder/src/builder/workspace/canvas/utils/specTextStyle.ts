@@ -33,7 +33,6 @@ import {
   MeterValueSpec,
   SliderOutputSpec,
   TabSpec,
-  DescriptionSpec,
   resolveToken,
   buildCatalogShapes,
   resolveComponentVisual,
@@ -148,8 +147,8 @@ const TEXT_BEARING_SPECS: Record<
     catalogType: "Paragraph",
   },
   description: {
-    spec: DescriptionSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    catalogType: "Description",
   },
   kbd: {
     defaultSize: "md",

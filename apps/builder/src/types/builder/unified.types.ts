@@ -1849,7 +1849,8 @@ export function createDefaultInlineAlertProps(): BaseElementProps {
 }
 
 export function createDefaultDescriptionProps(): BaseElementProps {
-  // ADR-083 Phase 7 (R5): width:"100%" 는 DescriptionSpec.containerStyles SSOT 로 이관.
+  // ADR-083 Phase 7 (R5): width:"100%" 는 Description containerStyles SSOT 로 이관.
+  // ADR-912 단계5 step5: DescriptionSpec 삭제 — 시각 SSOT 는 componentRulesTable.Description (catalog rule).
   return {};
 }
 

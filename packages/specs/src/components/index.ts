@@ -388,10 +388,7 @@ export type { MaskedFrameProps } from "./MaskedFrame.spec";
 export { LabelSpec } from "./Label.spec";
 export type { LabelProps } from "./Label.spec";
 
-// FieldError
-export { FieldErrorSpec } from "./FieldError.spec";
-export type { FieldErrorProps } from "./FieldError.spec";
-
+// FieldError/Description (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 // Heading/Paragraph/Kbd/Code (TEXT_LEAF) — ADR-912 단계5 step4: barrel export 제거 (spec 삭제 대상)
 
 // DisclosureHeader
@@ -401,10 +398,6 @@ export type { DisclosureHeaderProps } from "./DisclosureHeader.spec";
 // DisclosureContent
 export { DisclosureContentSpec } from "./DisclosureContent.spec";
 export type { DisclosureContentProps } from "./DisclosureContent.spec";
-
-// Description
-export { DescriptionSpec } from "./Description.spec";
-export type { DescriptionProps } from "./Description.spec";
 
 // SliderTrack
 export { SliderTrackSpec } from "./SliderTrack.spec";

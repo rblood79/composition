@@ -22,10 +22,11 @@
   border: none;
 
   /* Default size */
-  height: 16px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
+  line-height: var(--text-xs--line-height);
 }
 
 .react-aria-FieldError[data-variant="default"] {
@@ -42,24 +43,27 @@
 }
 
 .react-aria-FieldError[data-size="sm"] {
-  height: 14px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
+  line-height: var(--text-xs--line-height);
 }
 
 .react-aria-FieldError[data-size="md"] {
-  height: 16px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
+  line-height: var(--text-xs--line-height);
 }
 
 .react-aria-FieldError[data-size="lg"] {
-  height: 20px;
+  height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
+  line-height: var(--text-sm--line-height);
 }
 
 .react-aria-FieldError[data-hovered] {

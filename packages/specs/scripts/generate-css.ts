@@ -135,12 +135,17 @@ function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
  * TEXT_LEAF 메타상수 — CSS 생성에 필요한 최소 정보만.
  * (name / archetype / element placeholder / containerStyles)
  */
+// box+text leaf 변환 군 — spec 삭제 후 rule+메타 virtual input 으로 CSS 재생성.
+// TEXT_LEAF(Text/Heading/Paragraph/Code/Kbd, step4) + field/form box+text leaf(Description/FieldError, step5).
+// shape 모양(box+text)으로 묶은 동형 변환 — 컴포넌트 이름이 아니라 변환 패턴 단위.
 const TEXT_LEAF_NAMES = new Set([
   "Text",
   "Heading",
   "Paragraph",
   "Code",
   "Kbd",
+  "Description",
+  "FieldError",
 ]);
 
 type TextLeafMeta = {
@@ -179,6 +184,19 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     name: "Kbd",
     archetype: "simple",
     element: "kbd",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+  },
+  // ADR-912 단계5 step5 — field/form box+text leaf (Description.spec.ts / FieldError.spec.ts 삭제 대상)
+  {
+    name: "Description",
+    archetype: "text",
+    element: "span", // RAC <Text slot="description"> → span
+    containerStyles: { display: "block", width: "100%" },
+  },
+  {
+    name: "FieldError",
+    archetype: "simple",
+    element: "span", // RAC <Text slot="errorMessage"> → span
     containerStyles: { display: "inline-flex", alignItems: "center" },
   },
 ];

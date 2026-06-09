@@ -572,9 +572,7 @@ export type { NavProps } from "./components/Nav.spec";
 export { LabelSpec } from "./components/Label.spec";
 export type { LabelProps } from "./components/Label.spec";
 
-export { FieldErrorSpec } from "./components/FieldError.spec";
-export type { FieldErrorProps } from "./components/FieldError.spec";
-
+// FieldError/Description (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 // Heading/Paragraph/Kbd/Code (TEXT_LEAF) — ADR-912 단계5 step4: barrel export 제거 (spec 삭제 대상)
 
 export { DisclosureHeaderSpec } from "./components/DisclosureHeader.spec";
@@ -582,9 +580,6 @@ export type { DisclosureHeaderProps } from "./components/DisclosureHeader.spec";
 
 export { DisclosureContentSpec } from "./components/DisclosureContent.spec";
 export type { DisclosureContentProps } from "./components/DisclosureContent.spec";
-
-export { DescriptionSpec } from "./components/Description.spec";
-export type { DescriptionProps } from "./components/Description.spec";
 
 export { SliderTrackSpec } from "./components/SliderTrack.spec";
 export type { SliderTrackProps } from "./components/SliderTrack.spec";

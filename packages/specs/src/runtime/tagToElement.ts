@@ -91,10 +91,8 @@ import { InputSpec } from "../components/Input.spec";
 import { SwitcherSpec } from "../components/Switcher.spec";
 import { NavSpec } from "../components/Nav.spec";
 import { LabelSpec } from "../components/Label.spec";
-import { FieldErrorSpec } from "../components/FieldError.spec";
 import { DisclosureHeaderSpec } from "../components/DisclosureHeader.spec";
 import { DisclosureContentSpec } from "../components/DisclosureContent.spec";
-import { DescriptionSpec } from "../components/Description.spec";
 import { SliderOutputSpec } from "../components/SliderOutput.spec";
 import { IconSpec } from "../components/Icon.spec";
 import { SelectTriggerSpec } from "../components/SelectTrigger.spec";
@@ -217,8 +215,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Switcher: SwitcherSpec,
   Nav: NavSpec,
   Label: LabelSpec,
-  FieldError: FieldErrorSpec,
-  Description: DescriptionSpec,
   Icon: IconSpec,
   SelectTrigger: SelectTriggerSpec,
   SelectValue: SelectValueSpec,
