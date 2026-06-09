@@ -48,30 +48,37 @@
   display: grid;
 
   /* Default size */
-  height: 20px;
+  height: 18px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
 .react-aria-SliderThumb[data-size="sm"] {
-  height: 16px;
+  height: 14px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
 }
 
 .react-aria-SliderThumb[data-size="md"] {
-  height: 20px;
+  height: 18px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
 .react-aria-SliderThumb[data-size="lg"] {
-  height: 24px;
+  height: 22px;
   padding: 0px 0px;
   font-size: var(--text-base);
+  border-radius: var(--radius-full);
+}
+
+.react-aria-SliderThumb[data-size="xl"] {
+  height: 26px;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
   border-radius: var(--radius-full);
 }
 

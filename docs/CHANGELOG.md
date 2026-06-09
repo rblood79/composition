@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정: SliderThumb.spec.render.shapes 가 원형 핸들(circle+border)을 자체 렌더(자기 box thumbSize 안 중앙). slider_fill_bar 는 track+fill 만. implicitStyles 의 SliderThumb 위치를 `top = trackHeight/2 - thumbSize/2`(트랙 세로 중앙 정렬, DOM `top:50%+translateY(-50%)` 동형)로 주입. SliderThumb 삭제 시 thumb 사라짐 + thumb y 가 트랙 center 정렬
   - 위치: `SliderThumb.spec.ts` (render.shapes), `skiaPrimitives.ts::sliderFillBar` (thumb 제거), `implicitStyles.ts` (thumb top)
 
+- **thumb size SSOT 불일치 — Skia thumb 고정 크기 / 위치·선택영역 불일치**:
+  - thumb 소유권 이전 후속: CSS Preview 는 size별 thumb(S:14/M:18/L:22/XL:26)인데 Skia 는 고정 크기 + x/y 위치 불일치 + selection bounds 비정상
+  - **Why**: thumb 지름이 3곳에 분산되어 전부 달랐음 — (1) implicitStyles 로컬 `dims={sm:14,md:18,lg:22}` (**XL 누락** → 18 fallback 고정), (2) SliderThumb.spec.sizes.height `{16,20,24}` (정본과 다름 + XL 없음), (3) 정본 `Slider.spec.sizes[size].indicator.thumbSize` / `SliderTrack rule.thumbSize` = `14/18/22/26`. implicitStyles 주입 box 와 spec 렌더 size 가 어긋나 크기/위치/선택영역 모두 틀림
+  - 수정: 두 경로를 정본 단일 참조로 통일 — implicitStyles 는 `specSizeField("slider", sizeName, "indicator")?.thumbSize`(XL 포함), SliderThumb.spec.sizes.height 를 정본값(14/18/22/26)으로 정정 + XL 추가. SliderThumb element box·렌더 diameter·selection 이 모두 정본 thumbSize 일치
+  - 위치: `implicitStyles.ts` (dims → indicator.thumbSize), `SliderThumb.spec.ts` (sizes), generated `SliderThumb.css`
+  - 위치: `SliderThumb.spec.ts` (render.shapes), `skiaPrimitives.ts::sliderFillBar` (thumb 제거), `implicitStyles.ts` (thumb top)
+
 ## [Slider 드래그 복원 + size text 동기화 — Preview/Publish] - 2026-06-09
 
 ### Bug Fixes

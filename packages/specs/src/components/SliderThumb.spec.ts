@@ -41,9 +41,12 @@ export const SliderThumbSpec: ComponentSpec<SliderThumbProps> = {
 
   defaultSize: "md",
 
+  // 2026-06-10: height = thumb 지름 SSOT (Slider.spec.sizes[size].indicator.thumbSize /
+  //   SliderTrack rule.thumbSize 와 동일: 14/18/22/26). 기존 16/20/24 + xl 누락은
+  //   implicitStyles 주입값(정본 thumbSize)과 불일치 → Skia thumb 크기/선택영역 틀림.
   sizes: {
     sm: {
-      height: 16,
+      height: 14,
       paddingX: 0,
       paddingY: 0,
       fontSize: "{typography.text-xs}" as TokenRef,
@@ -51,7 +54,7 @@ export const SliderThumbSpec: ComponentSpec<SliderThumbProps> = {
       gap: 0,
     },
     md: {
-      height: 20,
+      height: 18,
       paddingX: 0,
       paddingY: 0,
       fontSize: "{typography.text-sm}" as TokenRef,
@@ -59,10 +62,18 @@ export const SliderThumbSpec: ComponentSpec<SliderThumbProps> = {
       gap: 0,
     },
     lg: {
-      height: 24,
+      height: 22,
       paddingX: 0,
       paddingY: 0,
       fontSize: "{typography.text-base}" as TokenRef,
+      borderRadius: "{radius.full}" as TokenRef,
+      gap: 0,
+    },
+    xl: {
+      height: 26,
+      paddingX: 0,
+      paddingY: 0,
+      fontSize: "{typography.text-lg}" as TokenRef,
       borderRadius: "{radius.full}" as TokenRef,
       gap: 0,
     },
