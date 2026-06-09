@@ -14,7 +14,7 @@ import type { ComponentSpec, Shape, TokenRef } from "../types";
  * SliderThumb Props
  */
 export interface SliderThumbProps {
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   /** 트랙 내 위치 계산용 (0-100 퍼센트) */
   value?: number;
   minValue?: number;

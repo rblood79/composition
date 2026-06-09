@@ -176,7 +176,19 @@ export const SliderSpec: ComponentSpec<SliderProps> = {
     rules: [
       { parentProp: "size", childPath: "SliderTrack", override: true },
       { parentProp: "size", childPath: "SliderOutput", override: true },
-      { parentProp: "size", childPath: "SliderThumb", override: true },
+      // SliderThumb 은 Slider 의 손자(Slider → SliderTrack → SliderThumb)이므로
+      // string childPath(직계 자식 매칭)는 DEAD — 배열 childPath 로 손자 경로 명시.
+      // Why: string 경로면 propagation 이 SliderThumb store 에 size 를 영영 기록 못 함
+      //   → props.size undefined → 증분 sync(detectChangedIds)가 SliderThumb 참조 불변으로
+      //   판정하여 rebuild 누락(Slider 가 SYNTHETIC_CHILD_PROP_MERGE_TAGS 비포함). Slider size
+      //   변경 시 SliderThumb Skia 노드가 stale → thumb x,y 어긋남(특히 S→M: factory baked
+      //   style.width:18=md thumbSize 와 우연 충돌하던 마스킹이 stale 창에서 노출). 배열 경로는
+      //   Select `["SelectTrigger","SelectValue"]` 와 동형 — propagationEngine 단계별 순회 지원.
+      {
+        parentProp: "size",
+        childPath: ["SliderTrack", "SliderThumb"],
+        override: true,
+      },
       { parentProp: "size", childPath: "Label", override: true },
       {
         parentProp: "label",

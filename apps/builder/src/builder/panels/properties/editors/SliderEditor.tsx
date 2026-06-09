@@ -119,9 +119,11 @@ export const SliderHybridAfterSections = memo(
                   {
                     id: crypto.randomUUID(),
                     type: "SliderThumb",
-                    props: {
-                      style: { width: 18, height: 18, borderRadius: "50%" },
-                    },
+                    // width/height 하드코딩 금지 — implicitStyles 가 부모 size 로부터
+                    //   thumbSize 주입. baked 18(md) 은 patchBatchStyleFromImplicit skip
+                    //   유발 → S→M thumb 위치 degrade (FormComponents.createSliderDefinition
+                    //   주석 참조).
+                    props: {},
                     parent_id: sliderTrack.id,
                     page_id: parentEl?.page_id ?? null,
                     deleted: false,

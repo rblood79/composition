@@ -482,7 +482,15 @@ function patchBatchStyleFromImplicit(
   modStyle: Record<string, unknown>,
 ): void {
   for (const key of Object.keys(modStyle)) {
-    if (modStyle[key] === origStyle[key]) continue;
+    // origStyle 과의 비교로 skip 하지 않는다 (2026-06-10 SliderThumb S→M 버그).
+    //   Why: batchStyle 은 직전 layout pass 에서 이미 이 함수로 패치됐을 수 있어
+    //   (size 변경 시 fullRebuild 2회), `modStyle[key] === origStyle[key]` 라도
+    //   batchStyle[key] 에는 이전 pass 의 다른 값이 stale 하게 남는다. 예: SliderThumb
+    //   width 가 sm pass 에서 14 로 patch → md pass 에서 modStyle.width(18) ===
+    //   origStyle.width(18, factory baked) 로 skip → batchStyle.width 가 14 stale →
+    //   position:absolute/left 와의 상호작용으로 box 가 block(x=0,w=100%,h=0) degrade.
+    //   modStyle 은 implicit 적용 후 최종값이므로 origStyle 비교 없이 batchStyle 에
+    //   무조건 반영해야 매 pass 의 batch 가 정확하다 (동일 값 재설정은 무해).
     const val = modStyle[key];
     if (val === undefined) continue;
 
