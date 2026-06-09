@@ -111,11 +111,47 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Slider {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-Slider[data-size="sm"] .react-aria-Label {
+    font-size: var(--text-xs);
+  }
+
+  .react-aria-Slider[data-size="sm"] .react-aria-SliderOutput {
+    font-size: var(--text-xs);
+  }
+
+  .react-aria-Slider[data-size="md"] .react-aria-Label {
+    font-size: var(--text-sm);
+  }
+
+  .react-aria-Slider[data-size="md"] .react-aria-SliderOutput {
+    font-size: var(--text-sm);
+  }
+
+  .react-aria-Slider[data-size="lg"] .react-aria-Label {
+    font-size: var(--text-base);
+  }
+
+  .react-aria-Slider[data-size="lg"] .react-aria-SliderOutput {
+    font-size: var(--text-base);
+  }
+
+  .react-aria-Slider[data-size="xl"] .react-aria-Label {
+    font-size: var(--text-lg);
+  }
+
+  .react-aria-Slider[data-size="xl"] .react-aria-SliderOutput {
+    font-size: var(--text-lg);
+  }
 
 
   .react-aria-Slider[data-size="sm"] .slider-track-bg { height: 4px; }

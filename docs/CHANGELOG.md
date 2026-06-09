@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Slider 드래그 복원 — Preview/Publish uncontrolled 전환] - 2026-06-09
+## [Slider 드래그 복원 + size text 동기화 — Preview/Publish] - 2026-06-09
 
 ### Bug Fixes
+
+- **Slider size 변경 시 Label/SliderOutput text 크기가 따라가지 않던 문제** (DOM↔Skia 비대칭):
+  - DOM(Preview/Publish)에서 Slider size 변경 시 Label/Output 이 14px(text-sm)로 고정 (ProgressBar 는 정상 변경). Skia 는 implicitStyles 의 fontSize 주입으로 이미 정상이라 두 backend 시각 비대칭
+  - **Why**: Slider 컨테이너에 `[data-size]` font-size 는 있으나 (1) Label 은 LabelSpec CSS `font-size: var(--label-font-size, var(--text-sm))` 의 fallback 14px 로 고정(Slider 가 `--label-font-size` 미정의), (2) SliderOutput 은 `data-size` 속성 미전파로 SliderOutput.css 의 `[data-size]` 규칙이 매칭되지 않아 base 14px 고정. Slider.spec 에 `composition` 이 없어 ProgressBar 의 size별 자식 selector(`--label-font-size` / `.value`)에 대응하는 generated CSS 가 0개였음
+  - 수정: Slider.spec 에 `composition.sizeSelectors` 추가 — size별 `.react-aria-Slider[data-size="X"] .react-aria-Label` / `.react-aria-SliderOutput` font-size 직접 명시 (ProgressBar `.value` sizeSelectors 동형). `compositionOwnsContainerBox` 는 layout/containerStyles/containerVariants 미선언으로 false → 컨테이너 박스 CSS 영향 0 (track/thumb size 규칙 보존)
+  - 위치: `packages/specs/src/components/Slider.spec.ts` (composition.sizeSelectors), generated `Slider.css`
 
 - **Preview CSS / Publish 에서 SliderThumb 드래그가 동작하지 않던 문제**:
   - Preview(`renderSlider`)와 Publish(`ElementRenderer`)가 RAC Slider 에 `value`(controlled)를 전달

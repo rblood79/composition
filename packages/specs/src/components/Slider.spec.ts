@@ -190,6 +190,38 @@ export const SliderSpec: ComponentSpec<SliderProps> = {
     ],
   },
 
+  // ADR-912 후속(2026-06-09): size 변경 시 Label/SliderOutput text 크기 동기화.
+  //   증상: DOM(Preview/Publish)에서 Slider size 변경 시 Label/Output 이 14px 고정
+  //   (ProgressBar 는 정상). root cause — Slider 컨테이너에 [data-size] font-size 는 있으나
+  //   (1) Label 은 LabelSpec CSS `font-size: var(--label-font-size, var(--text-sm))` 의
+  //   fallback 14px 으로 고정(Slider 가 --label-font-size 미정의), (2) SliderOutput 은
+  //   data-size 속성 미전파로 SliderOutput.css 의 [data-size] 규칙 미매칭 → base 14px 고정.
+  //   해법: sizeSelectors 로 컨테이너 [data-size] 기반 자식 selector font-size 직접 명시
+  //   (ProgressBar.sizeSelectors `.value` 동형). Skia 는 implicitStyles fontSize 주입으로
+  //   이미 정상 — 본 수정은 DOM↔Skia 대칭 복원. compositionOwnsContainerBox 는 layout/
+  //   containerStyles/containerVariants 미선언으로 false → 컨테이너 박스 CSS 영향 0.
+  composition: {
+    sizeSelectors: {
+      sm: {
+        ".react-aria-Label": { "font-size": "var(--text-xs)" },
+        ".react-aria-SliderOutput": { "font-size": "var(--text-xs)" },
+      },
+      md: {
+        ".react-aria-Label": { "font-size": "var(--text-sm)" },
+        ".react-aria-SliderOutput": { "font-size": "var(--text-sm)" },
+      },
+      lg: {
+        ".react-aria-Label": { "font-size": "var(--text-base)" },
+        ".react-aria-SliderOutput": { "font-size": "var(--text-base)" },
+      },
+      xl: {
+        ".react-aria-Label": { "font-size": "var(--text-lg)" },
+        ".react-aria-SliderOutput": { "font-size": "var(--text-lg)" },
+      },
+    },
+    delegation: [],
+  },
+
   properties: {
     sections: [
       {
