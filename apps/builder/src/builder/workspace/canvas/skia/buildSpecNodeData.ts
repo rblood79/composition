@@ -898,8 +898,14 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   const { element, layout, theme, childElements, elementsMap } = input;
   const type = element.type;
 
+  // ADR-912 단계 5 step 4 (TEXT_LEAF spec 삭제 후속, 2026-06-09): catalog Skia cutover type 은
+  //   spec 파일이 삭제되어 getSpecForTag → null 일 수 있다. 이때도 generic 경로
+  //   (buildCatalogShapesOrPrimitive)는 rule 테이블만으로 그릴 수 있으므로 spec 없이 진행한다.
+  //   비-cutover(catalog 미등록 36 type)는 여전히 spec.render.shapes fallback 이 유일 경로 →
+  //   spec 필수. **Why**: 이전 게이트(`if (!spec) return null`)가 spec 삭제된 catalog type 의
+  //   Skia 노드 생성을 차단 → 측정(specTextStyle, spec-free)은 작동(크기 변함)하나 그리기 누락.
   const spec = getSpecForTag(type);
-  if (!spec) return null;
+  if (!spec && !isCatalogSkiaCutover(type)) return null;
 
   const w = layout?.width ?? 0;
   const h = layout?.height ?? 0;
@@ -920,7 +926,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   const catalogRule = isCatalogSkiaCutover(type)
     ? resolveSkiaRule(type)
     : undefined;
-  const defaultSize = catalogRule?.defaultSize ?? spec.defaultSize;
+  const defaultSize = catalogRule?.defaultSize ?? spec?.defaultSize;
 
   // Parent-delegated size
   const delegatedSize = resolveParentDelegatedSize(element, elementsMap);
@@ -933,11 +939,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // catalog cutover: theme rule table size → SizeSpec 투영(ruleSizeToSizeSpec). 미존재 시
   //   spec.sizes fallback(전환 누락 안전망). 비-cutover: 기존 spec.sizes 경로.
   const catalogSize =
-    catalogRule?.sizes[size] ?? catalogRule?.sizes[defaultSize];
+    catalogRule?.sizes[size] ??
+    (defaultSize ? catalogRule?.sizes[defaultSize] : undefined);
   const sizeSpec = (
     catalogSize
       ? ruleSizeToSizeSpec(catalogSize)
-      : (spec.sizes[size] ?? spec.sizes[spec.defaultSize])
+      : spec
+        ? (spec.sizes[size] ??
+          (spec.defaultSize ? spec.sizes[spec.defaultSize] : undefined))
+        : undefined
   ) as SizeSpec | undefined;
   if (!sizeSpec) return null;
 
@@ -1213,6 +1223,8 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         `— isCatalogSkiaCutover/isCatalogCutover 게이트 비동치 회귀 (skiaLegacy 재도입?).`,
     );
   }
+  // usesGeneric=false(비-cutover)면 진입 게이트(`!spec && !cutover → return`)가 spec 을 보장.
+  //   타입 시스템은 이를 추론 못 하므로 `?? []` 안전망(도달 시 spec non-null).
   const shapes = usesGeneric
     ? buildCatalogShapesOrPrimitive(
         type,
@@ -1221,7 +1233,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         componentState,
         theme,
       )
-    : spec.render.shapes(specProps, sizeSpec, componentState);
+    : (spec?.render.shapes(specProps, sizeSpec, componentState) ?? []);
   if (type === "Slot" && specProps._slotChrome === "hidden") {
     shapes.length = 0;
   }
@@ -1268,7 +1280,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // ---------- Disabled opacity ----------
   if (componentState === "disabled") {
     const opacityVal =
-      (spec.states?.disabled?.opacity as number | undefined) ?? 0.38;
+      (spec?.states?.disabled?.opacity as number | undefined) ?? 0.38;
     specNode.effects = [
       ...(specNode.effects ?? []),
       { type: "opacity" as const, value: opacityVal },

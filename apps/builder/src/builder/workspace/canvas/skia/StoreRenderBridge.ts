@@ -36,6 +36,7 @@ import { getSyntheticElementsMap } from "../layout/engines/fullTreeLayout";
 import type { TransitionManager } from "./transitionManager";
 import { ANIMATABLE_NUMERIC_PROPERTIES } from "./interpolators";
 import type { CanonicalNode } from "@composition/shared";
+import { isCatalogSkiaCutover } from "@composition/shared";
 import { InlineAlertSpec, parsePxValue } from "@composition/specs";
 import { resolveInstanceWithSharedCache } from "@/resolvers/canonical/storeBridge";
 import { resolveCanonicalRefElement } from "../../../utils/canonicalRefResolution";
@@ -118,12 +119,18 @@ export function parseTransitionShorthand(value: string): TransitionDef[] {
 }
 
 /**
- * Spec 경로 사용 여부: TAG_SPEC_MAP 등록 여부.
+ * Spec 경로 사용 여부: TAG_SPEC_MAP 등록 여부 OR catalog Skia cutover.
  * ADR-058 Phase 4: `buildTextNodeData` 완전 폐지로 TEXT_TAGS 분기 로직 제거.
  * 모든 text 컴포넌트가 spec 경로(`buildSpecNodeData`)로 통일됨.
+ *
+ * ADR-912 단계 5 step 4 (TEXT_LEAF spec 삭제 후속, 2026-06-09): spec 파일이 삭제된
+ *   catalog cutover type(Text/Heading/Paragraph/Code/Kbd)은 `getSpecForTag → null` 이지만
+ *   generic 경로(buildCatalogShapesOrPrimitive)로 그릴 수 있으므로 spec 경로로 보낸다.
+ *   **Why**: 이 게이트가 spec 등록 여부만 보면 spec 삭제된 catalog type 이 spec 경로 진입
+ *   자체를 못 해(buildSpecNodeData 호출 누락) Skia 노드 미생성 → 텍스트 미표시.
  */
 function isSpecPath(element: CanvasSceneNode): boolean {
-  return !!getSpecForTag(element.type);
+  return !!getSpecForTag(element.type) || isCatalogSkiaCutover(element.type);
 }
 
 // ---------------------------------------------------------------------------
