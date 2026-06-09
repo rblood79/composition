@@ -296,6 +296,31 @@ palette set(61) ↔ catalog entry set(72) set-difference 실측 = **palette O / 
 
 → **추가 spec 삭제의 공통 선결조건 = generate-css virtual 일반화** (TEXT_LEAF virtual 을 grid/slider/chip/value-fill/box+icon 등 비-TEXT_LEAF spec 으로 확장, rule+메타 기반 CSS 합성). 이건 shape 변환 군 작업과 **별개 축 = CSS generation architecture 작업**(사용자 결정 2026-06-09: value-fill 삭제 proof 도 동일 이유로 분리). 일반화 완료 후에야 leaf 수십 개 spec 삭제가 해금된다. **다음 단계 = generate-css virtual 일반화 설계 recon → proof slice(작은 후보 1개 검증) → 군별 확장** (사용자 권장 순서 2026-06-09). [[feedback-css-rule-virtual-input-not-fixture]] (rule+메타 virtual, manual fixture/하드코딩 금지) 적용.
 
+### generate-css virtual 일반화 설계안 — archetype 기반 난이도 분류 (2026-06-09 6 family 설계 recon)
+
+> **핵심 통찰**: virtual 일반화 난이도는 **archetype** 이 가른다. `ARCHETYPE_BASE_STYLES`(CSSGenerator.ts:85-101)가 archetype 별 base CSS 를 자동 emit 하므로, **`progress` archetype 군은 grid-template-areas/.bar/[slot=value] 등 grid 구조를 archetype base 가 자동 제공** → composition 메타 없이 virtual 가능(MeterValue.css 의 grid 구조는 spec 아니라 archetype base 파생, 실측 확인). 반면 grid-**container**(ProgressBar/Meter)는 그 위에 `composition.staticSelectors`(.bar/.fill/--fill-color variant 매핑)가 spec 전용이라 HIGH.
+
+**중요 분리**: generate-css virtual 일반화는 **"CSS 재생성"만 해금** — 실제 spec 파일 삭제는 **sideAxisBlocker(layout import / catalog 미등록 Skia 게이트 / measure import)가 별개로 막는다**. 일반화 = 삭제의 **필요조건**이지 충분조건 아님.
+
+| 난이도   | 군 (해금 spec)                                             | 메타 변경 (generate-css 축)                                                                                                          | sideAxisBlocker (실삭제 게이트, 별개 축)                                                                                        |
+| -------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| **LOW**  | value-label (MeterValue/ProgressBarValue/SliderOutput)     | TEXT_LEAF_META 4필드 충분 — archetype 만 entry별(progress/progress/simple)                                                           | catalog 미등록(Skia 게이트) + measure import(specTextStyle.ts:31-33) — **삭제까지는 catalog 발효 선행 필요**                    |
+| **MED**  | ProgressCircle (1)                                         | archetype:"progress" 신규 1개 (composition 불요)                                                                                     | PROGRESSCIRCLE_DIMENSIONS layout import(utils.ts:1040/2004) — diameter rule 이전                                                |
+| **MED**  | value-fill-track (ProgressBarTrack/MeterTrack/SliderTrack) | archetype progress/slider + SliderTrack `suppressVariants?` flag(또는 spec-stale 수용)                                               | implicitStyles specSizeField(LOWERCASE_TAG_SPEC_MAP) height/thumbSize — **CRITICAL**, layout 에 rule helper 도입 필요           |
+| **HIGH** | grid-container (ProgressBar/Meter)                         | composition 메타 블록 통째(staticSelectors+containerVariants+sizeSelectors+layout:grid+animations) — Link rootSelectors 보다 훨씬 큼 | factory compound(Label+Value+Track 자식) + layout grid 해석 — leaf 아니라 compound                                              |
+| **HIGH** | box-icon-leaf (Icon/Button/Menu/Badge/DisclosureHeader)    | `cssEmitMode?:'direct'\|'button-base'`(Button) + Menu 토큰 containerStyles + composition                                             | utils.ts SIZE_CONFIG import 다수(ButtonSpec/BadgeSpec/IconSpec.sizes) + Inspector D2 specRegistry + elementHelpers borderRadius |
+| **N/A**  | chip-Tag (Tag/TagGroup/TagList)                            | **generate-css 축 아님** — skipCSSGeneration:true(수동 TagGroup.css 319줄 SSOT)                                                      | layout TagSpec.sizes import + measure chip leaf(canvasSceneNode projection) — D3 수동 CSS 해체는 별개 대공사                    |
+
+**virtual 일반화 메타 확장 = 최소** (rule+메타 원칙 유지): TEXT_LEAF_META.archetype 타입이 이미 ArchetypeId 전체 수용 → progress/slider 값만 다름(신규 필드 아님). 신규 필드 후보 = `suppressVariants?:boolean`(SliderTrack diff 0용) + `cssEmitMode?`(Button 전용, 또는 archetype 자동 추론). grid-container/Menu 의 composition 메타는 TEXT_LEAF_META.composition(Link rootSelectors)과 같은 슬롯이나 훨씬 큼 — HIGH 군 진입 시 별도 설계.
+
+**해금 순서 권고 (난이도 + sideAxisBlocker 오름차순)**:
+
+1. **proof slice 후보 = value-label 1개(MeterValue)** — generate-css virtual 일반화를 **순수 검증**하기 최적(메타 변경 최소 = archetype:"progress" entry 추가, composition 불요). 단 catalog 미등록이라 **CSS 재생성 검증까지만**(spec 실삭제는 catalog 발효 선행). virtual 메커니즘 일반화 자체의 proof.
+2. **실삭제까지 가는 첫 후보 = ProgressCircle** — catalog 발효 완료(Skia 안전) + sideAxisBlocker 가 PROGRESSCIRCLE_DIMENSIONS layout import 1개뿐(diameter 를 rule 또는 INTERNAL adapter 상수로 이전). archetype:"progress" virtual + diameter 이전 → 실삭제 가능한 최소 cost.
+3. value-fill-track 3 (implicitStyles rule helper 도입 후) → grid-container 2(composition 메타) / box-icon-leaf 5(SIZE_CONFIG rule 이전) → chip-Tag(수동 CSS 해체, 최대 cost).
+
+**proof slice 게이트** ([[feedback-proof-gate-seam-removal-kill-criteria]]): proof 성공 = "virtual CSS 재생성 작동" 만으로 끝내지 말 것. (1) 성공 = generate-css virtual 로 합성한 CSS 가 기존 generated CSS 와 diff 0 또는 의도된 stale 정정 diff([[feedback-css-rule-virtual-input-not-fixture]]) (2) ProgressCircle 실삭제 proof 라면 = spec 파일 삭제하고도 DOM CSS + Skia(value_fill_arc) + measure(diameter rule 이전) 전부 작동 + live 검증. kill criteria = virtual 합성이 manual fixture/하드코딩으로 빠지면(diff 0 강제) 중단.
+
 ## recon #108 deletion-risk 7 세부 재판정 (2026-06-08, Workflow `wf_fbceb9d8-c7e` 4 agent 병렬 + main file:line 재확증)
 
 > **방법**: 7 type 을 3 메커니즘 그룹(TreeItem 재귀 / Select 3 / Date 3)으로 병렬 recon — 각 type 의 DOM source / Skia source / controller 의존 / parent absorption 4축 + 4분류 + proof slice + ADR scope. **전제 반전 1건 발견** → main 코드 grep 재확증 (`feedback-analysis-precision-patterns` 이름/주석 신뢰 금지, agent 주장도 검증 대상).
