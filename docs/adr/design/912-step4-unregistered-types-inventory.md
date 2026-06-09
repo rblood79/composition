@@ -272,6 +272,30 @@ palette set(61) ↔ catalog entry set(72) set-difference 실측 = **palette O / 
 
 > **step4 정의 재정의 (본질)**: step4 단위는 "파일"이 아니라 **"element type 폐기 decision"**. 각 type 폐기 = spec 삭제 + (factory 제거 + canonical migration) + (registry entry 제거) + (layout/text consumer 이관) **4-axis 동반 작업 묶음**. "spec 파일만 rm" 으로 끝나는 type = 0건. 폐기 비용 오름차순: Autocomplete(registry-only) < DateSegment(registry+rule) < Field(registry+runtime 소비처) < skia-source-active 7종(value text/구분선 projector 이관) < TabPanels(layout metric) < SliderThumb(인터랙션/접근성/migration 전면). **물리 삭제 미착수** — 어느 type 을 폐기할지는 사용자 decision.
 
+### ⚠️ 공통 선결조건 = generate-css virtual 일반화 — 즉시 삭제 0건의 단일 수렴 차단 (2026-06-09 box+icon/value-fill recon 종합)
+
+> **고정 결론 (사용자 결정 2026-06-09)**: box+text leaf 8 삭제 후 남은 catalog 발효 leaf 의 spec 삭제 후보를 box+icon shape family + value-fill 전수 추적한 결과, **현재 즉시 삭제 가능 = 0건**이고 후보 전부가 **단일 공통 차단**으로 수렴한다. "삭제 안전"(Skia source 관점, line 124-126/179-182)과 **실제 spec 파일 삭제는 별개** — 삭제는 CSS/layout/factory/registry **4-gate 전축** 통과 필요(value-fill 6종 + box+icon leaf 5종 실측).
+
+**단일 공통 차단 2 메커니즘** (catalog 발효됐어도 spec 삭제를 막음):
+
+1. **generate-css 파일 스캔** (`generate-css.ts:300-322` `fs.readdir(COMPONENTS_DIR) → *.spec.ts 동적 import`): catalog 발효 leaf 거의 전부가 `styles/generated/{name}.css` 보유(SliderTrack 1693B / Button / Icon / Menu / Badge / Tab / Meter / ProgressBar 등). spec 파일 삭제 시 fresh build:specs 가 그 CSS 를 재생성 못 함 = DOM D3 회귀. **box+text leaf 8(Text/Heading/Paragraph/Code/Kbd/Description/FieldError/Link)만 삭제된 이유 = TEXT_LEAF virtual 경로(`generate-css.ts:141-150` TEXT_LEAF_NAMES + TEXT_LEAF_META)로 rule+메타 기반 CSS 합성을 미리 만들었기 때문**. 나머지 군은 virtual 미등록 → 삭제 차단.
+2. **layout spec import** (소수): `utils.ts:551` `TAG_SIZE_CONFIG = deriveSizeConfig(TagSpec.sizes)`(Tag chip 치수) / `utils.ts:30` `PROGRESSCIRCLE_DIMENSIONS`(diameter) / `implicitStyles.ts:1511` `specSizeField("progressbartrack",...,"height")`(bar-height) 등 layout 이 spec 을 직접 import. spec 삭제 시 import 깨짐 + 치수 회귀. generate-css 와 별개 축이라 별도 이관 필요.
+
+**삭제 후보 전수 판정 (box+icon already-landed leaf 5 + value-fill 6 + projection 4 + 빈shapes/흡수)**:
+
+| 후보군                                                      | DOM CSS | 기타 차단                                    | 판정              |
+| ----------------------------------------------------------- | :-----: | -------------------------------------------- | ----------------- |
+| box+icon leaf (Icon/Button/DisclosureHeader/Menu/Badge)     |  존재   | —                                            | 차단(CSS)         |
+| value-fill 6 (ProgressCircle/Bar/Meter/Track 2/SliderTrack) |  존재   | layout import(일부) + factory(MeterTrack)    | 차단(CSS+)        |
+| projection (Tab/TabList/Breadcrumb)                         |  존재   | measure import(Tab/Breadcrumb)               | 차단(CSS)         |
+| **Tag** (projection)                                        | 없음 ✅ | **layout `TagSpec.sizes`(utils.ts:551)**     | 차단(layout)      |
+| **Field**                                                   | 없음 ✅ | **런타임 생성 + 5 렌더러 소비**(line 78/253) | 폐기 불가         |
+| value-label (MeterValue/ProgressBarValue/SliderOutput)      |  존재   | measure import 2                             | 차단(CSS+measure) |
+
+**즉시 삭제 0건 확정** — DOM CSS 없는 2개(Tag/Field)도 각각 layout import / 런타임 소비로 막힘. box+icon 변환 군은 **신규 발효 후보도 0건**(전부 already-landed + SelectIcon task#88 철회 + TreeItem ADR-920 보류).
+
+→ **추가 spec 삭제의 공통 선결조건 = generate-css virtual 일반화** (TEXT_LEAF virtual 을 grid/slider/chip/value-fill/box+icon 등 비-TEXT_LEAF spec 으로 확장, rule+메타 기반 CSS 합성). 이건 shape 변환 군 작업과 **별개 축 = CSS generation architecture 작업**(사용자 결정 2026-06-09: value-fill 삭제 proof 도 동일 이유로 분리). 일반화 완료 후에야 leaf 수십 개 spec 삭제가 해금된다. **다음 단계 = generate-css virtual 일반화 설계 recon → proof slice(작은 후보 1개 검증) → 군별 확장** (사용자 권장 순서 2026-06-09). [[feedback-css-rule-virtual-input-not-fixture]] (rule+메타 virtual, manual fixture/하드코딩 금지) 적용.
+
 ## recon #108 deletion-risk 7 세부 재판정 (2026-06-08, Workflow `wf_fbceb9d8-c7e` 4 agent 병렬 + main file:line 재확증)
 
 > **방법**: 7 type 을 3 메커니즘 그룹(TreeItem 재귀 / Select 3 / Date 3)으로 병렬 recon — 각 type 의 DOM source / Skia source / controller 의존 / parent absorption 4축 + 4분류 + proof slice + ADR scope. **전제 반전 1건 발견** → main 코드 grep 재확증 (`feedback-analysis-precision-patterns` 이름/주석 신뢰 금지, agent 주장도 검증 대상).
