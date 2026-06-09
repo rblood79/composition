@@ -220,6 +220,23 @@ function isTrackOwningGridContainer<Props>(
   return false;
 }
 
+/**
+ * SliderTrack leaf 판정 — slider archetype 이면서 gridTemplateAreas 미보유(Slider 컨테이너가 아님).
+ *
+ * 트랙 바 시각은 자식 `.slider-track-bg`(둥근 끝 border-radius:full)/`.slider-fill`/
+ * `.react-aria-SliderThumb` 가 그린다(ARCHETYPE_BASE_STYLES["slider"]). 따라서 컨테이너 root
+ * (`.react-aria-SliderTrack`)에 variant background 를 emit 하면 사각 배경이 둥근 트랙 뒤에 깔려
+ * 둥근 끝이 사라지는 시각 회귀가 발생한다. → variant/defaultVariant background 계열 skip.
+ *
+ * ProgressBarTrack/MeterTrack(progress archetype)과의 차이: progress 트랙은 컨테이너 자체가
+ * 트랙 배경(자식 분리 없음)이라 background emit 이 정상이지만, slider 트랙은 자식이 시각을 소유.
+ */
+function isSliderTrackLeaf<Props>(spec: ComponentSpec<Props>): boolean {
+  return (
+    spec.archetype === "slider" && !spec.containerStyles?.gridTemplateAreas
+  );
+}
+
 // ─── Main Generator ─────────────────────────────────────────────────────────
 
 /**
@@ -297,7 +314,8 @@ export function generateCSS<Props>(
     !compositionOwnsContainerBox(spec) &&
     !containerHasColors &&
     spec.variants != null &&
-    !spec.skipVariantCss
+    !spec.skipVariantCss &&
+    !isSliderTrackLeaf(spec) // 자식 .slider-track-bg 가 트랙 시각 소유 — 컨테이너 variant background skip
   )
     for (const [variantName, variantSpec] of Object.entries(spec.variants)) {
       // ADR-912 ②-6-A (1A-(a)): variant 색상 source swap — 주입된 정본 table 파생(_variantSource) 우선,
@@ -709,7 +727,8 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
   if (
     !baseContainerHasColors &&
     defaultVariant &&
-    !compositionOwnsContainerBox(spec)
+    !compositionOwnsContainerBox(spec) &&
+    !isSliderTrackLeaf(spec) // 자식 .slider-track-bg 가 트랙 시각 소유 — 컨테이너 default variant background skip
   ) {
     // default variant 색상 — Composite 컨테이너는 자식이 관리하므로 skip
     const mode = spec.cssEmitMode ?? "direct";

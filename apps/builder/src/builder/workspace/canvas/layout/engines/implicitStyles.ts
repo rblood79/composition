@@ -185,12 +185,12 @@ const INDICATOR_SIZES: Record<string, { box: number; gap: number }> = {
 const PROGRESSBAR_ROW_GAP = 4;
 const PROGRESSBAR_COL_GAP = 12;
 
-// ADR-912 단계5: ProgressBarTrack spec 삭제 후 트랙 높이 인라인 미러.
-//   componentRulesTable.ProgressBarTrack.sizes.{sm:4,md:8,lg:12,xl:16}.height 와 동형
-//   (= ProgressBar.spec PROGRESSBAR_DIMENSIONS.barHeight). spec 삭제로 specSizeField
-//   lookup 이 끊기므로 rule 값 로컬 미러로 이전 (DisclosureHeader/CalendarHeader/
-//   ProgressCircle 선례). MeterTrack 은 spec 유지라 specSizeField 경로 계속 사용.
-const PROGRESSBARTRACK_HEIGHT: Record<string, number> = {
+// ADR-912 단계5 value-fill-track: ProgressBarTrack/MeterTrack spec 삭제 후 트랙 높이 인라인 미러.
+//   componentRulesTable.{ProgressBarTrack,MeterTrack}.sizes.{sm:4,md:8,lg:12,xl:16}.height 와 동형
+//   (= ProgressBar.spec PROGRESSBAR_DIMENSIONS.barHeight / Meter.spec METER_DIMENSIONS.barHeight —
+//   두 track rule 값 동일). spec 삭제로 specSizeField lookup 이 끊기므로 rule 값 로컬 미러로 이전
+//   (DisclosureHeader/CalendarHeader/ProgressCircle 선례). rule(componentRulesTable) 이 SSOT.
+const VALUE_FILL_TRACK_HEIGHT: Record<string, number> = {
   sm: 4,
   md: 8,
   lg: 12,
@@ -1519,12 +1519,9 @@ export function applyImplicitStyles(
         } as CanvasLayoutNode;
       }
       if (child.type === "ProgressBarTrack" || child.type === "MeterTrack") {
-        // ADR-912: ProgressBarTrack 은 spec 삭제 → rule 미러 상수, MeterTrack 은 spec 유지 → specSizeField
+        // ADR-912: 두 track 모두 spec 삭제 → rule 미러 상수 (값 동일).
         const barHeight =
-          child.type === "ProgressBarTrack"
-            ? (PROGRESSBARTRACK_HEIGHT[sizeName] ?? PROGRESSBARTRACK_HEIGHT.md)
-            : (specSizeField(child.type.toLowerCase(), sizeName, "height") ??
-              8);
+          VALUE_FILL_TRACK_HEIGHT[sizeName] ?? VALUE_FILL_TRACK_HEIGHT.md;
         return {
           ...child,
           props: {

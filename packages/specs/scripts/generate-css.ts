@@ -153,6 +153,8 @@ const TEXT_LEAF_NAMES = new Set([
   "Link",
   "ProgressCircle",
   "ProgressBarTrack",
+  "MeterTrack",
+  "SliderTrack",
 ]);
 
 type TextLeafMeta = {
@@ -265,6 +267,41 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       hover: {},
       pressed: {},
       disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: {},
+    },
+  },
+  // ADR-912 단계5 value-fill-track 동형 확장 — MeterTrack (ProgressBarTrack 와 동일 구조,
+  //   MeterTrack.spec.ts 삭제 대상). archetype/element/containerStyles/states 전부 동형.
+  //   Skia 는 value_fill_bar escape, DOM 은 ARCHETYPE_BASE_STYLES["progress"] grid 구조.
+  {
+    name: "MeterTrack",
+    archetype: "progress",
+    element: "div",
+    containerStyles: { display: "grid" },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: {},
+    },
+  },
+  // ADR-912 단계5 value-fill-track 확장 — SliderTrack (SliderTrack.spec.ts 삭제 대상).
+  //   archetype "slider": ARCHETYPE_BASE_STYLES["slider"] 가 .slider-track-bg/.slider-fill/
+  //   .react-aria-SliderThumb 커스텀 마크업 CSS 를 emit (spec 비의존). Skia 는 slider_fill_bar
+  //   escape(track+fill+thumb replace). containerStyles 는 gridTemplateAreas 미보유 →
+  //   isTrackOwningGridContainer = track leaf 판정 → grid track 행 height 유지(트랙 높이).
+  //   position:relative 는 자식 SliderThumb absolute 배치 기준(ADR-089). size 별 trackHeight/
+  //   thumbSize 는 부모 Slider.spec.sizes.indicator 에서 generateSliderSizeMetrics 가 생성.
+  //   states 는 disabled 에 cursor:not-allowed + pointerEvents:none 추가.
+  {
+    name: "SliderTrack",
+    archetype: "slider",
+    element: "div",
+    containerStyles: { display: "grid", position: "relative" },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
       focusVisible: {},
     },
   },

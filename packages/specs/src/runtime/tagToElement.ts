@@ -111,11 +111,10 @@ import { BodySpec } from "../components/Body.spec";
 import { IllustratedMessageSpec } from "../components/IllustratedMessage.spec";
 import { CardViewSpec } from "../components/CardView.spec";
 import { TableViewSpec } from "../components/TableView.spec";
-import { SliderTrackSpec } from "../components/SliderTrack.spec";
+// ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
 import { SliderThumbSpec } from "../components/SliderThumb.spec";
-// ADR-912 단계5 value-fill-track: ProgressBarTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
+// ADR-912 단계5 value-fill-track: ProgressBarTrackSpec/MeterTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
 import { ProgressBarValueSpec } from "../components/ProgressBarValue.spec";
-import { MeterTrackSpec } from "../components/MeterTrack.spec";
 import { MeterValueSpec } from "../components/MeterValue.spec";
 
 // ADR-094: `BASE_TAG_SPEC_MAP` 의 각 spec 의 `childSpecs` 를 PascalCase 키로 자동 추가.
@@ -151,11 +150,10 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Slider: SliderSpec,
   Meter: MeterSpec,
   ProgressBar: ProgressBarSpec,
-  // ProgressBarTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
+  // ProgressBarTrack/MeterTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   ProgressBarValue: ProgressBarValueSpec,
-  MeterTrack: MeterTrackSpec,
   MeterValue: MeterValueSpec,
-  SliderTrack: SliderTrackSpec,
+  // SliderTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   SliderThumb: SliderThumbSpec,
   SliderOutput: SliderOutputSpec,
   Table: TableSpec,

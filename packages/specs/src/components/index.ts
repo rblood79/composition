@@ -151,9 +151,7 @@ export type { SliderProps } from "./Slider.spec";
 export { MeterSpec, METER_FILL_COLORS, METER_DIMENSIONS } from "./Meter.spec";
 export type { MeterProps } from "./Meter.spec";
 
-// MeterTrack
-export { MeterTrackSpec } from "./MeterTrack.spec";
-export type { MeterTrackProps } from "./MeterTrack.spec";
+// MeterTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 
 // MeterValue
 export { MeterValueSpec } from "./MeterValue.spec";
@@ -395,9 +393,7 @@ export type { DisclosureHeaderProps } from "./DisclosureHeader.spec";
 export { DisclosureContentSpec } from "./DisclosureContent.spec";
 export type { DisclosureContentProps } from "./DisclosureContent.spec";
 
-// SliderTrack
-export { SliderTrackSpec } from "./SliderTrack.spec";
-export type { SliderTrackProps } from "./SliderTrack.spec";
+// SliderTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 
 // SliderThumb
 export { SliderThumbSpec } from "./SliderThumb.spec";

@@ -370,8 +370,8 @@ export {
 } from "./components/Meter.spec";
 export type { MeterProps } from "./components/Meter.spec";
 
-export { MeterTrackSpec } from "./components/MeterTrack.spec";
-export type { MeterTrackProps } from "./components/MeterTrack.spec";
+// ADR-912 단계5 value-fill-track: MeterTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
+//   + generate-css virtual(archetype:progress) + layout 로컬 미러(VALUE_FILL_TRACK_HEIGHT) 로 대체.
 
 export { MeterValueSpec } from "./components/MeterValue.spec";
 export type { MeterValueProps } from "./components/MeterValue.spec";
@@ -580,8 +580,8 @@ export type { DisclosureHeaderProps } from "./components/DisclosureHeader.spec";
 export { DisclosureContentSpec } from "./components/DisclosureContent.spec";
 export type { DisclosureContentProps } from "./components/DisclosureContent.spec";
 
-export { SliderTrackSpec } from "./components/SliderTrack.spec";
-export type { SliderTrackProps } from "./components/SliderTrack.spec";
+// ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — catalog 발효(slider_fill_bar escape)
+//   + generate-css virtual(archetype:slider) + 부모 Slider.spec.indicator 기반 size metric 으로 대체.
 
 export { SliderThumbSpec } from "./components/SliderThumb.spec";
 export type { SliderThumbProps } from "./components/SliderThumb.spec";
