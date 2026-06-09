@@ -36,41 +36,6 @@ src/builder/panels/properties/editors/TagEditor.tsx(120,21): error TS2345: Argum
 src/builder/panels/properties/editors/TagEditor.tsx(242,53): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/editors/TreeItemEditor.tsx(75,48): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/properties/generic/ChildItemManager.tsx(59,44): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(1146,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1168,40): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(1210,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1217,11): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(1287,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1356,60): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(1646,39): error TS2339: Property 'props' does not exist on type 'Element'.
-src/builder/panels/properties/PropertiesPanel.tsx(1647,15): error TS2353: Object literal may only specify known properties, and '[SLOT_NAME_MIRROR_FIELD]' does not exist in type 'Partial<Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(196,56): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
-src/builder/panels/properties/PropertiesPanel.tsx(197,40): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
-src/builder/panels/properties/PropertiesPanel.tsx(217,33): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'CanonicalRefResolvableNode'.
-src/builder/panels/properties/PropertiesPanel.tsx(218,44): error TS2345: Argument of type 'PanelNode' is not assignable to parameter of type 'Element'.
-src/builder/panels/properties/PropertiesPanel.tsx(225,17): error TS2322: Type 'PanelNode[]' is not assignable to type 'CanonicalRefResolvableNode[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(226,17): error TS2322: Type 'Map<string, PanelNode>' is not assignable to type 'Map<string, CanonicalRefResolvableNode>'.
-src/builder/panels/properties/PropertiesPanel.tsx(239,40): error TS18048: 'r.parentProp' is possibly 'undefined'.
-src/builder/panels/properties/PropertiesPanel.tsx(241,13): error TS2345: Argument of type 'CanonicalRefResolvableNode | PanelNode' is not assignable to parameter of type 'ElementLike'.
-src/builder/panels/properties/PropertiesPanel.tsx(511,67): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'Map<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(535,9): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(540,13): error TS2322: Type 'MapIterator<PanelNode>' is not assignable to type 'Iterable<Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(564,24): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(581,53): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(618,9): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(629,40): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(649,58): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(687,58): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'ReadonlyMap<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(735,9): error TS2322: Type 'PanelNode[]' is not assignable to type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(739,9): error TS2322: Type 'PanelNode[]' is not assignable to type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(744,11): error TS2322: Type 'PanelNode' is not assignable to type 'Element'.
-src/builder/panels/properties/PropertiesPanel.tsx(745,11): error TS2322: Type 'PanelNode[]' is not assignable to type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(751,17): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(849,67): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'Map<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(924,9): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
-src/builder/panels/properties/PropertiesPanel.tsx(929,13): error TS2322: Type 'MapIterator<PanelNode>' is not assignable to type 'Iterable<Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(980,67): error TS2345: Argument of type 'Map<string, PanelNode>' is not assignable to parameter of type 'Map<string, Element>'.
-src/builder/panels/properties/PropertiesPanel.tsx(990,9): error TS2345: Argument of type 'PanelNode[]' is not assignable to parameter of type 'Element[]'.
 src/builder/panels/styles/hooks/useResetStyles.ts(110,53): error TS2339: Property 'top' does not exist on type 'TransformSpecPreset'.
 src/builder/panels/styles/hooks/useResetStyles.ts(111,55): error TS2339: Property 'left' does not exist on type 'TransformSpecPreset'.
 src/builder/panels/styles/utils/specPresetResolver.ts(442,20): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ readonly display: "display"; readonly "flex-direction": "flexDirection"; readonly flexDirection: "flexDirection"; readonly "align-items": "alignItems"; readonly alignItems: "alignItems"; ... 26 more ...; readonly marginLeft: "marginLeft"; }'.
@@ -94,8 +59,6 @@ src/builder/utils/componentMap.ts(30,5): error TS2322: Type 'Promise<{ default: 
 src/builder/utils/componentMap.ts(64,3): error TS2322: Type 'LazyExoticComponent<MemoExoticComponent<(<T extends { id: string | number; }>(props: TableProps<T>) => Element)>>' is not assignable to type 'LazyExoticComponent<ComponentType<Record<string, unknown>>>'.
 src/builder/utils/componentMap.ts(81,5): error TS2322: Type 'Promise<{ default: ComponentType<Record<string, unknown>>; } | { default: ({ children, size, hideArrow, containFocus, autoFocus, restoreFocus, ...props }: PopoverProps) => Element; }>' is not assignable to type 'Promise<{ default: ComponentType<Record<string, unknown>>; }>'.
 src/builder/utils/multiElementCopy.ts(90,18): error TS2339: Property 'reusable' does not exist on type 'Element'.
-src/builder/workspace/canvas/layout/engines/implicitStyles.ts(925,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
-src/builder/workspace/canvas/layout/engines/implicitStyles.ts(959,42): error TS2345: Argument of type 'CanvasLayoutNode' is not assignable to parameter of type 'CanvasSceneNode'.
 src/builder/workspace/canvas/skia/selectionRenderer.ts(289,54): error TS2345: Argument of type '{ weight: EmbindEnumEntity; width: EmbindEnumEntity; slant: EmbindEnumEntity; }' is not assignable to parameter of type '{ weight: number; width: number; slant: number; }'.
 src/builder/workspace/canvas/skia/selectionRenderer.ts(420,54): error TS2345: Argument of type '{ weight: EmbindEnumEntity; width: EmbindEnumEntity; slant: EmbindEnumEntity; }' is not assignable to parameter of type '{ weight: number; width: number; slant: number; }'.
 src/builder/workspace/canvas/skia/selectionRenderer.ts(47,53): error TS2345: Argument of type '{ weight: number; width: number; slant: number; }' is not assignable to parameter of type 'FontStyle'.

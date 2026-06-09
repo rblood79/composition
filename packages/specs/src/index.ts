@@ -383,8 +383,8 @@ export {
 } from "./components/ProgressBar.spec";
 export type { ProgressBarProps } from "./components/ProgressBar.spec";
 
-export { ProgressBarTrackSpec } from "./components/ProgressBarTrack.spec";
-export type { ProgressBarTrackProps } from "./components/ProgressBarTrack.spec";
+// ADR-912 단계5 value-fill-track: ProgressBarTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
+//   + generate-css virtual(archetype:progress) + layout 로컬 미러(PROGRESSBARTRACK_HEIGHT) 로 대체.
 
 export { ProgressBarValueSpec } from "./components/ProgressBarValue.spec";
 export type { ProgressBarValueProps } from "./components/ProgressBarValue.spec";

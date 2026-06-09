@@ -152,6 +152,7 @@ const TEXT_LEAF_NAMES = new Set([
   "FieldError",
   "Link",
   "ProgressCircle",
+  "ProgressBarTrack",
 ]);
 
 type TextLeafMeta = {
@@ -164,6 +165,12 @@ type TextLeafMeta = {
    * text-decoration 등 — virtualSpec.composition 으로 전달되어 CSSGenerator 가 emit.
    */
   composition?: ComponentSpec<unknown>["composition"];
+  /**
+   * states 메타 (rule 에 없는 상태별 CSS). 미설정 시 기본
+   * `{ disabled: { opacity: 0.38 } }` (text/simple leaf 공통). ProgressBarTrack 처럼
+   * `pointerEvents: "none"` 등 추가 disabled 속성이 필요한 군은 명시.
+   */
+  states?: ComponentSpec<unknown>["states"];
 };
 
 const TEXT_LEAF_META: TextLeafMeta[] = [
@@ -245,6 +252,22 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     element: "div",
     containerStyles: { display: "grid" },
   },
+  // ADR-912 단계5 value-fill-track proof — ProgressBarTrack (progress archetype, ProgressBarTrack.spec.ts 삭제 대상).
+  //   catalog 발효 완료(FAMILY_3_CUTOVER) → Skia 는 value_fill_bar escape. DOM CSS 는
+  //   ARCHETYPE_BASE_STYLES["progress"] grid 구조 + rule.variants(fill=neutral-subtle).
+  //   states 는 disabled 에 pointerEvents:none 가 추가라 meta.states 로 명시.
+  {
+    name: "ProgressBarTrack",
+    archetype: "progress",
+    element: "div",
+    containerStyles: { display: "grid" },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: {},
+    },
+  },
 ];
 
 /**
@@ -283,8 +306,9 @@ function buildTextLeafVirtualSpecs(): ComponentSpec<unknown>[] {
       defaultSize: rule.defaultSize ?? "md",
       variants,
       sizes,
-      // states: Text/Heading/Paragraph/Code/Kbd 모두 hover/pressed/disabled/focusVisible
-      states: {
+      // states: 기본 hover/pressed/disabled(opacity)/focusVisible. meta.states 설정 시 override
+      //   (ProgressBarTrack 처럼 disabled 에 pointerEvents:none 추가 필요한 군).
+      states: meta.states ?? {
         hover: {},
         pressed: {},
         disabled: { opacity: 0.38 },

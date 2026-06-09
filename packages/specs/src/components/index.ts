@@ -167,9 +167,7 @@ export {
 } from "./ProgressBar.spec";
 export type { ProgressBarProps } from "./ProgressBar.spec";
 
-// ProgressBarTrack
-export { ProgressBarTrackSpec } from "./ProgressBarTrack.spec";
-export type { ProgressBarTrackProps } from "./ProgressBarTrack.spec";
+// ProgressBarTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 
 // ProgressBarValue
 export { ProgressBarValueSpec } from "./ProgressBarValue.spec";

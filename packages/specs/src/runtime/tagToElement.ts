@@ -113,7 +113,7 @@ import { CardViewSpec } from "../components/CardView.spec";
 import { TableViewSpec } from "../components/TableView.spec";
 import { SliderTrackSpec } from "../components/SliderTrack.spec";
 import { SliderThumbSpec } from "../components/SliderThumb.spec";
-import { ProgressBarTrackSpec } from "../components/ProgressBarTrack.spec";
+// ADR-912 단계5 value-fill-track: ProgressBarTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
 import { ProgressBarValueSpec } from "../components/ProgressBarValue.spec";
 import { MeterTrackSpec } from "../components/MeterTrack.spec";
 import { MeterValueSpec } from "../components/MeterValue.spec";
@@ -151,7 +151,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Slider: SliderSpec,
   Meter: MeterSpec,
   ProgressBar: ProgressBarSpec,
-  ProgressBarTrack: ProgressBarTrackSpec,
+  // ProgressBarTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   ProgressBarValue: ProgressBarValueSpec,
   MeterTrack: MeterTrackSpec,
   MeterValue: MeterValueSpec,
