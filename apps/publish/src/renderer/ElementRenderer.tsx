@@ -154,6 +154,17 @@ export const ElementRenderer = memo(function ElementRenderer({
     (restProps as Record<string, unknown>).structuralChildren = true;
   }
 
+  // ADR-912 후속(2026-06-09): Slider 는 런타임 사용자 드래그를 위해 RAC uncontrolled
+  //   (defaultValue)로 렌더한다. element.props.value(디자인 초기값)를 controlled `value`로
+  //   넘기면 onChange 가 없어 RAC 가 매 렌더 초기값으로 복원 → 드래그 silently 실패
+  //   (react-aria.adobe.com/Slider 레퍼런스). value → defaultValue 매핑으로 RAC 내부 state
+  //   드래그 관리. (Preview renderSlider 와 동일 정책)
+  if (adaptedElement.type === "Slider" && "value" in restProps) {
+    const props = restProps as Record<string, unknown>;
+    if (props.defaultValue === undefined) props.defaultValue = props.value;
+    delete props.value;
+  }
+
   // 자식이 있으면 재귀 렌더링, 없으면 props.children 사용
   const renderedChildren =
     children.length > 0

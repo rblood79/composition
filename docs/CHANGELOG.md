@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Slider 드래그 복원 — Preview/Publish uncontrolled 전환] - 2026-06-09
+
+### Bug Fixes
+
+- **Preview CSS / Publish 에서 SliderThumb 드래그가 동작하지 않던 문제**:
+  - Preview(`renderSlider`)와 Publish(`ElementRenderer`)가 RAC Slider 에 `value`(controlled)를 전달
+  - Preview 는 `onChange → updateElementProps` 가 있었으나 runtime store 미반영으로 value 가 고정되어 드래그 후 thumb 가 초기값으로 snap back, Publish 는 `onChange` 자체가 없어 드래그가 silently 실패
+  - **Why**: [react-aria.adobe.com/Slider](https://react-aria.adobe.com/Slider) — `value` prop 은 controlled 모드로 만들며, onChange 가 외부 state 를 갱신해 value 로 다시 흘러오지 않으면 RAC 가 매 렌더 초기값으로 복원("re-renders with stale props"). Preview/Publish 런타임의 Slider 드래그는 최종 사용자의 런타임 상호작용이므로 uncontrolled(`defaultValue`)가 적합
+  - 수정: 두 경로 모두 `value` → `defaultValue` 로 전환 (RAC 가 내부 state 로 드래그 관리). Preview 는 사용자 입력 반영 onChange 제거 + `key` 에 value 포함(빌더 inspector 편집 시 리마운트로 초기값 동기화). Builder Skia/inspector 의 `value`(디자인 초기값)는 불변
+  - 위치: `packages/shared/src/renderers/SelectionRenderers.tsx::renderSlider`, `apps/publish/src/renderer/ElementRenderer.tsx`
+
 ## [element type 폐기 — ADR-912 step4 element 폐기 phase 2 proof (Autocomplete + DateSegment/TimeSegment)] - 2026-06-09
 
 ### Breaking Changes
