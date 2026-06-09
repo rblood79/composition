@@ -198,6 +198,28 @@ function compositionOwnsContainerBox<Props>(
   );
 }
 
+/**
+ * progress/slider archetype 의 sizes.height CSS emit 을 skip 할지 판정 (컨테이너 height=auto).
+ *
+ * - **progress**: 기존 동작 보존 — 전체 skip. ProgressBar/Meter 컨테이너 + Track/Value 모두
+ *   progress archetype 이고, 이들의 sizes.height 는 컨테이너 전체 높이가 아니므로(컨테이너 grid
+ *   행 합 / Track·Value 는 부모 grid 가 배치) 모두 skip 이 정상 (회귀 0 검증됨).
+ * - **slider**: Slider(grid 컨테이너)와 SliderTrack(트랙 leaf)이 같은 archetype 이라 세분 필요.
+ *   Slider 는 containerStyles.gridTemplateAreas(label/output/track) 보유 → 컨테이너 height
+ *   skip(auto). SliderTrack 은 gridTemplateAreas 없음(display:grid 만) → grid track 행을
+ *   채우려면 height(트랙 높이) 필요하므로 emit (skip 시 track 행 0px 회귀).
+ */
+function isTrackOwningGridContainer<Props>(
+  spec: ComponentSpec<Props>,
+): boolean {
+  if (spec.archetype === "progress") return true; // 기존 동작 보존 (전체 skip)
+  if (spec.archetype === "slider") {
+    // Slider 컨테이너(gridTemplateAreas 보유)만 skip, SliderTrack leaf 는 height 유지.
+    return !!spec.containerStyles?.gridTemplateAreas;
+  }
+  return false;
+}
+
 // ─── Main Generator ─────────────────────────────────────────────────────────
 
 /**
@@ -485,8 +507,13 @@ export function generateCSS<Props>(
   // ADR-141: composition 이 컨테이너 box 를 소유할 때만 sizes 경로 height/padding skip.
   const ownsContainerBox = compositionOwnsContainerBox(spec);
   const hasContainerStylesOuter = !!spec.containerStyles;
-  // progress archetype: sizes.height는 bar track 높이이며 컨테이너 height가 아님
-  const skipHeight = ownsContainerBox || spec.archetype === "progress";
+  // progress/slider grid 컨테이너(ProgressBar/Meter/Slider): sizes.height 는 bar/track 행
+  //   높이이며 grid 컨테이너 전체 height 가 아님 (컨테이너 = label 행 + gap + track 행, auto).
+  //   컨테이너 height 로 emit 하면 DOM 이 8px 로 강제되어 selection bounds(32/42)와 불일치 →
+  //   skip (height:auto). 단 트랙 leaf(SliderTrack/ProgressBarTrack — gridTemplateAreas 없음)는
+  //   height(=트랙 높이)가 grid track 행을 차지해야 하므로 유지. 판정 = grid 컨테이너 여부
+  //   (containerStyles.gridTemplateAreas 보유). specPresetResolver.TRACK_HEIGHT_ARCHETYPES 정합.
+  const skipHeight = ownsContainerBox || isTrackOwningGridContainer(spec);
   // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
   const skipPaddingOuter =
     ownsContainerBox ||
@@ -723,7 +750,10 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
     // ADR-141: composition 이 컨테이너 box 를 소유할 때만 skip (위 per-size 블록과 동일 기준).
     const ownsContainerBox = compositionOwnsContainerBox(spec);
     const hasContainerStyles = !!spec.containerStyles;
-    const skipDefaultHeight = ownsContainerBox || spec.archetype === "progress";
+    // per-size 블록(skipHeight)과 동일 기준 — grid 컨테이너만 height skip(컨테이너 auto),
+    //   트랙 leaf(SliderTrack/ProgressBarTrack)는 height 유지(track 행 높이).
+    const skipDefaultHeight =
+      ownsContainerBox || isTrackOwningGridContainer(spec);
     // ADR-071: containerStyles 에 padding/borderRadius/gap/border 정의 시 sizes 경로 skip (이중 emit 방지)
     const skipPadding =
       ownsContainerBox ||

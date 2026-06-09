@@ -50,7 +50,6 @@
   grid-template-columns: 1fr auto;
 
   /* Default size */
-  height: 8px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
@@ -60,7 +59,6 @@
 }
 
 .react-aria-Slider[data-size="sm"] {
-  height: 4px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
@@ -70,7 +68,6 @@
 }
 
 .react-aria-Slider[data-size="md"] {
-  height: 8px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
@@ -80,7 +77,6 @@
 }
 
 .react-aria-Slider[data-size="lg"] {
-  height: 12px;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-full);
@@ -90,7 +86,6 @@
 }
 
 .react-aria-Slider[data-size="xl"] {
-  height: 16px;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-full);
