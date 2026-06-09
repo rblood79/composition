@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [SliderTrack height 정합 + thumb 렌더 소유권 이전 — Skia] - 2026-06-10
+
+### Bug Fixes
+
+- **Skia 에서 SliderTrack 트랙 두께가 ProgressBarTrack 보다 두껍던 문제**:
+  - 같은 size(md)인데 Skia 에서 SliderTrack 영역이 ProgressBarTrack(8px)보다 두껍게 렌더 (DOM 은 8px 동일). SliderThumb 은 `position:absolute` 라 layout 제외인데도 SliderTrack box 가 두꺼웠음
+  - **Why**: Skia SliderTrack layout box height 가 `thumbSize`(md 18px, ADR-086 P2 — thumb 수용용)로 주입되어 트랙 배경/영역이 두꺼웠음. 트랙 바 자체(slider_fill_bar `trackHeight`)는 8px 였으나 box 가 18px
+  - 수정: SliderTrack layout box height 를 `trackHeight`(VALUE_FILL_TRACK_HEIGHT, ProgressBarTrack 동일 8px)로 통일. slider_fill_bar 의 트랙 좌표를 box 전체(trackY=0) 기준으로 재정렬
+  - 위치: `implicitStyles.ts` (SliderTrack height), `skiaPrimitives.ts::sliderFillBar`
+
+- **thumb 렌더 소유권을 SliderTrack → SliderThumb element 로 이전**:
+  - 기존: `slider_fill_bar`(SliderTrack)가 track+fill+thumb 을 모두 그려, 트리에서 SliderThumb element 를 삭제해도 thumb 이 Skia 에 잔존. thumb 위치가 SliderThumb element 와 분리
+  - **Why**: DOM(RAC)은 SliderThumb 이 자체 렌더하는데 Skia 만 SliderTrack 이 대신 그려 아키텍처 비대칭. SliderThumb.spec.render.shapes 가 `[]`(hitbox 만)였음
+  - 수정: SliderThumb.spec.render.shapes 가 원형 핸들(circle+border)을 자체 렌더(자기 box thumbSize 안 중앙). slider_fill_bar 는 track+fill 만. implicitStyles 의 SliderThumb 위치를 `top = trackHeight/2 - thumbSize/2`(트랙 세로 중앙 정렬, DOM `top:50%+translateY(-50%)` 동형)로 주입. SliderThumb 삭제 시 thumb 사라짐 + thumb y 가 트랙 center 정렬
+  - 위치: `SliderThumb.spec.ts` (render.shapes), `skiaPrimitives.ts::sliderFillBar` (thumb 제거), `implicitStyles.ts` (thumb top)
+
 ## [Slider 드래그 복원 + size text 동기화 — Preview/Publish] - 2026-06-09
 
 ### Bug Fixes

@@ -1631,10 +1631,13 @@ export function applyImplicitStyles(
         } as CanvasLayoutNode;
       }
       if (child.type === "SliderTrack") {
-        // ADR-086 P2: layout height = thumbSize (thumb 수용용, visual trackHeight 와 다름).
-        //   SliderSpec.sizes[size].indicator.thumbSize 가 SSOT (14/18/22/26).
+        // 2026-06-10: layout height = trackHeight (ProgressBarTrack 동일, VALUE_FILL_TRACK_HEIGHT).
+        //   thumb(원, thumbSize)은 DOM 에서 position:absolute 라 layout 제외 → Skia 도 동형으로
+        //   box 는 트랙 두께만, thumb 은 slider_fill_bar 가 box 세로 중앙 기준 box 밖까지 그린다.
+        //   (이전 ADR-086 P2: box=thumbSize 18px → SliderTrack 이 ProgressBarTrack(8px)보다 두꺼움.
+        //    사용자 정정 2026-06-10: thumb absolute 제외니 두 track height 가 같아야 함.)
         const trackHeight =
-          specSizeField("slider", sizeName, "indicator")?.thumbSize ?? 18;
+          VALUE_FILL_TRACK_HEIGHT[sizeName] ?? VALUE_FILL_TRACK_HEIGHT.md;
         return {
           ...child,
           props: {
@@ -1713,6 +1716,12 @@ export function applyImplicitStyles(
     const sizeName = (sliderProps?.size as string) ?? "md";
     const dims = { sm: 14, md: 18, lg: 22 };
     const thumbSize = dims[sizeName as keyof typeof dims] ?? 18;
+    // 트랙 두께(SliderTrack box height = trackHeight) — thumb 세로 중앙 정렬 기준.
+    const trackHeight =
+      VALUE_FILL_TRACK_HEIGHT[sizeName] ?? VALUE_FILL_TRACK_HEIGHT.md;
+    // thumb 중심을 트랙 세로 중앙에 정렬: top = trackHeight/2 - thumbSize/2
+    //   (thumb 이 트랙보다 커서 위아래로 box 밖 넘침 — DOM 의 top:50%+translateY(-50%) 와 동형).
+    const thumbTop = trackHeight / 2 - thumbSize / 2;
 
     let thumbIdx = 0;
     filteredChildren = filteredChildren.map((child) => {
@@ -1721,7 +1730,8 @@ export function applyImplicitStyles(
       const val = values[thumbIdx] ?? values[0] ?? 50;
       thumbIdx++;
       const percent = Math.max(0, Math.min(100, ((val - min) / range) * 100));
-      // absolute + left(percent) + marginLeft(-half) — selection bounds 용
+      // absolute + left(percent) + marginLeft(-half) — selection bounds 용.
+      //   top = 트랙 세로 중앙 정렬(thumbTop) — Skia thumb y 위치를 트랙 center 에 맞춤.
       return {
         ...child,
         props: {
@@ -1730,7 +1740,7 @@ export function applyImplicitStyles(
             ...cs,
             position: "absolute",
             left: `${percent}%`,
-            top: 0,
+            top: thumbTop,
             width: thumbSize,
             height: thumbSize,
             marginLeft: -(thumbSize / 2),

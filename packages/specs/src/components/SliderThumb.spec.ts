@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import type { ComponentSpec, TokenRef } from "../types";
+import type { ComponentSpec, Shape, TokenRef } from "../types";
 
 /**
  * SliderThumb Props
@@ -82,10 +82,38 @@ export const SliderThumbSpec: ComponentSpec<SliderThumbProps> = {
   },
 
   render: {
-    shapes: () => {
-      // 시각적 thumb은 SliderTrack spec shapes에서 렌더링 (value 기반 x 좌표 계산)
-      // SliderThumb 자체는 빈 shapes 반환 (이벤트 히트 영역 역할만)
-      return [];
+    // 2026-06-10: thumb 렌더 소유권을 SliderTrack(slider_fill_bar) → SliderThumb element 로 이전.
+    //   SliderThumb element 가 implicitStyles slidertrack 분기에서 left:percent% + width/height:
+    //   thumbSize 로 배치되므로, 자기 box(thumbSize) 안에 원형 핸들을 그린다 (box 중앙 기준).
+    //   DOM(RAC SliderThumb 자체 렌더)과 아키텍처 대칭 — SliderThumb 삭제 시 thumb 사라짐.
+    //   (이전: SliderTrack 의 slider_fill_bar 가 thumb 까지 그려 SliderThumb 삭제해도 잔존했음.)
+    shapes: (props, size) => {
+      const diameter =
+        typeof props.style?.width === "number"
+          ? (props.style.width as number)
+          : (size.height ?? 18);
+      const r = diameter / 2;
+      const fillColor =
+        (props.style?.backgroundColor as string | undefined) ??
+        ("{color.accent}" as TokenRef);
+      const shapes: Shape[] = [
+        {
+          id: "thumb",
+          type: "circle" as const,
+          x: r,
+          y: r,
+          radius: r,
+          fill: fillColor,
+        },
+        {
+          type: "border" as const,
+          target: "thumb",
+          borderWidth: 2,
+          color: "{color.base}" as TokenRef,
+          radius: r,
+        },
+      ];
+      return shapes;
     },
 
     react: (props) => ({

@@ -1226,8 +1226,10 @@ const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *   이중 렌더 0 (calendar_grid escape 동형). `_hasChildren` 체크 없음(SliderThumb 자식이라 항상
  *   true → value_fill_bar 의 `_hasChildren` early-return 에 걸리는 dead 분기를 본 primitive 가 우회).
  *
- * 좌표 = SliderTrack.spec.render.shapes 1:1 미러:
- *   trackY=(thumbSize-trackHeight)/2 / trackRadius=trackHeight/2 / thumb x=width*p/100, y=thumbSize/2.
+ * 좌표 (2026-06-10): layout box height = trackHeight(8, ProgressBarTrack 동일)로 통일됨.
+ *   트랙은 box 전체(trackY=0, height=trackHeight). thumb 은 box 세로 중앙(trackHeight/2) 기준
+ *   ±thumbSize/2 로 box 밖으로 그린다 (DOM 의 thumb position:absolute 와 동형 — box layout 제외).
+ *   thumb x=width*p/100, y=trackHeight/2. (이전: box=thumbSize 18px 전제로 trackY=세로중앙 였음)
  * 색: track 배경 = `style.backgroundColor` → `visual.fill.default.base`(neutral-subtle).
  *     fill = `style.color` → `visual.fillBar` → `{color.accent}`. thumb = fill 과 동색(handle=accent).
  *     thumb border = `{color.base}` 2px(spec 정합).
@@ -1241,11 +1243,9 @@ const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 
   const trackHeight =
     typeof size.height === "number" && size.height > 0 ? size.height : 8;
-  const thumbSize =
-    typeof size.thumbSize === "number" && size.thumbSize > 0
-      ? size.thumbSize
-      : 18;
-  const trackY = (thumbSize - trackHeight) / 2;
+  // layout box height = trackHeight(ProgressBarTrack 동일) → 트랙은 box 전체.
+  //   thumb 핸들은 SliderThumb element 가 자체 렌더(렌더 소유권 이전, 2026-06-10).
+  const trackY = 0;
   const trackRadius = trackHeight / 2;
 
   const trackBgColor =
@@ -1314,26 +1314,10 @@ const sliderFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     }
   }
 
-  // thumb (핸들) — single 1개 / range 2개. SliderThumb 자식 spec 은 [] 라 이중 렌더 0.
-  for (let i = 0; i < percents.length; i++) {
-    const thumbX = (width * percents[i]) / 100;
-    const thumbId = percents.length === 1 ? "thumb" : `thumb-${i}`;
-    shapes.push({
-      id: thumbId,
-      type: "circle",
-      x: thumbX,
-      y: thumbSize / 2,
-      radius: thumbSize / 2,
-      fill: fillColor,
-    });
-    shapes.push({
-      type: "border",
-      target: thumbId,
-      borderWidth: 2,
-      color: "{color.base}" as TokenRef,
-      radius: thumbSize / 2,
-    });
-  }
+  // 2026-06-10: thumb 핸들 렌더는 SliderThumb element(SliderThumb.spec.render.shapes)로 이전.
+  //   slider_fill_bar 는 track 배경 + value 채움만 그린다 (value_fill_bar 와 동형, 단 replace 모드
+  //   유지 — SliderTrack box 자체 생성). SliderThumb element 가 left:percent% 위치에 원형 핸들을
+  //   자체 렌더 → DOM(RAC SliderThumb) 과 아키텍처 대칭 + SliderThumb 삭제 시 thumb 사라짐.
 
   return shapes;
 };
