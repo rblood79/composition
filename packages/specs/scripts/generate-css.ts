@@ -20,6 +20,7 @@ import {
   getComponentRulesTable,
   type ComponentRuleVariant,
 } from "../../shared/src/index";
+import type { SizeSpec, VariantSpec } from "../src/types";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -76,6 +77,167 @@ function variantSourceFor(
   return map;
 }
 
+// ─── TEXT_LEAF virtual spec 합성 ─────────────────────────────────────────────
+//
+// ADR-912 단계5 step4: TEXT_LEAF 5개(Text/Heading/Paragraph/Code/Kbd) spec 파일을 삭제하기 전에
+// spec 없이도 동일한 CSS 가 재생성되도록 rule+메타상수에서 virtual ComponentSpec input 을 합성한다.
+//
+// - 메타상수: name / archetype / element(placeholder) / containerStyles / cssEmitMode
+// - sizes / variants / defaultVariant / defaultSize: getComponentRulesTable() 에서 읽어 변환
+// - generateCSS 본체 로직 불변 — 입력 모양만 ComponentSpec 과 동형
+//
+// ComponentRuleSize → SizeSpec 변환: ComponentRuleSize 는 모두 optional 이므로
+// 누락 필드(paddingX/paddingY/height/fontSize/borderRadius)를 0/"" 기본값으로 채워
+// `as unknown as SizeSpec` 동형 캐스팅(builder 의 ruleSizeToSizeSpec 과 동일 패턴).
+
+/**
+ * ComponentRuleSize → SizeSpec 변환 (TEXT_LEAF 용).
+ * paddingX/paddingY/height/fontSize/borderRadius 필수 필드를 기본값으로 채워 캐스팅.
+ */
+function ruleSizeToSizeSpec(
+  s: Record<string, unknown>,
+  paddingX = 0,
+  paddingY = 0,
+): SizeSpec {
+  return {
+    height: (s.height as number) ?? 0,
+    paddingX: (s.paddingX as number) ?? paddingX,
+    paddingY: (s.paddingY as number) ?? paddingY,
+    fontSize:
+      (s.fontSize as SizeSpec["fontSize"]) ?? ("" as SizeSpec["fontSize"]),
+    borderRadius:
+      (s.borderRadius as SizeSpec["borderRadius"]) ??
+      ("" as SizeSpec["borderRadius"]),
+    ...(s.lineHeight !== undefined
+      ? { lineHeight: s.lineHeight as SizeSpec["lineHeight"] }
+      : {}),
+    ...(s.borderWidth !== undefined
+      ? { borderWidth: s.borderWidth as number }
+      : {}),
+  } as SizeSpec;
+}
+
+/**
+ * ComponentRuleVariant → VariantSpec 변환 (TEXT_LEAF 용).
+ * variantSourceFor 가 이미 색상을 override 하므로, 순회 키 + fill 구조만 맞추면 됨.
+ */
+function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
+  return {
+    fill: v.fill as unknown as VariantSpec["fill"],
+    text: (v.colors?.text ?? "{color.neutral}") as VariantSpec["text"],
+    ...(v.colors?.border !== undefined
+      ? { border: v.colors.border as VariantSpec["border"] }
+      : {}),
+  } as VariantSpec;
+}
+
+/**
+ * TEXT_LEAF 메타상수 — CSS 생성에 필요한 최소 정보만.
+ * (name / archetype / element placeholder / containerStyles)
+ */
+const TEXT_LEAF_NAMES = new Set([
+  "Text",
+  "Heading",
+  "Paragraph",
+  "Code",
+  "Kbd",
+]);
+
+type TextLeafMeta = {
+  name: string;
+  archetype: ComponentSpec<unknown>["archetype"];
+  element: string;
+  containerStyles: ComponentSpec<unknown>["containerStyles"];
+};
+
+const TEXT_LEAF_META: TextLeafMeta[] = [
+  {
+    name: "Text",
+    archetype: "text",
+    element: "p",
+    containerStyles: { display: "block", width: "100%" },
+  },
+  {
+    name: "Heading",
+    archetype: "text",
+    element: "p", // element 는 CSS selector 생성에 미사용 — name 기반. placeholder.
+    containerStyles: { display: "block", width: "100%" },
+  },
+  {
+    name: "Paragraph",
+    archetype: "text",
+    element: "p",
+    containerStyles: { display: "block", width: "100%" },
+  },
+  {
+    name: "Code",
+    archetype: "simple",
+    element: "code",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+  },
+  {
+    name: "Kbd",
+    archetype: "simple",
+    element: "kbd",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+  },
+];
+
+/**
+ * TEXT_LEAF 5개를 rule+메타 기반으로 virtual ComponentSpec 배열로 합성.
+ * spec 파일이 아직 존재하더라도 이 경로를 우선(dedup 은 호출처에서 처리).
+ */
+function buildTextLeafVirtualSpecs(): ComponentSpec<unknown>[] {
+  const table = getComponentRulesTable();
+  const result: ComponentSpec<unknown>[] = [];
+
+  for (const meta of TEXT_LEAF_META) {
+    const rule = table[meta.name];
+    if (!rule) {
+      console.warn(`  ⚠ TEXT_LEAF virtual: no rule for ${meta.name}, skipping`);
+      continue;
+    }
+
+    // sizes: rule.sizes 의 각 entry 를 SizeSpec 으로 변환
+    const sizes: Record<string, SizeSpec> = {};
+    for (const [sizeName, ruleSize] of Object.entries(rule.sizes)) {
+      sizes[sizeName] = ruleSizeToSizeSpec(ruleSize as Record<string, unknown>);
+    }
+
+    // variants: rule.variants 의 각 entry 를 VariantSpec 으로 변환
+    const variants: Record<string, VariantSpec> = {};
+    for (const [variantName, ruleVariant] of Object.entries(rule.variants)) {
+      variants[variantName] = ruleVariantToVariantSpec(ruleVariant);
+    }
+
+    const virtualSpec: ComponentSpec<unknown> = {
+      name: meta.name,
+      archetype: meta.archetype,
+      element: meta.element as ComponentSpec<unknown>["element"],
+      containerStyles: meta.containerStyles,
+      defaultVariant: rule.defaultVariant,
+      defaultSize: rule.defaultSize ?? "md",
+      variants,
+      sizes,
+      // states: Text/Heading/Paragraph/Code/Kbd 모두 hover/pressed/disabled/focusVisible
+      states: {
+        hover: {},
+        pressed: {},
+        disabled: { opacity: 0.38 },
+        focusVisible: {},
+      },
+      render: {
+        shapes: () => [],
+      },
+    };
+
+    result.push(virtualSpec);
+    console.log(`  ✓ Synthesized virtual spec: ${meta.name} (from rule table)`);
+  }
+
+  return result;
+}
+
 async function main(): Promise<void> {
   console.log("🔄 Starting CSS generation...\n");
 
@@ -94,9 +256,17 @@ async function main(): Promise<void> {
     }
 
     // 각 spec 파일 로드
+    // ADR-912 단계5 step4: TEXT_LEAF 5개는 virtual spec 이 우선 — dedup
     const specs: ComponentSpec<unknown>[] = [];
 
     for (const file of specFiles) {
+      // TEXT_LEAF: spec 파일이 아직 존재해도 virtual input 으로 대체 — 파일 스캔 결과에서 제외
+      const componentName = file.replace(".spec.ts", "");
+      if (TEXT_LEAF_NAMES.has(componentName)) {
+        console.log(`  → Skipped (virtual override): ${file}`);
+        continue;
+      }
+
       const filePath = path.join(COMPONENTS_DIR, file);
       const module = await import(filePath);
 
@@ -111,6 +281,10 @@ async function main(): Promise<void> {
         console.warn(`  ⚠ Skipped: ${file} (no valid spec export)`);
       }
     }
+
+    // TEXT_LEAF virtual specs 추가 (rule+메타 기반 합성)
+    const textLeafVirtuals = buildTextLeafVirtualSpecs();
+    specs.push(...textLeafVirtuals);
 
     if (specs.length === 0) {
       console.log("\n⚠️  No valid specs found");
