@@ -9,7 +9,40 @@
 .react-aria-SliderThumb {
   /* Base styles — archetype: slider */
     display: grid;
+    grid-template-areas: "label output" "track track";
+    grid-template-columns: 1fr auto;
     box-sizing: border-box;
+
+    .react-aria-Label { grid-area: label; }
+    .react-aria-SliderOutput { grid-area: output; justify-self: end; }
+    .react-aria-SliderTrack {
+      grid-area: track;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .slider-track-bg {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100%;
+      border-radius: var(--radius-full);
+      background: var(--bg-muted);
+    }
+    .slider-fill {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: var(--radius-full);
+      background: var(--accent);
+    }
+    .react-aria-SliderThumb {
+      top: 50%;
+      border-radius: var(--radius-full);
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      box-sizing: border-box;
+    }
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: grid;

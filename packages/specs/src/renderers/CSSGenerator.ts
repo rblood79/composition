@@ -13,6 +13,7 @@ import type {
   ComponentSpec,
   ArchetypeId,
   SizeSpec,
+  IndicatorSpec,
   ContainerStylesSchema,
 } from "../types";
 import type { ShadowTokenRef, TokenRef } from "../types/token.types";
@@ -99,7 +100,49 @@ const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     `    [slot="value"] { grid-area: value; }`,
     `    .bar { grid-area: track; }`,
   ],
-  slider: [`    display: grid;`, `    box-sizing: border-box;`],
+  slider: [
+    `    display: grid;`,
+    `    grid-template-areas: "label output" "track track";`,
+    `    grid-template-columns: 1fr auto;`,
+    `    box-sizing: border-box;`,
+    ``,
+    `    .react-aria-Label { grid-area: label; }`,
+    `    .react-aria-SliderOutput { grid-area: output; justify-self: end; }`,
+    `    .react-aria-SliderTrack {`,
+    `      grid-area: track;`,
+    `      position: relative;`,
+    `      display: flex;`,
+    `      align-items: center;`,
+    `    }`,
+    // 트랙 배경(.slider-track-bg)/채움(.slider-fill)/핸들(.react-aria-SliderThumb) — Slider.tsx 가
+    //   RAC SliderTrack 안에 직접 그리는 커스텀 마크업. spec 비의존(archetype base = generate 정본).
+    //   size 무관 부분(색/위치/모양)만 base 에 두고, size 별 크기(height=trackHeight,
+    //   width/height=thumbSize)는 emitSliderSizeMetrics 가 size.indicator 에서 생성 — Skia
+    //   (SliderTrack.spec.render: trackHeight/thumbSize, fill {color.accent}, track {color.neutral-subtle})
+    //   와 동일 값 source. 색 토큰: 트랙 --bg-muted / fill·thumb --accent / thumb border --bg.
+    `    .slider-track-bg {`,
+    `      position: absolute;`,
+    `      top: 50%;`,
+    `      transform: translateY(-50%);`,
+    `      width: 100%;`,
+    `      border-radius: var(--radius-full);`,
+    `      background: var(--bg-muted);`,
+    `    }`,
+    `    .slider-fill {`,
+    `      position: absolute;`,
+    `      top: 50%;`,
+    `      transform: translateY(-50%);`,
+    `      border-radius: var(--radius-full);`,
+    `      background: var(--accent);`,
+    `    }`,
+    `    .react-aria-SliderThumb {`,
+    `      top: 50%;`,
+    `      border-radius: var(--radius-full);`,
+    `      background: var(--accent);`,
+    `      border: 2px solid var(--bg);`,
+    `      box-sizing: border-box;`,
+    `    }`,
+  ],
   "tabs-indicator": [
     `    display: flex;`,
     `    position: relative;`,
@@ -506,6 +549,16 @@ export function generateCSS<Props>(
   if (sizeSelectorRules.length > 0) {
     lines.push("");
     lines.push(...sizeSelectorRules);
+  }
+
+  // ─── ADR-912: slider archetype size별 트랙/thumb 크기 (Skia 동일 값 source) ───
+  //   size.indicator.{trackHeight,thumbSize} 에서 생성 — Skia(SliderTrack.spec.render)와 동일
+  //   값. .slider-track-bg/.slider-fill height = trackHeight, .react-aria-SliderThumb
+  //   width/height = thumbSize. 색/위치는 archetype base CSS, 크기만 size별 emit.
+  const sliderSizeRules = generateSliderSizeMetrics(spec);
+  if (sliderSizeRules.length > 0) {
+    lines.push("");
+    lines.push(...sliderSizeRules);
   }
 
   // ─── Phase 4.5a 0-D.10: Root selectors (@layer 내부) ───
@@ -1488,6 +1541,46 @@ function generateSizeSelectorRules<Props>(
       lines.push(`  }`);
       lines.push("");
     }
+  }
+
+  return lines;
+}
+
+/**
+ * ADR-912 — slider archetype 의 size별 트랙/thumb 크기 CSS 생성.
+ *
+ * Slider.tsx 커스텀 마크업(.slider-track-bg / .slider-fill / .react-aria-SliderThumb)의
+ * size별 크기를 `spec.sizes[size].indicator.{trackHeight, thumbSize}` 에서 생성한다.
+ * **Skia(SliderTrack.spec.render)와 동일 값 source** — 색/위치는 archetype base CSS,
+ * size별 크기만 여기서 emit 하여 DOM↔Skia 시각 대칭(사용자 요구: "skia 와 동일한 값에서 css 생성").
+ * track height = trackHeight, thumb width/height = thumbSize. SliderTrack 도 동일 archetype
+ * 이라 `.react-aria-SliderTrack[data-size]` 컨테이너 안의 자식 selector 로 생성.
+ */
+function generateSliderSizeMetrics<Props>(
+  spec: ComponentSpec<Props>,
+): string[] {
+  if (spec.archetype !== "slider") return [];
+
+  const lines: string[] = [];
+  const rootSel = `.react-aria-${spec.name}`;
+
+  for (const [sizeKey, sizeSpec] of Object.entries(spec.sizes)) {
+    const indicator = (sizeSpec as { indicator?: IndicatorSpec }).indicator;
+    const trackHeight = indicator?.trackHeight;
+    const thumbSize = indicator?.thumbSize;
+    if (trackHeight == null && thumbSize == null) continue;
+
+    const sel = `${rootSel}[data-size="${sizeKey}"]`;
+    if (trackHeight != null) {
+      lines.push(`  ${sel} .slider-track-bg { height: ${trackHeight}px; }`);
+      lines.push(`  ${sel} .slider-fill { height: ${trackHeight}px; }`);
+    }
+    if (thumbSize != null) {
+      lines.push(
+        `  ${sel} .react-aria-SliderThumb { width: ${thumbSize}px; height: ${thumbSize}px; }`,
+      );
+    }
+    lines.push("");
   }
 
   return lines;

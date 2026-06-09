@@ -93,8 +93,14 @@ export const SliderSpec: ComponentSpec<SliderProps> = {
 
   // ADR-083 Phase 5: slider archetype base 의 layout primitive 1 필드 리프팅.
   //   box-sizing 은 ContainerStylesSchema 미지원 → archetype table 잔존.
+  // ADR-912 후속(2026-06-09): ProgressBar/Meter 와 동일 grid 구조 (RAC/RSP 레퍼런스 정합).
+  //   resolveContainerStylesFallback 경유로 Skia/Taffy parentStyle 에 선주입 — Skia layout
+  //   에서 SliderOutput 우상단 배치 (1fr auto / "label output" "track track"). CSS 경로는
+  //   slider archetype base 가 동일 grid-template + 자식 grid-area selector emit.
   containerStyles: {
     display: "grid",
+    gridTemplateAreas: '"label output" "track track"',
+    gridTemplateColumns: "1fr auto",
   },
 
   defaultSize: "md",

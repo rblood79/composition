@@ -161,6 +161,19 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * ADR-912 — rac source compound 중 rendererMap self-compose 렌더러로 위임할 type 집합.
+ *
+ * DELEGATING_INTERNAL_RENDERERS 는 binding.source.kind==="internal" 전용인데, Slider 는
+ * source.kind==="rac" 라 그 경로를 못 탄다. Slider(rac compound)를 RAC[component] 로 직접
+ * 렌더하면 canonical 자식(SliderTrack/SliderOutput/SliderThumb)을 generic 재귀 → INTERNAL_RENDERERS
+ * 미매핑 sub-part 가 `<slidertrack>`/`<slideroutput>`/`<sliderthumb>` 소문자 태그로 떨어져
+ * React 경고 + RAC 의미 깨짐. renderSlider 는 Slider.tsx 로 Label/Output/Track/Thumb 자기완결
+ * 렌더하므로 progressbar 와 동일하게 rendererMap 위임 + 자식 재귀 skip 한다.
+ * (SliderTrack.binding 주석대로 sub-part 자식은 DOM 미도달이 설계 의도.)
+ */
+const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set(["Slider"]);
+
+/**
  * ResolvedNode 의 복원 type 추출 (CanonicalNodeRenderer 본문 type 복원과 동일 규칙).
  */
 function resolveNodeType(node: ResolvedNode): string {
@@ -288,10 +301,14 @@ export function CanonicalNodeRenderer({
     //     자식 ProgressBarTrack value_fill_bar escape(선행-2 발효) — 시각 결과 대칭(구현 비대칭 의도).
     //   marker 는 wrapper div 보존. canonical 렌더 경로의 renderContext.childrenByParent 는
     //   preview elements state 기반이라 비어있어, canonical node 서브트리 평탄화로 보강해 전달.
-    if (
+    // internal self-compose(progressbar/meter/tabs/breadcrumbs) 또는 rac self-compose
+    //   compound(Slider) → rendererMap 위임 + generic 자식 재귀 skip.
+    const isDelegatingInternal =
       binding?.source.kind === "internal" &&
-      DELEGATING_INTERNAL_RENDERERS.has(binding.source.renderer)
-    ) {
+      DELEGATING_INTERNAL_RENDERERS.has(binding.source.renderer);
+    const isDelegatingRac =
+      binding?.source.kind === "rac" && DELEGATING_RAC_RENDERERS.has(type);
+    if (isDelegatingInternal || isDelegatingRac) {
       const delegatedRenderer = rendererMap[adaptedEl.type];
       if (delegatedRenderer) {
         const delegatedChildrenByParent = flattenNodeChildrenByParent(node);

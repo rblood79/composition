@@ -1572,13 +1572,18 @@ export function applyImplicitStyles(
   }
 
   // ── Slider ──────────────────────────────────────────────────────────
-  // ProgressBar와 동일 구조: Label(좌상) + SliderOutput(우상) → 1행, SliderTrack(전폭) → 2행
-  // display: flex row wrap 패턴 (Label flex:1 + Output auto → Track width:100% 강제 줄바꿈)
+  // ProgressBar/Meter 와 동일 grid 구조 (RAC/RSP 레퍼런스 정합): Label(좌상) +
+  //   SliderOutput(우상) → 1행, SliderTrack(전폭) → 2행.
+  //   grid-template-areas: "label output" "track track" / 1fr auto.
+  //   부모 grid 구조(display:grid + gridTemplate*)는 slider archetype base CSS +
+  //   Slider.spec.containerStyles 가 resolveContainerStylesFallback 경유로 parentStyle 에
+  //   선주입 → 여기서는 gap + 자식 gridArea(이름+숫자 line 병기) 만 처리.
+  //   ADR-912 후속(2026-06-09): 기존 flex row wrap + space-between 패턴은 Skia/DOM 양쪽에서
+  //   SliderOutput 이 Label 다음 줄로 wrap 되어 우상단 미배치 → grid 패턴으로 통일.
   if (SLIDER_TAGS.has(containerTag)) {
     const hasLabel = !!containerProps?.label;
     const showValue = containerProps?.showValue !== false;
     const sizeName = (containerProps?.size as string) ?? "md";
-    const sliderColGap = specSizeField("slider", sizeName, "columnGap") ?? 16;
 
     // value → 포맷된 텍스트 계산 (ElementSprite 미러링)
     const sliderValue = containerProps?.value;
@@ -1603,7 +1608,9 @@ export function applyImplicitStyles(
       return true;
     });
 
-    // Label: width:0 + flexGrow:1 = CSS grid 1fr 에뮬레이션
+    // 자식에 gridArea(이름) + gridColumn/Row line(숫자) 병기 주입.
+    //   buildNodeStyle grid branch 는 gridArea 이름 해석 미지원 → 숫자 line 필수
+    //   (layout-engine.md §"Grid area 이름 해석"). CSS 경로는 archetype grid-area 이름.
     filteredChildren = filteredChildren.map((child) => {
       const cs = (child.props?.style || {}) as Record<string, unknown>;
       if (child.type === "Label") {
@@ -1614,11 +1621,13 @@ export function applyImplicitStyles(
             ...child.props,
             style: {
               ...cs,
+              gridArea: cs.gridArea ?? "label",
+              gridColumnStart: cs.gridColumnStart ?? "1",
+              gridColumnEnd: cs.gridColumnEnd ?? "2",
+              gridRowStart: cs.gridRowStart ?? "1",
+              gridRowEnd: cs.gridRowEnd ?? "2",
               fontSize: labelFontSize,
-              width: 0,
-              flexGrow: cs.flexGrow ?? 1,
-              flexShrink: cs.flexShrink ?? 1,
-              minWidth: 0,
+              minWidth: cs.minWidth ?? 0,
               whiteSpace: cs.whiteSpace ?? "nowrap",
             },
           },
@@ -1640,6 +1649,11 @@ export function applyImplicitStyles(
             variant: containerProps?.variant,
             style: {
               ...cs,
+              gridArea: cs.gridArea ?? "track",
+              gridColumnStart: cs.gridColumnStart ?? "1",
+              gridColumnEnd: cs.gridColumnEnd ?? "3",
+              gridRowStart: cs.gridRowStart ?? "2",
+              gridRowEnd: cs.gridRowEnd ?? "3",
               width: cs.width ?? "100%",
               height: trackHeight,
             },
@@ -1657,9 +1671,14 @@ export function applyImplicitStyles(
             size: sizeName,
             style: {
               ...cs,
+              gridArea: cs.gridArea ?? "output",
+              gridColumnStart: cs.gridColumnStart ?? "2",
+              gridColumnEnd: cs.gridColumnEnd ?? "3",
+              gridRowStart: cs.gridRowStart ?? "1",
+              gridRowEnd: cs.gridRowEnd ?? "2",
+              justifySelf: cs.justifySelf ?? "end",
               fontSize: valueFontSize,
               lineHeight: `${valueLineHeight}px`,
-              flexShrink: cs.flexShrink ?? 0,
               whiteSpace: cs.whiteSpace ?? "nowrap",
             },
           },
@@ -1668,12 +1687,11 @@ export function applyImplicitStyles(
       return child;
     });
 
+    // 부모 container style: display/gridTemplate* 은 resolveContainerStylesFallback 이
+    //   slider archetype/spec.containerStyles 로부터 이미 parentStyle 에 선주입 → gap 만 처리.
+    const sliderColGap = specSizeField("slider", sizeName, "columnGap") ?? 16;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
-      display: parentStyle.display ?? "flex",
-      flexDirection: parentStyle.flexDirection ?? "row",
-      flexWrap: parentStyle.flexWrap ?? "wrap",
-      justifyContent: parentStyle.justifyContent ?? "space-between",
       rowGap: parentStyle.rowGap ?? SLIDER_ROW_GAP,
       columnGap: parentStyle.columnGap ?? sliderColGap,
     });

@@ -4198,6 +4198,23 @@ export function applyFlexItemProperties(
     const order = parseInt(String(style.order), 10);
     if (!isNaN(order) && order !== 0) result.order = order;
   }
+
+  // Grid item line 배치 속성 (부모가 grid 인 block/inline leaf 자식).
+  //   buildNodeStyle 의 grid-container branch(display:"grid")는 partial 에 직접 주입하지만,
+  //   block/inline leaf 자식(ProgressBarValue/MeterValue 등)은 elementToTaffyBlockStyle →
+  //   taffyStyleToRecord 경로를 타는데 elementToTaffyBlockStyle 이 justifySelf/alignSelf 만
+  //   패스스루하고 grid line(gridColumnStart/End/gridRowStart/End)은 누락한다. 그 결과
+  //   Taffy 가 grid line 없이 auto-placement → grid item 이 컨테이너 밖으로 흘러나감
+  //   (Skia 만 깨지고 DOM 은 CSSGenerator 가 grid-area 이름으로 정상 배치 → D3 비대칭).
+  //   justifySelf/alignSelf 는 elementToTaffyBlockStyle 이 이미 처리하므로 여기선 line 만.
+  if (style.gridColumnStart !== undefined)
+    result.gridColumnStart = String(style.gridColumnStart);
+  if (style.gridColumnEnd !== undefined)
+    result.gridColumnEnd = String(style.gridColumnEnd);
+  if (style.gridRowStart !== undefined)
+    result.gridRowStart = String(style.gridRowStart);
+  if (style.gridRowEnd !== undefined)
+    result.gridRowEnd = String(style.gridRowEnd);
 }
 
 /**
