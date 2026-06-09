@@ -85,10 +85,23 @@ export function buildCatalogShapes(
     stateBg ??
     (isOutline ? ("{color.transparent}" as unknown as string) : undefined);
 
+  // staticColor: theme 무관 고정 텍스트색 (Link/Button/ToggleButton 공유 D2 prop).
+  //   black→#000000 / white→#ffffff. auto·undefined 는 미적용(variant 색 경로 유지).
+  //   render.shapes 의 `style?.color ?? staticTextColor ?? variant 색` 우선순위 재현 —
+  //   style.color(사용자 명시) > staticColor(prop) > variant/state 색.
+  const staticColorProp = props.staticColor as string | undefined;
+  const staticTextColor =
+    staticColorProp === "black"
+      ? "#000000"
+      : staticColorProp === "white"
+        ? "#ffffff"
+        : undefined;
+
   // 텍스트색: selected→selectedText/emphasizedSelectedText, outline→outlineText,
   // subtle→subtleText, 그 외 hover textHover / text. (visual = resolveComponentVisual 어댑터)
   const textColor =
     (style?.color as string | undefined) ??
+    staticTextColor ??
     (isSelected
       ? isEmphasized
         ? (visual?.emphasizedSelectedText ?? visual?.selectedText)

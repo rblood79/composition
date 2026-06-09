@@ -1245,7 +1245,8 @@ export function createDefaultButtonProps(): ButtonElementProps {
 }
 
 export function createDefaultLinkProps(): LinkElementProps {
-  // ADR-083 Phase 8 (R5): display/alignItems 는 LinkSpec.containerStyles SSOT 로 이관.
+  // ADR-083 Phase 8 (R5): display/alignItems 는 Link containerStyles SSOT 로 이관.
+  // ADR-912 단계5 step5: LinkSpec 삭제 — 시각 SSOT 는 componentRulesTable.Link (catalog rule).
   return {
     children: "Link",
     href: "#",

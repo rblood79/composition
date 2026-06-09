@@ -262,8 +262,7 @@ export type { DialogProps } from "./components/Dialog.spec";
 export { DialogFooterSpec } from "./components/DialogFooter.spec";
 export type { DialogFooterProps } from "./components/DialogFooter.spec";
 
-export { LinkSpec } from "./components/Link.spec";
-export type { LinkProps } from "./components/Link.spec";
+// Link (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 
 export { PopoverSpec } from "./components/Popover.spec";
 export type { PopoverProps } from "./components/Popover.spec";

@@ -39,7 +39,6 @@ import {
   IllustratedMessageSpec,
   ImageSpec,
   InlineAlertSpec,
-  LinkSpec,
   ListBoxSpec,
   MenuSpec,
   MeterSpec,
@@ -139,7 +138,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   >,
   Image: ImageSpec as ComponentSpec<Record<string, unknown>>,
   InlineAlert: InlineAlertSpec as ComponentSpec<Record<string, unknown>>,
-  Link: LinkSpec as ComponentSpec<Record<string, unknown>>,
+  // Link — ADR-912 단계5 step5: catalog cutover → GenericPropertyEditor 가 binding.accepts
+  //   (Link.binding.ts) 로 properties 생성(spec.properties dead). spec 삭제로 등록 제거.
   ListBox: ListBoxSpec as ComponentSpec<Record<string, unknown>>,
   Menu: MenuSpec as ComponentSpec<Record<string, unknown>>,
   Meter: MeterSpec as ComponentSpec<Record<string, unknown>>,

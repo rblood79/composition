@@ -114,6 +114,9 @@
   outline-offset: var(--focus-ring-offset);
 }
 
+.react-aria-Link[data-pressed] {
+}
+
 .react-aria-Link[data-disabled] {
   opacity: 0.38;
   cursor: not-allowed;

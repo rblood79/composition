@@ -146,6 +146,7 @@ const TEXT_LEAF_NAMES = new Set([
   "Kbd",
   "Description",
   "FieldError",
+  "Link",
 ]);
 
 type TextLeafMeta = {
@@ -153,6 +154,11 @@ type TextLeafMeta = {
   archetype: ComponentSpec<unknown>["archetype"];
   element: string;
   containerStyles: ComponentSpec<unknown>["containerStyles"];
+  /**
+   * CSS selector 메타 (rule 에 없는 구조 정보). Link 의 underline 처럼 rootSelectors 기반
+   * text-decoration 등 — virtualSpec.composition 으로 전달되어 CSSGenerator 가 emit.
+   */
+  composition?: ComponentSpec<unknown>["composition"];
 };
 
 const TEXT_LEAF_META: TextLeafMeta[] = [
@@ -199,6 +205,31 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     element: "span", // RAC <Text slot="errorMessage"> → span
     containerStyles: { display: "inline-flex", alignItems: "center" },
   },
+  // ADR-912 단계5 step5 — Link box+text leaf (Link.spec.ts 삭제 대상).
+  //   underline 은 rule 에 없는 CSS selector 구조 → composition.rootSelectors 메타로 전달.
+  //   (Skia 는 catalog rule textDecoration:"underline" 으로 재현 — 이미 land)
+  {
+    name: "Link",
+    archetype: "button",
+    element: "a",
+    containerStyles: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "fit-content",
+    },
+    composition: {
+      rootSelectors: {
+        "&": {
+          styles: { "text-decoration": "underline" },
+        },
+        "&[data-hovered]": {
+          styles: { "text-decoration-thickness": "1.5px" },
+        },
+      },
+      delegation: [],
+    },
+  },
 ];
 
 /**
@@ -244,6 +275,8 @@ function buildTextLeafVirtualSpecs(): ComponentSpec<unknown>[] {
         disabled: { opacity: 0.38 },
         focusVisible: {},
       },
+      // composition: rule 에 없는 CSS selector 메타(Link underline 등). 미설정 시 미적용.
+      ...(meta.composition ? { composition: meta.composition } : {}),
       render: {
         shapes: () => [],
       },

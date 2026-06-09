@@ -3,7 +3,6 @@ import {
   ButtonSpec,
   BadgeSpec,
   ToggleButtonSpec,
-  LinkSpec,
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
@@ -103,6 +102,40 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
     };
   }
 
+  /** spec-free catalog type 의 측정 oracle: draw path 와 동일 rule/buildCatalogShapes 경로. */
+  function catalogTextOracle(
+    catalogType: string,
+    sizeName: string,
+    props: Record<string, unknown>,
+  ): { fontSize: number; fontWeight: number; fontFamily: string } | null {
+    const rule = resolveSkiaRule(catalogType);
+    if (!rule) return null;
+    const ruleSize =
+      rule.sizes[sizeName] ?? rule.sizes[rule.defaultSize ?? "md"];
+    if (!ruleSize) return null;
+    const size = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
+    const visual = resolveSkiaVisualRule(
+      catalogType,
+      typeof props.variant === "string" ? props.variant : rule.defaultVariant,
+    );
+    const shapes = buildCatalogShapes(visual, props, size, "default");
+    const t = shapes.find(
+      (s): s is TextShape & { type: "text" } => s.type === "text",
+    );
+    if (!t) return null;
+    const fw = t.fontWeight;
+    return {
+      fontSize: t.fontSize,
+      fontWeight:
+        typeof fw === "number"
+          ? fw
+          : typeof fw === "string"
+            ? parseInt(fw, 10) || 400
+            : 400,
+      fontFamily: t.fontFamily,
+    };
+  }
+
   /**
    * box+text 발효 type — 측정 source 가 buildCatalogShapes 로 전환됨.
    * buildCatalogShapes 가 그리는 text 와 render.shapes 의 text 가 폰트 속성 동일해야 함
@@ -120,8 +153,13 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
       spec: ToggleButtonSpec as ComponentSpec<Record<string, unknown>>,
       size: "md",
     },
-    { tag: "link", spec: LinkSpec, size: "md" },
   ];
+
+  const specFreeCatalogCases: Array<{
+    tag: string;
+    catalogType: string;
+    size: string;
+  }> = [{ tag: "link", catalogType: "Link", size: "md" }];
 
   /**
    * replace-mode skiaPrimitive type — step 2 에서 rule 기반 측정으로 전환됨.
@@ -158,8 +196,30 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
     });
   }
 
+  for (const { tag, catalogType, size } of specFreeCatalogCases) {
+    test(`${tag}: 측정 결과가 catalog rule oracle 과 fontSize/fontWeight/fontFamily 일치`, () => {
+      const props = { size, children: "Sample" };
+      const measured = extractSpecTextStyle(tag, props);
+      const oracle = catalogTextOracle(catalogType, size, props);
+
+      expect(measured, `${tag} measured`).not.toBeNull();
+      expect(oracle, `${tag} oracle`).not.toBeNull();
+      expect(measured!.fontSize, `${tag} fontSize`).toBe(oracle!.fontSize);
+      expect(measured!.fontWeight, `${tag} fontWeight`).toBe(
+        oracle!.fontWeight,
+      );
+      expect(measured!.fontFamily, `${tag} fontFamily`).toBe(
+        oracle!.fontFamily,
+      );
+    });
+  }
+
   test("box+text 발효 type 은 텍스트 측정이 비어있지 않다(fontSize > 0)", () => {
-    for (const { tag } of [...boxTextCutoverCases, ...replacePrimitiveCases]) {
+    for (const { tag } of [
+      ...boxTextCutoverCases,
+      ...replacePrimitiveCases,
+      ...specFreeCatalogCases,
+    ]) {
       const m = extractSpecTextStyle(tag, { size: "md", children: "x" });
       expect(m, tag).not.toBeNull();
       expect(m!.fontSize, tag).toBeGreaterThan(0);

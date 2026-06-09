@@ -21,7 +21,6 @@ import { ButtonSpec } from "../components/Button.spec";
 import { BadgeSpec } from "../components/Badge.spec";
 import { CardSpec } from "../components/Card.spec";
 import { DialogSpec } from "../components/Dialog.spec";
-import { LinkSpec } from "../components/Link.spec";
 import { PopoverSpec } from "../components/Popover.spec";
 import { SeparatorSpec } from "../components/Separator.spec";
 import { TextFieldSpec } from "../components/TextField.spec";
@@ -129,7 +128,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Badge: BadgeSpec,
   Card: CardSpec,
   Dialog: DialogSpec,
-  Link: LinkSpec,
   Popover: PopoverSpec,
   Section: SectionSpec,
   Body: BodySpec,

@@ -7,12 +7,16 @@
  * @see specTextStyle.ts (레이아웃 측정용 — fontSize/fontWeight/fontFamily만)
  */
 
-import type { ComponentSpec, TextShape, Shape } from "@composition/specs";
+import type {
+  ComponentSpec,
+  TextShape,
+  Shape,
+  SizeSpec,
+} from "@composition/specs";
 import {
   ButtonSpec,
   BadgeSpec,
   ToggleButtonSpec,
-  LinkSpec,
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
@@ -22,13 +26,21 @@ import {
   resolveComponentVisual,
 } from "@composition/specs";
 import { isCatalogSkiaCutover } from "@composition/shared";
-import { resolveSkiaVisualRule } from "../canvas/skia/resolveSkiaVisualRule";
+import {
+  resolveSkiaVisualRule,
+  resolveSkiaRule,
+  ruleSizeToSizeSpec,
+} from "../canvas/skia/resolveSkiaVisualRule";
 import type { TextStyleConfig } from "./TextEditOverlay";
 
 const TEXT_BEARING_SPECS: Record<
   string,
   {
-    spec: ComponentSpec<Record<string, unknown>>;
+    /**
+     * 측정 fallback spec. catalog 발효 leaf(catalogType 설정 + spec 미보유)는 생략 —
+     * size/visual/textDecoration 이 catalog rule(resolveSkiaRule)에서 산출되어 spec import 0.
+     */
+    spec?: ComponentSpec<Record<string, unknown>>;
     defaultSize: string;
     /** componentCatalog type (Skia generic 발효 판정). 미설정 = render.shapes 측정 고정. */
     catalogType?: string;
@@ -45,7 +57,7 @@ const TEXT_BEARING_SPECS: Record<
     defaultSize: "md",
     catalogType: "ToggleButton",
   },
-  a: { spec: LinkSpec, defaultSize: "md", catalogType: "Link" },
+  a: { defaultSize: "md", catalogType: "Link" },
   checkbox: { spec: CheckboxSpec, defaultSize: "md", catalogType: "Checkbox" },
   radio: { spec: RadioSpec, defaultSize: "md", catalogType: "Radio" },
   switch: { spec: SwitchSpec, defaultSize: "md", catalogType: "Switch" },
@@ -67,25 +79,46 @@ export function extractFullSpecTextStyle(
   if (!entry) return null;
 
   const { spec } = entry;
-  const sizeName = (props?.size as string) ?? entry.defaultSize;
-  const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
+  const useCatalog =
+    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
+
+  // ADR-912 단계 5 step 5 — overlay size source 의 spec 의존 끊기: catalog 발효 type 은
+  //   resolveSkiaRule(catalogType).sizes(rule 테이블) → ruleSizeToSizeSpec. spec 미보유 leaf
+  //   (catalogType 만 설정)도 이 rule 경로로 size 산출. 비-catalog 만 spec.sizes 유지.
+  const catalogRule = useCatalog
+    ? resolveSkiaRule(entry.catalogType!)
+    : undefined;
+  const sizeName =
+    (props?.size as string) ?? catalogRule?.defaultSize ?? entry.defaultSize;
+  const catalogSize = catalogRule
+    ? (catalogRule.sizes[sizeName] ??
+      catalogRule.sizes[catalogRule.defaultSize ?? entry.defaultSize])
+    : undefined;
+  const size = (
+    catalogSize
+      ? ruleSizeToSizeSpec(catalogSize)
+      : spec
+        ? (spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize])
+        : undefined
+  ) as SizeSpec | undefined;
   if (!size) return null;
 
-  // ADR-912 단계 5 step 2 — overlay 폰트 추출의 spec 의존 끊기: catalog 발효 type 은 rule 기반
+  // ADR-912 단계 5 step 2/5 — overlay 폰트 추출의 spec 의존 끊기: catalog 발효 type 은 rule 기반
   //   buildCatalogShapes(resolveSkiaVisualRule)로 산출(measurement 와 동일 SSOT). catalog
   //   미등록(input 등) 또는 비-발효는 기존 render.shapes 유지(미등록 전용 임시 경로).
   const propsForShapes = props ?? {};
-  const useCatalog =
-    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
   let shapes: Shape[];
   if (useCatalog) {
     const variantName =
-      (propsForShapes.variant as string | undefined) ?? spec.defaultVariant;
+      (propsForShapes.variant as string | undefined) ??
+      catalogRule?.defaultVariant ??
+      spec?.defaultVariant;
     const visual =
       resolveSkiaVisualRule(entry.catalogType!, variantName) ??
-      resolveComponentVisual(spec, variantName);
+      (spec ? resolveComponentVisual(spec, variantName) : undefined);
     const textDecoration =
-      spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
+      catalogRule?.textDecoration ??
+      spec?.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
     shapes = buildCatalogShapes(
       visual,
       propsForShapes,
@@ -93,8 +126,10 @@ export function extractFullSpecTextStyle(
       "default",
       textDecoration && textDecoration !== "none" ? textDecoration : undefined,
     );
-  } else {
+  } else if (spec) {
     shapes = spec.render.shapes(propsForShapes, size, "default");
+  } else {
+    return null;
   }
 
   const textShape = shapes.find(
