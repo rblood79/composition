@@ -165,14 +165,27 @@ ComponentList 를 catalog 파생으로 단순 전환하면 **palette 노출 컴�
 
 따라서 §2-5 #1 은 "ComponentList 를 `catalog.map()` 으로 교체"가 아니라, **(1a) 불일치 9 해소 → (1b) panel `layoutOnly` 필드 + icon string→lucide 매핑 + 파생 전환** 2-step. icon 비대칭(palette 는 lucide 컴포넌트 참조, `panel.icon` 은 string)도 1b 에서 string→lucide 매핑 테이블로 해소.
 
+**불일치 9 발효 판정 완료 (recon wv4xu67t9 + 사용자 결정 2026-06-09)** — 상세 [step4-inventory §2-5-1a](912-step4-unregistered-types-inventory.md):
+
+| 분류                 | type                                                                               | 처리                                                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C-shell 7**        | `AvatarGroup` `Card` `Accordion` `Disclosure` `CardView` `ButtonGroup` `TableView` | catalog entry 등록 (binding=shell-only, escape 0, 시각=generic box). **Disclosure proof 1순위** (SHELL_ONLY 멤버, 가장 작음) → 통과 후 shell 6 확장 |
+| **B-escape 1**       | `Image`                                                                            | 별도 slice (image shape escape 모듈 + cross-check, Avatar 선례)                                                                                     |
+| **E-palette-only 1** | `TailSwatch`                                                                       | catalog 발효 안 함, palette 유지 (color scope 외, 사용자 "패스" — color scope 작업 시 재판단)                                                       |
+
+> **관점 축 분리**: inventory(step4=Skia 시각 source 관점)는 이 shell type 을 "catalog 불필요(generic box)"로 판정했으나, §2-5(collapse=palette 파생 source 관점)는 "entry 필요(없으면 palette 회귀)". 충돌 아니라 다른 축 — entry 등록하되 binding shell-only(시각 source 는 generic box 유지). **probe 오판 2건 정정**: TableView `D-projection`→`C-shell`(2D 순회 0, Table 혼동) / TailSwatch `box-text`→DOM 전담 composite(사용자 패스로 palette-only 확정).
+
 #### §2-5 collapse 실행 분해 (4 step)
 
-| step       | 작업                                                                                                                  | 표면                                                    | 선행        |
-| ---------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------- |
-| **2-5-0**  | 문서 정합 (본 블록) — stale 카운트/전제 정정, 코드 0                                                                  | breakdown + 본문                                        | 없음        |
-| **2-5-1a** | palette↔catalog 불일치 9 해소 — 각 type catalog 발효 가능 vs palette-only 판정 (recon)                                | 9 type 개별 판정 (분석)                                 | 2-5-0       |
-| **2-5-1b** | `panel.layoutOnly?` 필드 + icon string→lucide 매핑 + ComponentList `getCatalogEntries()` 파생 전환 (정적 배열 7 제거) | types.ts + componentCatalog + ComponentList.tsx         | 2-5-1a      |
-| **2-5-2**  | ALIAS 9 정규화 — leaf entry 등록 vs parent sub-part 유지 판정 후 builderAliasMap 제거                                 | builderAliasMap/tagSpecMap + (판정 시) componentCatalog | 독립 (병렬) |
+| step              | 작업                                                                                                                                                     | 표면                                                    | 선행          |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------- |
+| **2-5-0** ✅      | 문서 정합 — stale 카운트/전제 정정, 코드 0                                                                                                               | breakdown + 본문                                        | 없음          |
+| **2-5-1a** ✅     | palette↔catalog 불일치 9 발효 판정 (recon wv4xu67t9) — C-shell 7 + Image 별도 + TailSwatch palette-only                                                  | 9 type 판정 (분석, 코드 0)                              | 2-5-0         |
+| **2-5-1a-proof**  | Disclosure 1개 shell entry 발효 proof (kill criteria: palette 유지 + Skia shell box + DOM 대칭 + spec fallback 0)                                        | componentCatalog Disclosure entry + binding             | 2-5-1a        |
+| **2-5-1a-expand** | shell 6 확장 (AvatarGroup/Card/Accordion/CardView/ButtonGroup/TableView) — proof 패턴, type 별 factory/palette/box 검증                                  | componentCatalog 6 entry                                | 2-5-1a-proof  |
+| **2-5-1a-image**  | Image 별도 slice — image escape 모듈 + cross-check                                                                                                       | Image binding + skiaPrimitive escape                    | 2-5-1a-expand |
+| **2-5-1b**        | `panel.layoutOnly?` 필드 + icon string→lucide 매핑 + ComponentList `getCatalogEntries()` 파생 전환 (정적 배열 7 제거) + TailSwatch palette-only 메커니즘 | types.ts + componentCatalog + ComponentList.tsx         | 2-5-1a-image  |
+| **2-5-2**         | ALIAS 9 정규화 — leaf entry 등록 vs parent sub-part 유지 판정 후 builderAliasMap 제거                                                                    | builderAliasMap/tagSpecMap + (판정 시) componentCatalog | 독립 (병렬)   |
 
 **drift 구조적 불가능 증명 (위 #1·#2 전환 완료 후 성립)**: 6 소비처가 모두 `lookupEntry(type)`(palette 메타 포함) + `resolveComponentRule(type)` + `resolveEditContract(node)` 단일 source 에서 파생하면, 한 컴포넌트의 정의가 두 곳에 따로 존재하지 않는다 → "한쪽만 갱신해서 어긋나는" drift 가 발생할 평행 위치가 없다. ADR-139 게이트(6중복 강제 동기화)는 **불필요해져 졸업**되고 "entry universe = 렌더·Inspector·palette 가 모두 같은 entry set 을 소비"라는 단일 `entryUniverseContract.test.ts` 로 대체(누락 자체가 컴파일·런타임에 불가능하면 게이트도 최소). **단 #1·#2 전환 land 전까지는 ADR-139 게이트 유효 유지**(Verification 6 참조).
 
