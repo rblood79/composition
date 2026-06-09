@@ -435,13 +435,7 @@ export type { ButtonGroupProps } from "./ButtonGroup.spec";
 
 // ─── Phase 3: ADR-030 Extended Controls ──────────────────────────────────────
 
-// ProgressCircle
-export {
-  ProgressCircleSpec,
-  PROGRESSCIRCLE_FILL_COLORS,
-  PROGRESSCIRCLE_DIMENSIONS,
-} from "./ProgressCircle.spec";
-export type { ProgressCircleProps } from "./ProgressCircle.spec";
+// ProgressCircle — ADR-912 단계5: spec 삭제 (catalog cutover + generate-css virtual archetype:progress)
 
 // Image
 export { ImageSpec, IMAGE_DIMENSIONS } from "./Image.spec";

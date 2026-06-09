@@ -105,7 +105,7 @@ import { ToggleButtonSpec } from "../components/ToggleButton.spec";
 import { ToggleButtonGroupSpec } from "../components/ToggleButtonGroup.spec";
 import { TooltipSpec } from "../components/Tooltip.spec";
 import { StatusLightSpec } from "../components/StatusLight.spec";
-import { ProgressCircleSpec } from "../components/ProgressCircle.spec";
+// ADR-912 단계5: ProgressCircleSpec 삭제 — catalog cutover(value_fill_arc escape) + generate-css virtual
 import { SectionSpec } from "../components/Section.spec";
 import { BodySpec } from "../components/Body.spec";
 import { IllustratedMessageSpec } from "../components/IllustratedMessage.spec";
@@ -222,7 +222,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   InlineAlert: InlineAlertSpec,
   ButtonGroup: ButtonGroupSpec,
   StatusLight: StatusLightSpec,
-  ProgressCircle: ProgressCircleSpec,
+  // ADR-912 단계5: ProgressCircle 제거 — catalog cutover spec-free (buildSpecNodeData:908 isCatalogSkiaCutover 게이트)
   IllustratedMessage: IllustratedMessageSpec,
   CardView: CardViewSpec,
   TableView: TableViewSpec,

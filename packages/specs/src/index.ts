@@ -622,12 +622,8 @@ export { ButtonGroupSpec } from "./components/ButtonGroup.spec";
 export type { ButtonGroupProps } from "./components/ButtonGroup.spec";
 
 // ─── Phase 7: ADR-030 Phase 3 Extended Controls ─────────────────────────────
-export {
-  ProgressCircleSpec,
-  PROGRESSCIRCLE_FILL_COLORS,
-  PROGRESSCIRCLE_DIMENSIONS,
-} from "./components/ProgressCircle.spec";
-export type { ProgressCircleProps } from "./components/ProgressCircle.spec";
+// ADR-912 단계5: ProgressCircleSpec/PROGRESSCIRCLE_* 삭제 — catalog cutover(value_fill_arc) +
+//   generate-css virtual 일반화(archetype:progress). diameter 는 layout 인라인 미러로 이관.
 
 export { ImageSpec, IMAGE_DIMENSIONS } from "./components/Image.spec";
 export type { ImageProps } from "./components/Image.spec";

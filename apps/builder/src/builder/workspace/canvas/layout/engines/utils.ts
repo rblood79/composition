@@ -27,7 +27,6 @@ import {
   breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
   PROGRESSBAR_DIMENSIONS,
-  PROGRESSCIRCLE_DIMENSIONS,
   METER_DIMENSIONS,
   STATUSLIGHT_DIMENSIONS,
   resolveListBoxSpacingMetric,
@@ -80,6 +79,17 @@ import {
   parseAspectRatio,
   shouldSetAutoHeightForAspectRatio,
 } from "../../../../utils/aspectRatio";
+
+// ─── ProgressCircle diameter (ADR-912 단계5 — spec 삭제 정합) ──────────────
+// ProgressCircle 은 정원형이라 diameter = componentRulesTable.ProgressCircle.sizes.{...}.height.
+//   기존 PROGRESSCIRCLE_DIMENSIONS(spec export) 의 diameter 와 동일 (sm:24/md:32/lg:64) —
+//   ProgressCircle.spec.ts 삭제(generate-css virtual 일반화)에 맞춰 rule 값 인라인 미러로 전환.
+//   strokeWidth(sm/md:3, lg:4)는 Skia escape(value_fill_arc)+DOM adapter 전용이라 layout 측정 무관.
+const PROGRESSCIRCLE_DIAMETER: Record<string, number> = {
+  sm: 24,
+  md: 32,
+  lg: 64,
+};
 
 // ─── Phantom Indicator 설정 (단일 소스) ─────────────────────────────────
 // Switch/Checkbox/Radio: Preview DOM에는 [indicator + label] 구조이지만
@@ -1033,12 +1043,15 @@ export function calculateContentWidth(
   }
 
   // 1.3. ProgressCircle: diameter 기반 고정 크기
+  //   ADR-912 단계5: spec 삭제(generate-css virtual 일반화) 정합 — diameter = rule.height
+  //   (componentRulesTable.ProgressCircle.sizes.{sm:24,md:32,lg:64} 인라인 미러, 정원형이라 diameter=height).
+  //   strokeWidth 는 Skia escape(value_fill_arc)+DOM adapter 전용이라 layout 측정 무관.
   if (type === "progresscircle") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const dims =
-      PROGRESSCIRCLE_DIMENSIONS[sizeName] ?? PROGRESSCIRCLE_DIMENSIONS.md;
-    return dims.diameter;
+    const diameter =
+      PROGRESSCIRCLE_DIAMETER[sizeName] ?? PROGRESSCIRCLE_DIAMETER.md;
+    return diameter;
   }
 
   // 🚀 ToggleButtonGroup: 자식 버튼 텍스트 크기 합산
@@ -1996,13 +2009,13 @@ export function calculateContentHeight(
     return estimateTextHeight(fontSize, effectiveLineHeight);
   }
 
-  // 2.6a. ProgressCircle: diameter 기반 고정 크기
+  // 2.6a. ProgressCircle: diameter 기반 고정 크기 (ADR-912 단계5 — diameter = rule.height 인라인 미러)
   if (type === "progresscircle") {
     const props = element.props as Record<string, unknown> | undefined;
     const sizeName = String(props?.size ?? "md");
-    const dims =
-      PROGRESSCIRCLE_DIMENSIONS[sizeName] ?? PROGRESSCIRCLE_DIMENSIONS.md;
-    return dims.diameter;
+    const diameter =
+      PROGRESSCIRCLE_DIAMETER[sizeName] ?? PROGRESSCIRCLE_DIAMETER.md;
+    return diameter;
   }
 
   // 2.6. ProgressBar/Meter: spec shapes 기반 높이 계산

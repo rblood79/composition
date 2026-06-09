@@ -47,7 +47,7 @@ import {
   NumberFieldSpec,
   PopoverSpec,
   ProgressBarSpec,
-  ProgressCircleSpec,
+  // ADR-912 단계5: ProgressCircleSpec 삭제 (catalog binding.accepts 가 D2 properties 대체)
   RadioSpec,
   RadioGroupSpec,
   SearchFieldSpec,
@@ -148,7 +148,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   NumberField: NumberFieldSpec as ComponentSpec<Record<string, unknown>>,
   Popover: PopoverSpec as ComponentSpec<Record<string, unknown>>,
   ProgressBar: ProgressBarSpec as ComponentSpec<Record<string, unknown>>,
-  ProgressCircle: ProgressCircleSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 단계5: ProgressCircle 제거 — cutover type 은 GenericPropertyEditor 가
+  //   binding.accepts(PropContract) 로 D2 properties 생성 (spec.properties dead)
   Radio: RadioSpec as ComponentSpec<Record<string, unknown>>,
   RadioGroup: RadioGroupSpec as ComponentSpec<Record<string, unknown>>,
   SearchField: SearchFieldSpec as ComponentSpec<Record<string, unknown>>,

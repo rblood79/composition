@@ -135,9 +135,13 @@ function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
  * TEXT_LEAF 메타상수 — CSS 생성에 필요한 최소 정보만.
  * (name / archetype / element placeholder / containerStyles)
  */
-// box+text leaf 변환 군 — spec 삭제 후 rule+메타 virtual input 으로 CSS 재생성.
-// TEXT_LEAF(Text/Heading/Paragraph/Code/Kbd, step4) + field/form box+text leaf(Description/FieldError, step5).
-// shape 모양(box+text)으로 묶은 동형 변환 — 컴포넌트 이름이 아니라 변환 패턴 단위.
+// catalog virtual CSS 군 — spec 삭제 후 rule+메타 virtual input 으로 CSS 재생성.
+// TEXT_LEAF(Text/Heading/Paragraph/Code/Kbd, step4) + field/form box+text leaf(Description/FieldError, step5)
+//   + Link(box+text, underline composition) + ProgressCircle(progress archetype, virtual 일반화 proof).
+// shape 모양으로 묶은 동형 변환 — 컴포넌트 이름이 아니라 변환 패턴(archetype) 단위.
+// ADR-912 generate-css virtual 일반화(2026-06-09): TEXT_LEAF(text/simple/button archetype) →
+//   progress archetype 확장. ARCHETYPE_BASE_STYLES["progress"] 가 grid-template-areas/.bar/[slot=value]
+//   를 자동 emit 하므로 composition 메타 없이 archetype 값만 맞추면 CSS 재생성됨.
 const TEXT_LEAF_NAMES = new Set([
   "Text",
   "Heading",
@@ -147,6 +151,7 @@ const TEXT_LEAF_NAMES = new Set([
   "Description",
   "FieldError",
   "Link",
+  "ProgressCircle",
 ]);
 
 type TextLeafMeta = {
@@ -229,6 +234,16 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       },
       delegation: [],
     },
+  },
+  // ADR-912 generate-css virtual 일반화 proof — ProgressCircle (progress archetype, ProgressCircle.spec.ts 삭제 대상).
+  //   value-fill 군의 progress archetype 확장 첫 사례. composition 불요 —
+  //   ARCHETYPE_BASE_STYLES["progress"](grid-template-areas/.bar/[slot=value])가 자동 emit.
+  //   diameter/strokeWidth 는 Skia escape(value_fill_arc) + DOM adapter 전용(CSS 미생성)이라 META 불요.
+  {
+    name: "ProgressCircle",
+    archetype: "progress",
+    element: "div",
+    containerStyles: { display: "grid" },
   },
 ];
 
