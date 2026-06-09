@@ -7,11 +7,6 @@ import {
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
-  TextSpec,
-  HeadingSpec,
-  ParagraphSpec,
-  CodeSpec,
-  KbdSpec,
   LabelSpec,
   buildCatalogShapes,
   resolveToken,
@@ -186,9 +181,15 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
  * rule textWeight(Text 400 / Heading 700 / Paragraph 400) 의 결정적 증명.
  */
 describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위험군 해소)", () => {
-  /** spec.render.shapes TextShape 에서 측정 oracle(lineHeight px / fontWeight / fontSize) 추출. */
+  /**
+   * ADR-912 단계5 step4: oracle 을 spec.render.shapes → **catalog rule 기반**
+   * (resolveSkiaRule + buildCatalogShapes)으로 전환. spec 파일 삭제 후에도 동작하며,
+   * measure 함수(extractSpecTextStyle)의 rule wiring(size/variant/textWeight/fontFamily
+   * 해석)이 동일 rule SSOT 를 정확히 소비하는지 검증한다 (rule→buildCatalogShapes 직접 경로
+   * vs measure 경로 일치 = wiring 정합).
+   */
   function textLeafOracle(
-    spec: ComponentSpec<Record<string, unknown>>,
+    catalogType: string,
     sizeName: string,
   ): {
     lineHeight: number;
@@ -196,9 +197,15 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
     fontSize: number;
     fontFamily: string;
   } | null {
-    const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
-    if (!size) return null;
-    const shapes = spec.render.shapes(
+    const rule = resolveSkiaRule(catalogType);
+    if (!rule) return null;
+    const ruleSize =
+      rule.sizes[sizeName] ?? rule.sizes[rule.defaultSize ?? "md"];
+    if (!ruleSize) return null;
+    const size = ruleSizeToSizeSpec(ruleSize) as SizeSpec;
+    const visual = resolveSkiaVisualRule(catalogType, rule.defaultVariant);
+    const shapes = buildCatalogShapes(
+      visual,
       { size: sizeName, children: "Sample" },
       size,
       "default",
@@ -223,33 +230,25 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
     };
   }
 
-  const TEXT_LEAF_CASES: Array<{
-    tag: string;
-    spec: ComponentSpec<Record<string, unknown>>;
-  }> = [
-    { tag: "text", spec: TextSpec as ComponentSpec<Record<string, unknown>> },
-    {
-      tag: "heading",
-      spec: HeadingSpec as ComponentSpec<Record<string, unknown>>,
-    },
-    {
-      tag: "paragraph",
-      spec: ParagraphSpec as ComponentSpec<Record<string, unknown>>,
-    },
+  // tag(measure key) → catalogType (rule 조회 key). measure 함수와 동일 매핑.
+  const TEXT_LEAF_CASES: Array<{ tag: string; catalogType: string }> = [
+    { tag: "text", catalogType: "Text" },
+    { tag: "heading", catalogType: "Heading" },
+    { tag: "paragraph", catalogType: "Paragraph" },
     // box형 mono — fontFamily generic 보강 검증 포함
-    { tag: "code", spec: CodeSpec as ComponentSpec<Record<string, unknown>> },
-    { tag: "kbd", spec: KbdSpec as ComponentSpec<Record<string, unknown>> },
+    { tag: "code", catalogType: "Code" },
+    { tag: "kbd", catalogType: "Kbd" },
   ];
   const TEXT_SIZES = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"];
 
-  for (const { tag, spec } of TEXT_LEAF_CASES) {
+  for (const { tag, catalogType } of TEXT_LEAF_CASES) {
     for (const size of TEXT_SIZES) {
-      test(`${tag} size=${size}: catalog 측정(lineHeight/fontWeight/fontSize)이 spec oracle 과 일치(drift 0)`, () => {
+      test(`${tag} size=${size}: catalog 측정(lineHeight/fontWeight/fontSize)이 rule oracle 과 일치(drift 0)`, () => {
         const measured = extractSpecTextStyle(tag, {
           size,
           children: "Sample",
         });
-        const oracle = textLeafOracle(spec, size);
+        const oracle = textLeafOracle(catalogType, size);
 
         expect(measured, `${tag} ${size} measured`).not.toBeNull();
         expect(oracle, `${tag} ${size} oracle`).not.toBeNull();

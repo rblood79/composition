@@ -10,9 +10,8 @@
 export { ButtonSpec } from "./Button.spec";
 export type { ButtonProps } from "./Button.spec";
 
-// Text
-export { TextSpec } from "./Text.spec";
-export type { TextProps } from "./Text.spec";
+// Text/Heading/Paragraph/Code/Kbd (TEXT_LEAF) — ADR-912 단계5 step4: spec 삭제 대상,
+// catalog rule SSOT 로 이관 완료(측정/CSS/렌더 전부). barrel export 제거.
 
 // Badge
 export { BadgeSpec } from "./Badge.spec";
@@ -393,21 +392,7 @@ export type { LabelProps } from "./Label.spec";
 export { FieldErrorSpec } from "./FieldError.spec";
 export type { FieldErrorProps } from "./FieldError.spec";
 
-// Heading
-export { HeadingSpec } from "./Heading.spec";
-export type { HeadingProps } from "./Heading.spec";
-
-// Paragraph (ADR-058 Phase 3)
-export { ParagraphSpec } from "./Paragraph.spec";
-export type { ParagraphProps } from "./Paragraph.spec";
-
-// Kbd (ADR-058 Phase 3)
-export { KbdSpec } from "./Kbd.spec";
-export type { KbdProps } from "./Kbd.spec";
-
-// Code (ADR-058 Phase 3)
-export { CodeSpec } from "./Code.spec";
-export type { CodeProps } from "./Code.spec";
+// Heading/Paragraph/Kbd/Code (TEXT_LEAF) — ADR-912 단계5 step4: barrel export 제거 (spec 삭제 대상)
 
 // DisclosureHeader
 export { DisclosureHeaderSpec } from "./DisclosureHeader.spec";

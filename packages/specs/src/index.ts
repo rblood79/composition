@@ -238,9 +238,6 @@ export type { ComponentVisualRule } from "./renderers";
 export { ButtonSpec } from "./components/Button.spec";
 export type { ButtonProps } from "./components/Button.spec";
 
-export { TextSpec } from "./components/Text.spec";
-export type { TextProps } from "./components/Text.spec";
-
 export { BadgeSpec } from "./components/Badge.spec";
 export type { BadgeProps } from "./components/Badge.spec";
 
@@ -578,17 +575,7 @@ export type { LabelProps } from "./components/Label.spec";
 export { FieldErrorSpec } from "./components/FieldError.spec";
 export type { FieldErrorProps } from "./components/FieldError.spec";
 
-export { HeadingSpec } from "./components/Heading.spec";
-export type { HeadingProps } from "./components/Heading.spec";
-
-export { ParagraphSpec } from "./components/Paragraph.spec";
-export type { ParagraphProps } from "./components/Paragraph.spec";
-
-export { KbdSpec } from "./components/Kbd.spec";
-export type { KbdProps } from "./components/Kbd.spec";
-
-export { CodeSpec } from "./components/Code.spec";
-export type { CodeProps } from "./components/Code.spec";
+// Heading/Paragraph/Kbd/Code (TEXT_LEAF) — ADR-912 단계5 step4: barrel export 제거 (spec 삭제 대상)
 
 export { DisclosureHeaderSpec } from "./components/DisclosureHeader.spec";
 export type { DisclosureHeaderProps } from "./components/DisclosureHeader.spec";

@@ -18,7 +18,6 @@ import type { ComponentSpec } from "../types/spec.types";
 // apps/builder의 TAG_SPEC_MAP과 유사하나, packages/specs의 내부 concern이며
 // Preview DOM element resolution 용도로 한정된다.
 import { ButtonSpec } from "../components/Button.spec";
-import { TextSpec } from "../components/Text.spec";
 import { BadgeSpec } from "../components/Badge.spec";
 import { CardSpec } from "../components/Card.spec";
 import { DialogSpec } from "../components/Dialog.spec";
@@ -93,10 +92,6 @@ import { SwitcherSpec } from "../components/Switcher.spec";
 import { NavSpec } from "../components/Nav.spec";
 import { LabelSpec } from "../components/Label.spec";
 import { FieldErrorSpec } from "../components/FieldError.spec";
-import { HeadingSpec } from "../components/Heading.spec";
-import { ParagraphSpec } from "../components/Paragraph.spec";
-import { KbdSpec } from "../components/Kbd.spec";
-import { CodeSpec } from "../components/Code.spec";
 import { DisclosureHeaderSpec } from "../components/DisclosureHeader.spec";
 import { DisclosureContentSpec } from "../components/DisclosureContent.spec";
 import { DescriptionSpec } from "../components/Description.spec";
@@ -133,7 +128,6 @@ import { MeterValueSpec } from "../components/MeterValue.spec";
 //      커스텀 태그 문제 해소) + `data-size/variant` 속성 주입 복구.
 export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Button: ButtonSpec,
-  Text: TextSpec,
   Badge: BadgeSpec,
   Card: CardSpec,
   Dialog: DialogSpec,
@@ -224,10 +218,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Nav: NavSpec,
   Label: LabelSpec,
   FieldError: FieldErrorSpec,
-  Heading: HeadingSpec,
-  Paragraph: ParagraphSpec,
-  Kbd: KbdSpec,
-  Code: CodeSpec,
   Description: DescriptionSpec,
   Icon: IconSpec,
   SelectTrigger: SelectTriggerSpec,

@@ -35,7 +35,6 @@ import {
   FormSpec,
   GridListSpec,
   GroupSpec,
-  HeadingSpec,
   IconSpec,
   IllustratedMessageSpec,
   ImageSpec,
@@ -77,7 +76,6 @@ import {
   TreeSpec,
   TreeItemSpec,
   RangeCalendarSpec,
-  TextSpec,
 } from "@composition/specs";
 
 /**
@@ -135,7 +133,6 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Form: FormSpec as ComponentSpec<Record<string, unknown>>,
   GridList: GridListSpec as ComponentSpec<Record<string, unknown>>,
   Group: GroupSpec as ComponentSpec<Record<string, unknown>>,
-  Heading: HeadingSpec as ComponentSpec<Record<string, unknown>>,
   Icon: IconSpec as ComponentSpec<Record<string, unknown>>,
   IllustratedMessage: IllustratedMessageSpec as ComponentSpec<
     Record<string, unknown>
@@ -168,7 +165,6 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   TabList: TabListSpec as ComponentSpec<Record<string, unknown>>,
   TabPanels: TabPanelsSpec as ComponentSpec<Record<string, unknown>>,
   TabPanel: TabPanelSpec as ComponentSpec<Record<string, unknown>>,
-  Text: TextSpec as ComponentSpec<Record<string, unknown>>,
   TextArea: TextAreaSpec as ComponentSpec<Record<string, unknown>>,
   TextField: TextFieldSpec as ComponentSpec<Record<string, unknown>>,
   TimeField: TimeFieldSpec as ComponentSpec<Record<string, unknown>>,
