@@ -11,6 +11,7 @@
 import type {
   ComponentSpec,
   Shape,
+  SizeSpec,
   TextShape,
   TokenRef,
 } from "@composition/specs";
@@ -32,18 +33,17 @@ import {
   MeterValueSpec,
   SliderOutputSpec,
   TabSpec,
-  TextSpec,
-  HeadingSpec,
-  ParagraphSpec,
   DescriptionSpec,
-  KbdSpec,
-  CodeSpec,
   resolveToken,
   buildCatalogShapes,
   resolveComponentVisual,
 } from "@composition/specs";
 import { isCatalogSkiaCutover } from "@composition/shared";
-import { resolveSkiaVisualRule } from "../skia/resolveSkiaVisualRule";
+import {
+  resolveSkiaVisualRule,
+  resolveSkiaRule,
+  ruleSizeToSizeSpec,
+} from "../skia/resolveSkiaVisualRule";
 
 /** Spec shapes에서 추출한 텍스트 스타일 */
 export interface SpecTextStyle {
@@ -74,7 +74,12 @@ export interface SpecTextStyle {
 const TEXT_BEARING_SPECS: Record<
   string,
   {
-    spec: ComponentSpec<Record<string, unknown>>;
+    /**
+     * 측정 fallback spec. **catalog 발효 leaf(catalogType 설정 + spec 미보유)는 생략**한다 —
+     * 측정이 catalog rule(resolveSkiaRule) 기반으로 산출되어 spec import 0 (ADR-912 단계 5
+     * step 2 — 측정 source 의 spec 의존 끊기). catalog 미등록/비-발효 항목만 spec 필수.
+     */
+    spec?: ComponentSpec<Record<string, unknown>>;
     defaultSize: string;
     /** componentCatalog type (Skia generic 발효 판정용). 미설정 = render.shapes 측정 고정. */
     catalogType?: string;
@@ -123,26 +128,23 @@ const TEXT_BEARING_SPECS: Record<
     defaultSize: "md",
   },
   // TEXT_LEAF_TAGS: layout height 가 size→fontSize/lineHeight 를 Skia 와 동일한
-  // render.shapes 경로로 resolve 하도록 등록. (label 은 fullTreeLayout DFS injection
+  // **catalog rule** 경로로 resolve 하도록 등록. (label 은 fullTreeLayout DFS injection
   // 으로 별도 처리되므로 제외)
+  //
+  // ADR-912 단계 5 step 4(element type 폐기 선행 — 측정 source spec 끊기, 2026-06-09):
+  //   Text/Heading/Paragraph/Code/Kbd 는 catalog 발효 leaf → spec 생략. 측정이
+  //   resolveSkiaRule(catalogType) 기반(sizes/defaultVariant/textDecoration 전부 rule)으로
+  //   산출되어 spec import 0. spec 파일 삭제의 선행 조건(measure 경로 의존 절단).
   text: {
-    spec: TextSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
-    // ADR-912 위험군 해소(2026-06-04): Text catalog 등록 → 측정도 rule 기반
-    //   buildCatalogShapes 경로. lineHeight push 보강(buildCatalogShapes)으로 height=0
-    //   TEXT_LEAF 의 fontSize*1.5 fallback drift 해소. spec.render.shapes 측정 의존 끊기.
     catalogType: "Text",
   },
   heading: {
-    spec: HeadingSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
-    // ADR-912 위험군 해소(2026-06-04): Heading catalog 등록 → rule 기반 측정(textWeight 700 포함).
     catalogType: "Heading",
   },
   paragraph: {
-    spec: ParagraphSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
-    // ADR-912 위험군 해소(2026-06-04): Paragraph catalog 등록 → rule 기반 측정(textWeight 400 포함).
     catalogType: "Paragraph",
   },
   description: {
@@ -150,15 +152,11 @@ const TEXT_BEARING_SPECS: Record<
     defaultSize: "md",
   },
   kbd: {
-    spec: KbdSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
-    // ADR-912 위험군 해소(2026-06-04): Kbd catalog 등록 → rule 기반 측정(fontFamily mono + textWeight 400).
     catalogType: "Kbd",
   },
   code: {
-    spec: CodeSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
-    // ADR-912 위험군 해소(2026-06-04): Code catalog 등록 → rule 기반 측정(fontFamily mono + textWeight 400).
     catalogType: "Code",
   },
 };
@@ -184,10 +182,32 @@ export function extractSpecTextStyle(
   if (!entry) return null;
 
   const { spec } = entry;
-  const rawSize = (props?.size as string) ?? entry.defaultSize;
+  const useCatalog =
+    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
+
+  // ADR-912 단계 5 step 4(선행 — 측정 source spec 끊기, 2026-06-09):
+  //   size source 도 builder dispatch(buildSpecNodeData:920-939)와 동일하게 catalog 발효 시
+  //   resolveSkiaRule(catalogType).sizes(rule 테이블) → ruleSizeToSizeSpec 로 산출한다.
+  //   비-catalog 항목만 spec.sizes 유지. spec 미보유 leaf(catalogType 만 설정)는 이 rule
+  //   경로로 size 를 얻어 spec import 0.
+  const catalogRule = useCatalog
+    ? resolveSkiaRule(entry.catalogType!)
+    : undefined;
+  const rawSize =
+    (props?.size as string) ?? catalogRule?.defaultSize ?? entry.defaultSize;
   const sizeName =
     mapKey === "breadcrumb" ? normalizeBreadcrumbRspSizeKey(rawSize) : rawSize;
-  const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
+  const catalogSize = catalogRule
+    ? (catalogRule.sizes[sizeName] ??
+      catalogRule.sizes[catalogRule.defaultSize ?? entry.defaultSize])
+    : undefined;
+  const size = (
+    catalogSize
+      ? ruleSizeToSizeSpec(catalogSize)
+      : spec
+        ? (spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize])
+        : undefined
+  ) as SizeSpec | undefined;
   if (!size) return null;
 
   const propsForShapes: Record<string, unknown> =
@@ -202,32 +222,31 @@ export function extractSpecTextStyle(
         ? { ...props, size: sizeName }
         : { ...(props ?? {}) };
 
-  // ADR-912 단계 5 step 2 — 측정 source 의 spec 의존 끊기 (사용자 결정 2026-06-04):
+  // ADR-912 단계 5 step 2/4 — 측정 source 의 spec 의존 끊기:
   //   catalog 발효 type(catalogType + isCatalogSkiaCutover)은 측정도 **rule 기반**
-  //   buildCatalogShapes 로 산출한다. visual source 를 `resolveComponentVisual(spec)` →
-  //   `resolveSkiaVisualRule(type)`(componentRulesTable rule 파생)으로 전환 — builder
-  //   dispatch(buildSpecNodeData) 와 동일 rule SSOT 를 읽어 측정·그리기 정합 + spec 참조 0.
+  //   buildCatalogShapes 로 산출한다. visual/defaultVariant/textDecoration 전부
+  //   resolveSkiaRule(componentRulesTable rule 파생) — builder dispatch(buildSpecNodeData)와
+  //   동일 rule SSOT 를 읽어 측정·그리기 정합 + spec 참조 0. spec 미보유 leaf 도 동작.
   //
-  // **replace-mode 포함 (checkbox/radio/switch)**: 과거엔 buildCatalogShapes 의 fontWeight
-  //   fallback 500 과 spec label(미emit→400) drift 회피로 render.shapes 측정을 유지했으나,
-  //   단계 5 step 2 에서 Checkbox/Radio/Switch rule variant 에 `textWeight: 400` 을 명시
-  //   (componentRulesTable)하여 rule 측정도 400 산출 → drift 0. hasReplacePrimitive 분기 제거.
-  //   (Badge 는 spec/generic 둘 다 fallback 500 이라 textWeight 불필요 — 기존부터 정합.)
+  // **replace-mode 포함 (checkbox/radio/switch)**: Checkbox/Radio/Switch rule variant 에
+  //   `textWeight: 400` 명시(componentRulesTable)로 rule 측정도 400 산출 → drift 0.
   //
-  // 비-발효(catalog 미등록 sub-part / TEXT_LEAF)는 catalogType 미설정 또는 isCatalogSkiaCutover
-  //   false → 기존 render.shapes 측정 유지 (catalog 미등록 전용 임시 경로, 단계 5 후속 inventory).
-  const useCatalog =
-    entry.catalogType != null && isCatalogSkiaCutover(entry.catalogType);
+  // 비-발효(catalog 미등록 sub-part)는 catalogType 미설정 또는 isCatalogSkiaCutover false →
+  //   spec.render.shapes 측정 유지 (catalog 미등록 전용 임시 경로, 단계 5 후속 inventory).
   let shapes: Shape[];
   if (useCatalog) {
     const variantName =
-      (propsForShapes.variant as string | undefined) ?? spec.defaultVariant;
-    // rule 기반 visual (spec 미참조) — 미존재 시 spec 어댑터로 fallback(variant 없는 type 안전망).
+      (propsForShapes.variant as string | undefined) ??
+      catalogRule?.defaultVariant ??
+      spec?.defaultVariant;
+    // rule 기반 visual (spec 미참조) — 미존재 시 spec 어댑터로 fallback(spec 보유 시 안전망).
     const visual =
       resolveSkiaVisualRule(entry.catalogType!, variantName) ??
-      resolveComponentVisual(spec, variantName);
+      (spec ? resolveComponentVisual(spec, variantName) : undefined);
+    // text-decoration: catalog rule(ComponentRule.textDecoration) 우선, spec.composition fallback.
     const textDecoration =
-      spec.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
+      catalogRule?.textDecoration ??
+      spec?.composition?.rootSelectors?.["&"]?.styles?.["text-decoration"];
     shapes = buildCatalogShapes(
       visual,
       propsForShapes,
@@ -235,8 +254,11 @@ export function extractSpecTextStyle(
       "default",
       textDecoration && textDecoration !== "none" ? textDecoration : undefined,
     );
-  } else {
+  } else if (spec) {
     shapes = spec.render.shapes(propsForShapes, size, "default");
+  } else {
+    // catalog 미발효 + spec 미보유 = 측정 불가 (등록 누락 — 발생 시 caller fallback)
+    return null;
   }
 
   const textShape = shapes.find(
