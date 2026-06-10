@@ -54,8 +54,7 @@ import { PaginationSpec } from "../components/Pagination.spec";
 import { TagGroupSpec } from "../components/TagGroup.spec";
 import { TagSpec } from "../components/Tag.spec";
 import { GridListSpec } from "../components/GridList.spec";
-import { DisclosureSpec } from "../components/Disclosure.spec";
-import { DisclosureGroupSpec } from "../components/DisclosureGroup.spec";
+// ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup spec 삭제. 시각 = catalog rule.
 import { AccordionSpec } from "../components/Accordion.spec";
 import { ModalSpec } from "../components/Modal.spec";
 import { FieldSpec } from "../components/Field.spec";
@@ -90,7 +89,7 @@ import { InputSpec } from "../components/Input.spec";
 import { SwitcherSpec } from "../components/Switcher.spec";
 import { NavSpec } from "../components/Nav.spec";
 import { LabelSpec } from "../components/Label.spec";
-import { DisclosureHeaderSpec } from "../components/DisclosureHeader.spec";
+// ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — DisclosureHeaderSpec 삭제. 시각 = catalog rule.
 // ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
 import { SliderOutputSpec } from "../components/SliderOutput.spec";
 import { IconSpec } from "../components/Icon.spec";
@@ -175,10 +174,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Modal: ModalSpec,
   Field: FieldSpec,
   TailSwatch: TailSwatchSpec,
-  Disclosure: DisclosureSpec,
-  DisclosureGroup: DisclosureGroupSpec,
-  DisclosureHeader: DisclosureHeaderSpec,
-  // ADR-912 단계5 — DisclosureContent spec entry 삭제 (catalog cutover 완결). 시각 = catalog rule.
+  // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/
+  //   DisclosureContent spec entry 삭제 (catalog cutover 완결). 시각 = catalog rule.
   Toolbar: ToolbarSpec,
   Toast: ToastSpec,
   Group: GroupSpec,

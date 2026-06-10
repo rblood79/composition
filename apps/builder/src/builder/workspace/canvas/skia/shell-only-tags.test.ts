@@ -20,12 +20,11 @@ import {
   CardSpec,
   DialogSpec,
   SectionSpec,
-  DisclosureGroupSpec,
+  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   ButtonGroupSpec,
   CheckboxGroupSpec,
   RadioGroupSpec,
   ToggleButtonGroupSpec,
-  DisclosureSpec,
   FormSpec,
   PopoverSpec,
   TooltipSpec,
@@ -46,7 +45,7 @@ const phase1Candidates: Array<{ type: string; spec: AnySpec }> = [
   { type: "Card", spec: CardSpec as unknown as AnySpec },
   { type: "Dialog", spec: DialogSpec as unknown as AnySpec },
   { type: "Section", spec: SectionSpec as unknown as AnySpec },
-  { type: "DisclosureGroup", spec: DisclosureGroupSpec as unknown as AnySpec },
+  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
 ];
 
 // Phase 2-A (Group 컨테이너 — factory items 자동 생성)
@@ -62,7 +61,7 @@ const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [
 
 // Phase 2-B (standalone 실렌더 — factory 자식 CanvasSceneNode가 대체 커버)
 const phase2BCandidates: Array<{ type: string; spec: AnySpec }> = [
-  { type: "Disclosure", spec: DisclosureSpec as unknown as AnySpec },
+  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   { type: "Form", spec: FormSpec as unknown as AnySpec },
   { type: "Popover", spec: PopoverSpec as unknown as AnySpec },
   { type: "Tooltip", spec: TooltipSpec as unknown as AnySpec },

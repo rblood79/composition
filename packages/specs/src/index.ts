@@ -459,11 +459,8 @@ export {
 } from "./components/GridListItem.spec";
 export type { GridListItemProps } from "./components/GridListItem.spec";
 
-export { DisclosureSpec } from "./components/Disclosure.spec";
-export type { DisclosureProps } from "./components/Disclosure.spec";
-
-export { DisclosureGroupSpec } from "./components/DisclosureGroup.spec";
-export type { DisclosureGroupProps } from "./components/DisclosureGroup.spec";
+// ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup spec 삭제.
+//   시각 SSOT = componentRulesTable catalog rule.
 
 export { ToolbarSpec } from "./components/Toolbar.spec";
 export type { ToolbarProps } from "./components/Toolbar.spec";
@@ -574,8 +571,7 @@ export type { LabelProps } from "./components/Label.spec";
 // FieldError/Description (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 // Heading/Paragraph/Kbd/Code (TEXT_LEAF) — ADR-912 단계5 step4: barrel export 제거 (spec 삭제 대상)
 
-export { DisclosureHeaderSpec } from "./components/DisclosureHeader.spec";
-export type { DisclosureHeaderProps } from "./components/DisclosureHeader.spec";
+// ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — DisclosureHeaderSpec 삭제. 시각 SSOT = componentRulesTable.DisclosureHeader.
 
 // ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결, Description 동형).
 //   시각 SSOT = componentRulesTable.DisclosureContent (catalog rule).

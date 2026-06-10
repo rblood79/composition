@@ -201,6 +201,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "disclosure",
     icon: "ChevronDown",
   }),
+  // ADR-912 Disclosure 군 일괄 cutover (2026-06-10): 디스클로저 그룹 컨테이너 (사용자 "Accordion"
+  //   통칭). catalog 등록으로 spec.render.shapes Skia fallback 제거 — 시각은 rule
+  //   (COMPONENT_RULES_TABLE.DisclosureGroup, variants default/accent) + buildCatalogShapes generic
+  //   box+border(SHELL_ONLY shell). DOM=renderDisclosureGroup generic 자식 재귀 (DELEGATING 불필요).
+  primitiveEntry("DisclosureGroup", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "disclosure group",
+    icon: "ChevronDown",
+  }),
   // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source). catalog 등록으로
   //   spec.render.shapes Skia fallback 제거 — 시각은 rule(COMPONENT_RULES_TABLE.InlineAlert, 5 variant)
   //   + buildCatalogShapes generic box+border(shell, render.shapes 가 text 0 → 자식 Element 가

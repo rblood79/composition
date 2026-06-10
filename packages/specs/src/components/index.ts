@@ -330,13 +330,8 @@ export {
 } from "./GridListItem.spec";
 export type { GridListItemProps } from "./GridListItem.spec";
 
-// Disclosure
-export { DisclosureSpec } from "./Disclosure.spec";
-export type { DisclosureProps } from "./Disclosure.spec";
-
-// DisclosureGroup
-export { DisclosureGroupSpec } from "./DisclosureGroup.spec";
-export type { DisclosureGroupProps } from "./DisclosureGroup.spec";
+// Disclosure / DisclosureGroup — ADR-912 Disclosure 군 일괄 cutover (2026-06-10) spec 삭제.
+//   시각 SSOT = componentRulesTable catalog rule.
 
 // Toolbar
 export { ToolbarSpec } from "./Toolbar.spec";

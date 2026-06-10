@@ -25,9 +25,6 @@ import {
   DatePickerSpec,
   DateRangePickerSpec,
   DialogSpec,
-  DisclosureSpec,
-  DisclosureGroupSpec,
-  DisclosureHeaderSpec,
   DropZoneSpec,
   FieldSpec,
   FileTriggerSpec,
@@ -115,16 +112,9 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
     Record<string, unknown>
   >,
   Dialog: DialogSpec as ComponentSpec<Record<string, unknown>>,
-  Disclosure: DisclosureSpec as ComponentSpec<Record<string, unknown>>,
-  DisclosureGroup: DisclosureGroupSpec as ComponentSpec<
-    Record<string, unknown>
-  >,
-  DisclosureHeader: DisclosureHeaderSpec as ComponentSpec<
-    Record<string, unknown>
-  >,
-  // ADR-912 단계5 — DisclosureContentSpec 삭제: 시각 SSOT 는 componentRulesTable.DisclosureContent
-  //   (catalog rule). Skia=buildCatalogShapes(box+text generic), DOM=renderDisclosureContent
-  //   (rendererMap 위임). spec 의존 끊김 (Description 동형).
+  // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/
+  //   DisclosureContent spec 삭제. 시각 SSOT = componentRulesTable 의 4 catalog rule.
+  //   Skia=buildCatalogShapes generic, DOM=rendererMap 위임. spec 의존 끊김 (Description 동형).
   DropZone: DropZoneSpec as ComponentSpec<Record<string, unknown>>,
   Field: FieldSpec as ComponentSpec<Record<string, unknown>>,
   FileTrigger: FileTriggerSpec as ComponentSpec<Record<string, unknown>>,
