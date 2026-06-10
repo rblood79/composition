@@ -505,6 +505,30 @@ function resolveDateInputParent(
   return result;
 }
 
+/**
+ * DisclosureHeader → 부모 Disclosure 의 isExpanded 전파 (chevron 방향 결정).
+ *
+ * ADR-912 Disclosure 버그 수정 (2026-06-10): RAC 공식(react-aria.adobe.com/Disclosure)
+ *   CSS 는 `&[data-expanded] svg { rotate: 90deg }` 로 chevron-right(collapsed) →
+ *   90° 회전(expanded ⌄). Skia 는 transient rotate 미지원(Disclosure.spec.ts:89) →
+ *   isExpanded 에 따라 leadingIcon glyph 자체를 chevron-down(expanded)/chevron-right
+ *   (collapsed)로 전환한다. DisclosureHeader 자식은 isExpanded 를 자기 props 로 안 가지므로
+ *   부모 Disclosure 에서 전파. leadingIcon draw fn(skiaPrimitives.ts)이 props.isExpanded 소비.
+ */
+function resolveDisclosureHeaderParent(
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+): Record<string, unknown> | null {
+  if (element.type !== "DisclosureHeader" || !element.parent_id) return null;
+
+  const parent = elementsMap.get(element.parent_id);
+  if (!parent || parent.type !== "Disclosure") return null;
+
+  const pp = getProps(parent);
+  // isExpanded 기본값 true (binding default) — 명시 false 일 때만 collapsed.
+  return { isExpanded: pp.isExpanded !== false };
+}
+
 /** Label necessity indicator from parent field */
 function resolveLabelNecessity(
   element: CanvasSceneNode,
@@ -996,6 +1020,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   const dateProps = resolveDateInputParent(element, elementsMap);
   if (dateProps) {
     specProps = { ...specProps, ...dateProps };
+  }
+
+  // DisclosureHeader → 부모 Disclosure isExpanded 전파 (chevron 방향)
+  const disclosureHeaderProps = resolveDisclosureHeaderParent(
+    element,
+    elementsMap,
+  );
+  if (disclosureHeaderProps) {
+    specProps = { ...specProps, ...disclosureHeaderProps };
   }
 
   // ADR-912 영역 B (A): render-space projection crumb(appendBreadcrumbRowProjection)은 이미

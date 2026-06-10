@@ -1578,7 +1578,7 @@ export const renderDisclosure = (
   element: PreviewElement,
   context: RenderContext,
 ): React.ReactNode => {
-  const { renderElement } = context;
+  const { renderElement, updateElementProps } = context;
 
   const children = context.childrenByParent.get(element.id) ?? [];
 
@@ -1598,19 +1598,27 @@ export const renderDisclosure = (
     (c) => c.type !== "DisclosureHeader" && c.type !== "Heading",
   );
 
+  const defaultExpanded = Boolean(element.props.isExpanded ?? true);
+
   return (
     <Disclosure
-      key={element.id}
+      // ADR-912 Disclosure 버그 수정 (2026-06-10): uncontrolled defaultExpanded + key 에
+      //   isExpanded 포함. **Why controlled 가 아닌가**: Preview iframe canonical 경로는
+      //   렌더 노드를 canonical store 에서 받고 `context.updateElementProps`(runtimeStore)는
+      //   별개 store 라, controlled isExpanded + onExpandedChange 로는 header 클릭이 canonical
+      //   노드 prop 을 못 바꿔 RAC 가 controlled lock(true 고정)에 걸려 토글 무반응이었다.
+      //   uncontrolled 면 RAC 내부 상태로 header 클릭이 자연 토글된다(RAC 표준). Inspector
+      //   State 토글(store 변경)은 key 에 isExpanded 를 포함해 재마운트로 새 defaultExpanded
+      //   를 반영 — 두 입력(header 클릭 + Inspector 토글) 모두 동작.
+      key={`${element.id}:${defaultExpanded}`}
       id={element.customId}
       data-element-id={element.id}
       title={title}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
-      // ADR-912 Disclosure 버그 수정 (2026-06-10): defaultExpanded(uncontrolled) →
-      //   isExpanded(controlled). store 의 isExpanded 변경(Inspector State 토글)이 즉시
-      //   Preview 에 반영되도록 — uncontrolled 는 초기 마운트 값만 정하고 prop 변경 무반응이라
-      //   토글이 동작하지 않았다. 빌더 미리보기는 정적 편집 대상(SSOT=store) → onExpandedChange
-      //   없이 순수 controlled (Tabs selectedKey 패턴과 동일, chevron 클릭은 Inspector 로 대체).
-      isExpanded={Boolean(element.props.isExpanded ?? true)}
+      defaultExpanded={defaultExpanded}
+      onExpandedChange={(isExpanded) =>
+        updateElementProps(element.id, { isExpanded })
+      }
       style={element.props.style}
       className={element.props.className}
     >

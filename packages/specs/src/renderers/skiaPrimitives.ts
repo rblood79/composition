@@ -1450,10 +1450,20 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     visual?.text ??
     ("{color.neutral-subdued}" as TokenRef);
 
+  // ADR-912 Disclosure 버그 수정 (2026-06-10): chevron 류 leadingIcon 은 isExpanded
+  //   상태에 따라 방향 전환. RAC 공식 CSS 는 `&[data-expanded] svg { rotate: 90deg }`
+  //   (chevron-right → 90° = ⌄) 인데 Skia 는 transient rotate 미지원이라 glyph 자체를
+  //   chevron-down(expanded)/chevron-right(collapsed)로 바꾼다. isExpanded 는 부모
+  //   Disclosure 에서 buildSpecNodeData(resolveDisclosureHeaderParent)가 전파. chevron 류가
+  //   아닌 leadingIcon(다른 컴포넌트)은 li.name 그대로 — 데이터 분기(컴포넌트 식별 없음).
+  const isChevron = li.name === "chevron-right" || li.name === "chevron-down";
+  const iconName =
+    isChevron && props.isExpanded === true ? "chevron-down" : li.name;
+
   return [
     {
       type: "icon_font",
-      iconName: li.name,
+      iconName,
       x: paddingX + iconSize / 2,
       y: height / 2,
       fontSize: iconSize,

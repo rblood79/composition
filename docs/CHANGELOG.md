@@ -15,11 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Inspector State 섹션 Expanded 토글을 끄거나 켜도 좌측 CSS 미리보기와 우측 Skia 캔버스 둘 다 펼침/접힘이 동작하지 않음 (chevron·content 고정)
   - **Why**: 흐름 A(토글 → store)는 정상이었으나 흐름 B(store → 렌더)가 양쪽 경로 모두 isExpanded 무시. (1) DOM `renderDisclosure` 가 `defaultExpanded`(uncontrolled) 사용 → prop 변경이 RAC 내부 expand 상태에 무반응 + `key` 고정으로 재마운트도 없음. (2) Skia 는 isExpanded 기반 DisclosureContent 숨김 로직 자체가 부재 — Disclosure 가 SHELL_ONLY 라 spec.render.shapes 의 isExpanded 분기에 도달 못 하고(`_hasChildren → []`) catalog generic 도 isExpanded 무시. (3) `LAYOUT_PROP_KEYS` 에 `isExpanded` 누락 → isExpanded 만 바뀌면 노드 캐시 시그니처 동일 → 캐시 히트로 레이아웃 재계산 skip. 2026-05-09 부터 존재한 사전 결함(catalog 등록 회귀 아님)
   - 수정:
-    - DOM: `renderDisclosure` `defaultExpanded` → `isExpanded`(controlled) — store 변경이 RAC 패널 숨김(`hidden`)에 즉시 반영. 빌더 미리보기는 정적 편집 대상(SSOT=store)이라 onExpandedChange 없는 순수 controlled (Tabs selectedKey 패턴)
+    - DOM: `renderDisclosure` `defaultExpanded`(uncontrolled) + `key` 에 isExpanded 포함. **controlled 가 아닌 이유**: Preview iframe canonical 경로는 렌더 노드를 canonical store 에서 받고 `context.updateElementProps`(runtimeStore)는 별개 store 라, controlled isExpanded + onExpandedChange 로는 header 클릭이 canonical 노드 prop 을 못 바꿔 RAC 가 controlled lock(고정)에 걸려 header 클릭이 무반응이었다(아래 버그 2). uncontrolled 면 RAC 내부 상태로 header 클릭이 자연 토글되고, Inspector State 토글(store 변경)은 key 재마운트로 새 defaultExpanded 반영 — 두 입력 모두 동작
     - Skia/Layout: `applyImplicitStyles` 에 Disclosure 분기 추가 — isExpanded=false 시 DisclosureContent 자식에 `display:none` 주입 → Taffy 공간 0 + Skia 렌더 skip 동시 처리 (양쪽 시각 결과 동일 = D3 대칭)
     - 캐시: `LAYOUT_PROP_KEYS` 에 `isExpanded` 추가 — isExpanded 변경이 Disclosure 노드 레이아웃 재계산을 트리거
-  - 검증: Skia 양방향 (expanded 230×54 content 표시 ↔ collapsed 230×30 content 숨김) + DOM Publish (ariaExpanded=false + panel hidden) + 콘솔 0
+  - 검증: Skia 양방향 (expanded 230×54 content 표시 ↔ collapsed 230×30 content 숨김) + Inspector 토글 ↔ iframe DOM aria 동기 + 콘솔 0
   - 위치: `LayoutRenderers.tsx::renderDisclosure`, `implicitStyles.ts` (Disclosure 분기), `layoutCache.ts::LAYOUT_PROP_KEYS`
+
+- **Skia 에서 Disclosure expanded 인데 header chevron 이 ›(collapsed 방향)로 그려지던 문제** (버그 1):
+  - expanded 상태인데 Skia 캔버스 chevron 이 ›(우, collapsed) — CSS preview(⌄)와 불일치
+  - **Why**: RAC 공식 CSS 는 `&[data-expanded] svg { rotate: 90deg }`(chevron-right → 90° = ⌄)로 회전. Skia 는 transient rotate 미지원(Disclosure.spec.ts:89)인데 DisclosureHeader leadingIcon rule 이 `chevron-right` 고정 + isExpanded 무전파라 항상 › 로 그림
+  - 수정: (1) `resolveDisclosureHeaderParent` 헬퍼 — DisclosureHeader 가 부모 Disclosure 의 isExpanded 를 specProps 로 전파(resolveDateInputParent 패턴). (2) `leadingIcon` skiaPrimitive — chevron 류(chevron-right/down) 이고 isExpanded=true 면 glyph 를 `chevron-down`(⌄)으로 전환(rotate 대신 glyph 교체, 데이터 분기 — 컴포넌트 식별 없음)
+  - 검증: expanded ⌄ / collapsed › — CSS↔Skia chevron 방향 정합 (Chrome MCP)
+  - 위치: `buildSpecNodeData.ts::resolveDisclosureHeaderParent`, `skiaPrimitives.ts::leadingIcon`
+
+- **CSS preview 에서 Disclosure header 클릭으로 expand/collapse 가 안 되던 문제** (버그 2):
+  - Inspector State 토글은 동작하나(controlled 1차 수정 후) 사용자가 header(Section Title)를 직접 클릭해도 펼침/접힘 무반응 — RAC 표준 disclosure 의 본래 인터랙션(header 클릭) 손실
+  - **Why**: 1차 수정의 순수 controlled `isExpanded` 가 Preview iframe canonical 경로에서 controlled lock 유발 — header 클릭 → RAC onExpandedChange 가 `updateElementProps`(iframe runtimeStore) 호출하나 렌더 노드는 canonical store 출신이라 isExpanded prop 미갱신 → RAC 가 controlled value 고정 유지 → 토글 무시
+  - 수정: 위 DOM 수정(uncontrolled defaultExpanded + key)이 동시 해소 — uncontrolled RAC 가 header 클릭을 내부 상태로 자연 토글. onExpandedChange 는 유지(iframe 로컬 일관성)
+  - 검증: iframe header trigger 클릭 → aria-expanded false→true 토글 + panel 표시 (Chrome MCP)
 
 ## [SliderTrack height 정합 + thumb 렌더 소유권 이전 — Skia] - 2026-06-10
 
