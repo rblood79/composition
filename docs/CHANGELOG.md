@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DisclosureContent block leaf width:auto stretch 에뮬레이션 — Skia 줄바꿈 정합] - 2026-06-10
+
+### Bug Fixes
+
+- **DisclosureContent (block leaf) Skia 줄바꿈 — 부모폭 stretch 미에뮬레이션**:
+  - DisclosureContent(자식 element 없이 `props.children` 텍스트만 가진 block leaf)가 Skia layout 에서 부모 Disclosure 폭으로 stretch 되지 않고 content-hug(텍스트 자연폭) 로 좁게 할당 → 좁은 폭에서 텍스트가 여러 줄로 줄바꿈되어 height 과대 계산. DOM(RAC `DisclosurePanel`)은 `display:block` 으로 부모폭 stretch → 1줄.
+  - **Why**: `enrichWithIntrinsicSize` 의 `needsWidth` 가 flex 자식 TEXT_LEAF 만 width 주입하고 block 자식 TEXT_LEAF 는 누락 → Taffy width 미지정 → content-hug. CSS `width:auto`(및 `width:100%`) block leaf 의 부모 content-box 폭 채움 동작이 Taffy 에 에뮬레이션 안 됨.
+  - 수정: (1) `enrichWithIntrinsicSize` 에 `parentDisplay` 파라미터 + block-stretch 분기 — `parentDisplay==="block"` + TEXT_LEAF + `!isFlexChild` + width(auto/100%/미지정) 시 `width = availableWidth`(부모 content-box) 주입. (2) Step 4.5 (2-pass 교정) 가 block/inline 부모 자식의 content-hug actualWidth 를 신뢰하지 않도록 부모 display 가드 추가 — actualWidth 신뢰는 flex/grid 부모 자식에만 정당.
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (enrichWithIntrinsicSize), `fullTreeLayout.ts` (Step 4.5 가드 + parentDisplay 전달)
+  - 검증: 신규 `disclosureContentIntrinsicSize.test.ts` 8 case + live (Chrome MCP) — DisclosureContent CSS 1줄 ↔ Skia selection box 390×20(1줄) 정합 (이전 content-hug 40×80 4줄 해소)
+
+- **DisclosureContent lineHeight SSOT + 텍스트 leaf 등록** (선행):
+  - `DisclosureContent.spec.ts` sizes 에 lineHeight 토큰(sm=text-xs/md=text-sm 20px/lg=text-base) 추가 + `render.shapes` TextShape lineHeight emit. layout(`calculateContentHeight`)+Skia 가 DOM 상속 lineHeight(20px) 와 동일 px resolve.
+  - `TEXT_LEAF_TAGS` + `TEXT_BEARING_SPECS` 에 `disclosurecontent` 등록 → §4.9/§5 텍스트 경로 진입, spec fontSize/lineHeight 공급.
+  - **Why**: 미등록 시 §8 fallback(fontSize 16 × 1.5 = 24) → DOM(text-sm 14/20) 과 4px drift.
+
 ## [Disclosure Expanded 토글 미동작 수정 — CSS/Skia 양쪽] - 2026-06-10
 
 ### Bug Fixes

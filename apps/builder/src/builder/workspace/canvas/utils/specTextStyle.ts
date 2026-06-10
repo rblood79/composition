@@ -32,6 +32,7 @@ import {
   MeterValueSpec,
   SliderOutputSpec,
   TabSpec,
+  DisclosureContentSpec,
   resolveToken,
   buildCatalogShapes,
   resolveComponentVisual,
@@ -123,6 +124,13 @@ const TEXT_BEARING_SPECS: Record<
   },
   slideroutput: {
     spec: SliderOutputSpec as ComponentSpec<Record<string, unknown>>,
+    defaultSize: "md",
+  },
+  // DisclosureContent: RAC DisclosurePanel(unstyled <div>) 텍스트 — layout height 가
+  //   spec fontSize(text-sm=14)/lineHeight(20) 를 읽어 DOM(22px) ↔ Skia 정합.
+  //   미등록 시 §8 fallback(fontSize 16 × 1.5 = 24)+border → 26px drift.
+  disclosurecontent: {
+    spec: DisclosureContentSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
   },
   // TEXT_LEAF_TAGS: layout height 가 size→fontSize/lineHeight 를 Skia 와 동일한

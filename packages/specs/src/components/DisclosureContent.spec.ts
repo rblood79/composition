@@ -47,11 +47,16 @@ export const DisclosureContentSpec: ComponentSpec<DisclosureContentProps> = {
   },
 
   sizes: {
+    // lineHeight: DOM(RAC DisclosurePanel) 은 fontSize 별 CSS line-height 토큰을
+    //   상속(text-sm → 20px). layout(calculateContentHeight §5)+Skia 가 동일 px 를
+    //   읽도록 spec sizes 에 명시. 누락 시 fontSize*1.5 fallback 으로 DOM(20) ↔
+    //   Skia(24) 4px drift 발생.
     sm: {
       height: 0,
       paddingX: 8,
       paddingY: 4,
       fontSize: "{typography.text-xs}" as TokenRef,
+      lineHeight: "{typography.text-xs--line-height}" as TokenRef,
       borderRadius: "{radius.none}" as TokenRef,
       gap: 0,
     },
@@ -60,6 +65,7 @@ export const DisclosureContentSpec: ComponentSpec<DisclosureContentProps> = {
       paddingX: 12,
       paddingY: 6,
       fontSize: "{typography.text-sm}" as TokenRef,
+      lineHeight: "{typography.text-sm--line-height}" as TokenRef,
       borderRadius: "{radius.none}" as TokenRef,
       gap: 0,
     },
@@ -68,6 +74,7 @@ export const DisclosureContentSpec: ComponentSpec<DisclosureContentProps> = {
       paddingX: 16,
       paddingY: 8,
       fontSize: "{typography.text-base}" as TokenRef,
+      lineHeight: "{typography.text-base--line-height}" as TokenRef,
       borderRadius: "{radius.none}" as TokenRef,
       gap: 0,
     },
@@ -97,13 +104,21 @@ export const DisclosureContentSpec: ComponentSpec<DisclosureContentProps> = {
       const textColor: TokenRef =
         (props.style?.color as TokenRef) ?? ("{color.neutral}" as TokenRef);
 
+      // DOM 정합: RAC DisclosurePanel 은 unstyled <div> 로 padding/margin 0
+      //   (Chrome 실측 padTop/Bottom/Left=0, marTop/Bottom=0). 따라서 Skia 텍스트도
+      //   x=0/y=0 (baseline=top → y 는 텍스트 상단 좌표) 으로 컨테이너 좌상단에 붙여
+      //   DOM 과 시각 대칭. 기존 x:12/y:fontSize 는 top·left 단방향 여백을 만들어
+      //   상하/좌 비대칭(top 여백만 존재, bottom 0)을 유발했다.
       return [
         {
           type: "text" as const,
-          x: 12,
-          y: fontSize,
+          x: 0,
+          y: 0,
           text,
           fontSize,
+          // size.lineHeight (TokenRef) emit — extractSpecTextStyle 의
+          //   resolveShapeLineHeight 가 px 로 변환하여 layout height 가 DOM 과 정합.
+          lineHeight: size.lineHeight as unknown as number,
           fontFamily: ff,
           fontWeight: 400,
           fill: textColor,

@@ -3336,6 +3336,10 @@ export const TEXT_LEAF_TAGS = new Set([
   // ADR-058 Phase 3: 신설 Kbd/Code spec이 렌더하는 lowercase 시맨틱 태그
   "kbd",
   "code",
+  // DisclosureContent: 자식 element 없이 props.children(텍스트)만 — TEXT_LEAF 경로로
+  //   §4.9 wrap + §5 lineHeight resolve 진입. extractSpecTextStyle(disclosurecontent)
+  //   가 spec fontSize/lineHeight 를 공급해 DOM 정합 (22px).
+  "disclosurecontent",
 ]);
 
 /** intrinsic 크기 키워드 — height/width에서 enrichWithIntrinsicSize가 개입해야 하는 값 */
@@ -3394,6 +3398,10 @@ export function enrichWithIntrinsicSize(
   childElements?: CanvasLayoutNode[],
   getChildElements?: (id: string) => CanvasLayoutNode[],
   isFlexChild?: boolean,
+  // 부모 display — block leaf 텍스트의 CSS `width:auto` stretch(부모 content-box
+  //   폭 채움) 에뮬레이션 판정용. "block" 일 때만 block-stretch width 주입.
+  //   미전달(undefined) caller 는 block-stretch 미발동(안전 no-op).
+  parentDisplay?: string,
 ): CanvasLayoutNode {
   const style = element.props?.style as Record<string, unknown> | undefined;
   const type = (element.type ?? "").toLowerCase();
@@ -3418,8 +3426,22 @@ export function enrichWithIntrinsicSize(
   // Block layout에서는 자동 stretch되지만, Flex layout에서는 Taffy가 content size를
   // 알 수 없어 width=0으로 처리함 (Checkbox/Radio/Switch 내부 Label 세로 출력 버그)
   // Image: replaced element — auto/fit-content 시 자연 치수 사용 필요
+  //
+  // block leaf stretch (DisclosureContent 등): block 부모의 TEXT_LEAF 자식은 CSS 상
+  //   `width:auto`(및 `width:100%`)가 부모 content-box 폭으로 stretch 되지만, Taffy 는
+  //   width 미지정 시 content-hug(텍스트 자연폭) 로 좁게 할당 → 부모 폭보다 작은 폭에서
+  //   텍스트가 줄바꿈 되어 height 가 과대 계산됨 (body padding 55+ 에서 DisclosureContent
+  //   20px→40px 버그). 부모가 block 이고 stretch 대상 width(auto/100%/미지정)일 때만 발동
+  //   — flex/grid 자식(isFlexChild / parentDisplay!=="block") 또는 명시 px/intrinsic
+  //   keyword(fit-content 등)는 기존 hug 동작 유지.
+  const needsBlockLeafStretch =
+    !isFlexChild &&
+    parentDisplay === "block" &&
+    TEXT_LEAF_TAGS.has(type) &&
+    (!rawWidth || rawWidth === "auto" || rawWidth === "100%");
   const needsWidth =
     hasExplicitIntrinsicWidthKeyword ||
+    needsBlockLeafStretch ||
     (INLINE_BLOCK_TAGS.has(type) &&
       (!rawWidth || INTRINSIC_SIZE_KEYWORDS.has(rawWidth as string))) ||
     (isFlexChild &&
@@ -3576,7 +3598,14 @@ export function enrichWithIntrinsicSize(
           )
         : box.contentWidth;
   const baseContentWidth = resolvedIntrinsicWidth ?? childResolvedWidth;
-  if (needsWidth && baseContentWidth > 0) {
+  if (needsBlockLeafStretch && availableWidth > 0) {
+    // block leaf stretch: 부모 content-box 폭(availableWidth) 을 그대로 주입.
+    //   availableWidth 는 estimateChildAvailableSize 가 부모 padding/border 를 이미
+    //   차감한 content area 이므로 자식 border-box width = availableWidth (재가산 금지).
+    //   baseContentWidth(content-hug ~텍스트 자연폭) 사용 시 Taffy 가 좁은 폭으로
+    //   할당 → 줄바꿈 → height 과대. minWidth 미설정(flex-shrink 무관, block flow).
+    injectedStyle.width = Math.ceil(availableWidth);
+  } else if (needsWidth && baseContentWidth > 0) {
     let injectWidth = baseContentWidth;
     injectWidth += box.padding.left + box.padding.right;
     injectWidth += box.border.left + box.border.right;
