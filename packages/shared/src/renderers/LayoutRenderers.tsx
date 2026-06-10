@@ -1605,7 +1605,12 @@ export const renderDisclosure = (
       data-element-id={element.id}
       title={title}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
-      defaultExpanded={Boolean(element.props.isExpanded ?? true)}
+      // ADR-912 Disclosure 버그 수정 (2026-06-10): defaultExpanded(uncontrolled) →
+      //   isExpanded(controlled). store 의 isExpanded 변경(Inspector State 토글)이 즉시
+      //   Preview 에 반영되도록 — uncontrolled 는 초기 마운트 값만 정하고 prop 변경 무반응이라
+      //   토글이 동작하지 않았다. 빌더 미리보기는 정적 편집 대상(SSOT=store) → onExpandedChange
+      //   없이 순수 controlled (Tabs selectedKey 패턴과 동일, chevron 클릭은 Inspector 로 대체).
+      isExpanded={Boolean(element.props.isExpanded ?? true)}
       style={element.props.style}
       className={element.props.className}
     >

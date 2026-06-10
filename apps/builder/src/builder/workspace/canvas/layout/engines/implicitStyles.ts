@@ -2064,6 +2064,29 @@ export function applyImplicitStyles(
     });
   }
 
+  // ── Disclosure collapse ───────────────────────────────────────────
+  // ADR-912 Disclosure 버그 수정 (2026-06-10): isExpanded=false 면 DisclosureContent
+  //   자식에 display:none 주입 → Taffy 레이아웃에서 공간 0 (utils.ts:1552) + Skia 렌더
+  //   skip (buildSkiaNodeData.ts:74) 동시 처리. **Why**: Disclosure 는 SHELL_ONLY 라
+  //   spec.render.shapes 의 isExpanded 분기(콘텐츠 패널 display:none)에 도달 못 하고
+  //   (_hasChildren → return []), catalog generic 도 isExpanded 무시 → 자식
+  //   DisclosureContent 가 collapse 와 무관하게 항상 그려졌다. DOM(renderDisclosure)은
+  //   별도로 isExpanded(controlled) 전환으로 RAC 가 패널 숨김 — 양쪽 시각 대칭.
+  //   isExpanded 기본값 true(binding default) → 명시 false 일 때만 숨긴다.
+  if (containerTag === "disclosure" && containerProps?.isExpanded === false) {
+    filteredChildren = filteredChildren.map((child) => {
+      if (child.type !== "DisclosureContent") return child;
+      const cs = (child.props?.style || {}) as Record<string, unknown>;
+      return {
+        ...child,
+        props: {
+          ...child.props,
+          style: { ...cs, display: "none" },
+        },
+      } as CanvasLayoutNode;
+    });
+  }
+
   return {
     effectiveParent,
     filteredChildren,

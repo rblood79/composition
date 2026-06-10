@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Disclosure Expanded 토글 미동작 수정 — CSS/Skia 양쪽] - 2026-06-10
+
+### Bug Fixes
+
+- **Disclosure Properties 의 State → Expanded 토글이 CSS·Skia preview 모두 반영 안 되던 문제**:
+  - Inspector State 섹션 Expanded 토글을 끄거나 켜도 좌측 CSS 미리보기와 우측 Skia 캔버스 둘 다 펼침/접힘이 동작하지 않음 (chevron·content 고정)
+  - **Why**: 흐름 A(토글 → store)는 정상이었으나 흐름 B(store → 렌더)가 양쪽 경로 모두 isExpanded 무시. (1) DOM `renderDisclosure` 가 `defaultExpanded`(uncontrolled) 사용 → prop 변경이 RAC 내부 expand 상태에 무반응 + `key` 고정으로 재마운트도 없음. (2) Skia 는 isExpanded 기반 DisclosureContent 숨김 로직 자체가 부재 — Disclosure 가 SHELL_ONLY 라 spec.render.shapes 의 isExpanded 분기에 도달 못 하고(`_hasChildren → []`) catalog generic 도 isExpanded 무시. (3) `LAYOUT_PROP_KEYS` 에 `isExpanded` 누락 → isExpanded 만 바뀌면 노드 캐시 시그니처 동일 → 캐시 히트로 레이아웃 재계산 skip. 2026-05-09 부터 존재한 사전 결함(catalog 등록 회귀 아님)
+  - 수정:
+    - DOM: `renderDisclosure` `defaultExpanded` → `isExpanded`(controlled) — store 변경이 RAC 패널 숨김(`hidden`)에 즉시 반영. 빌더 미리보기는 정적 편집 대상(SSOT=store)이라 onExpandedChange 없는 순수 controlled (Tabs selectedKey 패턴)
+    - Skia/Layout: `applyImplicitStyles` 에 Disclosure 분기 추가 — isExpanded=false 시 DisclosureContent 자식에 `display:none` 주입 → Taffy 공간 0 + Skia 렌더 skip 동시 처리 (양쪽 시각 결과 동일 = D3 대칭)
+    - 캐시: `LAYOUT_PROP_KEYS` 에 `isExpanded` 추가 — isExpanded 변경이 Disclosure 노드 레이아웃 재계산을 트리거
+  - 검증: Skia 양방향 (expanded 230×54 content 표시 ↔ collapsed 230×30 content 숨김) + DOM Publish (ariaExpanded=false + panel hidden) + 콘솔 0
+  - 위치: `LayoutRenderers.tsx::renderDisclosure`, `implicitStyles.ts` (Disclosure 분기), `layoutCache.ts::LAYOUT_PROP_KEYS`
+
 ## [SliderTrack height 정합 + thumb 렌더 소유권 이전 — Skia] - 2026-06-10
 
 ### Bug Fixes

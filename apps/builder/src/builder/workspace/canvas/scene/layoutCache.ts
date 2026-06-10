@@ -142,6 +142,11 @@ const LAYOUT_PROP_KEYS = [
   "formatOptions",
   "showValueLabel",
   "valueLabel",
+  // ADR-912 Disclosure 버그 수정 (2026-06-10): Disclosure isExpanded 변경이 자식
+  //   DisclosureContent 의 display:none 주입(applyImplicitStyles)을 트리거하도록 캐시
+  //   시그니처에 포함. 누락 시 isExpanded 만 바뀌면 노드 시그니처 동일 → 캐시 히트로
+  //   레이아웃 재계산 skip → collapse 가 Skia/layout 에 반영 안 됨.
+  "isExpanded",
 ];
 
 function serializeLayoutRelevantValue(value: unknown): string {
