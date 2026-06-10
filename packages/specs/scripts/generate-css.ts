@@ -171,6 +171,7 @@ const TEXT_LEAF_NAMES = new Set([
   "Icon",
   "StatusLight",
   "TabPanel",
+  "MenuItem",
 ]);
 
 type TextLeafMeta = {
@@ -449,6 +450,23 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     states: {
       disabled: { opacity: 0.38, pointerEvents: "none" },
       focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  // ADR-912 simple catalog 발효 — MenuItem (MenuItem.spec.ts 삭제 대상).
+  //   archetype "simple": ARCHETYPE_BASE_STYLES["simple"](display:inline-flex/center/box-sizing)
+  //   자동 emit. Skia shapes=[] — CSS 전용. paddingX/paddingY/gap 은 rule sizes 에서 emit.
+  //   states = hover(background:{color.layer-1}) + focusVisible(focus-ring) + disabled(opacity+pointerEvents).
+  //   spec.containerStyles={ display:"inline-flex", alignItems:"center" } 미러.
+  {
+    name: "MenuItem",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    // MenuItem.spec.ts states 미러: hover(background), focusVisible, disabled.
+    states: {
+      hover: { background: "{color.layer-1}" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+      disabled: { opacity: 0.38, pointerEvents: "none" },
     },
   },
 ];
