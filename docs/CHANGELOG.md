@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DisclosureGroup preview 미표시 + 자식 토글 미동작 수정 — RAC 정합] - 2026-06-10
+
+### Bug Fixes
+
+- **DisclosureGroup 이 preview CSS(DOM) 에서 빈 컨테이너로 렌더되어 자식 Disclosure 가 안 보이던 문제**:
+  - DisclosureGroup 을 캔버스에 추가하면 내부 Disclosure 들이 preview 에 표시되지 않음(빈 box). Disclosure 단독은 정상
+  - **Why**: DisclosureGroup 은 catalog cutover 된 internal binding 인데 `INTERNAL_RENDERERS` 에 `disclosuregroup` 키가 없고 `DELEGATING_INTERNAL_RENDERERS` 에도 없어, generic 일반 rendererMap 위임으로 떨어졌다. `renderDisclosureGroup` 은 `context.childrenByParent.get(id)` 로 자식을 받는데 canonical 렌더 경로의 childrenByParent 가 비어 있어 자식 0개로 렌더됨
+  - 수정: `disclosuregroup` 을 `DELEGATING_INTERNAL_RENDERERS` 에 등록 → `flattenNodeChildrenByParent` 보강 위임으로 자식 Disclosure 렌더(disclosure/breadcrumbs 동형). 위치: `CanonicalNodeRenderer.tsx`
+
+- **DisclosureGroup 내부 Disclosure 의 title 이 "Section" fallback + panel 이 빈 내용이던 문제**:
+  - 자식이 표시된 후에도 header 제목이 원본("Section 1")이 아닌 "Section" fallback, content 영역 비어 있음
+  - **Why**: delegating renderer 가 자식을 `context.renderElement(child)` 로 렌더할 때, 보강된 childrenByParent 가 1단계(Group→Disclosure)에서만 효과 있고 2단계(Disclosure→Header/Content)에서 끊겼다. 원본 `renderElement` 가 보강 안 된 context 를 캡처 → `renderDisclosure` 가 자기 Header/Content 를 못 찾아 title/content 추출 실패
+  - 수정: `buildNodeByIdMap` 헬퍼 + delegated context 의 `renderElement` 를 자식을 CanonicalNodeRenderer 로 재귀시키는 함수로 교체 → 각 자식이 자기 서브트리 flatten 보강을 받음. 위치: `CanonicalNodeRenderer.tsx`
+
+- **DisclosureGroup 내부 Disclosure 가 header 클릭 시 열리지만 다시 닫히지 않던 문제**:
+  - 그룹 내 Disclosure header 클릭 → 1회는 expand 되나 재클릭 시 collapse 안 됨(한 방향 토글)
+  - **Why**: RAC 소스(`Disclosure.tsx`) 확인 — 그룹 내부 Disclosure 는 `groupState.expandedKeys.has(id)` 가 isExpanded/defaultExpanded 를 override 하고 토글은 `groupState.toggleKey(id)` 로 그룹이 관리한다. 그런데 `renderDisclosure` 가 그룹 내부에서도 `key={id:defaultExpanded}` 로 재마운트(독립 Disclosure 용 2026-06-10 수정) → 1차 토글 후 store isExpanded 변경 → 재마운트 → RAC 내부 상태/id 흔들림 → 2차 `toggleKey` 가 어긋나 close 안 됨
+  - 수정: `renderDisclosure` 가 부모 type(`context.elementsById.get(parent_id)`)로 그룹 멤버십 판정 → 그룹 내부면 key 에서 defaultExpanded 제외(재마운트 금지) + 개별 defaultExpanded 미전달(그룹이 override). `renderDisclosureGroup` 이 자식 isExpanded 를 그룹 `defaultExpandedKeys`(customId 키)로 전달해 초기 expansion 관리
+  - 검증: Chrome MCP 실제 클릭 — Section 1/2 title·content 정상, header 클릭 expand↔collapse 양방향 토글, 각 Disclosure 독립 토글(allowsMultipleExpanded), 콘솔 0
+  - 위치: `LayoutRenderers.tsx::renderDisclosure / renderDisclosureGroup`, `DisclosureGroup.binding.ts`(주석 정정)
+
 ## [Accordion 컴포넌트 제거 (DisclosureGroup 중복) + DisclosureGroup binding 누락 수정] - 2026-06-10
 
 ### Bug Fixes

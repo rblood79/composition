@@ -1524,6 +1524,20 @@ export const renderDisclosureGroup = (
 
   const children = context.childrenByParent.get(element.id) ?? [];
 
+  // ADR-912 Disclosure 군 cutover 후속 (2026-06-10): RAC DisclosureGroup 은 자식 Disclosure 의
+  //   expansion 을 `expandedKeys`(controlled) / `defaultExpandedKeys`(uncontrolled) + 각 Disclosure
+  //   의 id 로 관리한다(RAC Disclosure.tsx: `groupState.expandedKeys.has(id)`). renderDisclosure 가
+  //   id={child.customId} 로 RAC Disclosure 를 렌더하므로, 그룹 초기 expansion 도 customId 키로
+  //   defaultExpandedKeys 에 전달한다. uncontrolled 라 header 클릭 토글은 그룹 상태머신이 양방향
+  //   관리(toggleKey) → 열고 닫기 모두 동작. (controlled expandedKeys 는 canonical 노드 prop 을
+  //   header 클릭이 못 바꿔 lock 되므로 미사용 — Disclosure 단독 수정과 동일 사유.)
+  const defaultExpandedKeys = children
+    .filter(
+      (c) => c.type === "Disclosure" && Boolean(c.props?.isExpanded ?? true),
+    )
+    .map((c) => c.customId)
+    .filter((id): id is string => Boolean(id));
+
   return (
     <DisclosureGroup
       key={element.id}
@@ -1534,6 +1548,7 @@ export const renderDisclosureGroup = (
       allowsMultipleExpanded={Boolean(
         element.props.allowsMultipleExpanded ?? true,
       )}
+      defaultExpandedKeys={defaultExpandedKeys}
       style={element.props.style}
       className={element.props.className}
     >
@@ -1572,22 +1587,29 @@ export const renderDisclosure = (
 
   const defaultExpanded = Boolean(element.props.isExpanded ?? true);
 
+  // ADR-912 Disclosure 군 cutover 후속 (2026-06-10): 그룹 멤버십 판정.
+  //   RAC 소스(Disclosure.tsx) 확인 — 그룹 내부 Disclosure 는 `groupState.expandedKeys.has(id)` 가
+  //   isExpanded/defaultExpanded 를 override 하고, 토글은 `groupState.toggleKey(id)` 로 그룹이 관리한다.
+  //   따라서 그룹 내부에선 (1) 개별 defaultExpanded 무의미(그룹이 제어) (2) key 에 defaultExpanded 를
+  //   넣어 재마운트하면 RAC 내부 상태/id 가 흔들려 toggleKey 가 깨짐(열린 뒤 닫히지 않음). 그룹 초기
+  //   expansion 은 renderDisclosureGroup 이 defaultExpandedKeys 로 그룹에 전달한다.
+  const parentEl = element.parent_id
+    ? context.elementsById.get(element.parent_id)
+    : undefined;
+  const isInGroup = parentEl?.type === "DisclosureGroup";
+
   return (
     <Disclosure
-      // ADR-912 Disclosure 버그 수정 (2026-06-10): uncontrolled defaultExpanded + key 에
-      //   isExpanded 포함. **Why controlled 가 아닌가**: Preview iframe canonical 경로는
-      //   렌더 노드를 canonical store 에서 받고 `context.updateElementProps`(runtimeStore)는
-      //   별개 store 라, controlled isExpanded + onExpandedChange 로는 header 클릭이 canonical
-      //   노드 prop 을 못 바꿔 RAC 가 controlled lock(true 고정)에 걸려 토글 무반응이었다.
-      //   uncontrolled 면 RAC 내부 상태로 header 클릭이 자연 토글된다(RAC 표준). Inspector
-      //   State 토글(store 변경)은 key 에 isExpanded 를 포함해 재마운트로 새 defaultExpanded
-      //   를 반영 — 두 입력(header 클릭 + Inspector 토글) 모두 동작.
-      key={`${element.id}:${defaultExpanded}`}
+      // 독립 Disclosure: uncontrolled defaultExpanded + key 에 isExpanded 포함(Inspector State
+      //   토글을 재마운트로 반영, header 클릭은 RAC 내부 상태로 동작 — 2026-06-10 수정).
+      //   그룹 내부: key 에 defaultExpanded 제외(재마운트 금지 — 그룹 expandedKeys 상태머신 보존) +
+      //   defaultExpanded 미전달(그룹이 override). id 는 안정적 customId 로 toggleKey 키 고정.
+      key={isInGroup ? element.id : `${element.id}:${defaultExpanded}`}
       id={element.customId}
       data-element-id={element.id}
       title={title}
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
-      defaultExpanded={defaultExpanded}
+      {...(isInGroup ? {} : { defaultExpanded })}
       onExpandedChange={(isExpanded) =>
         updateElementProps(element.id, { isExpanded })
       }

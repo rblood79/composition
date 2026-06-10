@@ -13,10 +13,13 @@ import type { PrimitiveBinding } from "../types";
  *   sizes sm/md/lg borderRadius)가 동일 shell 시각 제공 → spec shell 과 시각 대칭, buildCatalogShapes
  *   미수정. (Disclosure 동형 — recon wf_bc9f6ff9-4fc parity PASS)
  *
- * **DOM = renderDisclosureGroup generic 재귀 (DELEGATING 불필요)**: renderDisclosureGroup
- *   (LayoutRenderers.tsx:1547)은 자식을 `childrenByParent` 에서 받아 그대로 renderElement 재귀한다
- *   (title 추출/콘텐츠 분리 같은 self-compose 없음 — Disclosure 와 다른 점). 따라서 generic
- *   `<RAC.DisclosureGroup>{childNodes 재귀}` 로 동일 동작 → DELEGATING_INTERNAL_RENDERERS 등록 불필요.
+ * **DOM = renderDisclosureGroup 위임 (DELEGATING_INTERNAL_RENDERERS 등록 필수)**: renderDisclosureGroup
+ *   (LayoutRenderers.tsx)은 자식을 `context.childrenByParent.get(id)` 에서 받아 `<DisclosureGroup>`
+ *   안에 renderElement 재귀한다. canonical 렌더 경로(CanonicalNodeRenderer)의 renderContext.childrenByParent
+ *   는 preview elements state 기반이라 **비어 있어**, generic 일반 rendererMap 위임으로는 DisclosureGroup
+ *   이 자식 0개 빈 컨테이너로 렌더된다(CSS preview 미표시). 따라서 `disclosuregroup` 을
+ *   DELEGATING_INTERNAL_RENDERERS 에 등록해 flattenNodeChildrenByParent 보강 위임을 받아야 자식
+ *   Disclosure 가 정상 렌더된다(disclosure/breadcrumbs 동형 — 2026-06-10 fix).
  *   allowsMultipleExpanded / variant / size 는 accepts → toRacProps(data-* 라우팅)로 전달.
  *
  * D1: composition — RAC DisclosureGroup(div, role 없음, expandedKeys 관리) D1/ARIA 권위 보존.

@@ -164,6 +164,14 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   자식 재귀로는 title 추출/콘텐츠 분리가 깨지므로 rendererMap 위임(자식 재귀 skip). Skia 는
   //   SHELL_ONLY generic 빈 shell(자식 DisclosureHeader/Content 가 각자 렌더).
   "disclosure",
+  // ADR-912 Disclosure 군 cutover 후속 (2026-06-10): disclosuregroup — renderDisclosureGroup 이
+  //   `context.childrenByParent.get(id)` 로 자식 Disclosure 들을 받아 `<DisclosureGroup>` 안에 재귀
+  //   렌더한다. INTERNAL_RENDERERS 에 "disclosuregroup" 키가 없고 generic 일반 rendererMap 위임은
+  //   childrenByParent 보강(flattenNodeChildrenByParent) 없이 위임하므로, canonical 렌더 경로에서
+  //   renderContext.childrenByParent 가 비어 있어 DisclosureGroup 이 자식 0개 빈 컨테이너로 렌더됐다
+  //   (CSS preview 미표시). disclosure 와 동일하게 DELEGATING 등록 → flattenNodeChildrenByParent
+  //   보강 위임으로 자식 Disclosure 정상 렌더. Skia 는 SHELL_ONLY generic shell(자식 각자 렌더).
+  "disclosuregroup",
 ]);
 
 /**
@@ -223,6 +231,25 @@ function flattenNodeChildrenByParent(
       );
     }
     for (const child of children) visit(child);
+  };
+  visit(root);
+  return map;
+}
+
+/**
+ * ADR-912 Disclosure 군 cutover 후속 (2026-06-10): 서브트리의 id → ResolvedNode lookup.
+ *
+ * delegating renderer(renderDisclosureGroup 등)가 자식을 `context.renderElement(child)` 로
+ * 렌더할 때, 그 자식을 다시 CanonicalNodeRenderer 로 재귀시켜 **각 자식이 자기 서브트리의
+ * flattenNodeChildrenByParent 보강을 받도록** 하기 위한 매핑. childrenByParent 보강이 1단계
+ * (DisclosureGroup→Disclosure)에서만 작동하고 2단계(Disclosure→Header/Content)에서 끊기던
+ * 결함(그룹 내 Disclosure title="Section" fallback + panel 빈 내용)을 해소한다.
+ */
+function buildNodeByIdMap(root: ResolvedNode): Map<string, ResolvedNode> {
+  const map = new Map<string, ResolvedNode>();
+  const visit = (node: ResolvedNode): void => {
+    map.set(node.id, node);
+    for (const child of node.children ?? []) visit(child);
   };
   visit(root);
   return map;
@@ -318,9 +345,39 @@ export function CanonicalNodeRenderer({
       const delegatedRenderer = rendererMap[adaptedEl.type];
       if (delegatedRenderer) {
         const delegatedChildrenByParent = flattenNodeChildrenByParent(node);
+        // ADR-912 Disclosure 군 cutover 후속 (2026-06-10): child-context 재귀 전파.
+        //   delegating renderer 가 자식을 `context.renderElement(child)` 로 렌더할 때, 그 자식을
+        //   CanonicalNodeRenderer 로 되돌려 **각 자식이 자기 서브트리 flatten 보강을 받도록** 한다.
+        //   childrenByParent 보강만으로는 1단계(부모→자식)에서만 효과 있고 2단계(자식→손주)에서
+        //   끊긴다(원본 renderElement 는 보강 안 된 context 를 캡처). DisclosureGroup→Disclosure→
+        //   Header/Content 의 title 추출/콘텐츠 분리가 깨지던 결함 해소(renderDisclosure 가 자기
+        //   childrenByParent.get 으로 Header/Content 를 찾아야 하므로 자식도 canonical 재귀 필요).
+        const nodeById = buildNodeByIdMap(node);
+        const recursiveRenderElement = (
+          el: SharedPreviewElement,
+          key?: string,
+        ): React.ReactNode => {
+          const childNode = nodeById.get(el.id);
+          if (childNode && childNode.id !== node.id) {
+            return (
+              <CanonicalNodeRenderer
+                key={key ?? childNode.id}
+                node={childNode}
+                renderContext={renderContext}
+                parentPath={currentPath}
+                cutoverPrimitives={cutoverPrimitives}
+              />
+            );
+          }
+          // node 트리에 없는 경우(예외) 원본 경로 fallback.
+          return (
+            renderContext as unknown as SharedRenderContext
+          ).renderElement(el, key);
+        };
         const delegatedRenderContext = {
           ...(renderContext as unknown as SharedRenderContext),
           childrenByParent: delegatedChildrenByParent,
+          renderElement: recursiveRenderElement,
         } as SharedRenderContext;
         return (
           <div key={node.id} {...markerProps} style={{ display: "contents" }}>
