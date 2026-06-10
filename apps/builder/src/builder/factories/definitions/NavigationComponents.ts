@@ -66,8 +66,23 @@ export function createNavDefinition(
       type: "Nav",
       props: {
         label: "Navigation",
+        // ADR-912 Nav catalog cutover 후속 (2026-06-11): 자식(Link/Button) 가로 배치 layout 을
+        //   props.style 로 명시 — container layout(flex/gap/padding)은 ADR-907 Layer B 로 props.style
+        //   이 SSOT (catalog rule 의 gap/padding 은 leaf inset 전용, layout 제외). 미주입 시 CSS 는
+        //   Nav.css(.react-aria-Nav)로 보이나 Skia/Taffy 는 props.style 만 읽어 gap/padding 0 → 자식
+        //   붙음(Skia↔CSS 비대칭). Pagination definition 동형 패턴. gap/padding = Nav.css md size 미러
+        //   (gap 12 / padding 12px 16px), store longhand 정책으로 rowGap/columnGap + padding 4-way.
         style: {
           width: "100%",
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          rowGap: 12,
+          columnGap: 12,
+          paddingTop: 12,
+          paddingRight: 16,
+          paddingBottom: 12,
+          paddingLeft: 16,
         },
       } as ComponentElementProps,
       parent_id: parentId,

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Nav 컴포넌트 catalog cutover 완결 + Skia↔CSS gap 비대칭 수정 — ADR-912] - 2026-06-11
+
+### Bug Fixes
+
+- **Nav 의 자식(Link/Button)이 Skia(Canvas)에서 간격 없이 붙어 CSS preview 와 불일치하던 문제**:
+  - Compare Mode 에서 Nav 를 보면 CSS preview 는 "Home About Contact" 가 gap(12px)으로 배치되나 Skia 는 "HomeAboutContact" 로 붙고 padding 미적용 (사용자 보고 2026-06-11)
+  - **Why**: Nav 는 자식을 가진 컨테이너인데 factory(`createNavDefinition`)가 `props.style` 에 `width:100%` 만 넣고 layout(display:flex/gap/padding)을 누락. CSS 는 `react-aria-Nav` generated CSS(Nav.css)로 gap/padding 이 적용되지만, Skia/Taffy 는 컨테이너 layout 을 `element.props.style` 에서만 읽는다(catalog rule 의 gap/padding 은 ADR-907 Layer B 로 leaf inset 전용·layout 제외). props.style 에 gap/padding 이 없어 Taffy 가 0 처리 → 자식 붙음. spec 삭제와 무관한 기존 구조적 비대칭(spec 있을 때도 Nav 는 catalog cutover 라 Skia 가 spec.render.shapes 미참조)
+  - 수정: `createNavDefinition` 의 `props.style` 에 `display:flex / flexDirection:row / alignItems:center` + store longhand 정책의 `rowGap/columnGap:12` + `paddingTop/Right/Bottom/Left:12/16/12/16`(Nav.css md size 미러) 주입. CSS↔Skia 둘 다 `props.style` 단일 source 에서 layout 을 읽어 시각 대칭 복구. Pagination definition 동형 패턴(ADR-907 Layer B 정합)
+  - 검증: Chrome MCP Compare Mode — 새 Nav 추가 시 CSS(columnGap:12px·padding:12px 16px·실측 gap 12px)와 Skia(자식 Link 동일 gap 배치) 시각 일치 확인. 콘솔 에러 0
+  - 위치: `apps/builder/src/builder/factories/definitions/NavigationComponents.ts::createNavDefinition`
+
+### Architecture
+
+- **Nav 컴포넌트 spec 제거 — container shell catalog cutover 완결 (ADR-912)**:
+  - Nav 는 `cutover:"catalog"`(FAMILY_1_CUTOVER) 컴포넌트로 Skia 는 이미 spec-free(`isCatalogSkiaCutover` generic box)였으나 DOM/CSS 만 `NavSpec` 생성 CSS 에 의존(미완 cutover). Link/Description/ProgressCircle 선례와 동형으로 시각을 catalog rule + generate-css virtual 로 이전 후 spec 삭제
+  - 이전: catalog rule(`componentRulesTable.ts` Nav)에 `paddingY`/`gap`(sm:8/8, md:12/12, lg:16/16) 보강 + `ComponentRuleSize` 스키마에 `paddingY?` 필드 추가 + `ruleSizeToSizeSpec`(generate-css.ts)에 gap 변환 추가. generate-css virtual `TEXT_LEAF_NAMES`/`TEXT_LEAF_META` 에 Nav(archetype:"default") 등록 → `Nav.css` 재생성 **diff 0**(spec 부재 fresh build 에서도 동일)
+  - 제거: `Nav.spec.ts` 삭제 + 소비처 4곳 절단(`index.ts`/`components/index.ts` export, `tagToElement.ts` 매핑, `specRegistry.ts` PROPERTY_EDITOR_SPEC_MAP). Skia 진입 게이트 2곳(`buildSpecNodeData.ts:932`, `StoreRenderBridge isSpecPath`)은 `isCatalogSkiaCutover` OR 조건으로 이미 spec-free 견딤(변경 0)
+  - 위치: `packages/specs/src/components/Nav.spec.ts`(삭제) 외 6 파일 (commit `6e5260311`)
+
 ## [DisclosureGroup preview 미표시 + 자식 토글 미동작 수정 — RAC 정합] - 2026-06-10
 
 ### Bug Fixes
