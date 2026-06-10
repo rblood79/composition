@@ -506,12 +506,6 @@ export function registerSharedComponents(): void {
     displayName: "ButtonGroup",
     category: "input",
   });
-  registerComponent("Accordion", {
-    component: DisclosureGroup as ComponentType<Record<string, unknown>>,
-    displayName: "Accordion",
-    category: "layout",
-  });
-
   // Phase 3: Extended Controls (ADR-030)
   registerComponent("ProgressCircle", {
     component: createHtmlElement("div"),

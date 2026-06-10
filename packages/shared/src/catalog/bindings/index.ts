@@ -206,6 +206,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   없음, hasVisibleBg=false). DOM=rendererMap.renderDisclosure 위임(DELEGATING_INTERNAL_RENDERERS,
   //   self-compose title 추출 + expand/collapse 보존). ProgressBar/Tabs 동형 위임 패턴.
   Disclosure: disclosureBinding,
+  // ADR-912 Disclosure 군 일괄 cutover (2026-06-10): 디스클로저 그룹 컨테이너 (사용자 "Accordion"
+  //   통칭, Accordion type 은 중복으로 제거됨 2026-06-10). SHELL_ONLY → buildCatalogShapes generic
+  //   box+border(rule COMPONENT_RULES_TABLE.DisclosureGroup). DOM=renderDisclosureGroup generic
+  //   자식 재귀(DELEGATING 불필요). allowsMultipleExpanded/variant/size 는 accepts → toRacProps.
+  DisclosureGroup: disclosureGroupBinding,
   // family ② fields
   TextField: textFieldBinding,
   // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)

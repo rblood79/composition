@@ -1428,7 +1428,7 @@ export const renderInlineAlert = (
   );
 };
 
-// ==================== Phase 2: Action/Group/Accordion (ADR-030) ====================
+// ==================== Phase 2: Action/Group (ADR-030) ====================
 
 /**
  * ButtonGroup 렌더링
@@ -1509,34 +1509,6 @@ export const renderNav = (
     >
       {children.map((child) => renderElement(child, child.id))}
     </nav>
-  );
-};
-
-/**
- * Accordion 렌더링
- * React Aria DisclosureGroup 기반 — Accordion = DisclosureGroup
- */
-export const renderAccordion = (
-  element: PreviewElement,
-  context: RenderContext,
-): React.ReactNode => {
-  const { renderElement } = context;
-
-  const children = context.childrenByParent.get(element.id) ?? [];
-
-  return (
-    <DisclosureGroup
-      key={element.id}
-      id={element.customId}
-      data-element-id={element.id}
-      allowsMultipleExpanded={Boolean(
-        element.props.allowsMultipleExpanded ?? false,
-      )}
-      style={element.props.style}
-      className={element.props.className}
-    >
-      {children.map((child) => renderElement(child, child.id))}
-    </DisclosureGroup>
   );
 };
 

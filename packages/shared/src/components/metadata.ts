@@ -1100,18 +1100,6 @@ export const componentMetadata: ComponentMeta[] = [
       supportedEvents: [],
     },
   },
-  {
-    type: "Accordion",
-    label: "Accordion",
-    category: "Layout",
-    icon: "",
-    inspector: {
-      hasCustomEditor: false,
-      dataBindingType: null,
-      // React Aria: onExpandedChange
-      supportedEvents: ["onExpandedChange"],
-    },
-  },
 
   // Phase 3: Extended Controls (ADR-030)
   {

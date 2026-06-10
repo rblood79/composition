@@ -642,7 +642,6 @@ export type { TableViewProps } from "./components/TableView.spec";
 
 // Properties-only Specs
 export { FieldSpec } from "./components/Field.spec";
-export { AccordionSpec } from "./components/Accordion.spec";
 export { ModalSpec } from "./components/Modal.spec";
 export { TailSwatchSpec } from "./components/TailSwatch.spec";
 

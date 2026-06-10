@@ -238,8 +238,8 @@ export const EVENT_METADATA: Record<EventType, EventMetadata> = {
     description: "확장/축소 상태가 변경되었을 때 발생",
     usage: "50%",
     category: "reactAria",
-    compatibleWith: ["Disclosure", "DisclosureGroup", "Tree", "Accordion"],
-    example: "아코디언 섹션 열림 → 콘텐츠 로드",
+    compatibleWith: ["Disclosure", "DisclosureGroup", "Tree"],
+    example: "디스클로저 섹션 열림 → 콘텐츠 로드",
   },
   onRemove: {
     label: "항목 제거",
@@ -315,7 +315,6 @@ export const COMPONENT_RECOMMENDED_EVENTS: Record<string, EventType[]> = {
   Popover: ["onOpenChange"],
   Disclosure: ["onExpandedChange"],
   DisclosureGroup: ["onExpandedChange"],
-  Accordion: ["onExpandedChange"],
 
   // Color
   ColorArea: ["onChange", "onChangeEnd"],

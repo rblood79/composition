@@ -15,31 +15,6 @@
 import type { ComponentRulesTable } from "../../types/composition-document.types";
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
-  Accordion: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-    },
-    sizes: {
-      md: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 0,
-      },
-    },
-  },
   Avatar: {
     defaultVariant: "default",
     defaultSize: "md",

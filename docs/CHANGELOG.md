@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Accordion 컴포넌트 제거 (DisclosureGroup 중복) + DisclosureGroup binding 누락 수정] - 2026-06-10
+
+### Bug Fixes
+
+- **DisclosureGroup 요소 선택 시 Properties 패널이 `Cannot read properties of undefined (reading 'props')` 로 크래시되던 문제**:
+  - DisclosureGroup 을 선택하면 `resolveEditContract.ts:217` 에서 `entry.binding.props.accepts` 읽기 직전 TypeError → Properties 패널 렌더 실패
+  - **Why**: 직전 Disclosure 군 catalog cutover(`b537f6322`) 에서 `DisclosureGroup.binding.ts` 는 작성·import·export 됐으나 `PRIMITIVE_BINDINGS` lookup map 에 `DisclosureGroup: disclosureGroupBinding` 엔트리가 누락. `getPrimitiveBinding("DisclosureGroup")` → undefined → `primitiveEntry` 가 `binding: undefined` 인 primitive entry 생성 → `resolveEditContract` 가 `entry.binding.props` 접근 시 폭발. cutover 당시엔 팔레트에 DisclosureGroup 항목이 없어(Accordion 만 존재) 선택 경로가 닫혀 있어 표면화 안 됨
+  - 수정: `bindings/index.ts` 의 `PRIMITIVE_BINDINGS` 에 `DisclosureGroup: disclosureGroupBinding` 추가. 동일 패턴 sweep 으로 catalog 등록 72 type ↔ binding map 72 key 완전 일치 확인(다른 누락 0건)
+  - 검증: Chrome MCP — DisclosureGroup 생성·선택 시 Properties 패널이 Allow Multiple Expanded / Variant(Default·Accent) / Size(S·M·L) 필드 정상 렌더 + 콘솔 에러 0
+  - 위치: `packages/shared/src/catalog/bindings/index.ts::PRIMITIVE_BINDINGS`
+
+### Architecture
+
+- **Accordion 컴포넌트 전면 제거 — DisclosureGroup 과 중복**:
+  - Accordion 은 `renderAccordion` ≡ `renderDisclosureGroup` (둘 다 `<DisclosureGroup>` 자식 재귀), factory 도 "Accordion = DisclosureGroup 확장" 으로 RAC DisclosureGroup 의 별칭에 불과(RAC 레퍼런스 "DisclosureGroup ... sometimes called an accordion"). DisclosureGroup 이 이미 catalog cutover 로 등록되어 Accordion 은 불필요한 중복
+  - 제거: `Accordion.spec.ts` + generated `Accordion.css` 삭제. 참조 청산 — specs export/tagToElement, componentRulesTable rule 엔트리, ComponentTag union(116→115), metadata, renderer(`renderAccordion` + rendererMap), factory 3종(ComponentFactory/constants/DisplayComponents `createAccordionDefinition`), unified.types(interface+union+default props+map), specRegistry, eventCategories, i18n 2파일(4언어), publish ComponentRegistry, factoryOwnership.test
+  - 팔레트: ComponentList 의 `Accordion` 항목을 `DisclosureGroup` 항목으로 교체 — accordion 추가 기능은 보존(`createDisclosureGroupDefinition` 이 Disclosure 2개 + Header/Content 동등 구조 생성), 단일 canonical type 으로 통일. 하위 호환 마이그레이션은 미수행(Accordion 은 내부 신규 type, 실사용 프로젝트 없음)
+  - 검증: Chrome MCP — DisclosureGroup 팔레트 생성 → preview DOM 정상 + 중복/고아 요소 0 + Accordion type 0
+  - 위치: `packages/specs/src/components/Accordion.spec.ts`(삭제) 외 21 파일
+
 ## [Disclosure Expanded 토글 미동작 수정 — CSS/Skia 양쪽] - 2026-06-10
 
 ### Bug Fixes

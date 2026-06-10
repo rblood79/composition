@@ -71,7 +71,6 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "CardView",
   "TableView",
   // S2 확장
-  "Accordion",
   "Nav",
   "Navigation",
   "AvatarGroup",

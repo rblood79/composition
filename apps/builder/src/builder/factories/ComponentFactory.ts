@@ -80,7 +80,6 @@ import {
   createStatusLightDefinition,
   createInlineAlertDefinition,
   createButtonGroupDefinition,
-  createAccordionDefinition,
   createProgressBarDefinition,
   createMeterDefinition,
   createProgressCircleDefinition,
@@ -159,7 +158,6 @@ export class ComponentFactory {
     InlineAlert: ComponentFactory.createInlineAlert,
     // ⭐ Display Components (Phase 2)
     ButtonGroup: ComponentFactory.createButtonGroup,
-    Accordion: ComponentFactory.createAccordion,
     // ⭐ Display Components (Phase 3)
     ProgressBar: ComponentFactory.createProgressBar,
     Meter: ComponentFactory.createMeter,
@@ -573,12 +571,6 @@ export class ComponentFactory {
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
     return this.createComponent(createButtonGroupDefinition, context);
-  }
-
-  private static async createAccordion(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createAccordionDefinition, context);
   }
 
   // ==================== Display Components (Phase 3) ====================

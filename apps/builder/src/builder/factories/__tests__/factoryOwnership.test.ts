@@ -35,7 +35,6 @@ vi.mock("../../../lib/db", () => ({
 import {
   createAvatarDefinition,
   createAvatarGroupDefinition,
-  createAccordionDefinition,
   createProgressBarDefinition,
 } from "../definitions/DisplayComponents";
 import {
@@ -257,48 +256,6 @@ describe("P3-D-1: factory ownership 제거", () => {
 
       // Assert
       expect(def.parent.parent_id).toBe("progressbar-parent-xyz");
-    });
-  });
-
-  describe("createAccordionDefinition", () => {
-    it("3-depth 중첩 자식(Disclosure > DisclosureHeader/Content) 에도 ownership 필드 없다", () => {
-      // Arrange
-      const ctx = makeContext(makeMockParent());
-
-      // Act
-      const def = createAccordionDefinition(ctx);
-
-      // Assert — 재귀적으로 모든 depth 검증
-      assertNoOwnerFields(
-        def as unknown as Record<string, unknown>,
-        "accordion",
-      );
-    });
-
-    it("부모 Accordion element 에 page_id 없다", () => {
-      // Arrange
-      const ctx = makeContext(makeMockParent());
-
-      // Act
-      const def = createAccordionDefinition(ctx);
-
-      // Assert
-      expect(Object.prototype.hasOwnProperty.call(def.parent, "page_id")).toBe(
-        false,
-      );
-    });
-
-    it("부모 Accordion element 에 layout_id 없다", () => {
-      // Arrange
-      const ctx = makeContext(makeMockParent());
-
-      // Act
-      const def = createAccordionDefinition(ctx);
-
-      // Assert
-      expect(
-        Object.prototype.hasOwnProperty.call(def.parent, "layout_id"),
-      ).toBe(false);
     });
   });
 
@@ -701,7 +658,6 @@ describe("P3-D-1: factory ownership 제거", () => {
         createAvatarDefinition,
         createAvatarGroupDefinition,
         createProgressBarDefinition,
-        createAccordionDefinition,
         createTextFieldDefinition,
         createFormDefinition,
         createCheckboxGroupDefinition,
@@ -726,7 +682,6 @@ describe("P3-D-1: factory ownership 제거", () => {
       const syncFactories = [
         createAvatarGroupDefinition,
         createProgressBarDefinition,
-        createAccordionDefinition,
         createTextFieldDefinition,
         createFormDefinition,
         createCheckboxGroupDefinition,

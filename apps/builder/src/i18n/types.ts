@@ -102,7 +102,6 @@ export interface TranslationKeys {
     nav: string;
     scrollBox: string;
     maskedFrame: string;
-    accordion: string;
     cardView: string;
     slot: string;
     // Buttons

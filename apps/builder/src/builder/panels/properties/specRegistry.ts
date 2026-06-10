@@ -1,6 +1,5 @@
 import type { ComponentSpec } from "@composition/specs";
 import {
-  AccordionSpec,
   AvatarSpec,
   CardSpec,
   AvatarGroupSpec,
@@ -83,7 +82,6 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   string,
   ComponentSpec<Record<string, unknown>>
 > = {
-  Accordion: AccordionSpec as ComponentSpec<Record<string, unknown>>,
   Avatar: AvatarSpec as ComponentSpec<Record<string, unknown>>,
   AvatarGroup: AvatarGroupSpec as ComponentSpec<Record<string, unknown>>,
   Badge: BadgeSpec as ComponentSpec<Record<string, unknown>>,

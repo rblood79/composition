@@ -134,7 +134,7 @@ function pickNumeric<T extends object>(
   //   해석 후 숫자 추출. 기존 숫자 케이스는 그대로 통과 (회귀 0).
   // ADR-145 fix: `height === 0` / `width === 0` 는 컴포넌트 spec 에서 "intrinsic 결정"
   //   marker (Body.spec line 59 "auto — 페이지/컨테이너 크기가 결정" / ListBox·ListBoxItem·
-  //   Accordion·Badge·ButtonGroup 등 다수). Style Panel `TransformSection` 의 toStr 가
+  //   DisclosureGroup·Badge·ButtonGroup 등 다수). Style Panel `TransformSection` 의 toStr 가
   //   inline 없으면 specDefault 표시 → 0px 로 잘못 표시되는 회귀. dimension 축 (width/height/
   //   min/max) 의 0 은 specDefault 에서 제외 → fallback "auto" 표시 + inline 편집 정상.
   //   padding/gap/margin 의 0 은 valid (LAYOUT_KEYS 별도 호출, 영향 없음).

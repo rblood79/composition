@@ -91,7 +91,7 @@ const layoutComp = [
   { type: "Link", label: "link", icon: Link },
   { type: "Nav", label: "navigation", icon: Menu },
   { type: "MaskedFrame", label: "masked frame", icon: Frame },
-  { type: "Accordion", label: "accordion", icon: ChevronDown },
+  { type: "DisclosureGroup", label: "disclosure group", icon: ChevronDown },
   { type: "Disclosure", label: "disclosure", icon: ChevronDown },
   { type: "CardView", label: "card view", icon: Grid },
   { type: "Slot", label: "slot", icon: Layers, layoutOnly: true },

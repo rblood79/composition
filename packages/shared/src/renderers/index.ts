@@ -84,11 +84,10 @@ export const rendererMap: Record<
   //   (react-aria-InlineAlert + data-variant/data-size + generated CSS + staticAttrs role="alert").
   //   rendererMap 위임을 제거해야 CanonicalNodeRenderer L234 가 가로채지 않고 L248 generic 으로 떨어진다.
   //   renderInlineAlert 함수는 LayoutRenderers 에 보존(다른 호출처 없으면 step 4 에서 정리).
-  // Phase 2: Action/Group/Accordion (ADR-030)
+  // Phase 2: Action/Group (ADR-030)
   ButtonGroup: LayoutRenderers.renderButtonGroup,
   Nav: LayoutRenderers.renderNav,
   Navigation: LayoutRenderers.renderNav,
-  Accordion: LayoutRenderers.renderAccordion,
   Disclosure: LayoutRenderers.renderDisclosure,
   DisclosureHeader: LayoutRenderers.renderDisclosureHeader,
   DisclosureContent: LayoutRenderers.renderDisclosureContent,
