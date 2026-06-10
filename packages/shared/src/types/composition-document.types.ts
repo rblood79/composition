@@ -230,6 +230,11 @@ export interface ComponentRuleSize {
    * variant-level gap(icon↔text)과 별개 — 본 필드는 size-level layout gap.
    */
   gap?: number | string;
+  /**
+   * icon ↔ text CSS 변수 `--icon-gap` base (ADR-912 box+text leaf — Button 등 spec.sizes.iconGap 이전).
+   * generate-css virtual 이 `--icon-gap: {iconGap}px` 로 emit. iconSize(--icon-size)와 대칭.
+   */
+  iconGap?: number | string;
 }
 
 /** 단일 컴포넌트의 시각 규칙. */

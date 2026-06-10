@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { ButtonSpec } from "../../components/Button.spec";
 import type { ComponentSpec, SizeSpec, TokenRef } from "../../types";
 import { buildCatalogShapes } from "../buildCatalogShapes";
 import { resolveComponentVisual } from "../utils/resolveComponentVisual";
-import { normalizeParityShapes } from "./normalizeParityShapes";
+
+// ADR-912 box+text leaf 군 (2026-06-11): Button.spec 삭제 → render.shapes parity oracle 소멸.
+//   첫 describe(ButtonSpec parity)는 제거(catalog 가 유일 정본, CSS diff 0 으로 시각 동등 입증).
+//   둘째 describe(fillFixtureSpec generic fillStyle 소비)는 인라인 fixture 기반이라 보존.
 
 /**
  * ADR-142 G2(b) B — buildCatalogShapes 는 spec-free(visual rule 주입형). 테스트는 specs 내부
@@ -63,83 +65,29 @@ const fixtureSize = {
 } as unknown as SizeSpec;
 
 /**
- * ADR-142 #5 increment (a) — generic shape-descriptor 생성기 parity.
- *
- * buildCatalogShapes 는 per-component render.shapes 를 대체하는 generic 생성기.
- * box+text leaf primitive 의 공통 경로(bg roundRect + border + text-only)에 대해
- * ButtonSpec.render.shapes 출력과 동일해야 한다(parity oracle).
- *
- * cutover leaf Button(#7 binding)은 icon/fillStyle 을 받지 않으므로
- * (아이콘 Button=reusable, fillStyle deferred) 공통 경로만 검증 대상.
+ * box+text leaf 공통 경로(label 우선 / shell) generic 검증 — 인라인 fixture 기반(spec-free).
+ *   Button.spec 삭제 후 parity oracle 대신 buildCatalogShapes 자체 동작을 직접 단언.
  */
-describe("buildCatalogShapes — ADR-142 #5 generic box+text shape 생성기", () => {
-  const md = ButtonSpec.sizes.md;
-
-  it("primary Button default — render.shapes 와 parity (bg+border+text)", () => {
-    const props = { children: "OK" } as Record<string, unknown>;
-    const expected = ButtonSpec.render.shapes(
-      props as Parameters<typeof ButtonSpec.render.shapes>[0],
-      md,
-      "default",
-    );
-    const actual = callCatalog(ButtonSpec, props, md, "default");
-    expect(normalizeParityShapes(actual)).toEqual(
-      normalizeParityShapes(expected),
-    );
-  });
-
-  it("hover state — render.shapes 와 parity (state별 fill)", () => {
-    const props = { children: "OK" } as Record<string, unknown>;
-    const expected = ButtonSpec.render.shapes(
-      props as Parameters<typeof ButtonSpec.render.shapes>[0],
-      md,
-      "hover",
-    );
-    const actual = callCatalog(ButtonSpec, props, md, "hover");
-    expect(normalizeParityShapes(actual)).toEqual(
-      normalizeParityShapes(expected),
-    );
-  });
-
-  it("_hasChildren shell — text 없이 bg(+border)만 반환", () => {
-    const props = { children: "OK", _hasChildren: true } as Record<
-      string,
-      unknown
-    >;
-    const expected = ButtonSpec.render.shapes(
-      props as Parameters<typeof ButtonSpec.render.shapes>[0],
-      md,
-      "default",
-    );
-    const actual = callCatalog(ButtonSpec, props, md, "default");
-    expect(actual).toEqual(expected);
-    expect(actual.some((s) => s.type === "text")).toBe(false);
-  });
-
-  it("variant 지정 (secondary) — render.shapes 와 parity", () => {
-    const props = { children: "Go", variant: "secondary" } as Record<
-      string,
-      unknown
-    >;
-    const expected = ButtonSpec.render.shapes(
-      props as Parameters<typeof ButtonSpec.render.shapes>[0],
-      md,
-      "default",
-    );
-    const actual = callCatalog(ButtonSpec, props, md, "default");
-    expect(normalizeParityShapes(actual)).toEqual(
-      normalizeParityShapes(expected),
-    );
-  });
-
+describe("buildCatalogShapes — box+text generic 공통 경로", () => {
   it("label 이 legacy children 보다 우선한다", () => {
     const shapes = callCatalog(
-      ButtonSpec,
-      { label: "Actions", children: "Legacy" },
-      md,
+      fillFixtureSpec,
+      { label: "Actions", children: "Legacy", variant: "primary" },
+      fixtureSize,
       "default",
     );
     expect(shapes.find((s) => s.type === "text")?.text).toBe("Actions");
+  });
+
+  it("_hasChildren shell — text 없이 bg(+border)만 반환", () => {
+    const shapes = callCatalog(
+      fillFixtureSpec,
+      { children: "OK", variant: "primary", _hasChildren: true },
+      fixtureSize,
+      "default",
+    );
+    expect(shapes.some((s) => s.type === "text")).toBe(false);
+    expect(shapes.some((s) => s.type === "roundRect")).toBe(true);
   });
 });
 

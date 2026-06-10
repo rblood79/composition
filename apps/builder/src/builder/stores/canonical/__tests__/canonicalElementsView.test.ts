@@ -8,7 +8,7 @@ import type {
   CompositionDocument,
   CompositionExtension,
 } from "@composition/shared";
-import { ButtonSpec, SectionSpec, TextFieldSpec } from "@composition/specs";
+import { SectionSpec, TextFieldSpec } from "@composition/specs";
 import type { SizeSpec } from "@composition/specs";
 
 import { canonicalDocumentToElements } from "../canonicalElementsView";
@@ -444,21 +444,8 @@ describe("canonicalDocumentToElements — spec consumer parity", () => {
     fontSize: 14,
   } as unknown as SizeSpec;
 
-  it("ButtonSpec.render.shapes() consumes canonical props", () => {
-    const [element] = canonicalDocumentToElements(
-      makeDoc([
-        {
-          id: "button-1",
-          type: "Button",
-          props: { variant: "primary", children: "Click", size: "md" },
-        },
-      ]),
-    );
-
-    expect(
-      ButtonSpec.render!.shapes!(element.props, sizeContext, "default"),
-    ).toBeDefined();
-  });
+  // ADR-912 box+text leaf 군 (2026-06-11): Button.spec 삭제 — catalog 발효(isCatalogSkiaCutover)로
+  //   spec.render.shapes 미사용. canonical props → element 변환 검증은 TextField/Section 케이스가 커버.
 
   it("TextFieldSpec.render.shapes() consumes canonical props", () => {
     const [element] = canonicalDocumentToElements(

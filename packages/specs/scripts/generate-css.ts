@@ -115,6 +115,10 @@ function ruleSizeToSizeSpec(
       ? { borderWidth: s.borderWidth as number }
       : {}),
     ...(s.gap !== undefined ? { gap: s.gap as number } : {}),
+    // ADR-912 box+text leaf 군 (2026-06-11): Button/ToggleButton/Icon 의 --icon-size/--icon-gap
+    //   CSS 변수가 rule.sizes.iconSize/iconGap 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit.
+    ...(s.iconSize !== undefined ? { iconSize: s.iconSize as number } : {}),
+    ...(s.iconGap !== undefined ? { iconGap: s.iconGap as number } : {}),
   } as SizeSpec;
 }
 
@@ -157,6 +161,15 @@ const TEXT_LEAF_NAMES = new Set([
   "MeterTrack",
   "SliderTrack",
   "Nav",
+  // ADR-912 box+text leaf 군 일괄 (2026-06-11): catalog 발효 완료 leaf 8개 중 CSS 생성 7개.
+  //   Label 은 skipCSSGeneration:true (base.css --label-font-size 상속 보존) → virtual 불요.
+  "Button",
+  "ToggleButton",
+  "Badge",
+  "Separator",
+  "Skeleton",
+  "Icon",
+  "StatusLight",
 ]);
 
 type TextLeafMeta = {
@@ -164,6 +177,13 @@ type TextLeafMeta = {
   archetype: ComponentSpec<unknown>["archetype"];
   element: string;
   containerStyles: ComponentSpec<unknown>["containerStyles"];
+  /**
+   * CSS emit 모드 (rule 에 없는 구조 정보). Button/ToggleButton 의 `"button-base"` 처럼
+   * variant 색을 `--button-color` 변수 + `.button-base` utility color-mix 자동 파생으로
+   * emit 하는 군은 명시. 미설정 시 `"direct"`(CSSGenerator 기본 — Link 처럼 background/color
+   * 직접 emit).
+   */
+  cssEmitMode?: ComponentSpec<unknown>["cssEmitMode"];
   /**
    * CSS selector 메타 (rule 에 없는 구조 정보). Link 의 underline 처럼 rootSelectors 기반
    * text-decoration 등 — virtualSpec.composition 으로 전달되어 CSSGenerator 가 emit.
@@ -324,6 +344,94 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       disabled: { opacity: 0.38, pointerEvents: "none" },
     },
   },
+  // ADR-912 box+text leaf 군 일괄 (2026-06-11) — catalog 발효 완료 leaf 7개 (Label 제외).
+  //   shape 동형(box+text/icon) — Text/Link 와 동일 변환 경로. archetype/element/containerStyles
+  //   /cssEmitMode 는 각 *.spec.ts 에서 추출. Skia 는 이미 spec-free(isCatalogSkiaCutover 또는
+  //   skiaPrimitive escape). 측정은 specTextStyle 가 catalog rule 기반(spec 끊김).
+  // Button/ToggleButton: cssEmitMode "button-base" (변수 + .button-base color-mix 파생).
+  //   states.pressed.scale:0.95 (press-scale, ADR-140 DD1) — 기본 states 는 scale 미emit 이라 명시.
+  {
+    name: "Button",
+    archetype: "button",
+    element: "button",
+    cssEmitMode: "button-base",
+    containerStyles: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "fit-content",
+    },
+    states: {
+      hover: {},
+      pressed: { scale: 0.95 },
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  {
+    name: "ToggleButton",
+    archetype: "button",
+    element: "button",
+    cssEmitMode: "button-base",
+    containerStyles: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "fit-content",
+    },
+    states: {
+      hover: {},
+      pressed: { scale: 0.95 },
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  // Badge/StatusLight: archetype "simple", states = disabled(opacity) 만 (hover/pressed 미emit).
+  {
+    name: "Badge",
+    archetype: "simple",
+    element: "span",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: { disabled: { opacity: 0.38 } },
+  },
+  // Separator/Skeleton: states 없음 (spec states:{} — 어떤 data-* 블록도 미emit).
+  {
+    name: "Separator",
+    archetype: "simple",
+    element: "hr",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: {},
+  },
+  {
+    name: "Skeleton",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: {},
+  },
+  // Icon: archetype "simple", states = hover/pressed(빈) + disabled(opacity) + focusVisible(빈).
+  {
+    name: "Icon",
+    archetype: "simple",
+    element: "span",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38 },
+      focusVisible: {},
+    },
+  },
+  // StatusLight: dot+label leaf. Skia 는 status_light escape(replace). CSS 는 simple archetype
+  //   + rule.variants(status 색) — DOM 은 INTERNAL_RENDERERS["statuslight"] 어댑터가 dot+label 마크업.
+  //   states = disabled(opacity) 만.
+  {
+    name: "StatusLight",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: { disabled: { opacity: 0.38 } },
+  },
 ];
 
 /**
@@ -370,6 +478,8 @@ function buildTextLeafVirtualSpecs(): ComponentSpec<unknown>[] {
         disabled: { opacity: 0.38 },
         focusVisible: {},
       },
+      // cssEmitMode: Button/ToggleButton 의 button-base(변수 + color-mix 파생). 미설정 시 direct.
+      ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
       // composition: rule 에 없는 CSS selector 메타(Link underline 등). 미설정 시 미적용.
       ...(meta.composition ? { composition: meta.composition } : {}),
       render: {

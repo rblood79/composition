@@ -202,436 +202,6 @@ exports[`CSSGenerator snapshot baseline > AvatarGroup 1`] = `
 } /* @layer components */"
 `;
 
-exports[`CSSGenerator snapshot baseline > Badge 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from BadgeSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Badge.spec.ts
- * Archetype: simple
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Badge {
-  /* Base styles — archetype: simple */
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
-
-  /* Default variant */
-  background: var(--accent);
-  color: var(--fg-on-accent);
-  border: none;
-
-  /* Default size */
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
-  line-height: var(--text-xs--line-height);
-  border-width: 1px;
-  gap: 4px;
-}
-
-.react-aria-Badge[data-variant="accent"] {
-  background: var(--accent);
-  color: var(--fg-on-accent);
-
-  &[data-hovered] {
-    background: var(--accent);
-  }
-
-  &[data-pressed] {
-    background: var(--accent);
-  }
-}
-
-.react-aria-Badge[data-variant="informative"] {
-  background: var(--color-info-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-info-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-info-600);
-  }
-}
-
-.react-aria-Badge[data-variant="neutral"] {
-  background: var(--fg);
-  color: var(--bg);
-
-  &[data-hovered] {
-    background: var(--fg);
-  }
-
-  &[data-pressed] {
-    background: var(--fg);
-  }
-}
-
-.react-aria-Badge[data-variant="positive"] {
-  background: var(--color-green-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-green-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-green-600);
-  }
-}
-
-.react-aria-Badge[data-variant="notice"] {
-  background: var(--color-warning-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-warning-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-warning-600);
-  }
-}
-
-.react-aria-Badge[data-variant="negative"] {
-  background: var(--negative);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--negative);
-  }
-
-  &[data-pressed] {
-    background: var(--negative);
-  }
-}
-
-.react-aria-Badge[data-variant="gray"] {
-  background: var(--color-neutral-500);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-neutral-500);
-  }
-
-  &[data-pressed] {
-    background: var(--color-neutral-500);
-  }
-}
-
-.react-aria-Badge[data-variant="red"] {
-  background: var(--color-red-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-red-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-red-600);
-  }
-}
-
-.react-aria-Badge[data-variant="orange"] {
-  background: var(--color-orange-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-orange-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-orange-600);
-  }
-}
-
-.react-aria-Badge[data-variant="yellow"] {
-  background: var(--color-yellow-500);
-  color: var(--color-black);
-
-  &[data-hovered] {
-    background: var(--color-yellow-500);
-  }
-
-  &[data-pressed] {
-    background: var(--color-yellow-500);
-  }
-}
-
-.react-aria-Badge[data-variant="green"] {
-  background: var(--color-green-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-green-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-green-600);
-  }
-}
-
-.react-aria-Badge[data-variant="blue"] {
-  background: var(--color-blue-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-blue-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-blue-600);
-  }
-}
-
-.react-aria-Badge[data-variant="purple"] {
-  background: var(--color-purple-600);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--color-purple-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-purple-600);
-  }
-}
-
-.react-aria-Badge[data-variant="indigo"] {
-  background: oklch(0.45 0.2 284);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: oklch(0.45 0.2 284);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.45 0.2 284);
-  }
-}
-
-.react-aria-Badge[data-variant="cyan"] {
-  background: oklch(0.5 0.14 220);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: oklch(0.5 0.14 220);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.5 0.14 220);
-  }
-}
-
-.react-aria-Badge[data-variant="pink"] {
-  background: oklch(0.6 0.18 348);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: oklch(0.6 0.18 348);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.6 0.18 348);
-  }
-}
-
-.react-aria-Badge[data-variant="turquoise"] {
-  background: oklch(0.55 0.1 195);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.1 195);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.55 0.1 195);
-  }
-}
-
-.react-aria-Badge[data-variant="fuchsia"] {
-  background: oklch(0.55 0.22 320);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.22 320);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.55 0.22 320);
-  }
-}
-
-.react-aria-Badge[data-variant="magenta"] {
-  background: oklch(0.55 0.2 335);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.2 335);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.55 0.2 335);
-  }
-}
-
-.react-aria-Badge[data-variant="chartreuse"] {
-  background: oklch(0.65 0.18 115);
-  color: var(--color-black);
-
-  &[data-hovered] {
-    background: var(--chartreuse-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--chartreuse-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="celery"] {
-  background: oklch(0.62 0.16 130);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--celery-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--celery-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="seafoam"] {
-  background: var(--seafoam);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--seafoam-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--seafoam-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="brown"] {
-  background: var(--brown);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--brown-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--brown-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="cinnamon"] {
-  background: var(--cinnamon);
-  color: var(--color-white);
-
-  &[data-hovered] {
-    background: var(--cinnamon-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--cinnamon-pressed);
-  }
-}
-
-.react-aria-Badge[data-variant="silver"] {
-  background: var(--silver);
-  color: var(--color-black);
-
-  &[data-hovered] {
-    background: var(--silver-hover);
-  }
-
-  &[data-pressed] {
-    background: var(--silver-pressed);
-  }
-}
-
-.react-aria-Badge[data-size="xs"] {
-  height: auto;
-  padding: 1px 4px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-full);
-  line-height: var(--text-2xs--line-height);
-  border-width: 1px;
-  gap: 2px;
-}
-
-.react-aria-Badge[data-size="sm"] {
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
-  line-height: var(--text-xs--line-height);
-  border-width: 1px;
-  gap: 4px;
-}
-
-.react-aria-Badge[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
-  line-height: var(--text-sm--line-height);
-  border-width: 1px;
-  gap: 4px;
-}
-
-.react-aria-Badge[data-size="lg"] {
-  height: auto;
-  padding: 8px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-full);
-  line-height: var(--text-base--line-height);
-  border-width: 1px;
-  gap: 6px;
-}
-
-.react-aria-Badge[data-size="xl"] {
-  height: auto;
-  padding: 12px 24px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-full);
-  line-height: var(--text-lg--line-height);
-  border-width: 1px;
-  gap: 8px;
-}
-
-.react-aria-Badge[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Badge[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Badge {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
 exports[`CSSGenerator snapshot baseline > Body 1`] = `
 "/* ============================================================
  * AUTO-GENERATED from BodySpec — DO NOT EDIT MANUALLY
@@ -887,190 +457,6 @@ exports[`CSSGenerator snapshot baseline > Breadcrumbs 1`] = `
   }
 }
 
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > Button 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from ButtonSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Button.spec.ts
- * Archetype: button
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Button {
-  /* Base styles — archetype: button */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    font-family: var(--font-sans);
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Default variant */
-  --button-color: var(--fg);
-  --button-text: var(--bg);
-  --button-border: var(--fg);
-
-  /* Default size */
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
-  border-width: 1px;
-  gap: 8px;
-  --icon-size: 16px;
-  --icon-gap: 8px;
-}
-
-.react-aria-Button[data-variant="accent"] {
-  --button-color: var(--accent);
-  --button-text: var(--fg-on-accent);
-  --button-border: var(--accent);
-
-}
-
-.react-aria-Button[data-variant="primary"] {
-  --button-color: var(--fg);
-  --button-text: var(--bg);
-  --button-border: var(--fg);
-
-}
-
-.react-aria-Button[data-variant="secondary"] {
-  --button-color: var(--bg-overlay);
-  --button-text: var(--fg);
-  --button-border: var(--border);
-
-}
-
-.react-aria-Button[data-variant="negative"] {
-  --button-color: var(--negative);
-  --button-text: var(--color-white);
-  --button-border: var(--negative);
-
-}
-
-.react-aria-Button[data-variant="premium"] {
-  --button-color: var(--color-purple-600);
-  --button-text: var(--color-white);
-  --button-border: var(--color-purple-600);
-
-}
-
-.react-aria-Button[data-variant="genai"] {
-  --button-color: var(--color-purple-600);
-  --button-text: var(--color-white);
-  --button-border: var(--color-purple-600);
-
-}
-
-.react-aria-Button[data-icon-only] {
-  padding: 0;
-  aspect-ratio: 1;
-}
-
-.react-aria-Button[data-size="xs"] {
-  height: auto;
-  padding: 1px 4px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-2xs--line-height);
-  border-width: 1px;
-  gap: 4px;
-  --icon-size: 12px;
-  --icon-gap: 4px;
-}
-
-.react-aria-Button[data-size="sm"] {
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-xs--line-height);
-  border-width: 1px;
-  gap: 6px;
-  --icon-size: 14px;
-  --icon-gap: 6px;
-}
-
-.react-aria-Button[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
-  border-width: 1px;
-  gap: 8px;
-  --icon-size: 16px;
-  --icon-gap: 8px;
-}
-
-.react-aria-Button[data-size="lg"] {
-  height: auto;
-  padding: 8px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
-  line-height: var(--text-base--line-height);
-  border-width: 1px;
-  gap: 10px;
-  --icon-size: 20px;
-  --icon-gap: 10px;
-}
-
-.react-aria-Button[data-size="xl"] {
-  height: auto;
-  padding: 12px 24px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-xl);
-  line-height: var(--text-lg--line-height);
-  border-width: 1px;
-  gap: 12px;
-  --icon-size: 24px;
-  --icon-gap: 12px;
-}
-
-.react-aria-Button[data-hovered] {
-}
-
-.react-aria-Button[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Button[data-pressed] {
-  transform: scale(0.95);
-}
-
-.react-aria-Button[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Button {
-    forced-color-adjust: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-Button {
-    transition-duration: 0s !important;
-  }
-}
 
 } /* @layer components */"
 `;
@@ -3934,98 +3320,6 @@ exports[`CSSGenerator snapshot baseline > DateRangePicker 1`] = `
 } /* @layer components */"
 `;
 
-exports[`CSSGenerator snapshot baseline > Description 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from DescriptionSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Description.spec.ts
- * Archetype: text
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Description {
-  /* Base styles — archetype: text */
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: 100%;
-  display: block;
-
-  /* Default variant */
-  background: transparent;
-  color: var(--fg-muted);
-  border: none;
-
-  /* Default size */
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Description[data-variant="default"] {
-  background: transparent;
-  color: var(--fg-muted);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-Description[data-size="sm"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Description[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Description[data-size="lg"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Description[data-hovered] {
-}
-
-.react-aria-Description[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Description[data-pressed] {
-}
-
-.react-aria-Description[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Description {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
 exports[`CSSGenerator snapshot baseline > Dialog 1`] = `
 "/* ============================================================
  * AUTO-GENERATED from DialogSpec — DO NOT EDIT MANUALLY
@@ -4206,255 +3500,6 @@ exports[`CSSGenerator snapshot baseline > Dialog 1`] = `
 } /* @layer components */"
 `;
 
-exports[`CSSGenerator snapshot baseline > Disclosure 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from DisclosureSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Disclosure.spec.ts
- * Archetype: default
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Disclosure {
-  /* Base styles — archetype: default */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    font-family: var(--font-sans);
-
-  /* Default size */
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
-  border-width: 1px;
-  gap: 8px;
-  --icon-size: 16px;
-}
-
-.react-aria-Disclosure[data-size="sm"] {
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  line-height: var(--text-xs--line-height);
-  border-width: 1px;
-  gap: 6px;
-  --icon-size: 14px;
-}
-
-.react-aria-Disclosure[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: var(--text-sm--line-height);
-  border-width: 1px;
-  gap: 8px;
-  --icon-size: 16px;
-}
-
-.react-aria-Disclosure[data-size="lg"] {
-  height: auto;
-  padding: 8px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
-  line-height: var(--text-base--line-height);
-  border-width: 1px;
-  gap: 10px;
-  --icon-size: 20px;
-}
-
-.react-aria-Disclosure[data-hovered] {
-}
-
-.react-aria-Disclosure[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Disclosure[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* ── Tier 2: Composite Delegation ── */
-
-
-@media (forced-colors: active) {
-  .react-aria-Disclosure {
-    forced-color-adjust: auto;
-  }
-}
-
-
-  .react-aria-Disclosure .disclosure-chevron {
-    width: var(--icon-size);
-    height: var(--icon-size);
-    flex-shrink: 0;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    rotate: 0deg;
-    transition: rotate 200ms;
-  }
-
-
-  .react-aria-Disclosure[data-expanded] .disclosure-chevron {
-    rotate: 90deg;
-  }
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > DisclosureGroup 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from DisclosureGroupSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/DisclosureGroup.spec.ts
- * Archetype: default
- * ============================================================ */
-
-@layer components {
-
-.react-aria-DisclosureGroup {
-  /* Base styles — archetype: default */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    box-sizing: border-box;
-    font-size: var(--text-base);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-
-  /* Default size */
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-}
-
-.react-aria-DisclosureGroup[data-size="sm"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-}
-
-.react-aria-DisclosureGroup[data-size="md"] {
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-}
-
-.react-aria-DisclosureGroup[data-size="lg"] {
-  font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
-}
-
-.react-aria-DisclosureGroup[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-DisclosureGroup[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* ── Tier 2: Composite Delegation ── */
-
-
-@media (forced-colors: active) {
-  .react-aria-DisclosureGroup {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > DisclosureHeader 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from DisclosureHeaderSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/DisclosureHeader.spec.ts
- * Archetype: simple
- * ============================================================ */
-
-@layer components {
-
-.react-aria-DisclosureHeader {
-  /* Base styles — archetype: simple */
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
-
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-DisclosureHeader[data-variant="default"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-DisclosureHeader[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-DisclosureHeader[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-DisclosureHeader[data-pressed] {
-  transform: scale(0.97);
-}
-
-.react-aria-DisclosureHeader[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-DisclosureHeader {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
 exports[`CSSGenerator snapshot baseline > DropZone 1`] = `
 "/* ============================================================
  * AUTO-GENERATED from DropZoneSpec — DO NOT EDIT MANUALLY
@@ -4562,98 +3607,6 @@ exports[`CSSGenerator snapshot baseline > DropZone 1`] = `
     background: var(--bg-inset);
     color: var(--accent);
   }
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > FieldError 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from FieldErrorSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/FieldError.spec.ts
- * Archetype: simple
- * ============================================================ */
-
-@layer components {
-
-.react-aria-FieldError {
-  /* Base styles — archetype: simple */
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
-
-  /* Default variant */
-  background: transparent;
-  color: var(--negative);
-  border: none;
-
-  /* Default size */
-  height: 16px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-FieldError[data-variant="default"] {
-  background: transparent;
-  color: var(--negative);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-FieldError[data-size="sm"] {
-  height: 14px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-FieldError[data-size="md"] {
-  height: 16px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-FieldError[data-size="lg"] {
-  height: 20px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-FieldError[data-hovered] {
-}
-
-.react-aria-FieldError[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-FieldError[data-pressed] {
-}
-
-.react-aria-FieldError[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-FieldError {
-    forced-color-adjust: auto;
-  }
-}
 
 
 } /* @layer components */"
@@ -4927,118 +3880,6 @@ exports[`CSSGenerator snapshot baseline > Form 1`] = `
 
 @media (forced-colors: active) {
   .react-aria-FormField {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > Icon 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from IconSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Icon.spec.ts
- * Archetype: simple
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Icon {
-  /* Base styles — archetype: simple */
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
-
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-2xl);
-  border-radius: var(--radius-none);
-  --icon-size: 24px;
-}
-
-.react-aria-Icon[data-variant="default"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-Icon[data-size="xs"] {
-  height: 16px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-  --icon-size: 16px;
-}
-
-.react-aria-Icon[data-size="sm"] {
-  height: 18px;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-  --icon-size: 18px;
-}
-
-.react-aria-Icon[data-size="md"] {
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-2xl);
-  border-radius: var(--radius-none);
-  --icon-size: 24px;
-}
-
-.react-aria-Icon[data-size="lg"] {
-  height: 36px;
-  padding: 0px 0px;
-  font-size: var(--text-4xl);
-  border-radius: var(--radius-none);
-  --icon-size: 36px;
-}
-
-.react-aria-Icon[data-size="xl"] {
-  height: 48px;
-  padding: 0px 0px;
-  font-size: var(--text-5xl);
-  border-radius: var(--radius-none);
-  --icon-size: 48px;
-}
-
-.react-aria-Icon[data-hovered] {
-}
-
-.react-aria-Icon[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Icon[data-pressed] {
-}
-
-.react-aria-Icon[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Icon {
     forced-color-adjust: auto;
   }
 }
@@ -5592,156 +4433,6 @@ exports[`CSSGenerator snapshot baseline > Input 1`] = `
     forced-color-adjust: auto;
   }
 }
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > Link 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from LinkSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Link.spec.ts
- * Archetype: button
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Link {
-  /* Base styles — archetype: button */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    font-family: var(--font-sans);
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Default variant */
-  background: var(--bg);
-  color: var(--accent);
-  border: none;
-
-  /* Default size */
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Link[data-variant="primary"] {
-  background: var(--bg);
-  color: var(--accent);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-    color: color-mix(in srgb, var(--accent) 85%, black);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Link[data-variant="secondary"] {
-  background: var(--bg);
-  color: var(--fg);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-    color: var(--accent);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Link[data-icon-only] {
-  padding: 0;
-  aspect-ratio: 1;
-}
-
-.react-aria-Link[data-size="xs"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Link[data-size="sm"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Link[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Link[data-size="lg"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Link[data-size="xl"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Link[data-hovered] {
-}
-
-.react-aria-Link[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Link[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* ── Tier 2: Composite Delegation ── */
-
-
-@media (forced-colors: active) {
-  .react-aria-Link {
-    forced-color-adjust: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-Link {
-    transition-duration: 0s !important;
-  }
-}
-
-  .react-aria-Link {
-    text-decoration: underline;
-  }
-
-  .react-aria-Link[data-hovered] {
-    text-decoration-thickness: 1.5px;
-  }
 
 
 } /* @layer components */"
@@ -6528,148 +5219,6 @@ exports[`CSSGenerator snapshot baseline > Meter 1`] = `
 } /* @layer components */"
 `;
 
-exports[`CSSGenerator snapshot baseline > MeterTrack 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from MeterTrackSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/MeterTrack.spec.ts
- * Archetype: progress
- * ============================================================ */
-
-@layer components {
-
-.react-aria-MeterTrack {
-  /* Base styles — archetype: progress */
-    display: grid;
-    grid-template-areas: "label value" "track track";
-    grid-template-columns: 1fr auto;
-    box-sizing: border-box;
-
-    .react-aria-Label { grid-area: label; }
-    [slot="value"] { grid-area: value; }
-    .bar { grid-area: track; }
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: grid;
-
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-MeterTrack[data-variant="informative"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-MeterTrack[data-variant="positive"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-MeterTrack[data-variant="warning"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-MeterTrack[data-variant="critical"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-MeterTrack[data-size="sm"] {
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-MeterTrack[data-size="md"] {
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-MeterTrack[data-size="lg"] {
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-MeterTrack[data-size="xl"] {
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-MeterTrack[data-hovered] {
-}
-
-.react-aria-MeterTrack[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-MeterTrack[data-pressed] {
-}
-
-.react-aria-MeterTrack[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-MeterTrack {
-    forced-color-adjust: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-MeterTrack {
-    transition-duration: 0s !important;
-  }
-}
-
-} /* @layer components */"
-`;
-
 exports[`CSSGenerator snapshot baseline > MeterValue 1`] = `
 "/* ============================================================
  * AUTO-GENERATED from MeterValueSpec — DO NOT EDIT MANUALLY
@@ -6813,116 +5362,6 @@ exports[`CSSGenerator snapshot baseline > MeterValue 1`] = `
     transition-duration: 0s !important;
   }
 }
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > Nav 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from NavSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Nav.spec.ts
- * Archetype: default
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Nav {
-  /* Base styles — archetype: default */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    font-family: var(--font-sans);
-
-  /* Default variant */
-  background: var(--bg);
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: 56px;
-  padding: 12px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
-  gap: 12px;
-}
-
-.react-aria-Nav[data-variant="default"] {
-  background: var(--bg);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Nav[data-variant="accent"] {
-  background: var(--accent-subtle);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--accent-subtle);
-  }
-
-  &[data-pressed] {
-    background: var(--accent-subtle);
-  }
-}
-
-.react-aria-Nav[data-size="sm"] {
-  height: 48px;
-  padding: 8px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  gap: 8px;
-}
-
-.react-aria-Nav[data-size="md"] {
-  height: 56px;
-  padding: 12px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
-  gap: 12px;
-}
-
-.react-aria-Nav[data-size="lg"] {
-  height: 64px;
-  padding: 16px 20px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
-  gap: 16px;
-}
-
-.react-aria-Nav[data-hovered] {
-}
-
-.react-aria-Nav[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Nav[data-pressed] {
-}
-
-.react-aria-Nav[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Nav {
-    forced-color-adjust: auto;
-  }
-}
-
 
 } /* @layer components */"
 `;
@@ -7773,109 +6212,6 @@ exports[`CSSGenerator snapshot baseline > ProgressBar 1`] = `
 "
 `;
 
-exports[`CSSGenerator snapshot baseline > ProgressBarTrack 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from ProgressBarTrackSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/ProgressBarTrack.spec.ts
- * Archetype: progress
- * ============================================================ */
-
-@layer components {
-
-.react-aria-ProgressBarTrack {
-  /* Base styles — archetype: progress */
-    display: grid;
-    grid-template-areas: "label value" "track track";
-    grid-template-columns: 1fr auto;
-    box-sizing: border-box;
-
-    .react-aria-Label { grid-area: label; }
-    [slot="value"] { grid-area: value; }
-    .bar { grid-area: track; }
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: grid;
-
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-ProgressBarTrack[data-variant="default"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
-.react-aria-ProgressBarTrack[data-size="sm"] {
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-ProgressBarTrack[data-size="md"] {
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-ProgressBarTrack[data-size="lg"] {
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-ProgressBarTrack[data-size="xl"] {
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-ProgressBarTrack[data-hovered] {
-}
-
-.react-aria-ProgressBarTrack[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ProgressBarTrack[data-pressed] {
-}
-
-.react-aria-ProgressBarTrack[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-ProgressBarTrack {
-    forced-color-adjust: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-ProgressBarTrack {
-    transition-duration: 0s !important;
-  }
-}
-
-} /* @layer components */"
-`;
-
 exports[`CSSGenerator snapshot baseline > ProgressBarValue 1`] = `
 "/* ============================================================
  * AUTO-GENERATED from ProgressBarValueSpec — DO NOT EDIT MANUALLY
@@ -7977,103 +6313,6 @@ exports[`CSSGenerator snapshot baseline > ProgressBarValue 1`] = `
 
 @media (prefers-reduced-motion: reduce) {
   .react-aria-ProgressBarValue {
-    transition-duration: 0s !important;
-  }
-}
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > ProgressCircle 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from ProgressCircleSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/ProgressCircle.spec.ts
- * Archetype: progress
- * ============================================================ */
-
-@layer components {
-
-.react-aria-ProgressCircle {
-  /* Base styles — archetype: progress */
-    display: grid;
-    grid-template-areas: "label value" "track track";
-    grid-template-columns: 1fr auto;
-    box-sizing: border-box;
-
-    .react-aria-Label { grid-area: label; }
-    [slot="value"] { grid-area: value; }
-    .bar { grid-area: track; }
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: grid;
-
-  /* Default variant */
-  background: var(--bg-muted);
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-ProgressCircle[data-variant="default"] {
-  background: var(--bg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
-}
-
-.react-aria-ProgressCircle[data-size="sm"] {
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-ProgressCircle[data-size="md"] {
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-ProgressCircle[data-size="lg"] {
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-ProgressCircle[data-hovered] {
-}
-
-.react-aria-ProgressCircle[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ProgressCircle[data-pressed] {
-}
-
-.react-aria-ProgressCircle[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-ProgressCircle {
-    forced-color-adjust: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-ProgressCircle {
     transition-duration: 0s !important;
   }
 }
@@ -9414,283 +7653,6 @@ exports[`CSSGenerator snapshot baseline > Select 1`] = `
 } /* @layer components */"
 `;
 
-exports[`CSSGenerator snapshot baseline > Separator 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from SeparatorSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Separator.spec.ts
- * Archetype: simple
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Separator {
-  /* Base styles — archetype: simple */
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
-
-  /* Default variant */
-  background: var(--bg);
-  color: var(--border);
-  border: 1px solid var(--border);
-
-  /* Default size */
-  height: 1px;
-  padding: 8px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Separator[data-variant="default"] {
-  background: var(--bg);
-  color: var(--border);
-  border-color: var(--border);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Separator[data-variant="solid"] {
-  background: var(--bg);
-  color: var(--border);
-  border-color: var(--border);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Separator[data-variant="dashed"] {
-  background: var(--bg);
-  color: var(--border);
-  border-color: var(--border);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Separator[data-variant="dotted"] {
-  background: var(--bg);
-  color: var(--border);
-  border-color: var(--border);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Separator[data-variant="accent"] {
-  background: var(--bg);
-  color: var(--accent);
-  border-color: var(--accent);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Separator[data-variant="neutral"] {
-  background: var(--bg);
-  color: var(--bg-muted);
-  border-color: var(--bg-muted);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Separator[data-variant="surface"] {
-  background: var(--bg);
-  color: var(--border-hover);
-  border-color: var(--border-hover);
-  background: transparent;
-
-  &[data-hovered] {
-    background: var(--bg);
-  }
-
-  &[data-pressed] {
-    background: var(--bg);
-  }
-}
-
-.react-aria-Separator[data-size="sm"] {
-  height: 1px;
-  padding: 4px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Separator[data-size="md"] {
-  height: 1px;
-  padding: 8px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Separator[data-size="lg"] {
-  height: 1px;
-  padding: 16px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Separator[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Separator[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Separator {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > Skeleton 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from SkeletonSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Skeleton.spec.ts
- * Archetype: simple
- * ============================================================ */
-
-@layer components {
-
-.react-aria-Skeleton {
-  /* Base styles — archetype: simple */
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
-
-  /* Default variant */
-  background: var(--bg-inset);
-  color: var(--fg-muted);
-  border: none;
-
-  /* Default size */
-  height: 20px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
-}
-
-.react-aria-Skeleton[data-variant="default"] {
-  background: var(--bg-inset);
-  color: var(--fg-muted);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-inset);
-  }
-}
-
-.react-aria-Skeleton[data-variant="accent"] {
-  background: var(--accent-subtle);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--accent-subtle);
-  }
-
-  &[data-pressed] {
-    background: var(--accent-subtle);
-  }
-}
-
-.react-aria-Skeleton[data-size="sm"] {
-  height: 16px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-sm);
-}
-
-.react-aria-Skeleton[data-size="md"] {
-  height: 20px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-md);
-}
-
-.react-aria-Skeleton[data-size="lg"] {
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-md);
-}
-
-.react-aria-Skeleton[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Skeleton[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Skeleton {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
 exports[`CSSGenerator snapshot baseline > Slider 1`] = `
 "/* ============================================================
  * AUTO-GENERATED from SliderSpec — DO NOT EDIT MANUALLY
@@ -9703,13 +7665,47 @@ exports[`CSSGenerator snapshot baseline > Slider 1`] = `
 .react-aria-Slider {
   /* Base styles — archetype: slider */
     display: grid;
+    grid-template-areas: "label output" "track track";
+    grid-template-columns: 1fr auto;
     box-sizing: border-box;
+
+    .react-aria-Label { grid-area: label; }
+    .react-aria-SliderOutput { grid-area: output; justify-self: end; }
+    .react-aria-SliderTrack {
+      grid-area: track;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .slider-track-bg {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100%;
+      border-radius: var(--radius-full);
+      background: var(--bg-muted);
+    }
+    .slider-fill {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: var(--radius-full);
+      background: var(--accent);
+    }
+    .react-aria-SliderThumb {
+      top: 50%;
+      border-radius: var(--radius-full);
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      box-sizing: border-box;
+    }
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: grid;
+  grid-template-areas: "label output" "track track";
+  grid-template-columns: 1fr auto;
 
   /* Default size */
-  height: 8px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
@@ -9719,7 +7715,6 @@ exports[`CSSGenerator snapshot baseline > Slider 1`] = `
 }
 
 .react-aria-Slider[data-size="sm"] {
-  height: 4px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
@@ -9729,7 +7724,6 @@ exports[`CSSGenerator snapshot baseline > Slider 1`] = `
 }
 
 .react-aria-Slider[data-size="md"] {
-  height: 8px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
@@ -9739,7 +7733,6 @@ exports[`CSSGenerator snapshot baseline > Slider 1`] = `
 }
 
 .react-aria-Slider[data-size="lg"] {
-  height: 12px;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-full);
@@ -9749,7 +7742,6 @@ exports[`CSSGenerator snapshot baseline > Slider 1`] = `
 }
 
 .react-aria-Slider[data-size="xl"] {
-  height: 16px;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-full);
@@ -9775,11 +7767,64 @@ exports[`CSSGenerator snapshot baseline > Slider 1`] = `
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-Slider {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-Slider[data-size="sm"] .react-aria-Label {
+    font-size: var(--text-xs);
+  }
+
+  .react-aria-Slider[data-size="sm"] .react-aria-SliderOutput {
+    font-size: var(--text-xs);
+  }
+
+  .react-aria-Slider[data-size="md"] .react-aria-Label {
+    font-size: var(--text-sm);
+  }
+
+  .react-aria-Slider[data-size="md"] .react-aria-SliderOutput {
+    font-size: var(--text-sm);
+  }
+
+  .react-aria-Slider[data-size="lg"] .react-aria-Label {
+    font-size: var(--text-base);
+  }
+
+  .react-aria-Slider[data-size="lg"] .react-aria-SliderOutput {
+    font-size: var(--text-base);
+  }
+
+  .react-aria-Slider[data-size="xl"] .react-aria-Label {
+    font-size: var(--text-lg);
+  }
+
+  .react-aria-Slider[data-size="xl"] .react-aria-SliderOutput {
+    font-size: var(--text-lg);
+  }
+
+
+  .react-aria-Slider[data-size="sm"] .slider-track-bg { height: 4px; }
+  .react-aria-Slider[data-size="sm"] .slider-fill { height: 4px; }
+  .react-aria-Slider[data-size="sm"] .react-aria-SliderThumb { width: 14px; height: 14px; }
+
+  .react-aria-Slider[data-size="md"] .slider-track-bg { height: 8px; }
+  .react-aria-Slider[data-size="md"] .slider-fill { height: 8px; }
+  .react-aria-Slider[data-size="md"] .react-aria-SliderThumb { width: 18px; height: 18px; }
+
+  .react-aria-Slider[data-size="lg"] .slider-track-bg { height: 12px; }
+  .react-aria-Slider[data-size="lg"] .slider-fill { height: 12px; }
+  .react-aria-Slider[data-size="lg"] .react-aria-SliderThumb { width: 22px; height: 22px; }
+
+  .react-aria-Slider[data-size="xl"] .slider-track-bg { height: 16px; }
+  .react-aria-Slider[data-size="xl"] .slider-fill { height: 16px; }
+  .react-aria-Slider[data-size="xl"] .react-aria-SliderThumb { width: 26px; height: 26px; }
 
 
 } /* @layer components */"
@@ -9883,36 +7928,76 @@ exports[`CSSGenerator snapshot baseline > SliderThumb 1`] = `
 .react-aria-SliderThumb {
   /* Base styles — archetype: slider */
     display: grid;
+    grid-template-areas: "label output" "track track";
+    grid-template-columns: 1fr auto;
     box-sizing: border-box;
+
+    .react-aria-Label { grid-area: label; }
+    .react-aria-SliderOutput { grid-area: output; justify-self: end; }
+    .react-aria-SliderTrack {
+      grid-area: track;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .slider-track-bg {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100%;
+      border-radius: var(--radius-full);
+      background: var(--bg-muted);
+    }
+    .slider-fill {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: var(--radius-full);
+      background: var(--accent);
+    }
+    .react-aria-SliderThumb {
+      top: 50%;
+      border-radius: var(--radius-full);
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      box-sizing: border-box;
+    }
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: grid;
 
   /* Default size */
-  height: 20px;
+  height: 18px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
 .react-aria-SliderThumb[data-size="sm"] {
-  height: 16px;
+  height: 14px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
 }
 
 .react-aria-SliderThumb[data-size="md"] {
-  height: 20px;
+  height: 18px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
 .react-aria-SliderThumb[data-size="lg"] {
-  height: 24px;
+  height: 22px;
   padding: 0px 0px;
   font-size: var(--text-base);
+  border-radius: var(--radius-full);
+}
+
+.react-aria-SliderThumb[data-size="xl"] {
+  height: 26px;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
   border-radius: var(--radius-full);
 }
 
@@ -9935,86 +8020,6 @@ exports[`CSSGenerator snapshot baseline > SliderThumb 1`] = `
 
 @media (forced-colors: active) {
   .react-aria-SliderThumb {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > SliderTrack 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from SliderTrackSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/SliderTrack.spec.ts
- * Archetype: slider
- * ============================================================ */
-
-@layer components {
-
-.react-aria-SliderTrack {
-  /* Base styles — archetype: slider */
-    display: grid;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: grid;
-  position: relative;
-
-  /* Default size */
-  height: 8px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-SliderTrack[data-size="sm"] {
-  height: 4px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-SliderTrack[data-size="md"] {
-  height: 8px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-SliderTrack[data-size="lg"] {
-  height: 12px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-SliderTrack[data-size="xl"] {
-  height: 16px;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-SliderTrack[data-hovered] {
-}
-
-.react-aria-SliderTrack[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-SliderTrack[data-pressed] {
-}
-
-.react-aria-SliderTrack[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-SliderTrack {
     forced-color-adjust: auto;
   }
 }
@@ -10088,338 +8093,6 @@ exports[`CSSGenerator snapshot baseline > Slot 1`] = `
 
 @media (forced-colors: active) {
   .react-aria-Slot {
-    forced-color-adjust: auto;
-  }
-}
-
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > StatusLight 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from StatusLightSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/StatusLight.spec.ts
- * Archetype: simple
- * ============================================================ */
-
-@layer components {
-
-.react-aria-StatusLight {
-  /* Base styles — archetype: simple */
-    display: inline-flex;
-    align-items: center;
-    box-sizing: border-box;
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
-  align-items: center;
-
-  /* Default variant */
-  background: var(--fg-muted);
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-variant="neutral"] {
-  background: var(--fg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--fg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--fg-muted);
-  }
-}
-
-.react-aria-StatusLight[data-variant="informative"] {
-  background: var(--color-info-600);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--color-info-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-info-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="positive"] {
-  background: var(--color-green-600);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--color-green-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-green-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="notice"] {
-  background: var(--color-warning-600);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--color-warning-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-warning-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="negative"] {
-  background: var(--negative);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--negative);
-  }
-
-  &[data-pressed] {
-    background: var(--negative);
-  }
-}
-
-.react-aria-StatusLight[data-variant="celery"] {
-  background: oklch(0.62 0.16 130);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.62 0.16 130);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.62 0.16 130);
-  }
-}
-
-.react-aria-StatusLight[data-variant="chartreuse"] {
-  background: oklch(0.65 0.18 115);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.65 0.18 115);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.65 0.18 115);
-  }
-}
-
-.react-aria-StatusLight[data-variant="cyan"] {
-  background: oklch(0.5 0.14 220);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.5 0.14 220);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.5 0.14 220);
-  }
-}
-
-.react-aria-StatusLight[data-variant="fuchsia"] {
-  background: oklch(0.55 0.22 320);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.22 320);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.55 0.22 320);
-  }
-}
-
-.react-aria-StatusLight[data-variant="indigo"] {
-  background: oklch(0.45 0.2 284);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.45 0.2 284);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.45 0.2 284);
-  }
-}
-
-.react-aria-StatusLight[data-variant="magenta"] {
-  background: oklch(0.55 0.2 335);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.2 335);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.55 0.2 335);
-  }
-}
-
-.react-aria-StatusLight[data-variant="purple"] {
-  background: var(--color-purple-600);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--color-purple-600);
-  }
-
-  &[data-pressed] {
-    background: var(--color-purple-600);
-  }
-}
-
-.react-aria-StatusLight[data-variant="yellow"] {
-  background: var(--color-yellow-500);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--color-yellow-500);
-  }
-
-  &[data-pressed] {
-    background: var(--color-yellow-500);
-  }
-}
-
-.react-aria-StatusLight[data-variant="seafoam"] {
-  background: var(--seafoam);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--seafoam);
-  }
-
-  &[data-pressed] {
-    background: var(--seafoam);
-  }
-}
-
-.react-aria-StatusLight[data-variant="pink"] {
-  background: oklch(0.6 0.18 348);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.6 0.18 348);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.6 0.18 348);
-  }
-}
-
-.react-aria-StatusLight[data-variant="turquoise"] {
-  background: oklch(0.55 0.1 195);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: oklch(0.55 0.1 195);
-  }
-
-  &[data-pressed] {
-    background: oklch(0.55 0.1 195);
-  }
-}
-
-.react-aria-StatusLight[data-variant="cinnamon"] {
-  background: var(--cinnamon);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--cinnamon);
-  }
-
-  &[data-pressed] {
-    background: var(--cinnamon);
-  }
-}
-
-.react-aria-StatusLight[data-variant="brown"] {
-  background: var(--brown);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--brown);
-  }
-
-  &[data-pressed] {
-    background: var(--brown);
-  }
-}
-
-.react-aria-StatusLight[data-variant="silver"] {
-  background: var(--silver);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--silver);
-  }
-
-  &[data-pressed] {
-    background: var(--silver);
-  }
-}
-
-.react-aria-StatusLight[data-size="sm"] {
-  height: 20px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-size="md"] {
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-size="lg"] {
-  height: 28px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-size="xl"] {
-  height: 32px;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-none);
-  gap: 8px;
-}
-
-.react-aria-StatusLight[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-StatusLight[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-StatusLight {
     forced-color-adjust: auto;
   }
 }
@@ -10988,6 +8661,60 @@ exports[`CSSGenerator snapshot baseline > Tabs 1`] = `
 
 @media (forced-colors: active) {
   .react-aria-Tabs {
+    forced-color-adjust: auto;
+  }
+}
+
+
+/* ─── Child Spec: TabList (ADR-078) ─── */
+
+.react-aria-TabList {
+  /* Base styles — archetype: default */
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: flex;
+  flex-direction: row;
+
+  /* Default size */
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+}
+
+.react-aria-TabList[data-size="sm"] {
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+}
+
+.react-aria-TabList[data-size="md"] {
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+}
+
+.react-aria-TabList[data-size="lg"] {
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+}
+
+.react-aria-TabList[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-TabList[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-TabList {
     forced-color-adjust: auto;
   }
 }
@@ -11775,155 +9502,6 @@ exports[`CSSGenerator snapshot baseline > Toast 1`] = `
 
 @media (prefers-reduced-motion: reduce) {
   .react-aria-Toast {
-    transition-duration: 0s !important;
-  }
-}
-
-} /* @layer components */"
-`;
-
-exports[`CSSGenerator snapshot baseline > ToggleButton 1`] = `
-"/* ============================================================
- * AUTO-GENERATED from ToggleButtonSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/ToggleButton.spec.ts
- * Archetype: button
- * ============================================================ */
-
-@layer components {
-
-.react-aria-ToggleButton {
-  /* Base styles — archetype: button */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    font-family: var(--font-sans);
-
-  /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Default variant */
-  --button-color: var(--bg-muted);
-  --button-text: var(--fg);
-  --button-border: transparent;
-
-  /* Default size */
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: 20px;
-  border-width: 1px;
-  gap: 8px;
-}
-
-.react-aria-ToggleButton[data-variant="default"] {
-  --button-color: var(--bg-muted);
-  --button-text: var(--fg);
-  --button-border: transparent;
-
-
-  &[data-selected] {
-    --button-color: var(--fg);
-    --button-text: var(--bg);
-    --button-border: var(--fg);
-  }
-
-  &[data-emphasized][data-selected] {
-    --button-color: var(--accent);
-    --button-text: var(--fg-on-accent);
-    --button-border: var(--accent);
-  }
-}
-
-.react-aria-ToggleButton[data-icon-only] {
-  padding: 0;
-  aspect-ratio: 1;
-}
-
-.react-aria-ToggleButton[data-size="xs"] {
-  height: auto;
-  padding: 1px 4px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-sm);
-  line-height: 16px;
-  border-width: 1px;
-  gap: 4px;
-}
-
-.react-aria-ToggleButton[data-size="sm"] {
-  height: auto;
-  padding: 2px 8px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
-  line-height: 16px;
-  border-width: 1px;
-  gap: 6px;
-}
-
-.react-aria-ToggleButton[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  line-height: 20px;
-  border-width: 1px;
-  gap: 8px;
-}
-
-.react-aria-ToggleButton[data-size="lg"] {
-  height: auto;
-  padding: 8px 16px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-lg);
-  line-height: 24px;
-  border-width: 1px;
-  gap: 10px;
-}
-
-.react-aria-ToggleButton[data-size="xl"] {
-  height: auto;
-  padding: 12px 24px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-lg);
-  line-height: 28px;
-  border-width: 1px;
-  gap: 12px;
-}
-
-.react-aria-ToggleButton[data-hovered] {
-}
-
-.react-aria-ToggleButton[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ToggleButton[data-pressed] {
-  transform: scale(0.95);
-}
-
-.react-aria-ToggleButton[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-ToggleButton {
-    forced-color-adjust: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .react-aria-ToggleButton {
     transition-duration: 0s !important;
   }
 }

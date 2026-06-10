@@ -2,7 +2,13 @@ import {
   Element,
   ComponentElementProps,
 } from "../../../types/core/store.types";
-import { ButtonSpec, getSizePreset } from "@composition/specs";
+import { getSizePreset } from "@composition/specs";
+// ADR-912 box+text leaf 군 (2026-06-11): ButtonSpec.sizes → catalog rule(Button) (spec 끊기).
+import {
+  resolveSkiaRule,
+  ruleSizeToSizeSpec,
+} from "../../workspace/canvas/skia/resolveSkiaVisualRule";
+import type { SizeSpec } from "@composition/specs";
 
 /**
  * Element 조회 및 속성 관리 헬퍼 함수들
@@ -113,12 +119,21 @@ export const computeCanvasElementStyle = (
 
   switch (type) {
     case "button": {
-      // Button: ButtonSpec에서 size별 borderRadius 가져오기
-      const sizeSpec =
-        ButtonSpec.sizes[size as keyof typeof ButtonSpec.sizes] ||
-        ButtonSpec.sizes[ButtonSpec.defaultSize];
-      const sizePreset = getSizePreset(sizeSpec, "light");
-      computedStyle.borderRadius = `${sizePreset.borderRadius}px`;
+      // ADR-912: Button borderRadius 를 catalog rule(Button) size 에서 가져오기 (spec 끊기).
+      const buttonRule = resolveSkiaRule("Button");
+      const ruleSize =
+        buttonRule?.sizes[size] ??
+        buttonRule?.sizes[buttonRule.defaultSize ?? "md"];
+      if (ruleSize) {
+        const sizePreset = getSizePreset(
+          ruleSizeToSizeSpec(ruleSize) as SizeSpec,
+          "light",
+        );
+        computedStyle.borderRadius = `${sizePreset.borderRadius}px`;
+      } else {
+        const borderRadius = SIZE_BORDER_RADIUS[size] ?? SIZE_BORDER_RADIUS.sm;
+        computedStyle.borderRadius = `${borderRadius}px`;
+      }
       break;
     }
     default: {

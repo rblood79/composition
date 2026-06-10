@@ -17,10 +17,7 @@ import {
   fontFamily as specFontFamily,
   BreadcrumbsSpec,
   InputSpec,
-  ButtonSpec,
-  BadgeSpec,
   TagSpec,
-  ToggleButtonSpec,
   TabSpec,
   CardSpec,
   resolveToken,
@@ -28,7 +25,6 @@ import {
   normalizeBreadcrumbRspSizeKey,
   PROGRESSBAR_DIMENSIONS,
   METER_DIMENSIONS,
-  STATUSLIGHT_DIMENSIONS,
   resolveListBoxSpacingMetric,
   resolveListBoxItemMetric,
   resolveListBoxItemRowHeight,
@@ -42,8 +38,8 @@ import type { SizeSpec } from "@composition/specs";
 import {
   TabsSpec,
   TabPanelsSpec,
-  // ADR-091 Phase 3: Class A spec.sizes 직접 참조 — Record 해체 대응.
-  IconSpec,
+  // ADR-912 box+text leaf 군 (2026-06-11): IconSpec import 제거 — iconSize 를 catalog rule(resolveSkiaRule)
+  //   기반으로 전환(spec 끊기). Button/Badge/ToggleButton/StatusLight 도 동형(SIZE_CONFIG rule 파생).
   // ADR-912 (B+icon): CalendarHeaderSpec import 제거 — height 분기 rule 인라인 미러로 전환(spec 끊기).
   DateInputSpec,
   ComboBoxSpec,
@@ -54,6 +50,11 @@ import {
   HTML_PRIMITIVE_DEFAULT_WIDTHS,
   HTML_PRIMITIVE_DEFAULT_HEIGHTS,
 } from "@composition/specs";
+import type { ComponentRuleSize } from "@composition/shared";
+import {
+  resolveSkiaRule,
+  ruleSizeToSizeSpec,
+} from "../../skia/resolveSkiaVisualRule";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
 import { extractSpecTextStyle } from "../../utils/specTextStyle";
 import {
@@ -559,20 +560,49 @@ function deriveSizeConfig(
   return result;
 }
 
-// ADR-036: Spec이 단일 소스 — SIZE_CONFIG 수동 동기화 불필요
-const BUTTON_SIZE_CONFIG = deriveSizeConfig(ButtonSpec.sizes);
+// ADR-912 box+text leaf 군 (2026-06-11): catalog rule sizes(ComponentRuleSize) → SizeSpec map 변환.
+//   spec.sizes 대신 componentRulesTable rule 을 layout SIZE_CONFIG 의 입력으로 사용(spec 끊기).
+//   rule.sizes 에 paddingY/gap/iconGap 보강 완료 → deriveSizeConfig 가 읽는 필드와 1:1 호환.
+function ruleSizesToSizeSpecMap(type: string): Record<string, SizeSpec> {
+  const rule = resolveSkiaRule(type);
+  if (!rule) return {};
+  const result: Record<string, SizeSpec> = {};
+  for (const [key, s] of Object.entries(rule.sizes)) {
+    result[key] = ruleSizeToSizeSpec(s as ComponentRuleSize) as SizeSpec;
+  }
+  return result;
+}
+
+// ADR-912 box+text leaf 군 (2026-06-11): StatusLight.spec 삭제 → STATUSLIGHT_DIMENSIONS 인라인 미러.
+//   dotSize 는 catalog rule sizes 에 없는 StatusLight 고유 치수(CalendarHeader rule 인라인 미러 선례).
+//   height/gap/fontSize 는 componentRulesTable.StatusLight.sizes 와 동일(SSOT 미러). Skia escape
+//   (skiaPrimitives status_light)는 rule sizes 직접 읽음 — 본 미러는 layout intrinsic width 전용.
+const STATUSLIGHT_DIMENSIONS: Record<
+  string,
+  { height: number; dotSize: number; gap: number; fontSize: number }
+> = {
+  sm: { height: 20, dotSize: 8, gap: 8, fontSize: 12 },
+  md: { height: 24, dotSize: 10, gap: 8, fontSize: 14 },
+  lg: { height: 28, dotSize: 12, gap: 8, fontSize: 16 },
+  xl: { height: 32, dotSize: 14, gap: 8, fontSize: 18 },
+};
+
+// ADR-912: SIZE_CONFIG 입력을 spec.sizes → catalog rule sizes 로 전환(spec-free).
+const BUTTON_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Button"));
 
 /** CSS에 min-height 없음 → padding + line-height로 자연 결정 */
 const MIN_BUTTON_HEIGHT = 0;
 
-// ADR-036: BadgeSpec.sizes에서 파생
-const BADGE_SIZE_CONFIG = deriveSizeConfig(BadgeSpec.sizes);
+// ADR-912: BadgeSpec.sizes → catalog rule(Badge) 파생
+const BADGE_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Badge"));
 
 // ADR-036: TagSpec.sizes에서 파생 (Badge와 paddingX가 다름)
 const TAG_SIZE_CONFIG = deriveSizeConfig(TagSpec.sizes);
 
-// ADR-036: ToggleButtonSpec.sizes에서 파생
-const TOGGLEBUTTON_SIZE_CONFIG = deriveSizeConfig(ToggleButtonSpec.sizes);
+// ADR-912: ToggleButtonSpec.sizes → catalog rule(ToggleButton) 파생
+const TOGGLEBUTTON_SIZE_CONFIG = deriveSizeConfig(
+  ruleSizesToSizeSpecMap("ToggleButton"),
+);
 
 // ADR-036: TabSpec.sizes에서 파생
 const TAB_SIZE_CONFIG = deriveSizeConfig(TabSpec.sizes);
@@ -884,7 +914,11 @@ export function calculateContentWidth(
     const overrideFs = parseNumericValue(style?.fontSize);
     if (overrideFs != null) return overrideFs;
     const sizeName = String(props?.size ?? "md");
-    return IconSpec.sizes[sizeName]?.iconSize ?? 18;
+    // ADR-912: IconSpec.sizes → catalog rule(Icon) iconSize (spec 끊기).
+    const iconRuleSize = resolveSkiaRule("Icon")?.sizes[sizeName];
+    return typeof iconRuleSize?.iconSize === "number"
+      ? iconRuleSize.iconSize
+      : 18;
   }
 
   // 1.1. StatusLight: dot + gap + text width
@@ -1564,7 +1598,11 @@ export function calculateContentHeight(
     const overrideFs = parseNumericValue(style?.fontSize);
     if (overrideFs != null) return overrideFs;
     const sizeName = String(props?.size ?? "md");
-    return IconSpec.sizes[sizeName]?.iconSize ?? 18;
+    // ADR-912: IconSpec.sizes → catalog rule(Icon) iconSize (spec 끊기).
+    const iconRuleSize = resolveSkiaRule("Icon")?.sizes[sizeName];
+    return typeof iconRuleSize?.iconSize === "number"
+      ? iconRuleSize.iconSize
+      : 18;
   }
 
   // 1.5. StatusLight: spec sizes에 정의된 고정 높이

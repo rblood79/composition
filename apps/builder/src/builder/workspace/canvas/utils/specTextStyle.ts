@@ -16,16 +16,12 @@ import type {
   TokenRef,
 } from "@composition/specs";
 import {
-  ButtonSpec,
-  BadgeSpec,
-  ToggleButtonSpec,
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
   InputSpec,
   BreadcrumbSpec,
   normalizeBreadcrumbRspSizeKey,
-  StatusLightSpec,
   SelectValueSpec,
   MenuSpec,
   ProgressBarValueSpec,
@@ -83,14 +79,15 @@ const TEXT_BEARING_SPECS: Record<
     catalogType?: string;
   }
 > = {
-  button: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
-  submitbutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
-  fancybutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
-  badge: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
-  type: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
-  chip: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  // ADR-912 box+text leaf 군 (2026-06-11): catalog 발효 → spec 생략, 측정이 resolveSkiaRule
+  //   (catalogType) 기반(sizes/defaultVariant) 산출 → spec import 0. (Text/Link 동형)
+  button: { defaultSize: "md", catalogType: "Button" },
+  submitbutton: { defaultSize: "md", catalogType: "Button" },
+  fancybutton: { defaultSize: "md", catalogType: "Button" },
+  badge: { defaultSize: "sm", catalogType: "Badge" },
+  type: { defaultSize: "sm", catalogType: "Badge" },
+  chip: { defaultSize: "sm", catalogType: "Badge" },
   togglebutton: {
-    spec: ToggleButtonSpec,
     defaultSize: "md",
     catalogType: "ToggleButton",
   },
@@ -107,7 +104,9 @@ const TEXT_BEARING_SPECS: Record<
   input: { spec: InputSpec, defaultSize: "sm" },
   /** `breadcrumbs` 태그는 extractSpecTextStyle 내부에서 BreadcrumbSpec으로 처리 */
   breadcrumb: { spec: BreadcrumbSpec, defaultSize: "M" },
-  statuslight: { spec: StatusLightSpec, defaultSize: "md" },
+  // ADR-912 box+text leaf 군 (2026-06-11): StatusLight catalog 발효(status_light escape) →
+  //   catalogType 추가 + spec 생략. 측정은 rule sizes 기반.
+  statuslight: { defaultSize: "md", catalogType: "StatusLight" },
   selectvalue: { spec: SelectValueSpec, defaultSize: "md" },
   menu: {
     spec: MenuSpec as ComponentSpec<Record<string, unknown>>,

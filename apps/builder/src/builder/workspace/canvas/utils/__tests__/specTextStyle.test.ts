@@ -1,12 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
-  ButtonSpec,
-  BadgeSpec,
-  ToggleButtonSpec,
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
-  LabelSpec,
   buildCatalogShapes,
   resolveToken,
   type ComponentSpec,
@@ -141,25 +137,24 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
    * buildCatalogShapes 가 그리는 text 와 render.shapes 의 text 가 폰트 속성 동일해야 함
    * (그리기·측정 SSOT 일치 = 시각 대칭).
    */
+  // ADR-912 box+text leaf 군 (2026-06-11): Button/Badge/ToggleButton.spec 삭제 → legacy oracle
+  //   소멸 → specFreeCatalogCases(catalog rule oracle)로 이전. Link 선례 동형.
   const boxTextCutoverCases: Array<{
     tag: string;
     spec: ComponentSpec<Record<string, unknown>>;
     size: string;
-  }> = [
-    { tag: "button", spec: ButtonSpec, size: "md" },
-    { tag: "badge", spec: BadgeSpec, size: "sm" },
-    {
-      tag: "togglebutton",
-      spec: ToggleButtonSpec as ComponentSpec<Record<string, unknown>>,
-      size: "md",
-    },
-  ];
+  }> = [];
 
   const specFreeCatalogCases: Array<{
     tag: string;
     catalogType: string;
     size: string;
-  }> = [{ tag: "link", catalogType: "Link", size: "md" }];
+  }> = [
+    { tag: "link", catalogType: "Link", size: "md" },
+    { tag: "button", catalogType: "Button", size: "md" },
+    { tag: "badge", catalogType: "Badge", size: "sm" },
+    { tag: "togglebutton", catalogType: "ToggleButton", size: "md" },
+  ];
 
   /**
    * replace-mode skiaPrimitive type — step 2 에서 rule 기반 측정으로 전환됨.
@@ -365,41 +360,9 @@ describe("extractSpecTextStyle — TEXT_LEAF catalog 측정 drift 0 (ADR-912 위
  * 부모 의존 4단계 변형(label/necessity/align)은 dispatch 이전 specProps 단이라 catalog 직교(보존).
  */
 describe("buildCatalogShapes — Label catalog 렌더 drift 0 (ADR-912 선행-6)", () => {
-  /** LabelSpec.render.shapes 의 text shape 에서 oracle(fontWeight/lineHeight px/fontSize/align) 추출. */
-  function labelSpecOracle(sizeName: string): {
-    fontWeight: number;
-    lineHeight: number | null;
-    fontSize: number;
-    align: string | undefined;
-  } | null {
-    const size =
-      LabelSpec.sizes[sizeName] ?? LabelSpec.sizes[LabelSpec.defaultSize];
-    if (!size) return null;
-    const shapes = LabelSpec.render.shapes(
-      { size: sizeName, children: "Sample" } as Record<string, unknown>,
-      size,
-      "default",
-    );
-    const t = shapes.find(
-      (s): s is TextShape & { type: "text" } => s.type === "text",
-    );
-    if (!t) return null;
-    let lh: number | null = null;
-    const rawLh = t.lineHeight;
-    if (typeof rawLh === "number") lh = rawLh;
-    else if (typeof rawLh === "string") {
-      // Label spec lineHeight 는 getLabelLineHeight → number. string("20px") 케이스 방어.
-      const n = parseInt(rawLh as string, 10);
-      lh = Number.isNaN(n) ? null : n;
-    }
-    const fw = t.fontWeight;
-    return {
-      fontWeight: typeof fw === "number" ? fw : parseInt(String(fw), 10) || 400,
-      lineHeight: lh,
-      fontSize: t.fontSize,
-      align: t.align,
-    };
-  }
+  // ADR-912 box+text leaf 군 (2026-06-11): Label.spec 삭제 → labelSpecOracle(spec.render.shapes)
+  //   소멸. catalog 렌더의 불변(fontWeight 600 / align left / lineHeight non-null / fontSize>0)을
+  //   절대값으로 직접 단언(legacy spec 대조 → catalog-only 검증). rule = componentRulesTable.Label SSOT.
 
   /** catalog 경로: resolveSkiaVisualRule + buildCatalogShapes 가 그리는 Label text shape. */
   function labelCatalogText(sizeName: string): {
@@ -445,27 +408,23 @@ describe("buildCatalogShapes — Label catalog 렌더 drift 0 (ADR-912 선행-6)
   const LABEL_SIZES = ["xs", "sm", "md", "lg", "xl"];
 
   for (const size of LABEL_SIZES) {
-    test(`Label size=${size}: catalog 렌더(fontWeight/lineHeight/fontSize)가 spec oracle 과 일치(drift 0)`, () => {
-      const oracle = labelSpecOracle(size);
+    test(`Label size=${size}: catalog 렌더 불변(fontWeight 600 / align left / lineHeight·fontSize 유효)`, () => {
       const catalog = labelCatalogText(size);
-      expect(oracle, `${size} oracle`).not.toBeNull();
       expect(catalog, `${size} catalog`).not.toBeNull();
       // fontWeight: rule textWeight 600 (buildCatalogShapes 500 fallback 아님)
-      expect(catalog!.fontWeight, `Label ${size} fontWeight drift`).toBe(
-        oracle!.fontWeight,
-      );
       expect(catalog!.fontWeight, `Label ${size} fontWeight=600`).toBe(600);
-      // lineHeight: typography 토큰 px (fontSize*1.5 fallback 아님)
-      expect(catalog!.lineHeight, `Label ${size} lineHeight drift`).toBe(
-        oracle!.lineHeight,
-      );
-      // fontSize: 동일 typography 토큰
-      expect(catalog!.fontSize, `Label ${size} fontSize drift`).toBe(
-        oracle!.fontSize,
-      );
+      // lineHeight: typography 토큰 px (fontSize*1.5 fallback 아님 → non-null)
+      expect(
+        catalog!.lineHeight,
+        `Label ${size} lineHeight non-null`,
+      ).not.toBeNull();
+      expect(
+        catalog!.lineHeight!,
+        `Label ${size} lineHeight>0`,
+      ).toBeGreaterThan(0);
+      // fontSize: 동일 typography 토큰 (유효 px)
+      expect(catalog!.fontSize, `Label ${size} fontSize>0`).toBeGreaterThan(0);
       // align: height=0 transparent inline → "left" (hasOpaqueBg 보강으로 center drift 정정).
-      //   spec render.shapes 도 left. transparent fill 이 box align(center)로 오판되던 것 해소.
-      expect(catalog!.align, `Label ${size} align drift`).toBe(oracle!.align);
       expect(catalog!.align, `Label ${size} align=left`).toBe("left");
     });
   }

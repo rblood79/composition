@@ -7,15 +7,11 @@
  */
 
 // Button
-export { ButtonSpec } from "./Button.spec";
-export type { ButtonProps } from "./Button.spec";
 
 // Text/Heading/Paragraph/Code/Kbd (TEXT_LEAF) — ADR-912 단계5 step4: spec 삭제 대상,
 // catalog rule SSOT 로 이관 완료(측정/CSS/렌더 전부). barrel export 제거.
 
 // Badge
-export { BadgeSpec } from "./Badge.spec";
-export type { BadgeProps } from "./Badge.spec";
 
 // Card
 export { CardSpec } from "./Card.spec";
@@ -52,12 +48,8 @@ export { PopoverSpec } from "./Popover.spec";
 export type { PopoverProps } from "./Popover.spec";
 
 // Separator
-export { SeparatorSpec } from "./Separator.spec";
-export type { SeparatorProps } from "./Separator.spec";
 
 // ToggleButton
-export { ToggleButtonSpec } from "./ToggleButton.spec";
-export type { ToggleButtonProps } from "./ToggleButton.spec";
 
 // ToggleButtonGroup
 export { ToggleButtonGroupSpec } from "./ToggleButtonGroup.spec";
@@ -354,8 +346,6 @@ export { SlotSpec } from "./Slot.spec";
 export type { SlotProps } from "./Slot.spec";
 
 // Skeleton
-export { SkeletonSpec } from "./Skeleton.spec";
-export type { SkeletonProps } from "./Skeleton.spec";
 
 // DropZone
 export { DropZoneSpec } from "./DropZone.spec";
@@ -370,16 +360,12 @@ export { MaskedFrameSpec } from "./MaskedFrame.spec";
 export type { MaskedFrameProps } from "./MaskedFrame.spec";
 
 // Label
-export { LabelSpec } from "./Label.spec";
-export type { LabelProps } from "./Label.spec";
 
 // FieldError/Description (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 // Heading/Paragraph/Kbd/Code (TEXT_LEAF) — ADR-912 단계5 step4: barrel export 제거 (spec 삭제 대상)
 
-// DisclosureHeader
-export { DisclosureHeaderSpec } from "./DisclosureHeader.spec";
-export type { DisclosureHeaderProps } from "./DisclosureHeader.spec";
-
+// DisclosureHeader — ADR-912 Disclosure 군 일괄 cutover (2026-06-10): spec 삭제됨.
+//   barrel export 정리 누락분 제거 (2026-06-11). 시각 SSOT = componentRulesTable.DisclosureHeader.
 // DisclosureContent — ADR-912 단계5 spec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
 
 // SliderTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
@@ -393,8 +379,6 @@ export { SliderOutputSpec } from "./SliderOutput.spec";
 export type { SliderOutputProps } from "./SliderOutput.spec";
 
 // Icon (ADR-019)
-export { IconSpec } from "./Icon.spec";
-export type { IconProps } from "./Icon.spec";
 
 // Avatar
 export { AvatarSpec } from "./Avatar.spec";
@@ -405,8 +389,6 @@ export { AvatarGroupSpec } from "./AvatarGroup.spec";
 export type { AvatarGroupProps } from "./AvatarGroup.spec";
 
 // StatusLight
-export { StatusLightSpec, STATUSLIGHT_DIMENSIONS } from "./StatusLight.spec";
-export type { StatusLightProps } from "./StatusLight.spec";
 
 // InlineAlert
 export { InlineAlertSpec } from "./InlineAlert.spec";

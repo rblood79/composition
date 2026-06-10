@@ -235,11 +235,6 @@ export type { SkiaPrimitiveDrawFn } from "./renderers";
 export type { ComponentVisualRule } from "./renderers";
 
 // ─── Components ──────────────────────────────────────────────────────────────
-export { ButtonSpec } from "./components/Button.spec";
-export type { ButtonProps } from "./components/Button.spec";
-
-export { BadgeSpec } from "./components/Badge.spec";
-export type { BadgeProps } from "./components/Badge.spec";
 
 export { CardSpec } from "./components/Card.spec";
 export type { CardProps } from "./components/Card.spec";
@@ -273,12 +268,6 @@ export type { SectionProps } from "./components/Section.spec";
 // ADR-902 후속: Body 는 페이지 루트 theme-aware 배경을 Spec SSOT 로 선언.
 export { BodySpec } from "./components/Body.spec";
 export type { BodyProps } from "./components/Body.spec";
-
-export { SeparatorSpec } from "./components/Separator.spec";
-export type { SeparatorProps } from "./components/Separator.spec";
-
-export { ToggleButtonSpec } from "./components/ToggleButton.spec";
-export type { ToggleButtonProps } from "./components/ToggleButton.spec";
 
 export { ToggleButtonGroupSpec } from "./components/ToggleButtonGroup.spec";
 export type { ToggleButtonGroupProps } from "./components/ToggleButtonGroup.spec";
@@ -478,9 +467,6 @@ export type { FrameProps } from "./components/Frame.spec";
 export { SlotSpec } from "./components/Slot.spec";
 export type { SlotProps } from "./components/Slot.spec";
 
-export { SkeletonSpec } from "./components/Skeleton.spec";
-export type { SkeletonProps } from "./components/Skeleton.spec";
-
 export { DropZoneSpec } from "./components/DropZone.spec";
 export type { DropZoneProps } from "./components/DropZone.spec";
 
@@ -562,8 +548,6 @@ export { SwitcherSpec } from "./components/Switcher.spec";
 export type { SwitcherProps } from "./components/Switcher.spec";
 
 // ─── Phase 5: Child Composition Specs (Compositional 전환) ─────────────────
-export { LabelSpec } from "./components/Label.spec";
-export type { LabelProps } from "./components/Label.spec";
 
 // FieldError/Description (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 // Heading/Paragraph/Kbd/Code (TEXT_LEAF) — ADR-912 단계5 step4: barrel export 제거 (spec 삭제 대상)
@@ -582,9 +566,6 @@ export type { SliderThumbProps } from "./components/SliderThumb.spec";
 export { SliderOutputSpec } from "./components/SliderOutput.spec";
 export type { SliderOutputProps } from "./components/SliderOutput.spec";
 
-export { IconSpec } from "./components/Icon.spec";
-export type { IconProps } from "./components/Icon.spec";
-
 export { SelectTriggerSpec } from "./components/SelectTrigger.spec";
 export type { SelectTriggerProps } from "./components/SelectTrigger.spec";
 
@@ -600,12 +581,6 @@ export type { AvatarProps } from "./components/Avatar.spec";
 
 export { AvatarGroupSpec } from "./components/AvatarGroup.spec";
 export type { AvatarGroupProps } from "./components/AvatarGroup.spec";
-
-export {
-  StatusLightSpec,
-  STATUSLIGHT_DIMENSIONS,
-} from "./components/StatusLight.spec";
-export type { StatusLightProps } from "./components/StatusLight.spec";
 
 export { InlineAlertSpec } from "./components/InlineAlert.spec";
 export type { InlineAlertProps } from "./components/InlineAlert.spec";

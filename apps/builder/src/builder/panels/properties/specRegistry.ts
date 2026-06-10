@@ -3,10 +3,10 @@ import {
   AvatarSpec,
   CardSpec,
   AvatarGroupSpec,
-  BadgeSpec,
+  // ADR-912 box+text leaf 군 (2026-06-11): Badge/Button/ToggleButton/Separator/StatusLight/Icon
+  //   Spec import 제거 — catalog binding.accepts 가 D2 properties 대체(Link 선례, spec.properties dead).
   BreadcrumbsSpec,
   BreadcrumbSpec,
-  ButtonSpec,
   ButtonGroupSpec,
   CalendarSpec,
   CardViewSpec,
@@ -30,7 +30,6 @@ import {
   FormSpec,
   GridListSpec,
   GroupSpec,
-  IconSpec,
   IllustratedMessageSpec,
   ImageSpec,
   InlineAlertSpec,
@@ -46,10 +45,8 @@ import {
   RadioGroupSpec,
   SearchFieldSpec,
   SelectSpec,
-  SeparatorSpec,
   SliderSpec,
   SlotSpec,
-  StatusLightSpec,
   SwitchSpec,
   TailSwatchSpec,
   TableViewSpec,
@@ -62,7 +59,6 @@ import {
   TextFieldSpec,
   TimeFieldSpec,
   ToastSpec,
-  ToggleButtonSpec,
   ToggleButtonGroupSpec,
   ToolbarSpec,
   TooltipSpec,
@@ -83,10 +79,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
 > = {
   Avatar: AvatarSpec as ComponentSpec<Record<string, unknown>>,
   AvatarGroup: AvatarGroupSpec as ComponentSpec<Record<string, unknown>>,
-  Badge: BadgeSpec as ComponentSpec<Record<string, unknown>>,
   Breadcrumbs: BreadcrumbsSpec as ComponentSpec<Record<string, unknown>>,
   Breadcrumb: BreadcrumbSpec as ComponentSpec<Record<string, unknown>>,
-  Button: ButtonSpec as ComponentSpec<Record<string, unknown>>,
   ButtonGroup: ButtonGroupSpec as ComponentSpec<Record<string, unknown>>,
   Calendar: CalendarSpec as ComponentSpec<Record<string, unknown>>,
   Card: CardSpec as ComponentSpec<Record<string, unknown>>,
@@ -118,7 +112,6 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Form: FormSpec as ComponentSpec<Record<string, unknown>>,
   GridList: GridListSpec as ComponentSpec<Record<string, unknown>>,
   Group: GroupSpec as ComponentSpec<Record<string, unknown>>,
-  Icon: IconSpec as ComponentSpec<Record<string, unknown>>,
   IllustratedMessage: IllustratedMessageSpec as ComponentSpec<
     Record<string, unknown>
   >,
@@ -141,10 +134,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   RadioGroup: RadioGroupSpec as ComponentSpec<Record<string, unknown>>,
   SearchField: SearchFieldSpec as ComponentSpec<Record<string, unknown>>,
   Select: SelectSpec as ComponentSpec<Record<string, unknown>>,
-  Separator: SeparatorSpec as ComponentSpec<Record<string, unknown>>,
   Slider: SliderSpec as ComponentSpec<Record<string, unknown>>,
   Slot: SlotSpec as ComponentSpec<Record<string, unknown>>,
-  StatusLight: StatusLightSpec as ComponentSpec<Record<string, unknown>>,
   Switch: SwitchSpec as ComponentSpec<Record<string, unknown>>,
   TailSwatch: TailSwatchSpec as ComponentSpec<Record<string, unknown>>,
   TableView: TableViewSpec as ComponentSpec<Record<string, unknown>>,
@@ -157,7 +148,6 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   TextField: TextFieldSpec as ComponentSpec<Record<string, unknown>>,
   TimeField: TimeFieldSpec as ComponentSpec<Record<string, unknown>>,
   Toast: ToastSpec as ComponentSpec<Record<string, unknown>>,
-  ToggleButton: ToggleButtonSpec as ComponentSpec<Record<string, unknown>>,
   ToggleButtonGroup: ToggleButtonGroupSpec as ComponentSpec<
     Record<string, unknown>
   >,

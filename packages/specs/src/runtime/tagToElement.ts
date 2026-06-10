@@ -17,12 +17,9 @@ import type { ComponentSpec } from "../types/spec.types";
 // 모든 spec을 import하여 태그 → spec registry 구축.
 // apps/builder의 TAG_SPEC_MAP과 유사하나, packages/specs의 내부 concern이며
 // Preview DOM element resolution 용도로 한정된다.
-import { ButtonSpec } from "../components/Button.spec";
-import { BadgeSpec } from "../components/Badge.spec";
 import { CardSpec } from "../components/Card.spec";
 import { DialogSpec } from "../components/Dialog.spec";
 import { PopoverSpec } from "../components/Popover.spec";
-import { SeparatorSpec } from "../components/Separator.spec";
 import { TextFieldSpec } from "../components/TextField.spec";
 import { TextAreaSpec } from "../components/TextArea.spec";
 import { NumberFieldSpec } from "../components/NumberField.spec";
@@ -62,7 +59,6 @@ import { ToastSpec } from "../components/Toast.spec";
 import { GroupSpec } from "../components/Group.spec";
 import { FrameSpec } from "../components/Frame.spec";
 import { SlotSpec } from "../components/Slot.spec";
-import { SkeletonSpec } from "../components/Skeleton.spec";
 import { DropZoneSpec } from "../components/DropZone.spec";
 import { FileTriggerSpec } from "../components/FileTrigger.spec";
 import { MaskedFrameSpec } from "../components/MaskedFrame.spec";
@@ -85,11 +81,11 @@ import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 import { ListSpec } from "../components/List.spec";
 import { InputSpec } from "../components/Input.spec";
 import { SwitcherSpec } from "../components/Switcher.spec";
-import { LabelSpec } from "../components/Label.spec";
+// ADR-912 box+text leaf 군 일괄 (2026-06-11) — Label/Icon/ToggleButton/StatusLight/Button/Badge/
+//   Separator/Skeleton Spec 삭제. 시각 SSOT = componentRulesTable (generate-css virtual / Skia escape).
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — DisclosureHeaderSpec 삭제. 시각 = catalog rule.
 // ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
 import { SliderOutputSpec } from "../components/SliderOutput.spec";
-import { IconSpec } from "../components/Icon.spec";
 import { SelectTriggerSpec } from "../components/SelectTrigger.spec";
 import { SelectValueSpec } from "../components/SelectValue.spec";
 import { SelectIconSpec } from "../components/SelectIcon.spec";
@@ -97,10 +93,8 @@ import { AvatarSpec } from "../components/Avatar.spec";
 import { AvatarGroupSpec } from "../components/AvatarGroup.spec";
 import { InlineAlertSpec } from "../components/InlineAlert.spec";
 import { ButtonGroupSpec } from "../components/ButtonGroup.spec";
-import { ToggleButtonSpec } from "../components/ToggleButton.spec";
 import { ToggleButtonGroupSpec } from "../components/ToggleButtonGroup.spec";
 import { TooltipSpec } from "../components/Tooltip.spec";
-import { StatusLightSpec } from "../components/StatusLight.spec";
 // ADR-912 단계5: ProgressCircleSpec 삭제 — catalog cutover(value_fill_arc escape) + generate-css virtual
 import { SectionSpec } from "../components/Section.spec";
 import { BodySpec } from "../components/Body.spec";
@@ -119,15 +113,14 @@ import { MeterValueSpec } from "../components/MeterValue.spec";
 //      spec.element === "div" 반환 → Preview DOM 이 `<div>` 로 렌더 (기존 `<cardheader>`
 //      커스텀 태그 문제 해소) + `data-size/variant` 속성 주입 복구.
 export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
-  Button: ButtonSpec,
-  Badge: BadgeSpec,
+  // ADR-912 box+text leaf 군 일괄 (2026-06-11): Button/Badge/Separator/ToggleButton/Skeleton/
+  //   Label/Icon/StatusLight 제거 — catalog 발효(isCatalogSkiaCutover) → spec null 통과(buildSpecNodeData
+  //   진입 게이트 2곳). DOM CSS = generated(virtual), Skia = generic/escape.
   Card: CardSpec,
   Dialog: DialogSpec,
   Popover: PopoverSpec,
   Section: SectionSpec,
   Body: BodySpec,
-  Separator: SeparatorSpec,
-  ToggleButton: ToggleButtonSpec,
   ToggleButtonGroup: ToggleButtonGroupSpec,
   Tooltip: TooltipSpec,
   TextField: TextFieldSpec,
@@ -179,7 +172,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // Group (PascalCase) = RAC ARIA semantic / frame (lowercase) = layout primitive.
   frame: FrameSpec,
   Slot: SlotSpec,
-  Skeleton: SkeletonSpec,
   DropZone: DropZoneSpec,
   FileTrigger: FileTriggerSpec,
   MaskedFrame: MaskedFrameSpec,
@@ -202,8 +194,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   List: ListSpec,
   Input: InputSpec,
   Switcher: SwitcherSpec,
-  Label: LabelSpec,
-  Icon: IconSpec,
   SelectTrigger: SelectTriggerSpec,
   SelectValue: SelectValueSpec,
   SelectIcon: SelectIconSpec,
@@ -211,7 +201,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   AvatarGroup: AvatarGroupSpec,
   InlineAlert: InlineAlertSpec,
   ButtonGroup: ButtonGroupSpec,
-  StatusLight: StatusLightSpec,
   // ADR-912 단계5: ProgressCircle 제거 — catalog cutover spec-free (buildSpecNodeData:908 isCatalogSkiaCutover 게이트)
   IllustratedMessage: IllustratedMessageSpec,
   CardView: CardViewSpec,

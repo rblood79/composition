@@ -14,9 +14,6 @@ import type {
   SizeSpec,
 } from "@composition/specs";
 import {
-  ButtonSpec,
-  BadgeSpec,
-  ToggleButtonSpec,
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
@@ -46,14 +43,14 @@ const TEXT_BEARING_SPECS: Record<
     catalogType?: string;
   }
 > = {
-  button: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
-  submitbutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
-  fancybutton: { spec: ButtonSpec, defaultSize: "md", catalogType: "Button" },
-  badge: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
-  type: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
-  chip: { spec: BadgeSpec, defaultSize: "sm", catalogType: "Badge" },
+  // ADR-912 box+text leaf 군 (2026-06-11): catalog 발효 → spec 생략 (rule 기반 측정).
+  button: { defaultSize: "md", catalogType: "Button" },
+  submitbutton: { defaultSize: "md", catalogType: "Button" },
+  fancybutton: { defaultSize: "md", catalogType: "Button" },
+  badge: { defaultSize: "sm", catalogType: "Badge" },
+  type: { defaultSize: "sm", catalogType: "Badge" },
+  chip: { defaultSize: "sm", catalogType: "Badge" },
   togglebutton: {
-    spec: ToggleButtonSpec,
     defaultSize: "md",
     catalogType: "ToggleButton",
   },

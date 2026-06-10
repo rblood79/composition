@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [box+text leaf 8종 spec 삭제 — dual-SSOT 소멸 첫 batch (ADR-912 단계5)] - 2026-06-11
+
+### Architecture
+
+- **box+text leaf 8종 `*.spec.ts` 물리 삭제 — legacy spec ↔ catalog rule 이중 SSOT 소멸 (ADR-912 단계5)**:
+  - 대상 8종: `Button` / `ToggleButton` / `Badge` / `Separator` / `Skeleton` / `Icon` / `Label` / `StatusLight`. 모두 `cutover:"catalog"`(catalog generic 렌더) 컴포넌트로, Skia 는 이미 spec-free(`isCatalogSkiaCutover` generic box / escape primitive)였으나 legacy `*.spec.ts` 가 여전히 registry/measure/CSS-generate 경로에 등록되어 있던 잔존 dual-SSOT 영역
+  - **Why**: 72 catalog cutover type ∩ 105 legacy spec = 54 "등록됐으나 미삭제" = 메모리 `feedback-adr912-transform-batch-not-component-stepwise` 가 경고한 dual-SSOT 잔존. 작업 단위를 컴포넌트 step-by-step 이 아닌 **변환 패턴(box+text leaf)별 일괄**로 절단하여 동형 8종을 한 batch 로 처리
+  - **CSS 시각 동등 보존**: `generate-css.ts` 에 catalog rule + 메타(`TEXT_LEAF_NAMES` Set + `TEXT_LEAF_META` 배열)로부터 virtual `ComponentSpec` 을 합성하는 경로 추가 → spec 삭제 후에도 generated CSS **byte-diff 0**(catalog rule == legacy spec 시각값 입증, 메모리 `feedback-css-rule-virtual-input-not-fixture` 정합). Button/ToggleButton 은 `cssEmitMode:"button-base"`(--button-color var + color-mix 파생), 나머지는 "direct"
+  - **catalog rule 보강**: `componentRulesTable.ts` 의 8종 rule.sizes 에 paddingY/gap/iconGap 보강(Button xs~xl / Badge / ToggleButton / Separator / StatusLight) + `ComponentRuleSize` 스키마에 `iconGap?` 필드 추가 + `ruleSizeToSizeSpec` 에 iconSize/iconGap 변환 추가
+  - **measure 경로 spec-free 전환**: `specTextStyle.ts` / `specTextStyleForOverlay.ts` 가 8종을 `{ defaultSize, catalogType }` spec-free 항목으로 전환(`extractSpecTextStyle` 은 `resolveSkiaRule` rule-based 측정 사용, spec 은 optional fallback). layout `utils.ts` 의 SIZE_CONFIG 도 `resolveSkiaRule` 기반으로 전환(Icon iconSize / STATUSLIGHT_DIMENSIONS 인라인)
+  - **소비처 절단**: `index.ts`/`components/index.ts` export 8건, `tagToElement.ts` BASE_TAG_SPEC_MAP 8건, `specRegistry.ts` PROPERTY_EDITOR_SPEC_MAP 6건(catalog `binding.accepts` 가 D2 properties 대체), `elementHelpers.ts` Button borderRadius 참조 1건. Skia 진입 게이트 2곳(`buildSpecNodeData.ts`, `StoreRenderBridge isSpecPath`)은 `isCatalogSkiaCutover` OR 조건으로 spec 부재 견딤(변경 0)
+  - 검증: type-check builder baseline 73(신규 위반 0)·shared/publish 0 / 7종 generated CSS byte-diff 0 / specs vitest 514 pass / **Chrome MCP live**: dev 재시작 cold-load 후 새 Button/Badge/Icon/StatusLight element 생성 → Skia draw + DOM/CSS 렌더 + IndexedDB persist → 새로고침 cold-load 재렌더 + 콘솔 에러 0 + measure↔draw 대칭 확인(메모리 `feedback-catalog-spec-delete-skia-entry-gates` 경고 "Skia 미표시" 회귀 미발생)
+  - 위치: `packages/specs/src/components/{Button,ToggleButton,Badge,Separator,Skeleton,Icon,Label,StatusLight}.spec.ts`(8 삭제) 외 지원 11 파일 + 테스트 정합 9 파일
+
 ## [Nav 컴포넌트 catalog cutover 완결 + Skia↔CSS gap 비대칭 수정 — ADR-912] - 2026-06-11
 
 ### Bug Fixes
