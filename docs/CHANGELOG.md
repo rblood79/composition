@@ -28,6 +28,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: Chrome MCP 실제 클릭 — Section 1/2 title·content 정상, header 클릭 expand↔collapse 양방향 토글, 각 Disclosure 독립 토글(allowsMultipleExpanded), 콘솔 0
   - 위치: `LayoutRenderers.tsx::renderDisclosure / renderDisclosureGroup`, `DisclosureGroup.binding.ts`(주석 정정)
 
+- **동일 패턴 sweep — Nav / DisclosureContent 도 preview CSS(DOM) 에서 자식 element 누락 가능하던 문제**:
+  - DisclosureGroup 과 같은 빈-컨테이너 패턴을 가진 나머지 catalog-cutover internal binding 을 일괄 점검·수정. Nav 는 자식 링크가 preview 에서 빈 nav 로 렌더될 수 있었고, DisclosureContent 는 자식 element(중첩 컴포넌트) 콘텐츠가 누락될 수 있었다
+  - **Why**: `renderNav` / `renderDisclosureContent` 모두 `context.childrenByParent.get(id)` 로 자식을 받는데, canonical 렌더 경로의 childrenByParent 가 비어 있고 두 type 이 `DELEGATING_INTERNAL_RENDERERS` 미등록 → generic 위임(flatten 보강 없음)으로 떨어져 자식 0개로 렌더(disclosuregroup 과 동형). Nav 는 fallback 이 없어 빈 nav, DisclosureContent 는 `String(props.children)` 텍스트 fallback 이 있어 순수 텍스트는 표시되나 자식 element 시 누락
+  - 수정: `nav` / `disclosurecontent` 를 `DELEGATING_INTERNAL_RENDERERS` 에 등록 → `flattenNodeChildrenByParent` + `recursiveRenderElement` 보강 위임으로 자식 정상 렌더(disclosure/disclosuregroup 동형 메커니즘). 두 binding 의 잘못된 전제 주석("DOM parity 변화 0 / generic fallback 유지" / "cutover 블록 skip → rendererMap 위임 fallthrough") 도 정확한 설명으로 정정
+  - 검증: Chrome MCP — Compare Mode 에서 Nav(자식 Link 3개) 추가 → DOM preview iframe 에 `<nav aria-label="Navigation">` 의 childCount=3(react-aria-Link Home/About/Contact) 정상 렌더 확인(수정 전이면 childCount=0 빈 nav). DisclosureContent 는 동일 위임 블록 공유 + 부모 Disclosure(DELEGATING)의 contentChildren 재귀가 1차 경로라 회귀 없음. 콘솔 에러 0
+  - 위치: `CanonicalNodeRenderer.tsx::DELEGATING_INTERNAL_RENDERERS`, `Nav.binding.ts` / `DisclosureContent.binding.ts`(주석 정정)
+
 ## [Accordion 컴포넌트 제거 (DisclosureGroup 중복) + DisclosureGroup binding 누락 수정] - 2026-06-10
 
 ### Bug Fixes

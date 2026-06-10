@@ -172,6 +172,18 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   (CSS preview 미표시). disclosure 와 동일하게 DELEGATING 등록 → flattenNodeChildrenByParent
   //   보강 위임으로 자식 Disclosure 정상 렌더. Skia 는 SHELL_ONLY generic shell(자식 각자 렌더).
   "disclosuregroup",
+  // ADR-912 Disclosure 군 cutover 후속 sweep (2026-06-10): nav — renderNav 가
+  //   `context.childrenByParent.get(id)` 로 자식을 받아 `<nav>` 안에 재귀 렌더한다(fallback 없음).
+  //   disclosuregroup 동형 — INTERNAL_RENDERERS 미등록 + generic 위임은 childrenByParent 보강 없어
+  //   canonical 경로에서 자식 0개 빈 nav 로 렌더된다. DELEGATING 등록으로 flatten 보강 위임.
+  "nav",
+  // ADR-912 Disclosure 군 cutover 후속 sweep (2026-06-10): disclosurecontent — renderDisclosureContent
+  //   가 `childrenByParent.get(id)` 로 자식 element 를 렌더한다. props.children 텍스트 fallback 이 있어
+  //   순수 텍스트 콘텐츠는 generic 위임으로도 표시되지만, **자식 element(중첩 컴포넌트)가 있으면**
+  //   childrenByParent 가 비어 누락된다. 안전망 차원 DELEGATING 등록 — 텍스트만일 땐 flatten map 이
+  //   비어 fallback(String(props.children)) 으로 자연 동작, 자식 element 시엔 flatten 보강으로 렌더.
+  //   (부모 Disclosure(DELEGATING)의 contentChildren 재귀가 1차 경로지만, 독립 진입 시에도 안전.)
+  "disclosurecontent",
 ]);
 
 /**

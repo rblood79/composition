@@ -23,13 +23,14 @@ import type { PrimitiveBinding } from "../types";
  *   텍스트 children 만이면 inline text — spec 의 `if hasChildren return [] / if !text return []` 와
  *   시각 대칭.
  *
- * **DOM = renderDisclosureContent rendererMap 위임 (renderers/index.ts:94)**: 부모 renderDisclosure
- *   (LayoutRenderers.tsx:1577)가 DisclosureHeader 를 title 로 흡수하고 contentChildren(DisclosureContent
+ * **DOM = renderDisclosureContent (DELEGATING_INTERNAL_RENDERERS, 2026-06-10 sweep)**: 1차 경로는
+ *   부모 renderDisclosure 가 DisclosureHeader 를 title 로 흡수하고 contentChildren(DisclosureContent
  *   포함)을 renderElement 로 재귀 → renderDisclosureContent 가 `<div style={element.props.style}>` +
- *   (자식 또는 텍스트) 렌더. binding 의 PrimitiveComponent 없음(undefined) → CanonicalNodeRenderer
- *   cutover 블록 skip → rendererMap 위임 fallthrough(DisclosureHeader 동형, INTERNAL_RENDERERS 등록
- *   불필요). 따라서 catalog 등록 후에도 DOM 변화 0 — 발효 가치는 Skia spec.render.shapes fallback 제거
- *   + padding 단일 source 화.
+ *   (자식 element 또는 텍스트) 렌더. renderDisclosureContent 는 `childrenByParent.get(id)` 로 자식
+ *   element 를 받으므로(텍스트는 props.children fallback), 독립 진입(canonical 경로) 시 빈
+ *   childrenByParent 로 자식 element 가 누락될 수 있어 DELEGATING 등록(flatten 보강 위임). 순수
+ *   텍스트 콘텐츠는 flatten map 이 비어 fallback 으로 자연 동작 → 변화 0. 발효 가치는 Skia
+ *   spec.render.shapes fallback 제거 + padding 단일 source 화.
  *
  * D1: composition `<div>` (internal source, renderDisclosureContent). RAC Disclosure D1/ARIA 권위 보존.
  * D2: children(텍스트 또는 자식 element) + size 편집 surface.

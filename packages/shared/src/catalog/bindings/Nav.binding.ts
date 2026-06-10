@@ -12,10 +12,13 @@ import type { PrimitiveBinding } from "../types";
  *   buildCatalogShapes 가 box 만 그려도 시각 대칭(Nav 는 height>0 box → text 분기는 children/
  *   text/label 없으면 미진입). 빈 Nav 도 bg 만 — spec parity.
  *
- * **DOM parity = 변화 0**: INTERNAL_RENDERERS 미등록 → generic fallback 경로 유지. isSpecOrCatalogBacked
- *   true → `react-aria-Nav` + data-size/data-variant 주입 보존 → generated CSS(Nav.css) 매칭 불변.
- *   resolveGenericHtmlTag 에 Nav 키 없음 → type.toLowerCase() = "nav"(올바른 HTML 태그). generated
- *   CSS diff 0. role="navigation"/aria-label 은 spec react() 의 D1 metadata(rule/CSS 영역 외).
+ * **DOM = renderNav rendererMap 위임 (DELEGATING_INTERNAL_RENDERERS, 2026-06-10 sweep)**: renderNav
+ *   (LayoutRenderers.tsx)은 `context.childrenByParent.get(id)` 로 자식을 받아 `<nav>` 안에 재귀
+ *   렌더한다(fallback 없음). canonical 렌더 경로의 renderContext.childrenByParent 가 비어 있어,
+ *   DELEGATING 미등록 시 자식 0개 빈 nav 로 렌더된다(disclosuregroup 동형). DELEGATING 등록으로
+ *   flattenNodeChildrenByParent 보강 위임 → 자식 정상 렌더. isSpecOrCatalogBacked true →
+ *   `react-aria-Nav` + data-size/data-variant + generated CSS(Nav.css) 매칭 보존. role="navigation"/
+ *   aria-label 은 renderNav 가 직접 부여(rule/CSS 영역 외 D1).
  *
  * D1: composition `<nav>` (internal source, generic DOM via lowercase fallback → "nav").
  * D2: variant(default/accent) + size(sm/md/lg) + aria-label 편집 surface.
