@@ -170,6 +170,7 @@ const TEXT_LEAF_NAMES = new Set([
   "Skeleton",
   "Icon",
   "StatusLight",
+  "TabPanel",
 ]);
 
 type TextLeafMeta = {
@@ -431,6 +432,24 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     element: "div",
     containerStyles: { display: "inline-flex", alignItems: "center" },
     states: { disabled: { opacity: 0.38 } },
+  },
+  // ADR-912 collection catalog 발효 — TabPanel (TabPanel.spec.ts 삭제 대상).
+  //   archetype "collection": ARCHETYPE_BASE_STYLES["collection"](display:flex/column/box-sizing)
+  //   자동 emit. Skia 는 shapes=[] — spec 시각 0, Taffy padding 정보만. DOM CSS 는
+  //   padding(sm=8/md=12/lg=16) + fontSize + borderRadius 가 sizes 에서 emit.
+  //   states = disabled(opacity+pointerEvents) + focusVisible(focus-ring).
+  //   spec.containerStyles={ display:"flex", flexDirection:"column" } 미러.
+  {
+    name: "TabPanel",
+    archetype: "collection",
+    element: "div",
+    containerStyles: { display: "flex", flexDirection: "column" },
+    // TabPanel.spec.ts states 미러: hover/pressed 미emit (TabPanel 은 클릭/hover 상태 불필요).
+    // disabled(opacity+pointerEvents) + focusVisible(focus-ring) 만.
+    states: {
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
   },
 ];
 
