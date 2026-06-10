@@ -3665,18 +3665,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       sm: {
         paddingX: 12,
+        paddingY: 8,
+        gap: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 48,
       },
       md: {
         paddingX: 16,
+        paddingY: 12,
+        gap: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 56,
       },
       lg: {
         paddingX: 20,
+        paddingY: 16,
+        gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 64,

@@ -561,9 +561,6 @@ export type { InputProps } from "./components/Input.spec";
 export { SwitcherSpec } from "./components/Switcher.spec";
 export type { SwitcherProps } from "./components/Switcher.spec";
 
-export { NavSpec } from "./components/Nav.spec";
-export type { NavProps } from "./components/Nav.spec";
-
 // ─── Phase 5: Child Composition Specs (Compositional 전환) ─────────────────
 export { LabelSpec } from "./components/Label.spec";
 export type { LabelProps } from "./components/Label.spec";

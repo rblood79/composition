@@ -114,6 +114,7 @@ function ruleSizeToSizeSpec(
     ...(s.borderWidth !== undefined
       ? { borderWidth: s.borderWidth as number }
       : {}),
+    ...(s.gap !== undefined ? { gap: s.gap as number } : {}),
   } as SizeSpec;
 }
 
@@ -155,6 +156,7 @@ const TEXT_LEAF_NAMES = new Set([
   "ProgressBarTrack",
   "MeterTrack",
   "SliderTrack",
+  "Nav",
 ]);
 
 type TextLeafMeta = {
@@ -303,6 +305,23 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       pressed: {},
       disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
       focusVisible: {},
+    },
+  },
+  // ADR-912 container shell catalog 완결 — Nav (Nav.spec.ts 삭제 대상).
+  //   archetype "default": ARCHETYPE_BASE_STYLES 미정의 → DEFAULT_BASE_STYLES(display:inline-flex
+  //   /align-items:center/transition/font-family) emit. underline 류 특수 selector 없어 composition
+  //   불요. rule.sizes 의 paddingY/gap(2026-06-11 보강)으로 padding 세로축 + gap 재생성.
+  //   Skia 는 이미 spec-free(isCatalogSkiaCutover) generic box. states 는 disabled 에
+  //   pointerEvents:none 추가라 meta.states 로 명시(NavSpec.states 미러).
+  {
+    name: "Nav",
+    archetype: "default",
+    element: "nav",
+    containerStyles: undefined,
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
     },
   },
 ];

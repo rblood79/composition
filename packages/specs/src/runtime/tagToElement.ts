@@ -85,7 +85,6 @@ import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 import { ListSpec } from "../components/List.spec";
 import { InputSpec } from "../components/Input.spec";
 import { SwitcherSpec } from "../components/Switcher.spec";
-import { NavSpec } from "../components/Nav.spec";
 import { LabelSpec } from "../components/Label.spec";
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — DisclosureHeaderSpec 삭제. 시각 = catalog rule.
 // ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
@@ -203,7 +202,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   List: ListSpec,
   Input: InputSpec,
   Switcher: SwitcherSpec,
-  Nav: NavSpec,
   Label: LabelSpec,
   Icon: IconSpec,
   SelectTrigger: SelectTriggerSpec,

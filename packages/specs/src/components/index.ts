@@ -341,10 +341,6 @@ export type { ToolbarProps } from "./Toolbar.spec";
 export { ToastSpec } from "./Toast.spec";
 export type { ToastProps } from "./Toast.spec";
 
-// Nav
-export { NavSpec } from "./Nav.spec";
-export type { NavProps } from "./Nav.spec";
-
 // Group
 export { GroupSpec } from "./Group.spec";
 export type { GroupProps } from "./Group.spec";

@@ -38,7 +38,6 @@ import {
   MenuSpec,
   MeterSpec,
   ModalSpec,
-  NavSpec,
   NumberFieldSpec,
   PopoverSpec,
   ProgressBarSpec,
@@ -131,7 +130,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Menu: MenuSpec as ComponentSpec<Record<string, unknown>>,
   Meter: MeterSpec as ComponentSpec<Record<string, unknown>>,
   Modal: ModalSpec as ComponentSpec<Record<string, unknown>>,
-  Nav: NavSpec as ComponentSpec<Record<string, unknown>>,
+  // Nav — ADR-912 container shell catalog 완결: catalog cutover → GenericPropertyEditor 가
+  //   binding.accepts (Nav.binding.ts: aria-label/variant/size) 로 properties 생성. spec 삭제로 등록 제거.
   NumberField: NumberFieldSpec as ComponentSpec<Record<string, unknown>>,
   Popover: PopoverSpec as ComponentSpec<Record<string, unknown>>,
   ProgressBar: ProgressBarSpec as ComponentSpec<Record<string, unknown>>,

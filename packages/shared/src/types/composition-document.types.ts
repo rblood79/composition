@@ -220,6 +220,11 @@ export interface ComponentRuleSize {
   /** leaf 텍스트 x offset base (ADR-912 1C — Button 등 spec.sizes.paddingX 이전). */
   paddingX?: number | string;
   /**
+   * container shell 세로 padding base (ADR-912 — Nav 등 spec.sizes.paddingY 이전).
+   * generate-css virtual 이 `padding: {paddingY}px {paddingX}px` 로 emit. paddingX 와 대칭.
+   */
+  paddingY?: number | string;
+  /**
    * icon ↔ 컨텐츠 간격 base (ADR-912 (B+icon) CalendarHeader — spec.sizes.gap 이전).
    * `inline_icon_text` 의 width 폴백 계산(`cellSize*7 + gap*6`)에 사용. leading_icon 의
    * variant-level gap(icon↔text)과 별개 — 본 필드는 size-level layout gap.
