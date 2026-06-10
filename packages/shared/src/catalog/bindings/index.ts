@@ -22,6 +22,7 @@ import { datePickerBinding } from "./DatePicker.binding";
 import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { descriptionBinding } from "./Description.binding";
 import { dialogBinding } from "./Dialog.binding";
+import { disclosureBinding } from "./Disclosure.binding";
 import { disclosureHeaderBinding } from "./DisclosureHeader.binding";
 import { dropZoneBinding } from "./DropZone.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
@@ -190,6 +191,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source, generic box+border
   //   시각, staticAttrs role="alert"). render.shapes shell-only → buildCatalogShapes box+border parity.
   InlineAlert: inlineAlertBinding,
+  // ADR-912 §2-5 collapse proof (2026-06-10): Disclosure 컨테이너 (internal source, renderer=
+  //   "disclosure"). SHELL_ONLY → spec.render.shapes `[]` → Skia generic 빈 shell parity (variant
+  //   없음, hasVisibleBg=false). DOM=rendererMap.renderDisclosure 위임(DELEGATING_INTERNAL_RENDERERS,
+  //   self-compose title 추출 + expand/collapse 보존). ProgressBar/Tabs 동형 위임 패턴.
+  Disclosure: disclosureBinding,
   // family ② fields
   TextField: textFieldBinding,
   // ADR-912 단계 5 선행-1: multi-line field RAC leaf (box+text generic, _hasChildren shell)

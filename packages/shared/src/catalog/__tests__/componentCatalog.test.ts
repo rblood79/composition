@@ -103,6 +103,17 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "body",
         "Section",
         "Nav",
+        // ADR-912 (B+icon) (2026-06-08): Disclosure/Calendar 헤더 leaf (leading/inline icon escape).
+        //   이전 slice 에서 catalog 등록됐으나 본 oracle 미갱신 stale → §2-5 Disclosure slice 와 함께 정합.
+        "DisclosureHeader",
+        "CalendarHeader",
+        // ADR-912 (A/2D) (2026-06-08): Calendar grid + DateField input leaf (calendar_month_grid /
+        //   datefield_segments replace escape). 동일 stale 정합.
+        "CalendarGrid",
+        "DateInput",
+        // ADR-912 §2-5 collapse 진입 proof (2026-06-10): Disclosure 컨테이너 shell entry.
+        //   SHELL_ONLY → Skia generic 빈 shell, DOM=renderDisclosure 위임(DELEGATING).
+        "Disclosure",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

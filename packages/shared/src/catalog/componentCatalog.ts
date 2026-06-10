@@ -189,6 +189,18 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "nav",
     icon: "Menu",
   }),
+  // ADR-912 §2-5 collapse 진입 proof slice (2026-06-10): Disclosure 컨테이너. SHELL_ONLY →
+  //   spec.render.shapes `[]`(투명 레이아웃, Disclosure.spec.ts:181) → catalog 등록 후 Skia 는
+  //   buildCatalogShapes generic 빈 shell(rule variants:{} → visual undefined → hasVisibleBg=false,
+  //   buildCatalogShapes.ts:148) → spec `[]` 과 시각 대칭(둘 다 빈 box). DOM 은
+  //   rendererMap.renderDisclosure 위임(DELEGATING_INTERNAL_RENDERERS, self-compose title 추출 +
+  //   expand/collapse 보존 — generic 자식 재귀로는 깨짐). ProgressBar/Tabs/Breadcrumbs 동형 위임.
+  //   6-registry collapse 의 첫 shell entry proof.
+  primitiveEntry("Disclosure", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "disclosure",
+    icon: "ChevronDown",
+  }),
   // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source). catalog 등록으로
   //   spec.render.shapes Skia fallback 제거 — 시각은 rule(COMPONENT_RULES_TABLE.InlineAlert, 5 variant)
   //   + buildCatalogShapes generic box+border(shell, render.shapes 가 text 0 → 자식 Element 가

@@ -158,6 +158,12 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   로 RAC Breadcrumb/Link 합성. generic 자식 재귀(`<Breadcrumbs>{children}`)로는 빈 nav 만
   //   렌더되므로 rendererMap 위임(자식 재귀 skip). Skia 는 appendBreadcrumbRowProjection.
   "breadcrumbs",
+  // ADR-912 §2-5 collapse proof (2026-06-10): disclosure — renderDisclosure 가 childrenByParent
+  //   에서 자식 DisclosureHeader/Heading 의 children 을 title 로 추출 + 나머지를 contentChildren 으로
+  //   분리해 RAC `<Disclosure title defaultExpanded>` self-compose(expand/collapse 동작). generic
+  //   자식 재귀로는 title 추출/콘텐츠 분리가 깨지므로 rendererMap 위임(자식 재귀 skip). Skia 는
+  //   SHELL_ONLY generic 빈 shell(자식 DisclosureHeader/Content 가 각자 렌더).
+  "disclosure",
 ]);
 
 /**
