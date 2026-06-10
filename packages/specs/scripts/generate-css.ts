@@ -171,6 +171,7 @@ const TEXT_LEAF_NAMES = new Set([
   "Icon",
   "StatusLight",
   "TabPanel",
+  "TabPanels",
   "MenuItem",
 ]);
 
@@ -450,6 +451,20 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     states: {
       disabled: { opacity: 0.38, pointerEvents: "none" },
       focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  // ADR-912 collection catalog 발효 — TabPanels (TabPanels.spec.ts 삭제 대상).
+  //   archetype "collection": ARCHETYPE_BASE_STYLES["collection"](display:flex/column/box-sizing)
+  //   자동 emit. Skia 는 shapes=[] — spec 시각 0. DOM CSS 는
+  //   paddingX/paddingY(sm=8/md=12/lg=16) + fontSize 가 sizes 에서 emit.
+  //   spec.containerStyles={ display:"flex", flexDirection:"column" } 미러.
+  {
+    name: "TabPanels",
+    archetype: "collection",
+    element: "div",
+    containerStyles: { display: "flex", flexDirection: "column" },
+    states: {
+      disabled: { opacity: 0.38, pointerEvents: "none" },
     },
   },
   // ADR-912 simple catalog 발효 — MenuItem (MenuItem.spec.ts 삭제 대상).

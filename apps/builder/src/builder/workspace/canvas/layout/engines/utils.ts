@@ -37,7 +37,9 @@ import {
 import type { SizeSpec } from "@composition/specs";
 import {
   TabsSpec,
-  TabPanelsSpec,
+  // ADR-912 collection catalog 발효 — TabPanelsSpec import 제거 (2026-06-11).
+  //   tabPanelPadding 계산을 resolveSkiaRule("TabPanels") 경유로 이관.
+  //   rule sizes sm/md/lg paddingX 값(8/12/16) = spec 값과 동일 → 계산 결과 보존.
   // ADR-912 box+text leaf 군 (2026-06-11): IconSpec import 제거 — iconSize 를 catalog rule(resolveSkiaRule)
   //   기반으로 전환(spec 끊기). Button/Badge/ToggleButton/StatusLight 도 동형(SIZE_CONFIG rule 파생).
   // ADR-912 (B+icon): CalendarHeaderSpec import 제거 — height 분기 rule 인라인 미러로 전환(spec 끊기).
@@ -1528,8 +1530,8 @@ export function calculateContentWidth(
 }
 
 // ADR-091 Phase 2: TABS_BAR_HEIGHT / TABS_PANEL_PADDING 중간 캐시 제거.
-//   소비처는 `TabsSpec.sizes[size].height` / `TabPanelsSpec.sizes[size].paddingX` 직접 참조
-//   또는 `specSizeField("tabs"/"tabpanels", sizeName, "height"/"paddingX")` (implicitStyles 경로) 사용.
+//   소비처는 `TabsSpec.sizes[size].height` 직접 참조, TabPanelsSpec 는
+//   ADR-912 에서 resolveSkiaRule("TabPanels").sizes[size].paddingX 로 이관 완료.
 
 // ADR-096 Phase 4: DEFAULT_ELEMENT_HEIGHTS Record 해체.
 //   - Spec 있는 태그 (button/select/textarea/image) → `ComponentSpec.defaultHeight`
@@ -2804,9 +2806,13 @@ export function calculateContentHeight(
       const sizeName = (props?.size as string) ?? "md";
       const tabBarHeight =
         TabsSpec.sizes[sizeName]?.height ?? TabsSpec.sizes.md.height;
+      // ADR-912: TabPanelsSpec 직접 참조 → resolveSkiaRule 경유 (spec 끊기).
+      //   rule paddingX 값 = spec paddingX 값(sm=8/md=12/lg=16) 동일 보장.
+      const tabPanelsRule = resolveSkiaRule("TabPanels");
       const tabPanelPadding =
-        TabPanelsSpec.sizes[sizeName]?.paddingX ??
-        TabPanelsSpec.sizes.md.paddingX;
+        (tabPanelsRule?.sizes[sizeName]?.paddingX as number | undefined) ??
+        (tabPanelsRule?.sizes.md?.paddingX as number | undefined) ??
+        12;
 
       // 활성 Panel의 높이 계산 (Dual Lookup: 직속 → TabPanels 내부)
       let panelChildren = childElements.filter((c) => c.type === "TabPanel");
