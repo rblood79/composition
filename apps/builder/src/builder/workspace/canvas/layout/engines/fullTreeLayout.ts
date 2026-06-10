@@ -1345,9 +1345,6 @@ function traversePostOrder(
       [],
       getChildElements,
       isSynthFlexChild,
-      // synthetic Label 등은 input 의 flex/grid 자식 → effectiveDisplay 전달로
-      //   block-stretch 오발동 방지 (block 부모일 때만 stretch).
-      effectiveDisplay,
     );
     const synthRecord = buildNodeStyle(
       synthEnriched,
@@ -1575,8 +1572,6 @@ function traversePostOrder(
     enrichChildren,
     effectiveGetChildElements,
     isFlexChild,
-    // block leaf width:auto stretch 판정용 부모 display 전달
-    parentDisplay,
   );
 
   if (hasTaffyChildren) {
@@ -2119,23 +2114,6 @@ export function calculateFullTreeLayout(
           rawH !== "fit-content"
         )
           continue;
-
-        // block/inline 부모 자식 가드 (Approach B):
-        //   block-flow 자식은 CSS 상 부모 content-box 폭으로 stretch 되므로
-        //   enrichedWidth=availableWidth(부모폭) 가 정답이다. 그런데 Taffy 가
-        //   width 미지정 block leaf 를 content-hug(텍스트 자연폭) 로 좁게 할당하면
-        //   actualWidth(hug) ≠ enrichedWidth(부모폭) 로 오판 → 좁은 actualWidth 로
-        //   re-enrich → 줄바꿈 → height 과대 (DisclosureContent padding 55+ 버그).
-        //   actualWidth 신뢰는 flex(flex-grow/shrink)/grid(1fr 트랙) 부모 자식에만
-        //   정당하므로, block/inline 부모 자식은 re-enrich 대상에서 제외한다.
-        //   (block leaf width 자체는 enrichWithIntrinsicSize block-stretch 분기가 주입)
-        const parentEl = childEl.parent_id
-          ? elementsMap.get(childEl.parent_id)
-          : null;
-        const parentDisp =
-          ((parentEl?.props?.style as Record<string, unknown> | undefined)
-            ?.display as string | undefined) ?? "block";
-        if (parentDisp === "block" || parentDisp === "inline") continue;
 
         const handle = persistentTree.getHandle(node.elementId);
         if (handle === undefined) continue;
