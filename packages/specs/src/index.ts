@@ -577,8 +577,8 @@ export type { LabelProps } from "./components/Label.spec";
 export { DisclosureHeaderSpec } from "./components/DisclosureHeader.spec";
 export type { DisclosureHeaderProps } from "./components/DisclosureHeader.spec";
 
-export { DisclosureContentSpec } from "./components/DisclosureContent.spec";
-export type { DisclosureContentProps } from "./components/DisclosureContent.spec";
+// ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결, Description 동형).
+//   시각 SSOT = componentRulesTable.DisclosureContent (catalog rule).
 
 // ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — catalog 발효(slider_fill_bar escape)
 //   + generate-css virtual(archetype:slider) + 부모 Slider.spec.indicator 기반 size metric 으로 대체.

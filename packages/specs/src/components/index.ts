@@ -389,9 +389,7 @@ export type { LabelProps } from "./Label.spec";
 export { DisclosureHeaderSpec } from "./DisclosureHeader.spec";
 export type { DisclosureHeaderProps } from "./DisclosureHeader.spec";
 
-// DisclosureContent
-export { DisclosureContentSpec } from "./DisclosureContent.spec";
-export type { DisclosureContentProps } from "./DisclosureContent.spec";
+// DisclosureContent — ADR-912 단계5 spec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
 
 // SliderTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 

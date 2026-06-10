@@ -28,7 +28,6 @@ import {
   DisclosureSpec,
   DisclosureGroupSpec,
   DisclosureHeaderSpec,
-  DisclosureContentSpec,
   DropZoneSpec,
   FieldSpec,
   FileTriggerSpec,
@@ -123,9 +122,9 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   DisclosureHeader: DisclosureHeaderSpec as ComponentSpec<
     Record<string, unknown>
   >,
-  DisclosureContent: DisclosureContentSpec as ComponentSpec<
-    Record<string, unknown>
-  >,
+  // ADR-912 단계5 — DisclosureContentSpec 삭제: 시각 SSOT 는 componentRulesTable.DisclosureContent
+  //   (catalog rule). Skia=buildCatalogShapes(box+text generic), DOM=renderDisclosureContent
+  //   (rendererMap 위임). spec 의존 끊김 (Description 동형).
   DropZone: DropZoneSpec as ComponentSpec<Record<string, unknown>>,
   Field: FieldSpec as ComponentSpec<Record<string, unknown>>,
   FileTrigger: FileTriggerSpec as ComponentSpec<Record<string, unknown>>,

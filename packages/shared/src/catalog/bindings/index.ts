@@ -23,6 +23,7 @@ import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { descriptionBinding } from "./Description.binding";
 import { dialogBinding } from "./Dialog.binding";
 import { disclosureBinding } from "./Disclosure.binding";
+import { disclosureContentBinding } from "./DisclosureContent.binding";
 import { disclosureHeaderBinding } from "./DisclosureHeader.binding";
 import { dropZoneBinding } from "./DropZone.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
@@ -93,6 +94,7 @@ export * from "./DatePicker.binding";
 export * from "./DateRangePicker.binding";
 export * from "./Description.binding";
 export * from "./Dialog.binding";
+export * from "./DisclosureContent.binding";
 export * from "./DisclosureHeader.binding";
 export * from "./DropZone.binding";
 export * from "./FieldError.binding";
@@ -171,6 +173,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 (B+icon): Disclosure 헤더 leaf (leading chevron + title, leading_icon append escape).
   //   DOM 은 부모 Disclosure self-compose(독립 노드 0), Skia generic box+text + leading_icon.
   DisclosureHeader: disclosureHeaderBinding,
+  // ADR-912 box+text 변환 군 (2026-06-10): Disclosure 패널 콘텐츠 leaf (internal source, renderer=
+  //   "disclosurecontent"). inline text(rule height:0, paddingX 미정의=0) → buildCatalogShapes
+  //   box+text generic parity. spec sizes.paddingX(12) 가 Skia 에만 적용되던 "padding Skia-only" 비대칭
+  //   해소 — padding 단일 source = element.props.style(DOM renderDisclosureContent ↔ Skia buildCatalogShapes).
+  //   DOM=renderDisclosureContent 위임(부모 renderDisclosure contentChildren 재귀, 독립 노드 유지).
+  DisclosureContent: disclosureContentBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,

@@ -261,6 +261,19 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "disclosure header",
     icon: "ChevronRight",
   }),
+  // ADR-912 box+text 변환 군 DisclosureContent 발효 (2026-06-10): Disclosure 패널 콘텐츠 leaf
+  //   (inline text container div). catalog 등록으로 spec.render.shapes Skia fallback 제거 — Skia 는
+  //   buildCatalogShapes box+text generic(rule DisclosureContent: fontSize+lineHeight+textWeight 400,
+  //   paddingX 미정의=0), DOM 은 부모 renderDisclosure contentChildren 재귀 → renderDisclosureContent
+  //   `<div style>`. **padding 단일 source = element.props.style** — spec sizes.paddingX(md 12)가
+  //   Skia text x 에만 적용되던 "padding Skia-only" 비대칭(사용자 보고 2026-06-10) 해소. Description
+  //   동형(inline text leaf, height:0). palette 비노출(Disclosure 자식, ComponentList 미등록 — 단독
+  //   배치 안 함, DisclosureHeader 동형).
+  primitiveEntry("DisclosureContent", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "disclosure content",
+    icon: "AlignLeft",
+  }),
   // ADR-912 (B+icon) CalendarHeader 발효 (inline_icon_text replace, 2026-06-08): Calendar 네비게이션
   //   헤더 leaf(좌 chevron + 중앙 월/년 text + 우 chevron). DisclosureHeader 의 leading_icon(append)
   //   확장 — "좌 icon + center text + 우 icon" 은 다른 레이아웃 가정이라 별도 `inline_icon_text`

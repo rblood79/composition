@@ -2037,21 +2037,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 box+text 변환 군 발효 (2026-06-10): spec render.shapes 기본 fontWeight=400
+        //   (DisclosureContent.spec.ts:123) → variant.textWeight=400 명시. 누락 시 buildCatalogShapes
+        //   generic default weight 로 drift (Description 동형 — 보조 콘텐츠 normal weight 정본).
+        textWeight: 400,
       },
     },
+    // lineHeight 보강 (Description 동형): DOM(renderDisclosureContent <div>)은 fontSize 별 CSS
+    //   line-height 토큰 상속 / Skia measure 는 rule.sizes.lineHeight 소비 → 동일 typography 토큰
+    //   명시로 DOM↔Skia drift 0 (누락 시 measure fontSize*1.5 fallback ↔ DOM 토큰 불일치).
+    //   paddingX 는 의도적 미정의(=0) — padding 단일 source = element.props.style (사용자 "spec
+    //   기본 padding 제거" 정합, spec sizes.paddingX 12 의 Skia-only 비대칭 해소).
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },

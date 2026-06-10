@@ -91,7 +91,7 @@ import { SwitcherSpec } from "../components/Switcher.spec";
 import { NavSpec } from "../components/Nav.spec";
 import { LabelSpec } from "../components/Label.spec";
 import { DisclosureHeaderSpec } from "../components/DisclosureHeader.spec";
-import { DisclosureContentSpec } from "../components/DisclosureContent.spec";
+// ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
 import { SliderOutputSpec } from "../components/SliderOutput.spec";
 import { IconSpec } from "../components/Icon.spec";
 import { SelectTriggerSpec } from "../components/SelectTrigger.spec";
@@ -178,7 +178,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Disclosure: DisclosureSpec,
   DisclosureGroup: DisclosureGroupSpec,
   DisclosureHeader: DisclosureHeaderSpec,
-  DisclosureContent: DisclosureContentSpec,
+  // ADR-912 단계5 — DisclosureContent spec entry 삭제 (catalog cutover 완결). 시각 = catalog rule.
   Toolbar: ToolbarSpec,
   Toast: ToastSpec,
   Group: GroupSpec,

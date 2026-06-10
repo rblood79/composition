@@ -157,6 +157,13 @@ const TEXT_BEARING_SPECS: Record<
     defaultSize: "md",
     catalogType: "Code",
   },
+  // ADR-912 box+text 변환 군 DisclosureContent 발효 (2026-06-10): inline text leaf (Description 동형,
+  //   rule height:0). catalog 발효 → spec 생략, 측정이 resolveSkiaRule("DisclosureContent").sizes
+  //   (fontSize/lineHeight) 기반으로 산출 → spec import 0.
+  disclosurecontent: {
+    defaultSize: "md",
+    catalogType: "DisclosureContent",
+  },
 };
 
 /**
