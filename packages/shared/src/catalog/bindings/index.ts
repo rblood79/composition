@@ -43,6 +43,7 @@ import { listBoxBinding } from "./ListBox.binding";
 import { menuBinding } from "./Menu.binding";
 import { meterBinding } from "./Meter.binding";
 import { meterTrackBinding } from "./MeterTrack.binding";
+import { meterValueBinding } from "./MeterValue.binding";
 import { modalBinding } from "./Modal.binding";
 import { navBinding } from "./Nav.binding";
 import { numberFieldBinding } from "./NumberField.binding";
@@ -50,6 +51,7 @@ import { paragraphBinding } from "./Paragraph.binding";
 import { popoverBinding } from "./Popover.binding";
 import { progressBarBinding } from "./ProgressBar.binding";
 import { progressBarTrackBinding } from "./ProgressBarTrack.binding";
+import { progressBarValueBinding } from "./ProgressBarValue.binding";
 import { progressCircleBinding } from "./ProgressCircle.binding";
 import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
@@ -60,6 +62,7 @@ import { selectBinding } from "./Select.binding";
 import { separatorBinding } from "./Separator.binding";
 import { skeletonBinding } from "./Skeleton.binding";
 import { sliderBinding } from "./Slider.binding";
+import { sliderOutputBinding } from "./SliderOutput.binding";
 import { sliderTrackBinding } from "./SliderTrack.binding";
 import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
@@ -241,6 +244,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   ProgressBarTrack: progressBarTrackBinding,
   // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape, variant 4색)
   MeterTrack: meterTrackBinding,
+  // ADR-912 value-label (2026-06-11): 부모 compound 의 현재 값 텍스트 leaf (buildCatalogShapes text,
+  //   value_fill_* escape 없음). DOM=부모 RAC self-compose 흡수. binding 필수 — 누락 시
+  //   resolveEditContract value 선택 크래시(entry.binding.props.accepts).
+  MeterValue: meterValueBinding,
+  ProgressBarValue: progressBarValueBinding,
+  SliderOutput: sliderOutputBinding,
   // ADR-912 진로 1번: 원형 진행률 internal leaf (value_fill_arc escape, replace — arc 미generic).
   //   leaf(children:[]) + value/size props → DOM=INTERNAL_RENDERERS["progresscircle"](SVG ring).
   ProgressCircle: progressCircleBinding,
