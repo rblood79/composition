@@ -42,6 +42,8 @@ import type {
 import {
   isLegacyGroupForFrameMigration,
   isLegacySlotTag,
+  isLegacySwitcherOrTabBarForToggleButtonGroup,
+  migrateSwitcherPropsToToggleButtonGroup,
   tagToType,
 } from "./tagRename";
 import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
@@ -210,9 +212,14 @@ export function legacyToCanonical(
       };
     }
 
+    // ADR-912 Switcher cleanup — legacy Switcher/TabBar props(items[]/activeIndex) →
+    // ToggleButtonGroup props(selectionMode/orientation) 1회 변환. baseType 이 이미
+    // "ToggleButtonGroup"(tagToType 변환됨)이므로 element.type 원본으로 legacy 판정.
     const nodeProps = roleResult.ref
       ? (roleResult.rootOverrides?.props ?? {})
-      : { ...element.props };
+      : isLegacySwitcherOrTabBarForToggleButtonGroup(element.type)
+        ? migrateSwitcherPropsToToggleButtonGroup({ ...element.props })
+        : { ...element.props };
 
     const node: CanonicalNode = {
       id: segId(element.id, idPathCtx.idSegmentMap),
