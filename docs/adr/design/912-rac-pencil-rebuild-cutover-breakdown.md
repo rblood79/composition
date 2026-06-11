@@ -189,6 +189,19 @@ ComponentList 를 catalog 파생으로 단순 전환하면 **palette 노출 컴�
 
 **drift 구조적 불가능 증명 (위 #1·#2 전환 완료 후 성립)**: 6 소비처가 모두 `lookupEntry(type)`(palette 메타 포함) + `resolveComponentRule(type)` + `resolveEditContract(node)` 단일 source 에서 파생하면, 한 컴포넌트의 정의가 두 곳에 따로 존재하지 않는다 → "한쪽만 갱신해서 어긋나는" drift 가 발생할 평행 위치가 없다. ADR-139 게이트(6중복 강제 동기화)는 **불필요해져 졸업**되고 "entry universe = 렌더·Inspector·palette 가 모두 같은 entry set 을 소비"라는 단일 `entryUniverseContract.test.ts` 로 대체(누락 자체가 컴파일·런타임에 불가능하면 게이트도 최소). **단 #1·#2 전환 land 전까지는 ADR-139 게이트 유효 유지**(Verification 6 참조).
 
+##### 실제 land 경로 (2026-06-11 세션) — 위 분해표와 차이
+
+위 분해표(2-5-1a-proof Disclosure shell entry 전환 → expand 6 → image)는 **실행되지 않았다**. 사용자가 collapse 1순위 첫 작업을 "전체 collapse 구현이 아니라 registry 재실측 + ComponentList 파생 proof"로 재지정(2026-06-11)하면서, 실제 land 는 4-step 순서로 진행됐다 — palette↔catalog 불일치는 실측 **7**(문서 "9" 정정: Disclosure 는 이미 catalog 등록, Accordion 은 palette 제거)이라 shell-entry-proof step 이 불필요해졌다.
+
+| 실제 step            | 작업                                                                                                                                                                    | commit                    | 검증                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------- |
+| **#1·#2**            | registry universe 재실측 + ComponentList `getPaletteItems()` 파생(catalog `entry.panel` + overlay 7) + panel meta 19 정정(palette 정본) + `layoutOnly?`/ICON_MAP        | `2a03a723c`               | paletteItems.test 4/4 + live(palette 60 회귀 0) |
+| **#3**               | `createDefault*Props` → `deriveDefaultPropsFromCatalog`(catalog binding `accepts.default` 파생 base + `FACTORY_LOCAL_DEFAULTS` overlay 2층), family 6, 옵션 B 정합 보강 | `f31772317`               | derivation.test 3/3 + live(보강 props 확인)     |
+| **#4**               | ALIAS 9→8 — TabBar(Switcher 구명 BC alias) 제거. sub-part 7(ComboBox*/Search*)+body 는 참조 spec(SelectTrigger/Value/Icon) catalog cutover=false 라 보존(별도 slice)    | `2b0bb7f81`               | registration contract + live                    |
+| **Switcher cleanup** | Switcher(@pixi/ui 세그먼트 컨트롤 = RAC ToggleButtonGroup 중복) 전 레지스트리 제거 + 개발단계라 BC migration 미도입(도입 후 제거)                                       | `2e08f840b` / `0c60de41c` | registration 27/27 + live                       |
+
+**잔여 collapse**: sub-part ALIAS 7+body(SelectTrigger/Value/Icon spec catalog cutover 선행) / Factory creators(58) collapse / rendererMap(93) collapse. `componentRegistrationContract.test.ts` 는 아직 유효(완전 졸업 전).
+
 > 경계 원칙: collapse 후 렌더 dispatch 는 `(entry.kind, source.kind)` 2축만 가른다. **type 이름 분기 코드 0**.
 
 ### 2-6. theme rule base 층 source 전환 — spec 삭제의 선행 의존 (사용자 방향 2026-06-02, codex 결함 2 재정정)

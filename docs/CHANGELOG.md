@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [6 registry collapse 착수 + Switcher cleanup — ADR-912 1순위 목표 부분 land] - 2026-06-11
+
+### Architecture
+
+- **6 registry collapse #1·#2·#3·#4 착수 — "1 컴포넌트 = 1 등록" 부분 달성 (ADR-912)**:
+  - 새 컴포넌트 추가 시 6개 독립 registry(Factory creators / rendererMap / DEFAULT_PROPS_MAP / BASE_TAG_SPEC_MAP / builder TAG_SPEC_MAP / Component Panel) 손 등록 → 누락·drift 반복 문제를, 단일 catalog entry 파생 view 로 collapse. 사용자 4-step 순서대로 test-first proof + live 로 land
+  - **Why**: catalog schema 의 panel metadata 설계는 있었으나 소비 경로 미구현(`ComponentList.tsx` 정적 배열 + `ComponentFactory` 손 등록) — "collapse ~0%" 상태였던 1순위 목표 착수
+  - **#1·#2 ComponentList catalog 파생** (`2a03a723c`): `ComponentList.tsx` 정적 배열 7개(61 entry) → `getPaletteItems()`(catalog `entry.panel` 파생 + PALETTE_ONLY overlay 7). catalog panel meta 19건 정정(palette 정본, 사용자 선택) + `PanelMeta.layoutOnly?` 신규 + icon string→lucide 매핑(ICON_MAP). palette↔catalog 불일치는 실측 7(문서 "9" 정정)
+  - **#3 factory default props catalog 파생** (`f31772317`): `createDefault*Props` 손-코딩을 `deriveDefaultPropsFromCatalog(type)`(shared `getCatalogDefaultProps` 파생 base + builder `FACTORY_LOCAL_DEFAULTS` overlay 2층)로 전환. proof family = Button/Badge/Link/ToggleButton/Icon/Text. 옵션 B(정합 보강): factory 누락 default(fillStyle/type/staticColor/variant)를 catalog SSOT 에서 보강
+  - **#4 builder ALIAS 정규화** (`2b0bb7f81`): `BUILDER_ALIAS_MAP` 9→8 — TabBar(Switcher 구명 BC alias) 제거. sub-part 7(ComboBox*/Search*)+body 는 참조 spec(SelectTrigger/Value/Icon) catalog cutover=false 라 spec 객체 load-bearing → 보존(별도 slice)
+  - 검증: paletteItems.test 4/4 + derivation.test 3/3 + registration contract 27/27 + **Chrome MCP live**(palette 60항목 회귀 0 / Button·Badge·Icon 보강 props 실제 element 확인 / 콘솔 0)
+  - 잔여: sub-part ALIAS 7+body(spec cutover 선행) / Factory creators(58)·rendererMap(93) collapse. `componentRegistrationContract.test.ts` 아직 유효(완전 졸업 전)
+  - 위치: `apps/builder/src/builder/panels/components/{ComponentList.tsx,paletteItems.ts}` / `apps/builder/src/types/builder/defaultPropsDerivation.ts` / `packages/shared/src/catalog/componentCatalog.ts`(`getCatalogDefaultProps`) / `apps/builder/src/builder/workspace/canvas/sprites/builderAliasMap.ts`
+
+- **Switcher 컴포넌트 전 레지스트리 제거 — RAC ToggleButtonGroup 표준 복귀 (ADR-912)**:
+  - `Switcher`(@pixi/ui 기반 세그먼트 컨트롤)는 RAC `ToggleButtonGroup`(`selectionMode="single"`)의 자체 구현 중복 — palette/catalog 미등록 + live producer 0건인 legacy. 레퍼런스 체크(react-aria.adobe.com/ToggleButtonGroup)로 중복 확정 후 정리
+  - **Why**: SSOT D1(RAC 절대 권위) — 세그먼트 컨트롤 정본은 RAC ToggleButtonGroup. Switcher 는 표준 밖 legacy(코드만 살아있고 사용자 배치 진입점 0)
+  - 제거: SwitcherSpec.ts 파일 + export 2 + tagToElement + BASE_TAG_SPEC_MAP + factory(definition/import/creators/method) + constants + default-props + skia CONTAINER_DIMENSION + vocabulary union + componentRulesTable rule + registration exception allowlist (16 파일, 순 -365줄, `2e08f840b`)
+  - **BC migration 미도입**: 과거 직렬화 Switcher/TabBar → ToggleButtonGroup hydration migration 을 도입했다가(`154232e99`) 개발 단계라 불필요(코드만 증가)하여 제거(`0c60de41c`, 순 -324줄). 개발 단계 = BC 비용 < 코드 단순성
+  - 검증: registration contract 27/27 + **Chrome MCP live**(dev 재시작 후 `getSpecForTag("Switcher")=null` / `getSpecForTag("ToggleButtonGroup")=spec` / 빌더 정상 렌더 + 콘솔 0)
+
 ## [box+text leaf 8종 spec 삭제 — dual-SSOT 소멸 첫 batch (ADR-912 단계5)] - 2026-06-11
 
 ### Architecture
