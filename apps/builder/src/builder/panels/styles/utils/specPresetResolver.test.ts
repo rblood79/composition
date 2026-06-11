@@ -57,6 +57,31 @@ describe("resolveSpecPreset", () => {
     const preset = resolveSpecPreset("Kbd", "xxl");
     expect(preset).toEqual({});
   });
+
+  // ADR-912 R1 후속 (2026-06-12): Select family 의 sizes[size].height(md=30)는
+  //   SelectTrigger(입력 trigger 행) 높이이지 컨테이너(Label + gap + Trigger = 54) 전체
+  //   높이가 아니다. Style Panel Transform Height 에서 30 오표시 → height 축 preset 제외
+  //   (auto 표시). progress/slider archetype 과 동일 처리 (TRACK_HEIGHT_TYPES type 기반).
+  it.each(["Select", "ComboBox", "NumberField", "SearchField"])(
+    "%s 는 height 축을 preset 에서 제외 (컨테이너 height=auto, trigger 행 30 오표시 방지)",
+    (type) => {
+      const preset = resolveSpecPreset(type, "md");
+      expect(
+        preset.height,
+        `${type}.height 가 preset 에 노출되면 패널이 trigger 행 30 을 컨테이너 높이로 오표시`,
+      ).toBeUndefined();
+      expect(preset.minHeight).toBeUndefined();
+      expect(preset.maxHeight).toBeUndefined();
+      // width 축은 정상 노출 (회귀 0)
+      expect("height" in preset).toBe(false);
+    },
+  );
+
+  it("progress/slider archetype 의 height 축 제외는 유지 (회귀 0)", () => {
+    // 기존 TRACK_HEIGHT_ARCHETYPES 동작 보존 — type 기반 set 추가가 archetype 경로를 깨지 않음
+    const progress = resolveSpecPreset("ProgressBar", "md");
+    expect(progress.height).toBeUndefined();
+  });
 });
 
 describe("resolveLayoutSpecPreset", () => {

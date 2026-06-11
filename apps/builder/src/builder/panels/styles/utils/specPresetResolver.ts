@@ -72,6 +72,7 @@ type SpecShape =
 type PresetExtractor<T> = (
   sizeEntry: Record<string, unknown>,
   spec?: SpecShape,
+  type?: string,
 ) => T;
 type ContainerExtractor<T> = (cs: Record<string, unknown>) => T;
 type CompositionExtractor<T> = (comp: {
@@ -106,7 +107,9 @@ function createResolver<T extends object>(
     const spec = TAG_SPEC_MAP[type] as unknown as SpecShape;
 
     const sizeEntry = spec?.sizes?.[size ?? "md"];
-    const sizesPreset = sizeEntry ? sizesExtractor(sizeEntry, spec) : ({} as T);
+    const sizesPreset = sizeEntry
+      ? sizesExtractor(sizeEntry, spec, type)
+      : ({} as T);
 
     const cs = spec?.containerStyles;
     const csPreset =
@@ -211,6 +214,16 @@ const TRANSFORM_KEYS = [
 const TRACK_HEIGHT_ARCHETYPES: ReadonlySet<string> = new Set([
   "progress",
   "slider",
+]);
+// ADR-912 R1 후속 (2026-06-12): Select family 도 동일 케이스 — `sizes[size].height`(md=30)
+//   는 SelectTrigger(입력 trigger 행) 높이이지 컨테이너(Label 행 + gap + Trigger 행 = 54) 전체
+//   높이가 아니다. archetype 미보유라 type 기반 set 으로 height 축 제외 → 컨테이너 height "auto"
+//   표시 (실제 layout 54 와 일치, 30 오표시 제거).
+const TRACK_HEIGHT_TYPES: ReadonlySet<string> = new Set([
+  "Select",
+  "ComboBox",
+  "NumberField",
+  "SearchField",
 ]);
 const HEIGHT_AXIS_KEYS: ReadonlySet<string> = new Set([
   "height",
@@ -417,12 +430,15 @@ function layoutFromComposition(comp: {
 // ─── Resolver exports ──────────────────────────────────────────────────
 
 export const resolveSpecPreset = createResolver<TransformSpecPreset>(
-  (sizeEntry, spec) => {
-    // progress/slider archetype 은 sizes.height 가 트랙 높이 → height 축 preset 제외(auto 표시).
-    const keys =
-      spec?.archetype && TRACK_HEIGHT_ARCHETYPES.has(spec.archetype)
-        ? TRANSFORM_KEYS.filter((k) => !HEIGHT_AXIS_KEYS.has(k))
-        : TRANSFORM_KEYS;
+  (sizeEntry, spec, type) => {
+    // progress/slider archetype + Select family type 은 sizes[size].height 가
+    //   트랙/trigger 행 높이 → 컨테이너 전체 height 가 아니므로 height 축 preset 제외(auto 표시).
+    const excludeHeight =
+      (spec?.archetype && TRACK_HEIGHT_ARCHETYPES.has(spec.archetype)) ||
+      (type !== undefined && TRACK_HEIGHT_TYPES.has(type));
+    const keys = excludeHeight
+      ? TRANSFORM_KEYS.filter((k) => !HEIGHT_AXIS_KEYS.has(k))
+      : TRANSFORM_KEYS;
     return pickNumeric(sizeEntry, keys);
   },
   // ADR-082 A2: containerStyles 의 "100%" / "300px" / "fit-content" 같은 string 값 통과

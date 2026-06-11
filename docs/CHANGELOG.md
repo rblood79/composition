@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: **Chrome MCP live**(fix 전 등록 직후 Select height 34 + 자식 layout undefined → fix 후 등록 직후 height 54 + Label y:0 / SelectTrigger y:24 정상, 새로고침 불필요) + layout 엔진 테스트 44/44
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
 
+- **Style Panel Transform Height 가 Select family 에 30 오표시 (ADR-912 R1 후속)**:
+  - 증상: Select/ComboBox/NumberField/SearchField 선택 시 프로퍼티 패널 Height 값이 `30` 으로 표시. 실제 컨테이너 layout 은 54(Label + gap + Trigger)
+  - **Why**: `resolveSpecPreset` 이 `sizes[size].height`(md=30)를 컨테이너 height specDefault 로 노출. 이 30 은 SelectTrigger(입력 trigger 행) 높이이지 컨테이너(Label 행 + gap + Trigger 행) 전체 높이가 아니다. ProgressBar/Meter/Slider 는 `TRACK_HEIGHT_ARCHETYPES` 로 이미 height 축 제외(auto 표시)되지만, Select family 는 archetype 미보유라 누락
+  - 수정: `TRACK_HEIGHT_TYPES` type 기반 set 신규(Select/ComboBox/NumberField/SearchField) → `resolveSpecPreset` 에서 height 축(height/minHeight/maxHeight) preset 제외 → 패널 "auto" 표시(실제 layout 54 와 정합). `PresetExtractor` 시그니처에 `type` 인자 추가(archetype + type 양 경로 판정)
+  - 검증: 회귀 가드 5/5(4종 height/minHeight/maxHeight undefined + progress archetype 보존) + **Chrome MCP live**(Select 선택 시 패널 Height = auto, 이전 30)
+  - 위치: `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`
+
 ## [6 registry collapse 착수 + Switcher cleanup — ADR-912 1순위 목표 부분 land] - 2026-06-11
 
 ### Architecture
