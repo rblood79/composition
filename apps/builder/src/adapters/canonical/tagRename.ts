@@ -23,59 +23,9 @@ export function tagToType(legacyTag: string): ComponentTag {
     console.warn(`[ADR-903 P1] tagToType: empty type, falling back to "frame"`);
     return "frame";
   }
-  // ADR-912 Switcher cleanup — legacy "Switcher"/"TabBar" → canonical "ToggleButtonGroup" 1회 정규화.
-  // Switcher(@pixi/ui 기반 세그먼트 컨트롤)는 RAC ToggleButtonGroup(selectionMode="single")의 자체
-  // 구현 중복 — RAC 가 D1 정본. TabBar 는 Switcher 구명 BC alias. 과거 직렬화된 두 type 노드가
-  // hydrate 시 ToggleButtonGroup 으로 흡수되어야 getSpecForTag→ToggleButtonGroupSpec 경로 보존
-  // (Switcher spec 제거 후 "Switcher" lookup 실패 → Skia 미표시 방지). props 변환은 buildNode 에서
-  // migrateSwitcherPropsToToggleButtonGroup 으로 처리(items/activeIndex strip).
-  if (isLegacySwitcherOrTabBarForToggleButtonGroup(legacyTag)) {
-    return "ToggleButtonGroup" as ComponentTag;
-  }
   // Phase 1: 직접 cast (값 공간은 ComponentTag와 동일하게 수렴 중)
   // Phase 2+ resolver에서 isCanonicalNode guard로 재검증
   return legacyTag as ComponentTag;
-}
-
-/**
- * ADR-912 Switcher cleanup — legacy `type: "Switcher"`/`"TabBar"` 1회 hydration migration guard.
- *
- * Switcher = RAC ToggleButtonGroup(selectionMode="single", 세그먼트 컨트롤)의 @pixi/ui 자체 구현
- * 중복. TabBar = Switcher 구명 BC alias. 둘 다 live producer 0건(factory/specs 전수 grep) — 신규
- * 생성 경로 없음. 과거 직렬화된 두 type 노드만 변환 대상. ADR-130 `isLegacyGroupForFrameMigration`
- * 선례와 동형(customId 조건 불필요 — ARIA 충돌 없는 layout container).
- */
-export function isLegacySwitcherOrTabBarForToggleButtonGroup(
-  legacyTag: string,
-): boolean {
-  return legacyTag === "Switcher" || legacyTag === "TabBar";
-}
-
-/**
- * ADR-912 Switcher cleanup — legacy Switcher props → ToggleButtonGroup props 1회 변환.
- *
- * Switcher.props { items:string[], activeIndex:number, ... } → ToggleButtonGroup.props
- * { selectionMode:"single", orientation:"horizontal", size, ... }. items[]/activeIndex 는 자식
- * ToggleButton 의 isSelected 와 redundant(selection SSOT = 자식) → strip. 비-selection prop
- * (isDisabled/style 등)은 보존. idempotent — 이미 ToggleButtonGroup 스키마(selectionMode 보유)면
- * 무변환(read-through adapter 가 매 hydrate 실행하므로 필수).
- */
-export function migrateSwitcherPropsToToggleButtonGroup(
-  props: Record<string, unknown>,
-): Record<string, unknown> {
-  // idempotent: 이미 변환된 노드는 그대로
-  if (props.selectionMode !== undefined && props.items === undefined) {
-    return props;
-  }
-  const { items: _items, activeIndex: _activeIndex, size, ...rest } = props;
-  void _items;
-  void _activeIndex;
-  return {
-    ...rest,
-    size: size ?? "md",
-    orientation: "horizontal",
-    selectionMode: "single",
-  };
 }
 
 /**
