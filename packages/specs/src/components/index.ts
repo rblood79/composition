@@ -145,9 +145,7 @@ export type { MeterProps } from "./Meter.spec";
 
 // MeterTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 
-// MeterValue
-export { MeterValueSpec } from "./MeterValue.spec";
-export type { MeterValueProps } from "./MeterValue.spec";
+// MeterValue — ADR-912 value-label (2026-06-11): spec 삭제 (catalog cutover + virtual CSS)
 
 // ProgressBar
 export {
@@ -158,10 +156,7 @@ export {
 export type { ProgressBarProps } from "./ProgressBar.spec";
 
 // ProgressBarTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
-
-// ProgressBarValue
-export { ProgressBarValueSpec } from "./ProgressBarValue.spec";
-export type { ProgressBarValueProps } from "./ProgressBarValue.spec";
+// ProgressBarValue — ADR-912 value-label (2026-06-11): spec 삭제 (catalog cutover + virtual CSS)
 
 // Input
 export { InputSpec } from "./Input.spec";
@@ -370,9 +365,7 @@ export type { MaskedFrameProps } from "./MaskedFrame.spec";
 export { SliderThumbSpec } from "./SliderThumb.spec";
 export type { SliderThumbProps } from "./SliderThumb.spec";
 
-// SliderOutput
-export { SliderOutputSpec } from "./SliderOutput.spec";
-export type { SliderOutputProps } from "./SliderOutput.spec";
+// SliderOutput — ADR-912 value-label (2026-06-11): spec 삭제 (catalog cutover + virtual CSS)
 
 // Icon (ADR-019)
 

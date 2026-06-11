@@ -362,8 +362,8 @@ export type { MeterProps } from "./components/Meter.spec";
 // ADR-912 단계5 value-fill-track: MeterTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
 //   + generate-css virtual(archetype:progress) + layout 로컬 미러(VALUE_FILL_TRACK_HEIGHT) 로 대체.
 
-export { MeterValueSpec } from "./components/MeterValue.spec";
-export type { MeterValueProps } from "./components/MeterValue.spec";
+// ADR-912 value-label (2026-06-11): MeterValueSpec 삭제 — catalog 발효(buildCatalogShapes text)
+//   + generate-css virtual(archetype:progress) + specTextStyle catalogType 측정으로 대체.
 
 export {
   ProgressBarSpec,
@@ -374,9 +374,7 @@ export type { ProgressBarProps } from "./components/ProgressBar.spec";
 
 // ADR-912 단계5 value-fill-track: ProgressBarTrackSpec 삭제 — catalog 발효(value_fill_bar escape)
 //   + generate-css virtual(archetype:progress) + layout 로컬 미러(PROGRESSBARTRACK_HEIGHT) 로 대체.
-
-export { ProgressBarValueSpec } from "./components/ProgressBarValue.spec";
-export type { ProgressBarValueProps } from "./components/ProgressBarValue.spec";
+// ADR-912 value-label (2026-06-11): ProgressBarValueSpec 삭제 — MeterValue 동형.
 
 // ─── Phase 3: Composite Components ──────────────────────────────────────────
 export { TableSpec } from "./components/Table.spec";
@@ -556,8 +554,8 @@ export type { SwitcherProps } from "./components/Switcher.spec";
 export { SliderThumbSpec } from "./components/SliderThumb.spec";
 export type { SliderThumbProps } from "./components/SliderThumb.spec";
 
-export { SliderOutputSpec } from "./components/SliderOutput.spec";
-export type { SliderOutputProps } from "./components/SliderOutput.spec";
+// ADR-912 value-label (2026-06-11): SliderOutputSpec 삭제 — catalog 발효(buildCatalogShapes text)
+//   + generate-css virtual(archetype:simple) + specTextStyle catalogType 측정으로 대체.
 
 export { SelectTriggerSpec } from "./components/SelectTrigger.spec";
 export type { SelectTriggerProps } from "./components/SelectTrigger.spec";

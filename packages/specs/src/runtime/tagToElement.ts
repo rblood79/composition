@@ -83,7 +83,8 @@ import { SwitcherSpec } from "../components/Switcher.spec";
 //   Separator/Skeleton Spec 삭제. 시각 SSOT = componentRulesTable (generate-css virtual / Skia escape).
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — DisclosureHeaderSpec 삭제. 시각 = catalog rule.
 // ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
-import { SliderOutputSpec } from "../components/SliderOutput.spec";
+// ADR-912 value-label (2026-06-11): SliderOutputSpec/ProgressBarValueSpec/MeterValueSpec 삭제 —
+//   catalog cutover(buildCatalogShapes text) + generate-css virtual. BASE_TAG_SPEC_MAP 등록 제거.
 import { SelectTriggerSpec } from "../components/SelectTrigger.spec";
 import { SelectValueSpec } from "../components/SelectValue.spec";
 import { SelectIconSpec } from "../components/SelectIcon.spec";
@@ -102,8 +103,6 @@ import { TableViewSpec } from "../components/TableView.spec";
 // ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
 import { SliderThumbSpec } from "../components/SliderThumb.spec";
 // ADR-912 단계5 value-fill-track: ProgressBarTrackSpec/MeterTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
-import { ProgressBarValueSpec } from "../components/ProgressBarValue.spec";
-import { MeterValueSpec } from "../components/MeterValue.spec";
 
 // ADR-094: `BASE_TAG_SPEC_MAP` 의 각 spec 의 `childSpecs` 를 PascalCase 키로 자동 추가.
 //   `TAG_SPEC_MAP` 자체는 하단에서 `expandChildSpecs(BASE_TAG_SPEC_MAP)` 로 생성.
@@ -138,11 +137,10 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Meter: MeterSpec,
   ProgressBar: ProgressBarSpec,
   // ProgressBarTrack/MeterTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
-  ProgressBarValue: ProgressBarValueSpec,
-  MeterValue: MeterValueSpec,
+  // ProgressBarValue/MeterValue — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거
   // SliderTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   SliderThumb: SliderThumbSpec,
-  SliderOutput: SliderOutputSpec,
+  // SliderOutput — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거
   Table: TableSpec,
   Tree: TreeSpec,
   TreeItem: TreeItemSpec,
