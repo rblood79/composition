@@ -268,7 +268,7 @@ Gate: **G2 (공통 기반 gate — R1 1:1)**
 >
 > **구현 increment 순서**: (a) `buildCatalogShapes`(generic box+text descriptor, TDD — ButtonSpec.render.shapes 출력과 parity) → (b) cutover-gated dispatch (StoreRenderBridge `isSpecPath` 위 또는 buildSpecNodeData 진입에서 `isCatalogCutover(type)` → buildCatalogShapes → 기존 specShapesToSkia) → (c) `/cross-check` Skia↔DOM parity (cutover Button, 2 target × 5 layer) → (d) `skiaPrimitive` 분기(arc/wheel). 게이트는 `isCatalogCutover`(#3/#8 공유) — 검증 전까지 live 회귀 0, render.shapes legacy fallback 유지.
 >
-> **2026-06-01 Inc3 overlays — skiaPrimitive append/prepend 합성 도입 + Popover 발효**: (d) skiaPrimitive 분기를 overlay 패턴까지 확장. overlay 의 비-box+text 시각(shadow / V-arrow / backdrop / dashed)은 box+text 와 **공존** 하므로, dispatch 가 replace(box+text 대체, 기존 6 leaf primitive) 외에 prepend/append(base 앞/뒤 합성) 모드를 갖는다 (`getSkiaPrimitiveMode`). `binding.skiaPrimitive: string | string[]` 로 한 type 이 복수 패턴 키 보유. 신규 draw module: `popover_shadow`/`dialog_shadow`(prepend, target=bg) / `overlay_backdrop`(prepend, 전체화면 rect) / `popover_arrow`/`tooltip_arrow`(append, placement별 2-line V). 값은 module 내부 상수(render.shapes 1:1 이식) — spec runtime 참조 0 유지, ComponentRule 스키마 미확장(ADR-142 R4/HC#11 정본: 비-DOM-trivial = skiaPrimitive). `composeCatalogShapes(base, prepend, append)` 가 z-order 합성. **Popover 발효 완료**: bg/border 는 buildCatalogShapes(variant fill `{color.layer-2}`) + drop shadow + V-arrow 합성 → render.shapes parity (unit `composeCatalogShapes.test.ts`) + live Skia 렌더(Chrome MCP, 에러 0). **R4 scope 정정 (사용자 confirm 2026-06-01)**: collection items / 2D grid / date grid (Select/ComboBox/GridList/Table/Calendar) 는 ADR-146 이 "ListBox 단일 proof, 다른 family 후속 ADR" 로 명시 격리 → Inc3 제외. Inc3 = items/grid 없는 overlay/date 만. **잔여 (보강 후 발효)**: Dialog/DropZone(variants:{} → buildCatalogShapes base 빈 box, variant 보강 필요) / Tooltip(text align·weight·maxWidth 차이) / Modal.
+> **2026-06-01 Inc3 overlays — skiaPrimitive append/prepend 합성 도입 + Popover 전환**: (d) skiaPrimitive 분기를 overlay 패턴까지 확장. overlay 의 비-box+text 시각(shadow / V-arrow / backdrop / dashed)은 box+text 와 **공존** 하므로, dispatch 가 replace(box+text 대체, 기존 6 leaf primitive) 외에 prepend/append(base 앞/뒤 합성) 모드를 갖는다 (`getSkiaPrimitiveMode`). `binding.skiaPrimitive: string | string[]` 로 한 type 이 복수 패턴 키 보유. 신규 draw module: `popover_shadow`/`dialog_shadow`(prepend, target=bg) / `overlay_backdrop`(prepend, 전체화면 rect) / `popover_arrow`/`tooltip_arrow`(append, placement별 2-line V). 값은 module 내부 상수(render.shapes 1:1 이식) — spec runtime 참조 0 유지, ComponentRule 스키마 미확장(ADR-142 R4/HC#11 정본: 비-DOM-trivial = skiaPrimitive). `composeCatalogShapes(base, prepend, append)` 가 z-order 합성. **Popover 전환 완료**: bg/border 는 buildCatalogShapes(variant fill `{color.layer-2}`) + drop shadow + V-arrow 합성 → render.shapes parity (unit `composeCatalogShapes.test.ts`) + live Skia 렌더(Chrome MCP, 에러 0). **R4 scope 정정 (사용자 confirm 2026-06-01)**: collection items / 2D grid / date grid (Select/ComboBox/GridList/Table/Calendar) 는 ADR-146 이 "ListBox 단일 proof, 다른 family 후속 ADR" 로 명시 격리 → Inc3 제외. Inc3 = items/grid 없는 overlay/date 만. **잔여 (보강 후 전환)**: Dialog/DropZone(variants:{} → buildCatalogShapes base 빈 box, variant 보강 필요) / Tooltip(text align·weight·maxWidth 차이) / Modal.
 
 ### Phase 2 — Reusable 컴포넌트 저작 + componentCatalog
 
@@ -339,7 +339,7 @@ Gate: G5 (family 마다 Phase 6 에서 `/cross-check`)
 
 family 순서: primitives·actions → fields → selection → collections → Tree·Table → overlays → date·color → composition-native (§5 표 참조).
 
-각 family 마다 §5 표준 체크리스트 수행. 통과 시 `cutover:"catalog"` flip — 4경로 동시 발효. 실패 시 그 family 만 `cutover:"legacy"` 유지, 다음 family 진행.
+각 family 마다 §5 표준 체크리스트 수행. 통과 시 `cutover:"catalog"` flip — 4경로 동시 전환. 실패 시 그 family 만 `cutover:"legacy"` 유지, 다음 family 진행.
 
 전 family 가 `cutover:"catalog"` 도달 시 legacy allowlist 고정 + release note + README/ADR status 갱신 + ADR-036/907/908 status 재평가.
 
@@ -374,7 +374,7 @@ Gate: G4 / G5 / G6 (family 반복), G7 (최종)
 | 7   | Panel/Factory 가 해당 family 를 catalog 로 소비                             | `ComponentList.tsx` / `ComponentFactory.ts`                     |
 | 8   | generic 렌더러가 family 커버 확인 (DOM + Skia + Inspector) + `/cross-check` | `CanonicalNodeRenderer.tsx` / `buildSpecNodeData.ts`            |
 | 9   | registration contract 불변식 C/D/E + family fixture 통과                    | `pnpm test:registration-contract` + family fixture              |
-| 10  | 통과 시 catalog entry `cutover: "catalog"` flip                             | `componentCatalog.ts` — 4경로 동시 발효                         |
+| 10  | 통과 시 catalog entry `cutover: "catalog"` flip                             | `componentCatalog.ts` — 4경로 동시 전환                         |
 
 - 4~6 사이 빌드 깨짐 구간은 family 의 (legacy 이동 + 새 파일 + barrel) 을 한 cohesive commit 으로 묶어 main 에 깨진 중간 상태가 들어가지 않게 한다.
 - 9 미통과 시 10 미실행 — 해당 family `cutover:"legacy"` 유지, 다음 family 진행.
@@ -399,7 +399,7 @@ cutover 후 허용되는 legacy usage:
 
 ## 7. 완료 판정
 
-> **2026-06-02 — scope 축소 종결 (사용자 결정)**. 아래 원판정(1~10)은 "전 family Skia generic 발효 + active 경로 render.shapes 0건"을 기준으로 작성됐다. **실제 종결은 collections·Table·date·Tooltip·Slider 의 Skia generic backend 를 후속 ADR 로 분리한 축소 scope 다.** 따라서 5·7·8 항은 **DOM 전 family + Skia 발효 가능 family** 경계로 충족된다(나머지는 `skiaLegacy:true` 로 render.shapes 를 의도적으로 유지). 축소 종결 기준:
+> **2026-06-02 — scope 축소 종결 (사용자 결정)**. 아래 원판정(1~10)은 "전 family Skia generic 전환 + active 경로 render.shapes 0건"을 기준으로 작성됐다. **실제 종결은 collections·Table·date·Tooltip·Slider 의 Skia generic backend 를 후속 ADR 로 분리한 축소 scope 다.** 따라서 5·7·8 항은 **DOM 전 family + Skia 전환 가능 family** 경계로 충족된다(나머지는 `skiaLegacy:true` 로 render.shapes 를 의도적으로 유지). 축소 종결 기준:
 >
 > | 원판정                                      | 축소 종결 상태                                                                                                                                        |
 > | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -407,16 +407,16 @@ cutover 후 허용되는 legacy usage:
 > | 2 (조합=reusable / leaf=binding)            | ✅ 충족 — primitive binding land                                                                                                                      |
 > | 3 (Panel/Factory catalog 만 소비)           | ✅ 충족                                                                                                                                               |
 > | 4 (Preview resolved tree 단일 source)       | ✅ 충족 — ADR-116 canonical 기본 ON                                                                                                                   |
-> | 5 (Skia generic, render.shapes 미사용)      | **부분 — DOM 전 family + Skia 발효 family 한정**. collections/Table/date/Tooltip/Slider 는 `skiaLegacy:true` 로 render.shapes 유지 → ADR-146/920 이관 |
+> | 5 (Skia generic, render.shapes 미사용)      | **부분 — DOM 전 family + Skia 전환 family 한정**. collections/Table/date/Tooltip/Slider 는 `skiaLegacy:true` 로 render.shapes 유지 → ADR-146/920 이관 |
 > | 6 (Properties generic 편집)                 | ✅ 충족                                                                                                                                               |
 > | 7 (Tree/Table Skia·Preview 동작)            | **부분 — Tree ✅ / Table skiaLegacy** (2D grid → ADR-920)                                                                                             |
 > | 8 (render.shapes active 참조 0건)           | **부분 — DOM 0건 / Skia 는 skiaLegacy family 만 유지** (의도된 후속 영역)                                                                             |
 > | 9 (`codex:preflight`)                       | type-check 5/5 + 관련 vitest PASS 로 갈음                                                                                                             |
-> | 10 (status 동기화 + ADR-036/907/908 재평가) | ✅ — 본 종결 커밋에서 README/ADR status 동기화. ADR-036/907/908 재평가는 Skia 완전 발효(ADR-920) 시점으로 이연                                        |
+> | 10 (status 동기화 + ADR-036/907/908 재평가) | ✅ — 본 종결 커밋에서 README/ADR status 동기화. ADR-036/907/908 재평가는 Skia 완전 전환(ADR-920) 시점으로 이연                                        |
 >
 > **Skia 잔여 이관처**: collections(7) + Table = [ADR-920](../920-rac-format-interactive-projected-tree.md) Interactive Projected Tree(projected draw/hit tree, virtualization). ListBox 단일 proof = [ADR-146](../completed/146-listboxitem-ref-template-row-projection.md)(Implemented). date(4) Skia 날짜 grid / Tooltip / Slider track 도 동일 generic backend 선행 필요(ADR-920 범위). color 는 사용자 지시로 본 ADR 외.
 
-원판정(전체 Skia 발효 시 적용):
+원판정(전체 Skia 전환 시 적용):
 
 1. inventory + `componentCatalog` 가 현재 official component set 을 설명하고, 124 `ComponentSpec` 의 legacy 처분이 명시된다.
 2. 조합 컴포넌트가 canonical reusable 문서로 정의되어 있고, 코드 정의가 leaf primitive 약 35개의 `PrimitiveBinding` 으로 한정된다.

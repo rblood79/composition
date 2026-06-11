@@ -200,24 +200,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - type-check 신규 violation 0 / build:specs 123 CSS·dist DateSegmentSpec 참조 0(childSelector 4건만 컴파일 보존) / specs dist fresh / `pnpm test:registration-contract` 10/10 / live builder(Chrome MCP) factory 경로 DateField/TimeField 정상 렌더·자식 Label+DateInput+FieldError·DateSegment/TimeSegment element 0·DateInput 의 자식 0(RAC render-time self-compose)·DateInput escape 가 MM/DD/YYYY·HH:MM box 자체 렌더·CSS Preview↔Skia Canvas 시각 대칭·콘솔 에러 0(테스트 element 6개 추가→removeElements 원복, totalElements 36→42→36 오염 0)
   - **Note**: specs vitest 의 Tabs CSSGenerator snapshot 1건 mismatch 는 본 작업 무관 — git stash 격리로 사전 존재 drift(Tabs projection 작업 산물) 확인, DateSegment 폐기 범위 미포함.
 
-## [catalog 발효 컴포넌트 Skia 텍스트 미표시 회복 — paddingX 데이터 갭] - 2026-06-05
+## [catalog 전환 컴포넌트 Skia 텍스트 미표시 회복 — paddingX 데이터 갭] - 2026-06-05
 
 ### Bug Fixes
 
-- **catalog 발효 box 형 컴포넌트의 Skia 텍스트가 빈 box 로 사라지던 버그** (ADR-912 paddingX 데이터 갭):
-  - ToggleButton / Badge / Code / Kbd / InlineAlert 자식(Heading·Description) 등 catalog 발효 text-bearing type 이 Builder Skia 캔버스에서 텍스트 없이 빈 box 로만 렌더되던 문제. DOM Preview(CSS)는 정상이라 Skia 한쪽만 깨지는 비대칭
-  - **Why**: ADR-912 정본 승격(1A-a) 시 `spec.sizes` → `COMPONENT_RULES_TABLE.sizes` 이전 과정에서 **Button 만 `paddingX` 를 옮기고 나머지 28 발효 type 의 `paddingX` 를 누락**. `buildCatalogShapes` 의 `parsePxValue(style, size.paddingX)` 가 undefined 반환 → text shape `x:undefined` → `specShapeConverter`(`paddingLeft = shape.x`) → `nodeRendererText`(`paddingLeft + textIndent`)에서 NaN 전파 → `drawX=NaN` → CanvasKit 미렌더. G-slice(Button 단독 검증)는 Button 에 우연히 paddingX 가 있어 갭을 못 잡음
-  - 수정: 28 발효 type 의 `COMPONENT_RULES_TABLE.sizes` 에 size 별 `paddingX` 를 legacy spec 정본에서 역추적 삽입(Button parity 보존). `buildCatalogShapes` 에 `size.paddingX ?? 0` source guard(inline text 의 올바른 0 값 + 미정의 NaN 차단), `specShapeConverter` text case 에 `shape.x` 유한수 guard(2중 방어, 데이터 보강 대체 아님)
+- **catalog 전환 box 형 컴포넌트의 Skia 텍스트가 빈 box 로 사라지던 버그** (ADR-912 paddingX 데이터 갭):
+  - ToggleButton / Badge / Code / Kbd / InlineAlert 자식(Heading·Description) 등 catalog 전환 text-bearing type 이 Builder Skia 캔버스에서 텍스트 없이 빈 box 로만 렌더되던 문제. DOM Preview(CSS)는 정상이라 Skia 한쪽만 깨지는 비대칭
+  - **Why**: ADR-912 정본 승격(1A-a) 시 `spec.sizes` → `COMPONENT_RULES_TABLE.sizes` 이전 과정에서 **Button 만 `paddingX` 를 옮기고 나머지 28 전환 type 의 `paddingX` 를 누락**. `buildCatalogShapes` 의 `parsePxValue(style, size.paddingX)` 가 undefined 반환 → text shape `x:undefined` → `specShapeConverter`(`paddingLeft = shape.x`) → `nodeRendererText`(`paddingLeft + textIndent`)에서 NaN 전파 → `drawX=NaN` → CanvasKit 미렌더. G-slice(Button 단독 검증)는 Button 에 우연히 paddingX 가 있어 갭을 못 잡음
+  - 수정: 28 전환 type 의 `COMPONENT_RULES_TABLE.sizes` 에 size 별 `paddingX` 를 legacy spec 정본에서 역추적 삽입(Button parity 보존). `buildCatalogShapes` 에 `size.paddingX ?? 0` source guard(inline text 의 올바른 0 값 + 미정의 NaN 차단), `specShapeConverter` text case 에 `shape.x` 유한수 guard(2중 방어, 데이터 보강 대체 아님)
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` / `packages/specs/src/renderers/buildCatalogShapes.ts` / `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts`. 회귀 방지: `packages/shared/src/catalog/__tests__/componentRulesPaddingX.test.ts`
 
 - **Menu Trigger Label 편집값이 Preview 에만 반영되고 Skia 는 기존 "Menu" 로 고정되던 버그** (ADR-912 영역 B Task 3 후속):
-  - catalog 발효 Menu 를 추가하면 Preview/Skia 모두 기본 `"Menu"` 로 보이나, Properties 패널의 `Trigger Label` 을 바꾸면 Preview DOM 은 변경값을 표시하고 Skia 캔버스는 텍스트와 intrinsic width 가 새로고침 후에도 기존 `"Menu"` 기준으로 유지되던 비대칭
+  - catalog 전환 Menu 를 추가하면 Preview/Skia 모두 기본 `"Menu"` 로 보이나, Properties 패널의 `Trigger Label` 을 바꾸면 Preview DOM 은 변경값을 표시하고 Skia 캔버스는 텍스트와 intrinsic width 가 새로고침 후에도 기존 `"Menu"` 기준으로 유지되던 비대칭
   - **Why**: Preview DOM/Menu binding 은 trigger text source 를 `props.label` 로 읽지만, catalog Skia 는 `Menu.spec.render.shapes` 가 아니라 `buildCatalogShapes` generic 경로를 타며 text source 우선순위가 `children → text → label` 이었다. 또한 Skia layout intrinsic width 도 `calculateContentWidth` 의 `extractTextContent` 에서 `children → text → label` 을 읽어 factory 의 legacy `children:"Menu"` 폭으로 고정됐다
   - 수정: Menu trigger 의 canonical source 를 `label` 로 정렬(factory 기본 `label:"Menu"` 주입, DOM trigger fallback `label || "Menu"`, legacy `children` 은 Skia/spec fallback 으로만 보존). `buildCatalogShapes` generic text source 와 layout `extractTextContent` 를 `label → text → children` 순서로 변경하고, `fit-content` font-size 재계산 guard 도 label/text source 를 인식하도록 보강
   - 회귀 방지: `Menu.spacing.test.ts` + `buildCatalogShapes.test.ts` + `menuIntrinsicWidth.test.ts`
   - 검증: Preview/Skia runtime import live — binding accepts `label`, spec property `label`, `specText:"Actions"`, `catalogText:"Actions"`, Skia layout `legacyWidth=36.7 → labelWidth=179.1`, console error 0
 
-- **catalog 발효 TagGroup 의 정적 items chip 이 Preview DOM 에서 빈 placeholder 로 사라지던 버그** (ADR-912 영역 B (A) 후속, collection cutover items 누락):
+- **catalog 전환 TagGroup 의 정적 items chip 이 Preview DOM 에서 빈 placeholder 로 사라지던 버그** (ADR-912 영역 B (A) 후속, collection cutover items 누락):
   - 정적 `props.items`(4개) SSOT 를 가진 TagGroup 이 Builder Skia 캔버스에서는 chip 4개로 정상 렌더되지만, Preview DOM(CSS)에서는 빈 chip 2개로만 보이던 비대칭. Compare 모드(화면분할)에서 Skia↔DOM chip 수 불일치로 노출
   - **Why**: catalog cutover DOM 경로(`CanonicalNodeRenderer` → `toRacProps` → `INTERNAL_RENDERERS["taggroup"]`)는 binding `accepts` 선언 prop 만 통과시키는데, `TagGroup.binding.ts` accepts 에 `items` 가 없어 `props.items`(4개)가 drop → TagGroup wrapper 가 `items=undefined` 로 받음. 추가로 wrapper 의 `hasDataBinding=false` 경로에 정적 items 분기가 없어, catalog canonical children(Label/TagList)을 RAC `<TagList>` 의 static children 으로 넘김 → RAC 가 static children 우선 → 빈 placeholder. Skia 는 `appendTagRowProjection` 이 canonical `props.items` 를 직접 읽어 무관(한쪽만 깨지는 대칭 손실)
   - 수정: (1) `TagGroup.binding.ts` accepts 에 `items`(`kind:"binding"` — Inspector no-op, toRacProps 통과 전용, D2 의미 props 미오염) 추가. (2) `TagGroup.tsx` 에 `hasDataBinding=false && props.items` 정적 items 우선 분기 추가 — dataBinding 경로와 동형으로 items → render function chip 생성(static canonical children 대신). `CanonicalNodeRenderer` 공통 children skip 대신 wrapper 가 items source 우선(proof 범위)
@@ -284,12 +284,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Architecture
 
 - **ADR-142 Implemented (scope 축소 종결)** — 컴포넌트를 코드 정의 파일이 아니라 canonical 문서로 통합하는 시스템의 공통 기반 + family 단위 cutover 완료:
-  - **DOM/Inspector 7 family 전부 catalog generic 발효** (primitives/fields/selection/collections/Tree·Table/overlays/date·color/composition-native, `cutover:"catalog"`). 등록은 단일 `componentCatalog` 가 SSOT — 기존 6개 분산 목록(Panel/Factory/`rendererMap`/`getDefaultProps`/`BASE_TAG_SPEC_MAP`/builder `TAG_SPEC_MAP`) 대체
-  - **Skia generic 발효 = box+text+skiaPrimitive 합성으로 재현 가능한 family 까지** — primitives / fields / selection(Slider 제외) / Tree / overlays(Dialog·Modal·Popover·DropZone). `buildCatalogShapes`(generic shape-descriptor) + `composeCatalogShapes`(skiaPrimitive prepend/append z-order 합성)가 `render.shapes()` 를 대체
-  - **DropZone Skia 발효** (Inc3, commit `79abf9a79`): `VariantSpec`/`ComponentRuleVariant` 에 `textWeight`(font-weight 동형) + `borderStyle`(border-style 동형) 보편 D3 속성 추가 → drop 영역 dashed border + 안내 라벨 400 weight 를 Skia generic 으로 재현. `resolveComponentVisual`/`resolveSkiaVisualRule` 양 경로가 `ComponentVisualRule` 경유 emit
+  - **DOM/Inspector 7 family 전부 catalog generic 전환** (primitives/fields/selection/collections/Tree·Table/overlays/date·color/composition-native, `cutover:"catalog"`). 등록은 단일 `componentCatalog` 가 SSOT — 기존 6개 분산 목록(Panel/Factory/`rendererMap`/`getDefaultProps`/`BASE_TAG_SPEC_MAP`/builder `TAG_SPEC_MAP`) 대체
+  - **Skia generic 전환 = box+text+skiaPrimitive 합성으로 재현 가능한 family 까지** — primitives / fields / selection(Slider 제외) / Tree / overlays(Dialog·Modal·Popover·DropZone). `buildCatalogShapes`(generic shape-descriptor) + `composeCatalogShapes`(skiaPrimitive prepend/append z-order 합성)가 `render.shapes()` 를 대체
+  - **DropZone Skia 전환** (Inc3, commit `79abf9a79`): `VariantSpec`/`ComponentRuleVariant` 에 `textWeight`(font-weight 동형) + `borderStyle`(border-style 동형) 보편 D3 속성 추가 → drop 영역 dashed border + 안내 라벨 400 weight 를 Skia generic 으로 재현. `resolveComponentVisual`/`resolveSkiaVisualRule` 양 경로가 `ComponentVisualRule` 경유 emit
   - **Skia 잔여는 후속 ADR 로 명시 이관**: collections 7종(ListBox/Menu/Select/ComboBox/Tabs/TagGroup/GridList) + Table + date 4종(Calendar/RangeCalendar/DatePicker/DateRangePicker) + Tooltip + Slider 의 데이터-결합형 Skia backend(items 순회 / 2D grid / 날짜 grid 생성기)는 `skiaLegacy:true` 로 render.shapes 유지 → ADR-146(ListBox 단일 proof, Implemented) + ADR-920(Interactive Projected Tree — collection/Table Skia 하위 노드 직접 접근 + virtualization, Proposed)
   - **Why**: collections 의 Skia generic backend 는 R4(HIGH)가 가리키는 대규모 영역(데이터-시각 결합형 multi-item / 2D grid 렌더)으로, ADR-142 의 family loop 안에서 atomic 처리하기에 무게가 과하다. DOM cutover 와 box+text 재현 가능 Skia 는 본 ADR 에서 종결하고, 데이터-결합형 Skia 는 ADR-920 의 projected-tree 메커니즘으로 분리(사용자 결정 2026-06-02)
-  - color(TailSwatch/ColorPicker arc·wheel·gradient)는 사용자 지시(2026-05-31)로 scope 외. ADR-036/907/908 status 재평가는 Skia 완전 발효(ADR-920) 시점 이연
+  - color(TailSwatch/ColorPicker arc·wheel·gradient)는 사용자 지시(2026-05-31)로 scope 외. ADR-036/907/908 status 재평가는 Skia 완전 전환(ADR-920) 시점 이연
   - 검증: 7 family cutover 커밋(`94d3833d9`..`79abf9a79`) + family 단위 Chrome MCP cross-check + type-check 5/5 PASS(builder baseline 110) + composeCatalogShapes/cutover/overlayBindings/CSSGenerator.snapshot vitest PASS
   - 위치: `packages/shared/src/catalog/`(componentCatalog/bindings/cutover) + `packages/specs/src/renderers/buildCatalogShapes.ts` + `apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts`
 

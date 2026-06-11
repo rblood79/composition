@@ -475,7 +475,7 @@ resolver 의 `applyOverrideToNode` 가 3-mode discriminator 다 — `type`+`chil
 - `kind: "reusable"` — 조합 컴포넌트(`reusableId` → canonical reusable 문서, 코드 정의 없음).
 - `kind: "native"` — composition-native(frame/Slot). RAC primitive 도 reusable 문서도 아닌 canonical 일급 노드. cutover 개념이 없고 변환 레이어를 거치지 않는다.
 
-`family`(8 family) + `cutover`(`legacy`/`cutting-over`/`catalog`)가 atomic cutover 축이다. `getCatalogCutoverTypes`/`getCatalogSkiaCutoverTypes` 가 catalog generic 경로로 발효된 type 집합을 파생하고, generic 렌더러는 그 집합에 든 type 만 §1 의 RAC 투영 분기로 렌더한다. family 단위로 DOM·Skia·Inspector 가 함께 generic 경로로 발효한다.
+`family`(8 family) + `cutover`(`legacy`/`cutting-over`/`catalog`)가 atomic cutover 축이다. `getCatalogCutoverTypes`/`getCatalogSkiaCutoverTypes` 가 catalog generic 경로로 전환된 type 집합을 파생하고, generic 렌더러는 그 집합에 든 type 만 §1 의 RAC 투영 분기로 렌더한다. family 단위로 DOM·Skia·Inspector 가 함께 generic 경로로 전환한다.
 
 ### 9. 대칭 계약
 
@@ -1684,7 +1684,7 @@ rows 는 `dataBinding`(collections root), columns 는 columnMapping 데이터다
 
 #### (d) Table parity matrix — 기능 동등 검증 (G-parity 흡수)
 
-Table 의 legacy → projected 전환은 **시각 정합(G5)만으로 발효 금지** — 기존 Table 이 제공하던 기능이 전환 후에도 동등해야 한다(본문 T-PARITY/G-parity). 각 기능은 supported/deferred 를 명시 fixture 로 고정한다:
+Table 의 legacy → projected 전환은 **시각 정합(G5)만으로 전환 금지** — 기존 Table 이 제공하던 기능이 전환 후에도 동등해야 한다(본문 T-PARITY/G-parity). 각 기능은 supported/deferred 를 명시 fixture 로 고정한다:
 
 | 기능                     | 전환 후 요구                                                       | 판정        |
 | ------------------------ | ------------------------------------------------------------------ | ----------- |
@@ -1696,7 +1696,7 @@ Table 의 legacy → projected 전환은 **시각 정합(G5)만으로 발효 금
 | height mode (auto/fixed) | row height = template subtree 계산(④.7)                            | supported   |
 | API data mapping         | endpoint → collections runtimeData(ADR-132) → rows                 | bridge 참조 |
 
-이 matrix 통과는 G-parity 의 collection 검증 항목이다 — "기존 Table 동작이 projected tree 전환 후 회귀 0"이 cutover 발효 조건이다.
+이 matrix 통과는 G-parity 의 collection 검증 항목이다 — "기존 Table 동작이 projected tree 전환 후 회귀 0"이 cutover 전환 조건이다.
 
 ---
 
@@ -1992,7 +1992,7 @@ export function getCatalogCutoverTypes(): ReadonlySet<string>; // cutover==="cat
 export function getCatalogSkiaCutoverTypes(): ReadonlySet<string>; // catalog && !skiaLegacy — 도달 상태에서 catalog 전체와 일치(skiaLegacy 0건)
 ```
 
-> **skiaLegacy 의 위상**: `skiaLegacy` 필드는 ADR-142 가 도입한 **전환기 기제**(collection/Table 이 Skia 만 legacy `render.shapes` 유지)다. 본 ADR 의 도달 상태에서 collection 은 projected tree(§4.12)로 Skia 까지 catalog 발효하므로 `skiaLegacy` 는 **0건**이 된다 — 타입 필드는 전환 기간 호환을 위해 보존하되, 최종 cleanup(Phase 10)에서 플래그 자체를 제거한다. collection 의 정상 도달 상태는 `skiaLegacy:true` 가 아니라 projected tree 다(projected-first 원칙).
+> **skiaLegacy 의 위상**: `skiaLegacy` 필드는 ADR-142 가 도입한 **전환기 기제**(collection/Table 이 Skia 만 legacy `render.shapes` 유지)다. 본 ADR 의 도달 상태에서 collection 은 projected tree(§4.12)로 Skia 까지 catalog 전환하므로 `skiaLegacy` 는 **0건**이 된다 — 타입 필드는 전환 기간 호환을 위해 보존하되, 최종 cleanup(Phase 10)에서 플래그 자체를 제거한다. collection 의 정상 도달 상태는 `skiaLegacy:true` 가 아니라 projected tree 다(projected-first 원칙).
 
 `getCatalogCutoverTypes` / `getCatalogSkiaCutoverTypes` 가 family 단위 atomic cutover 게이트의 파생 함수다. `kind:"native"` 는 cutover 개념이 없어(이미 canonical-native 렌더) 게이트에서 제외된다.
 
@@ -2103,10 +2103,10 @@ export function toRacProps(
 | **T-1**         | generic 공통기반(traversal 1개 + 어댑터 한 쌍 + `resolveEditContract`)이 모든 컴포넌트의 공유 무게중심 — 여기 결함은 전 family 동시 회귀                                                                                                       |   HIGH   | Button vertical slice(G1)로 공통기반을 단일 컴포넌트에서 완성·검증 후에만 family cutover 시작. 공통기반 변경은 항상 G1 회귀 fixture 통과를 전제                                                                                                                                                                                                                                                                                          |
 | **T-2**         | 조합 컴포넌트 수작업 저작(자동 변환 금지, HC#5) — 구버전 spec 에서 자동 변환하지 않고 starter + 디자인 의도로부터 새로 저작                                                                                                                    |   MED    | Builder 안에서 저작 후 reusable 승격, family 단위 분할. (별개의 타입-안전 위험: `props`/`props.style` 자유 payload(`Record<string, unknown>`)의 잘못된 키는 `PropContract.kind` 런타임 편집 게이트 + 어댑터 silent passthrough 금지 + G1 fixture 전수 DOM↔Skia 대칭으로 차단)                                                                                                                                                            |
 | **T-ADAPT/T-3** | base(theme rule) ⊕ override(`props.style`) 병합 + shorthand↔longhand·Taffy reader·token 해소가 backend 어댑터 한 곳에 집중 — 어댑터 버그가 양 backend 동시 오염                                                                                |   HIGH   | DOM↔Skia 시각 대칭을 `/cross-check`로 family 단위 검증. 어댑터는 token 해소를 `resolveToken` 다축 해소기에 위임(어댑터 내부 token 분기 금지)하여 책임 표면 축소. reset-to-default(`delete props.style[k]` → base 복귀) round-trip 을 fixture 로 고정                                                                                                                                                                                     |
-| **T-4**         | collection(ListBox/Select/Table 등)은 items 배열 순회로 multi-item 리스트를 그림 — projected tree windowing(④.7) ↔ Taffy layout 연계 복잡도                                                                                                    |   HIGH   | collection family cutover 가 **projected tree(§4.12) 구현을 포함**(projected-first) — Skia 도 generic 렌더로 catalog 발효, legacy render.shapes 경유 아님. List/Table 1000+ row FPS fixture. 실패 시 해당 family `cutover:"cutting-over"` 보류(skiaLegacy 영구 유지 금지 — ADR-142 전환기 출발 상태일 뿐)                                                                                                                                |
-| **T-PARITY**    | 기능 퇴보 — family cutover 가 시각 정합(G2/G5)은 통과해도 기존 컴포넌트의 편집 UX·동작·옵션을 누락하면 "기존 대비 기능 저하"로 폐기. 과거 재설계 폐기의 직접 원인(설계 무결 + 정합성 20% 미만 + 기능 퇴보)                                     | **HIGH** | Gate G-parity. family cutover 시 기존 프로젝트 무손실 마이그레이션(ADR-147 HC#4 패턴) + 기존 편집/동작 parity 검증. collection 은 ListBox/Table 의 row 편집·selection·정렬·columnMapping/groups/sorting/resizing/pagination/heightMode 회귀 0(7-4 d parity matrix). 정합성만으로 cutover 발효 금지 — 실패 시 family `cutover:"legacy"` 유지                                                                                              |
+| **T-4**         | collection(ListBox/Select/Table 등)은 items 배열 순회로 multi-item 리스트를 그림 — projected tree windowing(④.7) ↔ Taffy layout 연계 복잡도                                                                                                    |   HIGH   | collection family cutover 가 **projected tree(§4.12) 구현을 포함**(projected-first) — Skia 도 generic 렌더로 catalog 전환, legacy render.shapes 경유 아님. List/Table 1000+ row FPS fixture. 실패 시 해당 family `cutover:"cutting-over"` 보류(skiaLegacy 영구 유지 금지 — ADR-142 전환기 출발 상태일 뿐)                                                                                                                                |
+| **T-PARITY**    | 기능 퇴보 — family cutover 가 시각 정합(G2/G5)은 통과해도 기존 컴포넌트의 편집 UX·동작·옵션을 누락하면 "기존 대비 기능 저하"로 폐기. 과거 재설계 폐기의 직접 원인(설계 무결 + 정합성 20% 미만 + 기능 퇴보)                                     | **HIGH** | Gate G-parity. family cutover 시 기존 프로젝트 무손실 마이그레이션(ADR-147 HC#4 패턴) + 기존 편집/동작 parity 검증. collection 은 ListBox/Table 의 row 편집·selection·정렬·columnMapping/groups/sorting/resizing/pagination/heightMode 회귀 0(7-4 d parity matrix). 정합성만으로 cutover 전환 금지 — 실패 시 family `cutover:"legacy"` 유지                                                                                              |
 | **T-7**         | Skia state 모델 미완 — 현재 `default`/`disabled` 2개만 derive, hover/pressed hit-test wiring 없음 → Builder 화면 hover/pressed 시각 부재. (state 가 caller 결정 단일 값이라 DOM 의 `:hover`/`data-*` 자동 state 와 매체가 다른 점이 근본 원인) | **HIGH** | Gate G-state. selection family cutover 마다 `racStateAttrs`(RAC `data-*` 상태 → Skia state) wiring + `ComponentState` enum 으로부터 base⊕override 시각 분기, hover/pressed/selected data-attribute parity 를 Preview DOM 과 동일하게 `/cross-check`. `buildCatalogShapes(visual, props, size, state)` 의 `state` 인자가 단일 진입점, DOM 은 `data-*`(`toRacProps`)로 CSS 에 위임. 상태 시각 미달 family 는 `cutover:"cutting-over"` 보류 |
-| **T-PROJECT**   | (ADR-920 흡수) projected tree(§4.12) 의 render-space `projectionId` 가 canonical mutation/history/IndexedDB 에 유입되면 데이터 corruption — selection/hover/edit/mutation 4 경로마다 guard 필요                                                |   HIGH   | Gate G8 negative fixture(projected id → canonical API 직접 유입 시 FAIL) + refresh 후 `elementsMap` synthetic projectionId 0건. ADR-135/136 Render-Space Interaction Boundary 의 collection 적용 — §5.11 edit route 가 canonical write target 으로 명시 변환. 실패 시 해당 collection family `cutover:"cutting-over"` 보류(발효 금지)                                                                                                    |
+| **T-PROJECT**   | (ADR-920 흡수) projected tree(§4.12) 의 render-space `projectionId` 가 canonical mutation/history/IndexedDB 에 유입되면 데이터 corruption — selection/hover/edit/mutation 4 경로마다 guard 필요                                                |   HIGH   | Gate G8 negative fixture(projected id → canonical API 직접 유입 시 FAIL) + refresh 후 `elementsMap` synthetic projectionId 0건. ADR-135/136 Render-Space Interaction Boundary 의 collection 적용 — §5.11 edit route 가 canonical write target 으로 명시 변환. 실패 시 해당 collection family `cutover:"cutting-over"` 보류(전환 금지)                                                                                                    |
 | **T-DEEP**      | (ADR-920 흡수) collection 깊은 노드(row 내부 Text/Icon, Table cell) 편집 UX 미달 — flattened row 만 선택 가능하면 920 핵심 사용자 요구(Skia editor surface drill-in) 미충족이자 기능 미달                                                      |   HIGH   | Gate G9 — Skia row 내부 Text/Icon 클릭 → deepest 선택, 더블클릭 → drill-in/data edit, style edit → template route(§5.11). 10k row 에서 draw/hit 노드 ≤ window+overscan(④.7). 실패 시 flat row selection 만 + phase hold                                                                                                                                                                                                                  |
 | **T-TPL**       | (ADR-920 흡수) template subtree layout cache(④.7) ↔ 기존 layout publish/projection version 연계 — 별도 cache 가 stale Skia/Layer Tree 유발 가능                                                                                                |   MED    | `TemplateLayoutCacheKey`(templateHash+size+variant+width+themeKey) 무효화를 기존 layout publish/projectionVersion/synthetic element invalidation 신호에 연결(독립 cache 금지). T-4 collection virtualization 의 인접 정밀화 — Gate G7 에 흡수                                                                                                                                                                                            |
 | **T-5**         | RAC 버전 의존 — breaking change 가 `toRacProps` + `binding.rac.states` 일괄 영향                                                                                                                                                               |   MED    | 단일 wrapper surface(`shared/components`)로 충격 국한. RAC 버전 업데이트는 wrapper + binding 한 곳에서 흡수                                                                                                                                                                                                                                                                                                                              |
@@ -2122,7 +2122,7 @@ cutover 는 family 단위 atomic 이다. 한 family 의 모든 entry 가 `legacy
 
 전체 순서는 **공통기반 선행 → family 단위 atomic cutover(8 family) → final** 이다. 공통기반이 모든 family 의 공유 무게중심(T-1)이므로, 단일 컴포넌트에서 완성·검증한 뒤에만 family 확장으로 넘어간다.
 
-> **projected-first 원칙 (skiaLegacy 는 최종안이 아니다)**: collection/tree-table family 의 **정상 도달 상태(cutover === "catalog")는 Interactive Projected Tree(§4.12)** 다 — legacy `render.shapes` 경유 fallback 이 아니다. `skiaLegacy:true` 는 **ADR-142 전환기의 현재 코드 상태**(2026-06-01 기준 collection 18 type 이 Skia 만 legacy 유지)일 뿐, 본 ADR 의 목표 모델이 아니다. 사용자 요구(Skia 화면 = 직접 조작 editor, row 내부 Text/Icon 클릭·드릴인·편집)는 projected tree 로만 충족되며 legacy flattened-shape row 로는 미충족이다. 따라서 collection family cutover 는 **projected tree 구현을 cutover 조건으로 포함**하고, 실패 시 대안은 `skiaLegacy 영구 유지`가 아니라 **해당 family cutover 미발효(보류) — `cutover:"cutting-over"` 정체** 다. 본 ADR 완결 시 `skiaLegacy` 메커니즘은 collection 에서 0건이어야 한다(legacy render.shapes 경로 물리 제거).
+> **projected-first 원칙 (skiaLegacy 는 최종안이 아니다)**: collection/tree-table family 의 **정상 도달 상태(cutover === "catalog")는 Interactive Projected Tree(§4.12)** 다 — legacy `render.shapes` 경유 fallback 이 아니다. `skiaLegacy:true` 는 **ADR-142 전환기의 현재 코드 상태**(2026-06-01 기준 collection 18 type 이 Skia 만 legacy 유지)일 뿐, 본 ADR 의 목표 모델이 아니다. 사용자 요구(Skia 화면 = 직접 조작 editor, row 내부 Text/Icon 클릭·드릴인·편집)는 projected tree 로만 충족되며 legacy flattened-shape row 로는 미충족이다. 따라서 collection family cutover 는 **projected tree 구현을 cutover 조건으로 포함**하고, 실패 시 대안은 `skiaLegacy 영구 유지`가 아니라 **해당 family cutover 미전환(보류) — `cutover:"cutting-over"` 정체** 다. 본 ADR 완결 시 `skiaLegacy` 메커니즘은 collection 에서 0건이어야 한다(legacy render.shapes 경로 물리 제거).
 
 ### Phase 0 — 공통기반 (generic 렌더러 + base⊕override 어댑터 + resolveEditContract)
 
@@ -2148,7 +2148,7 @@ family 순서는 위험 낮은 순으로 진행한다. 각 family 는 `legacy �
 1. **primitives** — Button/Icon/Separator/Link/ToggleButton/ToggleButtonGroup/Toolbar/Badge. box+text generic 으로 완전 표현, skiaLegacy 불필요.
 2. **fields** — TextField/NumberField/SearchField/DateField/TimeField/ColorField. RAC field controller + props.style override 시각.
 3. **selection** — Checkbox/Radio/Switch/CheckboxGroup/RadioGroup. indicator 는 `skiaPrimitive`.
-4. **collections** — ListBox/GridList/ComboBox/Select/Menu/TagGroup. **projected-first cutover** — cutover 도달 상태 = Interactive Projected Tree(§4.12)이며 Skia 도 catalog 발효(legacy render.shapes 경유 아님). row 내부 Text/Icon 이 hit-test/drill-in/edit-route 가능. (ADR-142 전환기 현재 `skiaLegacy:true` 상태 → 본 family cutover 가 projected tree 로 그것을 대체)
+4. **collections** — ListBox/GridList/ComboBox/Select/Menu/TagGroup. **projected-first cutover** — cutover 도달 상태 = Interactive Projected Tree(§4.12)이며 Skia 도 catalog 전환(legacy render.shapes 경유 아님). row 내부 Text/Icon 이 hit-test/drill-in/edit-route 가능. (ADR-142 전환기 현재 `skiaLegacy:true` 상태 → 본 family cutover 가 projected tree 로 그것을 대체)
 5. **tree-table** — Tree/Table. **projected-first cutover** — Table 은 2D row/column culling + cell projected tree(7-4). collections family projected tree(G9) 통과 후 착수. (전환기 현재 `skiaLegacy:true` → projected tree 로 대체)
 6. **overlays** — Popover/Dialog/Modal/Tooltip. bg/border 는 generic box, shadow/backdrop/arrow 는 `skiaPrimitive` 합성(`getSkiaPrimitiveMode`).
 7. **date-color** — Calendar/RangeCalendar/DatePicker/DateRangePicker/ColorPicker/Slider. 복합 leaf — `skiaPrimitive` draw module.
@@ -2163,7 +2163,7 @@ family 순서는 위험 낮은 순으로 진행한다. 각 family 는 `legacy �
 collection family cutover 가 충족해야 할 projected tree 구성:
 
 - **windowing(④.7 정밀화)**: `slice(0, N)` cap 제거 → scrollOffset + measured row size 기반 `CollectionWindow`([startIndex,endIndex]+overscan). draw tree 와 hit tree 가 같은 window 공유.
-- **projected tree(§4.12)**: visible window 의 각 item 을 template subtree × data 로 투영해 row 내부 Text/Icon/Cell 을 children 가진 projected tree 로 materialize. `ProjectedNodeRef`(render-space id, canonical 미저장). **Skia 도 catalog 발효** — legacy `render.shapes` flattened row 가 아니라 generic 렌더(`buildCatalogShapes`)가 projected 노드를 그린다.
+- **projected tree(§4.12)**: visible window 의 각 item 을 template subtree × data 로 투영해 row 내부 Text/Icon/Cell 을 children 가진 projected tree 로 materialize. `ProjectedNodeRef`(render-space id, canonical 미저장). **Skia 도 catalog 전환** — legacy `render.shapes` flattened row 가 아니라 generic 렌더(`buildCatalogShapes`)가 projected 노드를 그린다.
 - **hit-test/drill-in(§4.12)**: click → deepest projected child, double-click → drill-in/data edit. drill stack(Esc/breadcrumb pop).
 - **edit route(§5.11)**: projected 노드 편집 → template/data/override route 명시 변환. render-space id ↔ canonical write target 분리(Gate G8).
 - **Table 2D(7-4)**: collections family projected tree(G9) 통과 후 row/column culling + cell projected tree 로 확장. parity matrix(7-4 d) = G-parity collection 검증.
@@ -2173,8 +2173,8 @@ collection family cutover 가 충족해야 할 projected tree 구성:
 
 ### Phase 10 — final
 
-- 8 family 전수 `cutover === "catalog"`. **collection/tree-table 도 projected tree 로 Skia catalog 발효 — `skiaLegacy` 플래그 0건, legacy `render.shapes` 경로 물리 제거.**
-- `getCatalogSkiaCutoverTypes()`(= catalog && !skiaLegacy)가 전 type 을 포함 — Skia 부분 발효(skiaLegacy 제외) 상태가 해소됨. ADR-142 전환기 기제(`skiaLegacy` 플래그 자체)도 제거.
+- 8 family 전수 `cutover === "catalog"`. **collection/tree-table 도 projected tree 로 Skia catalog 전환 — `skiaLegacy` 플래그 0건, legacy `render.shapes` 경로 물리 제거.**
+- `getCatalogSkiaCutoverTypes()`(= catalog && !skiaLegacy)가 전 type 을 포함 — Skia 부분 전환(skiaLegacy 제외) 상태가 해소됨. ADR-142 전환기 기제(`skiaLegacy` 플래그 자체)도 제거.
 - 6 레지스트리(spec/TAG_SPEC_MAP/specRegistry/factory/panel/renderer) 물리 제거 — `componentCatalog` 단일 등록만 잔존.
 - 컴포넌트당 정의 파일(`ComponentSpec`) 폐기, 시각은 theme/tokens(`generated/componentRulesTable.ts` 의 `COMPONENT_RULES_TABLE`)·조합은 reusable 노드 문서로 완전 수렴.
 
@@ -2224,4 +2224,4 @@ ADR-920(RAC Format Interactive Projected Tree, Codex 독립 설계)은 본 ADR �
 ### 920 의 두 구조 결함을 흡수 시 차단
 
 1. **920 엔 별도 Risks 섹션이 없다**(adr-writing.md 위반 — Gates 14개를 바로 나열). 910 은 정상 Risks 섹션을 보유하므로, 흡수한 위험을 920 Gate 평면 복사가 아니라 **T-PROJECT/T-DEEP/T-TPL 로 Risks 표에 등록 후 G8/G9 와 1:1 연결**했다. 920 G6~G14 대부분은 bridge 영역(④⑤⑥)이라 910 Gate 로 들이지 않았다.
-2. **920 엔 T-PARITY 류 기능 퇴보 방어가 없다**(Button→ListBox→Table proof 만). 흡수한 collection/Table 도 910 의 **G-parity 적용 대상**에 포함했다(7-4 d parity matrix = G-parity collection 검증). "정합성 통과 ≠ 기능 동등"이 cutover 발효 조건이다.
+2. **920 엔 T-PARITY 류 기능 퇴보 방어가 없다**(Button→ListBox→Table proof 만). 흡수한 collection/Table 도 910 의 **G-parity 적용 대상**에 포함했다(7-4 d parity matrix = G-parity collection 검증). "정합성 통과 ≠ 기능 동등"이 cutover 전환 조건이다.
