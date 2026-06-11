@@ -181,6 +181,11 @@ export interface PanelMeta {
   label: string;
   icon: string;
   placeable: boolean;
+  /**
+   * ADR-912 6 registry collapse — Layout 모드에서만 palette 에 노출되는 항목(예: Slot).
+   * 미설정 = 모든 모드 노출. ComponentList 의 `layoutOnly` 분기 SSOT.
+   */
+  layoutOnly?: boolean;
 }
 
 // ── ComponentCatalogEntry — 6 레지스트리 대체 단일 등록 SSOT ─────────

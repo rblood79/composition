@@ -18,6 +18,7 @@ import { getPrimitiveBinding } from "./bindings";
 import type {
   ComponentCatalogEntry,
   CutoverState,
+  PanelMeta,
   PrimitiveBinding,
 } from "./types";
 
@@ -100,7 +101,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("Text", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "text",
-    icon: "Type",
+    icon: "Text",
   }),
   // ADR-912 위험군 해소(선행-4): TEXT_LEAF 동형(Text). rule textWeight 700(제목) / 400(본문) 완비.
   primitiveEntry("Heading", "primitives", FAMILY_1_CUTOVER, {
@@ -162,7 +163,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("FileTrigger", "primitives", FAMILY_1_CUTOVER, {
     category: "forms",
     label: "file trigger",
-    icon: "Upload",
+    icon: "FileUp",
   }),
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
   primitiveEntry("Skeleton", "primitives", FAMILY_1_CUTOVER, {
@@ -180,13 +181,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     icon: "Layout",
   }),
   primitiveEntry("Section", "primitives", FAMILY_1_CUTOVER, {
-    category: "layout",
+    category: "collections",
     label: "section",
-    icon: "RectangleHorizontal",
+    icon: "Square",
   }),
   primitiveEntry("Nav", "primitives", FAMILY_1_CUTOVER, {
     category: "layout",
-    label: "nav",
+    label: "navigation",
     icon: "Menu",
   }),
   // ADR-912 §2-5 collapse 진입 proof slice (2026-06-10): Disclosure 컨테이너. SHELL_ONLY →
@@ -217,7 +218,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("InlineAlert", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "inline alert",
-    icon: "AlertCircle",
+    icon: "AlertTriangle",
   }),
   // ADR-912 진로 1번 IllustratedMessage proof slice (2026-06-06): 빈 상태(empty state) internal leaf.
   //   catalog 등록으로 spec.render.shapes Skia fallback 제거 — Skia 는 skiaPrimitive
@@ -227,7 +228,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("IllustratedMessage", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "illustrated message",
-    icon: "ImageOff",
+    icon: "ImageIcon",
   }),
   // ADR-912 진로 1번 StatusLight proof slice (2026-06-06): 상태 표시 dot+label internal leaf.
   //   Skia 는 skiaPrimitive "status_light" escape(dot circle + text, replace — box 무의미),
@@ -236,7 +237,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("StatusLight", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "status light",
-    icon: "Circle",
+    icon: "CircleDot",
   }),
   // ADR-912 진로 1번 Avatar proof slice (2026-06-06): 사용자 아바타 circle+image internal leaf.
   //   Skia 는 skiaPrimitive "avatar" escape(circle bg + image|initials, replace — buildCatalogShapes
@@ -245,7 +246,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("Avatar", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "avatar",
-    icon: "User",
+    icon: "CircleUser",
   }),
   // ADR-912 진로 1번 ProgressCircle proof slice (value-fill, 2026-06-06): 원형 진행률 internal leaf.
   //   Skia 는 skiaPrimitive "value_fill_arc" escape(track arc 360° + value 비례 indicator arc, replace —
@@ -255,7 +256,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("ProgressCircle", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "progress circle",
-    icon: "Loader",
+    icon: "CircleDashed",
   }),
   // ADR-912 (B+icon) DisclosureHeader proof slice (leadingIcon append, 2026-06-08): Disclosure
   //   헤더 leaf(leading chevron + title). Skia 는 buildCatalogShapes box+text + skiaPrimitive
@@ -354,12 +355,12 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
     icon: "Search",
   }),
   primitiveEntry("DateField", "fields", FAMILY_2_CUTOVER, {
-    category: "forms",
+    category: "dateTime",
     label: "date field",
     icon: "CalendarCheck",
   }),
   primitiveEntry("TimeField", "fields", FAMILY_2_CUTOVER, {
-    category: "forms",
+    category: "dateTime",
     label: "time field",
     icon: "ChevronDown",
   }),
@@ -420,7 +421,7 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
   //   children 추출 → 자기완결 RAC ProgressBar). Skia 는 shell-only + 자식 ProgressBarTrack
   //   value_fill_bar escape(선행-2 발효). DOM/Skia 비대칭이나 시각 결과(value 비례 막대) 대칭.
   primitiveEntry("ProgressBar", "selection", FAMILY_3_CUTOVER, {
-    category: "forms",
+    category: "content",
     label: "progress bar",
     icon: "BarChart3",
   }),
@@ -539,7 +540,7 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   }),
   primitiveEntry("TagGroup", "collections", FAMILY_4_CUTOVER, {
     category: "collections",
-    label: "tag group",
+    label: "type group",
     icon: "Tag",
   }),
   // GridList — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 C1 2026-06-03): data card 는
@@ -557,7 +558,7 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   //   generic box+text 아니라 Breadcrumb.spec.render.shapes 유지(separator/isLast 강조 로직 보존).
   //   DOM 은 delegating renderBreadcrumbs(useResolvedCollectionItems). container shell only(GridList 동형).
   primitiveEntry("Breadcrumbs", "collections", FAMILY_4_CUTOVER, {
-    category: "navigation",
+    category: "layout",
     label: "breadcrumbs",
     icon: "ChevronRight",
   }),
@@ -571,7 +572,7 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   //   `{color.neutral}` == Button `{color.neutral}`. legacy render.shapes(bg+border+text"Menu")와
   //   parity, 유일 차이 text align(legacy left → catalog center)는 Button center 정합(정렬 정정).
   primitiveEntry("Menu", "collections", FAMILY_4_CUTOVER, {
-    category: "collections",
+    category: "buttons",
     label: "menu",
     icon: "Menu",
   }),
@@ -682,23 +683,23 @@ const FAMILY_7_CUTOVER: CutoverState = "catalog";
 const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
   // Calendar/RangeCalendar — calendar_grid skiaPrimitive(replace), binding 이 키 지정.
   primitiveEntry("Calendar", "date-color", FAMILY_7_CUTOVER, {
-    category: "date",
+    category: "dateTime",
     label: "calendar",
     icon: "Calendar",
   }),
   primitiveEntry("RangeCalendar", "date-color", FAMILY_7_CUTOVER, {
-    category: "date",
+    category: "dateTime",
     label: "range calendar",
     icon: "CalendarDays",
   }),
   // DatePicker/DateRangePicker — datefield_trigger skiaPrimitive(replace), binding 이 키 지정.
   primitiveEntry("DatePicker", "date-color", FAMILY_7_CUTOVER, {
-    category: "date",
+    category: "dateTime",
     label: "date picker",
     icon: "CalendarCheck",
   }),
   primitiveEntry("DateRangePicker", "date-color", FAMILY_7_CUTOVER, {
-    category: "date",
+    category: "dateTime",
     label: "date range picker",
     icon: "CalendarDays",
   }),
@@ -710,7 +711,12 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
  */
 function nativeEntry(
   type: string,
-  panel: { category: string; label: string; icon: string },
+  panel: {
+    category: string;
+    label: string;
+    icon: string;
+    layoutOnly?: boolean;
+  },
 ): Extract<ComponentCatalogEntry, { kind: "native" }> {
   return {
     kind: "native",
@@ -736,7 +742,12 @@ const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
     label: "masked frame",
     icon: "Frame",
   }),
-  nativeEntry("Slot", { category: "layout", label: "slot", icon: "Layers" }),
+  nativeEntry("Slot", {
+    category: "layout",
+    label: "slot",
+    icon: "Layers",
+    layoutOnly: true,
+  }),
 ];
 
 /**
@@ -767,8 +778,17 @@ export function getCatalogEntry(
 }
 
 /**
+ * type → palette 표시 메타(`PanelMeta`) 조회. ComponentList 파생 SSOT 진입점
+ * (ADR-912 6 registry collapse §2-5 #1). category/label/icon/layoutOnly 의 단일 source —
+ * builder ComponentList 의 정적 배열을 본 메타 파생으로 대체한다.
+ */
+export function getPanelMeta(type: string): PanelMeta | undefined {
+  return CATALOG_BY_TYPE.get(type)?.panel;
+}
+
+/**
  * `cutover === "catalog"` 인 type 집합 — DOM(Preview)/Inspector/Skia catalog 게이트의 파생 source.
- * **ADR-912 단계 5 step 1 (2026-06-04)**: skiaLegacy 0건 도달 → 본 집합이 DOM/Skia 공통 발효
+ * **ADR-912 단계 5 step 1 (2026-06-04)**: skiaLegacy 0건 도달 → 본 집합이 DOM/Skia 공통 전환
  * 집합. native(frame/Slot)는 cutover 개념 없음(metadata-only)으로 제외.
  */
 export function getCatalogCutoverTypes(): ReadonlySet<string> {
