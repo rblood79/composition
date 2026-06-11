@@ -402,18 +402,11 @@ export { TabsSpec } from "./components/Tabs.spec";
 export type { TabsProps, TabItem } from "./components/Tabs.spec";
 export { TabListSpec } from "./components/TabList.spec";
 export type { TabListProps } from "./components/TabList.spec";
-export { TabPanelsSpec } from "./components/TabPanels.spec";
-export type { TabPanelsProps } from "./components/TabPanels.spec";
-export { TabPanelSpec } from "./components/TabPanel.spec";
-export type { TabPanelProps } from "./components/TabPanel.spec";
 export { TabSpec } from "./components/Tab.spec";
 export type { TabProps } from "./components/Tab.spec";
 
 export { MenuSpec } from "./components/Menu.spec";
 export type { MenuProps } from "./components/Menu.spec";
-
-export { MenuItemSpec } from "./components/MenuItem.spec";
-export type { MenuItemProps } from "./components/MenuItem.spec";
 
 export { BreadcrumbsSpec } from "./components/Breadcrumbs.spec";
 export type { BreadcrumbsProps } from "./components/Breadcrumbs.spec";
