@@ -173,6 +173,13 @@ const TEXT_LEAF_NAMES = new Set([
   "TabPanel",
   "TabPanels",
   "MenuItem",
+  // ADR-912 value-label 군 (2026-06-11): Meter/ProgressBar/Slider 의 value text leaf.
+  //   MeterValue/ProgressBarValue = progress archetype(grid label/value/track),
+  //   SliderOutput = simple archetype. 부모가 children=formatted value 주입,
+  //   자식이 buildCatalogShapes text 로 그림. spec 삭제 대상.
+  "MeterValue",
+  "ProgressBarValue",
+  "SliderOutput",
 ]);
 
 type TextLeafMeta = {
@@ -483,6 +490,30 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       focusVisible: { focusRing: "{focus.ring.default}" },
       disabled: { opacity: 0.38, pointerEvents: "none" },
     },
+  },
+  // ADR-912 value-label 군 (2026-06-11) — Meter/ProgressBar 의 value text leaf.
+  //   progress archetype: ARCHETYPE_BASE_STYLES["progress"](grid label/value/track)가 자동 emit.
+  //   variant 4색 transparent bg + text color 는 rule.variants 가 제공(states 메타 불요 —
+  //   hover/pressed transparent 는 variant 블록에서 파생). MeterValue/ProgressBarValue.spec.ts 삭제 대상.
+  {
+    name: "MeterValue",
+    archetype: "progress",
+    element: "output",
+    containerStyles: { display: "grid" },
+  },
+  {
+    name: "ProgressBarValue",
+    archetype: "progress",
+    element: "output",
+    containerStyles: { display: "grid" },
+  },
+  // SliderOutput — simple archetype(inline-flex). Slider 부모가 명시 자식으로 value 위임.
+  //   SliderOutput.spec.ts 삭제 대상.
+  {
+    name: "SliderOutput",
+    archetype: "simple",
+    element: "output",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
   },
 ];
 

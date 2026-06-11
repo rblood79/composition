@@ -24,9 +24,6 @@ import {
   normalizeBreadcrumbRspSizeKey,
   SelectValueSpec,
   MenuSpec,
-  ProgressBarValueSpec,
-  MeterValueSpec,
-  SliderOutputSpec,
   TabSpec,
   resolveToken,
   buildCatalogShapes,
@@ -112,17 +109,19 @@ const TEXT_BEARING_SPECS: Record<
     spec: MenuSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
   },
+  // ADR-912 value-label 군 (2026-06-11): catalog 발효 → spec 생략, catalogType 측정.
+  //   resolveSkiaRule(catalogType).sizes[size] 의 fontSize/lineHeight 로 산출 (Skia 동일 경로).
   progressbarvalue: {
-    spec: ProgressBarValueSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    catalogType: "ProgressBarValue",
   },
   metervalue: {
-    spec: MeterValueSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    catalogType: "MeterValue",
   },
   slideroutput: {
-    spec: SliderOutputSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",
+    catalogType: "SliderOutput",
   },
   // TEXT_LEAF_TAGS: layout height 가 size→fontSize/lineHeight 를 Skia 와 동일한
   // **catalog rule** 경로로 resolve 하도록 등록. (label 은 fullTreeLayout DFS injection

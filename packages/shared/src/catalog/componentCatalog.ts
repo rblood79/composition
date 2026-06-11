@@ -459,6 +459,28 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "slider track",
     icon: "SlidersHorizontal",
   }),
+  // ADR-912 value-label 군 (2026-06-11): Meter/ProgressBar/Slider 의 value text leaf.
+  //   palette 미노출(ComponentList 가 부모만 등록) — catalog 등록은 Skia generic 경로
+  //   (buildCatalogShapes text) 진입용. 부모가 resolveProgressProps/factory 로
+  //   children=formatted value 주입(buildSpecNodeData.ts:578) → 자식이 rule.variants(text color)
+  //   + sizes(fontSize/lineHeight)로 text 그림. DOM 은 부모 RAC 가 value label self-compose.
+  //   Track sub-part 동형 — spec 삭제 후 isCatalogSkiaCutover 게이트(buildSpecNodeData.ts:932)
+  //   통과로 value text Skia 보존(미발효 시 return null → value 소실).
+  primitiveEntry("MeterValue", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "meter value",
+    icon: "Gauge",
+  }),
+  primitiveEntry("ProgressBarValue", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "progress bar value",
+    icon: "BarChart3",
+  }),
+  primitiveEntry("SliderOutput", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider output",
+    icon: "SlidersHorizontal",
+  }),
 ];
 
 /**
