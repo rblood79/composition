@@ -114,6 +114,10 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         // ADR-912 §2-5 collapse 진입 proof (2026-06-10): Disclosure 컨테이너 shell entry.
         //   SHELL_ONLY → Skia generic 빈 shell, DOM=renderDisclosure 위임(DELEGATING).
         "Disclosure",
+        // ADR-912 Disclosure 군 일괄 cutover (2026-06-10, f0ad8d03a): 패널 콘텐츠 leaf +
+        //   그룹 컨테이너. catalog 등록됐으나 본 oracle 미갱신 stale → T1 Field slice 와 함께 정합.
+        "DisclosureContent",
+        "DisclosureGroup",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

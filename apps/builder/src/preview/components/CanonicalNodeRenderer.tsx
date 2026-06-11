@@ -184,6 +184,11 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   비어 fallback(String(props.children)) 으로 자연 동작, 자식 element 시엔 flatten 보강으로 렌더.
   //   (부모 Disclosure(DELEGATING)의 contentChildren 재귀가 1차 경로지만, 독립 진입 시에도 안전.)
   "disclosurecontent",
+  // ADR-912 6 registry collapse T1 (catalog cutover 첫 slice, 2026-06-11): field — renderDataField 가
+  //   self-compose(부모 element value lookup + `childrenByParent.get(id)` 자식 렌더 + DataField label/
+  //   value 합성). INTERNAL_RENDERERS 의 단순 ElementType + generic 자식 재귀로는 부모 데이터 추출/자식
+  //   렌더가 깨지므로 rendererMap.Field=renderDataField 위임(자식 재귀 skip). Skia 는 shapes []→빈 노드.
+  "field",
 ]);
 
 /**

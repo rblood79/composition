@@ -374,6 +374,16 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
     label: "form",
     icon: "GroupIcon",
   }),
+  // ADR-912 6 registry collapse T1 (catalog 미등록 spec cutover 첫 slice, 2026-06-11): 데이터 매핑
+  //   internal leaf. render.shapes `() => []`(Skia 0 shape) → escape 불필요, generic 0 shape.
+  //   palette 미노출(데이터 매핑 — PALETTE_ORDER 비포함, sub-part/leaf 24 미노출 패턴). DOM 은
+  //   rendererMap.Field=renderDataField 위임(DELEGATING — 부모 value lookup + childrenByParent).
+  //   catalog 등록 목적은 isCatalogSkiaCutover 게이트 통과 — spec 삭제 후에도 Skia 빈 노드 정상 처리.
+  primitiveEntry("Field", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "field",
+    icon: "Tag",
+  }),
 ];
 
 /**

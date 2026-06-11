@@ -27,6 +27,7 @@ import { disclosureContentBinding } from "./DisclosureContent.binding";
 import { disclosureGroupBinding } from "./DisclosureGroup.binding";
 import { disclosureHeaderBinding } from "./DisclosureHeader.binding";
 import { dropZoneBinding } from "./DropZone.binding";
+import { fieldBinding } from "./Field.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
 import { formBinding } from "./Form.binding";
@@ -230,6 +231,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 위험군 해소(선행-6): field 입력 영역 자식 leaf (rac source — RAC <Input> 이 부모 TextField
   //   controller slot 소비, generic box+text 시각). createInput 단독 factory 없음(자식 sub-part 전용).
   Input: inputBinding,
+  // ADR-912 6 registry collapse T1 (2026-06-11): 데이터 매핑 internal leaf (render.shapes []→Skia 0).
+  //   palette 미노출(데이터 매핑, PALETTE_ORDER 비포함). DOM=rendererMap.Field=renderDataField 위임
+  //   (DELEGATING_INTERNAL_RENDERERS — self-compose: 부모 value lookup + childrenByParent). Skia 는
+  //   catalog 게이트 통과 후 빈 노드(shapes []). escape 불필요(특수 shape 0).
+  Field: fieldBinding,
   // family ③ selection
   Checkbox: checkboxBinding,
   CheckboxGroup: checkboxGroupBinding,
