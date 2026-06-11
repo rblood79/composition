@@ -43,8 +43,16 @@ export function createSelectDefinition(
         isReadOnly: false,
         isRequired: false,
         items,
+        // ADR-912 R1 후속 fix (2026-06-12): SelectTrigger.spec 삭제로 끊긴 column flex
+        //   layout 을 factory props.style 에 명시 — Skia/Taffy 는 props.style 만 읽고
+        //   layout 엔진은 rule table 을 import 하지 않으므로(ADR-907 Layer B), 누락 시
+        //   buildNodeStyle/getElementDisplay 가 display:"block" 으로 떨어져 Skia 찌부러짐.
+        //   DOM 은 generated CSS(.react-aria-Select)가 동일 값 제공 → 시각 대칭.
         style: {
           width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -64,8 +72,16 @@ export function createSelectDefinition(
       {
         type: "SelectTrigger",
         props: {
+          // ADR-912 R1 후속 fix: SelectTrigger.spec.containerStyles
+          //   (display:flex/flexDirection:row/alignItems:center) 소멸분을 factory 로 이관.
+          //   height 는 미주입 — implicitStyles selecttrigger 분기의 rule fallback 이
+          //   size delegation 따라 주입(고정 시 size 변경 미반영).
           style: {
             width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
           },
         } as ComponentElementProps,
         children: [
@@ -130,8 +146,12 @@ export function createComboBoxDefinition(
         isReadOnly: false,
         isRequired: false,
         items,
+        // ADR-912 R1 후속 fix (2026-06-12): column flex layout factory 명시 (Select 동형).
         style: {
           width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -151,8 +171,13 @@ export function createComboBoxDefinition(
       {
         type: "SelectTrigger",
         props: {
+          // ADR-912 R1 후속 fix: row flex layout factory 명시 (Select 동형).
           style: {
             width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
           },
         } as ComponentElementProps,
         children: [

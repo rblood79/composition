@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Select family Skia layout 비대칭 수정 — ADR-912 R1 후속] - 2026-06-12
+
+### Bug Fixes
+
+- **Select/ComboBox/NumberField/SearchField + SelectTrigger 가 Skia 에서 찌부러짐 (ADR-912 R1 후속)**:
+  - 증상: CSS preview 는 `display:flex; flex-direction:column; height:auto`(부모 54px) 정상이나, Skia 는 부모 컨테이너가 `display:flex` 누락 + height 부족(자식 겹침)으로 렌더
+  - **Why**: R1(`4ee5b2b27`)에서 SelectTrigger.spec 을 삭제하면서 그 `containerStyles`(display:flex/flexDirection:row/alignItems:center)와 부모의 column flex 를 어느 SSOT 에도 명시하지 않았다. 부모 Select/ComboBox 는 원래부터 spec containerStyles 에 display 가 없어 generated CSS(`.react-aria-Select`)에만 의존 — DOM 전용. Skia/Taffy 는 props.style 만 읽고 layout 엔진은 rule table 을 import 하지 않으므로(ADR-907 Layer B), props.style 에 display 가 없으면 `buildNodeStyle`/`getElementDisplay`(taffyDisplayAdapter)가 `display:"block"` 으로 떨어져 column/row flex 가 무너짐
+  - 수정: 4종 부모 factory props.style 에 `display:flex; flexDirection:column; gap:4`, SelectTrigger 자식에 `display:flex; flexDirection:row; alignItems:center; gap:4` 명시 (Nav/Pagination cutover 선례 동형). DOM 은 generated CSS 가 동일 값 제공 → 시각 대칭 유지. SelectTrigger height(30)는 implicitStyles rule fallback 유지(size delegation 보존)
+  - 검증: factory layout 회귀 가드 8/8 + 정량(buildNodeStyle display: fix 전 block → fix 후 flex) + **Chrome MCP live**(부모 Select Skia layout.height = 54 = Label 20 + gap 4 + Trigger 30, DOM 54 일치 / 콘솔 0)
+  - 위치: `apps/builder/src/builder/factories/definitions/{SelectionComponents,FormComponents}.ts`
+
 ## [6 registry collapse 착수 + Switcher cleanup — ADR-912 1순위 목표 부분 land] - 2026-06-11
 
 ### Architecture

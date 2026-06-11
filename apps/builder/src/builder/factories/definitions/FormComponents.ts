@@ -388,8 +388,12 @@ export function createNumberFieldDefinition(
         isInvalid: false,
         isReadOnly: false,
         isRequired: false,
+        // ADR-912 R1 후속 fix (2026-06-12): column flex layout factory 명시 (Select 동형).
         style: {
           width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -409,8 +413,13 @@ export function createNumberFieldDefinition(
       {
         type: "SelectTrigger",
         props: {
+          // ADR-912 R1 후속 fix: row flex layout factory 명시 (Select 동형).
           style: {
             width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
           },
         } as ComponentElementProps,
         children: [
@@ -492,8 +501,12 @@ export function createSearchFieldDefinition(
         isInvalid: false,
         isReadOnly: false,
         isRequired: false,
+        // ADR-912 R1 후속 fix (2026-06-12): column flex layout factory 명시 (Select 동형).
         style: {
           width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
         },
       } as ComponentElementProps,
       parent_id: parentId,
@@ -513,8 +526,13 @@ export function createSearchFieldDefinition(
       {
         type: "SelectTrigger",
         props: {
+          // ADR-912 R1 후속 fix: row flex layout factory 명시 (Select 동형).
           style: {
             width: "100%",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
           },
         } as ComponentElementProps,
         children: [
