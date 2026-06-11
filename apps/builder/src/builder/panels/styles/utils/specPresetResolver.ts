@@ -219,11 +219,15 @@ const TRACK_HEIGHT_ARCHETYPES: ReadonlySet<string> = new Set([
 //   는 SelectTrigger(입력 trigger 행) 높이이지 컨테이너(Label 행 + gap + Trigger 행 = 54) 전체
 //   높이가 아니다. archetype 미보유라 type 기반 set 으로 height 축 제외 → 컨테이너 height "auto"
 //   표시 (실제 layout 54 와 일치, 30 오표시 제거).
+//   Label 추가 (사용자 요청 2026-06-12): Label 의 height 는 텍스트 line-height(content-driven,
+//   fit-content)로 결정 — `sizes[size].height` 고정값을 패널에 표시하면 부모 컨테이너 layout
+//   변화 시 Label 영역이 고정 높이로 잡혀 재겹침. height 축 제외 → "auto"(content) 표시.
 const TRACK_HEIGHT_TYPES: ReadonlySet<string> = new Set([
   "Select",
   "ComboBox",
   "NumberField",
   "SearchField",
+  "Label",
 ]);
 const HEIGHT_AXIS_KEYS: ReadonlySet<string> = new Set([
   "height",
@@ -481,7 +485,7 @@ function pickLayoutVariantStyles(
   const out: LayoutSpecPreset = {};
 
   for (const [key, value] of Object.entries(styles)) {
-    const mapped = VARIANT_LAYOUT_KEY_MAP[key];
+    const mapped = (VARIANT_LAYOUT_KEY_MAP as Record<string, keyof LayoutSpecPreset>)[key];
     if (!mapped || typeof value !== "string") continue;
     out[mapped] = value;
   }

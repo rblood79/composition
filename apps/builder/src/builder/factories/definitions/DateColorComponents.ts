@@ -62,7 +62,6 @@ export function createDatePickerDefinition(
           children: "Date Picker",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -147,7 +146,6 @@ export function createDateRangePickerDefinition(
           children: "Date Range",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -283,7 +281,6 @@ export function createDateFieldDefinition(
           children: "Date Field",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -346,7 +343,6 @@ export function createTimeFieldDefinition(
           children: "Time",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -407,7 +403,6 @@ export function createColorFieldDefinition(
           children: "Color",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,

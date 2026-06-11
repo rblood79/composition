@@ -121,7 +121,6 @@ export function createCheckboxGroupDefinition(
           children: "Checkbox Group",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -144,7 +143,6 @@ export function createCheckboxGroupDefinition(
                   children: "Option 1",
                   style: {
                     width: "fit-content",
-                    height: "fit-content",
                     fontWeight: 600,
                   },
                 } as ComponentElementProps,
@@ -165,7 +163,6 @@ export function createCheckboxGroupDefinition(
                   children: "Option 2",
                   style: {
                     width: "fit-content",
-                    height: "fit-content",
                     fontWeight: 600,
                   },
                 } as ComponentElementProps,
@@ -212,7 +209,6 @@ export function createRadioGroupDefinition(
           children: "Radio Group",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -235,7 +231,6 @@ export function createRadioGroupDefinition(
                   children: "Option 1",
                   style: {
                     width: "fit-content",
-                    height: "fit-content",
                   },
                 } as ComponentElementProps,
               },
@@ -255,7 +250,6 @@ export function createRadioGroupDefinition(
                   children: "Option 2",
                   style: {
                     width: "fit-content",
-                    height: "fit-content",
                   },
                 } as ComponentElementProps,
               },

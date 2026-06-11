@@ -64,7 +64,6 @@ export function createSelectDefinition(
           children: "Select",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -163,7 +162,6 @@ export function createComboBoxDefinition(
           children: "Combo Box",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,

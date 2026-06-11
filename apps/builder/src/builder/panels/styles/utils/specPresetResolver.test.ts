@@ -62,7 +62,7 @@ describe("resolveSpecPreset", () => {
   //   SelectTrigger(입력 trigger 행) 높이이지 컨테이너(Label + gap + Trigger = 54) 전체
   //   높이가 아니다. Style Panel Transform Height 에서 30 오표시 → height 축 preset 제외
   //   (auto 표시). progress/slider archetype 과 동일 처리 (TRACK_HEIGHT_TYPES type 기반).
-  it.each(["Select", "ComboBox", "NumberField", "SearchField"])(
+  it.each(["Select", "ComboBox", "NumberField", "SearchField", "Label"])(
     "%s 는 height 축을 preset 에서 제외 (컨테이너 height=auto, trigger 행 30 오표시 방지)",
     (type) => {
       const preset = resolveSpecPreset(type, "md");

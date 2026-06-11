@@ -32,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: 회귀 가드 5/5(4종 height/minHeight/maxHeight undefined + progress archetype 보존) + **Chrome MCP live**(Select 선택 시 패널 Height = auto, 이전 30)
   - 위치: `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`
 
+- **Label height 고정값 → content(auto) — 부모 layout 변화 시 Label 영역 재겹침 차단 (ADR-912 R1 후속)**:
+  - 증상: Label 의 Style Panel Height 가 `fit` 으로 표시 + factory 가 `height:"fit-content"` 를 store 에 저장 → 부모 컨테이너(Select 등) layout 이 바뀌어도 Label 영역이 고정 height 로 잡혀 body/기타 Skia 화면 변화 시 SelectTrigger 와 다시 겹침
+  - **Why**: Label height 는 텍스트 line-height(content-driven)로 결정돼야 정상인데, (1) factory props.style 의 명시적 `height:"fit-content"`(inline)가 store SSOT 에 박혀 있고, (2) inspector 의 `toStr(inline, specDefault, "auto")` 가 inline 을 우선하므로 패널이 "auto" 대신 "fit" 을 표시했다. Label 을 `TRACK_HEIGHT_TYPES` 에 추가해도 inline 값이 specDefault 제외보다 우선이라 효과 없음 → factory inline 자체 제거가 근본 수정
+  - 수정: 5종 factory(`SelectionComponents`/`FormComponents`/`DateColorComponents`/`DisplayComponents`/`GroupComponents`)의 Label 자식 19곳에서 `height:"fit-content"` 제거(Label style = `{width:"fit-content", fontWeight:600}` 만 유지). CardPreview(LayoutComponents) 등 비-Label `height:"fit-content"` 는 보존. inspector 표시 layer 보강으로 `TRACK_HEIGHT_TYPES` 에 `Label` 추가(inline 제거 후 specDefault 도 height 축 제외 → "auto")
+  - 검증: 회귀 가드(specPresetResolver `it.each` 에 Label 추가) + type-check PASS(baseline 73→71, `VARIANT_LAYOUT_KEY_MAP` index cast 로 선존 TS7053 2건 해소)
+  - 위치: `apps/builder/src/builder/factories/definitions/{SelectionComponents,FormComponents,DateColorComponents,DisplayComponents,GroupComponents}.ts` / `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`
+
 ## [6 registry collapse 착수 + Switcher cleanup — ADR-912 1순위 목표 부분 land] - 2026-06-11
 
 ### Architecture

@@ -49,7 +49,6 @@ export function createTextFieldDefinition(
           children: "Text Field",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -125,7 +124,6 @@ export function createTextAreaDefinition(
           children: "Text Area",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -405,7 +403,6 @@ export function createNumberFieldDefinition(
           children: "Number",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,
@@ -518,7 +515,6 @@ export function createSearchFieldDefinition(
           children: "Search",
           style: {
             width: "fit-content",
-            height: "fit-content",
             fontWeight: 600,
           },
         } as ComponentElementProps,

@@ -286,7 +286,6 @@ export function createProgressBarDefinition(
           style: {
             backgroundColor: "transparent",
             width: "fit-content",
-            height: "fit-content",
             // Skia Taffy grid 경로는 gridArea 이름 해석 미지원 → 숫자 line 명시.
             // CSS 는 spec.composition.staticSelectors 의 grid-area 이름 적용 (대칭 유지).
             gridColumnStart: "1",
@@ -377,7 +376,6 @@ export function createMeterDefinition(
           style: {
             backgroundColor: "transparent",
             width: "fit-content",
-            height: "fit-content",
             gridColumnStart: "1",
             gridColumnEnd: "2",
             gridRowStart: "1",
