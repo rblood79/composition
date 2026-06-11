@@ -15,7 +15,11 @@ import { checkboxBinding } from "./Checkbox.binding";
 import { dateInputBinding } from "./DateInput.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
 import { codeBinding } from "./Code.binding";
+import { colorAreaBinding } from "./ColorArea.binding";
 import { colorFieldBinding } from "./ColorField.binding";
+import { colorSliderBinding } from "./ColorSlider.binding";
+import { colorSwatchBinding } from "./ColorSwatch.binding";
+import { colorWheelBinding } from "./ColorWheel.binding";
 import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
 import { datePickerBinding } from "./DatePicker.binding";
@@ -70,6 +74,7 @@ import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
+import { tailSwatchBinding } from "./TailSwatch.binding";
 import { textAreaBinding } from "./TextArea.binding";
 import { textBinding } from "./Text.binding";
 import { textFieldBinding } from "./TextField.binding";
@@ -92,7 +97,11 @@ export * from "./DateInput.binding";
 export * from "./Checkbox.binding";
 export * from "./CheckboxGroup.binding";
 export * from "./Code.binding";
+export * from "./ColorArea.binding";
 export * from "./ColorField.binding";
+export * from "./ColorSlider.binding";
+export * from "./ColorSwatch.binding";
+export * from "./ColorWheel.binding";
 export * from "./ComboBox.binding";
 export * from "./DateField.binding";
 export * from "./DatePicker.binding";
@@ -141,6 +150,7 @@ export * from "./Switch.binding";
 export * from "./Table.binding";
 export * from "./Tabs.binding";
 export * from "./TagGroup.binding";
+export * from "./TailSwatch.binding";
 export * from "./TextArea.binding";
 export * from "./Text.binding";
 export * from "./TextField.binding";
@@ -224,6 +234,15 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   DateField: dateFieldBinding,
   TimeField: timeFieldBinding,
   ColorField: colorFieldBinding,
+  // ADR-912 Color leaf 5종 box-only cutover (2026-06-11): 사용자 방침 — 빌더 완성 후 제일 나중에
+  //   ProgressCircle 구조(react-aria.adobe.com/ColorWheel 레퍼런스)로 진짜 구현. 지금은 spec 제거 +
+  //   catalog cutover 등록(6 registry collapse)을 위해 box 영역만 등록. 동적 색/gradient/wheel/thumb 는
+  //   generic buildCatalogShapes(box)로 재현 안 함(의도적 손실). TailSwatch=ColorPicker alias placeholder.
+  ColorSwatch: colorSwatchBinding,
+  ColorArea: colorAreaBinding,
+  ColorWheel: colorWheelBinding,
+  ColorSlider: colorSliderBinding,
+  TailSwatch: tailSwatchBinding,
   Form: formBinding,
   // ADR-912 위험군 해소(선행-6): field/form validation 에러 메시지 leaf (TEXT_LEAF 동형, 부모 데이터
   //   의존 0, weight 400 negative 색, measure 는 부모 height 분기로 catalog 직교)

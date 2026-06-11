@@ -514,17 +514,8 @@ export type { ColorPickerProps } from "./components/ColorPicker.spec";
 export { ColorFieldSpec } from "./components/ColorField.spec";
 export type { ColorFieldProps } from "./components/ColorField.spec";
 
-export { ColorSliderSpec } from "./components/ColorSlider.spec";
-export type { ColorSliderProps } from "./components/ColorSlider.spec";
-
-export { ColorAreaSpec } from "./components/ColorArea.spec";
-export type { ColorAreaProps } from "./components/ColorArea.spec";
-
-export { ColorWheelSpec } from "./components/ColorWheel.spec";
-export type { ColorWheelProps } from "./components/ColorWheel.spec";
-
-export { ColorSwatchSpec } from "./components/ColorSwatch.spec";
-export type { ColorSwatchProps } from "./components/ColorSwatch.spec";
+// ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11):
+//   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제. ColorSwatchPicker(container) 보존.
 
 export { ColorSwatchPickerSpec } from "./components/ColorSwatchPicker.spec";
 export type { ColorSwatchPickerProps } from "./components/ColorSwatchPicker.spec";
@@ -605,7 +596,7 @@ export type { TableViewProps } from "./components/TableView.spec";
 // Properties-only Specs
 export { FieldSpec } from "./components/Field.spec";
 export { ModalSpec } from "./components/Modal.spec";
-export { TailSwatchSpec } from "./components/TailSwatch.spec";
+// ADR-912 6 registry collapse — TailSwatchSpec 삭제 (color leaf box-only cutover, 2026-06-11).
 
 // ─── Runtime (ADR-058 Pre-Phase 0 + Phase 1) ───────────────────────────────
 // ─── Registry SSOT (ADR-108 P0) ──────────────────────────────────────────────

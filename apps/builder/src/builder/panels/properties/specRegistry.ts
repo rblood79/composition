@@ -12,13 +12,12 @@ import {
   CardViewSpec,
   CheckboxSpec,
   CheckboxGroupSpec,
-  ColorAreaSpec,
+  // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11): ColorArea/ColorWheel/
+  //   ColorSlider/ColorSwatch/TailSwatch Spec import 제거 — catalog binding.accepts 가 D2 properties
+  //   대체(Link/Disclosure 선례). ColorField/ColorPicker/ColorSwatchPicker(field/container)는 보존.
   ColorFieldSpec,
   ColorPickerSpec,
-  ColorSliderSpec,
-  ColorSwatchSpec,
   ColorSwatchPickerSpec,
-  ColorWheelSpec,
   ComboBoxSpec,
   DateFieldSpec,
   DatePickerSpec,
@@ -48,7 +47,6 @@ import {
   SliderSpec,
   SlotSpec,
   SwitchSpec,
-  TailSwatchSpec,
   TableViewSpec,
   TagGroupSpec,
   TabsSpec,
@@ -85,15 +83,14 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   CardView: CardViewSpec as ComponentSpec<Record<string, unknown>>,
   Checkbox: CheckboxSpec as ComponentSpec<Record<string, unknown>>,
   CheckboxGroup: CheckboxGroupSpec as ComponentSpec<Record<string, unknown>>,
-  ColorArea: ColorAreaSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 6 registry collapse — ColorArea/ColorWheel/ColorSlider/ColorSwatch box-only cutover
+  //   (2026-06-11): GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성(spec.properties
+  //   dead). ColorField/ColorPicker/ColorSwatchPicker(field/container)는 보존.
   ColorField: ColorFieldSpec as ComponentSpec<Record<string, unknown>>,
   ColorPicker: ColorPickerSpec as ComponentSpec<Record<string, unknown>>,
-  ColorSlider: ColorSliderSpec as ComponentSpec<Record<string, unknown>>,
-  ColorSwatch: ColorSwatchSpec as ComponentSpec<Record<string, unknown>>,
   ColorSwatchPicker: ColorSwatchPickerSpec as ComponentSpec<
     Record<string, unknown>
   >,
-  ColorWheel: ColorWheelSpec as ComponentSpec<Record<string, unknown>>,
   ComboBox: ComboBoxSpec as ComponentSpec<Record<string, unknown>>,
   DateField: DateFieldSpec as ComponentSpec<Record<string, unknown>>,
   DatePicker: DatePickerSpec as ComponentSpec<Record<string, unknown>>,
@@ -135,7 +132,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Slider: SliderSpec as ComponentSpec<Record<string, unknown>>,
   Slot: SlotSpec as ComponentSpec<Record<string, unknown>>,
   Switch: SwitchSpec as ComponentSpec<Record<string, unknown>>,
-  TailSwatch: TailSwatchSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 6 registry collapse — TailSwatch box-only cutover (2026-06-11): catalog binding.accepts
+  //   가 D2 properties 대체. ColorPicker alias placeholder 는 catalog rule box 시각 유지.
   TableView: TableViewSpec as ComponentSpec<Record<string, unknown>>,
   TagGroup: TagGroupSpec as ComponentSpec<Record<string, unknown>>,
   Tabs: TabsSpec as ComponentSpec<Record<string, unknown>>,

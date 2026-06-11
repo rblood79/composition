@@ -119,7 +119,8 @@ const CONTAINER_DIMENSION_TAGS = new Set([
   "SliderTrack",
   "ListBox",
   "ColorField",
-  "ColorSlider",
+  // ADR-912 6 registry collapse (2026-06-11) — "ColorSlider" 제거 (color leaf box-only cutover).
+  //   catalog generic box(buildCatalogShapes)는 layout.width 직접 사용 → `_containerWidth` 주입 불요.
   "Skeleton",
   // ADR-912 Switcher cleanup — "Switcher" 제거 (ToggleButtonGroup 은 auto-width SHELL → 폭 주입 불필요).
   // ADR-097 Phase 4A: TagList spec shapes 가 props.items 기반 chip 렌더 시 컨테이너

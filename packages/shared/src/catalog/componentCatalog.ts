@@ -684,9 +684,12 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
  * RAC 가 grid/field 자동 합성. nested 시 child CalendarGrid(non-catalog) 가 grid 담당, parent 는
  * shell/transparent. Popover 는 클릭 시 열리는 portal(정적 캔버스 미표시) → 정적 노드 무관.
  *
- * **color 제외 (사용자 지시 2026-05-31 "TailSwatch 는 패스해")**: TailSwatch(=ColorPicker alias)
- * + ColorArea/ColorWheel/ColorSlider/ColorSwatch(ColorPicker 내부 part)는 family ⑦ cutover
- * 대상 제외 — 별도 처리. arc/wheel/gradient 시각이라 skiaPrimitive 설계가 필요한 영역.
+ * **color leaf 5종 box-only cutover (사용자 방침 2026-06-11)**: ColorSwatch/ColorArea/ColorWheel/
+ * ColorSlider/TailSwatch 는 빌더 완성 후 제일 나중에 ProgressCircle 구조(react-aria.adobe.com/
+ * ColorWheel 레퍼런스)로 진짜 구현 예정. 지금은 spec 제거 + catalog cutover 등록(6 registry collapse)
+ * 만을 위해 **box 영역만** 가진 형태로 등록 — 동적 색/gradient/wheel/thumb 시각은 generic
+ * buildCatalogShapes(box)로 재현 안 함(의도적 손실, escape 없음). 후속 작업에서 arc/wheel skiaPrimitive
+ * 로 복원. ColorPicker/ColorSwatchPicker(container)는 자식 처리가 달라 다음 slice 로 분리.
  */
 const FAMILY_7_CUTOVER: CutoverState = "catalog";
 
@@ -712,6 +715,34 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
     category: "dateTime",
     label: "date range picker",
     icon: "CalendarDays",
+  }),
+  // ADR-912 Color leaf 5종 box-only cutover (2026-06-11): spec 제거 + catalog 등록(6 registry
+  //   collapse)을 위해 box 영역만. 동적 색/gradient/wheel/thumb 시각 손실은 의도적 — 빌더 완성 후
+  //   ProgressCircle 구조로 진짜 구현. binding 은 box-only 메타(props accepts)만, 시각은 generic.
+  primitiveEntry("ColorSwatch", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color swatch",
+    icon: "Palette",
+  }),
+  primitiveEntry("ColorArea", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color area",
+    icon: "Palette",
+  }),
+  primitiveEntry("ColorWheel", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color wheel",
+    icon: "Circle",
+  }),
+  primitiveEntry("ColorSlider", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color slider",
+    icon: "Sliders",
+  }),
+  primitiveEntry("TailSwatch", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "tail swatch",
+    icon: "Palette",
   }),
 ];
 
@@ -762,7 +793,8 @@ const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
 
 /**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①~⑧ 등록 — ⑦ color(TailSwatch) 는 사용자 지시로 제외(별도 처리).
+ * 현재 family ①~⑧ 등록 — ⑦ date-color 에 color leaf 5종(ColorSwatch/Area/Wheel/Slider/TailSwatch)
+ * box-only cutover 포함(2026-06-11). ColorPicker/ColorSwatchPicker(container)는 다음 slice 분리.
  * ⑧ native(frame/Slot)는 metadata-only(cutover 게이트 미포함, canonical-native 렌더 유지).
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [

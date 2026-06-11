@@ -9,9 +9,9 @@ import { getPrimitiveBinding } from "../bindings";
  *
  * 배경: catalog 미등록 spec 23종 cutover 의 첫 slice. T1 3종(Field/TailSwatch/ColorSwatch)
  * 중 사용자 정정(2026-06-11)으로 **Field 1종만** 이 slice 대상:
- *   - TailSwatch: color 제외 (사용자 지시 2026-05-31 "TailSwatch 는 패스해").
- *   - ColorSwatch: render.shapes 가 `fill: props.color`(사용자 동적 색) → buildCatalogShapes
- *     generic(rule variant fill 만 읽음)으로 재현 불가 → escape 군(Image/ColorPicker)으로 이동.
+ *   - TailSwatch / ColorSwatch: 이 slice(T1) 시점엔 color 제외였으나, 사용자 방침 전환(2026-06-11)
+ *     으로 color leaf 5종이 box-only catalog cutover 로 전환됨(colorLeafCutover.test.ts). 동적 색은
+ *     의도적 손실(generic box), arc/wheel 정교 시각은 빌더 완성 후 별도 복원.
  *   - Field: render.shapes `() => []`(Skia 0) → escape 불필요, generic 0 shape. 즉시 가능.
  *
  * Field 형태: palette 미노출(placeable 아님, 데이터 매핑 internal) + DOM 은

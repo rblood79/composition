@@ -91,10 +91,12 @@ describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", ()
     }
   });
 
-  it("color(TailSwatch/ColorPicker 등)는 cutover 제외 (사용자 지시 — 별도 처리)", () => {
-    expect(isCatalogCutover("TailSwatch")).toBe(false);
+  it("color container(ColorPicker/ColorSwatchPicker)는 cutover 제외 (다음 slice 분리)", () => {
+    // 사용자 방침 2026-06-11: color leaf 5종(ColorSwatch/Area/Wheel/Slider/TailSwatch)은 box-only
+    // catalog cutover 로 전환됨(colorLeafCutover.test.ts 가 cutover=true 를 lock). container 인
+    // ColorPicker/ColorSwatchPicker 는 자식 처리가 달라 다음 slice 로 분리 → 여전히 cutover 제외.
     expect(isCatalogCutover("ColorPicker")).toBe(false);
-    expect(isCatalogCutover("ColorWheel")).toBe(false);
+    expect(isCatalogCutover("ColorSwatchPicker")).toBe(false);
   });
 
   it("composition-native(frame/Slot)는 cutover 게이트 제외 (native — metadata-only)", () => {
@@ -131,11 +133,11 @@ describe("ADR-912 단계 5 step 1 — dead gate invariant (channel 통합 잠금
     // 채널 분리가 의미 소멸했음을 잠근다. 향후 skiaLegacy 류 재도입 시 본 테스트 FAIL.
     const types = [
       ...componentCatalog.map((e) => e.type),
-      // native + color (게이트 false) — 동치성은 false===false 로도 성립해야 함
+      // native + color container (게이트 false) — 동치성은 false===false 로도 성립해야 함.
+      // color leaf 5종(TailSwatch 등)은 cutover=true 로 전환되어 componentCatalog.map 에 포함됨.
       "frame",
       "Slot",
       "MaskedFrame",
-      "TailSwatch",
       "ColorPicker",
       "UnknownType",
     ];

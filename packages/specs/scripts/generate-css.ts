@@ -180,6 +180,12 @@ const TEXT_LEAF_NAMES = new Set([
   "MeterValue",
   "ProgressBarValue",
   "SliderOutput",
+  // ADR-912 6 registry collapse — Color leaf box-only cutover (2026-06-11): ColorSwatch/TailSwatch 는
+  //   skipCSSGeneration:false (simple archetype, generated CSS source). spec 삭제 후에도 DOM CSS 가
+  //   사라지지 않도록 catalog rule(COMPONENT_RULES_TABLE) 기반 virtual 로 재생성. ColorArea/Wheel/
+  //   Slider 는 skipCSSGeneration:true (Skia 전용 gradient/circle) → CSS 미생성이라 virtual 불요.
+  "ColorSwatch",
+  "TailSwatch",
 ]);
 
 type TextLeafMeta = {
@@ -514,6 +520,31 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     archetype: "simple",
     element: "output",
     containerStyles: { display: "inline-flex", alignItems: "center" },
+  },
+  // ADR-912 6 registry collapse — Color leaf box-only cutover (2026-06-11): ColorSwatch/TailSwatch
+  //   (simple archetype, generated CSS source). 동적 색/gradient/wheel/thumb 정교 시각은 빌더 완성
+  //   후 ProgressCircle 구조로 복원 — 지금은 box 영역(rule variant fill/border)만. catalog rule
+  //   (COMPONENT_RULES_TABLE) 단일 source 파생이라 spec 삭제 후에도 DOM CSS 보존.
+  {
+    name: "ColorSwatch",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    // 원본 ColorSwatch.spec states: disabled pointerEvents:none + focusVisible focusRing.
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  {
+    name: "TailSwatch",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    // 원본 TailSwatch.spec states: {} (상태 CSS 미emit). 기본 states override 로 빈 처리.
+    states: {},
   },
 ];
 

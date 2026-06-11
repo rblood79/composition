@@ -51,7 +51,6 @@ import { TagSpec } from "../components/Tag.spec";
 import { GridListSpec } from "../components/GridList.spec";
 import { ModalSpec } from "../components/Modal.spec";
 import { FieldSpec } from "../components/Field.spec";
-import { TailSwatchSpec } from "../components/TailSwatch.spec";
 import { ToolbarSpec } from "../components/Toolbar.spec";
 import { ToastSpec } from "../components/Toast.spec";
 import { GroupSpec } from "../components/Group.spec";
@@ -71,10 +70,6 @@ import { CalendarGridSpec } from "../components/CalendarGrid.spec";
 import { RangeCalendarSpec } from "../components/RangeCalendar.spec";
 import { ColorPickerSpec } from "../components/ColorPicker.spec";
 import { ColorFieldSpec } from "../components/ColorField.spec";
-import { ColorSliderSpec } from "../components/ColorSlider.spec";
-import { ColorAreaSpec } from "../components/ColorArea.spec";
-import { ColorWheelSpec } from "../components/ColorWheel.spec";
-import { ColorSwatchSpec } from "../components/ColorSwatch.spec";
 import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 import { ListSpec } from "../components/List.spec";
 import { InputSpec } from "../components/Input.spec";
@@ -156,9 +151,11 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   GridList: GridListSpec,
   Modal: ModalSpec,
   Field: FieldSpec,
-  TailSwatch: TailSwatchSpec,
   // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/
   //   DisclosureContent spec entry 삭제 (catalog cutover 완결). 시각 = catalog rule.
+  // ADR-912 6 registry collapse (2026-06-11) — TailSwatch/ColorSlider/ColorArea/ColorWheel/ColorSwatch
+  //   spec entry 삭제 (color leaf box-only cutover, 시각 = catalog rule). ColorPicker/ColorField/
+  //   ColorSwatchPicker(container/field) 보존.
   Toolbar: ToolbarSpec,
   Toast: ToastSpec,
   Group: GroupSpec,
@@ -180,10 +177,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   RangeCalendar: RangeCalendarSpec,
   ColorPicker: ColorPickerSpec,
   ColorField: ColorFieldSpec,
-  ColorSlider: ColorSliderSpec,
-  ColorArea: ColorAreaSpec,
-  ColorWheel: ColorWheelSpec,
-  ColorSwatch: ColorSwatchSpec,
   ColorSwatchPicker: ColorSwatchPickerSpec,
   List: ListSpec,
   Input: InputSpec,

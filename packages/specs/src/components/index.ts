@@ -216,21 +216,9 @@ export type { ColorPickerProps } from "./ColorPicker.spec";
 export { ColorFieldSpec } from "./ColorField.spec";
 export type { ColorFieldProps } from "./ColorField.spec";
 
-// ColorSlider
-export { ColorSliderSpec } from "./ColorSlider.spec";
-export type { ColorSliderProps } from "./ColorSlider.spec";
-
-// ColorArea
-export { ColorAreaSpec } from "./ColorArea.spec";
-export type { ColorAreaProps } from "./ColorArea.spec";
-
-// ColorWheel
-export { ColorWheelSpec } from "./ColorWheel.spec";
-export type { ColorWheelProps } from "./ColorWheel.spec";
-
-// ColorSwatch
-export { ColorSwatchSpec } from "./ColorSwatch.spec";
-export type { ColorSwatchProps } from "./ColorSwatch.spec";
+// ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11):
+//   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제 (catalog cutover 완결,
+//   시각 SSOT = componentRulesTable). ColorSwatchPicker(container)는 다음 slice 분리 → 보존.
 
 // ColorSwatchPicker
 export { ColorSwatchPickerSpec } from "./ColorSwatchPicker.spec";
