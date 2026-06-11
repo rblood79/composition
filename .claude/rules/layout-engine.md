@@ -44,6 +44,7 @@ globs:
 - display 변경 및 gridTemplateColumns 변경 → **full rebuild 필수**. **Why**: Taffy 증분 갱신이 처리 불가
 - `affectedNodeIds` 필터 시 `undefined` 조건 누락 금지. **Why**: 캐시 미스 시 undefined 전달 가능
 - **신규 grid container (`prevJson` 없음) → full rebuild 필수**. **Why**: Taffy WASM `addNode` 증분 추가로는 gridTemplateColumns/Areas 가 auto-placement 로 degrade — 등록 직후 한 줄 배치, 새로고침(buildFull) 후에만 정상 2행. `!prevJson && (curDisplay === "grid" || "inline-grid")` 에서 needsFullRebuild=true 강제
+- **신규 컨테이너(자식 서브트리 보유) → full rebuild 필수** (grid 아니어도). **Why**: `addComplexElement`(부모+자식 트리 일괄 등록, 예 Select/ComboBox) 시 한 batch 에 부모+자식 다수 신규 노드가 들어오면 `addNode` 증분이 자식 layout 을 produce 못 함(layout=undefined) → 자식이 (0,0) 겹침 + 부모 height 가 자식 합산 미만으로 degrade(Select 등록 직후 34, 새로고침 full rebuild 후 54). `!prevJson && filteredChildIdsMap.get(id)?.length > 0` 에서 needsFullRebuild=true 강제 (grid 조건과 동일 게이트). ADR-912 R1 후속 (2026-06-12)
 - **기존 grid container 의 layout-영향 14-key 변경 → full rebuild 필수**: gridTemplateColumns/Rows/Areas/AutoColumns/AutoRows/AutoFlow + padding/padding{Top,Right,Bottom,Left} + gap/rowGap/columnGap. **Why**: `updateStyleRaw` 는 grid track/placement 캐시 invalidation 실패 → padding 변경 시 1줄 degrade / gap 변경 미반영. 비-grid 는 증분 유지 (Flex/Block `updateStyleRaw` 정상 동작)
 
 ## Taffy gridTemplate 직렬화 경로 (CRITICAL)
@@ -131,6 +132,7 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 **La
 - Step 4.5에서 processedElementsMap 대신 elementsMap 직접 사용 금지
 - CONTAINER_TAGS에 고정 height 사용 금지
 - 신규 grid container 를 incrementalUpdate 의 `addNode` 로만 추가 금지 → 등록 직후 배치 degrade. `!prevJson && curDisplay==="grid"` 분기에서 needsFullRebuild=true 강제
+- 신규 컨테이너(자식 서브트리 보유)를 `addNode` 증분으로만 추가 금지 → 자식 layout undefined + 겹침. `!prevJson && filteredChildIdsMap.get(id)?.length > 0` 분기에서 needsFullRebuild=true 강제 (grid 아니어도)
 - 기존 grid container 의 padding/gap/gridTemplate 변경을 `updateStyleRaw` 만으로 반영 시도 금지 → 14-key 변경 감지 후 full rebuild
 - `gridTemplateColumns: "1fr auto"` string 을 WASM 에 그대로 전달 금지 → `parseGridTemplate` 로 track array 정규화 (3 직렬화 경로 전부)
 - `buildNodeStyle` grid branch 에서 자식 gridArea 이름만 주입 금지 → gridColumnStart/End + gridRowStart/End 숫자 line 병기 필수

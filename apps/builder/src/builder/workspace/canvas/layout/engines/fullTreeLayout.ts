@@ -2030,8 +2030,21 @@ export function calculateFullTreeLayout(
         // 신규 노드 (prevJson 없음) 가 grid container 면 full rebuild 필요 —
         // Taffy WASM `addNode` 증분 추가로는 grid track (gridTemplateColumns/Areas)
         // 이 auto-placement 로 degrade 됨. `buildFull` 로만 정상 배치.
+        //
+        // ADR-912 R1 후속 (2026-06-12): 신규 노드가 **자식 서브트리를 가진 컨테이너**
+        // (Select/ComboBox 등 addComplexElement 로 부모+자식 트리 일괄 등록) 면 grid 가
+        // 아니어도 full rebuild 필요. `addNode` 증분은 단일 노드 추가엔 동작하지만,
+        // 한 batch 에 부모+자식 다수 신규 노드가 들어오면 자식 layout 이 produce 되지 않아
+        // (layout=undefined) 자식이 (0,0) 에 겹쳐 그려지고 부모 height 가 자식 합산 미만으로
+        // degrade 됨 (Select 등록 직후 height 34 → 새로고침 full rebuild 후 54). buildFull
+        // 로만 신규 서브트리 전체가 정상 배치된다.
         if (!prevJson) {
           if (isGridDisplay(curDisplay)) {
+            needsFullRebuild = true;
+            break;
+          }
+          const newNodeChildren = filteredChildIdsMap.get(node.elementId);
+          if (newNodeChildren && newNodeChildren.length > 0) {
             needsFullRebuild = true;
             break;
           }

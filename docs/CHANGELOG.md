@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: factory layout 회귀 가드 8/8 + 정량(buildNodeStyle display: fix 전 block → fix 후 flex) + **Chrome MCP live**(부모 Select Skia layout.height = 54 = Label 20 + gap 4 + Trigger 30, DOM 54 일치 / 콘솔 0)
   - 위치: `apps/builder/src/builder/factories/definitions/{SelectionComponents,FormComponents}.ts`
 
+- **신규 컨테이너 등록 직후 자식 겹침 — Taffy 증분 갱신이 자식 서브트리 layout 누락 (ADR-912 R1 후속)**:
+  - 증상: Select/ComboBox 등 자식 트리를 가진 컨테이너를 빌더에 **등록한 직후** Label 이 SelectTrigger 와 겹침. **브라우저 새로고침하면 정상**(겹침 해소)
+  - **Why**: `calculateFullTreeLayout` 의 `needsFullRebuild` 판정이 신규 노드(`!prevJson`)를 **grid container 일 때만** full rebuild 하고, flex/block 신규 컨테이너는 증분(`addNode`)으로 처리했다. `addComplexElement`(부모+자식 트리 일괄 등록) 시 한 batch 에 부모+자식 다수 신규 노드가 들어오면 Taffy `addNode` 증분이 자식 layout 을 produce 하지 못해(layout=undefined) 자식이 (0,0)에 겹쳐 그려지고 부모 height 가 자식 합산 미만(Select 34, 정상 54)으로 degrade. 새로고침 = `buildFull` full rebuild 라 정상
+  - 수정: 신규 노드가 **자식 서브트리를 가진 컨테이너**(`filteredChildIdsMap.get(id).length > 0`)면 grid 가 아니어도 `needsFullRebuild=true`. 기존 grid-only 조건과 동일 게이트(layout-engine.md "신규 grid container → full rebuild" 규칙 확장)
+  - 검증: **Chrome MCP live**(fix 전 등록 직후 Select height 34 + 자식 layout undefined → fix 후 등록 직후 height 54 + Label y:0 / SelectTrigger y:24 정상, 새로고침 불필요) + layout 엔진 테스트 44/44
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
+
 ## [6 registry collapse 착수 + Switcher cleanup — ADR-912 1순위 목표 부분 land] - 2026-06-11
 
 ### Architecture
