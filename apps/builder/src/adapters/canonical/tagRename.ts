@@ -23,9 +23,27 @@ export function tagToType(legacyTag: string): ComponentTag {
     console.warn(`[ADR-903 P1] tagToType: empty type, falling back to "frame"`);
     return "frame";
   }
+  // ADR-912 4단계 — legacy "TabBar" → canonical "Switcher" 1회 정규화.
+  // TabBar 는 Switcher 구명 BC alias(builderAliasMap 에서 제거됨). 과거 직렬화된 TabBar
+  // 노드가 hydrate 시 Switcher 로 흡수되어야 getSpecForTag→SwitcherSpec 경로 보존(미변환 시
+  // alias 제거된 "TabBar" 는 spec lookup 실패 → Skia 미표시).
+  if (isLegacyTabBarForSwitcher(legacyTag)) {
+    return "Switcher" as ComponentTag;
+  }
   // Phase 1: 직접 cast (값 공간은 ComponentTag와 동일하게 수렴 중)
   // Phase 2+ resolver에서 isCanonicalNode guard로 재검증
   return legacyTag as ComponentTag;
+}
+
+/**
+ * ADR-912 4단계 — legacy `type: "TabBar"` 1회 hydration migration guard.
+ *
+ * TabBar 는 Switcher 구명 BC alias. live producer 0건(factory/specs 전수 grep) — 신규 생성
+ * 경로 없음. 과거 직렬화된 TabBar 노드만 변환 대상. ADR-130 `isLegacyGroupForFrameMigration`
+ * 선례와 동형이나 customId 조건 불필요(TabBar 는 ARIA 충돌 없는 순수 BC alias).
+ */
+export function isLegacyTabBarForSwitcher(legacyTag: string): boolean {
+  return legacyTag === "TabBar";
 }
 
 /**

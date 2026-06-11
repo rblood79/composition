@@ -2,7 +2,7 @@
  * TAG_SPEC_MAP — Builder 측 merged spec registry (ADR-108 P0)
  *
  * packages/specs 정본 `TAG_SPEC_MAP` (102 entries — `childSpecs` 자동 확장 포함) 를
- * `BUILDER_ALIAS_MAP` (8 진짜 alias) 과 병합하여 Canvas layout engine /
+ * `BUILDER_ALIAS_MAP` (8 alias — ADR-912 4단계로 TabBar BC alias 제거) 과 병합하여 Canvas layout engine /
  * StoreRenderBridge / specPresetResolver / useLayoutAuxiliary 등이 소비하는
  * 단일 merged map 을 생성한다.
  *

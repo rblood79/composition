@@ -28,12 +28,11 @@ import {
   SelectTriggerSpec,
   SelectValueSpec,
   SelectIconSpec,
-  SwitcherSpec,
   BodySpec,
 } from "@composition/specs";
 
 /**
- * 8 진짜 alias — ADR-108 r5 P0 분류:
+ * 8 진짜 alias — ADR-108 r5 P0 분류 (ADR-912 4단계: TabBar BC alias 제거):
  *
  * ComboBox 계열 (3): ADR-101 Compositional Architecture 고유 element
  *   - ComboBoxWrapper → SelectTriggerSpec (field 컨테이너 시각)
@@ -46,8 +45,15 @@ import {
  *   - SearchIcon         → SelectIconSpec
  *   - SearchClearButton  → SelectIconSpec
  *
- * Switcher 호환 (1): Switcher 이름 변경 이전 type (BC 보존)
- *   - TabBar → SwitcherSpec
+ * body (1): 페이지 루트 lowercase 규약 alias
+ *
+ * **ADR-912 4단계 (2026-06-11)**: TabBar(Switcher 구명 BC alias) 제거. live producer 0건
+ * (factory/specs 전수 grep) → 신규 생성 경로 없음. 과거 직렬화 TabBar 노드는 canonical
+ * hydration 시 tagToType("TabBar") → "Switcher" 1회 정규화로 흡수
+ * (adapters/canonical/tagRename.ts isLegacyTabBarForSwitcher). 잔여 7 sub-part alias
+ * (ComboBox / Search 계열)는 참조 spec(SelectTrigger/Value/Icon) catalog 미전환(cutover=false)
+ * 이라 spec 객체가 load-bearing → 즉시 제거 불가(별도 slice: sub-part catalog 전환 선행).
+ * body 도 Skia 는 catalog rule 이나 Style 패널 소비처가 spec 직접 의존 → 별도 slice.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const BUILDER_ALIAS_MAP: Record<string, ComponentSpec<any>> = {
@@ -58,7 +64,6 @@ export const BUILDER_ALIAS_MAP: Record<string, ComponentSpec<any>> = {
   SearchInput: SelectValueSpec,
   SearchIcon: SelectIconSpec,
   SearchClearButton: SelectIconSpec,
-  TabBar: SwitcherSpec,
   // ADR-902 후속: 페이지 루트 element.type 가 lowercase "body" 로 저장되지만
   // BASE_TAG_SPEC_MAP 은 PascalCase 규약이므로 Builder 측에 lowercase alias 로 노출.
   // getSpecForTag("body") → BodySpec 해석되어 Skia spec 경로 진입.
