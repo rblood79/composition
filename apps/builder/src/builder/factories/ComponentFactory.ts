@@ -33,7 +33,6 @@ import {
 import {
   createFrameLayoutDefinition,
   createToggleButtonGroupDefinition,
-  createSwitcherDefinition,
   createCheckboxGroupDefinition,
   createRadioGroupDefinition,
   createCheckboxDefinition,
@@ -110,7 +109,6 @@ export class ComponentFactory {
     SearchField: ComponentFactory.createSearchField,
     frame: ComponentFactory.createFrame,
     ToggleButtonGroup: ComponentFactory.createToggleButtonGroup,
-    Switcher: ComponentFactory.createSwitcher,
     CheckboxGroup: ComponentFactory.createCheckboxGroup,
     RadioGroup: ComponentFactory.createRadioGroup,
     Checkbox: ComponentFactory.createCheckbox,
@@ -315,11 +313,7 @@ export class ComponentFactory {
     return this.createComponent(createToggleButtonGroupDefinition, context);
   }
 
-  private static async createSwitcher(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createSwitcherDefinition, context);
-  }
+  // ADR-912 Switcher cleanup — createSwitcher 제거 (RAC ToggleButtonGroup 으로 대체).
 
   private static async createCheckboxGroup(
     context: ComponentCreationContext,

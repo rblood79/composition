@@ -18,7 +18,12 @@ import { convertPageLayout } from "../slotAndLayoutAdapter";
 
 const deps = { convertComponentRole, convertPageLayout };
 
-function el(partial: Partial<Element> & Pick<Element, "id" | "type">): Element {
+// legacy fixture: order_num 은 canonical 전환으로 Element 타입에서 제거됐으나 runtime adapter 가
+// element 객체에서 직접 읽으므로 fixture 는 값 유지 + 타입만 허용 (integration.test.ts 동일 패턴).
+type LegacyElementFixture = Partial<Element> &
+  Pick<Element, "id" | "type"> & { order_num?: number };
+
+function el(partial: LegacyElementFixture): Element {
   return { props: {}, parent_id: null, order_num: 0, ...partial } as Element;
 }
 

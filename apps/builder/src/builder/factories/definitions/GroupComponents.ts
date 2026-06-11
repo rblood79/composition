@@ -80,70 +80,10 @@ export function createToggleButtonGroupDefinition(
   };
 }
 
-/**
- * Switcher 컴포넌트 정의 (탭형 전환)
- *
- * CSS DOM 구조:
- * Switcher (parent, type="Switcher", flex row)
- *   ├─ ToggleButton (type="ToggleButton", children="Tab 1", transparent bg)
- *   └─ ToggleButton (type="ToggleButton", children="Tab 2", transparent bg)
- */
-export function createSwitcherDefinition(
-  context: ComponentCreationContext,
-): ComponentDefinition {
-  const { parentElement, elements } = context;
-  const parentId = parentElement?.id || null;
-
-  // ⭐ Layout/Slot System
-
-  return {
-    type: "Switcher",
-    parent: {
-      type: "Switcher",
-      props: {
-        items: ["Tab 1", "Tab 2"],
-        activeIndex: 0,
-        isDisabled: false,
-        style: {
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          width: 240,
-          height: 40,
-        },
-      } as ComponentElementProps,
-      parent_id: parentId,
-    },
-    children: [
-      {
-        type: "ToggleButton",
-        props: {
-          children: "Tab 1",
-          isSelected: true,
-          isDisabled: false,
-          style: {
-            flex: 1,
-            backgroundColor: "transparent",
-            textAlign: "center",
-          },
-        } as ComponentElementProps,
-      },
-      {
-        type: "ToggleButton",
-        props: {
-          children: "Tab 2",
-          isSelected: false,
-          isDisabled: false,
-          style: {
-            flex: 1,
-            backgroundColor: "transparent",
-            textAlign: "center",
-          },
-        } as ComponentElementProps,
-      },
-    ],
-  };
-}
+// ADR-912 Switcher cleanup — createSwitcherDefinition 제거.
+// Switcher(@pixi/ui 세그먼트 컨트롤)는 RAC ToggleButtonGroup(selectionMode="single") 중복 →
+// createToggleButtonGroupDefinition 이 대체. 과거 직렬화 Switcher 노드는 hydration 시
+// ToggleButtonGroup 으로 변환(adapters/canonical/tagRename.ts).
 
 /**
  * CheckboxGroup 컴포넌트 정의

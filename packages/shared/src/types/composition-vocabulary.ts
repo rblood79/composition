@@ -114,7 +114,6 @@ export type ComponentTag =
   | "Slot"
   | "StatusLight"
   | "Switch"
-  | "Switcher"
   | "Tab"
   | "Table"
   | "TableView"

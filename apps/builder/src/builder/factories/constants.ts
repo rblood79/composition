@@ -31,7 +31,6 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "Switch",
   "Slider",
   "ToggleButtonGroup",
-  "Switcher",
   // Group
   "CheckboxGroup",
   "RadioGroup",

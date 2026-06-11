@@ -121,7 +121,7 @@ const CONTAINER_DIMENSION_TAGS = new Set([
   "ColorField",
   "ColorSlider",
   "Skeleton",
-  "Switcher",
+  // ADR-912 Switcher cleanup — "Switcher" 제거 (ToggleButtonGroup 은 auto-width SHELL → 폭 주입 불필요).
   // ADR-097 Phase 4A: TagList spec shapes 가 props.items 기반 chip 렌더 시 컨테이너
   //   폭 필수 (ListBox 선례 대칭). items 는 TagGroup.propagation 으로 TagList 전파 →
   //   TagList Skia node 좌표계에서 chip self-render. Label 은 TagGroup 의 형제 자식

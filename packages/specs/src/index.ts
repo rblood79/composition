@@ -535,8 +535,7 @@ export type { ListProps } from "./components/List.spec";
 export { InputSpec } from "./components/Input.spec";
 export type { InputProps } from "./components/Input.spec";
 
-export { SwitcherSpec } from "./components/Switcher.spec";
-export type { SwitcherProps } from "./components/Switcher.spec";
+// ADR-912 Switcher cleanup — SwitcherSpec 제거 (RAC ToggleButtonGroup 으로 대체).
 
 // ─── Phase 5: Child Composition Specs (Compositional 전환) ─────────────────
 

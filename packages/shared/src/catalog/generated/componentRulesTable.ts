@@ -5346,55 +5346,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  Switcher: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.neutral-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
-          border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.neutral-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
-          border: "{color.accent}",
-        },
-      },
-    },
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 32,
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
-        height: 40,
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
-        height: 48,
-      },
-    },
-  },
+  // ADR-912 Switcher cleanup — Switcher rule 제거 (RAC ToggleButtonGroup 으로 대체, 노드 type
+  // 자체가 hydration 으로 ToggleButtonGroup 변환되어 Switcher rule 소비 0).
   Tab: {
     defaultVariant: "default",
     defaultSize: "md",

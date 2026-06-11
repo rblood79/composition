@@ -2179,20 +2179,7 @@ export function createDefaultStatusLightProps(): BaseElementProps {
   };
 }
 
-export function createDefaultSwitcherProps(): BaseElementProps {
-  return {
-    items: ["Tab 1", "Tab 2"],
-    activeIndex: 0,
-    isDisabled: false,
-    style: {
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-      width: 240,
-      height: 40,
-    },
-  };
-}
+// ADR-912 Switcher cleanup — createDefaultSwitcherProps 제거 (RAC ToggleButtonGroup 으로 대체).
 
 export function createDefaultTableViewProps(): BaseElementProps {
   return {
@@ -2329,7 +2316,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   ProgressCircle: createDefaultProgressCircleProps,
   RangeCalendar: createDefaultRangeCalendarProps,
   StatusLight: createDefaultStatusLightProps,
-  Switcher: createDefaultSwitcherProps,
   TableView: createDefaultTableViewProps,
   TextArea: createDefaultTextAreaProps,
   Toast: createDefaultToastProps,

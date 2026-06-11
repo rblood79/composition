@@ -78,7 +78,7 @@ import { ColorSwatchSpec } from "../components/ColorSwatch.spec";
 import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 import { ListSpec } from "../components/List.spec";
 import { InputSpec } from "../components/Input.spec";
-import { SwitcherSpec } from "../components/Switcher.spec";
+// ADR-912 Switcher cleanup — SwitcherSpec import 제거 (RAC ToggleButtonGroup 으로 대체).
 // ADR-912 box+text leaf 군 일괄 (2026-06-11) — Label/Icon/ToggleButton/StatusLight/Button/Badge/
 //   Separator/Skeleton Spec 삭제. 시각 SSOT = componentRulesTable (generate-css virtual / Skia escape).
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — DisclosureHeaderSpec 삭제. 시각 = catalog rule.
@@ -187,7 +187,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   ColorSwatchPicker: ColorSwatchPickerSpec,
   List: ListSpec,
   Input: InputSpec,
-  Switcher: SwitcherSpec,
   SelectTrigger: SelectTriggerSpec,
   SelectValue: SelectValueSpec,
   SelectIcon: SelectIconSpec,
