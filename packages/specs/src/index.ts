@@ -547,14 +547,8 @@ export type { SliderThumbProps } from "./components/SliderThumb.spec";
 // ADR-912 value-label (2026-06-11): SliderOutputSpec 삭제 — catalog 발효(buildCatalogShapes text)
 //   + generate-css virtual(archetype:simple) + specTextStyle catalogType 측정으로 대체.
 
-export { SelectTriggerSpec } from "./components/SelectTrigger.spec";
-export type { SelectTriggerProps } from "./components/SelectTrigger.spec";
-
-export { SelectValueSpec } from "./components/SelectValue.spec";
-export type { SelectValueProps } from "./components/SelectValue.spec";
-
-export { SelectIconSpec } from "./components/SelectIcon.spec";
-export type { SelectIconProps } from "./components/SelectIcon.spec";
+// ADR-912 R1 (2026-06-12): SelectTriggerSpec/SelectValueSpec/SelectIconSpec 삭제 —
+//   catalog cutover (rule table + buildCatalogShapes generic + icon_font escape).
 
 // ─── Phase 6: ADR-030 New Components ────────────────────────────────────────
 export { AvatarSpec } from "./components/Avatar.spec";

@@ -758,9 +758,10 @@ export const NumberFieldSpec: ComponentSpec<NumberFieldProps> = {
   },
 
   propagation: {
+    // ADR-912 R1 (2026-06-12): ComboBoxWrapper/Input → Select family 공용 type retype.
     rules: [
       { parentProp: "size", childPath: "Label", override: true },
-      { parentProp: "size", childPath: "ComboBoxWrapper", override: true },
+      { parentProp: "size", childPath: "SelectTrigger", override: true },
       {
         parentProp: "label",
         childPath: "Label",
@@ -769,7 +770,7 @@ export const NumberFieldSpec: ComponentSpec<NumberFieldProps> = {
       },
       {
         parentProp: "placeholder",
-        childPath: ["ComboBoxWrapper", "ComboBoxInput"],
+        childPath: ["SelectTrigger", "SelectValue"],
         childProp: "placeholder",
         override: true,
       },

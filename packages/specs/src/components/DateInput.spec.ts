@@ -24,7 +24,7 @@ export interface DateInputProps {
   style?: Record<string, string | number | undefined>;
 }
 
-// Size → input height (SelectTriggerSpec.sizes.height 동기)
+// Size → input height (componentRulesTable.SelectTrigger.sizes.height 동기 — ADR-912 R1 spec 삭제)
 const INPUT_HEIGHT: Record<string, number> = {
   xs: 20,
   sm: 22,

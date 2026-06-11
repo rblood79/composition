@@ -241,12 +241,12 @@ describe("buildSpecNodeData", () => {
       props: { placeholder: "Search" },
     });
     const wrapper = makeElement("wrapper", {
-      type: "SearchFieldWrapper",
+      type: "SelectTrigger",
       customId: "wrapper",
       parent_id: "origin",
     });
     const input = makeElement("input", {
-      type: "SearchInput",
+      type: "SelectValue",
       customId: "input",
       parent_id: "wrapper",
       props: { placeholder: "Search" },

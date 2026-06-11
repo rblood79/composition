@@ -150,7 +150,7 @@ const INTERNAL_RENDERERS: Readonly<
  * - progressbar: renderProgressBar (자식 Label children 추출 → 자기완결 RAC ProgressBar)
  * - meter: renderMeter (ProgressBar 동형 — 자식 Label children 추출 → 자기완결 RAC Meter)
  */
-const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
+export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   "tabs",
   "progressbar",
   "meter",
@@ -189,6 +189,14 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   value 합성). INTERNAL_RENDERERS 의 단순 ElementType + generic 자식 재귀로는 부모 데이터 추출/자식
   //   렌더가 깨지므로 rendererMap.Field=renderDataField 위임(자식 재귀 skip). Skia 는 shapes []→빈 노드.
   "field",
+  // ADR-912 R1 Select family rebuild (2026-06-12): select / combobox — renderSelect/renderComboBox
+  //   가 childrenByParent 로 SelectTrigger→SelectValue 를 찾아 자기완결 RAC `<Select>`/`<ComboBox>`
+  //   self-compose. 자식(SelectTrigger/SelectValue/SelectIcon)은 spec 삭제 + catalog cutover 라
+  //   generic 자식 재귀 시 `<selecttrigger>` 등 소문자 raw tag 로 떨어져 React unknown-tag 경고 +
+  //   RAC controller 깨짐 → rendererMap 위임 + 자식 재귀 skip (Slider/progressbar 동형). Skia 는
+  //   자식 box/text/icon_font generic 으로 자기 노드 렌더(시각 결과 대칭, 구현 비대칭 의도).
+  "select",
+  "combobox",
 ]);
 
 /**
@@ -202,7 +210,16 @@ const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
  * 렌더하므로 progressbar 와 동일하게 rendererMap 위임 + 자식 재귀 skip 한다.
  * (SliderTrack.binding 주석대로 sub-part 자식은 DOM 미도달이 설계 의도.)
  */
-const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set(["Slider"]);
+export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set([
+  "Slider",
+  // ADR-912 R1 Select family rebuild (2026-06-12): NumberField / SearchField — rac source
+  //   self-compose (renderNumberField/renderSearchField 가 RAC `<NumberField>`/`<SearchField>`
+  //   controller 를 자기완결 렌더). 자식 SelectTrigger/SelectValue/SelectIcon 은 spec 삭제 +
+  //   catalog cutover → generic 재귀 시 소문자 raw tag 로 떨어짐 → rendererMap 위임 + 자식 재귀
+  //   skip (Slider 동형, SelectTrigger sub-part 는 DOM 미도달이 설계 의도).
+  "NumberField",
+  "SearchField",
+]);
 
 /**
  * ResolvedNode 의 복원 type 추출 (CanonicalNodeRenderer 본문 type 복원과 동일 규칙).

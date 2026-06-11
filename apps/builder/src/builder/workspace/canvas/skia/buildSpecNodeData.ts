@@ -652,18 +652,17 @@ function resolveSliderProps(
 }
 
 /**
- * SelectIcon/ComboBoxTrigger → parent/grandparent iconName
+ * SelectIcon → parent/grandparent iconName
  *
  * ADR-102: SelectIcon — RAC 공식 미존재 composition 고유 D3 시각 element.
- *   BC HIGH (factory 직렬화 type) → 정당화 유지. grandparent(Select) iconName 위임.
- * ADR-101: ComboBoxTrigger — Compositional Architecture 고유 element.
+ *   grandparent(Select/ComboBox/NumberField/SearchField) iconName 위임.
+ * (ADR-912 R1 2026-06-12: ComboBoxTrigger 는 factory retype 으로 SelectIcon 에 합류 — 조건 제거.)
  */
 function resolveIconDelegation(
   element: CanvasSceneNode,
   elementsMap: Map<string, CanvasSceneNode>,
 ): string | null {
-  if (element.type !== "SelectIcon" && element.type !== "ComboBoxTrigger")
-    return null;
+  if (element.type !== "SelectIcon") return null;
   if (!element.parent_id) return null;
 
   const parent = elementsMap.get(element.parent_id);

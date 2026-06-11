@@ -80,9 +80,9 @@ import { InputSpec } from "../components/Input.spec";
 // ADR-912 단계5 — DisclosureContentSpec 삭제 (catalog cutover 완결). 시각 SSOT = componentRulesTable.DisclosureContent.
 // ADR-912 value-label (2026-06-11): SliderOutputSpec/ProgressBarValueSpec/MeterValueSpec 삭제 —
 //   catalog cutover(buildCatalogShapes text) + generate-css virtual. BASE_TAG_SPEC_MAP 등록 제거.
-import { SelectTriggerSpec } from "../components/SelectTrigger.spec";
-import { SelectValueSpec } from "../components/SelectValue.spec";
-import { SelectIconSpec } from "../components/SelectIcon.spec";
+// ADR-912 R1 (2026-06-12): SelectTriggerSpec/SelectValueSpec/SelectIconSpec 삭제 —
+//   catalog cutover (rule table + buildCatalogShapes generic + icon_font escape). 구 synthetic
+//   alias 7종(ComboBox*/Search*)도 factory retype 으로 본 3 type 에 합류, BUILDER_ALIAS_MAP 해체.
 import { AvatarSpec } from "../components/Avatar.spec";
 import { AvatarGroupSpec } from "../components/AvatarGroup.spec";
 import { InlineAlertSpec } from "../components/InlineAlert.spec";
@@ -180,9 +180,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   ColorSwatchPicker: ColorSwatchPickerSpec,
   List: ListSpec,
   Input: InputSpec,
-  SelectTrigger: SelectTriggerSpec,
-  SelectValue: SelectValueSpec,
-  SelectIcon: SelectIconSpec,
   Avatar: AvatarSpec,
   AvatarGroup: AvatarGroupSpec,
   InlineAlert: InlineAlertSpec,

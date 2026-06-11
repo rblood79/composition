@@ -94,7 +94,9 @@ export function createSelectDefinition(
  *
  * items prop 으로 ComboBoxItem 데이터를 직렬화 가능한 StoredComboBoxItem[] 형태로 관리.
  * ComboBoxItem 자식 element는 더 이상 생성하지 않는다.
- * Label / ComboBoxWrapper (ComboBoxInput + ComboBoxTrigger) sub-element 는 유지.
+ * Label / SelectTrigger (SelectValue + SelectIcon) sub-element 는 유지.
+ * (ADR-912 R1 2026-06-12: ComboBoxWrapper/Input/Trigger synthetic type 을 Select family
+ *  공용 type 으로 retype — BUILDER_ALIAS_MAP 해체. Select factory 와 동일 자식 구조.)
  */
 export function createComboBoxDefinition(
   context: ComponentCreationContext,
@@ -147,7 +149,7 @@ export function createComboBoxDefinition(
         } as ComponentElementProps,
       },
       {
-        type: "ComboBoxWrapper",
+        type: "SelectTrigger",
         props: {
           style: {
             width: "100%",
@@ -155,7 +157,7 @@ export function createComboBoxDefinition(
         } as ComponentElementProps,
         children: [
           {
-            type: "ComboBoxInput",
+            type: "SelectValue",
             props: {
               children: "",
               placeholder: "Type or select...",
@@ -163,7 +165,7 @@ export function createComboBoxDefinition(
             } as ComponentElementProps,
           },
           {
-            type: "ComboBoxTrigger",
+            type: "SelectIcon",
             props: {
               children: "",
               style: { width: 18, height: 18, flexShrink: 0 },

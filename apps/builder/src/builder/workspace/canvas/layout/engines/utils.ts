@@ -45,7 +45,8 @@ import {
   // ADR-912 (B+icon): CalendarHeaderSpec import 제거 — height 분기 rule 인라인 미러로 전환(spec 끊기).
   DateInputSpec,
   ComboBoxSpec,
-  SelectTriggerSpec,
+  // ADR-912 R1 (2026-06-12): SelectTriggerSpec import 제거 — contentHeight 를
+  //   resolveSkiaRule("SelectTrigger") 유도식으로 이관 (spec 끊기).
   // ADR-091 Addendum 2: DateField intrinsic height SSOT.
   DateFieldSpec,
   // ADR-096 Phase 4: HTML primitive defaults 직접 참조 — DEFAULT_ELEMENT_WIDTHS/HEIGHTS 해체.
@@ -2161,18 +2162,21 @@ export function calculateContentHeight(
     return trackRow;
   }
 
-  // 3. SelectTrigger/ComboBoxWrapper: content-box 높이 반환
+  // 3. SelectTrigger: content-box 높이 반환
   // CSS border-box 높이 = lineHeight + paddingY*2 + borderWidth*2
   // calculateContentHeight는 content-box만 반환 → enrichWithIntrinsicSize에서 padding/border 추가
-  // content-box = border-box - paddingY*2 (border는 SelectTrigger에 없고 부모 Button에 있음)
-  if (type === "selecttrigger" || type === "comboboxwrapper") {
+  // ADR-912 R1 (2026-06-12): SelectTrigger.spec 삭제 → rule(componentRulesTable) 에서 유도.
+  //   content-box = border-box(height) - paddingY*2 - borderWidth*2 — 구 spec contentHeight
+  //   공식과 동일 (전 size 검산 일치: xs16/sm16/md20/lg24/xl28).
+  //   ComboBoxWrapper 는 factory retype 으로 SelectTrigger 에 합류 (조건 제거).
+  if (type === "selecttrigger") {
     const parentProps = element.props as Record<string, unknown> | undefined;
     const parentSize = (parentProps?.size as string) ?? "md";
-    // content-box = border-box - paddingY*2 - borderWidth*2
-    // borderWidth=1 (CSS .react-aria-Button / .combobox-container)
-    // ADR-091 Phase 3: SelectTriggerSpec.sizes.contentHeight 직접 참조.
-    //   SelectTrigger 와 ComboBoxWrapper 는 tagSpecMap 에서 동일 spec(SelectTriggerSpec) 참조.
-    return SelectTriggerSpec.sizes[parentSize]?.contentHeight ?? 20;
+    const rs = resolveSkiaRule("SelectTrigger")?.sizes[parentSize];
+    const h = typeof rs?.height === "number" ? rs.height : 30;
+    const py = typeof rs?.paddingY === "number" ? rs.paddingY : 4;
+    const bw = typeof rs?.borderWidth === "number" ? rs.borderWidth : 1;
+    return h - py * 2 - bw * 2;
   }
 
   // 3b. CardHeader/CardContent: 투명 컨테이너 — 자식 높이 합산/max
@@ -2428,9 +2432,8 @@ export function calculateContentHeight(
     // label prop이 없으면 Label 자식 제외 (web preview 동작과 일치)
     if (isCompositional && childElements) {
       const hasLabel = !!props?.label;
-      // wrapper type: Select → SelectTrigger, ComboBox → ComboBoxWrapper
-      const wrapperTag =
-        type === "select" ? "SelectTrigger" : "ComboBoxWrapper";
+      // wrapper type: Select/ComboBox 모두 SelectTrigger (ADR-912 R1 retype)
+      const wrapperTag = "SelectTrigger";
       const visibleChildren = childElements.filter(
         (c) =>
           !SELECT_HIDDEN_CHILDREN.has(c.type ?? "") &&

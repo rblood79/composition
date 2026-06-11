@@ -4624,35 +4624,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 R1 (2026-06-12): paddingX/paddingY/borderWidth — SelectTrigger.spec.sizes 이전.
+      //   layout contentHeight 유도(height - paddingY*2 - borderWidth*2)가 rule 만으로 가능해야
+      //   spec 삭제 후 utils.ts/implicitStyles 가 rule 단일 source 로 측정.
       xs: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
+        paddingX: 4,
+        paddingY: 1,
+        borderWidth: 1,
       },
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
+        paddingX: 8,
+        paddingY: 2,
+        borderWidth: 1,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 18,
+        paddingX: 12,
+        paddingY: 4,
+        borderWidth: 1,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 22,
+        paddingX: 16,
+        paddingY: 8,
+        borderWidth: 1,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
         iconSize: 28,
+        paddingX: 24,
+        paddingY: 12,
+        borderWidth: 1,
       },
     },
   },

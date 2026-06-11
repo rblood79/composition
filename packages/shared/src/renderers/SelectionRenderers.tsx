@@ -1249,11 +1249,12 @@ export const renderComboBox = (
   // Child element에서 props 읽기 (compositional 패턴)
   const allChildren = context.childrenByParent.get(element.id) ?? [];
   const labelEl = allChildren.find((c) => c.type === "Label");
-  const wrapperEl = allChildren.find((c) => c.type === "ComboBoxWrapper");
+  // ADR-912 R1 (2026-06-12): ComboBoxWrapper/ComboBoxInput → Select family 공용 type retype.
+  const wrapperEl = allChildren.find((c) => c.type === "SelectTrigger");
   const wrapperChildren = wrapperEl
     ? (context.childrenByParent.get(wrapperEl.id) ?? [])
     : [];
-  const inputEl = wrapperChildren.find((c) => c.type === "ComboBoxInput");
+  const inputEl = wrapperChildren.find((c) => c.type === "SelectValue");
 
   // child element props 우선 → parent props fallback
   const comboLabel = labelEl

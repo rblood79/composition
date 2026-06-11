@@ -276,11 +276,12 @@ export const renderSearchField = (
   const childElements = context.childrenByParent.get(element.id) ?? [];
 
   const labelEl = childElements.find((c) => c.type === "Label");
-  const wrapperEl = childElements.find((c) => c.type === "SearchFieldWrapper");
+  // ADR-912 R1 (2026-06-12): SearchFieldWrapper/SearchInput → Select family 공용 type retype.
+  const wrapperEl = childElements.find((c) => c.type === "SelectTrigger");
   const wrapperChildren = wrapperEl
     ? (context.childrenByParent.get(wrapperEl.id) ?? [])
     : [];
-  const inputEl = wrapperChildren.find((c) => c.type === "SearchInput");
+  const inputEl = wrapperChildren.find((c) => c.type === "SelectValue");
 
   // child element props 우선 → parent props fallback
   const label = labelEl

@@ -119,7 +119,7 @@ describe("side-label implicit styles", () => {
       { label: "Count", labelPosition: "side" },
       [
         makeChild("lbl", "Label"),
-        makeChild("wrap", "ComboBoxWrapper"),
+        makeChild("wrap", "SelectTrigger"),
         makeChild("err", "FieldError"),
       ],
     );
@@ -134,7 +134,7 @@ describe("side-label implicit styles", () => {
     expect(typeof labelStyle.width).toBe("number");
     expect(labelStyle.flexShrink).toBe(0);
 
-    const wrapperStyle = getChildStyle(result, "ComboBoxWrapper");
+    const wrapperStyle = getChildStyle(result, "SelectTrigger");
     expect(wrapperStyle.flex).toBe(1);
     expect(wrapperStyle.minWidth).toBe(0);
 

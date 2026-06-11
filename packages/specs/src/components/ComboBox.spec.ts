@@ -674,16 +674,17 @@ export const ComboBoxSpec: ComponentSpec<ComboBoxProps> = {
   },
 
   propagation: {
+    // ADR-912 R1 (2026-06-12): ComboBoxWrapper/Input/Trigger → Select family 공용 type retype.
     rules: [
-      { parentProp: "size", childPath: "ComboBoxWrapper", override: true },
+      { parentProp: "size", childPath: "SelectTrigger", override: true },
       {
         parentProp: "size",
-        childPath: ["ComboBoxWrapper", "ComboBoxInput"],
+        childPath: ["SelectTrigger", "SelectValue"],
         override: true,
       },
       {
         parentProp: "size",
-        childPath: ["ComboBoxWrapper", "ComboBoxTrigger"],
+        childPath: ["SelectTrigger", "SelectIcon"],
         override: true,
       },
       { parentProp: "size", childPath: "Label", override: true },
@@ -695,7 +696,7 @@ export const ComboBoxSpec: ComponentSpec<ComboBoxProps> = {
       },
       {
         parentProp: "placeholder",
-        childPath: ["ComboBoxWrapper", "ComboBoxInput"],
+        childPath: ["SelectTrigger", "SelectValue"],
         childProp: "placeholder",
         override: true,
       },

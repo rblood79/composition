@@ -538,6 +538,26 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "select",
     icon: "ChevronDown",
   }),
+  // ADR-912 R1 Select family rebuild (2026-06-12): field-trigger 공용 sub-part 3종 발효.
+  //   Select/ComboBox/NumberField/SearchField 의 trigger box / value text / icon glyph.
+  //   기존 synthetic 7 alias(ComboBoxWrapper/Input/Trigger + Search* 4)는 factory retype 으로
+  //   본 3 type 에 합류 → BUILDER_ALIAS_MAP 해체 + SelectTrigger/Value/Icon spec 삭제.
+  //   palette 비노출(PALETTE_ORDER 비포함 sub-part). Skia=generic box/text + icon_font escape.
+  primitiveEntry("SelectTrigger", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "select trigger",
+    icon: "ChevronDown",
+  }),
+  primitiveEntry("SelectValue", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "select value",
+    icon: "ChevronDown",
+  }),
+  primitiveEntry("SelectIcon", "collections", FAMILY_4_CUTOVER, {
+    category: "forms",
+    label: "select icon",
+    icon: "ChevronDown",
+  }),
   primitiveEntry("ComboBox", "collections", FAMILY_4_CUTOVER, {
     category: "forms",
     label: "combo box",

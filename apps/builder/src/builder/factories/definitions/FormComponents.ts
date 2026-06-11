@@ -356,13 +356,13 @@ export function createToastDefinition(
 /**
  * NumberField 복합 컴포넌트 정의
  *
- * DOM 구조 (ComboBox 와 동일한 패턴):
+ * DOM 구조 (ComboBox 와 동일한 패턴 — ADR-912 R1 2026-06-12 Select family 공용 type retype):
  * NumberField (parent, type="NumberField", display flex column)
  *   ├─ Label (type="Label", children="Number")
- *   ├─ ComboBoxWrapper (type="ComboBoxWrapper", display flex row, bg+border)
- *   │    ├─ ComboBoxInput (type="ComboBoxInput", placeholder="0")
- *   │    ├─ ComboBoxTrigger (type="ComboBoxTrigger", iconName="minus")
- *   │    └─ ComboBoxTrigger (type="ComboBoxTrigger", iconName="plus")
+ *   ├─ SelectTrigger (type="SelectTrigger", display flex row, bg+border)
+ *   │    ├─ SelectValue (type="SelectValue", placeholder="0")
+ *   │    ├─ SelectIcon (type="SelectIcon", iconName="minus")
+ *   │    └─ SelectIcon (type="SelectIcon", iconName="plus")
  *   └─ FieldError (type="FieldError")
  */
 export function createNumberFieldDefinition(
@@ -407,7 +407,7 @@ export function createNumberFieldDefinition(
         } as ComponentElementProps,
       },
       {
-        type: "ComboBoxWrapper",
+        type: "SelectTrigger",
         props: {
           style: {
             width: "100%",
@@ -415,7 +415,7 @@ export function createNumberFieldDefinition(
         } as ComponentElementProps,
         children: [
           {
-            type: "ComboBoxInput",
+            type: "SelectValue",
             props: {
               placeholder: "0",
               style: {
@@ -424,14 +424,14 @@ export function createNumberFieldDefinition(
             } as ComponentElementProps,
           },
           {
-            type: "ComboBoxTrigger",
+            type: "SelectIcon",
             props: {
               iconName: "minus",
               slot: "decrement",
             } as ComponentElementProps,
           },
           {
-            type: "ComboBoxTrigger",
+            type: "SelectIcon",
             props: {
               iconName: "plus",
               slot: "increment",
@@ -465,13 +465,13 @@ export function createNumberFieldDefinition(
 /**
  * SearchField 컴포넌트 정의 (ComboBox 동일 패턴)
  *
- * CSS DOM 구조:
+ * CSS DOM 구조 (ADR-912 R1 2026-06-12 Select family 공용 type retype):
  * SearchField (parent, flex column)
  *   ├─ Label (type="Label")
- *   └─ SearchFieldWrapper (type="SearchFieldWrapper", flex row)
- *        ├─ SearchIcon (type="SearchIcon", 🔍)
- *        ├─ SearchInput (type="SearchInput", flex:1)
- *        └─ SearchClearButton (type="SearchClearButton", ✕)
+ *   └─ SelectTrigger (type="SelectTrigger", flex row)
+ *        ├─ SelectIcon (type="SelectIcon", iconName="search" 🔍)
+ *        ├─ SelectValue (type="SelectValue", flex:1)
+ *        └─ SelectIcon (type="SelectIcon", iconName="x" ✕)
  */
 export function createSearchFieldDefinition(
   context: ComponentCreationContext,
@@ -511,7 +511,7 @@ export function createSearchFieldDefinition(
         } as ComponentElementProps,
       },
       {
-        type: "SearchFieldWrapper",
+        type: "SelectTrigger",
         props: {
           style: {
             width: "100%",
@@ -519,7 +519,7 @@ export function createSearchFieldDefinition(
         } as ComponentElementProps,
         children: [
           {
-            type: "SearchIcon",
+            type: "SelectIcon",
             props: {
               iconName: "search",
               children: "",
@@ -527,7 +527,7 @@ export function createSearchFieldDefinition(
             } as ComponentElementProps,
           },
           {
-            type: "SearchInput",
+            type: "SelectValue",
             props: {
               children: "",
               placeholder: "Search...",
@@ -535,7 +535,7 @@ export function createSearchFieldDefinition(
             } as ComponentElementProps,
           },
           {
-            type: "SearchClearButton",
+            type: "SelectIcon",
             props: {
               iconName: "x",
               children: "",

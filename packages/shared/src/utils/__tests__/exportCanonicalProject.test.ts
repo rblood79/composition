@@ -1075,10 +1075,10 @@ describe("project export canonical CompositionDocument payload", () => {
                 },
                 {
                   id: "wrapper-node",
-                  type: "ComboBoxWrapper",
+                  type: "SelectTrigger",
                   metadata: {
                     type: "legacy-element-props",
-                    customId: "comboboxwrapper",
+                    customId: "selecttrigger",
                   },
                   props: {},
                 },
@@ -1105,7 +1105,7 @@ describe("project export canonical CompositionDocument payload", () => {
       renderModel.elements
         .filter((element) => element.parent_id === "search-instance")
         .map((element) => element.id),
-    ).toEqual(["search-instance/label", "search-instance/comboboxwrapper"]);
+    ).toEqual(["search-instance/label", "search-instance/selecttrigger"]);
     expect(
       renderModel.elements.some(
         (element) =>

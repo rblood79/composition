@@ -22,7 +22,6 @@ import {
   InputSpec,
   BreadcrumbSpec,
   normalizeBreadcrumbRspSizeKey,
-  SelectValueSpec,
   MenuSpec,
   TabSpec,
   resolveToken,
@@ -104,7 +103,9 @@ const TEXT_BEARING_SPECS: Record<
   // ADR-912 box+text leaf 군 (2026-06-11): StatusLight catalog 발효(status_light escape) →
   //   catalogType 추가 + spec 생략. 측정은 rule sizes 기반.
   statuslight: { defaultSize: "md", catalogType: "StatusLight" },
-  selectvalue: { spec: SelectValueSpec, defaultSize: "md" },
+  // ADR-912 R1 (2026-06-12): SelectValue catalog 발효 → spec 생략, 측정이 resolveSkiaRule
+  //   ("SelectValue") 기반 산출 (구 ComboBoxInput/SearchInput 도 factory retype 으로 합류).
+  selectvalue: { defaultSize: "md", catalogType: "SelectValue" },
   menu: {
     spec: MenuSpec as ComponentSpec<Record<string, unknown>>,
     defaultSize: "md",

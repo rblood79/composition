@@ -593,11 +593,12 @@ export const SearchFieldSpec: ComponentSpec<SearchFieldProps> = {
   },
 
   propagation: {
+    // ADR-912 R1 (2026-06-12): SearchFieldWrapper/Input/Icon/ClearButton → Select family
+    //   공용 type retype (SelectIcon 은 search/x 두 자식 모두 type 매칭으로 size 수신).
     rules: [
-      { parentProp: "size", childPath: "SearchFieldWrapper", override: true },
-      { parentProp: "size", childPath: "SearchInput", override: true },
-      { parentProp: "size", childPath: "SearchIcon", override: true },
-      { parentProp: "size", childPath: "SearchClearButton", override: true },
+      { parentProp: "size", childPath: "SelectTrigger", override: true },
+      { parentProp: "size", childPath: "SelectValue", override: true },
+      { parentProp: "size", childPath: "SelectIcon", override: true },
       { parentProp: "size", childPath: "Label", override: true },
       {
         parentProp: "label",
@@ -607,7 +608,7 @@ export const SearchFieldSpec: ComponentSpec<SearchFieldProps> = {
       },
       {
         parentProp: "placeholder",
-        childPath: ["SearchFieldWrapper", "SearchInput"],
+        childPath: ["SelectTrigger", "SelectValue"],
         childProp: "placeholder",
         override: true,
       },

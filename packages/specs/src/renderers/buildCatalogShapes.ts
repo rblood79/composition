@@ -131,7 +131,11 @@ export function buildCatalogShapes(
   const text =
     (props.label as string | undefined) ||
     (props.text as string | undefined) ||
-    (props.children as string | undefined);
+    (props.children as string | undefined) ||
+    // ADR-912 R1 (2026-06-12): placeholder 는 보편 RAC prop — 값이 비었을 때 DOM 이
+    //   placeholder 를 표시하듯 Skia 도 동일 text 로 그린다 (SelectValue/Input 류 field leaf).
+    //   컴포넌트 식별 분기 아님 — 데이터 유무로만 분기 (ADR-142 §3).
+    (props.placeholder as string | undefined);
 
   // 비-DOM-trivial primitive(원/선/아이콘 등 box+text 로 표현 안 되는 도형)는 여기서
   // 그리지 않는다 — `PrimitiveBinding.skiaPrimitive` draw module(renderers/skiaPrimitives.ts)이

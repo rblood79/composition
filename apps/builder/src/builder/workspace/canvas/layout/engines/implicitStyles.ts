@@ -24,6 +24,8 @@ import {
 } from "@composition/specs";
 import type { SizeSpec } from "@composition/specs";
 import { getNecessityIndicatorSuffix } from "@composition/shared/components";
+import { getComponentRulesTable } from "@composition/shared";
+import type { ComponentRuleSize } from "@composition/shared";
 import { findAncestorByTag } from "../../skia/ancestorLookup";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
 
@@ -90,17 +92,52 @@ export function formatProgressValue(
 // ADR-096 Phase 4: LOWERCASE_TAG_SPEC_MAP 을 `engines/tagSpecLookup.ts` 공유
 //   모듈로 hoist. utils.ts 에서도 defaultWidth/defaultHeight lookup 에 재사용.
 
+// ADR-912 R1 (2026-06-12): spec 삭제된 catalog cutover type 의 size 필드는 rule table
+//   (COMPONENT_RULES_TABLE) 에서 읽는다 — specSizeField 의 generic fallback. 컴포넌트별 if
+//   아닌 데이터 분기 (rule 키는 PascalCase → lowercase map 1회 구축).
+const LOWERCASE_COMPONENT_RULE_SIZES: ReadonlyMap<
+  string,
+  { sizes?: Record<string, ComponentRuleSize>; defaultSize?: string }
+> = (() => {
+  const m = new Map<
+    string,
+    { sizes?: Record<string, ComponentRuleSize>; defaultSize?: string }
+  >();
+  for (const [k, v] of Object.entries(getComponentRulesTable())) {
+    m.set(k.toLowerCase(), { sizes: v.sizes, defaultSize: v.defaultSize });
+  }
+  return m;
+})();
+
+function ruleSizeRecord(
+  type: string,
+  sizeName: string,
+): ComponentRuleSize | undefined {
+  const rule = LOWERCASE_COMPONENT_RULE_SIZES.get(type);
+  if (!rule?.sizes) return undefined;
+  return (
+    rule.sizes[sizeName] ??
+    (rule.defaultSize ? rule.sizes[rule.defaultSize] : undefined)
+  );
+}
+
 // ADR-086 P2: spec.sizes 기반 필드 직접 소비 헬퍼 (Record 전수 폐쇄용).
 //   `TAG_SPEC_MAP[type].sizes[sizeName]` lookup 을 정규화 + default size fallback.
+//   spec 부재(catalog cutover 로 삭제) 시 rule table 동일 필드 fallback (ADR-912 R1).
 function specSizeField<K extends keyof SizeSpec>(
   type: string,
   sizeName: string,
   field: K,
 ): SizeSpec[K] | undefined {
   const spec = LOWERCASE_TAG_SPEC_MAP.get(type);
-  if (!spec) return undefined;
-  const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
-  return size?.[field];
+  if (spec) {
+    const size = spec.sizes[sizeName] ?? spec.sizes[spec.defaultSize];
+    return size?.[field];
+  }
+  const ruleSize = ruleSizeRecord(type, sizeName);
+  return ruleSize?.[field as keyof ComponentRuleSize] as
+    | SizeSpec[K]
+    | undefined;
 }
 
 /** `spec.sizes[size].fontSize` TokenRef → px number resolve. 실패 시 undefined. */
@@ -999,23 +1036,16 @@ export function applyImplicitStyles(
     );
     const sideMode = hasResolvedSideLabelVariant(fieldVariant.styles);
     const hasLabel = !!containerProps?.label;
-    const WRAPPER_TAGS = new Set([
-      "SelectTrigger",
-      "ComboBoxWrapper",
-      "SearchFieldWrapper",
-    ]);
+    // ADR-912 R1 (2026-06-12): ComboBoxWrapper/SearchFieldWrapper synthetic 은 factory retype
+    //   으로 SelectTrigger 에 합류 — wrapper 태그 단일화.
+    const WRAPPER_TAGS = new Set(["SelectTrigger"]);
     filteredChildren = children.filter(
       (c) =>
         (c.type === "Label" ? hasLabel : false) || WRAPPER_TAGS.has(c.type),
     );
 
     // Wrapper에 padding + gap 주입
-    const wrapperChildTag =
-      containerTag === "select"
-        ? "SelectTrigger"
-        : containerTag === "searchfield"
-          ? "SearchFieldWrapper"
-          : "ComboBoxWrapper";
+    const wrapperChildTag = "SelectTrigger";
     filteredChildren = filteredChildren.map((child) => {
       if (child.type === wrapperChildTag) {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -1059,8 +1089,8 @@ export function applyImplicitStyles(
   }
 
   // ── NumberField ──────────────────────────────────────────────────────
-  // ComboBox와 동일한 자식 태그(ComboBoxWrapper/Input/Trigger) 재사용
-  // → 기존 ComboBox implicitStyles 처리가 자동 적용됨
+  // ComboBox와 동일한 자식 태그(SelectTrigger/SelectValue/SelectIcon) 재사용
+  // → 기존 ComboBox implicitStyles 처리가 자동 적용됨 (ADR-912 R1 retype)
   if (containerTag === "numberfield") {
     const fieldVariant = resolveActiveContainerVariants(
       containerTag,
@@ -1068,7 +1098,7 @@ export function applyImplicitStyles(
     );
     const sideMode = hasResolvedSideLabelVariant(fieldVariant.styles);
     const hasLabel = !!containerProps?.label;
-    const WRAPPER_TAGS = new Set(["ComboBoxWrapper"]);
+    const WRAPPER_TAGS = new Set(["SelectTrigger"]);
     filteredChildren = children.filter(
       (c) =>
         (c.type === "Label" ? hasLabel : false) ||
@@ -1078,7 +1108,7 @@ export function applyImplicitStyles(
 
     // Wrapper에 padding + gap 주입 (ComboBox 분기와 동일)
     filteredChildren = filteredChildren.map((child) => {
-      if (child.type === "ComboBoxWrapper") {
+      if (child.type === "SelectTrigger") {
         const cs = (child.props?.style || {}) as Record<string, unknown>;
         const sizeName = getDelegatedSize(containerEl, elementById);
         return {
@@ -1102,7 +1132,7 @@ export function applyImplicitStyles(
     if (sideMode) {
       filteredChildren = injectSideLabelLabelAndContentStyles(
         filteredChildren,
-        new Set(["ComboBoxWrapper"]),
+        new Set(["SelectTrigger"]),
       );
     }
     effectiveParent = withParentStyle(
@@ -1120,9 +1150,10 @@ export function applyImplicitStyles(
   }
 
   // ── SelectTrigger ──────────────────────────────────────────────────
-  // ADR-084 Phase A3: display/flexDirection/alignItems 는 SelectTrigger.spec.ts
-  //   containerStyles 에서 resolveContainerStylesFallback 경유로 parentStyle 에 선주입.
-  //   본 분기는 size-indexed gap/borderWidth/height 만 처리.
+  // ADR-912 R1 (2026-06-12): SelectTrigger.spec 삭제로 containerStyles
+  //   (display/flexDirection/alignItems) fallback channel 이 소멸 — 본 분기가 동일 값을
+  //   직접 주입 (구 ADR-084 Phase A3 채널 1:1 흡수, 기존 문서 style 미보유분도 커버).
+  //   size-indexed height 는 rule table(specSizeField rule fallback) 에서 읽는다.
   if (containerTag === "selecttrigger") {
     const sizeName = getDelegatedSize(containerEl, elementById);
     effectiveParent = withParentStyle(
@@ -1130,10 +1161,13 @@ export function applyImplicitStyles(
       withSpecPadding(
         {
           ...parentStyle,
+          display: parentStyle.display ?? "flex",
+          flexDirection: parentStyle.flexDirection ?? "row",
+          alignItems: parentStyle.alignItems ?? "center",
           gap: parentStyle.gap ?? 4, // CSS: gap: var(--spacing-xs) = 4px
           // CSS .react-aria-Button: border: 1px solid
           borderWidth: parentStyle.borderWidth ?? 1,
-          // Spec height로 CSS와 정확히 일치 (Taffy auto 계산 시 ceil로 1px 오차 방지)
+          // rule height로 CSS와 정확히 일치 (Taffy auto 계산 시 ceil로 1px 오차 방지)
           height:
             parentStyle.height ??
             specSizeField("selecttrigger", sizeName, "height") ??
@@ -1146,10 +1180,18 @@ export function applyImplicitStyles(
     filteredChildren = filteredChildren.map((child) => {
       const cs = (child.props?.style || {}) as Record<string, unknown>;
       if (child.type === "SelectValue") {
+        // ADR-912 R1: 조부모(Select/ComboBox/NumberField/SearchField) placeholder 전파 —
+        //   구 ComboBoxInput/SearchInput 분기 동작 흡수 (조부모 우선, 기존 정밀도 보존).
+        const fieldEl = elementById.get(containerEl.parent_id ?? "");
+        const fieldProps = fieldEl?.props as
+          | Record<string, unknown>
+          | undefined;
+        const placeholder = fieldProps?.placeholder ?? child.props?.placeholder;
         return {
           ...child,
           props: {
             ...child.props,
+            ...(placeholder != null ? { placeholder } : {}),
             style: {
               ...cs,
               flex: cs.flex ?? 1,
@@ -1196,87 +1238,9 @@ export function applyImplicitStyles(
     });
   }
 
-  // ── ComboBoxWrapper ────────────────────────────────────────────────
-  if (containerTag === "comboboxwrapper") {
-    const sizeName = getDelegatedSize(containerEl, elementById);
-    effectiveParent = withParentStyle(
-      containerEl,
-      withSpecPadding(
-        {
-          ...parentStyle,
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: parentStyle.gap ?? 4, // CSS: gap: var(--spacing-xs) = 4px
-          // CSS .combobox-container: border: 1px solid
-          borderWidth: parentStyle.borderWidth ?? 1,
-          // Spec height로 CSS와 정확히 일치
-          height:
-            parentStyle.height ??
-            specSizeField("comboboxwrapper", sizeName, "height") ??
-            30,
-        },
-        sizeName,
-      ),
-    );
-
-    filteredChildren = filteredChildren.map((child) => {
-      const cs = (child.props?.style || {}) as Record<string, unknown>;
-      if (child.type === "ComboBoxInput") {
-        const comboBoxEl = elementById.get(containerEl.parent_id ?? "");
-        const comboBoxProps = comboBoxEl?.props as
-          | Record<string, unknown>
-          | undefined;
-        const placeholder =
-          comboBoxProps?.placeholder ?? child.props?.placeholder;
-        return {
-          ...child,
-          props: {
-            ...child.props,
-            placeholder,
-            style: {
-              ...cs,
-              flex: cs.flex ?? 1,
-              minWidth: cs.minWidth ?? 0,
-              fontSize:
-                cs.fontSize ??
-                specSizeFontSize("comboboxwrapper", sizeName) ??
-                14,
-              whiteSpace: cs.whiteSpace ?? "nowrap",
-              overflow: cs.overflow ?? "hidden",
-              textOverflow: cs.textOverflow ?? "ellipsis",
-            },
-          },
-        } as CanvasLayoutNode;
-      }
-      if (child.type === "ComboBoxTrigger") {
-        // ComboBox → ComboBoxWrapper → ComboBoxTrigger: 조부모(ComboBox)의 iconName 전파
-        const comboBoxEl = elementById.get(containerEl.parent_id ?? "");
-        const comboBoxProps = comboBoxEl?.props as
-          | Record<string, unknown>
-          | undefined;
-        const iconName =
-          (child.props as Record<string, unknown> | undefined)?.iconName ??
-          comboBoxProps?.iconName;
-        const iconSz =
-          specSizeField("comboboxwrapper", sizeName, "iconSize") ?? 18;
-        return {
-          ...child,
-          props: {
-            ...child.props,
-            ...(iconName != null ? { iconName } : {}),
-            style: {
-              ...cs,
-              width: iconSz,
-              height: iconSz,
-              flexShrink: cs.flexShrink ?? 0,
-            },
-          },
-        } as CanvasLayoutNode;
-      }
-      return child;
-    });
-  }
+  // (ADR-912 R1 2026-06-12: ComboBoxWrapper 분기 삭제 — factory retype 으로 SelectTrigger
+  //  분기가 동일 처리. placeholder/iconName 조부모 전파는 SelectValue/SelectIcon 자식
+  //  분기에 흡수됨.)
 
   // ── TextField / TextArea ──────────────────────────────────────────────
   // Label + Input + FieldError 구조. column 레이아웃 보장.
@@ -1396,77 +1360,9 @@ export function applyImplicitStyles(
     );
   }
 
-  // ── SearchFieldWrapper ────────────────────────────────────────────────
-  // ComboBoxWrapper와 동일 패턴: border + height + padding + 자식 스타일 주입.
-  // ADR-087 SP3: display/flexDirection/alignItems 는 SelectTriggerSpec containerStyles
-  //   로 이미 리프팅됨 (SearchFieldWrapper → SelectTriggerSpec TAG_SPEC_MAP). 본 분기는
-  //   size-indexed gap/borderWidth/height + padding + child style 주입만 담당.
-  if (containerTag === "searchfieldwrapper") {
-    const sizeName = getDelegatedSize(containerEl, elementById);
-    effectiveParent = withParentStyle(
-      containerEl,
-      withSpecPadding(
-        {
-          ...parentStyle,
-          gap: parentStyle.gap ?? 4, // CSS: gap: var(--spacing-xs) = 4px
-          borderWidth: parentStyle.borderWidth ?? 1,
-          height:
-            parentStyle.height ??
-            specSizeField("searchfieldwrapper", sizeName, "height") ??
-            30,
-        },
-        sizeName,
-      ),
-    );
-
-    filteredChildren = filteredChildren.map((child) => {
-      const cs = (child.props?.style || {}) as Record<string, unknown>;
-      if (child.type === "SearchInput") {
-        const searchEl = elementById.get(containerEl.parent_id ?? "");
-        const searchProps = searchEl?.props as
-          | Record<string, unknown>
-          | undefined;
-        const placeholder =
-          searchProps?.placeholder ?? child.props?.placeholder;
-        return {
-          ...child,
-          props: {
-            ...child.props,
-            placeholder,
-            style: {
-              ...cs,
-              flex: cs.flex ?? 1,
-              minWidth: cs.minWidth ?? 0,
-              fontSize:
-                cs.fontSize ??
-                specSizeFontSize("searchfieldwrapper", sizeName) ??
-                14,
-              whiteSpace: cs.whiteSpace ?? "nowrap",
-              overflow: cs.overflow ?? "hidden",
-              textOverflow: cs.textOverflow ?? "ellipsis",
-            },
-          },
-        } as CanvasLayoutNode;
-      }
-      if (child.type === "SearchIcon" || child.type === "SearchClearButton") {
-        const iconSz =
-          specSizeField("searchfieldwrapper", sizeName, "iconSize") ?? 18;
-        return {
-          ...child,
-          props: {
-            ...child.props,
-            style: {
-              ...cs,
-              width: iconSz,
-              height: iconSz,
-              flexShrink: cs.flexShrink ?? 0,
-            },
-          },
-        } as CanvasLayoutNode;
-      }
-      return child;
-    });
-  }
+  // (ADR-912 R1 2026-06-12: SearchFieldWrapper 분기 삭제 — factory retype 으로 SelectTrigger
+  //  분기가 동일 처리. SearchIcon/SearchClearButton 의 iconSize 주입은 SelectIcon 자식
+  //  분기에 흡수됨.)
 
   // ── ProgressBar / Meter ───────────────────────────────────────────────
   // ADR-085 P4: Taffy grid 네이티브 지원 (G0 PASS) + ProgressBar/Meter.spec
