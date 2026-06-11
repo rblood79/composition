@@ -39,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 검증: 회귀 가드(specPresetResolver `it.each` 에 Label 추가) + type-check PASS(baseline 73→71, `VARIANT_LAYOUT_KEY_MAP` index cast 로 선존 TS7053 2건 해소)
   - 위치: `apps/builder/src/builder/factories/definitions/{SelectionComponents,FormComponents,DateColorComponents,DisplayComponents,GroupComponents}.ts` / `apps/builder/src/builder/panels/styles/utils/specPresetResolver.ts`
 
+- **Select/ComboBox/NumberField/SearchField value·placeholder 텍스트가 Skia 에서 center 정렬 (ADR-912 R1 후속)**:
+  - 증상: value/placeholder 텍스트가 Skia 에서 가운데 정렬. CSS preview 는 left(input field 정본)
+  - **Why**: `buildCatalogShapes` 의 textAlign 판정이 `isInlineText`(`size.height === 0 && !hasOpaqueBg`) 가 아니면 box 형으로 보고 `center` 로 fallback(Button/Badge 처럼 가운데 정렬된 라벨 기준). SelectValue 는 `size.height = 20`(>0) + transparent bg 라 `isInlineText` false → input field 의 value/placeholder 인데도 center 로 오판. CSS 는 `.react-aria-Select .react-aria-Button { text-align: left }`(SearchField Input 미지정=left)
+  - 수정: 4종 SelectValue factory props.style 에 `textAlign:"left"` 명시(Select/ComboBox/NumberField/SearchField). `buildCatalogShapes` line 246 이 `style.textAlign` 을 최우선으로 읽는 기존 게이트 경유 → 즉시 left, 로직 변경 0. store SSOT 명시(ADR-907 Layer B props.style 정본) → DOM/Skia 대칭
+  - 검증: type-check PASS(baseline 71). `textAlign` 은 `ComponentElementProps.style`(React.CSSProperties) 허용 필드
+  - 위치: `apps/builder/src/builder/factories/definitions/{SelectionComponents,FormComponents}.ts`
+
 ## [6 registry collapse 착수 + Switcher cleanup — ADR-912 1순위 목표 부분 land] - 2026-06-11
 
 ### Architecture

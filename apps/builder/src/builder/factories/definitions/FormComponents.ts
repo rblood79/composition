@@ -426,6 +426,7 @@ export function createNumberFieldDefinition(
               placeholder: "0",
               style: {
                 display: "block",
+                textAlign: "left",
               },
             } as ComponentElementProps,
           },
@@ -545,7 +546,7 @@ export function createSearchFieldDefinition(
             props: {
               children: "",
               placeholder: "Search...",
-              style: { flex: 1 },
+              style: { flex: 1, textAlign: "left" },
             } as ComponentElementProps,
           },
           {
