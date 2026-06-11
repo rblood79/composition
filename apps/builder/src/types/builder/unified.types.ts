@@ -4,6 +4,9 @@ import { ElementEvent } from "../events/events.types";
 import { TokenValue, DesignToken } from "../theme";
 import type { StoredMenuItem, StoredTagItem } from "@composition/specs";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
+// ADR-912 6 registry collapse #3 — createDefault*Props 파생 SSOT.
+// defaultPropsDerivation 의 ComponentElementProps import 는 type-only → 런타임 순환 없음.
+import { deriveDefaultPropsFromCatalog } from "./defaultPropsDerivation";
 
 // === 기본 타입 정의 ===
 
@@ -1225,28 +1228,16 @@ export interface Store extends ElementsState, ThemeState, SelectionState {
 
 // === 기본 props 생성 함수들 ===
 export function createDefaultButtonProps(): ButtonElementProps {
-  return {
-    children: "Button",
-    name: "",
-    variant: "primary",
-    size: "md",
-    isDisabled: false,
-    isPending: false,
-  };
+  // ADR-912 #3: catalog binding accepts.default(variant/size/fillStyle/type) 파생 +
+  // builder-local overlay(children/name/state). 손-코딩 → 단일 source 파생.
+  return deriveDefaultPropsFromCatalog("Button") as ButtonElementProps;
 }
 
 export function createDefaultLinkProps(): LinkElementProps {
   // ADR-083 Phase 8 (R5): display/alignItems 는 Link containerStyles SSOT 로 이관.
   // ADR-912 단계5 step5: LinkSpec 삭제 — 시각 SSOT 는 componentRulesTable.Link (catalog rule).
-  return {
-    children: "Link",
-    href: "#",
-    variant: "primary",
-    size: "md",
-    isDisabled: false,
-    isExternal: false,
-    showExternalIcon: true,
-  };
+  // ADR-912 #3: catalog 파생(variant/size/staticColor) + overlay(children/href/state).
+  return deriveDefaultPropsFromCatalog("Link") as LinkElementProps;
 }
 
 export function createDefaultTextFieldProps(): TextFieldElementProps {
@@ -1296,16 +1287,12 @@ export function createDefaultRadioProps(): RadioElementProps {
 }
 
 export function createDefaultToggleButtonProps(): ToggleButtonElementProps {
-  return {
-    children: "Toggle Button",
-    size: "md",
-    isEmphasized: false,
-    isQuiet: false,
-    isSelected: false,
-    isDisabled: false,
-    // 스타일은 spec/generated CSS가 담당 — inline borderWidth를 제거하지 않으면
-    // applyInlineBorderOverlay가 borderColor 없이 회색 fallback border를 렌더링
-  };
+  // ADR-912 #3: catalog 파생(size) + overlay(children/state). variant/fillStyle 없는 size-only leaf.
+  // 스타일은 spec/generated CSS가 담당 — inline borderWidth 미주입(applyInlineBorderOverlay 가
+  // borderColor 없이 회색 fallback border 를 렌더링하지 않도록).
+  return deriveDefaultPropsFromCatalog(
+    "ToggleButton",
+  ) as ToggleButtonElementProps;
 }
 
 export function createDefaultToggleButtonGroupProps(): ToggleButtonGroupElementProps {
@@ -1606,13 +1593,8 @@ export function createDefaultCardProps(): CardElementProps {
 }
 
 export function createDefaultBadgeProps(): BadgeElementProps {
-  return {
-    children: "Badge",
-    variant: "accent",
-    size: "sm",
-    isDot: false,
-    isPulsing: false,
-  };
+  // ADR-912 #3: catalog 파생(variant/size/fillStyle) + overlay(children/isDot/isPulsing).
+  return deriveDefaultPropsFromCatalog("Badge") as BadgeElementProps;
 }
 
 export function createDefaultLabelProps(): BaseElementProps {
@@ -1722,10 +1704,8 @@ export function createDefaultGridListItemProps(): GridListItemElementProps {
 }
 
 export function createDefaultTextProps(): TextElementProps {
-  return {
-    children: "Text",
-    size: "md",
-  };
+  // ADR-912 #3: catalog 파생(size) + overlay(children placeholder).
+  return deriveDefaultPropsFromCatalog("Text") as TextElementProps;
 }
 
 export function createDefaultDivProps(): DivElementProps {
@@ -2018,14 +1998,14 @@ const POPULAR_ICONS = [
 ];
 
 export function createDefaultIconProps(): IconElementProps {
+  // ADR-912 #3: catalog 파생(variant/size/strokeWidth) + overlay(iconFontFamily) + random iconName.
+  // iconName 은 POPULAR_ICONS random placeholder(비결정적)라 파생 base 위에 factory 가 합성.
   const randomIcon =
     POPULAR_ICONS[Math.floor(Math.random() * POPULAR_ICONS.length)];
   return {
+    ...deriveDefaultPropsFromCatalog("Icon"),
     iconName: randomIcon,
-    iconFontFamily: "lucide",
-    size: "md",
-    strokeWidth: 2,
-  };
+  } as IconElementProps;
 }
 
 export function createDefaultMaskedFrameProps(): BaseElementProps {

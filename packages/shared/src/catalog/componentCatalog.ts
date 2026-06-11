@@ -809,3 +809,32 @@ export function getCatalogCutoverTypes(): ReadonlySet<string> {
 export function getCatalogSkiaCutoverTypes(): ReadonlySet<string> {
   return getCatalogCutoverTypes();
 }
+
+/**
+ * type → catalog binding accepts 의 default 집합 (D2/D3 prop default 의 SSOT).
+ *
+ * **ADR-912 6 registry collapse §2-5 #3 (Factory/default props)**: `primitive` entry 의
+ * `binding.props.accepts` 를 순회하며 `contract.default !== undefined` 인 키만 모은다.
+ * variant/size/fillStyle/type/strokeWidth/staticColor 등 visual·enum·number default 가
+ * 대상 — 이것이 컴포넌트 초기 props 의 catalog-파생 base 다.
+ *
+ * builder 의 `deriveDefaultPropsFromCatalog(type)` 가 이 base 위에 builder-local override
+ * (children placeholder 텍스트 / name / style 등 catalog 에 표현 못 하는 잔여)를 합성하여
+ * `createDefault{Type}Props()` 손-코딩을 대체한다. ComponentList(#1) 의 catalog.panel 파생과
+ * 동형 — catalog SSOT + builder-local overlay 2층.
+ *
+ * `reusable`/`native` entry 는 binding 이 없어 빈 객체를 반환한다(파생 대상 0, factory-local).
+ */
+export function getCatalogDefaultProps(
+  type: string,
+): Readonly<Record<string, unknown>> {
+  const entry = CATALOG_BY_TYPE.get(type);
+  if (!entry || entry.kind !== "primitive") return {};
+  const accepts = entry.binding.props.accepts;
+  const defaults: Record<string, unknown> = {};
+  for (const key of Object.keys(accepts)) {
+    const contract = accepts[key];
+    if (contract.default !== undefined) defaults[key] = contract.default;
+  }
+  return defaults;
+}
