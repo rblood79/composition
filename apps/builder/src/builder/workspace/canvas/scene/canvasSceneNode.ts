@@ -1024,12 +1024,16 @@ function appendTableRowProjection(
 // GridList(1단 row, origin/anchor 없음, factory children:[]) 와 동형이되 2점 차이:
 //   1) **owner = TagList scene node** (TagGroup 이 아님). TagGroup factory 가 Label + TagList
 //      중간 컨테이너를 만들고 items/variant/size/allowsRemoving/maxRows 를 TagList 로 propagate
-//      (TagGroup.spec propagation). chip 좌표계 = TagList node — projection 을 TagList 에 붙인다.
+//      (TagGroup.spec propagation, allowsRemoving 은 override:true 로 토글 즉시 반영). chip 좌표계 =
+//      TagList node — projection 을 TagList 에 붙인다.
 //   2) **rowsGroup = flexWrap:"wrap" row** (세로 stack 아닌 가로 wrap-flow). 수동 wrap 시뮬레이션
 //      (구 TagList.spec render.shapes 라인 299-333) 폐기 — chip width:fit-content + Taffy
 //      flex-wrap 이 행 배치를 담당(GridList grid 모드의 flexWrap 패턴과 동형).
-//   3) chip 의 remove(X)는 별도 tag-cell sub-node(deep hit). chip 본체(Tag)는 X 시각 미포함
-//      (allowsRemoving 을 chip 에 전달하지 않음) → X 는 cell 이 단독 렌더.
+//   3) chip 의 remove(X)는 chip 본체(Tag)가 catalog cutover 후 **trailing_icon**(buildCatalogShapes
+//      가 rule.trailingIcon{name:"x"} 를 text 우측에 icon_font glyph 로 덧그림, props.allowsRemoving
+//      조건). X = line 이 아니라 Lucide "x" glyph(SelectIcon/SearchField clear 동일 데이터, DOM Button
+//      slot=remove 와 시각 대칭). chip 에 allowsRemoving 전달(아래) → buildCatalogShapes 조건부 렌더.
+//      독립 hit/remove mutation 은 후속(현 slice 시각 대칭 — chip select redirect 까지).
 
 function isTagListSceneSource(
   tagListSceneNode: CanvasSceneNode,
@@ -1072,11 +1076,11 @@ function resolveDataBoundTagProjection(
  *
  * - rowsGroup: 가로 flex row + flexWrap:wrap → chip 들이 컨테이너 폭에서 자동 줄바꿈(Taffy 위임,
  *   수동 wrap 계산 없음). gap = chip 간격(size 토큰 gap, propagation 으로 TagList 좌표계).
- * - chip(Tag): width:fit-content → 라벨 폭 + padding 만큼만. Tag.spec.render.shapes 가 bg/border/
- *   text 자체 렌더(_isSelected → selected variant). allowsRemoving 은 chip 에 전달하지 않음
- *   (X 는 cell 단독 렌더 → chip 본체는 X 미포함, 좌표 단순).
- * - remove cell(tag-cell, role:"remove"): allowsRemoving 시에만. chip 의 자식으로 X(icon_font)만
- *   그리는 별도 hit 노드. 단일클릭은 owner(TagGroup) select redirect, mutation 은 후속(proof scope).
+ * - chip(Tag): width:fit-content → 라벨 폭 + padding 만큼만. catalog cutover 후 buildCatalogShapes
+ *   가 box+text generic 렌더(_isSelected → selected variant). allowsRemoving=true 시 chip 에
+ *   allowsRemoving 전달 → buildCatalogShapes 가 rule.trailingIcon{name:"x"} 를 text 우측에
+ *   icon_font glyph 로 덧그림(remove X). X = line 아니라 Lucide "x" glyph. 단일클릭은 owner
+ *   (TagGroup) select redirect, remove mutation 은 후속(proof scope).
  */
 function appendTagRowProjection(
   tagListSceneNode: CanvasSceneNode,
@@ -1135,7 +1139,7 @@ function appendTagRowProjection(
     );
     const chipProps: Record<string, unknown> = {
       children: row.label,
-      // chip 폭 = 라벨 + padding (+ allowsRemoving 시 X) — Tag.spec containerStyles inline-flex.
+      // chip 폭 = 라벨 + padding (+ allowsRemoving 시 trailing X) — Tag rule(catalog cutover) inline-flex.
       //   wrap-flow 에서 각 chip 이 fit-content 로 자연 폭을 갖고 Taffy flexWrap 이 행 배치.
       style: { width: "fit-content" },
       _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
@@ -1143,9 +1147,12 @@ function appendTagRowProjection(
     if (variant) chipProps.variant = variant;
     if (size) chipProps.size = size;
     if (row.isDisabled) chipProps.isDisabled = true;
-    // ADR-912 영역 B (A) proof: X(remove)는 chip 본체(Tag.spec)가 시각으로 그린다(bg+text+X).
-    //   독립 hit/remove mutation 은 layout overlay + interaction kind 계약이 필요해 후속 보류
-    //   (사용자 결정 2026-06-05). 현 slice 는 chip 1노드 = owner(TagGroup) select redirect 까지.
+    // ADR-912 영역 B (A) — Tag catalog cutover (2026-06-12): X(remove)는 chip 본체가 line×2 로
+    //   직접 그리던 것(Tag.spec)을 폐기하고 **trailing_icon(icon_font "x" Lucide glyph)**으로 그린다
+    //   — X = line 이 아니라 icon 데이터(SelectIcon/SearchField clear 와 동일 Lucide "x"), DOM Button
+    //   slot=remove ✕ 와 시각 대칭. buildCatalogShapes 가 text 우측에 trailing X 를 덧그린다
+    //   (TreeItem leading_icon 의 trailing 변형). allowsRemoving 데이터로 조건부(rule.trailingIcon
+    //   정적, allowsRemoving=false 면 skip). 독립 hit/remove mutation 은 후속(현 slice 는 시각 대칭).
     if (allowsRemoving) chipProps.allowsRemoving = true;
 
     addSceneNode(

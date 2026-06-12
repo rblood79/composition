@@ -5668,6 +5668,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           border: "{color.border}",
         },
+        // ADR-912 영역 B (A) Tag cutover (2026-06-12): allowsRemoving remove X 를
+        //   trailing_icon(Lucide "x" glyph)으로 그린다 — buildCatalogShapes 가 props.allowsRemoving
+        //   true 일 때만 text 우측에 덧그림(SearchField clear / DOM Button slot=remove 와 동일 icon).
+        //   color 는 variant text 와 동일(default=neutral).
+        trailingIcon: { name: "x", gap: 2, color: "{color.neutral}" },
       },
       selected: {
         fill: {
@@ -5681,38 +5686,54 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.on-accent}",
           border: "{color.accent}",
         },
+        // selected variant: remove X color = on-accent (text 와 동일).
+        trailingIcon: { name: "x", gap: 2, color: "{color.on-accent}" },
       },
     },
     sizes: {
+      // ADR-912 영역 B (A) Tag cutover (2026-06-12): paddingX 보강 — buildCatalogShapes 가
+      //   text x = paddingX 로 좌측 정렬. Tag.spec sizes.paddingX(xs4/sm8/md12/lg16/xl24) 이전.
+      //   미보강 시 `?? 0` fallback 으로 text 가 box 좌측 끝(padding 없음)에 붙음(chip 시각 깨짐).
+      // iconSize: remove X(trailing_icon) glyph 크기 = round(fontSize × 0.75) (Tag.spec X 공식 동형).
       xs: {
         fontSize: "{typography.text-2xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
         height: 18,
+        paddingX: 4,
+        iconSize: 8,
       },
       sm: {
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
         height: 20,
+        paddingX: 8,
+        iconSize: 9,
       },
       md: {
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         borderRadius: "{radius.md}",
         height: 28,
+        paddingX: 12,
+        iconSize: 11,
       },
       lg: {
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         borderRadius: "{radius.lg}",
         height: 40,
+        paddingX: 16,
+        iconSize: 12,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         borderRadius: "{radius.lg}",
         height: 52,
+        paddingX: 24,
+        iconSize: 14,
       },
     },
   },

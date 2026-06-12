@@ -573,6 +573,19 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "type group",
     icon: "Tag",
   }),
+  // Tag — catalog cutover (ADR-912 영역 B (A), 2026-06-12): TagGroup chip 본체. 기존
+  //   Tag.spec.render.shapes(bg roundRect + border + text + allowsRemoving 시 X line×2)가 Skia
+  //   유일 source 였다. catalog 등록으로 rule(COMPONENT_RULES_TABLE.Tag: variants default/selected +
+  //   sizes.{fontSize/lineHeight/borderRadius/height/paddingX}) + buildCatalogShapes generic(box+text)
+  //   로 이전. **remove X 는 line×2 직접 그리기 폐기 → SelectIcon(iconName="x") 자식 노드**
+  //   (appendTagRowProjection 이 allowsRemoving 시 chip 에 전개 — SearchField clear X 동형, X 는 이미
+  //   catalog cutover 된 SelectIcon icon_font glyph). DOM 은 부모 TagGroup self-compose(renderTagGroup
+  //   useCollectionData) → DOM 변화 0, Skia 시각 대칭(특히 X 가 line→Lucide glyph 로 DOM Button slot=remove 정합).
+  primitiveEntry("Tag", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "tag",
+    icon: "Tag",
+  }),
   // GridList — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 C1 2026-06-03): data card 는
   //   GridListItem row projection(canvasSceneNode appendGridListRowProjection → GridListItem.spec
   //   render.shapes)이 각 카드를 독립 Skia 노드로 그림. GridList.render.shapes 는 container shell only

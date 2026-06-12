@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Tag catalog cutover — remove X 를 trailing icon 으로 + ADR-912 영역 B (A)] - 2026-06-12
+
+### Features
+
+- **Tag 컴포넌트 catalog cutover — box+text generic + remove X = Lucide glyph**:
+  - TagGroup chip(Tag) 을 catalog 등록(`primitiveEntry("Tag", FAMILY_4)` + `Tag.binding.ts`)하여 Skia 시각을 `Tag.spec.render.shapes`(bg+border+text + allowsRemoving 시 X line×2 직접 그리기)에서 `buildCatalogShapes` generic(box+text) + theme rule 로 이전
+  - **remove X 처리 변경(사용자 framing "icon 컴포넌트 사용")**: X 를 line×2 로 직접 그리던 것을 폐기하고 **trailing_icon**(`rule.trailingIcon{name:"x"}` → buildCatalogShapes 가 text 우측에 `icon_font` Lucide "x" glyph 덧그림, props.allowsRemoving 조건)으로 교체. SelectIcon/SearchField clear / DOM `<Button slot=remove><X/></Button>` 와 동일 icon 데이터 → DOM↔Skia 시각 대칭
+  - 위치: `packages/shared/src/catalog/{componentCatalog.ts,bindings/Tag.binding.ts,generated/componentRulesTable.ts}` / `packages/specs/src/renderers/buildCatalogShapes.ts`(trailing_icon 렌더) / `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`(projection)
+
+### Bug Fixes
+
+- **TagGroup allowsRemoving 토글이 Skia 에 반영 안 됨 — propagation override 누락**:
+  - 증상: 빌더에서 TagGroup 의 Allows Removing 토글을 끄거나 켜도 Skia 캔버스의 remove X 가 변하지 않음(store/canonical 은 false 인데 chip 은 stale true 유지)
+  - **Why**: `TagGroup.spec` 의 `allowsRemoving → Tag/TagList` propagation 룰에 `override: true` 가 없어, TagList/Tag 에 allowsRemoving 이 한 번 true 로 전파된 뒤 부모가 false 로 바뀌어도 propagationEngine 이 "자식 명시값 우선"(`buildSpecNodeData:372` `!override && childProp!==undefined`)으로 skip → stale true 고정. size 룰은 override:true 였으나 allowsRemoving 만 누락
+  - 수정: `allowsRemoving → Tag` / `allowsRemoving → TagList` 룰에 `override: true` 추가(size 동형 — 항상 부모 최신값 덮어쓰기)
+  - 검증: type-check PASS(baseline 71) + specs 519 pass(sliderFill 9 = pre-existing) + registration contract 10/10 + **Chrome MCP live**(allowsRemoving 토글 시 chip remove X 즉시 표시/제거, X = Lucide "x" glyph trailing 렌더, 콘솔 0 — 사용자 confirm)
+  - 위치: `packages/specs/src/components/TagGroup.spec.ts`
+
 ## [Select family Skia layout 비대칭 수정 — ADR-912 R1 후속] - 2026-06-12
 
 ### Bug Fixes

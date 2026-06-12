@@ -22,6 +22,7 @@ import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
 import type { ComponentState, Shape, SizeSpec } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
+import { measureSpecTextWidth } from "./utils/measureText";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
 /**
@@ -299,6 +300,50 @@ export function buildCatalogShapes(
         : {}),
       ...(textDecoration ? { textDecoration } : {}),
     });
+
+    // trailing icon (ADR-912 영역 B (A) Tag remove X): visual.trailingIcon + props.allowsRemoving
+    //   시 text 우측에 icon_font glyph 를 덧그린다 (Tag.spec 의 X line×2 직접 그리기를 Lucide "x"
+    //   glyph 로 교체 — SearchField clear / DOM Button slot=remove 와 동일 icon 데이터). 컴포넌트별
+    //   if 아님 — visual.trailingIcon 데이터 + props.allowsRemoving 유무로만 분기(ADR-142 §3).
+    //   위치: _containerWidth(CONTAINER_DIMENSION 주입) 우측 절대 배치 — width 미주입(0) 시 text
+    //   우측(textX + textWidth + gap) fallback. y = _containerHeight/2(baseline middle).
+    const ti = visual?.trailingIcon;
+    if (ti && props.allowsRemoving === true) {
+      const tiGap = ti.gap ?? 2;
+      const iconSize =
+        typeof size.iconSize === "number" && size.iconSize > 0
+          ? size.iconSize
+          : Math.round(fontSize * 0.75);
+      const containerWidth =
+        typeof props._containerWidth === "number" ? props._containerWidth : 0;
+      const containerHeight =
+        typeof props._containerHeight === "number"
+          ? props._containerHeight
+          : typeof size.height === "number" && size.height > 0
+            ? size.height
+            : fontSize + 8;
+      const paddingRight = parsePxValue(
+        style?.paddingRight ?? style?.paddingX ?? style?.padding,
+        size.paddingX ?? 0,
+      );
+      // icon 중앙 x: container width 있으면 우측 절대, 없으면 text 우측(측정 기반) fallback.
+      const iconCx =
+        containerWidth > 0
+          ? containerWidth - paddingRight - iconSize / 2
+          : textX +
+            measureSpecTextWidth(text, fontSize, ff) +
+            tiGap +
+            iconSize / 2;
+      shapes.push({
+        type: "icon_font",
+        iconName: ti.name,
+        x: iconCx,
+        y: containerHeight / 2,
+        fontSize: iconSize,
+        fill: ti.color ?? textColor,
+        strokeWidth: 2,
+      });
+    }
   }
 
   return shapes;

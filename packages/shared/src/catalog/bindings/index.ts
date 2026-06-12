@@ -76,6 +76,7 @@ import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
 import { tabsBinding } from "./Tabs.binding";
+import { tagBinding } from "./Tag.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
 import { tailSwatchBinding } from "./TailSwatch.binding";
 import { textAreaBinding } from "./TextArea.binding";
@@ -156,6 +157,7 @@ export * from "./StatusLight.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
 export * from "./Tabs.binding";
+export * from "./Tag.binding";
 export * from "./TagGroup.binding";
 export * from "./TailSwatch.binding";
 export * from "./TextArea.binding";
@@ -305,6 +307,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SelectIcon: selectIconBinding,
   ComboBox: comboBoxBinding,
   Tabs: tabsBinding,
+  Tag: tagBinding,
   TagGroup: tagGroupBinding,
   GridList: gridListBinding,
   // family ⑤ Tree·Table (internal source — composition wrapper + useCollectionData, 재귀/2D)

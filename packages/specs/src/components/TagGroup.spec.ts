@@ -403,8 +403,13 @@ export const TagGroupSpec: ComponentSpec<TagGroupProps> = {
     rules: [
       { parentProp: "size", childPath: "Tag", override: true },
       { parentProp: "size", childPath: "TagList", override: true },
-      { parentProp: "allowsRemoving", childPath: "Tag" },
-      { parentProp: "allowsRemoving", childPath: "TagList" },
+      // override: true 필수 (ADR-912 영역 B (A) Tag cutover, 2026-06-12): override 없으면
+      //   TagList/Tag 에 allowsRemoving 이 한 번 true 로 전파된 뒤 TagGroup 을 false 로 바꿔도
+      //   propagationEngine 이 "자식 명시값 우선"(buildSpecNodeData:372 `!override && childProp!==undefined`)
+      //   으로 skip → TagList 가 stale true 유지 → Skia 가 remove X 를 계속 그림(토글 무반응).
+      //   size 동형으로 항상 부모 최신값 덮어쓰기.
+      { parentProp: "allowsRemoving", childPath: "Tag", override: true },
+      { parentProp: "allowsRemoving", childPath: "TagList", override: true },
       { parentProp: "size", childPath: "Label", override: true },
       {
         parentProp: "label",
