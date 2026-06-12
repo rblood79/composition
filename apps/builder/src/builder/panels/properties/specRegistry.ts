@@ -59,7 +59,8 @@ import {
   ToolbarSpec,
   TooltipSpec,
   TreeSpec,
-  TreeItemSpec,
+  // TreeItemSpec — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제.
+  //   binding.accepts(children/size)가 D2 properties 대체(Select/DisclosureHeader 선례).
   RangeCalendarSpec,
 } from "@composition/specs";
 
@@ -148,7 +149,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Toolbar: ToolbarSpec as ComponentSpec<Record<string, unknown>>,
   Tooltip: TooltipSpec as ComponentSpec<Record<string, unknown>>,
   Tree: TreeSpec as ComponentSpec<Record<string, unknown>>,
-  TreeItem: TreeItemSpec as ComponentSpec<Record<string, unknown>>,
+  // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover, specRegistry 제거 (binding.accepts 대체)
   RangeCalendar: RangeCalendarSpec as ComponentSpec<Record<string, unknown>>,
 };
 

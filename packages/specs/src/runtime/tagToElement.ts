@@ -38,7 +38,9 @@ import { MeterSpec } from "../components/Meter.spec";
 import { ProgressBarSpec } from "../components/ProgressBar.spec";
 import { TableSpec } from "../components/Table.spec";
 import { TreeSpec } from "../components/Tree.spec";
-import { TreeItemSpec } from "../components/TreeItem.spec";
+// ADR-912 R1 후속 (2026-06-12): TreeItemSpec 삭제 — catalog cutover (rule leadingIcon +
+//   indentPerLevel + buildCatalogShapes generic + leading_icon append + depth indent).
+//   BASE_TAG_SPEC_MAP 등록 제거. 시각 SSOT = componentRulesTable.TreeItem.
 import { TabsSpec } from "../components/Tabs.spec";
 import { TabListSpec } from "../components/TabList.spec";
 import { TabSpec } from "../components/Tab.spec";
@@ -138,7 +140,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // SliderOutput — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거
   Table: TableSpec,
   Tree: TreeSpec,
-  TreeItem: TreeItemSpec,
+  // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   Tabs: TabsSpec,
   TabList: TabListSpec,
   Tab: TabSpec,

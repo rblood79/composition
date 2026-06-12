@@ -127,12 +127,14 @@ function ratchetVerdict(current: number, frozen: number): RatchetVerdict {
 describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
   it("inventory sanity — universe / placeable enumerate", () => {
     // ADR-912 catalog cutover 진행 중 — spec 파일이 catalog 등록으로 단조 삭제된다
-    // (123→91→90, 2026-06-11; SwitcherSpec cleanup 으로 90). universe 하한은 cutover
-    // 완결까지 계속 낮아진다. sanity 의미(빈 디렉토리/glob 실패 검출)는 유지하되 삭제
-    // 방향과 충돌하지 않게 하향.
+    // (123→91→90, 2026-06-11; SwitcherSpec cleanup 으로 90; R1 Select 3 + TreeItem 등
+    // 누적 cutover 로 tagSpecKeys 81). universe 하한은 cutover 완결까지 계속 낮아진다.
+    // sanity 의미(빈 디렉토리/glob 실패 검출)는 유지하되 삭제 방향과 충돌하지 않게 하향.
+    // tagSpecKeys 90→80 하향 (2026-06-12, R1/TreeItem cutover 후 81 — universe/placeable
+    // 하향과 동일 정합, 이전 90 하한이 누락된 stale).
     expect(universe.length).toBeGreaterThanOrEqual(80);
     expect(placeable.length).toBeGreaterThan(40);
-    expect(tagSpecKeys.size).toBeGreaterThanOrEqual(90);
+    expect(tagSpecKeys.size).toBeGreaterThanOrEqual(80);
   });
 
   // ── 불변식 A: spec 파일 ⟹ TAG_SPEC_MAP ──
