@@ -87,6 +87,7 @@ import { toggleButtonGroupBinding } from "./ToggleButtonGroup.binding";
 import { toolbarBinding } from "./Toolbar.binding";
 import { tooltipBinding } from "./Tooltip.binding";
 import { treeBinding } from "./Tree.binding";
+import { treeItemBinding } from "./TreeItem.binding";
 
 export * from "./Avatar.binding";
 export * from "./Badge.binding";
@@ -161,6 +162,7 @@ export * from "./TextArea.binding";
 export * from "./Text.binding";
 export * from "./TextField.binding";
 export * from "./Tree.binding";
+export * from "./TreeItem.binding";
 export * from "./TimeField.binding";
 export * from "./ToggleButton.binding";
 export * from "./ToggleButtonGroup.binding";
@@ -307,6 +309,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   GridList: gridListBinding,
   // family ⑤ Tree·Table (internal source — composition wrapper + useCollectionData, 재귀/2D)
   Tree: treeBinding,
+  TreeItem: treeItemBinding,
   Table: tableBinding,
   // family ⑥ overlays (internal source — composition wrapper, portal/overlay, skiaLegacy)
   Dialog: dialogBinding,

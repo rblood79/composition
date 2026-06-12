@@ -6441,23 +6441,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
+        // ADR-912 R1 후속 (2026-06-12): expand/collapse chevron (TreeItem.spec render.shapes 의
+        //   chevron-right 이전, DisclosureHeader (B+icon) 동형). color 는 spec 의
+        //   {color.neutral-subdued} 보존. leading_icon skiaPrimitive(append) 가 좌측에 그리고
+        //   buildCatalogShapes 가 text 를 icon 폭 + gap 만큼 우측 shift. depth indent 는
+        //   _treeLevel × indentPerLevel 로 icon/text 공통 base x 에 가산(buildCatalogShapes).
+        leadingIcon: {
+          name: "chevron-right",
+          gap: 6,
+          color: "{color.neutral-subdued}",
+        },
       },
     },
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
+        // height 24 = spec rowHeight(fontSize 12 + paddingY 6*2). box(height>0) → text
+        //   baseline:middle + leading icon y=height/2 (DisclosureHeader parity). 이전 height:0
+        //   (inline)은 leading icon 동반 시 baseline drift.
+        height: 24,
+        paddingX: 8,
+        // iconSize = round(fontSize * 1.1) (spec chevronSize 공식).
+        iconSize: 13,
+        // indentPerLevel 16 = react-aria-starter Tree.css --spacing-4 + drop indicator 16px 정합.
+        indentPerLevel: 16,
         borderRadius: "{radius.none}",
-        height: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
+        height: 28,
+        paddingX: 8,
+        iconSize: 15,
+        indentPerLevel: 16,
         borderRadius: "{radius.none}",
-        height: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
+        height: 32,
+        paddingX: 12,
+        iconSize: 18,
+        indentPerLevel: 16,
         borderRadius: "{radius.none}",
-        height: 0,
       },
     },
   },

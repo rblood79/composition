@@ -197,6 +197,14 @@ export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   자식 box/text/icon_font generic 으로 자기 노드 렌더(시각 결과 대칭, 구현 비대칭 의도).
   "select",
   "combobox",
+  // ADR-912 R1 후속 (TreeItem catalog cutover, 2026-06-12): tree — renderTree
+  //   (CollectionRenderers.tsx)가 자식 TreeItem 을 renderTreeItemsRecursively 로 RAC
+  //   `<Tree>`/`<TreeItem>` self-compose 재귀 렌더(--tree-item-level 자동 들여쓰기). 자식
+  //   TreeItem 이 catalog cutover 라 generic 자식 재귀 시 `<treeitem>` 소문자 raw tag 로
+  //   떨어져 React unknown-tag 경고 + RAC Tree 의미 깨짐 → rendererMap 위임 + 자식 재귀 skip
+  //   (select/combobox/disclosure 동형). Skia 는 자식 TreeItem 이 box+text+chevron generic
+  //   으로 자기 노드 렌더(시각 결과 대칭, 구현 비대칭 의도 — depth indent 는 _treeLevel).
+  "tree",
 ]);
 
 /**

@@ -404,6 +404,39 @@ function resolveParentDelegatedSize(
   return null;
 }
 
+/**
+ * TreeItem depth(중첩 레벨) 계산 — parent 체인의 TreeItem 조상 수 + 1 (1-based).
+ *
+ * ADR-912 R1 후속 (TreeItem catalog cutover): DOM 은 RAC 가 `--tree-item-level` CSS
+ * 변수를 자동 주입하지만 Skia 는 RAC 를 거치지 않으므로 buildSpecNodeData 가 직접 계산해
+ * `_treeLevel` 로 주입한다. buildCatalogShapes 가 `paddingX + (level - 1) * indentPerLevel`
+ * 로 들여쓰기를 그려 DOM `Tree.css` 와 D3 시각 대칭. nested TreeItem(TreeItem 안의 TreeItem)
+ * 은 canonical element 재귀로 존재 → parent 체인을 타며 TreeItem 만 카운트(Tree 컨테이너는 제외).
+ *
+ * @returns 1-based level (최상위 TreeItem = 1). 무한 루프 방지 상한 32.
+ */
+function resolveTreeItemLevel(
+  element: CanvasSceneNode,
+  elementsMap: Map<string, CanvasSceneNode>,
+): number {
+  let level = 1;
+  let currentId: string | null | undefined = element.parent_id;
+  for (let guard = 0; guard < 32 && currentId; guard++) {
+    const ancestor = elementsMap.get(currentId);
+    if (!ancestor) break;
+    if (ancestor.type === "TreeItem") {
+      level++;
+      currentId = ancestor.parent_id;
+    } else if (ancestor.type === "Tree") {
+      break; // Tree 컨테이너 도달 → 종료 (Tree 는 depth 미포함)
+    } else {
+      // TreeItem 조상 체인 밖 (예: Tree 가 아닌 일반 컨테이너 중첩) → 종료
+      break;
+    }
+  }
+  return level;
+}
+
 /** Breadcrumb → 부모 Breadcrumbs의 구분자·마지막 여부·비활성 */
 function resolveBreadcrumbItemContext(
   element: CanvasSceneNode,
@@ -1170,6 +1203,24 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
   }
 
+  // TreeItem depth(_treeLevel) + chevron 조건(_hasTreeChildren) injection — ADR-912 R1
+  //   후속 (TreeItem catalog cutover).
+  //   - _treeLevel: Skia 는 RAC `--tree-item-level` 을 못 쓰므로 parent 체인 depth 직접 주입.
+  //     buildCatalogShapes 가 `paddingX + (_treeLevel - 1) * indentPerLevel` 로 들여쓰기.
+  //   - _hasTreeChildren: 자식 TreeItem 존재 여부(chevron 표시 조건). leading_icon
+  //     skiaPrimitive 가 이 신호일 때만 chevron 을 그린다(leaf TreeItem 은 chevron 없음).
+  //     일반 `_hasChildren`(shell-only 신호)과 분리한다 — 자식 TreeItem 은 독립 행으로
+  //     렌더되므로 부모 TreeItem 은 자식 유무와 무관하게 자기 행(chevron+label)을 그려야 한다.
+  let treeItemHasChildren = false;
+  if (element.type === "TreeItem") {
+    treeItemHasChildren = !!(childElements && childElements.length > 0);
+    specProps = {
+      ...specProps,
+      _treeLevel: resolveTreeItemLevel(element, elementsMap),
+      _hasTreeChildren: treeItemHasChildren,
+    };
+  }
+
   // _hasChildren injection
   //
   // Shell-only: factory가 자식을 자동 생성하는 complex 컴포넌트. 자식 수와
@@ -1178,9 +1229,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
   // Synthetic-merge: 자식 props를 spec shapes에 통합하므로 주입 차단
   //   (주입 시 shell만 남고 내용이 사라짐).
   // 그 외 일반 컨테이너: 자식이 있을 때만 주입.
+  //
+  // TreeItem 예외 (ADR-912 R1 후속): TreeItem 은 자식 TreeItem 이 있어도 자기 행
+  //   (chevron+label)을 그려야 한다(자식은 독립 행). `_hasChildren=true` 면
+  //   buildCatalogShapes 가 shell-only(line 186)로 떨어져 label 이 소실되므로 제외.
+  //   chevron 조건은 위 `_hasTreeChildren` 으로 분리 처리.
   if (SHELL_ONLY_CONTAINER_TAGS.has(type)) {
     specProps = { ...specProps, _hasChildren: true };
   } else if (
+    type !== "TreeItem" &&
     !SYNTHETIC_CHILD_PROP_MERGE_TAGS.has(type) &&
     childElements &&
     childElements.length > 0

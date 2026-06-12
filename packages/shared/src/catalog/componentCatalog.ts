@@ -633,6 +633,16 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     label: "tree",
     icon: "ListTree",
   }),
+  // ADR-912 R1 후속 (2026-06-12): TreeItem catalog cutover. spec.render.shapes(chevron +
+  //   label, depth 무시 하드코딩 paddingX) → rule(leadingIcon chevron + indentPerLevel) +
+  //   buildCatalogShapes generic + leading_icon append + depth indent(_treeLevel ×
+  //   indentPerLevel). DisclosureHeader (B+icon) 동형 + depth 확장. DOM 은 부모 Tree 가
+  //   RAC `<TreeItem>` self-compose(--tree-item-level 자동) → DOM 변화 0, Skia 들여쓰기 대칭 복원.
+  primitiveEntry("TreeItem", "tree-table", FAMILY_5_CUTOVER, {
+    category: "collections",
+    label: "tree item",
+    icon: "ListTree",
+  }),
   // ADR-912 단계 4 C1 (2026-06-03): Table Skia generic 발효 (skiaLegacy 제거). 2D grid
   //   (header/row/cell)는 Table projected tree(appendTableRowProjection → TableRow/TableCell.
   //   spec.render.shapes)가 렌더, 컨테이너 shell 은 buildCatalogShapes(rule fill {color.base} +

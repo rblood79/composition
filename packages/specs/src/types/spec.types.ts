@@ -912,6 +912,15 @@ export interface SizeSpec {
   iconSize?: number;
 
   /**
+   * tree depth 당 좌측 들여쓰기 (optional, px) — ADR-912 R1 후속 TreeItem catalog cutover.
+   *
+   * Skia 는 RAC `--tree-item-level` CSS 변수를 못 쓰므로 buildCatalogShapes 가
+   * `paddingX + (_treeLevel - 1) * indentPerLevel` 로 들여쓰기를 직접 계산한다
+   * (DOM `Tree.css` 와 D3 시각 대칭). _treeLevel 은 buildSpecNodeData 가 parent 체인으로 주입.
+   */
+  indentPerLevel?: number;
+
+  /**
    * 슬라이더 thumb(핸들) 지름 (optional, px) — ADR-912 SliderTrack value-fill.
    *
    * slider_fill_bar escape 가 thumb 원 반지름(`thumbSize/2`) + track 세로 중앙

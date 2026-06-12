@@ -25,6 +25,31 @@ import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 
 /**
+ * tree depth 들여쓰기 offset(px) — ADR-912 R1 후속 TreeItem catalog cutover.
+ *
+ * `_treeLevel`(buildSpecNodeData 가 parent 체인으로 주입, 1-based) × `size.indentPerLevel`.
+ * text(buildCatalogShapes)와 leading icon(`leading_icon` skiaPrimitive) 양쪽이 **동일 helper**
+ * 를 호출해 들여쓰기를 일치시킨다(컴포넌트별 if 아님 — `_treeLevel`/`indentPerLevel` 데이터 유무로만
+ * 분기, ADR-142 §3). TreeItem 외 type 은 `_treeLevel`/`indentPerLevel` 미주입 → 0 반환(무영향).
+ */
+export function resolveTreeIndent(
+  props: Record<string, unknown>,
+  size: SizeSpec,
+): number {
+  const level = props._treeLevel;
+  const indentPerLevel = size.indentPerLevel;
+  if (
+    typeof level !== "number" ||
+    level <= 1 ||
+    typeof indentPerLevel !== "number" ||
+    indentPerLevel <= 0
+  ) {
+    return 0;
+  }
+  return (level - 1) * indentPerLevel;
+}
+
+/**
  * generic box+text 시각 생성기 (ADR-142 G2(b) B — spec-free).
  *
  * **데이터 소스 (B swap)**: 더 이상 `spec` 을 읽지 않는다. variant 색상(`visual`) + size(`size`)
@@ -193,10 +218,11 @@ export function buildCatalogShapes(
     //   nodeRendererText `paddingLeft + textIndent` 가 NaN 전파 → drawX=NaN → 텍스트 미표시.
     //   본 `?? 0` 은 NaN 방지 안전장치이며 데이터 보강(rule paddingX)을 대체하지 않는다 — box type 의
     //   비-0 paddingX 는 rule 데이터가 제공하고, 0 fallback 은 inline text 의 올바른 값일 뿐.
-    const paddingX = parsePxValue(
-      style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
-      size.paddingX ?? 0,
-    );
+    const paddingX =
+      parsePxValue(
+        style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
+        size.paddingX ?? 0,
+      ) + resolveTreeIndent(props, size);
     const fontSize = resolveSpecFontSize(
       (style?.fontSize as string | number | undefined) ?? size.fontSize,
       16,

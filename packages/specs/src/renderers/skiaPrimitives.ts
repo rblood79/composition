@@ -26,6 +26,7 @@ import {
 import type { Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
+import { resolveTreeIndent } from "./buildCatalogShapes";
 
 /**
  * skiaPrimitive draw module 1개의 시그니처 — props/size/visual 에서 Shape[] 생성.
@@ -1425,6 +1426,12 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   const li = visual?.leadingIcon;
   if (!li) return [];
 
+  // ADR-912 R1 후속 (TreeItem catalog cutover): TreeItem chevron 은 자식 TreeItem 이
+  //   있을 때만 표시한다. buildSpecNodeData 가 `_hasTreeChildren`(boolean)을 주입 —
+  //   명시적 false 면 chevron skip(leaf TreeItem). 미주입(undefined, 예 DisclosureHeader)
+  //   은 기존대로 항상 표시(데이터 분기 — 컴포넌트별 if 아님, ADR-142 §3).
+  if (props._hasTreeChildren === false) return [];
+
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ?? size.fontSize,
     14,
@@ -1433,13 +1440,14 @@ const leadingIcon: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
     typeof size.iconSize === "number" && size.iconSize > 0
       ? size.iconSize
       : Math.round(fontSize * 1.1);
-  const paddingX = parsePxValue(
-    (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
-      | string
-      | number
-      | undefined,
-    size.paddingX ?? 0,
-  );
+  const paddingX =
+    parsePxValue(
+      (style?.paddingLeft ?? style?.paddingRight ?? style?.padding) as
+        | string
+        | number
+        | undefined,
+      size.paddingX ?? 0,
+    ) + resolveTreeIndent(props, size); // TreeItem depth 들여쓰기 (text 와 동일 helper)
   const height =
     typeof size.height === "number" && size.height > 0
       ? size.height

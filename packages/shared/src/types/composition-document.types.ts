@@ -235,6 +235,15 @@ export interface ComponentRuleSize {
    * generate-css virtual 이 `--icon-gap: {iconGap}px` 로 emit. iconSize(--icon-size)와 대칭.
    */
   iconGap?: number | string;
+  /**
+   * tree depth 당 좌측 들여쓰기 base (ADR-912 R1 후속 — TreeItem catalog cutover).
+   * DOM 은 RAC 가 `--tree-item-level` CSS 변수를 주입하고 `Tree.css` 가
+   * `(--tree-item-level - 1) * --padding` 으로 들여쓴다. Skia 는 RAC 를 거치지 않으므로
+   * buildSpecNodeData 가 `_treeLevel`(parent 체인 depth)을 주입하고 buildCatalogShapes 가
+   * `paddingX + (_treeLevel - 1) * indentPerLevel` 로 동일 들여쓰기를 그린다 (D3 시각 대칭).
+   * Tree.css 의 `--padding`(16px)와 동일 값 유지.
+   */
+  indentPerLevel?: number | string;
 }
 
 /** 단일 컴포넌트의 시각 규칙. */
