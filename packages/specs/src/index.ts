@@ -337,14 +337,11 @@ export type {
   ListBoxSpacingMetric,
 } from "./components/ListBox.spec";
 
-// ListBoxItem (ADR-146 — Skia row projection renderer + generated CSS source)
-// ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
+// ListBoxItem — ADR-912 (2026-06-14): spec 물리 삭제(catalog cutover). metric resolver 만 유지.
 export {
   resolveListBoxItemMetric,
   resolveListBoxItemRowHeight,
 } from "./renderers/utils/collectionItemMetrics";
-export { ListBoxItemSpec } from "./components/ListBoxItem.spec";
-export type { ListBoxItemProps } from "./components/ListBoxItem.spec";
 
 // Header (ADR-099 Phase 3 — section 헤더, CSS 자동 생성 전용, Builder Skia 미등록)
 export { HeaderSpec } from "./components/Header.spec";
@@ -385,12 +382,7 @@ export type {
   TableRow,
 } from "./components/Table.spec";
 
-// ADR-912 단계 4 C1 — Table 2D projected row/cell self-render spec
-export { TableRowSpec, TableCellSpec } from "./components/TableCell.spec";
-export type {
-  TableRowProps,
-  TableCellProps,
-} from "./components/TableCell.spec";
+// ADR-912 (2026-06-14): TableRow/TableCell.spec 물리 삭제 — catalog cutover generic 경로.
 
 export { TreeSpec } from "./components/Tree.spec";
 export type { TreeProps } from "./components/Tree.spec";
@@ -433,10 +425,8 @@ export type {
   GridListSpacingInput,
 } from "./components/GridList.spec";
 
-// ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
+// ADR-912 (2026-06-14): GridListItem.spec 물리 삭제(catalog cutover). metric resolver 만 유지.
 export { resolveGridListItemMetric } from "./renderers/utils/collectionItemMetrics";
-export { GridListItemSpec } from "./components/GridListItem.spec";
-export type { GridListItemProps } from "./components/GridListItem.spec";
 
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup spec 삭제.
 //   시각 SSOT = componentRulesTable catalog rule.

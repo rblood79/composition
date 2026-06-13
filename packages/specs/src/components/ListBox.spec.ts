@@ -248,8 +248,9 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
   // ADR-105-c 자연 해소 확증.
   // 프로젝트 관례 (Menu/MenuItem/Select): `sizes.*.paddingX/Y` = 해당 Spec 컴포넌트
   // 자체의 내부 padding. ListBox 는 container 역할이므로 container padding 만 표현.
-  // ADR-078 Phase 3: item padding/lineHeight 는 `ListBoxItemSpec.sizes.md` SSOT +
-  //   `resolveListBoxItemMetric(fontSize)` 공급 — Skia render.shapes 와 layout 공유.
+  // ADR-912 (2026-06-14): ListBoxItem.spec 삭제 후 item padding/lineHeight 는
+  //   `resolveListBoxItemMetric(fontSize)`(collectionItemMetrics) 단일 SSOT 공급 —
+  //   Skia(listbox_item escape) 와 layout(utils.ts) 공유.
   // gap 은 CSS `--spacing-2xs` = 2.
   sizes: {
     md: {

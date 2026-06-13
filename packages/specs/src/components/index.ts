@@ -234,9 +234,8 @@ export type { ListProps } from "./List.spec";
 export { TableSpec } from "./Table.spec";
 export type { TableProps, TableColumn, TableRow } from "./Table.spec";
 
-// TableRow/TableCell (ADR-912 단계 4 C1 — Table 2D projected row/cell self-render)
-export { TableRowSpec, TableCellSpec } from "./TableCell.spec";
-export type { TableRowProps, TableCellProps } from "./TableCell.spec";
+// TableRow/TableCell — ADR-912 collection sub-part cutover (2026-06-14): spec 물리 삭제됨.
+//   projected Row/Cell node 는 catalog cutover generic 경로(buildCatalogShapes + table_row escape).
 
 // Tree
 export { TreeSpec } from "./Tree.spec";
@@ -258,12 +257,11 @@ export type { MenuProps } from "./Menu.spec";
 
 // ListBoxItem (ADR-146 — Skia row projection renderer + generated CSS source)
 // ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
+// ADR-912 (2026-06-14): ListBoxItem.spec 물리 삭제 — metric resolver 만 유지(catalog cutover).
 export {
   resolveListBoxItemMetric,
   resolveListBoxItemRowHeight,
 } from "../renderers/utils/collectionItemMetrics";
-export { ListBoxItemSpec } from "./ListBoxItem.spec";
-export type { ListBoxItemProps } from "./ListBoxItem.spec";
 
 // Breadcrumbs
 export { BreadcrumbsSpec } from "./Breadcrumbs.spec";
@@ -291,11 +289,8 @@ export type { TagProps as TagSpecProps } from "./Tag.spec";
 export { GridListSpec } from "./GridList.spec";
 export type { GridListProps } from "./GridList.spec";
 
-// GridListItem (ADR-090 — Spec metadata 전용, skipCSSGeneration: true)
-// ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
+// GridListItem — ADR-912 (2026-06-14): spec 물리 삭제(catalog cutover). metric resolver 만 유지.
 export { resolveGridListItemMetric } from "../renderers/utils/collectionItemMetrics";
-export { GridListItemSpec } from "./GridListItem.spec";
-export type { GridListItemProps } from "./GridListItem.spec";
 
 // Disclosure / DisclosureGroup — ADR-912 Disclosure 군 일괄 cutover (2026-06-10) spec 삭제.
 //   시각 SSOT = componentRulesTable catalog rule.

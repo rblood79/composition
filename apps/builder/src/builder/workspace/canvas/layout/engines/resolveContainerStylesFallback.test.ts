@@ -89,29 +89,21 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
   });
 
-  // ADR-094: childSpecs 자동 registry 등록 — ListBoxItemSpec 이 ListBoxSpec.childSpecs
-  //   경로로 `expandChildSpecs(BASE_TAG_SPEC_MAP)` 에서 자동 추가되어 `LOWERCASE_TAG_SPEC_MAP`
-  //   에도 포함. `resolveContainerStylesFallback` 이 containerStyles 4 속성 반환 시작.
-  //   (이전 ADR-083 Phase 0 범위 외 debt 해소 — Skia 축 SSOT 복구.)
-  describe("listboxitem — ADR-094 childSpecs 자동 등록 (Skia 축 SSOT 복구)", () => {
-    it("empty parentStyle → ListBoxItemSpec.containerStyles 4 속성 반환", () => {
-      const fb = resolveContainerStylesFallback("listboxitem", {});
-      expect(fb).toEqual({
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        justifyContent: "center",
-      });
+  // ADR-912 collection sub-part cutover (2026-06-14): ListBoxItem/GridListItem.spec 물리 삭제됨.
+  //   spec 미선언 태그 → resolveContainerStylesFallback 이 `{}` 반환(선주입 layer 영향 없음).
+  //   layout(display:flex/column)은 이제 spec.containerStyles 가 아니라:
+  //     - Skia: listbox_item / gridlist_card escape(replace 모드)가 row/card 전체 자체 paint
+  //     - DOM: virtual ListBoxItem.css(generate-css TEXT_LEAF) + 수동 GridList.css 가 emit
+  //   가 담당 → fallback `{}` 이 정답(회귀 없음, layout 축 escape/CSS 로 이전 완료).
+  describe("listboxitem — ADR-912 cutover (spec 삭제 → escape/CSS 가 layout 담당)", () => {
+    it("empty parentStyle → spec 삭제로 {} 반환 (layout 은 listbox_item escape + virtual CSS)", () => {
+      expect(resolveContainerStylesFallback("listboxitem", {})).toEqual({});
     });
   });
 
-  describe("gridlistitem — ADR-094 childSpecs 자동 등록", () => {
-    it("empty parentStyle → GridListItemSpec.containerStyles 2 속성 반환", () => {
-      const fb = resolveContainerStylesFallback("gridlistitem", {});
-      expect(fb).toEqual({
-        display: "flex",
-        flexDirection: "column",
-      });
+  describe("gridlistitem — ADR-912 cutover (spec 삭제 → escape/CSS 가 layout 담당)", () => {
+    it("empty parentStyle → spec 삭제로 {} 반환 (layout 은 gridlist_card escape + 수동 CSS)", () => {
+      expect(resolveContainerStylesFallback("gridlistitem", {})).toEqual({});
     });
   });
 

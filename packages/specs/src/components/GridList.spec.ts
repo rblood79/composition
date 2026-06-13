@@ -18,7 +18,9 @@ import type {
 import { resolveContainerSpacing } from "../primitives/containerSpacing";
 import { Grid, Binary, Rows, SquareX, PointerOff, Square } from "lucide-react";
 import { FILTERING_SECTION } from "../utils/sharedSections";
-import { GridListItemSpec } from "./GridListItem.spec";
+// ADR-912 collection sub-part cutover (2026-06-14): GridListItem.spec 물리 삭제됨 —
+//   GridListItem 은 catalog cutover(isCatalogSkiaCutover) generic 경로(buildCatalogShapes +
+//   gridlist_card escape) 로 렌더 → childSpecs 자동 registry 등록 불요. metric resolver 만 유지.
 import { resolveGridListItemMetric } from "../renderers/utils/collectionItemMetrics";
 // ADR-099 Phase 5: HeaderSpec 도 childSpecs 경로로 관계 선언 —
 // GridList.skipCSSGeneration=true 이므로 Generator emit 안 하지만,
@@ -68,11 +70,9 @@ export const GridListSpec: ComponentSpec<GridListProps> = {
   element: "div",
   skipCSSGeneration: true,
 
-  // ADR-090 Phase 2: GridListItemSpec 관계 선언.
-  //   Generator 는 GridList.skipCSSGeneration=true 이므로 emit 안 하지만, Spec 계층 관계를
-  //   SSOT 로 선언해 향후 skipCSSGeneration 해체 시 자식 selector emit 자동 연동.
-  // ADR-099 Phase 5: HeaderSpec 추가 — Section Header Spec 계층 관계 SSOT 선언.
-  childSpecs: [GridListItemSpec, HeaderSpec],
+  // ADR-099 Phase 5: HeaderSpec — Section Header Spec 계층 관계 SSOT 선언.
+  //   ADR-912 (2026-06-14): GridListItemSpec 제거(catalog cutover) — Header 만 유지.
+  childSpecs: [HeaderSpec],
 
   defaultVariant: "default",
   defaultSize: "md",

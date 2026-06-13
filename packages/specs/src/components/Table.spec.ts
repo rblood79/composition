@@ -11,8 +11,9 @@ import type { ComponentSpec, Shape, TokenRef } from "../types";
 import { parsePxValue, parseBorderWidth } from "../primitives";
 // ADR-908 Phase 3-A-2: Fill token dual-read seam
 import { resolveFillTokens } from "../utils/fillTokens";
-// ADR-912 단계 4 C1: Table 2D projected row/cell self-render spec (childSpecs 자동 등록).
-import { TableRowSpec, TableCellSpec } from "./TableCell.spec";
+// ADR-912 collection sub-part cutover (2026-06-14): TableRow/TableCell.spec 물리 삭제됨.
+//   projected Row/Cell node 는 isCatalogSkiaCutover("TableRow"/"TableCell") 게이트로 catalog
+//   generic 경로(buildCatalogShapes + table_row escape) 진입 → childSpecs 자동 registry 등록 불요.
 
 /**
  * Table Column
@@ -130,11 +131,6 @@ export const TableSpec: ComponentSpec<TableProps> = {
       focusRing: "{focus.ring.default}",
     },
   },
-
-  // ADR-912 단계 4 C1: TableRow/TableCell 을 childSpecs 로 선언 → TAG_SPEC_MAP 자동 확장
-  //   (GridList childSpecs:[GridListItemSpec] 패턴 동형). projected Row/Cell node type 이
-  //   getSpecForTag 로 resolve 되어 spec.render.shapes 경로로 자체 렌더한다.
-  childSpecs: [TableRowSpec, TableCellSpec],
 
   render: {
     // ADR-912 단계 4 C1 (2026-06-03): shell-only 전환. 2D grid(header/row/cell) paint 는
