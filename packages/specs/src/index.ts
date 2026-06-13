@@ -297,8 +297,7 @@ export type { CheckboxProps } from "./components/Checkbox.spec";
 export { CheckboxGroupSpec } from "./components/CheckboxGroup.spec";
 export type { CheckboxGroupProps } from "./components/CheckboxGroup.spec";
 
-export { CheckboxItemsSpec } from "./components/CheckboxItems.spec";
-export type { CheckboxItemsProps } from "./components/CheckboxItems.spec";
+// CheckboxItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
 export { RadioSpec, RADIO_SELECTED_COLORS } from "./components/Radio.spec";
 export type { RadioProps } from "./components/Radio.spec";
@@ -306,8 +305,7 @@ export type { RadioProps } from "./components/Radio.spec";
 export { RadioGroupSpec } from "./components/RadioGroup.spec";
 export type { RadioGroupProps } from "./components/RadioGroup.spec";
 
-export { RadioItemsSpec } from "./components/RadioItems.spec";
-export type { RadioItemsProps } from "./components/RadioItems.spec";
+// RadioItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
 export {
   SwitchSpec,

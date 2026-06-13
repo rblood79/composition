@@ -114,6 +114,12 @@ export function createCheckboxGroupDefinition(
       } as ComponentElementProps,
       parent_id: parentId,
     },
+    // ADR-912 collection sub-part cutover (2026-06-14): CheckboxItems 중간 element 폐기.
+    //   react-aria-starter CheckboxGroup 원본 구조 채택 — 부모가 자식 Checkbox 를 직접
+    //   보유하고, DOM wrapper `<div className="checkbox-items">` 는 renderCheckboxGroup 이
+    //   self-compose (starter `<div className="checkbox-items">{children}` 와 동일).
+    //   기존 3단(CheckboxGroup>CheckboxItems>Checkbox) 직렬화 프로젝트는 hydration
+    //   migration(migrateCheckboxRadioItemsStructure)이 2단으로 자동 승격.
     children: [
       {
         type: "Label",
@@ -126,48 +132,42 @@ export function createCheckboxGroupDefinition(
         } as ComponentElementProps,
       },
       {
-        type: "CheckboxItems",
-        props: {} as ComponentElementProps,
+        type: "Checkbox",
+        props: {
+          children: "Option 1",
+          isSelected: false,
+          isDisabled: false,
+        } as ComponentElementProps,
         children: [
           {
-            type: "Checkbox",
+            type: "Label",
             props: {
               children: "Option 1",
-              isSelected: false,
-              isDisabled: false,
-            } as ComponentElementProps,
-            children: [
-              {
-                type: "Label",
-                props: {
-                  children: "Option 1",
-                  style: {
-                    width: "fit-content",
-                    fontWeight: 600,
-                  },
-                } as ComponentElementProps,
+              style: {
+                width: "fit-content",
+                fontWeight: 600,
               },
-            ],
+            } as ComponentElementProps,
           },
+        ],
+      },
+      {
+        type: "Checkbox",
+        props: {
+          children: "Option 2",
+          isSelected: false,
+          isDisabled: false,
+        } as ComponentElementProps,
+        children: [
           {
-            type: "Checkbox",
+            type: "Label",
             props: {
               children: "Option 2",
-              isSelected: false,
-              isDisabled: false,
-            } as ComponentElementProps,
-            children: [
-              {
-                type: "Label",
-                props: {
-                  children: "Option 2",
-                  style: {
-                    width: "fit-content",
-                    fontWeight: 600,
-                  },
-                } as ComponentElementProps,
+              style: {
+                width: "fit-content",
+                fontWeight: 600,
               },
-            ],
+            } as ComponentElementProps,
           },
         ],
       },
@@ -202,6 +202,10 @@ export function createRadioGroupDefinition(
       } as ComponentElementProps,
       parent_id: parentId,
     },
+    // ADR-912 collection sub-part cutover (2026-06-14): RadioItems 중간 element 폐기.
+    //   react-aria-starter RadioGroup 원본 구조 채택 — 부모가 자식 Radio 를 직접 보유하고,
+    //   DOM wrapper `<div className="radio-items">` 는 renderRadioGroup 이 self-compose.
+    //   기존 3단(RadioGroup>RadioItems>Radio) 직렬화 프로젝트는 hydration migration 으로 승격.
     children: [
       {
         type: "Label",
@@ -214,46 +218,40 @@ export function createRadioGroupDefinition(
         } as ComponentElementProps,
       },
       {
-        type: "RadioItems",
-        props: {} as ComponentElementProps,
+        type: "Radio",
+        props: {
+          children: "Option 1",
+          value: "option1",
+          isDisabled: false,
+        } as ComponentElementProps,
         children: [
           {
-            type: "Radio",
+            type: "Label",
             props: {
               children: "Option 1",
-              value: "option1",
-              isDisabled: false,
-            } as ComponentElementProps,
-            children: [
-              {
-                type: "Label",
-                props: {
-                  children: "Option 1",
-                  style: {
-                    width: "fit-content",
-                  },
-                } as ComponentElementProps,
+              style: {
+                width: "fit-content",
               },
-            ],
+            } as ComponentElementProps,
           },
+        ],
+      },
+      {
+        type: "Radio",
+        props: {
+          children: "Option 2",
+          value: "option2",
+          isDisabled: false,
+        } as ComponentElementProps,
+        children: [
           {
-            type: "Radio",
+            type: "Label",
             props: {
               children: "Option 2",
-              value: "option2",
-              isDisabled: false,
-            } as ComponentElementProps,
-            children: [
-              {
-                type: "Label",
-                props: {
-                  children: "Option 2",
-                  style: {
-                    width: "fit-content",
-                  },
-                } as ComponentElementProps,
+              style: {
+                width: "fit-content",
               },
-            ],
+            } as ComponentElementProps,
           },
         ],
       },

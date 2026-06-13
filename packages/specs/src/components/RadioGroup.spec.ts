@@ -10,7 +10,7 @@
 import type { ComponentSpec, Shape, TokenRef } from "../types";
 import { fontFamily } from "../primitives/typography";
 import { resolveSpecFontSize } from "../renderers/utils/resolveSpecFontSize";
-import { RadioItemsSpec } from "./RadioItems.spec";
+// ADR-912 collection sub-part cutover (2026-06-14): RadioItemsSpec import 제거 (spec 물리 삭제).
 import {
   Layout,
   Tag,
@@ -217,26 +217,24 @@ export const RadioGroupSpec: ComponentSpec<RadioGroupProps> = {
     },
   },
 
+  // ADR-912 collection sub-part cutover (2026-06-14): RadioItems 중간 컨테이너 폐기.
+  //   react-aria-starter 구조(RadioGroup > Radio 직속) 채택 → propagation childPath 에서
+  //   중간 "RadioItems" 단계 제거. childSpecs [RadioItemsSpec] 도 제거(spec 삭제).
   propagation: {
     rules: [
       {
         parentProp: "size",
-        childPath: ["RadioItems", "Radio"],
+        childPath: ["Radio"],
         override: true,
       },
       {
         parentProp: "size",
-        childPath: ["RadioItems", "Radio", "Label"],
+        childPath: ["Radio", "Label"],
         override: true,
       },
-      { parentProp: "size", childPath: "RadioItems", override: true },
       { parentProp: "size", childPath: "Label", override: true },
     ],
   },
-
-  // ADR-093: RadioItems 중간 컨테이너 spec 배선. ADR-094 expandChildSpecs 인프라가
-  //   TAG_SPEC_MAP / LOWERCASE_TAG_SPEC_MAP / tagToElement 자동 등록.
-  childSpecs: [RadioItemsSpec],
 
   properties: {
     sections: [

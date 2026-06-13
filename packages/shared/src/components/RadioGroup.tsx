@@ -319,7 +319,11 @@ export function RadioGroup({
     }
   }
 
-  // Static Children (Compositional: children에 Label + radio-items 포함)
+  // Static Children — react-aria-starter RadioGroup 구조 채택 (ADR-912, 2026-06-14):
+  //   자식 Radio 를 `<div className="radio-items">` 로 self-compose.
+  //   RadioItems 중간 element 폐기 후, 이 wrapper 가 generated CSS
+  //   (.react-aria-RadioGroup .radio-items { display:flex; flex-direction:column })
+  //   의 flex 컨테이너 역할을 담당 → builder Preview(renderRadioGroup)와 대칭.
   return (
     <AriaRadioGroup
       {...props}
@@ -334,7 +338,7 @@ export function RadioGroup({
           {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
         </Label>
       )}
-      {children}
+      <div className="radio-items">{children}</div>
       {description && <Text slot="description">{description}</Text>}
       <FieldError>{errorMessage}</FieldError>
     </AriaRadioGroup>

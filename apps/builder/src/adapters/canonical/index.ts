@@ -45,6 +45,7 @@ import {
   tagToType,
 } from "./tagRename";
 import { migrateLegacyListBoxTemplatesToOrigins } from "./legacyListBoxTemplateMigration";
+import { migrateCheckboxRadioItemsStructure } from "./checkboxRadioItemsMigration";
 import { buildIdPathContext, segId } from "./idPath";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
 import {
@@ -322,12 +323,14 @@ export function legacyToCanonical(
     ? snapshotTokensFromResolved(getTokens())
     : undefined;
 
-  return migrateLegacyListBoxTemplatesToOrigins({
-    version: "composition-1.0",
-    ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
-    ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
-    children: [...layoutFrames, ...reusableMasters, ...pageNodes],
-  });
+  return migrateCheckboxRadioItemsStructure(
+    migrateLegacyListBoxTemplatesToOrigins({
+      version: "composition-1.0",
+      ...(themesSnapshot !== undefined ? { themes: themesSnapshot } : {}),
+      ...(tokensSnapshot !== undefined ? { tokens: tokensSnapshot } : {}),
+      children: [...layoutFrames, ...reusableMasters, ...pageNodes],
+    }),
+  );
 }
 
 /**

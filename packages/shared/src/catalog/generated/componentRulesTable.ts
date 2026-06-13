@@ -1245,27 +1245,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  CheckboxItems: {
-    defaultSize: "md",
-    variants: {},
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
-  },
   Code: {
     defaultVariant: "default",
     defaultSize: "sm",
@@ -4340,27 +4319,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       xl: {
         fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
-  },
-  RadioItems: {
-    defaultSize: "md",
-    variants: {},
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
       },

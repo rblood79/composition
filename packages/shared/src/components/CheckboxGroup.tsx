@@ -330,7 +330,11 @@ export function CheckboxGroup({
     }
   }
 
-  // Static Children (기존 방식)
+  // Static Children — react-aria-starter CheckboxGroup 구조 채택 (ADR-912, 2026-06-14):
+  //   자식 Checkbox 를 `<div className="checkbox-items">` 로 self-compose.
+  //   CheckboxItems 중간 element 폐기 후, 이 wrapper 가 generated CSS
+  //   (.react-aria-CheckboxGroup .checkbox-items { display:flex; flex-direction:column })
+  //   의 flex 컨테이너 역할을 담당 → builder Preview(renderCheckboxGroup)와 대칭.
   return (
     <AriaCheckboxGroup
       {...props}
@@ -345,7 +349,7 @@ export function CheckboxGroup({
           {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
         </Label>
       )}
-      {children}
+      <div className="checkbox-items">{children}</div>
       {description && <Text slot="description">{description}</Text>}
       <FieldError>{errorMessage}</FieldError>
     </AriaCheckboxGroup>
