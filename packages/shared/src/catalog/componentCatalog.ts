@@ -525,6 +525,18 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "list box",
     icon: "ListIcon",
   }),
+  // ADR-912 collection sub-part cutover (2026-06-14): ListBoxItem catalog cutover.
+  //   ListBox projection(appendListBoxRowProjection → ListBoxItem SceneNode)의 행 self-render 가
+  //   spec.render.shapes(selection bg + icon + label fw600 + description neutral-subdued + check)
+  //   였다 → rule + listbox_item skiaPrimitive(replace — multi-slot 행, gridlist_card 선례 동형)
+  //   으로 이전. icon/label/description/selection 분기는 projection 이 icon/children/description/
+  //   isSelected 보편 주입(ADR-142 §3). canonical 문서에 element 없음(projection 전용) → DOM 변화
+  //   0, Skia 대칭(spec 의존 끊기 = step 4 삭제 안전) 한정.
+  primitiveEntry("ListBoxItem", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "list box item",
+    icon: "ListIcon",
+  }),
   // ADR-912 단계 4 (비-data-bound 4종 Skia generic 발효, 2026-06-03): Select/ComboBox/Tabs/
   //   TagGroup 의 skiaLegacy 제거 → isCatalogSkiaCutover=true → buildCatalogShapes 경로.
   //   안전 3계약 동반 land: C2(rule fill 정렬 — Tabs/TagGroup default variant 컨테이너 shell

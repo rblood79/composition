@@ -3204,14 +3204,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   ListBoxItem: {
+    defaultVariant: "default",
     defaultSize: "md",
-    variants: {},
+    // ADR-912 collection sub-part cutover (2026-06-14, gridlist_card escape 선례 동형):
+    //   ListBoxItem.spec.render.shapes(selection/hover row-bg + icon + label fw600 +
+    //   description neutral-subdued + check)를 rule + listbox_item skiaPrimitive(replace)로
+    //   이전. 기본 행은 배경 없음(transparent) — selection(accent-subtle)/hover(layer-1)만
+    //   row-bg 그림(escape 가 props.isSelected/state 보편 축으로 판정).
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.layer-1}",
+            selected: "{color.accent-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+        // label 굵기 (spec fontWeight 600).
+        textWeight: 600,
+      },
+    },
     sizes: {
       md: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.xs}",
+        // height 0 = content-fit (행 시각 = label(+description) + padding).
         height: 0,
+        // spec.sizes.md 이전: paddingX 12 / paddingY 4 (수동 CSS spacing-md/sm 정합).
+        paddingX: 12,
+        paddingY: 4,
+        // label↔description 수직 간격 (spec gap 2).
+        gap: 2,
+        // selection indicator / icon glyph 크기 (spec iconSize 16).
+        iconSize: 16,
       },
     },
   },

@@ -302,6 +302,198 @@ const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 };
 
 /**
+ * `listbox_item` — ListBox 행 항목 (selection row-bg + icon + label + description + check, replace 모드).
+ *
+ * **ADR-912 collection sub-part cutover (2026-06-14, gridlist_card replace 선례 동형)**: ListBoxItem 은
+ *   catalog 미등록 상태에서 `ListBoxItem.spec.render.shapes`(selection/hover row-bg + icon(좌측) +
+ *   label(fw600) + description(2번째 줄 neutral-subdued) + check(우측 selection))가 Skia 시각 유일
+ *   source 였다. catalog 등록으로 rule(fill.default{base transparent / hover layer-1 / selected
+ *   accent-subtle} + colors.text + textWeight + sizes.{paddingX/paddingY/gap/iconSize}) + 본 escape 로
+ *   이전.
+ *
+ *   **replace 모드인 이유**: 행은 icon|label/description(수직 스택)|check 의 multi-slot 레이아웃이라
+ *   buildCatalogShapes 의 box+single-text 가정으로 재현 불가. ListBoxItem.spec.ts:200-292 좌표 공식과
+ *   1:1 대칭. selection 은 props.isSelected(보편 축, ADR-142 §3) — 빌더 정적 캔버스는 default state 라
+ *   hover/pressed row-bg 는 미발생(projection default state, spec state 분기 중 selection 만 유효).
+ *
+ *   icon/label/description = projection(appendListBoxRowProjection)이 주입한 props.icon/children/
+ *   description 보편 데이터. template placeholder(`{label}`) → "Label"/"Description" sample.
+ */
+const listBoxItem: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  // padding longhand 우선 → shorthand → rule sizes (style-ssot.md).
+  const paddingLeft = parsePxValue(
+    style?.paddingLeft ?? style?.padding,
+    typeof size.paddingX === "number" ? size.paddingX : 12,
+  );
+  const paddingRight = parsePxValue(
+    style?.paddingRight ?? style?.padding,
+    typeof size.paddingX === "number" ? size.paddingX : 12,
+  );
+  const paddingTop = parsePxValue(
+    style?.paddingTop ?? style?.padding,
+    typeof size.paddingY === "number" ? size.paddingY : 4,
+  );
+  const paddingBottom = parsePxValue(
+    style?.paddingBottom ?? style?.padding,
+    typeof size.paddingY === "number" ? size.paddingY : 4,
+  );
+  const rowGap = parsePxValue(
+    style?.rowGap ?? style?.columnGap ?? style?.gap,
+    typeof size.gap === "number" ? size.gap : 2,
+  );
+  // lineHeight: fontSize 기반 매핑 (resolveListBoxItemMetric 동형).
+  const lineHeight =
+    fontSize <= 12 ? 16 : fontSize <= 14 ? 20 : fontSize <= 16 ? 24 : 28;
+
+  // template placeholder 처리 (Item spec readText 동형).
+  const labelRaw = props.children ?? props.textValue ?? props.value;
+  const isTemplatePreview = isCardTemplatePlaceholder(labelRaw);
+  const label = isTemplatePreview
+    ? "Label"
+    : (readCardText(props.children) ??
+      readCardText(props.textValue) ??
+      readCardText(props.value) ??
+      "");
+  const description = isTemplatePreview
+    ? props.description != null && props.description !== ""
+      ? "Description"
+      : null
+    : readCardText(props.description);
+
+  const minHeight = parsePxValue(style?.minHeight, 20);
+  const contentHeight = description
+    ? lineHeight + rowGap + lineHeight
+    : lineHeight;
+  const rowHeight = parsePxValue(
+    style?.height,
+    Math.max(paddingTop + paddingBottom + contentHeight, minHeight),
+  );
+  const width =
+    typeof style?.width === "number" && style.width > 0 ? style.width : 200;
+  const textColor = props.isDisabled
+    ? ("{color.neutral-subdued}" as TokenRef)
+    : ((style?.color as string | undefined) ??
+      visual?.text ??
+      ("{color.neutral}" as TokenRef));
+  // icon/check slot (spec ListBoxItem.spec.ts:180-195 좌표 공식).
+  const iconName = readCardText(props.icon);
+  const iconSize = typeof size.iconSize === "number" ? size.iconSize : 16;
+  const slotGap = 6;
+  const showCheck = Boolean(props.isSelected);
+  const checkSize = iconSize;
+  const slotInset = typeof size.paddingX === "number" ? size.paddingX : 12;
+  const textX = iconName
+    ? Math.max(paddingLeft, slotInset + iconSize + slotGap)
+    : paddingLeft;
+  const rightReserve = showCheck ? checkSize + slotGap : 0;
+  const maxWidth = Math.max(1, width - textX - paddingRight - rightReserve);
+  const ff = (style?.fontFamily as string) || fontFamily.sans;
+  const labelFontWeight =
+    (style?.fontWeight as string | number | undefined) ??
+    visual?.textWeight ??
+    600;
+
+  const shapes: Shape[] = [];
+
+  // selection row-bg (selected → accent-subtle). hover/pressed 는 빌더 정적 캔버스 미발생.
+  if (props.isSelected) {
+    shapes.push({
+      id: "row-bg",
+      type: "roundRect",
+      x: 0,
+      y: 0,
+      width: "auto",
+      height: "auto" as unknown as number,
+      radius: parsePxValue(
+        style?.borderRadius,
+        typeof size.borderRadius === "number" ? size.borderRadius : 4,
+      ),
+      fill:
+        visual?.fill?.default.selected ?? ("{color.accent-subtle}" as TokenRef),
+    });
+  }
+
+  // icon slot (좌측, 수직 중앙)
+  if (iconName) {
+    shapes.push({
+      type: "icon_font",
+      iconName,
+      x: slotInset + iconSize / 2,
+      y: rowHeight / 2,
+      fontSize: iconSize,
+      fill: textColor,
+      baseline: "middle",
+    });
+  }
+
+  // label + (optional) description 수직 스택
+  if (description) {
+    shapes.push({
+      type: "text",
+      x: textX,
+      y: paddingTop + lineHeight / 2,
+      text: label,
+      fontSize,
+      fontFamily: ff,
+      fontWeight: labelFontWeight,
+      fill: textColor,
+      align: "left",
+      baseline: "middle",
+      maxWidth,
+      overflow: "ellipsis",
+    });
+    shapes.push({
+      type: "text",
+      x: textX,
+      y: paddingTop + lineHeight + rowGap + lineHeight / 2,
+      text: description,
+      fontSize: Math.max(11, fontSize - 1),
+      fontFamily: ff,
+      fontWeight: 400,
+      fill: "{color.neutral-subdued}" as TokenRef,
+      align: "left",
+      baseline: "middle",
+      maxWidth,
+      overflow: "ellipsis",
+    });
+  } else {
+    shapes.push({
+      type: "text",
+      x: textX,
+      y: rowHeight / 2,
+      text: label,
+      fontSize,
+      fontFamily: ff,
+      fontWeight: labelFontWeight,
+      fill: textColor,
+      align: "left",
+      baseline: "middle",
+      maxWidth,
+      overflow: "ellipsis",
+    });
+  }
+
+  // selection-indicator (우측 체크마크)
+  if (showCheck) {
+    shapes.push({
+      type: "icon_font",
+      iconName: "check",
+      x: width - slotInset - checkSize / 2,
+      y: rowHeight / 2,
+      fontSize: checkSize,
+      fill: "{color.accent}" as TokenRef,
+      baseline: "middle",
+    });
+  }
+
+  return shapes;
+};
+
+/**
  * `checkbox` — 체크박스 indicator: box(roundRect, size.indicator.boxSize) + border +
  * checkmark(2 line)/indeterminate(1 line, isChecked·isSelected 시). label 은 자식 Label
  * Element 가 담당하므로 여기서 안 그린다(정본 — indicator 만). isChecked 시 bg/border
@@ -2037,6 +2229,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   table_row_divider: tableRowDivider,
   // ADR-912 collection sub-part cutover (GridListItem): 카드 box+label+description(replace).
   gridlist_card: gridListCard,
+  // ADR-912 collection sub-part cutover (ListBoxItem): row selection bg+icon+label+desc+check(replace).
+  listbox_item: listBoxItem,
   checkbox,
   radio,
   switch_toggle: switchToggle,
@@ -2089,6 +2283,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 collection sub-part: gridlist_card 는 카드 box+label+description 전체 자체 생성
   //   (2-line top-aligned → buildCatalogShapes box-center 가정과 충돌) → replace.
   gridlist_card: "replace",
+  // ADR-912 collection sub-part: listbox_item 은 selection bg+icon+label+desc+check multi-slot
+  //   전체 자체 생성(buildCatalogShapes box+single-text 로 재현 불가) → replace.
+  listbox_item: "replace",
   overlay_backdrop: "prepend",
   dialog_shadow: "prepend",
   popover_shadow: "prepend",

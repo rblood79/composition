@@ -46,6 +46,7 @@ import { kbdBinding } from "./Kbd.binding";
 import { labelBinding } from "./Label.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
+import { listBoxItemBinding } from "./ListBoxItem.binding";
 import { menuBinding } from "./Menu.binding";
 import { meterBinding } from "./Meter.binding";
 import { meterTrackBinding } from "./MeterTrack.binding";
@@ -133,6 +134,7 @@ export * from "./Kbd.binding";
 export * from "./Label.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
+export * from "./ListBoxItem.binding";
 export * from "./Menu.binding";
 export * from "./Meter.binding";
 export * from "./MeterTrack.binding";
@@ -302,6 +304,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Meter: meterBinding,
   // family ④ collections (internal source — composition wrapper + useCollectionData)
   ListBox: listBoxBinding,
+  ListBoxItem: listBoxItemBinding,
   Menu: menuBinding,
   Select: selectBinding,
   // ADR-912 R1 Select family rebuild (2026-06-12): field-trigger 공용 sub-part 3종.
