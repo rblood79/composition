@@ -115,6 +115,15 @@ function ruleSizeToSizeSpec(
       ? { borderWidth: s.borderWidth as number }
       : {}),
     ...(s.gap !== undefined ? { gap: s.gap as number } : {}),
+    // ADR-912 collection item leaf (2026-06-14): ListBoxItem 의 `min-height` (virtual/short 콘텐츠
+    //   축소 하한, line-box 최소) 가 rule.sizes.minHeight 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit.
+    ...(s.minHeight !== undefined ? { minHeight: s.minHeight as number } : {}),
+    // ADR-912 collection item leaf (2026-06-14): ListBoxItem label `font-weight: 600` (semibold)
+    //   가 rule.sizes.fontWeight 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit (CSSGenerator
+    //   가 size.fontWeight 미존재 시 font-weight 줄 자체를 skip).
+    ...(s.fontWeight !== undefined
+      ? { fontWeight: s.fontWeight as number }
+      : {}),
     // ADR-912 box+text leaf 군 (2026-06-11): Button/ToggleButton/Icon 의 --icon-size/--icon-gap
     //   CSS 변수가 rule.sizes.iconSize/iconGap 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit.
     ...(s.iconSize !== undefined ? { iconSize: s.iconSize as number } : {}),
@@ -186,6 +195,11 @@ const TEXT_LEAF_NAMES = new Set([
   //   Slider 는 skipCSSGeneration:true (Skia 전용 gradient/circle) → CSS 미생성이라 virtual 불요.
   "ColorSwatch",
   "TailSwatch",
+  // ADR-912 collection item leaf cutover (2026-06-14): ListBoxItem 은 ListBox.spec childSpecs 경로로
+  //   `generated/ListBox.css` 에 inline emit 됐으나(ADR-078), catalog cutover(listbox_item escape)로
+  //   spec body 삭제 대비 → 독립 `generated/ListBoxItem.css` virtual 로 분리(MenuItem 선례 동형, flat
+  //   selector 라 시각 동일). ListBox.spec.childSpecs 는 [HeaderSpec] 만 유지(Header 는 삭제 대상 아님).
+  "ListBoxItem",
 ]);
 
 type TextLeafMeta = {
@@ -495,6 +509,28 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       hover: { background: "{color.layer-1}" },
       focusVisible: { focusRing: "{focus.ring.default}" },
       disabled: { opacity: 0.38, pointerEvents: "none" },
+    },
+  },
+  // ADR-912 collection item leaf cutover (2026-06-14) — ListBoxItem (ListBoxItem.spec.ts 삭제 대상).
+  //   archetype "simple": ARCHETYPE_BASE_STYLES["simple"](display:inline-flex/center/box-sizing) 자동 emit.
+  //   containerStyles 4키(display:flex/flexDirection:column/alignItems:flex-start/justifyContent:center)가
+  //   base override. padding/font/line-height/font-weight/min-height/gap/border-radius 는 rule.sizes.md 에서
+  //   emit (min-height 20 = rule 보강분, MenuItem 과 달리 cursor:not-allowed disabled). hover background
+  //   {color.layer-1}(→--bg-overlay)는 MenuItem 동형. ListBoxItem.spec.ts states 미러.
+  {
+    name: "ListBoxItem",
+    archetype: "simple",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      justifyContent: "center",
+    },
+    states: {
+      hover: { background: "{color.layer-1}" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
     },
   },
   // ADR-912 value-label 군 (2026-06-11) — Meter/ProgressBar 의 value text leaf.

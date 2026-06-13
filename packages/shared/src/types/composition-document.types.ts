@@ -219,6 +219,18 @@ export interface ComponentRuleSize {
   borderRadius?: number | string;
   borderWidth?: number | string;
   height?: number | string;
+  /**
+   * 최소 높이 base (ADR-912 collection item leaf — ListBoxItem 등 spec.sizes.minHeight 이전).
+   * generate-css virtual 이 `min-height: {minHeight}px` 로 emit. height(content-fit 0)와 별개로
+   * virtual/short 콘텐츠 시 축소 하한(line-box 최소)을 보장.
+   */
+  minHeight?: number | string;
+  /**
+   * 텍스트 두께 base (ADR-912 collection item leaf — ListBoxItem 등 spec.sizes.fontWeight 이전).
+   * generate-css virtual 이 `font-weight: {fontWeight}` 로 emit. ListBoxItem label 은
+   * 600(semibold) 고정 — 기존 generated childSpec block 의 `font-weight: 600` 동형 복원.
+   */
+  fontWeight?: number | string;
   iconSize?: number | string;
   /**
    * 슬라이더 thumb(핸들) 지름 base (ADR-912 SliderTrack value-fill).

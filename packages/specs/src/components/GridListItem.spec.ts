@@ -74,14 +74,11 @@ export const GridListItemSpec: ComponentSpec<GridListItemProps> = {
   element: "div",
   skipCSSGeneration: true,
 
-  // ADR-090 Phase 4: implicitStyles.ts:758-773 gridlistitem 분기 리프팅 — layout primitive.
-  //   display/flexDirection 은 containerStyles 로 이관 → resolveContainerStylesFallback 주입.
-  //   padding/gap/borderWidth 는 Taffy 가 shorthand 를 처리 못하므로 sizes.md 에서 개별 필드로
-  //   SSOT 유지 → implicitStyles 분기가 paddingTop/Right/Bottom/Left 로 분해 주입.
-  containerStyles: {
-    display: "flex",
-    flexDirection: "column",
-  },
+  // ADR-912 collection sub-part cutover (2026-06-14): containerStyles(display/flexDirection)는
+  //   implicitStyles.ts gridlistitem 분기가 `display: parentStyle.display ?? "flex"` /
+  //   `flexDirection: ... ?? "column"` 로 직접 주입(분기 자족화)하므로 spec body 비의존.
+  //   resolveContainerStylesFallback 의 generic spec.containerStyles 읽기 의존을 제거 — spec body
+  //   물리 삭제 후에도 fallback {} → 분기 기본값 발동으로 layout 불변(redundant 확정).
 
   defaultSize: "md",
 

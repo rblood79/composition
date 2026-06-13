@@ -3234,6 +3234,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xs}",
         // height 0 = content-fit (행 시각 = label(+description) + padding).
         height: 0,
+        // virtual/short 콘텐츠 시 축소 하한 (spec.sizes.md.minHeight 20 — line-box 최소).
+        //   generate-css virtual 이 `min-height: 20px` emit (ADR-912 collection item leaf cutover).
+        minHeight: 20,
+        // label 두께 (spec.sizes.md.fontWeight 600 — semibold). generate-css virtual 이
+        //   `font-weight: 600` emit (기존 generated childSpec block 동형 복원). 수동 ListBox.css
+        //   `[slot="label"] { font-weight: 600 }` 와 중복이나 description slot 상속분까지 보장.
+        fontWeight: 600,
         // spec.sizes.md 이전: paddingX 12 / paddingY 4 (수동 CSS spacing-md/sm 정합).
         paddingX: 12,
         paddingY: 4,

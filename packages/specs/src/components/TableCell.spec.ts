@@ -160,11 +160,10 @@ export const TableRowSpec: ComponentSpec<TableRowProps> = {
   skipCSSGeneration: true,
   defaultSize: "md",
 
-  // 셀을 가로로 배치 — Taffy flex row.
-  containerStyles: {
-    display: "flex",
-    flexDirection: "row",
-  },
+  // ADR-912 collection sub-part cutover (2026-06-14): 셀 가로 배치(display:flex/row)는
+  //   appendTableRowProjection 이 render-space style 로 무조건 직접 주입(canvasSceneNode.ts:966-971,
+  //   ADR-135 정합)하므로 spec body 비의존. resolveContainerStylesFallback generic 읽기 의존 제거 —
+  //   spec body 물리 삭제 후에도 projection style(rawStyle) override 로 layout 불변(redundant 확정).
 
   sizes: {
     sm: {

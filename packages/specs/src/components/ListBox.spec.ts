@@ -15,7 +15,9 @@ import { resolveStateColors } from "../utils/stateEffect";
 // ADR-078 Phase 2: 자식 Spec inline emit — `.react-aria-ListBoxItem` 블록이 본 Spec
 // 의 `generated/ListBox.css` 같은 @layer 에 삽입된다.
 // ADR-078 Phase 3: `resolveListBoxItemMetric` 로 Skia/layout 양쪽 item metric 단일 소스화.
-import { ListBoxItemSpec } from "./ListBoxItem.spec";
+// ADR-912 collection item leaf cutover (2026-06-14): ListBoxItemSpec import 제거 — childSpecs 의
+//   ListBoxItem CSS inline emit 을 `generated/ListBoxItem.css` virtual 로 분리(generate-css
+//   TEXT_LEAF_META). childSpecs 는 [HeaderSpec] 만 유지(Header 는 삭제 대상 아님).
 import { resolveListBoxItemMetric } from "../renderers/utils/collectionItemMetrics";
 // ADR-099 Phase 3 (098-c 슬롯): HeaderSpec 도 childSpecs 경로로 inline emit —
 // `.react-aria-ListBox .react-aria-Header` 블록이 generated/ListBox.css 에 추가된다.
@@ -98,13 +100,14 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
     outline: "none",
   },
 
-  // ADR-078 Phase 2: ListBoxItem.spec base/sizes/states 블록을 본 Spec 의 `generated/ListBox.css`
-  // 내부에 inline emit. 수동 ListBox.css 의 orientation/layout/Popover cascade 가 같은 @layer
-  // 에서 `.react-aria-ListBoxItem` selector 를 override 할 수 있도록 보장.
-  // ADR-099 Phase 3 (098-c 슬롯): HeaderSpec 추가 — `.react-aria-ListBox .react-aria-Header`
-  // 블록이 동일 generated/ListBox.css 에 inline emit. Preview DOM 의 RAC `<Header>` 가
-  // section 엔트리 렌더 시 sticky 위치 + muted 스타일 적용.
-  childSpecs: [ListBoxItemSpec, HeaderSpec],
+  // ADR-912 collection item leaf cutover (2026-06-14): ListBoxItem 은 childSpecs inline emit 에서
+  //   독립 `generated/ListBoxItem.css` virtual 로 분리(catalog rule SSOT). flat selector
+  //   `.react-aria-ListBoxItem` 이라 수동 ListBox.css 의 orientation/layout/Popover cascade override 는
+  //   동일 @layer 에서 그대로 적용(파일만 분리, cascade 위치 불변).
+  // ADR-099 Phase 3 (098-c 슬롯): HeaderSpec 은 childSpecs 유지 — `.react-aria-ListBox .react-aria-Header`
+  // 블록이 generated/ListBox.css 에 inline emit. Preview DOM 의 RAC `<Header>` 가 section 엔트리
+  // 렌더 시 sticky 위치 + muted 스타일 적용. (Header 는 삭제 대상 아님)
+  childSpecs: [HeaderSpec],
 
   defaultVariant: "default",
   defaultSize: "md",
