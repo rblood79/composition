@@ -942,17 +942,25 @@ function appendTableRowProjection(
       tableSceneNode.id,
       row.rowKey,
     );
+    // ADR-912 Pattern B (TableRow catalog cutover, 2026-06-13): 행 배경 분기(selected/striped/
+    //   header/기본)를 projection 이 계산해 style.backgroundColor 보편 D3 데이터로 주입한다.
+    //   buildCatalogShapes 는 행 종류를 모른 채 style.backgroundColor 우선 경로로 box 를 그린다
+    //   (컴포넌트 식별 분기 0, ADR-142 §3). 값은 TableRow.spec.render.shapes 의 bg 분기 이전:
+    //   selected={color.accent-subtle} / striped·header={color.layer-2} / 기본={color.base}.
+    const rowBg = row.isSelected
+      ? "{color.accent-subtle}"
+      : isHeader || striped
+        ? "{color.layer-2}"
+        : "{color.base}";
     addSceneNode(
       {
         id: rowId,
         type: "TableRow",
         props: {
           size,
-          _isHeader: isHeader,
-          _striped: striped,
-          _isSelected: row.isSelected,
+          // _rowWidth: table_row_divider skiaPrimitive 가 하단 line 폭에 사용(전체 컬럼 합).
           _rowWidth: totalWidth,
-          style: { width: totalWidth },
+          style: { width: totalWidth, backgroundColor: rowBg },
         },
         parentId: rowsGroupId,
         pageId: scope.pageId,
@@ -989,9 +997,19 @@ function appendTableRowProjection(
           props: {
             size,
             children: cellText,
-            _isHeader: isHeader,
-            _columnWidth: col.width,
-            style: { width: col.width, flexGrow: 0, flexShrink: 0 },
+            // ADR-912 Pattern B (TableCell catalog cutover, 2026-06-13): header/data 굵기 분기를
+            //   projection 이 style.fontWeight 보편 D3 데이터로 주입(header 600 / data 400).
+            //   buildCatalogShapes 는 셀 종류를 모른 채 style.fontWeight 우선 경로로 그린다
+            //   (컴포넌트 식별 분기 0, ADR-142 §3). 정렬은 left 기본(spec _align ?? "left" 동형) —
+            //   명시 정렬 필요 시 style.textAlign 주입(현재 모든 컬럼 left). 컬럼 폭 내 ellipsis 는
+            //   style.width(노드 clip)로 처리(spec maxWidth = columnWidth - paddingX*2 동형 근사).
+            style: {
+              width: col.width,
+              flexGrow: 0,
+              flexShrink: 0,
+              fontWeight: isHeader ? 600 : 400,
+              textAlign: "left",
+            },
           },
           parentId: rowId,
           pageId: scope.pageId,

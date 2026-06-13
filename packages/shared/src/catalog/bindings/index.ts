@@ -75,6 +75,8 @@ import { sliderTrackBinding } from "./SliderTrack.binding";
 import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
+import { tableCellBinding } from "./TableCell.binding";
+import { tableRowBinding } from "./TableRow.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tagBinding } from "./Tag.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
@@ -156,6 +158,8 @@ export * from "./SliderTrack.binding";
 export * from "./StatusLight.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
+export * from "./TableCell.binding";
+export * from "./TableRow.binding";
 export * from "./Tabs.binding";
 export * from "./Tag.binding";
 export * from "./TagGroup.binding";
@@ -314,6 +318,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Tree: treeBinding,
   TreeItem: treeItemBinding,
   Table: tableBinding,
+  TableCell: tableCellBinding,
+  TableRow: tableRowBinding,
   // family ⑥ overlays (internal source — composition wrapper, portal/overlay, skiaLegacy)
   Dialog: dialogBinding,
   Modal: modalBinding,

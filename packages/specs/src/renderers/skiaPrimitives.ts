@@ -113,6 +113,50 @@ const divider: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 };
 
 /**
+ * `table_row_divider` — Table 행 하단 구분선(append). bg box 위에 행 높이 아래쪽에 1px line.
+ *
+ * **ADR-912 Pattern B (TableRow catalog cutover, 2026-06-13)**: TableRow.spec.render.shapes 의
+ *   하단 line(`y1: rowHeight, x2: _rowWidth`)을 이전. `divider`(Separator, y:0 선 자체)와 별개 —
+ *   본 module 은 행 배경(buildCatalogShapes bg box) **아래쪽 경계**에 그리는 구분선이라 append +
+ *   `y: rowHeight` 절대 배치. 폭은 projection 이 주입한 `_rowWidth`(전체 컬럼 합) — 미주입 시
+ *   layout width fallback. 선색 = style.borderColor → variant.border → `{color.border}`.
+ *   컴포넌트 식별 분기 아님 — `_rowWidth` 데이터 유무로만 분기(ADR-142 §3, 미주입 type 은
+ *   layout width 사용 → 무영향).
+ */
+const tableRowDivider: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  style,
+}) => {
+  const lineColor =
+    (style?.borderColor as string | undefined) ??
+    visual?.border ??
+    ("{color.border}" as TokenRef);
+  const rowHeight =
+    typeof style?.height === "number" && style.height > 0
+      ? style.height
+      : typeof size.height === "number" && size.height > 0
+        ? size.height
+        : 44;
+  const rowWidth =
+    typeof props._rowWidth === "number" && props._rowWidth > 0
+      ? props._rowWidth
+      : ("auto" as unknown as number);
+  return [
+    {
+      type: "line",
+      x1: 0,
+      y1: rowHeight,
+      x2: rowWidth,
+      y2: rowHeight,
+      stroke: lineColor,
+      strokeWidth: 1,
+    },
+  ];
+};
+
+/**
  * `checkbox` — 체크박스 indicator: box(roundRect, size.indicator.boxSize) + border +
  * checkmark(2 line)/indeterminate(1 line, isChecked·isSelected 시). label 은 자식 Label
  * Element 가 담당하므로 여기서 안 그린다(정본 — indicator 만). isChecked 시 bg/border
@@ -1844,6 +1888,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
   dot,
   divider,
+  // ADR-912 Pattern B (TableRow catalog cutover): 행 하단 구분선(append, y=rowHeight).
+  table_row_divider: tableRowDivider,
   checkbox,
   radio,
   switch_toggle: switchToggle,
@@ -1891,6 +1937,8 @@ export type SkiaPrimitiveMode = "replace" | "prepend" | "append";
  * 미등록 키는 `"replace"` 로 간주(기존 호환).
  */
 const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
+  // ADR-912 Pattern B: table_row_divider 는 bg box(buildCatalogShapes) 아래쪽 경계 line → append.
+  table_row_divider: "append",
   overlay_backdrop: "prepend",
   dialog_shadow: "prepend",
   popover_shadow: "prepend",

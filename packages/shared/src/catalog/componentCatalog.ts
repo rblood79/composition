@@ -665,6 +665,22 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     label: "table",
     icon: "TableProperties",
   }),
+  // ADR-912 Pattern B (collection sub-part, 2026-06-13): TableCell/TableRow catalog cutover.
+  //   Table 2D projection(appendTableRowProjection → TableRow/TableCell SceneNode)의 셀/행
+  //   self-render 가 spec.render.shapes 였다 → rule + buildCatalogShapes generic 으로 이전.
+  //   TableCell=text-only(box transparent), TableRow=bg box + table_row_divider(하단 line) append.
+  //   배경/굵기/정렬 분기는 projection 이 style 보편 D3 주입(ADR-142 §3). canonical 문서에 element
+  //   없음(projection 전용) → DOM 변화 0, Skia 대칭(spec 의존 끊기 = step 4 삭제 안전) 한정.
+  primitiveEntry("TableRow", "tree-table", FAMILY_5_CUTOVER, {
+    category: "collections",
+    label: "table row",
+    icon: "TableProperties",
+  }),
+  primitiveEntry("TableCell", "tree-table", FAMILY_5_CUTOVER, {
+    category: "collections",
+    label: "table cell",
+    icon: "TableProperties",
+  }),
 ];
 
 /**

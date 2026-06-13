@@ -6517,4 +6517,86 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-912 Pattern B (collection sub-part, 2026-06-13): TableCell catalog cutover.
+  //   spec.render.shapes(header fw600 / data fw400 cell text) → rule + buildCatalogShapes generic(text).
+  //   배경은 부모 TableRow 가 담당 → 셀 fill transparent(text-only). header/data 굵기·정렬은
+  //   projection(appendTableRowProjection)이 style.fontWeight/textAlign 보편 D3 주입 → buildCatalogShapes
+  //   보편 경로(컴포넌트 식별 분기 0, ADR-142 §3). 시각값 = TableCell.spec.sizes 이전.
+  TableCell: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      sm: {
+        fontSize: "{typography.text-sm}",
+        paddingX: 8,
+        height: 36,
+        borderRadius: "{radius.none}",
+      },
+      md: {
+        fontSize: "{typography.text-base}",
+        paddingX: 12,
+        height: 44,
+        borderRadius: "{radius.none}",
+      },
+      lg: {
+        fontSize: "{typography.text-lg}",
+        paddingX: 16,
+        height: 52,
+        borderRadius: "{radius.none}",
+      },
+    },
+  },
+  // ADR-912 Pattern B (collection sub-part, 2026-06-13): TableRow catalog cutover.
+  //   spec.render.shapes(행 배경 rect + 하단 line) → rule fill base {color.base} + colors.border +
+  //   buildCatalogShapes generic(bg box) + table_row_divider skiaPrimitive(append 하단 line).
+  //   배경 분기(header/striped/selected)는 projection 이 style.backgroundColor 보편 D3 주입 →
+  //   buildCatalogShapes style.backgroundColor 우선 경로(행 종류 모름, ADR-142 §3). rule fill base
+  //   {color.base} 는 projection 미주입 시 fallback. divider 선색 = colors.border({color.border}).
+  TableRow: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      // colors.border 미선언: spec TableRow.render.shapes 는 행 box 테두리를 그리지 않고
+      //   하단 구분선(line)만 그린다. colors.border 를 두면 buildCatalogShapes 가 bg box 에
+      //   border 를 덧그려 spec 비대칭(행 전체 테두리) → 미선언. 하단 line 선색은
+      //   table_row_divider skiaPrimitive 가 style.borderColor → visual.border → `{color.border}`
+      //   fallback 순으로 읽으므로 colors.border 없이도 `{color.border}` 로 정상 렌더된다.
+      default: {
+        fill: {
+          default: {
+            base: "{color.base}",
+          },
+        },
+      },
+    },
+    sizes: {
+      sm: {
+        fontSize: "{typography.text-sm}",
+        height: 36,
+        borderRadius: "{radius.none}",
+      },
+      md: {
+        fontSize: "{typography.text-base}",
+        height: 44,
+        borderRadius: "{radius.none}",
+      },
+      lg: {
+        fontSize: "{typography.text-lg}",
+        height: 52,
+        borderRadius: "{radius.none}",
+      },
+    },
+  },
 };
