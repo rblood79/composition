@@ -18,10 +18,8 @@ import type {
 import { resolveContainerSpacing } from "../primitives/containerSpacing";
 import { Grid, Binary, Rows, SquareX, PointerOff, Square } from "lucide-react";
 import { FILTERING_SECTION } from "../utils/sharedSections";
-import {
-  GridListItemSpec,
-  resolveGridListItemMetric,
-} from "./GridListItem.spec";
+import { GridListItemSpec } from "./GridListItem.spec";
+import { resolveGridListItemMetric } from "../renderers/utils/collectionItemMetrics";
 // ADR-099 Phase 5: HeaderSpec 도 childSpecs 경로로 관계 선언 —
 // GridList.skipCSSGeneration=true 이므로 Generator emit 안 하지만,
 // Spec 계층 관계를 SSOT 로 선언해 향후 skipCSSGeneration 해체 시 자동 연동.

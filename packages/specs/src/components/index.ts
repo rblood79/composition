@@ -257,11 +257,12 @@ export { MenuSpec } from "./Menu.spec";
 export type { MenuProps } from "./Menu.spec";
 
 // ListBoxItem (ADR-146 — Skia row projection renderer + generated CSS source)
+// ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
 export {
-  ListBoxItemSpec,
   resolveListBoxItemMetric,
   resolveListBoxItemRowHeight,
-} from "./ListBoxItem.spec";
+} from "../renderers/utils/collectionItemMetrics";
+export { ListBoxItemSpec } from "./ListBoxItem.spec";
 export type { ListBoxItemProps } from "./ListBoxItem.spec";
 
 // Breadcrumbs
@@ -291,10 +292,9 @@ export { GridListSpec } from "./GridList.spec";
 export type { GridListProps } from "./GridList.spec";
 
 // GridListItem (ADR-090 — Spec metadata 전용, skipCSSGeneration: true)
-export {
-  GridListItemSpec,
-  resolveGridListItemMetric,
-} from "./GridListItem.spec";
+// ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
+export { resolveGridListItemMetric } from "../renderers/utils/collectionItemMetrics";
+export { GridListItemSpec } from "./GridListItem.spec";
 export type { GridListItemProps } from "./GridListItem.spec";
 
 // Disclosure / DisclosureGroup — ADR-912 Disclosure 군 일괄 cutover (2026-06-10) spec 삭제.

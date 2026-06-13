@@ -338,11 +338,12 @@ export type {
 } from "./components/ListBox.spec";
 
 // ListBoxItem (ADR-146 — Skia row projection renderer + generated CSS source)
+// ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
 export {
-  ListBoxItemSpec,
   resolveListBoxItemMetric,
   resolveListBoxItemRowHeight,
-} from "./components/ListBoxItem.spec";
+} from "./renderers/utils/collectionItemMetrics";
+export { ListBoxItemSpec } from "./components/ListBoxItem.spec";
 export type { ListBoxItemProps } from "./components/ListBoxItem.spec";
 
 // Header (ADR-099 Phase 3 — section 헤더, CSS 자동 생성 전용, Builder Skia 미등록)
@@ -432,10 +433,9 @@ export type {
   GridListSpacingInput,
 } from "./components/GridList.spec";
 
-export {
-  GridListItemSpec,
-  resolveGridListItemMetric,
-} from "./components/GridListItem.spec";
+// ADR-912 cutover: metric resolver 는 collectionItemMetrics 로 분리(spec body 삭제 대비).
+export { resolveGridListItemMetric } from "./renderers/utils/collectionItemMetrics";
+export { GridListItemSpec } from "./components/GridListItem.spec";
 export type { GridListItemProps } from "./components/GridListItem.spec";
 
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup spec 삭제.

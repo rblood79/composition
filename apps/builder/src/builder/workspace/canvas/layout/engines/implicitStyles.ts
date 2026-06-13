@@ -15,7 +15,7 @@ import { parsePadding, PHANTOM_INDICATOR_CONFIGS } from "./utils";
 import {
   InlineAlertSpec,
   BreadcrumbsSpec,
-  GridListItemSpec,
+  resolveGridListItemMetric,
   normalizeBreadcrumbRspSizeKey,
   resolveToken,
   resolveContainerStylesFallback as _resolveContainerStylesFallback,
@@ -722,20 +722,21 @@ export function applyImplicitStyles(
   }
 
   // ── GridListItem ────────────────────────────────────────────────
-  // ADR-090 Phase 4: display/flexDirection 은 GridListItem.spec.containerStyles 로 리프팅됨
-  //   (resolveContainerStylesFallback 경유 parentStyle 주입).
-  //   padding/gap/borderWidth 는 GridListItemSpec.sizes.md 에서 SSOT 참조 (Taffy shorthand 미지원).
+  // ADR-912 cutover: padding/gap/borderWidth 는 resolveGridListItemMetric(collectionItemMetrics)
+  //   에서 SSOT 참조 (Taffy shorthand 미지원). GridListItem.spec body 삭제 대비 — sizes.md 직접
+  //   참조 제거. fontSize=14 medium 카드 분기(cardPaddingX 16/cardPaddingY 12). gap 2 =
+  //   componentRulesTable.GridListItem.sizes.md.gap 정합.
   if (containerTag === "gridlistitem") {
-    const sz = GridListItemSpec.sizes.md;
+    const m = resolveGridListItemMetric(14);
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       // CSS grid 1fr 트랙 내에서 축소되도록 minWidth: 0 (CSS minmax(0, 1fr) 동기화)
       minWidth: parentStyle.minWidth ?? 0,
-      gap: parentStyle.gap ?? (sz.gap as number),
-      paddingTop: parentStyle.paddingTop ?? (sz.paddingY as number),
-      paddingBottom: parentStyle.paddingBottom ?? (sz.paddingY as number),
-      paddingLeft: parentStyle.paddingLeft ?? (sz.paddingX as number),
-      paddingRight: parentStyle.paddingRight ?? (sz.paddingX as number),
+      gap: parentStyle.gap ?? 2,
+      paddingTop: parentStyle.paddingTop ?? m.cardPaddingY,
+      paddingBottom: parentStyle.paddingBottom ?? m.cardPaddingY,
+      paddingLeft: parentStyle.paddingLeft ?? m.cardPaddingX,
+      paddingRight: parentStyle.paddingRight ?? m.cardPaddingX,
       borderWidth: parentStyle.borderWidth ?? 1,
     });
     filteredChildren = injectCollectionItemFontStyles(filteredChildren);

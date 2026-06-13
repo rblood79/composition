@@ -15,7 +15,8 @@ import { resolveStateColors } from "../utils/stateEffect";
 // ADR-078 Phase 2: 자식 Spec inline emit — `.react-aria-ListBoxItem` 블록이 본 Spec
 // 의 `generated/ListBox.css` 같은 @layer 에 삽입된다.
 // ADR-078 Phase 3: `resolveListBoxItemMetric` 로 Skia/layout 양쪽 item metric 단일 소스화.
-import { ListBoxItemSpec, resolveListBoxItemMetric } from "./ListBoxItem.spec";
+import { ListBoxItemSpec } from "./ListBoxItem.spec";
+import { resolveListBoxItemMetric } from "../renderers/utils/collectionItemMetrics";
 // ADR-099 Phase 3 (098-c 슬롯): HeaderSpec 도 childSpecs 경로로 inline emit —
 // `.react-aria-ListBox .react-aria-Header` 블록이 generated/ListBox.css 에 추가된다.
 import { HeaderSpec } from "./Header.spec";
