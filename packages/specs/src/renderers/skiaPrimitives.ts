@@ -156,6 +156,151 @@ const tableRowDivider: SkiaPrimitiveDrawFn = ({
   ];
 };
 
+/** GridListItem/ListBoxItem template placeholder(`{label}` 등) → sample 미리보기 판정. */
+function isCardTemplatePlaceholder(value: unknown): boolean {
+  return typeof value === "string" && /^\{[^}]+\}$/.test(value);
+}
+
+/** props.children/textValue/value 에서 카드 label 텍스트 추출 (Item spec readText 동형). */
+function readCardText(value: unknown): string | null {
+  if (typeof value === "string" && value.length > 0) {
+    return isCardTemplatePlaceholder(value) ? null : value;
+  }
+  if (typeof value === "number") return String(value);
+  return null;
+}
+
+/**
+ * `gridlist_card` — GridList 카드 항목 (box bg+border + label + description, replace 모드).
+ *
+ * **ADR-912 collection sub-part cutover (2026-06-14, Avatar replace 선례 동형)**: GridListItem 은
+ *   catalog 미등록 상태에서 `GridListItem.spec.render.shapes`(카드 roundRect {color.layer-1} +
+ *   border {color.border} + label fw600 + description {color.neutral-subdued})가 Skia 시각 유일
+ *   source 였다. catalog 등록으로 rule(`COMPONENT_RULES_TABLE.GridListItem`: fill.default.base +
+ *   colors.border + textWeight + sizes.{fontSize/paddingX/paddingY/gap/borderRadius}) + 본 escape 로
+ *   이전 → spec 의존 끊기(step 4 삭제 안전).
+ *
+ *   **replace 모드인 이유**: 카드는 label(상단 top-left) + description(2번째 줄) **2-line top-aligned**
+ *   레이아웃이라, buildCatalogShapes 의 box-center/single-text 가정과 충돌(height>0 box 로 오판 →
+ *   label center/middle drift). Avatar/SliderTrack 처럼 box+text 전체를 escape 가 자체 생성.
+ *   spec.render.shapes(GridListItem.spec.ts:124-217) 좌표 공식과 1:1 대칭.
+ *
+ *   label/description = projection 이 주입한 props.children/description(보편 데이터, ADR-142 §3 —
+ *   컴포넌트 식별 분기 0). template placeholder(`{label}`) → "Label"/"Description" sample.
+ */
+const gridListCard: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    14,
+  );
+  // 카드 padding: longhand 우선 → shorthand → rule sizes (style-ssot.md).
+  const cardPaddingX = parsePxValue(
+    style?.paddingLeft ?? style?.padding,
+    typeof size.paddingX === "number" ? size.paddingX : 16,
+  );
+  const cardPaddingY = parsePxValue(
+    style?.paddingTop ?? style?.padding,
+    typeof size.paddingY === "number" ? size.paddingY : 12,
+  );
+  const cardBorderRadius = parsePxValue(
+    style?.borderRadius,
+    typeof size.borderRadius === "number" ? size.borderRadius : 8,
+  );
+  // label↔description 수직 간격 (spec descGap 4 = label baseline 아래 description top).
+  const descGap = 4;
+  const descFontSize = fontSize - 2;
+  const ff = (style?.fontFamily as string) || fontFamily.sans;
+  const textColor =
+    (style?.color as string | undefined) ??
+    visual?.text ??
+    ("{color.neutral}" as TokenRef);
+  const bgColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    ("{color.layer-1}" as TokenRef);
+  const borderColor =
+    (style?.borderColor as string | undefined) ??
+    visual?.border ??
+    ("{color.border}" as TokenRef);
+
+  // template placeholder(`{label}`) → sample 미리보기 (빈 화면 방지, Item spec 패턴).
+  const labelRaw = props.children ?? props.textValue ?? props.value;
+  const isTemplatePreview = isCardTemplatePlaceholder(labelRaw);
+  const label = isTemplatePreview
+    ? "Label"
+    : (readCardText(props.children) ??
+      readCardText(props.textValue) ??
+      readCardText(props.value) ??
+      "");
+  const description = isTemplatePreview
+    ? props.description != null && props.description !== ""
+      ? "Description"
+      : null
+    : readCardText(props.description);
+
+  const labelH = fontSize;
+  const descH = description ? descFontSize + descGap : 0;
+  const cardHeight = parsePxValue(
+    style?.height,
+    cardPaddingY * 2 + labelH + descH,
+  );
+  const labelFontWeight =
+    (style?.fontWeight as string | number | undefined) ??
+    visual?.textWeight ??
+    600;
+
+  const shapes: Shape[] = [];
+
+  // 카드 박스 (bg + border) — GridListItem.spec renderOneCard 정본.
+  shapes.push({
+    id: "card-bg",
+    type: "roundRect",
+    x: 0,
+    y: 0,
+    width: "auto",
+    height: cardHeight,
+    radius: cardBorderRadius,
+    fill: bgColor,
+  });
+  shapes.push({
+    type: "border",
+    target: "card-bg",
+    borderWidth: parsePxValue(
+      style?.borderWidth,
+      typeof size.borderWidth === "number" ? size.borderWidth : 1,
+    ),
+    color: borderColor,
+    radius: cardBorderRadius,
+  });
+
+  // label (top-left)
+  shapes.push({
+    type: "text",
+    x: cardPaddingX,
+    y: cardPaddingY,
+    text: label,
+    fontSize,
+    fontFamily: ff,
+    fontWeight: labelFontWeight,
+    fill: textColor,
+  });
+
+  // description (optional, 2번째 줄)
+  if (description) {
+    shapes.push({
+      type: "text",
+      x: cardPaddingX,
+      y: cardPaddingY + fontSize + descGap,
+      text: description,
+      fontSize: descFontSize,
+      fontFamily: ff,
+      fill: "{color.neutral-subdued}" as TokenRef,
+    });
+  }
+
+  return shapes;
+};
+
 /**
  * `checkbox` — 체크박스 indicator: box(roundRect, size.indicator.boxSize) + border +
  * checkmark(2 line)/indeterminate(1 line, isChecked·isSelected 시). label 은 자식 Label
@@ -1890,6 +2035,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   divider,
   // ADR-912 Pattern B (TableRow catalog cutover): 행 하단 구분선(append, y=rowHeight).
   table_row_divider: tableRowDivider,
+  // ADR-912 collection sub-part cutover (GridListItem): 카드 box+label+description(replace).
+  gridlist_card: gridListCard,
   checkbox,
   radio,
   switch_toggle: switchToggle,
@@ -1939,6 +2086,9 @@ export type SkiaPrimitiveMode = "replace" | "prepend" | "append";
 const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 Pattern B: table_row_divider 는 bg box(buildCatalogShapes) 아래쪽 경계 line → append.
   table_row_divider: "append",
+  // ADR-912 collection sub-part: gridlist_card 는 카드 box+label+description 전체 자체 생성
+  //   (2-line top-aligned → buildCatalogShapes box-center 가정과 충돌) → replace.
+  gridlist_card: "replace",
   overlay_backdrop: "prepend",
   dialog_shadow: "prepend",
   popover_shadow: "prepend",

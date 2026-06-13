@@ -2474,14 +2474,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   GridListItem: {
+    defaultVariant: "default",
     defaultSize: "md",
-    variants: {},
+    // ADR-912 collection sub-part cutover (2026-06-14, TreeItem escape 선례 동형):
+    //   GridListItem.spec.render.shapes(카드 box layer-1 + border + label fw600 +
+    //   description neutral-subdued)를 rule + buildCatalogShapes(box+label) +
+    //   card_description skiaPrimitive(append, 2번째 줄)로 이전. 카드 box border 는
+    //   colors.border(TableRow 와 달리 GridListItem 은 카드 테두리 의도됨).
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.layer-1}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.border}",
+        },
+        // 카드 label 굵기 (spec fontWeight 600). buildCatalogShapes 가 visual.textWeight 소비.
+        textWeight: 600,
+      },
+    },
     sizes: {
       md: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.lg}",
+        // height 0 = content-fit (카드 시각 = label + description 합산 + padding).
         height: 0,
+        // spec.sizes.md 이전: paddingX 16 / paddingY 12 (수동 CSS spacing-md/lg 정합).
+        paddingX: 16,
+        paddingY: 12,
+        // label↔description 수직 간격 (spec gap 2 + descGap, card_description 이 소비).
+        gap: 2,
+        borderWidth: 1,
       },
     },
   },

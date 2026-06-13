@@ -595,6 +595,18 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "grid list",
     icon: "Grid",
   }),
+  // ADR-912 collection sub-part cutover (2026-06-14): GridListItem catalog cutover.
+  //   GridList projection(appendGridListRowProjection → GridListItem SceneNode)의 카드 self-render
+  //   가 spec.render.shapes(카드 box layer-1 + border + label fw600 + description neutral-subdued)
+  //   였다 → rule + gridlist_card skiaPrimitive(replace — 2-line top-aligned 카드, Avatar 선례 동형)
+  //   으로 이전. label/description 분기는 projection 이 children/description 보편 주입(ADR-142 §3).
+  //   canonical 문서에 element 없음(projection 전용) → DOM 변화 0, Skia 대칭(spec 의존 끊기 =
+  //   step 4 삭제 안전) 한정.
+  primitiveEntry("GridListItem", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "grid list item",
+    icon: "Grid",
+  }),
   // Breadcrumbs — Skia generic 발효 (ADR-912 영역 B (A) 2026-06-08): crumb 은 items SSOT
   //   (StoredBreadcrumbItem) → appendBreadcrumbRowProjection 이 Breadcrumbs.props.items 를 직접
   //   읽어 crumb projection 노드 전개(중간 컨테이너 없음 — Tag/Tab 2단과 다른 1단 직접). crumb 시각은

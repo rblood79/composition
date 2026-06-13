@@ -36,6 +36,7 @@ import { fieldErrorBinding } from "./FieldError.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
 import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
+import { gridListItemBinding } from "./GridListItem.binding";
 import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
 import { illustratedMessageBinding } from "./IllustratedMessage.binding";
@@ -123,6 +124,7 @@ export * from "./FieldError.binding";
 export * from "./FileTrigger.binding";
 export * from "./Form.binding";
 export * from "./GridList.binding";
+export * from "./GridListItem.binding";
 export * from "./Heading.binding";
 export * from "./Icon.binding";
 export * from "./IllustratedMessage.binding";
@@ -314,6 +316,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Tag: tagBinding,
   TagGroup: tagGroupBinding,
   GridList: gridListBinding,
+  GridListItem: gridListItemBinding,
   // family ⑤ Tree·Table (internal source — composition wrapper + useCollectionData, 재귀/2D)
   Tree: treeBinding,
   TreeItem: treeItemBinding,
