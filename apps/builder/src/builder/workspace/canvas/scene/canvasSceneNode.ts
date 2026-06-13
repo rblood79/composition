@@ -960,7 +960,15 @@ function appendTableRowProjection(
           size,
           // _rowWidth: table_row_divider skiaPrimitive 가 하단 line 폭에 사용(전체 컬럼 합).
           _rowWidth: totalWidth,
-          style: { width: totalWidth, backgroundColor: rowBg },
+          // ADR-912 cutover: 셀 가로 배치(display:flex/row)를 projection 이 직접 주입. 이전엔
+          //   TableRowSpec.containerStyles → resolveContainerStylesFallback 경유였으나 spec body
+          //   삭제 대비 render-space 명시 주입(ADR-135 정합).
+          style: {
+            width: totalWidth,
+            backgroundColor: rowBg,
+            display: "flex",
+            flexDirection: "row",
+          },
         },
         parentId: rowsGroupId,
         pageId: scope.pageId,

@@ -730,6 +730,10 @@ export function applyImplicitStyles(
     const m = resolveGridListItemMetric(14);
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
+      // ADR-912 cutover: display/flexDirection 직접 주입 (이전엔 GridListItem.spec.containerStyles
+      //   → resolveContainerStylesFallback 경유였으나 spec body 삭제 대비 분기 자족화).
+      display: parentStyle.display ?? "flex",
+      flexDirection: (parentStyle.flexDirection as string) ?? "column",
       // CSS grid 1fr 트랙 내에서 축소되도록 minWidth: 0 (CSS minmax(0, 1fr) 동기화)
       minWidth: parentStyle.minWidth ?? 0,
       gap: parentStyle.gap ?? 2,
@@ -749,8 +753,13 @@ export function applyImplicitStyles(
   if (containerTag === "listboxitem") {
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
+      // ADR-912 cutover: display/flexDirection/alignItems/justifyContent 직접 주입 (이전엔
+      //   ListBoxItem.spec.containerStyles → resolveContainerStylesFallback 경유였으나 spec
+      //   body 삭제 대비 분기 자족화).
       display: parentStyle.display ?? "flex",
-      flexDirection: "column",
+      flexDirection: (parentStyle.flexDirection as string) ?? "column",
+      alignItems: (parentStyle.alignItems as string) ?? "flex-start",
+      justifyContent: (parentStyle.justifyContent as string) ?? "center",
       gap: parentStyle.gap ?? 2,
       paddingTop: parentStyle.paddingTop ?? 4,
       paddingBottom: parentStyle.paddingBottom ?? 4,
