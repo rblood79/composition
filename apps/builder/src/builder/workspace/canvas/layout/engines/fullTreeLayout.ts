@@ -117,12 +117,9 @@ const LABEL_DELEGATION_PARENT_TAGS = new Set([
 ]);
 
 /** Label DFS injection: size 없이 상위로 통과하는 구조적 래퍼 태그 */
-const LABEL_WRAPPER_TAGS = new Set([
-  "Checkbox",
-  "Radio",
-  "CheckboxItems",
-  "RadioItems",
-]);
+// ADR-912 (2026-06-14): CheckboxItems/RadioItems 중간 컨테이너 폐기 → 래퍼 멤버 제거.
+//   Checkbox/Radio 는 여전히 Label 자식 보유 → 유지.
+const LABEL_WRAPPER_TAGS = new Set(["Checkbox", "Radio"]);
 
 // ─── NaN/Infinity sanitize 유틸 (ADR-006 P0-2) ───────────────────────
 
@@ -1074,15 +1071,9 @@ function traversePostOrder(
     !(rawElement.props as Record<string, unknown> | undefined)?.size &&
     rawElement.parent_id
   ) {
-    let ancestor = elementsMap.get(rawElement.parent_id);
-    // CheckboxItems/RadioItems 래퍼 통과
-    if (
-      ancestor &&
-      (ancestor.type === "CheckboxItems" || ancestor.type === "RadioItems") &&
-      ancestor.parent_id
-    ) {
-      ancestor = elementsMap.get(ancestor.parent_id);
-    }
+    // ADR-912 (2026-06-14): CheckboxItems/RadioItems 래퍼 폐기 → Checkbox/Radio 의 직접
+    //   부모가 곧 CheckboxGroup/RadioGroup. 중간 래퍼 통과 로직 제거.
+    const ancestor = elementsMap.get(rawElement.parent_id);
     const groupTag =
       rawElement.type === "Checkbox" ? "CheckboxGroup" : "RadioGroup";
     if (ancestor?.type === groupTag) {
@@ -1117,7 +1108,7 @@ function traversePostOrder(
               ?.size as string) || undefined;
           if (ancestorSize) break; // size 찾음 → 확정
         }
-        // 래퍼 태그면 계속 상위 탐색 (Checkbox → CheckboxItems → CheckboxGroup)
+        // 래퍼 태그면 계속 상위 탐색 (Label → Checkbox → CheckboxGroup)
         if (LABEL_WRAPPER_TAGS.has(ancestor.type) && ancestor.parent_id) {
           ancestor = elementsMap.get(ancestor.parent_id);
         } else {
@@ -1500,33 +1491,10 @@ function traversePostOrder(
       });
     };
   }
-  // CheckboxItems/RadioItems: 부모 Group의 propagation을 중계
-  if (containerTag === "checkboxitems" || containerTag === "radioitems") {
-    const parentEl = rawElement.parent_id
-      ? elementsMap.get(rawElement.parent_id)
-      : undefined;
-    if (parentEl) {
-      const parentRules = getPropagationRules(parentEl.type.toLowerCase());
-      if (parentRules) {
-        const parentProps = parentEl.props as Record<string, unknown>;
-        const prevGet2 = effectiveGetChildElements;
-        effectiveGetChildElements = (id: string) => {
-          const children = prevGet2(id);
-          return children.map((child) => {
-            const patch = resolvePropagatedProps(
-              parentEl.type,
-              parentProps,
-              child.type,
-              child.props as Record<string, unknown>,
-            );
-            return patch
-              ? { ...child, props: { ...child.props, ...patch } }
-              : child;
-          });
-        };
-      }
-    }
-  }
+  // ADR-912 (2026-06-14): CheckboxItems/RadioItems propagation 중계 제거.
+  //   중간 컨테이너 폐기로 CheckboxGroup/RadioGroup 의 propagation rules 가 자식
+  //   Checkbox/Radio 에 직접 적용됨(부모 spec childPath ["Checkbox"]/["Radio"] 로 단축).
+  //   중계 분기 도달 불가능 → 제거.
 
   // Label fontSize/lineHeight 주입 — 부모의 size에 따라 Label에 fontSize/lineHeight 인라인 주입
   if (getLabelDelegationParents()?.has(containerTag)) {

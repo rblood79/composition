@@ -860,31 +860,13 @@ export function applyImplicitStyles(
     });
   }
 
-  // ── RadioItems / CheckboxItems ────────────────────────────────────
-  // RadioGroup 내부 RadioItems: 부모 orientation에 따라 row/column 전환
-  // ADR-093 Phase 3: display:"flex" + flexDirection:"column" base primitive 는
-  //   Radio/CheckboxItemsSpec.containerStyles 로 리프팅됨 (ADR-094 expandChildSpecs
-  //   경유 자동 주입). orientation="horizontal" 시에만 row+alignItems:center override.
-  //   gap 은 size-indexed (sm:8/md:12/lg:16) runtime fork 유지 — Taffy 가 sizes 를 직접
-  //   모르므로 분기 주입 필요.
-  if (containerTag === "radioitems" || containerTag === "checkboxitems") {
-    const parentEl = containerEl.parent_id
-      ? elementById.get(containerEl.parent_id)
-      : undefined;
-    const parentProps = parentEl?.props as Record<string, unknown> | undefined;
-    const orientation = parentProps?.orientation as string | undefined;
-    const sizeName = (parentProps?.size as string) ?? "md";
-    const gap = sizeName === "sm" ? 8 : sizeName === "lg" ? 16 : 12;
-
-    effectiveParent = withParentStyle(containerEl, {
-      ...parentStyle,
-      // orientation="horizontal" 시 spec default(column) 를 row+center 로 override.
-      ...(orientation === "horizontal"
-        ? { flexDirection: "row" as const, alignItems: "center" as const }
-        : {}),
-      gap,
-    });
-  }
+  // ── RadioItems / CheckboxItems 분기 제거 (ADR-912, 2026-06-14) ──────
+  //   CheckboxItems/RadioItems 중간 컨테이너 element 폐기로 본 분기는 도달 불가능.
+  //   자식 Checkbox/Radio 가 CheckboxGroup/RadioGroup 직속이 되어, vertical 배치는
+  //   그룹 자체 flex column gap 으로 처리됨(live 검증: Skia/DOM 대칭). 기존 직렬화
+  //   프로젝트는 hydration migration(migrateCheckboxRadioItemsStructure)이 2단 승격.
+  //   horizontal orientation 의 Skia↔preview.html 대칭은 CheckboxGroup cutover 경로
+  //   (toRacProps wrapper 미생성) 별도 이슈로 후속 처리.
 
   // ── Breadcrumbs ────────────────────────────────────────────────────
   // ADR-086 P5: Breadcrumb child 의 style 주입 (width/minWidth/height/minHeight/

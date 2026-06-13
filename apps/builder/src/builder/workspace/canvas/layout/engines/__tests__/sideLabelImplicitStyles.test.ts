@@ -98,10 +98,11 @@ function getParentStyle(
 
 describe("side-label implicit styles", () => {
   it("CheckboxGroup side variant는 spec containerVariants 기반 row 정렬을 사용한다", () => {
+    // ADR-912 (2026-06-14): CheckboxItems 중간 컨테이너 폐기 → 자식은 Checkbox 직속.
     const result = applyContainer(
       "CheckboxGroup",
       { label: "Options", labelPosition: "side" },
-      [makeChild("lbl", "Label"), makeChild("items", "CheckboxItems")],
+      [makeChild("lbl", "Label"), makeChild("cb", "Checkbox")],
     );
 
     const parentStyle = getParentStyle(result);
