@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CheckboxItems/RadioItems 중간 컨테이너 폐기 — react-aria-starter 구조 정렬] - 2026-06-14
+
+### Architecture
+
+- **CheckboxItems/RadioItems 중간 element 폐기 — 2단 구조 전환** (ADR-912 collection sub-part):
+  - composition 자체 추상이던 CheckboxItems/RadioItems 중간 컨테이너(RAC API 부재) 를 폐기하고, react-aria-starter 원본 구조(`CheckboxGroup > Checkbox 직속`, DOM wrapper `<div className="checkbox-items">` 는 렌더러 self-compose)로 정렬
+  - factory(`GroupComponents`) 가 중간 element 생성 중단 → 신규 CheckboxGroup/RadioGroup 은 2단 구조(`Group > Label + Checkbox/Radio`)
+  - shared 컴포넌트(`CheckboxGroup.tsx`/`RadioGroup.tsx`) static children 분기에 starter 의 `.checkbox-items`/`.radio-items` wrapper 추가 → publish(ComponentRegistry) ↔ builder Preview(FormRenderers) DOM 대칭
+  - 부모 spec propagation childPath 중간 단계 제거(`["Checkbox"]`/`["Radio"]` 로 단축), childSpecs 제거, `CheckboxItems.spec.ts`/`RadioItems.spec.ts` 물리 삭제, `componentRulesTable` dead entry 제거
+  - layout 엔진(`implicitStyles`/`fullTreeLayout`) 의 중간 컨테이너 dead 분기 제거(LABEL_WRAPPER_TAGS 멤버 / size 상속 래퍼 통과 / propagation 중계)
+  - 위치: `apps/builder/src/builder/factories/definitions/GroupComponents.ts` / `packages/shared/src/components/{CheckboxGroup,RadioGroup}.tsx` / `packages/specs/src/components/{CheckboxGroup,RadioGroup}.spec.ts` / `apps/builder/src/builder/workspace/canvas/layout/engines/{implicitStyles,fullTreeLayout}.ts`
+  - 검증: type-check PASS(builder baseline 71 불변) + migration/sideLabel test 15/15 PASS + **Chrome MCP live**(기존 프로젝트 로드 → 3단→2단 자동 승격, Skia/DOM vertical 세로 배치 대칭, raw 태그/stale class 0건)
+  - **후속(별도)**: horizontal orientation 의 preview.html 대칭 — CheckboxGroup catalog cutover(toRacProps wrapper 미생성) 경로 이슈, 본 element 폐기와 직교
+
+- **기존 프로젝트 hydration migration — 3단 → 2단 자동 승격** (ADR-912):
+  - 기존 직렬화 프로젝트의 `CheckboxGroup > CheckboxItems > Checkbox` 3단 구조를 로드 시 자동으로 2단으로 승격(자식 Checkbox/Radio 를 조부모 직속으로 hoist, 순서 보존, 멱등)
+  - `legacyToCanonical`(legacy 변환) + `usePageManager`(canonical 직접 로드, persist-back 포함) 두 hydration 경로에 체이닝 — `migrateLegacyListBoxTemplatesToOrigins` 선례 동형
+  - 위치: `apps/builder/src/adapters/canonical/checkboxRadioItemsMigration.ts` (단위 test 7건)
+
 ## [Tag catalog cutover — remove X 를 trailing icon 으로 + ADR-912 영역 B (A)] - 2026-06-12
 
 ### Features
