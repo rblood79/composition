@@ -301,14 +301,15 @@ export function buildCatalogShapes(
       ...(textDecoration ? { textDecoration } : {}),
     });
 
-    // trailing icon (ADR-912 영역 B (A) Tag remove X): visual.trailingIcon + props.allowsRemoving
-    //   시 text 우측에 icon_font glyph 를 덧그린다 (Tag.spec 의 X line×2 직접 그리기를 Lucide "x"
-    //   glyph 로 교체 — SearchField clear / DOM Button slot=remove 와 동일 icon 데이터). 컴포넌트별
-    //   if 아님 — visual.trailingIcon 데이터 + props.allowsRemoving 유무로만 분기(ADR-142 §3).
-    //   위치: _containerWidth(CONTAINER_DIMENSION 주입) 우측 절대 배치 — width 미주입(0) 시 text
-    //   우측(textX + textWidth + gap) fallback. y = _containerHeight/2(baseline middle).
+    // trailing icon (ADR-912 영역 B (A) Tag remove X): visual.trailingIcon 데이터로 text 우측에
+    //   icon_font glyph 를 덧그린다 (Tag.spec 의 X line×2 직접 그리기를 Lucide "x" glyph 로 교체 —
+    //   SearchField clear / DOM Button slot=remove 와 동일 icon 데이터). 컴포넌트별 if 아님 — 가시성
+    //   조건도 데이터(ti.showProp: 어떤 boolean prop 이 true 일 때 그릴지)로 표현 → generic 렌더러는
+    //   Tag 전용 prop 이름("allowsRemoving")을 모름(ADR-142 §3 — 컴포넌트 식별 분기 금지). showProp
+    //   미지정 시 항상 그림(leading_icon 동형). 위치: _containerWidth(CONTAINER_DIMENSION 주입) 우측
+    //   절대 배치 — 미주입(non-CONTAINER_DIMENSION_TAGS) 시 text 우측 측정 fallback.
     const ti = visual?.trailingIcon;
-    if (ti && props.allowsRemoving === true) {
+    if (ti && (!ti.showProp || props[ti.showProp] === true)) {
       const tiGap = ti.gap ?? 2;
       const iconSize =
         typeof size.iconSize === "number" && size.iconSize > 0

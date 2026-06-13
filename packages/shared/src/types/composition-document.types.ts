@@ -182,8 +182,17 @@ export interface ComponentRuleVariant {
    * 그린다(좌 icon + center text + 우 icon — leading_icon 의 좌측 단일 모델과 다른 레이아웃 가정 →
    * 별도 module). 우측 배치는 containerWidth 의존(CONTAINER_DIMENSION_TAGS). DOM 은 부모 컴포넌트가
    * self-compose(Calendar/RangeCalendar `<header>`) → Skia generic 재현 전용.
+   *
+   * - `showProp`: 조건부 가시성 — 이 boolean prop 이 true 일 때만 그린다(미지정 시 항상). 컴포넌트
+   *   특수 prop 이름을 generic 렌더러(buildCatalogShapes) 밖 rule 데이터로 격리(ADR-142 §3 — 컴포넌트
+   *   식별 분기 금지). 예: Tag remove X 는 `showProp: "allowsRemoving"`.
    */
-  trailingIcon?: { name: string; gap?: number; color?: string };
+  trailingIcon?: {
+    name: string;
+    gap?: number;
+    color?: string;
+    showProp?: string;
+  };
   /**
    * 텍스트 정렬 (CSS text-align 동형 — CalendarHeader center 등 보편 D3 속성, ADR-912 (B+icon)).
    * `inline_icon_text` 가 center text 배치에 사용. 미지정 시 consumer 기본

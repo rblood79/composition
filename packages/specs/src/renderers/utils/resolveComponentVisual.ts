@@ -80,7 +80,9 @@ export interface ComponentVisualRule {
    * 레이아웃 가정 → 별도 module). 우측 배치는 containerWidth 의존(CONTAINER_DIMENSION_TAGS).
    * DOM 은 부모 컴포넌트가 self-compose(Calendar/RangeCalendar `<header>`) → Skia generic 재현 전용.
    */
-  trailingIcon: { name: string; gap?: number; color?: TokenRef } | undefined;
+  trailingIcon:
+    | { name: string; gap?: number; color?: TokenRef; showProp?: string }
+    | undefined;
   /**
    * 텍스트 정렬 (CSS text-align 동형, ADR-912 (B+icon)). `inline_icon_text` 가 center text
    * 배치에 사용. 미지정 시 consumer 기본(box=center / inline=left / leading_icon=left).

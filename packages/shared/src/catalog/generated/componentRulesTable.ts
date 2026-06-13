@@ -5669,10 +5669,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
         // ADR-912 영역 B (A) Tag cutover (2026-06-12): allowsRemoving remove X 를
-        //   trailing_icon(Lucide "x" glyph)으로 그린다 — buildCatalogShapes 가 props.allowsRemoving
+        //   trailing_icon(Lucide "x" glyph)으로 그린다 — buildCatalogShapes 가 showProp(allowsRemoving)
         //   true 일 때만 text 우측에 덧그림(SearchField clear / DOM Button slot=remove 와 동일 icon).
-        //   color 는 variant text 와 동일(default=neutral).
-        trailingIcon: { name: "x", gap: 2, color: "{color.neutral}" },
+        //   color 는 variant text 와 동일(default=neutral). showProp = generic 렌더러가 Tag 전용
+        //   prop 이름을 모르도록 데이터로 가시성 조건 격리(ADR-142 §3 컴포넌트 식별 분기 금지).
+        trailingIcon: {
+          name: "x",
+          gap: 2,
+          color: "{color.neutral}",
+          showProp: "allowsRemoving",
+        },
       },
       selected: {
         fill: {
@@ -5687,7 +5693,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.accent}",
         },
         // selected variant: remove X color = on-accent (text 와 동일).
-        trailingIcon: { name: "x", gap: 2, color: "{color.on-accent}" },
+        trailingIcon: {
+          name: "x",
+          gap: 2,
+          color: "{color.on-accent}",
+          showProp: "allowsRemoving",
+        },
       },
     },
     sizes: {
