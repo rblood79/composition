@@ -430,7 +430,7 @@ export function listBoxItemChildrenToItemsArray(
       isDisabled: p.isDisabled === true || undefined,
       description:
         typeof p.description === "string" ? p.description : descFromChild,
-      href: typeof p.href === "string" ? p.href : undefined,
+      href: typeof p.href === "string" && p.href ? p.href : undefined,
     };
   });
 }

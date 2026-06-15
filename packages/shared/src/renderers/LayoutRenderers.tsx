@@ -991,7 +991,7 @@ export const renderBreadcrumb = (
       key={element.id}
       id={element.customId}
       data-element-id={element.id}
-      href={String(element.props.href || "")}
+      href={element.props.href ? String(element.props.href) : undefined}
     >
       {element.props.children}
     </Breadcrumb>
@@ -1017,7 +1017,7 @@ export const renderLink = (
       key={element.id}
       data-custom-id={element.customId || undefined}
       data-element-id={element.id}
-      href={String(element.props.href || "")}
+      href={element.props.href ? String(element.props.href) : undefined}
       variant={(element.props.variant as "primary" | "secondary") || undefined}
       size={
         (element.props.size as "xs" | "sm" | "md" | "lg" | "xl") || undefined

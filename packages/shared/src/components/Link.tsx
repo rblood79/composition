@@ -93,20 +93,32 @@ export function Link(props: LinkProps) {
       }
     : {};
 
-  const allProps = mergeProps(restProps as object, focusProps as object, externalProps);
+  const allProps = mergeProps(
+    restProps as object,
+    focusProps as object,
+    externalProps,
+  );
+
+  // 빈 문자열 href 는 React 경고("empty string passed to href") 유발 + RAC 가 빈 <a href="">
+  // 렌더 → 모든 href 진입 경로(renderLink / Breadcrumb / collection item)의 최종 수렴점에서
+  // undefined 로 정규화하는 단일 방어선.
+  const normalizedHref =
+    typeof restProps.href === "string" && restProps.href
+      ? restProps.href
+      : undefined;
 
   return (
     <RACLink
       {...(allProps as RACLinkProps)}
+      href={normalizedHref}
       data-variant={variant}
       data-size={size}
       data-quiet={isQuiet || undefined}
       data-static-color={staticColor}
       data-focus-visible={isFocusVisible || undefined}
       data-external={isExternal || undefined}
-      className={composeRenderProps(
-        props.className,
-        (cls) => cls ? `react-aria-Link ${cls}` : "react-aria-Link"
+      className={composeRenderProps(props.className, (cls) =>
+        cls ? `react-aria-Link ${cls}` : "react-aria-Link",
       )}
     >
       {composeRenderProps(props.children, (children) => (
