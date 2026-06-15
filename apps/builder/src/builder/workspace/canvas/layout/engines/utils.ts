@@ -18,7 +18,8 @@ import {
   BreadcrumbsSpec,
   InputSpec,
   TagSpec,
-  TabSpec,
+  // ADR-912 projection 3 cutover (2026-06-15): TabSpec import 제거 — TAB_SIZE_CONFIG 가
+  //   ruleSizesToSizeSpecMap("Tab") 파생으로 이관(아래). BreadcrumbsSpec(부모 컨테이너)은 유지.
   resolveToken,
   breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
@@ -606,8 +607,10 @@ const TOGGLEBUTTON_SIZE_CONFIG = deriveSizeConfig(
   ruleSizesToSizeSpecMap("ToggleButton"),
 );
 
-// ADR-036: TabSpec.sizes에서 파생
-const TAB_SIZE_CONFIG = deriveSizeConfig(TabSpec.sizes);
+// ADR-912 projection 3 cutover (2026-06-15): Tab catalog cutover → TabSpec.sizes 직접 import 제거.
+//   COMPONENT_RULES_TABLE.Tab.sizes(paddingX/paddingY 보강 완료)에서 파생(ruleSizesToSizeSpecMap,
+//   Button/ToggleButton 동형 consumer 이관). spec 삭제 후에도 padding/height 메트릭 보존.
+const TAB_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Tab"));
 
 // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → CardSpec.sizes 직접 import 제거.
 //   COMPONENT_RULES_TABLE.Card.sizes 의 paddingX 에서 파생(resolveSkiaRule, R1 SelectTrigger 동형

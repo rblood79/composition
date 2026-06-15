@@ -5507,6 +5507,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 21,
         paddingX: 8,
         paddingY: 2,
+        fontWeight: 500,
       },
       md: {
         fontSize: "{typography.text-sm}",
@@ -5514,6 +5515,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 29,
         paddingX: 12,
         paddingY: 4,
+        fontWeight: 500,
       },
       lg: {
         fontSize: "{typography.text-base}",
@@ -5521,6 +5523,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 41,
         paddingX: 16,
         paddingY: 8,
+        fontWeight: 500,
       },
     },
   },

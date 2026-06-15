@@ -5,7 +5,7 @@ import {
   // ADR-912 box+text leaf 군 (2026-06-11): Badge/Button/ToggleButton/Separator/StatusLight/Icon
   //   Spec import 제거 — catalog binding.accepts 가 D2 properties 대체(Link 선례, spec.properties dead).
   BreadcrumbsSpec,
-  BreadcrumbSpec,
+  // ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   CalendarSpec,
   // ADR-912 R7 G1-b (2026-06-15): CardViewSpec import 제거 — catalog cutover, binding.accepts D2.
@@ -49,7 +49,7 @@ import {
   // ADR-912 R7 G1-b (2026-06-15): TableViewSpec import 제거 — catalog cutover, binding.accepts D2.
   TagGroupSpec,
   TabsSpec,
-  TabListSpec,
+  // ADR-912 projection 3 cutover (2026-06-15): TabListSpec import 제거 — catalog cutover, binding.accepts D2.
   TextAreaSpec,
   TextFieldSpec,
   TimeFieldSpec,
@@ -77,7 +77,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // ADR-912 R7 G1-a (2026-06-15): AvatarGroup catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(AvatarGroup.binding.ts)로 properties 생성.
   Breadcrumbs: BreadcrumbsSpec as ComponentSpec<Record<string, unknown>>,
-  Breadcrumb: BreadcrumbSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Breadcrumb.binding.ts)로 properties 생성.
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(ButtonGroup.binding.ts)로 properties 생성.
   Calendar: CalendarSpec as ComponentSpec<Record<string, unknown>>,
@@ -140,7 +141,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // ADR-912 R7 G1-b (2026-06-15): TableView catalog cutover → entry 제거 (binding.accepts D2).
   TagGroup: TagGroupSpec as ComponentSpec<Record<string, unknown>>,
   Tabs: TabsSpec as ComponentSpec<Record<string, unknown>>,
-  TabList: TabListSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 projection 3 cutover (2026-06-15): TabList catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(TabList.binding.ts)로 properties 생성.
   TextArea: TextAreaSpec as ComponentSpec<Record<string, unknown>>,
   TextField: TextFieldSpec as ComponentSpec<Record<string, unknown>>,
   TimeField: TimeFieldSpec as ComponentSpec<Record<string, unknown>>,

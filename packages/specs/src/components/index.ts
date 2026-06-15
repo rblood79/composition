@@ -225,10 +225,7 @@ export type { TreeProps } from "./Tree.spec";
 // Tabs
 export { TabsSpec } from "./Tabs.spec";
 export type { TabsProps } from "./Tabs.spec";
-export { TabListSpec } from "./TabList.spec";
-export type { TabListProps } from "./TabList.spec";
-export { TabSpec } from "./Tab.spec";
-export type { TabProps } from "./Tab.spec";
+// ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec export 제거 — catalog cutover, spec 삭제.
 
 // Menu
 export { MenuSpec } from "./Menu.spec";
@@ -245,8 +242,7 @@ export {
 // Breadcrumbs
 export { BreadcrumbsSpec } from "./Breadcrumbs.spec";
 export type { BreadcrumbsProps } from "./Breadcrumbs.spec";
-export { BreadcrumbSpec } from "./Breadcrumb.spec";
-export type { BreadcrumbItemProps } from "./Breadcrumb.spec";
+// ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec export 제거 — catalog cutover, spec 삭제.
 
 // Pagination — ADR-912 R7 G1-c (2026-06-15): catalog cutover, spec 삭제. binding.accepts D2.
 

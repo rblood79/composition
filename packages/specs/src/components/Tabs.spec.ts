@@ -13,7 +13,7 @@
 
 import type { ComponentSpec, Shape, TokenRef } from "../types";
 import { Ratio, PointerOff, MousePointer2 } from "lucide-react";
-import { TabListSpec } from "./TabList.spec";
+// ADR-912 projection 3 cutover (2026-06-15): TabListSpec import 제거 — childSpecs 끊김(catalog 등록).
 
 /**
  * Tabs Props
@@ -211,8 +211,9 @@ export const TabsSpec: ComponentSpec<TabsProps> = {
     },
   },
 
-  // ADR-094 인프라 경유 자식 spec 등록 (TagGroup→TagList 선례 동형).
-  childSpecs: [TabListSpec],
+  // ADR-912 projection 3 cutover (2026-06-15): TabList catalog cutover → childSpecs 제거.
+  //   TabList 은 catalog 등록(FAMILY_4_CUTOVER)으로 TAG_SPEC_MAP 자동 등록 불요. propagation(아래)은
+  //   childPath:"TabList" string 이라 spec 객체 의존 0 → propagation 유지.
 
   // ADR-912 영역 B (A): Tabs.props.items → TabList 전파.
   //   chip projection(appendTabRowProjection)이 owner=TabList scene node 에 붙고,

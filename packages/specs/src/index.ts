@@ -378,18 +378,16 @@ export type { TreeProps } from "./components/Tree.spec";
 
 export { TabsSpec } from "./components/Tabs.spec";
 export type { TabsProps, TabItem } from "./components/Tabs.spec";
-export { TabListSpec } from "./components/TabList.spec";
-export type { TabListProps } from "./components/TabList.spec";
-export { TabSpec } from "./components/Tab.spec";
-export type { TabProps } from "./components/Tab.spec";
+// ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec/TabListProps/TabProps export 제거
+//   — catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable + tablist_divider/tab_indicator escape.
 
 export { MenuSpec } from "./components/Menu.spec";
 export type { MenuProps } from "./components/Menu.spec";
 
 export { BreadcrumbsSpec } from "./components/Breadcrumbs.spec";
 export type { BreadcrumbsProps } from "./components/Breadcrumbs.spec";
-export { BreadcrumbSpec } from "./components/Breadcrumb.spec";
-export type { BreadcrumbItemProps } from "./components/Breadcrumb.spec";
+// ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec/BreadcrumbItemProps export 제거 —
+//   catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable + breadcrumb_crumb escape.
 
 // ADR-912 R7 G1-c (2026-06-15): PaginationSpec/PaginationProps export 제거 — catalog cutover.
 //   시각 SSOT = COMPONENT_RULES_TABLE.Pagination + generate-css virtual. binding.accepts D2.

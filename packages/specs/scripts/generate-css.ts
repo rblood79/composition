@@ -181,6 +181,13 @@ const TEXT_LEAF_NAMES = new Set([
   "StatusLight",
   "TabPanel",
   "TabPanels",
+  // ADR-912 projection 3 cutover (2026-06-15): Tab/TabList/Breadcrumb catalog cutover. generated
+  //   CSS(base+size+variant)는 spec 삭제 후에도 DOM 보존돼야 하므로 catalog rule 기반 virtual 재생성.
+  //   selected indicator(Tab) / divider(TabList) / separator(Breadcrumb)는 수동 TabsIndicator.css +
+  //   RAC 보존(애초 generated 에 부재) → virtual 은 base+size+variant 만 재생성(시각 동일).
+  "Tab",
+  "TabList",
+  "Breadcrumb",
   "MenuItem",
   // ADR-912 value-label 군 (2026-06-11): Meter/ProgressBar/Slider 의 value text leaf.
   //   MeterValue/ProgressBarValue = progress archetype(grid label/value/track),
@@ -560,6 +567,52 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     containerStyles: { display: "flex", flexDirection: "column" },
     states: {
       disabled: { opacity: 0.38, pointerEvents: "none" },
+    },
+  },
+  // ADR-912 projection 3 catalog cutover (2026-06-15) — Tab (Tab.spec.ts 삭제 대상).
+  //   archetype "default": inline-flex/center/center base emit. variant default(transparent bg +
+  //   text/textHover)는 rule 파생. sizes(height/paddingX/paddingY/fontSize/borderRadius/fontWeight)는
+  //   rule 에서 emit. selected accent indicator 는 수동 TabsIndicator.css 담당(애초 generated 부재) →
+  //   virtual 미생성(시각 동일). states = disabled(opacity+pointerEvents) + focusVisible(focus-ring).
+  {
+    name: "Tab",
+    archetype: "default",
+    element: "button",
+    states: {
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  // ADR-912 projection 3 catalog cutover (2026-06-15) — TabList (TabList.spec.ts 삭제 대상).
+  //   원본 spec 은 composition.layout="flex-row" 보유 → base = COMPOSITION_LAYOUT_STYLES["flex-row"]
+  //   (display:flex/flex-direction:row/align-items:center/box-sizing). archetype "default"(DEFAULT_BASE
+  //   _STYLES inline-flex)가 아니라 composition base 라 archetype 무관(CSSGenerator:685 composition 우선).
+  //   하단/우측 divider 는 tablist_divider escape(Skia) + 수동 TabsIndicator.css(DOM) 담당(애초 generated
+  //   부재) → virtual 미생성. sizes(fontSize/borderRadius)는 rule emit. variants 없음(shell).
+  {
+    name: "TabList",
+    archetype: "default",
+    element: "div",
+    containerStyles: { display: "flex", flexDirection: "row" },
+    composition: { layout: "flex-row", delegation: [] },
+    states: {
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+    },
+  },
+  // ADR-912 projection 3 catalog cutover (2026-06-15) — Breadcrumb (Breadcrumb.spec.ts 삭제 대상).
+  //   archetype "simple": inline-flex/center base emit + containerStyles 미러. variant default(base
+  //   bg + text/textHover)는 rule 파생. sizes(height/fontSize/borderRadius)는 rule emit. separator(›)는
+  //   breadcrumb_crumb escape(Skia) + RAC 보존(DOM, 애초 generated 부재) → virtual 미생성.
+  //   states = hover + disabled + focusVisible(spec.states 미러).
+  {
+    name: "Breadcrumb",
+    archetype: "simple",
+    element: "li",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: {
+      hover: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
     },
   },
   // ADR-912 simple catalog 발효 — MenuItem (MenuItem.spec.ts 삭제 대상).
