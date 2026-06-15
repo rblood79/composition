@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [childSpec→catalog 컨테이너 일괄 cutover — DialogFooter/FormField/Card 4] - 2026-06-15
+
+### Architecture
+
+- **empty-shell childSpec 컨테이너 6종 catalog cutover + spec 삭제** (ADR-912 R5):
+  - 부모 `*.spec.childSpecs`(ADR-094 `expandChildSpecs`) 경로로 TAG_SPEC_MAP/Taffy 에 자동 등록되고 부모 generated CSS 에 embed 되던 empty-shell 컨테이너(`render.shapes:()=>[]` + skipCSSGeneration:true) 군을 catalog 등록으로 전환. **DialogFooter**(Dialog.spec) + **FormField**(Form.spec) + **Card 4 자식**(CardHeader/CardContent/CardFooter/CardPreview, Card.spec)
+  - **Why**: childSpecs 경로는 spec 이 TAG_SPEC_MAP 시각 source 이자 부모 CSS embed source 인 이중 SSOT 구조. catalog 등록(`isCatalogCutover=true`)으로 Skia=buildCatalogShapes shell(투명, rule variants:{} → fill 없음) / DOM=virtual CSS + 부모 자식 재귀 / layout=factory props.style 로 단일화하여 spec 의존 제거
+  - 변환 패턴: binding 신설(internal/div, accepts size) + catalog entry(category structure, palette 비노출) + generate-css virtual meta(독립 CSS 생성 → 부모 embedded 블록 제거) + 부모 `childSpecs` 제거 + spec 물리 삭제(각각 사용자 명시 삭제 승인)
+  - **Card 4 의 차이 — layout 출처 복귀**: ADR-092 Phase 4/5 가 Card 자식 layout(display/flexDirection/gap/width)을 factory inline → spec `containerStyles` 로 이관했던 것을, spec 삭제 대비 factory `props.style` 로 복귀(ADR-907 Layer B container layout SSOT — Skia/Taffy 직접 read). DialogFooter/FormField 는 layout 이 이미 factory props.style 에 있어 추가 작업 불요
+  - propagation(CardHeader→Heading flex:1 / CardContent→Description width:100%, ADR-095)은 `propagationRegistry.ts` 인라인 propagation-only spec 으로 보존(spec import 끊김 대비)
+  - 위치: `packages/shared/src/catalog/bindings/{DialogFooter,FormField,CardHeader,CardContent,CardFooter,CardPreview}.binding.ts` / `packages/shared/src/catalog/componentCatalog.ts` / `apps/builder/src/builder/factories/definitions/LayoutComponents.ts` / `apps/builder/src/builder/utils/propagationRegistry.ts` / `packages/specs/scripts/generate-css.ts` / `packages/specs/src/components/{Dialog,Form,Card}.spec.ts`
+  - 검증: build:specs PASS(virtual CSS 6 spec-free 생성) + type-check PASS(builder baseline 71 불변) + CSSGenerator snapshot 갱신(childSpec embedded 블록 제거) + **Chrome MCP live**(Card 추가 시 4 자식 props.style layout 정상 + Skia 자식 비겹침 세로 배치 + CSS↔Skia 대칭 + dual-SSOT 끊김[TAG_SPEC_MAP Card 자식 false / Card 본체 true / export false / isCatalogCutover true] + isSpecOrCatalogBacked true[DOM className 보존] + propagation 작동)
+  - **미등록 type 23→17**(spec map 75→69). Card 본체는 spec 유지(자식 슬롯만 cutover)
+
 ## [CheckboxGroup/RadioGroup horizontal orientation preview 대칭 복원 — ADR-912 후속] - 2026-06-15
 
 ### Bug Fixes
