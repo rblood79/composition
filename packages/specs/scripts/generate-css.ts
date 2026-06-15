@@ -258,6 +258,16 @@ const TEXT_LEAF_NAMES = new Set([
   //   border + size 만(accent bar 없음). layout(flex/column/gap)은 factory props.style SSOT(ADR-907
   //   Layer B). virtual = archetype alert base + variant fill + size.
   "Toast",
+  // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 컨테이너 전환. factory(createButtonGroupDefinition)가
+  //   자식 Button×2(Cancel outline / Save accent) 자동 생성 → 런타임 항상 _hasChildren=true →
+  //   spec render.shapes standalone box 분기 dead, 자식 Button 이 시각 담당 (AvatarGroup/CardView/
+  //   TableView/Pagination 동형). variant default 전부 transparent → 투명 generic box shell.
+  //   layout(flex/gap)은 factory props.style SSOT(ADR-907 Layer B) → virtual 은 size별 gap 미emit
+  //   (구 ButtonGroup.css 의 gap:Npx 는 factory props.style.gap 이 @layer 위로 덮던 dead 값 → 제거 정본).
+  //   staticSelectors 불요(Pagination 과 달리 자식 Button 대상 descendant CSS 없음). virtual 출력 =
+  //   구 ButtonGroup.css 에서 size별 gap + [data-variant="default"] 빈 hover/pressed transparent 블록
+  //   noise 제거 (AvatarGroup virtual 동형, 시각 손실 0).
+  "ButtonGroup",
 ]);
 
 type TextLeafMeta = {
@@ -844,6 +854,21 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
   {
     name: "Toast",
     archetype: "alert",
+    element: "div",
+    containerStyles: undefined,
+    states: { disabled: { opacity: 0.38 } },
+  },
+  // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 전환 (AvatarGroup/CardView R7 G1-a/b 동형 — archetype
+  //   default 투명 컨테이너 셸). spec render.shapes 는 _hasChildren=true 면 빈 shapes, false 면 box(flex)
+  //   만 그리던 투명 컨테이너(variant default fill/border 전부 transparent). factory 가 자식 Button×2 를
+  //   자동 생성하므로 standalone box 분기는 dead → 자식 Button 이 시각 담당. catalog rule
+  //   (COMPONENT_RULES_TABLE.ButtonGroup, variant default transparent + sizes height:0/border-radius)
+  //   기반 virtual. layout(flex/gap)은 factory props.style SSOT → containerStyles undefined (gap 미emit).
+  //   states 기본(구 ButtonGroup.css [data-disabled] opacity 0.38; spec.states.disabled.pointerEvents:none
+  //   는 archetype default 표준 disabled 블록이 이미 emit). composition 불요(자식 descendant CSS 없음).
+  {
+    name: "ButtonGroup",
+    archetype: "default",
     element: "div",
     containerStyles: undefined,
     states: { disabled: { opacity: 0.38 } },

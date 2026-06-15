@@ -27,7 +27,6 @@
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-md);
-  gap: 8px;
 }
 
 .react-aria-ButtonGroup[data-variant="default"] {
@@ -49,7 +48,6 @@
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
-  gap: 4px;
 }
 
 .react-aria-ButtonGroup[data-size="sm"] {
@@ -57,7 +55,6 @@
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
-  gap: 6px;
 }
 
 .react-aria-ButtonGroup[data-size="md"] {
@@ -65,7 +62,6 @@
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-md);
-  gap: 8px;
 }
 
 .react-aria-ButtonGroup[data-size="lg"] {
@@ -73,7 +69,6 @@
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
-  gap: 10px;
 }
 
 .react-aria-ButtonGroup[data-size="xl"] {
@@ -81,7 +76,6 @@
   padding: 0px 0px;
   font-size: var(--text-xl);
   border-radius: var(--radius-xl);
-  gap: 12px;
 }
 
 .react-aria-ButtonGroup[data-focus-visible] {

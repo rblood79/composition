@@ -9,6 +9,7 @@ import { badgeBinding } from "./Badge.binding";
 import { bodyBinding } from "./Body.binding";
 import { breadcrumbsBinding } from "./Breadcrumbs.binding";
 import { buttonBinding } from "./Button.binding";
+import { buttonGroupBinding } from "./ButtonGroup.binding";
 import { calendarBinding } from "./Calendar.binding";
 import { calendarGridBinding } from "./CalendarGrid.binding";
 import { calendarHeaderBinding } from "./CalendarHeader.binding";
@@ -112,6 +113,7 @@ export * from "./Badge.binding";
 export * from "./Body.binding";
 export * from "./Breadcrumbs.binding";
 export * from "./Button.binding";
+export * from "./ButtonGroup.binding";
 export * from "./Calendar.binding";
 export * from "./CalendarGrid.binding";
 export * from "./CalendarHeader.binding";
@@ -262,6 +264,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   box(flex row)만 live (AvatarGroup/CardView/TableView 동형). staticSelectors 7개는 generate-css
   //   TEXT_LEAF_META.composition 으로 전달(Link rootSelectors 선례). variant/size/totalPages/currentPage accepts.
   Pagination: paginationBinding,
+  // ADR-912 R7 G1-c (2026-06-15): 버튼 묶음 컨테이너 (internal source, 투명 generic shell). factory
+  //   가 자식 Button×2(Cancel/Save) 자동 생성 → 런타임 항상 _hasChildren=true → standalone box 분기
+  //   dead, 자식 Button self-draw (AvatarGroup/Pagination 동형). variant default 전부 transparent →
+  //   투명 box shell. layout(flex/gap)은 factory props.style SSOT. size/orientation/align/isDisabled accepts.
+  ButtonGroup: buttonGroupBinding,
   // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source, generic box+border
   //   시각, staticAttrs role="alert"). render.shapes shell-only → buildCatalogShapes box+border parity.
   InlineAlert: inlineAlertBinding,

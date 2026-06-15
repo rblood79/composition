@@ -70,6 +70,17 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "toggle button group",
     icon: "GroupIcon",
   }),
+  // ADR-912 R7 G1-c (2026-06-15): 버튼 묶음 컨테이너. factory 가 자식 Button×2(Cancel/Save) 자동
+  //   생성 → 런타임 항상 _hasChildren=true → spec render.shapes standalone box 분기 dead, 자식 Button
+  //   self-draw (AvatarGroup/CardView/TableView/Pagination 동형). variant default 전부 transparent →
+  //   buildCatalogShapes 투명 generic box shell. 시각 source = COMPONENT_RULES_TABLE.ButtonGroup.
+  //   layout(flex/gap)은 factory props.style SSOT(ADR-907 Layer B). generate-css virtual = size별 gap
+  //   제거(factory SSOT) + 빈 hover/pressed transparent 블록 noise 제거(AvatarGroup 동형, 시각 손실 0).
+  primitiveEntry("ButtonGroup", "primitives", FAMILY_1_CUTOVER, {
+    category: "buttons",
+    label: "button group",
+    icon: "GroupIcon",
+  }),
   primitiveEntry("Toolbar", "primitives", FAMILY_1_CUTOVER, {
     category: "buttons",
     label: "toolbar",

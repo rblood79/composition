@@ -134,6 +134,10 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         // ADR-912 R7 G1-c (2026-06-15): Pagination 컨테이너 catalog cutover. factory 자식 Button×5
         //   자동생성 → _hasChildren=true → standalone 버튼군 dead, box shell 만 live (R7 G1 동형).
         "Pagination",
+        // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 컨테이너 catalog cutover. factory 자식 Button×2
+        //   (Cancel/Save) 자동생성 → _hasChildren=true → standalone box 분기 dead, 투명 box shell 만
+        //   live (Pagination/AvatarGroup 동형). variant default 전부 transparent.
+        "ButtonGroup",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);
