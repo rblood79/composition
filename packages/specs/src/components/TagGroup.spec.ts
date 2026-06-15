@@ -9,7 +9,6 @@
 
 import type { ComponentSpec, Shape, TokenRef } from "../types";
 import type { StoredTagItem } from "../types/taggroup-items";
-import { TagListSpec } from "./TagList.spec";
 import {
   Layout,
   Rows3,
@@ -395,9 +394,12 @@ export const TagGroupSpec: ComponentSpec<TagGroupProps> = {
     },
   },
 
-  // ADR-093 Phase 2: ADR-094 인프라 경유 → Skia/CSS/Taffy 자동 등록.
-  //   수동 tagSpecMap.ts 등록 불필요.
-  childSpecs: [TagListSpec],
+  // ADR-912 collection sub-part cutover (2026-06-15): TagListSpec childSpecs 제거.
+  //   TagList 는 catalog cutover(isCatalogSkiaCutover true) → BASE_TAG_SPEC_MAP 자동 등록
+  //   (childSpecs 경유) 불요. getSpecForTag("TagList") undefined 라도 cutover 게이트가
+  //   spec-free Skia 렌더 보장. DOM 은 수동 TagGroup.css(.tag-list-wrapper) 가 담당.
+  //   ListBoxItem/GridListItem 동형(ADR-912 collection item leaf cutover). propagation
+  //   rules 의 childPath:"TagList" string 은 유지(자식 size/allowsRemoving 전파 — spec 객체 아님).
 
   propagation: {
     rules: [
