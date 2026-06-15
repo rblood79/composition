@@ -676,6 +676,23 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "tabs",
     icon: "AppWindow",
   }),
+  // ADR-912 projection 3 cutover (2026-06-15): Tab/TabList projection sub-part. Tabs projection
+  //   (appendTabRowProjection → Tab/TabList SceneNode)의 탭/컨테이너 self-render 가
+  //   spec.render.shapes(Tab=라벨 text + 선택 accent indicator / TabList=하단/우측 구분선 line)였다 →
+  //   rule + tab_indicator(append) / tablist_divider(append) escape 로 이전. canonical 문서에
+  //   element 없음(propagation 으로 TabList.props.items + projection 전용 SceneNode) → DOM 변화 0,
+  //   Skia 대칭(spec 의존 끊기 = step 4 삭제 안전) 한정. palette 비노출(PALETTE_ORDER 미포함, TableCell/
+  //   TableRow 동형 — projection 데이터, 단독 배치 불가).
+  primitiveEntry("Tab", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "tab",
+    icon: "AppWindow",
+  }),
+  primitiveEntry("TabList", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "tab list",
+    icon: "AppWindow",
+  }),
   primitiveEntry("TagGroup", "collections", FAMILY_4_CUTOVER, {
     category: "collections",
     label: "type group",
@@ -723,6 +740,17 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
   primitiveEntry("Breadcrumbs", "collections", FAMILY_4_CUTOVER, {
     category: "layout",
     label: "breadcrumbs",
+    icon: "ChevronRight",
+  }),
+  // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb projection sub-part. Breadcrumbs projection
+  //   (appendBreadcrumbRowProjection → Breadcrumb SceneNode)의 crumb self-render 가
+  //   spec.render.shapes(라벨 text isLast→accent fw600 + 비-마지막 separator › text)였다 →
+  //   rule + breadcrumb_crumb(replace, label+separator 위치 누적) escape 로 이전. canonical 문서에
+  //   element 없음(Breadcrumbs.props.items 직접 → projection 전용 SceneNode) → DOM 변화 0, Skia 대칭
+  //   한정. palette 비노출(PALETTE_ORDER 미포함, projection 데이터).
+  primitiveEntry("Breadcrumb", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "breadcrumb",
     icon: "ChevronRight",
   }),
   // Menu — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 4 2026-06-04): Menu 는 캔버스에서

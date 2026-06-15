@@ -27,6 +27,8 @@ import type { Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import { resolveTreeIndent } from "./buildCatalogShapes";
+import { measureSpecTextWidth } from "./utils/measureText";
+import { breadcrumbSeparatorAfterPaddingXPx } from "../primitives/spacing";
 
 /**
  * skiaPrimitive draw module 1개의 시그니처 — props/size/visual 에서 Shape[] 생성.
@@ -154,6 +156,161 @@ const tableRowDivider: SkiaPrimitiveDrawFn = ({
       strokeWidth: 1,
     },
   ];
+};
+
+/**
+ * `tablist_divider` — TabList 하단(horizontal) 또는 우측(vertical) 구분선(append).
+ *
+ * **ADR-912 projection 3 cutover (2026-06-15, table_row_divider 동형)**: TabList.spec.render.shapes
+ *   의 구분선 line(`y: h, x2: _containerWidth`)을 이전. base box(buildCatalogShapes, transparent
+ *   shell) 아래쪽/우측 경계에 1px line → append. 폭/높이는 projection·CONTAINER_DIMENSION_TAGS 가
+ *   주입한 `_containerWidth`/`_containerHeight`(전체 탭 폭/높이) — 미주입 시 layout width fallback.
+ *   선색 = style.borderColor → visual.border → `{color.border}`. orientation 데이터 분기만(ADR-142 §3).
+ */
+const tablistDivider: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  style,
+}) => {
+  const lineColor =
+    (style?.borderColor as string | undefined) ??
+    visual?.border ??
+    ("{color.border}" as TokenRef);
+  const isVertical = (props.orientation as string | undefined) === "vertical";
+  const h =
+    typeof size.height === "number" && size.height > 0 ? size.height : 29;
+  const w =
+    typeof props._containerWidth === "number" && props._containerWidth > 0
+      ? props._containerWidth
+      : ("auto" as unknown as number);
+  const fullH =
+    typeof props._containerHeight === "number" && props._containerHeight > 0
+      ? props._containerHeight
+      : h;
+  // horizontal: 하단(y=h) 가로선 0→w. vertical: 우측(x=0) 세로선 0→fullH.
+  return [
+    {
+      type: "line",
+      x1: 0,
+      y1: isVertical ? 0 : h,
+      x2: isVertical ? 0 : w,
+      y2: isVertical ? fullH : h,
+      stroke: lineColor,
+      strokeWidth: 1,
+    },
+  ];
+};
+
+/** Tab indicator 두께 (CSS 정합: sm=2 / md=3 / lg=4) — height(21/29/41) → thickness. */
+const TAB_INDICATOR_THICKNESS: Record<number, number> = { 21: 2, 29: 3, 41: 4 };
+
+/**
+ * `tab_indicator` — 선택된 Tab 의 accent 인디케이터(append, 조건부).
+ *
+ * **ADR-912 projection 3 cutover (2026-06-15)**: Tab.spec.render.shapes 의 조건부 accent rect
+ *   (`isSelected && showIndicator` 시 하단/우측 full-width 막대)를 이전. base box(transparent) 위에
+ *   덧그리는 막대 → append. 데이터 분기만(ADR-142 §3): `_isSelected`/`_showIndicator`/`orientation`/
+ *   `_containerWidth` 미충족 시 빈 배열(미렌더). 비-Tab type 은 이 props 부재 → 자연히 빈 배열.
+ *   indicator 색 = `{color.accent}`(spec 동형, full-width 막대라 variant fill 과 별개 고정).
+ */
+const tabIndicator: SkiaPrimitiveDrawFn = ({ props, size }) => {
+  if (props._isSelected !== true || props._showIndicator === false) return [];
+  const isVertical = (props.orientation as string | undefined) === "vertical";
+  const h =
+    typeof size.height === "number" && size.height > 0 ? size.height : 29;
+  const thickness = TAB_INDICATOR_THICKNESS[h] ?? 3;
+  const w =
+    typeof props._containerWidth === "number" && props._containerWidth > 0
+      ? props._containerWidth
+      : ("auto" as unknown as number);
+  return [
+    {
+      type: "rect",
+      x: isVertical ? (typeof w === "number" ? w - thickness : 0) : 0,
+      y: isVertical ? 0 : h - thickness,
+      width: isVertical ? thickness : w,
+      height: isVertical ? h : thickness,
+      fill: "{color.accent}" as TokenRef,
+    },
+  ];
+};
+
+/**
+ * `breadcrumb_crumb` — Breadcrumb 단일 조각: label + (비-마지막) separator(replace).
+ *
+ * **ADR-912 projection 3 cutover (2026-06-15)**: Breadcrumb.spec.render.shapes 의 label text
+ *   (isLast→accent fw600 / 그 외→neutral-subdued fw400) + 비-마지막 separator(›) text 를 이전.
+ *   text 위치가 label 폭만큼 우측 누적이라 buildCatalogShapes 의 single-text(좌측 고정) 가정과
+ *   충돌 → replace 로 자체 생성(spec 좌표 공식 1:1). `_isLast`/`_separator` 데이터 분기만(ADR-142 §3).
+ */
+const breadcrumbCrumb: SkiaPrimitiveDrawFn = ({
+  props,
+  size,
+  visual,
+  style,
+}) => {
+  const ff = (style?.fontFamily as string) || fontFamily.sans;
+  const text = String(
+    props.children ?? props.label ?? props.title ?? "",
+  ).trim();
+  const isLast = props._isLast === true;
+  const separator = String(props._separator ?? "›");
+  const fontSize = resolveSpecFontSize(
+    (style?.fontSize as string | number | undefined) ?? size.fontSize,
+    16,
+  );
+  const afterPadX = breadcrumbSeparatorAfterPaddingXPx(
+    String(props.size ?? "M"),
+  );
+  const height =
+    typeof size.height === "number" && size.height > 0 ? size.height : 24;
+
+  const shapes: Shape[] = [];
+  let x = 0;
+
+  const labelFw = isLast ? 600 : 400;
+  const labelFill: TokenRef | string = isLast
+    ? ("{color.accent}" as TokenRef)
+    : (visual?.text ?? ("{color.neutral-subdued}" as TokenRef));
+
+  if (text) {
+    const estW = measureSpecTextWidth(text, fontSize, ff, labelFw);
+    shapes.push({
+      type: "text" as const,
+      x,
+      y: height / 2,
+      text,
+      fontSize,
+      fontFamily: ff,
+      fontWeight: labelFw,
+      fill: labelFill,
+      align: "left" as const,
+      baseline: "middle" as const,
+      maxWidth: estW + fontSize,
+    });
+    x += estW;
+  }
+
+  if (!isLast) {
+    const sepWidth = measureSpecTextWidth(separator, fontSize, ff, 400);
+    x += afterPadX;
+    shapes.push({
+      type: "text" as const,
+      x,
+      y: height / 2,
+      text: separator,
+      fontSize,
+      fontFamily: ff,
+      fontWeight: 400,
+      fill: "{color.neutral-subdued}" as TokenRef,
+      align: "left" as const,
+      baseline: "middle" as const,
+      maxWidth: sepWidth + fontSize,
+    });
+  }
+
+  return shapes;
 };
 
 /** GridListItem/ListBoxItem template placeholder(`{label}` 등) → sample 미리보기 판정. */
@@ -2227,6 +2384,12 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   divider,
   // ADR-912 Pattern B (TableRow catalog cutover): 행 하단 구분선(append, y=rowHeight).
   table_row_divider: tableRowDivider,
+  // ADR-912 projection 3 cutover (TabList): 하단/우측 구분선(append, table_row_divider 동형).
+  tablist_divider: tablistDivider,
+  // ADR-912 projection 3 cutover (Tab): 선택 시 accent 인디케이터 막대(append, 조건부).
+  tab_indicator: tabIndicator,
+  // ADR-912 projection 3 cutover (Breadcrumb): label + separator(replace, 위치 누적).
+  breadcrumb_crumb: breadcrumbCrumb,
   // ADR-912 collection sub-part cutover (GridListItem): 카드 box+label+description(replace).
   gridlist_card: gridListCard,
   // ADR-912 collection sub-part cutover (ListBoxItem): row selection bg+icon+label+desc+check(replace).
@@ -2280,6 +2443,13 @@ export type SkiaPrimitiveMode = "replace" | "prepend" | "append";
 const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 Pattern B: table_row_divider 는 bg box(buildCatalogShapes) 아래쪽 경계 line → append.
   table_row_divider: "append",
+  // ADR-912 projection 3: tablist_divider 는 transparent shell 아래쪽/우측 경계 line → append.
+  tablist_divider: "append",
+  // ADR-912 projection 3: tab_indicator 는 transparent box 위 조건부 accent 막대 → append.
+  tab_indicator: "append",
+  // ADR-912 projection 3: breadcrumb_crumb 은 label+separator 위치 누적 자체 생성 → replace
+  //   (buildCatalogShapes single-text 좌측 고정 가정과 충돌).
+  breadcrumb_crumb: "replace",
   // ADR-912 collection sub-part: gridlist_card 는 카드 box+label+description 전체 자체 생성
   //   (2-line top-aligned → buildCatalogShapes box-center 가정과 충돌) → replace.
   gridlist_card: "replace",

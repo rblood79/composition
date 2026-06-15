@@ -8,6 +8,7 @@ import { avatarGroupBinding } from "./AvatarGroup.binding";
 import { badgeBinding } from "./Badge.binding";
 import { bodyBinding } from "./Body.binding";
 import { breadcrumbsBinding } from "./Breadcrumbs.binding";
+import { breadcrumbBinding } from "./Breadcrumb.binding";
 import { buttonBinding } from "./Button.binding";
 import { buttonGroupBinding } from "./ButtonGroup.binding";
 import { calendarBinding } from "./Calendar.binding";
@@ -92,6 +93,8 @@ import { tableCellBinding } from "./TableCell.binding";
 import { tableRowBinding } from "./TableRow.binding";
 import { tableViewBinding } from "./TableView.binding";
 import { tabsBinding } from "./Tabs.binding";
+import { tabBinding } from "./Tab.binding";
+import { tabListBinding } from "./TabList.binding";
 import { tagBinding } from "./Tag.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
 import { tailSwatchBinding } from "./TailSwatch.binding";
@@ -112,6 +115,7 @@ export * from "./AvatarGroup.binding";
 export * from "./Badge.binding";
 export * from "./Body.binding";
 export * from "./Breadcrumbs.binding";
+export * from "./Breadcrumb.binding";
 export * from "./Button.binding";
 export * from "./ButtonGroup.binding";
 export * from "./Calendar.binding";
@@ -190,6 +194,8 @@ export * from "./TableCell.binding";
 export * from "./TableRow.binding";
 export * from "./TableView.binding";
 export * from "./Tabs.binding";
+export * from "./Tab.binding";
+export * from "./TabList.binding";
 export * from "./Tag.binding";
 export * from "./TagGroup.binding";
 export * from "./TailSwatch.binding";
@@ -214,6 +220,10 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // family ① primitives/actions
   Badge: badgeBinding,
   Breadcrumbs: breadcrumbsBinding,
+  // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb projection sub-part (Pattern B —
+  //   canonical element 부재, projection 전용 SceneNode). internal source, Skia=breadcrumb_crumb
+  //   (replace, label+separator). DOM=부모 Breadcrumbs self-compose(독립 노드 0). DELEGATING 불요.
+  Breadcrumb: breadcrumbBinding,
   Button: buttonBinding,
   Icon: iconBinding,
   IllustratedMessage: illustratedMessageBinding,
@@ -371,6 +381,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SelectIcon: selectIconBinding,
   ComboBox: comboBoxBinding,
   Tabs: tabsBinding,
+  // ADR-912 projection 3 cutover (2026-06-15): Tab/TabList projection sub-part (TableCell/TableRow
+  //   Pattern B 동형 — canonical element 부재, projection 전용 SceneNode). internal source,
+  //   Skia=generic box+text + tab_indicator(append) / tablist_divider(append). DOM=부모 Tabs
+  //   self-compose(독립 노드 0). DELEGATING 불요.
+  Tab: tabBinding,
+  TabList: tabListBinding,
   Tag: tagBinding,
   TagGroup: tagGroupBinding,
   GridList: gridListBinding,
