@@ -95,7 +95,7 @@ import { BodySpec } from "../components/Body.spec";
 import { IllustratedMessageSpec } from "../components/IllustratedMessage.spec";
 // ADR-912 R7 G1-b: CardViewSpec/TableViewSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 // ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
-import { SliderThumbSpec } from "../components/SliderThumb.spec";
+// ADR-912 catalog cutover (2026-06-16): SliderThumbSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거 (slider_thumb escape).
 // ADR-912 단계5 value-fill-track: ProgressBarTrackSpec/MeterTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
 
 // ADR-094: `BASE_TAG_SPEC_MAP` 의 각 spec 의 `childSpecs` 를 PascalCase 키로 자동 추가.
@@ -133,7 +133,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ProgressBarTrack/MeterTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   // ProgressBarValue/MeterValue — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거
   // SliderTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
-  SliderThumb: SliderThumbSpec,
+  // SliderThumb — ADR-912 catalog cutover (2026-06-16): slider_thumb escape, BASE_TAG_SPEC_MAP 등록 제거
   // SliderOutput — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거
   Table: TableSpec,
   Tree: TreeSpec,

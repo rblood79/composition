@@ -166,4 +166,6 @@
 @import "./generated/Slider.css";
 @import "./generated/SliderTrack.css";
 @import "./generated/SliderOutput.css";
-@import "./generated/SliderThumb.css";
+/* SliderThumb.css 제거 (ADR-912 catalog cutover 2026-06-16): DOM thumb 은 부모 Slider.css 의
+   `.react-aria-Slider .react-aria-SliderThumb` 규칙이 담당(RAC self-compose). 독립 SliderThumb.css 는
+   삭제된 SliderThumbSpec 의 stale 산물(slider archetype grid 오상속) — 미import + 파일 삭제. */

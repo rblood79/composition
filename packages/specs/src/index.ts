@@ -518,8 +518,9 @@ export type { InputProps } from "./components/Input.spec";
 // ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — catalog 발효(slider_fill_bar escape)
 //   + generate-css virtual(archetype:slider) + 부모 Slider.spec.indicator 기반 size metric 으로 대체.
 
-export { SliderThumbSpec } from "./components/SliderThumb.spec";
-export type { SliderThumbProps } from "./components/SliderThumb.spec";
+// ADR-912 catalog cutover (2026-06-16): SliderThumbSpec 삭제 — catalog 등록(slider_thumb escape, replace)
+//   + rule SliderThumb.sizes(14/18/22/26 Slider.indicator.thumbSize SSOT 미러)로 대체. DOM 은 RAC Slider
+//   self-compose(DELEGATING_RAC_RENDERERS → 자식 재귀 skip, DOM no-op).
 
 // ADR-912 value-label (2026-06-11): SliderOutputSpec 삭제 — catalog 발효(buildCatalogShapes text)
 //   + generate-css virtual(archetype:simple) + specTextStyle catalogType 측정으로 대체.

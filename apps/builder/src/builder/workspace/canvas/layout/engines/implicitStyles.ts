@@ -1613,9 +1613,10 @@ export function applyImplicitStyles(
     const range = max - min || 1;
     const sizeName = (sliderProps?.size as string) ?? "md";
     // thumb 지름 SSOT = Slider.spec.sizes[size].indicator.thumbSize (14/18/22/26, xl 포함).
-    //   2026-06-10: 기존 로컬 dims={sm:14,md:18,lg:22} 는 xl 누락(→18 fallback 고정) +
-    //   SliderThumb.spec.sizes.height(16/20/24) 와도 불일치 → Skia thumb 크기/위치/선택영역 틀림.
-    //   정본 indicator.thumbSize 단일 참조로 통일 (SliderTrack rule.thumbSize 와 동일 SSOT).
+    //   2026-06-10: 기존 로컬 dims={sm:14,md:18,lg:22} 는 xl 누락(→18 fallback 고정)이라 불일치 →
+    //   정본 indicator.thumbSize 단일 참조로 통일. ADR-912 catalog cutover(2026-06-16): SliderThumb spec
+    //   삭제 후 Skia thumb 은 slider_thumb escape 가 rule SliderThumb.sizes.height(동일 14/18/22/26)로
+    //   그린다(렌더). 본 layout 의 thumb 박스 width/height 도 같은 indicator.thumbSize SSOT → render↔layout 정합.
     const thumbSize =
       specSizeField("slider", sizeName, "indicator")?.thumbSize ?? 18;
     // 트랙 두께(SliderTrack box height = trackHeight) — thumb 세로 중앙 정렬 기준.

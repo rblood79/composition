@@ -311,9 +311,7 @@ export type { MaskedFrameProps } from "./MaskedFrame.spec";
 
 // SliderTrack — ADR-912 단계5 value-fill-track: spec 삭제 (catalog cutover + virtual CSS)
 
-// SliderThumb
-export { SliderThumbSpec } from "./SliderThumb.spec";
-export type { SliderThumbProps } from "./SliderThumb.spec";
+// SliderThumb — ADR-912 catalog cutover (2026-06-16): spec 삭제 (slider_thumb escape, replace)
 
 // SliderOutput — ADR-912 value-label (2026-06-11): spec 삭제 (catalog cutover + virtual CSS)
 

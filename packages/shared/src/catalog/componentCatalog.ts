@@ -566,6 +566,18 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "slider track",
     icon: "SlidersHorizontal",
   }),
+  // ADR-912 SliderThumb catalog cutover (2026-06-16, 마지막 collection sub-part 동형): Slider compound
+  //   의 핸들. palette 미노출(ComponentList 가 Slider 부모만 등록) — catalog 등록은 Skia generic 경로
+  //   (slider_thumb escape, replace — circle + border) 진입용. DOM 은 부모 RAC Slider 가 thumb
+  //   self-compose(Slider 가 DELEGATING_RAC_RENDERERS → 자식 재귀 skip, DOM no-op). slider_fill_bar 는
+  //   track + value 막대만, thumb 핸들은 본 escape 담당(렌더 소유권 2026-06-10 이전 정합). Track/value
+  //   sub-part 동형 — spec 삭제 후 isCatalogSkiaCutover 게이트(buildSpecNodeData.ts:965) 통과로 thumb
+  //   circle Skia 보존(미발효 시 return null → thumb 소실).
+  primitiveEntry("SliderThumb", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider thumb",
+    icon: "SlidersHorizontal",
+  }),
   // ADR-912 value-label 군 (2026-06-11): Meter/ProgressBar/Slider 의 value text leaf.
   //   palette 미노출(ComponentList 가 부모만 등록) — catalog 등록은 Skia generic 경로
   //   (buildCatalogShapes text) 진입용. 부모가 resolveProgressProps/factory 로

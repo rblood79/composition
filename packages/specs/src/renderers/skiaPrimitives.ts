@@ -850,6 +850,52 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, visual }) => {
   return shapes;
 };
 
+/**
+ * `slider_thumb` — Slider 핸들: circle + border(replace). SliderThumb element 가
+ * implicitStyles slidertrack 분기에서 left:percent% + width/height:thumbSize 로 배치되므로,
+ * 자기 box(thumbSize) 안에 원형 핸들을 그린다 (box 중앙 기준). circle 이 전체 외형이라
+ * base box 무의미 → replace(avatar/radio 선례 동형, append 아님).
+ *
+ * **ADR-912 collection sub-part cutover (2026-06-16, SliderThumb spec→catalog)**: 기존
+ *   SliderThumb.spec.render.shapes(circle + border 2px {color.base})를 1:1 이전. SliderTrack 의
+ *   slider_fill_bar 는 track + value 막대만 그리고 thumb 핸들은 본 escape 가 담당(렌더 소유권
+ *   2026-06-10 SliderTrack→SliderThumb 이전 정합 유지). DOM 은 renderSlider(Slider.tsx)가 RAC
+ *   SliderThumb 를 self-compose → SliderThumb element 는 DOM 미도달(Slider 가 DELEGATING_RAC_RENDERERS
+ *   → 자식 재귀 skip), 본 escape 는 Skia 전용.
+ *
+ *   지름 = size.height(rule SliderThumb.sizes — Slider.indicator.thumbSize 14/18/22/26 미러).
+ *   spec 정합 우선순위: style.width(layout 주입 thumbSize) 가 아니라 size.height 우선 — buildSpecNodeData
+ *   가 size 변경마다 rule sizes 로 재계산하므로 신뢰 가능(spec 주석 정합). 색: thumb fill =
+ *   style.backgroundColor → visual.fill.default.base → {color.accent}. border = {color.base} 2px(spec 정합).
+ */
+const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
+  const diameter =
+    typeof size.height === "number" && size.height > 0 ? size.height : 18;
+  const r = diameter / 2;
+  const fillColor =
+    (style?.backgroundColor as string | undefined) ??
+    visual?.fill?.default.base ??
+    ("{color.accent}" as TokenRef);
+  void props;
+  return [
+    {
+      id: "thumb",
+      type: "circle",
+      x: r,
+      y: r,
+      radius: r,
+      fill: fillColor,
+    },
+    {
+      type: "border",
+      target: "thumb",
+      borderWidth: 2,
+      color: "{color.base}" as TokenRef,
+      radius: r,
+    },
+  ];
+};
+
 // ===========================================================================
 // ADR-142 Inc3 family ⑥(overlays) — overlay 시각 패턴 draw module (append 모드).
 //
@@ -2397,6 +2443,8 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   checkbox,
   radio,
   switch_toggle: switchToggle,
+  // ADR-912 collection sub-part cutover (SliderThumb): circle 핸들 + border(replace, radio 동형).
+  slider_thumb: sliderThumb,
   // ADR-142 Inc3 overlays (append 모드 — SKIA_PRIMITIVE_MODES 참조)
   tooltip_arrow: tooltipArrow,
   popover_arrow: popoverArrow,
@@ -2468,6 +2516,9 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   //   → replace. layout box=thumbSize(thumb 컨테이너)라 buildCatalogShapes box(y:0,height:auto)와
   //   spec track(y=trackY 세로 중앙)이 어긋남 → 자체 track box 생성. 미등록=replace 지만 의도 명시.
   slider_fill_bar: "replace",
+  // ADR-912 SliderThumb: slider_thumb 는 circle 핸들이 전체 외형 → base box 무의미 → replace
+  //   (avatar/radio 동형). 미등록=replace 지만 의도 명시.
+  slider_thumb: "replace",
   // ADR-912 진로 1번: illustrated_message 는 rule fill transparent base box 위 placeholder+text → append.
   illustrated_message: "append",
   // ADR-912 진로 1번: status_light 는 dot+text 자체 생성, box 무의미 → replace.

@@ -5069,24 +5069,45 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-912 SliderThumb catalog cutover (2026-06-16): circle 핸들 leaf. slider_thumb escape 가
+  //   circle fill = variant default fill.default.base({color.accent}) 를 읽는다. height = thumb 지름
+  //   (Slider.spec.sizes.*.indicator.thumbSize SSOT 미러 14/18/22/26). 기존 16/20/24 는 stale 값으로
+  //   spec(SliderThumb.spec.sizes 14/18/22/26)과 불일치였음 → SSOT 정합 + xl 추가.
   SliderThumb: {
+    defaultVariant: "default",
     defaultSize: "md",
-    variants: {},
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.accent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 16,
+        height: 14,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 20,
+        height: 18,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 24,
+        height: 22,
+      },
+      xl: {
+        fontSize: "{typography.text-lg}",
+        borderRadius: "{radius.full}",
+        height: 26,
       },
     },
   },
