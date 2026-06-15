@@ -331,9 +331,7 @@ export type { SliderThumbProps } from "./SliderThumb.spec";
 export { AvatarSpec } from "./Avatar.spec";
 export type { AvatarProps } from "./Avatar.spec";
 
-// AvatarGroup
-export { AvatarGroupSpec } from "./AvatarGroup.spec";
-export type { AvatarGroupProps } from "./AvatarGroup.spec";
+// AvatarGroup — ADR-912 R7 G1-a: spec 삭제 (catalog cutover, binding.accepts D2)
 
 // StatusLight
 
@@ -362,10 +360,5 @@ export {
 } from "./IllustratedMessage.spec";
 export type { IllustratedMessageProps } from "./IllustratedMessage.spec";
 
-// CardView
-export { CardViewSpec, CARDVIEW_DENSITY_GAP } from "./CardView.spec";
-export type { CardViewProps } from "./CardView.spec";
-
-// TableView
-export { TableViewSpec, TABLEVIEW_ROW_HEIGHTS } from "./TableView.spec";
-export type { TableViewProps } from "./TableView.spec";
+// CardView / TableView — ADR-912 R7 G1-b: spec 삭제 (catalog cutover, binding.accepts D2).
+//   CARDVIEW_DENSITY_GAP / TABLEVIEW_ROW_HEIGHTS 도 동시 삭제(spec 외 consumer 0).

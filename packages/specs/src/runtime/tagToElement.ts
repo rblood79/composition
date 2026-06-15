@@ -85,7 +85,7 @@ import { InputSpec } from "../components/Input.spec";
 //   catalog cutover (rule table + buildCatalogShapes generic + icon_font escape). 구 synthetic
 //   alias 7종(ComboBox*/Search*)도 factory retype 으로 본 3 type 에 합류, BUILDER_ALIAS_MAP 해체.
 import { AvatarSpec } from "../components/Avatar.spec";
-import { AvatarGroupSpec } from "../components/AvatarGroup.spec";
+// ADR-912 R7 G1-a: AvatarGroupSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 import { InlineAlertSpec } from "../components/InlineAlert.spec";
 import { ButtonGroupSpec } from "../components/ButtonGroup.spec";
 import { ToggleButtonGroupSpec } from "../components/ToggleButtonGroup.spec";
@@ -94,8 +94,7 @@ import { TooltipSpec } from "../components/Tooltip.spec";
 import { SectionSpec } from "../components/Section.spec";
 import { BodySpec } from "../components/Body.spec";
 import { IllustratedMessageSpec } from "../components/IllustratedMessage.spec";
-import { CardViewSpec } from "../components/CardView.spec";
-import { TableViewSpec } from "../components/TableView.spec";
+// ADR-912 R7 G1-b: CardViewSpec/TableViewSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 // ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
 import { SliderThumbSpec } from "../components/SliderThumb.spec";
 // ADR-912 단계5 value-fill-track: ProgressBarTrackSpec/MeterTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
@@ -182,13 +181,12 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   List: ListSpec,
   Input: InputSpec,
   Avatar: AvatarSpec,
-  AvatarGroup: AvatarGroupSpec,
+  // ADR-912 R7 G1-a: AvatarGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   InlineAlert: InlineAlertSpec,
   ButtonGroup: ButtonGroupSpec,
   // ADR-912 단계5: ProgressCircle 제거 — catalog cutover spec-free (buildSpecNodeData:908 isCatalogSkiaCutover 게이트)
   IllustratedMessage: IllustratedMessageSpec,
-  CardView: CardViewSpec,
-  TableView: TableViewSpec,
+  // ADR-912 R7 G1-b: CardView/TableView 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
 };
 
 /**

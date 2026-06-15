@@ -531,8 +531,8 @@ export type { SliderThumbProps } from "./components/SliderThumb.spec";
 export { AvatarSpec } from "./components/Avatar.spec";
 export type { AvatarProps } from "./components/Avatar.spec";
 
-export { AvatarGroupSpec } from "./components/AvatarGroup.spec";
-export type { AvatarGroupProps } from "./components/AvatarGroup.spec";
+// ADR-912 R7 G1-a (2026-06-15): AvatarGroupSpec 삭제 — catalog cutover. 시각 SSOT =
+//   COMPONENT_RULES_TABLE.AvatarGroup, D2 properties = binding.accepts(AvatarGroup.binding.ts).
 
 export { InlineAlertSpec } from "./components/InlineAlert.spec";
 export type { InlineAlertProps } from "./components/InlineAlert.spec";
@@ -555,14 +555,10 @@ export {
 } from "./components/IllustratedMessage.spec";
 export type { IllustratedMessageProps } from "./components/IllustratedMessage.spec";
 
-export { CardViewSpec, CARDVIEW_DENSITY_GAP } from "./components/CardView.spec";
-export type { CardViewProps } from "./components/CardView.spec";
-
-export {
-  TableViewSpec,
-  TABLEVIEW_ROW_HEIGHTS,
-} from "./components/TableView.spec";
-export type { TableViewProps } from "./components/TableView.spec";
+// ADR-912 R7 G1-b (2026-06-15): CardViewSpec/CARDVIEW_DENSITY_GAP + TableViewSpec/
+//   TABLEVIEW_ROW_HEIGHTS 삭제 — catalog cutover. 시각 SSOT = COMPONENT_RULES_TABLE.{CardView,
+//   TableView}, D2 properties = binding.accepts. CARDVIEW_DENSITY_GAP/TABLEVIEW_ROW_HEIGHTS 는
+//   spec 외 consumer 0(grep 실측) → 동시 삭제. CardView gap/TableView 행높이는 factory props.style.
 
 // Properties-only Specs
 export { FieldSpec } from "./components/Field.spec";

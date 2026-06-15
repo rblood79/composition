@@ -1,14 +1,14 @@
 import type { ComponentSpec } from "@composition/specs";
 import {
   AvatarSpec,
-  AvatarGroupSpec,
+  // ADR-912 R7 G1-a (2026-06-15): AvatarGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 box+text leaf 군 (2026-06-11): Badge/Button/ToggleButton/Separator/StatusLight/Icon
   //   Spec import 제거 — catalog binding.accepts 가 D2 properties 대체(Link 선례, spec.properties dead).
   BreadcrumbsSpec,
   BreadcrumbSpec,
   ButtonGroupSpec,
   CalendarSpec,
-  CardViewSpec,
+  // ADR-912 R7 G1-b (2026-06-15): CardViewSpec import 제거 — catalog cutover, binding.accepts D2.
   CheckboxSpec,
   CheckboxGroupSpec,
   // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11): ColorArea/ColorWheel/
@@ -46,7 +46,7 @@ import {
   SliderSpec,
   SlotSpec,
   SwitchSpec,
-  TableViewSpec,
+  // ADR-912 R7 G1-b (2026-06-15): TableViewSpec import 제거 — catalog cutover, binding.accepts D2.
   TagGroupSpec,
   TabsSpec,
   TabListSpec,
@@ -74,15 +74,15 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   ComponentSpec<Record<string, unknown>>
 > = {
   Avatar: AvatarSpec as ComponentSpec<Record<string, unknown>>,
-  AvatarGroup: AvatarGroupSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(AvatarGroup.binding.ts)로 properties 생성.
   Breadcrumbs: BreadcrumbsSpec as ComponentSpec<Record<string, unknown>>,
   Breadcrumb: BreadcrumbSpec as ComponentSpec<Record<string, unknown>>,
   ButtonGroup: ButtonGroupSpec as ComponentSpec<Record<string, unknown>>,
   Calendar: CalendarSpec as ComponentSpec<Record<string, unknown>>,
-  // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → CardSpec import + entry 제거.
-  //   GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성(Select/Disclosure 선례,
-  //   spec.properties dead). CardView(별도 collection)는 보존.
-  CardView: CardViewSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 R6/R7 G1-b (2026-06-15): Card 본체 + CardView catalog cutover → CardSpec/CardViewSpec
+  //   import + entry 제거. GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성
+  //   (Select/Disclosure 선례, spec.properties dead).
   Checkbox: CheckboxSpec as ComponentSpec<Record<string, unknown>>,
   CheckboxGroup: CheckboxGroupSpec as ComponentSpec<Record<string, unknown>>,
   // ADR-912 6 registry collapse — ColorArea/ColorWheel/ColorSlider/ColorSwatch box-only cutover
@@ -136,7 +136,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Switch: SwitchSpec as ComponentSpec<Record<string, unknown>>,
   // ADR-912 6 registry collapse — TailSwatch box-only cutover (2026-06-11): catalog binding.accepts
   //   가 D2 properties 대체. ColorPicker alias placeholder 는 catalog rule box 시각 유지.
-  TableView: TableViewSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 R7 G1-b (2026-06-15): TableView catalog cutover → entry 제거 (binding.accepts D2).
   TagGroup: TagGroupSpec as ComponentSpec<Record<string, unknown>>,
   Tabs: TabsSpec as ComponentSpec<Record<string, unknown>>,
   TabList: TabListSpec as ComponentSpec<Record<string, unknown>>,
