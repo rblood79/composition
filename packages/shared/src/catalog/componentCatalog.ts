@@ -797,8 +797,11 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
  * **전부 Skia generic 발효 완료 (skiaLegacy 0건)**: Dialog/Modal/Popover/Tooltip 는
  * buildCatalogShapes(box+text) + skiaPrimitive(backdrop/shadow/arrow 합성), DropZone 는 box.
  * Tooltip 은 ADR-912 단계 5 (1b) 에서 마지막 발효(bg+text generic + tooltip_arrow append).
- * Toast 는 imperative API(useToast/ToastProvider — placeable 노드 아님, ComponentList/factory
- * 미등록) → catalog 제외.
+ * Toast 는 ADR-912 R7 G1-c (2026-06-15) 에서 box-shell catalog cutover — 아래 FAMILY_6_ENTRIES
+ * 에 등록. (구 주석 "placeable 노드 아님 → catalog 제외" 는 stale: RAC Toast 는 imperative API 지만
+ * factory createToastDefinition + dedicated renderToast 가 등록되어 element 로 배치되면 TAG_SPEC_MAP
+ * 경유 Skia 렌더 → spec.ts 가 Skia 시각 source 로 살아있었다. palette 미노출이라도 cutover 가치 =
+ * spec 의존 끊기, ProgressBarTrack/MeterTrack "palette 미노출 — catalog 등록은 Skia generic 한정" 동형.)
  */
 const FAMILY_6_CUTOVER: CutoverState = "catalog";
 
@@ -852,6 +855,18 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     category: "overlays",
     label: "dialog footer",
     icon: "AppWindowMac",
+  }),
+  // Toast — ADR-912 R7 G1-c 순수 box-shell catalog cutover (2026-06-15): factory(createToastDefinition)가
+  //   Heading + Description 자식 자동 생성 → 런타임 항상 _hasChildren=true → 컨테이너 box(bg+border)만
+  //   live(standalone 메시지 text dead). AvatarGroup/CardView/TableView/Pagination box-shell 동형. 구 spec
+  //   좌측 accent bar(rect 3px)는 RAC 공식 Toast(react-aria.adobe.com/Toast — accent bar 없음) 미준수
+  //   변형이라 제거(사용자 결정 2026-06-15) → skiaPrimitive 없는 순수 box shell. DOM=dedicated
+  //   renderToast(<div role="alert">) + 자식. palette 미노출(imperative 알림 — paletteItems 비포함)이나
+  //   TAG_SPEC_MAP 등록 type 이라 catalog cutover 로 spec 의존 끊기(step 4 삭제 안전).
+  primitiveEntry("Toast", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "toast",
+    icon: "Bell",
   }),
 ];
 

@@ -6,6 +6,7 @@ import {
   getCatalogEntry,
   getCatalogSkiaCutoverTypes,
 } from "../componentCatalog";
+import { isCatalogCutover } from "../cutover";
 import { toRacProps } from "../outputs/toRacProps";
 
 /**
@@ -94,8 +95,12 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
     expect(getPrimitiveBinding("Tooltip")?.skiaPrimitive).toBe("tooltip_arrow");
   });
 
-  it("Toast 는 catalog 미등록 (imperative API, placeable 아님)", () => {
-    expect(getCatalogEntry("Toast")).toBeUndefined();
+  it("Toast 는 순수 box-shell catalog cutover (R7 G1-c, RAC 정본 — accent bar 없음)", () => {
+    // ADR-912 R7 G1-c (2026-06-15): factory createToastDefinition 가 Heading/Description 자식 자동
+    //   생성 → 런타임 항상 _hasChildren=true → box-shell(Pagination 동형). 구 spec 좌측 accent bar 는
+    //   RAC 공식 Toast 미준수 변형이라 제거 — skiaPrimitive 없는 순수 box shell.
+    expect(isCatalogCutover("Toast")).toBe(true);
+    expect(getPrimitiveBinding("Toast")?.skiaPrimitive).toBeUndefined();
   });
 
   it("toRacProps: Dialog size data-* + isDismissable 통과", () => {

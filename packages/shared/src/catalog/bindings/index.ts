@@ -98,6 +98,7 @@ import { textAreaBinding } from "./TextArea.binding";
 import { textBinding } from "./Text.binding";
 import { textFieldBinding } from "./TextField.binding";
 import { timeFieldBinding } from "./TimeField.binding";
+import { toastBinding } from "./Toast.binding";
 import { toggleButtonBinding } from "./ToggleButton.binding";
 import { toggleButtonGroupBinding } from "./ToggleButtonGroup.binding";
 import { toolbarBinding } from "./Toolbar.binding";
@@ -196,6 +197,7 @@ export * from "./TextField.binding";
 export * from "./Tree.binding";
 export * from "./TreeItem.binding";
 export * from "./TimeField.binding";
+export * from "./Toast.binding";
 export * from "./ToggleButton.binding";
 export * from "./ToggleButtonGroup.binding";
 export * from "./Toolbar.binding";
@@ -384,6 +386,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Modal: modalBinding,
   Popover: popoverBinding,
   Tooltip: tooltipBinding,
+  // ADR-912 R7 G1-c: Toast box-shell catalog cutover (좌측 accent bar = toast_accent_bar escape).
+  Toast: toastBinding,
   DropZone: dropZoneBinding,
   // family ⑦ date (internal source — composition wrapper, 날짜 grid/portal, skiaLegacy).
   // color(TailSwatch/ColorPicker 등)는 사용자 지시로 제외.

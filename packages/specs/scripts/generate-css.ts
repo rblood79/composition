@@ -252,6 +252,12 @@ const TEXT_LEAF_NAMES = new Set([
   //   descendant CSS)는 box shell 만으로 누락 → META.composition.staticSelectors 로 전달(Link rootSelectors
   //   선례) → CSSGenerator emit. virtual 출력 = 기존 Pagination.css 동형(base+size+staticSelectors).
   "Pagination",
+  // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell 전환. factory(createToastDefinition)가
+  //   Heading/Description 자식 자동 생성 → 런타임 항상 _hasChildren=true → 컨테이너 box(bg+border)만
+  //   live. 구 spec 좌측 accent bar(rect 3px)는 RAC 공식 Toast 미준수 변형이라 제거 → variant fill +
+  //   border + size 만(accent bar 없음). layout(flex/column/gap)은 factory props.style SSOT(ADR-907
+  //   Layer B). virtual = archetype alert base + variant fill + size.
+  "Toast",
 ]);
 
 type TextLeafMeta = {
@@ -823,6 +829,24 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       },
       delegation: [],
     },
+  },
+  // ADR-912 R7 G1-c (2026-06-15): Toast 전환. factory 가 Heading/Description 자식 자동 생성 → 런타임
+  //   항상 _hasChildren=true → 컨테이너 box(bg+border)만 live (Pagination/CardView 동형, box-shell).
+  //   • archetype: alert — Toast = 알림 박스. ARCHETYPE_BASE_STYLES.alert(flex/flex-direction:column/
+  //     align-items:flex-start/width:100%/font-family)는 button-like(cursor:pointer/transition:transform)
+  //     없이 Toast factory props.style(flex column) 과 정합. 구 spec archetype "overlay"(position:fixed)는
+  //     imperative 알림 portal 용 — element 배치 Toast 는 캔버스 일반 흐름이 정상. element="div".
+  //   • 좌측 accent bar 제거(RAC 정본): 구 spec 좌측 accent bar(rect 3px)는 RAC 공식 Toast 미준수
+  //     변형(react-aria.adobe.com/Toast 는 accent bar 없음) → 제거. composition 미사용 → CSSGenerator
+  //     가 variant fill(info/positive/neutral/negative subtle 배경 + border)을 정상 emit(composition 있으면
+  //     compositionOwnsContainerBox=true 로 variant emit skip 됨 — Toast 는 컨테이너 자체가 variant 배경 보유).
+  //   • layout(display:flex/flex-direction:column/gap)은 factory props.style SSOT(ADR-907 Layer B).
+  {
+    name: "Toast",
+    archetype: "alert",
+    element: "div",
+    containerStyles: undefined,
+    states: { disabled: { opacity: 0.38 } },
   },
 ];
 
