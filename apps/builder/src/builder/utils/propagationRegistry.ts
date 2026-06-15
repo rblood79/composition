@@ -32,9 +32,6 @@ import {
   CalendarSpec,
   RangeCalendarSpec,
   CardSpec,
-  // ADR-095: CardHeader/CardContent 자식 style 주입 rule 등록 대응.
-  CardHeaderSpec,
-  CardContentSpec,
   GridListSpec,
   ListBoxSpec,
   ToggleButtonGroupSpec,
@@ -76,6 +73,51 @@ function createCollectionItemPropagationSpec(
     render: { shapes: noopShapes },
   };
 }
+
+/**
+ * ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader/CardContent spec 삭제 대비.
+ *   CardHeader.spec / CardContent.spec 의 propagation 규칙(자식 style 주입, ADR-095)을 spec 파일에서
+ *   분리하여 propagation-only spec 으로 인라인 보존 — `createCollectionItemPropagationSpec` 동형
+ *   (독립 spec 파일 없는 컴포넌트의 propagation 전용). CardHeader → Heading flex:1,
+ *   CardContent → Description width:100%. Card.spec.childSpecs 제거 후 catalog cutover 로 시각은
+ *   rule + factory props.style 이 담당하고, 이 propagation 만 builder runtime 에서 유지.
+ */
+function createPropagationOnlySpec(
+  name: string,
+  rules: PropagationRule[],
+): ComponentSpec<Record<string, unknown>> {
+  return {
+    name,
+    element: "div",
+    propagation: { rules },
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {},
+    sizes: {},
+    states: {},
+    render: { shapes: noopShapes },
+  };
+}
+
+const cardHeaderPropagationSpec = createPropagationOnlySpec("CardHeader", [
+  {
+    childPath: "Heading",
+    childProp: "flex",
+    asStyle: true,
+    styleValue: 1,
+    skipIfSet: ["flex", "flexGrow", "width"],
+  },
+]);
+
+const cardContentPropagationSpec = createPropagationOnlySpec("CardContent", [
+  {
+    childPath: "Description",
+    childProp: "width",
+    asStyle: true,
+    styleValue: "100%",
+    skipIfSet: ["width", "flex"],
+  },
+]);
 
 // ─── Lazy Index ─────────────────────────────────────────────────────────────
 
@@ -187,8 +229,9 @@ registerPropagationSpec("Calendar", CalendarSpec);
 registerPropagationSpec("RangeCalendar", RangeCalendarSpec);
 registerPropagationSpec("Card", CardSpec);
 // ADR-095: CardHeader → Heading flex:1 / CardContent → Description width:100% 주입 rule.
-registerPropagationSpec("CardHeader", CardHeaderSpec);
-registerPropagationSpec("CardContent", CardContentSpec);
+//   ADR-912 (2026-06-15): CardHeader/CardContent spec 삭제 → propagation-only 인라인 spec 으로 보존.
+registerPropagationSpec("CardHeader", cardHeaderPropagationSpec);
+registerPropagationSpec("CardContent", cardContentPropagationSpec);
 registerPropagationSpec("GridList", GridListSpec);
 registerPropagationSpec("ListBox", ListBoxSpec);
 registerPropagationSpec("ToggleButtonGroup", ToggleButtonGroupSpec);

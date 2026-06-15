@@ -211,6 +211,16 @@ const TEXT_LEAF_NAMES = new Set([
   //   (DialogFooter 선례 동형, flat selector 라 시각 동일). Form.spec.childSpecs 제거(FormField 가
   //   유일 멤버) → Form.css embedded 블록 사라짐.
   "FormField",
+  // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 일괄. 각 spec 은
+  //   Card.spec childSpecs 경로로 `generated/Card.css` 에 inline embed 됐으나, catalog cutover 로
+  //   spec body 삭제 대비 → 독립 `generated/{CardHeader,CardContent,CardFooter,CardPreview}.css`
+  //   virtual 로 분리(FormField/DialogFooter 선례 동형). Card.spec.childSpecs 제거(4 자식 전부) →
+  //   Card.css embedded 블록 사라짐. layout(display/flexDirection/width)은 containerStyles meta 로
+  //   DOM base emit + factory props.style 가 Skia/Taffy SSOT.
+  "CardHeader",
+  "CardContent",
+  "CardFooter",
+  "CardPreview",
 ]);
 
 type TextLeafMeta = {
@@ -618,6 +628,56 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     archetype: "simple",
     element: "div",
     containerStyles: undefined,
+  },
+  // ADR-912 childSpec→catalog cutover (2026-06-15) — Card 4 자식 (Card{Header,Content,Footer,Preview}
+  //   .spec.ts 삭제 대상, FormField/DialogFooter 동형). FormField 와 달리 spec 원본에 containerStyles
+  //   (display/flexDirection/alignItems/justifyContent/width)가 있었으므로 meta 에 명시 → virtual CSS
+  //   가 DOM base layout 을 emit(Card.css embedded 블록과 동일). 단 layout 의 실 SSOT 는 factory
+  //   props.style(Skia/Taffy 직접 read, ADR-907 Layer B) — containerStyles 는 DOM base/일관성용.
+  //   CardPreview 는 spec 에 containerStyles 미정의였으나 다른 Card 자식과 동일 컨테이너 패턴으로 명시.
+  //   states 미설정 → 기본 focus-visible + disabled emit. Skia 는 catalog generic box shell(투명).
+  {
+    name: "CardHeader",
+    archetype: "simple",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%",
+    },
+  },
+  {
+    name: "CardContent",
+    archetype: "simple",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+    },
+  },
+  {
+    name: "CardFooter",
+    archetype: "simple",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      width: "100%",
+    },
+  },
+  {
+    name: "CardPreview",
+    archetype: "simple",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      width: "100%",
+    },
   },
 ];
 

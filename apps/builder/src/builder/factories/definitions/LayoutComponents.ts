@@ -101,9 +101,14 @@ export function createCardDefinition(
     children: [
       {
         type: "CardPreview",
+        // ADR-912 childSpec→catalog cutover (2026-06-15): CardPreview layout 은 factory props.style 가
+        //   이미 보유(display:flex/width/height/overflow/borderRadius) — spec 삭제 후에도 Skia/Taffy
+        //   직접 read. flexDirection:column 명시(다른 Card 자식 컨테이너 일관). CardPreview.spec 은
+        //   containerStyles 미정의였음.
         props: {
           style: {
             display: "flex",
+            flexDirection: "column",
             width: "100%",
             height: "fit-content",
             overflow: "hidden",
@@ -126,11 +131,21 @@ export function createCardDefinition(
         ],
       },
       {
-        // ADR-092 Phase 4: CardHeader inline style(display/flexDirection/alignItems/gap/width)
-        //   → CardHeaderSpec.containerStyles + sizes.md.gap 으로 이관. factory inline 제거.
-        //   기존 저장 프로젝트에 inline style 이 있는 경우 그대로 유지 (사용자 편집 간주).
+        // ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader layout 을 factory props.style
+        //   복귀. ADR-092 Phase 4/5 가 CardHeaderSpec.containerStyles(display/flexDirection/alignItems/
+        //   width) + sizes.md.gap 으로 이관했던 것을, spec 삭제(catalog 전환) 대비 factory 로 되돌림
+        //   — Skia/Taffy 가 props.style 을 직접 read(ADR-907 Layer B container layout SSOT). FormField/
+        //   DialogFooter 동형. gap 4px = CardHeaderSpec.sizes.md.gap.
         type: "CardHeader",
-        props: {} as ComponentElementProps,
+        props: {
+          style: {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: "4px",
+            width: "100%",
+          },
+        } as ComponentElementProps,
         children: [
           {
             type: "Heading",
@@ -151,10 +166,19 @@ export function createCardDefinition(
         ],
       },
       {
-        // ADR-092 Phase 4: CardContent inline style(display/flexDirection/gap/width)
-        //   → CardContentSpec.containerStyles + sizes.md.gap 으로 이관. factory inline 제거.
+        // ADR-912 childSpec→catalog cutover (2026-06-15): CardContent layout 을 factory props.style
+        //   복귀. ADR-092 가 CardContentSpec.containerStyles(display/flexDirection/width) + sizes.md.gap
+        //   으로 이관했던 것을 spec 삭제 대비 factory 로 되돌림 — Skia/Taffy 직접 read. gap 8px =
+        //   CardContentSpec.sizes.md.gap.
         type: "CardContent",
-        props: {} as ComponentElementProps,
+        props: {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            width: "100%",
+          },
+        } as ComponentElementProps,
         children: [
           {
             type: "Description",
@@ -173,12 +197,20 @@ export function createCardDefinition(
         ],
       },
       {
-        // ADR-092 Phase 4: CardFooter inline style(display/flexDirection/alignItems/gap/width)
-        //   → CardFooterSpec.containerStyles + sizes.md.gap 으로 이관. factory inline 제거.
-        //   paddingTop/borderTopWidth 는 Taffy layout prop 아님 — 시각적 구분선으로 보존.
+        // ADR-912 childSpec→catalog cutover (2026-06-15): CardFooter layout 을 factory props.style
+        //   복귀. ADR-092 Phase 4 가 CardFooterSpec.containerStyles(display/flexDirection/alignItems/
+        //   justifyContent/width) + sizes.md.gap 으로 이관했던 것을 spec 삭제 대비 factory 로 되돌림 —
+        //   Skia/Taffy 직접 read. paddingTop/borderTopWidth 는 시각적 구분선으로 기존 보존. gap 4px =
+        //   CardFooterSpec.sizes.md.gap. DialogFooter(justifyContent:flex-end) 동일 정렬.
         type: "CardFooter",
         props: {
           style: {
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: "4px",
+            width: "100%",
             paddingTop: "8px",
             borderTopWidth: "1px",
           },

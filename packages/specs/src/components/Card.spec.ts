@@ -27,10 +27,10 @@ import {
 } from "lucide-react";
 import type { ComponentSpec, Shape, TokenRef } from "../types";
 import { parsePxValue, parseBorderWidth } from "../primitives";
-import { CardHeaderSpec } from "./CardHeader.spec";
-import { CardContentSpec } from "./CardContent.spec";
-import { CardFooterSpec } from "./CardFooter.spec";
-import { CardPreviewSpec } from "./CardPreview.spec";
+// ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader/CardContent/CardFooter/CardPreview 는
+//   catalog 등록(FAMILY_1, isCatalogCutover=true)으로 Skia/Taffy/DOM 시각을 rule + buildCatalogShapes
+//   generic + factory props.style 로 이전 → childSpecs 경로(ADR-094 expandChildSpecs) 제거.
+//   FormField/DialogFooter 동형. 4 자식 import 삭제(spec 파일도 삭제 대상).
 
 /**
  * Card Props
@@ -128,14 +128,10 @@ export const CardSpec: ComponentSpec<CardProps> = {
     },
   },
 
-  // ADR-092 Phase 2: ADR-094 인프라 경유 → Skia/CSS/Taffy 자동 등록.
-  //   수동 tagSpecMap.ts 등록 불필요.
-  childSpecs: [
-    CardHeaderSpec,
-    CardContentSpec,
-    CardFooterSpec,
-    CardPreviewSpec,
-  ],
+  // ADR-912 childSpec→catalog cutover (2026-06-15): 4 자식(CardHeader/CardContent/CardFooter/
+  //   CardPreview) 의 childSpecs 경로(ADR-094 expandChildSpecs) 제거. catalog 등록(FAMILY_1)으로
+  //   TAG_SPEC_MAP/Taffy/CSS 자동 등록을 갈음 — Skia=buildCatalogShapes shell, DOM=virtual CSS +
+  //   부모 자식 재귀, layout=factory props.style. FormField/DialogFooter 동형. Card 본체는 spec 유지.
 
   propagation: {
     rules: [

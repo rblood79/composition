@@ -323,6 +323,34 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "date input",
     icon: "Calendar",
   }),
+  // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 일괄 (CardHeader/
+  //   CardContent/CardFooter/CardPreview). Card.spec.childSpecs(ADR-094 expandChildSpecs) 경로로
+  //   TAG_SPEC_MAP/Taffy 자동 등록 + Card.css embedded CSS 였던 것을 catalog 로 전환 — Skia 는
+  //   buildCatalogShapes shell(투명, rule variants:{} → fill 없음, render.shapes []와 동일), DOM 은
+  //   부모 Card 자식 재귀로 generic `<div>`. layout(flex/row|column/gap/width)은 factory props.style
+  //   복귀(ADR-092 가 spec containerStyles 로 이관했던 것 — Skia/Taffy 직접 read). FormField/
+  //   DialogFooter 동형. DisclosureHeader/Content sub-part 선례 동일 — category "structure", palette
+  //   비노출(Card 자식, ComponentList 미등록 → 단독 배치 안 함).
+  primitiveEntry("CardHeader", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "card header",
+    icon: "PanelTop",
+  }),
+  primitiveEntry("CardContent", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "card content",
+    icon: "AlignLeft",
+  }),
+  primitiveEntry("CardFooter", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "card footer",
+    icon: "PanelBottom",
+  }),
+  primitiveEntry("CardPreview", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "card preview",
+    icon: "Image",
+  }),
 ];
 
 /**

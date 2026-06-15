@@ -239,17 +239,9 @@ export type { ComponentVisualRule } from "./renderers";
 export { CardSpec } from "./components/Card.spec";
 export type { CardProps } from "./components/Card.spec";
 
-export { CardHeaderSpec } from "./components/CardHeader.spec";
-export type { CardHeaderProps } from "./components/CardHeader.spec";
-
-export { CardContentSpec } from "./components/CardContent.spec";
-export type { CardContentProps } from "./components/CardContent.spec";
-
-export { CardFooterSpec } from "./components/CardFooter.spec";
-export type { CardFooterProps } from "./components/CardFooter.spec";
-
-export { CardPreviewSpec } from "./components/CardPreview.spec";
-export type { CardPreviewProps } from "./components/CardPreview.spec";
+// ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader/CardContent/CardFooter/CardPreview
+//   spec 삭제 — catalog 등록(FAMILY_1)으로 시각 이전, childSpecs 경로 제거. FormField/DialogFooter
+//   동형. propagation 규칙은 propagationRegistry.ts 인라인으로 보존.
 
 export { DialogSpec } from "./components/Dialog.spec";
 export type { DialogProps } from "./components/Dialog.spec";

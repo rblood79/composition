@@ -17,21 +17,9 @@
 export { CardSpec } from "./Card.spec";
 export type { CardProps } from "./Card.spec";
 
-// CardHeader (ADR-092 Phase 1)
-export { CardHeaderSpec } from "./CardHeader.spec";
-export type { CardHeaderProps } from "./CardHeader.spec";
-
-// CardContent (ADR-092 Phase 1)
-export { CardContentSpec } from "./CardContent.spec";
-export type { CardContentProps } from "./CardContent.spec";
-
-// CardFooter (ADR-092 Phase 1)
-export { CardFooterSpec } from "./CardFooter.spec";
-export type { CardFooterProps } from "./CardFooter.spec";
-
-// CardPreview (Disclosure·Tree 버그 클래스 수정 — container slot spec)
-export { CardPreviewSpec } from "./CardPreview.spec";
-export type { CardPreviewProps } from "./CardPreview.spec";
+// ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader/CardContent/CardFooter/CardPreview
+//   spec 삭제 — catalog 등록(FAMILY_1)으로 시각 이전, childSpecs 경로 제거. FormField/DialogFooter
+//   동형. propagation 규칙은 propagationRegistry.ts 인라인으로 보존.
 
 // Dialog
 export { DialogSpec } from "./Dialog.spec";
