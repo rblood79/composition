@@ -654,6 +654,12 @@ export function applyImplicitStyles(
   //   - TagGroup.orientation (현재 TagGroup 에 없음, HC#2) 방어적 분기
   //   - TagGroup.labelPosition="side" 시 flex:1/minWidth:0 주입
   //   - gap fallback (4 = TagListSpec.sizes.md.gap 일치)
+  //
+  // ADR-912 catalog cutover (2026-06-15): chip wrap layout(display:flex / flexDirection:row /
+  //   flexWrap:wrap)을 본 분기에서 직접 주입하여 자족화한다. 기존에는
+  //   resolveContainerStylesFallback("taglist") → TagList.spec.containerStyles 경유로 parentStyle
+  //   에 주입됐으나, spec body 삭제 대비 직접 주입으로 이관(GridListItem/ListBoxItem/TableRow
+  //   자족화 선례 동형). rawParentStyle(사용자 편집)이 default 를 override 하도록 spread 순서 유지.
   if (containerTag === "taglist") {
     const parentEl = containerEl.parent_id
       ? elementById.get(containerEl.parent_id)
@@ -668,8 +674,12 @@ export function applyImplicitStyles(
     const parentSideMode = hasResolvedSideLabelVariant(parentVariant.styles);
 
     effectiveParent = withParentStyle(containerEl, {
+      // chip wrap layout default (TagList.spec.containerStyles 이관 — spec 삭제 대비 자족화).
+      display: "flex",
+      flexDirection: "row" as const,
+      flexWrap: "wrap" as const,
       ...parentStyle,
-      // orientation="vertical" 시 spec default(row+wrap) 를 column 으로 override.
+      // orientation="vertical" 시 default(row+wrap) 를 column 으로 override.
       ...(orientation === "vertical"
         ? { flexDirection: "column" as const, flexWrap: undefined }
         : {}),
