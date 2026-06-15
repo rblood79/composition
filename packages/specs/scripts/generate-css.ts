@@ -245,6 +245,13 @@ const TEXT_LEAF_NAMES = new Set([
   //   variant 모델, feedback-catalog-unrepresentable-is-nonstandard-variant). layout 은 factory props.style
   //   SSOT. virtual 출력 vs 기존 TableView.css 동형(2 variant + border + radius.md) → diff 0 예상.
   "TableView",
+  // ADR-912 R7 G1-c (2026-06-15): Pagination 컨테이너 전환. factory 가 자식 Button×5 자동 생성 →
+  //   런타임 항상 _hasChildren=true → spec render.shapes standalone 버튼군 dead, 컨테이너 box(flex
+  //   row)만 live (AvatarGroup/CardView/TableView 동형). 단 spec `composition.staticSelectors` 7개
+  //   (.pagination-controls / .react-aria-Button[data-current] 활성 페이지 강조 등 자식 Button 대상
+  //   descendant CSS)는 box shell 만으로 누락 → META.composition.staticSelectors 로 전달(Link rootSelectors
+  //   선례) → CSSGenerator emit. virtual 출력 = 기존 Pagination.css 동형(base+size+staticSelectors).
+  "Pagination",
 ]);
 
 type TextLeafMeta = {
@@ -751,6 +758,71 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     archetype: "default",
     element: "div",
     containerStyles: undefined,
+  },
+  // ADR-912 R7 G1-c (2026-06-15): Pagination 전환. factory 가 자식 Button×5 자동 생성 → 런타임 항상
+  //   _hasChildren=true → spec render.shapes standalone 버튼군 dead, 컨테이너 box(flex row)만 live
+  //   (AvatarGroup/CardView/TableView 동형 — 셋 다 SHELL_ONLY 미등록이나 factory 자식 자동생성으로
+  //   childElements.length>0 → _hasChildren=true 경로 동일).
+  //   • layout(display/flex-direction/gap)은 factory props.style SSOT(ADR-907 Layer B). 구 spec
+  //     containerStyles 의 display:flex/flex-direction:column 은 factory props.style.flexDirection:row 가
+  //     @layer 위로 덮어 dead 였음 → containerStyles 에서 제외(virtual 미emit = 정본).
+  //   • --btn-* CSS 변수 3개는 layout 아니라 자식 Button cascade override(Button.css:18-23 이
+  //     var(--btn-radius/--btn-font-size/--btn-transition) 읽음). factory props.style 에 없고 fallback
+  //     값(--radius-md/--text-sm/none)과 다르므로(특히 font-size base vs sm) 제거 시 자식 Button 시각
+  //     회귀 → containerStyles 에 --btn-* 만 보존(layout 키는 제외).
+  //   • staticSelectors: 구 spec composition.staticSelectors 7개(.pagination-controls /
+  //     .react-aria-Button[data-current] 활성 페이지 강조 등 자식 Button 대상 descendant CSS)는 box
+  //     shell virtual 만으로 누락 → composition.staticSelectors meta 로 전달(Link rootSelectors 선례) →
+  //     CSSGenerator emit(generate-css.ts:1540 staticSelectors 경로). virtual = 기존 Pagination.css 동형.
+  //   • states = disabled(opacity 0.38) (spec.states.disabled.pointerEvents:none 는 archetype default
+  //     표준 disabled 블록이 이미 emit). hover{} 빈 블록 noise 차단 위해 disabled 만 명시.
+  {
+    name: "Pagination",
+    archetype: "default",
+    element: "nav",
+    containerStyles: undefined,
+    states: { disabled: { opacity: 0.38 } },
+    composition: {
+      // 자식 Button cascade override 변수만 보존 (위 주석 참조). CSSGenerator base styles 경로는
+      //   spec.composition 존재 시 spec.composition.containerStyles 를 읽으므로(generate-css 의 top-level
+      //   containerStyles 가 아니라) 여기에 배치. layout(display/flex-direction)은 factory props.style SSOT.
+      containerStyles: {
+        "--btn-radius": "var(--radius-md)",
+        "--btn-font-size": "var(--text-base)",
+        "--btn-transition": "background-color 200ms, opacity 200ms",
+      },
+      staticSelectors: {
+        ".pagination-controls": {
+          display: "flex",
+          "align-items": "center",
+          gap: "6px",
+        },
+        ".pagination-info": {
+          "font-size": "var(--text-base)",
+          color: "var(--fg-muted)",
+          "text-align": "center",
+        },
+        ".pagination-ellipsis": {
+          color: "var(--fg-muted)",
+        },
+        '.react-aria-Button[data-current="true"]': {
+          "background-color": "var(--accent)",
+          color: "var(--fg-on-accent)",
+        },
+        '.react-aria-Button:not([data-current="true"])': {
+          "background-color": "var(--bg-overlay)",
+          color: "var(--fg)",
+        },
+        '.react-aria-Button:not([data-current="true"]):hover:not(:disabled)': {
+          "background-color":
+            "color-mix(in srgb, var(--bg-overlay) 92%, black)",
+        },
+        ".react-aria-Button:disabled": {
+          opacity: "0.38",
+        },
+      },
+      delegation: [],
+    },
   },
 ];
 

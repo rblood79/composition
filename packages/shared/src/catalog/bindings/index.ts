@@ -63,6 +63,7 @@ import { meterValueBinding } from "./MeterValue.binding";
 import { modalBinding } from "./Modal.binding";
 import { navBinding } from "./Nav.binding";
 import { numberFieldBinding } from "./NumberField.binding";
+import { paginationBinding } from "./Pagination.binding";
 import { paragraphBinding } from "./Paragraph.binding";
 import { popoverBinding } from "./Popover.binding";
 import { progressBarBinding } from "./ProgressBar.binding";
@@ -160,6 +161,7 @@ export * from "./MeterTrack.binding";
 export * from "./Modal.binding";
 export * from "./Nav.binding";
 export * from "./NumberField.binding";
+export * from "./Pagination.binding";
 export * from "./Paragraph.binding";
 export * from "./Popover.binding";
 export * from "./ProgressBar.binding";
@@ -253,6 +255,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   body: bodyBinding,
   Section: sectionBinding,
   Nav: navBinding,
+  // ADR-912 R7 G1-c (2026-06-15): 페이지네이션 컨테이너 (internal source, generic box shell). factory
+  //   가 자식 Button×5 자동 생성 → 런타임 항상 _hasChildren=true → standalone 버튼군 dead, 컨테이너
+  //   box(flex row)만 live (AvatarGroup/CardView/TableView 동형). staticSelectors 7개는 generate-css
+  //   TEXT_LEAF_META.composition 으로 전달(Link rootSelectors 선례). variant/size/totalPages/currentPage accepts.
+  Pagination: paginationBinding,
   // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source, generic box+border
   //   시각, staticAttrs role="alert"). render.shapes shell-only → buildCatalogShapes box+border parity.
   InlineAlert: inlineAlertBinding,

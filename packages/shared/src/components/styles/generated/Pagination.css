@@ -16,9 +16,6 @@
     user-select: none;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
     --btn-radius: var(--radius-md);
     --btn-font-size: var(--text-base);
     --btn-transition: background-color 200ms, opacity 200ms;
@@ -26,28 +23,21 @@
   /* Default size */
   font-size: var(--text-base);
   border-radius: var(--radius-md);
-  gap: 6px;
 }
 
 .react-aria-Pagination[data-size="sm"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
-  gap: 4px;
 }
 
 .react-aria-Pagination[data-size="md"] {
   font-size: var(--text-base);
   border-radius: var(--radius-md);
-  gap: 6px;
 }
 
 .react-aria-Pagination[data-size="lg"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-md);
-  gap: 8px;
-}
-
-.react-aria-Pagination[data-hovered] {
 }
 
 .react-aria-Pagination[data-focus-visible] {

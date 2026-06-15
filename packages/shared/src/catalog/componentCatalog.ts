@@ -190,6 +190,16 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "navigation",
     icon: "Menu",
   }),
+  // ADR-912 R7 G1-c (2026-06-15): 페이지네이션 컨테이너. factory 가 자식 Button×5(←/1/2/3/→) 자동
+  //   생성 → 런타임 항상 _hasChildren=true → spec render.shapes standalone 버튼군 dead, 컨테이너
+  //   box(flex row)만 live → buildCatalogShapes generic box shell 로 시각 대칭(AvatarGroup/CardView/
+  //   TableView 동형). staticSelectors 7개(.pagination-controls / .react-aria-Button[data-current])는
+  //   generate-css TEXT_LEAF_META.composition 으로 전달 → CSSGenerator emit(Link rootSelectors 선례).
+  primitiveEntry("Pagination", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "pagination",
+    icon: "ChevronsLeftRight",
+  }),
   // ADR-912 §2-5 collapse 진입 proof slice (2026-06-10): Disclosure 컨테이너. SHELL_ONLY →
   //   spec.render.shapes `[]`(투명 레이아웃, Disclosure.spec.ts:181) → catalog 등록 후 Skia 는
   //   buildCatalogShapes generic 빈 shell(rule variants:{} → visual undefined → hasVisibleBg=false,
