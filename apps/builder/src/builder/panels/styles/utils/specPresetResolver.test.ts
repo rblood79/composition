@@ -229,12 +229,20 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(preset.flexDirection).toBe("column");
     });
 
-    it("Composite composition.containerStyles: Pagination → display=flex / flexDirection=column (kebab-case 경로)", () => {
-      // PaginationSpec.composition.containerStyles =
-      //   { display: "flex", "flex-direction": "column", gap: "var(--spacing-sm)", ... }
+    it("Pagination catalog cutover (ADR-912 R7 G1-c) → TAG_SPEC_MAP 미등록 → layout preset undefined", () => {
+      // Pagination 은 catalog cutover 로 spec 삭제(2026-06-15) → TAG_SPEC_MAP["Pagination"]=undefined →
+      //   resolver 가 composition.containerStyles 를 공급하지 않음. 구 spec 의
+      //   composition.containerStyles.flex-direction:column 은 factory props.style.flexDirection:row 가
+      //   @layer 위로 덮던 dead 값이었으므로(ADR-907 Layer B), 제거가 정본. Style Panel 의 Pagination
+      //   layout 표시는 factory props.style SSOT 기반.
+      // 참고: Pagination 은 base composition.containerStyles 에 layout 키(display/flex-direction)를
+      //   분기 없이 직접 공급하던 유일한 등록 spec 이었음(나머지 composite 는 containerVariants 분기).
+      //   cutover 로 해당 E2E 샘플 소실 — layoutFromContainerStyles/layoutFromComposition extractor 의
+      //   kebab→camel 정규화 자체는 resolver 내부 로직(specPresetResolver.ts:381/405)으로 보존되며,
+      //   다른 layout 키 공급 spec 이 생기면 E2E 으로 재검증(line 250-252 동일 철학).
       const preset = resolveLayoutSpecPreset("Pagination", undefined);
-      expect(preset.display).toBe("flex");
-      expect(preset.flexDirection).toBe("column");
+      expect(preset.display).toBeUndefined();
+      expect(preset.flexDirection).toBeUndefined();
     });
 
     it("containerStyles 미보유 Spec → 레이아웃 키 undefined (기존 기본값 경로 유지)", () => {

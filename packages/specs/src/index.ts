@@ -391,8 +391,8 @@ export type { BreadcrumbsProps } from "./components/Breadcrumbs.spec";
 export { BreadcrumbSpec } from "./components/Breadcrumb.spec";
 export type { BreadcrumbItemProps } from "./components/Breadcrumb.spec";
 
-export { PaginationSpec } from "./components/Pagination.spec";
-export type { PaginationProps } from "./components/Pagination.spec";
+// ADR-912 R7 G1-c (2026-06-15): PaginationSpec/PaginationProps export 제거 — catalog cutover.
+//   시각 SSOT = COMPONENT_RULES_TABLE.Pagination + generate-css virtual. binding.accepts D2.
 
 export { TagGroupSpec } from "./components/TagGroup.spec";
 export type { TagGroupProps } from "./components/TagGroup.spec";

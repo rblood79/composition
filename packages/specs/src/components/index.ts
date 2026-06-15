@@ -248,9 +248,7 @@ export type { BreadcrumbsProps } from "./Breadcrumbs.spec";
 export { BreadcrumbSpec } from "./Breadcrumb.spec";
 export type { BreadcrumbItemProps } from "./Breadcrumb.spec";
 
-// Pagination
-export { PaginationSpec } from "./Pagination.spec";
-export type { PaginationProps } from "./Pagination.spec";
+// Pagination — ADR-912 R7 G1-c (2026-06-15): catalog cutover, spec 삭제. binding.accepts D2.
 
 // TagGroup
 export { TagGroupSpec } from "./TagGroup.spec";

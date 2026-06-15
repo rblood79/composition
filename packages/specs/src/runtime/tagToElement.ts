@@ -46,7 +46,7 @@ import { TabSpec } from "../components/Tab.spec";
 import { MenuSpec } from "../components/Menu.spec";
 import { BreadcrumbsSpec } from "../components/Breadcrumbs.spec";
 import { BreadcrumbSpec } from "../components/Breadcrumb.spec";
-import { PaginationSpec } from "../components/Pagination.spec";
+// ADR-912 R7 G1-c (2026-06-15): PaginationSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { TagGroupSpec } from "../components/TagGroup.spec";
 import { TagSpec } from "../components/Tag.spec";
 import { GridListSpec } from "../components/GridList.spec";
@@ -145,7 +145,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Menu: MenuSpec,
   Breadcrumbs: BreadcrumbsSpec,
   Breadcrumb: BreadcrumbSpec,
-  Pagination: PaginationSpec,
+  // ADR-912 R7 G1-c (2026-06-15): Pagination catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
+  //   isCatalogCutover('Pagination')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   TagGroup: TagGroupSpec,
   Tag: TagSpec,
   GridList: GridListSpec,
