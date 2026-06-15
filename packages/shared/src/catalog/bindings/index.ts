@@ -26,6 +26,7 @@ import { datePickerBinding } from "./DatePicker.binding";
 import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { descriptionBinding } from "./Description.binding";
 import { dialogBinding } from "./Dialog.binding";
+import { dialogFooterBinding } from "./DialogFooter.binding";
 import { disclosureBinding } from "./Disclosure.binding";
 import { disclosureContentBinding } from "./DisclosureContent.binding";
 import { disclosureGroupBinding } from "./DisclosureGroup.binding";
@@ -117,6 +118,7 @@ export * from "./DatePicker.binding";
 export * from "./DateRangePicker.binding";
 export * from "./Description.binding";
 export * from "./Dialog.binding";
+export * from "./DialogFooter.binding";
 export * from "./DisclosureContent.binding";
 export * from "./DisclosureGroup.binding";
 export * from "./DisclosureHeader.binding";
@@ -328,6 +330,10 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   TableRow: tableRowBinding,
   // family ⑥ overlays (internal source — composition wrapper, portal/overlay, skiaLegacy)
   Dialog: dialogBinding,
+  // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯 컨테이너 sub-part
+  //   (palette 미노출, factory 자동 생성). spec(render.shapes []) childSpecs 경로 → catalog generic
+  //   box shell. footer layout=factory props.style SSOT. DOM=generic(KNOWN_HTML footer), Skia=shell.
+  DialogFooter: dialogFooterBinding,
   Modal: modalBinding,
   Popover: popoverBinding,
   Tooltip: tooltipBinding,

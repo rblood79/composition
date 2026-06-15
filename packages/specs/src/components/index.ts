@@ -37,9 +37,8 @@ export type { CardPreviewProps } from "./CardPreview.spec";
 export { DialogSpec } from "./Dialog.spec";
 export type { DialogProps } from "./Dialog.spec";
 
-// DialogFooter (Disclosure·Tree 버그 클래스 수정 — container slot spec)
-export { DialogFooterSpec } from "./DialogFooter.spec";
-export type { DialogFooterProps } from "./DialogFooter.spec";
+// DialogFooter — ADR-912 childSpec→catalog cutover (2026-06-15): export 제거 (spec 삭제).
+//   시각은 catalog rule(COMPONENT_RULES_TABLE.DialogFooter) + buildCatalogShapes generic.
 
 // Link (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 

@@ -200,6 +200,11 @@ const TEXT_LEAF_NAMES = new Set([
   //   spec body 삭제 대비 → 독립 `generated/ListBoxItem.css` virtual 로 분리(MenuItem 선례 동형, flat
   //   selector 라 시각 동일). ListBox.spec.childSpecs 는 [HeaderSpec] 만 유지(Header 는 삭제 대상 아님).
   "ListBoxItem",
+  // ADR-912 childSpec→catalog cutover (2026-06-15): DialogFooter 는 Dialog.spec childSpecs 경로로
+  //   `generated/Dialog.css` 에 inline embed(ADR-078) 됐으나, catalog cutover 로 spec body 삭제 대비
+  //   → 독립 `generated/DialogFooter.css` virtual 로 분리(ListBoxItem 선례 동형, flat selector 라 시각
+  //   동일). Dialog.spec.childSpecs 제거(DialogFooter 가 유일 멤버) → Dialog.css embedded 블록 사라짐.
+  "DialogFooter",
 ]);
 
 type TextLeafMeta = {
@@ -581,6 +586,19 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     containerStyles: { display: "inline-flex", alignItems: "center" },
     // 원본 TailSwatch.spec states: {} (상태 CSS 미emit). 기본 states override 로 빈 처리.
     states: {},
+  },
+  // ADR-912 childSpec→catalog cutover (2026-06-15) — DialogFooter (DialogFooter.spec.ts 삭제 대상).
+  //   archetype "simple": DialogFooter.spec.ts 는 containerStyles 미정의(sizes 만) → undefined →
+  //   ARCHETYPE base(inline-flex/align-items/box-sizing)만 emit(Code 처럼 containerStyles 중복 라인
+  //   없음). states 미설정 → 기본 focus-visible(outline) + disabled(opacity/cursor/pointer-events) emit
+  //   — DialogFooterSpec.states.focusVisible + CSSGenerator 기본 disabled 와 동형. Dialog.css embedded
+  //   블록(ADR-078)과 flat selector 시각 동일. footer layout(flex/gap)은 factory props.style SSOT
+  //   (rule sizes 의 gap/padding=0 은 base fallback). Skia 는 catalog generic box shell(투명 — fill 없음).
+  {
+    name: "DialogFooter",
+    archetype: "simple",
+    element: "div",
+    containerStyles: undefined,
   },
 ];
 

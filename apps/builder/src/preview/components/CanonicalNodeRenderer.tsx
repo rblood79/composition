@@ -571,6 +571,10 @@ function resolveGenericHtmlTag(type: string): string {
     Group: "div",
     FormField: "div",
     FieldError: "span",
+    // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯. 미정의 시
+    //   toLowerCase fallback 이 `<dialogfooter>` raw tag(React unknown-tag 경고) → footer
+    //   시맨틱 명시(선재 이슈 동시 해소). builder 메인 Preview(App.tsx resolveHtmlTag)와 일치.
+    DialogFooter: "footer",
     frame: "div",
     ref: "div",
   };

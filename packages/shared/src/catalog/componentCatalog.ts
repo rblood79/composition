@@ -756,6 +756,18 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     label: "drop zone",
     icon: "Upload",
   }),
+  // DialogFooter — ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 버튼 영역 슬롯
+  //   컨테이너 sub-part. Dialog factory 자동 생성(palette 미노출 — PALETTE_ORDER 비포함,
+  //   SelectTrigger/SelectValue/Field 동형). spec(render.shapes []) 의 childSpecs(ADR-094
+  //   expandChildSpecs) 경로 → catalog generic box shell 로 cutover. 시각 shell-only(투명 fill
+  //   없음 — footer 시각은 자식 버튼 Element). footer layout(flex/justifyContent/gap)은 factory
+  //   props.style SSOT(ADR-907 Layer B). DOM=generic(KNOWN_HTML DialogFooter→footer), Skia=
+  //   buildCatalogShapes box(render.shapes []와 시각 동일).
+  primitiveEntry("DialogFooter", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "dialog footer",
+    icon: "AppWindowMac",
+  }),
 ];
 
 /**

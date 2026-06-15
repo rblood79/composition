@@ -10,7 +10,6 @@
 import type { ComponentSpec, Shape, TokenRef } from "../types";
 import { resolveStateColors } from "../utils/stateEffect";
 import { MessageSquare, ToggleLeft, Parentheses } from "lucide-react";
-import { DialogFooterSpec } from "./DialogFooter.spec";
 
 /**
  * Dialog Props
@@ -149,8 +148,10 @@ export const DialogSpec: ComponentSpec<DialogProps> = {
 
   states: {},
 
-  // ADR-094 expandChildSpecs: DialogFooter 슬롯 spec 을 Skia/Taffy 에 자동 등록.
-  childSpecs: [DialogFooterSpec],
+  // ADR-912 childSpec→catalog cutover (2026-06-15): DialogFooter 는 catalog 등록(FAMILY_6,
+  //   isCatalogCutover=true)으로 Skia/Taffy/DOM 시각을 rule + buildCatalogShapes generic 으로
+  //   이전 → childSpecs 경로(ADR-094 expandChildSpecs) 제거. DialogFooter.css 는 generate-css
+  //   virtual(TEXT_LEAF_META)로 독립 생성(Dialog.css embedded 블록 사라짐).
 
   render: {
     shapes: (props, size, state = "default") => {
