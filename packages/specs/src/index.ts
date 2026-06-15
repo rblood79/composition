@@ -422,8 +422,9 @@ export { resolveGridListItemMetric } from "./renderers/utils/collectionItemMetri
 export { ToolbarSpec } from "./components/Toolbar.spec";
 export type { ToolbarProps } from "./components/Toolbar.spec";
 
-export { ToastSpec } from "./components/Toast.spec";
-export type { ToastProps } from "./components/Toast.spec";
+// ADR-912 R7 G1-c (2026-06-15): ToastSpec/ToastProps export 제거 — 순수 box-shell catalog cutover.
+//   시각 SSOT = COMPONENT_RULES_TABLE.Toast + generate-css virtual(archetype alert). 좌측 accent bar
+//   는 RAC 공식 미준수 변형이라 제거. binding.accepts D2(variant/size/defaultTitle/...).
 
 export { GroupSpec } from "./components/Group.spec";
 export type { GroupProps } from "./components/Group.spec";

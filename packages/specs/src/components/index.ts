@@ -276,9 +276,8 @@ export { resolveGridListItemMetric } from "../renderers/utils/collectionItemMetr
 export { ToolbarSpec } from "./Toolbar.spec";
 export type { ToolbarProps } from "./Toolbar.spec";
 
-// Toast
-export { ToastSpec } from "./Toast.spec";
-export type { ToastProps } from "./Toast.spec";
+// Toast — ADR-912 R7 G1-c (2026-06-15): 순수 box-shell catalog cutover, spec 삭제. binding.accepts D2.
+//   좌측 accent bar 는 RAC 공식(react-aria.adobe.com/Toast) 미준수 변형이라 제거.
 
 // Group
 export { GroupSpec } from "./Group.spec";

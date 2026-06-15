@@ -53,7 +53,7 @@ import { GridListSpec } from "../components/GridList.spec";
 import { ModalSpec } from "../components/Modal.spec";
 import { FieldSpec } from "../components/Field.spec";
 import { ToolbarSpec } from "../components/Toolbar.spec";
-import { ToastSpec } from "../components/Toast.spec";
+// ADR-912 R7 G1-c (2026-06-15): ToastSpec import 제거 — 순수 box-shell catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { GroupSpec } from "../components/Group.spec";
 import { FrameSpec } from "../components/Frame.spec";
 import { SlotSpec } from "../components/Slot.spec";
@@ -158,7 +158,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   //   spec entry 삭제 (color leaf box-only cutover, 시각 = catalog rule). ColorPicker/ColorField/
   //   ColorSwatchPicker(container/field) 보존.
   Toolbar: ToolbarSpec,
-  Toast: ToastSpec,
+  // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
+  //   isCatalogCutover('Toast')=true → Skia 진입 게이트(buildSpecNodeData) spec 없이 통과. binding.accepts D2.
   Group: GroupSpec,
   // ADR-130: canonical layout container (lowercase pencil structural).
   // Group (PascalCase) = RAC ARIA semantic / frame (lowercase) = layout primitive.

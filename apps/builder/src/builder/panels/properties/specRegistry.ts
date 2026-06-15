@@ -53,7 +53,7 @@ import {
   TextAreaSpec,
   TextFieldSpec,
   TimeFieldSpec,
-  ToastSpec,
+  // ADR-912 R7 G1-c (2026-06-15): ToastSpec import 제거 — 순수 box-shell catalog cutover, binding.accepts D2.
   ToggleButtonGroupSpec,
   ToolbarSpec,
   TooltipSpec,
@@ -143,7 +143,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   TextArea: TextAreaSpec as ComponentSpec<Record<string, unknown>>,
   TextField: TextFieldSpec as ComponentSpec<Record<string, unknown>>,
   TimeField: TimeFieldSpec as ComponentSpec<Record<string, unknown>>,
-  Toast: ToastSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell catalog cutover → entry 제거 (binding.accepts D2).
   ToggleButtonGroup: ToggleButtonGroupSpec as ComponentSpec<
     Record<string, unknown>
   >,
