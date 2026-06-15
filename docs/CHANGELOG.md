@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [TagList catalog cutover + spec 물리 삭제 — 마지막 collection sub-part] - 2026-06-15
 
+### Bug Fixes
+
+- **TagGroup `allowsRemoving` — CSS Preview 에 remove(X) 버튼 미표시** (ADR-912 TagList cutover 후속):
+  - `allowsRemoving` 토글 활성화 시 Skia 캔버스에는 각 Tag 에 X 가 그려지나 CSS Preview(DOM)에는 close 버튼이 안 나오던 DOM↔Skia 비대칭 수정
+  - **Why**: catalog cutover 후 DOM 렌더 경로가 `CanonicalNodeRenderer` 의 `INTERNAL_RENDERERS["taggroup"]`(TagGroup wrapper 직접 렌더)로 가는데, `toRacProps` 는 `binding.accepts`(시각/데이터 prop 한정)만 통과시켜 `onRemove` 이벤트 핸들러를 drop → wrapper 가 `onRemove=undefined` → RAC `useTag` 의 `allowsRemoving: !!onRemove`(react-aria `useTag.mjs:93`)가 false → Tag remove 버튼(`<Button slot="remove">`) 미렌더. Skia 는 `appendTagRowProjection` 이 `props.allowsRemoving` boolean 을 trailingIcon rule 로 직접 그려 무관 → 비대칭. select/combobox/tabs/breadcrumbs/tree 는 cutover 시 이미 `DELEGATING_INTERNAL_RENDERERS` 등록을 받았으나 taggroup 은 누락
+  - 수정: `DELEGATING_INTERNAL_RENDERERS` 에 `"taggroup"` 추가 → `renderTagGroup`(CollectionRenderers.tsx, 검증된 onRemove + onSelectionChange inline 핸들러: items SSOT 제거 + postMessage UPDATE_ELEMENT_PROPS)로 위임(select/combobox 동형). X 표시 + 클릭 시 실제 제거 동작 모두 복원
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`(DELEGATING_INTERNAL_RENDERERS)
+  - 검증: type-check PASS(builder baseline 71 불변) + **Chrome MCP live**(remove 버튼 4개 aria-label="제거"+SVG 렌더 / "Mint" X 클릭 → store items 4→3 + DOM visible chip 동기화 + undo 복원 / 콘솔 에러 0 / maxRows 측정용 숨김 미러 TagList 는 inert+opacity:0 정상)
+  - 잔여(별도 결정): listbox/gridlist/menu/table 도 동일 DELEGATING 누락 가능 — 본 수정은 사용자 보고 TagGroup 한정
+
 ### Architecture
 
 - **TagList catalog cutover + `TagList.spec.ts` 물리 삭제** (ADR-912 collection sub-part):

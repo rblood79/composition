@@ -205,6 +205,15 @@ export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   (select/combobox/disclosure 동형). Skia 는 자식 TreeItem 이 box+text+chevron generic
   //   으로 자기 노드 렌더(시각 결과 대칭, 구현 비대칭 의도 — depth indent 는 _treeLevel).
   "tree",
+  // ADR-912 TagList cutover 후속 (2026-06-16): taggroup — renderTagGroup (CollectionRenderers.tsx)
+  //   가 element.props.items SSOT 로 RAC `<TagGroup>` self-compose 하면서 onSelectionChange /
+  //   onRemove inline 핸들러(updateElementProps + postMessage UPDATE_ELEMENT_PROPS)를 wrapper 에
+  //   연결한다. generic toRacProps 경로는 binding.accepts(시각/데이터 prop 한정)만 통과시켜
+  //   이벤트 핸들러를 drop → wrapper 가 onRemove=undefined → RAC useTag 의 `allowsRemoving: !!onRemove`
+  //   가 false → Tag remove 버튼(<Button slot="remove">) 미렌더(Skia 는 trailingIcon rule 로 X 를
+  //   직접 그려 DOM↔Skia 비대칭). rendererMap 위임으로 검증된 onRemove/onSelectionChange 복원
+  //   (select/combobox 동형 — 둘 다 이미 위임 등록). Skia 는 appendTagRowProjection 그대로(무관).
+  "taggroup",
 ]);
 
 /**
