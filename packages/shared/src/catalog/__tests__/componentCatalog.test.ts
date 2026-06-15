@@ -126,6 +126,11 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "CardPreview",
         // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover.
         "Card",
+        // ADR-912 R7 G1-a/b (2026-06-15): container shell 3종 catalog cutover (AvatarGroup/
+        //   CardView 빈 셸 동형 + TableView isQuiet→variant:quiet 흡수). Skia generic box shell.
+        "AvatarGroup",
+        "CardView",
+        "TableView",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

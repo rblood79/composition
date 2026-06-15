@@ -4,6 +4,7 @@
  */
 import type { PrimitiveBinding } from "../types";
 import { avatarBinding } from "./Avatar.binding";
+import { avatarGroupBinding } from "./AvatarGroup.binding";
 import { badgeBinding } from "./Badge.binding";
 import { bodyBinding } from "./Body.binding";
 import { breadcrumbsBinding } from "./Breadcrumbs.binding";
@@ -40,6 +41,7 @@ import { cardContentBinding } from "./CardContent.binding";
 import { cardFooterBinding } from "./CardFooter.binding";
 import { cardHeaderBinding } from "./CardHeader.binding";
 import { cardPreviewBinding } from "./CardPreview.binding";
+import { cardViewBinding } from "./CardView.binding";
 import { formBinding } from "./Form.binding";
 import { formFieldBinding } from "./FormField.binding";
 import { gridListBinding } from "./GridList.binding";
@@ -86,6 +88,7 @@ import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
 import { tableCellBinding } from "./TableCell.binding";
 import { tableRowBinding } from "./TableRow.binding";
+import { tableViewBinding } from "./TableView.binding";
 import { tabsBinding } from "./Tabs.binding";
 import { tagBinding } from "./Tag.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
@@ -102,6 +105,7 @@ import { treeBinding } from "./Tree.binding";
 import { treeItemBinding } from "./TreeItem.binding";
 
 export * from "./Avatar.binding";
+export * from "./AvatarGroup.binding";
 export * from "./Badge.binding";
 export * from "./Body.binding";
 export * from "./Breadcrumbs.binding";
@@ -136,6 +140,7 @@ export * from "./CardContent.binding";
 export * from "./CardFooter.binding";
 export * from "./CardHeader.binding";
 export * from "./CardPreview.binding";
+export * from "./CardView.binding";
 export * from "./Form.binding";
 export * from "./FormField.binding";
 export * from "./GridList.binding";
@@ -178,6 +183,7 @@ export * from "./Switch.binding";
 export * from "./Table.binding";
 export * from "./TableCell.binding";
 export * from "./TableRow.binding";
+export * from "./TableView.binding";
 export * from "./Tabs.binding";
 export * from "./Tag.binding";
 export * from "./TagGroup.binding";
@@ -238,6 +244,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   StatusLight: statusLightBinding,
   // ADR-912 진로 1번: 사용자 아바타 circle+image internal leaf (avatar escape, replace — image 미generic)
   Avatar: avatarBinding,
+  // ADR-912 R7 G1-a/b: container shell catalog cutover (internal/div, generic box shell + 자식
+  //   Avatar/Card/Table self-draw). spec.render.shapes Skia fallback 제거 → buildCatalogShapes.
+  AvatarGroup: avatarGroupBinding,
   // ADR-912 container shell 3 (2026-06-04): box형 시맨틱 컨테이너 leaf (internal source, generic
   //   box 시각). spec.render.shapes Skia fallback 제거. SHELL_ONLY(Body/Section) 또는 자식 무관
   //   bg(Nav) → buildCatalogShapes box 만으로 spec parity. List 는 샘플 text 때문에 별도 보류.
@@ -289,6 +298,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   CardContent: cardContentBinding,
   CardFooter: cardFooterBinding,
   CardPreview: cardPreviewBinding,
+  // ADR-912 R7 G1-b (2026-06-15): Card 그리드/워터폴 컬렉션 컨테이너 (AvatarGroup 동형 — 빈 셸,
+  //   자식 Card self-draw). internal/div shell, layout(flex/wrap/gap)은 factory props.style.
+  CardView: cardViewBinding,
   // ADR-912 위험군 해소(선행-6): field/form validation 에러 메시지 leaf (TEXT_LEAF 동형, 부모 데이터
   //   의존 0, weight 400 negative 색, measure 는 부모 height 분기로 catalog 직교)
   FieldError: fieldErrorBinding,
@@ -353,6 +365,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Table: tableBinding,
   TableCell: tableCellBinding,
   TableRow: tableRowBinding,
+  // ADR-912 R7 G1-b (2026-06-15): 강화 Table 컨테이너 (S2 variant default/quiet — 구 isQuiet
+  //   boolean 흡수). internal/div shell + variant 별 border, layout 은 factory props.style.
+  TableView: tableViewBinding,
   // family ⑥ overlays (internal source — composition wrapper, portal/overlay, skiaLegacy)
   Dialog: dialogBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯 컨테이너 sub-part

@@ -668,9 +668,11 @@ export function createTableViewDefinition(
     parent: {
       type: "TableView",
       props: {
+        // ADR-912 R7 G1-b: S2 variant 모델 — 구 isQuiet:false → variant:"default" 명시
+        //   (R6 Card 동형, quiet=transparent+no border 흡수).
+        variant: "default",
         density: "regular",
         isStriped: false,
-        isQuiet: false,
         allowsSorting: true,
         style: {
           display: "flex",

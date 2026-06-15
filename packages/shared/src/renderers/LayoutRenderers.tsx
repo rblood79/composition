@@ -2001,13 +2001,19 @@ export const renderTableView = (
 
   const children = context.childrenByParent.get(element.id) ?? [];
 
-  const isQuiet = element.props.isQuiet === true;
+  // ADR-912 R7 G1-b: S2 variant 모델(default/quiet) — 구 isQuiet boolean 흡수.
+  //   variant 우선, legacy isQuiet:true → quiet 정규화. quiet=transparent+no border.
+  const variant =
+    (element.props.variant as string | undefined) ??
+    (element.props.isQuiet === true ? "quiet" : "default");
+  const isQuiet = variant === "quiet";
 
   return (
     <div
       key={element.id}
       data-element-id={element.id}
       data-custom-id={element.customId}
+      data-variant={variant}
       role="grid"
       style={{
         display: "flex",

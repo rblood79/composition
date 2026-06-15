@@ -66,8 +66,17 @@ describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
     }
   });
 
-  it("TableView 는 catalog 미등록 (inventory primitive 아님)", () => {
-    expect(getCatalogEntry("TableView")).toBeUndefined();
+  // ADR-912 R7 G1-b (2026-06-15): TableView container shell catalog cutover — 구 isQuiet boolean
+  //   분기를 S2 정본 variant(default/quiet)로 흡수해 catalog 등록. internal/div shell + variant 별
+  //   border. 시각 source = COMPONENT_RULES_TABLE.TableView, Skia generic box shell.
+  it("TableView 는 catalog 등록 (R7 G1-b cutover) — internal source, cutover catalog", () => {
+    const entry = getCatalogEntry("TableView");
+    expect(entry).toBeDefined();
+    expect(entry?.kind).toBe("primitive");
+    if (entry?.kind === "primitive") {
+      expect(entry.cutover).toBe("catalog");
+      expect(entry.binding.source.kind).toBe("internal");
+    }
   });
 
   it("toRacProps: dataBinding(kind:binding) 통과 + size data-* 라우팅", () => {

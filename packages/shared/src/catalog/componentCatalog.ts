@@ -364,6 +364,30 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "card preview",
     icon: "Image",
   }),
+  // ADR-912 R7 G1-a/b (2026-06-15): container shell 3종 catalog cutover (AvatarGroup/CardView/
+  //   TableView). 각 spec(skipCSSGeneration:false → 자체 generated/{X}.css)을 generate-css virtual
+  //   로 DOM CSS source 이전(R7 G1-a/b) 후 catalog 등록 — Skia 시각도 spec.render.shapes →
+  //   buildCatalogShapes generic box shell 로 이전(isCatalogCutover 게이트 활성). 시각 source =
+  //   COMPONENT_RULES_TABLE.{X}. layout 은 factory props.style SSOT(ADR-907 Layer B). DOM 은 전용
+  //   rendererMap(renderAvatarGroup/renderCardView/renderTableView) 유지 — INTERNAL_RENDERERS 미등록
+  //   + cutoverTypes 미포함 → generic 전환 아님(전용 렌더러 inline style 이 DOM 시각, generated CSS
+  //   보조). catalog entry 는 Skia 게이트 활성 + palette source 목적. Card 본체(R6) 동형.
+  //   TableView 는 isQuiet boolean → variant:quiet 흡수(S2 정본 variant 모델, D2 BC 사용자 승인).
+  primitiveEntry("AvatarGroup", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "avatar group",
+    icon: "Users",
+  }),
+  primitiveEntry("CardView", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "card view",
+    icon: "LayoutGrid",
+  }),
+  primitiveEntry("TableView", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "table view",
+    icon: "Table",
+  }),
 ];
 
 /**
