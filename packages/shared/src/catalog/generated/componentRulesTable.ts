@@ -5975,11 +5975,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // gap = chip 간(inter-chip) 간격 — TagList(컨테이너) 소관 layout gap (ADR-912 cutover
+    //   2026-06-15: TAG_CHIP_SIZES.gap 이관). chip 자체 치수(lineHeight/paddingX/fontSize/
+    //   borderRadius/height)는 Tag rule 에 존재 — utils.ts calculateContentHeight 가 chip 치수=
+    //   Tag rule, gap=본 TagList rule 로 분리 read. 값 보존: sm/md=4, lg=6.
     sizes: {
+      sm: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+        height: 32,
+        gap: 4,
+      },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 32,
+        gap: 4,
+      },
+      lg: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+        height: 32,
+        gap: 6,
       },
     },
   },

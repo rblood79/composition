@@ -31,7 +31,6 @@ import {
   isListBoxSectionEntry,
   resolveGridListSpacingMetric,
   isGridListSectionEntry,
-  TAG_CHIP_SIZES,
   parsePxValue,
 } from "@composition/specs";
 import type { SizeSpec } from "@composition/specs";
@@ -574,6 +573,58 @@ function ruleSizesToSizeSpecMap(type: string): Record<string, SizeSpec> {
     result[key] = ruleSizeToSizeSpec(s as ComponentRuleSize) as SizeSpec;
   }
   return result;
+}
+
+/**
+ * TagList chip 치수 resolver (ADR-912 cutover 2026-06-15 — TAG_CHIP_SIZES 이관).
+ *
+ * chip 자체 치수(fontSize/lineHeight/paddingX/borderRadius)는 **Tag catalog rule**(이미 cutover)에서,
+ * chip 간(inter-chip) gap 은 **TagList catalog rule**(컨테이너 소관)에서 읽어 합성한다. paddingY 는
+ * Tag rule 의 height 와 lineHeight 로 도출(`(height - lineHeight) / 2`) — 기존 TAG_CHIP_SIZES.paddingY
+ * 와 sm/md/lg 전 사이즈 동일 값(2/4/8). 값 보존(치수 현상 보존): 회귀 0, 차이는 spec 삭제 후에도 0.
+ */
+function resolveTagChipMetric(sizeName: string): {
+  paddingX: number;
+  paddingY: number;
+  fontSize: number;
+  lineHeight: number;
+  borderRadius: number;
+  gap: number;
+} {
+  const num = (v: unknown, fallback: number): number => {
+    if (typeof v === "number") return v;
+    if (typeof v === "string") {
+      const resolved = v.startsWith("{")
+        ? resolveToken(v as Parameters<typeof resolveToken>[0])
+        : Number(v);
+      const n = Number(resolved);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    return fallback;
+  };
+
+  const tagRule = resolveSkiaRule("Tag");
+  const tagSizes = (tagRule?.sizes ?? {}) as Record<string, ComponentRuleSize>;
+  const chip = tagSizes[sizeName] ?? tagSizes.md ?? ({} as ComponentRuleSize);
+
+  const fontSize = num(chip.fontSize, 14);
+  const lineHeight = num(chip.lineHeight, 20);
+  const height = num(chip.height, lineHeight + 8);
+  const paddingX = num(chip.paddingX, 12);
+  const borderRadius = num(chip.borderRadius, 6);
+  // paddingY 는 Tag rule 에 명시 없음 → height/lineHeight 로 도출 (chip 시각 = lineHeight + paddingY*2).
+  const paddingY = Math.max(0, (height - lineHeight) / 2);
+
+  const tagListRule = resolveSkiaRule("TagList");
+  const tagListSizes = (tagListRule?.sizes ?? {}) as Record<
+    string,
+    ComponentRuleSize
+  >;
+  const containerSize =
+    tagListSizes[sizeName] ?? tagListSizes.md ?? ({} as ComponentRuleSize);
+  const gap = num(containerSize.gap, 4);
+
+  return { paddingX, paddingY, fontSize, lineHeight, borderRadius, gap };
 }
 
 // ADR-912 box+text leaf 군 (2026-06-11): StatusLight.spec 삭제 → STATUSLIGHT_DIMENSIONS 인라인 미러.
@@ -1846,11 +1897,13 @@ export function calculateContentHeight(
     const items = props?.items as Array<{ label?: string }> | undefined;
     if (!items || items.length === 0) return 0;
 
-    const sizeName = (props?.size as keyof typeof TAG_CHIP_SIZES) ?? "md";
-    const chipSize = TAG_CHIP_SIZES[sizeName] ?? TAG_CHIP_SIZES.md;
+    const sizeName = (props?.size as string) ?? "md";
+    // ADR-912 cutover (2026-06-15): chip 치수 = Tag catalog rule, gap = TagList catalog rule
+    //   (TAG_CHIP_SIZES 이관, 값 보존). 부모 TagGroup.items projection chip(appendTagRowProjection)
+    //   과 동일 치수여야 Skia/layout 정합 유지.
+    const chipSize = resolveTagChipMetric(sizeName);
     const fontSize = parseNumericValue(style?.fontSize) ?? chipSize.fontSize;
-    // Tag spec 정식 치수 공식: height = lineHeight + paddingY*2 (fontSize 아님).
-    // TagList.spec.ts shapes() 와 반드시 동일해야 Skia/layout 정합성 유지.
+    // chip 정식 치수 공식: height = lineHeight + paddingY*2 (fontSize 아님).
     const tagHeight = chipSize.lineHeight + chipSize.paddingY * 2;
     const gap = chipSize.gap;
     const rowGap = gap;
