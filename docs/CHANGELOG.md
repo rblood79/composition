@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CheckboxGroup/RadioGroup horizontal orientation preview 대칭 복원 — ADR-912 후속] - 2026-06-15
+
+### Bug Fixes
+
+- **CheckboxGroup/RadioGroup horizontal orientation 이 Compare Mode(preview.html) 에서 무효** (ADR-912 CheckboxItems/RadioItems 폐기 후속):
+  - CheckboxGroup/RadioGroup 은 ADR-142 family ③ selection catalog cutover(`source.kind="rac"`, commit `078781ebd` 2026-05-31)로 generic `cutoverPrimitives` 경로(`CanonicalNodeRenderer`)로 렌더되어, 자식 Checkbox/Radio 를 그룹 직속에 generic 재귀로 배치하고 wrapper div 를 합성하지 않았다
+  - **Why**: generated CSS 의 horizontal 규칙(`[data-orientation="horizontal"] .checkbox-items`/`.radio-items`)이 wrapper 를 타겟하는데 (1) generic 경로가 wrapper 미합성 (2) `toRacProps` 가 `orientation`(kind:"enum")을 `data-*` 로 emit 안 함(`DATA_ATTR_KINDS`=variant/size/fillStyle 한정) → horizontal CSS selector 전면 미매칭. vertical 은 그룹 자체 flex column 으로 우연히 정상이라 폐기 작업 당시엔 별도(task #17)로 분리됐었다 — 이번 작업 회귀가 아닌 선재 이슈
+  - 수정: `CheckboxGroup`/`RadioGroup` 을 `DELEGATING_RAC_RENDERERS` 에 등록 → `renderCheckboxGroup`/`renderRadioGroup`(FormRenderers) self-compose 위임. 두 렌더러는 `.checkbox-items`/`.radio-items` wrapper + orientation prop 전달(CheckboxGroup.tsx 명시 `data-orientation` / RadioGroup 은 RAC 자동 emit)을 이미 완비 → vertical 보존 + horizontal 대칭. Slider/NumberField/SearchField 와 동형 패턴(단, 등록 동기는 자식 raw tag 가 아니라 horizontal wrapper)
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx` (DELEGATING_RAC_RENDERERS) / 회귀 가드 `CanonicalNodeRenderer.checkboxRadioGroup.test.tsx` (3 test)
+  - 검증: type-check PASS(builder baseline 71 불변) + DELEGATING 멤버십 가드 test 5/5 PASS(신규 3 + selectFamily 2) + **Chrome MCP live**(리로드 후 CheckboxGroup horizontal — `data-orientation="horizontal"` + `.checkbox-items` flex row + item 가로 배치 left 0→93 / RadioGroup vertical 보존 / raw 태그 0건)
+  - **잔존(별개 영역)**: runtime Inspector 의 orientation 변경이 preview 에 즉시 반영 안 됨(리로드 후 정상) — preview 갱신 채널의 prop diff 감지 문제로 본 렌더 경로 수정과 직교
+
 ## [CheckboxItems/RadioItems 중간 컨테이너 폐기 — react-aria-starter 구조 정렬] - 2026-06-14
 
 ### Architecture

@@ -227,6 +227,18 @@ export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set([
   //   skip (Slider 동형, SelectTrigger sub-part 는 DOM 미도달이 설계 의도).
   "NumberField",
   "SearchField",
+  // ADR-912 CheckboxItems/RadioItems 폐기 후속 (2026-06-15): CheckboxGroup / RadioGroup —
+  //   등록 동기가 위 Slider 군과 다르다. 자식 Checkbox/Radio 는 spec 이 살아있어 generic
+  //   재귀로도 raw tag 안 떨어진다(vertical 은 generic 경로로도 그룹 자체 flex column 으로
+  //   정상). 문제는 horizontal — generated CSS 가 `[data-orientation="horizontal"]
+  //   .checkbox-items`/`.radio-items` wrapper 를 타겟하는데 generic 경로는 wrapper 를 합성
+  //   안 하고(L452 자식 직속 재귀), toRacProps 가 orientation(kind:"enum")을 data-* 로 emit
+  //   안 한다(DATA_ATTR_KINDS=variant/size/fillStyle 한정). renderCheckboxGroup/
+  //   renderRadioGroup 은 `<div className="checkbox-items">`/`.radio-items` wrapper +
+  //   orientation prop 전달(→ CheckboxGroup.tsx 명시 data-orientation / RadioGroup 은 RAC
+  //   자동 emit)을 자기완결로 처리 → rendererMap 위임으로 vertical 보존 + horizontal 대칭.
+  "CheckboxGroup",
+  "RadioGroup",
 ]);
 
 /**
