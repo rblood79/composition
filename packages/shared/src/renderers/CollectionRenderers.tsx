@@ -777,7 +777,10 @@ export const renderMenu = (
         id={item.id}
         textValue={item.textValue ?? item.label}
         isDisabled={Boolean(item.isDisabled)}
-        href={item.href}
+        // RAC MenuItem 은 `href` 키가 존재하기만 하면(undefined 값이어도) link 모드로
+        // 진입해 DOM 에 `href=""` 를 렌더 → React 경고("empty string passed to href").
+        // 따라서 href 가 있을 때만 prop 을 전개(conditional spread)해 키 자체를 제거한다.
+        {...(item.href ? { href: item.href } : {})}
       >
         <span className="menu-item-content">
           {item.icon && <span className="menu-item-icon">{item.icon}</span>}

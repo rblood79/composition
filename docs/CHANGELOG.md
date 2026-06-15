@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [cross-page reusable Instance preview 미렌더 수정 + collection selection DELEGATING sweep] - 2026-06-16
+## [cross-page reusable Instance preview 미렌더 수정 + collection selection DELEGATING sweep + collection item href 경고 제거] - 2026-06-16
 
 ### Bug Fixes
 
@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Table 제외**: Table 은 binding.accepts/renderTable/wrapper 어디에도 selection·sort 핸들러가 없고 `useReactTable` 내부 state 로 격리 → DELEGATING 등록만으로 복원 불가(별도 결정)
   - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`(DELEGATING_INTERNAL_RENDERERS)
   - 검증: type-check PASS(builder baseline 71 불변)
+
+- **ListBox/Menu 추가 시 CSS Preview 에서 React `empty string passed to href` 경고** (이전 Breadcrumb/Link href 정규화 후속):
+  - ListBox·Menu 를 추가하면 CSS Preview 콘솔에 item 수만큼 `An empty string ("") was passed to the href attribute` 경고가 반복 발생
+  - **Why**: collection item 렌더 경로(`SelectionRenderers.tsx` ListBox / `CollectionRenderers.tsx` Menu)가 `href={item.href}` 로 RAC `ListBoxItem`/`MenuItem` 에 href 를 전달하는데, **RAC 는 `href` prop 키가 존재하기만 하면(값이 빈 문자열이든 `undefined`든) link 모드로 진입**해 DOM 에 `href=""` 를 렌더한다. fiber 추적 결과 `node.props.href === undefined` 여도 RAC `DOMElement` 가 `href=""` 를 DOM 에 도달시켜 경고 발생 — 즉 `item.href || undefined` 정규화로는 부족(키가 남음). 직전 커밋(`3acdcd467`)이 `Link.tsx` 에 만든 정규화 방어선은 collection item 직접 경로(Link 컴포넌트 미경유)를 cover 하지 못함
+  - 수정: 두 렌더 경로 모두 `href` 를 **conditional spread**(`{...(item.href ? { href: item.href } : {})}`)로 전달 → href 가 falsy 일 때 prop 키 자체를 제거해 RAC link 모드 진입 차단
+  - 위치: `packages/shared/src/renderers/SelectionRenderers.tsx`(ListBoxItem) / `packages/shared/src/renderers/CollectionRenderers.tsx`(MenuItem)
+  - 검증: type-check PASS(builder baseline 71 불변) + **Chrome MCP live**(ListBox 추가 후 href 경고 3→0 / DOM `href=""` 요소 0 / ListBoxItem props 에 href 키 없음(`reactHrefKey:false`) / 항목 3개 Skia·CSS 양쪽 정상 렌더)
 
 ## [TagList catalog cutover + spec 물리 삭제 — 마지막 collection sub-part] - 2026-06-15
 
