@@ -698,6 +698,19 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "type group",
     icon: "Tag",
   }),
+  // TagList — catalog cutover (ADR-912 collection sub-part, 2026-06-15, TabList 동형): TagGroup
+  //   projection 의 chip 컨테이너 shell. 기존 TagList.spec(render.shapes:()=>[] shell +
+  //   skipCSSGeneration:true + containerStyles flex/row/wrap)이 Skia 진입 게이트(buildSpecNodeData
+  //   `if(!spec) return null`)를 통과시키는 유일 근거였다. catalog 등록으로 rule(transparent box shell)
+  //   + buildCatalogShapes generic 으로 이전 — chip 시각은 이미 cutover 된 Tag(appendTagRowProjection
+  //   → Tag SceneNode)가 단독 담당, TagList 자체는 시각 없음(escape 불요). DOM 은 부모 TagGroup
+  //   self-compose(.tag-list-wrapper 수동 CSS) → DOM 변화 0. palette 비노출(PALETTE_ORDER 비포함
+  //   sub-part — TabList/GridListItem 동형).
+  primitiveEntry("TagList", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "tag list",
+    icon: "Tag",
+  }),
   // Tag — catalog cutover (ADR-912 영역 B (A), 2026-06-12): TagGroup chip 본체. 기존
   //   Tag.spec.render.shapes(bg roundRect + border + text + allowsRemoving 시 X line×2)가 Skia
   //   유일 source 였다. catalog 등록으로 rule(COMPONENT_RULES_TABLE.Tag: variants default/selected +

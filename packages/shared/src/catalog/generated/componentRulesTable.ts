@@ -5955,6 +5955,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // TagList — chip 컨테이너 shell (ADR-912 collection sub-part cutover, 2026-06-15). 시각 없음:
+  //   chip 시각은 cutover 된 Tag(appendTagRowProjection → Tag SceneNode)가 단독 담당. TagList
+  //   SceneNode 는 transparent box shell(rowsGroup projection owner). 기존 accent/neutral/negative
+  //   variant 는 Tag chip semantic 이라 컨테이너 rule 에 dead → 단일 transparent default 로 정리.
   TagList: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -5962,53 +5966,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       default: {
         fill: {
           default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.neutral-subtle}",
+            base: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-        },
-      },
-      neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.neutral-subtle}",
-        },
-      },
-      negative: {
-        fill: {
-          default: {
-            base: "{color.negative-subtle}",
-            hover: "{color.negative-subtle}",
-            pressed: "{color.negative-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.negative}",
+          border: "{color.transparent}",
         },
       },
     },

@@ -96,6 +96,7 @@ import { tabsBinding } from "./Tabs.binding";
 import { tabBinding } from "./Tab.binding";
 import { tabListBinding } from "./TabList.binding";
 import { tagBinding } from "./Tag.binding";
+import { tagListBinding } from "./TagList.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
 import { tailSwatchBinding } from "./TailSwatch.binding";
 import { textAreaBinding } from "./TextArea.binding";
@@ -388,6 +389,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Tab: tabBinding,
   TabList: tabListBinding,
   Tag: tagBinding,
+  TagList: tagListBinding,
   TagGroup: tagGroupBinding,
   GridList: gridListBinding,
   GridListItem: gridListItemBinding,
