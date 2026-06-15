@@ -19,8 +19,7 @@ import { describe, expect, it } from "vitest";
 import {
   DialogSpec,
   SectionSpec,
-  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) + Card 본체 R6 (2026-06-15) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
-  ButtonGroupSpec,
+  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) + Card 본체 R6 + ButtonGroup R7 G1-c (2026-06-15) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   CheckboxGroupSpec,
   RadioGroupSpec,
   ToggleButtonGroupSpec,
@@ -48,8 +47,8 @@ const phase1Candidates: Array<{ type: string; spec: AnySpec }> = [
 ];
 
 // Phase 2-A (Group 컨테이너 — factory items 자동 생성)
+// ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover spec 삭제로 제외 (시각 = catalog rule + buildCatalogShapes)
 const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [
-  { type: "ButtonGroup", spec: ButtonGroupSpec as unknown as AnySpec },
   { type: "CheckboxGroup", spec: CheckboxGroupSpec as unknown as AnySpec },
   { type: "RadioGroup", spec: RadioGroupSpec as unknown as AnySpec },
   {

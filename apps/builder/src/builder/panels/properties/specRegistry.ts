@@ -6,7 +6,7 @@ import {
   //   Spec import 제거 — catalog binding.accepts 가 D2 properties 대체(Link 선례, spec.properties dead).
   BreadcrumbsSpec,
   BreadcrumbSpec,
-  ButtonGroupSpec,
+  // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   CalendarSpec,
   // ADR-912 R7 G1-b (2026-06-15): CardViewSpec import 제거 — catalog cutover, binding.accepts D2.
   CheckboxSpec,
@@ -78,7 +78,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   //   GenericPropertyEditor 가 binding.accepts(AvatarGroup.binding.ts)로 properties 생성.
   Breadcrumbs: BreadcrumbsSpec as ComponentSpec<Record<string, unknown>>,
   Breadcrumb: BreadcrumbSpec as ComponentSpec<Record<string, unknown>>,
-  ButtonGroup: ButtonGroupSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(ButtonGroup.binding.ts)로 properties 생성.
   Calendar: CalendarSpec as ComponentSpec<Record<string, unknown>>,
   // ADR-912 R6/R7 G1-b (2026-06-15): Card 본체 + CardView catalog cutover → CardSpec/CardViewSpec
   //   import + entry 제거. GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성

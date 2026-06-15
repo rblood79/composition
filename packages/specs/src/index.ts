@@ -539,8 +539,9 @@ export { InlineAlertSpec } from "./components/InlineAlert.spec";
 export type { InlineAlertProps } from "./components/InlineAlert.spec";
 
 // ─── Phase 6: ADR-030 Phase 2 Components ────────────────────────────────────
-export { ButtonGroupSpec } from "./components/ButtonGroup.spec";
-export type { ButtonGroupProps } from "./components/ButtonGroup.spec";
+// ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec/ButtonGroupProps 삭제 — catalog cutover. 시각 SSOT =
+//   COMPONENT_RULES_TABLE.ButtonGroup + generate-css virtual, D2 properties = binding.accepts. layout
+//   (flex/gap)은 factory props.style SSOT. factory 자식 Button×2 자동생성 → box-shell(Pagination 동형).
 
 // ─── Phase 7: ADR-030 Phase 3 Extended Controls ─────────────────────────────
 // ADR-912 단계5: ProgressCircleSpec/PROGRESSCIRCLE_* 삭제 — catalog cutover(value_fill_arc) +

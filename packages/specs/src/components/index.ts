@@ -336,9 +336,7 @@ export type { AvatarProps } from "./Avatar.spec";
 export { InlineAlertSpec } from "./InlineAlert.spec";
 export type { InlineAlertProps } from "./InlineAlert.spec";
 
-// ButtonGroup
-export { ButtonGroupSpec } from "./ButtonGroup.spec";
-export type { ButtonGroupProps } from "./ButtonGroup.spec";
+// ButtonGroup — ADR-912 R7 G1-c (2026-06-15): catalog cutover, spec 삭제. binding.accepts D2.
 
 // ─── Phase 3: ADR-030 Extended Controls ──────────────────────────────────────
 

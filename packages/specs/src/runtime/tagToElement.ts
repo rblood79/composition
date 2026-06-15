@@ -87,7 +87,7 @@ import { InputSpec } from "../components/Input.spec";
 import { AvatarSpec } from "../components/Avatar.spec";
 // ADR-912 R7 G1-a: AvatarGroupSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 import { InlineAlertSpec } from "../components/InlineAlert.spec";
-import { ButtonGroupSpec } from "../components/ButtonGroup.spec";
+// ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { ToggleButtonGroupSpec } from "../components/ToggleButtonGroup.spec";
 import { TooltipSpec } from "../components/Tooltip.spec";
 // ADR-912 단계5: ProgressCircleSpec 삭제 — catalog cutover(value_fill_arc escape) + generate-css virtual
@@ -185,7 +185,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Avatar: AvatarSpec,
   // ADR-912 R7 G1-a: AvatarGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   InlineAlert: InlineAlertSpec,
-  ButtonGroup: ButtonGroupSpec,
+  // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트,
+  //   factory 자식 Button×2 box-shell). isCatalogSkiaCutover('ButtonGroup')=true → Skia 진입 게이트 통과.
   // ADR-912 단계5: ProgressCircle 제거 — catalog cutover spec-free (buildSpecNodeData:908 isCatalogSkiaCutover 게이트)
   IllustratedMessage: IllustratedMessageSpec,
   // ADR-912 R7 G1-b: CardView/TableView 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
