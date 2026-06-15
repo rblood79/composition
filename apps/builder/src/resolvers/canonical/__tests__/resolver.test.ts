@@ -125,6 +125,46 @@ describe("resolveCanonicalDocument", () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
+  it("TC2c: page frame 하위에 중첩된 reusable master 도 resolve 된다 (cross-page)", () => {
+    // Arrange — 실제 document 구조: children = page frame[], master 는 frame 하위에 중첩.
+    //   master 는 page A frame, ref 는 page B frame → top-level filter 로는 못 찾음.
+    //   Skia 는 전역 elementsMap 으로 찾아 렌더되지만 preview resolver 가 top-level 만 보면
+    //   broken ref → 빈 렌더 (ADR-903 대칭 위반). 전체 tree 수집으로 대칭 복원.
+    const master = makeReusable("component-listbox", "ListBox", [
+      makePlain("opt", "ListBoxItem"),
+    ]);
+    const pageA = makeFrame("page-components", {
+      metadata: { type: "legacy-page" },
+      children: [makeFrame("page-a-body", { children: [master] })],
+    } as Partial<FrameNode>);
+    const ref = makeRef("i1", "component-listbox");
+    const pageB = makeFrame("page-home", {
+      metadata: { type: "legacy-page" },
+      children: [makeFrame("page-b-body", { children: [ref] })],
+    } as Partial<FrameNode>);
+    const doc = makeDoc([pageA, pageB]);
+
+    // Act
+    const result = resolveCanonicalDocument(doc);
+
+    // Assert — ref 가 cross-page master 로 resolve, broken ref warn 없음
+    const findById = (
+      nodes: ResolvedNode[],
+      id: string,
+    ): ResolvedNode | undefined => {
+      for (const n of nodes) {
+        if (n.id === id) return n;
+        const found = n.children && findById(n.children as ResolvedNode[], id);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const resolvedRef = findById(result, "i1");
+    expect(resolvedRef).toBeDefined();
+    expect(resolvedRef?._resolvedFrom).toBe("component-listbox");
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   // ────────────────────────────────────────────
   // TC3: broken ref
   // ────────────────────────────────────────────

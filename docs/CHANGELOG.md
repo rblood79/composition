@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [cross-page reusable Instance preview 미렌더 수정 + collection selection DELEGATING sweep] - 2026-06-16
+
+### Bug Fixes
+
+- **다른 페이지의 reusable master 를 참조하는 Instance(ref)가 CSS Preview 에서 안 그려짐** (ADR-116/122 canonical resolution):
+  - reusable 컴포넌트의 Instance(`type: "ref"`)가 master 와 **다른 페이지**에 있을 때 CSS Preview(DOM)에 빈 렌더 — Skia(Canvas)는 정상 렌더되어 DOM↔Skia 비대칭
+  - **Why**: builder 가 preview 로 보내는 canonical document 의 `children` 은 **page frame**(`type:"frame"`, `metadata.type:"legacy-page"`) 단위로 1단계 중첩되고 reusable master 는 그 frame 하위(body 자식, depth 2)에 위치한다. `findReusableMaster`(`apps/builder/src/resolvers/canonical/index.ts`)가 `doc.children.filter(reusable===true)` 로 **top-level(page frame)만** 검색 → frame 은 reusable=false 라 master 누락 → broken ref 경고(`[ADR-903] master not found`) + 미렌더. Skia 는 builder 전역 elementsMap(page 무관 평면)에서 master 를 찾아 항상 resolve → 비대칭(ADR-903 "동일 ResolvedNode 대칭" 위반)
+  - 수정: `collectReusableMasters(doc)` 추가 — document 전체 tree 를 DFS 하여 reusable 노드 전수 수집(document identity+version `WeakMap` memoize). `findReusableMaster` 의 local lookup + `resolveImportedReusableMaster` 의 import lookup 양쪽이 이 헬퍼 경유 → Skia 전역 lookup 과 대칭 복원
+  - 위치: `apps/builder/src/resolvers/canonical/index.ts`(`collectReusableMasters`/`findReusableMaster`/`resolveImportedReusableMaster`)
+  - 검증: type-check PASS(builder baseline 71 불변) + resolver 단위 테스트 92 PASS(TC2c cross-page 회귀 가드 추가 — 수정 전 코드로 FAIL 확인) + **Chrome MCP live**(cross-page Instance ListBox 가 CSS Preview 에 role=listbox + option 3(Aardvark/Cat/Kangaroo) 렌더 / broken ref 경고 0 / Skia 와 시각 대칭)
+
+- **collection(ListBox/GridList/Menu) selection 이 CSS Preview 에서 store 에 미반영** (ADR-912 cutover 후속):
+  - catalog cutover 후 DOM 렌더 경로가 wrapper 를 `toRacProps` 로 직접 렌더하면서 `binding.accepts`(시각/데이터 prop 한정)에 없는 `onSelectionChange` 이벤트 핸들러를 drop → selection 동작이 store 에 미반영(TagGroup `onRemove` 와 동형 갭)
+  - 수정: `DELEGATING_INTERNAL_RENDERERS` 에 `"listbox"`/`"gridlist"`/`"menu"` 추가 → `renderListBox`/`renderGridList`/`renderMenu`(검증된 onSelectionChange inline + updateElementProps + createEventHandlerMap customHandler)로 위임. 3 wrapper 모두 `useResolvedCollectionItems` self-compose 라 generic 자식 재귀 skip 안전(select/combobox/taggroup 동형). Skia 는 items projection 독립 렌더(무관)
+  - **Table 제외**: Table 은 binding.accepts/renderTable/wrapper 어디에도 selection·sort 핸들러가 없고 `useReactTable` 내부 state 로 격리 → DELEGATING 등록만으로 복원 불가(별도 결정)
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx`(DELEGATING_INTERNAL_RENDERERS)
+  - 검증: type-check PASS(builder baseline 71 불변)
+
 ## [TagList catalog cutover + spec 물리 삭제 — 마지막 collection sub-part] - 2026-06-15
 
 ### Bug Fixes

@@ -214,6 +214,19 @@ export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> = new Set([
   //   직접 그려 DOM↔Skia 비대칭). rendererMap 위임으로 검증된 onRemove/onSelectionChange 복원
   //   (select/combobox 동형 — 둘 다 이미 위임 등록). Skia 는 appendTagRowProjection 그대로(무관).
   "taggroup",
+  // ADR-912 collection selection 갭 sweep (2026-06-16): listbox / gridlist / menu — taggroup 동형.
+  //   각 wrapper(ListBox/GridList/MenuButton)는 useResolvedCollectionItems 로 items SSOT self-compose
+  //   하며 onSelectionChange prop 을 받아 RAC `<ListBox>`/`<GridList>`/`<Menu>` 에 전달한다. 그런데
+  //   generic toRacProps 경로는 binding.accepts(시각/데이터 prop 한정)만 통과시켜 onSelectionChange 를
+  //   drop → wrapper 가 undefined 로 받아 selection 동작이 store 에 미반영. rendererMap 위임
+  //   (renderListBox/renderGridList/renderMenu)이 onSelectionChange inline(updateElementProps +
+  //   createEventHandlerMap customHandler)를 합성해 복원(SelectionRenderers/CollectionRenderers).
+  //   3 wrapper 모두 self-compose 라 generic 자식 재귀 skip 안전(select/combobox/taggroup 동형).
+  //   Skia 는 items projection 으로 독립 렌더(selection 무관). Table 은 binding/renderer/wrapper 어디에도
+  //   selection 핸들러가 없어 본 sweep 제외(별도 결정 — useReactTable 내부 state 격리).
+  "listbox",
+  "gridlist",
+  "menu",
 ]);
 
 /**

@@ -423,7 +423,44 @@ function matchesResolvedSlotChildReference(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * doc.children 에서 `refId` 가 id/name/metadata alias 와 매칭되고
+ * document 전체 tree 에서 `reusable === true` 인 모든 노드를 평면 수집한다.
+ *
+ * `doc.children` 는 page frame (`type: "frame"`, `metadata.type: "legacy-page"`) 단위로
+ * 1단계 중첩되어 있고, reusable master 는 그 frame 의 children 하위에 위치한다
+ * (예: master "component-listbox" 는 page-components frame 의 body 자식). 따라서
+ * top-level `doc.children.filter(reusable)` 만으로는 master 를 찾지 못한다.
+ *
+ * Skia(Canvas) 는 builder 전역 elementsMap (page 무관 평면) 에서 master 를 찾아 항상
+ * resolve 되는데, preview(DOM) resolver 가 top-level 만 보면 cross-page reusable instance
+ * 가 broken ref 로 빈 렌더 → ADR-903 대칭 위반. 전체 tree 수집으로 Skia 와 대칭 복원.
+ *
+ * memoize: document identity + version 기준 (`WeakMap`). version 변경 시 재수집.
+ */
+const reusableMasterCache = new WeakMap<
+  CompositionDocument,
+  { version: string; masters: CanonicalNode[] }
+>();
+
+function collectReusableMasters(doc: CompositionDocument): CanonicalNode[] {
+  const cached = reusableMasterCache.get(doc);
+  if (cached && cached.version === doc.version) return cached.masters;
+
+  const masters: CanonicalNode[] = [];
+  const walk = (node: CanonicalNode): void => {
+    if (node.reusable === true) masters.push(node);
+    const children = node.children;
+    if (children) {
+      for (const child of children) walk(child);
+    }
+  };
+  for (const node of doc.children) walk(node);
+
+  reusableMasterCache.set(doc, { version: doc.version, masters });
+  return masters;
+}
+
+/**
+ * document 전체 tree 에서 `refId` 가 id/name/metadata alias 와 매칭되고
  * `reusable === true` 인 원본 노드를 찾는다.
  * 없으면 undefined 반환 (broken ref).
  */
@@ -432,10 +469,7 @@ function findReusableMaster(
   refId: string,
   imports?: ImportResolverContext,
 ): CanonicalNode | undefined {
-  const local = resolveReference(
-    refId,
-    doc.children.filter((node) => node.reusable === true),
-  );
+  const local = resolveReference(refId, collectReusableMasters(doc));
   if (local) return local;
 
   return resolveImportedReusableMaster(doc, refId, imports);
@@ -455,9 +489,11 @@ function resolveImportedReusableMaster(
   const importedDoc = imports.resolveImportDocument(parsed.importKey, source);
   if (!importedDoc) return undefined;
 
+  // importedDoc 도 page frame 으로 중첩될 수 있어 collectReusableMasters 로 전체 tree 탐색
+  // (local 경로와 동일 — top-level filter 만으로는 중첩 master 누락).
   const master = resolveReference(
     parsed.nodeId,
-    importedDoc.children.filter((node) => node.reusable === true),
+    collectReusableMasters(importedDoc),
   );
 
   if (!master) return undefined;
