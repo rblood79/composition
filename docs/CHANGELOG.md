@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Card 본체 S2 재설계 catalog cutover — variant 모델 BREAKING] - 2026-06-15
+
+### Breaking Changes
+
+- **Card `cardType` / `isQuiet` props 제거 → S2 `variant` 모델** (ADR-912 R6):
+  - 구 Card 의 `cardType`(default/asset/user/product) + `isQuiet: boolean` 이 S2 정본(`react-spectrum.adobe.com/Card`) variant 모델 `variant: "primary" | "secondary" | "tertiary" | "quiet"` 으로 대체됨
+  - **마이그레이션**: 새 Card 는 factory 가 `variant: "primary"` 주입. 구 element(cardType/isQuiet 보유)는 hydration 시 variant 미지정 → catalog `defaultVariant: "primary"` 흡수. `isQuiet: true` 였던 Card 는 `variant: "quiet"` 로 수동 전환 필요(자동 migration 미적용 — 시각상 quiet 는 hover 시만 배경 표시)
+  - **영향**: 사용자 가시 — Inspector 의 Card Type/Quiet 토글 → Variant 셀렉터(4종)로 변경
+
+### Architecture
+
+- **Card 본체 catalog cutover + spec 물리 삭제** (ADR-912 R6):
+  - R5 가 Card 자식 4 슬롯만 cutover 하고 **Card 본체는 spec 유지**였던 것을, S2 variant 모델로 재설계해 catalog cutover + `Card.spec.ts`(410줄) 물리 삭제(사용자 명시 삭제 승인)
+  - **Why**: 구 Card.spec 의 catalog-불가 요소(isQuiet boolean 조건부 배경, isSelected 2px accent border)가 사실 "S2 정본 미준수 자체 변형"이었음. S2 대로 quiet 를 variant 값으로, isSelected 를 `selectedBorder: accent` 토큰으로 재설계하면 catalog rule 의 2축(variants×fill)에 schema 확장 0 으로 흡수됨(ToggleButton 선례). R2 TreeItem 패턴(제거→레퍼런스 재생성)의 컨테이너 적용
+  - 시각 SSOT = `componentRulesTable.Card`(variants 4종 fill: base/hover/pressed/selected + selectedBorder accent + sizes paddingX/Y/gap/borderWidth). DOM = `react-aria-Card[data-variant]` virtual CSS(구 spec 자체 Card.css 재생성, variant 별 배경 emit). Skia = buildCatalogShapes shell(컨테이너 \_hasChildren → bg+border, 자식 Element 가 내용 렌더)
+  - consumer 이관: propagation 5규칙(title/description/size×3) `propagationRegistry.ts` 인라인 보존 / `CARD_SIZE_CONFIG` `resolveSkiaRule("Card")` 파생 / properties 14필드 catalog `binding.accepts` / palette `PALETTE_ONLY` overlay → catalog `entry.panel` 파생 전환
+  - **DOM DELEGATING 불필요**: 자식 슬롯(CardHeader/Content)이 `INTERNAL_RENDERERS["div"]` 부재로 rendererMap 위임 유지 + 부모 Card generic — live 에서 `.card-header`/`.card-content` 정상 + raw tag 0
+  - 위치: `packages/shared/src/catalog/bindings/Card.binding.ts`(신규) / `packages/shared/src/catalog/generated/componentRulesTable.ts` / `packages/shared/src/catalog/componentCatalog.ts` / `apps/builder/src/builder/panels/components/paletteItems.ts` / `apps/builder/src/builder/utils/propagationRegistry.ts` / `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` / `packages/specs/scripts/generate-css.ts`
+  - 검증: type-check PASS(builder baseline 71 불변) + build:specs PASS(virtual Card.css 재생성) + shared 318/318 + **Chrome MCP live**(isCatalogCutover(Card)=true / hasSpec(Card)=false / Card 3 canonical reload hydration 복원 / Skia 자식 4슬롯 비겹침 / DOM data-variant=primary bg --bg-inset / variant=quiet→transparent 전환 / 콘솔 에러 0)
+  - 미등록 type count: 17→16 (spec map 69→68, catalog 99→100 — Card 본체가 set-diff 에서 빠짐)
+
 ## [childSpec→catalog 컨테이너 일괄 cutover — DialogFooter/FormField/Card 4] - 2026-06-15
 
 ### Architecture
