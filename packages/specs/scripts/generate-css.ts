@@ -227,6 +227,12 @@ const TEXT_LEAF_NAMES = new Set([
   //   기존 Card.css 보다 풍부(variant 별 [data-variant] 배경 emit) — 구 spec 은 variant 부재였으므로
   //   diff≠0 이 정본(catalog rule SSOT 정정, feedback-css-rule-virtual-input-not-fixture).
   "Card",
+  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup 컨테이너 발효. spec.render.shapes=()=>[] (Skia 0,
+  //   자식 Avatar 가 self-draw) + skipCSSGeneration:false → 자체 `generated/AvatarGroup.css` (archetype
+  //   default 컨테이너 base + variant transparent + size height/border-radius). catalog rule
+  //   (COMPONENT_RULES_TABLE.AvatarGroup) 기반 virtual 로 재생성. layout(flex row)은 factory props.style
+  //   SSOT (Skia/Taffy 직접 read, ADR-907 Layer B). Card 본체(R6) 동형 — archetype default 컨테이너.
+  "AvatarGroup",
 ]);
 
 type TextLeafMeta = {
@@ -695,6 +701,18 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     archetype: "default",
     element: "div",
     containerStyles: undefined,
+  },
+  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup 컨테이너 발효 (Card 본체 R6 동형 — archetype default).
+  //   spec.render.shapes=()=>[] (Skia 0) — 자식 Avatar×3 은 factory 자동생성 + self-draw. layout(flex
+  //   row/alignItems)은 factory props.style SSOT (ADR-907 Layer B, Skia/Taffy 직접 read) → containerStyles
+  //   undefined. virtual CSS 는 rule variants(transparent/alpha 0) + sizes(height/border-radius, padding 0)
+  //   + archetype default base(inline-flex/center) emit. states = disabled(opacity 0.38) 만 (spec.states 미러).
+  {
+    name: "AvatarGroup",
+    archetype: "default",
+    element: "div",
+    containerStyles: undefined,
+    states: { disabled: { opacity: 0.38 } },
   },
 ];
 
