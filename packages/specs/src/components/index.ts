@@ -14,12 +14,9 @@
 // Badge
 
 // Card
-export { CardSpec } from "./Card.spec";
-export type { CardProps } from "./Card.spec";
-
-// ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader/CardContent/CardFooter/CardPreview
-//   spec 삭제 — catalog 등록(FAMILY_1)으로 시각 이전, childSpecs 경로 제거. FormField/DialogFooter
-//   동형. propagation 규칙은 propagationRegistry.ts 인라인으로 보존.
+// ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover → CardSpec/CardProps export 제거.
+//   CardHeader/CardContent/CardFooter/CardPreview 자식 4도 childSpec→catalog cutover(2026-06-15).
+//   시각 = catalog rule, propagation 은 propagationRegistry.ts 인라인 보존.
 
 // Dialog
 export { DialogSpec } from "./Dialog.spec";

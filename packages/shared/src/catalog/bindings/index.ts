@@ -35,6 +35,7 @@ import { dropZoneBinding } from "./DropZone.binding";
 import { fieldBinding } from "./Field.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
+import { cardBinding } from "./Card.binding";
 import { cardContentBinding } from "./CardContent.binding";
 import { cardFooterBinding } from "./CardFooter.binding";
 import { cardHeaderBinding } from "./CardHeader.binding";
@@ -130,6 +131,7 @@ export * from "./DisclosureHeader.binding";
 export * from "./DropZone.binding";
 export * from "./FieldError.binding";
 export * from "./FileTrigger.binding";
+export * from "./Card.binding";
 export * from "./CardContent.binding";
 export * from "./CardFooter.binding";
 export * from "./CardHeader.binding";
@@ -277,6 +279,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part
   //   (DialogFooter 동형 — 두 번째 childSpec 제거). internal/div shell, layout 은 factory props.style.
   FormField: formFieldBinding,
+  // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. variant=primary/secondary/
+  //   tertiary/quiet(구 cardType/isQuiet 흡수). internal/div shell + variant 별 배경/테두리.
+  Card: cardBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 sub-part 일괄
   //   (FormField/DialogFooter 동형 — Card.spec.childSpecs 제거). internal/div shell, layout 은 factory
   //   props.style(ADR-092 가 spec containerStyles 로 이관했던 것을 catalog cutover 로 factory 복귀).

@@ -1,7 +1,6 @@
 import type { ComponentSpec } from "@composition/specs";
 import {
   AvatarSpec,
-  CardSpec,
   AvatarGroupSpec,
   // ADR-912 box+text leaf 군 (2026-06-11): Badge/Button/ToggleButton/Separator/StatusLight/Icon
   //   Spec import 제거 — catalog binding.accepts 가 D2 properties 대체(Link 선례, spec.properties dead).
@@ -80,7 +79,9 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   Breadcrumb: BreadcrumbSpec as ComponentSpec<Record<string, unknown>>,
   ButtonGroup: ButtonGroupSpec as ComponentSpec<Record<string, unknown>>,
   Calendar: CalendarSpec as ComponentSpec<Record<string, unknown>>,
-  Card: CardSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → CardSpec import + entry 제거.
+  //   GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성(Select/Disclosure 선례,
+  //   spec.properties dead). CardView(별도 collection)는 보존.
   CardView: CardViewSpec as ComponentSpec<Record<string, unknown>>,
   Checkbox: CheckboxSpec as ComponentSpec<Record<string, unknown>>,
   CheckboxGroup: CheckboxGroupSpec as ComponentSpec<Record<string, unknown>>,

@@ -323,6 +323,19 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "date input",
     icon: "Calendar",
   }),
+  // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. 구 Card.spec(비표준 cardType/
+  //   isQuiet 분기, skipCSSGeneration:false → 자체 Card.css)을 제거하고 S2 정본 variant 모델
+  //   (primary/secondary/tertiary/quiet)로 재생성 — quiet=transparent base 로 isQuiet boolean 흡수,
+  //   isSelected→selectedBorder accent. 시각 source = COMPONENT_RULES_TABLE.Card(variants 4종 fill).
+  //   Skia=buildCatalogShapes shell(컨테이너 _hasChildren → bg+border 만, 자식 Element 가 내용 렌더),
+  //   DOM=react-aria-Card[data-variant] generic. layout=factory props.style(ADR-907 Layer B). palette
+  //   노출(기존 PALETTE_ONLY overlay → catalog entry.panel 파생으로 전환, category layout). R2 TreeItem
+  //   패턴(제거→레퍼런스 재생성)의 컨테이너 적용 사례.
+  primitiveEntry("Card", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "card",
+    icon: "AppWindowMac",
+  }),
   // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 일괄 (CardHeader/
   //   CardContent/CardFooter/CardPreview). Card.spec.childSpecs(ADR-094 expandChildSpecs) 경로로
   //   TAG_SPEC_MAP/Taffy 자동 등록 + Card.css embedded CSS 였던 것을 catalog 로 전환 — Skia 는

@@ -17,7 +17,6 @@ import type { ComponentSpec } from "../types/spec.types";
 // 모든 spec을 import하여 태그 → spec registry 구축.
 // apps/builder의 TAG_SPEC_MAP과 유사하나, packages/specs의 내부 concern이며
 // Preview DOM element resolution 용도로 한정된다.
-import { CardSpec } from "../components/Card.spec";
 import { DialogSpec } from "../components/Dialog.spec";
 import { PopoverSpec } from "../components/Popover.spec";
 import { TextFieldSpec } from "../components/TextField.spec";
@@ -110,7 +109,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 box+text leaf 군 일괄 (2026-06-11): Button/Badge/Separator/ToggleButton/Skeleton/
   //   Label/Icon/StatusLight 제거 — catalog 발효(isCatalogSkiaCutover) → spec null 통과(buildSpecNodeData
   //   진입 게이트 2곳). DOM CSS = generated(virtual), Skia = generic/escape.
-  Card: CardSpec,
+  // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → BASE entry 제거 (R5 에서 childSpecs 이미 제거됨).
   Dialog: DialogSpec,
   Popover: PopoverSpec,
   Section: SectionSpec,

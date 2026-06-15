@@ -83,6 +83,8 @@ export function createCardDefinition(
     parent: {
       type: "Card",
       props: {
+        // ADR-912 R6 (2026-06-15): S2 variant 모델(구 cardType/isQuiet 대체). primary = 기본 표면.
+        variant: "primary",
         size: "md",
         orientation: "vertical",
         title: "Card Title",

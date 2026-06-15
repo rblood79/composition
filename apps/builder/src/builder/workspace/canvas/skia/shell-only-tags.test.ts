@@ -17,10 +17,9 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  CardSpec,
   DialogSpec,
   SectionSpec,
-  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
+  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) + Card 본체 R6 (2026-06-15) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   ButtonGroupSpec,
   CheckboxGroupSpec,
   RadioGroupSpec,
@@ -40,7 +39,9 @@ type AnySpec = ComponentSpec<Record<string, unknown>>;
 
 // Phase 1 (Empty-placeholder Case A)
 const phase1Candidates: Array<{ type: string; spec: AnySpec }> = [
-  { type: "Card", spec: CardSpec as unknown as AnySpec },
+  // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → spec 삭제로 이 테스트 대상에서 제외.
+  //   Card 의 SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더), 시각 검증은
+  //   catalog rule + buildCatalogShapes shell 경로.
   { type: "Dialog", spec: DialogSpec as unknown as AnySpec },
   { type: "Section", spec: SectionSpec as unknown as AnySpec },
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)

@@ -135,7 +135,8 @@ export const ICON_MAP: Record<
 const PALETTE_ONLY: Record<string, Omit<PanelMeta, "placeable">> = {
   AvatarGroup: { category: "content", label: "avatar group", icon: "Users" },
   Image: { category: "content", label: "image", icon: "ImageIcon" },
-  Card: { category: "layout", label: "card", icon: "AppWindowMac" },
+  // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → PALETTE_ONLY overlay 에서 제거,
+  //   catalog entry.panel(category layout, AppWindowMac) 파생으로 전환. PALETTE_ORDER source=catalog.
   CardView: { category: "layout", label: "card view", icon: "Grid" },
   ButtonGroup: {
     category: "buttons",
@@ -171,7 +172,7 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "ProgressCircle", source: "catalog" },
   { type: "Image", source: "overlay" },
   { type: "IllustratedMessage", source: "catalog" },
-  { type: "Card", source: "overlay" },
+  { type: "Card", source: "catalog" },
   { type: "frame", source: "catalog" },
   { type: "Tabs", source: "catalog" },
   { type: "Breadcrumbs", source: "catalog" },

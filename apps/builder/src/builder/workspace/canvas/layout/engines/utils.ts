@@ -19,7 +19,6 @@ import {
   InputSpec,
   TagSpec,
   TabSpec,
-  CardSpec,
   resolveToken,
   breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
@@ -610,13 +609,16 @@ const TOGGLEBUTTON_SIZE_CONFIG = deriveSizeConfig(
 // ADR-036: TabSpec.sizes에서 파생
 const TAB_SIZE_CONFIG = deriveSizeConfig(TabSpec.sizes);
 
-// ADR-036: CardSpec.sizes에서 파생
+// ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → CardSpec.sizes 직접 import 제거.
+//   COMPONENT_RULES_TABLE.Card.sizes 의 paddingX 에서 파생(resolveSkiaRule, R1 SelectTrigger 동형
+//   consumer 이관). spec 삭제 후에도 padding 메트릭 보존 — feedback-empty-shapes-not-safe-delete
+//   -dom-css-axis 의 layout consumer 이관 선행 패턴.
 const CARD_SIZE_CONFIG: Record<string, { padding: number }> =
   Object.fromEntries(
-    Object.entries(CardSpec.sizes).map(([key, s]) => [
-      key,
-      { padding: s.paddingX },
-    ]),
+    Object.entries(resolveSkiaRule("Card")?.sizes ?? {}).map(([key, s]) => {
+      const px = (s as ComponentRuleSize).paddingX;
+      return [key, { padding: typeof px === "number" ? px : 16 }];
+    }),
   );
 
 /** inline-level UI 컴포넌트 태그 → size config 매핑 */

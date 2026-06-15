@@ -221,6 +221,12 @@ const TEXT_LEAF_NAMES = new Set([
   "CardContent",
   "CardFooter",
   "CardPreview",
+  // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 cutover. Card.spec(skipCSSGeneration:false → 자체
+  //   `generated/Card.css`)을 삭제하므로 catalog rule(COMPONENT_RULES_TABLE.Card, variants 4종 fill)
+  //   기반 virtual 로 재생성 — 자식과 달리 본체는 embed 가 아니라 독립 Card.css 였음. virtual 출력은
+  //   기존 Card.css 보다 풍부(variant 별 [data-variant] 배경 emit) — 구 spec 은 variant 부재였으므로
+  //   diff≠0 이 정본(catalog rule SSOT 정정, feedback-css-rule-virtual-input-not-fixture).
+  "Card",
 ]);
 
 type TextLeafMeta = {
@@ -678,6 +684,17 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
       flexDirection: "column",
       width: "100%",
     },
+  },
+  // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 cutover. 자식과 달리 본체는 자체 generated/Card.css
+  //   였으므로(skipCSSGeneration:false) virtual 로 재생성. archetype "default"(Nav 동형 컨테이너 base).
+  //   containerStyles undefined — Card layout(flex column/gap/padding)은 factory props.style SSOT
+  //   (ADR-907 Layer B, Skia/Taffy 직접 read). virtual CSS 는 rule variants 4종 → [data-variant] 별
+  //   배경 + base archetype 만 emit. 구 Card.css 는 variant 부재 + 버튼형 base 였으므로 diff 발생(정본).
+  {
+    name: "Card",
+    archetype: "default",
+    element: "div",
+    containerStyles: undefined,
   },
 ];
 

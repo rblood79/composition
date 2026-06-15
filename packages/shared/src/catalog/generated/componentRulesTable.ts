@@ -947,33 +947,128 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. 구 Card.spec 의 비표준
+  //   `isQuiet` boolean 분기(transparent vs layer-2)를 S2 정본 variant 모델(primary/secondary/
+  //   tertiary/quiet)로 흡수 — quiet = base transparent. isSelected 2px accent border 는
+  //   `selectedBorder: accent`(border 색 전환, ADR-142 §3 데이터 분기)로 대체. 4 variant 의
+  //   fill.default 만 다르고 hover/pressed/selected 는 공통(neutral-subtle/accent-subtle).
+  //   ToggleButton variant fill 구조 동형. layout(flex/gap/padding)은 factory props.style SSOT
+  //   (ADR-907 Layer B) — sizes 의 paddingX/gap 은 DOM base fallback + Skia shell 메트릭.
   Card: {
+    defaultVariant: "primary",
     defaultSize: "md",
-    variants: {},
+    variants: {
+      // primary — 기본 표면(구 spec 의 비-quiet 기본값 보존: layer-2/layer-1/neutral-subtle).
+      primary: {
+        fill: {
+          default: {
+            base: "{color.layer-2}",
+            hover: "{color.layer-1}",
+            pressed: "{color.neutral-subtle}",
+            selected: "{color.accent-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.transparent}",
+          selectedBorder: "{color.accent}",
+        },
+      },
+      // secondary — 약한 elevation(layer-1 base). S2 secondary 대응.
+      secondary: {
+        fill: {
+          default: {
+            base: "{color.layer-1}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
+            selected: "{color.accent-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.transparent}",
+          selectedBorder: "{color.accent}",
+        },
+      },
+      // tertiary — outline 형(transparent base + 가시 border). S2 tertiary 대응.
+      tertiary: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
+            selected: "{color.accent-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.border}",
+          selectedBorder: "{color.accent}",
+        },
+      },
+      // quiet — 무배경(hover 시만 표시). 구 spec 의 isQuiet=true 흡수.
+      quiet: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
+            selected: "{color.accent-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.transparent}",
+          selectedBorder: "{color.accent}",
+        },
+      },
+    },
     sizes: {
+      // paddingX=paddingY 균일(구 Card.spec.sizes 보존). layout 실 SSOT 는 factory props.style
+      //   (ADR-907 Layer B) — rule padding 은 DOM base fallback + Skia shell 메트릭.
       xs: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
+        paddingX: 4,
+        paddingY: 4,
+        gap: 4,
+        borderWidth: 1,
         height: 0,
       },
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
+        paddingX: 8,
+        paddingY: 8,
+        gap: 8,
+        borderWidth: 1,
         height: 0,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
+        paddingX: 16,
+        paddingY: 16,
+        gap: 12,
+        borderWidth: 1,
         height: 0,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
+        paddingX: 24,
+        paddingY: 24,
+        gap: 16,
+        borderWidth: 1,
         height: 0,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
+        paddingX: 32,
+        paddingY: 32,
+        gap: 20,
+        borderWidth: 1,
         height: 0,
       },
     },

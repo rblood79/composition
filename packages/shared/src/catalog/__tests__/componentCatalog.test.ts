@@ -118,6 +118,14 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         //   그룹 컨테이너. catalog 등록됐으나 본 oracle 미갱신 stale → T1 Field slice 와 함께 정합.
         "DisclosureContent",
         "DisclosureGroup",
+        // ADR-912 R5 childSpec→catalog 컨테이너 cutover (2026-06-15): Card 4 자식 슬롯 sub-part
+        //   (R5 가 FAMILY_1 추가했으나 본 oracle 미갱신 stale).
+        "CardHeader",
+        "CardContent",
+        "CardFooter",
+        "CardPreview",
+        // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover.
+        "Card",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

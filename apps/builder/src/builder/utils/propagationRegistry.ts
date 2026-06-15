@@ -31,7 +31,6 @@ import {
   MeterSpec,
   CalendarSpec,
   RangeCalendarSpec,
-  CardSpec,
   GridListSpec,
   ListBoxSpec,
   ToggleButtonGroupSpec,
@@ -98,6 +97,30 @@ function createPropagationOnlySpec(
     render: { shapes: noopShapes },
   };
 }
+
+// ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → Card.spec 삭제. 구 Card.spec.propagation
+//   .rules 5건(ADR-092 HC#7 title/description + HC#4 size×3)을 propagation-only 인라인 spec 으로
+//   보존 — catalog 는 propagation 표현 수단 없음(ComponentRule/PrimitiveBinding 에 parentProp 필드
+//   부재). title → CardHeader.Heading.children / description → CardContent.Description.children
+//   (중첩 childPath) / size → CardHeader·CardContent·CardFooter. CardHeader/CardContent
+//   propagation-only spec(자식 style 주입)과 동형 — 본체는 content/size 전파 담당.
+const cardPropagationSpec = createPropagationOnlySpec("Card", [
+  {
+    parentProp: "title",
+    childPath: ["CardHeader", "Heading"],
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "description",
+    childPath: ["CardContent", "Description"],
+    childProp: "children",
+    override: true,
+  },
+  { parentProp: "size", childPath: "CardHeader", override: true },
+  { parentProp: "size", childPath: "CardContent", override: true },
+  { parentProp: "size", childPath: "CardFooter", override: true },
+]);
 
 const cardHeaderPropagationSpec = createPropagationOnlySpec("CardHeader", [
   {
@@ -227,7 +250,8 @@ registerPropagationSpec("ProgressBar", ProgressBarSpec);
 registerPropagationSpec("Meter", MeterSpec);
 registerPropagationSpec("Calendar", CalendarSpec);
 registerPropagationSpec("RangeCalendar", RangeCalendarSpec);
-registerPropagationSpec("Card", CardSpec);
+// ADR-912 R6 (2026-06-15): Card 본체 spec 삭제 → propagation-only 인라인 spec(cardPropagationSpec).
+registerPropagationSpec("Card", cardPropagationSpec);
 // ADR-095: CardHeader → Heading flex:1 / CardContent → Description width:100% 주입 rule.
 //   ADR-912 (2026-06-15): CardHeader/CardContent spec 삭제 → propagation-only 인라인 spec 으로 보존.
 registerPropagationSpec("CardHeader", cardHeaderPropagationSpec);

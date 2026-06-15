@@ -236,12 +236,10 @@ export type { ComponentVisualRule } from "./renderers";
 
 // ─── Components ──────────────────────────────────────────────────────────────
 
-export { CardSpec } from "./components/Card.spec";
-export type { CardProps } from "./components/Card.spec";
-
-// ADR-912 childSpec→catalog cutover (2026-06-15): CardHeader/CardContent/CardFooter/CardPreview
-//   spec 삭제 — catalog 등록(FAMILY_1)으로 시각 이전, childSpecs 경로 제거. FormField/DialogFooter
-//   동형. propagation 규칙은 propagationRegistry.ts 인라인으로 보존.
+// ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover → CardSpec/CardProps export 제거.
+//   시각 = COMPONENT_RULES_TABLE.Card(variants 4종 fill) + buildCatalogShapes shell. propagation
+//   규칙은 propagationRegistry.ts 인라인 보존. CardHeader/CardContent/CardFooter/CardPreview 자식 4도
+//   childSpec→catalog cutover(2026-06-15) — FormField/DialogFooter 동형.
 
 export { DialogSpec } from "./components/Dialog.spec";
 export type { DialogProps } from "./components/Dialog.spec";
