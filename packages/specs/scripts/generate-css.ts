@@ -227,12 +227,24 @@ const TEXT_LEAF_NAMES = new Set([
   //   기존 Card.css 보다 풍부(variant 별 [data-variant] 배경 emit) — 구 spec 은 variant 부재였으므로
   //   diff≠0 이 정본(catalog rule SSOT 정정, feedback-css-rule-virtual-input-not-fixture).
   "Card",
-  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup 컨테이너 발효. spec.render.shapes=()=>[] (Skia 0,
+  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup 컨테이너 전환. spec.render.shapes=()=>[] (Skia 0,
   //   자식 Avatar 가 self-draw) + skipCSSGeneration:false → 자체 `generated/AvatarGroup.css` (archetype
   //   default 컨테이너 base + variant transparent + size height/border-radius). catalog rule
   //   (COMPONENT_RULES_TABLE.AvatarGroup) 기반 virtual 로 재생성. layout(flex row)은 factory props.style
   //   SSOT (Skia/Taffy 직접 read, ADR-907 Layer B). Card 본체(R6) 동형 — archetype default 컨테이너.
   "AvatarGroup",
+  // ADR-912 R7 G1-b (2026-06-15): CardView 컨테이너 전환 (AvatarGroup R7 G1-a 동형 — archetype default
+  //   빈 셸). spec.render.shapes=()=>[] (Skia 0) — 자식 Card 가 self-draw. variant 1종(transparent),
+  //   sizes sm/md/lg(borderRadius 0, height auto, gap). layout(grid/columns)은 factory props.style SSOT.
+  //   catalog rule(COMPONENT_RULES_TABLE.CardView) 기반 virtual. 시각 분기 부재 → diff 0 예상.
+  "CardView",
+  // ADR-912 R7 G1-b (2026-06-15): TableView 컨테이너 전환. spec.render.shapes 는 roundRect(bg)+border 2
+  //   shape 를 실제 렌더하나, 그 시각값(default: layer-1 fill + 1px border / quiet: transparent +
+  //   transparent border)이 catalog rule variants(default/quiet) 로 이미 표현됨 → archetype default 가
+  //   [data-variant] 별 배경/border 자동 emit. isQuiet boolean 은 `variant: "quiet"` 로 흡수(S2 정본
+  //   variant 모델, feedback-catalog-unrepresentable-is-nonstandard-variant). layout 은 factory props.style
+  //   SSOT. virtual 출력 vs 기존 TableView.css 동형(2 variant + border + radius.md) → diff 0 예상.
+  "TableView",
 ]);
 
 type TextLeafMeta = {
@@ -702,7 +714,7 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     element: "div",
     containerStyles: undefined,
   },
-  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup 컨테이너 발효 (Card 본체 R6 동형 — archetype default).
+  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup 컨테이너 전환 (Card 본체 R6 동형 — archetype default).
   //   spec.render.shapes=()=>[] (Skia 0) — 자식 Avatar×3 은 factory 자동생성 + self-draw. layout(flex
   //   row/alignItems)은 factory props.style SSOT (ADR-907 Layer B, Skia/Taffy 직접 read) → containerStyles
   //   undefined. virtual CSS 는 rule variants(transparent/alpha 0) + sizes(height/border-radius, padding 0)
@@ -713,6 +725,32 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
     element: "div",
     containerStyles: undefined,
     states: { disabled: { opacity: 0.38 } },
+  },
+  // ADR-912 R7 G1-b (2026-06-15): CardView 전환 (AvatarGroup 동형 — archetype default 빈 셸).
+  //   spec.render.shapes=()=>[] (Skia 0) — 자식 Card 가 self-draw. layout(grid/columns/gap)은 factory
+  //   props.style SSOT → containerStyles undefined. virtual CSS 는 rule variant(transparent) + sizes
+  //   (sm/md/lg, borderRadius 0, padding 0) + archetype default base emit.
+  //   • catalog rule.sizes 는 gap 미보유 → virtual 이 size별 gap(구 spec 12/16/20) 미emit = ADR-907
+  //     Layer B 정본 (container gap 은 factory props.style SSOT, factory CardView.props.style.gap=16).
+  //   • states = disabled(opacity 0.38) 만 (AvatarGroup 동형). 미설정 시 virtual 기본 states 가
+  //     [data-hovered]{}/[data-pressed]{} 빈 블록 emit → 구 CardView.css(spec.states {} 빈) 와 noise diff.
+  {
+    name: "CardView",
+    archetype: "default",
+    element: "div",
+    containerStyles: undefined,
+    states: { disabled: { opacity: 0.38 } },
+  },
+  // ADR-912 R7 G1-b (2026-06-15): TableView 전환. spec.render.shapes 는 box+border 를 실제 렌더하나 그
+  //   시각값이 catalog rule variants(default: layer-1+border / quiet: transparent+transparent)로 표현됨
+  //   → archetype default 가 [data-variant] 배경/border 자동 emit. layout 은 factory props.style SSOT →
+  //   containerStyles undefined. states 기본 사용(구 TableView.css [data-disabled] opacity 0.38 와 동일;
+  //   spec.states.disabled 의 pointerEvents:none 는 archetype default 표준 disabled 블록이 이미 emit).
+  {
+    name: "TableView",
+    archetype: "default",
+    element: "div",
+    containerStyles: undefined,
   },
 ];
 
