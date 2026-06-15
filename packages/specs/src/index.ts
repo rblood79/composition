@@ -316,8 +316,8 @@ export type { SwitchProps } from "./components/Switch.spec";
 export { FormSpec } from "./components/Form.spec";
 export type { FormProps } from "./components/Form.spec";
 
-export { FormFieldSpec } from "./components/FormField.spec";
-export type { FormFieldProps } from "./components/FormField.spec";
+// ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2)으로
+//   Skia/Taffy/DOM 시각을 rule + buildCatalogShapes generic 으로 이전. DialogFooter 동형.
 
 export { SelectSpec } from "./components/Select.spec";
 export type { SelectProps } from "./components/Select.spec";

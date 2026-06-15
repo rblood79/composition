@@ -384,6 +384,16 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
     label: "field",
     icon: "Tag",
   }),
+  // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part
+  //   (DialogFooter 동형 — 두 번째 childSpec 제거). render.shapes `() => []`(Skia 0 shape) →
+  //   escape 불필요, generic 0 shape(shell). palette 미노출(sub-part — PALETTE_ORDER 비포함).
+  //   catalog 등록 목적 = isCatalogCutover 게이트 통과 → Form.spec.childSpecs 제거 후에도 Skia/Taffy
+  //   빈 노드 정상 처리. layout 은 factory props.style(FormComponents.ts:222-227, ADR-907 Layer B).
+  primitiveEntry("FormField", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "form field",
+    icon: "Tag",
+  }),
 ];
 
 /**

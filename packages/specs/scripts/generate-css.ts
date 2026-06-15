@@ -205,6 +205,12 @@ const TEXT_LEAF_NAMES = new Set([
   //   → 독립 `generated/DialogFooter.css` virtual 로 분리(ListBoxItem 선례 동형, flat selector 라 시각
   //   동일). Dialog.spec.childSpecs 제거(DialogFooter 가 유일 멤버) → Dialog.css embedded 블록 사라짐.
   "DialogFooter",
+  // ADR-912 childSpec→catalog cutover (2026-06-15): FormField 는 Form.spec childSpecs 경로로
+  //   `generated/Form.css` 에 inline embed(ADR-078, embedMode 가 skipCSSGeneration:true 우회) 됐으나,
+  //   catalog cutover 로 spec body 삭제 대비 → 독립 `generated/FormField.css` virtual 로 분리
+  //   (DialogFooter 선례 동형, flat selector 라 시각 동일). Form.spec.childSpecs 제거(FormField 가
+  //   유일 멤버) → Form.css embedded 블록 사라짐.
+  "FormField",
 ]);
 
 type TextLeafMeta = {
@@ -596,6 +602,19 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
   //   (rule sizes 의 gap/padding=0 은 base fallback). Skia 는 catalog generic box shell(투명 — fill 없음).
   {
     name: "DialogFooter",
+    archetype: "simple",
+    element: "div",
+    containerStyles: undefined,
+  },
+  // ADR-912 childSpec→catalog cutover (2026-06-15) — FormField (FormField.spec.ts 삭제 대상,
+  //   DialogFooter 동형). archetype "simple": FormField.spec.ts 는 containerStyles 미정의(sizes 만)
+  //   → undefined → ARCHETYPE base(inline-flex/align-items/box-sizing)만 emit. states 미설정 → 기본
+  //   focus-visible(outline) + disabled(opacity/cursor/pointer-events) emit — FormFieldSpec.states.
+  //   focusVisible + CSSGenerator 기본 disabled 와 동형. Form.css embedded 블록(ADR-078)과 flat
+  //   selector 시각 동일. 필드 그룹 layout(flex column/gap)은 factory props.style SSOT(rule sizes 의
+  //   gap/padding=0 은 base fallback). Skia 는 catalog generic box shell(투명 — fill 없음).
+  {
+    name: "FormField",
     archetype: "simple",
     element: "div",
     containerStyles: undefined,

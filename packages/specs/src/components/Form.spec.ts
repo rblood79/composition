@@ -21,7 +21,6 @@ import {
   FormInput,
   Sparkles,
 } from "lucide-react";
-import { FormFieldSpec } from "./FormField.spec";
 
 /**
  * Form Props
@@ -239,8 +238,10 @@ export const FormSpec: ComponentSpec<FormProps> = {
     focusVisible: {},
   },
 
-  // ADR-094 expandChildSpecs: FormField 슬롯 spec 을 Skia/Taffy 에 자동 등록.
-  childSpecs: [FormFieldSpec],
+  // ADR-912 childSpec→catalog cutover (2026-06-15): FormField 는 catalog 등록(FAMILY_2,
+  //   isCatalogCutover=true)으로 Skia/Taffy/DOM 시각을 rule + buildCatalogShapes generic 으로 이전
+  //   → childSpecs 경로(ADR-094 expandChildSpecs) 제거. FormField.css 는 generate-css virtual
+  //   (TEXT_LEAF_META)로 독립 생성(Form.css embedded 블록 사라짐). DialogFooter 동형.
 
   composition: {
     layout: "flex-column",

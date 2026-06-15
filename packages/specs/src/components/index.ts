@@ -110,9 +110,8 @@ export type { SwitchProps } from "./Switch.spec";
 export { FormSpec } from "./Form.spec";
 export type { FormProps } from "./Form.spec";
 
-// FormField (Disclosure·Tree 버그 클래스 수정 — container slot spec)
-export { FormFieldSpec } from "./FormField.spec";
-export type { FormFieldProps } from "./FormField.spec";
+// ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2).
+//   DialogFooter 동형. 시각은 rule + buildCatalogShapes generic, layout 은 factory props.style.
 
 // Select
 export { SelectSpec } from "./Select.spec";
