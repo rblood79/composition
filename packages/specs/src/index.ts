@@ -395,8 +395,9 @@ export type { BreadcrumbsProps } from "./components/Breadcrumbs.spec";
 export { TagGroupSpec } from "./components/TagGroup.spec";
 export type { TagGroupProps } from "./components/TagGroup.spec";
 
-export { TagListSpec, TAG_CHIP_SIZES } from "./components/TagList.spec";
-export type { TagListProps } from "./components/TagList.spec";
+// ADR-912 collection sub-part cutover (2026-06-15): TagListSpec / TAG_CHIP_SIZES /
+//   TagListProps export 제거 — TagList.spec.ts 물리 삭제(catalog cutover 완료).
+//   chip 치수는 Tag/TagList catalog rule, layout 은 implicitStyles 자족화로 이관됨.
 
 export { TagSpec } from "./components/Tag.spec";
 export type { TagProps as TagSpecProps } from "./components/Tag.spec";

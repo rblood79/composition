@@ -250,9 +250,8 @@ export type { BreadcrumbsProps } from "./Breadcrumbs.spec";
 export { TagGroupSpec } from "./TagGroup.spec";
 export type { TagGroupProps } from "./TagGroup.spec";
 
-// TagList (ADR-093 Phase 1 — TagGroup 중간 컨테이너 spec)
-export { TagListSpec } from "./TagList.spec";
-export type { TagListProps } from "./TagList.spec";
+// TagList — ADR-912 collection sub-part cutover (2026-06-15): spec 물리 삭제.
+//   catalog rule + implicitStyles 자족화로 시각/layout 이관 완료.
 
 // Tag
 export { TagSpec } from "./Tag.spec";

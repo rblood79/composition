@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TagList catalog cutover + spec 물리 삭제 — 마지막 collection sub-part] - 2026-06-15
+
+### Architecture
+
+- **TagList catalog cutover + `TagList.spec.ts` 물리 삭제** (ADR-912 collection sub-part):
+  - TagGroup projection 의 chip 컨테이너 shell 인 TagList(`render.shapes:()=>[]` + skipCSSGeneration:true + containerStyles flex/row/wrap)를 catalog 등록으로 전환 후 spec(150줄) 물리 삭제(사용자 명시 삭제 승인). 잔존 collection sub-part 마지막 1종 — TabList/Tab/Breadcrumb/TableRow/TableCell/ListBoxItem/GridListItem 에 이어 완결
+  - **Why**: TagList.spec 이 Skia 진입 게이트(`buildSpecNodeData: if(!spec && !isCatalogSkiaCutover) return null`)를 통과시키는 유일 근거였음. catalog 등록(`isCatalogSkiaCutover=true`)으로 transparent box shell(rule fill `{color.transparent}`)로 전환 — chip 시각은 이미 cutover 된 Tag(`appendTagRowProjection` → Tag SceneNode)가 단독 담당, TagList 자체는 시각 없음(escape 불요)
+  - **TagList 는 real Tag 자식 0** (chips = `items[]` projection). chip wrap 은 rowsGroup(Skia, 코드 생성)/`.tag-list-wrapper`(DOM, 수동 CSS) 전담 → catalog 등록 후에도 **DOM 불변**(`.tag-list-wrapper` display:flex/wrap/gap:4px + `.react-aria-TagList` display:contents)
+  - consumer 이관(3 commit): (1) **containerStyles 자족화** — `implicitStyles.ts` taglist 분기에 display:flex/row/wrap 직접 주입(GridListItem/ListBoxItem/TableRow 선례 동형) (2) **TAG_CHIP_SIZES → catalog rule** — `utils.ts` calculateContentHeight 가 chip 치수=Tag rule(paddingY=`(height-lineHeight)/2` 도출) + chip 간 gap=TagList rule sizes(sm/md=4, lg=6) 합성(`resolveTagChipMetric`). 6필드 exact match 회귀 0 (3) **childSpecs 제거** — TagGroup.spec `childSpecs:[TagListSpec]` 삭제 → `hasSpec("TagList")=false`
+  - 위치: `packages/shared/src/catalog/bindings/TagList.binding.ts`(신규) / `packages/shared/src/catalog/componentCatalog.ts` / `packages/shared/src/catalog/generated/componentRulesTable.ts`(TagList rule transparent + gap sizes) / `apps/builder/src/builder/workspace/canvas/layout/engines/{implicitStyles,utils}.ts` / `packages/specs/src/components/TagGroup.spec.ts` / `packages/specs/src/{index,components/index}.ts`(export 제거)
+  - 검증: type-check PASS(builder baseline 71 불변) + build:specs PASS(generated CSS diff 0 — TagList skipCSSGeneration) + **Chrome MCP live**(isCatalogSkiaCutover(TagList)=true / 재빌드 dist fresh import: hasSpec(TagList)=false + TAG_CHIP_SIZES/TagListSpec export undefined / resolveComponentRule transparent fill / DOM Preview chips Chocolate·Mint·Strawberry·Vanilla 정상 wrap + wrapper style 불변 / resolveTagChipMetric ↔ 구 TAG_CHIP_SIZES sm·md·lg 6필드 일치) — spec 삭제 후 catalog rule + implicitStyles 자족화가 시각/layout 완전 대체
+
 ## [Card 본체 S2 재설계 catalog cutover — variant 모델 BREAKING] - 2026-06-15
 
 ### Breaking Changes
