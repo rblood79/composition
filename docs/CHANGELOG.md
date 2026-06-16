@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [grid 컨테이너 width 변경 시 Skia 레이아웃 깨짐 수정 — GRID_REBUILD_TRIGGER_KEYS dimension 키 보완] - 2026-06-17
+
+### Bug Fixes
+
+- **display:grid 컨테이너의 width/height 변경 시 Skia 렌더 grid 레이아웃 붕괴** (1줄로 무너짐 → 새로고침해야 정상 복귀):
+  - 증상: `display:grid` 컨테이너의 width(또는 height)를 Inspector 에서 변경하면 Skia 캔버스에서 grid track 이 1줄로 무너지고, 브라우저 새로고침(buildFull) 후에만 2행 배치로 정상 복귀
+  - **Why**: `GRID_REBUILD_TRIGGER_KEYS` 에 dimension 키(width/height/min·max)가 빠져 있어, 기존 grid 컨테이너의 크기 변경이 full rebuild 가 아닌 incremental(`updateStyleRaw`) 경로를 탔다. Taffy `set_style` 은 grid track/placement 캐시를 무효화하지 못해 `1fr`·`auto` track 이 변경 전 컨테이너 폭 기준으로 stale degrade — padding/gap 이 이미 같은 이유로 full rebuild 트리거였는데 dimension 만 누락된 상태였음
+  - 수정: `GRID_REBUILD_TRIGGER_KEYS` 에 `width/height/minWidth/maxWidth/minHeight/maxHeight` 6키 추가 (14→20 key). 비교는 `isGridDisplay(curDisplay)` 분기 안에서만 일어나므로 비-grid(flex/block) 노드의 width 변경은 incremental 유지 (회귀 없음). 비교 키는 `taffyStyleToRecord` 출력 = camelCase 단일 키 (width/height 는 shorthand→longhand 분배 대상 아님)
+  - 회귀 가드: `fullTreeLayout.static.test.ts` 에 정적 계약 3종 추가 — dimension 6키 누락 검증(주석 처리도 잡는 활성 키 추출) + grid 분기 사용 검증 + 비교 shape 정합성. `calculateFullTreeLayout` 이 Taffy WASM 의존이라 단위 테스트 행동 검증 불가 → 소스 정적 계약으로 가드 (negative test 로 유효성 확증)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts` (`GRID_REBUILD_TRIGGER_KEYS`) / `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.static.test.ts` / `.claude/rules/layout-engine.md` (14→20 key 규칙 갱신)
+  - 검증: type-check PASS (builder baseline 71 불변, 0 new) + 정적 계약 테스트 8/8 PASS + live builder 에서 grid width 변경 정상 동작 확인
+
 ## [MaskedFrame element type 폐기 + spec 물리 삭제 — ADR-912 step 4 dead orphan 정리] - 2026-06-16
 
 ### Architecture
