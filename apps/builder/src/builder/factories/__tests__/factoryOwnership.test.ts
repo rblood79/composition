@@ -37,10 +37,7 @@ import {
   createAvatarGroupDefinition,
   createProgressBarDefinition,
 } from "../definitions/DisplayComponents";
-import {
-  createTextFieldDefinition,
-  createFormDefinition,
-} from "../definitions/FormComponents";
+import { createTextFieldDefinition } from "../definitions/FormComponents";
 import {
   createCheckboxGroupDefinition,
   createRadioGroupDefinition,
@@ -311,51 +308,9 @@ describe("P3-D-1: factory ownership 제거", () => {
     });
   });
 
-  describe("createFormDefinition", () => {
-    it("다수 자식(FormField 등) 모두 ownership 필드 없다", () => {
-      // Arrange
-      const ctx = makeContext(makeMockParent());
-
-      // Act
-      const def = createFormDefinition(ctx);
-
-      // Assert — 재귀 포함
-      def.children.forEach((child, i) => {
-        assertNoOwnerFields(
-          child as unknown as Record<string, unknown>,
-          `children[${i}]`,
-        );
-      });
-    });
-
-    it("parentElement 전달 시 Form parent element.parent_id 에 반영된다", () => {
-      // Arrange
-      const parent = makeMockParent("form-parent-777");
-      const ctx = makeContext(parent);
-
-      // Act
-      const def = createFormDefinition(ctx);
-
-      // Assert
-      expect(def.parent.parent_id).toBe("form-parent-777");
-    });
-
-    it("Form 내부 children 의 order_num 은 보존된다", () => {
-      // Arrange
-      const ctx = makeContext(makeMockParent());
-
-      // Act
-      const def = createFormDefinition(ctx);
-
-      // Assert — children 이 order_num 을 보유하고 있어야 함
-      expect(def.children.length).toBeGreaterThan(0);
-      def.children.forEach((child) => {
-        expect(
-          typeof (child as unknown as { order_num: unknown }).order_num,
-        ).toBe("number");
-      });
-    });
-  });
+  // ADR-912 R-5: createFormDefinition 전멸 삭제 (reusable composite origin
+  // `component-form` 으로 대체) → describe 블록 제거. origin bootstrap/멱등/2단 중첩
+  // 검증은 formTemplateOrigins.test.ts 로 이전.
 
   // ── GroupComponents ────────────────────────────────────────────────────────
 
@@ -659,7 +614,6 @@ describe("P3-D-1: factory ownership 제거", () => {
         createAvatarGroupDefinition,
         createProgressBarDefinition,
         createTextFieldDefinition,
-        createFormDefinition,
         createCheckboxGroupDefinition,
         createRadioGroupDefinition,
         createSelectDefinition,
@@ -683,7 +637,6 @@ describe("P3-D-1: factory ownership 제거", () => {
         createAvatarGroupDefinition,
         createProgressBarDefinition,
         createTextFieldDefinition,
-        createFormDefinition,
         createCheckboxGroupDefinition,
         createRadioGroupDefinition,
         createSelectDefinition,

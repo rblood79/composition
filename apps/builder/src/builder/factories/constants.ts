@@ -45,7 +45,8 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "Popover",
   "Tooltip",
   // Feedback
-  "Form",
+  // ADR-912 R-5: Form 은 reusable composite origin(`component-form`) 전환 → COMPLEX 제외.
+  //   useElementCreator 가 COMPLEX 분기 前 REUSABLE_COMPOSITE_ORIGINS 체크로 type:"ref" 생성.
   "Toast",
   "InlineAlert",
   // Date & Color

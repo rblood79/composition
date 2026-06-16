@@ -16,7 +16,6 @@ import { ElementUtils } from "../../utils/element/elementUtils";
 import {
   createTextFieldDefinition,
   createTextAreaDefinition,
-  createFormDefinition,
   createToastDefinition,
   createNumberFieldDefinition,
   createSearchFieldDefinition,
@@ -100,7 +99,8 @@ export class ComponentFactory {
     TextField: ComponentFactory.createTextField,
     TextArea: ComponentFactory.createTextArea,
     // ⭐ Form Components
-    Form: ComponentFactory.createForm,
+    // ADR-912 R-5: Form 은 reusable composite origin(`component-form`)으로 전환 →
+    //   creators 진입점 제거. palette-add 는 useElementCreator 가 type:"ref" instance 생성.
     Toast: ComponentFactory.createToast,
     NumberField: ComponentFactory.createNumberField,
     SearchField: ComponentFactory.createSearchField,
@@ -267,11 +267,7 @@ export class ComponentFactory {
 
   // ==================== Form Components ====================
 
-  private static async createForm(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createFormDefinition, context);
-  }
+  // ADR-912 R-5: createForm 전멸 삭제 — reusable composite origin(`component-form`)으로 대체.
 
   private static async createToast(
     context: ComponentCreationContext,
