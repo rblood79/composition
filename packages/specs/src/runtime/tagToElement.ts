@@ -71,7 +71,6 @@ import { RangeCalendarSpec } from "../components/RangeCalendar.spec";
 import { ColorPickerSpec } from "../components/ColorPicker.spec";
 import { ColorFieldSpec } from "../components/ColorField.spec";
 import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
-import { ListSpec } from "../components/List.spec";
 import { InputSpec } from "../components/Input.spec";
 // ADR-912 Switcher cleanup — SwitcherSpec import 제거 (RAC ToggleButtonGroup 으로 대체).
 // ADR-912 box+text leaf 군 일괄 (2026-06-11) — Label/Icon/ToggleButton/StatusLight/Button/Badge/
@@ -179,7 +178,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   ColorPicker: ColorPickerSpec,
   ColorField: ColorFieldSpec,
   ColorSwatchPicker: ColorSwatchPickerSpec,
-  List: ListSpec,
   Input: InputSpec,
   Avatar: AvatarSpec,
   // ADR-912 R7 G1-a: AvatarGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트)

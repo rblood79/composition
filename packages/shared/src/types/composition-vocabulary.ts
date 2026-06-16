@@ -76,7 +76,6 @@ export type ComponentTag =
   | "Kbd"
   | "Label"
   | "Link"
-  | "List"
   | "ListBox"
   | "ListBoxItem"
   | "MaskedFrame"

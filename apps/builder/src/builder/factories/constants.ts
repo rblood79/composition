@@ -24,7 +24,6 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "ComboBox",
   "ListBox",
   "GridList",
-  "List",
   // Control
   "Checkbox",
   "Radio",

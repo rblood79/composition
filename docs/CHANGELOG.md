@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [List element type 폐기 + `List.spec.ts` 물리 삭제 — 미완성 collection 정리] - 2026-06-16
+
+### Architecture
+
+- **List element type 폐기 + `List.spec.ts` 물리 삭제** (ADR-912 step 4 — element type 폐기):
+  - 미완성·미사용 collection 컴포넌트 `List`(+ phantom 자식 `ListItem`)를 element type 자체에서 제거(사용자 명시 삭제 승인). CheckboxItems/RadioItems 폐기(R4)와 동형 패턴
+  - **Why**: List 는 (1) **palette 미노출** — 사용자가 UI 로 추가할 수 없는 진입점 0 컴포넌트 (2) **items SSOT 미연결** — `createListDefinition` 이 정적 ListItem 3개("Item 1/2/3")만 자동 생성하는 미완성 collection (3) **ListItem 은 NO_SPEC** — spec/renderer/catalog/rules table 어디에도 없는 factory 전용 phantom 자식 (Skia 미렌더). ListBox/GridList 가 collection 역할을 이미 완전 담당 → List 는 중복·미완성 잔재
+  - IndexedDB 전수 스캔(3 documents + 14 history + projects)에서 `type:"List"`/`type:"ListItem"` 노드 **0건** 실측 → hydration migration 불요(저장 이력 없음)
+  - 삭제 cascade(8 지점): `List.spec.ts` 파일 + `List.css`(generated) + spec export 2곳(`packages/specs/src/{index,components/index}.ts`) + `TAG_SPEC_MAP` 등록(`packages/specs/src/runtime/tagToElement.ts` import+map) + factory(`ComponentFactory.ts` import/creators/method, `constants.ts` COMPLEX_COMPONENT_TAGS, `SelectionComponents.ts` createListDefinition) + DEFAULT_PROPS(`unified.types.ts` createDefaultListProps+map) + vocabulary type(`composition-vocabulary.ts`) + rules table 엔트리(`componentRulesTable.ts` List)
+  - 위치: `packages/specs/src/components/List.spec.ts`(삭제) / `packages/specs/src/runtime/tagToElement.ts` / `apps/builder/src/builder/factories/{ComponentFactory,constants,definitions/SelectionComponents}.ts` / `apps/builder/src/types/builder/unified.types.ts` / `packages/shared/src/types/composition-vocabulary.ts` / `packages/shared/src/catalog/generated/componentRulesTable.ts`
+  - 검증: type-check PASS(builder baseline 71 불변 — `createColumnGroup` 기존 에러 line shift 641→633 baseline 반영) + build:specs PASS(102 CSS, List.css 재생성 0) + **Chrome MCP live**(TAG_SPEC_MAP 57→56 `List` 제거 + ListBox/GridList 잔존 / catalog cutover 108 불변 `List` false + `ListBox` true / 빌더 캔버스+preview iframe 렌더 + 콘솔 에러 0)
+
 ## [cross-page reusable Instance preview 미렌더 수정 + collection selection DELEGATING sweep + collection item href 경고 제거] - 2026-06-16
 
 ### Bug Fixes

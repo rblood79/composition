@@ -28,7 +28,6 @@ import {
   createComboBoxDefinition,
   createListBoxDefinition,
   createGridListDefinition,
-  createListDefinition,
 } from "./definitions/SelectionComponents";
 import {
   createFrameLayoutDefinition,
@@ -124,7 +123,6 @@ export class ComponentFactory {
     Breadcrumbs: ComponentFactory.createBreadcrumbs,
     ListBox: ComponentFactory.createListBox,
     GridList: ComponentFactory.createGridList,
-    List: ComponentFactory.createList,
     Table: ComponentFactory.createTable,
     // ⭐ Navigation Components
     Menu: ComponentFactory.createMenu,
@@ -403,12 +401,6 @@ export class ComponentFactory {
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
     return this.createComponent(createGridListDefinition, context);
-  }
-
-  private static async createList(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createListDefinition, context);
   }
 
   // ==================== Navigation Components ====================

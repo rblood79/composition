@@ -3185,58 +3185,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     textDecoration: "underline",
   },
-  List: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-        },
-      },
-    },
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 0,
-        iconSize: 16,
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
-        height: 0,
-        iconSize: 20,
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
-        height: 0,
-        iconSize: 24,
-      },
-    },
-  },
   ListBox: {
     defaultVariant: "default",
     defaultSize: "md",

@@ -2126,12 +2126,6 @@ export function createDefaultIllustratedMessageProps(): BaseElementProps {
   };
 }
 
-export function createDefaultListProps(): BaseElementProps {
-  return {
-    style: { display: "flex", flexDirection: "column", gap: 4 },
-  };
-}
-
 export function createDefaultPaginationProps(): BaseElementProps {
   return {
     totalPages: 5,
@@ -2311,7 +2305,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   CardView: createDefaultCardViewProps,
   ColorSwatchPicker: createDefaultColorSwatchPickerProps,
   IllustratedMessage: createDefaultIllustratedMessageProps,
-  List: createDefaultListProps,
   Pagination: createDefaultPaginationProps,
   ProgressCircle: createDefaultProgressCircleProps,
   RangeCalendar: createDefaultRangeCalendarProps,

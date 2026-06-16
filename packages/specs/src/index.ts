@@ -497,9 +497,6 @@ export type { ColorFieldProps } from "./components/ColorField.spec";
 export { ColorSwatchPickerSpec } from "./components/ColorSwatchPicker.spec";
 export type { ColorSwatchPickerProps } from "./components/ColorSwatchPicker.spec";
 
-export { ListSpec } from "./components/List.spec";
-export type { ListProps } from "./components/List.spec";
-
 export { InputSpec } from "./components/Input.spec";
 export type { InputProps } from "./components/Input.spec";
 

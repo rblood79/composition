@@ -203,10 +203,6 @@ export type { ColorFieldProps } from "./ColorField.spec";
 export { ColorSwatchPickerSpec } from "./ColorSwatchPicker.spec";
 export type { ColorSwatchPickerProps } from "./ColorSwatchPicker.spec";
 
-// List
-export { ListSpec } from "./List.spec";
-export type { ListProps } from "./List.spec";
-
 // Switcher — ADR-912 Switcher cleanup 으로 제거 (RAC ToggleButtonGroup 으로 대체).
 
 // Table
