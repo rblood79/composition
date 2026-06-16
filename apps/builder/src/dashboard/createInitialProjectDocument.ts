@@ -1,5 +1,6 @@
 import type { CompositionDocument } from "@composition/shared";
 import { ensureListBoxTemplateOrigins } from "../builder/components/listbox/listBoxTemplateOrigins";
+import { ensureReusableCompositeOrigins } from "../builder/components/reusableCompositeOrigins";
 
 type PageSeed = {
   id: string;
@@ -24,27 +25,29 @@ export function createInitialProjectDocument(
   page: PageSeed,
   body: BodySeed,
 ): CompositionDocument {
-  return ensureListBoxTemplateOrigins({
-    version: "composition-1.0",
-    children: [
-      {
-        id: page.id,
-        type: "frame",
-        name: page.title,
-        metadata: {
-          type: "legacy-page",
-          pageId: page.id,
-          slug: page.slug ?? null,
-          parent_id: null,
-        },
-        children: [
-          {
-            id: body.id,
-            type: body.type as CanonicalNodeType,
-            props: asCanonicalProps(body.props),
+  return ensureReusableCompositeOrigins(
+    ensureListBoxTemplateOrigins({
+      version: "composition-1.0",
+      children: [
+        {
+          id: page.id,
+          type: "frame",
+          name: page.title,
+          metadata: {
+            type: "legacy-page",
+            pageId: page.id,
+            slug: page.slug ?? null,
+            parent_id: null,
           },
-        ],
-      },
-    ],
-  });
+          children: [
+            {
+              id: body.id,
+              type: body.type as CanonicalNodeType,
+              props: asCanonicalProps(body.props),
+            },
+          ],
+        },
+      ],
+    }),
+  );
 }

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Toolbar 조합 컴포넌트 reusable origin 저작 — ADR-912 R-5 첫 proof] - 2026-06-16
+
+### Architecture
+
+- **Toolbar 조합 컴포넌트를 reusable origin 문서로 저작 + factory definition seam 제거** (ADR-912 R-5 / HC#5 "조합 = 데이터"):
+  - "신규 조합 컴포넌트 추가 = 코드 변경 0" (HC#5) 의 첫 vertical slice proof. 종전에는 Toolbar palette-add 마다 `createToolbarDefinition`(factory 코드)이 Button×3+Separator 트리를 하드코딩 생성했다. 이 조합 트리를 Components page 의 reusable origin(`component-toolbar`) 1벌로 옮기고, palette-add 는 `REUSABLE_COMPOSITE_ORIGINS` 데이터 레지스트리만 보고 `type:"ref"` instance 를 생성한다 — factory 코드 0
+  - **Why**: ADR-912 두 본질 목표 중 하나(② 6 registry collapse "1 컴포넌트 = 1 등록")의 reusable 축. 조합 컴포넌트가 factory definition 코드에 묶여 있는 한 "코드 변경 0 으로 새 조합 추가" 불가능 — 조합 트리를 데이터(reusable origin 문서)로 외부화해야 collapse 가 성립
+  - seam 전멸 삭제(fallback 0 — kill criteria): `createToolbarDefinition`(FormComponents.ts) + `createToolbar` method + `creators.Toolbar`(ComponentFactory.ts) + Toolbar from `COMPLEX_COMPONENT_TAGS`(constants.ts). definition 코드가 남으면 dual-path 재현 → 실패 기준
+  - 신규: `toolbarTemplateOrigins.ts`(origin seed/strip/ensure 멱등 — `listBoxTemplateOrigins.ts`/ADR-147 패턴 동형, 단 slot 없는 direct children) + `reusableCompositeOrigins.ts`(`REUSABLE_COMPOSITE_ORIGINS` 레지스트리 — 신규 조합은 origin 모듈 + 맵 1줄로 합류). bootstrap 2진입점(`createInitialProjectDocument` 신규 / `usePageManager`+`adapters/canonical` hydration) wiring
+  - palette-add 경로(`useElementCreator`): COMPLEX/simple 분기 前 `getReusableCompositeOriginId(type)` 체크 → reusable composite 면 `type:"ref"`+`ref`+`componentRole:instance` element 생성(paste 경로와 동일 instance shape)
+  - 위치: `apps/builder/src/builder/components/toolbar/toolbarTemplateOrigins.ts`(신규) / `apps/builder/src/builder/components/reusableCompositeOrigins.ts`(신규) / `apps/builder/src/builder/hooks/useElementCreator.ts` / `apps/builder/src/builder/factories/{ComponentFactory,constants,definitions/FormComponents}.ts` / `apps/builder/src/dashboard/createInitialProjectDocument.ts` / `apps/builder/src/builder/hooks/usePageManager.ts` / `apps/builder/src/adapters/canonical/index.ts`
+  - 검증: type-check PASS(builder baseline 71 불변 — `createColumnGroup` 기존 에러 line shift 625 baseline 반영) + 신규 단위 테스트 6 PASS(origin bootstrap/멱등/repair-not-overwrite + 레지스트리 매핑) + 등록 contract test 회귀 0(2 fail = pre-existing AvatarGroup..Toast 미등록·universe 80 floor, 변경 전 clean HEAD 와 동일) + **Chrome MCP live**(palette-add Toolbar → `type:"ref"` instance childrenCount 0[하드코딩 트리 미생성] / origin `component-toolbar` reusable:true + Button×3+Separator IndexedDB persist / DOM preview `role=toolbar`+Action 1/2/3+Separator 1 렌더 + Skia 캔버스 대칭 + 콘솔 에러 0)
+
 ## [List element type 폐기 + `List.spec.ts` 물리 삭제 — 미완성 collection 정리] - 2026-06-16
 
 ### Architecture

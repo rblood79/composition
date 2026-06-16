@@ -30,6 +30,7 @@ import { canonicalDocumentToElements } from "../stores/canonical/canonicalElemen
 import { countUserPagesForAutoName } from "../pages/systemComponentsPage";
 import { migrateLegacyListBoxTemplatesToOrigins } from "../../adapters/canonical/legacyListBoxTemplateMigration";
 import { migrateCheckboxRadioItemsStructure } from "../../adapters/canonical/checkboxRadioItemsMigration";
+import { ensureReusableCompositeOrigins } from "../components/reusableCompositeOrigins";
 
 const PAGE_STACK_GAP = 80;
 
@@ -365,8 +366,10 @@ export const usePageManager = ({
         // Option B (anchor-less): origin bootstrap + 기존 instance 의 in-tree template
         //   anchor strip 을 hydration 시점에 함께 수행. anchor 가 제거되면 document 참조가
         //   바뀌어 아래 persist-back 으로 IndexedDB 가 정리된다(멱등 — anchor 없으면 no-op).
-        const document = migrateCheckboxRadioItemsStructure(
-          migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+        const document = ensureReusableCompositeOrigins(
+          migrateCheckboxRadioItemsStructure(
+            migrateLegacyListBoxTemplatesToOrigins(baseDocument),
+          ),
         );
         if (document !== persistedDocument) {
           await db.documents.put(projectId, document);

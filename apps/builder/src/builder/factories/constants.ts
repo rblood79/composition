@@ -47,7 +47,6 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   // Feedback
   "Form",
   "Toast",
-  "Toolbar",
   "InlineAlert",
   // Date & Color
   "DatePicker",

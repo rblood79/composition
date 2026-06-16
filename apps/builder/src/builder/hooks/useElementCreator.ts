@@ -7,10 +7,15 @@ import {
 } from "../../types/builder/unified.types";
 import { ComponentFactory } from "../factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "../factories/constants";
+import { getReusableCompositeOriginId } from "../components/reusableCompositeOrigins";
 import { useErrorHandler, type ErrorInfo } from "./useErrorHandler";
 import { generateCustomId } from "../utils/idGeneration";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import { withFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
+import {
+  COMPONENT_ROLE_MIRROR_FIELD,
+  COMPONENT_MASTER_ID_MIRROR_FIELD,
+} from "../../adapters/canonical/componentSemanticsMirror";
 //import { useStore } from '../stores';
 
 export interface UseElementCreatorReturn {
@@ -148,7 +153,41 @@ export const useElementCreator = (): UseElementCreatorReturn => {
           // 복합 컴포넌트인지 확인 (공유 상수 사용)
 
           const operation = async () => {
-            if (COMPLEX_COMPONENT_TAGS.has(type)) {
+            const reusableCompositeOriginId =
+              getReusableCompositeOriginId(type);
+            if (reusableCompositeOriginId) {
+              // ADR-912 R-5 (HC#5 조합=데이터): reusable composite 는 factory definition
+              //   코드 없이 origin 문서를 참조하는 type:"ref" instance 로 생성한다.
+              //   조합 트리(자식)는 origin (Components page body) 이 보유 → palette-add 는
+              //   ref 만 만든다 (paste 경로와 동일한 instance shape).
+              const parentId = resolveCreationParentId({
+                selectedElementId,
+                elements,
+                currentPageId: currentPageId || null,
+                layoutId,
+                doc,
+              });
+
+              const refElement: Element = withFrameElementMirrorId(
+                {
+                  id: crypto.randomUUID(),
+                  type: "ref",
+                  ref: reusableCompositeOriginId,
+                  [COMPONENT_ROLE_MIRROR_FIELD]: "instance",
+                  [COMPONENT_MASTER_ID_MIRROR_FIELD]: reusableCompositeOriginId,
+                  customId: generateCustomId(type, elements),
+                  componentName: type,
+                  props: {},
+                  page_id: layoutId ? null : currentPageId,
+                  parent_id: parentId,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                } as Element,
+                layoutId || null,
+              );
+
+              addElement(refElement);
+            } else if (COMPLEX_COMPONENT_TAGS.has(type)) {
               // ComponentFactory를 사용하여 복합 컴포넌트 생성
               const result = await ComponentFactory.createComplexComponent(
                 type,

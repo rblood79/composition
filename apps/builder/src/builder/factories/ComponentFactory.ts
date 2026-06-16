@@ -18,7 +18,6 @@ import {
   createTextAreaDefinition,
   createFormDefinition,
   createToastDefinition,
-  createToolbarDefinition,
   createNumberFieldDefinition,
   createSearchFieldDefinition,
   createSliderDefinition,
@@ -103,7 +102,6 @@ export class ComponentFactory {
     // ⭐ Form Components
     Form: ComponentFactory.createForm,
     Toast: ComponentFactory.createToast,
-    Toolbar: ComponentFactory.createToolbar,
     NumberField: ComponentFactory.createNumberField,
     SearchField: ComponentFactory.createSearchField,
     frame: ComponentFactory.createFrame,
@@ -279,12 +277,6 @@ export class ComponentFactory {
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
     return this.createComponent(createToastDefinition, context);
-  }
-
-  private static async createToolbar(
-    context: ComponentCreationContext,
-  ): Promise<ComponentCreationResult> {
-    return this.createComponent(createToolbarDefinition, context);
   }
 
   private static async createNumberField(
