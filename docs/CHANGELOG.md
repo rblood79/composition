@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [TextField/Input CSS preview `<text>` raw tag 경고 수정 — type 복원이 HTML props.type 오인] - 2026-06-17
+
+### Bug Fixes
+
+- **TextField CSS preview 에서 `<text>` 소문자 raw tag 렌더 (React "The tag <text> is unrecognized" 경고)**:
+  - 증상: TextField 를 캔버스에 배치하면 CSS preview(canonical DOM 렌더)에서 TextField 컨테이너와 Input 이 `<text>` 라는 정체불명의 raw tag 로 렌더되어 React 경고 발생 + 시각/구조 오염
+  - **Why**: `CanonicalNodeRenderer` 의 type 복원 fallback (`_tag ?? canonicalProps.type ?? metadata.originalTag ?? node.type`) 이 `props.type` 을 element ComponentTag 로 오인했다. TextField/Input factory 는 `props.type: "text"`(HTML `<input type>` 속성, D2)를 보유 → type 이 "text" 로 평가 → catalog cutover 경로 미진입 → generic fallthrough 의 `resolveGenericHtmlTag("text")` 가 `KNOWN_HTML` 에서 소문자 "text" 키를 못 찾아 `type.toLowerCase()` → `<text>` 생성. `node.type` 은 올바르게 "TextField"/"Input" 이었으나 `props.type` 이 그보다 우선해 도달하지 못함
+  - 수정: type 복원 2곳(본문 + `resolveNodeType`)에서 `canonicalProps.type` 제거. `node.type`(canonical ComponentTag SSOT)을 정본으로 사용하고, `props.type`(D2 HTML 속성)은 element type 복원에서 읽지 않음. `props.type` 없는 자식(Label/FieldError)은 기존대로 `node.type` 도달 → 회귀 없음
+  - 회귀 가드: `CanonicalNodeRenderer.field.test.tsx` 에 `props.type: "text"` 보유 TextField/Input node 가 `<text>` 가 아닌 `react-aria-TextField`/`<input>` 으로 렌더되는지 검증 2종 추가. 기존 테스트는 `props.type` 없이 통과해 본 버그를 못 잡았음(live DOM 에서만 적발) → `querySelectorAll("text")` 0개 단언으로 가드 (negative test 로 유효성 확증)
+  - 위치: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx` (type 복원 본문 + `resolveNodeType`) / `apps/builder/src/preview/components/__tests__/CanonicalNodeRenderer.field.test.tsx`
+  - 검증: type-check PASS (builder baseline 71 불변, 0 new) + field 테스트 5/5 PASS + **Chrome MCP live** (builder TextField 추가 → `<text>` 0개 + TextField `<div class="react-aria-TextField">` + Input `<input class="react-aria-Input">` + CSS↔Skia 시각 대칭 확인)
+
 ## [grid 컨테이너 width 변경 시 Skia 레이아웃 깨짐 수정 — GRID_REBUILD_TRIGGER_KEYS dimension 키 보완] - 2026-06-17
 
 ### Bug Fixes
