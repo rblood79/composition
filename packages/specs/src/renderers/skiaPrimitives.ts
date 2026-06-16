@@ -1133,7 +1133,7 @@ const popoverArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
 
 /**
  * `dialog_shadow` — Dialog drop shadow(offsetY:8 blur:24 alpha:0.2). target=bg.
- * 값은 DialogSpec.render.shapes 하드코딩 1:1 이식. 보편 box-shadow 의 elevation 종류.
+ * 값은 (구) DialogSpec.render.shapes 하드코딩 1:1 이식. 보편 box-shadow 의 elevation 종류.
  */
 const dialogShadow: SkiaPrimitiveDrawFn = () => [
   {
@@ -1167,7 +1167,7 @@ const popoverShadow: SkiaPrimitiveDrawFn = () => [
 
 /**
  * `overlay_backdrop` — Dialog 반투명 backdrop(전체 화면 rect, rgba(0,0,0,0.5)).
- * 값은 DialogSpec.render.shapes 하드코딩 1:1 이식. modal overlay 패턴.
+ * 값은 (구) DialogSpec.render.shapes 하드코딩 1:1 이식. modal overlay 패턴.
  */
 const overlayBackdrop: SkiaPrimitiveDrawFn = () => [
   {

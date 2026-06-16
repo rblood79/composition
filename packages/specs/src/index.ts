@@ -241,8 +241,9 @@ export type { ComponentVisualRule } from "./renderers";
 //   규칙은 propagationRegistry.ts 인라인 보존. CardHeader/CardContent/CardFooter/CardPreview 자식 4도
 //   childSpec→catalog cutover(2026-06-15) — FormField/DialogFooter 동형.
 
-export { DialogSpec } from "./components/Dialog.spec";
-export type { DialogProps } from "./components/Dialog.spec";
+// ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec/DialogProps export 제거 — catalog cutover,
+//   spec 삭제. 시각 SSOT = componentRulesTable.Dialog + STRUCTURE_META virtual override(archetype
+//   overlay, Modal 동형). backdrop/shadow 는 skiaPrimitive escape. DialogProps 외부 소비 0.
 
 // DialogFooter — ADR-912 childSpec→catalog cutover (2026-06-15): barrel export 제거
 //   (spec 삭제 — catalog rule + buildCatalogShapes generic 으로 시각 이전). 사용자 명시 삭제 승인.

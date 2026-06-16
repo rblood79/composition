@@ -17,7 +17,6 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  DialogSpec,
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) + Card 본체 R6 + ButtonGroup R7 G1-c (2026-06-15) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   // ADR-912 단계5 step4 small-B (2026-06-16): Section/CheckboxGroup/RadioGroup/Form spec import 제거 —
   //   catalog cutover spec 삭제로 _hasChildren 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes shell 경로).
@@ -25,6 +24,8 @@ import {
   //   catalog cutover spec 삭제로 제외 (시각 = catalog rule + generate-css virtual indicatorMode/delegation carry).
   // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — catalog cutover spec 삭제로
   //   phase2B 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes box+text + tooltip_arrow append).
+  // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — catalog cutover spec 삭제로
+  //   phase1 검증 대상에서 제외 (시각 = catalog rule + skiaPrimitive overlay_backdrop/dialog_shadow escape).
   //   SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더 — buildSpecNodeData.ts).
   PopoverSpec,
   ColorPickerSpec,
@@ -38,14 +39,14 @@ import {
 type AnySpec = ComponentSpec<Record<string, unknown>>;
 
 // Phase 1 (Empty-placeholder Case A)
-const phase1Candidates: Array<{ type: string; spec: AnySpec }> = [
-  // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → spec 삭제로 이 테스트 대상에서 제외.
-  //   Card 의 SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더), 시각 검증은
-  //   catalog rule + buildCatalogShapes shell 경로.
-  { type: "Dialog", spec: DialogSpec as unknown as AnySpec },
-  // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
-  // ADR-912 단계5 step4 small-B (2026-06-16): Section catalog cutover spec 삭제로 제외.
-];
+// ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → spec 삭제로 이 테스트 대상에서 제외.
+//   Card 의 SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더), 시각 검증은
+//   catalog rule + buildCatalogShapes shell 경로.
+// ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 제외 (시각 = catalog rule + buildCatalogShapes 경로)
+// ADR-912 단계5 step4 small-B (2026-06-16): Section catalog cutover spec 삭제로 제외.
+// ADR-912 단계5 step4 Dialog 단건 (2026-06-16): Dialog catalog cutover spec 삭제로 제외 (마지막
+//   phase1 항목 — 빈 배열). SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지(자식 독립 렌더).
+const phase1Candidates: Array<{ type: string; spec: AnySpec }> = [];
 
 // Phase 2-A (Group 컨테이너 — factory items 자동 생성)
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover spec 삭제로 제외 (시각 = catalog rule + buildCatalogShapes)
@@ -101,6 +102,12 @@ describe("ADR-072 Phase 1 + 2-A + 2-B: SHELL_ONLY_CONTAINER_TAGS 재분류", () 
   });
 
   describe("_hasChildren=true → shell만 반환 (container placeholder 없음)", () => {
+    // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): containerPlaceholderCandidates 가 빈 배열
+    //   (phase1/2-A 전 항목 catalog cutover spec 삭제). vitest "No test found in suite" 회피용
+    //   placeholder — 미래 컨테이너 spec(미cutover) 추가 시 for 루프가 실 케이스 생성.
+    if (containerPlaceholderCandidates.length === 0) {
+      it.skip("placeholder — 모든 phase1/2-A 후보 catalog cutover 됨", () => {});
+    }
     for (const { type, spec } of containerPlaceholderCandidates) {
       it(`${type}: standalone container 미생성`, () => {
         const shapes = callShapes(spec, true);
@@ -111,6 +118,9 @@ describe("ADR-072 Phase 1 + 2-A + 2-B: SHELL_ONLY_CONTAINER_TAGS 재분류", () 
   });
 
   describe("_hasChildren=false → standalone placeholder 존재 (회귀 방지)", () => {
+    if (containerPlaceholderCandidates.length === 0) {
+      it.skip("placeholder — 모든 phase1/2-A 후보 catalog cutover 됨", () => {});
+    }
     for (const { type, spec } of containerPlaceholderCandidates) {
       it(`${type}: standalone container 최소 1개 존재`, () => {
         const shapes = callShapes(spec, false);

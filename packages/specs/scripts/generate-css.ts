@@ -899,6 +899,22 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
     containerStyles: undefined,
     states: {},
   },
+  // ADR-912 단계5 step4 Dialog 단건 (2026-06-16) — Dialog (overlay archetype, Dialog.spec.ts 삭제 대상).
+  //   archetype "overlay": CSSGenerator 가 `position:fixed`+`box-sizing:border-box` base 자동 emit
+  //   (Modal 동형). variant default(fill={color.layer-1}→--bg-overlay + text neutral)는 rule 파생.
+  //   sizes xs~xl(paddingX/paddingY/gap 2026-06-16 rule 보강 + fontSize/borderRadius/height:0)는 rule
+  //   emit. Skia 는 spec render.shapes(backdrop/shadow/bg) 대신 skiaPrimitive escape(overlay_backdrop
+  //   prepend + dialog_shadow prepend) — isCatalogSkiaCutover generic box. composition 불요.
+  //   states={} — spec.states={} 미러. disabled(opacity+cursor+pointerEvents) + focus-visible +
+  //   reduced-motion 은 CSSGenerator overlay 기본 emit(Modal.css 와 블록 동일 확증). hover/pressed root
+  //   빈 블록 미생성(states:{} 라야 diff 0). utils.ts/skiaPrimitives 코드 import 0 + sub-part 0.
+  {
+    name: "Dialog",
+    archetype: "overlay",
+    element: "div",
+    containerStyles: undefined,
+    states: {},
+  },
   // ADR-912 단계5 step4 small-B (2026-06-16) — Section (default archetype, Section.spec.ts 삭제 대상).
   //   archetype "default": DEFAULT_BASE_STYLES(inline-flex/align/justify/box-sizing/cursor/user-select/
   //   transition/font-family) emit. variant 6종(default alpha:0/accent/neutral/purple/surface/outlined)

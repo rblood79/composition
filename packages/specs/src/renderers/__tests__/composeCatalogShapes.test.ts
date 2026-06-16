@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { DialogSpec } from "../../components/Dialog.spec";
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — spec 삭제로
 //   parity 비교 대상(legacy render.shapes) 소멸. cutover parity 는 이미 입증(아래 describe 제거).
 // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — spec 삭제로 parity 대상 소멸.
 // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — spec 삭제로 parity
 //   비교 대상(legacy render.shapes) 소멸. 아래 Tooltip describe(it.skip 보강 대기)도 제거.
+// ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — spec 삭제로 parity 대상 소멸.
+//   아래 Dialog describe(backdrop+shadow prepend parity)도 제거. backdrop/shadow primitive 절대값
+//   parity 는 skiaPrimitives.overlay.test.ts 로 이전(spec oracle 불요).
 import { PopoverSpec } from "../../components/Popover.spec";
 import { buildCatalogShapes } from "../buildCatalogShapes";
 import { composeCatalogShapes } from "../composeCatalogShapes";
@@ -80,32 +82,10 @@ function primitivesOf(
   return { prepend, append };
 }
 
-describe("composeCatalogShapes — Dialog (backdrop+shadow prepend, box) parity", () => {
-  // Dialog.spec variant.default(fill={color.layer-1}) 보강 후 발효 (Inc3 2026-06-01).
-  it("[backdrop, shadow, bg] 순서로 legacy 와 동일", () => {
-    const sizeSpec = DialogSpec.sizes.md;
-    const props = {} as Record<string, unknown>;
-    const visual = resolveComponentVisual(
-      DialogSpec as never,
-      DialogSpec.defaultVariant ?? "default",
-    );
-    const base = buildCatalogShapes(visual, props, sizeSpec, "default");
-    const { prepend, append } = primitivesOf(
-      ["overlay_backdrop", "dialog_shadow"],
-      { props, size: sizeSpec, visual, style: undefined },
-    );
-    const composed = composeCatalogShapes(base, prepend, append);
-
-    const legacy = withoutContainer(
-      DialogSpec.render.shapes(
-        props as Parameters<typeof DialogSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      ),
-    );
-    expect(normalize(composed)).toEqual(legacy);
-  });
-});
+// ADR-912 단계5 step4 Dialog 단건 (2026-06-16): Dialog parity describe 제거 — Dialog.spec 삭제로
+//   legacy render.shapes 비교 대상 소멸. backdrop/shadow primitive 절대값 parity 는
+//   skiaPrimitives.overlay.test.ts(dialog_shadow / overlay_backdrop) 로 이전. z-order 합성 규약
+//   (prepend) 검증은 Popover describe 가 동일 메커니즘으로 cover. Popover 는 spec 보존(유지).
 
 describe("composeCatalogShapes — Popover (shadow prepend, box, arrow append) parity", () => {
   it("[shadow, bg, border, arrow] 순서로 legacy 와 동일", () => {

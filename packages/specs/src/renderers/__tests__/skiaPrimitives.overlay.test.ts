@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+// ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — spec 삭제. dialog_shadow/
+//   overlay_backdrop parity 는 draw fn 하드코딩 상수 절대값 단언으로 전환(spec oracle 불요).
 import { PopoverSpec } from "../../components/Popover.spec";
-import { DialogSpec } from "../../components/Dialog.spec";
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
 import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 import type { ComponentVisualRule, SizeSpec } from "../../types";
@@ -282,23 +283,27 @@ describe("skiaPrimitive 'dialog_shadow' — Dialog shadow parity", () => {
     expect(getSkiaPrimitiveMode("dialog_shadow")).toBe("prepend");
   });
 
-  it("Dialog shadow(offsetY:8 blur:24 alpha:0.2) parity", () => {
-    const sizeSpec = DialogSpec.sizes.md;
-    const legacyShadow = only(
-      DialogSpec.render.shapes(
-        {} as Parameters<typeof DialogSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      ),
-      "shadow",
-    );
+  // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): Dialog.spec 삭제로 spec oracle 소멸. dialog_shadow
+  //   draw fn 은 인자 무관 하드코딩 상수(`() => [shadow]`) → 결정론적 절대값 단언 (Tooltip 전환 패턴).
+  it("Dialog shadow(offsetY:8 blur:24 alpha:0.2) — 결정론적 절대값", () => {
     const shapes = draw!({
       props: {},
-      size: sizeSpec,
+      size: {} as never,
       visual: undefined,
       style: undefined,
     });
-    expect(shapes).toEqual(legacyShadow);
+    expect(shapes).toEqual([
+      {
+        type: "shadow",
+        target: "bg",
+        offsetX: 0,
+        offsetY: 8,
+        blur: 24,
+        spread: 0,
+        color: "rgba(0, 0, 0, 0.2)",
+        alpha: 0.2,
+      },
+    ]);
   });
 });
 
@@ -338,24 +343,26 @@ describe("skiaPrimitive 'overlay_backdrop' — Dialog backdrop parity", () => {
     expect(getSkiaPrimitiveMode("overlay_backdrop")).toBe("prepend");
   });
 
-  it("Dialog backdrop(rect -9999..99999, rgba(0,0,0,0.5)) parity", () => {
-    const props = {} as Record<string, unknown>;
-    const sizeSpec = DialogSpec.sizes.md;
-    const legacyBackdrop = only(
-      DialogSpec.render.shapes(
-        props as Parameters<typeof DialogSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      ),
-      "rect",
-    );
+  // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): Dialog.spec 삭제로 spec oracle 소멸. overlay_backdrop
+  //   draw fn 은 인자 무관 하드코딩 상수(`() => [rect]`) → 결정론적 절대값 단언 (Tooltip 전환 패턴).
+  it("Dialog backdrop(rect -9999..99999, rgba(0,0,0,0.5)) — 결정론적 절대값", () => {
     const shapes = draw!({
-      props,
-      size: sizeSpec,
+      props: {},
+      size: {} as never,
       visual: undefined,
       style: undefined,
     });
-    expect(shapes).toEqual(legacyBackdrop);
+    expect(shapes).toEqual([
+      {
+        type: "rect",
+        x: -9999,
+        y: -9999,
+        width: 99999,
+        height: 99999,
+        fill: "rgba(0, 0, 0, 0.5)",
+        fillAlpha: 0.5,
+      },
+    ]);
   });
 });
 

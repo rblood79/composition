@@ -18,9 +18,9 @@
 //   CardHeader/CardContent/CardFooter/CardPreview 자식 4도 childSpec→catalog cutover(2026-06-15).
 //   시각 = catalog rule, propagation 은 propagationRegistry.ts 인라인 보존.
 
-// Dialog
-export { DialogSpec } from "./Dialog.spec";
-export type { DialogProps } from "./Dialog.spec";
+// Dialog — ADR-912 단계5 step4 Dialog 단건 (2026-06-16): catalog cutover → spec 삭제.
+//   시각 SSOT = componentRulesTable.Dialog + STRUCTURE_META virtual override(archetype overlay).
+//   backdrop/shadow 는 skiaPrimitive escape. (구) DialogSpec/DialogProps export 제거.
 
 // DialogFooter — ADR-912 childSpec→catalog cutover (2026-06-15): export 제거 (spec 삭제).
 //   시각은 catalog rule(COMPONENT_RULES_TABLE.DialogFooter) + buildCatalogShapes generic.

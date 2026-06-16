@@ -2031,32 +2031,45 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 (2026-06-16): paddingY/gap 보강 — generated CSS 의 `padding: {Y}px {X}px`
+      //   + `gap: {gap}px` 가 rule 에서 emit 되도록(DialogSpec.sizes 미러, paddingX==paddingY).
+      //   spec 삭제 후 STRUCTURE_META virtual override 가 동일 padding/gap 재생성 → diff 0.
       xs: {
         paddingX: 2,
+        paddingY: 2,
+        gap: 4,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       sm: {
         paddingX: 4,
+        paddingY: 4,
+        gap: 8,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
       md: {
         paddingX: 8,
+        paddingY: 8,
+        gap: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
       },
       lg: {
         paddingX: 12,
+        paddingY: 12,
+        gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.2xl}",
         height: 0,
       },
       xl: {
         paddingX: 16,
+        paddingY: 16,
+        gap: 20,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.2xl}",
         height: 0,
