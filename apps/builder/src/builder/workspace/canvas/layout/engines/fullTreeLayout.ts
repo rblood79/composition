@@ -420,7 +420,14 @@ function coerceGridTrack(val: unknown): unknown {
 }
 
 /** Grid container 의 layout-영향 속성 — 증분 갱신에서 변경 시 full rebuild 필요.
- *  Taffy `updateStyleRaw` 가 track/placement 캐시 invalidation 실패. */
+ *  Taffy `updateStyleRaw`(=set_style) 가 track/placement 캐시 invalidation 실패.
+ *
+ *  dimension(width/height/min/max) 추가 (2026-06-16): grid container **자신**의 width/height
+ *  변경 시 incremental 경로(updateStyleRaw)에선 1fr/auto track 이 변경 전 컨테이너 폭 기준으로
+ *  stale degrade(1줄로 무너짐) → 브라우저 새로고침(buildFull) 후에만 정상 2행. padding/gap 과
+ *  동일 병인(grid track/placement 캐시 미무효화) → 동일 처방(full rebuild). 신규 grid container
+ *  (`!prevJson`) 는 이미 needsFullRebuild 강제 대상이므로, 본 키들은 **기존** grid container 의
+ *  dimension 변경 케이스를 커버한다. */
 const GRID_REBUILD_TRIGGER_KEYS = [
   "gridTemplateColumns",
   "gridTemplateRows",
@@ -436,6 +443,12 @@ const GRID_REBUILD_TRIGGER_KEYS = [
   "gap",
   "rowGap",
   "columnGap",
+  "width",
+  "height",
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
 ] as const;
 
 function isGridDisplay(display: unknown): boolean {
