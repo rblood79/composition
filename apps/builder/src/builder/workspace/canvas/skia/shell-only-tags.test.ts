@@ -23,8 +23,10 @@ import {
   //   catalog cutover spec 삭제로 _hasChildren 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes shell 경로).
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
   //   catalog cutover spec 삭제로 제외 (시각 = catalog rule + generate-css virtual indicatorMode/delegation carry).
+  // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — catalog cutover spec 삭제로
+  //   phase2B 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes box+text + tooltip_arrow append).
+  //   SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더 — buildSpecNodeData.ts).
   PopoverSpec,
-  TooltipSpec,
   ColorPickerSpec,
 } from "@composition/specs";
 import type { ComponentSpec } from "@composition/specs";
@@ -59,7 +61,8 @@ const phase2BCandidates: Array<{ type: string; spec: AnySpec }> = [
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   // ADR-912 단계5 step4 small-B (2026-06-16): Form catalog cutover spec 삭제로 제외.
   { type: "Popover", spec: PopoverSpec as unknown as AnySpec },
-  { type: "Tooltip", spec: TooltipSpec as unknown as AnySpec },
+  // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): Tooltip 후보 제거 — spec 삭제로 render.shapes
+  //   기반 _hasChildren 분기 검증 대상 소멸. SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지.
   { type: "ColorPicker", spec: ColorPickerSpec as unknown as AnySpec },
 ];
 

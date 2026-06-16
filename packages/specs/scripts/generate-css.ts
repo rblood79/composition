@@ -242,6 +242,24 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       delegation: [],
     },
   },
+  // ADR-912 단계5 step4 (2026-06-16) — simple leaf (Tooltip, _hasChildren shell).
+  //   cutover 완료(FAMILY_6_CUTOVER="catalog", binding 존재, isCatalogCutover true) → Skia 는 이미
+  //   spec-free generic box(box+text, skiaPrimitive 없음). render.shapes(roundRect bg + text)는 삭제
+  //   무관. CSS 는 rule(COMPONENT_RULES_TABLE.Tooltip) variant fill 4종(neutral/info/positive/negative)
+  //   + sizes(paddingX/paddingY 2026-06-16 보강/fontSize/borderRadius)에서 재생성 → diff 0.
+  //   states = disabled(opacity+cursor+pointerEvents) + focusVisible(focus-ring). hover/pressed 는
+  //   variant fill 에서 자동 emit(별도 carry 불요). Tooltip CSS 에 reduced-motion 블록 없음(simple
+  //   default — transition 미선언). utils.ts(layout resolver) 직접 import 0건 → consumer 이관 불요.
+  {
+    name: "Tooltip",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: {
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
   {
     name: "Text",
     archetype: "text",

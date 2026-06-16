@@ -260,8 +260,10 @@ export type { BodyProps } from "./components/Body.spec";
 //   catalog cutover spec 삭제. 시각 = componentRulesTable + generate-css virtual(STRUCTURE_META indicatorMode/
 //   delegation carry). Skia = catalog generic(buildSpecNodeData isCatalogSkiaCutover 게이트).
 
-export { TooltipSpec, TOOLTIP_MAX_WIDTH } from "./components/Tooltip.spec";
-export type { TooltipProps } from "./components/Tooltip.spec";
+// ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec/TOOLTIP_MAX_WIDTH/TooltipProps export
+//   제거 — catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable.Tooltip + STRUCTURE_META virtual
+//   override(generate-css). TOOLTIP_MAX_WIDTH(arrow maxWidth)는 skiaPrimitives.ts 내부로 인라인 이관.
+//   TooltipProps 외부 소비 0건(builder factory 는 자체 TooltipElementProps 사용).
 
 // ─── Phase 2: Form Components ───────────────────────────────────────────────
 

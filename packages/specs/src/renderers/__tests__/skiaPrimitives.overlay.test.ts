@@ -1,21 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { PopoverSpec } from "../../components/Popover.spec";
-import { TooltipSpec } from "../../components/Tooltip.spec";
 import { DialogSpec } from "../../components/Dialog.spec";
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
 import { resolveComponentVisual } from "../utils/resolveComponentVisual";
-import type { Shape } from "../../types";
+import type { ComponentVisualRule, SizeSpec } from "../../types";
+import type { Shape, TokenRef } from "../../types";
 
 // arrow stroke = bg fill base. dispatch 에서 resolveSkiaVisualRule 이 주입하는 visual 과
 // 동등하게 spec→visual 로 생성(separator/selection 테스트 패턴).
 const popoverVisual = resolveComponentVisual(
   PopoverSpec as never,
   PopoverSpec.defaultVariant!,
-);
-const tooltipVisual = resolveComponentVisual(
-  TooltipSpec as never,
-  TooltipSpec.defaultVariant!,
 );
 
 /**
@@ -32,6 +28,11 @@ const tooltipVisual = resolveComponentVisual(
  * 동일(`Shape[] | null`) — 기존 6 parity 테스트 무수정.
  *
  * 각 draw module 이 legacy render.shapes 의 해당 shape 와 완전 parity 임을 보장한다(회귀 0).
+ *
+ * **ADR-912 단계5 step4 Tooltip 단건 (2026-06-16)**: Tooltip.spec 삭제로 Tooltip oracle(spec.
+ * render.shapes/spec.sizes) 소멸. tooltip_arrow 는 spec-free draw module(maxWidth=skiaPrimitives
+ * 내부 인라인 TOOLTIP_ARROW_MAX_WIDTH) 이므로, legacy spec oracle 대신 **rule-mirror visual +
+ * 결정론적 절대값**으로 단언(selection.test 전환 패턴). Popover/Dialog 는 spec 보존(미삭제) → oracle 유지.
  */
 
 /** legacy render.shapes 출력에서 특정 type 의 shape 만 추출. */
@@ -39,9 +40,48 @@ function only(shapes: Shape[], ...types: string[]): Shape[] {
   return shapes.filter((s) => types.includes(s.type));
 }
 
-describe("skiaPrimitive 'tooltip_arrow' — Tooltip V-arrow parity", () => {
+describe("skiaPrimitive 'tooltip_arrow' — Tooltip V-arrow (spec-free 절대값)", () => {
   const draw = getSkiaPrimitive("tooltip_arrow");
-  const placements = ["top", "bottom", "left", "right"] as const;
+
+  // rule-mirror visual: componentRulesTable.Tooltip neutral variant fill base.
+  //   tooltip_arrow stroke = style.backgroundColor ?? visual.fill.default.base.
+  const NEUTRAL_FILL_BASE = "{color.neutral-subtle}" as TokenRef;
+  const tooltipVisual = {
+    fill: { default: { base: NEUTRAL_FILL_BASE } },
+  } as unknown as ComponentVisualRule;
+
+  // rule-mirror sizes (componentRulesTable.Tooltip.sizes — paddingY 보강 후).
+  //   draw fn 은 size 를 직접 읽지 않고 props.size 문자열만 사용(maxWidth 인라인 lookup) →
+  //   sizeSpec 은 시그니처 충족용. paddingX/paddingY/fontSize/borderRadius 미러.
+  const ruleSizes: Record<string, SizeSpec> = {
+    sm: {
+      height: 0,
+      paddingX: 8,
+      paddingY: 4,
+      fontSize: "{typography.text-xs}",
+      borderRadius: "{radius.sm}",
+    } as unknown as SizeSpec,
+    md: {
+      height: 0,
+      paddingX: 10,
+      paddingY: 6,
+      fontSize: "{typography.text-xs}",
+      borderRadius: "{radius.sm}",
+    } as unknown as SizeSpec,
+    lg: {
+      height: 0,
+      paddingX: 12,
+      paddingY: 8,
+      fontSize: "{typography.text-sm}",
+      borderRadius: "{radius.md}",
+    } as unknown as SizeSpec,
+  };
+
+  // tooltip_arrow 결정론 상수 (skiaPrimitives.ts tooltipArrow 미러):
+  //   arrowSize=6, approxHeight=24, maxWidth=TOOLTIP_ARROW_MAX_WIDTH[size], centerX=maxWidth/2.
+  const ARROW = 6;
+  const H = 24;
+  const MAXW: Record<string, number> = { sm: 120, md: 150, lg: 200 };
   const sizes = ["sm", "md", "lg"] as const;
 
   it("registry 에 append 모드로 등록되어 있다", () => {
@@ -49,44 +89,135 @@ describe("skiaPrimitive 'tooltip_arrow' — Tooltip V-arrow parity", () => {
     expect(getSkiaPrimitiveMode("tooltip_arrow")).toBe("append");
   });
 
-  for (const placement of placements) {
+  // placement 별 결정론적 기대 line 2개 (draw fn 좌표식 1:1 미러).
+  function expectedLines(placement: string, size: string): Shape[] {
+    const cx = MAXW[size] / 2;
+    const stroke = NEUTRAL_FILL_BASE;
+    const w = 2;
+    if (placement === "top") {
+      return [
+        {
+          type: "line",
+          x1: cx - ARROW,
+          y1: H,
+          x2: cx,
+          y2: H + ARROW,
+          stroke,
+          strokeWidth: w,
+        },
+        {
+          type: "line",
+          x1: cx + ARROW,
+          y1: H,
+          x2: cx,
+          y2: H + ARROW,
+          stroke,
+          strokeWidth: w,
+        },
+      ] as unknown as Shape[];
+    }
+    if (placement === "bottom") {
+      return [
+        {
+          type: "line",
+          x1: cx - ARROW,
+          y1: 0,
+          x2: cx,
+          y2: -ARROW,
+          stroke,
+          strokeWidth: w,
+        },
+        {
+          type: "line",
+          x1: cx + ARROW,
+          y1: 0,
+          x2: cx,
+          y2: -ARROW,
+          stroke,
+          strokeWidth: w,
+        },
+      ] as unknown as Shape[];
+    }
+    if (placement === "right") {
+      const midY = H / 2;
+      return [
+        {
+          type: "line",
+          x1: 0,
+          y1: midY - ARROW,
+          x2: -ARROW,
+          y2: midY,
+          stroke,
+          strokeWidth: w,
+        },
+        {
+          type: "line",
+          x1: 0,
+          y1: midY + ARROW,
+          x2: -ARROW,
+          y2: midY,
+          stroke,
+          strokeWidth: w,
+        },
+      ] as unknown as Shape[];
+    }
+    // left
+    const midY = H / 2;
+    const cw = MAXW[size];
+    return [
+      {
+        type: "line",
+        x1: cw,
+        y1: midY - ARROW,
+        x2: cw + ARROW,
+        y2: midY,
+        stroke,
+        strokeWidth: w,
+      },
+      {
+        type: "line",
+        x1: cw,
+        y1: midY + ARROW,
+        x2: cw + ARROW,
+        y2: midY,
+        stroke,
+        strokeWidth: w,
+      },
+    ] as unknown as Shape[];
+  }
+
+  for (const placement of ["top", "bottom", "right", "left"] as const) {
     for (const size of sizes) {
-      it(`showArrow=true/${placement}/${size} — legacy line arrow 와 parity`, () => {
+      it(`showArrow=true/${placement}/${size} — 결정론적 line arrow 절대값`, () => {
         const props = {
           showArrow: true,
           placement,
           size,
           children: "Tip",
         } as Record<string, unknown>;
-        const sizeSpec = TooltipSpec.sizes[size];
-        const legacyLines = only(
-          TooltipSpec.render.shapes(
-            props as Parameters<typeof TooltipSpec.render.shapes>[0],
-            sizeSpec,
-            "default",
-          ),
-          "line",
-        );
         const shapes = draw!({
           props,
-          size: sizeSpec,
+          size: ruleSizes[size],
           visual: tooltipVisual,
           style: undefined,
         });
-        expect(shapes).toEqual(legacyLines);
+        // line shape 만 비교 (draw fn 은 line 만 반환).
+        expect(only(shapes ?? [], "line")).toEqual(
+          expectedLines(placement, size),
+        );
       });
     }
   }
 
-  it("showArrow !== true 면 미적용(null) — legacy 도 arrow 미렌더", () => {
+  it("showArrow !== true 면 미적용(null)", () => {
     const props = { placement: "top", size: "md", children: "Tip" } as Record<
       string,
       unknown
     >;
     const shapes = draw!({
       props,
-      size: TooltipSpec.sizes.md,
-      visual: undefined,
+      size: ruleSizes.md,
+      visual: tooltipVisual,
       style: undefined,
     });
     expect(shapes).toBeNull();

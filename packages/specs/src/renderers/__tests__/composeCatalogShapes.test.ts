@@ -4,8 +4,9 @@ import { DialogSpec } from "../../components/Dialog.spec";
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — spec 삭제로
 //   parity 비교 대상(legacy render.shapes) 소멸. cutover parity 는 이미 입증(아래 describe 제거).
 // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — spec 삭제로 parity 대상 소멸.
+// ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — spec 삭제로 parity
+//   비교 대상(legacy render.shapes) 소멸. 아래 Tooltip describe(it.skip 보강 대기)도 제거.
 import { PopoverSpec } from "../../components/Popover.spec";
-import { TooltipSpec } from "../../components/Tooltip.spec";
 import { buildCatalogShapes } from "../buildCatalogShapes";
 import { composeCatalogShapes } from "../composeCatalogShapes";
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
@@ -132,41 +133,10 @@ describe("composeCatalogShapes — Popover (shadow prepend, box, arrow append) p
   });
 });
 
-describe("composeCatalogShapes — Tooltip (box, arrow append) parity", () => {
-  // 보강 대기: Tooltip text 스타일(align left/weight 400/maxWidth 150)이 buildCatalogShapes
-  // 기본값(center/500)과 다름. text source 정합 후 발효 (사용자 confirm 2026-06-01 — Popover 먼저).
-  it.skip("[bg, text, arrow] 순서로 legacy 와 동일", () => {
-    const sizeSpec = TooltipSpec.sizes.md;
-    const props = {
-      showArrow: true,
-      placement: "top",
-      size: "md",
-      children: "Tip",
-    } as Record<string, unknown>;
-    const visual = resolveComponentVisual(
-      TooltipSpec as never,
-      TooltipSpec.defaultVariant ?? "neutral",
-    );
-    const base = buildCatalogShapes(visual, props, sizeSpec, "default");
-    const { prepend, append } = primitivesOf(["tooltip_arrow"], {
-      props,
-      size: sizeSpec,
-      visual,
-      style: undefined,
-    });
-    const composed = composeCatalogShapes(base, prepend, append);
-
-    const legacy = withoutContainer(
-      TooltipSpec.render.shapes(
-        props as Parameters<typeof TooltipSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      ),
-    );
-    expect(normalize(composed)).toEqual(legacy);
-  });
-});
-
+// ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): Tooltip parity describe 제거 — Tooltip.spec 삭제로
+//   legacy render.shapes 비교 대상 소멸. 본 describe 는 이미 it.skip(보강 대기 — text align/weight
+//   불일치)이었어 실행 0 → 검증 가치 0. arrow append parity 는 skiaPrimitives.overlay.test.ts 의
+//   tooltip_arrow 절대값 단언으로 대체. Dialog/Popover 는 각 spec 보존(유지).
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZone parity describe 제거 — DropZone.spec
 //   삭제로 legacy render.shapes 비교 대상 소멸. cutover parity(buildCatalogShapes generic box+dashed
 //   border ↔ 구 render.shapes)는 이미 입증됐고, 이제 catalog rule(COMPONENT_RULES_TABLE.DropZone)이

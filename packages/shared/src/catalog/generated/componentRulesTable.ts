@@ -6570,20 +6570,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 (2026-06-16): paddingY 보강 — generated CSS 의 `padding: {Y}px {X}px`
+      //   Y값(sm:4/md:6/lg:8)이 rule 에서 emit 되도록(TooltipSpec.sizes.paddingY 미러). spec 삭제
+      //   후 STRUCTURE_META virtual override 가 동일 padding 재생성 → diff 0. paddingX 와 대칭.
       sm: {
         paddingX: 8,
+        paddingY: 4,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
       md: {
         paddingX: 10,
+        paddingY: 6,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
       lg: {
         paddingX: 12,
+        paddingY: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,

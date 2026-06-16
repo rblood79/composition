@@ -46,7 +46,7 @@ import {
   // ADR-912 projection 3 cutover (2026-06-15): TabListSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 R7 G1-c (2026-06-15): ToastSpec import 제거 — 순수 box-shell catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 — catalog cutover, binding.accepts D2.
-  TooltipSpec,
+  // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): TreeSpec import 제거 — catalog cutover, binding.accepts D2.
   // TreeItemSpec — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제.
   //   binding.accepts(children/size)가 D2 properties 대체(Select/DisclosureHeader 선례).
@@ -132,7 +132,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell catalog cutover → entry 제거 (binding.accepts D2).
   // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(ToggleButtonGroup.binding.ts)로 properties 생성.
-  Tooltip: TooltipSpec as ComponentSpec<Record<string, unknown>>,
+  // Tooltip — ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Tooltip.binding.ts)로 properties 생성.
   // Tree — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
   // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover, specRegistry 제거 (binding.accepts 대체)
   RangeCalendar: RangeCalendarSpec as ComponentSpec<Record<string, unknown>>,

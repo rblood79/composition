@@ -76,7 +76,7 @@ import { InputSpec } from "../components/Input.spec";
 import { InlineAlertSpec } from "../components/InlineAlert.spec";
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
-import { TooltipSpec } from "../components/Tooltip.spec";
+// ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): TooltipSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 단계5: ProgressCircleSpec 삭제 — catalog cutover(value_fill_arc escape) + generate-css virtual
 import { BodySpec } from "../components/Body.spec";
 // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
@@ -99,7 +99,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Popover: PopoverSpec,
   Body: BodySpec,
   // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
-  Tooltip: TooltipSpec,
+  // Tooltip — ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   Select: SelectSpec,
   ComboBox: ComboBoxSpec,

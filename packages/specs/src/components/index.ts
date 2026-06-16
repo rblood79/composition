@@ -43,9 +43,9 @@ export type { PopoverProps } from "./Popover.spec";
 export { BodySpec } from "./Body.spec";
 export type { BodyProps } from "./Body.spec";
 
-// Tooltip
-export { TooltipSpec, TOOLTIP_MAX_WIDTH } from "./Tooltip.spec";
-export type { TooltipProps } from "./Tooltip.spec";
+// Tooltip — ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): catalog cutover → spec 삭제.
+//   시각 SSOT = componentRulesTable.Tooltip + STRUCTURE_META virtual override. arrow maxWidth 는
+//   skiaPrimitives.ts 인라인. (구) TooltipSpec/TOOLTIP_MAX_WIDTH/TooltipProps export 제거.
 
 // TextField
 

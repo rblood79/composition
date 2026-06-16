@@ -17,7 +17,6 @@
 
 import { parseBorderWidth, parsePxValue } from "../primitives";
 import { fontFamily } from "../primitives/typography";
-import { TOOLTIP_MAX_WIDTH } from "../components/Tooltip.spec";
 import {
   buildDatePickerShapes,
   buildDatePlaceholder,
@@ -909,15 +908,27 @@ const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
 // ===========================================================================
 
 /**
+ * Tooltip arrow maxWidth (size 별 Skia escape 데이터). ADR-912 단계5 step4 (2026-06-16):
+ * Tooltip.spec.ts 삭제에 맞춰 TOOLTIP_MAX_WIDTH 를 skiaPrimitives 내부로 인라인 미러 이관
+ * (ProgressCircle PROGRESSCIRCLE_DIAMETER 선례 — utils.ts). arrow maxWidth 는 Skia escape
+ * 전용(generated CSS emit 무관, ComponentRuleSize 미수용) → rule 이관 대신 인라인 보존.
+ */
+const TOOLTIP_ARROW_MAX_WIDTH: Record<string, number> = {
+  sm: 120,
+  md: 150,
+  lg: 200,
+};
+
+/**
  * `tooltip_arrow` — Tooltip V-arrow(placement 기반 2-line). showArrow===true 일 때만 적용.
- * 좌표식은 TooltipSpec.render.shapes(L300-398) 1:1 이식(회귀 0). 색 = bg fill(style/visual).
+ * 좌표식은 (구) TooltipSpec.render.shapes 1:1 이식(회귀 0). 색 = bg fill(style/visual).
  */
 const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, visual, style }) => {
   if (props.showArrow !== true) return null;
   const arrowSize = 6;
   const placement = (props.placement as string | undefined) ?? "top";
   const sizeName = (props.size as string | undefined) ?? "md";
-  const maxWidth = TOOLTIP_MAX_WIDTH[sizeName] ?? 150;
+  const maxWidth = TOOLTIP_ARROW_MAX_WIDTH[sizeName] ?? 150;
   const approxHeight = 24;
   const centerX = maxWidth / 2;
   // bg 색: style.backgroundColor → variant fill base (= legacy bgColor). dispatch 에서 visual
