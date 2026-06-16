@@ -265,6 +265,14 @@ export interface ComponentRuleSize {
    * Tree.css 의 `--padding`(16px)와 동일 값 유지.
    */
   indentPerLevel?: number | string;
+  /**
+   * 자식 heading 폰트 크기 base (ADR-912 단계5 step4 — IllustratedMessage catalog cutover).
+   * generate-css virtual 이 size 별 `.alert-heading { font-size: ... }` 자식 CSS 를 emit
+   * (CSSGenerator.generateChildFontStyles 가 `size.headingFontSize` 소비). alert archetype
+   * (일러스트 + heading + description)의 heading 크기를 D3 SSOT(rule)에 귀속 — 이전엔
+   * IllustratedMessageSpec.sizes.headingFontSize 에만 존재. TokenRef(`{typography.text-lg}`).
+   */
+  headingFontSize?: number | string;
 }
 
 /** 단일 컴포넌트의 시각 규칙. */

@@ -252,21 +252,18 @@ export type { DialogProps } from "./components/Dialog.spec";
 export { PopoverSpec } from "./components/Popover.spec";
 export type { PopoverProps } from "./components/Popover.spec";
 
-
 // ADR-902 후속: Body 는 페이지 루트 theme-aware 배경을 Spec SSOT 로 선언.
 export { BodySpec } from "./components/Body.spec";
 export type { BodyProps } from "./components/Body.spec";
 
-export { ToggleButtonGroupSpec } from "./components/ToggleButtonGroup.spec";
-export type { ToggleButtonGroupProps } from "./components/ToggleButtonGroup.spec";
+// ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec/Props export 제거 —
+//   catalog cutover spec 삭제. 시각 = componentRulesTable + generate-css virtual(STRUCTURE_META indicatorMode/
+//   delegation carry). Skia = catalog generic(buildSpecNodeData isCatalogSkiaCutover 게이트).
 
 export { TooltipSpec, TOOLTIP_MAX_WIDTH } from "./components/Tooltip.spec";
 export type { TooltipProps } from "./components/Tooltip.spec";
 
 // ─── Phase 2: Form Components ───────────────────────────────────────────────
-
-
-
 
 export {
   CheckboxSpec,
@@ -274,12 +271,10 @@ export {
 } from "./components/Checkbox.spec";
 export type { CheckboxProps } from "./components/Checkbox.spec";
 
-
 // CheckboxItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
 export { RadioSpec, RADIO_SELECTED_COLORS } from "./components/Radio.spec";
 export type { RadioProps } from "./components/Radio.spec";
-
 
 // RadioItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
@@ -288,7 +283,6 @@ export {
   SWITCH_SELECTED_TRACK_COLORS,
 } from "./components/Switch.spec";
 export type { SwitchProps } from "./components/Switch.spec";
-
 
 // ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2)으로
 //   Skia/Taffy/DOM 시각을 rule + buildCatalogShapes generic 으로 이전. DialogFooter 동형.
@@ -396,7 +390,6 @@ export { resolveGridListItemMetric } from "./renderers/utils/collectionItemMetri
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup spec 삭제.
 //   시각 SSOT = componentRulesTable catalog rule.
 
-
 // ADR-912 R7 G1-c (2026-06-15): ToastSpec/ToastProps export 제거 — 순수 box-shell catalog cutover.
 //   시각 SSOT = COMPONENT_RULES_TABLE.Toast + generate-css virtual(archetype alert). 좌측 accent bar
 //   는 RAC 공식 미준수 변형이라 제거. binding.accepts D2(variant/size/defaultTitle/...).
@@ -438,7 +431,6 @@ export type { DateRangePickerProps } from "./components/DateRangePicker.spec";
 export { DateFieldSpec } from "./components/DateField.spec";
 export type { DateFieldProps } from "./components/DateField.spec";
 
-
 export { DateInputSpec } from "./components/DateInput.spec";
 export type { DateInputProps } from "./components/DateInput.spec";
 
@@ -455,7 +447,6 @@ export type { RangeCalendarProps } from "./components/RangeCalendar.spec";
 
 export { ColorPickerSpec } from "./components/ColorPicker.spec";
 export type { ColorPickerProps } from "./components/ColorPicker.spec";
-
 
 // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11):
 //   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제. ColorSwatchPicker(container) 보존.
@@ -515,11 +506,10 @@ export { ImageSpec, IMAGE_DIMENSIONS } from "./components/Image.spec";
 export type { ImageProps } from "./components/Image.spec";
 
 // ─── Phase 8: ADR-030 Phase 4 Advanced Components ────────────────────────────
-export {
-  IllustratedMessageSpec,
-  ILLUSTRATION_DIMENSIONS,
-} from "./components/IllustratedMessage.spec";
-export type { IllustratedMessageProps } from "./components/IllustratedMessage.spec";
+// ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec/Props +
+//   ILLUSTRATION_DIMENSIONS export 제거 — catalog cutover spec 삭제. 시각 = componentRulesTable +
+//   generate-css virtual(STRUCTURE_META alert archetype + headingFontSize rule 보강). Skia =
+//   skiaPrimitive illustrated_message escape(자체 ILLUSTRATION_ESCAPE_DIMS, spec 의존 0).
 
 // ADR-912 R7 G1-b (2026-06-15): CardViewSpec/CARDVIEW_DENSITY_GAP + TableViewSpec/
 //   TABLEVIEW_ROW_HEIGHTS 삭제 — catalog cutover. 시각 SSOT = COMPONENT_RULES_TABLE.{CardView,

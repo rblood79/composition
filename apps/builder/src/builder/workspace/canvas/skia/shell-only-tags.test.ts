@@ -21,7 +21,8 @@ import {
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) + Card 본체 R6 + ButtonGroup R7 G1-c (2026-06-15) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   // ADR-912 단계5 step4 small-B (2026-06-16): Section/CheckboxGroup/RadioGroup/Form spec import 제거 —
   //   catalog cutover spec 삭제로 _hasChildren 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes shell 경로).
-  ToggleButtonGroupSpec,
+  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
+  //   catalog cutover spec 삭제로 제외 (시각 = catalog rule + generate-css virtual indicatorMode/delegation carry).
   PopoverSpec,
   TooltipSpec,
   ColorPickerSpec,
@@ -46,14 +47,12 @@ const phase1Candidates: Array<{ type: string; spec: AnySpec }> = [
 
 // Phase 2-A (Group 컨테이너 — factory items 자동 생성)
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover spec 삭제로 제외 (시각 = catalog rule + buildCatalogShapes)
-const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [
-  // ADR-912 단계5 step4 small-B (2026-06-16): CheckboxGroup/RadioGroup catalog cutover spec 삭제로 제외
-  //   (시각 = catalog rule + buildCatalogShapes shell, propagation = createPropagationOnlySpec 인라인).
-  {
-    type: "ToggleButtonGroup",
-    spec: ToggleButtonGroupSpec as unknown as AnySpec,
-  },
-];
+// ADR-912 단계5 step4 small-B (2026-06-16): CheckboxGroup/RadioGroup catalog cutover spec 삭제로 제외
+//   (시각 = catalog rule + buildCatalogShapes shell, propagation = createPropagationOnlySpec 인라인).
+// ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroup catalog cutover spec 삭제로 제외
+//   (시각 = catalog rule + generate-css virtual indicatorMode/delegation carry, propagation = createPropagationOnlySpec 인라인).
+//   SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 ToggleButton 독립 렌더).
+const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [];
 
 // Phase 2-B (standalone 실렌더 — factory 자식 CanvasSceneNode가 대체 커버)
 const phase2BCandidates: Array<{ type: string; spec: AnySpec }> = [

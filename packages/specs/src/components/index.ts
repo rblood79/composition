@@ -35,9 +35,7 @@ export type { PopoverProps } from "./Popover.spec";
 
 // ToggleButton
 
-// ToggleButtonGroup
-export { ToggleButtonGroupSpec } from "./ToggleButtonGroup.spec";
-export type { ToggleButtonGroupProps } from "./ToggleButtonGroup.spec";
+// ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로 export 제거.
 
 // Section
 
@@ -294,12 +292,8 @@ export type { ImageProps } from "./Image.spec";
 
 // ─── Phase 4: ADR-030 Advanced Components ─────────────────────────────────────
 
-// IllustratedMessage
-export {
-  IllustratedMessageSpec,
-  ILLUSTRATION_DIMENSIONS,
-} from "./IllustratedMessage.spec";
-export type { IllustratedMessageProps } from "./IllustratedMessage.spec";
+// IllustratedMessage — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로
+//   IllustratedMessageSpec/Props + ILLUSTRATION_DIMENSIONS export 제거 (Skia escape 자체 상수 사용).
 
 // CardView / TableView — ADR-912 R7 G1-b: spec 삭제 (catalog cutover, binding.accepts D2).
 //   CARDVIEW_DENSITY_GAP / TABLEVIEW_ROW_HEIGHTS 도 동시 삭제(spec 외 consumer 0).

@@ -128,6 +128,12 @@ function ruleSizeToSizeSpec(
     //   CSS 변수가 rule.sizes.iconSize/iconGap 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit.
     ...(s.iconSize !== undefined ? { iconSize: s.iconSize as number } : {}),
     ...(s.iconGap !== undefined ? { iconGap: s.iconGap as number } : {}),
+    // ADR-912 단계5 step4 (2026-06-16): IllustratedMessage 의 `.alert-heading` 자식 CSS 가
+    //   rule.sizes.headingFontSize 에서 emit 되도록 변환에 포함 (CSSGenerator.generateChildFontStyles
+    //   가 size.headingFontSize 소비). 미정의 leaf 는 미emit.
+    ...(s.headingFontSize !== undefined
+      ? { headingFontSize: s.headingFontSize as SizeSpec["headingFontSize"] }
+      : {}),
   } as SizeSpec;
 }
 
@@ -176,6 +182,15 @@ type StructureMeta = {
    * `pointerEvents: "none"` 등 추가 disabled 속성이 필요한 군은 명시.
    */
   states?: ComponentSpec<unknown>["states"];
+  /**
+   * indicatorMode 메타 (rule 에 없는 selection indicator 구조 — ToggleButtonGroup).
+   * CSSGenerator.generateIndicatorModeCSS 가 `[data-indicator="true"]` SelectionIndicator
+   * pill 의 위치/box-shadow/transition 을 emit. 색(--button-color/--button-text)은 parent
+   * ToggleButton variant CSS 상속(하드코딩)이라 시각값(rule) 아닌 구조 메타로 분류.
+   * boxShadow/transitionMs 만 generated CSS 에 반영(fill.base/selectedText/borderRadius 는
+   * CSS 미반영). 미설정 시 indicator CSS 미emit.
+   */
+  indicatorMode?: ComponentSpec<unknown>["indicatorMode"];
 };
 
 // 원본 entry 배열 (name 필드 포함) — 아래 STRUCTURE_META Map 으로 파생.
@@ -2539,6 +2554,71 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       },
     },
   },
+  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16) — IllustratedMessage (alert archetype,
+  //   IllustratedMessage.spec.ts 삭제 대상). alert archetype base(flex-column/align-flex-start/
+  //   box-sizing/font-family) + containerStyles(spec 미러) emit. variant default(transparent fill +
+  //   neutral text) + sizes(fontSize/borderRadius/height/paddingX/paddingY/gap/headingFontSize 2026-06-16
+  //   rule 보강)는 rule 파생. `.alert-heading` 자식 CSS 는 headingFontSize 가 ruleSizeToSizeSpec 경유로
+  //   virtual.sizes 에 실려 CSSGenerator.generateChildFontStyles 가 emit. composition 불요(spec 에 없음).
+  //   states={}: spec.states={} 미러 — disabled/focus-visible 는 CSSGenerator 기본 emit(현 generated 와 동일),
+  //   hover/pressed root 빈 블록은 variant default 의 hover/pressed transparent 가 [data-variant] 블록에서
+  //   이미 emit 되므로 states 기본값(hover/pressed:{}) 사용 시 root 빈 블록 추가 → diff. states={} 로 차단.
+  {
+    name: "IllustratedMessage",
+    archetype: "alert",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      width: "100%",
+    },
+    states: {},
+  },
+  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16) — ToggleButtonGroup (default archetype,
+  //   ToggleButtonGroup.spec.ts 삭제 대상). containerStyles(flex/align-center, spec 미러) emit.
+  //   variant default(transparent fill + neutral text + transparent border) + sizes(fontSize/borderRadius/
+  //   height:0)는 rule 파생 — borderRadius(xs=sm/sm=md/md=lg/lg=xl/xl=xl)가 rule 과 일치하므로 rule 보강 불요.
+  //   gap=0(rule)이라 gap 줄 미emit. composition.delegation(--btn-border-radius sm/md/lg) + indicatorMode
+  //   (SelectionIndicator pill box-shadow/transition — 색은 --button-color 하드코딩이라 구조 메타)는
+  //   spec verbatim carry. states 는 spec.states 미러(focusVisible 만 — disabled 는 CSSGenerator 기본 emit).
+  {
+    name: "ToggleButtonGroup",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      alignItems: "center",
+    },
+    composition: {
+      layout: "flex-row",
+      containerStyles: {
+        width: "fit-content",
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-ToggleButton",
+          variables: {
+            sm: { "--btn-border-radius": "var(--radius-sm)" },
+            md: { "--btn-border-radius": "var(--radius-md)" },
+            lg: { "--btn-border-radius": "var(--radius-lg)" },
+          },
+        },
+      ],
+    },
+    indicatorMode: {
+      fill: { base: "{color.layer-1}" },
+      selectedText: "{color.on-accent}",
+      borderRadius: "{radius.sm}",
+      boxShadow: "{shadow.sm}",
+      transitionMs: 200,
+    },
+    states: {
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
 ];
 
 /**
@@ -2603,6 +2683,8 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
       // composition: rule 에 없는 CSS selector 메타(Link underline 등). 미설정 시 미적용.
       ...(meta.composition ? { composition: meta.composition } : {}),
+      // indicatorMode: ToggleButtonGroup 의 selection indicator 구조. 미설정 시 미emit.
+      ...(meta.indicatorMode ? { indicatorMode: meta.indicatorMode } : {}),
       render: {
         shapes: () => [],
       },

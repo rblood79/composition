@@ -26,7 +26,8 @@ import {
   RangeCalendarSpec,
   GridListSpec,
   ListBoxSpec,
-  ToggleButtonGroupSpec,
+  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
+  //   catalog cutover, propagation.rules(isEmphasized/size → ToggleButton)는 createPropagationOnlySpec 인라인 이관.
   TabsSpec,
 } from "@composition/specs";
 
@@ -230,6 +231,17 @@ const radioGroupPropagationSpec = createPropagationOnlySpec("RadioGroup", [
   { parentProp: "size", childPath: "Label", override: true },
 ]);
 
+// ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroup.spec 삭제 —
+//   propagation.rules(ADR-048/059 B5: isEmphasized/size → ToggleButton, RadioGroup/CheckboxGroup 동형
+//   override:true) 인라인 보존.
+const toggleButtonGroupPropagationSpec = createPropagationOnlySpec(
+  "ToggleButtonGroup",
+  [
+    { parentProp: "isEmphasized", childPath: "ToggleButton", override: true },
+    { parentProp: "size", childPath: "ToggleButton", override: true },
+  ],
+);
+
 // ─── Lazy Index ─────────────────────────────────────────────────────────────
 
 /** 정방향: parentTag(소문자) → PropagationRule[] */
@@ -346,7 +358,7 @@ registerPropagationSpec("CardHeader", cardHeaderPropagationSpec);
 registerPropagationSpec("CardContent", cardContentPropagationSpec);
 registerPropagationSpec("GridList", GridListSpec);
 registerPropagationSpec("ListBox", ListBoxSpec);
-registerPropagationSpec("ToggleButtonGroup", ToggleButtonGroupSpec);
+registerPropagationSpec("ToggleButtonGroup", toggleButtonGroupPropagationSpec);
 // ADR-912 영역 B (A): Tabs → TabList items/selectedKey/variant/size/showIndicator 전파.
 //   chip projection(appendTabRowProjection)이 TabList.props.items 를 읽는 invariant 충족.
 registerPropagationSpec("Tabs", TabsSpec);

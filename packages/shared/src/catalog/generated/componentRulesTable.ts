@@ -2825,21 +2825,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-912 단계5 step4 (2026-06-16): IllustratedMessage.spec.ts catalog cutover 삭제 대비 —
+    //   paddingX/paddingY/gap (root padding + 자식 간격) + headingFontSize (.alert-heading 자식 CSS)
+    //   를 rule.sizes 로 보강. alert archetype(composition 없음 → padding emit). generate-css virtual
+    //   이 spec.sizes 대신 본 rule 에서 동일 CSS 재생성 (diff 0).
     sizes: {
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
+        paddingX: 16,
+        paddingY: 16,
+        gap: 8,
+        headingFontSize: "{typography.text-base}",
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
+        paddingX: 24,
+        paddingY: 24,
+        gap: 12,
+        headingFontSize: "{typography.text-lg}",
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: "auto",
+        paddingX: 32,
+        paddingY: 32,
+        gap: 16,
+        headingFontSize: "{typography.text-xl}",
       },
     },
   },

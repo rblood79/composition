@@ -26,7 +26,7 @@ import {
   // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec import 제거 — catalog cutover, binding.accepts D2.
   GridListSpec,
   GroupSpec,
-  IllustratedMessageSpec,
+  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec import 제거 — catalog cutover, binding.accepts D2.
   ImageSpec,
   InlineAlertSpec,
   ListBoxSpec,
@@ -46,7 +46,7 @@ import {
   TabsSpec,
   // ADR-912 projection 3 cutover (2026-06-15): TabListSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 R7 G1-c (2026-06-15): ToastSpec import 제거 — 순수 box-shell catalog cutover, binding.accepts D2.
-  ToggleButtonGroupSpec,
+  // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   TooltipSpec,
   // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): TreeSpec import 제거 — catalog cutover, binding.accepts D2.
   // TreeItemSpec — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제.
@@ -100,9 +100,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // Field — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
   GridList: GridListSpec as ComponentSpec<Record<string, unknown>>,
   Group: GroupSpec as ComponentSpec<Record<string, unknown>>,
-  IllustratedMessage: IllustratedMessageSpec as ComponentSpec<
-    Record<string, unknown>
-  >,
+  // IllustratedMessage — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(IllustratedMessage.binding.ts)로 properties 생성.
   Image: ImageSpec as ComponentSpec<Record<string, unknown>>,
   InlineAlert: InlineAlertSpec as ComponentSpec<Record<string, unknown>>,
   // Link — ADR-912 단계5 step5: catalog cutover → GenericPropertyEditor 가 binding.accepts
@@ -131,9 +130,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // ADR-912 projection 3 cutover (2026-06-15): TabList catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(TabList.binding.ts)로 properties 생성.
   // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell catalog cutover → entry 제거 (binding.accepts D2).
-  ToggleButtonGroup: ToggleButtonGroupSpec as ComponentSpec<
-    Record<string, unknown>
-  >,
+  // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(ToggleButtonGroup.binding.ts)로 properties 생성.
   Tooltip: TooltipSpec as ComponentSpec<Record<string, unknown>>,
   // Tree — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
   // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover, specRegistry 제거 (binding.accepts 대체)

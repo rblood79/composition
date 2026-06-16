@@ -76,11 +76,11 @@ import { InputSpec } from "../components/Input.spec";
 // ADR-912 R7 G1-a: AvatarGroupSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 import { InlineAlertSpec } from "../components/InlineAlert.spec";
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
-import { ToggleButtonGroupSpec } from "../components/ToggleButtonGroup.spec";
+// ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { TooltipSpec } from "../components/Tooltip.spec";
 // ADR-912 단계5: ProgressCircleSpec 삭제 — catalog cutover(value_fill_arc escape) + generate-css virtual
 import { BodySpec } from "../components/Body.spec";
-import { IllustratedMessageSpec } from "../components/IllustratedMessage.spec";
+// ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): IllustratedMessageSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // ADR-912 R7 G1-b: CardViewSpec/TableViewSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 // ADR-912 단계5 value-fill-track: SliderTrackSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거.
 // ADR-912 catalog cutover (2026-06-16): SliderThumbSpec 삭제 — BASE_TAG_SPEC_MAP 등록 제거 (slider_thumb escape).
@@ -99,7 +99,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Dialog: DialogSpec,
   Popover: PopoverSpec,
   Body: BodySpec,
-  ToggleButtonGroup: ToggleButtonGroupSpec,
+  // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   Tooltip: TooltipSpec,
   Checkbox: CheckboxSpec,
   Radio: RadioSpec,
@@ -164,7 +164,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트,
   //   factory 자식 Button×2 box-shell). isCatalogSkiaCutover('ButtonGroup')=true → Skia 진입 게이트 통과.
   // ADR-912 단계5: ProgressCircle 제거 — catalog cutover spec-free (buildSpecNodeData:908 isCatalogSkiaCutover 게이트)
-  IllustratedMessage: IllustratedMessageSpec,
+  // IllustratedMessage — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec-free
+  //   (buildSpecNodeData isCatalogSkiaCutover 게이트 + skiaPrimitive illustrated_message escape).
   // ADR-912 R7 G1-b: CardView/TableView 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
 };
 
