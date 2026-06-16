@@ -2340,8 +2340,8 @@ const statusLight: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *
  * **ADR-912 진로 1번 Avatar proof slice (2026-06-06)**: catalog 등록 시 buildCatalogShapes 는
  *   roundRect+border+text 만 그린다 — circle 은 roundRect(full)로 근사 가능하나 **image fill 미지원**
- *   → spec.render.shapes(Avatar.spec.ts:142-214)의 circle bg + image|initials 로직을 escape 로 이전
- *   (spec 의존 0 — seam 제거). circle 이 전체 shape 라 base box 무의미 → **replace** 모드(append 아님).
+ *   → 구 spec.render.shapes(Avatar.spec.ts, 2026-06-16 삭제)의 circle bg + image|initials 로직을
+ *   escape 로 이전(spec 의존 0 — seam 제거). circle 이 전체 shape 라 base box 무의미 → **replace** 모드.
  *
  *   circle bg 색 = style.backgroundColor → visual.fill.default.base(rule "default" variant), text 색 =
  *   style.color → visual.text. 지름 = size.height(rule sizes). image shape 는 specShapeConverter.ts:1006

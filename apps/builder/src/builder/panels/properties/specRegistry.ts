@@ -1,6 +1,7 @@
 import type { ComponentSpec } from "@composition/specs";
 import {
-  AvatarSpec,
+  // ADR-912 단계5 step4 Phase 1 batch 1 (2026-06-16): AvatarSpec import 제거 — catalog cutover,
+  //   binding.accepts D2 (GenericPropertyEditor 가 properties 생성).
   // ADR-912 R7 G1-a (2026-06-15): AvatarGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 box+text leaf 군 (2026-06-11): Badge/Button/ToggleButton/Separator/StatusLight/Icon
   //   Spec import 제거 — catalog binding.accepts 가 D2 properties 대체(Link 선례, spec.properties dead).
@@ -73,7 +74,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   string,
   ComponentSpec<Record<string, unknown>>
 > = {
-  Avatar: AvatarSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 단계5 step4 Phase 1 batch 1 (2026-06-16): Avatar catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Avatar.binding.ts)로 properties 생성.
   // ADR-912 R7 G1-a (2026-06-15): AvatarGroup catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(AvatarGroup.binding.ts)로 properties 생성.
   Breadcrumbs: BreadcrumbsSpec as ComponentSpec<Record<string, unknown>>,

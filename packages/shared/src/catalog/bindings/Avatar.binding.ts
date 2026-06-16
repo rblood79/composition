@@ -4,8 +4,8 @@ import type { PrimitiveBinding } from "../types";
  * Avatar — 사용자 아바타 leaf (circle bg + image | initials placeholder).
  *
  * **ADR-912 진로 1번 Avatar proof slice (internal leaf catalog 발효, 2026-06-06)**:
- *   Avatar 는 catalog 미등록 상태에서 spec.render.shapes(Avatar.spec.ts:142-214)가 Skia 시각
- *   source 였고, DOM 은 rendererMap.renderAvatar(LayoutRenderers.tsx:1269) inline 함수가 담당.
+ *   Avatar 는 catalog 미등록 상태에서 구 spec.render.shapes(Avatar.spec.ts, 2026-06-16 삭제)가 Skia
+ *   시각 source 였고, DOM 은 rendererMap.renderAvatar(LayoutRenderers.tsx:1269) inline 함수가 담당.
  *   factory `children: []`(leaf, 자식 Element 아님) + src/alt/initials 는 props.
  *
  *   **Skia escape 필요 (recon "불필요" 정정)**: `skiaPrimitive: "avatar"` escape(skiaPrimitives.ts,
@@ -14,7 +14,7 @@ import type { PrimitiveBinding } from "../types";
  *   "원/선/아이콘 등 box+text 로 표현 안 되는 도형은 skiaPrimitive 가 담당, 본 함수 인라인 분기 금지").
  *   Avatar 의 핵심 시각 = circle bg + image(props.src) → escape 필수(StatusLight/IllustratedMessage
  *   동형). circle 이 전체 shape 라 base box 무의미 → **replace**(append 아님). image shape 는
- *   specShapeConverter.ts:1006 가 렌더 지원(Avatar.spec 이 이미 쓰던 경로).
+ *   specShapeConverter.ts:1006 가 렌더 지원(구 Avatar.spec 이 쓰던 경로).
  *
  *   **DOM**: source.renderer="avatar" → INTERNAL_RENDERERS["avatar"](Avatar.tsx React 컴포넌트).
  *   src/initials/size 가 props 라 generic box+text fallback 으로는 안 그려진다(자식 0, image)

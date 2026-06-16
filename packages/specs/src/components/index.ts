@@ -309,9 +309,8 @@ export type { FileTriggerProps } from "./FileTrigger.spec";
 
 // Icon (ADR-019)
 
-// Avatar
-export { AvatarSpec } from "./Avatar.spec";
-export type { AvatarProps } from "./Avatar.spec";
+// Avatar — ADR-912 단계5 step4 Phase 1 batch 1 (2026-06-16): spec 삭제 (catalog cutover,
+//   COMPONENT_RULES_TABLE.Avatar + virtual archetype:simple + avatar primitive replace)
 
 // AvatarGroup — ADR-912 R7 G1-a: spec 삭제 (catalog cutover, binding.accepts D2)
 

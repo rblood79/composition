@@ -81,7 +81,8 @@ import { InputSpec } from "../components/Input.spec";
 // ADR-912 R1 (2026-06-12): SelectTriggerSpec/SelectValueSpec/SelectIconSpec 삭제 —
 //   catalog cutover (rule table + buildCatalogShapes generic + icon_font escape). 구 synthetic
 //   alias 7종(ComboBox*/Search*)도 factory retype 으로 본 3 type 에 합류, BUILDER_ALIAS_MAP 해체.
-import { AvatarSpec } from "../components/Avatar.spec";
+// ADR-912 단계5 step4 Phase 1 batch 1 (2026-06-16): AvatarSpec import 제거 — catalog cutover
+//   (BASE_TAG_SPEC_MAP 등록 제거, isCatalogCutover 게이트로 spec-free 통과)
 // ADR-912 R7 G1-a: AvatarGroupSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
 import { InlineAlertSpec } from "../components/InlineAlert.spec";
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
@@ -177,7 +178,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   ColorField: ColorFieldSpec,
   ColorSwatchPicker: ColorSwatchPickerSpec,
   Input: InputSpec,
-  Avatar: AvatarSpec,
+  // ADR-912 단계5 step4 Phase 1 batch 1: Avatar 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   // ADR-912 R7 G1-a: AvatarGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트)
   InlineAlert: InlineAlertSpec,
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 제거 — catalog cutover spec-free (isCatalogCutover 게이트,

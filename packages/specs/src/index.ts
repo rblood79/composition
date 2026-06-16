@@ -523,8 +523,9 @@ export type { InputProps } from "./components/Input.spec";
 //   catalog cutover (rule table + buildCatalogShapes generic + icon_font escape).
 
 // ─── Phase 6: ADR-030 New Components ────────────────────────────────────────
-export { AvatarSpec } from "./components/Avatar.spec";
-export type { AvatarProps } from "./components/Avatar.spec";
+// ADR-912 단계5 step4 Phase 1 batch 1 (2026-06-16): AvatarSpec 삭제 — catalog cutover.
+//   시각 SSOT = COMPONENT_RULES_TABLE.Avatar (variant fill + sizes) + generate-css virtual
+//   (archetype:simple). Skia = skiaPrimitives.ts avatar primitive(replace). D2 = binding.accepts.
 
 // ADR-912 R7 G1-a (2026-06-15): AvatarGroupSpec 삭제 — catalog cutover. 시각 SSOT =
 //   COMPONENT_RULES_TABLE.AvatarGroup, D2 properties = binding.accepts(AvatarGroup.binding.ts).

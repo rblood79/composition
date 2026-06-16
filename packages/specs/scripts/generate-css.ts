@@ -181,6 +181,21 @@ type StructureMeta = {
 // 원본 entry 배열 (name 필드 포함) — 아래 STRUCTURE_META Map 으로 파생.
 //   ADR-912 Phase 0 (2026-06-16): name 을 Map key 로 옮기되, entry 본문은 보존(diff 0 안전).
 const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
+  // ADR-912 단계5 step4 Phase 1 batch 1 (2026-06-16) — simple leaf side-blocker 0 (Avatar).
+  //   catalog cutover 완료(FAMILY_1) + Skia escape 가 spec 파일 밖(skiaPrimitives.ts avatar primitive,
+  //   replace 모드) + layout/text consumer 직접 import 0 → spec 삭제 side blocker 0. render.shapes
+  //   (circle bg + image|initials)는 avatar primitive 가 대체하므로 삭제 무관. CSS 는 rule
+  //   (COMPONENT_RULES_TABLE.Avatar) variant fill + sizes(fontSize/borderRadius/height)에서 재생성 → diff 0.
+  //   archetype simple, states=disabled(opacity) 만 (Badge 동형). composition 불요.
+  //   (DropZone 은 _hasChildren 컨테이너 → layout(padding/gap) SSOT 가 factory props.style 로 가야 함
+  //    [ADR-907 Layer B] → batch 2 로 분리. rule.sizes 에 paddingY/gap 부재는 Skia render 미사용과 정합.)
+  {
+    name: "Avatar",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: { disabled: { opacity: 0.38 } },
+  },
   {
     name: "Text",
     archetype: "text",

@@ -2,8 +2,8 @@
  * Avatar Component — 사용자 아바타 circle bg + image | initials placeholder.
  *
  * **ADR-912 진로 1번 Avatar proof slice (internal leaf catalog 발효, 2026-06-06)**:
- *   Avatar 는 catalog 미등록 상태에서 spec.render.shapes(Avatar.spec.ts:142-214)가 Skia 시각 source
- *   였고, DOM 은 rendererMap.renderAvatar(LayoutRenderers.tsx:1269) inline 함수가 담당했다. factory
+ *   Avatar 는 catalog 미등록 상태에서 구 spec.render.shapes(Avatar.spec.ts, 2026-06-16 삭제)가 Skia
+ *   시각 source 였고, DOM 은 rendererMap.renderAvatar(LayoutRenderers.tsx:1269) inline 함수가 담당했다. factory
  *   `children: []`(leaf, 자식 Element 아님) + src/alt/initials 는 props → catalog cutover DOM 경로가
  *   INTERNAL_RENDERERS["avatar"] 를 React 컴포넌트로 렌더(StatusLight 선례 동형).
  *
@@ -48,7 +48,7 @@ export interface AvatarProps {
   [dataAttr: `data-${string}`]: string | undefined;
 }
 
-// size → 지름 px (Avatar.spec.ts sizes height 와 정합).
+// size → 지름 px (rule COMPONENT_RULES_TABLE.Avatar sizes height 와 정합).
 const DIAMETER: Record<string, number> = {
   xs: 24,
   sm: 28,
@@ -56,7 +56,7 @@ const DIAMETER: Record<string, number> = {
   lg: 40,
   xl: 48,
 };
-// size → 이니셜 fontSize px (Avatar.spec.ts sizes fontSize = typography text-2xs..text-lg).
+// size → 이니셜 fontSize px (rule Avatar sizes fontSize = typography text-2xs..text-lg).
 const FONT_SIZE: Record<string, number> = {
   xs: 10,
   sm: 12,
