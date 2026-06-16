@@ -572,6 +572,70 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       focusVisible: { focusRing: "{focus.ring.default}" },
     },
   },
+  // ADR-912 단계5 step4 (2026-06-16) — Breadcrumbs (부모 컨테이너, Breadcrumbs.spec.ts 삭제 대상).
+  //   archetype "simple": inline-flex/center base emit + containerStyles 4키(flex/row/nowrap/center)
+  //   override. variant default(base bg {color.base} + text/textHover)는 rule.variants 파생 →
+  //   [data-variant="default"] 블록 emit. sizes(height/paddingX:0/paddingY:0/fontSize/borderRadius)는
+  //   rule.sizes(S/M/L) emit. states 비표준: 마지막 항목(현재 페이지) 흐리지 않게 disabled
+  //   opacity:1/cursor:default/pointerEvents:auto (spec.states 미러). layout height consumer 는
+  //   resolveSkiaRule("Breadcrumbs")/specSizeField 로 이관 완료(utils.ts/implicitStyles.ts).
+  {
+    name: "Breadcrumbs",
+    archetype: "simple",
+    element: "nav",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "row",
+      flexWrap: "nowrap",
+      alignItems: "center",
+    },
+    states: {
+      hover: {},
+      disabled: { opacity: 1, pointerEvents: "auto", cursor: "default" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  // ADR-912 단계5 step4 (2026-06-16) — Tabs (부모 컨테이너, Tabs.spec.ts 삭제 대상).
+  //   archetype "default" 가 아니라 composition.layout="flex-column" base — COMPOSITION_LAYOUT_STYLES
+  //   ["flex-column"]가 base override (CSSGenerator composition 우선). variant default(transparent fill +
+  //   text/textHover, border 없음)는 rule.variants 파생. sizes(height/paddingX/paddingY/fontSize/
+  //   borderRadius/gap)는 rule.sizes(sm/md/lg) emit. composition.delegation(.react-aria-Tab --tab-padding/
+  //   --tab-font-size size 별 변수)도 carry. states = hover{} + disabled(opacity+pointerEvents) +
+  //   focusVisible(focus.ring.inset). layout height consumer 는 resolveSkiaRule("Tabs")/specSizeField
+  //   (rule fallback) 로 이관 완료(utils.ts/implicitStyles.ts).
+  {
+    name: "Tabs",
+    archetype: "default",
+    element: "div",
+    containerStyles: { display: "flex", flexDirection: "column" },
+    composition: {
+      layout: "flex-column",
+      delegation: [
+        {
+          childSelector: ".react-aria-Tab",
+          variables: {
+            sm: {
+              "--tab-padding": "var(--spacing-2xs) var(--spacing-sm)",
+              "--tab-font-size": "var(--text-xs)",
+            },
+            md: {
+              "--tab-padding": "var(--spacing-xs) var(--spacing-md)",
+              "--tab-font-size": "var(--text-sm)",
+            },
+            lg: {
+              "--tab-padding": "var(--spacing-sm) var(--spacing-lg)",
+              "--tab-font-size": "var(--text-base)",
+            },
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.inset}" },
+    },
+  },
   // ADR-912 simple catalog 발효 — MenuItem (MenuItem.spec.ts 삭제 대상).
   //   archetype "simple": ARCHETYPE_BASE_STYLES["simple"](display:inline-flex/center/box-sizing)
   //   자동 emit. Skia shapes=[] — CSS 전용. paddingX/paddingY/gap 은 rule sizes 에서 emit.

@@ -14,7 +14,8 @@ import type { CanvasLayoutNode } from "../layoutNode";
 import { parsePadding, PHANTOM_INDICATOR_CONFIGS } from "./utils";
 import {
   InlineAlertSpec,
-  BreadcrumbsSpec,
+  // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — breadcrumbs height 분기를
+  //   specSizeField("breadcrumbs", ...) read-through 로 이관(spec 삭제 선행, rule fallback).
   resolveGridListItemMetric,
   normalizeBreadcrumbRspSizeKey,
   resolveToken,
@@ -889,7 +890,16 @@ export function applyImplicitStyles(
     const rspSize = normalizeBreadcrumbRspSizeKey(
       String(containerProps?.size ?? "M"),
     );
-    const breadcrumbsHeight = BreadcrumbsSpec.sizes[rspSize]?.height ?? 24;
+    // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec.sizes 직접 참조 → specSizeField
+    //   ("breadcrumbs", ...) — spec 존재 시 spec, 삭제 후 rule table fallback(값 동일).
+    //   rule/spec sizes 키 모두 S/M/L 이라 rspSize 정규화 그대로 정합.
+    const breadcrumbsHeightField = specSizeField(
+      "breadcrumbs",
+      rspSize,
+      "height",
+    );
+    const breadcrumbsHeight =
+      typeof breadcrumbsHeightField === "number" ? breadcrumbsHeightField : 24;
 
     filteredChildren = children;
 

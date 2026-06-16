@@ -15,11 +15,12 @@ import type { Margin, BoxModel, VerticalAlign } from "./types";
 import type { CanvasLayoutNode } from "../layoutNode";
 import {
   fontFamily as specFontFamily,
-  BreadcrumbsSpec,
   InputSpec,
   TagSpec,
   // ADR-912 projection 3 cutover (2026-06-15): TabSpec import 제거 — TAB_SIZE_CONFIG 가
-  //   ruleSizesToSizeSpecMap("Tab") 파생으로 이관(아래). BreadcrumbsSpec(부모 컨테이너)은 유지.
+  //   ruleSizesToSizeSpecMap("Tab") 파생으로 이관(아래).
+  // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — breadcrumbs/breadcrumb height
+  //   분기를 resolveSkiaRule("Breadcrumbs") read-through 로 이관(spec 삭제 선행).
   resolveToken,
   breadcrumbSeparatorAfterPaddingXPx,
   normalizeBreadcrumbRspSizeKey,
@@ -35,10 +36,11 @@ import {
 } from "@composition/specs";
 import type { SizeSpec } from "@composition/specs";
 import {
-  TabsSpec,
-  // ADR-912 collection catalog 발효 — TabPanelsSpec import 제거 (2026-06-11).
+  // ADR-912 collection catalog 도입 — TabPanelsSpec import 제거 (2026-06-11).
   //   tabPanelPadding 계산을 resolveSkiaRule("TabPanels") 경유로 이관.
   //   rule sizes sm/md/lg paddingX 값(8/12/16) = spec 값과 동일 → 계산 결과 보존.
+  // ADR-912 단계5 step4 (2026-06-16): TabsSpec import 제거 — tabs height 분기를
+  //   resolveSkiaRule("Tabs") read-through 로 이관(spec 삭제 선행).
   // ADR-912 box+text leaf 군 (2026-06-11): IconSpec import 제거 — iconSize 를 catalog rule(resolveSkiaRule)
   //   기반으로 전환(spec 끊기). Button/Badge/ToggleButton/StatusLight 도 동형(SIZE_CONFIG rule 파생).
   // ADR-912 (B+icon): CalendarHeaderSpec import 제거 — height 분기 rule 인라인 미러로 전환(spec 끊기).
@@ -2753,20 +2755,30 @@ export function calculateContentHeight(
     return hasTitle ? heights.withTitle : heights.noTitle;
   }
 
-  // 4.2. Breadcrumbs: display:flex, align-items:center — 높이 = spec size.height
+  // 4.2. Breadcrumbs: display:flex, align-items:center — 높이 = rule size.height
   // RSP API: S=16px, M=24px, L=24px (default M)
+  // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec.sizes 직접 참조 → resolveSkiaRule("Breadcrumbs")
+  //   read-through (spec 삭제 선행 — TabPanels 선례 동형). rule 키도 S/M/L 이라 정규화 그대로 정합.
   if (type === "breadcrumbs") {
     const props = element.props as Record<string, unknown> | undefined;
     const rspSize = normalizeBreadcrumbRspSizeKey(String(props?.size ?? "M"));
-    return BreadcrumbsSpec.sizes[rspSize]?.height ?? 24;
+    return (
+      (resolveSkiaRule("Breadcrumbs")?.sizes[rspSize]?.height as
+        | number
+        | undefined) ?? 24
+    );
   }
 
   // 4.2b. Breadcrumb (child) — ADR-086 P5: implicitStyles style 주입 제거 후
-  //   child height 를 부모 Breadcrumbs spec.sizes.height 로 산출 (동일 값).
+  //   child height 를 부모 Breadcrumbs rule.sizes.height 로 산출 (동일 값).
   if (type === "breadcrumb") {
     const props = element.props as Record<string, unknown> | undefined;
     const rspSize = normalizeBreadcrumbRspSizeKey(String(props?.size ?? "M"));
-    return BreadcrumbsSpec.sizes[rspSize]?.height ?? 24;
+    return (
+      (resolveSkiaRule("Breadcrumbs")?.sizes[rspSize]?.height as
+        | number
+        | undefined) ?? 24
+    );
   }
 
   // 4.5. 컨테이너 컴포넌트: childElements 기반 높이 계산 (lineHeight보다 먼저 처리)
@@ -2865,8 +2877,13 @@ export function calculateContentHeight(
     if (type === "tabs") {
       const props = element.props as Record<string, unknown> | undefined;
       const sizeName = (props?.size as string) ?? "md";
+      // ADR-912 단계5 step4 (2026-06-16): TabsSpec.sizes 직접 참조 → resolveSkiaRule("Tabs")
+      //   read-through (spec 삭제 선행 — TabPanels 선례 동형). rule 키도 sm/md/lg 동일.
+      const tabsRule = resolveSkiaRule("Tabs");
       const tabBarHeight =
-        TabsSpec.sizes[sizeName]?.height ?? TabsSpec.sizes.md.height;
+        (tabsRule?.sizes[sizeName]?.height as number | undefined) ??
+        (tabsRule?.sizes.md?.height as number | undefined) ??
+        29;
       // ADR-912: TabPanelsSpec 직접 참조 → resolveSkiaRule 경유 (spec 끊기).
       //   rule paddingX 값 = spec paddingX 값(sm=8/md=12/lg=16) 동일 보장.
       const tabPanelsRule = resolveSkiaRule("TabPanels");
