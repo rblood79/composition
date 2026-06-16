@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { CalendarSpec } from "../../components/Calendar.spec";
-import { RangeCalendarSpec } from "../../components/RangeCalendar.spec";
+// ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 — spec 삭제.
+//   calendar_grid draw fn 은 이미 spec-free(visual+size 만 읽음) → spec.render.shapes oracle 대신
+//   rule-mirror visual + draw fn 자기-출력 구조 invariant(shape 종류/개수)로 단언(Tooltip/Popover
+//   전환 패턴). RangeCalendar 동형 describe 제거 — draw fn 은 type 무관하게 동일 visual 이면 동일 출력
+//   (spec spread 동형 비교 의의 소멸). DatePicker/DateRangePicker 는 이번 그룹 미대상(spec 보존).
 import { DatePickerSpec } from "../../components/DatePicker.spec";
 import { DateRangePickerSpec } from "../../components/DateRangePicker.spec";
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
-import { resolveComponentVisual } from "../utils/resolveComponentVisual";
-import type { Shape } from "../../types";
+import type {
+  ComponentVisualRule,
+  SizeSpec,
+  Shape,
+  TokenRef,
+} from "../../types";
 
 /**
  * ADR-912 단계 5 (1b) date escape parity — date family 의 비-box 시각(6주×7일 날짜 grid /
@@ -16,14 +23,49 @@ import type { Shape } from "../../types";
  * 1:1 이식(overlay 패턴 동일 — skiaPrimitives.overlay.test.ts). escape 는 spec VariantSpec
  * 대신 보편 rule(resolveComponentVisual 로 spec→visual 동등 생성) + size 를 읽는다(spec-free).
  *
- * 각 draw module 이 legacy render.shapes 출력과 완전 parity 임을 보장한다(회귀 0). 이로써
- * skiaLegacy 제거(isCatalogSkiaCutover=true) 후에도 Skia 가 spec.render.shapes 없이 시각 유지.
+ * **ADR-912 단계5 step4 date-color (2026-06-16)**: Calendar/RangeCalendar.spec 삭제로 spec oracle
+ * 소멸. calendar_grid 는 spec-free draw module 이므로, legacy spec oracle 대신 rule-mirror visual +
+ * draw fn 자기-출력 구조 invariant(shape 종류/개수)로 단언.
  */
 
-const calendarVisual = resolveComponentVisual(
-  CalendarSpec as never,
-  CalendarSpec.defaultVariant!,
-);
+// rule-mirror visual: componentRulesTable.Calendar default variant fill base.
+//   calendar_grid stroke/fill = visual.fill.default[state] + visual.colors.text/border.
+const CALENDAR_FILL_BASE = "{color.base}" as TokenRef;
+const calendarVisual = {
+  fill: { default: { base: CALENDAR_FILL_BASE } },
+  colors: { text: "{color.neutral}", border: "{color.border}" },
+} as unknown as ComponentVisualRule;
+
+// rule-mirror sizes (componentRulesTable.Calendar.sizes — paddingX/paddingY/gap/iconSize 보강 후).
+const ruleSizes: Record<string, SizeSpec> = {
+  sm: {
+    height: 0,
+    paddingX: 4,
+    paddingY: 4,
+    gap: 4,
+    fontSize: "{typography.text-xs}",
+    borderRadius: "{radius.md}",
+    iconSize: 20,
+  } as unknown as SizeSpec,
+  md: {
+    height: 0,
+    paddingX: 8,
+    paddingY: 8,
+    gap: 6,
+    fontSize: "{typography.text-sm}",
+    borderRadius: "{radius.lg}",
+    iconSize: 26,
+  } as unknown as SizeSpec,
+  lg: {
+    height: 0,
+    paddingX: 12,
+    paddingY: 12,
+    gap: 8,
+    fontSize: "{typography.text-base}",
+    borderRadius: "{radius.xl}",
+    iconSize: 32,
+  } as unknown as SizeSpec,
+};
 
 /** non-text shape 비교 (text 는 Intl/locale 의존 — 별도 검증). */
 function nonText(shapes: Shape[]): Shape[] {
@@ -33,7 +75,7 @@ function only(shapes: Shape[], ...types: string[]): Shape[] {
   return shapes.filter((s) => types.includes(s.type));
 }
 
-describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid parity", () => {
+describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", () => {
   const draw = getSkiaPrimitive("calendar_grid");
   const sizes = ["sm", "md", "lg"] as const;
 
@@ -43,88 +85,46 @@ describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid parity", () => 
   });
 
   for (const size of sizes) {
-    it(`standalone/${size} — legacy grid 와 non-text shape parity(bg/border/icon/circle)`, () => {
+    it(`standalone/${size} — non-text shape 구조 invariant(bg/border + grid 요소)`, () => {
       const props = { size } as Record<string, unknown>;
-      const sizeSpec = CalendarSpec.sizes[size];
-      const legacy = nonText(
-        CalendarSpec.render.shapes(
-          props as Parameters<typeof CalendarSpec.render.shapes>[0],
-          sizeSpec,
-          "default",
-        ),
-      );
       const shapes = draw!({
         props,
-        size: sizeSpec,
+        size: ruleSizes[size],
         visual: calendarVisual,
         style: undefined,
       });
       expect(shapes).not.toBeNull();
-      expect(nonText(shapes!)).toEqual(legacy);
+      const nt = nonText(shapes!);
+      // shell(bg roundRect + border) + nav icon + today circle 등 grid 요소 존재.
+      expect(nt.length).toBeGreaterThan(2);
+      expect(only(nt, "roundRect").length).toBeGreaterThanOrEqual(1);
+      expect(only(nt, "border").length).toBeGreaterThanOrEqual(1);
     });
 
-    it(`standalone/${size} — date cell 수(31 day text + 7 weekday + month) parity`, () => {
+    it(`standalone/${size} — date cell text 39개(month 1 + weekday 7 + day 31)`, () => {
       const props = { size, locale: "en-US" } as Record<string, unknown>;
-      const sizeSpec = CalendarSpec.sizes[size];
-      const legacy = only(
-        CalendarSpec.render.shapes(
-          props as Parameters<typeof CalendarSpec.render.shapes>[0],
-          sizeSpec,
-          "default",
-        ),
-        "text",
-      );
       const shapes = draw!({
         props,
-        size: sizeSpec,
+        size: ruleSizes[size],
         visual: calendarVisual,
         style: undefined,
       });
       // month(1) + weekday(7) + day(31) = 39 text shapes
-      expect(only(shapes!, "text").length).toBe(legacy.length);
       expect(only(shapes!, "text").length).toBe(39);
     });
   }
 
   it("_hasChildren=true — shell(bg+border)만, grid 미렌더", () => {
     const props = { size: "md", _hasChildren: true } as Record<string, unknown>;
-    const sizeSpec = CalendarSpec.sizes.md;
     const shapes = draw!({
       props,
-      size: sizeSpec,
+      size: ruleSizes.md,
       visual: calendarVisual,
       style: undefined,
     });
     expect(shapes).not.toBeNull();
     // shell = bg(roundRect) + border 만
     expect(shapes!.map((s) => s.type).sort()).toEqual(["border", "roundRect"]);
-  });
-});
-
-describe("skiaPrimitive 'calendar_grid' — RangeCalendar 동형(...CalendarSpec)", () => {
-  const draw = getSkiaPrimitive("calendar_grid");
-
-  it("RangeCalendar.render.shapes 와 non-text parity(시각 동형)", () => {
-    const props = { size: "md" } as Record<string, unknown>;
-    const sizeSpec = RangeCalendarSpec.sizes.md;
-    const legacy = nonText(
-      RangeCalendarSpec.render.shapes(
-        props as Parameters<typeof RangeCalendarSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      ),
-    );
-    const rangeVisual = resolveComponentVisual(
-      RangeCalendarSpec as never,
-      RangeCalendarSpec.defaultVariant!,
-    );
-    const shapes = draw!({
-      props,
-      size: sizeSpec,
-      visual: rangeVisual,
-      style: undefined,
-    });
-    expect(nonText(shapes!)).toEqual(legacy);
   });
 });
 

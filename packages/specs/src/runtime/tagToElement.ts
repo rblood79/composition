@@ -53,10 +53,9 @@ import { DatePickerSpec } from "../components/DatePicker.spec";
 import { DateRangePickerSpec } from "../components/DateRangePicker.spec";
 import { DateFieldSpec } from "../components/DateField.spec";
 import { DateInputSpec } from "../components/DateInput.spec";
-import { CalendarSpec } from "../components/Calendar.spec";
-// ADR-912 단계5 step4 small 그룹 (2026-06-16): CalendarHeader/CalendarGrid.spec import 제거 —
-//   catalog cutover, BASE entry 제거. skipCSSGeneration:true, replace primitive(spec-free) 대체.
-import { RangeCalendarSpec } from "../components/RangeCalendar.spec";
+// ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
+//   catalog cutover spec 삭제, BASE_TAG_SPEC_MAP entry 제거. STRUCTURE_META virtual override + skia
+//   calendar_grid escape. CalendarHeader/CalendarGrid 는 별도(small 그룹, replace primitive 대체).
 import { ColorPickerSpec } from "../components/ColorPicker.spec";
 import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 import { InputSpec } from "../components/Input.spec";
@@ -148,10 +147,10 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   DateRangePicker: DateRangePickerSpec,
   DateField: DateFieldSpec,
   DateInput: DateInputSpec,
-  Calendar: CalendarSpec,
+  // Calendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover spec 삭제로 제거.
   // CalendarHeader/CalendarGrid — ADR-912 단계5 step4 small 그룹 (2026-06-16): catalog cutover,
   //   BASE entry 제거. isCatalogCutover=true → Skia 진입 게이트 spec 없이 통과(replace primitive 대체).
-  RangeCalendar: RangeCalendarSpec,
+  // RangeCalendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover spec 삭제로 제거.
   ColorPicker: ColorPickerSpec,
   ColorSwatchPicker: ColorSwatchPickerSpec,
   Input: InputSpec,

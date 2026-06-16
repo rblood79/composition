@@ -793,8 +793,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 date-color (2026-06-16): paddingY/gap 보강 —
+      //   Calendar.spec.ts 삭제 대비 generated Calendar.css(padding NNpx NNpx / gap NNpx) diff-0 유지.
+      //   값은 (구) CalendarSpec.sizes 와 동일 (paddingX==paddingY, gap sm:4/md:6/lg:8).
       sm: {
         paddingX: 4,
+        paddingY: 4,
+        gap: 4,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 0,
@@ -802,6 +807,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       md: {
         paddingX: 8,
+        paddingY: 8,
+        gap: 6,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -809,6 +816,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       lg: {
         paddingX: 12,
+        paddingY: 12,
+        gap: 8,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -4474,19 +4483,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 date-color (2026-06-16): paddingX/paddingY/gap 보강 —
+      //   RangeCalendar.spec(=...CalendarSpec spread) 삭제 대비 generated RangeCalendar.css
+      //   (padding NNpx NNpx / gap NNpx) diff-0 유지. 값은 (구) CalendarSpec.sizes 와 동일
+      //   (RangeCalendar 는 시각 = Calendar — selector 이름만 차이).
       sm: {
+        paddingX: 4,
+        paddingY: 4,
+        gap: 4,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 0,
         iconSize: 20,
       },
       md: {
+        paddingX: 8,
+        paddingY: 8,
+        gap: 6,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
         iconSize: 26,
       },
       lg: {
+        paddingX: 12,
+        paddingY: 12,
+        gap: 8,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,

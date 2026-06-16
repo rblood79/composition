@@ -932,6 +932,55 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
     containerStyles: undefined,
     states: {},
   },
+  // ADR-912 단계5 step4 date-color (2026-06-16) — Calendar (calendar archetype, Calendar.spec.ts 삭제 대상).
+  //   archetype "calendar": CSSGenerator 가 `display:grid`+`box-sizing:border-box` base emit.
+  //   containerStyles(display:flex / flexDirection:column / width:fit-content)로 override → flex column.
+  //   variant 2종(default/accent)은 componentRulesTable.Calendar.variants(fill base/hover/pressed +
+  //   text/border)에서 [data-variant] 블록 + &[data-hovered]/&[data-pressed] nested rule 파생.
+  //   sizes sm~lg(paddingX/paddingY/gap 2026-06-16 rule 보강 + fontSize/borderRadius/height:0/iconSize
+  //   → --icon-size)는 rule emit(padding NNpx NNpx / gap / --icon-size). Skia 는 spec render.shapes(월
+  //   grid) 대신 skiaPrimitive calendar_grid escape — isCatalogSkiaCutover. composition 불요(자식
+  //   CalendarHeader/CalendarGrid 가 별도 spec, staticSelectors 없음). states 는 spec.states 미러
+  //   (hover:{}/pressed:{} 빈 + disabled opacity+pointerEvents + focusVisible focusRing). propagation
+  //   (variant/size/locale/calendarSystem/defaultToday → CalendarHeader/CalendarGrid)는
+  //   propagationRegistry.ts createPropagationOnlySpec 인라인 이관. utils.ts/skiaPrimitives 코드 import 0.
+  {
+    name: "Calendar",
+    archetype: "calendar",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      width: "fit-content",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  // ADR-912 단계5 step4 date-color (2026-06-16) — RangeCalendar (Calendar 와 시각 동형, ...CalendarSpec
+  //   spread → selector 이름만 차이). RangeCalendar.spec.ts 삭제 대상. archetype/element/containerStyles/
+  //   states 전부 Calendar 동형. componentRulesTable.RangeCalendar.sizes 에 paddingX/paddingY/gap 2026-06-16
+  //   보강(Calendar 와 동일 값). propagation(variant/size/locale/calendarSystem → CalendarHeader/
+  //   CalendarGrid)은 propagationRegistry.ts createPropagationOnlySpec 인라인 이관.
+  {
+    name: "RangeCalendar",
+    archetype: "calendar",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      flexDirection: "column",
+      width: "fit-content",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
   // ADR-912 단계5 step4 small-B (2026-06-16) — Section (default archetype, Section.spec.ts 삭제 대상).
   //   archetype "default": DEFAULT_BASE_STYLES(inline-flex/align/justify/box-sizing/cursor/user-select/
   //   transition/font-family) emit. variant 6종(default alpha:0/accent/neutral/purple/surface/outlined)

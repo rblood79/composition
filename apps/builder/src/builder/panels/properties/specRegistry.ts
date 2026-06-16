@@ -8,7 +8,7 @@ import {
   BreadcrumbsSpec,
   // ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, binding.accepts D2.
-  CalendarSpec,
+  // ADR-912 단계5 step4 date-color (2026-06-16): CalendarSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 R7 G1-b (2026-06-15): CardViewSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): CheckboxSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11): ColorArea/ColorWheel/
@@ -50,7 +50,7 @@ import {
   // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): TreeSpec import 제거 — catalog cutover, binding.accepts D2.
   // TreeItemSpec — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제.
   //   binding.accepts(children/size)가 D2 properties 대체(Select/DisclosureHeader 선례).
-  RangeCalendarSpec,
+  // ADR-912 단계5 step4 date-color (2026-06-16): RangeCalendarSpec import 제거 — catalog cutover, binding.accepts D2.
 } from "@composition/specs";
 
 /**
@@ -72,7 +72,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   //   GenericPropertyEditor 가 binding.accepts(Breadcrumb.binding.ts)로 properties 생성.
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(ButtonGroup.binding.ts)로 properties 생성.
-  Calendar: CalendarSpec as ComponentSpec<Record<string, unknown>>,
+  // Calendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Calendar.binding.ts)로 D2 properties 생성.
   // ADR-912 R6/R7 G1-b (2026-06-15): Card 본체 + CardView catalog cutover → CardSpec/CardViewSpec
   //   import + entry 제거. GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성
   //   (Select/Disclosure 선례, spec.properties dead).
@@ -139,7 +140,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   //   GenericPropertyEditor 가 binding.accepts(Tooltip.binding.ts)로 properties 생성.
   // Tree — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
   // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover, specRegistry 제거 (binding.accepts 대체)
-  RangeCalendar: RangeCalendarSpec as ComponentSpec<Record<string, unknown>>,
+  // RangeCalendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
 };
 
 export function getPropertyEditorSpec(

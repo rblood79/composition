@@ -429,16 +429,17 @@ export type { DateFieldProps } from "./components/DateField.spec";
 export { DateInputSpec } from "./components/DateInput.spec";
 export type { DateInputProps } from "./components/DateInput.spec";
 
-export { CalendarSpec } from "./components/Calendar.spec";
-export type { CalendarProps } from "./components/Calendar.spec";
+// Calendar (calendar archetype) — ADR-912 단계5 step4 date-color (2026-06-16): barrel export 제거
+//   (spec 삭제 — catalog rule + STRUCTURE_META virtual override(calendar archetype). Skia 는
+//    calendar_grid skiaPrimitive escape. propagation 은 propagationRegistry 인라인). 사용자 명시 삭제 승인.
 
 // ADR-912 단계5 step4 small 그룹 (2026-06-16): CalendarHeader/CalendarGrid.spec 물리 삭제 —
 //   catalog cutover. skipCSSGeneration:true → generated CSS 없음(virtual override 불요). Skia 는
 //   inline_icon_text / calendar_grid_only replace primitive(spec-free)가 대체. layout consumer 0
 //   (utils.ts CalendarHeader height 분기는 rule 인라인 미러로 이미 전환). binding.accepts D2.
 
-export { RangeCalendarSpec } from "./components/RangeCalendar.spec";
-export type { RangeCalendarProps } from "./components/RangeCalendar.spec";
+// RangeCalendar (calendar archetype, ...CalendarSpec spread) — ADR-912 단계5 step4 date-color
+//   (2026-06-16): barrel export 제거 (spec 삭제 — Calendar 와 시각 동형 STRUCTURE_META virtual).
 
 export { ColorPickerSpec } from "./components/ColorPicker.spec";
 export type { ColorPickerProps } from "./components/ColorPicker.spec";

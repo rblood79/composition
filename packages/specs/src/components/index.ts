@@ -145,16 +145,14 @@ export type { DateInputProps } from "./DateInput.spec";
 
 // TimeField
 
-// Calendar
-export { CalendarSpec } from "./Calendar.spec";
-export type { CalendarProps } from "./Calendar.spec";
+// Calendar (calendar archetype) — ADR-912 단계5 step4 date-color (2026-06-16): export 제거
+//   (spec 삭제 — catalog rule + STRUCTURE_META virtual override). 사용자 명시 삭제 승인.
 
 // CalendarHeader/CalendarGrid — ADR-912 단계5 step4 small 그룹 (2026-06-16): spec 물리 삭제.
 //   catalog cutover, skipCSSGeneration:true, Skia replace primitive(spec-free) 대체.
 
-// RangeCalendar
-export { RangeCalendarSpec } from "./RangeCalendar.spec";
-export type { RangeCalendarProps } from "./RangeCalendar.spec";
+// RangeCalendar (...CalendarSpec spread) — ADR-912 단계5 step4 date-color (2026-06-16): export 제거
+//   (spec 삭제 — Calendar 와 시각 동형 STRUCTURE_META virtual).
 
 // ColorPicker
 export { ColorPickerSpec } from "./ColorPicker.spec";

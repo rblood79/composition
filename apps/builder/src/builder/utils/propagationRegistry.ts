@@ -21,8 +21,9 @@ import {
   SliderSpec,
   ProgressBarSpec,
   MeterSpec,
-  CalendarSpec,
-  RangeCalendarSpec,
+  // ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
+  //   catalog cutover spec 삭제. propagation.rules(variant/size/locale/calendarSystem/defaultToday →
+  //   CalendarHeader/CalendarGrid)는 createPropagationOnlySpec 인라인 이관(아래).
   GridListSpec,
   ListBoxSpec,
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
@@ -274,6 +275,38 @@ const radioPropagationSpec = createPropagationOnlySpec("Radio", [
   },
 ]);
 
+// ADR-912 단계5 step4 date-color (2026-06-16): Calendar.spec 삭제 → propagation.rules 9건
+//   (variant/size/locale/calendarSystem → CalendarHeader+CalendarGrid + defaultToday → CalendarGrid)을
+//   propagation-only 인라인 spec 으로 보존. catalog 는 propagation 표현 수단 없음(ComponentRule/
+//   PrimitiveBinding 에 parentProp 부재). 시각/CSS 는 STRUCTURE_META virtual override 가 담당.
+const calendarPropagationSpec = createPropagationOnlySpec("Calendar", [
+  { parentProp: "variant", childPath: "CalendarHeader" },
+  { parentProp: "variant", childPath: "CalendarGrid" },
+  { parentProp: "size", childPath: "CalendarHeader", override: true },
+  { parentProp: "size", childPath: "CalendarGrid", override: true },
+  { parentProp: "locale", childPath: "CalendarHeader" },
+  { parentProp: "locale", childPath: "CalendarGrid" },
+  { parentProp: "calendarSystem", childPath: "CalendarHeader" },
+  { parentProp: "calendarSystem", childPath: "CalendarGrid" },
+  { parentProp: "defaultToday", childPath: "CalendarGrid" },
+]);
+
+// ADR-912 단계5 step4 date-color (2026-06-16): RangeCalendar.spec(=...CalendarSpec spread) 삭제 →
+//   propagation.rules 8건(Calendar 와 동일하나 defaultToday 제외). 시각/CSS 는 STRUCTURE_META virtual.
+const rangeCalendarPropagationSpec = createPropagationOnlySpec(
+  "RangeCalendar",
+  [
+    { parentProp: "variant", childPath: "CalendarHeader" },
+    { parentProp: "variant", childPath: "CalendarGrid" },
+    { parentProp: "size", childPath: "CalendarHeader", override: true },
+    { parentProp: "size", childPath: "CalendarGrid", override: true },
+    { parentProp: "locale", childPath: "CalendarHeader" },
+    { parentProp: "locale", childPath: "CalendarGrid" },
+    { parentProp: "calendarSystem", childPath: "CalendarHeader" },
+    { parentProp: "calendarSystem", childPath: "CalendarGrid" },
+  ],
+);
+
 // ─── Lazy Index ─────────────────────────────────────────────────────────────
 
 /** 정방향: parentTag(소문자) → PropagationRule[] */
@@ -380,8 +413,8 @@ registerPropagationSpec("ColorField", colorFieldPropagationSpec);
 registerPropagationSpec("Slider", SliderSpec);
 registerPropagationSpec("ProgressBar", ProgressBarSpec);
 registerPropagationSpec("Meter", MeterSpec);
-registerPropagationSpec("Calendar", CalendarSpec);
-registerPropagationSpec("RangeCalendar", RangeCalendarSpec);
+registerPropagationSpec("Calendar", calendarPropagationSpec);
+registerPropagationSpec("RangeCalendar", rangeCalendarPropagationSpec);
 // ADR-912 R6 (2026-06-15): Card 본체 spec 삭제 → propagation-only 인라인 spec(cardPropagationSpec).
 registerPropagationSpec("Card", cardPropagationSpec);
 // ADR-095: CardHeader → Heading flex:1 / CardContent → Description width:100% 주입 rule.
