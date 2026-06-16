@@ -284,9 +284,8 @@ export type { SlotProps } from "./Slot.spec";
 
 // Skeleton
 
-// DropZone
-export { DropZoneSpec } from "./DropZone.spec";
-export type { DropZoneProps } from "./DropZone.spec";
+// DropZone — ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): catalog cutover, spec 삭제.
+//   시각 SSOT = COMPONENT_RULES_TABLE.DropZone + generate-css virtual override.
 
 // FileTrigger
 export { FileTriggerSpec } from "./FileTrigger.spec";

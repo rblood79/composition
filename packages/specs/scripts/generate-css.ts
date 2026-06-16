@@ -187,14 +187,45 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   //   (circle bg + image|initials)는 avatar primitive 가 대체하므로 삭제 무관. CSS 는 rule
   //   (COMPONENT_RULES_TABLE.Avatar) variant fill + sizes(fontSize/borderRadius/height)에서 재생성 → diff 0.
   //   archetype simple, states=disabled(opacity) 만 (Badge 동형). composition 불요.
-  //   (DropZone 은 _hasChildren 컨테이너 → layout(padding/gap) SSOT 가 factory props.style 로 가야 함
-  //    [ADR-907 Layer B] → batch 2 로 분리. rule.sizes 에 paddingY/gap 부재는 Skia render 미사용과 정합.)
   {
     name: "Avatar",
     archetype: "simple",
     element: "div",
     containerStyles: { display: "inline-flex", alignItems: "center" },
     states: { disabled: { opacity: 0.38 } },
+  },
+  // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16) — simple 컨테이너 (DropZone, _hasChildren).
+  //   cutover 완료(FAMILY_6_CUTOVER="catalog", binding 존재, isCatalogCutover true) → Skia 는 이미
+  //   spec-free generic box(box+dashed border, skiaPrimitive 없음). render.shapes(bg+border+label)는
+  //   삭제 무관. CSS 는 rule(COMPONENT_RULES_TABLE.DropZone) variant fill + sizes(paddingX/paddingY/gap
+  //   2026-06-16 보강)에서 재생성 → diff 0.
+  //   states = hover(빈) + disabled(opacity+pointerEvents) + focusVisible(focus-ring) (DropZoneSpec.states 미러).
+  //   composition.rootSelectors = &[data-drop-target] (drop-target 활성 시 bg→inset/color→accent,
+  //   DropZoneSpec.composition 미러 — Link rootSelectors 선례).
+  //   layout(padding/gap) 컨테이너 배치 SSOT 는 factory props.style(ADR-907 Layer B — layout 엔진은
+  //   rule import 0건). rule.sizes 의 paddingY/gap 은 DOM generated CSS emit 전용(Nav 동형 — 사용자
+  //   "Nav 선례 정렬" 결정 2026-06-16).
+  {
+    name: "DropZone",
+    archetype: "simple",
+    element: "div",
+    containerStyles: { display: "inline-flex", alignItems: "center" },
+    states: {
+      hover: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+    composition: {
+      rootSelectors: {
+        "&[data-drop-target]": {
+          styles: {
+            background: "var(--bg-inset)",
+            color: "var(--accent)",
+          },
+        },
+      },
+      delegation: [],
+    },
   },
   {
     name: "Text",

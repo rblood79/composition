@@ -23,7 +23,8 @@ import {
   DatePickerSpec,
   DateRangePickerSpec,
   DialogSpec,
-  DropZoneSpec,
+  // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover,
+  //   GenericPropertyEditor 가 binding.accepts(DropZone.binding.ts)로 properties 생성.
   FieldSpec,
   FileTriggerSpec,
   FormSpec,
@@ -107,7 +108,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/
   //   DisclosureContent spec 삭제. 시각 SSOT = componentRulesTable 의 4 catalog rule.
   //   Skia=buildCatalogShapes generic, DOM=rendererMap 위임. spec 의존 끊김 (Description 동형).
-  DropZone: DropZoneSpec as ComponentSpec<Record<string, unknown>>,
+  // DropZone — ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(DropZone.binding.ts)로 properties 생성.
   Field: FieldSpec as ComponentSpec<Record<string, unknown>>,
   FileTrigger: FileTriggerSpec as ComponentSpec<Record<string, unknown>>,
   Form: FormSpec as ComponentSpec<Record<string, unknown>>,

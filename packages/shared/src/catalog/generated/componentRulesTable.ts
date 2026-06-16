@@ -2251,9 +2251,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         textWeight: 400,
       },
     },
+    // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): paddingY + gap 보강 (Nav 선례 정렬).
+    //   DropZone 은 _hasChildren 컨테이너 — DOM(generated CSS)이 padding 세로축 + gap 을 emit 해야
+    //   size 변경 시 자동 추종. paddingY/gap 미보유면 virtual CSS 가 `padding: X 0` + gap 소실 →
+    //   diff 발생. spec.sizes 미러(sm 16/8, md 24/12, lg 32/16). Skia/Taffy 컨테이너 배치는 factory
+    //   props.style 이 SSOT(ADR-907 Layer B — layout 엔진 rule import 0건), rule 의 paddingY/gap 은
+    //   generated CSS emit 전용(Nav 동형).
     sizes: {
       sm: {
         paddingX: 16,
+        paddingY: 16,
+        gap: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         borderWidth: 2,
@@ -2262,6 +2270,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       md: {
         paddingX: 24,
+        paddingY: 24,
+        gap: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         borderWidth: 2,
@@ -2270,6 +2280,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       lg: {
         paddingX: 32,
+        paddingY: 32,
+        gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         borderWidth: 2,

@@ -56,7 +56,7 @@ import { ToolbarSpec } from "../components/Toolbar.spec";
 import { GroupSpec } from "../components/Group.spec";
 import { FrameSpec } from "../components/Frame.spec";
 import { SlotSpec } from "../components/Slot.spec";
-import { DropZoneSpec } from "../components/DropZone.spec";
+// ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover.
 import { FileTriggerSpec } from "../components/FileTrigger.spec";
 import { DatePickerSpec } from "../components/DatePicker.spec";
 import { DateRangePickerSpec } from "../components/DateRangePicker.spec";
@@ -163,7 +163,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // Group (PascalCase) = RAC ARIA semantic / frame (lowercase) = layout primitive.
   frame: FrameSpec,
   Slot: SlotSpec,
-  DropZone: DropZoneSpec,
+  // DropZone — ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): catalog cutover, TAG_SPEC_MAP 제거.
+  //   isCatalogCutover("DropZone")=true → buildSpecNodeData/generate-css 가 catalog rule 로 처리.
   FileTrigger: FileTriggerSpec,
   DatePicker: DatePickerSpec,
   DateRangePicker: DateRangePickerSpec,

@@ -435,9 +435,9 @@ export type { FrameProps } from "./components/Frame.spec";
 export { SlotSpec } from "./components/Slot.spec";
 export type { SlotProps } from "./components/Slot.spec";
 
-export { DropZoneSpec } from "./components/DropZone.spec";
-export type { DropZoneProps } from "./components/DropZone.spec";
-
+// ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec 삭제 — catalog cutover.
+//   시각 SSOT = COMPONENT_RULES_TABLE.DropZone (variant fill + sizes paddingX/paddingY/gap) +
+//   generate-css virtual override. D2 = DropZone.binding.accepts. Skia = generic box(spec-free).
 export { FileTriggerSpec } from "./components/FileTrigger.spec";
 export type { FileTriggerProps } from "./components/FileTrigger.spec";
 

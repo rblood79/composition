@@ -1929,6 +1929,17 @@ export function createDefaultDropZoneProps(): DropZoneElementProps {
       alignItems: "center",
       justifyContent: "center",
       borderWidth: "2px",
+      // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): _hasChildren 컨테이너 layout SSOT
+      //   = factory props.style (ADR-907 Layer B — layout 엔진은 catalog rule import 0건).
+      //   md 기본값 미러(rule.sizes.md paddingX/Y 24 / gap 12). store longhand 정책(style-ssot.md):
+      //   padding 4-way + rowGap/columnGap. DOM 은 generated CSS(rule.sizes)가 size 추종, Skia/Taffy
+      //   컨테이너 배치는 본 props.style 에서만 읽음(Nav/Pagination 선례 동형).
+      paddingTop: "24px",
+      paddingRight: "24px",
+      paddingBottom: "24px",
+      paddingLeft: "24px",
+      rowGap: "12px",
+      columnGap: "12px",
     },
   };
 }
