@@ -25,7 +25,7 @@ import {
   DialogSpec,
   // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover,
   //   GenericPropertyEditor 가 binding.accepts(DropZone.binding.ts)로 properties 생성.
-  FieldSpec,
+  // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec import 제거 — catalog cutover, binding.accepts D2.
   FileTriggerSpec,
   FormSpec,
   GridListSpec,
@@ -59,7 +59,7 @@ import {
   ToggleButtonGroupSpec,
   ToolbarSpec,
   TooltipSpec,
-  TreeSpec,
+  // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): TreeSpec import 제거 — catalog cutover, binding.accepts D2.
   // TreeItemSpec — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제.
   //   binding.accepts(children/size)가 D2 properties 대체(Select/DisclosureHeader 선례).
   RangeCalendarSpec,
@@ -110,7 +110,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   //   Skia=buildCatalogShapes generic, DOM=rendererMap 위임. spec 의존 끊김 (Description 동형).
   // DropZone — ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(DropZone.binding.ts)로 properties 생성.
-  Field: FieldSpec as ComponentSpec<Record<string, unknown>>,
+  // Field — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
   FileTrigger: FileTriggerSpec as ComponentSpec<Record<string, unknown>>,
   Form: FormSpec as ComponentSpec<Record<string, unknown>>,
   GridList: GridListSpec as ComponentSpec<Record<string, unknown>>,
@@ -156,7 +156,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   >,
   Toolbar: ToolbarSpec as ComponentSpec<Record<string, unknown>>,
   Tooltip: TooltipSpec as ComponentSpec<Record<string, unknown>>,
-  Tree: TreeSpec as ComponentSpec<Record<string, unknown>>,
+  // Tree — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover → entry 제거 (binding.accepts D2).
   // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover, specRegistry 제거 (binding.accepts 대체)
   RangeCalendar: RangeCalendarSpec as ComponentSpec<Record<string, unknown>>,
 };

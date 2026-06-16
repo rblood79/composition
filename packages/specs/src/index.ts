@@ -363,17 +363,11 @@ export type { ProgressBarProps } from "./components/ProgressBar.spec";
 // ADR-912 value-label (2026-06-11): ProgressBarValueSpec 삭제 — MeterValue 동형.
 
 // ─── Phase 3: Composite Components ──────────────────────────────────────────
-export { TableSpec } from "./components/Table.spec";
-export type {
-  TableProps,
-  TableColumn,
-  TableRow,
-} from "./components/Table.spec";
-
-// ADR-912 (2026-06-14): TableRow/TableCell.spec 물리 삭제 — catalog cutover generic 경로.
-
-export { TreeSpec } from "./components/Tree.spec";
-export type { TreeProps } from "./components/Tree.spec";
+// ADR-912 단계5 step4 trivial 그룹 (2026-06-16): Table/Tree.spec 물리 삭제 — catalog cutover
+//   (FAMILY_5 발효 + tree/table DELEGATING 등록). skipCSSGeneration:true → generated CSS 없음
+//   (virtual override 불요). render.shapes box-only generic 대체, layout consumer 0, 외부 type
+//   import 0 (TableProps/TableColumn/TableRow 는 shared Table.tsx 자체 정의 + resolveCollectionItems
+//   TableColumnDef 자체 정의 — spec type 미참조). TableRow/TableCell.spec 은 이미 삭제됨(2026-06-14).
 // TreeItemSpec/TreeItemProps — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제
 
 export { TabsSpec } from "./components/Tabs.spec";
@@ -473,11 +467,10 @@ export type { DateInputProps } from "./components/DateInput.spec";
 export { CalendarSpec } from "./components/Calendar.spec";
 export type { CalendarProps } from "./components/Calendar.spec";
 
-export { CalendarHeaderSpec } from "./components/CalendarHeader.spec";
-export type { CalendarHeaderProps } from "./components/CalendarHeader.spec";
-
-export { CalendarGridSpec } from "./components/CalendarGrid.spec";
-export type { CalendarGridProps } from "./components/CalendarGrid.spec";
+// ADR-912 단계5 step4 small 그룹 (2026-06-16): CalendarHeader/CalendarGrid.spec 물리 삭제 —
+//   catalog cutover. skipCSSGeneration:true → generated CSS 없음(virtual override 불요). Skia 는
+//   inline_icon_text / calendar_grid_only replace primitive(spec-free)가 대체. layout consumer 0
+//   (utils.ts CalendarHeader height 분기는 rule 인라인 미러로 이미 전환). binding.accepts D2.
 
 export { RangeCalendarSpec } from "./components/RangeCalendar.spec";
 export type { RangeCalendarProps } from "./components/RangeCalendar.spec";
@@ -558,7 +551,8 @@ export type { IllustratedMessageProps } from "./components/IllustratedMessage.sp
 //   spec 외 consumer 0(grep 실측) → 동시 삭제. CardView gap/TableView 행높이는 factory props.style.
 
 // Properties-only Specs
-export { FieldSpec } from "./components/Field.spec";
+// ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec 물리 삭제 — catalog cutover.
+//   skipCSSGeneration:true + render.shapes=()=>[] (Skia 0 shape) + 외부 consumer 0. binding.accepts D2.
 export { ModalSpec } from "./components/Modal.spec";
 // ADR-912 6 registry collapse — TailSwatchSpec 삭제 (color leaf box-only cutover, 2026-06-11).
 

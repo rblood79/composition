@@ -175,13 +175,8 @@ export type { TimeFieldProps } from "./TimeField.spec";
 export { CalendarSpec } from "./Calendar.spec";
 export type { CalendarProps } from "./Calendar.spec";
 
-// CalendarHeader (Calendar 슬롯 — index.ts barrel 과 정합)
-export { CalendarHeaderSpec } from "./CalendarHeader.spec";
-export type { CalendarHeaderProps } from "./CalendarHeader.spec";
-
-// CalendarGrid (Calendar 슬롯 — index.ts barrel 과 정합)
-export { CalendarGridSpec } from "./CalendarGrid.spec";
-export type { CalendarGridProps } from "./CalendarGrid.spec";
+// CalendarHeader/CalendarGrid — ADR-912 단계5 step4 small 그룹 (2026-06-16): spec 물리 삭제.
+//   catalog cutover, skipCSSGeneration:true, Skia replace primitive(spec-free) 대체.
 
 // RangeCalendar
 export { RangeCalendarSpec } from "./RangeCalendar.spec";
@@ -205,18 +200,10 @@ export type { ColorSwatchPickerProps } from "./ColorSwatchPicker.spec";
 
 // Switcher — ADR-912 Switcher cleanup 으로 제거 (RAC ToggleButtonGroup 으로 대체).
 
-// Table
-export { TableSpec } from "./Table.spec";
-export type { TableProps, TableColumn, TableRow } from "./Table.spec";
-
-// TableRow/TableCell — ADR-912 collection sub-part cutover (2026-06-14): spec 물리 삭제됨.
-//   projected Row/Cell node 는 catalog cutover generic 경로(buildCatalogShapes + table_row escape).
-
-// Tree
-export { TreeSpec } from "./Tree.spec";
-export type { TreeProps } from "./Tree.spec";
-
-// TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제
+// Table/Tree — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): spec 물리 삭제.
+//   catalog cutover (FAMILY_5 발효 + table/tree DELEGATING 등록), skipCSSGeneration:true,
+//   box-only generic 대체, 외부 type import 0. TableRow/TableCell.spec 은 이미 삭제(2026-06-14),
+//   TreeItem.spec 은 이미 삭제(2026-06-12).
 
 // Tabs
 export { TabsSpec } from "./Tabs.spec";

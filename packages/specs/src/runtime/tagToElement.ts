@@ -35,8 +35,8 @@ import { ListBoxSpec } from "../components/ListBox.spec";
 import { SliderSpec } from "../components/Slider.spec";
 import { MeterSpec } from "../components/Meter.spec";
 import { ProgressBarSpec } from "../components/ProgressBar.spec";
-import { TableSpec } from "../components/Table.spec";
-import { TreeSpec } from "../components/Tree.spec";
+// ADR-912 단계5 step4 trivial 그룹 (2026-06-16): Table/Tree.spec import 제거 — catalog cutover,
+//   BASE_TAG_SPEC_MAP entry 제거. skipCSSGeneration:true, box-only generic 대체.
 // ADR-912 R1 후속 (2026-06-12): TreeItemSpec 삭제 — catalog cutover (rule leadingIcon +
 //   indentPerLevel + buildCatalogShapes generic + leading_icon append + depth indent).
 //   BASE_TAG_SPEC_MAP 등록 제거. 시각 SSOT = componentRulesTable.TreeItem.
@@ -50,7 +50,8 @@ import { TagGroupSpec } from "../components/TagGroup.spec";
 import { TagSpec } from "../components/Tag.spec";
 import { GridListSpec } from "../components/GridList.spec";
 import { ModalSpec } from "../components/Modal.spec";
-import { FieldSpec } from "../components/Field.spec";
+// ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec import 제거 — catalog cutover,
+//   BASE entry 제거. skipCSSGeneration:true + render.shapes=()=>[] (Skia 0 shape).
 import { ToolbarSpec } from "../components/Toolbar.spec";
 // ADR-912 R7 G1-c (2026-06-15): ToastSpec import 제거 — 순수 box-shell catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { GroupSpec } from "../components/Group.spec";
@@ -64,8 +65,8 @@ import { DateFieldSpec } from "../components/DateField.spec";
 import { TimeFieldSpec } from "../components/TimeField.spec";
 import { DateInputSpec } from "../components/DateInput.spec";
 import { CalendarSpec } from "../components/Calendar.spec";
-import { CalendarHeaderSpec } from "../components/CalendarHeader.spec";
-import { CalendarGridSpec } from "../components/CalendarGrid.spec";
+// ADR-912 단계5 step4 small 그룹 (2026-06-16): CalendarHeader/CalendarGrid.spec import 제거 —
+//   catalog cutover, BASE entry 제거. skipCSSGeneration:true, replace primitive(spec-free) 대체.
 import { RangeCalendarSpec } from "../components/RangeCalendar.spec";
 import { ColorPickerSpec } from "../components/ColorPicker.spec";
 import { ColorFieldSpec } from "../components/ColorField.spec";
@@ -134,8 +135,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // SliderTrack — ADR-912 단계5: catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   // SliderThumb — ADR-912 catalog cutover (2026-06-16): slider_thumb escape, BASE_TAG_SPEC_MAP 등록 제거
   // SliderOutput — ADR-912 value-label (2026-06-11): catalog cutover, 등록 제거
-  Table: TableSpec,
-  Tree: TreeSpec,
+  // Table/Tree — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover, BASE entry 제거.
+  //   isCatalogCutover('Table'/'Tree')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
   Tabs: TabsSpec,
   // ADR-912 projection 3 cutover (2026-06-15): TabList/Tab catalog cutover → BASE_TAG_SPEC_MAP entry
@@ -149,7 +150,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Tag: TagSpec,
   GridList: GridListSpec,
   Modal: ModalSpec,
-  Field: FieldSpec,
+  // Field — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover, BASE entry 제거.
+  //   isCatalogCutover('Field')=true → Skia 진입 게이트 spec 없이 통과(render.shapes=()=>[] 동형).
   // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/
   //   DisclosureContent spec entry 삭제 (catalog cutover 완결). 시각 = catalog rule.
   // ADR-912 6 registry collapse (2026-06-11) — TailSwatch/ColorSlider/ColorArea/ColorWheel/ColorSwatch
@@ -172,8 +174,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   TimeField: TimeFieldSpec,
   DateInput: DateInputSpec,
   Calendar: CalendarSpec,
-  CalendarHeader: CalendarHeaderSpec,
-  CalendarGrid: CalendarGridSpec,
+  // CalendarHeader/CalendarGrid — ADR-912 단계5 step4 small 그룹 (2026-06-16): catalog cutover,
+  //   BASE entry 제거. isCatalogCutover=true → Skia 진입 게이트 spec 없이 통과(replace primitive 대체).
   RangeCalendar: RangeCalendarSpec,
   ColorPicker: ColorPickerSpec,
   ColorField: ColorFieldSpec,
