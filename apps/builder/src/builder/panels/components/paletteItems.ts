@@ -178,7 +178,6 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "Breadcrumbs", source: "catalog" },
   { type: "Link", source: "catalog" },
   { type: "Nav", source: "catalog" },
-  { type: "MaskedFrame", source: "catalog" },
   { type: "DisclosureGroup", source: "catalog" },
   { type: "Disclosure", source: "catalog" },
   { type: "CardView", source: "overlay" },

@@ -198,7 +198,6 @@ describe("useResetStyles — default props false dirty audit", () => {
         "borderWidth",
       ],
     },
-    { type: "MaskedFrame", properties: ["height", "width", "borderRadius"] },
     { type: "Skeleton", properties: ["width", "height", "borderRadius"] },
   ] as const;
 

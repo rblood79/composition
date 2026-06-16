@@ -292,10 +292,6 @@ export type { DropZoneProps } from "./DropZone.spec";
 export { FileTriggerSpec } from "./FileTrigger.spec";
 export type { FileTriggerProps } from "./FileTrigger.spec";
 
-// MaskedFrame
-export { MaskedFrameSpec } from "./MaskedFrame.spec";
-export type { MaskedFrameProps } from "./MaskedFrame.spec";
-
 // Label
 
 // FieldError/Description (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)

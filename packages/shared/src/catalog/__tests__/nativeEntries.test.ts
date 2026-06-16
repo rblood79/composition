@@ -9,7 +9,8 @@ import {
 import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
 
 /**
- * ADR-142 family ⑧(composition-native) — frame/MaskedFrame/Slot 계약 검증.
+ * ADR-142 family ⑧(composition-native) — frame/Slot 계약 검증.
+ * (MaskedFrame 은 2026-06-16 dead orphan 폐기 — ADR-912 step 4)
  *
  * native 는 RAC primitive 도 reusable 문서도 아닌 canonical 일급 노드(FrameNode, ADR-130).
  * **metadata-only 등록 (사용자 결정 2026-05-31)** — binding/reusableId/cutover 없음, cutover
@@ -17,10 +18,10 @@ import { isCatalogCutover, isCatalogSkiaCutover } from "../cutover";
  * (frame→div generic / Slot renderer). catalog 등록은 팔레트/factory metadata SSOT 통합 목적.
  */
 
-const NATIVE_TYPES = ["frame", "MaskedFrame", "Slot"] as const;
+const NATIVE_TYPES = ["frame", "Slot"] as const;
 
 describe("family ⑧ composition-native — metadata-only 등록", () => {
-  it("frame/MaskedFrame/Slot 이 native entry (family=composition-native, binding 없음)", () => {
+  it("frame/Slot 이 native entry (family=composition-native, binding 없음)", () => {
     for (const type of NATIVE_TYPES) {
       const entry = getCatalogEntry(type);
       expect(entry, `${type} catalog entry`).toBeDefined();

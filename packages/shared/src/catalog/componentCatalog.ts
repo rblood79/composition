@@ -1006,7 +1006,7 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
 ];
 
 /**
- * ADR-142 family ⑧(composition-native) native entry 헬퍼. frame/Slot/MaskedFrame 은 RAC
+ * ADR-142 family ⑧(composition-native) native entry 헬퍼. frame/Slot 은 RAC
  * primitive 도 reusable 문서도 아닌 canonical 일급 노드 → binding/reusableId/cutover 없음.
  */
 function nativeEntry(
@@ -1027,20 +1027,16 @@ function nativeEntry(
 }
 
 /**
- * ADR-142 family ⑧(composition-native). frame/MaskedFrame/Slot. **metadata-only 등록**
+ * ADR-142 family ⑧(composition-native). frame/Slot. **metadata-only 등록**
  * (사용자 결정 2026-05-31) — cutover 게이트 미포함, 렌더는 기존 canonical-native 유지
  * (frame→div generic / Slot renderer). catalog 등록은 팔레트/factory metadata SSOT 통합 목적.
+ * (MaskedFrame 은 ADR-912 step 4 dead orphan 폐기 — factory 0건, 2026-06-16)
  */
 const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
   nativeEntry("frame", {
     category: "layout",
     label: "frame",
     icon: "GroupIcon",
-  }),
-  nativeEntry("MaskedFrame", {
-    category: "layout",
-    label: "masked frame",
-    icon: "Frame",
   }),
   nativeEntry("Slot", {
     category: "layout",
@@ -1055,6 +1051,7 @@ const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
  * 현재 family ①~⑧ 등록 — ⑦ date-color 에 color leaf 5종(ColorSwatch/Area/Wheel/Slider/TailSwatch)
  * box-only cutover 포함(2026-06-11). ColorPicker/ColorSwatchPicker(container)는 다음 slice 분리.
  * ⑧ native(frame/Slot)는 metadata-only(cutover 게이트 미포함, canonical-native 렌더 유지).
+ *   (MaskedFrame 은 2026-06-16 dead orphan 폐기)
  */
 export const componentCatalog: readonly ComponentCatalogEntry[] = [
   ...FAMILY_1_ENTRIES,

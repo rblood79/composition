@@ -2008,18 +2008,6 @@ export function createDefaultIconProps(): IconElementProps {
   } as IconElementProps;
 }
 
-export function createDefaultMaskedFrameProps(): BaseElementProps {
-  return {
-    // CSS base: overflow:hidden, 클리핑 마스크 컨테이너
-    style: {
-      width: "200px",
-      height: "120px",
-      overflow: "hidden",
-      borderRadius: "8px",
-    },
-  };
-}
-
 export function createDefaultImageProps(): BaseElementProps {
   return {
     src: "",
@@ -2296,7 +2284,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Group: createDefaultGroupProps,
   Image: createDefaultImageProps,
   Icon: createDefaultIconProps,
-  MaskedFrame: createDefaultMaskedFrameProps,
   Skeleton: createDefaultSkeletonProps,
   // ADR-139 baseline debt 해소 — factory definition parent props 정합
   Avatar: createDefaultAvatarProps,

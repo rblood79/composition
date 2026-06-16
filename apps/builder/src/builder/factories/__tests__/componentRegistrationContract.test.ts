@@ -130,11 +130,12 @@ describe("ADR-139 컴포넌트 등록·대칭 gate", () => {
     // (123→91→90, 2026-06-11; SwitcherSpec cleanup 으로 90; R1 Select 3 + TreeItem 등
     // 누적 cutover 로 tagSpecKeys 81). universe 하한은 cutover 완결까지 계속 낮아진다.
     // sanity 의미(빈 디렉토리/glob 실패 검출)는 유지하되 삭제 방향과 충돌하지 않게 하향.
-    // tagSpecKeys 90→80 하향 (2026-06-12, R1/TreeItem cutover 후 81 — universe/placeable
-    // 하향과 동일 정합, 이전 90 하한이 누락된 stale).
-    expect(universe.length).toBeGreaterThanOrEqual(80);
+    // tagSpecKeys 80→50 하향 (2026-06-16, R3~R7 + List + MaskedFrame cutover/폐기 누적으로
+    // universe 56 도달 — 이전 80 하한이 누락된 stale. sanity 하한은 빈 디렉토리 검출 목적의
+    // 50 으로 재고정, cutover 완결 시점에 0 근접 후 본 sanity 자체 졸업 예정).
+    expect(universe.length).toBeGreaterThanOrEqual(50);
     expect(placeable.length).toBeGreaterThan(40);
-    expect(tagSpecKeys.size).toBeGreaterThanOrEqual(80);
+    expect(tagSpecKeys.size).toBeGreaterThanOrEqual(50);
   });
 
   // ── 불변식 A: spec 파일 ⟹ TAG_SPEC_MAP ──

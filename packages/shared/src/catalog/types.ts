@@ -194,7 +194,7 @@ export interface PanelMeta {
  * 컴포넌트 카탈로그 entry.
  * - `primitive`: `react-aria-components` 에 leaf RAC primitive 가 있는 항목. `binding` 으로 정의.
  * - `reusable`: 조합 컴포넌트. `reusableId` 가 canonical reusable 문서를 가리킴 — 코드 정의 없음.
- * - `native`: composition-native(frame/Slot/MaskedFrame). RAC primitive 도 reusable 문서도
+ * - `native`: composition-native(frame/Slot). RAC primitive 도 reusable 문서도
  *   아닌 canonical 일급 노드(FrameNode 등, ADR-130). binding/reusableId 둘 다 없고, **cutover
  *   개념이 없다** — 이미 canonical-native 로 렌더(frame→div / Slot renderer). catalog 등록은
  *   팔레트/factory metadata SSOT 통합 목적(렌더 전환 아님, 사용자 결정 2026-05-31 metadata-only).

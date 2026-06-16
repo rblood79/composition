@@ -441,9 +441,6 @@ export type { DropZoneProps } from "./components/DropZone.spec";
 export { FileTriggerSpec } from "./components/FileTrigger.spec";
 export type { FileTriggerProps } from "./components/FileTrigger.spec";
 
-export { MaskedFrameSpec } from "./components/MaskedFrame.spec";
-export type { MaskedFrameProps } from "./components/MaskedFrame.spec";
-
 // ─── Phase 4: Special Components ────────────────────────────────────────────
 export {
   DatePickerSpec,

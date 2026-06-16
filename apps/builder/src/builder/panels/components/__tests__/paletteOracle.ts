@@ -14,370 +14,364 @@ export interface PaletteOracleItem {
 
 export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
   {
-    "type": "Text",
-    "category": "content",
-    "label": "text",
-    "icon": "Text"
+    type: "Text",
+    category: "content",
+    label: "text",
+    icon: "Text",
   },
   {
-    "type": "Icon",
-    "category": "content",
-    "label": "icon",
-    "icon": "Smile"
+    type: "Icon",
+    category: "content",
+    label: "icon",
+    icon: "Smile",
   },
   {
-    "type": "Separator",
-    "category": "content",
-    "label": "separator",
-    "icon": "SeparatorHorizontal"
+    type: "Separator",
+    category: "content",
+    label: "separator",
+    icon: "SeparatorHorizontal",
   },
   {
-    "type": "Badge",
-    "category": "content",
-    "label": "badge",
-    "icon": "Star"
+    type: "Badge",
+    category: "content",
+    label: "badge",
+    icon: "Star",
   },
   {
-    "type": "ProgressBar",
-    "category": "content",
-    "label": "progress bar",
-    "icon": "BarChart3"
+    type: "ProgressBar",
+    category: "content",
+    label: "progress bar",
+    icon: "BarChart3",
   },
   {
-    "type": "Skeleton",
-    "category": "content",
-    "label": "skeleton",
-    "icon": "Loader"
+    type: "Skeleton",
+    category: "content",
+    label: "skeleton",
+    icon: "Loader",
   },
   {
-    "type": "Avatar",
-    "category": "content",
-    "label": "avatar",
-    "icon": "CircleUser"
+    type: "Avatar",
+    category: "content",
+    label: "avatar",
+    icon: "CircleUser",
   },
   {
-    "type": "AvatarGroup",
-    "category": "content",
-    "label": "avatar group",
-    "icon": "Users"
+    type: "AvatarGroup",
+    category: "content",
+    label: "avatar group",
+    icon: "Users",
   },
   {
-    "type": "StatusLight",
-    "category": "content",
-    "label": "status light",
-    "icon": "CircleDot"
+    type: "StatusLight",
+    category: "content",
+    label: "status light",
+    icon: "CircleDot",
   },
   {
-    "type": "InlineAlert",
-    "category": "content",
-    "label": "inline alert",
-    "icon": "AlertTriangle"
+    type: "InlineAlert",
+    category: "content",
+    label: "inline alert",
+    icon: "AlertTriangle",
   },
   {
-    "type": "ProgressCircle",
-    "category": "content",
-    "label": "progress circle",
-    "icon": "CircleDashed"
+    type: "ProgressCircle",
+    category: "content",
+    label: "progress circle",
+    icon: "CircleDashed",
   },
   {
-    "type": "Image",
-    "category": "content",
-    "label": "image",
-    "icon": "ImageIcon"
+    type: "Image",
+    category: "content",
+    label: "image",
+    icon: "ImageIcon",
   },
   {
-    "type": "IllustratedMessage",
-    "category": "content",
-    "label": "illustrated message",
-    "icon": "ImageIcon"
+    type: "IllustratedMessage",
+    category: "content",
+    label: "illustrated message",
+    icon: "ImageIcon",
   },
   {
-    "type": "Card",
-    "category": "layout",
-    "label": "card",
-    "icon": "AppWindowMac"
+    type: "Card",
+    category: "layout",
+    label: "card",
+    icon: "AppWindowMac",
   },
   {
-    "type": "frame",
-    "category": "layout",
-    "label": "frame",
-    "icon": "GroupIcon"
+    type: "frame",
+    category: "layout",
+    label: "frame",
+    icon: "GroupIcon",
   },
   {
-    "type": "Tabs",
-    "category": "layout",
-    "label": "tabs",
-    "icon": "AppWindow"
+    type: "Tabs",
+    category: "layout",
+    label: "tabs",
+    icon: "AppWindow",
   },
   {
-    "type": "Breadcrumbs",
-    "category": "layout",
-    "label": "breadcrumbs",
-    "icon": "ChevronRight"
+    type: "Breadcrumbs",
+    category: "layout",
+    label: "breadcrumbs",
+    icon: "ChevronRight",
   },
   {
-    "type": "Link",
-    "category": "layout",
-    "label": "link",
-    "icon": "Link"
+    type: "Link",
+    category: "layout",
+    label: "link",
+    icon: "Link",
   },
   {
-    "type": "Nav",
-    "category": "layout",
-    "label": "navigation",
-    "icon": "Menu"
+    type: "Nav",
+    category: "layout",
+    label: "navigation",
+    icon: "Menu",
   },
   {
-    "type": "MaskedFrame",
-    "category": "layout",
-    "label": "masked frame",
-    "icon": "Frame"
+    type: "DisclosureGroup",
+    category: "layout",
+    label: "disclosure group",
+    icon: "ChevronDown",
   },
   {
-    "type": "DisclosureGroup",
-    "category": "layout",
-    "label": "disclosure group",
-    "icon": "ChevronDown"
+    type: "Disclosure",
+    category: "layout",
+    label: "disclosure",
+    icon: "ChevronDown",
   },
   {
-    "type": "Disclosure",
-    "category": "layout",
-    "label": "disclosure",
-    "icon": "ChevronDown"
+    type: "CardView",
+    category: "layout",
+    label: "card view",
+    icon: "Grid",
   },
   {
-    "type": "CardView",
-    "category": "layout",
-    "label": "card view",
-    "icon": "Grid"
+    type: "Slot",
+    category: "layout",
+    label: "slot",
+    icon: "Layers",
+    layoutOnly: true,
   },
   {
-    "type": "Slot",
-    "category": "layout",
-    "label": "slot",
-    "icon": "Layers",
-    "layoutOnly": true
+    type: "Button",
+    category: "buttons",
+    label: "button",
+    icon: "MousePointer",
   },
   {
-    "type": "Button",
-    "category": "buttons",
-    "label": "button",
-    "icon": "MousePointer"
+    type: "ToggleButton",
+    category: "buttons",
+    label: "toggle button",
+    icon: "ToggleLeft",
   },
   {
-    "type": "ToggleButton",
-    "category": "buttons",
-    "label": "toggle button",
-    "icon": "ToggleLeft"
+    type: "ToggleButtonGroup",
+    category: "buttons",
+    label: "toggle button group",
+    icon: "GroupIcon",
   },
   {
-    "type": "ToggleButtonGroup",
-    "category": "buttons",
-    "label": "toggle button group",
-    "icon": "GroupIcon"
+    type: "Toolbar",
+    category: "buttons",
+    label: "toolbar",
+    icon: "Settings",
   },
   {
-    "type": "Toolbar",
-    "category": "buttons",
-    "label": "toolbar",
-    "icon": "Settings"
+    type: "ButtonGroup",
+    category: "buttons",
+    label: "button group",
+    icon: "GroupIcon",
   },
   {
-    "type": "ButtonGroup",
-    "category": "buttons",
-    "label": "button group",
-    "icon": "GroupIcon"
+    type: "Menu",
+    category: "buttons",
+    label: "menu",
+    icon: "Menu",
   },
   {
-    "type": "Menu",
-    "category": "buttons",
-    "label": "menu",
-    "icon": "Menu"
+    type: "TextField",
+    category: "forms",
+    label: "text field",
+    icon: "RectangleEllipsis",
   },
   {
-    "type": "TextField",
-    "category": "forms",
-    "label": "text field",
-    "icon": "RectangleEllipsis"
+    type: "NumberField",
+    category: "forms",
+    label: "number field",
+    icon: "Hash",
   },
   {
-    "type": "NumberField",
-    "category": "forms",
-    "label": "number field",
-    "icon": "Hash"
+    type: "SearchField",
+    category: "forms",
+    label: "search field",
+    icon: "Search",
   },
   {
-    "type": "SearchField",
-    "category": "forms",
-    "label": "search field",
-    "icon": "Search"
+    type: "Checkbox",
+    category: "forms",
+    label: "checkbox",
+    icon: "SquareCheck",
   },
   {
-    "type": "Checkbox",
-    "category": "forms",
-    "label": "checkbox",
-    "icon": "SquareCheck"
+    type: "CheckboxGroup",
+    category: "forms",
+    label: "checkbox group",
+    icon: "GroupIcon",
   },
   {
-    "type": "CheckboxGroup",
-    "category": "forms",
-    "label": "checkbox group",
-    "icon": "GroupIcon"
+    type: "RadioGroup",
+    category: "forms",
+    label: "radio group",
+    icon: "GroupIcon",
   },
   {
-    "type": "RadioGroup",
-    "category": "forms",
-    "label": "radio group",
-    "icon": "GroupIcon"
+    type: "Select",
+    category: "forms",
+    label: "select",
+    icon: "ChevronDown",
   },
   {
-    "type": "Select",
-    "category": "forms",
-    "label": "select",
-    "icon": "ChevronDown"
+    type: "ComboBox",
+    category: "forms",
+    label: "combo box",
+    icon: "ChevronDown",
   },
   {
-    "type": "ComboBox",
-    "category": "forms",
-    "label": "combo box",
-    "icon": "ChevronDown"
+    type: "Switch",
+    category: "forms",
+    label: "switch",
+    icon: "ToggleRight",
   },
   {
-    "type": "Switch",
-    "category": "forms",
-    "label": "switch",
-    "icon": "ToggleRight"
+    type: "Slider",
+    category: "forms",
+    label: "slider",
+    icon: "SlidersHorizontal",
   },
   {
-    "type": "Slider",
-    "category": "forms",
-    "label": "slider",
-    "icon": "SlidersHorizontal"
+    type: "TailSwatch",
+    category: "forms",
+    label: "color picker",
+    icon: "Paintbrush",
   },
   {
-    "type": "TailSwatch",
-    "category": "forms",
-    "label": "color picker",
-    "icon": "Paintbrush"
+    type: "DropZone",
+    category: "forms",
+    label: "drop zone",
+    icon: "Upload",
   },
   {
-    "type": "DropZone",
-    "category": "forms",
-    "label": "drop zone",
-    "icon": "Upload"
+    type: "FileTrigger",
+    category: "forms",
+    label: "file trigger",
+    icon: "FileUp",
   },
   {
-    "type": "FileTrigger",
-    "category": "forms",
-    "label": "file trigger",
-    "icon": "FileUp"
+    type: "Form",
+    category: "forms",
+    label: "form",
+    icon: "GroupIcon",
   },
   {
-    "type": "Form",
-    "category": "forms",
-    "label": "form",
-    "icon": "GroupIcon"
+    type: "Table",
+    category: "collections",
+    label: "table",
+    icon: "TableProperties",
   },
   {
-    "type": "Table",
-    "category": "collections",
-    "label": "table",
-    "icon": "TableProperties"
+    type: "ListBox",
+    category: "collections",
+    label: "list box",
+    icon: "ListIcon",
   },
   {
-    "type": "ListBox",
-    "category": "collections",
-    "label": "list box",
-    "icon": "ListIcon"
+    type: "GridList",
+    category: "collections",
+    label: "grid list",
+    icon: "Grid",
   },
   {
-    "type": "GridList",
-    "category": "collections",
-    "label": "grid list",
-    "icon": "Grid"
+    type: "Tree",
+    category: "collections",
+    label: "tree",
+    icon: "ListTree",
   },
   {
-    "type": "Tree",
-    "category": "collections",
-    "label": "tree",
-    "icon": "ListTree"
+    type: "TagGroup",
+    category: "collections",
+    label: "type group",
+    icon: "Tag",
   },
   {
-    "type": "TagGroup",
-    "category": "collections",
-    "label": "type group",
-    "icon": "Tag"
+    type: "Section",
+    category: "collections",
+    label: "section",
+    icon: "Square",
   },
   {
-    "type": "Section",
-    "category": "collections",
-    "label": "section",
-    "icon": "Square"
+    type: "TableView",
+    category: "collections",
+    label: "table view",
+    icon: "TableProperties",
   },
   {
-    "type": "TableView",
-    "category": "collections",
-    "label": "table view",
-    "icon": "TableProperties"
+    type: "Calendar",
+    category: "dateTime",
+    label: "calendar",
+    icon: "Calendar",
   },
   {
-    "type": "Calendar",
-    "category": "dateTime",
-    "label": "calendar",
-    "icon": "Calendar"
+    type: "DatePicker",
+    category: "dateTime",
+    label: "date picker",
+    icon: "CalendarCheck",
   },
   {
-    "type": "DatePicker",
-    "category": "dateTime",
-    "label": "date picker",
-    "icon": "CalendarCheck"
+    type: "DateRangePicker",
+    category: "dateTime",
+    label: "date range picker",
+    icon: "CalendarDays",
   },
   {
-    "type": "DateRangePicker",
-    "category": "dateTime",
-    "label": "date range picker",
-    "icon": "CalendarDays"
+    type: "DateField",
+    category: "dateTime",
+    label: "date field",
+    icon: "CalendarCheck",
   },
   {
-    "type": "DateField",
-    "category": "dateTime",
-    "label": "date field",
-    "icon": "CalendarCheck"
+    type: "TimeField",
+    category: "dateTime",
+    label: "time field",
+    icon: "ChevronDown",
   },
   {
-    "type": "TimeField",
-    "category": "dateTime",
-    "label": "time field",
-    "icon": "ChevronDown"
+    type: "RangeCalendar",
+    category: "dateTime",
+    label: "range calendar",
+    icon: "CalendarDays",
   },
   {
-    "type": "RangeCalendar",
-    "category": "dateTime",
-    "label": "range calendar",
-    "icon": "CalendarDays"
+    type: "Dialog",
+    category: "overlays",
+    label: "dialog",
+    icon: "AppWindowMac",
   },
   {
-    "type": "Dialog",
-    "category": "overlays",
-    "label": "dialog",
-    "icon": "AppWindowMac"
+    type: "Modal",
+    category: "overlays",
+    label: "modal",
+    icon: "InspectionPanel",
   },
   {
-    "type": "Modal",
-    "category": "overlays",
-    "label": "modal",
-    "icon": "InspectionPanel"
+    type: "Popover",
+    category: "overlays",
+    label: "popover",
+    icon: "AppWindowMac",
   },
   {
-    "type": "Popover",
-    "category": "overlays",
-    "label": "popover",
-    "icon": "AppWindowMac"
+    type: "Tooltip",
+    category: "overlays",
+    label: "tooltip",
+    icon: "MessageSquare",
   },
-  {
-    "type": "Tooltip",
-    "category": "overlays",
-    "label": "tooltip",
-    "icon": "MessageSquare"
-  }
 ] as const;

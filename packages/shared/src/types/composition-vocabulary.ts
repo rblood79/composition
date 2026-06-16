@@ -13,14 +13,14 @@ import type { CanonicalNode } from "./composition-document.types";
  * Canonical Component Tag — composition 컴포넌트 vocabulary.
  *
  * 값 공간 정책 (ADR-903 §type vocabulary policy):
- * - **허용**: composition Component 116개 + pencil 공용 구조 타입 3개 (`ref` | `frame` | `group`) = 119 literal
+ * - **허용**: composition Component 114개 + pencil 공용 구조 타입 3개 (`ref` | `frame` | `group`) = 117 literal
  * - **제외**: pencil primitive 10종 (`rectangle` / `ellipse` / `line` / `polygon` / `path` /
  *   `text` / `note` / `prompt` / `context` / `icon_font`) — import/export adapter 경유만 등장
  *
- * 실측: 본 `ComponentTag` union 멤버 115 component + 구조 타입 3개 = 118 (Autocomplete 폐기 2026-06-09 / DateSegment+TimeSegment 폐기 2026-06-09 / Accordion 폐기 2026-06-10 — DisclosureGroup 중복, ADR-912 cutover phase). 주의: `*.spec.ts` 파일 수와는 별개 — properties-only / child sub-part spec 은 union 비멤버. TimeSegment 는 vocab union 비멤버였던 undeclared alias (tagToElement 동시 청산).
+ * 실측: 본 `ComponentTag` union 멤버 114 component + 구조 타입 3개 = 117 (Autocomplete 폐기 2026-06-09 / DateSegment+TimeSegment 폐기 2026-06-09 / Accordion 폐기 2026-06-10 — DisclosureGroup 중복 / MaskedFrame 폐기 2026-06-16 — dead orphan, factory 0건, ADR-912 step 4). 주의: `*.spec.ts` 파일 수와는 별개 — properties-only / child sub-part spec 은 union 비멤버. TimeSegment 는 vocab union 비멤버였던 undeclared alias (tagToElement 동시 청산).
  */
 export type ComponentTag =
-  // ── composition Component Tags (115개, 알파벳 순) ──
+  // ── composition Component Tags (114개, 알파벳 순) ──
   | "Avatar"
   | "AvatarGroup"
   | "Badge"
@@ -78,7 +78,6 @@ export type ComponentTag =
   | "Link"
   | "ListBox"
   | "ListBoxItem"
-  | "MaskedFrame"
   | "Menu"
   | "MenuItem"
   | "Meter"

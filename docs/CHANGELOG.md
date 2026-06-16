@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [MaskedFrame element type 폐기 + spec 물리 삭제 — ADR-912 step 4 dead orphan 정리] - 2026-06-16
+
+### Architecture
+
+- **MaskedFrame element type 전수 폐기 (dead orphan)** (ADR-912 step 4 element 폐기, 4-gate 전부 PASS):
+  - **dead orphan 판정 근거**: MaskedFrame 은 palette 에 등록돼 있었으나 `createMaskedFrame` factory 0건 + runtime 분기(`type === "MaskedFrame"`) 0건 → 사용자가 palette 에서 클릭해도 생성 메커니즘이 없는 죽은 항목. spec(`render.shapes` variant/maskShape 완비) + props 기본값 + native catalog entry 만 남아 있던 상태
+  - **4-gate 전부 PASS (true-dead)**: G-render(Skia spec 존재하나 생성 경로 없어 호출 0) / G-factory(factory 0건) / G-registry(BASE_TAG_SPEC_MAP 단일 entry, runtime 분기 0) / G-consumer(다른 spec 이 `MaskedFrameSpec.sizes` import 0건) — Autocomplete/DateSegment 에 이은 셋째 element type 폐기
+  - **Why**: ADR-912 step 4(물리 spec 삭제) 진입 전 미등록 type 정리 — "남은 작업 후보" 실측 결과 영역 B(collection projection)/container shell 9 는 이미 전수 소진(R3~R7 cutover + List 폐기 완료)됐고, cutover 게이트 기준 미등록 7 중 frame/Slot(보존 — canonical native infra) + ColorPicker/ColorSwatchPicker/Group/Header(진짜 제외) 를 뺀 **유일한 dead orphan = MaskedFrame**
+  - atomic 정리(16 파일): spec 본체(`MaskedFrame.spec.ts` 200줄) + generated CSS(`MaskedFrame.css` 101줄) 물리 삭제 / specs barrel 2(index.ts + components/index.ts) / `tagToElement.ts`(import + BASE_TAG_SPEC_MAP entry) / `componentCatalog.ts`(nativeEntry 제거 — native 3→2[frame/Slot]) / `componentRulesTable.ts`(MaskedFrame rule entry) / `composition-vocabulary.ts`(ComponentTag union 멤버 + 카운트 116→114) / `unified.types.ts`(createDefaultMaskedFrameProps + map entry) / `paletteItems.ts`(palette entry) / `catalog/types.ts`(주석) / 테스트 4(cutover/nativeEntries/useResetStyles/paletteOracle)
+  - 부가 정합: `componentRegistrationContract.test.ts` inventory sanity floor 80→50 하향(R3~R7+List+MaskedFrame cutover/폐기 누적으로 universe 56 도달 — 이전 80 floor 가 stale, cutover 단조 감소 방향과 정합)
+  - 위치: `packages/specs/src/components/MaskedFrame.spec.ts`(삭제) / `packages/shared/src/components/styles/generated/MaskedFrame.css`(삭제) / 외 14 파일 라인 정리
+  - 검증: type-check PASS(builder baseline 71 불변, 0 new — dead 라 consumer line shift 없음) + 관련 단위 테스트 PASS(paletteItems/useResetStyles 21 + shared catalog 318 + specs 507) + 등록 contract 회귀 0(clean HEAD 3 fail → 변경 후 2 fail, MaskedFrame stale assert 1 + sanity floor 1 해소 / 잔존 1 = pre-existing R7 container shell residual) + **Chrome MCP live**(dev 재시작 후 fresh load — spec map 56→55 + maskedFrameInSpecMap=false + catalog/cutover/native entry[frame·Slot 2개]/palette DOM 모두 부재 + canvas 정상 + 콘솔 에러 0)
+
 ## [Toolbar + Form 조합 컴포넌트 reusable origin 저작 — ADR-912 R-5 proof 2건] - 2026-06-16
 
 ### Architecture

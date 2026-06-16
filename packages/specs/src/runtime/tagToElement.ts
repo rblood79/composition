@@ -58,7 +58,6 @@ import { FrameSpec } from "../components/Frame.spec";
 import { SlotSpec } from "../components/Slot.spec";
 import { DropZoneSpec } from "../components/DropZone.spec";
 import { FileTriggerSpec } from "../components/FileTrigger.spec";
-import { MaskedFrameSpec } from "../components/MaskedFrame.spec";
 import { DatePickerSpec } from "../components/DatePicker.spec";
 import { DateRangePickerSpec } from "../components/DateRangePicker.spec";
 import { DateFieldSpec } from "../components/DateField.spec";
@@ -165,7 +164,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Slot: SlotSpec,
   DropZone: DropZoneSpec,
   FileTrigger: FileTriggerSpec,
-  MaskedFrame: MaskedFrameSpec,
   DatePicker: DatePickerSpec,
   DateRangePicker: DateRangePickerSpec,
   DateField: DateFieldSpec,

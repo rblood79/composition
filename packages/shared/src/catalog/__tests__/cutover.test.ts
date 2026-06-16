@@ -104,7 +104,6 @@ describe("isCatalogCutover (DOM/Inspector gate) — family ①~④ flip 후", ()
     // 상세 검증은 nativeEntries.test.ts.
     expect(isCatalogCutover("frame")).toBe(false);
     expect(isCatalogCutover("Slot")).toBe(false);
-    expect(isCatalogCutover("MaskedFrame")).toBe(false);
   });
 });
 
@@ -137,7 +136,6 @@ describe("ADR-912 단계 5 step 1 — dead gate invariant (channel 통합 잠금
       // color leaf 5종(TailSwatch 등)은 cutover=true 로 전환되어 componentCatalog.map 에 포함됨.
       "frame",
       "Slot",
-      "MaskedFrame",
       "ColorPicker",
       "UnknownType",
     ];

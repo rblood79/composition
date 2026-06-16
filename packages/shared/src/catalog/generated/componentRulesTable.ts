@@ -3273,55 +3273,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  MaskedFrame: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-        },
-      },
-    },
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 80,
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
-        height: 120,
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
-        height: 200,
-      },
-    },
-  },
   Menu: {
     defaultVariant: "primary",
     defaultSize: "md",
