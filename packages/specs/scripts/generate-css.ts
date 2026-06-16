@@ -146,139 +146,15 @@ function ruleVariantToVariantSpec(v: ComponentRuleVariant): VariantSpec {
 }
 
 /**
- * TEXT_LEAF 메타상수 — CSS 생성에 필요한 최소 정보만.
- * (name / archetype / element placeholder / containerStyles)
+ * STRUCTURE_META 엔트리 — rule table 에 없는 "구조 정보"(archetype/element/containerStyles/
+ * states/cssEmitMode/composition)만 담는다. 색상/사이즈/variant 는 getComponentRulesTable() 정본.
+ *
+ * ADR-912 단계5 step4 Phase 0 (2026-06-16): 기존 TextLeafMeta(배열, name 필드 포함) →
+ * STRUCTURE_META(Map<name, StructureMeta>) 로 자료구조 전환. name 은 Map key 로 이동.
+ * (generate-css 일반화 골격 — virtual emit 집합을 STRUCTURE_META 멤버십이 결정. spec import
+ *  경로 56 은 그대로 유지 → 출력 집합 불변 diff 0.)
  */
-// catalog virtual CSS 군 — spec 삭제 후 rule+메타 virtual input 으로 CSS 재생성.
-// TEXT_LEAF(Text/Heading/Paragraph/Code/Kbd, step4) + field/form box+text leaf(Description/FieldError, step5)
-//   + Link(box+text, underline composition) + ProgressCircle(progress archetype, virtual 일반화 proof).
-// shape 모양으로 묶은 동형 변환 — 컴포넌트 이름이 아니라 변환 패턴(archetype) 단위.
-// ADR-912 generate-css virtual 일반화(2026-06-09): TEXT_LEAF(text/simple/button archetype) →
-//   progress archetype 확장. ARCHETYPE_BASE_STYLES["progress"] 가 grid-template-areas/.bar/[slot=value]
-//   를 자동 emit 하므로 composition 메타 없이 archetype 값만 맞추면 CSS 재생성됨.
-const TEXT_LEAF_NAMES = new Set([
-  "Text",
-  "Heading",
-  "Paragraph",
-  "Code",
-  "Kbd",
-  "Description",
-  "FieldError",
-  "Link",
-  "ProgressCircle",
-  "ProgressBarTrack",
-  "MeterTrack",
-  "SliderTrack",
-  "Nav",
-  // ADR-912 box+text leaf 군 일괄 (2026-06-11): catalog 발효 완료 leaf 8개 중 CSS 생성 7개.
-  //   Label 은 skipCSSGeneration:true (base.css --label-font-size 상속 보존) → virtual 불요.
-  "Button",
-  "ToggleButton",
-  "Badge",
-  "Separator",
-  "Skeleton",
-  "Icon",
-  "StatusLight",
-  "TabPanel",
-  "TabPanels",
-  // ADR-912 projection 3 cutover (2026-06-15): Tab/TabList/Breadcrumb catalog cutover. generated
-  //   CSS(base+size+variant)는 spec 삭제 후에도 DOM 보존돼야 하므로 catalog rule 기반 virtual 재생성.
-  //   selected indicator(Tab) / divider(TabList) / separator(Breadcrumb)는 수동 TabsIndicator.css +
-  //   RAC 보존(애초 generated 에 부재) → virtual 은 base+size+variant 만 재생성(시각 동일).
-  "Tab",
-  "TabList",
-  "Breadcrumb",
-  "MenuItem",
-  // ADR-912 value-label 군 (2026-06-11): Meter/ProgressBar/Slider 의 value text leaf.
-  //   MeterValue/ProgressBarValue = progress archetype(grid label/value/track),
-  //   SliderOutput = simple archetype. 부모가 children=formatted value 주입,
-  //   자식이 buildCatalogShapes text 로 그림. spec 삭제 대상.
-  "MeterValue",
-  "ProgressBarValue",
-  "SliderOutput",
-  // ADR-912 6 registry collapse — Color leaf box-only cutover (2026-06-11): ColorSwatch/TailSwatch 는
-  //   skipCSSGeneration:false (simple archetype, generated CSS source). spec 삭제 후에도 DOM CSS 가
-  //   사라지지 않도록 catalog rule(COMPONENT_RULES_TABLE) 기반 virtual 로 재생성. ColorArea/Wheel/
-  //   Slider 는 skipCSSGeneration:true (Skia 전용 gradient/circle) → CSS 미생성이라 virtual 불요.
-  "ColorSwatch",
-  "TailSwatch",
-  // ADR-912 collection item leaf cutover (2026-06-14): ListBoxItem 은 ListBox.spec childSpecs 경로로
-  //   `generated/ListBox.css` 에 inline emit 됐으나(ADR-078), catalog cutover(listbox_item escape)로
-  //   spec body 삭제 대비 → 독립 `generated/ListBoxItem.css` virtual 로 분리(MenuItem 선례 동형, flat
-  //   selector 라 시각 동일). ListBox.spec.childSpecs 는 [HeaderSpec] 만 유지(Header 는 삭제 대상 아님).
-  "ListBoxItem",
-  // ADR-912 childSpec→catalog cutover (2026-06-15): DialogFooter 는 Dialog.spec childSpecs 경로로
-  //   `generated/Dialog.css` 에 inline embed(ADR-078) 됐으나, catalog cutover 로 spec body 삭제 대비
-  //   → 독립 `generated/DialogFooter.css` virtual 로 분리(ListBoxItem 선례 동형, flat selector 라 시각
-  //   동일). Dialog.spec.childSpecs 제거(DialogFooter 가 유일 멤버) → Dialog.css embedded 블록 사라짐.
-  "DialogFooter",
-  // ADR-912 childSpec→catalog cutover (2026-06-15): FormField 는 Form.spec childSpecs 경로로
-  //   `generated/Form.css` 에 inline embed(ADR-078, embedMode 가 skipCSSGeneration:true 우회) 됐으나,
-  //   catalog cutover 로 spec body 삭제 대비 → 독립 `generated/FormField.css` virtual 로 분리
-  //   (DialogFooter 선례 동형, flat selector 라 시각 동일). Form.spec.childSpecs 제거(FormField 가
-  //   유일 멤버) → Form.css embedded 블록 사라짐.
-  "FormField",
-  // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 일괄. 각 spec 은
-  //   Card.spec childSpecs 경로로 `generated/Card.css` 에 inline embed 됐으나, catalog cutover 로
-  //   spec body 삭제 대비 → 독립 `generated/{CardHeader,CardContent,CardFooter,CardPreview}.css`
-  //   virtual 로 분리(FormField/DialogFooter 선례 동형). Card.spec.childSpecs 제거(4 자식 전부) →
-  //   Card.css embedded 블록 사라짐. layout(display/flexDirection/width)은 containerStyles meta 로
-  //   DOM base emit + factory props.style 가 Skia/Taffy SSOT.
-  "CardHeader",
-  "CardContent",
-  "CardFooter",
-  "CardPreview",
-  // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 cutover. Card.spec(skipCSSGeneration:false → 자체
-  //   `generated/Card.css`)을 삭제하므로 catalog rule(COMPONENT_RULES_TABLE.Card, variants 4종 fill)
-  //   기반 virtual 로 재생성 — 자식과 달리 본체는 embed 가 아니라 독립 Card.css 였음. virtual 출력은
-  //   기존 Card.css 보다 풍부(variant 별 [data-variant] 배경 emit) — 구 spec 은 variant 부재였으므로
-  //   diff≠0 이 정본(catalog rule SSOT 정정, feedback-css-rule-virtual-input-not-fixture).
-  "Card",
-  // ADR-912 R7 G1-a (2026-06-15): AvatarGroup 컨테이너 전환. spec.render.shapes=()=>[] (Skia 0,
-  //   자식 Avatar 가 self-draw) + skipCSSGeneration:false → 자체 `generated/AvatarGroup.css` (archetype
-  //   default 컨테이너 base + variant transparent + size height/border-radius). catalog rule
-  //   (COMPONENT_RULES_TABLE.AvatarGroup) 기반 virtual 로 재생성. layout(flex row)은 factory props.style
-  //   SSOT (Skia/Taffy 직접 read, ADR-907 Layer B). Card 본체(R6) 동형 — archetype default 컨테이너.
-  "AvatarGroup",
-  // ADR-912 R7 G1-b (2026-06-15): CardView 컨테이너 전환 (AvatarGroup R7 G1-a 동형 — archetype default
-  //   빈 셸). spec.render.shapes=()=>[] (Skia 0) — 자식 Card 가 self-draw. variant 1종(transparent),
-  //   sizes sm/md/lg(borderRadius 0, height auto, gap). layout(grid/columns)은 factory props.style SSOT.
-  //   catalog rule(COMPONENT_RULES_TABLE.CardView) 기반 virtual. 시각 분기 부재 → diff 0 예상.
-  "CardView",
-  // ADR-912 R7 G1-b (2026-06-15): TableView 컨테이너 전환. spec.render.shapes 는 roundRect(bg)+border 2
-  //   shape 를 실제 렌더하나, 그 시각값(default: layer-1 fill + 1px border / quiet: transparent +
-  //   transparent border)이 catalog rule variants(default/quiet) 로 이미 표현됨 → archetype default 가
-  //   [data-variant] 별 배경/border 자동 emit. isQuiet boolean 은 `variant: "quiet"` 로 흡수(S2 정본
-  //   variant 모델, feedback-catalog-unrepresentable-is-nonstandard-variant). layout 은 factory props.style
-  //   SSOT. virtual 출력 vs 기존 TableView.css 동형(2 variant + border + radius.md) → diff 0 예상.
-  "TableView",
-  // ADR-912 R7 G1-c (2026-06-15): Pagination 컨테이너 전환. factory 가 자식 Button×5 자동 생성 →
-  //   런타임 항상 _hasChildren=true → spec render.shapes standalone 버튼군 dead, 컨테이너 box(flex
-  //   row)만 live (AvatarGroup/CardView/TableView 동형). 단 spec `composition.staticSelectors` 7개
-  //   (.pagination-controls / .react-aria-Button[data-current] 활성 페이지 강조 등 자식 Button 대상
-  //   descendant CSS)는 box shell 만으로 누락 → META.composition.staticSelectors 로 전달(Link rootSelectors
-  //   선례) → CSSGenerator emit. virtual 출력 = 기존 Pagination.css 동형(base+size+staticSelectors).
-  "Pagination",
-  // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell 전환. factory(createToastDefinition)가
-  //   Heading/Description 자식 자동 생성 → 런타임 항상 _hasChildren=true → 컨테이너 box(bg+border)만
-  //   live. 구 spec 좌측 accent bar(rect 3px)는 RAC 공식 Toast 미준수 변형이라 제거 → variant fill +
-  //   border + size 만(accent bar 없음). layout(flex/column/gap)은 factory props.style SSOT(ADR-907
-  //   Layer B). virtual = archetype alert base + variant fill + size.
-  "Toast",
-  // ADR-912 R7 G1-c (2026-06-15): ButtonGroup 컨테이너 전환. factory(createButtonGroupDefinition)가
-  //   자식 Button×2(Cancel outline / Save accent) 자동 생성 → 런타임 항상 _hasChildren=true →
-  //   spec render.shapes standalone box 분기 dead, 자식 Button 이 시각 담당 (AvatarGroup/CardView/
-  //   TableView/Pagination 동형). variant default 전부 transparent → 투명 generic box shell.
-  //   layout(flex/gap)은 factory props.style SSOT(ADR-907 Layer B) → virtual 은 size별 gap 미emit
-  //   (구 ButtonGroup.css 의 gap:Npx 는 factory props.style.gap 이 @layer 위로 덮던 dead 값 → 제거 정본).
-  //   staticSelectors 불요(Pagination 과 달리 자식 Button 대상 descendant CSS 없음). virtual 출력 =
-  //   구 ButtonGroup.css 에서 size별 gap + [data-variant="default"] 빈 hover/pressed transparent 블록
-  //   noise 제거 (AvatarGroup virtual 동형, 시각 손실 0).
-  "ButtonGroup",
-]);
-
-type TextLeafMeta = {
-  name: string;
+type StructureMeta = {
   archetype: ComponentSpec<unknown>["archetype"];
   element: string;
   containerStyles: ComponentSpec<unknown>["containerStyles"];
@@ -302,7 +178,9 @@ type TextLeafMeta = {
   states?: ComponentSpec<unknown>["states"];
 };
 
-const TEXT_LEAF_META: TextLeafMeta[] = [
+// 원본 entry 배열 (name 필드 포함) — 아래 STRUCTURE_META Map 으로 파생.
+//   ADR-912 Phase 0 (2026-06-16): name 을 Map key 로 옮기되, entry 본문은 보존(diff 0 안전).
+const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
   {
     name: "Text",
     archetype: "text",
@@ -929,17 +807,31 @@ const TEXT_LEAF_META: TextLeafMeta[] = [
 ];
 
 /**
- * TEXT_LEAF 5개를 rule+메타 기반으로 virtual ComponentSpec 배열로 합성.
- * spec 파일이 아직 존재하더라도 이 경로를 우선(dedup 은 호출처에서 처리).
+ * STRUCTURE_META — virtual CSS emit 대상의 "구조 정보" lookup map (name → StructureMeta).
+ *
+ * ADR-912 단계5 step4 Phase 0 (2026-06-16): generate-css 일반화 골격. virtual emit 집합을 이 Map
+ * 의 멤버십이 결정하고(emit allowlist), 색상/사이즈/variant 는 getComponentRulesTable() 에서 읽는다
+ * (구조 vs 시각값 source 분리). spec import 경로 56 은 그대로 유지 → 현 출력 집합(virtual 45) 불변.
+ *
+ * Phase 1 에서 spec 파일을 삭제하며 그 컴포넌트를 이 Map 에 추가하는 방식으로 spec→virtual 이관.
+ * (= "rule table 기반 단일 수렴" 의 점진 경로. 한 컴포넌트씩이 아니라 archetype 변환 패턴별 일괄.)
  */
-function buildTextLeafVirtualSpecs(): ComponentSpec<unknown>[] {
+const STRUCTURE_META: Map<string, StructureMeta> = new Map(
+  STRUCTURE_META_ENTRIES.map(({ name, ...meta }) => [name, meta]),
+);
+
+/**
+ * STRUCTURE_META 에 등재된 컴포넌트를 rule(getComponentRulesTable) + 구조 메타 기반으로
+ * virtual ComponentSpec 배열로 합성. spec 파일 존재 여부와 무관 — emit 집합은 STRUCTURE_META 가 정함.
+ */
+function buildVirtualSpecs(): ComponentSpec<unknown>[] {
   const table = getComponentRulesTable();
   const result: ComponentSpec<unknown>[] = [];
 
-  for (const meta of TEXT_LEAF_META) {
-    const rule = table[meta.name];
+  for (const [name, meta] of STRUCTURE_META) {
+    const rule = table[name];
     if (!rule) {
-      console.warn(`  ⚠ TEXT_LEAF virtual: no rule for ${meta.name}, skipping`);
+      console.warn(`  ⚠ virtual: no rule for ${name}, skipping`);
       continue;
     }
 
@@ -956,7 +848,7 @@ function buildTextLeafVirtualSpecs(): ComponentSpec<unknown>[] {
     }
 
     const virtualSpec: ComponentSpec<unknown> = {
-      name: meta.name,
+      name,
       archetype: meta.archetype,
       element: meta.element as ComponentSpec<unknown>["element"],
       containerStyles: meta.containerStyles,
@@ -982,7 +874,7 @@ function buildTextLeafVirtualSpecs(): ComponentSpec<unknown>[] {
     };
 
     result.push(virtualSpec);
-    console.log(`  ✓ Synthesized virtual spec: ${meta.name} (from rule table)`);
+    console.log(`  ✓ Synthesized virtual spec: ${name} (from rule table)`);
   }
 
   return result;
@@ -1006,13 +898,15 @@ async function main(): Promise<void> {
     }
 
     // 각 spec 파일 로드
-    // ADR-912 단계5 step4: TEXT_LEAF 5개는 virtual spec 이 우선 — dedup
+    // ADR-912 단계5 step4: STRUCTURE_META 등재 컴포넌트는 virtual spec 이 우선 — dedup
+    //   (spec 파일과 virtual 이 일시 공존하면 virtual override → 이중 emit 방지. 현재 spec 파일 ∩
+    //    STRUCTURE_META = 0 이라 매칭 없음 = no-op 이지만, Phase 1 spec→virtual 이관 중 dedup 키로 동작.)
     const specs: ComponentSpec<unknown>[] = [];
 
     for (const file of specFiles) {
-      // TEXT_LEAF: spec 파일이 아직 존재해도 virtual input 으로 대체 — 파일 스캔 결과에서 제외
+      // STRUCTURE_META 등재: spec 파일이 존재해도 virtual input 으로 대체 — 파일 스캔 결과에서 제외
       const componentName = file.replace(".spec.ts", "");
-      if (TEXT_LEAF_NAMES.has(componentName)) {
+      if (STRUCTURE_META.has(componentName)) {
         console.log(`  → Skipped (virtual override): ${file}`);
         continue;
       }
@@ -1032,9 +926,9 @@ async function main(): Promise<void> {
       }
     }
 
-    // TEXT_LEAF virtual specs 추가 (rule+메타 기반 합성)
-    const textLeafVirtuals = buildTextLeafVirtualSpecs();
-    specs.push(...textLeafVirtuals);
+    // STRUCTURE_META virtual specs 추가 (rule+구조 메타 기반 합성)
+    const virtualSpecs = buildVirtualSpecs();
+    specs.push(...virtualSpecs);
 
     if (specs.length === 0) {
       console.log("\n⚠️  No valid specs found");
