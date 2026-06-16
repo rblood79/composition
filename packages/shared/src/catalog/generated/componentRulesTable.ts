@@ -1323,20 +1323,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS root `gap: Npx`
+      //   재생성용 (CheckboxGroup.spec.sizes 미러). 자식 .checkbox-items gap 은 composition
+      //   containerVariants.size 의 --cb-items-gap 별도 경로. padding 미emit(ownsContainerBox).
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
+        gap: 8,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
+        gap: 12,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
+        gap: 16,
       },
     },
   },
@@ -1449,11 +1455,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {},
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (ColorField.spec.sizes 미러). padding 은 composition.layout=flex-column root
+      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
       xs: {
         paddingX: 6,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 28,
+        gap: 6,
         iconSize: 18,
       },
       sm: {
@@ -1461,6 +1471,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 32,
+        gap: 6,
         iconSize: 20,
       },
       md: {
@@ -1468,6 +1479,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 40,
+        gap: 8,
         iconSize: 26,
       },
       lg: {
@@ -1475,6 +1487,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 48,
+        gap: 10,
         iconSize: 32,
       },
       xl: {
@@ -1482,6 +1495,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 56,
+        gap: 12,
         iconSize: 36,
       },
     },
@@ -2400,11 +2414,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (FileTrigger.spec.sizes 미러). padding 은 composition.containerStyles inline-block
+      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만). iconSize 는 이미 존재.
       sm: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 32,
+        gap: 6,
         iconSize: 14,
       },
       md: {
@@ -2412,6 +2430,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 40,
+        gap: 8,
         iconSize: 16,
       },
       lg: {
@@ -2419,6 +2438,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 48,
+        gap: 10,
         iconSize: 20,
       },
     },
@@ -2454,29 +2474,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (Form.spec.sizes 미러). padding 은 composition.layout=flex-column + containerStyles
+      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
       sm: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
+        gap: 12,
       },
       md: {
         paddingX: 20,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
+        gap: 16,
       },
       lg: {
         paddingX: 28,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,
+        gap: 20,
       },
       xl: {
         paddingX: 36,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.2xl}",
         height: 0,
+        gap: 24,
       },
     },
   },
@@ -3783,11 +3810,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {},
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (NumberField.spec.sizes 미러). padding 은 composition.layout=flex-column root
+      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
       xs: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
+        gap: 2,
         iconSize: 10,
       },
       sm: {
@@ -3795,6 +3826,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
+        gap: 4,
         iconSize: 14,
       },
       md: {
@@ -3802,6 +3834,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
+        gap: 6,
         iconSize: 18,
       },
       lg: {
@@ -3809,6 +3842,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
+        gap: 8,
         iconSize: 22,
       },
       xl: {
@@ -3816,6 +3850,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
+        gap: 10,
         iconSize: 28,
       },
     },
@@ -4313,25 +4348,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS root `gap: Npx`
+      //   재생성용 (RadioGroup.spec.sizes 미러). 자식 .radio-items gap 은 composition
+      //   containerVariants.size 의 --radio-items-gap 별도 경로. padding 미emit(ownsContainerBox).
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
+        gap: 8,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
+        gap: 12,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
+        gap: 16,
       },
       xl: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.none}",
         height: 0,
+        gap: 20,
       },
     },
   },
@@ -4391,28 +4433,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {},
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (SearchField.spec.sizes 미러). paddingY 는 composition.layout=flex-column root 가
+      //   ownsContainerBox → padding 미emit 이라 보강 불요(gap 만).
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
+        gap: 6,
         iconSize: 14,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
+        gap: 8,
         iconSize: 18,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
+        gap: 10,
         iconSize: 22,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
+        gap: 10,
         iconSize: 28,
       },
     },
@@ -4497,20 +4546,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): paddingY/gap 보강 — spec 삭제 후 generated CSS
+      //   `padding: Ypx Xpx` + `gap: Npx` 재생성용 (Section.spec.sizes 미러, Nav/DropZone 선례).
       sm: {
         paddingX: 12,
+        paddingY: 12,
+        gap: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
       md: {
         paddingX: 16,
+        paddingY: 16,
+        gap: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       lg: {
         paddingX: 24,
+        paddingY: 24,
+        gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -6032,29 +6089,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {},
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (TextArea.spec.sizes 미러). padding 은 input-base archetype + composition
+      //   ownsContainerBox → 미emit 이라 paddingX/paddingY 보강 불요(gap 만).
       sm: {
         paddingX: 10,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 64,
+        gap: 4,
       },
       md: {
         paddingX: 14,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 80,
+        gap: 6,
       },
       lg: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
         height: 120,
+        gap: 8,
       },
       xl: {
         paddingX: 24,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.lg}",
         height: 160,
+        gap: 10,
       },
     },
   },
@@ -6062,35 +6126,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {},
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (TextField.spec.sizes 미러). padding 은 composition.layout=flex-column root
+      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
       xs: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.sm}",
         height: 18,
+        gap: 2,
       },
       sm: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
+        gap: 4,
       },
       md: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
+        gap: 6,
       },
       lg: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
+        gap: 8,
       },
       xl: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
+        gap: 10,
       },
     },
   },
@@ -6098,25 +6170,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "md",
     variants: {},
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
+      //   재생성용 (TimeField.spec.sizes 미러). padding 은 composition.layout=flex-column root
+      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만). borderRadius:0 은 spec 일치.
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: 22,
+        gap: 4,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: 30,
+        gap: 6,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: 0,
         height: 42,
+        gap: 8,
       },
       xl: {
         fontSize: "{typography.text-xl}",
         borderRadius: 0,
         height: 54,
+        gap: 10,
       },
     },
   },
@@ -6353,23 +6432,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS [data-size]
+      //   `gap: Npx` 재생성용 (Toolbar.spec.sizes 미러). base gap:8px 는 composition.containerStyles
+      //   별도 경로. padding 미emit(ownsContainerBox).
       sm: {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
+        gap: 4,
       },
       md: {
         paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 0,
+        gap: 8,
       },
       lg: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 0,
+        gap: 10,
       },
     },
   },

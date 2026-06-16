@@ -19,16 +19,9 @@ import type { ComponentSpec } from "../types/spec.types";
 // Preview DOM element resolution 용도로 한정된다.
 import { DialogSpec } from "../components/Dialog.spec";
 import { PopoverSpec } from "../components/Popover.spec";
-import { TextFieldSpec } from "../components/TextField.spec";
-import { TextAreaSpec } from "../components/TextArea.spec";
-import { NumberFieldSpec } from "../components/NumberField.spec";
-import { SearchFieldSpec } from "../components/SearchField.spec";
 import { CheckboxSpec } from "../components/Checkbox.spec";
-import { CheckboxGroupSpec } from "../components/CheckboxGroup.spec";
 import { RadioSpec } from "../components/Radio.spec";
-import { RadioGroupSpec } from "../components/RadioGroup.spec";
 import { SwitchSpec } from "../components/Switch.spec";
-import { FormSpec } from "../components/Form.spec";
 import { SelectSpec } from "../components/Select.spec";
 import { ComboBoxSpec } from "../components/ComboBox.spec";
 import { ListBoxSpec } from "../components/ListBox.spec";
@@ -52,24 +45,20 @@ import { GridListSpec } from "../components/GridList.spec";
 // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, BASE entry 제거.
 // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec import 제거 — catalog cutover,
 //   BASE entry 제거. skipCSSGeneration:true + render.shapes=()=>[] (Skia 0 shape).
-import { ToolbarSpec } from "../components/Toolbar.spec";
 // ADR-912 R7 G1-c (2026-06-15): ToastSpec import 제거 — 순수 box-shell catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { GroupSpec } from "../components/Group.spec";
 import { FrameSpec } from "../components/Frame.spec";
 import { SlotSpec } from "../components/Slot.spec";
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover.
-import { FileTriggerSpec } from "../components/FileTrigger.spec";
 import { DatePickerSpec } from "../components/DatePicker.spec";
 import { DateRangePickerSpec } from "../components/DateRangePicker.spec";
 import { DateFieldSpec } from "../components/DateField.spec";
-import { TimeFieldSpec } from "../components/TimeField.spec";
 import { DateInputSpec } from "../components/DateInput.spec";
 import { CalendarSpec } from "../components/Calendar.spec";
 // ADR-912 단계5 step4 small 그룹 (2026-06-16): CalendarHeader/CalendarGrid.spec import 제거 —
 //   catalog cutover, BASE entry 제거. skipCSSGeneration:true, replace primitive(spec-free) 대체.
 import { RangeCalendarSpec } from "../components/RangeCalendar.spec";
 import { ColorPickerSpec } from "../components/ColorPicker.spec";
-import { ColorFieldSpec } from "../components/ColorField.spec";
 import { ColorSwatchPickerSpec } from "../components/ColorSwatchPicker.spec";
 import { InputSpec } from "../components/Input.spec";
 // ADR-912 Switcher cleanup — SwitcherSpec import 제거 (RAC ToggleButtonGroup 으로 대체).
@@ -90,7 +79,6 @@ import { InlineAlertSpec } from "../components/InlineAlert.spec";
 import { ToggleButtonGroupSpec } from "../components/ToggleButtonGroup.spec";
 import { TooltipSpec } from "../components/Tooltip.spec";
 // ADR-912 단계5: ProgressCircleSpec 삭제 — catalog cutover(value_fill_arc escape) + generate-css virtual
-import { SectionSpec } from "../components/Section.spec";
 import { BodySpec } from "../components/Body.spec";
 import { IllustratedMessageSpec } from "../components/IllustratedMessage.spec";
 // ADR-912 R7 G1-b: CardViewSpec/TableViewSpec 삭제 — catalog cutover (BASE_TAG_SPEC_MAP 등록 제거)
@@ -110,20 +98,12 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → BASE entry 제거 (R5 에서 childSpecs 이미 제거됨).
   Dialog: DialogSpec,
   Popover: PopoverSpec,
-  Section: SectionSpec,
   Body: BodySpec,
   ToggleButtonGroup: ToggleButtonGroupSpec,
   Tooltip: TooltipSpec,
-  TextField: TextFieldSpec,
-  TextArea: TextAreaSpec,
-  NumberField: NumberFieldSpec,
-  SearchField: SearchFieldSpec,
   Checkbox: CheckboxSpec,
-  CheckboxGroup: CheckboxGroupSpec,
   Radio: RadioSpec,
-  RadioGroup: RadioGroupSpec,
   Switch: SwitchSpec,
-  Form: FormSpec,
   Select: SelectSpec,
   ComboBox: ComboBoxSpec,
   ListBox: ListBoxSpec,
@@ -158,7 +138,6 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 6 registry collapse (2026-06-11) — TailSwatch/ColorSlider/ColorArea/ColorWheel/ColorSwatch
   //   spec entry 삭제 (color leaf box-only cutover, 시각 = catalog rule). ColorPicker/ColorField/
   //   ColorSwatchPicker(container/field) 보존.
-  Toolbar: ToolbarSpec,
   // ADR-912 R7 G1-c (2026-06-15): Toast 순수 box-shell catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
   //   isCatalogCutover('Toast')=true → Skia 진입 게이트(buildSpecNodeData) spec 없이 통과. binding.accepts D2.
   Group: GroupSpec,
@@ -168,18 +147,15 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Slot: SlotSpec,
   // DropZone — ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): catalog cutover, TAG_SPEC_MAP 제거.
   //   isCatalogCutover("DropZone")=true → buildSpecNodeData/generate-css 가 catalog rule 로 처리.
-  FileTrigger: FileTriggerSpec,
   DatePicker: DatePickerSpec,
   DateRangePicker: DateRangePickerSpec,
   DateField: DateFieldSpec,
-  TimeField: TimeFieldSpec,
   DateInput: DateInputSpec,
   Calendar: CalendarSpec,
   // CalendarHeader/CalendarGrid — ADR-912 단계5 step4 small 그룹 (2026-06-16): catalog cutover,
   //   BASE entry 제거. isCatalogCutover=true → Skia 진입 게이트 spec 없이 통과(replace primitive 대체).
   RangeCalendar: RangeCalendarSpec,
   ColorPicker: ColorPickerSpec,
-  ColorField: ColorFieldSpec,
   ColorSwatchPicker: ColorSwatchPickerSpec,
   Input: InputSpec,
   // ADR-912 단계5 step4 Phase 1 batch 1: Avatar 제거 — catalog cutover spec-free (isCatalogCutover 게이트)

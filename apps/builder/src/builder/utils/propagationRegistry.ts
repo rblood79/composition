@@ -13,19 +13,12 @@ import {
   // Phase 2: 기존 delegation 컴포넌트
   SelectSpec,
   ComboBoxSpec,
-  SearchFieldSpec,
-  CheckboxGroupSpec,
-  RadioGroupSpec,
+  // ADR-912 단계5 step4 small-B (2026-06-16): SearchField/CheckboxGroup/RadioGroup/TextField/TextArea/NumberField/TimeField/ColorField Spec import 제거 — catalog cutover, propagation.rules 는 createPropagationOnlySpec 인라인 이관(Card 선례).
   TagGroupSpec,
   CheckboxSpec,
   RadioSpec,
   SwitchSpec,
-  TextFieldSpec,
-  TextAreaSpec,
-  NumberFieldSpec,
   DateFieldSpec,
-  TimeFieldSpec,
-  ColorFieldSpec,
   SliderSpec,
   ProgressBarSpec,
   MeterSpec,
@@ -142,6 +135,101 @@ const cardContentPropagationSpec = createPropagationOnlySpec("CardContent", [
   },
 ]);
 
+// ADR-912 단계5 step4 small-B (2026-06-16): TextField.spec 삭제 — propagation.rules 인라인 보존.
+const textFieldPropagationSpec = createPropagationOnlySpec("TextField", [
+  { parentProp: "size", childPath: "Label", override: true },
+  { parentProp: "size", childPath: "Input", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "placeholder",
+    childPath: "Input",
+    childProp: "placeholder",
+    override: true,
+  },
+]);
+
+// ADR-912 단계5 step4 small-B (2026-06-16): SearchField.spec 삭제 — propagation.rules 인라인 보존.
+const searchFieldPropagationSpec = createPropagationOnlySpec("SearchField", [
+  { parentProp: "size", childPath: "SelectTrigger", override: true },
+  { parentProp: "size", childPath: "SelectValue", override: true },
+  { parentProp: "size", childPath: "SelectIcon", override: true },
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "placeholder",
+    childPath: ["SelectTrigger", "SelectValue"],
+    childProp: "placeholder",
+    override: true,
+  },
+]);
+
+// ADR-912 단계5 step4 small-B (2026-06-16): TextArea.spec 삭제 — propagation.rules 인라인 보존.
+const textAreaPropagationSpec = createPropagationOnlySpec("TextArea", [
+  { parentProp: "size", childPath: "Label", override: true },
+]);
+
+// ADR-912 단계5 step4 small-B (2026-06-16): NumberField.spec 삭제 — propagation.rules 인라인 보존.
+const numberFieldPropagationSpec = createPropagationOnlySpec("NumberField", [
+  { parentProp: "size", childPath: "Label", override: true },
+  { parentProp: "size", childPath: "SelectTrigger", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "placeholder",
+    childPath: ["SelectTrigger", "SelectValue"],
+    childProp: "placeholder",
+    override: true,
+  },
+]);
+
+// ADR-912 단계5 step4 small-B (2026-06-16): TimeField.spec 삭제 — propagation.rules 인라인 보존.
+const timeFieldPropagationSpec = createPropagationOnlySpec("TimeField", [
+  { parentProp: "size", childPath: "Label", override: true },
+  { parentProp: "size", childPath: "DateInput", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+]);
+
+// ADR-912 단계5 step4 small-B (2026-06-16): ColorField.spec 삭제 — propagation.rules 인라인 보존.
+const colorFieldPropagationSpec = createPropagationOnlySpec("ColorField", [
+  { parentProp: "size", childPath: "Label", override: true },
+]);
+
+// ADR-912 단계5 step4 small-B (2026-06-16): CheckboxGroup.spec 삭제 — propagation.rules 인라인 보존.
+const checkboxGroupPropagationSpec = createPropagationOnlySpec(
+  "CheckboxGroup",
+  [
+    { parentProp: "size", childPath: ["Checkbox"], override: true },
+    { parentProp: "size", childPath: ["Checkbox", "Label"], override: true },
+    { parentProp: "size", childPath: "Label", override: true },
+  ],
+);
+
+// ADR-912 단계5 step4 small-B (2026-06-16): RadioGroup.spec 삭제 — propagation.rules 인라인 보존.
+const radioGroupPropagationSpec = createPropagationOnlySpec("RadioGroup", [
+  { parentProp: "size", childPath: ["Radio"], override: true },
+  { parentProp: "size", childPath: ["Radio", "Label"], override: true },
+  { parentProp: "size", childPath: "Label", override: true },
+]);
+
 // ─── Lazy Index ─────────────────────────────────────────────────────────────
 
 /** 정방향: parentTag(소문자) → PropagationRule[] */
@@ -232,19 +320,19 @@ registerPropagationSpec("DatePicker", DatePickerSpec);
 registerPropagationSpec("DateRangePicker", DateRangePickerSpec);
 registerPropagationSpec("Select", SelectSpec);
 registerPropagationSpec("ComboBox", ComboBoxSpec);
-registerPropagationSpec("SearchField", SearchFieldSpec);
-registerPropagationSpec("CheckboxGroup", CheckboxGroupSpec);
-registerPropagationSpec("RadioGroup", RadioGroupSpec);
+registerPropagationSpec("SearchField", searchFieldPropagationSpec);
+registerPropagationSpec("CheckboxGroup", checkboxGroupPropagationSpec);
+registerPropagationSpec("RadioGroup", radioGroupPropagationSpec);
 registerPropagationSpec("TagGroup", TagGroupSpec);
 registerPropagationSpec("Checkbox", CheckboxSpec);
 registerPropagationSpec("Radio", RadioSpec);
 registerPropagationSpec("Switch", SwitchSpec);
-registerPropagationSpec("TextField", TextFieldSpec);
-registerPropagationSpec("TextArea", TextAreaSpec);
-registerPropagationSpec("NumberField", NumberFieldSpec);
+registerPropagationSpec("TextField", textFieldPropagationSpec);
+registerPropagationSpec("TextArea", textAreaPropagationSpec);
+registerPropagationSpec("NumberField", numberFieldPropagationSpec);
 registerPropagationSpec("DateField", DateFieldSpec);
-registerPropagationSpec("TimeField", TimeFieldSpec);
-registerPropagationSpec("ColorField", ColorFieldSpec);
+registerPropagationSpec("TimeField", timeFieldPropagationSpec);
+registerPropagationSpec("ColorField", colorFieldPropagationSpec);
 registerPropagationSpec("Slider", SliderSpec);
 registerPropagationSpec("ProgressBar", ProgressBarSpec);
 registerPropagationSpec("Meter", MeterSpec);

@@ -18,12 +18,10 @@
 import { describe, expect, it } from "vitest";
 import {
   DialogSpec,
-  SectionSpec,
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) + Card 본체 R6 + ButtonGroup R7 G1-c (2026-06-15) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
-  CheckboxGroupSpec,
-  RadioGroupSpec,
+  // ADR-912 단계5 step4 small-B (2026-06-16): Section/CheckboxGroup/RadioGroup/Form spec import 제거 —
+  //   catalog cutover spec 삭제로 _hasChildren 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes shell 경로).
   ToggleButtonGroupSpec,
-  FormSpec,
   PopoverSpec,
   TooltipSpec,
   ColorPickerSpec,
@@ -42,15 +40,15 @@ const phase1Candidates: Array<{ type: string; spec: AnySpec }> = [
   //   Card 의 SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더), 시각 검증은
   //   catalog rule + buildCatalogShapes shell 경로.
   { type: "Dialog", spec: DialogSpec as unknown as AnySpec },
-  { type: "Section", spec: SectionSpec as unknown as AnySpec },
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
+  // ADR-912 단계5 step4 small-B (2026-06-16): Section catalog cutover spec 삭제로 제외.
 ];
 
 // Phase 2-A (Group 컨테이너 — factory items 자동 생성)
 // ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover spec 삭제로 제외 (시각 = catalog rule + buildCatalogShapes)
 const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [
-  { type: "CheckboxGroup", spec: CheckboxGroupSpec as unknown as AnySpec },
-  { type: "RadioGroup", spec: RadioGroupSpec as unknown as AnySpec },
+  // ADR-912 단계5 step4 small-B (2026-06-16): CheckboxGroup/RadioGroup catalog cutover spec 삭제로 제외
+  //   (시각 = catalog rule + buildCatalogShapes shell, propagation = createPropagationOnlySpec 인라인).
   {
     type: "ToggleButtonGroup",
     spec: ToggleButtonGroupSpec as unknown as AnySpec,
@@ -60,7 +58,7 @@ const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [
 // Phase 2-B (standalone 실렌더 — factory 자식 CanvasSceneNode가 대체 커버)
 const phase2BCandidates: Array<{ type: string; spec: AnySpec }> = [
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
-  { type: "Form", spec: FormSpec as unknown as AnySpec },
+  // ADR-912 단계5 step4 small-B (2026-06-16): Form catalog cutover spec 삭제로 제외.
   { type: "Popover", spec: PopoverSpec as unknown as AnySpec },
   { type: "Tooltip", spec: TooltipSpec as unknown as AnySpec },
   { type: "ColorPicker", spec: ColorPickerSpec as unknown as AnySpec },

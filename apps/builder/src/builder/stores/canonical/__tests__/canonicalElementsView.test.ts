@@ -8,8 +8,8 @@ import type {
   CompositionDocument,
   CompositionExtension,
 } from "@composition/shared";
-import { SectionSpec, TextFieldSpec } from "@composition/specs";
-import type { SizeSpec } from "@composition/specs";
+// ADR-912 단계5 step4 small-B (2026-06-16): SectionSpec/TextFieldSpec + SizeSpec import 제거 —
+//   spec consumer parity describe 삭제로 미사용(catalog cutover spec 삭제).
 
 import { canonicalDocumentToElements } from "../canonicalElementsView";
 
@@ -434,48 +434,7 @@ describe("canonicalDocumentToElements", () => {
   });
 });
 
-describe("canonicalDocumentToElements — spec consumer parity", () => {
-  // render.shapes() 의 size param 은 SizeSpec (paddingX/paddingY/borderRadius
-  // required) 으로 좁혀졌으나, 본 parity 테스트는 spec consumer 호출만 검증한다.
-  // 최소 size context 값은 유지하고 unknown 경유 cast 로 타입만 흡수.
-  const sizeContext = {
-    width: 120,
-    height: 32,
-    fontSize: 14,
-  } as unknown as SizeSpec;
-
-  // ADR-912 box+text leaf 군 (2026-06-11): Button.spec 삭제 — catalog 발효(isCatalogSkiaCutover)로
-  //   spec.render.shapes 미사용. canonical props → element 변환 검증은 TextField/Section 케이스가 커버.
-
-  it("TextFieldSpec.render.shapes() consumes canonical props", () => {
-    const [element] = canonicalDocumentToElements(
-      makeDoc([
-        {
-          id: "textfield-1",
-          type: "TextField",
-          props: { label: "Email", placeholder: "you@example.com", size: "md" },
-        },
-      ]),
-    );
-
-    expect(
-      TextFieldSpec.render!.shapes!(element.props, sizeContext, "default"),
-    ).toBeDefined();
-  });
-
-  it("SectionSpec.render.shapes() consumes canonical props", () => {
-    const [element] = canonicalDocumentToElements(
-      makeDoc([
-        {
-          id: "section-1",
-          type: "Section",
-          props: { variant: "default" },
-        },
-      ]),
-    );
-
-    expect(
-      SectionSpec.render!.shapes!(element.props, sizeContext, "default"),
-    ).toBeDefined();
-  });
-});
+// ADR-912 단계5 step4 small-B (2026-06-16): "spec consumer parity" describe 제거 —
+//   TextField/Section catalog cutover spec 삭제로 render.shapes consumer 검증 대상 소멸
+//   (Button 선례 동형, canonical props → element 변환은 위 describe 가 직접 커버). 시각은
+//   catalog rule(COMPONENT_RULES_TABLE) + buildCatalogShapes generic box 경로.

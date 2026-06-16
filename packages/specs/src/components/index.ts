@@ -40,8 +40,6 @@ export { ToggleButtonGroupSpec } from "./ToggleButtonGroup.spec";
 export type { ToggleButtonGroupProps } from "./ToggleButtonGroup.spec";
 
 // Section
-export { SectionSpec } from "./Section.spec";
-export type { SectionProps } from "./Section.spec";
 
 // Body (ADR-902 후속 — 페이지 루트 theme-aware 배경)
 export { BodySpec } from "./Body.spec";
@@ -52,28 +50,18 @@ export { TooltipSpec, TOOLTIP_MAX_WIDTH } from "./Tooltip.spec";
 export type { TooltipProps } from "./Tooltip.spec";
 
 // TextField
-export { TextFieldSpec } from "./TextField.spec";
-export type { TextFieldProps } from "./TextField.spec";
 
 // TextArea
-export { TextAreaSpec } from "./TextArea.spec";
-export type { TextAreaProps } from "./TextArea.spec";
 
 // NumberField
-export { NumberFieldSpec } from "./NumberField.spec";
-export type { NumberFieldProps } from "./NumberField.spec";
 
 // SearchField
-export { SearchFieldSpec } from "./SearchField.spec";
-export type { SearchFieldProps } from "./SearchField.spec";
 
 // Checkbox
 export { CheckboxSpec, CHECKBOX_CHECKED_COLORS } from "./Checkbox.spec";
 export type { CheckboxProps } from "./Checkbox.spec";
 
 // CheckboxGroup
-export { CheckboxGroupSpec } from "./CheckboxGroup.spec";
-export type { CheckboxGroupProps } from "./CheckboxGroup.spec";
 
 // CheckboxItems — ADR-912 collection sub-part cutover (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
@@ -82,8 +70,6 @@ export { RadioSpec, RADIO_SELECTED_COLORS } from "./Radio.spec";
 export type { RadioProps } from "./Radio.spec";
 
 // RadioGroup
-export { RadioGroupSpec } from "./RadioGroup.spec";
-export type { RadioGroupProps } from "./RadioGroup.spec";
 
 // RadioItems — ADR-912 collection sub-part cutover (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
@@ -92,8 +78,6 @@ export { SwitchSpec, SWITCH_SELECTED_TRACK_COLORS } from "./Switch.spec";
 export type { SwitchProps } from "./Switch.spec";
 
 // Form
-export { FormSpec } from "./Form.spec";
-export type { FormProps } from "./Form.spec";
 
 // ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2).
 //   DialogFooter 동형. 시각은 rule + buildCatalogShapes generic, layout 은 factory props.style.
@@ -168,8 +152,6 @@ export { DateInputSpec } from "./DateInput.spec";
 export type { DateInputProps } from "./DateInput.spec";
 
 // TimeField
-export { TimeFieldSpec } from "./TimeField.spec";
-export type { TimeFieldProps } from "./TimeField.spec";
 
 // Calendar
 export { CalendarSpec } from "./Calendar.spec";
@@ -187,8 +169,6 @@ export { ColorPickerSpec } from "./ColorPicker.spec";
 export type { ColorPickerProps } from "./ColorPicker.spec";
 
 // ColorField
-export { ColorFieldSpec } from "./ColorField.spec";
-export type { ColorFieldProps } from "./ColorField.spec";
 
 // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11):
 //   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제 (catalog cutover 완결,
@@ -251,8 +231,6 @@ export { resolveGridListItemMetric } from "../renderers/utils/collectionItemMetr
 //   시각 SSOT = componentRulesTable catalog rule.
 
 // Toolbar
-export { ToolbarSpec } from "./Toolbar.spec";
-export type { ToolbarProps } from "./Toolbar.spec";
 
 // Toast — ADR-912 R7 G1-c (2026-06-15): 순수 box-shell catalog cutover, spec 삭제. binding.accepts D2.
 //   좌측 accent bar 는 RAC 공식(react-aria.adobe.com/Toast) 미준수 변형이라 제거.
@@ -275,8 +253,6 @@ export type { SlotProps } from "./Slot.spec";
 //   시각 SSOT = COMPONENT_RULES_TABLE.DropZone + generate-css virtual override.
 
 // FileTrigger
-export { FileTriggerSpec } from "./FileTrigger.spec";
-export type { FileTriggerProps } from "./FileTrigger.spec";
 
 // Label
 

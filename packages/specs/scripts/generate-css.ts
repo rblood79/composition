@@ -866,6 +866,1679 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
     containerStyles: undefined,
     states: {},
   },
+  // ADR-912 단계5 step4 small-B (2026-06-16) — Section (default archetype, Section.spec.ts 삭제 대상).
+  //   archetype "default": DEFAULT_BASE_STYLES(inline-flex/align/justify/box-sizing/cursor/user-select/
+  //   transition/font-family) emit. variant 6종(default alpha:0/accent/neutral/purple/surface/outlined)
+  //   는 rule 파생. sizes(paddingX/paddingY/gap 2026-06-16 rule 보강 + fontSize/borderRadius/height:0)
+  //   는 rule emit. Skia 는 catalog cutover generic box. composition 불요. states 는 spec.states 미러
+  //   (hover/pressed 빈 + disabled opacity+pointerEvents — focusVisible 없음).
+  {
+    name: "Section",
+    archetype: "default",
+    element: "section",
+    containerStyles: undefined,
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+    },
+  },
+  // ADR-912 단계5 step4 small-B (2026-06-16) — input-field 군 (TextField/SearchField/TextArea/
+  //   NumberField/TimeField/ColorField). composition.layout=flex-column root 가 ownsContainerBox →
+  //   padding 미emit, gap 만 rule.sizes 에서 재생성(rule gap 보강 완료). composition(containerVariants
+  //   label-position/quiet + delegation)은 spec verbatim carry. states 는 spec.states 미러
+  //   (disabled.pointerEvents:none 등 기본값과 달라 명시 필수). Skia 는 catalog cutover generic box.
+  {
+    name: "TextField",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        width: "fit-content",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              display: "grid",
+              "grid-template-columns":
+                "var(--form-label-width, max-content) minmax(0, 1fr)",
+              "column-gap": "var(--form-field-gap, var(--spacing-md))",
+              "row-gap": "var(--spacing-xs)",
+              "align-items": "start",
+              width: "100%",
+            },
+            nested: [
+              {
+                selector: "> .react-aria-Label",
+                styles: {
+                  "grid-column": "1",
+                  "justify-self": "stretch",
+                  "text-align": "var(--form-label-align, start)",
+                },
+              },
+              {
+                selector: "> :not(.react-aria-Label)",
+                styles: { "grid-column": "2", "min-width": "0" },
+              },
+            ],
+          },
+        },
+        quiet: {
+          true: {
+            styles: {
+              "--tf-border": "transparent",
+              "--tf-bg": "transparent",
+            },
+            nested: [
+              {
+                selector: ".react-aria-Input",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector: ".react-aria-Input:where([data-focused])",
+                styles: {
+                  outline: "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: ".react-aria-Input:where([data-invalid])",
+                styles: {
+                  "border-bottom-color": "var(--negative)",
+                },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "tf-label",
+          variables: {
+            xs: {
+              "--tf-label-size": "var(--text-2xs)",
+              "--tf-label-margin": "0px",
+            },
+            sm: {
+              "--tf-label-size": "var(--text-xs)",
+              "--tf-label-margin": "0px",
+            },
+            md: {
+              "--tf-label-size": "var(--text-sm)",
+              "--tf-label-margin": "2px",
+            },
+            lg: {
+              "--tf-label-size": "var(--text-base)",
+              "--tf-label-margin": "4px",
+            },
+            xl: {
+              "--tf-label-size": "var(--text-lg)",
+              "--tf-label-margin": "6px",
+            },
+          },
+          bridges: {
+            "--label-font-size": "var(--tf-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "var(--tf-label-margin)",
+          },
+        },
+        {
+          childSelector: ".react-aria-Input",
+          prefix: "tf-input",
+          variables: {
+            xs: {
+              "--tf-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
+              "--tf-input-size": "var(--text-2xs)",
+              "--tf-input-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--tf-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
+              "--tf-input-size": "var(--text-xs)",
+              "--tf-input-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--tf-input-padding": "var(--spacing-xs) var(--spacing-md)",
+              "--tf-input-size": "var(--text-sm)",
+              "--tf-input-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--tf-input-padding": "var(--spacing-sm) var(--spacing-lg)",
+              "--tf-input-size": "var(--text-base)",
+              "--tf-input-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--tf-input-padding": "var(--spacing-md) var(--spacing-xl)",
+              "--tf-input-size": "var(--text-lg)",
+              "--tf-input-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            "--input-padding": "var(--tf-input-padding)",
+            "--input-font-size": "var(--tf-input-size)",
+            "--input-line-height": "var(--tf-input-line-height)",
+          },
+          states: {
+            "[data-hovered]:not([data-focused]):not([data-disabled])": {
+              "border-color": "var(--border-hover)",
+            },
+            "[data-focused]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+              "border-color": "var(--accent)",
+            },
+            "[data-invalid]": {
+              "border-color": "var(--negative)",
+            },
+            "[data-invalid][data-focused]": {
+              "outline-color": "var(--negative)",
+            },
+            "[data-disabled]": {
+              "border-color": "color-mix(in srgb, var(--fg) 12%, transparent)",
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+              opacity: "0.38",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "tf-hint",
+          variables: {
+            xs: { "--tf-hint-size": "var(--text-2xs)" },
+            sm: { "--tf-hint-size": "var(--text-xs)" },
+            md: { "--tf-hint-size": "var(--text-sm)" },
+            lg: { "--tf-hint-size": "var(--text-base)" },
+            xl: { "--tf-hint-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--tf-hint-size)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--tf-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "SearchField",
+    archetype: "default",
+    element: "div",
+    containerStyles: undefined,
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        width: "fit-content",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              display: "grid",
+              "grid-template-columns":
+                "var(--form-label-width, max-content) minmax(0, 1fr)",
+              "column-gap": "var(--form-field-gap, var(--spacing-md))",
+              "row-gap": "var(--spacing-xs)",
+              "align-items": "start",
+              width: "100%",
+            },
+            nested: [
+              {
+                selector: "> .react-aria-Label",
+                styles: {
+                  "grid-column": "1",
+                  "justify-self": "stretch",
+                  "text-align": "var(--form-label-align, start)",
+                },
+              },
+              {
+                selector: "> :not(.react-aria-Label)",
+                styles: { "grid-column": "2", "min-width": "0" },
+              },
+            ],
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".searchfield-container",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector:
+                  ".searchfield-container:hover:not(:has([data-disabled])):not(:has([data-focused]))",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector: ".searchfield-container:has([data-focused])",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: ".searchfield-container:has([data-invalid])",
+                styles: {
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--negative)",
+                },
+              },
+            ],
+          },
+        },
+        empty: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Button",
+                styles: { display: "none" },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "sf-label",
+          variables: {
+            xs: { "--sf-label-size": "var(--text-2xs)" },
+            sm: { "--sf-label-size": "var(--text-xs)" },
+            md: { "--sf-label-size": "var(--text-sm)" },
+            lg: { "--sf-label-size": "var(--text-base)" },
+            xl: { "--sf-label-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--label-font-size": "var(--sf-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "0",
+          },
+        },
+        {
+          childSelector: ".react-aria-Input",
+          prefix: "sf-input",
+          variables: {
+            xs: {
+              "--sf-input-size": "var(--text-2xs)",
+              "--sf-input-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--sf-input-size": "var(--text-xs)",
+              "--sf-input-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--sf-input-size": "var(--text-sm)",
+              "--sf-input-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--sf-input-size": "var(--text-base)",
+              "--sf-input-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--sf-input-size": "var(--text-lg)",
+              "--sf-input-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            flex: "1",
+            "min-width": "0",
+            padding: "0",
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            color: "var(--fg)",
+            "font-size": "var(--sf-input-size)",
+            "line-height": "var(--sf-input-line-height)",
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "sf-hint",
+          variables: {
+            xs: { "--sf-hint-size": "var(--text-2xs)" },
+            sm: { "--sf-hint-size": "var(--text-xs)" },
+            md: { "--sf-hint-size": "var(--text-xs)" },
+            lg: { "--sf-hint-size": "var(--text-sm)" },
+            xl: { "--sf-hint-size": "var(--text-base)" },
+          },
+          bridges: {
+            "font-size": "var(--sf-hint-size)",
+            color: "var(--negative)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--sf-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+        {
+          childSelector: ".search-icon",
+          prefix: "sf-icon",
+          variables: {
+            xs: { "--sf-icon-size": "10px" },
+            sm: { "--sf-icon-size": "12px" },
+            md: { "--sf-icon-size": "16px" },
+            lg: { "--sf-icon-size": "18px" },
+            xl: { "--sf-icon-size": "22px" },
+          },
+          bridges: {
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "flex-shrink": "0",
+            color: "var(--fg-muted)",
+          },
+        },
+        {
+          childSelector: ".search-icon svg",
+          bridges: {
+            width: "var(--sf-icon-size)",
+            height: "var(--sf-icon-size)",
+          },
+        },
+        {
+          childSelector: ".react-aria-Button",
+          prefix: "sf-btn",
+          variables: {
+            xs: { "--sf-btn-size": "10px" },
+            sm: { "--sf-btn-size": "14px" },
+            md: { "--sf-btn-size": "18px" },
+            lg: { "--sf-btn-size": "22px" },
+            xl: { "--sf-btn-size": "28px" },
+          },
+          bridges: {
+            position: "static",
+            flex: "0 0 auto",
+            width: "var(--sf-btn-size)",
+            height: "var(--sf-btn-size)",
+            padding: "0",
+            border: "none",
+            background: "var(--bg-overlay)",
+            color: "var(--fg)",
+            "forced-color-adjust": "none",
+            "box-shadow": "var(--shadow-sm)",
+            cursor: "pointer",
+          },
+          states: {
+            "[data-hovered]:not([data-disabled])": {
+              background: "var(--accent-subtle)",
+            },
+            "[data-pressed]:not([data-disabled])": {
+              background:
+                "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
+            },
+            "[data-focus-visible]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "2px",
+            },
+            "[data-disabled]": {
+              background: "color-mix(in srgb, var(--fg) 12%, transparent)",
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-Button svg",
+          bridges: {
+            width: "var(--sf-icon-size)",
+            height: "var(--sf-icon-size)",
+          },
+        },
+        {
+          childSelector: ".searchfield-container",
+          prefix: "sf-container",
+          variables: {
+            xs: {
+              "--sf-container-padding":
+                "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+            },
+            sm: {
+              "--sf-container-padding":
+                "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+            },
+            md: {
+              "--sf-container-padding":
+                "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+            },
+            lg: {
+              "--sf-container-padding":
+                "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+            },
+            xl: {
+              "--sf-container-padding":
+                "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+            },
+          },
+          bridges: {
+            display: "flex",
+            "flex-direction": "row",
+            "align-items": "center",
+            width: "100%",
+            gap: "var(--spacing-xs)",
+            padding: "var(--sf-container-padding)",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--radius-md)",
+            background: "var(--bg-inset)",
+            transition: "border-color 200ms ease, background-color 200ms ease",
+            cursor: "text",
+          },
+          states: {
+            ":hover:not(:has([data-disabled]))": {
+              "border-color": "var(--border-hover)",
+              background: "var(--bg-overlay)",
+            },
+            ":has([data-focused])": {
+              "border-color": "var(--accent)",
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+              background: "var(--bg-overlay)",
+            },
+            ":has([data-invalid])": {
+              "border-color": "var(--negative)",
+            },
+            ":has([data-disabled])": {
+              opacity: "0.38",
+              cursor: "not-allowed",
+              background: "var(--bg-muted)",
+            },
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "TextArea",
+    archetype: "input-base",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      alignItems: "center",
+    },
+    composition: {
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              display: "grid",
+              "grid-template-columns":
+                "var(--form-label-width, max-content) minmax(0, 1fr)",
+              "column-gap": "var(--form-field-gap, var(--spacing-md))",
+              "row-gap": "var(--spacing-xs)",
+              "align-items": "start",
+              width: "100%",
+            },
+            nested: [
+              {
+                selector: "> .react-aria-Label",
+                styles: {
+                  "grid-column": "1",
+                  "justify-self": "stretch",
+                  "text-align": "var(--form-label-align, start)",
+                },
+              },
+              {
+                selector: "> :not(.react-aria-Label)",
+                styles: {
+                  "grid-column": "2",
+                  "min-width": "0",
+                },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "ta-label",
+          variables: {
+            xs: {
+              "--ta-label-size": "var(--text-2xs)",
+              "--ta-label-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--ta-label-size": "var(--text-xs)",
+              "--ta-label-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--ta-label-size": "var(--text-sm)",
+              "--ta-label-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--ta-label-size": "var(--text-base)",
+              "--ta-label-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--ta-label-size": "var(--text-lg)",
+              "--ta-label-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            "--label-font-size": "var(--ta-label-size)",
+            "--label-line-height": "var(--ta-label-line-height)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "NumberField",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        color: "var(--fg)",
+      },
+      containerVariants: {
+        disabled: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Group",
+                styles: {
+                  background: "color-mix(in srgb, var(--fg) 4%, transparent)",
+                  "border-color":
+                    "color-mix(in srgb, var(--fg) 12%, transparent)",
+                  opacity: "0.38",
+                },
+              },
+            ],
+          },
+        },
+        "label-position": {
+          side: {
+            styles: {
+              display: "grid",
+              "grid-template-columns":
+                "var(--form-label-width, max-content) minmax(0, 1fr)",
+              "column-gap": "var(--form-field-gap, var(--spacing-md))",
+              "row-gap": "var(--spacing-xs)",
+              "align-items": "start",
+              width: "100%",
+            },
+            nested: [
+              {
+                selector: "> .react-aria-Label",
+                styles: {
+                  "grid-column": "1",
+                  "justify-self": "stretch",
+                  "text-align": "var(--form-label-align, start)",
+                },
+              },
+              {
+                selector: "> :not(.react-aria-Label)",
+                styles: { "grid-column": "2", "min-width": "0" },
+              },
+            ],
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Group",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .react-aria-Group",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Button[data-hovered]:not([data-disabled])) .react-aria-Group",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Input[data-focused]:not([data-disabled])) .react-aria-Group",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .react-aria-Group",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector:
+                  "&:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .react-aria-Group",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: "&[data-invalid] .react-aria-Group",
+                styles: {
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--negative)",
+                },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "nf-label",
+          variables: {
+            xs: { "--nf-label-size": "var(--text-2xs)" },
+            sm: { "--nf-label-size": "var(--text-xs)" },
+            md: { "--nf-label-size": "var(--text-sm)" },
+            lg: { "--nf-label-size": "var(--text-base)" },
+            xl: { "--nf-label-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--label-font-size": "var(--nf-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: ".react-aria-Group",
+          prefix: "nf-group",
+          bridges: {
+            display: "flex",
+            "align-items": "center",
+            gap: "var(--spacing-xs)",
+            width: "100%",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--border-radius)",
+            background: "var(--bg-inset)",
+            overflow: "hidden",
+            transition: "border-color 200ms ease, background-color 200ms ease",
+            padding:
+              "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+          },
+          states: {
+            ":has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))":
+              {
+                "border-color": "var(--border-hover)",
+                background: "var(--bg-overlay)",
+              },
+            ":has(.react-aria-Button[data-hovered]:not([data-disabled]))": {
+              "border-color": "var(--border-hover)",
+              background: "var(--bg-overlay)",
+            },
+            ":has(.react-aria-Input[data-focused])": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            ":has(.react-aria-Input[data-focus-within])": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            ":has(.react-aria-Button[data-focus-visible])": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+            },
+            ":has([data-invalid])": {
+              "border-color": "var(--negative)",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-Input",
+          prefix: "nf-input",
+          variables: {
+            xs: {
+              "--nf-input-font-size": "var(--text-2xs)",
+              "--nf-input-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--nf-input-font-size": "var(--text-xs)",
+              "--nf-input-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--nf-input-font-size": "var(--text-sm)",
+              "--nf-input-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--nf-input-font-size": "var(--text-base)",
+              "--nf-input-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--nf-input-font-size": "var(--text-lg)",
+              "--nf-input-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            flex: "1 1 auto",
+            "min-width": "0",
+            border: "none",
+            "border-radius": "0",
+            background: "transparent",
+            outline: "none",
+            "forced-color-adjust": "none",
+            padding: "0",
+            "font-size": "var(--nf-input-font-size)",
+            "line-height": "var(--nf-input-line-height)",
+            "--input-padding": "0",
+            "--input-font-size": "var(--nf-input-font-size)",
+            "--input-line-height": "var(--nf-input-line-height)",
+          },
+        },
+        {
+          childSelector: ".react-aria-Button",
+          prefix: "nf-btn",
+          variables: {
+            xs: {
+              "--nf-btn-size": "10px",
+              "--nf-btn-icon-size": "10px",
+            },
+            sm: {
+              "--nf-btn-size": "14px",
+              "--nf-btn-icon-size": "12px",
+            },
+            md: {
+              "--nf-btn-size": "18px",
+              "--nf-btn-icon-size": "16px",
+            },
+            lg: {
+              "--nf-btn-size": "22px",
+              "--nf-btn-icon-size": "18px",
+            },
+            xl: {
+              "--nf-btn-size": "28px",
+              "--nf-btn-icon-size": "22px",
+            },
+          },
+          bridges: {
+            position: "static",
+            flex: "0 0 auto",
+            padding: "0",
+            border: "none",
+            "border-radius": "var(--radius-xs)",
+            width: "var(--nf-btn-size)",
+            height: "var(--nf-btn-size)",
+            "min-width": "unset",
+            "min-height": "unset",
+            background: "var(--bg-overlay)",
+            color: "var(--fg)",
+            "forced-color-adjust": "none",
+            "box-shadow": "var(--shadow-sm)",
+          },
+          states: {
+            "[data-hovered]:not([data-disabled])": {
+              background: "var(--accent-subtle)",
+            },
+            "[data-pressed]:not([data-disabled])": {
+              background:
+                "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
+            },
+            "[data-focus-visible]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "2px",
+            },
+            "[data-disabled]": {
+              background: "color-mix(in srgb, var(--fg) 12%, transparent)",
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-Button svg",
+          bridges: {
+            width: "var(--nf-btn-icon-size)",
+            height: "var(--nf-btn-icon-size)",
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "nf-hint",
+          variables: {
+            xs: { "--nf-hint-size": "var(--text-2xs)" },
+            sm: { "--nf-hint-size": "var(--text-xs)" },
+            md: { "--nf-hint-size": "var(--text-xs)" },
+            lg: { "--nf-hint-size": "var(--text-sm)" },
+            xl: { "--nf-hint-size": "var(--text-base)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--nf-hint-size)",
+            "--error-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--nf-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "TimeField",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-DateInput",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector: ".react-aria-DateInput:where([data-focused])",
+                styles: {
+                  outline: "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: ".react-aria-DateInput:where([data-invalid])",
+                styles: { "border-bottom-color": "var(--negative)" },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "time-field-label",
+          variables: {
+            xs: { "--time-field-label-size": "var(--text-2xs)" },
+            sm: { "--time-field-label-size": "var(--text-xs)" },
+            md: { "--time-field-label-size": "var(--text-sm)" },
+            lg: { "--time-field-label-size": "var(--text-base)" },
+            xl: { "--time-field-label-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--label-font-size": "var(--time-field-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: ".react-aria-DateInput",
+          prefix: "time-field-input",
+          variables: {
+            xs: {
+              "--time-field-input-padding":
+                "var(--spacing-3xs) var(--spacing-xs)",
+              "--time-field-input-size": "var(--text-2xs)",
+              "--time-field-input-line-height": "var(--text-2xs--line-height)",
+              "--time-field-input-min-width": "100px",
+            },
+            sm: {
+              "--time-field-input-padding":
+                "var(--spacing-2xs) var(--spacing-sm)",
+              "--time-field-input-size": "var(--text-xs)",
+              "--time-field-input-line-height": "var(--text-xs--line-height)",
+              "--time-field-input-min-width": "120px",
+            },
+            md: {
+              "--time-field-input-padding":
+                "var(--spacing-xs) var(--spacing-md)",
+              "--time-field-input-size": "var(--text-sm)",
+              "--time-field-input-line-height": "var(--text-sm--line-height)",
+              "--time-field-input-min-width": "150px",
+            },
+            lg: {
+              "--time-field-input-padding":
+                "var(--spacing-sm) var(--spacing-lg)",
+              "--time-field-input-size": "var(--text-base)",
+              "--time-field-input-line-height": "var(--text-base--line-height)",
+              "--time-field-input-min-width": "180px",
+            },
+            xl: {
+              "--time-field-input-padding":
+                "var(--spacing-md) var(--spacing-xl)",
+              "--time-field-input-size": "var(--text-lg)",
+              "--time-field-input-line-height": "var(--text-lg--line-height)",
+              "--time-field-input-min-width": "220px",
+            },
+          },
+          bridges: {
+            display: "inline-flex",
+            padding: "var(--time-field-input-padding)",
+            border: "1px solid",
+            "border-radius": "var(--border-radius)",
+            width: "100%",
+            "min-width": "var(--time-field-input-min-width)",
+            "white-space": "nowrap",
+            "forced-color-adjust": "none",
+            "font-size": "var(--time-field-input-size)",
+            "line-height": "var(--time-field-input-line-height)",
+            transition: "border-color 200ms ease, background-color 200ms ease",
+          },
+        },
+        {
+          childSelector: ".react-aria-DateSegment",
+          prefix: "time-field-segment",
+          variables: {
+            xs: { "--time-field-segment-size": "var(--text-2xs)" },
+            sm: { "--time-field-segment-size": "var(--text-xs)" },
+            md: { "--time-field-segment-size": "var(--text-sm)" },
+            lg: { "--time-field-segment-size": "var(--text-base)" },
+            xl: { "--time-field-segment-size": "var(--text-lg)" },
+          },
+          bridges: {
+            padding: "0 2px",
+            border: "none",
+            background: "transparent",
+            height: "auto",
+            "font-variant-numeric": "tabular-nums",
+            "text-align": "end",
+            color: "var(--fg)",
+            "border-radius": "var(--radius-xs)",
+            "font-size": "var(--time-field-segment-size)",
+            transition: "all 150ms ease",
+          },
+          states: {
+            '[data-type="literal"]': { padding: "0" },
+            "[data-placeholder]": {
+              color: "var(--fg-muted)",
+              opacity: "0.6",
+            },
+            ":focus": {
+              color: "var(--fg)",
+              background: "var(--accent-subtle)",
+              outline: "none",
+              "border-radius": "var(--radius-xs)",
+              "caret-color": "transparent",
+            },
+            "[data-invalid]": { color: "var(--negative)" },
+            "[data-invalid]:focus": {
+              background:
+                "color-mix(in srgb, var(--negative) 15%, transparent)",
+              color: "var(--negative)",
+            },
+            "[data-disabled]": {
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "time-field-hint",
+          variables: {
+            xs: { "--time-field-hint-size": "var(--text-2xs)" },
+            sm: { "--time-field-hint-size": "var(--text-xs)" },
+            md: { "--time-field-hint-size": "var(--text-xs)" },
+            lg: { "--time-field-hint-size": "var(--text-sm)" },
+            xl: { "--time-field-hint-size": "var(--text-base)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--time-field-hint-size)",
+            "--error-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--time-field-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38 },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "ColorField",
+    archetype: "default",
+    element: "div",
+    containerStyles: undefined,
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        width: "fit-content",
+        color: "var(--fg)",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              display: "grid",
+              "grid-template-columns":
+                "var(--form-label-width, max-content) minmax(0, 1fr)",
+              "column-gap": "var(--form-field-gap, var(--spacing-md))",
+              "row-gap": "var(--spacing-xs)",
+              "align-items": "start",
+              width: "100%",
+            },
+            nested: [
+              {
+                selector: "> .react-aria-Label",
+                styles: {
+                  "grid-column": "1",
+                  "justify-self": "stretch",
+                  "text-align": "var(--form-label-align, start)",
+                },
+              },
+              {
+                selector: "> :not(.react-aria-Label)",
+                styles: { "grid-column": "2", "min-width": "0" },
+              },
+            ],
+          },
+        },
+        "label-align": {
+          center: { styles: { "--form-label-align": "center" } },
+          end: { styles: { "--form-label-align": "end" } },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Input",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector: ".react-aria-Input:where([data-focused])",
+                styles: {
+                  outline: "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: ".react-aria-Input:where([data-invalid])",
+                styles: { "border-bottom-color": "var(--negative)" },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "cf-label",
+          variables: {
+            xs: { "--cf-label-size": "var(--text-2xs)" },
+            sm: { "--cf-label-size": "var(--text-xs)" },
+            md: { "--cf-label-size": "var(--text-sm)" },
+            lg: { "--cf-label-size": "var(--text-base)" },
+            xl: { "--cf-label-size": "var(--text-lg)" },
+          },
+          bridges: {
+            "--label-font-size": "var(--cf-label-size)",
+            "--label-font-weight": "600",
+            "--label-margin": "var(--spacing-xs)",
+          },
+        },
+        {
+          childSelector: ".react-aria-Input",
+          prefix: "cf-input",
+          variables: {
+            xs: {
+              "--cf-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
+              "--cf-input-size": "var(--text-2xs)",
+              "--cf-input-line-height": "var(--text-2xs--line-height)",
+              "--cf-input-max-width": "9ch",
+            },
+            sm: {
+              "--cf-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
+              "--cf-input-size": "var(--text-xs)",
+              "--cf-input-line-height": "var(--text-xs--line-height)",
+              "--cf-input-max-width": "10ch",
+            },
+            md: {
+              "--cf-input-padding": "var(--spacing-xs) var(--spacing-md)",
+              "--cf-input-size": "var(--text-sm)",
+              "--cf-input-line-height": "var(--text-sm--line-height)",
+              "--cf-input-max-width": "12ch",
+            },
+            lg: {
+              "--cf-input-padding": "var(--spacing-sm) var(--spacing-lg)",
+              "--cf-input-size": "var(--text-base)",
+              "--cf-input-line-height": "var(--text-base--line-height)",
+              "--cf-input-max-width": "14ch",
+            },
+            xl: {
+              "--cf-input-padding": "var(--spacing-md) var(--spacing-xl)",
+              "--cf-input-size": "var(--text-lg)",
+              "--cf-input-line-height": "var(--text-lg--line-height)",
+              "--cf-input-max-width": "16ch",
+            },
+          },
+          bridges: {
+            "--input-padding": "var(--cf-input-padding)",
+            "--input-font-size": "var(--cf-input-size)",
+            "--input-line-height": "var(--cf-input-line-height)",
+            "border-radius": "var(--radius-sm)",
+            "max-width": "var(--cf-input-max-width)",
+            "box-sizing": "border-box",
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "cf-hint",
+          variables: {
+            xs: { "--cf-hint-size": "var(--text-2xs)" },
+            sm: { "--cf-hint-size": "var(--text-2xs)" },
+            md: { "--cf-hint-size": "var(--text-xs)" },
+            lg: { "--cf-hint-size": "var(--text-sm)" },
+            xl: { "--cf-hint-size": "var(--text-base)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--cf-hint-size)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--cf-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  // ADR-912 단계5 step4 small-B (2026-06-16) — shell-container 군 (FileTrigger/Toolbar/Form/
+  //   CheckboxGroup/RadioGroup). composition(containerStyles/containerVariants/staticSelectors/
+  //   delegation)이 ownsContainerBox → variant·padding skip(generated 정합), gap 만 rule.sizes 에서
+  //   재생성. composition 은 spec verbatim carry. states 는 spec.states 미러. Skia 는 catalog
+  //   cutover generic box. CheckboxGroup/RadioGroup propagation 은 propagationRegistry
+  //   createPropagationOnlySpec 인라인 이관(아래 spec 삭제와 동반).
+  {
+    name: "FileTrigger",
+    archetype: "button",
+    element: "button",
+    containerStyles: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "fit-content",
+    },
+    composition: {
+      containerStyles: {
+        display: "inline-block",
+      },
+      staticSelectors: {
+        "input[type='file']": {
+          position: "absolute",
+          width: "1px",
+          height: "1px",
+          padding: "0",
+          margin: "-1px",
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          "white-space": "nowrap",
+          border: "0",
+        },
+      },
+      delegation: [],
+    },
+    states: {
+      hover: {},
+      pressed: {
+        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.1)",
+      },
+      disabled: {
+        opacity: 0.38,
+        cursor: "not-allowed",
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "Toolbar",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+      alignItems: "center",
+      width: "fit-content",
+    },
+    composition: {
+      containerStyles: {
+        display: "flex",
+        "flex-wrap": "wrap",
+        gap: "8px",
+        width: "fit-content",
+      },
+      containerVariants: {
+        orientation: {
+          horizontal: {
+            styles: {
+              "flex-direction": "row",
+            },
+          },
+          vertical: {
+            styles: {
+              "flex-direction": "column",
+              "align-items": "start",
+            },
+          },
+        },
+      },
+      staticSelectors: {
+        ".react-aria-Group": {
+          display: "contents",
+        },
+        ".react-aria-ToggleButton": {
+          width: "32px",
+        },
+        ".react-aria-Separator": {
+          "align-self": "stretch",
+          "background-color": "var(--bg-muted)",
+        },
+        '.react-aria-Separator[aria-orientation="vertical"]': {
+          width: "1px",
+          margin: "0px 10px",
+        },
+        '.react-aria-Separator:not([aria-orientation="vertical"])': {
+          border: "none",
+          height: "1px",
+          width: "100%",
+          margin: "10px 0",
+        },
+      },
+      delegation: [],
+    },
+    states: {
+      disabled: {
+        opacity: 0.38,
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "Form",
+    archetype: "default",
+    element: "form",
+    containerStyles: undefined,
+    composition: {
+      layout: "flex-column",
+      gap: "16px",
+      containerStyles: {
+        "align-items": "start",
+        "--form-label-width": "auto",
+        "--form-label-align": "start",
+        "--form-field-gap": "var(--spacing-md)",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "--form-label-width": "11rem",
+            },
+          },
+        },
+        "label-align": {
+          center: {
+            styles: {
+              "--form-label-align": "center",
+            },
+          },
+          end: {
+            styles: {
+              "--form-label-align": "end",
+            },
+          },
+        },
+      },
+      delegation: [],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        pointerEvents: "none",
+      },
+      focusVisible: {},
+    },
+  },
+  {
+    name: "CheckboxGroup",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        color: "var(--fg)",
+        "--label-font-size": "var(--text-sm)",
+        "--label-line-height": "var(--text-sm--line-height)",
+        "--cb-items-gap": "12px",
+        "--cb-hint-size": "var(--text-xs)",
+      },
+      containerVariants: {
+        size: {
+          sm: {
+            styles: {
+              "--label-font-size": "var(--text-xs)",
+              "--label-line-height": "var(--text-xs--line-height)",
+              "--cb-items-gap": "8px",
+            },
+          },
+          lg: {
+            styles: {
+              "--label-font-size": "var(--text-base)",
+              "--label-line-height": "var(--text-base--line-height)",
+              "--cb-items-gap": "16px",
+            },
+          },
+        },
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        orientation: {
+          vertical: {
+            nested: [
+              {
+                selector: ".checkbox-items",
+                styles: {
+                  display: "flex",
+                  "flex-direction": "column",
+                  gap: "var(--cb-items-gap, var(--spacing-md))",
+                },
+              },
+            ],
+          },
+          horizontal: {
+            nested: [
+              {
+                selector: ".checkbox-items",
+                styles: {
+                  display: "flex",
+                  "flex-direction": "row",
+                  "align-items": "center",
+                  gap: "var(--cb-items-gap, var(--spacing-md))",
+                },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--cb-hint-size)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
+  {
+    name: "RadioGroup",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        color: "var(--fg)",
+        "--label-font-size": "var(--text-sm)",
+        "--label-line-height": "var(--text-sm--line-height)",
+        "--radio-items-gap": "12px",
+        "--rg-hint-size": "var(--text-xs)",
+      },
+      containerVariants: {
+        size: {
+          sm: {
+            styles: {
+              "--label-font-size": "var(--text-xs)",
+              "--label-line-height": "var(--text-xs--line-height)",
+              "--radio-items-gap": "8px",
+            },
+          },
+          lg: {
+            styles: {
+              "--label-font-size": "var(--text-base)",
+              "--label-line-height": "var(--text-base--line-height)",
+              "--radio-items-gap": "16px",
+            },
+          },
+        },
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        orientation: {
+          vertical: {
+            nested: [
+              {
+                selector: ".radio-items",
+                styles: {
+                  display: "flex",
+                  "flex-direction": "column",
+                  gap: "var(--radio-items-gap, var(--spacing-md))",
+                },
+              },
+            ],
+          },
+          horizontal: {
+            nested: [
+              {
+                selector: ".radio-items",
+                styles: {
+                  display: "flex",
+                  "flex-direction": "row",
+                  "align-items": "center",
+                  gap: "var(--radio-items-gap, var(--spacing-md))",
+                },
+              },
+            ],
+          },
+        },
+      },
+      delegation: [
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--rg-hint-size)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: {
+        opacity: 0.38,
+        pointerEvents: "none",
+      },
+      focusVisible: {
+        focusRing: "{focus.ring.default}",
+      },
+    },
+  },
 ];
 
 /**

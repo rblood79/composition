@@ -252,8 +252,6 @@ export type { DialogProps } from "./components/Dialog.spec";
 export { PopoverSpec } from "./components/Popover.spec";
 export type { PopoverProps } from "./components/Popover.spec";
 
-export { SectionSpec } from "./components/Section.spec";
-export type { SectionProps } from "./components/Section.spec";
 
 // ADR-902 후속: Body 는 페이지 루트 theme-aware 배경을 Spec SSOT 로 선언.
 export { BodySpec } from "./components/Body.spec";
@@ -266,17 +264,9 @@ export { TooltipSpec, TOOLTIP_MAX_WIDTH } from "./components/Tooltip.spec";
 export type { TooltipProps } from "./components/Tooltip.spec";
 
 // ─── Phase 2: Form Components ───────────────────────────────────────────────
-export { TextFieldSpec } from "./components/TextField.spec";
-export type { TextFieldProps } from "./components/TextField.spec";
 
-export { TextAreaSpec } from "./components/TextArea.spec";
-export type { TextAreaProps } from "./components/TextArea.spec";
 
-export { NumberFieldSpec } from "./components/NumberField.spec";
-export type { NumberFieldProps } from "./components/NumberField.spec";
 
-export { SearchFieldSpec } from "./components/SearchField.spec";
-export type { SearchFieldProps } from "./components/SearchField.spec";
 
 export {
   CheckboxSpec,
@@ -284,16 +274,12 @@ export {
 } from "./components/Checkbox.spec";
 export type { CheckboxProps } from "./components/Checkbox.spec";
 
-export { CheckboxGroupSpec } from "./components/CheckboxGroup.spec";
-export type { CheckboxGroupProps } from "./components/CheckboxGroup.spec";
 
 // CheckboxItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
 export { RadioSpec, RADIO_SELECTED_COLORS } from "./components/Radio.spec";
 export type { RadioProps } from "./components/Radio.spec";
 
-export { RadioGroupSpec } from "./components/RadioGroup.spec";
-export type { RadioGroupProps } from "./components/RadioGroup.spec";
 
 // RadioItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
@@ -303,8 +289,6 @@ export {
 } from "./components/Switch.spec";
 export type { SwitchProps } from "./components/Switch.spec";
 
-export { FormSpec } from "./components/Form.spec";
-export type { FormProps } from "./components/Form.spec";
 
 // ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2)으로
 //   Skia/Taffy/DOM 시각을 rule + buildCatalogShapes generic 으로 이전. DialogFooter 동형.
@@ -412,8 +396,6 @@ export { resolveGridListItemMetric } from "./renderers/utils/collectionItemMetri
 // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup spec 삭제.
 //   시각 SSOT = componentRulesTable catalog rule.
 
-export { ToolbarSpec } from "./components/Toolbar.spec";
-export type { ToolbarProps } from "./components/Toolbar.spec";
 
 // ADR-912 R7 G1-c (2026-06-15): ToastSpec/ToastProps export 제거 — 순수 box-shell catalog cutover.
 //   시각 SSOT = COMPONENT_RULES_TABLE.Toast + generate-css virtual(archetype alert). 좌측 accent bar
@@ -432,8 +414,6 @@ export type { SlotProps } from "./components/Slot.spec";
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec 삭제 — catalog cutover.
 //   시각 SSOT = COMPONENT_RULES_TABLE.DropZone (variant fill + sizes paddingX/paddingY/gap) +
 //   generate-css virtual override. D2 = DropZone.binding.accepts. Skia = generic box(spec-free).
-export { FileTriggerSpec } from "./components/FileTrigger.spec";
-export type { FileTriggerProps } from "./components/FileTrigger.spec";
 
 // ─── Phase 4: Special Components ────────────────────────────────────────────
 export {
@@ -458,8 +438,6 @@ export type { DateRangePickerProps } from "./components/DateRangePicker.spec";
 export { DateFieldSpec } from "./components/DateField.spec";
 export type { DateFieldProps } from "./components/DateField.spec";
 
-export { TimeFieldSpec } from "./components/TimeField.spec";
-export type { TimeFieldProps } from "./components/TimeField.spec";
 
 export { DateInputSpec } from "./components/DateInput.spec";
 export type { DateInputProps } from "./components/DateInput.spec";
@@ -478,8 +456,6 @@ export type { RangeCalendarProps } from "./components/RangeCalendar.spec";
 export { ColorPickerSpec } from "./components/ColorPicker.spec";
 export type { ColorPickerProps } from "./components/ColorPicker.spec";
 
-export { ColorFieldSpec } from "./components/ColorField.spec";
-export type { ColorFieldProps } from "./components/ColorField.spec";
 
 // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11):
 //   ColorSlider/ColorArea/ColorWheel/ColorSwatch/TailSwatch spec 삭제. ColorSwatchPicker(container) 보존.
