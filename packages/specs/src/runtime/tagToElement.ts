@@ -35,7 +35,7 @@ import { ProgressBarSpec } from "../components/ProgressBar.spec";
 import { TabsSpec } from "../components/Tabs.spec";
 // ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec import 제거 — catalog cutover, BASE entry 제거.
 import { MenuSpec } from "../components/Menu.spec";
-import { BreadcrumbsSpec } from "../components/Breadcrumbs.spec";
+// ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — catalog cutover, spec 삭제. BASE entry 제거.
 // ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec import 제거 — catalog cutover, BASE entry 제거.
 // ADR-912 R7 G1-c (2026-06-15): PaginationSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 import { TagGroupSpec } from "../components/TagGroup.spec";
@@ -118,7 +118,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 projection 3 cutover (2026-06-15): TabList/Tab catalog cutover → BASE_TAG_SPEC_MAP entry
   //   제거. isCatalogCutover('TabList'/'Tab')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   Menu: MenuSpec,
-  Breadcrumbs: BreadcrumbsSpec,
+  // ADR-912 단계5 step4 (2026-06-16): Breadcrumbs catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
+  //   isCatalogCutover('Breadcrumbs')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
   // ADR-912 R7 G1-c (2026-06-15): Pagination catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
   //   isCatalogCutover('Pagination')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.

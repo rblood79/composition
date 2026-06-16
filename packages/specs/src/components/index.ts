@@ -192,10 +192,8 @@ export {
   resolveListBoxItemRowHeight,
 } from "../renderers/utils/collectionItemMetrics";
 
-// Breadcrumbs
-export { BreadcrumbsSpec } from "./Breadcrumbs.spec";
-export type { BreadcrumbsProps } from "./Breadcrumbs.spec";
-// ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec export 제거 — catalog cutover, spec 삭제.
+// Breadcrumbs — ADR-912 단계5 step4 (2026-06-16): catalog cutover, spec 삭제.
+//   시각 SSOT = componentRulesTable + STRUCTURE_META. BreadcrumbSpec 도 동일 삭제(이전 cutover).
 
 // Pagination — ADR-912 R7 G1-c (2026-06-15): catalog cutover, spec 삭제. binding.accepts D2.
 

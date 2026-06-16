@@ -349,10 +349,10 @@ export type { TabsProps, TabItem } from "./components/Tabs.spec";
 export { MenuSpec } from "./components/Menu.spec";
 export type { MenuProps } from "./components/Menu.spec";
 
-export { BreadcrumbsSpec } from "./components/Breadcrumbs.spec";
-export type { BreadcrumbsProps } from "./components/Breadcrumbs.spec";
-// ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec/BreadcrumbItemProps export 제거 —
-//   catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable + breadcrumb_crumb escape.
+// ADR-912 단계5 step4 (2026-06-16): Breadcrumbs.spec.ts 삭제 — catalog cutover 완료.
+//   시각 SSOT = componentRulesTable + STRUCTURE_META(generate-css). Property Panel =
+//   binding.props.accepts(resolveEditContract). layout height = resolveSkiaRule("Breadcrumbs").
+//   Skia 게이트 = isCatalogSkiaCutover (catalog 자동). BreadcrumbSpec/BreadcrumbItemProps 도 동일 삭제.
 
 // ADR-912 R7 G1-c (2026-06-15): PaginationSpec/PaginationProps export 제거 — catalog cutover.
 //   시각 SSOT = COMPONENT_RULES_TABLE.Pagination + generate-css virtual. binding.accepts D2.

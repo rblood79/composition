@@ -5,7 +5,7 @@ import {
   // ADR-912 R7 G1-a (2026-06-15): AvatarGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 box+text leaf 군 (2026-06-11): Badge/Button/ToggleButton/Separator/StatusLight/Icon
   //   Spec import 제거 — catalog binding.accepts 가 D2 properties 대체(Link 선례, spec.properties dead).
-  BreadcrumbsSpec,
+  // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — catalog cutover, spec 삭제. binding.accepts D2.
   // ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 date-color (2026-06-16): CalendarSpec import 제거 — catalog cutover, binding.accepts D2.
@@ -67,7 +67,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   //   GenericPropertyEditor 가 binding.accepts(Avatar.binding.ts)로 properties 생성.
   // ADR-912 R7 G1-a (2026-06-15): AvatarGroup catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(AvatarGroup.binding.ts)로 properties 생성.
-  Breadcrumbs: BreadcrumbsSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 단계5 step4 (2026-06-16): Breadcrumbs catalog cutover → entry 제거. spec 삭제.
+  //   Property Panel = binding.accepts(Breadcrumbs.binding.ts) via resolveEditContract (CatalogEditContractEditor).
   // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(Breadcrumb.binding.ts)로 properties 생성.
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroup catalog cutover → entry 제거.
