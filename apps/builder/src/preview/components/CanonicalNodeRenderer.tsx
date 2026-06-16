@@ -265,12 +265,16 @@ export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> = new Set([
 
 /**
  * ResolvedNode 의 복원 type 추출 (CanonicalNodeRenderer 본문 type 복원과 동일 규칙).
+ *
+ * `props.type` 은 element ComponentTag 가 아니라 HTML `<input type>` 속성(D2)이므로
+ * type 복원에서 읽지 않는다. `node.type` 이 canonical ComponentTag SSOT.
+ * (2026-06-17: TextField/Input 의 `props.type="text"` 가 element type 으로 오인되어
+ *  generic fallthrough 에서 `<text>` raw tag 로 렌더되던 버그 수정.)
  */
 function resolveNodeType(node: ResolvedNode): string {
   const cp = extractCanonicalPropsFromResolved(node);
   return (
     (cp._tag as string | undefined) ??
-    (cp.type as string | undefined) ??
     ((node.metadata as Record<string, unknown> | undefined)?.originalTag as
       | string
       | undefined) ??
@@ -357,11 +361,14 @@ export function CanonicalNodeRenderer({
   const canonicalProps = extractCanonicalPropsFromResolved(node);
 
   // ── type 복원 ─────────────────────────────────────────────────────────────
-  // node.type 이 ComponentTag (예: "button", "text", "frame") 이므로
-  // type 은 canonical props marker → metadata.originalTag → node.type 순으로 fallback
+  // node.type 이 canonical ComponentTag SSOT (예: "TextField", "Input", "frame").
+  // type 은 _tag marker → metadata.originalTag → node.type 순으로 fallback.
+  // ⚠️ `props.type` 은 읽지 않는다 — element ComponentTag 가 아니라 HTML `<input type>`
+  //    속성(D2)이다. (2026-06-17: TextField/Input 의 `props.type="text"` 가 element type
+  //    으로 오인되어 generic fallthrough 에서 `<text>` raw tag 로 렌더되던 버그 수정.
+  //    resolveNodeType 과 동일 규칙.)
   const type =
     (canonicalProps._tag as string | undefined) ??
-    (canonicalProps.type as string | undefined) ??
     ((node.metadata as Record<string, unknown> | undefined)?.originalTag as
       | string
       | undefined) ??

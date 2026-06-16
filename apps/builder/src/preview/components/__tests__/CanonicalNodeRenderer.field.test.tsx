@@ -85,4 +85,56 @@ describe("CanonicalNodeRenderer — ADR-142 family ② fields cutover", () => {
     );
     expect(tf).toBeNull();
   });
+
+  /**
+   * 회귀 가드 (2026-06-17): `props.type`(HTML `<input type>` 속성)이 element ComponentTag
+   * 로 오인되어 type 복원이 "text" 로 평가 → generic fallthrough 에서 `<text>` raw tag
+   * 렌더 → React "The tag <text> is unrecognized" 경고.
+   *
+   * TextField/Input factory 는 `props.type: "text"` 를 보유한다. type 복원이 `node.type`
+   * (canonical ComponentTag SSOT) 을 쓰고 `props.type`(D2 HTML 속성)을 쓰지 않아야 한다.
+   * 기존 테스트는 `props.type` 없이 통과했어 본 버그를 못 잡았다(live DOM 에서만 적발).
+   */
+  it("props.type='text' 가 있어도 TextField 가 <text> 가 아닌 RAC TextField 로 렌더", () => {
+    const node: ResolvedNode = {
+      id: "tf-3",
+      type: "TextField",
+      props: { label: "Email", type: "text", size: "md" },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer
+        node={node}
+        renderContext={ctx}
+        cutoverPrimitives={new Set(["TextField"])}
+      />,
+    );
+
+    // `<text>` raw tag 가 0개여야 한다 (props.type 오인 회귀 가드)
+    expect(container.querySelectorAll("text")).toHaveLength(0);
+    // node.type(TextField) 으로 복원되어 cutover RAC 경로 진입
+    const tf = container.querySelector(".react-aria-TextField");
+    expect(tf).not.toBeNull();
+    expect(tf?.getAttribute("data-canonical-id")).toBe("tf-3");
+  });
+
+  it("props.type='text' 를 가진 Input(generic) 이 <text> 가 아닌 <input> 으로 렌더", () => {
+    const node: ResolvedNode = {
+      id: "input-1",
+      type: "Input",
+      props: { type: "text", placeholder: "Enter text..." },
+    };
+
+    const { container } = render(
+      <CanonicalNodeRenderer
+        node={node}
+        renderContext={ctx}
+        cutoverPrimitives={new Set()}
+      />,
+    );
+
+    // `<text>` raw tag 0개 + Input 은 <input> 으로 (props.type 오인 시 <text> 가 나옴)
+    expect(container.querySelectorAll("text")).toHaveLength(0);
+    expect(container.querySelector("input")).not.toBeNull();
+  });
 });
