@@ -33,7 +33,7 @@ import {
   MenuSpec,
   MeterSpec,
   // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, binding.accepts D2.
-  PopoverSpec,
+  // ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — catalog cutover, binding.accepts D2.
   ProgressBarSpec,
   // ADR-912 단계5: ProgressCircleSpec 삭제 (catalog binding.accepts 가 D2 properties 대체)
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): RadioSpec/SwitchSpec import 제거 — catalog cutover, binding.accepts D2.
@@ -114,7 +114,9 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   //   GenericPropertyEditor 가 binding.accepts(Modal.binding.ts)로 properties 생성.
   // Nav — ADR-912 container shell catalog 완결: catalog cutover → GenericPropertyEditor 가
   //   binding.accepts (Nav.binding.ts: aria-label/variant/size) 로 properties 생성. spec 삭제로 등록 제거.
-  Popover: PopoverSpec as ComponentSpec<Record<string, unknown>>,
+  // Popover — ADR-912 단계5 step4 Popover 단건 (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Popover.binding.ts: variant/size/placement/offset/
+  //   crossOffset/containerPadding/shouldFlip)로 D2 properties 생성. spec.properties dead.
   ProgressBar: ProgressBarSpec as ComponentSpec<Record<string, unknown>>,
   // ADR-912 단계5: ProgressCircle 제거 — cutover type 은 GenericPropertyEditor 가
   //   binding.accepts(PropContract) 로 D2 properties 생성 (spec.properties dead)

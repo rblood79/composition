@@ -18,7 +18,7 @@ import type { ComponentSpec } from "../types/spec.types";
 // apps/builder의 TAG_SPEC_MAP과 유사하나, packages/specs의 내부 concern이며
 // Preview DOM element resolution 용도로 한정된다.
 // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
-import { PopoverSpec } from "../components/Popover.spec";
+// ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
 // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover →
 //   spec 삭제. getSpecForTag → null, buildSpecNodeData 가 isCatalogSkiaCutover 게이트로 통과(generic).
 import { SelectSpec } from "../components/Select.spec";
@@ -96,7 +96,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   //   진입 게이트 2곳). DOM CSS = generated(virtual), Skia = generic/escape.
   // ADR-912 R6 (2026-06-15): Card 본체 catalog cutover → BASE entry 제거 (R5 에서 childSpecs 이미 제거됨).
   // Dialog — ADR-912 단계5 step4 Dialog 단건 (2026-06-16): catalog cutover spec 삭제로 제거.
-  Popover: PopoverSpec,
+  // Popover — ADR-912 단계5 step4 Popover 단건 (2026-06-16): catalog cutover spec 삭제로 제거.
   Body: BodySpec,
   // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   // Tooltip — ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): catalog cutover spec 삭제로 제거.

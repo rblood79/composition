@@ -915,6 +915,23 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
     containerStyles: undefined,
     states: {},
   },
+  // ADR-912 단계5 step4 Popover 단건 (2026-06-16) — Popover (overlay archetype, Popover.spec.ts 삭제 대상).
+  //   archetype "overlay": CSSGenerator 가 `position:fixed`+`box-sizing:border-box` base 자동 emit
+  //   (Modal/Dialog 동형). Dialog 와 다른 점: variant 3종(accent/neutral/surface, default=surface) —
+  //   componentRulesTable.Popover.variants 에 fill/border 정의되어 [data-variant] 블록 3개 rule 파생.
+  //   sizes sm~lg(paddingX/paddingY/gap 2026-06-16 rule 보강 + fontSize/borderRadius/height:0)는 rule
+  //   emit(padding NNpx NNpx / gap). Skia 는 spec render.shapes(shadow/bg/border/arrow) 대신
+  //   skiaPrimitive escape(popover_shadow prepend + popover_arrow append) — isCatalogSkiaCutover generic
+  //   box. composition 불요. states={} — spec.states={} 미러. disabled(opacity+cursor+pointerEvents) +
+  //   focus-visible + reduced-motion 은 CSSGenerator overlay 기본 emit. hover/pressed root 빈 블록
+  //   미생성(states:{} 라야 diff 0). utils.ts/skiaPrimitives 코드 import 0(주석만) + sub-part 0.
+  {
+    name: "Popover",
+    archetype: "overlay",
+    element: "div",
+    containerStyles: undefined,
+    states: {},
+  },
   // ADR-912 단계5 step4 small-B (2026-06-16) — Section (default archetype, Section.spec.ts 삭제 대상).
   //   archetype "default": DEFAULT_BASE_STYLES(inline-flex/align/justify/box-sizing/cursor/user-select/
   //   transition/font-family) emit. variant 6종(default alpha:0/accent/neutral/purple/surface/outlined)

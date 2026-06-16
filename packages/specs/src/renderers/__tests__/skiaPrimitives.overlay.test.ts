@@ -2,18 +2,18 @@ import { describe, expect, it } from "vitest";
 
 // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — spec 삭제. dialog_shadow/
 //   overlay_backdrop parity 는 draw fn 하드코딩 상수 절대값 단언으로 전환(spec oracle 불요).
-import { PopoverSpec } from "../../components/Popover.spec";
+// ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — spec 삭제. popover_arrow/
+//   popover_shadow parity 는 rule-mirror visual + 결정론적 절대값 단언으로 전환(Tooltip 전환 패턴).
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
-import { resolveComponentVisual } from "../utils/resolveComponentVisual";
 import type { ComponentVisualRule, SizeSpec } from "../../types";
 import type { Shape, TokenRef } from "../../types";
 
-// arrow stroke = bg fill base. dispatch 에서 resolveSkiaVisualRule 이 주입하는 visual 과
-// 동등하게 spec→visual 로 생성(separator/selection 테스트 패턴).
-const popoverVisual = resolveComponentVisual(
-  PopoverSpec as never,
-  PopoverSpec.defaultVariant!,
-);
+// arrow stroke = bg fill base. componentRulesTable.Popover surface(default) variant fill base.
+//   popover_arrow stroke = style.backgroundColor ?? visual.fill.default.base.
+const POPOVER_SURFACE_FILL_BASE = "{color.layer-2}" as TokenRef;
+const popoverVisual = {
+  fill: { default: { base: POPOVER_SURFACE_FILL_BASE } },
+} as unknown as ComponentVisualRule;
 
 /**
  * ADR-142 Inc3 family ⑥(overlays) — overlay 시각 패턴 draw module parity.
@@ -225,10 +225,112 @@ describe("skiaPrimitive 'tooltip_arrow' — Tooltip V-arrow (spec-free 절대값
   });
 });
 
-describe("skiaPrimitive 'popover_arrow' — Popover V-arrow parity", () => {
+describe("skiaPrimitive 'popover_arrow' — Popover V-arrow (spec-free 절대값)", () => {
   const draw = getSkiaPrimitive("popover_arrow");
   const placements = ["top", "bottom", "left", "right"] as const;
   const sizes = ["sm", "md", "lg"] as const;
+
+  // ADR-912 단계5 step4 Popover 단건 (2026-06-16): Popover.spec 삭제로 spec oracle 소멸.
+  //   popover_arrow draw fn 은 size 를 읽지 않고 placement 만 사용(arrowSize=8, cx=cy=80,
+  //   strokeWidth=2 고정). stroke = visual.fill.default.base. 결정론적 절대값으로 단언.
+  const ARROW = 8;
+  const CX = 80;
+  const CY = 80;
+  const stroke = POPOVER_SURFACE_FILL_BASE;
+
+  // draw fn 좌표식 1:1 복제(skiaPrimitives.ts popoverArrow). 2-line V-arrow.
+  function expectedLines(placement: (typeof placements)[number]): Shape[] {
+    if (placement === "bottom") {
+      return [
+        {
+          type: "line",
+          x1: CX - ARROW,
+          y1: 0,
+          x2: CX,
+          y2: -ARROW,
+          stroke,
+          strokeWidth: 2,
+        },
+        {
+          type: "line",
+          x1: CX + ARROW,
+          y1: 0,
+          x2: CX,
+          y2: -ARROW,
+          stroke,
+          strokeWidth: 2,
+        },
+      ] as unknown as Shape[];
+    }
+    if (placement === "top") {
+      return [
+        {
+          type: "line",
+          x1: CX - ARROW,
+          y1: CY,
+          x2: CX,
+          y2: CY + ARROW,
+          stroke,
+          strokeWidth: 2,
+        },
+        {
+          type: "line",
+          x1: CX + ARROW,
+          y1: CY,
+          x2: CX,
+          y2: CY + ARROW,
+          stroke,
+          strokeWidth: 2,
+        },
+      ] as unknown as Shape[];
+    }
+    if (placement === "right") {
+      return [
+        {
+          type: "line",
+          x1: 0,
+          y1: CY - ARROW,
+          x2: -ARROW,
+          y2: CY,
+          stroke,
+          strokeWidth: 2,
+        },
+        {
+          type: "line",
+          x1: 0,
+          y1: CY + ARROW,
+          x2: -ARROW,
+          y2: CY,
+          stroke,
+          strokeWidth: 2,
+        },
+      ] as unknown as Shape[];
+    }
+    // left
+    return [
+      {
+        type: "line",
+        x1: CX,
+        y1: CY - ARROW,
+        x2: CX + ARROW,
+        y2: CY,
+        stroke,
+        strokeWidth: 2,
+      },
+      {
+        type: "line",
+        x1: CX,
+        y1: CY + ARROW,
+        x2: CX + ARROW,
+        y2: CY,
+        stroke,
+        strokeWidth: 2,
+      },
+    ] as unknown as Shape[];
+  }
+
+  // 더미 sizeSpec — draw fn 이 size 를 읽지 않으므로 시그니처 충족용.
+  const dummySize = { height: 0 } as unknown as SizeSpec;
 
   it("registry 에 append 모드로 등록되어 있다", () => {
     expect(draw).toBeDefined();
@@ -237,37 +339,27 @@ describe("skiaPrimitive 'popover_arrow' — Popover V-arrow parity", () => {
 
   for (const placement of placements) {
     for (const size of sizes) {
-      it(`!showArrow/${placement}/${size} — legacy line arrow 와 parity`, () => {
-        // Popover arrow 는 !showArrow 일 때(기본 표시). 색 = bg fill.
+      it(`!showArrow/${placement}/${size} — V-arrow 결정론적 절대값`, () => {
         const props = { placement, size } as Record<string, unknown>;
-        const sizeSpec = PopoverSpec.sizes[size];
-        const legacyLines = only(
-          PopoverSpec.render.shapes(
-            props as Parameters<typeof PopoverSpec.render.shapes>[0],
-            sizeSpec,
-            "default",
-          ),
-          "line",
-        );
         const shapes = draw!({
           props,
-          size: sizeSpec,
+          size: dummySize,
           visual: popoverVisual,
           style: undefined,
         });
-        expect(shapes).toEqual(legacyLines);
+        expect(shapes).toEqual(expectedLines(placement));
       });
     }
   }
 
-  it("showArrow=true 면 미적용(null) — legacy 도 arrow 미렌더", () => {
+  it("showArrow=true 면 미적용(null)", () => {
     const props = { showArrow: true, placement: "bottom" } as Record<
       string,
       unknown
     >;
     const shapes = draw!({
       props,
-      size: PopoverSpec.sizes.md,
+      size: dummySize,
       visual: undefined,
       style: undefined,
     });
@@ -315,23 +407,27 @@ describe("skiaPrimitive 'popover_shadow' — Popover shadow parity", () => {
     expect(getSkiaPrimitiveMode("popover_shadow")).toBe("prepend");
   });
 
-  it("Popover shadow(offsetY:4 blur:12 alpha:0.15) parity", () => {
-    const sizeSpec = PopoverSpec.sizes.md;
-    const legacyShadow = only(
-      PopoverSpec.render.shapes(
-        {} as Parameters<typeof PopoverSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      ),
-      "shadow",
-    );
+  // ADR-912 단계5 step4 Popover 단건 (2026-06-16): Popover.spec 삭제로 spec oracle 소멸. popover_shadow
+  //   draw fn 은 인자 무관 하드코딩 상수(`() => [shadow]`) → 결정론적 절대값 단언 (Dialog 전환 패턴).
+  it("Popover shadow(offsetY:4 blur:12 alpha:0.15) — 결정론적 절대값", () => {
     const shapes = draw!({
       props: {},
-      size: sizeSpec,
+      size: {} as never,
       visual: undefined,
       style: undefined,
     });
-    expect(shapes).toEqual(legacyShadow);
+    expect(shapes).toEqual([
+      {
+        type: "shadow",
+        target: "bg",
+        offsetX: 0,
+        offsetY: 4,
+        blur: 12,
+        spread: 0,
+        color: "rgba(0, 0, 0, 0.15)",
+        alpha: 0.15,
+      },
+    ]);
   });
 });
 

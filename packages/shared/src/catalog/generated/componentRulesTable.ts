@@ -4055,20 +4055,29 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 Popover 단건 (2026-06-16): paddingY/gap 보강 —
+      //   Popover.spec.ts 삭제 대비 generated Popover.css(padding: NNpx NNpx / gap: NNpx) diff-0 유지.
+      //   값은 (구) PopoverSpec.sizes 와 동일 (paddingX==paddingY, gap sm:8/md:12/lg:16).
       sm: {
         paddingX: 12,
+        paddingY: 12,
+        gap: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
       md: {
         paddingX: 16,
+        paddingY: 16,
+        gap: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
       lg: {
         paddingX: 20,
+        paddingY: 20,
+        gap: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,

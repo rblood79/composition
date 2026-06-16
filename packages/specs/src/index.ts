@@ -250,8 +250,9 @@ export type { ComponentVisualRule } from "./renderers";
 
 // Link (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 
-export { PopoverSpec } from "./components/Popover.spec";
-export type { PopoverProps } from "./components/Popover.spec";
+// Popover (overlay archetype) — ADR-912 단계5 step4 Popover 단건 (2026-06-16): barrel export 제거
+//   (spec 삭제 — catalog rule + generate-css STRUCTURE_META virtual override 로 generated CSS 재생성,
+//    Skia = skiaPrimitive popover_shadow/popover_arrow escape + generic box). 사용자 명시 삭제 승인.
 
 // ADR-902 후속: Body 는 페이지 루트 theme-aware 배경을 Spec SSOT 로 선언.
 export { BodySpec } from "./components/Body.spec";

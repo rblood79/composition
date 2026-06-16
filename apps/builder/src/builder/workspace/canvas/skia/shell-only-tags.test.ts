@@ -27,7 +27,9 @@ import {
   // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — catalog cutover spec 삭제로
   //   phase1 검증 대상에서 제외 (시각 = catalog rule + skiaPrimitive overlay_backdrop/dialog_shadow escape).
   //   SHELL_ONLY 멤버십(SHELL_ONLY_CONTAINER_TAGS)은 유지(자식 독립 렌더 — buildSpecNodeData.ts).
-  PopoverSpec,
+  // ADR-912 단계5 step4 Popover 단건 (2026-06-16): PopoverSpec import 제거 — catalog cutover spec 삭제로
+  //   phase2B 검증 대상에서 제외 (시각 = catalog rule + buildCatalogShapes box + skiaPrimitive
+  //   popover_shadow prepend / popover_arrow append). SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지.
   ColorPickerSpec,
 } from "@composition/specs";
 import type { ComponentSpec } from "@composition/specs";
@@ -61,7 +63,8 @@ const phase2ACandidates: Array<{ type: string; spec: AnySpec }> = [];
 const phase2BCandidates: Array<{ type: string; spec: AnySpec }> = [
   // ADR-912 Disclosure 군 catalog cutover (2026-06-10) — spec 삭제로 이 테스트 대상에서 제외 (시각 검증은 catalog rule + buildCatalogShapes 경로)
   // ADR-912 단계5 step4 small-B (2026-06-16): Form catalog cutover spec 삭제로 제외.
-  { type: "Popover", spec: PopoverSpec as unknown as AnySpec },
+  // ADR-912 단계5 step4 Popover 단건 (2026-06-16): Popover 후보 제거 — spec 삭제로 render.shapes
+  //   기반 _hasChildren 분기 검증 대상 소멸. SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지.
   // ADR-912 단계5 step4 Tooltip 단건 (2026-06-16): Tooltip 후보 제거 — spec 삭제로 render.shapes
   //   기반 _hasChildren 분기 검증 대상 소멸. SHELL_ONLY 멤버십은 buildSpecNodeData.ts 에서 유지.
   { type: "ColorPicker", spec: ColorPickerSpec as unknown as AnySpec },

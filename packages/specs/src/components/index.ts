@@ -27,9 +27,8 @@
 
 // Link (box+text leaf) — ADR-912 단계5 step5: barrel export 제거 (spec 삭제 — catalog rule 발효)
 
-// Popover
-export { PopoverSpec } from "./Popover.spec";
-export type { PopoverProps } from "./Popover.spec";
+// Popover (overlay archetype) — ADR-912 단계5 step4 Popover 단건 (2026-06-16): export 제거
+//   (spec 삭제 — catalog rule + STRUCTURE_META virtual override). 사용자 명시 삭제 승인.
 
 // Separator
 
