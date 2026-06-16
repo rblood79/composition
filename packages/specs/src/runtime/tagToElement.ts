@@ -49,8 +49,8 @@ import { GroupSpec } from "../components/Group.spec";
 import { FrameSpec } from "../components/Frame.spec";
 import { SlotSpec } from "../components/Slot.spec";
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover.
-import { DatePickerSpec } from "../components/DatePicker.spec";
-import { DateRangePickerSpec } from "../components/DateRangePicker.spec";
+// ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 — spec 물리 삭제
+//   (catalog cutover, isCatalogCutover('DatePicker'/'DateRangePicker')=true). Skia = datefield_trigger primitive.
 import { DateFieldSpec } from "../components/DateField.spec";
 import { DateInputSpec } from "../components/DateInput.spec";
 // ADR-912 단계5 step4 date-color (2026-06-16): Calendar/RangeCalendarSpec import 제거 —
@@ -145,8 +145,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Slot: SlotSpec,
   // DropZone — ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): catalog cutover, TAG_SPEC_MAP 제거.
   //   isCatalogCutover("DropZone")=true → buildSpecNodeData/generate-css 가 catalog rule 로 처리.
-  DatePicker: DatePickerSpec,
-  DateRangePicker: DateRangePickerSpec,
+  // DatePicker/DateRangePicker — ADR-912 단계5 step4 date-color (2026-06-17): spec 물리 삭제,
+  //   BASE_TAG_SPEC_MAP entry 제거. isCatalogCutover=true → catalog rule + STRUCTURE_META 로 처리.
   DateField: DateFieldSpec,
   DateInput: DateInputSpec,
   // Calendar — ADR-912 단계5 step4 date-color (2026-06-16): catalog cutover spec 삭제로 제거.

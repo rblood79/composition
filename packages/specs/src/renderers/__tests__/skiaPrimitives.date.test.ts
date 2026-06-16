@@ -4,9 +4,15 @@ import { describe, expect, it } from "vitest";
 //   calendar_grid draw fn 은 이미 spec-free(visual+size 만 읽음) → spec.render.shapes oracle 대신
 //   rule-mirror visual + draw fn 자기-출력 구조 invariant(shape 종류/개수)로 단언(Tooltip/Popover
 //   전환 패턴). RangeCalendar 동형 describe 제거 — draw fn 은 type 무관하게 동일 visual 이면 동일 출력
-//   (spec spread 동형 비교 의의 소멸). DatePicker/DateRangePicker 는 이번 그룹 미대상(spec 보존).
-import { DatePickerSpec } from "../../components/DatePicker.spec";
-import { DateRangePickerSpec } from "../../components/DateRangePicker.spec";
+//   (spec spread 동형 비교 의의 소멸).
+// ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePicker.spec 물리 삭제 — datefield_trigger
+//   oracle 을 추출 모듈(datePickerShapes)의 buildDatePickerShapes + DATE_PICKER_SIZES 직접 호출로 전환.
+//   render.shapes 가 buildDatePickerShapes wrapper(displayText 계산 + 호출)였으므로 동등 결과 보장.
+import {
+  buildDatePickerShapes,
+  buildDatePlaceholder,
+  DATE_PICKER_SIZES,
+} from "../datePickerShapes";
 import { getSkiaPrimitive, getSkiaPrimitiveMode } from "../skiaPrimitives";
 import type {
   ComponentVisualRule,
@@ -138,17 +144,20 @@ describe("skiaPrimitive 'datefield_trigger' — DatePicker trigger field parity"
   });
 
   for (const size of sizes) {
-    it(`DatePicker/${size} — legacy buildDatePickerShapes 와 parity(input-bg/border/text/icon)`, () => {
+    it(`DatePicker/${size} — buildDatePickerShapes 와 parity(input-bg/border/text/icon)`, () => {
       const props = { size, locale: "en-US" } as Record<string, unknown>;
-      const sizeSpec = DatePickerSpec.sizes[size];
-      const legacy = DatePickerSpec.render.shapes(
-        props as Parameters<typeof DatePickerSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      );
+      const sizeSpec = DATE_PICKER_SIZES[size];
+      // render.shapes wrapper 로직 재현: displayText = value||placeholder||buildDatePlaceholder(locale).
+      const legacy = buildDatePickerShapes({
+        props: props as unknown as Record<string, unknown>,
+        sizeEntry: sizeSpec as unknown as Record<string, unknown>,
+        displayText: buildDatePlaceholder("en-US"),
+        hasValue: false,
+        defaultContainerWidth: 200,
+      });
       const shapes = draw!({
         props,
-        size: sizeSpec,
+        size: sizeSpec as unknown as SizeSpec,
         visual: undefined,
         style: undefined,
       });
@@ -162,15 +171,19 @@ describe("skiaPrimitive 'datefield_trigger' — DatePicker trigger field parity"
       locale: "en-US",
       _dateRange: true,
     } as Record<string, unknown>;
-    const sizeSpec = DateRangePickerSpec.sizes.md;
-    const legacy = DateRangePickerSpec.render.shapes(
-      props as Parameters<typeof DateRangePickerSpec.render.shapes>[0],
-      sizeSpec,
-      "default",
-    );
+    const sizeSpec = DATE_PICKER_SIZES.md;
+    // DateRangePicker render.shapes wrapper 재현: displayText = range placeholder, defaultContainerWidth 320.
+    const rangePlaceholder = `${buildDatePlaceholder("en-US")} – ${buildDatePlaceholder("en-US")}`;
+    const legacy = buildDatePickerShapes({
+      props: props as unknown as Record<string, unknown>,
+      sizeEntry: sizeSpec as unknown as Record<string, unknown>,
+      displayText: rangePlaceholder,
+      hasValue: false,
+      defaultContainerWidth: 320,
+    });
     const shapes = draw!({
       props,
-      size: sizeSpec,
+      size: sizeSpec as unknown as SizeSpec,
       visual: undefined,
       style: undefined,
     });
@@ -184,7 +197,7 @@ describe("skiaPrimitive 'datefield_trigger' — DatePicker trigger field parity"
     const props = { size: "md", _hasChildren: true } as Record<string, unknown>;
     const shapes = draw!({
       props,
-      size: DatePickerSpec.sizes.md,
+      size: DATE_PICKER_SIZES.md as unknown as SizeSpec,
       visual: undefined,
       style: undefined,
     });

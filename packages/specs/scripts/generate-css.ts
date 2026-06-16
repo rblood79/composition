@@ -1045,6 +1045,716 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       focusVisible: { focusRing: "{focus.ring.default}" },
     },
   },
+  // ADR-912 단계5 step4 date-color (2026-06-17) — DatePicker (composite trigger, DatePicker.spec.ts
+  //   삭제 대상). composition.layout="flex-column" root → ownsContainerBox(padding 미emit, gap 만
+  //   rule.sizes 재생성). composition(containerVariants label-position/quiet + externalStyles Popover/
+  //   time-field + delegation 7 childSelector)은 spec verbatim carry — STRUCTURE_META externalStyles
+  //   첫 사용 사례. sizes(fontSize/borderRadius/height/iconSize)는 rule emit. variants 없음(rule.variants={}).
+  //   Skia 는 datefield_trigger replace primitive(buildDatePickerShapes, isCatalogSkiaCutover). states 는
+  //   spec.states(DATE_PICKER_STATES) 미러. propagation(label/granularity/size/locale/calendarSystem/
+  //   maxVisibleMonths/defaultToday → Calendar 서브트리)은 propagationRegistry createPropagationOnlySpec 인라인.
+  {
+    name: "DatePicker",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        color: "var(--fg)",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Group",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector:
+                  ".react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector: ".react-aria-Group[data-focus-within]",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: ".react-aria-Group[data-invalid]",
+                styles: {
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--negative)",
+                },
+              },
+            ],
+          },
+        },
+      },
+      externalStyles: [
+        {
+          selector: '.react-aria-Popover[data-trigger="DatePicker"]',
+          styles: { "max-width": "unset" },
+          nested: [
+            {
+              selector: ".react-aria-Dialog .react-aria-Calendar",
+              styles: {
+                background: "transparent",
+                border: "none",
+                padding: "0",
+              },
+            },
+          ],
+        },
+        {
+          selector: ".react-aria-DatePicker-time-field",
+          styles: { width: "100%" },
+        },
+      ],
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "dp-label",
+          variables: {
+            xs: {
+              "--dp-label-size": "var(--text-2xs)",
+              "--dp-label-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--dp-label-size": "var(--text-xs)",
+              "--dp-label-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--dp-label-size": "var(--text-sm)",
+              "--dp-label-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--dp-label-size": "var(--text-base)",
+              "--dp-label-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--dp-label-size": "var(--text-lg)",
+              "--dp-label-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            "--label-font-size": "var(--dp-label-size)",
+            "--label-line-height": "var(--dp-label-line-height)",
+            "--label-font-weight": "600",
+          },
+        },
+        {
+          childSelector: ".react-aria-Group",
+          prefix: "dp-group",
+          variables: {
+            xs: {
+              "--dp-group-padding":
+                "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+              "--dp-group-font-size": "var(--text-2xs)",
+              "--dp-group-line-height": "var(--text-2xs--line-height)",
+              "--dp-group-gap": "var(--spacing-2xs)",
+            },
+            sm: {
+              "--dp-group-padding":
+                "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+              "--dp-group-font-size": "var(--text-xs)",
+              "--dp-group-line-height": "var(--text-xs--line-height)",
+              "--dp-group-gap": "var(--spacing-xs)",
+            },
+            md: {
+              "--dp-group-padding":
+                "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+              "--dp-group-font-size": "var(--text-sm)",
+              "--dp-group-line-height": "var(--text-sm--line-height)",
+              "--dp-group-gap": "var(--spacing-xs)",
+            },
+            lg: {
+              "--dp-group-padding":
+                "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+              "--dp-group-font-size": "var(--text-base)",
+              "--dp-group-line-height": "var(--text-base--line-height)",
+              "--dp-group-gap": "var(--spacing-xs)",
+            },
+            xl: {
+              "--dp-group-padding":
+                "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+              "--dp-group-font-size": "var(--text-lg)",
+              "--dp-group-line-height": "var(--text-lg--line-height)",
+              "--dp-group-gap": "var(--spacing-sm)",
+            },
+          },
+          bridges: {
+            display: "flex",
+            "align-items": "center",
+            width: "100%",
+            gap: "var(--dp-group-gap)",
+            padding: "var(--dp-group-padding)",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--border-radius)",
+            background: "var(--bg-inset)",
+            color: "var(--fg)",
+            "white-space": "nowrap",
+            "forced-color-adjust": "none",
+            "font-size": "var(--dp-group-font-size)",
+            "line-height": "var(--dp-group-line-height)",
+            transition: "border-color 200ms ease, background-color 200ms ease",
+            cursor: "text",
+          },
+          states: {
+            "[data-hovered]": {
+              "border-color": "var(--border-hover)",
+              background: "var(--bg-overlay)",
+            },
+            "[data-focus-within]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+              "border-color": "var(--accent)",
+              background: "var(--bg-overlay)",
+            },
+            "[data-invalid]": {
+              "border-color": "var(--negative)",
+            },
+            "[data-disabled]": {
+              opacity: "0.38",
+              cursor: "not-allowed",
+              background: "var(--bg-muted)",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-DateInput",
+          prefix: "dp-input",
+          bridges: {
+            display: "inline-flex",
+            flex: "1",
+            "min-width": "0",
+            padding: "0",
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            color: "var(--fg)",
+            "font-size": "var(--dp-group-font-size)",
+            "white-space": "nowrap",
+          },
+        },
+        {
+          childSelector: ".react-aria-DateSegment",
+          prefix: "dp-segment",
+          variables: {
+            xs: { "--dp-segment-size": "var(--text-2xs)" },
+            sm: { "--dp-segment-size": "var(--text-xs)" },
+            md: { "--dp-segment-size": "var(--text-sm)" },
+            lg: { "--dp-segment-size": "var(--text-base)" },
+            xl: { "--dp-segment-size": "var(--text-lg)" },
+          },
+          bridges: {
+            padding: "0 2px",
+            border: "none",
+            background: "transparent",
+            height: "auto",
+            "font-variant-numeric": "tabular-nums",
+            "text-align": "end",
+            color: "var(--fg)",
+            "border-radius": "var(--radius-xs)",
+            "font-size": "var(--dp-segment-size)",
+            transition: "all 150ms ease",
+          },
+          states: {
+            '[data-type="literal"]': { padding: "0" },
+            "[data-placeholder]": {
+              color: "var(--fg-muted)",
+              opacity: "0.6",
+            },
+            ":focus": {
+              color: "var(--fg)",
+              background: "var(--accent-subtle)",
+              outline: "none",
+              "border-radius": "var(--radius-xs)",
+              "caret-color": "transparent",
+            },
+            "[data-invalid]": { color: "var(--negative)" },
+            "[data-invalid]:focus": {
+              background:
+                "color-mix(in srgb, var(--negative) 15%, transparent)",
+              color: "var(--negative)",
+            },
+            "[data-disabled]": {
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-Button",
+          prefix: "dp-btn",
+          variables: {
+            xs: {
+              "--dp-btn-width": "var(--text-sm)",
+              "--dp-btn-height": "var(--text-sm)",
+            },
+            sm: {
+              "--dp-btn-width": "var(--text-base)",
+              "--dp-btn-height": "var(--text-base)",
+            },
+            md: {
+              "--dp-btn-width": "var(--text-xl)",
+              "--dp-btn-height": "var(--text-xl)",
+            },
+            lg: {
+              "--dp-btn-width": "var(--text-2xl)",
+              "--dp-btn-height": "var(--text-2xl)",
+            },
+            xl: {
+              "--dp-btn-width": "var(--text-3xl)",
+              "--dp-btn-height": "var(--text-3xl)",
+            },
+          },
+          bridges: {
+            background: "transparent",
+            color: "var(--fg-muted)",
+            "forced-color-adjust": "none",
+            border: "none",
+            width: "var(--dp-btn-width)",
+            height: "var(--dp-btn-height)",
+            padding: "0",
+            cursor: "default",
+            "flex-shrink": "0",
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+          },
+          states: {
+            "[data-pressed]": {
+              "box-shadow": "none",
+              background: "var(--bg-muted)",
+            },
+            "[data-focus-visible]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "2px",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "dp-hint",
+          variables: {
+            xs: { "--dp-hint-size": "var(--text-2xs)" },
+            sm: { "--dp-hint-size": "var(--text-xs)" },
+            md: { "--dp-hint-size": "var(--text-xs)" },
+            lg: { "--dp-hint-size": "var(--text-sm)" },
+            xl: { "--dp-hint-size": "var(--text-sm)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--dp-hint-size)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--dp-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  // ADR-912 단계5 step4 date-color (2026-06-17) — DateRangePicker (DatePicker 와 시각 동형, prefix drp-* +
+  //   selector 이름만 차이. DateRangePicker.spec.ts 삭제 대상). composition.layout="flex-column" root →
+  //   ownsContainerBox. composition(containerVariants label-position/quiet + externalStyles RangeCalendar/
+  //   start-time/end-time + delegation 9 childSelector — slot=start/end 2개 추가)은 spec verbatim carry.
+  //   sizes(gap rule 보강)는 rule emit. Skia 는 datefield_trigger replace primitive(폭 320). states 는
+  //   spec.states(DATE_PICKER_STATES) 미러. propagation(Calendar+RangeCalendar 이중 분기 25 rules)은
+  //   propagationRegistry createPropagationOnlySpec 인라인.
+  {
+    name: "DateRangePicker",
+    archetype: "default",
+    element: "div",
+    containerStyles: {
+      display: "flex",
+    },
+    composition: {
+      layout: "flex-column",
+      gap: "var(--spacing-xs)",
+      containerStyles: {
+        color: "var(--fg)",
+      },
+      containerVariants: {
+        "label-position": {
+          side: {
+            styles: {
+              "flex-direction": "row",
+              "align-items": "flex-start",
+            },
+          },
+        },
+        quiet: {
+          true: {
+            nested: [
+              {
+                selector: ".react-aria-Group",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-radius": "0",
+                  "border-bottom": "1px solid var(--border)",
+                },
+              },
+              {
+                selector:
+                  ".react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])",
+                styles: {
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--border-hover)",
+                },
+              },
+              {
+                selector: ".react-aria-Group[data-focus-within]",
+                styles: {
+                  outline: "none",
+                  background: "transparent",
+                  "border-color": "transparent",
+                  "box-shadow": "none",
+                  "border-bottom-color": "var(--accent)",
+                },
+              },
+              {
+                selector: ".react-aria-Group[data-invalid]",
+                styles: {
+                  "border-color": "transparent",
+                  "border-bottom-color": "var(--negative)",
+                },
+              },
+            ],
+          },
+        },
+      },
+      externalStyles: [
+        {
+          selector: '.react-aria-Popover[data-trigger="DateRangePicker"]',
+          styles: { "max-width": "unset" },
+          nested: [
+            {
+              selector: ".react-aria-Dialog .react-aria-RangeCalendar",
+              styles: {
+                background: "transparent",
+                border: "none",
+                padding: "0",
+              },
+            },
+          ],
+        },
+        {
+          selector: ".react-aria-DateRangePicker-start-time",
+          styles: { width: "100%" },
+        },
+        {
+          selector: ".react-aria-DateRangePicker-end-time",
+          styles: { width: "100%" },
+        },
+      ],
+      delegation: [
+        {
+          childSelector: ".react-aria-Label",
+          prefix: "drp-label",
+          variables: {
+            xs: {
+              "--drp-label-size": "var(--text-2xs)",
+              "--drp-label-line-height": "var(--text-2xs--line-height)",
+            },
+            sm: {
+              "--drp-label-size": "var(--text-xs)",
+              "--drp-label-line-height": "var(--text-xs--line-height)",
+            },
+            md: {
+              "--drp-label-size": "var(--text-sm)",
+              "--drp-label-line-height": "var(--text-sm--line-height)",
+            },
+            lg: {
+              "--drp-label-size": "var(--text-base)",
+              "--drp-label-line-height": "var(--text-base--line-height)",
+            },
+            xl: {
+              "--drp-label-size": "var(--text-lg)",
+              "--drp-label-line-height": "var(--text-lg--line-height)",
+            },
+          },
+          bridges: {
+            "--label-font-size": "var(--drp-label-size)",
+            "--label-line-height": "var(--drp-label-line-height)",
+            "--label-font-weight": "600",
+          },
+        },
+        {
+          childSelector: ".react-aria-Group",
+          prefix: "drp-group",
+          variables: {
+            xs: {
+              "--drp-group-padding":
+                "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+              "--drp-group-font-size": "var(--text-2xs)",
+              "--drp-group-line-height": "var(--text-2xs--line-height)",
+              "--drp-group-gap": "var(--spacing-2xs)",
+            },
+            sm: {
+              "--drp-group-padding":
+                "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+              "--drp-group-font-size": "var(--text-xs)",
+              "--drp-group-line-height": "var(--text-xs--line-height)",
+              "--drp-group-gap": "var(--spacing-xs)",
+            },
+            md: {
+              "--drp-group-padding":
+                "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+              "--drp-group-font-size": "var(--text-sm)",
+              "--drp-group-line-height": "var(--text-sm--line-height)",
+              "--drp-group-gap": "var(--spacing-xs)",
+            },
+            lg: {
+              "--drp-group-padding":
+                "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+              "--drp-group-font-size": "var(--text-base)",
+              "--drp-group-line-height": "var(--text-base--line-height)",
+              "--drp-group-gap": "var(--spacing-xs)",
+            },
+            xl: {
+              "--drp-group-padding":
+                "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+              "--drp-group-font-size": "var(--text-lg)",
+              "--drp-group-line-height": "var(--text-lg--line-height)",
+              "--drp-group-gap": "var(--spacing-sm)",
+            },
+          },
+          bridges: {
+            display: "flex",
+            "align-items": "center",
+            width: "100%",
+            gap: "var(--drp-group-gap)",
+            padding: "var(--drp-group-padding)",
+            border: "1px solid var(--border)",
+            "border-radius": "var(--border-radius)",
+            background: "var(--bg-inset)",
+            color: "var(--fg)",
+            "white-space": "nowrap",
+            "forced-color-adjust": "none",
+            "font-size": "var(--drp-group-font-size)",
+            "line-height": "var(--drp-group-line-height)",
+            transition: "border-color 200ms ease, background-color 200ms ease",
+          },
+          states: {
+            "[data-hovered]": {
+              "border-color": "var(--border-hover)",
+              background: "var(--bg-overlay)",
+            },
+            "[data-focus-within]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+              "border-color": "var(--accent)",
+              background: "var(--bg-overlay)",
+            },
+            "[data-invalid]": {
+              "border-color": "var(--negative)",
+            },
+            "[data-disabled]": {
+              opacity: "0.38",
+              cursor: "not-allowed",
+              background: "var(--bg-muted)",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-DateInput",
+          bridges: {
+            width: "unset",
+            "min-width": "unset",
+            padding: "unset",
+            border: "unset",
+            background: "transparent",
+            outline: "unset",
+            "font-size": "var(--drp-group-font-size)",
+          },
+          states: {
+            "[data-focus-within]": {
+              outline: "0px solid transparent",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-DateSegment",
+          prefix: "drp-segment",
+          variables: {
+            xs: { "--drp-segment-size": "var(--text-2xs)" },
+            sm: { "--drp-segment-size": "var(--text-xs)" },
+            md: { "--drp-segment-size": "var(--text-sm)" },
+            lg: { "--drp-segment-size": "var(--text-base)" },
+            xl: { "--drp-segment-size": "var(--text-lg)" },
+          },
+          bridges: {
+            padding: "0 2px",
+            border: "none",
+            background: "transparent",
+            height: "auto",
+            "font-variant-numeric": "tabular-nums",
+            "text-align": "end",
+            color: "var(--fg)",
+            "border-radius": "var(--radius-xs)",
+            "font-size": "var(--drp-segment-size)",
+            transition: "all 150ms ease",
+          },
+          states: {
+            '[data-type="literal"]': { padding: "0" },
+            "[data-placeholder]": {
+              color: "var(--fg-muted)",
+              opacity: "0.6",
+            },
+            ":focus": {
+              color: "var(--fg)",
+              background: "var(--accent-subtle)",
+              outline: "none",
+              "border-radius": "var(--radius-xs)",
+              "caret-color": "transparent",
+            },
+            "[data-invalid]": { color: "var(--negative)" },
+            "[data-invalid]:focus": {
+              background:
+                "color-mix(in srgb, var(--negative) 15%, transparent)",
+              color: "var(--negative)",
+            },
+            "[data-disabled]": {
+              color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+              cursor: "not-allowed",
+            },
+          },
+        },
+        {
+          childSelector: '[slot="start"] + span',
+          bridges: {
+            padding: "0 4px",
+            color: "var(--fg-muted)",
+          },
+        },
+        {
+          childSelector: '[slot="end"]',
+          bridges: {
+            flex: "1",
+          },
+        },
+        {
+          childSelector: ".react-aria-Button",
+          prefix: "drp-btn",
+          variables: {
+            xs: {
+              "--drp-btn-width": "var(--text-sm)",
+              "--drp-btn-height": "var(--text-sm)",
+            },
+            sm: {
+              "--drp-btn-width": "var(--text-base)",
+              "--drp-btn-height": "var(--text-base)",
+            },
+            md: {
+              "--drp-btn-width": "var(--text-xl)",
+              "--drp-btn-height": "var(--text-xl)",
+            },
+            lg: {
+              "--drp-btn-width": "var(--text-2xl)",
+              "--drp-btn-height": "var(--text-2xl)",
+            },
+            xl: {
+              "--drp-btn-width": "var(--text-3xl)",
+              "--drp-btn-height": "var(--text-3xl)",
+            },
+          },
+          bridges: {
+            background: "transparent",
+            color: "var(--fg-muted)",
+            "forced-color-adjust": "none",
+            border: "none",
+            width: "var(--drp-btn-width)",
+            height: "var(--drp-btn-height)",
+            padding: "0",
+            cursor: "default",
+            "flex-shrink": "0",
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+          },
+          states: {
+            "[data-pressed]": {
+              "box-shadow": "none",
+              background: "var(--bg-muted)",
+            },
+            "[data-focus-visible]": {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "2px",
+            },
+          },
+        },
+        {
+          childSelector: ".react-aria-FieldError",
+          prefix: "drp-hint",
+          variables: {
+            xs: { "--drp-hint-size": "var(--text-2xs)" },
+            sm: { "--drp-hint-size": "var(--text-xs)" },
+            md: { "--drp-hint-size": "var(--text-xs)" },
+            lg: { "--drp-hint-size": "var(--text-sm)" },
+            xl: { "--drp-hint-size": "var(--text-sm)" },
+          },
+          bridges: {
+            "--error-font-size": "var(--drp-hint-size)",
+          },
+        },
+        {
+          childSelector: '[slot="description"]',
+          bridges: {
+            "font-size": "var(--drp-hint-size)",
+            color: "var(--fg-muted)",
+          },
+        },
+      ],
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
   // ADR-912 단계5 step4 small-B (2026-06-16) — Section (default archetype, Section.spec.ts 삭제 대상).
   //   archetype "default": DEFAULT_BASE_STYLES(inline-flex/align/justify/box-sizing/cursor/user-select/
   //   transition/font-family) emit. variant 6종(default alpha:0/accent/neutral/purple/surface/outlined)

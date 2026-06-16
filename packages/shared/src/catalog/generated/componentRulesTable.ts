@@ -1907,72 +1907,85 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   DatePicker: {
     defaultSize: "md",
     variants: {},
+    // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES) 의 gap 을 rule 로 이관
+    //   (DatePicker.spec 삭제 시 virtual STRUCTURE_META 가 rule.sizes 에서 gap emit). Calendar/Section 동일 패턴.
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
+        gap: 2,
       },
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
+        gap: 4,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 16,
+        gap: 4,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 20,
+        gap: 4,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 52,
         iconSize: 24,
+        gap: 8,
       },
     },
   },
   DateRangePicker: {
     defaultSize: "md",
     variants: {},
+    // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES 공유) 의 gap 이관 (DatePicker 동일).
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         height: 20,
         iconSize: 10,
+        gap: 2,
       },
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
         iconSize: 14,
+        gap: 4,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
         iconSize: 16,
+        gap: 4,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
         iconSize: 20,
+        gap: 4,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 52,
         iconSize: 24,
+        gap: 8,
       },
     },
   },

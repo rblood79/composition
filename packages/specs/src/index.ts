@@ -404,8 +404,11 @@ export type { SlotProps } from "./components/Slot.spec";
 //   generate-css virtual override. D2 = DropZone.binding.accepts. Skia = generic box(spec-free).
 
 // ─── Phase 4: Special Components ────────────────────────────────────────────
+// ADR-912 단계5 step4 (2026-06-17): DatePicker.spec/DateRangePicker.spec 물리 삭제(catalog cutover).
+//   spec-free shapes 빌더/상수는 renderers/datePickerShapes.ts 로 추출 → barrel 호환 위해 재export.
+//   DatePickerSpec/DateRangePickerSpec/Props 제거. SSOT = componentRulesTable + STRUCTURE_META,
+//   Property Panel = binding.accepts, Skia = datefield_trigger primitive, propagation = 인라인.
 export {
-  DatePickerSpec,
   buildDatePickerShapes,
   buildDatePlaceholder,
   DATE_PICKER_INPUT_HEIGHT,
@@ -414,14 +417,8 @@ export {
   DATE_PICKER_ICON_SIZE,
   DATE_PICKER_SIZES,
   DATE_PICKER_STATES,
-} from "./components/DatePicker.spec";
-export type {
-  DatePickerProps,
-  DatePickerShapesInput,
-} from "./components/DatePicker.spec";
-
-export { DateRangePickerSpec } from "./components/DateRangePicker.spec";
-export type { DateRangePickerProps } from "./components/DateRangePicker.spec";
+} from "./renderers/datePickerShapes";
+export type { DatePickerShapesInput } from "./renderers/datePickerShapes";
 
 export { DateFieldSpec } from "./components/DateField.spec";
 export type { DateFieldProps } from "./components/DateField.spec";

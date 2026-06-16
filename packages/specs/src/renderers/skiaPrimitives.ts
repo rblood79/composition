@@ -21,7 +21,7 @@ import {
   buildDatePickerShapes,
   buildDatePlaceholder,
   DATE_PICKER_SIZES,
-} from "../components/DatePicker.spec";
+} from "./datePickerShapes";
 import type { Shape, SizeSpec, TokenRef } from "../types";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";

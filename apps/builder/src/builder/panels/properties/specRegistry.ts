@@ -18,8 +18,8 @@ import {
   ColorSwatchPickerSpec,
   ComboBoxSpec,
   DateFieldSpec,
-  DatePickerSpec,
-  DateRangePickerSpec,
+  // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 — spec 물리 삭제.
+  //   Property Panel 은 binding.accepts(DatePicker.binding.ts) 구동(DEAD getEditor 경로, entry 동시 제거).
   // ADR-912 단계5 step4 Dialog 단건 (2026-06-16): DialogSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — catalog cutover,
   //   GenericPropertyEditor 가 binding.accepts(DropZone.binding.ts)로 properties 생성.
@@ -89,10 +89,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   >,
   ComboBox: ComboBoxSpec as ComponentSpec<Record<string, unknown>>,
   DateField: DateFieldSpec as ComponentSpec<Record<string, unknown>>,
-  DatePicker: DatePickerSpec as ComponentSpec<Record<string, unknown>>,
-  DateRangePicker: DateRangePickerSpec as ComponentSpec<
-    Record<string, unknown>
-  >,
+  // DatePicker/DateRangePicker — ADR-912 단계5 step4 date-color (2026-06-17): spec 물리 삭제 → entry 제거.
+  //   Property Panel 은 binding.accepts(DatePicker.binding.ts) 구동(DEAD getEditor 경로).
   // Dialog — ADR-912 단계5 step4 Dialog 단건 (2026-06-16): catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(Dialog.binding.ts)로 properties 생성.
   // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [DatePicker + DateRangePicker catalog cutover + spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Architecture
+
+- **`DatePicker.spec.ts` + `DateRangePicker.spec.ts` 물리 삭제** (ADR-912 단계5 step4 — 사용자 명시 삭제 승인):
+  - 이미 catalog cutover(FAMILY_7) 완료된 두 composite spec 을 물리 삭제하여 dual-SSOT(spec) 해소. Tabs(`6d907be54`) 동일 패턴 + composite 추가 작업 3종. 시각 SSOT = `componentRulesTable` + `STRUCTURE_META`(generate-css), Property Panel = `binding.props.accepts`, Skia = `datefield_trigger` replace primitive(`buildDatePickerShapes`), 진입 게이트 = `isCatalogSkiaCutover`(catalog 자동 통과)
+  - **diff-0 불변식**: spec 삭제 후 `build:specs` 재생성 CSS 가 byte-identical (`DatePicker.css` 397줄/62 selector + `DateRangePicker.css` 410줄/66 selector) — STRUCTURE_META virtual 이 spec 없이 동일 CSS emit. 단계별 게이트(DatePicker 먼저 diff-0 → DateRangePicker)로 transcription 정확성 검증
+  - **추가 작업 1 — hot path consumer 추출**: `skiaPrimitives.ts`(datefield_trigger replace primitive)가 spec 파일에서 직접 import 하던 spec-free 함수/상수(`buildDatePickerShapes`/`buildDatePlaceholder`/`DATE_PICKER_SIZES`/`DATE_PICKER_STATES` + 헬퍼 4상수)를 신규 `renderers/datePickerShapes.ts` 로 추출. spec 삭제로 컴파일 파손 회피 + barrel(`@composition/specs`) 호환 위해 재export
+  - **추가 작업 2 — composition STRUCTURE_META 이관**: 두 spec 의 composition 블록(DatePicker 324줄 / DateRangePicker 341줄 — containerVariants label-position/quiet 4 nested + delegation 7/9 childSelector + externalStyles Popover/time-field)을 `generate-css.ts` STRUCTURE_META_ENTRIES 에 verbatim 이관. **STRUCTURE_META `externalStyles` 첫 사용 사례**. `componentRulesTable` DatePicker/DateRangePicker.sizes 에 `gap`(xs2/sm4/md4/lg4/xl8) 보강 — spec.sizes 의 gap 이 size별 CSS 로 재생성되도록 (Calendar/Section 선례)
+  - **추가 작업 3 — propagation 인라인**: `DatePickerSpec.propagation.rules` 15건(Calendar 단일 분기) + `DateRangePickerSpec` 25건(Calendar+RangeCalendar 이중 분기, 전부 정적 childPath)을 `createPropagationOnlySpec` 인라인 이관(propagationRegistry.ts). label/granularity/size/maxVisibleMonths/locale/calendarSystem/defaultToday → Calendar 서브트리
+  - **Why**: 이전 세션(2026-06-16)이 date 4종 중 Calendar/RangeCalendar 만 삭제하고 DatePicker/DateRangePicker 는 transcription 부담으로 보존 큐잉(Task #16). 코드 주석("이번 그룹 미대상(spec 보존)")은 stale — 사용자 명시 삭제 승인으로 해소. dead chain 없음(DatePickerEditor 파일 부재, getEditor 미호출)
+  - **검증**: type-check PASS(specs DatePicker 에러 0 / builder baseline 71 불변) + specs 467 test PASS(skiaPrimitives.date 14 oracle 전환 — render.shapes → buildDatePickerShapes 직접 호출) + 전체 generated CSS 0 git 변경 + Chrome MCP live(DatePicker/DateRangePicker spec-free Skia 렌더 + factory 트리 생성 + size propagation + Property Panel binding.accepts + console 0)
+  - 위치: 삭제 `packages/specs/src/components/{DatePicker,DateRangePicker}.spec.ts`, 신규 `packages/specs/src/renderers/datePickerShapes.ts`
+
 ## [Breadcrumbs + Tabs catalog cutover + spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
 
 ### Architecture

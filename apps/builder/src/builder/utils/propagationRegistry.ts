@@ -7,9 +7,9 @@
  */
 import type { ComponentSpec, PropagationRule, Shape } from "@composition/specs";
 import {
-  // Phase 1: DatePicker
-  DatePickerSpec,
-  DateRangePickerSpec,
+  // ADR-912 단계5 step4 date-color (2026-06-17): DatePicker/DateRangePickerSpec import 제거 —
+  //   DatePicker.spec/DateRangePicker.spec 물리 삭제(catalog cutover). propagation.rules(15+25건,
+  //   Calendar/RangeCalendar 서브트리)는 createPropagationOnlySpec 인라인 이관(아래). Tabs(6d907be54) 동일 패턴.
   // Phase 2: 기존 delegation 컴포넌트
   SelectSpec,
   ComboBoxSpec,
@@ -326,6 +326,123 @@ const rangeCalendarPropagationSpec = createPropagationOnlySpec(
   ],
 );
 
+// ADR-912 단계5 step4 date-color (2026-06-17): DatePicker.spec 삭제 → propagation.rules 15건
+//   (label/granularity/size/maxVisibleMonths/locale/calendarSystem/defaultToday → Calendar 서브트리)
+//   propagation-only 인라인 spec 으로 보존. 시각/CSS 는 STRUCTURE_META virtual. spec verbatim.
+const datePickerPropagationSpec = createPropagationOnlySpec("DatePicker", [
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  {
+    parentProp: "granularity",
+    childPath: "DateInput",
+    childProp: "_granularity",
+    override: true,
+  },
+  { parentProp: "size", childPath: "DateInput", override: true },
+  { parentProp: "size", childPath: "Calendar", override: true },
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "size",
+    childPath: ["Calendar", "CalendarHeader"],
+    override: true,
+  },
+  {
+    parentProp: "size",
+    childPath: ["Calendar", "CalendarGrid"],
+    override: true,
+  },
+  {
+    parentProp: "maxVisibleMonths",
+    childPath: "Calendar",
+    childProp: "maxVisibleMonths",
+    override: true,
+  },
+  { parentProp: "locale", childPath: "Calendar" },
+  { parentProp: "locale", childPath: ["Calendar", "CalendarHeader"] },
+  { parentProp: "locale", childPath: ["Calendar", "CalendarGrid"] },
+  { parentProp: "calendarSystem", childPath: "Calendar" },
+  { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarHeader"] },
+  { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarGrid"] },
+  { parentProp: "defaultToday", childPath: ["Calendar", "CalendarGrid"] },
+]);
+
+// ADR-912 단계5 step4 date-color (2026-06-17): DateRangePicker.spec 삭제 → propagation.rules 25건
+//   (Calendar + RangeCalendar 이중 분기). propagation-only 인라인 spec. spec verbatim.
+const dateRangePickerPropagationSpec = createPropagationOnlySpec(
+  "DateRangePicker",
+  [
+    {
+      parentProp: "label",
+      childPath: "Label",
+      childProp: "children",
+      override: true,
+    },
+    {
+      parentProp: "granularity",
+      childPath: "DateInput",
+      childProp: "_granularity",
+      override: true,
+    },
+    { parentProp: "size", childPath: "DateInput", override: true },
+    { parentProp: "size", childPath: "Calendar", override: true },
+    { parentProp: "size", childPath: "RangeCalendar", override: true },
+    { parentProp: "size", childPath: "Label", override: true },
+    {
+      parentProp: "size",
+      childPath: ["Calendar", "CalendarHeader"],
+      override: true,
+    },
+    {
+      parentProp: "size",
+      childPath: ["Calendar", "CalendarGrid"],
+      override: true,
+    },
+    {
+      parentProp: "size",
+      childPath: ["RangeCalendar", "CalendarHeader"],
+      override: true,
+    },
+    {
+      parentProp: "size",
+      childPath: ["RangeCalendar", "CalendarGrid"],
+      override: true,
+    },
+    {
+      parentProp: "maxVisibleMonths",
+      childPath: "RangeCalendar",
+      childProp: "maxVisibleMonths",
+      override: true,
+    },
+    { parentProp: "locale", childPath: "Calendar" },
+    { parentProp: "locale", childPath: ["Calendar", "CalendarHeader"] },
+    { parentProp: "locale", childPath: ["Calendar", "CalendarGrid"] },
+    { parentProp: "locale", childPath: "RangeCalendar" },
+    { parentProp: "locale", childPath: ["RangeCalendar", "CalendarHeader"] },
+    { parentProp: "locale", childPath: ["RangeCalendar", "CalendarGrid"] },
+    { parentProp: "calendarSystem", childPath: "Calendar" },
+    { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarHeader"] },
+    { parentProp: "calendarSystem", childPath: ["Calendar", "CalendarGrid"] },
+    { parentProp: "calendarSystem", childPath: "RangeCalendar" },
+    {
+      parentProp: "calendarSystem",
+      childPath: ["RangeCalendar", "CalendarHeader"],
+    },
+    {
+      parentProp: "calendarSystem",
+      childPath: ["RangeCalendar", "CalendarGrid"],
+    },
+    { parentProp: "defaultToday", childPath: ["Calendar", "CalendarGrid"] },
+    {
+      parentProp: "defaultToday",
+      childPath: ["RangeCalendar", "CalendarGrid"],
+    },
+  ],
+);
+
 // ─── Lazy Index ─────────────────────────────────────────────────────────────
 
 /** 정방향: parentTag(소문자) → PropagationRule[] */
@@ -412,8 +529,8 @@ export function _resetPropagationRegistry(): void {
 }
 
 // ─── Auto-register specs with propagation rules ────────────────────────────
-registerPropagationSpec("DatePicker", DatePickerSpec);
-registerPropagationSpec("DateRangePicker", DateRangePickerSpec);
+registerPropagationSpec("DatePicker", datePickerPropagationSpec);
+registerPropagationSpec("DateRangePicker", dateRangePickerPropagationSpec);
 registerPropagationSpec("Select", SelectSpec);
 registerPropagationSpec("ComboBox", ComboBoxSpec);
 registerPropagationSpec("SearchField", searchFieldPropagationSpec);

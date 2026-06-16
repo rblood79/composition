@@ -117,9 +117,13 @@ export type { ProgressBarProps } from "./ProgressBar.spec";
 export { InputSpec } from "./Input.spec";
 export type { InputProps } from "./Input.spec";
 
-// DatePicker
+// DatePicker / DateRangePicker
+// ADR-912 단계5 step4 (2026-06-17): DatePicker.spec/DateRangePicker.spec 물리 삭제.
+//   spec-free shapes 빌더/상수는 renderers/datePickerShapes.ts 로 추출 → barrel 호환 위해 재export.
+//   DatePickerSpec/DateRangePickerSpec/Props 는 catalog cutover 로 제거 (SSOT = componentRulesTable +
+//   STRUCTURE_META, Property Panel = binding.accepts, Skia = datefield_trigger primitive,
+//   propagation = propagationRegistry 인라인).
 export {
-  DatePickerSpec,
   buildDatePickerShapes,
   buildDatePlaceholder,
   DATE_PICKER_INPUT_HEIGHT,
@@ -128,12 +132,8 @@ export {
   DATE_PICKER_ICON_SIZE,
   DATE_PICKER_SIZES,
   DATE_PICKER_STATES,
-} from "./DatePicker.spec";
-export type { DatePickerProps, DatePickerShapesInput } from "./DatePicker.spec";
-
-// DateRangePicker
-export { DateRangePickerSpec } from "./DateRangePicker.spec";
-export type { DateRangePickerProps } from "./DateRangePicker.spec";
+} from "../renderers/datePickerShapes";
+export type { DatePickerShapesInput } from "../renderers/datePickerShapes";
 
 // DateField
 export { DateFieldSpec } from "./DateField.spec";
