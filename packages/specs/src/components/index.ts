@@ -175,9 +175,7 @@ export type { ColorSwatchPickerProps } from "./ColorSwatchPicker.spec";
 //   box-only generic 대체, 외부 type import 0. TableRow/TableCell.spec 은 이미 삭제(2026-06-14),
 //   TreeItem.spec 은 이미 삭제(2026-06-12).
 
-// Tabs
-export { TabsSpec } from "./Tabs.spec";
-export type { TabsProps } from "./Tabs.spec";
+// Tabs — ADR-912 단계5 step4 (2026-06-17): Tabs.spec.ts 삭제 (catalog cutover 완료).
 // ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec export 제거 — catalog cutover, spec 삭제.
 
 // Menu

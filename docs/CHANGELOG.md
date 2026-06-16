@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Breadcrumbs + Tabs catalog cutover + spec 물리 삭제 — ADR-912 단계5 step4] - 2026-06-17
+
+### Architecture
+
+- **`Breadcrumbs.spec.ts` + `Tabs.spec.ts` 물리 삭제** (ADR-912 단계5 step4 — 사용자 명시 삭제 승인):
+  - 이미 catalog cutover 완료된 두 spec 을 물리 삭제하여 dual-SSOT(spec) 해소. 시각 SSOT = `componentRulesTable` + `STRUCTURE_META`(generate-css), Property Panel = `binding.props.accepts`(resolveEditContract), layout height = `resolveSkiaRule(type)`, Skia 진입 게이트 = `isCatalogSkiaCutover`(catalog 자동 통과)
+  - **Why**: spec.properties 는 ADR-912 단계 2 에서 이미 dead(Property Panel 은 binding.accepts 구동) — "spec.properties → binding D2 이관 선행" 전제는 stale framing 이었음. 직접 grep + Workflow adversarial + Chrome MCP live 로 이관 불필요(완료) 확인 후 삭제
+  - **diff-0 불변식**: spec 삭제 후 `build:specs` 재생성 CSS 가 byte-identical (Breadcrumbs/Breadcrumb 2종, Tabs/Tab/TabList/TabPanel/TabPanels 5종 전부) — STRUCTURE_META virtual 이 spec 없이 동일 CSS emit
+  - **Tabs 추가 작업**: propagation hub 라 `TabsSpec.propagation.rules` 7건(items/selectedKey/defaultSelectedKey/showIndicator/variant/size/orientation → TabList)을 `createPropagationOnlySpec("Tabs", ...)` 인라인 이관(Card 선례). dead chain(`TabsEditor.tsx` 186줄 + `tabsItemActions.ts` 132줄 — getEditor 미호출로 dead, items 편집은 active 경로 binding.accepts 로 이관)도 함께 삭제
+  - 참조 정리: `index.ts`/`components/index.ts`(export) / `tagToElement.ts`(BASE_TAG_SPEC_MAP) / `specRegistry.ts`(dead getEditor 경로 import) / `propagationRegistry.ts`(TabsSpec → tabsPropagationSpec) / `inspector/editors/registry.ts`(getHybridAfterSections Tabs 분기) / `editors/index.ts`(TabsEditor export)
+  - 위치: `packages/specs/src/components/{Breadcrumbs,Tabs}.spec.ts`(삭제) / `apps/builder/src/builder/panels/properties/editors/{TabsEditor.tsx,tabsItemActions.ts}`(삭제) / `apps/builder/src/builder/utils/propagationRegistry.ts`(인라인 spec)
+  - 검증: type-check PASS(builder baseline 71 불변, 0 new) + specs 469 테스트 PASS + builder regression 0(23 fail 파일 전부 Tabs 무관 catalog-cutover stale gate, Breadcrumbs 삭제 때와 동일 집합) + **Chrome MCP live**(Tabs 배치 → Skia 탭 행 렌더 + CSS↔Skia 대칭 + 선택 박스 390×53 + Property Panel binding.accepts(Variant/Size/Orientation/Disabled) + items→TabList propagation + console 0 error). commit: Breadcrumbs `a736fedb5`
+
 ## [TextField/Input CSS preview `<text>` raw tag 경고 수정 — type 복원이 HTML props.type 오인] - 2026-06-17
 
 ### Bug Fixes

@@ -341,8 +341,10 @@ export type { ProgressBarProps } from "./components/ProgressBar.spec";
 //   TableColumnDef 자체 정의 — spec type 미참조). TableRow/TableCell.spec 은 이미 삭제됨(2026-06-14).
 // TreeItemSpec/TreeItemProps — ADR-912 R1 후속 (2026-06-12): catalog cutover, spec 삭제
 
-export { TabsSpec } from "./components/Tabs.spec";
-export type { TabsProps, TabItem } from "./components/Tabs.spec";
+// TabsSpec/TabsProps/TabItem — ADR-912 단계5 step4 (2026-06-17): Tabs.spec.ts 삭제 — catalog cutover 완료.
+//   시각 SSOT = componentRulesTable + STRUCTURE_META(generate-css). Property Panel = binding.props.accepts.
+//   layout height = resolveSkiaRule("Tabs"). Skia 게이트 = isCatalogSkiaCutover (catalog 자동).
+//   items propagation(Tabs → TabList)은 propagationRegistry.ts 의 tabsPropagationSpec 인라인.
 // ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec/TabListProps/TabProps export 제거
 //   — catalog cutover, spec 삭제. 시각 SSOT = componentRulesTable + tablist_divider/tab_indicator escape.
 

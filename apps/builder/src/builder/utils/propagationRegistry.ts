@@ -28,7 +28,9 @@ import {
   ListBoxSpec,
   // ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): ToggleButtonGroupSpec import 제거 —
   //   catalog cutover, propagation.rules(isEmphasized/size → ToggleButton)는 createPropagationOnlySpec 인라인 이관.
-  TabsSpec,
+  // ADR-912 단계5 step4 (2026-06-17): TabsSpec import 제거 — Tabs.spec 물리 삭제(catalog cutover).
+  //   propagation.rules 7건(items/selectedKey/defaultSelectedKey/showIndicator/variant/size/orientation
+  //   → TabList)은 createPropagationOnlySpec 인라인 이관(아래). Breadcrumbs(a736fedb5) 동일 패턴.
 } from "@composition/specs";
 
 // ─── Collection Item propagation-only specs ─────────────────────────────────
@@ -242,6 +244,23 @@ const toggleButtonGroupPropagationSpec = createPropagationOnlySpec(
   ],
 );
 
+// ADR-912 단계5 step4 (2026-06-17): Tabs.spec 물리 삭제 → propagation.rules 7건 인라인 보존.
+//   chip projection(appendTabRowProjection)이 owner=TabList scene node 에 붙고,
+//   resolveDataBoundTabProjection 이 TabList.props.items 를 읽어 tab-row 노드 전개하므로
+//   items/selectedKey/defaultSelectedKey/showIndicator/variant/size/orientation 을 TabList 로 전파.
+//   selectedKey 는 단일 선택(Tab) — TagList 의 selectedKeys(복수)와 prop 명칭 다름.
+//   catalog 는 propagation 표현 수단 없음(ComponentRule/PrimitiveBinding 에 parentProp 부재) →
+//   시각/CSS 는 STRUCTURE_META virtual 이 담당하고 이 propagation 만 builder runtime 에서 유지.
+const tabsPropagationSpec = createPropagationOnlySpec("Tabs", [
+  { parentProp: "items", childPath: "TabList", override: true },
+  { parentProp: "selectedKey", childPath: "TabList", override: true },
+  { parentProp: "defaultSelectedKey", childPath: "TabList", override: true },
+  { parentProp: "showIndicator", childPath: "TabList", override: true },
+  { parentProp: "variant", childPath: "TabList", override: true },
+  { parentProp: "size", childPath: "TabList", override: true },
+  { parentProp: "orientation", childPath: "TabList", override: true },
+]);
+
 // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch/Checkbox/Radio.spec 삭제 —
 //   propagation.rules(size → Label / children → Label.children) 인라인 보존. 시각은 catalog rule +
 //   generate-css virtual 이 담당, builder runtime 의 자식 Label 전파만 여기서 유지.
@@ -426,7 +445,8 @@ registerPropagationSpec("ListBox", ListBoxSpec);
 registerPropagationSpec("ToggleButtonGroup", toggleButtonGroupPropagationSpec);
 // ADR-912 영역 B (A): Tabs → TabList items/selectedKey/variant/size/showIndicator 전파.
 //   chip projection(appendTabRowProjection)이 TabList.props.items 를 읽는 invariant 충족.
-registerPropagationSpec("Tabs", TabsSpec);
+//   ADR-912 단계5 step4 (2026-06-17): Tabs.spec 삭제 → propagation-only 인라인 spec(tabsPropagationSpec).
+registerPropagationSpec("Tabs", tabsPropagationSpec);
 // Collection Item → 자식 Text/Description 전파
 registerPropagationSpec(
   "GridListItem",

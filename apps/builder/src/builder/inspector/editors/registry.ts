@@ -3,7 +3,8 @@ import type { ComponentEditorProps } from "../types";
 import { componentMetadata } from "@composition/shared/components/metadata";
 import { GenericPropertyEditor } from "../../panels/properties/generic";
 import { getPropertyEditorSpec } from "../../panels/properties/specRegistry";
-import { TabsHybridAfterSections } from "../../panels/properties/editors/TabsEditor";
+// ADR-912 단계5 step4 (2026-06-17): TabsEditor 삭제 (dead chain — getEditor 미호출). Tabs items 편집은
+//   active 경로(PropertiesPanel → CatalogEditContractEditor → binding.accepts)로 이관 완료.
 import { SliderHybridAfterSections } from "../../panels/properties/editors/SliderEditor";
 
 /**
@@ -13,8 +14,7 @@ const editorCache = new Map<string, ComponentType<ComponentEditorProps>>();
 
 function getHybridAfterSections(type: string) {
   switch (type) {
-    case "Tabs":
-      return TabsHybridAfterSections;
+    // ADR-912 단계5 step4 (2026-06-17): Tabs 분기 제거 — TabsEditor dead chain 삭제.
     case "Slider":
       return SliderHybridAfterSections;
     default:

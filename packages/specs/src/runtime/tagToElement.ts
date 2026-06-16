@@ -32,7 +32,7 @@ import { ProgressBarSpec } from "../components/ProgressBar.spec";
 // ADR-912 R1 후속 (2026-06-12): TreeItemSpec 삭제 — catalog cutover (rule leadingIcon +
 //   indentPerLevel + buildCatalogShapes generic + leading_icon append + depth indent).
 //   BASE_TAG_SPEC_MAP 등록 제거. 시각 SSOT = componentRulesTable.TreeItem.
-import { TabsSpec } from "../components/Tabs.spec";
+// ADR-912 단계5 step4 (2026-06-17): TabsSpec import 제거 — catalog cutover, spec 삭제. BASE entry 제거.
 // ADR-912 projection 3 cutover (2026-06-15): TabListSpec/TabSpec import 제거 — catalog cutover, BASE entry 제거.
 import { MenuSpec } from "../components/Menu.spec";
 // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — catalog cutover, spec 삭제. BASE entry 제거.
@@ -114,7 +114,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // Table/Tree — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover, BASE entry 제거.
   //   isCatalogCutover('Table'/'Tree')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   // TreeItem — ADR-912 R1 후속 (2026-06-12): catalog cutover type, BASE_TAG_SPEC_MAP 등록 제거
-  Tabs: TabsSpec,
+  // ADR-912 단계5 step4 (2026-06-17): Tabs catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
+  //   isCatalogCutover('Tabs')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   // ADR-912 projection 3 cutover (2026-06-15): TabList/Tab catalog cutover → BASE_TAG_SPEC_MAP entry
   //   제거. isCatalogCutover('TabList'/'Tab')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
   Menu: MenuSpec,
