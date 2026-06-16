@@ -14,10 +14,9 @@ import {
   SelectSpec,
   ComboBoxSpec,
   // ADR-912 단계5 step4 small-B (2026-06-16): SearchField/CheckboxGroup/RadioGroup/TextField/TextArea/NumberField/TimeField/ColorField Spec import 제거 — catalog cutover, propagation.rules 는 createPropagationOnlySpec 인라인 이관(Card 선례).
+  // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch Spec import 제거 —
+  //   catalog cutover, propagation.rules(size/children → Label)는 createPropagationOnlySpec 인라인 이관.
   TagGroupSpec,
-  CheckboxSpec,
-  RadioSpec,
-  SwitchSpec,
   DateFieldSpec,
   SliderSpec,
   ProgressBarSpec,
@@ -242,6 +241,39 @@ const toggleButtonGroupPropagationSpec = createPropagationOnlySpec(
   ],
 );
 
+// ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch/Checkbox/Radio.spec 삭제 —
+//   propagation.rules(size → Label / children → Label.children) 인라인 보존. 시각은 catalog rule +
+//   generate-css virtual 이 담당, builder runtime 의 자식 Label 전파만 여기서 유지.
+const switchPropagationSpec = createPropagationOnlySpec("Switch", [
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "children",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+]);
+
+const checkboxPropagationSpec = createPropagationOnlySpec("Checkbox", [
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "children",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+]);
+
+const radioPropagationSpec = createPropagationOnlySpec("Radio", [
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "children",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+]);
+
 // ─── Lazy Index ─────────────────────────────────────────────────────────────
 
 /** 정방향: parentTag(소문자) → PropagationRule[] */
@@ -336,9 +368,9 @@ registerPropagationSpec("SearchField", searchFieldPropagationSpec);
 registerPropagationSpec("CheckboxGroup", checkboxGroupPropagationSpec);
 registerPropagationSpec("RadioGroup", radioGroupPropagationSpec);
 registerPropagationSpec("TagGroup", TagGroupSpec);
-registerPropagationSpec("Checkbox", CheckboxSpec);
-registerPropagationSpec("Radio", RadioSpec);
-registerPropagationSpec("Switch", SwitchSpec);
+registerPropagationSpec("Checkbox", checkboxPropagationSpec);
+registerPropagationSpec("Radio", radioPropagationSpec);
+registerPropagationSpec("Switch", switchPropagationSpec);
 registerPropagationSpec("TextField", textFieldPropagationSpec);
 registerPropagationSpec("TextArea", textAreaPropagationSpec);
 registerPropagationSpec("NumberField", numberFieldPropagationSpec);

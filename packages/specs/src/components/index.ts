@@ -55,25 +55,20 @@ export type { TooltipProps } from "./Tooltip.spec";
 
 // SearchField
 
-// Checkbox
-export { CheckboxSpec, CHECKBOX_CHECKED_COLORS } from "./Checkbox.spec";
-export type { CheckboxProps } from "./Checkbox.spec";
+// Checkbox — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover, spec 삭제.
+//   CHECKBOX_CHECKED_COLORS 상수 코드 사용 0(ADR-142 B2 rule fill 흡수) → 함께 제거.
 
 // CheckboxGroup
 
 // CheckboxItems — ADR-912 collection sub-part cutover (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
-// Radio
-export { RadioSpec, RADIO_SELECTED_COLORS } from "./Radio.spec";
-export type { RadioProps } from "./Radio.spec";
+// Radio — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover, spec 삭제.
 
 // RadioGroup
 
 // RadioItems — ADR-912 collection sub-part cutover (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
-// Switch
-export { SwitchSpec, SWITCH_SELECTED_TRACK_COLORS } from "./Switch.spec";
-export type { SwitchProps } from "./Switch.spec";
+// Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover, spec 삭제.
 
 // Form
 

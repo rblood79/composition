@@ -1276,20 +1276,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox.spec 삭제 대비 gap/paddingX/
+      //   paddingY 보강 (Checkbox.css size 별 gap 6/8/10 + padding 0px 0px 정합). indicator(boxSize/
+      //   boxRadius)는 generated CSS 미emit(수동/React) → rule 불요.
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 6,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 8,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 10,
       },
     },
   },
@@ -4312,25 +4324,40 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Radio.spec 삭제 대비 gap/paddingX/
+      //   paddingY 보강 (Radio.css size 별 gap 6/8/10/12 + padding 0px 0px 정합). indicator(boxSize/
+      //   dotSize)는 generated CSS 미emit(수동/React) → rule 불요.
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 6,
       },
       md: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 8,
       },
       lg: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 10,
       },
       xl: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 12,
       },
     },
   },
@@ -5468,25 +5495,40 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
+      // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch.spec 삭제 대비 gap/paddingX/
+      //   paddingY 보강. generate-css virtual 이 size 별 `gap`/`padding: 0px 0px` 를 emit (Switch.css
+      //   정합). indicator(trackWidth/thumbSize)는 generated CSS 미emit(수동/React) → rule 불요.
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 8,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 10,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 12,
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
         height: 0,
+        paddingX: 0,
+        paddingY: 0,
+        gap: 14,
       },
     },
   },

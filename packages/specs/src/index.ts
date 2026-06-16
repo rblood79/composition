@@ -265,24 +265,15 @@ export type { TooltipProps } from "./components/Tooltip.spec";
 
 // ─── Phase 2: Form Components ───────────────────────────────────────────────
 
-export {
-  CheckboxSpec,
-  CHECKBOX_CHECKED_COLORS,
-} from "./components/Checkbox.spec";
-export type { CheckboxProps } from "./components/Checkbox.spec";
+// Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover
+//   (FAMILY_3) → spec 삭제. 시각 = componentRulesTable + generate-css virtual override(STRUCTURE_META
+//   archetype "toggle-indicator"). indicator(track/thumb/box/dot)는 skiaPrimitive draw module
+//   (spec-free, visual rule 주입) / DOM React 직접. CHECKBOX_CHECKED_COLORS/RADIO_SELECTED_COLORS/
+//   SWITCH_SELECTED_TRACK_COLORS 상수는 ADR-142 B2 에서 이미 코드 사용 0(rule fill 흡수) → 함께 제거.
 
 // CheckboxItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
 
-export { RadioSpec, RADIO_SELECTED_COLORS } from "./components/Radio.spec";
-export type { RadioProps } from "./components/Radio.spec";
-
 // RadioItemsSpec — ADR-912 (2026-06-14): 중간 컨테이너 폐기, spec 삭제.
-
-export {
-  SwitchSpec,
-  SWITCH_SELECTED_TRACK_COLORS,
-} from "./components/Switch.spec";
-export type { SwitchProps } from "./components/Switch.spec";
 
 // ADR-912 childSpec→catalog cutover (2026-06-15): FormFieldSpec 삭제 — catalog 등록(FAMILY_2)으로
 //   Skia/Taffy/DOM 시각을 rule + buildCatalogShapes generic 으로 이전. DialogFooter 동형.

@@ -2619,6 +2619,58 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
       },
     },
   },
+  // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Switch/Checkbox/Radio spec 삭제 →
+  //   virtual override 전환. archetype "toggle-indicator" + element "label" + containerStyles
+  //   (inline-flex/center) 구조 메타만 carry. 색상(variant fill)/사이즈(gap/padding/fontSize/
+  //   borderRadius)는 componentRulesTable 정본. indicator(track/thumb/box/dot)는 generated CSS
+  //   미emit(Skia buildCatalogShapes + skiaPrimitive / React 직접) → STRUCTURE_META 불요.
+  //   states 는 spec 동일(disabled cursor/pointerEvents + focusVisible focusRing) 명시 carry —
+  //   default states(opacity 만)로는 cursor/pointerEvents/focusRing 누락.
+  {
+    name: "Switch",
+    archetype: "toggle-indicator",
+    element: "label",
+    containerStyles: {
+      display: "inline-flex",
+      alignItems: "center",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  {
+    name: "Checkbox",
+    archetype: "toggle-indicator",
+    element: "label",
+    containerStyles: {
+      display: "inline-flex",
+      alignItems: "center",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
+  {
+    name: "Radio",
+    archetype: "toggle-indicator",
+    element: "label",
+    containerStyles: {
+      display: "inline-flex",
+      alignItems: "center",
+    },
+    states: {
+      hover: {},
+      pressed: {},
+      disabled: { opacity: 0.38, cursor: "not-allowed", pointerEvents: "none" },
+      focusVisible: { focusRing: "{focus.ring.default}" },
+    },
+  },
 ];
 
 /**

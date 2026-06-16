@@ -10,7 +10,7 @@ import {
   // ADR-912 R7 G1-c (2026-06-15): ButtonGroupSpec import 제거 — catalog cutover, binding.accepts D2.
   CalendarSpec,
   // ADR-912 R7 G1-b (2026-06-15): CardViewSpec import 제거 — catalog cutover, binding.accepts D2.
-  CheckboxSpec,
+  // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): CheckboxSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 6 registry collapse — Color leaf 5종 box-only cutover (2026-06-11): ColorArea/ColorWheel/
   //   ColorSlider/ColorSwatch/TailSwatch Spec import 제거 — catalog binding.accepts 가 D2 properties
   //   대체(Link/Disclosure 선례). ColorField/ColorPicker/ColorSwatchPicker(field/container)는 보존.
@@ -36,11 +36,10 @@ import {
   PopoverSpec,
   ProgressBarSpec,
   // ADR-912 단계5: ProgressCircleSpec 삭제 (catalog binding.accepts 가 D2 properties 대체)
-  RadioSpec,
+  // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): RadioSpec/SwitchSpec import 제거 — catalog cutover, binding.accepts D2.
   SelectSpec,
   SliderSpec,
   SlotSpec,
-  SwitchSpec,
   // ADR-912 R7 G1-b (2026-06-15): TableViewSpec import 제거 — catalog cutover, binding.accepts D2.
   TagGroupSpec,
   TabsSpec,
@@ -77,7 +76,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // ADR-912 R6/R7 G1-b (2026-06-15): Card 본체 + CardView catalog cutover → CardSpec/CardViewSpec
   //   import + entry 제거. GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성
   //   (Select/Disclosure 선례, spec.properties dead).
-  Checkbox: CheckboxSpec as ComponentSpec<Record<string, unknown>>,
+  // Checkbox — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Checkbox.binding.ts)로 properties 생성.
   // ADR-912 6 registry collapse — ColorArea/ColorWheel/ColorSlider/ColorSwatch box-only cutover
   //   (2026-06-11): GenericPropertyEditor 가 catalog binding.accepts 로 properties 생성(spec.properties
   //   dead). ColorField/ColorPicker/ColorSwatchPicker(field/container)는 보존.
@@ -117,11 +117,11 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   ProgressBar: ProgressBarSpec as ComponentSpec<Record<string, unknown>>,
   // ADR-912 단계5: ProgressCircle 제거 — cutover type 은 GenericPropertyEditor 가
   //   binding.accepts(PropContract) 로 D2 properties 생성 (spec.properties dead)
-  Radio: RadioSpec as ComponentSpec<Record<string, unknown>>,
+  // Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Radio/Switch.binding.ts)로 properties 생성.
   Select: SelectSpec as ComponentSpec<Record<string, unknown>>,
   Slider: SliderSpec as ComponentSpec<Record<string, unknown>>,
   Slot: SlotSpec as ComponentSpec<Record<string, unknown>>,
-  Switch: SwitchSpec as ComponentSpec<Record<string, unknown>>,
   // ADR-912 6 registry collapse — TailSwatch box-only cutover (2026-06-11): catalog binding.accepts
   //   가 D2 properties 대체. ColorPicker alias placeholder 는 catalog rule box 시각 유지.
   // ADR-912 R7 G1-b (2026-06-15): TableView catalog cutover → entry 제거 (binding.accepts D2).

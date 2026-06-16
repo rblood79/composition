@@ -1,8 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
-  CheckboxSpec,
-  RadioSpec,
-  SwitchSpec,
+  // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): spec 삭제 →
+  //   측정 parity oracle 을 spec.render.shapes → catalog rule(catalogTextOracle)로 전환 (Button/Badge 선례).
   buildCatalogShapes,
   resolveToken,
   type ComponentSpec,
@@ -154,26 +153,15 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
     { tag: "button", catalogType: "Button", size: "md" },
     { tag: "badge", catalogType: "Badge", size: "sm" },
     { tag: "togglebutton", catalogType: "ToggleButton", size: "md" },
+    // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch.spec 삭제 →
+    //   replace-mode oracle(spec.render.shapes) 소멸 → catalog rule oracle 로 이전. rule variant
+    //   textWeight:400 명시로 측정도 400 산출 → drift 0 (Button/Badge 동형).
+    { tag: "checkbox", catalogType: "Checkbox", size: "md" },
+    { tag: "radio", catalogType: "Radio", size: "md" },
+    { tag: "switch", catalogType: "Switch", size: "md" },
   ];
 
-  /**
-   * replace-mode skiaPrimitive type — step 2 에서 rule 기반 측정으로 전환됨.
-   * rule variant textWeight:400 명시로 generic 측정도 spec label(미emit→400)과 일치(drift 0).
-   */
-  const replacePrimitiveCases: Array<{
-    tag: string;
-    spec: ComponentSpec<Record<string, unknown>>;
-    size: string;
-  }> = [
-    { tag: "checkbox", spec: CheckboxSpec, size: "md" },
-    { tag: "radio", spec: RadioSpec, size: "md" },
-    { tag: "switch", spec: SwitchSpec, size: "md" },
-  ];
-
-  for (const { tag, spec, size } of [
-    ...boxTextCutoverCases,
-    ...replacePrimitiveCases,
-  ]) {
+  for (const { tag, spec, size } of boxTextCutoverCases) {
     test(`${tag}: 측정 결과가 render.shapes oracle 과 fontSize/fontWeight/fontFamily 일치`, () => {
       const props = { size, children: "Sample" };
       const measured = extractSpecTextStyle(tag, props);
@@ -210,11 +198,7 @@ describe("extractSpecTextStyle — generic 발효 type 측정 parity (ADR-912 �
   }
 
   test("box+text 발효 type 은 텍스트 측정이 비어있지 않다(fontSize > 0)", () => {
-    for (const { tag } of [
-      ...boxTextCutoverCases,
-      ...replacePrimitiveCases,
-      ...specFreeCatalogCases,
-    ]) {
+    for (const { tag } of [...boxTextCutoverCases, ...specFreeCatalogCases]) {
       const m = extractSpecTextStyle(tag, { size: "md", children: "x" });
       expect(m, tag).not.toBeNull();
       expect(m!.fontSize, tag).toBeGreaterThan(0);

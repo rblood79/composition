@@ -19,9 +19,8 @@ import type { ComponentSpec } from "../types/spec.types";
 // Preview DOM element resolution 용도로 한정된다.
 import { DialogSpec } from "../components/Dialog.spec";
 import { PopoverSpec } from "../components/Popover.spec";
-import { CheckboxSpec } from "../components/Checkbox.spec";
-import { RadioSpec } from "../components/Radio.spec";
-import { SwitchSpec } from "../components/Switch.spec";
+// Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover →
+//   spec 삭제. getSpecForTag → null, buildSpecNodeData 가 isCatalogSkiaCutover 게이트로 통과(generic).
 import { SelectSpec } from "../components/Select.spec";
 import { ComboBoxSpec } from "../components/ComboBox.spec";
 import { ListBoxSpec } from "../components/ListBox.spec";
@@ -101,9 +100,7 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   Body: BodySpec,
   // ToggleButtonGroup — ADR-912 단계5 step4 type-augment 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   Tooltip: TooltipSpec,
-  Checkbox: CheckboxSpec,
-  Radio: RadioSpec,
-  Switch: SwitchSpec,
+  // Checkbox/Radio/Switch — ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): catalog cutover spec 삭제로 제거.
   Select: SelectSpec,
   ComboBox: ComboBoxSpec,
   ListBox: ListBoxSpec,
