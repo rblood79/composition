@@ -49,7 +49,7 @@ import { BreadcrumbsSpec } from "../components/Breadcrumbs.spec";
 import { TagGroupSpec } from "../components/TagGroup.spec";
 import { TagSpec } from "../components/Tag.spec";
 import { GridListSpec } from "../components/GridList.spec";
-import { ModalSpec } from "../components/Modal.spec";
+// ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, BASE entry 제거.
 // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec import 제거 — catalog cutover,
 //   BASE entry 제거. skipCSSGeneration:true + render.shapes=()=>[] (Skia 0 shape).
 import { ToolbarSpec } from "../components/Toolbar.spec";
@@ -149,7 +149,8 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   TagGroup: TagGroupSpec,
   Tag: TagSpec,
   GridList: GridListSpec,
-  Modal: ModalSpec,
+  // Modal — ADR-912 단계5 step4 small-B (2026-06-16): catalog cutover, BASE entry 제거.
+  //   isCatalogCutover('Modal')=true → Skia 진입 게이트 spec 없이 통과(render.shapes=()=>[] 동형).
   // Field — ADR-912 단계5 step4 trivial 그룹 (2026-06-16): catalog cutover, BASE entry 제거.
   //   isCatalogCutover('Field')=true → Skia 진입 게이트 spec 없이 통과(render.shapes=()=>[] 동형).
   // ADR-912 Disclosure 군 일괄 cutover (2026-06-10) — Disclosure/DisclosureGroup/DisclosureHeader/

@@ -3712,6 +3712,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       md: {
         paddingX: 24,
+        // ADR-912 단계5 step4 small-B (2026-06-16): paddingY/gap 보강 — spec 삭제 후 generated CSS
+        //   `padding: 24px 24px` + `gap: 8px` 재생성용 (ruleSizeToSizeSpec paddingY 기본 0/gap 미emit
+        //   회피, Nav/DropZone 선례). layout 컨테이너 배치 SSOT 는 factory props.style(ADR-907 Layer B).
+        paddingY: 24,
+        gap: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.xl}",
         height: 0,

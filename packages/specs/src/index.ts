@@ -553,7 +553,8 @@ export type { IllustratedMessageProps } from "./components/IllustratedMessage.sp
 // Properties-only Specs
 // ADR-912 단계5 step4 trivial 그룹 (2026-06-16): FieldSpec 물리 삭제 — catalog cutover.
 //   skipCSSGeneration:true + render.shapes=()=>[] (Skia 0 shape) + 외부 consumer 0. binding.accepts D2.
-export { ModalSpec } from "./components/Modal.spec";
+// ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec export 제거 — catalog cutover, STRUCTURE_META
+//   virtual override 가 CSS 생성(diff 0). binding.accepts D2 / Skia generic box.
 // ADR-912 6 registry collapse — TailSwatchSpec 삭제 (color leaf box-only cutover, 2026-06-11).
 
 // ─── Runtime (ADR-058 Pre-Phase 0 + Phase 1) ───────────────────────────────

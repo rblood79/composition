@@ -850,6 +850,22 @@ const STRUCTURE_META_ENTRIES: (StructureMeta & { name: string })[] = [
     containerStyles: undefined,
     states: { disabled: { opacity: 0.38 } },
   },
+  // ADR-912 단계5 step4 small-B (2026-06-16) — Modal (overlay archetype, Modal.spec.ts 삭제 대상).
+  //   archetype "overlay": CSSGenerator 가 `position:fixed`+`box-sizing:border-box` base 자동 emit.
+  //   variant default(transparent bg + text neutral)는 rule 파생. sizes.md(paddingX/paddingY/gap
+  //   2026-06-16 rule 보강 + fontSize/borderRadius/height)는 rule emit. Skia 는 spec render.shapes=[]
+  //   (시각 0) — catalog cutover generic box. composition 불요. states 미설정(default) — generated
+  //   CSS 의 [data-disabled](opacity+cursor:not-allowed+pointer-events) + [data-focus-visible] +
+  //   variant 내 hover/pressed(variant fill 파생)는 [data-variant] 블록에서 emit. root states 는
+  //   spec.states={} 미러 — disabled/focus-visible 는 CSSGenerator 기본 emit, hover/pressed root
+  //   빈 블록은 미생성(states:{} 라야 root [data-hovered]/[data-pressed] 빈 블록 0 = diff 0).
+  {
+    name: "Modal",
+    archetype: "overlay",
+    element: "div",
+    containerStyles: undefined,
+    states: {},
+  },
 ];
 
 /**

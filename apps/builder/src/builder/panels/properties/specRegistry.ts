@@ -36,7 +36,7 @@ import {
   ListBoxSpec,
   MenuSpec,
   MeterSpec,
-  ModalSpec,
+  // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, binding.accepts D2.
   NumberFieldSpec,
   PopoverSpec,
   ProgressBarSpec,
@@ -125,7 +125,8 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   ListBox: ListBoxSpec as ComponentSpec<Record<string, unknown>>,
   Menu: MenuSpec as ComponentSpec<Record<string, unknown>>,
   Meter: MeterSpec as ComponentSpec<Record<string, unknown>>,
-  Modal: ModalSpec as ComponentSpec<Record<string, unknown>>,
+  // Modal — ADR-912 단계5 step4 small-B (2026-06-16): catalog cutover → entry 제거.
+  //   GenericPropertyEditor 가 binding.accepts(Modal.binding.ts)로 properties 생성.
   // Nav — ADR-912 container shell catalog 완결: catalog cutover → GenericPropertyEditor 가
   //   binding.accepts (Nav.binding.ts: aria-label/variant/size) 로 properties 생성. spec 삭제로 등록 제거.
   NumberField: NumberFieldSpec as ComponentSpec<Record<string, unknown>>,

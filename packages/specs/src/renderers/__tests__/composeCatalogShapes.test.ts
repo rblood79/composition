@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DialogSpec } from "../../components/Dialog.spec";
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZoneSpec import 제거 — spec 삭제로
 //   parity 비교 대상(legacy render.shapes) 소멸. cutover parity 는 이미 입증(아래 describe 제거).
-import { ModalSpec } from "../../components/Modal.spec";
+// ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — spec 삭제로 parity 대상 소멸.
 import { PopoverSpec } from "../../components/Popover.spec";
 import { TooltipSpec } from "../../components/Tooltip.spec";
 import { buildCatalogShapes } from "../buildCatalogShapes";
@@ -170,30 +170,7 @@ describe("composeCatalogShapes — Tooltip (box, arrow append) parity", () => {
 // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): DropZone parity describe 제거 — DropZone.spec
 //   삭제로 legacy render.shapes 비교 대상 소멸. cutover parity(buildCatalogShapes generic box+dashed
 //   border ↔ 구 render.shapes)는 이미 입증됐고, 이제 catalog rule(COMPONENT_RULES_TABLE.DropZone)이
-//   단일 source → parity 테스트 존재 의의 소멸. Dialog/Popover/Tooltip/Modal 은 각 spec 보존(유지).
-
-describe("composeCatalogShapes — Modal (transparent shell, no primitive) parity", () => {
-  // Modal render.shapes=[] (portal 시각 없음, 자식 Element 컨테이너). buildCatalogShapes 는
-  // variant fill transparent → transparent box 생성하나 시각 무해(normalize 제외) → legacy [] 와
-  // 시각 동일. skiaPrimitive 없음(backdrop 은 ModalOverlay 별도 담당).
-  it("_hasChildren shell — transparent box(무해) 외 legacy [] 와 시각 동일", () => {
-    const sizeSpec = ModalSpec.sizes.md;
-    const props = { _hasChildren: true } as Record<string, unknown>;
-    const visual = resolveComponentVisual(
-      ModalSpec as never,
-      ModalSpec.defaultVariant ?? "default",
-    );
-    const base = buildCatalogShapes(visual, props, sizeSpec, "default");
-    // Modal 은 skiaPrimitive 없음 → prepend/append 빈 배열.
-    const composed = composeCatalogShapes(base, [], []);
-
-    const legacy = withoutContainer(
-      ModalSpec.render.shapes(
-        props as Parameters<typeof ModalSpec.render.shapes>[0],
-        sizeSpec,
-        "default",
-      ),
-    );
-    expect(normalize(composed)).toEqual(legacy);
-  });
-});
+//   단일 source → parity 테스트 존재 의의 소멸. Dialog/Popover/Tooltip 은 각 spec 보존(유지).
+// ADR-912 단계5 step4 small-B (2026-06-16): Modal parity describe 제거 — Modal.spec 삭제로 legacy
+//   render.shapes(=[]) 비교 대상 소멸. transparent shell parity 는 이미 입증됐고 catalog rule
+//   (COMPONENT_RULES_TABLE.Modal)이 단일 source → parity 테스트 존재 의의 소멸 (DropZone 동형).
