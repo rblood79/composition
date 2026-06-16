@@ -2706,6 +2706,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 — Section Header 시각 SSOT.
+  //   paddingX/paddingY/fontWeight 보강(구 HeaderSpec.sizes 미러). 현재 CSS source 는 ListBox.spec
+  //   inline child spec(childSpecs emit); 본 rule 은 SSOT 정합용(향후 rule 직접 source 전환 대비).
   Header: {
     defaultSize: "md",
     variants: {},
@@ -2714,16 +2717,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 12,
+        paddingY: 4,
+        fontWeight: 700,
       },
       md: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 12,
+        paddingY: 6,
+        fontWeight: 700,
       },
       lg: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
+        paddingX: 16,
+        paddingY: 8,
+        fontWeight: 700,
       },
     },
   },

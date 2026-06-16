@@ -17,11 +17,10 @@ import { resolveStateColors } from "../utils/stateEffect";
 // ADR-078 Phase 3: `resolveListBoxItemMetric` 로 Skia/layout 양쪽 item metric 단일 소스화.
 // ADR-912 collection item leaf cutover (2026-06-14): ListBoxItemSpec import 제거 — childSpecs 의
 //   ListBoxItem CSS inline emit 을 `generated/ListBoxItem.css` virtual 로 분리(generate-css
-//   TEXT_LEAF_META). childSpecs 는 [HeaderSpec] 만 유지(Header 는 삭제 대상 아님).
+//   TEXT_LEAF_META).
+// ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 — childSpecs 는 listBoxHeaderChildSpec
+//   인라인 객체로 Section Header CSS inline emit 유지 (아래 정의).
 import { resolveListBoxItemMetric } from "../renderers/utils/collectionItemMetrics";
-// ADR-099 Phase 3 (098-c 슬롯): HeaderSpec 도 childSpecs 경로로 inline emit —
-// `.react-aria-ListBox .react-aria-Header` 블록이 generated/ListBox.css 에 추가된다.
-import { HeaderSpec } from "./Header.spec";
 import {
   List,
   SquareX,
@@ -32,6 +31,78 @@ import {
   MousePointer2,
 } from "lucide-react";
 import { FILTERING_SECTION } from "../utils/sharedSections";
+
+/**
+ * Section Header — ListBox/GridList/Menu section 의 첫 자식 (RAC slot="section-header").
+ *
+ * ADR-099 Phase 3 (098-c 슬롯): sticky 위치 + muted 색상 + semibold.
+ * ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 물리 삭제 → childSpecs inline emit 보존을 위해
+ *   ListBox.spec 내부 인라인 child spec 으로 이관. `.react-aria-Header` 블록이
+ *   generated/ListBox.css 에 `generateCSS(child, embedMode)` 경로로 byte-identical emit.
+ *   STRUCTURE_META virtual 로는 standalone generated/Header.css 만 생성될 뿐 ListBox.css inline 이
+ *   안 되므로(buildVirtualSpecs 가 childSpecs 미주입) 인라인 객체가 유일한 byte-identical 보존책.
+ *   시각값 SSOT 는 componentRulesTable.Header.sizes (paddingX/paddingY/fontSize/borderRadius/fontWeight).
+ */
+const listBoxHeaderChildSpec: ComponentSpec<{ size?: "sm" | "md" | "lg" }> = {
+  name: "Header",
+  description:
+    "Section header — ListBox/GridList/Menu section 의 첫 자식 (RAC slot='section-header')",
+  archetype: "simple",
+  element: "div",
+  skipCSSGeneration: true,
+
+  // ADR-099 Phase 3: RAC 공식 Header 스타일 — sticky 위치 + muted 색상 + semibold.
+  containerStyles: {
+    position: "sticky",
+    background: "{color.raised}" as TokenRef,
+    text: "{color.neutral-subdued}" as TokenRef,
+  },
+
+  defaultSize: "md",
+
+  // md 기준 Header metric — RAC Header CSS emit 용 (componentRulesTable.Header.sizes 미러).
+  sizes: {
+    sm: {
+      height: 0,
+      paddingX: 12,
+      paddingY: 4,
+      fontSize: "{typography.text-xs}" as TokenRef,
+      borderRadius: "{radius.none}" as TokenRef,
+      fontWeight: 700,
+    },
+    md: {
+      height: 0,
+      paddingX: 12,
+      paddingY: 6,
+      fontSize: "{typography.text-xs}" as TokenRef,
+      borderRadius: "{radius.none}" as TokenRef,
+      fontWeight: 700,
+    },
+    lg: {
+      height: 0,
+      paddingX: 16,
+      paddingY: 8,
+      fontSize: "{typography.text-sm}" as TokenRef,
+      borderRadius: "{radius.none}" as TokenRef,
+      fontWeight: 700,
+    },
+  },
+
+  // Header 는 정적 텍스트 — hover/pressed/disabled 상태 의미 없음. 빈 states 객체로 선언.
+  //   (buildVirtualSpecs default states 를 받지 않도록 명시 — diff-0 보존 CRITICAL)
+  states: {},
+
+  render: {
+    shapes: () => [],
+    react: () => ({
+      role: "presentation",
+    }),
+    pixi: () => ({
+      eventMode: "passive" as const,
+      cursor: "default",
+    }),
+  },
+};
 
 /**
  * ListBox Props
@@ -104,10 +175,11 @@ export const ListBoxSpec: ComponentSpec<ListBoxProps> = {
   //   독립 `generated/ListBoxItem.css` virtual 로 분리(catalog rule SSOT). flat selector
   //   `.react-aria-ListBoxItem` 이라 수동 ListBox.css 의 orientation/layout/Popover cascade override 는
   //   동일 @layer 에서 그대로 적용(파일만 분리, cascade 위치 불변).
-  // ADR-099 Phase 3 (098-c 슬롯): HeaderSpec 은 childSpecs 유지 — `.react-aria-ListBox .react-aria-Header`
-  // 블록이 generated/ListBox.css 에 inline emit. Preview DOM 의 RAC `<Header>` 가 section 엔트리
-  // 렌더 시 sticky 위치 + muted 스타일 적용. (Header 는 삭제 대상 아님)
-  childSpecs: [HeaderSpec],
+  // ADR-099 Phase 3 (098-c 슬롯): Section Header 는 childSpecs inline emit — flat selector
+  // `.react-aria-Header` 블록이 generated/ListBox.css 에 추가된다. Preview DOM 의 RAC `<Header>` 가
+  // section 엔트리 렌더 시 sticky 위치 + muted 스타일 적용.
+  // ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 → 위 listBoxHeaderChildSpec 인라인 객체 사용.
+  childSpecs: [listBoxHeaderChildSpec],
 
   defaultVariant: "default",
   defaultSize: "md",

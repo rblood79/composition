@@ -22,10 +22,6 @@ import { FILTERING_SECTION } from "../utils/sharedSections";
 //   GridListItem 은 catalog cutover(isCatalogSkiaCutover) generic 경로(buildCatalogShapes +
 //   gridlist_card escape) 로 렌더 → childSpecs 자동 registry 등록 불요. metric resolver 만 유지.
 import { resolveGridListItemMetric } from "../renderers/utils/collectionItemMetrics";
-// ADR-099 Phase 5: HeaderSpec 도 childSpecs 경로로 관계 선언 —
-// GridList.skipCSSGeneration=true 이므로 Generator emit 안 하지만,
-// Spec 계층 관계를 SSOT 로 선언해 향후 skipCSSGeneration 해체 시 자동 연동.
-import { HeaderSpec } from "./Header.spec";
 
 /**
  * @deprecated GridList.spec.ts 내부에서만 사용 — StoredGridListItem 으로 대체.
@@ -70,9 +66,10 @@ export const GridListSpec: ComponentSpec<GridListProps> = {
   element: "div",
   skipCSSGeneration: true,
 
-  // ADR-099 Phase 5: HeaderSpec — Section Header Spec 계층 관계 SSOT 선언.
-  //   ADR-912 (2026-06-14): GridListItemSpec 제거(catalog cutover) — Header 만 유지.
-  childSpecs: [HeaderSpec],
+  // ADR-099 Phase 5: Section Header 계층 관계 — GridList.skipCSSGeneration=true 라 Generator emit
+  //   안 함(generated/GridList.css 부재). ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제로
+  //   childSpecs 참조 제거 (CSS 미emit 이라 diff 0). Section Header 시각은 ListBox.spec inline child
+  //   + componentRulesTable.Header SSOT.
 
   defaultVariant: "default",
   defaultSize: "md",

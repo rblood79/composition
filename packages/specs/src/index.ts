@@ -304,10 +304,8 @@ export {
   resolveListBoxItemRowHeight,
 } from "./renderers/utils/collectionItemMetrics";
 
-// Header (ADR-099 Phase 3 — section 헤더, CSS 자동 생성 전용, Builder Skia 미등록)
-export { HeaderSpec } from "./components/Header.spec";
-export type { HeaderProps } from "./components/Header.spec";
-
+// Header (ADR-099 Phase 3 — section 헤더). ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 —
+//   시각 SSOT = componentRulesTable.Header + ListBox.spec inline child spec (childSpecs CSS emit).
 export { SliderSpec, SLIDER_FILL_COLORS } from "./components/Slider.spec";
 export type { SliderProps } from "./components/Slider.spec";
 
