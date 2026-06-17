@@ -6020,12 +6020,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   text x = paddingX 로 좌측 정렬. Tag.spec sizes.paddingX(xs4/sm8/md12/lg16/xl24) 이전.
       //   미보강 시 `?? 0` fallback 으로 text 가 box 좌측 끝(padding 없음)에 붙음(chip 시각 깨짐).
       // iconSize: remove X(trailing_icon) glyph 크기 = round(fontSize × 0.75) (Tag.spec X 공식 동형).
+      // ADR-912 단계5 step4 (2026-06-17): paddingY 보강 — layout TAG_SIZE_CONFIG 가 spec.sizes 대신
+      //   ruleSizesToSizeSpecMap("Tag") 파생으로 이관(deriveSizeConfig 가 paddingY 소비 — allowsRemoving
+      //   우측 패딩 축소 계산). Tag.spec paddingY(xs1/sm2/md4/lg8/xl12 = (height-lineHeight)/2 동일값) 이전.
       xs: {
         fontSize: "{typography.text-2xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
         height: 18,
         paddingX: 4,
+        paddingY: 1,
         iconSize: 8,
       },
       sm: {
@@ -6034,6 +6038,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         height: 20,
         paddingX: 8,
+        paddingY: 2,
         iconSize: 9,
       },
       md: {
@@ -6042,6 +6047,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 28,
         paddingX: 12,
+        paddingY: 4,
         iconSize: 11,
       },
       lg: {
@@ -6050,6 +6056,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 40,
         paddingX: 16,
+        paddingY: 8,
         iconSize: 12,
       },
       xl: {
@@ -6058,6 +6065,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 52,
         paddingX: 24,
+        paddingY: 12,
         iconSize: 14,
       },
     },

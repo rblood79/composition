@@ -16,7 +16,8 @@ import type { CanvasLayoutNode } from "../layoutNode";
 import {
   fontFamily as specFontFamily,
   InputSpec,
-  TagSpec,
+  // ADR-912 단계5 step4 (2026-06-17): TagSpec import 제거 — TAG_SIZE_CONFIG 가
+  //   ruleSizesToSizeSpecMap("Tag") 파생으로 이관(아래, Tab/Card 동형 consumer 이관).
   // ADR-912 projection 3 cutover (2026-06-15): TabSpec import 제거 — TAB_SIZE_CONFIG 가
   //   ruleSizesToSizeSpecMap("Tab") 파생으로 이관(아래).
   // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — breadcrumbs/breadcrumb height
@@ -652,8 +653,11 @@ const MIN_BUTTON_HEIGHT = 0;
 // ADR-912: BadgeSpec.sizes → catalog rule(Badge) 파생
 const BADGE_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Badge"));
 
-// ADR-036: TagSpec.sizes에서 파생 (Badge와 paddingX가 다름)
-const TAG_SIZE_CONFIG = deriveSizeConfig(TagSpec.sizes);
+// ADR-912 단계5 step4 (2026-06-17): Tag catalog cutover → TagSpec.sizes 직접 import 제거.
+//   COMPONENT_RULES_TABLE.Tag.sizes(paddingX/paddingY/lineHeight/borderRadius/height 완비)에서
+//   파생(ruleSizesToSizeSpecMap, Badge/Tab/Card 동형 consumer 이관). paddingY 는 Tag.spec 값
+//   (xs1/sm2/md4/lg8/xl12 = (height-lineHeight)/2) 동일 보강 — allowsRemoving 우측 패딩 축소 보존.
+const TAG_SIZE_CONFIG = deriveSizeConfig(ruleSizesToSizeSpecMap("Tag"));
 
 // ADR-912: ToggleButtonSpec.sizes → catalog rule(ToggleButton) 파생
 const TOGGLEBUTTON_SIZE_CONFIG = deriveSizeConfig(

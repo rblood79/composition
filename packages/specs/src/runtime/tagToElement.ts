@@ -39,8 +39,10 @@ import { SliderSpec } from "../components/Slider.spec";
 // ADR-912 단계5 step4 (2026-06-16): BreadcrumbsSpec import 제거 — catalog cutover, spec 삭제. BASE entry 제거.
 // ADR-912 projection 3 cutover (2026-06-15): BreadcrumbSpec import 제거 — catalog cutover, BASE entry 제거.
 // ADR-912 R7 G1-c (2026-06-15): PaginationSpec import 제거 — catalog cutover, BASE_TAG_SPEC_MAP entry 제거.
-import { TagGroupSpec } from "../components/TagGroup.spec";
-import { TagSpec } from "../components/Tag.spec";
+// ADR-912 단계5 step4 (2026-06-17): TagGroupSpec/TagSpec import 제거 — catalog cutover spec 삭제.
+//   isCatalogSkiaCutover('TagGroup'|'Tag')=true → buildSpecNodeData 게이트가 spec 없이 통과.
+//   chip 시각은 appendTagRowProjection → Tag SceneNode(catalog rule), 컨테이너 layout 은
+//   resolveContainerStylesFallback/resolveActiveContainerVariants catalog fallback(메커니즘 8aa773bcc).
 // GridList — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
 //   isCatalogCutover('GridList')=true → Skia 진입 게이트 spec 없이 통과(skipCSSGeneration:true 동형).
 // ADR-912 단계5 step4 small-B (2026-06-16): ModalSpec import 제거 — catalog cutover, BASE entry 제거.
@@ -125,8 +127,10 @@ export const BASE_TAG_SPEC_MAP: Record<string, ComponentSpec> = {
   // ADR-912 projection 3 cutover (2026-06-15): Breadcrumb catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
   // ADR-912 R7 G1-c (2026-06-15): Pagination catalog cutover → BASE_TAG_SPEC_MAP entry 제거.
   //   isCatalogCutover('Pagination')=true → Skia 진입 게이트 spec 없이 통과. binding.accepts D2.
-  TagGroup: TagGroupSpec,
-  Tag: TagSpec,
+  // TagGroup/Tag — ADR-912 단계5 step4 (2026-06-17): catalog cutover spec 삭제, BASE entry 제거.
+  //   isCatalogSkiaCutover('TagGroup'|'Tag')=true → 게이트 통과. chip=appendTagRowProjection(Tag rule),
+  //   컨테이너 layout=catalog containerStyles/containerVariants fallback(8aa773bcc 메커니즘). DOM 은
+  //   부모 TagGroup self-compose(renderTagGroup useCollectionData) → DOM 변화 0.
   // GridList — ADR-912 단계5 step4 경량 이관 (2026-06-17): catalog cutover, BASE entry 제거.
   // Modal — ADR-912 단계5 step4 small-B (2026-06-16): catalog cutover, BASE entry 제거.
   //   isCatalogCutover('Modal')=true → Skia 진입 게이트 spec 없이 통과(render.shapes=()=>[] 동형).

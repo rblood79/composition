@@ -357,15 +357,18 @@ export { PROGRESSBAR_DIMENSIONS } from "./renderers/utils/valueFillMetrics";
 // ADR-912 R7 G1-c (2026-06-15): PaginationSpec/PaginationProps export 제거 — catalog cutover.
 //   시각 SSOT = COMPONENT_RULES_TABLE.Pagination + generate-css virtual. binding.accepts D2.
 
-export { TagGroupSpec } from "./components/TagGroup.spec";
-export type { TagGroupProps } from "./components/TagGroup.spec";
+// ADR-912 단계5 step4 (2026-06-17): TagGroupSpec/TagGroupProps export 제거 — catalog cutover
+//   spec 물리 삭제. 시각 SSOT = COMPONENT_RULES_TABLE.TagGroup (containerStyles/containerVariants
+//   포함) + generate-css. layout = catalog fallback 메커니즘(8aa773bcc). binding.accepts D2.
+//   TagGroupProps 외부 소비 0 (unified.types TagGroupElementProps / RAC AriaTagGroupProps 별개).
 
 // ADR-912 collection sub-part cutover (2026-06-15): TagListSpec / TAG_CHIP_SIZES /
 //   TagListProps export 제거 — TagList.spec.ts 물리 삭제(catalog cutover 완료).
 //   chip 치수는 Tag/TagList catalog rule, layout 은 implicitStyles 자족화로 이관됨.
 
-export { TagSpec } from "./components/Tag.spec";
-export type { TagProps as TagSpecProps } from "./components/Tag.spec";
+// ADR-912 단계5 step4 (2026-06-17): TagSpec/TagSpecProps export 제거 — catalog cutover spec 물리
+//   삭제. chip 시각 SSOT = COMPONENT_RULES_TABLE.Tag (appendTagRowProjection). StoredTagItem/
+//   RuntimeTagItem(taggroup-items)은 별개 파일로 유지.
 
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridList.spec 물리 삭제(catalog cutover).
 //   resolveGridListSpacingMetric + 2 타입은 collectionItemMetrics 로 이관(아래). GridListSpec/Props 제거.

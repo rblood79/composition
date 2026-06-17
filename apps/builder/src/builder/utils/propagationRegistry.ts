@@ -16,7 +16,8 @@ import {
   // ADR-912 단계5 step4 small-B (2026-06-16): SearchField/CheckboxGroup/RadioGroup/TextField/TextArea/NumberField/TimeField/ColorField Spec import 제거 — catalog cutover, propagation.rules 는 createPropagationOnlySpec 인라인 이관(Card 선례).
   // ADR-912 단계5 step4 toggle-indicator 그룹 (2026-06-16): Checkbox/Radio/Switch Spec import 제거 —
   //   catalog cutover, propagation.rules(size/children → Label)는 createPropagationOnlySpec 인라인 이관.
-  TagGroupSpec,
+  // ADR-912 단계5 step4 (2026-06-17): TagGroupSpec import 제거 — catalog cutover spec 삭제,
+  //   propagation.rules 11건은 tagGroupPropagationSpec(createPropagationOnlySpec 인라인)로 이관.
   DateFieldSpec,
   SliderSpec,
   // ADR-912 단계5 step4 경량 이관 (2026-06-17): ProgressBarSpec/MeterSpec import 제거 — catalog cutover spec 삭제.
@@ -563,6 +564,30 @@ export function _resetPropagationRegistry(): void {
   specEntries.length = 0;
 }
 
+// ADR-912 단계5 step4 (2026-06-17): TagGroup.spec.propagation.rules 11건 인라인 이관 —
+//   catalog cutover spec 삭제(Card/SearchField 선례). childPath 가 모두 string(spec 객체 미참조)
+//   이라 분리 무손실. size/allowsRemoving → Tag/TagList, label → Label.children, size → Label,
+//   items/variant/maxRows/selectedKeys/selectionMode → TagList(chip projection 좌표계 전파).
+//   override:true 필수 — allowsRemoving 토글 시 부모 최신값 덮어쓰기(자식 stale true 방지).
+const tagGroupPropagationSpec = createPropagationOnlySpec("TagGroup", [
+  { parentProp: "size", childPath: "Tag", override: true },
+  { parentProp: "size", childPath: "TagList", override: true },
+  { parentProp: "allowsRemoving", childPath: "Tag", override: true },
+  { parentProp: "allowsRemoving", childPath: "TagList", override: true },
+  { parentProp: "size", childPath: "Label", override: true },
+  {
+    parentProp: "label",
+    childPath: "Label",
+    childProp: "children",
+    override: true,
+  },
+  { parentProp: "items", childPath: "TagList", override: true },
+  { parentProp: "variant", childPath: "TagList", override: true },
+  { parentProp: "maxRows", childPath: "TagList", override: true },
+  { parentProp: "selectedKeys", childPath: "TagList", override: true },
+  { parentProp: "selectionMode", childPath: "TagList", override: true },
+]);
+
 // ─── Auto-register specs with propagation rules ────────────────────────────
 registerPropagationSpec("DatePicker", datePickerPropagationSpec);
 registerPropagationSpec("DateRangePicker", dateRangePickerPropagationSpec);
@@ -571,7 +596,7 @@ registerPropagationSpec("ComboBox", ComboBoxSpec);
 registerPropagationSpec("SearchField", searchFieldPropagationSpec);
 registerPropagationSpec("CheckboxGroup", checkboxGroupPropagationSpec);
 registerPropagationSpec("RadioGroup", radioGroupPropagationSpec);
-registerPropagationSpec("TagGroup", TagGroupSpec);
+registerPropagationSpec("TagGroup", tagGroupPropagationSpec);
 registerPropagationSpec("Checkbox", checkboxPropagationSpec);
 registerPropagationSpec("Radio", radioPropagationSpec);
 registerPropagationSpec("Switch", switchPropagationSpec);

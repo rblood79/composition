@@ -190,16 +190,14 @@ export {
 
 // Pagination — ADR-912 R7 G1-c (2026-06-15): catalog cutover, spec 삭제. binding.accepts D2.
 
-// TagGroup
-export { TagGroupSpec } from "./TagGroup.spec";
-export type { TagGroupProps } from "./TagGroup.spec";
+// TagGroup — ADR-912 단계5 step4 (2026-06-17): catalog cutover, spec 물리 삭제.
+//   시각 SSOT = COMPONENT_RULES_TABLE.TagGroup (containerStyles/containerVariants). binding.accepts D2.
 
 // TagList — ADR-912 collection sub-part cutover (2026-06-15): spec 물리 삭제.
 //   catalog rule + implicitStyles 자족화로 시각/layout 이관 완료.
 
-// Tag
-export { TagSpec } from "./Tag.spec";
-export type { TagProps as TagSpecProps } from "./Tag.spec";
+// Tag — ADR-912 단계5 step4 (2026-06-17): catalog cutover, spec 물리 삭제.
+//   chip 시각 SSOT = COMPONENT_RULES_TABLE.Tag (appendTagRowProjection).
 
 // GridList — ADR-912 단계5 step4 경량 이관 (2026-06-17): spec 물리 삭제(catalog cutover).
 //   resolveGridListSpacingMetric + 2 타입은 collectionItemMetrics 로 이관. GridListSpec/Props 제거.

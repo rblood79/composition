@@ -41,7 +41,8 @@ import {
   SliderSpec,
   SlotSpec,
   // ADR-912 R7 G1-b (2026-06-15): TableViewSpec import 제거 — catalog cutover, binding.accepts D2.
-  TagGroupSpec,
+  // ADR-912 단계5 step4 (2026-06-17): TagGroupSpec import 제거 — catalog cutover spec 삭제,
+  //   binding.accepts D2 (TagGroup.binding.ts). getPropertyEditorSpec("TagGroup") dead 경로.
   // ADR-912 단계5 step4 (2026-06-17): TabsSpec import 제거 — catalog cutover, spec 삭제. binding.accepts D2.
   // ADR-912 projection 3 cutover (2026-06-15): TabListSpec import 제거 — catalog cutover, binding.accepts D2.
   // ADR-912 R7 G1-c (2026-06-15): ToastSpec import 제거 — 순수 box-shell catalog cutover, binding.accepts D2.
@@ -132,7 +133,7 @@ export const PROPERTY_EDITOR_SPEC_MAP: Record<
   // ADR-912 6 registry collapse — TailSwatch box-only cutover (2026-06-11): catalog binding.accepts
   //   가 D2 properties 대체. ColorPicker alias placeholder 는 catalog rule box 시각 유지.
   // ADR-912 R7 G1-b (2026-06-15): TableView catalog cutover → entry 제거 (binding.accepts D2).
-  TagGroup: TagGroupSpec as ComponentSpec<Record<string, unknown>>,
+  // ADR-912 단계5 step4 (2026-06-17): TagGroup catalog cutover → entry 제거 (binding.accepts D2). spec 삭제.
   // ADR-912 단계5 step4 (2026-06-17): Tabs catalog cutover → entry 제거 (binding.accepts D2). spec 삭제.
   // ADR-912 projection 3 cutover (2026-06-15): TabList catalog cutover → entry 제거.
   //   GenericPropertyEditor 가 binding.accepts(TabList.binding.ts)로 properties 생성.

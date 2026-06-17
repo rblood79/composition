@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { ComponentSpec } from "../../types/spec.types";
-import { TagGroupSpec } from "../../components/TagGroup.spec";
+// ADR-912 단계5 step4 (2026-06-17): TagGroupSpec import 제거 — 물리 삭제, side variant 검증은
+//   inline spec-shape(catalog rule 동형)로 대체.
 import {
   resolveContainerVariants,
   matchNestedSelector,
@@ -111,8 +112,28 @@ describe("resolveContainerVariants — ADR-108 P1", () => {
     });
   });
 
-  it("TagGroupSpec side label variant mirrors shared CSS side rule", () => {
-    const result = resolveContainerVariants(TagGroupSpec, {
+  // ADR-912 단계5 step4 (2026-06-17): TagGroupSpec 물리 삭제 → catalog rule(COMPONENT_RULES_TABLE
+  //   .TagGroup.containerVariants, shared)이 SSOT. specs 는 shared 를 import 못 하므로(boundary)
+  //   본 테스트는 catalog rule 과 동일 값의 inline spec-shape 로 helper 동작만 확증.
+  //   실제 catalog fallback wiring 검증은 builder sideLabelImplicitStyles.test.ts (TagGroup side variant).
+  it("label-position:side variant mirrors shared CSS side rule (TagGroup catalog rule 동형)", () => {
+    const tagGroupSideRule = makeSpec<{ labelPosition?: "top" | "side" }>({
+      name: "TagGroup",
+      composition: {
+        delegation: [],
+        containerVariants: {
+          "label-position": {
+            side: {
+              styles: {
+                "flex-direction": "row",
+                "align-items": "flex-start",
+              },
+            },
+          },
+        },
+      },
+    });
+    const result = resolveContainerVariants(tagGroupSideRule, {
       labelPosition: "side",
     });
 
@@ -259,7 +280,11 @@ describe("matchNestedSelector — ADR-108 P1 whitelist", () => {
       matchNestedSelector("> :not(.react-aria-Label)", { type: "Label" }, true),
     ).toBe(false);
     expect(
-      matchNestedSelector("> :not(.react-aria-Label)", { type: "Input" }, false),
+      matchNestedSelector(
+        "> :not(.react-aria-Label)",
+        { type: "Input" },
+        false,
+      ),
     ).toBe(false);
   });
 
